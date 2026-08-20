@@ -663,6 +663,246 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Barra pública en pantallas angostas (320px = iPhone SE 1ª gen)
+   ──────────────────────────────────────────────────────────────────
+   A 320px la fila del nav no cerraba: lockup 167,4 + hamburguesa 44 + gap 8 +
+   CTA 95 = 314,4 dentro de 280px de contenido, y "Regístrate" se salía 14px
+   de la pantalla. Como el desborde ensancha el ICB, TODA la web pública
+   quedaba con scroll horizontal — medido 2026-08-20 en prod y en local:
+   scrollWidth 334 contra clientWidth 320.
+
+   ⚠️ El velo y el drawer CERRADO (`fixed`, `translate-x-full`) reportaban 334
+   y parecían culpables: son síntoma, no causa. Un elemento `fixed` no extiende
+   el área de scroll del documento; reportaban 334 porque el ICB ya se había
+   ensanchado por el desborde del nav. Medido ocultándolos: el scrollWidth se
+   quedaba en 334. Ocultando solo el CTA bajaba a 322. No agregar `overflow-x`
+   a html/body por esto — taparía el CTA en vez de arreglarlo (y `hidden` sobre
+   html rompe el `sticky` de esta misma barra).
+
+   El lockup NO se mutila: sigue siendo isólogo + wordmark con los colores y el
+   Archivo Black del brand book. Solo baja de escala en el tramo más angosto. */
+.site-nav {
+  --nav-brand: 30px;
+}
+@media (min-width: 640px) {
+  .site-nav {
+    --nav-brand: 38px;
+  }
+}
+@media (max-width: 374px) {
+  .site-nav {
+    --nav-brand: 24px;
+  }
+}
+
+/* Cabecera del drawer: mismo problema, otra caja. A 320px el lockup de 32px
+   mide 172,5 y el botón de cerrar 41,8 — juntos 214,3 dentro de 214,4 de
+   contenido, o sea CERO separación: el wordmark quedaba pegado a la ✕ (medido
+   2026-08-20). Nunca dio scroll horizontal porque el drawer es `fixed` y esos
+   no extienden el área de scroll del documento, por eso no salía en el reporte
+   del bug. Se achica igual en el tramo angosto.
+
+   Ojo: los dos `--*-brand` se leen con fallback (`var(--nav-brand, 30px)`) en
+   Nav.tsx. Sin él, si la variable no resuelve el `width` del <Image> queda
+   inválido y el lockup cae a las intrínsecas de next/image (48px) con el
+   wordmark en 16px — se ve mal y no falla nada. Pasó midiendo este mismo
+   cambio, con el CSS servido viejo. */
+#mobile-drawer {
+  --drawer-brand: 32px;
+}
+@media (max-width: 374px) {
+  #mobile-drawer {
+    --drawer-brand: 26px;
+  }
+}
+
+/* CTA de la barra angosta (<lg): comparte fila con el logo y la hamburguesa,
+   así que va más chico que el `.btn` base. Doble clase (`.btn.nav-cta-compact`)
+   para ganarle a `.btn` sin depender del orden del archivo. Antes vivía en un
+   `style` inline del componente. */
+.btn.nav-cta-compact {
+  height: 40px;
+  padding: 0 16px;
+  font-size: 13px;
+}
+@media (max-width: 374px) {
+  .btn.nav-cta-compact {
+    padding: 0 11px;
+    font-size: 12.5px;
+  }
+}
+
+/* Bajo 440px la barra pública muestra SÓLO el isólogo: sin el wordmark.
+   (SDD-0276 · founder 2026-08-20.)
+
+   Por qué. El CTA de la barra pasó de "Regístrate" a "Entrar o crear cuenta"
+   cuando las dos puertas de cuenta se unificaron en una. MEDIDO en el
+   navegador: 146px contra 85px, o sea **+61px**. Achicar el lockup por tramos
+   (`--nav-brand`) ya no alcanza — con el lockup completo el cluster pide
+   167 + 8 + 44 + 8 + 155 = 382px de contenido, y a 375px sólo hay 335. Apretar
+   padding y tipografía recuperaba ~44px: insuficiente. Quitar el wordmark
+   libera ~137px y deja aire de sobra hasta 320px.
+
+   Va acá y no en Nav.tsx a propósito: así el lockup sigue siendo UN solo
+   <span> con UNA sola precarga del isólogo, que es lo que arregló el barrido de
+   scroll horizontal. El wordmark completo sigue en el drawer, en escritorio y
+   en el resto del sitio — esto sólo aplica dentro de `.site-nav`.
+
+   ⚠️ El gancho `.brandmark-wordmark` lo pone `components/BrandMark.tsx`. Si
+   alguien lo renombra, esta regla deja de aplicar EN SILENCIO y el nav vuelve a
+   desbordar a 320px: lo atrapa `e2e/sin-scroll-horizontal.spec.ts`. */
+@media (max-width: 439px) {
+  .site-nav .brandmark-wordmark {
+    display: none;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   AVISO DE COOKIES — tarjeta compacta abajo a la IZQUIERDA.
+   (`components/CookieConsentBanner.tsx`)
+
+   Por qué izquierda y no la barra de ancho completo de antes: el aviso se abre
+   justo encima del formulario de acceso y registro, y en móvil la barra tapaba
+   tanto el formulario como el FAB de WhatsApp (bottom-right, el CTA principal
+   del sitio). Anclada a la izquierda y con el carril del FAB reservado, el
+   aviso informa sin secuestrar la pantalla.
+
+   El banner se monta en el <body> del layout raíz, FUERA de `#portal-shell`,
+   así que nunca hereda `[data-portal-theme]`: siempre pinta con la paleta
+   pública clara. Por eso la sombra navy vale en todos los casos.
+   ────────────────────────────────────────────────────────────────── */
+
+.cookie-dock {
+  position: fixed;
+  z-index: 100;
+  left: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  /* Carril del FAB (right: 20px + 60px de ancho) + aire. */
+  right: 92px;
+  display: flex;
+  /* El dock ocupa el ancho pero no intercepta clicks: sólo la tarjeta. */
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .cookie-dock {
+    left: 20px;
+    right: auto;
+    bottom: max(20px, env(safe-area-inset-bottom));
+  }
+}
+
+.cookie-card {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 380px;
+  padding: 14px 16px 15px;
+  border-radius: 14px;
+  /* --color-white, NO --color-paper: la tarjeta cae sobre páginas de papel, y
+     papel-sobre-papel medía 1,04:1 — se sostenía sólo con un borde de 1,27:1.
+     Blanco sobre papel + borde + sombra es la receta de card del brand book. */
+  background: var(--color-white);
+  border: 1px solid color-mix(in srgb, var(--color-ink) 16%, transparent);
+  color: var(--color-ink);
+  /* Sutil a propósito: --shadow-md vive scopeado en .pa-surface, no en :root,
+     así que la sombra se deriva del token de tinta en vez de inventar un hex. */
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--color-ink) 6%, transparent),
+    0 10px 28px -8px color-mix(in srgb, var(--color-ink) 22%, transparent);
+  animation: cookie-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cookie-card:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+@keyframes cookie-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cookie-card {
+    animation: none;
+  }
+}
+
+.cookie-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+/* Medido sobre la superficie blanca de la tarjeta: título 16,5:1 · cuerpo
+   (grey-700) 12,6:1 · enlace (wine-text) 10,6:1 · blanco sobre wine del botón
+   primario 10,6:1. BRAND.md regla 6 pide 4,5:1 a este tamaño de letra. */
+.cookie-text {
+  margin-top: 5px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-grey-700);
+}
+
+.cookie-text a {
+  color: var(--color-wine-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cookie-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+/* Compacta los botones del sistema DENTRO de la tarjeta (mismo patrón que
+   `.home-surface .btn`): se conservan color de marca, hover y focus ring de
+   `.btn`, y sólo se aprieta la caja — 48px de alto no caben en un aviso sutil. */
+.cookie-card .btn {
+  flex: 1 1 0;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  border-radius: 8px;
+  /* `.btn` fija line-height:1: si la etiqueta se parte en dos líneas, la segunda
+     se DESBORDA de los 36px en vez de agrandar el botón. Con el carril del FAB
+     reservado la tarjeta baja a ~282px en un teléfono de 390px, que es justo
+     donde pasaba. Las etiquetas van cortas y acá se garantiza una sola línea. */
+  white-space: nowrap;
+}
+
+/* El halo wine de .btn-primary pesa demasiado para una tarjeta de este tamaño. */
+.cookie-card .btn-primary {
+  box-shadow: none;
+}
+
+/* El borde default de .btn-ghost (grey-300) mide 1,65:1 sobre el papel: sobre
+   una superficie grande da igual porque el botón se lee por su texto, pero acá
+   los dos botones van del mismo tamaño y uno se veía flotando sin caja.
+   Al 50% de tinta el borde compuesto sobre el papel mide 3,2:1 — por encima del
+   3:1 que pide WCAG 1.4.11 para el contorno de un control. (Medir esto exige
+   componer el alfa sobre el fondo: el color crudo del token da un número
+   inflado que no es lo que se ve.) */
+.cookie-card .btn-ghost {
+  border-color: color-mix(in srgb, var(--color-ink) 50%, transparent);
+}
+.cookie-card .btn-ghost:hover {
+  border-color: var(--color-ink);
+}
+
+.cookie-card .btn:focus-visible {
+  outline-width: 2px;
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Sombras oficiales de cards — brand book · colors.json
    Aplicar .card-shadow en toda ventana/card blanca sobre bg-paper.
    ────────────────────────────────────────────────────────────────── */

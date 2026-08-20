@@ -71,12 +71,18 @@ const FOCUSABLE_SEL =
  * Ojo: esto NO viene del Norte, que no norma el nav público (verificado
  * 2026-07-31) — es una decisión de producto tomada acá.
  *
- * 🔴 ANCHO: la etiqueta pasó de 10 a 21 caracteres. Sumar un enlace de texto ya
- * había empujado la fila a 1039 px de contenido en 1024 de viewport (scroll
- * horizontal + logo tocando el primer enlace). Al tocar este nav se MIDE
- * `document.documentElement.scrollWidth` contra `innerWidth` a 1024, 1280, 390 y
- * 360 — mirar a 1366 no lo muestra. Quitar "Acceder" liberó el espacio que la
- * etiqueta nueva consume.
+ * 🔴 ANCHO: la etiqueta pasó de 10 a 21 caracteres — **+61 px medidos** en la
+ * barra angosta (146 contra 85). Esta fila desborda con una facilidad que
+ * sorprende, y ya lo hizo dos veces: sumar un enlace de texto la empujó a
+ * 1039 px de contenido en 1024 de viewport, y a 320 px el lockup completo sacaba
+ * el CTA de la pantalla — y un desborde acá ensancha el ICB, así que se lleva el
+ * scroll horizontal a TODO el sitio público, no sólo a esta página.
+ *
+ * Quitar "Acceder" liberó espacio en escritorio; en la barra angosta hizo falta
+ * además ocultar el wordmark bajo 440 px (regla en globals.css). Al tocar este
+ * nav se MIDE `scrollWidth` contra `clientWidth` a 320, 360, 375, 1024 y 1280 —
+ * mirar a 1366 no lo muestra. La red que lo atrapa es
+ * `e2e/sin-scroll-horizontal.spec.ts`.
  *
  * Accesibilidad (WCAG 2.2):
  * - Drawer y dropdown "Recursos" cierran con tecla Escape
@@ -226,30 +232,23 @@ export function Nav() {
         }
       >
         <div className="wrap flex items-center justify-between h-[76px]">
-          {/* Logo · TRES escalones. `shrink-0` evita que el flex comprima el
-              wordmark y lo monte sobre el menú (mismo componente, mismas
-              proporciones y colores — sólo cambia el tamaño).
+          {/* Logo · el lockup se achica por tramos para no chocar con el cluster
+              hamburguesa + CTA: 24px por debajo de 375, 30px en móvil normal,
+              38px desde sm. El tamaño llega por `--nav-brand` (definido en
+              globals.css sobre `.site-nav`) en vez de por dos <span> duplicados
+              con `sm:hidden` — así el isólogo se preloadea UNA vez, no dos.
+              `shrink-0` evita que el flex comprima el wordmark y lo monte sobre
+              el menú (mismo componente, mismas proporciones/colores — solo
+              cambia el tamaño).
 
-              🔴 Por qué el escalón de <440px (founder 2026-08-20, SDD-0276).
-              MEDIDO en el navegador, no estimado: el botón "Entrar o crear
-              cuenta" mide 146 px contra los 85 del viejo "Regístrate" — cuesta
-              **+61 px**. Con el lockup completo (167 px) el cluster pedía
-              20+167+44+8+146+20 = 405 px de contenido, así que a 385 el wordmark
-              ya TOCABA la hamburguesa (separación 0) y el botón tocaba el borde
-              derecho, y a 360 no entraba. Apretar padding, tipografía y tamaño
-              recuperaba ~44 px: insuficiente.
-
-              Quitar el wordmark libera 137 px y deja ~112 px de aire a 360. Se
-              quita SÓLO en la barra más angosta: el lockup completo sigue en el
-              menú desplegable, en escritorio y en el resto del sitio. */}
-          <span className="flex items-center shrink-0 min-[440px]:hidden">
-            <BrandMark asLink size={30} isologoOnly />
-          </span>
-          <span className="hidden min-[440px]:flex sm:hidden items-center shrink-0">
-            <BrandMark asLink size={30} />
-          </span>
-          <span className="hidden sm:flex items-center shrink-0">
-            <BrandMark asLink size={38} />
+              🔴 Y por debajo de 440px NO alcanza con achicarlo: ahí el wordmark
+              se oculta por CSS (`.site-nav .brandmark-wordmark`, globals.css).
+              MEDIDO, no estimado: el botón "Entrar o crear cuenta" de SDD-0276
+              mide 146px contra los 85 del viejo "Regístrate" — cuesta **+61px**,
+              y con el lockup completo el cluster no entra ni a 375. La regla
+              vive en CSS y no acá para conservar el span único de arriba. */}
+          <span className="flex items-center shrink-0">
+            <BrandMark asLink size="var(--nav-brand, 30px)" />
           </span>
 
           {/* Desktop nav: full horizontal desde lg (1024px). Actualidad es
@@ -355,7 +354,7 @@ export function Nav() {
           </div>
 
           {/* Mobile + tablet: hamburger + la puerta única (<lg = <1024px) */}
-          <div className="lg:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center gap-2 max-[374px]:gap-1.5">
             <button
               ref={hamburgerRef}
               type="button"
@@ -379,15 +378,13 @@ export function Nav() {
               </svg>
             </button>
             {/* En la barra angosta solo cabe UN botón — y desde SDD-0276 uno es
-                justo lo que hace falta: la puerta es una sola. Contáctenos sigue
-                a un toque de distancia, dentro del menú.
-                El padding y el tamaño bajan respecto al resto de superficies
-                porque la etiqueta tiene 21 caracteres y a 360 px comparte fila
-                con el logo y la hamburguesa (44 px). Medido, no estimado. */}
+                justo lo que hace falta: la puerta es una sola, así que ya no hay
+                que elegir cuál sacrificar. Contáctenos sigue a un toque de
+                distancia, dentro del menú. El tamaño lo pone `.nav-cta-compact`
+                en globals.css, no un `style` inline. */}
             <Link
               href="/entrar"
-              className="btn btn-primary whitespace-nowrap"
-              style={{ height: 40, padding: "0 12px", fontSize: 12.5 }}
+              className="btn btn-primary nav-cta-compact whitespace-nowrap"
             >
               Entrar o crear cuenta
             </Link>
@@ -421,7 +418,7 @@ export function Nav() {
         }}
       >
         <div className="flex items-center justify-between p-6 border-b border-grey-200">
-          <BrandMark size={32} />
+          <BrandMark size="var(--drawer-brand, 32px)" />
           <button
             type="button"
             onClick={close}

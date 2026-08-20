@@ -53,8 +53,12 @@ type Props = {
    * - `mono-dark`: navy sólido B&W (impresión, sello).
    */
   variant?: Variant;
-  /** Tamaño del isólogo en px (default 38). El wordmark escala automático. */
-  size?: number;
+  /**
+   * Tamaño del isólogo (default 38). Acepta un número en px o una longitud CSS
+   * —`clamp()`, `var(--x)`— para que el lockup cambie de tamaño por media query
+   * sin duplicar el nodo en el DOM. El wordmark escala automático.
+   */
+  size?: number | string;
   /**
    * Legacy alias de v2.x: `onDark={true}` equivale a `variant="reverse"`.
    * Mantenido para no romper imports existentes. `variant` tiene precedencia.
@@ -99,13 +103,28 @@ export function BrandMark({
   // BRAND-EXCEPTION 2026-05-27 autorizada por founder — diverge de la spec
   // canónica del brand book (0.31-0.60), pero la 0.80 vuelve cerca del
   // límite superior de la spec sin overshootear.
-  const markFontSize = Math.round(size * 0.8);
+  //
+  // Con `size` fluido (string) los derivados salen por `calc()` en vez de
+  // redondearse en JS. La rama numérica queda idéntica a como estaba —mismos
+  // redondeos, mismos px— así que ninguno de los call sites cambia de pixel.
+  const fluid = typeof size === "string";
+  const sizeCss = fluid ? size : `${size}px`;
+  const markFontSize = fluid
+    ? `calc(${size} * 0.8)`
+    : `${Math.round(size * 0.8)}px`;
   // Gap horizontal entre isólogo y wordmark ~18% del alto del isólogo.
-  const gap = Math.round(size * 0.18);
+  const gap = fluid ? `calc(${size} * 0.18)` : `${Math.round(size * 0.18)}px`;
 
   // Isólogo es 741×764 → aspect ratio 0.97. Mantenemos width fijo y dejamos
   // que la altura se ajuste vía aspect-ratio del Image.
-  const isologoHeight = Math.round(size * (764 / 741));
+  const isologoHeight = fluid
+    ? `calc(${size} * ${764 / 741})`
+    : `${Math.round(size * (764 / 741))}px`;
+  // next/image exige width/height numéricos: son la pista de intrínsecas para el
+  // optimizador, no el tamaño pintado (que lo fija el `style` de abajo, como ya
+  // hacía la rama numérica). Con tamaño fluido no hay un número real → default.
+  const intrinsicWidth = fluid ? 38 : size;
+  const intrinsicHeight = Math.round(intrinsicWidth * (764 / 741));
 
   const content = (
     <span
@@ -113,18 +132,18 @@ export function BrandMark({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: `${gap}px`,
+        gap,
         lineHeight: 1,
       }}
     >
       <Image
         src={cfg.file}
         alt="DTD Cargo"
-        width={size}
-        height={isologoHeight}
+        width={intrinsicWidth}
+        height={intrinsicHeight}
         priority
         style={{
-          width: size,
+          width: sizeCss,
           height: isologoHeight,
           objectFit: "contain",
           display: "block",
@@ -132,13 +151,19 @@ export function BrandMark({
       />
       {!isologoOnly && (
         <span
+          // Gancho de CSS para que una superficie pueda ocultar el wordmark por
+          // media query sin duplicar el <span> del lockup ni pasar props nuevas.
+          // Lo usa `.site-nav` bajo 440px (SDD-0276): ahí el botón "Entrar o
+          // crear cuenta" no deja sitio para las dos palabras. NO se estiliza
+          // desde acá — sólo existe para que globals.css pueda apuntarle.
+          className="brandmark-wordmark"
           style={{
             // Token de marca (Archivo Black) — NO `--font-archivo-black`, que el
             // portal redefine a Sora. El logo corporativo es capa branding y debe
             // quedar en Archivo Black en toda la app (regla del Norte).
             fontFamily: "var(--font-brand-display)",
             fontWeight: 900,
-            fontSize: `${markFontSize}px`,
+            fontSize: markFontSize,
             letterSpacing: "-0.02em",
             lineHeight: 0.9,
             whiteSpace: "nowrap",
