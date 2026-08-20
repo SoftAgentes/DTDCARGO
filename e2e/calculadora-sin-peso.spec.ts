@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { escribir } from "./_helpers/escribir";
+import { esperarHidratado } from "./_helpers/hidratacion";
 
 /**
  * SDD-0257 · la calculadora cotiza SIN el peso.
@@ -86,9 +87,16 @@ test.describe("SDD-0257 · precio sin el peso", () => {
     page,
   }) => {
     await page.goto("/tarifas");
-    await page.getByRole("tab").nth(1).click();
+
+    // El toggle es React: si el clic aterriza antes de la hidratación se pierde
+    // y el panel no abre nunca — y a diferencia del tecleo, un clic perdido no
+    // se recupera solo. Ver `_helpers/hidratacion.ts`.
+    const consolidado = page.getByRole("tab").nth(1);
+    await esperarHidratado(consolidado, "el toggle de modalidad");
+    await consolidado.click();
 
     const panel = page.locator("#panel-consolidado");
+    await expect(panel).toBeVisible();
     const cbm = panel.locator('input[placeholder="12"]');
 
     // 4 m³ × $580 = $2.320, techo 4 × 1.000 = 4.000 kg (por debajo del tope
