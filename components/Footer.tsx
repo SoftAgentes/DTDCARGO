@@ -78,7 +78,7 @@ export function Footer() {
             <FooterLink href="/servicios">Servicios</FooterLink>
             <FooterLink href="/pre-alertas">Pre-alertas</FooterLink>
             <FooterLink href="/nosotros">Nosotros</FooterLink>
-            <FooterLink href="/portal/login">Mi portal</FooterLink>
+            <FooterLink href="/entrar">Mi portal</FooterLink>
             <FooterLink href="/registro">Regístrate</FooterLink>
           </FooterCol>
 
@@ -96,7 +96,7 @@ export function Footer() {
           {/* Enlaces rápidos */}
           <FooterCol title="Enlaces rápidos">
             {/* Rastreo: el /track público se eliminó (vive dentro del portal). */}
-            <FooterLink href="/portal/login">Rastrea tu envío</FooterLink>
+            <FooterLink href="/entrar">Rastrea tu envío</FooterLink>
             <FooterLink href="/tarifas">Calculadora de envío</FooterLink>
             <FooterLink href="/contacto">Contáctenos</FooterLink>
             <FooterLink href="/enlaces">Enlaces</FooterLink>

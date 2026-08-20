@@ -47,7 +47,7 @@ export default async function AcceptTermsPage({ params }: Props) {
 
   const supabase = await createClient();
   const client = await getPortalClient(supabase);
-  if (!client) redirect("/portal/login");
+  if (!client) redirect("/entrar");
 
   const admin = createAdminClient();
 

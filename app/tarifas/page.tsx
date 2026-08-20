@@ -182,10 +182,15 @@ export default async function TarifasPage() {
 
         <section id="calculadora" className="pt-8 pb-10 lg:pb-14 scroll-mt-24">
           <div className="wrap max-w-[1100px]">
+            {/* `showRegisterCta` se enciende SÓLO acá (SDD-0276). El mismo
+                componente lo monta `/tarifas/embed`, que se incrusta en sitios
+                de terceros: ahí el bloque queda apagado para no romper el
+                white-label de un aliado. */}
             <TarifasTabs
               serverRate={serverRate}
               serverConfig={serverConfig}
               ciudades={ciudades}
+              showRegisterCta
             />
           </div>
         </section>

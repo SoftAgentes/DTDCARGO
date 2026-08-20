@@ -24,7 +24,7 @@ import {
  * Montado una sola vez en el layout raíz (junto a <Analytics/>).
  */
 
-const TRIGGER_PATHS = new Set(["/portal/login", "/registro"]);
+const TRIGGER_PATHS = new Set(["/entrar", "/registro"]);
 
 export function CookieConsentBanner() {
   const pathname = usePathname();

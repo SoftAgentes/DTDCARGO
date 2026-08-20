@@ -52,10 +52,18 @@ export function TarifasTabs({
   serverRate,
   serverConfig,
   ciudades,
+  showRegisterCta = false,
 }: {
   serverRate?: ServerRate;
   serverConfig?: CalcParams | null;
   ciudades?: Ciudad[];
+  /**
+   * Pasa el bloque "crear mi cuenta" a las dos pestañas (SDD-0276).
+   * Nace en `false`: este componente lo montan `/tarifas` **y**
+   * `/tarifas/embed`, y el embed vive en sitios de terceros. Ver el docblock de
+   * `showRegisterCta` en `CalculadoraForm`.
+   */
+  showRegisterCta?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("ddp");
   const [leaf, setLeaf] = useState<LeafState>(null);
@@ -137,6 +145,7 @@ export function TarifasTabs({
             serverConfig={serverConfig}
             ciudades={ciudades}
             directWhatsApp
+            showRegisterCta={showRegisterCta}
           />
         </div>
 
@@ -152,6 +161,7 @@ export function TarifasTabs({
             serverConfig={serverConfig}
             modo="consolidado"
             directWhatsApp
+            showRegisterCta={showRegisterCta}
           />
           <ConsolidadoFicha />
         </div>

@@ -452,12 +452,19 @@ const nextConfig: NextConfig = {
       // string, así que los deep-links `?tab=…&pipeline=…` siguen sirviendo.
       { source: "/studio/kommo", destination: "/studio/crm", permanent: true },
       { source: "/studio/leads", destination: "/studio/crm", permanent: true },
+      // SDD-0276: el login del portal se mudó a `/entrar`, la puerta única del
+      // sitio público. 301 permanente para no romper los correos de bienvenida
+      // e invitación ya enviados; Next preserva el query string, así que los
+      // `?email=…`, `?error=expired` y `?status=nohabilitado` siguen llegando.
+      { source: "/portal/login", destination: "/entrar", permanent: true },
       // Fase 6: el rastreo público se retiró — vive dentro del portal. El
       // buscador `/track` y los deep-links `/track/<código>` (que se comparten
-      // por WhatsApp) hacen 301 permanente al login del portal, sin dejar 404.
+      // por WhatsApp) hacen 301 permanente a la puerta, sin dejar 404.
       // El más específico primero para que gane sobre el genérico.
-      { source: "/track/:path*", destination: "/portal/login", permanent: true },
-      { source: "/track", destination: "/portal/login", permanent: true },
+      // ⚠️ Apuntan DIRECTO a `/entrar`, no al viejo `/portal/login`: encadenar
+      // 301 → 301 diluye equity SEO y suma un salto a cada enlace compartido.
+      { source: "/track/:path*", destination: "/entrar", permanent: true },
+      { source: "/track", destination: "/entrar", permanent: true },
       // Migración de dominio doortudoor.com → dtdcargo.com (Search Console
       // "Cambio de dirección" activo, 2026-06-07). El 301 del dominio viejo es
       // path-preserving, pero estas páginas del sitio VIEJO no tienen slug

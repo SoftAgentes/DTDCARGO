@@ -43,7 +43,7 @@ describe("registro · bifurcación ¿ya eres cliente?", () => {
     render(<RegisterForm />);
 
     const entrar = screen.getByRole("link", { name: /entrar a mi cuenta/i });
-    expect(entrar.getAttribute("href")).toBe("/portal/login");
+    expect(entrar.getAttribute("href")).toBe("/entrar");
   });
 
   it("explica el porqué: seguiría usando su Shipping Mark de siempre", () => {

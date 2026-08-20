@@ -425,7 +425,7 @@ export async function softDeleteClientAction(
 // ── Portal del Cliente (SDD-0042) ──────────────────────────────────────────
 // Habilitar / revocar el acceso del cliente al portal. Llaman a las RPCs
 // SECURITY DEFINER (portal_invite_client / portal_revoke_client) que validan
-// membresía de tenant. El cliente entra luego en /portal/login con su email.
+// membresía de tenant. El cliente entra luego en /entrar con su email.
 
 export async function invitePortalAction(
   clientId: string,
@@ -453,7 +453,7 @@ export async function invitePortalAction(
   const email = row?.client_email ?? null;
 
   // Correo de invitación (best-effort · NO rompe la habilitación si falla). El
-  // correo lleva al cliente a /portal/login con su email precargado; ahí pide su
+  // correo lleva al cliente a /entrar con su email precargado; ahí pide su
   // propio enlace de acceso (magic-link). SDD-0042.
   let warning: string | undefined;
   if (email) {

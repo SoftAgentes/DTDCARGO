@@ -1,7 +1,7 @@
 /**
  * Tests de portal-invite-email (SDD-0042). El correo de invitación lleva un enlace
  * DIRECTO (un clic → adentro, `generatePortalAccessLink`); si no se puede generar,
- * cae al fallback `/portal/login` con el email precargado.
+ * cae al fallback `/entrar` con el email precargado.
  *
  * `sendEmail` se mockea — sin red ni DB. El admin de Auth se mockea con
  * `makeAdmin` (auth.admin.generateLink/createUser). Verificamos el contrato.
@@ -20,7 +20,7 @@ import {
 } from "../portal-invite-email";
 
 /** fakeAdmin sin `.auth` → generateLink tira → generatePortalAccessLink cae a null
- *  → sendPortalInviteEmail usa el fallback `/portal/login`. */
+ *  → sendPortalInviteEmail usa el fallback `/entrar`. */
 const fakeAdmin = {} as never;
 
 type GenResult = {
@@ -88,9 +88,9 @@ describe("generatePortalAccessLink", () => {
 });
 
 describe("portalInviteUrl", () => {
-  it("apunta a /portal/login con el email precargado y normalizado", () => {
+  it("apunta a /entrar con el email precargado y normalizado", () => {
     const link = portalInviteUrl("  Ecotextil2015@Gmail.com ");
-    expect(link).toContain("/portal/login?email=");
+    expect(link).toContain("/entrar?email=");
     // el email va lower-case + url-encoded (@ → %40)
     expect(link).toContain("ecotextil2015%40gmail.com");
     expect(link).not.toContain("portal.dtdcargo.com");
@@ -129,8 +129,8 @@ describe("sendPortalInviteEmail", () => {
     expect(input.templateSlug).toBeUndefined();
     expect(input.subject).toContain("portal");
     expect(input.to).toBe("carlos@empresa.com");
-    // fakeAdmin no puede generar el enlace directo → CTA cae al fallback /portal/login
-    expect(input.html).toContain("/portal/login?email=carlos%40empresa.com");
+    // fakeAdmin no puede generar el enlace directo → CTA cae al fallback /entrar
+    expect(input.html).toContain("/entrar?email=carlos%40empresa.com");
     // el saludo usa el nombre del cliente
     expect(input.html).toContain("Carlos Pérez");
     expect(input.metadata?.source).toBe("portal_invite");
@@ -143,9 +143,9 @@ describe("sendPortalInviteEmail", () => {
     ]);
     await sendPortalInviteEmail(admin, "t", { email: "ana@mail.com", name: "Ana" });
     const [, , input] = sendEmailMock.mock.calls[0] as [unknown, string, { html?: string }];
-    // el CTA lleva el enlace mágico real, NO el /portal/login
+    // el CTA lleva el enlace mágico real, NO el /entrar
     expect(input.html).toContain("https://sb/verify?token=direct");
-    expect(input.html).not.toContain("/portal/login");
+    expect(input.html).not.toContain("/entrar");
     // copy del flujo directo
     expect(input.html).toContain("un clic");
   });

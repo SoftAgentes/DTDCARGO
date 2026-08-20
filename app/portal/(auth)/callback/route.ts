@@ -30,10 +30,10 @@ export async function GET(request: Request) {
       : null;
 
   if (!result) {
-    return NextResponse.redirect(`${origin}/portal/login?error=link`);
+    return NextResponse.redirect(`${origin}/entrar?error=link`);
   }
   if (result.error) {
-    return NextResponse.redirect(`${origin}/portal/login?error=expired`);
+    return NextResponse.redirect(`${origin}/entrar?error=expired`);
   }
 
   // Vincular la sesión con su cliente (match por email). Idempotente.
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
 
   if (!row?.bound) {
     // Sesión válida pero el email no corresponde a un cliente invitado.
-    return NextResponse.redirect(`${origin}/portal/login?status=nohabilitado`);
+    return NextResponse.redirect(`${origin}/entrar?status=nohabilitado`);
   }
 
   return NextResponse.redirect(`${origin}/portal`);

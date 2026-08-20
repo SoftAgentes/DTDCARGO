@@ -31,7 +31,7 @@ import { serializeJsonLd } from "@/lib/public/json-ld";
  * algo que no está activo — el resto de la página se transcribe tal cual
  * el copy aprobado.
  *
- * Todos los CTA "Iniciar pre-alerta" van a `/portal/login`: pre-alertar es
+ * Todos los CTA "Iniciar pre-alerta" van a `/entrar`: pre-alertar es
  * una acción del portal (requiere sesión), no del sitio público.
  */
 
@@ -114,7 +114,7 @@ export default function PreAlertasPage() {
                 revisa y la consolida — tú sigues cada paso desde el portal.
               </p>
               <div className="pa-hero-ctas">
-                <Link href="/portal/login" className="btn btn-primary btn-lg">
+                <Link href="/entrar" className="btn btn-primary btn-lg">
                   Iniciar pre-alerta
                 </Link>
                 <a href="#como-funciona" className="btn btn-ghost btn-lg">
@@ -303,7 +303,7 @@ export default function PreAlertasPage() {
                   </li>
                 </ul>
                 <div className="pa-b-ctas">
-                  <Link href="/portal/login" className="btn btn-primary">
+                  <Link href="/entrar" className="btn btn-primary">
                     Iniciar pre-alerta
                   </Link>
                 </div>
@@ -339,7 +339,7 @@ export default function PreAlertasPage() {
                   </li>
                 </ul>
                 <div className="pa-b-ctas">
-                  <Link href="/portal/login" className="btn btn-primary">
+                  <Link href="/entrar" className="btn btn-primary">
                     Iniciar pre-alerta
                   </Link>
                 </div>
@@ -412,7 +412,7 @@ export default function PreAlertasPage() {
                   </li>
                 </ul>
                 <div className="pa-b-ctas">
-                  <Link href="/portal/login" className="btn btn-primary">
+                  <Link href="/entrar" className="btn btn-primary">
                     Iniciar pre-alerta
                   </Link>
                   <Link href="/tarifas" className="btn btn-ghost">
@@ -514,7 +514,7 @@ export default function PreAlertasPage() {
               </p>
             </div>
             <div className="pa-final-ctas">
-              <Link href="/portal/login" className="btn btn-onwine btn-lg">
+              <Link href="/entrar" className="btn btn-onwine btn-lg">
                 Iniciar pre-alerta
               </Link>
               <Link href="/registro" className="btn btn-ghost btn-lg">
