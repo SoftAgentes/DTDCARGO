@@ -2,103 +2,116 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   OPEN_COOKIE_PREFS_EVENT,
   readCookieConsent,
+  readCookieConsentServer,
+  subscribeCookieConsent,
   updateGtagConsent,
   writeCookieConsent,
 } from "@/lib/cookie-consent";
 
 /**
- * Banner de consentimiento de cookies.
+ * Aviso de consentimiento de cookies.
  *
- * Se muestra automáticamente al **acceder o registrarse** (no en la primera
- * visita): con Consent Mode v2 en `denied` por defecto, no cae ninguna cookie
- * opcional mientras el usuario solo navega, así que pedir el permiso en el punto
- * de mayor intención (login/registro) es suficiente y menos intrusivo.
- *
- * También se reabre desde el enlace "Preferencias de cookies" del footer, en
- * cualquier página, vía el evento global `OPEN_COOKIE_PREFS_EVENT`.
+ * Se muestra al **acceder o registrarse** (no en la primera visita): con
+ * Consent Mode v2 en `denied` por defecto no cae ninguna cookie opcional
+ * mientras el usuario solo navega, así que pedir el permiso en el punto de
+ * mayor intención es suficiente y menos intrusivo. También se reabre desde
+ * "Preferencias de cookies" del footer, en cualquier página, vía el evento
+ * global `OPEN_COOKIE_PREFS_EVENT`.
  *
  * Montado una sola vez en el layout raíz (junto a <Analytics/>).
+ *
+ * 🔴 UNA SOLA FUENTE DE VERDAD: la cookie. `useSyncExternalStore` la lee como
+ * store externo, y `writeCookieConsent` notifica a los suscriptores — por eso
+ * decidir cierra el aviso en el mismo tick del click.
+ *
+ * La versión anterior cerraba apagando un `useState` que en la apertura
+ * automática YA valía `false`. React sale por el atajo de "mismo valor" y ni
+ * siquiera programa un render, así que el aviso se quedaba clavado: el usuario
+ * tocaba "Aceptar" y no pasaba nada hasta recargar. Por eso `reabierto` NO es
+ * el interruptor del aviso: cubre sólo la reapertura manual desde el footer.
  */
 
 const TRIGGER_PATHS = new Set(["/portal/login", "/registro"]);
 
 export function CookieConsentBanner() {
   const pathname = usePathname();
-  const mounted = useSyncExternalStore(
-    () => () => undefined,
-    () => true,
-    () => false,
+  const decision = useSyncExternalStore(
+    subscribeCookieConsent,
+    readCookieConsent,
+    readCookieConsentServer,
   );
-  const [manualOpen, setOpen] = useState(false);
-  const autoOpen =
-    mounted && !readCookieConsent() && TRIGGER_PATHS.has(pathname);
-  const open = manualOpen || autoOpen;
+  const [reabierto, setReabierto] = useState(false);
+  const tarjeta = useRef<HTMLDivElement>(null);
+
+  const abierto =
+    reabierto || (decision === null && TRIGGER_PATHS.has(pathname));
 
   // Reapertura desde el footer ("Preferencias de cookies").
   useEffect(() => {
-    function reopen() {
-      setOpen(true);
+    function reabrir() {
+      setReabierto(true);
     }
-    window.addEventListener(OPEN_COOKIE_PREFS_EVENT, reopen);
-    return () => window.removeEventListener(OPEN_COOKIE_PREFS_EVENT, reopen);
+    window.addEventListener(OPEN_COOKIE_PREFS_EVENT, reabrir);
+    return () => window.removeEventListener(OPEN_COOKIE_PREFS_EVENT, reabrir);
   }, []);
 
-  if (!open) return null;
+  // Quien llega por el enlace del footer navega con teclado o lector: sin mover
+  // el foco, el aviso aparece fuera del orden de tabulación (está al final del
+  // <body>) y para esa persona "no pasó nada". En la apertura automática NO se
+  // toca el foco: ahí el usuario está escribiendo en el formulario de acceso.
+  useEffect(() => {
+    if (reabierto) tarjeta.current?.focus();
+  }, [reabierto]);
 
-  function decide(granted: boolean) {
-    writeCookieConsent(granted ? "granted" : "denied");
-    updateGtagConsent(granted);
-    setOpen(false);
+  if (!abierto) return null;
+
+  function decidir(acepta: boolean) {
+    // Escribir la cookie notifica al store → este componente se desmonta ya.
+    writeCookieConsent(acepta ? "granted" : "denied");
+    updateGtagConsent(acepta);
+    setReabierto(false);
   }
 
   return (
-    <div
-      role="region"
-      aria-label="Aviso de cookies"
-      className="fixed inset-x-0 bottom-0 z-[100] p-3 sm:p-5"
-    >
-      <div
-        className="mx-auto max-w-[720px] rounded-2xl border p-5 sm:p-6 shadow-lg"
-        style={{
-          background: "var(--color-paper)",
-          borderColor: "color-mix(in srgb, var(--color-ink) 14%, transparent)",
-          color: "var(--color-ink)",
-        }}
-      >
-        <p className="text-[15px] font-bold tracking-[-0.01em]">
-          Usamos cookies
-        </p>
-        <p className="mt-2 text-[13.5px] leading-[1.6]" style={{ opacity: 0.8 }}>
-          Las cookies necesarias mantienen tu sesión segura. Las de{" "}
-          <strong>analítica y publicidad</strong> son opcionales y solo se
-          activan si las aceptas. Puedes cambiar tu decisión cuando quieras.{" "}
+    <div role="region" aria-label="Aviso de cookies" className="cookie-dock">
+      <div className="cookie-card" ref={tarjeta} tabIndex={-1}>
+        <p className="cookie-title">Usamos cookies</p>
+        <p className="cookie-text">
+          Las necesarias mantienen tu sesión. Las de analítica y publicidad son
+          opcionales y solo se activan si las aceptas.{" "}
+          {/* LNK-01 · punto 5: este aviso sale sobre el formulario de acceso y
+              registro, o sea una superficie de conversión. Leer la política es
+              una CONSULTA — si se lleva la pestaña, se lleva el formulario a
+              medio llenar. Abre aparte y se anuncia en el nombre accesible
+              (WCAG G201), que el texto visible es demasiado corto para decirlo. */}
           <Link
             href="/cookies"
-            className="underline underline-offset-2"
-            style={{ color: "var(--color-wine-text)" }}
+            target="_blank"
+            rel="noopener"
+            aria-label="Ver la política de cookies (abre en una pestaña nueva)"
           >
-            Ver Política de Cookies
+            Ver política
           </Link>
           .
         </p>
-        <div className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
+        <div className="cookie-actions">
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => decide(false)}
+            onClick={() => decidir(false)}
           >
-            Rechazar opcionales
+            Rechazar
           </button>
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => decide(true)}
+            onClick={() => decidir(true)}
           >
-            Aceptar todas
+            Aceptar
           </button>
         </div>
       </div>
