@@ -19,6 +19,8 @@ import {
   FlagCN,
   FlagVE,
 } from "@/components/Icon";
+import { SegmentosGlosario } from "@/components/TerminoGlosario";
+import { ambitoGlosario } from "@/lib/glosario-enlaces";
 import type { ServicioDetalle } from "@/lib/servicios-detalle";
 
 export const ESTADO_LABEL: Record<string, string> = {
@@ -41,6 +43,24 @@ export function SedeFlag({ sede }: { sede: ServicioDetalle["sede"] }) {
 export function FichaCuerpo({ service }: { service: ServicioDetalle }) {
   const hasIncluye = service.incluye.length > 0;
   const hasNoIncluye = service.noIncluye.length > 0;
+
+  // La ficha es UNA pieza para el lector, aunque por dentro sean muchos textos
+  // cortos. Un ámbito compartido enlaza cada término una sola vez en toda la
+  // ficha; sin él la del LCL consolidado llevaría 7 enlaces para 3 términos.
+  // Se resuelve acá, antes del JSX: mutar el registro mientras renderizan los
+  // hijos rompería en desarrollo, donde React invoca el render dos veces.
+  // El orden de estas llamadas es el orden en que se ven en pantalla — así el
+  // enlace cae en la primera mención que el lector encuentra, no en otra.
+  const glosar = ambitoGlosario();
+  const incluyeSegs = service.incluye.map((t) => glosar(t));
+  const noIncluyeSegs = service.noIncluye.map((t) => glosar(t));
+  const precioSegs = service.precio ? glosar(service.precio) : null;
+  const notaTablaSegs = service.precioTabla?.nota
+    ? glosar(service.precioTabla.nota)
+    : null;
+  const tiemposSegs = service.tiempos ? glosar(service.tiempos) : null;
+  const comoSegs = service.comoSolicitar ? glosar(service.comoSolicitar) : null;
+  const notaSegs = service.nota ? glosar(service.nota) : null;
   const cotizaMsg = buildWhatsAppLink(
     `Hola DTD Cargo, me interesa el servicio: ${service.titulo}. ¿Me pueden dar más información?`,
   );
@@ -53,12 +73,12 @@ export function FichaCuerpo({ service }: { service: ServicioDetalle }) {
             <div>
               <FieldLabel>Qué incluye</FieldLabel>
               <ul className="mt-3 flex flex-col gap-2 list-none p-0 m-0">
-                {service.incluye.map((it) => (
+                {service.incluye.map((it, i) => (
                   <li key={it} className="flex items-start gap-2.5 text-[14px] leading-[1.45] text-grey-700">
                     <span className="mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 bg-wine/10 text-wine">
                       <CheckIcon size={12} />
                     </span>
-                    {it}
+                    <SegmentosGlosario segmentos={incluyeSegs[i]} />
                   </li>
                 ))}
               </ul>
@@ -68,12 +88,12 @@ export function FichaCuerpo({ service }: { service: ServicioDetalle }) {
             <div>
               <FieldLabel>Qué no incluye</FieldLabel>
               <ul className="mt-3 flex flex-col gap-2 list-none p-0 m-0">
-                {service.noIncluye.map((it) => (
+                {service.noIncluye.map((it, i) => (
                   <li key={it} className="flex items-start gap-2.5 text-[14px] leading-[1.45] text-grey-700">
                     <span className="mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 bg-grey-100 text-grey-500">
                       <CloseIcon size={12} />
                     </span>
-                    {it}
+                    <SegmentosGlosario segmentos={noIncluyeSegs[i]} />
                   </li>
                 ))}
               </ul>
@@ -85,9 +105,9 @@ export function FichaCuerpo({ service }: { service: ServicioDetalle }) {
       {service.precioTabla && (
         <div className="mt-6 border-t border-grey-200 pt-5">
           <FieldLabel>Precio · comisión por monto</FieldLabel>
-          {service.precio && (
+          {precioSegs && (
             <p className="mt-2 text-[14px] leading-[1.5] text-grey-700 max-w-[62ch]">
-              {service.precio}
+              <SegmentosGlosario segmentos={precioSegs} />
             </p>
           )}
           <div className="mt-4 overflow-x-auto">
@@ -126,9 +146,9 @@ export function FichaCuerpo({ service }: { service: ServicioDetalle }) {
               </tbody>
             </table>
           </div>
-          {service.precioTabla.nota && (
+          {notaTablaSegs && (
             <p className="mt-3 text-[12.5px] leading-[1.5] text-grey-500">
-              {service.precioTabla.nota}
+              <SegmentosGlosario segmentos={notaTablaSegs} />
             </p>
           )}
         </div>
@@ -138,17 +158,28 @@ export function FichaCuerpo({ service }: { service: ServicioDetalle }) {
         service.tiempos ||
         service.comoSolicitar) && (
         <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 border-t border-grey-200 pt-5 m-0">
-          {service.precio && !service.precioTabla && (
-            <FieldBlock term="Precio o condición" desc={service.precio} />
+          {precioSegs && !service.precioTabla && (
+            <FieldBlock
+              term="Precio o condición"
+              desc={<SegmentosGlosario segmentos={precioSegs} />}
+            />
           )}
-          {service.tiempos && <FieldBlock term="Tiempos" desc={service.tiempos} />}
-          {service.comoSolicitar && <FieldBlock term="Cómo se solicita" desc={service.comoSolicitar} />}
+          {tiemposSegs && (
+            <FieldBlock term="Tiempos" desc={<SegmentosGlosario segmentos={tiemposSegs} />} />
+          )}
+          {comoSegs && (
+            <FieldBlock
+              term="Cómo se solicita"
+              desc={<SegmentosGlosario segmentos={comoSegs} />}
+            />
+          )}
         </dl>
       )}
 
-      {service.nota && (
+      {notaSegs && (
         <p className="mt-5 text-[12.5px] leading-[1.5] text-grey-500">
-          <span className="font-semibold text-grey-700">Nota:</span> {service.nota}
+          <span className="font-semibold text-grey-700">Nota:</span>{" "}
+          <SegmentosGlosario segmentos={notaSegs} />
         </p>
       )}
 
@@ -183,7 +214,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FieldBlock({ term, desc }: { term: string; desc: string }) {
+function FieldBlock({ term, desc }: { term: string; desc: React.ReactNode }) {
   return (
     <div>
       <dt className="text-[10.5px] font-bold tracking-[0.14em] uppercase text-grey-500">

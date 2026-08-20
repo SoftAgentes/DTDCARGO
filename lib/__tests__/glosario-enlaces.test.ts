@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  ambitoGlosario,
   hrefGlosario,
   partirPorTerminos,
   TERMINOS_ENLAZABLES,
@@ -133,5 +134,49 @@ describe("glosario · enlazado de términos", () => {
 
   it("hrefGlosario arma la ruta con el ancla", () => {
     expect(hrefGlosario("ddp")).toBe("/glosario#ddp");
+  });
+});
+
+/**
+ * Una ficha de servicio son muchos textos cortos que el lector ve como UNA
+ * pieza. Sin ámbito compartido cada viñeta enlaza lo suyo: medido sobre
+ * servicios-detalle.ts, 24 enlaces donde bastan 14.
+ */
+describe("glosario · ámbito compartido entre textos", () => {
+  const anclasDe = (segs: ReturnType<ReturnType<typeof ambitoGlosario>>) =>
+    segs.filter((s) => s.tipo === "termino").map((s) => (s as { ancla: string }).ancla);
+
+  it("el mismo término no se enlaza dos veces en el mismo ámbito", () => {
+    const glosar = ambitoGlosario();
+    expect(anclasDe(glosar("Se cobra por CBM."))).toEqual(["cbm"]);
+    expect(anclasDe(glosar("Tu CBM define el precio."))).toEqual([]);
+  });
+
+  it("términos distintos sí enlazan, cada uno una vez", () => {
+    const glosar = ambitoGlosario();
+    expect(anclasDe(glosar("Viaja LCL consolidado."))).toEqual(["lcl"]);
+    expect(anclasDe(glosar("Recibes tu Bill of Lading."))).toEqual(["bl"]);
+    expect(anclasDe(glosar("El LCL usa ese BL."))).toEqual([]);
+  });
+
+  // Cada ficha arranca de cero: si el registro se filtrara entre ámbitos, la
+  // segunda ficha de la página saldría sin un solo enlace.
+  it("dos ámbitos son independientes", () => {
+    const a = ambitoGlosario();
+    const b = ambitoGlosario();
+    expect(anclasDe(a("Tarifa DDP."))).toEqual(["ddp"]);
+    expect(anclasDe(b("Tarifa DDP."))).toEqual(["ddp"]);
+  });
+
+  it("respeta un excluir inicial — lo usa la página que ya explicó el término", () => {
+    const glosar = ambitoGlosario({ excluir: ["ddp"] });
+    expect(anclasDe(glosar("Tarifa DDP con CBM."))).toEqual(["cbm"]);
+  });
+
+  it("no pierde texto: los segmentos rearman cada original", () => {
+    const glosar = ambitoGlosario();
+    for (const t of ["Se cobra por CBM.", "El CBM manda.", "Tu BL llega después."]) {
+      expect(glosar(t).map((s) => s.valor).join("")).toBe(t);
+    }
   });
 });

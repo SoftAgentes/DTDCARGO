@@ -143,6 +143,38 @@ export function partirPorTerminos(
 }
 
 /** El href de una ficha del glosario. Un solo lugar por si la ruta cambia. */
+/**
+ * Un ÁMBITO de enlazado: varios textos que el lector ve como una sola pieza.
+ *
+ * `partirPorTerminos` limita el enlace a la primera aparición **dentro de un
+ * texto**. Eso alcanza para un párrafo, pero no para una ficha armada con
+ * muchos textos cortos: una ficha de servicio son viñetas, precio, tiempos y
+ * nota, y cada una enlazaría lo suyo. Medido sobre `lib/servicios-detalle.ts`:
+ * saldrían **24 enlaces donde bastan 14**, y la ficha del LCL consolidado
+ * llevaría 7 para 3 términos distintos.
+ *
+ * Devuelve una función que recuerda lo ya enlazado. Se llama **antes** del
+ * JSX, en el cuerpo del componente — nunca mutando durante el render de los
+ * hijos: en desarrollo React invoca el render dos veces, y un registro mutado
+ * ahí llegaría lleno a la segunda pasada y no enlazaría nada.
+ *
+ * ```ts
+ * const glosar = ambitoGlosario();
+ * const incluye = service.incluye.map((t) => glosar(t));
+ * const nota = service.nota ? glosar(service.nota) : null;
+ * ```
+ */
+export function ambitoGlosario(
+  opciones: { excluir?: string[] } = {},
+): (texto: string) => Segmento[] {
+  const usadas = new Set<string>(opciones.excluir ?? []);
+  return (texto: string) => {
+    const segs = partirPorTerminos(texto, { excluir: [...usadas] });
+    for (const s of segs) if (s.tipo === "termino") usadas.add(s.ancla);
+    return segs;
+  };
+}
+
 export function hrefGlosario(ancla: string): string {
   return `/glosario#${ancla}`;
 }
