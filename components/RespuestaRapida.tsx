@@ -12,18 +12,11 @@ export function RespuestaRapida({
   pregunta,
   respuesta,
   id,
-  glosarioEnNuevaPestana = false,
 }: {
   pregunta: string;
   respuesta: React.ReactNode;
   /** id opcional para anclar el bloque (ej. selector `speakable` del home). */
   id?: string;
-  /**
-   * `true` en superficies de conversión (`/tarifas`, `/fcl`): el enlace al
-   * glosario abre en pestaña nueva para no borrarle al visitante lo que llevaba
-   * escrito en la calculadora. Ver el docblock de `CbmAyuda`.
-   */
-  glosarioEnNuevaPestana?: boolean;
 }) {
   return (
     <section
@@ -42,7 +35,7 @@ export function RespuestaRapida({
               enlace propio), se respeta tal cual: envolverlo rompería su
               marcado. */}
           {typeof respuesta === "string" ? (
-            <ConGlosario nuevaPestana={glosarioEnNuevaPestana}>
+            <ConGlosario>
               {respuesta}
             </ConGlosario>
           ) : (

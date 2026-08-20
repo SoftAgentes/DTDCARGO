@@ -161,10 +161,7 @@ export default async function TarifasPage() {
               </p>
               <ul className="tf-feats">
                 <li>
-                  {/* nuevaPestana: /tarifas es superficie de conversión — sacar
-                      al visitante al glosario en la misma pestaña le borra la
-                      cotización a medio llenar (misma razón que CbmAyuda). */}
-                  <ConGlosario nuevaPestana>
+                  <ConGlosario>
                     Contenedor completo para ti, puerta a puerta (DDP)
                   </ConGlosario>
                 </li>
@@ -214,7 +211,6 @@ export default async function TarifasPage() {
 
         <RespuestaRapida
           id="respuesta-rapida"
-          glosarioEnNuevaPestana
           pregunta="¿Cuánto cuesta traer mercancía de China a Venezuela?"
           respuesta="El envío marítimo de carga suelta se cobra por volumen (CBM). En la modalidad puerta a puerta el precio depende del volumen y de la ciudad de destino, e incluye flete, aduana, impuestos y entrega; en la modalidad LCL consolidado la carga viaja hasta puerto en Venezuela y te entregamos tu propio Bill of Lading, con la aduana e impuestos por cuenta del cliente. Calcula tu estimado al instante con la herramienta de arriba; la tarifa final la confirma un asesor por WhatsApp según el producto, el peso y el volumen reales."
         />

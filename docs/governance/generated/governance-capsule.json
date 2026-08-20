@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-07-30T00:00:00.000Z",
-  "sourceCommit": "60391612402aa1a500d81e44a57c5edb67c023f6",
+  "generatedAt": "2026-08-20T00:00:00.000Z",
+  "sourceCommit": "104c15f2230755d1c9c911f52d4518d692b43e2a",
   "normativeSource": "docs/governance/README.md",
   "agentBrief": "docs/governance/AGENT-BRIEF.md",
   "commands": {
@@ -115,6 +115,13 @@
       "state": "aprobada — adopción pendiente",
       "approvedAt": "2026-07-29",
       "path": "docs/governance/policies/ico-01.md"
+    },
+    {
+      "code": "LNK-01",
+      "version": "1.0",
+      "state": "aprobada — adopción inicial en el sitio público",
+      "approvedAt": "2026-08-20",
+      "path": "docs/governance/policies/lnk-01.md"
     },
     {
       "code": "LOD-01",

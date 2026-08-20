@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "sourceCommit": "cba1f0520e602661551d91678c3bc13ef2062e37",
+  "sourceCommit": "104c15f2230755d1c9c911f52d4518d692b43e2a",
   "normativeSource": "docs/governance/README.md",
   "readOnly": true,
   "policies": [
@@ -110,6 +110,13 @@
       "path": "docs/governance/policies/ico-01.md"
     },
     {
+      "code": "LNK-01",
+      "version": "1.0",
+      "state": "aprobada — adopción inicial en el sitio público",
+      "approvedAt": "2026-08-20",
+      "path": "docs/governance/policies/lnk-01.md"
+    },
+    {
       "code": "LOD-01",
       "version": "1.0",
       "state": "aprobada — adopción pendiente",
@@ -195,6 +202,38 @@
     }
   ],
   "components": [
+    {
+      "id": "action-menu",
+      "name": "ActionMenu",
+      "status": "canonical",
+      "implementation": {
+        "path": "app/studio/_components/ui/ActionMenu.tsx",
+        "exportName": "ActionMenu"
+      },
+      "policyRefs": [
+        {
+          "code": "SGE-00",
+          "version": "1.0",
+          "path": "docs/governance/policies/sge-00.md"
+        },
+        {
+          "code": "BTN-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/btn-01.md"
+        },
+        {
+          "code": "A11Y-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/a11y-01.md"
+        },
+        {
+          "code": "CMP-01",
+          "version": "1.1",
+          "path": "docs/governance/policies/cmp-01.md"
+        }
+      ],
+      "replacement": null
+    },
     {
       "id": "confirm-dialog",
       "name": "ConfirmDialog",

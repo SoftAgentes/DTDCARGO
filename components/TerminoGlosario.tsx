@@ -19,22 +19,30 @@ import {
  * <ConGlosario>Viaja en modalidad DDP y pagas por CBM.</ConGlosario>
  * ```
  *
- * ⚠️ **En superficies de conversión, pasá `nuevaPestana`.** La calculadora de
- * `/tarifas` es el caso: mandar al visitante al glosario en la MISMA pestaña le
- * borra lo que llevaba escrito. Es la misma razón por la que `CbmAyuda` resuelve
- * la duda del CBM en un popover y deja el enlace al detalle para el final —
- * ver su docblock. Acá se respeta esa decisión en vez de contradecirla.
+ * ⚠️ **Abre en pestaña nueva SIEMPRE** (regla del founder, 2026-08-20). Consultar
+ * qué significa una sigla es un desvío lateral, no una navegación: quien está
+ * leyendo una FAQ o llenando la calculadora quiere la definición *sin* perder
+ * dónde estaba. Es la misma razón por la que `CbmAyuda` resuelve la duda del CBM
+ * en un popover y deja el enlace al detalle para el final (ver su docblock).
+ *
+ * Por eso `nuevaPestana` viene en `true` por defecto. La prop sigue existiendo
+ * para poder apagarla en un caso puntual, pero apagarla es la excepción.
+ *
+ * 🔴 **Y si abre pestaña nueva, hay que AVISARLO.** Un enlace que cambia de
+ * contexto sin decirlo desorienta a quien usa lector de pantalla — es la falla
+ * que WCAG cubre con G201. El aviso va en el `aria-label`, donde lo recibe la
+ * tecnología asistiva sin ensuciar el texto que se ve.
  */
 export function ConGlosario({
   children,
   excluir,
-  nuevaPestana = false,
+  nuevaPestana = true,
 }: {
   /** El texto a procesar. Sólo string: si necesitás JSX, envolvé cada trozo. */
   children: string;
   /** Anclas a NO enlazar (p. ej. la propia /glosario, o una sigla ya explicada al lado). */
   excluir?: string[];
-  /** `true` en superficies de conversión: abre en pestaña nueva y no pierde el formulario. */
+  /** Abre en pestaña nueva. `true` por defecto — apagarlo es la excepción. */
   nuevaPestana?: boolean;
 }) {
   const segmentos = partirPorTerminos(children, { excluir });
@@ -65,7 +73,7 @@ export function ConGlosario({
 export function TerminoEnlace({
   valor,
   ancla,
-  nuevaPestana = false,
+  nuevaPestana = true,
 }: {
   valor: string;
   ancla: string;
@@ -77,8 +85,13 @@ export function TerminoEnlace({
       className="termino-glosario"
       // El texto del enlace es una sigla: fuera de contexto ("DDP") no dice a
       // dónde lleva. El aria-label lo completa para lector de pantalla sin
-      // ensuciar lo que se ve.
-      aria-label={`${valor} — ver definición en el glosario`}
+      // ensuciar lo que se ve — e incluye el aviso de que cambia de contexto
+      // cuando abre pestaña nueva (WCAG G201).
+      aria-label={
+        nuevaPestana
+          ? `${valor} — ver definición en el glosario (abre en una pestaña nueva)`
+          : `${valor} — ver definición en el glosario`
+      }
       title={`${valor}: ver en el glosario`}
       {...(nuevaPestana ? { target: "_blank", rel: "noopener" } : {})}
     >
