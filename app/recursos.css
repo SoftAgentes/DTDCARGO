@@ -788,15 +788,22 @@
    toggle anterior por tarjetas icono+nombre+precio+flag, mismo patrón
    visual que las tf-card de arriba pero en superficie clara (la calculadora
    sigue viviendo en `bg-white`, ver CalculadoraForm.tsx). ────────────── */
+/* `minmax(0, …)`, NO `1fr` pelado: el mínimo automático de un item de grid es
+   su min-content, así que con `1fr` la pista crece hasta lo que pida el
+   contenido en vez de quedarse en el ancho disponible. A 320px eso daba una
+   pista de 301,9px dentro de un contenedor de 280 y el botón se salía 1,9px de
+   la pantalla — suficiente para dejar TODA la página con scroll horizontal
+   (medido 2026-08-20). Con el mínimo en 0 el texto envuelve y la pista se
+   queda en 280. Donde el contenido ya entraba, no cambia nada. */
 .calc-switch {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: var(--s-4);
   margin-bottom: var(--s-6);
 }
 @media (max-width: 640px) {
   .calc-switch {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 .calc-opt {

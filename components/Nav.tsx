@@ -210,15 +210,16 @@ export function Nav() {
         }
       >
         <div className="wrap flex items-center justify-between h-[76px]">
-          {/* Logo · lockup más compacto en móvil (<sm) para no chocar con el
-              cluster hamburguesa + CTA; tamaño pleno en sm+. `shrink-0` evita
-              que el flex comprima el wordmark y lo monte sobre el menú (mismo
-              componente, mismas proporciones/colores — solo cambia el tamaño). */}
-          <span className="flex items-center shrink-0 sm:hidden">
-            <BrandMark asLink size={30} />
-          </span>
-          <span className="hidden sm:flex items-center shrink-0">
-            <BrandMark asLink size={38} />
+          {/* Logo · el lockup se achica por tramos para no chocar con el cluster
+              hamburguesa + CTA: 24px por debajo de 375, 30px en móvil normal,
+              38px desde sm. El tamaño llega por `--nav-brand` (definido en
+              globals.css sobre `.site-nav`) en vez de por dos <span> duplicados
+              con `sm:hidden` — así el isólogo se preloadea UNA vez, no dos.
+              `shrink-0` evita que el flex comprima el wordmark y lo monte sobre
+              el menú (mismo componente, mismas proporciones/colores — solo
+              cambia el tamaño). */}
+          <span className="flex items-center shrink-0">
+            <BrandMark asLink size="var(--nav-brand, 30px)" />
           </span>
 
           {/* Desktop nav: full horizontal desde lg (1024px). Actualidad es
@@ -329,7 +330,7 @@ export function Nav() {
           </div>
 
           {/* Mobile + tablet: hamburger + Regístrate (<lg = <1024px) */}
-          <div className="lg:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center gap-2 max-[374px]:gap-1.5">
             <button
               ref={hamburgerRef}
               type="button"
@@ -354,11 +355,7 @@ export function Nav() {
             </button>
             {/* En la barra angosta solo cabe UN botón: va el de conversión.
                 Contáctenos sigue a un toque de distancia, dentro del menú. */}
-            <Link
-              href="/registro"
-              className="btn btn-primary"
-              style={{ height: 40, padding: "0 16px", fontSize: 13 }}
-            >
+            <Link href="/registro" className="btn btn-primary nav-cta-compact">
               Regístrate
             </Link>
           </div>
@@ -391,7 +388,7 @@ export function Nav() {
         }}
       >
         <div className="flex items-center justify-between p-6 border-b border-grey-200">
-          <BrandMark size={32} />
+          <BrandMark size="var(--drawer-brand, 32px)" />
           <button
             type="button"
             onClick={close}
