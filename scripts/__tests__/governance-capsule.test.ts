@@ -15,13 +15,13 @@ type Capsule = {
 };
 
 describe("cápsula ejecutable de gobernanza", () => {
-  it("indexa una vez las 27 políticas aprobadas", async () => {
+  it("indexa una vez las 28 políticas aprobadas", async () => {
     const sources = (await loadPolicySources()) as PolicySource[];
-    expect(sources).toHaveLength(27);
+    expect(sources).toHaveLength(28);
     await expect(validatePolicySources(sources)).resolves.toEqual([]);
     const capsule = buildCapsule(sources, "fixture-commit") as Capsule;
-    expect(capsule.policies).toHaveLength(27);
-    expect(new Set(capsule.policies.map(({ code }) => code)).size).toBe(27);
+    expect(capsule.policies).toHaveLength(28);
+    expect(new Set(capsule.policies.map(({ code }) => code)).size).toBe(28);
   });
 
   it("incluye los contratos A11Y-01, CMP-01 y PLG-01", async () => {

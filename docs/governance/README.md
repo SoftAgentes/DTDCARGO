@@ -116,6 +116,7 @@ artefactos permanecen en sus fuentes correspondientes.
 | Jerarquía visual | [VIS-01 v1.0](policies/vis-01.md) |
 | Tipografía por voz e idioma | [VIS-02 v1.0](policies/vis-02.md) |
 | Accesibilidad transversal | [A11Y-01 v1.1](policies/a11y-01.md) |
+| Enlaces y cambio de contexto | [LNK-01 v1.0](policies/lnk-01.md) |
 | Movimiento y tiempos | [MOT-01 v1.0](policies/mot-01.md) |
 | Carga y espera | [LOD-01 v1.0](policies/lod-01.md) |
 | Errores y recuperación | [ERR-01 v1.0](policies/err-01.md) |
@@ -266,6 +267,7 @@ disfraza elevando el estado normativo.
 | FRM-01 | Formularios y validación | aprobada v1.1 | Ciclo progresivo formalizado; patrones compartidos parciales | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
 | TBL-01 | Tablas, densidad y configuración | aprobada v1.0 | `ColumnManager` tiene adopción limitada | Auditar listados y móvil |
 | A11Y-01 | Accesibilidad transversal | aprobada v1.1 | Contratos tabs/menu/listbox explícitos; sin matriz integral | [REV-SGE-014](reviews/ux-patterns-video-audit-2026-07-29.md) |
+| LNK-01 | Enlaces y cambio de contexto | aprobada v1.0 | Adoptada en el enlazado al glosario; falta barrer documentos y destinos externos | [`TerminoGlosario.test.tsx`](../../components/TerminoGlosario.test.tsx) |
 | IA-01 | Interacciones asistidas por IA | aprobada v1.0 | Regla local “IA propone”; sin gate transversal | Auditar permisos, privacidad y evidencia |
 | CMP-01 | Ciclo de vida y madurez de componentes | aprobada v1.1 | `ConfirmDialog`, `SegmentedControl` y `NumericInput` canonical; `LLMModeToggle` deprecated con plan | [REV-SGE-017](reviews/cmp-01-v1-1-deprecated.md) y [REV-SGE-020](reviews/num-01-v1-1-numeric-input.md) |
 | PLG-01 | Plugin ejecutable de gobernanza | aprobada v1.0 | 0.1.2 repo/team reproducible: cache sincronizable, runner Node 7/7, read-only y sin capacidades remotas | [REV-SGE-025](reviews/plg-01-durable-runner-2026-07-31.md) · [REV-SGE-021](reviews/plg-01-install-forward-test.md) |

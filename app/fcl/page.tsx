@@ -84,7 +84,6 @@ export default function FclCalcPage() {
 
         <RespuestaRapida
           id="respuesta-rapida"
-          glosarioEnNuevaPestana
           pregunta="¿Cuánto cuesta un contenedor completo (FCL) de China a Venezuela?"
           respuesta="El flete de contenedor completo (FCL) se cotiza por contenedor y ruta (puerto de origen en China → puerto de destino en Venezuela) y tipo de contenedor (20', 40' o 40'HC). Saca un estimado referencial al instante con la herramienta de arriba; la tarifa en firme, con cupo y fecha, la confirma un asesor por WhatsApp. Si tu carga no llena un contenedor, se consolida por volumen (LCL)."
         />
