@@ -89,6 +89,19 @@ describe("banner de cookies — apertura automática (login / registro)", () => 
     expect(readCookieConsent()).toBe(guardado);
   });
 
+  // LNK-01 (aprobada 2026-08-20): el aviso vive sobre el formulario de acceso y
+  // registro. Leer la política es una CONSULTA — si se lleva la pestaña, se
+  // lleva el formulario a medio llenar. Y si abre aparte, hay que avisarlo.
+  it("el enlace a la política abre aparte, con noopener y avisado (LNK-01)", async () => {
+    render(<CookieConsentBanner />);
+    const enlace = await screen.findByRole("link", {
+      name: /pol[ií]tica de cookies \(abre en una pesta[ñn]a nueva\)/i,
+    });
+    expect(enlace).toHaveAttribute("href", "/cookies");
+    expect(enlace).toHaveAttribute("target", "_blank");
+    expect(enlace.getAttribute("rel")).toContain("noopener");
+  });
+
   it("actualiza el consentimiento de Google con las 4 señales de v2", async () => {
     const gtag = vi.fn();
     (window as unknown as Record<string, unknown>).gtag = gtag;

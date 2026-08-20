@@ -83,7 +83,20 @@ export function CookieConsentBanner() {
         <p className="cookie-text">
           Las necesarias mantienen tu sesión. Las de analítica y publicidad son
           opcionales y solo se activan si las aceptas.{" "}
-          <Link href="/cookies">Ver política</Link>.
+          {/* LNK-01 · punto 5: este aviso sale sobre el formulario de acceso y
+              registro, o sea una superficie de conversión. Leer la política es
+              una CONSULTA — si se lleva la pestaña, se lleva el formulario a
+              medio llenar. Abre aparte y se anuncia en el nombre accesible
+              (WCAG G201), que el texto visible es demasiado corto para decirlo. */}
+          <Link
+            href="/cookies"
+            target="_blank"
+            rel="noopener"
+            aria-label="Ver la política de cookies (abre en una pestaña nueva)"
+          >
+            Ver política
+          </Link>
+          .
         </p>
         <div className="cookie-actions">
           <button
