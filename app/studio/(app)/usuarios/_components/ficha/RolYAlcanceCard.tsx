@@ -203,6 +203,7 @@ export function RolYAlcanceCard({
             type="button"
             className="studio-btn studio-btn-sm"
             disabled={!hayCambio || pendiente || !!bloqueo}
+            aria-busy={pendiente}
             onClick={() => {
               setError(undefined);
               setConfirmando(true);
@@ -257,7 +258,17 @@ function Campo({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ flex: "1 1 150px", display: "flex", flexDirection: "column", gap: 5 }}>
+    <div
+      style={{
+        // Base de 150px, no máximo: el select CRECE. La etiqueta más
+        // larga es "Contabilidad" (~80px en Archivo 13px) más el chrome
+        // del control, así que no recorta ni en el peor caso.
+        flex: "1 1 150px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--s-1)",
+      }}
+    >
       <label htmlFor={htmlFor} className="studio-label">
         {etiqueta}
       </label>
