@@ -1,6 +1,6 @@
 ---
 sdd: 0275
-title: Los tres pendientes que dejó el rediseño de Usuarios, cerrados y medidos
+title: Los tres pendientes del rediseño de Usuarios, y un cuarto que salió al verificar
 status: in-progress
 author: Claude (ventana 2026-08-19)
 created: 2026-08-19
@@ -11,12 +11,16 @@ related: [0274, 0273, 0263, 0252]
 confidencialidad: interna
 ---
 
-# SDD-0275 · Los tres pendientes, cerrados y medidos
+# SDD-0275 · Los tres pendientes, y un cuarto que salió al verificar
 
 SDD-0273 y SDD-0274 salieron a producción con tres hallazgos abiertos, **todos
 preexistentes** y ninguno introducido por ese trabajo. Se cierran acá.
 
-Los tres se **midieron en un navegador**, no se calcularon.
+El **cuarto** (§4) no estaba en la lista: apareció al comprobar un número que el
+founder pidió verificar. Es el más grave de los cuatro, y es el que ninguna
+herramienta iba a encontrar — la señal era plausible y estaba mal.
+
+Los cuatro se **midieron**, no se calcularon.
 
 ## 1 · El badge `danger` daba 4,19:1 en tema oscuro
 
@@ -94,6 +98,34 @@ Tres cosas que el portal obliga y que son donde esto se rompe:
 3. **`createPortal` necesita `document`**, que no existe en el render del
    servidor: se monta tras el primer efecto.
 
+## 4 · La banda contaba a alguien que sí entra (encontrado al verificar)
+
+El founder pidió confirmar que, tras entrar Alejandro, la banda bajara de 4 a 3
+pendientes. **No bajaba: seguía en 4**, y el cuarto era un falso positivo.
+
+`accessStage` lee `user_tenants.last_login_at`, que escribe un trigger sobre
+`auth.sessions` (migr 0019). Medido en producción el 2026-08-20: **dos de nueve
+cuentas la tienen en `null` habiendo iniciado sesión de verdad** — una de ellas
+el 2026-06-20, y es la segunda cuenta admin del founder.
+
+Mientras esa columna sólo pintaba un «Nunca» en una celda de fecha, el falso
+negativo era cosmético. Con la banda de SDD-0274 deja de serlo: cuenta la
+cuenta como pendiente y **ofrece mandarle un correo de acceso a quien ya
+entra**. Una función construida sobre una señal que nadie había auditado.
+
+**Arreglo:** la página toma la **más reciente** entre `user_tenants.last_login_at`
+y `auth.users.last_sign_in_at` — la segunda es la fuente de verdad de Auth y la
+página **ya la estaba trayendo** para resolver los correos; sólo estaba sin usar.
+Cubre tanto el `null` como una columna que se haya quedado atrás.
+
+No se pierde fidelidad por tenant: el propio trigger actualiza todos los tenants
+del user a la vez, así que la columna nunca fue per-tenant de verdad.
+
+⚠️ **No se arregla el trigger ni se hace backfill.** No se midió *por qué*
+falla —los dos casos son de mayo y junio, y una cuenta del mismo día sí la
+tiene—, y una migración de datos sobre una señal que no se entiende es peor que
+leer la fuente correcta. Queda anotado como deuda con su evidencia.
+
 ## Verificación
 
 - `node scripts/verify.mjs` en verde.
@@ -101,6 +133,8 @@ Tres cosas que el portal obliga y que son donde esto se rompe:
 - Los **21 tests del contrato de teclado** de `ActionMenu` (BTN-01 §7) siguen
   pasando sin cambios: el portal no tocó el comportamiento, sólo dónde vive el
   nodo.
+- 6 pruebas de la regla de «último acceso», incluida la del caso real que la
+  motivó (columna en `null`, Auth con fecha).
 - 3 pruebas nuevas y 2 mutaciones rojas:
   - quitar el guard del panel en el clic-afuera → 2 pruebas en rojo;
   - volver a renderizar dentro del envoltorio (sin portal) → 1 en rojo.
