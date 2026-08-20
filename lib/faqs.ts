@@ -132,7 +132,27 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿Cuándo pago mi mercancía? ¿Tengo que adelantar dinero o dar un depósito?",
     respuesta:
-      "Bajo DDP puerta a puerta pagas cuando tu carga llega a Venezuela, no por adelantado: el flete, la aduana y los impuestos van incluidos y cancelas al momento de la entrega, así que no necesitas adelantar el costo del envío. La única excepción es si usas nuestra compra asistida para pagarle al proveedor en China, que se coordina aparte; por eso, si es tu primer envío o un caso especial, confírmalo con un asesor por WhatsApp antes de embarcar.",
+      "Con el Puerta a Puerta no adelantas dinero ni das depósito para embarcar: el flete, la aduana y los impuestos van en un solo precio y pagas al llegar. El cobro arranca cuando tu carga está por llegar: entre 5 y 10 días antes de que toque puerto en Venezuela un asesor te pasa el monto y los datos, con la referencia de tu Shipping Mark. Hay una restricción: si el flete termina costando más que tu mercancía, se pide un 50% por adelantado. Y si usas nuestra compra asistida para pagarle al proveedor en China, eso se coordina aparte. Si es tu primer envío o un caso especial, confírmalo con un asesor por WhatsApp antes de embarcar.",
+    bloques: [
+      {
+        tipo: "parrafo",
+        texto:
+          "Con el Puerta a Puerta no adelantas dinero ni das depósito para embarcar: el flete, la aduana y los impuestos van en un solo precio y pagas al llegar.",
+      },
+      {
+        tipo: "lista",
+        items: [
+          "Cuándo se cobra: el cobro arranca cuando tu carga está por llegar. Entre 5 y 10 días antes de que toque puerto en Venezuela un asesor te pasa el monto y los datos, con la referencia de tu Shipping Mark.",
+          "La restricción: si el flete termina costando más que tu mercancía, se pide un 50% por adelantado.",
+          "Compra asistida: si la usas para pagarle al proveedor en China, eso se coordina aparte.",
+        ],
+      },
+      {
+        tipo: "parrafo",
+        texto:
+          "Si es tu primer envío o un caso especial, confírmalo con un asesor por WhatsApp antes de embarcar.",
+      },
+    ],
     categoria: "precio-y-pago",
   },
   {
@@ -190,7 +210,7 @@ export const FAQS: Faq[] = [
   {
     pregunta: "¿Puedo cancelar mi envío o pedir un reembolso?",
     respuesta:
-      "Depende de en qué punto esté tu carga. Si cancelas antes de que llegue a nuestra bodega de origen o de que se embarque, se reembolsa lo pagado menos los gastos ya hechos y un cargo por gestión. Una vez que la carga fue recibida, consolidada o embarcada, ya no procede reembolso porque el servicio está en marcha. Cada caso se revisa según el Acuerdo de Servicios (Anexo A); escríbele a un asesor por WhatsApp con tu Shipping Mark y lo vemos contigo.",
+      "El punto de no retorno es la salida del contenedor. Mientras tu carga siga en nuestra bodega de China y el contenedor no haya zarpado, puedes arrepentirte: te despachamos la mercancía a donde nos digas. Pagas los costos que ya se hayan causado al recibirla y el flete desde nuestra bodega hasta ese nuevo destino, que se cancela aparte al momento de despacharla. Una vez que confirmamos la salida de tu carga de nuestro depósito en China, el servicio de DTD Cargo termina ahí. Si el contenedor ya zarpó, el envío sigue su curso y no procede reembolso porque el servicio está en marcha. Cada caso se revisa según el Acuerdo de Servicios (Anexo A); escríbele a un asesor por WhatsApp con tu Shipping Mark y lo vemos contigo.",
     categoria: "precio-y-pago",
   },
   {
