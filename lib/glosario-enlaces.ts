@@ -47,8 +47,12 @@ export type TerminoEnlazable = {
 };
 
 /**
- * La lista curada. El orden importa: se prueba de más largo a más corto para
- * que "HS Code" gane antes de que algo intente matchear "HS" suelto.
+ * La lista curada. El orden importa y tiene DOS reglas, no una:
+ *
+ *  · Entre variantes que compiten por el mismo texto, primero la más larga
+ *    ("Incoterms" antes que "Incoterm").
+ *  · Entre una sigla y su nombre largo, primero la SIGLA — así "tu BL (Bill of
+ *    Lading)" enlaza donde el ojo llega primero.
  */
 export const TERMINOS_ENLAZABLES: TerminoEnlazable[] = [
   { patron: "Shipping Mark", ancla: "markbox", sensible: false },
@@ -65,6 +69,13 @@ export const TERMINOS_ENLAZABLES: TerminoEnlazable[] = [
   { patron: "LCL", ancla: "lcl", sensible: true },
   { patron: "POD", ancla: "pod", sensible: true },
   { patron: "BL", ancla: "bl", sensible: true },
+  // Los nombres largos van DESPUÉS de su sigla, y el orden no es cosmético: en
+  // "tu BL (Bill of Lading)" queremos el enlace en la sigla, que es lo primero
+  // que se lee. Como la sigla se compara sensible a mayúsculas, "BL" nunca
+  // matchea dentro de "Bill" — así que las dos entradas conviven sin pisarse y
+  // cada texto enlaza la forma que de verdad usa.
+  { patron: "Bill of Lading", ancla: "bl", sensible: false },
+  { patron: "Air Waybill", ancla: "awb", sensible: false },
 ];
 
 /** Un trozo del texto ya resuelto: o es texto pelado, o es un término a enlazar. */
@@ -132,6 +143,38 @@ export function partirPorTerminos(
 }
 
 /** El href de una ficha del glosario. Un solo lugar por si la ruta cambia. */
+/**
+ * Un ÁMBITO de enlazado: varios textos que el lector ve como una sola pieza.
+ *
+ * `partirPorTerminos` limita el enlace a la primera aparición **dentro de un
+ * texto**. Eso alcanza para un párrafo, pero no para una ficha armada con
+ * muchos textos cortos: una ficha de servicio son viñetas, precio, tiempos y
+ * nota, y cada una enlazaría lo suyo. Medido sobre `lib/servicios-detalle.ts`:
+ * saldrían **24 enlaces donde bastan 14**, y la ficha del LCL consolidado
+ * llevaría 7 para 3 términos distintos.
+ *
+ * Devuelve una función que recuerda lo ya enlazado. Se llama **antes** del
+ * JSX, en el cuerpo del componente — nunca mutando durante el render de los
+ * hijos: en desarrollo React invoca el render dos veces, y un registro mutado
+ * ahí llegaría lleno a la segunda pasada y no enlazaría nada.
+ *
+ * ```ts
+ * const glosar = ambitoGlosario();
+ * const incluye = service.incluye.map((t) => glosar(t));
+ * const nota = service.nota ? glosar(service.nota) : null;
+ * ```
+ */
+export function ambitoGlosario(
+  opciones: { excluir?: string[] } = {},
+): (texto: string) => Segmento[] {
+  const usadas = new Set<string>(opciones.excluir ?? []);
+  return (texto: string) => {
+    const segs = partirPorTerminos(texto, { excluir: [...usadas] });
+    for (const s of segs) if (s.tipo === "termino") usadas.add(s.ancla);
+    return segs;
+  };
+}
+
 export function hrefGlosario(ancla: string): string {
   return `/glosario#${ancla}`;
 }

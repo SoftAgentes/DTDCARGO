@@ -1,4 +1,5 @@
 import { test, expect, type Locator } from "@playwright/test";
+import { esperarHidratado } from "./_helpers/hidratacion";
 
 /**
  * Abre el panel de forma resistente a la hidratación.
@@ -14,6 +15,27 @@ import { test, expect, type Locator } from "@playwright/test";
  * antes — así el bloque es idempotente y `toPass` puede repetirlo sin miedo.
  */
 async function abrirPanel(boton: Locator, panel: Locator) {
+  // El gate va PRIMERO, y el reintento queda de respaldo.
+  //
+  // Reintentar el clic no puede fabricar la hidratación, y acá hacen falta DOS
+  // cosas que sólo llegan con ella: el `onClick` que llama `togglePopover()`, y
+  // el `useEffect` que registra `beforetoggle` y es quien mueve `aria-expanded`
+  // (ver `components/CbmAyuda.tsx`). Contra HTML del servidor se puede clickear
+  // para siempre — que es justo lo que se ve en el gate del 2026-08-20, donde
+  // este test agotó los 20 s del `toPass` con `aria-expanded` clavado en
+  // "false" tras 12 intentos (mobile-safari).
+  //
+  // ⚠️ Honestidad sobre la evidencia: el fallo del gate está medido, pero NO se
+  // pudo reproducir a voluntad. Forzando la carrera con `waitUntil: "commit"`
+  // sobre un dev server frío, `page.goto` aborta (`net::ERR_ABORTED`) antes de
+  // llegar a la aserción, así que esa sonda no distingue los dos brazos — con y
+  // sin gate fallan por el artefacto. Lo que sí quedó probado por mutación con
+  // esa técnica es el caso del drawer en `sin-scroll-horizontal.spec.ts`, que es
+  // la misma clase de bug. Acá el gate se deja porque ataca exactamente el
+  // estado al que el bucle de reintentos no puede llegar solo.
+  //
+  // Idempotente: una vez hidratado, la espera vuelve al instante.
+  await esperarHidratado(boton, 'el "?" del CBM');
   await expect(async () => {
     if ((await boton.getAttribute("aria-expanded")) !== "true") {
       await boton.click();
