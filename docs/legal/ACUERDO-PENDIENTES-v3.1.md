@@ -206,6 +206,59 @@ publicada declara ese procesamiento (`/privacidad` §4 y §5). Dos redacciones p
 2. `lib/legal-public.ts` (`ACUERDO_SERVICIOS`, bloque de la sección 11 — línea 73)
 3. `supabase/migrations/NNNN_*.sql` → INSERT de la fila `legal_docs` v3.1
 
+### 7. Cláusula 7.1 — la modalidad de cobro real no está contemplada (2026-08-20, decisión Sam)
+
+**7.1 de v3.0 sólo ofrece dos modalidades:** *pago anticipado (100% antes del embarque)* o
+*pago contra entrega (PCE)*, y en PCE fija el plazo desde la **notificación de arribo**
+(15 días hábiles antes de que corran retención y bodegaje).
+
+**Lo que la operación hace de verdad no es ninguna de las dos:** la gestión de cobranza
+**arranca de 5 a 10 días ANTES de que la mercancía llegue a puerto venezolano**, y el pago
+se completa en esa ventana — antes del arribo, no después. Aplica a **todo marítimo**: LCL
+puerta a puerta, consolidado y FCL.
+
+**Y falta la excepción al "sin adelantos":** si el **flete resulta más costoso que la
+mercancía**, se exige un **50% por adelantado**. Hoy el texto legal no la nombra, aunque es
+la única condición dura del esquema.
+
+**Qué pedirle al abogado:** una tercera modalidad (o una redacción de PCE que admita el
+cobro pre-arribo) + la excepción del 50% con su criterio de disparo.
+
+**Ya reflejado fuera del texto congelado:**
+- `/faq` → `lib/faqs.ts` ("¿Cuándo pago mi mercancía?").
+- Base del bot → `faq-knowledge-base.md` §22 (respuesta + nota interna).
+- Manual del asesor → `equipo-crm/02-respuestas-CRM.md` §10 `/pago`.
+
+### 8. Anexo A — la ventana de arrepentimiento y el cargo por cancelación (2026-08-20, decisión Sam)
+
+Dos divergencias **deliberadas** entre el Anexo A de v3.0 y la regla comercial vigente. Se
+anotan, no se parchean, porque el texto de v3.0 está congelado.
+
+**8a. El corte se mueve.** **A.2** corta el reembolso cuando la carga es *recibida,
+consolidada o embarcada* — o sea, ya al **recibirla en bodega de origen**. La regla vigente
+lo corta más tarde: **el punto de no retorno es la salida del contenedor**. Mientras el
+contenedor no zarpe, el cliente puede retirar su mercancía; se le despacha al destino que
+indique y **él paga ese flete**, más los costos ya causados al recibirla. Confirmada la
+salida del depósito en China, hasta ahí llega el servicio de DTD Cargo.
+
+**8b. 🔴 El cargo de A.3 se elimina.** **A.3** cobra **5% del flete cotizado** (10% con
+gestiones iniciadas), **mínimo USD 30**. La regla vigente **ya no lo cobra** y el copy
+público dejará de mencionarlo.
+
+> ⚠️ **Esta es la divergencia que más pesa, y es consciente.** `/terminos` está `noindex` y
+> sin link en el footer (`TERMINOS_LIVE = false`), pero **el Acuerdo v3.0 es vinculante
+> igual**: el cliente lo acepta al confirmar su cotización. Hasta que salga v3.1 hay un
+> cargo aceptado por contrato que no se cobra y que el FAQ no nombra. Decisión explícita
+> del founder el 2026-08-20 — no es un descuido de redacción.
+
+**Qué pedirle al abogado:** reescribir A.2 con el corte en la salida del contenedor, definir
+quién asume el flete de salida y los costos causados, y **suprimir A.3**.
+
+**Ya reflejado fuera del texto congelado:**
+- `/faq` → `lib/faqs.ts` ("¿Puedo cancelar mi envío o pedir un reembolso?").
+- Base del bot → `faq-knowledge-base.md` §17.
+- Manual del asesor → `equipo-crm/02-respuestas-CRM.md` §10-bis `/cancelar`.
+
 ## Pendientes del abogado ya conocidos (no duplicar aquí)
 
 Los ~11 placeholders `[…]` de v3.0 (RIF, no-competencia, DEG, días de reclamo, prima de

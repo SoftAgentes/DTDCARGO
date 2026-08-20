@@ -525,9 +525,10 @@ falle, te escribe.
 ## 10. "¿Puedo pagar por adelantado? / ¿me financian?" · `/pago`
 
 ```
-No hace falta que adelantes nada: con nosotros pagas cuando tu carga llega. Esa es
-justamente la idea, que no tengas plata comprometida mientras la mercancía está en camino. Los datos
-y la forma de pago te los pasa un asesor de forma segura con tu Shipping Mark. ¿Te conecto?
+No hace falta que adelantes nada ni des depósito para embarcar: la idea es justamente que no tengas
+plata comprometida mientras la mercancía está en camino. El cobro arranca cuando tu carga está por
+llegar — de 5 a 10 días antes de que toque puerto en Venezuela te pasamos el monto y los datos, con
+tu Shipping Mark de referencia. ¿Te conecto con un asesor?
 ```
 
 🔴 **Nunca uses las palabras "prepago" ni "financiamiento".** Se retiraron por riesgo legal. La
@@ -535,23 +536,48 @@ verdad comercial es **"pagas al llegar"**.
 
 🔴 **Pero no es contra entrega.** La frase es **"pagas al llegar"** — igual que en el sitio, el FAQ
 y la calculadora, para que el cliente lea lo mismo en todos lados. **Nunca** digas *"pagas al
-recibir"* ni *"contra entrega"*: el cobro cae cuando la carga llega al país, **unos días antes** de
-que la tengas en la puerta. Es una diferencia de días, pero es la que genera el reclamo cuando el
-cliente esperaba pagar con la caja en la mano.
+recibir"* ni *"contra entrega"*: el cobro arranca **de 5 a 10 días antes de que la carga toque puerto**
+en Venezuela — o sea, **semanas antes** de que el cliente la tenga en la puerta, porque después del puerto
+todavía faltan aduana y entrega. Es la diferencia que genera el reclamo cuando el cliente esperaba pagar
+con la caja en la mano. Dilo tú primero, no esperes a que se sorprenda. *(Precisado el 2026-08-20; antes
+esta línea decía sólo "unos días antes", que se quedaba corto.)*
 
 ### Si te preguntan si hay alguna restricción
 
 **No lo saques tú.** Si no preguntan, no se menciona. Si preguntan, se dice completo:
 
 ```
-Sí, hay una sola y es de sentido común: tu mercancía tiene que valer más que el flete, con como un
-30% de margen por encima. Si el flete te sale en $1.000, la mercancía debería valer al menos $1.300.
-Un envío donde el flete se come casi todo el valor de lo que traes no te conviene ni a ti ni a
-nosotros. Fuera de eso no hay requisitos. ¿Más o menos en cuánto te salió la mercancía?
+Sí, y son de sentido común. Lo ideal es que tu mercancía valga más que el flete, con como un 30% de
+margen por encima: si el flete te sale en $1.000, la mercancía debería valer al menos $1.300. Y si el
+flete termina costando más que la mercancía, ahí sí se pide un 50% por adelantado — un envío donde el
+flete se come todo el valor de lo que traes no te conviene ni a ti ni a nosotros. Fuera de eso no hay
+requisitos. ¿Más o menos en cuánto te salió la mercancía?
 ```
 
 ⚠️ **El número final no lo das tú, lo confirma el ERP al cargar el envío.** Si el caso está en el
 borde, escálalo en vez de estimarlo a ojo.
+
+## 10-bis. "Me arrepentí / ¿puedo cancelar?" · `/cancelar`
+
+```
+El punto de no retorno es la salida del contenedor. Si tu carga todavía está en nuestra bodega de
+China y el contenedor no ha zarpado, te la despachamos a donde nos digas: pagas los costos que ya
+se hayan causado al recibirla y el flete desde nuestra bodega hasta ese nuevo destino, que se
+cancela aparte cuando la despachamos. Si el contenedor ya zarpó, el envío sigue su curso.
+¿Me pasas tu Shipping Mark y lo reviso contigo?
+```
+
+⚠️ **El corte sí lo afirmas tú; el dinero no.** *Salida del contenedor* está publicado en `/faq` y
+no depende del caso. Cuánto se devuelve, en crédito o en efectivo, y todo lo de pérdida o daño **se
+escala** — no lo estimes a ojo.
+
+⛔ **No menciones cargo por cancelación.** El Anexo A del Acuerdo todavía trae uno (5-10% del flete,
+mínimo USD 30) que la regla comercial vigente **ya no cobra**. La corrección del contrato está
+anotada para la v3.1; mientras tanto, el cliente paga los costos causados y el flete de salida, nada
+más.
+
+⛔ **No digas "flete interno".** En todo nuestro material eso significa el tramo *proveedor → bodega
+Yiwu* (FOB/EXW). Para este caso di **"el flete desde nuestra bodega hasta donde nos digas"**.
 
 ## 11. "¿Me das descuento?" · `/descuento`
 
