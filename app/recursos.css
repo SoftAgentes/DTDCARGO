@@ -285,6 +285,33 @@
 .rp-surface .gl-item:last-child {
   border-bottom: 0;
 }
+
+/* La ficha a la que llegaste por el ancla (`/glosario#bl`).
+ *
+ * Desde que la jerga del sitio enlaza acá (SDD LNK-01), al glosario ya no se
+ * entra por arriba: se cae en el medio de 15 fichas, en una pestaña nueva, sin
+ * nada que diga cuál era la tuya. Esto la señala.
+ *
+ * 🔴 **Por qué el fondo ACLARA en vez de tintar.** El primer intento usaba
+ * `--wine-tint`, que es translúcido (8% de wine sobre el papel). Compuesto
+ * sobre `#fbfaf7` da `rgb(241,231,229)`, y ahí `--ink-soft` de `.gl-def` cae a
+ * **4,35:1** — por debajo del 4,5 que pide la marca. O sea que resaltar la
+ * ficha habría hecho su texto MENOS legible. Con `--bg-surface` (blanco puro)
+ * el contraste SUBE a 5,33:1 contra los 5,11:1 que tiene sobre el papel.
+ *
+ * La marca la lleva la barra wine, no el fondo — y va en `box-shadow: inset`,
+ * que no ocupa espacio de layout: un `border-left` correría el texto y un
+ * margen negativo puede abrir scroll horizontal en pantallas angostas. */
+.rp-surface .gl-item:target {
+  background: var(--bg-surface);
+  box-shadow:
+    inset 4px 0 0 0 var(--wine),
+    var(--shadow-sm);
+  border-radius: var(--r-md);
+  border-bottom-color: transparent;
+  padding-left: var(--s-5);
+  padding-right: var(--s-5);
+}
 .rp-surface .gl-term {
   font: 800 19px/1.2 var(--f-brand-display);
   color: var(--ink);
