@@ -547,11 +547,9 @@ esta línea decía sólo "unos días antes", que se quedaba corto.)*
 **No lo saques tú.** Si no preguntan, no se menciona. Si preguntan, se dice completo:
 
 ```
-Sí, y son de sentido común. Lo ideal es que tu mercancía valga más que el flete, con como un 30% de
-margen por encima: si el flete te sale en $1.000, la mercancía debería valer al menos $1.300. Y si el
-flete termina costando más que la mercancía, ahí sí se pide un 50% por adelantado — un envío donde el
-flete se come todo el valor de lo que traes no te conviene ni a ti ni a nosotros. Fuera de eso no hay
-requisitos. ¿Más o menos en cuánto te salió la mercancía?
+Sí, hay una sola y es de sentido común: si el flete termina costando más que la mercancía, se pide un
+50% por adelantado. Un envío donde el flete se come todo el valor de lo que traes no te conviene ni a ti
+ni a nosotros. Fuera de eso no hay requisitos. ¿Más o menos en cuánto te salió la mercancía?
 ```
 
 ⚠️ **El número final no lo das tú, lo confirma el ERP al cargar el envío.** Si el caso está en el
@@ -563,7 +561,9 @@ borde, escálalo en vez de estimarlo a ojo.
 El punto de no retorno es la salida del contenedor. Si tu carga todavía está en nuestra bodega de
 China y el contenedor no ha zarpado, te la despachamos a donde nos digas: pagas los costos que ya
 se hayan causado al recibirla y el flete desde nuestra bodega hasta ese nuevo destino, que se
-cancela aparte cuando la despachamos. Si el contenedor ya zarpó, el envío sigue su curso.
+cancela aparte cuando la despachamos. Desde que confirmamos esa salida, hasta ahí llega nuestro servicio:
+ese tramo lo ves directamente con la empresa de envíos y con quien la vaya a recibir. Si el contenedor ya
+zarpó, el envío sigue su curso.
 ¿Me pasas tu Shipping Mark y lo reviso contigo?
 ```
 

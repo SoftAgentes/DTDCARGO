@@ -239,7 +239,11 @@ consolidada o embarcada* — o sea, ya al **recibirla en bodega de origen**. La 
 lo corta más tarde: **el punto de no retorno es la salida del contenedor**. Mientras el
 contenedor no zarpe, el cliente puede retirar su mercancía; se le despacha al destino que
 indique y **él paga ese flete**, más los costos ya causados al recibirla. Confirmada la
-salida del depósito en China, hasta ahí llega el servicio de DTD Cargo.
+salida del depósito en China, **hasta ahí llega el servicio de DTD Cargo**: de ese tramo en
+adelante el cliente se entiende **directamente con la empresa de envíos y con el receptor**.
+Ha pasado en la práctica — carga que se extravía dentro de China después del despacho — y hoy
+el texto legal no delimita ese corte. **Que el abogado lo redacte**, cuidando de no importar
+lenguaje de seguros: el marco de la casa es *hasta dónde llega el servicio*, no *responsabilidad*.
 
 **8b. 🔴 El cargo de A.3 se elimina.** **A.3** cobra **5% del flete cotizado** (10% con
 gestiones iniciadas), **mínimo USD 30**. La regla vigente **ya no lo cobra** y el copy
