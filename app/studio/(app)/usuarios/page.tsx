@@ -4,12 +4,13 @@
  * Server component:
  *   1. Auth + verifica admin (no-admin → redirect /studio/dashboard).
  *   2. Fetch members (con admin client) + invitations.
- *   3. Render header con título "Usuarios & Roles" + subtitle dinámico +
- *      slot vacío `#users-page-actions` que UsersClient hidrata client-side
- *      con los botones [Permisos por rol] + [+ Invitar usuario].
- *   4. UsersClient maneja la vista (card roles, tabla, drawer, modal).
+ *   3. Render header + slot vacío `#users-page-actions` que UsersClient
+ *      hidrata client-side con el botón [Invitar usuario].
+ *   4. UsersClient maneja las tres pestañas (Personas · Roles y permisos ·
+ *      Invitaciones), la ficha y el alta.
  *
- * Sin tabs · sin KPI cards horizontales (alineado a design).
+ * SDD-0274: la matriz de permisos dejó de vivir en Administración y los
+ * overrides se cargan acá para la pestaña Roles.
  */
 
 import { redirect } from "next/navigation";
@@ -21,6 +22,7 @@ import {
   STUDIO_USER_ROLES,
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
+import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queries";
 import { UsersClient } from "./_components/UsersClient";
 
 export const metadata = { title: "Usuarios · DTD Studio" };
@@ -59,7 +61,7 @@ export default async function UsuariosPage() {
     }
   })();
 
-  const [membersRaw, invitations] = await Promise.all([
+  const [membersRaw, invitations, roleModuleOverrides] = await Promise.all([
     // includeDisabled: sin esto el desactivado se esfuma de la tabla y el botón
     // "Reactivar" (único unban) queda inalcanzable (hallazgo review 2026-07-02).
     listMembers(supabaseAdminForListing ?? supabase, {
@@ -67,6 +69,9 @@ export default async function UsuariosPage() {
       includeDisabled: true,
     }),
     listInvitations(supabase),
+    // SDD-0274: la matriz de permisos se mudó de Administración a la pestaña
+    // «Roles y permisos» de este módulo. Mismo gate: los dos eran admin-only.
+    getRoleModuleOverrides(supabase),
   ]);
 
   // Resolver emails de auth.users via service_role admin client.
@@ -118,19 +123,19 @@ export default async function UsuariosPage() {
               color: "var(--ink)",
             }}
           >
-            Usuarios & Roles
+            Usuarios y roles
           </h1>
           <p
             style={{
-              font: "400 13px/1.4 var(--font-sans, 'Archivo')",
+              font: "400 13px/1.4 var(--f-sans)",
               color: "var(--ink-soft)",
               margin: 0,
               maxWidth: "76ch",
             }}
           >
-            {activeCount} usuario{activeCount === 1 ? "" : "s"} interno
-            {activeCount === 1 ? "" : "s"} · {roleCount} roles definidos · acceso
-            por módulo definido por rol.
+            {activeCount} {activeCount === 1 ? "persona activa" : "personas activas"} ·{" "}
+            {roleCount} roles · quién es quién, qué puede ver cada rol y las
+            invitaciones sin aceptar, en un solo sitio.
           </p>
         </div>
 
@@ -151,6 +156,7 @@ export default async function UsuariosPage() {
         members={members}
         invitations={invitations}
         currentUserId={userResp.user.id}
+        roleModuleOverrides={roleModuleOverrides}
       />
     </div>
   );

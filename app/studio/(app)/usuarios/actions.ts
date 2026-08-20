@@ -31,6 +31,10 @@ import {
   accessTokenExpiry,
   accessTokenPath,
 } from "@/lib/studio/access-token";
+import {
+  orquestarLoteDeAcceso,
+  type BulkAccessResult,
+} from "@/lib/studio/access-link-bulk";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
@@ -653,6 +657,38 @@ export async function updateMemberProfileAction(
 
   revalidatePath("/studio/usuarios");
   return { ok: true, userId: targetUserId };
+}
+
+// ─────────────────────────────────────────────────────────────
+// sendAccessLinkBulkAction · el enlace a varias personas de una vez
+//
+// SDD-0274 · Slice 4. De 9 miembros, 4 tienen cuenta y NUNCA han entrado, y
+// hasta acá la única forma de arrancarlos era abrir cada ficha y mandar el
+// enlace uno por uno.
+//
+// ⚠️ NO reimplementa el envío: llama a `sendAccessLinkAction` una vez por
+// persona. Duplicar la lógica habría duplicado también sus cuatro guardas (el
+// gate de `users`, la pertenencia al tenant, el rastro D5 y el token propio de
+// la migr 0354), y esas guardas son el motivo de que esa acción exista.
+//
+// ⚠️ SECUENCIAL Y CON RESULTADO POR PERSONA, a propósito. Un lote que devuelve
+// "listo" esconde el caso que de verdad pasa: tres salen y dos rebotan. Cada
+// destinatario trae su propio veredicto para que la UI pueda nombrar quién
+// falló — ERR-01 pide el error cerca de su causa, y en un lote la causa son
+// filas distintas. En paralelo, además, se le tiraría el rate limit encima al
+// proveedor de correo.
+// ─────────────────────────────────────────────────────────────
+
+export async function sendAccessLinkBulkAction(
+  userIds: string[],
+): Promise<{ resultados: BulkAccessResult[]; error?: string }> {
+  return orquestarLoteDeAcceso(userIds, async (userId) => {
+    const fd = new FormData();
+    fd.set("target_user_id", userId);
+    const res = await sendAccessLinkAction({}, fd);
+    // `revalidatePath` lo hace cada envío individual; no hace falta repetirlo.
+    return res;
+  });
 }
 
 // ─────────────────────────────────────────────────────────────

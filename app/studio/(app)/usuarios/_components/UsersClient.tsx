@@ -1,326 +1,322 @@
 "use client";
 
 /**
- * UsersClient · módulo Usuarios & Roles (SDD-0024 Fase A — design v1.3.1).
+ * Usuarios y roles — la pantalla (SDD-0274 · slices 2, 3 y 4).
  *
- * Layout siguiendo Claude Design:
- *   1. Card "ROLES Y PERMISOS" grid 3×2 (counts dinámicos + perms description)
- *   2. Toolbar (rol filter + estado filter + search)
- *   3. Tabla de miembros (avatars tonales por rol)
- *   4. Disclosure colapsable "Invitaciones pendientes (N)" abajo
- *   5. Modal "Permisos por rol" (matriz read-only) accesible desde botón en page header
+ * TRES PESTAÑAS, UN SOLO LUGAR. Antes la gente vivía en `Usuarios` y la matriz
+ * de permisos en `Administración`: dos módulos para una sola pregunta («¿qué
+ * puede hacer esta persona?»). Pedido del founder el 2026-08-19. **No cambia
+ * quién entra**: `users` y `admin` son los dos admin-only, así que la matriz
+ * queda al alcance de exactamente la misma gente que antes.
  *
- * Tabs Miembros/Invitaciones eliminadas (design las descarta).
- * KPI cards horizontales eliminadas (counts viven en card de roles ahora).
+ * Las 7 tarjetas de rol con su descripción también se mudan acá: estaban
+ * apiladas encima de la tabla, empujando las filas fuera de pantalla, y
+ * duplicando el `<select>` de rol de la barra de filtros.
+ *
+ * QUÉ VIAJA EN LA URL Y QUÉ NO. La pestaña, el filtro de estado y la ficha
+ * abierta sí (`?tab=&estado=&persona=`): son estados que uno quiere compartir
+ * o recuperar. **El texto buscado NO.** Es el nombre o el correo de una
+ * persona, y la query string queda escrita en el historial del navegador y en
+ * los logs de cualquier proxy. El filtro se comparte igual; el dato personal no
+ * tiene por qué viajar. TBL-01 pide filtros restaurables y esto lo cumple para
+ * los que se pueden restaurar sin publicar a nadie.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { useRouter, useSearchParams } from "next/navigation";
+import { PermissionsSection } from "@/app/studio/(app)/admin/_components/PermissionsSection";
+import { Badge } from "@/app/studio/_components/ui/Badge";
 import { InviteUserDrawer } from "./InviteUserDrawer";
+import { InvitationsTable } from "./InvitationsTable";
 import { MembersTable } from "./MembersTable";
 import { UserDetailDrawer } from "./UserDetailDrawer";
-import { InvitationsTable } from "./InvitationsTable";
+import { BandaDeTrabajo } from "./personas/BandaDeTrabajo";
+import { ToolbarPersonas, type FiltroEtapa } from "./personas/ToolbarPersonas";
+import type { RoleModuleOverrides } from "@/lib/studio/rbac";
 import {
   ROLE_DESCRIPTIONS,
   ROLE_LABELS,
   STUDIO_USER_ROLES,
+  accessStage,
+  compareByAccessStage,
+  invitationStatus,
   roleBadgeTone,
-  type StudioUserRole,
+  userDisplayName,
   type UserInvitation,
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
 
-interface Props {
+type Pestana = "personas" | "roles" | "invitaciones";
+const PESTANAS: Pestana[] = ["personas", "roles", "invitaciones"];
+
+export function UsersClient({
+  members,
+  invitations,
+  currentUserId,
+  roleModuleOverrides,
+}: {
   members: UserMembershipWithProfile[];
   invitations: UserInvitation[];
   currentUserId: string;
-}
+  roleModuleOverrides: RoleModuleOverrides;
+}) {
+  const router = useRouter();
+  const params = useSearchParams();
 
-const TONE_BG: Record<string, string> = {
-  success: "var(--success-bg, #E5F4ED)",
-  warning: "var(--warning-bg, #FBF1DF)",
-  danger: "var(--danger-bg, #FCEDED)",
-  info: "var(--info-bg, #E5EEF9)",
-  wine: "var(--wine-tint, #FBE9EC)",
-  neutral: "var(--neutral-bg, #F2F0EC)",
-};
+  const tabUrl = params.get("tab");
+  const tab: Pestana = PESTANAS.includes(tabUrl as Pestana)
+    ? (tabUrl as Pestana)
+    : "personas";
+  const etapaUrl = params.get("estado");
+  const etapa: FiltroEtapa =
+    etapaUrl === "nunca-entro" || etapaUrl === "activo" || etapaUrl === "suspendido"
+      ? etapaUrl
+      : "todos";
+  const personaUrl = params.get("persona");
 
-const TONE_FG: Record<string, string> = {
-  success: "var(--success, #1F8A5B)",
-  warning: "var(--warning, #B8893A)",
-  danger: "var(--danger, #A8323E)",
-  info: "var(--info, #2A6FDB)",
-  wine: "var(--wine, #7F0F1A)",
-  neutral: "var(--ink-soft, #6B6B6B)",
-};
+  // El texto buscado vive SÓLO en memoria — ver el docstring.
+  const [busqueda, setBusqueda] = useState("");
+  const [invitarAbierto, setInvitarAbierto] = useState(false);
 
-export function UsersClient({ members, invitations, currentUserId }: Props) {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  // Ficha de la persona: null = cerrada (SDD-0250).
-  // Se guarda el ID, no el objeto (SDD-0272): así, cuando una acción de la
-  // ficha llama a `revalidatePath`, el drawer se redibuja con la fila FRESCA.
-  // Guardando el objeto se quedaba mostrando el snapshot de cuando se abrió —
-  // se notaba al cambiar el correo, que seguía apareciendo el anterior.
-  const [detailUserId, setDetailUserId] = useState<string | null>(null);
-  const [permsModalOpen, setPermsModalOpen] = useState(false);
-  const [showInvitations, setShowInvitations] = useState(false);
-  const [roleFilter, setRoleFilter] = useState<StudioUserRole | "all">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "disabled">(
-    "all",
+  function navegar(cambios: Record<string, string | null>) {
+    const s = new URLSearchParams(params.toString());
+    for (const [k, v] of Object.entries(cambios)) {
+      if (v === null) s.delete(k);
+      else s.set(k, v);
+    }
+    const qs = s.toString();
+    router.push(qs ? `/studio/usuarios?${qs}` : "/studio/usuarios", { scroll: false });
+  }
+
+  const pendientesInvit = invitations.filter((i) => invitationStatus(i) === "pending");
+
+  // Conteos sobre el total SIN filtrar: un chip que contara sobre lo ya
+  // filtrado se vaciaría a sí mismo al usarlo.
+  const conteos = useMemo(() => {
+    const c: Record<FiltroEtapa, number> = {
+      todos: members.length,
+      "nunca-entro": 0,
+      activo: 0,
+      suspendido: 0,
+    };
+    for (const m of members) c[accessStage(m)] += 1;
+    return c;
+  }, [members]);
+
+  const visibles = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    return members
+      .filter((m) => {
+        if (etapa !== "todos" && accessStage(m) !== etapa) return false;
+        if (!q) return true;
+        // BUS-01: el alcance declarado en el label tiene que ser el real.
+        const campos = [
+          userDisplayName(m.profile, m.email),
+          m.email,
+          m.profile?.position_label ?? "",
+          ROLE_LABELS[m.role],
+        ];
+        return campos.some((c) => c.toLowerCase().includes(q));
+      })
+      .sort(compareByAccessStage);
+  }, [members, etapa, busqueda]);
+
+  const pendientesAcceso = useMemo(
+    () => members.filter((m) => accessStage(m) === "nunca-entro"),
+    [members],
   );
-  const [search, setSearch] = useState("");
 
-  // Counts por rol (solo activos)
-  const roleCounts = STUDIO_USER_ROLES.reduce<Record<StudioUserRole, number>>(
-    (acc, r) => {
-      acc[r] = members.filter((m) => m.role === r && !m.disabled_at).length;
-      return acc;
-    },
-    {
-      admin: 0,
-      commercial: 0,
-      operations: 0,
-      accounting: 0,
-      warehouse: 0,
-      support: 0,
-      marketing: 0,
-    },
-  );
-
-  const pendingInvitations = invitations.filter(
-    (i) => !i.accepted_at && !i.revoked_at && new Date(i.expires_at) > new Date(),
-  );
-
-  // Filtro client-side (volúmenes < 200 usuarios por tenant V1)
-  // La fila viva que corresponde al drawer abierto. Se busca en `members`
-  // (sin filtrar) para que cambiar un filtro no cierre la ficha.
-  const detailMember = detailUserId
-    ? (members.find((m) => m.user_id === detailUserId) ?? null)
+  // La ficha se resuelve por ID contra la lista viva: al revalidar, el drawer
+  // se redibuja con la fila fresca en vez del snapshot de cuando se abrió.
+  const fichaAbierta = personaUrl
+    ? (members.find((m) => m.user_id === personaUrl) ?? null)
     : null;
 
-  const filteredMembers = members.filter((m) => {
-    if (roleFilter !== "all" && m.role !== roleFilter) return false;
-    if (statusFilter === "active" && m.disabled_at) return false;
-    if (statusFilter === "disabled" && !m.disabled_at) return false;
-    if (search) {
-      const q = search.trim().toLowerCase();
-      const name = `${m.profile?.first_name ?? ""} ${m.profile?.last_name ?? ""}`.toLowerCase();
-      if (!name.includes(q) && !m.email.toLowerCase().includes(q)) return false;
-    }
-    return true;
-  });
+  const hayFiltro = busqueda.trim() !== "" || etapa !== "todos";
+
+  function limpiar() {
+    setBusqueda("");
+    navegar({ estado: null });
+  }
 
   return (
     <>
-      {/* ─── Card ROLES Y PERMISOS ─── */}
-      <section
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 8,
-          padding: 20,
-          marginBottom: 24,
-        }}
-      >
-        <div
-          className="studio-eyebrow"
-          style={{
-            color: "var(--wine-text)",
-            marginBottom: 14,
-          }}
-        >
-          Roles y permisos
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {STUDIO_USER_ROLES.map((r) => {
-            const tone = roleBadgeTone(r);
-            return (
-              <div
-                key={r}
-                style={{
-                  padding: 14,
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginBottom: 8,
-                  }}
-                >
-                  <Pill bg={TONE_BG[tone]} fg={TONE_FG[tone]}>
-                    {ROLE_LABELS[r]}
-                  </Pill>
-                  <span
-                    style={{
-                      font: "700 12.5px/1 var(--font-mono, 'JetBrains Mono')",
-                      color: "var(--ink)",
-                    }}
-                  >
-                    {roleCounts[r]}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    font: "500 12px/1.4 var(--font-sans, 'Archivo')",
-                    color: "var(--ink-soft)",
-                  }}
-                >
-                  {ROLE_DESCRIPTIONS[r]}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ─── Toolbar: filtros + search ─── */}
       <div
+        role="tablist"
+        aria-label="Secciones de usuarios y roles"
         style={{
           display: "flex",
-          gap: 12,
-          marginBottom: 16,
-          flexWrap: "wrap",
-          alignItems: "flex-end",
+          gap: "var(--s-1)",
+          borderBottom: "1px solid var(--border)",
+          marginBottom: "var(--s-4)",
+          overflowX: "auto",
         }}
       >
-        <FilterSelect
-          label="Rol"
-          value={roleFilter}
-          onChange={(v) => setRoleFilter(v as StudioUserRole | "all")}
-          options={[
-            { value: "all", label: "Todos los roles" },
-            ...STUDIO_USER_ROLES.map((r) => ({ value: r, label: ROLE_LABELS[r] })),
-          ]}
-        />
-        <FilterSelect
-          label="Estado"
-          value={statusFilter}
-          onChange={(v) => setStatusFilter(v as "all" | "active" | "disabled")}
-          options={[
-            { value: "all", label: "Todos" },
-            { value: "active", label: "Activos" },
-            { value: "disabled", label: "Desactivados" },
-          ]}
-        />
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Buscar por nombre o email…"
-        />
+        <Tab activa={tab === "personas"} onClick={() => navegar({ tab: "personas" })} n={members.length}>
+          Personas
+        </Tab>
+        <Tab activa={tab === "roles"} onClick={() => navegar({ tab: "roles" })} n={STUDIO_USER_ROLES.length}>
+          Roles y permisos
+        </Tab>
+        <Tab
+          activa={tab === "invitaciones"}
+          onClick={() => navegar({ tab: "invitaciones" })}
+          n={pendientesInvit.length}
+        >
+          Invitaciones
+        </Tab>
       </div>
 
-      {/* ─── Tabla de miembros ─── */}
-      <MembersTable
-        members={filteredMembers}
-        currentUserId={currentUserId}
-        onOpenDetail={(m) => setDetailUserId(m.user_id)}
-      />
+      {tab === "personas" && (
+        <>
+          <BandaDeTrabajo
+            pendientes={pendientesAcceso}
+            onVerPendientes={() => navegar({ estado: "nunca-entro" })}
+          />
+          <ToolbarPersonas
+            busqueda={busqueda}
+            onBusqueda={setBusqueda}
+            etapa={etapa}
+            onEtapa={(e) => navegar({ estado: e === "todos" ? null : e })}
+            conteos={conteos}
+            mostrando={visibles.length}
+            total={members.length}
+            onLimpiar={limpiar}
+          />
+          <MembersTable
+            members={visibles}
+            currentUserId={currentUserId}
+            onOpenDetail={(m) => navegar({ persona: m.user_id })}
+            filtroActivo={hayFiltro}
+            onLimpiar={limpiar}
+          />
+        </>
+      )}
 
-      {/* Ficha de la persona (SDD-0250). Overlay encima, como en el Norte:
-          allá 'Perfil de usuario' es un OVERLAY, no una ruta ni una carpeta. */}
-      {detailMember && (
+      {tab === "roles" && (
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(272px, 1fr))",
+              gap: "var(--s-3)",
+              marginBottom: "var(--s-5)",
+            }}
+          >
+            {STUDIO_USER_ROLES.map((r) => {
+              const cuantos = members.filter(
+                (m) => m.role === r && accessStage(m) !== "suspendido",
+              ).length;
+              return (
+                <div
+                  key={r}
+                  style={{
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--r-md)",
+                    padding: "var(--s-4)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--s-2)",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "var(--s-2)",
+                    }}
+                  >
+                    <Badge tone={roleBadgeTone(r)} size="sm" dot>
+                      {ROLE_LABELS[r]}
+                    </Badge>
+                    <span
+                      style={{
+                        font: "700 13px/1 var(--f-mono)",
+                        color: "var(--ink)",
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {cuantos}
+                    </span>
+                  </div>
+                  <p
+                    style={{
+                      font: "400 12.5px/1.5 var(--f-sans)",
+                      color: "var(--ink-soft)",
+                      margin: 0,
+                    }}
+                  >
+                    {ROLE_DESCRIPTIONS[r]}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          <PermissionsSection initialOverrides={roleModuleOverrides} />
+        </>
+      )}
+
+      {tab === "invitaciones" && <InvitationsTable invitations={invitations} />}
+
+      {fichaAbierta && (
         <UserDetailDrawer
-          member={detailMember}
-          esYo={detailMember.user_id === currentUserId}
-          onClose={() => setDetailUserId(null)}
+          member={fichaAbierta}
+          esYo={fichaAbierta.user_id === currentUserId}
+          onClose={() => navegar({ persona: null })}
         />
       )}
 
-      {/* ─── Disclosure: Invitaciones pendientes ─── */}
-      <section style={{ marginTop: 28 }}>
-        <button
-          type="button"
-          onClick={() => setShowInvitations((v) => !v)}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: "transparent",
-            border: "none",
-            color: "var(--ink)",
-            font: "600 13px/1.2 var(--font-sans, 'Archivo')",
-            cursor: "pointer",
-            padding: "var(--s-2) 0",
-          }}
-        >
-          <span
-            style={{
-              display: "inline-block",
-              transform: showInvitations ? "rotate(90deg)" : "rotate(0)",
-              transition: "transform var(--dur, 180ms)",
-              fontSize: 10,
-              color: "var(--ink-soft)",
-            }}
-          >
-            ▶
-          </span>
-          Invitaciones ({invitations.length}
-          {pendingInvitations.length > 0 && (
-            <>
-              {" · "}
-              <span style={{ color: "var(--wine-text)" }}>
-                {pendingInvitations.length} pendientes
-              </span>
-            </>
-          )}
-          )
-        </button>
-        {showInvitations && (
-          <div style={{ marginTop: 12 }}>
-            <InvitationsTable invitations={invitations} />
-          </div>
-        )}
-      </section>
+      {invitarAbierto && <InviteUserDrawer onClose={() => setInvitarAbierto(false)} />}
 
-      {/* ─── Drawer Invitar ─── */}
-      {drawerOpen && <InviteUserDrawer onClose={() => setDrawerOpen(false)} />}
-
-      {/* ─── Modal Permisos por rol (read-only) ─── */}
-      {permsModalOpen && (
-        <PermissionsByRoleModal onClose={() => setPermsModalOpen(false)} />
-      )}
-
-      {/* Top-right action buttons get rendered into a portal-style fixed div
-          via the page header. Acá expongo helpers para que el page header los
-          dispare via window events o props. Simplificación: el page header
-          ya tiene el botón Invitar; el botón "Permisos por rol" lo agrego
-          inline en la card de arriba mejor. Re-implementar el sistema de
-          actions del PageHeader es overkill para Fase A. */}
-      <PageActionsHelper
-        onOpenDrawer={() => setDrawerOpen(true)}
-        onOpenPermsModal={() => setPermsModalOpen(true)}
-      />
+      <AccionesDeCabecera onInvitar={() => setInvitarAbierto(true)} />
     </>
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// PageActionsHelper — expone botones globalmente sin tocar layout
-// ─────────────────────────────────────────────────────────────
-
-function PageActionsHelper({
-  onOpenDrawer,
-  onOpenPermsModal,
+function Tab({
+  activa,
+  onClick,
+  n,
+  children,
 }: {
-  onOpenDrawer: () => void;
-  onOpenPermsModal: () => void;
+  activa: boolean;
+  onClick: () => void;
+  n: number;
+  children: React.ReactNode;
 }) {
-  // El page server-component renderiza un slot con id="users-page-actions".
-  // Acá hidratamos los botones dentro de ese slot con createPortal.
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={activa}
+      onClick={onClick}
+      className="studio-tab"
+      data-activa={activa ? "true" : undefined}
+    >
+      {children}
+      <span className="studio-tab-n">{n}</span>
+    </button>
+  );
+}
+
+/**
+ * El botón «Invitar usuario» se hidrata dentro del slot que deja el server
+ * component (`#users-page-actions`). «Permisos por rol» desapareció de acá:
+ * ahora es una pestaña, no un modal.
+ */
+function AccionesDeCabecera({ onInvitar }: { onInvitar: () => void }) {
   const [target, setTarget] = useState<Element | null>(null);
 
   useEffect(() => {
+    // La bandera se llama `cancelled` y no `cancelado` a propósito: el contrato
+    // `external-effect-boundaries-contract` la busca por ESE literal en los 7
+    // consumidores que difieren trabajo con `queueMicrotask`. Renombrarla al
+    // español rompe el contrato sin cambiar el comportamiento — y ese contrato
+    // es lo único que impide que alguien borre la limpieza del efecto.
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
@@ -335,290 +331,9 @@ function PageActionsHelper({
   if (!target) return null;
 
   return createPortal(
-    <>
-      <button
-        type="button"
-        onClick={onOpenPermsModal}
-        className="studio-btn studio-btn-ghost"
-      >
-        Permisos por rol
-      </button>
-      <button
-        type="button"
-        onClick={onOpenDrawer}
-        className="studio-btn studio-btn-primary"
-      >
-        + Invitar usuario
-      </button>
-    </>,
+    <button type="button" onClick={onInvitar} className="studio-btn studio-btn-primary">
+      Invitar usuario
+    </button>,
     target,
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Modal "Permisos por rol" · read-only matriz
-// ─────────────────────────────────────────────────────────────
-
-const MODULES_BY_ROLE: Record<StudioUserRole, string[]> = {
-  admin: [
-    "Todos los módulos",
-    "Gestión usuarios y roles",
-    "Facturación y SENIAT",
-    "Config del Studio",
-  ],
-  commercial: [
-    "Estimados",
-    "Clientes",
-    "CRM y leads",
-    "Embarques (lectura)",
-    "Tarifas (lectura)",
-  ],
-  operations: [
-    "Embarques",
-    "Tracking",
-    "Almacén CN/VE",
-    "Calendario",
-    "TMS",
-    "SENIAT",
-    "Documentos",
-  ],
-  accounting: [
-    "Facturación",
-    "Pagos",
-    "Reportes financieros",
-    "Embarques (lectura)",
-  ],
-  warehouse: [
-    "Almacén asignado (CN o VE)",
-    "Recepciones",
-    "Despachos",
-    "Etiquetas QR",
-  ],
-  support: [
-    "Clientes (lectura)",
-    "Tracking (lectura)",
-    "Documentos (lectura)",
-    "Crear tickets",
-  ],
-  marketing: [
-    "Módulo de Marketing",
-    "Noticias Web",
-    "HUB de marca",
-    "Calendario de contenido",
-  ],
-};
-
-function PermissionsByRoleModal({ onClose }: { onClose: () => void }) {
-  return (
-    <DrawerShell
-      title="Permisos por rol"
-      subtitle="Resumen del acceso de cada rol a los módulos del Studio. Read-only V1."
-      onClose={onClose}
-      pending={false}
-      width={720}
-      variant="centered"
-    >
-        <div style={{ flex: 1, overflow: "auto", padding: 22 }}>
-          {STUDIO_USER_ROLES.map((r) => {
-            const tone = roleBadgeTone(r);
-            return (
-              <div
-                key={r}
-                style={{
-                  paddingBottom: 16,
-                  marginBottom: 16,
-                  borderBottom: "1px solid var(--border)",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    marginBottom: 8,
-                  }}
-                >
-                  <Pill bg={TONE_BG[tone]} fg={TONE_FG[tone]}>
-                    {ROLE_LABELS[r]}
-                  </Pill>
-                  <span
-                    style={{
-                      font: "500 12px/1.4 var(--font-sans, 'Archivo')",
-                      color: "var(--ink-soft)",
-                    }}
-                  >
-                    {ROLE_DESCRIPTIONS[r]}
-                  </span>
-                </div>
-                <ul
-                  style={{
-                    margin: 0,
-                    paddingLeft: 18,
-                    font: "500 12.5px/1.6 var(--font-sans, 'Archivo')",
-                    color: "var(--ink)",
-                  }}
-                >
-                  {MODULES_BY_ROLE[r].map((mod) => (
-                    <li key={mod}>{mod}</li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-
-          <p
-            style={{
-              font: "500 11.5px/1.4 var(--font-sans, 'Archivo')",
-              color: "var(--ink-soft)",
-              margin: 0,
-            }}
-          >
-            La matriz de permisos detallada por módulo/acción llega en
-            SDD-0024 Fase B (schema role_permissions). Hoy los permisos
-            son fijos por rol y se enforcing a nivel de page redirect +
-            server actions.
-          </p>
-        </div>
-    </DrawerShell>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
-// Sub-components reusados (filter select, search, pill)
-// ─────────────────────────────────────────────────────────────
-
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: Array<{ value: string; label: string }>;
-}) {
-  return (
-    <label
-      style={{
-        display: "inline-flex",
-        flexDirection: "column",
-        gap: 4,
-        minWidth: 160,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 11,
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-          color: "var(--ink-soft)",
-        }}
-      >
-        {label}
-      </span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          height: 36,
-          padding: "0 28px 0 10px",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          background: "var(--bg-surface)",
-          color: "var(--ink)",
-          fontFamily: "inherit",
-          fontSize: 13,
-          cursor: "pointer",
-        }}
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-function SearchInput({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label
-      style={{
-        display: "inline-flex",
-        flexDirection: "column",
-        gap: 4,
-        minWidth: 240,
-        flex: 1,
-        maxWidth: 360,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 11,
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-          color: "var(--ink-soft)",
-        }}
-      >
-        Buscar
-      </span>
-      <input
-        type="search"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{
-          height: 36,
-          padding: "0 var(--s-3)",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          background: "var(--bg-surface)",
-          color: "var(--ink)",
-          fontFamily: "inherit",
-          fontSize: 13,
-          outline: "none",
-        }}
-      />
-    </label>
-  );
-}
-
-function Pill({
-  bg,
-  fg,
-  children,
-}: {
-  bg: string;
-  fg: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        height: 22,
-        padding: "0 10px",
-        background: bg,
-        color: fg,
-        borderRadius: 4,
-        fontSize: 11.5,
-        fontWeight: 700,
-        lineHeight: 1,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {children}
-    </span>
   );
 }

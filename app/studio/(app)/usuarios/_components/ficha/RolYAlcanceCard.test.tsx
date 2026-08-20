@@ -127,14 +127,12 @@ describe("RolYAlcanceCard · los candados", () => {
     expect(screen.getByRole("button", { name: "Aplicar" })).toHaveProperty("disabled", true);
   });
 
-  it("tocar el alcance sobre un rol que no lo admite NO habilita Aplicar", async () => {
-    const u = userEvent.setup();
+  it("un rol que no admite alcance deshabilita su select y no habilita Aplicar", () => {
     // `accounting` no es scoped: su select de almacén está deshabilitado y
     // ningún cambio de alcance debería contar como cambio.
     render(<RolYAlcanceCard member={miembro({ role: "accounting", warehouse_scope: "all" })} />);
 
     expect(screen.getByLabelText("Almacén")).toHaveProperty("disabled", true);
     expect(screen.getByRole("button", { name: "Aplicar" })).toHaveProperty("disabled", true);
-    await Promise.resolve();
   });
 });

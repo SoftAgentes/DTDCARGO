@@ -221,6 +221,9 @@ export const Icon = {
   close: (s: Size = 14) => wrap(s, <P d="M6 6l12 12M18 6 6 18" />),
   check: (s: Size = 14) => wrap(s, <P d="M5 12l5 5 9-11" />),
   arrowR: (s: Size = 14) => wrap(s, <P d="M5 12h14M13 6l6 6-6 6" />),
+  // SDD-0274: el indicio de que una fila abre su ficha. Chevrón, no
+  // flecha: no navega a otra pantalla, despliega el detalle de la fila.
+  chevronR: (s: Size = 14) => wrap(s, <P d="M9 6l6 6-6 6" />),
   arrowL: (s: Size = 14) => wrap(s, <P d="M19 12H5M11 6l-6 6 6 6" />),
   chevR: (s: Size = 14) => wrap(s, <P d="M9 6l6 6-6 6" />),
   chevD: (s: Size = 14) => wrap(s, <P d="M6 9l6 6 6-6" />),

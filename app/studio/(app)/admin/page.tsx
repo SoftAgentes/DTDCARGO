@@ -28,7 +28,6 @@ import { CompanySection } from "./_components/CompanySection";
 import { AppearanceSection } from "./_components/AppearanceSection";
 import { NumberingSection } from "./_components/NumberingSection";
 import { AuditLogSection } from "./_components/AuditLogSection";
-import { PermissionsSection } from "./_components/PermissionsSection";
 import { MasterDataSection } from "./_components/MasterDataSection";
 import { ExchangeRatesSection } from "./_components/ExchangeRatesSection";
 import { CalendarSection } from "./_components/CalendarSection";
@@ -51,8 +50,6 @@ import {
 } from "@/lib/studio/client-queries";
 import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
 import { getNumberingOverview } from "@/lib/studio/numbering-queries";
-import { getRoleModuleOverrides } from "@/lib/studio/role-module-overrides-queries";
-import type { RoleModuleOverrides } from "@/lib/studio/rbac";
 import {
   listGovernedAuditEvents,
   parseAuditFilters,
@@ -262,8 +259,8 @@ const SECTIONS: AdminSection[] = [
     label: "Permisos por rol",
     icon: "lock",
     description:
-      "Matriz rol × módulo (ver / ver+editar), editable por celda. Los módulos con candado de gobernanza (dinero, admin-only) son inmutables — ni la UI ni el RPC los dejan tocar. El lado de almacén (CN/VE) se asigna por usuario en Usuarios.",
-    sddRef: "SDD-0252",
+      "Se mudó a Usuarios y roles (SDD-0274). La matriz vive junto a la gente a la que le aplica, en vez de en otro módulo. Acá queda el atajo.",
+    sddRef: "SDD-0252 → SDD-0274",
   },
   {
     id: "audit",
@@ -400,11 +397,7 @@ export default async function AdminPage({
   let adoptionStats: PortalAdoptionStats | null = null;
   let coldInvitees: PortalColdInvitee[] | null = null;
   let contactlessClients: PortalContactlessClient[] | null = null;
-  let roleModuleOverrides: RoleModuleOverrides = {};
-  if (active.id === "permissions") {
-    const supabase = await createClient();
-    roleModuleOverrides = await getRoleModuleOverrides(supabase);
-  } else if (active.id === "legal-docs" || active.id === "acceptances") {
+  if (active.id === "legal-docs" || active.id === "acceptances") {
     const supabase = await createClient();
     // RLS ya acota al tenant del admin logueado; listLegalDocs sin tenantId se
     // apoya en RLS (a diferencia del gate, que corre como service_role).
@@ -574,7 +567,6 @@ export default async function AdminPage({
           adoptionStats={adoptionStats}
           coldInvitees={coldInvitees}
           contactlessClients={contactlessClients}
-          roleModuleOverrides={roleModuleOverrides}
         />
       </div>
     </div>
@@ -685,7 +677,6 @@ function Content({
   adoptionStats,
   coldInvitees,
   contactlessClients,
-  roleModuleOverrides,
 }: {
   section: AdminSection;
   companyData: CompanyData | null;
@@ -705,7 +696,6 @@ function Content({
   adoptionStats: PortalAdoptionStats | null;
   coldInvitees: PortalColdInvitee[] | null;
   contactlessClients: PortalContactlessClient[] | null;
-  roleModuleOverrides: RoleModuleOverrides;
 }) {
   return (
     <div key={section.id}>
@@ -766,7 +756,7 @@ function Content({
           governedViewerEnabled={process.env.AUDIT_GOVERNED_VIEWER !== "false"}
         />
       ) : section.id === "permissions" ? (
-        <PermissionsSection initialOverrides={roleModuleOverrides} />
+        <PermisosMudados />
       ) : section.id === "masterdata" ? (
         <MasterDataSection containerTypes={containerTypes} />
       ) : section.id === "rates" && ratesData ? (
@@ -945,5 +935,48 @@ function PendingSectionPanel({ section }: { section: AdminSection }) {
         .
       </p>
     </section>
+  );
+}
+
+/**
+ * SDD-0274 · la matriz de permisos se mudó a «Usuarios y roles».
+ *
+ * La sección se queda en Administración —quien la buscaba acá la sigue
+ * encontrando— pero ya no renderiza una segunda copia editable: dos superficies
+ * escribiendo la misma tabla es exactamente cómo se desincronizan.
+ */
+function PermisosMudados() {
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        padding: "var(--s-5)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--s-3)",
+        alignItems: "flex-start",
+      }}
+    >
+      <p style={{ font: "600 14px/1.4 var(--f-sans)", color: "var(--ink)", margin: 0 }}>
+        Los permisos por rol se administran en Usuarios y roles
+      </p>
+      <p
+        style={{
+          font: "400 13px/1.5 var(--f-sans)",
+          color: "var(--ink-soft)",
+          margin: 0,
+          maxWidth: "62ch",
+        }}
+      >
+        La matriz quedó junto a la gente a la que le aplica, en la pestaña
+        «Roles y permisos». Entra la misma gente que antes: los dos módulos son
+        admin-only.
+      </p>
+      <a href="/studio/usuarios?tab=roles" className="studio-btn studio-btn-ghost studio-btn-sm">
+        Ir a Roles y permisos
+      </a>
+    </div>
   );
 }

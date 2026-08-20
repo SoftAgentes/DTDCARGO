@@ -1,109 +1,132 @@
 "use client";
 
 /**
- * MembersTable · tabla de miembros con acciones inline.
- * Acciones por row: cambiar rol (select) · desactivar / reactivar.
- * SDD-0024 Fase 2.
+ * Tabla de miembros del equipo (SDD-0274 · Slice 2 — «la fila se calla»).
+ *
+ * QUÉ CAMBIÓ Y POR QUÉ. La versión anterior metía en cada fila dos `<select>`
+ * que aplicaban en el `onChange` y hasta tres botones de acción, uno de ellos
+ * `studio-btn-primary`. Con 9 miembros eso eran **45 `useActionState` montados,
+ * 18 selects que mutaban solos y un relleno vino por cada persona que no había
+ * entrado**, apilados en columna. BTN-01 §2 lo nombra: una tabla «normalmente
+ * usa enlace, terciario o icono para no crear decenas de primarios visuales».
+ *
+ * Ahora la fila **informa** y la ficha **decide**: la fila entera es el enlace,
+ * cero botones, y todas las acciones viven en el drawer.
+ *
+ * POR QUÉ CHEVRÓN Y NO UN MENÚ `⋯`. El founder pidió que las acciones vivieran
+ * dentro del perfil; un menú en la fila las devuelve a la fila. De rebote se
+ * esquiva un bug real: `ActionMenu` posiciona su panel con `position:absolute`
+ * y sin portal, y esta tabla vive dentro de un contenedor con `overflow:auto`,
+ * así que el panel de las últimas filas se recortaría. La columna mide 40 px
+ * —la misma del Norte— por si algún día se decide poner el menú.
+ *
+ * Siete columnas pasaron a cuatro: rol y alcance se funden, y estado y último
+ * acceso también. Con eso muere el `position:sticky` de la columna de acciones,
+ * que era un parche por el ancho que ocupaban los botones.
  */
 
-import { useActionState, useState } from "react";
+import { Avatar } from "@/app/studio/_components/ui/Avatar";
+import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Icon } from "@/app/studio/_components/icons";
 import {
   ROLE_LABELS,
   SCOPED_ROLES,
-  STUDIO_USER_ROLES,
-  WAREHOUSE_SCOPES,
   WAREHOUSE_SCOPE_LABELS,
+  accessStage,
+  accessStageBadgeTone,
+  ACCESS_STAGE_LABELS,
   formatLastLogin,
-  memberStatus,
-  memberStatusLabel,
   roleBadgeTone,
   userDisplayName,
   userInitials,
-  type UserActionState,
+  type BadgeTone,
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
-import {
-  changeUserRoleAction,
-  changeWarehouseScopeAction,
-  disableUserAction,
-  enableUserAction,
-  sendAccessLinkAction,
-} from "../actions";
 
-const INITIAL: UserActionState = {};
-
-const TONE_BG: Record<string, string> = {
-  success: "var(--success-bg, #E5F4ED)",
-  warning: "var(--warning-bg, #FBF1DF)",
-  danger: "var(--danger-bg, #FCEDED)",
-  info: "var(--info-bg, #E5EEF9)",
-  wine: "var(--wine-tint, #FBE9EC)",
-  neutral: "var(--neutral-bg, #F2F0EC)",
-};
-
-const TONE_FG: Record<string, string> = {
-  success: "var(--success, #1F8A5B)",
-  warning: "var(--warning, #B8893A)",
-  danger: "var(--danger, #A8323E)",
-  info: "var(--info, #2A6FDB)",
-  wine: "var(--wine, #7F0F1A)",
-  neutral: "var(--ink-soft, #6B6B6B)",
-};
-
-interface Props {
-  members: UserMembershipWithProfile[];
-  currentUserId: string;
-  /** Abre la ficha de la persona (SDD-0250). */
-  onOpenDetail?: (member: UserMembershipWithProfile) => void;
+/** `Avatar` no tiene tono `danger`; el rol marketing lo usa. */
+type AvatarColor = "wine" | "info" | "success" | "warning" | "neutral";
+function avatarColor(tone: BadgeTone): AvatarColor {
+  return tone === "danger" ? "wine" : tone;
 }
 
-export function MembersTable({ members, currentUserId, onOpenDetail }: Props) {
+export function MembersTable({
+  members,
+  currentUserId,
+  onOpenDetail,
+  filtroActivo,
+  onLimpiar,
+}: {
+  members: UserMembershipWithProfile[];
+  currentUserId: string;
+  onOpenDetail: (m: UserMembershipWithProfile) => void;
+  /** Hay filtros puestos: cambia el vacío de «sin datos» a «sin coincidencias». */
+  filtroActivo?: boolean;
+  onLimpiar?: () => void;
+}) {
+  // TBL-01: el vacío distingue «no hay nada» de «tu filtro no encontró nada».
+  // Antes era un solo texto («Sin miembros que mostrar») para los dos casos.
   if (members.length === 0) {
-    return (
-      <div
-        style={{
-          padding: 32,
-          textAlign: "center",
-          color: "var(--ink-soft)",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 8,
-        }}
-      >
-        Sin miembros que mostrar.
-      </div>
+    return filtroActivo ? (
+      <Vacio
+        titulo="Ningún miembro coincide"
+        detalle="Prueba con otro texto o quita los filtros."
+        accion={
+          onLimpiar ? (
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              onClick={onLimpiar}
+            >
+              Limpiar filtros
+            </button>
+          ) : null
+        }
+      />
+    ) : (
+      <Vacio
+        titulo="Todavía no hay nadie en el equipo"
+        detalle="Invita a la primera persona para empezar."
+      />
     );
   }
 
   return (
     <div
       style={{
-        background: "var(--bg-surface, #FFFFFF)",
-        border: "1px solid var(--border, #E8E6E2)",
-        borderRadius: 8,
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
         overflow: "auto",
       }}
     >
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <caption
+          style={{
+            textAlign: "left",
+            padding: "var(--s-3) var(--s-4) 0",
+            font: "400 12px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          Miembros del equipo, con su rol, alcance de almacén y estado de acceso.
+          Cada fila abre la ficha de esa persona.
+        </caption>
         <thead>
-          <tr style={{ background: "var(--bg-elevated, #F2F0EC)" }}>
-            <Th>Usuario</Th>
-            <Th>Email</Th>
-            <Th>Rol</Th>
-            <Th>Almacén</Th>
-            <Th>Estado</Th>
-            <Th>Último login</Th>
-            <Th align="right" sticky>
-              Acciones
+          <tr style={{ background: "var(--bg-elevated)" }}>
+            <Th>Persona</Th>
+            <Th>Rol y alcance</Th>
+            <Th>Acceso</Th>
+            <Th>
+              <span className="studio-sr-only">Abrir ficha</span>
             </Th>
           </tr>
         </thead>
         <tbody>
           {members.map((m) => (
-            <MemberRow
+            <Fila
               key={m.user_id}
               member={m}
-              isSelf={m.user_id === currentUserId}
+              esYo={m.user_id === currentUserId}
               onOpenDetail={onOpenDetail}
             />
           ))}
@@ -113,357 +136,132 @@ export function MembersTable({ members, currentUserId, onOpenDetail }: Props) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Row (con server actions por row)
-// ─────────────────────────────────────────────────────────────
-
-function MemberRow({
+function Fila({
   member,
-  isSelf,
+  esYo,
   onOpenDetail,
 }: {
   member: UserMembershipWithProfile;
-  isSelf: boolean;
-  onOpenDetail?: (member: UserMembershipWithProfile) => void;
+  esYo: boolean;
+  onOpenDetail: (m: UserMembershipWithProfile) => void;
 }) {
-  const [roleState, roleAction, rolePending] = useActionState(
-    changeUserRoleAction,
-    INITIAL,
-  );
-  const [disableState, disableAction, disablePending] = useActionState(
-    disableUserAction,
-    INITIAL,
-  );
-  const [enableState, enableAction, enablePending] = useActionState(
-    enableUserAction,
-    INITIAL,
-  );
-  const [scopeState, scopeAction, scopePending] = useActionState(
-    changeWarehouseScopeAction,
-    INITIAL,
-  );
-  const [accessState, accessAction, accessPending] = useActionState(
-    sendAccessLinkAction,
-    INITIAL,
-  );
-  const [copied, setCopied] = useState(false);
-
-  const status = memberStatus(member);
   const tone = roleBadgeTone(member.role);
-  const statusTone = status === "active" ? "success" : "neutral";
-  const anyPending =
-    rolePending || disablePending || enablePending || scopePending || accessPending;
-  const lastError =
-    roleState.error ||
-    disableState.error ||
-    enableState.error ||
-    scopeState.error ||
-    accessState.error;
-  const memberScope = member.warehouse_scope ?? "all";
-  // Quien nunca entró no tiene forma de saber su clave: el alta del 3-jul les
-  // puso una que nadie les pasó. Señalarlo evita que el admin tenga que
-  // deducirlo de la columna "Último login".
-  const neverLoggedIn = !member.last_login_at;
+  const etapa = accessStage(member);
+  const nombre = userDisplayName(member.profile, member.email);
+  const scope = member.warehouse_scope ?? "all";
+  const alcance =
+    member.role === "admin"
+      ? "Todos los almacenes"
+      : SCOPED_ROLES.has(member.role)
+        ? WAREHOUSE_SCOPE_LABELS[scope]
+        : "Sin lado de almacén";
 
   return (
-    <tr style={{ borderTop: "1px solid var(--border)" }}>
+    <tr
+      role="button"
+      tabIndex={0}
+      aria-label={`Abrir la ficha de ${nombre}`}
+      onClick={() => onOpenDetail(member)}
+      onKeyDown={(e) => {
+        if (e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        onOpenDetail(member);
+      }}
+      className="studio-row-linkable"
+      style={{ borderTop: "1px solid var(--border)", cursor: "pointer" }}
+    >
       <Td>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}>
           <Avatar
             initials={userInitials(member.profile, member.email)}
-            tone={tone}
+            color={avatarColor(tone)}
           />
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            {/* Sólo el nombre abre la ficha, no la fila entera: la fila tiene
-                selects y formularios que se comerían el clic. */}
-            {onOpenDetail ? (
-              <button
-                type="button"
-                onClick={() => onOpenDetail(member)}
-                title="Ver la ficha de esta persona"
-                style={{
-                  background: "transparent",
-                  border: 0,
-                  padding: 0,
-                  textAlign: "left",
-                  cursor: "pointer",
-                  fontWeight: 600,
-                  fontSize: 13,
-                  fontFamily: "inherit",
-                  color: "var(--ink)",
-                  textDecoration: "underline",
-                  // SDD-0272: era `var(--border)` (#E8E6E2) sobre #FFFFFF =
-                  // 1,25:1. El subrayado es el UNICO indicio de que el nombre
-                  // abre la ficha, y a ese contraste no se ve: por eso el
-                  // modulo se sentia de solo lectura. `--ink-soft` (#6B6B6B)
-                  // da 5,33:1, arriba del 3:1 que pide WCAG 1.4.11 para un
-                  // indicador de interfaz.
-                  textDecorationColor: "var(--ink-soft)",
-                  textUnderlineOffset: 3,
-                }}
-              >
-                {userDisplayName(member.profile, member.email)}
-              </button>
-            ) : (
-              <span style={{ fontWeight: 600, color: "var(--ink)" }}>
-                {userDisplayName(member.profile, member.email)}
-              </span>
-            )}
+            <span style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
+              {nombre}
+              {esYo && (
+                <span
+                  style={{
+                    font: "400 11px/1 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                    marginLeft: "var(--s-2)",
+                  }}
+                >
+                  (tú)
+                </span>
+              )}
+            </span>
+            <span
+              style={{
+                font: "400 11.5px/1.3 var(--f-mono)",
+                color: "var(--ink-soft)",
+                wordBreak: "break-all",
+              }}
+            >
+              {member.email}
+            </span>
             {member.profile?.position_label && (
-              <span style={{ fontSize: 11, color: "var(--ink-soft)" }}>
+              <span style={{ font: "400 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
                 {member.profile.position_label}
               </span>
             )}
-            {isSelf && (
-              <span style={{ fontSize: 10, color: "var(--ink-soft)" }}>
-                (tú)
-              </span>
-            )}
           </div>
         </div>
       </Td>
 
       <Td>
-        <span
-          style={{
-            color: "var(--ink-soft)",
-            fontFamily: "var(--font-mono, monospace)",
-            fontSize: 12,
-          }}
-        >
-          {member.email}
-        </span>
-      </Td>
-
-      <Td>
-        <form
-          action={roleAction}
-          style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
-        >
-          <input type="hidden" name="target_user_id" value={member.user_id} />
-          <Pill bg={TONE_BG[tone]} fg={TONE_FG[tone]}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-start" }}>
+          <Badge tone={tone} size="sm" dot>
             {ROLE_LABELS[member.role]}
-          </Pill>
-          <select
-            name="new_role"
-            defaultValue={member.role}
-            disabled={anyPending}
-            aria-label="Rol asignado"
-            onChange={(e) => {
-              // Auto-submit al cambiar
-              const f = e.target.form;
-              if (f && e.target.value !== member.role) f.requestSubmit();
-            }}
-            style={{
-              height: 28,
-              padding: "0 var(--s-2)",
-              border: "1px solid var(--border)",
-              borderRadius: 4,
-              background: "var(--bg-surface)",
-              color: "var(--ink)",
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            {STUDIO_USER_ROLES.map((r) => (
-              <option key={r} value={r}>
-                {ROLE_LABELS[r]}
-              </option>
-            ))}
-          </select>
-        </form>
-      </Td>
-
-      <Td>
-        {member.role === "admin" ? (
-          <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>Todos</span>
-        ) : SCOPED_ROLES.has(member.role) ? (
-          <form action={scopeAction} style={{ display: "inline-flex" }}>
-            <input type="hidden" name="target_user_id" value={member.user_id} />
-            <select
-              name="new_scope"
-              defaultValue={memberScope}
-              disabled={anyPending}
-              aria-label="Almacén asignado"
-              title="Lado de la operación que ve este usuario (módulos de almacén)"
-              onChange={(e) => {
-                const f = e.target.form;
-                if (f && e.target.value !== memberScope) f.requestSubmit();
-              }}
-              style={{
-                height: 28,
-                padding: "0 var(--s-2)",
-                border: "1px solid var(--border)",
-                borderRadius: 4,
-                background: "var(--bg-surface)",
-                color: "var(--ink)",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
-            >
-              {WAREHOUSE_SCOPES.map((s) => (
-                <option key={s} value={s}>
-                  {WAREHOUSE_SCOPE_LABELS[s]}
-                </option>
-              ))}
-            </select>
-          </form>
-        ) : (
-          <span style={{ fontSize: 12, color: "var(--ink-mute)" }}>—</span>
-        )}
-      </Td>
-
-      <Td>
-        <Pill bg={TONE_BG[statusTone]} fg={TONE_FG[statusTone]}>
-          {memberStatusLabel(status)}
-        </Pill>
-      </Td>
-
-      <Td>
-        <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>
-          {formatLastLogin(member.last_login_at)}
-        </span>
-      </Td>
-
-      <Td align="right" sticky>
-        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-          {status === "active" && (
-            <form action={accessAction} style={{ display: "inline" }}>
-              <input type="hidden" name="target_user_id" value={member.user_id} />
-              <button
-                type="submit"
-                disabled={anyPending}
-                className={`studio-btn studio-btn-xs ${
-                  neverLoggedIn ? "studio-btn-primary" : "studio-btn-ghost"
-                }`}
-                title="Le manda por correo un enlace para que cree su contraseña"
-              >
-                {accessPending ? "…" : "Enviar acceso"}
-              </button>
-            </form>
-          )}
-          {status === "active" ? (
-            <form action={disableAction} style={{ display: "inline" }}>
-              <input type="hidden" name="target_user_id" value={member.user_id} />
-              <button
-                type="submit"
-                disabled={anyPending}
-                className="studio-btn studio-btn-ghost studio-btn-xs"
-                title="Le corta el acceso al Studio · reversible"
-              >
-                {disablePending ? "…" : "Suspender acceso"}
-              </button>
-            </form>
-          ) : (
-            <form action={enableAction} style={{ display: "inline" }}>
-              <input type="hidden" name="target_user_id" value={member.user_id} />
-              <button
-                type="submit"
-                disabled={anyPending}
-                className="studio-btn studio-btn-ghost studio-btn-xs"
-                title="Le devuelve el acceso al Studio"
-              >
-                {enablePending ? "…" : "Reactivar acceso"}
-              </button>
-            </form>
-          )}
+          </Badge>
+          <span style={{ font: "400 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+            {alcance}
+          </span>
         </div>
-        {/* Rastro persistente (no un toast): el admin necesita PODER COPIAR el
-            enlace si el correo no llega, así que se queda en pantalla. */}
-        {accessState.ok && accessState.accessLink && (
-          <div
+      </Td>
+
+      <Td>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-start" }}>
+          <Badge tone={accessStageBadgeTone(etapa)} size="sm" dot>
+            {ACCESS_STAGE_LABELS[etapa]}
+          </Badge>
+          <span
             style={{
-              marginTop: 6,
-              padding: "6px 8px",
-              background: "var(--success-bg, #E5F4ED)",
-              borderRadius: 4,
-              textAlign: "left",
+              font: "400 11px/1.3 var(--f-mono)",
+              color: "var(--ink-soft)",
+              fontVariantNumeric: "tabular-nums",
             }}
           >
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                color: "var(--success, #1F8A5B)",
-                marginBottom: 4,
-              }}
-            >
-              Enlace enviado a {member.email}
-            </div>
-            <button
-              type="button"
-              className="studio-btn studio-btn-ghost studio-btn-xs"
-              onClick={() => {
-                void navigator.clipboard
-                  .writeText(accessState.accessLink as string)
-                  .then(() => {
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2500);
-                  });
-              }}
-              title="Por si el correo no llega — pásaselo por un canal privado"
-            >
-              {copied ? "Copiado" : "Copiar enlace"}
-            </button>
-          </div>
-        )}
-        {lastError && (
-          <div
-            style={{
-              fontSize: 11,
-              color: "var(--danger)",
-              marginTop: 4,
-              textAlign: "right",
-            }}
-          >
-            {lastError}
-          </div>
-        )}
+            {formatLastLogin(member.last_login_at)}
+          </span>
+        </div>
+      </Td>
+
+      {/* 40 px, el ancho del Norte. Fijo para las cuatro etapas: TBL-01 pide que
+          la acción de fila no cambie de sitio según el estado. */}
+      <Td width={40}>
+        <span aria-hidden style={{ color: "var(--ink-soft)", display: "grid", placeItems: "center" }}>
+          {Icon.chevronR(14)}
+        </span>
       </Td>
     </tr>
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────
-
-/**
- * `sticky` fija la columna al borde derecho mientras la tabla scrollea en
- * horizontal. La tabla tiene 7 columnas y el contenedor `overflow: auto`: en
- * pantallas angostas la columna de Acciones quedaba FUERA DE VISTA, y con ella
- * los únicos botones de la fila — se reportó como "no puedo desactivar a este
- * usuario" (2026-08-06). El fondo es obligatorio: sin él, el contenido de las
- * otras columnas se ve por debajo al pasar.
- */
-function Th({
-  children,
-  align,
-  sticky,
-}: {
-  children: React.ReactNode;
-  align?: "left" | "right";
-  sticky?: boolean;
-}) {
+function Th({ children }: { children: React.ReactNode }) {
   return (
     <th
+      scope="col"
       style={{
-        padding: "10px 12px",
-        textAlign: align ?? "left",
-        fontSize: 11,
+        textAlign: "left",
+        padding: "var(--s-3) var(--s-4)",
+        font: "600 10px/1 var(--f-mono)",
+        letterSpacing: "0.09em",
         textTransform: "uppercase",
-        letterSpacing: "0.06em",
-        color: "var(--ink-soft)",
-        fontWeight: 600,
+        // `--ink-soft` sobre `--bg-elevated` da 3,94:1, bajo el 4,5:1 que pide
+        // AA para texto chico. Medido en navegador (SDD-0274).
+        color: "var(--ink)",
         whiteSpace: "nowrap",
-        ...(sticky
-          ? {
-              position: "sticky" as const,
-              right: 0,
-              background: "var(--bg-elevated, #F2F0EC)",
-              borderLeft: "1px solid var(--border, #E8E6E2)",
-            }
-          : null),
       }}
     >
       {children}
@@ -471,92 +269,44 @@ function Th({
   );
 }
 
-function Td({
-  children,
-  align,
-  sticky,
-}: {
-  children: React.ReactNode;
-  align?: "left" | "right";
-  sticky?: boolean;
-}) {
+function Td({ children, width }: { children: React.ReactNode; width?: number }) {
   return (
-    <td
-      style={{
-        padding: "10px 12px",
-        verticalAlign: "middle",
-        textAlign: align ?? "left",
-        ...(sticky
-          ? {
-              position: "sticky" as const,
-              right: 0,
-              background: "var(--bg-surface, #FFFFFF)",
-              borderLeft: "1px solid var(--border, #E8E6E2)",
-            }
-          : null),
-      }}
-    >
+    <td style={{ padding: "var(--s-3) var(--s-4)", verticalAlign: "middle", width }}>
       {children}
     </td>
   );
 }
 
-function Pill({
-  bg,
-  fg,
-  children,
+function Vacio({
+  titulo,
+  detalle,
+  accion,
 }: {
-  bg: string;
-  fg: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        height: 20,
-        padding: "0 var(--s-2)",
-        background: bg,
-        color: fg,
-        borderRadius: 4,
-        fontSize: 11,
-        fontWeight: 600,
-        lineHeight: 1,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function Avatar({
-  initials,
-  tone = "wine",
-}: {
-  initials: string;
-  tone?: string;
+  titulo: string;
+  detalle: string;
+  accion?: React.ReactNode;
 }) {
   return (
     <div
-      aria-hidden="true"
       style={{
-        width: 32,
-        height: 32,
-        borderRadius: "50%",
-        background: TONE_BG[tone] ?? TONE_BG.wine,
-        color: TONE_FG[tone] ?? TONE_FG.wine,
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        padding: "var(--s-7) var(--s-4)",
+        textAlign: "center",
         display: "flex",
+        flexDirection: "column",
+        gap: "var(--s-2)",
         alignItems: "center",
-        justifyContent: "center",
-        fontSize: 11,
-        fontWeight: 700,
-        fontFamily: "var(--font-archivo-black, 'Archivo Black')",
-        flexShrink: 0,
       }}
     >
-      {initials}
+      <p style={{ font: "600 14px/1.3 var(--f-sans)", color: "var(--ink)", margin: 0 }}>
+        {titulo}
+      </p>
+      <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+        {detalle}
+      </p>
+      {accion}
     </div>
   );
 }

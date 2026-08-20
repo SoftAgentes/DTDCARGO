@@ -304,7 +304,7 @@ export function InviteUserDrawer({ onClose }: Props) {
               <div style={{ flex: 1 }}>
                 <div
                   style={{
-                    font: "500 12.5px/1.4 var(--font-sans, 'Archivo')",
+                    font: "500 12.5px/1.4 var(--f-sans)",
                     color: "var(--ink)",
                   }}
                 >
@@ -320,7 +320,7 @@ export function InviteUserDrawer({ onClose }: Props) {
                 </div>
                 <div
                   style={{
-                    font: "500 11px/1.4 var(--font-sans, 'Archivo')",
+                    font: "500 11px/1.4 var(--f-sans)",
                     color: "var(--ink-soft)",
                     marginTop: 2,
                   }}
@@ -347,7 +347,7 @@ export function InviteUserDrawer({ onClose }: Props) {
             {/* Disclaimer Fase C */}
             <p
               style={{
-                font: "500 11px/1.4 var(--font-sans, 'Archivo')",
+                font: "500 11px/1.4 var(--f-sans)",
                 color: "var(--ink-soft)",
                 margin: 0,
               }}
@@ -433,7 +433,7 @@ function OfficePicker({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
-                    font: "700 13px/1.2 var(--font-sans, 'Archivo')",
+                    font: "700 13px/1.2 var(--f-sans)",
                     color: sel ? "var(--wine)" : "var(--ink)",
                   }}
                 >
@@ -441,7 +441,7 @@ function OfficePicker({
                 </div>
                 <div
                   style={{
-                    font: "500 10.5px/1.3 var(--font-sans, 'Archivo')",
+                    font: "500 10.5px/1.3 var(--f-sans)",
                     color: "var(--ink-soft)",
                     marginTop: 2,
                   }}
@@ -457,7 +457,7 @@ function OfficePicker({
       </div>
       <p
         style={{
-          font: "500 11px/1.4 var(--font-sans, 'Archivo')",
+          font: "500 11px/1.4 var(--f-sans)",
           color: "var(--ink-soft)",
           margin: 0,
         }}
@@ -496,7 +496,7 @@ function ScopeSection({
       >
         <span
           style={{
-            font: "600 11px/1 var(--font-sans, 'Archivo')",
+            font: "600 11px/1 var(--f-sans)",
             color: "var(--ink-soft)",
             letterSpacing: "0.04em",
             textTransform: "uppercase",
@@ -508,7 +508,7 @@ function ScopeSection({
       </div>
       <div
         style={{
-          font: "500 11px/1.4 var(--font-sans, 'Archivo')",
+          font: "500 11px/1.4 var(--f-sans)",
           color: "var(--ink-soft)",
           marginBottom: 10,
         }}
@@ -582,7 +582,7 @@ function ScopeSection({
         <span
           style={{
             display: "block",
-            font: "600 11px/1 var(--font-sans, 'Archivo')",
+            font: "600 11px/1 var(--f-sans)",
             color: "var(--ink-soft)",
             letterSpacing: "0.04em",
             textTransform: "uppercase",
@@ -617,7 +617,7 @@ function ScopeSection({
               >
                 <div
                   style={{
-                    font: "700 12.5px/1.2 var(--font-sans, 'Archivo')",
+                    font: "700 12.5px/1.2 var(--f-sans)",
                     color: sel ? "var(--wine)" : "var(--ink)",
                   }}
                 >
@@ -625,7 +625,7 @@ function ScopeSection({
                 </div>
                 <div
                   style={{
-                    font: "500 11px/1.3 var(--font-sans, 'Archivo')",
+                    font: "500 11px/1.3 var(--f-sans)",
                     color: "var(--ink-soft)",
                     marginTop: 4,
                   }}
@@ -673,7 +673,7 @@ function WarehouseCheckbox({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            font: "700 12px/1.2 var(--font-sans, 'Archivo')",
+            font: "700 12px/1.2 var(--f-sans)",
             color: "var(--ink)",
           }}
         >
@@ -681,7 +681,7 @@ function WarehouseCheckbox({
         </div>
         <div
           style={{
-            font: "500 10.5px/1.2 var(--font-sans, 'Archivo')",
+            font: "500 10.5px/1.2 var(--f-sans)",
             color: "var(--ink-soft)",
             marginTop: 2,
           }}
@@ -757,7 +757,7 @@ function SummaryCard({
     >
       <div
         style={{
-          font: "700 10.5px/1 var(--font-sans, 'Archivo')",
+          font: "700 10.5px/1 var(--f-sans)",
           color: "var(--wine-soft, #C2747F)",
           letterSpacing: "0.14em",
           textTransform: "uppercase",
@@ -771,7 +771,7 @@ function SummaryCard({
           display: "flex",
           flexDirection: "column",
           gap: 5,
-          font: "500 12.5px/1.6 var(--font-sans, 'Archivo')",
+          font: "500 12.5px/1.6 var(--f-sans)",
           color: "var(--ink-inv-soft, rgba(255,255,255,0.85))",
         }}
       >
@@ -897,7 +897,7 @@ function SuccessView({
                 borderRadius: 6,
                 background: "var(--bg-elevated)",
                 color: "var(--ink)",
-                fontFamily: "var(--font-mono, monospace)",
+                fontFamily: "var(--f-mono)",
                 fontSize: 12,
                 outline: "none",
               }}

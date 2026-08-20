@@ -119,7 +119,7 @@ function InvitationRow({ invitation }: { invitation: UserInvitation }) {
         <span
           style={{
             color: "var(--ink)",
-            fontFamily: "var(--font-mono, monospace)",
+            fontFamily: "var(--f-mono)",
             fontSize: 12,
           }}
         >

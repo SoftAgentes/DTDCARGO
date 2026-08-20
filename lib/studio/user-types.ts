@@ -378,6 +378,75 @@ export function memberStatus(m: UserTenantMembership): MemberStatus {
   return m.disabled_at ? "disabled" : "active";
 }
 
+// ─── Etapa de acceso (SDD-0274) ─────────────────────────────
+
+/**
+ * En qué punto del camino de acceso está una persona.
+ *
+ * `memberStatus` sólo distingue activo/desactivado, y con eso la tabla no podía
+ * decir nada del hecho más importante del módulo: **de 9 miembros, 4 tienen
+ * cuenta y nunca han entrado**. Eso hoy sólo se veía como un "Nunca" en una
+ * celda de fecha, sin que nada lo empujara al frente ni se pudiera filtrar.
+ *
+ * Función PURA sobre la fila: no consulta invitaciones. Un invitado que todavía
+ * no aceptó **no es un miembro** y vive en su propia pestaña — mezclarlos era
+ * la pieza cara que este rediseño decidió no construir.
+ */
+export type AccessStage = "suspendido" | "nunca-entro" | "activo";
+
+export function accessStage(m: UserTenantMembership): AccessStage {
+  if (m.disabled_at) return "suspendido";
+  if (!m.last_login_at) return "nunca-entro";
+  return "activo";
+}
+
+export const ACCESS_STAGE_LABELS: Record<AccessStage, string> = {
+  suspendido: "Suspendido",
+  "nunca-entro": "Nunca entró",
+  activo: "Activo",
+};
+
+export function accessStageBadgeTone(s: AccessStage): BadgeTone {
+  if (s === "activo") return "success";
+  if (s === "nunca-entro") return "warning";
+  return "neutral";
+}
+
+/** Orden en que las etapas piden atención. Menor = más arriba. */
+const ACCESS_STAGE_ORDER: Record<AccessStage, number> = {
+  "nunca-entro": 0,
+  suspendido: 1,
+  activo: 2,
+};
+
+/**
+ * Orden por defecto de la tabla: lo pendiente primero.
+ *
+ * Dentro de "nunca entró", **el más viejo arriba** — quien lleva más tiempo con
+ * la cuenta sin estrenar es el caso más urgente, no el más reciente. Empate y
+ * resto de las etapas: alfabético por nombre visible, para que el orden no
+ * baile entre recargas.
+ */
+export function compareByAccessStage(
+  a: UserMembershipWithProfile,
+  b: UserMembershipWithProfile,
+): number {
+  const ea = ACCESS_STAGE_ORDER[accessStage(a)];
+  const eb = ACCESS_STAGE_ORDER[accessStage(b)];
+  if (ea !== eb) return ea - eb;
+
+  if (accessStage(a) === "nunca-entro") {
+    const ca = new Date(a.created_at).getTime();
+    const cb = new Date(b.created_at).getTime();
+    if (ca !== cb) return ca - cb;
+  }
+
+  return userDisplayName(a.profile, a.email).localeCompare(
+    userDisplayName(b.profile, b.email),
+    "es",
+  );
+}
+
 // ─── Invitation status ──────────────────────────────────────
 
 export type InvitationStatus = "pending" | "accepted" | "revoked" | "expired";
