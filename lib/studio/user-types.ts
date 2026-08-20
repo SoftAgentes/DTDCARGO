@@ -42,6 +42,20 @@ export const WAREHOUSE_SCOPE_LABELS: Record<WarehouseScope, string> = {
   all: "Ambos",
 };
 
+/**
+ * Roles a los que el alcance de almacén les cambia algo. `admin` ve todo y al
+ * resto sus módulos no tienen lado geográfico, así que el selector no aplica.
+ *
+ * Vivía privado dentro de `MembersTable`; SDD-0273 lo sube acá porque la ficha
+ * necesita la MISMA regla — duplicarla era la forma segura de que un día
+ * dijeran cosas distintas.
+ */
+export const SCOPED_ROLES: ReadonlySet<StudioUserRole> = new Set([
+  "operations",
+  "warehouse",
+  "support",
+]);
+
 // ─── Entity types (match schema 0019) ────────────────────────
 
 export interface UserProfile {

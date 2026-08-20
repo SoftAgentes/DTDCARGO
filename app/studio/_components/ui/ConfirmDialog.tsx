@@ -305,6 +305,18 @@ function OpenConfirmDialog({
               disabled={pending}
               required={reasonRequired}
               style={{ width: "100%" }}
+              // SDD-0273: editar el motivo abre un intento NUEVO y baja el
+              // candado anti-doble-click.
+              //
+              // El candado sólo se bajaba en el efecto de `[error]`, así que un
+              // consumidor que valide del lado del cliente con un mensaje
+              // CONSTANTE lo emitía dos veces, React no re-renderizaba (mismo
+              // valor), el efecto no corría y el botón confirmar se quedaba
+              // muerto sin decir por qué. El doble click sin tocar el campo
+              // sigue frenado: ahí no cambia nada que justifique reintentar.
+              onInput={() => {
+                requestSentRef.current = false;
+              }}
             />
           </label>
         )}

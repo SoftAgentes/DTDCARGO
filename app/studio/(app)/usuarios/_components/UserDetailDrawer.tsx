@@ -25,8 +25,6 @@ import {
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   ROLE_LABELS,
-  ROLE_DESCRIPTIONS,
-  WAREHOUSE_SCOPE_LABELS,
   formatLastLogin,
   memberStatus,
   memberStatusLabel,
@@ -34,6 +32,7 @@ import {
   type UserActionState,
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
+import { RolYAlcanceCard } from "./ficha/RolYAlcanceCard";
 import {
   changeMemberEmailAction,
   disableUserAction,
@@ -92,7 +91,6 @@ export function UserDetailDrawer({
     enableState.error ||
     correoState.error;
   const nuncaEntro = !member.last_login_at;
-  const scope = member.warehouse_scope ?? "all";
 
   return (
     <DrawerShell
@@ -254,29 +252,11 @@ export function UserDetailDrawer({
               </p>
             )}
           </div>
-          <Dato etiqueta="Rol" valor={ROLE_LABELS[member.role]} />
-          <Dato
-            etiqueta="Almacén"
-            valor={
-              member.role === "admin"
-                ? "Todos"
-                : (WAREHOUSE_SCOPE_LABELS[scope] ?? "—")
-            }
-          />
           <Dato
             etiqueta="Último acceso"
             valor={formatLastLogin(member.last_login_at)}
             alerta={nuncaEntro}
           />
-          <p
-            style={{
-              font: "400 12px/1.5 var(--f-sans)",
-              color: "var(--ink-soft)",
-              margin: "var(--s-2) 0 0",
-            }}
-          >
-            {ROLE_DESCRIPTIONS[member.role]}
-          </p>
           {nuncaEntro && activo && (
             <p
               style={{
@@ -303,6 +283,11 @@ export function UserDetailDrawer({
               cree su contraseña.
             </p>
           )}
+        </Seccion>
+
+        {/* ── Rol y alcance ──────────────────────────────────── */}
+        <Seccion titulo="Rol y alcance">
+          <RolYAlcanceCard member={member} esYo={esYo} onCambio={onClose} />
         </Seccion>
 
         {/* ── Datos editables ────────────────────────────────── */}
@@ -411,8 +396,8 @@ export function UserDetailDrawer({
               margin: "var(--s-3) 0 0",
             }}
           >
-            El rol y el almacén se cambian desde la tabla. Enviar un enlace nuevo
-            <strong> no anula</strong> los anteriores.
+            Enviar un enlace nuevo <strong>no anula</strong> los anteriores.
+            Suspender el acceso sí corta la sesión abierta.
           </p>
 
           {/* Rastro persistente: el admin necesita PODER COPIAR el enlace si el

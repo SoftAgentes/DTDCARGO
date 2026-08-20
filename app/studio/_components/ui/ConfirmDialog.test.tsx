@@ -296,3 +296,85 @@ describe("ConfirmDialog · AVS-01", () => {
     expect(onConfirm).toHaveBeenCalledWith("Error de emisión");
   });
 });
+
+describe("ConfirmDialog · el candado anti-doble-click no se traba solo", () => {
+  /**
+   * SDD-0273. `confirmOnce()` levanta `requestSentRef` para que un doble click
+   * no mande dos veces, y lo baja en un efecto que depende de `[error]`.
+   *
+   * El agujero: si el consumidor valida del lado del cliente y emite DOS VECES
+   * EL MISMO texto de error, React no re-renderiza (mismo valor), el efecto no
+   * corre, y el candado se queda arriba. El diálogo queda con su botón
+   * confirmar muerto y sin ninguna señal de por qué.
+   *
+   * Lo dispara cualquier consumidor con un mensaje de validación constante —
+   * el de SDD-0273 es "el motivo necesita al menos 8 caracteres".
+   */
+  it("dos errores idénticos seguidos no matan el confirmar", async () => {
+    const u = userEvent.setup();
+    const aplicar = vi.fn();
+
+    function Consumidor() {
+      const [error, setError] = useState<string | undefined>();
+      return (
+        <ConfirmDialog
+          open
+          reason
+          reasonRequired
+          title="Confirmar cambio"
+          message="mensaje"
+          error={error}
+          onCancel={() => {}}
+          onConfirm={(motivo) => {
+            // Mensaje CONSTANTE a propósito: es el caso que se rompía.
+            if (motivo.trim().length < 8) {
+              setError("El motivo necesita al menos 8 caracteres.");
+              return;
+            }
+            aplicar(motivo);
+          }}
+        />
+      );
+    }
+
+    render(<Consumidor />);
+    const campo = screen.getByRole("textbox");
+    const confirmar = screen.getByRole("button", { name: /confirmar/i });
+
+    // 1º intento corto → error
+    await u.clear(campo);
+    await u.type(campo, "ok");
+    await u.click(confirmar);
+
+    // 2º intento corto → MISMO error (acá se trababa)
+    await u.clear(campo);
+    await u.type(campo, "corto");
+    await u.click(confirmar);
+
+    // 3º intento válido → tiene que pasar
+    await u.clear(campo);
+    await u.type(campo, "un motivo bien largo y valido");
+    await u.click(confirmar);
+
+    expect(aplicar).toHaveBeenCalledTimes(1);
+    expect(aplicar).toHaveBeenCalledWith("un motivo bien largo y valido");
+  });
+
+  it("sigue frenando el doble click sin tocar el campo", async () => {
+    const u = userEvent.setup();
+    const onConfirm = vi.fn();
+    render(
+      <ConfirmDialog
+        open
+        title="t"
+        message="m"
+        onCancel={() => {}}
+        onConfirm={onConfirm}
+      />,
+    );
+    const confirmar = screen.getByRole("button", { name: /confirmar/i });
+    await u.click(confirmar);
+    await u.click(confirmar);
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+});

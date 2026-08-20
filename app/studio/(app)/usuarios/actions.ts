@@ -222,6 +222,13 @@ export async function changeUserRoleAction(
       operationType: "membership.role_change",
       targetId: targetUserId,
       input: { role: newRole },
+      // SDD-0273: el motivo lo escribe quien confirma, en el ConfirmDialog de
+      // la ficha. Antes NO se pasaba, así que `user_role_audit` guardaba un
+      // cambio de rol sin decir por qué — AUD-01 §3 pide lo contrario.
+      reason: d1Reason(
+        formData.get("reason"),
+        "Cambio de rol desde la ficha de usuario",
+      ),
     });
     revalidatePath("/studio/usuarios");
     return { ok: true, userId: targetUserId };
@@ -261,6 +268,10 @@ export async function changeWarehouseScopeAction(
       operationType: "membership.scope_change",
       targetId: targetUserId,
       input: { scope: scopeRaw },
+      reason: d1Reason(
+        formData.get("reason"),
+        "Cambio de alcance desde la ficha de usuario",
+      ),
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);

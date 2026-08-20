@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 265 specs)
+### Índice de specs (generado · 266 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -303,6 +303,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0270 | El vínculo cliente ↔ contacto de Kommo deja de depender del azar | done | interna |
 | 0271 | Rutas de alerta de Telegram: un destino por categoría, y que … | in-progress | interno |
 | 0272 | Un admin corrige el correo de un miembro, y el anterior deja … | in-progress | interna |
+| 0273 | El rol y el alcance se cambian desde la ficha, con motivo y c… | in-progress | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

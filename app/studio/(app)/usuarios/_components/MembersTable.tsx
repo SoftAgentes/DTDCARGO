@@ -9,6 +9,7 @@
 import { useActionState, useState } from "react";
 import {
   ROLE_LABELS,
+  SCOPED_ROLES,
   STUDIO_USER_ROLES,
   WAREHOUSE_SCOPES,
   WAREHOUSE_SCOPE_LABELS,
@@ -18,7 +19,6 @@ import {
   roleBadgeTone,
   userDisplayName,
   userInitials,
-  type StudioUserRole,
   type UserActionState,
   type UserMembershipWithProfile,
 } from "@/lib/studio/user-types";
@@ -34,12 +34,6 @@ import {
  * Roles con lado de almacén asignable (Norte users.jsx: needsScope). Para el
  * resto el scope no aplica (sus módulos no tienen lado geográfico) → "—".
  */
-const SCOPED_ROLES: ReadonlySet<StudioUserRole> = new Set([
-  "operations",
-  "warehouse",
-  "support",
-]);
-
 const INITIAL: UserActionState = {};
 
 const TONE_BG: Record<string, string> = {
@@ -359,9 +353,9 @@ function MemberRow({
                 type="submit"
                 disabled={anyPending}
                 className="studio-btn studio-btn-ghost studio-btn-xs"
-                title="Desactivar este usuario"
+                title="Le corta el acceso al Studio · reversible"
               >
-                {disablePending ? "…" : "Desactivar"}
+                {disablePending ? "…" : "Suspender acceso"}
               </button>
             </form>
           ) : (
@@ -371,9 +365,9 @@ function MemberRow({
                 type="submit"
                 disabled={anyPending}
                 className="studio-btn studio-btn-ghost studio-btn-xs"
-                title="Reactivar este usuario"
+                title="Le devuelve el acceso al Studio"
               >
-                {enablePending ? "…" : "Reactivar"}
+                {enablePending ? "…" : "Reactivar acceso"}
               </button>
             </form>
           )}
