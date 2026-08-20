@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { esperarHidratado } from "./_helpers/hidratacion";
 
 /**
  * Contrato: la web pública no tiene scroll horizontal en pantallas angostas.
@@ -104,6 +105,11 @@ test.describe("el drawer del menú móvil sigue funcionando a 320px", () => {
     const antes = await medirDesborde(page);
     expect(antes.scrollWidth).toBe(antes.clientWidth);
 
+    // `networkidle` NO es hidratación: la red se calla y React todavía puede no
+    // haber tomado el botón. Sin esta espera el clic se pierde y `aria-hidden`
+    // se queda en "true" — es lo que hacía flakear este test en mobile-safari.
+    // Ver `_helpers/hidratacion.ts`.
+    await esperarHidratado(abrir, "el botón del menú móvil");
     await abrir.click();
     await expect(drawer).toHaveAttribute("aria-hidden", "false");
     await expect(drawer).toBeVisible();
