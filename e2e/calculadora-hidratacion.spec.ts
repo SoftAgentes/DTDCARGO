@@ -42,6 +42,13 @@ test.describe("hidratación · tocar la calculadora antes de que React llegue", 
   test("el CBM tecleado antes del JS igual produce precio", async ({
     page,
   }) => {
+    // Primero una carga NORMAL, sólo para que el dev server compile la ruta: un
+    // `commit` contra una ruta todavía compilándose aborta la navegación
+    // (`net::ERR_ABORTED` en chromium) y el test cae por algo que no es lo que
+    // mide. Medido el 2026-08-20 en un worktree recién instalado. La carrera no
+    // se pierde con esto: ya compilada, el JS igual llega después del HTML — que
+    // es justo la ventana que este archivo vigila.
+    await page.goto("/tarifas");
     await page.goto("/tarifas", { waitUntil: "commit" });
 
     const panel = page.locator("#panel-ddp");
@@ -54,6 +61,13 @@ test.describe("hidratación · tocar la calculadora antes de que React llegue", 
   test("el toggle tocado antes del JS igual abre el consolidado", async ({
     page,
   }) => {
+    // Primero una carga NORMAL, sólo para que el dev server compile la ruta: un
+    // `commit` contra una ruta todavía compilándose aborta la navegación
+    // (`net::ERR_ABORTED` en chromium) y el test cae por algo que no es lo que
+    // mide. Medido el 2026-08-20 en un worktree recién instalado. La carrera no
+    // se pierde con esto: ya compilada, el JS igual llega después del HTML — que
+    // es justo la ventana que este archivo vigila.
+    await page.goto("/tarifas");
     await page.goto("/tarifas", { waitUntil: "commit" });
 
     // Un clic perdido no se recupera solo: el panel nunca abre y el
