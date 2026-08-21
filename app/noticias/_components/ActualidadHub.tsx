@@ -31,7 +31,7 @@ const CATEGORY_DESCRIPTIONS: Record<NewsCategoria, string> = {
 };
 
 const QUICK_ACTIONS = [
-  { href: "/portal/login", label: "Rastrear un envío" },
+  { href: "/entrar", label: "Rastrear un envío" },
   { href: "/fcl", label: "Ver referencia FCL" },
   { href: "/servicios/lcl", label: "Elegir LCL o FCL" },
   { href: "/servicios/inspeccion", label: "Verificar proveedor" },

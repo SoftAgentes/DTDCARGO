@@ -1,7 +1,7 @@
 /**
  * Tests de welcome-email (SDD-0059): el correo de bienvenida ahora ENVÍA de
  * verdad delegando en `sendEmail` (Resend), no solo encola; y el link apunta a
- * `/portal/login` del sitio, no al subdominio inexistente.
+ * `/entrar` del sitio, no al subdominio inexistente.
  *
  * `sendEmail` se mockea — sin red ni DB. Verificamos el contrato de delegación.
  */
@@ -21,9 +21,9 @@ beforeEach(() => {
 });
 
 describe("portalLoginUrl", () => {
-  it("apunta a /portal/login del sitio, NO al subdominio inexistente", () => {
+  it("apunta a /entrar del sitio, NO al subdominio inexistente", () => {
     const link = portalLoginUrl();
-    expect(link).toContain("/portal/login");
+    expect(link).toContain("/entrar");
     expect(link).not.toContain("portal.dtdcargo.com");
   });
 });
@@ -60,7 +60,7 @@ describe("sendWelcomeEmail", () => {
     expect(input.to).toBe("carlos@empresa.com");
     expect(input.vars?.markbox).toBe("DTD-5452");
     expect(input.vars?.client_name).toBe("Carlos Pérez");
-    expect(input.vars?.portal_link).toContain("/portal/login");
+    expect(input.vars?.portal_link).toContain("/entrar");
     expect(input.vars?.portal_link).not.toContain("portal.dtdcargo.com");
   });
 

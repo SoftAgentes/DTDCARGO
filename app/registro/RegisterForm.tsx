@@ -343,7 +343,7 @@ export function RegisterForm({
 
           <div className="mt-8 pt-5 border-t border-white/10 text-[11px] leading-[1.5] text-white/60">
             ¿Ya tienes cuenta?{" "}
-            <Link href="/portal/login" className="font-bold text-white hover:underline">
+            <Link href="/entrar" className="font-bold text-white hover:underline">
               Entra al portal
             </Link>
           </div>
@@ -985,7 +985,7 @@ function YaEresCliente() {
           <span className="font-bold text-ink">¿Ya eres cliente de DTD Cargo?</span>{" "}
           No crees otra cuenta: seguirías usando tu Shipping Mark de siempre.
         </p>
-        <Link href="/portal/login" className="btn btn-ghost h-9 text-[13px] whitespace-nowrap">
+        <Link href="/entrar" className="btn btn-ghost h-9 text-[13px] whitespace-nowrap">
           Entrar a mi cuenta <ArrowIcon size={15} />
         </Link>
       </div>
@@ -1011,7 +1011,7 @@ function DupRecover({ isCompany }: { isCompany: boolean }) {
             Si eres tú, no hace falta crear otra. Entra al portal y pide tu enlace de
             acceso por correo.
           </p>
-          <Link href="/portal/login" className="mt-3 inline-flex btn btn-ghost h-10 text-[13px]">
+          <Link href="/entrar" className="mt-3 inline-flex btn btn-ghost h-10 text-[13px]">
             Recuperar mi acceso <ArrowIcon size={15} />
           </Link>
         </div>
@@ -1157,7 +1157,7 @@ export function StepDone({
         </p>
       )}
 
-      <Link href="/portal/login" className="btn btn-primary w-full max-w-[440px]">
+      <Link href="/entrar" className="btn btn-primary w-full max-w-[440px]">
         Ir al portal <ArrowIcon />
       </Link>
     </div>

@@ -17,6 +17,7 @@
  */
 
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   classifyAccessLink,
@@ -193,9 +194,9 @@ function AccesoNoDisponible() {
         El enlace venció o ya se usó. Pídele a tu asesor de DTD Cargo uno nuevo, o
         entra con tu correo desde el portal.
       </p>
-      <a href="/portal/login" className="btn btn-primary">
+      <Link href="/entrar" className="btn btn-primary">
         Ir al portal
-      </a>
+      </Link>
     </Marco>
   );
 }

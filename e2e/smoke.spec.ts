@@ -135,13 +135,45 @@ test.describe("rutas públicas críticas", () => {
     expect(bodyHtml).not.toContain("<b>");
   });
 
-  test("el rastreo público /track redirige (301) al portal", async ({ page }) => {
+  test("el rastreo público /track redirige a la puerta", async ({ page }) => {
     // Fase 6: el rastreo público se retiró (vive dentro del portal). El buscador
-    // y los deep-links compartidos por WhatsApp → 301 a /portal/login, sin 404.
+    // y los deep-links compartidos por WhatsApp → 301 a /entrar, sin 404.
+    // SDD-0276: apuntan DIRECTO a /entrar. Si volvieran a pasar por
+    // /portal/login serían dos saltos encadenados, y el `toHaveURL` de acá no
+    // lo notaría —la URL final sería la misma—, así que además se mide el
+    // destino declarado del redirect en el caso de abajo.
     for (const old of ["/track", "/track/S-2026-0142"]) {
       await page.goto(old);
-      await expect(page).toHaveURL(/\/portal\/login/);
+      await expect(page).toHaveURL(/\/entrar/);
     }
+  });
+
+  test("el viejo /portal/login redirige permanente a /entrar sin perder el query", async ({
+    request,
+  }) => {
+    // SDD-0276: los correos de bienvenida e invitación ya enviados apuntan a
+    // /portal/login?email=… Si el redirect perdiera el query, el cliente
+    // llegaría a la puerta con el campo vacío y tendría que escribir su correo
+    // a mano.
+    // ⚠️ 308, no 301: `permanent: true` de Next emite 308 (medido, no supuesto —
+    // el comentario histórico de este archivo decía 301 y nunca se comprobó
+    // porque sólo se miraba la URL final).
+    const r = await request.get("/portal/login?email=sam%40ejemplo.com", {
+      maxRedirects: 0,
+    });
+    expect(r.status()).toBe(308);
+    const destino = r.headers()["location"];
+    expect(destino).toContain("/entrar");
+    expect(destino).toContain("email=sam%40ejemplo.com");
+  });
+
+  test("/track llega a la puerta en UN solo salto", async ({ request }) => {
+    const r = await request.get("/track", { maxRedirects: 0 });
+    expect(r.status()).toBe(308);
+    // Directo a /entrar: encadenar dos permanentes diluye equity SEO y suma un
+    // salto a cada enlace que el equipo comparte por WhatsApp.
+    expect(r.headers()["location"]).toContain("/entrar");
+    expect(r.headers()["location"]).not.toContain("/portal/login");
   });
 });
 

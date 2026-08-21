@@ -151,6 +151,12 @@ export function BrandMark({
       />
       {!isologoOnly && (
         <span
+          // Gancho de CSS para que una superficie pueda ocultar el wordmark por
+          // media query sin duplicar el <span> del lockup ni pasar props nuevas.
+          // Lo usa `.site-nav` bajo 440px (SDD-0276): ahí el botón "Entrar o
+          // crear cuenta" no deja sitio para las dos palabras. NO se estiliza
+          // desde acá — sólo existe para que globals.css pueda apuntarle.
+          className="brandmark-wordmark"
           style={{
             // Token de marca (Archivo Black) — NO `--font-archivo-black`, que el
             // portal redefine a Sora. El logo corporativo es capa branding y debe

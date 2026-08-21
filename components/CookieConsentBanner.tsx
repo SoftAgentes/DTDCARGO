@@ -35,7 +35,7 @@ import {
  * el interruptor del aviso: cubre sólo la reapertura manual desde el footer.
  */
 
-const TRIGGER_PATHS = new Set(["/portal/login", "/registro"]);
+const TRIGGER_PATHS = new Set(["/entrar", "/registro"]);
 
 export function CookieConsentBanner() {
   const pathname = usePathname();

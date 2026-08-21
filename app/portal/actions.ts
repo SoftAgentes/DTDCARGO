@@ -11,7 +11,7 @@ import { createClient } from "@/lib/db/server";
 export async function signOutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/portal/login");
+  redirect("/entrar");
 }
 
 // El cambio de contraseña del portal se eliminó (decisión founder 2026-07-03):

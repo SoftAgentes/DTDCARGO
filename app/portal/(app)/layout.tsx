@@ -37,7 +37,7 @@ export default async function PortalAppLayout({
 }) {
   const supabase = await createClient();
   const client = await getPortalClient(supabase);
-  if (!client) redirect("/portal/login");
+  if (!client) redirect("/entrar");
 
   // Dark mode + rediseño Norte del portal (founder 2026-06-20). `showNortePortal`
   // decide quién lo ve: con NORTE_PORTAL_LIVE=true es TODO cliente (formalizado); si
