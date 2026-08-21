@@ -143,7 +143,7 @@ export function EntrarForm({
                 )}
 
                 {/* ── FILA 1 · ya soy cliente ── */}
-                <section className="mt-6 rounded-[12px] border border-grey-300 bg-white/60 p-4 sm:p-5">
+                <section className="mt-6 rounded-[10px] border border-grey-300 bg-white/60 p-4 sm:p-5">
                   <h2 className="flex items-center gap-2 text-[15px] font-bold text-ink leading-[1.25]">
                     <UserIcon size={18} className="text-wine flex-shrink-0" />
                     Ingresar a mi portal
@@ -152,7 +152,7 @@ export function EntrarForm({
                     Ya soy cliente de DTD Cargo.
                   </p>
 
-                  <form action={magicAction} className="mt-3.5 flex flex-col gap-2">
+                  <form action={magicAction} className="mt-4 flex flex-col gap-2">
                     <label className="flex flex-col gap-1.5">
                       <span className="text-[10px] font-bold tracking-[0.08em] uppercase text-grey-700">
                         Correo
@@ -187,14 +187,14 @@ export function EntrarForm({
                     </button>
                   </form>
 
-                  <p className="mt-2.5 text-[12px] text-grey-500 leading-[1.5]">
+                  <p className="mt-3 text-[12px] text-grey-500 leading-[1.5]">
                     Sin contraseña. El enlace sirve por poco tiempo y es de un solo
                     uso; si se te vence, pides otro y listo.
                   </p>
                 </section>
 
                 {/* ── FILA 2 · primera vez ── */}
-                <section className="mt-3 rounded-[12px] border border-grey-300 bg-white/60 p-4 sm:p-5">
+                <section className="mt-3 rounded-[10px] border border-grey-300 bg-white/60 p-4 sm:p-5">
                   <h2 className="flex items-center gap-2 text-[15px] font-bold text-ink leading-[1.25]">
                     <StampIcon size={18} className="text-wine flex-shrink-0" />
                     Crear mi cuenta y Shipping Mark
@@ -203,7 +203,7 @@ export function EntrarForm({
                     Es mi primera vez. Gratis, dos minutos.
                   </p>
 
-                  <ul className="mt-3.5 flex flex-col gap-1.5 list-none p-0">
+                  <ul className="mt-4 flex flex-col gap-2 list-none p-0">
                     {NUEVO_BULLETS.map((b) => (
                       <li
                         key={b}
@@ -218,7 +218,7 @@ export function EntrarForm({
                     ))}
                   </ul>
 
-                  <CrearCuentaBoton className="mt-3.5" />
+                  <CrearCuentaBoton className="mt-4" />
                 </section>
               </>
             )}
@@ -395,7 +395,7 @@ export function MagicSent({
         </span>
       </form>
 
-      <div className="mt-4 rounded-[12px] border border-grey-300 bg-white/60 p-4">
+      <div className="mt-4 rounded-[10px] border border-grey-300 bg-white/60 p-4">
         <p className="text-[12.5px] text-grey-700 leading-[1.5]">
           ¿No te llega nada? Puede que todavía no tengas cuenta con nosotros.
         </p>
