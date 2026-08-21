@@ -315,13 +315,18 @@ function CrearCuentaBoton({ className = "" }: { className?: string }) {
   return (
     <Link
       href="/registro"
-      className={`btn btn-ghost w-full justify-center gap-2 ${className}`}
-      // 🔴 El fondo va inline, y NO como `bg-white` de Tailwind. `globals.css`
-      // define `.btn-ghost { background: transparent }` **sin `@layer`**, así que
-      // le gana a cualquier utilidad. Medido en el navegador: con el ghost
-      // transparente, el texto ink sobre la parte baja del panel glass daba
-      // **4,22:1** — por debajo de AA. Opaco da 16,5:1.
-      style={{ background: "var(--color-white)" }}
+      // `btn-ghost-solid` es del sistema y existe justo para esto: un ghost que
+      // flota sobre contenido que no controlamos —acá el panel glass— donde
+      // `transparent` deja el texto sobre lo que haya debajo. Medido: con el
+      // ghost transparente el texto ink sobre la parte baja del glass daba
+      // **4,22:1**, por debajo de AA; con relleno sólido, 16,5:1.
+      //
+      // 🔴 Y NO se resuelve con `bg-white` de Tailwind: `globals.css` va sin
+      // `@layer`, así que `.btn-ghost { background: transparent }` le gana a
+      // cualquier utilidad. Tampoco con `var(--color-white)` inline: ese token
+      // se remapea a navy bajo `[data-portal-theme="dark"]`. `btn-ghost-solid`
+      // usa `--color-on-accent`, que no se remapea nunca.
+      className={`btn btn-ghost btn-ghost-solid w-full justify-center gap-2 ${className}`}
     >
       Crear mi cuenta <ArrowIcon size={14} />
     </Link>

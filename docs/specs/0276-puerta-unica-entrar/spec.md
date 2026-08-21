@@ -139,25 +139,17 @@ ver la tarifa": `docs/marketing/adquisicion.md` lo desaconseja explícitamente.
 
 ## Medición del nav (obligatoria)
 
-La etiqueta pasó de 10 a 21 caracteres. El precedente está documentado: sumar un
-enlace de texto empujó la fila a **1039 px de contenido en 1024 de viewport**.
-Se mide `document.documentElement.scrollWidth` contra `innerWidth`; mirar a 1366
-no lo muestra.
-
-**Medido en el navegador el 2026-08-20**, sobre `/` en este worktree:
-
-| Viewport | scrollWidth | ¿Desborda? | Logo ↔ hamburguesa | Holgura derecha |
-|---|---|---|---|---|
-| 1280 | 1265 | no | — | — |
-| 1024 | **1009** | no | — | 56 px |
-| 500 | 500 | no | 95 px | — |
-| 375 | 375 | no | **107 px** | 20 px |
+La etiqueta pasó de 10 a 21 caracteres. Esta fila desborda con una facilidad que
+sorprende y ya lo hizo dos veces: sumar un enlace de texto la empujó a **1039 px
+de contenido en 1024 de viewport**, y a 320 px el lockup completo sacaba el CTA
+de la pantalla. Se mide `scrollWidth` contra `clientWidth` a **320, 360, 375,
+1024 y 1280**; mirar a 1366 no lo muestra.
 
 ### El ajuste que hizo falta, y por qué
 
-**Antes del ajuste, a 385 px la barra móvil estaba en el límite exacto:** el
-wordmark tocaba la hamburguesa (**separación 0**) y el botón tocaba el borde
-derecho (**holgura 0**). Medido en el mismo navegador:
+La barra móvil estaba en el límite exacto: el wordmark tocaba la hamburguesa
+(**separación 0**) y el botón tocaba el borde derecho (**holgura 0**). Medido en
+el navegador, cambiando el texto del mismo botón:
 
 | Etiqueta | Ancho del botón móvil |
 |---|---|
@@ -165,14 +157,48 @@ derecho (**holgura 0**). Medido en el mismo navegador:
 | `Entrar` | 60 px |
 | **`Entrar o crear cuenta`** | **146 px** |
 
-La etiqueta cuesta **+61 px**. Con el lockup completo (167 px) el cluster pedía
-`20+167+44+8+146+20 = 405 px`, así que a 360 no entraba. Apretar padding,
-tipografía y tamaño recuperaba ~44 px: insuficiente.
+La etiqueta cuesta **+61 px**. Apretar padding, tipografía y tamaño recuperaba
+~44 px: insuficiente.
 
 **Decisión del founder:** en la barra más angosta (`<440px`) se muestra **sólo el
-isólogo**, sin el "DTD Cargo" escrito. Libera 137 px. El lockup completo sigue en
-el menú desplegable, en escritorio y en el resto del sitio, y la accesibilidad no
-cambia — `BrandMark` conserva el `alt` y el `aria-label` con `isologoOnly`.
+isólogo**, sin el "DTD Cargo" escrito. El lockup completo sigue en el menú
+desplegable, en escritorio y en el resto del sitio, y la accesibilidad no cambia
+— `BrandMark` conserva el `alt` de la imagen y el `aria-label` del enlace.
+
+### ⚠️ Cómo se implementó, y por qué NO como se pensó primero
+
+La primera versión usaba **tres `<span>`** con `min-[440px]:hidden` y la prop
+`isologoOnly`. **Eso se descartó al integrar `origin/main`**, que en paralelo
+(commits `efbccc95` + `72199d02`) arregló el scroll horizontal a 320 px
+fusionando los dos `<span>` del logo en **uno solo** con el token `--nav-brand`,
+precisamente para que el isólogo se precargue una vez y no dos. Volver a
+duplicar el markup habría revertido esa mejora sin decirlo.
+
+La versión vigente respeta esa arquitectura: el lockup sigue siendo **un solo
+`<span>`**, y el wordmark se oculta **por CSS** —
+`@media (max-width: 439px) { .site-nav .brandmark-wordmark { display: none } }`
+en `globals.css`. `BrandMark` sólo gana la clase `brandmark-wordmark` como
+gancho, sin estilos propios.
+
+🔴 **El riesgo que deja:** si alguien renombra esa clase, la regla deja de
+aplicar **en silencio** y el nav vuelve a desbordar a 320 px — que no rompe una
+página sino TODO el sitio público, porque el desborde ensancha el ICB. Lo atrapa
+`e2e/sin-scroll-horizontal.spec.ts`, que vino con ese mismo arreglo de main.
+
+### Medición POST-integración
+
+Sobre `/` en el worktree, tras mergear `origin/main`:
+
+| Viewport | scrollWidth | Wordmark | Holgura |
+|---|---|---|---|
+| 320 | 320 = clientWidth | oculto | 20 px a la derecha |
+| 375 | 375 = clientWidth | oculto | 20 px a la derecha |
+| 440 | 440 = clientWidth | **vuelve** | 22 px logo ↔ hamburguesa |
+| 1024 | 1009 | visible | 41 px |
+
+Y la red de main lo confirma en su corrida dedicada:
+`e2e/sin-scroll-horizontal.spec.ts` → **29 passed, exit 0** (320/360/375 sobre
+`/`, `/tarifas` y `/faq`, en Chromium, Chrome-móvil y WebKit).
 
 ## Contraste medido
 
