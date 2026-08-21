@@ -102,6 +102,30 @@ Migración **sólo-ledger**: toca `supabase_migrations.schema_migrations` y nada
 más. Registrada en `LEDGER_ONLY` de `check-schema-rebuild.mjs`, que verifica la
 exención **por huella del schema**, no leyendo el texto.
 
+### 🔴 El archivo del repo NO es lo que hay en prod — y por poco cuesta el arreglo
+
+Medido contra el ledger real el 2026-08-21, **antes** de aplicar nada:
+
+| Entrada | `version` | El gate coincide con el archivo del repo |
+|---|---|---|
+| `0355_superadmin_llaves_del_sistema` | `20260807192547` | ❌ **no** |
+| `0356_superadmin_legal_renditions_gate` | `20260808005744` | ✅ sí |
+
+Lo aplicado en la 0355 guarda el mensaje **recortado** —`'0355 abortado:
+platform_admins está VACÍA.'`, 8275 caracteres de payload— mientras el archivo
+del repo trae la versión larga (*"Aplicarla dejaría las llaves sin dueño…"*).
+Anclar en la frase completa del archivo habría hecho **abortar la 0388 por "0
+entradas"** en el momento de aplicarla.
+
+Por eso el ancla es el **prefijo común a las dos redacciones** —
+`raise exception '0355 abortado:`— y encima es **ASCII puro**: ningún acento ni
+em-dash puede desalinearla. Verificado sobre las **395 entradas** del ledger:
+cada ancla aparece en **exactamente 1**, y 0 están ya parcheadas.
+
+> Lección repetible: **el repo dice qué DEBERÍA estar aplicado, no qué HAY.**
+> Cualquier reparación de ledger que se ancle en el texto del archivo está
+> apostando a que nadie editó el .sql después de aplicarlo.
+
 ### Se aparta del patrón 0271–0288 en una cosa, y es a propósito
 
 Aquellas anclan `version` + `name` + `md5` y pegan el payload completo. Eso
@@ -129,7 +153,13 @@ anclas rígidas no se reconoce a sí mismo ya aplicado.
 |---|---|---|
 | Contrato SQL | `node scripts/run-sql-tests.mjs` | ✅ 114/114, incluida `0388_…test.sql` |
 | Reconstrucción desde cero | `node scripts/check-schema-rebuild.mjs` | ✅ 367 aplicadas + **18** sólo-ledger; la huella confirma que la 0388 **no toca** tablas, funciones ni policies |
+| Gate completo | `node scripts/verify.mjs` | ✅ exit 0 (`migrations-applied` salió **SKIP**: worktree sin `.env.local`) |
+| Precondición contra el ledger REAL | `execute_sql` de sólo lectura sobre prod | ✅ cada ancla en **1** de 395 entradas, 0 ya parcheadas |
 | ¿El test mide de verdad? | **mutación del artefacto** | ✅ ver abajo |
+
+El fixture del test usa **las dos redacciones que existen de verdad**: la 0355
+con el mensaje recortado de producción y la 0356 con el largo. Si el ancla
+volviera a la frase completa del archivo, el test se pone rojo.
 
 ### El test se validó mutando la migración, no leyéndola
 

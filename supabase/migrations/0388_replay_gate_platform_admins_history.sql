@@ -50,6 +50,18 @@
 -- (comments-lifecycle, gastos-expense-void, global-search,
 -- nomina-settlement-void) toca esas superficies — verificado por grep.
 --
+-- 🔴 EL ANCLA ES CORTA Y ASCII PORQUE EL ARCHIVO DEL REPO **NO** ES LO QUE HAY
+-- EN PROD. Medido el 2026-08-21 contra el ledger real: la entrada
+-- `20260807192547 · 0355_superadmin_llaves_del_sistema` guarda el mensaje
+-- recortado —`'0355 abortado: platform_admins está VACÍA.'`, 8275 caracteres en
+-- total— mientras el archivo del repo trae la versión larga ("Aplicarla dejaría
+-- las llaves sin dueño…"). Anclar en la frase completa del archivo habría hecho
+-- abortar esta migración por "0 entradas": el repo dice qué DEBERÍA estar
+-- aplicado, no qué HAY. Por eso el ancla es el prefijo que sobrevive a las dos
+-- redacciones —`raise exception '0355 abortado:`— y encima es ASCII puro, así
+-- que ningún acento ni em-dash puede desalinearla. Verificado sobre las 395
+-- entradas del ledger: cada ancla aparece en EXACTAMENTE 1.
+--
 -- POR QUÉ NO USA ANCLAS md5 COMO LAS 0271-0288: esas anclas obligaron a reparar
 -- cada reparación (0273→0282, 0280-0286→0287→0288), porque el payload de la
 -- propia reparación es lo que un replay vuelve a ejecutar. Ésta se autolocaliza
@@ -81,12 +93,10 @@ begin
   for r in
     select *
     from (values
-      ('0355',
-       $viejo355$raise exception '0355 abortado: platform_admins está VACÍA. Aplicarla dejaría las llaves sin dueño y nadie podría tocar los feature flags.';$viejo355$,
-       $nuevo355$raise notice '0355 (replay · 0388): platform_admins está VACÍA — gate omitido; las llaves se provisionan fuera del replay.';$nuevo355$),
-      ('0356',
-       $viejo356$raise exception '0356 abortado: platform_admins está VACÍA — dejaría Legal/Rendiciones sin nadie que pueda escribir.';$viejo356$,
-       $nuevo356$raise notice '0356 (replay · 0388): platform_admins está VACÍA — gate omitido; las llaves se provisionan fuera del replay.';$nuevo356$)
+      ('0355', $viejo355$raise exception '0355 abortado:$viejo355$,
+                $nuevo355$raise notice '0355 abortado:$nuevo355$),
+      ('0356', $viejo356$raise exception '0356 abortado:$viejo356$,
+                $nuevo356$raise notice '0356 abortado:$nuevo356$)
     ) as t(mig, viejo, nuevo)
   loop
     -- ── Preflight: exactamente UNA entrada, en una de las dos formas ──

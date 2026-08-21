@@ -10,6 +10,13 @@
 --      se mide por el efecto: la 0355 (que se restaura sin parchear antes) queda
 --      sin parchear, porque el `do` entero revierte.
 --
+-- 🔴 EL FIXTURE USA LAS DOS REDACCIONES QUE EXISTEN DE VERDAD. La 0355 va con el
+-- mensaje RECORTADO que guarda el ledger de producción (medido 2026-08-21:
+-- `'0355 abortado: platform_admins está VACÍA.'`), que NO es el del archivo del
+-- repo; la 0356 va con el mensaje largo, que sí coincide. Si el ancla dejara de
+-- ser el prefijo común y volviera a la frase completa del archivo, este test se
+-- pone rojo — que es justo lo que se quiere.
+--
 -- SIN TRANSACCIÓN ENVOLVENTE, A PROPÓSITO: los dos casos de mutación esperan que
 -- la migración reviente, y dentro de un `begin;` la transacción quedaría abortada
 -- y no se podría observar nada. En autocommit el error revierte sólo su propio
@@ -41,7 +48,7 @@ begin
     raise exception '0355 requiere public.is_platform_admin() (migr 0058)';
   end if;
   if not exists (select 1 from public.platform_admins) then
-    raise exception '0355 abortado: platform_admins está VACÍA. Aplicarla dejaría las llaves sin dueño y nadie podría tocar los feature flags.';
+    raise exception '0355 abortado: platform_admins está VACÍA.';
   end if;
 end;
 $preflight$;$f355a$,
@@ -76,7 +83,7 @@ values (
   '20260807170001',
   '0355_duplicada_por_error',
   array[$dup$  if not exists (select 1 from public.platform_admins) then
-    raise exception '0355 abortado: platform_admins está VACÍA. Aplicarla dejaría las llaves sin dueño y nadie podría tocar los feature flags.';
+    raise exception '0355 abortado: platform_admins está VACÍA.';
   end if;$dup$]
 );
 
@@ -92,7 +99,7 @@ begin
   from supabase_migrations.schema_migrations m
   where exists (
     select 1 from unnest(m.statements) s
-    where strpos(s, $v$raise exception '0355 abortado: platform_admins está VACÍA.$v$) > 0
+    where strpos(s, $v$raise exception '0355 abortado:$v$) > 0
   );
   if v_sin <> 2 then
     raise exception
@@ -109,10 +116,10 @@ delete from supabase_migrations.schema_migrations where version = '2026080717000
 
 do $camino_feliz$
 declare
-  v_nuevo355 constant text := $n$raise notice '0355 (replay · 0388): platform_admins está VACÍA — gate omitido; las llaves se provisionan fuera del replay.';$n$;
-  v_viejo355 constant text := $v$raise exception '0355 abortado: platform_admins está VACÍA. Aplicarla dejaría las llaves sin dueño y nadie podría tocar los feature flags.';$v$;
-  v_nuevo356 constant text := $n$raise notice '0356 (replay · 0388): platform_admins está VACÍA — gate omitido; las llaves se provisionan fuera del replay.';$n$;
-  v_viejo356 constant text := $v$raise exception '0356 abortado: platform_admins está VACÍA — dejaría Legal/Rendiciones sin nadie que pueda escribir.';$v$;
+  v_nuevo355 constant text := $n$raise notice '0355 abortado:$n$;
+  v_viejo355 constant text := $v$raise exception '0355 abortado:$v$;
+  v_nuevo356 constant text := $n$raise notice '0356 abortado:$n$;
+  v_viejo356 constant text := $v$raise exception '0356 abortado:$v$;
   v_falta text;
 begin
   if exists (
@@ -199,7 +206,7 @@ begin
     where m.version = '20260807170000'
       and exists (
         select 1 from unnest(m.statements) s
-        where strpos(s, $v$raise exception '0355 abortado: platform_admins está VACÍA.$v$) > 0
+        where strpos(s, $v$raise exception '0355 abortado:$v$) > 0
       )
   ) then
     raise exception
