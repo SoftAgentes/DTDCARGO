@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { CalculadoraForm } from "@/components/CalculadoraForm";
+import { ConGlosario } from "@/components/TerminoGlosario";
 import { CONFIG, CONSOLIDADO_CBM_RATE, type CalcParams, type Ciudad } from "@/lib/calculadora";
 
 /**
@@ -259,8 +260,14 @@ function ConsolidadoFicha() {
         <li>Consolidación de tu carga en nuestra bodega de Yiwu.</li>
         <li>Flete marítimo internacional de China a Venezuela.</li>
         <li>
-          Tu propio Bill of Lading, separado dentro del Bill Master del
-          contenedor.
+          {/* Acá es donde el visitante se topa con la jerga: eligió
+              "Consolidado" y lo primero que recibe es un documento cuyo nombre
+              puede no conocer. El enlace abre aparte (LNK-01) para no botarle
+              la calculadora que venía llenando. */}
+          <ConGlosario>
+            Tu propio Bill of Lading, separado dentro del Bill Master del
+            contenedor.
+          </ConGlosario>
         </li>
       </FichaCard>
       <FichaCard titulo="Qué no incluye" tone="warn">

@@ -45,11 +45,39 @@ export function ConGlosario({
   /** Abre en pestaña nueva. `true` por defecto — apagarlo es la excepción. */
   nuevaPestana?: boolean;
 }) {
-  const segmentos = partirPorTerminos(children, { excluir });
+  return (
+    <SegmentosGlosario
+      segmentos={partirPorTerminos(children, { excluir })}
+      nuevaPestana={nuevaPestana}
+    />
+  );
+}
 
-  // Sin jerga que enlazar: se devuelve el texto tal cual, sin envoltorio ni
-  // nodos de más. Es el caso mayoritario y no debe costar nada.
-  if (!segmentos.some((s) => s.tipo === "termino")) return <>{children}</>;
+/**
+ * Pinta segmentos YA resueltos. Es la mitad de render de `<ConGlosario>`,
+ * separada para los textos que se parten con `ambitoGlosario()` — varios
+ * textos cortos que el lector ve como una sola pieza (una ficha de servicio) y
+ * que por eso comparten el registro de lo ya enlazado.
+ *
+ * ```tsx
+ * const glosar = ambitoGlosario();
+ * const incluye = service.incluye.map((t) => glosar(t));
+ * // …
+ * {incluye.map((segs, i) => <SegmentosGlosario key={i} segmentos={segs} />)}
+ * ```
+ */
+export function SegmentosGlosario({
+  segmentos,
+  nuevaPestana = true,
+}: {
+  segmentos: Segmento[];
+  nuevaPestana?: boolean;
+}) {
+  // Sin jerga que enlazar: el texto tal cual, sin envoltorio ni nodos de más.
+  // Es el caso mayoritario y no debe costar nada.
+  if (!segmentos.some((s) => s.tipo === "termino")) {
+    return <>{segmentos.map((s) => s.valor).join("")}</>;
+  }
 
   return (
     <>
