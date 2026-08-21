@@ -263,6 +263,17 @@ quién asume el flete de salida y los costos causados, y **suprimir A.3**.
 - Base del bot → `faq-knowledge-base.md` §17.
 - Manual del asesor → `equipo-crm/02-respuestas-CRM.md` §10-bis `/cancelar`.
 
+⭐ **AL PUBLICAR v3.1: devolver la remisión al Anexo A en el FAQ.** El 2026-08-20 se
+**quitó** de esa respuesta la frase *"Cada caso se revisa según el Acuerdo de Servicios
+(Anexo A)"*, porque mandaba al cliente a leer justo las dos cláusulas de las que nos
+apartamos: un corte más temprano y un cargo de 5-10% que ya no se cobra. **Es una
+supresión temporal, no una decisión de estilo** — en cuanto A.2 y A.3 queden corregidos,
+la remisión vuelve, porque es la que le da respaldo contractual a la respuesta.
+
+**Y de paso quedó dicho en el FAQ** que el tramo de salida va **por fuera del seguro de
+carga** (la ventana para contratarlo cierra al llegar la mercancía a bodega, cláusula 6.2).
+El Anexo A tampoco cubre hoy ese punto.
+
 ## Pendientes del abogado ya conocidos (no duplicar aquí)
 
 Los ~11 placeholders `[…]` de v3.0 (RIF, no-competencia, DEG, días de reclamo, prima de

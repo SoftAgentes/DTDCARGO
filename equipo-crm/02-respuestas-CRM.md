@@ -562,8 +562,9 @@ El punto de no retorno es la salida del contenedor. Si tu carga todavía está e
 China y el contenedor no ha zarpado, te la despachamos a donde nos digas: pagas los costos que ya
 se hayan causado al recibirla y el flete desde nuestra bodega hasta ese nuevo destino, que se
 cancela aparte cuando la despachamos. Desde que confirmamos esa salida, hasta ahí llega nuestro servicio:
-ese tramo lo ves directamente con la empresa de envíos y con quien la vaya a recibir. Si el contenedor ya
-zarpó, el envío sigue su curso.
+ese tramo lo ves directamente con la empresa de envíos y con quien la vaya a recibir, y va por fuera de
+nuestro seguro de carga, porque la ventana para contratarlo se cierra cuando la mercancía llega a nuestra
+bodega. Si el contenedor ya zarpó, el envío sigue su curso.
 ¿Me pasas tu Shipping Mark y lo reviso contigo?
 ```
 
