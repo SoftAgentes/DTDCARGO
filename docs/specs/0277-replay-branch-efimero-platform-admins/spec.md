@@ -1,7 +1,7 @@
 ---
 sdd: "0277"
 title: "El replay de un branch efímero deja de morir en la 0355"
-status: proposed
+status: done
 author: "Sam (founder) + Claude Code"
 created: 2026-08-21
 updated: 2026-08-21
@@ -172,39 +172,83 @@ volviera a la frase completa del archivo, el test se pone rojo.
   la postcondición lo caza igual. Son dos guards independientes; el caso 1 del
   test es redundante con el caso 4, no inútil.
 
-### Lo que TODAVÍA no está verificado
+## 6. Aplicación y validación — HECHAS (2026-08-21)
 
-🔴 **No se creó un branch de validación en esta sesión.** El conector de Supabase
-pide OAuth y la sesión es no-interactiva: no hay `create_branch` ni
-`delete_branch` disponibles. La prueba de que el replay llega a
-`MIGRATIONS_PASSED` **está pendiente** y es el paso 3 del plan de abajo.
+### Aplicada a producción
 
-También queda sin descartar empíricamente que exista un **tercer** punto de
-muerte entre la 0357 y la 0387. El barrido de esas 31 migraciones no encontró
-otro preflight que dependa de filas (el único candidato, el `audit_entity_types`
-de la 0387, se siembra en la 0289 con un `insert` portable que ninguna
-reparación tocó), pero **eso sólo lo cierra un branch que llegue al final**.
+OK del founder nombrando la migración; aplicada **de a una** con `name` =
+basename exacto. Quedó como `20260821171956 ·
+0388_replay_gate_platform_admins_history`.
 
-## 6. Plan de aplicación
+**Medido por efecto, no por el `{"success": true}`:**
 
-1. **OK del founder nombrando la migración**
-   (`0388_replay_gate_platform_admins_history`) — runbook
-   `docs/runbooks/aplicar-migraciones-prod.md`.
-2. Aplicarla **de a una**, con `name` = basename exacto.
-   Hasta entonces el paso `migrations-applied` del gate sale **rojo**, y está
-   bien: es el mecanismo funcionando. **No** se tapa con `pendingBelowCutoff`.
-3. Crear un branch nuevo → esperar `status = MIGRATIONS_PASSED` (no
-   `preview_project_status`) → comprobar que el ledger llega a la última
-   migración esperada.
-4. Cargar las variables del runbook `e2e-supabase-efimero.md`, correr
-   `pnpm seed:e2e` y los 4 specs Tier 3.
-5. `delete_branch` **siempre**, y dejar la evidencia mínima del runbook. Coste
-   ~$0,0134/h.
+| Entrada | Antes | Después |
+|---|---|---|
+| `20260807192547 · 0355` | `raise exception '0355 abortado:` · 8275 car. | `raise notice '0355 abortado:` · **8272** car. |
+| `20260808005744 · 0356` | `raise exception '0356 abortado:` | `raise notice '0356 abortado:` |
 
-**No se aplica SQL ad hoc al branch fallido** — el runbook lo prohíbe
-explícitamente: ante un error de replay se destruye el proyecto y se crea otro.
+El largo bajó **exactamente 3 caracteres** — los que separan `exception` de
+`notice`. Es la prueba aritmética de que nada más del payload se movió.
 
-## 7. Pieza manual que sigue faltando (no la resuelve este SDD)
+### Branch de validación — el replay llega al final
+
+`sdd0277-verifica-replay` · `project_ref` `tmhvzeuzlfgxmpjgjdqp` · branch_id
+`e9668752-7bf0-4359-bb16-67c1b16af11d`.
+
+| Medición | Resultado |
+|---|---|
+| `status` | `FUNCTIONS_DEPLOYED` (pasó de largo las migraciones) |
+| Entradas en el ledger del branch | **396** — el historial completo |
+| Última entrada | `0388_replay_gate_platform_admins_history` |
+| `platform_admins` | **0 filas** — vacía, como se predijo |
+| ¿Corrió igual la 0355? | ✅ existe la policy `feature_flags_platform_admin_update` |
+| ¿Corrió igual la 0356? | ✅ existe `legal_docs write by platform admin` |
+| ¿Llegaron las 30 que morían? | ✅ `studio_role_module_overrides` (0357), `portal_access_links` (0360), `price_books` (0382), `telegram_alert_routes` (0386) y el CHECK con `studio.email_change` de la **0387**, que es la última |
+| Tablas en `public` | 247 |
+
+**No había un tercer punto de muerte.** Se descartó empíricamente: el replay
+llegó a la 0387.
+
+⭐ **Y la propiedad anti-split-history se probó sola, en condiciones reales.** El
+replay del branch **ejecutó la 0388 sobre su propio ledger ya parcheado** —
+último eslabón del historial— y pasó sin error: encontró las dos entradas en
+forma `notice`, el `UPDATE` quedó no-op y la postcondición se cumplió. Eso es
+exactamente lo que las 0282/0287/0288 tuvieron que arreglar a posteriori en la
+familia 0271–0288. Acá no hace falta una 0389.
+
+Estado del ledger de prod tras aplicar (396 entradas): `0355` y `0356` con
+**0 sin parchear / 1 parcheada** cada una, y la fila de la propia 0388 —que
+lleva los dos literales dentro— correctamente excluida por su marca.
+
+> ⚠️ No se leyó `status = MIGRATIONS_PASSED` y se dio por bueno: se abrió el
+> ledger del branch y se comprobó **el efecto de la última migración**. El campo
+> de estado ya mintió una vez en este mismo problema (`preview_project_status`
+> decía `ACTIVE_HEALTHY` con el replay caído).
+
+### Teardown — los tres criterios del runbook
+
+1. `delete_branch` devolvió éxito para `e9668752-7bf0-4359-bb16-67c1b16af11d` ✅
+2. `list_branches` ya no devuelve ese `branch_id` ni `tmhvzeuzlfgxmpjgjdqp` ✅
+3. La rama `main` quedó intacta ✅
+
+```text
+project_ref=tmhvzeuzlfgxmpjgjdqp
+production=false
+replay=success
+seed=no ejecutado (falta la service_role, ver §7)
+e2e=no ejecutado
+database_cleanup_performed=false
+teardown=terminal
+```
+
+**Nunca se aplicó SQL ad hoc a un branch** — el runbook lo prohíbe.
+
+## 7. Lo que sigue faltando — la pieza manual (no la resuelve este SDD)
+
+**El replay está sano, pero los 18 tests Tier 3 todavía no corrieron.** Falta un
+branch nuevo (~2,5 min, ya probado que funciona) y, sobre todo, la pieza de
+abajo, que sólo puede poner el founder.
+
 
 El conector de Supabase sólo expone `get_publishable_keys` (anon). **No hay
 herramienta que devuelva la `service_role`**, y el seed exige
