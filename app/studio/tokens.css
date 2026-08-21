@@ -39,6 +39,9 @@
   --warning: #B8893A;
   --warning-bg: rgba(184,137,58,0.12);
   --danger: #A8323E;
+  /* `danger` como TEXTO — mismo patrón que --wine-text. En claro el crudo ya
+     pasa (5,63:1 sobre --danger-bg, medido 2026-08-19), así que aliasa. */
+  --danger-text: var(--danger);
   --danger-bg: rgba(168,50,62,0.10);
   /* BD-020: --danger-web es SOLO para web pública (marketing); Studio/Portal siguen en --danger. */
   --danger-web: #C2353F;
@@ -279,6 +282,15 @@
   --warning: #DCAB6B;
   --warning-bg: rgba(220,171,107,0.14);
   --danger: #E07785;
+  /* SDD-0275. `--danger` como TEXTO sobre `--danger-bg` da **4,19:1** en
+     oscuro — bajo el 4,5 que pide AA (medido en navegador, no calculado).
+     `--color-status-danger-on-dark` (#F6929A) es el valor que el founder
+     aprobó el 2026-08-13 exactamente para esto, y se eligió además por estar
+     a ΔE 19,3 del wine-on-dark: contraste suficiente con un color que se
+     confunde con el vecino sigue siendo un bug. Vive en `:root` de
+     `app/globals.css`; el fallback cubre el día que Tailwind pode el token
+     por dejar de referenciarlo desde ese archivo. El FILL sigue en --danger. */
+  --danger-text: var(--color-status-danger-on-dark, #F6929A);
   --danger-bg: rgba(224,119,133,0.14);
   --info: #6FA0E8;
   --info-bg: rgba(111,160,232,0.14);

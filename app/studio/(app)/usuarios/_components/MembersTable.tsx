@@ -116,7 +116,7 @@ export function MembersTable({
             <Th>Persona</Th>
             <Th>Rol y alcance</Th>
             <Th>Acceso</Th>
-            <Th>
+            <Th anclada>
               <span className="studio-sr-only">Abrir ficha</span>
             </Th>
           </tr>
@@ -238,8 +238,13 @@ function Fila({
       </Td>
 
       {/* 40 px, el ancho del Norte. Fijo para las cuatro etapas: TBL-01 pide que
-          la acción de fila no cambie de sitio según el estado. */}
-      <Td width={40}>
+          la acción de fila no cambie de sitio según el estado.
+          `sticky` porque a 375 px la tabla scrollea y el chevrón —único indicio
+          de que la fila abre algo— quedaba fuera de la caja visible (medido en
+          navegador, SDD-0275). Ojo: NO es el `sticky` que SDD-0274 quitó; aquél
+          ancoraba un racimo de botones y existía por el ancho que ocupaban.
+          Éste ancla 40 px por una razón distinta: que la pista no se esconda. */}
+      <Td width={40} anclada>
         <span aria-hidden style={{ color: "var(--ink-soft)", display: "grid", placeItems: "center" }}>
           {Icon.chevronR(14)}
         </span>
@@ -248,11 +253,19 @@ function Fila({
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
+function Th({ children, anclada }: { children: React.ReactNode; anclada?: boolean }) {
   return (
     <th
       scope="col"
       style={{
+        ...(anclada
+          ? {
+              position: "sticky" as const,
+              right: 0,
+              background: "var(--bg-elevated)",
+              borderLeft: "1px solid var(--border)",
+            }
+          : null),
         textAlign: "left",
         padding: "var(--s-3) var(--s-4)",
         font: "600 10px/1 var(--f-mono)",
@@ -269,9 +282,34 @@ function Th({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Td({ children, width }: { children: React.ReactNode; width?: number }) {
+function Td({
+  children,
+  width,
+  anclada,
+}: {
+  children: React.ReactNode;
+  width?: number;
+  /** Se queda pegada a la derecha cuando la tabla scrollea. */
+  anclada?: boolean;
+}) {
   return (
-    <td style={{ padding: "var(--s-3) var(--s-4)", verticalAlign: "middle", width }}>
+    <td
+      style={{
+        padding: "var(--s-3) var(--s-4)",
+        verticalAlign: "middle",
+        width,
+        ...(anclada
+          ? {
+              position: "sticky" as const,
+              right: 0,
+              // Sin fondo propio, el contenido que pasa por debajo se ve a
+              // través de la celda anclada.
+              background: "var(--bg-surface)",
+              borderLeft: "1px solid var(--border)",
+            }
+          : null),
+      }}
+    >
       {children}
     </td>
   );
