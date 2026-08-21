@@ -490,7 +490,7 @@ export default async function VerificarPage({
                   >
                     Escríbenos por WhatsApp
                   </a>
-                  <Link href="/portal/login" className="btn btn-ghost">
+                  <Link href="/entrar" className="btn btn-ghost">
                     Rastrear un envío
                   </Link>
                 </div>

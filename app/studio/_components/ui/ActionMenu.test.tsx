@@ -320,3 +320,59 @@ describe("ActionMenu · opciones que NAVEGAN (SDD-0266)", () => {
     expect(screen.getByText("No hay candidatos por ahora")).toBeTruthy();
   });
 });
+
+describe("ActionMenu · el panel sale del contenedor que lo recortaría (SDD-0275)", () => {
+  /**
+   * El panel era `position:absolute` dentro del envoltorio y confiaba en el
+   * z-index. **Un ancestro con `overflow:auto` recorta a su hijo absoluto sin
+   * importar el z-index**, así que dentro de una tabla con scroll el menú de
+   * las últimas filas se cortaba. jsdom no simula recorte, así que no se prueba
+   * el píxel: se prueba la GARANTÍA ESTRUCTURAL de la que depende — que el
+   * panel no viva dentro del contenedor que recorta.
+   */
+  it("el panel se renderiza fuera del ancestro con overflow, no dentro", async () => {
+    const u = userEvent.setup();
+    const { container } = render(
+      <div style={{ overflow: "auto" }} data-caja="con-scroll">
+        <ActionMenu ariaLabel="Más acciones" items={items()} />
+      </div>,
+    );
+
+    await u.click(screen.getByRole("button", { name: "Más acciones" }));
+    const panel = screen.getByRole("menu");
+
+    // Vive en el body, no bajo la caja que recorta.
+    expect(container.contains(panel)).toBe(false);
+    expect(document.body.contains(panel)).toBe(true);
+    expect(panel.closest('[data-caja="con-scroll"]')).toBeNull();
+  });
+
+  it("hacer clic DENTRO del panel no lo cierra", async () => {
+    // Con el panel en un portal, el guard de «clic afuera» dejó de contenerlo:
+    // sin preguntarle también al panel, cualquier clic en el menú lo cerraba.
+    const u = userEvent.setup();
+    render(<ActionMenu ariaLabel="Más acciones" items={items()} />);
+
+    await u.click(screen.getByRole("button", { name: "Más acciones" }));
+    const panel = screen.getByRole("menu");
+
+    await u.click(panel);
+    expect(screen.queryByRole("menu")).not.toBeNull();
+  });
+
+  it("un clic de verdad afuera sí lo cierra", async () => {
+    const u = userEvent.setup();
+    render(
+      <div>
+        <ActionMenu ariaLabel="Más acciones" items={items()} />
+        <button type="button">afuera</button>
+      </div>,
+    );
+
+    await u.click(screen.getByRole("button", { name: "Más acciones" }));
+    expect(screen.queryByRole("menu")).not.toBeNull();
+
+    await u.click(screen.getByRole("button", { name: "afuera" }));
+    expect(screen.queryByRole("menu")).toBeNull();
+  });
+});

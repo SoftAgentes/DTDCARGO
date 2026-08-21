@@ -6,7 +6,7 @@ import { test, expect } from "@playwright/test";
  * Cubre las 4 superficies de login del repo, cada una con su mecanismo:
  *   - Studio   (/studio/login) → email + password (signInWithPassword)
  *   - Back     (/back/login)   → email + password (signInWithPassword)
- *   - Portal   (/portal/login) → magic link / OTP (solo email, sin password)
+ *   - Portal   (/entrar) → magic link / OTP (solo email, sin password)
  *   - Operario (/m/ve/login)   → PIN (signInWithPin, cookie HTTP-only)
  *
  * Estos tests NO requieren seed ni branch de Supabase: solo verifican que el
@@ -96,10 +96,35 @@ test.describe("Tier 1 · logins (render + negativos)", () => {
   });
 
   test("Portal: magic link (email, sin password)", async ({ page }) => {
-    await page.goto("/portal/login");
+    await page.goto("/entrar");
     await expect(page.locator('input[name="email"]').first()).toBeVisible();
     // Portal usa OTP/magic link: NO debe haber campo password.
     await expect(page.locator('input[type="password"]')).toHaveCount(0);
+  });
+
+  test("Portal: /entrar ofrece las dos puertas, y crear cuenta es un botón", async ({
+    page,
+  }) => {
+    // SDD-0276. Acá se mide en un navegador de verdad lo que el unit test mide
+    // en jsdom: que la fila de crear cuenta EXISTA y tenga tamaño de botón. Era
+    // un enlace de 12,5 px, y con la anti-enumeración del login eso dejaba sin
+    // salida a quien todavía no tiene cuenta.
+    await page.goto("/entrar");
+
+    await expect(
+      page.getByRole("heading", { name: /ingresar a mi portal/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /crear mi cuenta y shipping mark/i }),
+    ).toBeVisible();
+
+    const crear = page.getByRole("link", { name: /crear mi cuenta/i });
+    await expect(crear).toBeVisible();
+    await expect(crear).toHaveAttribute("href", "/registro");
+
+    // Altura real de `.btn` (48 px). Un enlace de texto mide ~18.
+    const caja = await crear.boundingBox();
+    expect(caja?.height ?? 0).toBeGreaterThanOrEqual(40);
   });
 
   test("Operario VE: numpad de PIN (4 dígitos)", async ({ page }) => {

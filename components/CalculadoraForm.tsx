@@ -79,6 +79,7 @@ export function CalculadoraForm({
   ciudades,
   directWhatsApp = false,
   modo = "ddp",
+  showRegisterCta = false,
 }: {
   serverRate?: ServerRate;
   serverConfig?: CalcParams | null;
@@ -92,6 +93,17 @@ export function CalculadoraForm({
   directWhatsApp?: boolean;
   /** Modalidad calculada. Default `ddp` = comportamiento histórico intacto. */
   modo?: CalcModo;
+  /**
+   * Bloque "crear mi cuenta" bajo el resultado (SDD-0276).
+   *
+   * 🔴 **Nace en `false` a propósito.** Este formulario lo monta `TarifasTabs`,
+   * y a `TarifasTabs` lo montan DOS páginas: `/tarifas` y `/tarifas/embed`. El
+   * embed se incrusta en sitios de terceros —incluidos aliados white-label— y
+   * ahí un "crear mi cuenta con DTD Cargo" rompería el white-label. Se enciende
+   * sólo desde `app/tarifas/page.tsx`. Si algún día se quiere en el embed, es
+   * cambiar esta bandera, no reescribir el bloque.
+   */
+  showRegisterCta?: boolean;
 }) {
   const esConsolidado = modo === "consolidado";
 
@@ -649,6 +661,33 @@ export function CalculadoraForm({
             className="btn btn-primary flex-shrink-0"
           >
             Crear cuenta <ArrowIcon />
+          </Link>
+        </div>
+      )}
+
+      {/* SDD-0276 — la puerta que faltaba en la calculadora pública.
+          El bloque de arriba NUNCA se pinta en `/tarifas`: pide
+          `savedEstimateCode`, y en modo `directWhatsApp` la calc no guarda nada.
+          Resultado medido el 2026-08-20: la calculadora pública no ofrecía crear
+          cuenta en ningún momento — el instante de más intención del sitio,
+          alguien que acaba de ver cuánto le cuesta traer su carga, no tenía
+          puerta.
+          🔴 Va DESPUÉS del resultado, nunca antes: la tarifa se muestra siempre
+          y sin gatear. `docs/marketing/adquisicion.md` desaconseja explícitamente
+          el patrón "regístrate para ver el precio". */}
+      {showRegisterCta && (
+        <div className="mt-4 card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1">
+            <p className="text-[14.5px] font-bold text-ink leading-[1.35]">
+              ¿Listo para traerla?
+            </p>
+            <p className="mt-1 text-[13.5px] text-grey-700 leading-[1.45]">
+              Tu Shipping Mark es la dirección donde tu proveedor entrega en
+              China. Crearlo es gratis y toma dos minutos.
+            </p>
+          </div>
+          <Link href="/registro" className="btn btn-primary flex-shrink-0">
+            Crear mi cuenta <ArrowIcon />
           </Link>
         </div>
       )}

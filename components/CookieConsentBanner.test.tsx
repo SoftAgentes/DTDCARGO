@@ -5,7 +5,7 @@
  * botón el banner SE VAYA y la decisión quede guardada — en las DOS formas de
  * abrirlo, que son caminos de estado distintos:
  *
- *  1. **Automático** en `/portal/login` y `/registro` (no hay cookie todavía).
+ *  1. **Automático** en `/entrar` y `/registro` (no hay cookie todavía).
  *  2. **Manual** desde "Preferencias de cookies" del footer, en cualquier ruta.
  *
  * El camino automático es el que se rompió en producción: el banner se cerraba
@@ -47,7 +47,7 @@ afterEach(() => {
 });
 
 describe("banner de cookies — apertura automática (login / registro)", () => {
-  it.each(["/registro", "/portal/login"])(
+  it.each(["/registro", "/entrar"])(
     "aparece en %s cuando no hay decisión guardada",
     async (ruta) => {
       pathname.current = ruta;

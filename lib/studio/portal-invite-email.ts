@@ -10,7 +10,7 @@
  * El enlace directo es de UN SOLO USO y **caduca** (TTL de Auth, hoy 30 min). Si
  * la invitación se abre tarde, muere → el admin lo reenvía, o comparte un enlace
  * fresco por WhatsApp desde la tarjeta del cliente (coordinación en vivo). Si por
- * algo no se pudo generar el enlace directo, se cae al viejo flujo (`/portal/login`
+ * algo no se pudo generar el enlace directo, se cae al viejo flujo (`/entrar`
  * con el email precargado) para no romper la invitación.
  *
  * Envío real vía Resend reusando el pipeline `sendEmail` (mail_config +
@@ -27,7 +27,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
 /** URL del login del portal con el email precargado — fallback si no se pudo generar el enlace directo. */
 export function portalInviteUrl(email: string): string {
-  return `${SITE_URL}/portal/login?email=${encodeURIComponent(email.trim().toLowerCase())}`;
+  return `${SITE_URL}/entrar?email=${encodeURIComponent(email.trim().toLowerCase())}`;
 }
 
 /**

@@ -716,10 +716,10 @@
   }
 }
 
-/* CTA "Regístrate" de la barra angosta (<lg): comparte fila con el logo y la
-   hamburguesa, así que va más chico que el `.btn` base. Doble clase
-   (`.btn.nav-cta-compact`) para ganarle a `.btn` sin depender del orden del
-   archivo. Antes vivía en un `style` inline del componente. */
+/* CTA de la barra angosta (<lg): comparte fila con el logo y la hamburguesa,
+   así que va más chico que el `.btn` base. Doble clase (`.btn.nav-cta-compact`)
+   para ganarle a `.btn` sin depender del orden del archivo. Antes vivía en un
+   `style` inline del componente. */
 .btn.nav-cta-compact {
   height: 40px;
   padding: 0 16px;
@@ -729,6 +729,31 @@
   .btn.nav-cta-compact {
     padding: 0 11px;
     font-size: 12.5px;
+  }
+}
+
+/* Bajo 440px la barra pública muestra SÓLO el isólogo: sin el wordmark.
+   (SDD-0276 · founder 2026-08-20.)
+
+   Por qué. El CTA de la barra pasó de "Regístrate" a "Entrar o crear cuenta"
+   cuando las dos puertas de cuenta se unificaron en una. MEDIDO en el
+   navegador: 146px contra 85px, o sea **+61px**. Achicar el lockup por tramos
+   (`--nav-brand`) ya no alcanza — con el lockup completo el cluster pide
+   167 + 8 + 44 + 8 + 155 = 382px de contenido, y a 375px sólo hay 335. Apretar
+   padding y tipografía recuperaba ~44px: insuficiente. Quitar el wordmark
+   libera ~137px y deja aire de sobra hasta 320px.
+
+   Va acá y no en Nav.tsx a propósito: así el lockup sigue siendo UN solo
+   <span> con UNA sola precarga del isólogo, que es lo que arregló el barrido de
+   scroll horizontal. El wordmark completo sigue en el drawer, en escritorio y
+   en el resto del sitio — esto sólo aplica dentro de `.site-nav`.
+
+   ⚠️ El gancho `.brandmark-wordmark` lo pone `components/BrandMark.tsx`. Si
+   alguien lo renombra, esta regla deja de aplicar EN SILENCIO y el nav vuelve a
+   desbordar a 320px: lo atrapa `e2e/sin-scroll-horizontal.spec.ts`. */
+@media (max-width: 439px) {
+  .site-nav .brandmark-wordmark {
+    display: none;
   }
 }
 

@@ -49,18 +49,40 @@ const FOCUSABLE_SEL =
 /**
  * Top navigation — sticky, blur, drawer mobile completo con focus trap.
  *
- * Desktop (lg+): logo + enlaces principales + Acceder + Contáctenos +
- *                dropdown "Ayuda" (al final) + [Regístrate].
- * Mobile (<lg):  logo + [≡ hamburguesa] + [Regístrate]
+ * Desktop (lg+): logo + enlaces principales + Contáctenos +
+ *                dropdown "Ayuda" (al final) + [Entrar o crear cuenta].
+ * Mobile (<lg):  logo + [≡ hamburguesa] + [Entrar o crear cuenta]
  *                El hamburger abre un drawer con los enlaces + acordeón "Ayuda"
- *                + cuenta + Contáctenos, y "Regístrate" como botón del pie.
+ *                + Contáctenos, y el mismo botón único en el pie.
  *
- * JERARQUÍA (founder 2026-07-31): el único botón de color, en las tres
- * superficies, es "Regístrate" — es la acción que queremos que el visitante
- * haga. "Contáctenos" es enlace de texto y va a la izquierda: casi todo el
+ * JERARQUÍA (founder 2026-08-20, SDD-0276 — SUPERSEDE la decisión del
+ * 2026-07-31): **una sola puerta de cuenta en las tres superficies**, el botón
+ * "Entrar o crear cuenta" → `/entrar`. Antes había dos disparadores, "Acceder"
+ * de texto y "Regístrate" de color, y en la barra móvil "Acceder" ni aparecía.
+ *
+ * Por qué la etiqueta lleva las DOS palabras y no sólo "Entrar": el A/B de
+ * Mozilla Persona (~1,25 M de impresiones) midió que la presencia de la palabra
+ * "crear" es lo que mueve las altas — un botón único de sólo-login produjo 12,4×
+ * menos cuentas. La ambigüedad "¿cuál de los dos era yo?" se resuelve en
+ * `/entrar`, que ofrece las dos filas con peso comparable.
+ *
+ * "Contáctenos" sigue siendo enlace de texto y va a la izquierda: casi todo el
  * contacto entra por WhatsApp, que ya tiene su propio botón flotante.
  * Ojo: esto NO viene del Norte, que no norma el nav público (verificado
  * 2026-07-31) — es una decisión de producto tomada acá.
+ *
+ * 🔴 ANCHO: la etiqueta pasó de 10 a 21 caracteres — **+61 px medidos** en la
+ * barra angosta (146 contra 85). Esta fila desborda con una facilidad que
+ * sorprende, y ya lo hizo dos veces: sumar un enlace de texto la empujó a
+ * 1039 px de contenido en 1024 de viewport, y a 320 px el lockup completo sacaba
+ * el CTA de la pantalla — y un desborde acá ensancha el ICB, así que se lleva el
+ * scroll horizontal a TODO el sitio público, no sólo a esta página.
+ *
+ * Quitar "Acceder" liberó espacio en escritorio; en la barra angosta hizo falta
+ * además ocultar el wordmark bajo 440 px (regla en globals.css). Al tocar este
+ * nav se MIDE `scrollWidth` contra `clientWidth` a 320, 360, 375, 1024 y 1280 —
+ * mirar a 1366 no lo muestra. La red que lo atrapa es
+ * `e2e/sin-scroll-horizontal.spec.ts`.
  *
  * Accesibilidad (WCAG 2.2):
  * - Drawer y dropdown "Recursos" cierran con tecla Escape
@@ -217,7 +239,14 @@ export function Nav() {
               con `sm:hidden` — así el isólogo se preloadea UNA vez, no dos.
               `shrink-0` evita que el flex comprima el wordmark y lo monte sobre
               el menú (mismo componente, mismas proporciones/colores — solo
-              cambia el tamaño). */}
+              cambia el tamaño).
+
+              🔴 Y por debajo de 440px NO alcanza con achicarlo: ahí el wordmark
+              se oculta por CSS (`.site-nav .brandmark-wordmark`, globals.css).
+              MEDIDO, no estimado: el botón "Entrar o crear cuenta" de SDD-0276
+              mide 146px contra los 85 del viejo "Regístrate" — cuesta **+61px**,
+              y con el lockup completo el cluster no entra ni a 375. La regla
+              vive en CSS y no acá para conservar el span único de arriba. */}
           <span className="flex items-center shrink-0">
             <BrandMark asLink size="var(--nav-brand, 30px)" />
           </span>
@@ -247,18 +276,13 @@ export function Nav() {
               );
             })}
 
-            {/* Jerarquía de la derecha (founder 2026-07-31): el único botón de
-                color es "Regístrate", porque el registro es lo que queremos que
-                el visitante haga. "Contáctenos" baja a enlace de texto y se
-                corre a la izquierda: casi todo el contacto entra por WhatsApp
-                —que ya tiene su botón flotante— así que ocupar el CTA del nav
-                con él competía contra la conversión que sí importa. */}
-            <Link
-              href="/portal/login"
-              className="text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
-            >
-              Acceder
-            </Link>
+            {/* Jerarquía de la derecha: el único botón de color es la puerta de
+                cuenta (SDD-0276). "Acceder" ya NO vive acá — se fusionó con
+                "Regístrate" en un solo botón, ver el docblock de arriba.
+                "Contáctenos" es enlace de texto y se corre a la izquierda: casi
+                todo el contacto entra por WhatsApp —que ya tiene su botón
+                flotante— así que ocupar el CTA del nav con él competía contra la
+                conversión que sí importa. */}
             <Link
               href="/contacto"
               className="text-[13.5px] xl:text-[14.5px] px-2 xl:px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
@@ -324,12 +348,12 @@ export function Nav() {
               </div>
             </details>
 
-            <Link href="/registro" className="btn btn-primary whitespace-nowrap">
-              Regístrate
+            <Link href="/entrar" className="btn btn-primary whitespace-nowrap">
+              Entrar o crear cuenta
             </Link>
           </div>
 
-          {/* Mobile + tablet: hamburger + Regístrate (<lg = <1024px) */}
+          {/* Mobile + tablet: hamburger + la puerta única (<lg = <1024px) */}
           <div className="lg:hidden flex items-center gap-2 max-[374px]:gap-1.5">
             <button
               ref={hamburgerRef}
@@ -353,10 +377,16 @@ export function Nav() {
                 <path d="M1 1h18M1 7h18M1 13h18" />
               </svg>
             </button>
-            {/* En la barra angosta solo cabe UN botón: va el de conversión.
-                Contáctenos sigue a un toque de distancia, dentro del menú. */}
-            <Link href="/registro" className="btn btn-primary nav-cta-compact">
-              Regístrate
+            {/* En la barra angosta solo cabe UN botón — y desde SDD-0276 uno es
+                justo lo que hace falta: la puerta es una sola, así que ya no hay
+                que elegir cuál sacrificar. Contáctenos sigue a un toque de
+                distancia, dentro del menú. El tamaño lo pone `.nav-cta-compact`
+                en globals.css, no un `style` inline. */}
+            <Link
+              href="/entrar"
+              className="btn btn-primary nav-cta-compact whitespace-nowrap"
+            >
+              Entrar o crear cuenta
             </Link>
           </div>
         </div>
@@ -472,16 +502,10 @@ export function Nav() {
             })}
           </details>
 
-          {/* Cuenta · Acceder + Contáctenos. "Regístrate" NO va acá: es el
-              botón del pie, para que el menú tenga la misma jerarquía que la
-              barra de escritorio y no aparezca dos veces. */}
-          <Link
-            href="/portal/login"
-            onClick={close}
-            className="text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors"
-          >
-            Acceder
-          </Link>
+          {/* La puerta de cuenta NO va en esta lista: es el botón del pie, para
+              que el menú tenga la misma jerarquía que la barra de escritorio y
+              no aparezca dos veces. Antes había acá un "Acceder" de texto que
+              duplicaba la entrada; SDD-0276 lo fusionó con el botón del pie. */}
           <Link
             href="/contacto"
             onClick={close}
@@ -493,11 +517,11 @@ export function Nav() {
 
         <div className="p-6 border-t border-grey-200">
           <Link
-            href="/registro"
+            href="/entrar"
             onClick={close}
             className="btn btn-primary w-full"
           >
-            Regístrate
+            Entrar o crear cuenta
           </Link>
         </div>
       </aside>

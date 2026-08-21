@@ -208,7 +208,7 @@ const LINKS: LinkRow[] = [
     label: "Rastrear mi embarque",
     sub: "Sigue tu carga en tiempo real",
     // Fase 6: el rastreo público se retiró → entra al portal.
-    href: webLink("/portal/login", "rastreo"),
+    href: webLink("/entrar", "rastreo"),
   },
   {
     icon: "chat",

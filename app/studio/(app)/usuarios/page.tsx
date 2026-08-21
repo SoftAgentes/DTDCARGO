@@ -83,13 +83,41 @@ export default async function UsuariosPage() {
         perPage: 200,
       });
       const emailMap = new Map<string, string>();
+      /**
+       * SDD-0275. `user_tenants.last_login_at` lo escribe un trigger sobre
+       * `auth.sessions` (migr 0019) y **tiene falsos negativos**: medido en
+       * producción el 2026-08-20, dos de nueve cuentas lo tienen en `null`
+       * habiendo iniciado sesión de verdad — una de ellas el 2026-06-20.
+       *
+       * Eso no era grave mientras la columna sólo pintaba un "Nunca" en una
+       * celda. Con la banda de trabajo de SDD-0274 sí lo es: cuenta gente como
+       * pendiente y ofrece **mandarle un correo de acceso a alguien que ya
+       * entra**.
+       *
+       * `auth.users.last_sign_in_at` es la fuente de verdad de Auth y la página
+       * ya la está trayendo para resolver los correos — sólo estaba sin usar.
+       * Se toma la MÁS RECIENTE de las dos, que cubre tanto el `null` como una
+       * columna que se haya quedado atrás. No se pierde fidelidad por tenant:
+       * el propio trigger actualiza todos los tenants del user a la vez.
+       */
+      const loginMap = new Map<string, string | null>();
       for (const u of authUsers?.users ?? []) {
         if (u.email) emailMap.set(u.id, u.email);
+        loginMap.set(u.id, u.last_sign_in_at ?? null);
       }
-      members = membersRaw.map((m) => ({
-        ...m,
-        email: emailMap.get(m.user_id) ?? "—",
-      }));
+      members = membersRaw.map((m) => {
+        const deAuth = loginMap.get(m.user_id) ?? null;
+        const deTenant = m.last_login_at;
+        const masReciente =
+          deTenant && deAuth
+            ? (new Date(deAuth) > new Date(deTenant) ? deAuth : deTenant)
+            : (deTenant ?? deAuth);
+        return {
+          ...m,
+          email: emailMap.get(m.user_id) ?? "—",
+          last_login_at: masReciente,
+        };
+      });
     } catch {
       members = membersRaw.map((m) => ({ ...m, email: "—" }));
     }

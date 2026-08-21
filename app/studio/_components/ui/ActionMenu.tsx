@@ -31,6 +31,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { createPortal } from "react-dom";
 import { Icon, type IconName } from "@/app/studio/_components/icons";
 
 /** Lo común a una opción, navegue o ejecute. */
@@ -93,6 +94,9 @@ export function ActionMenu({
   disabled = false,
 }: Props) {
   const [abierto, setAbierto] = useState(false);
+  /** `createPortal` necesita `document`, que en el render del servidor no existe. */
+  const [montado, setMontado] = useState(false);
+  useEffect(() => setMontado(true), []);
   /** "primera" | "ultima" — a dónde mandar el foco al abrir (BTN-01 §7 regla 6). */
   const [foco, setFoco] = useState<"primera" | "ultima">("primera");
   /** El panel se voltea hacia arriba si abajo no cabe (BTN-01 §7: sin clipping). */
@@ -122,21 +126,64 @@ export function ActionMenu({
   useEffect(() => {
     if (!abierto) return;
     const alClicafuera = (e: MouseEvent) => {
-      if (!envoltorioRef.current?.contains(e.target as Node)) setAbierto(false);
+      // ⚠️ Con el panel en un portal, `envoltorio` ya no lo contiene: hay que
+      // preguntarle también al panel o un clic DENTRO del menú lo cerraría.
+      const t = e.target as Node;
+      if (envoltorioRef.current?.contains(t)) return;
+      if (panelRef.current?.contains(t)) return;
+      setAbierto(false);
     };
     document.addEventListener("mousedown", alClicafuera);
     return () => document.removeEventListener("mousedown", alClicafuera);
   }, [abierto]);
 
   // Decidir arriba/abajo ANTES de pintar, para que el panel no salte a la vista.
+  /**
+   * Posición FIJA del panel, calculada desde el trigger (SDD-0275).
+   *
+   * Antes el panel era `position:absolute` dentro del envoltorio y confiaba en
+   * `zIndex:60` para sobresalir. Eso funciona mientras ningún ancestro recorte:
+   * **un `overflow:auto` o `hidden` en un ancestro recorta al hijo absoluto sin
+   * importar el z-index**. Dentro de una tabla con scroll —o de un drawer— el
+   * panel de las últimas filas se cortaba. No se había visto porque el único
+   * consumidor verificado lo usa en la CABECERA de su módulo, fuera de la caja
+   * con scroll.
+   */
+  const [caja, setCaja] = useState<{ top: number; left: number } | null>(null);
+
+  const recalcular = useCallback(() => {
+    const t = triggerRef.current?.getBoundingClientRect();
+    const alto = panelRef.current?.offsetHeight ?? 0;
+    const ancho = panelRef.current?.offsetWidth ?? 200;
+    if (!t) return;
+    const abajo = window.innerHeight - t.bottom;
+    const arriba = abajo < alto + 8 && t.top > abajo;
+    setHaciaArriba(arriba);
+    // `end` alinea el borde derecho del panel con el del trigger.
+    let left = align === "end" ? t.right - ancho : t.left;
+    // Y nunca se sale de la ventana por ninguno de los dos lados.
+    left = Math.max(8, Math.min(left, window.innerWidth - ancho - 8));
+    setCaja({ top: arriba ? t.top - alto - 4 : t.bottom + 4, left });
+  }, [align]);
+
   useLayoutEffect(() => {
     if (!abierto) return;
-    const caja = triggerRef.current?.getBoundingClientRect();
-    const alto = panelRef.current?.offsetHeight ?? 0;
-    if (!caja) return;
-    const abajo = window.innerHeight - caja.bottom;
-    setHaciaArriba(abajo < alto + 8 && caja.top > abajo);
-  }, [abierto, items.length]);
+    recalcular();
+  }, [abierto, items.length, recalcular]);
+
+  // Con posición fija el panel NO sigue al trigger cuando algo scrollea, así
+  // que se recalcula. `capture` para enterarse también del scroll de la caja
+  // interna, que no burbujea.
+  useEffect(() => {
+    if (!abierto) return;
+    const alMover = () => recalcular();
+    window.addEventListener("scroll", alMover, true);
+    window.addEventListener("resize", alMover);
+    return () => {
+      window.removeEventListener("scroll", alMover, true);
+      window.removeEventListener("resize", alMover);
+    };
+  }, [abierto, recalcular]);
 
   // Foco de entrada: primera o última según cómo se abrió.
   useEffect(() => {
@@ -237,17 +284,18 @@ export function ActionMenu({
         {Icon.more(16)}
       </button>
 
-      {abierto && (
+      {abierto && montado && createPortal(
         <div
           ref={panelRef}
           role="menu"
           aria-label={ariaLabel ?? label}
           onKeyDown={alTecleoDelPanel}
           style={{
-            position: "absolute",
-            [haciaArriba ? "bottom" : "top"]: "calc(100% + 4px)",
-            [align === "end" ? "right" : "left"]: 0,
-            zIndex: 60,
+            position: "fixed",
+            top: caja?.top ?? -9999,
+            left: caja?.left ?? -9999,
+            // Por encima de drawers y scrims del Studio.
+            zIndex: 1000,
             minWidth: 200,
             background: "var(--bg-surface)",
             border: "1px solid var(--border)",
@@ -285,8 +333,9 @@ export function ActionMenu({
               />
             ),
           )}
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </div>
   );
 }
