@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ChipF2 } from "@/components/servicios/ChipF2";
+import { ConGlosario, TerminoEnlace } from "@/components/TerminoGlosario";
 import { svcHref } from "@/components/servicios/svcHref";
 import {
   FichaF2,
@@ -538,7 +539,11 @@ function Hold() {
           El HOLD <b>retiene tu mercancía</b> en nuestra bodega en lugar de enviarla
           de una vez, para que llegue tu próxima compra y{" "}
           <b>viajen juntas en el mismo contenedor</b>. Ideal cuando esperas más cajas
-          para completar el mínimo o para alcanzar un <b>descuento por CBM</b> —
+          para completar el mínimo o para alcanzar un{" "}
+          <b>
+            descuento por <TerminoEnlace valor="CBM" ancla="cbm" />
+          </b>{" "}
+          —
           porque el descuento solo aplica si las cargas van consolidadas en un mismo
           envío.
         </p>
@@ -1665,9 +1670,12 @@ function CourierDeMuestras() {
           despachados por <b>DHL, UPS o FedEx</b> desde nuestra base en Yiwu.
         </p>
         <XrefF2>
-          <b>No es flete aéreo de carga.</b> La carga grande viaja por vía marítima
-          (Puerta a Puerta, LCL o FCL); el envío aéreo de carga es otro servicio y
-          estará disponible <b>próximamente</b>.
+          <b>No es flete aéreo de carga.</b>{" "}
+          <ConGlosario>
+            La carga grande viaja por vía marítima (Puerta a Puerta, LCL o FCL); el
+            envío aéreo de carga es otro servicio y estará disponible
+          </ConGlosario>{" "}
+          <b>próximamente</b>.
         </XrefF2>
       </SecF2>
 
@@ -1761,8 +1769,11 @@ function TransitoDeAduana() {
       hook="Tu carga llegó a puerto — nosotros la nacionalizamos por ti."
       sub={
         <>
-          Gestionamos el trámite aduanal y el desaduanaje de tu carga LCL o FCL hasta
-          puerto en Venezuela, <b>representándote como tu agente ante la aduana</b>.
+          <ConGlosario>
+            Gestionamos el trámite aduanal y el desaduanaje de tu carga LCL o FCL
+            hasta puerto en Venezuela,
+          </ConGlosario>{" "}
+          <b>representándote como tu agente ante la aduana</b>.
         </>
       }
       seal={{ top: "5–6 DÍAS HÁBILES", sub: "nacionalización" }}
