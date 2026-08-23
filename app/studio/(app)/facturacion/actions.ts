@@ -686,6 +686,89 @@ export async function softDeleteInvoice(
 }
 
 /**
+ * SDD-0281 · Duplicar una factura.
+ *
+ * ⚠️ Feature FINANCIERA — lo importante acá es lo que **NO** se copia.
+ *
+ * El duplicado nace SIEMPRE en `borrador`, sin emitir. Eso no es cosmético:
+ * emitir dispara el asiento contable de venta (SDD-0040) y el gate legal AUT-04.
+ * Un "duplicar" que emitiera crearía plata en el libro mayor con un clic.
+ *
+ * Tampoco se copian:
+ *
+ *  - **`sales_order_id`** 🔴. Es el candado de idempotencia del motor de
+ *    auto-facturación (SDD-0072/0128): una segunda factura colgando de la misma
+ *    OV rompe el universo congelado de cajas y abre la puerta a cobrar dos veces
+ *    la misma caja. Es la razón principal por la que esta acción existe como
+ *    copia explícita y no como un `select *` con código nuevo.
+ *  - **Pagos** (`paid_amount`, `last_payment_at`): son del original.
+ *  - **`issued_at` / `due_date`**: los pone la emisión, cuando ocurra.
+ *
+ * Sí se copia el vínculo con el embarque: facturar dos veces contra un mismo
+ * embarque es legítimo (cargos adicionales, última milla aparte) y sin ese
+ * vínculo el ingreso deja de imputarse al envío en los reportes.
+ *
+ * El `fund_class` se **re-deriva** del embarque en vez de copiarse: si la
+ * clasificación del servicio cambió desde que se emitió el original, el
+ * duplicado tiene que nacer con la de hoy.
+ */
+export async function duplicateInvoice(
+  id: string,
+): Promise<{ ok?: boolean; error?: string; code?: string }> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "invoices");
+  if (denial) return { error: denial };
+
+  const { data: original, error: readErr } = await supabase
+    .from("invoices")
+    .select(
+      "tenant_id, client_markbox, client_name, shipment_id, shipment_code, currency, fx_rate, iva_rate, iva_mode, base_amount, iva_amount, total_amount, lines, notes",
+    )
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle<Record<string, unknown>>();
+  if (readErr) return { error: readErr.message };
+  if (!original) return { error: "No se encontró la factura a duplicar." };
+
+  const tenantId = original.tenant_id as string;
+  const { data: codeData, error: codeErr } = await supabase.rpc(
+    "next_invoice_code",
+    { p_tenant_id: tenantId },
+  );
+  if (codeErr || !codeData) {
+    return { error: "No se pudo generar el código de factura." };
+  }
+
+  const shipmentId = (original.shipment_id as string | null) ?? null;
+
+  const { error } = await supabase.from("invoices").insert({
+    tenant_id: tenantId,
+    invoice_code: String(codeData),
+    client_markbox: original.client_markbox,
+    client_name: original.client_name,
+    shipment_id: shipmentId,
+    shipment_code: original.shipment_code,
+    currency: original.currency,
+    fx_rate: original.fx_rate,
+    iva_rate: original.iva_rate,
+    iva_mode: original.iva_mode,
+    base_amount: original.base_amount,
+    iva_amount: original.iva_amount,
+    total_amount: original.total_amount,
+    lines: original.lines,
+    notes: original.notes,
+    status: "borrador",
+    issued_at: null,
+    due_date: null,
+    fund_class: await deriveInvoiceFundClass(supabase, shipmentId),
+  });
+  if (error) return { error: `No se pudo duplicar la factura: ${error.message}` };
+
+  revalidatePath("/studio/facturacion");
+  return { ok: true, code: String(codeData) };
+}
+
+/**
  * Lookup helper para prefill del drawer desde un código de embarque.
  * Devuelve client + shipment_id si existe, o null. No bloquea (blando).
  */

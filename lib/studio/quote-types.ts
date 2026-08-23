@@ -281,39 +281,78 @@ export function isExpired(quote: Pick<Quote, "valid_until" | "status">): boolean
   return quote.valid_until < today;
 }
 
-// ── Salida por WhatsApp (F1-T11) ────────────────────────────────
+// ── Salida del estimado: WhatsApp y papel ───────────────────────
 //
 // El estimado no tenía forma de enviarse salvo email — y el 94,5% de los
 // contactos de Kommo no tienen email, así que hoy el envío es transcripción
-// manual. Estos helpers arman el desglose listo para WhatsApp. PUROS y testeables.
+// manual. Estos helpers arman el desglose. PUROS y testeables.
+//
+// SDD-0281: el desglose se extrajo a `buildQuoteBreakdown` porque ahora tiene
+// DOS destinos —el texto de WhatsApp y el PDF— y dos copias del mismo cálculo
+// se desincronizan calladas. El que manda es este; los renders sólo pintan.
+
+/** Nombre del servicio como lo lee un cliente: `Primario (secundario)`. */
+export function quoteServiceLabel(service: ShipmentService): string {
+  const svc = SERVICE_LABELS[service];
+  return svc?.sub ? `${svc.primary} (${svc.sub})` : (svc?.primary ?? service);
+}
+
+/** Una fila del desglose. `strong` = la que el ojo tiene que encontrar primero. */
+export type QuoteBreakdownRow = {
+  label: string;
+  value: string;
+  strong?: boolean;
+};
+
+/**
+ * El desglose del estimado, en el orden en que se lee. Fuente única del texto
+ * de WhatsApp y del PDF. Muestra CBM/tarifa para LCL/DDP y tarifa fija para
+ * FCL/terrestre; la línea de embalaje sólo aparece si se cobró. PURO.
+ */
+export function buildQuoteBreakdown(quote: Quote): QuoteBreakdownRow[] {
+  const mode = quotePriceMode(quote.service);
+  const rows: QuoteBreakdownRow[] = [
+    { label: "Cliente", value: quote.client_name },
+    { label: "Servicio", value: quoteServiceLabel(quote.service) },
+    { label: "Ruta", value: `${quote.origin} → ${quote.destination}` },
+  ];
+
+  if (mode === "per_cbm") {
+    if (quote.cbm != null) {
+      rows.push({ label: "Volumen", value: `${Number(quote.cbm).toFixed(3)} m³` });
+    }
+    if (quote.rate_per_cbm != null) {
+      rows.push({ label: "Tarifa", value: `$${fmtAmount(quote.rate_per_cbm)}/CBM` });
+    }
+  } else if (quote.flat_rate != null) {
+    rows.push({ label: "Tarifa", value: `$${fmtAmount(quote.flat_rate)} (tarifa fija)` });
+  }
+
+  rows.push({ label: "Subtotal", value: `$${fmtAmount(quote.subtotal_usd)}` });
+  if (Number(quote.packaging_cost) > 0) {
+    rows.push({
+      label: `Embalaje (${packagingLabel(quote.packaging)})`,
+      value: `+$${fmtAmount(quote.packaging_cost)}`,
+    });
+  }
+  rows.push({
+    label: "Total",
+    value: `$${fmtAmount(quote.total_usd)} USD`,
+    strong: true,
+  });
+  rows.push({ label: "Vigencia hasta", value: quote.valid_until });
+  return rows;
+}
 
 /**
  * Texto del estimado para WhatsApp (desglose legible, con *negritas* de WhatsApp).
- * Muestra CBM/tarifa para LCL/DDP y tarifa fija para FCL/terrestre. PURO.
+ * Renderiza `buildQuoteBreakdown` — no recalcula nada. PURO.
  */
 export function buildQuoteWhatsappText(quote: Quote): string {
-  const svc = SERVICE_LABELS[quote.service];
-  const svcLabel = svc?.sub ? `${svc.primary} (${svc.sub})` : (svc?.primary ?? quote.service);
-  const mode = quotePriceMode(quote.service);
-
-  const lines: string[] = [
-    `*Estimado DTD Cargo · ${quote.quote_code}*`,
-    `Cliente: ${quote.client_name}`,
-    `Servicio: ${svcLabel}`,
-    `Ruta: ${quote.origin} → ${quote.destination}`,
-  ];
-  if (mode === "per_cbm") {
-    if (quote.cbm != null) lines.push(`Volumen: ${Number(quote.cbm).toFixed(3)} m³`);
-    if (quote.rate_per_cbm != null) lines.push(`Tarifa: $${fmtAmount(quote.rate_per_cbm)}/CBM`);
-  } else if (quote.flat_rate != null) {
-    lines.push(`Tarifa: $${fmtAmount(quote.flat_rate)} (tarifa fija)`);
+  const lines = [`*Estimado DTD Cargo · ${quote.quote_code}*`];
+  for (const r of buildQuoteBreakdown(quote)) {
+    lines.push(r.strong ? `*${r.label}: ${r.value}*` : `${r.label}: ${r.value}`);
   }
-  lines.push(`Subtotal: $${fmtAmount(quote.subtotal_usd)}`);
-  if (Number(quote.packaging_cost) > 0) {
-    lines.push(`Embalaje (${packagingLabel(quote.packaging)}): +$${fmtAmount(quote.packaging_cost)}`);
-  }
-  lines.push(`*Total: $${fmtAmount(quote.total_usd)} USD*`);
-  lines.push(`Vigencia hasta: ${quote.valid_until}`);
   return lines.join("\n");
 }
 

@@ -101,14 +101,16 @@ export function CotizadorClient({
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button
-            type="button"
+          {/* SDD-0281 · el export ES la vista: viaja con la query string tal
+              cual, así que el CSV trae lo que la tabla está mostrando (estado,
+              búsqueda y origen incluidos), no la tabla entera. */}
+          <a
+            href={`/api/studio/comercial/export?tipo=estimados${paramsKey ? `&${paramsKey}` : ""}`}
             className="studio-btn studio-btn-ghost"
-            disabled
-            title="Próximamente"
+            title="Descarga en CSV lo que muestra esta vista"
           >
             Exportar
-          </button>
+          </a>
           <button
             type="button"
             className="studio-btn studio-btn-primary"

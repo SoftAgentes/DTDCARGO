@@ -477,6 +477,101 @@ export async function softDeleteQuote(
 }
 
 /**
+ * SDD-0281 · Duplicar un estimado.
+ *
+ * El caso real es la renegociación: el cliente vuelve a los diez días, quiere
+ * el mismo servicio y ruta con otro volumen, y hoy el asesor lo re-teclea
+ * entero. El duplicado copia lo comercial y **resetea lo que pertenece al
+ * original**:
+ *
+ *  - código nuevo (`next_estimate_code`) y `status: "draft"`;
+ *  - sin `sent_at` / `accepted_at` — el duplicado no heredó una aceptación;
+ *  - sin `converted_to_shipment_id` ni `sales_order_id` — el embarque y la
+ *    orden de venta son del original. Copiarlos ligaría dos estimados al mismo
+ *    embarque y el módulo de OV empezaría a contar doble;
+ *  - `source: "studio"` aunque el original fuera `web` — este lo tecleó una
+ *    persona, y la telemetría de la calculadora no debe inflarse con copias;
+ *  - sin los datos del prospecto: si el original era un estimado web sin
+ *    cliente, el duplicado arranca limpio en vez de arrastrar un contacto que
+ *    quizá ya se vinculó.
+ *
+ * La vigencia sí se recalcula: se le da la misma ventana en días que tenía el
+ * original, contada desde hoy. Duplicar un estimado y que nazca vencido sería
+ * una trampa silenciosa.
+ */
+export async function duplicateQuote(
+  id: string,
+): Promise<{ ok?: boolean; error?: string; code?: string }> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "quotes");
+  if (denial) return { error: denial };
+
+  const { data: original, error: readErr } = await supabase
+    .from("quotes")
+    .select("*")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle<Record<string, unknown>>();
+  if (readErr) return { error: readErr.message };
+  if (!original) return { error: "No se encontró el estimado a duplicar." };
+
+  const tenantId = original.tenant_id as string;
+  const { data: codeData, error: codeErr } = await supabase.rpc(
+    "next_estimate_code",
+    { p_tenant_id: tenantId },
+  );
+  if (codeErr || !codeData) {
+    return { error: "No se pudo generar el código del estimado." };
+  }
+
+  const { error } = await supabase.from("quotes").insert({
+    tenant_id: tenantId,
+    quote_code: String(codeData),
+    client_markbox: original.client_markbox,
+    client_name: original.client_name,
+    service: original.service,
+    origin: original.origin,
+    destination: original.destination,
+    cbm: original.cbm,
+    weight_kg: original.weight_kg,
+    boxes: original.boxes,
+    packaging: original.packaging,
+    rate_per_cbm: original.rate_per_cbm,
+    flat_rate: original.flat_rate,
+    rate_used_id: original.rate_used_id,
+    subtotal_usd: original.subtotal_usd,
+    packaging_cost: original.packaging_cost,
+    total_usd: original.total_usd,
+    notes: original.notes,
+    valid_until: nuevaVigencia(original.valid_until, original.created_at),
+    status: "draft",
+    source: "studio",
+  });
+  if (error) return { error: `No se pudo duplicar el estimado: ${error.message}` };
+
+  revalidatePath("/studio/cotizador");
+  return { ok: true, code: String(codeData) };
+}
+
+/**
+ * La vigencia del duplicado: la MISMA ventana en días que tenía el original,
+ * contada desde hoy. Si el original no permite calcularla (fechas raras o una
+ * ventana no positiva) cae a 15 días, que es la que usa el drawer al crear.
+ */
+function nuevaVigencia(validUntil: unknown, createdAt: unknown): string {
+  const DEFAULT_DIAS = 15;
+  const hasta = Date.parse(String(validUntil ?? ""));
+  const desde = Date.parse(String(createdAt ?? ""));
+  let dias = DEFAULT_DIAS;
+  if (Number.isFinite(hasta) && Number.isFinite(desde)) {
+    const d = Math.round((hasta - desde) / 86_400_000);
+    if (d > 0) dias = d;
+  }
+  const nueva = new Date(Date.now() + dias * 86_400_000);
+  return nueva.toISOString().slice(0, 10);
+}
+
+/**
  * Lookup helper que el QuoteDrawer llama on blur del input destino.
  * Devuelve la rate sugerida para (service, destination) o null.
  */

@@ -8,7 +8,7 @@
  * - Emitir (borrador → emitida)
  * - Modal "Registrar pago" (emitida/parcial/vencida → parcial/pagada)
  * - Anular (con confirmación · no si pagada)
- * - Botones disabled placeholder: PDF, Duplicar (próximamente)
+ * - PDF (SDD-0281 · abre el documento) y Duplicar (SDD-0281 · nueva en borrador)
  */
 
 import { useRouter } from "next/navigation";
@@ -32,6 +32,7 @@ import {
   type PaymentMethod,
 } from "@/lib/studio/payment-types";
 import {
+  duplicateInvoice,
   emitInvoice,
   registerPayment,
   voidInvoice,
@@ -172,22 +173,54 @@ export function InvoiceDetailClient({
           </button>
         )}
 
-        <button
-          type="button"
+        {/* El PDF de un borrador no existe a propósito: emitir el papel es un
+            acto comercial, y así es como un borrador termina en el WhatsApp de
+            un cliente. El route también lo rechaza (409) — esto sólo evita el
+            viaje. */}
+        <a
+          href={`/studio/facturacion/${encodeURIComponent(invoice.invoice_code)}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
           className="studio-btn studio-btn-ghost studio-btn-sm"
-          disabled
-          title="Próximamente"
+          aria-disabled={invoice.status === "borrador" ? true : undefined}
+          onClick={(e) => {
+            if (invoice.status === "borrador") {
+              e.preventDefault();
+              setError("Emite la factura antes de generar el PDF.");
+            }
+          }}
+          title={
+            invoice.status === "borrador"
+              ? "Emite la factura antes de generar el PDF"
+              : "Abre la factura en PDF"
+          }
+          style={invoice.status === "borrador" ? { opacity: 0.55 } : undefined}
         >
           PDF
-        </button>
-        <button
-          type="button"
-          className="studio-btn studio-btn-ghost studio-btn-sm"
-          disabled
-          title="Próximamente"
-        >
-          Duplicar
-        </button>
+        </a>
+        <ActionButton
+          variant="ghost"
+          size="sm"
+          idleLabel="Duplicar"
+          loadingLabel="Duplicando…"
+          successLabel={null}
+          onAction={async () => {
+            setError(null);
+            const r = await duplicateInvoice(invoice.id);
+            if (r.error) return { error: r.error };
+            if (r.code) {
+              toast.success(`Factura ${r.code} creada en borrador`, {
+                link: {
+                  href: `/studio/facturacion/${r.code}`,
+                  label: "Abrir",
+                },
+              });
+              router.push(`/studio/facturacion/${r.code}`);
+            }
+            return undefined;
+          }}
+          onError={setError}
+        />
       </div>
 
       {error && (

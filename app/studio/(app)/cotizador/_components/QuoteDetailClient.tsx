@@ -25,6 +25,7 @@ import {
 import type { KommoContactPick } from "@/lib/studio/kommo-convert";
 import {
   convertQuoteToShipment,
+  duplicateQuote,
   linkEstimateToClientAction,
   markQuoteAccepted,
   markQuoteRejected,
@@ -348,22 +349,38 @@ export function QuoteDetailClient({
         >
           WhatsApp
         </a>
-        <button
-          type="button"
+        {/* A diferencia de la factura, un estimado en borrador SÍ se imprime:
+            es material de trabajo del asesor y el documento ya avisa en su pie
+            que es una oferta sujeta a volumen y peso reales. */}
+        <a
+          href={`/studio/cotizador/${encodeURIComponent(quote.quote_code)}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
           className="studio-btn studio-btn-ghost studio-btn-sm"
-          disabled
-          title="Próximamente"
+          title="Abre el estimado en PDF"
         >
           PDF
-        </button>
-        <button
-          type="button"
-          className="studio-btn studio-btn-ghost studio-btn-sm"
-          disabled
-          title="Próximamente"
-        >
-          Duplicar
-        </button>
+        </a>
+        <ActionButton
+          variant="ghost"
+          size="sm"
+          idleLabel="Duplicar"
+          loadingLabel="Duplicando…"
+          successLabel={null}
+          onAction={async () => {
+            setError(null);
+            const r = await duplicateQuote(quote.id);
+            if (r.error) return { error: r.error };
+            if (r.code) {
+              toast.success(`Estimado ${r.code} creado en borrador`, {
+                link: { href: `/studio/cotizador/${r.code}`, label: "Abrir" },
+              });
+              router.push(`/studio/cotizador/${r.code}`);
+            }
+            return undefined;
+          }}
+          onError={setError}
+        />
       </div>
 
       {error && (

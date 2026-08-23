@@ -179,16 +179,27 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
                 Reportar pago
               </Link>
             ) : null}
+            {/* SDD-0281 · un PDF de verdad, generado en el servidor. Antes la
+                única forma de llevarse la factura era abrir el comprobante e
+                imprimir a PDF desde el navegador: salía con las cabeceras del
+                navegador, dependía de qué navegador fuera y en el teléfono era
+                una pelea. Esto baja el archivo y ya. */}
+            <a
+              href={`/portal/facturas/${encodeURIComponent(inv.code)}/pdf`}
+              className={`btn w-full justify-center ${canReport ? "btn-ghost mt-3" : "btn-primary"}`}
+            >
+              Descargar factura en PDF
+            </a>
             <Link
               href={`/portal/facturas/${encodeURIComponent(inv.code)}/comprobante`}
-              className={`btn w-full justify-center ${canReport ? "btn-ghost mt-3" : "btn-primary"}`}
+              className="btn btn-ghost w-full justify-center mt-3"
             >
               Ver / Imprimir comprobante
             </Link>
             <p className="mt-4 text-[13.5px] text-grey-700 leading-[1.55]">
               {canReport
-                ? "¿Ya pagaste? Repórtalo con tu comprobante y tu asesor lo confirma. También puedes abrir el comprobante de la factura y guardarlo como PDF."
-                : "Abre el comprobante y guárdalo como PDF desde el diálogo de impresión."}
+                ? "¿Ya pagaste? Repórtalo con tu comprobante y tu asesor lo confirma."
+                : "Descarga la factura para tu contabilidad, o abre el comprobante si necesitas el detalle del pago."}
             </p>
             <a
               href={waLink}

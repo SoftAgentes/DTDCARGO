@@ -95,6 +95,21 @@ export const INVOICE_STATUS_OPTIONS: {
   { value: "anulada", label: "Anulada" },
 ];
 
+/**
+ * SDD-0281 · ¿Es un status conocido de factura?
+ *
+ * Lo necesita el PDF, que recibe el status como `string` porque su entrada es
+ * el contrato entre dos formas distintas (la del Studio y la del portal). Sin
+ * el guard, el papel tendría que llevar su propio mapa de etiquetas y las dos
+ * traducciones del mismo enum se desincronizarían.
+ */
+export function isInvoiceStatus(v: unknown): v is InvoiceStatus {
+  return (
+    typeof v === "string" &&
+    INVOICE_STATUS_OPTIONS.some((o) => o.value === v)
+  );
+}
+
 /** Tasa de IVA estándar venezolano cuando el toggle está ON. */
 export const IVA_RATE_DEFAULT = 16;
 
