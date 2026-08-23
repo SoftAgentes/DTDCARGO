@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
 import { mintPortalMagicToken, portalOpenUrl } from "@/lib/studio/portal/magic-link";
 import { sendPortalMagicLinkEmail } from "@/lib/studio/portal/magic-link-email";
+import { findClienteSinAcceso } from "@/lib/studio/portal/sin-acceso";
+import { avisarClienteSinAcceso } from "@/lib/studio/portal/sin-acceso-aviso";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 const THROTTLE_TABLE = "portal_registro_throttle";
@@ -126,7 +128,23 @@ export async function requestMagicLink(
     .in("status", ["invited", "active"])
     .limit(1)
     .maybeSingle<{ id: string; tenant_id: string }>();
-  if (clientUserError || !clientUser) return genericSuccess(email);
+  if (clientUserError || !clientUser) {
+    // SDD-0279 · sin fila de acceso NO quiere decir "desconocido". La mayoría de
+    // los clientes vivos del ERP nunca fue invitada al portal: pedían el enlace
+    // y esperaban para siempre un correo que nadie mandaba.
+    //
+    // Si es cliente, se le avisa a él y al equipo, y un humano le devuelve el
+    // acceso por el flujo de invitación. NO se le manda a `/registro`: con
+    // documento cargado choca contra el dedup y vuelve acá (bucle), y sin
+    // documento le emite un Shipping Mark nuevo que le parte el historial
+    // (medido en `lib/studio/portal/sin-acceso.ts`).
+    //
+    // Si NO es cliente, no sale ningún correo. Es lo que impide que `/entrar`
+    // sirva para mandarle correo de DTD a un tercero cualquiera.
+    const cliente = await findClienteSinAcceso(admin, email);
+    if (cliente) await avisarClienteSinAcceso(admin, cliente, email);
+    return genericSuccess(email);
+  }
 
   // Camino nuevo: acuñar `token_hash` y mandarlo por nuestro pipeline.
   const tokenHash = await mintPortalMagicToken(admin, email);

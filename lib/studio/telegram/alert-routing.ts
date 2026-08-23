@@ -61,7 +61,8 @@ export const TELEGRAM_ALERT_CATEGORY_HINTS: Record<
   TelegramAlertCategory,
   string
 > = {
-  registro: "Un cliente se dio de alta solo desde el sitio.",
+  registro:
+    "Un cliente se dio de alta solo desde el sitio, o pidió entrar al portal y todavía no tiene acceso.",
   conversaciones: "Un cliente escribió por el chat del portal.",
   bugs: "Se reportó un bug de severidad alta o crítica.",
   reportes: "El brief diario de operaciones y movimientos.",

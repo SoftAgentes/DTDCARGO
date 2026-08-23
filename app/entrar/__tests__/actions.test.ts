@@ -15,6 +15,17 @@ const mocks = vi.hoisted(() => ({
   signInWithOtp: vi.fn(),
   mintPortalMagicToken: vi.fn(),
   sendPortalMagicLinkEmail: vi.fn(),
+  /** SDD-0279 · la fila de `clients` que devuelve la búsqueda del sin-acceso. */
+  cliente: null as {
+    id: string;
+    tenant_id: string;
+    markbox: string;
+    name: string;
+  } | null,
+  clienteError: null as { message: string } | null,
+  /** Filtros que el código aplicó sobre `clients`, para poder afirmarlos. */
+  clientsFilters: [] as Array<[string, unknown]>,
+  avisarClienteSinAcceso: vi.fn(),
 }));
 
 vi.mock("@/lib/http/request-ip", () => ({
@@ -38,6 +49,13 @@ vi.mock("@/lib/studio/portal/magic-link-email", () => ({
   sendPortalMagicLinkEmail: mocks.sendPortalMagicLinkEmail,
 }));
 
+// `sin-acceso.ts` queda REAL: así el test mide la consulta que de verdad corre
+// —incluido el filtro de soft-delete— y no una que el propio test inventó. Sólo
+// se dobla el aviso, que es el efecto observable.
+vi.mock("@/lib/studio/portal/sin-acceso-aviso", () => ({
+  avisarClienteSinAcceso: mocks.avisarClienteSinAcceso,
+}));
+
 vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => {
     if (!mocks.adminAvailable) throw new Error("admin unavailable");
@@ -59,6 +77,25 @@ vi.mock("@/lib/db/admin", () => ({
               mocks.inserted.push(payload);
               return { error: mocks.insertError };
             },
+          };
+          return chain;
+        }
+        if (table === "clients") {
+          const chain: Record<string, unknown> = {
+            select: () => chain,
+            ilike: (col: string, value: unknown) => {
+              mocks.clientsFilters.push([`ilike:${col}`, value]);
+              return chain;
+            },
+            is: (col: string, value: unknown) => {
+              mocks.clientsFilters.push([`is:${col}`, value]);
+              return chain;
+            },
+            limit: () => chain,
+            maybeSingle: async () => ({
+              data: mocks.cliente,
+              error: mocks.clienteError,
+            }),
           };
           return chain;
         }
@@ -97,6 +134,14 @@ describe("enlace de acceso al portal", () => {
     mocks.clientUser = { id: "client-user-1", tenant_id: "tenant-1" };
     mocks.clientUserError = null;
     mocks.inserted.length = 0;
+    mocks.cliente = null;
+    mocks.clienteError = null;
+    mocks.clientsFilters.length = 0;
+    mocks.avisarClienteSinAcceso.mockReset();
+    mocks.avisarClienteSinAcceso.mockResolvedValue({
+      avisadoCliente: true,
+      avisadoEquipo: true,
+    });
     mocks.signInWithOtp.mockReset();
     mocks.signInWithOtp.mockResolvedValue({ error: null });
     mocks.mintPortalMagicToken.mockReset();
@@ -214,6 +259,92 @@ describe("enlace de acceso al portal", () => {
       await expect(requestMagicLink({}, form("no-es-email"))).resolves.toEqual({
         error: "Ingresa un email válido.",
       });
+    });
+  });
+  describe("cliente sin acceso al portal (SDD-0279)", () => {
+    /** Sin fila en `client_users` es la puerta de entrada a todo este carril. */
+    function sinFilaDeAcceso() {
+      mocks.clientUser = null;
+    }
+
+    it("es cliente del ERP → le avisa a él y al equipo", async () => {
+      sinFilaDeAcceso();
+      mocks.cliente = {
+        id: "cli-1",
+        tenant_id: "tenant-1",
+        markbox: "DTD-1234",
+        name: "Comercial Andina",
+      };
+
+      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(OK);
+
+      expect(mocks.avisarClienteSinAcceso).toHaveBeenCalledTimes(1);
+      const [, cliente, email] = mocks.avisarClienteSinAcceso.mock.calls[0];
+      expect(cliente.markbox).toBe("DTD-1234");
+      expect(email).toBe("cliente@example.com");
+      // Y NO se le acuñó ningún enlace: no tiene acceso que abrir.
+      expect(mocks.mintPortalMagicToken).not.toHaveBeenCalled();
+    });
+
+    it("email desconocido → NO sale ningún correo", async () => {
+      sinFilaDeAcceso();
+      mocks.cliente = null;
+
+      await expect(
+        requestMagicLink({}, form("desconocido@example.com")),
+      ).resolves.toEqual({ sent: true, email: "desconocido@example.com" });
+
+      // El candado contra usar /entrar para mandarle correo de DTD a un tercero.
+      expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();
+    });
+
+    it("excluye al cliente soft-deleted: la fila fusionada es un alias, no un titular", async () => {
+      sinFilaDeAcceso();
+      mocks.cliente = null;
+
+      await requestMagicLink({}, form("fusionado@example.com"));
+
+      // El filtro corre de verdad — `sin-acceso.ts` no está doblado.
+      expect(mocks.clientsFilters).toContainEqual(["is:deleted_at", null]);
+    });
+
+    it("un fallo al buscar el cliente no rompe la puerta", async () => {
+      sinFilaDeAcceso();
+      mocks.clienteError = { message: "boom" };
+
+      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(OK);
+      expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();
+    });
+
+    it("con acceso vigente NO entra a este carril — recibe su enlace", async () => {
+      mocks.mintPortalMagicToken.mockResolvedValue("hash-1");
+      mocks.sendPortalMagicLinkEmail.mockResolvedValue({
+        ok: true,
+        log_id: "log-1",
+        queued: false,
+      });
+
+      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(OK);
+
+      expect(mocks.sendPortalMagicLinkEmail).toHaveBeenCalledTimes(1);
+      expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();
+    });
+
+    it("el cerrojo por email también frena el aviso", async () => {
+      sinFilaDeAcceso();
+      mocks.cliente = {
+        id: "cli-1",
+        tenant_id: "tenant-1",
+        markbox: "DTD-1234",
+        name: "Comercial Andina",
+      };
+      // 5 toques ya gastados en la ventana → el segundo cerrojo corta antes.
+      mocks.throttleCounts["portal-login-mail"] = 5;
+
+      await expect(requestMagicLink({}, form("cliente@example.com"))).resolves.toEqual(OK);
+
+      // Si no, repetir el pedido spamearía al cliente y al equipo.
+      expect(mocks.avisarClienteSinAcceso).not.toHaveBeenCalled();
     });
   });
 });
