@@ -20,6 +20,7 @@
  * TODO el contenido dinámico se escapa (el acta viene de IA + edición humana).
  */
 
+import { csvCell } from "@/lib/studio/export/csv";
 import type { BitacoraTask } from "./bitacora-queries";
 import type { BitacoraMeeting } from "./bitacora-meeting-queries";
 import {
@@ -51,12 +52,17 @@ export function escapeHtml(value: unknown): string {
 /**
  * Escapa una celda CSV (RFC 4180): entrecomilla si hay coma / comilla / salto de
  * línea, y duplica las comillas internas (`"` → `""`). null/undefined → "".
+ *
+ * SDD-0281: la implementación se mudó a `lib/studio/export/csv.ts` cuando el
+ * carril comercial estrenó sus propios exports — dos escapes de CSV en el mismo
+ * repo se desincronizan calladas. Se reexporta para no tocar a los llamadores
+ * de bitácora, y sus tests siguen guardando el comportamiento.
+ *
+ * ⚠️ Se importa Y se reexporta: un `export … from` suelto NO trae el binding al
+ * ámbito de este módulo, y `buildTasksCsv` lo usa acá abajo. (Ese fue el primer
+ * intento; el test de `buildTasksCsv` lo cazó en el acto.)
  */
-export function csvCell(value: string | number | null | undefined): string {
-  if (value == null) return "";
-  const s = String(value);
-  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
+export { csvCell };
 
 // ─── Etiquetas para el export ────────────────────────────────
 
