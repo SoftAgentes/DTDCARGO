@@ -206,12 +206,27 @@ async function deriveInvoiceFundClass(
 }
 
 /**
- * Gate legal AUT-04 (SDD-0054 · Slice B) — modo ADVISORY.
+ * Gate legal AUT-04 (SDD-0054 · Slice B).
  *
- * Decisión del founder ("advisory → duro al cerrar C"): el gate se cablea AHORA
- * pero AVISA, no bloquea. El productor de aceptaciones reales (Slice C) todavía
- * no existe; un bloqueo duro dejaría TODA factura DDP sin poder emitirse. Queda
- * listo para volverse bloqueo duro cuando Slice C produzca aceptaciones.
+ * 🔴 **El modo NO se lee acá: se lee en `LEGAL_GATE_HARD_BLOCK`**
+ * (`lib/studio/legal/gate-config.ts`). Hoy está en **BLOQUEO DURO** — flip del
+ * founder del 2026-06-11, en ventana limpia (0 aceptaciones y 0 facturas DDP en
+ * vuelo, así que no congeló nada). Emitir una factura DDP sin aceptación vigente
+ * está PROHIBIDO: la action no muta y el create-and-emit cae a borrador.
+ *
+ * ⚠️ Este bloque decía "modo ADVISORY" y que "el productor de aceptaciones
+ * (Slice C) todavía no existe". Las dos cosas eran falsas: el Slice C se cerró
+ * el MISMO DÍA que se escribió esto (`2ef74ba2`, 2026-06-04) y el flip a bloqueo
+ * duro fue una semana después. Estuvo mintiendo dos meses y medio sobre si un
+ * control legal bloquea o no — corregido el 2026-08-23 midiendo la constante.
+ * **Si vuelves a dudar del modo, abre `gate-config.ts`; no confíes en este
+ * comentario ni en el de al lado.**
+ *
+ * Consecuencia que conviene tener presente: el match incluye la MEDIDA real, así
+ * que si la medida CN cambia después de que el cliente aceptó, la aceptación
+ * vieja deja de matchear y **la factura se traba**. Eso es deliberado (nadie
+ * factura una medida que el cliente no aceptó), pero hoy el cliente NO se entera
+ * — pedirle la re-aceptación es el Slice B de SDD-0075, que sigue pendiente.
  *
  * Devuelve:
  *   · required       = la factura nace de un embarque DDP (puerta_a_puerta_DDP).
@@ -308,7 +323,7 @@ export async function createInvoice(
 
   // Gate legal AUT-04 (SDD-0054). Se evalúa ANTES del insert para decidir si el
   // create-and-emit de un DDP puede realmente emitir.
-  //   · ADVISORY (flag off, modo actual): create-and-emit NO tiene confirm inline
+  //   · ADVISORY (flag off — NO es el modo de hoy): create-and-emit no tiene confirm inline
   //     → si es DDP sin aceptación, EMITE IGUAL y deja `legal_ack: "override"`.
   //   · BLOQUEO DURO (flag on, §3.1): un DDP sin aceptación NO se emite al crear →
   //     cae a BORRADOR (el cliente acepta por el Portal y luego se emite). Así el
@@ -466,11 +481,14 @@ export async function emitInvoice(
     return { error: "Solo las facturas en borrador pueden emitirse." };
   }
 
-  // Gate legal AUT-04 (SDD-0054 · Slice B) — ADVISORY. Si es un embarque DDP sin
-  // aceptación T&C vigente, NO mutamos y devolvemos needsLegalAck: el detalle
-  // muestra un banner y deja al operador emitir igual con override (queda en la
-  // auditoría como `legal_ack: "override"`). El total a matchear = base_amount
-  // (pre-IVA, comparable al total_usd aceptado).
+  // Gate legal AUT-04 (SDD-0054 · Slice B). El modo lo decide
+  // `LEGAL_GATE_HARD_BLOCK` (gate-config.ts), HOY EN BLOQUEO DURO — las dos ramas
+  // de abajo siguen escritas porque la constante se puede volver a bajar.
+  // Si es un embarque DDP sin aceptación T&C vigente, NO mutamos: en duro se
+  // rechaza, y en advisory se devuelve needsLegalAck para que el detalle muestre
+  // un banner y deje al operador emitir con override (queda en la auditoría como
+  // `legal_ack: "override"`). El total a matchear = base_amount (pre-IVA,
+  // comparable al total_usd aceptado).
   const gate = await evaluateLegalGate(supabase, {
     tenantId: current.tenant_id,
     shipmentId: current.shipment_id,
@@ -483,10 +501,10 @@ export async function emitInvoice(
     if (LEGAL_GATE_HARD_BLOCK) {
       return {
         error:
-          "No se puede emitir: este embarque DDP no tiene una aceptación de T&C vigente del cliente. Pedile que acepte los términos desde el Portal.",
+          "No se puede emitir: este embarque DDP no tiene una aceptación de T&C vigente del cliente. Pídele que acepte los términos desde el Portal.",
       };
     }
-    // ADVISORY (flag off, modo actual): se avisa pero el operador puede emitir igual.
+    // ADVISORY (flag off — NO es el modo de hoy): se avisa pero el operador emite igual.
     if (!legalOverride) {
       return {
         needsLegalAck: true,
