@@ -93,6 +93,16 @@ Arreglado el 2026-08-11 nombrando `unpkg.com`, `cdn.jsdelivr.net` y
 `cdnjs.cloudflare.com` sólo en el visor de documentos (`CDN_DOCUMENTOS` en
 `next.config.ts`). Verificado en producción.
 
+![Portada del Brand Book v5.0 navegable, con su sidebar de 15 secciones, servida tras arreglar la CSP](assets/2026-08-11-brand-book-navegable-arreglado.png)
+
+<sub>Captura tomada en producción el 2026-08-11, el día del arreglo. Muestra el
+sistema navegable de vuelta en pie: la portada, el sidebar completo y el pie
+`rev. 02 Ago 2026 · oficial`. **No** prueba por sí sola que los 14 documentos
+con CDN carguen —cada uno de ésos se verifica abriéndolo, que es justamente la
+lección del día—; es la foto de que el book volvió a servirse. Estuvo 12 días
+en un `git stash` huérfano de la rama `docs/kommo-instagram-diagnostico`, sin
+trackear y sin referencia desde ningún lado.</sub>
+
 ## Qué corregir en el extractor
 
 Dos reglas, y las dos son del mismo tipo — **no todo lo que parece un atributo
