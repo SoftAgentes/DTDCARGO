@@ -9,7 +9,7 @@
     "postbuild": "node scripts/norte.mjs",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node scripts/prune-next-types.mjs && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

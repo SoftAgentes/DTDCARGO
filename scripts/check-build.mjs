@@ -31,6 +31,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import path from "node:path";
+import { podarTiposDeRuta, notaDePoda } from "./prune-next-types.mjs";
 
 const ROOT = process.cwd();
 const DIST = ".next-verify";
@@ -65,6 +66,16 @@ function correr(argv, etiqueta) {
     return 1;
   }
   return r.status ?? 1;
+}
+
+// `next build` typechequea con el MISMO `tsconfig.json`, que apunta a
+// `.next/**/types`. O sea: aislar la SALIDA en `.next-verify` (SDD-0280) no
+// alcanzaba — la ENTRADA seguía siendo el árbol de tipos del dev, y si tenía
+// una ruta borrada el build reventaba con TS2307 por código sano. Ver
+// scripts/prune-next-types.mjs.
+{
+  const nota = notaDePoda(podarTiposDeRuta({ raiz: ROOT }));
+  if (nota) console.log(`[build] ${nota}`);
 }
 
 let code = correr(["node_modules/next/dist/bin/next", "build"], "next build");

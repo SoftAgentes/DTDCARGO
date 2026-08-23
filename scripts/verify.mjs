@@ -24,6 +24,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { podarTiposDeRuta, notaDePoda } from "./prune-next-types.mjs";
 
 const C = { green: "\x1b[32m", red: "\x1b[31m", dim: "\x1b[2m", yellow: "\x1b[33m", nc: "\x1b[0m" };
 const ok = (m) => console.log(`${C.green}[OK]${C.nc}   ${m}`);
@@ -267,7 +268,19 @@ const STEPS = [
   // Frontera RSC: caza un server module que usa un VALOR de un módulo "use client"
   // (typecheck/vitest no lo ven; explota 500 en runtime — ver SDD-0050). Cero deps, rápido.
   { name: "rsc-boundary", argv: ["scripts/check-rsc-boundary.mjs"] },
-  { name: "typecheck", argv: ["node_modules/typescript/bin/tsc", "--noEmit"] },
+  // ⚠️ El preflight NO es cosmético: `tsconfig.json` mete `.next/**/types` en su
+  // `include`, y Next genera esos tipos pero nunca los recolecta cuando borras
+  // una ruta. El 2026-08-23 `main` salía rojo en typecheck Y en build por un
+  // `validator.ts` que seguía importando la página de login que SDD-0276 borró
+  // — código sano, gate rojo. Ver scripts/prune-next-types.mjs.
+  {
+    name: "typecheck",
+    argv: ["node_modules/typescript/bin/tsc", "--noEmit"],
+    preflight: () => {
+      const nota = notaDePoda(podarTiposDeRuta());
+      return nota ? { note: nota } : null;
+    },
+  },
   // Las Edge Functions NO las miraba nadie: `tsconfig.json` tiene
   // `supabase/functions` en `exclude` (→ tsc pasa de largo) y Vitest sólo
   // ejecuta los módulos puros de `_shared/`, transpilando SIN chequear tipos.

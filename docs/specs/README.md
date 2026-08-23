@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 270 specs)
+### Índice de specs (generado · 274 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -308,6 +308,10 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0275 | Los tres pendientes del rediseño de Usuarios, y un cuarto que… | in-progress | interna |
 | 0276 | Una sola puerta pública: /entrar unifica acceder y crear cuenta | in-progress | interno |
 | 0277 | El replay de un branch efímero deja de morir en la 0355 | done | interno |
+| 0278 | El enlace de acceso al portal deja de mentir y de romperse po… | in-progress | interno |
+| 0279 | El cliente que ya es cliente deja de pedir un enlace que nadi… | in-progress | interno |
+| 0280 | El gate construye la app: 14/14 en verde ya no significa que … | in-progress | interno |
+| 0281 | Los documentos del carril comercial: el estimado y la factura… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
