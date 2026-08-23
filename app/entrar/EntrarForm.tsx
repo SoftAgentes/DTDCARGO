@@ -188,8 +188,8 @@ export function EntrarForm({
                   </form>
 
                   <p className="mt-3 text-[12px] text-grey-500 leading-[1.5]">
-                    Sin contraseña. El enlace sirve por poco tiempo y es de un solo
-                    uso; si se te vence, pides otro y listo.
+                    Sin contraseña. El enlace vale por una hora, es de un solo uso y
+                    lo puedes abrir en el teléfono o en la computadora.
                   </p>
                 </section>
 
@@ -377,8 +377,9 @@ export function MagicSent({
             {" "}a <strong className="text-ink">{email}</strong>
           </>
         ) : null}
-        . Ábrelo y entrarás automáticamente — sin contraseña. El enlace vence en
-        poco tiempo y es de un solo uso; si no lo ves, revisa spam o pídelo de nuevo.
+        . Ábrelo y entrarás automáticamente — sin contraseña. Vale por una hora, es
+        de un solo uso y da igual dónde lo abras. Si no lo ves, revisa spam o pídelo
+        de nuevo.
       </p>
       <form action={action} className="mt-1 flex items-center gap-4">
         <input type="hidden" name="email" value={email} />

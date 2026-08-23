@@ -57,7 +57,8 @@ export async function abrirPortalAction(
   if (!claimed) return { error: ERROR_GENERICO };
 
   // 2. Acuñar el magic-link RECIÉN AHORA — con el cliente del otro lado de la
-  //    pantalla. Éste es el motivo por el que se acabó el TTL de 30 minutos.
+  //    pantalla. Éste es el motivo por el que se acabó el TTL corto de Auth
+  //    (`MAILER_OTP_EXP` = 3600 s, medido el 2026-08-21).
   const magicLink = await generatePortalAccessLink(admin, target.email);
   if (!magicLink) {
     // 3. No se pudo: se suelta el reclamo para que el cliente pueda reintentar
