@@ -13,6 +13,12 @@
       "skillPath": "skills/agentation-self-driving/SKILL.md",
       "computedHash": "1f642b851633a7c796c8a42670a10ef8f3d81cab438bc9e5cfc986082ad8ccf2"
     },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "b146008599c31057cef1c145774cea5d5afb30e8f43fa802e47a4b461419aaaf"
+    },
     "higgsfield-game-generation": {
       "source": "higgsfield-ai/skills",
       "sourceType": "github",
