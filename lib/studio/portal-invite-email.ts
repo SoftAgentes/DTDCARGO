@@ -7,7 +7,9 @@
  * sin pasos extra (founder 2026-07-01, cambió la decisión previa de mandarlo a
  * pedir su propio enlace).
  *
- * El enlace directo es de UN SOLO USO y **caduca** (TTL de Auth, hoy 30 min). Si
+ * El enlace directo es de UN SOLO USO y **caduca** (TTL de Auth: `MAILER_OTP_EXP`
+ * = 3600 s, o sea 1 hora — medido en el dashboard el 2026-08-21; antes acá decía
+ * 30 min y era un comentario viejo, no una medición). Si
  * la invitación se abre tarde, muere → el admin lo reenvía, o comparte un enlace
  * fresco por WhatsApp desde la tarjeta del cliente (coordinación en vivo). Si por
  * algo no se pudo generar el enlace directo, se cae al viejo flujo (`/entrar`

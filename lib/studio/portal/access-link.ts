@@ -19,7 +19,7 @@
  * nada.
  *
  * Efecto lateral buscado: el token deja de nacer cuando el ASESOR aprieta el
- * botón y nace cuando el CLIENTE lo lee → se acabó el TTL de 30 minutos que
+ * botón y nace cuando el CLIENTE lo lee → se acabó el TTL corto de Auth que
  * obligaba a coordinar en vivo. El código corto dura {@link ACCESS_LINK_TTL_HOURS}.
  *
  * ⚠️ El código es una **llave al portador**: quien lo tenga entra como el

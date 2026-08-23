@@ -12,6 +12,24 @@ mágico** y queda logueado (passwordless). Ve sus envíos, facturas, timeline y
 su MARKBOX. Sin este setup el `signInWithOtp` no manda el mail → el portal no
 sirve para clientes reales.
 
+## 🔴 Desactualizado desde SDD-0278 (2026-08-21) — leer esto antes que lo de abajo
+
+Lo que sigue describe el camino por **Supabase Auth con PKCE**, que hoy es el
+**plan B**. El camino normal cambió:
+
+- El enlace se acuña con `admin.generateLink` como **`token_hash`**, y lo manda
+  **nuestro** pipeline (`sendEmail` → Resend), no la plantilla del dashboard.
+- Apunta a **`/abrir`**, un intersticial que dibuja en GET y consume en POST,
+  para que un escáner de correo no queme el token.
+- La puerta vive en **`app/entrar/actions.ts`**, no en `app/portal/(auth)/login/`
+  (eso se movió con SDD-0276).
+- El TTL medido en el dashboard es **`MAILER_OTP_EXP = 3600 s`** (1 hora). El
+  SMTP tiene además **"Minimum interval per user" = 60 s**: dos pedidos seguidos
+  al mismo correo dan 429 y el segundo NO sale.
+
+**La plantilla Magic Link del dashboard sigue haciendo falta**: es la que se usa
+cuando el camino nuevo falla y se cae al viejo. No la borres.
+
 ## Cómo funciona (para entender qué tocar)
 
 - `app/portal/(auth)/login/actions.ts` → `signInWithOtp({ email, options: {
