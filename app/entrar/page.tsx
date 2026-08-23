@@ -27,6 +27,31 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * SDD-0278 · un mensaje por causa, en vez del "el enlace venció" que se le
+ * mostraba a todo el mundo.
+ *
+ * Medido el 2026-08-21 sobre `auth_logs` de producción: de los fallos de
+ * `/verify` en 24 h, **cero** fueron por tiempo vencido. Eran enlaces ya usados
+ * (un escáner de correo los abría primero) o abiertos en otro navegador. Decirle
+ * "venció" a un cliente cuyo enlace estaba vivo lo manda a pedir otro y a chocar
+ * con lo mismo.
+ *
+ * `expired` y `link` son los códigos VIEJOS: siguen mapeados porque hay correos
+ * en bandejas que todavía apuntan al callback con ellos.
+ */
+const NOTICE_POR_ERROR: Record<string, string> = {
+  enlace:
+    "Ese enlace ya no sirve: se usó, o pediste uno más nuevo, o pasó más de una hora. Pide otro acá y entra con el último que te llegue.",
+  dispositivo:
+    "Abriste el enlace en un navegador distinto al que lo pidió. Pide uno nuevo: los que salen ahora funcionan desde cualquier lado.",
+  incompleto:
+    "Ese enlace llegó cortado. Vuelve a tu correo y toca el botón, o pide uno nuevo acá.",
+  expired:
+    "Ese enlace ya no sirve: se usó, o pediste uno más nuevo, o pasó más de una hora. Pide otro acá y entra con el último que te llegue.",
+  link: "Ese enlace no es válido. Pide uno nuevo acá.",
+};
+
 export default async function EntrarPage({
   searchParams,
 }: {
@@ -47,11 +72,9 @@ export default async function EntrarPage({
   const notice =
     sp.status === "nohabilitado"
       ? "Iniciaste sesión, pero ese email todavía no tiene el portal habilitado. Pídele a tu asesor que te invite."
-      : sp.error === "expired"
-        ? "El enlace venció o ya se usó. Pide uno nuevo."
-        : sp.error === "link"
-          ? "Ese enlace no es válido. Pide uno nuevo."
-          : null;
+      : sp.error
+        ? (NOTICE_POR_ERROR[sp.error] ?? NOTICE_POR_ERROR.enlace)
+        : null;
 
   // Email precargado desde el correo de invitación (`/entrar?email=…`). El 301
   // de `/portal/login` conserva el query string, así que los correos viejos
