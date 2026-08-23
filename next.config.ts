@@ -170,6 +170,18 @@ const calcEmbedHeaders = securityHeaders.map((h) =>
 );
 
 const nextConfig: NextConfig = {
+  /**
+   * Carpeta de salida. Por defecto `.next` — lo que usan `pnpm dev`, `pnpm build`
+   * y Vercel, que NO define esta variable.
+   *
+   * El paso `build` de `scripts/verify.mjs` la apunta a otro lado (SDD-0280).
+   * Motivo: `next build` y `next dev` comparten `.next`, y un residuo ahí ya
+   * costó un gate rojo falso —typecheck reventando con TS2307 contra
+   * `.next/dev/types/` de un dev server viejo (SDD-0277)—. Construir en una
+   * carpeta aparte deja intacto el `.next` del dev y no envenena la corrida
+   * siguiente.
+   */
+  distDir: process.env.VERIFY_DIST_DIR || ".next",
   // Sitio público, optimizado para SEO. App Router por default.
   reactStrictMode: true,
   // Bloquea que el sitio dependa accidentalmente del repo del ERP.

@@ -17,6 +17,8 @@
 
 # next.js
 /.next/
+# Salida del paso `build` del gate (SDD-0280) — efímera, se borra sola
+/.next-verify/
 /out/
 
 # production

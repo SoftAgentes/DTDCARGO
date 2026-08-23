@@ -332,6 +332,13 @@ const STEPS = [
     preflight: e2ePreflight,
     absolver: e2eAbsolver,
   },
+  // Build de PRODUCCIÓN (SDD-0280). Va al final por lo mismo que el e2e: es el
+  // paso más lento (~110 s) y no tiene sentido construir si el lint ya rompió.
+  // `tsc --noEmit` y el e2e (contra `next dev`) NO lo cubren: no ejercitan el
+  // prerender estático ni `next/font`. Hasta hoy el gate cerraba 14/14 sin
+  // construir nunca, y un build roto sólo se veía en Vercel DESPUÉS del push.
+  // Construye aislado en `.next-verify` y limpia — ver scripts/check-build.mjs.
+  { name: "build", argv: ["scripts/check-build.mjs"] },
 ];
 
 const failures = [];
