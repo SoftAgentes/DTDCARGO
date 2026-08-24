@@ -31,7 +31,6 @@
   ],
   "cutoff": 238,
   "pendingBelowCutoff": {
-    "0017_no_olvidar": "SDD-0025 (No-Olvidar) vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). El archivo llegó a main pero NO se aplica hasta pasar ese gate. Verificado 2026-07-16: to_regclass('public.no_olvidar_items') → NULL. El código es inerte (el page.tsx es un EmptyState 'Próximamente' que no toca la DB y nadie importa no-olvidar-queries.ts), así que la ruta no revienta. Al aplicarla, sacala de acá.",
-    "0390_kommo_tasks": "SDD-0288 rebanada 2 (espejo de tareas de Kommo). Construida y verificada —contrato SQL validado por mutacion y schema-rebuild en verde— pero NO se aplica todavia: el diseno se reordeno el 2026-08-24 cuando la captura del pipeline en vivo midio 94 de 99 leads SIN tarea y CERO caducadas. O sea que hoy el espejo espejaria el conjunto vacio y el semaforo no se encenderia nunca. Aplicarla no rompe nada (tabla nueva, sin consumidores en pantalla), pero no aporta hasta que exista la rebanada 1 o hasta que Kommo vuelva a crear tareas. Destraba: el founder, nombrando la migracion. Al aplicarla, sacala de aca."
+    "0017_no_olvidar": "SDD-0025 (No-Olvidar) vive en la rama feat/no-olvidar SIN merge, gated por un review criptográfico externo (envelope encryption). El archivo llegó a main pero NO se aplica hasta pasar ese gate. Verificado 2026-07-16: to_regclass('public.no_olvidar_items') → NULL. El código es inerte (el page.tsx es un EmptyState 'Próximamente' que no toca la DB y nadie importa no-olvidar-queries.ts), así que la ruta no revienta. Al aplicarla, sacala de acá."
   }
 }
