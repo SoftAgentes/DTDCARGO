@@ -15,6 +15,7 @@ vi.mock("../schedule-client-notifications", () => ({
 import {
   scheduleConsolidationEvent,
   scheduleReceiptVeReceived,
+  notaSinAviso,
   scheduleReceiptInWarehouse,
 } from "../schedule-fanout";
 
@@ -117,13 +118,14 @@ describe("scheduleReceiptInWarehouse", () => {
         client_name: "Wei",
       },
     });
-    const n = await scheduleReceiptInWarehouse(admin, "t-1", [
+    const r = await scheduleReceiptInWarehouse(admin, "t-1", [
       "DTD-7",
       "DTD-7",
       "  ",
       null,
     ]);
-    expect(n).toBe(1); // sólo un Shipping Mark único con envío resoluble
+    expect(r.scheduled).toBe(1); // sólo un Shipping Mark único con envío resoluble
+    expect(r.sinDestino).toEqual([]);
     expect(scheduleMock).toHaveBeenCalledTimes(1);
     expect(scheduleMock.mock.calls[0][2]).toMatchObject({
       shipmentId: "s-7",
@@ -131,10 +133,37 @@ describe("scheduleReceiptInWarehouse", () => {
     });
   });
 
-  it("Shipping Mark sin envío en curso → no programa (no mal-notifica)", async () => {
+  it("🔴 Shipping Mark sin envío en curso → no programa, PERO lo denuncia", async () => {
+    // SDD-0282: antes esto devolvía 0 y se acabó. Un 0 puede significar "no
+    // había nadie a quien avisar" o "había un cliente esperando y no se le
+    // avisó" — que son opuestos. El caso sin envío abierto es el NORMAL en una
+    // primera compra: la caja llega a Yiwu semanas antes de que exista el envío.
     const admin = makeAdmin({ shipments: null });
-    const n = await scheduleReceiptInWarehouse(admin, "t-1", ["DTD-404"]);
-    expect(n).toBe(0);
+    const r = await scheduleReceiptInWarehouse(admin, "t-1", ["DTD-404"]);
+    expect(r.scheduled).toBe(0);
+    expect(r.sinDestino).toEqual(["DTD-404"]);
     expect(scheduleMock).not.toHaveBeenCalled();
+  });
+
+  it("sin Shipping Marks no denuncia a nadie (no es lo mismo que no avisar)", async () => {
+    const admin = makeAdmin({ shipments: null });
+    const r = await scheduleReceiptInWarehouse(admin, "t-1", [null, "  "]);
+    expect(r).toEqual({ scheduled: 0, sinDestino: [] });
+  });
+});
+
+describe("notaSinAviso", () => {
+  it("null cuando no hubo nadie sin avisar (no ensucia la bitácora)", () => {
+    expect(notaSinAviso([])).toBeNull();
+  });
+
+  it("nombra los Shipping Marks y dice qué hacer", () => {
+    const nota = notaSinAviso(["DTD-404", "DTD-405"]);
+    expect(nota).toContain("DTD-404");
+    expect(nota).toContain("DTD-405");
+    expect(nota).toContain("no tiene un envío abierto");
+    // La nota la lee el operador de oficina: tiene que decirle qué hacer, no
+    // sólo qué pasó.
+    expect(nota).toContain("escríbele");
   });
 });

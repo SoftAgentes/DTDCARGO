@@ -19,6 +19,10 @@ import { createAdminClient } from "@/lib/db/admin";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { autoInvoiceForReceipt } from "@/lib/studio/sales-orders/actions";
 import {
+  notaSinAviso,
+  scheduleReceiptInWarehouse,
+} from "@/lib/studio/notifications/schedule-fanout";
+import {
   findOrCreateConsolidationShipment,
   ensureActiveAlert,
   revertAlertIfShipmentEmpty,
@@ -226,6 +230,43 @@ export async function createReceiptAction(
       input!.supplier_name ? ` · supplier: ${input!.supplier_name}` : ""
     } · ${input!.items.length} item${input!.items.length === 1 ? "" : "s"}`,
   });
+
+  // ── SDD-0282 · avisarle al cliente que su carga llegó a Yiwu ──
+  //
+  // 🔴 Esta recepción NO avisaba a nadie. El aviso existía sólo en el camino del
+  // operario (`/m/cn/recibir`, SDD-0162): la mercancía que la OFICINA registraba
+  // a mano —la huérfana que aparece sin etiqueta, la que se carga en lote, la de
+  // un cliente que no pre-declaró— llegaba a Yiwu en silencio absoluto.
+  //
+  // Best-effort y con `await` (no fire-and-forget como en el móvil): acá la
+  // action ya terminó de escribir y el operador de oficina puede esperar los
+  // milisegundos; a cambio, si el cliente se queda sin aviso, la nota entra en
+  // la bitácora ANTES de que la pantalla se refresque y el operador la ve.
+  //
+  // Una recepción huérfana no notifica a nadie a propósito: todavía no se sabe
+  // de quién es, y adivinar sería avisarle al cliente equivocado.
+  if (!input!.is_orphan && input!.client_markbox) {
+    try {
+      const notifAdmin = createAdminClient();
+      const fanout = await scheduleReceiptInWarehouse(
+        notifAdmin,
+        link.tenant_id,
+        [input!.client_markbox],
+      );
+      const nota = notaSinAviso(fanout.sinDestino);
+      if (nota) {
+        await notifAdmin.from("warehouse_receipt_events").insert({
+          tenant_id: link.tenant_id,
+          receipt_id: receipt.id,
+          event_type: "note",
+          description: nota,
+        });
+      }
+    } catch (err) {
+      // Un fallo del aviso NO invalida una recepción ya escrita.
+      console.error("[cn] aviso de recepción falló:", err);
+    }
+  }
 
   // ── Wiring recepción → caja (prealerta) → OV · SDD-0072 Fase 2 ──
   // Para que la auto-factura pueda dispararse al consolidar (changeReceiptStatusAction

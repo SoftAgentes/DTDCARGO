@@ -19,7 +19,10 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { isBoxCode } from "@/lib/studio/etiquetas-qr";
-import { scheduleReceiptInWarehouse } from "@/lib/studio/notifications/schedule-fanout";
+import {
+  notaSinAviso,
+  scheduleReceiptInWarehouse,
+} from "@/lib/studio/notifications/schedule-fanout";
 
 async function requireCnOperario() {
   const session = await getCurrentOperario();
@@ -190,6 +193,7 @@ export async function receivePrealertaAction(
   }
 
   const res = (data ?? {}) as {
+    receipt_id?: string;
     receipt_code?: string;
     prealerta_code?: string;
     client_name?: string | null;
@@ -202,11 +206,27 @@ export async function receivePrealertaAction(
   // Best-effort fire-and-forget (mismo patrón que scheduleReceiptVeReceived en
   // warehouse-receipt-ve-queries.ts): no bloquea la respuesta del operario y un
   // fallo del fan-out no rompe la recepción ya confirmada por el RPC.
+  //
+  // SDD-0282 · si el cliente no tiene envío abierto, el aviso no se puede colgar
+  // (`client_notification_schedule.shipment_id` es not null) y antes eso se
+  // perdía en silencio. Ahora queda asentado en la bitácora de la recepción:
+  // la oficina lo ve y decide si le escribe a mano.
   void scheduleReceiptInWarehouse(admin, auth.session.tenant_id, [
     res.client_markbox,
-  ]).catch((err) => {
-    console.error("[recibir] scheduleReceiptInWarehouse falló:", err);
-  });
+  ])
+    .then(async (r) => {
+      const nota = notaSinAviso(r.sinDestino);
+      if (!nota || !res.receipt_id) return;
+      await admin.from("warehouse_receipt_events").insert({
+        tenant_id: auth.session.tenant_id,
+        receipt_id: res.receipt_id,
+        event_type: "note",
+        description: nota,
+      });
+    })
+    .catch((err) => {
+      console.error("[recibir] scheduleReceiptInWarehouse falló:", err);
+    });
 
   // El Studio web refresca KPIs + listado; el home del operario, sus recientes.
   revalidatePath("/studio/cn");

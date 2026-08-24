@@ -204,19 +204,46 @@ export async function scheduleReceiptVeReceived(
 }
 
 /**
+ * Resultado de un fan-out que puede quedarse sin destino.
+ *
+ * SDD-0282: antes esto devolvía sólo un número y el salto era INVISIBLE. Un
+ * `scheduled: 0` puede significar dos cosas opuestas —"no había nadie a quien
+ * avisar" o "había un cliente esperando y no se le avisó"— y sin separarlas
+ * nadie se entera nunca de la segunda.
+ */
+export interface FanoutResultado {
+  /** Avisos efectivamente programados. */
+  scheduled: number;
+  /** Shipping Marks que NO se pudieron notificar por falta de envío abierto. */
+  sinDestino: string[];
+}
+
+/**
  * Programa `status:in_warehouse` ("Recibido en bodega China") para los envíos de
- * los Shipping Mark recibidos por el operario en Yiwu (SDD-0162, puente
- * 0154↔0156). Espeja `scheduleReceiptVeReceived`: la caja recién recibida no trae
- * shipment_id → se resuelve el envío no terminal más reciente por Shipping Mark.
- * Sin envío resoluble para un Shipping Mark → esa caja se salta (no mal-notifica).
- * Best-effort: nunca throwea — un fallo acá no rompe la recepción del operario.
+ * los Shipping Mark recibidos en Yiwu (SDD-0162, puente 0154↔0156). Espeja
+ * `scheduleReceiptVeReceived`: la caja recién recibida no trae shipment_id → se
+ * resuelve el envío no terminal más reciente por Shipping Mark.
+ *
+ * 🔴 **El caso sin envío abierto NO es raro: es el normal en una primera
+ * compra.** El cliente anuncia, la caja llega a Yiwu, y el envío recién se crea
+ * al consolidar — que puede ser semanas después. En esa ventana
+ * `client_notification_schedule.shipment_id` es `not null`, así que no hay
+ * dónde colgar el aviso y el cliente se queda sin saber que su mercancía llegó.
+ * Justo cuando más lo pregunta.
+ *
+ * Hasta SDD-0282 eso era un `continue` mudo. Ahora sale en `sinDestino` para que
+ * el llamador lo deje asentado en la bitácora de la recepción: no arregla el
+ * hueco de fondo —eso pide migración— pero deja de ser invisible.
+ *
+ * Best-effort: nunca throwea. Un fallo acá no rompe la recepción.
  */
 export async function scheduleReceiptInWarehouse(
   admin: SupabaseClient,
   tenantId: string,
   markboxes: Array<string | null | undefined>,
   eventTime: Date = new Date(),
-): Promise<number> {
+): Promise<FanoutResultado> {
+  const vacio: FanoutResultado = { scheduled: 0, sinDestino: [] };
   try {
     const marks = Array.from(
       new Set(
@@ -225,9 +252,10 @@ export async function scheduleReceiptInWarehouse(
           .filter((m): m is string => m.length > 0),
       ),
     );
-    if (marks.length === 0) return 0;
+    if (marks.length === 0) return vacio;
 
     let scheduled = 0;
+    const sinDestino: string[] = [];
     for (const markbox of marks) {
       const { data: shipment } = await admin
         .from("shipments")
@@ -243,7 +271,10 @@ export async function scheduleReceiptInWarehouse(
           client_markbox: string | null;
           client_name: string | null;
         }>();
-      if (!shipment) continue;
+      if (!shipment) {
+        sinDestino.push(markbox);
+        continue;
+      }
 
       scheduled += await scheduleForTargets(
         admin,
@@ -260,9 +291,27 @@ export async function scheduleReceiptInWarehouse(
         eventTime,
       );
     }
-    return scheduled;
+    return { scheduled, sinDestino };
   } catch (err) {
     console.error(`[client-notif] scheduleReceiptInWarehouse falló:`, err);
-    return 0;
+    return vacio;
   }
+}
+
+/**
+ * La nota que queda en la bitácora de la recepción cuando un cliente se quedó
+ * sin aviso. PURA — la escriben los dos caminos de recepción (el operario en
+ * `/m/cn` y la oficina en `/studio/cn`), así que el texto vive en un solo lugar.
+ *
+ * Devuelve `null` si no hubo nadie sin avisar: así el llamador no escribe una
+ * nota vacía en la bitácora.
+ */
+export function notaSinAviso(sinDestino: readonly string[]): string | null {
+  if (sinDestino.length === 0) return null;
+  const marks = sinDestino.join(", ");
+  return (
+    `Aviso al cliente NO enviado (${marks}): no tiene un envío abierto donde ` +
+    `colgarlo. Se le avisa al consolidar. Si está esperando respuesta, ` +
+    `escríbele.`
+  );
 }

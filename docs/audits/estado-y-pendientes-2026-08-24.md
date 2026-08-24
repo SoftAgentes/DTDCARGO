@@ -96,13 +96,29 @@ Todo bajo **SDD-0281**, con tests y validado con mutación donde importaba.
 
 En orden de valor para poder mostrar el ERP funcionando.
 
-- [ ] **A1 · Avisarle al cliente cuando su carga llega a Yiwu.** 🔴 *El hueco
-      más caro que queda.*
-      Medido: el aviso "Recibido en bodega China" está atado al **estado del
-      envío** (`status:in_warehouse`), no a la recepción de la caja. Entre que
-      el proveedor entrega en Yiwu y que se arma el embarque pueden pasar
-      semanas en las que el cliente no se entera de nada. Ahora que existe
-      `/portal/compras/[code]`, el aviso tiene a dónde llevarlo.
+- [x] **A1 · Avisarle al cliente cuando su carga llega a Yiwu.** → **SDD-0282**,
+      hecho lo que se podía sin migración.
+
+      ⚠️ **Corrección de lo que decía este documento.** Escribí que el aviso
+      estaba "atado al estado del envío, no a la recepción de la caja". Al
+      medirlo resultó ser sólo la mitad, y la mitad menos importante: **sí hay
+      un gancho en la recepción de Yiwu** (`scheduleReceiptInWarehouse`,
+      SDD-0162). Los huecos reales eran dos y peores:
+
+      1. El gancho **descartaba** el aviso cuando el cliente no tenía envío
+         abierto — el caso **normal** en una primera compra, porque el envío
+         recién se crea al consolidar. Literal: `if (!shipment) continue;`.
+      2. La recepción registrada desde la **oficina** (`/studio/cn`) no avisaba
+         a nadie: nunca llamaba al fan-out.
+
+      Ya cerrado: la oficina avisa, y cuando alguien se queda sin aviso queda
+      asentado en la bitácora de la recepción con su Shipping Mark.
+
+- [ ] **A1b · Colgar el aviso de la compra, no del envío.** 🔴 *La cura de raíz.*
+      `client_notification_schedule.shipment_id` es `not null references
+      shipments(id)`: sin envío no hay dónde colgar el aviso. Pide **migración**
+      (nullable + `prealerta_id` + rehacer el índice de dedupe) y ripplea por
+      todo el pipeline. **La escribo, no la aplico** — tienes que nombrarla.
 - [ ] **A2 · Vincular la recepción CN con el proveedor real.**
       Medido: `warehouse_receipts_cn` guarda `supplier_name` como **texto
       libre**, sin FK a `suppliers_cn`. Consecuencia: no se puede responder
