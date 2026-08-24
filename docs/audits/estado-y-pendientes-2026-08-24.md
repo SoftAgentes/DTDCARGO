@@ -166,8 +166,12 @@ En orden de valor para poder mostrar el ERP funcionando.
       asesor lo abre desde la ficha del cliente y el cliente lo descarga desde
       `/portal/facturas?vista=estado`. Sale del MISMO ledger que las dos
       pantallas — el papel no recalcula nada.
-- [ ] **A5 · Exportar CSV en Clientes, Cobranzas y Tracking.** La primitiva
-      quedó lista en `lib/studio/export/csv.ts`; son tres constructores.
+- [x] **A5 · Exportar CSV en Clientes, Cobranzas y Tracking.** → **SDD-0289**.
+
+      🔴 Lo único que no era mecánico: `listShipments` corta en **100 filas** y
+      `listClients` en `CLIENTS_MAX`. Topes correctos para una pantalla,
+      mentirosos para un archivo. El export usa lecturas propias que paginan y
+      **lanzan** si topan — un error se ve, un CSV corto no.
 - [ ] **A6 · Los ~16 modales sin `DrawerShell`** (sin focus-trap ni Escape —
       WCAG 2.4.3 / 2.1.2). Lista medida en
       `docs/design/studio/erp-faseb-pendientes.md`, verificada hoy.

@@ -173,6 +173,15 @@ function TrackingHeader({ count }: { count: number }) {
         </p>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
+        {/* SDD-0289 · el CSV trae TODOS los embarques (paginado), no sólo los
+            activos que muestra esta pantalla. */}
+        <a
+          href="/api/studio/operativo/export?tipo=embarques"
+          className="studio-btn studio-btn-ghost"
+          title="Descarga todos los embarques en CSV"
+        >
+          Exportar
+        </a>
         <Link
           href="/studio/tracking/nuevo"
           className="studio-btn studio-btn-primary"
