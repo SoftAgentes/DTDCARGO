@@ -250,23 +250,83 @@ async function checkHailuway(): Promise<IntegrationHealth> {
 }
 
 // ─── SeaRates (fletes marítimos · benchmark interno) ──────────
-async function checkSeaRates(): Promise<IntegrationHealth> {
+
+/**
+ * Cuántas filas de `ocean_rates` tienen tarifa usable (`status='ok'`). `null` = no
+ * se pudo mirar (sin service_role, DB caída) → el chequeo no degrada por eso.
+ *
+ * Import DINÁMICO a propósito: este módulo lo cargan tests y superficies que no
+ * tienen service_role, y un import estático de `@/lib/db/admin` los rompería al
+ * cargar. Lectura gratis: NO gasta cuota de SeaRates.
+ */
+async function countLiveOceanRates(): Promise<number | null> {
+  try {
+    const { createAdminClient } = await import("@/lib/db/admin");
+    const admin = createAdminClient();
+    const { count, error } = await admin
+      .from("ocean_rates")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "ok");
+    if (error) return null;
+    return count ?? 0;
+  } catch {
+    return null;
+  }
+}
+
+/** Firma del contador inyectable (para poder probar el falso verde sin DB). */
+export type LiveOceanRateCounter = () => Promise<number | null>;
+
+/**
+ * 🔴 **Por qué esto NO es sólo un ping (SDD-0287).**
+ *
+ * El endpoint de auth de SeaRates emite el platform token con SÓLO mirar que la
+ * cuenta exista — no consulta permisos. Medido en vivo el 24-ago-2026: devolvía
+ * **HTTP 200 con token** mientras rates FCL, rates LCL y el tracking respondían
+ * los tres `403 ACCESS_DENIED`. O sea que /studio/debug pintaba SeaRates en
+ * **verde con todo muerto**: el panel que existe justo para enterarse de esto era
+ * el último en enterarse.
+ *
+ * El arreglo no gasta cuota: se cruza el auth con la caché que el cron ya llena.
+ * Auth OK + **cero** tarifas usables = no está sano, por muy 200 que dé el token.
+ * Si la caché no se puede leer (`null`), se conserva el comportamiento viejo en
+ * vez de inventar un rojo.
+ */
+async function checkSeaRates(
+  countLive: LiveOceanRateCounter = countLiveOceanRates,
+): Promise<IntegrationHealth> {
   const platformId = process.env.SEARATES_PLATFORM_ID;
   const apiKey = process.env.SEARATES_API_KEY;
   if (!platformId || !apiKey) return skipped();
   // Pinga el AUTH endpoint (lo único confirmado · vive en www.searates.com).
-  // Con credenciales válidas devuelve el platform token. Es la llamada más
-  // barata para confirmar "viva" sin consultar tarifas. Cuota 100/mes →
-  // cacheado 60s vía timedFetch para no bombardear en cada render.
+  // Es la llamada más barata para confirmar "viva" sin consultar tarifas. Cuota
+  // 100/mes → cacheado 60s vía timedFetch para no bombardear en cada render.
   const url = `https://www.searates.com/auth/platform-token?id=${encodeURIComponent(
     platformId,
   )}&api_key=${encodeURIComponent(apiKey)}`;
   const r = await timedFetch(url);
-  if (r.ok) return ok(r.latencyMs, "auth OK · token emitido");
+  if (r.ok) {
+    const live = await countLive();
+    if (live === 0) {
+      return err(
+        r.latencyMs,
+        "auth OK pero 0 tarifas vivas en caché — el acceso al producto puede estar revocado",
+      );
+    }
+    return ok(
+      r.latencyMs,
+      live == null
+        ? "auth OK · token emitido"
+        : `auth OK · ${live} tarifas vivas en caché`,
+    );
+  }
   if (r.status === 401 || r.status === 403) return err(r.latencyMs, "credenciales inválidas");
   if (r.status === 429) return err(r.latencyMs, "rate limited (cuota 100/mes?)");
   return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
 }
+
+/** Sólo para tests: permite inyectar el contador de tarifas vivas. */
+export const __checkSeaRatesForTests = checkSeaRates;
 
 /**
  * Integraciones cuyo ping consume cuota o tokens facturables. SeaRates es el

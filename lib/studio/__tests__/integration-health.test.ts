@@ -13,7 +13,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { checkAllIntegrations, METERED_INTEGRATIONS } from "../integration-health";
+import {
+  checkAllIntegrations,
+  METERED_INTEGRATIONS,
+  __checkSeaRatesForTests,
+} from "../integration-health";
 
 /** Host que delata a cada integración medida en la URL consultada. */
 const HOST_DE_LA_MEDIDA: Record<(typeof METERED_INTEGRATIONS)[number], string> = {
@@ -111,5 +115,50 @@ describe("checkAllIntegrations · modo barato", () => {
     for (const clave of METERED_INTEGRATIONS) {
       expect(salud[clave].status).not.toBe("skipped");
     }
+  });
+});
+
+/**
+ * 🔴 SDD-0287 · el falso verde.
+ *
+ * El endpoint de auth de SeaRates emite el token con sólo mirar que la cuenta
+ * exista. Medido en vivo el 24-ago-2026: devolvía 200 con token mientras rates
+ * FCL, rates LCL y tracking respondían los tres 403 ACCESS_DENIED — o sea que
+ * /studio/debug pintaba SeaRates en VERDE con todo muerto. Estos casos fijan que
+ * un 200 del auth ya no alcanza para declararla sana.
+ */
+describe("checkSeaRates · el auth 200 no basta", () => {
+  it("auth OK + CERO tarifas vivas NO puede salir verde", async () => {
+    espiarFetch(); // el auth responde 200, como en el corte real
+    const salud = await __checkSeaRatesForTests(async () => 0);
+    expect(salud.status).toBe("error");
+    expect(salud.error).toContain("0 tarifas vivas");
+  });
+
+  it("auth OK con tarifas vivas es verde y dice cuántas", async () => {
+    espiarFetch();
+    const salud = await __checkSeaRatesForTests(async () => 20);
+    expect(salud.status).toBe("ok");
+    expect(salud.detail).toContain("20");
+  });
+
+  it("si la caché no se puede leer NO inventa un rojo", async () => {
+    // `null` = sin service_role / DB caída. Degradar a rojo por no poder mirar
+    // sería un falso positivo, que entrena al equipo a ignorar el panel.
+    espiarFetch();
+    const salud = await __checkSeaRatesForTests(async () => null);
+    expect(salud.status).toBe("ok");
+    expect(salud.detail).toContain("token emitido");
+  });
+
+  it("con el auth caído ni siquiera mira la caché", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("{}", { status: 403 })),
+    );
+    const contar = vi.fn(async () => 20);
+    const salud = await __checkSeaRatesForTests(contar);
+    expect(salud.status).toBe("error");
+    expect(contar).not.toHaveBeenCalled();
   });
 });
