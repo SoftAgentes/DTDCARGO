@@ -1,0 +1,182 @@
+# Estado del ERP y checklist para entregarlo · 2026-08-24
+
+> **Cómo leer esto.** Todo lo que dice "medido" se comprobó contra el código en
+> esta sesión, no contra la memoria ni contra el estado de las specs. Lo que no
+> pude medir, lo digo.
+>
+> **Rama de esta sesión:** `claude/carril-comercial-0281` · 6 commits · sin
+> pushear (falta tu OK).
+
+---
+
+## 1 · Dónde estamos de verdad
+
+### El conteo de specs no sirve para saber qué falta
+
+Hay **50 specs en `status: in-progress`** y eso asusta, pero es residuo: casi
+todas están cerradas en `main` y nadie les cambió el front-matter al mergear.
+Medir por ahí da una foto falsa. La foto real se saca del código.
+
+### La foto real (medida)
+
+| Señal | Valor |
+|---|---|
+| Módulos del Studio con código propio | **56** (2 son redirects/placeholder a propósito: `resumen`, `ajustes`) |
+| Tests unitarios | **5.561** en 474 archivos · verde |
+| Contratos SQL (RLS/GRANT/triggers) | **114** · verde |
+| Migraciones | **385**, schema reconstruible desde cero, ninguna sin aplicar |
+| E2E | 150 pasan · 18 saltados |
+| Build de producción | ✅ verde (era rojo — ver abajo) |
+
+**El ERP no está a medio construir. Está construido y le faltan remates.** El
+problema no es que falten módulos: es que había botones que no hacían nada,
+pantallas que no existían y un gate que mentía.
+
+### 🔴 El gate estaba rojo por código sano — arreglado
+
+Al medir la línea base, `node scripts/verify.mjs` cerró **rojo en `typecheck` y
+en `build`** con 5.503 tests en verde. La causa no era el código:
+
+```
+.next/types/validator.ts:737
+  const handler = {} as typeof import("../../app/portal/(auth)/login/page.js")
+```
+
+Esa página la borró SDD-0276 al unificar la puerta en `/entrar`. Next genera
+esos tipos en cada `dev`/`build` y **nunca los recolecta** cuando una ruta
+desaparece; `tsconfig.json` los mete en `include`. O sea: `tsc` y el build de
+producción estaban midiendo el árbol de rutas del pasado.
+
+SDD-0280 había aislado la **salida** del build en `.next-verify`. Faltaba la
+**entrada**. Cerrado con `scripts/prune-next-types.mjs`, cableado en el
+preflight de `typecheck`, en `check-build.mjs` y en el script `typecheck` de
+`package.json`. Poda **sólo** si encuentra una referencia a una ruta que ya no
+existe; si está sano no toca nada.
+
+---
+
+## 2 · Lo que se construyó en esta sesión
+
+Todo bajo **SDD-0281**, con tests y validado con mutación donde importaba.
+
+- [x] **Gate arreglado** — `typecheck` y `build` verdes de nuevo.
+- [x] **PDF de factura** (Studio) — `/studio/facturacion/[code]/pdf`.
+- [x] **PDF de estimado** (Studio) — `/studio/cotizador/[code]/pdf`.
+- [x] **PDF de factura para el cliente** — `/portal/facturas/[code]/pdf`. Antes
+      la única forma de llevársela era abrir el comprobante e imprimir a PDF
+      desde el navegador.
+- [x] **Duplicar** estimado y factura.
+- [x] **Exportar CSV** de estimados y de facturas, respetando los filtros de la
+      vista.
+- [x] **Nota de gestión** en Cobranzas (el backend ya existía desde el día uno).
+- [x] **On-time delivery** y **Tránsito promedio** en el tablero — los dos KPI
+      que decían "Próximamente".
+- [x] **`/portal/compras/[code]`** — el detalle de compra que no existía.
+- [x] **Estado de cuenta del cliente** en el Studio.
+
+### Tres cosas que aparecieron al escribir los tests, no al escribir el código
+
+1. **El PDF sumaba distinto que el servidor.** Yo redondeaba por línea y
+   `calcInvoiceTotals` redondea una vez al final. Tres líneas de 33,333 daban
+   99,99 contra 100,00 → el documento habría gritado "descuadre" en facturas
+   sanas. Una alarma que suena sin motivo se aprende a ignorar, que es la forma
+   de que el descuadre de verdad pase inadvertido. Hay un test de contrato que
+   compara las dos funciones sobre los mismos juegos de líneas.
+2. **El CSV no se podía sumar en Excel.** Usaba `fmtAmount` → `2,720.00`, y
+   Excel lee esa celda como **texto**. Los montos van crudos con dos decimales.
+3. **La ruta de export daba 403 a un anónimo, no 401.** Lo cazó el contrato
+   `studio-api-auth-guard.test.ts` en el gate. Tiene razón: el proxy refresca la
+   sesión en `/studio/*` pero su matcher **ni siquiera incluye `/api/studio`**.
+
+---
+
+## 3 · Checklist de lo que falta
+
+### 🅰 Puedo hacerlo solo · no necesita decisión tuya
+
+En orden de valor para poder mostrar el ERP funcionando.
+
+- [ ] **A1 · Avisarle al cliente cuando su carga llega a Yiwu.** 🔴 *El hueco
+      más caro que queda.*
+      Medido: el aviso "Recibido en bodega China" está atado al **estado del
+      envío** (`status:in_warehouse`), no a la recepción de la caja. Entre que
+      el proveedor entrega en Yiwu y que se arma el embarque pueden pasar
+      semanas en las que el cliente no se entera de nada. Ahora que existe
+      `/portal/compras/[code]`, el aviso tiene a dónde llevarlo.
+- [ ] **A2 · Vincular la recepción CN con el proveedor real.**
+      Medido: `warehouse_receipts_cn` guarda `supplier_name` como **texto
+      libre**, sin FK a `suppliers_cn`. Consecuencia: no se puede responder
+      "¿cuánto me manda este proveedor?" ni detectar que dos clientes compran al
+      mismo. Necesita migración (la escribo, **no la aplico**).
+- [ ] **A3 · Fotos de la recepción en el detalle de compra del portal.**
+      La pantalla ya existe y el bucket de Storage también; falta el puente.
+      Es lo que convierte "llegaron 7 cajas" en "llegaron, y aquí están".
+- [ ] **A4 · PDF del estado de cuenta.** El motor está probado y la pantalla ya
+      calcula el ledger. Es el documento que el cliente le pasa a su contador.
+- [ ] **A5 · Exportar CSV en Clientes, Cobranzas y Tracking.** La primitiva
+      quedó lista en `lib/studio/export/csv.ts`; son tres constructores.
+- [ ] **A6 · Los ~16 modales sin `DrawerShell`** (sin focus-trap ni Escape —
+      WCAG 2.4.3 / 2.1.2). Lista medida en
+      `docs/design/studio/erp-faseb-pendientes.md`, verificada hoy.
+- [ ] **A7 · Limpiar los 4 avisos de lint** que arrastra el gate.
+
+### 🅱 Necesita una decisión corta tuya · después lo hago
+
+- [ ] **B1 · ¿La factura lleva razón social y RIF?**
+      Hoy **no**, por el precedente explícito del finiquito (regla tuya del
+      2026-07-20: la identidad legal completa es una excepción a pedir, no el
+      default). Pero si la factura tiene que servirle al contador del cliente,
+      probablemente sí. **Es tu llamada, no la mía.** Se cambia en un archivo.
+- [ ] **B2 · ¿La factura se manda sola por correo al emitirla?**
+      Hoy no. El motor de correo del Studio ya existe; es cablearlo.
+- [ ] **B3 · Recordatorio masivo de cobranza por email.**
+      El botón existe deshabilitado. No lo hice solo a propósito: **manda correo
+      a clientes reales en lote**, y eso no se enciende sin que vos digas a
+      quiénes y con qué texto.
+- [ ] **B4 · Acreditación automática de referidos.**
+      El portal dice "Próximamente". Mueve plata → necesita que definas cuándo
+      se acredita exactamente.
+- [ ] **B5 · ¿El aéreo se enciende?** `PrealertaAddons` lo muestra como
+      "Próximamente · se activa desde la configuración de DTD".
+
+### 🅲 Sólo tuyo · no es software
+
+- [ ] **C1 · `doortudoor.com` vence el 2026-10-31.** El 301 a `dtdcargo.com` no
+      se puede perder.
+- [ ] **C2 · WhatsApp saliente con Meta.** Habilita A1 de verdad (hoy el aviso
+      sale por push y correo, no por WhatsApp).
+- [ ] **C3 · Habilitar a los 359 clientes** (lo hace José a mano).
+
+---
+
+## 4 · Qué necesita el ERP para que lo puedas mostrar
+
+Mi lectura, con lo medido: **para una demo o una entrega, ya está.** Los cuatro
+módulos que te importan tienen su ciclo completo:
+
+| Módulo | Ciclo | Estado |
+|---|---|---|
+| **Comercial** | estimado → PDF/WhatsApp → aceptado → embarque → factura → PDF → cobranza → estado de cuenta | ✅ cerrado |
+| **Logística** | embarque → hitos reales → contenedor → naviera → última milla → POD → cierra el embarque | ✅ cerrado |
+| **Recepción CN** | prealerta → etiqueta pre-declarada → escaneo en Yiwu → estiba por lotes → consolidación | ✅ cerrado · 🟡 falta el vínculo con el proveedor (A2) |
+| **Portal cliente** | entrar → compras (anunciar, etiquetas, **ver qué llegó**) → envíos → facturas + PDF → reportar pago → documentos → soporte | ✅ cerrado |
+
+Lo que quedaría flojo en una demo es **A1**: el cliente que anuncia una compra y
+no recibe ningún aviso hasta que se arma el embarque. Es lo que yo haría
+después, y no necesita nada de vos para empezarlo.
+
+---
+
+## 5 · Lo que NO pude verificar
+
+Honestidad sobre los límites de esta medición:
+
+- **No abrí el ERP en el navegador.** Todo lo de esta sesión está verificado por
+  tests, typecheck, lint y build — no por ver las pantallas andando. Las
+  pantallas nuevas (`/portal/compras/[code]`, estado de cuenta, los PDF)
+  **necesitan una pasada visual** antes de mostrárselas a nadie.
+- **No probé los PDF contra datos reales de producción.** Los helpers puros
+  están testeados; el render de `@react-pdf/renderer` no lo ejercita ningún
+  test (igual que los dos documentos de nómina que ya viven en producción).
+- **No medí el portal con lector de pantalla**, que sigue pendiente de las
+  auditorías anteriores.
