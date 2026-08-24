@@ -21,6 +21,8 @@ export type KpiTone = "wine" | "success" | "warning" | "danger" | "info" | "neut
 /** De dónde sale el valor del KPI (bundle server-side). */
 export type KpiSource =
   | "operational"
+  // SDD-0281 · on-time y tránsito real, medidos contra `shipment_events`.
+  | "desempeno"
   | "naviera"
   | "finance"
   | "quotes"
@@ -49,9 +51,9 @@ export const CHART_PERIODS: readonly ChartPeriod[] = ["1M", "3M", "1A", "YTD"];
 export const KPI_CATALOG: readonly KpiCatalogEntry[] = [
   // ─── Operación ───────────────────────────────────────────────
   { id: "shipmentsActive", label: "Embarques activos",      icon: "box",       tone: "wine",    cat: "Operación", module: "tracking", source: "operational", status: "ready" },
-  { id: "onTime",          label: "On-time delivery",       icon: "check",     tone: "success", cat: "Operación", module: "tracking", source: "wip",         status: "wip" },
+  { id: "onTime",          label: "On-time delivery",       icon: "check",     tone: "success", cat: "Operación", module: "tracking", source: "desempeno",   status: "ready" },
   { id: "cbmInTransit",    label: "CBM en tránsito",        icon: "ship",      tone: "neutral", cat: "Operación", module: "naviera",  source: "naviera",     status: "ready" },
-  { id: "avgTransit",      label: "Tránsito promedio",      icon: "truck",     tone: "info",    cat: "Operación", module: "tracking", source: "wip",         status: "wip" },
+  { id: "avgTransit",      label: "Tránsito promedio",      icon: "truck",     tone: "info",    cat: "Operación", module: "tracking", source: "desempeno",   status: "ready" },
   { id: "openIncidents",   label: "Incidencias abiertas",   icon: "warn",      tone: "warning", cat: "Operación", module: "tracking", source: "operational", status: "ready" },
   { id: "cnStock",         label: "Embarques en Almacén CN", icon: "warehouse", tone: "neutral", cat: "Operación", module: "naviera", source: "naviera",     status: "ready" },
   // ─── Finanzas ────────────────────────────────────────────────

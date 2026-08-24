@@ -96,6 +96,37 @@ tests en rojo.
    filtros activos de la vista.
 6. **Nota de gestión** en el drawer de Cobranzas.
 
+6. **Nota de gestión** en el drawer de Cobranzas.
+7. **Los dos KPI de operación que decían "Próximamente"** — On-time delivery y
+   Tránsito promedio — con su regla de honestidad (abajo).
+
+### Los KPI que no se publican solos
+
+`onTime` y `avgTransit` estaban en `KPI_CATALOG` con `source: "wip"`, así que el
+tablero les pintaba un guión. No faltaban datos: `shipments` guarda
+`planned_delivery_at` y `delivered_at`, y `shipment_events` guarda cuándo ocurrió
+de verdad cada hito.
+
+Lo que sí faltaba era decidir **qué hacer cuando el dato no alcanza**, y ahí está
+lo importante del diseño:
+
+- El `planned_delivery_at` lo llena la operación a mano y hoy no está garantizado
+  que lo llenen siempre. Un tablero que promedia sólo los envíos bien cargados
+  mide la **disciplina de carga de datos** y la presenta como desempeño
+  logístico.
+- Por eso cada medición devuelve `medidos` y `universo`, la tarjeta imprime
+  siempre la fracción (`45 de 47 envíos`), y **por debajo del 50% de cobertura el
+  KPI no publica número**: muestra un guión y dice `sólo 2 de 47 con datos —
+  muestra insuficiente`. Un "100% on-time" sobre 2 de 47 no es un buen resultado;
+  es un número que nadie puede desmentir en una reunión.
+- El tránsito usa **mediana, no media**: un envío trabado tres meses en aduana
+  arrastra la media y muestra un tránsito que no le pasa a casi nadie.
+- Y se mide contra el evento `shipped` real, no contra `planned_departure_at`:
+  la fecha planificada daría el tránsito que queríamos tener.
+
+Validado con mutación: bajar `COBERTURA_MINIMA` a 0 (publicar siempre) pone 3 de
+los 17 tests en rojo.
+
 ### No entra
 
 - **Razón social y RIF en el cuerpo del documento.** Se respeta el precedente

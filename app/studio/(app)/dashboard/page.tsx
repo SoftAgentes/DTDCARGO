@@ -30,6 +30,10 @@ import {
 } from "@/lib/studio/dashboard/dashboard-types";
 import { KPI_CATALOG } from "@/lib/studio/dashboard/dashboard-catalog";
 import {
+  getDesempenoOperativo,
+  kpiDesempeno,
+} from "@/lib/studio/dashboard/operational-performance";
+import {
   financeInvoiceKpis,
   leadsKpi,
   marginKpi,
@@ -115,6 +119,7 @@ export default async function DashboardPage() {
   const accessibleWidgetIds = new Set(accessibleWidgets.map((w) => w.id));
 
   const needOperational = accessibleSources.has("operational");
+  const needDesempeno = accessibleSources.has("desempeno");
   const needNaviera = accessibleSources.has("naviera");
   const needFinanceInvoice = ["monthRevenue", "invoicesDue", "pendingCollect", "avgTicket"].some((id) =>
     accessibleKpiIds.has(id),
@@ -131,6 +136,7 @@ export default async function DashboardPage() {
   // Fetch en paralelo: SOLO lo accesible (RBAC gatea nómina/finanzas/etc.).
   const [
     operational,
+    desempeno,
     naviera,
     finance,
     margin,
@@ -143,6 +149,7 @@ export default async function DashboardPage() {
     recentActivity,
   ] = await Promise.all([
     needOperational ? getOperationalCounts(supabase) : Promise.resolve(null),
+    needDesempeno ? getDesempenoOperativo(supabase) : Promise.resolve(null),
     needNaviera ? navieraKpis(supabase) : Promise.resolve(null),
     needFinanceInvoice ? financeInvoiceKpis(supabase) : Promise.resolve(null),
     needMargin ? marginKpi(supabase) : Promise.resolve(null),
@@ -220,8 +227,17 @@ export default async function DashboardPage() {
       case "nominaEmpleados":
         if (nomina) kpiValues[k.id] = nomina.nominaEmpleados;
         break;
+      // SDD-0281 · los dos KPI que estaban en "wip". El `sub` lleva SIEMPRE la
+      // fracción medida: un "100% on-time" sobre 2 de 47 envíos no es un buen
+      // resultado, es un número inventado, y sin la fracción no hay forma de
+      // saber cuál de los dos estás viendo.
+      case "onTime":
+        if (desempeno) kpiValues[k.id] = kpiDesempeno(desempeno.onTime, "%", "a tiempo");
+        break;
+      case "avgTransit":
+        if (desempeno) kpiValues[k.id] = kpiDesempeno(desempeno.transito, " días", "de tránsito");
+        break;
       default:
-        // wip (onTime, avgTransit) → sin valor: el cliente muestra "—".
         break;
     }
     if (k.status === "ready" && !kpiValues[k.id]) kpiValues[k.id] = neutral("—");

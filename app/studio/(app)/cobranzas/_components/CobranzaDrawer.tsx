@@ -70,6 +70,7 @@ export function CobranzaDrawer({
   const [error, setError] = useState<string | null>(null);
   const [showCobro, setShowCobro] = useState(false);
   const [showPromise, setShowPromise] = useState(false);
+  const [showNote, setShowNote] = useState(false);
   const [voidTarget, setVoidTarget] = useState<{
     id: string;
     code: string;
@@ -296,17 +297,43 @@ export function CobranzaDrawer({
               }}
               onError={setError}
             />
+            {/* SDD-0281 · la nota libre. Las otras tres gestiones anotan un
+                texto fijo; ésta es la que sirve cuando lo que pasó no entra en
+                ninguna categoría ("el cliente pidió refacturar a otro RIF"),
+                que en cobranza es la mitad de los casos. El backend ya existía
+                —`logActivity` acepta `kind: "nota"` desde que se construyó el
+                módulo—; sólo faltaba el formulario. */}
             <button
               type="button"
               className="studio-btn studio-btn-ghost studio-btn-sm"
-              onClick={() => setShowPromise(false)}
-              disabled
-              title="Próximamente"
+              aria-expanded={showNote}
+              onClick={() => {
+                setShowNote((o) => !o);
+                setShowPromise(false);
+              }}
             >
               <span style={{ display: "inline-flex" }}>{Icon.edit(13)}</span>
               Nota
             </button>
           </div>
+
+          {showNote && (
+            <NoteForm
+              onCancel={() => setShowNote(false)}
+              onSubmit={async (body) => {
+                setError(null);
+                const r = await logActivity(inv.id, { kind: "nota", body });
+                if (r.error) {
+                  setError(r.error);
+                  return false;
+                }
+                setShowNote(false);
+                refresh();
+                getReceivableHistory(inv.id).then(setHistory).catch(() => {});
+                return true;
+              }}
+            />
+          )}
 
           {showPromise && (
             <PromiseForm
@@ -738,6 +765,75 @@ function CobroForm({
             return undefined;
           }}
           onError={onError}
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SDD-0281 · Nota libre de gestión.
+ *
+ * El botón se queda deshabilitado hasta que hay texto: una gestión vacía en el
+ * historial es peor que ninguna — el que la lea mañana no sabrá si hubo
+ * contacto o si alguien hizo clic sin querer.
+ */
+function NoteForm({
+  onCancel,
+  onSubmit,
+}: {
+  onCancel: () => void;
+  onSubmit: (body: string) => Promise<boolean>;
+}) {
+  const [body, setBody] = useState("");
+  const limpio = body.trim();
+
+  return (
+    <div
+      style={{
+        marginTop: 8,
+        padding: "12px 14px",
+        background: "var(--info-bg)",
+        borderRadius: "var(--r-md)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div>
+        <label className="studio-label" htmlFor="collection-note">
+          Nota de gestión
+        </label>
+        <textarea
+          id="collection-note"
+          className="studio-input"
+          rows={3}
+          maxLength={1000}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Qué pasó con esta cobranza…"
+          style={{ resize: "vertical", minHeight: 68 }}
+        />
+      </div>
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          onClick={onCancel}
+        >
+          Cancelar
+        </button>
+        <ActionButton
+          variant="primary"
+          size="sm"
+          idleLabel="Guardar nota"
+          loadingLabel="Guardando…"
+          successLabel={null}
+          disabled={limpio.length === 0}
+          onAction={async () => {
+            await onSubmit(limpio);
+            return undefined;
+          }}
         />
       </div>
     </div>
