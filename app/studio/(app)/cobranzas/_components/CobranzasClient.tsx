@@ -133,6 +133,15 @@ export function CobranzasClient({
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
+          {/* SDD-0289 · el CSV trae el conjunto COMPLETO (paginado), no las
+              filas que la pantalla tiene cargadas. */}
+          <a
+            href="/api/studio/operativo/export?tipo=cobranzas"
+            className="studio-btn studio-btn-ghost"
+            title="Descarga la cola de cobranza en CSV"
+          >
+            Exportar
+          </a>
           <button
             type="button"
             className="studio-btn studio-btn-ghost"

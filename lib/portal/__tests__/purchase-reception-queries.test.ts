@@ -13,6 +13,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
+  agruparFotosPorRecepcion,
   compararCajas,
   nombreDeProveedor,
   sumaOculta,
@@ -99,5 +100,74 @@ describe("nombreDeProveedor", () => {
     // justo lo que vale la pena ver.
     const r = nombreDeProveedor("Fábrica Lin", "Fabrica Lin");
     expect(r.segundo).toBe("Fabrica Lin");
+  });
+});
+
+describe("agruparFotosPorRecepcion", () => {
+  const filas = [
+    { receipt_id: "r-1", storage_path: "t/r-1/0-a.jpg", position: 0 },
+    { receipt_id: "r-1", storage_path: "t/r-1/1-b.jpg", position: 1 },
+    { receipt_id: "r-2", storage_path: "t/r-2/0-c.jpg", position: 0 },
+  ];
+
+  it("agrupa por recepción, conservando el orden", () => {
+    const m = agruparFotosPorRecepcion(filas, [
+      { path: "t/r-1/0-a.jpg", signedUrl: "https://s/a" },
+      { path: "t/r-1/1-b.jpg", signedUrl: "https://s/b" },
+      { path: "t/r-2/0-c.jpg", signedUrl: "https://s/c" },
+    ]);
+    expect(m.get("r-1")).toEqual([
+      { url: "https://s/a", position: 0 },
+      { url: "https://s/b", position: 1 },
+    ]);
+    expect(m.get("r-2")).toEqual([{ url: "https://s/c", position: 0 }]);
+  });
+
+  it("🔴 si Storage OMITE una entrada, las demás no se corren", () => {
+    // Éste es el bug que el indexado por path evita, y hay que montarlo con la
+    // entrada AUSENTE, no con `signedUrl: null`: con un null en su lugar, el
+    // índice coincide por casualidad y el test no discrimina (lo comprobé
+    // mutando el código — pasaba igual).
+    //
+    // Con la entrada omitida, indexar por posición metería la URL de 'b' en la
+    // fila de 'a' y la de 'c' en la de 'b': el cliente vería la foto de OTRA
+    // caja bajo la etiqueta equivocada. Peor que no mostrar nada.
+    const m = agruparFotosPorRecepcion(filas, [
+      // falta t/r-1/0-a.jpg — Storage no la devolvió
+      { path: "t/r-1/1-b.jpg", signedUrl: "https://s/b" },
+      { path: "t/r-2/0-c.jpg", signedUrl: "https://s/c" },
+    ]);
+    expect(m.get("r-1")).toEqual([{ url: "https://s/b", position: 1 }]);
+    expect(m.get("r-2")).toEqual([{ url: "https://s/c", position: 0 }]);
+  });
+
+  it("una entrada con signedUrl null tampoco aparece", () => {
+    const m = agruparFotosPorRecepcion(filas, [
+      { path: "t/r-1/0-a.jpg", signedUrl: null },
+      { path: "t/r-1/1-b.jpg", signedUrl: "https://s/b" },
+      { path: "t/r-2/0-c.jpg", signedUrl: "https://s/c" },
+    ]);
+    expect(m.get("r-1")).toEqual([{ url: "https://s/b", position: 1 }]);
+  });
+
+  it("una recepción sin fotos firmadas no aparece en el mapa", () => {
+    const m = agruparFotosPorRecepcion(filas, [
+      { path: "t/r-2/0-c.jpg", signedUrl: "https://s/c" },
+    ]);
+    expect(m.has("r-1")).toBe(false);
+    expect(m.get("r-2")).toHaveLength(1);
+  });
+
+  it("tolera entradas basura de Storage sin explotar", () => {
+    const m = agruparFotosPorRecepcion(filas, [
+      { path: null, signedUrl: "https://s/x" },
+      { signedUrl: "https://s/y" },
+      { path: "t/r-1/0-a.jpg", signedUrl: "https://s/a" },
+    ]);
+    expect(m.get("r-1")).toEqual([{ url: "https://s/a", position: 0 }]);
+  });
+
+  it("sin firmas devuelve un mapa vacío (la pantalla sale sin fotos)", () => {
+    expect(agruparFotosPorRecepcion(filas, []).size).toBe(0);
   });
 });

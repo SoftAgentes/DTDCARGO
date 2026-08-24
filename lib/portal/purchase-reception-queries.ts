@@ -33,6 +33,28 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+/**
+ * SDD-0285 · TTL de las URLs firmadas de las fotos. 1 h, la misma que usan
+ * Inspecciones y el expediente legal — no se inventa una constante nueva para
+ * el mismo bucket.
+ *
+ * El portal renderiza en el servidor en cada visita, así que la URL nace fresca
+ * con la página. Una hora cubre de sobra la lectura y deja el enlace muerto para
+ * quien lo reenvíe después.
+ */
+export const FOTO_URL_TTL = 3600;
+
+/** Bucket privado de las fotos de recepción (migr 0022). */
+const BUCKET_FOTOS = "receipt-photos";
+
+/** Una foto de la recepción, ya firmada y lista para el `<img>`. */
+export type FotoDeRecepcion = {
+  /** URL firmada, temporal. */
+  url: string;
+  /** Orden en que la subió el operario. */
+  position: number;
+};
+
 /** Una recepción en bodega CN, con lo que el CLIENTE necesita ver. */
 export type RecepcionDeCompra = {
   id: string;
@@ -49,6 +71,9 @@ export type RecepcionDeCompra = {
   supplierName: string | null;
   /** `true` si ya viaja en un embarque. */
   enEmbarque: boolean;
+  /** SDD-0285 · fotos que tomó el operario al recibir. Vacío si no hay o si no
+   *  se pudieron firmar (nunca rompe la pantalla). */
+  fotos: FotoDeRecepcion[];
 };
 
 /** Total de lo recibido — lo que el cliente compara contra lo que anunció. */
@@ -116,7 +141,10 @@ export async function listarRecepcionesDeCompra(
       : "pendiente_consolidacion") as RecepcionDeCompra["status"],
     supplierName: r.supplier_name,
     enEmbarque: r.shipment_id != null,
+    fotos: [],
   }));
+
+  await adjuntarFotos(admin, recepciones);
 
   return {
     recepciones,
@@ -127,6 +155,97 @@ export async function listarRecepcionesDeCompra(
     pesoTotal: sumaOculta(recepciones.map((r) => r.weightKg)),
     primeraRecepcion: recepciones[0]?.receivedAt ?? null,
   };
+}
+
+/** Lo que devuelve `createSignedUrls`, en lo que nos importa. */
+export type FirmaDeStorage = {
+  path?: string | null;
+  signedUrl?: string | null;
+};
+
+/**
+ * SDD-0285 · Cruza las filas de fotos con sus URLs firmadas y las agrupa por
+ * recepción. PURA.
+ *
+ * 🔴 Se indexa **por path, no por posición**. `createSignedUrls` responde en el
+ * mismo orden en que se pidió, pero puede devolver una entrada sin `signedUrl`
+ * cuando el objeto ya no está en el bucket. Confiar en el índice haría que, al
+ * fallar una, todas las siguientes quedaran corridas — y el cliente vería la
+ * foto de otra caja bajo la etiqueta equivocada. Peor que no mostrar nada.
+ *
+ * Una foto sin firma simplemente no aparece.
+ */
+export function agruparFotosPorRecepcion(
+  filas: readonly { receipt_id: string; storage_path: string; position: number | null }[],
+  firmadas: readonly FirmaDeStorage[],
+): Map<string, FotoDeRecepcion[]> {
+  const urlPorPath = new Map<string, string>();
+  for (const f of firmadas) {
+    if (f?.path && f.signedUrl) urlPorPath.set(f.path, f.signedUrl);
+  }
+
+  const porRecepcion = new Map<string, FotoDeRecepcion[]>();
+  for (const f of filas) {
+    const url = urlPorPath.get(f.storage_path);
+    if (!url) continue;
+    const lista = porRecepcion.get(f.receipt_id) ?? [];
+    lista.push({ url, position: f.position ?? 0 });
+    porRecepcion.set(f.receipt_id, lista);
+  }
+  return porRecepcion;
+}
+
+/**
+ * SDD-0285 · Cuelga las fotos firmadas de cada recepción. MUTA `recepciones`.
+ *
+ * Una consulta para todas las fotos y **una sola** llamada a `createSignedUrls`
+ * con todos los paths: firmar de a una haría N+1 round-trips contra Storage por
+ * una pantalla que el cliente abre para mirar tres fotos.
+ *
+ * 🔴 Best-effort de punta a punta. Las fotos son un extra: la recepción, sus
+ * cajas y sus medidas son el dato que el cliente vino a buscar. Si Storage no
+ * responde o una firma falla, la pantalla sale igual sin ellas — nunca al revés.
+ *
+ * El `admin` client es obligatorio y por la misma razón que el resto del módulo:
+ * `warehouse_receipt_photos` tiene RLS por tenant y el bucket también, así que
+ * con la sesión del cliente del portal no se ve ni la fila ni el objeto. La
+ * propiedad ya la probó el llamador — ver el encabezado del módulo.
+ */
+async function adjuntarFotos(
+  admin: SupabaseClient,
+  recepciones: RecepcionDeCompra[],
+): Promise<void> {
+  if (recepciones.length === 0) return;
+  try {
+    const ids = recepciones.map((r) => r.id);
+    const { data, error } = await admin
+      .from("warehouse_receipt_photos")
+      .select("receipt_id, storage_path, position")
+      .in("receipt_id", ids)
+      .order("position", { ascending: true });
+    if (error || !data || data.length === 0) return;
+
+    const filas = data as {
+      receipt_id: string;
+      storage_path: string;
+      position: number | null;
+    }[];
+
+    const { data: firmadas } = await admin.storage
+      .from(BUCKET_FOTOS)
+      .createSignedUrls(
+        filas.map((f) => f.storage_path),
+        FOTO_URL_TTL,
+      );
+    if (!firmadas) return;
+
+    const porRecepcion = agruparFotosPorRecepcion(filas, firmadas);
+    for (const r of recepciones) {
+      r.fotos = porRecepcion.get(r.id) ?? [];
+    }
+  } catch {
+    // Ver el docblock: las fotos nunca tumban la pantalla.
+  }
 }
 
 function resumenVacio(): ResumenRecepcion {

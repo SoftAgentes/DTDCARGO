@@ -64,7 +64,24 @@ https://xpfuzqombmjmxvprjgmi.supabase.co/functions/v1/kommo-webhook?secret=<KOMM
 (Reemplazá `<KOMMO_WEBHOOK_SECRET>` por el hex del paso 1 — va en la query string,
 no en un header.)
 
-**Eventos a marcar:**
+> 🔴 **Medido el 2026-08-24: la cuenta real NO está así.** El webhook de
+> producción tiene marcado **"Todos"**, no estos 6. O sea que Kommo nos manda
+> **cada evento que soporta**, y `parseKommoWebhookPayload` descarta en silencio
+> todo lo que no sea `leads|contacts` × `add|update|status|delete`.
+>
+> No es un bug —espejar de más no rompe nada— pero cambia una conclusión que
+> este runbook inducía: **no hace falta habilitar nada para recibir los eventos
+> de mensajería; ya están llegando.** Lo que falta es saber leerlos (SDD-0288).
+>
+> La tabla de abajo sigue siendo el **mínimo** que el espejo necesita, no lo que
+> hay configurado hoy.
+>
+> ⚠️ **Y hay un SEGUNDO webhook en esa pantalla**, que este runbook nunca
+> mencionó: `https://qp1-nova.ru/api/events/ai_calls_...`, suscrito a *"Nota
+> agregada al lead / al contacto / a la compañía"*. No es nuestro. Ver
+> [`kommo-webhook-tercero-qp1-nova.md`](kommo-webhook-tercero-qp1-nova.md).
+
+**Eventos a marcar (mínimo del espejo):**
 
 | Entidad   | Evento            | Por qué |
 |-----------|-------------------|---------|

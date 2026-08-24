@@ -197,7 +197,26 @@ export default async function PortalInvoicesPage({
             // El estado de cuenta se arma SIEMPRE con todas las facturas, aunque
             // esté puesto `?saldo=1`: un libro al que le faltan movimientos no
             // cuadra el saldo corrido, y eso es peor que no mostrarlo.
-            <StatementLedgerTable invoices={todasLasFacturas} />
+            <>
+              <StatementLedgerTable invoices={todasLasFacturas} />
+              {/* SDD-0287 · el documento que el cliente le pasa a su contador.
+                  Sale del MISMO ledger que la tabla de arriba: si tuviera su
+                  propio cálculo, el saldo del PDF y el de la pantalla podrían
+                  discrepar — la discusión que un estado de cuenta viene a
+                  evitar. */}
+              {todasLasFacturas.length > 0 ? (
+                // No es una página: es un route handler que devuelve el PDF
+                // como `attachment`. `<Link>` haría prefetch y navegación de
+                // cliente sobre un archivo binario.
+                // eslint-disable-next-line @next/next/no-html-link-for-pages
+                <a
+                  href="/portal/facturas/estado-de-cuenta/pdf"
+                  className="btn btn-ghost mt-6 inline-flex"
+                >
+                  Descargar estado de cuenta en PDF
+                </a>
+              ) : null}
+            </>
           ) : (
             <>
               {/* Mobile: cards */}

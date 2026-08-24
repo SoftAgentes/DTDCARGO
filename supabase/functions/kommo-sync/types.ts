@@ -84,6 +84,30 @@ export interface KommoUnsorted {
   } | null;
 }
 
+/**
+ * SDD-0288 — tarea de Kommo (`/api/v4/tasks`). Es el objeto que enciende el
+ * rojo de la tarjeta cuando vence: el espejo de este tipo es lo que le permite
+ * al ERP saber que un cliente escribió y nadie le contestó.
+ *
+ * Es el MISMO objeto que el ERP crea en el camino de ida (`buildTaskPayload` en
+ * `lib/studio/kommo-writeback.ts`), leído. Si esta forma y aquélla divergen, una
+ * de las dos está mal.
+ *
+ * ⚠️ `complete_till` es epoch en SEGUNDOS, como todo el resto de la API v4.
+ */
+export interface KommoTask {
+  id: number;
+  entity_id?: number | null;
+  entity_type?: string | null;
+  responsible_user_id?: number | null;
+  text?: string | null;
+  task_type_id?: number | null;
+  complete_till?: number | null;
+  is_completed?: boolean | null;
+  created_at?: number | null;
+  updated_at?: number | null;
+}
+
 export interface KommoUser {
   id: number;
   name?: string;

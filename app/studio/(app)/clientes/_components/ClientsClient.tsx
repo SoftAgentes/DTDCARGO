@@ -158,6 +158,15 @@ export function ClientsClient({
               },
             ]}
           />
+          {/* SDD-0289 · el CSV trae el conjunto COMPLETO (paginado), no las
+              filas que la pantalla tiene cargadas. */}
+          <a
+            href="/api/studio/operativo/export?tipo=clientes"
+            className="studio-btn studio-btn-ghost"
+            title="Descarga todos los clientes en CSV"
+          >
+            Exportar
+          </a>
           <button
             type="button"
             className="studio-btn studio-btn-primary"
