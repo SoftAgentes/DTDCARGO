@@ -75,7 +75,7 @@ podría estar:
 | Capa | Medición |
 |---|---|
 | **Espejo** | `kommo_leads` (0082 + las 21 migraciones `kommo_*` posteriores) no tiene `last_message_at`, ni `unread`, ni tareas. Cero columnas de mensajería |
-| **Webhook** | [`kommo-webhook-parse.ts:14`](../../../supabase/functions/_shared/kommo-webhook-parse.ts) sólo entiende `add\|update\|status\|delete` sobre `leads` y `contacts`. Los eventos de mensaje ni se suscriben ([`setup-kommo-webhook.md:69`](../../runbooks/setup-kommo-webhook.md), 6 eventos) ni se parsearían |
+| **Webhook** | [`kommo-webhook-parse.ts:14`](../../../supabase/functions/_shared/kommo-webhook-parse.ts) sólo entiende `add\|update\|status\|delete` sobre `leads` y `contacts`. **Todo lo demás se descarta en silencio** — ver §3.7: no es que no lleguen, es que no se leen |
 | **Sync** | Los únicos endpoints que tocamos son `/leads`, `/contacts`, `/users`, `/tasks` (sólo POST) y `/leads/unsorted`. Nunca `/chats` |
 
 ### 1.3 · El rojo que sí existe en el ERP mide otra cosa
@@ -280,7 +280,7 @@ pantalla; no se introduce ninguna combinación nueva que haya que medir.
 
 | # | Rebanada | Estado | Bloqueada por |
 |---|---|---|---|
-| **0** | 🔴 **Medir el evento de mensaje** | pendiente | **una mirada del founder** a la pantalla de webhooks de Kommo (§3.7) |
+| **0** | **Medir la forma de lo que Kommo ya manda** | ✅ **construida** — falta desplegar la function y dejar correr tráfico | — |
 | **1** | `last_inbound_at` / `last_outbound_at` en `kommo_leads` + el semáforo de 3 estados | especificada | la 0 |
 | **2** | Espejo de tareas (`kommo_tasks`, migración 0390) | ✅ **construida y verificada** | — |
 | **3** | Red de seguridad: si el cliente escribió y nadie tomó el caso, **el ERP encola la tarea** | especificada | la 1 |
@@ -298,17 +298,66 @@ sentimental:
 IA:** la tarea la crea el ERP, no el agente, así que cubre Instagram y Facebook
 **sin gastar un crédito**.
 
-### 3.7 · Lo único que no puedo medir yo
+### 3.7 · ✅ RESUELTO — no hay nada que habilitar: ya está en "Todos"
 
-Para la rebanada 0 hace falta saber **qué eventos de mensaje ofrece la cuenta**.
-Eso vive detrás de la sesión del founder, en la pantalla donde ya se marcaron los
-6 eventos actuales ([`setup-kommo-webhook.md`](../../runbooks/setup-kommo-webhook.md)).
+La pregunta abierta era **qué eventos de mensaje ofrece la cuenta**. El founder
+mandó la pantalla de webhooks el 2026-08-24 y la respuesta es mejor de lo
+esperado:
 
-🔴 **No se asume que exista.** Si la cuenta no ofrece evento de mensaje, la
-rebanada 1 cambia de fuente (sondear `/api/v4/talks`, o derivar del espejo de la
-bandeja `kommo_unsorted`, que **sí** trae el mensaje y es lo que hace que
-`LEADS ENTRANTES` muestre el texto) y eso es una decisión de diseño distinta, no
-un detalle de implementación.
+**Nuestro webhook tiene marcado `Todos`, no los 6 eventos que dice el runbook.**
+
+O sea que **Kommo ya nos está mandando cada evento que soporta**, mensajería
+incluida si existe, y nadie tiene que tocar la configuración. Lo que pasa es que
+[`index.ts:349`](../../../supabase/functions/kommo-webhook/index.ts) los tira:
+
+```ts
+if (parsed.events.length === 0) {
+  return json({ ok: true, events: 0 }, 200);   // ← acá se pierde todo
+}
+```
+
+⚠️ **Corrige lo que este mismo documento decía hace unas horas.** La versión
+anterior daba por bueno el runbook y planteaba "suscribir el evento" como un
+paso pendiente del founder. No hacía falta: el paso ya estaba dado desde antes
+y el runbook estaba desactualizado. Se corrigió en
+[`setup-kommo-webhook.md`](../../runbooks/setup-kommo-webhook.md).
+
+### 3.8 · Rebanada 0 · CONSTRUIDA — medir sin filtrar PII
+
+Antes del `return` de arriba se registra **la forma del cuerpo**: los nombres de
+las claves, con los índices normalizados, **y ningún valor**.
+
+```
+message[add][0][text]=Hola quiero cotizar   →   "message[add][N][text]"
+```
+
+**Por qué sólo las claves.** El cuerpo de un webhook de mensajería lleva el texto
+de la conversación, el teléfono y el nombre del cliente. Loguear valores sería
+poner PII de clientes en los logs de una edge function, sin retención definida y
+sin necesidad: **para saber cómo se llama el campo del texto no hace falta leer
+el texto.**
+
+Ese invariante está fijado por contrato y **validado por mutación**: se cambió
+`formaDelCuerpo` para que devolviera `clave=valor` y el test cantó, nombrando el
+teléfono y el nombre que se habrían filtrado.
+
+**Cómo se lee la medición** (una vez desplegada la function):
+
+```
+Supabase → Edge Functions → kommo-webhook → Logs
+Buscar:  [kommo-webhook][sdd-0288][forma-desconocida]
+```
+
+Cada línea trae el conjunto de claves de un evento que hoy no sabemos leer. Con
+eso se escribe el parser de la rebanada 1 **sobre payloads reales**, no sobre lo
+que la documentación de Kommo diga que debería mandar.
+
+🔴 **Sigue sin estar medido** que exista un evento de mensaje. Que el webhook
+esté en "Todos" garantiza que lo recibiríamos **si existe**; no garantiza que
+exista. Si tras unos días de tráfico real no aparece ninguna clave de mensaje,
+la rebanada 1 cambia de fuente (sondear `/api/v4/talks`, o derivar de
+`kommo_unsorted`, que **sí** trae el mensaje y es lo que hace que
+`LEADS ENTRANTES` muestre el texto) — y eso es otro diseño, no un detalle.
 
 ## 4. Decisiones
 
@@ -359,10 +408,16 @@ no como supuesto silencioso.
   contrato SQL de 116 invariantes validado **por mutación** (con la RLS abierta
   el contrato canta la fuga; sin el predicado parcial canta el índice), y el
   sync aprendió la entidad `tasks`.
-- **Rebanadas 0, 1 y 3: especificadas, sin una línea escrita.** A propósito. La
-  0 es una **medición** y está bloqueada por §3.7 — una mirada del founder a la
-  pantalla de webhooks de su Kommo.
+- **Rebanada 0 (medir la forma del payload): construida.** `formaDelCuerpo` +
+  el enganche en `kommo-webhook`, con el contrato anti-PII **validado por
+  mutación**. Falta **desplegar la edge function** y dejar correr tráfico real.
+- **Rebanadas 1 y 3: especificadas, sin una línea escrita.** Se escriben cuando
+  la rebanada 0 devuelva payloads, no antes.
 
-🔴 **Lo que esta spec NO afirma:** que Kommo ofrezca un evento de mensaje
-suscribible. Nadie lo midió. Todo el diseño de la rebanada 1 cuelga de esa
-respuesta y está escrito para poder cambiar de fuente sin rehacerse.
+🔴 **Lo que esta spec NO afirma:** que Kommo emita un evento de mensaje. Que el
+webhook esté en "Todos" prueba que lo **recibiríamos si existe** — no que
+exista. Esa diferencia es justo la que esta spec ya se equivocó una vez en no
+hacer (§1.1.b), así que queda escrita.
+
+⚠️ **Pushear NO despliega las edge functions.** La medición no empieza a correr
+con el merge: hay que desplegar `kommo-webhook` aparte.
