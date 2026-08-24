@@ -231,43 +231,6 @@ export async function createReceiptAction(
     } · ${input!.items.length} item${input!.items.length === 1 ? "" : "s"}`,
   });
 
-  // ── SDD-0282 · avisarle al cliente que su carga llegó a Yiwu ──
-  //
-  // 🔴 Esta recepción NO avisaba a nadie. El aviso existía sólo en el camino del
-  // operario (`/m/cn/recibir`, SDD-0162): la mercancía que la OFICINA registraba
-  // a mano —la huérfana que aparece sin etiqueta, la que se carga en lote, la de
-  // un cliente que no pre-declaró— llegaba a Yiwu en silencio absoluto.
-  //
-  // Best-effort y con `await` (no fire-and-forget como en el móvil): acá la
-  // action ya terminó de escribir y el operador de oficina puede esperar los
-  // milisegundos; a cambio, si el cliente se queda sin aviso, la nota entra en
-  // la bitácora ANTES de que la pantalla se refresque y el operador la ve.
-  //
-  // Una recepción huérfana no notifica a nadie a propósito: todavía no se sabe
-  // de quién es, y adivinar sería avisarle al cliente equivocado.
-  if (!input!.is_orphan && input!.client_markbox) {
-    try {
-      const notifAdmin = createAdminClient();
-      const fanout = await scheduleReceiptInWarehouse(
-        notifAdmin,
-        link.tenant_id,
-        [input!.client_markbox],
-      );
-      const nota = notaSinAviso(fanout.sinDestino);
-      if (nota) {
-        await notifAdmin.from("warehouse_receipt_events").insert({
-          tenant_id: link.tenant_id,
-          receipt_id: receipt.id,
-          event_type: "note",
-          description: nota,
-        });
-      }
-    } catch (err) {
-      // Un fallo del aviso NO invalida una recepción ya escrita.
-      console.error("[cn] aviso de recepción falló:", err);
-    }
-  }
-
   // ── Wiring recepción → caja (prealerta) → OV · SDD-0072 Fase 2 ──
   // Para que la auto-factura pueda dispararse al consolidar (changeReceiptStatusAction
   // → 'consolidado' → autoInvoiceForReceipt), la recepción debe apuntar a la prealerta
@@ -307,8 +270,113 @@ export async function createReceiptAction(
     }
   }
 
+  // ── SDD-0282/0283 · avisarle al cliente que su carga llegó a Yiwu ──
+  //
+  // 🔴 Esta recepción NO avisaba a nadie. El aviso existía sólo en el camino del
+  // operario (`/m/cn/recibir`, SDD-0162): la mercancía que la OFICINA registraba
+  // a mano —la huérfana que aparece sin etiqueta, la que se carga en lote, la de
+  // un cliente que no pre-declaró— llegaba a Yiwu en silencio absoluto.
+  //
+  // Va DESPUÉS del wiring de arriba a propósito: si ese paso ató una compra, el
+  // aviso cuelga de ESA y no hay nada que adivinar.
+  //
+  // Best-effort y con `await` (no fire-and-forget como en el móvil): acá la
+  // action ya terminó de escribir y el operador de oficina puede esperar los
+  // milisegundos; a cambio, si el cliente se queda sin aviso, la nota entra en
+  // la bitácora ANTES de que la pantalla se refresque y el operador la ve.
+  //
+  // Una recepción huérfana no notifica a nadie a propósito: todavía no se sabe
+  // de quién es, y adivinar sería avisarle al cliente equivocado.
+  if (!input!.is_orphan && input!.client_markbox) {
+    try {
+      const notifAdmin = createAdminClient();
+      const compra = await compraParaElAviso(
+        supabase,
+        link.tenant_id,
+        receipt.id,
+        input!.client_markbox,
+      );
+      const fanout = await scheduleReceiptInWarehouse(notifAdmin, link.tenant_id, [
+        {
+          markbox: input!.client_markbox,
+          prealertaId: compra?.id ?? null,
+          prealertaCode: compra?.code ?? null,
+        },
+      ]);
+      const nota = notaSinAviso(fanout.sinDestino);
+      if (nota) {
+        await notifAdmin.from("warehouse_receipt_events").insert({
+          tenant_id: link.tenant_id,
+          receipt_id: receipt.id,
+          event_type: "note",
+          description: nota,
+        });
+      }
+    } catch (err) {
+      // Un fallo del aviso NO invalida una recepción ya escrita.
+      console.error("[cn] aviso de recepción falló:", err);
+    }
+  }
+
   revalidatePath("/studio/cn");
   return { ok: true, createdReceiptCode: receipt_code };
+}
+
+
+/**
+ * SDD-0283 · La compra de la que va a colgar el aviso de recepción.
+ *
+ * Dos pasos, en orden de confianza:
+ *
+ *   1. Si el wiring financiero ya ató una compra a esta recepción, ésa es —
+ *      viene de una regla conservadora y no hay nada que adivinar.
+ *   2. Si no, se busca UNA compra abierta del cliente. **Exactamente una**: con
+ *      dos o más no se elige, porque el aviso llevaría al cliente al detalle de
+ *      la compra equivocada y le diría que llegó algo que todavía no llegó.
+ *
+ * Sin candidata inequívoca devuelve null y el aviso queda sin ancla → la nota de
+ * la bitácora lo dice. Mejor que el operador escriba a mano a que el sistema
+ * mande al cliente a la pantalla de otra compra.
+ *
+ * Best-effort: cualquier fallo devuelve null, nunca throwea.
+ */
+async function compraParaElAviso(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  receiptId: string,
+  markbox: string,
+): Promise<{ id: string; code: string } | null> {
+  try {
+    const { data: rec } = await supabase
+      .from("warehouse_receipts_cn")
+      .select("prealerta_id")
+      .eq("id", receiptId)
+      .maybeSingle<{ prealerta_id: string | null }>();
+
+    if (rec?.prealerta_id) {
+      const { data: pre } = await supabase
+        .from("prealertas")
+        .select("id, code")
+        .eq("id", rec.prealerta_id)
+        .maybeSingle<{ id: string; code: string }>();
+      if (pre) return pre;
+    }
+
+    const { data: abiertas } = await supabase
+      .from("prealertas")
+      .select("id, code")
+      .eq("tenant_id", tenantId)
+      .eq("client_markbox", markbox)
+      .in("status", ["anunciada", "en_camino", "recibida"])
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(2);
+
+    const lista = (abiertas as { id: string; code: string }[] | null) ?? [];
+    return lista.length === 1 ? lista[0] : null;
+  } catch {
+    return null;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

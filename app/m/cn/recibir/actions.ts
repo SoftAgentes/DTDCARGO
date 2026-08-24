@@ -211,9 +211,28 @@ export async function receivePrealertaAction(
   // (`client_notification_schedule.shipment_id` es not null) y antes eso se
   // perdía en silencio. Ahora queda asentado en la bitácora de la recepción:
   // la oficina lo ve y decide si le escribe a mano.
-  void scheduleReceiptInWarehouse(admin, auth.session.tenant_id, [
-    res.client_markbox,
-  ])
+  // SDD-0283 · se pasa también la COMPRA: si el cliente todavía no tiene envío
+  // abierto (el caso normal en una primera compra), el aviso cuelga de ella.
+  // El RPC devuelve el código de la compra pero no su id — se resuelve acá.
+  void (async () => {
+    const { data: pre } = res.prealerta_code
+      ? await admin
+          .from("prealertas")
+          .select("id")
+          .eq("tenant_id", auth.session.tenant_id)
+          .eq("code", res.prealerta_code)
+          .is("deleted_at", null)
+          .maybeSingle<{ id: string }>()
+      : { data: null };
+
+    return scheduleReceiptInWarehouse(admin, auth.session.tenant_id, [
+      {
+        markbox: res.client_markbox,
+        prealertaId: pre?.id ?? null,
+        prealertaCode: res.prealerta_code ?? null,
+      },
+    ]);
+  })()
     .then(async (r) => {
       const nota = notaSinAviso(r.sinDestino);
       if (!nota || !res.receipt_id) return;

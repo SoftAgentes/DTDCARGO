@@ -75,8 +75,7 @@ function makeAdmin(cfg: Cfg) {
 }
 
 const EV = {
-  shipmentId: "s-1",
-  shipmentCode: "ENV-1",
+  ancla: { kind: "shipment", shipmentId: "s-1", shipmentCode: "ENV-1" } as const,
   clientMarkbox: "DTD-1",
   clientName: "Ana",
   event: "status:shipped",

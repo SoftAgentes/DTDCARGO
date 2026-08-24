@@ -31,8 +31,11 @@ async function scheduleForTargets(
   for (const t of targets) {
     if (!t.clientMarkbox) continue;
     const res = await scheduleClientNotifications(admin, tenantId, {
-      shipmentId: t.shipmentId,
-      shipmentCode: t.shipmentCode,
+      ancla: {
+        kind: "shipment",
+        shipmentId: t.shipmentId,
+        shipmentCode: t.shipmentCode,
+      },
       clientMarkbox: t.clientMarkbox,
       clientName: t.clientName,
       event,
@@ -237,26 +240,42 @@ export interface FanoutResultado {
  *
  * Best-effort: nunca throwea. Un fallo acá no rompe la recepción.
  */
+/**
+ * Una recepción a notificar. La compra es opcional: la recepción manual de la
+ * oficina puede no tener una detrás (mercancía que nadie pre-declaró).
+ */
+export interface RecepcionANotificar {
+  markbox: string | null | undefined;
+  /** La compra que materializa esta caja, si se conoce. */
+  prealertaId?: string | null;
+  prealertaCode?: string | null;
+}
+
 export async function scheduleReceiptInWarehouse(
   admin: SupabaseClient,
   tenantId: string,
-  markboxes: Array<string | null | undefined>,
+  recepciones: RecepcionANotificar[],
   eventTime: Date = new Date(),
 ): Promise<FanoutResultado> {
   const vacio: FanoutResultado = { scheduled: 0, sinDestino: [] };
   try {
-    const marks = Array.from(
-      new Set(
-        markboxes
-          .map((m) => (m ?? "").trim())
-          .filter((m): m is string => m.length > 0),
-      ),
-    );
-    if (marks.length === 0) return vacio;
+    // Dedup por Shipping Mark, quedándose con la primera entrada que traiga
+    // compra: si el mismo cliente aparece dos veces y sólo una sabe de qué
+    // compra viene, esa es la útil.
+    const porMark = new Map<string, RecepcionANotificar>();
+    for (const r of recepciones) {
+      const mark = (r.markbox ?? "").trim();
+      if (!mark) continue;
+      const previo = porMark.get(mark);
+      if (!previo || (!previo.prealertaId && r.prealertaId)) {
+        porMark.set(mark, { ...r, markbox: mark });
+      }
+    }
+    if (porMark.size === 0) return vacio;
 
     let scheduled = 0;
     const sinDestino: string[] = [];
-    for (const markbox of marks) {
+    for (const [markbox, rec] of porMark) {
       const { data: shipment } = await admin
         .from("shipments")
         .select("id, code, client_markbox, client_name")
@@ -271,25 +290,52 @@ export async function scheduleReceiptInWarehouse(
           client_markbox: string | null;
           client_name: string | null;
         }>();
-      if (!shipment) {
-        sinDestino.push(markbox);
+
+      if (shipment) {
+        scheduled += await scheduleForTargets(
+          admin,
+          tenantId,
+          "status:in_warehouse",
+          [
+            {
+              shipmentId: shipment.id,
+              shipmentCode: shipment.code,
+              clientMarkbox: shipment.client_markbox,
+              clientName: shipment.client_name,
+            },
+          ],
+          eventTime,
+        );
         continue;
       }
 
-      scheduled += await scheduleForTargets(
-        admin,
-        tenantId,
-        "status:in_warehouse",
-        [
-          {
-            shipmentId: shipment.id,
-            shipmentCode: shipment.code,
-            clientMarkbox: shipment.client_markbox,
-            clientName: shipment.client_name,
+      // ── SDD-0283 · sin envío, el aviso cuelga de la COMPRA ──
+      //
+      // Éste es el caso que antes se perdía, y no es el raro: es el normal en
+      // una primera compra. El MISMO `trigger_event` a propósito — significa lo
+      // mismo cuelgue de donde cuelgue, así que el tenant que ya lo tenía
+      // configurado no tiene que volver a configurar nada.
+      if (rec.prealertaId && rec.prealertaCode) {
+        const res = await scheduleClientNotifications(admin, tenantId, {
+          ancla: {
+            kind: "prealerta",
+            prealertaId: rec.prealertaId,
+            prealertaCode: rec.prealertaCode,
           },
-        ],
-        eventTime,
-      );
+          clientMarkbox: markbox,
+          clientName: null,
+          event: "status:in_warehouse",
+          eventTime,
+        });
+        if (res.scheduled > 0) {
+          scheduled += res.scheduled;
+          continue;
+        }
+        // Si faltó la migración 0389, esto sigue siendo un cliente sin avisar y
+        // tiene que salir en la nota de la bitácora igual que antes.
+      }
+
+      sinDestino.push(markbox);
     }
     return { scheduled, sinDestino };
   } catch (err) {

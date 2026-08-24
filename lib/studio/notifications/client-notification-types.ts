@@ -206,7 +206,13 @@ export interface ClientNotificationRule {
 export interface ClientNotificationScheduleRow {
   id: string;
   tenant_id: string;
-  shipment_id: string;
+  /**
+   * SDD-0283: nullable desde la migr 0389. Un aviso cuelga de un envío O de una
+   * compra, nunca de los dos ni de ninguno (CHECK `client_notif_sched_una_ancla`).
+   */
+  shipment_id: string | null;
+  /** SDD-0283: la compra de la que cuelga el aviso cuando todavía no hay envío. */
+  prealerta_id?: string | null;
   client_markbox: string;
   rule_id: string;
   trigger_event: string;

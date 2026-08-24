@@ -177,12 +177,20 @@ async function dispatchEmail(
   if (!email) return "no_destination";
 
   const name = copy.clientName || client?.name || "cliente";
-  const code = strFromPayload(row.payload, "shipmentCode") ?? "";
-  const trackUrl = `${SITE_URL}/portal/envios/${encodeURIComponent(code)}`;
+  const destino = destinoDelAviso(row.payload);
+  const code = destino.code;
+  const trackUrl = `${SITE_URL}${destino.path}`;
 
   const res = await sendEmail(admin, row.tenant_id, {
     subject: code ? `${copy.title} · ${code}` : copy.title,
-    html: buildHtml({ name, title: copy.title, body: copy.body, code, trackUrl }),
+    html: buildHtml({
+      name,
+      title: copy.title,
+      body: copy.body,
+      code,
+      codeLabel: destino.label,
+      trackUrl,
+    }),
     to: email,
     to_name: name,
     metadata: {
@@ -227,11 +235,11 @@ async function dispatchPush(
   const userId = link?.auth_user_id ?? null;
   if (!userId) return "no_destination";
 
-  const code = strFromPayload(row.payload, "shipmentCode") ?? "";
+  const destino = destinoDelAviso(row.payload);
   const id = await enqueueUserPush(admin, row.tenant_id, userId, {
     title: copy.title,
     body: copy.body,
-    url: code ? `/portal/envios/${encodeURIComponent(code)}` : "/portal",
+    url: destino.path,
     tag: `client-notif:${row.id}`,
   });
   return id ? "sent" : "transient_fail";
@@ -245,16 +253,44 @@ function strFromPayload(
   return typeof v === "string" ? v : null;
 }
 
+/**
+ * A dónde manda el aviso, y cómo se llama lo que anuncia.
+ *
+ * SDD-0283 · un aviso puede colgar de una COMPRA (todavía sin envío). El
+ * `portalPath` lo calcula el motor al programar, así que acá sólo se lee.
+ *
+ * ⚠️ El fallback NO es decorativo: cuando esto se despliegue va a haber filas
+ * YA EN LA COLA, programadas por la versión anterior, que sólo traen
+ * `shipmentCode`. Sin el fallback esas filas perderían su enlace y llegarían al
+ * cliente apuntando a `/portal` a secas.
+ */
+function destinoDelAviso(payload: Record<string, unknown>): {
+  code: string;
+  label: string;
+  path: string;
+} {
+  const anchorCode = strFromPayload(payload, "anchorCode");
+  const shipmentCode = strFromPayload(payload, "shipmentCode");
+  const code = anchorCode ?? shipmentCode ?? "";
+  const label = strFromPayload(payload, "anchorLabel") ?? "Envío";
+  const path =
+    strFromPayload(payload, "portalPath") ??
+    (code ? `/portal/envios/${encodeURIComponent(code)}` : "/portal");
+  return { code, label, path };
+}
+
 function buildHtml(d: {
   name: string;
   title: string;
   body: string;
   code: string;
+  /** "Envío" o "Compra" — el correo no puede llamarle envío a una compra. */
+  codeLabel: string;
   trackUrl: string;
 }): string {
   const codeRow = d.code
     ? `<table style="border-collapse:collapse;margin:0 0 20px">
-<tr><td style="padding:4px 12px 4px 0;color:#6B6B6B;font-size:13px">Envío</td>
+<tr><td style="padding:4px 12px 4px 0;color:#6B6B6B;font-size:13px">${escapeHtml(d.codeLabel)}</td>
 <td style="padding:4px 0;color:#0F1E3D;font-size:14px;font-weight:700">${escapeHtml(
         d.code,
       )}</td></tr></table>`

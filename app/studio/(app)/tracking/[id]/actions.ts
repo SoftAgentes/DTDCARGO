@@ -317,8 +317,7 @@ export async function transitionShipment(
   if (shipment.status !== newStatus && newStatus !== "arrived_destination") {
     const admin = createAdminClient();
     await scheduleClientNotifications(admin, tenantId, {
-      shipmentId: id,
-      shipmentCode: shipment.code,
+      ancla: { kind: "shipment", shipmentId: id, shipmentCode: shipment.code },
       clientMarkbox: shipment.client_markbox,
       clientName: shipment.client_name,
       event: statusEvent(newStatus),

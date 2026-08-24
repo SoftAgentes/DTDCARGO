@@ -3,8 +3,13 @@
  * consolidación / recibo agrupa N envíos; cada uno recibe su aviso.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { ScheduleResult } from "../schedule-client-notifications";
 
-const scheduleMock = vi.fn((...args: unknown[]) => {
+// El tipo de retorno se declara EXPLÍCITO: sin él, vi.fn lo infiere de la
+// implementación inicial (`{scheduled, skipped}`) y un `mockResolvedValueOnce`
+// con `faltaMigracion` no compila. Vitest transpila sin chequear tipos, así que
+// el test corría verde y el rojo aparecía recién en el gate.
+const scheduleMock = vi.fn((...args: unknown[]): Promise<ScheduleResult> => {
   void args;
   return Promise.resolve({ scheduled: 1, skipped: 0 });
 });
@@ -62,8 +67,7 @@ describe("scheduleConsolidationEvent", () => {
     expect(n).toBe(2);
     expect(scheduleMock).toHaveBeenCalledTimes(2);
     expect(scheduleMock.mock.calls[0][2]).toMatchObject({
-      shipmentId: "s-1",
-      shipmentCode: "ENV-1",
+      ancla: { kind: "shipment", shipmentId: "s-1", shipmentCode: "ENV-1" },
       event: "consolidated",
     });
   });
@@ -95,7 +99,7 @@ describe("scheduleReceiptVeReceived", () => {
     expect(n).toBe(1); // sólo un Shipping Mark único con envío resoluble
     expect(scheduleMock).toHaveBeenCalledTimes(1);
     expect(scheduleMock.mock.calls[0][2]).toMatchObject({
-      shipmentId: "s-9",
+      ancla: { kind: "shipment", shipmentId: "s-9", shipmentCode: "ENV-9" },
       event: "received_ve",
     });
   });
@@ -119,16 +123,16 @@ describe("scheduleReceiptInWarehouse", () => {
       },
     });
     const r = await scheduleReceiptInWarehouse(admin, "t-1", [
-      "DTD-7",
-      "DTD-7",
-      "  ",
-      null,
+      { markbox: "DTD-7" },
+      { markbox: "DTD-7" },
+      { markbox: "  " },
+      { markbox: null },
     ]);
     expect(r.scheduled).toBe(1); // sólo un Shipping Mark único con envío resoluble
     expect(r.sinDestino).toEqual([]);
     expect(scheduleMock).toHaveBeenCalledTimes(1);
     expect(scheduleMock.mock.calls[0][2]).toMatchObject({
-      shipmentId: "s-7",
+      ancla: { kind: "shipment", shipmentId: "s-7", shipmentCode: "ENV-7" },
       event: "status:in_warehouse",
     });
   });
@@ -139,7 +143,9 @@ describe("scheduleReceiptInWarehouse", () => {
     // avisó" — que son opuestos. El caso sin envío abierto es el NORMAL en una
     // primera compra: la caja llega a Yiwu semanas antes de que exista el envío.
     const admin = makeAdmin({ shipments: null });
-    const r = await scheduleReceiptInWarehouse(admin, "t-1", ["DTD-404"]);
+    const r = await scheduleReceiptInWarehouse(admin, "t-1", [
+      { markbox: "DTD-404" },
+    ]);
     expect(r.scheduled).toBe(0);
     expect(r.sinDestino).toEqual(["DTD-404"]);
     expect(scheduleMock).not.toHaveBeenCalled();
@@ -147,7 +153,10 @@ describe("scheduleReceiptInWarehouse", () => {
 
   it("sin Shipping Marks no denuncia a nadie (no es lo mismo que no avisar)", async () => {
     const admin = makeAdmin({ shipments: null });
-    const r = await scheduleReceiptInWarehouse(admin, "t-1", [null, "  "]);
+    const r = await scheduleReceiptInWarehouse(admin, "t-1", [
+      { markbox: null },
+      { markbox: "  " },
+    ]);
     expect(r).toEqual({ scheduled: 0, sinDestino: [] });
   });
 });
@@ -165,5 +174,77 @@ describe("notaSinAviso", () => {
     // La nota la lee el operador de oficina: tiene que decirle qué hacer, no
     // sólo qué pasó.
     expect(nota).toContain("escríbele");
+  });
+});
+
+describe("scheduleReceiptInWarehouse · el aviso cae en la COMPRA (SDD-0283)", () => {
+  it("🔴 sin envío abierto PERO con compra → programa anclado a la compra", () => {
+    // Éste es el caso que se perdía: primera compra, la caja llega a Yiwu y el
+    // envío todavía no existe porque nace al consolidar.
+    const admin = makeAdmin({ shipments: null });
+    return scheduleReceiptInWarehouse(admin, "t-1", [
+      { markbox: "DTD-9", prealertaId: "p-9", prealertaCode: "DTD-9-1-1" },
+    ]).then((r) => {
+      expect(r.scheduled).toBe(1);
+      expect(r.sinDestino).toEqual([]);
+      expect(scheduleMock.mock.calls[0][2]).toMatchObject({
+        ancla: { kind: "prealerta", prealertaId: "p-9", prealertaCode: "DTD-9-1-1" },
+        // MISMO evento que por envío: significa lo mismo cuelgue de donde
+        // cuelgue, y así el tenant no tiene que configurar una regla nueva.
+        event: "status:in_warehouse",
+      });
+    });
+  });
+
+  it("con envío abierto NO usa la compra (el envío manda)", () => {
+    const admin = makeAdmin({
+      shipments: { id: "s-3", code: "ENV-3", client_markbox: "DTD-9", client_name: "Li" },
+    });
+    return scheduleReceiptInWarehouse(admin, "t-1", [
+      { markbox: "DTD-9", prealertaId: "p-9", prealertaCode: "DTD-9-1-1" },
+    ]).then(() => {
+      expect(scheduleMock.mock.calls[0][2]).toMatchObject({
+        ancla: { kind: "shipment", shipmentId: "s-3" },
+      });
+    });
+  });
+
+  it("🔴 si falta la migración 0389, el cliente SIGUE contando como sin avisar", () => {
+    // El motor devuelve faltaMigracion y 0 programados. Si esto no cayera en
+    // `sinDestino`, la nota de la bitácora desaparecería justo en el entorno
+    // donde el aviso NO se está mandando — el peor momento para callarse.
+    scheduleMock.mockResolvedValueOnce({
+      scheduled: 0,
+      skipped: 1,
+      faltaMigracion: true,
+    });
+    const admin = makeAdmin({ shipments: null });
+    return scheduleReceiptInWarehouse(admin, "t-1", [
+      { markbox: "DTD-9", prealertaId: "p-9", prealertaCode: "DTD-9-1-1" },
+    ]).then((r) => {
+      expect(r.scheduled).toBe(0);
+      expect(r.sinDestino).toEqual(["DTD-9"]);
+    });
+  });
+
+  it("sin envío y sin compra → sin destino (no se inventa a quién avisar)", () => {
+    const admin = makeAdmin({ shipments: null });
+    return scheduleReceiptInWarehouse(admin, "t-1", [{ markbox: "DTD-404" }]).then(
+      (r) => {
+        expect(r.sinDestino).toEqual(["DTD-404"]);
+        expect(scheduleMock).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  it("al deduplicar por Shipping Mark se queda con la entrada que SÍ trae compra", () => {
+    const admin = makeAdmin({ shipments: null });
+    return scheduleReceiptInWarehouse(admin, "t-1", [
+      { markbox: "DTD-9" },
+      { markbox: "DTD-9", prealertaId: "p-9", prealertaCode: "DTD-9-1-1" },
+    ]).then((r) => {
+      expect(r.scheduled).toBe(1);
+      expect(scheduleMock).toHaveBeenCalledTimes(1);
+    });
   });
 });

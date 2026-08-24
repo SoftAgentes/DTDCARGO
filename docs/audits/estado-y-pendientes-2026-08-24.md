@@ -114,11 +114,15 @@ En orden de valor para poder mostrar el ERP funcionando.
       Ya cerrado: la oficina avisa, y cuando alguien se queda sin aviso queda
       asentado en la bitácora de la recepción con su Shipping Mark.
 
-- [ ] **A1b · Colgar el aviso de la compra, no del envío.** 🔴 *La cura de raíz.*
-      `client_notification_schedule.shipment_id` es `not null references
-      shipments(id)`: sin envío no hay dónde colgar el aviso. Pide **migración**
-      (nullable + `prealerta_id` + rehacer el índice de dedupe) y ripplea por
-      todo el pipeline. **La escribo, no la aplico** — tienes que nombrarla.
+- [x] **A1b · Colgar el aviso de la compra, no del envío.** → **SDD-0283**.
+      Migración **0389 aplicada en producción** el 2026-08-24 con tu OK; el paso
+      `migrations-applied` del gate volvió a verde. La cola estaba vacía (0
+      filas), así que el cambio no tocó ningún dato.
+
+      ⚠️ **Queda un paso tuyo:** la migración habilita el camino pero **no
+      siembra ninguna regla** — encender un aviso manda correo y push a clientes
+      reales. Hasta que enciendas `status:in_warehouse` en Administración, el
+      motor puede programar contra la compra pero no hay regla que despachar.
 - [ ] **A2 · Vincular la recepción CN con el proveedor real.**
       Medido: `warehouse_receipts_cn` guarda `supplier_name` como **texto
       libre**, sin FK a `suppliers_cn`. Consecuencia: no se puede responder
