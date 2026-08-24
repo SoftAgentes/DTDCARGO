@@ -1,5 +1,5 @@
 ---
-sdd: "0287"
+sdd: "0291"
 title: "SeaRates cierra: el ERP avisa cuando el cotizador se queda mudo, el panel deja de mentir y el portal deja de enlazarlo"
 status: in-progress
 author: "Claude Code (ventana searates-aviso) + founder"
@@ -11,7 +11,7 @@ related: ["0092", "0095", "0101", "0247"]
 confidencialidad: interna
 ---
 
-# SDD-0287 — El cotizador de fletes avisa cuando se queda mudo
+# SDD-0291 — El cotizador de fletes avisa cuando se queda mudo
 
 > El 24-ago-2026 el cron semanal corrió, las 20 rutas volvieron en `error`, `/fcl`
 > dejó de dar precio y **nadie se enteró**. El panel que existe para enterarse lo

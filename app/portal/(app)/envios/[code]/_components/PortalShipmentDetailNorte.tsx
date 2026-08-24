@@ -487,7 +487,7 @@ function NavieraCard({
       ) : null}
 
       {/* Acá vivía el botón "Ver seguimiento en SeaRates" (SDD-0101). Se quitó el
-          24-ago-2026 (SDD-0287): SeaRates notificó el 13-ago la terminación de sus
+          24-ago-2026 (SDD-0291): SeaRates notificó el 13-ago la terminación de sus
           servicios con 30 días de plazo, así que el enlace queda MUERTO el ~12-sep
           — y este botón lo ve el CLIENTE. La card no pierde información: buque,
           viaje, ETD/ETA y contenedor salen de NUESTRA cadena

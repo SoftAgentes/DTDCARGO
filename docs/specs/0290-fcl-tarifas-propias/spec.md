@@ -7,13 +7,13 @@ created: 2026-08-24
 updated: 2026-08-24
 supersedes: null
 superseded_by: null
-related: ["0287", "0095", "0092", "0164"]
+related: ["0291", "0095", "0092", "0164"]
 confidencialidad: interna
 ---
 
 # SDD-0290 — El cotizador FCL vuelve, con tarifas propias
 
-> SeaRates cerró (SDD-0287) y `/fcl` se quedó mudo. Buscando reemplazo apareció que
+> SeaRates cerró (SDD-0291) y `/fcl` se quedó mudo. Buscando reemplazo apareció que
 > **el camino para publicar las tarifas FCL PROPIAS ya estaba construido entero y
 > estaba huérfano.** Esta spec lo enchufa.
 
@@ -56,7 +56,7 @@ proveedor cierre — que es exactamente lo que acaba de pasar. El techo es la
   prometerle al cliente algo que la herramienta no hace.
 - **Cron `searates-refresh` desprogramado** de `vercel.json`. No es cosmético: con
   `/fcl` ya desenganchado, cada lunes iba a llamar a una API muerta **y disparar el
-  aviso de SDD-0287** por un proveedor que nadie usa. Eso es una falsa alarma
+  aviso de SDD-0291** por un proveedor que nadie usa. Eso es una falsa alarma
   semanal garantizada. El código del cron y del aviso **queda intacto**: sirve tal
   cual para el proveedor que lo reemplace.
 - **`CotizadorFletes` marcado como RETIRADO** con un comentario que explica por qué

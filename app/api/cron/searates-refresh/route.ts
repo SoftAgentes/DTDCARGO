@@ -10,7 +10,7 @@
  * por header. Idempotente: el upsert pisa la fila por ruta, una 2ª pasada no duplica.
  * Espejo de /api/cron/workflow-drain.
  *
- * ⚠️ **SDD-0287 · el aviso.** Hasta el 24-ago-2026 este handler devolvía el
+ * ⚠️ **SDD-0291 · el aviso.** Hasta el 24-ago-2026 este handler devolvía el
  * `summary` en el JSON de la respuesta y ahí moría. Ese día las 20 rutas volvieron
  * en `error` (SeaRates revocó el acceso: 403 ACCESS_DENIED) y **nadie se enteró**:
  * `/fcl` dejó de dar precio en silencio. Ahora la corrida se clasifica y, si no

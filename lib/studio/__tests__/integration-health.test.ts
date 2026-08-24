@@ -119,7 +119,7 @@ describe("checkAllIntegrations · modo barato", () => {
 });
 
 /**
- * 🔴 SDD-0287 · el falso verde.
+ * 🔴 SDD-0291 · el falso verde.
  *
  * El endpoint de auth de SeaRates emite el token con sólo mirar que la cuenta
  * exista. Medido en vivo el 24-ago-2026: devolvía 200 con token mientras rates

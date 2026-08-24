@@ -1,5 +1,5 @@
 /**
- * Salud del refresco de tarifas marítimas + texto del aviso (SDD-0287).
+ * Salud del refresco de tarifas marítimas + texto del aviso (SDD-0291).
  *
  * **Por qué existe.** El 24-ago-2026 el cron semanal corrió, las 20 rutas
  * volvieron en `error` —SeaRates había revocado el acceso: `403 ACCESS_DENIED`

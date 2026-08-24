@@ -74,7 +74,7 @@ export type RefreshSummary = {
   /**
    * Cuántas veces salió cada `error_code` en la corrida. Es lo que separa "se
    * cayó la red un rato" de "nos revocaron el acceso": el corte de SeaRates del
-   * 24-ago-2026 tuvo la firma `{ graphql_error: 20 }` (SDD-0287).
+   * 24-ago-2026 tuvo la firma `{ graphql_error: 20 }` (SDD-0291).
    */
   errorCodes: Record<string, number>;
   upserted: boolean;

@@ -278,7 +278,7 @@ async function countLiveOceanRates(): Promise<number | null> {
 export type LiveOceanRateCounter = () => Promise<number | null>;
 
 /**
- * 🔴 **Por qué esto NO es sólo un ping (SDD-0287).**
+ * 🔴 **Por qué esto NO es sólo un ping (SDD-0291).**
  *
  * El endpoint de auth de SeaRates emite el platform token con SÓLO mirar que la
  * cuenta exista — no consulta permisos. Medido en vivo el 24-ago-2026: devolvía

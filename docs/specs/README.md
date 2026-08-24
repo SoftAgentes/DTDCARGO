@@ -317,10 +317,10 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0284 | La recepción de Yiwu sabe de qué compra es — y por eso conoce… | in-progress | interno |
 | 0285 | El cliente ve las fotos de su mercancía en la bodega de Yiwu | in-progress | interno |
 | 0287 | El estado de cuenta sale en PDF, para el cliente y para el as… | in-progress | interno |
-| 0287 | SeaRates cierra: el ERP avisa cuando el cotizador se queda mu… | in-progress | interna |
 | 0288 | El ERP sabe que el cliente escribió — la alerta de 'sin atend… | in-progress | interno |
 | 0289 | Clientes, Cobranzas y Tracking se exportan a CSV — sin trunca… | in-progress | interno |
 | 0290 | El cotizador FCL vuelve con tarifas propias — se desengancha … | in-progress | interna |
+| 0291 | SeaRates cierra: el ERP avisa cuando el cotizador se queda mu… | in-progress | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0286 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
