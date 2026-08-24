@@ -13,10 +13,11 @@
  * Para estados terminales (delivered/cancelled), "Cancelar" no aparece.
  */
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { cancelShipment, deleteShipment } from "../actions";
 import { isTerminalStatus } from "@/lib/studio/shipment-actions";
-import type { ShipmentStatus } from "@/lib/studio/shipment-types";
+import type { ShipmentStatus } from "@/lib/studio/shipment-types";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 const MODAL_BACKDROP: React.CSSProperties = {
   position: "fixed",
@@ -65,17 +66,22 @@ export function FooterActions({
     setError(null);
   };
 
-  // Cerrar modales con Escape (WCAG 2.1 Keyboard accessibility)
-  useEffect(() => {
-    if (!modal) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isPending) {
-        closeModal();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [modal, isPending]);
+  /**
+   * SDD-0290 · Antes había un `useEffect` propio sólo para Escape.
+   * `useDialogA11y` lo reemplaza y suma focus-trap, foco inicial y restauración
+   * (WCAG 2.1.2 / 2.4.3). Dos manejadores de Escape habrían competido.
+   *
+   * Un solo `panelRef` para los DOS modales: `modal` es `"cancel" | "delete" |
+   * null`, así que nunca hay dos abiertos a la vez y el ref siempre apunta al
+   * que está montado. `enabled` hace falta porque se renderizan inline dentro
+   * de este componente, que vive aunque no haya modal.
+   */
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, {
+    onClose: closeModal,
+    pending: isPending,
+    enabled: modal !== null,
+  });
 
   const handleCancel = () => {
     setError(null);
@@ -143,7 +149,9 @@ export function FooterActions({
       {modal === "cancel" && (
         <div style={MODAL_BACKDROP} onClick={closeModal}>
           <div
+            ref={panelRef}
             style={MODAL_BOX}
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -255,7 +263,9 @@ export function FooterActions({
       {modal === "delete" && (
         <div style={MODAL_BACKDROP} onClick={closeModal}>
           <div
+            ref={panelRef}
             style={MODAL_BOX}
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

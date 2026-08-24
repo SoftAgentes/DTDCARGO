@@ -15,7 +15,7 @@
  * así UI y BD coinciden.
  */
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   INVOICE_CURRENCY_OPTIONS,
@@ -40,6 +40,7 @@ import {
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 interface Props {
   mode: "create" | "edit";
@@ -188,12 +189,12 @@ export function InvoiceDrawer({
 
   const title = mode === "create" ? "Nueva factura" : "Editar factura";
 
+  const panelRef = useRef<HTMLElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: isPending || isDeleting });
+
   return (
     <div
       onClick={() => !isPending && !isDeleting && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="inv-drawer-title"
       style={{
         position: "fixed",
         inset: 0,
@@ -204,6 +205,11 @@ export function InvoiceDrawer({
       }}
     >
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="inv-drawer-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(680px, 96vw)",

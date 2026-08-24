@@ -172,9 +172,22 @@ En orden de valor para poder mostrar el ERP funcionando.
       `listClients` en `CLIENTS_MAX`. Topes correctos para una pantalla,
       mentirosos para un archivo. El export usa lecturas propias que paginan y
       **lanzan** si topan — un error se ve, un CSV corto no.
-- [ ] **A6 · Los ~16 modales sin `DrawerShell`** (sin focus-trap ni Escape —
-      WCAG 2.4.3 / 2.1.2). Lista medida en
-      `docs/design/studio/erp-faseb-pendientes.md`, verificada hoy.
+- [x] **A6 · Los modales sin focus-trap.** → **SDD-0290**. **17 cableados**;
+      los 2 que quedan son *popovers*, no modales (atraparles el foco sería
+      incorrecto).
+
+      ⚠️ **El backlog de julio decía ~16 y estaba desactualizado**: son 23
+      archivos, de los cuales **4 ya estaban migrados**.
+
+      ⚠️ **No se migraron a `DrawerShell`**, y a propósito: ese shell impone su
+      chrome, y varios de estos overlays son otra cosa (un editor con pestañas,
+      la paleta ⌘K). Lo que les faltaba vive aislado en `useDialogA11y` — el
+      mismo hook que `DrawerShell` usa por dentro. Aplicarlo no cambia un pixel.
+
+      🔴 **Y apareció un archivo INVISIBLE para grep:** `BugReportModal.tsx`
+      tenía un byte NUL crudo en el fuente, así que `grep` lo trataba como
+      binario y **todo barrido de texto del repo lo salteaba en silencio**.
+      Corregido a escape; mismo runtime, archivo de texto otra vez.
 - [ ] **A7 · Limpiar los 4 avisos de lint** que arrastra el gate.
 
 ### 🅱 Necesita una decisión corta tuya · después lo hago

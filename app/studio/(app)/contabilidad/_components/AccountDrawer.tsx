@@ -8,7 +8,7 @@
  * sí name/type/postable/notes.
  */
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   ACCT_TYPE_OPTIONS,
@@ -20,7 +20,8 @@ import {
 } from "@/lib/studio/account-types";
 import { createAccount, updateAccount } from "../actions";
 import { Icon } from "@/app/studio/_components/icons";
-import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 interface Props {
   mode: "create" | "edit";
@@ -67,12 +68,12 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
   const title = mode === "create" ? "Nueva cuenta" : "Editar cuenta";
   const canSubmit = code.trim().length > 0 && name.trim().length > 0;
 
+  const panelRef = useRef<HTMLElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: isPending });
+
   return (
     <div
       onClick={() => !isPending && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="acct-drawer-title"
       style={{
         position: "fixed",
         inset: 0,
@@ -83,6 +84,11 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
       }}
     >
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="acct-drawer-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(560px, 96vw)",

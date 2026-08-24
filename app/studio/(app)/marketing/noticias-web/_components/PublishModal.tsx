@@ -28,7 +28,8 @@ import {
   getPublishPreview,
   publishPost,
   type WriterOption,
-} from "../actions";
+} from "../actions";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 interface Props {
   tipo: NewsTipo;
@@ -122,20 +123,26 @@ export function PublishModal({
       });
   }, [tipo, headline]);
 
-  // ── Escape cierra ───────────────────────────────────────────
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (writerPopoverOpen) {
-          setWriterPopoverOpen(false);
-          return;
-        }
-        if (!publishing) onClose();
+  /**
+   * SDD-0290 · El `useEffect` propio sólo hacía Escape; `useDialogA11y` suma
+   * focus-trap, foco inicial y restauración (WCAG 2.1.2 / 2.4.3).
+   *
+   * ⚠️ El Escape de acá tiene CAPAS y hay que conservarlas: con el popover de
+   * firma abierto, Escape cierra el popover y NO el modal. El hook llama a
+   * `onClose` a secas, así que la lógica en capas se le pasa como `onClose` en
+   * vez de dejar los dos manejadores compitiendo.
+   */
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, {
+    onClose: () => {
+      if (writerPopoverOpen) {
+        setWriterPopoverOpen(false);
+        return;
       }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose, publishing, writerPopoverOpen]);
+      onClose();
+    },
+    pending: publishing,
+  });
 
   // ── Click outside del popover de writer lo cierra ───────────
   useEffect(() => {
@@ -210,7 +217,9 @@ export function PublishModal({
 
   return (
     <div
+      ref={panelRef}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      tabIndex={-1}
       role="dialog"
       aria-modal="true"
       aria-label="Publicar artículo"

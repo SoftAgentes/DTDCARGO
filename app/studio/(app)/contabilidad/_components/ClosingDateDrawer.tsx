@@ -6,11 +6,12 @@
  * reabre el período (quita el cierre). La defensa dura vive en el trigger de DB.
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { setClosingDateAction } from "../actions";
 import { Icon } from "@/app/studio/_components/icons";
-import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 export function ClosingDateDrawer({
   currentClosingDate,
@@ -39,12 +40,12 @@ export function ClosingDateDrawer({
     onClose();
   };
 
+  const panelRef = useRef<HTMLElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: pending });
+
   return (
     <div
       onClick={() => !pending && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="closing-drawer-title"
       style={{
         position: "fixed",
         inset: 0,
@@ -55,6 +56,11 @@ export function ClosingDateDrawer({
       }}
     >
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="closing-drawer-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(480px, 96vw)",

@@ -37,9 +37,24 @@ export function useDialogA11y(
     onClose,
     pending,
     initialFocusRef,
+    enabled = true,
   }: {
     onClose: () => void;
     pending: boolean;
+    /**
+     * SDD-0290 · `false` mientras el diálogo NO está abierto.
+     *
+     * Hace falta para los modales que se renderizan INLINE dentro de un
+     * componente que vive siempre (`{abierto && <div role="dialog">…}`). Ahí el
+     * hook se monta con el componente, no con el modal: sin esto, el efecto de
+     * foco inicial corre una vez —con el panel todavía sin montar— y el
+     * operador que abre el modal se queda con el foco donde estaba.
+     *
+     * Los modales que SON su propio componente (el caso de `DrawerShell` y de
+     * casi todos los drawers) no necesitan tocarlo: montan y desmontan con el
+     * diálogo, así que el default `true` ya es correcto.
+     */
+    enabled?: boolean;
     /**
      * Elemento a enfocar al abrir en vez del panel. Útil en prompts, donde el
      * operador debe poder tipear de inmediato (ej. el input del PromptModal).
@@ -49,6 +64,7 @@ export function useDialogA11y(
 ) {
   // Foco inicial + restauración al cerrar.
   useEffect(() => {
+    if (!enabled) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
     const panel = panelRef.current;
     if (panel && isTopmostDialog(panel)) {
@@ -56,10 +72,11 @@ export function useDialogA11y(
     }
     return () => previouslyFocused?.focus?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [enabled]);
 
   // Escape para cerrar + focus-trap.
   useEffect(() => {
+    if (!enabled) return;
     function onKeyDown(e: KeyboardEvent) {
       const panel = panelRef.current;
       if (!panel || !isTopmostDialog(panel)) return;
@@ -94,5 +111,5 @@ export function useDialogA11y(
     }
     document.addEventListener("keydown", onKeyDown, true);
     return () => document.removeEventListener("keydown", onKeyDown, true);
-  }, [panelRef, pending, onClose]);
+  }, [panelRef, pending, onClose, enabled]);
 }
