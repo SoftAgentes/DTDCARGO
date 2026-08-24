@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 278 specs)
+### Índice de specs (generado · 279 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -316,6 +316,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0283 | El aviso al cliente puede colgar de una compra, no sólo de un… | in-progress | interno |
 | 0284 | La recepción de Yiwu sabe de qué compra es — y por eso conoce… | in-progress | interno |
 | 0285 | El cliente ve las fotos de su mercancía en la bodega de Yiwu | in-progress | interno |
+| 0287 | El estado de cuenta sale en PDF, para el cliente y para el as… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0286 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
