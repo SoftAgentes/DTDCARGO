@@ -119,10 +119,18 @@ En orden de valor para poder mostrar el ERP funcionando.
       `migrations-applied` del gate volvió a verde. La cola estaba vacía (0
       filas), así que el cambio no tocó ningún dato.
 
-      ⚠️ **Queda un paso tuyo:** la migración habilita el camino pero **no
-      siembra ninguna regla** — encender un aviso manda correo y push a clientes
-      reales. Hasta que enciendas `status:in_warehouse` en Administración, el
-      motor puede programar contra la compra pero no hay regla que despachar.
+      ✅ **Y la regla ya estaba encendida.** Verifiqué en producción después de
+      aplicar: `status:in_warehouse` está activa (`anchor: event`, `offset: 0`,
+      `channel: email`). El camino quedó vivo de punta a punta — no tienes que
+      encender nada. (Yo había escrito lo contrario un momento antes; lo medí y
+      estaba equivocado.)
+
+- [ ] **B6 · ¿El aviso de Yiwu sale también por push?** 🔴 *Techo medido.*
+      La regla manda **sólo correo**, y de **484 clientes vivos, 136 no tienen
+      correo** (28%). Esos no reciben este aviso por ningún lado — ni siquiera
+      los que tienen el portal instalado, porque la regla no manda push. Pasarla
+      a `channel: both` los cubre. Es decisión tuya: cambia lo que le llega a
+      clientes reales.
 - [ ] **A2 · Vincular la recepción CN con el proveedor real.**
       Medido: `warehouse_receipts_cn` guarda `supplier_name` como **texto
       libre**, sin FK a `suppliers_cn`. Consecuencia: no se puede responder

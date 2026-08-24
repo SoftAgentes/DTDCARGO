@@ -115,10 +115,23 @@ DESPUÉS contra la base, no contra el `{"success": true}` de la herramienta:
 El paso `migrations-applied` del gate quedó en verde: *"no hay migraciones nuevas
 sin aplicar"* (386 archivos · 396 en el ledger).
 
-⚠️ **Falta encender la regla.** La migración habilita el camino pero **no siembra
-ninguna regla de notificación** — a propósito. Hasta que el founder encienda el
-aviso `status:in_warehouse` desde Administración, el motor programa contra la
-compra pero no hay regla activa que despachar.
+### La regla YA estaba encendida — medido después de aplicar
+
+Al verificar en producción apareció algo que este spec daba por pendiente: **la
+regla `status:in_warehouse` ya existe y está activa** (default del tenant,
+`anchor: event`, `offset: 0`, `channel: email`). O sea que el camino quedó
+**vivo de punta a punta** al aplicar la migración: no hace falta encender nada.
+
+Que el `anchor` sea `event` no es casualidad afortunada, es lo que hace que
+funcione: una regla anclada en `eta`/`etd` se saltaría, porque una compra no
+tiene itinerario de naviera.
+
+⚠️ **Pero el canal es sólo `email`, y eso pone un techo medido.** De **484
+clientes vivos, 348 tienen correo y 136 no** (28%). Esos 136 no reciben este
+aviso por ningún lado: la regla no manda push, así que ni siquiera llega a
+quienes tienen el portal instalado. Pasarla a `channel: both` los cubriría — es
+una decisión del founder, no un arreglo técnico, porque cambia lo que le llega a
+clientes reales.
 
 ## Adjuntos
 
