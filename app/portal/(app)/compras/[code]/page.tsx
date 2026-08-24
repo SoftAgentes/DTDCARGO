@@ -192,6 +192,43 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
                         Ya asignada a un envío
                       </div>
                     ) : null}
+
+                    {/* SDD-0285 · las fotos que tomó el operario al recibir.
+                        Es lo que convierte "llegaron 7 cajas" en "llegaron, y
+                        aquí están". Se abren en pestaña nueva a tamaño completo:
+                        el cliente quiere mirar la etiqueta y el estado del
+                        embalaje, no una miniatura. */}
+                    {r.fotos.length > 0 ? (
+                      <div className="mt-3">
+                        <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-grey-500">
+                          Fotos de la recepción
+                        </div>
+                        <div className="mt-2 flex gap-2 flex-wrap">
+                          {r.fotos.map((f) => (
+                            <a
+                              key={`${r.id}-${f.position}`}
+                              href={f.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block rounded-[10px] overflow-hidden border border-grey-200 hover:border-ink focus-visible:border-ink transition-colors"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element --
+                                  la URL es firmada y temporal (1 h): next/image
+                                  la optimizaría a una ruta cacheada que
+                                  sobreviviría a la firma y quedaría rota. */}
+                              <img
+                                src={f.url}
+                                alt={`Foto ${f.position + 1} de la recepción ${r.receiptCode}`}
+                                width={96}
+                                height={96}
+                                loading="lazy"
+                                className="block w-[96px] h-[96px] object-cover"
+                              />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>

@@ -157,9 +157,11 @@ En orden de valor para poder mostrar el ERP funcionando.
       me manda este proveedor?" a nivel empresa: una identidad compartida entre
       clientes, con deduplicación y fusión. Es diseño propio. **Con 6
       recepciones en el sistema, hoy sería resolver un problema sin datos.**
-- [ ] **A3 · Fotos de la recepción en el detalle de compra del portal.**
-      La pantalla ya existe y el bucket de Storage también; falta el puente.
-      Es lo que convierte "llegaron 7 cajas" en "llegaron, y aquí están".
+- [x] **A3 · Fotos de la recepción en el detalle de compra del portal.** →
+      **SDD-0285**. Medido: hay **3 fotos reales** sobre 1 de las 6 recepciones,
+      así que la pantalla tiene qué mostrar. URLs firmadas a 1 h, indexadas por
+      path (no por posición: si Storage omite una entrada, indexar por índice le
+      mostraría al cliente la foto de OTRA caja).
 - [ ] **A4 · PDF del estado de cuenta.** El motor está probado y la pantalla ya
       calcula el ledger. Es el documento que el cliente le pasa a su contador.
 - [ ] **A5 · Exportar CSV en Clientes, Cobranzas y Tracking.** La primitiva
