@@ -24,6 +24,10 @@ import { PrealertaStatusBadge } from "../../_components/PrealertaStatusBadge";
  * con ícono por estado), pero enfocada SOLO en compras (prealertas) — sin mezclar
  * envíos. Client: filtro por estado (estado de UI puro). Los tokens son
  * theme-aware → sirve en el portal claro y en el oscuro del Norte.
+ *
+ * SDD-0281: la card lleva al DETALLE de la compra, no directo a las etiquetas.
+ * Antes el listado era terminal — se veía el badge de estado y no había forma de
+ * abrir la compra para saber si llegó a Yiwu ni cuántas cajas se recibieron.
  */
 export type CompraItem = {
   code: string;
@@ -121,9 +125,9 @@ export function ComprasList({ items }: { items: CompraItem[] }) {
           return (
             <Link
               key={it.code}
-              href={`/portal/compras/${encodeURIComponent(it.code)}/etiquetas`}
+              href={`/portal/compras/${encodeURIComponent(it.code)}`}
               className="card-shadow card-link group bg-white border border-grey-200 rounded-[16px] p-5 flex items-start gap-4 flex-wrap transition-colors hover:border-ink focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
-              aria-label={`Ver etiquetas de la compra ${it.code}`}
+              aria-label={`Abrir la compra ${it.code}`}
             >
               <span
                 className="grid place-items-center h-9 w-9 rounded-[10px] flex-shrink-0"
@@ -155,7 +159,7 @@ export function ComprasList({ items }: { items: CompraItem[] }) {
               </div>
 
               <span className="flex items-center gap-2 flex-shrink-0 self-center">
-                <span className="text-[12px] text-grey-500 hidden sm:inline">Ver etiquetas</span>
+                <span className="text-[12px] text-grey-500 hidden sm:inline">Ver detalle</span>
                 <ArrowIcon size={18} className="text-grey-300 transition-colors group-hover:text-wine-text" />
               </span>
             </Link>
