@@ -3,6 +3,7 @@
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import {
   kommoFetch,
+  paginateTasks,
   paginateTwoPass,
   paginateUnsorted,
   RATE_LIMIT_DELAY_MS,
@@ -16,6 +17,7 @@ import type {
   KommoCustomField,
   KommoLead,
   KommoPipeline,
+  KommoTask,
   KommoUnsorted,
   KommoUser,
 } from "./types.ts";
@@ -489,6 +491,73 @@ export async function syncAll(
         // No es un `ok` limpio: el conteo es un piso, no un total.
         throw new Error(
           `bandeja truncada en el tope de ${items.length} entradas: hay mas sin espejar`,
+        );
+      }
+
+      return { fetched: items.length, upserted };
+    }),
+  );
+
+  // 4b) Tareas (SDD-0288) — el semáforo de "sin atender".
+  //
+  // Una tarea abierta y vencida sobre un lead significa que ese cliente escribió
+  // y nadie le contestó: es el rojo que el equipo ya ve en Kommo, y hasta ahora
+  // el ERP no podía pintar porque no espejaba tareas.
+  //
+  // Mismo patrón de COLA que `unsorted`: marca de agua antes del upsert y
+  // borrado de lo que no volvió a aparecer. Cuando alguien completa una tarea,
+  // deja de estar abierta y tiene que salir del espejo — si no, el rojo se
+  // queda encendido para siempre y el semáforo pasa de útil a ruido.
+  await sleep(RATE_LIMIT_DELAY_MS);
+  results.push(
+    await logged(supabase, conn, "tasks", async () => {
+      const runAt = new Date().toISOString();
+
+      const { items, truncated } = await paginateTasks<KommoTask>(
+        baseUrl,
+        token,
+      );
+
+      const rows = items.map((k) => ({
+        tenant_id: t,
+        id: k.id,
+        entity_id: k.entity_id ?? null,
+        entity_type: k.entity_type ?? null,
+        responsible_user_id: k.responsible_user_id ?? null,
+        text: k.text ?? null,
+        task_type_id: k.task_type_id ?? null,
+        // epoch SEGUNDOS → ISO. El mismo helper que el resto del espejo: en
+        // milisegundos el vencimiento cae en el año 57.000 y la tarea NUNCA se
+        // ve vencida, que es el fallo silencioso que el rojo no denunciaría.
+        complete_till: epochToIso(k.complete_till ?? null),
+        is_completed: k.is_completed === true,
+        kommo_created_at: epochToIso(k.created_at ?? null),
+        kommo_updated_at: epochToIso(k.updated_at ?? null),
+        // `synced_at` NO se pone acá: `upsertRows` lo pisa con su propio reloj,
+        // que es posterior a `runAt`. Por eso el `.lt("synced_at", runAt)` de
+        // abajo selecciona exactamente lo que esta corrida no volvió a ver.
+      }));
+
+      const upserted = await upsertRows(supabase, "kommo_tasks", rows);
+
+      // ⚠️ Sólo se drena si la lectura fue COMPLETA. Con la lista truncada, lo
+      // que no vimos no está "completado": está más allá de la última página, y
+      // borrarlo sería apagar alertas que siguen vivas.
+      if (!truncated) {
+        const { error } = await supabase
+          .from("kommo_tasks")
+          .delete()
+          .eq("tenant_id", t)
+          .lt("synced_at", runAt);
+        if (error) throw new Error(`kommo_tasks drenaje: ${error.message}`);
+      }
+
+      if (truncated) {
+        // No es un `ok` limpio: faltan tareas por espejar, así que el semáforo
+        // es un piso disfrazado de total — hay leads sin atender que no se
+        // pintan. Se grita en vez de callarse.
+        throw new Error(
+          `tareas truncadas en el tope de ${items.length}: hay mas sin espejar`,
         );
       }
 

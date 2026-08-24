@@ -167,6 +167,43 @@ export async function paginateUnsorted<T>(
 }
 
 /**
+ * SDD-0288 — paginación de UNA sola pasada para las tareas (`/api/v4/tasks`).
+ *
+ * ⚠️ **El filtro es una OPTIMIZACIÓN, no un requisito de corrección.** Se pide
+ * `filter[is_completed]=0` para traer sólo las abiertas, pero ese parámetro
+ * **no está verificado contra la API de Kommo**. Si Kommo lo ignora, esto trae
+ * también las completadas y el resultado sigue siendo correcto: quien decide
+ * qué está "sin atender" es `leadsSinAtender()`, que evalúa `is_completed`
+ * sobre la fila espejada. Depender del filtro para ser correctos sería apostar
+ * a algo que nadie midió.
+ *
+ * Deliberadamente NO se fusiona con `paginateUnsorted`: son dos rutas y dos
+ * claves de `_embedded` distintas, y esa función no tiene tests que cubran un
+ * refactor — el bundle de la edge function sólo lo mira `deno check`.
+ */
+export async function paginateTasks<T>(
+  baseUrl: string,
+  token: string,
+): Promise<{ items: T[]; truncated: boolean }> {
+  const items: T[] = [];
+  let truncated = false;
+
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const path =
+      `/api/v4/tasks?limit=${LIMIT}&page=${page}&filter[is_completed]=0`;
+    const data = await kommoFetch<HalList<T>>(baseUrl, token, path);
+    if (!data) break; // 204 → sin tareas o fin
+    const batch = (data._embedded?.tasks ?? []) as T[];
+    items.push(...batch);
+    if (batch.length < LIMIT) break; // página incompleta → fin
+    if (page === MAX_PAGES) truncated = true; // tope alcanzado con la página llena
+    await sleep(RATE_LIMIT_DELAY_MS);
+  }
+
+  return { items, truncated };
+}
+
+/**
  * M2 — paginación de DOS PASADAS: order[updated_at]=desc y order[created_at]=desc,
  * deduplicando por id. Corta cuando la página viene incompleta (< limit) o 204.
  *
