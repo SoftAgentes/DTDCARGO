@@ -25,6 +25,7 @@ import {
   mapLeadRow,
 } from "../_shared/kommo-mapping.ts";
 import {
+  formaDelCuerpo,
   parseKommoWebhookPayload,
   type KommoWebhookEvent,
 } from "../_shared/kommo-webhook-parse.ts";
@@ -339,14 +340,31 @@ Deno.serve(async (req: Request) => {
 
   // 2) Parseo del body form-urlencoded.
   let parsed;
+  let crudo = "";
   try {
-    const raw = await req.text();
-    parsed = parseKommoWebhookPayload(raw);
+    crudo = await req.text();
+    parsed = parseKommoWebhookPayload(crudo);
   } catch (e) {
     // Cuerpo ilegible no debe hacer reintentar infinito a Kommo → 200 con nota.
     return json({ ok: true, ignored: "body ilegible", detail: errMsg(e) }, 200);
   }
   if (parsed.events.length === 0) {
+    // SDD-0288 rebanada 0 · acá es donde se pierde todo lo que no sabemos leer.
+    //
+    // El webhook de la cuenta está en "Todos" (medido 2026-08-24), así que
+    // Kommo nos manda cada evento que soporta y este `return` los tira en
+    // silencio. Antes de tirarlos, se registra **la FORMA** del cuerpo: los
+    // nombres de las claves, nunca los valores (§ `formaDelCuerpo`).
+    //
+    // Es la medición de la que cuelga el semáforo de "el cliente escribió": sin
+    // ver cómo se llama de verdad el campo, escribir el parser sería adivinar.
+    const forma = formaDelCuerpo(crudo);
+    if (forma.length > 0) {
+      console.log(
+        "[kommo-webhook][sdd-0288][forma-desconocida]",
+        JSON.stringify({ claves: forma }),
+      );
+    }
     return json({ ok: true, events: 0 }, 200);
   }
 

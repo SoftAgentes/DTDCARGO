@@ -100,3 +100,44 @@ export function parseKommoWebhookPayload(
 
   return { events: [...best.values()], subdomain, accountId };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SDD-0288 rebanada 0 · MEDIR qué nos manda Kommo que hoy tiramos a la basura.
+//
+// Medido el 2026-08-24 en la cuenta real: nuestro webhook tiene marcado
+// **"Todos"**, no los 6 eventos que dice `docs/runbooks/setup-kommo-webhook.md`.
+// O sea que Kommo YA nos está mandando todos los eventos que soporta —incluidos
+// los de mensajería, si existen— y `parseKommoWebhookPayload` los descarta en
+// silencio: el índice devuelve `events: []` y el handler responde 200 sin mirar.
+//
+// Para diseñar la señal de "el cliente escribió" hace falta el nombre de las
+// claves, no el contenido. Por eso esto devuelve **la FORMA y nada más**:
+//
+//   message[add][0][text]=Hola  →  "message[add][N][text]"
+//
+// ⭐ **Las claves sí, los valores NUNCA.** El body de un webhook de mensajería
+// lleva el texto de la conversación, el teléfono y el nombre del cliente. Un
+// log de valores sería PII de clientes en los logs de una edge function, sin
+// retención definida y sin razón: para saber CÓMO se llama el campo del texto
+// no hace falta leer el texto.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Forma del cuerpo: patrones de clave únicos, con los índices numéricos
+ * normalizados a `N` para que 50 mensajes no produzcan 50 patrones distintos.
+ *
+ * PURA y sin valores. `max` acota la salida: un body inesperadamente enorme no
+ * puede inundar el log.
+ */
+export function formaDelCuerpo(
+  formBody: string | URLSearchParams,
+  max = 60,
+): string[] {
+  const patrones = new Set<string>();
+  for (const [key] of toEntries(formBody)) {
+    // `[0]`, `[12]` → `[N]`. Un índice es posición, no información.
+    patrones.add(key.replace(/\[\d+\]/g, "[N]"));
+    if (patrones.size >= max) break;
+  }
+  return [...patrones].sort();
+}

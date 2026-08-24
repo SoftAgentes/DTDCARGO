@@ -11,7 +11,10 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseKommoWebhookPayload } from "../kommo-webhook-parse";
+import {
+  formaDelCuerpo,
+  parseKommoWebhookPayload,
+} from "../kommo-webhook-parse";
 
 describe("parseKommoWebhookPayload — actions de lead", () => {
   it("parsea lead[add]", () => {
@@ -163,5 +166,50 @@ describe("parseKommoWebhookPayload — robustez ante basura", () => {
   it("solo ruido → sin eventos pero no lanza", () => {
     const r = parseKommoWebhookPayload("a=1&b=2&c[d]=3");
     expect(r.events).toEqual([]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SDD-0288 rebanada 0 · `formaDelCuerpo` — medir sin filtrar PII.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("formaDelCuerpo", () => {
+  it("normaliza los índices para que N mensajes no den N patrones", () => {
+    const body =
+      "message[add][0][id]=1&message[add][1][id]=2&message[add][2][id]=3";
+    expect(formaDelCuerpo(body)).toEqual(["message[add][N][id]"]);
+  });
+
+  it("🔴 NO devuelve ni un solo VALOR — el body lleva el texto y el teléfono", () => {
+    // Éste es el contrato que hace que loguear esto sea aceptable. Si algún día
+    // alguien "mejora" la función devolviendo pares clave=valor, el texto de las
+    // conversaciones de los clientes termina en los logs de una edge function.
+    const body =
+      "message[add][N][text]=Hola%20quiero%20cotizar&message[add][N][author][name]=Mar%C3%ADa" +
+      "&message[add][N][phone]=584121668021";
+    const forma = formaDelCuerpo(body);
+    const serializado = JSON.stringify(forma);
+
+    for (const valor of ["Hola", "cotizar", "María", "584121668021"]) {
+      expect(serializado).not.toContain(valor);
+    }
+    expect(forma).toEqual([
+      "message[add][N][author][name]",
+      "message[add][N][phone]",
+      "message[add][N][text]",
+    ]);
+  });
+
+  it("acota la salida: un body enorme no puede inundar el log", () => {
+    const body = Array.from({ length: 500 }, (_, i) => `campo${i}=x`).join("&");
+    expect(formaDelCuerpo(body, 10)).toHaveLength(10);
+  });
+
+  it("devuelve vacío para un body vacío (no se loguea nada)", () => {
+    expect(formaDelCuerpo("")).toEqual([]);
+  });
+
+  it("también describe lo que YA sabemos leer, sin inventarlo", () => {
+    expect(formaDelCuerpo("leads[status][0][id]=42&account[subdomain]=dtdcargo"))
+      .toEqual(["account[subdomain]", "leads[status][N][id]"]);
   });
 });
