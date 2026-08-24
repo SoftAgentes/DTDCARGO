@@ -11,16 +11,26 @@
  * pantalla está mostrando. Si el export tuviera su propio parser, el día que
  * cambie un filtro el CSV empezaría a traer otra cosa sin que nadie lo note.
  *
- * Seguridad:
- *  (a) gate de VISTA del módulo (`quotes` / `invoices`). Exportar no muta, así
- *      que view alcanza — mismo criterio que el export de Bitácora (SDD-0146).
- *  (b) los datos salen por las queries con el **cliente autenticado**, nunca
- *      service-role: cada quien exporta lo que su RLS le deja ver.
- *  (c) `private, no-store` — el archivo lleva plata y nombres de clientes.
+ * ## Seguridad — dos capas, en este orden
+ *
+ * 1. **`requireStudioSession()`** → 401 sin sesión, 403 sin tenant. La primera
+ *    versión de esta ruta arrancaba directo con `getStudioAccess` +
+ *    `canAccessModule`, que autoriza por ROL pero no distingue "no tienes
+ *    permiso" de "no estás autenticado": un anónimo recibía un 403 hablándole
+ *    de módulos. El contrato `studio-api-auth-guard.test.ts` lo cazó en el gate
+ *    — y tiene razón: el proxy refresca la sesión en `/studio/*` pero su
+ *    matcher ni siquiera incluye `/api/studio`.
+ * 2. **Gate de VISTA del módulo** (`quotes` / `invoices`). Exportar no muta, así
+ *    que view alcanza — mismo criterio que el export de Bitácora (SDD-0146).
+ *
+ * Y los datos salen por las queries con el **cliente autenticado**, nunca
+ * service-role: cada quien exporta lo que su RLS le deja ver. `private,
+ * no-store` porque el archivo lleva plata y nombres de clientes.
  */
 
-import { createClient } from "@/lib/db/server";
+import { NextResponse } from "next/server";
 import { apiError } from "@/lib/http/api-error";
+import { requireStudioSession } from "@/lib/http/studio-session";
 import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
 import {
@@ -51,12 +61,18 @@ function comoRecord(sp: URLSearchParams): Record<string, string | undefined> {
 
 export async function GET(req: Request) {
   try {
+    const sesion = await requireStudioSession();
+    if (sesion instanceof NextResponse) return sesion;
+    const { supabase } = sesion;
+
     const url = new URL(req.url);
     const tipo = url.searchParams.get("tipo");
     const raw = comoRecord(url.searchParams);
     const hoy = new Date().toISOString().slice(0, 10);
 
-    const supabase = await createClient();
+    // El rol NO sale de `sesion.role` a propósito: `getStudioAccess` además
+    // resuelve los overrides por rol (SDD-0085), y `canAccessModule` los
+    // necesita para no negarle el módulo a quien lo tiene concedido a mano.
     const { role, overrides } = await getStudioAccess(supabase);
 
     if (tipo === "estimados") {

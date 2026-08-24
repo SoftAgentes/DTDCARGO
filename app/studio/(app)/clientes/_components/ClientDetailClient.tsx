@@ -6,7 +6,7 @@
  * el page server.
  *
  * SDD-0032 agrega 2 cross-links: Etiquetas (wireado a /studio/etiquetas?id=)
- * y Estado de cuenta (placeholder disabled · SDD futuro).
+ * y Estado de cuenta — este último dejó de ser un placeholder en SDD-0281.
  */
 
 import Link from "next/link";
@@ -35,14 +35,17 @@ export function ClientDetailClient({
           marginBottom: 12,
         }}
       >
-        <button
-          type="button"
+        {/* SDD-0281 · deja de ser un placeholder. Lee el MISMO ledger que ve el
+            cliente en su portal — si el ERP tuviera su propio cálculo, el asesor
+            y el cliente podrían mirar dos saldos distintos de la misma cuenta,
+            que es la discusión que un estado de cuenta viene a evitar. */}
+        <Link
+          href={`/studio/clientes/${encodeURIComponent(client.markbox)}/estado-de-cuenta`}
           className="studio-btn studio-btn-ghost studio-btn-sm"
-          disabled
-          title="Pantalla portada en un SDD futuro · por ahora deshabilitado"
+          title="Movimientos y saldo — lo mismo que ve el cliente en su portal"
         >
           Estado de cuenta
-        </button>
+        </Link>
         <Link
           href={`/studio/etiquetas?id=${encodeURIComponent(client.markbox)}`}
           className="studio-btn studio-btn-ghost studio-btn-sm"

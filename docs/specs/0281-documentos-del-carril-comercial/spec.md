@@ -171,6 +171,27 @@ sólo con el id ya verificado se lee con el admin client.** La función que usa 
 admin vive aislada en su propio módulo, con esa condición escrita en su
 encabezado, para que no se pierda de vista al leer la página.
 
+9. **Estado de cuenta del cliente en el Studio** — el botón existía desde
+   SDD-0032, deshabilitado con "Pantalla portada en un SDD futuro". Es la
+   pregunta que más hace un cliente por teléfono ("¿cuánto debo?") y el asesor
+   la contestaba sumando facturas a mano en el listado.
+
+   **No calcula nada nuevo:** usa `buildStatementLedger`, la MISMA función pura
+   que arma el estado de cuenta del portal (SDD-0177). Si el ERP tuviera su
+   propio cálculo, el asesor y el cliente podrían estar mirando dos saldos
+   distintos de la misma cuenta — la discusión que un estado de cuenta viene a
+   evitar. El mapeo `Invoice → PortalInvoiceRow` descarta borradores y anuladas:
+   un borrador colado aparecería como cargo, o sea deuda inventada.
+
+### Lo que cazó el gate
+
+El contrato `lib/http/__tests__/studio-api-auth-guard.test.ts` puso rojo la ruta
+de export: autorizaba por **rol** (`getStudioAccess` + `canAccessModule`) pero no
+distinguía "no tienes permiso" de "no estás autenticado" — un anónimo recibía un
+403 hablándole de módulos en vez de un 401. Tiene razón: el proxy refresca la
+sesión en `/studio/*` pero su matcher **ni siquiera incluye `/api/studio`**.
+Corregido con `requireStudioSession()` antes de todo lo demás.
+
 ### No entra
 
 - **Razón social y RIF en el cuerpo del documento.** Se respeta el precedente
