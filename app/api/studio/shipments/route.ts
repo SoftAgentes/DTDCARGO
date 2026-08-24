@@ -10,6 +10,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { apiError } from "@/lib/http/api-error";
 import { requireStudioSession } from "@/lib/http/studio-session";
 import { getUserTenantId } from "@/lib/auth/session";
@@ -40,6 +41,8 @@ export async function GET() {
   const sesion = await requireStudioSession();
   if (sesion instanceof NextResponse) return sesion;
   const { supabase } = sesion;
+  const denial = await moduleViewDenial(supabase, "tracking");
+  if (denial) return NextResponse.json({ error: denial }, { status: 403 });
 
   const { data, error } = await supabase
     .from("shipments")

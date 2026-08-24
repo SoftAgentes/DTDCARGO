@@ -9,7 +9,7 @@
  *   lo que el usuario ve en la Lista).
  *
  * Seguridad:
- *   (a) sesión Supabase + gate de VISTA (`canAccessModule("bitacora")`) — exportar
+ *   (a) sesión Supabase + gate de VISTA (`moduleViewDenial("bitacora")`, SDD-0286) — exportar
  *       NO muta, así que **view alcanza** (no `moduleEditDenial`).
  *   (b) los datos salen SOLO por las queries gated por RLS con el **user client**
  *       (NUNCA service-role): un usuario solo exporta lo que puede ver.
@@ -24,8 +24,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createClient } from "@/lib/db/server";
 import { apiError } from "@/lib/http/api-error";
-import { getStudioAccess } from "@/lib/studio/rbac-guard";
-import { canAccessModule } from "@/lib/studio/rbac";
+import { moduleViewDenial } from "@/lib/studio/rbac-guard";
 import {
   listTasks,
   listAssignableProfiles,
@@ -137,9 +136,9 @@ export async function GET(request: Request) {
     if (!userResp.user) {
       return apiError("No autorizado.", null, 401, "bitacora:export");
     }
-    const { role } = await getStudioAccess(supabase);
-    if (!canAccessModule(role, "bitacora")) {
-      return apiError("No tienes acceso a Bitácora.", null, 403, "bitacora:export");
+    const denial = await moduleViewDenial(supabase, "bitacora");
+    if (denial) {
+      return apiError(denial, null, 403, "bitacora:export");
     }
 
     const url = new URL(request.url);

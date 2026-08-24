@@ -8,6 +8,10 @@
  *                                        mutación. Devuelve el mensaje de
  *                                        denegación (es-VE) o null si está OK,
  *                                        para el patrón `{ error }` del Studio.
+ *   - moduleViewDenial(supabase, id)   → al tope del GET de un route handler
+ *                                        de `app/api/studio`. Mismo contrato
+ *                                        que moduleEditDenial, pero de LECTURA
+ *                                        (no redirige: devuelve para el 403).
  *   - getStudioRole(supabase)          → rol del user en su tenant, o null.
  *
  * Server-only de facto: importa `createClient` (usa next/headers cookies), así
@@ -129,6 +133,42 @@ export async function requireModuleView(
     redirect(`/studio/dashboard?denied=${encodeURIComponent(moduleId)}`);
   }
   return role;
+}
+
+/**
+ * Guard de VISTA para route handlers de la API del Studio (SDD-0286).
+ *
+ * `requireModuleView` NO sirve acá: hace `redirect()`, que dentro de un route
+ * handler rompe el contrato JSON en vez de devolver un 403. Este es el
+ * simétrico de `moduleEditDenial` para lectura — devuelve mensaje o null:
+ *
+ *   const denial = await moduleViewDenial(supabase, "tracking");
+ *   if (denial) return NextResponse.json({ error: denial }, { status: 403 });
+ *
+ * Es backstop server-side por la misma razón que las actions: los GET de
+ * `app/api/studio` son invocables directo, y RLS filtra por TENANT pero es
+ * ciega al ROL. Sin esto, un usuario del tenant sin el módulo en su alcance
+ * lee el endpoint igual, aunque el módulo no le aparezca en el sidebar.
+ */
+export async function moduleViewDenial(
+  supabase: StudioClient,
+  moduleId: string,
+): Promise<string | null> {
+  const { role, warehouseScope, overrides } = await getStudioAccess(supabase);
+  if (!canAccessModule(role, moduleId, overrides)) {
+    return "No tienes permiso para ver esto.";
+  }
+  if (role !== "admin" && !scopeAllowsModule(warehouseScope, moduleId)) {
+    return "No tienes permiso para ver esto.";
+  }
+  // SDD-0252 · segundo candado, ver requireModuleView.
+  if (
+    SUPERADMIN_ONLY_MODULES.has(moduleId) &&
+    !(await isPlatformAdmin(supabase))
+  ) {
+    return "Esto lo reserva el superadministrador. Pídeselo a quien administra el sistema.";
+  }
+  return null;
 }
 
 /**

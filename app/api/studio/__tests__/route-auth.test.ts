@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   user: null as { id: string } | null,
   denial: null as string | null,
+  viewDenial: null as string | null,
   from: vi.fn(),
   getShipmentById: vi.fn(),
   getShipmentEvents: vi.fn(),
@@ -20,6 +21,7 @@ vi.mock("@/lib/db/server", () => ({
 
 vi.mock("@/lib/studio/rbac-guard", () => ({
   moduleEditDenial: async () => mocks.denial,
+  moduleViewDenial: async () => mocks.viewDenial,
 }));
 
 vi.mock("@/lib/studio/shipment-queries", () => ({
@@ -50,6 +52,7 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
   beforeEach(() => {
     mocks.user = null;
     mocks.denial = null;
+    mocks.viewDenial = null;
     mocks.from.mockReset();
     mocks.from.mockImplementation(() => {
       throw new Error("La consulta no debe ejecutarse antes del gate");
@@ -91,6 +94,25 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
 
     expect(patchResponse.status).toBe(403);
     expect(deleteResponse.status).toBe(403);
+    expect(mocks.from).not.toHaveBeenCalled();
+  });
+
+  it("rechaza el GET cuando el rol no tiene el módulo en su alcance (SDD-0286)", async () => {
+    // RLS filtra por TENANT y es ciega al ROL: sin este guard, un usuario del
+    // tenant sin el módulo leía el endpoint igual. El doble NO puede ser más
+    // permisivo que el servidor — por eso este caso existe, y no sólo el feliz.
+    mocks.user = { id: "user-1" };
+    mocks.viewDenial = "No tienes permiso para ver esto.";
+
+    const shipment = await getShipment({} as never, context);
+    const kpis = await getKpis();
+    const conversation = await getConversation({} as never, context);
+
+    expect(shipment.status).toBe(403);
+    expect(kpis.status).toBe(403);
+    expect(conversation.status).toBe(403);
+    // y ninguna consulta llegó a ejecutarse
+    expect(mocks.getShipmentById).not.toHaveBeenCalled();
     expect(mocks.from).not.toHaveBeenCalled();
   });
 

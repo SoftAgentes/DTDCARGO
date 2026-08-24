@@ -16,7 +16,7 @@ import {
   getShipmentById,
   getShipmentEvents,
 } from "@/lib/studio/shipment-queries";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 
 async function requireStudioSession() {
   const supabase = await createClient();
@@ -62,6 +62,8 @@ export async function GET(
   const { id } = await params;
   const { supabase, user } = await requireStudioSession();
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const denial = await moduleViewDenial(supabase, "tracking");
+  if (denial) return NextResponse.json({ error: denial }, { status: 403 });
 
   try {
     const shipment = await getShipmentById(supabase, id);
