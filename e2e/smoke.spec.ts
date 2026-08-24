@@ -73,13 +73,25 @@ test.describe("rutas públicas críticas", () => {
     await expect(panelB.locator("#ciudad")).toHaveCount(0);
   });
 
-  test("/fcl muestra el cotizador FCL (contenedor completo)", async ({ page }) => {
-    // El FCL sigue standalone en /fcl (cotizador SeaRates), aparte de /tarifas.
+  test("/fcl siempre ofrece una vía para cotizar el contenedor", async ({ page }) => {
+    // El FCL vive standalone en /fcl, aparte de /tarifas (LCL). Desde SDD-0290 lo
+    // alimentan las tarifas PROPIAS de DTD (`public_fcl_rates`), no un proveedor
+    // externo.
+    //
+    // ⚠️ Este test NO afirma que haya un precio en pantalla, y es a propósito: si
+    // ninguna tarifa está marcada `is_public`, <FclCalculator> muestra su estado
+    // vacío y deriva a WhatsApp. Ambos estados son correctos, y el entorno de CI
+    // no controla qué hay publicado en la base. Lo que SÍ tiene que cumplirse
+    // siempre es que el cliente pueda cotizar por algún lado.
+    //
+    // Tampoco busca un <form>: el calculador propio son selects sueltos dentro de
+    // un div, no un formulario. Afirmarlo era lo que ataba este test al cotizador
+    // viejo.
     await page.goto("/fcl");
     await expect(page).toHaveTitle(/FCL|flete/i);
-    // El form del cotizador FCL es visible (selects origen/destino/contenedor).
-    await expect(page.locator("form")).toBeVisible();
-    await expect(page.locator("body")).toContainText(/FCL|contenedor/i);
+    await expect(page.locator("body")).toContainText(/contenedor/i);
+    // La salida a WhatsApp existe en los dos estados: con tarifas y sin ellas.
+    await expect(page.locator('a[href*="wa.me"]').first()).toBeVisible();
   });
 
   test("las rutas viejas de calc/estimación redirigen (301) a la calc que toca", async ({
