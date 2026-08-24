@@ -13,6 +13,7 @@ import {
 import {
   compararCajas,
   listarRecepcionesDeCompra,
+  nombreDeProveedor,
 } from "@/lib/portal/purchase-reception-queries";
 import { defaultAddon } from "@/lib/studio/prealertas/addons";
 import { ArrowIcon } from "@/components/Icon";
@@ -154,8 +155,28 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
                         </div>
                         <div className="mt-1 text-[12.5px] text-grey-500">
                           Recibida el {fechaLegible(r.receivedAt)}
-                          {r.supplierName ? ` · ${r.supplierName}` : ""}
+                          {(() => {
+                            // SDD-0284 · manda el proveedor que TÚ registraste;
+                            // el nombre que escribió la bodega sólo aparece si
+                            // difiere (a veces llega en chino o abreviado).
+                            const p = nombreDeProveedor(
+                              proveedor?.name ?? null,
+                              r.supplierName,
+                            );
+                            return p.principal ? ` · ${p.principal}` : "";
+                          })()}
                         </div>
+                        {(() => {
+                          const p = nombreDeProveedor(
+                            proveedor?.name ?? null,
+                            r.supplierName,
+                          );
+                          return p.segundo ? (
+                            <div className="mt-0.5 text-[11.5px] text-grey-500">
+                              La bodega lo anotó como &ldquo;{p.segundo}&rdquo;
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                       <div className="text-right">
                         <div className="text-[14.5px] font-semibold text-ink">

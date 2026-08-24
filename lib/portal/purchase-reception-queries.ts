@@ -151,6 +151,41 @@ export function sumaOculta(valores: readonly (number | null)[]): number | null {
 }
 
 /**
+ * SDD-0284 · Qué nombre de proveedor se le muestra al cliente en una recepción.
+ *
+ * Hay dos fuentes y no dicen lo mismo:
+ *
+ *   · El **registrado** por el propio cliente en `suppliers_cn` (vía la compra).
+ *     Es el nombre con el que él conoce a su proveedor.
+ *   · El **escrito en la bodega** de Yiwu (`warehouse_receipts_cn.supplier_name`),
+ *     texto libre que a veces viene en chino, a veces abreviado, a veces con la
+ *     razón social de la fábrica en vez del nombre comercial.
+ *
+ * Manda el registrado: es el que el cliente reconoce. El de bodega sólo se
+ * muestra **cuando aporta algo** — es decir, cuando difiere de verdad. Repetir
+ * el mismo nombre dos veces con etiquetas distintas no informa, ensucia.
+ *
+ * La comparación normaliza mayúsculas y espacios, pero **no intenta ser lista**:
+ * no compara sin acentos ni por parecido. Un falso "son iguales" escondería que
+ * la bodega recibió de otro proveedor, que es justo lo que vale la pena ver.
+ *
+ * PURA.
+ */
+export function nombreDeProveedor(
+  registrado: string | null,
+  enBodega: string | null,
+): { principal: string | null; segundo: string | null } {
+  const reg = (registrado ?? "").trim();
+  const bod = (enBodega ?? "").trim();
+
+  if (!reg) return { principal: bod || null, segundo: null };
+  if (!bod) return { principal: reg, segundo: null };
+
+  const iguales = reg.toLowerCase().replace(/\s+/g, " ") === bod.toLowerCase().replace(/\s+/g, " ");
+  return { principal: reg, segundo: iguales ? null : bod };
+}
+
+/**
  * ¿Lo que llegó coincide con lo que el cliente anunció? PURA.
  *
  * El desajuste no es un error del sistema: es la información más útil de toda

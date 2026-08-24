@@ -231,36 +231,62 @@ export async function createReceiptAction(
     } · ${input!.items.length} item${input!.items.length === 1 ? "" : "s"}`,
   });
 
-  // ── Wiring recepción → caja (prealerta) → OV · SDD-0072 Fase 2 ──
-  // Para que la auto-factura pueda dispararse al consolidar (changeReceiptStatusAction
-  // → 'consolidado' → autoInvoiceForReceipt), la recepción debe apuntar a la prealerta
-  // (caja física) que materializa. CONSERVADOR (es FINANCIERO): solo auto-vincula si hay
-  // UNA sola prealerta candidata inequívoca del cliente — con OV atada y sin facturar.
-  // Si hay 0 o varias → queda SIN atar (no auto-factura; el asesor la vincula a mano
-  // desde la OV). NO se adivina: vincular la caja equivocada auto-facturaría la OV
-  // equivocada. (V1: match por client_markbox; un selector explícito en la UI de
-  // recepción puede afinar el caso ambiguo más adelante.)
+  // ── Wiring recepción → compra → OV · SDD-0072 Fase 2, revisado en SDD-0284 ──
+  //
+  // 🔴 Antes esto ataba las DOS cosas de una sola vez y con la regla FINANCIERA:
+  // sólo vinculaba la compra si además tenía una orden de venta sin facturar.
+  //
+  // Medido en producción el 2026-08-24: **0 de 8 compras tienen orden de venta**,
+  // así que esa condición no se cumplía nunca y **0 de 6 recepciones quedaron
+  // atadas a su compra**. El efecto no era financiero —era operativo—: sin ese
+  // vínculo, `/portal/compras/[code]` (SDD-0281) le dice "todavía no registramos
+  // la llegada" al cliente cuya mercancía SÍ está en la bodega, y el aviso de
+  // SDD-0283 se queda sin dónde colgar.
+  //
+  // Ahora son dos decisiones separadas, porque responden preguntas distintas:
+  //
+  //   · `prealerta_id`  → OPERATIVO: "¿de qué compra es esta mercancía?".
+  //     Regla: UNA sola compra abierta del cliente. Sigue sin adivinarse con
+  //     dos candidatas, pero ya no exige orden de venta.
+  //   · `sales_order_id` → FINANCIERO: "¿qué OV cumple?". Regla intacta.
+  //
+  // **Aflojar el operativo no puede facturar de más**, y no es una opinión: el
+  // RPC `sales_order_claim_and_invoice` (migr 0128) devuelve `no_sales_order`
+  // cuando la compra no resuelve una OV, y `autoInvoiceForReceipt` lo traduce a
+  // `notApplicable` sin emitir nada. La caja sin OV se ata para que el cliente
+  // vea su llegada, y el motor financiero la ignora.
   if (!input!.is_orphan && input!.client_markbox) {
     try {
       const { data: cands } = await supabase
         .from("prealertas")
-        .select("id, sales_order_id")
+        .select("id, sales_order_id, invoice_id")
         .eq("tenant_id", link.tenant_id)
         .eq("client_markbox", input!.client_markbox)
-        .not("sales_order_id", "is", null)
-        .is("invoice_id", null)
         .in("status", ["anunciada", "en_camino"])
         .is("deleted_at", null)
+        .order("created_at", { ascending: false })
         .limit(2);
       const list =
-        (cands as { id: string; sales_order_id: string | null }[] | null) ?? [];
-      if (list.length === 1 && list[0].sales_order_id) {
+        (cands as
+          | { id: string; sales_order_id: string | null; invoice_id: string | null }[]
+          | null) ?? [];
+
+      // Con dos o más candidatas no se elige: atar la caja equivocada le
+      // mostraría al cliente que llegó algo que no llegó (y, si esa compra
+      // tuviera OV, facturaría la equivocada).
+      if (list.length === 1) {
+        const compra = list[0];
+        const patch: { prealerta_id: string; sales_order_id?: string } = {
+          prealerta_id: compra.id,
+        };
+        // El vínculo financiero conserva su regla estricta: OV atada y todavía
+        // sin facturar.
+        if (compra.sales_order_id && !compra.invoice_id) {
+          patch.sales_order_id = compra.sales_order_id;
+        }
         await supabase
           .from("warehouse_receipts_cn")
-          .update({
-            prealerta_id: list[0].id,
-            sales_order_id: list[0].sales_order_id,
-          })
+          .update(patch)
           .eq("id", receipt.id)
           .eq("tenant_id", link.tenant_id);
       }

@@ -131,11 +131,32 @@ En orden de valor para poder mostrar el ERP funcionando.
       los que tienen el portal instalado, porque la regla no manda push. Pasarla
       a `channel: both` los cubre. Es decisión tuya: cambia lo que le llega a
       clientes reales.
-- [ ] **A2 · Vincular la recepción CN con el proveedor real.**
-      Medido: `warehouse_receipts_cn` guarda `supplier_name` como **texto
-      libre**, sin FK a `suppliers_cn`. Consecuencia: no se puede responder
-      "¿cuánto me manda este proveedor?" ni detectar que dos clientes compran al
-      mismo. Necesita migración (la escribo, **no la aplico**).
+- [x] **A2 · Vincular la recepción CN con el proveedor real.** → **SDD-0284**,
+      y **sin migración**.
+
+      ⚠️ **Segunda corrección de este documento.** Yo había escrito que hacía
+      falta una FK a `suppliers_cn`. Al medir, dos cosas de esa frase no
+      sobrevivieron:
+
+      1. **`suppliers_cn` es POR CLIENTE**, no global (`tenant_id +
+         client_markbox + supplier_seq`). La misma fábrica que le vende a tres
+         clientes son tres filas. Esa FK **nunca** habría permitido "detectar
+         que dos clientes compran al mismo".
+      2. **El vínculo al proveedor ya existía en cadena**: recepción → compra →
+         `suppliers_cn`. Y las compras lo traen: **8 de 8 (100%)**.
+
+      🔴 **Lo que sí estaba roto era otra cosa, y peor:** de **6 recepciones, 0
+      estaban atadas a su compra**. El único punto que las ataba exigía que la
+      compra tuviera orden de venta — y **0 de 8 compras tienen una**. Así que
+      `/portal/compras/[code]` le decía "todavía no registramos la llegada" al
+      cliente cuya mercancía sí estaba en bodega.
+
+      Cerrado separando el vínculo operativo del financiero.
+
+- [ ] **A2b · Entidad de proveedor global.** Lo que de verdad responde "¿cuánto
+      me manda este proveedor?" a nivel empresa: una identidad compartida entre
+      clientes, con deduplicación y fusión. Es diseño propio. **Con 6
+      recepciones en el sistema, hoy sería resolver un problema sin datos.**
 - [ ] **A3 · Fotos de la recepción en el detalle de compra del portal.**
       La pantalla ya existe y el bucket de Storage también; falta el puente.
       Es lo que convierte "llegaron 7 cajas" en "llegaron, y aquí están".

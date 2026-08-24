@@ -12,7 +12,11 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { compararCajas, sumaOculta } from "../purchase-reception-queries";
+import {
+  compararCajas,
+  nombreDeProveedor,
+  sumaOculta,
+} from "../purchase-reception-queries";
 
 describe("sumaOculta", () => {
   it("suma los valores cargados", () => {
@@ -59,5 +63,41 @@ describe("compararCajas", () => {
     // Caso de borde real: se anuncia sin saber el bulto y la bodega recibe 3.
     // No se puede llamar "completo" — el número declarado no se cumplió.
     expect(compararCajas(0, 3)).toEqual({ estado: "excedente", diferencia: 3 });
+  });
+});
+
+describe("nombreDeProveedor", () => {
+  it("manda el que registró el cliente", () => {
+    expect(nombreDeProveedor("Yiwu Star Trading", "义乌之星")).toEqual({
+      principal: "Yiwu Star Trading",
+      segundo: "义乌之星",
+    });
+  });
+
+  it("🔴 no repite el mismo nombre dos veces con etiquetas distintas", () => {
+    // Repetirlo no informa: ensucia. Sólo se muestra el segundo si aporta algo.
+    expect(nombreDeProveedor("Yiwu Star", "yiwu  star")).toEqual({
+      principal: "Yiwu Star",
+      segundo: null,
+    });
+  });
+
+  it("sin registrado cae al que escribió la bodega", () => {
+    expect(nombreDeProveedor(null, "义乌之星")).toEqual({
+      principal: "义乌之星",
+      segundo: null,
+    });
+  });
+
+  it("sin ninguno de los dos devuelve null (no inventa un guión)", () => {
+    expect(nombreDeProveedor(null, null)).toEqual({ principal: null, segundo: null });
+    expect(nombreDeProveedor("  ", "  ")).toEqual({ principal: null, segundo: null });
+  });
+
+  it("NO compara sin acentos: una diferencia real se muestra", () => {
+    // Ser "listo" acá escondería que la bodega recibió de otro proveedor, que es
+    // justo lo que vale la pena ver.
+    const r = nombreDeProveedor("Fábrica Lin", "Fabrica Lin");
+    expect(r.segundo).toBe("Fabrica Lin");
   });
 });
