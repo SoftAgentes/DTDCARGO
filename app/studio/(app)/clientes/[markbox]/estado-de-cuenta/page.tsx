@@ -88,13 +88,34 @@ export default async function EstadoDeCuentaPage({
 
   return (
     <div style={{ maxWidth: 1080 }}>
-      <Link
-        href={`/studio/clientes/${encodeURIComponent(markbox)}`}
-        className="studio-btn studio-btn-ghost studio-btn-sm"
-        style={{ marginBottom: 16 }}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 16,
+          flexWrap: "wrap",
+        }}
       >
-        ← Volver a la ficha
-      </Link>
+        <Link
+          href={`/studio/clientes/${encodeURIComponent(markbox)}`}
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+        >
+          ← Volver a la ficha
+        </Link>
+        {/* SDD-0287 · el papel que se le manda al cliente cuando pregunta
+            cuánto debe. Sale del MISMO ledger que esta pantalla. */}
+        <a
+          href={`/studio/clientes/${encodeURIComponent(markbox)}/estado-de-cuenta/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          title="Abre el estado de cuenta en PDF"
+        >
+          PDF
+        </a>
+      </div>
 
       <span className="studio-eyebrow">Estado de cuenta</span>
       <h1

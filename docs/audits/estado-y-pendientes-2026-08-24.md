@@ -162,8 +162,10 @@ En orden de valor para poder mostrar el ERP funcionando.
       así que la pantalla tiene qué mostrar. URLs firmadas a 1 h, indexadas por
       path (no por posición: si Storage omite una entrada, indexar por índice le
       mostraría al cliente la foto de OTRA caja).
-- [ ] **A4 · PDF del estado de cuenta.** El motor está probado y la pantalla ya
-      calcula el ledger. Es el documento que el cliente le pasa a su contador.
+- [x] **A4 · PDF del estado de cuenta.** → **SDD-0287**. En los dos lados: el
+      asesor lo abre desde la ficha del cliente y el cliente lo descarga desde
+      `/portal/facturas?vista=estado`. Sale del MISMO ledger que las dos
+      pantallas — el papel no recalcula nada.
 - [ ] **A5 · Exportar CSV en Clientes, Cobranzas y Tracking.** La primitiva
       quedó lista en `lib/studio/export/csv.ts`; son tres constructores.
 - [ ] **A6 · Los ~16 modales sin `DrawerShell`** (sin focus-trap ni Escape —
