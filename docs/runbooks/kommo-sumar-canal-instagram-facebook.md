@@ -194,6 +194,11 @@ condición del catálogo que se dispara con **todos** los mensajes entrantes; la
 intención (*el cliente quiere*, *pregunta sobre*, *el sentimiento es*…)
 ([`kommo-estado-y-pendientes.md:140-143`](../marketing/kommo-estado-y-pendientes.md)).
 
+> 🔴 **Actualizado el 2026-08-25:** el plazo real hoy es **5 minutos**, decidido
+> por el founder tras medirlo. Y lo que tenía todo esto mudo **no era el plazo,
+> era el saldo**: la acción vive dentro del agente y un agente sin créditos no
+> corre. Antes de tocar nada acá, mira `Facturación → Uso`.
+
 ⭐ **`Fecha límite: Ahora`, no 2 horas.** Corregido el 11-ago tras probarlo: con 2 h la tarjeta se
 quedaba verde dos horas y el rojo llegaba cuando ya no servía. Con `Ahora` la tarea nace vencida y
 la tarjeta se pone roja apenas el cliente escribe

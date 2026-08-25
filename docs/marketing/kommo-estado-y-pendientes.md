@@ -150,6 +150,10 @@ Hacer   Agregar tarea · Fecha límite: Ahora · Usuario responsable: Responsabl
         Tipo: Seguimiento · Comentario: "Responder al cliente"
 ```
 
+> 🔴 **DESACTUALIZADO — leer primero el bloque `2026-08-25` de abajo.** Lo que
+> sigue describe la decisión del 11-ago. El plazo real hoy es **5 minutos**, y
+> la causa de que esto llevara semanas sin funcionar no era el plazo.
+
 ⭐ **El plazo es `Ahora`, no 2 horas** (corregido el 11-ago tras probarlo). Con 2 h la tarjeta se
 quedaba verde dos horas y **el rojo llegaba cuando ya no servía**. Con `Ahora` la tarea nace vencida:
 **la tarjeta se pone roja apenas el cliente escribe, y se apaga cuando alguien la completa.** O sea,
@@ -167,7 +171,48 @@ dejarlo así haría que el agente transfiriera en **cada** mensaje. Hay que camb
 tarea"** — el clic tiene que caer sobre el texto de la opción, no al borde, o el desplegable se
 cierra sin aplicar y parece que no pasó nada.
 
-⚠️ **Pendiente de medir:** con ~16 leads/día habrá mucho rojo. Si el tablero queda rojo
+### 🟢 2026-08-25 · Por qué no salía el rojo: NO era la configuración, era el SALDO
+
+El founder preguntó por qué el `Inbox de chat` marca los no leídos en rojo y las
+tarjetas del pipeline no. Medido ese día, en este orden:
+
+| Qué se midió | Resultado |
+|---|---|
+| Tareas abiertas en toda la cuenta (vía `GET /api/v4/tasks`, espejo SDD-0288) | **0** |
+| Eventos `task[add]` en el webhook, antes de recargar créditos | **0** de 63 formas capturadas |
+| Eventos `task[add]` después de recargar créditos + 1 mensaje de prueba | **aparecen** |
+
+⭐ **La acción del 11-ago nunca estuvo desarmada: estaba correcta y muda.** Vive
+DENTRO del agente, y un agente sin créditos no corre. Lo que parecía un problema
+de visualización del pipeline era plata. Antes de volver a tocar la
+configuración de un agente, **mirar `Facturación → Uso`**.
+
+**El plazo quedó en 5 MINUTOS, no en `Ahora`** (medido sobre la tarea real:
+creada 15:32:59, vence 15:37:58). Decisión del founder: **se queda en 5 min** —
+si el agente resuelve la conversación en ese rato, la tarea se completa sola y
+nunca aparece un rojo que nadie tenía que atender. Cinco minutos filtran ruido;
+las 2 horas del problema original llegaban tarde.
+
+⏳ **Pendiente de medir (2026-08-25, con fecha esta vez):** ¿las tareas se
+completan solas o se acumulan? Ahora se responde **desde el ERP, sin abrir
+Kommo**:
+
+```sql
+select count(*) filter (where is_completed = false)                        as abiertas,
+       count(*) filter (where is_completed = false and complete_till < now()) as vencidas
+  from public.kommo_tasks;   -- requiere una corrida de kommo-sync
+```
+
+Cerca de **0 abiertas** → el colchón funciona, se queda en 5 min.
+Acumulándose → el colchón no filtra nada y conviene pasar a `Ahora`.
+
+⚠️ **Ojo con el método:** contar eventos `task[...]` en los logs del webhook
+**NO** sirve para esto — incluye altas y modificaciones de la MISMA tarea. El
+2026-08-25 se leyeron 27 eventos y se dio una alarma de "el tablero va a quedar
+rojo entero" que era falsa: en el espejo había **1** tarea abierta. El contador
+de eventos no es el contador de tareas.
+
+⚠️ **Pendiente de medir (11-ago, sin cerrar):** con ~16 leads/día habrá mucho rojo. Si el tablero queda rojo
 permanentemente el indicador pierde valor y habrá que subir el plazo. La decisión se toma con datos,
 en unos días, no antes.
 
@@ -226,7 +271,7 @@ disparadores para esa acción trae **una sola opción**: *"cuando es movido a es
 
 - [x] 🟢 **Notificación de traspaso del Cotizador y del Reenganche** → **DTD CARGO** *(hecho 10-ago)*.
 - [ ] **Decidir si el Post-venta lleva límite** de mensajes/créditos. Hoy no tiene ninguno.
-- [x] 🟢 **Tarea automática al recibir mensaje** *(hecho 11-ago)* — en los 4 agentes, vía la acción
+- [x] 🟢 **Tarea automática al recibir mensaje** *(hecho 11-ago · **revivida el 25-ago al recargar créditos**; plazo real: **5 min**, no 2 h ni `Ahora`)* — en los 4 agentes, vía la acción
       `El mensaje es recibido en horas específicas: Siempre → Agregar tarea (2 h)`. Es lo que
       enciende las alertas rojas. ⚠️ Falta **medir en unos días** si 2 h es el plazo correcto.
 - [x] 🟢 ~~Reasignar los 3 leads de Sergio Quevedo~~ — **se resolvió solo**: al desactivar al usuario,
