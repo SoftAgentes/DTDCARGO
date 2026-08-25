@@ -26,6 +26,7 @@ import { PortalDashboardNorte } from "./_components/PortalDashboardNorte";
 import { PendingAcceptanceCard } from "./_components/PendingAcceptanceCard";
 import { ProfileIncompleteCard } from "./_components/ProfileIncompleteCard";
 import { PortalAdvisorCard } from "./_components/PortalAdvisorCard";
+import { PortalPushOptIn } from "../_components/PortalPushOptIn";
 
 export const metadata: Metadata = { title: "Inicio" };
 
@@ -134,6 +135,30 @@ export default async function PortalHomePage() {
           hasAddress={profile.hasAddress}
         />
       ) : null}
+
+      {/*
+        Medido el 2026-08-24: de 115 clientes con portal, sólo 4 tenían las
+        notificaciones activadas — un 3,5%. La causa no era que las rechazaran:
+        el botón vivía ÚNICAMENTE en `/portal/soporte`, una pantalla a la que casi
+        nadie entra. Acá está donde el cliente sí pasa.
+
+        No es un prompt: es un botón. El permiso del navegador se pide recién al
+        hacer clic, y eso importa porque es de un solo tiro — si el cliente lo
+        niega queda negado y recuperarlo exige que entre a la configuración del
+        sitio. Por eso NO se dispara solo al cargar.
+
+        Tampoco lleva "descartar" a propósito: la tarjeta desaparece sola cuando
+        el cliente activa (o cuando el navegador no soporta push, o cuando ya
+        negó el permiso — el componente decide eso por su cuenta). Un botón de
+        descartar guardado en localStorage es justo la forma en que estas
+        tarjetas se apagan para siempre sin que nadie se entere.
+      */}
+      <PortalPushOptIn
+        titulo="Entérate apenas se mueva tu carga"
+        descripcion="Activa las notificaciones y tu navegador te avisa cuando tu mercancía llega a bodega, cuando zarpa y cuando está por entregarse — aunque no tengas el portal abierto."
+        tituloActivo="Notificaciones activadas"
+        descripcionActiva="Te avisamos apenas tu carga se mueva."
+      />
       <PortalDashboardNorte
         client={client}
         kpis={kpis}

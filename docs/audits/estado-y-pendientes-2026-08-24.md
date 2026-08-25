@@ -125,12 +125,34 @@ En orden de valor para poder mostrar el ERP funcionando.
       encender nada. (Yo había escrito lo contrario un momento antes; lo medí y
       estaba equivocado.)
 
-- [ ] **B6 · ¿El aviso de Yiwu sale también por push?** 🔴 *Techo medido.*
-      La regla manda **sólo correo**, y de **484 clientes vivos, 136 no tienen
-      correo** (28%). Esos no reciben este aviso por ningún lado — ni siquiera
-      los que tienen el portal instalado, porque la regla no manda push. Pasarla
-      a `channel: both` los cubre. Es decisión tuya: cambia lo que le llega a
-      clientes reales.
+- [x] **B6 · ¿El aviso de Yiwu sale también por push?** → **DESCARTADO, medido.**
+
+      ⚠️ **Tercera corrección de este documento.** Yo había escrito que pasar la
+      regla a `channel: both` "los cubre". **Es falso.** Medido en producción:
+
+      | | |
+      |---|---|
+      | Clientes vivos | 488 |
+      | Sin correo | 136 |
+      | Con portal | 115 · **con push: 4** |
+      | **Sin correo Y con push** | **0** |
+      | **Sin correo Y con portal** | **0** |
+
+      Los 136 sin correo **no tienen ninguno** cuenta de portal, y es
+      estructural: la invitación al portal se manda **por correo**. Sin correo no
+      hay invitación → sin portal → sin push, nunca. Cambiar el canal sólo
+      **notificaría dos veces a 4 personas**. La regla NO se tocó.
+
+- [x] **B6b · El botón de push vivía donde nadie entra.** → **SDD-0293**.
+      Midiendo lo anterior salió esto: 115 clientes con portal y **sólo 4 con
+      push (3,5%)**, porque `PortalPushOptIn` estaba montado **únicamente en
+      `/portal/soporte`**. Ahora también en el inicio. Es un botón, no un prompt
+      — el permiso se pide al hacer clic, y eso importa porque es de un solo
+      tiro.
+
+- [ ] **B6c · Los 136 sin correo siguen fuera.** No es software: o se capturan
+      esos correos (la lista sale del CSV de Clientes de SDD-0289, filtrando la
+      columna vacía) o entra WhatsApp saliente (tu C2, necesita Meta).
 - [x] **A2 · Vincular la recepción CN con el proveedor real.** → **SDD-0284**,
       y **sin migración**.
 
