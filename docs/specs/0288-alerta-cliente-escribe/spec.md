@@ -402,22 +402,55 @@ no como supuesto silencioso.
 
 ## 7. Estado
 
-`in-progress`.
+`in-progress`. Las dos rebanadas construidas están **en producción**; las que
+faltan esperan un dato, no manos.
 
-- **Rebanada 2 (espejo de tareas): construida y verificada.** Migración 0390,
-  contrato SQL de 116 invariantes validado **por mutación** (con la RLS abierta
-  el contrato canta la fuga; sin el predicado parcial canta el índice), y el
-  sync aprendió la entidad `tasks`.
-- **Rebanada 0 (medir la forma del payload): construida.** `formaDelCuerpo` +
-  el enganche en `kommo-webhook`, con el contrato anti-PII **validado por
-  mutación**. Falta **desplegar la edge function** y dejar correr tráfico real.
-- **Rebanadas 1 y 3: especificadas, sin una línea escrita.** Se escriben cuando
-  la rebanada 0 devuelva payloads, no antes.
+### ✅ Rebanada 2 — espejo de tareas · APLICADA a producción (2026-08-24)
+
+Con OK del founder nombrando la migración, de a una, por el runbook.
+Verificado **contra el objeto, no contra el nombre**:
+
+| Comprobación | Resultado |
+|---|---|
+| Tabla y columnas | ✅ 12 |
+| RLS activa · policies | ✅ · 2 |
+| Índice **parcial** con su predicado | ✅ |
+| `authenticated` → SELECT sí / INSERT **no** | ✅ |
+| `anon` → SELECT **no** | ✅ |
+| `service_role` → INSERT | ✅ |
+| Ledger, basename exacto | `0390_kommo_tasks` |
+| Advisories de seguridad sobre la tabla nueva | **0** |
+
+Su contrato SQL se validó **por mutación** en dos frentes: con la RLS abierta
+canta la fuga cross-tenant; sin el predicado parcial canta el índice.
+
+⚠️ **Nace vacía, y aunque el sync corra hoy espejaría el conjunto vacío**
+(§1.1.b: 0 caducadas). Eso **no** es un fallo del espejo: es lo que convierte
+"parece que no hay tareas" en un dato que el ERP puede afirmar sin que nadie
+abra Kommo.
+
+### ✅ Rebanada 0 — la medición · DESPLEGADA (2026-08-24)
+
+`kommo-webhook` **v9 → v10**, `verify_jwt` intacto en `false`.
+
+🔴 **El `ezbr_sha256` NO cambió con el deploy.** El runbook de edge functions
+dice que ese hash cambiando es la señal de que entró; acá se quedó idéntico al
+de la v9 y **el deploy sí había entrado**. O sea que ese indicador no sirve
+como prueba. Lo que sí prueba: se **descargó el código vivo de producción** y
+se comparó contra el worktree — los 7 archivos, idénticos byte a byte.
+
+El contrato anti-PII (`formaDelCuerpo` no devuelve valores) está validado por
+mutación: al hacerla devolver `clave=valor`, el test cantó nombrando el
+teléfono y el nombre que se habrían filtrado.
+
+**Cómo se lee:** `Supabase → Edge Functions → kommo-webhook → Logs`, buscando
+`[kommo-webhook][sdd-0288][forma-desconocida]`.
+
+### ⏸ Rebanadas 1 y 3 — sin una línea escrita, a propósito
+
+Se escriben cuando la rebanada 0 devuelva payloads reales. No antes.
 
 🔴 **Lo que esta spec NO afirma:** que Kommo emita un evento de mensaje. Que el
 webhook esté en "Todos" prueba que lo **recibiríamos si existe** — no que
-exista. Esa diferencia es justo la que esta spec ya se equivocó una vez en no
+exista. Esa distinción es justo la que esta spec ya se equivocó una vez en no
 hacer (§1.1.b), así que queda escrita.
-
-⚠️ **Pushear NO despliega las edge functions.** La medición no empieza a correr
-con el merge: hay que desplegar `kommo-webhook` aparte.

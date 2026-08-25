@@ -7,6 +7,14 @@ const eslintConfig = defineConfig([
   ...nextTs,
   globalIgnores([
     ".next/**",
+    // ⚠️ El dist dir del GATE, hermano de `.next/**` — y su ausencia acá ya
+    // costó un rojo falso (2026-08-24). `verify.mjs` construye en
+    // `.next-verify/` y lo limpia al terminar; si una corrida se corta antes
+    // (sesión reiniciada, Ctrl-C), el bundle queda en disco y la corrida
+    // SIGUIENTE lo lintea — `lint` va antes que `build`, así que falla con
+    // errores de `require()` y `@ts-ignore` sobre código generado que nadie
+    // escribió. El síntoma no se parece en nada a la causa.
+    ".next-verify/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
