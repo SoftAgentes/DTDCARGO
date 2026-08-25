@@ -354,6 +354,29 @@ Deno.serve(async (req: Request) => {
   // el parser de entidades sólo entiende leads/contactos.
   const mensajes = parseKommoMessages(crudo);
 
+  // 🔴 SDD-0288 · los valores enumerados se registran SIEMPRE, no sólo cuando la
+  // forma es desconocida.
+  //
+  // Nació dentro de la rama de "forma desconocida", y eso se volvió una
+  // ceguera autoinfligida: al desplegar la rebanada 1 los mensajes empezaron a
+  // parsearse, dejaron de caer en esa rama, y se apagó la única ventana que
+  // había sobre ellos — justo cuando hacía falta.
+  //
+  // Lo que destapó el problema: 47 leads con conversación, los 47 en rojo y
+  // CERO con saliente (medido 2026-08-25 23:15). O Kommo no emite webhook para
+  // los mensajes que salen, o llegan con otra forma. Sin este log no hay manera
+  // de saber cuál de las dos, y el estado "esperando" queda inalcanzable.
+  //
+  // Es barato y no filtra nada: lista blanca de 12 claves enumeradas, sin `text`
+  // ni nombres ni teléfonos (§ `valoresEnumerados`).
+  const valores = valoresEnumerados(crudo);
+  if (Object.keys(valores).length > 0) {
+    console.log(
+      "[kommo-webhook][sdd-0288][valores-enum]",
+      JSON.stringify(valores),
+    );
+  }
+
   if (parsed.events.length === 0 && mensajes.length === 0) {
     // SDD-0288 rebanada 0 · acá es donde se pierde todo lo que no sabemos leer.
     //
@@ -370,18 +393,6 @@ Deno.serve(async (req: Request) => {
         "[kommo-webhook][sdd-0288][forma-desconocida]",
         JSON.stringify({ claves: forma }),
       );
-      // Rebanada 0b: y los VALORES de los enumerados que deciden el semáforo
-      // (`type`, `author[type]`, `is_read`, `origin`). Lista BLANCA — ver
-      // `valoresEnumerados`. Sin esto habría que adivinar si "incoming"
-      // significa que escribió el cliente, y adivinar es lo que esta spec
-      // viene esquivando.
-      const valores = valoresEnumerados(crudo);
-      if (Object.keys(valores).length > 0) {
-        console.log(
-          "[kommo-webhook][sdd-0288][valores-enum]",
-          JSON.stringify(valores),
-        );
-      }
     }
     return json({ ok: true, events: 0 }, 200);
   }
