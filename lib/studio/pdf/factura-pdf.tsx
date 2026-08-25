@@ -20,13 +20,24 @@
  * en Vitest y son la fuente única de lo que dice el documento. El componente
  * sólo los pinta. Mismo reparto que `buildPayslipLines` en SDD-0117.
  *
- * ## Lo que NO lleva
+ * ## La identidad fiscal del emisor: excepción CONCEDIDA (SDD-0297)
  *
- * Razón social y RIF. Se respeta el precedente explícito del finiquito (regla
- * del founder 2026-07-20): la identidad legal completa en texto visible es una
- * excepción a pedir, no el default. Si la factura tiene que servirle al
- * contador del cliente probablemente haya que revisarlo — está anotado como
- * decisión abierta en el spec.
+ * La regla de marca manda razón social y RIF sólo al schema, nunca a texto
+ * visible, y el finiquito sigue respetándola. Para la factura el founder
+ * concedió la excepción el 2026-08-25: es un documento fiscal y sin la
+ * identidad del emisor no le sirve al contador del cliente.
+ *
+ * Los datos ya existían — `tenants.legal_name` y `tenants.rif` (SDD-0120, la
+ * razón social es obligatoria en el validador). Lo que faltaba era que la ruta
+ * los pasara: armaba el emisor con `tradeName` y los dejaba afuera.
+ *
+ * ## Lo que sigue sin llevar: el RIF del CLIENTE
+ *
+ * `invoices` congela `client_name` y `client_markbox` al emitir, pero no el
+ * documento. Sacarlo en vivo de `clients` haría que una factura vieja cambiara
+ * si el cliente corrige su RIF — y una factura que se reescribe sola deja de
+ * ser un comprobante. Denormalizarlo pide migración y sólo cubre las nuevas.
+ * Es una bifurcación de diseño, no un olvido: decisión abierta en el spec.
  *
  * Colores hardcodeados a valores de luz: react-pdf no lee CSS vars, y el PDF es
  * un documento formal, no la app.
@@ -80,7 +91,12 @@ export type FacturaPdfInput = {
  * factura, sólo que sin el pie de pago.
  */
 export type FacturaPdfEmisor = {
+  /** Nombre comercial ("DTD Cargo"). */
   tradeName: string;
+  /** Razón social ("INVERSIONES DTD SERVICES, C.A"). Vacío si no se cargó. */
+  legalName: string;
+  /** RIF del emisor ("J-50648869-8"). Vacío si no se cargó. */
+  rif: string;
   email: string;
   phone: string;
   website: string;
@@ -95,6 +111,22 @@ export type FacturaPdfEmisor = {
 // ╔═══════════════════════════════════════════════════════════╗
 // ║ Capa pura                                                 ║
 // ╚═══════════════════════════════════════════════════════════╝
+
+/**
+ * Las líneas de identidad fiscal que van bajo el membrete.
+ *
+ * Pura y probada: si el tenant no cargó los datos devuelve `[]` y el membrete
+ * sale como antes. **Nunca inventa un RIF** — sin dato, no hay línea; una
+ * factura con un identificador fiscal equivocado es peor que una sin él.
+ */
+export function lineasDeEmisor(emisor?: FacturaPdfEmisor): string[] {
+  if (!emisor) return [];
+  const razon = emisor.legalName.trim();
+  const rif = emisor.rif.trim();
+  if (!razon && !rif) return [];
+  // Van juntos en un renglón: es como se lee en una factura venezolana.
+  return [[razon, rif ? `RIF ${rif}` : ""].filter(Boolean).join(" · ")];
+}
 
 export type FacturaPdfFila = {
   desc: string;
@@ -317,7 +349,11 @@ export function FacturaDocument({
   return (
     <Document title={`Factura ${invoice.code}`} author="DTD Cargo">
       <Page size="A4" style={styles.page}>
-        <Membrete docTitle={`Factura ${invoice.code}`} metaLines={metaLines} />
+        <Membrete
+          docTitle={`Factura ${invoice.code}`}
+          metaLines={metaLines}
+          emisorLines={lineasDeEmisor(emisor)}
+        />
 
         <View style={[styles.bloque, styles.dosColumnas]}>
           <View style={styles.columna}>
