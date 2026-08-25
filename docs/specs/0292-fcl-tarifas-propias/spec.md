@@ -1,5 +1,5 @@
 ---
-sdd: "0290"
+sdd: "0292"
 title: "El cotizador FCL vuelve con tarifas propias — se desengancha de SeaRates"
 status: in-progress
 author: "Claude Code (ventana searates-aviso) + founder"
@@ -11,7 +11,7 @@ related: ["0291", "0095", "0092", "0164"]
 confidencialidad: interna
 ---
 
-# SDD-0290 — El cotizador FCL vuelve, con tarifas propias
+# SDD-0292 — El cotizador FCL vuelve, con tarifas propias
 
 > SeaRates cerró (SDD-0291) y `/fcl` se quedó mudo. Buscando reemplazo apareció que
 > **el camino para publicar las tarifas FCL PROPIAS ya estaba construido entero y

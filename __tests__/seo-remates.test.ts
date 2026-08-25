@@ -44,7 +44,7 @@ describe("calc CBM/LCL en /tarifas + FCL en /fcl + Footer sin /estimacion", () =
     // contenedor completo en /fcl. Mezclarlos confunde al cliente y canibaliza el
     // SEO de las dos páginas.
     //
-    // El motor del FCL cambió en SDD-0290: era <CotizadorFletes> (tarifas de
+    // El motor del FCL cambió en SDD-0292: era <CotizadorFletes> (tarifas de
     // SeaRates, que cerró) y ahora es <FclCalculator> (tarifas PROPIAS, vía
     // `public_fcl_rates`). La aserción se actualizó con él — lo que no cambia es
     // que en esta página no puede aparecer la calc de CBM.

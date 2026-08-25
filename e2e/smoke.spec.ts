@@ -74,7 +74,7 @@ test.describe("rutas públicas críticas", () => {
   });
 
   test("/fcl siempre ofrece una vía para cotizar el contenedor", async ({ page }) => {
-    // El FCL vive standalone en /fcl, aparte de /tarifas (LCL). Desde SDD-0290 lo
+    // El FCL vive standalone en /fcl, aparte de /tarifas (LCL). Desde SDD-0292 lo
     // alimentan las tarifas PROPIAS de DTD (`public_fcl_rates`), no un proveedor
     // externo.
     //

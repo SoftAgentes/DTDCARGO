@@ -44,7 +44,7 @@ const FIELD =
   "h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40";
 
 /**
- * ⛔ **RETIRADO el 2026-08-24 (SDD-0290) — sin consumidores.**
+ * ⛔ **RETIRADO el 2026-08-24 (SDD-0292) — sin consumidores.**
  *
  * Era el cotizador de `/fcl` y `/fcl/embed`, alimentado por la caché de SeaRates
  * (`/api/public/ocean-rate` → `ocean_rates`). SeaRates cerró (ver SDD-0291), así
