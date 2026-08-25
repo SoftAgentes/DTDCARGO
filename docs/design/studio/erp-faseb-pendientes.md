@@ -2,7 +2,13 @@
 
 > Salida del barrido mecánico de Fase B (los 40 módulos restantes, 2026-07-10). El barrido aplicó fixes seguros (spacing→tokens, motion→tokens, voseo→tuteo). Esto es lo que **NO** se tocó a propósito porque necesita criterio de diseño / un token nuevo / refactor de a11y — es el backlog de **Fase C**.
 
-## 1 · 🔴 `--wine` como TEXTO falla contraste en dark (SISTÉMICO)
+## 1 · ✅ CERRADO por SDD-0294 · `--wine` como TEXTO falla contraste en dark (SISTÉMICO)
+
+> **Cerrado el 2026-08-25.** El token `--wine-text` bajó y se migraron los 48
+> usos de `color: var(--wine)` que quedaban. Al medir, la prioridad estaba
+> invertida: los 43 de `app/m/` **no** fallaban (el layout móvil fija
+> `data-theme="light"`), y los 5 que sí fallaban estaban en el Studio.
+> Detalle en `docs/specs/0294-wine-crudo-deja-de-ser-texto/spec.md`.
 
 `color: var(--wine)` como texto da **2.79:1 en dark** (falla WCAG AA; medido). Aparece en **~100+ lugares** en todo el ERP: eyebrows (`.studio-eyebrow` inline), tabs/sort activos, links "→", códigos mono (folio/Shipping Mark), y `valueColor` de KPIs (también fallan, 2.79 < 3:1).
 
@@ -29,7 +35,15 @@ Modales `role="dialog"` hand-rolled (scrim + `stopPropagation` manual) que NO us
 
 ⚠️ = los 3 con scrim hardcodeado `rgba(15,30,61,0.55)` inline → cambiar a `var(--scrim)`.
 
-## 3 · 🟡 `transition: all` (perf) — 3
+## 3 · ✅ CERRADO por SDD-0295 · `transition: all` (perf)
+
+> **Cerrado el 2026-08-25.** Los 3 de abajo ya estaban corregidos… pero al
+> barrer de nuevo había **17** en otros archivos, escritos después de julio.
+> Este hallazgo no se paga una vez: vuelve a nacer con cada componente que
+> tenga estados. Los 17 quedaron con la lista de propiedades que de verdad
+> cambian en cada sitio (leída del componente, no copiada de plantilla).
+> Detalle —incluidas las 3 decisiones que cambian algo visible— en
+> `docs/specs/0295-animar-solo-lo-que-cambia/spec.md`.
 
 - `academia/_components/AcademiaClient.tsx:873` · `academia/diplomas/_components/DiplomasClient.tsx:369` (`"all var(--dur-fast) var(--ease)"` — listar solo las props que animan).
 - `marketing/noticias-web/_components/Step2Outlines.tsx:123` (clase Tailwind `transition-all`).

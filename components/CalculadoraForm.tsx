@@ -1083,7 +1083,7 @@ function SwitchField({
           className="sr-only"
         />
         <span
-          className={`absolute top-[3px] h-[20px] w-[20px] rounded-full bg-white shadow transition-all ${
+          className={`absolute top-[3px] h-[20px] w-[20px] rounded-full bg-white shadow transition-[left] ${
             checked ? "left-[23px]" : "left-[3px]"
           }`}
         />

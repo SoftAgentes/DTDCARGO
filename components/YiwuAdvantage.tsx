@@ -85,7 +85,7 @@ export function YiwuAdvantage() {
                     <span
                       role="tooltip"
                       aria-hidden="true"
-                      className="pointer-events-none absolute left-0 top-[calc(100%+12px)] w-[280px] p-3.5 rounded-[10px] bg-paper text-left opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-visible:opacity-100 group-focus-visible:visible transition-all duration-200 z-[60] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)]"
+                      className="pointer-events-none absolute left-0 top-[calc(100%+12px)] w-[280px] p-3.5 rounded-[10px] bg-paper text-left opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-visible:opacity-100 group-focus-visible:visible transition-[opacity,visibility] duration-200 z-[60] shadow-[0_24px_48px_-12px_rgba(0,0,0,0.5)]"
                     >
                       <span className="block text-[12px] leading-[1.5] text-ink">
                         {adv.definition}

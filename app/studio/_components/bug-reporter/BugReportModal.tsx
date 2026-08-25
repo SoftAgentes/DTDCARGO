@@ -679,7 +679,8 @@ function ChipButton({
         fontFamily: "inherit",
         fontSize: compact ? 12 : 13,
         fontWeight: active ? 600 : 500,
-        transition: "all var(--dur, 180ms) var(--ease, ease-out)",
+        transition:
+          "border-color var(--dur, 180ms) var(--ease, ease-out), background-color var(--dur, 180ms) var(--ease, ease-out), color var(--dur, 180ms) var(--ease, ease-out)",
       }}
     >
       {label}

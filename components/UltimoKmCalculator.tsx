@@ -353,7 +353,7 @@ function ModoOption({
   const selected = current === value;
   return (
     <label
-      className={`flex flex-col gap-1 rounded-[10px] border p-3 cursor-pointer transition-all ${
+      className={`flex flex-col gap-1 rounded-[10px] border p-3 cursor-pointer transition-colors ${
         selected
           ? "border-wine bg-wine/5"
           : "border-grey-200 bg-white hover:border-grey-500"

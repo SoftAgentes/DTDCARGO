@@ -742,7 +742,7 @@ function DrawerSwitch({
         borderRadius: 999,
         background: on ? "var(--wine)" : "var(--bg-elevated)",
         border: `1px solid ${on ? "var(--wine)" : "var(--border)"}`,
-        transition: "all 160ms ease",
+        transition: "background-color 160ms ease, border-color 160ms ease",
         flexShrink: 0,
         cursor: "pointer",
       }}

@@ -44,7 +44,7 @@ export function ServiceCard({ s }: { s: Service }) {
     <Link
       key={s.slug}
       href={`/servicios#${s.slug}`}
-      className={`group rounded-[18px] p-7 flex flex-col min-h-[320px] transition-all duration-150 hover:-translate-y-1 ${
+      className={`group rounded-[18px] p-7 flex flex-col min-h-[320px] transition-[transform,background-color,border-color] duration-150 hover:-translate-y-1 ${
         isDark
           ? "border border-ink bg-ink text-white hover:bg-wine hover:border-wine"
           : "card-shadow border border-grey-200 bg-white hover:border-ink"

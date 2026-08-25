@@ -285,7 +285,7 @@ function TypeButton({
         background: active ? "var(--bg-surface)" : "var(--bg-elevated)",
         cursor: "pointer",
         color: "var(--ink)",
-        transition: "all 120ms",
+        transition: "border-color 120ms, background-color 120ms",
       }}
     >
       <div style={{ fontSize: 14, fontWeight: 600 }}>{label}</div>

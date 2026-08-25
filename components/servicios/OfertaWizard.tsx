@@ -174,7 +174,7 @@ function OptionCard({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`text-left rounded-[14px] border p-4 transition-all hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 focus:outline-none focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-ink focus-visible:outline-offset-2 ${
+      className={`text-left rounded-[14px] border p-4 transition-[transform,border-color,box-shadow] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 focus:outline-none focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-ink focus-visible:outline-offset-2 ${
         active
           ? "border-wine bg-white ring-1 ring-wine"
           : "border-grey-200 bg-white hover:border-ink"
