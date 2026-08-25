@@ -43,6 +43,8 @@ function inv(partial: Partial<Invoice>): Invoice {
     invoice_code: partial.invoice_code ?? "F-2026-0001",
     client_markbox: partial.client_markbox ?? "DTD-1001",
     client_name: partial.client_name ?? "Cliente",
+    client_rif: null,
+    client_doc_kind: null,
     shipment_id: null,
     shipment_code: null,
     currency: "USD",

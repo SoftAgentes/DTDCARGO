@@ -24,7 +24,7 @@ export type InvoiceFilters = {
 };
 
 const INVOICE_COLUMNS =
-  "id, tenant_id, invoice_code, client_markbox, client_name, shipment_id, shipment_code, currency, fx_rate, iva_rate, iva_mode, base_amount, iva_amount, total_amount, status, issued_at, due_date, paid_amount, last_payment_at, lines, notes, created_at, updated_at, deleted_at";
+  "id, tenant_id, invoice_code, client_markbox, client_name, client_rif, client_doc_kind, shipment_id, shipment_code, currency, fx_rate, iva_rate, iva_mode, base_amount, iva_amount, total_amount, status, issued_at, due_date, paid_amount, last_payment_at, lines, notes, created_at, updated_at, deleted_at";
 
 /** Coacciona los campos numéricos (Supabase devuelve numeric como string). */
 function coerce(row: Record<string, unknown>): Invoice {

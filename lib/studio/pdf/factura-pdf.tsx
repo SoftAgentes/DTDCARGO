@@ -45,6 +45,7 @@
 
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import { isInvoiceStatus, statusLabel } from "@/lib/studio/invoice-types";
+import { lineaDocumentoCliente } from "@/lib/studio/invoice-client-doc";
 import { PDF, Membrete } from "./pdf-doc";
 
 // ╔═══════════════════════════════════════════════════════════╗
@@ -65,6 +66,10 @@ export type FacturaPdfLinea = {
 export type FacturaPdfInput = {
   code: string;
   clientName: string;
+  /** Documento fiscal del cliente, congelado al emitir (SDD-0298). */
+  clientRif?: string | null;
+  /** `empresa` (RIF) o `persona` (cédula) — decide la etiqueta. */
+  clientDocKind?: string | null;
   /** Shipping Mark del cliente (`DTD-NNNN`). El portal no lo trae → null. */
   clientMarkbox: string | null;
   shipmentCode: string | null;
@@ -339,6 +344,10 @@ export function FacturaDocument({
   const t = calcularTotales(invoice);
   const llevaIva = t.ivaRate > 0;
 
+  // SDD-0298: el documento va ARRIBA del Shipping Mark — el Mark es un código
+  // interno nuestro; el que identifica al cliente ante el fisco es éste.
+  const docCliente = lineaDocumentoCliente(invoice.clientRif, invoice.clientDocKind);
+
   const metaLines = [
     `Emitida: ${fechaCorta(invoice.issuedAt)}`,
     `Vence: ${fechaCorta(invoice.dueDate)}`,
@@ -359,6 +368,7 @@ export function FacturaDocument({
           <View style={styles.columna}>
             <Text style={styles.bloqueTitulo}>Cliente</Text>
             <Text style={styles.datoFuerte}>{invoice.clientName}</Text>
+            {docCliente ? <Text style={styles.dato}>{docCliente}</Text> : null}
             {invoice.clientMarkbox ? (
               <Text style={styles.dato}>Shipping Mark: {invoice.clientMarkbox}</Text>
             ) : null}

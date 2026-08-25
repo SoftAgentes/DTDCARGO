@@ -443,6 +443,14 @@ export type PortalInvoiceRow = {
 
 /** Detalle de UNA factura del cliente (read-only). */
 export type PortalInvoiceDetail = PortalInvoiceRow & {
+  /**
+   * Tenant emisor. Lo usa la ruta del PDF para leer los datos de la empresa
+   * con el cliente admin: el del portal no ve `tenants` (SDD-0298).
+   */
+  tenantId: string;
+  /** Documento fiscal congelado al emitir (SDD-0298). */
+  clientRif: string | null;
+  clientDocKind: string | null;
   clientName: string;
   base: number;
   ivaRate: number;

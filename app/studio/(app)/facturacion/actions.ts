@@ -51,6 +51,10 @@ import {
   type InvoiceLine,
 } from "@/lib/studio/invoice-types";
 import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
+import {
+  documentoDelCliente,
+  SIN_DOCUMENTO,
+} from "@/lib/studio/invoice-client-doc";
 
 const VALID_CURRENCIES: InvoiceCurrency[] = ["USD", "VES", "USDT", "CNY"];
 
@@ -363,6 +367,12 @@ export async function createInvoice(
       due_date: input!.due_date ?? (emitNow ? addDaysISO(today, 30) : null),
       // SDD-0068: clasificación de fondos del mandato (los recibos la heredan).
       fund_class: await deriveInvoiceFundClass(supabase, input!.shipment_id),
+      // SDD-0298: el documento fiscal del cliente se sella al EMITIR, no al
+      // crear. Un borrador todavía se edita; congelarle algo no tendría
+      // sentido. Si se crea-y-emite, se sella acá mismo.
+      ...(emitNow
+        ? await documentoDelCliente(supabase, input!.client_markbox)
+        : SIN_DOCUMENTO),
     })
     .select("id")
     .single();
@@ -461,7 +471,7 @@ export async function emitInvoice(
   const { data: current, error: readErr } = await supabase
     .from("invoices")
     .select(
-      "id, tenant_id, status, invoice_code, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
+      "id, tenant_id, status, invoice_code, client_markbox, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
     )
     .eq("id", id)
     .maybeSingle<{
@@ -469,6 +479,7 @@ export async function emitInvoice(
       tenant_id: string;
       status: string;
       invoice_code: string;
+      client_markbox: string;
       shipment_id: string | null;
       shipment_code: string | null;
       due_date: string | null;
@@ -525,6 +536,10 @@ export async function emitInvoice(
       // cambiar mientras era borrador). Solo escribe la columna — el asiento
       // de emisión y la máquina de estados quedan intactos.
       fund_class: await deriveInvoiceFundClass(supabase, current.shipment_id),
+      // SDD-0298: acá se sella el documento fiscal del cliente. Es el momento
+      // exacto en que la factura deja de ser borrador y pasa a comprobante —
+      // desde ahora el papel ya no cambia aunque el cliente corrija su RIF.
+      ...(await documentoDelCliente(supabase, current.client_markbox)),
     })
     .eq("id", id);
 

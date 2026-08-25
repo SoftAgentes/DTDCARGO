@@ -6,6 +6,9 @@ import type { PortalInvoiceDetail } from "../portal-types";
 function inv(over: Partial<PortalInvoiceDetail> = {}): PortalInvoiceDetail {
   return {
     id: "inv-1",
+    tenantId: "t-1",
+    clientRif: null,
+    clientDocKind: null,
     code: "F-2026-0001",
     clientName: "Empresa Demo S.A.",
     status: "emitida",
