@@ -18,7 +18,9 @@ import {
   construirFilas,
   estadoLabel,
   fechaCorta,
+  lineasDeEmisor,
   montoConMoneda,
+  type FacturaPdfEmisor,
   type FacturaPdfInput,
 } from "../factura-pdf";
 
@@ -200,5 +202,48 @@ describe("formateo", () => {
     expect(fechaCorta("2026-08-23")).toBe("23/08/2026");
     expect(fechaCorta("2026-08-23T14:00:00Z")).toBe("23/08/2026");
     expect(fechaCorta(null)).toBe("—");
+  });
+});
+
+describe("lineasDeEmisor · la identidad fiscal del emisor (SDD-0297)", () => {
+  function mkEmisor(over: Partial<FacturaPdfEmisor> = {}): FacturaPdfEmisor {
+    return {
+      tradeName: "DTD Cargo",
+      legalName: "INVERSIONES DTD SERVICES, C.A",
+      rif: "J-50648869-8",
+      email: "hola@dtdcargo.com",
+      phone: "+58 241 000 0000",
+      website: "dtdcargo.com",
+      cuentas: [],
+      ...over,
+    };
+  }
+
+  it("junta razón social y RIF en un renglón, como se lee en una factura", () => {
+    expect(lineasDeEmisor(mkEmisor())).toEqual([
+      "INVERSIONES DTD SERVICES, C.A · RIF J-50648869-8",
+    ]);
+  });
+
+  it("🔴 sin datos NO imprime nada — jamás inventa un RIF", () => {
+    // Una factura con un identificador fiscal equivocado es peor que una sin
+    // él: la primera se presenta y rebota, la segunda se sabe incompleta.
+    expect(lineasDeEmisor(mkEmisor({ legalName: "", rif: "" }))).toEqual([]);
+    expect(lineasDeEmisor(mkEmisor({ legalName: "   ", rif: "  " }))).toEqual([]);
+    expect(lineasDeEmisor(undefined)).toEqual([]);
+  });
+
+  it("con uno solo de los dos, imprime ese y no deja el separador colgando", () => {
+    expect(lineasDeEmisor(mkEmisor({ rif: "" }))).toEqual([
+      "INVERSIONES DTD SERVICES, C.A",
+    ]);
+    expect(lineasDeEmisor(mkEmisor({ legalName: "" }))).toEqual(["RIF J-50648869-8"]);
+  });
+
+  it("el nombre COMERCIAL no reemplaza a la razón social", () => {
+    // El membrete ya dice "DTD CARGO". Repetirlo abajo no agrega nada fiscal:
+    // lo que el contador necesita es la razón social registrada.
+    const solo = lineasDeEmisor(mkEmisor({ legalName: "", rif: "" }));
+    expect(solo.join("")).not.toContain("DTD Cargo");
   });
 });

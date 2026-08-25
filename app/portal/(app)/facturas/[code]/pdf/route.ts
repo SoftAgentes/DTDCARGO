@@ -72,6 +72,11 @@ export async function GET(
     emisor: company
       ? {
           tradeName: company.identity.tradeName,
+          // SDD-0297: la razón social y el RIF ya venían en `getCompanyData`;
+          // esta ruta los leía y los tiraba. Sin ellos el PDF no le sirve al
+          // contador del cliente.
+          legalName: company.identity.legalName,
+          rif: company.identity.rif,
           email: company.identity.commercialEmail,
           phone: company.identity.phone,
           website: company.identity.website,
