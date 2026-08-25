@@ -39,9 +39,17 @@ describe("calc CBM/LCL en /tarifas + FCL en /fcl + Footer sin /estimacion", () =
     expect(tabs).not.toContain("EstimadoModal");
   });
 
-  it("/fcl sigue siendo el cotizador FCL solo (SeaRates, sin CBM/LCL)", () => {
+  it("/fcl sigue siendo SOLO FCL — nunca la calculadora de CBM/LCL", () => {
+    // Lo que este caso protege es la SEPARACIÓN: el LCL/CBM vive en /tarifas y el
+    // contenedor completo en /fcl. Mezclarlos confunde al cliente y canibaliza el
+    // SEO de las dos páginas.
+    //
+    // El motor del FCL cambió en SDD-0292: era <CotizadorFletes> (tarifas de
+    // SeaRates, que cerró) y ahora es <FclCalculator> (tarifas PROPIAS, vía
+    // `public_fcl_rates`). La aserción se actualizó con él — lo que no cambia es
+    // que en esta página no puede aparecer la calc de CBM.
     const page = read("app/fcl/page.tsx");
-    expect(page).toContain("CotizadorFletes");
+    expect(page).toContain("FclCalculator");
     expect(page).not.toContain("CalculadoraForm");
     expect(page).not.toContain("TarifasTabs");
   });

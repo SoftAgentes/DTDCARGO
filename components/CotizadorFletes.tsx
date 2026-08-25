@@ -43,6 +43,18 @@ const CONTAINER_LABELS: Record<string, string> = {
 const FIELD =
   "h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40";
 
+/**
+ * ⛔ **RETIRADO el 2026-08-24 (SDD-0292) — sin consumidores.**
+ *
+ * Era el cotizador de `/fcl` y `/fcl/embed`, alimentado por la caché de SeaRates
+ * (`/api/public/ocean-rate` → `ocean_rates`). SeaRates cerró (ver SDD-0291), así
+ * que ambas páginas pasaron a `<FclCalculator>` con las tarifas PROPIAS de DTD.
+ *
+ * NO se borró a propósito: es la implementación de referencia para enchufar un
+ * proveedor de tarifas nuevo (el seam es `RateFetcher` en
+ * `lib/studio/searates/ocean-rates-queries.ts`). Si al 2026-12 no hay proveedor
+ * nuevo, bórralo junto con el resto del carril.
+ */
 export function CotizadorFletes() {
   const [originCityId, setOriginCity] = useState(OCEAN_ORIGIN_CITIES[0]?.id ?? "");
   const [pointIdTo, setTo] = useState(OCEAN_DESTINATIONS[0]?.id ?? "");

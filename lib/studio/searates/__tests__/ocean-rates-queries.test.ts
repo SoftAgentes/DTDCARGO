@@ -121,6 +121,33 @@ describe("refreshOceanRates", () => {
     expect(rows[0]!.error_code).toContain("network:");
   });
 
+  it("cuenta los error_code por tipo — la firma que delata un corte de acceso", async () => {
+    const { client } = fakeAdmin();
+    // La forma EXACTA del corte del 24-ago-2026: SeaRates revocó el acceso y las
+    // 20 rutas volvieron `graphql_error`. Sin este conteo el aviso sólo puede
+    // decir "fallaron 20", que no distingue una caída de red de una revocación.
+    const fetchRate: RateFetcher = vi.fn(
+      async () =>
+        ({ ok: false, error: "graphql_error", code: "Access Denied" }) as SeaRatesRate,
+    );
+
+    const summary = await refreshOceanRates(client, {
+      fetchRate,
+      matrix: [ROUTE_A, ROUTE_B],
+    });
+
+    expect(summary.error).toBe(2);
+    expect(summary.errorCodes).toEqual({ graphql_error: 2 });
+  });
+
+  it("no_rate NO ensucia el conteo de códigos de error", async () => {
+    const { client } = fakeAdmin();
+    const fetchRate: RateFetcher = vi.fn(async () => NO_RATE);
+    const summary = await refreshOceanRates(client, { fetchRate, matrix: [ROUTE_A] });
+    expect(summary.no_rate).toBe(1);
+    expect(summary.errorCodes).toEqual({});
+  });
+
   it("upsert falla → upserted false + errorMessage", async () => {
     const upsert = vi.fn().mockResolvedValue({ error: { message: "db down" } });
     const from = vi.fn().mockReturnValue({ upsert });

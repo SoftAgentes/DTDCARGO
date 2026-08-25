@@ -71,6 +71,12 @@ export type RefreshSummary = {
   ok: number;
   no_rate: number;
   error: number;
+  /**
+   * Cuántas veces salió cada `error_code` en la corrida. Es lo que separa "se
+   * cayó la red un rato" de "nos revocaron el acceso": el corte de SeaRates del
+   * 24-ago-2026 tuvo la firma `{ graphql_error: 20 }` (SDD-0291).
+   */
+  errorCodes: Record<string, number>;
   upserted: boolean;
   errorMessage?: string;
 };
@@ -144,6 +150,7 @@ export async function refreshOceanRates(
     ok: 0,
     no_rate: 0,
     error: 0,
+    errorCodes: {},
     upserted: false,
   };
 
@@ -163,6 +170,10 @@ export async function refreshOceanRates(
     const row = mapRateToRow(route, rate, fetchedAt);
     rows.push(row);
     summary[row.status] += 1;
+    if (row.status === "error" && row.error_code) {
+      summary.errorCodes[row.error_code] =
+        (summary.errorCodes[row.error_code] ?? 0) + 1;
+    }
   }
 
   if (rows.length > 0) {

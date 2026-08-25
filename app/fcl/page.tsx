@@ -6,10 +6,11 @@ import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { WebPageJsonLd } from "@/components/WebPageJsonLd";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
-import { CotizadorFletes } from "@/components/CotizadorFletes";
+import { FclCalculator } from "@/components/FclCalculator";
+import { getPublicFclRoutes } from "@/lib/public/rates-queries";
 
 const DESC =
-  "Calcula tu flete de contenedor completo (FCL) China → Venezuela al instante: elige ciudad/puerto de origen, destino y tipo de contenedor. Estimado referencial; el precio en firme lo cierra un asesor por WhatsApp.";
+  "Calcula tu flete de contenedor completo (FCL) China → Venezuela al instante: elige la ruta y cuántos contenedores. Estimado con nuestra propia tarifa; el precio en firme lo cierra un asesor por WhatsApp.";
 
 export const metadata: Metadata = {
   title: "Calculadora de flete FCL — contenedor completo China a Venezuela",
@@ -29,7 +30,16 @@ export const metadata: Metadata = {
   }),
 };
 
-export default function FclCalcPage() {
+// Las tarifas FCL viven en `rates` y se editan en /studio/tarifas. ISR 5 min, igual
+// que /tarifas: al publicar o cambiar una tarifa el sitio la toma casi al instante
+// sin rebuild. `revalidatePath("/fcl")` la fuerza.
+export const revalidate = 300;
+
+export default async function FclCalcPage() {
+  // Rutas FCL marcadas `is_public` (RPC anon). Si no hay ninguna, <FclCalculator>
+  // muestra su estado vacío y deriva a WhatsApp — nunca una pantalla rota.
+  const routes = await getPublicFclRoutes();
+
   return (
     <>
       <Nav />
@@ -54,15 +64,15 @@ export default function FclCalcPage() {
                 <span style={{ color: "var(--color-wine)" }}>China a tu puerto.</span>
               </h1>
               <p className="lead mt-6 max-w-[46ch]">
-                Elige tu ciudad o puerto de origen en China y tu destino en Venezuela,
-                y mira un flete estimado al instante. Es referencial; tu asesor lo
-                cierra en firme con cupo y fecha.
+                Elige una de nuestras rutas de contenedor completo y cuántos vas a
+                traer, y mira el estimado al instante. Es nuestra tarifa, no un
+                promedio de mercado; tu asesor la cierra en firme con cupo y fecha.
               </p>
               <ul className="mt-8 flex flex-col gap-4 text-[15px] text-grey-700 list-none p-0">
                 {[
-                  ["Contenedor completo (FCL).", "Estimado al instante en 40' High Cube; otras medidas con tu asesor."],
-                  ["Desde tu ciudad.", "Elige tu ciudad de China (Yiwu, Guangzhou, Shenzhen…) y calculamos desde su puerto."],
-                  ["¿Puerta a puerta?", "El FCL todo pagado hasta tu puerta lo arma tu asesor por WhatsApp."],
+                  ["Contenedor completo (FCL).", "Tarifa por contenedor, de puerto de origen a puerto de destino."],
+                  ["Es nuestra tarifa.", "Rutas que operamos, con tránsito estimado. El tipo (20′/40′/HC) y la naviera los confirma tu asesor."],
+                  ["¿Tu ruta no está en la lista?", "Escríbenos y tu asesor te arma la tarifa para tu origen y destino."],
                 ].map(([t, d]) => (
                   <li key={t} className="flex items-start gap-3">
                     <span
@@ -78,7 +88,7 @@ export default function FclCalcPage() {
               </ul>
             </div>
 
-            <CotizadorFletes />
+            <FclCalculator routes={routes} />
           </div>
         </section>
 

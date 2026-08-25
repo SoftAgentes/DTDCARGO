@@ -16,7 +16,6 @@ import {
   hasNavieraData,
   type NavieraSnapshot,
 } from "@/lib/studio/naviera-tracking/types";
-import { trackingUrlFromSnapshot } from "@/lib/studio/naviera-tracking/searates-deeplink";
 import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import type { PendingAcceptanceInvoice } from "@/lib/portal/portal-legal-queries";
 import type { PortalNotificationHistoryItem } from "@/lib/studio/notifications/notification-history-queries";
@@ -409,7 +408,6 @@ function NavieraCard({
   naviera: NavieraSnapshot;
   live?: TrackingSnapshotRow | null;
 }) {
-  const trackUrl = trackingUrlFromSnapshot(naviera);
   // El tracking vivo (real, de la naviera) le gana al dato manual de la cadena.
   const liveData: TrackingSnapshotRow | null =
     live != null && live.fetchStatus === "ok" ? live : null;
@@ -488,21 +486,13 @@ function NavieraCard({
         </div>
       ) : null}
 
-      {trackUrl ? (
-        <div className="mt-8 pt-6 border-t border-grey-200">
-          <p className="text-[13.5px] text-grey-700 leading-[1.55]">
-            Sigue tu contenedor en tiempo real —mapa, buque y ETA— en SeaRates.
-          </p>
-          <a
-            href={trackUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-ghost mt-4 inline-flex items-center gap-2"
-          >
-            Ver seguimiento en SeaRates <ArrowIcon size={15} />
-          </a>
-        </div>
-      ) : null}
+      {/* Acá vivía el botón "Ver seguimiento en SeaRates" (SDD-0101). Se quitó el
+          24-ago-2026 (SDD-0291): SeaRates notificó el 13-ago la terminación de sus
+          servicios con 30 días de plazo, así que el enlace queda MUERTO el ~12-sep
+          — y este botón lo ve el CLIENTE. La card no pierde información: buque,
+          viaje, ETD/ETA y contenedor salen de NUESTRA cadena
+          (sailings/consolidations), no de SeaRates. No reponer un deep-link sin un
+          proveedor vivo detrás. */}
     </div>
   );
 }
