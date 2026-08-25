@@ -193,18 +193,40 @@ si el agente resuelve la conversación en ese rato, la tarea se completa sola y
 nunca aparece un rojo que nadie tenía que atender. Cinco minutos filtran ruido;
 las 2 horas del problema original llegaban tarde.
 
-⏳ **Pendiente de medir (2026-08-25, con fecha esta vez):** ¿las tareas se
-completan solas o se acumulan? Ahora se responde **desde el ERP, sin abrir
-Kommo**:
+#### 🔴 MEDIDO 2 h después: el colchón de 5 minutos NO filtra nada
+
+```
+15:00    1 tarea creada  ·  0 completadas
+16:00   16 tareas creadas ·  0 completadas   ← 9 leads distintos
+─────────────────────────────────────────────
+        17 abiertas · 17 vencidas · 0 completadas
+```
+
+**Cero completadas.** El razonamiento con el que se defendió el plazo de 5 min
+—"si el agente resuelve la conversación en ese rato, la tarea se cierra sola y
+no aparece un rojo innecesario"— **es falso**: nadie las completa, ni el agente
+ni una persona. El colchón sólo retrasa el rojo cinco minutos.
+
+⭐ **Pero el hallazgo real es otro, y es más grande: las tareas se ACUMULAN
+porque nadie las cierra.** Una tarea de Kommo sólo se apaga cuando alguien la
+marca hecha. En 2 h: **10 leads en rojo de ~112 activos ≈ 9%**. La alarma del
+11-ago ("va a quedar todo rojo") todavía no se cumple, pero la pendiente es
+1 → 17 sin una sola completada.
+
+**Decisión del founder (2026-08-25): el plazo se queda en 5 minutos.** Pasar a
+`Ahora` no arregla nada de esto —adelanta el rojo cinco minutos y ya— y costaría
+tocar los cuatro agentes para nada. **El problema no es de configuración, es de
+hábito del equipo**: si nadie completa tareas, el rojo de Kommo se satura solo.
+
+⏳ **Pendiente, con fecha:** volver a medir **el 2026-08-26** en régimen normal.
+Las 16 de las 16:00 son en buena parte el arranque tras la recarga de créditos,
+con los agentes poniéndose al día — **el ritmo sostenido no está medido**.
 
 ```sql
-select count(*) filter (where is_completed = false)                        as abiertas,
+select count(*) filter (where is_completed = false)                           as abiertas,
        count(*) filter (where is_completed = false and complete_till < now()) as vencidas
   from public.kommo_tasks;   -- requiere una corrida de kommo-sync
 ```
-
-Cerca de **0 abiertas** → el colchón funciona, se queda en 5 min.
-Acumulándose → el colchón no filtra nada y conviene pasar a `Ahora`.
 
 ⚠️ **Ojo con el método:** contar eventos `task[...]` en los logs del webhook
 **NO** sirve para esto — incluye altas y modificaciones de la MISMA tarea. El
