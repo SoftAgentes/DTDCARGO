@@ -141,3 +141,76 @@ export function formaDelCuerpo(
   }
   return [...patrones].sort();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SDD-0288 rebanada 0b · los VALORES de los campos que deciden el semáforo.
+//
+// La primera medición (`formaDelCuerpo`) dio la FORMA. Contra tráfico real del
+// 2026-08-24/25 aparecieron `message[add]`, `talk[add]`, `talk[update]`,
+// `unsorted[add]` y `contacts[note]` — o sea que Kommo SÍ emite mensajería.
+//
+// Pero la forma no alcanza para escribir el parser: falta saber qué DICE
+// `type` (¿"incoming"/"outgoing"?), qué dice `author[type]`, y si `is_read` es
+// 0/1 o true/false. De esos valores depende que una tarjeta se pinte roja o
+// gris, y adivinarlos sería el error que esta spec viene esquivando desde §1.1.b.
+//
+// ── Por qué esto NO reabre el problema de la PII ────────────────────────────
+//
+// 🔴 **Es una LISTA BLANCA, no una lista negra.** Sólo se publica el valor de
+// las claves nombradas acá abajo una por una, y todas son enumerados cortos
+// (`incoming`, `contact`, `1`, `whatsapp`). Una lista negra —"todo menos
+// `text`"— filtraría cualquier campo nuevo que Kommo agregue mañana, y el fallo
+// sería silencioso. Con lista blanca, un campo desconocido no se publica por
+// omisión: hay que agregarlo a mano.
+//
+// `text`, `author[name]`, `attachment[link]`, los teléfonos y los ids NO están
+// en la lista y no pueden entrar sin que alguien edite este archivo.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Las ÚNICAS claves cuyo valor se puede registrar. Cada una es un enumerado que
+ * el semáforo necesita interpretar; ninguna identifica a una persona.
+ */
+const CLAVES_ENUM: ReadonlySet<string> = new Set([
+  // ¿entrante o saliente? — es la que decide el rojo
+  "message[add][N][type]",
+  "message[add][N][message_type]",
+  // ¿lo escribió el cliente, un asesor o el bot?
+  "message[add][N][author][type]",
+  // canal (whatsapp / instagram / facebook) — para saber qué cobertura hay
+  "message[add][N][origin]",
+  "message[add][N][entity_type]",
+  "message[add][N][element_type]",
+  // la conversación: sin leer / en atención
+  "talk[add][N][is_read]",
+  "talk[add][N][is_in_work]",
+  "talk[add][N][origin]",
+  "talk[update][N][is_read]",
+  "talk[update][N][is_in_work]",
+  "talk[update][N][origin]",
+]);
+
+/** Un enumerado es corto. Si llega algo largo, se recorta y se nota. */
+const TOPE_VALOR = 32;
+
+/**
+ * Valores de los campos enumerados del cuerpo. PURA.
+ *
+ * Devuelve `{ "message[add][N][type]": "incoming", … }` — sólo claves de
+ * `CLAVES_ENUM`. Todo lo demás se descarta sin mirarlo.
+ */
+export function valoresEnumerados(
+  formBody: string | URLSearchParams,
+  max = 24,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, val] of toEntries(formBody)) {
+    const patron = key.replace(/\[\d+\]/g, "[N]");
+    if (!CLAVES_ENUM.has(patron)) continue;
+    if (Object.keys(out).length >= max && !(patron in out)) continue;
+
+    const v = String(val ?? "");
+    out[patron] = v.length > TOPE_VALOR ? `${v.slice(0, TOPE_VALOR)}…(recortado)` : v;
+  }
+  return out;
+}

@@ -26,6 +26,7 @@ import {
 } from "../_shared/kommo-mapping.ts";
 import {
   formaDelCuerpo,
+  valoresEnumerados,
   parseKommoWebhookPayload,
   type KommoWebhookEvent,
 } from "../_shared/kommo-webhook-parse.ts";
@@ -364,6 +365,18 @@ Deno.serve(async (req: Request) => {
         "[kommo-webhook][sdd-0288][forma-desconocida]",
         JSON.stringify({ claves: forma }),
       );
+      // Rebanada 0b: y los VALORES de los enumerados que deciden el semáforo
+      // (`type`, `author[type]`, `is_read`, `origin`). Lista BLANCA — ver
+      // `valoresEnumerados`. Sin esto habría que adivinar si "incoming"
+      // significa que escribió el cliente, y adivinar es lo que esta spec
+      // viene esquivando.
+      const valores = valoresEnumerados(crudo);
+      if (Object.keys(valores).length > 0) {
+        console.log(
+          "[kommo-webhook][sdd-0288][valores-enum]",
+          JSON.stringify(valores),
+        );
+      }
     }
     return json({ ok: true, events: 0 }, 200);
   }
