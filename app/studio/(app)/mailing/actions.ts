@@ -938,7 +938,7 @@ export async function resendStuckMailAction(
     // `queued:true` = quedó registrado y NO salió. Decirlo: dar por enviado algo
     // que no salió es justo el bug que este módulo vino a cerrar.
     message: result.queued
-      ? "Registrado, pero NO salió: falta RESEND_API_KEY. Revisá la configuración."
+      ? "Registrado, pero NO salió: falta RESEND_API_KEY. Revisa la configuración."
       : "Correo reenviado.",
   };
 }

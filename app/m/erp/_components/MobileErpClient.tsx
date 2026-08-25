@@ -84,7 +84,7 @@ interface Props {
   /** Map { receipt_path: signed_url } generado server-side (TTL 1h). */
   receiptUrls: Record<string, string>;
   expensesTodayUsd: number;
-  /** HQ operativa del user · fallback "Cerca tuyo" si browser geo denegada. */
+  /** HQ operativa del user · fallback "Cerca de ti" si browser geo denegada. */
   operatingLat: number | null;
   operatingLng: number | null;
   /** Tareas abiertas del user en Bitácora → badge del tab (SDD-0146). */
@@ -1123,7 +1123,7 @@ function ClientsScreen({
                   "background-color 160ms ease, color 160ms ease, box-shadow 160ms ease",
               }}
             >
-              {m === "nearby" ? "📍 Cerca tuyo" : `Todos · ${clients.length}`}
+              {m === "nearby" ? "📍 Cerca de ti" : `Todos · ${clients.length}`}
             </button>
           );
         })}

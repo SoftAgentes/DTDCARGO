@@ -154,7 +154,7 @@ export class MockLLMClient implements LLMClient {
     return mockResult({
       output: {
         message:
-          "Para ayudarte mejor, mandame el código del envío (formato S-YYYY-NNNN) o el Shipping Mark del cliente (DTD-NNNN).",
+          "Para ayudarte mejor, mándame el código del envío (formato S-YYYY-NNNN) o el Shipping Mark del cliente (DTD-NNNN).",
         citations: [],
       },
       toolCalls: [],

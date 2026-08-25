@@ -511,7 +511,7 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
             />
           </div>
 
-          {/* GPS · habilita "Cerca tuyo" del Mobile ERP */}
+          {/* GPS · habilita "Cerca de ti" del Mobile ERP */}
           <div
             style={{
               padding: "12px 14px",
@@ -545,7 +545,7 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
                     marginTop: 4,
                   }}
                 >
-                  Capturá visitando al cliente · habilita &quot;Cerca tuyo&quot; del Mobile ERP.
+                  Captúrala visitando al cliente · habilita &quot;Cerca de ti&quot; del Mobile ERP.
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>

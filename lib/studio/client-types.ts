@@ -47,7 +47,7 @@ export type Client = {
   contact_name: string | null;
   tier: ClientTier;
   notes: string | null;
-  /** Latitud GPS · habilita "Cerca tuyo" del Mobile ERP (migración 0048). */
+  /** Latitud GPS · habilita "Cerca de ti" del Mobile ERP (migración 0048). */
   lat: number | null;
   /** Longitud GPS. */
   lng: number | null;
@@ -103,7 +103,7 @@ export type ClientInput = {
   rif: string | null;
   tier: ClientTier;
   notes: string | null;
-  /** GPS opcional · habilita "Cerca tuyo" del Mobile ERP. */
+  /** GPS opcional · habilita "Cerca de ti" del Mobile ERP. */
   lat: number | null;
   lng: number | null;
 };
