@@ -89,3 +89,23 @@ describe("🔴 el estampado va DESPUES del espejado, no antes", () => {
     expect(espeja).toBeLessThan(estampa);
   });
 });
+
+describe("🔴 el espejo de tareas NO puede apagar la integracion", () => {
+  it("kommo-sync espeja `tasks` con loggedJanitorial, no con logged", () => {
+    // `index.ts` hace results.every(r => r.status === "ok") y con un solo fallo
+    // pone kommo_connections.status = 'error'. Con la conexion fuera de active
+    // se rechazan con 409 el sync, el drenaje del write-back Y el push de
+    // altas — o sea que el Shipping Mark deja de llegar a Kommo.
+    //
+    // El espejo de tareas es un DIAGNOSTICO. No puede tener el poder de apagar
+    // el canal que mueve dinero. Y tiene un modo de fallo realista: si Kommo
+    // ignora el filter[is_completed]=0 (no verificado), traeria el historico
+    // entero y tiraria por truncamiento.
+    const code = readFileSync(
+      join(process.cwd(), "supabase/functions/kommo-sync/sync.ts"),
+      "utf8",
+    );
+    expect(code).toContain('loggedJanitorial(supabase, conn, "tasks"');
+    expect(code).not.toContain('logged(supabase, conn, "tasks"');
+  });
+});

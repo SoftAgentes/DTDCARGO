@@ -510,7 +510,23 @@ export async function syncAll(
   // queda encendido para siempre y el semáforo pasa de útil a ruido.
   await sleep(RATE_LIMIT_DELAY_MS);
   results.push(
-    await logged(supabase, conn, "tasks", async () => {
+    // 🔴 `loggedJanitorial`, NO `logged`, y no es un detalle de estilo.
+    //
+    // `index.ts` hace `results.every(r => r.status === "ok")` y con un solo
+    // fallo pone `kommo_connections.status = 'error'`. Con la conexión fuera de
+    // `active` se rechazan con 409 el sync, el drenaje del write-back Y el push
+    // de altas — o sea que el Shipping Mark deja de llegar a Kommo.
+    //
+    // Este espejo es un DIAGNÓSTICO: sirve para poder afirmar "hay N tareas
+    // vencidas" sin abrir el CRM. No puede tener el poder de apagar el canal
+    // que sí mueve dinero. Y tiene un modo de fallo realista: si Kommo ignora
+    // el `filter[is_completed]=0` (no está verificado) traería el histórico
+    // entero, pasaría el tope de páginas y tiraría por truncamiento.
+    //
+    // Con `loggedJanitorial` el fallo queda en `sync_logs` con status 'error'
+    // —visible y greppable— pero no contamina el veredicto. Mismo criterio que
+    // la poda de embudos.
+    await loggedJanitorial(supabase, conn, "tasks", async () => {
       const runAt = new Date().toISOString();
 
       const { items, truncated } = await paginateTasks<KommoTask>(
