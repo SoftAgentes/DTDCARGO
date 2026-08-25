@@ -15,6 +15,7 @@ import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { PuntoConversacion } from "./PuntoConversacion";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { OwnerSlice } from "@/lib/studio/kommo-analytics";
 import type { StaleOp } from "@/lib/studio/kommo-writeback";
@@ -59,9 +60,18 @@ function daysSince(iso: string | null): number | null {
   return Math.max(0, Math.floor((Date.now() - t) / DAY_MS));
 }
 
+/**
+ * SDD-0288 — la antigüedad CEDE el rojo.
+ *
+ * Antes ≥180 días pintaba `--danger`. Ahora el rojo lo tiene "te escribió",
+ * que es lo único accionable ahora mismo. Dos cosas distintas no pueden
+ * compartir el color más fuerte: si el Tablero pinta rojo por antigüedad y rojo
+ * por sin-atender, el asesor no puede saber cuál está mirando.
+ *
+ * La antigüedad no se borra — baja a ámbar y conserva su `title`.
+ */
 function ageTone(days: number | null): string {
   if (days == null) return "var(--ink-mute)";
-  if (days >= 180) return "var(--danger)";
   if (days >= 30) return "var(--warning)";
   return "var(--ink-soft)";
 }
@@ -531,6 +541,17 @@ function LeadsTable({
   onVerbDone: (msg: string, error?: boolean) => void;
   onConvertClick: (lead: KommoLeadRow) => void;
 }) {
+  // SDD-0288 — el reloj del semáforo, fijado DESPUÉS de montar.
+  //
+  // Esta tabla es un client component: se renderiza en el servidor para el HTML
+  // inicial y se vuelve a renderizar al hidratar. Un `Date.now()` en el cuerpo
+  // daría dos valores distintos y React marcaría desajuste de hidratación en
+  // cuanto el render cruce un minuto — que es justo la granularidad del rótulo
+  // ("3 min", "1 h"). Con el reloj en `null` hasta montar, el servidor y el
+  // cliente coinciden y el punto aparece un tick después, imperceptible.
+  const [ahoraMs, setAhoraMs] = useState<number | null>(null);
+  useEffect(() => setAhoraMs(Date.now()), []);
+
   return (
     <div
       style={{
@@ -615,7 +636,23 @@ function LeadsTable({
                   alignItems: "center",
                 }}
               >
-                <span role="cell" style={{ minWidth: 0, overflow: "hidden" }}>
+                <span
+                  role="cell"
+                  style={{
+                    minWidth: 0,
+                    overflow: "hidden",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  {/* SDD-0288 — el punto del semáforo, a la izquierda del
+                      nombre. Mismo componente que el Tablero: las dos vistas no
+                      pueden divergir. Con `conTexto` porque acá hay sitio para
+                      el "hace 3 h". */}
+                  {ahoraMs != null && (
+                    <PuntoConversacion lead={l} ahoraMs={ahoraMs} conTexto />
+                  )}
                   {href ? (
                     <a
                       href={href}

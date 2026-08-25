@@ -13,6 +13,7 @@
 import { describe, it, expect } from "vitest";
 import {
   formaDelCuerpo,
+  parseKommoMessages,
   parseKommoWebhookPayload,
   valoresEnumerados,
 } from "../kommo-webhook-parse";
@@ -291,5 +292,95 @@ describe("valoresEnumerados", () => {
   it("devuelve vacío cuando no hay nada de la lista", () => {
     expect(valoresEnumerados("leads[status][0][id]=42")).toEqual({});
     expect(valoresEnumerados("")).toEqual({});
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SDD-0288 rebanada 1 · `parseKommoMessages` — contra el payload REAL.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("parseKommoMessages", () => {
+  /**
+   * Reproduce el mensaje medido en produccion el 2026-08-25 04:34 UTC:
+   * type=incoming · author.type=external · entity_type=lead · origin=waba.
+   */
+  const ENTRANTE_REAL = [
+    "account[subdomain]=dtdcargo",
+    "message[add][0][id]=abc",
+    "message[add][0][entity_id]=23325167",
+    "message[add][0][entity_type]=lead",
+    "message[add][0][created_at]=1787632487",
+    "message[add][0][type]=incoming",
+    "message[add][0][author][type]=external",
+    "message[add][0][origin]=waba",
+    "message[add][0][text]=Hola",
+  ].join("&");
+
+  it("lee el mensaje entrante real", () => {
+    const [m] = parseKommoMessages(ENTRANTE_REAL);
+    expect(m.leadId).toBe(23325167);
+    expect(m.entrante).toBe(true);
+    expect(m.origin).toBe("waba");
+    expect(m.createdAt).toBe(new Date(1787632487 * 1000).toISOString());
+  });
+
+  it("🔴 convierte created_at desde SEGUNDOS, no milisegundos", () => {
+    // En milisegundos la fecha cae en el ano ~57.000 y el lead quedaria
+    // "escribio recien" para siempre. Se cuentan los digitos del ano.
+    const [m] = parseKommoMessages(ENTRANTE_REAL);
+    expect(m.createdAt!.slice(0, 4)).toBe("2026");
+  });
+
+  it("🔴 un mensaje NUESTRO no cuenta como del cliente", () => {
+    // El caso que pintaria una tarjeta roja sin que nadie deba nada.
+    const salida = ENTRANTE_REAL
+      .replace("[type]=incoming", "[type]=outgoing")
+      .replace("[author][type]=external", "[author][type]=user");
+    expect(parseKommoMessages(salida)[0].entrante).toBe(false);
+  });
+
+  it("🔴 un valor DESCONOCIDO de type cae en saliente, no en rojo", () => {
+    // El token de saliente no esta medido. La regla pregunta "¿es incoming?",
+    // asi que lo que no conocemos falla hacia el lado seguro: como mucho deja
+    // de encender una alerta, jamas la enciende de mas.
+    const raro = ENTRANTE_REAL.replace("[type]=incoming", "[type]=algo_que_kommo_invente");
+    expect(parseKommoMessages(raro)[0].entrante).toBe(false);
+  });
+
+  it("🔴 un 'incoming' que NO viene de external tampoco es el cliente", () => {
+    // El agente de IA tambien produce mensajes en la conversacion.
+    const bot = ENTRANTE_REAL.replace("[author][type]=external", "[author][type]=bot");
+    expect(parseKommoMessages(bot)[0].entrante).toBe(false);
+  });
+
+  it("ignora lo que no cuelga de un lead", () => {
+    const deContacto = ENTRANTE_REAL.replace("[entity_type]=lead", "[entity_type]=contact");
+    expect(parseKommoMessages(deContacto)).toEqual([]);
+  });
+
+  it("ignora un entity_id invalido en vez de inventar un lead", () => {
+    for (const malo of ["0", "-3", "", "abc"]) {
+      const roto = ENTRANTE_REAL.replace("[entity_id]=23325167", `[entity_id]=${malo}`);
+      expect(parseKommoMessages(roto)).toEqual([]);
+    }
+  });
+
+  it("lee varios mensajes en un solo webhook, cada uno con su indice", () => {
+    const dos = [
+      "message[add][0][entity_id]=111", "message[add][0][entity_type]=lead",
+      "message[add][0][created_at]=1787632487", "message[add][0][type]=incoming",
+      "message[add][0][author][type]=external",
+      "message[add][1][entity_id]=222", "message[add][1][entity_type]=lead",
+      "message[add][1][created_at]=1787632999", "message[add][1][type]=outgoing",
+      "message[add][1][author][type]=user",
+    ].join("&");
+    const r = parseKommoMessages(dos);
+    expect(r).toHaveLength(2);
+    expect(r.find((m) => m.leadId === 111)!.entrante).toBe(true);
+    expect(r.find((m) => m.leadId === 222)!.entrante).toBe(false);
+  });
+
+  it("un cuerpo sin mensajes devuelve vacio", () => {
+    expect(parseKommoMessages("leads[status][0][id]=42")).toEqual([]);
+    expect(parseKommoMessages("")).toEqual([]);
   });
 });

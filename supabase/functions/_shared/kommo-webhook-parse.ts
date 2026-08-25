@@ -214,3 +214,102 @@ export function valoresEnumerados(
   }
   return out;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SDD-0288 rebanada 1 · el parser de `message[add]`.
+//
+// Escrito sobre payloads REALES, no sobre documentación. La forma salió de la
+// rebanada 0 (17 eventos, 2026-08-24/25) y los valores de la 0b:
+//
+//   message[add][0][entity_id]     = 23325167     ← el lead
+//   message[add][0][entity_type]   = "lead"
+//   message[add][0][created_at]    = 1787637287   ← epoch SEGUNDOS
+//   message[add][0][type]          = "incoming"
+//   message[add][0][author][type]  = "external"
+//   message[add][0][origin]        = "waba"
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface KommoMensaje {
+  /** Lead al que pertenece. Sólo se emiten mensajes de `entity_type = lead`. */
+  leadId: number;
+  /** true = lo escribió el cliente. Ver `esEntrante` para el porqué. */
+  entrante: boolean;
+  /** ISO-8601, convertido desde epoch en SEGUNDOS. Null si no vino o es basura. */
+  createdAt: string | null;
+  /** Canal (`waba`, `instagram`, …). Null si no vino. */
+  origin: string | null;
+}
+
+/**
+ * ¿Este mensaje lo escribió el CLIENTE?
+ *
+ * 🔴 **Se pregunta por `incoming`, no por el token de saliente.** El lado
+ * saliente no está medido: al cerrar la rebanada 0b sólo se había observado
+ * `type="incoming"` con `author.type="external"`.
+ *
+ * Preguntar "¿es igual a <token de saliente>?" obligaría a adivinar ese token, y
+ * si Kommo usara otro, un mensaje NUESTRO se contaría como del cliente y la
+ * tarjeta se pondría roja sin que nadie deba nada. Al revés —preguntar por
+ * `incoming`— un valor desconocido cae en "saliente" y como mucho **deja de
+ * encender** una alerta. Falla hacia el lado seguro.
+ *
+ * `author.type` se exige además de `type` porque el agente de IA también produce
+ * mensajes: un `incoming` que no venga de `external` no es el cliente.
+ */
+export function esEntrante(
+  type: string | null | undefined,
+  authorType: string | null | undefined,
+): boolean {
+  return String(type ?? "").toLowerCase() === "incoming" &&
+    String(authorType ?? "").toLowerCase() === "external";
+}
+
+/**
+ * Extrae los mensajes del cuerpo del webhook. PURA.
+ *
+ * Ignora sin ruido lo que no sea un mensaje de lead: `entity_type` distinto,
+ * `entity_id` inválido, o índices sueltos. Un webhook malformado no puede tumbar
+ * el espejado, que es la función principal de esta edge function.
+ */
+export function parseKommoMessages(
+  formBody: string | URLSearchParams,
+): KommoMensaje[] {
+  // idx → campos crudos del mensaje
+  const crudos = new Map<string, Record<string, string>>();
+  const re = /^message\[add\]\[(\d+)\]\[(\w+)\](?:\[(\w+)\])?$/;
+
+  for (const [key, val] of toEntries(formBody)) {
+    const m = re.exec(key);
+    if (!m) continue;
+    const [, idx, campo, sub] = m;
+    const nombre = sub ? `${campo}.${sub}` : campo;
+    const prev = crudos.get(idx) ?? {};
+    prev[nombre] = val;
+    crudos.set(idx, prev);
+  }
+
+  const out: KommoMensaje[] = [];
+  for (const c of crudos.values()) {
+    // Sólo los que cuelgan de un lead: el semáforo se pinta por tarjeta.
+    if (String(c["entity_type"] ?? "").toLowerCase() !== "lead") continue;
+
+    const leadId = Number(c["entity_id"]);
+    if (!Number.isInteger(leadId) || leadId <= 0) continue;
+
+    // epoch SEGUNDOS → ISO. En milisegundos la fecha cae en el año ~57.000 y el
+    // lead quedaría "escribió recién" para siempre. Mismo aviso que en el
+    // camino de ida (`buildTaskPayload`).
+    const seg = Number(c["created_at"]);
+    const createdAt = Number.isFinite(seg) && seg > 0
+      ? new Date(seg * 1000).toISOString()
+      : null;
+
+    out.push({
+      leadId,
+      entrante: esEntrante(c["type"], c["author.type"]),
+      createdAt,
+      origin: c["origin"] ? String(c["origin"]) : null,
+    });
+  }
+  return out;
+}

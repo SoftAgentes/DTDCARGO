@@ -65,6 +65,12 @@ export type KommoLeadRow = {
   kommo_created_at: string | null;
   kommo_updated_at: string | null;
   closed_at: string | null;
+  /** SDD-0288 — cuándo escribió el CLIENTE por última vez. */
+  last_inbound_at: string | null;
+  /** SDD-0288 — cuándo le escribimos nosotros por última vez. */
+  last_outbound_at: string | null;
+  /** SDD-0288 — canal del último mensaje (waba | instagram | …). */
+  last_message_origin: string | null;
 };
 
 export type KommoOverview = {
