@@ -9,7 +9,7 @@
  * asientos: solo el extracto y sus movimientos.
  */
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   computeStatementBalance,
@@ -23,6 +23,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { fmtAmount } from "./format";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 interface Props {
   bankAccounts: Account[];
@@ -115,12 +116,14 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
   ).length;
   const canSubmit = Boolean(accountId) && periodLabel.length > 0 && filledLines >= 1;
 
+  const panelRef = useRef<HTMLElement>(null);
+
+  useDialogA11y(panelRef, { onClose, pending: isPending });
+
+
   return (
     <div
       onClick={() => !isPending && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="statement-drawer-title"
       style={{
         position: "fixed",
         inset: 0,
@@ -131,6 +134,11 @@ export function StatementDrawer({ bankAccounts, onClose }: Props) {
       }}
     >
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="statement-drawer-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(760px, 96vw)",

@@ -8,7 +8,7 @@
  * fetcha server-side y pasa como prop (no refresh sin recargar página).
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { TableFrame, ActionableRow } from "@/app/studio/_components/ui/DataTable";
 import {
@@ -19,7 +19,8 @@ import {
   runStatusLabel,
   triggerLabel,
   type AgentRunWithAgent,
-} from "@/lib/studio/agent-types";
+} from "@/lib/studio/agent-types";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 export function RunsTable({ runs }: { runs: AgentRunWithAgent[] }) {
   const [selected, setSelected] = useState<AgentRunWithAgent | null>(null);
@@ -151,10 +152,11 @@ function RunDetailModal({
   const citations =
     Array.isArray(run.output?.citations) ? (run.output!.citations as string[]) : [];
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: false });
+
   return (
     <div
-      role="dialog"
-      aria-modal="true"
       style={{
         position: "fixed",
         inset: 0,
@@ -168,6 +170,11 @@ function RunDetailModal({
       onClick={onClose}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Detalle de la corrida"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "var(--bg-surface)",

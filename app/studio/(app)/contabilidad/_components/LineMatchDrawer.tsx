@@ -9,7 +9,7 @@
  * que ya están ligados a otro movimiento se muestran deshabilitados (1:1).
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   lineDirectionLabel,
@@ -23,7 +23,8 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { fmtAmount } from "./format";
-import { matchLine, setLineStatus } from "../reconcile-actions";
+import { matchLine, setLineStatus } from "../reconcile-actions";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 interface Props {
   line: BankStatementLine;
@@ -80,12 +81,12 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
     onClose();
   };
 
+  const panelRef = useRef<HTMLElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: pending });
+
   return (
     <div
       onClick={() => !pending && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="match-drawer-title"
       style={{
         position: "fixed",
         inset: 0,
@@ -96,6 +97,11 @@ export function LineMatchDrawer({ line, candidates, onClose }: Props) {
       }}
     >
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="match-drawer-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(560px, 96vw)",

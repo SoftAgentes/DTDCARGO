@@ -13,7 +13,7 @@
  * - Soft delete en footer (mode edit con doble confirmación)
  */
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   PACKAGING_OPTIONS,
@@ -42,6 +42,7 @@ import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { ClientCombobox } from "@/app/studio/_components/ui/ClientCombobox";
 import type { ClientSearchHit } from "@/lib/studio/client-search-action";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 interface Props {
   mode: "create" | "edit";
@@ -271,12 +272,12 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
 
   const title = mode === "create" ? "Nuevo estimado" : "Editar estimado";
 
+  const panelRef = useRef<HTMLElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: isPending || isDeleting });
+
   return (
     <div
       onClick={() => !isPending && !isDeleting && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="quote-drawer-title"
       style={{
         position: "fixed",
         inset: 0,
@@ -287,6 +288,11 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
       }}
     >
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="quote-drawer-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(680px, 96vw)",

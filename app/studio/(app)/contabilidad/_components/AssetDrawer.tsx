@@ -9,7 +9,7 @@
  * depreciación acumulada (1.2.9) y gasto (6.17) usan default si no se eligen.
  */
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   computeDepreciation,
@@ -24,6 +24,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { fmtAmount } from "./format";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 interface Props {
   assetAccounts: Account[];
@@ -90,12 +91,14 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
     lifeN > 0 &&
     Boolean(acquiredOn);
 
+  const panelRef = useRef<HTMLElement>(null);
+
+  useDialogA11y(panelRef, { onClose, pending: isPending });
+
+
   return (
     <div
       onClick={() => !isPending && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="asset-drawer-title"
       style={{
         position: "fixed",
         inset: 0,
@@ -106,6 +109,11 @@ export function AssetDrawer({ assetAccounts, onClose }: Props) {
       }}
     >
       <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="asset-drawer-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(640px, 96vw)",

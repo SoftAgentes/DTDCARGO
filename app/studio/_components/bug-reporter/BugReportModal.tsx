@@ -17,8 +17,7 @@
  * sentence case en CTAs, sin emojis.
  */
 
-import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation"; import { useEffect, useMemo, useState, useRef } from "react";
 import { useActionState } from "react";
 import { createBugAction } from "@/app/studio/(app)/mis-bugs/actions";
 import {
@@ -34,6 +33,7 @@ import { getBugTechCapture } from "@/lib/studio/bug-tech-capture";
 import { getBugRrwebCapture } from "@/lib/studio/bug-rrweb-capture";
 import { useT, useLocale, type I18nKey } from "@/lib/i18n";
 import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 const BUG_CATEGORY_KEY: Record<BugCategory, I18nKey> = {
   error: "bug.category.error",
@@ -119,14 +119,11 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
     }
   }, [state.ok, state.bugId, onClose]);
 
-  // Escape para cerrar
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isPending) onClose();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [isPending, onClose]);
+  // SDD-0290 · el `useEffect` propio sólo cubría Escape. `useDialogA11y` trae
+  // además focus-trap, foco inicial y restauración (WCAG 2.1.2 / 2.4.3), y su
+  // Escape respeta `pending` igual. Dos manejadores habrían competido.
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: isPending });
 
   // Snapshot del capture singleton (SDD-0036 Fase 4):
   // browser_info + environment + console_logs + network_requests, todos
@@ -178,6 +175,8 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
       }}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="bug-modal-title"
@@ -282,7 +281,15 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                 ? t("bug.modal.success_duplicated_desc", { folio: state.folio ?? "" })
                 : t("bug.modal.success_new_desc", { folio: state.folio ?? "" })
               )
-                .split(state.folio ?? " ")
+                /* Centinela que NUNCA aparece en el texto: sin folio no
+                   hay nada que resaltar y el mensaje no se debe partir.
+                   🔴 NO cambiar a "": `split("")` parte el string en
+                   CARACTERES y renderiza un <span> por letra.
+                   (SDD-0290: acá había un byte NUL CRUDO en el fuente, que
+                   hacía que grep tratara el archivo como binario y lo
+                   saltara en todo barrido de texto del repo. Mismo valor
+                   en runtime, ahora escapado.) */
+                .split(state.folio ?? "\0")
                 .map((part, i, arr) => (
                   <span key={i}>
                     {part}
