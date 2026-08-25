@@ -13,13 +13,7 @@
  *   - Preferencias: useActionState → updateMyPreferencesAction
  */
 
-import {
-  useActionState,
-  useEffect,
-  useState,
-  useTransition,
-  type CSSProperties,
-} from "react";
+import { useActionState, useEffect, useState, useTransition, type CSSProperties, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient as createBrowserSupabase } from "@/lib/db/client";
 import {
@@ -29,6 +23,7 @@ import {
   updateMyProfileAction,
 } from "@/app/studio/(app)/usuarios/actions";
 import type { UserActionState } from "@/lib/studio/user-types";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 export type ProfileTab = "profile" | "password" | "prefs";
 
@@ -1484,12 +1479,12 @@ export function ModalShell({
   width?: number;
   children: React.ReactNode;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: false });
+
   return (
     <div
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
       style={{
         position: "fixed",
         inset: 0,
@@ -1502,6 +1497,11 @@ export function ModalShell({
       }}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%",

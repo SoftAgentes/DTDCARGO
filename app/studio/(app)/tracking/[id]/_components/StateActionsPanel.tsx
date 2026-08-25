@@ -13,7 +13,7 @@
  * Para estados terminales (delivered, cancelled) muestra mensaje de cierre.
  */
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { transitionShipment } from "../actions";
@@ -26,6 +26,7 @@ import type {
   ShipmentService,
   ShipmentStatus,
 } from "@/lib/studio/shipment-types";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 type ActionVariant = "primary" | "warning" | "neutral";
 const VARIANT_TO_ACTIONBUTTON: Record<ActionVariant, "dark" | "warning" | "ghost"> = {
@@ -105,19 +106,28 @@ export function StateActionsPanel({
   const actions = getNextActions(service, status);
   const terminal = isTerminalStatus(status);
 
-  // Cerrar modal con Escape
-  useEffect(() => {
-    if (!excModal) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isPending) {
-        setExcModal(false);
-        setExcNote("");
-        setError(null);
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [excModal, isPending]);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * SDD-0290 · Cerrar el modal, en un solo lugar.
+   *
+   * Antes había un `useEffect` propio sólo para Escape. Se reemplaza por
+   * `useDialogA11y`, que además trae focus-trap, foco inicial y restauración —
+   * lo que faltaba para WCAG 2.1.2 y 2.4.3. Dos manejadores de Escape (el
+   * bespoke y el del hook) habrían competido, así que el viejo se va.
+   */
+  const cerrarExcModal = () => {
+    setExcModal(false);
+    setExcNote("");
+    setError(null);
+  };
+  useDialogA11y(panelRef, {
+    onClose: cerrarExcModal,
+    pending: isPending,
+    // El modal se renderiza INLINE: el hook monta con el panel de acciones,
+    // no con el diálogo. Sin esto no habría foco inicial al abrir.
+    enabled: excModal,
+  });
 
   const openExceptionModal = () => {
     setExcType("aduana");
@@ -261,7 +271,9 @@ export function StateActionsPanel({
           }}
         >
           <div
+            ref={panelRef}
             style={MODAL_BOX}
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"

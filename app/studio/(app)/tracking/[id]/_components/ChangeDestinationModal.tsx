@@ -11,7 +11,7 @@
  * - Cierre con Esc o backdrop
  */
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import {
   changeDestination,
   lookupRateForNewDestination,
@@ -21,6 +21,7 @@ import { formatRate } from "@/lib/studio/rate-types";
 import type { Rate } from "@/lib/studio/rate-types";
 import type { Shipment } from "@/lib/studio/shipment-types";
 import { Icon } from "@/app/studio/_components/icons";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 interface Props {
   shipment: Shipment;
@@ -138,12 +139,12 @@ export function ChangeDestinationModal({ shipment, onClose }: Props) {
   const feeN = Number(fee) || 0;
   const feeLabel = feeN > 0 ? `$${feeN.toFixed(2)}` : "sin costo";
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: isPending });
+
   return (
     <div
       onClick={() => !isPending && onClose()}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="change-dest-title"
       style={{
         position: "fixed",
         inset: 0,
@@ -156,6 +157,11 @@ export function ChangeDestinationModal({ shipment, onClose }: Props) {
       }}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="change-dest-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(540px, 96vw)",

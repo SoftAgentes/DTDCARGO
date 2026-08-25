@@ -12,7 +12,7 @@
  */
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
@@ -38,6 +38,7 @@ import {
   voidInvoice,
 } from "../actions";
 import { InvoiceDrawer } from "./InvoiceDrawer";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 /** Cuenta de caja/banco (subset para el select del cobro). */
 export type CashAccountOption = { id: string; code: string; name: string };
@@ -411,12 +412,12 @@ function PaymentModal({
   const valid =
     amt > 0 && amt <= balance + 1e-6 && !!cashAccountId && !noCashAccounts;
 
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: false });
+
   return (
     <div
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="pay-modal-title"
       style={{
         position: "fixed",
         inset: 0,
@@ -428,6 +429,11 @@ function PaymentModal({
       }}
     >
       <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pay-modal-title"
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "min(460px, 96vw)",

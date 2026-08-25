@@ -29,9 +29,17 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
 } from "react";
 import { createPortal } from "react-dom";
+
+/**
+ * `subscribe` inerte para `useSyncExternalStore`. Se define FUERA del componente
+ * a propósito: si fuera una lambda inline, React la vería distinta en cada
+ * render y re-suscribiría en cada uno.
+ */
+const NO_SUSCRIBE = () => () => {};
 import { Icon, type IconName } from "@/app/studio/_components/icons";
 
 /** Lo común a una opción, navegue o ejecute. */
@@ -94,13 +102,27 @@ export function ActionMenu({
   disabled = false,
 }: Props) {
   const [abierto, setAbierto] = useState(false);
-  /** `createPortal` necesita `document`, que en el render del servidor no existe. */
-  const [montado, setMontado] = useState(false);
-  useEffect(() => setMontado(true), []);
+  /**
+   * `createPortal` necesita `document`, que en el render del servidor no existe.
+   *
+   * A7 · Antes era `useState(false)` + `useEffect(() => setMontado(true), [])`.
+   * Funcionaba, pero costaba un render extra en cada montaje del menú y ESLint
+   * lo marcaba (`set-state-in-effect`). `useSyncExternalStore` es el patrón
+   * canónico de React para "¿ya hidraté?": devuelve el snapshot del servidor
+   * (`false`) durante el SSR y el del cliente (`true`) desde el primer render
+   * del navegador, sin efecto y sin re-render.
+   *
+   * El `subscribe` no hace nada a propósito: el valor no cambia nunca después
+   * de hidratar, así que no hay a qué suscribirse.
+   */
+  const montado = useSyncExternalStore(
+    NO_SUSCRIBE,
+    () => true,
+    () => false,
+  );
   /** "primera" | "ultima" — a dónde mandar el foco al abrir (BTN-01 §7 regla 6). */
   const [foco, setFoco] = useState<"primera" | "ultima">("primera");
-  /** El panel se voltea hacia arriba si abajo no cabe (BTN-01 §7: sin clipping). */
-  const [haciaArriba, setHaciaArriba] = useState(false);
+
 
   const envoltorioRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -157,8 +179,9 @@ export function ActionMenu({
     const ancho = panelRef.current?.offsetWidth ?? 200;
     if (!t) return;
     const abajo = window.innerHeight - t.bottom;
+    // El panel se voltea hacia arriba si abajo no cabe (BTN-01 §7: sin
+    // clipping). La decisión NO necesita estado: viaja dentro de `caja.top`.
     const arriba = abajo < alto + 8 && t.top > abajo;
-    setHaciaArriba(arriba);
     // `end` alinea el borde derecho del panel con el del trigger.
     let left = align === "end" ? t.right - ancho : t.left;
     // Y nunca se sale de la ventana por ninguno de los dos lados.

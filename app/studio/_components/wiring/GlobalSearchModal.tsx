@@ -33,6 +33,7 @@ import type {
 } from "@/lib/studio/global-search/types";
 import { FACETS } from "@/lib/studio/global-search/facets";
 import { useDTDWiring } from "./WiringProvider";
+import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 /** Acción del command-palette (no es una entidad · ej: "Reportar un problema"). */
 interface SearchCommand {
@@ -195,6 +196,17 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
     [value, onClose, router],
   );
 
+  /**
+   * SDD-0290 · El ⌘K ya enfocaba el input y ya cerraba con Escape; lo que le
+   * faltaba era el FOCUS-TRAP (Tab se iba a la página de atrás).
+   *
+   * `initialFocusRef` conserva el foco en el input —el operador tiene que poder
+   * tipear de inmediato— en vez de mandarlo al panel. El Escape del hook y el
+   * de `onKeyDown` hacen lo mismo (`onClose`), así que no compiten.
+   */
+  const panelRef = useRef<HTMLDivElement>(null);
+  useDialogA11y(panelRef, { onClose, pending: false, initialFocusRef: inputRef });
+
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       e.preventDefault();
@@ -244,6 +256,8 @@ export function GlobalSearchModal({ onClose }: { onClose: () => void }) {
       }}
     >
       <div
+        ref={panelRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={t("chrome.search.dialog_aria")}
