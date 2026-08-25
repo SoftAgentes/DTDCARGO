@@ -446,11 +446,59 @@ teléfono y el nombre que se habrían filtrado.
 **Cómo se lee:** `Supabase → Edge Functions → kommo-webhook → Logs`, buscando
 `[kommo-webhook][sdd-0288][forma-desconocida]`.
 
+### ✅ Rebanada 0 · RESULTADO — Kommo SÍ emite mensajería (2026-08-25)
+
+17 eventos capturados entre las 22:23 y las 01:59 del tráfico real. Aparecieron
+**cuatro familias** que hasta ahora se descartaban en silencio:
+
+| Familia | Veces | Qué es |
+|---|---|---|
+| `message[add]` | 7 | cada mensaje, entrante y saliente |
+| `talk[add]` · `talk[update]` | 5 | la conversación como unidad |
+| `unsorted[add]` | 4 | el lead que entra a la bandeja |
+| `contacts[note]` | 1 | notas |
+
+**`message[add]` trae todo lo que el semáforo necesita:**
+
+```
+message[add][N][entity_id]      ← el LEAD
+message[add][N][created_at]     ← cuándo
+message[add][N][type]           ← la DIRECCIÓN
+message[add][N][author][type]   ← quién escribió
+message[add][N][origin]         ← el canal
+message[add][N][attachment][…]  ← cuando manda un archivo
+```
+
+⭐ **Y `talk[…]` trae algo mejor: `is_read` e `is_in_work`.** Ésa es la bandera
+detrás del contador rojo `Inbox de chat · 102` de la barra lateral de Kommo —
+la semántica exacta que pidió el founder, servida por Kommo sin que haya que
+derivarla.
+
+**El contrato anti-PII aguantó en producción:** los 17 registros traen sólo
+nombres de campo. Ni un `text`, ni un teléfono, ni un nombre. No se infiere del
+código; se lee de los logs.
+
+### ✅ Rebanada 0b — los VALORES de los enumerados
+
+La forma no alcanza: falta saber qué **dice** `type` (¿`incoming`?), qué dice
+`author[type]`, y si `is_read` es `0/1` o `true/false`. De eso depende que una
+tarjeta se pinte roja o gris.
+
+`valoresEnumerados()` publica el valor de **12 claves nombradas una por una** y
+de ninguna otra.
+
+🔴 **Es lista BLANCA, y esa es toda la seguridad.** Una lista negra —"todo menos
+`text`"— filtraría cualquier campo que Kommo agregue mañana, en silencio. Con
+lista blanca, lo desconocido no se publica por omisión.
+
+Validado **por mutación**: al convertirla en lista negra, tres contratos se
+ponen rojos — el nombre y el teléfono se filtran, y una clave nueva sale sola.
+
 ### ⏸ Rebanadas 1 y 3 — sin una línea escrita, a propósito
 
 Se escriben cuando la rebanada 0 devuelva payloads reales. No antes.
 
-🔴 **Lo que esta spec NO afirma:** que Kommo emita un evento de mensaje. Que el
-webhook esté en "Todos" prueba que lo **recibiríamos si existe** — no que
-exista. Esa distinción es justo la que esta spec ya se equivocó una vez en no
-hacer (§1.1.b), así que queda escrita.
+✅ **Resuelto:** la pregunta abierta era si Kommo emitía un evento de mensaje.
+La respuesta, medida contra tráfico real, es **sí**. Lo que sigue abierto es el
+significado de los enumerados — y eso lo cierra la rebanada 0b, no una
+suposición.

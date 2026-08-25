@@ -14,6 +14,7 @@ import { describe, it, expect } from "vitest";
 import {
   formaDelCuerpo,
   parseKommoWebhookPayload,
+  valoresEnumerados,
 } from "../kommo-webhook-parse";
 
 describe("parseKommoWebhookPayload — actions de lead", () => {
@@ -211,5 +212,84 @@ describe("formaDelCuerpo", () => {
   it("también describe lo que YA sabemos leer, sin inventarlo", () => {
     expect(formaDelCuerpo("leads[status][0][id]=42&account[subdomain]=dtdcargo"))
       .toEqual(["account[subdomain]", "leads[status][N][id]"]);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SDD-0288 rebanada 0b · `valoresEnumerados` — medir los enums SIN filtrar PII.
+// ─────────────────────────────────────────────────────────────────────────────
+describe("valoresEnumerados", () => {
+  /** Cuerpo realista, con la forma medida en produccion el 2026-08-24/25. */
+  const CUERPO_REAL = [
+    "account[subdomain]=dtdcargo",
+    "message[add][0][id]=abc123",
+    "message[add][0][type]=incoming",
+    "message[add][0][message_type]=text",
+    "message[add][0][origin]=whatsapp",
+    "message[add][0][entity_type]=lead",
+    "message[add][0][entity_id]=23325167",
+    "message[add][0][author][type]=contact",
+    "message[add][0][author][id]=99001",
+    "message[add][0][author][name]=Mar%C3%ADa%20Rodr%C3%ADguez",
+    "message[add][0][text]=Hola%20quiero%20cotizar%20un%20contenedor",
+    "message[add][0][contact_id]=584121668021",
+  ].join("&");
+
+  it("lee los enumerados que deciden el semáforo", () => {
+    const v = valoresEnumerados(CUERPO_REAL);
+    expect(v["message[add][N][type]"]).toBe("incoming");
+    expect(v["message[add][N][author][type]"]).toBe("contact");
+    expect(v["message[add][N][origin]"]).toBe("whatsapp");
+    expect(v["message[add][N][message_type]"]).toBe("text");
+  });
+
+  it("🔴 NO publica el texto, ni el nombre, ni el teléfono, ni los ids", () => {
+    // El contrato que hace aceptable loguear esto. Si alguien "mejora" la
+    // funcion pasando de lista blanca a lista negra, esto se pone rojo.
+    const serializado = JSON.stringify(valoresEnumerados(CUERPO_REAL));
+    for (const secreto of [
+      "Hola", "cotizar", "contenedor",   // el texto del cliente
+      "María", "Rodríguez",              // su nombre
+      "584121668021",                    // su telefono
+      "99001", "abc123", "23325167",     // ids
+    ]) {
+      expect(serializado).not.toContain(secreto);
+    }
+  });
+
+  it("🔴 una clave NUEVA de Kommo no se publica por omisión", () => {
+    // La diferencia entre lista blanca y lista negra, hecha contrato: el dia
+    // que Kommo agregue un campo, NO debe salir en el log sin que alguien lo
+    // agregue a mano a CLAVES_ENUM.
+    const v = valoresEnumerados(
+      "message[add][0][campo_nuevo_de_kommo]=dato-sensible-desconocido",
+    );
+    expect(v).toEqual({});
+  });
+
+  it("lee is_read / is_in_work de la conversación, en add y en update", () => {
+    const v = valoresEnumerados(
+      "talk[add][0][is_read]=0&talk[add][0][is_in_work]=1&talk[add][0][origin]=instagram",
+    );
+    expect(v["talk[add][N][is_read]"]).toBe("0");
+    expect(v["talk[add][N][is_in_work]"]).toBe("1");
+    expect(v["talk[add][N][origin]"]).toBe("instagram");
+
+    const u = valoresEnumerados("talk[update][0][is_read]=1");
+    expect(u["talk[update][N][is_read]"]).toBe("1");
+  });
+
+  it("recorta un valor largo en vez de volcarlo entero", () => {
+    // Un enumerado es corto. Si algo llega largo es que la clave no era lo que
+    // creiamos — se recorta y se nota, en vez de derramar el contenido.
+    const largo = "x".repeat(200);
+    const v = valoresEnumerados(`message[add][0][type]=${largo}`);
+    expect(v["message[add][N][type]"]).toContain("(recortado)");
+    expect(v["message[add][N][type]"]!.length).toBeLessThan(60);
+  });
+
+  it("devuelve vacío cuando no hay nada de la lista", () => {
+    expect(valoresEnumerados("leads[status][0][id]=42")).toEqual({});
+    expect(valoresEnumerados("")).toEqual({});
   });
 });
