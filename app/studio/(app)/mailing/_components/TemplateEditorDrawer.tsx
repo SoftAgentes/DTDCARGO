@@ -112,7 +112,8 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
               fontFamily: "inherit",
               fontSize: 13,
               fontWeight: view === v ? 600 : 500,
-              transition: "all var(--dur, 180ms) var(--ease, ease-out)",
+              transition:
+                "background-color var(--dur, 180ms) var(--ease, ease-out), color var(--dur, 180ms) var(--ease, ease-out)",
             }}
           >
             {v === "editor" ? "Editor" : "Preview"}

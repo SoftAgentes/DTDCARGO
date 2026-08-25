@@ -34,7 +34,7 @@ export interface ProfileModalInitialData {
   phone: string | null;
   locale: string | null;
   timezone: string | null;
-  /** HQ operativa del user · fallback para "Cerca tuyo" del Mobile ERP. */
+  /** HQ operativa del user · fallback para "Cerca de ti" del Mobile ERP. */
   operatingLat: number | null;
   operatingLng: number | null;
   /** Telegram link state · set por webhook /api/telegram/webhook tras /start. */
@@ -517,7 +517,7 @@ function PrefsTabContent({
         hint="Formato IANA · ej: America/Caracas, Asia/Shanghai, Europe/Madrid."
       />
 
-      {/* HQ operativa · fallback para "Cerca tuyo" del Mobile ERP */}
+      {/* HQ operativa · fallback para "Cerca de ti" del Mobile ERP */}
       <div
         style={{
           padding: "12px 14px",
@@ -548,7 +548,7 @@ function PrefsTabContent({
               }}
             >
               Punto de referencia cuando el browser no autoriza geo · habilita
-              &quot;Cerca tuyo&quot; del Mobile ERP en escritorio o sin permiso.
+              &quot;Cerca de ti&quot; del Mobile ERP en escritorio o sin permiso.
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>

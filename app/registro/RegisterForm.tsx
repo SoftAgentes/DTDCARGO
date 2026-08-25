@@ -1065,7 +1065,7 @@ export function StepDone({
 
       {!warning && (
         <div
-          className={`w-full max-w-[440px] rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.5] text-left flex items-start gap-2.5 transition-all duration-500 ${
+          className={`w-full max-w-[440px] rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.5] text-left flex items-start gap-2.5 transition-[opacity,transform] duration-500 ${
             shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1.5"
           }`}
           style={{ borderColor: "var(--color-status-success)" }}
@@ -1083,7 +1083,7 @@ export function StepDone({
 
       {/* Tarjeta Shipping Mark — hero */}
       <div
-        className={`markbox-celebrate w-full max-w-[440px] rounded-[16px] px-6 py-7 text-left transition-all duration-500 ${
+        className={`markbox-celebrate w-full max-w-[440px] rounded-[16px] px-6 py-7 text-left transition-[opacity,transform] duration-500 ${
           shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
         }`}
         style={{ background: "var(--color-wine)", color: "#fff" }}

@@ -14,7 +14,7 @@
  * Lazy: NO pide permiso al mount · solo cuando se llama request().
  *
  * Usado por Mobile ERP ClientsScreen para sortear por distancia
- * haversine cuando user toca "Cerca tuyo".
+ * haversine cuando user toca "Cerca de ti".
  */
 
 import { useCallback, useState } from "react";

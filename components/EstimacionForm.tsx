@@ -315,7 +315,7 @@ export function EstimacionForm() {
         {/* Diagrama flotante - aparece por hover (1ra vez) o click en campos L/A/H */}
         <div
           aria-hidden={!showDiagram}
-          className={`absolute left-1/2 -translate-x-1/2 top-full mt-3 z-30 w-full max-w-[420px] pointer-events-none transition-all duration-500 ease-out ${
+          className={`absolute left-1/2 -translate-x-1/2 top-full mt-3 z-30 w-full max-w-[420px] pointer-events-none transition-[opacity,transform] duration-500 ease-out ${
             showDiagram
               ? "opacity-100 translate-y-0"
               : "opacity-0 -translate-y-2"

@@ -211,7 +211,8 @@ export function CityPicker({
           cursor: disabled ? "not-allowed" : "pointer",
           opacity: disabled ? 0.6 : 1,
           boxShadow: open ? "0 0 0 3px var(--wine-tint)" : "none",
-          transition: "all 160ms ease",
+          transition:
+            "border-color 160ms ease, color 160ms ease, opacity 160ms ease, box-shadow 160ms ease",
         }}
       >
         <span

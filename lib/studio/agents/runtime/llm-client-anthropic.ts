@@ -235,7 +235,7 @@ export class AnthropicLLMClient implements LLMClient {
     ];
 
     // Wrap del input en <untrusted_content> para mitigación de prompt injection
-    const initialUserMessage = `<untrusted_content>\n${JSON.stringify(input, null, 2)}\n</untrusted_content>\n\nUsá las tools disponibles para responder y devolveme el JSON final en el formato del output_schema.`;
+    const initialUserMessage = `<untrusted_content>\n${JSON.stringify(input, null, 2)}\n</untrusted_content>\n\nUsa las tools disponibles para responder y devuélveme el JSON final en el formato del output_schema.`;
 
     const messages: MessageParam[] = [
       { role: "user", content: initialUserMessage },

@@ -401,7 +401,8 @@ function TabButton({
         fontSize: 13,
         fontWeight: active ? 600 : 500,
         boxShadow: active ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-        transition: "all var(--dur, 180ms) var(--ease, ease-out)",
+        transition:
+          "background-color var(--dur, 180ms) var(--ease, ease-out), color var(--dur, 180ms) var(--ease, ease-out), box-shadow var(--dur, 180ms) var(--ease, ease-out)",
       }}
     >
       {label}

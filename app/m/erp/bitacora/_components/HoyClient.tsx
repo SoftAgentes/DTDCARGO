@@ -260,7 +260,8 @@ export function HoyClient({
                   font: `${active ? "700" : "500"} 12.5px/1 var(--f-sans)`,
                   boxShadow: active ? "var(--shadow-xs)" : "none",
                   cursor: "pointer",
-                  transition: "all 160ms ease",
+                  transition:
+                    "background-color 160ms ease, color 160ms ease, box-shadow 160ms ease",
                 }}
               >
                 {opt.label}

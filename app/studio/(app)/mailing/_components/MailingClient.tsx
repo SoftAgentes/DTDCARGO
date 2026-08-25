@@ -155,7 +155,8 @@ export function MailingClient({
               fontSize: 13,
               fontWeight: tab === t.value ? 600 : 500,
               boxShadow: tab === t.value ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-              transition: "all var(--dur, 180ms) var(--ease, ease-out)",
+              transition:
+                "background-color var(--dur, 180ms) var(--ease, ease-out), color var(--dur, 180ms) var(--ease, ease-out), box-shadow var(--dur, 180ms) var(--ease, ease-out)",
               whiteSpace: "nowrap",
             }}
           >
