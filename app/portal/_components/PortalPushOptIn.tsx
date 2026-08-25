@@ -60,7 +60,26 @@ function isPushSupported(): boolean {
   );
 }
 
-export function PortalPushOptIn() {
+/**
+ * El copy es parametrizable porque el mismo botón vive en dos contextos que
+ * prometen cosas distintas: en Soporte, "te avisamos cuando te escribamos"; en
+ * el inicio, "te avisamos cuando tu carga se mueva". Prometer sólo mensajes en
+ * el inicio subvendería el aviso que al cliente de verdad le importa.
+ *
+ * Los defaults son el texto de Soporte, que es donde ya vivía — así ese uso no
+ * cambia una coma.
+ */
+export function PortalPushOptIn({
+  titulo = "Activa las notificaciones",
+  descripcion = "Actívalas para que tu navegador te avise cuando DTD Cargo te escriba, aunque no tengas el portal abierto. Así no tienes que estar pendiente.",
+  tituloActivo = "Notificaciones activadas",
+  descripcionActiva = "Tu navegador te avisará apenas te escribamos.",
+}: {
+  titulo?: string;
+  descripcion?: string;
+  tituloActivo?: string;
+  descripcionActiva?: string;
+} = {}) {
   const [state, setState] = useState<PushState>("checking");
 
   const refreshState = useCallback(async () => {
@@ -141,8 +160,8 @@ export function PortalPushOptIn() {
           <CheckIcon size={16} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] font-bold text-ink">Notificaciones activadas</div>
-          <div className="text-[12px] text-grey-500">Tu navegador te avisará apenas te escribamos.</div>
+          <div className="text-[13px] font-bold text-ink">{tituloActivo}</div>
+          <div className="text-[12px] text-grey-500">{descripcionActiva}</div>
         </div>
         <button
           type="button"
@@ -165,13 +184,11 @@ export function PortalPushOptIn() {
           <Bell size={16} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-[13.5px] font-bold text-ink">
-            Activa las notificaciones
-          </div>
+          <div className="text-[13.5px] font-bold text-ink">{titulo}</div>
           <p className="mt-1 text-[12.5px] text-grey-700 leading-[1.5]">
             {denied
               ? "Las notificaciones están bloqueadas en tu navegador. Actívalas desde la configuración del sitio (candado 🔒 junto a la dirección) para que te avisemos cuando te escribamos."
-              : "Actívalas para que tu navegador te avise cuando DTD Cargo te escriba, aunque no tengas el portal abierto. Así no tienes que estar pendiente."}
+              : descripcion}
           </p>
           {!denied && (
             <button
