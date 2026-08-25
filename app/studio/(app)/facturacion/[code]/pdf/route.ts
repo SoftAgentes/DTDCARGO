@@ -57,6 +57,8 @@ export async function GET(
     invoice: {
       code: inv.invoice_code,
       clientName: inv.client_name,
+      clientRif: inv.client_rif,
+      clientDocKind: inv.client_doc_kind,
       clientMarkbox: inv.client_markbox,
       shipmentCode: inv.shipment_code,
       currency: inv.currency,

@@ -267,7 +267,7 @@ export async function getMyInvoice(
   const { data, error } = await supabase
     .from("invoices")
     .select(
-      "id, invoice_code, client_name, status, currency, fx_rate, iva_rate, base_amount, iva_amount, total_amount, paid_amount, issued_at, due_date, lines, notes, shipment_id, shipment_code, created_at",
+      "id, tenant_id, invoice_code, client_name, client_rif, client_doc_kind, status, currency, fx_rate, iva_rate, base_amount, iva_amount, total_amount, paid_amount, issued_at, due_date, lines, notes, shipment_id, shipment_code, created_at",
     )
     .eq("invoice_code", code)
     .eq("client_markbox", markbox)
@@ -279,6 +279,12 @@ export async function getMyInvoice(
 
   return {
     id: data.id as string,
+    // SDD-0298: lo necesita la ruta del PDF para leer los datos del emisor con
+    // el cliente admin — el del portal no ve `tenants` (no está en
+    // `user_tenants`).
+    tenantId: data.tenant_id as string,
+    clientRif: (data.client_rif as string | null) ?? null,
+    clientDocKind: (data.client_doc_kind as string | null) ?? null,
     code: data.invoice_code as string,
     clientName: data.client_name as string,
     status: data.status as PortalInvoiceDetail["status"],

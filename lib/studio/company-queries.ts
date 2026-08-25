@@ -85,6 +85,27 @@ export async function getCompanyData(
   if (!tenantId) {
     return { identity: EMPTY_IDENTITY, offices: [], bankAccounts: [] };
   }
+  return getCompanyDataForTenant(supabase, tenantId);
+}
+
+/**
+ * Igual que `getCompanyData` pero con el tenant DADO, sin resolverlo por
+ * membresía.
+ *
+ * 🔴 Existe por el portal (SDD-0298). `resolveTenantId` lee `user_tenants`, y un
+ * cliente del portal **no está ahí**: medido el 2026-08-25, de 133 cuentas de
+ * portal sólo 2 aparecen en `user_tenants`. Resultado — la factura que se bajaba
+ * el cliente salía sin identidad fiscal del emisor y sin datos de pago, mientras
+ * la copia del Studio los llevaba. Y es la del cliente la que va al contador.
+ *
+ * El llamador prueba primero la propiedad con el cliente del usuario y recién
+ * después lee con el admin, acotado al tenant probado — el patrón de siempre
+ * para las lecturas del portal.
+ */
+export async function getCompanyDataForTenant(
+  supabase: SupabaseClient,
+  tenantId: string,
+): Promise<CompanyData> {
 
   const [tenantRes, officesRes, banksRes] = await Promise.all([
     supabase

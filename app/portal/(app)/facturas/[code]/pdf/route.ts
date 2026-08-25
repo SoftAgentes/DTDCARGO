@@ -23,8 +23,9 @@
 import { createElement, type ReactElement } from "react";
 import type { DocumentProps } from "@react-pdf/renderer";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { getMyInvoice, getPortalClient } from "@/lib/portal/portal-queries";
-import { getCompanyData } from "@/lib/studio/company-queries";
+import { getCompanyDataForTenant } from "@/lib/studio/company-queries";
 import { FacturaDocument } from "@/lib/studio/pdf/factura-pdf";
 import { noEncontrado, nombreSeguro, respuestaPdf } from "@/lib/studio/pdf/pdf-response";
 
@@ -45,15 +46,25 @@ export async function GET(
   // El markbox no viene en el detalle de la factura del portal; sale del propio
   // cliente logueado. Si por lo que sea no resuelve, el papel sale sin esa
   // línea en vez de no salir.
+  // 🔴 Los datos del emisor NO se pueden leer con el cliente del portal:
+  // `getCompanyData` resuelve el tenant por `user_tenants`, y un cliente del
+  // portal no está ahí (medido 2026-08-25: 2 de 133 cuentas). Con el cliente
+  // del usuario, esta factura salía sin razón social, sin RIF y sin datos de
+  // pago — y es la copia que el cliente le lleva a su contador.
+  //
+  // La propiedad ya quedó probada arriba por `getMyInvoice` (markbox del
+  // usuario logueado); recién por eso se lee con admin, acotado a ESE tenant.
   const [client, company] = await Promise.all([
     getPortalClient(supabase).catch(() => null),
-    getCompanyData(supabase).catch(() => null),
+    getCompanyDataForTenant(createAdminClient(), inv.tenantId).catch(() => null),
   ]);
 
   const doc = createElement(FacturaDocument, {
     invoice: {
       code: inv.code,
       clientName: inv.clientName,
+      clientRif: inv.clientRif,
+      clientDocKind: inv.clientDocKind,
       clientMarkbox: client?.markbox ?? null,
       shipmentCode: inv.shipmentCode,
       currency: inv.currency,

@@ -36,6 +36,14 @@ export type Invoice = {
   invoice_code: string;
   client_markbox: string;
   client_name: string;
+  /**
+   * Documento fiscal del cliente CONGELADO al emitir (SDD-0298). No se lee en
+   * vivo de `clients`: una factura emitida es un comprobante y no puede
+   * cambiar si el cliente corrige su RIF después. NULL = no se capturó.
+   */
+  client_rif: string | null;
+  /** `empresa` (RIF) o `persona` (cédula) — decide la etiqueta del PDF. */
+  client_doc_kind: string | null;
   shipment_id: string | null;
   shipment_code: string | null;
   currency: InvoiceCurrency;
