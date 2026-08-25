@@ -33,7 +33,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
+import { fetchAllPaged } from "@/lib/db/paginate";
 import { createAdminClient } from "@/lib/db/admin";
 import { previewRendition } from "./queries";
 import {

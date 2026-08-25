@@ -209,14 +209,6 @@ async function loadLastMessages(
 // KPIs
 // ─────────────────────────────────────────────────────────────
 
-const EMPTY_KPIS: ConversationKpis = {
-  open: 0,
-  unread: 0,
-  unassigned: 0,
-  openCases: 0,
-  resolvedToday: 0,
-};
-
 /**
  * Las 4 KPIs de la bandeja. Calcula sobre `conversations` (no borradas):
  *   - open      = status='abierto'

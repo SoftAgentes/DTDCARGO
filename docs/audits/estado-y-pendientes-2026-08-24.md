@@ -188,7 +188,18 @@ En orden de valor para poder mostrar el ERP funcionando.
       tenía un byte NUL crudo en el fuente, así que `grep` lo trataba como
       binario y **todo barrido de texto del repo lo salteaba en silencio**.
       Corregido a escape; mismo runtime, archivo de texto otra vez.
-- [ ] **A7 · Limpiar los 4 avisos de lint** que arrastra el gate.
+- [x] **A7 · Limpiar los 4 avisos de lint.** El repo cierra en **cero avisos**.
+
+      Dos eran código muerto (`EMPTY_KPIS` en conversaciones, un import sin usar
+      en rendiciones) y dos vivían en `ActionMenu`:
+
+      - `haciaArriba` era **estado muerto**: la decisión de voltear el panel ya
+        viaja dentro de `caja.top` desde el refactor a posición fija (SDD-0275).
+        Era un `setState` de más en cada scroll, sin nadie que lo leyera.
+      - El flag de montaje pasó de `useState` + `useEffect` a
+        `useSyncExternalStore`, que es el patrón canónico de React para "¿ya
+        hidraté?". Ahorra un render por cada montaje del menú **y** el aviso
+        deja de existir en vez de silenciarse.
 
 ### 🅱 Necesita una decisión corta tuya · después lo hago
 
