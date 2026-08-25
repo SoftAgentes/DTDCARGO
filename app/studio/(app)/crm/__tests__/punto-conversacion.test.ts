@@ -69,3 +69,23 @@ describe("el punto sale de la derivada compartida, no de un cálculo suelto", ()
     expect(cols).toContain("last_outbound_at");
   });
 });
+
+describe("🔴 el estampado va DESPUES del espejado, no antes", () => {
+  it("kommo-webhook espeja las entidades y recien despues estampa el mensaje", () => {
+    // Nacio al reves, y lo delataron los logs de produccion del 2026-08-25: dos
+    // mensajes salieron `sinEspejar` porque la RPC es UPDATE (no upsert) y la
+    // fila del lead todavia no existia. Cuando un mismo POST trae `leads[add]`
+    // y su primer `message[add]`, hay que espejar primero — si no, el primer
+    // mensaje de un lead nuevo (el que mas urge ver) se pierde.
+    const code = readFileSync(
+      join(process.cwd(), "supabase/functions/kommo-webhook/index.ts"),
+      "utf8",
+    );
+    const espeja = code.indexOf("const res = await applyEntityEvents(");
+    const estampa = code.indexOf('supabase.rpc("kommo_touch_lead_message"');
+
+    expect(espeja).toBeGreaterThan(-1);
+    expect(estampa).toBeGreaterThan(-1);
+    expect(espeja).toBeLessThan(estampa);
+  });
+});
