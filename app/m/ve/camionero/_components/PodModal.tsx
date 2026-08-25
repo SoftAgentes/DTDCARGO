@@ -342,7 +342,7 @@ export function PodModal({
                 marginBottom: 10,
               }}
             >
-              <code style={{ color: "var(--wine)" }}>{od.order_code}</code> · {od.route?.name ?? "Sin ruta"}
+              <code style={{ color: "var(--wine-text)" }}>{od.order_code}</code> · {od.route?.name ?? "Sin ruta"}
             </div>
 
             {/* GPS status badge · Sprint 3 */}

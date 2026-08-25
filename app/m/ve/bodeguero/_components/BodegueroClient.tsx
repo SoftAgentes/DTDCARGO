@@ -175,7 +175,7 @@ function Header({
         <div
           style={{
             font: "700 9.5px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
           }}
@@ -374,7 +374,7 @@ function OdList({
                 marginBottom: 6,
               }}
             >
-              <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--wine)" }}>
+              <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--wine-text)" }}>
                 {od.order_code}
               </code>
               <Badge tone={tone} size="sm">
@@ -642,7 +642,7 @@ function OdDetail({
                   height: 22,
                   borderRadius: "var(--r-pill)",
                   background: "var(--wine-tint)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   font: "900 11px/1 var(--f-mono)",
                   display: "flex",
                   alignItems: "center",
@@ -782,7 +782,7 @@ function PackageCard({
           gap: 8,
         }}
       >
-        <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine)" }}>
+        <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine-text)" }}>
           {pkg.markbox}
         </code>
         <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
@@ -1074,7 +1074,7 @@ function SplitModal({
             marginBottom: 14,
           }}
         >
-          <code style={{ color: "var(--wine)" }}>{pkg.markbox}</code> · {pkg.client_name} · {pkg.boxes_total} cajas
+          <code style={{ color: "var(--wine-text)" }}>{pkg.markbox}</code> · {pkg.client_name} · {pkg.boxes_total} cajas
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -1408,7 +1408,7 @@ function ReassignModal({
             margin: "0 0 14px",
           }}
         >
-          <code style={{ color: "var(--wine)" }}>{od.order_code}</code> · cambia
+          <code style={{ color: "var(--wine-text)" }}>{od.order_code}</code> · cambia
           truck o driver del OD activo. Acción destructiva · el camionero
           original deja de ver esta entrega.
         </p>

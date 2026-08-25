@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 285 specs)
+### Índice de specs (generado · 286 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -323,6 +323,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0291 | SeaRates cierra: el ERP avisa cuando el cotizador se queda mu… | in-progress | interna |
 | 0292 | El cotizador FCL vuelve con tarifas propias — se desengancha … | in-progress | interna |
 | 0293 | El botón de notificaciones vivía donde nadie entra | in-progress | interno |
+| 0294 | El vino crudo deja de usarse como texto — y la prioridad esta… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0286 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

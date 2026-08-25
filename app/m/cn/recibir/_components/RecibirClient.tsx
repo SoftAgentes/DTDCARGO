@@ -441,7 +441,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
     <div
       style={{
         font: "700 10px/1 var(--f-sans)",
-        color: "var(--wine)",
+        color: "var(--wine-text)",
         letterSpacing: "0.12em",
         textTransform: "uppercase",
         marginBottom: 8,
@@ -457,7 +457,7 @@ function Mono({ children, center }: { children: React.ReactNode; center?: boolea
     <div
       style={{
         font: "700 12px/1.3 var(--f-mono)",
-        color: "var(--wine)",
+        color: "var(--wine-text)",
         marginTop: 3,
         textAlign: center ? "center" : "left",
       }}

@@ -292,7 +292,7 @@ function HomeScreen({
         <div
           style={{
             font: "700 11px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.14em",
             textTransform: "uppercase",
           }}
@@ -362,7 +362,7 @@ function HomeScreen({
         <div
           style={{
             font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.16em",
             textTransform: "uppercase",
             marginBottom: 10,
@@ -423,7 +423,7 @@ function HomeScreen({
         <div
           style={{
             font: "700 11px/1 var(--f-sans)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.12em",
             textTransform: "uppercase",
           }}
@@ -601,7 +601,7 @@ function ShipmentCard({ s, onClick }: { s: MobileShipment; onClick: () => void }
           }}
         >
           {s.origin ?? "—"} → {s.destination ?? "—"} ·{" "}
-          <span style={{ color: "var(--wine)", font: "700 11.5px/1.3 var(--f-sans)" }}>
+          <span style={{ color: "var(--wine-text)", font: "700 11.5px/1.3 var(--f-sans)" }}>
             {service.primary}
             {service.sub && (
               <span style={{ color: "var(--ink-soft)", fontWeight: 500 }}>
@@ -706,7 +706,7 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
               {s.client_markbox && (
                 <span
                   style={{
-                    color: "var(--wine)",
+                    color: "var(--wine-text)",
                     font: "700 12px/1.2 var(--f-mono)",
                     marginLeft: 8,
                   }}
@@ -1301,7 +1301,7 @@ function ClientCard({ c }: { c: ClientWithDistance }) {
           <code
             style={{
               font: "800 12px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               letterSpacing: "0.02em",
             }}
           >
@@ -1339,7 +1339,7 @@ function ClientCard({ c }: { c: ClientWithDistance }) {
             <span
               style={{
                 font: "700 10.5px/1 var(--f-mono)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 letterSpacing: "0.02em",
               }}
             >
@@ -2260,7 +2260,7 @@ function SectionLabel({
     <div
       style={{
         font: "700 10.5px/1 var(--f-sans)",
-        color: "var(--wine)",
+        color: "var(--wine-text)",
         letterSpacing: "0.16em",
         textTransform: "uppercase",
         marginBottom: 10,
@@ -2303,7 +2303,7 @@ function MenuLink({
           width: 36,
           height: 36,
           background: "var(--bg-elevated)",
-          color: "var(--wine)",
+          color: "var(--wine-text)",
           borderRadius: "var(--r-sm)",
           display: "inline-flex",
           alignItems: "center",
@@ -3071,7 +3071,7 @@ function EditExpenseSheet({
                 style={{
                   background: "transparent",
                   border: 0,
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   font: "700 11px/1.4 var(--f-sans)",
                   cursor: "pointer",
                   padding: 0,

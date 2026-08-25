@@ -342,7 +342,7 @@ function LotCard({
       <div
         style={{
           font: "700 10px/1 var(--f-sans)",
-          color: "var(--wine)",
+          color: "var(--wine-text)",
           letterSpacing: "0.12em",
           textTransform: "uppercase",
           marginBottom: 8,
@@ -353,7 +353,7 @@ function LotCard({
       <div style={{ font: "800 18px/1.2 var(--f-sans)", color: "var(--ink-side-strong)" }}>
         {lot.clientMarkbox ?? "—"}
       </div>
-      <div style={{ font: "700 12px/1.3 var(--f-mono)", color: "var(--wine)", marginTop: 3 }}>
+      <div style={{ font: "700 12px/1.3 var(--f-mono)", color: "var(--wine-text)", marginTop: 3 }}>
         {lot.clientMarkbox ?? "—"} · {lot.prealertaCode}
       </div>
 

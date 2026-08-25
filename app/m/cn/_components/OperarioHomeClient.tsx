@@ -167,7 +167,7 @@ export function OperarioHomeClient({
           <div
             style={{
               font: "700 11px/1 var(--f-sans)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
               marginBottom: "var(--s-1)",
@@ -228,7 +228,7 @@ export function OperarioHomeClient({
         <section style={{ marginBottom: "var(--s-5)" }}>
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine)", marginBottom: "var(--s-2)" }}
+            style={{ color: "var(--wine-text)", marginBottom: "var(--s-2)" }}
           >
             {t(lang, "Acciones rápidas", "快捷操作")}
           </div>
@@ -255,7 +255,7 @@ export function OperarioHomeClient({
                 height: 44,
                 borderRadius: "var(--r-md)",
                 background: "var(--wine-tint, rgba(127, 15, 26, 0.08))",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -288,7 +288,7 @@ export function OperarioHomeClient({
                 )}
               </span>
             </span>
-            <span style={{ color: "var(--wine)" }}>{Icon.chevR(14)}</span>
+            <span style={{ color: "var(--wine-text)" }}>{Icon.chevR(14)}</span>
           </button>
         </section>
 
@@ -299,7 +299,7 @@ export function OperarioHomeClient({
           <div
             className="studio-eyebrow"
             style={{
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               marginBottom: "var(--s-2)",
               marginTop: "var(--s-3)",
             }}
@@ -489,7 +489,7 @@ function ReceiptRow({
             <span
               style={{
                 font: "700 9px/1 var(--f-sans)",
-                color: "var(--wine)",
+                color: "var(--wine-text)",
                 background: "var(--wine-tint, rgba(127, 15, 26, 0.08))",
                 padding: "2px 5px",
                 borderRadius: "var(--r-xs)",
@@ -680,7 +680,7 @@ function ReceiptDetailModal({
               <code
                 style={{
                   font: "600 11px/1 var(--f-mono)",
-                  color: "var(--wine)",
+                  color: "var(--wine-text)",
                   marginTop: 4,
                   display: "inline-block",
                 }}
@@ -748,7 +748,7 @@ function ReceiptDetailModal({
           <div style={{ marginTop: "var(--s-3)" }}>
             <div
               className="studio-eyebrow"
-              style={{ color: "var(--wine)", marginBottom: "var(--s-2)" }}
+              style={{ color: "var(--wine-text)", marginBottom: "var(--s-2)" }}
             >
               {t(lang, `Fotos (${photos.length})`, `照片 (${photos.length})`)}
             </div>
@@ -1112,7 +1112,7 @@ function MenuModal({
               height: 44,
               borderRadius: "50%",
               background: "var(--wine-tint, rgba(127, 15, 26, 0.08))",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",

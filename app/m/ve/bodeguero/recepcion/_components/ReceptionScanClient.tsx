@@ -466,7 +466,7 @@ function ClientGroup({
           <code
             style={{
               font: "800 12px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
             }}
           >
             {group.markbox}

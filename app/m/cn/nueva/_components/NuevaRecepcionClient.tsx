@@ -632,7 +632,7 @@ function PhotoSlot({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "var(--wine)",
+        color: "var(--wine-text)",
       }}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -846,7 +846,7 @@ function Step2Identify({
                     >
                       {c.markbox}
                     </code>
-                    {selected && <span style={{ color: "var(--wine)" }}>{Icon.check(14)}</span>}
+                    {selected && <span style={{ color: "var(--wine-text)" }}>{Icon.check(14)}</span>}
                   </button>
                 );
               })}
@@ -1236,7 +1236,7 @@ function Step4Confirm({
         >
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine)", marginBottom: "var(--s-3)" }}
+            style={{ color: "var(--wine-text)", marginBottom: "var(--s-3)" }}
           >
             {t(lang, "pwa.receipt.summary")}
           </div>
@@ -1440,7 +1440,7 @@ function UploadingPhotos({
             animation: "spin 1s linear infinite",
           }}
         />
-        <span style={{ font: "900 22px/1 var(--f-display)", color: "var(--wine)" }}>
+        <span style={{ font: "900 22px/1 var(--f-display)", color: "var(--wine-text)" }}>
           {count}/{total}
         </span>
       </div>
@@ -1607,7 +1607,7 @@ function Done({
             background: "var(--bg-elevated)",
             borderRadius: "var(--r-sm)",
             font: "800 15px/1 var(--f-mono)",
-            color: "var(--wine)",
+            color: "var(--wine-text)",
             letterSpacing: "0.04em",
           }}
         >

@@ -114,7 +114,7 @@ function AdoptionFunnel({ stats }: { stats: PortalAdoptionStats }) {
           <div
             style={{
               font: "600 11px/1 var(--f-mono)",
-              color: "var(--wine)",
+              color: "var(--wine-text)",
               marginTop: 3,
             }}
           >
@@ -174,7 +174,7 @@ function CampaignProgress({ stats }: { stats: PortalAdoptionStats }) {
             {invited}
           </strong>{" "}
           de {total} con correo ya invitados ·{" "}
-          <strong style={{ color: "var(--wine)" }}>{pctDone}%</strong> · faltan{" "}
+          <strong style={{ color: "var(--wine-text)" }}>{pctDone}%</strong> · faltan{" "}
           <strong style={{ color: "var(--ink)" }}>{pending}</strong>
         </span>
       </div>
@@ -580,7 +580,7 @@ function CandidateRow({
           )}
         </span>
         <code
-          style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--wine)" }}
+          style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--wine-text)" }}
         >
           {c.markbox || "—"}
         </code>
@@ -1227,7 +1227,7 @@ function ColdRow({
           )}
         </span>
         <code
-          style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--wine)" }}
+          style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--wine-text)" }}
         >
           {c.markbox || "—"}
         </code>
@@ -1715,7 +1715,7 @@ function ContactCaptureRow({
         {client.name || "—"}
       </span>
       <code
-        style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--wine)" }}
+        style={{ font: "600 11.5px/1.2 var(--f-mono)", color: "var(--wine-text)" }}
       >
         {client.markbox || "—"}
       </code>
