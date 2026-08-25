@@ -47,8 +47,21 @@ export async function listKommoUsers(
 
 const DAY_MS = 86_400_000;
 
+/**
+ * Columnas del lead que piden TODAS las vistas del CRM.
+ *
+ * ⚠️ Una sola cadena literal, sin concatenar: PostgREST infiere el tipo de la
+ * fila leyendo este string en tiempo de compilación, y un `"a" + "b"` lo deja
+ * ciego (`GenericStringError[]`). Los comentarios van acá arriba, no adentro.
+ *
+ * SDD-0288 sumó `last_inbound_at` / `last_outbound_at` / `last_message_origin`
+ * — el semáforo de conversación. Van en la MISMA constante que el resto a
+ * propósito: si el Tablero y la tabla del Asesor pidieran columnas distintas,
+ * el punto rojo saldría en una vista y en la otra no, que es exactamente el
+ * error que SDD-0256 §4 ya cometió una vez con los verbos.
+ */
 const LEAD_COLUMNS =
-  "id, name, status_id, pipeline_id, price, responsible_user_id, kommo_created_at, kommo_updated_at, closed_at";
+  "id, name, status_id, pipeline_id, price, responsible_user_id, kommo_created_at, kommo_updated_at, closed_at, last_inbound_at, last_outbound_at, last_message_origin";
 
 /** Conteos + estado de la conexión para los KPIs del header. */
 export async function getKommoOverview(

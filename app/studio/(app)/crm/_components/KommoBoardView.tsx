@@ -23,6 +23,7 @@
 
 import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { PuntoConversacion } from "./PuntoConversacion";
 import type { OwnerSlice } from "@/lib/studio/kommo-analytics";
 import type { StaleOp } from "@/lib/studio/kommo-writeback";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -52,9 +53,18 @@ function daysSince(iso: string | null): number | null {
   return Math.max(0, Math.floor((Date.now() - t) / DAY_MS));
 }
 
+/**
+ * SDD-0288 — la antigüedad CEDE el rojo.
+ *
+ * Antes ≥180 días pintaba `--danger`. Ahora el rojo lo tiene "te escribió",
+ * que es lo único accionable ahora mismo. Dos cosas distintas no pueden
+ * compartir el color más fuerte: si el Tablero pinta rojo por antigüedad y rojo
+ * por sin-atender, el asesor no puede saber cuál está mirando.
+ *
+ * La antigüedad no se borra — baja a ámbar y conserva su `title`.
+ */
 function ageTone(days: number | null): string {
   if (days == null) return "var(--ink-mute)";
-  if (days >= 180) return "var(--danger)";
   if (days >= 30) return "var(--warning)";
   return "var(--ink-soft)";
 }
@@ -107,6 +117,11 @@ export function KommoBoardView({
       />
     );
   }
+
+  // SDD-0288 — reloj único para todas las tarjetas del render. Server
+  // component: se fija acá y la derivada lo recibe, en vez de que cada tarjeta
+  // llame a Date.now() y una columna quede medio segundo desfasada de la otra.
+  const ahoraMs = Date.now();
 
   const activeId = pipelineId ?? pipelines[0].id;
 
@@ -308,7 +323,11 @@ export function KommoBoardView({
                             padding: "10px 12px",
                           }}
                         >
-                          {/* Nombre */}
+                          {/* Nombre, con el punto del semáforo a la IZQUIERDA
+                              (la forma la pidió el founder: "un botoncito rojo
+                              a la izquierda", como una notificación). */}
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                          <PuntoConversacion lead={l} ahoraMs={ahoraMs} />
                           {href ? (
                             <a
                               href={href}
@@ -318,6 +337,9 @@ export function KommoBoardView({
                               className="studio-link-quiet"
                               style={{
                                 display: "block",
+                                // flex item: sin esto el ellipsis deja de
+                                // funcionar (min-width:auto por default).
+                                minWidth: 0,
                                 font: "600 13px/1.3 var(--f-sans)",
                                 color: "var(--ink)",
                                 overflow: "hidden",
@@ -331,6 +353,9 @@ export function KommoBoardView({
                             <span
                               style={{
                                 display: "block",
+                                // flex item: sin esto el ellipsis deja de
+                                // funcionar (min-width:auto por default).
+                                minWidth: 0,
                                 font: "600 13px/1.3 var(--f-sans)",
                                 color: l.name ? "var(--ink)" : "var(--ink-soft)",
                                 overflow: "hidden",
@@ -341,6 +366,7 @@ export function KommoBoardView({
                               {name}
                             </span>
                           )}
+                          </div>
 
                           {/* Valor + días */}
                           <div

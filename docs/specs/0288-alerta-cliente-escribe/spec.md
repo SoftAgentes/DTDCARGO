@@ -494,7 +494,60 @@ lista blanca, lo desconocido no se publica por omisión.
 Validado **por mutación**: al convertirla en lista negra, tres contratos se
 ponen rojos — el nombre y el teléfono se filtran, y una clave nueva sale sola.
 
-### ⏸ Rebanadas 1 y 3 — sin una línea escrita, a propósito
+### ✅ Rebanada 1 — el semáforo, construido (2026-08-25)
+
+Los valores llegaron del tráfico real a las 04:34 UTC y con eso se escribió el
+parser **sobre payloads medidos**, no sobre documentación:
+
+```
+message[add][N][type]         = "incoming"
+message[add][N][author][type] = "external"
+message[add][N][entity_type]  = "lead"
+message[add][N][origin]       = "waba"
+
+talk[add][N][is_read]         = "0"      ← el "sin leer" de Kommo
+talk[add][N][is_in_work]      = "1"
+```
+
+**Migración 0391 — dos fechas, no una columna de estado.** Se guarda el hecho
+(cuándo escribió cada lado), no la conclusión. Un `estado text` habría que
+recalcularlo con cada mensaje y quedaría mintiendo en cuanto alguien conteste
+desde Kommo y el webhook tarde.
+
+Su RPC tiene dos propiedades que no son opcionales:
+
+| Propiedad | Por qué |
+|---|---|
+| **Monótona** (`greatest`) | Los webhooks no llegan en orden y Kommo reintenta. Un `set = fecha` haría que un evento atrasado pise una fecha más nueva y el lead se vea contestado cuando no lo está |
+| **UPDATE, no upsert** | Un `message[add]` puede referirse a un lead de `unsorted`, que aún no existe en el espejo. Un upsert fabricaría un lead fantasma con dos fechas y ningún nombre, y el Tablero lo pintaría como real |
+
+⭐ **La regla pregunta "¿es `incoming`?", no "¿es igual al token de saliente?".**
+El lado saliente no está medido. Preguntar por el token de saliente obligaría a
+adivinarlo, y si Kommo usara otro, un mensaje NUESTRO se contaría como del
+cliente y la tarjeta se pondría roja sin que nadie deba nada. Al revés, un valor
+desconocido cae en «esperando»: **falla hacia el lado seguro.**
+
+**La pantalla.** Un solo componente (`PuntoConversacion`) montado por las DOS
+vistas, con el punto a la izquierda del nombre — la forma que pidió el founder
+(*"un botoncito rojo a la izquierda"*).
+
+| Señal | Antes | Ahora |
+|---|---|---|
+| Antigüedad ≥180 d | `--danger` | `--warning`, conserva su rótulo |
+| **Te escribió** | no existía | `--danger` + *"hace 3 h"* |
+| **Esperando** | no existía | `--ink-mute` |
+
+⚠️ **BRAND-CHECK — sin violación:** no se agrega ningún token. Lo que cambia es
+**a qué** se le da el rojo: la antigüedad lo cede porque no es una urgencia
+accionable. El color nunca es el único portador — el rótulo va en el `title` y,
+donde no hay sitio para texto, en un `sr-only`.
+
+**Validado por mutación:** al quitar el punto de una vista y devolverle el rojo
+a la antigüedad, tres contratos se ponen rojos. El error de dejar un indicador
+en una sola superficie ya se cometió con los verbos (SDD-0256 §4); ahora no
+puede repetirse en silencio.
+
+### ⏸ Rebanada 3 — sin una línea escrita, a propósito
 
 Se escriben cuando la rebanada 0 devuelva payloads reales. No antes.
 

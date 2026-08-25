@@ -27,6 +27,7 @@ import {
 import {
   formaDelCuerpo,
   valoresEnumerados,
+  parseKommoMessages,
   parseKommoWebhookPayload,
   type KommoWebhookEvent,
 } from "../_shared/kommo-webhook-parse.ts";
@@ -349,7 +350,11 @@ Deno.serve(async (req: Request) => {
     // Cuerpo ilegible no debe hacer reintentar infinito a Kommo → 200 con nota.
     return json({ ok: true, ignored: "body ilegible", detail: errMsg(e) }, 200);
   }
-  if (parsed.events.length === 0) {
+  // SDD-0288 rebanada 1 · los mensajes viven fuera de `parsed.events`:
+  // el parser de entidades sólo entiende leads/contactos.
+  const mensajes = parseKommoMessages(crudo);
+
+  if (parsed.events.length === 0 && mensajes.length === 0) {
     // SDD-0288 rebanada 0 · acá es donde se pierde todo lo que no sabemos leer.
     //
     // El webhook de la cuenta está en "Todos" (medido 2026-08-24), así que
@@ -400,6 +405,40 @@ Deno.serve(async (req: Request) => {
   if (connErr) return json({ error: `kommo_connections: ${connErr.message}` }, 500);
   if (!conn) {
     return json({ ok: true, ignored: `sin conexión para ${parsed.subdomain}` }, 200);
+  }
+
+  // SDD-0288 rebanada 1 · estampar el último mensaje ANTES de pedir el token.
+  //
+  // No necesita token: no le pega a la API de Kommo, sólo escribe el espejo. Si
+  // se hiciera después, un fallo del Vault dejaría el semáforo sin actualizar
+  // por algo que no le incumbe.
+  //
+  // Best-effort: un mensaje que no se pueda estampar NO puede tumbar el
+  // espejado de leads y contactos, que es la función principal de este webhook.
+  let msgSummary: Record<string, unknown> | undefined;
+  if (mensajes.length > 0) {
+    let estampados = 0;
+    let sinEspejar = 0;
+    for (const m of mensajes) {
+      if (!m.createdAt) continue; // sin fecha no hay nada que ordenar
+      try {
+        const { data, error } = await supabase.rpc("kommo_touch_lead_message", {
+          p_tenant_id: conn.tenant_id,
+          p_lead_id: m.leadId,
+          p_at: m.createdAt,
+          p_entrante: m.entrante,
+          p_origin: m.origin,
+        });
+        // null = el lead no está en el espejo todavía (típico de `unsorted`).
+        if (error) sinEspejar++;
+        else if (data === true) estampados++;
+        else sinEspejar++;
+      } catch {
+        sinEspejar++;
+      }
+    }
+    msgSummary = { recibidos: mensajes.length, estampados, sinEspejar };
+    console.log("[kommo-webhook][sdd-0288][mensajes]", JSON.stringify(msgSummary));
   }
 
   const { data: token, error: tokErr } = await supabase.rpc("kommo_get_token", {
@@ -468,6 +507,7 @@ Deno.serve(async (req: Request) => {
       })
       .eq("id", conn.id);
 
+    if (msgSummary) summary.mensajes = msgSummary;
     return json({ ok: true, events: parsed.events.length, summary }, 200);
   } catch (e) {
     const detail = errMsg(e);
