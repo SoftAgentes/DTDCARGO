@@ -407,40 +407,6 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, ignored: `sin conexión para ${parsed.subdomain}` }, 200);
   }
 
-  // SDD-0288 rebanada 1 · estampar el último mensaje ANTES de pedir el token.
-  //
-  // No necesita token: no le pega a la API de Kommo, sólo escribe el espejo. Si
-  // se hiciera después, un fallo del Vault dejaría el semáforo sin actualizar
-  // por algo que no le incumbe.
-  //
-  // Best-effort: un mensaje que no se pueda estampar NO puede tumbar el
-  // espejado de leads y contactos, que es la función principal de este webhook.
-  let msgSummary: Record<string, unknown> | undefined;
-  if (mensajes.length > 0) {
-    let estampados = 0;
-    let sinEspejar = 0;
-    for (const m of mensajes) {
-      if (!m.createdAt) continue; // sin fecha no hay nada que ordenar
-      try {
-        const { data, error } = await supabase.rpc("kommo_touch_lead_message", {
-          p_tenant_id: conn.tenant_id,
-          p_lead_id: m.leadId,
-          p_at: m.createdAt,
-          p_entrante: m.entrante,
-          p_origin: m.origin,
-        });
-        // null = el lead no está en el espejo todavía (típico de `unsorted`).
-        if (error) sinEspejar++;
-        else if (data === true) estampados++;
-        else sinEspejar++;
-      } catch {
-        sinEspejar++;
-      }
-    }
-    msgSummary = { recibidos: mensajes.length, estampados, sinEspejar };
-    console.log("[kommo-webhook][sdd-0288][mensajes]", JSON.stringify(msgSummary));
-  }
-
   const { data: token, error: tokErr } = await supabase.rpc("kommo_get_token", {
     p_connection_id: conn.id,
   });
@@ -484,6 +450,45 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // SDD-0288 rebanada 1 · estampar el último mensaje.
+    //
+    // 🔴 Va DESPUÉS del espejado de entidades, y el orden no es cosmético.
+    // Nació antes, y los logs de producción lo delataron el 2026-08-25: dos
+    // mensajes salieron `sinEspejar` porque la RPC es UPDATE (no upsert) y la
+    // fila del lead todavía no existía. Cuando un mismo POST trae `leads[add]`
+    // y su primer `message[add]`, espejar primero hace que el estampado
+    // encuentre la fila; al revés, el primer mensaje de un lead nuevo —que es
+    // justo el que más urge ver— se pierde.
+    //
+    // Best-effort: nunca puede tumbar el espejado, que es la función principal.
+    if (mensajes.length > 0) {
+      let estampados = 0;
+      let sinEspejar = 0;
+      for (const m of mensajes) {
+        if (!m.createdAt) continue; // sin fecha no hay nada que ordenar
+        try {
+          const { data, error } = await supabase.rpc("kommo_touch_lead_message", {
+            p_tenant_id: conn.tenant_id,
+            p_lead_id: m.leadId,
+            p_at: m.createdAt,
+            p_entrante: m.entrante,
+            p_origin: m.origin,
+          });
+          // null = el lead sigue sin espejar (llegó por otro POST que aún no cayó).
+          if (error) sinEspejar++;
+          else if (data === true) estampados++;
+          else sinEspejar++;
+        } catch {
+          sinEspejar++;
+        }
+      }
+      summary.mensajes = { recibidos: mensajes.length, estampados, sinEspejar };
+      console.log(
+        "[kommo-webhook][sdd-0288][mensajes]",
+        JSON.stringify(summary.mensajes),
+      );
+    }
+
     // SDD-0244 — enrutado del cliente que vuelve. Va DESPUÉS del espejado (que es
     // lo crítico) y nunca lo rompe: routeNewLeads no tira.
     const newLeadIds = leadEvents.filter((e) => e.action === "add").map((e) => e.id);
@@ -507,7 +512,6 @@ Deno.serve(async (req: Request) => {
       })
       .eq("id", conn.id);
 
-    if (msgSummary) summary.mensajes = msgSummary;
     return json({ ok: true, events: parsed.events.length, summary }, 200);
   } catch (e) {
     const detail = errMsg(e);
