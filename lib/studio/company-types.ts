@@ -219,3 +219,39 @@ export function validateBankAccountInput(fd: FormData): {
     },
   };
 }
+
+/**
+ * Traduce el código de una operación D1 fallida a algo que una persona pueda
+ * leer. Recibe el CÓDIGO, no el error, para que este módulo siga sin imports
+ * (lo consumen componentes cliente y arrastrar el adaptador metería
+ * `node:crypto` en el bundle).
+ *
+ * 🔴 Por qué existe: los cinco `catch` de `company-actions.ts` eran `catch {}`
+ * pelados y devolvían un genérico. El código real ya venía tipado desde
+ * `mapDatabaseError` y se tiraba en el último paso. El 2026-08-25 eso costó una
+ * hora: las cuentas bancarias no se guardaban, la pantalla no decía por qué, y
+ * hubo que leer la definición de la RPC en producción para dar con la causa —
+ * un segundo gate en la base que exige `user_tenants.role = 'admin'`.
+ *
+ * `generico` es el texto que nombra la acción concreta cuando el código no
+ * aporta nada; nunca se devuelve el código crudo.
+ */
+export function mensajeDeErrorD1(
+  code: string | null | undefined,
+  generico: string,
+): string {
+  switch (code) {
+    case "permission_denied":
+      return "Tu cuenta no tiene rol de administrador en el Studio, y los datos de la empresa los guarda un administrador. Pídeselo a quien administra el sistema.";
+    case "invalid_state":
+      return "Ese registro ya no existe o lo borraron. Refresca la pantalla.";
+    case "invalid_input":
+      return "Los datos no son válidos.";
+    case "idempotency_conflict":
+      return "Ese cambio ya se estaba aplicando. Refresca antes de reintentar.";
+    case "audit_failed":
+      return "El cambio no se aplicó porque no se pudo dejar el rastro de auditoría.";
+    default:
+      return generico;
+  }
+}
