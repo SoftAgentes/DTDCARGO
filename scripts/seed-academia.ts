@@ -24,8 +24,8 @@ interface LessonSeed {
   min: number;
   /** Visible sin inscripción (gancho de preview). */
   freePreview?: boolean;
-  /** Herramienta interactiva embebida en la lección (migr 0149). */
-  widget?: "alibaba_address";
+  /** Herramienta interactiva embebida en la lección (migr 0149 y 0393). */
+  widget?: "alibaba_address" | "alibaba_curso";
 }
 
 interface CourseSeed {
@@ -55,6 +55,20 @@ const COURSES: CourseSeed[] = [
       "¿Cuánto cuesta de verdad? (costo puesto en VE)",
       "Tu siguiente paso (hacerlo solo vs con DTD)",
     ],
+    // La guía interactiva (SDD-0099) entra como lección estrella del lead magnet:
+    // sola ya es una mini-experiencia completa (9 etapas + calculadoras + avance
+    // guardado), y `freePreview` la deja abierta sin inscripción. Requiere la
+    // migración 0393 aplicada (CHECK con 'alibaba_curso').
+    lessons: {
+      "Bienvenida: importar SÍ es para ti": [
+        {
+          title: "Guía interactiva: comprar en Alibaba paso a paso",
+          min: 15,
+          freePreview: true,
+          widget: "alibaba_curso",
+        },
+      ],
+    },
   },
   {
     slug: "curso-1-domina-yiwu",

@@ -1,5 +1,30 @@
 # Runbook — Guía interactiva de Alibaba dentro de la Academia (SDD-0099)
 
+> ## ✅ EJECUTADO el 2026-08-25 — este runbook queda como historia
+>
+> Los pasos 1 a 5 están **hechos y en `main`**. Lo único que falta es **aplicar la
+> migración a producción**, que necesita el OK del founder nombrándola
+> ([`aplicar-migraciones-prod.md`](./aplicar-migraciones-prod.md)):
+>
+> | Paso | Dónde quedó |
+> |---|---|
+> | 1 · Migración | [`supabase/migrations/0393_academia_widget_alibaba_curso.sql`](../../supabase/migrations/0393_academia_widget_alibaba_curso.sql) — ⏳ **sin aplicar a prod** |
+> | 2 · Tipos | `lib/studio/academia/types.ts` (`LessonWidget`, `LESSON_WIDGETS`, `lessonWidgetLabel`) + `scripts/seed-academia.ts` |
+> | 3 · Componente | [`components/AlibabaCursoGuide.tsx`](../../components/AlibabaCursoGuide.tsx) — el href sale de `lib/guia-alibaba.ts`, con 7 tests |
+> | 4 · Render | `app/portal/(app)/academia/[courseId]/[lessonId]/page.tsx` + badge "Herramienta" en el detalle |
+> | 5 · Seed | opción **A**: lección preview en `curso-0-guia-rapida` |
+> | 6 · PDF | ⏳ **sigue pendiente** — el portal no lee `asset_path` |
+>
+> 🔴 **Corrección importante:** el constraint se llama **`academy_lessons_widget_chk`**,
+> NO `academy_lessons_widget_check` como decía el SQL de abajo. Con el nombre
+> adivinado el `drop` no borra nada y el `add` revienta por duplicado. Verificado
+> contra la migración 0149. El SQL del Paso 1 quedó abajo **sin corregir a
+> propósito**, como recordatorio de por qué el propio runbook pedía verificarlo.
+>
+> Contrato: [`supabase/tests/0393_academia_widget_alibaba_curso.test.sql`](../../supabase/tests/0393_academia_widget_alibaba_curso.test.sql),
+> validado con dos mutaciones (CHECK abierto · pérdida del valor viejo) — las dos
+> lo ponen rojo.
+
 > **Para la ventana `feat/academia` / coordinación.** La guía interactiva DTD-branded ya está **lista y
 > servible**; esto la enchufa a la Academia como una lección (carril `academy_*` + portal, por eso NO se
 > tocó desde `feat/guia-comprar-alibaba`). Todo acá es copy-paste, adaptá a tu patrón de seed.

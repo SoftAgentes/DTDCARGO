@@ -127,7 +127,9 @@ function LessonRow({ courseId, lesson }: { courseId: string; lesson: PortalCours
         {lesson.done ? <span className="sr-only">Completada · </span> : null}
         {lesson.title}
       </span>
-      {lesson.widget === "alibaba_address" ? (
+      {/* Cualquier widget (0149 alibaba_address · 0393 alibaba_curso) se anuncia
+          igual: al alumno le importa que la lección trae algo con qué trabajar. */}
+      {lesson.widget ? (
         <span className="flex-shrink-0 text-[10px] font-bold uppercase tracking-wide text-wine-text bg-grey-100 px-1.5 py-0.5 rounded">
           Herramienta
         </span>

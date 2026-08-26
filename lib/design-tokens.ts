@@ -482,18 +482,6 @@ export const SERVICES_VE: Service[] = [
   },
 ];
 
-// Catálogo total ordenado para grids y selects
-export const SERVICES: Service[] = [...SERVICES_VE, ...SERVICES_CN];
-
-// Para vistas previas / home: los 5 más representativos (featured + estratégicos)
-export const SERVICES_FEATURED: Service[] = [
-  SERVICES_VE[0], // Puerta a puerta DDP / LCL (featured VE)
-  SERVICES_CN[1], // Consolidación bodega Yiwu (featured CN)
-  SERVICES_CN[0], // Reserva FCL (con BL propio)
-  SERVICES_VE[3], // Tránsito aduana
-  SERVICES_CN[5], // Compra asistida
-];
-
 // Tabla cruzada de responsabilidad por sede (fuente: brochure Mapa de Servicios)
 export const SERVICES_MATRIX = [
   { service: "Reserva de contenedores FCL", cn: "Ejecución completa", ve: "Coordinación con cliente" },

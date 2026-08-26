@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { guiaAlibabaHref } from "../GuiaAlibabaCard";
+import { guiaAlibabaHref } from "../guia-alibaba";
 
 const BASE = "/guias/comprar-en-alibaba.html";
 

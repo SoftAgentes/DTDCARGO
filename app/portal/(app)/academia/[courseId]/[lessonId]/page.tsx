@@ -2,11 +2,17 @@
  * Portal · Academia · Reproductor de lección (SDD-0093, Slice D.2).
  *
  * Server component: la lección (video o placeholder), botón de completar
- * (client), navegación anterior/siguiente, índice del curso y — si la lección
- * lleva `widget='alibaba_address'` — la Guía de dirección de Alibaba embebida
- * (integración aprobada por el founder: el alumno arma su dirección de bodega en
- * Yiwu + MARKBOX para pegarla en Alibaba/1688). El componente es público
- * (`components/`, solo design-tokens) → el portal puede importarlo.
+ * (client), navegación anterior/siguiente, índice del curso y, según el `widget`
+ * de la lección, una herramienta embebida:
+ *
+ *   alibaba_address (migr 0149) → sólo la dirección de la bodega de Yiwu, campo
+ *                                 por campo, con el MARKBOX del alumno.
+ *   alibaba_curso   (migr 0393) → la guía interactiva COMPLETA de compra en
+ *                                 Alibaba: 9 etapas, calculadoras y avance.
+ *
+ * Los dos componentes son públicos (`components/`, sólo design-tokens) → el
+ * portal puede importarlos, y los dos reciben el MARKBOX que el portal ya
+ * conoce en vez de hacérselo transcribir al alumno.
  */
 
 import Link from "next/link";
@@ -15,6 +21,7 @@ import { createClient } from "@/lib/db/server";
 import { getPortalLesson } from "@/lib/portal/portal-academy-queries";
 import { getPortalClient } from "@/lib/portal/portal-queries";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
+import { AlibabaCursoGuide } from "@/components/AlibabaCursoGuide";
 import { MarkLessonButton } from "../../_components/MarkLessonButton";
 import { IconCheck, IconChevron } from "../../_components/icons";
 
@@ -46,22 +53,26 @@ export default async function PortalLessonPage({
         ← {course.title}
       </Link>
 
-      {/* Video o placeholder (16:9) */}
-      <div className="rounded-xl overflow-hidden bg-ink aspect-video grid place-items-center">
-        {lesson.videoUrl ? (
-          <iframe
-            src={lesson.videoUrl}
-            title={lesson.title}
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        ) : (
-          <p className="text-[13px] text-white/85 px-6 text-center">
-            El video de esta lección estará disponible pronto.
-          </p>
-        )}
-      </div>
+      {/* Video o placeholder (16:9). El placeholder NO se pinta cuando la lección
+          trae una herramienta: ahí el contenido es el widget, y una caja negra
+          diciendo "video pronto" encima leía como que faltaba algo. */}
+      {lesson.videoUrl || !lesson.widget ? (
+        <div className="rounded-xl overflow-hidden bg-ink aspect-video grid place-items-center">
+          {lesson.videoUrl ? (
+            <iframe
+              src={lesson.videoUrl}
+              title={lesson.title}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <p className="text-[13px] text-white/85 px-6 text-center">
+              El video de esta lección estará disponible pronto.
+            </p>
+          )}
+        </div>
+      ) : null}
 
       <header className="flex flex-col gap-1">
         <span className="text-[11px] font-bold uppercase tracking-widest text-wine-text">
@@ -86,6 +97,17 @@ export default async function PortalLessonPage({
             formulario de tu proveedor — el chino se pega tal cual.
           </p>
           <AlibabaAddressGuide markbox={client?.markbox ?? undefined} />
+        </section>
+      ) : lesson.widget === "alibaba_curso" ? (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-grey-500">
+            Guía interactiva: comprar en Alibaba paso a paso
+          </h2>
+          <p className="text-[13px] text-grey-500 max-w-prose">
+            Nueve etapas, de crear tu cuenta a tener la mercancía en nuestra bodega de Yiwu. Tu
+            Shipping Mark ya va cargado y tu avance se guarda solo — puedes salir y volver.
+          </p>
+          <AlibabaCursoGuide markbox={client?.markbox ?? undefined} />
         </section>
       ) : null}
 
