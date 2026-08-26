@@ -73,29 +73,41 @@ export function ProviderShareClient({
     <div className="min-h-screen bg-paper" style={{ fontFamily: BRAND_CJK }}>
       {/* Solo la grilla de etiquetas sale en papel. */}
       <style>{`
-        /* ── El documento usa el MONITOR, no el carril de lectura ──────────
+        /* -- El documento usa el MONITOR, no el carril de lectura ----------
            El packing list es una tabla de once columnas con min-width:1000px.
-           Metida en el contenedor de 680px que sirve para los párrafos, vivía
+           Metida en el contenedor de 680px que sirve para los parrafos, vivia
            con scroll horizontal permanente y las celdas apretadas: el proveedor
-           —que lo llena desde una PC— no alcanzaba a leerla (founder,
+           --que lo llena desde una PC-- no alcanzaba a leerla (founder,
            2026-08-26).
 
-           Se resuelve sólo para ESTE bloque, sin tocar el resto de la página:
+           Se resuelve solo para ESTE bloque, sin tocar el resto de la pagina:
            el texto de instrucciones conserva su ancho legible y el documento se
-           centra respecto al viewport.
+           centra respecto al viewport. min() hace que en telefono no cambie
+           nada -- a 375px da calc(100vw - 32px), que es lo que ya media.
 
-           min() hace que en teléfono no cambie nada — a 375px da
-           calc(100vw - 32px), que es lo que ya medía. El ensanchado sólo ocurre
-           cuando hay monitor donde ensanchar. */
+           IMPORTANTE: centrado con margin-left negativo y NO con el truco
+           habitual margin-left:50% + translateX(-50%). Motivo medido: un
+           ancestro con transform crea un contexto de contencion y position:
+           fixed deja de referirse al viewport. Con el transform puesto, el modo
+           pantalla completa del documento (SDD-0308) se pintaba en top:2313px,
+           fuera de pantalla -- y cualquier otro elemento fixed que viviera
+           dentro del documento habria fallado igual, en silencio.
+
+           La resta es el ancho de la CAJA DE CONTENIDO del carril menos el ancho
+           del bloque, partido por dos. El carril es max-w-[680px] con px-5, o
+           sea border-box min(680px, 100vw) y content-box 40px menos: medido, sin
+           restar ese padding el bloque queda 40px corrido (73px de un lado, 33
+           del otro). */
         .pl-full {
           width: min(1320px, calc(100vw - 32px));
-          margin-left: 50%;
-          transform: translateX(-50%);
+          margin-left: calc(
+            (min(680px, 100vw) - 40px - min(1320px, 100vw - 32px)) / 2
+          );
         }
         /* En papel manda el CSS de impresión de la sección: acá se desarma el
            centrado para no dejar el bloque corrido media página. */
         @media print {
-          .pl-full { width: auto; margin-left: 0; transform: none; }
+          .pl-full { width: auto; margin-left: 0; }
         }
 
         @media print {

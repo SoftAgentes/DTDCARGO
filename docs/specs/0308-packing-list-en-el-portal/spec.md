@@ -188,6 +188,59 @@ terminar y `git status` lo confirma.
 `.next-verify`. **No era el código:** había dos `verify.mjs` solapados sobre el
 mismo directorio. Corriendo uno solo, verde.
 
+## 6-bis. El documento del proveedor (`/p/{token}`)
+
+Dos cambios en la pantalla que llena el proveedor, pedidos por el founder el
+2026-08-26 tras ver el documento encajonado.
+
+### a · Usa el monitor, no el carril de lectura
+
+El packing list es una tabla de once columnas con `min-width:1000px`, metida en
+el contenedor de **680px** que sirve para los párrafos. Vivía con scroll
+horizontal permanente y las celdas apretadas — en una pantalla que se llena
+**desde una PC**.
+
+Ahora sólo ese bloque sale del carril: el texto conserva sus 680px legibles y el
+documento se centra respecto al viewport. Medido a 1440px: la tabla pasa de
+1000px comprimidos en 640 a **1260px reales, sin scroll**. A 375px no cambia
+nada (`min()` lo deja en `calc(100vw - 32px)`).
+
+🔴 **El centrado NO usa `translateX(-50%)`.** Un ancestro con `transform` crea un
+contexto de contención y **`position: fixed` deja de referirse al viewport**. Con
+el transform puesto, el modo pantalla completa se pintaba en `top: 2313px`, fuera
+de pantalla — y cualquier otro `fixed` dentro del documento habría fallado igual,
+en silencio. Se centra con `margin-left` negativo calculado sobre la **caja de
+contenido** del carril (`min(680px,100vw) - 40px`); sin restar ese padding el
+bloque queda 40px corrido (medido: 73px de un lado, 33 del otro).
+
+### b · Pantalla completa
+
+⚠️ **Es un botón, no "clic adentro".** Esto es un **formulario**: el proveedor
+hace clic en las celdas para escribir. Si el clic dentro del documento disparara
+la expansión, cada intento de llenar una celda cambiaría el tamaño de la pantalla
+bajo el cursor.
+
+Se intenta primero la **Fullscreen API nativa** —la que de verdad usa todo el
+monitor, sin barra del navegador— y si el navegador la rechaza (iframe sin
+`allow`, iOS Safari, que no la implementa para elementos) queda el modo `.pl-max`,
+que ocupa toda la ventana por CSS. **El botón funciona en los dos casos: nunca
+queda muerto.**
+
+| Comprobación | Resultado |
+|---|---|
+| Expande a la ventana completa | ✅ `top:0 left:0`, 1425×900 |
+| Ancho de la tabla expandida | **1328px** (`min-width` neutralizado) |
+| Scroll propio | ✅ — sin él no se llega a las últimas filas ni a Enviar |
+| Sale con el botón | ✅ vuelve al estado exacto anterior |
+| Sale con Escape | ✅ (modo CSS; en nativo lo maneja el navegador) |
+| Sale por fuera (F11, gesto) | ✅ escucha `fullscreenchange` y sincroniza |
+| Centrado normal | ✅ 53px a cada lado, desbalance 0 |
+| Teléfono 375px | ✅ ocupa 375px, sin scroll horizontal de página |
+
+`aria-pressed` y no `aria-expanded`: no despliega un panel, cambia el estado del
+documento. El rótulo cambia con el estado — un botón que dice siempre lo mismo no
+dice qué va a pasar.
+
 ## 7. Hallazgos abiertos (no se corrigen acá)
 
 1. ✅ **Cerrado** — `/portal/documentos` ya lista el packing list (§3-bis).
