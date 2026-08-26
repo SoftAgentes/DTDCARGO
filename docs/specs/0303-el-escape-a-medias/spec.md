@@ -1,38 +1,42 @@
 ---
 sdd: "0303"
-title: "El escape de JSON-LD aterrizó a medias: 18 bloques con helper, 4 sin él"
+title: "El contrato de JSON-LD miraba sólo app/ — 4 bloques de components/ llevaban años fuera"
 status: in-progress
 author: "founder"
 created: 2026-08-26
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0301", "0302"]
+related: ["0301", "0302", "0235"]
 confidencialidad: interno
 ---
 
-# DTD-0303 — El escape a medias
+# DTD-0303 — El contrato que no miraba donde estaba el problema
 
-> Tercer y último hallazgo de la auditoría de la rama archivada (SDD-0301). Los
-> otros dos —los 14 archivos muertos y el refresco de sesión— faltaban enteros.
-> Éste había aterrizado **a medias**, que es peor: parece hecho.
+> Tercer hallazgo de la auditoría de la rama archivada (SDD-0301). Los otros dos
+> faltaban enteros. Éste **ya tenía contrato, y el contrato estaba verde.**
 
 ## El riesgo
 
 Un `<script type="application/ld+json">` se inyecta con
-`dangerouslySetInnerHTML`. Si el JSON lleva un `<` sin escapar y algún valor
-contiene `</script>`, el navegador **cierra la etiqueta ahí**: lo que sigue deja
-de ser datos y pasa a ser marcado.
+`dangerouslySetInnerHTML`. Si el JSON serializado contiene `</script>`, el
+navegador **cierra la etiqueta ahí** y lo que sigue se ejecuta como HTML: XSS
+almacenado. `serializeJsonLd` convierte `<` en `<`, que los parsers de JSON
+leen como `<` y el de HTML no ve como etiqueta.
 
-`lib/public/json-ld.ts` existe desde el 2026-08-02 justo para eso:
+**No es teórico en este repo:** `/noticias/[slug]` serializa título, resumen y
+cuerpo que vienen del CMS — texto que escribe una persona.
+
+## 🔴 El hallazgo: el contrato escaneaba una sola raíz
+
+`app/__tests__/json-ld-escape-contract.test.ts` existía desde SDD-0235 y hacía
+bien su trabajo… sobre `app/`:
 
 ```ts
-export function serializeJsonLd(value: unknown): string {
-  return JSON.stringify(value).replace(/</g, "\\u003c");
-}
+const RAIZ = "app";
 ```
 
-## Lo medido: 18 sí, 4 no
+**`components/` nunca se miró.** Y ahí vivían cuatro bloques:
 
 | Archivo | Cómo serializaba |
 |---|---|
@@ -41,50 +45,67 @@ export function serializeJsonLd(value: unknown): string {
 | `components/WorkBand.tsx` | 🔴 `JSON.stringify(videoJsonLd)` crudo |
 | `components/WebPageJsonLd.tsx` | 🟡 el escape **copiado a mano** |
 
-Los otros 18 bloques ya usaban el helper. La corrección original quedó en la
-rama archivada que nunca se mergeó; lo que llegó a `main` vino por otro camino y
-cubrió una parte.
+**Un contrato verde que no mira donde está el problema es peor que no tenerlo:**
+da por cubierto lo que nunca escaneó. Los 18 bloques de `app/` estaban
+protegidos y el equipo tenía razón en creer que el tema estaba cerrado.
 
-**El cuarto merece nota aparte.** `WebPageJsonLd` hacía
-`JSON.stringify(jsonLd).replace(/</g, "<")` — hoy es exactamente lo mismo
-que el helper, así que **no era un agujero**. Pero es una copia: el día que el
-helper escape algo más, esa línea se queda atrás sin que nadie lo note. El
-escape vive en **un** lugar.
+### El cuarto caso, aparte
 
-## ⚠️ Hoy NO había exploit vivo
+`WebPageJsonLd` hacía `JSON.stringify(jsonLd).replace(/</g, "<")` — hoy
+es **exactamente** lo que hace el helper, así que no era un agujero. Pero es una
+copia: el día que el helper escape algo más, esa línea se queda atrás sin que
+nadie lo note. Y los dos tests existentes la dejaban pasar, porque
+técnicamente escapa.
 
-Se revisaron los llamadores: todos pasan **literales estáticos** («Inicio»,
-«Academia», «Calculadora terrestre»). Ninguno inyecta datos de la base ni de la
-URL.
+## Alcance del riesgo, medido
 
-Lo que se cierra es la **próxima** vez: un breadcrumb con el título de un
-artículo de `/noticias/[slug]`, o un nombre de servicio venido de la base, lo
-habría arrastrado sin que nada fallara al desplegar.
+Los llamadores de los tres bloques crudos pasan **literales estáticos**
+(«Inicio», «Academia», nombres de video). **No había un exploit vivo por esta
+vía**: lo que se cierra es el próximo llamador —un breadcrumb con el título de
+un artículo, un nombre de servicio venido de la base— que lo habría arrastrado
+sin que nada fallara al desplegar.
 
-## El contrato
+El caso realmente sensible, `/noticias/[slug]`, **ya estaba cubierto**: vive en
+`app/`, que es lo que el contrato sí miraba.
 
-`app/__tests__/json-ld-escape-contract.test.ts` escanea `app/` y `components/`,
-encuentra cada `dangerouslySetInnerHTML` que sigue a un `ld+json`, y exige que
-use `serializeJsonLd`. Tres reglas:
+## Lo que cambia
 
-1. El escaneo **encuentra bloques de verdad** (>10). Un escaneo vacío pasa
-   siempre — es el mismo seguro que en SDD-0302.
-2. Ninguno usa `JSON.stringify` directo.
-3. **Ninguno copia el escape a mano** — la regla que habría atrapado el cuarto
-   caso, que los otros dos tests dejaban pasar.
+1. **Los cuatro bloques** pasan por `serializeJsonLd`.
+2. **El contrato mira dos raíces**: `app/` y `components/`.
+3. **Regla nueva — no vale copiar el escape a mano.** Es la que habría atrapado
+   el cuarto caso; las otras dos lo dejaban pasar.
+
+Se conservó todo lo que el contrato original ya sabía, incluido su
+`testTimeout` de 120 s y el porqué (nueve contratos que recorren el árbol de
+archivos en paralelo se pisan el disco y expiran contra el timeout global de
+20 s — la firma de la contención, no de una regresión).
 
 ## Verificación
 
-1. **3 tests** en verde.
-2. **Mutación**: devolviendo `WorkBand` a `JSON.stringify` crudo → el test
-   correcto se pone en rojo, los otros dos siguen verdes.
+1. **4 tests** en verde.
+2. **Mutación, dos veces:**
+   - `JSON.stringify` crudo en `components/WorkBand` → 2 tests rojos (prueba
+     que la raíz nueva se escanea de verdad).
+   - El escape copiado a mano en `WebPageJsonLd` → 2 rojos, incluida la regla
+     nueva.
 3. Gate completo `node scripts/verify.mjs`.
+
+## ⚠️ Cómo se descubrió, y un error propio
+
+Al escribir este contrato **se sobrescribió el que ya existía** sin leerlo
+primero: la herramienta dijo «updated», no «created», y no se miró. La versión
+nueva escaneaba las dos raíces pero perdía el `testTimeout` razonado, la prueba
+de payload que demuestra que el escape neutraliza `</script>` de verdad, y la
+nota de que `/noticias/[slug]` sirve texto del CMS.
+
+Se recuperó el original desde git y se **fusionó**. La versión final tiene las
+tres pruebas viejas más la regla nueva.
 
 ## Lo que esta spec NO puede afirmar
 
 **Que no haya JSON-LD fuera del patrón buscado.** El escaneo mira
-`dangerouslySetInnerHTML` cerca de un `ld+json`. Un bloque armado de otra forma
-—por ejemplo desde una función que devuelva el `<script>` completo— quedaría
-fuera. Es el límite del método, no una afirmación de que no exista.
+`dangerouslySetInnerHTML` en o junto a una línea con `ld+json`. Un bloque armado
+de otra forma quedaría fuera — es el límite del método, y es exactamente el tipo
+de hueco que este hallazgo demuestra que existe.
 
 Tampoco se abrió ninguna página en un navegador.
