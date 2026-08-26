@@ -18,15 +18,25 @@
      Cost y Calculadora de volumen (CBM).
    - Captura PROGRESIVA de datos (perfil + nombre + WhatsApp) -> tuyos.
 
-  >>> REEMPLAZA ESTOS MARCADORES (busca {{...}}):
-      {{DIRECCION_ALMACEN}} -> Dirección de tu almacén en Yiwu
-      {{WHATSAPP}}        -> Tu número, ej: 8613000000000
-      {{CODIGO_CLIENTE}}  -> Código del cliente para el Shipping Mark (Markbox)
+  >>> DATOS REALES: ya están cableados, no quedan marcadores que reemplazar.
+      WHATSAPP  -> CRM DTD (CONTACT.ve.whatsappRaw de lib/design-tokens.ts)
+      DIRECCION -> bodega Yiwu (CONTACT.cn). La tarjeta copiar-por-campo de
+                   direccionHTML() sigue el modelo MEDIDO en SDD-0264 contra
+                   el formulario real de Alibaba: Ciudad = 金华市 (Jinhua),
+                   Distrito = 义乌市 (Yiwu), destinatario = 林冠 + MARKBOX.
+                   Si cambia CONTACT.cn, se cambia también acá.
+      MARKBOX   -> del portal por ?mark= (y ?name=); sin param, el visitante
+                   lo escribe y se comparte entre las tarjetas del Paso 1 y 7.
 
-  >>> INTEGRACIÓN DE DATOS (Supabase + Kommo):
+  >>> SERVICIOS: los bloques {tipo:"servicio"} salen del catálogo real
+      (lib/shared/service-catalog.ts + lib/servicios-detalle.ts + lib/inspeccion.ts).
+      NO inventar servicios ni precios acá. Los que están 'proximamente'
+      (Transporte terrestre, Cursos de importación) no se anuncian.
+
+  >>> INTEGRACIÓN DE DATOS (Supabase + Kommo) — PENDIENTE:
       Todo el lead vive en el objeto `lead`. Cada vez que cambia se llama
       a syncLead(evento). Busca "=== ENVIAR A SUPABASE/KOMMO ===" y cablea
-      ahí tu endpoint. En este prototipo solo hace console.log (memoria).
+      ahí tu endpoint. Hoy solo hace console.log: el lead NO se está guardando.
   =========================================================================
 -->
 
@@ -171,6 +181,33 @@
   .dir-copy:hover{border-color:var(--marea);color:var(--marea)}
   .dir-nota{padding:13px 16px;background:var(--espuma);border-top:3px solid var(--marea);font-size:13px;line-height:1.55;color:var(--bruma)}
   .dir-nota b{color:var(--abismo)}
+
+  /* Servicio DTD — la carta que dice "esto no lo tienes que hacer tú" */
+  .svc{border:1px solid var(--linea);border-left:4px solid var(--marea);border-radius:14px;background:var(--papel);
+    padding:15px 16px;margin-top:12px;box-shadow:var(--sombra-suave)}
+  .svc .eyebrow-svc{display:block;font:800 10.5px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--marea);margin-bottom:5px}
+  .svc h4{margin:0 0 6px;font:700 16.5px var(--f-ui);color:var(--abismo)}
+  .svc p{margin:0;font-size:15px;color:var(--tinta)}
+  .svc p b{color:var(--abismo)}
+  .svc .svc-items{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
+  .svc .svc-items li{display:flex;gap:9px;align-items:flex-start;font-size:14px;color:var(--tinta);line-height:1.45}
+  .svc .svc-items .code{flex:none;min-width:52px;text-align:center;padding:2px 6px;border-radius:6px;
+    background:var(--abismo);color:var(--cream);font:700 11px var(--f-mono);letter-spacing:.03em}
+  .svc .svc-items b{color:var(--abismo)}
+  .svc-tabla{width:100%;border-collapse:collapse;margin-top:10px;font-size:13.5px}
+  .svc-tabla th{text-align:left;padding:6px 8px;background:var(--espuma);color:var(--abismo);font:700 12px var(--f-ui);
+    letter-spacing:.02em;border-bottom:1px solid var(--linea)}
+  .svc-tabla td{padding:6px 8px;border-bottom:1px solid var(--linea);color:var(--tinta)}
+  .svc-tabla td:first-child{font-family:var(--f-mono);font-size:12.5px}
+  .svc-tabla tr:last-child td{border-bottom:none}
+  .svc-nota{margin-top:9px;font-size:12.5px;line-height:1.5;color:var(--bruma)}
+  .svc-cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:13px}
+  .svc-cta a{display:inline-flex;align-items:center;height:38px;padding:0 15px;border-radius:9px;
+    font:700 13px var(--f-ui);text-decoration:none;transition:.15s;border:1px solid var(--marea)}
+  .svc-cta .a-prim{background:var(--marea);color:var(--papel)}
+  .svc-cta .a-prim:hover{background:var(--abismo);border-color:var(--abismo)}
+  .svc-cta .a-sec{background:var(--papel);color:var(--marea)}
+  .svc-cta .a-sec:hover{background:var(--espuma)}
 
   /* Selector de perfil */
   .perfil-wrap{margin:6px 0 2px}
@@ -325,7 +362,7 @@
 
     <main id="stage" class="card" aria-live="polite"></main>
 
-    <p class="pie">¿Dudas en cualquier paso? <a id="waPie" href="#" target="_blank" rel="noopener">Hablar con DTD Cargo</a><br>Hecho por DTD Cargo · Puerta a puerta desde 2010</p>
+    <p class="pie">¿Dudas en cualquier paso? <a id="waPie" href="#" target="_blank" rel="noopener">Hablar con DTD Cargo</a><br>Hecho por DTD Cargo · En el comercio con China desde 2008, operando en Venezuela desde 2015</p>
   </div>
 
   <div class="toast" id="toast"><span class="em" id="toastEm">✓</span><div id="toastTxt"></div></div>
@@ -349,8 +386,18 @@ const HAS_MARK = !!URL_MARK;
 const cod = (CODIGO && CODIGO.indexOf("{{")<0 && CODIGO) ? CODIGO : "XXXX";
 
 /* ============================ LEAD (tuyo) ============================ */
-const lead = { perfil:null, nombre:"", whatsapp:"", producto:"", etapaMax:0,
+const lead = { perfil:null, nombre:"", whatsapp:"", producto:"", etapaMax:0, markbox:"",
   contactDone:false, contactSkipped:false, scorecard:null, landed:null, cbm:null, ts:new Date().toISOString() };
+if(URL_MARK) lead.markbox = URL_MARK;
+
+/** El MARKBOX que se pinta hoy: el del portal (?mark=) manda; si no, el que el visitante
+ *  escribió en cualquiera de las dos tarjetas de dirección (Paso 1 y Paso 7 comparten). */
+function markActual(){ return URL_MARK || (lead.markbox||"").trim().toUpperCase(); }
+
+/** Sustituye el token {MARK} por el MARKBOX vivo. Se aplica en RENDER, no al definir
+ *  ETAPAS: si no, el texto se congela con el DTD-XXXX del arranque y nunca refleja
+ *  lo que el visitante escribió en la tarjeta de dirección. */
+function conMark(txt){ return String(txt||"").split("{MARK}").join(markActual() || "DTD-XXXX"); }
 
 function syncLead(evento){
   lead.ts = new Date().toISOString();
@@ -385,9 +432,11 @@ const ETAPAS = [
       {ic:"", h:"Crea la cuenta", p:"Entra a <b>alibaba.com</b> → <b>“Sign in / Join Free”</b> → regístrate con tu correo y elige el rol de comprador (<b>Buyer</b>)."},
       {ic:"", h:"Completa tu perfil", p:"Nombre, país (Venezuela) y, si representas una empresa, su nombre. Usa un <b>correo profesional</b> (no genérico): así los proveedores te toman en serio."},
       {ic:"", h:"Activa el 2FA", p:"Pon una contraseña fuerte y activa la verificación en dos pasos (2FA). Es tu cuenta de compras: protégela."},
+      {ic:"", h:"Ya que estás adentro: carga NUESTRA dirección de una vez", p:"No esperes a tener el pedido listo. Entra a <b>«Mis direcciones» → «Agregar dirección»</b> y guarda ahora mismo la de nuestra bodega en Yiwu. Así, cuando compres, la eliges de una lista en vez de andar buscándola con el proveedor esperando. <b>Copia cada campo con el botón</b> — el chino se pega tal cual, no lo traduzcas."},
+      {tipo:"direccion"},
       {tipo:"tip", k:"Tip", txt:"Usa un correo que revises seguido. Toda la negociación va a pasar por ahí."}
     ],
-    checklist:["Cuenta creada y correo verificado","Perfil completo con correo profesional","Activé contraseña fuerte + 2FA"]
+    checklist:["Cuenta creada y correo verificado","Perfil completo con correo profesional","Activé contraseña fuerte + 2FA","Guardé la dirección de la bodega DTD en mi cuenta de Alibaba"]
   },
 
   { nodo:"Buscar", eyebrow:"Paso 2", insignia:{e:"🔍", n:"Buscador"},
@@ -399,7 +448,15 @@ const ETAPAS = [
       {ic:"", h:"Usa los filtros", p:"Filtra por <b>Verified Supplier</b>, <b>Trade Assurance</b>, MOQ, país y certificaciones (lo explico en el Paso 3)."},
       {tipo:"tool-cbm"},
       {tipo:"alerta", perfil:"emp", k:"Carga suelta = empieza sin miedo", txt:"No necesitas llenar un contenedor. Con <b>carga suelta (LCL)</b> envías pocas cajas y nosotros las <b>consolidamos</b> con otros pedidos. Pagas por tu volumen (CBM), no por un contenedor entero. Ideal para tu primera compra."},
-      {ic:"", h:"Guarda candidatos", p:"Marca como favoritos 5–10 productos o proveedores. Después los filtramos."}
+      {ic:"", h:"Guarda candidatos", p:"Marca como favoritos 5–10 productos o proveedores. Después los filtramos."},
+      {tipo:"servicio",
+        h:"Compra asistida / sourcing — que lo busquemos nosotros",
+        p:"Si no quieres hacer esta búsqueda tú, somos tu <b>departamento de compras en China</b>. Te ubicamos el producto y el proveedor, negociamos y gestionamos la compra. La <b>verificación del proveedor va incluida</b> y te acompañamos hasta que la compra se completa.",
+        tabla:{columnas:["Monto de tu compra","Comisión"],
+          filas:[["hasta $2.000","10%"],["~$5.000","8%"],["~$10.000","6%"],["~$20.000","5%"],["~$50.000","4%"],["$100.000+","3%"]]},
+        nota:"Mínimo $50 por orden. La comisión baja mientras más grande sea tu compra. <b>No incluye</b> el costo de la mercancía ni los fletes. Si ya tienes proveedor y solo quieres que compremos por ti, la comisión es la mitad — eso lo ves en el Paso 4.<br>Tiempos: mínimo 1 semana para confirmarte el producto y hasta 15 días para sondear varios proveedores y validar las especificaciones.",
+        wa:"Hola DTD Cargo, quiero cotizar Compra asistida / sourcing. Mi producto es:",
+        ver:"/servicios", verLabel:"Ver todos los servicios"}
     ],
     checklist:["Tengo escrito mi producto con especificaciones y cantidad","Busqué con términos en inglés","Guardé 5–10 candidatos para comparar"]
   },
@@ -414,7 +471,20 @@ const ETAPAS = [
       {tipo:"tool-scorecard", perfil:"pro"},
       {ic:"", h:"Lee los números", perfil:"emp", p:"Mira los años en la plataforma, las reseñas y el <b>response rate</b>. Un proveedor con historial es más seguro."},
       {tipo:"alerta", k:"Bandera roja", txt:"Precio demasiado bueno, sin Trade Assurance, casi sin historial, o que insiste en sacarte de la plataforma. Si ves esto, sigue de largo."},
-      {tipo:"tip", k:"Tu ventaja con DTD", txt:"Si dudas de un proveedor o de la calidad, nuestro equipo en Yiwu puede ir a verlo o revisar la mercancía antes de que pagues el saldo. Estamos en terreno."}
+      {tipo:"servicio",
+        h:"¿Te quedó la duda con un proveedor? Lo verificamos nosotros",
+        p:"Esto no lo tienes que resolver leyendo reseñas. Tenemos <b>equipo propio en Yiwu</b> y una red de inspectores acreditados: vamos a la fábrica, confirmamos que existe y que puede con tu pedido, y te entregamos un <b>reporte con fotos, en español</b>. Estas son las verificaciones que se piden antes de comprometerse:",
+        items:[
+          {code:"FA",  t:"Auditoría de fábrica", d:"Confirmamos que la fábrica es real, está operativa y tiene capacidad para tu pedido."},
+          {code:"SEA", t:"Evaluación del proveedor", d:"Diagnóstico integral de capacidad, procesos y confiabilidad."},
+          {code:"CRA", t:"Verificación de crédito", d:"Chequeo de la salud financiera del proveedor, antes de comprometer pagos grandes."},
+          {code:"MSA", t:"Sistema de gestión (ISO 9001)", d:"Auditoría del sistema de calidad del proveedor."},
+          {code:"SCA", t:"Cumplimiento social", d:"Condiciones laborales y prácticas éticas (estándares tipo SEDEX/SMETA)."}
+        ],
+        nota:"Un asesor te pasa el precio y un ejemplo del reporte — la inspección se cotiza según tu producto y la fábrica, así que no la publicamos.",
+        wa:"Hola DTD Cargo, tengo dudas con un proveedor de Alibaba y quiero verificarlo. El proveedor es:",
+        ver:"/servicios/inspeccion", verLabel:"Ver la línea de inspección"},
+      {tipo:"tip", k:"Tu ventaja con DTD", txt:"Verificar antes es siempre más barato que reclamar después. Si dudas, escríbenos ANTES de pagar el depósito — estamos en terreno."}
     ],
     checklist:["Mis candidatos tienen Trade Assurance","Verifiqué historial, reseñas y tipo de proveedor","Descarté los que tienen banderas rojas"]
   },
@@ -434,6 +504,14 @@ const ETAPAS = [
       {ic:"", h:"Términos de pago y flujo de caja", perfil:"pro", p:"Lo típico es <b>30% de depósito y 70%</b> contra embarque. Para tu empresa, calza el saldo con tu flujo de caja y déjalo por escrito en la orden."},
       {tipo:"tool-landed"},
       {ic:"", h:"Documentación que debes exigir", perfil:"pro", p:"Para tu empresa y la aduana necesitas: <b>Proforma Invoice (PI)</b>, <b>Commercial Invoice</b> (factura comercial), <b>Packing List</b> y, al embarcar, el <b>Bill of Lading (BL)</b>. Guarda todo ordenado por orden."},
+      {tipo:"servicio",
+        h:"¿Ya tienes el proveedor pero te da miedo? Negociamos y compramos por ti",
+        p:"Es la otra modalidad de la Compra asistida: <b>tú ya elegiste el proveedor y tienes los precios</b>, pero te preocupa que te estafen. Lo verificamos y entramos como <b>tu comprador de confianza</b> — negociamos, gestionamos la compra y te acompañamos hasta que se completa. La verificación del proveedor va incluida.",
+        tabla:{columnas:["Monto de tu compra","Comisión"],
+          filas:[["hasta $2.000","5%"],["~$5.000","4%"],["~$10.000","3%"],["~$20.000","2,5%"],["~$50.000","2%"],["$100.000+","1,5%"]]},
+        nota:"Mínimo $50 por orden. Es la mitad de la tabla del Paso 2, porque el proveedor lo pusiste tú.<br><b>Pagarle al proveedor por ti es aparte</b>: si quieres que lo hagamos, primero nos pagas a nosotros. El costo de la mercancía y los fletes van por tu cuenta.",
+        wa:"Hola DTD Cargo, ya tengo proveedor en Alibaba y quiero que ustedes compren por mí. El proveedor es:",
+        ver:"/servicios", verLabel:"Ver todos los servicios"},
       {tipo:"tip", k:"Tip", txt:"Negocia con respeto y guarda toda la conversación dentro de Alibaba: es tu respaldo."}
     ],
     checklist:["Contacté a mis finalistas con la plantilla","Tengo por escrito precio (FOB/EXW), MOQ y medidas de caja","Recibí la Proforma Invoice (PI)"]
@@ -446,7 +524,26 @@ const ETAPAS = [
       {ic:"", h:"Pide muestras", p:"Antes de un pedido grande, pide 1–3 muestras. Pagas por ellas, pero es la inversión más barata que harás."},
       {ic:"", h:"Revisa contra tu lista", p:"Compara la muestra con las especificaciones del Paso 2: material, tamaño, terminación y funcionamiento."},
       {ic:"", h:"Control de calidad con DTD", p:"Si mandar la muestra a Venezuela es caro o lento, envíala a nuestro almacén en Yiwu: la revisamos y te mandamos fotos y video. También hacemos <b>QC del pedido completo</b> cuando llega."},
-      {ic:"", h:"Acuerdo de no conformidad", perfil:"pro", p:"Define por escrito qué pasa con piezas defectuosas (reposición o reembolso) y el % de tolerancia aceptable. Esto te protege en compras de volumen."}
+      {tipo:"servicio",
+        h:"Envío de muestras y documentos (courier express)",
+        p:"Si necesitas la muestra en la mano, la mandamos desde Yiwu por <b>DHL, UPS o FedEx</b>: muestras pre-producción, documentos y lotes pequeños críticos.",
+        nota:"Ojo: esto es courier de muestras y documentos, <b>no es flete aéreo de carga</b>. La carga grande viaja por vía marítima (LCL o contenedor completo).",
+        wa:"Hola DTD Cargo, necesito enviar una muestra desde China. Es:",
+        ver:"/servicios", verLabel:"Ver todos los servicios"},
+      {ic:"", h:"Acuerdo de no conformidad", perfil:"pro", p:"Define por escrito qué pasa con piezas defectuosas (reposición o reembolso) y el % de tolerancia aceptable. Esto te protege en compras de volumen."},
+      {tipo:"servicio", perfil:"pro",
+        h:"No esperes al final: inspecciones mientras te fabrican",
+        p:"La muestra que apruebas y el lote que te fabrican no siempre son lo mismo. Estas son las revisiones que se hacen <b>durante</b> la producción, para corregir a tiempo en vez de reclamar después:",
+        items:[
+          {code:"IPC",   t:"Inspección inicial de materiales", d:"Control de materias primas y componentes antes de arrancar la fabricación."},
+          {code:"DUPRO", t:"Inspección durante producción", d:"Con la producción ya iniciada (~20% lista), para corregir desvíos antes de fabricar todo el lote."},
+          {code:"PM",    t:"Monitoreo de producción", d:"Vigilancia continua de la línea, para pedidos críticos o de alto volumen."},
+          {code:"SAM",   t:"Toma de muestras", d:"Selección y verificación de muestras representativas bajo norma AQL."},
+          {code:"LAB",   t:"Pruebas de laboratorio", d:"Ensayos RoHS, CE, FDA y otros, según el mercado de destino de tu producto."}
+        ],
+        nota:"Te entregamos el informe con fotos y resultados, traducido al español si hace falta, para que decidas con información clara.",
+        wa:"Hola DTD Cargo, quiero cotizar una inspección durante la producción. Mi producto es:",
+        ver:"/servicios/inspeccion", verLabel:"Ver la línea de inspección"}
     ],
     checklist:["Aprobé una muestra o coordiné la revisión con DTD","La muestra cumple mis especificaciones","Acordé qué pasa con piezas defectuosas"]
   },
@@ -458,6 +555,16 @@ const ETAPAS = [
       {ic:"", h:"Paga DENTRO de Alibaba con Trade Assurance", p:"Tu dinero queda en <b>escrow</b> (depósito en garantía): Alibaba lo retiene y lo libera al proveedor cuando todo está bien."},
       {ic:"", h:"Revisa el monto de cobertura", perfil:"pro", p:"Importante: la cobertura de Trade Assurance puede ser <b>menor que el valor de tu orden</b>. Revisa el monto en el perfil del proveedor y compáralo con tu pedido. Si lo supera, parte queda sin proteger."},
       {tipo:"alerta", k:"Regla de oro antifraude", txt:"Nunca pagues a una cuenta personal ni por fuera de la plataforma, aunque te ofrezcan 3–5% de descuento. Eso elimina toda la protección. Pago por dentro = protección."},
+      {tipo:"servicio",
+        h:"Asesoría en pagos a proveedores chinos",
+        p:"Pagar desde Venezuela a un proveedor chino es de las partes más incómodas. Te facilitamos transacciones seguras en <b>Yuan</b> — Alipay, WeChat Pay, transferencia o efectivo en China — para que pagues con respaldo y sin inventos.",
+        wa:"Hola DTD Cargo, necesito asesoría para pagarle a un proveedor en China.",
+        ver:"/servicios", verLabel:"Ver todos los servicios"},
+      {tipo:"servicio", perfil:"pro",
+        h:"Antes de un pago grande: verificación de crédito (CRA)",
+        p:"Si vas a comprometer un monto alto, se chequea la <b>salud financiera del proveedor</b> antes de transferir. Un proveedor puede ser real, tener fábrica y aun así estar quebrado — eso no lo dice el perfil de Alibaba.",
+        wa:"Hola DTD Cargo, quiero una verificación de crédito de un proveedor antes de pagarle. El proveedor es:",
+        ver:"/servicios/inspeccion", verLabel:"Ver la línea de inspección"},
       {tipo:"tip", k:"Tu ventaja con DTD", txt:"Si tienes dudas de cómo o a quién pagar, escríbenos ANTES de transferir. Preferimos aclararte 5 minutos que verte perder dinero."}
     ],
     checklist:["Pagué dentro de Alibaba con Trade Assurance","Verifiqué que la cobertura cubra mi orden","Guardé comprobante, PI y conversación"]
@@ -467,14 +574,35 @@ const ETAPAS = [
     titulo:"Que el proveedor envíe tu mercancía a nuestro almacén",
     intro:"Casi listo. Aquí tu pedido pasa a nuestras manos. De aquí en adelante, relájate: nos encargamos.",
     bloques:[
-      {ic:"", h:"Pon NUESTRA dirección como destino", p:"Cuando el proveedor te pregunte a dónde enviar, dale la de nuestra bodega en Yiwu. Copia cada campo en su formulario — el chino se pega tal cual."},
+      {ic:"", h:"Pon NUESTRA dirección como destino", p:"Es la misma que guardaste en el <b>Paso 1</b>: si ya la tienes en «Mis direcciones» de Alibaba, solo la eliges al pagar. Te la dejo aquí otra vez para que no tengas que devolverte, y para que se la pases al proveedor si te la pide por chat."},
       {tipo:"direccion"},
-      {ic:"", h:"Usa tu MARKBOX (Shipping Mark)", p:"Es tu código para que tu caja no se confunda con otra. Lo recibes gratis al registrarte en <b>dtdcargo.com/registro</b> (formato <b>"+MARK+"</b>). Pídele al proveedor que marque <b>solo tu MARKBOX</b> en cada bulto — sin tus datos personales."},
+      {ic:"", h:"Usa tu MARKBOX (Shipping Mark)", p:"Es tu código para que tu caja no se confunda con otra. Lo recibes gratis al registrarte en <b>dtdcargo.com/registro</b> (formato <b>{MARK}</b>). Pídele al proveedor que marque <b>solo tu MARKBOX</b> en cada bulto — sin tus datos personales."},
       {ic:"", h:"Avísanos qué viene", p:"Cuéntanos cuántas cajas, qué producto y el peso/volumen aproximado. Así lo recibimos bien y empezamos la consolidación."},
       {ic:"", h:"Documentos para la aduana", perfil:"pro", p:"Asegúrate de tener <b>Commercial Invoice</b>, <b>Packing List</b> y el <b>Bill of Lading (BL)</b>. Nosotros te guiamos para que la declaración en Venezuela salga limpia."},
+      {tipo:"servicio",
+        h:"Qué podemos hacer con tu carga cuando llega a la bodega",
+        p:"<b>Por defecto no abrimos las cajas</b> — las recibimos, las identificamos con tu MARKBOX y las consolidamos. Si quieres que hagamos algo más, se pide antes de que llegue tu mercancía. Todos estos salen con <b>reporte con fotos</b>:",
+        items:[
+          {code:"1", t:"Revisión al recibir", d:"Abrimos las cajas, revisamos la mercancía y verificamos que la cantidad coincida con tu factura."},
+          {code:"2", t:"Etiquetado por pieza", d:"Etiquetamos y marcamos tus piezas según lo que necesites o la normativa de destino. Se cobra por pieza."},
+          {code:"3", t:"Cajas defectuosas y reempaque", d:"Si una caja llega dañada, la reempacamos para que tu mercancía viaje protegida."}
+        ],
+        nota:"La revisión al recibir es distinta de la inspección en fábrica: aquí la mercancía ya salió del proveedor. Si quieres detectar un problema <b>antes</b> de que te la despachen, eso es inspección pre-embarque (abajo).",
+        wa:"Hola DTD Cargo, mi mercancía va en camino a la bodega de Yiwu y quiero pedir servicios de recepción (revisión / etiquetado / reempaque).",
+        ver:"/servicios", verLabel:"Ver todos los servicios"},
+      {tipo:"servicio", perfil:"pro",
+        h:"Antes de que embarque: revisión pre-embarque y carga del contenedor",
+        p:"El último punto donde todavía puedes frenar un problema sin que te cueste un viaje entero:",
+        items:[
+          {code:"PSI", t:"Inspección pre-embarque", d:"Revisión del pedido ya terminado antes de embarcar: cantidades, funcionamiento, acabado y empaque contra la muestra aprobada."},
+          {code:"CLS", t:"Supervisión de carga", d:"Acompañamos la carga del contenedor para confirmar cantidades, estado y estiba correcta."},
+          {code:"FBA", t:"Preparación para Amazon", d:"Etiquetado FNSKU y requisitos del marketplace, si tu carga va a FBA."}
+        ],
+        wa:"Hola DTD Cargo, quiero cotizar una inspección pre-embarque. Mi pedido es:",
+        ver:"/servicios/inspeccion", verLabel:"Ver la línea de inspección"},
       {tipo:"tip", k:"Tip", txt:"Pide al proveedor fotos del empaque con tu Shipping Mark antes de despachar. Doble confirmación."}
     ],
-    checklist:["El proveedor tiene la dirección de nuestro almacén","Mi MARKBOX ("+MARK+") está en cada bulto","Le avisé a DTD qué mercancía viene"]
+    checklist:["El proveedor tiene la dirección de nuestro almacén","Mi MARKBOX ({MARK}) está en cada bulto","Le avisé a DTD qué mercancía viene"]
   },
 
   { final:true, nodo:"¡Llegó!", eyebrow:"Meta", insignia:{e:"🏆", n:"Importador DTD"},
@@ -483,6 +611,17 @@ const ETAPAS = [
     bloques:[
       {ic:"", h:"Nosotros tomamos el control", p:"Recibimos y revisamos tu mercancía, la consolidamos para que pagues menos flete, gestionamos el envío marítimo y la aduana, y la entregamos en tu puerta en Venezuela."},
       {ic:"", h:"Puerta a puerta de verdad", p:"Tú no peleas con navieras ni con aduana. Te avisamos en cada etapa hasta la entrega."},
+      {tipo:"servicio",
+        h:"Lo que sigue después de esta guía",
+        p:"Ya sabes comprar. Estas son las otras cosas que resolvemos, por si te hacen falta más adelante:",
+        items:[
+          {code:"+", t:"Tránsito de aduana y desaduanaje", d:"El trámite en Venezuela, con la gestión documental incluida."},
+          {code:"+", t:"Carga suelta o contenedor completo", d:"Consolidamos tus cajas con las de otros, o te montamos un contenedor entero — según tu volumen."},
+          {code:"+", t:"Visado de negocios chino", d:"Si vas a viajar a Yiwu o a una feria, te gestionamos el visado."},
+          {code:"+", t:"Registro de marca en China (CNIPA)", d:"Si tu producto va a llevar tu marca, se registra allá antes de que otro lo haga."}
+        ],
+        wa:"Hola DTD Cargo, terminé la guía de Alibaba y quiero hablar de mi importación.",
+        ver:"/servicios", verLabel:"Ver todos los servicios"},
       {tipo:"tip", k:"El siguiente nivel", txt:"Quienes reabastecen cada 30–45 días tienen precio especial por cadencia. Si vas a vender en serio, hablemos de eso."}
     ]
   }
@@ -544,8 +683,55 @@ function bloqueHTML(b){
   if(b.tipo==="tool-landed") return landedHTML();
   if(b.tipo==="tool-scorecard") return scorecardHTML();
   if(b.tipo==="direccion") return direccionHTML();
+  if(b.tipo==="servicio") return servicioHTML(b);
   const proTag = b.perfil==="pro" ? '<span class="pro">PRO</span>' : "";
-  return '<div class="bloque"><h3><span class="ic"></span>'+b.h+proTag+'</h3><p>'+b.p+'</p></div>';
+  return '<div class="bloque"><h3><span class="ic"></span>'+b.h+proTag+'</h3><p>'+conMark(b.p)+'</p></div>';
+}
+
+/* ---------- Servicio DTD ----------
+   Nombres y alcances SALEN del catálogo real del sitio: lib/shared/service-catalog.ts,
+   lib/servicios-detalle.ts y lib/inspeccion.ts. No inventar servicios ni precios acá:
+   si cambia el catálogo, se cambia también este bloque. Los que están en estado
+   'proximamente' (Transporte terrestre, Cursos) NO se anuncian como disponibles.       */
+function servicioHTML(b){
+  const wa = (WHATSAPP && WHATSAPP.indexOf("{{")<0) ? WHATSAPP : "";
+  const msg = (b.wa || "Hola DTD Cargo, quiero información sobre este servicio.") + " (Vengo de la guía de Alibaba.)";
+  const waHref = "https://wa.me/" + wa + "?text=" + encodeURIComponent(msg);
+
+  let items = "";
+  if (b.items && b.items.length) {
+    items = '<ul class="svc-items">';
+    b.items.forEach(function(it){
+      items += '<li><span class="code">'+it.code+'</span><span><b>'+it.t+'</b> — '+it.d+'</span></li>';
+    });
+    items += '</ul>';
+  }
+
+  let tabla = "";
+  if (b.tabla) {
+    tabla = '<table class="svc-tabla"><tr>';
+    b.tabla.columnas.forEach(function(c){ tabla += '<th>'+c+'</th>'; });
+    tabla += '</tr>';
+    b.tabla.filas.forEach(function(f){
+      tabla += '<tr>';
+      f.forEach(function(c){ tabla += '<td>'+c+'</td>'; });
+      tabla += '</tr>';
+    });
+    tabla += '</table>';
+  }
+
+  const nota = b.nota ? '<div class="svc-nota">'+b.nota+'</div>' : "";
+  const ver  = b.ver ? '<a class="a-sec" href="https://dtdcargo.com'+b.ver+'" target="_blank" rel="noopener">'+(b.verLabel||"Ver el detalle")+' →</a>' : "";
+
+  return '<div class="svc">'+
+    '<span class="eyebrow-svc">Servicio DTD</span>'+
+    '<h4>'+b.h+'</h4>'+
+    '<p>'+b.p+'</p>'+
+    items + tabla + nota +
+    '<div class="svc-cta">'+
+      '<a class="a-prim" href="'+waHref+'" target="_blank" rel="noopener">Pedirlo por WhatsApp</a>'+
+      ver+
+    '</div></div>';
 }
 
 function perfilHTML(){
@@ -557,17 +743,19 @@ function perfilHTML(){
 }
 function incotermsHTML(){
   return '<div class="bloque"><h3><span class="ic"></span>Incoterms en 30 segundos<span class="pro">PRO</span></h3>'+
-    '<p>Definen hasta dónde llega la responsabilidad del proveedor. Para nosotros, lo ideal es FOB o EXW:</p>'+
+    '<p>Definen hasta dónde llega el servicio del proveedor. Para nosotros, lo ideal es FOB o EXW:</p>'+
     '<table class="mini-table"><tr><th>Término</th><th>El proveedor cubre hasta…</th><th>¿Te conviene?</th></tr>'+
     '<tr><td><b>EXW</b></td><td>La puerta de su fábrica</td><td>Sí (controlamos todo)</td></tr>'+
     '<tr><td><b>FOB</b></td><td>Cargado en el puerto de China</td><td>Sí (lo más común)</td></tr>'+
     '<tr><td><b>CIF</b></td><td>Puerto de destino + seguro</td><td>A veces</td></tr>'+
-    '<tr><td><b>DDP</b></td><td>Tu puerta (todo incluido)</td><td>Eso lo hacemos nosotros</td></tr></table></div>';
+    '<tr><td><b>DDP</b></td><td>Tu puerta (todo incluido)</td><td>Eso es nuestro Puerta a puerta</td></tr></table></div>';
 }
 function direccionHTML(){
+  const MK = markActual();          // ?mark= del portal, o lo que el visitante escribió antes
+  const MK_SHOW = MK || "DTD-XXXX";
   const F=[
     {k:"国家/地区",l:"País / región",v:"China"},
-    {k:"收货人",l:"Nombre y apellido",v:"林冠 "+MARK,dest:true,zh:true,hint:"Alibaba exige chino aquí. 林冠 (Lin Guan) es el encargado de la bodega; tu MARKBOX va detrás — sin él no podemos saber que la caja es tuya."},
+    {k:"收货人",l:"Nombre y apellido",v:"林冠 "+MK_SHOW,dest:true,zh:true,hint:"Alibaba exige chino aquí. 林冠 (Lin Guan) es el encargado de la bodega; tu MARKBOX va detrás — sin él no podemos saber que la caja es tuya."},
     {k:"电话",l:"Teléfono (+86)",v:"18606891419"},
     {k:"地址",l:"Dirección o apartado postal",v:"义乌港二期直通仓2栋2号",zh:true,hint:"Pégala en chino tal cual, sin traducir — es para el transporte dentro de China."},
     {k:"详细地址",l:"Apartamento, suite, unidad, edificio, piso",v:"货7-货11",zh:true,hint:"Dice «opcional», pero es el número de nuestro puesto. Ponlo."},
@@ -587,10 +775,20 @@ function direccionHTML(){
     rows+='<div class="dir-row"><div style="min-width:0"><div class="k">'+kc+'</div><div class="'+vcls+'"'+id+'>'+f.v+'</div>'+hint+'</div>'+
       '<button class="dir-copy" data-field="'+field+'" data-val="'+f.v+'">Copiar</button></div>';
   });
+  let hint;
+  if (HAS_MARK) {
+    hint = (URL_NAME ? "<b>Hola, "+esc(URL_NAME)+".</b> " : "") +
+      "Tu MARKBOX <b>"+MK_SHOW+"</b> ya está cargado — cópialo junto a «林冠» en la dirección de Alibaba.";
+  } else if (MK) {
+    hint = "Ya guardaste <b>"+esc(MK)+"</b> — se mantiene en las dos tarjetas de esta guía. Puedes cambiarlo aquí mismo.";
+  } else {
+    hint = 'Escríbelo y el campo Nombre y apellido se arma solo. <a href="https://dtdcargo.com/registro" target="_blank" rel="noopener">¿No tienes uno? Regístrate →</a>';
+  }
+
   return '<div class="dir-card">'+
     '<div class="dir-mark"><label>Tu MARKBOX'+(HAS_MARK?"":" (opcional)")+'</label><div class="row">'+
-      '<input id="dirMark" type="text" maxlength="50" placeholder="DTD-XXXX" value="'+(HAS_MARK?URL_MARK:"")+'" autocapitalize="characters" autocomplete="off">'+
-      '<div class="h">'+(HAS_MARK?((URL_NAME?"<b>Hola, "+esc(URL_NAME)+".</b> ":"")+"Tu MARKBOX <b>"+MARK+"</b> ya está cargado — cópialo junto a «林冠» en la dirección de Alibaba."):'Escríbelo y el campo Nombre y apellido se arma solo. <a href="https://dtdcargo.com/registro" target="_blank" rel="noopener">¿No tienes uno? Regístrate →</a>')+'</div>'+
+      '<input id="dirMark" type="text" maxlength="50" placeholder="DTD-XXXX" value="'+esc(MK)+'" autocapitalize="characters" autocomplete="off"'+(HAS_MARK?' readonly':'')+'>'+
+      '<div class="h">'+hint+'</div>'+
     '</div></div>'+rows+
     '<div class="dir-nota"><b>Atajo:</b> en «Agregar dirección» de Alibaba despliega <b>«Rellenar automáticamente la dirección»</b> (está detrás de «Ver más»), pega <span class="cjk">浙江省金华市义乌市义乌港二期直通仓2栋2号 货7-货11, 322000</span> y dale a «Rellenar formulario»: se llenan provincia, ciudad, distrito, código postal y las dos líneas de una vez. Después vuelve al campo <b>Nombre y apellido</b> y escribe <span class="cjk">林冠</span> + tu MARKBOX a mano: el rellenado automático lo borra sin avisar.</div>'+
     '<div class="dir-nota"><b>Importante:</b> en el formulario de Alibaba el nombre lleva «林冠 + tu MARKBOX», pero en el <b>rótulo físico de la caja</b> va SOLO tu MARKBOX — sin tu nombre, dirección ni teléfono personal (causan confusión o decomiso).</div>'+
@@ -654,7 +852,7 @@ function renderEtapa(){
     const checks=et.checklist;
     html+='<div class="checklist"><div class="ch-head"><span class="t">✓ Tu checklist</span><span class="cnt" id="chCnt">0 de '+checks.length+'</span></div>';
     checks.forEach((c,idx)=>{ const on=estado.checks[i].has(idx);
-      html+='<div class="check'+(on?' on':'')+'" data-idx="'+idx+'"><span class="box">'+(on?'✓':'')+'</span><span class="lbl">'+c+'</span></div>'; });
+      html+='<div class="check'+(on?' on':'')+'" data-idx="'+idx+'"><span class="box">'+(on?'✓':'')+'</span><span class="lbl">'+conMark(c)+'</span></div>'; });
     html+='</div>';
   }
 
@@ -684,11 +882,21 @@ function wire(){
   stageEl.querySelectorAll("[data-calc]").forEach(b=> b.addEventListener("click",()=>calcTool(b.dataset.calc)));
   // direccion: MARKBOX en vivo + copiar por campo (espejo del FAQ)
   const dirM = stageEl.querySelector("#dirMark");
-  if(dirM){ dirM.addEventListener("input", ()=>{ const m=(dirM.value||"").trim().toUpperCase(); const d=stageEl.querySelector("#dirDest"); if(d) d.textContent="林冠 "+(m||"DTD-XXXX"); }); }
+  if(dirM){ dirM.addEventListener("input", ()=>{
+    const m=(dirM.value||"").trim().toUpperCase();
+    const d=stageEl.querySelector("#dirDest"); if(d) d.textContent="林冠 "+(m||"DTD-XXXX");
+    // se guarda para que la tarjeta del Paso 7 arranque con el mismo mark del Paso 1
+    if(!HAS_MARK){ lead.markbox=m; persist(); }
+    // refresca en vivo los textos que llevan {MARK} en esta misma etapa (checklist incluido)
+    const et=ETAPAS[estado.actual];
+    stageEl.querySelectorAll(".check .lbl").forEach((el,idx)=>{
+      if(et.checklist && et.checklist[idx]) el.innerHTML=conMark(et.checklist[idx]);
+    });
+  }); }
   stageEl.querySelectorAll(".dir-copy").forEach(btn=> btn.addEventListener("click",()=>{
     let val=btn.dataset.val;
     if(btn.dataset.field==="destinatario"){
-      const i=stageEl.querySelector("#dirMark"); const m=((i&&i.value)||"").trim().toUpperCase();
+      const i=stageEl.querySelector("#dirMark"); const m=(((i&&i.value)||markActual())).trim().toUpperCase();
       if(!m){ if(i) i.focus(); const o=btn.textContent; btn.textContent="Falta tu mark ↑"; setTimeout(()=>btn.textContent=o,1800); return; }
       val="林冠 "+m;
     }
@@ -814,7 +1022,7 @@ function enviarLead(){
 
 /* ---------- Arranque ---------- */
 $("#modoSw").addEventListener("click",()=> irA(0)); // "cambiar" -> vuelve al selector de perfil
-if(HAS_MARK){ const g=$("#greet"); if(g){ g.hidden=false; g.innerHTML=(URL_NAME?"Hola <b>"+esc(URL_NAME)+"</b> · ":"")+"tu MARKBOX es <b>"+MARK+"</b> — lo pones en la dirección del Paso 7 para que tu caja llegue identificada."; } }
+if(HAS_MARK){ const g=$("#greet"); if(g){ g.hidden=false; g.innerHTML=(URL_NAME?"Hola <b>"+esc(URL_NAME)+"</b> · ":"")+"tu MARKBOX es <b>"+MARK+"</b> — va en la dirección que cargas en el Paso 1, para que tu caja llegue identificada."; } }
 restore(); renderRail(); renderPasaporte(); renderModo(); renderEtapa();
 </script>
 </body>
