@@ -235,6 +235,21 @@ export function FaqExplorer({ faqs, waHref }: { faqs: Faq[]; waHref: string }) {
                   {f.widget === "alibaba-guide" ? (
                     <div className="-mt-1 pb-5">
                       <AlibabaAddressGuide />
+                      {/* Puente a la guía completa (SDD-0099): esta tarjeta resuelve la
+                          dirección, pero el resto de la compra lo enseña la guía interactiva. */}
+                      <p className="mt-4 text-[14px] leading-[1.6] text-grey-700">
+                        ¿Es tu primera compra en Alibaba?{" "}
+                        <a
+                          href="/guias/comprar-en-alibaba.html"
+                          target="_blank"
+                          rel="noopener"
+                          className="font-bold text-wine-text underline underline-offset-2 hover:no-underline"
+                        >
+                          Abre la guía interactiva gratis
+                        </a>{" "}
+                        — nueve etapas, de crear la cuenta a tener la mercancía en nuestra bodega de
+                        Yiwu, con calculadora de volumen y de costo real.
+                      </p>
                     </div>
                   ) : f.widget === "cbm-explicador" ? (
                     <CbmExplicador />

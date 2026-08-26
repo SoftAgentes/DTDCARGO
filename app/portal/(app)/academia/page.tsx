@@ -13,7 +13,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/db/server";
 import { getPortalAcademy, tierLabel } from "@/lib/portal/portal-academy-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
-import { getProfileCompleteness } from "@/lib/portal/portal-queries";
+import { getPortalClient, getProfileCompleteness } from "@/lib/portal/portal-queries";
+import { GuiaAlibabaCard } from "@/components/GuiaAlibabaCard";
 import { isModuleLocked } from "@/lib/portal/verify-gate";
 import { PortalVerifyGate } from "../_components/PortalVerifyGate";
 
@@ -30,6 +31,10 @@ export default async function PortalAcademiaPage() {
   }
 
   const { isMember, courses, diplomas } = await getPortalAcademy(supabase);
+  // Para precargar el Shipping Mark en la guía de Alibaba. Si la sesión no es de
+  // un cliente del portal, `getPortalClient` devuelve null y la guía sale en modo
+  // manual (DTD-XXXX) — nunca revienta la pantalla por esto.
+  const client = await getPortalClient(supabase).catch(() => null);
 
   // Mismo armazón que el resto del portal (eyebrow + h-display sobre el `wrap`
   // del layout). Antes esta pantalla traía su propio contenedor `max-w-3xl` y un
@@ -42,6 +47,12 @@ export default async function PortalAcademiaPage() {
           Tu Academia.
         </h1>
       </header>
+
+      {/* Va ARRIBA del gate de miembro a propósito: la guía es gratis y el que
+          todavía no está inscrito en ningún curso es justo quien la necesita
+          (SDD-0099). Con el markbox del cliente, la guía precarga su Shipping
+          Mark y le arma el destinatario que pide Alibaba. */}
+      <GuiaAlibabaCard markbox={client?.markbox ?? undefined} variante="portal" />
 
       {!isMember ? (
         <GateNoMiembro />

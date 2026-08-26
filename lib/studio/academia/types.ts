@@ -56,8 +56,8 @@ export interface AcademyLesson {
   duration_min: number | null;
   free_preview: boolean;
   status: LessonStatus;
-  /** Herramienta embebida (migr 0149). null = lección normal. */
-  widget: "alibaba_address" | null;
+  /** Herramienta embebida (migr 0149; `alibaba_curso` desde la 0393). null = lección normal. */
+  widget: LessonWidget | null;
 }
 
 /** Curso del catálogo + conteos para la vista de tarjetas. */
@@ -354,9 +354,13 @@ export function validateModuleInput(
 export const LESSON_KINDS: readonly LessonKind[] = ["video", "texto", "descarga", "quiz"];
 export const LESSON_STATUSES: readonly LessonStatus[] = ["borrador", "publicado"];
 
-/** Widgets embebibles en una lección (espejo del CHECK de la migración 0149). */
-export type LessonWidget = "alibaba_address";
-export const LESSON_WIDGETS: readonly LessonWidget[] = ["alibaba_address"];
+/**
+ * Widgets embebibles en una lección — espejo EXACTO del CHECK
+ * `academy_lessons_widget_chk` (migr 0149, ampliado por la 0393). Si acá se
+ * agrega un valor sin su migración, el insert revienta contra el CHECK.
+ */
+export type LessonWidget = "alibaba_address" | "alibaba_curso";
+export const LESSON_WIDGETS: readonly LessonWidget[] = ["alibaba_address", "alibaba_curso"];
 
 export function lessonKindLabel(k: LessonKind): string {
   return { video: "Video", texto: "Texto", descarga: "Descarga", quiz: "Quiz" }[k];
@@ -368,6 +372,7 @@ export function lessonStatusLabel(s: LessonStatus): string {
 
 export function lessonWidgetLabel(w: LessonWidget | null): string {
   if (w === "alibaba_address") return "Guía de dirección (Alibaba)";
+  if (w === "alibaba_curso") return "Guía interactiva de compra (Alibaba)";
   return "Ninguna";
 }
 

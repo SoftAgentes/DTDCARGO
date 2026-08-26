@@ -21,8 +21,23 @@
 consola, y la tabla del PDF revisada contra captura. La dirección **no se cambió**: se auditó campo por campo
 contra `CONTACT.cn` y los 10 coinciden, teléfono `18606891419` incluido.
 
-**Sigue pendiente:** 2.1 (huérfana), 2.2 (0/6 del runbook), 2.4 (PDF sin distribuir), 2.5 (videos),
-2.6 (curso gratis), 2.7 (`syncLead`), 2.8 (markbox al widget del portal) y el **"Tu foto aquí"** de 2.0.
+### Segunda tanda del mismo día
+
+| # | Estaba | Quedó |
+|---|---|---|
+| 2.0 | `"Tu foto aquí"` vivo en producción | Pinta el isologo, leído del `<img>` que la topbar ya trae en base64 |
+| 2.1 | Cero enlaces en todo el sitio | **Cuatro puertas**: `/academia`, `/faq` (widget + pregunta con ancla), `/portal/proveedores`, `/portal/academia` |
+| 2.2 | 0 de 6 pasos del runbook | **5 de 6**: migración `0393` escrita y probada, tipos, componente, render y seed. Falta sólo aplicarla a prod |
+| 2.8 | El reproductor montaba el widget sin MARKBOX | Cableado, igual que `/portal/proveedores` |
+
+**Sigue pendiente:** aplicar la `0393` a producción (necesita OK del founder nombrándola) ·
+2.4 (el portal no lee `asset_path`, así que el PDF no se puede descargar) · 2.5 (los 10 videos) ·
+2.6 (el curso `comprar-en-alibaba` del outline) · 2.7 (`syncLead` sigue siendo `console.log`).
+
+⚠️ **Mientras la `0393` no esté aplicada**, el paso `migrations-applied` de `verify.mjs` la va a
+reportar como archivo del repo que no está en prod, y `pnpm seed:academia` fallará contra el CHECK
+si intenta sembrar la lección `alibaba_curso`. Es el orden correcto: primero la migración, después
+el seed.
 
 ---
 

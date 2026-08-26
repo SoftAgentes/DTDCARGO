@@ -14,6 +14,7 @@ import {
   TruckIcon,
 } from "@/components/Icon";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
+import { GuiaAlibabaCard } from "@/components/GuiaAlibabaCard";
 import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
 import { FieldLabel } from "../../_components/PortalFormField";
@@ -132,6 +133,11 @@ export function SuppliersClient({
         <AlibabaAddressGuide markbox={markbox} />
         <ChinaSupplierClip markbox={markbox} />
       </div>
+
+      {/* Tercer elemento del mismo momento: el cliente que nunca compró en Alibaba
+          necesita el paso a paso completo, no sólo la dirección. Va con su
+          Shipping Mark en el querystring (SDD-0099). */}
+      <GuiaAlibabaCard markbox={markbox} variante="portal" className="mt-5" />
 
       {/* ── Lista de proveedores ── */}
       {suppliers.length === 0 ? (

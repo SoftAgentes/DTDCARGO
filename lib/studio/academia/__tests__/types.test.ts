@@ -452,12 +452,18 @@ describe("validateLessonInput", () => {
     const { input } = validateLessonInput({ moduleId: "m", courseId: "c", title: "L" });
     expect(input?.freePreview).toBe(false);
     expect([...LESSON_KINDS]).toEqual(["video", "texto", "descarga", "quiz"]);
-    expect([...LESSON_WIDGETS]).toEqual(["alibaba_address"]);
+    // Espejo del CHECK `academy_lessons_widget_chk`: 'alibaba_address' (migr
+    // 0149) + 'alibaba_curso' (migr 0393). Si acá se agrega un valor sin su
+    // migración, el insert revienta contra el CHECK en runtime.
+    expect([...LESSON_WIDGETS]).toEqual(["alibaba_address", "alibaba_curso"]);
   });
 
-  it("lessonWidgetLabel: null = Ninguna; alibaba_address = etiqueta", () => {
+  it("lessonWidgetLabel: null = Ninguna; cada widget tiene su etiqueta propia", () => {
     expect(lessonWidgetLabel(null)).toBe("Ninguna");
     expect(lessonWidgetLabel("alibaba_address")).toContain("Alibaba");
+    expect(lessonWidgetLabel("alibaba_curso")).toContain("Alibaba");
+    // No pueden compartir etiqueta: en el Studio se eligen de la misma lista.
+    expect(lessonWidgetLabel("alibaba_curso")).not.toBe(lessonWidgetLabel("alibaba_address"));
   });
 });
 
