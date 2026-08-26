@@ -62,6 +62,44 @@ export default function AcademiaPage() {
           </div>
         </section>
 
+        {/* Guía interactiva gratis — el lead magnet que ya está construido y vivo
+            (SDD-0099, public/guias/comprar-en-alibaba.html). Sin este bloque la
+            URL no era alcanzable desde ninguna parte del sitio. */}
+        <section className="pt-12 lg:pt-16">
+          <div className="wrap">
+            <div className="card-shadow-static bg-white border border-grey-200 rounded-[22px] p-8 lg:p-11">
+              {/* `eyebrow-wine`, no `text-wine-text`: `.eyebrow` vive FUERA de @layer en
+                  globals.css y le gana a cualquier utilidad de color de Tailwind. */}
+              <span className="eyebrow eyebrow-wine">Gratis · empieza ahora mismo</span>
+              <h2
+                className="mt-4 text-[26px] lg:text-[38px] leading-[1.1] tracking-[-0.01em] text-ink max-w-[22ch]"
+                style={{ fontFamily: "var(--font-archivo-black)" }}
+              >
+                Guía interactiva: comprar en Alibaba paso a paso
+              </h2>
+              <p className="text-[15px] lg:text-[16px] text-grey-500 mt-4 leading-[1.6] max-w-[62ch]">
+                Nueve etapas, de crear tu cuenta a tener la mercancía en nuestra bodega de Yiwu. Se
+                adapta a si compras al mayor o para tu negocio, trae calculadora de volumen (CBM) y de
+                costo real puesto en Venezuela, y te arma la dirección de nuestra bodega con un botón
+                de copiar en cada campo. No necesitas registrarte para usarla.
+              </p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <a
+                  href="/guias/comprar-en-alibaba.html"
+                  className="btn btn-primary"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Abrir la guía gratis
+                </a>
+                <Link href="/shipping-mark" className="btn btn-ghost">
+                  Ver mi Shipping Mark
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Lo que vas a lograr */}
         <section className="pt-16 lg:pt-20 pb-4 lg:pb-8">
           <div className="wrap">

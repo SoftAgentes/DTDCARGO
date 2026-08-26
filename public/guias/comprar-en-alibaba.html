@@ -154,8 +154,11 @@
   .btn-copy:hover{background:rgba(255,255,255,.2)}
 
   .quienes{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:var(--espuma);border:1px solid var(--linea);border-radius:16px;padding:14px;margin-top:4px}
-  .foto{width:84px;height:84px;border-radius:14px;flex:none;object-fit:cover;background:var(--espuma);border:1px solid var(--linea);
-    display:grid;place-items:center;color:var(--abismo);font:700 12px var(--f-ui);text-align:center}
+  /* Marca de la casa. El isologo embebido es la variante REVERSE (pensada para fondo
+     navy): sobre --espuma se perdería, por eso el recuadro va en --abismo. */
+  .foto{width:84px;height:84px;border-radius:14px;flex:none;background:var(--abismo);border:1px solid var(--abismo);
+    display:grid;place-items:center;padding:14px;color:var(--cream);font:700 12px var(--f-ui);text-align:center}
+  .foto img{width:100%;height:100%;object-fit:contain;display:block}
   .quienes .qt{min-width:0;flex:1}
   .quienes .qt b{color:var(--abismo)}
 
@@ -676,7 +679,15 @@ function bloqueHTML(b){
   if(!visible(b)) return "";
   if(b.tipo==="tip"||b.tipo==="alerta") return '<div class="callout '+b.tipo+'"><span class="k">'+b.k+'</span>'+b.txt+'</div>';
   if(b.tipo==="plantilla") return '<div class="plantilla"><button class="btn-copy" data-copy="'+encodeURIComponent(b.txt)+'">Copiar</button><pre>'+b.txt+'</pre><span class="gloss">'+b.gloss+'</span></div>';
-  if(b.tipo==="quienes") return '<div class="quienes"><div class="foto">Tu foto<br>aquí</div><div class="qt"><b>Sam — DTD Cargo.</b> Vivo entre China y Venezuela. Esa presencia en terreno es lo que te protege: no somos un intermediario lejano, somos tu equipo en los dos países.</div></div>';
+  if(b.tipo==="quienes"){
+    // Reusa el isologo YA embebido en la topbar en vez de duplicar ~51 KB de base64.
+    // Si por lo que sea no estuviera, cae al wordmark en texto (nunca a un placeholder).
+    const el = document.querySelector(".topbar .logo");
+    const marca = (el && el.getAttribute("src"))
+      ? '<img src="'+el.getAttribute("src")+'" alt="DTD Cargo">'
+      : 'DTD<br>Cargo';
+    return '<div class="quienes"><div class="foto">'+marca+'</div><div class="qt"><b>Sam — DTD Cargo.</b> Vivo entre China y Venezuela. Esa presencia en terreno es lo que te protege: no somos un intermediario lejano, somos tu equipo en los dos países.</div></div>';
+  }
   if(b.tipo==="perfil") return perfilHTML();
   if(b.tipo==="incoterms") return incotermsHTML();
   if(b.tipo==="tool-cbm") return cbmHTML();
