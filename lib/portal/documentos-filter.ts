@@ -18,7 +18,7 @@ export type PortalDocView = {
   typeShort: string;
   shipmentCode: string | null;
   /**
-   * SDD-0306 · Código de la COMPRA cuando el documento cuelga de una compra y
+   * SDD-0308 · Código de la COMPRA cuando el documento cuelga de una compra y
    * no de un envío — hoy, el packing list del proveedor. Excluyente con
    * `shipmentCode`: un documento cuelga de una cosa o de la otra.
    */
@@ -26,7 +26,7 @@ export type PortalDocView = {
   meta: string;
   url: string | null;
   /**
-   * SDD-0306 · Qué pasa al tocar la tarjeta.
+   * SDD-0308 · Qué pasa al tocar la tarjeta.
    *
    * `"descarga"` (default) — archivo en Storage, URL firmada, pestaña nueva.
    * `"abrir"` — el documento vive DENTRO del portal y `url` es una ruta
@@ -75,7 +75,7 @@ export function buildTypeChips(docs: PortalDocView[]): DocTypeChip[] {
  * código del que cuelga el documento — que es como el cliente los busca ("BL",
  * "Bill", "DTD-2026…", "PRE-…").
  *
- * El código de compra entra en la búsqueda igual que el de envío (SDD-0306): un
+ * El código de compra entra en la búsqueda igual que el de envío (SDD-0308): un
  * packing list que no se encuentra escribiendo el código de su compra es, para
  * el cliente, un documento que no está.
  */

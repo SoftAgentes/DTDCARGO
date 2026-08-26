@@ -1,5 +1,5 @@
 /**
- * SDD-0306 · El packing list que llenó el proveedor, visto por el CLIENTE.
+ * SDD-0308 · El packing list que llenó el proveedor, visto por el CLIENTE.
  *
  * ## El hueco que cierra
  *
@@ -144,7 +144,7 @@ export async function obtenerPackingListDeCompra(
  * Cuáles de estas compras YA tienen packing list del proveedor.
  *
  * El hub de `/portal/envios` pinta un chip "Packing list ✓/✗" por compra. Hasta
- * SDD-0306 ese chip miraba **sólo `prealerta_documents`** — es decir, sólo si
+ * SDD-0308 ese chip miraba **sólo `prealerta_documents`** — es decir, sólo si
  * alguien había adjuntado un archivo. Un proveedor que llenó el formulario
  * online (el camino que el propio portal le ofrece) dejaba el chip en gris: el
  * documento existía y el portal decía que no.

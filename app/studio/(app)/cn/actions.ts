@@ -239,7 +239,7 @@ export async function createReceiptAction(
   // Medido en producción el 2026-08-24: **0 de 8 compras tienen orden de venta**,
   // así que esa condición no se cumplía nunca y **0 de 6 recepciones quedaron
   // atadas a su compra**. El efecto no era financiero —era operativo—: sin ese
-  // vínculo, `/portal/compras/[code]` (SDD-0305) le dice "todavía no registramos
+  // vínculo, `/portal/compras/[code]` (SDD-0307) le dice "todavía no registramos
   // la llegada" al cliente cuya mercancía SÍ está en la bodega, y el aviso de
   // SDD-0283 se queda sin dónde colgar.
   //

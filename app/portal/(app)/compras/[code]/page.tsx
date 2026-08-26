@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * SDD-0305 · Detalle de UNA compra en el portal.
+ * SDD-0307 · Detalle de UNA compra en el portal.
  *
  * Esta pantalla no existía. El cliente podía anunciar la compra y volver a
  * imprimir sus etiquetas, pero no **abrirla**: desde el momento del aviso
@@ -84,7 +84,7 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
     listPrealertaServiceRequests(supabase, { markbox: client.markbox }),
     // Propiedad ya probada arriba → recién ahora el admin client.
     listarRecepcionesDeCompra(createAdminClient(), prealerta.id),
-    // Ídem (SDD-0306): `packing_list_submissions` sólo tiene policy "by tenant"
+    // Ídem (SDD-0308): `packing_list_submissions` sólo tiene policy "by tenant"
     // y el cliente del portal no está en `user_tenants` — con su sesión la RLS
     // niega. Se lee con el admin client acotado al `prealerta_id` ya verificado,
     // y la query revalida el markbox por dentro.
@@ -342,7 +342,7 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* ── Packing list del proveedor (SDD-0306) ──────────────────
+      {/* ── Packing list del proveedor (SDD-0308) ──────────────────
           Va a ancho completo y DEBAJO del grid: es un documento de once
           columnas, no cabe en media pantalla sin comprimirlo. Y va al final
           porque responde la cuarta pregunta ("¿qué despachó exactamente?"),

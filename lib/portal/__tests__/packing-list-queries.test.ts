@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cotejarConLoAnunciado } from "../packing-list-queries";
 
 /**
- * SDD-0306 · Cotejo entre las cajas que el cliente anunció y las que el
+ * SDD-0308 · Cotejo entre las cajas que el cliente anunció y las que el
  * proveedor declaró en su packing list.
  *
  * Lo que se protege acá es una decisión de producto, no una fórmula: **el

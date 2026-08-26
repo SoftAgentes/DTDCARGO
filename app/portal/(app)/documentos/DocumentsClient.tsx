@@ -56,7 +56,7 @@ export function DocumentsClient({ docs }: { docs: PortalDocView[] }) {
           })}
         </div>
 
-        {/* SDD-0306 · desde que entran los packing lists el buscador también
+        {/* SDD-0308 · desde que entran los packing lists el buscador también
             acepta el código de la COMPRA (`filterDocs` mira `purchaseCode`).
             El placeholder decía sólo "envío" y escondía la mitad de lo que la
             búsqueda ya sabe hacer. */}
@@ -166,7 +166,7 @@ function DocCard({ doc }: { doc: PortalDocView }) {
   const clase =
     "card-link group block bg-white border border-grey-200 rounded-[16px] p-5 transition-colors hover:border-ink focus-visible:border-ink";
 
-  // SDD-0306 · un documento que vive DENTRO del portal (hoy el packing list del
+  // SDD-0308 · un documento que vive DENTRO del portal (hoy el packing list del
   // proveedor) no se descarga: se abre. Sacarlo en pestaña nueva con `<a
   // target="_blank">` lo trataría como un archivo externo — perdería la
   // navegación del portal y le mentiría al cliente sobre lo que va a pasar.

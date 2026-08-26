@@ -1,5 +1,5 @@
 ---
-sdd: "0306"
+sdd: "0308"
 title: "El packing list del proveedor llega al cliente"
 status: in-progress
 author: "founder"
@@ -11,7 +11,7 @@ related: ["0057","0096","0097","0173"]
 confidencialidad: interno
 ---
 
-# DTD-0306 — El packing list del proveedor llega al cliente
+# DTD-0308 — El packing list del proveedor llega al cliente
 
 > El proveedor llena su packing list en el enlace que le manda el cliente. El
 > equipo lo lee en el Studio. El cliente —para quien se llenó el documento— era
@@ -99,7 +99,7 @@ lista. Tres decisiones que valen la pena:
 | `lib/portal/documentos-filter.test.ts` | edita — 5 pruebas del caso compra |
 | `app/portal/(app)/documentos/page.tsx` | edita — cruza las dos fuentes |
 | `app/portal/(app)/documentos/DocumentsClient.tsx` | edita — «Ver» vs «Descargar» |
-| `docs/specs/0306-packing-list-en-el-portal/spec.md` | nuevo |
+| `docs/specs/0308-packing-list-en-el-portal/spec.md` | nuevo |
 
 ## 4. Decisión de acceso: admin client, no policy nueva
 
@@ -178,7 +178,7 @@ mitiga en tres capas:
 
 ### Nota de método
 
-El banco de medición se montó bajo `/portal/probe-0306`, fuera del grupo
+El banco de medición se montó bajo `/portal/probe-0308`, fuera del grupo
 `(app)` — el proxy sólo corta `/studio` y `/back`, así que no pide sesión — con
 el div del tema copiado literal de `(app)/layout.tsx:72-76`, incluida la
 variable de JetBrains Mono. Lo único sintético fue el contenido. Se borró al

@@ -92,7 +92,7 @@ describe("filterDocs", () => {
 });
 
 /**
- * SDD-0306 · El packing list del proveedor entra a esta sección junto a los
+ * SDD-0308 · El packing list del proveedor entra a esta sección junto a los
  * documentos de envío, y cuelga de una COMPRA, no de un envío.
  *
  * Lo que se protege: que se pueda encontrar escribiendo el código de su compra.

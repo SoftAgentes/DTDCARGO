@@ -375,7 +375,7 @@ function DocsPanel({ code, docs }: { code: string; docs: DocPresence | undefined
               <span className="flex-1 text-[12px] font-semibold text-ink">
                 {r.label}
               </span>
-              {/* SDD-0306 · sólo el packing list tiene a dónde llevar. La flecha
+              {/* SDD-0308 · sólo el packing list tiene a dónde llevar. La flecha
                   es lo que distingue el chip que abre algo del que sólo informa;
                   sin ella, dos controles idénticos se comportarían distinto. */}
               {r.href ? <ArrowIcon size={13} className="text-grey-500" /> : null}
@@ -391,7 +391,7 @@ function DocsPanel({ code, docs }: { code: string; docs: DocPresence | undefined
 
           // El chip verde anunciaba un documento y no dejaba abrirlo: era un
           // `<div>`. Con packing list enviado, ahora lleva al detalle de la
-          // compra, que es donde se lee (SDD-0306).
+          // compra, que es donde se lee (SDD-0308).
           return r.href ? (
             <Link
               key={r.key}

@@ -1,5 +1,5 @@
 ---
-sdd: "0305"
+sdd: "0307"
 title: "El detalle de compra del portal: qué llegó a Yiwu"
 status: done
 author: "founder"
@@ -7,11 +7,11 @@ created: 2026-08-24
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0057","0281","0283","0306"]
+related: ["0057","0281","0283","0308"]
 confidencialidad: interno
 ---
 
-# DTD-0305 — El detalle de compra que no existía
+# DTD-0307 — El detalle de compra que no existía
 
 > **Spec retroactiva.** El trabajo se construyó y se publicó el 2026-08-24 en el
 > commit `b5af1821`, pero **bajo el número 0281, que pertenece a otro trabajo**.
@@ -61,7 +61,7 @@ sólo con el id ya verificado se lee con el admin client.** La función que usa 
 admin vive aislada en su propio módulo, con esa condición escrita en su
 encabezado, para que no se pierda de vista al leer la página.
 
-Es el mismo patrón que después reusó [SDD-0306](../0306-packing-list-en-el-portal/spec.md)
+Es el mismo patrón que después reusó [SDD-0308](../0308-packing-list-en-el-portal/spec.md)
 para el packing list del proveedor, en esta misma pantalla.
 
 ## 4. Alcance construido (commit `b5af1821`)

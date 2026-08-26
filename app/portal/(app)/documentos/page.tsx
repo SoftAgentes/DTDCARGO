@@ -52,7 +52,7 @@ export default async function PortalDocumentsPage() {
 
   const client = await getPortalClient(supabase);
 
-  // SDD-0306 · dos fuentes, no una. `shipment_documents` son los archivos que
+  // SDD-0308 · dos fuentes, no una. `shipment_documents` son los archivos que
   // sube el equipo; los packing lists los llena el proveedor y no son archivos.
   // La bajada de esta pantalla prometía los dos desde el principio.
   const [docs, packingLists] = await Promise.all([
@@ -141,7 +141,7 @@ export default async function PortalDocumentsPage() {
           de `shipment_documents` son bl/pod/otro —nunca hubo "packing" ni
           "factura comercial" ahí— y el packing list no lo carga el equipo, lo
           llena el proveedor. Ahora la pantalla sí trae las dos fuentes y la
-          frase dice cuál es cuál (SDD-0306). */}
+          frase dice cuál es cuál (SDD-0308). */}
       <p className="lead mt-3">
         El BL, el comprobante de entrega y lo demás que tu asesor sube a tus
         envíos, más los packing lists que llenan tus proveedores. Quedan

@@ -132,7 +132,7 @@ los 17 tests en rojo.
    `b5af1821`, 06:35) y tomó este número por colisión, ocho minutos antes de que
    lo tomara el trabajo que esta carpeta documenta. Su descripción vivía acá y se
    mudó a la suya:
-   **[SDD-0305 · El detalle de compra del portal](../0305-detalle-de-compra-en-el-portal/spec.md)**
+   **[SDD-0307 · El detalle de compra del portal](../0307-detalle-de-compra-en-el-portal/spec.md)**
    (renumerado el 2026-08-26; sólo citas, cero cambios de comportamiento).
 
 ### Lo que cazó el gate
