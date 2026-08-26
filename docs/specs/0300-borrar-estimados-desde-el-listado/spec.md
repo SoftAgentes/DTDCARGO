@@ -115,15 +115,50 @@ guarda de `converted_to_shipment_id` en la función pura rompe 3 pruebas
 action rompe 2 — las que afirman que el `update` **no salió**. Una prueba que
 sobrevive a que le saquen lo que prueba no prueba nada.
 
-### Lo que NO se midió — y por qué
+### Lo que se midió EN EL NAVEGADOR
 
-**El render en un Studio real, con sesión.** `proxy.ts` corta todo
-`/studio/**` sin sesión y no tiene bypass de desarrollo; los e2e con sesión de
-Studio exigen branch efímero de Supabase + `seed:e2e` + `STUDIO_E2E_*`. Queda
-sin medir lo que jsdom no puede: **(a)** que el hueco de 46 px reservado a la
-derecha mantenga alineadas las columnas elásticas de la cabecera y las filas, y
-**(b)** el objetivo táctil de 44 px del trigger (BTN-01 §7 regla 13). Ambas se
-comprueban abriendo `/studio/cotizador` en el navegador — no se dan por buenas
-por omisión.
+Lo que jsdom no puede ver se midió en Chromium sobre la pantalla real, con un
+**banco de medición temporal** (receta abajo). Números, no impresiones:
 
-- `node scripts/verify.mjs` verde.
+| Comprobación | Resultado |
+|---|---|
+| Alineación cabecera ↔ filas, columna por columna, con el hueco de 46 px | **0,00 px de desviación en las 8 columnas**, en las 3 filas, a 1247 px y a 1024 px de ancho |
+| Bordes derechos de cabecera y fila | idénticos (1247) |
+| ¿El trigger pisa la última columna? | no — **8 px de holgura** entre el fin de "Vigencia" y el borde del botón |
+| Scroll horizontal a 1024 px | ninguno |
+| Objetivo táctil (BTN-01 §7 regla 13: 32×32 escritorio, 44×44 touch) | trigger de **32 × 32** — cumple el piso de escritorio, que es la superficie de esta pantalla |
+| Panel del menú en la **última** fila, dentro de un contenedor con `overflow:hidden` | `position: fixed`, padre = `body` (portal), **entero dentro del viewport** — no se recorta |
+| Separación BTN-01 §2 | "Ver detalle" renderiza `<a>`, "Eliminar" renderiza `<button>` |
+| Opción bloqueada | `aria-disabled="true"` + su motivo visible: *"No se puede eliminar: ya se convirtió en un embarque."* |
+| Contraste de "Eliminar" sobre el panel | `#a8323e` sobre blanco = **6,58:1** → AA (≥4,5) |
+| Diálogo | `aria-modal="true"`, foco inicial en **Cancelar** (destructivo), texto que nombra el estimado y la consecuencia |
+| **La cadena completa hasta el servidor** | confirmar disparó la server action de verdad: sin sesión respondió *"No tienes permiso para realizar esta acción."*, el diálogo cerró y el aviso salió por una región `aria-live` |
+
+Ese último renglón es el que importa: prueba que el botón **llega al servidor** y
+que quien decide es el gate del servidor, no la pantalla.
+
+### La receta del banco (para repetirla)
+
+`proxy.ts` corta todo `/studio/**` sin sesión y **no tiene bypass de
+desarrollo**; los e2e con sesión de Studio exigen branch efímero de Supabase +
+`seed:e2e` + `STUDIO_E2E_*`. Para medir sin credenciales:
+
+1. Ruta temporal `app/studio/banco-0300/page.tsx` — **fuera** del grupo `(app)`,
+   así no pide sesión, pero **dentro** de `app/studio/` para heredar
+   `.studio-sys` de `app/studio/layout.tsx:70` y no chocar con la frontera de
+   ESLint.
+2. Adentro, el componente REAL (`CotizadorClient`) y el contenedor de página
+   copiado verbatim de `app/studio/(app)/layout.tsx`. Lo único sintético son
+   las filas — reconstruir el markup a mano sería medir la reconstrucción.
+3. Bypass en `proxy.ts` acotado a esa ruta y a `NODE_ENV === "development"`.
+4. Medir, **borrar la ruta, revertir `proxy.ts` y borrar `.next`** (el banco
+   deja residuo que enrojece el gate). Confirmar con `git status` vacío.
+
+### Lo que sigue sin medir
+
+El comportamiento con un rol **no-admin**: `moduleEditDenial` se ejercitó con
+su denegación en el banco (sin sesión) y con `admin` en las pruebas, pero no
+con un `operador` real contra la matriz de `role_module_overrides`.
+
+- `node scripts/verify.mjs` verde: **15/15 pasos medidos** · vitest 5743 ·
+  playwright 150 con 0 fallos · `migrations-applied` en `[OK]`, no `[SKIP]`.
