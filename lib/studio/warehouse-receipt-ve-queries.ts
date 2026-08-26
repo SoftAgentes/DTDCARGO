@@ -136,15 +136,27 @@ export type CreateReceiptVeInput = {
 };
 
 /**
- * Crea un receipt VE con sus cajas esperadas. Usado por:
- *  - Admin desde Studio (al anunciar contenedor en camino).
- *  - Seed / dev para tests.
+ * Crea un recibo VE con sus cajas esperadas — el contenedor que llega a
+ * Venezuela.
+ *
+ * 🔴 **Este es el único punto del producto donde nace el aviso de arribo.** El
+ * 2026-07-19 el founder decidió que «tu carga llegó a Venezuela» se dispara acá
+ * —el hecho físico— y no por la transición de status, y en el mismo cambio se
+ * quitó el mail `shipment_arrived` que aquélla mandaba. Si esta función no se
+ * llama, el cliente no recibe el aviso por NINGUNA vía.
+ *
+ * Devuelve `sinAviso` con los Shipping Mark que quedaron sin notificar por no
+ * tener un envío abierto donde colgar el aviso (SDD-0311). Vacío ≠ ausente: el
+ * llamador tiene que mostrarlo, porque un recibo creado «sin problemas» con un
+ * cliente sin avisar se ve exactamente igual que uno correcto.
  */
 export async function createReceiptVe(
   admin: SupabaseClient,
   tenantId: string,
   input: CreateReceiptVeInput,
-): Promise<{ id: string; receipt_code: string } | { error: string }> {
+): Promise<
+  { id: string; receipt_code: string; sinAviso: string[] } | { error: string }
+> {
   // 1. Generar code
   const { data: codeData, error: codeErr } = await admin.rpc(
     "next_receipt_ve_code",
@@ -198,18 +210,25 @@ export async function createReceiptVe(
   }
 
   // SDD-0156 · Slice D: al crear el recibo VE (contenedor llegando a Venezuela)
-  // programa el aviso 'received_ve' para los envíos de las cajas — cierra el
-  // pendiente "aviso al cliente en recepción" de SDD-0154. Best-effort: nunca
-  // rompe la creación del recibo.
+  // programa el aviso 'received_ve' para los envíos de las cajas.
+  //
+  // SDD-0311: se AWAITEA, no se dispara al aire. Antes era `void … .catch()` y
+  // eso tenía dos costos: el resultado se tiraba —incluidos los clientes que se
+  // quedaban sin aviso— y en un runtime serverless la función podía cortarse
+  // antes de que el fan-out terminara. Se esperan los milisegundos a cambio de
+  // poder decir la verdad en pantalla.
+  //
+  // Sigue siendo best-effort: `scheduleReceiptVeReceived` nunca throwea, así
+  // que un fallo del aviso jamás invalida un recibo ya escrito.
+  let sinAviso: string[] = [];
   if (input.boxes.length > 0) {
-    void scheduleReceiptVeReceived(
+    const fanout = await scheduleReceiptVeReceived(
       admin,
       tenantId,
       input.boxes.map((b) => b.markbox),
-    ).catch((err) => {
-      console.error("[receipt-ve] scheduleReceiptVeReceived falló:", err);
-    });
+    );
+    sinAviso = fanout.sinDestino;
   }
 
-  return { id: row.id, receipt_code: row.receipt_code };
+  return { id: row.id, receipt_code: row.receipt_code, sinAviso };
 }

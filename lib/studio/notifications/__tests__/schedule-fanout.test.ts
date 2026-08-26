@@ -80,7 +80,7 @@ describe("scheduleConsolidationEvent", () => {
   });
 });
 
-describe("scheduleReceiptVeReceived", () => {
+describe("scheduleReceiptVeReceived · «tu carga llegó a Venezuela»", () => {
   it("resuelve envío por Shipping Mark y programa received_ve (deduplica marks)", async () => {
     const admin = makeAdmin({
       shipments: {
@@ -90,13 +90,14 @@ describe("scheduleReceiptVeReceived", () => {
         client_name: "Caro",
       },
     });
-    const n = await scheduleReceiptVeReceived(admin, "t-1", [
+    const r = await scheduleReceiptVeReceived(admin, "t-1", [
       "DTD-9",
       "DTD-9",
       "  ",
       null,
     ]);
-    expect(n).toBe(1); // sólo un Shipping Mark único con envío resoluble
+    expect(r.scheduled).toBe(1); // sólo un Shipping Mark único con envío resoluble
+    expect(r.sinDestino).toEqual([]);
     expect(scheduleMock).toHaveBeenCalledTimes(1);
     expect(scheduleMock.mock.calls[0][2]).toMatchObject({
       ancla: { kind: "shipment", shipmentId: "s-9", shipmentCode: "ENV-9" },
@@ -104,11 +105,52 @@ describe("scheduleReceiptVeReceived", () => {
     });
   });
 
-  it("Shipping Mark sin envío en curso → no programa (no mal-notifica)", async () => {
+  it("🔴 sin envío en curso NO mal-notifica, pero TAMPOCO se calla (SDD-0311)", async () => {
+    // El caso que se perdía. Antes esto devolvía `0` y era indistinguible de
+    // «no había a quién avisar»: el recibo del contenedor se creaba, la
+    // pantalla decía que todo salió bien, y ese cliente se quedaba esperando
+    // una llamada que nadie sabía que había que hacer.
     const admin = makeAdmin({ shipments: null });
-    const n = await scheduleReceiptVeReceived(admin, "t-1", ["DTD-404"]);
-    expect(n).toBe(0);
+    const r = await scheduleReceiptVeReceived(admin, "t-1", ["DTD-404"]);
+    expect(r.scheduled).toBe(0);
+    expect(r.sinDestino).toEqual(["DTD-404"]);
     expect(scheduleMock).not.toHaveBeenCalled();
+  });
+
+  it("el que sí tiene envío se avisa igual: uno sin destino no arrastra al otro", async () => {
+    // Un solo Shipping Mark irresoluble no puede dejar mudo al contenedor
+    // entero. El mock resuelve el MISMO envío para cualquier mark, así que se
+    // usa un único mark con envío y otro sin — en dos llamadas separadas — para
+    // afirmar que las dos listas se llenan de forma independiente.
+    const conEnvio = await scheduleReceiptVeReceived(
+      makeAdmin({
+        shipments: { id: "s-1", code: "ENV-1", client_markbox: "DTD-1", client_name: "Ana" },
+      }),
+      "t-1",
+      ["DTD-1"],
+    );
+    const sinEnvio = await scheduleReceiptVeReceived(makeAdmin({ shipments: null }), "t-1", [
+      "DTD-404",
+    ]);
+    expect(conEnvio.scheduled).toBe(1);
+    expect(conEnvio.sinDestino).toEqual([]);
+    expect(sinEnvio.scheduled).toBe(0);
+    expect(sinEnvio.sinDestino).toEqual(["DTD-404"]);
+  });
+
+  it("lista vacía o sólo basura → nada que avisar y nadie sin avisar", async () => {
+    const r = await scheduleReceiptVeReceived(makeAdmin({}), "t-1", ["", "  ", null, undefined]);
+    expect(r).toEqual({ scheduled: 0, sinDestino: [] });
+    expect(scheduleMock).not.toHaveBeenCalled();
+  });
+
+  it("la misma nota de bitácora sirve para el arribo, no sólo para China", () => {
+    // `notaSinAviso` nació con SDD-0282 para la recepción en Yiwu. El texto es
+    // genérico a propósito: quien se queda sin aviso necesita lo mismo en los
+    // dos lados — saber a quién escribirle a mano.
+    const nota = notaSinAviso(["DTD-404"]);
+    expect(nota).toContain("DTD-404");
+    expect(nota).toContain("escríbele");
   });
 });
 

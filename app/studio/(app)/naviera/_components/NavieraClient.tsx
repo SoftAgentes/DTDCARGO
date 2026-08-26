@@ -894,6 +894,10 @@ function ContainerDetail({
 }) {
   const c = detail.consolidation;
   const st = detail.stats;
+  // SDD-0311 · marcar arribado le escribe a los clientes del contenedor. La
+  // regla de trazabilidad del Studio pide dejar rastro de toda acción que muta
+  // con efecto afuera, y acá el efecto sale del sistema: son correos.
+  const toast = useToast();
   const sailing = c.sailing_id
     ? sailings.find((s) => s.id === c.sailing_id) ?? null
     : null;
@@ -993,6 +997,44 @@ function ContainerDetail({
               loadingLabel="Marcando…"
               successLabel="Zarpado"
               onAction={() => changeConsolidationStatus(c.id, "zarpado")}
+            />
+          )}
+          {/*
+            SDD-0311 · El último escalón del contenedor. La cadena llegaba hasta
+            `zarpado` y ahí se cortaba, así que `arribado` era un estado que el
+            producto sabía nombrar pero nadie podía poner — y con él se quedaba
+            sin disparar el aviso «tu carga llegó a Venezuela».
+
+            El `title` no es adorno: este botón le escribe a TODOS los clientes
+            del contenedor. Quien lo aprieta tiene que saberlo antes, no después.
+          */}
+          {c.status === "zarpado" && (
+            <ActionButton
+              variant="dark"
+              size="sm"
+              idleLabel="Marcar arribado"
+              loadingLabel="Marcando…"
+              successLabel="Arribado"
+              title="Avisa a los clientes del contenedor que su carga llegó a Venezuela"
+              onAction={async () => {
+                const r = await changeConsolidationStatus(c.id, "arribado");
+                if (r.error) return r;
+                // El número sale del servidor: son los avisos REALMENTE
+                // programados, no la cantidad de items del contenedor. No es lo
+                // mismo —dos items pueden ser del mismo cliente— y decir un
+                // número plausible es peor que no decir ninguno.
+                const n = r.avisados;
+                toast.success(
+                  n == null
+                    ? "Contenedor arribado"
+                    : n === 0
+                      ? "Contenedor arribado · ningún cliente recibió aviso"
+                      : n === 1
+                        ? "Contenedor arribado · le avisamos a 1 cliente"
+                        : `Contenedor arribado · les avisamos a ${n} clientes`,
+                );
+                return r;
+              }}
             />
           )}
         </div>

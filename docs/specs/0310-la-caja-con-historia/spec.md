@@ -1,7 +1,7 @@
 ---
 sdd: "0310"
 title: "Barrido de cables sueltos — y el guard que impide perder una caja con historia"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-08-26
 updated: 2026-08-26

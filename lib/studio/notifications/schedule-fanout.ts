@@ -145,17 +145,34 @@ export async function scheduleSailingEvent(
 }
 
 /**
- * Programa `received_ve` para los envíos de las cajas de un recibo VE. Las cajas
- * no guardan shipment_id → se resuelve el envío por el Shipping Mark (el envío no
- * terminal más reciente de ese cliente). Sin envío resoluble para un Shipping
- * Mark → esa caja se salta (no se mal-notifica a otro cliente).
+ * Programa `received_ve` para los envíos de las cajas de un recibo VE — el aviso
+ * «tu carga llegó a Venezuela». Desde el 2026-07-19 es el disparador CANÓNICO
+ * del arribo: en ese cambio se quitó el mail `shipment_arrived` que mandaba la
+ * transición de status, para no duplicarlo.
+ *
+ * Las cajas no guardan shipment_id → se resuelve el envío por el Shipping Mark
+ * (el envío no terminal más reciente de ese cliente).
+ *
+ * 🔴 **Sin envío resoluble, el cliente se queda sin el aviso que más espera.**
+ * Hasta SDD-0311 eso era un `continue` mudo: el recibo se creaba, la pantalla
+ * decía que todo salió bien, y nadie se enteraba de que a ese cliente no se le
+ * escribió. Es exactamente el hueco que SDD-0282 le cerró a la recepción en
+ * China y que acá quedó abierto — en el lado que más importa, porque «llegó a
+ * Yiwu» se puede esperar y «llegó a Venezuela» es la llamada que el cliente
+ * hace al día siguiente.
+ *
+ * Ahora sale en `sinDestino` para que el llamador lo asiente y el operador de
+ * oficina pueda escribirle a mano.
+ *
+ * Best-effort: nunca throwea. Un fallo acá no rompe la recepción del contenedor.
  */
 export async function scheduleReceiptVeReceived(
   admin: SupabaseClient,
   tenantId: string,
   markboxes: Array<string | null | undefined>,
   eventTime: Date = new Date(),
-): Promise<number> {
+): Promise<FanoutResultado> {
+  const vacio: FanoutResultado = { scheduled: 0, sinDestino: [] };
   try {
     const marks = Array.from(
       new Set(
@@ -164,9 +181,10 @@ export async function scheduleReceiptVeReceived(
           .filter((m): m is string => m.length > 0),
       ),
     );
-    if (marks.length === 0) return 0;
+    if (marks.length === 0) return vacio;
 
     let scheduled = 0;
+    const sinDestino: string[] = [];
     for (const markbox of marks) {
       const { data: shipment } = await admin
         .from("shipments")
@@ -182,7 +200,13 @@ export async function scheduleReceiptVeReceived(
           client_markbox: string | null;
           client_name: string | null;
         }>();
-      if (!shipment) continue;
+
+      if (!shipment) {
+        // El caso que antes se perdía. No se inventa un destino: mal-notificar
+        // a otro cliente sería peor que no notificar.
+        sinDestino.push(markbox);
+        continue;
+      }
 
       scheduled += await scheduleForTargets(
         admin,
@@ -199,10 +223,10 @@ export async function scheduleReceiptVeReceived(
         eventTime,
       );
     }
-    return scheduled;
+    return { scheduled, sinDestino };
   } catch (err) {
     console.error(`[client-notif] scheduleReceiptVeReceived falló:`, err);
-    return 0;
+    return vacio;
   }
 }
 

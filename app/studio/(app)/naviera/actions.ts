@@ -522,7 +522,7 @@ export async function refreshTracking(
 export async function changeConsolidationStatus(
   consolidationId: string,
   status: ContainerStatus,
-): Promise<Result> {
+): Promise<Result & { avisados?: number }> {
   if (!VALID_CONTAINER_STATUS.has(status)) return { error: "Estado inválido." };
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "naviera");
@@ -536,20 +536,49 @@ export async function changeConsolidationStatus(
 
   // SDD-0156 · Slice D: al CERRAR el contenedor (consolidando → cerrado) la carga
   // quedó consolidada → programa el aviso 'consolidated' para sus envíos.
+  //
+  // SDD-0311: y al ARRIBAR (→ arribado) sale 'received_ve', el aviso «tu carga
+  // llegó a Venezuela».
+  //
+  // 🔴 Por qué hacía falta: el 2026-07-19 se quitó el mail `shipment_arrived`
+  // de la transición de status del ENVÍO porque el arribo pasaba a ser canónico
+  // por `received_ve`. Pero `received_ve` sólo se disparaba desde
+  // `createReceiptVe`, y esa función NO TIENE LLAMADORES en todo el repo
+  // (medido 2026-08-26): el recibo de contenedor VE no se puede crear desde
+  // ninguna pantalla. Resultado: la regla sembrada por la migración 0331 estaba
+  // armada y esperando un disparador que no existía, y el cliente se quedaba
+  // sin el aviso que más espera — por las DOS vías a la vez.
+  //
+  // Este es el mismo hecho físico —el contenedor llegó— expresado con lo que el
+  // producto sí tiene vivo hoy. Mismo `trigger_event`, así que usa la regla ya
+  // sembrada sin migración nueva; y como `scheduleClientNotifications` es
+  // idempotente por índice único parcial, el día que `createReceiptVe` tenga
+  // puerta no se duplica el correo.
+  //
   // Idempotente; best-effort (no rompe el cambio de estado).
-  if (status === "cerrado") {
+  const EVENTO_POR_ESTADO: Partial<Record<ContainerStatus, string>> = {
+    cerrado: "consolidated",
+    arribado: "received_ve",
+  };
+  const evento = EVENTO_POR_ESTADO[status];
+  let avisados: number | undefined;
+  if (evento) {
     const tenantId = await resolveTenant(supabase);
     if (tenantId) {
-      await scheduleConsolidationEvent(
+      avisados = await scheduleConsolidationEvent(
         createAdminClient(),
         tenantId,
         consolidationId,
-        "consolidated",
+        evento,
       );
     }
   }
   revalidate();
-  return { ok: true };
+  // `avisados` es el conteo REAL de avisos programados, no la cantidad de
+  // items del contenedor. No es lo mismo: dos items pueden ser del mismo
+  // cliente, y un envío sin regla activa no genera aviso. La pantalla dice
+  // este número o no dice ninguno — no inventa uno plausible.
+  return { ok: true, avisados };
 }
 
 /** Cerrar contenedor: consolidando → cerrado (atajo de changeConsolidationStatus). */

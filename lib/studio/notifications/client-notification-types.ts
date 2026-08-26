@@ -124,7 +124,18 @@ export const DEFAULT_EVENT_COPY: Record<string, NotifCopy> = {
   },
   received_ve: {
     title: "Tu carga llegó a Venezuela",
-    body: "Recibimos tu mercancía en nuestra bodega en Venezuela. Pronto coordinamos la entrega.",
+    // SDD-0311 · el cuerpo decía "Recibimos tu mercancía en nuestra bodega en
+    // Venezuela" y eso deja de ser cierto según CUÁNDO salga el aviso: hoy sale
+    // cuando el contenedor arriba al país (naviera → arribado), y de ahí a la
+    // bodega todavía faltan el puerto y el traslado. Un cliente al que se le
+    // dice que su mercancía ya está en bodega llama ese mismo día a pedir la
+    // entrega.
+    //
+    // El texto nuevo es verdadero en los DOS momentos —arribo al país y
+    // recepción en bodega— porque no afirma dónde está más allá de Venezuela.
+    // El día que la recepción de contenedor tenga pantalla y convenga separar
+    // los dos avisos, esto se parte en dos eventos, no se vuelve a estirar.
+    body: "Tu mercancía ya está en Venezuela. Te avisamos apenas coordinemos la entrega.",
   },
 };
 

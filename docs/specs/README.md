@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 299 specs)
+### Índice de specs (generado · 302 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -337,6 +337,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0306 | Recordatorio de cobranza — y las seis razones para NO mandarlo | in-progress | interno |
 | 0307 | El detalle de compra del portal: qué llegó a Yiwu | done | interno |
 | 0308 | El packing list del proveedor llega al cliente | in-progress | interno |
+| 0309 | B4 ya estaba hecho — y el trigger que reparte dinero no tenía… | in-progress | interno |
+| 0310 | Barrido de cables sueltos — y el guard que impide perder una … | done | interno |
+| 0311 | «Tu carga llegó a Venezuela» — el aviso que quedó sin disparador | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0286, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
