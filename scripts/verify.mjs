@@ -20,11 +20,17 @@
  * Exit: 0 = todo verde · 1 = al menos un check falló (corre TODOS y los lista).
  */
 import { spawnSync } from "node:child_process";
-import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { podarTiposDeRuta, notaDePoda } from "./prune-next-types.mjs";
+import {
+  absuelveCorrida,
+  candidatosDePuerto,
+  primerPuertoLibre,
+  PUERTO_BASE,
+  PUERTO_RANGO,
+} from "./verify-e2e.mjs";
 
 const C = { green: "\x1b[32m", red: "\x1b[31m", dim: "\x1b[2m", yellow: "\x1b[33m", nc: "\x1b[0m" };
 const ok = (m) => console.log(`${C.green}[OK]${C.nc}   ${m}`);
@@ -62,7 +68,10 @@ function e2eAbsolver() {
   const stats = reporte.stats;
   if (!stats) return null;
 
-  if (stats.unexpected === 0) {
+  // 🔴 Cero tests NO es verde: ver `absuelveCorrida`. Si el webServer no
+  // arrancó, `unexpected` también es 0 y la excusa de abajo describiría un
+  // caso que no ocurrió.
+  if (absuelveCorrida(stats)) {
     const flaky = stats.flaky ? `, ${stats.flaky} flaky` : "";
     return (
       `e2e: ${stats.expected} tests pasaron${flaky} y ninguno falló, pero el proceso salió ≠0 — ` +
@@ -243,15 +252,36 @@ function e2ePreflight() {
    ⚠️  ${desfase}` : ""),
     };
   }
-  return null; // sin dev acá → Playwright levanta el suyo en E2E_PORT (puerto propio por worktree, ver e2ePort)
+  // Sin dev acá → Playwright levanta el suyo. El puerto se resuelve ACÁ y no al
+  // construir la lista de pasos: sondear puertos es una medición del entorno,
+  // no una constante, y el resultado tiene que poder decir "no hay".
+  const puerto = e2ePort();
+  if (!puerto) {
+    return {
+      skip: true,
+      reason:
+        `sin puerto libre en ${PUERTO_BASE}–${PUERTO_BASE + PUERTO_RANGO - 1} — ` +
+        `en Windows revisa los rangos reservados con ` +
+        `\`netsh interface ipv4 show excludedportrange protocol=tcp\` ` +
+        `(e2e omitido; fuerza uno con E2E_PORT=<puerto>)`,
+    };
+  }
+  return { env: { E2E_PORT: String(puerto) }, note: `dev server propio en el puerto ${puerto}` };
 }
 
-// Puerto único por worktree → dos ventanas en carpetas distintas nunca
-// colisionan en el mismo puerto (evita reusar el next dev de otra ventana con
-// reuseExistingServer:true de Playwright). Determinístico: mismo cwd → mismo puerto.
+/**
+ * Puerto para el `next dev` del e2e: determinístico por worktree, pero
+ * VERIFICADO — se prueba que el sistema operativo deje escuchar ahí antes de
+ * dárselo a Playwright. La lógica y el porqué viven en `verify-e2e.mjs`.
+ *
+ * `E2E_PORT` del entorno gana: es la salida a mano cuando algo se tuerce.
+ * Devuelve `null` si NINGÚN candidato ata — ahí el paso se omite diciéndolo,
+ * en vez de arrancar contra un puerto muerto y correr cero tests.
+ */
 function e2ePort() {
-  const h = crypto.createHash("sha1").update(process.cwd()).digest();
-  return 3100 + (h.readUInt16BE(0) % 700); // rango 3100–3799
+  const forzado = Number(process.env.E2E_PORT);
+  if (Number.isInteger(forzado) && forzado > 0) return forzado;
+  return primerPuertoLibre(candidatosDePuerto(process.cwd()));
 }
 
 /**
@@ -340,7 +370,9 @@ const STEPS = [
     // `list` es lo que se ve; `json` va a un archivo y sólo lo lee `e2eAbsolver`
     // cuando el proceso sale ≠0, para saber si de verdad falló un test.
     argv: ["node_modules/@playwright/test/cli.js", "test", "--reporter=list,json"],
-    env: { E2E_PORT: String(e2ePort()), PLAYWRIGHT_JSON_OUTPUT_NAME: E2E_JSON },
+    // E2E_PORT NO va acá: lo resuelve `e2ePreflight` en tiempo de ejecución
+    // (el runner deja que el env del preflight gane sobre el del paso).
+    env: { PLAYWRIGHT_JSON_OUTPUT_NAME: E2E_JSON },
     retry: 1,
     preflight: e2ePreflight,
     absolver: e2eAbsolver,
