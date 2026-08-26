@@ -154,7 +154,7 @@ export default function AcademiaPage() {
               <ul className="mt-7 flex flex-col gap-3 list-none p-0">
                 {[
                   "Curso 0 gratis al abrir",
-                  "Cupos limitados en las cohortes en vivo",
+                  "Cupos limitados en los cursos y talleres en vivo",
                   "Sin spam — te escribimos solo por esto",
                 ].map((t) => (
                   <li key={t} className="flex items-start gap-2.5 text-[15px] text-ink">
