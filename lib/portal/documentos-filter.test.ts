@@ -90,3 +90,56 @@ describe("filterDocs", () => {
     expect(filterDocs(docs, { query: "DTD" }).map((d) => d.id)).toEqual(["1", "2"]);
   });
 });
+
+/**
+ * SDD-0306 · El packing list del proveedor entra a esta sección junto a los
+ * documentos de envío, y cuelga de una COMPRA, no de un envío.
+ *
+ * Lo que se protege: que se pueda encontrar escribiendo el código de su compra.
+ * Un documento que existe en la lista pero no aparece al buscarlo por su código
+ * es, para el cliente, un documento que no está — y el fallo es mudo, porque la
+ * pantalla no se rompe: sólo devuelve cero resultados.
+ */
+describe("filterDocs · documentos que cuelgan de una compra", () => {
+  const mezcla = [
+    doc({ id: "1", docType: "bl", typeLabel: "BL · Conocimiento de embarque", typeShort: "BL", shipmentCode: "DTD-2026-0311" }),
+    doc({
+      id: "pl:a",
+      docType: "packing",
+      typeLabel: "Packing list",
+      typeShort: "PL",
+      shipmentCode: null,
+      purchaseCode: "PRE-2026-0044",
+      url: "/portal/compras/PRE-2026-0044",
+      kind: "abrir",
+    }),
+  ];
+
+  it("encuentra el packing list por el código de su COMPRA", () => {
+    const r = filterDocs(mezcla, { query: "PRE-2026-0044" });
+    expect(r.map((d) => d.id)).toEqual(["pl:a"]);
+  });
+
+  it("un código de compra parcial también lo encuentra", () => {
+    expect(filterDocs(mezcla, { query: "0044" }).map((d) => d.id)).toEqual(["pl:a"]);
+  });
+
+  it("el código de envío sigue sin traer el packing list", () => {
+    // Cuelgan de cosas distintas: buscar un envío no puede devolver el packing
+    // list de una compra que todavía no está en ese envío.
+    expect(filterDocs(mezcla, { query: "DTD-2026-0311" }).map((d) => d.id)).toEqual(["1"]);
+  });
+
+  it("el chip 'packing' filtra solo los packing lists", () => {
+    expect(filterDocs(mezcla, { type: "packing" }).map((d) => d.id)).toEqual(["pl:a"]);
+  });
+
+  it("y aparece como su propio chip, con su conteo", () => {
+    const chips = buildTypeChips(mezcla);
+    expect(chips.find((c) => c.key === "packing")).toEqual({
+      key: "packing",
+      label: "Packing list",
+      count: 1,
+    });
+  });
+});

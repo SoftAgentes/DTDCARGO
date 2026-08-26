@@ -6,7 +6,7 @@ import type {
 import { CheckIcon, WarningIcon } from "@/components/Icon";
 
 /**
- * SDD-0301 · El packing list del proveedor, para el cliente.
+ * SDD-0306 · El packing list del proveedor, para el cliente.
  *
  * Server component: no tiene estado y no baja JS. Es una pantalla de LECTURA —
  * el cliente viene a comprobar qué despachó su proveedor, no a editar nada.

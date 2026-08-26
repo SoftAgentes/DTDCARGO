@@ -1,5 +1,5 @@
 /**
- * SDD-0301 · El packing list que llenó el proveedor, visto por el CLIENTE.
+ * SDD-0306 · El packing list que llenó el proveedor, visto por el CLIENTE.
  *
  * ## El hueco que cierra
  *
@@ -144,7 +144,7 @@ export async function obtenerPackingListDeCompra(
  * Cuáles de estas compras YA tienen packing list del proveedor.
  *
  * El hub de `/portal/envios` pinta un chip "Packing list ✓/✗" por compra. Hasta
- * SDD-0301 ese chip miraba **sólo `prealerta_documents`** — es decir, sólo si
+ * SDD-0306 ese chip miraba **sólo `prealerta_documents`** — es decir, sólo si
  * alguien había adjuntado un archivo. Un proveedor que llenó el formulario
  * online (el camino que el propio portal le ofrece) dejaba el chip en gris: el
  * documento existía y el portal decía que no.
@@ -191,6 +191,81 @@ export async function prealertasConPackingList(
     // chip a "sin packing list", que es el estado que ya se mostraba antes.
     // Nunca tumba el hub entero.
     return new Set();
+  }
+}
+
+/** Un packing list como entrada de la sección global "Documentos". */
+export type PackingListComoDocumento = {
+  id: string;
+  /** Código de la COMPRA de la que cuelga (`PRE-…`), no de un envío. */
+  purchaseCode: string;
+  /** Folio del documento, si la RPC lo asignó. */
+  folio: string | null;
+  /** Cuándo lo envió el proveedor. */
+  enviadoEl: string;
+  /** Cajas declaradas — el dato que el cliente reconoce de un vistazo. */
+  cajas: number;
+};
+
+/**
+ * Los packing lists del cliente, para la sección global "Documentos".
+ *
+ * `/portal/documentos` prometía en su bajada «BL · Packing List · Facturas
+ * comerciales · POD» y listaba sólo `shipment_documents`, que es lo que sube
+ * **el equipo**. El packing list del proveedor no aparecía nunca: la pantalla
+ * nombraba un documento que no tenía.
+ *
+ * Ojo con la diferencia, que cambia cómo se pinta la fila: los demás documentos
+ * son **archivos** en Storage y se descargan por URL firmada. Un packing list
+ * **no es un archivo** — son filas en una tabla. Su destino es una ruta interna
+ * del portal (`/portal/compras/[code]`), así que la fila no dice "Descargar"
+ * ni abre pestaña nueva.
+ *
+ * 🔴 Mismo contrato que sus vecinas: admin client, y el `client_markbox` es acá
+ * el control de acceso efectivo, no un respaldo.
+ */
+export async function listarPackingListsComoDocumentos(
+  admin: SupabaseClient,
+  markbox: string,
+): Promise<PackingListComoDocumento[]> {
+  if (!markbox) return [];
+
+  try {
+    const { data, error } = await admin
+      .from("packing_list_submissions")
+      .select("id, folio, created_at, total_ctns, prealertas(code)")
+      .eq("client_markbox", markbox)
+      .eq("is_current", true)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      // Mismo tope que `listMyDocuments`. Explícito y por debajo del máximo de
+      // PostgREST, que no se sortea subiendo este número.
+      .limit(200);
+    if (error) throw error;
+
+    return ((data as Record<string, unknown>[] | null) ?? []).flatMap((r) => {
+      // El embed viene como objeto o como array según cómo resuelva PostgREST
+      // la relación; se normalizan los dos en vez de asumir uno.
+      const rel = r.prealertas as { code?: string } | { code?: string }[] | null;
+      const pre = Array.isArray(rel) ? rel[0] : rel;
+      const code = pre?.code;
+      // Sin código de compra la fila no tiene a dónde llevar: se omite en vez
+      // de pintar una tarjeta que no abre nada.
+      if (!code) return [];
+      return [
+        {
+          id: String(r.id),
+          purchaseCode: code,
+          folio: (r.folio as string | null) ?? null,
+          enviadoEl: String(r.created_at),
+          cajas: Number(r.total_ctns) || 0,
+        },
+      ];
+    });
+  } catch {
+    // Defensivo como el resto del módulo: un fallo acá deja la sección con los
+    // documentos de envío de siempre, nunca tumba la pantalla entera.
+    return [];
   }
 }
 

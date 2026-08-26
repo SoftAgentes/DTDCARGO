@@ -1,5 +1,5 @@
 /**
- * SDD-0281 · Los helpers puros del detalle de compra del portal.
+ * SDD-0305 · Los helpers puros del detalle de compra del portal.
  *
  * Los dos casos que importan son los que le mienten al cliente si se hacen mal:
  *

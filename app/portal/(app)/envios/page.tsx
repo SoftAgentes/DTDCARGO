@@ -73,7 +73,7 @@ export default async function PortalShipmentsPage() {
     (p) => !p.shipment_id && p.status !== "cancelada",
   );
 
-  // SDD-0301 — el packing list tiene DOS caminos y el chip sólo miraba uno.
+  // SDD-0306 — el packing list tiene DOS caminos y el chip sólo miraba uno.
   // `prealerta_documents` cubre el archivo adjunto; `packing_list_submissions`
   // cubre el formulario online de `/p/{token}`, que es el camino que el propio
   // portal le ofrece al proveedor. Mirando sólo el primero, un proveedor que

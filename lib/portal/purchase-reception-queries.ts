@@ -1,5 +1,5 @@
 /**
- * SDD-0281 · Lo que pasó en la bodega de Yiwu con UNA compra del cliente.
+ * SDD-0305 · Lo que pasó en la bodega de Yiwu con UNA compra del cliente.
  *
  * El portal dejaba anunciar la compra y volver a imprimir sus etiquetas, pero no
  * **abrirla**: no había `/portal/compras/[code]`. El cliente registraba el aviso

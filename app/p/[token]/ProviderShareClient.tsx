@@ -73,6 +73,31 @@ export function ProviderShareClient({
     <div className="min-h-screen bg-paper" style={{ fontFamily: BRAND_CJK }}>
       {/* Solo la grilla de etiquetas sale en papel. */}
       <style>{`
+        /* ── El documento usa el MONITOR, no el carril de lectura ──────────
+           El packing list es una tabla de once columnas con min-width:1000px.
+           Metida en el contenedor de 680px que sirve para los párrafos, vivía
+           con scroll horizontal permanente y las celdas apretadas: el proveedor
+           —que lo llena desde una PC— no alcanzaba a leerla (founder,
+           2026-08-26).
+
+           Se resuelve sólo para ESTE bloque, sin tocar el resto de la página:
+           el texto de instrucciones conserva su ancho legible y el documento se
+           centra respecto al viewport.
+
+           min() hace que en teléfono no cambie nada — a 375px da
+           calc(100vw - 32px), que es lo que ya medía. El ensanchado sólo ocurre
+           cuando hay monitor donde ensanchar. */
+        .pl-full {
+          width: min(1320px, calc(100vw - 32px));
+          margin-left: 50%;
+          transform: translateX(-50%);
+        }
+        /* En papel manda el CSS de impresión de la sección: acá se desarma el
+           centrado para no dejar el bloque corrido media página. */
+        @media print {
+          .pl-full { width: auto; margin-left: 0; transform: none; }
+        }
+
         @media print {
           body * { visibility: hidden !important; }
           .labels-print-area, .labels-print-area * { visibility: visible !important; }
@@ -191,13 +216,15 @@ export function ProviderShareClient({
         <div className="no-print mt-8">
           <StepEyebrow n={1} zh="第一步" es="Paso 1" />
         </div>
-        <PackingListFormSection
-          token={token}
-          supplierName={supplierName}
-          supplierWechat={supplierWechat}
-          markbox={markbox}
-          clientName={clientName}
-        />
+        <div className="pl-full">
+          <PackingListFormSection
+            token={token}
+            supplierName={supplierName}
+            supplierWechat={supplierWechat}
+            markbox={markbox}
+            clientName={clientName}
+          />
+        </div>
 
         {/* (b) PASO 2 — Fallback: descargar el Excel pre-llenado (GET, se mantiene).
             Secundario respecto al online → título con menos peso + botón ghost. */}

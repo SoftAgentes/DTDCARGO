@@ -226,7 +226,7 @@ export function codigoDelAncla(ancla: AnclaDelAviso): string {
 /**
  * A dónde lleva el aviso dentro del portal. PURA.
  *
- * El aviso de una COMPRA lleva a `/portal/compras/[code]` (SDD-0281), que es
+ * El aviso de una COMPRA lleva a `/portal/compras/[code]` (SDD-0305), que es
  * donde el cliente ve qué llegó a Yiwu. Mandarlo a `/portal/envios/...` sería
  * mandarlo a una pantalla que todavía no tiene nada suyo — justamente porque el
  * envío aún no existe.

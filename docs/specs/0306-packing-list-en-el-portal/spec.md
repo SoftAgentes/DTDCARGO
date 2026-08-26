@@ -1,5 +1,5 @@
 ---
-sdd: "0301"
+sdd: "0306"
 title: "El packing list del proveedor llega al cliente"
 status: in-progress
 author: "founder"
@@ -11,7 +11,7 @@ related: ["0057","0096","0097","0173"]
 confidencialidad: interno
 ---
 
-# DTD-0301 — El packing list del proveedor llega al cliente
+# DTD-0306 — El packing list del proveedor llega al cliente
 
 > El proveedor llena su packing list en el enlace que le manda el cliente. El
 > equipo lo lee en el Studio. El cliente —para quien se llenó el documento— era
@@ -48,14 +48,42 @@ para todos menos para su destinatario.
 4. **Arreglar el chip** del hub: que diga la verdad (las dos fuentes) y que abra
    el documento.
 5. **Estado de espera** explícito cuando el proveedor todavía no lo mandó.
+6. **Sumarlo a `/portal/documentos`** (decisión del founder, 2026-08-26), que
+   prometía «Packing List» en su bajada y no lo listaba.
 
 ### No entra
 
 - **No se toca la RLS de producción.** No hay migración en este SDD (§4).
 - No se toca el formulario del proveedor (`/p/{token}`), ni el Studio, ni el
   packing list como PDF descargable.
-- No se toca `/portal/documentos`: su promesa de copy queda registrada como
-  hallazgo abierto (§7), no se corrige acá.
+
+## 3-bis. La sección global de Documentos
+
+`/portal/documentos` leía **sólo** `shipment_documents` y su bajada prometía
+«BL · Packing List · Facturas comerciales · POD. Los carga nuestro equipo».
+Medido, esa frase fallaba por partida doble:
+
+- **El tipo no existía.** `ShipmentDocType` es `"bl" | "pod" | "otro"`
+  (`lib/studio/shipment-document-types.ts:10`). Nunca hubo un `packing` ni una
+  «factura comercial» en esa tabla: la bajada nombraba tipos que el modelo de
+  datos no contempla.
+- **Y el autor tampoco.** El packing list no lo carga el equipo — lo llena el
+  proveedor.
+
+Ahora la pantalla cruza las dos fuentes y ordena todo por fecha en una sola
+lista. Tres decisiones que valen la pena:
+
+1. **Un packing list no es un archivo.** Los demás documentos son objetos en
+   Storage con URL firmada; éste son filas de una tabla. Su destino es una ruta
+   interna, así que la tarjeta dice **«Ver»** y no «Descargar», y navega dentro
+   del portal en vez de abrir pestaña nueva (`kind: "abrir"`). Tratarlo como
+   archivo le mentiría al cliente sobre lo que va a pasar al tocarlo.
+2. **Cuelga de una compra, no de un envío.** El subtítulo dice «Compra PRE-…» y
+   el buscador acepta ese código (`purchaseCode` entra en `filterDocs`). Un
+   documento que no se encuentra por su código es, para el cliente, un documento
+   que no está — y el fallo es mudo: la pantalla no se rompe, devuelve cero.
+3. **Etiquetas propias**, no `shipmentDocTypeLabel("packing")`: ese enum no
+   tiene el valor y habría devuelto el genérico «Documento».
 
 ## 3. Allowlist exacta
 
@@ -67,7 +95,11 @@ para todos menos para su destinatario.
 | `app/portal/(app)/compras/[code]/page.tsx` | edita — carga y renderiza la sección |
 | `app/portal/(app)/envios/page.tsx` | edita — presencia real del packing list |
 | `app/portal/(app)/envios/_components/PortalAlertasHub.tsx` | edita — chip clicable |
-| `docs/specs/0301-packing-list-en-el-portal/spec.md` | nuevo |
+| `lib/portal/documentos-filter.ts` | edita — `purchaseCode` + `kind` |
+| `lib/portal/documentos-filter.test.ts` | edita — 5 pruebas del caso compra |
+| `app/portal/(app)/documentos/page.tsx` | edita — cruza las dos fuentes |
+| `app/portal/(app)/documentos/DocumentsClient.tsx` | edita — «Ver» vs «Descargar» |
+| `docs/specs/0306-packing-list-en-el-portal/spec.md` | nuevo |
 
 ## 4. Decisión de acceso: admin client, no policy nueva
 
@@ -146,7 +178,7 @@ mitiga en tres capas:
 
 ### Nota de método
 
-El banco de medición se montó bajo `/portal/probe-0301`, fuera del grupo
+El banco de medición se montó bajo `/portal/probe-0306`, fuera del grupo
 `(app)` — el proxy sólo corta `/studio` y `/back`, así que no pide sesión — con
 el div del tema copiado literal de `(app)/layout.tsx:72-76`, incluida la
 variable de JetBrains Mono. Lo único sintético fue el contenido. Se borró al
@@ -158,14 +190,39 @@ mismo directorio. Corriendo uno solo, verde.
 
 ## 7. Hallazgos abiertos (no se corrigen acá)
 
-1. **`/portal/documentos` promete "Packing List" y no lo lista.** Lee
-   `shipment_documents` (lo que sube el equipo), no las submissions. Con este
-   SDD el documento ya es legible en el detalle de la compra, así que la promesa
-   dejó de ser falsa en el producto — pero esa pantalla sigue sin mostrarlo.
-   Decidir si se suma ahí o si se ajusta el copy.
-2. **Colisión de número SDD-0281.** El código del detalle de compra
-   (`purchase-reception-queries.ts:1`, `compras/[code]/page.tsx:30`) dice
-   "SDD-0281 · Lo que pasó en la bodega de Yiwu", pero
-   `docs/specs/0281-*/spec.md` es "Los documentos del carril comercial". Son dos
-   trabajos con el mismo número. Renumerar toca trabajo ajeno y la regla es que
-   se mueve **la que no está en `main`**: hay que medir eso antes.
+1. ✅ **Cerrado** — `/portal/documentos` ya lista el packing list (§3-bis).
+   Decisión del founder el 2026-08-26.
+
+2. **El número SDD-0281 lo reclaman DOS trabajos, y los dos están en `main`.**
+   Medido el 2026-08-26 con `origin/main` fresco:
+
+   | Commit | Hora | Trabajo | ¿Spec? |
+   |---|---|---|---|
+   | `b5af1821` | 06:35:01 | Detalle de compra del portal (bodega de Yiwu) | ❌ **ninguna** |
+   | `3fce82a9` | 06:43:30 | Estado de cuenta / carril comercial | ✅ `0281-documentos-del-carril-comercial` |
+
+   Dos ventanas trabajaron en paralelo el mismo día y ambas tomaron el 0281,
+   con 8 minutos de diferencia.
+
+   **La regla de siempre no aplica.** «Se mueve la que NO está en `main`» sirve
+   cuando una de las dos todavía es local; acá las dos están publicadas.
+
+   **Y el gate no puede verlo:** `check-numbering.mjs` compara **carpetas** de
+   spec y de migración. Como el trabajo del detalle de compra nunca creó
+   carpeta, no hay duplicado que detectar y `numbering` sale verde — el
+   correlativo tampoco muestra hueco. El punto ciego es la cita en comentarios,
+   que ningún paso mira.
+
+   **Alcance real:** de los ~20 archivos que citan `SDD-0281`, la gran mayoría
+   (cotizador, facturación, cobranzas, dashboard, clientes, PDFs, export CSV)
+   pertenece legítimamente a la spec que sí existe. **Sólo 4** citan el número
+   por el otro trabajo: `lib/portal/purchase-reception-queries.ts`,
+   `app/portal/(app)/compras/[code]/page.tsx`,
+   `app/portal/(app)/compras/ComprasList.tsx` y una mención en
+   `app/studio/(app)/cn/actions.ts`.
+
+   **Recomendación:** no tocar la spec 0281 —es la dueña legítima, tiene carpeta
+   y 16 archivos la citan bien— y darle al detalle de compra **un número propio
+   con spec retroactiva** que documente lo ya construido, corrigiendo esas 4
+   citas. Es un cambio barato y sin riesgo de runtime. Queda a decisión del
+   founder porque toca trabajo de otra ventana.

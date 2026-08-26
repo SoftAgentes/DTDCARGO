@@ -17,8 +17,23 @@ export type PortalDocView = {
   /** Etiqueta corta para el chip mono ("BL"). */
   typeShort: string;
   shipmentCode: string | null;
+  /**
+   * SDD-0306 · Código de la COMPRA cuando el documento cuelga de una compra y
+   * no de un envío — hoy, el packing list del proveedor. Excluyente con
+   * `shipmentCode`: un documento cuelga de una cosa o de la otra.
+   */
+  purchaseCode?: string | null;
   meta: string;
   url: string | null;
+  /**
+   * SDD-0306 · Qué pasa al tocar la tarjeta.
+   *
+   * `"descarga"` (default) — archivo en Storage, URL firmada, pestaña nueva.
+   * `"abrir"` — el documento vive DENTRO del portal y `url` es una ruta
+   * interna. No se descarga nada, así que la tarjeta no puede decir
+   * "Descargar" ni sacar al cliente del portal.
+   */
+  kind?: "descarga" | "abrir";
 };
 
 /**
@@ -56,8 +71,13 @@ export function buildTypeChips(docs: PortalDocView[]): DocTypeChip[] {
 }
 
 /**
- * Filtra por tipo y texto. La búsqueda mira etiqueta larga, etiqueta corta y
- * código de envío — que es como el cliente los busca ("BL", "Bill", "DTD-2026…").
+ * Filtra por tipo y texto. La búsqueda mira etiqueta larga, etiqueta corta y el
+ * código del que cuelga el documento — que es como el cliente los busca ("BL",
+ * "Bill", "DTD-2026…", "PRE-…").
+ *
+ * El código de compra entra en la búsqueda igual que el de envío (SDD-0306): un
+ * packing list que no se encuentra escribiendo el código de su compra es, para
+ * el cliente, un documento que no está.
  */
 export function filterDocs(
   docs: PortalDocView[],
@@ -70,7 +90,8 @@ export function filterDocs(
     return (
       normalize(d.typeLabel).includes(q) ||
       normalize(d.typeShort).includes(q) ||
-      normalize(d.shipmentCode ?? "").includes(q)
+      normalize(d.shipmentCode ?? "").includes(q) ||
+      normalize(d.purchaseCode ?? "").includes(q)
     );
   });
 }
