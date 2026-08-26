@@ -1,5 +1,5 @@
 /**
- * Proxy (antes "middleware") de autenticación · Studio + Back.
+ * Proxy (antes "middleware") de autenticación.
  *
  * En Next.js 16 el convention `middleware.ts` quedó deprecado a favor de
  * `proxy.ts` con función `proxy()`. Migrado en SDD-0004 cleanup.
@@ -13,9 +13,42 @@
  *    (admin/disenador/editor) lo hace requireAnyBackRole() en el layout
  *    protegido — acá solo gatekeep sesión vs no-sesión.
  *
- * El sitio público (/, /calculadora, /calculadora-terrestre, /estimacion,
- * /servicios, /contacto, /track) queda intocado y con cero overhead (matcher
- * abajo no los incluye).
+ * ## 🔴 Refrescar la sesión NO es lo mismo que gatear la ruta (SDD-0302)
+ *
+ * Los puntos 2 y 3 son redirecciones y sólo aplican a `/studio` y `/back`. El
+ * punto 1 —el refresco de cookies— le hace falta a **toda** ruta que resuelva
+ * la sesión server-side, tenga o no redirección acá.
+ *
+ * Hasta hoy el matcher decía sólo `/studio` y `/back`, así que `/portal`,
+ * `/m/erp` y `/m/emp` quedaban fuera **aunque autentican con el mismo
+ * Supabase**. Al vencer el access token —1 h por defecto— la navegación
+ * server-side veía la sesión muerta y echaba al usuario aunque su refresh
+ * token siguiera vivo. Es el bug que se reporta como «me saca solo» y que
+ * nadie reproduce, porque hay que esperar una hora.
+ *
+ * Esas tres rutas **no reciben ninguna redirección**: los únicos bloques de la
+ * función son `startsWith("/studio")` y `startsWith("/back")`, así que caen al
+ * `return supabaseResponse` final — exactamente el refresco que les faltaba.
+ *
+ * `/m/cn` y `/m/ve` quedan FUERA a propósito: el operario entra con **PIN**, no
+ * con sesión de Supabase (ver `app/m/layout.tsx`), y meterlas sólo agregaría un
+ * `getUser()` por request.
+ *
+ * ## ⚖️ `/entrar` y `/registro`: entran, y cuestan una llamada extra
+ *
+ * Son las puertas del portal y ya resuelven la sesión por su cuenta: si hay
+ * usuario, redirigen a `/portal`. Sin el refresco, quien entró ayer pulsa
+ * «Entrar» y —con el access token vencido pero el refresh vivo— ve **otra vez
+ * el formulario de login** en vez de su portal. Cree que lo sacaron.
+ *
+ * El costo es real y acotado: esas dos páginas ya llaman a `getUser()`, así que
+ * el proxy agrega una segunda ida al servidor **en esas dos**. El resto del
+ * sitio público sigue con cero overhead. Si el tráfico de `/registro` lo hace
+ * pesar, se sacan de una línea del matcher y se anotan en
+ * `SIN_SESION_SUPABASE` del contrato.
+ *
+ * El sitio público (/, /tarifas, /calculadora-terrestre, /servicios, /contacto)
+ * queda intocado y con cero overhead: el matcher no lo incluye.
  *
  * Referencia oficial: https://supabase.com/docs/guides/auth/server-side/nextjs
  * Next.js 16 proxy: https://nextjs.org/docs/messages/middleware-to-proxy
@@ -120,8 +153,25 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Solo correr en rutas /studio/** y /back/**.
-  // El sitio publico (/, /calculadora, /calculadora-terrestre, /estimacion,
-  // /servicios, /contacto, /track, etc.) queda intocado y con cero overhead.
-  matcher: ["/studio/:path*", "/back/:path*"],
+  /**
+   * Toda ruta que resuelva la sesión de Supabase server-side tiene que estar
+   * acá, o su access token vence sin refrescarse. Lo vigila
+   * `proxy-matcher-contract.test.ts`: si agregas una pantalla con
+   * `auth.getUser()`, ese test te lo recuerda.
+   *
+   * `/m/cn` y `/m/ve` NO van: entran con PIN, no con sesión.
+   */
+  matcher: [
+    // Gateadas acá (redirección si no hay sesión):
+    "/studio/:path*",
+    "/back/:path*",
+    // Sólo refresco de cookies — caen al `return supabaseResponse` final:
+    "/portal/:path*",
+    "/m/erp/:path*",
+    "/m/emp/:path*",
+    // Puertas del portal. `:path*` es CERO o más segmentos, así que esto
+    // cubre `/entrar` y `/registro` a secas.
+    "/entrar/:path*",
+    "/registro/:path*",
+  ],
 };
