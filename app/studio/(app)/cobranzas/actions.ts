@@ -21,7 +21,17 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
+import { receivablesQueue } from "@/lib/studio/payment-queries";
+import { contextoDeEnvio } from "@/lib/studio/collections/recordatorios-queries";
+import {
+  intersectarPedido,
+  MOTIVO_LABEL,
+  resumirSeleccion,
+  seleccionarParaRecordatorio,
+} from "@/lib/studio/collections/recordatorios";
 import {
   identifyPaymentFor,
   registerCollectionFor,
@@ -208,4 +218,129 @@ export async function getReceivableHistory(invoiceId: string): Promise<{
     listActivities(supabase, invoiceId),
   ]);
   return { receipts, activities };
+}
+
+// ─────────────────────────────────────────────────────────────
+// SDD-0306 · Recordatorio de cobranza
+//
+// 🔴 DOS acciones, no una, y la separación ES la seguridad:
+//
+//   · `previewRecordatorios()` NO manda nada. Devuelve a quién se le
+//     escribiría y —lo más importante— a quién no y por qué.
+//   · `enviarRecordatorios(codes)` manda, y exige la lista explícita.
+//
+// Nunca hay un botón que mande «a los vencidos» sin que una persona haya visto
+// antes la lista. Un recordatorio de cobranza incomoda a un cliente que paga.
+// ─────────────────────────────────────────────────────────────
+
+export type PreviewRecordatorios = {
+  error?: string;
+  resumen?: string;
+  aEnviar?: {
+    code: string;
+    markbox: string;
+    clientName: string;
+    balance: number;
+    currency: string;
+    daysOverdue: number | null;
+  }[];
+  omitidos?: { code: string; markbox: string; motivo: string }[];
+};
+
+/** Qué pasaría si se mandaran los recordatorios hoy. No manda nada. */
+export async function previewRecordatorios(): Promise<PreviewRecordatorios> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "collections");
+  if (denial) return { error: denial };
+
+  try {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const cola = await receivablesQueue(supabase, hoy);
+    const ctx = await contextoDeEnvio(supabase, cola);
+    const sel = seleccionarParaRecordatorio(cola, hoy, ctx);
+
+    return {
+      resumen: resumirSeleccion(sel),
+      aEnviar: sel.aEnviar.map((r) => ({
+        code: r.invoice.invoice_code,
+        markbox: r.invoice.client_markbox,
+        clientName: r.invoice.client_name,
+        balance: r.balance,
+        currency: r.invoice.currency,
+        daysOverdue: r.daysOverdue,
+      })),
+      omitidos: sel.omitidos.map((o) => ({
+        code: o.code,
+        markbox: o.markbox,
+        motivo: MOTIVO_LABEL[o.motivo],
+      })),
+    };
+  } catch (e) {
+    console.error("[previewRecordatorios]", e);
+    return { error: "No se pudo calcular la lista de recordatorios." };
+  }
+}
+
+/**
+ * Manda el recordatorio de las facturas indicadas.
+ *
+ * 🔴 **La selección se vuelve a calcular en el servidor y se INTERSECTA con lo
+ * que pidió el cliente.** La lista que llega sólo puede ACOTAR, nunca ampliar:
+ * si viniera un código que hoy no corresponde —porque ya pagó, porque prometió
+ * pagar, porque marcó spam— se descarta acá aunque el navegador lo mande.
+ * Confiar en la lista del cliente sería un vector para escribirle a cualquiera.
+ *
+ * Como en SDD-0305, `fireMailEvent` no envía si el tenant no tiene una regla
+ * activa para `invoice_overdue`: mientras no se configure en Studio › Mailing,
+ * esto no saca ningún correo.
+ */
+export async function enviarRecordatorios(
+  codes: string[],
+): Promise<{ ok?: boolean; error?: string; enviados?: number; descartados?: number }> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "collections");
+  if (denial) return { error: denial };
+
+  const pedidos = new Set((codes ?? []).filter((c) => typeof c === "string"));
+  if (pedidos.size === 0) return { error: "No se indicó ninguna factura." };
+
+  try {
+    const hoy = new Date().toISOString().slice(0, 10);
+    const cola = await receivablesQueue(supabase, hoy);
+    const ctx = await contextoDeEnvio(supabase, cola);
+    const { aEnviar } = seleccionarParaRecordatorio(cola, hoy, ctx);
+
+    const permitidos = intersectarPedido(aEnviar, [...pedidos]);
+    const descartados = pedidos.size - permitidos.length;
+
+    const admin = createAdminClient();
+    let enviados = 0;
+    for (const r of permitidos) {
+      try {
+        await fireMailEvent(admin, r.invoice.tenant_id, {
+          event: "invoice_overdue",
+          vars: {
+            customer_name: r.invoice.client_name || "cliente",
+            invoice_code: r.invoice.invoice_code,
+            markbox: r.invoice.client_markbox,
+            due_date: (r.invoice.due_date ?? "").slice(0, 10) || "—",
+            days_overdue: String(r.daysOverdue ?? 0),
+            total_usd: Number(r.balance).toFixed(2),
+          },
+          clientMarkbox: r.invoice.client_markbox,
+          clientName: r.invoice.client_name,
+          sourceRef: { kind: "invoice", id: r.invoice.id },
+        });
+        enviados += 1;
+      } catch (e) {
+        console.error(`[enviarRecordatorios] ${r.invoice.invoice_code}`, e);
+      }
+    }
+
+    revalidatePath("/studio/cobranzas");
+    return { ok: true, enviados, descartados };
+  } catch (e) {
+    console.error("[enviarRecordatorios]", e);
+    return { error: "No se pudieron enviar los recordatorios." };
+  }
 }

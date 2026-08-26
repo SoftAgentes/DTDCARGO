@@ -43,6 +43,7 @@ import type {
 import { CobranzaDrawer, type CashAccountOption } from "./CobranzaDrawer";
 import { IdentifyPaymentDrawer } from "./IdentifyPaymentDrawer";
 import { UnidentifiedPaymentDrawer } from "./UnidentifiedPaymentDrawer";
+import { RecordatoriosDrawer } from "./RecordatoriosDrawer";
 import { fmtAmount } from "@/lib/money";
 
 function fmtMoney(n: number): string {
@@ -83,6 +84,7 @@ export function CobranzasClient({
   const [stageFilter, setStageFilter] = useState<StageFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showUnidentified, setShowUnidentified] = useState(false);
+  const [showRecordatorios, setShowRecordatorios] = useState(false);
   const [identifying, setIdentifying] = useState<PaymentReceipt | null>(null);
 
   const rows = receivables.filter((r) =>
@@ -145,8 +147,8 @@ export function CobranzasClient({
           <button
             type="button"
             className="studio-btn studio-btn-ghost"
-            disabled
-            title="Próximamente · recordatorio masivo por email"
+            onClick={() => setShowRecordatorios(true)}
+            title="Revisa la lista antes de enviar"
           >
             Recordatorio masivo
           </button>
@@ -263,6 +265,13 @@ export function CobranzasClient({
           receivable={selected}
           cashAccounts={cashAccounts}
           onClose={() => setSelectedId(null)}
+        />
+      )}
+
+      {showRecordatorios && (
+        <RecordatoriosDrawer
+          onClose={() => setShowRecordatorios(false)}
+          onDone={(msg) => toast.success(msg)}
         />
       )}
 
