@@ -50,6 +50,9 @@ import {
   type InvoiceInput,
   type InvoiceLine,
 } from "@/lib/studio/invoice-types";
+import { createAdminClient } from "@/lib/db/admin";
+import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
+import { varsDeFacturaEmitida } from "@/lib/studio/invoice-mail-vars";
 import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
 import {
   documentoDelCliente,
@@ -471,7 +474,7 @@ export async function emitInvoice(
   const { data: current, error: readErr } = await supabase
     .from("invoices")
     .select(
-      "id, tenant_id, status, invoice_code, client_markbox, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
+      "id, tenant_id, status, invoice_code, client_markbox, client_name, currency, fx_rate, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
     )
     .eq("id", id)
     .maybeSingle<{
@@ -480,6 +483,9 @@ export async function emitInvoice(
       status: string;
       invoice_code: string;
       client_markbox: string;
+      client_name: string;
+      currency: string;
+      fx_rate: number | null;
       shipment_id: string | null;
       shipment_code: string | null;
       due_date: string | null;
@@ -556,6 +562,30 @@ export async function emitInvoice(
     totalAmount: Number(current.total_amount),
     entryDate: today,
   });
+
+  // SDD-0305: la factura emitida avisa por correo. `fireMailEvent` NO manda
+  // nada por su cuenta: busca las reglas activas del tenant para este evento y,
+  // si no hay ninguna, se va en silencio. Quién la recibe —cliente, equipo o un
+  // correo fijo— y con qué plantilla se configura en Studio › Mailing, no acá.
+  //
+  // Best-effort igual que el asiento: si el correo falla, la factura ya se
+  // emitió. El motor se traga sus propios errores; el catch cubre que reviente
+  // la creación del cliente admin (sin SUPABASE_SERVICE_ROLE_KEY).
+  try {
+    await fireMailEvent(createAdminClient(), current.tenant_id, {
+      event: "invoice_emitted",
+      vars: varsDeFacturaEmitida(
+        current,
+        today,
+        current.due_date ?? addDaysISO(today, 30),
+      ),
+      clientMarkbox: current.client_markbox,
+      clientName: current.client_name,
+      sourceRef: { kind: "invoice", id: current.id },
+    });
+  } catch (e) {
+    console.error("[emitInvoice] fireMailEvent falló:", e);
+  }
 
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);
