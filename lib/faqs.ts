@@ -235,6 +235,15 @@ export const FAQS: Faq[] = [
     widget: "alibaba-guide",
   },
   {
+    // Da a conocer la guía interactiva de SDD-0099 (public/guias/comprar-en-alibaba.html).
+    // Estaba viva en producción pero sin un solo enlace desde el sitio.
+    pregunta: "Nunca he comprado en Alibaba. ¿Tienen una guía que me enseñe paso a paso?",
+    respuesta:
+      "Sí, y es gratis: entra a dtdcargo.com/guias/comprar-en-alibaba.html. Es una guía interactiva de nueve etapas que te lleva desde crear tu cuenta de comprador hasta tener la mercancía en nuestra bodega de Yiwu, lista para viajar a Venezuela. Te enseña a buscar el producto, a distinguir un proveedor serio de una estafa, a escribirle con una plantilla de correo lista para copiar, a pedir muestras, a pagar protegido con Trade Assurance y a poner la dirección de nuestra bodega con tu Shipping Mark. Trae calculadora de volumen (CBM), calculadora de costo real puesto en Venezuela y un evaluador de proveedores, y se adapta según compres al mayor para una empresa o para tu propio negocio. No necesitas registrarte ni pagar nada para usarla, y guarda tu avance para que puedas volver después. En cada etapa te dice además qué parte podemos hacer nosotros por ti, si prefieres no hacerla solo.",
+    categoria: "bodega-china-shipping-mark",
+    ancla: "guia-alibaba",
+  },
+  {
     pregunta: "¿Cómo me registro y qué obtengo al instante?",
     respuesta:
       "Regístrate gratis en dtdcargo.com/registro: en un minuto recibes tu Shipping Mark (tu código DTD-XXXX para marcar tus cajas en China) y tu acceso al portal de seguimiento. No necesitas contraseña —entras al portal con un enlace que te llega a tu correo— y un asesor termina de activar tu cuenta para que empieces a importar.",

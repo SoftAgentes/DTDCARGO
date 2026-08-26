@@ -13,6 +13,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getPortalLesson } from "@/lib/portal/portal-academy-queries";
+import { getPortalClient } from "@/lib/portal/portal-queries";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
 import { MarkLessonButton } from "../../_components/MarkLessonButton";
 import { IconCheck, IconChevron } from "../../_components/icons";
@@ -28,6 +29,11 @@ export default async function PortalLessonPage({
   const supabase = await createClient();
   const view = await getPortalLesson(supabase, courseId, lessonId);
   if (!view) notFound();
+
+  // El portal YA conoce el Shipping Mark del cliente: se lo pasamos al widget en
+  // vez de hacerle transcribir a mano un dato nuestro. Es el mismo patron que
+  // /portal/proveedores (SuppliersClient), que si lo hacia.
+  const client = await getPortalClient(supabase).catch(() => null);
 
   const { course, lesson, lessons, idx, prevId, nextId } = view;
 
@@ -79,7 +85,7 @@ export default async function PortalLessonPage({
             Esta es la dirección de la bodega de DTD en Yiwu. Escribe tu Shipping Mark y copia cada campo en el
             formulario de tu proveedor — el chino se pega tal cual.
           </p>
-          <AlibabaAddressGuide />
+          <AlibabaAddressGuide markbox={client?.markbox ?? undefined} />
         </section>
       ) : null}
 
