@@ -411,7 +411,7 @@ export const FAQS: Faq[] = [
   {
     pregunta: "¿Tienen cursos para aprender a importar de China?",
     respuesta:
-      "Sí. En la Academia DTD te enseñamos a importar paso a paso, con nuestra operación real detrás (bodega en Yiwu, consolidación y entrega puerta a puerta): cuatro cursos en escalera, del primer pedido a tu primer contenedor, con el Curso 0 gratis. Si ya eres cliente, la tienes en tu portal — regístrate en dtdcargo.com/registro y entra a la Academia desde ahí para empezar por el Curso 0. Si todavía no importas con nosotros, déjanos tus datos en dtdcargo.com/academia y te avisamos de las próximas cohortes en vivo.",
+      "Sí. En la Academia DTD te enseñamos a importar paso a paso, con nuestra operación real detrás (bodega en Yiwu, consolidación y entrega puerta a puerta): cuatro cursos en escalera, del primer pedido a tu primer contenedor, con el Curso 0 gratis. Si ya eres cliente, la tienes en tu portal — regístrate en dtdcargo.com/registro y entra a la Academia desde ahí para empezar por el Curso 0. Si todavía no importas con nosotros, déjanos tus datos en dtdcargo.com/academia y te avisamos de los próximos cursos y talleres en vivo.",
     categoria: "empresa-servicios",
   },
 ];
