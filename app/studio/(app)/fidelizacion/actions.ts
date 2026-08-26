@@ -11,11 +11,23 @@
  *                                         next_referral_code y resuelve el
  *                                         referrer_client_id por MARKBOX (si el
  *                                         cliente existe en el tenant).
- *  - accreditReferral(id)              → status='acreditado' + reward_usd=80.
- *                                         ADVISORY · NO postea a CxC/Facturación
- *                                         (decisión §3.6). El operador aplica el
- *                                         crédito a mano en la próxima factura.
+ *  - accreditReferral(id)              → acredita A MANO. Sigue existiendo, pero
+ *                                         ⚠️ **desde la Fase 2 el caso normal es
+ *                                         AUTOMÁTICO**: el trigger
+ *                                         `invoices_accredit_referral` (migr 0197,
+ *                                         reescrito en 0250) acredita solo en la 1ª
+ *                                         factura billable del referido. Esta acción
+ *                                         quedó para los casos que el trigger no
+ *                                         cubre. Contrato: SDD-0309.
  *  - updateReferralStatus(id, status)  → avanza estado manual (valida enum).
+ *  - saveReferralSettingsAction(...)   → premio por tenant (`referral_settings`,
+ *                                         migr 0250). Es de ahí que el trigger lee
+ *                                         el monto; antes estaba fijo en 80.
+ *  - listApplicableInvoices / applyReferralCredit → aplican el crédito ya
+ *                                         acreditado a una factura concreta.
+ *
+ * 🔴 **Acreditar sigue siendo ADVISORY**: registra el premio, NO postea a
+ * CxC. Lo que dejó de ser manual es CUÁNDO se acredita, no que mueva plata.
  */
 
 "use server";
