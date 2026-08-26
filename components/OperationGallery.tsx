@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { LazyVideo } from "./LazyVideo";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 /**
  * Sección "Operación real · Yiwu" — fusión de la galería del sello + el clip del
@@ -71,7 +72,7 @@ export function OperationGallery() {
     <section className="py-20 lg:py-25 bg-ink text-white" id="operacion">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(videoJsonLd) }}
       />
       <div className="wrap">
         <div className="max-w-[60ch]">
