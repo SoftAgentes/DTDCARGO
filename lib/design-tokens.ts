@@ -1017,7 +1017,7 @@ export const TIMELINE = [
   {
     year: "2014",
     title: "Servicio puerta a puerta",
-    copy: "Lanzamos el servicio door-to-door para clientes que necesitan logística end-to-end.",
+    copy: "Lanzamos el servicio puerta a puerta para clientes que necesitan la logística resuelta de punta a punta.",
   },
   {
     year: "2015",
@@ -1052,7 +1052,7 @@ export const TIMELINE = [
   {
     year: "2026",
     title: "12+ modalidades de servicio",
-    copy: "Suite logística completa entre China y América Latina con cobertura end-to-end.",
+    copy: "Suite logística completa entre China y América Latina, de punta a punta.",
   },
 ] as const;
 

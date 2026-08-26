@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   description:
     "Entra a tu portal de DTD Cargo para ver tus envíos, tus facturas y tu Shipping Mark.",
   // `og:` explícito: es lo que arma la tarjeta de WhatsApp. Sin esto heredaría la
-  // del sitio entero ("Logística end-to-end China → Venezuela…"), que no dice
+  // del sitio entero ("Logística de punta a punta China → Venezuela…"), que no dice
   // nada de lo que el cliente tiene que hacer.
   openGraph: {
     title: "Tu acceso al portal · DTD Cargo",

@@ -50,9 +50,9 @@ export const ACADEMIA_CURSOS: AcademiaCurso[] = [
     slug: "de-0-a-contenedor",
     titulo: "De 0 a Contenedor en 4 Semanas",
     gancho:
-      "El programa insignia. Cohorte en vivo de 4 semanas para llevar tu primer contenedor del cero a embarcado, con acompañamiento.",
+      "El programa insignia. Curso en vivo de 4 semanas para llevar tu primer contenedor del cero a embarcado, con acompañamiento.",
     nivel: "Core",
-    meta: "Curso 2 · cohorte 4 semanas + sesiones en vivo",
+    meta: "Curso 2 · 4 semanas + sesiones en vivo",
     insignia: true,
   },
   {
