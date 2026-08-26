@@ -1,4 +1,5 @@
 import { LazyVideo } from "./LazyVideo";
+import { serializeJsonLd } from "@/lib/public/json-ld";
 
 /**
  * Banda "Operación real · Yiwu" — clip mudo en loop del equipo cargando un
@@ -60,7 +61,7 @@ export function WorkBand({ noVideoSchema = false }: WorkBandProps) {
       {!noVideoSchema && (
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(videoJsonLd) }}
         />
       )}
       <div className="wrap">

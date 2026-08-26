@@ -31,7 +31,16 @@ vi.setConfig({ testTimeout: 120_000 });
  * vienen del CMS (`app/back`), o sea texto que escribe una persona. El criterio
  * de aceptación 6 de SDD-0235 ya lo exigía; estaba aplicado en 4 de 19 puntos.
  */
-const RAIZ = "app";
+/**
+ * 🔴 Eran DOS raíces, no una (SDD-0303).
+ *
+ * Este contrato escaneaba sólo `app/` y por eso **cuatro bloques de
+ * `components/` pasaron sin escapar**: `BreadcrumbJsonLd`, `OperationGallery`,
+ * `WorkBand` (los tres con `JSON.stringify` crudo) y `WebPageJsonLd` (con el
+ * escape copiado a mano). Un contrato verde que no mira donde está el problema
+ * da por cubierto lo que nunca miró.
+ */
+const RAICES = ["app", "components"];
 
 function paginas(dir: string, acc: string[] = []): string[] {
   for (const e of readdirSync(join(process.cwd(), dir), { withFileTypes: true })) {
@@ -49,7 +58,7 @@ function paginas(dir: string, acc: string[] = []): string[] {
 describe("JSON-LD público · escapado de `<`", () => {
   it("ningún bloque inyecta JSON.stringify sin escapar", () => {
     const sinEscapar: string[] = [];
-    for (const p of paginas(RAIZ)) {
+    for (const p of RAICES.flatMap((raiz) => paginas(raiz))) {
       const lineas = readFileSync(join(process.cwd(), p), "utf8").split("\n");
       lineas.forEach((linea, i) => {
         if (!linea.includes("__html: JSON.stringify")) return;
@@ -68,7 +77,7 @@ describe("JSON-LD público · escapado de `<`", () => {
    */
   it("todo bloque ld+json se serializa con serializeJsonLd()", () => {
     const sueltos: string[] = [];
-    for (const p of paginas(RAIZ)) {
+    for (const p of RAICES.flatMap((raiz) => paginas(raiz))) {
       const src = readFileSync(join(process.cwd(), p), "utf8");
       if (!src.includes("application/ld+json")) continue;
       const lineas = src.split("\n");
@@ -83,6 +92,27 @@ describe("JSON-LD público · escapado de `<`", () => {
       });
     }
     expect(sueltos).toEqual([]);
+  });
+
+  /**
+   * Los dos tests de arriba dejan pasar el escape COPIADO A MANO — un
+   * `.replace(/</g, ...)` inline— porque técnicamente escapa. Hoy hace lo mismo
+   * que el helper; el día que el helper escape algo más, esa copia se queda
+   * atrás sin que nadie lo note. Era el caso de `WebPageJsonLd.tsx` hasta
+   * SDD-0303. El escape vive en UN lugar.
+   */
+  it("nadie copia el escape a mano en vez de usar el helper", () => {
+    const copias: string[] = [];
+    for (const p of RAICES.flatMap((raiz) => paginas(raiz))) {
+      const src = readFileSync(join(process.cwd(), p), "utf8");
+      if (!src.includes("application/ld+json")) continue;
+      src.split(String.fromCharCode(10)).forEach((linea, k) => {
+        if (!linea.includes("replace(/</g")) return;
+        if (linea.includes("serializeJsonLd(")) return;
+        copias.push(`${p}:${k + 1}`);
+      });
+    }
+    expect(copias).toEqual([]);
   });
 
   it("el escape produce \\u003c, que es lo único que neutraliza </script>", () => {

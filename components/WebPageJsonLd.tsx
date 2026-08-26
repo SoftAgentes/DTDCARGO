@@ -1,3 +1,5 @@
+import { serializeJsonLd } from "@/lib/public/json-ld";
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
 /**
@@ -42,9 +44,9 @@ export function WebPageJsonLd({
   return (
     <script
       type="application/ld+json"
-      // Escapar `<` evita que un valor con `</script>` rompa el tag (igual que layout.tsx).
+      // El escape de `<` vive en `serializeJsonLd` (SDD-0303).
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        __html: serializeJsonLd(jsonLd),
       }}
     />
   );
