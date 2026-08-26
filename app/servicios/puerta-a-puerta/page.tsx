@@ -150,7 +150,7 @@ export default function PuertaAPuertaPage() {
                     </>,
                     <>
                       Recibimos, revisamos y <b>consolidamos</b> tu carga con la
-                      de otros clientes para optimizar el flete.
+                      de otros clientes para que el flete te salga más barato.
                     </>,
                     <>
                       Tu carga <b>viaja por barco</b> hasta Venezuela{" "}

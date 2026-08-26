@@ -408,7 +408,7 @@ export default function PreAlertasPage() {
                   </li>
                   <li>
                     <CheckIcon />
-                    Optimiza el costo por CBM
+                    Menor costo por CBM
                   </li>
                 </ul>
                 <div className="pa-b-ctas">
