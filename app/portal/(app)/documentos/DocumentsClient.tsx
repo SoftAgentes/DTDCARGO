@@ -56,6 +56,10 @@ export function DocumentsClient({ docs }: { docs: PortalDocView[] }) {
           })}
         </div>
 
+        {/* SDD-0306 · desde que entran los packing lists el buscador también
+            acepta el código de la COMPRA (`filterDocs` mira `purchaseCode`).
+            El placeholder decía sólo "envío" y escondía la mitad de lo que la
+            búsqueda ya sabe hacer. */}
         <label className="relative flex-1 min-w-[200px] max-w-[320px]">
           <span className="sr-only">Buscar documentos</span>
           <span
@@ -68,7 +72,7 @@ export function DocumentsClient({ docs }: { docs: PortalDocView[] }) {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por tipo o envío…"
+            placeholder="Buscar por tipo, envío o compra…"
             className="w-full h-10 pl-9 pr-3 rounded-full bg-white border border-grey-200 text-[13px] text-ink placeholder:text-grey-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           />
         </label>
