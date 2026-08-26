@@ -336,8 +336,21 @@ function AlertRow({
 
 /** Panel expandible de documentos de una compra (packing/factura/foto). */
 function DocsPanel({ code, docs }: { code: string; docs: DocPresence | undefined }) {
-  const rows: { key: keyof DocPresence; label: string; ok: boolean }[] = [
-    { key: "packing", label: "Packing list", ok: !!docs?.packing },
+  const rows: {
+    key: keyof DocPresence;
+    label: string;
+    ok: boolean;
+    /** Destino cuando el documento ya se puede leer. */
+    href?: string;
+  }[] = [
+    {
+      key: "packing",
+      label: "Packing list",
+      ok: !!docs?.packing,
+      href: docs?.packing
+        ? `/portal/compras/${encodeURIComponent(code)}`
+        : undefined,
+    },
     { key: "factura", label: "Factura", ok: !!docs?.factura },
     { key: "foto", label: "Fotos", ok: !!docs?.foto },
   ];
@@ -347,22 +360,53 @@ function DocsPanel({ code, docs }: { code: string; docs: DocPresence | undefined
         Documentos de esta compra
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        {rows.map((r) => (
-          <div
-            key={r.key}
-            className="flex items-center gap-2 rounded-[10px] px-3 py-2.5"
-            style={{
-              background: r.ok
-                ? "color-mix(in srgb, var(--color-status-success) 12%, transparent)"
-                : "var(--color-paper)",
-            }}
-          >
-            <span style={{ color: r.ok ? "var(--color-status-success)" : "var(--color-grey-500)" }}>
-              {r.ok ? <CheckIcon size={14} /> : <DownloadIcon size={14} />}
-            </span>
-            <span className="flex-1 text-[12px] font-semibold text-ink">{r.label}</span>
-          </div>
-        ))}
+        {rows.map((r) => {
+          const contenido = (
+            <>
+              <span
+                style={{
+                  color: r.ok
+                    ? "var(--color-status-success)"
+                    : "var(--color-grey-500)",
+                }}
+              >
+                {r.ok ? <CheckIcon size={14} /> : <DownloadIcon size={14} />}
+              </span>
+              <span className="flex-1 text-[12px] font-semibold text-ink">
+                {r.label}
+              </span>
+              {/* SDD-0301 · sólo el packing list tiene a dónde llevar. La flecha
+                  es lo que distingue el chip que abre algo del que sólo informa;
+                  sin ella, dos controles idénticos se comportarían distinto. */}
+              {r.href ? <ArrowIcon size={13} className="text-grey-500" /> : null}
+            </>
+          );
+          const base =
+            "flex items-center gap-2 rounded-[10px] px-3 py-2.5 text-left";
+          const fondo = {
+            background: r.ok
+              ? "color-mix(in srgb, var(--color-status-success) 12%, transparent)"
+              : "var(--color-paper)",
+          };
+
+          // El chip verde anunciaba un documento y no dejaba abrirlo: era un
+          // `<div>`. Con packing list enviado, ahora lleva al detalle de la
+          // compra, que es donde se lee (SDD-0301).
+          return r.href ? (
+            <Link
+              key={r.key}
+              href={r.href}
+              className={`${base} transition-colors hover:brightness-[0.97] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ink`}
+              style={fondo}
+            >
+              {contenido}
+            </Link>
+          ) : (
+            <div key={r.key} className={base} style={fondo}>
+              {contenido}
+            </div>
+          );
+        })}
       </div>
       <Link
         href={`/portal/compras/${encodeURIComponent(code)}/etiquetas`}

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 286 specs)
+### Índice de specs (generado · 293 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -324,6 +324,13 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0292 | El cotizador FCL vuelve con tarifas propias — se desengancha … | in-progress | interna |
 | 0293 | El botón de notificaciones vivía donde nadie entra | in-progress | interno |
 | 0294 | El vino crudo deja de usarse como texto — y la prioridad esta… | in-progress | interno |
+| 0295 | `transition: all` deja de existir — cada sitio anima solo lo … | in-progress | interno |
+| 0296 | Voseo en copy que ve el usuario — y la etiqueta rioplatense q… | in-progress | interno |
+| 0297 | La factura lleva razón social y RIF del emisor — excepción co… | in-progress | interno |
+| 0298 | La factura le sirve al contador: el documento del cliente se … | in-progress | interno |
+| 0299 | Datos de la empresa: el error deja de ser mudo — y son DOS ga… | in-progress | interno |
+| 0300 | Borrar un estimado desde el listado — y que se pueda borrar e… | in-progress | interno |
+| 0301 | El packing list del proveedor llega al cliente | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0286 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

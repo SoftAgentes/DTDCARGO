@@ -15,9 +15,14 @@ import {
   listarRecepcionesDeCompra,
   nombreDeProveedor,
 } from "@/lib/portal/purchase-reception-queries";
+import {
+  cotejarConLoAnunciado,
+  obtenerPackingListDeCompra,
+} from "@/lib/portal/packing-list-queries";
 import { defaultAddon } from "@/lib/studio/prealertas/addons";
 import { ArrowIcon } from "@/components/Icon";
 import { PrealertaStatusBadge } from "../../../_components/PrealertaStatusBadge";
+import { PackingListDelProveedor } from "./_components/PackingListDelProveedor";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -73,12 +78,21 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
   });
   if (!prealerta) notFound();
 
-  const [cajas, proveedores, servicios, recepcion] = await Promise.all([
+  const [cajas, proveedores, servicios, recepcion, packing] = await Promise.all([
     listPredeclaredBoxes(supabase, prealerta.id),
     listSuppliers(supabase, { markbox: client.markbox }),
     listPrealertaServiceRequests(supabase, { markbox: client.markbox }),
     // Propiedad ya probada arriba → recién ahora el admin client.
     listarRecepcionesDeCompra(createAdminClient(), prealerta.id),
+    // Ídem (SDD-0301): `packing_list_submissions` sólo tiene policy "by tenant"
+    // y el cliente del portal no está en `user_tenants` — con su sesión la RLS
+    // niega. Se lee con el admin client acotado al `prealerta_id` ya verificado,
+    // y la query revalida el markbox por dentro.
+    obtenerPackingListDeCompra(
+      createAdminClient(),
+      prealerta.id,
+      client.markbox,
+    ),
   ]);
 
   const proveedor = prealerta.supplier_id
@@ -327,7 +341,49 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* ── Packing list del proveedor (SDD-0301) ──────────────────
+          Va a ancho completo y DEBAJO del grid: es un documento de once
+          columnas, no cabe en media pantalla sin comprimirlo. Y va al final
+          porque responde la cuarta pregunta ("¿qué despachó exactamente?"),
+          después de las tres que el cliente hace primero. */}
+      {packing ? (
+        <PackingListDelProveedor
+          packing={packing}
+          cotejo={cotejarConLoAnunciado(prealerta.boxes, packing.totales.ctns)}
+        />
+      ) : (
+        <EsperandoPackingList code={prealerta.code} />
+      )}
     </div>
+  );
+}
+
+/**
+ * Sin packing list todavía.
+ *
+ * No se calla la sección: que el proveedor no haya mandado el documento es
+ * información, y además es **accionable** — el cliente puede reclamárselo. Un
+ * hueco en blanco lo dejaría creyendo que la pantalla no lo muestra.
+ */
+function EsperandoPackingList({ code }: { code: string }) {
+  return (
+    <section className="mt-6 rounded-[18px] border border-dashed border-grey-300 p-6 sm:p-8">
+      <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500">
+        Packing list del proveedor
+      </h2>
+      <p className="mt-3 text-[14px] text-grey-700 max-w-[62ch] leading-[1.55]">
+        Tu proveedor todavía no ha enviado el packing list de esta compra.
+        Cuando lo llene, acá vas a ver el detalle línea por línea: qué despachó,
+        cuántas cajas, cuánto pesa y cuánto mide.
+      </p>
+      <Link
+        href={`/portal/compras/${encodeURIComponent(code)}/etiquetas`}
+        className="btn btn-ghost mt-5 inline-flex"
+      >
+        Compartir el enlace con mi proveedor <ArrowIcon size={15} />
+      </Link>
+    </section>
   );
 }
 

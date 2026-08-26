@@ -21,6 +21,7 @@ import {
   type PortalSailing,
 } from "@/lib/portal/next-sailing-queries";
 import { buildAlertItems } from "@/lib/portal/alertas";
+import { prealertasConPackingList } from "@/lib/portal/packing-list-queries";
 import { getConsolidationsForShipments } from "@/lib/portal/consolidation-queries";
 import { groupTrackByContainer, type TrackItem } from "@/lib/portal/seguimiento";
 import { EnviosHubTabs } from "../../_components/PortalHubTabs";
@@ -68,24 +69,46 @@ export default async function PortalShipmentsPage() {
 
   // Slice B — presencia de documentos por compra (packing/factura/foto). Solo
   // las prealertas tienen `prealerta_documents`; los envíos derivan a su detalle.
-  const docEntries = await Promise.all(
-    prealertas
-      .filter((p) => !p.shipment_id && p.status !== "cancelada")
-      .map(async (p) => {
+  const prealertasVivas = prealertas.filter(
+    (p) => !p.shipment_id && p.status !== "cancelada",
+  );
+
+  // SDD-0301 — el packing list tiene DOS caminos y el chip sólo miraba uno.
+  // `prealerta_documents` cubre el archivo adjunto; `packing_list_submissions`
+  // cubre el formulario online de `/p/{token}`, que es el camino que el propio
+  // portal le ofrece al proveedor. Mirando sólo el primero, un proveedor que
+  // llenó el formulario dejaba el chip en gris con el documento ya enviado.
+  const [docEntries, conPackingOnline] = await Promise.all([
+    Promise.all(
+      prealertasVivas.map(async (p) => {
         const docs = await listPrealertaDocuments(supabase, {
           prealertaId: p.id,
           markbox: client.markbox,
         });
         const has = (t: string) => docs.some((d) => d.doc_type === t);
-        const presence: DocPresence = {
-          packing: has("packing"),
-          factura: has("factura"),
-          foto: has("foto"),
-        };
-        return [`p:${p.id}`, presence] as const;
+        // Se devuelve el id aparte de la clave: la clave lleva el prefijo `p:`
+        // que espera el hub, y recortárselo después para recuperar el id ataría
+        // este cruce al largo de ese prefijo.
+        return { key: `p:${p.id}`, id: p.id, has };
       }),
+    ),
+    prealertasConPackingList(
+      createAdminClient(),
+      prealertasVivas.map((p) => p.id),
+      client.markbox,
+    ),
+  ]);
+
+  const docs: Record<string, DocPresence> = Object.fromEntries(
+    docEntries.map(({ key, id, has }) => {
+      const presence: DocPresence = {
+        packing: has("packing") || conPackingOnline.has(id),
+        factura: has("factura"),
+        foto: has("foto"),
+      };
+      return [key, presence] as const;
+    }),
   );
-  const docs: Record<string, DocPresence> = Object.fromEntries(docEntries);
 
   // Slice C — envíos en camino (Seguimiento total): progreso derivado del status.
   const track: TrackItem[] = shipments
