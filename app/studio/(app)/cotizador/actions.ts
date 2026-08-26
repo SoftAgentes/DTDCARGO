@@ -9,7 +9,7 @@
  * - updateQuote: edit (solo permite si status=draft)
  * - markQuoteSent / Accepted / Rejected: transiciones de status
  * - convertQuoteToShipment: crea shipment con datos copiados + link bidirec
- * - softDeleteQuote: deleted_at = now()
+ * - softDeleteQuote: deleted_at = now() (SDD-0300: sólo si no se convirtió)
  * - lookupSuggestedRate: helper para que el drawer llame on blur del destino
  */
 
@@ -25,7 +25,9 @@ import {
 } from "@/lib/studio/kommo-writeback";
 import {
   calcQuoteTotal,
+  quoteDeleteBlockReason,
   validateQuoteInput,
+  type Quote,
   type QuoteActionState,
   type QuoteInput,
 } from "@/lib/studio/quote-types";
@@ -457,6 +459,19 @@ export async function linkEstimateToClientAction(
   return { ok: true };
 }
 
+/**
+ * SDD-0300 · Borrado (soft) de un estimado.
+ *
+ * El gate de "sin convertir" se decide ACÁ, no en el menú. Que el listado
+ * deshabilite la opción es cortesía para el usuario; esta función se puede
+ * invocar sin haber pasado por esa pantalla, así que vuelve a leer el estimado
+ * y aplica la misma regla pura (`quoteDeleteBlockReason`).
+ *
+ * Sigue siendo soft delete: la fila queda con `deleted_at`. Pero la policy RLS
+ * de `quotes` es `using (… and deleted_at is null)`, así que a partir de acá el
+ * estimado no se ve ni en el Studio ni en el portal del cliente — recuperarlo
+ * es una operación de base de datos, no de la aplicación.
+ */
 export async function softDeleteQuote(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
@@ -464,6 +479,20 @@ export async function softDeleteQuote(
   const denial = await moduleEditDenial(supabase, "quotes");
   if (denial) return { error: denial };
 
+  const { data: quote, error: readErr } = await supabase
+    .from("quotes")
+    .select("id, converted_to_shipment_id, sales_order_id")
+    .eq("id", id)
+    .maybeSingle<
+      Pick<Quote, "id" | "converted_to_shipment_id" | "sales_order_id">
+    >();
+
+  if (readErr) return { error: readErr.message };
+  // RLS ya oculta lo borrado: "no está" cubre tanto "no existe" como "ya se borró".
+  if (!quote) return { error: "No encontramos ese estimado." };
+
+  const bloqueo = quoteDeleteBlockReason(quote);
+  if (bloqueo) return { error: `No se puede eliminar: ${bloqueo}.` };
 
   const { error } = await supabase
     .from("quotes")

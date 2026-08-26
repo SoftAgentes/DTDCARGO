@@ -11,16 +11,30 @@ import {
   QUOTE_STATUS_OPTIONS,
   isExpired,
   isUnlinkedWebEstimate,
+  quoteDeleteBlockReason,
   statusBadgeTone,
   statusLabel,
   type Quote,
 } from "@/lib/studio/quote-types";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import type { QuoteFilters } from "@/lib/studio/quote-queries";
+import { ActionMenu } from "@/app/studio/_components/ui/ActionMenu";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
+import { softDeleteQuote } from "../actions";
 import { QuoteDrawer } from "./QuoteDrawer";
+
+/**
+ * SDD-0300 · Las columnas y el hueco del menú se declaran UNA vez porque ahora
+ * la cabecera y la fila tienen que reservar EL MISMO espacio a la derecha. Si
+ * se desincronizan, las columnas elásticas (`fr`) se corren y la tabla queda
+ * desalineada sin que nada falle ni avise.
+ */
+const QUOTE_GRID = "130px 1.4fr 140px 1.2fr 80px 110px 110px 110px";
+const QUOTE_ACTIONS_PAD = 46;
 
 export function CotizadorClient({
   quotes,
@@ -33,6 +47,10 @@ export function CotizadorClient({
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [showCreate, setShowCreate] = useState(false);
+  const toast = useToast();
+  /** SDD-0300 · el estimado que el usuario pidió eliminar (null = sin diálogo). */
+  const [porEliminar, setPorEliminar] = useState<Quote | null>(null);
+  const [borrando, startBorrado] = useTransition();
 
   const hasFilters =
     !!filters.q ||
@@ -228,17 +246,67 @@ export function CotizadorClient({
           }
         />
       ) : (
-        <QuotesTable quotes={quotes} />
+        <QuotesTable quotes={quotes} onEliminar={setPorEliminar} />
       )}
 
       {showCreate && (
         <QuoteDrawer mode="create" onClose={() => setShowCreate(false)} />
       )}
+
+      {/* SDD-0300 · Confirmación del borrado. El mensaje nombra el estimado y
+          dice la consecuencia REAL: la policy RLS de `quotes` filtra por
+          `deleted_at is null`, así que lo borrado desaparece también del portal
+          del cliente y sólo vuelve desde la base de datos.
+
+          ⚠️ El error NO se muestra dentro del diálogo, se cierra y va por toast.
+          `ConfirmDialog` baja su candado anti-doble-envío en un efecto que
+          depende de `[error]`: si el consumidor emite DOS VECES el mismo texto,
+          React no re-renderiza, el efecto no corre y el botón confirmar queda
+          muerto sin señal (la clase de bug de SDD-0273). Acá el mismo texto se
+          repite fácil — "ya se convirtió en un embarque" es constante. */}
+      <ConfirmDialog
+        open={porEliminar !== null}
+        danger
+        title="Eliminar estimado"
+        message={
+          porEliminar
+            ? `${porEliminar.quote_code} — ${
+                porEliminar.client_name ||
+                porEliminar.prospect_name ||
+                "sin cliente"
+              }. Dejará de verse en el Studio y en el portal del cliente; recuperarlo exige entrar a la base de datos.`
+            : ""
+        }
+        confirmLabel="Eliminar"
+        pending={borrando}
+        onCancel={() => setPorEliminar(null)}
+        onConfirm={() => {
+          const quote = porEliminar;
+          if (!quote) return;
+          startBorrado(async () => {
+            const result = await softDeleteQuote(quote.id);
+            setPorEliminar(null);
+            if (result.error) {
+              toast.error(result.error);
+              return;
+            }
+            toast.success(`Estimado ${quote.quote_code} eliminado`);
+            router.refresh();
+          });
+        }}
+      />
     </div>
   );
 }
 
-function QuotesTable({ quotes }: { quotes: Quote[] }) {
+function QuotesTable({
+  quotes,
+  onEliminar,
+}: {
+  quotes: Quote[];
+  /** SDD-0300 · abre la confirmación; el borrado lo dispara el padre. */
+  onEliminar: (quote: Quote) => void;
+}) {
   // Trazabilidad visual · highlight de la row recién creada o mutada
   // (lee ?highlight=Q-2026-XXXX&hl-tone=warm|success del URL, hace scroll
   // condicional y aplica .studio-row-flash-warm/-success). Ver
@@ -256,9 +324,9 @@ function QuotesTable({ quotes }: { quotes: Quote[] }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "130px 1.4fr 140px 1.2fr 80px 110px 110px 110px",
+          gridTemplateColumns: QUOTE_GRID,
           gap: 12,
-          padding: "var(--s-3) var(--s-5)",
+          padding: `var(--s-3) ${QUOTE_ACTIONS_PAD}px var(--s-3) var(--s-5)`,
           background: "var(--bg-elevated)",
           borderBottom: "1px solid var(--border)",
           font: "700 10px/1 var(--f-sans)",
@@ -280,118 +348,164 @@ function QuotesTable({ quotes }: { quotes: Quote[] }) {
       {quotes.map((quote, i) => {
         const expired = isExpired(quote);
         const displayStatus = expired ? "expired" : quote.status;
+        // SDD-0300 · motivo por el que este estimado NO se puede borrar, o null.
+        const bloqueoBorrado = quoteDeleteBlockReason(quote);
         return (
-          <Link
+          /* El menú va FUERA del <Link> (un botón dentro de un enlace no es
+             HTML válido y el clic se pelearía con la navegación), pero encima
+             de la fila: envoltorio en `position:relative` y menú absoluto en el
+             hueco que la cabecera y la fila reservan a la derecha. */
+          <div
             key={quote.id}
-            href={`/studio/cotizador/${quote.quote_code}`}
-            data-row-id={quote.quote_code}
-            className={`studio-tracking-row ${flashClassFor(quote.quote_code)}`.trim()}
             style={{
-              display: "grid",
-              gridTemplateColumns: "130px 1.4fr 140px 1.2fr 80px 110px 110px 110px",
-              gap: 12,
-              padding: "14px 20px",
+              position: "relative",
               borderTop: i > 0 ? "1px solid var(--border)" : 0,
-              alignItems: "center",
-              textDecoration: "none",
-              color: "inherit",
             }}
           >
-            <span
+            <Link
+              href={`/studio/cotizador/${quote.quote_code}`}
+              data-row-id={quote.quote_code}
+              className={`studio-tracking-row ${flashClassFor(quote.quote_code)}`.trim()}
               style={{
-                font: "700 12px/1 var(--f-mono)",
-                color: "var(--ink)",
-                letterSpacing: "0.02em",
+                display: "grid",
+                gridTemplateColumns: QUOTE_GRID,
+                gap: 12,
+                padding: `14px ${QUOTE_ACTIONS_PAD}px 14px 20px`,
+                alignItems: "center",
+                textDecoration: "none",
+                color: "inherit",
               }}
             >
-              {quote.quote_code}
-            </span>
+              <span
+                style={{
+                  font: "700 12px/1 var(--f-mono)",
+                  color: "var(--ink)",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                {quote.quote_code}
+              </span>
+              <div
+                style={{
+                  font: "500 12px/1.3 var(--f-sans)",
+                  color: "var(--ink)",
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {quote.client_name || quote.prospect_name || "—"}
+                </div>
+                {isUnlinkedWebEstimate(quote) ? (
+                  <div style={{ marginTop: 4 }}>
+                    <Badge tone="warning" size="sm" dot>
+                      Web · sin vincular
+                    </Badge>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      font: "600 11px/1 var(--f-mono)",
+                      color: "var(--wine-text)",
+                      marginTop: 3,
+                    }}
+                  >
+                    {quote.client_markbox}
+                  </div>
+                )}
+              </div>
+              <span
+                style={{
+                  font: "600 11.5px/1 var(--f-sans)",
+                  color: "var(--ink)",
+                }}
+              >
+                {SERVICE_LABELS[quote.service].primary}
+              </span>
+              <span
+                style={{
+                  font: "500 12px/1.3 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {quote.origin} → {quote.destination}
+              </span>
+              <span
+                style={{
+                  font: "600 12px/1 var(--f-mono)",
+                  color: "var(--ink)",
+                  textAlign: "right",
+                }}
+              >
+                {quote.cbm != null ? quote.cbm.toFixed(2) : "—"}
+              </span>
+              <span
+                style={{
+                  font: "800 13px/1 var(--f-mono)",
+                  color: "var(--wine-text)",
+                  textAlign: "right",
+                }}
+              >
+                ${Number(quote.total_usd).toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+              <span>
+                <Badge
+                  tone={statusBadgeTone(displayStatus as Quote["status"])}
+                  size="sm"
+                  dot
+                >
+                  {statusLabel(displayStatus as Quote["status"])}
+                </Badge>
+              </span>
+              <span
+                style={{
+                  font: "500 11px/1 var(--f-mono)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                {quote.valid_until}
+              </span>
+            </Link>
             <div
               style={{
-                font: "500 12px/1.3 var(--f-sans)",
-                color: "var(--ink)",
-                overflow: "hidden",
+                position: "absolute",
+                right: 6,
+                top: "50%",
+                transform: "translateY(-50%)",
               }}
             >
-              <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {quote.client_name || quote.prospect_name || "—"}
-              </div>
-              {isUnlinkedWebEstimate(quote) ? (
-                <div style={{ marginTop: 4 }}>
-                  <Badge tone="warning" size="sm" dot>
-                    Web · sin vincular
-                  </Badge>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    font: "600 11px/1 var(--f-mono)",
-                    color: "var(--wine-text)",
-                    marginTop: 3,
-                  }}
-                >
-                  {quote.client_markbox}
-                </div>
-              )}
-            </div>
-            <span
-              style={{
-                font: "600 11.5px/1 var(--f-sans)",
-                color: "var(--ink)",
-              }}
-            >
-              {SERVICE_LABELS[quote.service].primary}
-            </span>
-            <span
-              style={{
-                font: "500 12px/1.3 var(--f-sans)",
-                color: "var(--ink-soft)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {quote.origin} → {quote.destination}
-            </span>
-            <span
-              style={{
-                font: "600 12px/1 var(--f-mono)",
-                color: "var(--ink)",
-                textAlign: "right",
-              }}
-            >
-              {quote.cbm != null ? quote.cbm.toFixed(2) : "—"}
-            </span>
-            <span
-              style={{
-                font: "800 13px/1 var(--f-mono)",
-                color: "var(--wine-text)",
-                textAlign: "right",
-              }}
-            >
-              ${Number(quote.total_usd).toLocaleString("en-US", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </span>
-            <span>
-              <Badge
-                tone={statusBadgeTone(displayStatus as Quote["status"])}
+              <ActionMenu
                 size="sm"
-                dot
-              >
-                {statusLabel(displayStatus as Quote["status"])}
-              </Badge>
-            </span>
-            <span
-              style={{
-                font: "500 11px/1 var(--f-mono)",
-                color: "var(--ink-soft)",
-              }}
-            >
-              {quote.valid_until}
-            </span>
-          </Link>
+                ariaLabel={`Acciones de ${quote.quote_code}`}
+                items={[
+                  {
+                    key: "ver",
+                    label: "Ver detalle",
+                    icon: "eye",
+                    href: `/studio/cotizador/${quote.quote_code}`,
+                  },
+                  { key: "sep", separator: true },
+                  {
+                    key: "eliminar",
+                    label: "Eliminar",
+                    icon: "trash",
+                    role: "destructive",
+                    disabled: bloqueoBorrado !== null,
+                    // BTN-01 §6: una opción deshabilitada dice qué falta.
+                    disabledReason: bloqueoBorrado
+                      ? `No se puede eliminar: ${bloqueoBorrado}.`
+                      : undefined,
+                    onSelect: () => onEliminar(quote),
+                  },
+                ]}
+              />
+            </div>
+          </div>
         );
       })}
     </div>

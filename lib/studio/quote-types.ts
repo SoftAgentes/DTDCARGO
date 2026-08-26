@@ -274,6 +274,41 @@ export function canConvertToShipment(quote: Quote): boolean {
   return quote.status === "accepted" && !quote.converted_to_shipment_id;
 }
 
+/**
+ * SDD-0300 · ¿Por qué NO se puede borrar este estimado? `null` = se puede.
+ *
+ * La regla la fijó el founder: se borra **cualquier estimado que no se haya
+ * convertido**. Ni el estado ni el origen entran — un `sent` o un `rejected`
+ * sin convertir se borra igual, y ése es justo el caso que la UI no cubría
+ * (el borrado colgaba de "Editar", que sólo aparece en `draft`).
+ *
+ * Lo único que bloquea es que el estimado ya haya CAUSADO algo. La policy RLS
+ * de `quotes` es `using (… and deleted_at is null)`: lo borrado desaparece
+ * también para quien lo borró, así que un embarque o una orden de venta
+ * quedarían apuntando a un hueco que nadie puede abrir desde la aplicación.
+ *
+ * Es pura a propósito: la consume la UI para deshabilitar la opción con su
+ * explicación, y la server action para decidir de verdad.
+ */
+export function quoteDeleteBlockReason(
+  quote: Pick<Quote, "converted_to_shipment_id" | "sales_order_id">,
+): string | null {
+  if (quote.converted_to_shipment_id) {
+    return "ya se convirtió en un embarque";
+  }
+  if (quote.sales_order_id) {
+    return "está ligado a una orden de venta";
+  }
+  return null;
+}
+
+/** Azúcar de lectura sobre `quoteDeleteBlockReason`. */
+export function canDeleteQuote(
+  quote: Pick<Quote, "converted_to_shipment_id" | "sales_order_id">,
+): boolean {
+  return quoteDeleteBlockReason(quote) === null;
+}
+
 /** Calcula si una quote está vencida (UI helper, no se persiste). */
 export function isExpired(quote: Pick<Quote, "valid_until" | "status">): boolean {
   if (quote.status === "accepted" || quote.status === "rejected") return false;
