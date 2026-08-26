@@ -357,7 +357,6 @@ export type Service = {
    */
   subtitle?: string;
   copy: string;
-  benefit: string;
   icon: string;
   location: ServiceLocation;
   featured?: boolean;
@@ -370,7 +369,6 @@ export const SERVICES_CN: Service[] = [
     title: "Reserva de contenedores FCL",
     subtitle: "FCL directo desde fábrica de tu proveedor",
     copy: "Coordinamos la reserva del buque, posicionamos el contenedor vacío en la fábrica de tu proveedor y embarcamos. Gestionamos la documentación de exportación para que tu carga salga en regla.",
-    benefit: "Coordinación directa fábrica–buque",
     icon: "Container",
     location: "cn",
   },
@@ -379,7 +377,6 @@ export const SERVICES_CN: Service[] = [
     title: "Consolidación en bodega propia (LCL/FCL)",
     subtitle: "Cuando consolidas varios proveedores",
     copy: "Tus proveedores chinos envían a nuestra bodega propia en Yiwu. Ahí inspeccionamos, etiquetamos y consolidamos todo en un solo contenedor (FCL) o en grupaje (LCL). Sale unificado, con un solo punto de contacto.",
-    benefit: "Una sola carga desde múltiples proveedores",
     icon: "Warehouse",
     location: "cn",
     featured: true,
@@ -388,7 +385,6 @@ export const SERVICES_CN: Service[] = [
     slug: "chequeo-etiquetado",
     title: "Inspección y etiquetado de mercancía",
     copy: "Verificación física contra ficha técnica antes del embarque, más etiquetado y marcado según requerimientos del cliente o normativa de destino.",
-    benefit: "Menos imprevistos a destino",
     icon: "Check",
     location: "cn",
   },
@@ -396,7 +392,6 @@ export const SERVICES_CN: Service[] = [
     slug: "verificacion-proveedores",
     title: "Verificación de proveedores",
     copy: "Auditoría de legitimidad, inspección pre-producción y pre-embarque.",
-    benefit: "Mitigación de riesgo comercial",
     icon: "Shield",
     location: "cn",
   },
@@ -404,7 +399,6 @@ export const SERVICES_CN: Service[] = [
     slug: "auditoria-calidad",
     title: "Auditoría y control de calidad",
     copy: "Auditorías online/presenciales, QC, estándares internacionales.",
-    benefit: "Cumplimiento normativo",
     icon: "Shield",
     location: "cn",
   },
@@ -412,7 +406,6 @@ export const SERVICES_CN: Service[] = [
     slug: "lab-permisologia",
     title: "Lab testing y permisología en China",
     copy: "Coordinamos pruebas de laboratorio (RoHS, CE, FDA y otros) y gestión de permisos requeridos para exportación.",
-    benefit: "Certificación lista para destino",
     icon: "Shield",
     location: "cn",
   },
@@ -420,7 +413,6 @@ export const SERVICES_CN: Service[] = [
     slug: "muestras-courier",
     title: "Envío de muestras y documentos",
     copy: "Envíos urgentes por DHL/UPS/FedEx desde Yiwu: muestras pre-producción, documentos y lotes pequeños críticos. (El flete aéreo de carga está temporalmente suspendido; la carga va por vía marítima.)",
-    benefit: "Velocidad cuando importa",
     icon: "Box",
     location: "cn",
   },
@@ -428,7 +420,6 @@ export const SERVICES_CN: Service[] = [
     slug: "compra-asistida",
     title: "Compra asistida",
     copy: "Actuamos como tu departamento de compras en China: ubicamos, negociamos y gestionamos la compra por ti.",
-    benefit: "Ahorro de tiempo, compras sin enredos",
     icon: "Cart",
     location: "cn",
   },
@@ -436,7 +427,6 @@ export const SERVICES_CN: Service[] = [
     slug: "asesoria-pagos",
     title: "Asesoría en pagos",
     copy: "Facilitamos transacciones seguras a proveedores chinos.",
-    benefit: "Seguridad financiera",
     icon: "Payment",
     location: "cn",
   },
@@ -444,7 +434,6 @@ export const SERVICES_CN: Service[] = [
     slug: "registro-marca-cn",
     title: "Registro de marca",
     copy: "Gestión de propiedad intelectual ante autoridades chinas (CNIPA).",
-    benefit: "Protección legal anti-falsificación",
     icon: "Stamp",
     location: "cn",
   },
@@ -457,7 +446,6 @@ export const SERVICES_VE: Service[] = [
     title: "Puerta a puerta — Carga consolidada (LCL)",
     subtitle: "Less than Container Load · Carga consolidada",
     copy: "División de carga consolidada puerta a puerta, nacida en 2015. Especializada en volúmenes menores que no justifican un contenedor completo: consolidamos en China y entregamos directo en Venezuela.",
-    benefit: "Promesa door-to-door cumplida",
     icon: "Box",
     location: "ve",
     featured: true,
@@ -466,7 +454,6 @@ export const SERVICES_VE: Service[] = [
     slug: "visado-chino",
     title: "Gestión de trámites de visado chino",
     copy: "Asesoría documental, diligencia de formularios, coordinación con consulado y toma de fotografía en nuestras oficinas. Todo el trámite desde Valencia, no necesitas ir a China.",
-    benefit: "Sin que tengas que lidiar con el papeleo",
     icon: "Passport",
     location: "ve",
   },
@@ -474,7 +461,6 @@ export const SERVICES_VE: Service[] = [
     slug: "registro-marca-coord",
     title: "Registro de marca en China (coordinación)",
     copy: "Preparación de documentos, traducciones, asesoría estratégica y seguimiento del trámite desde Venezuela. Coordinamos internamente con China.",
-    benefit: "Tu marca protegida sin viajar",
     icon: "Stamp",
     location: "ve",
   },
@@ -484,7 +470,6 @@ export const SERVICES_VE: Service[] = [
     slug: "transito-aduana",
     title: "Tránsito de aduana y desaduanaje",
     copy: "Bajo DDP nos encargamos del paso de tu carga por la aduana venezolana y de la nacionalización, con toda la documentación de importación incluida: facturas de embarque, declaraciones, certificados y normativa. La aduana y los impuestos ya van en tu precio, sin cobros sorpresa.",
-    benefit: "Nacionalización sin demoras",
     icon: "Shield",
     location: "ve",
   },
@@ -492,7 +477,6 @@ export const SERVICES_VE: Service[] = [
     slug: "last-mile",
     title: "Trámites logísticos nacionales (last mile)",
     copy: "Una vez liberada la carga, organizamos transporte interno hasta tu almacén o negocio en cualquier punto de Venezuela.",
-    benefit: "Desde el puerto hasta tu puerta",
     icon: "Truck",
     location: "ve",
   },
@@ -1032,7 +1016,7 @@ export const TIMELINE = [
   {
     year: "2019",
     title: "Catálogo de 8 servicios",
-    copy: "Bodega ampliada en Yiwu y consolidación de la operación con suite completa de servicios.",
+    copy: "Bodega ampliada en Yiwu y consolidación de la operación con la gama completa de servicios.",
   },
   {
     year: "2020",
@@ -1047,12 +1031,12 @@ export const TIMELINE = [
   {
     year: "2024",
     title: "Ampliación a 10 servicios",
-    copy: "Sumamos etiquetado y courier de muestras y documentos a la suite logística.",
+    copy: "Sumamos etiquetado y courier de muestras y documentos a nuestros servicios.",
   },
   {
     year: "2026",
     title: "12+ modalidades de servicio",
-    copy: "Suite logística completa entre China y América Latina, de punta a punta.",
+    copy: "Servicio logístico completo entre China y América Latina, de punta a punta.",
   },
 ] as const;
 
