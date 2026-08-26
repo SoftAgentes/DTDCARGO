@@ -1,5 +1,5 @@
 ---
-sdd: "0301"
+sdd: "0304"
 title: "La poda del 3-ago nunca llegó a main — 14 archivos muertos, y uno que resucitó"
 status: in-progress
 author: "founder"
@@ -11,7 +11,16 @@ related: ["0295"]
 confidencialidad: interno
 ---
 
-# DTD-0301 — La poda que nunca aterrizó
+# DTD-0304 — La poda que nunca aterrizó
+
+> ⚠️ **Esta spec nació como 0301 y se renumeró a 0304** (decisión del founder,
+> 2026-08-26): otra ventana tomó el 0301 el mismo día para «el packing list del
+> proveedor llega al cliente», y ese trabajo ya estaba asentado en la memoria
+> del proyecto.
+>
+> **Los commits que ya están en `main` dicen «SDD-0301»** y no se reescriben:
+> `20064ed1` (la poda) y los que la referencian. Si buscas el rastro de este
+> trabajo en el historial, es ese número el que aparece.
 
 > Salió de una pregunta chica: barriendo `transition: all` (SDD-0295) se vio que
 > dos de los componentes tocados **no los importa nadie**. Al tirar del hilo,

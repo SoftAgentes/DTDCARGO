@@ -7,13 +7,13 @@ created: 2026-08-26
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0301"]
+related: ["0304"]
 confidencialidad: interno
 ---
 
 # DTD-0302 — El refresco que nunca aterrizó
 
-> Sale de SDD-0301. Al descubrir que una poda entera quedó en una rama
+> Sale de SDD-0304. Al descubrir que una poda entera quedó en una rama
 > archivada, se revisaron los **32 commits** de esa rama que nunca llegaron a
 > `main`. Uno arreglaba un bug de sesión — y sigue vivo.
 
@@ -43,7 +43,7 @@ empiezan a usarse.
 
 El arreglo se escribió el **2026-08-02** (`44b4f052`) y quedó en
 `origin/archive/radiografia-erp-20260802` — la misma rama archivada de
-SDD-0301.
+SDD-0304.
 
 ## ⚠️ Y la lista de aquel commit ya estaba vencida
 
@@ -58,7 +58,7 @@ Cubría `/portal` y `/m/erp`. Hoy hay **más**:
 | **`/registro`** | idem | ✅ (ver abajo) |
 | `/m/cn` · `/m/ve` | **PIN**, no Supabase | ❌ fuera a propósito |
 
-Mismo patrón que `FclCalculator` en SDD-0301: **una lista caduca**. Por eso el
+Mismo patrón que `FclCalculator` en SDD-0304: **una lista caduca**. Por eso el
 alcance se midió contra el código de hoy, no se copió del commit.
 
 ### ⚖️ `/entrar` y `/registro`: entran, y cuestan

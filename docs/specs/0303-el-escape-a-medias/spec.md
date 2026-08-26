@@ -7,13 +7,13 @@ created: 2026-08-26
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0301", "0302", "0235"]
+related: ["0304", "0302", "0235"]
 confidencialidad: interno
 ---
 
 # DTD-0303 — El contrato que no miraba donde estaba el problema
 
-> Tercer hallazgo de la auditoría de la rama archivada (SDD-0301). Los otros dos
+> Tercer hallazgo de la auditoría de la rama archivada (SDD-0304). Los otros dos
 > faltaban enteros. Éste **ya tenía contrato, y el contrato estaba verde.**
 
 ## El riesgo
