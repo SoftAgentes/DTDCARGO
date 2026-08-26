@@ -127,61 +127,13 @@ lo importante del diseño:
 Validado con mutación: bajar `COBERTURA_MINIMA` a 0 (publicar siempre) pone 3 de
 los 17 tests en rojo.
 
-8. **`/portal/compras/[code]` — el detalle de compra que no existía.**
-
-### El hueco más grande del portal
-
-Medido: `app/portal/(app)/compras/` tenía `page.tsx` (listado), `nueva/`
-(asistente) y `[code]/etiquetas/`. **No había `[code]/page.tsx`.** El cliente
-anunciaba la compra, imprimía sus etiquetas, y desde ahí quedaba a ciegas hasta
-que la mercancía aparecía dentro de un envío. Cada "¿ya llegó a la bodega?" y
-"¿cuántas cajas les llegaron?" salía del ERP por WhatsApp, escrito a mano.
-
-Los datos ya estaban todos: `warehouse_receipts_cn.prealerta_id` existe desde la
-migración 0127 (con índice), y `getPrealertaByCode` ya estaba escrita —con filtro
-por markbox— para una página de detalle que nunca se construyó.
-
-La pantalla responde, en el orden en que el cliente pregunta:
-
-1. ¿Llegó a Yiwu? ¿Cuándo?
-2. **¿Llegaron TODAS las cajas que anuncié?** ← lo primero y en grande
-3. ¿Cuánto midió y pesó de verdad?
-4. ¿Ya va en un envío?
-
-**El desajuste se muestra, no se esconde.** Si anunció 10 cajas y llegaron 7, la
-pantalla dice "Llegaron 7 de 10 cajas · faltan 3". Mostrar sólo "7 recibidas"
-sería técnicamente cierto y prácticamente una omisión: el cliente quiere
-enterarse ahí y no cuando le llegue la factura.
-
-**Y un CBM sin medir no es 0.** `sumaOculta` devuelve `null` cuando ninguna
-recepción trae la medida, y la pantalla imprime `— m³`. Un `0.000 m³` le diría
-al cliente que su carga no ocupa nada.
-
-#### Por qué usa el admin client, y por qué es seguro
-
-`warehouse_receipts_cn` sólo tiene la policy `by tenant`
-(`tenant_id = get_user_tenant_id()`). Un cliente del portal **no está en
-`user_tenants`**, así que con su sesión esa consulta vuelve vacía siempre — no
-"casi vacía": vacía, y en silencio.
-
-Se aplica el mismo patrón que el detalle de envío ya usa para consolidaciones:
-**primero se prueba la propiedad con las credenciales del propio cliente
-(`getPrealertaByCode` con RLS + filtro por `client_markbox`; si es null → 404), y
-sólo con el id ya verificado se lee con el admin client.** La función que usa el
-admin vive aislada en su propio módulo, con esa condición escrita en su
-encabezado, para que no se pierda de vista al leer la página.
-
-9. **Estado de cuenta del cliente en el Studio** — el botón existía desde
-   SDD-0032, deshabilitado con "Pantalla portada en un SDD futuro". Es la
-   pregunta que más hace un cliente por teléfono ("¿cuánto debo?") y el asesor
-   la contestaba sumando facturas a mano en el listado.
-
-   **No calcula nada nuevo:** usa `buildStatementLedger`, la MISMA función pura
-   que arma el estado de cuenta del portal (SDD-0177). Si el ERP tuviera su
-   propio cálculo, el asesor y el cliente podrían estar mirando dos saldos
-   distintos de la misma cuenta — la discusión que un estado de cuenta viene a
-   evitar. El mapeo `Invoice → PortalInvoiceRow` descarta borradores y anuladas:
-   un borrador colado aparecería como cargo, o sea deuda inventada.
+8. **`/portal/compras/[code]` — el detalle de compra.** ⚠️ **Ese trabajo NO es
+   parte de esta spec.** Se construyó en paralelo el mismo día (commit
+   `b5af1821`, 06:35) y tomó este número por colisión, ocho minutos antes de que
+   lo tomara el trabajo que esta carpeta documenta. Su descripción vivía acá y se
+   mudó a la suya:
+   **[SDD-0307 · El detalle de compra del portal](../0307-detalle-de-compra-en-el-portal/spec.md)**
+   (renumerado el 2026-08-26; sólo citas, cero cambios de comportamiento).
 
 ### Lo que cazó el gate
 

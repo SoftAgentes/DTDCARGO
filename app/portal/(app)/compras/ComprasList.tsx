@@ -25,7 +25,7 @@ import { PrealertaStatusBadge } from "../../_components/PrealertaStatusBadge";
  * envíos. Client: filtro por estado (estado de UI puro). Los tokens son
  * theme-aware → sirve en el portal claro y en el oscuro del Norte.
  *
- * SDD-0281: la card lleva al DETALLE de la compra, no directo a las etiquetas.
+ * SDD-0307: la card lleva al DETALLE de la compra, no directo a las etiquetas.
  * Antes el listado era terminal — se veía el badge de estado y no había forma de
  * abrir la compra para saber si llegó a Yiwu ni cuántas cajas se recibieron.
  */

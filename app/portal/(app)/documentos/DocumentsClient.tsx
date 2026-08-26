@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { ArrowIcon, SearchIcon } from "@/components/Icon";
 import {
   buildTypeChips,
@@ -55,6 +56,10 @@ export function DocumentsClient({ docs }: { docs: PortalDocView[] }) {
           })}
         </div>
 
+        {/* SDD-0308 · desde que entran los packing lists el buscador también
+            acepta el código de la COMPRA (`filterDocs` mira `purchaseCode`).
+            El placeholder decía sólo "envío" y escondía la mitad de lo que la
+            búsqueda ya sabe hacer. */}
         <label className="relative flex-1 min-w-[200px] max-w-[320px]">
           <span className="sr-only">Buscar documentos</span>
           <span
@@ -67,7 +72,7 @@ export function DocumentsClient({ docs }: { docs: PortalDocView[] }) {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por tipo o envío…"
+            placeholder="Buscar por tipo, envío o compra…"
             className="w-full h-10 pl-9 pr-3 rounded-full bg-white border border-grey-200 text-[13px] text-ink placeholder:text-grey-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           />
         </label>
@@ -97,6 +102,19 @@ export function DocumentsClient({ docs }: { docs: PortalDocView[] }) {
 }
 
 function DocCard({ doc }: { doc: PortalDocView }) {
+  // Un documento cuelga de un envío o de una compra, nunca de los dos. El
+  // subtítulo lo dice con todas las letras: "Compra PRE-…" no es "Envío
+  // DTD-…", y el cliente busca por uno o por el otro.
+  const abre = doc.kind === "abrir";
+  const contexto = doc.purchaseCode
+    ? `Compra ${doc.purchaseCode}`
+    : doc.shipmentCode
+      ? `Envío ${doc.shipmentCode}`
+      : null;
+  const etiquetaAccesible = `${abre ? "Ver" : "Descargar"} ${doc.typeLabel}${
+    contexto ? ` · ${contexto}` : ""
+  }`;
+
   const body = (
     <>
       <div className="flex items-center gap-3">
@@ -110,12 +128,12 @@ function DocCard({ doc }: { doc: PortalDocView }) {
           <div className="text-[14px] font-semibold text-ink truncate">
             {doc.typeLabel}
           </div>
-          {doc.shipmentCode && (
+          {contexto && (
             <div
               className="text-[12px] text-grey-500 truncate"
               style={{ fontFamily: MONO }}
             >
-              Envío {doc.shipmentCode}
+              {contexto}
             </div>
           )}
         </div>
@@ -124,7 +142,7 @@ function DocCard({ doc }: { doc: PortalDocView }) {
         <span className="text-[11.5px] text-grey-500">{doc.meta}</span>
         {doc.url ? (
           <span className="text-[12.5px] font-semibold text-wine-text inline-flex items-center gap-1">
-            Descargar{" "}
+            {abre ? "Ver" : "Descargar"}{" "}
             <ArrowIcon
               size={13}
               className="group-hover:translate-x-0.5 transition-transform"
@@ -145,13 +163,28 @@ function DocCard({ doc }: { doc: PortalDocView }) {
     );
   }
 
+  const clase =
+    "card-link group block bg-white border border-grey-200 rounded-[16px] p-5 transition-colors hover:border-ink focus-visible:border-ink";
+
+  // SDD-0308 · un documento que vive DENTRO del portal (hoy el packing list del
+  // proveedor) no se descarga: se abre. Sacarlo en pestaña nueva con `<a
+  // target="_blank">` lo trataría como un archivo externo — perdería la
+  // navegación del portal y le mentiría al cliente sobre lo que va a pasar.
+  if (abre) {
+    return (
+      <Link href={doc.url} className={clase} aria-label={etiquetaAccesible}>
+        {body}
+      </Link>
+    );
+  }
+
   return (
     <a
       href={doc.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="card-link group block bg-white border border-grey-200 rounded-[16px] p-5 transition-colors hover:border-ink focus-visible:border-ink"
-      aria-label={`Descargar ${doc.typeLabel}${doc.shipmentCode ? ` del envío ${doc.shipmentCode}` : ""}`}
+      className={clase}
+      aria-label={etiquetaAccesible}
     >
       {body}
     </a>
