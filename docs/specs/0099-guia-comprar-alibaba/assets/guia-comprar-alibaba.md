@@ -174,25 +174,36 @@ con el que sabemos que la caja es tuya.
 **Cuando compres o cotices, pon ESTA dirección como destino en Alibaba** (cópiala/pégala campo por campo;
 el chino va **tal cual, sin traducir** — es para el transporte dentro de China):
 
+> **Los campos son los MEDIDOS contra el formulario real de Alibaba** (SDD-0264, 2026-08-14). Ojo con dos:
+> el nombre **tiene que ir en chino**, y **Yiwu no es la Ciudad, es el Distrito** — si lo buscas en el
+> selector de Ciudad no aparece y te quedas trancado.
+
 | Campo (chino · español) | Qué pones |
 |---|---|
-| 国家/地区 · País | China |
-| **收货人 · Destinatario** | **DTD Cargo - [TU MARKBOX]** (ej. `DTD Cargo - DTD-1042`) |
-| 电话 · Teléfono | 18606891419 |
-| 地址 · Dirección | 浙江省义乌市义乌港二期直通仓2栋2号 货7-货11 |
-| 省 · Provincia | 浙江省 (Zhejiang) |
-| 市 · Ciudad | 义乌市 (Yiwu — en el selector aparece bajo 金华市 / Jinhua) |
+| 国家/地区 · País / región | China |
+| **收货人 · Nombre y apellido** | **林冠 + [TU MARKBOX]** (ej. `林冠 DTD-1042`). Alibaba exige chino aquí; 林冠 (Lin Guan) es el encargado de la bodega y tu MARKBOX va detrás. Solo en letras latinas te devuelve «Debe estar en chino». |
+| 电话 · Teléfono (+86) | 18606891419 |
+| 地址 · Dirección o apartado postal | 义乌港二期直通仓2栋2号 |
+| 详细地址 · Apartamento, suite, unidad, edificio, piso | 货7-货11 — dice "opcional", pero es el número de nuestro puesto. Ponlo. |
+| 省 · Estado / provincia | 浙江省 (Zhejiang) |
+| **市 · Ciudad** | **金华市 (Jinhua)** — aquí NO busques Yiwu, no aparece en este selector. |
+| **区/县 · Distrito** | **义乌市 (Yiwu)** — aquí sí. Es obligatorio. |
 | 邮编 · Código postal | 322000 |
-| 仓库联系人 · Contacto de bodega | 林冠 (Lin Guan) |
 | Email | info@dtdcargo.com |
 
-> ⚠️ **Lo más importante:** en el formulario de Alibaba el destinatario lleva **"DTD Cargo + tu MARKBOX"**.
+> 💡 **Atajo — ocho campos de una pegada:** en "Agregar dirección" despliega **"Rellenar automáticamente la
+> dirección"** (está detrás de "Ver más"), pega `浙江省金华市义乌市义乌港二期直通仓2栋2号 货7-货11, 322000`
+> y dale a "Rellenar formulario". Se llenan provincia, ciudad, distrito, código postal y las dos líneas.
+> **Después vuelve al campo "Nombre y apellido"** y escribe a mano 林冠 + tu MARKBOX: el rellenado
+> automático lo borra sin avisar.
+
+> ⚠️ **Lo más importante:** en el formulario de Alibaba el nombre lleva **"林冠 + tu MARKBOX"**.
 > Pero en el **rótulo físico de la caja** va **SOLO tu MARKBOX** — sin tu nombre, dirección ni teléfono
 > personal (los datos personales en la caja causan confusión o decomiso). Sin tu MARKBOX, la caja llega a
 > la bodega pero **no podemos saber de quién es**.
 >
-> *En dtdcargo.com tienes una herramienta que arma estos campos con tu MARKBOX y un botón "copiar" en cada
-> uno — úsala para no equivocarte.*
+> *En **dtdcargo.com/guias/comprar-en-alibaba.html** tienes esta misma guía en versión interactiva, con un
+> botón "copiar" en cada campo y tu MARKBOX cargado — úsala para no equivocarte al transcribir el chino.*
 
 **Avísanos qué viene:** cuéntanos cuántas cajas, qué producto y el peso/volumen aproximado, así lo recibimos
 bien y empezamos la consolidación.
@@ -212,6 +223,88 @@ bien y empezamos la consolidación.
   express** de paquetería pequeña.
 
 **Sigue tu carga** en tu portal de **dtdcargo.com/portal** con tu MARKBOX.
+
+---
+
+## En qué paso te podemos quitar el trabajo de encima
+
+Esta guía te enseña a hacerlo solo. Pero cada paso también lo podemos hacer nosotros — con equipo propio en
+Yiwu y una red de inspectores acreditados en China. Se pide por WhatsApp diciendo en qué paso estás y qué
+producto es.
+
+> **Fuente:** catálogo real del sitio (`lib/shared/service-catalog.ts`, `lib/servicios-detalle.ts`,
+> `lib/inspeccion.ts`). No inventar servicios ni precios acá. Los que están en estado `proximamente`
+> —Transporte terrestre y Cursos de importación— **no se anuncian como disponibles**.
+
+### Pasos 2 y 5 · Compra asistida / sourcing
+
+Somos tu departamento de compras en China, en dos modalidades. **A:** te ubicamos el producto y el proveedor,
+negociamos y gestionamos la compra. **B:** ya tienes proveedor pero temes que te estafen — lo verificamos y
+entramos como tu comprador de confianza. En ambas, la **verificación del proveedor va incluida**.
+
+| Monto de tu compra | A · sourcing | B · tu proveedor |
+|---|---|---|
+| hasta $2.000 | 10% | 5% |
+| ~$5.000 | 8% | 4% |
+| ~$10.000 | 6% | 3% |
+| ~$20.000 | 5% | 2,5% |
+| ~$50.000 | 4% | 2% |
+| $100.000+ | 3% | 1,5% |
+
+*Mínimo $50 por orden. No incluye el costo de la mercancía ni los fletes. Pagarle al proveedor por ti es un
+servicio aparte. Tiempos: mínimo 1 semana para confirmar el producto, hasta 15 días para sondear varios
+proveedores y validar especificaciones.*
+
+### Pasos 3 y 4 · ¿Te quedó la duda con un proveedor?
+
+Vamos a la fábrica y te entregamos un reporte con fotos, en español:
+
+| Sigla | Servicio | Qué es |
+|---|---|---|
+| FA | Auditoría de fábrica | Confirmamos que la fábrica es real, está operativa y tiene capacidad para tu pedido. |
+| SEA | Evaluación del proveedor | Diagnóstico integral de capacidad, procesos y confiabilidad. |
+| CRA | Verificación de crédito | Salud financiera del proveedor, antes de comprometer pagos grandes. |
+| MSA | Sistema de gestión (ISO 9001) | Auditoría del sistema de calidad del proveedor. |
+| SCA | Cumplimiento social | Condiciones laborales y prácticas éticas (estándares tipo SEDEX/SMETA). |
+
+### Pasos 6 y 7 · Mientras te fabrican, y antes de que embarque
+
+La muestra que apruebas y el lote que te fabrican no siempre son lo mismo:
+
+| Sigla | Servicio | Qué es |
+|---|---|---|
+| IPC | Inspección inicial de materiales | Materias primas y componentes antes de arrancar la fabricación. |
+| DUPRO | Inspección durante producción | Con ~20% del lote listo, para corregir a tiempo. |
+| PM | Monitoreo de producción | Vigilancia continua de la línea, para pedidos críticos. |
+| SAM | Toma de muestras | Muestras representativas bajo norma AQL. |
+| PSI | Inspección pre-embarque | El pedido terminado contra la muestra aprobada, antes de embarcar. |
+| CLS | Supervisión de carga | Acompañamos la carga del contenedor: cantidades, estado y estiba. |
+| LAB | Pruebas de laboratorio | RoHS, CE, FDA y otros, según el mercado de destino. |
+| FBA | Preparación para Amazon | Etiquetado FNSKU y requisitos del marketplace. |
+
+*Los precios de inspección los confirma un asesor —dependen del producto y de la fábrica— y te pasa un
+ejemplo del reporte. No se publican.*
+
+### Pasos 8 y 9 · Cuando tu carga llega a nuestra bodega
+
+**Por defecto no abrimos las cajas** — las recibimos, las identificamos con tu MARKBOX y las consolidamos.
+Lo demás se pide **antes** de que llegue tu mercancía, y todo sale con reporte fotográfico:
+
+- **Revisión al recibir** — abrimos las cajas y verificamos que la cantidad coincida con tu factura.
+- **Etiquetado por pieza** — según lo que necesites o la normativa de destino. Se cobra por pieza.
+- **Cajas defectuosas y reempaque** — si una caja llega dañada, la reempacamos para que viaje protegida.
+
+### Transversales · en cualquier momento
+
+- **Asesoría en pagos a proveedores** — transacciones seguras en Yuan (Alipay, WeChat Pay, transferencia o
+  efectivo en China).
+- **Envío de muestras y documentos** — courier express (DHL, UPS, FedEx) desde Yiwu. *No es flete aéreo de
+  carga: la carga grande va por vía marítima.*
+- **Tránsito de aduana y desaduanaje** — el trámite en Venezuela, con la gestión documental incluida.
+- **Visado de negocios chino** — si vas a viajar a Yiwu o a una feria.
+- **Registro de marca en China (CNIPA)** — si tu producto va a llevar tu marca.
+
+El detalle completo está en **dtdcargo.com/servicios** y **dtdcargo.com/servicios/inspeccion**.
 
 ---
 

@@ -147,6 +147,21 @@
   table.addr .value{ color:var(--grey-900); }
   table.addr tr.key td{ background:color-mix(in srgb, var(--wine) 9%, var(--paper)); }
   table.addr tr.key .value{ font-weight:700; color:var(--wine); }
+  table.addr .value em{ display:block; margin-top:3px; font-size:8pt; font-weight:500; font-style:normal; color:var(--grey-700); }
+
+  /* Servicios DTD — la sección "esto no lo tienes que hacer tú" */
+  .svc-group{ margin:14px 0 0; break-inside:avoid; }
+  .svc-group h3{ margin:0 0 6px; font-size:11.5pt; color:var(--ink); font-weight:700; }
+  .svc-group > p{ margin:0 0 8px; }
+  ul.svc-list{ list-style:none; margin:0; padding:0; }
+  /* neutraliza el bullet cuadrado que `.step li` le pone a toda lista dentro de un paso */
+  ul.svc-list li{ display:flex; gap:9px; align-items:flex-start; padding:5px 0 5px 0; margin-bottom:0;
+    border-top:1px solid var(--grey-200); position:static; }
+  ul.svc-list li::before{ content:none; display:none; }
+  ul.svc-list li:first-child{ border-top:none; }
+  ul.svc-list .code{ flex:none; min-width:44px; text-align:center; padding:1px 5px; border-radius:4px;
+    background:var(--ink); color:var(--cream); font-family:var(--font-mono),monospace; font-size:8pt; font-weight:700; }
+  ul.svc-list b{ color:var(--ink); }
 
   /* ---------- EMAIL / INQUIRY CARD ---------- */
   .email-card{
@@ -378,24 +393,31 @@ Thank you!</div>
         <table class="addr">
           <thead><tr><th>Campo</th><th>Qué pones</th></tr></thead>
           <tbody>
-            <tr><td class="field"><span class="cjk">国家/地区</span><span class="es">País</span></td><td class="value">China</td></tr>
-            <tr class="key"><td class="field"><span class="cjk">收货人</span><span class="es">Destinatario</span></td><td class="value">DTD Cargo - <span class="mono">[TU MARKBOX]</span> &nbsp;(ej. <span class="mono">DTD Cargo - DTD-1042</span>)</td></tr>
-            <tr><td class="field"><span class="cjk">电话</span><span class="es">Teléfono</span></td><td class="value mono">18606891419</td></tr>
-            <tr><td class="field"><span class="cjk">地址</span><span class="es">Dirección</span></td><td class="value cjk">浙江省义乌市义乌港二期直通仓2栋2号 货7-货11</td></tr>
-            <tr><td class="field"><span class="cjk">省</span><span class="es">Provincia</span></td><td class="value"><span class="cjk">浙江省</span> (Zhejiang)</td></tr>
-            <tr><td class="field"><span class="cjk">市</span><span class="es">Ciudad</span></td><td class="value"><span class="cjk">义乌市</span> (Yiwu — en el selector aparece bajo <span class="cjk">金华市</span> / Jinhua)</td></tr>
+            <tr><td class="field"><span class="cjk">国家/地区</span><span class="es">País / región</span></td><td class="value">China</td></tr>
+            <tr class="key"><td class="field"><span class="cjk">收货人</span><span class="es">Nombre y apellido</span></td><td class="value"><span class="cjk">林冠</span> + <span class="mono">[TU MARKBOX]</span> &nbsp;(ej. <span class="cjk">林冠</span> <span class="mono">DTD-1042</span>)<br><em>Alibaba exige chino aquí. <span class="cjk">林冠</span> (Lin Guan) es el encargado de la bodega; tu MARKBOX va detrás. Si lo dejas solo en letras latinas, Alibaba responde «Debe estar en chino».</em></td></tr>
+            <tr><td class="field"><span class="cjk">电话</span><span class="es">Teléfono (+86)</span></td><td class="value mono">18606891419</td></tr>
+            <tr><td class="field"><span class="cjk">地址</span><span class="es">Dirección o apartado postal</span></td><td class="value cjk">义乌港二期直通仓2栋2号</td></tr>
+            <tr><td class="field"><span class="cjk">详细地址</span><span class="es">Apartamento, suite, unidad, edificio, piso</span></td><td class="value cjk">货7-货11<br><em>Dice «opcional», pero es el número de nuestro puesto. Ponlo.</em></td></tr>
+            <tr><td class="field"><span class="cjk">省</span><span class="es">Estado / provincia</span></td><td class="value"><span class="cjk">浙江省</span> (Zhejiang)</td></tr>
+            <tr class="key"><td class="field"><span class="cjk">市</span><span class="es">Ciudad</span></td><td class="value"><span class="cjk">金华市</span> (Jinhua)<br><em>Aquí NO busques Yiwu: no aparece en este selector.</em></td></tr>
+            <tr class="key"><td class="field"><span class="cjk">区/县</span><span class="es">Distrito</span></td><td class="value"><span class="cjk">义乌市</span> (Yiwu)<br><em>Aquí sí. Es obligatorio.</em></td></tr>
             <tr><td class="field"><span class="cjk">邮编</span><span class="es">Código postal</span></td><td class="value mono">322000</td></tr>
-            <tr><td class="field"><span class="cjk">仓库联系人</span><span class="es">Contacto de bodega</span></td><td class="value"><span class="cjk">林冠</span> (Lin Guan)</td></tr>
             <tr><td class="field">Email</td><td class="value mono">info@dtdcargo.com</td></tr>
           </tbody>
         </table>
       </div>
       </div>
+      <div class="callout tip">
+        <span class="callout__label">Atajo: llena ocho campos de una pegada</span>
+        En «Agregar dirección» de Alibaba despliega <strong>«Rellenar automáticamente la dirección»</strong> (está detrás de «Ver más»), pega esta línea completa y dale a «Rellenar formulario»:
+        <br><span class="cjk">浙江省金华市义乌市义乌港二期直通仓2栋2号 货7-货11, 322000</span><br>
+        Se llenan solos provincia, ciudad, distrito, código postal y las dos líneas de dirección. <strong>Después vuelve al campo «Nombre y apellido»</strong> y escribe a mano <span class="cjk">林冠</span> + tu MARKBOX: el rellenado automático lo borra sin avisar.
+      </div>
       <div class="callout warn">
         <span class="callout__label">Lo más importante</span>
-        En el formulario de Alibaba el destinatario lleva <strong>“DTD Cargo + tu MARKBOX”</strong>. Pero en el <strong>rótulo físico de la caja</strong> va <strong>SOLO tu MARKBOX</strong> — sin tu nombre, dirección ni teléfono personal (los datos personales en la caja causan confusión o decomiso). Sin tu MARKBOX, la caja llega a la bodega pero no podemos saber de quién es.
+        En el formulario de Alibaba el nombre lleva <strong><span class="cjk">林冠</span> + tu MARKBOX</strong>. Pero en el <strong>rótulo físico de la caja</strong> va <strong>SOLO tu MARKBOX</strong> — sin tu nombre, dirección ni teléfono personal (los datos personales en la caja causan confusión o decomiso). Sin tu MARKBOX, la caja llega a la bodega pero no podemos saber de quién es.
       </div>
-      <p><em>En dtdcargo.com tienes una herramienta que arma estos campos con tu MARKBOX y un botón “copiar” en cada uno — úsala para no equivocarte.</em></p>
+      <p><em>En <strong>dtdcargo.com/guias/comprar-en-alibaba.html</strong> tienes esta misma guía en versión interactiva, con un botón “copiar” en cada campo y tu MARKBOX cargado — úsala para no equivocarte al transcribir el chino.</em></p>
       <div class="callout tip">
         <span class="callout__label">Avísanos qué viene</span>
         Cuéntanos cuántas cajas, qué producto y el peso/volumen aproximado, así lo recibimos bien y empezamos la consolidación.
@@ -415,6 +437,84 @@ Thank you!</div>
       <div class="callout tip">
         <span class="callout__label">Sigue tu carga</span>
         Entra a tu portal en <strong>dtdcargo.com/portal</strong> con tu MARKBOX y mira en qué etapa va tu envío.
+      </div>
+    </section>
+
+    <!-- Servicios — qué NO tienes que hacer tú -->
+    <section class="step">
+      <span class="step__eyebrow">Lo que no tienes que hacer tú</span>
+      <h2>En qué paso te podemos quitar el trabajo de encima</h2>
+      <p>Esta guía te enseña a hacerlo solo. Pero cada paso también lo podemos hacer nosotros — con equipo propio en Yiwu y una red de inspectores acreditados en China. Pídelo por WhatsApp indicando en qué paso estás.</p>
+
+      <div class="svc-group keep">
+        <h3>Pasos 2 y 5 · Compra asistida / sourcing</h3>
+        <p>Somos tu departamento de compras en China, en dos modalidades. <strong>A:</strong> te ubicamos el producto y el proveedor, negociamos y gestionamos la compra. <strong>B:</strong> ya tienes proveedor pero temes que te estafen — lo verificamos y entramos como tu comprador de confianza. En ambas, la <strong>verificación del proveedor va incluida</strong>.</p>
+        <div class="addr-wrap">
+          <table class="addr">
+            <thead><tr><th>Monto de tu compra</th><th>A · sourcing</th><th>B · tu proveedor</th></tr></thead>
+            <tbody>
+              <tr><td class="field">hasta $2.000</td><td class="value mono">10%</td><td class="value mono">5%</td></tr>
+              <tr><td class="field">~$5.000</td><td class="value mono">8%</td><td class="value mono">4%</td></tr>
+              <tr><td class="field">~$10.000</td><td class="value mono">6%</td><td class="value mono">3%</td></tr>
+              <tr><td class="field">~$20.000</td><td class="value mono">5%</td><td class="value mono">2,5%</td></tr>
+              <tr><td class="field">~$50.000</td><td class="value mono">4%</td><td class="value mono">2%</td></tr>
+              <tr><td class="field">$100.000+</td><td class="value mono">3%</td><td class="value mono">1,5%</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><em>Mínimo $50 por orden. No incluye el costo de la mercancía ni los fletes. Pagarle al proveedor por ti es un servicio aparte.</em></p>
+      </div>
+
+      <div class="svc-group keep">
+        <h3>Pasos 3 y 4 · ¿Te quedó la duda con un proveedor?</h3>
+        <p>Vamos a la fábrica y te entregamos un reporte con fotos, en español:</p>
+        <ul class="svc-list">
+          <li><span class="code">FA</span><span><b>Auditoría de fábrica</b> — confirmamos que la fábrica es real, está operativa y tiene capacidad para tu pedido.</span></li>
+          <li><span class="code">SEA</span><span><b>Evaluación del proveedor</b> — diagnóstico integral de capacidad, procesos y confiabilidad.</span></li>
+          <li><span class="code">CRA</span><span><b>Verificación de crédito</b> — salud financiera del proveedor, antes de comprometer pagos grandes.</span></li>
+          <li><span class="code">MSA</span><span><b>Sistema de gestión (ISO 9001)</b> — auditoría del sistema de calidad del proveedor.</span></li>
+          <li><span class="code">SCA</span><span><b>Cumplimiento social</b> — condiciones laborales y prácticas éticas (estándares tipo SEDEX/SMETA).</span></li>
+        </ul>
+      </div>
+
+      <div class="svc-group keep">
+        <h3>Pasos 6 y 7 · Mientras te fabrican, y antes de que embarque</h3>
+        <p>La muestra que apruebas y el lote que te fabrican no siempre son lo mismo:</p>
+        <ul class="svc-list">
+          <li><span class="code">IPC</span><span><b>Inspección inicial de materiales</b> — materias primas y componentes antes de arrancar la fabricación.</span></li>
+          <li><span class="code">DUPRO</span><span><b>Inspección durante producción</b> — con ~20% del lote listo, para corregir a tiempo.</span></li>
+          <li><span class="code">PM</span><span><b>Monitoreo de producción</b> — vigilancia continua de la línea, para pedidos críticos.</span></li>
+          <li><span class="code">SAM</span><span><b>Toma de muestras</b> — muestras representativas bajo norma AQL.</span></li>
+          <li><span class="code">PSI</span><span><b>Inspección pre-embarque</b> — el pedido terminado contra la muestra aprobada, antes de embarcar.</span></li>
+          <li><span class="code">CLS</span><span><b>Supervisión de carga</b> — acompañamos la carga del contenedor: cantidades, estado y estiba.</span></li>
+          <li><span class="code">LAB</span><span><b>Pruebas de laboratorio</b> — RoHS, CE, FDA y otros, según el mercado de destino.</span></li>
+        </ul>
+      </div>
+
+      <div class="svc-group keep">
+        <h3>Pasos 8 y 9 · Cuando tu carga llega a nuestra bodega</h3>
+        <p><strong>Por defecto no abrimos las cajas</strong> — las recibimos, las identificamos con tu MARKBOX y las consolidamos. Lo demás se pide antes de que llegue tu mercancía, y todo sale con reporte fotográfico:</p>
+        <ul class="svc-list">
+          <li><span class="code">1</span><span><b>Revisión al recibir</b> — abrimos las cajas y verificamos que la cantidad coincida con tu factura.</span></li>
+          <li><span class="code">2</span><span><b>Etiquetado por pieza</b> — según lo que necesites o la normativa de destino. Se cobra por pieza.</span></li>
+          <li><span class="code">3</span><span><b>Cajas defectuosas y reempaque</b> — si una caja llega dañada, la reempacamos para que viaje protegida.</span></li>
+        </ul>
+      </div>
+
+      <div class="svc-group keep">
+        <h3>Transversales · en cualquier momento</h3>
+        <ul class="svc-list">
+          <li><span class="code">+</span><span><b>Asesoría en pagos a proveedores</b> — transacciones seguras en Yuan (Alipay, WeChat Pay, transferencia o efectivo en China).</span></li>
+          <li><span class="code">+</span><span><b>Envío de muestras y documentos</b> — courier express (DHL, UPS, FedEx) desde Yiwu. No es flete aéreo de carga.</span></li>
+          <li><span class="code">+</span><span><b>Tránsito de aduana y desaduanaje</b> — el trámite en Venezuela, con la gestión documental incluida.</span></li>
+          <li><span class="code">+</span><span><b>Visado de negocios chino</b> — si vas a viajar a Yiwu o a una feria.</span></li>
+          <li><span class="code">+</span><span><b>Registro de marca en China (CNIPA)</b> — si tu producto va a llevar tu marca.</span></li>
+        </ul>
+      </div>
+
+      <div class="callout dtd">
+        <span class="callout__label">Cómo se pide</span>
+        Por WhatsApp, diciendo en qué paso estás y qué producto es. Los precios de inspección los confirma un asesor —dependen de tu producto y de la fábrica— y te pasa un ejemplo del reporte. El detalle completo está en <strong>dtdcargo.com/servicios</strong> y <strong>dtdcargo.com/servicios/inspeccion</strong>.
       </div>
     </section>
 
