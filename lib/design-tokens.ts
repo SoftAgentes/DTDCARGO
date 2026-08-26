@@ -1032,7 +1032,7 @@ export const TIMELINE = [
   {
     year: "2019",
     title: "Catálogo de 8 servicios",
-    copy: "Bodega ampliada en Yiwu y consolidación de la operación con suite completa de servicios.",
+    copy: "Bodega ampliada en Yiwu y consolidación de la operación con la gama completa de servicios.",
   },
   {
     year: "2020",
@@ -1047,12 +1047,12 @@ export const TIMELINE = [
   {
     year: "2024",
     title: "Ampliación a 10 servicios",
-    copy: "Sumamos etiquetado y courier de muestras y documentos a la suite logística.",
+    copy: "Sumamos etiquetado y courier de muestras y documentos a nuestros servicios.",
   },
   {
     year: "2026",
     title: "12+ modalidades de servicio",
-    copy: "Suite logística completa entre China y América Latina, de punta a punta.",
+    copy: "Servicio logístico completo entre China y América Latina, de punta a punta.",
   },
 ] as const;
 
