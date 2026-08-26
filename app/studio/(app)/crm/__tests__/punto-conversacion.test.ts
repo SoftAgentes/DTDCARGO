@@ -109,3 +109,26 @@ describe("🔴 el espejo de tareas NO puede apagar la integracion", () => {
     expect(code).not.toContain('logged(supabase, conn, "tasks"');
   });
 });
+
+describe("🔴 la medicion de valores NO puede vivir dentro de una rama", () => {
+  it("valoresEnumerados se llama antes del early-return de forma desconocida", () => {
+    // Nacio dentro de la rama `events.length === 0`, y eso se volvio una
+    // ceguera autoinfligida: al desplegar el parser de mensajes dejaron de caer
+    // ahi y se apago la unica ventana que habia sobre ellos.
+    //
+    // Lo destapo el 2026-08-25: 47 leads con conversacion, los 47 en rojo y
+    // CERO con saliente. Sin este log no hay forma de saber si Kommo emite
+    // webhook para los mensajes salientes, y el estado "esperando" queda
+    // inalcanzable.
+    const code = readFileSync(
+      join(process.cwd(), "supabase/functions/kommo-webhook/index.ts"),
+      "utf8",
+    );
+    const mide  = code.indexOf("const valores = valoresEnumerados(crudo);");
+    const rama  = code.indexOf("if (parsed.events.length === 0 && mensajes.length === 0)");
+
+    expect(mide).toBeGreaterThan(-1);
+    expect(rama).toBeGreaterThan(-1);
+    expect(mide).toBeLessThan(rama);
+  });
+});
