@@ -220,6 +220,66 @@ export function PackingListFormSection({
     text: string;
     tone: "steady" | "pulse";
   }>({ text: "", tone: "steady" });
+  /**
+   * SDD-0308 · El documento a pantalla completa.
+   *
+   * El proveedor llena esto desde una PC y la tabla tiene once columnas. Aun con
+   * el ensanchado a 1320px, en un monitor grande sobra pantalla que el documento
+   * no estaba usando.
+   *
+   * ⚠️ **Es un botón, no "clic adentro".** Esto es un FORMULARIO: el proveedor
+   * hace clic en las celdas para escribir. Si el clic dentro del documento
+   * disparara la expansión, cada intento de llenar una celda cambiaría el
+   * tamaño de la pantalla debajo del cursor.
+   *
+   * Se intenta primero la **Fullscreen API nativa**, que es la que de verdad
+   * usa todo el monitor (sin barra del navegador). Si el navegador la rechaza
+   * —pasa en iframes sin `allow="fullscreen"` y en iOS Safari, que no la
+   * implementa para elementos— se queda el modo `.pl-max`, que ocupa toda la
+   * ventana con CSS. **El botón funciona en los dos casos**: nunca queda muerto.
+   */
+  const docRef = useRef<HTMLElement>(null);
+  const [maximizado, setMaximizado] = useState(false);
+
+  const alternarMaximizado = useCallback(() => {
+    const el = docRef.current;
+    if (!el) return;
+
+    if (!maximizado) {
+      setMaximizado(true);
+      // `catch` obligatorio: `requestFullscreen` RECHAZA la promesa cuando el
+      // navegador lo bloquea, y sin capturarla queda un unhandled rejection en
+      // consola. El fallback CSS ya está aplicado, así que no hay nada que
+      // hacer con el error.
+      el.requestFullscreen?.({ navigationUI: "hide" }).catch(() => {});
+    } else {
+      setMaximizado(false);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    }
+  }, [maximizado]);
+
+  // Salir con Escape. En fullscreen nativo el navegador ya lo maneja y avisa por
+  // `fullscreenchange`; esto cubre el modo CSS, donde Escape no hace nada solo.
+  useEffect(() => {
+    if (!maximizado) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.fullscreenElement) setMaximizado(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [maximizado]);
+
+  // El usuario puede salir del fullscreen nativo por fuera del botón (Escape,
+  // F11, el gesto del sistema). Sin escuchar esto, el estado se quedaría en
+  // `true` y el documento seguiría con la clase `.pl-max` sobre la página.
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement) setMaximizado(false);
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<HistEntry[]>([]);
   const [copiedWh, setCopiedWh] = useState(false);
@@ -561,7 +621,10 @@ export function PackingListFormSection({
 
   return (
     <section
-      className="pl-doc mt-3 bg-white border border-grey-200 rounded-[16px] p-6 sm:p-7"
+      ref={docRef}
+      className={`pl-doc mt-3 bg-white border border-grey-200 rounded-[16px] p-6 sm:p-7${
+        maximizado ? " pl-max" : ""
+      }`}
       style={{ fontFamily: BRAND_CJK }}
     >
       {/* ── Barra de herramientas (no imprime) ── */}
@@ -638,6 +701,20 @@ export function PackingListFormSection({
         </button>
         <button type="button" onClick={downloadEmptyCsv} className="tbtn">
           <DownloadIcon size={14} /> {tr(lang, "Excel vacío", "Empty Excel")} / 空表
+        </button>
+        {/* SDD-0308 · `aria-pressed` y no `aria-expanded`: esto no despliega un
+            panel, cambia el estado del documento. Y el rótulo cambia con el
+            estado — un botón que dice siempre lo mismo no dice qué va a pasar. */}
+        <button
+          type="button"
+          onClick={alternarMaximizado}
+          className="tbtn"
+          aria-pressed={maximizado}
+        >
+          <ExpandGlyph cerrando={maximizado} />{" "}
+          {maximizado
+            ? `${tr(lang, "Salir", "Exit")} / 退出全屏`
+            : `${tr(lang, "Pantalla completa", "Full screen")} / 全屏`}
         </button>
         <button type="button" onClick={() => window.print()} className="tbtn tbtn-print">
           <PrintGlyph /> PDF · 打印
@@ -1340,6 +1417,39 @@ export function PackingListFormSection({
 
       {/* Estilos del documento (clases locales, tokens de marca pública). */}
       <style>{`
+        /* ── SDD-0308 · Pantalla completa ──────────────────────────────────
+              Sirve para los DOS caminos y por eso no depende de :fullscreen:
+
+              · Fullscreen nativo — el elemento ya ocupa la pantalla; el
+                position:fixed es inocuo y el fondo evita el negro por defecto
+                que pinta el navegador detrás del elemento.
+              · Respaldo CSS — cuando el navegador rechaza la API (iframe sin
+                allow, iOS Safari), esto es lo único que expande.
+
+              overflow:auto es imprescindible: la tabla es más alta que la
+              pantalla y sin scroll propio el proveedor no llegaría a las
+              últimas filas ni al botón de enviar. */
+        .pl-doc.pl-max {
+          position: fixed; inset: 0; z-index: 90;
+          margin: 0; border-radius: 0; border: 0;
+          width: 100%; max-width: none; height: 100%;
+          overflow: auto; overscroll-behavior: contain;
+          background: var(--color-white);
+          padding: 20px clamp(16px, 3vw, 40px) 40px;
+        }
+        /* En pantalla completa la tabla usa todo el ancho: el min-width de 1000px
+           deja de mandar y las once columnas se reparten lo que haya. */
+        .pl-doc.pl-max table { min-width: 0 !important; }
+        /* El navegador pinta negro detrás del elemento en fullscreen nativo. */
+        .pl-doc:fullscreen { background: var(--color-white); }
+        .pl-doc:fullscreen::backdrop { background: var(--color-white); }
+        /* En papel el modo expandido no existe: manda el CSS de impresión. */
+        @media print {
+          .pl-doc.pl-max {
+            position: static; height: auto; overflow: visible; padding: 0;
+          }
+        }
+
         /* ── Foco de teclado visible (todos los controles custom anulan el outline
               nativo con outline:0/border:0 → sin esto el tabbing es invisible). ── */
         .pl-doc :is(input,button,select,textarea):focus-visible {
@@ -2003,6 +2113,21 @@ function PrintGlyph() {
     <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <path d="M7 10l5 5 5-5M12 15V3" />
+    </svg>
+  );
+}
+/**
+ * SDD-0308 · Flechas hacia afuera para expandir, hacia adentro para salir. El
+ * ícono acompaña al rótulo, que es el que comunica — nunca va solo.
+ */
+function ExpandGlyph({ cerrando }: { cerrando: boolean }) {
+  return (
+    <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {cerrando ? (
+        <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" />
+      ) : (
+        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+      )}
     </svg>
   );
 }
