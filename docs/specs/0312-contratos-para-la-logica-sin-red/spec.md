@@ -7,20 +7,21 @@ created: 2026-08-26
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0024", "0029", "0045", "0051", "0054", "0059", "0069", "0072", "0096", "0028", "0101", "0109", "0111", "0310", "0311"]
+related: ["0024", "0028", "0029", "0036", "0045", "0051", "0054", "0059", "0069", "0072", "0096", "0101", "0109", "0111", "0310", "0311"]
 confidencialidad: interno
 ---
 
 # DTD-0312 — Contratos para la lógica que corría sin red
 
-> Diecisiete migraciones que deciden cuánto se le cobra a un cliente, si su
+> Diecinueve migraciones que deciden cuánto se le cobra a un cliente, si su
 > aceptación legal vale, si un despacho puede retroceder, cuánta plata se le
 > rinde a la Operadora, cuánto se le paga al socio en China, cuánto se le paga a
 > alguien que se va, a qué proveedor se le sigue comprando, **quién puede borrar
 > la única foto de lo que llegó**, qué puede tocar un operario desde el
 > teléfono, qué se declara en aduana, si se le paga un siniestro, a quién se le
 > acredita un referido, quién puede escribir en el expediente de otro y quién
-> puede quemarle el correlativo a otra empresa. Ninguna tenía contrato.
+> puede quemarle el correlativo a otra empresa, y si el expediente de un bug
+> dice la verdad de lo que se hizo con él. Ninguna tenía contrato.
 
 ## Primero, el número honesto
 
@@ -54,7 +55,7 @@ Cabeza de la lista: `0123_rendiciones` (43) · `0024_dispatch_core` (40) ·
 `0128_sales_order_invoicing_hardening` (40) · `0093_comments_hardening` (37) ·
 `0114_financiero_china` (35) · `0102_capa_legal` (34). Se cubrieron las seis.
 
-## Los quince que se cubrieron
+## Los dieciséis que se cubrieron
 
 ### 1 · `0128` — el núcleo transaccional de la auto-facturación
 
@@ -439,9 +440,74 @@ pero **no toca `public`**. Si alguien abre el bucket a mano desde el panel,
 re-correr la migración no lo vuelve a cerrar. El contrato sólo puede probar que
 una aplicación limpia lo crea privado.
 
+### 16 · `0028` + `0039` — el Bug Reporter
+
+Once contratos y veinticuatro mutaciones, pero lo más útil de este archivo lo
+dijo el primer intento de correrlo.
+
+🔴 **La 0028 nació muerta, y un contrato lo habría gritado el día uno.** Su
+`bug_advance_state` arma el renglón del timeline con un
+`case when … then 'admin' else 'user' end`, que Postgres resuelve como `text`,
+contra una columna del enum `bug_author_type` — y en un INSERT no hay cast
+implícito de `text` a enum. **Ninguna transición de estado funcionaba.** Estuvo
+así once números. Lo que la encontró no fue una prueba: fue el founder dándole
+a «Tomar bug» en el drawer el 2026-05-26. La cierra la 0039 con un cast
+explícito, y el contrato carga las dos porque lo que corre es la de abajo.
+
+Es el argumento de esta spec entera en un caso: no hizo falta una regresión
+sutil ni un guard que se cae con el tiempo. Se publicó una RPC que **nunca**
+funcionó, y el repo estuvo verde igual.
+
+De los once, los tres que más pesan:
+
+🔴 **La máquina de estados no deja saltar.** `nuevo → resuelto` de un tirón no
+existe: hay que triar, y ese paso es el que deja quién lo tomó. Se prueban los
+saltos prohibidos **y los permitidos** — una máquina que no deja avanzar
+tampoco sirve, y sin ese medio contrato los prohibidos pasarían por la razón
+equivocada. (Pasó: al cargar sólo la 0028, ninguna transición avanzaba y los
+tres saltos prohibidos salían «bien».)
+
+🔴 **Sólo un admin mueve estados, con UNA excepción exacta:** el reportador
+puede mover SU bug de `espera` a `triaje` al responder. Se prueba que esa
+excepción no se estira — ni desde otro estado, ni hacia otro estado, ni sobre
+el bug de otro, ni para un compañero que no reportó.
+
+🔴 **Nada se borra, y el folio es único PORQUE no se puede borrar.**
+`next_bug_folio` es `max() + 1`: si `authenticated` pudiera borrar el último
+bug, el siguiente reusaría su número y dos expedientes distintos compartirían
+folio en la memoria de la gente. Las dos piezas se sostienen entre sí y el
+contrato las ata.
+
+#### ⚠️ Dos huecos medidos que el contrato **no** cierra
+
+No se contratan a propósito: una afirmación que diga que están cerrados saldría
+roja, y una que diga que están abiertos dejaría el problema clavado. Quedan
+acá para que se decidan.
+
+🔴 **La máquina de estados tiene una segunda puerta.** El comentario de la
+migración dice que «las transiciones de estado pasan por RPC», pero nada lo
+obliga: hay `grant update on bug_reports to authenticated` más la policy
+`bug_reports_admin_update`. Medido contra el mismo Postgres: un admin corre
+`update bug_reports set state = 'resuelto'` y el bug pasa de `nuevo` a
+`resuelto` **de un salto, sin renglón de timeline y sin `resolved_at`**; y de
+`resuelto` vuelve a `nuevo`, saltándose el guard terminal. No es una fuga —es
+dentro de su propia empresa y sólo un admin—: es el expediente que deja de ser
+fiel a lo que pasó. Cerrarlo es un trigger que rechace el UPDATE de `state`
+fuera de la RPC.
+
+`anon` puede EJECUTAR `next_bug_folio`. Las otras dos RPC llevan su
+`revoke … from public, anon`; ésta no, y en Postgres las funciones nacen con
+EXECUTE para PUBLIC. El guard interno la salva —sin `auth.uid()` no hay
+membresía y levanta «No autorizado»— pero es la única capa.
+
+Y una tercera, que no es de seguridad: las excepciones de las dos RPC están
+escritas en **voseo** («Necesitás estar autenticado», «No pertenecés al tenant
+del bug»). Es texto que puede llegar a la pantalla y rompe la regla de
+español venezolano del repo.
+
 ## Verificación
 
-**145 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
+**156 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
 
 | Migración | Contratos | Mutaciones probadas | Detectadas |
 |---|---|---|---|
@@ -460,8 +526,9 @@ una aplicación limpia lo crea privado.
 | 0179 nomina_settlements | 8 | 12 | 12 |
 | 0236 supplier_scorecard | 7 | 13 | 13 |
 | 0022+0183 receipt_photos | 10 | 17 | 17 |
+| 0028+0039 bug_reporter | 11 | 24 | 24 |
 
-**137 mutaciones, 137 detectadas.**
+**161 mutaciones, 161 detectadas.**
 
 Dos precisiones sobre qué reporta cada mutación, porque «detectada» no siempre
 quiere decir «la detectó el contrato que la nombra»:
@@ -537,6 +604,19 @@ por la mutación y reescritos:
   cláusula entera cae donde tiene que caer, en el contrato 8 y con su propia
   afirmación.
 
+- 🔴 En `0028`, «no se pide el folio de una empresa ajena» salía **verde con el
+  guard arrancado porque mi propio `raise` caía en mi propio `exception when`**:
+  un `raise exception` de plpgsql sale con sqlstate **P0001**, el mismo que
+  levanta la RPC, y mi handler lo tragaba como si fuera el rechazo esperado. Es
+  la segunda vez esta spec que un contrato se cumple con algo que escribí yo
+  —después de la de `0024`, que afirmaba sobre el texto del error— y la lección
+  es la misma en otra forma: **el intento se aísla adentro, la afirmación va
+  afuera.**
+- ⚠️ Y en el mismo archivo, una mutación que era roja **por la razón
+  equivocada**: al quitar el INSERT del timeline dejé colgando su `values`, la
+  función no compiló, nada avanzó y lo atrapó el contrato 1. Rojo honesto que no
+  probaba una sola línea del contrato 5. Se quita el statement entero.
+
 **La regla que sale de las ocho:** si mutas *una sola* protección y el contrato
 sigue verde, no es que la mutación falló — es que **hay otra pieza sosteniendo
 el caso, el fixture no distingue las dos hipótesis, el guard mutado deshace el
@@ -577,7 +657,7 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Lo que esta spec NO puede afirmar
 
-- **Que las otras 133 estén bien.** Se cubrieron 17 migraciones de 150 en 15 archivos de contrato. La lista rankeada
+- **Que las otras 131 estén bien.** Se cubrieron 19 migraciones de 150 en 16 archivos de contrato. La lista rankeada
   queda medida y reproducible, no resuelta.
 - **Que estos guards funcionen con datos reales.** Los contratos corren sobre un
   Postgres desechable con stubs de fidelidad mínima: fieles en los tipos
@@ -603,11 +683,11 @@ por memoria, no por medición. Sigue sin contrato —la inmutabilidad de
 `comments`, no la de las menciones; la 0093 sólo cubre lo suyo— pero está muy
 por debajo de lo que decía.
 
+`0028` ya quedó cubierta en esta misma vuelta, apenas se la volvió a medir.
 Orden real de acá en adelante:
 
 | Puntos | Migración | Por qué |
 |---|---|---|
-| **31** | `0028_bug_reporter` | 10 guards, máquina de estados, correlativo |
 | 29 | `0097_documentos_hub` | dinero×3, aislamiento×5 |
 | 29 | `0165_fiscal_books` | dinero×5, inmutabilidad×5, 9 guards |
 | 29 | `0167_bank_reconciliation` | dinero×4, aislamiento×7 |
