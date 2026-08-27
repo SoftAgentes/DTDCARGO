@@ -7,21 +7,22 @@ created: 2026-08-26
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0024", "0028", "0029", "0036", "0045", "0051", "0054", "0059", "0069", "0072", "0096", "0101", "0109", "0111", "0310", "0311"]
+related: ["0024", "0028", "0029", "0036", "0045", "0049", "0051", "0054", "0059", "0069", "0072", "0096", "0101", "0109", "0111", "0310", "0311"]
 confidencialidad: interno
 ---
 
 # DTD-0312 — Contratos para la lógica que corría sin red
 
-> Diecinueve migraciones que deciden cuánto se le cobra a un cliente, si su
+> Veinte migraciones que deciden cuánto se le cobra a un cliente, si su
 > aceptación legal vale, si un despacho puede retroceder, cuánta plata se le
 > rinde a la Operadora, cuánto se le paga al socio en China, cuánto se le paga a
 > alguien que se va, a qué proveedor se le sigue comprando, **quién puede borrar
 > la única foto de lo que llegó**, qué puede tocar un operario desde el
 > teléfono, qué se declara en aduana, si se le paga un siniestro, a quién se le
 > acredita un referido, quién puede escribir en el expediente de otro y quién
-> puede quemarle el correlativo a otra empresa, y si el expediente de un bug
-> dice la verdad de lo que se hizo con él. Ninguna tenía contrato.
+> puede quemarle el correlativo a otra empresa, si el expediente de un bug dice
+> la verdad de lo que se hizo con él y de qué expediente cuelga cada papel
+> adjunto. Ninguna tenía contrato.
 
 ## Primero, el número honesto
 
@@ -55,7 +56,7 @@ Cabeza de la lista: `0123_rendiciones` (43) · `0024_dispatch_core` (40) ·
 `0128_sales_order_invoicing_hardening` (40) · `0093_comments_hardening` (37) ·
 `0114_financiero_china` (35) · `0102_capa_legal` (34). Se cubrieron las seis.
 
-## Los dieciséis que se cubrieron
+## Los diecisiete que se cubrieron
 
 ### 1 · `0128` — el núcleo transaccional de la auto-facturación
 
@@ -505,9 +506,61 @@ escritas en **voseo** («Necesitás estar autenticado», «No pertenecés al ten
 del bug»). Es texto que puede llegar a la pantalla y rompe la regla de
 español venezolano del repo.
 
+### 17 · `0097` — el hub de documentos
+
+`documents` es el adjunto de cualquier transacción del ERP: el BL de un
+embarque, la factura de un proveedor, el comprobante de un pago. Es
+**polimórfico y NO tiene FK** — `entity_type` + `entity_id` apuntan a nueve
+tablas distintas y nada en el esquema obliga a que ese id exista.
+
+Lo único que lo sostiene es un trigger, y la propia migración explica por qué
+vive en la base: *«la server action valida, PERO un cliente Supabase directo
+(PostgREST) la saltaría»*. O sea que este guard existe justamente para el caso
+que los tests de la app **no pueden** probar. Y no tenía contrato.
+
+Nueve contratos. Los tres que pesan:
+
+🔴 **Las tres formas de forjar un `entity_id`:** inexistente · de otra empresa ·
+**de otro tipo**. La tercera es la que se escapa: el uuid de una factura
+declarado como embarque pasa cualquier `exists` que sólo mire el tenant. Si
+pasa, el BL de una empresa queda colgado del expediente de otra.
+
+🔴 **El guard cubre el UPDATE, no sólo el INSERT.** Sin eso, se sube el
+documento contra la entidad propia —que pasa— y después se lo *mueve* con un
+UPDATE al expediente ajeno.
+
+🔴 **La rama `else` del CASE es fail-closed.** El riesgo no es hoy, con los
+nueve tipos cubiertos: es el día que alguien agregue un tipo adjuntable al enum
+y olvide su rama. El contrato agrega uno a propósito, sin tocar el CASE, y
+exige que la base **rechace**.
+
+Y el par 4: **el CHECK de coherencia tapa un hueco del helper**. El helper
+devuelve `true` en cuanto `entity_id` es null — no valida, se aparta. Lo que
+impide un documento de tipo `shipment` **sin embarque** es el CHECK. Las dos
+piezas se necesitan, así que se prueban juntas.
+
+#### ⚠️ Tres cosas medidas que el contrato **no** cierra
+
+🔴 **El soft delete es una convención de la app, no un candado.** La tabla dice
+«soft delete (auditable)» y el `grant` incluye `delete`: medido, `authenticated`
+**borra la fila de verdad** y la auditoría se va con ella. Es exactamente el
+hueco que la migración dice defender —el cliente PostgREST que se salta la
+server action— dejado abierto justo en el borrado.
+
+Y al revés: un documento ya soft-deleted **no se puede restaurar**. El `using`
+de la policy `for all` exige `deleted_at is null`, así que la fila sale del
+alcance del equipo apenas se marca; sólo `service_role` la trae de vuelta.
+Puede ser deliberado, pero no está escrito en ningún lado.
+
+`anon` puede EJECUTAR `document_entity_in_tenant`. Es `security definer`, lee
+nueve tablas saltándose sus grants y devuelve un booleano: un **oráculo de
+existencia**. Hay que adivinar dos uuids, así que el riesgo práctico es bajo —
+pero es la misma deuda que `next_bug_folio` en la 0028, y la misma convención
+del repo sin cumplir.
+
 ## Verificación
 
-**156 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
+**165 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
 
 | Migración | Contratos | Mutaciones probadas | Detectadas |
 |---|---|---|---|
@@ -527,8 +580,9 @@ español venezolano del repo.
 | 0236 supplier_scorecard | 7 | 13 | 13 |
 | 0022+0183 receipt_photos | 10 | 17 | 17 |
 | 0028+0039 bug_reporter | 11 | 24 | 24 |
+| 0097 documentos_hub | 9 | 18 | 18 |
 
-**161 mutaciones, 161 detectadas.**
+**179 mutaciones, 179 detectadas.**
 
 Dos precisiones sobre qué reporta cada mutación, porque «detectada» no siempre
 quiere decir «la detectó el contrato que la nombra»:
@@ -617,6 +671,14 @@ por la mutación y reescritos:
   función no compiló, nada avanzó y lo atrapó el contrato 1. Rojo honesto que no
   probaba una sola línea del contrato 5. Se quita el statement entero.
 
+- 🔴 En `0097`, «no se borra el archivo de otra empresa del bucket» salía verde
+  con la policy de DELETE **abierta de par en par**. La sostiene la policy de
+  **lectura**: un `delete … where name = …` referencia una columna, así que
+  Postgres aplica también las policies de SELECT y la fila ajena es invisible
+  antes de poder borrarse. Excelente noticia como defensa en profundidad y
+  pésima como medición — el contrato creía estar midiendo el borrado. Se
+  agregó una afirmación estructural que mira las **tres** policies una por una.
+
 **La regla que sale de las ocho:** si mutas *una sola* protección y el contrato
 sigue verde, no es que la mutación falló — es que **hay otra pieza sosteniendo
 el caso, el fixture no distingue las dos hipótesis, el guard mutado deshace el
@@ -657,7 +719,7 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Lo que esta spec NO puede afirmar
 
-- **Que las otras 131 estén bien.** Se cubrieron 19 migraciones de 150 en 16 archivos de contrato. La lista rankeada
+- **Que las otras 130 estén bien.** Se cubrieron 20 migraciones de 150 en 17 archivos de contrato. La lista rankeada
   queda medida y reproducible, no resuelta.
 - **Que estos guards funcionen con datos reales.** Los contratos corren sobre un
   Postgres desechable con stubs de fidelidad mínima: fieles en los tipos
@@ -688,7 +750,6 @@ Orden real de acá en adelante:
 
 | Puntos | Migración | Por qué |
 |---|---|---|
-| 29 | `0097_documentos_hub` | dinero×3, aislamiento×5 |
 | 29 | `0165_fiscal_books` | dinero×5, inmutabilidad×5, 9 guards |
 | 29 | `0167_bank_reconciliation` | dinero×4, aislamiento×7 |
 | 28 | `0021_operario_admin_rpcs` · `0214_bitacora` | aislamiento + guards |
