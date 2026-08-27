@@ -7,20 +7,20 @@ created: 2026-08-26
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0024", "0029", "0045", "0051", "0054", "0059", "0069", "0072", "0096", "0101", "0109", "0111", "0310", "0311"]
+related: ["0024", "0029", "0045", "0051", "0054", "0059", "0069", "0072", "0096", "0028", "0101", "0109", "0111", "0310", "0311"]
 confidencialidad: interno
 ---
 
 # DTD-0312 — Contratos para la lógica que corría sin red
 
-> Quince migraciones que deciden cuánto se le cobra a un cliente, si su
+> Diecisiete migraciones que deciden cuánto se le cobra a un cliente, si su
 > aceptación legal vale, si un despacho puede retroceder, cuánta plata se le
 > rinde a la Operadora, cuánto se le paga al socio en China, cuánto se le paga a
-> alguien que se va, a qué proveedor se le sigue comprando, qué puede tocar un
-> operario desde el teléfono, qué se declara en aduana, si se le paga un
-> siniestro, a quién se le acredita un referido, quién puede escribir en el
-> expediente de otro y quién puede quemarle el correlativo a otra empresa.
-> Ninguna tenía contrato.
+> alguien que se va, a qué proveedor se le sigue comprando, **quién puede borrar
+> la única foto de lo que llegó**, qué puede tocar un operario desde el
+> teléfono, qué se declara en aduana, si se le paga un siniestro, a quién se le
+> acredita un referido, quién puede escribir en el expediente de otro y quién
+> puede quemarle el correlativo a otra empresa. Ninguna tenía contrato.
 
 ## Primero, el número honesto
 
@@ -54,7 +54,7 @@ Cabeza de la lista: `0123_rendiciones` (43) · `0024_dispatch_core` (40) ·
 `0128_sales_order_invoicing_hardening` (40) · `0093_comments_hardening` (37) ·
 `0114_financiero_china` (35) · `0102_capa_legal` (34). Se cubrieron las seis.
 
-## Los catorce que se cubrieron
+## Los quince que se cubrieron
 
 ### 1 · `0128` — el núcleo transaccional de la auto-facturación
 
@@ -401,9 +401,47 @@ prueba con RLS puesta y rol `authenticated`.
 mano (100/A · 92/A · 48/D), hay una afirmación que barre **todo** lo que la
 vista devuelva y exige que el grade coincida con los umbrales del Norte.
 
+### 15 · `0022` + `0183` — las fotos de la recepción en Yiwu
+
+Son las fotos que el operario le toma a la mercancía cuando entra a la bodega.
+Es la **única prueba** de qué llegó y en qué estado: cuando el cliente reclama
+que faltaba una caja o que venía golpeada, lo que se mira es esto. Y son fotos
+de la carga de un cliente — quién las ve importa tanto como quién las borra.
+
+Diez contratos. Los tres que pesan:
+
+🔴 **`unlink_receipt_photo` no borra la foto de otra empresa.** Es la que
+destruye evidencia. Borra por id filtrando por el tenant del operario; si ese
+filtro se cae, un operario borra la prueba de un reclamo ajeno y la RPC **ni
+siquiera falla** — devuelve el path y el server action borra el objeto del
+bucket detrás.
+
+🔴 **Las dos RPC son sólo de `service_role`.** Son `security definer` y reciben
+el `p_operario_id` **como parámetro**: no lo derivan de la sesión. Quien las
+pueda ejecutar elige de qué operario hacerse pasar, y una de ellas borra. La
+0183 las re-declara con un `revoke` más corto que el de la 0022 (omite
+`authenticated`), así que el contrato mide el **estado final**, no la intención.
+
+🔴 **El bucket es privado y la lectura va acotada por el PATH.** Acá no hay
+columna `tenant_id` que gobierne: lo único que separa las fotos de una empresa
+de las de la otra es el primer segmento de un string. Se prueba con la RLS de
+`storage.objects` encendida —que la trae Supabase, no esta migración—; sin
+encenderla, las policies existirían sin gobernar nada y el contrato pasaría
+siempre.
+
+Y la que aporta la 0183: **el reintento offline no duplica la foto ni devuelve
+null.** La cola reintenta cuando se pierde la RESPUESTA, no la subida; con null
+el teléfono lo lee como fallo y reintenta esa foto para siempre.
+
+⚠️ **Hallazgo que queda anotado y no se puede contratar acá:** el
+`on conflict (id) do update` del bucket reajusta el tamaño y los mime types,
+pero **no toca `public`**. Si alguien abre el bucket a mano desde el panel,
+re-correr la migración no lo vuelve a cerrar. El contrato sólo puede probar que
+una aplicación limpia lo crea privado.
+
 ## Verificación
 
-**135 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
+**145 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
 
 | Migración | Contratos | Mutaciones probadas | Detectadas |
 |---|---|---|---|
@@ -421,8 +459,9 @@ vista devuelva y exige que el grade coincida con los umbrales del Norte.
 | 0147 supplier_packing_uploads | 8 | 9 | 9 |
 | 0179 nomina_settlements | 8 | 12 | 12 |
 | 0236 supplier_scorecard | 7 | 13 | 13 |
+| 0022+0183 receipt_photos | 10 | 17 | 17 |
 
-**120 mutaciones, 120 detectadas.**
+**137 mutaciones, 137 detectadas.**
 
 Dos precisiones sobre qué reporta cada mutación, porque «detectada» no siempre
 quiere decir «la detectó el contrato que la nombra»:
@@ -490,12 +529,27 @@ por la mutación y reescritos:
   `where` al índice parcial no cambia nada, porque Postgres trata los NULL como
   distintos en un índice único; la que sí muta es `nulls not distinct`.
 
+- 🔴 En `0022` la mutación más importante —**la 0183 revertida entera**— salió
+  roja **por la razón equivocada**: mi reemplazo dejó un `do nothing` huérfano y
+  el archivo ni siquiera compilaba. Un arnés que sólo mira el color habría
+  contado eso como «detectada» sin que el contrato llegara a correr nunca. Es el
+  espejo exacto de la mutación que no muta: ésta muta **de más**. Quitando la
+  cláusula entera cae donde tiene que caer, en el contrato 8 y con su propia
+  afirmación.
+
 **La regla que sale de las ocho:** si mutas *una sola* protección y el contrato
 sigue verde, no es que la mutación falló — es que **hay otra pieza sosteniendo
 el caso, el fixture no distingue las dos hipótesis, el guard mutado deshace el
 escenario que lo iba a atrapar, o el escenario no entra por donde vive el guard
 que se quiere probar**. En ninguno de los cuatro casos ese contrato mide lo que
 dice medir.
+
+**Y una regla aparte para el arnés, que falló dos veces (`0236` y `0022`):** el
+color no es la medición. Un runner que se **saltó** la prueba sale 0 igual que
+un verde, y un archivo que **no compila** sale ≠0 igual que un contrato que
+atrapó la regresión. Antes de leer un resultado hay que exigir evidencia
+positiva de que la prueba **corrió** y de que falló **por lo que se esperaba** —
+el nombre del contrato en la salida, no sólo el exit code.
 
 Gate completo `node scripts/verify.mjs`.
 
@@ -523,7 +577,7 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Lo que esta spec NO puede afirmar
 
-- **Que las otras 135 estén bien.** Se cubrieron 15 migraciones de 150 en 14 archivos de contrato. La lista rankeada
+- **Que las otras 133 estén bien.** Se cubrieron 17 migraciones de 150 en 15 archivos de contrato. La lista rankeada
   queda medida y reproducible, no resuelta.
 - **Que estos guards funcionen con datos reales.** Los contratos corren sobre un
   Postgres desechable con stubs de fidelidad mínima: fieles en los tipos
@@ -536,7 +590,32 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Siguiente por daño
 
-`0022`/`0183_receipt_photo` (30, borran datos) · `0090_comments` — la
-inmutabilidad de `comments` (no la de las menciones) sigue sin contrato: la 0093
-sólo cubre lo suyo. Con `0236` queda cubierta **toda la cabeza del ranking**: de
-acá para abajo el daño esperado baja de 35 a 30.
+⚠️ **Corrección: la cabeza NO está cubierta, y el error fue de lectura mía.**
+Al volver a mirar el ranking en vez de la línea que yo mismo había escrito la
+vuelta anterior, aparece **`0028_bug_reporter` con 31 puntos** —
+`rechaza (guard)×10`, `máquina de estados×7`, `permisos/rol×4`— sentada entre
+`0102` (34) y las fotos (30). **Se saltó**: ninguna vuelta la nombró, y esta
+spec llegó a afirmar que la cabeza quedaba cerrada. No queda: es la siguiente.
+
+Y en el mismo movimiento se cae el otro dato que venía arrastrándose:
+**`0090_comments` puntúa 17, no 30.** La vuelta anterior lo puso a la cabeza
+por memoria, no por medición. Sigue sin contrato —la inmutabilidad de
+`comments`, no la de las menciones; la 0093 sólo cubre lo suyo— pero está muy
+por debajo de lo que decía.
+
+Orden real de acá en adelante:
+
+| Puntos | Migración | Por qué |
+|---|---|---|
+| **31** | `0028_bug_reporter` | 10 guards, máquina de estados, correlativo |
+| 29 | `0097_documentos_hub` | dinero×3, aislamiento×5 |
+| 29 | `0165_fiscal_books` | dinero×5, inmutabilidad×5, 9 guards |
+| 29 | `0167_bank_reconciliation` | dinero×4, aislamiento×7 |
+| 28 | `0021_operario_admin_rpcs` · `0214_bitacora` | aislamiento + guards |
+| 17 | `0090_comments` | inmutabilidad×4, dinero×1 |
+
+**La lección no es del ranking, es del método:** una lista rankeada sólo sirve
+si se vuelve a leer. Yo la leí una vez, escribí «siguiente: X» en la spec, y
+después seguí esa frase durante cuatro vueltas en lugar del archivo. Es la misma
+falla que persigo en los contratos —confiar en lo que quedó escrito antes que en
+lo medido— aplicada a mi propia bitácora.
