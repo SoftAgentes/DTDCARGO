@@ -7,15 +7,16 @@ created: 2026-08-26
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0024", "0029", "0045", "0051", "0054", "0059", "0069", "0072", "0096", "0101", "0310", "0311"]
+related: ["0024", "0029", "0045", "0051", "0054", "0059", "0069", "0072", "0096", "0101", "0109", "0111", "0310", "0311"]
 confidencialidad: interno
 ---
 
 # DTD-0312 — Contratos para la lógica que corría sin red
 
-> Trece migraciones que deciden cuánto se le cobra a un cliente, si su
+> Quince migraciones que deciden cuánto se le cobra a un cliente, si su
 > aceptación legal vale, si un despacho puede retroceder, cuánta plata se le
-> rinde a la Operadora, cuánto se le paga al socio en China, qué puede tocar un
+> rinde a la Operadora, cuánto se le paga al socio en China, cuánto se le paga a
+> alguien que se va, a qué proveedor se le sigue comprando, qué puede tocar un
 > operario desde el teléfono, qué se declara en aduana, si se le paga un
 > siniestro, a quién se le acredita un referido, quién puede escribir en el
 > expediente de otro y quién puede quemarle el correlativo a otra empresa.
@@ -53,7 +54,7 @@ Cabeza de la lista: `0123_rendiciones` (43) · `0024_dispatch_core` (40) ·
 `0128_sales_order_invoicing_hardening` (40) · `0093_comments_hardening` (37) ·
 `0114_financiero_china` (35) · `0102_capa_legal` (34). Se cubrieron las seis.
 
-## Los doce que se cubrieron
+## Los catorce que se cubrieron
 
 ### 1 · `0128` — el núcleo transaccional de la auto-facturación
 
@@ -354,9 +355,55 @@ No era decoración — era que el escenario sólo entraba por la RPC. Se agregó
 **INSERT directo**, que es lo que haría un cliente PostgREST saltándose la RPC, y
 es lo único que pone al índice a prueba solo.
 
+### 13 · `0179` — el finiquito de egreso
+
+Lo que se le paga a una persona cuando deja de trabajar acá, calculado según la
+causa de terminación que manda la LOTTT. **Es plata que sale hacia alguien, con
+su nombre adentro.**
+
+Ocho contratos. Los dos que más pesan:
+
+🔴 **RLS por tenant Y por ROL.** Es PII de egreso más dinero, así que la policy
+no alcanza con el tenant: exige `nomina_can_access()`. Se prueba con RLS puesta y
+**dos usuarios del mismo tenant** — el contador ve sus finiquitos, y el
+operativo no ve ni uno, ni un renglón del desglose, ni puede crear uno. El gate
+de rol de la app es la segunda capa, no la única.
+
+🔴 **Un solo finiquito vivo por empleado**, y anular sí libera. Un segundo
+finiquito no anulado es pagarle dos veces la misma liquidación; y un finiquito
+mal calculado tiene que poder rehacerse.
+
+Y el guard de fechas, que parece trivial y no lo es: **el egreso nunca antes del
+ingreso**. La antigüedad sale de esa resta — invertida, las prestaciones salen
+absurdas y nadie lo ve hasta el pago.
+
+### 14 · `0236` — el scorecard de proveedores
+
+El rating A/B/C/D decide a qué proveedor chino se le sigue comprando. Se deriva
+en vivo de señales atómicas (¿llegó a tiempo? ¿conforme?) y de los reclamos —
+nunca es una columna que alguien teclea. Eso lo hace auditable, y también lo
+vuelve frágil de una forma silenciosa: si la fórmula y la letra se separan, la
+pantalla muestra una letra que no corresponde al número y nadie tiene cómo
+notarlo.
+
+Siete contratos. Los tres que valen:
+
+🔴 **Un proveedor sin historia no es malo: es desconocido.** Con cero órdenes el
+grade es NULL («Sin datos»), no «D». Si saliera D, se le dejaría de comprar a un
+proveedor nuevo por no tener pasado.
+
+🔴 **`security_invoker = on` en la vista.** Sin eso, la vista corre con los
+permisos de su dueño y se salta la RLS de las tablas de abajo: un tenant vería
+el scorecard del otro, con los nombres de sus proveedores y su desempeño. Se
+prueba con RLS puesta y rol `authenticated`.
+
+🔴 **La letra nunca contradice al número.** Además de los tres casos elegidos a
+mano (100/A · 92/A · 48/D), hay una afirmación que barre **todo** lo que la
+vista devuelva y exige que el grade coincida con los umbrales del Norte.
+
 ## Verificación
 
-**133 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
+**135 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
 
 | Migración | Contratos | Mutaciones probadas | Detectadas |
 |---|---|---|---|
@@ -372,8 +419,10 @@ es lo único que pone al índice a prueba solo.
 | 0098 fidelizacion_referidos | 6 | 8 | 8 |
 | 0152+0153 client_claims | 6 | 11 | 11 |
 | 0147 supplier_packing_uploads | 8 | 9 | 9 |
+| 0179 nomina_settlements | 8 | 12 | 12 |
+| 0236 supplier_scorecard | 7 | 13 | 13 |
 
-**95 mutaciones, 95 detectadas.**
+**120 mutaciones, 120 detectadas.**
 
 Dos precisiones sobre qué reporta cada mutación, porque «detectada» no siempre
 quiere decir «la detectó el contrato que la nombra»:
@@ -425,7 +474,23 @@ por la mutación y reescritos:
   que haría un cliente PostgREST saltándose la RPC, y es lo único que pone al
   índice a prueba solo.
 
-**La regla que sale de las siete:** si mutas *una sola* protección y el contrato
+- 🔴 En `0179`, «el egreso nunca antes del ingreso». El empleado ya tenía un
+  finiquito vivo, así que el insert de prueba lo rechazaba **el índice de "uno
+  solo vivo"** y no el guard de fechas: verde con ese guard arrancado. Se inserta
+  como `anulado`, donde el índice no aplica y la única puerta que queda es la que
+  se quiere probar.
+
+- 🔴 En `0236` la mutación falló por partida doble, y ninguna fue del contrato.
+  Primero **el arnés dio 13 de 13 «sin detectar»**: Docker se había caído, el
+  runner hacía SKIP y devolvía **exit 0**, y mi detector leía ese 0 como «la
+  mutación no se detectó». Trece contratos declarados decorados sin que ninguno
+  lo estuviera. El arnés ahora exige **evidencia positiva de que la corrida
+  midió algo** (`contrato(s) de SQL` presente y `SKIP` ausente) y aborta en vez
+  de concluir. Y después quedó una **mutación que no mutaba**: quitarle el
+  `where` al índice parcial no cambia nada, porque Postgres trata los NULL como
+  distintos en un índice único; la que sí muta es `nulls not distinct`.
+
+**La regla que sale de las ocho:** si mutas *una sola* protección y el contrato
 sigue verde, no es que la mutación falló — es que **hay otra pieza sosteniendo
 el caso, el fixture no distingue las dos hipótesis, el guard mutado deshace el
 escenario que lo iba a atrapar, o el escenario no entra por donde vive el guard
@@ -458,7 +523,7 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Lo que esta spec NO puede afirmar
 
-- **Que las otras 137 estén bien.** Se cubrieron 13 migraciones de 150 en 12 archivos de contrato. La lista rankeada
+- **Que las otras 135 estén bien.** Se cubrieron 15 migraciones de 150 en 14 archivos de contrato. La lista rankeada
   queda medida y reproducible, no resuelta.
 - **Que estos guards funcionen con datos reales.** Los contratos corren sobre un
   Postgres desechable con stubs de fidelidad mínima: fieles en los tipos
@@ -471,7 +536,7 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Siguiente por daño
 
-`0179_nomina_settlements` (35) · `0236_supplier_scorecard` (35) ·
 `0022`/`0183_receipt_photo` (30, borran datos) · `0090_comments` — la
 inmutabilidad de `comments` (no la de las menciones) sigue sin contrato: la 0093
-sólo cubre lo suyo.
+sólo cubre lo suyo. Con `0236` queda cubierta **toda la cabeza del ranking**: de
+acá para abajo el daño esperado baja de 35 a 30.
