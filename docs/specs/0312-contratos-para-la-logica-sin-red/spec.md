@@ -7,17 +7,18 @@ created: 2026-08-26
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0024", "0029", "0045", "0054", "0059", "0069", "0072", "0310", "0311"]
+related: ["0024", "0029", "0045", "0051", "0054", "0059", "0069", "0072", "0310", "0311"]
 confidencialidad: interno
 ---
 
 # DTD-0312 — Contratos para la lógica que corría sin red
 
-> Nueve migraciones que deciden cuánto se le cobra a un cliente, si su
+> Diez migraciones que deciden cuánto se le cobra a un cliente, si su
 > aceptación legal vale, si un despacho puede retroceder, cuánta plata se le
 > rinde a la Operadora, cuánto se le paga al socio en China, qué puede tocar un
-> operario desde el teléfono, quién puede escribir en el expediente de otro y
-> quién puede quemarle el correlativo a otra empresa. Ninguna tenía contrato.
+> operario desde el teléfono, a quién se le acredita un referido, quién puede
+> escribir en el expediente de otro y quién puede quemarle el correlativo a otra
+> empresa. Ninguna tenía contrato.
 
 ## Primero, el número honesto
 
@@ -51,7 +52,7 @@ Cabeza de la lista: `0123_rendiciones` (43) · `0024_dispatch_core` (40) ·
 `0128_sales_order_invoicing_hardening` (40) · `0093_comments_hardening` (37) ·
 `0114_financiero_china` (35) · `0102_capa_legal` (34). Se cubrieron las seis.
 
-## Los nueve que se cubrieron
+## Los diez que se cubrieron
 
 ### 1 · `0128` — el núcleo transaccional de la auto-facturación
 
@@ -265,9 +266,27 @@ falte el `perform` para que quede abierto mientras el resto sigue cerrado— ·
 fijado**, que sin eso quien controle el search_path antepone un esquema propio y
 hace que la función corra SU tabla con los privilegios del dueño (ADVISOR-A).
 
+### 10 · `0098` — el programa de referidos
+
+Un referido es la promesa de pagarle a un cliente por traer a otro. Si el
+vínculo se corrompe no hay error en pantalla: hay un crédito que se le acredita
+a quien no fue, o que no se le acredita a nadie. Y quien reclama es el cliente
+que trajo al otro.
+
+Seis contratos. El que vale documentar es el **4**, porque fija un diseño que se
+lee como un descuido y no lo es: **el referido sobrevive al borrado del cliente
+referidor**. La FK es `on delete set null` y `referrer_markbox` es NOT NULL y
+denormalizado, así que borrar al cliente suelta el vínculo pero no borra el
+referido ni pierde de quién era. Con un `cascade` se irían con él todos los
+referidos que trajo — y con ellos, la prueba de que los trajo.
+
+Y el **1**: las dos puntas (referidor y referido) se validan por separado en el
+trigger, así que un contrato que mirara sólo una dejaría la otra abierta. Se
+prueban las dos, y la mutación lo confirma punta por punta.
+
 ## Verificación
 
-**130 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
+**131 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
 
 | Migración | Contratos | Mutaciones probadas | Detectadas |
 |---|---|---|---|
@@ -280,8 +299,9 @@ hace que la función corra SU tabla con los privilegios del dueño (ADVISOR-A).
 | 0115 partner_statements | 8 | 10 | 10 |
 | 0070+0072 operario_action | 8 | 8 | 8 |
 | 0012 rls_perf_and_rpc_guards | 7 | 7 | 7 |
+| 0098 fidelizacion_referidos | 6 | 8 | 8 |
 
-**67 mutaciones, 67 detectadas.**
+**75 mutaciones, 75 detectadas.**
 
 Dos precisiones sobre qué reporta cada mutación, porque «detectada» no siempre
 quiere decir «la detectó el contrato que la nombra»:
@@ -316,9 +336,15 @@ por la mutación y reescritos:
   reloj**: un re-escaneo escribía el mismo valor y el contrato pasaba con el
   guard arrancado. Se antedata la marca antes de intentar el segundo escaneo.
 
-**La regla que sale de las cuatro:** si mutas *una sola* protección y el
-contrato sigue verde, no es que la mutación falló — es que hay otra pieza
-sosteniendo el caso y ese contrato no mide lo que dice medir.
+- 🔴 En `0098`, «el correlativo no se comparte entre tenants». Cada tenant
+  tenía **un solo** código, así que filtrar o no filtrar daba el mismo número:
+  los dos iban por el 0002. El fixture no distinguía las dos hipótesis. Se
+  desempata dejando los contadores en números distintos.
+
+**La regla que sale de las cinco:** si mutas *una sola* protección y el contrato
+sigue verde, no es que la mutación falló — es que **hay otra pieza sosteniendo
+el caso, o el fixture no distingue las dos hipótesis**. En ninguno de los dos
+casos ese contrato mide lo que dice medir.
 
 Gate completo `node scripts/verify.mjs`.
 
@@ -346,7 +372,7 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Lo que esta spec NO puede afirmar
 
-- **Que las otras 141 estén bien.** Se cubrieron 9 de 150. La lista rankeada
+- **Que las otras 140 estén bien.** Se cubrieron 10 de 150. La lista rankeada
   queda medida y reproducible, no resuelta.
 - **Que estos guards funcionen con datos reales.** Los contratos corren sobre un
   Postgres desechable con stubs de fidelidad mínima: fieles en los tipos
@@ -359,8 +385,8 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Siguiente por daño
 
-`0098_fidelizacion_referidos` (35) · `0147_supplier_packing_uploads` (35) ·
-`0152`/`0153_client_claims` (35) · `0179_nomina_settlements` (35) ·
-`0236_supplier_scorecard` (35) · `0022`/`0183_receipt_photo` (30, borran datos) ·
-`0090_comments` — la inmutabilidad de `comments` (no la de las menciones) sigue
-sin contrato: la 0093 sólo cubre lo suyo.
+`0147_supplier_packing_uploads` (35) · `0152`/`0153_client_claims` (35) ·
+`0179_nomina_settlements` (35) · `0236_supplier_scorecard` (35) ·
+`0022`/`0183_receipt_photo` (30, borran datos) · `0090_comments` — la
+inmutabilidad de `comments` (no la de las menciones) sigue sin contrato: la 0093
+sólo cubre lo suyo.
