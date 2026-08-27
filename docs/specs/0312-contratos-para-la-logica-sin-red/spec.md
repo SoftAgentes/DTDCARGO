@@ -7,18 +7,19 @@ created: 2026-08-26
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0024", "0029", "0045", "0051", "0054", "0059", "0069", "0072", "0310", "0311"]
+related: ["0024", "0029", "0045", "0051", "0054", "0059", "0069", "0072", "0096", "0101", "0310", "0311"]
 confidencialidad: interno
 ---
 
 # DTD-0312 — Contratos para la lógica que corría sin red
 
-> Diez migraciones que deciden cuánto se le cobra a un cliente, si su
+> Trece migraciones que deciden cuánto se le cobra a un cliente, si su
 > aceptación legal vale, si un despacho puede retroceder, cuánta plata se le
 > rinde a la Operadora, cuánto se le paga al socio en China, qué puede tocar un
-> operario desde el teléfono, a quién se le acredita un referido, quién puede
-> escribir en el expediente de otro y quién puede quemarle el correlativo a otra
-> empresa. Ninguna tenía contrato.
+> operario desde el teléfono, qué se declara en aduana, si se le paga un
+> siniestro, a quién se le acredita un referido, quién puede escribir en el
+> expediente de otro y quién puede quemarle el correlativo a otra empresa.
+> Ninguna tenía contrato.
 
 ## Primero, el número honesto
 
@@ -52,7 +53,7 @@ Cabeza de la lista: `0123_rendiciones` (43) · `0024_dispatch_core` (40) ·
 `0128_sales_order_invoicing_hardening` (40) · `0093_comments_hardening` (37) ·
 `0114_financiero_china` (35) · `0102_capa_legal` (34). Se cubrieron las seis.
 
-## Los diez que se cubrieron
+## Los doce que se cubrieron
 
 ### 1 · `0128` — el núcleo transaccional de la auto-facturación
 
@@ -284,9 +285,78 @@ Y el **1**: las dos puntas (referidor y referido) se validan por separado en el
 trigger, así que un contrato que mirara sólo una dejaría la otra abierta. Se
 prueban las dos, y la mutación lo confirma punta por punta.
 
+### 11 · `0152` + `0153` — los reclamos del cliente
+
+Un reclamo es un cliente diciendo que su carga llegó dañada, incompleta o tarde,
+y un monto en dólares al lado. Es el registro que decide si se paga un siniestro.
+La 0153 es aditiva sobre la 0152 y agrega toda la superficie del **portal**, que
+es la que un cliente puede tocar desde afuera — por eso el contrato carga las
+dos.
+
+Seis contratos. Los que importan:
+
+🔴 **El cliente del portal lee lo suyo y no escribe.** Se prueba con RLS puesta y
+rol `authenticated`: ve un solo reclamo de los dos del tenant, no puede crear uno
+con monto propio, y su UPDATE no cambia nada. Es la única defensa que vive en la
+base contra un cliente que se forje un siniestro.
+
+🔴 **La puerta de servicio es sólo para `service_role`.**
+`next_claim_code_service` existe SIN `assert_tenant_match` porque el cliente del
+portal no está en `user_tenants` y su hermana fallaría. Justamente por eso no
+puede quedar al alcance de nadie más: leería el correlativo de cualquier tenant.
+
+🔴 **Los hitos se sellan una vez.** `evaluated_at` al entrar a evaluación y no se
+re-sella; `resolved_at` en los **tres** terminales y **no** en `aprobado` —
+aprobar no es cerrar. Las tres filas de la seed demo de la 0152 sirven de
+comprobación extra: pasaron por el trigger de verdad al aplicarse la migración,
+no las inventó el contrato.
+
+#### 🔴 Lo que este contrato NO puede probar, y queda dicho
+
+La 0153 documenta que el INSERT del cliente **no va por RLS a propósito**: la
+action del portal usa el admin client y controla los campos sensibles
+(`amount_usd = 0`, `insured = false`, `status = 'reportado'`, `source =
+'portal'`) para que el cliente no forje un monto ni se marque como asegurado.
+
+**Ese control vive en la aplicación, no en la base.** Ningún contrato SQL lo
+alcanza. Está escrito en la cabecera del archivo para que nadie lea el verde como
+si cubriera esa mitad.
+
+### 12 · `0147` — el packing list que manda el proveedor
+
+El proveedor chino abre `/p/{token}` —anónimo, sin cuenta— y manda el packing
+list: qué hay en cada caja, cuánto pesa, cuánto vale. **Es el papel con el que
+después se declara en aduana.** Puede grabar tres veces mientras corrige, así
+que la tabla es append-only con versionado: el equipo ve la última y el
+historial queda entero.
+
+Ocho contratos. Dos que valen documentar:
+
+🔴 **`version_no` es monotónico y cuenta también las borradas.** El `max()` de la
+RPC no filtra por `deleted_at` a propósito: si filtrara, borrar la v2 haría que
+el próximo envío volviera a ser v2 y la cadena tendría dos «versión 2» distintas.
+El historial dejaría de ser una cadena justo cuando alguien pregunta qué declaró
+el proveedor.
+
+🔴 **La RPC es sólo `service_role`.** El proveedor es anónimo: su capability es
+el token, y quien lo valida es el route server-side. Si `anon` o `authenticated`
+alcanzaran la RPC, cualquiera inyectaría un packing list en la orden de
+cualquiera — sin token y sin rastro. La tabla, además, no tiene ninguna policy
+para `anon`: el proveedor nunca la toca.
+
+#### La séptima variante: dos protecciones del mismo hecho
+
+«Una sola versión vigente por orden» está sostenida por **dos** piezas: el índice
+único parcial y el `update is_current = false` de la RPC. Romper el índice dejaba
+el contrato en verde, porque con la RPC intacta el comportamiento sigue bien.
+
+No era decoración — era que el escenario sólo entraba por la RPC. Se agregó un
+**INSERT directo**, que es lo que haría un cliente PostgREST saltándose la RPC, y
+es lo único que pone al índice a prueba solo.
+
 ## Verificación
 
-**131 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
+**133 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
 
 | Migración | Contratos | Mutaciones probadas | Detectadas |
 |---|---|---|---|
@@ -300,8 +370,10 @@ prueban las dos, y la mutación lo confirma punta por punta.
 | 0070+0072 operario_action | 8 | 8 | 8 |
 | 0012 rls_perf_and_rpc_guards | 7 | 7 | 7 |
 | 0098 fidelizacion_referidos | 6 | 8 | 8 |
+| 0152+0153 client_claims | 6 | 11 | 11 |
+| 0147 supplier_packing_uploads | 8 | 9 | 9 |
 
-**75 mutaciones, 75 detectadas.**
+**95 mutaciones, 95 detectadas.**
 
 Dos precisiones sobre qué reporta cada mutación, porque «detectada» no siempre
 quiere decir «la detectó el contrato que la nombra»:
@@ -341,10 +413,24 @@ por la mutación y reescritos:
   los dos iban por el 0002. El fixture no distinguía las dos hipótesis. Se
   desempata dejando los contadores en números distintos.
 
-**La regla que sale de las cinco:** si mutas *una sola* protección y el contrato
+- 🔴 En `0152`, «`evaluated_at` no se re-sella». El escenario antedataba la
+  marca con un UPDATE… que **también pasa por el trigger**, así que la propia
+  mutación que se quería detectar deshacía el antedatado al vuelo y el contrato
+  salía verde. Se arma el escenario con el trigger **apagado**
+  (`disable trigger`) y se lo vuelve a encender antes de medir.
+
+- 🔴 En `0147`, «una sola versión vigente». Está sostenida por **dos** piezas —
+  el índice único parcial y el `update is_current = false` de la RPC— y el
+  escenario entraba sólo por la RPC. Se agregó un **INSERT directo**, que es lo
+  que haría un cliente PostgREST saltándose la RPC, y es lo único que pone al
+  índice a prueba solo.
+
+**La regla que sale de las siete:** si mutas *una sola* protección y el contrato
 sigue verde, no es que la mutación falló — es que **hay otra pieza sosteniendo
-el caso, o el fixture no distingue las dos hipótesis**. En ninguno de los dos
-casos ese contrato mide lo que dice medir.
+el caso, el fixture no distingue las dos hipótesis, el guard mutado deshace el
+escenario que lo iba a atrapar, o el escenario no entra por donde vive el guard
+que se quiere probar**. En ninguno de los cuatro casos ese contrato mide lo que
+dice medir.
 
 Gate completo `node scripts/verify.mjs`.
 
@@ -372,7 +458,7 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Lo que esta spec NO puede afirmar
 
-- **Que las otras 140 estén bien.** Se cubrieron 10 de 150. La lista rankeada
+- **Que las otras 137 estén bien.** Se cubrieron 13 migraciones de 150 en 12 archivos de contrato. La lista rankeada
   queda medida y reproducible, no resuelta.
 - **Que estos guards funcionen con datos reales.** Los contratos corren sobre un
   Postgres desechable con stubs de fidelidad mínima: fieles en los tipos
@@ -385,7 +471,6 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Siguiente por daño
 
-`0147_supplier_packing_uploads` (35) · `0152`/`0153_client_claims` (35) ·
 `0179_nomina_settlements` (35) · `0236_supplier_scorecard` (35) ·
 `0022`/`0183_receipt_photo` (30, borran datos) · `0090_comments` — la
 inmutabilidad de `comments` (no la de las menciones) sigue sin contrato: la 0093
