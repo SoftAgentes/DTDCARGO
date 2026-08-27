@@ -560,9 +560,25 @@ del repo sin cumplir.
 
 ## Verificación
 
-**165 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
+🔴 **Corrección de un número de esta misma spec.** Las tres vueltas anteriores
+dijeron 145, 156 y 165 «contratos SQL en verde». Está mal, y el error es de
+unidad: esta línea siempre contó **archivos `.test.sql`** —por eso arranca en
+121— y yo le fui sumando **afirmaciones**. Coincidieron en 135 por casualidad y
+de ahí en más divergieron. Lo que el gate imprime es lo primero.
 
-| Migración | Contratos | Mutaciones probadas | Detectadas |
+Los dos números, ahora separados y con su unidad:
+
+| Medida | Cantidad |
+|---|---|
+| Archivos `.test.sql` que corre el gate | **138** (eran 121) |
+| Afirmaciones escritas en esta spec | **131**, repartidas en 17 archivos |
+
+Que esto pase en la spec que empieza corrigiendo un «54» no reproducible es la
+lección redonda: **un número sin unidad al lado se degrada solo.**
+
+Cada guard validado por mutación:
+
+| Migración | Afirmaciones | Mutaciones probadas | Detectadas |
 |---|---|---|---|
 | 0128 sales_order_invoicing_hardening | 9 | 5 | 5 |
 | 0102 capa_legal | 7 | 7 | 7 |
