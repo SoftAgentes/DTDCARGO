@@ -35,7 +35,10 @@
 --      existe. Las dos piezas se necesitan y por eso van juntas.
 --   5. 🔴 Una entidad dada de baja no admite adjuntos nuevos: el helper exige
 --      `deleted_at is null` en la tabla apuntada.
---   6. 🔴 RLS por empresa, y la lectura no muestra los borrados.
+--   6. 🔴 RLS por empresa. Y los borrados SÍ se leen: quien los oculta es la
+--      app (`.is("deleted_at", null)` en cada query), no la base. Lo abrió la
+--      0230 a propósito y este contrato lo fija para que se note el día que
+--      alguien lo cierre creyendo que corrige un descuido.
 --   7. 🔴 El Storage está acotado por el primer segmento del path en las TRES
 --      operaciones —subir, leer, borrar—, no en una. ⚠️ El escenario de
 --      borrado NO aísla su policy: con la de DELETE abierta de par en par el
@@ -46,30 +49,48 @@
 --   8. 🔴 El bucket es privado y no acepta `text/html` ni ejecutables. Un HTML
 --      servido desde el dominio propio es XSS con sesión.
 --   9. El mismo objeto del bucket no se indexa dos veces.
+--  10. 🔴 El borrado suave es un CANDADO, no una convención: `authenticated`
+--      no puede destruir la fila.
 --
--- ── ⚠️ TRES COSAS MEDIDAS QUE ESTE CONTRATO **NO** CIERRA ─────────────────
+-- ── LO QUE SE MIDIÓ Y CAMBIÓ (2026-08-27) ─────────────────────────────────
 --
--- Se miden y se dejan escritas; no se contratan porque una afirmación de que
--- están cerradas saldría roja y una de que están abiertas dejaría el problema
--- clavado.
+-- Este bloque decía «TRES COSAS MEDIDAS QUE ESTE CONTRATO NO CIERRA». Dos ya no
+-- van: una se cerró, la otra estaba MAL — describía la 0097 aislada, que es lo
+-- único que este archivo aplicaba, y en producción la 0230 la había volteado.
 --
---   A. 🔴 **El soft delete es una convención de la app, no un candado.** La
---      tabla dice «soft delete (auditable)» y el `grant` incluye `delete`:
---      medido acá, `authenticated` **borra la fila de verdad** y la auditoría
---      se va con ella. Es exactamente el hueco que la migración dice defender
---      —el cliente PostgREST que se salta la server action— dejado abierto en
---      el borrado. Cerrarlo es quitar el `delete` del grant (que la app haga
---      soft delete con UPDATE) o un trigger que lo convierta.
---   B. Y al revés: un documento ya soft-deleted **no se puede restaurar**. El
---      `using` de la policy `for all` exige `deleted_at is null`, así que la
---      fila sale del alcance de `authenticated` apenas se marca. Sólo
---      `service_role` la trae de vuelta. Puede ser deliberado; no está escrito
---      en ningún lado.
---   C. `anon` puede EJECUTAR `document_entity_in_tenant`. Es `security
---      definer`, lee nueve tablas saltándose sus grants y devuelve un booleano:
---      es un **oráculo de existencia**. Hay que adivinar dos uuids, así que el
---      riesgo práctico es bajo, pero le falta el `revoke … from public, anon`
---      que la convención del repo pide en toda función nueva.
+--   A. ✅ **CERRADO** (migr 0394 · contrato 10). La tabla decía «soft delete
+--      (auditable)» y el grant incluía `delete`: `authenticated` borraba la fila
+--      de verdad y la auditoría se iba con ella. Ni `legal_hold = true` lo
+--      frenaba, y tras el borrado no sobrevivía ningún evento en
+--      `entity_audit_log` — con la 0313 (SDD-0224) prometiendo motivo, autor y
+--      cadena auditable. Era el mismo hueco que la 0097 dice defender —el
+--      cliente PostgREST que se salta la server action— dejado abierto en el
+--      borrado. La 0394 le quita el `delete` al grant: falla con 42501, visible,
+--      en vez de un 200 con la fila destruida.
+--   B. ❌ **ERA FALSO.** Decía que un documento borrado «no se puede
+--      restaurar» porque el `using` de la policy exige `deleted_at is null`. Eso
+--      valía sólo contra la 0097 sola. La **0230** se lo quitó a ~60 tablas
+--      —incluida ésta— porque ese `using` bloqueaba el propio soft-delete:
+--      Postgres exige que la fila resultante de un UPDATE siga cumpliendo el
+--      USING, así que poner `deleted_at` violaba la policy para cualquier
+--      usuario, siempre. Medido con el schema entero reconstruido: el equipo VE
+--      el borrado y lo restaura con `update … set deleted_at = null`. Está
+--      abierto y es deliberado; ahora el contrato 6 lo fija.
+--   C. 🔴 **SIGUE ABIERTO.** `anon` puede EJECUTAR `document_entity_in_tenant`.
+--      Es `security definer`, lee nueve tablas saltándose sus grants y devuelve
+--      un booleano: es un **oráculo de existencia**. Hay que adivinar dos uuids,
+--      así que el riesgo práctico es bajo, pero le falta el `revoke … from
+--      public, anon` que la convención del repo pide en toda función nueva.
+--
+-- ── ⚠️ LO QUE ESTE CONTRATO SIGUE SIN MIRAR ───────────────────────────────
+--
+-- El borrado del equipo NO exige motivo ni deja autor. La 0313 (SDD-0224) creó
+-- `soft_delete_document(id, motivo)` —motivo de ≥8 caracteres, `deleted_by`,
+-- `deletion_reason` y evento de auditoría— y **la app no la llama**: las dos
+-- acciones que borran (`deleteDocument`, `deleteTaskAttachmentAction`) hacen
+-- `update … set deleted_at = now()` a pelo. La 0394 cierra la destrucción de la
+-- fila, no la falta de motivo. Decisión del founder (2026-08-27): se decide
+-- aparte.
 --
 -- Cada contrato se validó rompiéndolo a propósito.
 
@@ -113,6 +134,19 @@ begin new.updated_at := now(); return new; end;
 $t$;
 
 \ir ../migrations/0097_documentos_hub.sql
+
+-- ⚠️ NO ALCANZA CON LA 0097. Este contrato aplicaba SÓLO esa migración, y por eso
+-- llevaba meses midiendo un estado que en producción ya no existe: la **0230**
+-- (bugfix, sin SDD) barrió ~60 tablas y le quitó el `and deleted_at is null` al
+-- `using` de toda policy FOR ALL — `documents` incluida. Con la 0097 sola, este
+-- archivo afirmaba en verde que un borrado no se ve, cuando en prod sí se ve.
+-- Un contrato que mide una migración aislada mide historia, no producción.
+--
+-- Se aplican las DOS migraciones que cambian lo que este archivo contrata:
+--   0230 → abre la lectura y la restauración de los borrados (deliberado).
+--   0394 → cierra el borrado FÍSICO por `authenticated` (contrato 10).
+\ir ../migrations/0230_fix_rls_soft_delete_blocked.sql
+\ir ../migrations/0394_documents_sin_borrado_duro.sql
 
 -- ⚠️ La RLS de `storage.objects` la trae Supabase de fábrica, no esta
 -- migración. Sin encenderla acá, las policies del contrato 7 existirían sin
@@ -329,9 +363,19 @@ begin
 end;
 $$;
 
--- ── 6 · 🔴 RLS por empresa, y los borrados no se muestran ─────────────────
+-- ── 6 · 🔴 RLS por empresa · y los borrados SÍ se ven (0230) ──────────────
+--
+-- Lo que aísla es el tenant, nada más. La 0230 le quitó `and deleted_at is null`
+-- al `using` a propósito: con esa condición adentro, el propio soft-delete era
+-- imposible —Postgres exige que la fila que sale de un UPDATE siga cumpliendo el
+-- USING, y ponerle `deleted_at` la sacaba—. Ocultar los borrados quedó del lado
+-- de la app (`.is("deleted_at", null)` en cada query de lib/studio/*-queries.ts).
+--
+-- Se fija en las DOS direcciones para que el arreglo de ida y el de vuelta no se
+-- pisen: si alguien devuelve el `deleted_at is null` al `using` creyendo que
+-- corrige un descuido, rompe el soft-delete otra vez y este contrato lo dice.
 do $$
-declare v_ajenos int; v_propios int; v_borrado int;
+declare v_ajenos int; v_propios int; v_borrado int; v_marcadas int; v_restauradas int;
 begin
   -- Un documento de la otra empresa y uno propio ya borrado.
   insert into public.documents (id, tenant_id, entity_type, entity_id, folder, name, storage_path)
@@ -351,17 +395,52 @@ begin
   select count(*) into v_propios from public.documents;
   select count(*) into v_borrado from public.documents
    where id = 'd0000010-0000-0000-0000-000000000010';
+
+  -- 🔴 El soft-delete tiene que PODER marcarse. Es lo que la 0230 vino a
+  -- arreglar: con `deleted_at is null` en el USING, este UPDATE fallaba con
+  -- «new row violates row-level security policy» para cualquier usuario.
+  -- Se capturan los dos: sin esto el rojo sale como un «new row violates
+  -- row-level security policy» pelado y quien lo lea no sabe qué rompió.
+  v_marcadas := 0;
+  begin
+    update public.documents set deleted_at = now()
+     where id = 'd0000004-0000-0000-0000-000000000004';
+    get diagnostics v_marcadas = row_count;
+  exception when others then
+    null;
+  end;
+
+  -- Y tiene que poder deshacerse: la fila marcada sigue al alcance del equipo.
+  v_restauradas := 0;
+  begin
+    update public.documents set deleted_at = null
+     where id = 'd0000004-0000-0000-0000-000000000004';
+    get diagnostics v_restauradas = row_count;
+  exception when others then
+    null;
+  end;
   reset role;
 
   if v_ajenos > 0 then
     raise exception
       'CONTRATO 6 ROTO: se ven % documento(s) de OTRA empresa', v_ajenos;
   end if;
-  if v_borrado > 0 then
-    raise exception 'CONTRATO 6 ROTO: un documento borrado sigue apareciendo en la lista';
+  if v_borrado = 0 then
+    raise exception
+      'CONTRATO 6 ROTO: la RLS volvio a ocultar los borrados. Alguien le devolvio el '
+      '«deleted_at is null» al USING que la 0230 quito — y con eso el soft-delete '
+      'vuelve a ser IMPOSIBLE para todos (ver el UPDATE de mas abajo)';
   end if;
   if v_propios = 0 then
     raise exception 'CONTRATO 6 ROTO: la empresa no ve ninguno de sus propios documentos';
+  end if;
+  if v_marcadas <> 1 then
+    raise exception
+      'CONTRATO 6 ROTO: el SOFT-DELETE no se puede marcar (% filas) — es el bug que la 0230 arreglo, de vuelta', v_marcadas;
+  end if;
+  if v_restauradas <> 1 then
+    raise exception
+      'CONTRATO 6 ROTO: un documento marcado como borrado ya no se puede RESTAURAR (% filas)', v_restauradas;
   end if;
 
   if has_table_privilege('anon', 'public.documents', 'select') then
@@ -481,6 +560,74 @@ begin
   exception when unique_violation then
     null;
   end;
+end;
+$$;
+
+-- ── 10 · 🔴 El borrado suave es un CANDADO, no una convención ─────────────
+--
+-- La 0097 escribió «soft delete (auditable)» en el comentario de la columna y
+-- acto seguido le dio `delete` al rol del equipo. Medido antes de la 0394: la
+-- fila desaparecía de verdad, sin error, y con ella el rastro — ni siquiera
+-- `legal_hold = true` la protegía, y `entity_audit_log` quedaba sin un solo
+-- evento de esa entidad. Es el MISMO hueco que la 0097 dice defender con su
+-- trigger («la server action valida, PERO un cliente Supabase directo la
+-- saltaría»), dejado abierto justo en el borrado.
+--
+-- Se mira el ESTADO, no el texto del error: da igual con qué código falle, lo
+-- que se afirma es que la fila sigue ahí.
+do $$
+declare v_vive int; v_service int;
+begin
+  insert into public.documents (id, tenant_id, entity_type, entity_id, folder, name, storage_path)
+  values ('d0000011-0000-0000-0000-000000000011', '11111111-1111-1111-1111-111111111111',
+          'shipment', 'c1111111-1111-1111-1111-111111111111', 'log-bl', 'no me borres',
+          '11111111-1111-1111-1111-111111111111/shipment/x/candado.pdf');
+
+  set local role authenticated;
+  perform set_config('test.uid', 'aa111111-1111-1111-1111-111111111111', true);
+  begin
+    delete from public.documents where id = 'd0000011-0000-0000-0000-000000000011';
+  exception when others then
+    null;
+  end;
+  reset role;
+
+  select count(*) into v_vive from public.documents
+   where id = 'd0000011-0000-0000-0000-000000000011';
+  if v_vive <> 1 then
+    raise exception
+      'CONTRATO 10 ROTO: «authenticated» DESTRUYO la fila. El soft delete volvio a '
+      'ser una convencion de la server action — y quien la saltee por PostgREST se '
+      'lleva el documento, su motivo, su autor y su auditoria';
+  end if;
+
+  -- Y el privilegio no está sólo dormido: no está.
+  if has_table_privilege('authenticated', 'public.documents', 'delete') then
+    raise exception
+      'CONTRATO 10 ROTO: «authenticated» tiene otra vez el privilegio DELETE sobre documents';
+  end if;
+  if has_table_privilege('authenticated', 'public.documents', 'truncate') then
+    raise exception
+      'CONTRATO 10 ROTO: «authenticated» puede TRUNCATE — la puerta de al lado, y se lleva la tabla entera';
+  end if;
+
+  -- 🔴 Pero el borrado FÍSICO legítimo tiene que seguir existiendo: el worker de
+  -- retención de SDD-0224 purga con service_role. Un candado que también traba a
+  -- quien sí debe borrar no es un candado, es un daño.
+  set local role service_role;
+  begin
+    delete from public.documents where id = 'd0000011-0000-0000-0000-000000000011';
+  exception when others then
+    null;  -- el ESTADO decide, no el error: se mira abajo si la fila se fue
+  end;
+  reset role;
+
+  select count(*) into v_service from public.documents
+   where id = 'd0000011-0000-0000-0000-000000000011';
+  if v_service <> 0 then
+    raise exception
+      'CONTRATO 10 ROTO: service_role ya no puede borrar fisicamente — el worker de retencion queda sin brazo';
+  end if;
 end;
 $$;
 
