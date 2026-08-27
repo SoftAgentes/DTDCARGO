@@ -132,9 +132,19 @@ describe("todo disparador de avisos tiene por dónde entrar", () => {
   // archivos crudos y salía verde con la allowlist vacía, porque el comentario
   // que escribí en `naviera/actions.ts` para explicar este mismo bug nombra
   // `createReceiptVe` tres veces. La documentación de un cable no es el cable.
-  const textoApp = archivos(join(RAIZ, "app"), [".ts", ".tsx"])
-    .map((f) => sinComentarios(readFileSync(f, "utf8")))
-    .join("\n");
+  //
+  // ⚡ Y se lee UNA sola vez. La primera versión recorría `app/` entero tres
+  // veces —una por afirmación— y bajo la carga del gate se pasaba de los 20 s
+  // de timeout: rojo intermitente, en el paso `test`, por un contrato que no
+  // había cambiado. Un contrato lento se vuelve ruido y termina ignorado.
+  const codigoApp: Array<{ ruta: string; codigo: string }> = archivos(
+    join(RAIZ, "app"),
+    [".ts", ".tsx"],
+  ).map((f) => ({
+    ruta: f.slice(RAIZ.length + 1),
+    codigo: sinComentarios(readFileSync(f, "utf8")),
+  }));
+  const textoApp = codigoApp.map((a) => a.codigo).join("\n");
 
   it("el escaneo encuentra algo (si no, todo lo demás de este archivo miente)", () => {
     // Sin esta afirmación, un cambio de layout dejaría la lista vacía y el
@@ -182,16 +192,14 @@ describe("todo disparador de avisos tiene por dónde entrar", () => {
     // propia documentación no verifica nada. Por eso acá se buscan las dos
     // cosas juntas y sobre el código sin comentarios: el nombre del evento y
     // una llamada real a un dispatcher, en el MISMO archivo.
-    const programan = archivos(join(RAIZ, "app"), [".ts", ".tsx"]).filter((f) => {
-      const codigo = sinComentarios(readFileSync(f, "utf8"));
-      return (
+    const programan = codigoApp.filter(
+      ({ codigo }) =>
         codigo.includes('"received_ve"') &&
-        DISPATCHERS.some((d) => codigo.includes(`${d}(`))
-      );
-    });
+        DISPATCHERS.some((d) => codigo.includes(`${d}(`)),
+    );
 
     expect(
-      programan.map((f) => f.slice(RAIZ.length + 1)),
+      programan.map((a) => a.ruta),
       "ningún archivo de app/ programa received_ve: «tu carga llegó a " +
         "Venezuela» no le sale a nadie",
     ).not.toEqual([]);
@@ -209,13 +217,14 @@ describe("todo disparador de avisos tiene por dónde entrar", () => {
     //
     // La lección, ya en tercera repetición: que el disparador esté en `app/` no
     // prueba que se pueda apretar. Hay que llegar hasta el componente.
-    const enPantalla = archivos(join(RAIZ, "app"), [".tsx"]).filter((f) => {
-      const codigo = sinComentarios(readFileSync(f, "utf8"));
-      return /changeConsolidationStatus\(\s*[^,)]+,\s*"arribado"\s*\)/.test(codigo);
-    });
+    const enPantalla = codigoApp.filter(
+      ({ ruta, codigo }) =>
+        ruta.endsWith(".tsx") &&
+        /changeConsolidationStatus\(\s*[^,)]+,\s*"arribado"\s*\)/.test(codigo),
+    );
 
     expect(
-      enPantalla.map((f) => f.slice(RAIZ.length + 1)),
+      enPantalla.map((a) => a.ruta),
       "ningún componente pone el contenedor en «arribado»: el estado existe, el " +
         "aviso está cableado, y nadie puede dispararlo",
     ).not.toEqual([]);

@@ -13,9 +13,9 @@ confidencialidad: interno
 
 # DTD-0312 — Contratos para la lógica que corría sin red
 
-> Seis migraciones que deciden cuánto se le cobra a un cliente, si su
+> Siete migraciones que deciden cuánto se le cobra a un cliente, si su
 > aceptación legal vale, si un despacho puede retroceder, cuánta plata se le
-> rinde a la Operadora, cuánto se le debe al socio en China y quién puede
+> rinde a la Operadora, cuánto se le paga al socio en China y quién puede
 > escribir en el expediente de otro. Ninguna tenía contrato.
 
 ## Primero, el número honesto
@@ -50,7 +50,7 @@ Cabeza de la lista: `0123_rendiciones` (43) · `0024_dispatch_core` (40) ·
 `0128_sales_order_invoicing_hardening` (40) · `0093_comments_hardening` (37) ·
 `0114_financiero_china` (35) · `0102_capa_legal` (34). Se cubrieron las seis.
 
-## Los seis que se cubrieron
+## Los siete que se cubrieron
 
 ### 1 · `0128` — el núcleo transaccional de la auto-facturación
 
@@ -167,9 +167,28 @@ moneda **admite RMB** —que no está en el enum `invoice_currency`, y ése es
 justamente el motivo de que estas tablas usen `text` con CHECK propio— y
 rechaza lo inventado.
 
+### 7 · `0115` — la reconciliación del estado de cuenta del socio
+
+Slice B1 de la misma 0114: se importa el estado de cuenta que manda el socio y
+se decide qué línea corresponde a qué cargo del ERP. **Es el paso previo a
+pagarle.** Una línea atada al cargo equivocado no da error: da un pago mal
+conciliado y, del otro lado, un neto que no cuadra sin que nadie sepa por qué.
+
+Ocho contratos. El que más vale es el **4**, y no es de esta migración: la 0115
+**le pone a `supplier_credit_notes` el trigger cross-tenant que la 0114 nunca le
+puso**. Una nota de crédito contra el cargo de otro tenant le baja el neto a esa
+empresa — plata que se deja de pagar del lado de allá, sin que nada avise. Por
+eso el contrato **carga las dos migraciones**: con sólo la 0114 el hueco sigue
+abierto y con sólo la 0115 no compila.
+
+Y el **7**, una asimetría deliberada que se prueba en los dos sentidos: borrar
+el estado de cuenta **sí** borra sus líneas (cascade), pero borrar un cargo del
+ERP **no** — deja la línea sin match (`set null`). La línea es evidencia de lo
+que el socio facturó y no se pierde porque del lado del ERP se corrija algo.
+
 ## Verificación
 
-**127 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
+**128 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
 
 | Migración | Contratos | Mutaciones probadas | Detectadas |
 |---|---|---|---|
@@ -179,8 +198,9 @@ rechaza lo inventado.
 | 0123 rendiciones | 7 | 8 | 8 |
 | 0093 comments_hardening | 6 | 7 | 7 |
 | 0114 financiero_china | 8 | 10 | 10 |
+| 0115 partner_statements | 8 | 10 | 10 |
 
-**42 mutaciones, 42 detectadas.**
+**52 mutaciones, 52 detectadas.**
 
 Dos precisiones sobre qué reporta cada mutación, porque «detectada» no siempre
 quiere decir «la detectó el contrato que la nombra»:
@@ -191,6 +211,25 @@ quiere decir «la detectó el contrato que la nombra»:
   de este archivo es decoración.
 - En `0093`, los contratos **1 y 2 comparten guard**. Cualquier mutación que
   rompa el 2 rompe también el 1, que corre primero y es el que reporta.
+
+Y dos contratos que **salían verdes con su protección arrancada**, detectados
+por la mutación y reescritos:
+
+- 🔴 En `0114`, «no se borra un proveedor con movimientos». El proveedor está
+  protegido **por partida doble**: sus cargos lo sujetan y a sus cargos los
+  sujetan las notas de crédito. Al soltar su FK el borrado seguía bloqueado, así
+  que el contrato medía la protección de al lado. Reescrito con un proveedor que
+  sólo tiene cuenta corriente.
+- 🔴 En `0115`, el CHECK del vocabulario de conciliación. El fixture usaba el
+  estado de cuenta de **otro tenant**, así que la fila la rechazaba el trigger
+  cross-tenant y no el CHECK. En Postgres los BEFORE triggers corren **antes**
+  que los CHECK y ambos levantan `check_violation`: son indistinguibles desde el
+  `exception when`. Para probar un CHECK no puede haber nada más que pueda
+  rechazar esa fila.
+
+**La regla que sale de las dos:** si mutas *una sola* protección y el contrato
+sigue verde, no es que la mutación falló — es que hay otra pieza sosteniendo el
+caso y ese contrato no mide lo que dice medir.
 
 Gate completo `node scripts/verify.mjs`.
 
@@ -218,7 +257,7 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Lo que esta spec NO puede afirmar
 
-- **Que las otras 144 estén bien.** Se cubrieron 6 de 150. La lista rankeada
+- **Que las otras 143 estén bien.** Se cubrieron 7 de 150. La lista rankeada
   queda medida y reproducible, no resuelta.
 - **Que estos guards funcionen con datos reales.** Los contratos corren sobre un
   Postgres desechable con stubs de fidelidad mínima: fieles en los tipos
@@ -231,7 +270,7 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Siguiente por daño
 
-`0115_partner_statements` (29, dinero×21 y aislamiento×17 — es el Slice B de
-la misma 0114) · `0070`/`0072` (38, borran datos) · `0128`… ya está ·
+`0070`/`0072` (38, borran datos) · `0012_rls_perf_and_rpc_guards` (35,
+aislamiento×12) · `0098_fidelizacion_referidos` (35) ·
 `0090_comments` — la inmutabilidad de `comments` (no la de las menciones)
 sigue sin contrato: la 0093 sólo cubre lo suyo.
