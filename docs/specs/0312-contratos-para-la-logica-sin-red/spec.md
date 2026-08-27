@@ -7,16 +7,17 @@ created: 2026-08-26
 updated: 2026-08-26
 supersedes: null
 superseded_by: null
-related: ["0024", "0045", "0054", "0059", "0069", "0072", "0310", "0311"]
+related: ["0024", "0029", "0045", "0054", "0059", "0069", "0072", "0310", "0311"]
 confidencialidad: interno
 ---
 
 # DTD-0312 — Contratos para la lógica que corría sin red
 
-> Siete migraciones que deciden cuánto se le cobra a un cliente, si su
+> Nueve migraciones que deciden cuánto se le cobra a un cliente, si su
 > aceptación legal vale, si un despacho puede retroceder, cuánta plata se le
-> rinde a la Operadora, cuánto se le paga al socio en China y quién puede
-> escribir en el expediente de otro. Ninguna tenía contrato.
+> rinde a la Operadora, cuánto se le paga al socio en China, qué puede tocar un
+> operario desde el teléfono, quién puede escribir en el expediente de otro y
+> quién puede quemarle el correlativo a otra empresa. Ninguna tenía contrato.
 
 ## Primero, el número honesto
 
@@ -50,7 +51,7 @@ Cabeza de la lista: `0123_rendiciones` (43) · `0024_dispatch_core` (40) ·
 `0128_sales_order_invoicing_hardening` (40) · `0093_comments_hardening` (37) ·
 `0114_financiero_china` (35) · `0102_capa_legal` (34). Se cubrieron las seis.
 
-## Los siete que se cubrieron
+## Los nueve que se cubrieron
 
 ### 1 · `0128` — el núcleo transaccional de la auto-facturación
 
@@ -186,9 +187,87 @@ el estado de cuenta **sí** borra sus líneas (cascade), pero borrar un cargo de
 ERP **no** — deja la línea sin match (`set null`). La línea es evidencia de lo
 que el socio facturó y no se pierde porque del lado del ERP se corrija algo.
 
+### 8 · `0070` + `0072` — lo que el operario puede hacer desde el teléfono
+
+`operario_action` se reescribió entera **seis veces** (0066 → 0067 → 0068 →
+0069 → 0070 → 0072). La 0070 agregó `edit_receipt`; la 0072 la recreó completa
+para arreglar un bug de runtime. **Producción corre la de 0072** — verificado
+contra `pg_get_functiondef`, no supuesto. El contrato carga las dos en orden,
+que además demuestra cuál gana.
+
+Ocho contratos. Los dos que valen el trabajo:
+
+🔴 **Editar la recepción SIN mandar items no borra los items.** El
+`delete from warehouse_receipt_items` sólo corre si el payload los trae. Si
+corriera siempre, un operario corrigiendo el conteo de cajas se llevaría por
+delante la mercancía declarada — que es lo que después viaja en la aduana.
+
+🔴 **Pero `items: []` sí los vacía.** La diferencia entre «ausente» y «vacío»
+decide si sobrevive la declaración. No es un accidente: es la única forma que
+tiene el operario de borrar una lista mal cargada. Queda fijada para que nadie
+la cambie sin darse cuenta de cuál de las dos está tocando.
+
+Y el resto: sólo su recepción (salvo supervisor) · sólo en
+`pendiente_consolidacion` · nunca la de otro tenant · operario inactivo o de la
+región equivocada rechazado · en `scan_box`, un receipt sellado no admite más
+escaneos, una caja ajena no entra, y una ya escaneada no se re-escanea.
+
+#### 🔴 Y una medición que cambió lo que este contrato debía afirmar
+
+El bug que arregló la 0072: las ramas escribían `entity_type =
+'warehouse_receipt'` (genérico) y el CHECK de `entity_audit_log` sólo admitía
+cinco valores. Reventaba con **23514 en runtime** — invisible a typecheck y a
+build, o sea en la mano del operario, en Yiwu, sin nadie mirando.
+
+**Ese CHECK ya no existe.** Al medirlo contra producción, `entity_audit_log`
+fue endurecido después y `entity_type` pasó a ser una **FK contra el catálogo
+`audit_entity_types`** (45 tipos). Un contrato que hubiera reproducido el CHECK
+de la migración habría salido verde probando una protección que la base ya no
+tiene.
+
+El stub modela la FK. El fix de la 0072 sigue siendo load-bearing: el catálogo
+trae los tres tipos correctos y **no** trae el genérico. Sólo cambió el número
+del error (23503 en vez de 23514), no la consecuencia.
+
+### 9 · `0012` — el guard de tenant en las RPC
+
+Los siete generadores de correlativo (`next_markbox`, `next_quote_code`, …) son
+**security definer**: corren con los privilegios del dueño y se saltan RLS por
+diseño, porque tienen que barrer la tabla entera para calcular el siguiente
+número. Eso los vuelve la superficie más golosa del schema — si no validan de
+quién es el tenant que reciben, cualquier usuario autenticado le quema el
+correlativo a otra empresa, o le lee cuántos clientes tiene, con una llamada.
+
+Fue el **FINDING-001 (CRITICAL)** de la auditoría RLS del 2026-05-24.
+`assert_tenant_match` lo cerró, y no tenía contrato.
+
+#### 🔴 Lo que de verdad se protege: la lógica de tres valores
+
+El guard parece que podría ser una línea:
+
+```sql
+if p_tenant_id <> v_caller_tenant then raise; end if;
+```
+
+Y **estaría roto**. En SQL, `NULL <> 'algo'` no es TRUE: es **NULL**. Un `if`
+con condición NULL no dispara. Esa versión «obvia» **deja pasar al llamador sin
+sesión** — que no es el caso raro, es el atacante.
+
+Por eso el guard tiene dos `is null` explícitos antes de comparar, y por eso la
+mutación central de este contrato es exactamente ésa: reemplazar el guard por su
+versión de una línea. Sale rojo en el contrato 1.
+
+Siete contratos: sin tenant en el argumento rechaza · sin sesión rechaza ·
+tenants distintos rechazan con 42501 · el caso legítimo pasa · **los siete
+correlativos llaman al guard** —se prueban los siete, porque basta que a uno le
+falte el `perform` para que quede abierto mientras el resto sigue cerrado— ·
+`anon` no ejecuta ninguno · y todas son security definer **con `search_path`
+fijado**, que sin eso quien controle el search_path antepone un esquema propio y
+hace que la función corra SU tabla con los privilegios del dueño (ADVISOR-A).
+
 ## Verificación
 
-**128 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
+**130 contratos SQL** en verde (eran 121). Cada guard validado por mutación:
 
 | Migración | Contratos | Mutaciones probadas | Detectadas |
 |---|---|---|---|
@@ -199,8 +278,10 @@ que el socio facturó y no se pierde porque del lado del ERP se corrija algo.
 | 0093 comments_hardening | 6 | 7 | 7 |
 | 0114 financiero_china | 8 | 10 | 10 |
 | 0115 partner_statements | 8 | 10 | 10 |
+| 0070+0072 operario_action | 8 | 8 | 8 |
+| 0012 rls_perf_and_rpc_guards | 7 | 7 | 7 |
 
-**52 mutaciones, 52 detectadas.**
+**67 mutaciones, 67 detectadas.**
 
 Dos precisiones sobre qué reporta cada mutación, porque «detectada» no siempre
 quiere decir «la detectó el contrato que la nombra»:
@@ -227,9 +308,17 @@ por la mutación y reescritos:
   `exception when`. Para probar un CHECK no puede haber nada más que pueda
   rechazar esa fila.
 
-**La regla que sale de las dos:** si mutas *una sola* protección y el contrato
-sigue verde, no es que la mutación falló — es que hay otra pieza sosteniendo el
-caso y ese contrato no mide lo que dice medir.
+- 🔴 En `0070`/`0072`, «un operario inactivo no puede operar». El inactivo
+  editaba la recepción de OTRO, así que lo frenaba el guard de «sólo tu
+  recepción». Reescrito con una recepción propia.
+- 🔴 Y en el mismo archivo, «no se re-escanea una caja». La afirmación comparaba
+  timestamps, pero **`now()` en Postgres es la hora de la TRANSACCIÓN, no del
+  reloj**: un re-escaneo escribía el mismo valor y el contrato pasaba con el
+  guard arrancado. Se antedata la marca antes de intentar el segundo escaneo.
+
+**La regla que sale de las cuatro:** si mutas *una sola* protección y el
+contrato sigue verde, no es que la mutación falló — es que hay otra pieza
+sosteniendo el caso y ese contrato no mide lo que dice medir.
 
 Gate completo `node scripts/verify.mjs`.
 
@@ -257,7 +346,7 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Lo que esta spec NO puede afirmar
 
-- **Que las otras 143 estén bien.** Se cubrieron 7 de 150. La lista rankeada
+- **Que las otras 141 estén bien.** Se cubrieron 9 de 150. La lista rankeada
   queda medida y reproducible, no resuelta.
 - **Que estos guards funcionen con datos reales.** Los contratos corren sobre un
   Postgres desechable con stubs de fidelidad mínima: fieles en los tipos
@@ -270,7 +359,8 @@ donde el contrato se cumplía con mi propio comentario.
 
 ## Siguiente por daño
 
-`0070`/`0072` (38, borran datos) · `0012_rls_perf_and_rpc_guards` (35,
-aislamiento×12) · `0098_fidelizacion_referidos` (35) ·
-`0090_comments` — la inmutabilidad de `comments` (no la de las menciones)
-sigue sin contrato: la 0093 sólo cubre lo suyo.
+`0098_fidelizacion_referidos` (35) · `0147_supplier_packing_uploads` (35) ·
+`0152`/`0153_client_claims` (35) · `0179_nomina_settlements` (35) ·
+`0236_supplier_scorecard` (35) · `0022`/`0183_receipt_photo` (30, borran datos) ·
+`0090_comments` — la inmutabilidad de `comments` (no la de las menciones) sigue
+sin contrato: la 0093 sólo cubre lo suyo.
