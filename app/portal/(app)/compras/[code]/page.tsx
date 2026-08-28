@@ -20,6 +20,7 @@ import {
   obtenerPackingListDeCompra,
 } from "@/lib/portal/packing-list-queries";
 import { defaultAddon } from "@/lib/studio/prealertas/addons";
+import { PREALERTA_DESCRIPCION_PENDIENTE } from "@/lib/studio/prealertas/types";
 import { ArrowIcon } from "@/components/Icon";
 import { PrealertaStatusBadge } from "../../../_components/PrealertaStatusBadge";
 import { PackingListDelProveedor } from "./_components/PackingListDelProveedor";
@@ -99,6 +100,15 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
     ? (proveedores.find((s) => s.id === prealerta.supplier_id) ?? null)
     : null;
   const misServicios = servicios.filter((s) => s.prealerta_id === prealerta.id);
+
+  /**
+   * ¿La compra quedó registrada sin detalle? La descripción sigue siendo el
+   * relleno del servidor y todavía nadie la tocó en bodega — el único caso en
+   * que `updatePrealertaDetalleAction` acepta cambios del cliente.
+   */
+  const faltaDetalle =
+    prealerta.status === "anunciada" &&
+    prealerta.description === PREALERTA_DESCRIPCION_PENDIENTE;
   const cotejo = compararCajas(prealerta.boxes, recepcion.cajasRecibidas);
 
   return (
@@ -274,6 +284,33 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
           <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500">
             Lo que registraste
           </h2>
+
+          {/* SDD-0313 · La única puerta de vuelta al paso 2. Hasta acá, una
+              compra registrada sin detalle no se podía completar NUNCA: el
+              formulario sólo existía en el instante del alta. */}
+          {faltaDetalle ? (
+            <div
+              className="mt-4 rounded-[12px] border p-4"
+              style={{
+                borderColor: "var(--color-wine)",
+                background: "var(--color-paper)",
+              }}
+            >
+              <div className="text-[13px] font-bold text-ink">
+                Te falta el detalle de esta compra.
+              </div>
+              <p className="mt-1 text-[12.5px] text-grey-700 leading-[1.5]">
+                Cuéntanos qué traes, cuántas cajas y su valor. Nos ayuda a
+                recibirla más rápido — y te queda de recordatorio.
+              </p>
+              <Link
+                href={`/portal/compras/${encodeURIComponent(prealerta.code)}/detalle`}
+                className="btn btn-primary mt-3 inline-flex"
+              >
+                Completar el detalle <ArrowIcon size={15} />
+              </Link>
+            </div>
+          ) : null}
           <dl className="mt-5 flex flex-col gap-4">
             <Campo
               label="Cajas anunciadas"

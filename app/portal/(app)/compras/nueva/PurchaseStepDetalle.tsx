@@ -12,12 +12,15 @@
  */
 
 import { useActionState, useEffect, useId, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowIcon } from "@/components/Icon";
 import { FieldLabel, FileField } from "../../../_components/PortalFormField";
 import { PurchaseWizardSteps } from "./PurchaseWizardSteps";
 import { PurchaseSummaryPanel } from "./PurchaseSummaryPanel";
 import type { ChecklistItem, OrderRecap } from "./PurchaseSummaryPanel";
 import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
+import { PREALERTA_DESCRIPCION_PENDIENTE } from "@/lib/studio/prealertas/types";
 import { updatePrealertaDetalleAction } from "../../proveedores/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
 
@@ -33,36 +36,77 @@ const CAMPOS = [
   { key: "fotos", label: "Fotos del producto" },
 ] as const;
 
+/** Lo ya guardado de esta compra, para precargar el formulario. */
+export type DetalleGuardado = {
+  description: string | null;
+  boxes: number | null;
+  estValueUsd: number | null;
+  trackingCn: string | null;
+};
+
 export function PurchaseStepDetalle({
   code,
   order,
   onDone,
   onProgress,
+  guardado,
+  modo = "asistente",
 }: {
   code: string;
   /** La orden armada en el paso 1, para no perderla de vista. */
   order?: OrderRecap;
-  /** El paso 2 terminó (con o sin datos) → seguimos al 3. */
-  onDone: () => void;
+  /** El paso 2 terminó (con o sin datos) → seguimos al 3. Sólo en el asistente. */
+  onDone?: () => void;
   /** Lo llenado sube al padre para que el paso 3 muestre el mismo checklist. */
-  onProgress: (items: ChecklistItem[]) => void;
+  onProgress?: (items: ChecklistItem[]) => void;
+  /**
+   * Valores ya guardados (modo `suelto`). Precargar NO es un lujo: la action
+   * cae a `PREALERTA_DESCRIPCION_PENDIENTE` y `boxes = 1` cuando los campos
+   * llegan vacíos, así que abrir esta pantalla con los campos en blanco y
+   * guardar PISARÍA lo que el cliente ya había puesto.
+   */
+  guardado?: DetalleGuardado;
+  /**
+   * `asistente` = paso 2 de 3 recién registrada la compra.
+   * `suelto`    = se abrió después desde la compra, por su propia ruta.
+   */
+  modo?: "asistente" | "suelto";
 }) {
+  const router = useRouter();
+  const suelto = modo === "suelto";
+  // La descripción "Pendiente — el cliente la completa" es un relleno del
+  // servidor, no algo que el cliente escribió: en el campo va vacía.
+  const descGuardada =
+    guardado?.description && guardado.description !== PREALERTA_DESCRIPCION_PENDIENTE
+      ? guardado.description
+      : "";
   const [state, action, pending] = useActionState(
     updatePrealertaDetalleAction,
     initial,
   );
   const uid = useId();
   const [touched, setTouched] = useState({
-    description: false,
-    boxes: false,
-    estValueUsd: false,
-    trackingCn: false,
+    // Lo ya guardado cuenta como hecho: el checklist tiene que decir la verdad
+    // de la compra, no sólo lo tecleado en esta visita.
+    description: descGuardada !== "",
+    boxes: guardado?.boxes != null,
+    estValueUsd: guardado?.estValueUsd != null,
+    trackingCn: !!guardado?.trackingCn,
     packing: false,
     factura: false,
     fotos: false,
   });
   const mark = (k: keyof typeof touched) =>
     setTouched((t) => (t[k] ? t : { ...t, [k]: true }));
+
+  /**
+   * ¿El cliente ya puso ALGO? De esto depende que "Lo lleno después" siga
+   * existiendo: era un `type="button"` que sólo cambiaba de fase, así que el
+   * form nunca se enviaba y todo lo escrito y adjuntado se perdía en silencio
+   * (SGE-00.02). Con algo tocado ya no hay nada que "saltar": lo único honesto
+   * es guardar, y eso ya lo hace el botón principal.
+   */
+  const algoTocado = Object.values(touched).some(Boolean);
 
   const checklist: ChecklistItem[] = CAMPOS.map((c) => ({
     key: c.key,
@@ -72,21 +116,36 @@ export function PurchaseStepDetalle({
 
   // El paso 3 muestra el mismo checklist: se sube cada vez que cambia.
   useEffect(() => {
-    onProgress(checklist);
+    onProgress?.(checklist);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [touched]);
 
   // El guardado salió bien → al paso 3. En efecto, no en el render: avanzar es
   // un efecto sobre el padre, y hacerlo mientras se renderiza es un bug latente.
   useEffect(() => {
-    if (state.ok) onDone();
+    if (!state.ok) return;
+    // Suelto no tiene paso 3: se vuelve a la compra, que es de donde se vino y
+    // donde el detalle recién guardado ya se ve (la action revalida esa ruta).
+    if (suelto) router.push(`/portal/compras/${encodeURIComponent(code)}`);
+    else onDone?.();
     // `onDone` viene memorizado del padre (useCallback).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.ok]);
 
   return (
     <div>
-      <PurchaseWizardSteps step={2} />
+      {suelto ? (
+        <div className="mb-6">
+          <Link
+            href={`/portal/compras/${encodeURIComponent(code)}`}
+            className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-grey-700 hover:text-ink transition-colors"
+          >
+            <ArrowIcon size={15} className="rotate-180" /> Volver a la compra
+          </Link>
+        </div>
+      ) : (
+        <PurchaseWizardSteps step={2} />
+      )}
 
       <form
         action={action}
@@ -96,11 +155,12 @@ export function PurchaseStepDetalle({
 
         <div className="min-w-0 card-shadow bg-white border border-grey-200 rounded-[18px] p-5 sm:p-6">
           <h2 className="text-[15px] font-bold text-ink m-0">
-            Adelanta lo que ya sabes
+            {suelto ? "Completa el detalle de tu compra" : "Adelanta lo que ya sabes"}
           </h2>
           <p className="mt-1.5 text-[12.5px] text-grey-700 leading-[1.55]">
-            Por si nos atoramos con tu proveedor. Nada de esto es obligatorio,
-            pero ayuda a avanzar.
+            {suelto
+              ? "Lo que ya habías guardado está cargado abajo. Cambia lo que quieras y guarda."
+              : "Por si nos atoramos con tu proveedor. Nada de esto es obligatorio, pero ayuda a avanzar."}
           </p>
 
           <div className="mt-4">
@@ -111,6 +171,7 @@ export function PurchaseStepDetalle({
               id={`${uid}-description`}
               name="description"
               rows={2}
+              defaultValue={descGuardada}
               onChange={() => mark("description")}
               placeholder="Ej. 3 cajas de zapatos deportivos"
               disabled={pending}
@@ -132,6 +193,7 @@ export function PurchaseStepDetalle({
                 name="boxes"
                 min={1}
                 step={1}
+                defaultValue={guardado?.boxes ?? ""}
                 onChange={() => mark("boxes")}
                 placeholder="1"
                 disabled={pending}
@@ -155,6 +217,7 @@ export function PurchaseStepDetalle({
                 name="estValueUsd"
                 min={0}
                 step="0.01"
+                defaultValue={guardado?.estValueUsd ?? ""}
                 onChange={() => mark("estValueUsd")}
                 placeholder="—"
                 disabled={pending}
@@ -176,6 +239,7 @@ export function PurchaseStepDetalle({
               id={`${uid}-tracking`}
               type="text"
               name="trackingCn"
+              defaultValue={guardado?.trackingCn ?? ""}
               onChange={() => mark("trackingCn")}
               placeholder="Ej. SF1234567890"
               disabled={pending}
@@ -235,17 +299,38 @@ export function PurchaseStepDetalle({
               aria-busy={pending}
               className="btn btn-primary w-full inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
             >
-              {pending ? "Guardando…" : "Guardar y avanzar al paso 3"}
+              {pending
+                ? "Guardando…"
+                : suelto
+                  ? "Guardar el detalle"
+                  : "Guardar y avanzar al paso 3"}
               {!pending && <ArrowIcon size={15} />}
             </button>
-            <button
-              type="button"
-              onClick={onDone}
-              disabled={pending}
-              className="text-[12px] font-semibold text-grey-500 hover:text-ink transition-colors disabled:opacity-60"
-            >
-              Lo lleno después — ir al paso 3
-            </button>
+            {suelto ? (
+              <Link
+                href={`/portal/compras/${encodeURIComponent(code)}`}
+                className="-mx-3 px-3 py-2 min-h-[44px] inline-flex items-center justify-center text-[12px] font-semibold text-grey-700 hover:text-ink transition-colors"
+              >
+                Cancelar
+              </Link>
+            ) : algoTocado ? (
+              <p className="text-[11.5px] text-grey-700 leading-[1.5] text-center m-0">
+                Lo que pusiste se guarda al avanzar.
+              </p>
+            ) : (
+              /* `min-h-[44px]` + relleno: como texto pelado medía ~17 px de
+                 alto, por debajo del mínimo de 24×24 de WCAG 2.2 §2.5.8 —
+                 siendo la única salida del paso. El `-mx-3` compensa el
+                 relleno para que no se corra la alineación. */
+              <button
+                type="button"
+                onClick={onDone}
+                disabled={pending}
+                className="-mx-3 px-3 py-2 min-h-[44px] text-[12px] font-semibold text-grey-700 hover:text-ink transition-colors disabled:opacity-60"
+              >
+                Lo lleno después — ir al paso 3
+              </button>
+            )}
           </PurchaseSummaryPanel>
         </div>
       </form>
