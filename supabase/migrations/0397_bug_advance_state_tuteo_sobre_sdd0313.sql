@@ -1,7 +1,7 @@
 -- 0397_bug_advance_state_tuteo_sobre_sdd0313.sql
 --
--- ⚠️⚠️ NO APLICAR SIN OK DEL FOUNDER NOMBRANDO ESTA MIGRACIÓN. ⚠️⚠️
--- ⚠️ Y EL NÚMERO 0397 ES PROVISIONAL — ver «Numeración» al final.
+-- ✅ APLICADA a producción el 2026-08-28 con OK del founder nombrándola.
+--    Ledger: 20260828162058 / 0397_bug_advance_state_tuteo_sobre_sdd0313
 --
 -- SDD-0312 · reaplica el tuteo de `bug_advance_state`, que una migración
 -- concurrente pisó 72 segundos después.
@@ -53,14 +53,23 @@
 -- tampoco: su ACL ya estaba cerrado desde la 0209 (medido en prod:
 -- `postgres=X service_role=X authenticated=X`, sin PUBLIC y sin anon).
 --
+-- ── Verificado DESPUÉS de aplicar, contra el objeto ───────────────────────
+--
+-- La sonda fuerte es la huella, no el «success» del apply: el md5 del `prosrc`
+-- vivo quedó en **a76e8bea85a821bb8f7bbfdd5e89c503** — exactamente el que se
+-- calculó ANTES aplicándole los dos reemplazos al cuerpo que estaba corriendo.
+-- Eso prueba que no se movió nada más. Además, medido: cero voseo, tuteo
+-- completo, `set_config` y cast presentes, trigger `bug_reports_state_guard_trigger`
+-- vivo, 5 privilegios de UPDATE por columna para `authenticated`, y `anon` sin
+-- EXECUTE.
+--
 -- ── Numeración ────────────────────────────────────────────────────────────
 --
--- 🔴 0397 es PROVISIONAL. Hoy hay tres archivos «0394» vivos en tres worktrees
--- y ninguno pusheado, así que `pnpm sdd:next` sigue devolviendo 0394 (mira refs
--- de git, no discos ajenos). Antes de aplicar esto hay que resolver primero el
--- choque de las tres 0394 — y recordar la regla del repo: **una migración ya
--- aplicada NUNCA se renumera**, su cabecera debe seguir diciendo el número con
--- el que corrió. Las tres corrieron como «0394»; el ledger ya las tiene así.
+-- El 0397 quedó firme (nadie más lo tomó) y ya corrió con ese nombre, así que
+-- de acá en más **no se renumera**. Las tres 0394 tampoco: están declaradas en
+-- `CHOQUES_HISTORICOS` de `scripts/check-numbering.mjs` — dos de ellas; la
+-- tercera (`0394_bug_state_transitions_via_rpc_only`) se agrega cuando su
+-- ventana pushee el archivo.
 --
 -- Contrato: supabase/tests/0028_bug_reporter.test.sql (13).
 

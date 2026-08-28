@@ -97,10 +97,13 @@
 -- el harness aislado dice qué hace el ARCHIVO, no qué hace la BASE.** Cuando lo
 -- que se afirma es un privilegio, las dos preguntas tienen respuestas distintas.
 --
--- ── 🔴 Y ESTE CONTRATO ESTÁ VERDE CON PROD EN ROJO (2026-08-28) ───────────
+-- ── 📏 EL DÍA QUE ESTE CONTRATO ESTUVO VERDE CON PROD EN ROJO ─────────────
 --
--- El contrato 13 pasa acá y **el voseo está vivo en producción**. No es un
--- bug del contrato: es su alcance, otra vez, y conviene tenerlo a la vista.
+-- ✅ Ya está reparado (0397, aplicada el 2026-08-28). Se deja escrito porque
+-- la falla se repite sola y el contrato sigue sin poder verla.
+--
+-- Durante unas horas el contrato 13 pasó acá con **el voseo vivo en
+-- producción**. No fue un bug del contrato: fue su alcance, otra vez.
 --
 -- El 2026-08-28 entraron a prod TRES migraciones con el número **0394**, desde
 -- tres ventanas que no se veían entre sí (ninguna de las tres pusheada):
@@ -117,16 +120,23 @@
 -- Medido en prod: `bug_advance_state` tiene voseo Y el `set_config`;
 -- `bug_increment_duplicate` conserva su tuteo (nadie la volvió a tocar).
 --
--- Este archivo sigue verde porque hace `\ir` de su propia 0394 y de nada más.
--- **Mide el archivo, no la base** — lo mismo que se explica más arriba sobre
--- `next_bug_folio`, pero esta vez el que se equivoca es el lado optimista.
+-- El archivo estuvo verde todo el tiempo porque hace `\ir` de su propia 0394 y
+-- de nada más. **Mide el archivo, no la base** — lo mismo que se explica más
+-- arriba sobre `next_bug_folio`, pero esta vez el que se equivocaba era el lado
+-- optimista: allá el contrato habría gritado de más, acá se quedó callado.
 --
--- Lo repara `0397_bug_advance_state_tuteo_sobre_sdd0313.sql` (número
--- provisional), que toma el cuerpo VIVO y le cambia sólo las dos cadenas, sin
--- revertir nada de SDD-0313. ⏸ **Escrita y sin aplicar** — espera OK del
--- founder nombrándola. Cuando entre, este contrato debería además hacer `\ir`
--- de la migración de SDD-0313 y de la 0397, en ese orden: sin eso seguirá
--- afirmando sobre una composición que la base real no tiene.
+-- ✅ Lo reparó `0397_bug_advance_state_tuteo_sobre_sdd0313.sql`, aplicada el
+-- 2026-08-28 (ledger 20260828162058). Tomó el cuerpo VIVO y le cambió sólo las
+-- dos cadenas; verificado por HUELLA, no por «success»: el md5 del `prosrc`
+-- resultante es el que se había calculado antes aplicándole los dos reemplazos
+-- al cuerpo que estaba corriendo, así que no se movió nada de SDD-0313.
+--
+-- ⏸ **Lo que sigue faltando acá:** este contrato todavía no compone la cadena
+-- real. Cuando la ventana de SDD-0313 pushee
+-- `0394_bug_state_transitions_via_rpc_only.sql`, hay que hacerle `\ir` de esa y
+-- de la 0397, en ese orden, después de la 0394 propia. Hasta entonces el
+-- contrato 13 afirma sobre una composición que la base no tiene — sigue siendo
+-- cierto que el tuteo está bien, pero por un camino que no es el de producción.
 --
 -- Cada contrato se validó rompiéndolo a propósito.
 
