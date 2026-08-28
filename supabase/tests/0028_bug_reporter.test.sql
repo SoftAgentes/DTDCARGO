@@ -47,14 +47,22 @@
 --      `severity` sólo aplica a `error`.
 --  11. El aislamiento de lectura: el reportador ve los suyos, el admin ve los
 --      de SU empresa, y el admin de otra no ve ninguno.
+--  12. 🔴 `anon` no ejecuta `next_bug_folio`. La 0028 le puso el `grant` a
+--      `authenticated` sin el `revoke ... from public, anon` que sí llevan sus
+--      dos RPC hermanas, y en Postgres las funciones nacen con EXECUTE para
+--      PUBLIC. Lo cierra la 0394 (ver abajo por qué esto NO era una fuga viva).
+--  13. Los dos mensajes que el usuario LEE están en tuteo. No es cosmética:
+--      `app/studio/(app)/bugs/actions.ts:83` devuelve `error.message` crudo al
+--      cliente, así que el texto del `raise exception` ES la copy de la
+--      pantalla. La ruta API los mapea a mensajes propios; la server action no.
 --
--- ── ⚠️ DOS HUECOS MEDIDOS QUE ESTE CONTRATO **NO** CIERRA ─────────────────
+-- ── ⚠️ EL HUECO MEDIDO QUE ESTE CONTRATO **NO** CIERRA ────────────────────
 --
--- No se contratan porque hoy están abiertos: una afirmación que diga que están
--- cerrados saldría roja, y una que diga que están abiertos dejaría clavado el
--- problema. Quedan escritos acá para que se decidan, no para que se olviden.
+-- No se contrata porque hoy está abierto: una afirmación que diga que está
+-- cerrado saldría roja, y una que diga que está abierto dejaría clavado el
+-- problema. Queda escrito acá para que se decida, no para que se olvide.
 --
---   A. 🔴 **La máquina de estados tiene una segunda puerta.** El comentario de
+--   🔴 **La máquina de estados tiene una segunda puerta.** El comentario de
 --      la migración dice que «las transiciones de estado pasan por RPC», pero
 --      nada lo obliga: hay `grant update on bug_reports to authenticated` y la
 --      policy `bug_reports_admin_update`. Medido acá con el mismo Postgres —
@@ -64,11 +72,61 @@
 --      terminal. Es dentro de su propia empresa y sólo un admin, así que no es
 --      una fuga: es el expediente que deja de ser fiel. Cerrarlo es un trigger
 --      que rechace el UPDATE de `state` fuera de la RPC.
---   B. `anon` puede EJECUTAR `next_bug_folio`. Las otras dos RPC llevan su
---      `revoke ... from public, anon`; ésta no, y en Postgres las funciones
---      nacen con EXECUTE para PUBLIC. El guard interno la salva —sin
---      `auth.uid()` no hay membresía y levanta «No autorizado»— pero es la
---      única capa.
+--
+-- ── 📏 EL SEGUNDO HUECO ERA DEL ARCHIVO, NO DE LA BASE ────────────────────
+--
+-- Acá decía que `anon` puede EJECUTAR `next_bug_folio`, medido en este mismo
+-- Postgres. Era cierto **de este replay** y falso de producción, y la
+-- diferencia importa más que el hallazgo.
+--
+-- Este harness es AISLADO a propósito: hace `\ir` de su propia migración y de
+-- nada más. Con sólo la 0028 aplicada, el `grant` sin `revoke` deja la función
+-- abierta a PUBLIC y la medición da `true`. Pero la base real no ejecuta la
+-- 0028 sola: 181 números después, `0209_revoke_anon_rpc_sweep.sql:64` revoca
+-- `next_bug_folio` de `public, anon` en un barrido, y nada la vuelve a abrir
+-- (la 0248 re-otorga sólo a `authenticated`).
+--
+-- Medido el 2026-08-27 replayando las 372 migraciones sobre Postgres limpio:
+-- `has_function_privilege('anon','public.next_bug_folio(uuid)','execute')` =
+-- **false**, con ACL `postgres=X/postgres service_role=X/postgres
+-- authenticated=X/postgres` — sin PUBLIC y sin anon.
+--
+-- Así que la 0394 no cerró una fuga viva: hizo explícita a nivel de archivo una
+-- invariante que dependía de un barrido lejano, y recién por eso el contrato 12
+-- puede afirmarla acá sin mentir. La lección es del método: **una medición en
+-- el harness aislado dice qué hace el ARCHIVO, no qué hace la BASE.** Cuando lo
+-- que se afirma es un privilegio, las dos preguntas tienen respuestas distintas.
+--
+-- ── 🔴 Y ESTE CONTRATO ESTÁ VERDE CON PROD EN ROJO (2026-08-28) ───────────
+--
+-- El contrato 13 pasa acá y **el voseo está vivo en producción**. No es un
+-- bug del contrato: es su alcance, otra vez, y conviene tenerlo a la vista.
+--
+-- El 2026-08-28 entraron a prod TRES migraciones con el número **0394**, desde
+-- tres ventanas que no se veían entre sí (ninguna de las tres pusheada):
+--
+--   005838  0394_bug_reporter_tuteo_y_revoke_anon      ← la del tuteo
+--   005909  0394_documents_sin_borrado_duro
+--   005950  0394_bug_state_transitions_via_rpc_only    ← SDD-0313
+--
+-- La de SDD-0313 cerró la «segunda puerta» de acá arriba, y para meter sus dos
+-- `set_config` alrededor del UPDATE **copió el cuerpo de la 0039** — la versión
+-- con voseo. Corrió 72 s después, y `create or replace` se lleva la función
+-- ENTERA, no sólo la parte que uno vino a cambiar. Ganó el último.
+--
+-- Medido en prod: `bug_advance_state` tiene voseo Y el `set_config`;
+-- `bug_increment_duplicate` conserva su tuteo (nadie la volvió a tocar).
+--
+-- Este archivo sigue verde porque hace `\ir` de su propia 0394 y de nada más.
+-- **Mide el archivo, no la base** — lo mismo que se explica más arriba sobre
+-- `next_bug_folio`, pero esta vez el que se equivoca es el lado optimista.
+--
+-- Lo repara `0397_bug_advance_state_tuteo_sobre_sdd0313.sql` (número
+-- provisional), que toma el cuerpo VIVO y le cambia sólo las dos cadenas, sin
+-- revertir nada de SDD-0313. ⏸ **Escrita y sin aplicar** — espera OK del
+-- founder nombrándola. Cuando entre, este contrato debería además hacer `\ir`
+-- de la migración de SDD-0313 y de la 0397, en ese orden: sin eso seguirá
+-- afirmando sobre una composición que la base real no tiene.
 --
 -- Cada contrato se validó rompiéndolo a propósito.
 
@@ -106,6 +164,12 @@ grant select on public.user_tenants to authenticated;
 -- números en el repo sin que nada la ejercitara. Un contrato la habría puesto
 -- roja el día uno; lo que la encontró fue un clic.
 \ir ../migrations/0039_fix_bug_advance_state_actor_type_cast.sql
+
+-- La 0394 cierra los dos residuos que este archivo dejó anotados: el tuteo de
+-- los mensajes que la server action devuelve crudos, y el `revoke ... from
+-- public, anon` que le faltaba a `next_bug_folio`. Va acá porque sin ella los
+-- contratos 12 y 13 afirmarían sobre una función que este replay no tiene.
+\ir ../migrations/0394_bug_reporter_tuteo_y_revoke_anon.sql
 
 -- ── Fixtures ──────────────────────────────────────────────────────────────
 \set t1 '11111111-1111-1111-1111-111111111111'
@@ -584,6 +648,151 @@ begin
 exception when others then
   reset role;
   raise;
+end;
+$$;
+
+-- ── 12 · 🔴 `anon` no ejecuta las RPC del Bug Reporter ────────────────────
+--
+-- Las tres son `security definer`: corren como su dueño, así que quien las
+-- puede llamar importa más que en una función común. La 0028 le puso a
+-- `next_bug_folio` el `grant` a `authenticated` pero se saltó el `revoke ...
+-- from public, anon` que sí llevan sus dos hermanas, y en Postgres una función
+-- nace con EXECUTE para PUBLIC — o sea que el olvido no es neutro, ABRE.
+--
+-- Se afirma en las DOS direcciones a propósito. Sólo con la mitad de `anon`,
+-- un `revoke execute ... from public` a secas —que también le saca el permiso
+-- a `authenticated`— saldría verde con la app rota.
+do $$
+declare
+  r          record;
+  v_abiertas text := '';
+  v_cerradas text := '';
+begin
+  for r in
+    select unnest(array[
+      'public.next_bug_folio(uuid)',
+      'public.bug_advance_state(uuid,bug_state,text)',
+      'public.bug_increment_duplicate(uuid)'
+    ]) as sig
+  loop
+    -- `anon` hereda lo que tenga PUBLIC, así que esta sola pregunta cubre las dos.
+    if has_function_privilege('anon', r.sig, 'execute') then
+      v_abiertas := v_abiertas || ' ' || r.sig;
+    end if;
+    if not has_function_privilege('authenticated', r.sig, 'execute') then
+      v_cerradas := v_cerradas || ' ' || r.sig;
+    end if;
+  end loop;
+
+  if v_abiertas <> '' then
+    raise exception
+      'CONTRATO 12 ROTO: anon puede EJECUTAR%  — falta el revoke from public, anon', v_abiertas;
+  end if;
+  if v_cerradas <> '' then
+    raise exception
+      'CONTRATO 12 ROTO: authenticated PERDIO el execute de% — el revoke se llevo puesta la app', v_cerradas;
+  end if;
+end;
+$$;
+
+-- ── 13 · Los mensajes que el usuario LEE están en tuteo ───────────────────
+--
+-- No es cosmética ni gusto: `app/studio/(app)/bugs/actions.ts:83` devuelve
+-- `error.message` CRUDO al cliente, así que el texto del `raise exception` ES
+-- la copy de la pantalla del Studio. (La ruta API
+-- `app/api/studio/bugs/[id]/state/route.ts` sí los mapea a mensajes propios —
+-- por ahí no se ve, y por eso el voseo sobrevivió tanto.)
+--
+-- Se prueban las DOS capas, porque cada una sola deja un hueco — y la mutación
+-- lo confirmó: hay un mutante que sólo caza (a) y otro que sólo caza (b).
+--   (a) se EJERCITAN los cuatro caminos que devuelven texto al usuario (las dos
+--       RPC × sin-sesión y sesión-ajena) y se compara el mensaje EXACTO. Prueba
+--       lo que el usuario lee de verdad, no lo que dice el fuente, y no depende
+--       de acertarle a la forma del voseo.
+--   (b) se BARRE el fuente de las tres RPC por formas de voseo. Es una lista de
+--       palabras —se le escapa una acentuación que no enumere— pero alcanza los
+--       mensajes que ningún contrato ejercita todavía, que (a) no puede ver.
+--
+-- ⚠️ Los intentos se aíslan y las afirmaciones van AFUERA de todo handler:
+-- un `raise exception` propio sale con el mismo P0001 que levanta la RPC, y
+-- atraparlo adentro haría que el contrato se comiera su propio fallo.
+do $$
+declare
+  v_sin_sesion  text;
+  v_dup_sesion  text;
+  v_ajeno       text;
+  v_dup_ajeno   text;
+  v_voseo       text;
+begin
+  perform set_config('test.uid', '', true);   -- auth.uid() → null
+
+  begin
+    perform public.bug_advance_state(
+      'b0000001-0000-0000-0000-000000000001', 'triaje', null);
+    v_sin_sesion := '(no levanto excepcion)';
+  exception when others then
+    v_sin_sesion := sqlerrm;
+  end;
+
+  begin
+    perform public.bug_increment_duplicate('b0000001-0000-0000-0000-000000000001');
+    v_dup_sesion := '(no levanto excepcion)';
+  exception when others then
+    v_dup_sesion := sqlerrm;
+  end;
+
+  -- Sesión válida, pero de la OTRA empresa. Se ejercitan las DOS RPC: el
+  -- barrido (b) es una LISTA DE PALABRAS y sólo caza las formas que enumera —
+  -- un voseo con otra acentuación se le escapa. Lo único que no depende de
+  -- adivinar la forma es comparar el mensaje exacto, así que cada texto que el
+  -- usuario puede leer se ejercita acá.
+  perform set_config('test.uid', 'aa555555-2222-2222-2222-222222222222', true);
+  begin
+    perform public.bug_advance_state(
+      'b0000001-0000-0000-0000-000000000001', 'triaje', null);
+    v_ajeno := '(no levanto excepcion)';
+  exception when others then
+    v_ajeno := sqlerrm;
+  end;
+
+  begin
+    perform public.bug_increment_duplicate('b0000001-0000-0000-0000-000000000001');
+    v_dup_ajeno := '(no levanto excepcion)';
+  exception when others then
+    v_dup_ajeno := sqlerrm;
+  end;
+
+  perform set_config('test.uid', '', true);
+
+  -- (b) el barrido del fuente, para los mensajes que nadie ejercita.
+  select string_agg(p.proname, ', ' order by p.proname) into v_voseo
+    from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public'
+     and p.proname in ('next_bug_folio', 'bug_advance_state', 'bug_increment_duplicate')
+     and p.prosrc ~ '(Necesitás|pertenecés|podés|tenés|querés|debés|usá |ingresá|revisá|verificá|seleccioná|completá|intentá|agregá|escribí|elegí|mirá )';
+
+  -- ── afirmaciones, fuera de todo `exception when` ──
+  if v_sin_sesion <> 'Necesitas estar autenticado' then
+    raise exception
+      'CONTRATO 13 ROTO: bug_advance_state sin sesion dice «%» (esperado «Necesitas estar autenticado»)', v_sin_sesion;
+  end if;
+  if v_dup_sesion <> 'Necesitas estar autenticado' then
+    raise exception
+      'CONTRATO 13 ROTO: bug_increment_duplicate sin sesion dice «%» (esperado «Necesitas estar autenticado»)', v_dup_sesion;
+  end if;
+  if v_ajeno <> 'No perteneces al tenant del bug' then
+    raise exception
+      'CONTRATO 13 ROTO: bug_advance_state con sesion ajena dice «%» (esperado «No perteneces al tenant del bug»)', v_ajeno;
+  end if;
+  if v_dup_ajeno <> 'No perteneces al tenant del bug' then
+    raise exception
+      'CONTRATO 13 ROTO: bug_increment_duplicate con sesion ajena dice «%» (esperado «No perteneces al tenant del bug»)', v_dup_ajeno;
+  end if;
+  if v_voseo is not null then
+    raise exception
+      'CONTRATO 13 ROTO: queda voseo en el fuente de: % — el usuario lee ese texto tal cual', v_voseo;
+  end if;
 end;
 $$;
 
