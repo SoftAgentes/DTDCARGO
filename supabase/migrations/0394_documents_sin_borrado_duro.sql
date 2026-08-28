@@ -1,0 +1,74 @@
+-- ─────────────────────────────────────────────────────────────
+-- 0394 · SDD n/a (bugfix de seguridad) · `documents` — el soft delete deja de
+--        ser una convención y pasa a ser un candado de la base.
+--
+-- La 0097 (SDD-0049) creó el hub de adjuntos del ERP y escribió en el comentario
+-- de la tabla «Soft delete via deleted_at» y en la columna «soft delete
+-- (auditable)». Pero concedió el borrado físico al rol del equipo:
+--
+--     grant select, insert, update, delete on public.documents to authenticated;
+--
+-- MEDIDO el 2026-08-27 contra un Postgres desechable con el schema del repo
+-- reconstruido entero (372 migraciones), no inferido: un usuario autenticado del
+-- tenant hace `delete from public.documents where id = …` y LA FILA DESAPARECE
+-- DE VERDAD, sin error. El borrado suave era una convención de la server action,
+-- no un candado — y la propia 0097 explica por qué eso no alcanza: «la server
+-- action valida, PERO un cliente Supabase directo (PostgREST) la saltaría».
+-- Ese razonamiento fundó el trigger que defiende el `entity_id`; en el borrado
+-- quedó abierto.
+--
+-- Dos agravantes medidos en la misma corrida, que no estaban a la vista:
+--
+--   · Un documento con `legal_hold = true` TAMBIÉN se borra. La 0313 (SDD-0224)
+--     dice que la retención «nunca autoriza por sí sola una eliminación física»;
+--     el delete la autoriza igual, saltándose el hold.
+--   · Tras el borrado no sobrevive NINGÚN evento en `entity_audit_log` para esa
+--     entidad. Y desde la 0313 la base promete bastante más que en la 0097:
+--     `soft_delete_document(id, motivo)` exige un motivo de ≥8 caracteres y graba
+--     `deleted_by` + `deletion_reason` + el evento de auditoría. Un `delete`
+--     directo se lleva la fila, el motivo, el autor y la cadena entera.
+--
+-- ── EL FIX ────────────────────────────────────────────────────────────────
+--
+-- Se quita el `delete` del grant a `authenticated`. Es la forma que FALLA DE
+-- FORMA VISIBLE: PostgREST devuelve 42501 (insufficient_privilege), no un 200 con
+-- 0 filas. Se descartó el trigger BEFORE DELETE que convierte el borrado en
+-- `deleted_at = now()` justamente por lo contrario: convertiría en silencio una
+-- intención de borrar en una de marcar, y quien lo llame creería que borró.
+--
+-- NO ROMPE NADA HOY. Barrido de `app/`, `lib/`, `components/`, `scripts/` y
+-- `supabase/functions/`: 17 usos de `from("documents")`, CERO llaman `.delete()`.
+-- Las dos acciones que borran —`deleteDocument` en documentos/actions.ts y
+-- `deleteTaskAttachmentAction` en bitacora/collab-actions.ts— ya hacen soft
+-- delete con UPDATE. Y ninguna migración ni Edge Function hace
+-- `delete from public.documents`.
+--
+-- Lo que SIGUE pudiendo borrar físicamente: `service_role` (worker de retención,
+-- purga con respaldo verificado) y `postgres`. Ese camino no se toca — es el
+-- único borrado físico legítimo y ya está fuera del alcance de PostgREST.
+--
+-- ── LO QUE ESTA MIGRACIÓN NO CAMBIA (y por qué) ───────────────────────────
+--
+--   · La app sigue borrando con UPDATE directo, sin motivo ni autor, en vez de
+--     usar `soft_delete_document()`. Decisión del founder (2026-08-27): fuera del
+--     alcance de este candado. La RPC auditable de SDD-0224 existe y hoy NADIE la
+--     llama — se decide aparte.
+--   · La restauración por el equipo. La 0230 quitó `and deleted_at is null` del
+--     `using` de toda policy FOR ALL (barrido de ~60 tablas, con su motivo
+--     escrito: un UPDATE que pone `deleted_at` violaba la propia policy). Medido:
+--     hoy el equipo VE un documento borrado y lo restaura con
+--     `update … set deleted_at = null`. Ya está abierto y es deliberado.
+--
+-- Idempotente: `revoke` sobre un privilegio ya revocado es un no-op.
+--
+-- NO aplicar a prod desde la rama — la aplica coordinación con el OK del founder
+-- NOMBRANDO esta migración (docs/runbooks/aplicar-migraciones-prod.md).
+-- ─────────────────────────────────────────────────────────────
+
+revoke delete on public.documents from authenticated;
+
+-- El comentario de la tabla decía que el soft delete era la vía, sin que nada lo
+-- sostuviera. Ahora dice cómo se sostiene, para que el próximo `grant` amplio
+-- tenga que discutir con este texto antes de reabrir el hueco.
+comment on table public.documents is
+  'SDD-0049: hub central de adjuntos (DMS). Polimórfico por (entity_type, entity_id) — generaliza shipment_documents (0086) a cualquier transacción. folder = id de subcarpeta del taxonomy fijo del Norte. vencido/por-vencer se derivan de valid_until en código. Borrado SUAVE OBLIGATORIO: `authenticated` NO tiene DELETE (revocado en 0394) — se marca deleted_at con UPDATE, o mejor con soft_delete_document() que exige motivo y audita (0313). El borrado físico es exclusivo de service_role (retención). RLS por tenant_id. Coexiste con shipment_documents (portal-facing), no lo migra.';

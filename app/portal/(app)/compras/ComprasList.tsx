@@ -37,6 +37,12 @@ export type CompraItem = {
   status: PrealertaStatus;
   /** nº de servicios de recepción pedidos sobre esta compra (SDD-0098). */
   services: number;
+  /**
+   * Quedó registrada sin detalle y todavía se puede completar (SDD-0313).
+   * Se marca en la card porque si no, el cliente no tiene cómo enterarse: la
+   * descripción que ve es el relleno del servidor y parece un dato real.
+   */
+  faltaDetalle?: boolean;
 };
 
 const TONE_COLOR: Record<BadgeTone, string> = {
@@ -156,6 +162,15 @@ export function ComprasList({ items }: { items: CompraItem[] }) {
                     ? ` · ${it.services} servicio${it.services === 1 ? "" : "s"}`
                     : ""}
                 </div>
+                {it.faltaDetalle ? (
+                  <div
+                    className="mt-1.5 inline-flex items-center gap-1.5 text-[11.5px] font-bold"
+                    style={{ color: "var(--color-wine-text)" }}
+                  >
+                    {/* Sin depender del color: el texto ya lo dice (WCAG 1.4.1). */}
+                    Falta el detalle — complétalo
+                  </div>
+                ) : null}
               </div>
 
               <span className="flex items-center gap-2 flex-shrink-0 self-center">
