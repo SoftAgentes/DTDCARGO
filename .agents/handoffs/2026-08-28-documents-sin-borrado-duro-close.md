@@ -78,7 +78,7 @@ candado.
 | cerrar la restauración | CONTRATO 6 ROTO |
 | control sin mutar | verde |
 
-## 3. 🔴 Lo que queda ABIERTO y no se tocó
+## 3. 🟡 Lo que queda ABIERTO y no se tocó
 
 **TRUNCATE sistémico.** Sondeando prod antes de aplicar, aparecieron privilegios
 que el repo nunca declaró:
@@ -94,13 +94,34 @@ completo** — ninguna policy lo detiene. Son los *default privileges* de la
 plataforma; el schema reconstruido desde el repo sale limpio, así que ningún
 contrato del gate lo ve.
 
-⚠️ **NO medido que sea explotable hoy**: PostgREST no expone TRUNCATE por REST.
-La vía sería una función `security invoker` que lo ejecute, o acceso directo a
-Postgres. Es superficie **latente**, no un agujero abierto.
+### ✅ Medido después (2026-08-28): **NO es alcanzable → higiene, no urgencia**
 
-**Siguiente paso antes de proponer nada:** medir si alguna RPC `security
-invoker` alcanza un TRUNCATE. Eso decide si el barrido es urgente o higiene —
-sin ese dato, una migración de 205 tablas sería adivinar.
+Era la pregunta que este handoff dejaba abierta. Se midió, y la respuesta baja
+la prioridad sin cerrar el tema. Los cinco eslabones, todos contra prod:
+
+| # | Qué se midió | Resultado |
+|---|---|---|
+| 1 | Funciones que mencionan `truncate` (todos los schemas) | **0** |
+| 2 | `security invoker` ejecutables por `anon`/`authenticated` que corran SQL dinámico | **0** de 44 |
+| 3 | ¿`anon`/`authenticated` pueden conectarse a Postgres? | **NOLOGIN** — no |
+| 4 | ¿PostgREST expone TRUNCATE? | No: su `DELETE` genera `DELETE FROM`, que respeta RLS |
+| 5 | Única invoker con DML destructivo (`renditions_immutable`) | **Falso positivo** — trigger function que *bloquea* DELETE, y las trigger functions no se exponen por RPC |
+
+La única función de `public` con `execute` dinámico es `rls_auto_enable`
+(`security definer`, event trigger): `anon` y `authenticated` **no** pueden
+ejecutarla.
+
+⭐ **Cómo se validó el cero.** Un cero por filtro roto se ve idéntico a un cero
+real, así que antes de creerle se corrió un **control positivo**: contar cada
+capa del filtro sin la condición buscada. **382** funciones en `public` · **72**
+`security invoker` · **44** ejecutables por esos roles · **1** con `execute`
+dinámico. Todos > 0 ⇒ la sonda mira, y el cero es del dato, no del filtro.
+
+⚠️ **Vale para la superficie de HOY.** El día que alguien escriba una función
+`security invoker` con SQL dinámico expuesta por RPC, el privilegio se vuelve
+explotable **sin que nada se ponga rojo** — ningún contrato del gate lo mira,
+porque el schema reconstruido desde el repo sale limpio. Ése es el argumento
+para limpiarlo igual: son 205 tablas, y no corre prisa.
 
 **Y dos cosas más que el contrato deja escritas y no cierra:**
 
@@ -131,5 +152,6 @@ verdad**, ninguno en SKIP.
 ## 5. Siguiente responsable
 
 Ninguno para este trabajo — está en `main` y en producción. Lo que queda abierto
-(TRUNCATE, el motivo del borrado, el oráculo de `anon`) son decisiones del
-founder, no tareas pendientes de esta ventana.
+(el motivo del borrado, el oráculo de `anon`, y el barrido de TRUNCATE ya
+clasificado como higiene) son decisiones del founder, no tareas pendientes de
+esta ventana.
