@@ -64,6 +64,13 @@ export function NewPurchaseWizard({
   );
   const uid = useId();
   const [supplierId, setSupplierId] = useState<string>(preselected?.id ?? "");
+  /**
+   * Nombre del proveedor cuya ficha de alta está abierta (`isNew` del Norte,
+   * `_norte/portal/app.jsx:3372`). Sin este dato el pie del botón no puede
+   * distinguir "te falta elegir" de "te falta guardar", y le decía al cliente
+   * que escribiera un nombre que ya había escrito.
+   */
+  const [draftSupplier, setDraftSupplier] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [holdCount, setHoldCount] = useState(HOLD_MIN);
   const [holdTie, setHoldTie] = useState(false);
@@ -174,6 +181,7 @@ export function NewPurchaseWizard({
               preselected={preselected}
               supplierId={supplierId}
               onSelect={setSupplierId}
+              onDraftSupplierChange={setDraftSupplier}
               showProfile
             />
           </div>
@@ -269,27 +277,61 @@ export function NewPurchaseWizard({
         </div>
 
         <div className="lg:sticky lg:top-[88px] flex flex-col gap-3">
-          <PurchaseOrderLive
-            supplierName={supplier?.name ?? null}
-            addons={addons}
-            selected={selected}
-            holdCount={holdCount}
-            holdTie={holdTie}
-          />
+          {/* El Norte lo condiciona a `provOk` (app.jsx:3925) y acá se pintaba
+              SIEMPRE: sin proveedor mostraba una orden completa y coherente
+              —"viene mercancía de mi proveedor mi proveedor"— junto a un botón
+              apagado. Es el estado falso que prohíbe SGE-00.07: la pantalla
+              afirmaba una orden que no existía. */}
+          {supplier && (
+            <PurchaseOrderLive
+              supplierName={supplier.name}
+              addons={addons}
+              selected={selected}
+              holdCount={holdCount}
+              holdTie={holdTie}
+            />
+          )}
 
           <button
             type="submit"
             disabled={pending || !supplierId}
             aria-busy={pending}
-            className="btn btn-primary w-full inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-wait"
+            aria-describedby={!supplierId ? `${uid}-falta` : undefined}
+            className={`btn btn-primary w-full inline-flex items-center justify-center gap-2 disabled:opacity-60 ${
+              // `cursor-wait` sólo cuando de verdad se está esperando algo. Con
+              // el botón apagado por falta de proveedor decía "el sistema está
+              // trabajando" — de ahí salió, textual, el reclamo "puede ser que
+              // no esté activo en este momento" (BTN-01 §5).
+              pending ? "disabled:cursor-wait" : "disabled:cursor-not-allowed"
+            }`}
           >
             {pending ? "Registrando compra…" : "Registrar compra"}
             {!pending && <ArrowIcon size={15} />}
           </button>
 
+          {/* BTN-01 §6: un botón deshabilitado tiene que explicar el motivo, y
+              la explicación no puede depender de enfocarlo. El Norte distingue
+              DOS estados (`app.jsx:3943`) y acá se había copiado sólo la rama
+              `else`; el tercero es propio, porque acá crear un proveedor pide
+              un clic extra en "+ Crear «X»" que el Norte no tiene.
+
+              `aria-live` porque el texto cambia sin que se mueva el foco. */}
           {!supplierId && (
-            <p className="text-[11.5px] text-grey-700 leading-[1.5] text-center m-0">
-              Escribe o elige un proveedor para continuar.
+            <p
+              id={`${uid}-falta`}
+              aria-live="polite"
+              className="text-[11.5px] text-grey-700 leading-[1.5] text-center m-0"
+            >
+              {draftSupplier !== null ? (
+                <>
+                  Te falta un paso: pulsa{" "}
+                  <strong className="text-ink">Guardar proveedor</strong> para
+                  registrar a{" "}
+                  <strong className="text-ink">{draftSupplier}</strong>.
+                </>
+              ) : (
+                "Elige tu proveedor de la lista, o créalo si es nuevo."
+              )}
             </p>
           )}
 

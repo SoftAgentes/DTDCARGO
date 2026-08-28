@@ -7,6 +7,7 @@ import {
   listSuppliers,
   listPrealertaServiceRequests,
 } from "@/lib/studio/prealertas/queries";
+import { PREALERTA_DESCRIPCION_PENDIENTE } from "@/lib/studio/prealertas/types";
 import { ArrowIcon } from "@/components/Icon";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
 import { EnviosHubTabs } from "../../_components/PortalHubTabs";
@@ -51,6 +52,9 @@ export default async function PortalPurchasesPage() {
     boxes: p.boxes,
     status: p.status,
     services: servicesById[p.id] ?? 0,
+    faltaDetalle:
+      p.status === "anunciada" &&
+      p.description === PREALERTA_DESCRIPCION_PENDIENTE,
   }));
 
   return (
