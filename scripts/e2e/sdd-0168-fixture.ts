@@ -3,12 +3,14 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 export const SDD_0168_FIXTURE = {
   tenantId: "01680000-0000-4000-8000-000000000001",
   shipmentId: "01680000-0000-4000-8000-000000000002",
+  expenseId: "02430000-0000-4000-8000-000000000001",
   payrollEmployeeId: "02260000-0000-4000-8000-000000000001",
   payrollJournalEntryId: "02260000-0000-4000-8000-000000000002",
   payrollSettlementId: "02260000-0000-4000-8000-000000000003",
   payrollSettlementLineId: "02260000-0000-4000-8000-000000000004",
   tenantSlug: "e2e-sdd-0168",
   shipmentCode: "E2E-0168-001",
+  expenseCode: "EXP-E2E-0243",
   payrollEmployeeCode: "EMP-E2E-0226",
   payrollJournalEntryCode: "A-E2E-0226",
   payrollSettlementCode: "LIQ-E2E-0226",
@@ -16,6 +18,42 @@ export const SDD_0168_FIXTURE = {
   mentionedEmail: "sdd0168-mentioned@example.com",
   commentBody: "SDD-0168 E2E · conservar identidad @Mention E.",
 } as const;
+
+export function getE2EExpenseOccurredAt(
+  referenceDate = new Date(),
+): string {
+  return new Date(
+    Date.UTC(
+      referenceDate.getUTCFullYear(),
+      referenceDate.getUTCMonth(),
+      15,
+      12,
+    ),
+  ).toISOString();
+}
+
+export const E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS = 10;
+export const E2E_SCHEMA_PREFLIGHT_RETRY_MS = 2_000;
+
+export function isRetryableE2ESchemaError(error: {
+  code?: string;
+  message: string;
+}): boolean {
+  return (
+    ["PGRST204", "PGRST205", "42703", "42P01"].includes(error.code ?? "") ||
+    error.message.toLowerCase().includes("schema cache")
+  );
+}
+
+export function getE2ESchemaRetryDelayMs(
+  failedAttempt: number,
+): number | null {
+  return Number.isInteger(failedAttempt) &&
+    failedAttempt >= 1 &&
+    failedAttempt < E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS
+    ? E2E_SCHEMA_PREFLIGHT_RETRY_MS
+    : null;
+}
 
 const PRODUCTION_PROJECT_REF = "xpfuzqombmjmxvprjgmi";
 const EPHEMERAL_ENVIRONMENT_KIND = "ephemeral";

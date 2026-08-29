@@ -104,22 +104,19 @@ export function StudioTopbar({
   return (
     <>
       <header
+        className="studio-topbar"
         style={{
           position: "sticky",
           top: 0,
-          height: "var(--topbar-h)",
           background: "var(--bg-surface)",
           borderBottom: "1px solid var(--border)",
-          display: "flex",
-          alignItems: "center",
-          gap: 14,
-          padding: "0 var(--s-6)",
           zIndex: 40,
         }}
       >
         {/* Module label */}
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+        <div className="studio-topbar__module">
           <span
+            className="studio-topbar__module-kicker"
             style={{
               font: "700 11px/1 var(--f-sans)",
               color: "var(--ink-soft)",
@@ -130,6 +127,7 @@ export function StudioTopbar({
             {t("chrome.topbar.module")}
           </span>
           <span
+            className="studio-topbar__module-name"
             style={{
               font: "900 16px/1 var(--f-display)",
               color: "var(--ink)",
@@ -141,7 +139,7 @@ export function StudioTopbar({
         </div>
 
         {/* Search button */}
-        <div style={{ flex: 1, maxWidth: 520, marginLeft: 24 }}>
+        <div className="studio-topbar__search">
           <button
             onClick={() => setSearchOpen(true)}
             aria-label={t("chrome.topbar.search_aria", { key: modKey })}
@@ -189,12 +187,7 @@ export function StudioTopbar({
         </div>
 
         <div
-          style={{
-            marginLeft: "auto",
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-          }}
+          className="studio-topbar__actions"
         >
           {/* Theme toggle */}
           <IconButton
@@ -216,16 +209,13 @@ export function StudioTopbar({
           <NotificationBell userId={userId} initial={initialNotifications} />
 
           {/* User menu */}
-          <div ref={userMenuRef} style={{ position: "relative", marginLeft: 6 }}>
+          <div ref={userMenuRef} className="studio-topbar__user" style={{ position: "relative" }}>
             <button
+              className="studio-topbar__user-button"
               onClick={() => setUserMenuOpen((v) => !v)}
               aria-label={t("chrome.topbar.user_menu")}
               aria-expanded={userMenuOpen}
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "4px 10px 4px 4px",
                 borderRadius: "var(--r-pill)",
                 background: "var(--bg-elevated)",
                 cursor: "pointer",
@@ -233,6 +223,7 @@ export function StudioTopbar({
             >
               <Avatar initials={initials} size={28} />
               <span
+                className="studio-topbar__user-name"
                 style={{
                   font: "600 12.5px/1 var(--f-sans)",
                   color: "var(--ink)",
@@ -245,7 +236,10 @@ export function StudioTopbar({
               >
                 {userEmail.split("@")[0]}
               </span>
-              <span style={{ color: "var(--ink-soft)", display: "inline-flex" }}>
+              <span
+                className="studio-topbar__user-chevron"
+                style={{ color: "var(--ink-soft)" }}
+              >
                 {Icon.chevD(12)}
               </span>
             </button>

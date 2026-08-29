@@ -62,6 +62,104 @@
   font-family: var(--f-sans);
 }
 
+/* Shell topbar: mantiene el chrome accesible y contenido dentro del ancho del
+   main. En móvil pasa a dos filas para que título, búsqueda y acciones no
+   compitan por el mismo min-content. */
+.studio-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  height: var(--topbar-h);
+  padding: 0 var(--s-6);
+}
+
+.studio-topbar__module {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+
+.studio-topbar__module-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-topbar__search {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 520px;
+  margin-left: var(--s-6);
+}
+
+.studio-topbar__actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--s-1);
+  margin-left: auto;
+}
+
+.studio-topbar__user {
+  margin-left: var(--s-2);
+}
+
+.studio-topbar__user-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-3) var(--s-1) var(--s-1);
+}
+
+.studio-topbar__user-chevron {
+  display: inline-flex;
+}
+
+@media (max-width: 767px) {
+  .studio-topbar {
+    grid-template-areas:
+      "module actions"
+      "search search";
+    grid-template-columns: minmax(0, 1fr) auto;
+    display: grid;
+    height: auto;
+    min-height: var(--topbar-h);
+    padding: var(--s-2) var(--s-3);
+  }
+
+  .studio-topbar__module {
+    grid-area: module;
+  }
+
+  .studio-topbar__module-kicker,
+  .studio-topbar__user-name,
+  .studio-topbar__user-chevron {
+    display: none;
+  }
+
+  .studio-topbar__search {
+    grid-area: search;
+    width: 100%;
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .studio-topbar__actions {
+    grid-area: actions;
+  }
+
+  .studio-topbar__user {
+    margin-left: 0;
+  }
+
+  .studio-topbar__user-button {
+    gap: 0;
+    padding: var(--s-1);
+  }
+}
+
 .studio-dark {
   min-height: 100vh;
   background: var(--studio-ink);

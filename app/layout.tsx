@@ -337,7 +337,8 @@ export default function RootLayout({
         {children}
         <Analytics />
         <CookieConsentBanner />
-        {process.env.NODE_ENV === "development" && <Agentation />}
+        {process.env.NODE_ENV === "development" &&
+          process.env.E2E_ENVIRONMENT_KIND !== "ephemeral" && <Agentation />}
       </body>
     </html>
   );

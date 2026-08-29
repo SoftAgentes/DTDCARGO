@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { loadE2EEnvironment } from "../e2e/sdd-0168-fixture";
+import {
+  E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS,
+  E2E_SCHEMA_PREFLIGHT_RETRY_MS,
+  SDD_0168_FIXTURE,
+  getE2EExpenseOccurredAt,
+  getE2ESchemaRetryDelayMs,
+  isRetryableE2ESchemaError,
+  loadE2EEnvironment,
+} from "../e2e/sdd-0168-fixture";
 
 const KEYS = [
   "E2E_SUPABASE_PROJECT_REF",
@@ -89,6 +97,48 @@ describe("loadE2EEnvironment", () => {
 
     expect(() => loadE2EEnvironment()).toThrow(
       "E2E_SUPABASE_URL no corresponde",
+    );
+  });
+});
+
+describe("fixture determinista de gasto", () => {
+  it("mantiene UUID y código estables para SDD-0243", () => {
+    expect(SDD_0168_FIXTURE.expenseId).toBe(
+      "02430000-0000-4000-8000-000000000001",
+    );
+    expect(SDD_0168_FIXTURE.expenseCode).toBe("EXP-E2E-0243");
+  });
+
+  it("fija el gasto al día 15 a las 12:00 UTC del mes suministrado", () => {
+    expect(getE2EExpenseOccurredAt(new Date("2026-08-29T23:59:59.999Z"))).toBe(
+      "2026-08-15T12:00:00.000Z",
+    );
+  });
+});
+
+describe("política de espera del esquema efímero", () => {
+  it("reintenta únicamente errores compatibles con caché tardía", () => {
+    expect(
+      isRetryableE2ESchemaError({
+        code: "PGRST204",
+        message: "Could not find the column in the schema cache",
+      }),
+    ).toBe(true);
+    expect(
+      isRetryableE2ESchemaError({
+        code: "42501",
+        message: "permission denied",
+      }),
+    ).toBe(false);
+  });
+
+  it("acota el polling y termina sin reintento después del último intento", () => {
+    expect(getE2ESchemaRetryDelayMs(1)).toBe(E2E_SCHEMA_PREFLIGHT_RETRY_MS);
+    expect(
+      getE2ESchemaRetryDelayMs(E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS - 1),
+    ).toBe(E2E_SCHEMA_PREFLIGHT_RETRY_MS);
+    expect(getE2ESchemaRetryDelayMs(E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS)).toBe(
+      null,
     );
   });
 });

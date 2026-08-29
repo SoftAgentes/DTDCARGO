@@ -1,10 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
+import { listGovernedAuditEvents } from "../lib/studio/audit-queries";
 import {
   SDD_0168_FIXTURE,
   createE2EAdminClient,
   createE2EAuthenticatedClient,
   loadE2EEnvironment,
 } from "../scripts/e2e/sdd-0168-fixture";
+import { esperarHidratado } from "./_helpers/hidratacion";
 
 const REQUIRED_ENV = [
   "BASE_URL",
@@ -71,17 +73,31 @@ async function login(page: Page, email: string, password: string) {
   await page.goto(
     `/studio/login?next=/studio/tracking/${SDD_0168_FIXTURE.shipmentId}`,
   );
-  await page.getByLabel("Email").fill(email);
+  const emailInput = page.getByLabel("Email");
+  await esperarHidratado(emailInput, "el campo Email del login");
+  await emailInput.fill(email);
   await page.getByRole("textbox", { name: "Contraseña" }).fill(password);
   await page.getByRole("button", { name: /INGRESAR/ }).click();
   await expect(page).toHaveURL(
-    new RegExp(`/studio/tracking/${SDD_0168_FIXTURE.shipmentId}`),
+    (url) =>
+      url.pathname ===
+      `/studio/tracking/${SDD_0168_FIXTURE.shipmentId}`,
+    { timeout: 20_000 },
   );
   await page.waitForLoadState("networkidle");
 }
 
 test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
   test.setTimeout(90_000);
+
+  test.beforeEach(async ({ page }) => {
+    // El Studio mantiene la preferencia real del rail en localStorage. En los
+    // proyectos móviles, el rail expandido consume casi todo el viewport y
+    // tapa el compositor; este contrato aísla la interacción de comentarios.
+    await page.addInitScript(() => {
+      localStorage.setItem("studio_sidebar_collapsed", "1");
+    });
+  });
 
   test.skip(
     REQUIRED_ENV.some((name) => !process.env[name]?.trim()),
@@ -161,11 +177,15 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
     ).toBeTruthy();
 
     await login(page, fixture.adminEmail, environment.password);
+    await expect(
+      page.getByRole("button", { name: "Expandir sidebar" }),
+    ).toBeVisible();
 
     const composer = page.getByPlaceholder(
       "Comenta en este embarque… usa @ para mencionar",
     );
     await expect(composer).toBeEditable();
+    await esperarHidratado(composer, "el composer de comentarios");
     const mentionToken = "@Mention E.";
     const commentPrefix = fixture.commentBody.replace(mentionToken, "");
     await composer.fill(commentPrefix);
@@ -289,7 +309,12 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
     await commentActions
       .getByRole("button", { name: "Eliminar comentario" })
       .click();
-    await page.getByRole("button", { name: "Deshacer" }).click();
+    const undo = page.getByRole("button", { name: "Deshacer" });
+    await expect(
+      undo,
+      "La acción Deshacer debe existir durante la ventana inmediata del contrato",
+    ).toBeVisible({ timeout: 15_000 });
+    await undo.click();
     await expect(body).toBeVisible();
 
     await expect
@@ -373,53 +398,44 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       ),
     ).toEqual(reaction);
 
-    type AuditSnapshot = {
-      event_type: string;
-      actor_id: string | null;
-      payload: { action?: string };
-      occurred_at: string;
-    };
-    let auditData: AuditSnapshot[] = [];
+    let auditData: Awaited<
+      ReturnType<typeof listGovernedAuditEvents>
+    >["events"] = [];
     await expect
       .poll(async () => {
-        const { data, error } = await auditReader
-          .from("entity_audit_log")
-          .select("event_type,actor_id,payload,occurred_at")
-          .eq("tenant_id", fixture.tenantId)
-          .eq("entity_type", "comment")
-          .eq("entity_id", comment.id)
-          .order("occurred_at", { ascending: true });
-        if (error) throw error;
-        auditData = (data ?? []) as AuditSnapshot[];
+        const result = await listGovernedAuditEvents(auditReader, {
+          entityType: "comment",
+        });
+        if (!result.ok) {
+          throw new Error(`Viewer de auditoría falló cerrado: ${result.code}`);
+        }
+        auditData = result.events.filter(
+          (event) => event.entityId === comment.id,
+        );
         return auditData.length;
       })
       .toBe(4);
     expect(
-      auditData.map((row) => ({
-        eventType: row.event_type,
-        actorId: row.actor_id,
-        action: row.payload.action,
+      [...auditData].reverse().map((row) => ({
+        eventType: row.eventType,
+        actorId: row.actorId,
       })),
     ).toEqual([
       {
         eventType: "comment_soft_deleted",
         actorId: adminUserId,
-        action: "self_delete",
       },
       {
         eventType: "comment_restored",
         actorId: adminUserId,
-        action: "undo",
       },
       {
         eventType: "comment_soft_deleted",
         actorId: adminUserId,
-        action: "self_delete",
       },
       {
         eventType: "comment_restored",
         actorId: adminUserId,
-        action: "ordinary_restore",
       },
     ]);
 

@@ -232,7 +232,7 @@ export function CommentsThread({
   const authorIds = [...new Set(comments.map((c) => c.author_id).filter(Boolean))];
 
   return (
-    <div>
+    <div style={{ width: "100%", minWidth: 0 }}>
       {/* Header */}
       <div
         style={{
@@ -351,15 +351,26 @@ export function CommentsThread({
       <div
         style={{
           position: "relative",
+          boxSizing: "border-box",
+          width: "100%",
+          minWidth: 0,
           background: "var(--bg-surface)",
           border: "1px solid var(--border)",
           borderRadius: "var(--r-md)",
           padding: 10,
         }}
       >
-        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "flex-start",
+            gap: 10,
+            minWidth: 0,
+          }}
+        >
           <Avatar initials={currentUser.avatar} size={28} color="wine" />
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ flex: "1 1 12rem", width: "100%", minWidth: 0 }}>
             <textarea
               ref={textareaRef}
               value={text}
@@ -374,7 +385,10 @@ export function CommentsThread({
               placeholder={`Comenta en este ${entityLabel}… usa @ para mencionar`}
               rows={2}
               style={{
+                boxSizing: "border-box",
+                display: "block",
                 width: "100%",
+                minWidth: 0,
                 border: 0,
                 outline: "none",
                 resize: "vertical",
@@ -390,8 +404,10 @@ export function CommentsThread({
         <div
           style={{
             display: "flex",
+            flexWrap: "wrap",
             alignItems: "center",
             gap: 8,
+            minWidth: 0,
             paddingTop: 8,
             borderTop: "1px solid var(--border)",
             marginTop: 4,

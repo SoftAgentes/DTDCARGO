@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { esperarHidratado } from "./_helpers/hidratacion";
 
 const EMAIL = process.env.STUDIO_E2E_EMAIL;
 const PASSWORD = process.env.STUDIO_E2E_PASSWORD;
@@ -21,16 +22,21 @@ test.describe("Tier 3 · anulación gobernada de finiquito", () => {
     await page.locator('input[name="email"]').fill(EMAIL!);
     await page.locator('input[name="password"]').fill(PASSWORD!);
     await page.locator('button[type="submit"]').click();
-    await expect(page).toHaveURL(/\/studio\/nomina/, { timeout: 20_000 });
+    await expect(page).toHaveURL(
+      (url) => url.pathname === "/studio/nomina",
+      { timeout: 20_000 },
+    );
     const settlementsTab = page.getByRole("button", {
       name: "Liquidaciones",
       exact: true,
     });
+    await esperarHidratado(settlementsTab, "la pestaña Liquidaciones");
     await settlementsTab.focus();
     await expect(settlementsTab).toBeFocused();
     await settlementsTab.press("Enter");
-    const row = page
-      .getByText(SETTLEMENT_CODE!, { exact: false })
+    const settlementCode = page.getByText(SETTLEMENT_CODE!, { exact: false });
+    await expect(settlementCode).toBeVisible();
+    const row = settlementCode
       .locator("xpath=ancestor::div[.//button[normalize-space()='Ver']][1]");
     await row.getByRole("button", { name: "Ver" }).click();
 

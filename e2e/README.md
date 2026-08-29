@@ -50,9 +50,14 @@ corrida CI** — NO contra prod ni dev. Flujo:
 1. **Crear branch** (Supabase MCP `create_branch` o `supabase branches create`) → DB limpia
    con todas las migraciones aplicadas.
 2. **Seed e2e** (`scripts/seed-e2e.ts`): fixture mínimo y determinista para
-   SDD-0168 y SDD-0226 (tenant + 2 usuarios + perfiles/membresías + embarque +
-   empleado y finiquito ficticios). Se niega a
+   SDD-0168, SDD-0226 y SDD-0243 (tenant + 2 usuarios + perfiles/membresías +
+   embarque + gasto determinista `EXP-E2E-0243` por USD 24,30 + empleado y
+   finiquito ficticios). El gasto queda ligado al embarque y al admin, con fecha
+   fija al día 15 a las 12:00 UTC del mes de ejecución. Se niega a
    ejecutar contra el `project_ref` productivo y valida que URL/ref coincidan.
+   Antes de la primera escritura hace polling read-only y acotado sobre las
+   columnas requeridas; si la caché de PostgREST del branch no converge, aborta
+   sin sembrar ni reintentar escrituras.
    La ampliación al journey transversal sigue pendiente:
    1 tenant + usuarios auth con email/password conocidos (Studio/Back) + 1 operario
    con PIN + datos operativos con IDs fijos (cliente, cotización, embarque).

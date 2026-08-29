@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { esperarHidratado } from "./_helpers/hidratacion";
 
 /**
  * E2E del buscador global ⌘K (SDD-0135).
@@ -31,18 +32,30 @@ const PASSWORD = process.env.STUDIO_E2E_PASSWORD;
 test.describe("Tier 3 · journey permission-aware (requiere seed)", () => {
   test.skip(!EMAIL || !PASSWORD, "Sin STUDIO_E2E_EMAIL/PASSWORD (branch+seed).");
 
-  async function login(page: import("@playwright/test").Page) {
-    await page.goto("/studio/login");
-    await page.locator('input[name="email"]').fill(EMAIL!);
+  async function login(page: Page) {
+    const landing = "/studio/gastos";
+    await page.goto(`/studio/login?next=${encodeURIComponent(landing)}`);
+    const email = page.locator('input[name="email"]');
+    await esperarHidratado(email, "el campo Email del login");
+    await email.fill(EMAIL!);
     await page.locator('input[name="password"]').fill(PASSWORD!);
     await page.locator('button[type="submit"]').click();
-    await expect(page).not.toHaveURL(/\/studio\/login/);
+    await expect(page).toHaveURL((url) => url.pathname === landing, {
+      timeout: 20_000,
+    });
+    const searchButton = page.getByRole("button", {
+      name: /Buscar en el Studio/,
+    });
+    await esperarHidratado(searchButton, "el botón de búsqueda global");
   }
 
   test("⌘K abre el buscador global (no el placeholder)", async ({ page }) => {
     await login(page);
-    await page.keyboard.press("Control+k");
-    await expect(page.getByRole("dialog")).toBeVisible();
+    const dialog = page.getByRole("dialog");
+    await expect(async () => {
+      await page.keyboard.press("Control+k");
+      await expect(dialog).toBeVisible();
+    }).toPass({ timeout: 20_000 });
     // El placeholder viejo tenía un input disabled; el real es editable.
     const input = page.getByRole("combobox");
     await expect(input).toBeEnabled();
@@ -57,9 +70,11 @@ test.describe("Tier 3 · journey permission-aware (requiere seed)", () => {
     // accounting: debe aparecer el grupo "Pagos"; con commercial: el candado
     // con la nota "…las gestiona Contabilidad." (ver e2e/README.md · seed).
     await login(page);
-    await page.keyboard.press("Control+k");
     const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
+    await expect(async () => {
+      await page.keyboard.press("Control+k");
+      await expect(dialog).toBeVisible();
+    }).toPass({ timeout: 20_000 });
     await page.getByRole("combobox").fill("Juan");
     await expect(
       dialog.getByText(/Pagos|Contabilidad/),

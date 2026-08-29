@@ -115,4 +115,34 @@ describe("ciclo de permanencia de comentarios", () => {
       ).undoRemainingMs,
     ).toBe(0);
   });
+
+  it("conserva la ventana nueva cuando el reloj del host está adelantado", () => {
+    expect(
+      parseCommentLifecycleResult(
+        {
+          ok: true,
+          code: "deleted",
+          state: "deleted_undoable",
+          deleted_at: "2026-07-23T12:00:00Z",
+          undo_expires_at: "2026-07-23T12:00:10Z",
+        },
+        NOW + 46_000,
+      ).undoRemainingMs,
+    ).toBe(COMMENT_UNDO_WINDOW_MS);
+  });
+
+  it("no reinicia la ventana durante un replay idempotente", () => {
+    expect(
+      parseCommentLifecycleResult(
+        {
+          ok: true,
+          code: "idempotent_replay",
+          state: "deleted_undoable",
+          deleted_at: "2026-07-23T12:00:00Z",
+          undo_expires_at: "2026-07-23T12:00:10Z",
+        },
+        NOW + 9_000,
+      ).undoRemainingMs,
+    ).toBe(1_000);
+  });
 });

@@ -1,13 +1,142 @@
 import {
+  E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS,
   SDD_0168_FIXTURE,
   createE2EAdminClient,
+  getE2EExpenseOccurredAt,
+  getE2ESchemaRetryDelayMs,
+  isRetryableE2ESchemaError,
   loadE2EEnvironment,
 } from "./e2e/sdd-0168-fixture";
 
 type AdminClient = ReturnType<typeof createE2EAdminClient>;
+type SchemaError = { code?: string; message: string };
+
+const REQUIRED_SCHEMA = [
+  { table: "tenants", columns: "id, slug, display_name" },
+  {
+    table: "user_profiles",
+    columns: "user_id, first_name, last_name",
+  },
+  {
+    table: "user_tenants",
+    columns: "user_id, tenant_id, role, disabled_at",
+  },
+  {
+    table: "shipments",
+    columns:
+      "id, tenant_id, code, client_name, origin, destination, shipment_service, status, created_at, deleted_at",
+  },
+  {
+    table: "expenses",
+    columns:
+      "id, tenant_id, user_id, expense_code, amount, currency, amount_usd, fx_rate, category, scope, method, shipment_id, note, location, billable, receipt_path, receipt_document_id, account_id, occurred_at, created_at, updated_at, deleted_at",
+  },
+  {
+    table: "nomina_employees",
+    columns:
+      "id, tenant_id, employee_code, full_name, national_id, position_label, department, position_id, phone, email, salary_usd, hire_date, birth_date, bank_name, bank_account_type, bank_account, status, notes, auth_user_id, created_by, created_at, updated_at, deleted_at",
+  },
+  {
+    table: "journal_entries",
+    columns:
+      "id, tenant_id, entry_code, entry_date, memo, status, source, expense_id, posted_at, deleted_at",
+  },
+  {
+    table: "nomina_settlements",
+    columns:
+      "id, tenant_id, settlement_code, employee_id, employee_code, employee_name, termination_cause, hire_date, termination_date, base_salary_usd, rules_snapshot, status, total_prestaciones_usd, total_fracciones_usd, total_indemnizacion_usd, total_intereses_usd, total_deductions_usd, total_net_usd, salario_integral_usd, pdf_path, journal_entry_id, confirmed_at, notes, created_by, created_at, updated_at, deleted_at",
+  },
+  {
+    table: "nomina_settlement_lines",
+    columns:
+      "id, tenant_id, settlement_id, kind, label, days, base_usd, amount_usd, created_at",
+  },
+] as const;
+
+type SchemaFailure = {
+  table: (typeof REQUIRED_SCHEMA)[number]["table"];
+  error: SchemaError;
+};
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function inspectRequiredSchema(
+  admin: AdminClient,
+): Promise<SchemaFailure[]> {
+  const checks = await Promise.all(
+    REQUIRED_SCHEMA.map(async ({ table, columns }): Promise<SchemaFailure | null> => {
+      const { error } = await admin
+        .from(table)
+        // No usar HEAD: PostgREST puede devolver el fallo sin cuerpo y
+        // postgrest-js pierde `code`/`message`, impidiendo distinguir de forma
+        // fail-closed una caché tardía de un error real.
+        .select(columns)
+        .limit(1);
+      return error
+        ? { table, error: { code: error.code, message: error.message } }
+        : null;
+    }),
+  );
+  return checks.filter((check): check is SchemaFailure => check !== null);
+}
+
+function schemaFailureSummary(failures: SchemaFailure[]): string {
+  return failures
+    .map(({ table, error }) => `${table}:${error.code ?? "sin-código"}`)
+    .join(", ");
+}
+
+async function waitForRequiredSchema(admin: AdminClient): Promise<void> {
+  for (
+    let attempt = 1;
+    attempt <= E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS;
+    attempt += 1
+  ) {
+    const failures = await inspectRequiredSchema(admin);
+    if (failures.length === 0) return;
+
+    const summary = schemaFailureSummary(failures);
+    const unexpected = failures.find(
+      ({ error }) => !isRetryableE2ESchemaError(error),
+    );
+    if (unexpected) {
+      throw new Error(
+        `Preflight E2E abortado por un error no reintentable (${summary}): ${unexpected.error.message}`,
+      );
+    }
+
+    const delayMs = getE2ESchemaRetryDelayMs(attempt);
+    if (delayMs === null) {
+      throw new Error(
+        `Preflight E2E abortado: la caché de esquema no convergió tras ${attempt} intentos (${summary}).`,
+      );
+    }
+    console.warn(
+      `[schema-preflight] Caché de PostgREST incompleta (${summary}); reintento ${attempt + 1}/${E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS} en ${delayMs} ms.`,
+    );
+    await sleep(delayMs);
+  }
+}
 
 async function assertFixtureAbsent(admin: AdminClient): Promise<void> {
   const fixture = SDD_0168_FIXTURE;
+  const { data: expenseById, error: expenseByIdError } = await admin
+    .from("expenses")
+    .select("id")
+    .eq("id", fixture.expenseId)
+    .maybeSingle();
+  await check(
+    expenseByIdError,
+    "No se pudo verificar el gasto fixture por ID",
+  );
+  if (expenseById) {
+    throw new Error(
+      "Seed E2E abortado: el proyecto efímero contiene un gasto fixture previo.",
+    );
+  }
+
   const { data: tenantById, error: tenantByIdError } = await admin
     .from("tenants")
     .select("id")
@@ -78,7 +207,9 @@ async function main() {
   const environment = loadE2EEnvironment();
   const admin = createE2EAdminClient(environment);
   const fixture = SDD_0168_FIXTURE;
+  const expenseOccurredAt = getE2EExpenseOccurredAt();
 
+  await waitForRequiredSchema(admin);
   await assertFixtureAbsent(admin);
 
   const { error: tenantError } = await admin.from("tenants").insert({
@@ -135,6 +266,41 @@ async function main() {
     deleted_at: null,
   });
   await check(shipmentError, "No se pudo preparar el embarque");
+
+  const { data: expense, error: expenseError } = await admin
+    .from("expenses")
+    .insert({
+      id: fixture.expenseId,
+      tenant_id: fixture.tenantId,
+      user_id: adminUser.id,
+      expense_code: fixture.expenseCode,
+      amount: 24.3,
+      currency: "USD",
+      amount_usd: 24.3,
+      fx_rate: 1,
+      category: "otro",
+      scope: "shipment",
+      method: "cash",
+      shipment_id: fixture.shipmentId,
+      note: "Fixture desechable SDD-0243; no corresponde a un gasto real.",
+      location: "Entorno efímero E2E",
+      billable: false,
+      occurred_at: expenseOccurredAt,
+      created_at: expenseOccurredAt,
+      updated_at: expenseOccurredAt,
+    })
+    .select("id, expense_code, deleted_at")
+    .single();
+  await check(expenseError, "No se pudo preparar el gasto ficticio");
+  if (
+    expense?.id !== fixture.expenseId ||
+    expense.expense_code !== fixture.expenseCode ||
+    expense.deleted_at !== null
+  ) {
+    throw new Error(
+      "El gasto ficticio no cumple la postcondición determinista del seed E2E.",
+    );
+  }
 
   const { error: employeeError } = await admin.from("nomina_employees").insert({
     id: fixture.payrollEmployeeId,
@@ -229,6 +395,9 @@ async function main() {
       projectRef: environment.projectRef,
       tenantId: fixture.tenantId,
       shipmentId: fixture.shipmentId,
+      expenseId: fixture.expenseId,
+      expenseCode: fixture.expenseCode,
+      expenseOccurredAt,
       payrollSettlementId: fixture.payrollSettlementId,
       payrollSettlementCode: fixture.payrollSettlementCode,
       adminUserId: adminUser.id,

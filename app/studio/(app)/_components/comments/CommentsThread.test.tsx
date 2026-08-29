@@ -112,6 +112,39 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("CommentsThread · ciclo de permanencia", () => {
+  it("mantiene ancho útil en el compositor cuando el contenedor móvil es estrecho", () => {
+    renderThread([]);
+
+    const textarea = screen.getByPlaceholderText(
+      "Comenta en este embarque… usa @ para mencionar",
+    );
+    const field = textarea.parentElement;
+    const inputRow = field?.parentElement;
+    const composer = inputRow?.parentElement;
+
+    expect(composer).toHaveStyle({
+      boxSizing: "border-box",
+      minWidth: "0",
+      width: "100%",
+    });
+    expect(inputRow).toHaveStyle({
+      display: "flex",
+      flexWrap: "wrap",
+      minWidth: "0",
+    });
+    expect(field).toHaveStyle({
+      flex: "1 1 12rem",
+      minWidth: "0",
+      width: "100%",
+    });
+    expect(textarea).toHaveStyle({
+      boxSizing: "border-box",
+      display: "block",
+      minWidth: "0",
+      width: "100%",
+    });
+  });
+
   it("elimina el comentario propio y ofrece Deshacer sólo tras respuesta durable", async () => {
     renderThread([comment("c1", CURRENT_USER.id, CURRENT_USER.name)]);
 

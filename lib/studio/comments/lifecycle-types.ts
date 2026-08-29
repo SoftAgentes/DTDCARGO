@@ -141,13 +141,24 @@ export function parseCommentLifecycleResult(
   const deletedAt = typeof row.deleted_at === "string" ? row.deleted_at : null;
   const undoExpiresAt =
     typeof row.undo_expires_at === "string" ? row.undo_expires_at : null;
+  const parsedDeletedAt = deletedAt ? Date.parse(deletedAt) : Number.NaN;
   const parsedUndoExpiry = undoExpiresAt
     ? Date.parse(undoExpiresAt)
     : Number.NaN;
+  const freshDeleteWindowMs =
+    ok &&
+    code === "deleted" &&
+    Number.isFinite(parsedDeletedAt) &&
+    Number.isFinite(parsedUndoExpiry)
+      ? parsedUndoExpiry - parsedDeletedAt
+      : Number.NaN;
+  const rawUndoRemainingMs = Number.isFinite(freshDeleteWindowMs)
+    ? freshDeleteWindowMs
+    : parsedUndoExpiry - nowMs;
   const undoRemainingMs = Number.isFinite(parsedUndoExpiry)
     ? Math.max(
         0,
-        Math.min(COMMENT_UNDO_WINDOW_MS, parsedUndoExpiry - nowMs),
+        Math.min(COMMENT_UNDO_WINDOW_MS, rawUndoRemainingMs),
       )
     : null;
   const rawState = typeof row.state === "string" ? row.state : undefined;
