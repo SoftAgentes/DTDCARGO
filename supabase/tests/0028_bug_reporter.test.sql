@@ -55,88 +55,43 @@
 --      `app/studio/(app)/bugs/actions.ts:83` devuelve `error.message` crudo al
 --      cliente, así que el texto del `raise exception` ES la copy de la
 --      pantalla. La ruta API los mapea a mensajes propios; la server action no.
+--  14. 🔴 **La máquina de estados tiene UNA sola puerta.** Ésta es la que
+--      faltaba, y hasta la 0394 estaba abierta: había `grant update on
+--      bug_reports to authenticated` y la policy `bug_reports_admin_update`, y
+--      con eso un admin escribía `state` a mano por PostgREST — `nuevo →
+--      resuelto` de un salto, sin renglón de timeline y sin `resolved_at`, y
+--      `resuelto → nuevo` reabriendo un terminal. Todos los guards de arriba
+--      viven dentro de `bug_advance_state`; la puerta de al lado no pasaba por
+--      ninguno. La cierra la 0394 y la contratan el 14 al 17.
+--  15. 🔴 Los cuatro sellos tampoco se escriben a mano: `taken_by`, `taken_at`,
+--      `resolved_at`, `discarded_at`. Un `resolved_at` puesto a dedo miente
+--      igual que un estado puesto a dedo.
+--  16. 🔴 **Y sigue cerrada aunque vuelva el GRANT amplio.** Son DOS capas:
+--      privilegio por columna (el motor) y trigger (la 0394). La primera tapa
+--      a la segunda, así que el contrato 16 **borra la primera a propósito**
+--      —`grant update on bug_reports to authenticated`, exactamente la línea
+--      con la que nació el hueco— y recién ahí mira si el trigger sostiene
+--      solo. Sin ese paso, el 14 saldría verde con el trigger arrancado.
+--  17. 🔴 Y forjar la señal no alcanza: la GUC `dtd.bug_state_via_rpc` la
+--      setea cualquiera, pero el trigger exige además que `current_user` sea
+--      el dueño de la tabla, y a dueño un cliente no llega. Se prueba
+--      forjándola.
 --
--- ── ⚠️ EL HUECO MEDIDO QUE ESTE CONTRATO **NO** CIERRA ────────────────────
+-- ── 📏 COMPOSICIÓN REAL, NO MIGRACIONES AISLADAS ──────────────────────────
 --
--- No se contrata porque hoy está abierto: una afirmación que diga que está
--- cerrado saldría roja, y una que diga que está abierto dejaría clavado el
--- problema. Queda escrito acá para que se decida, no para que se olvide.
---
---   🔴 **La máquina de estados tiene una segunda puerta.** El comentario de
---      la migración dice que «las transiciones de estado pasan por RPC», pero
---      nada lo obliga: hay `grant update on bug_reports to authenticated` y la
---      policy `bug_reports_admin_update`. Medido acá con el mismo Postgres —
---      un admin hace `update bug_reports set state = 'resuelto'` y el bug pasa
---      de `nuevo` a `resuelto` **de un salto, sin renglón de timeline y sin
---      `resolved_at`**; y de `resuelto` vuelve a `nuevo`, saltándose el guard
---      terminal. Es dentro de su propia empresa y sólo un admin, así que no es
---      una fuga: es el expediente que deja de ser fiel. Cerrarlo es un trigger
---      que rechace el UPDATE de `state` fuera de la RPC.
---
--- ── 📏 EL SEGUNDO HUECO ERA DEL ARCHIVO, NO DE LA BASE ────────────────────
---
--- Acá decía que `anon` puede EJECUTAR `next_bug_folio`, medido en este mismo
--- Postgres. Era cierto **de este replay** y falso de producción, y la
--- diferencia importa más que el hallazgo.
---
--- Este harness es AISLADO a propósito: hace `\ir` de su propia migración y de
--- nada más. Con sólo la 0028 aplicada, el `grant` sin `revoke` deja la función
--- abierta a PUBLIC y la medición da `true`. Pero la base real no ejecuta la
--- 0028 sola: 181 números después, `0209_revoke_anon_rpc_sweep.sql:64` revoca
--- `next_bug_folio` de `public, anon` en un barrido, y nada la vuelve a abrir
--- (la 0248 re-otorga sólo a `authenticated`).
---
--- Medido el 2026-08-27 replayando las 372 migraciones sobre Postgres limpio:
--- `has_function_privilege('anon','public.next_bug_folio(uuid)','execute')` =
--- **false**, con ACL `postgres=X/postgres service_role=X/postgres
--- authenticated=X/postgres` — sin PUBLIC y sin anon.
---
--- Así que la 0394 no cerró una fuga viva: hizo explícita a nivel de archivo una
--- invariante que dependía de un barrido lejano, y recién por eso el contrato 12
--- puede afirmarla acá sin mentir. La lección es del método: **una medición en
--- el harness aislado dice qué hace el ARCHIVO, no qué hace la BASE.** Cuando lo
--- que se afirma es un privilegio, las dos preguntas tienen respuestas distintas.
---
--- ── 📏 EL DÍA QUE ESTE CONTRATO ESTUVO VERDE CON PROD EN ROJO ─────────────
---
--- ✅ Ya está reparado (0397, aplicada el 2026-08-28). Se deja escrito porque
--- la falla se repite sola y el contrato sigue sin poder verla.
---
--- Durante unas horas el contrato 13 pasó acá con **el voseo vivo en
--- producción**. No fue un bug del contrato: fue su alcance, otra vez.
---
--- El 2026-08-28 entraron a prod TRES migraciones con el número **0394**, desde
--- tres ventanas que no se veían entre sí (ninguna de las tres pusheada):
+-- Este archivo aplica las tres piezas que definen hoy el comportamiento de
+-- `bug_advance_state`, en el orden real de producción. El 2026-08-28 entraron
+-- tres migraciones con el número 0394 en 72 segundos:
 --
 --   005838  0394_bug_reporter_tuteo_y_revoke_anon      ← la del tuteo
 --   005909  0394_documents_sin_borrado_duro
---   005950  0394_bug_state_transitions_via_rpc_only    ← SDD-0313
+--   005950  0394_bug_state_transitions_via_rpc_only    ← SDD-0314
 --
--- La de SDD-0313 cerró la «segunda puerta» de acá arriba, y para meter sus dos
+-- La última cerró la «segunda puerta» y, para meter sus dos
 -- `set_config` alrededor del UPDATE **copió el cuerpo de la 0039** — la versión
 -- con voseo. Corrió 72 s después, y `create or replace` se lleva la función
--- ENTERA, no sólo la parte que uno vino a cambiar. Ganó el último.
---
--- Medido en prod: `bug_advance_state` tiene voseo Y el `set_config`;
--- `bug_increment_duplicate` conserva su tuteo (nadie la volvió a tocar).
---
--- El archivo estuvo verde todo el tiempo porque hace `\ir` de su propia 0394 y
--- de nada más. **Mide el archivo, no la base** — lo mismo que se explica más
--- arriba sobre `next_bug_folio`, pero esta vez el que se equivocaba era el lado
--- optimista: allá el contrato habría gritado de más, acá se quedó callado.
---
--- ✅ Lo reparó `0397_bug_advance_state_tuteo_sobre_sdd0313.sql`, aplicada el
--- 2026-08-28 (ledger 20260828162058). Tomó el cuerpo VIVO y le cambió sólo las
--- dos cadenas; verificado por HUELLA, no por «success»: el md5 del `prosrc`
--- resultante es el que se había calculado antes aplicándole los dos reemplazos
--- al cuerpo que estaba corriendo, así que no se movió nada de SDD-0313.
---
--- ⏸ **Lo que sigue faltando acá:** este contrato todavía no compone la cadena
--- real. Cuando la ventana de SDD-0313 pushee
--- `0394_bug_state_transitions_via_rpc_only.sql`, hay que hacerle `\ir` de esa y
--- de la 0397, en ese orden, después de la 0394 propia. Hasta entonces el
--- contrato 13 afirma sobre una composición que la base no tiene — sigue siendo
--- cierto que el tuteo está bien, pero por un camino que no es el de producción.
+-- ENTERA. La 0397 reaplicó el tuteo sobre ese cuerpo vivo. Si el contrato no
+-- carga 0394 + 0394 + 0397 en ese orden, mide historia en vez de producción.
 --
 -- Cada contrato se validó rompiéndolo a propósito.
 
@@ -181,6 +136,21 @@ grant select on public.user_tenants to authenticated;
 -- contratos 12 y 13 afirmarían sobre una función que este replay no tiene.
 \ir ../migrations/0394_bug_reporter_tuteo_y_revoke_anon.sql
 
+-- 🔴 Y la 0394, que cierra la SEGUNDA PUERTA de la máquina de estados: hasta
+-- ella, `bug_advance_state` era la puerta principal pero no la única — al lado
+-- había un `grant update` a `authenticated` por el que un admin escribía el
+-- estado a mano, sin whitelist, sin timeline y sin sellar. Es el hueco que este
+-- mismo archivo denunciaba en su cabecera y que hoy contratan el 14 al 17.
+-- También vuelve a definir `bug_advance_state` (mismo cuerpo que la 0039, más
+-- las dos líneas que le abren y le cierran el candado al trigger), así que va
+-- DESPUÉS: es la versión que corre.
+\ir ../migrations/0394_bug_state_transitions_via_rpc_only.sql
+
+-- La 0397 es la reparación posterior al choque de las dos 0394 sobre la misma
+-- función: conserva el candado de SDD-0314 y reaplica el tuteo de SDD-0312.
+-- Cargarla al final hace que este contrato mida la composición real de prod.
+\ir ../migrations/0397_bug_advance_state_tuteo_sobre_sdd0313.sql
+
 -- ── Fixtures ──────────────────────────────────────────────────────────────
 \set t1 '11111111-1111-1111-1111-111111111111'
 \set t2 '22222222-2222-2222-2222-222222222222'
@@ -212,6 +182,10 @@ insert into public.bug_reports (id, tenant_id, folio, reporter_id, category, sev
   ('b0000003-0000-0000-0000-000000000003', :'t1', 'BUG-00003', :'report1', 'improve', null,  'terminal',          'x',        '/studio/x'),
   ('b0000004-0000-0000-0000-000000000004', :'t1', 'BUG-00004', :'report1', 'question', null, 'permisos',          'x',        '/studio/x'),
   ('b0000005-0000-0000-0000-000000000005', :'t1', 'BUG-00005', :'report1', 'error', 'baja',  'sellado',           'x',        '/studio/x'),
+  -- Los contratos 14 al 17 necesitan un bug INTACTO: prueban que la puerta de
+  -- al lado no lo mueve, y para eso tiene que llegar en `nuevo`. Todos los de
+  -- arriba ya los movieron los contratos 1 al 6.
+  ('b0000006-0000-0000-0000-000000000006', :'t1', 'BUG-00006', :'report1', 'error', 'alta',  'segunda puerta',    'x',        '/studio/x'),
   ('b0000009-0000-0000-0000-000000000009', :'t2', 'BUG-00001', :'admin2',  'error', 'alta',  'de la otra empresa','x',        '/studio/x');
 
 -- Mueve el bug y devuelve el estado en el que QUEDÓ. Se mira el estado de la
@@ -463,9 +437,15 @@ begin
     raise exception 'CONTRATO 6 ROTO: entrar a triaje no sello quien lo tomo (at=% by=%)', v_taken, v_por;
   end if;
 
+  -- Antedatar el sello es tocar el expediente, así que desde la 0394 hay que
+  -- declararlo: es la escotilla que la migración documenta para una reparación
+  -- deliberada del dueño. Sin estas dos líneas el trigger corta el UPDATE — y
+  -- que corte es precisamente lo que contrata el 13.
+  perform set_config('dtd.bug_state_via_rpc', 'on', true);
   update public.bug_reports
      set taken_at = timestamptz '2020-01-01 00:00:00+00'
    where id = 'b0000005-0000-0000-0000-000000000005';
+  perform set_config('dtd.bug_state_via_rpc', 'off', true);
 
   perform pg_temp.mover('b0000005-0000-0000-0000-000000000005', 'espera',
                         'aa111111-1111-1111-1111-111111111111');
@@ -502,8 +482,8 @@ declare v_f1 text; v_f2 text; v_ajeno text;
 begin
   perform set_config('test.uid', 'aa111111-1111-1111-1111-111111111111', true);
   v_f1 := public.next_bug_folio('11111111-1111-1111-1111-111111111111');
-  if v_f1 <> 'BUG-00006' then
-    raise exception 'CONTRATO 7 ROTO: el proximo folio del tenant 1 es % (esperado BUG-00006)', v_f1;
+  if v_f1 <> 'BUG-00007' then
+    raise exception 'CONTRATO 7 ROTO: el proximo folio del tenant 1 es % (esperado BUG-00007)', v_f1;
   end if;
 
   perform set_config('test.uid', 'aa555555-2222-2222-2222-222222222222', true);
@@ -635,8 +615,8 @@ begin
   -- (b) el admin de la casa ve los suyos
   perform set_config('test.uid', 'aa111111-1111-1111-1111-111111111111', true);
   select count(*) into v_n from public.bug_reports;
-  if v_n <> 5 then
-    raise exception 'CONTRATO 11 ROTO: el admin de la casa ve % de sus 5 bugs', v_n;
+  if v_n <> 6 then
+    raise exception 'CONTRATO 11 ROTO: el admin de la casa ve % de sus 6 bugs', v_n;
   end if;
 
   -- (c) el tercero, que no es admin ni reportador, no ve ninguno
@@ -650,8 +630,8 @@ begin
   -- (d) el reportador ve los suyos
   perform set_config('test.uid', 'aa222222-1111-1111-1111-111111111111', true);
   select count(*) into v_n from public.bug_reports;
-  if v_n <> 5 then
-    raise exception 'CONTRATO 11 ROTO: el reportador ve % de sus 5 bugs', v_n;
+  if v_n <> 6 then
+    raise exception 'CONTRATO 11 ROTO: el reportador ve % de sus 6 bugs', v_n;
   end if;
 
   reset role;
@@ -805,5 +785,184 @@ begin
   end if;
 end;
 $$;
+
+-- ── 14 · 🔴 La segunda puerta: el UPDATE directo no mueve el expediente ────
+--
+-- Hasta la 0394 esto pasaba. Se mira el ESTADO EN QUE QUEDÓ la fila, no el
+-- texto del error: da igual si el rechazo llega por privilegio de columna, por
+-- el trigger o por una policy — lo que se contrata es que el bug no se movió.
+do $$
+declare v_estado text; v_res timestamptz; v_tl int;
+begin
+  set local role authenticated;
+  perform set_config('test.uid', 'aa111111-1111-1111-1111-111111111111', true);
+
+  -- (a) el salto que la whitelist prohíbe, por la puerta de al lado
+  begin
+    update public.bug_reports set state = 'resuelto'
+     where id = 'b0000006-0000-0000-0000-000000000006';
+  exception when others then null;
+  end;
+
+  select state::text, resolved_at into v_estado, v_res
+    from public.bug_reports where id = 'b0000006-0000-0000-0000-000000000006';
+  if v_estado <> 'nuevo' then
+    raise exception
+      'CONTRATO 14 ROTO: un UPDATE directo movio el bug a «%» salteandose la RPC', v_estado;
+  end if;
+  if v_res is not null then
+    raise exception 'CONTRATO 14 ROTO: se sello resolved_at por la puerta de al lado';
+  end if;
+
+  -- (b) y el expediente no ganó un renglón fantasma
+  select count(*) into v_tl from public.bug_timeline
+   where bug_id = 'b0000006-0000-0000-0000-000000000006';
+  if v_tl <> 0 then
+    raise exception 'CONTRATO 14 ROTO: el UPDATE directo dejo % renglon(es) de timeline', v_tl;
+  end if;
+
+  -- (c) el contrapeso: lo que la app SÍ edita en directo sigue andando. Un
+  --     candado que cierre de más rompe el drawer de admin y nadie lo nota
+  --     hasta que alguien intenta poner una ETA.
+  update public.bug_reports set severity = 'media', eta_days = 3
+   where id = 'b0000006-0000-0000-0000-000000000006';
+  perform 1 from public.bug_reports
+   where id = 'b0000006-0000-0000-0000-000000000006'
+     and severity = 'media' and eta_days = 3;
+  if not found then
+    raise exception
+      'CONTRATO 14 ROTO: el candado tambien trabo la edicion legitima de severidad/ETA';
+  end if;
+
+  reset role;
+exception when others then
+  reset role;
+  raise;
+end;
+$$;
+
+-- ── 15 · 🔴 Los cuatro sellos tampoco se escriben a mano ──────────────────
+do $$
+declare v_res timestamptz; v_taken uuid;
+begin
+  set local role authenticated;
+  perform set_config('test.uid', 'aa111111-1111-1111-1111-111111111111', true);
+
+  begin
+    update public.bug_reports set resolved_at = now()
+     where id = 'b0000006-0000-0000-0000-000000000006';
+  exception when others then null;
+  end;
+  begin
+    update public.bug_reports set taken_by = 'aa111111-1111-1111-1111-111111111111'
+     where id = 'b0000006-0000-0000-0000-000000000006';
+  exception when others then null;
+  end;
+
+  select resolved_at, taken_by into v_res, v_taken
+    from public.bug_reports where id = 'b0000006-0000-0000-0000-000000000006';
+  if v_res is not null then
+    raise exception 'CONTRATO 15 ROTO: se escribio resolved_at a mano (%)', v_res;
+  end if;
+  if v_taken is not null then
+    raise exception 'CONTRATO 15 ROTO: se escribio taken_by a mano (%)', v_taken;
+  end if;
+
+  reset role;
+exception when others then
+  reset role;
+  raise;
+end;
+$$;
+
+-- ── 16 · 🔴 Y sigue cerrada aunque vuelva el GRANT amplio ─────────────────
+--
+-- ⚠️ ESTE ES EL PASO QUE HACE QUE EL 14 SIGNIFIQUE ALGO. El candado son dos
+-- capas y la de privilegios TAPA a la del trigger: medido, el 14 rechaza con
+-- «permission denied for table bug_reports», o sea que ni siquiera llega al
+-- trigger. Un 14 verde no dice nada sobre si el trigger existe.
+--
+-- Así que acá se borra la capa de privilegios a propósito —con la línea exacta
+-- de la 0028 que abrió el hueco— y se mira si el trigger sostiene solo. Es el
+-- escenario real: dentro de un año alguien escribe ese grant en una migración
+-- nueva sin saber lo que apaga.
+grant update on public.bug_reports to authenticated;
+
+do $$
+declare v_estado text;
+begin
+  set local role authenticated;
+  perform set_config('test.uid', 'aa111111-1111-1111-1111-111111111111', true);
+
+  begin
+    update public.bug_reports set state = 'resuelto'
+     where id = 'b0000006-0000-0000-0000-000000000006';
+  exception when others then null;
+  end;
+
+  select state::text into v_estado
+    from public.bug_reports where id = 'b0000006-0000-0000-0000-000000000006';
+  if v_estado <> 'nuevo' then
+    raise exception
+      'CONTRATO 16 ROTO: con el GRANT amplio de vuelta, el bug se movio a «%» — el trigger no sostiene solo', v_estado;
+  end if;
+
+  -- Y con la capa 1 caída, la RPC tiene que seguir moviendo el bug: si el
+  -- trigger cerrara de más, el Bug Reporter quedaría clavado.
+  perform pg_temp.mover('b0000006-0000-0000-0000-000000000006', 'triaje',
+                        'aa111111-1111-1111-1111-111111111111');
+  select state::text into v_estado
+    from public.bug_reports where id = 'b0000006-0000-0000-0000-000000000006';
+  if v_estado <> 'triaje' then
+    raise exception
+      'CONTRATO 16 ROTO: con la capa 1 caida la RPC dejo de mover el bug (quedo en %)', v_estado;
+  end if;
+
+  reset role;
+exception when others then
+  reset role;
+  raise;
+end;
+$$;
+
+-- ── 17 · 🔴 Forjar la señal del candado no alcanza ────────────────────────
+--
+-- El trigger reconoce a la RPC por una GUC, y una GUC de prefijo propio la
+-- setea cualquiera. Por eso pide DOS cosas: la GUC **y** que `current_user` sea
+-- el dueño de la tabla. Acá se forja la GUC —sigue sin haber capa 1— y se mira
+-- que la mitad no forjable aguante.
+do $$
+declare v_estado text;
+begin
+  set local role authenticated;
+  perform set_config('test.uid', 'aa111111-1111-1111-1111-111111111111', true);
+
+  begin
+    perform set_config('dtd.bug_state_via_rpc', 'on', true);
+    update public.bug_reports set state = 'resuelto'
+     where id = 'b0000006-0000-0000-0000-000000000006';
+  exception when others then null;
+  end;
+  perform set_config('dtd.bug_state_via_rpc', 'off', true);
+
+  select state::text into v_estado
+    from public.bug_reports where id = 'b0000006-0000-0000-0000-000000000006';
+  if v_estado <> 'triaje' then
+    raise exception
+      'CONTRATO 17 ROTO: forjando la GUC el bug salto a «%» — la señal del candado es falsificable', v_estado;
+  end if;
+
+  reset role;
+exception when others then
+  reset role;
+  raise;
+end;
+$$;
+
+-- Se restaura el candado que el 16 desarmó, para que el archivo no dependa del
+-- orden en que corren los contratos.
+revoke update on public.bug_reports from authenticated;
+grant update (severity, eta_days, admin_thanks, commit_url, duplicate_of_id)
+  on public.bug_reports to authenticated;
 
 rollback;

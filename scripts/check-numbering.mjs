@@ -105,12 +105,9 @@ const CHOQUES_HISTORICOS = {
   // Las TRES están en el ledger de prod (verificado el 2026-08-28 contra
   // `supabase_migrations.schema_migrations`) → ninguna se renumera.
   //
-  // ⚠️ ACÁ SÓLO SE DECLARAN DOS, Y ES A PROPÓSITO: la exención exige que el set
-  // coincida EXACTO con los archivos en disco, y el archivo de
-  // `0394_bug_state_transitions_via_rpc_only` todavía no llegó a ninguna rama
-  // (vive en el worktree de SDD-0313). Cuando esa ventana lo pushee, este check
-  // va a gritar — es lo correcto, y la reparación es de UNA línea: agregar
-  // "0394_bug_state_transitions_via_rpc_only" a este array. No renumeres nada.
+  // Las TRES se conservan con 0394 porque ya estaban en el ledger de prod antes
+  // de integrarse. La exención enumera el set exacto presente en el repo; no se
+  // renumera ninguna migración aplicada.
   //
   // 🔴 Y la lección que dejó, que es peor que el choque de números: la de
   // SDD-0313 necesitaba meter dos `set_config` dentro de `bug_advance_state` y
@@ -120,7 +117,11 @@ const CHOQUES_HISTORICOS = {
   // ventanas tocan la MISMA función el mismo día, el choque de números es lo
   // barato; lo caro es el cambio que desaparece sin que nada se ponga rojo.
   // Lo repara `0397_bug_advance_state_tuteo_sobre_sdd0313.sql`.
-  "0394": ["0394_bug_reporter_tuteo_y_revoke_anon", "0394_documents_sin_borrado_duro"],
+  "0394": [
+    "0394_bug_reporter_tuteo_y_revoke_anon",
+    "0394_documents_sin_borrado_duro",
+    "0394_bug_state_transitions_via_rpc_only",
+  ],
   // 2026-08-14 · el choque 0373 NO está acá, y el motivo importa.
   //
   //   20260814213028  0373_lote_legado_con_nombre            (SDD-0258)

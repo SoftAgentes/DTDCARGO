@@ -13,7 +13,7 @@
 --
 --   20260828005838  0394_bug_reporter_tuteo_y_revoke_anon      (SDD-0312)
 --   20260828005909  0394_documents_sin_borrado_duro            (bugfix)
---   20260828005950  0394_bug_state_transitions_via_rpc_only    (SDD-0313)
+--   20260828005950  0394_bug_state_transitions_via_rpc_only    (entonces SDD-0313; hoy SDD-0314)
 --
 -- La primera pasó a tuteo los mensajes de `bug_advance_state` y
 -- `bug_increment_duplicate`. La tercera cerró la «segunda puerta» de la máquina
@@ -21,10 +21,11 @@
 -- `set_config` alrededor del UPDATE, **copió el cuerpo de la 0039** — que es la
 -- versión con voseo. Como corrió 72 s después, ganó.
 --
--- Nadie hizo nada mal: la de SDD-0313 no podía saber del tuteo, porque el
--- archivo de la primera nunca llegó a `main` (ninguna de las tres está
--- pusheada). Es el modo de falla clásico de `create or replace` concurrente —
--- el último en correr se lleva la función entera, no sólo su parte.
+-- Nadie hizo nada mal: la de SDD-0313 no podía saber del tuteo porque, en ese
+-- momento, ninguno de los tres archivos había llegado a `main`. Es el modo de
+-- falla clásico de `create or replace` concurrente: el último en correr se
+-- lleva la función entera, no sólo su parte. La spec se renumeró después a
+-- SDD-0314; la migración conserva 0394 porque ya estaba aplicada.
 --
 -- Estado medido DESPUÉS de las tres:
 --   bug_advance_state        → voseo SÍ · set_config SDD-0313 SÍ · cast 0039 SÍ
@@ -67,9 +68,8 @@
 --
 -- El 0397 quedó firme (nadie más lo tomó) y ya corrió con ese nombre, así que
 -- de acá en más **no se renumera**. Las tres 0394 tampoco: están declaradas en
--- `CHOQUES_HISTORICOS` de `scripts/check-numbering.mjs` — dos de ellas; la
--- tercera (`0394_bug_state_transitions_via_rpc_only`) se agrega cuando su
--- ventana pushee el archivo.
+-- `CHOQUES_HISTORICOS` de `scripts/check-numbering.mjs`, con los tres basenames
+-- exactos que existen en el ledger y en el repo.
 --
 -- Contrato: supabase/tests/0028_bug_reporter.test.sql (13).
 
