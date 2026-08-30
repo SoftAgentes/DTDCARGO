@@ -3,11 +3,11 @@
 | Control | Valor |
 |---|---|
 | SDD | [SDD-0166](spec.md) |
-| Diseño | Corte C · v1.1 |
+| Diseño | Corte C · v1.2 |
 | Base | [Inventario read-only](inventario-corte-c-2026-07-28.md) |
 | Revisión de diseño | [REV-AUD-012](../../governance/reviews/aud-corte-c.md) |
 | Revisión de implementación | [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) |
-| Estado | C1 implementado y verificado localmente; Cloud no aplicado |
+| Estado | C1 en Producción; allowlist v2 implementada localmente y no aplicada |
 
 ## 1. Decisión
 
@@ -55,8 +55,12 @@ prueba suficiente de autorización.
 - devuelve zona `UTC` como dato explícito;
 - devuelve `has_more` y `next_cursor`;
 - no devuelve `payload`, `before_data`, `after_data` ni `reason`;
-- devuelve únicamente un `summary` generado por allowlist versionada. Para la
-  versión inicial, la allowlist es vacía y el resumen es `null`.
+- devuelve únicamente un `summary` generado por allowlist versionada. La v1
+  fue vacía. La v2 admite solo `{ "action": <valor> }` cuando coinciden las
+  cuatro dimensiones aprobadas: `entity_type=comment`, evento
+  `comment_soft_deleted|comment_restored`, schema `comment.lifecycle.v1` y una
+  de las cinco acciones de SDD-0168;
+- cualquier otra entidad, evento, schema o acción devuelve `summary=null`.
 
 Una clave futura no sale por defecto. Ampliar la allowlist exige revisión
 documental y pruebas de no filtración.
@@ -140,6 +144,9 @@ determinarán si una carga real justifica otro índice.
 - cursor estable no duplica ni omite;
 - filtros inválidos fallan;
 - salida no contiene columnas JSON ni motivo;
+- resumen de comentario contiene una sola clave `action` para la combinación
+  allowlist y queda `null` ante schema, acción, entidad o evento desconocido;
+- un secreto colocado junto a `payload.action` no aparece en la fila serializada;
 - reveal sin AAL2, sin motivo o de tenant ajeno falla;
 - reveal permitido produce exactamente un evento sin copiar PII;
 - tabla queda sin `SELECT authenticated`;
@@ -213,3 +220,41 @@ La prueba contractual cerró con rollback total en PostgreSQL 15 y 17. Las
 pruebas de queries/RBAC sumaron 29 casos y typecheck quedó verde. Cloud no fue
 modificado y la revisión visual autenticada requiere primero que la migración
 exista en el entorno objetivo.
+
+## 13. Ampliación allowlist v2 para SDD-0168
+
+La autorización local del 2026-08-29 amplía exclusivamente el resumen de lista;
+no abre el payload, `before_data`, `after_data`, `reason`, la tabla base ni el
+reveal sensible. El contrato exacto es:
+
+| Dimensión | Allowlist |
+|---|---|
+| Entidad | `comment` |
+| Eventos | `comment_soft_deleted`, `comment_restored` |
+| Schema de payload | `comment.lifecycle.v1` |
+| Acciones | `self_delete`, `moderation`, `undo`, `ordinary_restore`, `exceptional_restore` |
+| Salida | objeto JSON con la única clave `action` |
+
+La implementación usa `CREATE OR REPLACE` sobre la definición completa de
+`audit_list_events`. Antes de reemplazarla, la migración exige owner
+`postgres`, `SECURITY DEFINER`, `search_path` vacío, control admin por tenant,
+firma redacted y ausencia de `SELECT` directo. Si la definición base cambió,
+aborta para evitar borrar trabajo concurrente.
+
+Allowlist exacta de archivos:
+
+1. `supabase/migrations/0398_audit_comment_action_summary.sql`;
+2. `supabase/tests/0398_audit_comment_action_summary.test.sql`;
+3. `lib/studio/audit-types.ts`;
+4. `lib/studio/audit-queries.ts`;
+5. `lib/studio/audit-queries.test.ts`;
+6. `e2e/comments-lifecycle.spec.ts`;
+7. `docs/specs/0166-auditoria-gobernada-aud-01-aud-02/spec.md`;
+8. `docs/specs/0166-auditoria-gobernada-aud-01-aud-02/diseno-correctivo-corte-c.md`;
+9. `docs/specs/0168-mp-01-comentarios-permanencia-restauracion/spec.md`;
+10. `docs/specs/0168-mp-01-comentarios-permanencia-restauracion/diseno-tecnico.md`;
+11. `docs/governance/reviews/mp-01-comments-preview-e2e.md`.
+
+`docs/specs/README.md` puede cambiar solo como índice generado. Commit,
+aplicación Cloud de `0398_audit_comment_action_summary` y push conservan
+autorizaciones separadas.

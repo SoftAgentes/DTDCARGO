@@ -1,4 +1,4 @@
-# Diseño técnico v1.0 — permanencia y restauración de comentarios
+# Diseño técnico v1.1 — permanencia y restauración de comentarios
 
 | Control | Valor |
 |---|---|
@@ -7,9 +7,9 @@
 | Políticas | [MP-01](../../governance/policies/mp-01.md) · [AUD-01](../../governance/policies/aud-01.md) · [BTN-01](../../governance/policies/btn-01.md) |
 | Dependencias | [SDD-0165](../0165-sistema-gobernanza-experiencia-erp-studio/spec.md) · [SDD-0166](../0166-auditoria-gobernada-aud-01-aud-02/spec.md) |
 | Revisión | [REV-MP-002](../../governance/reviews/mp-01-comments-design.md) |
-| Estado | aprobado técnicamente para implementación local |
-| Fecha | 2026-07-22 |
-| Alcance | diseño; no contiene migración ejecutable ni implementación |
+| Estado | implementación cerrada; evidencia gobernada de action en paquete local |
+| Fecha | 2026-08-29 |
+| Alcance | contrato vigente y ampliación local de evidencia Tier 3 |
 | Confidencialidad | interno |
 
 ## 1. Decisión ejecutiva
@@ -290,6 +290,15 @@ columnas actuales de `entity_audit_log` y un payload `comment.lifecycle.v1`:
 }
 ```
 
+### 9.1 Lectura gobernada para Tier 3
+
+La prueba de navegador no lee `entity_audit_log` con `service_role`. Usa una
+sesión admin y `audit_list_events`, cuyo `summary` v2 solo materializa
+`payload.action` cuando coinciden entidad `comment`, los dos eventos de ciclo,
+schema `comment.lifecycle.v1` y el vocabulario de cinco acciones. El adaptador
+TypeScript rechaza shapes con claves adicionales, valores desconocidos o
+resúmenes fuera de esos eventos.
+
 El evento usa `entity_type=comment`, `entity_id=comments.id`, actor real
 `user/id` y `event_type=comment_soft_deleted|comment_restored`. No copia body,
 menciones, reacciones, nombres, emails, secretos ni datos del padre. La razón
@@ -499,6 +508,8 @@ nombre el basename exacto. DB-1 no autoriza DB-2.
 - pestaña oculta más de 10 s muestra undo expirado;
 - desktop/móvil, teclado, foco, Escape, lector de pantalla y zoom 200 %;
 - cero requests con body del comentario dentro del payload audit.
+- secuencia exacta `self_delete → undo → self_delete → ordinary_restore`
+  observada mediante la RPC gobernada, nunca mediante SELECT de tabla.
 
 ## 18. Verificación de cierre de implementación
 

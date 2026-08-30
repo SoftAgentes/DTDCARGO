@@ -7,6 +7,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   AUDIT_ACTOR_TYPES,
+  COMMENT_LIFECYCLE_AUDIT_ACTIONS,
   AUDIT_RESULTS,
   AUDIT_SENSITIVITIES,
   AUDIT_SOURCES,
@@ -17,6 +18,7 @@ import {
   type AuditResult,
   type AuditSensitivity,
   type AuditSource,
+  type AuditSummary,
 } from "./audit-types";
 
 interface AuditRpcRow {
@@ -35,6 +37,7 @@ interface AuditRpcRow {
   sensitivity: string;
   schema_version: number;
   timezone: string;
+  summary: unknown;
   next_cursor: string | null;
   has_more: boolean;
 }
@@ -42,6 +45,10 @@ interface AuditRpcRow {
 const MACHINE_NAME = /^[a-z][a-z0-9_]{1,79}$/;
 const CURSOR = /^[A-Za-z0-9_-]{8,256}$/;
 const CORRELATION = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const COMMENT_LIFECYCLE_EVENTS = [
+  "comment_soft_deleted",
+  "comment_restored",
+] as const;
 
 function one(raw: string | string[] | undefined): string | undefined {
   const value = Array.isArray(raw) ? raw[0] : raw;
@@ -106,6 +113,33 @@ export function parseAuditFilters(
   };
 }
 
+function validSummary(row: AuditRpcRow): row is AuditRpcRow & {
+  summary: Exclude<AuditSummary, null> | null;
+} {
+  if (row.summary === null) return true;
+  if (
+    row.entity_type !== "comment" ||
+    !COMMENT_LIFECYCLE_EVENTS.includes(
+      row.event_type as (typeof COMMENT_LIFECYCLE_EVENTS)[number],
+    ) ||
+    typeof row.summary !== "object" ||
+    Array.isArray(row.summary)
+  ) {
+    return false;
+  }
+
+  const keys = Object.keys(row.summary);
+  const action = (row.summary as { action?: unknown }).action;
+  return (
+    keys.length === 1 &&
+    keys[0] === "action" &&
+    typeof action === "string" &&
+    COMMENT_LIFECYCLE_AUDIT_ACTIONS.includes(
+      action as (typeof COMMENT_LIFECYCLE_AUDIT_ACTIONS)[number],
+    )
+  );
+}
+
 function validRow(row: AuditRpcRow): boolean {
   return (
     row !== null &&
@@ -125,6 +159,7 @@ function validRow(row: AuditRpcRow): boolean {
     AUDIT_RESULTS.includes(row.result as AuditResult) &&
     AUDIT_SENSITIVITIES.includes(row.sensitivity as AuditSensitivity) &&
     Number.isInteger(row.schema_version) &&
+    validSummary(row) &&
     (row.next_cursor === null || typeof row.next_cursor === "string") &&
     typeof row.has_more === "boolean" &&
     row.timezone === "UTC"
@@ -189,6 +224,7 @@ export async function listGovernedAuditEvents(
     sensitivity: row.sensitivity as AuditSensitivity,
     schemaVersion: row.schema_version,
     timezone: "UTC",
+    summary: row.summary as AuditSummary,
   }));
 
   return {

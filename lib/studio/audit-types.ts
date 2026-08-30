@@ -45,6 +45,20 @@ export const AUDIT_SENSITIVITIES = [
 ] as const;
 export type AuditSensitivity = (typeof AUDIT_SENSITIVITIES)[number];
 
+export const COMMENT_LIFECYCLE_AUDIT_ACTIONS = [
+  "self_delete",
+  "moderation",
+  "undo",
+  "ordinary_restore",
+  "exceptional_restore",
+] as const;
+export type CommentLifecycleAuditAction =
+  (typeof COMMENT_LIFECYCLE_AUDIT_ACTIONS)[number];
+
+export type AuditSummary =
+  | { action: CommentLifecycleAuditAction }
+  | null;
+
 export interface AuditEvent {
   id: string;
   entityType: string;
@@ -61,6 +75,7 @@ export interface AuditEvent {
   sensitivity: AuditSensitivity;
   schemaVersion: number;
   timezone: "UTC";
+  summary: AuditSummary;
 }
 
 export interface AuditListFilters {

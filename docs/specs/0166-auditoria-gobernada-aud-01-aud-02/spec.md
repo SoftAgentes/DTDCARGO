@@ -4,7 +4,7 @@ title: "Auditoría gobernada — corrección conjunta AUD-01 y AUD-02"
 status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-21
-updated: 2026-07-31
+updated: 2026-08-29
 supersedes: null
 superseded_by: null
 related: ["0085", "0123", "0139", "0165"]
@@ -12,6 +12,12 @@ confidencialidad: interno
 ---
 
 # DTD-0166 — Auditoría gobernada · AUD-01 + AUD-02
+
+> **Ampliación local de allowlist, 2026-08-29.** La lista gobernada conserva
+> el payload crudo fuera de su firma y habilita únicamente
+> `summary.action` para eventos de permanencia de comentarios con contrato
+> `comment.lifecycle.v1`. La migración `0398_audit_comment_action_summary`
+> permanece local; commit, aplicación Cloud y push son gates separados.
 
 > **Spec correctiva cerrada en Producción.** Llevó
 > `entity_audit_log` desde su viewer básico actual hasta los contratos
@@ -190,6 +196,8 @@ Una vista/RPC segura:
 - recibe filtros permitidos, nunca tenant arbitrario;
 - pagina con cursor opaco sobre `(occurred_at, id)`;
 - aplica allowlist/redacción antes de devolver JSON;
+- el resumen solo admite shapes documentados por entidad, evento, schema y
+  valor; una combinación desconocida devuelve `null` y nunca el payload crudo;
 - limita volumen/rate y usa coincidencia exacta para IDs/correlaciones;
 - almacena UTC y devuelve zona IANA explícita para presentación.
 
@@ -361,6 +369,9 @@ ERR-01:
 - admin consulta solo su tenant con payload redacted;
 - tenant ajeno falla aunque se manipulen filtros/cursor;
 - campo no registrado en allowlist no sale por red ni export;
+- `summary.action` solo sale para `comment_soft_deleted` y
+  `comment_restored` bajo `comment.lifecycle.v1` y vocabulario cerrado;
+- schema, acción, entidad o evento desconocido devuelve `summary=null`;
 - `service_role` no puede UPDATE/DELETE después del corte correspondiente;
 - tipo histórico `rendition` y todos los valores existentes validan catálogo;
 - un tipo nuevo se añade sin reemplazar los anteriores;
@@ -538,3 +549,10 @@ hash/conteo, segundo aprobador, revalidación de hold y DELETE exclusivamente
 por lote service-role. `fiscal` y `legacy_unknown` no son ejecutables.
 `0304_audit_retention_batches.sql` fue aplicada y verificada individualmente;
 ningún lote destructivo fue creado ni ejecutado durante la implementación.
+
+El 2026-08-29 se abrió una ampliación local, estrecha y no sensible del Corte
+C. La allowlist v2 no crea una RPC paralela ni usa el reveal AAL2: reutiliza el
+campo `summary` de `audit_list_events` para devolver únicamente la modalidad
+de transición de SDD-0168. El contrato está delimitado en el
+[diseño correctivo del Corte C](diseno-correctivo-corte-c.md); la aplicación
+Cloud de `0398_audit_comment_action_summary` no está autorizada por esta nota.

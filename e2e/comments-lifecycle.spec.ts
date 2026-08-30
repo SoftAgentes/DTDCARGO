@@ -419,23 +419,28 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       [...auditData].reverse().map((row) => ({
         eventType: row.eventType,
         actorId: row.actorId,
+        action: row.summary?.action ?? null,
       })),
     ).toEqual([
       {
         eventType: "comment_soft_deleted",
         actorId: adminUserId,
+        action: "self_delete",
       },
       {
         eventType: "comment_restored",
         actorId: adminUserId,
+        action: "undo",
       },
       {
         eventType: "comment_soft_deleted",
         actorId: adminUserId,
+        action: "self_delete",
       },
       {
         eventType: "comment_restored",
         actorId: adminUserId,
+        action: "ordinary_restore",
       },
     ]);
 

@@ -189,3 +189,16 @@ autenticado; no se afirma una consulta de logs que no pudo ejecutarse.
 
 La integración y la validación de Producción no habilitan ninguno de esos
 alcances.
+
+## 8. Addendum local de evidencia gobernada · 2026-08-29
+
+La evidencia histórica de esta revisión comprobó las cuatro acciones, pero no
+cerró como contrato separado que su lectura proviniera de la RPC redacted. El
+paquete local `0398_audit_comment_action_summary` corrige ese hueco sin abrir
+la tabla: el Tier 3 ahora exige `self_delete`, `undo`, `self_delete` y
+`ordinary_restore` desde `audit_list_events.summary.action`.
+
+La prueba SQL cubre allowlist positiva, aislamiento por tenant, denegación a
+no-admin, ACL sin SELECT directo y casos negativos de schema, acción, entidad
+y evento. Este addendum no cambia el recibo histórico ni declara aplicada la
+migración; commit, Cloud y push permanecen separados.

@@ -4,7 +4,7 @@ title: "MP-01 Slice 1 — Permanencia y restauración de comentarios internos"
 status: done
 author: "Codex"
 created: 2026-07-22
-updated: 2026-07-28
+updated: 2026-08-29
 supersedes: null
 superseded_by: null
 related: ["0045", "0123", "0165", "0166"]
@@ -12,6 +12,12 @@ confidencialidad: interno
 ---
 
 # SDD-0168 — MP-01 Slice 1: permanencia y restauración de comentarios internos
+
+> **Seguimiento local, 2026-08-29.** El E2E Tier 3 pasa a comprobar la
+> modalidad exacta de cada transición mediante `audit_list_events.summary`,
+> sin acceso directo a `entity_audit_log`. La ampliación depende de la
+> migración local `0398_audit_comment_action_summary`; no autoriza Cloud,
+> commit ni push.
 
 > **Estado de control:** aprobado documentalmente el 2026-07-22. El
 > [diseño técnico v1.0](diseno-tecnico.md) fue aprobado técnicamente por
@@ -196,6 +202,14 @@ El payload no copia el body, menciones, email, nombre completo ni otra PII. Usa
 IDs y metadatos mínimos. La retención de estos eventos permanece P4 y se rige
 por AUD-02; SDD-0168 no habilita su purga.
 
+### 7.3 Evidencia gobernada de modalidad
+
+La lista de auditoría puede exponer únicamente `summary.action` para este
+contrato. La salida admisible es una de `self_delete`, `moderation`, `undo`,
+`ordinary_restore` o `exceptional_restore`; el payload completo y sus demás
+claves siguen fuera de la firma. El Tier 3 consume la RPC gobernada con sesión
+admin y no usa cliente privilegiado para leer la tabla base.
+
 ### 7.2 Estado de la dependencia A2
 
 El Corte A1 creó `audit_entity_types` y el Corte A2 validó su FK y retiró el
@@ -316,6 +330,8 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
 - [x] Doble click, reintento, pestañas concurrentes y restauración simultánea
       producen un solo estado y eventos no duplicados.
 - [x] Filas legacy nunca reciben actor ni evento histórico inventado.
+- [ ] El recorrido Tier 3 confirma `self_delete → undo → self_delete →
+      ordinary_restore` mediante `summary.action` de la RPC gobernada.
 
 ### UI y accesibilidad
 
