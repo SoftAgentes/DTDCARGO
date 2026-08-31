@@ -61,7 +61,7 @@ export function CommentItem({
   ][];
 
   return (
-    <div style={{ display: "flex", gap: 10 }}>
+    <div data-comment-id={comment.id} style={{ display: "flex", gap: 10 }}>
       <Avatar
         initials={comment.author?.avatar ?? "??"}
         size={32}

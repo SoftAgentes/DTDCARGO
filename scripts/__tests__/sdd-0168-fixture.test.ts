@@ -3,6 +3,8 @@ import {
   E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS,
   E2E_SCHEMA_PREFLIGHT_RETRY_MS,
   SDD_0168_FIXTURE,
+  applyE2ETier3FixtureAliases,
+  getE2ECommentBody,
   getE2EExpenseOccurredAt,
   getE2ESchemaRetryDelayMs,
   isRetryableE2ESchemaError,
@@ -18,6 +20,9 @@ const KEYS = [
   "E2E_ENVIRONMENT_KIND",
   "E2E_EPHEMERAL_PROJECT_REF",
   "E2E_PRODUCTION_CONFIRM_PROJECT_REF",
+  "STUDIO_E2E_EMAIL",
+  "STUDIO_E2E_EXPENSE_CODE",
+  "STUDIO_E2E_PAYROLL_SETTLEMENT_CODE",
 ] as const;
 
 const original = new Map<string, string | undefined>();
@@ -112,6 +117,57 @@ describe("fixture determinista de gasto", () => {
   it("fija el gasto al día 15 a las 12:00 UTC del mes suministrado", () => {
     expect(getE2EExpenseOccurredAt(new Date("2026-08-29T23:59:59.999Z"))).toBe(
       "2026-08-15T12:00:00.000Z",
+    );
+  });
+});
+
+describe("aliases Playwright del fixture Tier 3", () => {
+  it("hidrata los tres aliases desde el fixture efímero validado", () => {
+    delete process.env.STUDIO_E2E_EMAIL;
+    delete process.env.STUDIO_E2E_EXPENSE_CODE;
+    delete process.env.STUDIO_E2E_PAYROLL_SETTLEMENT_CODE;
+
+    expect(applyE2ETier3FixtureAliases()).toBe(true);
+    expect(process.env).toMatchObject({
+      STUDIO_E2E_EMAIL: SDD_0168_FIXTURE.adminEmail,
+      STUDIO_E2E_EXPENSE_CODE: SDD_0168_FIXTURE.expenseCode,
+      STUDIO_E2E_PAYROLL_SETTLEMENT_CODE:
+        SDD_0168_FIXTURE.payrollSettlementCode,
+    });
+  });
+
+  it("rechaza un alias manual que apunte fuera del fixture sembrado", () => {
+    process.env.STUDIO_E2E_EXPENSE_CODE = "EXP-OTRO";
+
+    expect(() => applyE2ETier3FixtureAliases()).toThrow(
+      "STUDIO_E2E_EXPENSE_CODE no coincide con el fixture SDD-0168",
+    );
+  });
+
+  it("no altera una corrida Playwright sin guard efímero", () => {
+    delete process.env.E2E_ENVIRONMENT_KIND;
+    delete process.env.STUDIO_E2E_EMAIL;
+
+    expect(applyE2ETier3FixtureAliases()).toBe(false);
+    expect(process.env.STUDIO_E2E_EMAIL).toBeUndefined();
+  });
+});
+
+describe("identidad del comentario E2E", () => {
+  it("genera un cuerpo único por proyecto, retry y repetición", () => {
+    const bodies = [
+      getE2ECommentBody("chromium", 0, 0),
+      getE2ECommentBody("mobile-safari", 0, 0),
+      getE2ECommentBody("chromium", 1, 0),
+      getE2ECommentBody("chromium", 0, 1),
+    ];
+
+    expect(new Set(bodies).size).toBe(bodies.length);
+  });
+
+  it("conserva la mención al final para que el picker pueda resolverla", () => {
+    expect(getE2ECommentBody("mobile-chrome", 0, 0)).toMatch(
+      /@Mention E\.$/,
     );
   });
 });

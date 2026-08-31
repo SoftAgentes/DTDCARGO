@@ -201,7 +201,9 @@ function runningDevServer() {
       pid: lock.pid,
       port: lock.port,
       startedAt,
-      appUrl: lock.appUrl ?? `http://localhost:${lock.port}`,
+      // Next puede registrar 127.0.0.1 en el lock, pero su HMR sólo admite
+      // localhost por defecto. La URL canónica del harness evita ese cruce.
+      appUrl: `http://localhost:${lock.port}`,
     };
   } catch {
     return null;
@@ -234,9 +236,9 @@ function e2ePreflight() {
       reason:
         "navegadores Playwright ausentes → `pnpm exec playwright install chromium` (e2e omitido, no bloquea el gate)",
     };
-  // Si ya hay un dev server de ESTE worktree, reusarlo (BASE_URL desactiva el
-  // webServer de Playwright): evita el choque del lock por-dir al intentar
-  // levantar un segundo `next dev` en la misma carpeta.
+  // Si ya hay un dev server de ESTE worktree, reusarlo y desactivar el
+  // webServer de Playwright de forma explícita: evita el choque del lock por-dir
+  // al intentar levantar un segundo `next dev` en la misma carpeta.
   const running = runningDevServer();
   if (running) {
     const hora = running.startedAt
@@ -244,7 +246,10 @@ function e2ePreflight() {
       : "hora desconocida";
     const desfase = devServerDesfasado(running.startedAt);
     return {
-      env: { BASE_URL: running.appUrl },
+      env: {
+        BASE_URL: running.appUrl,
+        E2E_START_WEB_SERVER: "0",
+      },
       note:
         `reusando el dev server del worktree en ${running.appUrl} ` +
         `(PID ${running.pid} · puerto ${running.port} · arrancado ${hora})` +

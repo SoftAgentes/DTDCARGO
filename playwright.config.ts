@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { applyE2ETier3FixtureAliases } from "./scripts/e2e/sdd-0168-fixture";
 
 /**
  * Playwright config para tests E2E.
@@ -6,15 +7,45 @@ import { defineConfig, devices } from "@playwright/test";
  * - `testDir` apunta a `e2e/` (separado de `__tests__/` que usa Vitest).
  * - `webServer` levanta `next dev` automáticamente antes de los tests
  *   (puerto 3001 para no chocar con el dev server normal en 3000).
- * - `BASE_URL` env var permite correr contra prod/staging sin levantar dev.
+ * - `BASE_URL` controla el destino. `E2E_START_WEB_SERVER` permite decidir el
+ *   arranque por separado cuando el destino debe declararse explícitamente.
  */
 // Puerto configurable vía `E2E_PORT` (default 3001). El gate del harness
 // (scripts/verify.mjs) le pasa un puerto propio para no reusar un `next dev` de
 // otra ventana en 3001 y terminar testeando el código equivocado (modelo
-// multi-ventana). `BASE_URL` sigue teniendo prioridad para correr contra un
-// server ya levantado (prod/staging o el dev local) sin arrancar uno nuevo.
-const PORT = Number(process.env.E2E_PORT ?? 3001);
-const BASE_URL = process.env.BASE_URL ?? `http://localhost:${PORT}`;
+// multi-ventana). Por compatibilidad, un `BASE_URL` explícito sigue describiendo
+// un server ya levantado; `E2E_START_WEB_SERVER=1` desacopla ambas decisiones y
+// permite que Playwright levante Next usando ese destino explícito.
+type PlaywrightRuntimeEnvironment = Record<string, string | undefined> & {
+  BASE_URL?: string;
+  E2E_PORT?: string;
+  E2E_START_WEB_SERVER?: string;
+};
+
+export function resolvePlaywrightRuntime(
+  env: PlaywrightRuntimeEnvironment = process.env,
+) {
+  const port = Number(env.E2E_PORT ?? 3001);
+  const baseURL = env.BASE_URL ?? `http://localhost:${port}`;
+  const startWebServer =
+    env.E2E_START_WEB_SERVER === "1" ||
+    (env.E2E_START_WEB_SERVER === undefined && !env.BASE_URL);
+
+  return { port, baseURL, startWebServer };
+}
+
+export function preparePlaywrightRuntime(
+  env: PlaywrightRuntimeEnvironment = process.env,
+) {
+  applyE2ETier3FixtureAliases(env);
+  return resolvePlaywrightRuntime(env);
+}
+
+const {
+  port: PORT,
+  baseURL: BASE_URL,
+  startWebServer: START_WEB_SERVER,
+} = preparePlaywrightRuntime();
 
 export default defineConfig({
   testDir: "./e2e",
@@ -50,10 +81,10 @@ export default defineConfig({
     { name: "mobile-chrome", use: { ...devices["Pixel 7"] } },
     { name: "mobile-safari", use: { ...devices["iPhone 14"] } },
   ],
-  // Solo levantamos dev server si NO se pasó BASE_URL custom.
-  webServer: process.env.BASE_URL
-    ? undefined
-    : {
+  // El destino y el arranque son decisiones distintas. Sin override se conserva
+  // la compatibilidad histórica: BASE_URL describe un server externo/existente.
+  webServer: START_WEB_SERVER
+    ? {
         // Invocar el entry JS con `node` directo (no `next` a secas): en este
         // entorno pnpm no linkea los .bin (ERR_PNPM_IGNORED_BUILDS) y `next` no
         // queda en el PATH del shell del webServer → "next no se reconoce".
@@ -65,5 +96,6 @@ export default defineConfig({
         url: BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
-      },
+      }
+    : undefined,
 });

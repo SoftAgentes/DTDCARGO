@@ -10,13 +10,20 @@ pnpm test:e2e e2e/auth.spec.ts         # un solo spec
 pnpm test:e2e:ui                       # modo interactivo
 ```
 
-⚠️ **Windows:** el `webServer` del config invoca `next` pelado y no resuelve por PATH.
-Workaround: levantá el dev a mano y apuntá `BASE_URL` (saltea el webServer):
+El config invoca el entry de Next mediante `node`. `BASE_URL` controla el
+destino y conserva compatibilidad con Preview/servidores existentes; el arranque
+se puede forzar por separado con `E2E_START_WEB_SERVER=1`:
 
-```bash
-node node_modules/next/dist/bin/next dev --port 3001    # en otra terminal
-BASE_URL=http://localhost:3001 node node_modules/@playwright/test/cli.js test e2e/auth.spec.ts --project=chromium
+```powershell
+$env:E2E_PORT = "3001"
+$env:BASE_URL = "http://localhost:3001"
+$env:E2E_START_WEB_SERVER = "1"
+node node_modules/@playwright/test/cli.js test e2e/auth.spec.ts --project=chromium
 ```
+
+Para reusar un servidor ya levantado, usar `E2E_START_WEB_SERVER=0`. El host
+local canónico es `localhost`; no usar `127.0.0.1`, porque Next bloquea por
+seguridad el HMR cross-origin de ese origen.
 
 ## Estado de cobertura
 
@@ -63,11 +70,42 @@ corrida CI** — NO contra prod ni dev. Flujo:
    con PIN + datos operativos con IDs fijos (cliente, cotización, embarque).
    - Usuarios auth se crean con service-role (`auth.admin.createUser`).
    - Sesión del Portal se mintea con `auth.admin.generateLink` (magic link no tipeable).
-3. **Correr** Playwright con `BASE_URL` apuntando al deploy/preview del branch.
-   Si el Preview usa Vercel Authentication, definir también
-   `VERCEL_AUTOMATION_BYPASS_SECRET`; el spec envía los headers oficiales de
-   bypass sin volver obligatoria esa variable para entornos desprotegidos.
+3. **Correr** Playwright contra una app que use exclusivamente las variables del
+   branch efímero. En local, usar `BASE_URL=http://localhost:<puerto>` y
+   `E2E_START_WEB_SERVER=1`; contra Preview, usar su `BASE_URL` y
+   `E2E_START_WEB_SERVER=0`. Si el Preview usa Vercel Authentication, definir
+   también `VERCEL_AUTOMATION_BYPASS_SECRET`; el spec envía los headers
+   oficiales de bypass sin volver obligatoria esa variable para entornos
+   desprotegidos. Cuando `E2E_ENVIRONMENT_KIND=ephemeral`, el config valida el
+   guard completo y deriva automáticamente los tres aliases `STUDIO_E2E_*` del
+   fixture sembrado; si alguno fue definido con otro valor, aborta en vez de
+   omitir silenciosamente los casos Tier 3.
 4. **Destruir branch** (`delete_branch`) al terminar.
+
+### Selector exacto de los 18 E2E autenticados
+
+El recorrido gobernado son 6 casos lógicos en 3 proyectos. El `grep` excluye el
+caso Tier 1 adicional de `global-search`; los `--project` explícitos impiden que
+un proyecto futuro cambie el total sin revisar este contrato.
+
+```powershell
+$env:E2E_PORT = "3001"
+$env:BASE_URL = "http://localhost:3001"
+$env:E2E_START_WEB_SERVER = "1"
+node node_modules/@playwright/test/cli.js test `
+  e2e/comments-lifecycle.spec.ts `
+  e2e/gastos-expense-void.spec.ts `
+  e2e/global-search.spec.ts `
+  e2e/nomina-settlement-void.spec.ts `
+  --grep "SDD-0168|Tier 3" `
+  --project=chromium `
+  --project=mobile-chrome `
+  --project=mobile-safari `
+  --workers=1
+```
+
+Como preflight no mutante, agregar `--list`: debe informar exactamente
+`Total: 18 tests in 4 files`.
 
 ### Pendiente de wiring (próximos pasos, en orden)
 1. Ampliar `scripts/seed-e2e.ts` más allá del fixture SDD-0168 al journey operativo

@@ -29,7 +29,11 @@ purga por filas.
    - `E2E_ENVIRONMENT_KIND=ephemeral`;
    - `E2E_EPHEMERAL_PROJECT_REF` igual al project ref;
 5. ejecutar `pnpm.cmd seed:e2e`;
-6. ejecutar el recorrido E2E autorizado; la evidencia append-only se lee con
+6. ejecutar el recorrido E2E autorizado. Con el guard efímero completo,
+   `playwright.config.ts` deriva del fixture determinista
+   `STUDIO_E2E_EMAIL`, `STUDIO_E2E_EXPENSE_CODE` y
+   `STUDIO_E2E_PAYROLL_SETTLEMENT_CODE`; un valor manual distinto aborta antes
+   de ejecutar pruebas. La evidencia append-only se lee con
    un cliente `authenticated`, nunca ampliando `SELECT` de `service_role`;
 7. ejecutar `pnpm.cmd verify:e2e-teardown`;
 8. destruir el proyecto desde el control plane;

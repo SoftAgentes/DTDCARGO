@@ -4,6 +4,7 @@ import {
   SDD_0168_FIXTURE,
   createE2EAdminClient,
   createE2EAuthenticatedClient,
+  getE2ECommentBody,
   loadE2EEnvironment,
 } from "../scripts/e2e/sdd-0168-fixture";
 import { esperarHidratado } from "./_helpers/hidratacion";
@@ -106,11 +107,16 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
 
   test("crear → eliminar → deshacer → eliminar → restaurar conserva relaciones y auditoría", async ({
     page,
-  }) => {
+  }, testInfo) => {
     const environment = loadE2EEnvironment();
     const admin = createE2EAdminClient(environment);
     const auditReader = await createE2EAuthenticatedClient(environment);
     const fixture = SDD_0168_FIXTURE;
+    const commentBody = getE2ECommentBody(
+      testInfo.project.name,
+      testInfo.retry,
+      testInfo.repeatEachIndex,
+    );
     const browserErrors: string[] = [];
     const monitoredOrigins = new Set([
       new URL(process.env.BASE_URL!).origin,
@@ -187,7 +193,7 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
     await expect(composer).toBeEditable();
     await esperarHidratado(composer, "el composer de comentarios");
     const mentionToken = "@Mention E.";
-    const commentPrefix = fixture.commentBody.replace(mentionToken, "");
+    const commentPrefix = commentBody.replace(mentionToken, "");
     await composer.fill(commentPrefix);
     await page.getByRole("button", { name: "Mencionar" }).click();
     const mentionPicker = page.getByRole("listbox", { name: "Mencionar a" });
@@ -196,16 +202,13 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       .getByRole("option")
       .filter({ hasText: "Mention E2E" })
       .click();
-    await expect(composer).toHaveValue(`${fixture.commentBody} `);
+    await expect(composer).toHaveValue(`${commentBody} `);
     const submitComment = page.getByRole("button", {
       name: "Comentar",
       exact: true,
     });
     await expect(submitComment).toBeEnabled();
     await submitComment.click();
-
-    const body = page.getByText(fixture.commentBody, { exact: true });
-    await expect(body).toBeVisible();
 
     let polledComment: CommentSnapshot | null = null;
     await expect
@@ -218,7 +221,7 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
           .eq("tenant_id", fixture.tenantId)
           .eq("entity_type", "shipment")
           .eq("entity_id", fixture.shipmentId)
-          .eq("body", fixture.commentBody)
+          .eq("body", commentBody)
           .maybeSingle();
         if (error) throw error;
         polledComment = data as CommentSnapshot | null;
@@ -236,9 +239,14 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       entity_id: fixture.shipmentId,
       entity_code: fixture.shipmentCode,
       author_id: adminUserId,
-      body: fixture.commentBody,
+      body: commentBody,
       deleted_at: null,
     });
+
+    const commentCard = page.locator(`[data-comment-id="${comment.id}"]`);
+    await expect(commentCard).toHaveCount(1);
+    const body = commentCard.getByText(commentBody, { exact: true });
+    await expect(body).toBeVisible();
 
     await expect
       .poll(async () => {
@@ -273,9 +281,10 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       read_at: null,
     });
 
-    const commentActions = body.locator(
-      "xpath=ancestor::div[.//button[@aria-label='Eliminar comentario']][1]",
-    );
+    const commentActions = commentCard;
+    await expect(
+      commentActions.getByRole("button", { name: "Reaccionar" }),
+    ).toHaveCount(1);
     await commentActions.getByRole("button", { name: "Reaccionar" }).click();
     await commentActions.getByRole("button", { name: "👍", exact: true }).click();
 
@@ -329,15 +338,14 @@ test.describe("SDD-0168 · permanencia del ciclo de comentarios", () => {
       })
       .toBeNull();
 
-    await body
-      .locator("xpath=ancestor::div[.//button[@aria-label='Eliminar comentario']][1]")
+    await commentCard
       .getByRole("button", { name: "Eliminar comentario" })
       .click();
     await expect(body).toBeHidden();
 
     await page.getByRole("button", { name: "Comentarios eliminados" }).click();
     const deletedCard = page.locator("article").filter({
-      hasText: fixture.commentBody,
+      hasText: commentBody,
     });
     await expect(deletedCard).toBeVisible();
     await deletedCard.getByRole("button", { name: "Restaurar" }).click();

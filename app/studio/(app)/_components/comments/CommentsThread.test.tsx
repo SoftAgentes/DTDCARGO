@@ -112,6 +112,29 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("CommentsThread · ciclo de permanencia", () => {
+  it("expone un selector estable y aísla las acciones de cada comentario", () => {
+    renderThread([
+      comment("c1", CURRENT_USER.id, "Primer autor"),
+      comment("c2", CURRENT_USER.id, "Segundo autor"),
+    ]);
+
+    const firstComment = document.querySelector('[data-comment-id="c1"]');
+    const secondComment = document.querySelector('[data-comment-id="c2"]');
+
+    expect(firstComment).toBeInTheDocument();
+    expect(secondComment).toBeInTheDocument();
+    expect(
+      within(firstComment as HTMLElement).getAllByRole("button", {
+        name: "Reaccionar",
+      }),
+    ).toHaveLength(1);
+    expect(
+      within(secondComment as HTMLElement).getAllByRole("button", {
+        name: "Reaccionar",
+      }),
+    ).toHaveLength(1);
+  });
+
   it("mantiene ancho útil en el compositor cuando el contenedor móvil es estrecho", () => {
     renderThread([]);
 
