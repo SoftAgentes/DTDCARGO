@@ -4,7 +4,7 @@ title: "Auditoría gobernada — corrección conjunta AUD-01 y AUD-02"
 status: done
 author: "Sam (founder) + Codex"
 created: 2026-07-21
-updated: 2026-08-29
+updated: 2026-08-31
 supersedes: null
 superseded_by: null
 related: ["0085", "0123", "0139", "0165"]
@@ -13,11 +13,16 @@ confidencialidad: interno
 
 # DTD-0166 — Auditoría gobernada · AUD-01 + AUD-02
 
-> **Ampliación local de allowlist, 2026-08-29.** La lista gobernada conserva
-> el payload crudo fuera de su firma y habilita únicamente
-> `summary.action` para eventos de permanencia de comentarios con contrato
-> `comment.lifecycle.v1`. La migración `0398_audit_comment_action_summary`
-> permanece local; commit, aplicación Cloud y push son gates separados.
+> **Cierre de allowlist v2, 2026-08-31.** La lista gobernada conserva el
+> payload crudo fuera de su firma y habilita únicamente `summary.action` para
+> eventos de permanencia de comentarios con contrato `comment.lifecycle.v1`.
+> `0398_audit_comment_action_summary` fue aplicada individualmente en
+> Producción de DTDCargo (`xpfuzqombmjmxvprjgmi`) conforme al runbook y quedó
+> registrada una sola vez en el ledger como versión `20260830230243`. Bajo una
+> autorización independiente, la sexta rama efímera completó un seed único,
+> una única corrida alojada de los 18 casos con un worker y resultado 18/18;
+> después se verificó su teardown terminal. Estas evidencias no autorizan push
+> ni deploy.
 
 > **Spec correctiva cerrada en Producción.** Llevó
 > `entity_audit_log` desde su viewer básico actual hasta los contratos
@@ -554,5 +559,15 @@ El 2026-08-29 se abrió una ampliación local, estrecha y no sensible del Corte
 C. La allowlist v2 no crea una RPC paralela ni usa el reveal AAL2: reutiliza el
 campo `summary` de `audit_list_events` para devolver únicamente la modalidad
 de transición de SDD-0168. El contrato está delimitado en el
-[diseño correctivo del Corte C](diseno-correctivo-corte-c.md); la aplicación
-Cloud de `0398_audit_comment_action_summary` no está autorizada por esta nota.
+[diseño correctivo del Corte C](diseno-correctivo-corte-c.md). Esa autorización
+local no incluía la aplicación Cloud de `0398_audit_comment_action_summary`.
+
+El 2026-08-31, una autorización nominal posterior permitió aplicar únicamente
+`0398_audit_comment_action_summary` en Producción de DTDCargo
+(`xpfuzqombmjmxvprjgmi`). La aplicación individual siguió el runbook y el
+ledger confirmó exactamente una entrada, versión `20260830230243`. Otra
+autorización literal, independiente y limitada a la sexta rama efímera,
+permitió ejecutar `0398 → seed único → una única corrida de 18 pruebas con un
+worker → teardown`. El selector exacto documentado en `e2e/README.md` obtuvo
+18/18 y el seguimiento específico de la operación confirmó la eliminación
+terminal de la rama. Push y deploy permanecen fuera de esas autorizaciones.

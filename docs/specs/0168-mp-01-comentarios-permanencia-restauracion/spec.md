@@ -4,7 +4,7 @@ title: "MP-01 Slice 1 — Permanencia y restauración de comentarios internos"
 status: done
 author: "Codex"
 created: 2026-07-22
-updated: 2026-08-29
+updated: 2026-08-31
 supersedes: null
 superseded_by: null
 related: ["0045", "0123", "0165", "0166"]
@@ -13,11 +13,15 @@ confidencialidad: interno
 
 # SDD-0168 — MP-01 Slice 1: permanencia y restauración de comentarios internos
 
-> **Seguimiento local, 2026-08-29.** El E2E Tier 3 pasa a comprobar la
+> **Cierre de evidencia gobernada, 2026-08-31.** El E2E Tier 3 comprueba la
 > modalidad exacta de cada transición mediante `audit_list_events.summary`,
-> sin acceso directo a `entity_audit_log`. La ampliación depende de la
-> migración local `0398_audit_comment_action_summary`; no autoriza Cloud,
-> commit ni push.
+> sin acceso directo a `entity_audit_log`.
+> `0398_audit_comment_action_summary` fue aplicada individualmente en
+> Producción de DTDCargo (`xpfuzqombmjmxvprjgmi`) y quedó registrada una sola
+> vez en el ledger como versión `20260830230243`. En una autorización distinta,
+> la sexta rama efímera obtuvo 18/18 en una única corrida alojada con un worker
+> y terminó con teardown terminal verificado. Estas evidencias no autorizan
+> push ni deploy.
 
 > **Estado de control:** aprobado documentalmente el 2026-07-22. El
 > [diseño técnico v1.0](diseno-tecnico.md) fue aprobado técnicamente por
@@ -330,8 +334,10 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
 - [x] Doble click, reintento, pestañas concurrentes y restauración simultánea
       producen un solo estado y eventos no duplicados.
 - [x] Filas legacy nunca reciben actor ni evento histórico inventado.
-- [ ] El recorrido Tier 3 confirma `self_delete → undo → self_delete →
-      ordinary_restore` mediante `summary.action` de la RPC gobernada.
+- [x] El recorrido Tier 3 confirma `self_delete → undo → self_delete →
+      ordinary_restore` mediante `summary.action` de la RPC gobernada. La sexta
+      rama efímera ejecutó el selector exacto de 18 casos una sola vez, con un
+      worker, y obtuvo 18/18 antes de su teardown terminal.
 
 ### UI y accesibilidad
 
@@ -373,6 +379,12 @@ parte del gate UI. El orden y jerarquía de acciones deben cumplir BTN-01.
 - [x] Integración del correctivo final y validación funcional de Producción
       recibieron gates individuales; `d93c56e4`, Vercel `success`, smoke
       público 14/14 y E2E autenticado 1/1 con residuo cero.
+- [x] La ampliación `0398_audit_comment_action_summary` recibió autorización
+      nominal separada, fue aplicada individualmente en Producción y quedó en
+      el ledger una sola vez como versión `20260830230243`.
+- [x] La sexta rama efímera recibió autorización literal independiente para
+      `0398 → seed único → una única corrida de 18 pruebas con un worker →
+      teardown`; aprobó 18/18 y su eliminación terminal fue verificada.
 
 ## 12. Fuera de alcance
 
@@ -435,3 +447,10 @@ integración y Producción fueron ejecutados después mediante autorizaciones
 separadas y quedaron cerrados. SDD-0168 no tiene un próximo gate interno:
 cualquier ACL histórico global, purga, retención o ampliación de roles requiere
 otro SDD con alcance y gates propios.
+
+La ampliación de evidencia gobernada se cerró el 2026-08-31 mediante dos gates
+posteriores e independientes: la aplicación nominal de
+`0398_audit_comment_action_summary` en Producción y el recorrido alojado de la
+sexta rama efímera. El selector exacto de `e2e/README.md` aprobó 18/18 en una
+única corrida con un worker; el teardown terminal confirmó la eliminación de
+la rama. Ninguno de esos gates autorizó push ni deploy.

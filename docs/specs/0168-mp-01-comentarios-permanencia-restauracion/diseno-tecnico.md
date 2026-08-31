@@ -7,9 +7,9 @@
 | Políticas | [MP-01](../../governance/policies/mp-01.md) · [AUD-01](../../governance/policies/aud-01.md) · [BTN-01](../../governance/policies/btn-01.md) |
 | Dependencias | [SDD-0165](../0165-sistema-gobernanza-experiencia-erp-studio/spec.md) · [SDD-0166](../0166-auditoria-gobernada-aud-01-aud-02/spec.md) |
 | Revisión | [REV-MP-002](../../governance/reviews/mp-01-comments-design.md) |
-| Estado | implementación cerrada; evidencia gobernada de action en paquete local |
-| Fecha | 2026-08-29 |
-| Alcance | contrato vigente y ampliación local de evidencia Tier 3 |
+| Estado | implementación y evidencia gobernada de action cerradas |
+| Fecha | 2026-08-31 |
+| Alcance | contrato vigente y evidencia Tier 3 alojada |
 | Confidencialidad | interno |
 
 ## 1. Decisión ejecutiva
@@ -511,9 +511,20 @@ nombre el basename exacto. DB-1 no autoriza DB-2.
 - secuencia exacta `self_delete → undo → self_delete → ordinary_restore`
   observada mediante la RPC gobernada, nunca mediante SELECT de tabla.
 
+### Evidencia de cierre añadida el 2026-08-31
+
+`0398_audit_comment_action_summary` fue aplicada individualmente en Producción
+de DTDCargo (`xpfuzqombmjmxvprjgmi`) conforme al runbook; el ledger registró
+exactamente una entrada con versión `20260830230243`. Después, bajo una
+autorización independiente, la sexta rama efímera completó `0398 → seed único
+→ una única corrida → teardown`. El selector exacto de cuatro specs, seis casos
+lógicos y tres proyectos documentado en `e2e/README.md` aprobó 18/18 con un
+worker. El seguimiento específico de la operación confirmó la eliminación
+terminal de la rama. Push y deploy no formaron parte de esos gates.
+
 ## 18. Verificación de cierre de implementación
 
-La implementación futura no se considera cerrada hasta demostrar:
+La implementación no se consideró cerrada hasta demostrar:
 
 - DB-1, APP y DB-2 aplicados en orden y con recibos separados;
 - cero writes directos de `deleted_at` en repo y roles de aplicación;

@@ -7,7 +7,7 @@
 | Base | [Inventario read-only](inventario-corte-c-2026-07-28.md) |
 | Revisión de diseño | [REV-AUD-012](../../governance/reviews/aud-corte-c.md) |
 | Revisión de implementación | [REV-AUD-013](../../governance/reviews/aud-corte-c1.md) |
-| Estado | C1 en Producción; allowlist v2 implementada localmente y no aplicada |
+| Estado | C1 y allowlist v2 en Producción; Tier 3 alojado 18/18 con teardown terminal |
 
 ## 1. Decisión
 
@@ -223,9 +223,9 @@ exista en el entorno objetivo.
 
 ## 13. Ampliación allowlist v2 para SDD-0168
 
-La autorización local del 2026-08-29 amplía exclusivamente el resumen de lista;
-no abre el payload, `before_data`, `after_data`, `reason`, la tabla base ni el
-reveal sensible. El contrato exacto es:
+La autorización local inicial del 2026-08-29 amplió exclusivamente el resumen
+de lista; no abrió el payload, `before_data`, `after_data`, `reason`, la tabla
+base ni el reveal sensible. El contrato exacto es:
 
 | Dimensión | Allowlist |
 |---|---|
@@ -255,6 +255,12 @@ Allowlist exacta de archivos:
 10. `docs/specs/0168-mp-01-comentarios-permanencia-restauracion/diseno-tecnico.md`;
 11. `docs/governance/reviews/mp-01-comments-preview-e2e.md`.
 
-`docs/specs/README.md` puede cambiar solo como índice generado. Commit,
-aplicación Cloud de `0398_audit_comment_action_summary` y push conservan
-autorizaciones separadas.
+`docs/specs/README.md` puede cambiar solo como índice generado. El gate local
+inicial mantuvo commit, aplicación Cloud y push como autorizaciones separadas.
+Una autorización nominal posterior cerró únicamente la aplicación individual
+de `0398_audit_comment_action_summary` en Producción
+(`xpfuzqombmjmxvprjgmi`): el ledger registró exactamente una entrada con
+versión `20260830230243`. Otra autorización independiente limitó la sexta rama
+efímera a `0398 → seed único → una única corrida → teardown`; el selector de
+18 pruebas documentado en `e2e/README.md` aprobó 18/18 con un worker y la rama
+terminó eliminada. Push y deploy continúan como gates no autorizados.
