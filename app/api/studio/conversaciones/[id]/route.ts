@@ -12,6 +12,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { apiError } from "@/lib/http/api-error";
+import { moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { listMessages } from "@/lib/studio/conversaciones/messages-queries";
 import {
   getClientContext,
@@ -32,6 +33,8 @@ export async function GET(
   if (!auth.user) {
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
+  const denial = await moduleViewDenial(supabase, "conversaciones");
+  if (denial) return NextResponse.json({ error: denial }, { status: 403 });
 
   // El hilo debe ser visible para el tenant del caller (RLS).
   const { data: conv, error } = await supabase

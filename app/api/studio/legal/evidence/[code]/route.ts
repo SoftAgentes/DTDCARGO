@@ -20,6 +20,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { apiError } from "@/lib/http/api-error";
+import { moduleViewDenial } from "@/lib/studio/rbac-guard";
 import {
   getAcceptanceEvidence,
   listAcceptanceEvidenceByQuote,
@@ -47,6 +48,8 @@ export async function GET(
   if (!userResp.user) {
     return apiError("No autenticado.", null, 401, TAG);
   }
+  const denial = await moduleViewDenial(supabase, "legal");
+  if (denial) return apiError(denial, null, 403, TAG);
 
   // 2. Tenant + rol admin (la capa legal es compliance del dueño).
   const { data: link } = await supabase

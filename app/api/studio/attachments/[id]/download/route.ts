@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { requireAttachmentsPilot } from "@/lib/studio/attachments/pilot-gate";
 import { authorizeAttachmentDownload } from "@/lib/studio/attachments/service";
+import { moduleViewDenial } from "@/lib/studio/rbac-guard";
 
 const UUID = /^[0-9a-f-]{36}$/i;
 
@@ -11,6 +12,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (!UUID.test(id)) return NextResponse.json({ error: "Documento inválido." }, { status: 400 });
   const client = await createClient();
   if (!(await client.auth.getUser()).data.user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+  const denial = await moduleViewDenial(client, "expenses");
+  if (denial) return NextResponse.json({ error: denial }, { status: 403 });
   try {
     const url = await authorizeAttachmentDownload(client, id);
     return NextResponse.redirect(url, 307);
@@ -18,4 +21,3 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "Adjunto no disponible." }, { status: 404 });
   }
 }
-

@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   user: null as { id: string } | null,
   denial: null as string | null,
+  viewDenial: null as string | null,
+  viewModules: [] as string[],
   from: vi.fn(),
+  authorizeAttachmentDownload: vi.fn(),
   getShipmentById: vi.fn(),
   getShipmentEvents: vi.fn(),
   listMessages: vi.fn(),
@@ -20,6 +23,18 @@ vi.mock("@/lib/db/server", () => ({
 
 vi.mock("@/lib/studio/rbac-guard", () => ({
   moduleEditDenial: async () => mocks.denial,
+  moduleViewDenial: async (_client: unknown, moduleId: string) => {
+    mocks.viewModules.push(moduleId);
+    return mocks.viewDenial;
+  },
+}));
+
+vi.mock("@/lib/studio/attachments/pilot-gate", () => ({
+  requireAttachmentsPilot: () => undefined,
+}));
+
+vi.mock("@/lib/studio/attachments/service", () => ({
+  authorizeAttachmentDownload: mocks.authorizeAttachmentDownload,
 }));
 
 vi.mock("@/lib/studio/shipment-queries", () => ({
@@ -38,6 +53,7 @@ vi.mock("@/lib/studio/conversaciones/conversations-queries", () => ({
 
 import { GET as getConversation } from "../conversaciones/[id]/route";
 import { GET as getKpis } from "../kpis/route";
+import { GET as getAttachment } from "../attachments/[id]/download/route";
 import {
   DELETE as deleteShipment,
   GET as getShipment,
@@ -45,11 +61,16 @@ import {
 } from "../shipments/[id]/route";
 
 const context = { params: Promise.resolve({ id: "shipment-1" }) };
+const attachmentContext = {
+  params: Promise.resolve({ id: "11111111-1111-4111-8111-111111111111" }),
+};
 
 describe("API Studio · sesión y RBAC obligatorios", () => {
   beforeEach(() => {
     mocks.user = null;
     mocks.denial = null;
+    mocks.viewDenial = null;
+    mocks.viewModules = [];
     mocks.from.mockReset();
     mocks.from.mockImplementation(() => {
       throw new Error("La consulta no debe ejecutarse antes del gate");
@@ -59,6 +80,8 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
     mocks.listMessages.mockReset();
     mocks.getClientContext.mockReset();
     mocks.listClientConversationDigests.mockReset();
+    mocks.authorizeAttachmentDownload.mockReset();
+    mocks.authorizeAttachmentDownload.mockResolvedValue("https://files.example.test/clean");
   });
 
   it("rechaza sin sesión antes de consultar shipments", async () => {
@@ -92,6 +115,32 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
     expect(patchResponse.status).toBe(403);
     expect(deleteResponse.status).toBe(403);
     expect(mocks.from).not.toHaveBeenCalled();
+  });
+
+  it("rechaza los GET antes de consultar cuando falta el módulo", async () => {
+    mocks.user = { id: "user-1" };
+    mocks.viewDenial = "No tienes permiso para ver esto.";
+
+    const shipment = await getShipment({} as never, context);
+    const kpis = await getKpis();
+    const conversation = await getConversation({} as never, context);
+    const attachment = await getAttachment({} as never, attachmentContext);
+
+    expect([shipment.status, kpis.status, conversation.status, attachment.status]).toEqual([
+      403,
+      403,
+      403,
+      403,
+    ]);
+    expect(mocks.viewModules).toEqual([
+      "tracking",
+      "dashboard",
+      "conversaciones",
+      "expenses",
+    ]);
+    expect(mocks.getShipmentById).not.toHaveBeenCalled();
+    expect(mocks.from).not.toHaveBeenCalled();
+    expect(mocks.authorizeAttachmentDownload).not.toHaveBeenCalled();
   });
 
   it("preserva la lectura legítima de un shipment autenticado", async () => {
@@ -151,5 +200,15 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
       context: { markbox: "DTD-0001" },
       digests: [],
     });
+  });
+
+  it("preserva la descarga de un adjunto limpio para Expenses", async () => {
+    mocks.user = { id: "user-1" };
+
+    const response = await getAttachment({} as never, attachmentContext);
+
+    expect(response.status).toBe(307);
+    expect(mocks.viewModules).toEqual(["expenses"]);
+    expect(mocks.authorizeAttachmentDownload).toHaveBeenCalledOnce();
   });
 });

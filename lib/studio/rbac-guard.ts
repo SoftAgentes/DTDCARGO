@@ -8,6 +8,9 @@
  *                                        mutación. Devuelve el mensaje de
  *                                        denegación (es-VE) o null si está OK,
  *                                        para el patrón `{ error }` del Studio.
+ *   - moduleViewDenial(supabase, id)   → al tope del GET de un route handler.
+ *                                        Devuelve un mensaje para responder
+ *                                        JSON 403, o null si puede leer.
  *   - getStudioRole(supabase)          → rol del user en su tenant, o null.
  *
  * Server-only de facto: importa `createClient` (usa next/headers cookies), así
@@ -129,6 +132,34 @@ export async function requireModuleView(
     redirect(`/studio/dashboard?denied=${encodeURIComponent(moduleId)}`);
   }
   return role;
+}
+
+/**
+ * Guard de VISTA para route handlers de la API del Studio (SDD-0286).
+ *
+ * `requireModuleView` redirige y por eso no conserva el contrato JSON de una
+ * API. Este helper aplica la misma matriz, overrides, alcance de almacén y
+ * segundo candado de superadministrador, pero devuelve un mensaje para que el
+ * handler responda 403 antes de consultar datos del dominio.
+ */
+export async function moduleViewDenial(
+  supabase: StudioClient,
+  moduleId: string,
+): Promise<string | null> {
+  const { role, warehouseScope, overrides } = await getStudioAccess(supabase);
+  if (!canAccessModule(role, moduleId, overrides)) {
+    return "No tienes permiso para ver esto.";
+  }
+  if (role !== "admin" && !scopeAllowsModule(warehouseScope, moduleId)) {
+    return "No tienes permiso para ver esto.";
+  }
+  if (
+    SUPERADMIN_ONLY_MODULES.has(moduleId) &&
+    !(await isPlatformAdmin(supabase))
+  ) {
+    return "Esto lo reserva el superadministrador. Pídeselo a quien administra el sistema.";
+  }
+  return null;
 }
 
 /**
