@@ -19,13 +19,14 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Base publicada antes de SDD-0361: `codex/saneamiento-integral` en
-  `a4f1ba5f1e50ed786820a84685ea7a1a562e7494`, 0 detrás / 56 delante de
-  `origin/main`; local y remoto coincidían 0/0. SDD-0361 agrega el siguiente
-  cierre local, con publicación y CI del nuevo SHA verificables en el PR.
+- Base publicada antes del lote de acceso: `codex/saneamiento-integral` en
+  `d4a63115a1bb95be799f1edff0ee676c31b39f72`, 0 detrás / 57 delante de
+  `origin/main`; local y remoto coincidían 0/0. El lote de pruebas de acceso
+  agrega el siguiente commit, cuyo push y CI se confirman en el PR.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
-  `a4f1ba5f` pasó en el run `33664422658`: memoria y carrera de foco resueltas.
+  `d4a63115` pasó en el run `33667880574`; el de `a4f1ba5f` también pasó en
+  `33664422658`: memoria y carrera de foco resueltas.
   El run anterior `33663666096` fue cancelado por concurrencia, no por un fallo.
 - Vercel: deployment `6228639456` de GitHub en **Preview**, estado `success`,
   `production_environment=false`; no se promovió a producción.
@@ -133,8 +134,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [x] Confirmar el primer resultado completamente verde de `Calidad continua`:
   `a4f1ba5f`, run `33664422658`, todos los pasos aprobados. Dos fallos previos
   corregidos; el tercer run fue cancelado al publicar el cierre documental.
-- [ ] Confirmar CI completo del nuevo SHA que publica SDD-0361; el pase de la
-  base anterior no sustituye la verificación alojada de este commit.
+- [x] Confirmar CI completo de SDD-0361: `d4a63115`, run `33667880574`,
+  success, incluido build; terminó a las 18:47:15 UTC del 2026-09-02.
+- [ ] Confirmar CI del nuevo lote de pruebas de acceso; el pase de la base
+  anterior no sustituye la verificación alojada de cada commit.
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:
@@ -287,7 +290,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   y build sin secretos. SDD-0349 fija actions por SHA, usa permisos de lectura y
   lockfile congelado. El PR #21 activó la primera corrida alojada, que falló por
   heap agotado en TypeScript; el segundo run confirmó el ajuste de memoria y
-  expuso la carrera corregida en SDD-0360. Falta un run completo verde.
+  expuso la carrera corregida en SDD-0360. El run completo `33664422658`
+  quedó verde en `a4f1ba5f`; cada commit posterior conserva su propio gate CI.
   Docker/E2E/Cloud necesitan
   una estrategia explícita de costo y credenciales antes de activarse en GitHub.
 - [ ] Crear bootstrap no productivo reproducible para Auth/Portal/E2E; hoy un
@@ -304,6 +308,15 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   [acta del lote](2026-09-02-codex-cierre-documental.md).
 - [ ] Reconciliar las 90 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
+- [x] Reconciliar el dominio de acceso (SDD-0299/0302): código confirmado en
+  main y 61 pruebas focales, con 52 regresiones nuevas. Ambas siguen abiertas
+  porque falta navegador/sesión real. Suite completa: 529 archivos / 6.013
+  pruebas; TypeScript, ESLint y gates documentales aprobados.
+  [Evidencia y checklist específico](2026-09-02-codex-reconciliacion-acceso.md).
+- [ ] Completar el rechazo visible del drawer (0299) y la navegación con
+  access token vencido/refresh válido (0302) en un entorno autorizado.
+- [ ] Confirmar la recepción del aviso real de SeaRates (0291); no confundir
+  contrato local con entrega de correo/Telegram ni forzar un envío sin OK.
 - [ ] Crear logger/redacción/correlación central y aumentar cobertura directa de
   crons y Edge Functions.
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
@@ -325,7 +338,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 4. Autorizar integración y deploy de la app; verificar los cuatro flujos de
    lectura mínima y Portal. Aplicar 0414 y 0415 sólo después del smoke de sus
    consumidores, cada una con su propio OK y de una en una.
-   Aplicar 0416 con su gate/smoke de dominio independiente; completar Telegram
+   Aplicar 0416 y 0417 con gates/smokes de dominio independientes, de una en una
+   y con su propio OK; completar Telegram
    y los demás gates alojados por separado.
 5. Limpiar worktree y rama de archivo sólo cuando estén contenidos en main.
 6. Seguir P1 por dominio: aislamiento Portal restante y documentos por entidad;

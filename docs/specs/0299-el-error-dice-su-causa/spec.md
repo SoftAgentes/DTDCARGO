@@ -4,7 +4,7 @@ title: "Datos de la empresa: el error deja de ser mudo — y son DOS gates, no u
 status: in-progress
 author: "founder"
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-09-02
 supersedes: null
 superseded_by: null
 related: ["0298", "0297", "0120", "0273"]
@@ -127,3 +127,23 @@ mensaje está en nombrar su contexto.
 navegador. La cadena está probada por tipos y por la función pura; que el texto
 llegue al usuario depende del `FormError` que ya existía en la línea 146 del
 drawer y que no se tocó.
+
+## Reconciliación Codex · 2026-09-02
+
+Implementación `f23557dd` contenida en `origin/main@2a2e81bf`; action,
+adaptador y traductor conservan el comportamiento existente. Se agregan 30
+pruebas en `app/studio/(app)/admin/__tests__/company-actions.test.ts`: ejecutan
+las cinco actions y el adaptador D1 reales con una frontera RPC sintética.
+Comprueban rechazo de permisos, registro inexistente, error desconocido,
+excepción no tipada, rechazo previo del módulo y éxito explícito. Los rechazos
+no producen `ok` ni revalidan la página; los detalles internos no salen al estado.
+
+El lote de acceso pasó 61 pruebas en cuatro archivos, incluidos los cinco
+tests originales del traductor. No es una nueva reproducción del fallo
+histórico ni una prueba del permiso en Postgres: la frontera RPC está simulada.
+
+**Se mantiene `in-progress`.** Falta abrir el drawer en navegador, provocar un
+rechazo controlado y comprobar mensaje visible, permanencia del formulario y
+ausencia de falso éxito. No se cargaron cuentas ni se modificaron permisos.
+La evidencia y los gates proporcionales viven en
+`docs/audits/2026-09-02-codex-reconciliacion-acceso.md`.

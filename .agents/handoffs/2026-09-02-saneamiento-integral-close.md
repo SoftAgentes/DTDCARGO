@@ -119,6 +119,11 @@ Estado: CERRADO EN RAMA · PR EN BORRADOR · INTEGRACIÓN/RELEASE PENDIENTES
     Alcance de ocho rutas en el acta de reconciliación, sin cambios runtime.
 57. `fix(portal): SDD-0361 — aislar compras y proveedores por tenant` — modifica
     siete policies Portal en 0417; conserva operación interna, ACL y Storage.
+58. `test(auth): verificar contratos de acceso ya integrados` — agrega 52
+    regresiones del proxy y actions de empresa; conserva 0299/0302 abiertas
+    por navegador/sesión real. Alcance exacto en el acta de acceso; sin runtime
+    ni migraciones nuevas. 61 focales y 6.013 unitarios completos aprobados,
+    junto con TypeScript, ESLint y gates documentales.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0361. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
@@ -138,8 +143,13 @@ componentes y gobernanza pasan. Navegador local: escritura, Escape, cursor
 manual y Enter correctos; sin datos/credenciales reales. Build aislado: 158
 páginas, postbuild y restauración de tsconfig correctos. El tercer run fue
 cancelado por concurrencia. El run completo `33664422658` del SHA `a4f1ba5f`
-terminó aprobado. El nuevo commit SDD-0361 debe confirmar su propio CI;
-los baselines siguientes conservan su alcance.
+terminó aprobado. SDD-0361 también pasó su CI completo: `d4a63115`, run
+`33667880574`, terminado success a las 18:47:15 UTC del 2026-09-02.
+El lote posterior de acceso agrega 52 pruebas: 61 focales / cuatro archivos y
+6.013 pruebas / 529 archivos completos, TypeScript, ESLint, docs, numeración,
+gobernanza y componentes aprobados localmente. Conserva 0299/0302 abiertas por
+sus validaciones reales; no cambia runtime, SQL ni configuración. Su propio
+CI se confirma después del push. Los baselines siguientes conservan su alcance.
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
 de SDD-0357:

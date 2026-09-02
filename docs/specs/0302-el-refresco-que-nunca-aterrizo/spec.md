@@ -4,7 +4,7 @@ title: "El portal y el ERP móvil no refrescaban la sesión — el arreglo se es
 status: in-progress
 author: "founder"
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-02
 supersedes: null
 superseded_by: null
 related: ["0304"]
@@ -113,3 +113,24 @@ el bug sobrevivió tanto. Lo que sí está medido es que las rutas afectadas aho
 **pasan por el proxy**, que es la condición que les faltaba.
 
 Tampoco se abrió ninguna pantalla en un navegador.
+
+## Reconciliación Codex · 2026-09-02
+
+Implementación `8020e847` contenida en `origin/main@2a2e81bf`; `proxy.ts`
+conserva el comportamiento existente. Se agregan 22 pruebas en
+`app/__tests__/proxy-refresh.test.ts`, usando el matcher de Next instalado,
+`NextRequest`/`NextResponse` y el proxy reales. Sólo la frontera Auth es
+sintética: genera valores de cookie de prueba, no tokens ni sesiones reales.
+
+Ocho rutas raíz/anidadas de los cinco prefijos comprueban cookies hacia
+request/Server Components y respuesta/navegador, preservación de opciones y
+cookies ajenas, y ausencia de redirección. Otras ocho comprueban la salida sin
+sesión; seis rutas PIN/públicas siguen fuera del matcher. El lote de acceso
+pasó 61 pruebas en cuatro archivos, incluidos los cuatro contratos originales.
+
+**Se mantiene `in-progress`.** Esta ejecución prueba el puente, no la renovación
+criptográfica ni el transporte de cookies en un navegador real. Sigue pendiente
+la navegación con access token vencido y refresh válido en un entorno autorizado,
+incluida la siguiente petición y las opciones de cookie del despliegue real.
+No se leyó ni escribió una sesión alojada. Evidencia y límites:
+`docs/audits/2026-09-02-codex-reconciliacion-acceso.md`.
