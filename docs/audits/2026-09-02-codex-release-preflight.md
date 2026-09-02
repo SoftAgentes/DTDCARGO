@@ -217,10 +217,12 @@ sus propios nombres, comprobados libres antes del arranque.
 No hay GO de main, Cloud o producción. No se reintentó el push rechazado.
 Este cierre agrega sólo documentación después de los doce commits pendientes
 hasta `f12ed8ae`; cualquier publicación requiere aprobar el alcance exacto.
-Al ser el último incremento doc-only, el ignoreCommand actual de Vercel
-omite su build. Publicar esta rama no demuestra un Preview nuevo: ese gate
-se debe resolver explícitamente con autorización, sin agregar código vacío
-para forzar un despliegue ni promover producción.
+El ignoreCommand se ejecutó sobre el cierre documental d497a4c9: su primer
+diff devuelve 1 y el de docs/marketing devuelve 0. **No omite el build**:
+`.agents/handoffs/2026-09-02-saneamiento-integral-close.md` no queda excluido
+por el patrón actual. Por tanto, publicar puede generar un Preview aun con
+este incremento exclusivamente documental. No se publicó ni se promovió
+producción; el resultado del comando no demuestra que exista un deploy nuevo.
 El checklist pasa a **49/103 (47,6 %), 54 pendientes**: se cierra la casilla
 existente de preflights de catálogo/buckets/Edge, sin agregar tareas por prueba
 ni marcar aplicación, despliegue o autenticación operativa como completados.

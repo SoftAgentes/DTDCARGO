@@ -104,6 +104,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   separado del SHA `2d7671ab`, y quedó en `f12ed8ae`. Este cierre de revisión
   añade únicamente documentación como decimotercer incremento; no hubo push
   ni integración. La autorización debe cubrir el SHA final exacto.
+  La comprobación final del ignoreCommand corrige su interpretación en un
+  decimocuarto incremento documental: el handoff anidado no está excluido;
+  un push puede generar Preview. No se reintentó la publicación.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en

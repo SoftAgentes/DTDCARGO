@@ -50,6 +50,10 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   Se conservan los helpers Edge anteriores sin redesplegar: el delta detectado
   está fuera de los helpers llamados por esas entradas. No equivale a smoke.
   Esta documentación añade un decimotercer incremento local sin publicar.
+  Quedó en d497a4c9. La comprobación ejecutada del ignoreCommand devuelve
+  1/0: el handoff anidado no está excluido y un push puede generar Preview.
+  La corrección de esa advertencia añade un decimocuarto incremento documental,
+  sin repetir auditorías ni cambiar el porcentaje. No se reintentó el push.
 
 ## Trabajo rescatado y cerrado
 
@@ -239,7 +243,7 @@ modificada. Revisión independiente aprobada. Spec con matriz SGE-00/BTN/MP/AUD
 y recibo advisory de datos; sin certificación de SDD-0258 ni de producción.
 Índice:358 specs,91 sin cierre documental. Checklist vigente tras preflight:49/103
 (47,6 %),54 pendientes; no es avance del producto ni estimación de horas.
-Trece incrementos locales requieren publicación autorizada. Las pruebas de qs
+Catorce incrementos locales requieren publicación autorizada. Las pruebas de qs
 son adicionales y están en su acta; no se presentan TS/build/SQL anteriores
 como ejecuciones nuevas de ese mantenimiento de desarrollo.
 
