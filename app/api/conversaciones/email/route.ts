@@ -138,13 +138,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, status: "duplicate" });
     case "unmatched":
       // Remitente desconocido: no creamos hilo (decisión Fase 2). Dead-letter/log.
-      console.warn(
-        `[conversaciones-inbound] unmatched from=${input.fromEmail} email_id=${emailId}`,
-      );
+      console.warn(`[conversaciones-inbound] unmatched email_id=${emailId}`);
       return NextResponse.json({ ok: true, status: "unmatched" });
     case "ambiguous":
       console.warn(
-        `[conversaciones-inbound] ambiguous from=${input.fromEmail} matches=${result.matches}`,
+        `[conversaciones-inbound] ambiguous email_id=${emailId} matches=${result.matches}`,
       );
       return NextResponse.json({ ok: true, status: "ambiguous" });
     case "error":
