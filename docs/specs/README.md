@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 347 specs)
+### Índice de specs (generado · 348 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -385,6 +385,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0353 | Minimizar el contexto de correo de Cobranzas | done | interno |
 | 0354 | Minimizar la facturación anual para Fidelización y CRM | done | interno |
 | 0355 | Minimizar el saldo de cliente en Conversaciones | done | interno |
+| 0356 | Minimizar referencias de facturas en Órdenes de venta | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

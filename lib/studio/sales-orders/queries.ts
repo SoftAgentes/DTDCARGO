@@ -235,14 +235,11 @@ export type SalesOrderInvoiceRef = {
   invoice_code: string;
   total_amount: number;
   status: string;
-  issued_at: string | null;
-  created_at: string;
 };
 
 /**
- * Facturas (0021) generadas por una OV (Fase 2), recientes primero. RLS filtra por
- * tenant. Defensivo: si la columna invoices.sales_order_id no existe aún (0127 sin
- * aplicar en un env), devuelve [] en vez de romper el drawer.
+ * Referencias mínimas de facturas generadas por una OV, recientes primero.
+ * La RPC valida tenant y permiso efectivo; un fallo no se presenta como vacío.
  */
 export async function listInvoicesForSalesOrder(
   supabase: SupabaseClient,
@@ -252,7 +249,7 @@ export async function listInvoicesForSalesOrder(
   return byOrder[salesOrderId] ?? [];
 }
 
-/** Facturas de varias OV, agrupadas con lectura paginada por lotes. */
+/** Referencias de varias OV, agrupadas mediante RPC paginada por lotes. */
 export async function listInvoicesBySalesOrder(
   supabase: SupabaseClient,
   salesOrderIds: readonly string[],
@@ -264,41 +261,30 @@ export async function listInvoicesBySalesOrder(
   >;
   if (ids.length === 0) return byOrder;
 
-  try {
-    const { rows, complete } = await fetchAllByIds<Record<string, unknown>>(
-      ids,
-      (batch, from, to) =>
-        supabase
-          .from("invoices")
-          .select(
-            "id, sales_order_id, invoice_code, total_amount, status, issued_at, created_at",
-          )
-          .in("sales_order_id", batch)
-          .is("deleted_at", null)
-          .order("sales_order_id", { ascending: true })
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: true })
-          .range(from, to),
-    );
-    if (!complete) {
-      throw new Error("Las facturas por orden superan el tope de lectura.");
-    }
-    for (const row of rows) {
-      const orderId = String(row.sales_order_id ?? "");
-      if (!byOrder[orderId]) continue;
-      byOrder[orderId].push({
-        id: String(row.id),
-        invoice_code: String(row.invoice_code ?? ""),
-        total_amount: num(row.total_amount),
-        status: String(row.status ?? ""),
-        issued_at: (row.issued_at as string | null) ?? null,
-        created_at: String(row.created_at),
-      });
-    }
-    return byOrder;
-  } catch {
-    return byOrder;
+  const { rows, complete } = await fetchAllByIds<Record<string, unknown>>(
+    ids,
+    (batch, from, to) =>
+      supabase
+        .rpc("sales_order_invoice_refs", { p_sales_order_ids: batch })
+        .order("sales_order_id", { ascending: true })
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!complete) {
+    throw new Error("Las facturas por orden superan el tope de lectura.");
   }
+  for (const row of rows) {
+    const orderId = String(row.sales_order_id ?? "");
+    if (!byOrder[orderId]) continue;
+    byOrder[orderId].push({
+      id: String(row.id),
+      invoice_code: String(row.invoice_code ?? ""),
+      total_amount: num(row.total_amount),
+      status: String(row.status ?? ""),
+    });
+  }
+  return byOrder;
 }
 
 // ── Stats del operador ─────────────────────────────────────────

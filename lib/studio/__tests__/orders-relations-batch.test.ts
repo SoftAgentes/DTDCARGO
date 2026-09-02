@@ -14,7 +14,7 @@ type QueryCall = {
   args: unknown[];
 };
 
-function makeClient(rowsByTable: Record<string, Record<string, unknown>[]>) {
+function makeClient(rowsByTable: Record<string, Record<string, unknown>[]>, rpcError?: string) {
   const calls: QueryCall[] = [];
   const client = {
     from: vi.fn((table: string) => {
@@ -42,6 +42,25 @@ function makeClient(rowsByTable: Record<string, Record<string, unknown>[]>) {
         return Promise.resolve({ data: matching.slice(from, to + 1), error: null });
       };
 
+      return chain;
+    }),
+    rpc: vi.fn((fn: string, args: { p_sales_order_ids: string[] }) => {
+      calls.push({ table: fn, method: "rpc", args: [args] });
+      const chain: Record<string, unknown> = {};
+      chain.order = (...orderArgs: unknown[]) => {
+        calls.push({ table: fn, method: "order", args: orderArgs });
+        return chain;
+      };
+      chain.range = (from: number, to: number) => {
+        calls.push({ table: fn, method: "range", args: [from, to] });
+        const matching = (rowsByTable[fn] ?? []).filter((row) =>
+          args.p_sales_order_ids.includes(String(row.sales_order_id)),
+        );
+        return Promise.resolve({
+          data: matching.slice(from, to + 1),
+          error: rpcError ? { message: rpcError } : null,
+        });
+      };
       return chain;
     }),
   } as unknown as SupabaseClient;
@@ -109,14 +128,13 @@ describe("relaciones de órdenes en lote", () => {
           updated_at: "2026-09-01T00:00:00Z",
         },
       ],
-      invoices: [
+      sales_order_invoice_refs: [
         {
           id: "inv-1",
           sales_order_id: "so-2",
           invoice_code: "FAC-0001",
           total_amount: "125.50",
           status: "emitida",
-          issued_at: "2026-09-01",
           created_at: "2026-09-01T00:00:00Z",
         },
       ],
@@ -138,7 +156,7 @@ describe("relaciones de órdenes en lote", () => {
       total_amount: 125.5,
     });
 
-    for (const table of ["prealertas", "invoices"]) {
+    for (const table of ["prealertas"]) {
       const filters = calls.filter(
         (call) => call.table === table && call.method === "in",
       );
@@ -148,6 +166,26 @@ describe("relaciones de órdenes en lote", () => {
         expect(filter.args[1]).toEqual(expect.arrayContaining(["so-1", "so-2"]));
       }
     }
+    const rpcCalls = calls.filter((call) => call.method === "rpc");
+    expect(rpcCalls).toHaveLength(2);
+    for (const call of rpcCalls) {
+      expect(call.table).toBe("sales_order_invoice_refs");
+      expect(call.args).toEqual([{ p_sales_order_ids: ["so-1", "so-2"] }]);
+    }
+    expect(calls.some((call) => call.table === "invoices")).toBe(false);
+    expect(invoices["so-2"][0]).not.toHaveProperty("created_at");
+    expect(invoices["so-2"][0]).not.toHaveProperty("issued_at");
+  });
+
+  it("un error de la RPC no se convierte en una lista vacía de facturas", async () => {
+    const { client } = makeClient({}, "No autorizado");
+    await expect(listInvoicesBySalesOrder(client, ["so-1"])).rejects.toThrow("No autorizado");
+  });
+
+  it("sin órdenes no consulta la RPC", async () => {
+    const { client, calls } = makeClient({});
+    expect(await listInvoicesBySalesOrder(client, [])).toEqual({});
+    expect(calls).toEqual([]);
   });
 
   it("las páginas de listado consumen los helpers batch y no mapean queries por orden", () => {
