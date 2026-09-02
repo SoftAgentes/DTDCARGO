@@ -19,11 +19,11 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Rama de saneamiento antes de SDD-0337: `cf92b76e`, 0 detrás / 29 delante.
+- Rama de saneamiento antes de SDD-0338: `6e4566f2`, 0 detrás / 30 delante.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 329; 235 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 330; 236 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -46,7 +46,7 @@ merge a `main`, Cloud, Producción ni deploy.
   del contrato activo de entorno.
 - [x] Gate canónico reciente sin fallos: 14/15 pasos medidos; sólo Cloud quedó
   `SKIP` por falta deliberada de credenciales. Suite unitaria posterior a
-  SDD-0337: 512 archivos / 5.900 pruebas, todas verdes.
+  SDD-0338: 513 archivos / 5.904 pruebas, todas verdes.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -80,6 +80,8 @@ merge a `main`, Cloud, Producción ni deploy.
   separada; la RPC no existe en Cloud hasta completar ese gate.
 - [ ] Aplicar `0402_portal_hidden_statuses_por_principal.sql` con autorización
   específica separada; la RPC no existe en Cloud hasta completar ese gate.
+- [ ] Aplicar `0403_portal_advisor_por_principal.sql` con autorización específica
+  separada; la RPC no existe en Cloud hasta completar ese gate.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [ ] Confirmar deployment Vercel y smoke de público, Studio, Portal y móvil.
@@ -95,7 +97,8 @@ merge a `main`, Cloud, Producción ni deploy.
   SDD-0336 cerró el primer slice de marca: el baseline bajó de 11 rutas / 23
   construcciones a 10 rutas / 21 construcciones. SDD-0337 movió la visibilidad
   de hitos a una RPC por principal y lo bajó a 10 rutas / 19 construcciones.
-  Priorizar firmas de
+  SDD-0338 movió el asesor asignado a otra RPC por principal y dejó el baseline
+  en 10 rutas / 18 construcciones. Priorizar firmas de
   documentos/facturas y lecturas internas mediante RPCs autocontenidas ligadas
   a `auth.uid()` o un servicio de firmado acotado. El test
   `portal-service-role-boundary.test.mjs` congela el inventario; no lo aprueba.
@@ -142,7 +145,7 @@ merge a `main`, Cloud, Producción ni deploy.
 
 1. Publicar la rama y revisar el diff remoto.
 2. Integrar a `main` con autorización separada y verificar deploy/smoke.
-3. Aplicar 0399, 0400, 0401 y 0402 de una en una; completar Telegram.
+3. Aplicar 0399, 0400, 0401, 0402 y 0403 de una en una; completar Telegram.
 4. Limpiar worktree y rama de archivo contenida.
 5. Ejecutar el programa P1 por slices; empezar por RBAC documental/financiero y
    Portal firmado.

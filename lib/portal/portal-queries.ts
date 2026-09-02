@@ -91,56 +91,28 @@ export async function getPortalClient(
  * El asesor ASIGNADO al cliente (ERP→Norte · clients.advisor_id). Reemplaza la
  * degradación al contacto público en la card "Tu asesor" de /portal/mensajes.
  *
- * Recibe el ADMIN client a propósito: el cliente del portal NO tiene RLS sobre
- * `user_tenants` / `user_profiles` (mismo criterio que el hilo de Conversaciones,
- * que también se lee con admin). El `clientId` es el del cliente YA autenticado
- * (resuelto antes con `getPortalClient`), así que solo se resuelve SU propio asesor.
+ * La RPC no recibe `clientId`: deriva el cliente desde `auth.uid()`, verifica que
+ * el asesor siga activo en el mismo tenant y devuelve sólo sus datos públicos de
+ * contacto. Así la página no construye `service_role` para esta lectura.
  *
  * Degrada a null (→ fallback público) si: no hay asesor asignado, el asesor ya no
  * es miembro activo del tenant, o el asesor no tiene nombre cargado en su perfil.
  */
 export async function getPortalAdvisor(
-  admin: SupabaseClient,
-  clientId: string,
+  db: SupabaseClient,
 ): Promise<PortalAdvisor | null> {
-  const { data: clientRow, error: clientErr } = await admin
-    .from("clients")
-    .select("advisor_id, tenant_id")
-    .eq("id", clientId)
-    .maybeSingle();
-  if (clientErr || !clientRow?.advisor_id) return null;
+  const { data, error } = await db.rpc("get_portal_advisor");
+  if (error) return null;
 
-  const advisorId = clientRow.advisor_id as string;
-  const tenantId = clientRow.tenant_id as string;
-
-  // El asesor debe seguir siendo miembro activo del tenant (si lo desactivaron,
-  // mejor degradar al contacto público que mostrar a alguien que ya no está).
-  const { data: membership } = await admin
-    .from("user_tenants")
-    .select("user_id")
-    .eq("user_id", advisorId)
-    .eq("tenant_id", tenantId)
-    .is("disabled_at", null)
-    .maybeSingle();
-  if (!membership) return null;
-
-  const { data: profile } = await admin
-    .from("user_profiles")
-    .select("first_name, last_name, phone, avatar_url, position_label")
-    .eq("user_id", advisorId)
-    .maybeSingle();
-
-  const name = [profile?.first_name, profile?.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-  if (!name) return null;
+  const row = Array.isArray(data) ? data[0] : data;
+  const name = String((row as { name?: unknown } | null)?.name ?? "").trim();
+  if (!row || !name) return null;
 
   return {
     name,
-    phone: (profile?.phone as string | null) ?? null,
-    avatarUrl: (profile?.avatar_url as string | null) ?? null,
-    positionLabel: (profile?.position_label as string | null) ?? null,
+    phone: (row.phone as string | null) ?? null,
+    avatarUrl: (row.avatar_url as string | null) ?? null,
+    positionLabel: (row.position_label as string | null) ?? null,
   };
 }
 
