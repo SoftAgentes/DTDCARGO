@@ -17,9 +17,9 @@ refrescarse antes de cualquier operación Git o alojada.
 
 ## Snapshot comprobado
 
-### Resumen para Sam · punto de control tras 18 horas registradas
+### Resumen para Sam · punto de control vigente del objetivo
 
-**Avance del checklist: 45 de 100 casillas completadas (45 %).** Es un
+**Avance del checklist: 46 de 101 casillas completadas (45,5 %).** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
 varios cambios. No existe todavía una medición defendible del producto completo.
@@ -28,8 +28,8 @@ varios cambios. No existe todavía una medición defendible del producto complet
 |---|---:|---|
 | Correcciones locales enumeradas | 25 / 25 | Implementadas/verificadas localmente; no equivale a producción |
 | Cierre Git y publicación | 12 / 21 | Publicación parcial; falta lote nuevo e integración |
-| Cloud y operación alojada | 2 / 29 | Dependen de autorizaciones nominales y comprobaciones reales |
-| Seguridad pendiente por dominio | 2 / 9 | En curso: reportes de pago |
+| Cloud y operación alojada | 2 / 30 | Dependen de autorizaciones nominales y comprobaciones reales |
+| Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
 | Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
 | Orden del producto/documentación | 3 / 12 | Falta reconciliar specs y decisiones de producto |
 
@@ -38,27 +38,27 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Trabajo actual:** seguridad de los reportes de pago (SDD-0365). SQL0421
-está en `7f4c1046` y el transporte/comprobantes en `85912909`. El incremento
-de consumidores ya conecta las tres acciones de sesión a esas RPC, conserva
-datos/archivo/claves en reintentos y exige confirmación con motivo. No usa el
-DML ni la RPC financiera heredados desde esas acciones.
+**Último avance:** restricción local de reportes de pago (SDD-0365/0422),
+sobre los consumidores de `bcf111a8`. Quedan retiradas las escrituras directas
+de la API y la RPC antigua; la lectura financiera exige membresía activa
+de Contabilidad/Administración. El Portal conserva su historial propio.
+SQL0421, transporte/comprobantes y consumidores ya estaban verificados.
 
-La suite completa pasó **6.401 pruebas en 536 archivos**; además, las 32
-pruebas finales de interfaz/diálogo pasan después de los ajustes visuales.
-TypeScript sin caché pasó; el build final y los gates se registran en el
-handoff. Navegador local: cancelación y confirmación sintéticas, teclado,
-reintento estable, motivos de 500 caracteres y layout a 320/390 px.
-No es un E2E con Auth/Storage real: la carga desde el worktree fue rechazada
-por el límite de rutas de la herramienta y no se eludió.
+Validación nueva: **163 contratos SQL**, reconstrucción de **419 migraciones**,
+**301 aserciones y 35 derivas rechazadas** en0422, más cinco carreras reales
+con la restricción aplicada. SQL0421 conserva sus400 aserciones y su hash.
+Advisors locales: una advertencia del helper heredado del fixture; ningún
+objeto nuevo señalado. Revisión independiente sin hallazgos pendientes.
+La suite de consumidores previa pasó6.401 pruebas/536 archivos, TypeScript,
+build158 y navegador sintético; no se presentan como ejecuciones nuevas.
+Sigue pendiente el E2E con Auth/Storage real.
 
-**La etapa de consumidores está implementada localmente, pero SDD-0365 no
-está cerrada:** falta inventariar/restringir escritores y lectura financiera
-en la base, además de los gates de release. El porcentaje permanece en
-45/100; no se agrega una casilla por cada prueba o entrega parcial.
+**Las tres etapas técnicas están preparadas localmente; SDD-0365 sigue abierta
+por release y smoke alojado.** Se completa una casilla de seguridad y se
+agrega el gate nominal0422: de45/100 a46/101. No se suman casillas por prueba.
 
 **Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
-integrar, 23 migraciones del paquete sin aplicación autorizada y trabajo de
+integrar, 24 migraciones del paquete sin aplicación autorizada y trabajo de
 aplicación/seguridad/documentación todavía pendiente. El worktree activo no
 se borra mientras conserve trabajo sin publicar/integrar.
 
@@ -76,7 +76,8 @@ se borra mientras conserve trabajo sin publicar/integrar.
   añade la contención de sus acciones/comprobantes como cuarto commit local.
   La expansión SQL 0421 de SDD-0365 añade el quinto commit local (`7f4c1046`).
   El transporte de comandos y recuperación de comprobantes añade el sexto
-  (`85912909`); la adopción de consumidores se conserva en un séptimo incremento.
+  (`85912909`); consumidores en el séptimo (`bcf111a8`) y la restricción0422
+  en el octavo incremento que contiene este recibo.
   El lote nuevo requiere publicación autorizada y CI propio.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
@@ -89,14 +90,14 @@ se borra mientras conserve trabajo sin publicar/integrar.
 - Supabase: proyecto correcto `xpfuzqombmjmxvprjgmi`, `ACTIVE_HEALTHY`; 406
   entradas de ledger. Comparación con 413 archivos y corte 238: 18 pendientes
   (0399–0416), cero huérfanas posteriores al corte y las 10 RPC nuevas ausentes.
-  SDD-0361–0365 agregan 0417–0421 sólo locales: 418 archivos y 23 gates de aplicación
+  SDD-0361–0365 agregan 0417–0422 sólo locales: 419 archivos y 24 gates de aplicación
   pendientes en este paquete. No se volvió a consultar ni escribir Cloud.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
 - Specs reales: 357; 266 `done`, 1 `superseded` y 90 sin cierre documental
   (75 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0365 sigue
-  abierta hasta cerrar comandos auditados, consumidores y restricciones.
+  abierta hasta verificar publicación, aplicación y smoke del release.
 
 El paquete y sus commits están enumerados en
 `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`. La evidencia alojada
@@ -198,8 +199,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   5 carreras reales y rebuild418 verdes. Advisors locales: sin hallazgos en
   objetos nuevos, una advertencia del helper touch_updated_at del fixture.
   162 contratos SQL y 6.096 unitarios completos aprobados en ese incremento.
-  No está aplicada. Sus consumidores ya están adoptados localmente; publicación,
-  restricción y release siguen abiertos.
+  No está aplicada. Consumidores y restricción0422 preparados localmente;
+  publicación, aplicación alojada y smoke siguen abiertos.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -310,8 +311,12 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   reportes de pago. Sin RPC nueva ni deploy previo. No se ha aplicado a Cloud
   y no sustituye la reparación pendiente de cancelación y confirmación.
 - [ ] Aplicar `0421_payment_report_commands.sql` sólo con autorización nominal,
-  como expansión previa a sus consumidores. Después: aplicación/smoke y otra
-  migración de restricción; no activar el release como un lote ciego.
+  como expansión previa a sus consumidores. Después: aplicación/smoke y0422;
+  no activar el release como un lote ciego.
+- [ ] Aplicar `0422_payment_report_command_boundary.sql` sólo con otro GO
+  nominal, después de consumidores/smoke de0421; verificar rechazo de DML/RPC
+  antiguos y conservación de alta/cancelación/resolución/historial/reintento.
+  No revertir la app a consumidores antiguos ni reabrir grants automáticamente.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [x] Confirmar que el deployment automático de la rama fue Preview, no
@@ -329,22 +334,19 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 ## P1 · seguridad por slices
 
-- [ ] Prioridad local siguiente: cerrar los comandos de reportes de pago. La
-  reproducción sintética de SDD-0364 detectó cancelación propia rechazada por
-  RLS (42501), campos de confirmación y moneda editables directamente, path de
-  comprobante con prefijo ajeno aceptado y confirmación directa por un miembro
-  no financiero sin acumular el pago. La firma real no se probó; no afirmar
-  exfiltración. El aislamiento de tenant no corrige estos fallos por sí solo.
-  Preservar alta/cancelación legítimas con auditoría atómica, resultado veraz,
-  roles financieros y validación de comprobantes; separar expansión/app/restricción
-  si requiere comandos nuevos. No cambiar la decisión contable de SDD-0134.
+- [x] Cerrar localmente los comandos de reportes de pago mediante SDD-0365:
+  expansión0421, consumidores y restricción0422 verificados. Se reprodujeron
+  escrituras sin auditoría y confirmación sin motivo antes de retirar esas
+  vías. Los comandos legítimos conservan alta/cancelación/resolución, recibo,
+  auditoría, reintentos y fórmula contable; historial y comprobantes intactos.
+  Pasan301 aserciones,35 derivas,163 contratos SQL, rebuild419 y5 carreras.
+  No equivale a corregido en producción ni certifica todo Storage.
 - [x] SDD-0365 etapa 1: contador fail-closed probado desde la acción real.
   null, error, transporte y conteos inválidos no producen upload/insert/aviso.
   El límite concurrente todavía requiere el comando transaccional de etapa 2.
-- [ ] Completar SDD-0365 etapa 3 y release. Etapa 2 ya adopta SQL0421 en
-  acciones/pantallas con auditoría, recibos, confirmación y motivos. El cierre
-  sigue abierto: falta inventariar y restringir DML/RPC financieros heredados
-  y la lectura interna en la base; después, gates alojados y smoke real.
+- [ ] Completar el release de SDD-0365. Las tres etapas técnicas están
+  verificadas localmente; faltan publicación, gates alojados y smoke real
+  en el orden expansión0421 → consumidores → restricción0422.
   Los uploads inciertos se conservan privados: revisar su disposición con
   identidad/vínculo/hold y autorización; no hay job ni purga automática.
 - [ ] Continuar RBAC de aplicación en la base por slices: lectura minimizada de
@@ -449,6 +451,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
 - [ ] Reconciliar las 90 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
+  Caso concreto pendiente de SDD-0258: rename de Shipping Mark con un reporte
+  sobre factura archivada falla23514 por el trigger0195. Se reprodujo antes
+  y después de0422; no es regresión de la restricción ni se corrigió aquí.
 - [x] Reconciliar el dominio de acceso (SDD-0299/0302): código confirmado en
   main y 61 pruebas focales, con 52 regresiones nuevas. Ambas siguen abiertas
   porque falta navegador/sesión real. Suite completa: 529 archivos / 6.013
@@ -481,12 +486,13 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
    lectura mínima y Portal. Aplicar 0414 y 0415 sólo después del smoke de sus
    consumidores, cada una con su propio OK y de una en una.
    Aplicar 0416–0420 con gates/smokes de dominio independientes, de una en una
-   y con su propio OK; completar Telegram
+   y con su propio OK. Para pagos:0421 antes de consumidores/smoke,0422 después,
+   con autorizaciones independientes; completar Telegram
    y los demás gates alojados por separado.
 5. Limpiar worktree y rama de archivo sólo cuando estén contenidos en main.
-6. Seguir P1 local por dominio, empezando por los comandos de reportes de pago
-   ya reproducidos, mientras se esperan los permisos alojados. Después:
-   aislamiento Portal restante/documentos por entidad, specs y deuda P2.
+6. Con pagos preparado localmente, continuar sólo la siguiente rebanada
+   elegible del checklist: aislamiento Portal restante/documentos por entidad,
+   reconciliación de specs y deuda P2; no reabrir un barrido transversal.
 
 ## Stop conditions
 

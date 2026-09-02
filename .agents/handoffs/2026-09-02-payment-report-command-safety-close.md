@@ -248,3 +248,80 @@ Siguiente trabajo: inventario real de escritores y lectura de payment_reports,
 contrato de restricción y migración separada sólo local, preservando historia
 y rename_client_markbox legítimo. Antes de numerar: revalidar todas las refs.
 No crear otro frente ni aplicar Cloud/deploy sin el GO nominal correspondiente.
+
+## Actualización · restricción0422 sobre bcf111a8
+
+Estado: TRES ETAPAS TÉCNICAS VERIFICADAS LOCALMENTE · RELEASE ABIERTO.
+Intención: `fix(portal): SDD-0365 — restringir escritores y lectura de pagos`.
+Ocho archivos propios: migración0422 y su test; bootstrap del test0421;
+harness de concurrencia; spec; checklist; este handoff y el de saneamiento.
+No app/UI, dependencias, SQL histórico, env, secretos ni datos alojados.
+
+### Resultado y límites
+
+La API conserva sólo SELECT en payment_reports. Se retiran DML, privilegios
+auxiliares y EXECUTE de confirm_payment_report legado. La lectura financiera
+exige actor activo con rol accounting/admin en la misma membresía del tenant;
+el SELECT Portal0420 se preserva exactamente, incluida historia con factura
+archivada. Servicio conserva SELECT para los lookups scopeados del servidor.
+Comandos0421 y rename0371 siguen con sus cuerpos, ACL y owner existentes.
+
+Preflight valida expansión, identidades, policies exactas, RLS, owners y
+recibos privados; postflight comprueba tres policies SELECT y privilegios
+efectivos, también los heredados por roles y columnas. No se corrige drift
+silenciosamente: el intento se revierte y requiere revisión.
+
+### Evidencia ejecutada
+
+- RED independiente: seis operaciones directas INSERT/UPDATE/DELETE de
+  accounting/marketing sin auditoría ni recibos; confirmación directa no
+  acredita. LegacyRPC de accounting admite motivo NULL y acredita sin evento.
+  Marketing ve reportes completos de otros clientes del mismo tenant.
+- GREEN0422: 301 aserciones y 35 derivas rechazadas, rollback de catálogo y
+  filas; fixture_rolled_back=true. Test0421: 400 aserciones, rollback=true.
+- Suite canónica: 163 contratos SQL, exit0 y rollback total.
+- Rebuild final: 419 migraciones, 401 schema +18 sólo-ledger; aislamiento de
+  219 tablas públicas con dos tenants sintéticos, exit0.
+- `node scripts/test-payment-report-commands.mjs --restriction --advisors`:
+  cinco carreras verdes (cupo, replay, doble confirmación, revocación Portal
+  y financiera). Supabase CLI2.108.0 sólo en127.0.0.1; una advertencia del
+  helper heredado/stub touch_updated_at, ninguna en objetos nuevos.
+- Revisión independiente: corrigió dos hallazgos concretos reproducidos
+  (current_studio_role/assert_studio_role y MAINTAIN heredado). APPROVE
+  condicionado al GREEN focal, ya satisfecho; sin otros hallazgos pendientes.
+- SQL0421 conserva SHA256
+  `726C970B4D72246C918308FAAAF02B195F1E444CA1C11A057BC005879D9E2ACA`.
+- No se repitieron TS/Vitest/build/navegador: no cambia runtime de aplicación.
+  Su evidencia anterior no se atribuye a este incremento SQL.
+
+Compatibilidad probada: alta/cancelación/confirmación/rechazo y replay bajo
+ACL final; auditoría fallida revierte datos/saldo/recibos; Portal propio,
+principal dual, membresías múltiples y revocadas; ningún cambio en buckets,
+objetos, funciones, triggers, recibos ni ACL ajenas. Rename normal conserva
+ID, comprobante, alias, lectura y replay. Deuda heredada registrada aparte:
+rename con reporte sobre factura archivada falla23514 antes y después por
+trigger0195; no se arregló ni se atribuye a0422.
+
+### Gobierno, cierre y continuidad
+
+SGE/AUD/MP: cumplimiento acotado al contrato y conservación probados; la matriz
+está en la spec. No hay purga, nuevos destinatarios ni datos reales. Retención,
+residencia, autenticidad, backups y disposición de comprobantes no se verifican
+con estas pruebas. No se certifica cumplimiento jurídico ni todo el módulo.
+
+Auditor de cierre22:32:07UTC: rama propia, índice inicialmente vacío, HEAD
+bcf111a8, siete commits locales previos, upstream correcto y dos worktrees.
+Se agregan sólo los ocho archivos allowlisted; este incremento será el octavo.
+Main22cec0c2 y ambas ramas archive permanecen intactos. Los contenedores de
+contratos, rebuild, concurrencia y reproducción se retiraron; no se tocó
+infraestructura ajena. Recuento de checklist: 46 hechas,55 pendientes,101 total.
+
+Push sigue sin autorización después del rechazo: no se reintentó por ninguna
+vía. El GO consultado para seis commits no cubre automáticamente este lote de
+ocho. No merge, deploy ni migración Cloud. El worktree no se elimina mientras
+contenga trabajo sin publicar/integrar. El objetivo y la spec siguen abiertos.
+
+Siguiente gate: autorización exacta de publicación del lote y CI en su SHA;
+preparar release0421 → consumidores/smoke →0422/smoke, con GO nominal de cada
+migración y autorización separada de integración/deploy. No iniciar un nuevo
+barrido para sustituir estos gates ni marcar Cloud por la evidencia local.

@@ -28,7 +28,8 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   SDD-0363 está en `9b243069`, segundo commit local. SDD-0364 en `e9d49980`
   añade el tercero; SDD-0365 etapa 1 añade el cuarto, expansión SQL0421 el quinto
   y transporte/comprobantes el sexto. La adopción de consumidores añade el
-  séptimo incremento local. Ninguno está publicado ni tiene CI alojado propio;
+  séptimo incremento local; la restricción0422 añade el octavo. Ninguno está
+  publicado ni tiene CI alojado propio;
   el rechazo de push sigue vigente.
 
 ## Trabajo rescatado y cerrado
@@ -174,6 +175,12 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
     19 UI independientes y suite completa6.401/536; foco/contraste/reflow
     probados en navegador local. Restricción de base y release pendientes.
 
+67. `fix(portal): SDD-0365 — restringir escritores y lectura de pagos` —
+    restricción0422 posterior a consumidores: API sólo SELECT, lectura financiera
+    por membresía activa, Portal histórico conservado y RPC legacy sin EXECUTE.
+    Pasan 301 aserciones, 35 derivas, 163 contratos SQL, rebuild419 y cinco
+    carreras reales. Revisión independiente cerrada. Sin aplicación alojada.
+
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0365. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
@@ -183,7 +190,19 @@ slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 
 ## Verificación vigente
 
-Consumidores sobre85912909: 6.401/6.401 pruebas en536 archivos (141,56s),
+Restricción0422 sobre `bcf111a8`: 301 aserciones y 35 derivas con rollback de
+catálogo/filas; SQL0421 conserva sus 400 aserciones y hash. Suite SQL completa:
+163 contratos. Rebuild final: 419 archivos (401 schema +18 sólo-ledger),
+219 tablas públicas y dos tenants sintéticos. Cinco carreras reales con ACL/RLS
+final verdes. Advisors locales: un WARN del helper legacy/stub touch_updated_at;
+ningún objeto nuevo señalado. Revisión independiente sin hallazgos pendientes
+tras corregir dependencia de rol y MAINTAIN heredado. No Cloud ni datos reales.
+Los contenedores propios fueron retirados. Sin nueva ejecución TS/Vitest/build
+porque sólo cambia SQL, harness y documentación. Gates documentales y lint del
+harness se repiten antes del commit. Checklist contado: 46/101 (45,5 %),
+55 pendientes; no es porcentaje del producto ni estimación de tiempo restante.
+
+Evidencia previa de consumidores sobre85912909: 6.401/6.401 pruebas en536 archivos (141,56s),
 106 focales de acción/modelo/comprobante y19 UI independientes. Después de
 ajustes visuales, UI+canonical32/32 (11,25s). TypeScript sin caché aprobado;
 RSC1.591 sin cruces, lint/gobernanza28/CMP5 aprobados. Build final aprobado:
@@ -198,7 +217,7 @@ RSC de 1.590 módulos sin cruces aprobados. Docs, gobernanza y CMP pasan.
 Sin nueva ejecución de build/E2E/rebuild SQL; la aplicación aún debe adoptar
 los comandos. No hay contenedores propios pendientes ni efectos alojados.
 
-Último incremento SQL0421: 400 aserciones independientes, cinco carreras entre
+Incremento previo SQL0421: 400 aserciones independientes, cinco carreras entre
 sesiones, 162 contratos SQL y rebuild418 (400 schema +18 sólo-ledger) verdes.
 Unitarios: 6.096/532 archivos, 155,02s; lint/sintaxis del harness y gates de
 docs/numeración/CMP/gobernanza aprobados. Advisors sólo del fixture: un WARN
@@ -510,7 +529,11 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
 - La expansión `0421_payment_report_commands.sql` pasó 400 aserciones, cinco
   carreras y el gate local descrito arriba. No fue aplicada: exige GO nominal,
   adopción de consumidores y posterior restricción en una migración separada.
-  Son418 archivos en el paquete y23 gates de aplicación0399–0421 pendientes.
+- La restricción `0422_payment_report_command_boundary.sql` está verificada
+  localmente con los comandos y el rename0371 real. Requiere otro GO nominal
+  después de aplicar0421 y desplegar/probar consumidores. No aplicar a una app
+  antigua ni reabrir grants automáticamente ante un rollback de aplicación.
+  Son 419 archivos y 24 gates de aplicación0399–0422 pendientes en el paquete.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - Vercel creó automáticamente un Preview del SHA publicado: deployment GitHub
@@ -549,5 +572,7 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
    verificar las RPCs antes de desplegar sus consumidores. Integración y deploy
    necesitan su propio gate. Aplicar 0414 y 0415 sólo después del smoke de sus
    consumidores nuevos, de una en una y con autorizaciones separadas.
+   Para pagos: expansión0421 → consumidores/smoke → restricción0422/smoke.
+   Cada operación alojada conserva su autorización específica.
 5. Retirar este worktree únicamente después de probar que sus commits están
    contenidos; mantener las ramas archive hasta auditar su contención.

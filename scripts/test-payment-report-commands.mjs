@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** SDD-0365. Conexiones reales, sólo fixtures; Docker propio, nunca --linked.
- * node scripts/test-payment-report-commands.mjs [--advisors]
+ * node scripts/test-payment-report-commands.mjs [--restriction] [--advisors]
  * No limpia por nombre ni reutiliza una DB existente. El contenedor se retira
  * sólo si su ID y etiqueta de esta ejecución coinciden.
  */
@@ -86,7 +86,7 @@ function oneSuccess(results, failure) {
 
 try {
   const args = process.argv.slice(2);
-  assert(args.every((v) => v === '--advisors'), 'Sólo se admite --advisors');
+  assert(args.every((v) => ['--advisors', '--restriction'].includes(v)), 'Sólo se admite --advisors o --restriction');
   container = sync('docker', ['run', '--rm', '-d', '--name', `dtd_paycmd_${runId.slice(0, 12)}`,
     '--label', `codex.payment-test-run=${runId}`, '--label', 'codex.purpose=payment-command-concurrency',
     '-p', '127.0.0.1::5432', '-e', 'POSTGRES_PASSWORD=postgres',
@@ -103,6 +103,13 @@ try {
   sync('docker', ['exec', container, 'psql', '-X', '-U', 'postgres', '-q', '-v', 'ON_ERROR_STOP=1',
     '-v', 'fixture_only=true', '-f', '/sb/tests/0421_payment_report_commands.test.sql']);
   console.log('Fixture aislado instalado; comandos y auditoría reales.');
+
+  if (args.includes('--restriction')) {
+    sync('docker', ['exec', container, 'psql', '-X', '-U', 'postgres', '-q',
+      '-v', 'ON_ERROR_STOP=1', '--single-transaction',
+      '-f', '/sb/migrations/0422_payment_report_command_boundary.sql']);
+    console.log('Restricción0422 instalada; las cinco carreras usan el ACL/RLS final.');
+  }
 
   for (let n = 1; n <= 4; n++) {
     await ok(session('portal-A', create(`cap-${n}`, `limit-${n}`, 'invoice-limit', 'tenant-A', 'F-LIMIT')));

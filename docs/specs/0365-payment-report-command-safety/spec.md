@@ -69,12 +69,82 @@ previa, no una garantía atómica contra dos solicitudes concurrentes.
 
 ### Etapa 3 · restricción y release
 
-- [ ] Inventariar todos los escritores; retirar DML directo y RPC heredada
+- [x] Inventariar escritores y preparar/verificar localmente el retiro de DML y RPC heredada
   después de los consumidores nuevos, sin fallback inseguro de aplicación.
-- [ ] Restringir lectura financiera interna, preservando Portal propio e
+- [x] Preparar/verificar localmente lectura financiera restringida, preservando Portal propio e
   historia. Probar principales duales, archivo del padre y revocación de vínculo.
 - [ ] Separar expansión → aplicación/smoke → restricción. Cada migración con
   autorización nominal, no una aplicación en lote ni un deploy implícito.
+
+## Contrato y allowlist · etapa 3, restricción SQL 0422
+
+Sobre `bcf111a8`, el numerador consultó 15 refs locales/remotas y ofreció
+0422. Se sigue la numeración propia del repositorio, no timestamps de CLI.
+No se reserva ni publica: el push conserva su bloqueo de autorización.
+
+Inventario del árbol completo `app/`, `lib/`, `scripts/`, `supabase/`:
+
+- Las tres acciones nuevas usan RPC0421 mediante el transporte de sesión.
+  No queda consumidor runtime de `confirm_payment_report` ni DML directo
+  sobre `payment_reports`. Las cuatro consultas del helper son SELECT;
+  `getReportById` no tiene caller actual. El lookup de replay y el contador
+  de alta usan SELECT de servicio con tenant/factura/reporte explícitos.
+- Portal detalle usa `listMyInvoiceReports`; Studio detalle financiero usa
+  `listInvoiceReports`. Ningún módulo no financiero necesita filas completas.
+- SQL vigente: `payment_private.run_report_command` crea/resuelve/cancela;
+  `confirm_payment_report` (0359) es un writer heredado sin auditoría0421;
+  `rename_client_markbox` (0371) actualiza únicamente la identidad denormalizada
+  y debe seguir funcionando. 0197/0198 son comentarios, no writers de pagos.
+  La búsqueda de SQL dinámico no encontró otro writer parametrizado de esta
+  tabla. El rebuild completo comprobó compatibilidad del schema; el contrato
+  carga el cuerpo real0371 y verifica que el rename legítimo sigue funcionando.
+
+Contrato de restricción:
+
+1. `authenticated` y `service_role` conservan sólo SELECT en esta tabla.
+   Se retiran DML, TRUNCATE, REFERENCES/TRIGGER/MAINTAIN y grants de columna; `anon`
+   y PUBLIC no reciben acceso. La tabla no se elimina ni reescribe.
+2. Retirar las policies de escritura/ALL heredadas. SELECT financiero exige
+   tenant activo y rol `accounting|admin` en la misma membresía del actor
+   (no combinar dos helpers LIMIT1 para un principal multitenant);
+   SELECT Portal conserva exactamente
+   la frontera0420 (vínculo activo, cliente vivo, tenant/Shipping Mark).
+   Se mantiene historia de factura archivada y reportes cancelados; un usuario
+   dual conserva la unión de sus dos permisos legítimos, sin ampliar uno al otro.
+3. Revocar EXECUTE de `confirm_payment_report(uuid,payment_report_status,text)`
+   a PUBLIC/anon/authenticated/service_role. Conservar su definición para
+   trazabilidad, sin fallback. Comandos0421 y rename0371 no cambian.
+4. Preflight rechaza ausencia/drift de identidades, expansión y policies,
+   incluidos permisos/policies inesperados en los recibos privados;
+   postflight verifica ACL mínimo y sólo las tres policies SELECT esperadas.
+   No basta que un SELECT no falle: las pruebas comparan filas realmente visibles.
+5. No cambia Storage, fórmulas contables, auditoría/recibos, ni historia previa.
+   El acceso al bucket y la disposición P4 siguen como gates separados: esta
+   restricción no certifica la seguridad completa de comprobantes.
+
+Allowlist exacta del incremento:
+
+- `supabase/migrations/0422_payment_report_command_boundary.sql`.
+- `supabase/tests/0422_payment_report_command_boundary.test.sql`.
+- `supabase/tests/0421_payment_report_commands.test.sql` (bootstrap
+  reutilizable dentro de una transacción y SELECT propio/activo de
+  user_tenants fiel a0001/0200, sin cambiar assertions de etapa2).
+- `scripts/test-payment-report-commands.mjs` (modo explícito `--restriction`
+  para repetir las carreras reales con0422 y advisors del mismo fixture).
+- Esta spec, checklist y los dos handoffs ya enumerados.
+
+Plan: reproducción RED independiente → ACL/RLS local → contratos positivos,
+negativos, drift y rollback → carreras con restricción → suite SQL completa,
+rebuild y advisors locales → revisión/commit selectivo. Sin cambios TS/UI:
+los unitarios/build de consumidores siguen como evidencia previa, no nueva.
+
+Release obligatorio: GO nominal0421 → aplicar expansión → publicar y verificar
+consumidores (alta, cancelación, confirmación/rechazo y reintento) → GO nominal0422
+→ aplicar restricción en transacción → smoke de esos flujos y rechazo de vías
+antiguas. No aplicar0422 mientras haya consumidores anteriores; revertir sólo
+la app a esos consumidores tampoco es un rollback seguro. Ante fallo se conserva
+evidencia y se corrige hacia adelante, sin reabrir grants automáticamente.
+Este plan no autoriza ninguna operación alojada.
 
 ## Allowlist exacta · etapa 1
 
@@ -287,6 +357,61 @@ tokens existentes tras medir contraste insuficiente; sin cambio global.
   tests y no se afirma cumplimiento jurídico.
 
 ## Verificación y estado
+
+### Restricción local0422 sobre bcf111a8 · release pendiente
+
+RED independiente: accounting y marketing podían INSERT/UPDATE/DELETE sin
+auditoría ni recibo; una confirmación directa no acreditaba la factura.
+La RPC legacy de accounting aceptaba motivo NULL y acreditaba sin auditoría.
+Marketing leía reportes completos de otros clientes del mismo tenant.
+Son reproducciones sintéticas, no operaciones ni hallazgos medidos en Cloud.
+
+GREEN final:301 aserciones y35 derivas rechazadas con rollback de catálogo y
+filas; incluye columnaSELECT heredada por anon, UPDATE/MAINTAIN heredados,
+recibos expuestos, policies alteradas, identidades ausentes y seguridad de
+comandos. Dos hallazgos de revisión (dependencia de rol del rename y MAINTAIN)
+fueron reproducidos y corregidos. Revisión final sin hallazgos pendientes,
+condicionada a ese GREEN posteriormente obtenido.
+
+- Suite SQL canónica:163 contratos, rollback total, exit0.
+- Rebuild final:419 archivos,401 schema+18 sólo-ledger;219 tablas públicas
+  y2 tenants sintéticos. Exit0, sin modificar Cloud.
+- Cinco carreras reales con `--restriction --advisors`: cupo5, replay,
+  doble confirmación, revocación Portal y revocación financiera, todas verdes.
+- Advisors CLI2.108.0 con URL127.0.0.1 del contenedor propio: un WARN del helper
+  legacy/stub touch_updated_at; ningún objeto nuevo señalado. No es un informe
+  de Cloud ni una ausencia universal de hallazgos.
+- Test0421 conserva400 aserciones y su hash SQL original. Su único cambio
+  es bootstrap opt-in en una misma transacción y grant/policy fiel de membresías.
+- Sin nuevo TypeScript/Vitest/build/navegador: no cambia app, UI, tipos ni
+  dependencias. Evidencia previa de consumidores permanece identificada abajo.
+
+Portalread0420, funciones/triggers, recibos, auditoría, ACL ajenas, buckets y
+objetos quedan intactos. Los comandos nuevos funcionan con los grants finales;
+cancelar conserva original, replay no duplica efectos y un fallo de auditoría
+revierte datos/saldo/recibo. Se prueba unión de principal dual sin confundir
+el rol financiero de otra membresía. La historia con factura archivada sigue
+visible; renombrar un cliente con factura viva conserva IDs, paths, alias y replay.
+
+Deuda previa separada: rename0371 con reporte sobre factura archivada falla
+23514 por0195 antes y después. Se preserva el fallo sin cambiar la lógica de
+SDD-0258; se registra en la reconciliación del checklist. No se afirma cerrado
+todo rename ni la seguridad/disposición de StorageP4.
+
+Gate de etapa3: SGE-00.01/02/04/05/06/07/09/11 cumplen acotadamente por mismos
+verbos, conservación, writer auditado, ACL/RLS, pre/postflight, idempotencia,
+reutilización de comandos y salida contractual existente. SGE-00.03 cumple
+en consumidores ya probados, sin nueva interacción;08/10 no aplican a cambios
+SQL sin UI. SGE-00.12 cumple: no se cruzaron gates alojados. AUD-01/AUD-02
+cumplen en comandos/recibos probados; MP-01 cumple conservación sin purga.
+Esto no certifica el módulo entero, legalidad, autenticidad de comprobantes,
+retención, residencia ni backups. Publicación y release siguen pendientes.
+
+Fuentes técnicas: [funciones de Supabase](https://supabase.com/docs/guides/database/functions),
+[RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
+y [REVOKE de PostgreSQL](https://www.postgresql.org/docs/current/sql-revoke.html).
+Los grants de tabla revocados retiran también los correspondientes grants
+por columna; el postflight mide además privilegios efectivos heredados.
 
 ### Adopción local de consumidores sobre 85912909
 

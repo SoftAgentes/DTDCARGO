@@ -10,7 +10,15 @@
 \else
 \set fixture_only false
 \endif
+\if :{?fixture_in_transaction}
+\else
+\set fixture_in_transaction false
+\endif
+\if :fixture_in_transaction
+-- El caller ya abrió la transacción y conserva su ciclo de vida.
+\else
 begin;
+\endif
 do $fixture_guard$
 begin
   if to_regclass('public.payment_reports') is not null or to_regclass('public.tenants') is not null
@@ -39,6 +47,11 @@ create table public.user_tenants (
   role text not null, disabled_at timestamptz, primary key (user_id, tenant_id)
 );
 alter table public.user_tenants enable row level security;
+-- Privilegio0001 y visibilidad de membresía viva0200, usados por la frontera
+-- financiera inline. No se simula ni amplía el permiso con un helper de test.
+grant select on public.user_tenants to authenticated;
+create policy "users see their own user_tenants" on public.user_tenants
+  for select to authenticated using (user_id = (select auth.uid()) and disabled_at is null);
 create function public.get_user_tenant_id() returns uuid
 language sql stable security definer set search_path = '' as $$
   select ut.tenant_id from public.user_tenants ut
@@ -264,6 +277,9 @@ $expected_api$;
 -- Sólo para un segundo PostgreSQL desechable vacío y explícitamente autorizado:
 -- permite ensayos de concurrencia con sesiones independientes. Nunca Cloud.
 -- El modo predeterminado conserva BEGIN/ROLLBACK y no deja datos.
+\if :fixture_in_transaction
+-- Bootstrap opt-in: no COMMIT, ROLLBACK ni quit; vuelve al caller de \ir.
+\else
 \if :fixture_only
 commit;
 \quit
@@ -771,3 +787,4 @@ $audit_and_storage_invariants$;
 -- este contrato transaccional no sustituye esa evidencia ni la de Cloud.
 rollback;
 select to_regclass('public.payment_reports') is null as fixture_rolled_back;
+\endif
