@@ -19,6 +19,10 @@
  * métricas a número, filtros a string) → `buildReport` es PURO y testeable sin DB.
  */
 
+import { csvCell } from "@/lib/studio/export/csv";
+
+export { csvCell };
+
 // ── Forma de una fila aplanada para el constructor ─────────────
 /**
  * Una fila de fuente lista para agregar. La query resuelve:
@@ -223,25 +227,6 @@ export function buildReport(
 }
 
 // ── Export CSV (PURO, sin lib externa) ─────────────────────────
-
-/**
- * Escapa un valor para una celda CSV (comillas, comas, saltos de línea) +
- * neutraliza **CSV formula injection**: una celda de TEXTO que empieza con
- * `= + - @` (o tab/CR) la interpreta Excel/Sheets como fórmula (`=HYPERLINK(...)`,
- * DDE, exfiltración). Si la celda arranca con uno de esos chars y NO es un número
- * válido, le anteponemos `'` para forzar texto. Los números (incluidos negativos
- * como `-100`) quedan intactos: `Number("-100")` es finito → no se prefija.
- */
-export function csvCell(value: unknown): string {
-  let s = value == null ? "" : String(value);
-  if (s !== "" && /^[=+\-@\t\r]/.test(s) && !Number.isFinite(Number(s))) {
-    s = `'${s}`;
-  }
-  if (/[",\n\r]/.test(s)) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
 
 /**
  * Arma el contenido CSV de un resultado del constructor. Encabezados =

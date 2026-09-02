@@ -26,6 +26,7 @@ import {
 import { moduleLabelFromSlug } from "@/lib/studio/bug-module-name";
 import type { BugAdminKpis } from "@/lib/studio/bug-queries";
 import type { ReporterProfile } from "@/lib/studio/bug-types";
+import { csvCell } from "@/lib/studio/export/csv";
 
 interface Props {
   bugs: BugReport[];
@@ -598,18 +599,10 @@ function bugsToCsvRows(
 function rowsToCsv(rows: CsvRow[]): string {
   if (rows.length === 0) return "";
   const headers = Object.keys(rows[0]) as Array<keyof CsvRow>;
-  const escape = (v: string | number): string => {
-    const s = String(v);
-    // CSV escaping: si contiene "," " o newline → envolver en "" + escape internal "
-    if (/[",\n\r]/.test(s)) {
-      return `"${s.replace(/"/g, '""')}"`;
-    }
-    return s;
-  };
   const lines: string[] = [];
   lines.push(headers.join(","));
   for (const row of rows) {
-    lines.push(headers.map((h) => escape(row[h])).join(","));
+    lines.push(headers.map((h) => csvCell(row[h])).join(","));
   }
   // BOM para Excel detecte UTF-8 (Sam abre con Excel español)
   return "﻿" + lines.join("\r\n");

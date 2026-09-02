@@ -13,6 +13,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { csvCell } from "@/lib/studio/export/csv";
 import { parseContactFields } from "./kommo-convert";
 import {
   buildProspectWaLink,
@@ -225,10 +226,6 @@ export function buildRecoveryWaLink(
   if (!base) return null;
   const msg = buildRecoveryMessage(template, row.name);
   return `${base}?text=${encodeURIComponent(msg)}`;
-}
-
-function csvCell(v: string): string {
-  return /[",\n;]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 }
 
 /**

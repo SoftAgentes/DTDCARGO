@@ -48,6 +48,7 @@ import {
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { t } from "@/lib/i18n";
 import { attachmentsPilotState } from "@/lib/studio/attachments/pilot-gate";
+import { csvCell } from "@/lib/studio/export/csv";
 import {
   expenseVoidErrorMessage,
   validateExpenseVoidInput,
@@ -376,12 +377,6 @@ type ExportResult = {
   errorCode?: import("@/lib/i18n").ErrorCode;
   error?: string;
 };
-
-function csvCell(v: string | number | boolean | null | undefined): string {
-  const s = v == null ? "" : String(v);
-  if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-  return s;
-}
 
 /**
  * Export de todos los gastos del mes (ambos scopes) a CSV (UTF-8 BOM para

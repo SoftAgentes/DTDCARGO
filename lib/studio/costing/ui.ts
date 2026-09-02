@@ -16,6 +16,9 @@ import {
   type RouteCostTemplate,
 } from "./types";
 import type { Quote } from "@/lib/studio/quote-types";
+import { csvCell } from "@/lib/studio/export/csv";
+
+export { csvCell };
 
 // ── Tasa BCV de display (USD↔VES, display-only) ───────────────
 /**
@@ -278,14 +281,6 @@ export function buildForecast(
 }
 
 // ── Export CSV del Ranking de costeo (Slice C) ────────────────
-/** Escapa un valor para una celda CSV (comillas, comas, saltos de línea). */
-export function csvCell(value: unknown): string {
-  const s = value == null ? "" : String(value);
-  if (/[",\n\r]/.test(s)) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
 
 /** Encabezados del CSV exportado (USD canónico, 1 columna por categoría). */
 export const COSTING_CSV_HEADERS = [

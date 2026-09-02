@@ -10,6 +10,7 @@
  */
 
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { csvCell } from "@/lib/studio/export/csv";
 import {
   calCountryLabel,
   calKindLabel,
@@ -21,11 +22,6 @@ import {
   type CompanyBankAccount,
   type CompanyOffice,
 } from "@/lib/studio/company-types";
-
-function csvCell(v: string | number): string {
-  const s = String(v ?? "");
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
 
 function toCsv(headers: string[], rows: (string | number)[][]): string {
   return [headers, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n");

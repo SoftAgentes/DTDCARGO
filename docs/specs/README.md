@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 306 specs)
+### Índice de specs (generado · 307 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -344,6 +344,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0312 | Contratos para la lógica de negocio que corría sin red | done | interno |
 | 0313 | Portal — paso 1 de Nueva compra: el alta de proveedor que no … | done | interno |
 | 0314 | La segunda puerta de la máquina de estados del Bug Reporter | done | interno |
+| 0315 | Las exportaciones CSV no ejecutan fórmulas de terceros | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

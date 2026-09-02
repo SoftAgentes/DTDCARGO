@@ -12,22 +12,22 @@
  *    Windows-1252 y destroza ñ y acentos — que en este negocio son la mitad de
  *    los nombres de cliente.
  *  - **CRLF** entre filas (RFC 4180).
+ *  - Fórmulas de hoja de cálculo neutralizadas antes del escape RFC 4180.
  *  - Celdas entrecomilladas sólo si hace falta; comillas internas duplicadas.
  */
 
 /**
- * Escapa una celda (RFC 4180): entrecomilla si hay coma, comilla o salto de
- * línea, y duplica las comillas internas.
- *
- * ⚠️ Esto NO neutraliza la inyección de fórmulas de Excel (`=`, `+`, `-`, `@`
- * al inicio). Es deliberado: estos exports los abre el propio equipo con datos
- * del propio tenant, y prefijar un apóstrofo ensuciaría códigos y montos. Si
- * algún día un CSV lleva texto que escribió un tercero (un nombre de proveedor
- * cargado por el cliente, por ejemplo), ese export necesita su propio saneo.
+ * Neutraliza fórmulas y luego escapa una celda según RFC 4180. Excel y otras
+ * hojas interpretan texto iniciado por `=`, `+`, `-`, `@`, tab o retorno como
+ * fórmula/comando. Se antepone `'` sólo cuando el valor no es un número válido:
+ * `-100` sigue siendo número, mientras `-CMD()` queda forzado a texto.
  */
-export function csvCell(value: string | number | null | undefined): string {
+export function csvCell(value: unknown): string {
   if (value == null) return "";
-  const s = String(value);
+  let s = String(value);
+  if (s !== "" && /^[=+\-@\t\r]/.test(s) && !Number.isFinite(Number(s))) {
+    s = `'${s}`;
+  }
   return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
