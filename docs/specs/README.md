@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 319 specs)
+### Índice de specs (generado · 320 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -357,6 +357,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0325 | Throttle fail-closed para el acceso CBM interno | done | interno |
 | 0326 | Retirar el secreto del webhook Telegram de la URL | in-progress | interno |
 | 0327 | Cookie autenticada para sesiones de operario | done | interno |
+| 0328 | Cerrar el bypass público del throttle de verificación | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

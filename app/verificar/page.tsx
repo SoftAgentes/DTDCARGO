@@ -58,8 +58,8 @@ async function markStatus(mark: string): Promise<boolean | null> {
     // SDD-0258: la consulta directa buscaba `clients.markbox` por igualdad
     // exacta, y con eso NEGABA los 523 códigos jubilados que hay en producción
     // — códigos que están en las cajas del cliente, en sus correos y en manos de
-    // su proveedor en Yiwu. La RPC reconoce las tres formas: el actual,
-    // cualquiera de sus jubilados, y la forma IMPRESA de un cliente de
+    // su proveedor en Yiwu. La RPC privilegiada reconoce las tres formas: el
+    // actual, cualquiera de sus jubilados, y la forma IMPRESA de un cliente de
     // sub-aliado (`FA-1232` cuando lo guardado es `DC-FA-1232`).
     //
     // Sigue devolviendo SÓLO existencia: ni nombre ni datos del cliente.
@@ -94,8 +94,8 @@ function isDiplomaFolio(code: string): boolean {
 
 /**
  * Lee un diploma por folio — SOLO campos seguros (nunca client_markbox ni IDs),
- * mismo criterio que la RPC pública `academy_verify_diploma`. `null` = no existe
- * o error transitorio. Admin client (mismo patrón que `markStatus`).
+ * mismo criterio que la RPC privilegiada `academy_verify_diploma`. `null` = no
+ * existe o error transitorio. Admin client (mismo patrón que `markStatus`).
  */
 async function diplomaLookup(folio: string): Promise<DiplomaInfo | null> {
   try {
