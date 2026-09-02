@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 312 specs)
+### Índice de specs (generado · 313 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -350,6 +350,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0318 | Presencia documental del Portal en lote | done | interno |
 | 0319 | Reloj compartido CRM sin render impuro | done | interno |
 | 0320 | E2E local sin secretos alojados | done | interno |
+| 0321 | E2E local acotado y con concurrencia estable | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

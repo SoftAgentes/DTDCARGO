@@ -18,12 +18,15 @@ import { applyE2ETier3FixtureAliases } from "./scripts/e2e/sdd-0168-fixture";
 // permite que Playwright levante Next usando ese destino explícito.
 type PlaywrightRuntimeEnvironment = Record<string, string | undefined> & {
   BASE_URL?: string;
+  CI?: string;
+  E2E_GLOBAL_TIMEOUT_MS?: string;
   E2E_PORT?: string;
   E2E_START_WEB_SERVER?: string;
   E2E_ENVIRONMENT_KIND?: string;
   E2E_LOCAL_SUPABASE_DENY_SERVER?: string;
   E2E_SUPABASE_DENY_PORT?: string;
   E2E_SUPABASE_URL?: string;
+  E2E_WORKERS?: string;
   E2E_SUPABASE_ANON_KEY?: string;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
@@ -45,6 +48,28 @@ function isLoopbackUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function resolvePlaywrightExecutionLimits(
+  env: PlaywrightRuntimeEnvironment,
+): { globalTimeout: number; workers: number } {
+  const workers = Number(env.E2E_WORKERS ?? (env.CI ? 1 : 8));
+  const globalTimeout = Number(env.E2E_GLOBAL_TIMEOUT_MS ?? 8 * 60_000);
+
+  if (!Number.isInteger(workers) || workers < 1 || workers > 32) {
+    throw new Error("E2E_WORKERS debe ser un entero entre 1 y 32.");
+  }
+  if (
+    !Number.isInteger(globalTimeout) ||
+    globalTimeout < 60_000 ||
+    globalTimeout > 60 * 60_000
+  ) {
+    throw new Error(
+      "E2E_GLOBAL_TIMEOUT_MS debe ser un entero entre 60000 y 3600000.",
+    );
+  }
+
+  return { globalTimeout, workers };
 }
 
 export function resolveLocalSupabaseDenyPort(
@@ -138,15 +163,23 @@ const START_LOCAL_SUPABASE_DENY_SERVER =
   process.env.E2E_LOCAL_SUPABASE_DENY_SERVER === "1";
 const LOCAL_SUPABASE_DENY_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const LOCAL_SUPABASE_DENY_PORT = process.env.E2E_SUPABASE_DENY_PORT;
+const { globalTimeout: GLOBAL_TIMEOUT, workers: WORKERS } =
+  resolvePlaywrightExecutionLimits(process.env);
 
 export default defineConfig({
   testDir: "./e2e",
+  // Un límite global impide que un worker de WebKit ya terminado deje el gate
+  // vivo indefinidamente durante el teardown.
+  globalTimeout: GLOBAL_TIMEOUT,
   // El primer acceso compila rutas distintas en paralelo. En worktrees que
   // comparten node_modules, Webpack puede superar 30 s bajo carga fría aunque
   // el mismo contrato pase inmediatamente después; el margen no relaja las
   // aserciones ni sus timeouts particulares.
   timeout: 60_000,
   fullyParallel: true,
+  // La máquina local suele compartir CPU/memoria con múltiples worktrees. El
+  // tope evita lanzar 16 navegadores simultáneos; se puede ajustar por entorno.
+  workers: WORKERS,
   forbidOnly: !!process.env.CI,
   // Local con 1 reintento, no 0. Suena al revés —"si falla, que falle"— pero el
   // que corre el gate acá es un equipo con ~38 worktrees vivos, bastante MÁS

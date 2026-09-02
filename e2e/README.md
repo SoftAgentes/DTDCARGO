@@ -21,6 +21,11 @@ se conserva intacta y los Tier 3 siguen exigiendo su branch efímero completo.
 Si el puerto auxiliar calculado estuviera ocupado, se puede declarar
 `E2E_SUPABASE_DENY_PORT` con otro puerto local libre.
 
+La ejecución local usa ocho workers por defecto (CI usa uno) y tiene un límite
+global de ocho minutos para que un teardown de navegador no deje el gate vivo
+indefinidamente. Los overrides deliberados son `E2E_WORKERS` (1–32) y
+`E2E_GLOBAL_TIMEOUT_MS` (60.000–3.600.000 ms).
+
 ```powershell
 $env:E2E_PORT = "3001"
 $env:BASE_URL = "http://localhost:3001"

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   preparePlaywrightRuntime,
+  resolvePlaywrightExecutionLimits,
   resolveLocalSupabaseDenyPort,
   resolvePlaywrightRuntime,
 } from "../../playwright.config";
@@ -37,6 +38,33 @@ describe("resolvePlaywrightRuntime", () => {
       baseURL: "http://localhost:43117",
       startWebServer: true,
     });
+  });
+
+  it("acota la concurrencia local y el tiempo total de la suite", () => {
+    expect(resolvePlaywrightExecutionLimits({})).toEqual({
+      globalTimeout: 8 * 60_000,
+      workers: 8,
+    });
+    expect(resolvePlaywrightExecutionLimits({ CI: "1" })).toEqual({
+      globalTimeout: 8 * 60_000,
+      workers: 1,
+    });
+  });
+
+  it("acepta límites E2E explícitos y rechaza valores inseguros", () => {
+    expect(
+      resolvePlaywrightExecutionLimits({
+        E2E_GLOBAL_TIMEOUT_MS: "600000",
+        E2E_WORKERS: "4",
+      }),
+    ).toEqual({ globalTimeout: 600_000, workers: 4 });
+
+    expect(() =>
+      resolvePlaywrightExecutionLimits({ E2E_WORKERS: "0" }),
+    ).toThrow(/E2E_WORKERS/);
+    expect(() =>
+      resolvePlaywrightExecutionLimits({ E2E_GLOBAL_TIMEOUT_MS: "30000" }),
+    ).toThrow(/E2E_GLOBAL_TIMEOUT_MS/);
   });
 
   it("prepara automáticamente los aliases Tier 3 en un branch efímero válido", () => {
