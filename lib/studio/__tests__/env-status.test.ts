@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getEnvStatus, integrationEnvVar } from "../env-status";
+import {
+  getEnvStatus,
+  integrationEnvVar,
+  TRACKED_ENV_VARS_LIST,
+} from "../env-status";
 
 const INTEGRATION_ENV_VARS = [
   "NEXT_PUBLIC_SUPABASE_URL",
@@ -84,5 +88,10 @@ describe("getEnvStatus · configuración completa", () => {
     expect(integrationEnvVar("searates")).toBe(
       "SEARATES_API_BASE + SEARATES_PLATFORM_ID + SEARATES_API_KEY",
     );
+  });
+
+  it("no presenta la configuración retirada de Payload como contrato activo", () => {
+    expect(TRACKED_ENV_VARS_LIST).not.toContain("DATABASE_URL");
+    expect(TRACKED_ENV_VARS_LIST).not.toContain("PAYLOAD_SECRET");
   });
 });

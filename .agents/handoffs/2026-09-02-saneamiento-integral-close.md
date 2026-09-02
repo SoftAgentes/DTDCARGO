@@ -11,8 +11,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- Divergencia medida antes de SDD-0333: 0 detrás / 25 delante; este commit
-  agrega el paquete 26.
+- Divergencia medida antes de SDD-0334: 0 detrás / 26 delante; este commit
+  agrega el paquete 27.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
 
@@ -47,12 +47,14 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 25. `fix(infra): SDD-0332 — retener llave KMS del backup` — el commit que
     precede este cierre.
 26. `fix(studio): SDD-0333 — validar configuración de integraciones` — el
-    commit que contiene este handoff.
+    commit `18f5074e`.
+27. `chore(config): SDD-0334 — retirar Payload legado` — el commit que contiene
+    este handoff.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0333. Los tres últimos lotes retiran la consulta externa CNE/SENIAT, alinean
-el ciclo de vida del bucket WORM histórico con su llave KMS y eliminan falsos
-verdes de configuración en `/studio/debug`.
+SDD-0334. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
+de configuración y retiran el contrato de entorno del Payload descontinuado.
 
 ## Verificación vigente
 
@@ -77,6 +79,9 @@ TypeScript, `docs:check`, `governance:check`, `components:check` y
 
 SDD-0333 valida configuración compuesta sin contactar proveedores; su evidencia
 focal se registra en el handoff específico del cambio.
+
+SDD-0334 retira únicamente configuración local sin consumidores; no toca el
+piloto vigente de adjuntos ni variables alojadas.
 
 ## Gates alojados no cruzados
 
