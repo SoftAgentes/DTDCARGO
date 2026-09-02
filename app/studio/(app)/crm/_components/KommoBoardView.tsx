@@ -118,11 +118,6 @@ export function KommoBoardView({
     );
   }
 
-  // SDD-0288 — reloj único para todas las tarjetas del render. Server
-  // component: se fija acá y la derivada lo recibe, en vez de que cada tarjeta
-  // llame a Date.now() y una columna quede medio segundo desfasada de la otra.
-  const ahoraMs = Date.now();
-
   const activeId = pipelineId ?? pipelines[0].id;
 
   // Etapas del embudo activo, en orden. Excluimos las de sistema won/lost sin
@@ -327,45 +322,45 @@ export function KommoBoardView({
                               (la forma la pidió el founder: "un botoncito rojo
                               a la izquierda", como una notificación). */}
                           <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                          <PuntoConversacion lead={l} ahoraMs={ahoraMs} />
-                          {href ? (
-                            <a
-                              href={href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              title="Abrir la ficha completa (pestaña nueva)"
-                              className="studio-link-quiet"
-                              style={{
-                                display: "block",
-                                // flex item: sin esto el ellipsis deja de
-                                // funcionar (min-width:auto por default).
-                                minWidth: 0,
-                                font: "600 13px/1.3 var(--f-sans)",
-                                color: "var(--ink)",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {name}
-                            </a>
-                          ) : (
-                            <span
-                              style={{
-                                display: "block",
-                                // flex item: sin esto el ellipsis deja de
-                                // funcionar (min-width:auto por default).
-                                minWidth: 0,
-                                font: "600 13px/1.3 var(--f-sans)",
-                                color: l.name ? "var(--ink)" : "var(--ink-soft)",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                              }}
-                            >
-                              {name}
-                            </span>
-                          )}
+                            <PuntoConversacion lead={l} />
+                            {href ? (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Abrir la ficha completa (pestaña nueva)"
+                                className="studio-link-quiet"
+                                style={{
+                                  display: "block",
+                                  // flex item: sin esto el ellipsis deja de
+                                  // funcionar (min-width:auto por default).
+                                  minWidth: 0,
+                                  font: "600 13px/1.3 var(--f-sans)",
+                                  color: "var(--ink)",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {name}
+                              </a>
+                            ) : (
+                              <span
+                                style={{
+                                  display: "block",
+                                  // flex item: sin esto el ellipsis deja de
+                                  // funcionar (min-width:auto por default).
+                                  minWidth: 0,
+                                  font: "600 13px/1.3 var(--f-sans)",
+                                  color: l.name ? "var(--ink)" : "var(--ink-soft)",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {name}
+                              </span>
+                            )}
                           </div>
 
                           {/* Valor + días */}

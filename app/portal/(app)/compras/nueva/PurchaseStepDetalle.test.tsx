@@ -19,8 +19,10 @@ import { PREALERTA_DESCRIPCION_PENDIENTE } from "@/lib/studio/prealertas/types";
 
 const mocks = vi.hoisted(() => ({
   updatePrealertaDetalleAction: vi.fn(
-    async (_prev: PrealertaActionState, _fd: FormData) =>
-      ({}) as PrealertaActionState,
+    async (...args: [PrealertaActionState, FormData]) => {
+      void args;
+      return {} as PrealertaActionState;
+    },
   ),
   push: vi.fn(),
 }));

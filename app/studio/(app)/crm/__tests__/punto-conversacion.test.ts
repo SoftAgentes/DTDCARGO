@@ -30,11 +30,11 @@ describe("el punto de conversación está en las dos vistas", () => {
     expect(code).toContain('from "./PuntoConversacion"');
   });
 
-  it.each(VISTAS)("%s le pasa un reloj explícito, no lo deja leerlo adentro", (path) => {
-    // La derivada es pura y recibe `ahoraMs`. Si una vista dejara que el
-    // componente llamara a Date.now() por su cuenta, dos tarjetas del mismo
-    // render podrían caer en minutos distintos.
-    expect(read(path)).toMatch(/<PuntoConversacion[\s\S]{0,120}ahoraMs=/);
+  it.each(VISTAS)("%s no crea un reloj propio para el semáforo", (path) => {
+    const code = read(path);
+    expect(code).not.toMatch(/const\s+ahoraMs\s*=\s*Date\.now\(\)/);
+    expect(code).not.toMatch(/setAhoraMs\(Date\.now\(\)\)/);
+    expect(code).not.toMatch(/<PuntoConversacion[\s\S]{0,120}ahoraMs=/);
   });
 });
 
@@ -58,6 +58,13 @@ describe("el punto sale de la derivada compartida, no de un cálculo suelto", ()
     // El color NO se escribe a mano en el componente: sale de la derivada, que
     // es donde está probado que sólo "te escribió" es rojo.
     expect(code).not.toContain('background: "var(--danger)"');
+  });
+
+  it("el reloj se comparte con useSyncExternalStore y nace fuera del render", () => {
+    const code = read(`${DIR}/PuntoConversacion.tsx`);
+    expect(code).toContain("useSyncExternalStore(");
+    expect(code).toContain("window.requestAnimationFrame");
+    expect(code).toContain("sharedNowMs = Date.now()");
   });
 
   it("las dos fechas viajan en la MISMA constante de columnas", () => {

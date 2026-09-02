@@ -31,12 +31,16 @@ import { PREALERTA_ADDON_DEFAULTS } from "@/lib/studio/prealertas/addons";
 // `mock.calls[0][1]` (el FormData) no existe para TypeScript.
 const mocks = vi.hoisted(() => ({
   createPrealertaAction: vi.fn(
-    async (_prev: PrealertaActionState, _fd: FormData) =>
-      ({}) as PrealertaActionState,
+    async (...args: [PrealertaActionState, FormData]) => {
+      void args;
+      return {} as PrealertaActionState;
+    },
   ),
   createSupplierAction: vi.fn(
-    async (_prev: SupplierActionState, _fd: FormData) =>
-      ({}) as SupplierActionState,
+    async (...args: [SupplierActionState, FormData]) => {
+      void args;
+      return {} as SupplierActionState;
+    },
   ),
 }));
 

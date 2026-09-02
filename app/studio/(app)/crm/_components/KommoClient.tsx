@@ -541,17 +541,6 @@ function LeadsTable({
   onVerbDone: (msg: string, error?: boolean) => void;
   onConvertClick: (lead: KommoLeadRow) => void;
 }) {
-  // SDD-0288 — el reloj del semáforo, fijado DESPUÉS de montar.
-  //
-  // Esta tabla es un client component: se renderiza en el servidor para el HTML
-  // inicial y se vuelve a renderizar al hidratar. Un `Date.now()` en el cuerpo
-  // daría dos valores distintos y React marcaría desajuste de hidratación en
-  // cuanto el render cruce un minuto — que es justo la granularidad del rótulo
-  // ("3 min", "1 h"). Con el reloj en `null` hasta montar, el servidor y el
-  // cliente coinciden y el punto aparece un tick después, imperceptible.
-  const [ahoraMs, setAhoraMs] = useState<number | null>(null);
-  useEffect(() => setAhoraMs(Date.now()), []);
-
   return (
     <div
       style={{
@@ -650,9 +639,7 @@ function LeadsTable({
                       nombre. Mismo componente que el Tablero: las dos vistas no
                       pueden divergir. Con `conTexto` porque acá hay sitio para
                       el "hace 3 h". */}
-                  {ahoraMs != null && (
-                    <PuntoConversacion lead={l} ahoraMs={ahoraMs} conTexto />
-                  )}
+                  <PuntoConversacion lead={l} conTexto />
                   {href ? (
                     <a
                       href={href}

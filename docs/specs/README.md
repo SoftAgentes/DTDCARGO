@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 310 specs)
+### Índice de specs (generado · 311 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -348,6 +348,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0316 | Los logs de email inbound no exponen al remitente | done | interno |
 | 0317 | Acceso CBM sin secreto en URL | done | interno |
 | 0318 | Presencia documental del Portal en lote | done | interno |
+| 0319 | Reloj compartido CRM sin render impuro | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

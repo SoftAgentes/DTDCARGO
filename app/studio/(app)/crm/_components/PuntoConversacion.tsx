@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * SDD-0288 rebanada 1 · el punto del semáforo de conversación.
  *
@@ -14,6 +16,7 @@
  * sólido al inicio de la fila, no un borde ni un fondo: se lee de un vistazo
  * recorriendo la columna en vertical, que es como se mira un kanban.
  */
+import { useSyncExternalStore } from "react";
 import {
   colorConversacion,
   conversacionDe,
@@ -22,18 +25,66 @@ import {
   type LeadConMensajes,
 } from "@/lib/studio/kommo-conversacion";
 
+let sharedNowMs: number | null = null;
+let pendingFrame: number | null = null;
+const clockListeners = new Set<() => void>();
+
+function currentClockSnapshot(): number | null {
+  return sharedNowMs;
+}
+
+function serverClockSnapshot(): null {
+  return null;
+}
+
+function subscribeClock(listener: () => void): () => void {
+  clockListeners.add(listener);
+  if (sharedNowMs == null && pendingFrame == null) {
+    pendingFrame = window.requestAnimationFrame(() => {
+      pendingFrame = null;
+      sharedNowMs = Date.now();
+      for (const notify of clockListeners) notify();
+    });
+  }
+
+  return () => {
+    clockListeners.delete(listener);
+    if (clockListeners.size > 0) return;
+    if (pendingFrame != null) window.cancelAnimationFrame(pendingFrame);
+    pendingFrame = null;
+    sharedNowMs = null;
+  };
+}
+
+/**
+ * Un solo reloj por montaje de las vistas CRM. El snapshot del servidor es
+ * `null`, así hidratación no compara dos tiempos distintos; todas las tarjetas
+ * reciben el mismo valor en el primer frame del cliente.
+ */
+function useSharedNowMs(): number | null {
+  return useSyncExternalStore(
+    subscribeClock,
+    currentClockSnapshot,
+    serverClockSnapshot,
+  );
+}
+
 export function PuntoConversacion({
   lead,
   ahoraMs,
   conTexto = false,
 }: {
   lead: LeadConMensajes;
-  /** Reloj inyectado: la derivada es pura y el server component lo fija. */
-  ahoraMs: number;
+  /** Reloj explícito para pruebas/casos deterministas; la UI usa el compartido. */
+  ahoraMs?: number;
   /** El Tablero muestra sólo el punto; la tabla tiene sitio para el rótulo. */
   conTexto?: boolean;
 }) {
-  const c = conversacionDe(lead, ahoraMs);
+  const sharedNow = useSharedNowMs();
+  const resolvedNow = ahoraMs ?? sharedNow;
+  if (resolvedNow == null) return null;
+
+  const c = conversacionDe(lead, resolvedNow);
   const color = colorConversacion(c);
   if (!color) return null; // sin conversación → no se pinta nada
 
