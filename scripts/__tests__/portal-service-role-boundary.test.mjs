@@ -18,7 +18,6 @@ const BASELINE = {
   "app/portal/(app)/facturas/[code]/aceptar/page.tsx": 1,
   "app/portal/(app)/page.tsx": 3,
   "app/portal/(app)/perfil/page.tsx": 2,
-  "app/portal/(app)/referidos/page.tsx": 1,
   "app/portal/(app)/soporte/page.tsx": 1,
 };
 
@@ -52,7 +51,7 @@ describe("Portal RSC · frontera de service_role", () => {
     }
 
     expect(actual).toEqual(BASELINE);
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(18);
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(17);
   });
 
   it("mantiene las elevaciones fuera de componentes cliente", () => {
