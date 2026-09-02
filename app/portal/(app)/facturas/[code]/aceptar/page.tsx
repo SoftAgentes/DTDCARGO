@@ -2,13 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
-import {
-  getPendingAcceptanceInvoice,
-  latestOrderAcceptanceDocs,
-} from "@/lib/portal/portal-legal-queries";
-import { currentClientDocs } from "@/lib/studio/legal/queries";
+import { getPortalAcceptancePrivateContext } from "@/lib/portal/portal-acceptance-private-context";
 import {
   buildAcceptanceCopy,
   buildReacceptanceNotice,
@@ -46,27 +40,10 @@ export default async function AcceptTermsPage({ params }: Props) {
   const code = decodeURIComponent(raw);
 
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) redirect("/entrar");
-
-  const admin = createAdminClient();
-
-  const { data: clientRow } = await admin
-    .from("clients")
-    .select("tenant_id")
-    .eq("id", client.id)
-    .maybeSingle<{ tenant_id: string }>();
-  const tenantId = String(clientRow?.tenant_id ?? "").trim();
-  if (!tenantId) redirect("/portal/facturas");
-
-  const order = await getPendingAcceptanceInvoice(admin, {
-    tenantId,
-    markbox: client.markbox,
-    code,
-  });
-  if (!order) redirect("/portal/facturas");
-
-  const docs = await currentClientDocs(admin, tenantId);
+  const context = await getPortalAcceptancePrivateContext(supabase, code);
+  if (context.state === "unauthenticated") redirect("/entrar");
+  if (context.state === "unavailable") redirect("/portal/facturas");
+  const { order, docs, previousDocs } = context;
   const currency = order.currency as InvoiceCurrency;
 
   // Copy del modal (fuente única — literal cuando el set vigente sea el v3).
@@ -76,16 +53,10 @@ export default async function AcceptTermsPage({ params }: Props) {
 
   // Re-aceptación por versión nueva: última aceptación previa de ESTA orden
   // (misma ref que sella la action) cuyos docs ya no son los vigentes.
-  const orderRef = order.shipmentCode ?? order.code;
-  const prevDocs = await latestOrderAcceptanceDocs(admin, {
-    tenantId,
-    markbox: client.markbox,
-    orderRef,
-  });
-  const changedDocs = prevDocs
+  const changedDocs = previousDocs
     ? docs.filter(
         (d) =>
-          !prevDocs.some((p) => p.key === d.key && p.version === d.version),
+          !previousDocs.some((p) => p.key === d.key && p.version === d.version),
       )
     : [];
   const reacceptanceNotice =

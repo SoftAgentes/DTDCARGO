@@ -19,11 +19,12 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Rama de saneamiento antes de SDD-0347: `3c759fce`, 0 detrás / 39 delante.
+- Rama de saneamiento actual: el commit que contiene este checklist, con árbol
+  limpio, 0 detrás / 41 delante; la rama remota todavía no existe.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 339; 245 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 340; 246 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -44,10 +45,10 @@ merge a `main`, Cloud, Producción ni deploy.
 - [x] Llave KMS del backup WORM retenida junto con el bucket en el IaC histórico.
 - [x] `/studio/debug` exige configuración completa; Payload CMS legado retirado
   del contrato activo de entorno.
-- [x] Gate canónico posterior a SDD-0342 sin fallos: 14/15 pasos medidos; sólo
+- [x] Gate canónico posterior a SDD-0348 sin fallos: 14/15 pasos medidos; sólo
   Cloud quedó `SKIP` por falta deliberada de credenciales. E2E: 150 pasaron y 18
-  Tier 3 se omitieron; build: 158 páginas. Suite unitaria posterior a SDD-0347:
-  522 archivos / 5.936 pruebas, todas verdes.
+  Tier 3 se omitieron; build: 158 páginas. Suite unitaria posterior a SDD-0348:
+  523 archivos / 5.942 pruebas, todas verdes.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -100,7 +101,7 @@ merge a `main`, Cloud, Producción ni deploy.
 - [ ] Llevar RBAC de aplicación a la base por dominios: facturas/dinero,
   mailing, conciliación bancaria y documentos. Cada slice necesita SDD,
   contrato SQL, migración propia y gate Cloud separado; no hacer un sweep.
-- [ ] Continuar reduciendo los RSC del Portal que construyen `service_role`.
+- [x] Retirar `service_role` de todos los RSC del Portal.
   SDD-0336 cerró el primer slice de marca: el baseline bajó de 11 rutas / 23
   construcciones a 10 rutas / 21 construcciones. SDD-0337 movió la visibilidad
   de hitos a una RPC por principal y lo bajó a 10 rutas / 19 construcciones.
@@ -124,7 +125,9 @@ merge a `main`, Cloud, Producción ni deploy.
   que deriva todos sus ids desde sesión/RLS; dejó el baseline en 2 rutas / 4
   construcciones. SDD-0347 encapsuló facturas pendientes, naviera y zarpe del
   home detrás de identidad e ids de sesión; dejó el baseline en 1 ruta / 1
-  construcción. Priorizar ahora el facade de aceptación de facturas. El test
+  construcción. SDD-0348 encapsuló la lectura legal de aceptación, sin cambiar
+  su acción, hash o evidencia; el baseline final quedó en 0 rutas / 0
+  construcciones. El test
   `portal-service-role-boundary.test.mjs` congela el inventario; no lo aprueba.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de

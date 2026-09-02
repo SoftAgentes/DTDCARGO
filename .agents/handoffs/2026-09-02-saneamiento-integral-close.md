@@ -11,8 +11,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- Divergencia medida antes de SDD-0347: 0 detrás / 39 delante; este commit
-  agrega el paquete 40.
+- HEAD actual: este commit; árbol limpio, 0 detrás / 41 delante de `origin/main`.
+- La rama remota `codex/saneamiento-integral` todavía no existe.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
 
@@ -76,9 +76,11 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
     contiene este handoff; no crea migración.
 40. `fix(portal): SDD-0347 — acotar contexto privado del home` — el commit que
     contiene este handoff; no crea migración.
+41. `fix(portal): SDD-0348 — acotar lectura legal de aceptación` — el commit que
+    contiene este handoff; no crea migración.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0347. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0348. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -87,12 +89,13 @@ slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 ## Verificación vigente
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
-de SDD-0342; SDD-0343 pasó después sus gates proporcionales:
+de SDD-0348:
 
 - 14 de 15 gates medidos, ninguno falló.
 - ESLint, frontera RSC, TypeScript y cuatro Edge Functions: OK.
-- Vitest posterior a SDD-0347: 522 archivos / 5.936 pruebas pasaron.
-- Documentación, numeración, componentes y gobernanza: OK.
+- Vitest posterior a SDD-0348: 523 archivos / 5.942 pruebas pasaron.
+- Documentación, numeración (340 specs / 403 migraciones), componentes y
+  gobernanza: OK.
 - SQL: 147 contratos pasaron con rollback total.
 - Rebuild: 403 migraciones; 385 aplicadas desde cero y 18 sólo-ledger;
   aislamiento multi-tenant verificado en 219 tablas y 2 tenants.
@@ -181,6 +184,13 @@ pendientes, deriva identidad e ids desde sesión/RLS y reutiliza un solo admin.
 Baja el inventario a 1 ruta / 1 construcción y pasó 6 pruebas focales, la suite
 completa de 5.936 pruebas, TypeScript y ESLint. No crea migración.
 
+SDD-0348 mueve la lectura de orden DDP pendiente, documentos vigentes y última
+evidencia previa a un facade `server-only` que sólo acepta el código y vuelve a
+resolver identidad por sesión. La acción, el hash, el sello y la idempotencia no
+cambian. El inventario final llega a 0 rutas / 0 construcciones y pasó 38 pruebas
+focales/legales, la suite completa de 5.942 pruebas, TypeScript y ESLint. No crea
+migración.
+
 ## Gates alojados no cruzados
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
@@ -210,10 +220,13 @@ completa de 5.936 pruebas, TypeScript y ESLint. No crea migración.
 - Quedan dos worktrees de DTDCargo: el checkout principal y este worktree.
 - El checkout principal estaba limpio, pero atrasado respecto a `origin/main`;
   no se movió ni se sobrescribió.
-- `codex/archive-primary-pnpm-20260902` quedó semánticamente contenido por este
-  lote; será candidato a borrado sólo después de publicar e integrar esta rama.
-- `codex/archive-cloud-handoff-20260828` conserva evidencia documental única y
-  debe mantenerse hasta preservarla o supersederla deliberadamente.
+- `codex/archive-primary-pnpm-20260902` no está contenido por ancestry, pero sus
+  dos archivos quedaron semánticamente supersedidos: el workspace actual conserva
+  los mismos overrides y agrega versiones/correcciones más nuevas. Será candidato
+  a borrado sólo después de publicar e integrar esta rama.
+- `codex/archive-cloud-handoff-20260828` no está contenido y conserva tres commits
+  documentales únicos sobre `AGENTS.md`, `README.md` y `docs/CODEX_HANDOFF.md`;
+  debe mantenerse hasta preservarlos o supersederlos deliberadamente.
 - Este worktree NO se puede retirar todavía: su rama aún no está publicada ni
   integrada/contenida en `origin/main`.
 - No se detectaron otras tareas Codex activas de DTDCargo que deban archivarse.

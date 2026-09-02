@@ -9,9 +9,7 @@ import { describe, expect, it } from "vitest";
  * una feature nueva no pueda sumar otra elevación silenciosa. Cada slice que
  * retire un uso debe reducir esta lista en el mismo commit.
  */
-const BASELINE = {
-  "app/portal/(app)/facturas/[code]/aceptar/page.tsx": 1,
-};
+const BASELINE = {};
 
 function filesUnder(root) {
   return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
@@ -43,7 +41,7 @@ describe("Portal RSC · frontera de service_role", () => {
     }
 
     expect(actual).toEqual(BASELINE);
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(1);
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(0);
   });
 
   it("mantiene las elevaciones fuera de componentes cliente", () => {
