@@ -124,6 +124,11 @@ Estado: CERRADO EN RAMA · PR EN BORRADOR · INTEGRACIÓN/RELEASE PENDIENTES
     por navegador/sesión real. Alcance exacto en el acta de acceso; sin runtime
     ni migraciones nuevas. 61 focales y 6.013 unitarios completos aprobados,
     junto con TypeScript, ESLint y gates documentales.
+59. `test(studio): SDD-0289 — verificar y cerrar exportaciones operativas` —
+    añade 19 regresiones HTTP/paginación sin cambiar runtime y reconcilia la
+    spec con su implementación en main; quedan 89 sin cierre documental.
+    Pasan 42 focales, 29 contratos adicionales y 6.032 unitarios / 530 archivos,
+    TypeScript, ESLint y gates documentales.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0361. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
@@ -148,8 +153,17 @@ terminó aprobado. SDD-0361 también pasó su CI completo: `d4a63115`, run
 El lote posterior de acceso agrega 52 pruebas: 61 focales / cuatro archivos y
 6.013 pruebas / 529 archivos completos, TypeScript, ESLint, docs, numeración,
 gobernanza y componentes aprobados localmente. Conserva 0299/0302 abiertas por
-sus validaciones reales; no cambia runtime, SQL ni configuración. Su propio
-CI se confirma después del push. Los baselines siguientes conservan su alcance.
+sus validaciones reales; no cambia runtime, SQL ni configuración. Su CI completo
+`33669760589`, SHA `726d2f85`, terminó success a las 19:05:39 UTC del 2026-09-02
+(14 min 22 s), antes de publicar el cierre de exportaciones. Los baselines
+siguientes conservan su alcance.
+
+El cierre posterior de SDD-0289 añade 19 regresiones del endpoint operativo:
+queries/paginador/builders reales con tablas sintéticas. Pasan 42 focales y 29
+contratos CSV/RBAC adicionales; suite completa 530 archivos / 6.032 pruebas,
+TypeScript, ESLint, docs, numeración, gobernanza, componentes y diff. No se
+repite SQL/rebuild/E2E porque no cambia runtime ni sus entradas; tampoco se
+atribuye una descarga en navegador/Excel o una prueba alojada a este lote.
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
 de SDD-0357:

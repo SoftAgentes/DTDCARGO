@@ -1,10 +1,10 @@
 ---
 sdd: "0289"
 title: "Clientes, Cobranzas y Tracking se exportan a CSV — sin truncar en silencio"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-09-02
 supersedes: null
 superseded_by: null
 related: ["0265","0281"]
@@ -65,3 +65,30 @@ el conjunto completo y quien lo abre filtra en su planilla. El botón lo dice.
 ## Adjuntos
 
 Ninguno.
+
+## Cierre técnico comprobado · 2026-09-02
+
+La implementación `d838ea2a` pertenece a `origin/main@2a2e81bf`. Se siguió la
+cadena desde las páginas de Clientes, Cobranzas y Tracking hasta sus enlaces
+de descarga, el route y las consultas dedicadas. No se modificó ese runtime.
+La neutralización CSV del saneamiento SDD-0315 se conserva como cambio separado.
+
+Se agregan 19 regresiones en
+`app/api/studio/operativo/export/__tests__/route.test.ts`. Ejecutan GET, queries,
+paginadores, derivación de la cola, builders y respuesta HTTP reales, con
+sesión/acceso y tablas sintéticas en memoria. Para cada tipo, entregan 2.501 filas
+únicas aunque el transporte recorte a 400 por petición; si falla una página o
+se agota el cortacircuitos, devuelven 500 sin archivo adjunto ni CSV parcial.
+Cobranzas también corta si las gestiones quedan incompletas. Se comprueban
+rechazos 401/403, tipo inválido, bajas, anuladas y facturas sin saldo.
+
+Las 42 pruebas focales (19 nuevas + 15 de formato + 8 del paginador) pasan.
+La respuesta comprueba BOM en bytes, CRLF, nombre con fecha y caché privada;
+los tests de formato preservan etiquetas, montos y nulos. No hay filtros de
+vista implícitos en la descarga. El acta registra los gates generales finales:
+`docs/audits/2026-09-02-codex-cierre-exportaciones.md`.
+
+`done` describe la implementación y el contrato local verificados, no una
+descarga de datos reales, una apertura en Excel ni un smoke de producción.
+No se accedió a filas de negocio, no se ejecutó SQL y no se cambia ningún gate
+de release del saneamiento integral.

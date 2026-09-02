@@ -19,14 +19,14 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Base publicada antes del lote de acceso: `codex/saneamiento-integral` en
-  `d4a63115a1bb95be799f1edff0ee676c31b39f72`, 0 detrás / 57 delante de
-  `origin/main`; local y remoto coincidían 0/0. El lote de pruebas de acceso
+- Base publicada antes del cierre de exportaciones: `codex/saneamiento-integral` en
+  `726d2f85f8d5d901c10c99b0290e5c0d0a976a7f`, 0 detrás / 58 delante de
+  `origin/main`; local y remoto coincidían 0/0. El cierre técnico de SDD-0289
   agrega el siguiente commit, cuyo push y CI se confirman en el PR.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
-  `d4a63115` pasó en el run `33667880574`; el de `a4f1ba5f` también pasó en
-  `33664422658`: memoria y carrera de foco resueltas.
+  `726d2f85` pasó en el run `33669760589`; también pasaron `d4a63115` en
+  `33667880574` y `a4f1ba5f` en `33664422658`: memoria y carrera de foco resueltas.
   El run anterior `33663666096` fue cancelado por concurrencia, no por un fallo.
 - Vercel: deployment `6228639456` de GitHub en **Preview**, estado `success`,
   `production_environment=false`; no se promovió a producción.
@@ -38,8 +38,8 @@ refrescarse antes de cualquier operación Git o alojada.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 353; 262 `done`, 1 `superseded` y 90 sin cierre documental
-  (75 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
+- Specs reales: 353; 263 `done`, 1 `superseded` y 89 sin cierre documental
+  (74 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete y sus commits están enumerados en
 `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`. La evidencia alojada
@@ -136,8 +136,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   corregidos; el tercer run fue cancelado al publicar el cierre documental.
 - [x] Confirmar CI completo de SDD-0361: `d4a63115`, run `33667880574`,
   success, incluido build; terminó a las 18:47:15 UTC del 2026-09-02.
-- [ ] Confirmar CI del nuevo lote de pruebas de acceso; el pase de la base
-  anterior no sustituye la verificación alojada de cada commit.
+- [x] Confirmar CI completo del lote de acceso: `726d2f85`, run `33669760589`,
+  success, incluido build; terminó a las 19:05:39 UTC del 2026-09-02.
+- [ ] Confirmar CI del cierre de exportaciones; el pase de la base anterior
+  no sustituye la verificación alojada de cada commit.
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:
@@ -306,7 +308,12 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [x] Cerrar documentalmente SDD-0280, SDD-0303 y SDD-0304 tras verificar sus
   commits en `origin/main`, código vigente y gates. No se borró código adicional;
   [acta del lote](2026-09-02-codex-cierre-documental.md).
-- [ ] Reconciliar las 90 specs no cerradas por rebanadas de dominio. Cambiar un
+- [x] Cerrar técnicamente SDD-0289 (CSV operativos), ya integrada en main:
+  endpoint real con 2.501 filas, páginas recortadas, errores y rechazos de
+  acceso; 42 pruebas focales, 29 contratos adicionales y 6.032 pruebas completas
+  en 530 archivos. TypeScript, ESLint y gates documentales aprobados.
+  [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
+- [ ] Reconciliar las 89 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
 - [x] Reconciliar el dominio de acceso (SDD-0299/0302): código confirmado en
   main y 61 pruebas focales, con 52 regresiones nuevas. Ambas siguen abiertas

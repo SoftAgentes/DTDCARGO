@@ -319,7 +319,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0286 | Los GET del Studio respetan el alcance por módulo | done | interno |
 | 0287 | El estado de cuenta sale en PDF, para el cliente y para el as… | in-progress | interno |
 | 0288 | El ERP sabe que el cliente escribió — la alerta de 'sin atend… | in-progress | interno |
-| 0289 | Clientes, Cobranzas y Tracking se exportan a CSV — sin trunca… | in-progress | interno |
+| 0289 | Clientes, Cobranzas y Tracking se exportan a CSV — sin trunca… | done | interno |
 | 0290 | Todos los modales del ERP atrapan el foco — y uno era invisib… | in-progress | interno |
 | 0291 | SeaRates cierra: el ERP avisa cuando el cotizador se queda mu… | in-progress | interna |
 | 0292 | El cotizador FCL vuelve con tarifas propias — se desengancha … | in-progress | interna |
