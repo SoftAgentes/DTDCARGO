@@ -104,7 +104,9 @@ Pero conviven **4 productos** dentro del mismo Next.js app:
 ## Versiones críticas a recordar
 
 - **Node 24.x** requerido (npm advierte si se usa una versión vieja)
-- **pnpm 11.x** — el repo tiene `pnpm.onlyBuiltDependencies` configurado para `sharp`, `unrs-resolver`, `@tailwindcss/oxide`, `esbuild`
+- **pnpm 11.x** — la whitelist canónica de scripts vive en
+  `pnpm-workspace.yaml` mediante `allowBuilds` para `better-sqlite3`, `esbuild`,
+  `sharp` y `unrs-resolver`
 - **Next 16** trajo cambios mayores: `middleware.ts` → `proxy.ts`; `revalidateTag()` ahora pide 2 args; bundler default = Turbopack
 
 ---
