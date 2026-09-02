@@ -1,25 +1,16 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient, getPortalAdvisor } from "@/lib/portal/portal-queries";
-import { listMyShipments } from "@/lib/portal/portal-queries";
-import { listMyClaims } from "@/lib/portal/portal-claims";
+import { getPortalClient } from "@/lib/portal/portal-queries";
 import {
   buildAdvisorCardModel,
   type PortalAdvisor,
   type PortalClient,
 } from "@/lib/portal/portal-types";
 import {
-  getPortalThread,
-  getPortalConversationId,
-  listPortalConversationDigests,
   type PortalThreadMessage,
   type PortalConversationDigest,
 } from "@/lib/portal/portal-conversation-queries";
-import {
-  listClaimEvidence,
-  type ClaimEvidenceItem,
-} from "@/lib/studio/reclamos/claim-evidence";
+import { getPortalSupportPrivateContext } from "@/lib/portal/support-private-context";
 import { CONTACT } from "@/lib/design-tokens";
 import { WhatsAppIcon, MailIcon, PhoneIcon } from "@/components/Icon";
 import { PortalClaims } from "../reclamos/_components/PortalClaims";
@@ -57,8 +48,8 @@ export default async function PortalSoportePage({
       : undefined;
 
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClient(supabase);
+  if (!principal) return null;
 
   // Gate de verificación (SDD-0169). Soporte se cierra por fidelidad al Norte,
   // pero la pantalla del gate deja WhatsApp y teléfono a la vista: nadie con
@@ -68,44 +59,18 @@ export default async function PortalSoportePage({
     return <PortalVerifyGate module="soporte" profile={profile} />;
   }
 
-  const admin = createAdminClient();
-
-  const [claims, shipments] = await Promise.all([
-    listMyClaims(supabase),
-    listMyShipments(supabase),
-  ]);
-
-  // Evidencia firmada (RLS portal filtra por markbox; firma con admin).
-  const evidenceMap = await listClaimEvidence(
-    supabase,
-    admin,
-    claims.map((c) => c.id),
-  );
-  const evidence: Record<string, ClaimEvidenceItem[]> = {};
-  for (const [k, v] of evidenceMap) evidence[k] = v;
-
-  // Hilo del asesor: admin scopeado por client.id, igual que Conversaciones.
-  let thread: PortalThreadMessage[] = [];
-  try {
-    thread = await getPortalThread(admin, client.id);
-  } catch {
-    thread = [];
-  }
-  // Id del hilo para el subscribe de realtime del chat (SDD-0148 #3).
-  const conversationId = await getPortalConversationId(admin, client.id).catch(
-    () => null,
-  );
-  let advisor: PortalAdvisor | null = null;
-  try {
-    advisor = await getPortalAdvisor(supabase);
-  } catch {
-    advisor = null;
-  }
-  // Resúmenes mensuales visibles para el cliente (SDD-0149 F3). Solo los que tienen
-  // client_summary; vacío hasta que el cron mensual genere el primero.
-  const digests = await listPortalConversationDigests(admin, client.id).catch(
-    () => [] as PortalConversationDigest[],
-  );
+  const support = await getPortalSupportPrivateContext(supabase);
+  if (!support) return null;
+  const {
+    client,
+    claims,
+    shipments,
+    evidence,
+    thread,
+    conversationId,
+    advisor,
+    digests,
+  } = support;
 
   return (
     <div>
