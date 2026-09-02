@@ -99,6 +99,15 @@ insert into public.mail_logs (id, tenant_id, to_email, complained_at, sent_at, m
 
 \ir ../migrations/0410_collections_mail_context.sql
 
+-- El runner 0415 repite la misma matriz DESPUÉS de la restricción. Sin esa
+-- variable se prueba que expansión y consumidor antiguo son compatibles.
+\if :{?apply_mail_logs_close}
+  \ir ../migrations/0415_mail_logs_read_rbac.sql
+  select pg_catalog.set_config('test.mail_logs_closed', 'true', true);
+\else
+  select pg_catalog.set_config('test.mail_logs_closed', 'false', true);
+\endif
+
 do $catalog_contract$
 begin
   if pg_catalog.pg_get_function_result(
@@ -109,26 +118,27 @@ begin
      ) like '%metadata%' then
     raise exception 'TEST 0410: la RPC expone email o metadata';
   end if;
-  if exists (
+  if (exists (
     select 1 from pg_policies
     where schemaname = 'public' and tablename = 'mail_logs'
       and policyname = 'mail_logs_tenant_select'
-  ) then
-    raise exception 'TEST 0410: sobrevivió el SELECT tenant-wide';
+  )) = pg_catalog.current_setting('test.mail_logs_closed')::boolean then
+    raise exception 'TEST 0410/0415: policy incompatible con la fase del release';
   end if;
 end;
 $catalog_contract$;
 
 set local role authenticated;
 
--- Un rol no financiero no ejecuta la RPC ni ve logs directamente.
+-- Un rol no financiero nunca ejecuta la RPC. Su lectura histórica sobre logs
+-- sólo desaparece al aplicar 0415, no al crear el facade en 0410.
 set local "request.jwt.claim.sub" = 'aaaaaaaa-3000-0000-0000-000000000003';
 do $commercial_blocked$
 declare v_blocked boolean := false; v_count bigint;
 begin
   select count(*) into v_count from public.mail_logs;
-  if v_count <> 0 then
-    raise exception 'TEST 0410: commercial leyó mail_logs';
+  if v_count <> (case when pg_catalog.current_setting('test.mail_logs_closed')::boolean then 0 else 3 end) then
+    raise exception 'TEST 0410/0415: lectura de commercial incompatible con la fase';
   end if;
   begin
     perform * from public.collections_mail_context(
@@ -166,8 +176,8 @@ do $accounting_context$
 declare v_count bigint;
 begin
   select count(*) into v_count from public.mail_logs;
-  if v_count <> 0 then
-    raise exception 'TEST 0410: accounting leyó mail_logs directamente';
+  if v_count <> (case when pg_catalog.current_setting('test.mail_logs_closed')::boolean then 0 else 3 end) then
+    raise exception 'TEST 0410/0415: lectura de accounting incompatible con la fase';
   end if;
   if (select count(*) from public.collections_mail_context(array[
         '53000000-3000-0000-0000-000000000001'::uuid,

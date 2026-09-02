@@ -9,9 +9,11 @@
 --   · crea una RPC sin tenant arbitrario y limitada a facturas solicitadas;
 --   · devuelve sólo markbox, flags y fecha del último recordatorio;
 --   · exige accounting|admin y tenant activo dentro de SECURITY DEFINER;
---   · restringe el SELECT directo de mail_logs a admin;
+--   · conserva el SELECT histórico durante la expansión (SDD-0358);
 --   · preserva service_role para envío, webhook y salud de correo.
 --
+-- 0415 restringe el SELECT a admin DESPUÉS de desplegar/verificar el facade.
+-- Corrección previa a publicación/aplicación; no es una migración histórica.
 -- NO aplicar a Cloud/Producción desde esta rama. Gate individual obligatorio.
 -- ─────────────────────────────────────────────────────────────
 
@@ -115,30 +117,14 @@ grant execute on function public.collections_mail_context(uuid[])
 comment on function public.collections_mail_context(uuid[]) is
   'SDD-0353: contexto mínimo de recordatorios para accounting|admin. Sin tenant, email ni metadata en la respuesta; las facturas se acotan al tenant activo.';
 
-drop policy "mail_logs_tenant_select" on public.mail_logs;
-create policy mail_logs_admin_select
-  on public.mail_logs for select to authenticated
-  using (
-    tenant_id = (select public.get_user_tenant_id())
-    and (select public.current_studio_role()) = 'admin'
-  );
-
-revoke all on public.mail_logs from authenticated;
-grant select on public.mail_logs to authenticated;
-
 do $postflight$
 begin
-  if exists (
+  if not exists (
     select 1 from pg_policies
     where schemaname = 'public' and tablename = 'mail_logs'
-      and policyname = 'mail_logs_tenant_select'
-  ) or not exists (
-    select 1 from pg_policies
-    where schemaname = 'public' and tablename = 'mail_logs'
-      and policyname = 'mail_logs_admin_select' and cmd = 'SELECT'
-      and qual like '%current_studio_role%'
+      and policyname = 'mail_logs_tenant_select' and cmd = 'SELECT'
   ) then
-    raise exception '0410: policy final de mail_logs inválida';
+    raise exception '0410: se perdió la lectura compatible durante la expansión';
   end if;
   if not has_function_privilege('authenticated', 'public.collections_mail_context(uuid[])', 'EXECUTE')
      or has_function_privilege('anon', 'public.collections_mail_context(uuid[])', 'EXECUTE')

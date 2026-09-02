@@ -11,7 +11,7 @@ Estado: CIERRE LOCAL · PUSH E INTEGRACIÓN/RELEASE CON GATES SEPARADOS
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- HEAD actual: este commit; árbol limpio, 0 detrás / 51 delante de `origin/main`.
+- HEAD actual: este commit; árbol limpio, 0 detrás / 52 delante de `origin/main`.
 - La rama remota `codex/saneamiento-integral` todavía no existe.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
@@ -99,9 +99,12 @@ Estado: CIERRE LOCAL · PUSH E INTEGRACIÓN/RELEASE CON GATES SEPARADOS
     de venta.
 51. `fix(db): SDD-0357 — cerrar lectura de facturas por principal` — agrega la
     migración 0414 todavía no aplicada y prueba la frontera financiera/Portal.
+52. `fix(release): SDD-0358 — separar expansión y restricción de Mailing` —
+    conserva 0410 compatible y difiere el cierre admin-only a 0415, después del
+    deploy y smoke de Cobranzas; ninguna fue aplicada.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0357. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0358. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -243,7 +246,9 @@ cero, 18 sólo-ledger y aislamiento verificado en 219 tablas / 2 tenants.
 SDD-0353 reemplaza las lecturas crudas de `clients.email` y `mail_logs` en
 Cobranzas por una RPC que recibe ids de factura y devuelve sólo Shipping Mark,
 flags y fecha UTC. La función exige `accounting|admin`, no acepta tenant y deja
-el SELECT directo de logs en admin-only. Pasó 3 pruebas focales, TypeScript,
+el SELECT directo de logs en admin-only como estado final. SDD-0358 corrige el
+orden de release antes de publicar: expansión 0410, app y restricción 0415.
+El cierre original pasó 3 pruebas focales, TypeScript,
 ESLint, 151 contratos SQL y el rebuild de 407 migraciones: 389 desde cero, 18
 sólo-ledger y aislamiento verificado en 219 tablas / 2 tenants.
 
@@ -273,6 +278,14 @@ reproduce el cruce previo con Shipping Mark repetido y verifica el cierre,
 además de probar las tres RPCs mínimas reales bajo la policy nueva. Congela un
 inventario de 18 archivos / 45 llamadas directas; pasó 16 pruebas focales y el
 gate canónico completo descrito arriba, salvo Cloud deliberadamente no medido.
+
+SDD-0358 separa el release de Mailing antes de su publicación: 0410 conserva la
+lectura antigua durante la expansión, la aplicación consume la RPC y 0415
+restringe logs después del smoke. Las dos fases ejecutan el mismo fixture real
+y mantienen las señales mínimas de Cobranzas. Pasó 3 unitarios focales, 156
+contratos SQL y rebuild de 412 migraciones (394 desde cero + 18 sólo-ledger),
+con comprobación estructural de aislamiento de 219 tablas y dos tenants
+sintéticos. El baseline canónico de aplicación sigue siendo SDD-0357.
 
 ## Gates alojados no cruzados
 
@@ -308,10 +321,10 @@ gate canónico completo descrito arriba, salvo Cloud deliberadamente no medido.
   contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
 - La migración `0414_invoices_read_rbac.sql` pasó SQL/rebuild locales y NO fue aplicada a Cloud o Producción.
   Requiere 0411–0413 y la aplicación consumidora desplegadas antes de su OK.
-- 0410 necesita resolver su secuencia de release: hoy crea la RPC y restringe
-  `mail_logs` a la vez. Ni migrar primero ni desplegar primero es una transición
-  sin corte demostrada; separar expansión/restricción o aprobar coordinación
-  explícita antes de integrar. No se ejecutó ninguna de esas operaciones.
+- La migración `0415_mail_logs_read_rbac.sql` completa la restricción de logs
+  después de 0410 y del deploy/smoke del consumidor. SDD-0358 resolvió localmente
+  el acoplamiento del release; las dos fases requieren autorización individual.
+  No se ejecutó ninguna operación alojada.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - No se hizo deploy ni se modificaron datos, secretos o configuración alojada.
@@ -340,9 +353,10 @@ gate canónico completo descrito arriba, salvo Cloud deliberadamente no medido.
 2. Refrescar `origin/main`, confirmar divergencia y publicar únicamente
    `codex/saneamiento-integral`.
 3. Validar la rama remota y preparar compatibilidad de app/migraciones antes
-   del merge que puede disparar deploy; resolver primero el acoplamiento de 0410.
+   del merge que puede disparar deploy; 0410 es sólo expansión desde SDD-0358.
 4. Aplicar individualmente las dependencias con OK específico y el runbook;
    verificar las RPCs antes de desplegar sus consumidores. Integración y deploy
-   necesitan su propio gate. Aplicar 0414 sólo después del smoke de la app nueva.
+   necesitan su propio gate. Aplicar 0414 y 0415 sólo después del smoke de sus
+   consumidores nuevos, de una en una y con autorizaciones separadas.
 5. Retirar este worktree únicamente después de probar que sus commits están
    contenidos; mantener las ramas archive hasta auditar su contención.

@@ -12,6 +12,7 @@ related:
   - SDD-0085
   - SDD-0306
   - SDD-0351
+  - SDD-0358
 confidencialidad: interno
 ---
 
@@ -34,7 +35,9 @@ impedía completar el RBAC admin-only de Mailing en SDD-0351.
    último recordatorio. Email y metadata no salen de la base.
 4. Migrar `contextoDeEnvio()` a la RPC y fallar cerrado si no puede calcularla.
 5. Restringir el SELECT directo de `mail_logs` a admin; `service_role` conserva
-   envío, webhooks y health checks.
+   envío, webhooks y health checks. **Secuencia corregida antes de publicar
+   (SDD-0358):** 0410 sólo crea el facade compatible; 0415 restringe la lectura
+   después de desplegar y verificar la aplicación consumidora.
 
 ## Gate SGE-00 y privacidad
 

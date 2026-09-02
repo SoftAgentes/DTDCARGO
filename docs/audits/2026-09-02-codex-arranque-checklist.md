@@ -20,11 +20,11 @@ refrescarse antes de cualquier operación Git o alojada.
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 - Rama de saneamiento actual: el commit que contiene este checklist, con árbol
-  limpio, 0 detrás / 51 delante; la rama remota todavía no existe.
+  limpio, 0 detrás / 52 delante; la rama remota todavía no existe.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 349; 255 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 350; 256 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -57,7 +57,8 @@ merge a `main`, Cloud, Producción ni deploy.
   CRUD esperado. SDD-0352/migración 0409 están preparados localmente.
 - [x] Lectura cruda de `mail_logs` retirada de Cobranzas: una RPC por facturas
   entrega sólo Shipping Mark, flags y fecha; emails/metadata no salen de la
-  base. El SELECT directo queda admin-only en SDD-0353/migración 0410.
+  base. SDD-0358 separa el release: 0410 agrega la RPC compatible y 0415
+  restringe el SELECT a admin después de desplegar y probar el consumidor.
 - [x] Facturación anual de Fidelización/CRM minimizada: SDD-0354/migración 0411
   agrega en Postgres y entrega sólo Shipping Mark + USD trailing-12m a roles
   con acceso efectivo (incluidos overrides); la aplicación ya no recibe moneda,
@@ -78,6 +79,11 @@ merge a `main`, Cloud, Producción ni deploy.
   migraciones (393 desde cero + 18 sólo-ledger), 219 tablas y 2 tenants de prueba.
   E2E: 150 pasaron y 18 Tier 3 omitidos, sin fallos ni bloqueo de teardown.
   Build: 158 páginas. Este resultado local no demuestra estado alojado.
+- [x] Transición de Mailing separada en expansión y restricción (SDD-0358), sin
+  fallback de la aplicación al SELECT crudo. Ambas fases reutilizan el mismo
+  contrato SQL y conservan idéntica respuesta mínima de Cobranzas.
+  Validación posterior: 3 unitarios focales, 156 contratos SQL y rebuild de
+  412 migraciones (394 desde cero + 18 sólo-ledger); 219 tablas / 2 tenants.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -130,7 +136,7 @@ merge a `main`, Cloud, Producción ni deploy.
 - [ ] Aplicar `0409_bank_reconciliation_rbac.sql` con autorización específica
   separada; el RBAC financiero no existe en Cloud hasta completar ese gate.
 - [ ] Aplicar `0410_collections_mail_context.sql` con autorización específica
-  separada; el facade y el cierre de `mail_logs` no existen en Cloud todavía.
+  separada; sólo agrega el facade y conserva temporalmente el SELECT histórico.
 - [ ] Aplicar `0411_client_annual_billing_facade.sql` con autorización específica
   separada; el agregado minimizado no existe en Cloud todavía.
 - [ ] Aplicar `0412_conversation_outstanding_facade.sql` con autorización
@@ -140,11 +146,10 @@ merge a `main`, Cloud, Producción ni deploy.
 - [ ] Aplicar `0414_invoices_read_rbac.sql` con autorización específica separada
   sólo DESPUÉS de confirmar 0411–0413 aplicadas y la app con facades desplegada.
   El preflight SQL no puede certificar la versión real del frontend.
-- [ ] Resolver el rollout de 0410 antes de publicar: combina alta de RPC y
-  cierre de `mail_logs`. Aplicarla con la app antigua corta su consulta de
-  Cobranzas; desplegar primero la app nueva invoca una RPC que todavía no existe.
-  Separar expansión/restricción en un slice posterior o aprobar una ventana
-  coordinada; este checklist no autoriza ninguna de las dos operaciones.
+- [ ] Aplicar `0415_mail_logs_read_rbac.sql` con autorización específica separada
+  sólo DESPUÉS de confirmar 0410 aplicada y el consumidor nuevo de Cobranzas
+  desplegado y probado. Esta segunda fase completa el cierre admin-only de
+  `mail_logs`; el catálogo SQL no certifica la versión de la aplicación.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [ ] Confirmar deployment Vercel y smoke de público, Studio, Portal y móvil.
@@ -159,7 +164,8 @@ merge a `main`, Cloud, Producción ni deploy.
   un sweep. SDD-0350 ya cerró la escritura directa de `invoices`, preservando
   temporalmente el SELECT tenant-wide que consumen módulos no financieros.
   SDD-0351 cerró las seis tablas administrativas de Mailing; SDD-0353 sustituyó
-  la lectura de Cobranzas y dejó `mail_logs` admin-only. SDD-0352 cerró el CRUD
+  la lectura de Cobranzas y SDD-0358 separó su expansión 0410 del cierre
+  admin-only 0415 posterior al deploy. SDD-0352 cerró el CRUD
   directo de conciliación bancaria. SDD-0354 retiró las filas financieras del
   agregado anual usado por Fidelización, CRM y Reportes; SDD-0355 minimizó el
   saldo de Conversaciones y SDD-0356 retiró la lectura directa de Órdenes de
@@ -242,13 +248,14 @@ merge a `main`, Cloud, Producción ni deploy.
 ## Orden de trabajo recomendado
 
 1. Publicar la rama y revisar el diff remoto.
-2. Preparar la secuencia de release con preflight por migración y resolver el
-   acoplamiento de 0410. Este paquete no es apto para un merge/deploy ciego.
+2. Preparar la secuencia de release con preflight por migración. SDD-0358 ya
+   separó expansión y restricción de Mailing; todavía no se ejecutó el release.
 3. Con autorizaciones individuales, dejar disponibles las RPCs necesarias
    antes de publicar sus consumidores; comprobar cada migración 0399–0413 sin
    asumir que el orden numérico sustituye una prueba de compatibilidad.
 4. Autorizar integración y deploy de la app; verificar los cuatro flujos de
-   lectura mínima y Portal. Aplicar 0414 sólo después de ese smoke, con otro OK.
+   lectura mínima y Portal. Aplicar 0414 y 0415 sólo después del smoke de sus
+   consumidores, cada una con su propio OK y de una en una.
    Completar Telegram y los demás gates alojados por separado.
 5. Limpiar worktree y rama de archivo sólo cuando estén contenidos en main.
 6. Seguir P1 por dominio: aislamiento Portal restante y documentos por entidad;
