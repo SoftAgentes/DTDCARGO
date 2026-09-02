@@ -35,8 +35,8 @@ refrescarse antes de cualquier operación Git o alojada.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 352; 258 `done`, 1 `superseded` y 93 sin cierre documental
-  (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
+- Specs reales: 352; 261 `done`, 1 `superseded` y 90 sin cierre documental
+  (75 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete y sus commits están enumerados en
 `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`. La evidencia alojada
@@ -121,9 +121,11 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   navegador local aprobados. Sin modificar estilos, precios ni catálogo.
 - [x] Build aislado de SDD-0360: 158 páginas, postbuild y restauración de
   `tsconfig.json` aprobados, sin secretos ni cambios SQL.
-- [ ] Publicar SDD-0360 y confirmar el primer resultado completamente verde
-  de `Calidad continua`. Dos runs ya medidos fallaron; la evidencia local no
-  sustituye una corrida alojada completa.
+- [x] Publicar SDD-0360 en `46afa953`, verificar remoto exacto, árbol limpio y
+  upstream 0/0; `origin/main` permanece sin cambios.
+- [ ] Confirmar el primer resultado completamente verde de `Calidad continua`.
+  Dos runs ya medidos fallaron; el run `33663666096` mide SDD-0360 y la
+  evidencia local no sustituye su resultado alojado completo.
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:
@@ -141,6 +143,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [ ] Mantener `codex/archive-cloud-handoff-20260828`: conserva un handoff único
   no integrado. Su contenido es histórico y debe preservarse o declararse
   supersedido antes de borrar la rama.
+- [x] Retirar el upstream `origin/main` de esa rama archive para evitar una
+  publicación accidental desde ella; HEAD `d05b6355` y contenido conservados.
 
 ## P0 · gates alojados independientes
 
@@ -281,7 +285,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 ## P2 · ordenar el producto sin falsos cierres
 
-- [ ] Reconciliar las 93 specs no cerradas por rebanadas de dominio. Cambiar un
+- [x] Cerrar documentalmente SDD-0280, SDD-0303 y SDD-0304 tras verificar sus
+  commits en `origin/main`, código vigente y gates. No se borró código adicional;
+  [acta del lote](2026-09-02-codex-cierre-documental.md).
+- [ ] Reconciliar las 90 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
 - [ ] Crear logger/redacción/correlación central y aumentar cobertura directa de
   crons y Edge Functions.

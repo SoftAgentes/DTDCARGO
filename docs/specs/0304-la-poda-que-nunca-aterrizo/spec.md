@@ -1,10 +1,10 @@
 ---
 sdd: "0304"
 title: "La poda del 3-ago nunca llegó a main — 14 archivos muertos, y uno que resucitó"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-02
 supersedes: null
 superseded_by: null
 related: ["0295"]
@@ -115,3 +115,16 @@ operación real, y algunos —`person-queries`, `use-realtime-dispatch`,
 `venezuela-catalog`— podían estar aparcados para lo que viene. **Muerto hoy no
 es lo mismo que descartado**, y esa distinción la decidió el founder, no la
 medición. Si alguno hace falta, vuelve entero desde git.
+
+## Cierre documental verificado · 2026-09-02
+
+`20064ed1` (poda) y `3477a483` (renumeración) son ancestros de
+`origin/main@2a2e81bf`. Se extrajo la lista exacta de eliminaciones con
+`git diff-tree --diff-filter=D 20064ed1`: los 14 paths siguen ausentes tanto
+en `origin/main` como en el checkout actual. `FclCalculator` sigue importado
+por `/fcl` y `/fcl/embed`; ambas rutas aparecen en el build correcto.
+
+La suite actual y TypeScript pasan. Este cierre sólo actualiza documentación:
+no repite la poda, no borra nada más y no reutiliza la lista histórica para
+declarar muerto otro archivo. El contenido retirado sigue recuperable desde
+Git. Acta: `docs/audits/2026-09-02-codex-cierre-documental.md`.

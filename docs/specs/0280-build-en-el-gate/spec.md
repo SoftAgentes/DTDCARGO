@@ -1,10 +1,10 @@
 ---
 sdd: "0280"
 title: "El gate construye la app: 14/14 en verde ya no significa que compile"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude Code"
 created: 2026-08-23
-updated: 2026-08-23
+updated: 2026-09-02
 supersedes: null
 superseded_by: null
 related: ["0271", "0277"]
@@ -80,3 +80,15 @@ Tras el fallo se verificó que `.next-verify` quedó borrado igual.
 - **No mide el `ignoreCommand` de Vercel.** Que el build compile no dice que
   Vercel vaya a desplegarlo — eso sigue siendo el predicado de `HEAD^ HEAD`, un
   problema distinto.
+
+## 7. Cierre documental verificado · 2026-09-02
+
+El commit `b842f2f8` es ancestro de `origin/main@2a2e81bf`; tanto el paso
+`build` de `verify.mjs` como `VERIFY_DIST_DIR` están en esa referencia. El
+wrapper conserva su implementación integrada. Se ejecutó de nuevo sobre el
+árbol de saneamiento: 158 páginas, postbuild y restauración de `tsconfig.json`
+correctos, exit 0 y `.next-verify` ausente al terminar.
+
+Se cierra la implementación del gate, no el release ni la evidencia alojada.
+La prueba por mutación de la sección 5 es histórica y no se repitió en este
+cierre documental. Acta: `docs/audits/2026-09-02-codex-cierre-documental.md`.

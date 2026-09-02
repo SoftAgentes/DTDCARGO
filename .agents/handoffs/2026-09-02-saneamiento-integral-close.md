@@ -114,6 +114,9 @@ Estado: CERRADO EN RAMA · PR EN BORRADOR · INTEGRACIÓN/RELEASE PENDIENTES
 55. `fix(public): SDD-0360 — evitar carrera de foco en destino` — elimina la
     selección tardía de texto que el segundo CI reprodujo; conserva teclado,
     Escape y edición manual. No cambia SQL ni configuración del workflow.
+56. `docs: cerrar tres specs integradas con evidencia` — reconcilia SDD-0280,
+    SDD-0303 y SDD-0304 con main; quedan 90 specs sin cierre documental.
+    Alcance de ocho rutas en el acta de reconciliación, sin cambios runtime.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0360. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el

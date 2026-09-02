@@ -1,10 +1,10 @@
 ---
 sdd: "0303"
 title: "El contrato de JSON-LD miraba sólo app/ — 4 bloques de components/ llevaban años fuera"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-02
 supersedes: null
 superseded_by: null
 related: ["0304", "0302", "0235"]
@@ -21,7 +21,7 @@ confidencialidad: interno
 Un `<script type="application/ld+json">` se inyecta con
 `dangerouslySetInnerHTML`. Si el JSON serializado contiene `</script>`, el
 navegador **cierra la etiqueta ahí** y lo que sigue se ejecuta como HTML: XSS
-almacenado. `serializeJsonLd` convierte `<` en `<`, que los parsers de JSON
+almacenado. `serializeJsonLd` convierte `<` en `\u003c`, que los parsers de JSON
 leen como `<` y el de HTML no ve como etiqueta.
 
 **No es teórico en este repo:** `/noticias/[slug]` serializa título, resumen y
@@ -51,7 +51,7 @@ protegidos y el equipo tenía razón en creer que el tema estaba cerrado.
 
 ### El cuarto caso, aparte
 
-`WebPageJsonLd` hacía `JSON.stringify(jsonLd).replace(/</g, "<")` — hoy
+`WebPageJsonLd` hacía `JSON.stringify(jsonLd).replace(/</g, "\\u003c")` — hoy
 es **exactamente** lo que hace el helper, así que no era un agujero. Pero es una
 copia: el día que el helper escape algo más, esa línea se queda atrás sin que
 nadie lo note. Y los dos tests existentes la dejaban pasar, porque
@@ -109,3 +109,18 @@ de otra forma quedaría fuera — es el límite del método, y es exactamente el
 de hueco que este hallazgo demuestra que existe.
 
 Tampoco se abrió ninguna página en un navegador.
+
+## Cierre documental verificado · 2026-09-02
+
+Los commits `5ad3429f` y `e097a366` están integrados en
+`origin/main@2a2e81bf`. Los cuatro componentes siguen usando `serializeJsonLd`;
+el contrato recorre `app/` y `components/`, conserva las cuatro pruebas y su
+timeout local razonado. La única diferencia del contrato en la rama de
+saneamiento es el nombre de configuración Vitest en un comentario.
+
+El helper vigente emite `\u003c`; se corrige arriba la representación
+documental que había perdido el escape. La suite completa del árbol actual
+(527 archivos / 5.961 pruebas) pasó, incluido este contrato; su repetición focal
+pasó 4/4. TypeScript y build también. No se repitieron las mutaciones históricas
+ni se amplía el alcance del escaneo. No se declara un smoke productivo de JSON-LD. Acta:
+`docs/audits/2026-09-02-codex-cierre-documental.md`.
