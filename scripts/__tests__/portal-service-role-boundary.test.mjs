@@ -11,7 +11,6 @@ import { describe, expect, it } from "vitest";
  */
 const BASELINE = {
   "app/portal/(app)/compras/[code]/page.tsx": 2,
-  "app/portal/(app)/documentos/page.tsx": 2,
   "app/portal/(app)/envios/[code]/page.tsx": 2,
   "app/portal/(app)/envios/page.tsx": 3,
   "app/portal/(app)/facturas/[code]/aceptar/page.tsx": 1,
@@ -49,7 +48,7 @@ describe("Portal RSC · frontera de service_role", () => {
     }
 
     expect(actual).toEqual(BASELINE);
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(14);
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(12);
   });
 
   it("mantiene las elevaciones fuera de componentes cliente", () => {
