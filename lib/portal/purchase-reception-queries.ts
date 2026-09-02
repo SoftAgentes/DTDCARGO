@@ -26,9 +26,9 @@
  *   2. Recién entonces se leen las recepciones **filtradas por ese
  *      `prealerta_id`**, que es un id ya verificado como suyo.
  *
- * 🔴 Esta función NO verifica propiedad y no puede hacerlo: recibe un id. El
- * llamador es quien responde por él. Está aislada en su propio módulo para que
- * eso no se pierda de vista al leer la página.
+ * 🔴 Esta función NO verifica propiedad y no puede hacerlo: recibe un id. Desde
+ * SDD-0343 el único caller del Portal es un facade `server-only` que vuelve a
+ * resolver principal + compra con la sesión antes de construir `service_role`.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -107,7 +107,7 @@ function numeroONulo(v: unknown): number | null {
 /**
  * Las recepciones de UNA compra ya verificada como del cliente.
  *
- * @param admin  Cliente service-role. Ver el encabezado del módulo.
+ * @param admin  Cliente service-role. Sólo lo construye el facade de SDD-0343.
  * @param prealertaId  Id **ya probado** como del cliente logueado.
  */
 export async function listarRecepcionesDeCompra(

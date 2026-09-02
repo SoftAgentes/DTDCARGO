@@ -100,8 +100,8 @@ export type PackingListDeCompra = {
  * El packing list VIGENTE de una compra, o `null` si el proveedor todavía no
  * mandó ninguno.
  *
- * @param admin  Admin client. La propiedad de `prealertaId` YA tiene que estar
- *               probada por el llamador — ver la cabecera del módulo.
+ * @param admin  Admin client. Desde SDD-0343 sólo lo construye el facade
+ *               `server-only` después de resolver principal + compra.
  * @param prealertaId  Id de una compra ya verificada como del cliente.
  * @param markboxEsperado  Shipping Mark del cliente. Defensa en profundidad: si
  *               la submission trae otro, se descarta. No reemplaza la

@@ -19,11 +19,11 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Rama de saneamiento antes de SDD-0342: `be211f0a`, 0 detrás / 34 delante.
+- Rama de saneamiento antes de SDD-0343: `4a21db62`, 0 detrás / 35 delante.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 334; 240 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 335; 241 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -44,9 +44,10 @@ merge a `main`, Cloud, Producción ni deploy.
 - [x] Llave KMS del backup WORM retenida junto con el bucket en el IaC histórico.
 - [x] `/studio/debug` exige configuración completa; Payload CMS legado retirado
   del contrato activo de entorno.
-- [x] Gate canónico reciente sin fallos: 14/15 pasos medidos; sólo Cloud quedó
-  `SKIP` por falta deliberada de credenciales. Suite unitaria posterior a
-  SDD-0342: 517 archivos / 5.915 pruebas, todas verdes.
+- [x] Gate canónico posterior a SDD-0342 sin fallos: 14/15 pasos medidos; sólo
+  Cloud quedó `SKIP` por falta deliberada de credenciales. E2E: 150 pasaron y 18
+  Tier 3 se omitieron; build: 158 páginas. Suite unitaria posterior a SDD-0343:
+  518 archivos / 5.920 pruebas, todas verdes.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -112,7 +113,9 @@ merge a `main`, Cloud, Producción ni deploy.
   consolidó códigos históricos y fotos privadas de Perfil y dejó el baseline en
   7 rutas / 14 construcciones. SDD-0342 movió los packing lists a una RPC por
   principal y encapsuló la firma de documentos después de una lectura RLS; dejó
-  el baseline en 6 rutas / 12 construcciones. El test
+  el baseline en 6 rutas / 12 construcciones. SDD-0343 retiró del RSC de detalle
+  de compra sus dos elevaciones y las encapsuló detrás de una revalidación
+  sesión/RLS; dejó el baseline en 5 rutas / 10 construcciones. El test
   `portal-service-role-boundary.test.mjs` congela el inventario; no lo aprueba.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de

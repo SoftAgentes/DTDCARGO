@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
 import { getPortalClient } from "@/lib/portal/portal-queries";
 import {
   getPrealertaByCode,
@@ -12,13 +11,10 @@ import {
 } from "@/lib/studio/prealertas/queries";
 import {
   compararCajas,
-  listarRecepcionesDeCompra,
   nombreDeProveedor,
 } from "@/lib/portal/purchase-reception-queries";
-import {
-  cotejarConLoAnunciado,
-  obtenerPackingListDeCompra,
-} from "@/lib/portal/packing-list-queries";
+import { cotejarConLoAnunciado } from "@/lib/portal/packing-list-queries";
+import { getPortalPurchaseOperationalDetail } from "@/lib/portal/purchase-operational-detail";
 import { defaultAddon } from "@/lib/studio/prealertas/addons";
 import { PREALERTA_DESCRIPCION_PENDIENTE } from "@/lib/studio/prealertas/types";
 import { ArrowIcon } from "@/components/Icon";
@@ -59,12 +55,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  *
  * `getPrealertaByCode` va con el cliente AUTENTICADO y filtra por
  * `client_markbox`: una compra ajena o inexistente devuelve null → 404, sin
- * distinguir entre los dos casos. Sólo con la propiedad ya probada se leen las
- * recepciones con el admin client — `warehouse_receipts_cn` tiene policy
- * "by tenant" y un cliente del portal no está en `user_tenants`, así que con su
- * sesión la consulta volvería vacía siempre y en silencio. Es el mismo patrón
- * del detalle de envío con consolidaciones. Ver
- * `lib/portal/purchase-reception-queries.ts`.
+ * distinguir entre los dos casos. El facade `server-only` vuelve a verificar
+ * principal + código antes de cualquier lectura interna; la página no entrega
+ * ids, Shipping Marks ni clientes privilegiados.
  */
 export default async function PortalPurchaseDetailPage({ params }: Props) {
   const { code: rawCode } = await params;
@@ -79,22 +72,13 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
   });
   if (!prealerta) notFound();
 
-  const [cajas, proveedores, servicios, recepcion, packing] = await Promise.all([
+  const [cajas, proveedores, servicios, operational] = await Promise.all([
     listPredeclaredBoxes(supabase, prealerta.id),
     listSuppliers(supabase, { markbox: client.markbox }),
     listPrealertaServiceRequests(supabase, { markbox: client.markbox }),
-    // Propiedad ya probada arriba → recién ahora el admin client.
-    listarRecepcionesDeCompra(createAdminClient(), prealerta.id),
-    // Ídem (SDD-0308): `packing_list_submissions` sólo tiene policy "by tenant"
-    // y el cliente del portal no está en `user_tenants` — con su sesión la RLS
-    // niega. Se lee con el admin client acotado al `prealerta_id` ya verificado,
-    // y la query revalida el markbox por dentro.
-    obtenerPackingListDeCompra(
-      createAdminClient(),
-      prealerta.id,
-      client.markbox,
-    ),
+    getPortalPurchaseOperationalDetail(supabase, code),
   ]);
+  const { recepcion, packing } = operational;
 
   const proveedor = prealerta.supplier_id
     ? (proveedores.find((s) => s.id === prealerta.supplier_id) ?? null)

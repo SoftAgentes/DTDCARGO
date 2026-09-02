@@ -11,8 +11,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- Divergencia medida antes de SDD-0342: 0 detrás / 34 delante; este commit
-  agrega el paquete 35.
+- Divergencia medida antes de SDD-0343: 0 detrás / 35 delante; este commit
+  agrega el paquete 36.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
 
@@ -66,9 +66,11 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
     que contiene este handoff y la migración 0405 todavía no aplicada.
 35. `fix(portal): SDD-0342 — resolver documentos por principal` — el commit que
     contiene este handoff y la migración 0406 todavía no aplicada.
+36. `fix(portal): SDD-0343 — acotar detalle operativo de compra` — el commit que
+    contiene este handoff; no crea migración.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0342. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0343. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -76,12 +78,12 @@ slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 
 ## Verificación vigente
 
-El último `node scripts/verify.mjs` canónico terminó sin fallos de gate en
-SDD-0336; SDD-0337 a SDD-0342 pasaron después sus gates proporcionales:
+El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
+de SDD-0342; SDD-0343 pasó después sus gates proporcionales:
 
 - 14 de 15 gates medidos, ninguno falló.
 - ESLint, frontera RSC, TypeScript y cuatro Edge Functions: OK.
-- Vitest posterior a SDD-0342: 517 archivos / 5.915 pruebas pasaron.
+- Vitest posterior a SDD-0343: 518 archivos / 5.920 pruebas pasaron.
 - Documentación, numeración, componentes y gobernanza: OK.
 - SQL: 147 contratos pasaron con rollback total.
 - Rebuild: 403 migraciones; 385 aplicadas desde cero y 18 sólo-ledger;
@@ -140,6 +142,12 @@ SDD-0342 resuelve los packing lists mediante una RPC sin parámetros ligada a
 módulo `server-only`. Baja el inventario a 6 rutas / 12 construcciones y pasó 7
 pruebas focales, la suite completa de 5.915 pruebas, 147 contratos SQL, rebuild,
 TypeScript y ESLint.
+
+SDD-0343 mueve recepciones, fotos y packing list del detalle de compra a un
+facade `server-only` que recibe sólo el código, vuelve a probar principal +
+propiedad con la sesión y reutiliza un único admin. Baja el inventario a 5 rutas
+/ 10 construcciones y pasó 7 pruebas focales, la suite completa de 5.920 pruebas,
+TypeScript y ESLint. No crea migración.
 
 ## Gates alojados no cruzados
 
