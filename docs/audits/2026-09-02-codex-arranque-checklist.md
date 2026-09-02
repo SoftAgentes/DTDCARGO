@@ -20,11 +20,11 @@ refrescarse antes de cualquier operación Git o alojada.
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 - Rama de saneamiento actual: el commit que contiene este checklist, con árbol
-  limpio, 0 detrás / 52 delante; la rama remota todavía no existe.
+  limpio, 0 detrás / 53 delante; la rama remota todavía no existe.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 350; 256 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 351; 257 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -84,6 +84,11 @@ merge a `main`, Cloud, Producción ni deploy.
   contrato SQL y conservan idéntica respuesta mínima de Cobranzas.
   Validación posterior: 3 unitarios focales, 156 contratos SQL y rebuild de
   412 migraciones (394 desde cero + 18 sólo-ledger); 219 tablas / 2 tenants.
+- [x] Dominio Envíos Portal ligado a principal y tenant (SDD-0359/0416): envíos,
+  documentos e hitos rechazan coincidencias de Shipping Mark entre tenants.
+  Hijos exigen padre vivo y relación coherente; las policies de equipo y ACL
+  se conservan. 157 contratos SQL, 37 unitarios focales y rebuild de 413
+  migraciones (395 desde cero + 18 sólo-ledger) aprobados localmente.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -150,6 +155,9 @@ merge a `main`, Cloud, Producción ni deploy.
   sólo DESPUÉS de confirmar 0410 aplicada y el consumidor nuevo de Cobranzas
   desplegado y probado. Esta segunda fase completa el cierre admin-only de
   `mail_logs`; el catálogo SQL no certifica la versión de la aplicación.
+- [ ] Aplicar `0416_portal_shipments_tenant_boundary.sql` con autorización
+  específica separada y smoke de envíos/documentos/hitos. No exige una RPC
+  nueva ni deploy previo; la frontera sólo está corregida localmente.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [ ] Confirmar deployment Vercel y smoke de público, Studio, Portal y móvil.
@@ -173,8 +181,10 @@ merge a `main`, Cloud, Producción ni deploy.
   comprobar los consumidores financieros, Portal y procesos controlados de
   servicio. El inventario AST congela 18 archivos / 45 llamadas directas.
 - [ ] Auditar por dominio las otras policies Portal que comparan Shipping Mark
-  sin tenant. SDD-0357 sólo cubre `invoices`; no extiende su resultado a envíos,
-  prealertas, documentos, academia o reclamos ni aplica un sweep.
+  sin tenant. SDD-0357 cubre `invoices` y SDD-0359 cubre `shipments`,
+  `shipment_documents` y `shipment_events`. Faltan prealertas y sus documentos,
+  academia, reclamos, reportes de pago y las demás entidades; no hacer un sweep
+  ni declarar corregido todo el Portal por estos dos slices.
 - [x] Retirar `service_role` de todos los RSC del Portal.
   SDD-0336 cerró el primer slice de marca: el baseline bajó de 11 rutas / 23
   construcciones a 10 rutas / 21 construcciones. SDD-0337 movió la visibilidad
@@ -256,7 +266,8 @@ merge a `main`, Cloud, Producción ni deploy.
 4. Autorizar integración y deploy de la app; verificar los cuatro flujos de
    lectura mínima y Portal. Aplicar 0414 y 0415 sólo después del smoke de sus
    consumidores, cada una con su propio OK y de una en una.
-   Completar Telegram y los demás gates alojados por separado.
+   Aplicar 0416 con su gate/smoke de dominio independiente; completar Telegram
+   y los demás gates alojados por separado.
 5. Limpiar worktree y rama de archivo sólo cuando estén contenidos en main.
 6. Seguir P1 por dominio: aislamiento Portal restante y documentos por entidad;
    reconciliar specs y deuda P2 sin mezclarlas con seguridad alojada.

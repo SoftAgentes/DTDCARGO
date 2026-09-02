@@ -11,7 +11,7 @@ Estado: CIERRE LOCAL · PUSH E INTEGRACIÓN/RELEASE CON GATES SEPARADOS
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- HEAD actual: este commit; árbol limpio, 0 detrás / 52 delante de `origin/main`.
+- HEAD actual: este commit; árbol limpio, 0 detrás / 53 delante de `origin/main`.
 - La rama remota `codex/saneamiento-integral` todavía no existe.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
@@ -102,9 +102,11 @@ Estado: CIERRE LOCAL · PUSH E INTEGRACIÓN/RELEASE CON GATES SEPARADOS
 52. `fix(release): SDD-0358 — separar expansión y restricción de Mailing` —
     conserva 0410 compatible y difiere el cierre admin-only a 0415, después del
     deploy y smoke de Cobranzas; ninguna fue aplicada.
+53. `fix(portal): SDD-0359 — aislar envíos y sus hijos por tenant` — reemplaza
+    tres policies de lectura Portal en 0416; equipo, ACL y datos conservados.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0358. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0359. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -287,6 +289,12 @@ contratos SQL y rebuild de 412 migraciones (394 desde cero + 18 sólo-ledger),
 con comprobación estructural de aislamiento de 219 tablas y dos tenants
 sintéticos. El baseline canónico de aplicación sigue siendo SDD-0357.
 
+SDD-0359 reproduce y cierra el cruce histórico de envíos, documentos e hitos
+entre tenants con Shipping Mark repetido. Exige vínculo activo, cliente vivo y
+coherencia padre/hijo; conserva políticas internas y ACL. Pasó 37 unitarios
+focales en 6 archivos, los 157 contratos SQL y rebuild de 413 migraciones (395
+desde cero + 18 sólo-ledger). No cambia TS/TSX ni sustituye los gates alojados.
+
 ## Gates alojados no cruzados
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
@@ -325,6 +333,9 @@ sintéticos. El baseline canónico de aplicación sigue siendo SDD-0357.
   después de 0410 y del deploy/smoke del consumidor. SDD-0358 resolvió localmente
   el acoplamiento del release; las dos fases requieren autorización individual.
   No se ejecutó ninguna operación alojada.
+- La migración `0416_portal_shipments_tenant_boundary.sql` pasó SQL/rebuild
+  locales; NO fue aplicada. Requiere gate individual y smoke de su dominio,
+  sin dependencia de una nueva RPC o versión de aplicación.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - No se hizo deploy ni se modificaron datos, secretos o configuración alojada.
