@@ -20,11 +20,11 @@ refrescarse antes de cualquier operación Git o alojada.
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 - Rama de saneamiento actual: el commit que contiene este checklist, con árbol
-  limpio, 0 detrás / 50 delante; la rama remota todavía no existe.
+  limpio, 0 detrás / 51 delante; la rama remota todavía no existe.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 348; 254 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 349; 255 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -68,13 +68,16 @@ merge a `main`, Cloud, Producción ni deploy.
 - [x] Referencias de facturas en Órdenes de venta minimizadas: SDD-0356/0413
   entrega sólo id, código, monto y estado a la UI, respeta permisos efectivos,
   consulta por lotes y propaga errores en vez de inventar listas vacías.
-- [x] Suite unitaria posterior a SDD-0356: 526 archivos / 5.954 pruebas, verdes.
-  SQL: 154 contratos; rebuild: 410 migraciones (392 desde cero + 18 sólo-ledger),
-  219 tablas y 2 tenants aislados. Estas verificaciones no prueban Cloud.
-- [x] Gate canónico posterior a SDD-0348 sin fallos: 14/15 pasos medidos; sólo
-  Cloud quedó `SKIP` por falta deliberada de credenciales. E2E: 150 pasaron y 18
-  Tier 3 se omitieron; build: 158 páginas. Suite unitaria posterior a SDD-0348:
-  523 archivos / 5.942 pruebas, todas verdes.
+- [x] SELECT interno de facturas alineado con `accounting|admin` en SDD-0357/0414.
+  Portal exige vínculo activo, cliente vivo y tenant coincidente; el test
+  reproduce y cierra el acceso cruzado con Shipping Mark igual en dos tenants.
+  Las tres RPCs minimizadas siguen funcionando bajo la RLS restrictiva.
+- [x] Gate canónico posterior a SDD-0357 sin fallos: 14/15 pasos medidos;
+  `migrations-applied` quedó `SKIP` por falta deliberada de credenciales.
+  Unitarios: 527 archivos / 5.957 pruebas. SQL: 155 contratos. Rebuild: 411
+  migraciones (393 desde cero + 18 sólo-ledger), 219 tablas y 2 tenants de prueba.
+  E2E: 150 pasaron y 18 Tier 3 omitidos, sin fallos ni bloqueo de teardown.
+  Build: 158 páginas. Este resultado local no demuestra estado alojado.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -87,6 +90,8 @@ merge a `main`, Cloud, Producción ni deploy.
   `Calidad continua`; el contrato local no sustituye una corrida alojada.
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
+- [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:
+  el merge puede disparar Vercel. No publicar una app que llama RPCs ausentes.
 - [ ] Confirmar que el último commit del lote toca código para que
   `vercel.json` no cancele el build como `doc-only`.
 - [ ] Después de integrar, comprobar que el HEAD del worktree es ancestro de
@@ -132,6 +137,14 @@ merge a `main`, Cloud, Producción ni deploy.
   específica separada; el contexto mínimo no existe en Cloud todavía.
 - [ ] Aplicar `0413_sales_order_invoice_facade.sql` con autorización específica
   separada; las referencias mínimas no existen en Cloud todavía.
+- [ ] Aplicar `0414_invoices_read_rbac.sql` con autorización específica separada
+  sólo DESPUÉS de confirmar 0411–0413 aplicadas y la app con facades desplegada.
+  El preflight SQL no puede certificar la versión real del frontend.
+- [ ] Resolver el rollout de 0410 antes de publicar: combina alta de RPC y
+  cierre de `mail_logs`. Aplicarla con la app antigua corta su consulta de
+  Cobranzas; desplegar primero la app nueva invoca una RPC que todavía no existe.
+  Separar expansión/restricción en un slice posterior o aprobar una ventana
+  coordinada; este checklist no autoriza ninguna de las dos operaciones.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [ ] Confirmar deployment Vercel y smoke de público, Studio, Portal y móvil.
@@ -150,8 +163,12 @@ merge a `main`, Cloud, Producción ni deploy.
   directo de conciliación bancaria. SDD-0354 retiró las filas financieras del
   agregado anual usado por Fidelización, CRM y Reportes; SDD-0355 minimizó el
   saldo de Conversaciones y SDD-0356 retiró la lectura directa de Órdenes de
-  venta. Queda cerrar el SELECT general después de comprobar el inventario de
-  consumidores financieros, Portal y procesos controlados de servicio.
+  venta. SDD-0357 cerró el SELECT interno y ligó Portal al tenant después de
+  comprobar los consumidores financieros, Portal y procesos controlados de
+  servicio. El inventario AST congela 18 archivos / 45 llamadas directas.
+- [ ] Auditar por dominio las otras policies Portal que comparan Shipping Mark
+  sin tenant. SDD-0357 sólo cubre `invoices`; no extiende su resultado a envíos,
+  prealertas, documentos, academia o reclamos ni aplica un sweep.
 - [x] Retirar `service_role` de todos los RSC del Portal.
   SDD-0336 cerró el primer slice de marca: el baseline bajó de 11 rutas / 23
   construcciones a 10 rutas / 21 construcciones. SDD-0337 movió la visibilidad
@@ -225,14 +242,17 @@ merge a `main`, Cloud, Producción ni deploy.
 ## Orden de trabajo recomendado
 
 1. Publicar la rama y revisar el diff remoto.
-2. Integrar a `main` con autorización separada y verificar deploy/smoke.
-3. Aplicar 0399, 0400, 0401, 0402, 0403, 0404, 0405, 0406, 0407, 0408, 0409,
-   0410, 0411, 0412 y 0413 de una en una;
-   completar Telegram.
-4. Limpiar worktree y rama de archivo contenida.
-5. Ejecutar el programa P1 por slices; seguir con facades de lectura financiera
-   y autorización documental por entidad.
-6. Reconciliar specs y deuda P2 sin mezclarla con seguridad alojada.
+2. Preparar la secuencia de release con preflight por migración y resolver el
+   acoplamiento de 0410. Este paquete no es apto para un merge/deploy ciego.
+3. Con autorizaciones individuales, dejar disponibles las RPCs necesarias
+   antes de publicar sus consumidores; comprobar cada migración 0399–0413 sin
+   asumir que el orden numérico sustituye una prueba de compatibilidad.
+4. Autorizar integración y deploy de la app; verificar los cuatro flujos de
+   lectura mínima y Portal. Aplicar 0414 sólo después de ese smoke, con otro OK.
+   Completar Telegram y los demás gates alojados por separado.
+5. Limpiar worktree y rama de archivo sólo cuando estén contenidos en main.
+6. Seguir P1 por dominio: aislamiento Portal restante y documentos por entidad;
+   reconciliar specs y deuda P2 sin mezclarlas con seguridad alojada.
 
 ## Stop conditions
 

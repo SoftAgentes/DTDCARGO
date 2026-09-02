@@ -3,7 +3,7 @@
 Fecha: 2026-09-02
 
 Rol: worker
-Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PUSH
+Estado: CIERRE LOCAL · PUSH E INTEGRACIÓN/RELEASE CON GATES SEPARADOS
 
 ## Identidad Git
 
@@ -11,7 +11,7 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- HEAD actual: este commit; árbol limpio, 0 detrás / 50 delante de `origin/main`.
+- HEAD actual: este commit; árbol limpio, 0 detrás / 51 delante de `origin/main`.
 - La rama remota `codex/saneamiento-integral` todavía no existe.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
@@ -97,9 +97,11 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 50. `fix(ventas): SDD-0356 — minimizar referencias de facturas` — agrega la
     migración 0413 todavía no aplicada y elimina la lectura directa de Órdenes
     de venta.
+51. `fix(db): SDD-0357 — cerrar lectura de facturas por principal` — agrega la
+    migración 0414 todavía no aplicada y prueba la frontera financiera/Portal.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0356. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0357. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -108,19 +110,18 @@ slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 ## Verificación vigente
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
-de SDD-0348:
+de SDD-0357:
 
 - 14 de 15 gates medidos, ninguno falló.
 - ESLint, frontera RSC, TypeScript y cuatro Edge Functions: OK.
-- Vitest posterior a SDD-0348: 523 archivos / 5.942 pruebas pasaron.
-- Documentación, numeración (340 specs / 403 migraciones), componentes y
+- Vitest posterior a SDD-0357: 527 archivos / 5.957 pruebas pasaron.
+- Documentación, numeración (349 specs / 411 migraciones), componentes y
   gobernanza: OK.
-- SQL: 147 contratos pasaron con rollback total.
-- Rebuild: 403 migraciones; 385 aplicadas desde cero y 18 sólo-ledger;
+- SQL: 155 contratos pasaron con rollback total.
+- Rebuild: 411 migraciones; 393 aplicadas desde cero y 18 sólo-ledger;
   aislamiento multi-tenant verificado en 219 tablas y 2 tenants.
 - E2E: 150 pasaron, 18 se omitieron por requerir entorno alojado y cero
-  fallaron. Un worker de WebKit agotó 300 s al cerrar en Windows; el verificador
-  lo clasificó como aviso conocido y no como regresión.
+  fallaron. En esta corrida no hubo bloqueo de teardown de WebKit.
 - Build de producción: OK, 158 páginas estáticas generadas.
 - `migrations-applied`: NO MEDIDO porque este worktree no tiene credenciales.
 
@@ -266,6 +267,13 @@ Pasó 5 pruebas focales, la suite completa de 526 archivos / 5.954 pruebas,
 TypeScript, ESLint, 154 contratos SQL y el rebuild de 410 migraciones: 392 desde
 cero, 18 sólo-ledger y 219 tablas / 2 tenants aislados.
 
+SDD-0357 cierra SELECT crudo de facturas a accounting/admin del tenant y exige
+principal Portal activo con cliente vivo y tenant coherente. La regresión SQL
+reproduce el cruce previo con Shipping Mark repetido y verifica el cierre,
+además de probar las tres RPCs mínimas reales bajo la policy nueva. Congela un
+inventario de 18 archivos / 45 llamadas directas; pasó 16 pruebas focales y el
+gate canónico completo descrito arriba, salvo Cloud deliberadamente no medido.
+
 ## Gates alojados no cruzados
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
@@ -298,6 +306,12 @@ cero, 18 sólo-ledger y 219 tablas / 2 tenants aislados.
   contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
 - La migración `0413_sales_order_invoice_facade.sql` existe en Git y pasó
   contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
+- La migración `0414_invoices_read_rbac.sql` pasó SQL/rebuild locales y NO fue aplicada a Cloud o Producción.
+  Requiere 0411–0413 y la aplicación consumidora desplegadas antes de su OK.
+- 0410 necesita resolver su secuencia de release: hoy crea la RPC y restringe
+  `mail_logs` a la vez. Ni migrar primero ni desplegar primero es una transición
+  sin corte demostrada; separar expansión/restricción o aprobar coordinación
+  explícita antes de integrar. No se ejecutó ninguna de esas operaciones.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - No se hizo deploy ni se modificaron datos, secretos o configuración alojada.
@@ -325,10 +339,10 @@ cero, 18 sólo-ledger y 219 tablas / 2 tenants aislados.
 1. Recibir la autorización literal de push indicada arriba.
 2. Refrescar `origin/main`, confirmar divergencia y publicar únicamente
    `codex/saneamiento-integral`.
-3. Validar la rama remota y decidir/integrar el lote en `main` con un gate
-   separado.
-4. Aplicar las migraciones 0399, 0400, 0401, 0402, 0403, 0404, 0405, 0406,
-   0407, 0408, 0409, 0410, 0411, 0412 y 0413 de una en una, cada una con autorización Cloud
-   específica y el runbook obligatorio.
+3. Validar la rama remota y preparar compatibilidad de app/migraciones antes
+   del merge que puede disparar deploy; resolver primero el acoplamiento de 0410.
+4. Aplicar individualmente las dependencias con OK específico y el runbook;
+   verificar las RPCs antes de desplegar sus consumidores. Integración y deploy
+   necesitan su propio gate. Aplicar 0414 sólo después del smoke de la app nueva.
 5. Retirar este worktree únicamente después de probar que sus commits están
    contenidos; mantener las ramas archive hasta auditar su contención.
