@@ -19,11 +19,11 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Rama de saneamiento antes de SDD-0339: `121bfdc5`, 0 detrás / 31 delante.
+- Rama de saneamiento antes de SDD-0340: `8f388305`, 0 detrás / 32 delante.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 331; 237 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 332; 238 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -46,7 +46,7 @@ merge a `main`, Cloud, Producción ni deploy.
   del contrato activo de entorno.
 - [x] Gate canónico reciente sin fallos: 14/15 pasos medidos; sólo Cloud quedó
   `SKIP` por falta deliberada de credenciales. Suite unitaria posterior a
-  SDD-0339: 513 archivos / 5.901 pruebas, todas verdes.
+  SDD-0340: 514 archivos / 5.905 pruebas, todas verdes.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -101,9 +101,10 @@ merge a `main`, Cloud, Producción ni deploy.
   de hitos a una RPC por principal y lo bajó a 10 rutas / 19 construcciones.
   SDD-0338 movió el asesor asignado a otra RPC por principal y dejó el baseline
   en 10 rutas / 18 construcciones. SDD-0339 eliminó la elevación de Referidos y
-  dejó el baseline en 9 rutas / 17 construcciones. Priorizar firmas de
-  documentos/facturas y lecturas internas mediante RPCs autocontenidas ligadas
-  a `auth.uid()` o un servicio de firmado acotado. El test
+  dejó el baseline en 9 rutas / 17 construcciones. SDD-0340 encapsuló las URLs
+  firmadas de adjuntos detrás de una lectura RLS y dejó el baseline en 8 rutas /
+  16 construcciones. Priorizar el facade de aceptación de facturas y las demás
+  lecturas internas mediante RPCs autocontenidas ligadas a `auth.uid()`. El test
   `portal-service-role-boundary.test.mjs` congela el inventario; no lo aprueba.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de

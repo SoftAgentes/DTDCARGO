@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
 import { resolveBrandForPortal } from "@/lib/studio/aliados/brand-resolve";
 import { getPortalClient } from "@/lib/portal/portal-queries";
+import { listSignedPrealertaDocuments } from "@/lib/portal/prealerta-document-signing";
 import {
   getPrealertaByCode,
-  listPrealertaDocuments,
   listPredeclaredBoxes,
   listSuppliers,
   listActivePrealertaAddons,
@@ -16,8 +15,6 @@ import { PrealertaServiceSection } from "./ServiceSection";
 import {
   buildLabels,
   buildLabelsFromBoxes,
-  PREALERTA_DOC_BUCKET,
-  PREALERTA_DOC_TYPE_LABEL,
 } from "@/lib/studio/prealertas/types";
 import { DocIcon } from "@/components/Icon";
 import { LabelsClient } from "./LabelsClient";
@@ -87,43 +84,12 @@ export default async function PortalLabelsPage({
     prealerta.status === "recibida" ||
     prealerta.status === "consolidada";
 
-  // Adjuntos que el cliente subió a esta compra (read-only · recordatorio). Las
-  // signed URLs se generan server-side con admin (el cliente no firma vía Storage).
-  const docs = await listPrealertaDocuments(supabase, {
+  // El firmador relee los docs permitidos por RLS y sólo entonces firma esos
+  // paths; esta página nunca recibe ni puede inyectar una ruta de Storage.
+  const signedDocs = await listSignedPrealertaDocuments(supabase, {
     prealertaId: prealerta.id,
     markbox: client.markbox,
   });
-  let signedDocs: {
-    id: string;
-    label: string;
-    fileName: string;
-    url: string | null;
-  }[] = [];
-  if (docs.length > 0) {
-    try {
-      const admin = createAdminClient();
-      signedDocs = await Promise.all(
-        docs.map(async (d) => {
-          const { data } = await admin.storage
-            .from(PREALERTA_DOC_BUCKET)
-            .createSignedUrl(d.storage_path, 120);
-          return {
-            id: d.id,
-            label: PREALERTA_DOC_TYPE_LABEL[d.doc_type],
-            fileName: d.file_name,
-            url: data?.signedUrl ?? null,
-          };
-        }),
-      );
-    } catch {
-      signedDocs = docs.map((d) => ({
-        id: d.id,
-        label: PREALERTA_DOC_TYPE_LABEL[d.doc_type],
-        fileName: d.file_name,
-        url: null,
-      }));
-    }
-  }
 
   return (
     <>

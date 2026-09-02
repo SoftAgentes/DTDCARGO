@@ -11,8 +11,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- Divergencia medida antes de SDD-0339: 0 detrás / 31 delante; este commit
-  agrega el paquete 32.
+- Divergencia medida antes de SDD-0340: 0 detrás / 32 delante; este commit
+  agrega el paquete 33.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
 
@@ -60,9 +60,11 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
     contiene este handoff y la migración 0403 todavía no aplicada.
 32. `fix(portal): SDD-0339 — resolver referidos por principal` — el commit que
     contiene este handoff y la migración 0404 todavía no aplicada.
+33. `fix(portal): SDD-0340 — acotar firma de adjuntos de compra` — el commit que
+    contiene este handoff; no crea migración.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0339. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0340. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -71,11 +73,11 @@ slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 ## Verificación vigente
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate en
-SDD-0336; SDD-0337 a SDD-0339 pasaron después sus gates proporcionales:
+SDD-0336; SDD-0337 a SDD-0340 pasaron después sus gates proporcionales:
 
 - 14 de 15 gates medidos, ninguno falló.
 - ESLint, frontera RSC, TypeScript y cuatro Edge Functions: OK.
-- Vitest posterior a SDD-0339: 513 archivos / 5.901 pruebas pasaron.
+- Vitest posterior a SDD-0340: 514 archivos / 5.905 pruebas pasaron.
 - Documentación, numeración, componentes y gobernanza: OK.
 - SQL: 145 contratos pasaron con rollback total.
 - Rebuild: 401 migraciones; 383 aplicadas desde cero y 18 sólo-ledger;
@@ -118,6 +120,11 @@ respuesta a facturación agregada, montos del programa y filas visibles sin dato
 de contacto. Baja el inventario a 9 rutas / 17 construcciones y pasó 7 pruebas
 focales, la suite completa de 5.901 pruebas, 145 contratos SQL, rebuild,
 TypeScript y ESLint.
+
+SDD-0340 encapsula la firma de adjuntos de prealerta en un módulo `server-only`
+que relee primero los documentos permitidos por RLS y no acepta storage paths del
+caller. Baja el inventario a 8 rutas / 16 construcciones y pasó 6 pruebas focales,
+la suite completa de 5.905 pruebas, TypeScript y ESLint.
 
 ## Gates alojados no cruzados
 
