@@ -11,8 +11,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- Divergencia medida antes de SDD-0344: 0 detrás / 36 delante; este commit
-  agrega el paquete 37.
+- Divergencia medida antes de SDD-0345: 0 detrás / 37 delante; este commit
+  agrega el paquete 38.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
 
@@ -70,9 +70,11 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
     contiene este handoff; no crea migración.
 37. `fix(portal): SDD-0344 — acotar contexto privado de soporte` — el commit que
     contiene este handoff; no crea migración.
+38. `fix(portal): SDD-0345 — acotar detalle privado de envío` — el commit que
+    contiene este handoff; no crea migración.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0344. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0345. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -85,7 +87,7 @@ de SDD-0342; SDD-0343 pasó después sus gates proporcionales:
 
 - 14 de 15 gates medidos, ninguno falló.
 - ESLint, frontera RSC, TypeScript y cuatro Edge Functions: OK.
-- Vitest posterior a SDD-0344: 519 archivos / 5.924 pruebas pasaron.
+- Vitest posterior a SDD-0345: 520 archivos / 5.928 pruebas pasaron.
 - Documentación, numeración, componentes y gobernanza: OK.
 - SQL: 147 contratos pasaron con rollback total.
 - Rebuild: 403 migraciones; 385 aplicadas desde cero y 18 sólo-ledger;
@@ -155,6 +157,12 @@ SDD-0344 mueve evidencia y conversación de Soporte a un contexto `server-only`
 sin parámetros que resuelve cliente, reclamos y envíos desde la sesión antes de
 elevar. Baja el inventario a 4 rutas / 9 construcciones y pasó 6 pruebas focales,
 la suite completa de 5.924 pruebas, TypeScript y ESLint. No crea migración.
+
+SDD-0345 encapsula documentos, avisos, naviera, tracking y aceptación del
+detalle de envío en un contexto `server-only` que sólo acepta el código y prueba
+primero el envío mediante sesión/RLS. Baja el inventario a 3 rutas / 7
+construcciones y pasó 6 pruebas focales, la suite completa de 5.928 pruebas,
+TypeScript y ESLint. No crea migración.
 
 ## Gates alojados no cruzados
 

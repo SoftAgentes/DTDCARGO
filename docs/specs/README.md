@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 336 specs)
+### Índice de specs (generado · 337 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -374,6 +374,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0342 | Resolver y firmar Documentos del Portal desde el principal | done | interno |
 | 0343 | Encapsular el detalle operativo de compras del Portal | done | interno |
 | 0344 | Encapsular el contexto privado de Soporte del Portal | done | interno |
+| 0345 | Encapsular el contexto privado del detalle de envío del Portal | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

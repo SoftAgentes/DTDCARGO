@@ -19,11 +19,11 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Rama de saneamiento antes de SDD-0344: `50d534f9`, 0 detrás / 36 delante.
+- Rama de saneamiento antes de SDD-0345: `b518e4b3`, 0 detrás / 37 delante.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 336; 242 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 337; 243 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -47,7 +47,7 @@ merge a `main`, Cloud, Producción ni deploy.
 - [x] Gate canónico posterior a SDD-0342 sin fallos: 14/15 pasos medidos; sólo
   Cloud quedó `SKIP` por falta deliberada de credenciales. E2E: 150 pasaron y 18
   Tier 3 se omitieron; build: 158 páginas. Suite unitaria posterior a SDD-0343:
-  519 archivos / 5.924 pruebas, todas verdes.
+  520 archivos / 5.928 pruebas, todas verdes.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -117,7 +117,9 @@ merge a `main`, Cloud, Producción ni deploy.
   de compra sus dos elevaciones y las encapsuló detrás de una revalidación
   sesión/RLS; dejó el baseline en 5 rutas / 10 construcciones. SDD-0344 movió
   evidencia y conversación de Soporte a un contexto sin parámetros que revalida
-  la sesión; dejó el baseline en 4 rutas / 9 construcciones. El test
+  la sesión; dejó el baseline en 4 rutas / 9 construcciones. SDD-0345 encapsuló
+  firma, avisos, naviera y aceptación del detalle de envío detrás de su lectura
+  RLS; dejó el baseline en 3 rutas / 7 construcciones. El test
   `portal-service-role-boundary.test.mjs` congela el inventario; no lo aprueba.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
