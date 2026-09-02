@@ -171,6 +171,47 @@ async function checkTelegramBot(): Promise<IntegrationHealth> {
 }
 
 // ─── Telegram webhook ─────────────────────────────────────────
+type TelegramWebhookInfo = {
+  url?: string;
+  last_error_message?: string;
+  pending_update_count?: number;
+};
+
+function telegramWebhookInfoHealth(
+  info: TelegramWebhookInfo | undefined,
+  latencyMs: number,
+  legacyQueryEnabled = false,
+): IntegrationHealth {
+  if (!info?.url) return err(latencyMs, "Webhook no configurado en Telegram");
+
+  try {
+    const webhookUrl = new URL(info.url);
+    if (webhookUrl.searchParams.has("secret")) {
+      return err(
+        latencyMs,
+        "Webhook conserva el secreto en la URL; completa el corte al header oficial",
+      );
+    }
+  } catch {
+    return err(latencyMs, "Telegram devolvió una URL de webhook inválida");
+  }
+
+  if (legacyQueryEnabled) {
+    return err(
+      latencyMs,
+      "Webhook limpio, pero la compatibilidad de secreto por query sigue activa",
+    );
+  }
+
+  if (info.last_error_message) {
+    return err(latencyMs, `Último error: ${info.last_error_message.slice(0, 60)}`);
+  }
+  const pending = info.pending_update_count ?? 0;
+  return ok(latencyMs, pending > 0 ? `${pending} pendientes` : "0 pendientes");
+}
+
+export const __telegramWebhookInfoHealthForTests = telegramWebhookInfoHealth;
+
 async function checkTelegramWebhook(): Promise<IntegrationHealth> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -182,13 +223,11 @@ async function checkTelegramWebhook(): Promise<IntegrationHealth> {
       result?: { url?: string; last_error_message?: string; pending_update_count?: number };
     } | undefined;
     if (data?.ok) {
-      const info = data.result;
-      if (!info?.url) return err(r.latencyMs, "Webhook no configurado en Telegram");
-      if (info.last_error_message) {
-        return err(r.latencyMs, `Último error: ${info.last_error_message.slice(0, 60)}`);
-      }
-      const pending = info.pending_update_count ?? 0;
-      return ok(r.latencyMs, pending > 0 ? `${pending} pendientes` : "0 pendientes");
+      return telegramWebhookInfoHealth(
+        data.result,
+        r.latencyMs,
+        Boolean(process.env.TELEGRAM_WEBHOOK_LEGACY_QUERY_SECRET),
+      );
     }
     return err(r.latencyMs, "Telegram no respondió OK");
   }

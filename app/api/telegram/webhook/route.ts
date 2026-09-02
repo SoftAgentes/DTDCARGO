@@ -1,9 +1,10 @@
 /**
  * Telegram Bot webhook · maneja /start {code} para linkear chat_id.
  *
- * Configurado al crear el bot: setWebhook → https://dtdcargo.com/api/telegram/webhook?secret=XXX
- * El secret se pasa por query param (Telegram no soporta headers custom)
- * y se compara contra TELEGRAM_WEBHOOK_SECRET.
+ * Configurado con setWebhook sobre la URL limpia. Telegram envía el valor de
+ * `secret_token` en `X-Telegram-Bot-Api-Secret-Token`; el secreto primario no
+ * se acepta por query string. Durante el corte existe una compatibilidad
+ * explícita y temporal mediante TELEGRAM_WEBHOOK_LEGACY_QUERY_SECRET.
  *
  * Updates esperados:
  *   - /start {linkCode}   → matchea `user_profiles.telegram_link_code` (una
@@ -14,6 +15,7 @@
  * para mantener el bot minimal.
  */
 
+import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
@@ -30,18 +32,50 @@ type TelegramUpdate = {
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
-  // Auth: secret en query string (Telegram setWebhook acepta URL custom)
+const TELEGRAM_SECRET_HEADER = "x-telegram-bot-api-secret-token";
+const TELEGRAM_SECRET_PATTERN = /^[A-Za-z0-9_-]{1,256}$/;
+
+type WebhookAuth = "header" | "legacy-query" | "forbidden" | "unavailable";
+
+function safeSecretEqual(provided: string | null, expected: string): boolean {
+  if (!provided) return false;
+  const providedDigest = createHash("sha256").update(provided).digest();
+  const expectedDigest = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(providedDigest, expectedDigest);
+}
+
+function authenticateWebhook(req: Request): WebhookAuth {
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (!expectedSecret) {
+  if (!expectedSecret || !TELEGRAM_SECRET_PATTERN.test(expectedSecret)) {
+    return "unavailable";
+  }
+
+  const headerSecret = req.headers.get(TELEGRAM_SECRET_HEADER);
+  if (headerSecret !== null) {
+    return safeSecretEqual(headerSecret, expectedSecret) ? "header" : "forbidden";
+  }
+
+  // Compatibilidad de despliegue únicamente. El secreto primario nunca cae a
+  // query; el valor legacy tiene que estar configurado por separado y se borra
+  // después de rotar el secreto y confirmar el header en producción.
+  const legacySecret = process.env.TELEGRAM_WEBHOOK_LEGACY_QUERY_SECRET;
+  if (!legacySecret) return "forbidden";
+
+  const providedLegacySecret = new URL(req.url).searchParams.get("secret");
+  return safeSecretEqual(providedLegacySecret, legacySecret)
+    ? "legacy-query"
+    : "forbidden";
+}
+
+export async function POST(req: Request) {
+  const auth = authenticateWebhook(req);
+  if (auth === "unavailable") {
     return NextResponse.json(
-      { error: "TELEGRAM_WEBHOOK_SECRET no configurado" },
+      { error: "Webhook unavailable" },
       { status: 503 },
     );
   }
-
-  const url = new URL(req.url);
-  if (url.searchParams.get("secret") !== expectedSecret) {
+  if (auth === "forbidden") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

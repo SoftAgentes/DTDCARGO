@@ -1,119 +1,120 @@
 # Setup Telegram Bot · DTD Studio
 
-> SDD-0036 Fase 5 follow-up · canal Telegram para notificaciones Studio.
-> Una vez configurado, cada user puede linkear su Telegram desde
-> ProfileModal · Preferencias y recibir avisos de bugs críticos y
-> respuestas admin via chat de Telegram.
+> SDD-0036 Fase 5 + SDD-0326 · canal Telegram para notificaciones Studio.
+> El webhook usa el header oficial de Telegram; nunca lleva el secreto primario
+> en la URL.
 
 ## 1. Crear el bot con @BotFather
 
-1. Abrí Telegram, buscá `@BotFather` y mandale `/start`.
-2. Mandale `/newbot`.
-3. Te pide nombre del bot (display): poné `DTD Studio Bot`.
-4. Te pide username (debe terminar en `bot`): poné `DTDStudioBot` o similar.
-   - Anotá el username (sin `@`) — vas a usarlo en env var.
-5. BotFather responde con tu **HTTP API token** (`123456789:ABC-DEF...`).
-   - Anotalo · es tu `TELEGRAM_BOT_TOKEN`.
-6. Opcional · poné descripción + foto del bot via:
-   - `/setdescription` → "Notificaciones de DTD Studio: bugs críticos, respuestas admin, alertas operativas."
-   - `/setuserpic` → mandá el logo DTD (160×160 PNG).
+1. Abre Telegram, busca `@BotFather` y envía `/start`.
+2. Envía `/newbot`.
+3. Usa `DTD Studio Bot` como nombre visible.
+4. Escoge un username terminado en `bot`, por ejemplo `DTDStudioBot`, y guarda
+   el nombre sin `@`.
+5. Guarda el HTTP API token entregado por BotFather como
+   `TELEGRAM_BOT_TOKEN`. Nunca lo copies al repositorio ni a un ticket.
+6. Opcionalmente configura descripción y foto mediante `/setdescription` y
+   `/setuserpic`.
 
-## 2. Configurar env vars
+## 2. Configurar variables
 
-### Local (`.env.local`)
+`TELEGRAM_WEBHOOK_SECRET` debe tener 1–256 caracteres y usar únicamente letras,
+números, `_` o `-`. Un valor hexadecimal aleatorio de 64 caracteres cumple el
+contrato.
 
-```
-TELEGRAM_BOT_TOKEN=123456789:ABC-DEF...
-TELEGRAM_WEBHOOK_SECRET=<openssl rand -hex 32>
+```dotenv
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_WEBHOOK_SECRET=
 NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=DTDStudioBot
 ```
 
-### Vercel producción
+Guárdalas en `.env.local` para desarrollo o en el secret manager de Vercel para
+Producción. Agregar, rotar o eliminar variables de Producción y desplegar son
+gates externos separados que requieren autorización del founder.
 
-```
-vercel env add TELEGRAM_BOT_TOKEN production
-vercel env add TELEGRAM_WEBHOOK_SECRET production
-vercel env add NEXT_PUBLIC_TELEGRAM_BOT_USERNAME production
-```
+## 3. Migrar un webhook que todavía usa `?secret=`
 
-(o desde el dashboard de Vercel · Settings → Environment Variables).
+No despliegues SDD-0326 sobre el webhook viejo sin este orden: el endpoint nuevo
+ya no acepta el secreto primario por query string.
 
-Redeploy después de agregar las vars.
+1. Copia el secreto vigente en la variable temporal de Producción
+   `TELEGRAM_WEBHOOK_LEGACY_QUERY_SECRET`, sin cambiar todavía
+   `TELEGRAM_WEBHOOK_SECRET`.
+2. Despliega el código de SDD-0326. El webhook viejo sigue entrando únicamente
+   por la variable legacy separada.
+3. Genera un secreto primario nuevo con el contrato indicado, actualiza
+   `TELEGRAM_WEBHOOK_SECRET` y despliega esa rotación.
+4. Configura Telegram con URL limpia y `secret_token` usando las variables del
+   entorno; no escribas valores reales en el historial de la terminal:
 
-## 3. Setear el webhook
+```powershell
+$telegramWebhookBody = @{
+  url = "https://dtdcargo.com/api/telegram/webhook"
+  secret_token = $env:TELEGRAM_WEBHOOK_SECRET
+  allowed_updates = @("message")
+} | ConvertTo-Json -Compress
 
-Después del primer deploy con las env vars activas:
-
-```bash
-TOKEN=123456789:ABC-DEF...
-SECRET=<lo que pusiste en TELEGRAM_WEBHOOK_SECRET>
-URL="https://dtdcargo.com/api/telegram/webhook?secret=$SECRET"
-
-curl -X POST "https://api.telegram.org/bot$TOKEN/setWebhook" \
-  -H "Content-Type: application/json" \
-  -d "{\"url\":\"$URL\",\"allowed_updates\":[\"message\"]}"
-```
-
-Debería responder `{"ok":true,"result":true,"description":"Webhook was set"}`.
-
-Verificá con:
-
-```bash
-curl "https://api.telegram.org/bot$TOKEN/getWebhookInfo"
-```
-
-## 4. Smoke test del link flow
-
-1. Abrí `/studio` en producción, abrí `Mi perfil → Preferencias`.
-2. En sección "Notificaciones por Telegram" tocá **Conectar Telegram**.
-3. Te aparece un link `t.me/DTDStudioBot?start=XXXXXXX`. Tocalo.
-4. Se abre Telegram + manda /start automático.
-5. El bot responde "Listo · tu cuenta…" + el badge en ProfileModal pasa
-   a "conectado" tras ~4-8s (polling auto-refresh).
-
-Si algo falla:
-- **Bot no responde**: revisar `TELEGRAM_BOT_TOKEN` en Vercel.
-- **"Código inválido"** del bot: el webhook llegó pero no encontró el code
-  (el code expira al primer uso · si tocaste el link 2 veces, el 2do falla).
-- **No pasa a "conectado" en UI**: revisar logs Vercel del endpoint
-  `/api/telegram/webhook` · puede estar fallando el secret o la DB.
-
-## 5. Wiring en el dispatch de notificaciones (pendiente)
-
-El helper `sendTelegramMessage(chatId, text)` ya existe en
-`lib/studio/telegram/send-message.ts`. El siguiente paso es wirearlo en
-el dispatch del Bug Reporter (junto a email + push) y en cualquier
-trigger nuevo que quieras notificar por Telegram.
-
-Patrón recomendado (ejemplo):
-
-```ts
-import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
-
-const { data: profile } = await admin
-  .from("user_profiles")
-  .select("telegram_chat_id")
-  .eq("user_id", targetUserId)
-  .maybeSingle<{ telegram_chat_id: string | null }>();
-
-if (profile?.telegram_chat_id) {
-  await sendTelegramMessage(
-    profile.telegram_chat_id,
-    `🚨 *Bug crítico* · ${bugTitle}\n\n${bugDescription}\n\nhttps://dtdcargo.com/studio/bugs/${bugId}`,
-    { parseMode: "MarkdownV2" },
-  );
-}
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "https://api.telegram.org/bot$env:TELEGRAM_BOT_TOKEN/setWebhook" `
+  -ContentType "application/json" `
+  -Body $telegramWebhookBody
 ```
 
-## 6. Apagar el bot (rollback)
+5. Verifica el estado sin imprimir secretos. La URL devuelta debe ser exactamente
+   `https://dtdcargo.com/api/telegram/webhook`, sin query string:
 
-Si necesitás apagar el canal Telegram sin borrar accounts linkeadas:
-
-```bash
-TOKEN=123456789:ABC-DEF...
-curl -X POST "https://api.telegram.org/bot$TOKEN/deleteWebhook"
+```powershell
+$telegramWebhookInfo = Invoke-RestMethod `
+  -Uri "https://api.telegram.org/bot$env:TELEGRAM_BOT_TOKEN/getWebhookInfo"
+$telegramWebhookInfo.result |
+  Select-Object url, pending_update_count, last_error_message
 ```
 
-El bot deja de recibir mensajes nuevos. Las accounts linkeadas mantienen
-`telegram_chat_id` en DB y vuelven a funcionar cuando re-seteás el
-webhook. Para borrar el bot completo, mandale `/deletebot` a @BotFather.
+6. Ejecuta el smoke del enlace descrito abajo.
+7. Elimina `TELEGRAM_WEBHOOK_LEGACY_QUERY_SECRET` de Producción, vuelve a
+   desplegar y repite `getWebhookInfo` y el smoke. Éste es el estado final.
+
+No uses `drop_pending_updates` durante la migración: podría descartar mensajes
+reales. Si cualquier paso falla, conserva temporalmente el secreto legacy y
+revisa los logs sin copiar URLs ni headers completos.
+
+## 4. Configurar un bot nuevo
+
+Después del primer deploy con las variables activas, ejecuta directamente el
+paso 4 de la sección anterior. Un bot nuevo nunca necesita
+`TELEGRAM_WEBHOOK_LEGACY_QUERY_SECRET`.
+
+Telegram debe responder `ok: true`. Confirma además que `getWebhookInfo` enseña
+la URL limpia y cero errores recientes.
+
+## 5. Smoke test del enlace
+
+1. Abre `/studio` en Producción y entra en `Mi perfil → Preferencias`.
+2. En “Notificaciones por Telegram”, pulsa **Conectar Telegram**.
+3. Abre el enlace `t.me/DTDStudioBot?start=XXXXXXX`.
+4. Telegram envía `/start` y el bot debe responder con la confirmación.
+5. El badge del perfil debe pasar a “conectado” después del refresco.
+
+Diagnóstico:
+
+- Si el bot no responde, revisa el token, `getWebhookInfo` y los logs del
+  endpoint sin imprimir secretos.
+- Si responde “Código inválido”, genera otro código; cada código es de un solo
+  uso.
+- Si la UI no cambia, revisa la base de datos y el polling del perfil.
+- Si el panel de salud marca “secreto en la URL”, el corte sigue incompleto.
+
+## 6. Apagar el bot
+
+`deleteWebhook` detiene la recepción de mensajes nuevos, pero no borra los
+`telegram_chat_id` ya enlazados. Es una escritura externa y requiere autorización
+específica. No pases `drop_pending_updates` salvo que el founder autorice
+descartar explícitamente la cola.
+
+## 7. Wiring de notificaciones
+
+El helper `sendTelegramMessage(chatId, text)` y el ruteo por categorías ya viven
+en `lib/studio/telegram/`. Toda integración nueva debe respetar el opt-in, evitar
+duplicados y tratar el envío como best-effort sin bloquear la transacción de
+negocio.

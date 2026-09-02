@@ -17,6 +17,7 @@ import {
   checkAllIntegrations,
   METERED_INTEGRATIONS,
   __checkSeaRatesForTests,
+  __telegramWebhookInfoHealthForTests,
 } from "../integration-health";
 
 /** Host que delata a cada integración medida en la URL consultada. */
@@ -115,6 +116,53 @@ describe("checkAllIntegrations · modo barato", () => {
     for (const clave of METERED_INTEGRATIONS) {
       expect(salud[clave].status).not.toBe("skipped");
     }
+  });
+});
+
+describe("Telegram webhook · secreto fuera de la URL", () => {
+  it("marca error sin revelar el valor cuando getWebhookInfo conserva ?secret=", () => {
+    const salud = __telegramWebhookInfoHealthForTests(
+      {
+        url: "https://dtdcargo.com/api/telegram/webhook?secret=no-imprimir",
+        pending_update_count: 0,
+      },
+      12,
+    );
+
+    expect(salud.status).toBe("error");
+    expect(salud.error).toContain("secreto en la URL");
+    expect(salud.error).not.toContain("no-imprimir");
+  });
+
+  it("declara sano el webhook limpio que usa el header oficial", () => {
+    const salud = __telegramWebhookInfoHealthForTests(
+      {
+        url: "https://dtdcargo.com/api/telegram/webhook",
+        pending_update_count: 0,
+      },
+      9,
+    );
+
+    expect(salud).toMatchObject({
+      status: "ok",
+      latencyMs: 9,
+      detail: "0 pendientes",
+    });
+  });
+
+  it("sigue rojo mientras permanezca habilitado el secreto legacy", () => {
+    const salud = __telegramWebhookInfoHealthForTests(
+      {
+        url: "https://dtdcargo.com/api/telegram/webhook",
+        pending_update_count: 0,
+      },
+      7,
+      true,
+    );
+
+    expect(salud.status).toBe("error");
+    expect(salud.error).toContain("compatibilidad");
+    expect(salud.error).toContain("query");
   });
 });
 
