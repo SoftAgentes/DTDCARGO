@@ -11,7 +11,7 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- HEAD actual: este commit; árbol limpio, 0 detrás / 47 delante de `origin/main`.
+- HEAD actual: este commit; árbol limpio, 0 detrás / 48 delante de `origin/main`.
 - La rama remota `codex/saneamiento-integral` todavía no existe.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
@@ -90,6 +90,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
     contiene este handoff y la migración 0410 todavía no aplicada.
 47. `fix(crm): SDD-0354 — minimizar facturación anual` — el commit que contiene
     este handoff y la migración 0411 todavía no aplicada.
+48. `fix(rbac): SDD-0354 — respetar permisos efectivos en agregado` — corrige
+    0411 antes de publicarla para respetar los overrides vigentes de SDD-0252.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0354. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
@@ -241,10 +243,11 @@ sólo-ledger y aislamiento verificado en 219 tablas / 2 tenants.
 
 SDD-0354 reemplaza la lectura fila por fila de facturas en Fidelización, CRM y
 Reportes por una RPC que entrega sólo Shipping Mark + USD trailing-12m. Deriva
-tenant y rol, limita la fecha al presente y conserva temporalmente el SELECT
+tenant y permisos efectivos (incluidos overrides), limita la fecha al presente y conserva temporalmente el SELECT
 general hasta migrar Conversaciones y Órdenes de venta. Pasó 40 pruebas focales,
 TypeScript, ESLint, 152 contratos SQL y el rebuild de 408 migraciones: 390 desde
-cero, 18 sólo-ledger y aislamiento verificado en 219 tablas / 2 tenants.
+cero, 18 sólo-ledger y aislamiento verificado en 219 tablas / 2 tenants. La
+corrección de overrides volvió a pasar la matriz SQL completa y el rebuild.
 
 ## Gates alojados no cruzados
 

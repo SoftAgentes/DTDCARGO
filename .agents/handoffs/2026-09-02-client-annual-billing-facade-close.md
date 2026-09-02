@@ -10,8 +10,9 @@ Estado: CERRADO LOCALMENTE · MIGRACIÓN ALOJADA PENDIENTE
 
 - `clientAnnualBilling()` dejó de leer filas de `invoices`.
 - `studio_client_annual_billing(date)` deriva el tenant del principal, exige
-  `commercial|support|accounting|admin` activos y devuelve únicamente Shipping
-  Mark + USD agregado de los últimos 12 meses.
+  acceso efectivo a Fidelización, CRM o Reportes y devuelve únicamente Shipping
+  Mark + USD agregado de los últimos 12 meses. El cierre correctivo de overrides
+  está en `2026-09-02-client-annual-billing-overrides-close.md`.
 - La fecha del caller queda acotada a `current_date ± 1 día`; no habilita
   consultas históricas arbitrarias.
 - Normalización, estados billable, fallback de fecha, soft-delete y aislamiento
@@ -39,7 +40,7 @@ Estado: CERRADO LOCALMENTE · MIGRACIÓN ALOJADA PENDIENTE
 - SQL: 152/152 contratos, rollback total.
 - Rebuild: 408 migraciones; 390 desde cero + 18 sólo-ledger; aislamiento en
   219 tablas y 2 tenants.
-- `docs:check`, `sdd:next --check`, `governance:check`, `components:check` y
+- `docs:check`, `sdd:check`, `governance:check`, `components:check` y
   `git diff --check`: verdes al cierre.
 
 ## Gates no cruzados

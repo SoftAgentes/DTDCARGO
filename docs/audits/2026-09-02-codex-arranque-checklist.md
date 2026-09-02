@@ -20,7 +20,7 @@ refrescarse antes de cualquier operación Git o alojada.
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 - Rama de saneamiento actual: el commit que contiene este checklist, con árbol
-  limpio, 0 detrás / 47 delante; la rama remota todavía no existe.
+  limpio, 0 detrás / 48 delante; la rama remota todavía no existe.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
@@ -60,8 +60,8 @@ merge a `main`, Cloud, Producción ni deploy.
   base. El SELECT directo queda admin-only en SDD-0353/migración 0410.
 - [x] Facturación anual de Fidelización/CRM minimizada: SDD-0354/migración 0411
   agrega en Postgres y entrega sólo Shipping Mark + USD trailing-12m a roles
-  autorizados; la aplicación ya no recibe moneda, tasa, estado ni fechas de
-  cada factura.
+  con acceso efectivo (incluidos overrides); la aplicación ya no recibe moneda,
+  tasa, estado ni fechas de cada factura.
 - [x] Gate canónico posterior a SDD-0348 sin fallos: 14/15 pasos medidos; sólo
   Cloud quedó `SKIP` por falta deliberada de credenciales. E2E: 150 pasaron y 18
   Tier 3 se omitieron; build: 158 páginas. Suite unitaria posterior a SDD-0348:

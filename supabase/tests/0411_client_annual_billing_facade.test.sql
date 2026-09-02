@@ -41,6 +41,14 @@ language sql stable security definer set search_path = public as $$
   where ut.user_id = (select auth.uid()) and ut.disabled_at is null limit 1
 $$;
 
+create table public.studio_role_module_overrides (
+  tenant_id uuid not null,
+  role text not null,
+  module_id text not null,
+  can_view boolean not null,
+  primary key (tenant_id, role, module_id)
+);
+
 create table public.invoices (
   id uuid primary key,
   tenant_id uuid not null,
@@ -187,6 +195,57 @@ begin
 end;
 $allowed_roles$;
 
+reset role;
+
+-- Los módulos no financieros admiten permisos editables. La fachada aplica
+-- la unión de sus consumidores: basta Fidelización O CRM; Reportes es locked.
+insert into public.studio_role_module_overrides
+  (tenant_id, role, module_id, can_view)
+values
+  ('10000000-4100-0000-0000-000000000001', 'support', 'fidelizacion', false),
+  ('10000000-4100-0000-0000-000000000001', 'commercial', 'fidelizacion', false),
+  ('10000000-4100-0000-0000-000000000001', 'commercial', 'kommo', false),
+  ('10000000-4100-0000-0000-000000000001', 'operations', 'fidelizacion', true);
+
+set local role authenticated;
+do $explicit_revocations$
+declare v_user uuid; v_blocked boolean;
+begin
+  foreach v_user in array array[
+    'aaaaaaaa-4100-0000-0000-000000000002'::uuid,
+    'aaaaaaaa-4100-0000-0000-000000000003'::uuid
+  ] loop
+    perform pg_catalog.set_config('request.jwt.claim.sub', v_user::text, true);
+    v_blocked := false;
+    begin
+      perform * from public.studio_client_annual_billing(current_date);
+    exception when insufficient_privilege then
+      v_blocked := true;
+    end;
+    if not v_blocked then
+      raise exception 'TEST 0411: se ignoró la revocación explícita de %', v_user;
+    end if;
+  end loop;
+end;
+$explicit_revocations$;
+
+set local "request.jwt.claim.sub" = 'aaaaaaaa-4100-0000-0000-000000000005';
+do $explicit_grant$
+begin
+  if (select count(*) from public.studio_client_annual_billing(current_date)) <> 3 then
+    raise exception 'TEST 0411: se ignoró la concesión efectiva a operations';
+  end if;
+end;
+$explicit_grant$;
+
+set local "request.jwt.claim.sub" = 'bbbbbbbb-4100-0000-0000-000000000001';
+do $override_tenant_isolation$
+begin
+  if (select count(*) from public.studio_client_annual_billing(current_date)) <> 1 then
+    raise exception 'TEST 0411: un override del tenant A afectó al tenant B';
+  end if;
+end;
+$override_tenant_isolation$;
 reset role;
 
 rollback;

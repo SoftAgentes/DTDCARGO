@@ -12,6 +12,7 @@ related:
   - SDD-0051
   - SDD-0052
   - SDD-0078
+  - SDD-0252
   - SDD-0350
 confidencialidad: interno
 ---
@@ -30,8 +31,9 @@ roles comerciales y bloqueaba el cierre posterior del SELECT de `invoices`.
 
 1. Crear `studio_client_annual_billing(date)`, sin parámetro de tenant y ligada
    a la membresía activa del caller.
-2. Permitir sólo `commercial|support|accounting|admin`; Operaciones y membresías
-   desactivadas fallan con `42501`.
+2. Exigir acceso efectivo a Fidelización, CRM o Reportes. Reportes mantiene el
+   candado `accounting|admin`; los otros dos módulos respetan concesiones y
+   revocaciones en `studio_role_module_overrides` antes de usar su default.
 3. Normalizar y agregar dentro de Postgres: USD/USDT 1:1, VES dividido por una
    tasa positiva y CNY/valores sin tasa omitidos; contar sólo estados billable.
 4. Devolver únicamente `client_markbox` y `billed_usd`, paginados con orden
@@ -62,6 +64,7 @@ roles comerciales y bloqueaba el cierre posterior del SELECT de `invoices`.
 - `docs/specs/README.md`
 - `docs/audits/2026-09-02-codex-arranque-checklist.md`
 - `.agents/handoffs/2026-09-02-client-annual-billing-facade-close.md`
+- `.agents/handoffs/2026-09-02-client-annual-billing-overrides-close.md`
 - `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`
 
 ## Aceptación
@@ -70,8 +73,9 @@ roles comerciales y bloqueaba el cierre posterior del SELECT de `invoices`.
   facturación trailing-12m.
 - La normalización, estados, fecha fallback, soft-delete y aislamiento quedan
   cubiertos por contrato SQL con rollback total.
-- Roles permitidos reciben sólo su tenant; roles ajenos, cuentas desactivadas y
-  fechas históricas arbitrarias fallan cerrados.
+- Roles con acceso efectivo reciben sólo su tenant; revocaciones explícitas,
+  roles sin acceso, cuentas desactivadas y fechas históricas arbitrarias fallan
+  cerrados. Una concesión a Fidelización/CRM no abre facturas individuales.
 - Pruebas focales, contrato SQL, rebuild, TypeScript, lint, docs, numeración,
   gobernanza y diff pasan.
 

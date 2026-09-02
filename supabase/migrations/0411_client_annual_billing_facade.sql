@@ -8,7 +8,7 @@
 -- ESTE SLICE:
 --   · crea una RPC sin parámetro de tenant;
 --   · agrega en SQL y devuelve sólo Shipping Mark + billed_usd;
---   · exige commercial|support|accounting|admin con membresía activa;
+--   · exige acceso efectivo a Fidelización, CRM o Reportes (incluye overrides);
 --   · limita p_as_of al presente (±1 día por diferencia de zona horaria);
 --   · no cambia todavía la policy SELECT de invoices.
 --
@@ -19,6 +19,9 @@ do $preflight$
 begin
   if pg_catalog.to_regclass('public.invoices') is null then
     raise exception '0411 requiere public.invoices';
+  end if;
+  if pg_catalog.to_regclass('public.studio_role_module_overrides') is null then
+    raise exception '0411 requiere studio_role_module_overrides (0357)';
   end if;
   if pg_catalog.to_regprocedure('public.get_user_tenant_id()') is null
      or pg_catalog.to_regprocedure('public.current_studio_role()') is null then
@@ -50,10 +53,36 @@ as $$
 declare
   v_tenant uuid := public.get_user_tenant_id();
   v_role text := public.current_studio_role();
+  v_allowed boolean;
 begin
   if v_tenant is null
      or v_role is null
-     or v_role not in ('commercial', 'support', 'accounting', 'admin') then
+     or v_role not in ('commercial', 'operations', 'accounting', 'warehouse', 'support', 'marketing', 'admin') then
+    raise exception 'Acceso no autorizado a facturación anual'
+      using errcode = '42501';
+  end if;
+
+  -- Reportes es MONEY_MODULE: accounting/admin, candado sin overrides.
+  -- Fidelización y CRM sí son editables (SDD-0252). Fila ausente = defaults
+  -- de rbac.ts; una revocación explícita NO debe reabrirse por el default.
+  v_allowed := v_role in ('accounting', 'admin');
+  if not v_allowed then
+    select
+      coalesce((
+        select o.can_view
+        from public.studio_role_module_overrides as o
+        where o.tenant_id = v_tenant and o.role = v_role
+          and o.module_id = 'fidelizacion'
+      ), v_role in ('commercial', 'support'))
+      or coalesce((
+        select o.can_view
+        from public.studio_role_module_overrides as o
+        where o.tenant_id = v_tenant and o.role = v_role
+          and o.module_id = 'kommo'
+      ), v_role = 'commercial')
+    into v_allowed;
+  end if;
+  if not v_allowed then
     raise exception 'Acceso no autorizado a facturación anual'
       using errcode = '42501';
   end if;
@@ -110,7 +139,7 @@ grant execute on function public.studio_client_annual_billing(date)
   to authenticated;
 
 comment on function public.studio_client_annual_billing(date) is
-  'SDD-0354: facturación trailing-12m USD agregada por Shipping Mark para commercial|support|accounting|admin. Deriva tenant y no expone facturas individuales.';
+  'SDD-0354: facturación trailing-12m USD agregada por Shipping Mark. Exige acceso efectivo a Fidelización, CRM o Reportes, respeta overrides por rol y no expone facturas individuales.';
 
 do $postflight$
 begin
