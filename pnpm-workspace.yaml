@@ -5,8 +5,20 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 
-# Cierre de advisories heredados por Next 16.2.11. pnpm 11 resuelve overrides
-# desde el workspace root, no desde el manifest del paquete.
+# Cierre de advisories transitivos. pnpm 11 resuelve overrides desde el
+# workspace root, no desde el manifest del paquete.
 overrides:
-  postcss: 8.5.18
+  "@hono/node-server": 1.19.15
+  "brace-expansion@1": 1.1.18
+  "brace-expansion@2": 2.1.4
+  "brace-expansion@5": 5.0.9
+  browserslist: 4.28.7
+  fast-uri: 3.1.6
+  hono: 4.12.34
+  ip-address: 10.5.0
+  js-yaml: 4.3.1
+  "nanoid@3": 3.3.18
+  postcss: 8.5.23
   sharp: 0.35.3
+  undici: 7.29.0
+  vite: 8.0.16
