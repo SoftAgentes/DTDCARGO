@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * ServicioDrawer — editor de un servicio (SDD-0076 Fase 2 + editor diferido).
  *
@@ -146,8 +148,7 @@ export function ServicioDrawer({
       width={660}
     >
       {/* Tabs */}
-      <nav
-        role="tablist"
+      <RovingTabList
         aria-label="Secciones del servicio"
         style={{
           display: "flex",
@@ -181,7 +182,7 @@ export function ServicioDrawer({
             </button>
           );
         })}
-      </nav>
+      </RovingTabList>
 
       {/* Body */}
       {tab === "servicio" ? (

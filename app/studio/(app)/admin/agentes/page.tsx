@@ -108,7 +108,6 @@ export default async function AgentesPage({
 
       {/* Tabs */}
       <nav
-        role="tablist"
         aria-label="Vistas de Agentes y Skills"
         style={{
           display: "flex",
@@ -123,8 +122,7 @@ export default async function AgentesPage({
             <Link
               key={t.key}
               href={`/studio/admin/agentes?tab=${t.key}`}
-              role="tab"
-              aria-selected={isActive}
+              aria-current={isActive ? "page" : undefined}
               style={{
                 padding: "10px 14px",
                 font: "600 13px/1 var(--f-sans)",

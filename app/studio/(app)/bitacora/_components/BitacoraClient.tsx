@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * BitacoraClient · orquestador del módulo (SDD-0146 · Fase 1).
  *
@@ -284,8 +286,7 @@ export function BitacoraClient({
 
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {/* Toggle Tablero | Lista */}
-          <div
-            role="tablist"
+          <RovingTabList
             aria-label="Vista"
             style={{
               display: "inline-flex",
@@ -319,7 +320,7 @@ export function BitacoraClient({
                 </button>
               );
             })}
-          </div>
+          </RovingTabList>
 
           {canEdit && (
             <Link

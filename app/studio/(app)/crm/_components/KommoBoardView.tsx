@@ -150,8 +150,7 @@ export function KommoBoardView({
   return (
     <div>
       {/* Selector de embudo (links · sin JS de cliente) */}
-      <div
-        role="tablist"
+      <nav
         aria-label="Embudos"
         style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}
       >
@@ -161,8 +160,7 @@ export function KommoBoardView({
             <Link
               key={p.id}
               href={`/studio/crm?tab=tablero&pipeline=${p.id}`}
-              role="tab"
-              aria-selected={isActive}
+              aria-current={isActive ? "page" : undefined}
               className="studio-btn studio-btn-sm"
               style={{
                 background: isActive ? "var(--bg-elevated)" : "transparent",
@@ -176,7 +174,7 @@ export function KommoBoardView({
             </Link>
           );
         })}
-      </div>
+      </nav>
 
       {cols.length === 0 ? (
         <EmptyState

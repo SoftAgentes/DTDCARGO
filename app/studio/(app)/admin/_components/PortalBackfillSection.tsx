@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * PortalBackfillSection — adopción del portal (2026-07-11). Embudo compartido
  * arriba + dos pestañas:
@@ -1928,8 +1930,7 @@ export function PortalBackfillSection({
       )}
 
       {/* Tabs */}
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Adopción del portal"
         style={{
           display: "flex",
@@ -1976,7 +1977,7 @@ export function PortalBackfillSection({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       {tab === "invite" ? (
         <InviteCandidatesPanel candidates={candidates} />

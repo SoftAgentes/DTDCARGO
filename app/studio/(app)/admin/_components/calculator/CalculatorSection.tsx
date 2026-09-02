@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * CalculatorSection — sección "Calculadora pública" de Administración (grupo PRO).
  *
@@ -44,8 +46,7 @@ export function CalculatorSection({
   return (
     <div>
       {/* Sub-tabs · Parámetros | Ciudades */}
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Secciones del calculador"
         style={{
           display: "flex",
@@ -75,7 +76,7 @@ export function CalculatorSection({
           onClick={() => setTab("transportistas")}
           label="Transportistas"
         />
-      </div>
+      </RovingTabList>
 
       {tab === "parametros" && (
         <div

@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * MailingClient · orquestador del módulo Mailing admin (SDD-0026 Fase 3a).
  *
@@ -124,8 +126,7 @@ export function MailingClient({
   return (
     <>
       {/* Tabs */}
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Mailing"
         style={{
           display: "inline-flex",
@@ -163,7 +164,7 @@ export function MailingClient({
             {t.label}
           </button>
         ))}
-      </div>
+      </RovingTabList>
 
       {tab === "templates" && <TemplatesView templates={templatesFull} />}
 

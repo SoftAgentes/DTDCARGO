@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * NuevaReunionClient · ingesta de conversación (SDD-0146 · Fase 2 + Fase 3).
  *
@@ -195,8 +197,7 @@ export function NuevaReunionClient({
           <div className="studio-label" style={{ marginBottom: "var(--s-2)" }}>
             Tipo de conversación
           </div>
-          <div
-            role="tablist"
+          <RovingTabList
             aria-label="Tipo de conversación"
             style={{
               display: "inline-flex",
@@ -235,7 +236,7 @@ export function NuevaReunionClient({
                 </button>
               );
             })}
-          </div>
+          </RovingTabList>
         </div>
 
         {/* Cliente (solo variante cliente) */}
@@ -281,8 +282,7 @@ export function NuevaReunionClient({
           <div className="studio-label" style={{ marginBottom: "var(--s-2)" }}>
             Conversación
           </div>
-          <div
-            role="tablist"
+          <RovingTabList
             aria-label="Cómo aportar la conversación"
             style={{
               display: "inline-flex",
@@ -321,7 +321,7 @@ export function NuevaReunionClient({
                 </button>
               );
             })}
-          </div>
+          </RovingTabList>
         </div>
 
         {mode === "audio" ? (

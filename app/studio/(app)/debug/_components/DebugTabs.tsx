@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * Torre de control · navegación por pestañas (SDD-0050 Slice A).
  *
@@ -75,8 +77,7 @@ export function DebugTabs({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-5)" }}>
       {/* Barra de pestañas */}
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Torre de control"
         style={{
           display: "flex",
@@ -128,7 +129,7 @@ export function DebugTabs({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       {/* Banner de modo genérico para las pestañas que no traen el suyo propio.
           Norte y Radar traen su PROPIO banner de limitación (mode-aware, en

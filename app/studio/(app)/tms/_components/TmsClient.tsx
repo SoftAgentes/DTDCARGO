@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * TmsClient — orquestador del módulo TMS (SDD-0019).
  *
@@ -101,8 +103,8 @@ export function TmsClient({
   return (
     <>
       {/* Tabs */}
-      <div
-        role="tablist"
+      <RovingTabList
+        aria-label="Vistas de TMS"
         style={{
           display: "flex",
           gap: 2,
@@ -154,7 +156,7 @@ export function TmsClient({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       {/* Tab content */}
       {tab === "overview" && (

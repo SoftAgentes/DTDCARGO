@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * Usuarios y roles — la pantalla (SDD-0274 · slices 2, 3 y 4).
  *
@@ -142,8 +144,7 @@ export function UsersClient({
 
   return (
     <>
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Secciones de usuarios y roles"
         style={{
           display: "flex",
@@ -166,7 +167,7 @@ export function UsersClient({
         >
           Invitaciones
         </Tab>
-      </div>
+      </RovingTabList>
 
       {tab === "personas" && (
         <>

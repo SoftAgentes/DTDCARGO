@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * TemplateEditorDrawer · edit form para un mail_template (SDD-0026 Fase 3b).
  *
@@ -84,8 +86,7 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
       width={760}
     >
       {/* Toggle Editor / Preview */}
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Vista template"
         style={{
           padding: "12px 24px 0",
@@ -119,7 +120,7 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
             {v === "editor" ? "Editor" : "Preview"}
           </button>
         ))}
-      </div>
+      </RovingTabList>
 
       {view === "editor" && (
         <form

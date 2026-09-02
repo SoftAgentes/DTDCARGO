@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * Orquestador client de la Academia DTD (SDD-0093, Slice B). Port del Norte
  * `academia.js` con las primitivas reales del repo (KpiCard, Badge, EmptyState,
@@ -150,8 +152,7 @@ export function AcademiaClient({
       </div>
 
       {/* Tabs */}
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Vistas de la Academia"
         style={{
           display: "flex",
@@ -191,7 +192,7 @@ export function AcademiaClient({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       <div
         role="tabpanel"

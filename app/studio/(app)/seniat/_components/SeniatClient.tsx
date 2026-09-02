@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * SeniatClient — orquestador del módulo Aduana SENIAT.
  *
@@ -164,8 +166,8 @@ export function SeniatClient({
   return (
     <>
       {/* Tabs */}
-      <div
-        role="tablist"
+      <RovingTabList
+        aria-label="Vistas de SENIAT"
         style={{
           display: "flex",
           gap: 2,
@@ -217,7 +219,7 @@ export function SeniatClient({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       {/* Toolbar (solo para queue/cleared) */}
       {(tab === "queue" || tab === "cleared") && (

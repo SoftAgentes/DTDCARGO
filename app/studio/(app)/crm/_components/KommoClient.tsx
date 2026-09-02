@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * Tablero CRM Kommo (SDD-0078) — orquestador client con 2 pestañas.
  *
@@ -288,8 +290,7 @@ export function KommoClient({
       </div>
 
       {/* Pestañas */}
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Tablero CRM"
         style={{
           display: "flex",
@@ -325,7 +326,7 @@ export function KommoClient({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       {/* Contenido */}
       {tab === "direccion" ? (

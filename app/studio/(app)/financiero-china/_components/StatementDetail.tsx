@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * Detalle de un estado de cuenta en reconciliación (SDD-0059 · Slice B2).
  *
@@ -328,8 +330,8 @@ export function StatementDetail({
       )}
 
       {/* Tabs por estado de match */}
-      <div
-        role="tablist"
+      <RovingTabList
+        aria-label="Estado de conciliación"
         style={{
           display: "flex",
           gap: 4,
@@ -375,7 +377,7 @@ export function StatementDetail({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       <div
         style={{

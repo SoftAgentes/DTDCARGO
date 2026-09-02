@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * BoardList · vista Lista de Bitácora (SDD-0146 · Fase 1 → columnas
  * configurables + agrupación "Por persona" en Fase 6).
@@ -292,8 +294,7 @@ export function BoardList({
           flexWrap: "wrap",
         }}
       >
-        <div
-          role="tablist"
+        <RovingTabList
           aria-label="Modo de la lista"
           style={{
             display: "inline-flex",
@@ -332,7 +333,7 @@ export function BoardList({
               </button>
             );
           })}
-        </div>
+        </RovingTabList>
 
         <div
           style={{

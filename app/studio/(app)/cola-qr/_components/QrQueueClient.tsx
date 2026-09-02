@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * QrQueueClient — orquestador de la cola QR (SDD-0033).
  *
@@ -109,8 +111,8 @@ export function QrQueueClient({ orders, kpis, filters, warehouses }: Props) {
       <QrQueueKpis kpis={kpis} />
 
       {/* Tabs */}
-      <div
-        role="tablist"
+      <RovingTabList
+        aria-label="Vistas de cola QR"
         style={{
           display: "flex",
           gap: 2,
@@ -144,7 +146,7 @@ export function QrQueueClient({ orders, kpis, filters, warehouses }: Props) {
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       {/* Toolbar */}
       <div

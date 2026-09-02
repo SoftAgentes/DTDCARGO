@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * El drawer del lead — los verbos que no cabían en una fila (SDD-0256 · Fases 4 y 5).
  *
@@ -152,8 +154,7 @@ export function LeadDrawer({
         )}
 
         {/* Selector de verbo */}
-        <div
-          role="tablist"
+        <RovingTabList
           aria-label="Qué hacer con el lead"
           style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap", marginBottom: 18 }}
         >
@@ -179,7 +180,7 @@ export function LeadDrawer({
               </button>
             );
           })}
-        </div>
+        </RovingTabList>
 
         <form
           id={FORM_ID}

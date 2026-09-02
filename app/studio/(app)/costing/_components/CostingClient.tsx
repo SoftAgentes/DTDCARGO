@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * Orquestador client del módulo Costing & Margen (SDD-0053 · Slice B).
  *
@@ -170,8 +172,8 @@ export function CostingClient({
       )}
 
       {/* Tabs */}
-      <div
-        role="tablist"
+      <RovingTabList
+        aria-label="Vistas de Costing"
         style={{
           display: "flex",
           gap: 4,
@@ -205,7 +207,7 @@ export function CostingClient({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       {/* Tabs de embarques: empty-state si todavía no hay embarques. */}
       {(tab === "overview" || tab === "ranking" || tab === "breakdown" || tab === "routes") &&

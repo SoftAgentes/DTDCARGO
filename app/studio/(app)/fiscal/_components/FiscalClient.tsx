@@ -15,13 +15,8 @@
  */
 
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-  type KeyboardEvent,
-} from "react";
+import { useMemo, useState, useTransition } from "react";
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
 import { rowsToCsv, type CsvValue } from "@/lib/studio/reports/export-csv";
 import { downloadTextFile } from "@/app/studio/_components/ui/download";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -109,34 +104,12 @@ export function FiscalClient({
   const router = useRouter();
   const params = useSearchParams();
   const moduleOn = isFiscalModuleEnabled(settings);
-  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const go = (next: Partial<{ tab: FiscalTab; period: FiscalPeriod }>) => {
     const sp = new URLSearchParams(params.toString());
     if (next.tab) sp.set("tab", next.tab);
     if (next.period) sp.set("period", next.period);
     router.push(`/studio/fiscal?${sp.toString()}`);
-  };
-
-  const handleTabKey = (
-    event: KeyboardEvent<HTMLButtonElement>,
-    currentIndex: number,
-  ) => {
-    let nextIndex: number | null = null;
-    if (event.key === "ArrowRight") {
-      nextIndex = (currentIndex + 1) % TABS.length;
-    } else if (event.key === "ArrowLeft") {
-      nextIndex = (currentIndex - 1 + TABS.length) % TABS.length;
-    } else if (event.key === "Home") {
-      nextIndex = 0;
-    } else if (event.key === "End") {
-      nextIndex = TABS.length - 1;
-    }
-
-    if (nextIndex == null) return;
-    event.preventDefault();
-    tabRefs.current[nextIndex]?.focus();
-    go({ tab: TABS[nextIndex].id });
   };
 
   return (
@@ -168,8 +141,7 @@ export function FiscalClient({
       </header>
 
       {/* Tabs (navegación por URL) */}
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Secciones del módulo fiscal"
         aria-orientation="horizontal"
         style={{
@@ -181,14 +153,11 @@ export function FiscalClient({
           marginBottom: 24,
         }}
       >
-        {TABS.map((t, index) => {
+        {TABS.map((t) => {
           const active = t.id === tab;
           return (
             <button
               key={t.id}
-              ref={(node) => {
-                tabRefs.current[index] = node;
-              }}
               type="button"
               role="tab"
               id={`fiscal-tab-${t.id}`}
@@ -196,7 +165,6 @@ export function FiscalClient({
               aria-selected={active}
               tabIndex={active ? 0 : -1}
               onClick={() => go({ tab: t.id })}
-              onKeyDown={(event) => handleTabKey(event, index)}
               className="studio-btn studio-btn-ghost"
               style={{
                 appearance: "none",
@@ -216,7 +184,7 @@ export function FiscalClient({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       <div
         role="tabpanel"

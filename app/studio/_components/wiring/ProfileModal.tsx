@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * ProfileModal — 3 tabs (Datos personales · Contraseña · Preferencias).
  * SDD-0034 + wireup real a user_profiles (SDD-0024).
@@ -60,8 +62,8 @@ export function ProfileModal({
   return (
     <ModalShell title="Mi perfil" onClose={onClose} width={620}>
       {/* Tabs */}
-      <div
-        role="tablist"
+      <RovingTabList
+        aria-label="Secciones del perfil"
         style={{
           display: "flex",
           gap: 2,
@@ -98,7 +100,7 @@ export function ProfileModal({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       <div
         style={{

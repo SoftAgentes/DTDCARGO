@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * BugDrawer · drawer 720px con 3 tabs (Conversación · Técnicos · Acciones).
  * SDD-0036 Fase 3.
@@ -251,8 +253,8 @@ export function BugDrawer({
         </div>
 
         {/* Tab strip */}
-        <div
-          role="tablist"
+        <RovingTabList
+          aria-label="Secciones del reporte"
           style={{
             display: "flex",
             gap: 2,
@@ -285,7 +287,7 @@ export function BugDrawer({
               {t === "conv" ? "Conversación" : t === "tech" ? "Datos técnicos" : "Acciones"}
             </button>
           ))}
-        </div>
+        </RovingTabList>
 
         {/* Body */}
         <div

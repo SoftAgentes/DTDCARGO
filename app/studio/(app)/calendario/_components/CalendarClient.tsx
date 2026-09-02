@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * CalendarClient — orquestador del Calendario operativo (Slice 1 · Norte).
  *
@@ -140,8 +142,7 @@ export function CalendarClient({
   return (
     <div>
       {/* Tabs nivel-1 */}
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Secciones del calendario"
         style={{
           display: "flex",
@@ -188,7 +189,7 @@ export function CalendarClient({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       {tab === "calendar" && (
         <div className="studio-calendar-grid">
@@ -255,8 +256,7 @@ export function CalendarClient({
               </button>
 
               {/* Selector de vista */}
-              <div
-                role="tablist"
+              <RovingTabList
                 aria-label="Vista del calendario"
                 style={{
                   display: "inline-flex",
@@ -278,7 +278,7 @@ export function CalendarClient({
                     {o.icon()} {o.label}
                   </button>
                 ))}
-              </div>
+              </RovingTabList>
             </div>
 
             {view === "month" && (

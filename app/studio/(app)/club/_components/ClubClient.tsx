@@ -9,6 +9,7 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
 import { MembersView } from "./MembersView";
 import { GroupBuysView } from "./GroupBuysView";
 import { EventsView } from "./EventsView";
@@ -82,21 +83,6 @@ export function ClubClient({
     return "miembros";
   });
 
-  // Navegación por flechas del patrón ARIA tablist (complemento del roving
-  // tabindex: sin esto la tab inactiva queda inalcanzable por teclado).
-  const onTabKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    e.preventDefault();
-    const idx = TABS.findIndex((t) => t.value === tab);
-    const nextIdx =
-      e.key === "ArrowRight"
-        ? (idx + 1) % TABS.length
-        : (idx - 1 + TABS.length) % TABS.length;
-    const next = TABS[nextIdx].value;
-    setTab(next);
-    document.getElementById(`club-tab-${next}`)?.focus();
-  };
-
   return (
     <div style={{ maxWidth: 1280 }}>
       {/* Header */}
@@ -124,10 +110,8 @@ export function ClubClient({
       </div>
 
       {/* Tabs */}
-      <div
-        role="tablist"
+      <RovingTabList
         aria-label="Vistas del Club"
-        onKeyDown={onTabKeyDown}
         style={{
           display: "flex",
           gap: "var(--s-1)",
@@ -162,7 +146,7 @@ export function ClubClient({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       <div role="tabpanel" id={`club-panel-${tab}`} aria-labelledby={`club-tab-${tab}`}>
         {tab === "miembros" && <MembersView stats={stats} members={members} />}

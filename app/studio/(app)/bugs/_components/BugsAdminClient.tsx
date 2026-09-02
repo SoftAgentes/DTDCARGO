@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * BugsAdminClient · orquestador del Bug Tracker admin (SDD-0036 Fase 3).
  *
@@ -228,8 +230,7 @@ export function BugsAdminClient({
           flexWrap: "wrap",
         }}
       >
-        <div
-          role="tablist"
+        <RovingTabList
           aria-label="Vistas Bug Tracker"
           style={{
             display: "inline-flex",
@@ -255,7 +256,7 @@ export function BugsAdminClient({
               onClick={() => changeTab(tab)}
             />
           ))}
-        </div>
+        </RovingTabList>
 
         {/* F6.3 Export CSV (disabled si no hay bugs) */}
         <button

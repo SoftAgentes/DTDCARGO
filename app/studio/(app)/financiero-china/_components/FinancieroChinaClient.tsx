@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * Orquestador client del módulo Financiero con el Socio China
  * (SDD-0059 · Slice B2).
@@ -205,8 +207,8 @@ export function FinancieroChinaClient({
       ) : (
         <>
           {/* Tabs */}
-          <div
-            role="tablist"
+          <RovingTabList
+            aria-label="Vistas de Financiero China"
             style={{
               display: "flex",
               gap: 4,
@@ -262,7 +264,7 @@ export function FinancieroChinaClient({
                 </button>
               );
             })}
-          </div>
+          </RovingTabList>
 
           {tab === "reconciliacion" && (
             <ReconciliationTab

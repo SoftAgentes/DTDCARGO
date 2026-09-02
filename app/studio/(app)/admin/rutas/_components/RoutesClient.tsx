@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * RoutesClient — orquestador admin de rutas + ciudades (SDD-0029).
  *
@@ -99,8 +101,8 @@ export function RoutesClient({ routes, cities, citiesCount, veCatalog }: Props) 
   return (
     <>
       {/* Tabs */}
-      <div
-        role="tablist"
+      <RovingTabList
+        aria-label="Vistas de rutas"
         style={{
           display: "flex",
           gap: 2,
@@ -146,7 +148,7 @@ export function RoutesClient({ routes, cities, citiesCount, veCatalog }: Props) 
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
 
       {tab === "routes" ? (
         <RoutesTab

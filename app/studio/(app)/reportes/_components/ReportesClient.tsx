@@ -1,5 +1,7 @@
 "use client";
 
+import { RovingTabList } from "@/app/studio/_components/ui/RovingTabList";
+
 /**
  * Orquestador client del módulo Reportes & Analytics (SDD-0052 · Slices A+B).
  *
@@ -408,8 +410,8 @@ export function ReportesClient({
 
       {/* Nivel 2 · reporte dentro de la categoría (el Constructor no tiene tabs) */}
       {tabs.length > 0 && (
-      <div
-        role="tablist"
+      <RovingTabList
+        aria-label="Reportes de la categoría"
         style={{
           display: "flex",
           gap: 4,
@@ -443,7 +445,7 @@ export function ReportesClient({
             </button>
           );
         })}
-      </div>
+      </RovingTabList>
       )}
 
       {/* Vistas · Operacionales (Slice A) */}
