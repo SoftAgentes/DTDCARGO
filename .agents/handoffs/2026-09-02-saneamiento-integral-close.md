@@ -43,6 +43,13 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   13 RPC nuevas ausentes,15 buckets privados y versiones Edge inventariadas.
   No se aplicó SQL alojado ni se reintentó push. Acta y pendientes específicos:
   `docs/audits/2026-09-02-codex-release-preflight.md`. Checklist48/103 sin inflar.
+  Ese correctivo quedó en `f12ed8ae`. El cierre siguiente, sólo documental,
+  completa 94 columnas/tipos en 16 relaciones, ACL y comparación/auth de las
+  cuatro Edge alojadas. Resultado vigente: 49/103 (47,6 %), 54 pendientes.
+  Dependencias de release 0399→0410 y 0407→0411 explícitas; ninguna aplicada.
+  Se conservan los helpers Edge anteriores sin redesplegar: el delta detectado
+  está fuera de los helpers llamados por esas entradas. No equivale a smoke.
+  Esta documentación añade un decimotercer incremento local sin publicar.
 
 ## Trabajo rescatado y cerrado
 
@@ -230,11 +237,19 @@ Rebuild de esta misma migración:420 archivos (402 schema+18 sólo-ledger),
 (4 de rendimiento y1 de search_path del helper), ninguno en la función
 modificada. Revisión independiente aprobada. Spec con matriz SGE-00/BTN/MP/AUD
 y recibo advisory de datos; sin certificación de SDD-0258 ni de producción.
-Índice:358 specs,91 sin cierre documental. Checklist actualizado tras qs:48/103
-(46,6 %),55 pendientes; no es avance del producto ni estimación de horas.
-Once incrementos locales requieren publicación autorizada. Las pruebas de qs
+Índice:358 specs,91 sin cierre documental. Checklist vigente tras preflight:49/103
+(47,6 %),54 pendientes; no es avance del producto ni estimación de horas.
+Trece incrementos locales requieren publicación autorizada. Las pruebas de qs
 son adicionales y están en su acta; no se presentan TS/build/SQL anteriores
 como ejecuciones nuevas de ese mantenimiento de desarrollo.
+
+El cierre documental sobre f12ed8ae sólo modifica esta entrega, el checklist
+y el acta de release. Sin cambios SQL/TS, secretos, configuración, main o
+proveedores. Verificación proporcional: docs:check, diff --check y recuento
+de las 103 casillas; los 165 contratos SQL/rebuild420 corresponden al correctivo
+anterior, no se vuelven a atribuir a este incremento documental. Inventario de
+tareas: 50 recientes, sólo `Audita y limpia worktrees` de DTDCargo; ningún otro
+cwd observado apunta al worker. El checkout principal no se movió.
 
 Evidencia anterior, no ejecución nueva en0423:
 

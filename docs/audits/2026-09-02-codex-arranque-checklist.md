@@ -19,7 +19,7 @@ refrescarse antes de cualquier operación Git o alojada.
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
-**Avance del checklist: 48 de 103 casillas completadas (46,6 %).** Es un
+**Avance del checklist: 49 de 103 casillas completadas (47,6 %); 54 pendientes.** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
 varios cambios. No existe todavía una medición defendible del producto completo.
@@ -28,7 +28,7 @@ varios cambios. No existe todavía una medición defendible del producto complet
 |---|---:|---|
 | Correcciones locales enumeradas | 26 / 26 | Implementadas/verificadas localmente; no equivale a producción |
 | Cierre Git y publicación | 12 / 21 | Publicación parcial; falta lote nuevo e integración |
-| Cloud y operación alojada | 2 / 31 | Dependen de autorizaciones nominales y comprobaciones reales |
+| Cloud y operación alojada | 3 / 31 | Metadatos/código revisados; aplicación y operación real pendientes |
 | Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
 | Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
 | Orden del producto/documentación | 4 / 12 | qs del tooling corregido; faltan specs y decisiones de producto |
@@ -47,8 +47,9 @@ nativo sin avisos. Cambio limitado a desarrollo, no publicado.
 negocio. La 0423 rechazaba el cuerpo 0195 de Cloud por comentarios/formato;
 ahora acepta sus dos huellas exactas comprobadas. Pasan ambas variantes
 (323 aserciones/18 derivas cada una), 165 contratos SQL y rebuild420.
-No cambia la función instalada ni sus permisos. El preflight general sigue
-parcial y el porcentaje no aumenta por este ajuste del mismo correctivo.
+No cambia la función instalada ni sus permisos. La revisión posterior completa
+94 columnas/tipos en 16 relaciones, ACL y código/auth de las cuatro Edge.
+Cierra una casilla existente de preflight, no el release ni el smoke alojado.
 [Estado de release y límites](2026-09-02-codex-release-preflight.md).
 
 **Último correctivo funcional:** SDD-0366/0423 corrige el rename de Shipping Mark cuando
@@ -68,7 +69,8 @@ con Auth/Storage real.
 **SDD-0365 y 0366 siguen abiertas por publicación/release/smoke.** Con0423 se
 pasó de46/101 a47/103 por una corrección local y un gate nominal pendiente.
 El arreglo posterior de qs cierra una casilla existente: **48/103**, sin cambiar
-el denominador ni sumar casillas por prueba. SDD-0258 completo no está cerrado.
+el denominador ni sumar casillas por prueba. El cierre de revisión de metadatos
+y código alojado lleva el punto vigente a **49/103**. SDD-0258 no está cerrado.
 
 **Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
 integrar, 25 migraciones del paquete sin aplicación autorizada y trabajo de
@@ -99,7 +101,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   una autorización limitada a cfe7a9c9 no lo incluye automáticamente.
   El lote nuevo requiere publicación autorizada y CI propio.
   El correctivo posterior del preflight0423 añade un duodécimo incremento,
-  separado del SHA `2d7671ab`; no hubo push ni integración.
+  separado del SHA `2d7671ab`, y quedó en `f12ed8ae`. Este cierre de revisión
+  añade únicamente documentación como decimotercer incremento; no hubo push
+  ni integración. La autorización debe cubrir el SHA final exacto.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -113,7 +117,8 @@ se borra mientras conserve trabajo sin publicar/integrar.
   origin/main y checkout con 420 archivos, corte238, 25 pendientes (0399–0423),
   cero huérfanas posteriores al corte y 13 RPC nuevas ausentes. Se conserva
   la excepción0017 bajo el corte. 15 buckets privados y cuatro versiones Edge
-  inventariadas; no certifica sus flujos ni autenticación. No hubo escritura alojada.
+  inventariadas. Hasta 23:48 UTC se revisaron también 94 columnas/tipos, ACL y
+  código/auth Edge; no certifica credenciales ni flujos reales. No hubo escritura alojada.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
@@ -359,12 +364,12 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [x] Medir ledger y las 13 RPC nuevas mediante metadatos, sin leer PII ni filas
   de negocio; todas siguen ausentes. Preflight 0399: TRUNCATE en 179 tablas para
   `anon` y 204 para `authenticated`, sobre 249 tablas de `public`.
-- [ ] Completar preflights de grants/policies por migración, buckets y versión
+- [x] Completar preflights de grants/policies por migración, buckets y versión
   real de las cuatro Edge Functions, sin leer datos de negocio.
-  Avance: inventarios0416–0420 contrastados, precondiciones de expansión0421,
-  buckets y versiones Edge medidos; variante conocida del guard0423 corregida
-  y contratada localmente. Faltan contratos completos de columnas/tipos/ACL
-  de fachadas, contraste de código/auth Edge y repetir gates tras expansiones.
+  Inventarios 0416–0420, precondiciones 0421–0423, 94 columnas/tipos en 16 relaciones,
+  ACL, 15 buckets y código/auth de cuatro Edge contrastados. Dependencias
+  explícitas: 0399→0410 y 0407→0411. Se mantiene la repetición de gates al aplicar,
+  con cada GO nominal; no se marcaron smokes o despliegues como completados.
   [Acta de preflight](2026-09-02-codex-release-preflight.md).
 - [ ] Clasificar los avisos alojados por dominio: 20 INFO y 184 WARN; no son
   204 vulnerabilidades confirmadas. No abrir policies ni revocar RPCs
@@ -448,7 +453,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   sólo permite configurar URL + eventos y no documenta firma/cabecera; por eso
   no se puede reemplazar localmente `?secret=` por un header sin romper el
   proveedor. Evaluar gateway que inyecte credencial, rotación y redacción de
-  access logs.
+  access logs. En el código alojado v14, `conn.status` se lee pero no impide
+  procesar conexiones no activas: incluir ese guard y su regresión en esta
+  misma tarea. No se consultaron conexiones reales para afirmar impacto.
 - [ ] Diseñar CSP con nonce para la app y aislar la excepción del visor Marca.
   No retirar `'unsafe-inline'`/`'unsafe-eval'` sin browser/build: Next y los
   documentos navegables pueden romperse.
@@ -516,8 +523,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 1. Resolver el bloqueo de push de los commits locales y después confirmar su CI
    en el PR #21; el CI verde actual corresponde sólo a `eabb230b`.
-2. Preparar la secuencia de release con preflight por migración. SDD-0358 ya
-   separó expansión y restricción de Mailing; todavía no se ejecutó el release.
+2. Ejecutar, sólo con los GO correspondientes, la secuencia documentada en
+   el acta de release; repetir preflight por migración. SDD-0358 ya separó
+   expansión y restricción de Mailing; todavía no se ejecutó el release.
 3. Con autorizaciones individuales, dejar disponibles las RPCs necesarias
    antes de publicar sus consumidores; comprobar cada migración 0399–0413 sin
    asumir que el orden numérico sustituye una prueba de compatibilidad.
