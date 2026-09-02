@@ -20,11 +20,11 @@ refrescarse antes de cualquier operación Git o alojada.
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 - Rama de saneamiento actual: el commit que contiene este checklist, con árbol
-  limpio, 0 detrás / 42 delante; la rama remota todavía no existe.
+  limpio, 0 detrás / 43 delante; la rama remota todavía no existe.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 341; 247 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 342; 248 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -45,6 +45,9 @@ merge a `main`, Cloud, Producción ni deploy.
 - [x] Llave KMS del backup WORM retenida junto con el bucket en el IaC histórico.
 - [x] `/studio/debug` exige configuración completa; Payload CMS legado retirado
   del contrato activo de entorno.
+- [x] Escritura directa de facturas cerrada en la base: sólo `accounting` y
+  `admin` activos del tenant conservan INSERT/UPDATE; `authenticated` ya no
+  tiene DELETE físico. SDD-0350/migración 0407 están preparados localmente.
 - [x] Gate canónico posterior a SDD-0348 sin fallos: 14/15 pasos medidos; sólo
   Cloud quedó `SKIP` por falta deliberada de credenciales. E2E: 150 pasaron y 18
   Tier 3 se omitieron; build: 158 páginas. Suite unitaria posterior a SDD-0348:
@@ -92,6 +95,8 @@ merge a `main`, Cloud, Producción ni deploy.
   específica separada; la RPC no existe en Cloud hasta completar ese gate.
 - [ ] Aplicar `0406_portal_packing_lists_por_principal.sql` con autorización
   específica separada; la RPC no existe en Cloud hasta completar ese gate.
+- [ ] Aplicar `0407_invoices_write_rbac.sql` con autorización específica
+  separada; el RBAC de escritura no existe en Cloud hasta completar ese gate.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [ ] Confirmar deployment Vercel y smoke de público, Studio, Portal y móvil.
@@ -100,9 +105,11 @@ merge a `main`, Cloud, Producción ni deploy.
 
 ## P1 · seguridad por slices
 
-- [ ] Llevar RBAC de aplicación a la base por dominios: facturas/dinero,
-  mailing, conciliación bancaria y documentos. Cada slice necesita SDD,
-  contrato SQL, migración propia y gate Cloud separado; no hacer un sweep.
+- [ ] Continuar RBAC de aplicación en la base por slices: lectura minimizada de
+  facturas/dinero, mailing, conciliación bancaria y documentos. Cada slice
+  necesita SDD, contrato SQL, migración propia y gate Cloud separado; no hacer
+  un sweep. SDD-0350 ya cerró la escritura directa de `invoices`, preservando
+  temporalmente el SELECT tenant-wide que consumen módulos no financieros.
 - [x] Retirar `service_role` de todos los RSC del Portal.
   SDD-0336 cerró el primer slice de marca: el baseline bajó de 11 rutas / 23
   construcciones a 10 rutas / 21 construcciones. SDD-0337 movió la visibilidad
@@ -177,11 +184,11 @@ merge a `main`, Cloud, Producción ni deploy.
 
 1. Publicar la rama y revisar el diff remoto.
 2. Integrar a `main` con autorización separada y verificar deploy/smoke.
-3. Aplicar 0399, 0400, 0401, 0402, 0403, 0404, 0405 y 0406 de una en una;
+3. Aplicar 0399, 0400, 0401, 0402, 0403, 0404, 0405, 0406 y 0407 de una en una;
    completar Telegram.
 4. Limpiar worktree y rama de archivo contenida.
-5. Ejecutar el programa P1 por slices; empezar por RBAC documental/financiero y
-   Portal firmado.
+5. Ejecutar el programa P1 por slices; seguir con facades de lectura financiera,
+   RBAC documental y conciliación bancaria.
 6. Reconciliar specs y deuda P2 sin mezclarla con seguridad alojada.
 
 ## Stop conditions
