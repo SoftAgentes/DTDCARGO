@@ -129,9 +129,13 @@ Estado: CERRADO EN RAMA · PR EN BORRADOR · INTEGRACIÓN/RELEASE PENDIENTES
     spec con su implementación en main; quedan 89 sin cierre documental.
     Pasan 42 focales, 29 contratos adicionales y 6.032 unitarios / 530 archivos,
     TypeScript, ESLint y gates documentales.
+60. `fix(portal): SDD-0362 — aislar aprendizaje de Academia por tenant` —
+    sustituye ocho policies Portal en 0418; conserva catálogo permitido,
+    historia propia, equipo y contratos existentes. RED real y GREEN con
+    159 contratos SQL, 68 unitarios focales y rebuild de 415 migraciones.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0361. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0362. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -164,6 +168,19 @@ contratos CSV/RBAC adicionales; suite completa 530 archivos / 6.032 pruebas,
 TypeScript, ESLint, docs, numeración, gobernanza, componentes y diff. No se
 repite SQL/rebuild/E2E porque no cambia runtime ni sus entradas; tampoco se
 atribuye una descarga en navegador/Excel o una prueba alojada a este lote.
+Su CI completo quedó aprobado: `eabb230b`, run `33671435585`, terminado a las
+19:22:45 UTC del 2026-09-02 (14 min 54 s), incluido build y árbol reproducible.
+
+SDD-0362 reproduce seis lecturas cruzadas, acceso a borrador, DELETE ajeno e
+INSERT sin inscripción en las policies históricas. El contrato nuevo pasa con
+ocho sustituciones, ocho preflights de drift y conservación bidireccional de
+ACL/policies/RPC/triggers. Pasan 68 unitarios focales y los 159 contratos SQL;
+rebuild de 415 migraciones: 397 desde cero + 18 sólo-ledger, 219 tablas y dos
+tenants sintéticos. No cambia TS/TSX ni repite build/E2E locales por rutina.
+La aplicación conserva el baseline de 530 archivos / 6.032 unitarios; el CI
+del nuevo commit debe confirmarse aparte. `pnpm audit --audit-level high` sale
+0, con dos avisos moderados de desarrollo en qs; quedan en el checklist para
+un lote propio, sin declarar dependencias libres de avisos.
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
 de SDD-0357:
@@ -353,7 +370,7 @@ de ledger. Contra los 413 archivos de `origin/main` unión checkout y corte 238:
 18 pendientes (las siguientes) y cero huérfanas posteriores al corte. Las 10
 RPC nuevas no existen en `pg_proc`. Esto resuelve la incertidumbre de lectura
 Cloud, pero no aplica migraciones ni transforma el SKIP local en un pase.
-SDD-0361 agrega 0417 localmente: ahora son 414 archivos y 19 gates de aplicación
+SDD-0361/0362 agregan 0417/0418 localmente: ahora son 415 archivos y 20 gates de aplicación
 pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
@@ -399,6 +416,9 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
   SQL y rebuild de 414 migraciones (396 desde cero + 18 sólo-ledger), junto con
   156 unitarios focales. Cierra lectura ajena y cambio de tenant en el dominio
   de compras/proveedores. No fue aplicada; requiere su propio OK y smoke.
+- La migración `0418_portal_academia_tenant_boundary.sql` pasó 159 contratos
+  SQL, rebuild de 415 migraciones y 68 unitarios de Academia. No fue aplicada;
+  requiere su propio OK y smoke de aprendizaje, sin RPC o deploy previo.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - Vercel creó automáticamente un Preview del SHA publicado: deployment GitHub
