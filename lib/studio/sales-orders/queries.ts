@@ -13,7 +13,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { fetchAllPaged } from "@/lib/db/paginate";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
   SALES_ORDER_STATUSES,
   type SalesOrder,
@@ -35,7 +35,7 @@ const SO_COLUMNS =
 const SO_SELECT = `${SO_COLUMNS}, quotes(quote_code)`;
 
 const PREALERTA_COLUMNS =
-  "id, tenant_id, client_markbox, supplier_id, code, description, tracking_cn, client_note, boxes, est_value_usd, status, received_at, shipment_id, share_token, deleted_at, created_at, updated_at";
+  "id, tenant_id, client_markbox, supplier_id, code, description, tracking_cn, client_note, boxes, est_value_usd, status, received_at, shipment_id, share_token, sales_order_id, deleted_at, created_at, updated_at";
 
 function coerceSalesOrder(r: Record<string, unknown>): SalesOrder {
   // Embed to-one de quotes(quote_code): supabase-js puede devolver objeto o array.
@@ -157,20 +157,46 @@ export async function listPrealertasForSalesOrder(
   supabase: SupabaseClient,
   salesOrderId: string,
 ): Promise<Prealerta[]> {
+  const byOrder = await listPrealertasBySalesOrder(supabase, [salesOrderId]);
+  return byOrder[salesOrderId] ?? [];
+}
+
+/** Prealertas de varias OV, agrupadas con lectura paginada por lotes. */
+export async function listPrealertasBySalesOrder(
+  supabase: SupabaseClient,
+  salesOrderIds: readonly string[],
+): Promise<Record<string, Prealerta[]>> {
+  const ids = [...new Set(salesOrderIds.filter(Boolean))];
+  const byOrder = Object.fromEntries(ids.map((id) => [id, []])) as Record<
+    string,
+    Prealerta[]
+  >;
+  if (ids.length === 0) return byOrder;
+
   try {
-    const { data, error } = await supabase
-      .from("prealertas")
-      .select(PREALERTA_COLUMNS)
-      .eq("sales_order_id", salesOrderId)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(500);
-    if (error) throw error;
-    return data.map(
-      coercePrealerta,
+    const { rows, complete } = await fetchAllByIds<Record<string, unknown>>(
+      ids,
+      (batch, from, to) =>
+        supabase
+          .from("prealertas")
+          .select(PREALERTA_COLUMNS)
+          .in("sales_order_id", batch)
+          .is("deleted_at", null)
+          .order("sales_order_id", { ascending: true })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to),
     );
+    if (!complete) {
+      throw new Error("Las prealertas por orden superan el tope de lectura.");
+    }
+    for (const row of rows) {
+      const orderId = String(row.sales_order_id ?? "");
+      if (byOrder[orderId]) byOrder[orderId].push(coercePrealerta(row));
+    }
+    return byOrder;
   } catch {
-    return [];
+    return byOrder;
   }
 }
 
@@ -222,25 +248,56 @@ export async function listInvoicesForSalesOrder(
   supabase: SupabaseClient,
   salesOrderId: string,
 ): Promise<SalesOrderInvoiceRef[]> {
+  const byOrder = await listInvoicesBySalesOrder(supabase, [salesOrderId]);
+  return byOrder[salesOrderId] ?? [];
+}
+
+/** Facturas de varias OV, agrupadas con lectura paginada por lotes. */
+export async function listInvoicesBySalesOrder(
+  supabase: SupabaseClient,
+  salesOrderIds: readonly string[],
+): Promise<Record<string, SalesOrderInvoiceRef[]>> {
+  const ids = [...new Set(salesOrderIds.filter(Boolean))];
+  const byOrder = Object.fromEntries(ids.map((id) => [id, []])) as Record<
+    string,
+    SalesOrderInvoiceRef[]
+  >;
+  if (ids.length === 0) return byOrder;
+
   try {
-    const { data, error } = await supabase
-      .from("invoices")
-      .select("id, invoice_code, total_amount, status, issued_at, created_at")
-      .eq("sales_order_id", salesOrderId)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (error) throw error;
-    return data.map((r) => ({
-      id: String(r.id),
-      invoice_code: String(r.invoice_code ?? ""),
-      total_amount: num(r.total_amount),
-      status: String(r.status ?? ""),
-      issued_at: (r.issued_at as string | null) ?? null,
-      created_at: String(r.created_at),
-    }));
+    const { rows, complete } = await fetchAllByIds<Record<string, unknown>>(
+      ids,
+      (batch, from, to) =>
+        supabase
+          .from("invoices")
+          .select(
+            "id, sales_order_id, invoice_code, total_amount, status, issued_at, created_at",
+          )
+          .in("sales_order_id", batch)
+          .is("deleted_at", null)
+          .order("sales_order_id", { ascending: true })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
+    if (!complete) {
+      throw new Error("Las facturas por orden superan el tope de lectura.");
+    }
+    for (const row of rows) {
+      const orderId = String(row.sales_order_id ?? "");
+      if (!byOrder[orderId]) continue;
+      byOrder[orderId].push({
+        id: String(row.id),
+        invoice_code: String(row.invoice_code ?? ""),
+        total_amount: num(row.total_amount),
+        status: String(row.status ?? ""),
+        issued_at: (row.issued_at as string | null) ?? null,
+        created_at: String(row.created_at),
+      });
+    }
+    return byOrder;
   } catch {
-    return [];
+    return byOrder;
   }
 }
 

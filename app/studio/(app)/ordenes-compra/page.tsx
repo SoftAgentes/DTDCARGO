@@ -17,7 +17,7 @@
 import { createClient } from "@/lib/db/server";
 import {
   listPurchaseOrders,
-  listPurchaseOrderItems,
+  listPurchaseOrderItemsByOrder,
   purchaseOrderStats,
 } from "@/lib/studio/purchase-orders/queries";
 import { listPrealertas, listSuppliers } from "@/lib/studio/prealertas/queries";
@@ -38,14 +38,10 @@ export default async function OrdenesCompraPage() {
       listExpenseAccounts(supabase),
     ]);
 
-  // Ítems por OC (para el detalle / total). Se cargan en paralelo.
-  const itemsByPo = Object.fromEntries(
-    await Promise.all(
-      orders.map(async (po) => {
-        const items = await listPurchaseOrderItems(supabase, po.id);
-        return [po.id, items] as const;
-      }),
-    ),
+  // Ítems por OC (para el detalle / total), paginados y agrupados en lote.
+  const itemsByPo = await listPurchaseOrderItemsByOrder(
+    supabase,
+    orders.map((po) => po.id),
   );
 
   return (

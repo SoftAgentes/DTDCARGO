@@ -13,10 +13,9 @@
 import { createClient } from "@/lib/db/server";
 import {
   listSalesOrders,
-  listPrealertasForSalesOrder,
-  listInvoicesForSalesOrder,
+  listPrealertasBySalesOrder,
+  listInvoicesBySalesOrder,
   salesOrderStats,
-  type SalesOrderInvoiceRef,
 } from "@/lib/studio/sales-orders/queries";
 import { listQuotes } from "@/lib/studio/quote-queries";
 import { listPrealertas } from "@/lib/studio/prealertas/queries";
@@ -36,25 +35,12 @@ export default async function OrdenesVentaPage() {
     listPrealertas(supabase),
   ]);
 
-  // Prealertas ya atadas a cada OV + facturas generadas (Fase 2 · provenance).
-  // Se cargan en paralelo por OV.
+  // Prealertas ya atadas a cada OV + facturas generadas (Fase 2 · provenance),
+  // paginadas y agrupadas por lotes en vez de disparar dos queries por OV.
+  const orderIds = orders.map((so) => so.id);
   const [prealertasByOrder, invoicesByOrder] = await Promise.all([
-    Object.fromEntries(
-      await Promise.all(
-        orders.map(async (so) => {
-          const list = await listPrealertasForSalesOrder(supabase, so.id);
-          return [so.id, list] as const;
-        }),
-      ),
-    ),
-    Object.fromEntries(
-      await Promise.all(
-        orders.map(async (so) => {
-          const list = await listInvoicesForSalesOrder(supabase, so.id);
-          return [so.id, list] as const;
-        }),
-      ),
-    ) as Record<string, SalesOrderInvoiceRef[]>,
+    listPrealertasBySalesOrder(supabase, orderIds),
+    listInvoicesBySalesOrder(supabase, orderIds),
   ]);
 
   return (

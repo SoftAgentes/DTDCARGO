@@ -6,11 +6,12 @@
  *  - listPurchaseOrders        · OC del tenant (vivas), recientes primero.
  *  - getPurchaseOrderByCode    · una OC por su code (+ ítems).
  *  - listPurchaseOrderItems    · ítems de una OC, en orden de posición.
+ *  - listPurchaseOrderItemsByOrder · ítems de varias OC, leídos por lotes.
  *  - purchaseOrderStats        · conteo por status (cola del operador).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { fetchAllPaged } from "@/lib/db/paginate";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
   PURCHASE_ORDER_STATUSES,
   type PurchaseOrder,
@@ -121,20 +122,55 @@ export async function getPurchaseOrderByCode(
   return { order, items };
 }
 
+/**
+ * Lista los ítems de varias OC, agrupados por id de orden.
+ *
+ * `fetchAllByIds` parte el filtro para no desbordar la URL y pagina cada lote
+ * hasta una respuesta vacía. Así la pantalla de listado no hace una consulta
+ * por cada OC ni vuelve a introducir un límite silencioso de 500 ítems.
+ */
+export async function listPurchaseOrderItemsByOrder(
+  supabase: SupabaseClient,
+  purchaseOrderIds: readonly string[],
+): Promise<Record<string, PurchaseOrderItem[]>> {
+  const ids = [...new Set(purchaseOrderIds.filter(Boolean))];
+  const byOrder = Object.fromEntries(ids.map((id) => [id, []])) as Record<
+    string,
+    PurchaseOrderItem[]
+  >;
+  if (ids.length === 0) return byOrder;
+
+  const { rows, complete } = await fetchAllByIds<Record<string, unknown>>(
+    ids,
+    (batch, from, to) =>
+      supabase
+        .from("purchase_order_items")
+        .select(PO_ITEM_COLUMNS)
+        .in("purchase_order_id", batch)
+        .order("purchase_order_id", { ascending: true })
+        .order("position", { ascending: true })
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
+  if (!complete) {
+    throw new Error("Los ítems de órdenes de compra superan el tope de lectura.");
+  }
+
+  for (const row of rows) {
+    const item = coercePoItem(row);
+    byOrder[item.purchase_order_id]?.push(item);
+  }
+  return byOrder;
+}
+
 /** Lista los ítems de una OC, en orden de posición. */
 export async function listPurchaseOrderItems(
   supabase: SupabaseClient,
   purchaseOrderId: string,
 ): Promise<PurchaseOrderItem[]> {
-  const { data, error } = await supabase
-    .from("purchase_order_items")
-    .select(PO_ITEM_COLUMNS)
-    .eq("purchase_order_id", purchaseOrderId)
-    .order("position", { ascending: true })
-    .order("created_at", { ascending: true })
-    .limit(500);
-  if (error) throw error;
-  return data.map(coercePoItem);
+  const byOrder = await listPurchaseOrderItemsByOrder(supabase, [purchaseOrderId]);
+  return byOrder[purchaseOrderId] ?? [];
 }
 
 // ── Stats del operador ─────────────────────────────────────────
