@@ -166,3 +166,38 @@ Siguiente acción dentro de esta misma tarea: adoptar los comandos en acciones
 y UI, validar reintentos/confirmación/motivo y preparar la restricción de DML.
 No abrir otro frente de auditoría antes de cerrar este lote. La integración y
 cada migración alojada conservan autorización específica.
+
+## Actualización · transporte y comprobantes sobre 7f4c1046
+
+Intención: `fix(portal): SDD-0365 — estabilizar comprobantes y validar recibos`.
+Ownership: ocho archivos enumerados en la allowlist de transporte de SDD-0365:
+dos runtime, dos tests, spec, checklist y ambos handoffs. Índice previamente vacío;
+ninguna otra tarea de DTDCargo ocupa este worktree. Main y archives intactos.
+
+El transporte sólo usa tres RPC de sesión, valida entrada/recibo completo y
+separa rechazo conocido de resultado incierto sin filtrar SQL. Conserva claves
+del consumidor, no reintenta automáticamente ni usa DML o cliente elevado.
+El uploader deriva un path del contenido y contexto, nunca del nombre local;
+ante error de subida sólo recupera un objeto de bytes idénticos leído por su
+path exacto. No sobrescribe, lista ni borra objetos.
+
+Evidencia ejecutada:
+
+- Uploader RED 14 fallos/10 controles; GREEN 24. Transporte independiente:
+  222 GREEN, con RED real para año 0000 corregido antes del cierre.
+- Suite completa final: 6.342/6.342, 534 archivos, 113,50 s.
+- TypeScript sin caché y ESLint de cuatro rutas: exit 0. RSC: 1.590 módulos,
+  cero cruces. Docs, gobernanza (28 políticas), CMP y diff-check aprobados.
+- Sin nuevo build/E2E/rebuild SQL porque no cambia UI, rutas, SQL ni config.
+  Las ejecuciones anteriores conservan su fecha/alcance; no se atribuyen a éste.
+
+Revisión advisory de privacidad: CORRECTO en el diff: mismo bucket privado,
+sin nombre original en path, logs de contenido, nuevo destinatario, borrado
+ni overwrite; comparación temporal en memoria. ENCONTRADO: formulario aún
+genera identidad por envío, escritores antiguos y disposición de uploads no
+vinculados pendientes. NO VERIFICABLE: autenticidad, residencia, consentimientos,
+retención, backups y proveedores reales. No certifica cumplimiento jurídico.
+
+Este es el sexto commit local sin publicar. No push alternativo, merge, Cloud
+ni deploy. La preparación no equivale a idempotencia del flujo visible; sigue
+pendiente conectar acciones/pantallas y restringir los escritores heredados.

@@ -26,7 +26,8 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   La verificación PRIVATE/ADMIN anterior no se interpreta como autorización
   para superar este rechazo. El CI verde de `eabb230b` no cubre Academia.
   SDD-0363 está en `9b243069`, segundo commit local. SDD-0364 en `e9d49980`
-  añade el tercero; SDD-0365 etapa 1 añade el cuarto y expansión SQL0421 el quinto. Ninguno está publicado
+  añade el tercero; SDD-0365 etapa 1 añade el cuarto, expansión SQL0421 el quinto
+  y transporte/comprobantes el sexto. Ninguno está publicado
   ni tiene CI alojado propio; el rechazo de push sigue vigente.
 
 ## Trabajo rescatado y cerrado
@@ -160,6 +161,11 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
     RED/GREEN de400 aserciones, cinco carreras, 162 contratos SQL, rebuild418 y
     6.096 unitarios verdes. Sin consumidores nuevos, restricción ni Cloud.
     La spec sigue abierta: la app todavía necesita adoptar estas RPC.
+65. `fix(portal): SDD-0365 — estabilizar comprobantes y validar recibos` —
+    transporte de tres RPC de sesión con recibo estricto y errores seguros;
+    comprobantes estables por contenido, recuperación por igualdad de bytes.
+    222 tests independientes del transporte y 24 del uploader; suite completa
+    6.342/534 archivos verde. Sin consumidores UI nuevos ni Cloud.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0365. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
@@ -169,6 +175,12 @@ congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
 slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 
 ## Verificación vigente
+
+Último incremento de transporte/comprobantes: 6.342/6.342 pruebas en 534
+archivos, 113,50 s; TypeScript sin caché, ESLint de cuatro archivos y frontera
+RSC de 1.590 módulos sin cruces aprobados. Docs, gobernanza y CMP pasan.
+Sin nueva ejecución de build/E2E/rebuild SQL; la aplicación aún debe adoptar
+los comandos. No hay contenedores propios pendientes ni efectos alojados.
 
 Último incremento SQL0421: 400 aserciones independientes, cinco carreras entre
 sesiones, 162 contratos SQL y rebuild418 (400 schema +18 sólo-ledger) verdes.

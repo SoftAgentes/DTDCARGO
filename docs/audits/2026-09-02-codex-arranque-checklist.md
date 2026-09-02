@@ -17,7 +17,7 @@ refrescarse antes de cualquier operación Git o alojada.
 
 ## Snapshot comprobado
 
-### Resumen para Sam · punto de control tras 17 h 40 min
+### Resumen para Sam · punto de control tras 18 horas registradas
 
 **Avance del checklist: 45 de 100 casillas completadas (45 %).** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
@@ -38,11 +38,19 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Trabajo actual:** expansión SQL 0421 de reportes de pago verificada: 400
-aserciones independientes, 5 carreras entre conexiones, 162 contratos SQL,
-rebuild418 y 6.096 unitarios completos aprobados. Este incremento se conserva
-en un quinto commit local, sin publicar. Falta adaptar acciones/pantallas
-a las RPC y restringir los escritores heredados antes del release.
+**Trabajo actual:** seguridad de los reportes de pago (SDD-0365). La expansión
+SQL 0421 está conservada en el quinto commit local, `7f4c1046`: 400 aserciones
+independientes, 5 carreras entre conexiones, 162 contratos SQL y rebuild418
+aprobados. El sexto commit local prepara la validación de las respuestas de
+los comandos y la recuperación segura de comprobantes ante reintentos, sin
+publicación. Su última suite completa pasó: **6.342 pruebas en 534 archivos**,
+incluidas 222 del transporte de comandos y 24 de comprobantes. También pasaron
+TypeScript, lint y la frontera RSC (1.590 módulos, cero cruces).
+
+Este avance es preparatorio: las acciones y pantallas todavía no consumen los
+comandos nuevos. Falta conectarlas, verificar el flujo completo y restringir
+los escritores heredados antes del release. Por eso el conteo sigue en 45/100;
+no se agrega una casilla completada por cada prueba ni por una entrega parcial.
 
 **Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
 integrar, 23 migraciones del paquete sin aplicación autorizada y trabajo de
@@ -61,8 +69,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   Reclamos está en el segundo commit local `9b243069`; SDD-0364 añade un
   tercero (`e9d49980`) para el aislamiento de reportes de pago. SDD-0365 etapa 1
   añade la contención de sus acciones/comprobantes como cuarto commit local.
-  La expansión SQL 0421 de SDD-0365 añade el quinto commit local.
-  Los cinco requieren publicación autorizada y CI propio.
+  La expansión SQL 0421 de SDD-0365 añade el quinto commit local (`7f4c1046`).
+  El transporte de comandos y recuperación de comprobantes añade el sexto.
+  Los seis requieren publicación autorizada y CI propio.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en

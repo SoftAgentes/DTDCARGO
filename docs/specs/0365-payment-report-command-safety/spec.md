@@ -170,6 +170,45 @@ Expansión NO cierra por sí sola la integridad del módulo: siguen pendientes l
 consumidores, confirmación/motivo de UI y una migración de restricción que quite
 DML directo y la RPC heredada. No se aplicará 0421 en Cloud sin GO nominal.
 
+## Contrato y allowlist · etapa 2, transporte de comandos y comprobantes
+
+Antes de conectar las pantallas se prepara una frontera compartida de sesión.
+`runPaymentReportCommand(session, command)` recibe `verb` create/cancel/confirm/reject,
+`requestId` y `reportId` estables. Create añade `invoiceId`, `invoiceCode`,
+`input` validado y `proofPath`; cancel añade `invoiceCode` y `reason`;
+confirm/reject añaden `reason`. Nunca recibe actor, tenant o moneda del navegador.
+Sólo llama a la RPC correspondiente de0421, sin DML ni fallback heredado.
+
+Devuelve `{ ok: true, receipt }` únicamente al decodificar los ocho campos
+exactos del recibo y verificar petición, reporte, factura conocida y transición.
+El recibo de aplicación usa camelCase. Ante rechazo conocido devuelve
+`{ ok: false, error, uncertain: false }`; errores desconocidos, transporte o
+respuesta inválida son inciertos, sin exponer SQL ni detalles de la dependencia.
+No genera claves ni reintenta automáticamente: las conserva el consumidor.
+Motivo normalizado obligatorio de4–500 caracteres para cancelar/resolver.
+
+El upload conserva la firma existente y deriva el cuarto UUID de una huella
+SHA-256 del contenido; el scope tenant/factura/reporte sigue aislando objetos.
+Mismos bytes/scope/MIME producen el mismo path aunque cambie el nombre local.
+Otra evidencia produce otro path y nunca sobrescribe la previa. Siempre
+`upsert:false`. Si falla la subida, sólo se acepta el objeto preexistente al
+leer el path exacto y comprobar igualdad de bytes; no basta un conflicto409.
+Inputs fuera de scope/MIME/tamaño se rechazan antes de Storage. No hay borrado,
+listado global ni descarga de archivos reales durante las pruebas.
+
+Allowlist exacta de este incremento preparatorio:
+
+- `lib/portal/payment-report-commands.ts` (nuevo).
+- `lib/portal/payment-proof.ts`.
+- `lib/portal/__tests__/payment-report-commands.test.ts` (nuevo, independiente).
+- `lib/portal/__tests__/payment-proof-retry.test.ts` (nuevo).
+- Esta spec, checklist y los dos handoffs ya enumerados.
+
+Las acciones/pantallas todavía no cambian en este incremento. Su adopción
+sigue siendo obligatoria para cerrar la etapa2 y se amplía la allowlist antes
+de editar cada consumidor. No se presenta esta preparación como idempotencia
+de la experiencia completa ni como corrección en producción.
+
 ## Gobierno, privacidad y límites
 
 - SGE-00/ERR-01: un error no equivale a cero o éxito; mostrar resultado incierto
@@ -225,6 +264,35 @@ no se añade UI; la no conformidad R3 heredada sigue abierta hasta adoptar
 confirmación/motivo. SGE-00.12 cumple: no Cloud/push/deploy implícitos.
 
 ## Gate constitucional · etapa 1
+
+### Evidencia posterior: transporte y comprobantes
+
+Incremento preparatorio sobre `7f4c1046`, sin consumidores nuevos. El RED del
+uploader reprodujo 14 fallos y 10 controles; GREEN: 24 casos. El reproductor
+independiente del transporte pasó 222 casos después de reproducir y corregir
+la aceptación del año 0000. Cubre las tres RPC, cuatro verbos, identidad,
+recibos exactos, rechazo seguro, resultados inciertos y ausencia de reintentos
+automáticos. El contrato acepta importes como 1,10 y 0,29 sin error de coma flotante.
+
+Última suite completa: 6.342/6.342 en 534 archivos, 113,50 s. TypeScript sin
+caché, ESLint de los cuatro archivos runtime/tests y diff-check: exit 0.
+Frontera RSC: 1.590 módulos, cero cruces. Docs, 28 políticas y CMP pasan.
+Sin nuevo build, E2E o rebuild SQL: no cambian UI, rutas, SQL ni configuración.
+El build158 y los contratos162/rebuild418 anteriores no son nuevas ejecuciones.
+
+SGE/ERR cumplen acotadamente en la frontera probada: no hay éxito sin recibo,
+errores internos visibles ni repetición automática. MP conserva el objeto y
+verifica sus bytes sin sobrescribir/borrar. Las no conformidades del flujo
+heredado siguen abiertas: el formulario todavía genera otra identidad por
+envío y no usa estos comandos; faltan confirmación, motivo y retiro de DML.
+No hay nuevas lecturas de datos reales, destinatarios ni registros de contenido.
+
+Fuentes técnicas: [upload](https://supabase.com/docs/reference/javascript/file-buckets-upload),
+[download](https://supabase.com/docs/reference/javascript/file-buckets-download)
+y [RPC](https://supabase.com/docs/reference/javascript/rpc). Se usa el SDK
+instalado; no se instalaron dependencias ni se modificó Supabase alojado.
+
+### Evidencia histórica de la contención
 
 | Principio | Clasificación y evidencia |
 |---|---|
