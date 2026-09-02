@@ -11,8 +11,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- Divergencia medida antes de SDD-0331: 0 detrás / 23 delante; este commit
-  agrega el paquete 24.
+- Divergencia medida antes de SDD-0332: 0 detrás / 24 delante; este commit
+  agrega el paquete 25.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
 
@@ -43,11 +43,13 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 22. `0fdd2c70` — `fix(studio): SDD-0330 — retirar Nominatim`.
 23. `9bd4eb41` — `chore(tooling): fijar Node 24 y pnpm 11`.
 24. `fix(studio): SDD-0331 — retirar consultas de identidad inseguras` — el
-    commit que contiene este handoff.
+    commit `927878a6`.
+25. `fix(infra): SDD-0332 — retener llave KMS del backup` — el commit que
+    contiene este handoff.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0331. El último lote elimina la consulta externa CNE/SENIAT y conserva el
-cotejo manual contra la foto privada.
+SDD-0332. Los dos últimos lotes retiran la consulta externa CNE/SENIAT y alinean
+el ciclo de vida del bucket WORM histórico con su llave KMS.
 
 ## Verificación vigente
 

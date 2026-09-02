@@ -7,6 +7,12 @@ fuentes archivadas, sin cuenta ni aceptación AWS
 EventBridge, SQS, CloudWatch y Budgets
 **Región:** `us-east-1`
 
+**Hardening local posterior (2026-09-02):** aunque esta alternativa continúa
+supersedida y no conectada, SDD-0332 añadió `DeletionPolicy: Retain` y
+`UpdateReplacePolicy: Retain` a `BackupKey`. Así el template ya no conserva el
+bucket WORM mientras programa por defecto la eliminación de la llave necesaria
+para descifrarlo. Esto no demuestra que exista un stack AWS desplegado.
+
 Este expediente conserva punteros y huellas, no copias contractuales crudas. La
 aceptación, factura y documentos descargados desde AWS deben vivir en el
 repositorio legal externo autorizado; nunca en Git.

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 323 specs)
+### Índice de specs (generado · 324 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -361,6 +361,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0329 | Aislar la caché de Next usada por el gate E2E | done | interno |
 | 0330 | Retirar el envío de direcciones de clientes a Nominatim | done | interno |
 | 0331 | Retirar consultas de identidad por URL insegura | done | interno |
+| 0332 | Retener la llave KMS del backup WORM junto con el bucket | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

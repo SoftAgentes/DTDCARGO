@@ -18,9 +18,11 @@ describe("infraestructura AWS de adjuntos", () => {
     }
   });
 
-  it("retiene el bucket WORM y exige COMPLIANCE por diez años", () => {
+  it("retiene el bucket WORM y su llave KMS por el mismo ciclo de vida", () => {
     expect(resources.BackupBucket.DeletionPolicy).toBe("Retain");
     expect(resources.BackupBucket.UpdateReplacePolicy).toBe("Retain");
+    expect(resources.BackupKey.DeletionPolicy).toBe("Retain");
+    expect(resources.BackupKey.UpdateReplacePolicy).toBe("Retain");
     expect(resources.BackupBucket.Properties.ObjectLockEnabled).toBe(true);
     expect(resources.BackupBucket.Properties.ObjectLockConfiguration.Rule.DefaultRetention)
       .toEqual({ Mode: "COMPLIANCE", Years: 10 });

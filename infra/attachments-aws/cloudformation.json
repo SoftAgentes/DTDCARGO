@@ -28,6 +28,8 @@
     },
     "BackupKey": {
       "Type": "AWS::KMS::Key",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
       "Properties": {
         "Description": "DTD Cargo immutable attachment backup",
         "EnableKeyRotation": true,
