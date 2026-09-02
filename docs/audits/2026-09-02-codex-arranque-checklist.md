@@ -19,10 +19,13 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Base publicada antes de SDD-0362: `codex/saneamiento-integral` en
+- Última base publicada: `codex/saneamiento-integral` en
   `eabb230b257579d3b5527a8721eebc328d748f79`, 0 detrás / 59 delante de
-  `origin/main`; local y remoto coincidían 0/0. El aislamiento de aprendizaje
-  de Academia agrega el siguiente commit, cuyo push y CI se confirman en el PR.
+  `origin/main`. Academia está en el commit local `f1cd9743`, sin publicar:
+  auto-review rechazó el push y pidió autorización explícita del commit/destino.
+  No se reintentó por otra herramienta ni se modificó ese commit.
+  SDD-0363 añade un segundo commit local para reclamos/evidencias; ambos
+  requieren publicación autorizada y CI propio.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -34,19 +37,20 @@ refrescarse antes de cualquier operación Git o alojada.
 - Supabase: proyecto correcto `xpfuzqombmjmxvprjgmi`, `ACTIVE_HEALTHY`; 406
   entradas de ledger. Comparación con 413 archivos y corte 238: 18 pendientes
   (0399–0416), cero huérfanas posteriores al corte y las 10 RPC nuevas ausentes.
-  SDD-0361/0362 agregan 0417/0418 sólo locales: 415 archivos y 20 gates de aplicación
+  SDD-0361/0362/0363 agregan 0417/0418/0419 sólo locales: 416 archivos y 21 gates de aplicación
   pendientes en este paquete. No se volvió a consultar ni escribir Cloud.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 354; 264 `done`, 1 `superseded` y 89 sin cierre documental
+- Specs reales: 355; 265 `done`, 1 `superseded` y 89 sin cierre documental
   (74 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete y sus commits están enumerados en
 `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`. La evidencia alojada
 y los límites de la medición están en
 [el acta de publicación](2026-09-02-codex-publicacion-y-preflight.md).
-Se publicó la rama y se abrió el PR; Vercel produjo automáticamente un preview.
+Se publicó la rama hasta `eabb230b` y se abrió el PR; Vercel produjo un preview.
+Los cambios posteriores no están publicados ni tienen CI alojado propio.
 No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 ## Lo ya saneado localmente
@@ -118,13 +122,19 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   conservan historia. Pasan 159 contratos SQL, 68 unitarios focales y rebuild
   de 415 migraciones (397 desde cero + 18 sólo-ledger); ACL/RPC/triggers y
   policies internas intactos. Cohortes/Club y el resto del Portal no se certifican.
+- [x] Reclamos/evidencias Portal ligados a principal, tenant y padre
+  (SDD-0363/0419). Dos policies corrigen la lectura cruzada y niegan evidencia
+  incoherente, preservando snapshot sin FK y reclamo con embarque archivado.
+  Pasan 160 contratos SQL, 47 unitarios focales y rebuild de 416 migraciones
+  (398 desde cero + 18 sólo-ledger). ACL, equipo, soft-delete interno,
+  funciones/triggers, bucket y Storage conservados. Cierre sólo local.
 
 ## P0 · terminar el saneamiento Git y publicar
 
-- [x] Publicar únicamente `codex/saneamiento-integral` después de verificar
+- [x] Publicar el lote hasta `eabb230b` en `codex/saneamiento-integral` tras verificar
   remoto privado, permiso ADMIN, alcance de archivos y ausencia de patrones de
   credenciales en las líneas añadidas. La revisión de autorización permitió el
-  push exacto; el bloqueo anterior quedó resuelto.
+  push exacto de aquel lote. No autoriza el nuevo push que fue rechazado.
 - [x] Verificar hash remoto, upstream correcto, 0/0 y diff de los 53 commits.
 - [x] Abrir el PR #21 en borrador, sin merge ni promoción de producción.
 - [x] Corregir el OOM del primer CI mediante límite explícito de heap sólo en
@@ -148,7 +158,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [x] Confirmar CI del cierre de exportaciones: `eabb230b`, run `33671435585`,
   success con build y árbol reproducible; terminó a las 19:22:45 UTC del
   2026-09-02 (14 min 54 s). No sustituye el CI del siguiente commit.
-- [ ] Confirmar CI del aislamiento de Academia en el SHA que lo publique.
+- [ ] Obtener aprobación explícita para publicar los commits locales posteriores
+  a `eabb230b` en `origin/codex/saneamiento-integral`; no reintentar mientras falte.
+- [ ] Confirmar CI de los aislamientos de Academia y Reclamos en el SHA publicado.
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:
@@ -218,6 +230,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [ ] Aplicar `0418_portal_academia_tenant_boundary.sql` con autorización
   específica separada y smoke de catálogo, cursos, progreso y diplomas propios.
   Sin RPC nueva ni deploy previo; no se ha aplicado a Cloud.
+- [ ] Aplicar `0419_portal_reclamos_tenant_boundary.sql` con autorización
+  específica separada y smoke de reclamos/historial/evidencias propias.
+  Sin RPC nueva ni deploy previo; no se ha aplicado a Cloud.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [x] Confirmar que el deployment automático de la rama fue Preview, no
@@ -253,8 +268,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   sin tenant. SDD-0357 cubre `invoices` y SDD-0359 cubre `shipments`,
   `shipment_documents` y `shipment_events`. SDD-0361 cubre `suppliers_cn`,
   `prealertas` y `prealerta_documents`. SDD-0362 cubre cursos, módulos, lecciones,
-  inscripciones, diplomas y progreso de Academia. Faltan reclamos, reportes de
-  pago y las demás entidades; cohortes/Club conservan alcance separado.
+  inscripciones, diplomas y progreso de Academia. SDD-0363 cubre reclamos y
+  evidencias. Faltan reportes de pago y las demás entidades; cohortes/Club
+  conservan alcance separado.
   No hacer un sweep ni declarar corregido todo el
   Portal por estos slices. Secuencias, transiciones y relación proveedor/cliente
   son hipótesis separadas que necesitan reproducción, no fallos ya confirmados.
@@ -324,7 +340,7 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   `GHSA-x5fp-wj9c-mxmx` y `GHSA-4mjr-xmp4-gh2g`. Auditoría nativa del
   2026-09-02: cero altos/críticos; `pnpm audit --audit-level high` sale 0,
   pero no significa cero avisos. Comprobar exposición del servidor local y
-  actualización compatible en un lote de tooling, sin mezclarla con 0418.
+  actualización compatible en un lote de tooling, sin mezclarla con RLS Portal.
 - [x] Cerrar documentalmente SDD-0280, SDD-0303 y SDD-0304 tras verificar sus
   commits en `origin/main`, código vigente y gates. No se borró código adicional;
   [acta del lote](2026-09-02-codex-cierre-documental.md).
@@ -356,7 +372,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 ## Orden de trabajo recomendado
 
-1. Completar y revisar el CI del PR #21; la rama y su diff ya están publicados.
+1. Resolver el bloqueo de push de los commits locales y después confirmar su CI
+   en el PR #21; el CI verde actual corresponde sólo a `eabb230b`.
 2. Preparar la secuencia de release con preflight por migración. SDD-0358 ya
    separó expansión y restricción de Mailing; todavía no se ejecutó el release.
 3. Con autorizaciones individuales, dejar disponibles las RPCs necesarias
@@ -365,7 +382,7 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 4. Autorizar integración y deploy de la app; verificar los cuatro flujos de
    lectura mínima y Portal. Aplicar 0414 y 0415 sólo después del smoke de sus
    consumidores, cada una con su propio OK y de una en una.
-   Aplicar 0416–0418 con gates/smokes de dominio independientes, de una en una
+   Aplicar 0416–0419 con gates/smokes de dominio independientes, de una en una
    y con su propio OK; completar Telegram
    y los demás gates alojados por separado.
 5. Limpiar worktree y rama de archivo sólo cuando estén contenidos en main.
@@ -375,7 +392,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 ## Stop conditions
 
 - Los pushes de seguimiento quedan limitados a la rama propia y al alcance
-  saneado; no incluyen `main`, force-push ni ramas ajenas.
+  saneado; no incluyen `main`, force-push ni ramas ajenas. El rechazo vigente
+  exige una nueva autorización explícita; no se rodea mediante otro mecanismo.
 - No hay merge, deploy, migración, secreto o escritura de datos implícitos.
 - Un `SKIP` documenta una parte no medida; no se presenta como verde.
 - No se elimina worktree o rama mientras exista cambio no contenido o tarea

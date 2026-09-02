@@ -3,7 +3,7 @@
 Fecha: 2026-09-02
 
 Rol: worker
-Estado: CERRADO EN RAMA · PR EN BORRADOR · INTEGRACIÓN/RELEASE PENDIENTES
+Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
 
 ## Identidad Git
 
@@ -20,6 +20,12 @@ Estado: CERRADO EN RAMA · PR EN BORRADOR · INTEGRACIÓN/RELEASE PENDIENTES
   permiso ADMIN y alcance sin credenciales detectadas; el push exacto fue
   autorizado y completado. No se hizo force-push, merge ni promoción.
 - Evidencia nueva: `docs/audits/2026-09-02-codex-publicacion-y-preflight.md`.
+- Actualización posterior: el remoto llega a `eabb230b` (59 commits sobre main).
+  `f1cd9743` (SDD-0362) está sólo local. Auto-review rechazó su push y exige OK
+  explícito del commit y destino; no se reintentó ni se usó una vía alternativa.
+  La verificación PRIVATE/ADMIN anterior no se interpreta como autorización
+  para superar este rechazo. El CI verde de `eabb230b` no cubre Academia.
+  SDD-0363 agrega el siguiente commit local: tampoco se publica ni tiene CI propio.
 
 ## Trabajo rescatado y cerrado
 
@@ -133,9 +139,13 @@ Estado: CERRADO EN RAMA · PR EN BORRADOR · INTEGRACIÓN/RELEASE PENDIENTES
     sustituye ocho policies Portal en 0418; conserva catálogo permitido,
     historia propia, equipo y contratos existentes. RED real y GREEN con
     159 contratos SQL, 68 unitarios focales y rebuild de 415 migraciones.
+61. `fix(portal): SDD-0363 — aislar reclamos y evidencias por tenant` —
+    sustituye dos policies SELECT en 0419; preserva historial propio, equipo,
+    Storage y contratos. RED real y GREEN, 160 contratos SQL, 47 unitarios
+    focales y rebuild de 416 migraciones. Publicación bloqueada, sólo local.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0362. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0363. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -181,6 +191,15 @@ La aplicación conserva el baseline de 530 archivos / 6.032 unitarios; el CI
 del nuevo commit debe confirmarse aparte. `pnpm audit --audit-level high` sale
 0, con dos avisos moderados de desarrollo en qs; quedan en el checklist para
 un lote propio, sin declarar dependencias libres de avisos.
+
+SDD-0363 reproduce la lectura de reclamo y evidencia B por principal A con
+Shipping Mark repetido. RED sin 0419 sale 1 por visibilidad; GREEN sale 0 con
+ocho preflights de drift, roles inválidos, equipo/dual e historia propia.
+Pasan 160 contratos SQL y rebuild de 416 migraciones: 398 desde cero + 18
+sólo-ledger, 219 tablas / dos tenants sintéticos. También pasan 47 unitarios
+en cuatro archivos. No cambia la aplicación ni se repite build/E2E local.
+Fixture propio retirado tras rollback; runners SQL/rebuild terminan sin fallos.
+La evidencia SQL local no certifica firma real, explotación ni estado alojado.
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
 de SDD-0357:
@@ -363,14 +382,14 @@ coherencia padre/hijo; conserva políticas internas y ACL. Pasó 37 unitarios
 focales en 6 archivos, los 157 contratos SQL y rebuild de 413 migraciones (395
 desde cero + 18 sólo-ledger). No cambia TS/TSX ni sustituye los gates alojados.
 
-## Gates alojados: publicación completada, release pendiente
+## Gates alojados: publicación parcial, push nuevo y release pendientes
 
 La consulta de metadatos al proyecto real el 2026-09-02 encontró 406 entradas
 de ledger. Contra los 413 archivos de `origin/main` unión checkout y corte 238:
 18 pendientes (las siguientes) y cero huérfanas posteriores al corte. Las 10
 RPC nuevas no existen en `pg_proc`. Esto resuelve la incertidumbre de lectura
 Cloud, pero no aplica migraciones ni transforma el SKIP local en un pase.
-SDD-0361/0362 agregan 0417/0418 localmente: ahora son 415 archivos y 20 gates de aplicación
+SDD-0361/0362/0363 agregan 0417/0418/0419 localmente: ahora son 416 archivos y 21 gates de aplicación
 pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
@@ -419,6 +438,9 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
 - La migración `0418_portal_academia_tenant_boundary.sql` pasó 159 contratos
   SQL, rebuild de 415 migraciones y 68 unitarios de Academia. No fue aplicada;
   requiere su propio OK y smoke de aprendizaje, sin RPC o deploy previo.
+- La migración `0419_portal_reclamos_tenant_boundary.sql` pasó 160 contratos
+  SQL, rebuild de 416 migraciones y 47 unitarios. No fue aplicada; requiere
+  su propio OK y smoke de reclamos/evidencias, sin RPC o deploy previo.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - Vercel creó automáticamente un Preview del SHA publicado: deployment GitHub
@@ -442,14 +464,14 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
 - `codex/archive-cloud-handoff-20260828` no está contenido y conserva tres commits
   documentales únicos sobre `AGENTS.md`, `README.md` y `docs/CODEX_HANDOFF.md`;
   debe mantenerse hasta preservarlos o supersederlos deliberadamente.
-- Este worktree NO se puede retirar todavía: su rama ya está publicada, pero
-  no está integrada/contenida en `origin/main` y conserva el carril activo.
+- Este worktree NO se puede retirar: contiene commits locales sin publicar,
+  no está integrado/contenido en `origin/main` y conserva el carril activo.
 - No se detectaron otras tareas Codex activas de DTDCargo que deban archivarse.
 
 ## Próximo cierre seguro
 
-1. Completar y revisar la corrida alojada del PR #21. Push y verificación de
-   la rama remota ya están hechos.
+1. Obtener aprobación explícita para el push pendiente y confirmar el CI del
+   SHA que se publique; el PR #21 y su CI verde sólo llegan a `eabb230b`.
 2. Mantener la rama en borrador mientras existan dependencias de base ausentes.
 3. Preparar compatibilidad de app/migraciones antes
    del merge que puede disparar deploy; 0410 es sólo expansión desde SDD-0358.
