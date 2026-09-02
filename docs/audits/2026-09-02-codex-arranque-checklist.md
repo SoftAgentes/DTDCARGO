@@ -24,8 +24,9 @@ refrescarse antes de cualquier operación Git o alojada.
   `origin/main`. Academia está en el commit local `f1cd9743`, sin publicar:
   auto-review rechazó el push y pidió autorización explícita del commit/destino.
   No se reintentó por otra herramienta ni se modificó ese commit.
-  SDD-0363 añade un segundo commit local para reclamos/evidencias; ambos
-  requieren publicación autorizada y CI propio.
+  Reclamos está en el segundo commit local `9b243069`; SDD-0364 añade un
+  tercero para el aislamiento de reportes de pago. Los tres requieren
+  publicación autorizada y CI propio.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -37,12 +38,12 @@ refrescarse antes de cualquier operación Git o alojada.
 - Supabase: proyecto correcto `xpfuzqombmjmxvprjgmi`, `ACTIVE_HEALTHY`; 406
   entradas de ledger. Comparación con 413 archivos y corte 238: 18 pendientes
   (0399–0416), cero huérfanas posteriores al corte y las 10 RPC nuevas ausentes.
-  SDD-0361/0362/0363 agregan 0417/0418/0419 sólo locales: 416 archivos y 21 gates de aplicación
+  SDD-0361–0364 agregan 0417–0420 sólo locales: 417 archivos y 22 gates de aplicación
   pendientes en este paquete. No se volvió a consultar ni escribir Cloud.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 355; 265 `done`, 1 `superseded` y 89 sin cierre documental
+- Specs reales: 356; 266 `done`, 1 `superseded` y 89 sin cierre documental
   (74 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete y sus commits están enumerados en
@@ -128,6 +129,13 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   Pasan 160 contratos SQL, 47 unitarios focales y rebuild de 416 migraciones
   (398 desde cero + 18 sólo-ledger). ACL, equipo, soft-delete interno,
   funciones/triggers, bucket y Storage conservados. Cierre sólo local.
+- [x] Frontera del principal en reportes de pago (SDD-0364/0420): tres policies
+  niegan SELECT/INSERT/UPDATE y reasignación cruzados, preservando operaciones
+  propias, historia de facturas archivadas y el trigger de coherencia existente.
+  Pasan 161 contratos SQL, 19 unitarios y rebuild de 417 migraciones
+  (399 desde cero + 18 sólo-ledger). Diez drifts rechazados y rollback true.
+  Los fallos de comandos/confirmación/comprobantes siguen pendientes debajo;
+  este resultado NO declara saneado todo el módulo de pagos.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -160,7 +168,7 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   2026-09-02 (14 min 54 s). No sustituye el CI del siguiente commit.
 - [ ] Obtener aprobación explícita para publicar los commits locales posteriores
   a `eabb230b` en `origin/codex/saneamiento-integral`; no reintentar mientras falte.
-- [ ] Confirmar CI de los aislamientos de Academia y Reclamos en el SHA publicado.
+- [ ] Confirmar CI de los aislamientos de Academia, Reclamos y Pagos en el SHA publicado.
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:
@@ -233,6 +241,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [ ] Aplicar `0419_portal_reclamos_tenant_boundary.sql` con autorización
   específica separada y smoke de reclamos/historial/evidencias propias.
   Sin RPC nueva ni deploy previo; no se ha aplicado a Cloud.
+- [ ] Aplicar `0420_portal_payment_reports_tenant_boundary.sql` con autorización
+  específica separada y smoke de identidad/historial/operaciones propias de
+  reportes de pago. Sin RPC nueva ni deploy previo. No se ha aplicado a Cloud
+  y no sustituye la reparación pendiente de cancelación y confirmación.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [x] Confirmar que el deployment automático de la rama fue Preview, no
@@ -250,6 +262,19 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 ## P1 · seguridad por slices
 
+- [ ] Prioridad local siguiente: cerrar los comandos de reportes de pago. La
+  reproducción sintética de SDD-0364 detectó cancelación propia rechazada por
+  RLS (42501), campos de confirmación y moneda editables directamente, path de
+  comprobante con prefijo ajeno aceptado y confirmación directa por un miembro
+  no financiero sin acumular el pago. La firma real no se probó; no afirmar
+  exfiltración. El aislamiento de tenant no corrige estos fallos por sí solo.
+  Preservar alta/cancelación legítimas con auditoría atómica, resultado veraz,
+  roles financieros y validación de comprobantes; separar expansión/app/restricción
+  si requiere comandos nuevos. No cambiar la decisión contable de SDD-0134.
+- [ ] Corregir el contador de reportes pendientes y probar su error explícito:
+  `countPendingReports` devuelve cero al fallar la consulta y puede permitir
+  un alta fuera del límite. Es evidencia de código, todavía sin test negativo
+  de aplicación. No mezclar su contrato con la migración de aislamiento 0420.
 - [ ] Continuar RBAC de aplicación en la base por slices: lectura minimizada de
   facturas/dinero y autorización documental por entidad. Cada slice
   necesita SDD, contrato SQL, migración propia y gate Cloud separado; no hacer
@@ -269,7 +294,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   `shipment_documents` y `shipment_events`. SDD-0361 cubre `suppliers_cn`,
   `prealertas` y `prealerta_documents`. SDD-0362 cubre cursos, módulos, lecciones,
   inscripciones, diplomas y progreso de Academia. SDD-0363 cubre reclamos y
-  evidencias. Faltan reportes de pago y las demás entidades; cohortes/Club
+  evidencias. SDD-0364 cubre la identidad/tenant de reportes de pago, no sus
+  comandos ni integridad financiera. Faltan las demás entidades; cohortes/Club
   conservan alcance separado.
   No hacer un sweep ni declarar corregido todo el
   Portal por estos slices. Secuencias, transiciones y relación proveedor/cliente
@@ -382,12 +408,13 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 4. Autorizar integración y deploy de la app; verificar los cuatro flujos de
    lectura mínima y Portal. Aplicar 0414 y 0415 sólo después del smoke de sus
    consumidores, cada una con su propio OK y de una en una.
-   Aplicar 0416–0419 con gates/smokes de dominio independientes, de una en una
+   Aplicar 0416–0420 con gates/smokes de dominio independientes, de una en una
    y con su propio OK; completar Telegram
    y los demás gates alojados por separado.
 5. Limpiar worktree y rama de archivo sólo cuando estén contenidos en main.
-6. Seguir P1 por dominio: aislamiento Portal restante y documentos por entidad;
-   reconciliar specs y deuda P2 sin mezclarlas con seguridad alojada.
+6. Seguir P1 local por dominio, empezando por los comandos de reportes de pago
+   ya reproducidos, mientras se esperan los permisos alojados. Después:
+   aislamiento Portal restante/documentos por entidad, specs y deuda P2.
 
 ## Stop conditions
 

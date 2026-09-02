@@ -25,7 +25,8 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   explícito del commit y destino; no se reintentó ni se usó una vía alternativa.
   La verificación PRIVATE/ADMIN anterior no se interpreta como autorización
   para superar este rechazo. El CI verde de `eabb230b` no cubre Academia.
-  SDD-0363 agrega el siguiente commit local: tampoco se publica ni tiene CI propio.
+  SDD-0363 está en `9b243069`, segundo commit local. SDD-0364 añade el tercero;
+  ninguno de los tres se publica ni tiene CI alojado propio.
 
 ## Trabajo rescatado y cerrado
 
@@ -143,9 +144,14 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
     sustituye dos policies SELECT en 0419; preserva historial propio, equipo,
     Storage y contratos. RED real y GREEN, 160 contratos SQL, 47 unitarios
     focales y rebuild de 416 migraciones. Publicación bloqueada, sólo local.
+62. `fix(portal): SDD-0364 — aislar reportes de pago por tenant` — sustituye
+    tres policies Portal en 0420; conserva operaciones propias, historial y
+    contratos. RED real, GREEN con diez drifts, 161 contratos SQL, 19 unitarios
+    y rebuild de 417 migraciones. Publicación bloqueada; los comandos de pagos
+    tienen hallazgos separados, documentados como siguiente prioridad.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0363. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0364. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -200,6 +206,16 @@ sólo-ledger, 219 tablas / dos tenants sintéticos. También pasan 47 unitarios
 en cuatro archivos. No cambia la aplicación ni se repite build/E2E local.
 Fixture propio retirado tras rollback; runners SQL/rebuild terminan sin fallos.
 La evidencia SQL local no certifica firma real, explotación ni estado alojado.
+
+SDD-0364 reproduce SELECT/INSERT/UPDATE y reasignación cruzados de reportes
+de pago. GREEN con diez preflights de drift, ocho principales inválidos,
+historia y operaciones propias, equipo/dual/service. Pasan 161 contratos SQL,
+19 unitarios focales y rebuild de 417 migraciones: 399 desde cero + 18
+sólo-ledger, 219 tablas/dos tenants sintéticos. Fixture propio retirado tras
+rollback; no se modifica TS/TSX. Quedan reproducidos y SIN resolver en 0420:
+cancelación propia rechazada, metadata/moneda/path manipulables y confirmación
+directa no financiera sin acumulador. El siguiente slice deberá gobernar los
+comandos con auditoría atómica, sin cambiar la decisión financiera de SDD-0134.
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
 de SDD-0357:
@@ -389,7 +405,7 @@ de ledger. Contra los 413 archivos de `origin/main` unión checkout y corte 238:
 18 pendientes (las siguientes) y cero huérfanas posteriores al corte. Las 10
 RPC nuevas no existen en `pg_proc`. Esto resuelve la incertidumbre de lectura
 Cloud, pero no aplica migraciones ni transforma el SKIP local en un pase.
-SDD-0361/0362/0363 agregan 0417/0418/0419 localmente: ahora son 416 archivos y 21 gates de aplicación
+SDD-0361–0364 agregan 0417–0420 localmente: ahora son 417 archivos y 22 gates de aplicación
 pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
@@ -441,6 +457,10 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
 - La migración `0419_portal_reclamos_tenant_boundary.sql` pasó 160 contratos
   SQL, rebuild de 416 migraciones y 47 unitarios. No fue aplicada; requiere
   su propio OK y smoke de reclamos/evidencias, sin RPC o deploy previo.
+- La migración `0420_portal_payment_reports_tenant_boundary.sql` pasó 161
+  contratos SQL, rebuild de 417 migraciones y 19 unitarios. No fue aplicada;
+  requiere su propio OK y smoke de reportes, sin RPC o deploy previo. No
+  resuelve los fallos separados de sus comandos, que permanecen en el checklist.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - Vercel creó automáticamente un Preview del SHA publicado: deployment GitHub
