@@ -5,13 +5,29 @@ Guía para agentes de IA (Claude Code, etc.) que trabajan en este repositorio.
 > **Carga:** Claude Code lee `CLAUDE.md`, que importa este archivo vía `@AGENTS.md`. **Este es el archivo fuente — edita acá, no en CLAUDE.md.**
 > **Antes de tocar visuales** → lee [`BRAND.md`](BRAND.md). **Diseño / handoffs / mockups** → [`docs/design/README.md`](docs/design/README.md). **Arquitectura** → [`docs/architecture/`](docs/architecture/).
 
+## Arranque mínimo para Codex
+
+El proyecto está activo y no es un scaffold. Empieza por [`README.md`](README.md)
+y este archivo; el estado medido vive en [`docs/audits/`](docs/audits/) y la
+continuidad por tarea en [`.agents/handoffs/`](.agents/handoffs/).
+
+```bash
+pnpm install --frozen-lockfile
+pnpm dev
+node scripts/verify.mjs
+```
+
+`verify.mjs` es el cierre canónico. Un paso marcado `SKIP` significa que faltó
+entorno y no equivale a una validación completa. Commit, push, Cloud,
+Producción, Vercel y limpieza siguen siendo gates independientes.
+
 ## Las 4 superficies del repo (leer primero)
 
 Un solo Next.js app con **4 superficies** y una **frontera dura** entre el sitio público y el ERP:
 
 | Superficie | Rutas | Backend | Frontera |
 |---|---|---|---|
-| **Sitio público** | `app/{cotizar,track,contacto,calculadora,servicios,noticias,glosario}` + `components/` (raíz) | HTTP al ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`; hoy mocks) | ❌ NUNCA importa `@/lib/studio`, `@/lib/db`, `@supabase/*` |
+| **Sitio público** | `app/{tarifas,fcl,shipping-mark,pre-alertas,contacto,calculadora-terrestre,servicios,academia,noticias,glosario,importar-de-china,brochure,nosotros,faq,enlaces}` + `components/` (raíz) | HTTP al ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`; hoy mocks) | ❌ NUNCA importa `@/lib/studio`, `@/lib/db`, `@supabase/*` |
 | **Studio ERP** ("DTD Cargo") | `app/studio/(app)/<modulo>/` (56 módulos en `lib/studio/modules.ts`) + `app/api/studio/` | Supabase propio (`@/lib/db/server`) + Server Actions | — |
 | **Móvil PWA** | `app/m/{cn,ve,erp}/` | Supabase (reusa `lib/studio`, permitido) | — |
 | **Back (CMS público)** | `app/back/(app)/` | Supabase (`lib/back/`) | no importa `@/lib/studio` ni `app/studio` |
@@ -101,6 +117,7 @@ git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/**' ':(exclude,glob)*.md' \
 ## Comandos
 
 ```bash
+pnpm install --frozen-lockfile
 pnpm dev                 # Next.js dev (http://localhost:3000)
 pnpm build / pnpm start  # producción
 pnpm typecheck           # tsc --noEmit
@@ -109,9 +126,11 @@ pnpm test / test:watch   # Vitest
 pnpm test:e2e            # Playwright
 pnpm seed                # datos demo del Studio (tsx scripts/seed.ts)
 pnpm docs:index / docs:check   # índice + validación de specs SDD
+pnpm verify              # gate canónico: lint, tipos, tests, SQL, e2e y build
 node scripts/run-sql-tests.mjs # contratos SQL (RLS/GRANT/triggers) en Postgres desechable
 node scripts/check-schema-rebuild.mjs  # ¿el schema se reconstruye desde cero? (el script cuenta solo)
 node scripts/check-edge-functions.mjs  # deno check sobre supabase/functions (tsc NO las mira)
+node scripts/check-migrations-applied.mjs  # compara archivos con el ledger de producción (lectura)
 ```
 Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e puntual: `pnpm test:e2e path/to/spec.ts` o `pnpm test:e2e -g "nombre"` (modo interactivo: `pnpm test:e2e:ui`).
 
@@ -130,9 +149,12 @@ Si lo corres a mano, respeta las dos banderas: **`--no-lock`** (si no, deja un `
 - **Refrescar:** `/graphify update` re-extrae solo los archivos cambiados (AST, sin LLM, gratis). ⚠️ **El server MCP lee el grafo al arrancar → después de un `update`, reiniciar Claude Code para que sirva la versión nueva (regla: update → reiniciar).**
 - **Windows:** leer `graphify-out/.graphify_root` y `.graphify_python` con `utf-8-sig` (PowerShell les mete BOM y rompe el walk); los scripts que llaman `extract()` necesitan guard `if __name__ == '__main__':`.
 
-## Variables de entorno (ver `.env.example`)
+## Variables de entorno
 
-`NEXT_PUBLIC_HAILUWAY_API` (base URL del ERP, HTTP) · `DTD_API_KEY` · `NEXT_PUBLIC_WHATSAPP_NUMBER` · `NEXT_PUBLIC_CONTACT_EMAIL` · `NEXT_PUBLIC_SITE_URL` (default `https://dtdcargo.com`).
+La fuente única es [`.env.example`](.env.example), con cada variable y su
+propósito. No mantengas una segunda lista en este archivo: se desactualiza. Un
+worktree sin `.env.local` puede omitir gates por falta de entorno; reporta esos
+pasos como `SKIP`, nunca como verdes.
 
 ## Supabase MCP y credenciales de agentes
 
@@ -166,14 +188,15 @@ esté vivo: hay que seguir la cadena hasta una página que se monte de verdad
 | Server Action de registro + `POST /api/registro/check` | ✅ **vivo** — alta cliente + MARKBOX | `/registro` |
 | `POST /api/public/estimacion` | 🟠 **sin llamadores** — y ya **NO crea `EST-`**: sólo avisa al equipo | nadie (`EstimadoModal` sólo se monta si NO es `directWhatsApp`, y las calculadoras vivas lo son) |
 | `POST /api/contact` | ✅ **vivo** — notifica al equipo + confirma al cliente + throttle | `/academia`, vía [`AcademiaLeadForm.tsx:45`](app/academia/_components/AcademiaLeadForm.tsx). ⚠️ `/contacto` **no** lo usa: manda sólo por WhatsApp — de ahí venía el error de creerlo huérfano |
-| RPC `public_track_shipment` | 🟠 **sin llamadores** — `lib/public/tracking-queries.ts` está huérfano | nadie — `/track` hace 301 a `/portal/login` |
+| RPC `public_track_shipment` | 🟠 **sin llamadores** — `lib/public/tracking-queries.ts` está huérfano | nadie — `/track` hace 301 a `/entrar` |
 
 ### Las rutas que ya NO existen (todas son 301, no páginas)
 
 `/cotizar` · `/estimacion` · `/calculadora` · `/calculadora/embed` →
 **`/tarifas`** · `/calculadora-fcl` y `/cotizador-flete` → **`/fcl`** ·
-`/markbox` → **`/shipping-mark`** · `/track` y `/track/*` →
-**`/portal/login`**.
+`/markbox` → **`/shipping-mark`** · `/track`, `/track/*` y
+`/portal/login` → **`/entrar`** · `/studio/{kommo,leads}` →
+**`/studio/crm`**.
 
 Las calculadoras públicas vivas son **`/tarifas`** (LCL puerta a puerta +
 consolidado), **`/tarifas/embed`**, **`/fcl`** y **`/calculadora-terrestre`**.
