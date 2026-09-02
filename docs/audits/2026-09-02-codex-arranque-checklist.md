@@ -19,11 +19,11 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Rama de saneamiento antes de SDD-0340: `8f388305`, 0 detrás / 32 delante.
+- Rama de saneamiento antes de SDD-0341: `749ab4fb`, 0 detrás / 33 delante.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 332; 238 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 333; 239 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -46,7 +46,7 @@ merge a `main`, Cloud, Producción ni deploy.
   del contrato activo de entorno.
 - [x] Gate canónico reciente sin fallos: 14/15 pasos medidos; sólo Cloud quedó
   `SKIP` por falta deliberada de credenciales. Suite unitaria posterior a
-  SDD-0340: 514 archivos / 5.905 pruebas, todas verdes.
+  SDD-0341: 515 archivos / 5.910 pruebas, todas verdes.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -84,6 +84,8 @@ merge a `main`, Cloud, Producción ni deploy.
   separada; la RPC no existe en Cloud hasta completar ese gate.
 - [ ] Aplicar `0404_portal_referidos_por_principal.sql` con autorización específica
   separada; la RPC no existe en Cloud hasta completar ese gate.
+- [ ] Aplicar `0405_portal_perfil_privado_por_principal.sql` con autorización
+  específica separada; la RPC no existe en Cloud hasta completar ese gate.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [ ] Confirmar deployment Vercel y smoke de público, Studio, Portal y móvil.
@@ -104,7 +106,9 @@ merge a `main`, Cloud, Producción ni deploy.
   dejó el baseline en 9 rutas / 17 construcciones. SDD-0340 encapsuló las URLs
   firmadas de adjuntos detrás de una lectura RLS y dejó el baseline en 8 rutas /
   16 construcciones. Priorizar el facade de aceptación de facturas y las demás
-  lecturas internas mediante RPCs autocontenidas ligadas a `auth.uid()`. El test
+  lecturas internas mediante RPCs autocontenidas ligadas a `auth.uid()`. SDD-0341
+  consolidó códigos históricos y fotos privadas de Perfil y dejó el baseline en
+  7 rutas / 14 construcciones. El test
   `portal-service-role-boundary.test.mjs` congela el inventario; no lo aprueba.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
@@ -149,7 +153,8 @@ merge a `main`, Cloud, Producción ni deploy.
 
 1. Publicar la rama y revisar el diff remoto.
 2. Integrar a `main` con autorización separada y verificar deploy/smoke.
-3. Aplicar 0399, 0400, 0401, 0402, 0403 y 0404 de una en una; completar Telegram.
+3. Aplicar 0399, 0400, 0401, 0402, 0403, 0404 y 0405 de una en una; completar
+   Telegram.
 4. Limpiar worktree y rama de archivo contenida.
 5. Ejecutar el programa P1 por slices; empezar por RBAC documental/financiero y
    Portal firmado.

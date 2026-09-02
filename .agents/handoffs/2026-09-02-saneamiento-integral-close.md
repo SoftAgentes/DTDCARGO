@@ -11,8 +11,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- Divergencia medida antes de SDD-0340: 0 detrás / 32 delante; este commit
-  agrega el paquete 33.
+- Divergencia medida antes de SDD-0341: 0 detrás / 33 delante; este commit
+  agrega el paquete 34.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
 
@@ -62,9 +62,11 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
     contiene este handoff y la migración 0404 todavía no aplicada.
 33. `fix(portal): SDD-0340 — acotar firma de adjuntos de compra` — el commit que
     contiene este handoff; no crea migración.
+34. `fix(portal): SDD-0341 — resolver perfil privado por principal` — el commit
+    que contiene este handoff y la migración 0405 todavía no aplicada.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0340. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0341. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -73,14 +75,14 @@ slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 ## Verificación vigente
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate en
-SDD-0336; SDD-0337 a SDD-0340 pasaron después sus gates proporcionales:
+SDD-0336; SDD-0337 a SDD-0341 pasaron después sus gates proporcionales:
 
 - 14 de 15 gates medidos, ninguno falló.
 - ESLint, frontera RSC, TypeScript y cuatro Edge Functions: OK.
-- Vitest posterior a SDD-0340: 514 archivos / 5.905 pruebas pasaron.
+- Vitest posterior a SDD-0341: 515 archivos / 5.910 pruebas pasaron.
 - Documentación, numeración, componentes y gobernanza: OK.
-- SQL: 145 contratos pasaron con rollback total.
-- Rebuild: 401 migraciones; 383 aplicadas desde cero y 18 sólo-ledger;
+- SQL: 146 contratos pasaron con rollback total.
+- Rebuild: 402 migraciones; 384 aplicadas desde cero y 18 sólo-ledger;
   aislamiento multi-tenant verificado en 219 tablas y 2 tenants.
 - E2E: 150 pasaron, 18 se omitieron por requerir entorno alojado y cero
   fallaron. Un worker de WebKit agotó 300 s al cerrar en Windows; el verificador
@@ -126,6 +128,11 @@ que relee primero los documentos permitidos por RLS y no acepta storage paths de
 caller. Baja el inventario a 8 rutas / 16 construcciones y pasó 6 pruebas focales,
 la suite completa de 5.905 pruebas, TypeScript y ESLint.
 
+SDD-0341 centraliza códigos históricos y paths de fotos en una RPC sin parámetros,
+firma sólo dentro de un módulo `server-only` y no entrega paths a la página. Baja
+el inventario a 7 rutas / 14 construcciones y pasó 7 pruebas focales, la suite
+completa de 5.910 pruebas, 146 contratos SQL, rebuild, TypeScript y ESLint.
+
 ## Gates alojados no cruzados
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
@@ -140,6 +147,8 @@ la suite completa de 5.905 pruebas, TypeScript y ESLint.
   contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
 - La migración `0404_portal_referidos_por_principal.sql` existe en Git y pasó
   contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
+- La migración `0405_portal_perfil_privado_por_principal.sql` existe en Git y
+  pasó contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - No se hizo deploy ni se modificaron datos, secretos o configuración alojada.
@@ -166,7 +175,7 @@ la suite completa de 5.905 pruebas, TypeScript y ESLint.
    `codex/saneamiento-integral`.
 3. Validar la rama remota y decidir/integrar el lote en `main` con un gate
    separado.
-4. Aplicar las migraciones 0399, 0400, 0401, 0402, 0403 y 0404 de una en una, cada una con
+4. Aplicar las migraciones 0399, 0400, 0401, 0402, 0403, 0404 y 0405 de una en una, cada una con
   autorización Cloud específica y el runbook obligatorio.
 5. Retirar este worktree únicamente después de probar que sus commits están
    contenidos; mantener las ramas archive hasta auditar su contención.
