@@ -19,7 +19,7 @@ refrescarse antes de cualquier operación Git o alojada.
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
-**Avance del checklist: 47 de 103 casillas completadas (45,6 %).** Es un
+**Avance del checklist: 48 de 103 casillas completadas (46,6 %).** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
 varios cambios. No existe todavía una medición defendible del producto completo.
@@ -31,14 +31,19 @@ varios cambios. No existe todavía una medición defendible del producto complet
 | Cloud y operación alojada | 2 / 31 | Dependen de autorizaciones nominales y comprobaciones reales |
 | Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
 | Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
-| Orden del producto/documentación | 3 / 12 | Falta reconciliar specs y decisiones de producto |
+| Orden del producto/documentación | 4 / 12 | qs del tooling corregido; faltan specs y decisiones de producto |
 
 **Dónde estamos:** la limpieza inicial ya retiró 8 worktrees y 6 ramas;
 quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último avance:** SDD-0366/0423 corrige el rename de Shipping Mark cuando
+**Último avance local:** los dos avisos moderados de qs del tooling quedaron
+corregidos con6.16.0:15 regresiones verdes, instalación limpia congelada y audit
+nativo sin avisos. Cambio limitado a desarrollo, no publicado.
+[Evidencia y límites](2026-09-02-codex-qs-tooling.md).
+
+**Último correctivo funcional:** SDD-0366/0423 corrige el rename de Shipping Mark cuando
 existen reportes sobre facturas archivadas. Sincroniza sólo identidad, conserva
 pagos/comprobantes/historial y agrega auditoría atómica. No habilita operaciones
 financieras sobre archivos ni reabre la API restringida por 0422.
@@ -52,10 +57,10 @@ build de 158 páginas y navegador sintético; no se presentan como ejecuciones n
 Las cinco carreras anteriores corresponden a 0422. Sigue pendiente el E2E
 con Auth/Storage real.
 
-**SDD-0365 y 0366 siguen abiertas por publicación/release/smoke.** Se agrega
-una corrección local completada y su gate nominal 0423 pendiente: de 46/101 a
-47/103. El denominador crece porque se identificó trabajo real, no porque se
-sumen casillas por prueba. SDD-0258 completo todavía no está cerrado.
+**SDD-0365 y 0366 siguen abiertas por publicación/release/smoke.** Con0423 se
+pasó de46/101 a47/103 por una corrección local y un gate nominal pendiente.
+El arreglo posterior de qs cierra una casilla existente: **48/103**, sin cambiar
+el denominador ni sumar casillas por prueba. SDD-0258 completo no está cerrado.
 
 **Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
 integrar, 25 migraciones del paquete sin aplicación autorizada y trabajo de
@@ -81,7 +86,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   que contiene esta actualización.
   La recuperación documental posterior conserva el archive Cloud en un bundle
   local verificado; es un décimo incremento, distinto del lote funcional hasta
-  `5797920a`. No sustituye publicación/integración ni cambia el47/103.
+  `5797920a`. Ese rescate quedó en `cfe7a9c9` y no incrementó el47/103.
+  La corrección de qs del tooling es un undécimo incremento local separado;
+  una autorización limitada a cfe7a9c9 no lo incluye automáticamente.
   El lote nuevo requiere publicación autorizada y CI propio.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
@@ -450,12 +457,13 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 ## P2 · ordenar el producto sin falsos cierres
 
-- [ ] Resolver dos avisos moderados de `qs@6.15.3` en dependencias de desarrollo
-  de `agentation-mcp` (`express`/`body-parser` y SDK MCP):
-  `GHSA-x5fp-wj9c-mxmx` y `GHSA-4mjr-xmp4-gh2g`. Auditoría nativa del
-  2026-09-02: cero altos/críticos; `pnpm audit --audit-level high` sale 0,
-  pero no significa cero avisos. Comprobar exposición del servidor local y
-  actualización compatible en un lote de tooling, sin mezclarla con RLS Portal.
+- [x] Resolver localmente los dos avisos moderados de `qs@6.15.3` en desarrollo
+  (`agentation-mcp` → SDK MCP → Express/body-parser) con override6.16.0.
+  RED6/GREEN9 → GREEN15; repetido15/15 en instalación limpia congelada sin
+  scripts. Firma/integridad verificadas; audit nativo0 avisos. Sólo cambia qs
+  en el lockfile, sin nuevas versiones de otras dependencias. No se demuestra
+  explotación de un servidor real ni se modifica producción. Publicación
+  pendiente. [Acta](2026-09-02-codex-qs-tooling.md).
 - [x] Cerrar documentalmente SDD-0280, SDD-0303 y SDD-0304 tras verificar sus
   commits en `origin/main`, código vigente y gates. No se borró código adicional;
   [acta del lote](2026-09-02-codex-cierre-documental.md).

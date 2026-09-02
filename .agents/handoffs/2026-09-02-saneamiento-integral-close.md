@@ -32,9 +32,10 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   el correctivo histórico0423 añade el noveno. Ninguno está
   publicado ni tiene CI alojado propio;
   el rechazo de push sigue vigente.
-  Después de `5797920a`, el rescate del archivo Cloud añade un décimo incremento
-  exclusivamente documental. La autorización solicitada para los nueve
-  anteriores no se extiende implícitamente a este recibo/bundle.
+  Después de `5797920a`, el rescate Cloud quedó en `cfe7a9c9`, décimo incremento
+  exclusivamente documental. La corrección local de qs añade el undécimo.
+  La autorización solicitada hasta cfe7a9c9 no incluye automáticamente ese
+  mantenimiento posterior del tooling.
 
 ## Trabajo rescatado y cerrado
 
@@ -197,7 +198,14 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
     incremental de135.144 bytes. Verificación y recuperación con hashes
     idénticos; referencia temporal retirada. No restaura AGENTS antiguo,
     cambia código, publica ni elimina ramas. Acta y recibo específicos;
-    el checklist permanece47/103 hasta resolver publicación/integración.
+    este incremento no aumentó el47/103 porque no completó integración.
+
+70. `fix(tooling): corregir avisos moderados de qs` — override6.16.0, sin
+    cambiar otras resoluciones del lockfile. RED6/GREEN9 → GREEN15 y15/15
+    adicionales en instalación limpia congelada sin scripts. Audit nativo
+    2 moderados → 0 avisos. Firma e integridad verificadas; fixture retirado.
+    Casilla P2 resuelta localmente, publicación pendiente. Acta y recibo
+    específicos: `2026-09-02-codex-qs-tooling.md` / `2026-09-02-qs-tooling-close.md`.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0366. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
@@ -215,10 +223,11 @@ Rebuild de esta misma migración:420 archivos (402 schema+18 sólo-ledger),
 (4 de rendimiento y1 de search_path del helper), ninguno en la función
 modificada. Revisión independiente aprobada. Spec con matriz SGE-00/BTN/MP/AUD
 y recibo advisory de datos; sin certificación de SDD-0258 ni de producción.
-Índice regenerado:358 specs,91 sin cierre documental. Checklist:47/103
-(45,6 %),56 pendientes; no es avance del producto ni estimación de horas.
-Nueve incrementos locales requieren publicación autorizada. No se repiten
-TS/Vitest/build como validaciones nuevas de un cambio sólo SQL/documental.
+Índice:358 specs,91 sin cierre documental. Checklist actualizado tras qs:48/103
+(46,6 %),55 pendientes; no es avance del producto ni estimación de horas.
+Once incrementos locales requieren publicación autorizada. Las pruebas de qs
+son adicionales y están en su acta; no se presentan TS/build/SQL anteriores
+como ejecuciones nuevas de ese mantenimiento de desarrollo.
 
 Evidencia anterior, no ejecución nueva en0423:
 
