@@ -49,7 +49,7 @@ export async function GET(
 
   const [messages, context, digests] = await Promise.all([
     listMessages(supabase, id),
-    getClientContext(supabase, conv.client_id),
+    getClientContext(supabase, conv.id),
     // Histórico de resúmenes mensuales (SDD-0149 · Fase 2).
     listClientConversationDigests(supabase, conv.client_id),
   ]);

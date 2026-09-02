@@ -11,7 +11,7 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- HEAD actual: este commit; árbol limpio, 0 detrás / 48 delante de `origin/main`.
+- HEAD actual: este commit; árbol limpio, 0 detrás / 49 delante de `origin/main`.
 - La rama remota `codex/saneamiento-integral` todavía no existe.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
@@ -92,9 +92,11 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
     este handoff y la migración 0411 todavía no aplicada.
 48. `fix(rbac): SDD-0354 — respetar permisos efectivos en agregado` — corrige
     0411 antes de publicarla para respetar los overrides vigentes de SDD-0252.
+49. `fix(conversaciones): SDD-0355 — minimizar saldo por hilo` — agrega la
+    migración 0412 todavía no aplicada y elimina la lectura directa de facturas.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0354. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0355. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -249,6 +251,12 @@ TypeScript, ESLint, 152 contratos SQL y el rebuild de 408 migraciones: 390 desde
 cero, 18 sólo-ledger y aislamiento verificado en 219 tablas / 2 tenants. La
 corrección de overrides volvió a pasar la matriz SQL completa y el rebuild.
 
+SDD-0355 deriva cliente y saldo desde el id de un hilo autorizado, aplica los
+permisos efectivos de Conversaciones y elimina su lectura directa de facturas.
+Excluye anuladas y no presenta fallos de lectura como saldo cero. Pasó 41
+pruebas focales, TypeScript, ESLint, 153 contratos SQL y el rebuild de 409
+migraciones: 391 desde cero, 18 sólo-ledger y 219 tablas / 2 tenants aislados.
+
 ## Gates alojados no cruzados
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
@@ -276,6 +284,8 @@ corrección de overrides volvió a pasar la matriz SQL completa y el rebuild.
 - La migración `0410_collections_mail_context.sql` existe en Git y pasó
   contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
 - La migración `0411_client_annual_billing_facade.sql` existe en Git y pasó
+  contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
+- La migración `0412_conversation_outstanding_facade.sql` existe en Git y pasó
   contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
@@ -307,7 +317,7 @@ corrección de overrides volvió a pasar la matriz SQL completa y el rebuild.
 3. Validar la rama remota y decidir/integrar el lote en `main` con un gate
    separado.
 4. Aplicar las migraciones 0399, 0400, 0401, 0402, 0403, 0404, 0405, 0406,
-   0407, 0408, 0409, 0410 y 0411 de una en una, cada una con autorización Cloud
+   0407, 0408, 0409, 0410, 0411 y 0412 de una en una, cada una con autorización Cloud
    específica y el runbook obligatorio.
 5. Retirar este worktree únicamente después de probar que sus commits están
    contenidos; mantener las ramas archive hasta auditar su contención.

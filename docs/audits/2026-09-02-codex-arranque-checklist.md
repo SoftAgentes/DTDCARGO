@@ -20,11 +20,11 @@ refrescarse antes de cualquier operación Git o alojada.
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 - Rama de saneamiento actual: el commit que contiene este checklist, con árbol
-  limpio, 0 detrás / 48 delante; la rama remota todavía no existe.
+  limpio, 0 detrás / 49 delante; la rama remota todavía no existe.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 346; 252 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 347; 253 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -62,6 +62,9 @@ merge a `main`, Cloud, Producción ni deploy.
   agrega en Postgres y entrega sólo Shipping Mark + USD trailing-12m a roles
   con acceso efectivo (incluidos overrides); la aplicación ya no recibe moneda,
   tasa, estado ni fechas de cada factura.
+- [x] Saldo de Conversaciones minimizado por hilo: SDD-0355/migración 0412
+  deriva cliente/tenant, respeta overrides y devuelve sólo saldo/moneda; excluye
+  facturas anuladas y no convierte errores de lectura en un saldo cero.
 - [x] Gate canónico posterior a SDD-0348 sin fallos: 14/15 pasos medidos; sólo
   Cloud quedó `SKIP` por falta deliberada de credenciales. E2E: 150 pasaron y 18
   Tier 3 se omitieron; build: 158 páginas. Suite unitaria posterior a SDD-0348:
@@ -119,6 +122,8 @@ merge a `main`, Cloud, Producción ni deploy.
   separada; el facade y el cierre de `mail_logs` no existen en Cloud todavía.
 - [ ] Aplicar `0411_client_annual_billing_facade.sql` con autorización específica
   separada; el agregado minimizado no existe en Cloud todavía.
+- [ ] Aplicar `0412_conversation_outstanding_facade.sql` con autorización
+  específica separada; el contexto mínimo no existe en Cloud todavía.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [ ] Confirmar deployment Vercel y smoke de público, Studio, Portal y móvil.
@@ -135,8 +140,9 @@ merge a `main`, Cloud, Producción ni deploy.
   SDD-0351 cerró las seis tablas administrativas de Mailing; SDD-0353 sustituyó
   la lectura de Cobranzas y dejó `mail_logs` admin-only. SDD-0352 cerró el CRUD
   directo de conciliación bancaria. SDD-0354 retiró las filas financieras del
-  agregado anual usado por Fidelización, CRM y Reportes; quedan Conversaciones
-  y Órdenes de venta antes de cerrar el SELECT general.
+  agregado anual usado por Fidelización, CRM y Reportes; SDD-0355 minimizó el
+  saldo de Conversaciones. Queda Órdenes de venta antes de cerrar el SELECT
+  general.
 - [x] Retirar `service_role` de todos los RSC del Portal.
   SDD-0336 cerró el primer slice de marca: el baseline bajó de 11 rutas / 23
   construcciones a 10 rutas / 21 construcciones. SDD-0337 movió la visibilidad
@@ -212,7 +218,7 @@ merge a `main`, Cloud, Producción ni deploy.
 1. Publicar la rama y revisar el diff remoto.
 2. Integrar a `main` con autorización separada y verificar deploy/smoke.
 3. Aplicar 0399, 0400, 0401, 0402, 0403, 0404, 0405, 0406, 0407, 0408, 0409,
-   0410 y 0411 de una en una;
+   0410, 0411 y 0412 de una en una;
    completar Telegram.
 4. Limpiar worktree y rama de archivo contenida.
 5. Ejecutar el programa P1 por slices; seguir con facades de lectura financiera
