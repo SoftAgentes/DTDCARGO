@@ -32,6 +32,9 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   el correctivo histórico0423 añade el noveno. Ninguno está
   publicado ni tiene CI alojado propio;
   el rechazo de push sigue vigente.
+  Después de `5797920a`, el rescate del archivo Cloud añade un décimo incremento
+  exclusivamente documental. La autorización solicitada para los nueve
+  anteriores no se extiende implícitamente a este recibo/bundle.
 
 ## Trabajo rescatado y cerrado
 
@@ -188,6 +191,13 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
     auditoría atómica;323 aserciones incluidas18 derivas,164 contratos SQL y
     rebuild420. Revisión independiente aprobada, sin aplicación alojada.
     Recibo: `2026-09-02-payment-report-historical-identity-close.md`.
+
+69. `docs(handoff): preservar la historia Cloud en un bundle verificable` —
+    conserva tres commits documentales y su merge, HEADd05b6355, en un bundle
+    incremental de135.144 bytes. Verificación y recuperación con hashes
+    idénticos; referencia temporal retirada. No restaura AGENTS antiguo,
+    cambia código, publica ni elimina ramas. Acta y recibo específicos;
+    el checklist permanece47/103 hasta resolver publicación/integración.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0366. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
@@ -582,7 +592,10 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
   a borrado sólo después de publicar e integrar esta rama.
 - `codex/archive-cloud-handoff-20260828` no está contenido y conserva tres commits
   documentales únicos sobre `AGENTS.md`, `README.md` y `docs/CODEX_HANDOFF.md`;
-  debe mantenerse hasta preservarlos o supersederlos deliberadamente.
+  también contiene su merge histórico. Su bundle incremental fue recuperado
+  y verificado localmente, sin restaurar instrucciones antiguas. Mantener la
+  rama hasta publicar/integrar esa evidencia y resolver su disposición; no
+  confundir equivalencia documental con ancestry ni forzar su borrado.
 - Este worktree NO se puede retirar: contiene commits locales sin publicar,
   no está integrado/contenido en `origin/main` y conserva el carril activo.
 - No se detectaron otras tareas Codex activas de DTDCargo que deban archivarse.

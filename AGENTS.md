@@ -75,13 +75,16 @@ la cápsula generada y cualquier plugin son derivados read-only.
 
 ### ⚠️ El último commit del push decide si hay deploy
 
-`vercel.json` trae un `ignoreCommand` que **cancela el build cuando el commit
-no toca nada fuera de `docs/**` y `*.md`**. Está bien pensado —evita
-desplegar por un cambio de documentación—, pero mira **sólo `HEAD^ HEAD`**, o
-sea el último commit, no el push completo.
+`vercel.json` trae un `ignoreCommand` que mira **sólo `HEAD^ HEAD`**, es decir,
+el último commit, no el push completo. Excluye `docs/**` y los `*.md` de la
+raíz, pero comprueba `docs/marketing` por separado: sus cambios no se omiten.
+**No significa «todo commit documental se omite»**: el patrón
+`:(exclude,glob)*.md` no excluye Markdown anidado fuera de `docs/`.
+Por ejemplo, modificar `.agents/handoffs/*.md` permite el build aunque todo
+el commit sea documental (comprobado el 2026-09-02).
 
 **Consecuencia:** si empujas código y documentación juntos y el último commit
-es doc-only, **el deploy se cancela en silencio** y el código se queda en
+sólo toca las rutas excluidas, **el build se cancela en silencio** y el código se queda en
 `main` sin publicar. Pasó el 2026-08-02 con SDD-0238: el sistema navegable de
 `/marca` viajó en un commit y el último del push era una respuesta a Cloud
 Design en `.md`.

@@ -79,6 +79,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   (`85912909`); consumidores en el séptimo (`bcf111a8`) y la restricción0422
   en el octavo (`f649bdbc`). SDD-0366/0423 añade el noveno incremento local
   que contiene esta actualización.
+  La recuperación documental posterior conserva el archive Cloud en un bundle
+  local verificado; es un décimo incremento, distinto del lote funcional hasta
+  `5797920a`. No sustituye publicación/integración ni cambia el47/103.
   El lote nuevo requiere publicación autorizada y CI propio.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
@@ -256,8 +259,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [ ] Borrar `codex/archive-primary-pnpm-20260902` sólo después de demostrar que
   su intención está contenida en `origin/main`.
 - [ ] Mantener `codex/archive-cloud-handoff-20260828`: conserva un handoff único
-  no integrado. Su contenido es histórico y debe preservarse o declararse
-  supersedido antes de borrar la rama.
+  no integrado. Su historia ya quedó recuperable en un bundle local verificado,
+  con hashes idénticos; falta publicar/integrar esa evidencia y resolver la
+  contención antes de borrar la rama. No se restauran instrucciones obsoletas.
+  [Acta de recuperación y límites](2026-09-02-codex-archivo-y-recuperacion.md).
 - [x] Retirar el upstream `origin/main` de esa rama archive para evitar una
   publicación accidental desde ella; HEAD `d05b6355` y contenido conservados.
 
