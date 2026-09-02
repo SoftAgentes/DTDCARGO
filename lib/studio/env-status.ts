@@ -35,19 +35,23 @@ export type EnvStatus = {
 };
 
 /**
- * Mapeo integración → env var que la habilita.
+ * Mapeo integración → conjunto completo de env vars que la habilitan.
  * Single source of truth para qué chequea EnvBanner y /studio/debug.
  */
-const INTEGRATION_ENV_MAP: Record<IntegrationKey, string> = {
-  supabase: "NEXT_PUBLIC_SUPABASE_URL",
-  resend: "RESEND_API_KEY",
-  resendWebhook: "RESEND_WEBHOOK_SECRET",
-  telegram: "TELEGRAM_BOT_TOKEN",
-  telegramWebhook: "TELEGRAM_WEBHOOK_SECRET",
-  anthropic: "ANTHROPIC_API_KEY",
-  openrouter: "OPENROUTER_API_KEY",
-  hailuway: "DTD_API_KEY",
-  searates: "SEARATES_API_KEY",
+const INTEGRATION_ENV_MAP: Record<IntegrationKey, readonly string[]> = {
+  supabase: ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+  resend: ["RESEND_API_KEY"],
+  resendWebhook: ["RESEND_API_KEY", "RESEND_WEBHOOK_SECRET"],
+  telegram: ["TELEGRAM_BOT_TOKEN"],
+  telegramWebhook: ["TELEGRAM_BOT_TOKEN", "TELEGRAM_WEBHOOK_SECRET"],
+  anthropic: ["ANTHROPIC_API_KEY"],
+  openrouter: ["OPENROUTER_API_KEY"],
+  hailuway: ["NEXT_PUBLIC_HAILUWAY_API", "DTD_API_KEY"],
+  searates: [
+    "SEARATES_API_BASE",
+    "SEARATES_PLATFORM_ID",
+    "SEARATES_API_KEY",
+  ],
 };
 
 /**
@@ -84,8 +88,15 @@ const TRACKED_ENV_VARS = [
   "VERCEL_TEAM_ID",
 ];
 
-function statusOf(envKey: string, isRequired = false): IntegrationStatus {
-  if (process.env[envKey]) return "active";
+function hasEnvValue(envKey: string): boolean {
+  return Boolean(process.env[envKey]?.trim());
+}
+
+function statusOf(
+  envKeys: readonly string[],
+  isRequired = false,
+): IntegrationStatus {
+  if (envKeys.every(hasEnvValue)) return "active";
   return isRequired ? "missing" : "mock";
 }
 
@@ -117,7 +128,7 @@ export function getEnvStatus(): EnvStatus {
       hailuway: statusOf(INTEGRATION_ENV_MAP.hailuway),
       searates: statusOf(INTEGRATION_ENV_MAP.searates),
     },
-    envVarsPresent: TRACKED_ENV_VARS.filter((k) => Boolean(process.env[k])),
+    envVarsPresent: TRACKED_ENV_VARS.filter(hasEnvValue),
   };
 }
 
@@ -143,7 +154,7 @@ export function integrationLabel(k: IntegrationKey): string {
 }
 
 export function integrationEnvVar(k: IntegrationKey): string {
-  return INTEGRATION_ENV_MAP[k];
+  return INTEGRATION_ENV_MAP[k].join(" + ");
 }
 
 export function envLabel(e: EnvName): string {

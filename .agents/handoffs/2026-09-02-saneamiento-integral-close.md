@@ -11,8 +11,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- Divergencia medida antes de SDD-0332: 0 detrás / 24 delante; este commit
-  agrega el paquete 25.
+- Divergencia medida antes de SDD-0333: 0 detrás / 25 delante; este commit
+  agrega el paquete 26.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
 
@@ -45,11 +45,14 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 24. `fix(studio): SDD-0331 — retirar consultas de identidad inseguras` — el
     commit `927878a6`.
 25. `fix(infra): SDD-0332 — retener llave KMS del backup` — el commit que
-    contiene este handoff.
+    precede este cierre.
+26. `fix(studio): SDD-0333 — validar configuración de integraciones` — el
+    commit que contiene este handoff.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0332. Los dos últimos lotes retiran la consulta externa CNE/SENIAT y alinean
-el ciclo de vida del bucket WORM histórico con su llave KMS.
+SDD-0333. Los tres últimos lotes retiran la consulta externa CNE/SENIAT, alinean
+el ciclo de vida del bucket WORM histórico con su llave KMS y eliminan falsos
+verdes de configuración en `/studio/debug`.
 
 ## Verificación vigente
 
@@ -71,6 +74,9 @@ el ciclo de vida del bucket WORM histórico con su llave KMS.
 Además, SDD-0331 pasó sus contratos focales (2 archivos / 5 pruebas), ESLint,
 TypeScript, `docs:check`, `governance:check`, `components:check` y
 `git diff --check`.
+
+SDD-0333 valida configuración compuesta sin contactar proveedores; su evidencia
+focal se registra en el handoff específico del cambio.
 
 ## Gates alojados no cruzados
 
