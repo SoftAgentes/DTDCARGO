@@ -15,7 +15,7 @@ import type { InvoiceCurrency } from "@/lib/studio/invoice-types";
 import { MAX_PENDING_REPORTS_PER_INVOICE } from "@/lib/portal/payment-report-types";
 
 const REPORT_COLS =
-  "id, invoice_id, invoice_code, client_markbox, amount, currency, method, paid_at, proof_path, status, note, confirmed_by, confirmed_at, created_at";
+  "id, invoice_id, invoice_code, client_markbox, amount, currency, method, paid_at, proof_path, status, note, confirmed_by, confirmed_at, cancelled_at, cancelled_by, resolution_reason, created_at";
 
 type ReportRow = {
   id: string;
@@ -31,6 +31,9 @@ type ReportRow = {
   note: string | null;
   confirmed_by: string | null;
   confirmed_at: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  resolution_reason: string | null;
   created_at: string;
 };
 
@@ -50,6 +53,9 @@ export function mapPaymentReportRow(row: ReportRow): PaymentReport {
     note: row.note,
     confirmedBy: row.confirmed_by,
     confirmedAt: row.confirmed_at,
+    cancelledAt: row.cancelled_at,
+    cancelledBy: row.cancelled_by,
+    resolutionReason: row.resolution_reason,
     createdAt: row.created_at,
   };
 }
@@ -68,20 +74,24 @@ async function portalMarkbox(supabase: SupabaseClient): Promise<string | null> {
 export async function listMyInvoiceReports(
   supabase: SupabaseClient,
   invoiceCode: string,
-): Promise<PaymentReport[]> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return [];
+): Promise<PaymentReport[] | null> {
+  try {
+    const markbox = await portalMarkbox(supabase);
+    if (!markbox) return null;
 
-  const { data, error } = await supabase
-    .from("payment_reports")
-    .select(REPORT_COLS)
-    .eq("invoice_code", invoiceCode)
-    .eq("client_markbox", markbox)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("payment_reports")
+      .select(REPORT_COLS)
+      .eq("invoice_code", invoiceCode)
+      .eq("client_markbox", markbox)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
-  return (data as ReportRow[]).map(mapPaymentReportRow);
+    if (error || !Array.isArray(data)) return null;
+    return (data as ReportRow[]).map(mapPaymentReportRow);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -92,17 +102,21 @@ export async function listMyInvoiceReports(
 export async function listInvoiceReports(
   client: SupabaseClient,
   args: { tenantId: string; invoiceId: string },
-): Promise<PaymentReport[]> {
-  const { data, error } = await client
-    .from("payment_reports")
-    .select(REPORT_COLS)
-    .eq("tenant_id", args.tenantId)
-    .eq("invoice_id", args.invoiceId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+): Promise<PaymentReport[] | null> {
+  try {
+    const { data, error } = await client
+      .from("payment_reports")
+      .select(REPORT_COLS)
+      .eq("tenant_id", args.tenantId)
+      .eq("invoice_id", args.invoiceId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
 
-  if (error || !data) return [];
-  return (data as ReportRow[]).map(mapPaymentReportRow);
+    if (error || !Array.isArray(data)) return null;
+    return (data as ReportRow[]).map(mapPaymentReportRow);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -121,6 +135,7 @@ export async function countPendingReports(
       .eq("tenant_id", args.tenantId)
       .eq("invoice_id", args.invoiceId)
       .eq("status", "reportado")
+      .is("cancelled_at", null)
       .is("deleted_at", null);
 
     if (error || typeof count !== "number" || !Number.isSafeInteger(count) || count < 0) {

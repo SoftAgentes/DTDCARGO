@@ -62,9 +62,9 @@ previa, no una garantía atómica contra dos solicitudes concurrentes.
   sin asientos contables nuevos ni cambios retroactivos de pagos.
 - [x] Idempotencia/reintentos verificables en SQL, resultado mínimo y rollback
   de mutación si falla la auditoría (0421).
-- [ ] Adoptar las tres RPC en acciones de sesión: decodificar resultado mínimo,
+- [x] Adoptar las tres RPC en acciones de sesión: decodificar resultado mínimo,
   errores seguros y clave estable entre reintentos; sin DML/fallback heredado.
-- [ ] Adoptar confirmación y motivo con componentes canonical, reglas del
+- [x] Adoptar confirmación y motivo con componentes canonical, reglas del
   Norte y pruebas de teclado/pendiente/error. No rediseñar pantallas.
 
 ### Etapa 3 · restricción y release
@@ -211,6 +211,66 @@ de la experiencia completa ni como corrección en producción.
 
 ## Gobierno, privacidad y límites
 
+### Contrato y allowlist de adopción de consumidores
+
+Las acciones Portal conservan su firma e incorporan request_id/report_id
+canónicos del formulario; cancelar añade reason obligatorio. La resolución
+Studio recibe (reportId, action, reason, requestId). Todas usan exclusivamente
+runPaymentReportCommand con sesión, sin INSERT/UPDATE ni RPC antigua. Validan
+antes de efectos; sólo un recibo válido produce éxito/revalidación. Los avisos
+son best-effort sólo en un alta nueva, nunca en replay; no se promete entrega
+exactamente una vez sin outbox.
+
+El alta conserva el preflight antiabuso. Un reporte propio ya existente puede
+recuperar su recibo aunque luego se complete la factura o se alcance el cupo.
+El lookup exige tenant/factura/cliente/id; antes de subir otro objeto, el path
+derivado debe coincidir con el proof_path original. No se confía en paths del
+navegador ni se omite la reautorización SQL. Un resultado desconocido bloquea
+el cambio del intento y permite repetir sólo sus mismos datos/archivo/claves.
+
+La UI conserva formulario/archivo ante error y bloquea doble ejecución/cierre
+durante pending. Cancelar/confirmar/rechazar muestran contexto, consecuencia y
+motivo obligatorio usando ConfirmDialog canonical. Portal requiere un adaptador
+CSS local de sus tokens, no importar el tema Studio global ni duplicar el
+comportamiento de diálogo. No se promueve un componente nuevo como canonical.
+Las notas originales y motivos se muestran separados; cancelación permanece
+visible y no ofrece confirmación posterior. Lectura fallida se muestra como
+desconocida, nunca como lista vacía. No cambian fórmula financiera ni permisos.
+
+Allowlist exacta:
+
+- app/portal/(app)/facturas/[code]/reportar/actions.ts
+- app/studio/(app)/facturacion/payment-report-actions.ts
+- lib/portal/payment-report-types.ts
+- lib/portal/payment-report-queries.ts
+- lib/portal/payment-proof.ts
+- app/portal/(app)/facturas/[code]/reportar/PaymentReportForm.tsx
+- app/portal/(app)/facturas/[code]/page.tsx (presentar lectura fallida sin crash)
+- app/portal/(app)/facturas/[code]/_components/InvoicePaymentReports.tsx
+- app/studio/(app)/facturacion/_components/StudioInvoicePaymentReports.tsx
+- app/portal/_components/PortalPaymentConfirm.tsx (adaptador acotado)
+- app/portal/_components/PortalPaymentConfirm.module.css
+- app/studio/(app)/facturacion/[code]/page.tsx
+- app/studio/_components/ui/ConfirmDialog.tsx (Space, reflow y contraste de error)
+- lib/portal/__tests__/payment-report-consumers.test.ts (independiente)
+- lib/portal/__tests__/payment-report-actions.test.ts (adaptación del writer retirado)
+- lib/portal/__tests__/payment-reports.test.ts
+- lib/portal/__tests__/payment-proof-retry.test.ts
+- lib/portal/__tests__/payment-report-ui.test.tsx
+- Esta spec, checklist y ambos handoffs del saneamiento.
+
+Se actualizará la allowlist antes de cualquier ruta adicional. SQL0421,
+policies/registro canonical, tokens compartidos, paquetes y Cloud no cambian.
+El RED de teclado detectó que el canónico anulaba Space incluso fuera de HTD.
+Se corrigen los dos guards de teclado; no se cambia su API ni promoción.
+El navegador reprodujo un botón Cancelar fuera de viewport a 320 px con el
+label de reintento y contraste de error oscuro 4,19:1. El ajuste compartido
+queda limitado a reflow del footer, altura/scroll y corte de texto largo del
+panel, y el token danger-text ya aprobado (fallback a danger en Portal).
+Las cards locales adoptan card-shadow-static: el hover con transform atrapaba
+el overlay fixed dentro de la card. Moneda/bordes/foco del formulario usan
+tokens existentes tras medir contraste insuficiente; sin cambio global.
+
 - SGE-00/ERR-01: un error no equivale a cero o éxito; mostrar resultado incierto
   sin detalles SQL ni sugerir repetir ciegamente una operación financiera.
 - AUD-01/AUD-02: esta contención no agrega escritores ni eventos. La auditoría
@@ -227,6 +287,67 @@ de la experiencia completa ni como corrección en producción.
   tests y no se afirma cumplimiento jurídico.
 
 ## Verificación y estado
+
+### Adopción local de consumidores sobre 85912909
+
+Etapa 2 implementada localmente; etapa 3 y release abiertos. Las acciones
+usan las tres RPC de sesión sin DML/fallback heredado. Sólo un recibo válido
+confirma éxito; fallos de revalidación no lo invalidan. La identidad se
+conserva al reintentar y la incertidumbre no desaparece por un rechazo
+posterior: hasta aclarar el resultado se mantienen datos, archivo y motivo.
+La firma/recuperación del comprobante rechaza un path diferente del original
+antes de tocar Storage; un replay legítimo no queda bloqueado por factura
+posteriormente pagada o cupo lleno. No se promete entrega de avisos exactamente
+una vez; siguen best-effort y no se envían en replay.
+
+Reproducción independiente: acciones antiguas devolvían éxito sin recibo o
+usaban DML; listas confundían error con vacío, importes 1,10/0,29 fallaban y
+el año 0000 pasaba. GREEN: 106 pruebas focales (28 consumidores, 24 acciones,
+28 modelo/consultas y 26 comprobantes). UI: RED inicial 5/5 y falso éxito
+contradictorio aislado; GREEN 19/19. Canonical + UI final: 32/32 (11,25 s).
+
+Suite completa de consumidores: 6.401/6.401 en 536 archivos, 141,56 s.
+Después sólo hubo ajustes de layout/tokens: se repitió la suite focal de 32.
+TypeScript sin caché pasó. Build final/gates: ver handoff de cierre; no se
+atribuyen el rebuild418 o los 162 contratos SQL anteriores a esta ejecución.
+SQL0421 conserva exactamente su hash y no se volvió a aplicar ni consultar Cloud.
+
+Navegador real, fixture local sin servicios de negocio:
+- Portal oscuro 390 px: overlay 390×844, foco seguro y Space ejecuta una vez.
+- Portal claro 320 px: error permanece al cerrar, foco vuelve al disparador;
+  motivo de 500 caracteres reabre con scroll accesible y se conserva junto
+  con request_id al reintentar. Confirmación final: dos llamadas, misma clave
+  y motivo, historial cancelado, cero botones de mutación y ancho 320/320.
+- Studio oscuro 320 px: Enter confirma; ante incertidumbre se bloquea el verbo
+  alternativo. Cierre/reapertura conserva intento; recibo válido retira acciones.
+- Se reprodujeron y corrigieron overlay atrapado por hover/transform, botones
+  fuera de viewport, error en columna estrecha y texto largo sin espacios.
+  Cards estáticas, reflow/scroll canonical y corte de texto resuelven esos casos.
+- Contraste medido: moneda Portal 1,11:1 y bordes 1,77:1 antes; pasan a tokens
+  secundarios (borde 7,33:1 contra card oscura). Error Studio pasa de 4,19:1
+  a 5,57:1 usando danger-text. Foco visible; controles Portal con altura mínima de 44 px.
+- Límite: navegador rechazó el upload desde el worktree fuera de sus raíces;
+  no se eludió. FormData/File y retención sí se probaron con componentes reales
+  en jsdom, pero no se certifica carga Auth/Storage ni un E2E financiero real.
+- Fixture ignorada por Git y servidor localhost retirados al terminar.
+
+Gate SGE/FRM/BTN/A11Y/ERR: cumplimiento acotado en consumidores probados
+(confirmación, motivo, resultado veraz, controles bloqueados durante pending,
+conservación y recuperación); AUD usa el comando atómico probado. CMP:
+reutilización canonical sin promoción ni API nueva; revisión independiente
+del ajuste compartido sin hallazgos. No se certifican todos los consumidores
+del repo ni el estado alojado. Etapa 3 mantiene la no conformidad de permisos
+heredados; no es excepción ni autorización de release.
+
+Privacidad advisory: CORRECTO, sin exponer paths/errores internos ni registrar
+monto, nota o comprobante en logs nuevos; no se borran ni sobrescriben evidencias.
+ENCONTRADO: motivo operativo obligatorio en cancelación/confirmación/rechazo,
+texto libre que podría contener datos personales, limitado a 4–500 caracteres.
+No se introduce destinatario externo; retención, residencia, consentimiento,
+backups y disposición de objetos sin vínculo son NO VERIFICABLES localmente.
+No se afirma cumplimiento jurídico ni se cambian datos reales.
+
+### Evidencia histórica anterior a consumidores
 
 Etapa 1 implementada. El RED ampliado reprodujo 31 fallos/8 controles verdes.
 GREEN independiente: 62 casos nuevos; otros dos casos de LF/CRLF confirmaron

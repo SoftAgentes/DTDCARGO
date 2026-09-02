@@ -70,11 +70,11 @@ export default async function InvoiceDetailPage({
     tenantId: invoice.tenant_id,
     invoiceId: invoice.id,
   });
-  let reportItems: ReportWithProof[] = reports.map((report) => ({
+  let reportItems: ReportWithProof[] | null = reports?.map((report) => ({
     report,
     proofUrl: null,
-  }));
-  if (reports.some((r) => r.proofPath)) {
+  })) ?? null;
+  if (reports?.some((r) => r.proofPath)) {
     const admin = createAdminClient();
     reportItems = await Promise.all(
       reports.map(async (report) => ({

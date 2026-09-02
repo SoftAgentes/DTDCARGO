@@ -27,8 +27,9 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   para superar este rechazo. El CI verde de `eabb230b` no cubre Academia.
   SDD-0363 está en `9b243069`, segundo commit local. SDD-0364 en `e9d49980`
   añade el tercero; SDD-0365 etapa 1 añade el cuarto, expansión SQL0421 el quinto
-  y transporte/comprobantes el sexto. Ninguno está publicado
-  ni tiene CI alojado propio; el rechazo de push sigue vigente.
+  y transporte/comprobantes el sexto. La adopción de consumidores añade el
+  séptimo incremento local. Ninguno está publicado ni tiene CI alojado propio;
+  el rechazo de push sigue vigente.
 
 ## Trabajo rescatado y cerrado
 
@@ -167,6 +168,12 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
     222 tests independientes del transporte y 24 del uploader; suite completa
     6.342/534 archivos verde. Sin consumidores UI nuevos ni Cloud.
 
+66. `feat(portal): SDD-0365 — adoptar comandos de pago auditados` —
+    tres acciones RPC de sesión, recibos y reintentos estables, confirmación
+    con motivo y presentación veraz de errores/cancelación. 106 focales,
+    19 UI independientes y suite completa6.401/536; foco/contraste/reflow
+    probados en navegador local. Restricción de base y release pendientes.
+
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0365. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
@@ -176,7 +183,16 @@ slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 
 ## Verificación vigente
 
-Último incremento de transporte/comprobantes: 6.342/6.342 pruebas en 534
+Consumidores sobre85912909: 6.401/6.401 pruebas en536 archivos (141,56s),
+106 focales de acción/modelo/comprobante y19 UI independientes. Después de
+ajustes visuales, UI+canonical32/32 (11,25s). TypeScript sin caché aprobado;
+RSC1.591 sin cruces, lint/gobernanza28/CMP5 aprobados. Build final aprobado:
+158 páginas, postbuild, tsconfig restaurado y .next-verify retirado.
+Navegador local: Portal320/390 y Studio320, teclado/recibos/reintentos y
+contraste. Upload de navegador denegado por raíces, sin eludirlo: no es E2E
+Auth/Storage. Fixture y servidor propios retirados. No SQL/Cloud nuevo.
+
+Evidencia histórica de transporte/comprobantes: 6.342/6.342 pruebas en 534
 archivos, 113,50 s; TypeScript sin caché, ESLint de cuatro archivos y frontera
 RSC de 1.590 módulos sin cruces aprobados. Docs, gobernanza y CMP pasan.
 Sin nueva ejecución de build/E2E/rebuild SQL; la aplicación aún debe adoptar

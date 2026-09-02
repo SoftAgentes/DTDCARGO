@@ -39,6 +39,26 @@ function storage(options: { loseResponse?: boolean; throwAfterWrite?: boolean; f
 }
 
 describe("uploadPaymentProof · reintento conservando evidencia", () => {
+  it("rechaza evidencia distinta del path original antes de tocar Storage", async () => {
+    const io = storage();
+    const original = await uploadPaymentProof(io.admin, { ...SCOPE, file: proof("original") });
+    io.from.mockClear();
+    const retry = { ...SCOPE, file: proof("distinto"), expectedPath: original.path };
+    const result = await uploadPaymentProof(io.admin, retry);
+    expect(result.path).toBeUndefined();
+    expect(result.error).toEqual(expect.any(String));
+    expect(io.from).not.toHaveBeenCalled();
+    expect(io.objects.size).toBe(1);
+  });
+
+  it("recupera el mismo comprobante cuando el path original sí coincide", async () => {
+    const io = storage();
+    const original = await uploadPaymentProof(io.admin, { ...SCOPE, file: proof() });
+    const retry = { ...SCOPE, file: proof(), expectedPath: original.path };
+    expect(await uploadPaymentProof(io.admin, retry)).toEqual(original);
+    expect(io.objects.size).toBe(1);
+  });
+
   it("reutiliza objeto para mismo scope y bytes, aunque cambie el nombre local", async () => {
     const io = storage();
     const first = await uploadPaymentProof(io.admin, { ...SCOPE, file: proof() });

@@ -38,19 +38,24 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Trabajo actual:** seguridad de los reportes de pago (SDD-0365). La expansión
-SQL 0421 está conservada en el quinto commit local, `7f4c1046`: 400 aserciones
-independientes, 5 carreras entre conexiones, 162 contratos SQL y rebuild418
-aprobados. El sexto commit local prepara la validación de las respuestas de
-los comandos y la recuperación segura de comprobantes ante reintentos, sin
-publicación. Su última suite completa pasó: **6.342 pruebas en 534 archivos**,
-incluidas 222 del transporte de comandos y 24 de comprobantes. También pasaron
-TypeScript, lint y la frontera RSC (1.590 módulos, cero cruces).
+**Trabajo actual:** seguridad de los reportes de pago (SDD-0365). SQL0421
+está en `7f4c1046` y el transporte/comprobantes en `85912909`. El incremento
+de consumidores ya conecta las tres acciones de sesión a esas RPC, conserva
+datos/archivo/claves en reintentos y exige confirmación con motivo. No usa el
+DML ni la RPC financiera heredados desde esas acciones.
 
-Este avance es preparatorio: las acciones y pantallas todavía no consumen los
-comandos nuevos. Falta conectarlas, verificar el flujo completo y restringir
-los escritores heredados antes del release. Por eso el conteo sigue en 45/100;
-no se agrega una casilla completada por cada prueba ni por una entrega parcial.
+La suite completa pasó **6.401 pruebas en 536 archivos**; además, las 32
+pruebas finales de interfaz/diálogo pasan después de los ajustes visuales.
+TypeScript sin caché pasó; el build final y los gates se registran en el
+handoff. Navegador local: cancelación y confirmación sintéticas, teclado,
+reintento estable, motivos de 500 caracteres y layout a 320/390 px.
+No es un E2E con Auth/Storage real: la carga desde el worktree fue rechazada
+por el límite de rutas de la herramienta y no se eludió.
+
+**La etapa de consumidores está implementada localmente, pero SDD-0365 no
+está cerrada:** falta inventariar/restringir escritores y lectura financiera
+en la base, además de los gates de release. El porcentaje permanece en
+45/100; no se agrega una casilla por cada prueba o entrega parcial.
 
 **Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
 integrar, 23 migraciones del paquete sin aplicación autorizada y trabajo de
@@ -70,8 +75,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   tercero (`e9d49980`) para el aislamiento de reportes de pago. SDD-0365 etapa 1
   añade la contención de sus acciones/comprobantes como cuarto commit local.
   La expansión SQL 0421 de SDD-0365 añade el quinto commit local (`7f4c1046`).
-  El transporte de comandos y recuperación de comprobantes añade el sexto.
-  Los seis requieren publicación autorizada y CI propio.
+  El transporte de comandos y recuperación de comprobantes añade el sexto
+  (`85912909`); la adopción de consumidores se conserva en un séptimo incremento.
+  El lote nuevo requiere publicación autorizada y CI propio.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -191,8 +197,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   recibo idempotente, permisos y motivo; 400 aserciones independientes,
   5 carreras reales y rebuild418 verdes. Advisors locales: sin hallazgos en
   objetos nuevos, una advertencia del helper touch_updated_at del fixture.
-  162 contratos SQL y 6.096 unitarios completos aprobados. No está aplicada
-  ni adoptada por la aplicación; publicación y release siguen abiertos.
+  162 contratos SQL y 6.096 unitarios completos aprobados en ese incremento.
+  No está aplicada. Sus consumidores ya están adoptados localmente; publicación,
+  restricción y release siguen abiertos.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -334,10 +341,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [x] SDD-0365 etapa 1: contador fail-closed probado desde la acción real.
   null, error, transporte y conteos inválidos no producen upload/insert/aviso.
   El límite concurrente todavía requiere el comando transaccional de etapa 2.
-- [ ] Completar SDD-0365 etapas 2/3. El incremento de aplicación ya evita éxitos
-  falsos y firma ajena, pero NO resuelve la cancelación real rechazada por RLS,
-  en la UI. SQL 0421 ya prueba auditoría, idempotencia e integridad de campos;
-  falta adoptarlo en acciones/pantallas y retirar DML/RPC financieros heredados.
+- [ ] Completar SDD-0365 etapa 3 y release. Etapa 2 ya adopta SQL0421 en
+  acciones/pantallas con auditoría, recibos, confirmación y motivos. El cierre
+  sigue abierto: falta inventariar y restringir DML/RPC financieros heredados
+  y la lectura interna en la base; después, gates alojados y smoke real.
   Los uploads inciertos se conservan privados: revisar su disposición con
   identidad/vínculo/hold y autorización; no hay job ni purga automática.
 - [ ] Continuar RBAC de aplicación en la base por slices: lectura minimizada de

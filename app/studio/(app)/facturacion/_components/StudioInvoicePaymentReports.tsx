@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
   paymentStatusLabel,
@@ -8,7 +9,7 @@ import {
   paymentMethodLabel,
   type PaymentReport,
 } from "@/lib/portal/payment-report-types";
-import { resolvePaymentReport } from "../payment-report-actions";
+import { resolvePaymentReport, type ResolveReportResult } from "../payment-report-actions";
 
 /** Un reporte + la URL firmada de su comprobante (generada server-side). */
 export type ReportWithProof = {
@@ -31,8 +32,9 @@ function fmt(n: number): string {
 export function StudioInvoicePaymentReports({
   items,
 }: {
-  items: ReportWithProof[];
+  items: ReportWithProof[] | null;
 }) {
+  if (items === null) return <p role="alert" style={{ color: "var(--danger-text)" }}>No pudimos consultar los reportes de pago. Actualiza la factura antes de resolver un reporte.</p>;
   if (items.length === 0) return null;
 
   return (
@@ -60,25 +62,47 @@ export function StudioInvoicePaymentReports({
 function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
   const { report, proofUrl } = item;
   const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const [rejecting, setRejecting] = useState(false);
-  const [note, setNote] = useState("");
-  // Estado local para reflejar la resolución sin esperar el refresh del RSC.
-  const [resolved, setResolved] = useState<null | "confirmado" | "rechazado">(null);
-
+  const [state, setState] = useState<ResolveReportResult>({});
+  const [selection, setSelection] = useState<"confirmado" | "rechazado" | null>(null);
+  const [attempt, setAttempt] = useState<{ requestId: string; action: "confirmado" | "rechazado"; reason: string } | null>(null);
+  const [resolved, setResolved] = useState<"confirmado" | "rechazado" | null>(null);
+  const [resolutionReason, setResolutionReason] = useState<string | null>(null);
+  const busy = useRef(false);
   const status = resolved ?? report.status;
-  const isPending = status === "reportado";
+  const isPending = status === "reportado" && !report.cancelledAt;
+  const unknown = "No pudimos confirmar el resultado. Conserva este intento y reintenta sin cambiar sus datos. Código: PAGO-RESULTADO-INCIERTO.";
 
-  function run(action: "confirmado" | "rechazado", motivo?: string) {
-    setError(null);
+  function begin(action: "confirmado" | "rechazado") {
+    if (busy.current) return;
+    if (state.uncertain && attempt) { setSelection(attempt.action); return; }
+    setSelection(action); setAttempt(null); setState({});
+  }
+
+  function run(value: string) {
+    if (busy.current || !selection) return;
+    const reason = state.uncertain && attempt ? attempt.reason : value.replace(/\s+/g, " ").trim();
+    if (reason.length < 4 || reason.length > 500) {
+      setState({ error: "Escribe un motivo de 4 a 500 caracteres." }); return;
+    }
+    const current = state.uncertain && attempt ? attempt : {
+      requestId: attempt?.requestId ?? crypto.randomUUID(), action: selection, reason,
+    };
+    setAttempt(current);
+    busy.current = true;
+    setState((previous) => ({ uncertain: previous.uncertain }));
     startTransition(async () => {
-      const res = await resolvePaymentReport(report.id, action, motivo);
-      if (res.error) {
-        setError(res.error);
-        return;
-      }
-      setResolved(action);
-      setRejecting(false);
+      try {
+        const result = await resolvePaymentReport(report.id, current.action, current.reason, current.requestId);
+        if (result?.ok === true && !result.error && result.receipt?.requestId === current.requestId
+          && result.receipt.reportId === report.id && result.receipt.status === current.action
+          && result.receipt.cancelled === false) {
+          setResolved(current.action); setResolutionReason(current.reason); setSelection(null); setState({});
+        } else {
+          setState((previous) => ({ error: result?.error ?? unknown,
+            uncertain: previous.uncertain || result?.uncertain === true || !result?.error || result.ok === true }));
+        }
+      } catch { setState({ error: unknown, uncertain: true }); }
+      finally { busy.current = false; }
     });
   }
 
@@ -96,8 +120,8 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
         <span style={{ font: "800 14px/1 var(--f-mono)", color: "var(--ink)" }}>
           {report.currency} ${fmt(report.amount)}
         </span>
-        <Badge tone={paymentStatusTone(status)} size="sm" dot>
-          {paymentStatusLabel(status)}
+        <Badge tone={report.cancelledAt ? "neutral" : paymentStatusTone(status)} size="sm" dot>
+          {report.cancelledAt ? "Cancelado" : paymentStatusLabel(status)}
         </Badge>
         <span
           style={{
@@ -120,7 +144,7 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
           </a>
         ) : (
           <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
-            Sin comprobante
+            {report.proofPath ? "Comprobante no disponible" : "Sin comprobante"}
           </span>
         )}
       </div>
@@ -130,86 +154,47 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
           style={{
             font: "500 12px/1.5 var(--f-sans)",
             color: "var(--ink-soft)",
+            overflowWrap: "anywhere",
             margin: 0,
           }}
         >
-          {status === "rechazado" ? "Motivo: " : "Nota del cliente: "}
+          {"Nota del cliente: "}
           {report.note}
         </p>
       ) : null}
 
-      {isPending ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {rejecting ? (
-            <>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={2}
-                maxLength={500}
-                placeholder="Motivo del rechazo (opcional, lo ve el cliente)"
-                disabled={pending}
-                style={{
-                  width: "100%",
-                  font: "500 12.5px/1.4 var(--f-sans)",
-                  color: "var(--ink)",
-                  background: "var(--bg-elevated)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--r-md)",
-                  padding: "8px 10px",
-                  resize: "vertical",
-                }}
-              />
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => run("rechazado", note)}
-                  className="studio-btn studio-btn-danger studio-btn-xs"
-                >
-                  {pending ? "Rechazando…" : "Confirmar rechazo"}
-                </button>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => {
-                    setRejecting(false);
-                    setNote("");
-                  }}
-                  className="studio-btn studio-btn-ghost studio-btn-xs"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </>
-          ) : (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => run("confirmado")}
-                className="studio-btn studio-btn-primary studio-btn-xs"
-              >
-                {pending ? "Confirmando…" : "Confirmar pago"}
-              </button>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => setRejecting(true)}
-                className="studio-btn studio-btn-ghost studio-btn-xs"
-              >
-                Rechazar
-              </button>
-            </div>
-          )}
-        </div>
-      ) : null}
-
-      {error ? (
-        <p style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--wine-text)", margin: 0 }}>
-          {error}
+      {resolutionReason || report.resolutionReason ? (
+        <p style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)", overflowWrap: "anywhere", margin: 0 }}>
+          Motivo: {resolutionReason ?? report.resolutionReason}
         </p>
       ) : null}
+      {resolved ? <p role="status" style={{ color: "var(--ink)" }}>{paymentStatusLabel(resolved)}</p> : null}
+
+      {isPending ? (
+        <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap" }}>
+          <button type="button" disabled={pending || Boolean(state.uncertain && attempt?.action !== "confirmado")}
+            onClick={() => begin("confirmado")} className="studio-btn studio-btn-primary studio-btn-sm">
+            Confirmar pago
+          </button>
+          <button type="button" disabled={pending || Boolean(state.uncertain && attempt?.action !== "rechazado")}
+            onClick={() => begin("rechazado")} className="studio-btn studio-btn-ghost studio-btn-sm">
+            Rechazar
+          </button>
+        </div>
+      ) : null}
+      {!selection && state.error ? <p role="alert" style={{ color: "var(--danger-text)" }}>{state.error}</p> : null}
+      <ConfirmDialog open={selection !== null}
+        title={selection === "confirmado" ? "Confirmar pago" : "Rechazar reporte de pago"}
+        message={"Factura " + report.invoiceCode + " · " + report.currency + " " + fmt(report.amount) + ". "
+          + (selection === "confirmado"
+            ? "El monto se agregará al pago registrado en la factura. El comprobante y el motivo quedarán en el historial."
+            : "El reporte se conservará como rechazado, sin modificar el saldo. La nota del cliente y el comprobante permanecerán.")
+          + (state.uncertain && attempt ? " Motivo conservado: " + attempt.reason : "")}
+        danger={selection === "rechazado"} initialFocus="safe"
+        reason={!state.uncertain} reasonRequired reasonLabel="Motivo (obligatorio, de 4 a 500 caracteres)"
+        confirmLabel={state.uncertain ? "Reintentar la misma operación" : selection === "confirmado" ? "Confirmar pago" : "Rechazar reporte"}
+        pending={pending} error={state.error}
+        onCancel={() => { if (!busy.current) setSelection(null); }} onConfirm={run} />
     </div>
   );
 }

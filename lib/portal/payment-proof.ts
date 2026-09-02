@@ -70,7 +70,7 @@ export function hasProofFile(raw: FormDataEntryValue | null): boolean {
  */
 export async function uploadPaymentProof(
   admin: SupabaseClient,
-  args: { tenantId: string; invoiceId: string; reportId: string; file: File },
+  args: { tenantId: string; invoiceId: string; reportId: string; file: File; expectedPath?: string },
 ): Promise<{ path?: string; error?: string }> {
   const unavailable = {
     error: "No pudimos verificar el comprobante. Conservamos cualquier archivo recibido; reintenta con el mismo archivo. Código: PAGO-COMPROBANTE.",
@@ -94,6 +94,9 @@ export async function uploadPaymentProof(
     const hex = Buffer.from(digest).toString("hex");
     const objectId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
     const path = `${args.tenantId}/${args.invoiceId}/${args.reportId}/${objectId}.${mimeToExt(check.file.type)}`;
+    if (args.expectedPath !== undefined && args.expectedPath !== path) {
+      return { error: "Este intento debe conservar su comprobante original. Revisa el reporte antes de iniciar otro. Código: PAGO-COMPROBANTE." };
+    }
     const bucket = admin.storage.from(PROOF_BUCKET);
     try {
       const { error } = await bucket.upload(path, buffer, {

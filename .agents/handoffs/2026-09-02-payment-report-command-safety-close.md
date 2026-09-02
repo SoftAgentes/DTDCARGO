@@ -201,3 +201,50 @@ retención, backups y proveedores reales. No certifica cumplimiento jurídico.
 Este es el sexto commit local sin publicar. No push alternativo, merge, Cloud
 ni deploy. La preparación no equivale a idempotencia del flujo visible; sigue
 pendiente conectar acciones/pantallas y restringir los escritores heredados.
+
+## Actualización · consumidores sobre 85912909
+
+Estado: ADOPCIÓN LOCAL VERIFICADA · ETAPA 3/RELEASE ABIERTOS.
+Intención: `feat(portal): SDD-0365 — adoptar comandos de pago auditados`.
+Allowlist exacta de consumidores en la spec; no SQL, paquetes, secretos,
+configuración compartida ni escrituras alojadas. Son acciones, consultas,
+tres pantallas, dos páginas null-safe, adaptador Portal, ajuste acotado de
+ConfirmDialog, cinco suites de prueba y documentos de cierre.
+
+Alta/cancelación/resolución usan sesión y recibos validados. El alta verifica
+factura/cliente/tenant y proof_path original antes de recuperar una subida;
+replay propio sigue permitido tras cierre de factura/cupo lleno. La UI guarda
+un intento en memoria, no en almacenamiento persistente, conserva archivo y
+datos, exige motivo y bloquea doble ejecución. Notas y motivos son distintos;
+cancelar conserva historial. Error de consulta no representa una lista vacía.
+
+Evidencia:
+- 106 focales de acciones/modelo/consultas/comprobante; UI independiente 19.
+- Completa 6.401/536 archivos, 141,56 s. Focal final UI+canonical 32/32 después
+  de cambios visuales. TypeScript sin caché aprobado.
+- RSC 1.591 módulos sin cruces; lint, gobernanza28 y CMP5 ejecutados.
+- Build final aprobado: 158 páginas, compilación26,5s y TypeScript66s.
+  Postbuild completado, tsconfig restaurado y .next-verify retirado.
+  Sin credenciales; avisos de catálogos ausentes no prueban estado alojado.
+- Navegador: Portal claro/oscuro a 320/390 px y Studio oscuro a 320 px.
+  Confirmación/cancelación sintéticas con teclado, incertidumbre y reintento;
+  Portal con motivo500 conserva clave/motivo, recibe éxito y no desborda.
+  Overlay, reflow, foco y contraste corregidos; detalles medidos en la spec.
+- El upload del navegador quedó denegado por raíces de la herramienta y no
+  se reintentó por otra vía. No afirmar un E2E con Auth/Storage o datos reales.
+- Fixture/puerto43165 retirados. SQL0421 sin cambio de hash; no nuevo SQL/rebuild.
+
+Revisión independiente del ajuste canonical: sin hallazgos concretos; API,
+callbacks, HTD y foco conservados. Privacidad advisory: motivo es texto libre
+limitado que puede contener datos personales; no hay logs/destinatarios nuevos.
+Retención/residencia/backups/consentimientos no se verifican con estos tests.
+
+Este incremento conserva el séptimo commit local; no se publica mientras siga
+el rechazo de autorización. El GO consultado para los seis anteriores no
+incluye automáticamente un séptimo. Main, archivos de otras tareas y ramas
+archive permanecen intactos; el worktree no se puede retirar.
+
+Siguiente trabajo: inventario real de escritores y lectura de payment_reports,
+contrato de restricción y migración separada sólo local, preservando historia
+y rename_client_markbox legítimo. Antes de numerar: revalidar todas las refs.
+No crear otro frente ni aplicar Cloud/deploy sin el GO nominal correspondiente.

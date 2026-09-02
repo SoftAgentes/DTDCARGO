@@ -2,7 +2,8 @@
 /**
  * Reproducción independiente de comandos de pago: acciones, identidad Portal,
  * contador, validadores y upload reales; sólo DB/Storage/avisos/Next simulados.
- * No define una RPC futura ni el mecanismo de señalización del contador.
+ * Conserva las garantías de la contención original al retirar el DML:
+ * ahora exige el recibo real de la RPC auditada 0421.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -31,11 +32,18 @@ const CLIENT_ID = "11000000-0000-4000-8000-000000000001";
 const TENANT_ID = "22000000-0000-4000-8000-000000000001";
 const INVOICE_ID = "33000000-0000-4000-8000-000000000001";
 const REPORT_ID = "44000000-0000-4000-8000-000000000001";
+const REQUEST_ID = "55000000-0000-4000-8000-000000000001";
+const AUDIT_ID = "66000000-0000-4000-8000-000000000001";
 const MISSING_REPORT_ID = "44000000-0000-4000-8000-000000000099";
 const INVOICE_CODE = "F-TEST-0001";
 const MARKBOX = "DTD-TEST-0001";
 const DB_FAILURE = { code: "57014", message: "synthetic statement timeout" };
 const UNCERTAIN_INSERT = { code: "", message: "synthetic response lost after request was sent" };
+
+function commandReceipt(cancelled = false) {
+  return { request_id: REQUEST_ID, report_id: REPORT_ID, invoice_id: INVOICE_ID, invoice_code: INVOICE_CODE,
+    status: "reportado", cancelled, audit_event_id: AUDIT_ID, replayed: false };
+}
 
 type DbReply = {
   data?: unknown;
@@ -75,12 +83,27 @@ function setupIo(
     cancellationFilters: [] as { method: "eq" | "is"; column: string; value: unknown }[],
     uploadedObjects: [] as string[],
     insertedReports: [] as Record<string, unknown>[],
+    directWrites: 0,
+    commands: [] as { name: string; args: Record<string, unknown> }[],
   };
   const portalClient = { id: CLIENT_ID, markbox: MARKBOX, name: "Cliente sintético" };
   const session = {
-    rpc: async (name: string) => {
-      if (name !== "get_portal_client_id") throw new Error(`RPC no simulada: ${name}`);
-      return { data: CLIENT_ID, error: null };
+    rpc: async (name: string, args: Record<string, unknown> = {}) => {
+      if (name === "get_portal_client_id") return { data: CLIENT_ID, error: null };
+      state.commands.push({ name, args });
+      if (name === "cancel_portal_payment_report") {
+        state.cancellationAttempts += 1;
+        return options.cancellationReply ?? { data: null, error: { code: "P0002", message: "PAYMENT_NOT_FOUND" } };
+      }
+      if (name === "create_portal_payment_report") {
+        // También representa COMMIT seguido de respuesta perdida. El objeto
+        // debe sobrevivir; no se simula rollback de la frontera remota.
+        state.insertedReports.push({ id: args.p_report_id, tenant_id: TENANT_ID, invoice_id: INVOICE_ID,
+          client_markbox: MARKBOX, amount: args.p_amount, currency: "USD", status: "reportado", proof_path: args.p_proof_path });
+        if (options.insertTransportError) throw options.insertTransportError;
+        return options.insertReply ?? { data: commandReceipt(), error: null };
+      }
+      throw new Error(`RPC no simulada: ${name}`);
     },
     from: (table: string) => {
       if (table === "clients") return replyBuilder(() => ({ data: portalClient, error: null }));
@@ -102,6 +125,7 @@ function setupIo(
         };
         return {
           update: (patch: unknown, options: unknown) => {
+            state.directWrites += 1;
             state.cancellationUpdates.push({ patch, options });
             return noMatch;
           },
@@ -133,9 +157,12 @@ function setupIo(
           if (options.pendingTransportError) throw options.pendingTransportError;
           return pending;
         });
+        // El lookup exacto de replay no es una consulta de cupo.
+        counter.maybeSingle = () => Promise.resolve({ data: null, error: null });
         return {
           ...counter,
           insert: async (row: Record<string, unknown>) => {
+            state.directWrites += 1;
             // Representa también el caso incierto: la DB pudo confirmar el
             // INSERT antes de perderse su respuesta. No es un rollback falso.
             state.insertedReports.push(row);
@@ -160,6 +187,9 @@ function setupIo(
 
 function validPaymentForm(): FormData {
   const form = new FormData();
+  form.set("request_id", REQUEST_ID);
+  form.set("report_id", REPORT_ID);
+  form.set("reason", "Cancelación solicitada por el cliente");
   form.set("amount", "45.50");
   form.set("method", "transferencia");
   form.set("paid_at", "2026-09-01");
@@ -187,104 +217,88 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("cancelPaymentReportAction · resultado comprobable", () => {
-  it("acepta exactamente una fila sin error y solicita conteo exacto con todos los filtros", async () => {
-    const { state } = setupIo(undefined, { cancellationReply: { data: null, count: 1, error: null } });
-    const form = new FormData();
-    form.set("report_id", REPORT_ID);
-
-    await expect(cancelPaymentReportAction(INVOICE_CODE, {}, form)).resolves.toEqual({ ok: true });
-
+describe("cancelPaymentReportAction · resultado comprobable tras retirar UPDATE", () => {
+  it("acepta sólo recibo validado y revalida sin DML ni cliente admin", async () => {
+    const { state } = setupIo(undefined, { cancellationReply: { data: commandReceipt(true), error: null } });
+    const result = await cancelPaymentReportAction(INVOICE_CODE, {}, validPaymentForm());
+    expect(result).toMatchObject({ ok: true, receipt: {
+      requestId: REQUEST_ID, reportId: REPORT_ID, cancelled: true, auditEventId: AUDIT_ID,
+    } });
     expect(state.cancellationAttempts).toBe(1);
-    expect(state.cancellationUpdates).toEqual([{
-      patch: { deleted_at: "2026-09-02T12:00:00.000Z" }, options: { count: "exact" },
-    }]);
-    expect(state.cancellationFilters).toHaveLength(5);
-    expect(state.cancellationFilters).toEqual(expect.arrayContaining([
-      { method: "eq", column: "id", value: REPORT_ID },
-      { method: "eq", column: "invoice_code", value: INVOICE_CODE },
-      { method: "eq", column: "client_markbox", value: MARKBOX },
-      { method: "eq", column: "status", value: "reportado" },
-      { method: "is", column: "deleted_at", value: null },
-    ]));
+    expect(state.commands).toEqual([{ name: "cancel_portal_payment_report", args: {
+      p_request_id: REQUEST_ID, p_report_id: REPORT_ID, p_invoice_code: INVOICE_CODE,
+      p_reason: "Cancelación solicitada por el cliente",
+    } }]);
+    expect(state.directWrites).toBe(0);
+    expect(state.cancellationUpdates).toEqual([]);
+    expect(mocks.createAdminClient).not.toHaveBeenCalled();
     expect(mocks.revalidatePath.mock.calls).toEqual([
       ["/portal/facturas"], [`/portal/facturas/${INVOICE_CODE}`], [`/portal/facturas/${INVOICE_CODE}/reportar`],
+      ["/studio/facturacion"], [`/studio/facturacion/${INVOICE_CODE}`],
     ]);
   });
 
   it.each([
-    { label: "dos filas afectadas", count: 2, error: null },
-    { label: "una fila junto con error", count: 1, error: DB_FAILURE },
-  ])("no comunica éxito con $label", async ({ count, error }) => {
-    const { state } = setupIo(undefined, { cancellationReply: { data: null, count, error } });
-    const form = new FormData();
-    form.set("report_id", REPORT_ID);
-
-    const result = await cancelPaymentReportAction(INVOICE_CODE, {}, form);
-
+    { label: "count=1 sin recibo no es éxito", data: null, count: 1, error: null },
+    { label: "dos filas sin recibo", data: null, count: 2, error: null },
+    { label: "recibo junto con error", data: commandReceipt(true), count: 1, error: DB_FAILURE },
+  ])("$label", async ({ data, count, error }) => {
+    const { state } = setupIo(undefined, { cancellationReply: { data, count, error } });
+    const result = await cancelPaymentReportAction(INVOICE_CODE, {}, validPaymentForm());
     expect(state.cancellationAttempts).toBe(1);
+    expect(state.directWrites).toBe(0);
     expect(result.ok).not.toBe(true);
     expect(result.error).toMatch(/\S/);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it.each(["", "not-a-uuid", `${REPORT_ID}-extra`])("UUID inválido %j no consulta ni actualiza payment_reports", async (reportId) => {
+  it.each(["", "not-a-uuid", `${REPORT_ID}-extra`])("UUID inválido %j no toca reportes ni RPC de comando", async (reportId) => {
     const { state } = setupIo();
-    const form = new FormData();
+    const form = validPaymentForm();
     form.set("report_id", reportId);
-
     const result = await cancelPaymentReportAction(INVOICE_CODE, {}, form);
-
-    // La identidad de sesión se resuelve primero. Este control niega el acceso
-    // a la tabla de reportes y el cliente admin, no esa lectura de identidad.
     expect(state.cancellationTableCalls).toBe(0);
-    expect(state.cancellationUpdates).toHaveLength(0);
     expect(state.cancellationAttempts).toBe(0);
+    expect(state.commands).toEqual([]);
+    expect(state.directWrites).toBe(0);
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
     expect(result.ok).not.toBe(true);
     expect(result.error).toMatch(/\S/);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("no comunica éxito ni revalida cuando el ID no coincide con ninguna fila", async () => {
+  it("ID inexistente no comunica éxito ni revalida", async () => {
     const { state } = setupIo();
-    const form = new FormData();
+    const form = validPaymentForm();
     form.set("report_id", MISSING_REPORT_ID);
-
     const result = await cancelPaymentReportAction(INVOICE_CODE, {}, form);
-
     expect(state.cancellationAttempts).toBe(1);
-    expect(state.cancelledRows).toBe(0);
-    expect.soft(result.ok).not.toBe(true);
-    expect.soft(result.error).toEqual(expect.any(String));
-    expect.soft(mocks.revalidatePath).not.toHaveBeenCalled();
-  });
-
-  it("no comunica éxito con un conteo explícito de cero filas para el ID solicitado", async () => {
-    const { state } = setupIo(undefined, { cancellationReply: { data: [], count: 0, error: null } });
-    const form = new FormData();
-    form.set("report_id", MISSING_REPORT_ID);
-
-    const result = await cancelPaymentReportAction(INVOICE_CODE, {}, form);
-
-    expect(state.cancellationAttempts).toBe(1);
-    expect.soft(result.ok).not.toBe(true);
-    expect.soft(result.error).toEqual(expect.any(String));
-    expect.soft(mocks.revalidatePath).not.toHaveBeenCalled();
-  });
-
-  it("no comunica éxito ni revalida cuando la DB rechaza la cancelación", async () => {
-    const { state } = setupIo(undefined, {
-      cancellationReply: { data: null, count: null, error: { code: "42501", message: "synthetic RLS denial" } },
-    });
-    const form = new FormData();
-    form.set("report_id", MISSING_REPORT_ID);
-
-    const result = await cancelPaymentReportAction(INVOICE_CODE, {}, form);
-
-    expect(state.cancellationAttempts).toBe(1);
+    expect(state.directWrites).toBe(0);
     expect(result.ok).not.toBe(true);
-    expect(result.error).toEqual(expect.any(String));
+    expect(result.error).toMatch(/\S/);
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("cero filas sin recibo no comunica éxito", async () => {
+    const { state } = setupIo(undefined, { cancellationReply: { data: [], count: 0, error: null } });
+    const result = await cancelPaymentReportAction(INVOICE_CODE, {}, validPaymentForm());
+    expect(state.cancellationAttempts).toBe(1);
+    expect(state.directWrites).toBe(0);
+    expect(result.ok).not.toBe(true);
+    expect(result.error).toMatch(/\S/);
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("rechazo DB nunca comunica éxito ni filtra SQL", async () => {
+    const { state } = setupIo(undefined, {
+      cancellationReply: { data: null, error: { code: "42501", message: "synthetic RLS denial" } },
+    });
+    const result = await cancelPaymentReportAction(INVOICE_CODE, {}, validPaymentForm());
+    expect(state.cancellationAttempts).toBe(1);
+    expect(state.directWrites).toBe(0);
+    expect(result.ok).not.toBe(true);
+    expect(result.error).toMatch(/\S/);
+    expect(result.error).not.toMatch(/synthetic|RLS|42501/);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 });
@@ -312,12 +326,16 @@ describe("reportPaymentAction · conteo fail-closed", () => {
   it("recorre el alta real cuando conoce un conteo válido bajo el límite", async () => {
     const { state, upload } = setupIo({ count: 0, error: null });
 
-    await expect(reportPaymentAction(INVOICE_CODE, {}, validPaymentForm())).resolves.toEqual({ ok: true });
+    await expect(reportPaymentAction(INVOICE_CODE, {}, validPaymentForm())).resolves.toMatchObject({
+      ok: true, receipt: { requestId: REQUEST_ID, reportId: REPORT_ID, auditEventId: AUDIT_ID },
+    });
 
     expect(state.pendingReads).toBe(1);
     expect(upload).toHaveBeenCalledOnce();
     expect(state.uploadedObjects).toHaveLength(1);
     expect(state.insertedReports).toHaveLength(1);
+    expect(state.directWrites).toBe(0);
+    expect(state.commands[0].name).toBe("create_portal_payment_report");
     expect(state.insertedReports[0]).toMatchObject({
       tenant_id: TENANT_ID, invoice_id: INVOICE_ID, client_markbox: MARKBOX,
       amount: 45.5, currency: "USD", status: "reportado", proof_path: state.uploadedObjects[0],
@@ -413,7 +431,7 @@ describe("reportPaymentAction · conteo fail-closed", () => {
   });
 });
 
-describe("reportPaymentAction · resultado incierto de INSERT", () => {
+describe("reportPaymentAction · resultado incierto del comando auditado", () => {
   it.each([
     { label: "respuesta con error", options: { insertReply: { data: null, error: UNCERTAIN_INSERT } } },
     { label: "rechazo de transporte", options: { insertTransportError: new Error("synthetic insert response lost") } },
@@ -424,6 +442,7 @@ describe("reportPaymentAction · resultado incierto de INSERT", () => {
 
     expect(upload).toHaveBeenCalledOnce();
     expect(state.insertedReports).toHaveLength(1);
+    expect(state.directWrites).toBe(0);
     expect.soft(remove).not.toHaveBeenCalled();
     expect.soft(state.uploadedObjects).toEqual([state.insertedReports[0].proof_path]);
     expect.soft(mocks.notifyPaymentReportToAdmin).not.toHaveBeenCalled();
