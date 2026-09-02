@@ -10,13 +10,12 @@ import { describe, expect, it } from "vitest";
  * retire un uso debe reducir esta lista en el mismo commit.
  */
 const BASELINE = {
-  "app/portal/(app)/compras/[code]/etiquetas/page.tsx": 2,
+  "app/portal/(app)/compras/[code]/etiquetas/page.tsx": 1,
   "app/portal/(app)/compras/[code]/page.tsx": 2,
   "app/portal/(app)/documentos/page.tsx": 2,
   "app/portal/(app)/envios/[code]/page.tsx": 2,
   "app/portal/(app)/envios/page.tsx": 4,
   "app/portal/(app)/facturas/[code]/aceptar/page.tsx": 1,
-  "app/portal/(app)/facturas/[code]/comprobante/page.tsx": 1,
   "app/portal/(app)/page.tsx": 5,
   "app/portal/(app)/perfil/page.tsx": 2,
   "app/portal/(app)/referidos/page.tsx": 1,
@@ -53,7 +52,7 @@ describe("Portal RSC · frontera de service_role", () => {
     }
 
     expect(actual).toEqual(BASELINE);
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(23);
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(21);
   });
 
   it("mantiene las elevaciones fuera de componentes cliente", () => {

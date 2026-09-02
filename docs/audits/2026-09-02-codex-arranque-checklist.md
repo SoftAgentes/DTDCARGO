@@ -19,11 +19,11 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Rama de saneamiento antes de SDD-0335: `4cf0c60a`, 0 detrás / 27 delante.
+- Rama de saneamiento antes de SDD-0336: `d0ec0e47`, 0 detrás / 28 delante.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 326; 232 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 328; 234 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -45,8 +45,8 @@ merge a `main`, Cloud, Producción ni deploy.
 - [x] `/studio/debug` exige configuración completa; Payload CMS legado retirado
   del contrato activo de entorno.
 - [x] Gate canónico reciente sin fallos: 14/15 pasos medidos; sólo Cloud quedó
-  `SKIP` por falta deliberada de credenciales. Suite unitaria posterior:
-  510 archivos / 5.896 pruebas, todas verdes.
+  `SKIP` por falta deliberada de credenciales. Suite unitaria posterior a
+  SDD-0336: 512 archivos / 5.902 pruebas, todas verdes.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -76,6 +76,8 @@ merge a `main`, Cloud, Producción ni deploy.
   `docs/runbooks/aplicar-migraciones-prod.md`.
 - [ ] Aplicar `0400_revoke_public_verify_rpc_execute.sql` con otra autorización
   específica y el mismo runbook.
+- [ ] Aplicar `0401_portal_brand_por_principal.sql` con autorización específica
+  separada; la RPC no existe en Cloud hasta completar ese gate.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [ ] Confirmar deployment Vercel y smoke de público, Studio, Portal y móvil.
@@ -87,11 +89,12 @@ merge a `main`, Cloud, Producción ni deploy.
 - [ ] Llevar RBAC de aplicación a la base por dominios: facturas/dinero,
   mailing, conciliación bancaria y documentos. Cada slice necesita SDD,
   contrato SQL, migración propia y gate Cloud separado; no hacer un sweep.
-- [ ] Reducir los 11 RSC del Portal que construyen `service_role` 23 veces.
-  Priorizar firmas de documentos/facturas y lecturas de tablas internas mediante
-  RPCs autocontenidas ligadas a `auth.uid()` o un servicio de firmado acotado.
-  El test `portal-service-role-boundary.test.mjs` congela el inventario; no lo
-  aprueba.
+- [ ] Continuar reduciendo los RSC del Portal que construyen `service_role`.
+  SDD-0336 cerró el primer slice de marca: el baseline bajó de 11 rutas / 23
+  construcciones a 10 rutas / 21 construcciones. Priorizar firmas de
+  documentos/facturas y lecturas internas mediante RPCs autocontenidas ligadas
+  a `auth.uid()` o un servicio de firmado acotado. El test
+  `portal-service-role-boundary.test.mjs` congela el inventario; no lo aprueba.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
   logout sin esa decisión puede perder entregas pendientes.
@@ -135,7 +138,7 @@ merge a `main`, Cloud, Producción ni deploy.
 
 1. Publicar la rama y revisar el diff remoto.
 2. Integrar a `main` con autorización separada y verificar deploy/smoke.
-3. Aplicar 0399 y 0400 de una en una; completar Telegram.
+3. Aplicar 0399, 0400 y 0401 de una en una; completar Telegram.
 4. Limpiar worktree y rama de archivo contenida.
 5. Ejecutar el programa P1 por slices; empezar por RBAC documental/financiero y
    Portal firmado.

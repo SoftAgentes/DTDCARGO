@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { resolveBrandForClient } from "@/lib/studio/aliados/brand-resolve";
+import { resolveBrandForPortal } from "@/lib/studio/aliados/brand-resolve";
 import { getPortalClient } from "@/lib/portal/portal-queries";
 import {
   getPrealertaByCode,
@@ -55,14 +55,9 @@ export default async function PortalLabelsPage({
 
   const suppliers = await listSuppliers(supabase, { markbox: client.markbox });
 
-  // SDD-0255 · la marca con la que se pinta la etiqueta. ⚠️ Va con el ADMIN
-  // client a propósito: la política de `aliados` es `tenant_id =
-  // get_user_tenant_id()` y un usuario del portal no tiene fila en
-  // `user_tenants`, así que con su sesión esto devolvería DTD siempre, en
-  // silencio.
-  const brand = await resolveBrandForClient(createAdminClient(), {
-    markbox: client.markbox,
-  });
+  // SDD-0336: la marca se resuelve por la sesión del Portal, sin aceptar ids ni
+  // Shipping Marks y sin construir un service_role para esta lectura.
+  const brand = await resolveBrandForPortal(supabase);
   const supplier = prealerta.supplier_id
     ? (suppliers.find((s) => s.id === prealerta.supplier_id) ?? null)
     : null;
