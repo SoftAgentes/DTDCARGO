@@ -1,30 +1,74 @@
 /**
  * Ruta protegida que sirve la presentación interna "Transporte CBM China-Venezuela".
  *
- * Acceso: https://dtdcargo.com/admin/cbm-estudio?token=XXX
+ * Acceso: formulario POST en https://dtdcargo.com/admin/cbm-estudio. La credencial
+ * se valida contra `CBM_ESTUDIO_TOKEN` y, si coincide, se acuña una sesión corta
+ * en cookie HttpOnly. El secreto nunca forma parte de la URL ni de la cookie.
  *
- * El token se valida contra la env var `CBM_ESTUDIO_TOKEN` (set en Vercel).
- * Si el token no coincide o no está presente, devuelve una página simple
- * de "acceso restringido" — no expone el contenido.
- *
- * Por qué Route Handler en vez de Page:
- * - El HTML embebido tiene JS y CSS inline que necesitan ejecutarse tal cual
- * - dangerouslySetInnerHTML en un Page no ejecuta los <script> tags
- * - Servir el HTML completo como text/html es la forma limpia
- *
- * Para actualizar el contenido: editar `app/admin/cbm-estudio/content.html`
- * (copia canónica en el repo; el HTML original del handoff quedó fuera del
- * repo) y push → Vercel re-deploya.
+ * Para actualizar el contenido: editar `app/admin/cbm-estudio/content.html`.
  */
 
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { promises as fs } from "fs";
 import path from "path";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-// Forzar render dinámico (no static) porque dependemos de query params
 export const dynamic = "force-dynamic";
 
-const ACCESS_DENIED_HTML = `<!doctype html>
+const ROUTE_PATH = "/admin/cbm-estudio";
+const SESSION_COOKIE = "__Host-dtd-cbm-estudio";
+const SESSION_TTL_SECONDS = 8 * 60 * 60;
+const SESSION_CONTEXT = "cbm-estudio-session-v1";
+
+const BASE_HEADERS: Record<string, string> = {
+  "Cache-Control": "no-store, must-revalidate",
+  "Content-Type": "text/html; charset=utf-8",
+  "X-Robots-Tag": "noindex, nofollow",
+};
+
+function safeEqual(left: string, right: string): boolean {
+  const leftDigest = createHash("sha256").update(left).digest();
+  const rightDigest = createHash("sha256").update(right).digest();
+  return timingSafeEqual(leftDigest, rightDigest);
+}
+
+function sessionSignature(secret: string, expiresAt: number): string {
+  return createHmac("sha256", secret)
+    .update(`${SESSION_CONTEXT}:${expiresAt}`)
+    .digest("base64url");
+}
+
+function createSession(secret: string): string {
+  const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
+  return `${expiresAt}.${sessionSignature(secret, expiresAt)}`;
+}
+
+function hasValidSession(request: NextRequest, secret: string): boolean {
+  const value = request.cookies.get(SESSION_COOKIE)?.value;
+  if (!value) return false;
+  const separator = value.indexOf(".");
+  if (separator < 1) return false;
+
+  const expiresAt = Number(value.slice(0, separator));
+  const signature = value.slice(separator + 1);
+  if (!Number.isSafeInteger(expiresAt) || expiresAt <= Date.now()) return false;
+
+  return safeEqual(signature, sessionSignature(secret, expiresAt));
+}
+
+function accessPage(options: { invalid?: boolean; unavailable?: boolean } = {}): string {
+  const { invalid = false, unavailable = false } = options;
+  const status = unavailable
+    ? "El acceso está temporalmente no disponible. Inténtalo más tarde."
+    : invalid
+      ? "La credencial no es válida. Verifica el dato e inténtalo de nuevo."
+      : "Ingresa la credencial interna para continuar.";
+  const statusRole = invalid || unavailable ? ' role="alert"' : "";
+  const describedBy = invalid
+    ? ' aria-describedby="access-status" autofocus'
+    : "";
+
+  return `<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
@@ -34,29 +78,53 @@ const ACCESS_DENIED_HTML = `<!doctype html>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700&family=Archivo+Black&display=swap" rel="stylesheet">
   <style>
-    body{margin:0;font-family:'Archivo',system-ui,sans-serif;background:#0F1E3D;color:#fff;min-height:100vh;display:grid;place-items:center;padding:24px}
-    .card{max-width:480px;text-align:center;padding:48px 36px}
-    h1{font-family:'Archivo Black';font-size:28px;letter-spacing:-0.02em;margin:0 0 16px}
-    h1 span{color:#C2747F}
-    p{font-size:15px;line-height:1.55;color:rgba(255,255,255,0.75);margin:0 0 12px}
-    a{color:#C2747F;text-decoration:underline}
-    .badge{display:inline-block;background:rgba(127,15,26,0.5);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;padding:6px 14px;border-radius:20px;margin-bottom:24px}
-    code{background:rgba(255,255,255,0.08);padding:2px 8px;border-radius:4px;font-size:12.5px}
+    :root{--wine:#7F0F1A;--wine-deep:#5E0A12;--wine-soft:#C2747F;--ink:#0F1E3D;--white:#FFFFFF;--border:#E8E6E2;--s-2:8px;--s-3:12px;--s-4:16px;--s-6:24px;--s-8:32px;--s-12:48px;--r-sm:5px}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Archivo',system-ui,sans-serif;background:var(--ink);color:var(--white);min-height:100vh;display:grid;place-items:center;padding:var(--s-6)}
+    main{width:min(100%,480px);padding:var(--s-12) var(--s-8)}
+    .badge{display:inline-block;color:var(--white);font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;margin-bottom:var(--s-6)}
+    h1{font-family:'Archivo Black','Archivo',sans-serif;font-size:28px;line-height:1.2;letter-spacing:-.02em;margin:0 0 var(--s-4)}
+    h1 span{color:var(--wine-soft)}
+    p{font-size:16px;line-height:1.6;margin:0 0 var(--s-6)}
+    form{display:grid;gap:var(--s-3);margin-top:var(--s-8)}
+    label{font-size:14px;font-weight:700}
+    input{width:100%;min-height:44px;border:1px solid var(--border);border-radius:var(--r-sm);background:var(--white);color:var(--ink);font:inherit;padding:var(--s-3) var(--s-4)}
+    input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--wine-soft);outline-offset:3px}
+    button{min-height:44px;border:0;border-radius:var(--r-sm);background:var(--wine);color:var(--white);font:700 16px 'Archivo',system-ui,sans-serif;padding:var(--s-3) var(--s-4);cursor:pointer}
+    button:hover{background:var(--wine-deep)}
+    #access-status{font-size:14px;margin:0;color:var(--white)}
+    a{color:var(--wine-soft);font-size:14px;text-underline-offset:3px}
+    .back{margin-top:var(--s-8)}
+    @media (max-width:520px){main{padding:var(--s-8) var(--s-2)}}
   </style>
 </head>
 <body>
-  <div class="card">
+  <main>
     <span class="badge">DTD Cargo · Interno</span>
     <h1>Acceso <span>restringido</span></h1>
-    <p>Esta presentación interna requiere un token de acceso.</p>
-    <p>Si formas parte del equipo DTD, pídele el link completo a Sam o consulta el archivo standalone que se compartió por WhatsApp.</p>
-    <p style="margin-top:32px;font-size:13px;color:rgba(255,255,255,0.4)">URL esperada: <code>/admin/cbm-estudio?token=XXX</code></p>
-    <p style="margin-top:24px"><a href="/">Volver al sitio público</a></p>
-  </div>
+    <p id="access-status"${statusRole}>${status}</p>
+    ${
+      unavailable
+        ? ""
+        : `<form method="post" action="${ROUTE_PATH}">
+      <label for="access-token">Credencial de acceso</label>
+      <input id="access-token" name="token" type="password" autocomplete="current-password" maxlength="512" required${describedBy}>
+      <button type="submit">Entrar</button>
+    </form>`
+    }
+    <p class="back"><a href="/">Volver al sitio público</a></p>
+  </main>
 </body>
 </html>`;
+}
 
-// Cache del HTML en memoria — no leer disk en cada request
+function htmlResponse(body: string, status: number): NextResponse {
+  return new NextResponse(body, {
+    status,
+    headers: BASE_HEADERS,
+  });
+}
+
 let cachedContent: string | null = null;
 
 async function loadContent(): Promise<string> {
@@ -66,62 +134,70 @@ async function loadContent(): Promise<string> {
   return cachedContent;
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const token = url.searchParams.get("token");
+
+  // Los enlaces legacy se limpian sin aceptar la credencial desde la URL.
+  if (url.searchParams.has("token")) {
+    url.searchParams.delete("token");
+    return NextResponse.redirect(url, 303);
+  }
+
   const expectedToken = process.env.CBM_ESTUDIO_TOKEN;
+  if (!expectedToken) return htmlResponse(accessPage({ unavailable: true }), 503);
+  if (!hasValidSession(request, expectedToken)) return htmlResponse(accessPage(), 401);
 
-  // Si no hay token configurado en el server, NUNCA permitir acceso
-  // (protección contra deployments mal configurados)
-  if (!expectedToken) {
-    return new NextResponse(ACCESS_DENIED_HTML, {
-      status: 503,
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-      },
-    });
-  }
-
-  // Validación token
-  if (token !== expectedToken) {
-    return new NextResponse(ACCESS_DENIED_HTML, {
-      status: 401,
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-      },
-    });
-  }
-
-  // Token OK → servir contenido
   try {
     const content = await loadContent();
-    // Si el query incluye ?download=1, forzar descarga en vez de inline
-    const isDownload = url.searchParams.get("download") === "1";
     const headers: Record<string, string> = {
-      "Content-Type": "text/html; charset=utf-8",
-      // No cachear: queremos que cualquier update del HTML se vea inmediato
-      "Cache-Control": "no-store, must-revalidate",
-      // Permitir scripts inline (necesarios para la interactividad del HTML)
-      "Content-Security-Policy":
-        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com",
-      "X-Robots-Tag": "noindex, nofollow",
+      ...BASE_HEADERS,
     };
-    if (isDownload) {
+    if (url.searchParams.get("download") === "1") {
       headers["Content-Disposition"] =
         'attachment; filename="presentacion-cbm-china-venezuela.html"';
     }
     return new NextResponse(content, { status: 200, headers });
-  } catch (err) {
-    return new NextResponse(
-      `<html><body><h1>Error cargando contenido</h1><p>${
-        err instanceof Error ? err.message : "Error desconocido"
-      }</p></body></html>`,
-      {
-        status: 500,
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      },
+  } catch (error) {
+    console.error("[cbm-estudio] no se pudo cargar el contenido", error);
+    return htmlResponse(
+      "<html lang=\"es\"><body><h1>Contenido no disponible</h1><p>Inténtalo de nuevo más tarde.</p></body></html>",
+      500,
     );
   }
+}
+
+export async function POST(request: NextRequest) {
+  const expectedToken = process.env.CBM_ESTUDIO_TOKEN;
+  if (!expectedToken) return htmlResponse(accessPage({ unavailable: true }), 503);
+
+  const contentLength = Number(request.headers.get("content-length") ?? "0");
+  if (Number.isFinite(contentLength) && contentLength > 4096) {
+    return htmlResponse(accessPage({ invalid: true }), 413);
+  }
+
+  let submittedToken = "";
+  try {
+    const formData = await request.formData();
+    submittedToken = String(formData.get("token") ?? "");
+  } catch {
+    return htmlResponse(accessPage({ invalid: true }), 400);
+  }
+
+  if (submittedToken.length > 512 || !safeEqual(submittedToken, expectedToken)) {
+    return htmlResponse(accessPage({ invalid: true }), 401);
+  }
+
+  const response = NextResponse.redirect(new URL(ROUTE_PATH, request.url), 303);
+  response.headers.set("Cache-Control", "no-store");
+  response.headers.set("Referrer-Policy", "no-referrer");
+  response.cookies.set({
+    name: SESSION_COOKIE,
+    value: createSession(expectedToken),
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    path: "/",
+    maxAge: SESSION_TTL_SECONDS,
+  });
+  return response;
 }

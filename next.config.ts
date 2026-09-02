@@ -74,6 +74,25 @@ const brandBookCspHeader = [
 ].join("; ");
 
 /**
+ * CSP acotada al HTML legacy CBM. El documento y su pantalla de acceso usan
+ * CSS/script inline y Archivo desde Google Fonts; no requieren eval, CDN de
+ * scripts, Supabase, Analytics ni framing. Mantenerla separada evita ampliar
+ * la política del sitio público completo.
+ */
+const cbmCspHeader = [
+  `default-src 'self'`,
+  `script-src 'self' 'unsafe-inline'`,
+  `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+  `font-src 'self' data: https://fonts.gstatic.com`,
+  `img-src 'self' data:`,
+  `connect-src 'self'`,
+  `frame-ancestors 'none'`,
+  `base-uri 'none'`,
+  `form-action 'self'`,
+  `object-src 'none'`,
+].join("; ");
+
+/**
  * Los CDN que cargan los documentos de Cloud Design, y por qué hay que nombrarlos.
  *
  * NO ES UNA CONCESIÓN ESTÉTICA: sin esto, 14 de los 35 documentos publicados
@@ -316,6 +335,22 @@ const nextConfig: NextConfig = {
       },
       { key: "X-Robots-Tag", value: "noindex, nofollow" },
     ];
+    const cbmHeaders = [
+      { key: "Content-Security-Policy", value: cbmCspHeader },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "no-referrer" },
+      {
+        key: "Permissions-Policy",
+        value:
+          "camera=(), microphone=(), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()",
+      },
+      {
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains; preload",
+      },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+    ];
     return [
       // Bitácora móvil (staff): micrófono habilitado. Va ANTES de `/m/:path*` y ese
       // rule lo excluye (negative lookahead) para que no le intersecte mic=().
@@ -379,6 +414,10 @@ const nextConfig: NextConfig = {
         source: "/norte.html",
         headers: norteHeaders,
       },
+      {
+        source: "/admin/cbm-estudio",
+        headers: cbmHeaders,
+      },
       // Calcs embebibles del portal: SAMEORIGIN (las enmarca el FAB). Excluidas
       // del catch-all de abajo (negative lookahead) para no pisarles el DENY.
       // `/tarifas/embed` = calculadora CBM/LCL (la del producto principal, la
@@ -403,7 +442,7 @@ const nextConfig: NextConfig = {
         // `marca` sin barra: cubre tanto `/marca` (el catálogo) como `/marca/…`.
         // Con `marca/` la raíz caía acá Y en su regla propia → CSP duplicada.
         source:
-          "/:path((?!m/|marca|norte\\.html|studio/bitacora|tarifas/embed|fcl/embed).*)",
+          "/:path((?!m/|marca|norte\\.html|studio/bitacora|admin/cbm-estudio|tarifas/embed|fcl/embed).*)",
         headers: securityHeaders,
       },
     ];

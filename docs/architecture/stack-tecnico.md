@@ -74,7 +74,7 @@ Pero conviven **4 productos** dentro del mismo Next.js app:
 | Studio ERP (DTD Cargo) | `app/studio/(app)/*` | `dtdcargo.com/studio/*` | Supabase propio |
 | Back de admin contenido | `app/back/*` | `dtdcargo.com/back/*` | Supabase compartido con Studio |
 | Operario mobile PWA | `app/m/cn/*` + `app/m/ve/*` | `dtdcargo.com/m/{cn,ve}` | Supabase + PIN auth custom |
-| Admin CBM (privado) | `app/admin/cbm-estudio/*` | `dtdcargo.com/admin/cbm-estudio` | Token URL único |
+| Admin CBM (privado) | `app/admin/cbm-estudio/*` | `dtdcargo.com/admin/cbm-estudio` | Formulario POST + cookie HttpOnly firmada |
 
 ---
 
