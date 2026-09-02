@@ -19,23 +19,25 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Rama de saneamiento publicada: `codex/saneamiento-integral` en
-  `a9895487d010f39edcc1c7b20915547f6a93d773`, 0 detrás / 53 delante de
-  `origin/main`; local y remoto coincidían 0/0 al publicar el lote funcional.
+- Base publicada antes de SDD-0361: `codex/saneamiento-integral` en
+  `a4f1ba5f1e50ed786820a84685ea7a1a562e7494`, 0 detrás / 56 delante de
+  `origin/main`; local y remoto coincidían 0/0. SDD-0361 agrega el siguiente
+  cierre local, con publicación y CI del nuevo SHA verificables en el PR.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
-  no integrable todavía. La segunda corrida sobre `726a7118` (54 commits)
-  confirmó la corrección de memoria: TypeScript/Edge pasaron. Falló un unitario
-  por carrera de foco en `DestinoCombobox`; SDD-0360 la corrige y requiere un
-  nuevo CI completo.
-- Vercel: deployment `6227630435` de GitHub en **Preview**, estado `success`,
+  no integrable todavía por los gates de release. El CI completo del SHA
+  `a4f1ba5f` pasó en el run `33664422658`: memoria y carrera de foco resueltas.
+  El run anterior `33663666096` fue cancelado por concurrencia, no por un fallo.
+- Vercel: deployment `6228639456` de GitHub en **Preview**, estado `success`,
   `production_environment=false`; no se promovió a producción.
 - Supabase: proyecto correcto `xpfuzqombmjmxvprjgmi`, `ACTIVE_HEALTHY`; 406
   entradas de ledger. Comparación con 413 archivos y corte 238: 18 pendientes
   (0399–0416), cero huérfanas posteriores al corte y las 10 RPC nuevas ausentes.
+  SDD-0361 agrega 0417 sólo local: 414 archivos y 19 gates de aplicación
+  pendientes en este paquete. No se volvió a consultar ni escribir Cloud.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 352; 261 `done`, 1 `superseded` y 90 sin cierre documental
+- Specs reales: 353; 262 `done`, 1 `superseded` y 90 sin cierre documental
   (75 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete y sus commits están enumerados en
@@ -103,6 +105,11 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   Hijos exigen padre vivo y relación coherente; las policies de equipo y ACL
   se conservan. 157 contratos SQL, 37 unitarios focales y rebuild de 413
   migraciones (395 desde cero + 18 sólo-ledger) aprobados localmente.
+- [x] Dominio Compras/Proveedores Portal ligado a principal y tenant
+  (SDD-0361/0417): siete policies impiden lectura ajena y cambio de tenant desde
+  otra cuenta con el mismo Shipping Mark. Documentos exige padre vivo coherente.
+  158 contratos SQL, 156 unitarios focales y rebuild de 414 migraciones
+  (396 desde cero + 18 sólo-ledger); equipo, ACL y Storage conservados.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -123,9 +130,11 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   `tsconfig.json` aprobados, sin secretos ni cambios SQL.
 - [x] Publicar SDD-0360 en `46afa953`, verificar remoto exacto, árbol limpio y
   upstream 0/0; `origin/main` permanece sin cambios.
-- [ ] Confirmar el primer resultado completamente verde de `Calidad continua`.
-  Dos runs ya medidos fallaron; el run `33663666096` mide SDD-0360 y la
-  evidencia local no sustituye su resultado alojado completo.
+- [x] Confirmar el primer resultado completamente verde de `Calidad continua`:
+  `a4f1ba5f`, run `33664422658`, todos los pasos aprobados. Dos fallos previos
+  corregidos; el tercer run fue cancelado al publicar el cierre documental.
+- [ ] Confirmar CI completo del nuevo SHA que publica SDD-0361; el pase de la
+  base anterior no sustituye la verificación alojada de este commit.
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:
@@ -189,6 +198,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [ ] Aplicar `0416_portal_shipments_tenant_boundary.sql` con autorización
   específica separada y smoke de envíos/documentos/hitos. No exige una RPC
   nueva ni deploy previo; la frontera sólo está corregida localmente.
+- [ ] Aplicar `0417_portal_prealertas_tenant_boundary.sql` con autorización
+  específica separada y smoke de compras/proveedores/documentos. Sin RPC nueva
+  ni deploy previo; no se ha aplicado a Cloud.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [x] Confirmar que el deployment automático de la rama fue Preview, no
@@ -222,9 +234,11 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   servicio. El inventario AST congela 18 archivos / 45 llamadas directas.
 - [ ] Auditar por dominio las otras policies Portal que comparan Shipping Mark
   sin tenant. SDD-0357 cubre `invoices` y SDD-0359 cubre `shipments`,
-  `shipment_documents` y `shipment_events`. Faltan prealertas y sus documentos,
-  academia, reclamos, reportes de pago y las demás entidades; no hacer un sweep
-  ni declarar corregido todo el Portal por estos dos slices.
+  `shipment_documents` y `shipment_events`. SDD-0361 cubre `suppliers_cn`,
+  `prealertas` y `prealerta_documents`. Faltan academia, reclamos, reportes de
+  pago y las demás entidades; no hacer un sweep ni declarar corregido todo el
+  Portal por estos slices. Secuencias, transiciones y relación proveedor/cliente
+  son hipótesis separadas que necesitan reproducción, no fallos ya confirmados.
 - [x] Retirar `service_role` de todos los RSC del Portal.
   SDD-0336 cerró el primer slice de marca: el baseline bajó de 11 rutas / 23
   construcciones a 10 rutas / 21 construcciones. SDD-0337 movió la visibilidad

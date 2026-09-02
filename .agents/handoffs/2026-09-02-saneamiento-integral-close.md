@@ -117,9 +117,11 @@ Estado: CERRADO EN RAMA · PR EN BORRADOR · INTEGRACIÓN/RELEASE PENDIENTES
 56. `docs: cerrar tres specs integradas con evidencia` — reconcilia SDD-0280,
     SDD-0303 y SDD-0304 con main; quedan 90 specs sin cierre documental.
     Alcance de ocho rutas en el acta de reconciliación, sin cambios runtime.
+57. `fix(portal): SDD-0361 — aislar compras y proveedores por tenant` — modifica
+    siete policies Portal en 0417; conserva operación interna, ACL y Storage.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0360. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0361. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -134,8 +136,10 @@ y corrige sin relajar expectativas. Ahora pasan 13 unitarios focales y 5.961
 pruebas / 527 archivos completos; TypeScript sin caché, ESLint, numeración,
 componentes y gobernanza pasan. Navegador local: escritura, Escape, cursor
 manual y Enter correctos; sin datos/credenciales reales. Build aislado: 158
-páginas, postbuild y restauración de tsconfig correctos. Tercer CI pendiente.
-No cambió SQL; los baselines siguientes conservan su alcance.
+páginas, postbuild y restauración de tsconfig correctos. El tercer run fue
+cancelado por concurrencia. El run completo `33664422658` del SHA `a4f1ba5f`
+terminó aprobado. El nuevo commit SDD-0361 debe confirmar su propio CI;
+los baselines siguientes conservan su alcance.
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
 de SDD-0357:
@@ -325,6 +329,8 @@ de ledger. Contra los 413 archivos de `origin/main` unión checkout y corte 238:
 18 pendientes (las siguientes) y cero huérfanas posteriores al corte. Las 10
 RPC nuevas no existen en `pg_proc`. Esto resuelve la incertidumbre de lectura
 Cloud, pero no aplica migraciones ni transforma el SKIP local en un pase.
+SDD-0361 agrega 0417 localmente: ahora son 414 archivos y 19 gates de aplicación
+pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
   pasó contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
@@ -365,16 +371,20 @@ Cloud, pero no aplica migraciones ni transforma el SKIP local en un pase.
 - La migración `0416_portal_shipments_tenant_boundary.sql` pasó SQL/rebuild
   locales; NO fue aplicada. Requiere gate individual y smoke de su dominio,
   sin dependencia de una nueva RPC o versión de aplicación.
+- La migración `0417_portal_prealertas_tenant_boundary.sql` pasó 158 contratos
+  SQL y rebuild de 414 migraciones (396 desde cero + 18 sólo-ledger), junto con
+  156 unitarios focales. Cierra lectura ajena y cambio de tenant en el dominio
+  de compras/proveedores. No fue aplicada; requiere su propio OK y smoke.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - Vercel creó automáticamente un Preview del SHA publicado: deployment GitHub
-  `6227630435`, `success`, `production_environment=false`. El conector Vercel
+  `6228639456`, `success`, `production_environment=false`. El conector Vercel
   devolvió 404; la clasificación se comprobó en los metadatos de GitHub.
   No se promovió producción ni se modificaron datos, secretos o configuración.
-- El PR está en borrador y no se ha fusionado. El primer CI alojado falló por
-  heap agotado en TypeScript, exit 134; SDD-0349 prepara el límite explícito de
-  memoria sin quitar checks. Falta el pase alojado de la corrección. El build
-  del preview no prueba disponibilidad de las RPC.
+- El PR está en borrador y no se ha fusionado. Los fallos de memoria y foco
+  quedaron resueltos: run `33664422658` aprobado en `a4f1ba5f`. Esto no autoriza
+  release ni sustituye el CI de nuevos commits. El build del preview no prueba
+  disponibilidad de las RPC.
 
 ## Worktrees, ramas y tareas preservadas
 
