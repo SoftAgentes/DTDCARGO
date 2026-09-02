@@ -19,11 +19,11 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Rama de saneamiento antes de SDD-0346: `a1e5a4eb`, 0 detrás / 38 delante.
+- Rama de saneamiento antes de SDD-0347: `3c759fce`, 0 detrás / 39 delante.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 338; 244 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 339; 245 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -46,8 +46,8 @@ merge a `main`, Cloud, Producción ni deploy.
   del contrato activo de entorno.
 - [x] Gate canónico posterior a SDD-0342 sin fallos: 14/15 pasos medidos; sólo
   Cloud quedó `SKIP` por falta deliberada de credenciales. E2E: 150 pasaron y 18
-  Tier 3 se omitieron; build: 158 páginas. Suite unitaria posterior a SDD-0346:
-  521 archivos / 5.932 pruebas, todas verdes.
+  Tier 3 se omitieron; build: 158 páginas. Suite unitaria posterior a SDD-0347:
+  522 archivos / 5.936 pruebas, todas verdes.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -122,8 +122,9 @@ merge a `main`, Cloud, Producción ni deploy.
   RLS; dejó el baseline en 3 rutas / 7 construcciones. SDD-0346 movió packing
   online, consolidaciones y próximo zarpe del listado de envíos a un contexto
   que deriva todos sus ids desde sesión/RLS; dejó el baseline en 2 rutas / 4
-  construcciones. Priorizar ahora el facade de aceptación de facturas y el home
-  del Portal. El test
+  construcciones. SDD-0347 encapsuló facturas pendientes, naviera y zarpe del
+  home detrás de identidad e ids de sesión; dejó el baseline en 1 ruta / 1
+  construcción. Priorizar ahora el facade de aceptación de facturas. El test
   `portal-service-role-boundary.test.mjs` congela el inventario; no lo aprueba.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
