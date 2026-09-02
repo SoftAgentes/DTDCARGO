@@ -11,7 +11,7 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- HEAD actual: este commit; árbol limpio, 0 detrás / 41 delante de `origin/main`.
+- HEAD actual: este commit; árbol limpio, 0 detrás / 42 delante de `origin/main`.
 - La rama remota `codex/saneamiento-integral` todavía no existe.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
@@ -78,6 +78,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
     contiene este handoff; no crea migración.
 41. `fix(portal): SDD-0348 — acotar lectura legal de aceptación` — el commit que
     contiene este handoff; no crea migración.
+42. `ci: SDD-0349 — automatizar calidad sin secretos` — el commit que contiene
+    este handoff y prepara el primer workflow de GitHub Actions del repo.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0348. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
@@ -190,6 +192,14 @@ resolver identidad por sesión. La acción, el hash, el sello y la idempotencia 
 cambian. El inventario final llega a 0 rutas / 0 construcciones y pasó 38 pruebas
 focales/legales, la suite completa de 5.942 pruebas, TypeScript y ESLint. No crea
 migración.
+
+SDD-0349 agrega el primer CI independiente del repo con permisos de solo lectura,
+actions fijadas por SHA, Node 24, pnpm 11.19.0, Deno 2 y lockfile congelado. Cubre
+todos los gates locales sin secretos y deja fuera Docker, E2E y estado alojado.
+Pasó su contrato focal de 5 pruebas, la suite completa de 524 archivos / 5.947
+pruebas, ESLint, TypeScript, 4 Edge Functions, docs, numeración, componentes,
+gobernanza, build de 158 páginas y diff. El workflow todavía no está activo en
+GitHub porque esta rama no se ha publicado ni integrado.
 
 ## Gates alojados no cruzados
 

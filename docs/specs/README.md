@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 340 specs)
+### Índice de specs (generado · 341 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -378,6 +378,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0346 | Encapsular el contexto privado del listado de envíos del Portal | done | interno |
 | 0347 | Encapsular el contexto privado del home del Portal | done | interno |
 | 0348 | Encapsular la lectura privada de aceptación del Portal | done | interno |
+| 0349 | Automatizar calidad local sin secretos en GitHub Actions | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

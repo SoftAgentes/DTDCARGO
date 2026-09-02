@@ -20,11 +20,11 @@ refrescarse antes de cualquier operación Git o alojada.
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 - Rama de saneamiento actual: el commit que contiene este checklist, con árbol
-  limpio, 0 detrás / 41 delante; la rama remota todavía no existe.
+  limpio, 0 detrás / 42 delante; la rama remota todavía no existe.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 340; 246 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 341; 247 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete local y sus commits están enumerados en
@@ -57,6 +57,8 @@ merge a `main`, Cloud, Producción ni deploy.
 - [ ] Hacer `fetch`, revalidar `origin/main`, confirmar árbol limpio y publicar
   únicamente `codex/saneamiento-integral`.
 - [ ] Verificar la rama remota y revisar el diff publicado.
+- [ ] Confirmar en GitHub el primer resultado real del workflow
+  `Calidad continua`; el contrato local no sustituye una corrida alojada.
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Confirmar que el último commit del lote toca código para que
@@ -144,9 +146,12 @@ merge a `main`, Cloud, Producción ni deploy.
 
 ## P1 · reproducibilidad y operación
 
-- [ ] Incorporar CI independiente para lint, TypeScript, unitarios, docs,
-  gobernanza y gates que no requieran secretos. Docker/E2E/Cloud necesitan una
-  estrategia explícita de costo y credenciales antes de activarse en GitHub.
+- [x] Preparar CI independiente para lint, frontera RSC, TypeScript, Edge
+  Functions, unitarios, docs, numeración, constantes, componentes, gobernanza
+  y build sin secretos. SDD-0349 fija actions por SHA, usa permisos de lectura y
+  lockfile congelado. Se activará al integrar el workflow en `main`; la primera
+  corrida alojada sigue siendo un gate pendiente. Docker/E2E/Cloud necesitan
+  una estrategia explícita de costo y credenciales antes de activarse en GitHub.
 - [ ] Crear bootstrap no productivo reproducible para Auth/Portal/E2E; hoy un
   clon limpio no puede ejecutar el sistema completo sólo con el repo.
 - [ ] Verificar en los proveedores, sin asumir por código: Kommo live/dry-run,
