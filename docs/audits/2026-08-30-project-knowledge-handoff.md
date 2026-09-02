@@ -132,7 +132,7 @@ Lenguajes predominantes: 1.272 `.ts`, 905 `.tsx`, 536 `.sql` y 967 `.md`. El con
 | Lenguaje | TypeScript | 5.x strict, ES2022, `noEmit`, alias `@/*` | `tsconfig.json:2-29` |
 | Estilos | Tailwind CSS / PostCSS | Tailwind 4, CSS/tokens propios | `postcss.config.mjs`, `app/globals.css` |
 | Datos/Auth/Storage | Supabase | JS `^2.106.1`, SSR `^0.5.2`, PostgreSQL/RLS/RPC | `package.json`, `lib/db/` |
-| Unit/integration | Vitest + Testing Library | Vitest `^4.1.7`, jsdom | `vitest.config.ts` |
+| Unit/integration | Vitest + Testing Library | Vitest `^4.1.7`, jsdom | `vitest.config.mts` |
 | Navegador | Playwright | `^1.60.0`, 3 proyectos | `playwright.config.ts:48-52` |
 | Edge | Deno | 4 funciones, verificadas con Deno 2 vía script | `scripts/check-edge-functions.mjs` |
 | IA | Anthropic SDK | runtime Anthropic o mock | `lib/studio/agents/runtime/llm-client-factory.ts:2-41` |

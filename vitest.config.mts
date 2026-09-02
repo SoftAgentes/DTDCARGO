@@ -1,6 +1,9 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { fileURLToPath } from "node:url";
+
+const configDir = fileURLToPath(new URL(".", import.meta.url));
 
 /**
  * Config de Vitest para tests unitarios y de componentes.
@@ -18,8 +21,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "."),
-      "server-only": path.resolve(__dirname, "vitest/server-only.stub.ts"),
+      "@": configDir,
+      "server-only": path.resolve(configDir, "vitest/server-only.stub.ts"),
     },
   },
   test: {

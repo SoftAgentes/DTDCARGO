@@ -13,7 +13,7 @@
  *     (`?nac=&dni=`) y parsea la respuesta.
  *
  * `cne-cedulave.ts` importa `server-only`; vitest lo resuelve a un stub vacío vía
- * `resolve.alias` en `vitest.config.ts` (ese módulo lo provee el bundler de Next,
+ * `resolve.alias` en `vitest.config.mts` (ese módulo lo provee el bundler de Next,
  * no existe en disco).
  */
 

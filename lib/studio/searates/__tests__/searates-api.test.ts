@@ -11,7 +11,7 @@
  *   - CERO llamadas reales (global.fetch siempre stubeado).
  *
  * `searates-api.ts` importa `server-only`; vitest lo resuelve a un stub vacío vía
- * `resolve.alias` en vitest.config.ts.
+ * `resolve.alias` en vitest.config.mts.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";

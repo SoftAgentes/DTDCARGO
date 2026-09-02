@@ -15,7 +15,7 @@ import { GEO_ZONAS } from "@/lib/geo-zonas";
  * contención, no de una regresión (una regresión falla el mismo test las dos
  * veces, y con una aserción, no con un reloj).
  *
- * El timeout se sube ACÁ y no en `vitest.config.ts` a propósito: subirlo global
+ * El timeout se sube ACÁ y no en `vitest.config.mts` a propósito: subirlo global
  * relajaría los otros ~4.960 tests, donde 20 s ya es señal de que algo va mal.
  */
 vi.setConfig({ testTimeout: 120_000 });
