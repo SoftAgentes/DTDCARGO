@@ -12,7 +12,7 @@
 **Marca pública:** DTD Cargo
 **Contacto para titulares:** info@dtdcargo.com (asunto "Privacidad")
 **Representante en China (PIPL art. 53):** ⬜ pendiente de decidir
-**Versión:** 1.2 · **Última actualización:** 2026-08-01
+**Versión:** 1.3 · **Última actualización:** 2026-09-02
 
 ---
 
@@ -24,7 +24,7 @@
 | `clients.rif` | Cédula o RIF | no | sí | Identificación y nacionalización | Contrato + obligación legal | ⬜ | Equipo VE · aduana |
 | `clients.email` | Correo | no | sí | Comunicación del servicio | Contrato | ⬜ | Resend · Kommo |
 | `clients.phone` | Teléfono / WhatsApp | no | sí | Coordinación de entrega | Contrato | ⬜ | Equipo VE y CN · Kommo |
-| `clients.address` | Dirección de entrega | no | no | Última milla | Contrato | ⬜ | Equipo VE · **Nominatim** ⚠️ |
+| `clients.address` | Dirección de entrega | no | no | Última milla | Contrato | ⬜ | Equipo VE |
 | `clients.facade_photo_url` | **Foto de la fachada de la vivienda** | 🟠 | no | Encontrar la casa en la entrega | ⬜ **no declarada en la política** | ⬜ | Camionero |
 | `clients.notes` | Texto libre | ⚠️ puede volverse sensible | no | ⬜ no evidente en el código | ⬜ | ⬜ | Equipo VE |
 | `client_users.email` | Login del Portal | no | sí | Acceso al Portal | Contrato | ⬜ | Supabase Auth |
@@ -114,8 +114,8 @@ persona.
 
 Detalle completo en [`inventario-terceros.md`](inventario-terceros.md).
 
-Los que faltan resolver: **Nominatim** (dirección del cliente, sin contrato) ·
-**Cloudflare Workers AI** (audio de reuniones) · **Supabase** (región
+Los que faltan resolver son **Cloudflare Workers AI** (audio de reuniones) ·
+**Supabase** (región
 `NO VERIFICABLE`) · **equipo de Yiwu** (PIPL, sin consentimiento separado) ·
 **respaldo externo de adjuntos** (proveedor, región, contrato, retención y
 transferencia `NO VERIFICABLE`; no está conectado).

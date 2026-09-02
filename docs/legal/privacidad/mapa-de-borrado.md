@@ -199,7 +199,7 @@ personales, pero se encontró acá y conviene mirarlo.
 | **Cloudflare Workers AI** | Audio de reuniones procesado | 🔴 política no leída |
 | **Anthropic / OpenRouter** | Contenido de conversaciones | 🔴 política no leída |
 | **Google (GA4)** | Sin PII — verificado | 🟢 no aplica |
-| **Nominatim** | Direcciones enviadas a geocodificar | 🔴 sin contrato |
+| **Nominatim** | Integración retirada el 2026-09-02; solicitudes históricas | 🔴 retención externa no verificable |
 | **Supabase / Vercel** | Todo / logs de request | 🔴 retención no verificada |
 
 ---

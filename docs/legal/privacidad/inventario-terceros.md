@@ -1,8 +1,8 @@
 # Inventario de terceros — DTD Cargo
 
 > Punto 8 de [`AUDITORIA-2026-07.md`](AUDITORIA-2026-07.md). Levantado desde el
-> código, julio 2026. **Documento vivo:** se actualiza cada vez que se conecta un
-> proveedor nuevo.
+> código, julio 2026; actualizado el 2026-09-02. **Documento vivo:** se actualiza
+> cada vez que se conecta o retira un proveedor.
 >
 > Antes de conectar uno más, llenar
 > [`evaluacion-proveedores.md`](../../../.claude/skills/revisar-datos-ve/references/plantillas/evaluacion-proveedores.md).
@@ -28,12 +28,17 @@ tercero no es papeleo: es lo único que delimita quién responde.
 | **Anthropic** | Contenido de reuniones y de conversaciones con clientes, para extraer actas y resúmenes | EE.UU. | ❓ | `lib/studio/bitacora/extract.ts` · `lib/studio/agents/runtime/llm-client-anthropic.ts` |
 | **OpenRouter** | Ídem, como ruta alternativa de modelo | EE.UU. | ❓ | `lib/studio/agents/runtime/llm-client-factory.ts` |
 | **Kommo** | Espejo de contactos y leads: nombre, correo, teléfono | ❓ | ❓ | `kommo_contacts`, `kommo_leads`, `kommo_users` (`0082`, `0139`) |
-| **Nominatim / OpenStreetMap** | 🔴 **La dirección del cliente**, en texto, para geocodificar | Alemania (Fundación OSM) | ❌ **ninguno** | [`lib/studio/geocoding.ts:10`](../../../lib/studio/geocoding.ts) |
 | **Telegram** | Notificaciones al equipo; el cuerpo puede llevar nombre de cliente y código de envío | ❓ | ❓ | `lib/studio/telegram/send-message.ts` · `lib/studio/notify/send-user-telegram.ts` |
 | **AWS — seleccionado, no conectado** | Todavía no recibe datos; recibiría bytes de adjuntos, UUID y metadata técnica mínima para scan y respaldo | EE.UU. · `us-east-1` | DPA publicado; cuenta/aceptación **NO VERIFICABLES** | [`evaluacion-proveedor-respaldo-externo.md`](evaluacion-proveedor-respaldo-externo.md) · [`aws-adjuntos-expediente-contractual.md`](aws-adjuntos-expediente-contractual.md) |
 | **Equipo propio en Yiwu (China)** | Nombres, direcciones y teléfonos de clientes para coordinar carga | 🇨🇳 China | Relación laboral | 🔴 **PIPL aplica** — ver H-7 |
 
-## 2 · Los que NO reciben datos personales (verificado)
+## 2 · Integraciones retiradas
+
+| Proveedor | Estado | Evidencia |
+|---|---|---|
+| **Nominatim / OpenStreetMap** | ⛔ Retirado el 2026-09-02. El código ya no envía direcciones; cualquier retención histórica del tercero es no verificable. | SDD-0330 · contrato `geocoding-privacy-contract.test.ts` |
+
+## 3 · Los que NO reciben datos personales (verificado)
 
 | Proveedor | Por qué no |
 |---|---|
@@ -43,17 +48,7 @@ tercero no es papeleo: es lo único que delimita quién responde.
 
 ---
 
-## 3 · Los tres que hay que resolver primero
-
-### 🔴 Nominatim — dirección de cliente a un tercero sin contrato
-
-Es el caso de libro del "proveedor que nadie contó": un servicio **gratuito** al
-que se le manda un dato personal —**el domicilio de una persona**— sin acuerdo,
-sin evaluación y sin figurar en la política de privacidad.
-
-Opciones, por costo creciente: (a) dejar de geocodificar automático y hacerlo a
-mano cuando haga falta; (b) seudonimizar antes —mandar solo calle y ciudad, sin
-número ni referencia—; (c) contratar un geocodificador con acuerdo de datos.
+## 4 · Los dos que hay que resolver primero
 
 ### 🔴 Cloudflare Workers AI — audio de reuniones
 
@@ -73,7 +68,7 @@ esa respuesta depende si hay transferencia internacional que declarar y a dónde
 
 ---
 
-## 4 · Lo que falta para cerrar el punto 8
+## 5 · Lo que falta para cerrar el punto 8
 
 Por cada proveedor de la tabla 1, conseguir y archivar:
 
