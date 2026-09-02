@@ -28,7 +28,8 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   SDD-0363 está en `9b243069`, segundo commit local. SDD-0364 en `e9d49980`
   añade el tercero; SDD-0365 etapa 1 añade el cuarto, expansión SQL0421 el quinto
   y transporte/comprobantes el sexto. La adopción de consumidores añade el
-  séptimo incremento local; la restricción0422 añade el octavo. Ninguno está
+  séptimo incremento local; la restricción0422 añade el octavo (`f649bdbc`) y
+  el correctivo histórico0423 añade el noveno. Ninguno está
   publicado ni tiene CI alojado propio;
   el rechazo de push sigue vigente.
 
@@ -181,14 +182,35 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
     Pasan 301 aserciones, 35 derivas, 163 contratos SQL, rebuild419 y cinco
     carreras reales. Revisión independiente cerrada. Sin aplicación alojada.
 
+68. `fix(studio): SDD-0366 — conservar pagos históricos al renombrar Shipping Mark`
+    — corrige23514 sobre facturas archivadas sin permitir nuevos pagos ni
+    editar campos financieros. Conserva comprobantes/recibos/eventos y anexa
+    auditoría atómica;323 aserciones incluidas18 derivas,164 contratos SQL y
+    rebuild420. Revisión independiente aprobada, sin aplicación alojada.
+    Recibo: `2026-09-02-payment-report-historical-identity-close.md`.
+
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0365. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0366. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
 slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 
 ## Verificación vigente
+
+Correctivo0423 sobre `f649bdbc`: RED causal23514 → GREEN323 aserciones
+(incluidas18 derivas), rollback integral. Suite SQL completa164/164, exit0.
+Rebuild de esta misma migración:420 archivos (402 schema+18 sólo-ledger),
+219 tablas y2 tenants sintéticos. Advisors locales:5 WARN heredados del fixture
+(4 de rendimiento y1 de search_path del helper), ninguno en la función
+modificada. Revisión independiente aprobada. Spec con matriz SGE-00/BTN/MP/AUD
+y recibo advisory de datos; sin certificación de SDD-0258 ni de producción.
+Índice regenerado:358 specs,91 sin cierre documental. Checklist:47/103
+(45,6 %),56 pendientes; no es avance del producto ni estimación de horas.
+Nueve incrementos locales requieren publicación autorizada. No se repiten
+TS/Vitest/build como validaciones nuevas de un cambio sólo SQL/documental.
+
+Evidencia anterior, no ejecución nueva en0423:
 
 Restricción0422 sobre `bcf111a8`: 301 aserciones y 35 derivas con rollback de
 catálogo/filas; SQL0421 conserva sus 400 aserciones y hash. Suite SQL completa:
@@ -533,7 +555,11 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
   localmente con los comandos y el rename0371 real. Requiere otro GO nominal
   después de aplicar0421 y desplegar/probar consumidores. No aplicar a una app
   antigua ni reabrir grants automáticamente ante un rollback de aplicación.
-  Son 419 archivos y 24 gates de aplicación0399–0422 pendientes en el paquete.
+  El correctivo siguiente0423 no altera esos grants ni el cuerpo0421/0422.
+- La migración `0423_payment_report_historical_identity.sql` está verificada
+  localmente. Requiere GO nominal después de0421/consumidores/0422 y smoke de
+  rename/historial/rechazo financiero. Son420 archivos y25 gates de aplicación
+  0399–0423 pendientes en el paquete; no se ejecuta el conjunto en bloque.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - Vercel creó automáticamente un Preview del SHA publicado: deployment GitHub
@@ -572,7 +598,8 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
    verificar las RPCs antes de desplegar sus consumidores. Integración y deploy
    necesitan su propio gate. Aplicar 0414 y 0415 sólo después del smoke de sus
    consumidores nuevos, de una en una y con autorizaciones separadas.
-   Para pagos: expansión0421 → consumidores/smoke → restricción0422/smoke.
+   Para pagos: expansión0421 → consumidores/smoke → restricción0422/smoke →
+   correctivo histórico0423/smoke. No saltar autorizaciones nominales.
    Cada operación alojada conserva su autorización específica.
 5. Retirar este worktree únicamente después de probar que sus commits están
    contenidos; mantener las ramas archive hasta auditar su contención.

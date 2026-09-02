@@ -19,16 +19,16 @@ refrescarse antes de cualquier operación Git o alojada.
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
-**Avance del checklist: 46 de 101 casillas completadas (45,5 %).** Es un
+**Avance del checklist: 47 de 103 casillas completadas (45,6 %).** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
 varios cambios. No existe todavía una medición defendible del producto completo.
 
 | Bloque | Hecho / total | Situación |
 |---|---:|---|
-| Correcciones locales enumeradas | 25 / 25 | Implementadas/verificadas localmente; no equivale a producción |
+| Correcciones locales enumeradas | 26 / 26 | Implementadas/verificadas localmente; no equivale a producción |
 | Cierre Git y publicación | 12 / 21 | Publicación parcial; falta lote nuevo e integración |
-| Cloud y operación alojada | 2 / 30 | Dependen de autorizaciones nominales y comprobaciones reales |
+| Cloud y operación alojada | 2 / 31 | Dependen de autorizaciones nominales y comprobaciones reales |
 | Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
 | Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
 | Orden del producto/documentación | 3 / 12 | Falta reconciliar specs y decisiones de producto |
@@ -38,27 +38,27 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último avance:** restricción local de reportes de pago (SDD-0365/0422),
-sobre los consumidores de `bcf111a8`. Quedan retiradas las escrituras directas
-de la API y la RPC antigua; la lectura financiera exige membresía activa
-de Contabilidad/Administración. El Portal conserva su historial propio.
-SQL0421, transporte/comprobantes y consumidores ya estaban verificados.
+**Último avance:** SDD-0366/0423 corrige el rename de Shipping Mark cuando
+existen reportes sobre facturas archivadas. Sincroniza sólo identidad, conserva
+pagos/comprobantes/historial y agrega auditoría atómica. No habilita operaciones
+financieras sobre archivos ni reabre la API restringida por 0422.
 
-Validación nueva: **163 contratos SQL**, reconstrucción de **419 migraciones**,
-**301 aserciones y 35 derivas rechazadas** en0422, más cinco carreras reales
-con la restricción aplicada. SQL0421 conserva sus400 aserciones y su hash.
-Advisors locales: una advertencia del helper heredado del fixture; ningún
-objeto nuevo señalado. Revisión independiente sin hallazgos pendientes.
-La suite de consumidores previa pasó6.401 pruebas/536 archivos, TypeScript,
-build158 y navegador sintético; no se presentan como ejecuciones nuevas.
-Sigue pendiente el E2E con Auth/Storage real.
+Validación de esta pieza: **164 contratos SQL**, reconstrucción de
+**420 migraciones**, **323 aserciones, incluidas 18 derivas rechazadas**, y
+revisión independiente aprobada. Advisors locales: 5 WARN en objetos heredados
+del fixture (4 de rendimiento y 1 helper), ninguno en la función modificada.
+La suite previa de consumidores pasó 6.401 pruebas/536 archivos, TypeScript,
+build de 158 páginas y navegador sintético; no se presentan como ejecuciones nuevas.
+Las cinco carreras anteriores corresponden a 0422. Sigue pendiente el E2E
+con Auth/Storage real.
 
-**Las tres etapas técnicas están preparadas localmente; SDD-0365 sigue abierta
-por release y smoke alojado.** Se completa una casilla de seguridad y se
-agrega el gate nominal0422: de45/100 a46/101. No se suman casillas por prueba.
+**SDD-0365 y 0366 siguen abiertas por publicación/release/smoke.** Se agrega
+una corrección local completada y su gate nominal 0423 pendiente: de 46/101 a
+47/103. El denominador crece porque se identificó trabajo real, no porque se
+sumen casillas por prueba. SDD-0258 completo todavía no está cerrado.
 
 **Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
-integrar, 24 migraciones del paquete sin aplicación autorizada y trabajo de
+integrar, 25 migraciones del paquete sin aplicación autorizada y trabajo de
 aplicación/seguridad/documentación todavía pendiente. El worktree activo no
 se borra mientras conserve trabajo sin publicar/integrar.
 
@@ -77,7 +77,8 @@ se borra mientras conserve trabajo sin publicar/integrar.
   La expansión SQL 0421 de SDD-0365 añade el quinto commit local (`7f4c1046`).
   El transporte de comandos y recuperación de comprobantes añade el sexto
   (`85912909`); consumidores en el séptimo (`bcf111a8`) y la restricción0422
-  en el octavo incremento que contiene este recibo.
+  en el octavo (`f649bdbc`). SDD-0366/0423 añade el noveno incremento local
+  que contiene esta actualización.
   El lote nuevo requiere publicación autorizada y CI propio.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
@@ -90,14 +91,14 @@ se borra mientras conserve trabajo sin publicar/integrar.
 - Supabase: proyecto correcto `xpfuzqombmjmxvprjgmi`, `ACTIVE_HEALTHY`; 406
   entradas de ledger. Comparación con 413 archivos y corte 238: 18 pendientes
   (0399–0416), cero huérfanas posteriores al corte y las 10 RPC nuevas ausentes.
-  SDD-0361–0365 agregan 0417–0422 sólo locales: 419 archivos y 24 gates de aplicación
+  SDD-0361–0366 agregan 0417–0423 sólo locales: 420 archivos y 25 gates de aplicación
   pendientes en este paquete. No se volvió a consultar ni escribir Cloud.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 357; 266 `done`, 1 `superseded` y 90 sin cierre documental
-  (75 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0365 sigue
-  abierta hasta verificar publicación, aplicación y smoke del release.
+- Specs reales: 358; 266 `done`, 1 `superseded` y 91 sin cierre documental
+  (76 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0365 y0366
+  siguen abiertas hasta verificar publicación, aplicación y smoke del release.
 
 El paquete y sus commits están enumerados en
 `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`. La evidencia alojada
@@ -201,6 +202,12 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   162 contratos SQL y 6.096 unitarios completos aprobados en ese incremento.
   No está aplicada. Consumidores y restricción0422 preparados localmente;
   publicación, aplicación alojada y smoke siguen abiertos.
+
+- [x] Correctivo histórico SDD-0366/0423: rename de Shipping Mark conserva
+  reportes en cinco estados sobre facturas archivadas, sin modificar pagos
+  ni comprobantes y con evento mínimo/atómico. RED23514 → GREEN: 323 aserciones
+  (18 derivas), 164 contratos SQL y rebuild de 420; revisión independiente aprobada.
+  No aplicado. El resto de SDD-0258 y su interfaz siguen sin cierre integral.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -317,6 +324,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   nominal, después de consumidores/smoke de0421; verificar rechazo de DML/RPC
   antiguos y conservación de alta/cancelación/resolución/historial/reintento.
   No revertir la app a consumidores antiguos ni reabrir grants automáticamente.
+- [ ] Aplicar `0423_payment_report_historical_identity.sql` sólo con GO nominal
+  después de0421, consumidores y0422 verificados. Smoke de rename autorizado,
+  conservación de expediente y rechazo de escrituras financieras sobre archivo.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [x] Confirmar que el deployment automático de la rama fue Preview, no
@@ -449,11 +459,11 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   acceso; 42 pruebas focales, 29 contratos adicionales y 6.032 pruebas completas
   en 530 archivos. TypeScript, ESLint y gates documentales aprobados.
   [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
-- [ ] Reconciliar las 90 specs no cerradas por rebanadas de dominio. Cambiar un
+- [ ] Reconciliar las 91 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
-  Caso concreto pendiente de SDD-0258: rename de Shipping Mark con un reporte
-  sobre factura archivada falla23514 por el trigger0195. Se reprodujo antes
-  y después de0422; no es regresión de la restricción ni se corrigió aquí.
+  El bloqueo23514 de rename con factura archivada quedó corregido localmente
+  por SDD-0366/0423, no publicado/aplicado. No basta para cerrar SDD-0258;
+  conservar como deuda su validación integral, incluida la interfaz legacy.
 - [x] Reconciliar el dominio de acceso (SDD-0299/0302): código confirmado en
   main y 61 pruebas focales, con 52 regresiones nuevas. Ambas siguen abiertas
   porque falta navegador/sesión real. Suite completa: 529 archivos / 6.013
@@ -487,7 +497,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
    consumidores, cada una con su propio OK y de una en una.
    Aplicar 0416–0420 con gates/smokes de dominio independientes, de una en una
    y con su propio OK. Para pagos:0421 antes de consumidores/smoke,0422 después,
-   con autorizaciones independientes; completar Telegram
+   con autorizaciones independientes;0423 después de esas fases y con smoke
+   nominal de historial. Completar Telegram
    y los demás gates alojados por separado.
 5. Limpiar worktree y rama de archivo sólo cuando estén contenidos en main.
 6. Con pagos preparado localmente, continuar sólo la siguiente rebanada
