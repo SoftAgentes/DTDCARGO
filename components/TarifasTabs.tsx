@@ -70,6 +70,10 @@ export function TarifasTabs({
   const [leaf, setLeaf] = useState<LeafState>(null);
   const [leafRun, setLeafRun] = useState(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({
+    ddp: null,
+    consolidado: null,
+  });
 
   const ddpRate =
     serverRate?.per_cbm && serverRate.per_cbm > 0
@@ -98,14 +102,42 @@ export function TarifasTabs({
     timers.current.push(setTimeout(() => setLeaf(null), 720));
   }
 
+  function handleTabKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+
+    const tabs: Tab[] = ["ddp", "consolidado"];
+    const current = tabs.indexOf(tab);
+    const next =
+      event.key === "Home"
+        ? tabs[0]
+        : event.key === "End"
+          ? tabs[tabs.length - 1]
+          : event.key === "ArrowRight"
+            ? tabs[(current + 1) % tabs.length]
+            : tabs[(current - 1 + tabs.length) % tabs.length];
+
+    selectTab(next);
+    tabRefs.current[next]?.focus();
+  }
+
   return (
     <div>
       {/* Toggle de modalidad — tarjetas icono+nombre+precio+flag */}
-      <div className="calc-switch" role="tablist" aria-label="Modalidad de envío">
+      <div
+        className="calc-switch"
+        role="tablist"
+        aria-label="Modalidad de envío"
+        onKeyDown={handleTabKeyDown}
+      >
         <CalcOpt
           id="ddp"
           active={tab === "ddp"}
           onClick={() => selectTab("ddp")}
+          buttonRef={(node) => {
+            tabRefs.current.ddp = node;
+          }}
           panelId="panel-ddp"
           icon={<TruckIcon />}
           name="Puerta a puerta"
@@ -117,6 +149,9 @@ export function TarifasTabs({
           id="lcl"
           active={tab === "consolidado"}
           onClick={() => selectTab("consolidado")}
+          buttonRef={(node) => {
+            tabRefs.current.consolidado = node;
+          }}
           panelId="panel-consolidado"
           icon={<BoxesIcon />}
           name="Consolidado"
@@ -175,6 +210,7 @@ function CalcOpt({
   id,
   active,
   onClick,
+  buttonRef,
   panelId,
   icon,
   name,
@@ -185,6 +221,7 @@ function CalcOpt({
   id: "ddp" | "lcl";
   active: boolean;
   onClick: () => void;
+  buttonRef: React.Ref<HTMLButtonElement>;
   panelId: string;
   icon: React.ReactNode;
   name: string;
@@ -195,11 +232,13 @@ function CalcOpt({
   return (
     <button
       type="button"
+      ref={buttonRef}
       role="tab"
       id={id}
       data-calc={id}
       aria-selected={active}
       aria-controls={panelId}
+      tabIndex={active ? 0 : -1}
       onClick={onClick}
       className={`calc-opt${active ? " is-active" : ""}`}
     >

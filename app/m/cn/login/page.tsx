@@ -103,6 +103,7 @@ export default function OperarioLoginPage() {
 
   return (
     <div
+      lang={lang === "cn" ? "zh-CN" : "es"}
       style={{
         minHeight: "100dvh",
         background:

@@ -75,15 +75,14 @@ export function ChartWidget({
             CBM por mes
           </div>
         </div>
-        <div style={{ display: "flex", gap: 4 }} role="tablist" aria-label="Período del gráfico">
+        <div style={{ display: "flex", gap: 4 }} role="group" aria-label="Período del gráfico">
           {CHART_PERIODS.map((p) => {
             const active = p === period;
             return (
               <button
                 key={p}
                 type="button"
-                role="tab"
-                aria-selected={active}
+                aria-pressed={active}
                 onClick={() => onPeriodChange(p)}
                 style={{
                   padding: "5px 10px",
@@ -107,7 +106,7 @@ export function ChartWidget({
             padding: "36px 16px",
             textAlign: "center",
             font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
+            color: "var(--ink-soft)",
           }}
         >
           Sin volumen registrado en el período.
@@ -140,7 +139,7 @@ export function ChartWidget({
                     {pt.value}
                   </text>
                 )}
-                <text x={x + w / 2} y={H + 18} fontFamily="var(--f-sans)" fontSize="9.5" fontWeight="600" fill="var(--ink-mute)" textAnchor="middle" letterSpacing="0.08em">
+                <text x={x + w / 2} y={H + 18} fontFamily="var(--f-sans)" fontSize="9.5" fontWeight="600" fill="var(--ink-soft)" textAnchor="middle" letterSpacing="0.08em">
                   {pt.label}
                 </text>
               </g>
@@ -167,7 +166,7 @@ export function ActiveShipmentsWidget({ items }: { items: ActiveShipmentPreview[
       >
         <div>
           <div style={{ font: "900 14px/1 var(--f-display)", color: "var(--ink)" }}>Embarques en curso</div>
-          <div style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 4 }}>
+          <div style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
             {items.length} activo(s) · recientes primero
           </div>
         </div>
@@ -176,7 +175,7 @@ export function ActiveShipmentsWidget({ items }: { items: ActiveShipmentPreview[
         </Link>
       </div>
       {items.length === 0 ? (
-        <div style={{ padding: "28px 20px", textAlign: "center", font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <div style={{ padding: "28px 20px", textAlign: "center", font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
           No hay embarques activos ahora mismo.
         </div>
       ) : (
@@ -200,7 +199,7 @@ export function ActiveShipmentsWidget({ items }: { items: ActiveShipmentPreview[
                 <div style={{ font: "600 12.5px/1.2 var(--f-sans)", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {s.clientName ?? "Sin cliente"}
                 </div>
-                <div style={{ font: "500 11px/1.2 var(--f-sans)", color: "var(--ink-mute)", marginTop: 2 }}>
+                <div style={{ font: "500 11px/1.2 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>
                   {s.destination ?? "Destino —"}
                 </div>
               </div>
@@ -229,7 +228,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
         </Link>
       </div>
       {next.length === 0 ? (
-        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>Sin embarques activos.</div>
+        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>Sin embarques activos.</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {next.map((s) => (
@@ -253,7 +252,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
                   {s.clientName ?? "Sin cliente"}
                 </div>
               </div>
-              <span style={{ font: "600 10.5px/1 var(--f-sans)", color: "var(--ink-mute)" }}>{STATUS_LABELS[s.status] ?? s.status}</span>
+              <span style={{ font: "600 10.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}>{STATUS_LABELS[s.status] ?? s.status}</span>
             </Link>
           ))}
         </div>
@@ -270,7 +269,7 @@ export function AlertsWidget({ alerts }: { alerts: AlertItem[] }) {
         ATENCIÓN REQUERIDA
       </div>
       {alerts.length === 0 ? (
-        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-mute)" }}>
+        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink-soft)" }}>
           Todo en orden. Sin pendientes críticos.
         </div>
       ) : (
@@ -371,7 +370,7 @@ export function NominaResumenWidget({ summary }: { summary: NominaSummary }) {
         {stats.map((s) => (
           <div key={s.label} style={{ padding: "10px 12px", borderRadius: "var(--r-md)", background: "var(--bg-elevated)" }}>
             <div style={{ font: "800 17px/1 var(--f-display)", color: TONE_TO_VALUE_COLOR[s.v.tone ?? "neutral"] }}>{s.v.value}</div>
-            <div style={{ font: "500 10.5px/1.2 var(--f-sans)", color: "var(--ink-mute)", marginTop: 5 }}>{s.label}</div>
+            <div style={{ font: "500 10.5px/1.2 var(--f-sans)", color: "var(--ink-soft)", marginTop: 5 }}>{s.label}</div>
           </div>
         ))}
       </div>

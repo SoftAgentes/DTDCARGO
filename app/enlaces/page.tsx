@@ -288,9 +288,9 @@ export default function EnlacesPage() {
               </div>
             </div>
           </Link>
-          <p className="enlaces-tagline">
+          <h1 className="enlaces-tagline">
             Con <b>Confianza</b>, de China a tu puerta.
-          </p>
+          </h1>
         </header>
 
         <div className="enlaces-body">

@@ -123,6 +123,19 @@ export function Nav() {
   const drawerRef = useRef<HTMLElement>(null);
   const recursosRef = useRef<HTMLDetailsElement>(null);
 
+  const skipToMain = useCallback(
+    (event: React.MouseEvent<HTMLAnchorElement>) => {
+      const main = document.querySelector<HTMLElement>("main");
+      if (!main) return;
+      event.preventDefault();
+      if (!main.id) main.id = "main-content";
+      if (!main.hasAttribute("tabindex")) main.tabIndex = -1;
+      main.focus();
+      main.scrollIntoView({ block: "start" });
+    },
+    [],
+  );
+
   // Cerrar drawer y retornar foco al hamburger (focus return)
   const close = useCallback(() => {
     setOpen(false);
@@ -214,6 +227,13 @@ export function Nav() {
 
   return (
     <>
+      <a
+        className="fixed left-4 top-0 z-[100] -translate-y-full border-2 border-wine bg-paper px-4 py-3 text-sm font-bold leading-none text-ink transition-transform focus:translate-y-0 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-wine"
+        href="#main-content"
+        onClick={skipToMain}
+      >
+        Saltar al contenido principal
+      </a>
       <nav
         className="site-nav sticky top-0 z-50 border-b border-grey-200 transition-[background,box-shadow,border-color] duration-300"
         style={

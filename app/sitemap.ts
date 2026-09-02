@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { listPublishedPosts } from "@/lib/public/news-queries";
 import { GEO_ZONAS } from "@/lib/geo-zonas";
+import { TERMINOS_LIVE } from "@/lib/legal-public";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -37,7 +38,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/noticias`,  priority: 0.8, changeFrequency: "weekly" },
     { url: `${base}/contacto`,  priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/registro`,  priority: 0.7, changeFrequency: "monthly" },
+    { url: `${base}/cookies`, priority: 0.3, changeFrequency: "yearly" },
+    { url: `${base}/privacidad`, priority: 0.3, changeFrequency: "yearly" },
   ];
+
+  // El acuerdo sigue noindex mientras tenga placeholders jurídicos. Cuando la
+  // misma bandera que controla su metadata se enciende, entra al sitemap.
+  if (TERMINOS_LIVE) {
+    routes.push({
+      url: `${base}/terminos`,
+      priority: 0.3,
+      changeFrequency: "yearly",
+    });
+  }
 
   // Páginas geo-locales "Importar de China a {zona}" (fuente: lib/geo-zonas)
   for (const z of GEO_ZONAS) {

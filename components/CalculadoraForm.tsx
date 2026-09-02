@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   CONFIG,
   CIUDADES,
@@ -106,6 +106,7 @@ export function CalculadoraForm({
   showRegisterCta?: boolean;
 }) {
   const esConsolidado = modo === "consolidado";
+  const tarifaCbmId = useId();
 
   // Tarifa base real o default de CONFIG (cero regresión si no hay pública).
   const ddpRate =
@@ -410,7 +411,7 @@ export function CalculadoraForm({
           <div>
             <div className="flex items-center gap-2 mb-2">
               <label
-                htmlFor="tarifa-cbm"
+                htmlFor={tarifaCbmId}
                 className="text-[11px] font-bold tracking-[0.12em] uppercase"
                 style={{ color: "rgba(255,255,255,0.5)" }}
               >
@@ -432,7 +433,7 @@ export function CalculadoraForm({
             >
               <span className="text-[16px] font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>$</span>
               <DecimalInput
-                id="tarifa-cbm"
+                id={tarifaCbmId}
                 value={form.tarifaCBMOverride ?? 0}
                 onValueChange={(n) =>
                   update("tarifaCBMOverride", n > 0 ? n : baseRate)

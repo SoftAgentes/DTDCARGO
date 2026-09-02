@@ -61,6 +61,17 @@ function paginas(dir: string, base = ""): { ruta: string; abs: string }[] {
   return out;
 }
 
+/** Sólo reconoce un `robots: { index: false }` literal. Comentarios que hablan
+ * de noindex y expresiones condicionales no cuentan como una decisión fija. */
+function hasStaticNoIndex(source: string): boolean {
+  const withoutComments = source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+  return /robots\s*:\s*\{[\s\S]{0,240}?index\s*:\s*false/.test(
+    withoutComments,
+  );
+}
+
 describe("Cobertura del sitemap", () => {
   const sitemap = readFileSync(join(APP, "sitemap.ts"), "utf8");
   const robots = readFileSync(join(APP, "robots.ts"), "utf8");
@@ -89,7 +100,7 @@ describe("Cobertura del sitemap", () => {
     for (const p of publicas) {
       const src = readFileSync(p.abs, "utf8");
       // `noindex` explícito = exclusión deliberada, no hueco.
-      if (/noindex|index:\s*false/.test(src)) continue;
+      if (hasStaticNoIndex(src)) continue;
       if (!sitemap.includes(`${p.ruta}\``) && !sitemap.includes(`${p.ruta}"`)) {
         faltan.push(p.ruta);
       }
@@ -109,7 +120,7 @@ describe("Cobertura del sitemap", () => {
     const contradictorias: string[] = [];
     for (const p of publicas) {
       const src = readFileSync(p.abs, "utf8");
-      if (!/noindex|index:\s*false/.test(src)) continue;
+      if (!hasStaticNoIndex(src)) continue;
       if (sitemap.includes(`${p.ruta}\``) || sitemap.includes(`${p.ruta}"`)) {
         contradictorias.push(p.ruta);
       }

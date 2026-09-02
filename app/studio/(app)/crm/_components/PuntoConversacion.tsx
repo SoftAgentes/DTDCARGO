@@ -90,6 +90,11 @@ export function PuntoConversacion({
 
   const rotulo = rotuloConversacion(c);
   const urgente = c.estado === "te-escribio";
+  const estadoVisible = urgente ? "Nuevo" : "Enviado";
+  const detalleVisible =
+    conTexto && c.desdeMs != null
+      ? `${estadoVisible} · ${etiquetaDesde(c.desdeMs)}`
+      : estadoVisible;
 
   return (
     <span
@@ -101,11 +106,8 @@ export function PuntoConversacion({
         flexShrink: 0,
       }}
     >
-      {/*
-        El punto es decorativo: el significado viaja en el texto de al lado y en
-        el `title`. Marcarlo `aria-hidden` evita que un lector de pantalla lea
-        un carácter suelto sin contexto.
-      */}
+      {/* El punto conserva la señal visual; el rótulo adyacente evita depender
+          del color o de un `title` que no funciona con teclado/touch. */}
       <span
         aria-hidden="true"
         style={{
@@ -117,23 +119,20 @@ export function PuntoConversacion({
         }}
       />
       {/*
-        Y acá va el significado, siempre en el árbol: visible cuando hay sitio,
-        y sólo para lectores de pantalla cuando no. Un color no es información
-        accesible por sí solo — es la regla de contraste/semántica del sistema.
+        El estado siempre queda visible. En la tabla se agrega la antigüedad;
+        en el tablero se usa un rótulo corto para no romper la tarjeta.
       */}
-      {conTexto
-        ? (
-          <span
-            style={{
-              font: "600 11px/1 var(--f-mono)",
-              color: urgente ? "var(--danger)" : "var(--ink-mute)",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {c.desdeMs == null ? "" : etiquetaDesde(c.desdeMs)}
-          </span>
-        )
-        : <span className="sr-only">{rotulo}</span>}
+      <span
+        aria-hidden="true"
+        style={{
+          font: "600 10.5px/1 var(--f-mono)",
+          color: urgente ? "var(--danger)" : "var(--ink-soft)",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {detalleVisible}
+      </span>
+      <span className="sr-only">{rotulo}</span>
     </span>
   );
 }
