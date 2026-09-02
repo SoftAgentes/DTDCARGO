@@ -12,6 +12,8 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { promises as fs } from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/db/admin";
+import { resolveRequestIp } from "@/lib/http/request-ip";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +21,11 @@ const ROUTE_PATH = "/admin/cbm-estudio";
 const SESSION_COOKIE = "__Host-dtd-cbm-estudio";
 const SESSION_TTL_SECONDS = 8 * 60 * 60;
 const SESSION_CONTEXT = "cbm-estudio-session-v1";
+const THROTTLE_TABLE = "portal_registro_throttle";
+const THROTTLE_PREFIX = "cbm-estudio:";
+const THROTTLE_LIMIT = 5;
+const THROTTLE_WINDOW_MINUTES = 15;
+const THROTTLE_RETRY_AFTER_SECONDS = THROTTLE_WINDOW_MINUTES * 60;
 
 const BASE_HEADERS: Record<string, string> = {
   "Cache-Control": "no-store, must-revalidate",
@@ -56,14 +63,26 @@ function hasValidSession(request: NextRequest, secret: string): boolean {
   return safeEqual(signature, sessionSignature(secret, expiresAt));
 }
 
-function accessPage(options: { invalid?: boolean; unavailable?: boolean } = {}): string {
-  const { invalid = false, unavailable = false } = options;
-  const status = unavailable
-    ? "El acceso está temporalmente no disponible. Inténtalo más tarde."
-    : invalid
-      ? "La credencial no es válida. Verifica el dato e inténtalo de nuevo."
-      : "Ingresa la credencial interna para continuar.";
-  const statusRole = invalid || unavailable ? ' role="alert"' : "";
+function accessPage(
+  options: {
+    invalid?: boolean;
+    unavailable?: boolean;
+    rateLimited?: boolean;
+  } = {},
+): string {
+  const {
+    invalid = false,
+    unavailable = false,
+    rateLimited = false,
+  } = options;
+  const status = rateLimited
+    ? "Demasiados intentos. Espera 15 minutos antes de volver a intentarlo."
+    : unavailable
+      ? "El acceso está temporalmente no disponible. Inténtalo más tarde."
+      : invalid
+        ? "La credencial no es válida. Verifica el dato e inténtalo de nuevo."
+        : "Ingresa la credencial interna para continuar.";
+  const statusRole = invalid || unavailable || rateLimited ? ' role="alert"' : "";
   const describedBy = invalid
     ? ' aria-describedby="access-status" autofocus'
     : "";
@@ -104,7 +123,7 @@ function accessPage(options: { invalid?: boolean; unavailable?: boolean } = {}):
     <h1>Acceso <span>restringido</span></h1>
     <p id="access-status"${statusRole}>${status}</p>
     ${
-      unavailable
+      unavailable || rateLimited
         ? ""
         : `<form method="post" action="${ROUTE_PATH}">
       <label for="access-token">Credencial de acceso</label>
@@ -118,11 +137,61 @@ function accessPage(options: { invalid?: boolean; unavailable?: boolean } = {}):
 </html>`;
 }
 
-function htmlResponse(body: string, status: number): NextResponse {
+function htmlResponse(
+  body: string,
+  status: number,
+  headers: Record<string, string> = {},
+): NextResponse {
   return new NextResponse(body, {
     status,
-    headers: BASE_HEADERS,
+    headers: { ...BASE_HEADERS, ...headers },
   });
+}
+
+type ThrottleState = "allowed" | "limited" | "unavailable";
+
+function throttleSlotId(key: string, windowId: number, slot: number): string {
+  const hex = createHash("sha256")
+    .update(`${key}:${windowId}:${slot}`)
+    .digest("hex")
+    .slice(0, 32);
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join("-");
+}
+
+/**
+ * Registra el intento antes de comparar la credencial. Los cinco UUID
+ * determinísticos de cada ventana son slots: el PK de la tabla serializa el
+ * burst sin depender de un count→insert vulnerable a carreras.
+ */
+async function checkAccessThrottle(request: NextRequest): Promise<ThrottleState> {
+  try {
+    const admin = createAdminClient();
+    const ipHash = createHash("sha256")
+      .update(resolveRequestIp(request.headers))
+      .digest("hex");
+    const key = `${THROTTLE_PREFIX}${ipHash}`;
+    const windowMs = THROTTLE_WINDOW_MINUTES * 60 * 1000;
+    const windowId = Math.floor(Date.now() / windowMs);
+
+    for (let slot = 0; slot < THROTTLE_LIMIT; slot += 1) {
+      const { error } = await admin.from(THROTTLE_TABLE).insert({
+        id: throttleSlotId(key, windowId, slot),
+        ip: key,
+      });
+      if (!error) return "allowed";
+      if (error.code !== "23505") return "unavailable";
+    }
+
+    return "limited";
+  } catch {
+    return "unavailable";
+  }
 }
 
 let cachedContent: string | null = null;
@@ -173,6 +242,16 @@ export async function POST(request: NextRequest) {
   const contentLength = Number(request.headers.get("content-length") ?? "0");
   if (Number.isFinite(contentLength) && contentLength > 4096) {
     return htmlResponse(accessPage({ invalid: true }), 413);
+  }
+
+  const throttleState = await checkAccessThrottle(request);
+  if (throttleState === "limited") {
+    return htmlResponse(accessPage({ rateLimited: true }), 429, {
+      "Retry-After": String(THROTTLE_RETRY_AFTER_SECONDS),
+    });
+  }
+  if (throttleState === "unavailable") {
+    return htmlResponse(accessPage({ unavailable: true }), 503);
   }
 
   let submittedToken = "";
