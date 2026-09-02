@@ -5,6 +5,14 @@ Tarea: `Audita y limpia worktrees` (`01a05f15-80ff-77b1-9f3a-6b07d21df02d`).
 Rol: worker aislado. Rama: `codex/saneamiento-integral`.
 Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`.
 Base del incremento: `f649bdbc4296711def2e4e6a1a5a42a3124abbd6`.
+La evidencia original y referencias M/T de este recibo corresponden a
+`5797920a`. Addendum posterior sobre `2d7671ab`: preflight0423 acepta las dos
+huellas exactas de0195 comprobadas (repo/Cloud), con323 aserciones/18 derivas
+por variante,165 contratos SQL y rebuild420 verdes; revisión independiente
+aprobada. No cambió el cuerpo instalado, ACL ni acción de negocio.
+Rutas adicionales de ese addendum: wrapper
+`supabase/tests/0423_payment_report_historical_identity_cloud.test.sql` y
+`docs/audits/2026-09-02-codex-release-preflight.md`, donde vive la evidencia nueva.
 Commit de esta pieza: el que contiene este recibo; buscar con
 `git log --oneline -- .agents/handoffs/2026-09-02-payment-report-historical-identity-close.md`.
 

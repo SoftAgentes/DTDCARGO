@@ -18,7 +18,11 @@ begin
       and p.proowner = 'postgres'::regrole and p.prosecdef
       and p.prorettype = 'pg_catalog.trigger'::regtype
       and p.proconfig = array['search_path=public']::text[]
-      and pg_catalog.md5(p.prosrc) = '89444225ab2212c58a331ea279ca0c5a') then
+      -- Dos cuerpos exactos de0195: repo y Cloud medido en READ ONLY.
+      -- Sólo difieren en comentarios/formato; no normalizar SQL arbitrario.
+      and pg_catalog.md5(p.prosrc) in (
+        '89444225ab2212c58a331ea279ca0c5a',
+        'cb17928a9d5beea435eddf06ea2087bc')) then
     raise exception '0423 abortado: validador0195 ausente o con drift';
   end if;
   if not exists (select 1 from pg_catalog.pg_trigger

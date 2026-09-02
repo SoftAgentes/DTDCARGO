@@ -71,8 +71,10 @@ del historial sigue por los mismos IDs, ACL y relaciones Portal actuales.
 
 - `supabase/migrations/0423_payment_report_historical_identity.sql`.
 - `supabase/tests/0423_payment_report_historical_identity.test.sql`.
+- `supabase/tests/0423_payment_report_historical_identity_cloud.test.sql`.
 - Esta spec y `docs/specs/README.md` generado con `docs:index`.
 - `docs/audits/2026-09-02-codex-arranque-checklist.md`.
+- `docs/audits/2026-09-02-codex-release-preflight.md`.
 - `.agents/handoffs/2026-09-02-payment-report-historical-identity-close.md`.
 - `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`.
 
@@ -158,6 +160,8 @@ prueba de accesibilidad, conservación del formulario o comportamiento offline.
 
 En la matriz, `M` = `supabase/migrations/0423_payment_report_historical_identity.sql`
 y `T` = `supabase/tests/0423_payment_report_historical_identity.test.sql`.
+Las referencias de línea de esta matriz corresponden al correctivo original
+`5797920a`; el addendum de preflight inferior documenta el incremento posterior.
 `cumplimiento` equivale a `cumple` sólo en el alcance SQL especificado.
 
 | Principio | Clasificación | Evidencia y límite |
@@ -182,6 +186,29 @@ retención o revelación sensible. Los avisos de Advisors son del fixture/legado
 no una autorización para modificar sus policies dentro de esta spec.
 
 ## Resultado técnico local
+
+### Compatibilidad del preflight con el cuerpo alojado de 0195
+
+La consulta de catálogo en transacción READ ONLY encontró la función de 0195
+con owner, SECURITY DEFINER, search_path y trigger esperados, pero un cuerpo
+sin los comentarios y el formato del archivo local. Huellas prosrc distintas:
+`89444225ab2212c58a331ea279ca0c5a` (repo, LF) y
+`cb17928a9d5beea435eddf06ea2087bc` (Cloud, LF). La comparación del cuerpo
+completo confirma las mismas condiciones y operaciones; no se leyeron filas.
+
+El ajuste admite sólo esas dos huellas exactas, conservando todos los demás
+guards. No normaliza SQL arbitrario ni acepta cualquier variante equivalente.
+Se exige RED del preflight vigente contra el cuerpo Cloud exacto, GREEN de
+ambas variantes y rechazo de derivas. El contrato de identidad, la auditoría,
+las ACL y la función que se instala no cambian. No se edita la migración 0195
+ya aplicada ni se ejecuta DDL alojado. Resultados nuevos en el acta de preflight.
+
+Resultado del addendum: RED causal del guard; GREEN con323 aserciones y18
+derivas por variante; wrapper sin fuga de parámetro, rollback íntegro;
+165 contratos SQL y rebuild420 aprobados. Revisión independiente sin
+bloqueantes. [Evidencia y preflight parcial](../../audits/2026-09-02-codex-release-preflight.md).
+
+La evidencia original siguiente corresponde al commit `5797920a`:
 
 - RED independiente con `apply_fix=false`:23514 causal en rename0371,
   rollback integral comprobado; no un fallo de preparación.

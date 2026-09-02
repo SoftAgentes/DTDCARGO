@@ -10,6 +10,10 @@
 \else
 \set fixture_only false
 \endif
+\if :{?cloud_validator_baseline}
+\else
+\set cloud_validator_baseline false
+\endif
 \set apply_historical_fix :apply_fix
 \set apply_fix true
 \set fixture_in_transaction true
@@ -52,6 +56,42 @@ create table public.dispatch_rules(tenant_id uuid,vip_markboxes text[],whitelist
 \ir ../migrations/0367_client_markbox_historial.sql
 \ir ../migrations/0371_insignia_pelada_del_aliado.sql
 \ir ../migrations/0422_payment_report_command_boundary.sql
+
+\if :cloud_validator_baseline
+-- Variante EXACTA0195 observada read-only en el catálogo alojado (2026-09-02).
+-- Se reproduce sólo localmente: no conecta ni escribe en Cloud. El ARRAY
+-- garantiza LF inicial/final independiente del checkout Windows; no normaliza
+-- ni acepta cuerpos arbitrarios. La huella debe coincidir antes y después.
+do $cloud_validator_baseline$
+declare
+  exact_body text:=chr(10)||array_to_string(array[
+    $line$declare v_code text;$line$,
+    $line$begin$line$,
+    $line$  select invoice_code into v_code from public.invoices$line$,
+    $line$  where id = new.invoice_id and tenant_id = new.tenant_id and client_markbox = new.client_markbox and status <> 'borrador' and deleted_at is null;$line$,
+    $line$  if v_code is null then$line$,
+    $line$    raise exception 'reporte de pago sobre factura inexistente, ajena, en borrador o de otro cliente (invoice %, tenant %, markbox %)', new.invoice_id, new.tenant_id, new.client_markbox using errcode = 'check_violation';$line$,
+    $line$  end if;$line$,
+    $line$  new.invoice_code := v_code;$line$,
+    $line$  return new;$line$,
+    $line$end;$line$
+  ],chr(10))||chr(10);
+  before_metadata jsonb;
+begin
+  if md5(exact_body)<>'cb17928a9d5beea435eddf06ea2087bc' then
+    raise exception 'TEST0423: cuerpo Cloud sintético no coincide con la huella observada';
+  end if;
+  select to_jsonb(p)-'prosrc' into strict before_metadata from pg_proc p
+    where oid='public.payment_reports_validate_invoice()'::regprocedure;
+  execute format('create or replace function public.payment_reports_validate_invoice() returns trigger language plpgsql security definer set search_path=public as %L',exact_body);
+  if not exists(select 1 from pg_proc p where oid='public.payment_reports_validate_invoice()'::regprocedure
+    and md5(prosrc)='cb17928a9d5beea435eddf06ea2087bc' and to_jsonb(p)-'prosrc'=before_metadata) then
+    raise exception 'TEST0423: variante Cloud alteró metadata/ACL o perdió su huella exacta';
+  end if;
+  raise notice 'TEST0423: baseline Cloud exacto cb17928a9d5beea435eddf06ea2087bc instalado sólo en fixture';
+end;
+$cloud_validator_baseline$;
+\endif
 
 create temporary sequence historical_assertions;
 create function pg_temp.historical_assert(p_value boolean,p_label text) returns void language plpgsql as $$

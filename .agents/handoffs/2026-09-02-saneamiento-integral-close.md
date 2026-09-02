@@ -36,6 +36,13 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   exclusivamente documental. La corrección local de qs añade el undécimo.
   La autorización solicitada hasta cfe7a9c9 no incluye automáticamente ese
   mantenimiento posterior del tooling.
+  El preflight posterior añade un duodécimo incremento sobre `2d7671ab`:
+  reconoce sólo la variante exacta de0195 leída en Cloud sin relajar otros
+  guards0423;165 contratos SQL y rebuild420 aprobados, revisión independiente
+  sin bloqueantes. Catálogo alojado:406 entradas,25 migraciones pendientes,
+  13 RPC nuevas ausentes,15 buckets privados y versiones Edge inventariadas.
+  No se aplicó SQL alojado ni se reintentó push. Acta y pendientes específicos:
+  `docs/audits/2026-09-02-codex-release-preflight.md`. Checklist48/103 sin inflar.
 
 ## Trabajo rescatado y cerrado
 

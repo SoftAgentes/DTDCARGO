@@ -43,6 +43,14 @@ corregidos con6.16.0:15 regresiones verdes, instalación limpia congelada y audi
 nativo sin avisos. Cambio limitado a desarrollo, no publicado.
 [Evidencia y límites](2026-09-02-codex-qs-tooling.md).
 
+**Preflight posterior:** se refrescaron metadatos alojados sin leer datos de
+negocio. La 0423 rechazaba el cuerpo 0195 de Cloud por comentarios/formato;
+ahora acepta sus dos huellas exactas comprobadas. Pasan ambas variantes
+(323 aserciones/18 derivas cada una), 165 contratos SQL y rebuild420.
+No cambia la función instalada ni sus permisos. El preflight general sigue
+parcial y el porcentaje no aumenta por este ajuste del mismo correctivo.
+[Estado de release y límites](2026-09-02-codex-release-preflight.md).
+
 **Último correctivo funcional:** SDD-0366/0423 corrige el rename de Shipping Mark cuando
 existen reportes sobre facturas archivadas. Sincroniza sólo identidad, conserva
 pagos/comprobantes/historial y agrega auditoría atómica. No habilita operaciones
@@ -90,6 +98,8 @@ se borra mientras conserve trabajo sin publicar/integrar.
   La corrección de qs del tooling es un undécimo incremento local separado;
   una autorización limitada a cfe7a9c9 no lo incluye automáticamente.
   El lote nuevo requiere publicación autorizada y CI propio.
+  El correctivo posterior del preflight0423 añade un duodécimo incremento,
+  separado del SHA `2d7671ab`; no hubo push ni integración.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -99,10 +109,11 @@ se borra mientras conserve trabajo sin publicar/integrar.
 - Vercel: deployment `6228639456` de GitHub en **Preview**, estado `success`,
   `production_environment=false`; no se promovió a producción.
 - Supabase: proyecto correcto `xpfuzqombmjmxvprjgmi`, `ACTIVE_HEALTHY`; 406
-  entradas de ledger. Comparación con 413 archivos y corte 238: 18 pendientes
-  (0399–0416), cero huérfanas posteriores al corte y las 10 RPC nuevas ausentes.
-  SDD-0361–0366 agregan 0417–0423 sólo locales: 420 archivos y 25 gates de aplicación
-  pendientes en este paquete. No se volvió a consultar ni escribir Cloud.
+  entradas de ledger. Metadatos refrescados antes de 23:34 UTC: unión de
+  origin/main y checkout con 420 archivos, corte238, 25 pendientes (0399–0423),
+  cero huérfanas posteriores al corte y 13 RPC nuevas ausentes. Se conserva
+  la excepción0017 bajo el corte. 15 buckets privados y cuatro versiones Edge
+  inventariadas; no certifica sus flujos ni autenticación. No hubo escritura alojada.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
@@ -345,11 +356,16 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   producción. Su estado `success` no sustituye un smoke funcional.
 - [ ] Confirmar deployment de producción y smoke de público, Studio, Portal y
   móvil después de los gates de migración/integración.
-- [x] Medir ledger y las 10 RPC nuevas mediante metadatos, sin leer PII ni filas
+- [x] Medir ledger y las 13 RPC nuevas mediante metadatos, sin leer PII ni filas
   de negocio; todas siguen ausentes. Preflight 0399: TRUNCATE en 179 tablas para
   `anon` y 204 para `authenticated`, sobre 249 tablas de `public`.
 - [ ] Completar preflights de grants/policies por migración, buckets y versión
   real de las cuatro Edge Functions, sin leer datos de negocio.
+  Avance: inventarios0416–0420 contrastados, precondiciones de expansión0421,
+  buckets y versiones Edge medidos; variante conocida del guard0423 corregida
+  y contratada localmente. Faltan contratos completos de columnas/tipos/ACL
+  de fachadas, contraste de código/auth Edge y repetir gates tras expansiones.
+  [Acta de preflight](2026-09-02-codex-release-preflight.md).
 - [ ] Clasificar los avisos alojados por dominio: 20 INFO y 184 WARN; no son
   204 vulnerabilidades confirmadas. No abrir policies ni revocar RPCs
   legítimas sólo para reducir el contador del asesor.
