@@ -51,17 +51,19 @@ previa, no una garantía atómica contra dos solicitudes concurrentes.
 
 ### Etapa 2 · comandos auditados y consumidores
 
-- [ ] Definir contratos create/cancel/resolve y allowlist exacta antes de editar
+- [x] Definir contratos create/cancel/resolve y allowlist exacta antes de editar
   SQL/UI. Reproducción SQL independiente usando PostgreSQL desechable.
-- [ ] Derivar actor/cliente/tenant de sesión activa y relaciones coherentes;
+- [x] Derivar actor/cliente/tenant de sesión activa y relaciones coherentes;
   sellar moneda/factura/estado/metadatos y validar pertenencia del comprobante.
-- [ ] Crear bajo bloqueo de factura para garantizar tope de cinco pendientes.
+- [x] Crear bajo bloqueo de factura para garantizar tope de cinco pendientes.
   Cancelar sólo pendiente propio, conservando original y evidencia P3/P4.
-- [ ] Confirmar/rechazar sólo accounting/admin con permiso vigente, motivo y
+- [x] Confirmar/rechazar sólo accounting/admin con permiso vigente, motivo y
   auditoría atómica. Preservar la fórmula de SDD-0134: paid_amount/status,
   sin asientos contables nuevos ni cambios retroactivos de pagos.
-- [ ] Idempotencia/reintentos verificables, resultado mínimo decodificado,
-  error seguro y rollback de mutación si falla la auditoría.
+- [x] Idempotencia/reintentos verificables en SQL, resultado mínimo y rollback
+  de mutación si falla la auditoría (0421).
+- [ ] Adoptar las tres RPC en acciones de sesión: decodificar resultado mínimo,
+  errores seguros y clave estable entre reintentos; sin DML/fallback heredado.
 - [ ] Adoptar confirmación y motivo con componentes canonical, reglas del
   Norte y pruebas de teclado/pendiente/error. No rediseñar pantallas.
 
@@ -92,6 +94,82 @@ No SQL, ACL, Storage policy, tokens, componentes compartidos, env, paquetes ni
 datos de producción en esta etapa. Los archivos futuros no quedan autorizados
 por esta allowlist; se amplía con su contrato antes de cada incremento.
 
+## Contrato y allowlist · etapa 2, expansión SQL 0421
+
+Numeración consultada nuevamente sobre todas las refs: 0421 libre. Este
+incremento añade `0421_payment_report_commands.sql` y su contrato homónimo en
+`supabase/tests/`, más `scripts/test-payment-report-commands.mjs` para carreras
+reales entre conexiones y advisors locales opcionales; además modifica esta spec, el índice generado, el checklist
+y los dos handoffs ya enumerados. No cambia todavía UI ni consumidores.
+
+API tipada (resultado JSON mínimo; sólo `authenticated`, nunca `anon`):
+
+- `create_portal_payment_report(p_request_id uuid, p_report_id uuid,
+  p_invoice_code text, p_amount numeric, p_method payment_report_method,
+  p_paid_at date, p_proof_path text, p_note text default null)`.
+- `cancel_portal_payment_report(p_request_id uuid, p_report_id uuid,
+  p_invoice_code text, p_reason text)`.
+- `resolve_payment_report(p_request_id uuid, p_report_id uuid,
+  p_action payment_report_status, p_reason text)`; sólo confirmado/rechazado.
+
+Wrappers invoker públicos llaman a `payment_private.run_report_command`
+definer con search_path vacío y permisos mínimos. El schema privado no se
+expone por Data API. El comando vuelve a autorizar actor y objeto, incluso al
+repetir; nunca acepta tenant, cliente, moneda ni metadatos de confirmación
+aportados por el cliente. El vínculo Portal debe estar activo y ser coherente
+con cliente vivo. La resolución exige membresía financiera activa del tenant.
+Se bloquean las filas de autorización durante la transacción.
+
+`payment_private.report_commands` conserva request_id global único, actor,
+tenant, reporte, verbo, huella del input normalizado, resultado mínimo, evento
+de auditoría y fecha de servidor. RLS sin policies ni permisos de tabla para
+API; trigger impide UPDATE/DELETE/TRUNCATE. Sin monto, nota o comprobante en el
+recibo. Una misma clave con otro input/actor/operación falla. Los reintentos
+idénticos devuelven el recibo sin repetir mutación ni auditoría.
+
+Resultado: `request_id`, `report_id`, `invoice_id`, `invoice_code`, `status`,
+`cancelled` (boolean), `audit_event_id`, `replayed` (boolean). No devuelve
+contenido de comprobante ni importes. Los errores SQL usan códigos funcionales
+estables; la aplicación deberá traducirlos, no exponer mensajes arbitrarios.
+
+Alta: monto positivo de hasta 9.999.999,99, máximo dos decimales; fecha válida
+no futura; nota opcional de hasta 500 caracteres. Factura propia viva, no
+borrador/anulada/pagada. Moneda derivada de factura. Path exacto
+tenant/factura/reporte/UUID.ext y objeto existente en `payment-proofs`; no se
+borran ni se sobrescriben objetos. Bloqueo de factura serializa el tope de cinco
+pendientes entre estos comandos. No promete controlar escritores heredados.
+
+Cancelación: pendiente propio y factura viva; motivo de 4–500 caracteres.
+Agrega `cancelled_at`/`cancelled_by`, conserva status original, nota, comprobante
+y fila (no usa deleted_at). La pareja de columnas es consistente y no se puede
+confirmar ni borrar lógicamente un cancelado. Un trigger invoker impide que los
+roles API escriban las tres columnas nuevas y que se revierta una cancelación
+ya persistida; no depende de un GUC que el caller pueda falsificar. Resolución: sólo pendiente no
+cancelado, factura viva no borrador/anulada, moneda coherente; añade
+`resolution_reason` sin sobrescribir la nota del cliente. Mantiene fórmula de
+0134 y admite sobrepago como el comando existente; no crea asientos.
+
+Auditoría real `append_audit_event`, entidad `payment_report`, source `rpc`,
+actor de sesión, motivo obligatorio para cancelar/resolver y correlation_id
+igual a request_id. Registro mínimo de identidad/estado, sin monto, nota ni
+path. Reporte, factura, evento y recibo se confirman o revierten juntos. Si
+auditoría falla no hay éxito parcial. El recibo bloquea el borrado físico de
+su reporte/tenant; no define una purga ni plazos legales de conservación.
+
+Pruebas: sesión/tenant/vínculo/rol revocados, cruce de cliente/factura, ausencia
+de objeto, input inválido, cinco pendientes, reintento, conflicto de clave,
+transición terminal, persistencia de evidencia y rollback por auditoría rota.
+La concurrencia se prueba con sesiones PostgreSQL independientes, no mocks.
+El harness usa exclusivamente fixtures sintéticos en un contenedor propio que
+crea y retira por ID/etiqueta. Publica un puerto efímero sólo en 127.0.0.1 para
+advisors opcionales con `--db-url` explícita; nunca usa `--linked` ni credenciales
+reales. La suite SQL normal sigue haciendo rollback; `fixture_only=true` es un
+opt-in del harness sobre base vacía para permitir conexiones independientes.
+
+Expansión NO cierra por sí sola la integridad del módulo: siguen pendientes los
+consumidores, confirmación/motivo de UI y una migración de restricción que quite
+DML directo y la RPC heredada. No se aplicará 0421 en Cloud sin GO nominal.
+
 ## Gobierno, privacidad y límites
 
 - SGE-00/ERR-01: un error no equivale a cero o éxito; mostrar resultado incierto
@@ -120,6 +198,31 @@ Build aislado aprobado: 158 páginas, postbuild, restauración de tsconfig y
 limpieza de .next-verify. Sin credenciales ni smoke alojado; los mensajes de
 configuración ausente no demuestran que los catálogos de producción funcionen.
 Etapa 1 técnicamente verificada; etapas 2/3 y publicación permanecen abiertas.
+
+Expansión SQL de etapa 2 verificada localmente: RED independiente demuestra
+cancelación 42501/0 y APIs ausentes; GREEN con 400 aserciones y rollback true.
+Suite SQL completa: 162 contratos. Rebuild: 418 archivos, 400 desde cero y 18
+sólo-ledger; 219 tablas públicas barridas y recibo privado verificado aparte.
+Cinco carreras reales prueban cupo, replay, doble confirmación y revocaciones.
+Advisors CLI 2.108.0 sobre fixture propio: un WARN del helper legacy/stub
+touch_updated_at; sin hallazgos de objetos nuevos. No es una auditoría Cloud.
+Unitarios completos: 6.096/6.096 en 532 archivos, 155,02 s. ESLint/sintaxis del
+harness, docs, numeración, CMP y gobernanza pasan. No se repitió build/TS/E2E:
+este incremento sólo cambia SQL, harness y documentación; el build158 de etapa1
+sigue siendo histórico, no se presenta como una ejecución nueva.
+
+SHA-256 de 0421:
+`726C970B4D72246C918308FAAAF02B195F1E444CA1C11A057BC005879D9E2ACA`.
+Los comandos existen sólo en el archivo y en fixtures ya retirados. La app
+sigue usando escritores antiguos hasta el siguiente incremento; no se declara
+corregida la cancelación del usuario en producción ni cerrado el módulo.
+
+Gate constitucional de expansión: SGE-00.02/04/05/06/07 cumplen en la frontera
+SQL probada (conservación, auditoría, permiso, validación, idempotencia).
+SGE-00.01/09/11 cumplen en contrato/backend; adopción visible pendiente.
+SGE-00.03/08/10 no aplican a una nueva interacción en este incremento porque
+no se añade UI; la no conformidad R3 heredada sigue abierta hasta adoptar
+confirmación/motivo. SGE-00.12 cumple: no Cloud/push/deploy implícitos.
 
 ## Gate constitucional · etapa 1
 

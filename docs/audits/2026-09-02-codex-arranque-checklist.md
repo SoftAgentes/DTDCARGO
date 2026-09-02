@@ -17,6 +17,40 @@ refrescarse antes de cualquier operación Git o alojada.
 
 ## Snapshot comprobado
 
+### Resumen para Sam · punto de control tras 17 h 40 min
+
+**Avance del checklist: 45 de 100 casillas completadas (45 %).** Es un
+recuento de tareas, no una estimación de horas restantes ni del porcentaje
+funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
+varios cambios. No existe todavía una medición defendible del producto completo.
+
+| Bloque | Hecho / total | Situación |
+|---|---:|---|
+| Correcciones locales enumeradas | 25 / 25 | Implementadas/verificadas localmente; no equivale a producción |
+| Cierre Git y publicación | 12 / 21 | Publicación parcial; falta lote nuevo e integración |
+| Cloud y operación alojada | 2 / 29 | Dependen de autorizaciones nominales y comprobaciones reales |
+| Seguridad pendiente por dominio | 2 / 9 | En curso: reportes de pago |
+| Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
+| Orden del producto/documentación | 3 / 12 | Falta reconciliar specs y decisiones de producto |
+
+**Dónde estamos:** la limpieza inicial ya retiró 8 worktrees y 6 ramas;
+quedan el checkout principal y el worktree activo. Después se encadenaron
+correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
+ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
+
+**Trabajo actual:** expansión SQL 0421 de reportes de pago verificada: 400
+aserciones independientes, 5 carreras entre conexiones, 162 contratos SQL,
+rebuild418 y 6.096 unitarios completos aprobados. Este incremento se conserva
+en un quinto commit local, sin publicar. Falta adaptar acciones/pantallas
+a las RPC y restringir los escritores heredados antes del release.
+
+**Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
+integrar, 23 migraciones del paquete sin aplicación autorizada y trabajo de
+aplicación/seguridad/documentación todavía pendiente. El worktree activo no
+se borra mientras conserve trabajo sin publicar/integrar.
+
+### Evidencia Git y alojada
+
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 - Última base publicada: `codex/saneamiento-integral` en
@@ -27,7 +61,8 @@ refrescarse antes de cualquier operación Git o alojada.
   Reclamos está en el segundo commit local `9b243069`; SDD-0364 añade un
   tercero (`e9d49980`) para el aislamiento de reportes de pago. SDD-0365 etapa 1
   añade la contención de sus acciones/comprobantes como cuarto commit local.
-  Los cuatro requieren publicación autorizada y CI propio.
+  La expansión SQL 0421 de SDD-0365 añade el quinto commit local.
+  Los cinco requieren publicación autorizada y CI propio.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -39,7 +74,7 @@ refrescarse antes de cualquier operación Git o alojada.
 - Supabase: proyecto correcto `xpfuzqombmjmxvprjgmi`, `ACTIVE_HEALTHY`; 406
   entradas de ledger. Comparación con 413 archivos y corte 238: 18 pendientes
   (0399–0416), cero huérfanas posteriores al corte y las 10 RPC nuevas ausentes.
-  SDD-0361–0364 agregan 0417–0420 sólo locales: 417 archivos y 22 gates de aplicación
+  SDD-0361–0365 agregan 0417–0421 sólo locales: 418 archivos y 23 gates de aplicación
   pendientes en este paquete. No se volvió a consultar ni escribir Cloud.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
@@ -143,6 +178,12 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   de comprobante exige contexto exacto; resultado incierto no borra evidencia
   ni invita a repetir ciegamente. 62 regresiones independientes verdes más
   dos controles adicionales de paths; no se cambió SQL ni producción.
+- [x] Expansión SQL local 0421: alta/cancelación/resolución auditadas,
+  recibo idempotente, permisos y motivo; 400 aserciones independientes,
+  5 carreras reales y rebuild418 verdes. Advisors locales: sin hallazgos en
+  objetos nuevos, una advertencia del helper touch_updated_at del fixture.
+  162 contratos SQL y 6.096 unitarios completos aprobados. No está aplicada
+  ni adoptada por la aplicación; publicación y release siguen abiertos.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -252,6 +293,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   específica separada y smoke de identidad/historial/operaciones propias de
   reportes de pago. Sin RPC nueva ni deploy previo. No se ha aplicado a Cloud
   y no sustituye la reparación pendiente de cancelación y confirmación.
+- [ ] Aplicar `0421_payment_report_commands.sql` sólo con autorización nominal,
+  como expansión previa a sus consumidores. Después: aplicación/smoke y otra
+  migración de restricción; no activar el release como un lote ciego.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [x] Confirmar que el deployment automático de la rama fue Preview, no
@@ -283,7 +327,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   El límite concurrente todavía requiere el comando transaccional de etapa 2.
 - [ ] Completar SDD-0365 etapas 2/3. El incremento de aplicación ya evita éxitos
   falsos y firma ajena, pero NO resuelve la cancelación real rechazada por RLS,
-  auditoría/idempotencia, integridad de campos ni DML financiero directo.
+  en la UI. SQL 0421 ya prueba auditoría, idempotencia e integridad de campos;
+  falta adoptarlo en acciones/pantallas y retirar DML/RPC financieros heredados.
   Los uploads inciertos se conservan privados: revisar su disposición con
   identidad/vínculo/hold y autorización; no hay job ni purga automática.
 - [ ] Continuar RBAC de aplicación en la base por slices: lectura minimizada de
@@ -386,7 +431,7 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   acceso; 42 pruebas focales, 29 contratos adicionales y 6.032 pruebas completas
   en 530 archivos. TypeScript, ESLint y gates documentales aprobados.
   [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
-- [ ] Reconciliar las 89 specs no cerradas por rebanadas de dominio. Cambiar un
+- [ ] Reconciliar las 90 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
 - [x] Reconciliar el dominio de acceso (SDD-0299/0302): código confirmado en
   main y 61 pruebas focales, con 52 regresiones nuevas. Ambas siguen abiertas

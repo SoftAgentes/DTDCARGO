@@ -26,7 +26,7 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   La verificación PRIVATE/ADMIN anterior no se interpreta como autorización
   para superar este rechazo. El CI verde de `eabb230b` no cubre Academia.
   SDD-0363 está en `9b243069`, segundo commit local. SDD-0364 en `e9d49980`
-  añade el tercero; SDD-0365 etapa 1 añade el cuarto. Ninguno está publicado
+  añade el tercero; SDD-0365 etapa 1 añade el cuarto y expansión SQL0421 el quinto. Ninguno está publicado
   ni tiene CI alojado propio; el rechazo de push sigue vigente.
 
 ## Trabajo rescatado y cerrado
@@ -155,6 +155,11 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
     y conservación de evidencia ante INSERT incierto. Sin SQL ni cambios
     financieros. La spec sigue en progreso por sus etapas de comandos y RBAC.
     Recibo: `.agents/handoffs/2026-09-02-payment-report-command-safety-close.md`.
+64. `feat(portal): SDD-0365 — agregar comandos de pago auditados` — expansión
+    SQL0421 con cancelación conservada, identidad/permisos y recibo idempotente.
+    RED/GREEN de400 aserciones, cinco carreras, 162 contratos SQL, rebuild418 y
+    6.096 unitarios verdes. Sin consumidores nuevos, restricción ni Cloud.
+    La spec sigue abierta: la app todavía necesita adoptar estas RPC.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0365. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
@@ -164,6 +169,13 @@ congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
 slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 
 ## Verificación vigente
+
+Último incremento SQL0421: 400 aserciones independientes, cinco carreras entre
+sesiones, 162 contratos SQL y rebuild418 (400 schema +18 sólo-ledger) verdes.
+Unitarios: 6.096/532 archivos, 155,02s; lint/sintaxis del harness y gates de
+docs/numeración/CMP/gobernanza aprobados. Advisors sólo del fixture: un WARN
+legacy de touch_updated_at, sin hallazgos de objetos nuevos. No se volvió a
+ejecutar build/TS/E2E ni a consultar Cloud. Fixtures propios retirados.
 
 Seguimiento CI: el segundo run (`33660502119`, commit `726a7118`) pasó
 TypeScript/Edge y confirmó la corrección de memoria. Detectó 1 fallo / 5.957
@@ -467,6 +479,10 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
   contratos SQL, rebuild de 417 migraciones y 19 unitarios. No fue aplicada;
   requiere su propio OK y smoke de reportes, sin RPC o deploy previo. No
   resuelve los fallos separados de sus comandos, que permanecen en el checklist.
+- La expansión `0421_payment_report_commands.sql` pasó 400 aserciones, cinco
+  carreras y el gate local descrito arriba. No fue aplicada: exige GO nominal,
+  adopción de consumidores y posterior restricción en una migración separada.
+  Son418 archivos en el paquete y23 gates de aplicación0399–0421 pendientes.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - Vercel creó automáticamente un Preview del SHA publicado: deployment GitHub
