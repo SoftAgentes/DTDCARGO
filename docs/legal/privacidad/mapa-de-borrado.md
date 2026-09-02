@@ -200,6 +200,7 @@ personales, pero se encontró acá y conviene mirarlo.
 | **Anthropic / OpenRouter** | Contenido de conversaciones | 🔴 política no leída |
 | **Google (GA4)** | Sin PII — verificado | 🟢 no aplica |
 | **Nominatim** | Integración retirada el 2026-09-02; solicitudes históricas | 🔴 retención externa no verificable |
+| **CNE / SENIAT · consulta de identidad** | Integración retirada el 2026-09-02; consultas históricas | 🔴 retención externa no verificable |
 | **Supabase / Vercel** | Todo / logs de request | 🔴 retención no verificada |
 
 ---

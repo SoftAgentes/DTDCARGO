@@ -27,7 +27,6 @@ import {
   type ShipmentService,
   type ShipmentStatus,
 } from "@/lib/studio/shipment-types";
-import { isAutoVerifyEnabled } from "@/lib/studio/identity";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import { ClientDetailClient } from "../_components/ClientDetailClient";
@@ -212,14 +211,6 @@ export default async function ClienteDetallePage({
       .createSignedUrl(client.cedula_photo_path, 60);
     identityPhotoUrl = signed?.signedUrl ?? null;
   }
-
-  // SDD-0046 (V1 manual-only): la verificación AUTO solo se habilita si hay un
-  // provider wired (CNE vía IDENTITY_CNE_URL; SENIAT no construido). Si no, la
-  // card oculta el botón auto y deja prominente el piso manual — no ofrecemos un
-  // botón que siempre falla.
-  const autoVerifyEnabled = showIdentityCard
-    ? isAutoVerifyEnabled(client.doc_kind)
-    : false;
 
   return (
     <div style={{ maxWidth: 1200 }}>
@@ -532,14 +523,11 @@ export default async function ClienteDetallePage({
               clientId={client.id}
               markbox={client.markbox}
               name={client.name}
-              docKind={client.doc_kind}
-              rif={client.rif}
               docVerifyStatus={client.doc_verify_status}
               docVerifySource={client.doc_verify_source}
               docRegistryName={client.doc_registry_name}
               docVerifiedAt={client.doc_verified_at}
               photoUrl={identityPhotoUrl}
-              autoEnabled={autoVerifyEnabled}
             />
           )}
 

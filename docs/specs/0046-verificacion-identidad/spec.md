@@ -4,10 +4,10 @@ title: "Verificación de identidad de clientes — motor 2 vías (CNE cédula + 
 status: done
 author: "DTD Cargo"
 created: 2026-06-03
-updated: 2026-06-03
+updated: 2026-09-02
 supersedes: null
 superseded_by: null
-related: ["0042", "0010"]
+related: ["0042", "0010", "0331"]
 confidencialidad: interno
 ---
 
@@ -329,3 +329,16 @@ variantes de formato ni races), `createClientAction` no dedupea y `updateClientA
 
 **Follow-up (fuera de scope):** normalizar el `rif` on-write (storage canónico) y unificar el dedup
 `ilike` con la normalización del índice. Hoy el índice normalizado + el guard alcanzan.
+
+---
+
+## Anexo · Retiro del camino externo (2026-09-02)
+
+SDD-0331 reemplaza únicamente el camino operativo de consulta externa descrito
+en Slice B y §9.1. Se retiraron el provider CNE habilitable por entorno, el
+`verifyIdentityAction`, el comparador automático y los enlaces HTTP hacia CNE y
+SENIAT. La foto privada, los campos `doc_verify_*`, el reset al cambiar el
+documento y la marca manual advisory permanecen vigentes.
+
+Una integración futura requiere una SDD nueva, endpoint HTTPS verificado,
+credenciales fuera de la URL, evaluación del proveedor y revisión de privacidad.

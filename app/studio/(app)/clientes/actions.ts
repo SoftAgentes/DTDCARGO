@@ -54,10 +54,7 @@ import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
 import { sendPortalInviteEmail } from "@/lib/studio/portal-invite-email";
 import { createAccessLink } from "@/lib/studio/portal/access-link";
 import { toWhatsAppRaw } from "@/lib/portal/portal-types";
-import { verifyIdentity, type VerifyResult } from "@/lib/studio/identity";
-import { notifyIdentityMismatch } from "@/lib/studio/identity/notify-mismatch";
 import { identityResetOnChange } from "@/lib/studio/identity/reset-on-change";
-import type { DocumentKind } from "@/lib/studio/identity/document";
 
 function parseStringOrNull(v: FormDataEntryValue | null): string | null {
   if (v == null) return null;
@@ -565,94 +562,9 @@ export async function approvePortalAction(
   return { ok: true };
 }
 
-// ── Verificación de identidad (SDD-0046 · Slice B) ─────────────────────────
-// Herramienta interna/CRM: cotea documento ↔ nombre del cliente contra el
-// registro oficial (CNE para persona / SENIAT para empresa). Resultado ADVISORY
-// — nunca bloquea al cliente. El motor vive en lib/studio/identity (server-only).
-
 /**
- * Verifica la identidad del cliente contra el registro oficial y persiste el
- * resultado en `clients.doc_verify_*`. Si el resultado es `mismatch`, dispara una
- * alerta interna al equipo (best-effort, no rompe).
- *
- * Authz: `createClient()` (RLS scopea al tenant del usuario) + filtro explícito
- * `tenant_id` defensivo en el UPDATE.
- */
-export async function verifyIdentityAction(
-  clientId: string,
-  markbox: string,
-): Promise<{ ok?: boolean; error?: string; result?: VerifyResult }> {
-  const supabase = await createClient();
-
-  const denial = await moduleEditDenial(supabase, "clients");
-  if (denial) return { error: denial };
-
-  const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Inicia sesión primero." };
-
-  // Tenant del usuario (para el filtro defensivo del UPDATE + la alerta).
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("tenant_id")
-    .maybeSingle<{ tenant_id: string }>();
-  if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
-
-  // Leer el cliente por id (RLS ya garantiza que es del tenant del usuario).
-  const { data: client, error: readErr } = await supabase
-    .from("clients")
-    .select("id, name, rif, doc_kind")
-    .eq("id", clientId)
-    .maybeSingle<{
-      id: string;
-      name: string;
-      rif: string | null;
-      doc_kind: DocumentKind | null;
-    }>();
-  if (readErr) return { error: `No se pudo leer el cliente: ${readErr.message}` };
-  if (!client) return { error: "Cliente no encontrado." };
-
-  // Motor de verificación (nunca tira; degrada a 'unavailable').
-  const result = await verifyIdentity({
-    rif: client.rif,
-    name: client.name,
-    docKind: client.doc_kind,
-  });
-
-  // Persistir el resultado (filtro tenant_id defensivo además del scope de RLS).
-  const { error: updErr } = await supabase
-    .from("clients")
-    .update({
-      doc_verify_status: result.status,
-      doc_verify_source: result.source,
-      doc_registry_name: result.registryName ?? null,
-      doc_verified_at: new Date().toISOString(),
-      doc_verified_by: userResp.user.id,
-    })
-    .eq("id", clientId)
-    .eq("tenant_id", link.tenant_id);
-  if (updErr) {
-    return { error: `No se pudo guardar la verificación: ${updErr.message}` };
-  }
-
-  // Mismatch → alerta interna al equipo (best-effort, no rompe la acción).
-  if (result.status === "mismatch") {
-    const admin = createAdminClient();
-    await notifyIdentityMismatch(admin, link.tenant_id, {
-      markbox,
-      clientName: client.name,
-      registryName: result.registryName ?? null,
-      source: result.source,
-    });
-  }
-
-  revalidatePath(`/studio/clientes/${markbox}`);
-  return { ok: true, result };
-}
-
-/**
- * Marca manual del asesor (piso manual del SDD-0046): cuando el auto falla/degrada
- * o el asesor quiere overridear, marca `ok | mismatch` con `source='manual'`.
- * No dispara alerta (es una decisión humana, no un hallazgo automático).
+ * Marca el cotejo visual hecho por el asesor contra la foto privada del
+ * documento (SDD-0331). No consulta registros ni servicios externos.
  */
 export async function markIdentityAction(
   clientId: string,

@@ -37,6 +37,7 @@ tercero no es papeleo: es lo único que delimita quién responde.
 | Proveedor | Estado | Evidencia |
 |---|---|---|
 | **Nominatim / OpenStreetMap** | ⛔ Retirado el 2026-09-02. El código ya no envía direcciones; cualquier retención histórica del tercero es no verificable. | SDD-0330 · contrato `geocoding-privacy-contract.test.ts` |
+| **CNE / SENIAT · consulta de identidad** | ⛔ Retirada el 2026-09-02. Se eliminaron el provider automático, los enlaces HTTP y el prellenado de cédula/RIF; el asesor sólo coteja la foto privada dentro del Studio. La retención de consultas históricas es no verificable. | SDD-0331 · contrato `identity-privacy-contract.test.ts` |
 
 ## 3 · Los que NO reciben datos personales (verificado)
 

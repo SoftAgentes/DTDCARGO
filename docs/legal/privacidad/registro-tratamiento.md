@@ -124,10 +124,12 @@ transferencia `NO VERIFICABLE`; no está conectado).
 
 | Decisión | Qué usa | Efecto | Versión registrada | ¿Se informa? | Revisión humana |
 |---|---|---|:-:|:-:|---|
-| Verificación de identidad (`name-match.ts`) | nombre vs. CNE/SENIAT | veredicto `ok`/`mismatch` | ❌ | ❌ | ⬜ no declarada |
 | `tms_drivers.rating` | desempeño | calificación 0–5 | ❌ | ❌ | ⬜ |
 
 > `dispatch-scoring.ts` puntúa **paquetes**, no personas. No entra acá.
+> La verificación automática de identidad se retiró el 2026-09-02 (SDD-0331).
+> El estado `doc_verify_*` sólo registra desde entonces un cotejo humano contra
+> la foto privada del documento; no es una decisión automatizada.
 
 ## 8 · Evidencia de aceptación
 

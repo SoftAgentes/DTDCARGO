@@ -1,20 +1,11 @@
 "use client";
 
 /**
- * IdentityVerificationCard — verificación de identidad del cliente (SDD-0046 · Slice B2).
+ * IdentityVerificationCard — cotejo manual de identidad (SDD-0331).
  *
- * Herramienta interna/CRM: cotea el documento (cédula/RIF) ↔ nombre contra el
- * registro oficial (CNE para persona / SENIAT para empresa). Resultado ADVISORY:
- * el badge NUNCA bloquea ni auto-rechaza al cliente (§5.2). Siempre se muestra el
- * nombre que devolvió el registro (`docRegistryName`) al lado del nombre cargado
- * para que el asesor lo cotee a ojo, sobre todo en "no corresponde".
- *
- * 3 capas:
- *   1. Auto por tipo · "Verificar con CNE" (persona) / "Verificar con SENIAT"
- *      (empresa, hoy cae a "no disponible" hasta Slice C) → verifyIdentityAction.
- *   2. Piso manual (siempre visible) · deep-link a la consulta oficial + marcar
- *      "corresponde / no corresponde" → markIdentityAction.
- *   3. Foto de la cédula/RIF (signed URL) para el cotejo visual.
+ * Herramienta interna/CRM: el asesor coteja el nombre cargado contra la foto
+ * privada del documento y registra un resultado advisory. No envía cédulas,
+ * RIF ni nombres a registros o proveedores externos.
  */
 
 import { useState } from "react";
@@ -26,38 +17,10 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   docVerifyBadge,
   docVerifySourceLabel,
-  type ClientDocKind,
   type DocVerifyStatus,
   type DocVerifySource,
 } from "@/lib/studio/client-types";
-import { parseCedula } from "@/lib/studio/identity/document";
-import { verifyIdentityAction, markIdentityAction } from "../actions";
-
-/**
- * Consulta oficial del CNE (datos electorales por nacionalidad + cédula). Es el
- * piso manual para personas: el asesor abre, ve el nombre del padrón, y marca.
- */
-const CNE_CONSULTA_URL = "http://www.cne.gob.ve/web/registro_electoral/ce.php";
-/** Consulta oficial de RIF del SENIAT (BuscaRif). Piso manual para empresas. */
-const SENIAT_BUSCARIF_URL =
-  "http://contribuyente.seniat.gob.ve/BuscaRif/BuscaRif.jsp";
-
-/** URL de la consulta oficial según el tipo, con prefill de cédula si aplica. */
-function officialConsultUrl(
-  docKind: ClientDocKind | null,
-  rif: string | null,
-): string {
-  if (docKind === "empresa") return SENIAT_BUSCARIF_URL;
-  const cedula = parseCedula(rif);
-  if (cedula) {
-    const qs = new URLSearchParams({
-      nacionalidad: cedula.nationality,
-      cedula: cedula.number,
-    });
-    return `${CNE_CONSULTA_URL}?${qs.toString()}`;
-  }
-  return CNE_CONSULTA_URL;
-}
+import { markIdentityAction } from "../actions";
 
 function fmtDateTime(iso: string | null): string {
   if (!iso) return "—";
@@ -78,44 +41,27 @@ export function IdentityVerificationCard({
   clientId,
   markbox,
   name,
-  docKind,
-  rif,
   docVerifyStatus,
   docVerifySource,
   docRegistryName,
   docVerifiedAt,
   photoUrl,
-  autoEnabled,
 }: {
   clientId: string;
   markbox: string;
   name: string;
-  docKind: ClientDocKind | null;
-  rif: string | null;
   docVerifyStatus: DocVerifyStatus | null;
   docVerifySource: DocVerifySource | null;
   docRegistryName: string | null;
   docVerifiedAt: string | null;
   /** Signed URL (60s) de la foto de cédula/RIF, o null si no hay. */
   photoUrl: string | null;
-  /**
-   * ¿Hay un provider auto wired para este tipo de documento? (SDD-0046 V1
-   * manual-only). Si `false`, ocultamos el botón "Verificar con CNE/SENIAT" —
-   * siempre fallaría — y dejamos prominente el piso manual.
-   */
-  autoEnabled: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [expanded, setExpanded] = useState(false);
 
   const badge = docVerifyBadge(docVerifyStatus);
-  const isEmpresa = docKind === "empresa";
-  const autoLabel = isEmpresa ? "Verificar con SENIAT" : "Verificar con CNE";
-  const consultUrl = officialConsultUrl(docKind, rif);
-  const consultLabel = isEmpresa
-    ? "Abrir consulta de RIF (SENIAT)"
-    : "Abrir consulta de cédula (CNE)";
   const showRegistry = docRegistryName && docRegistryName.trim().length > 0;
 
   return (
@@ -149,8 +95,8 @@ export function IdentityVerificationCard({
           margin: "0 0 14px",
         }}
       >
-        Cotejo interno del documento contra el registro oficial. Es informativo —
-        no afecta el acceso del cliente.
+        Cotejo visual interno contra la foto privada del documento. Es
+        informativo — no afecta el acceso del cliente.
       </p>
 
       {/* Foto del documento (cotejo visual) */}
@@ -233,7 +179,7 @@ export function IdentityVerificationCard({
         )}
       </div>
 
-      {/* Cotejo de nombres · nombre cargado vs nombre del registro */}
+      {/* Cotejo de nombres · conserva resultados históricos sin nuevas consultas. */}
       <div className="studio-eyebrow" style={{ marginBottom: 8 }}>
         Cotejo de nombres
       </div>
@@ -248,12 +194,12 @@ export function IdentityVerificationCard({
         <NameRow label="Nombre cargado" value={name} />
         {showRegistry ? (
           <NameRow
-            label="Nombre en el registro"
+            label="Nombre registrado previamente"
             value={docRegistryName!}
             highlight={docVerifyStatus === "mismatch"}
           />
         ) : (
-          <NameRow label="Nombre en el registro" value={null} />
+          <NameRow label="Nombre registrado previamente" value={null} />
         )}
       </div>
 
@@ -270,53 +216,7 @@ export function IdentityVerificationCard({
         </p>
       )}
 
-      {/* Auto por tipo — solo si hay provider wired (V1 manual-only, §9). Si no,
-          una línea sobria que reenvía al piso manual, sin botón que siempre falla. */}
-      {autoEnabled ? (
-        <div style={{ display: "flex", marginBottom: 16 }}>
-          <ActionButton
-            variant="dark"
-            size="sm"
-            idleLabel={autoLabel}
-            loadingLabel="Verificando…"
-            successLabel="Verificación lista"
-            idleIcon={Icon.shield(14)}
-            successIcon={Icon.check(14)}
-            onAction={async () => {
-              const r = await verifyIdentityAction(clientId, markbox);
-              if (r.error) return { error: r.error };
-              if (r.result?.status === "unavailable") {
-                toast.warning(
-                  isEmpresa
-                    ? "SENIAT no disponible — usa la consulta manual."
-                    : "El registro no respondió — usa la consulta manual.",
-                );
-              } else if (r.result?.status === "mismatch") {
-                toast.warning(
-                  `El nombre no coincide con el registro · ${markbox}`,
-                );
-              } else if (r.result?.status === "ok") {
-                toast.success(`Identidad verificada · ${markbox}`);
-              }
-              return;
-            }}
-            onSuccess={() => router.refresh()}
-            onError={(m) => toast.error(m)}
-          />
-        </div>
-      ) : (
-        <p
-          style={{
-            font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink-soft)",
-            margin: "0 0 16px",
-          }}
-        >
-          Verificación automática no disponible — usa la consulta oficial abajo.
-        </p>
-      )}
-
-      {/* Piso manual (siempre visible) */}
+      {/* Revisión manual (único camino operativo). */}
       <div
         style={{
           paddingTop: 16,
@@ -324,7 +224,7 @@ export function IdentityVerificationCard({
         }}
       >
         <div className="studio-eyebrow" style={{ marginBottom: 8 }}>
-          Consulta manual
+          Revisión manual
         </div>
         <p
           style={{
@@ -333,26 +233,9 @@ export function IdentityVerificationCard({
             margin: "0 0 12px",
           }}
         >
-          Abre el registro oficial, compara el nombre con la foto, y marca el
-          resultado a ojo.
+          Compara el nombre cargado con la foto del documento y marca el
+          resultado. No se envía información a servicios externos.
         </p>
-
-        <a
-          href={consultUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="studio-btn studio-btn-ghost studio-btn-sm"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            marginBottom: 12,
-            textDecoration: "none",
-          }}
-        >
-          {Icon.external(12)}
-          {consultLabel}
-        </a>
 
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <ActionButton
