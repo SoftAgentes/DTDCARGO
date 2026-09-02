@@ -107,22 +107,29 @@ export async function listInvoiceReports(
 
 /**
  * ¿Cuántos reportes `reportado` pendientes tiene la factura? (anti-abuso). Usar
- * con admin client server-side antes de insertar.
+ * con admin client server-side antes de insertar. null significa desconocido,
+ * nunca cero: el caller debe detener el alta antes de subir el comprobante.
  */
 export async function countPendingReports(
   client: SupabaseClient,
   args: { tenantId: string; invoiceId: string },
-): Promise<number> {
-  const { count, error } = await client
-    .from("payment_reports")
-    .select("id", { count: "exact", head: true })
-    .eq("tenant_id", args.tenantId)
-    .eq("invoice_id", args.invoiceId)
-    .eq("status", "reportado")
-    .is("deleted_at", null);
+): Promise<number | null> {
+  try {
+    const { count, error } = await client
+      .from("payment_reports")
+      .select("id", { count: "exact", head: true })
+      .eq("tenant_id", args.tenantId)
+      .eq("invoice_id", args.invoiceId)
+      .eq("status", "reportado")
+      .is("deleted_at", null);
 
-  if (error) return 0;
-  return count ?? 0;
+    if (error || typeof count !== "number" || !Number.isSafeInteger(count) || count < 0) {
+      return null;
+    }
+    return count;
+  } catch {
+    return null;
+  }
 }
 
 /** ¿La factura alcanzó el tope de reportes pendientes? */

@@ -30,7 +30,6 @@ import {
   validateProofFile,
   hasProofFile,
   uploadPaymentProof,
-  removePaymentProof,
 } from "@/lib/portal/payment-proof";
 import { notifyPaymentReportToAdmin } from "@/lib/studio/payment-report-notify";
 import type { InvoiceCurrency, InvoiceStatus } from "@/lib/studio/invoice-types";
@@ -115,6 +114,9 @@ export async function reportPaymentAction(
     tenantId,
     invoiceId: invRow.id,
   });
+  if (pending === null) {
+    return { error: "No pudimos consultar tus reportes pendientes. No se envió este reporte. Intenta de nuevo más tarde. Código: PAGO-CONSULTA." };
+  }
   if (isAtPendingLimit(pending)) {
     return {
       error:
@@ -161,25 +163,29 @@ export async function reportPaymentAction(
 
   // 8. Insert del reporte (el trigger sella invoice_code + valida coherencia). La
   //    moneda la toma de la FACTURA (el cliente no la elige).
-  const { error: insErr } = await admin.from("payment_reports").insert({
-    id: reportId,
-    tenant_id: tenantId,
-    invoice_id: invRow.id,
-    invoice_code: invoiceCode, // el trigger lo re-sella desde la factura
-    client_markbox: client.markbox,
-    amount: input.amount,
-    currency: invRow.currency,
-    method: input.method,
-    paid_at: input.paidAt,
-    proof_path: up.path,
-    status: "reportado",
-    note: input.note,
-  });
-
-  if (insErr) {
-    // Rollback del objeto subido (no dejar comprobante huérfano).
-    await removePaymentProof(admin, up.path);
-    return { error: "No pudimos registrar tu reporte. Prueba de nuevo." };
+  const registrationUncertain = {
+    error: "No pudimos confirmar si el reporte quedó registrado. Revisa los reportes de esta factura o contacta a tu asesor antes de volver a enviarlo. Código: PAGO-REGISTRO-INCIERTO.",
+  };
+  try {
+    const { error: insErr } = await admin.from("payment_reports").insert({
+      id: reportId,
+      tenant_id: tenantId,
+      invoice_id: invRow.id,
+      invoice_code: invoiceCode, // el trigger lo re-sella desde la factura
+      client_markbox: client.markbox,
+      amount: input.amount,
+      currency: invRow.currency,
+      method: input.method,
+      paid_at: input.paidAt,
+      proof_path: up.path,
+      status: "reportado",
+      note: input.note,
+    });
+    // Una respuesta fallida puede llegar después del COMMIT. Conservar la
+    // evidencia privada: no es seguro compensar con DELETE ni repetir el alta.
+    if (insErr) return registrationUncertain;
+  } catch {
+    return registrationUncertain;
   }
 
   // 9. Aviso al equipo (best-effort, nunca rompe el alta).
@@ -215,22 +221,29 @@ export async function cancelPaymentReportAction(
   }
 
   const reportId = String(formData.get("report_id") ?? "").trim();
-  if (!reportId) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reportId)) {
     return { error: "Reporte no válido." };
   }
 
   // Soft-delete por SESIÓN (la RLS portal self update exige markbox + status
-  // 'reportado' → un cliente no puede tocar el de otro ni uno ya confirmado).
-  const { error } = await session
-    .from("payment_reports")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", reportId)
-    .eq("client_markbox", client.markbox)
-    .eq("status", "reportado")
-    .is("deleted_at", null);
+  // 'reportado'). El rechazo RLS del legado NO se salva con admin: SDD-0365
+  // etapa 2 debe sustituirlo por cancelación auditada. Aquí sólo se exige un
+  // resultado comprobable, sin confundir un ID inexistente con una cancelación.
+  try {
+    const { error, count } = await session
+      .from("payment_reports")
+      .update({ deleted_at: new Date().toISOString() }, { count: "exact" })
+      .eq("id", reportId)
+      .eq("invoice_code", invoiceCode)
+      .eq("client_markbox", client.markbox)
+      .eq("status", "reportado")
+      .is("deleted_at", null);
 
-  if (error) {
-    return { error: "No pudimos cancelar el reporte. Prueba de nuevo." };
+    if (error || count !== 1) {
+      return { error: "No pudimos confirmar la cancelación. Revisa el estado del reporte o contacta a tu asesor. Código: PAGO-CANCELACION." };
+    }
+  } catch {
+    return { error: "No pudimos confirmar la cancelación. Revisa el estado del reporte o contacta a tu asesor. Código: PAGO-CANCELACION." };
   }
 
   revalidateAfterReport(invoiceCode);

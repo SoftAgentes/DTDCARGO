@@ -64,8 +64,9 @@ export function hasProofFile(raw: FormDataEntryValue | null): boolean {
 
 /**
  * Sube el comprobante al bucket privado y devuelve el `storage_path`. Recibe el
- * admin client (service_role). Devuelve `{ error }` si falla (el caller decide el
- * rollback).
+ * admin client (service_role). Devuelve `{ error }` si falla. Un resultado
+ * incierto del registro posterior no autoriza borrar el objeto: podría estar
+ * vinculado a un reporte confirmado en DB antes de perderse la respuesta.
  */
 export async function uploadPaymentProof(
   admin: SupabaseClient,
@@ -83,26 +84,37 @@ export async function uploadPaymentProof(
   return { path };
 }
 
-/** Borra un objeto del bucket (rollback si el insert del reporte falla). */
-export async function removePaymentProof(
-  admin: SupabaseClient,
-  path: string,
-): Promise<void> {
-  await admin.storage.from(PROOF_BUCKET).remove([path]);
-}
+type PaymentProofScope = { tenantId: string; invoiceId: string; reportId: string };
+
+const UUID_PART = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const CANONICAL_PROOF_PATH = new RegExp(
+  `^${UUID_PART}/${UUID_PART}/${UUID_PART}/${UUID_PART}\\.(pdf|jpg|png|webp|heic|heif)$`,
+);
 
 /**
  * Firma una URL temporal para VER el comprobante (server-side, admin client). El
- * ownership ya lo garantizó la RLS de tabla por markbox/tenant antes de llamar acá.
+ * caller debe autorizar primero factura y reporte mediante la sesión. La RLS
+ * del reporte no valida su path: comprobar también su contexto antes de usar
+ * admin impide firmar referencias ajenas o históricas incoherentes.
  */
 export async function createProofSignedUrl(
   admin: SupabaseClient,
   path: string,
+  scope: PaymentProofScope,
   expiresInSeconds = 300,
 ): Promise<string | null> {
-  const { data, error } = await admin.storage
-    .from(PROOF_BUCKET)
-    .createSignedUrl(path, expiresInSeconds);
-  if (error || !data) return null;
-  return data.signedUrl;
+  if (!scope || !CANONICAL_PROOF_PATH.test(path)
+    || !path.startsWith(`${scope.tenantId}/${scope.invoiceId}/${scope.reportId}/`)
+    || !Number.isInteger(expiresInSeconds) || expiresInSeconds < 1 || expiresInSeconds > 300) {
+    return null;
+  }
+  try {
+    const { data, error } = await admin.storage
+      .from(PROOF_BUCKET)
+      .createSignedUrl(path, expiresInSeconds);
+    if (error || !data) return null;
+    return data.signedUrl;
+  } catch {
+    return null;
+  }
 }

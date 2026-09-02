@@ -25,8 +25,9 @@ refrescarse antes de cualquier operación Git o alojada.
   auto-review rechazó el push y pidió autorización explícita del commit/destino.
   No se reintentó por otra herramienta ni se modificó ese commit.
   Reclamos está en el segundo commit local `9b243069`; SDD-0364 añade un
-  tercero para el aislamiento de reportes de pago. Los tres requieren
-  publicación autorizada y CI propio.
+  tercero (`e9d49980`) para el aislamiento de reportes de pago. SDD-0365 etapa 1
+  añade la contención de sus acciones/comprobantes como cuarto commit local.
+  Los cuatro requieren publicación autorizada y CI propio.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -43,8 +44,9 @@ refrescarse antes de cualquier operación Git o alojada.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 356; 266 `done`, 1 `superseded` y 89 sin cierre documental
-  (74 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
+- Specs reales: 357; 266 `done`, 1 `superseded` y 90 sin cierre documental
+  (75 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0365 sigue
+  abierta hasta cerrar comandos auditados, consumidores y restricciones.
 
 El paquete y sus commits están enumerados en
 `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`. La evidencia alojada
@@ -136,6 +138,11 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   (399 desde cero + 18 sólo-ledger). Diez drifts rechazados y rollback true.
   Los fallos de comandos/confirmación/comprobantes siguen pendientes debajo;
   este resultado NO declara saneado todo el módulo de pagos.
+- [x] Contención de aplicación en SDD-0365 etapa 1: conteos desconocidos no
+  permiten alta; cancelación no comunica éxito sin una fila afectada; firma
+  de comprobante exige contexto exacto; resultado incierto no borra evidencia
+  ni invita a repetir ciegamente. 62 regresiones independientes verdes más
+  dos controles adicionales de paths; no se cambió SQL ni producción.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -271,10 +278,14 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   Preservar alta/cancelación legítimas con auditoría atómica, resultado veraz,
   roles financieros y validación de comprobantes; separar expansión/app/restricción
   si requiere comandos nuevos. No cambiar la decisión contable de SDD-0134.
-- [ ] Corregir el contador de reportes pendientes y probar su error explícito:
-  `countPendingReports` devuelve cero al fallar la consulta y puede permitir
-  un alta fuera del límite. Es evidencia de código, todavía sin test negativo
-  de aplicación. No mezclar su contrato con la migración de aislamiento 0420.
+- [x] SDD-0365 etapa 1: contador fail-closed probado desde la acción real.
+  null, error, transporte y conteos inválidos no producen upload/insert/aviso.
+  El límite concurrente todavía requiere el comando transaccional de etapa 2.
+- [ ] Completar SDD-0365 etapas 2/3. El incremento de aplicación ya evita éxitos
+  falsos y firma ajena, pero NO resuelve la cancelación real rechazada por RLS,
+  auditoría/idempotencia, integridad de campos ni DML financiero directo.
+  Los uploads inciertos se conservan privados: revisar su disposición con
+  identidad/vínculo/hold y autorización; no hay job ni purga automática.
 - [ ] Continuar RBAC de aplicación en la base por slices: lectura minimizada de
   facturas/dinero y autorización documental por entidad. Cada slice
   necesita SDD, contrato SQL, migración propia y gate Cloud separado; no hacer

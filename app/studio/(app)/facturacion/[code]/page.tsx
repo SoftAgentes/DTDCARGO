@@ -80,7 +80,11 @@ export default async function InvoiceDetailPage({
       reports.map(async (report) => ({
         report,
         proofUrl: report.proofPath
-          ? await createProofSignedUrl(admin, report.proofPath, 300)
+          ? await createProofSignedUrl(admin, report.proofPath, {
+              tenantId: invoice.tenant_id,
+              invoiceId: invoice.id,
+              reportId: report.id,
+            })
           : null,
       })),
     );

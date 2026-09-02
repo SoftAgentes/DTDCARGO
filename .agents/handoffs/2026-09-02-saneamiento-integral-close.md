@@ -25,8 +25,9 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   explícito del commit y destino; no se reintentó ni se usó una vía alternativa.
   La verificación PRIVATE/ADMIN anterior no se interpreta como autorización
   para superar este rechazo. El CI verde de `eabb230b` no cubre Academia.
-  SDD-0363 está en `9b243069`, segundo commit local. SDD-0364 añade el tercero;
-  ninguno de los tres se publica ni tiene CI alojado propio.
+  SDD-0363 está en `9b243069`, segundo commit local. SDD-0364 en `e9d49980`
+  añade el tercero; SDD-0365 etapa 1 añade el cuarto. Ninguno está publicado
+  ni tiene CI alojado propio; el rechazo de push sigue vigente.
 
 ## Trabajo rescatado y cerrado
 
@@ -149,9 +150,14 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
     contratos. RED real, GREEN con diez drifts, 161 contratos SQL, 19 unitarios
     y rebuild de 417 migraciones. Publicación bloqueada; los comandos de pagos
     tienen hallazgos separados, documentados como siguiente prioridad.
+63. `fix(portal): SDD-0365 — contener errores y proteger comprobantes` —
+    primera etapa: conteo fail-closed, cancelación veraz, firma con contexto
+    y conservación de evidencia ante INSERT incierto. Sin SQL ni cambios
+    financieros. La spec sigue en progreso por sus etapas de comandos y RBAC.
+    Recibo: `.agents/handoffs/2026-09-02-payment-report-command-safety-close.md`.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0364. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0365. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
