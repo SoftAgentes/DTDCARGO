@@ -58,7 +58,10 @@ const E2E_JSON = path.join(os.tmpdir(), `dtd-e2e-${process.pid}.json`);
  * `stats.unexpected` es > 0 y el paso se marca rojo igual. Lo único que absuelve
  * es un proceso que se fue mal habiendo pasado todo.
  */
-function e2eAbsolver() {
+function e2eAbsolver(exitStatus) {
+  // `check-e2e.mjs` reserva el exit 2 para fallos del arnés o de su limpieza.
+  // Sólo el exit 1 de Playwright puede corresponder al teardown conocido.
+  if (exitStatus !== 1) return null;
   let reporte;
   try {
     reporte = JSON.parse(fs.readFileSync(E2E_JSON, "utf8"));
@@ -374,7 +377,9 @@ const STEPS = [
     name: "e2e",
     // `list` es lo que se ve; `json` va a un archivo y sólo lo lee `e2eAbsolver`
     // cuando el proceso sale ≠0, para saber si de verdad falló un test.
-    argv: ["node_modules/@playwright/test/cli.js", "test", "--reporter=list,json"],
+    // El wrapper ejecuta Playwright en `.next-verify-e2e`, restaura tsconfig y
+    // limpia la salida aun si la suite falla. La caché normal `.next` no se toca.
+    argv: ["scripts/check-e2e.mjs", "--reporter=list,json"],
     // E2E_PORT NO va acá: lo resuelve `e2ePreflight` en tiempo de ejecución
     // (el runner deja que el env del preflight gane sobre el del paso).
     env: { PLAYWRIGHT_JSON_OUTPUT_NAME: E2E_JSON },
@@ -427,7 +432,7 @@ for (const step of STEPS) {
     // por correrlo de nuevo — sólo imprimiría el mismo [SKIP] dos veces.
     if (r.status === 0 || r.status === EXIT_SKIPPED) break;
     // Antes de gastar un reintento: ¿el proceso se fue mal habiendo pasado todo?
-    absuelto = step.absolver ? step.absolver() : null;
+    absuelto = step.absolver ? step.absolver(r.status) : null;
     if (absuelto) break;
     if (i < attempts) {
       console.log(`${C.dim}   ${step.name} falló (exit ${r.status ?? "señal " + r.signal}) → reintento ${i}/${attempts - 1} (flaky conocido)${C.nc}`);
