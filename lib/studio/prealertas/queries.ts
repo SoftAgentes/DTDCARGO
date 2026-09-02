@@ -11,7 +11,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { fetchAllPaged } from "@/lib/db/paginate";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import {
   type Prealerta,
   type PrealertaDocType,
@@ -403,6 +403,50 @@ export async function listPrealertaDocuments(
     return ((data as Record<string, unknown>[] | null) ?? []).map(
       coercePrealertaDocument,
     );
+  } catch {
+    return [];
+  }
+}
+
+export type PrealertaDocumentPresence = Pick<
+  PrealertaDocument,
+  "prealerta_id" | "doc_type"
+>;
+
+/**
+ * Presencia documental de VARIAS compras del portal, en lotes paginados.
+ *
+ * La vista de alertas sólo necesita `prealerta_id + doc_type`: pedir todos los
+ * metadatos con una consulta por compra era un N+1 y además transfería columnas
+ * que no se pintan. `fetchAllByIds` resuelve por separado el límite de URL del
+ * `.in(...)` y el tope de filas de PostgREST. `markbox` sigue siendo obligatorio
+ * como defensa en profundidad además de RLS.
+ */
+export async function listPrealertaDocumentPresence(
+  supabase: SupabaseClient,
+  opts: { prealertaIds: readonly string[]; markbox: string },
+): Promise<PrealertaDocumentPresence[]> {
+  const ids = [...new Set(opts.prealertaIds.filter(Boolean))];
+  if (ids.length === 0 || !opts.markbox) return [];
+
+  try {
+    const { rows, complete } = await fetchAllByIds<Record<string, unknown>>(
+      ids,
+      (batch, from, to) =>
+        supabase
+          .from("prealerta_documents")
+          .select("id, prealerta_id, doc_type")
+          .in("prealerta_id", batch)
+          .eq("client_markbox", opts.markbox)
+          .is("deleted_at", null)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
+    if (!complete) throw new Error("Lectura documental incompleta");
+    return rows.map((row) => ({
+      prealerta_id: String(row.prealerta_id),
+      doc_type: (row.doc_type as PrealertaDocType) ?? "foto",
+    }));
   } catch {
     return [];
   }

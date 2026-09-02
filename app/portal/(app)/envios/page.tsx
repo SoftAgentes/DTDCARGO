@@ -5,7 +5,7 @@ import { listMyShipments, getPortalClient } from "@/lib/portal/portal-queries";
 import {
   listPrealertas,
   listSuppliers,
-  listPrealertaDocuments,
+  listPrealertaDocumentPresence,
 } from "@/lib/studio/prealertas/queries";
 import {
   computeProgress,
@@ -79,19 +79,10 @@ export default async function PortalShipmentsPage() {
   // portal le ofrece al proveedor. Mirando sólo el primero, un proveedor que
   // llenó el formulario dejaba el chip en gris con el documento ya enviado.
   const [docEntries, conPackingOnline] = await Promise.all([
-    Promise.all(
-      prealertasVivas.map(async (p) => {
-        const docs = await listPrealertaDocuments(supabase, {
-          prealertaId: p.id,
-          markbox: client.markbox,
-        });
-        const has = (t: string) => docs.some((d) => d.doc_type === t);
-        // Se devuelve el id aparte de la clave: la clave lleva el prefijo `p:`
-        // que espera el hub, y recortárselo después para recuperar el id ataría
-        // este cruce al largo de ese prefijo.
-        return { key: `p:${p.id}`, id: p.id, has };
-      }),
-    ),
+    listPrealertaDocumentPresence(supabase, {
+      prealertaIds: prealertasVivas.map((p) => p.id),
+      markbox: client.markbox,
+    }),
     prealertasConPackingList(
       createAdminClient(),
       prealertasVivas.map((p) => p.id),
@@ -99,14 +90,22 @@ export default async function PortalShipmentsPage() {
     ),
   ]);
 
+  const docTypesByPrealerta = new Map<string, Set<string>>();
+  for (const entry of docEntries) {
+    const types = docTypesByPrealerta.get(entry.prealerta_id) ?? new Set<string>();
+    types.add(entry.doc_type);
+    docTypesByPrealerta.set(entry.prealerta_id, types);
+  }
+
   const docs: Record<string, DocPresence> = Object.fromEntries(
-    docEntries.map(({ key, id, has }) => {
+    prealertasVivas.map((prealerta) => {
+      const types = docTypesByPrealerta.get(prealerta.id) ?? new Set<string>();
       const presence: DocPresence = {
-        packing: has("packing") || conPackingOnline.has(id),
-        factura: has("factura"),
-        foto: has("foto"),
+        packing: types.has("packing") || conPackingOnline.has(prealerta.id),
+        factura: types.has("factura"),
+        foto: types.has("foto"),
       };
-      return [key, presence] as const;
+      return [`p:${prealerta.id}`, presence] as const;
     }),
   );
 
