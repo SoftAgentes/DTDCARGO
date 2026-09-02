@@ -1,12 +1,5 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
-import { listMyShipments, getPortalClient } from "@/lib/portal/portal-queries";
-import {
-  listPrealertas,
-  listSuppliers,
-  listPrealertaDocumentPresence,
-} from "@/lib/studio/prealertas/queries";
 import {
   computeProgress,
   effectiveVisibleStatus,
@@ -14,16 +7,13 @@ import {
   STATUS_LABELS,
   type ShipmentStatus,
 } from "@/lib/portal/portal-types";
-import { getHiddenPortalStatusesForPortal } from "@/lib/studio/notifications/portal-visibility-queries";
 import {
-  getNextOpenSailing,
   daysUntil,
   type PortalSailing,
 } from "@/lib/portal/next-sailing-queries";
 import { buildAlertItems } from "@/lib/portal/alertas";
-import { prealertasConPackingList } from "@/lib/portal/packing-list-queries";
-import { getConsolidationsForShipments } from "@/lib/portal/consolidation-queries";
 import { groupTrackByContainer, type TrackItem } from "@/lib/portal/seguimiento";
+import { getPortalShipmentsHubPrivateContext } from "@/lib/portal/shipments-hub-private-context";
 import { EnviosHubTabs } from "../../_components/PortalHubTabs";
 import {
   PortalAlertasHub,
@@ -41,19 +31,23 @@ export const metadata: Metadata = { title: "Alertas · mis envíos" };
  */
 export default async function PortalShipmentsPage() {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
-
-  const [rawShipments, prealertas, suppliers] = await Promise.all([
-    listMyShipments(supabase),
-    listPrealertas(supabase, { markbox: client.markbox }),
-    listSuppliers(supabase, { markbox: client.markbox }),
-  ]);
+  const context = await getPortalShipmentsHubPrivateContext(supabase);
+  if (!context) return null;
+  const {
+    client,
+    rawShipments,
+    prealertas,
+    suppliers,
+    hiddenStatuses,
+    docEntries,
+    conPackingOnline,
+    consolidations,
+    sailing,
+  } = context;
 
   // SDD-0156 · Slice D: si la config del tenant oculta un hito (ej. "en aduana"),
   // la lista muestra el último estado VISIBLE — el badge y el % no delatan el hito
   // oculto (coherente con el stepper del detalle). Falla-seguro → sin sustitución.
-  const hiddenStatuses = await getHiddenPortalStatusesForPortal(supabase);
   const shipments = rawShipments.map((s) => ({
     ...s,
     status: effectiveVisibleStatus(s.status, s.service, hiddenStatuses),
@@ -75,18 +69,6 @@ export default async function PortalShipmentsPage() {
   // cubre el formulario online de `/p/{token}`, que es el camino que el propio
   // portal le ofrece al proveedor. Mirando sólo el primero, un proveedor que
   // llenó el formulario dejaba el chip en gris con el documento ya enviado.
-  const [docEntries, conPackingOnline] = await Promise.all([
-    listPrealertaDocumentPresence(supabase, {
-      prealertaIds: prealertasVivas.map((p) => p.id),
-      markbox: client.markbox,
-    }),
-    prealertasConPackingList(
-      createAdminClient(),
-      prealertasVivas.map((p) => p.id),
-      client.markbox,
-    ),
-  ]);
-
   const docTypesByPrealerta = new Map<string, Set<string>>();
   for (const entry of docEntries) {
     const types = docTypesByPrealerta.get(entry.prealerta_id) ?? new Set<string>();
@@ -125,15 +107,9 @@ export default async function PortalShipmentsPage() {
   // que entran son los de `listMyShipments`, ya filtrada por `client_markbox`, así
   // que el admin client queda scopeado a envíos propios. Best-effort: si falla,
   // el mapa vacío degrada a la lista plana de antes.
-  const consolidations = await getConsolidationsForShipments(
-    createAdminClient(),
-    track.map((t) => t.id),
-  ).catch(() => ({}));
   const trackGroups = groupTrackByContainer(track, consolidations);
 
-  // Banner del próximo consolidado (cut-off). Admin client scopeado por tenant (el
-  // cliente no tiene RLS sobre `sailings`); best-effort → null oculta el banner.
-  const banner = await loadConsolidadoBanner(client.id);
+  const banner = buildConsolidadoBanner(sailing);
 
   return (
     <div>
@@ -176,23 +152,10 @@ function fmtDate(iso: string | null): string | null {
  * Arma el banner "Próximo consolidado" con el próximo zarpe abierto. Copy honesto
  * con los campos que existan (cut-off, ETD, ETA). Devuelve null si no hay salida.
  */
-async function loadConsolidadoBanner(
-  clientId: string,
-): Promise<{ route: string; sentence: string } | null> {
+function buildConsolidadoBanner(
+  sailing: PortalSailing | null,
+): { route: string; sentence: string } | null {
   const todayIso = new Date().toISOString().slice(0, 10);
-  let sailing: PortalSailing | null = null;
-  try {
-    const admin = createAdminClient();
-    const { data: row } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", clientId)
-      .maybeSingle<{ tenant_id: string }>();
-    const tenantId = String(row?.tenant_id ?? "").trim();
-    if (tenantId) sailing = await getNextOpenSailing(admin, tenantId, todayIso);
-  } catch {
-    sailing = null;
-  }
   if (!sailing) return null;
 
   const cutoff = fmtDate(sailing.cutoff);

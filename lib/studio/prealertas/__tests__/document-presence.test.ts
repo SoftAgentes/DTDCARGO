@@ -106,13 +106,20 @@ describe("listPrealertaDocumentPresence", () => {
     ).resolves.toEqual([]);
   });
 
-  it("la página de envíos consume el query en lote y no vuelve al map async", () => {
-    const source = readFileSync(
+  it("el contexto de envíos consume el query en lote y la página no vuelve al map async", () => {
+    const contextSource = readFileSync(
+      resolve(
+        process.cwd(),
+        "lib/portal/shipments-hub-private-context.ts",
+      ),
+      "utf8",
+    );
+    const pageSource = readFileSync(
       resolve(process.cwd(), "app/portal/(app)/envios/page.tsx"),
       "utf8",
     );
 
-    expect(source).toContain("listPrealertaDocumentPresence(supabase");
-    expect(source).not.toMatch(/prealertasVivas\.map\(async/);
+    expect(contextSource).toContain("listPrealertaDocumentPresence(db");
+    expect(pageSource).not.toMatch(/prealertasVivas\.map\(async/);
   });
 });

@@ -11,8 +11,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- Divergencia medida antes de SDD-0345: 0 detrás / 37 delante; este commit
-  agrega el paquete 38.
+- Divergencia medida antes de SDD-0346: 0 detrás / 38 delante; este commit
+  agrega el paquete 39.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
 
@@ -72,9 +72,11 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
     contiene este handoff; no crea migración.
 38. `fix(portal): SDD-0345 — acotar detalle privado de envío` — el commit que
     contiene este handoff; no crea migración.
+39. `fix(portal): SDD-0346 — acotar listado privado de envíos` — el commit que
+    contiene este handoff; no crea migración.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0345. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0346. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -87,7 +89,7 @@ de SDD-0342; SDD-0343 pasó después sus gates proporcionales:
 
 - 14 de 15 gates medidos, ninguno falló.
 - ESLint, frontera RSC, TypeScript y cuatro Edge Functions: OK.
-- Vitest posterior a SDD-0345: 520 archivos / 5.928 pruebas pasaron.
+- Vitest posterior a SDD-0346: 521 archivos / 5.932 pruebas pasaron.
 - Documentación, numeración, componentes y gobernanza: OK.
 - SQL: 147 contratos pasaron con rollback total.
 - Rebuild: 403 migraciones; 385 aplicadas desde cero y 18 sólo-ledger;
@@ -162,6 +164,13 @@ SDD-0345 encapsula documentos, avisos, naviera, tracking y aceptación del
 detalle de envío en un contexto `server-only` que sólo acepta el código y prueba
 primero el envío mediante sesión/RLS. Baja el inventario a 3 rutas / 7
 construcciones y pasó 6 pruebas focales, la suite completa de 5.928 pruebas,
+TypeScript y ESLint. No crea migración.
+
+SDD-0346 mueve packing online, consolidaciones y próximo zarpe del listado de
+envíos a un contexto `server-only` sin parámetros. Los ids y el tenant se
+derivan desde sesión/RLS antes de usar un único admin; un fallo conserva los
+datos RLS y vacía sólo los derivados privados. Baja el inventario a 2 rutas / 4
+construcciones y pasó 10 pruebas focales, la suite completa de 5.932 pruebas,
 TypeScript y ESLint. No crea migración.
 
 ## Gates alojados no cruzados
