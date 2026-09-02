@@ -23,8 +23,10 @@ refrescarse antes de cualquier operación Git o alojada.
   `a9895487d010f39edcc1c7b20915547f6a93d773`, 0 detrás / 53 delante de
   `origin/main`; local y remoto coincidían 0/0 al publicar el lote funcional.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
-  no integrable todavía. Primera corrida de `Calidad continua` falló por heap
-  agotado en TypeScript; corrección de SDD-0349 pendiente de revalidación alojada.
+  no integrable todavía. La segunda corrida sobre `726a7118` (54 commits)
+  confirmó la corrección de memoria: TypeScript/Edge pasaron. Falló un unitario
+  por carrera de foco en `DestinoCombobox`; SDD-0360 la corrige y requiere un
+  nuevo CI completo.
 - Vercel: deployment `6227630435` de GitHub en **Preview**, estado `success`,
   `production_environment=false`; no se promovió a producción.
 - Supabase: proyecto correcto `xpfuzqombmjmxvprjgmi`, `ACTIVE_HEALTHY`; 406
@@ -33,7 +35,7 @@ refrescarse antes de cualquier operación Git o alojada.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 351; 257 `done`, 1 `superseded` y 93 sin cierre documental
+- Specs reales: 352; 258 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
 El paquete y sus commits están enumerados en
@@ -112,9 +114,16 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [x] Abrir el PR #21 en borrador, sin merge ni promoción de producción.
 - [x] Corregir el OOM del primer CI mediante límite explícito de heap sólo en
   TypeScript/build: regresión 6/6, TypeScript sin caché (~2,8 GiB) y build de 158
-  páginas aprobados localmente. No se quitó ningún gate.
-- [ ] Confirmar en GitHub el primer resultado real del workflow
-  `Calidad continua`; el contrato local no sustituye una corrida alojada.
+  páginas aprobados localmente; TypeScript/Edge confirmados en el segundo CI.
+  No se quitó ningún gate.
+- [x] Reproducir y corregir la carrera de foco del selector de destino expuesta
+  por el segundo CI (SDD-0360): 13/13 focales, suite completa 5.961/5.961 y
+  navegador local aprobados. Sin modificar estilos, precios ni catálogo.
+- [x] Build aislado de SDD-0360: 158 páginas, postbuild y restauración de
+  `tsconfig.json` aprobados, sin secretos ni cambios SQL.
+- [ ] Publicar SDD-0360 y confirmar el primer resultado completamente verde
+  de `Calidad continua`. Dos runs ya medidos fallaron; la evidencia local no
+  sustituye una corrida alojada completa.
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:
@@ -259,8 +268,9 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   Functions, unitarios, docs, numeración, constantes, componentes, gobernanza
   y build sin secretos. SDD-0349 fija actions por SHA, usa permisos de lectura y
   lockfile congelado. El PR #21 activó la primera corrida alojada, que falló por
-  heap agotado en TypeScript; la corrección de memoria conserva todos los gates
-  y necesita otra corrida. Docker/E2E/Cloud necesitan
+  heap agotado en TypeScript; el segundo run confirmó el ajuste de memoria y
+  expuso la carrera corregida en SDD-0360. Falta un run completo verde.
+  Docker/E2E/Cloud necesitan
   una estrategia explícita de costo y credenciales antes de activarse en GitHub.
 - [ ] Crear bootstrap no productivo reproducible para Auth/Portal/E2E; hoy un
   clon limpio no puede ejecutar el sistema completo sólo con el repo.

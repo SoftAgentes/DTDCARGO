@@ -42,7 +42,22 @@ siendo el punto único de tareas pendientes.
 Seguimiento SDD-0349: límite explícito de old-space 4096 sólo en TypeScript y
 build. Regresión 6/6 (antes 1 fallo / 5 pases), TypeScript sin caché incremental
 aprobado con 2.898.635 K de memoria / 48,84 s y build aislado de 158 páginas
-aprobado. La nueva corrida del PR debe verificar el arreglo en el runner real.
+aprobado. El commit `726a7118` quedó publicado, 54 delante de `origin/main`.
+
+La [segunda corrida](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/33660502119)
+confirmó el arreglo de memoria: TypeScript y Edge pasaron. Falló 1 de 5.958
+unitarios (`DestinoCombobox`: al escribir `mara` quedó `a`), por una selección
+de texto diferida con `requestAnimationFrame`. Duración total: 12 min 3 s;
+unitarios: 537,88 s. Los gates posteriores no corrieron; no fue un timeout.
+
+SDD-0360 reproduce dos ordenamientos del foco (11 pasan / 2 fallan antes),
+elimina la selección diferida y conserva el cursor manual. Después: 13/13
+focales y 527 archivos / 5.961 pruebas completas aprobadas. TypeScript sin
+caché, ESLint, numeración, componentes y gobernanza aprobados. El navegador
+local confirmó escritura, Escape, cursor intermedio y selección con Enter;
+el backend local rechazó toda operación Supabase. Build aislado sin secretos:
+158 páginas, postbuild y restauración de `tsconfig.json` correctos. El tercer
+CI queda pendiente de medir este commit. No se relajó ningún test.
 
 ## Vercel: preview confirmado, no producción
 
@@ -138,9 +153,9 @@ y [EXECUTE authenticated](https://supabase.com/docs/guides/database/database-lin
 
 ## Secuencia de release y stop conditions
 
-1. Corregir y volver a ejecutar CI; SDD-0349 fija 4 GiB de old-space sólo en
-   TypeScript/build, sin quitar checks. Completar preflights y mantener el PR
-   en borrador.
+1. Completar el tercer CI con SDD-0360. SDD-0349 ya superó TypeScript/Edge en
+   el runner; SDD-0360 corrige la carrera real expuesta por los unitarios.
+   Completar preflights y mantener el PR en borrador.
 2. Obtener OK por nombre y aplicar cada migración elegible de una en una,
    conforme a `docs/runbooks/aplicar-migraciones-prod.md`. Las 10 RPC deben
    existir y verificarse antes de publicar la app consumidora.

@@ -111,9 +111,12 @@ Estado: CERRADO EN RAMA · PR EN BORRADOR · INTEGRACIÓN/RELEASE PENDIENTES
     tres policies de lectura Portal en 0416; equipo, ACL y datos conservados.
 54. `fix(ci): SDD-0349 — dimensionar memoria del primer CI` — corrige el heap
     de TypeScript/build y registra publicación, PR y preflight Cloud de lectura.
+55. `fix(public): SDD-0360 — evitar carrera de foco en destino` — elimina la
+    selección tardía de texto que el segundo CI reprodujo; conserva teclado,
+    Escape y edición manual. No cambia SQL ni configuración del workflow.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0359. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0360. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
 de configuración, retiran el contrato de entorno del Payload descontinuado y
 congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
@@ -121,11 +124,15 @@ slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 
 ## Verificación vigente
 
-Seguimiento CI: la regresión del límite de memoria pasó 6/6 después de fallar
-antes del ajuste. TypeScript sin caché incremental pasó 3.889 archivos con
-2.898.635 K y 48,84 s; build aislado pasó 158 páginas. Falta el resultado de la
-nueva corrida alojada. No hubo cambios en código de aplicación ni SQL en este
-seguimiento; los baselines siguientes conservan su alcance.
+Seguimiento CI: el segundo run (`33660502119`, commit `726a7118`) pasó
+TypeScript/Edge y confirmó la corrección de memoria. Detectó 1 fallo / 5.957
+pases por selección de texto tardía en `DestinoCombobox`; SDD-0360 lo reproduce
+y corrige sin relajar expectativas. Ahora pasan 13 unitarios focales y 5.961
+pruebas / 527 archivos completos; TypeScript sin caché, ESLint, numeración,
+componentes y gobernanza pasan. Navegador local: escritura, Escape, cursor
+manual y Enter correctos; sin datos/credenciales reales. Build aislado: 158
+páginas, postbuild y restauración de tsconfig correctos. Tercer CI pendiente.
+No cambió SQL; los baselines siguientes conservan su alcance.
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
 de SDD-0357:

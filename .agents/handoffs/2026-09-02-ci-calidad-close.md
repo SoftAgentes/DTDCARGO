@@ -3,7 +3,7 @@
 Fecha: 2026-09-02
 
 Rol: worker
-Estado: PUBLICADO EN PR #21 · CORRECCIÓN DEL PRIMER CI EN VALIDACIÓN
+Estado: PUBLICADO EN PR #21 · MEMORIA VALIDADA · REGRESIÓN UI EN SDD-0360
 
 ## Identidad Git
 
@@ -57,8 +57,12 @@ Estado: PUBLICADO EN PR #21 · CORRECCIÓN DEL PRIMER CI EN VALIDACIÓN
   48,84 s, exit 0 con old-space 4096. Build aislado con el mismo ajuste: 158
   páginas, postbuild y restauración de `tsconfig.json` correctos. Docs, ESLint
   focal y `git diff --check` pasaron.
-- La revalidación alojada y required checks siguen pendientes. No se cambió
-  branch protection ni se amplió el runner a un plan de pago.
+- La [segunda corrida, 33660502119](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/33660502119)
+  sobre `726a7118` pasó TypeScript y Edge: la memoria queda validada en el
+  runner. Unitarios detectó una carrera real de `DestinoCombobox` (1 fallo /
+  5.957 pases); se corrige por separado en SDD-0360, sin relajar el test.
+- El CI completo y required checks siguen pendientes. No se cambió branch
+  protection ni se amplió el runner a un plan de pago.
 - Publicación, preview automático y lectura Cloud están documentados en
   `docs/audits/2026-09-02-codex-publicacion-y-preflight.md`. No hubo merge,
   promoción de producción, migración ni escritura de datos alojados.
