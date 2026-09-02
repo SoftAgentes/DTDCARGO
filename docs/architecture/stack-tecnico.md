@@ -1,7 +1,7 @@
 # Stack técnico · DTD·CARGO
 
-**Fecha:** 27 mayo 2026
-**Proyecto:** DTD-Cargo monorepo (sitio público + Studio ERP + back de administración)
+**Fecha:** 2 septiembre 2026
+**Proyecto:** DTD Cargo · una aplicación Next.js con cuatro superficies aisladas
 **Repo:** github.com/hailuwaycom-sketch/DTDCARGO · privado
 
 ---
@@ -10,7 +10,7 @@
 
 | # | Área | Tecnología | Versión | Notas |
 |---|------|-----------|---------|-------|
-| 1 | Framework frontend | Next.js | **16.2.6** | App Router, Server Components, Server Actions |
+| 1 | Framework frontend | Next.js | **16.2.11** | App Router, Server Components, Server Actions |
 | | | React | **19.2.4** | + react-dom 19.2.4 |
 | | | TypeScript | **^5** | strict: true, noEmit: true |
 | 2 | Build tool / bundler | Turbopack (Next 16 default) | built-in | Visible en build output: bundler: turbopack |
@@ -20,12 +20,12 @@
 | 4 | Backend | Next.js Server Actions + Route Handlers | n/a | No hay backend separado |
 | | | Base de datos | Supabase Postgres | proyecto xpfuzqombmjmxvprjgmi (el nombre visible en el dashboard de Supabase todavía dice "DoorTuDoor" — pendiente de renombrar; lo que importa es el project_ref), us-east-1, Postgres **17.6** |
 | | | ORM / queries | @supabase/supabase-js ^2.106.1 | Sin Prisma/Drizzle, queries directos con RLS |
-| | | Storage | Supabase Storage (S3-compat) | buckets receipt-photos + futuro back-assets |
+| | | Storage | Supabase Storage (S3-compat) | Buckets privados por dominio; inventario en migraciones y runbooks |
 | 5 | Auth | @supabase/ssr ^0.5.2 | — | Email+password vía Supabase Auth; cookie-based con proxy.ts que refresca JWT |
 | | | Tablas auth | auth.users + public.user_tenants + public.back_user_roles (nuevo) | Multi-tenant con RLS |
-| | | Operario mobile | PIN custom | operario_pins tabla, cookie HTTP-only, NO usa Supabase Auth |
-| 6 | Gestor de paquetes | **pnpm** | **11.1.2** | Lock: pnpm-lock.yaml. Node **24.15.0** |
-| 7 | Tests | Vitest 4.1.7 (unit) + Playwright 1.60.0 (E2E) | — | 44 unit + 12 E2E passing |
+| | | Operario mobile | PIN custom | `operario_pins` + cookie HTTP-only autenticada; no usa Supabase Auth |
+| 6 | Runtime y paquetes | Node + **pnpm** | Node **>=24 <25** · pnpm **11.19.0** | Contrato en `package.json`; lock en `pnpm-lock.yaml` |
+| 7 | Tests | Vitest 4.1.7 (unit) + Playwright 1.60.0 (E2E) | — | 5.947 unitarios en 512 archivos · 150 E2E ejecutables + 18 Tier 3 omitidos |
 
 ---
 
@@ -33,16 +33,16 @@
 
 | Categoría | Paquete | Versión | Para qué |
 |-----------|---------|---------|----------|
-| Core | next | 16.2.6 | Framework |
+| Core | next | 16.2.11 | Framework |
 | | react / react-dom | 19.2.4 | UI runtime |
 | Supabase | @supabase/supabase-js | ^2.106.1 | Cliente DB |
 | | @supabase/ssr | ^0.5.2 | Cookies + SSR helpers |
 | AI | @anthropic-ai/sdk | ^0.98.0 | Skills/agents del Studio (SDD-0020) |
-| Payload (off) | @payloadcms/db-postgres, @payloadcms/next, @payloadcms/richtext-lexical, @payloadcms/storage-s3, payload | ^3.84.1 | Files en `_payload-disabled/`, NO se ejecuta. Quedó en deps por si reactivan |
-| Image | sharp | ^0.34.5 | Optimización Next/Image + favicons |
+| AWS | @aws-sdk/client-s3 + SQS + STS + CloudFormation | 3.1099.0 | Plano de adjuntos y respaldo externo, detrás de gates |
+| Upload | @uppy/core + @uppy/tus | ^5.2.0 / ^5.1.1 | Carga reanudable de adjuntos |
+| Image | sharp | ^0.35.3 | Optimización Next/Image + favicons |
 | Bug Reporter | rrweb / rrweb-player | 2.0 / 1.0 alpha | Session replay (SDD-0036) |
 | Notif | web-push | ^3.6.7 | Web push (futuro) |
-| GraphQL | graphql | ^16.14.0 | Solo para Payload (deshabilitado) |
 | Util | clsx + tailwind-merge | 2.1.1 / 3.6.0 | Class helpers |
 
 ---
@@ -55,16 +55,17 @@
 | @testing-library/react + jest-dom + user-event | 16.3 / 6.9 / 14.6 | RTL stack |
 | jsdom | ^29.1.1 | DOM env para tests |
 | @playwright/test | ^1.60.0 | E2E |
-| eslint + eslint-config-next | ^9 / 16.2.6 | Lint |
+| eslint + eslint-config-next | ^9 / 16.2.11 | Lint |
 | tailwindcss + @tailwindcss/postcss | ^4 / ^4 | CSS framework v4 |
 | tsx | ^4.22.3 | Run scripts TS directo (seed, generate-favicons) |
-| to-ico | ^1.1.5 | Generación favicon.ico desde PNGs |
 
 ---
 
-## Estructura del monorepo
+## Estructura de la aplicación
 
-**1 único `package.json`** en la raíz. No hay workspaces ni sub-paquetes.
+Hay **un único `package.json`** en la raíz, sin paquetes hijos. El archivo
+`pnpm-workspace.yaml` centraliza configuración de pnpm; no convierte al repo en
+un monorepo.
 
 Pero conviven **4 productos** dentro del mismo Next.js app:
 
@@ -78,13 +79,6 @@ Pero conviven **4 productos** dentro del mismo Next.js app:
 
 ---
 
-## Stack que NO se usa (a pesar de estar en deps)
-
-- **Payload CMS** · Deshabilitado en `_payload-disabled/`, sin rutas mounted. Las deps (`@payloadcms/*`, `graphql`) quedan instaladas "por si reactivan". 11 CVEs moderate en transitivas, **no alcanzables** porque no hay rutas Payload mounted.
-- **GraphQL** · Solo se usa vía Payload, así que efectivamente no se usa.
-
----
-
 ## Deploy
 
 | Servicio | Producto |
@@ -95,20 +89,23 @@ Pero conviven **4 productos** dentro del mismo Next.js app:
 
 ---
 
-## Migraciones SQL aplicadas
+## Migraciones SQL del repositorio
 
-**30 migraciones** numeradas en `supabase/migrations/`. Última: `0030_back_content_admin.sql` (back de contenido — esquema `back_*` con RLS por rol). Ver el directorio para el listado completo.
+**397 archivos** en `supabase/migrations/`: 379 migraciones ejecutables y 18
+entradas sólo-ledger. El gate reconstruye el esquema desde cero y valida el
+aislamiento multi-tenant; Cloud se mide por separado con `migrations-applied`.
 
 ---
 
 ## Versiones críticas a recordar
 
-- **Node 24.x** requerido (npm advierte si se usa una versión vieja)
-- **pnpm 11.x** — la whitelist canónica de scripts vive en
+- **Node 24.x LTS** requerido por `engines` (`>=24 <25`)
+- **pnpm 11.19.0** fijado por `packageManager`; el rango aceptado es 11.x y la
+  whitelist canónica de scripts vive en
   `pnpm-workspace.yaml` mediante `allowBuilds` para `better-sqlite3`, `esbuild`,
   `sharp` y `unrs-resolver`
 - **Next 16** trajo cambios mayores: `middleware.ts` → `proxy.ts`; `revalidateTag()` ahora pide 2 args; bundler default = Turbopack
 
 ---
 
-*Documento generado automáticamente · DTD·CARGO technical stack snapshot · 2026-05-27*
+*Snapshot técnico medido desde el repo y el gate local · 2026-09-02*
