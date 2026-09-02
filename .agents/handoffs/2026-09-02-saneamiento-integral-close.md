@@ -11,7 +11,7 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- HEAD actual: este commit; árbol limpio, 0 detrás / 45 delante de `origin/main`.
+- HEAD actual: este commit; árbol limpio, 0 detrás / 46 delante de `origin/main`.
 - La rama remota `codex/saneamiento-integral` todavía no existe.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
@@ -86,6 +86,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
     contiene este handoff y la migración 0408 todavía no aplicada.
 45. `fix(db): SDD-0352 — aplicar RBAC a conciliación bancaria` — el commit que
     contiene este handoff y la migración 0409 todavía no aplicada.
+46. `fix(collections): SDD-0353 — minimizar contexto de correo` — el commit que
+    contiene este handoff y la migración 0410 todavía no aplicada.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0350. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
@@ -228,6 +230,13 @@ el CRUD requerido por el rollback compensatorio y elimina TRUNCATE. Pasó 150
 contratos SQL con rollback total y el rebuild de 406 migraciones: 388 desde
 cero, 18 sólo-ledger y aislamiento verificado en 219 tablas / 2 tenants.
 
+SDD-0353 reemplaza las lecturas crudas de `clients.email` y `mail_logs` en
+Cobranzas por una RPC que recibe ids de factura y devuelve sólo Shipping Mark,
+flags y fecha UTC. La función exige `accounting|admin`, no acepta tenant y deja
+el SELECT directo de logs en admin-only. Pasó 3 pruebas focales, TypeScript,
+ESLint, 151 contratos SQL y el rebuild de 407 migraciones: 389 desde cero, 18
+sólo-ledger y aislamiento verificado en 219 tablas / 2 tenants.
+
 ## Gates alojados no cruzados
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
@@ -251,6 +260,8 @@ cero, 18 sólo-ledger y aislamiento verificado en 219 tablas / 2 tenants.
 - La migración `0408_mailing_admin_rbac.sql` existe en Git y pasó
   contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
 - La migración `0409_bank_reconciliation_rbac.sql` existe en Git y pasó
+  contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
+- La migración `0410_collections_mail_context.sql` existe en Git y pasó
   contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
@@ -282,7 +293,7 @@ cero, 18 sólo-ledger y aislamiento verificado en 219 tablas / 2 tenants.
 3. Validar la rama remota y decidir/integrar el lote en `main` con un gate
    separado.
 4. Aplicar las migraciones 0399, 0400, 0401, 0402, 0403, 0404, 0405, 0406,
-   0407, 0408 y 0409 de una en una, cada una con autorización Cloud específica
-   y el runbook obligatorio.
+   0407, 0408, 0409 y 0410 de una en una, cada una con autorización Cloud
+   específica y el runbook obligatorio.
 5. Retirar este worktree únicamente después de probar que sus commits están
    contenidos; mantener las ramas archive hasta auditar su contención.

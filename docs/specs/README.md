@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 344 specs)
+### Índice de specs (generado · 345 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -382,6 +382,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0350 | Aplicar RBAC de escritura a facturas en la base | done | interno |
 | 0351 | Aplicar RBAC admin-only al dominio Mailing | done | interno |
 | 0352 | Aplicar RBAC financiero a conciliación bancaria | done | interno |
+| 0353 | Minimizar el contexto de correo de Cobranzas | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
