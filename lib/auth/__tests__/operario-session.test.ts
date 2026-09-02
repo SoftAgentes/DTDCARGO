@@ -13,6 +13,14 @@ describe("login PIN de operario · SDD-0235", () => {
     expect(session).toContain("p_attempt_key");
   });
 
+  it("no acepta el UUID desnudo como cookie de sesión", () => {
+    const session = source("lib/auth/operario-session.ts");
+    expect(session).toContain("createOperarioSessionToken");
+    expect(session).toContain("readOperarioSessionToken");
+    expect(session).toContain('.eq("tenant_id", identity.tenantId)');
+    expect(session).not.toContain("value: session.operario_id");
+  });
+
   it("cada superficie solicita solamente su región", () => {
     expect(source("app/m/cn/login/actions.ts")).toContain('signInWithPin(pin, "cn")');
     expect(source("app/m/ve/login/actions.ts")).toContain('signInWithPin(pin, "ve")');

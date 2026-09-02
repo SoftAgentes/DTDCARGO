@@ -41,7 +41,8 @@ export type Operario = {
 /**
  * Identidad del operario logueado — lo que devuelve el RPC
  * verify_operario_pin y guardamos en sesión derivada de la cookie
- * `dtd_op` (operario_id) + re-fetch en cada request.
+ * `dtd_op` (token opaco autenticado con operario + tenant + vencimiento) y
+ * re-fetch en cada request.
  *
  * SDD-0030: warehouse_id ahora es nullable (bodeguero/camionero VE
  * pueden no tener warehouse atado), region distingue cn vs ve.

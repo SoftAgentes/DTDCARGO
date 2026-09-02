@@ -20,10 +20,11 @@ Realtime, push notifications.
 ## Auth · PIN custom (NO Supabase Auth)
 
 El operario NO es `auth.users`. Usa PIN 4 dígitos contra `verify_operario_pin`
-RPC (service_role) que setea cookie HTTP-only `dtd_op` con `operario_id`.
+RPC (service_role) que setea cookie HTTP-only `dtd_op` con un token opaco,
+autenticado y limitado a 12 horas; el UUID desnudo ya no es una sesión válida.
 
 - **`lib/auth/operario-session.ts`** · `signInWithPin()` + `getCurrentOperario()`.
-- **Cookie**: `dtd_op` (HTTP-only, 12h, path `/m`).
+- **Cookie**: `dtd_op` (AEAD, HTTP-only, 12h, path `/m`, identidad + tenant).
 - **Re-validación**: cada server component llama `getCurrentOperario()` que
   hace SELECT contra DB para confirmar `active=true`. Si el operario se
   desactiva mid-session, la próxima request lo bota.

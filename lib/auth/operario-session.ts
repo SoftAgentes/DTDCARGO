@@ -3,25 +3,25 @@
  *
  * El operario NO usa Supabase Auth (UX: PIN 4 dígitos). En su lugar,
  * después de validar el PIN contra `verify_operario_pin`, seteamos una
- * cookie HTTP-only con el `operario_id` (uuid v4, no enumerable).
+ * cookie HTTP-only opaca y autenticada con la identidad, tenant y vencimiento.
  *
  * En cada server action, re-validamos contra DB (`getCurrentOperario`):
  *   - si la cookie falta → null
  *   - si el operario_id ya no existe o está `active = false` → null
  *
- * La cookie no está firmada con HMAC (V1). Riesgo aceptado porque:
- *   - es HTTP-only (no leíble desde JS del browser)
- *   - es uuid v4 random, no enumerable
- *   - cada request hace SELECT para validar (no puedes mantener sesión
- *     contra un operario que se desactivó)
- *
- * V2 sumar HMAC + rotation cuando salga del piloto.
+ * Una cookie UUID desnuda nunca se acepta como compatibilidad: el despliegue
+ * de SDD-0327 cierra las sesiones V1 y obliga a autenticar el PIN otra vez.
  */
 
 import { createHash } from "node:crypto";
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
+import {
+  createOperarioSessionToken,
+  isOperarioSessionSecretUsable,
+  readOperarioSessionToken,
+} from "@/lib/auth/operario-session-token";
 import type { OperarioSession } from "@/lib/studio/operario-types";
 import {
   LANG_COOKIE_MAX_AGE_DAYS,
@@ -32,6 +32,13 @@ import {
 const COOKIE_NAME = "dtd_op";
 const MODE_COOKIE_NAME = "dtd_op_mode";
 const COOKIE_MAX_AGE_SEC = 60 * 60 * 12; // 12 horas — turno del operario
+
+function operarioSessionSecret(): string | null {
+  const secret =
+    process.env.OPERARIO_SESSION_SECRET ??
+    process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return isOperarioSessionSecretUsable(secret) ? secret : null;
+}
 
 // ─────────────────────────────────────────────────────────────
 // Mode cookie helpers (Sprint F v3 · multi-rol selector "Modos")
@@ -107,6 +114,9 @@ export async function signInWithPin(
   pin: string,
   region: "cn" | "ve",
 ): Promise<OperarioSession | null> {
+  const sessionSecret = operarioSessionSecret();
+  if (!sessionSecret) return null;
+
   const admin = createAdminClient();
 
   // DTD opera con un tenant hoy. Resolverlo server-side evita que el cliente
@@ -155,11 +165,14 @@ export async function signInWithPin(
     current_mode: null,            // se setea via setOperarioMode post-login
   };
 
-  // Setear cookie HTTP-only con el operario_id
+  // Cookie autenticada y opaca. El tenant queda sellado junto con la identidad.
   const store = await cookies();
   store.set({
     name: COOKIE_NAME,
-    value: session.operario_id,
+    value: createOperarioSessionToken(
+      { operarioId: session.operario_id, tenantId: session.tenant_id },
+      sessionSecret,
+    ),
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -206,14 +219,19 @@ export async function signInWithPin(
 
 export async function getCurrentOperario(): Promise<OperarioSession | null> {
   const store = await cookies();
-  const operarioId = store.get(COOKIE_NAME)?.value;
-  if (!operarioId) return null;
+  const sessionSecret = operarioSessionSecret();
+  const identity = readOperarioSessionToken(
+    store.get(COOKIE_NAME)?.value,
+    sessionSecret,
+  );
+  if (!identity) return null;
 
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("operario_pins")
     .select("id, tenant_id, warehouse_id, display_name, display_name_cn, role, roles, region, active, tms_driver_id")
-    .eq("id", operarioId)
+    .eq("id", identity.operarioId)
+    .eq("tenant_id", identity.tenantId)
     .maybeSingle<{
       id: string;
       tenant_id: string;
