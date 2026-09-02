@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 326 specs)
+### Índice de specs (generado · 327 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -364,6 +364,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0332 | Retener la llave KMS del backup WORM junto con el bucket | done | interno |
 | 0333 | Validar la configuración completa de integraciones en Studio | done | interno |
 | 0334 | Retirar la configuración activa del Payload CMS descontinuado | done | interno |
+| 0335 | Contener el crecimiento de service_role en Portal y ordenar e… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

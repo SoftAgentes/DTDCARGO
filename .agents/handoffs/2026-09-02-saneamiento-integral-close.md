@@ -11,8 +11,8 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- Divergencia medida antes de SDD-0334: 0 detrás / 26 delante; este commit
-  agrega el paquete 27.
+- Divergencia medida antes de SDD-0335: 0 detrás / 27 delante; este commit
+  agrega el paquete 28.
 - Este lote no integra `main`; el worker publica únicamente su rama cuando el
   founder autorice el push exacto.
 
@@ -49,12 +49,15 @@ Estado: LISTO PARA PUBLICAR · BLOQUEADO ÚNICAMENTE EN EL GATE EXPLÍCITO DE PU
 26. `fix(studio): SDD-0333 — validar configuración de integraciones` — el
     commit `18f5074e`.
 27. `chore(config): SDD-0334 — retirar Payload legado` — el commit que contiene
-    este handoff.
+    el hash `4cf0c60a`.
+28. `test(portal): SDD-0335 — contener service_role` — el commit que contiene
+    este handoff y el checklist de arranque Codex.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
-SDD-0334. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
+SDD-0335. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
 ciclo de vida del bucket WORM histórico con su llave KMS, eliminan falsos verdes
-de configuración y retiran el contrato de entorno del Payload descontinuado.
+de configuración, retiran el contrato de entorno del Payload descontinuado y
+congelan la expansión de `service_role` en Portal.
 
 ## Verificación vigente
 
@@ -82,6 +85,9 @@ focal se registra en el handoff específico del cambio.
 
 SDD-0334 retira únicamente configuración local sin consumidores; no toca el
 piloto vigente de adjuntos ni variables alojadas.
+
+SDD-0335 agrega un gate de inventario para Portal y deja el backlog ejecutable
+en `docs/audits/2026-09-02-codex-arranque-checklist.md`.
 
 ## Gates alojados no cruzados
 

@@ -17,6 +17,7 @@ migraciones, contratos SQL y especificaciones SDD activas.
 | Índice y ubicación de documentos | [`docs/README.md`](docs/README.md) |
 | Especificaciones funcionales | [`docs/specs/README.md`](docs/specs/README.md) |
 | Auditorías y estado medido | [`docs/audits/`](docs/audits/) |
+| Checklist vigente de arranque Codex | [`docs/audits/2026-09-02-codex-arranque-checklist.md`](docs/audits/2026-09-02-codex-arranque-checklist.md) |
 | Cierres y continuidad entre agentes | [`.agents/handoffs/`](.agents/handoffs/) |
 
 `CLAUDE.md` sólo importa `AGENTS.md`; `AGENTS.md` es la fuente operativa.
