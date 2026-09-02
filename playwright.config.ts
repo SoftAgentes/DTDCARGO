@@ -20,7 +20,93 @@ type PlaywrightRuntimeEnvironment = Record<string, string | undefined> & {
   BASE_URL?: string;
   E2E_PORT?: string;
   E2E_START_WEB_SERVER?: string;
+  E2E_ENVIRONMENT_KIND?: string;
+  E2E_LOCAL_SUPABASE_DENY_SERVER?: string;
+  E2E_SUPABASE_DENY_PORT?: string;
+  E2E_SUPABASE_URL?: string;
+  E2E_SUPABASE_ANON_KEY?: string;
+  NEXT_PUBLIC_SUPABASE_URL?: string;
+  NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
 };
+
+type PlaywrightRuntime = ReturnType<typeof resolvePlaywrightRuntime>;
+
+const LOCAL_SUPABASE_DENY_ANON_KEY =
+  "e2e-local-anon-key-not-a-secret";
+
+function isLoopbackUrl(value: string): boolean {
+  try {
+    const { hostname } = new URL(value);
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "[::1]"
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function resolveLocalSupabaseDenyPort(
+  env: PlaywrightRuntimeEnvironment,
+  appPort: number,
+): number {
+  const configured = env.E2E_SUPABASE_DENY_PORT?.trim();
+  const port = configured
+    ? Number(configured)
+    : appPort <= 55_535
+      ? appPort + 10_000
+      : appPort - 10_000;
+
+  if (!Number.isInteger(port) || port < 1_024 || port > 65_535) {
+    throw new Error(
+      "E2E_SUPABASE_DENY_PORT debe ser un puerto entero entre 1024 y 65535.",
+    );
+  }
+  if (port === appPort) {
+    throw new Error(
+      "E2E_SUPABASE_DENY_PORT debe ser distinto de E2E_PORT.",
+    );
+  }
+  return port;
+}
+
+/**
+ * Da al `next dev` de Playwright una configuración pública coherente sin copiar
+ * secretos al worktree.
+ *
+ * El fallback apunta a un servidor local deny-only levantado por Playwright.
+ * Sólo su healthcheck responde 200; toda operación Supabase recibe un error
+ * JSON corto. No hay red externa ni backend sintético que acepte escrituras.
+ */
+export function applyPlaywrightSupabaseEnvironment(
+  env: PlaywrightRuntimeEnvironment,
+  runtime: PlaywrightRuntime,
+): boolean {
+  const publicUrl = env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const publicAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+  if (Boolean(publicUrl) !== Boolean(publicAnonKey)) {
+    throw new Error(
+      "NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY deben declararse juntas.",
+    );
+  }
+  if (publicUrl && publicAnonKey) return false;
+  if (!runtime.startWebServer || !isLoopbackUrl(runtime.baseURL)) return false;
+
+  if (env.E2E_ENVIRONMENT_KIND?.trim() === "ephemeral") {
+    env.NEXT_PUBLIC_SUPABASE_URL = env.E2E_SUPABASE_URL;
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY = env.E2E_SUPABASE_ANON_KEY;
+    return true;
+  }
+
+  const denyPort = resolveLocalSupabaseDenyPort(env, runtime.port);
+  env.E2E_LOCAL_SUPABASE_DENY_SERVER = "1";
+  env.E2E_SUPABASE_DENY_PORT = String(denyPort);
+  env.NEXT_PUBLIC_SUPABASE_URL = `http://127.0.0.1:${denyPort}`;
+  env.NEXT_PUBLIC_SUPABASE_ANON_KEY = LOCAL_SUPABASE_DENY_ANON_KEY;
+  return true;
+}
 
 export function resolvePlaywrightRuntime(
   env: PlaywrightRuntimeEnvironment = process.env,
@@ -38,7 +124,9 @@ export function preparePlaywrightRuntime(
   env: PlaywrightRuntimeEnvironment = process.env,
 ) {
   applyE2ETier3FixtureAliases(env);
-  return resolvePlaywrightRuntime(env);
+  const runtime = resolvePlaywrightRuntime(env);
+  applyPlaywrightSupabaseEnvironment(env, runtime);
+  return runtime;
 }
 
 const {
@@ -46,6 +134,10 @@ const {
   baseURL: BASE_URL,
   startWebServer: START_WEB_SERVER,
 } = preparePlaywrightRuntime();
+const START_LOCAL_SUPABASE_DENY_SERVER =
+  process.env.E2E_LOCAL_SUPABASE_DENY_SERVER === "1";
+const LOCAL_SUPABASE_DENY_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const LOCAL_SUPABASE_DENY_PORT = process.env.E2E_SUPABASE_DENY_PORT;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -84,18 +176,30 @@ export default defineConfig({
   // El destino y el arranque son decisiones distintas. Sin override se conserva
   // la compatibilidad histórica: BASE_URL describe un server externo/existente.
   webServer: START_WEB_SERVER
-    ? {
-        // Invocar el entry JS con `node` directo (no `next` a secas): en este
-        // entorno pnpm no linkea los .bin (ERR_PNPM_IGNORED_BUILDS) y `next` no
-        // queda en el PATH del shell del webServer → "next no se reconoce".
-        // Mismo patrón que scripts/verify.mjs.
-        // `node_modules` puede ser un junction compartido entre worktrees.
-        // Turbopack rechaza ese destino fuera de la raíz del checkout; Webpack
-        // conserva el aislamiento del servidor y permite ejecutar el gate.
-        command: `node node_modules/next/dist/bin/next dev --webpack --port ${PORT}`,
-        url: BASE_URL,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-      }
+    ? [
+        ...(START_LOCAL_SUPABASE_DENY_SERVER
+          ? [
+              {
+                command: `node scripts/e2e/supabase-deny-server.mjs ${LOCAL_SUPABASE_DENY_PORT}`,
+                reuseExistingServer: false,
+                timeout: 30_000,
+                url: `${LOCAL_SUPABASE_DENY_URL}/__health`,
+              },
+            ]
+          : []),
+        {
+          // Invocar el entry JS con `node` directo (no `next` a secas): en este
+          // entorno pnpm no linkea los .bin (ERR_PNPM_IGNORED_BUILDS) y `next`
+          // no queda en el PATH del webServer → "next no se reconoce".
+          // Mismo patrón que scripts/verify.mjs.
+          // `node_modules` puede ser un junction compartido entre worktrees.
+          // Turbopack rechaza ese destino fuera de la raíz del checkout;
+          // Webpack conserva el aislamiento y permite ejecutar el gate.
+          command: `node node_modules/next/dist/bin/next dev --webpack --port ${PORT}`,
+          url: BASE_URL,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+        },
+      ]
     : undefined,
 });

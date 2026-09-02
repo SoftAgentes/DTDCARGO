@@ -14,6 +14,13 @@ El config invoca el entry de Next mediante `node`. `BASE_URL` controla el
 destino y conserva compatibilidad con Preview/servidores existentes; el arranque
 se puede forzar por separado con `E2E_START_WEB_SERVER=1`:
 
+En un worktree limpio, los casos Tier 0/1 no requieren `.env.local`: si faltan
+las dos variables públicas de Supabase, Playwright levanta un servidor local
+deny-only que rechaza lecturas y escrituras sin salir a la red. Una pareja real
+se conserva intacta y los Tier 3 siguen exigiendo su branch efímero completo.
+Si el puerto auxiliar calculado estuviera ocupado, se puede declarar
+`E2E_SUPABASE_DENY_PORT` con otro puerto local libre.
+
 ```powershell
 $env:E2E_PORT = "3001"
 $env:BASE_URL = "http://localhost:3001"
