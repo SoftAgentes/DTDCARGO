@@ -63,4 +63,19 @@ describe("SDD-0349 · CI de calidad sin secretos", () => {
     expect(workflow).toMatch(/^\s+timeout-minutes: 20\s*$/m);
     expect(workflow).toMatch(/^\s+cancel-in-progress: true\s*$/m);
   });
+
+  it("fija heap explicito para TypeScript y build sin omitir sus fallos", () => {
+    const steps = workflow.split(/^      - name: /m).slice(1);
+    const configured = steps.filter((step) => /NODE_OPTIONS:/.test(step));
+
+    expect(workflow.split(/^    steps:/m)[0]).not.toContain("NODE_OPTIONS");
+    expect(configured.map((step) => step.split(/\r?\n/)[0])).toEqual([
+      "TypeScript",
+      "Build de produccion sin secretos",
+    ]);
+    for (const step of configured) {
+      expect(step).toMatch(/^        env:\r?\n          NODE_OPTIONS: "--max-old-space-size=4096"\s*$/m);
+    }
+    expect(workflow).not.toMatch(/continue-on-error|ignoreBuildErrors/);
+  });
 });

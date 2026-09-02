@@ -34,6 +34,10 @@ dependian de que cada ventana ejecutara el gate local antes de publicar.
    lectura y no persistir credenciales de checkout.
 5. Ejecutar gates locales sin secretos y terminar con el build de produccion y
    una comprobacion de arbol reproducible.
+6. Fijar `NODE_OPTIONS=--max-old-space-size=4096` únicamente en TypeScript y
+   build. El primer runner alojado agotó el heap implícito de unos 2 GiB con
+   exit 134 antes de terminar `tsc`; no fue un diagnóstico de tipos. El límite
+   no reserva 4 GiB y no se extiende a todos los procesos/workers del job.
 
 ## Gobernanza
 
@@ -52,6 +56,7 @@ dependian de que cada ventana ejecutara el gate local antes de publicar.
 - `docs/audits/2026-09-02-codex-arranque-checklist.md`
 - `.agents/handoffs/2026-09-02-ci-calidad-close.md`
 - `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`
+- `docs/audits/2026-09-02-codex-publicacion-y-preflight.md`
 
 ## Aceptacion
 
@@ -63,6 +68,26 @@ dependian de que cada ventana ejecutara el gate local antes de publicar.
   constantes, componentes, gobernanza y build corren sin secretos.
 - Una prueba de contrato falla si se elimina un gate, se agrega un secreto o se
   habilita un evento privilegiado.
+- El contrato exige el heap explícito sólo en TypeScript/build y rechaza
+  `continue-on-error` o `ignoreBuildErrors`.
+
+## Primer CI alojado y corrección de memoria
+
+El [run 33659251763](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/33659251763)
+del PR #21 instaló dependencias, pasó ESLint/frontera RSC y falló en TypeScript:
+`JavaScript heap out of memory`, exit 134, cerca de 2.040 MiB. Los pasos
+posteriores no se ejecutaron; no se presenta ese resultado como verde.
+
+La regresión nueva falló antes del ajuste (1 fallo / 5 pases) y pasó después
+(6/6). El arreglo mantiene todos los comandos, versiones, timeout y permisos.
+`tsc --noEmit --incremental false --extendedDiagnostics`, con old-space 4096,
+pasó: 3.889 archivos, 2.898.635 K de memoria y 48,84 s. El consumo excede el
+límite implícito con el que falló CI. El build aislado con el mismo ajuste pasó
+158 páginas y restauró `tsconfig.json`. Falta confirmar una nueva corrida real
+del PR; no se transforma el pase local en evidencia alojada.
+
+Referencias: [límite V8 en Node 24](https://r2.nodejs.org/dist/v24.8.0/docs/api/cli.html#--max-old-space-sizesize-in-mib)
+y [runner estándar privado](https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-private-repositories).
 
 ## Fuera de alcance
 

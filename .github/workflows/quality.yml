@@ -53,6 +53,10 @@ jobs:
         run: node scripts/check-rsc-boundary.mjs
 
       - name: TypeScript
+        # El primer runner privado agotó el heap implícito de ~2 GiB (exit 134).
+        # Límite explícito, no memoria reservada: deja margen al SO del runner.
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: pnpm typecheck
 
       - name: Edge Functions
@@ -77,6 +81,9 @@ jobs:
         run: pnpm governance:check
 
       - name: Build de produccion sin secretos
+        # Next vuelve a comprobar tipos; sus procesos Node heredan este límite.
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: node scripts/check-build.mjs
 
       - name: Confirmar arbol reproducible

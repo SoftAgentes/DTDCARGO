@@ -3,7 +3,7 @@
 Fecha: 2026-09-02
 
 Rol: worker
-Estado: CIERRE LOCAL · PUSH E INTEGRACIÓN/RELEASE CON GATES SEPARADOS
+Estado: CERRADO EN RAMA · PR EN BORRADOR · INTEGRACIÓN/RELEASE PENDIENTES
 
 ## Identidad Git
 
@@ -11,10 +11,15 @@ Estado: CIERRE LOCAL · PUSH E INTEGRACIÓN/RELEASE CON GATES SEPARADOS
 - Worktree: `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees\codex-saneamiento-integral`
 - Rama: `codex/saneamiento-integral`
 - Base auditada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`
-- HEAD actual: este commit; árbol limpio, 0 detrás / 53 delante de `origin/main`.
-- La rama remota `codex/saneamiento-integral` todavía no existe.
-- Este lote no integra `main`; el worker publica únicamente su rama cuando el
-  founder autorice el push exacto.
+- Lote funcional publicado: `a9895487d010f39edcc1c7b20915547f6a93d773`, árbol
+  limpio, 0 detrás / 53 delante de `origin/main`; local/remoto verificados 0/0.
+- Upstream: `origin/codex/saneamiento-integral`.
+- [PR #21](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21), en borrador,
+  activó la primera corrida de calidad alojada; no integra `main`.
+- El rechazo anterior de push quedó resuelto tras comprobar el remoto PRIVATE,
+  permiso ADMIN y alcance sin credenciales detectadas; el push exacto fue
+  autorizado y completado. No se hizo force-push, merge ni promoción.
+- Evidencia nueva: `docs/audits/2026-09-02-codex-publicacion-y-preflight.md`.
 
 ## Trabajo rescatado y cerrado
 
@@ -104,6 +109,8 @@ Estado: CIERRE LOCAL · PUSH E INTEGRACIÓN/RELEASE CON GATES SEPARADOS
     deploy y smoke de Cobranzas; ninguna fue aplicada.
 53. `fix(portal): SDD-0359 — aislar envíos y sus hijos por tenant` — reemplaza
     tres policies de lectura Portal en 0416; equipo, ACL y datos conservados.
+54. `fix(ci): SDD-0349 — dimensionar memoria del primer CI` — corrige el heap
+    de TypeScript/build y registra publicación, PR y preflight Cloud de lectura.
 
 Los allowlists exactos de cada cambio de comportamiento viven en SDD-0315 a
 SDD-0359. Los últimos lotes retiran la consulta externa CNE/SENIAT, alinean el
@@ -113,6 +120,12 @@ congelan la expansión de `service_role` en Portal. SDD-0336 ejecuta el primer
 slice del retiro: dos lecturas de marca dejan de depender de `service_role`.
 
 ## Verificación vigente
+
+Seguimiento CI: la regresión del límite de memoria pasó 6/6 después de fallar
+antes del ajuste. TypeScript sin caché incremental pasó 3.889 archivos con
+2.898.635 K y 48,84 s; build aislado pasó 158 páginas. Falta el resultado de la
+nueva corrida alojada. No hubo cambios en código de aplicación ni SQL en este
+seguimiento; los baselines siguientes conservan su alcance.
 
 El último `node scripts/verify.mjs` canónico terminó sin fallos de gate después
 de SDD-0357:
@@ -295,7 +308,13 @@ coherencia padre/hijo; conserva políticas internas y ACL. Pasó 37 unitarios
 focales en 6 archivos, los 157 contratos SQL y rebuild de 413 migraciones (395
 desde cero + 18 sólo-ledger). No cambia TS/TSX ni sustituye los gates alojados.
 
-## Gates alojados no cruzados
+## Gates alojados: publicación completada, release pendiente
+
+La consulta de metadatos al proyecto real el 2026-09-02 encontró 406 entradas
+de ledger. Contra los 413 archivos de `origin/main` unión checkout y corte 238:
+18 pendientes (las siguientes) y cero huérfanas posteriores al corte. Las 10
+RPC nuevas no existen en `pg_proc`. Esto resuelve la incertidumbre de lectura
+Cloud, pero no aplica migraciones ni transforma el SKIP local en un pase.
 
 - La migración `0399_revoke_truncate_anon_authenticated.sql` existe en Git y
   pasó contratos/rebuild locales; NO fue aplicada a Cloud o Producción.
@@ -332,15 +351,20 @@ desde cero + 18 sólo-ledger). No cambia TS/TSX ni sustituye los gates alojados.
 - La migración `0415_mail_logs_read_rbac.sql` completa la restricción de logs
   después de 0410 y del deploy/smoke del consumidor. SDD-0358 resolvió localmente
   el acoplamiento del release; las dos fases requieren autorización individual.
-  No se ejecutó ninguna operación alojada.
+  No se ejecutó ninguna escritura en la base alojada.
 - La migración `0416_portal_shipments_tenant_boundary.sql` pasó SQL/rebuild
   locales; NO fue aplicada. Requiere gate individual y smoke de su dominio,
   sin dependencia de una nueva RPC o versión de aplicación.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
-- No se hizo deploy ni se modificaron datos, secretos o configuración alojada.
-- No se hizo push. La autorización literal pendiente es:
-  `Autorizo git push -u origin codex/saneamiento-integral al remoto https://github.com/hailuwaycom-sketch/DTDCARGO.git`
+- Vercel creó automáticamente un Preview del SHA publicado: deployment GitHub
+  `6227630435`, `success`, `production_environment=false`. El conector Vercel
+  devolvió 404; la clasificación se comprobó en los metadatos de GitHub.
+  No se promovió producción ni se modificaron datos, secretos o configuración.
+- El PR está en borrador y no se ha fusionado. El primer CI alojado falló por
+  heap agotado en TypeScript, exit 134; SDD-0349 prepara el límite explícito de
+  memoria sin quitar checks. Falta el pase alojado de la corrección. El build
+  del preview no prueba disponibilidad de las RPC.
 
 ## Worktrees, ramas y tareas preservadas
 
@@ -354,16 +378,16 @@ desde cero + 18 sólo-ledger). No cambia TS/TSX ni sustituye los gates alojados.
 - `codex/archive-cloud-handoff-20260828` no está contenido y conserva tres commits
   documentales únicos sobre `AGENTS.md`, `README.md` y `docs/CODEX_HANDOFF.md`;
   debe mantenerse hasta preservarlos o supersederlos deliberadamente.
-- Este worktree NO se puede retirar todavía: su rama aún no está publicada ni
-  integrada/contenida en `origin/main`.
+- Este worktree NO se puede retirar todavía: su rama ya está publicada, pero
+  no está integrada/contenida en `origin/main` y conserva el carril activo.
 - No se detectaron otras tareas Codex activas de DTDCargo que deban archivarse.
 
 ## Próximo cierre seguro
 
-1. Recibir la autorización literal de push indicada arriba.
-2. Refrescar `origin/main`, confirmar divergencia y publicar únicamente
-   `codex/saneamiento-integral`.
-3. Validar la rama remota y preparar compatibilidad de app/migraciones antes
+1. Completar y revisar la corrida alojada del PR #21. Push y verificación de
+   la rama remota ya están hechos.
+2. Mantener la rama en borrador mientras existan dependencias de base ausentes.
+3. Preparar compatibilidad de app/migraciones antes
    del merge que puede disparar deploy; 0410 es sólo expansión desde SDD-0358.
 4. Aplicar individualmente las dependencias con OK específico y el runbook;
    verificar las RPCs antes de desplegar sus consumidores. Integración y deploy

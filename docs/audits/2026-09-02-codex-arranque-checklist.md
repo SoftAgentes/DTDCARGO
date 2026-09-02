@@ -19,17 +19,29 @@ refrescarse antes de cualquier operación Git o alojada.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Rama de saneamiento actual: el commit que contiene este checklist, con árbol
-  limpio, 0 detrás / 53 delante; la rama remota todavía no existe.
+- Rama de saneamiento publicada: `codex/saneamiento-integral` en
+  `a9895487d010f39edcc1c7b20915547f6a93d773`, 0 detrás / 53 delante de
+  `origin/main`; local y remoto coincidían 0/0 al publicar el lote funcional.
+- [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
+  no integrable todavía. Primera corrida de `Calidad continua` falló por heap
+  agotado en TypeScript; corrección de SDD-0349 pendiente de revalidación alojada.
+- Vercel: deployment `6227630435` de GitHub en **Preview**, estado `success`,
+  `production_environment=false`; no se promovió a producción.
+- Supabase: proyecto correcto `xpfuzqombmjmxvprjgmi`, `ACTIVE_HEALTHY`; 406
+  entradas de ledger. Comparación con 413 archivos y corte 238: 18 pendientes
+  (0399–0416), cero huérfanas posteriores al corte y las 10 RPC nuevas ausentes.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
 - Specs reales: 351; 257 `done`, 1 `superseded` y 93 sin cierre documental
   (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`).
 
-El paquete local y sus commits están enumerados en
-`.agents/handoffs/2026-09-02-saneamiento-integral-close.md`. No se hizo push,
-merge a `main`, Cloud, Producción ni deploy.
+El paquete y sus commits están enumerados en
+`.agents/handoffs/2026-09-02-saneamiento-integral-close.md`. La evidencia alojada
+y los límites de la medición están en
+[el acta de publicación](2026-09-02-codex-publicacion-y-preflight.md).
+Se publicó la rama y se abrió el PR; Vercel produjo automáticamente un preview.
+No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 ## Lo ya saneado localmente
 
@@ -92,19 +104,25 @@ merge a `main`, Cloud, Producción ni deploy.
 
 ## P0 · terminar el saneamiento Git y publicar
 
-- [ ] Recibir autorización literal para publicar la rama:
-  `Autorizo git push -u origin codex/saneamiento-integral al remoto https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
-- [ ] Hacer `fetch`, revalidar `origin/main`, confirmar árbol limpio y publicar
-  únicamente `codex/saneamiento-integral`.
-- [ ] Verificar la rama remota y revisar el diff publicado.
+- [x] Publicar únicamente `codex/saneamiento-integral` después de verificar
+  remoto privado, permiso ADMIN, alcance de archivos y ausencia de patrones de
+  credenciales en las líneas añadidas. La revisión de autorización permitió el
+  push exacto; el bloqueo anterior quedó resuelto.
+- [x] Verificar hash remoto, upstream correcto, 0/0 y diff de los 53 commits.
+- [x] Abrir el PR #21 en borrador, sin merge ni promoción de producción.
+- [x] Corregir el OOM del primer CI mediante límite explícito de heap sólo en
+  TypeScript/build: regresión 6/6, TypeScript sin caché (~2,8 GiB) y build de 158
+  páginas aprobados localmente. No se quitó ningún gate.
 - [ ] Confirmar en GitHub el primer resultado real del workflow
   `Calidad continua`; el contrato local no sustituye una corrida alojada.
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:
   el merge puede disparar Vercel. No publicar una app que llama RPCs ausentes.
-- [ ] Confirmar que el último commit del lote toca código para que
-  `vercel.json` no cancele el build como `doc-only`.
+- [ ] Verificar el efecto real de `ignoreCommand` antes del release: los
+  commits exclusivamente documentales no justifican forzar un build. Al
+  integrar código, confirmar que el commit final no oculte cambios funcionales
+  anteriores y que Vercel publique el SHA esperado.
 - [ ] Después de integrar, comprobar que el HEAD del worktree es ancestro de
   `origin/main`; sólo entonces retirar el worktree.
 - [ ] Actualizar el checkout principal limpio desde el remoto sin reset ni
@@ -160,9 +178,18 @@ merge a `main`, Cloud, Producción ni deploy.
   nueva ni deploy previo; la frontera sólo está corregida localmente.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
-- [ ] Confirmar deployment Vercel y smoke de público, Studio, Portal y móvil.
-- [ ] Medir ledger, grants, policies, buckets y versión real de las cuatro Edge
-  Functions sin leer PII ni filas de negocio.
+- [x] Confirmar que el deployment automático de la rama fue Preview, no
+  producción. Su estado `success` no sustituye un smoke funcional.
+- [ ] Confirmar deployment de producción y smoke de público, Studio, Portal y
+  móvil después de los gates de migración/integración.
+- [x] Medir ledger y las 10 RPC nuevas mediante metadatos, sin leer PII ni filas
+  de negocio; todas siguen ausentes. Preflight 0399: TRUNCATE en 179 tablas para
+  `anon` y 204 para `authenticated`, sobre 249 tablas de `public`.
+- [ ] Completar preflights de grants/policies por migración, buckets y versión
+  real de las cuatro Edge Functions, sin leer datos de negocio.
+- [ ] Clasificar los avisos alojados por dominio: 20 INFO y 184 WARN; no son
+  204 vulnerabilidades confirmadas. No abrir policies ni revocar RPCs
+  legítimas sólo para reducir el contador del asesor.
 
 ## P1 · seguridad por slices
 
@@ -231,8 +258,9 @@ merge a `main`, Cloud, Producción ni deploy.
 - [x] Preparar CI independiente para lint, frontera RSC, TypeScript, Edge
   Functions, unitarios, docs, numeración, constantes, componentes, gobernanza
   y build sin secretos. SDD-0349 fija actions por SHA, usa permisos de lectura y
-  lockfile congelado. Se activará al integrar el workflow en `main`; la primera
-  corrida alojada sigue siendo un gate pendiente. Docker/E2E/Cloud necesitan
+  lockfile congelado. El PR #21 activó la primera corrida alojada, que falló por
+  heap agotado en TypeScript; la corrección de memoria conserva todos los gates
+  y necesita otra corrida. Docker/E2E/Cloud necesitan
   una estrategia explícita de costo y credenciales antes de activarse en GitHub.
 - [ ] Crear bootstrap no productivo reproducible para Auth/Portal/E2E; hoy un
   clon limpio no puede ejecutar el sistema completo sólo con el repo.
@@ -257,7 +285,7 @@ merge a `main`, Cloud, Producción ni deploy.
 
 ## Orden de trabajo recomendado
 
-1. Publicar la rama y revisar el diff remoto.
+1. Completar y revisar el CI del PR #21; la rama y su diff ya están publicados.
 2. Preparar la secuencia de release con preflight por migración. SDD-0358 ya
    separó expansión y restricción de Mailing; todavía no se ejecutó el release.
 3. Con autorizaciones individuales, dejar disponibles las RPCs necesarias
@@ -274,7 +302,8 @@ merge a `main`, Cloud, Producción ni deploy.
 
 ## Stop conditions
 
-- No hay push sin la autorización literal registrada arriba.
+- Los pushes de seguimiento quedan limitados a la rama propia y al alcance
+  saneado; no incluyen `main`, force-push ni ramas ajenas.
 - No hay merge, deploy, migración, secreto o escritura de datos implícitos.
 - Un `SKIP` documenta una parte no medida; no se presenta como verde.
 - No se elimina worktree o rama mientras exista cambio no contenido o tarea
