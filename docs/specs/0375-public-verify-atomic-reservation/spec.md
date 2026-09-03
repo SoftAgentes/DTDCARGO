@@ -86,9 +86,15 @@ operario_pin_attempts; no incluye public_verify_throttle. La retención de esta
 - [x] GREEN: límites, ventana, inválidos, errores y respuesta booleana estricta.
 - [x] Concurrencia: último cupo único; otra IP independiente; rollback y espera.
 - [x] Permisos reales, invoker, aislamiento, preservación, drift y reejecución.
-- [ ] SQL general, rebuild, tipos, lint, suite y gate proporcional; informar SKIP.
-- [ ] Evidencia y conservación local selectiva; no aumentar contador original por un subpaso.
+- [x] SQL general, rebuild, tipos, lint, suite y gate proporcional; informar SKIP.
+- [x] Evidencia y conservación local selectiva; no aumentar contador original por un subpaso.
 - [ ] Aplicación 0426 y release/smoke: gates externos independientes, no autorizados.
+
+Checkpoint47b1dd0b. El gate inicial pasó 168 contratos SQL, concurrencia,
+rebuild423 y build158; falló por timeouts de worktrees. SDD-0376 corrigió ese
+arnés y la suite completa posterior pasó 6.936/6.936 con configuración original.
+E2E150/18 tuvo dos timeouts globales; migrations-applied SKIP. Evidencia
+agregada, no un segundo verify integral ni verificación de Cloud.
 
 ## Gobernanza y privacidad del delta
 

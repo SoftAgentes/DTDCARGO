@@ -21,6 +21,16 @@ de cualquier otra operación Git o alojada se deben refrescar sus precondiciones
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
+**Continuación vigente · 2026-09-03:** reserva atómica conservada localmente
+en `47b1dd0b` (SDD-0375/0426), no aplicada. Pasaron 25 unitarios focales,
+63 aserciones SQL, carreras reales, 168 contratos y rebuild423. El gate
+general detectó timeouts del arnés de worktrees. SDD-0376 reduce sus consultas
+Git de 72 a 52 conservando guards: 18 pruebas nuevas y 52 existentes aprobadas;
+suite completa posterior 6.936/6.936 en 545 archivos, 214,59 s, sin ampliar
+tiempos ni cambiar concurrencia. Build158 correcto; E2E150/18 con dos
+timeouts de cierre aún pendientes. [Reserva](2026-09-03-public-verify-atomic-local.md)
+y [correctivo del arnés](2026-09-03-worktree-git-probe-local.md).
+
 **Avance del checklist: 56 de 106 casillas completadas (52,8 %); 50 pendientes.** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
@@ -140,14 +150,16 @@ un control del usuario; la elección de la siguiente tarea local no hace falta.
 1. Reserva atómica SDD-0375/0426 implementada: 25 unitarios focales, 63
    aserciones SQL y carreras con conexiones reales aprobadas; 168 contratos
    SQL y rebuild423 correctos. El gate conjunto detectó timeouts del arnés
-   de worktrees, en diagnóstico. [Evidencia](2026-09-03-public-verify-atomic-local.md).
+   de worktrees: correctivo SDD-0376 con 18+52 focales y suite completa posterior
+   6.936/6.936 aprobados. No se repitió verify completo; E2E/Cloud mantienen
+   reservas. [Evidencia](2026-09-03-public-verify-atomic-local.md).
    La migración sigue sin aplicar y el consumidor sin publicar.
 2. Comando de soft delete Portal como slice independiente, sin abrir históricos.
 3. Diagnosticar el cierre E2E sin ocultar timeouts; revisar actualización
    compatible del fflate transitivo con contratos de replay.
 4. Continuar los inventarios RBAC/Portal, specs, logger, CSP y medición web.
 
-Se añadió **0425 preparada localmente**, además de las 24 migraciones anteriores.
+Se añadieron **0425 y 0426 preparadas localmente**, además de las 24 migraciones anteriores.
 Aplicación, nuevo push, main, despliegue, datos reales y limpieza final siguen
 fuera del permiso local. Sólo se retiró la caché regenerable analytics-check
 creada para la prueba de esta sesión, no otro worktree ni rama.

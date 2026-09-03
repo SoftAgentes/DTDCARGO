@@ -140,10 +140,16 @@ function assertClean(cwd, { ignored = false } = {}) {
   const flags = checkedGit(cwd, ["ls-files", "-v", "-z"]).split("\0").filter(Boolean);
   requireCondition(!flags.some((entry) => /^[a-zS]/.test(entry)), "El índice tiene assume-unchanged/skip-worktree; no se puede demostrar limpieza.");
   requireCondition(checkedGit(cwd, ["status", "--porcelain=v1", "--untracked-files=all"]).length === 0, "Hay cambios staged, unstaged o untracked; se conserva el checkout.");
-  for (const name of ["MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply", "BISECT_LOG"]) {
-    const statePath = checkedGit(cwd, ["rev-parse", "--git-path", name]).trim();
-    requireCondition(!existsSync(path.resolve(cwd, statePath)), "Hay una operación Git en curso.");
-  }
+  const operations = ["MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply", "BISECT_LOG"];
+  // SDD-0376: Git resuelve las seis rutas en un proceso; no inferirlas desde .git.
+  // Se repite esta lectura en ambas raíces y en las dos inspecciones del cierre.
+  const statePaths = checkedGit(cwd, [
+    "rev-parse", "--path-format=absolute", ...operations.flatMap((name) => ["--git-path", name]),
+  ]).replace(/\r?\n$/, "").split(/\r?\n/);
+  requireCondition(statePaths.length === operations.length && statePaths.every((statePath, index) =>
+    path.isAbsolute(statePath) && path.basename(statePath) === operations[index]),
+  "Git devolvió rutas de operación incompletas o ambiguas; se conserva el checkout.");
+  requireCondition(!statePaths.some((statePath) => existsSync(statePath)), "Hay una operación Git en curso.");
   if (ignored) {
     const names = checkedGit(cwd, ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"]).split("\0").filter(Boolean);
     requireCondition(names.length === 0, `Hay archivos ignorados que requieren preservación/retiro previo: ${JSON.stringify(names.slice(0, 20))}`);

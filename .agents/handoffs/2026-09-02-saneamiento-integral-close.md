@@ -7,13 +7,20 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
 
 ## Continuación vigente · reserva atómica · 2026-09-03
 
-Desde 49af6c82 se implementa SDD-0375/0426 en el mismo worktree. La carrera
+SDD-0375/0426 está conservada localmente en 47b1dd0b, mismo worktree. La carrera
 39→41 se reprodujo con dos conexiones PostgreSQL reales. El correctivo local
 pasó 25 unitarios focales, 63 aserciones SQL y concurrencia COMMIT/ROLLBACK,
 clave independiente, reloj tras lock, timeout e aislamiento. Gate conjunto
 con fallo de arnés: 2 timeouts y luego 4 en harness-worktree-safety, no fallo
-del contrato atómico; diagnóstico abierto. 168 SQL y rebuild423 aprobados.
-E2E/build en curso al guardar este checkpoint. Ver
+del contrato atómico. 168 SQL y rebuild423 aprobados. Gate exit 1 por test,
+15/16 ejecutados (Cloud SKIP), build158 correcto. E2E150/18 con dos timeouts
+globales480s aceptados con aviso, causa no demostrada.
+Correctivo local SDD-0376: 72→52 procesos Git sin relajar gates; 18 pruebas
+nuevas y 52 anteriores aprobadas. A/B tres pares: mejora16,9–32,1 %.
+Suite completa posterior 6.936/6.936, 545 archivos, 214,59 s, configuración
+original. Docs, numeración, lint focal, gobernanza y componentes aprobados.
+No se repitió verify completo: se informa evidencia proporcional agregada.
+Ver docs/audits/2026-09-03-worktree-git-probe-local.md y
 docs/audits/2026-09-03-public-verify-atomic-local.md.
 
 No cambia el estado blocked del objetivo ni se automatiza la ventana prohibida.

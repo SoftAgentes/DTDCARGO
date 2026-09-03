@@ -66,8 +66,20 @@ no prueba causal completa. No se cambió la configuración ni se ocultó el rojo
 Perfil in-process del helper en fixture sintética, dry-run, fuera de Vitest:
 72 llamadas Git, 3.801 ms, todas exitosas. El presupuesto CLI del fixture es
 10.000 ms para el conjunto; se investiga su comportamiento bajo carga antes
-de modificarlo. E2E/build del primer gate siguen en curso al conservar este
-checkpoint; no se declara cierre general ni se extrapola el gate de SDD-0374.
+de modificarlo. Ese gate terminó exit 1 por test, con 15/16 pasos ejecutados.
+E2E: 150 aprobados, 18 omitidos y dos timeouts globales de 480 s aceptados
+con aviso; su causa no se prueba por el mensaje genérico del arnés. Build
+de 158 páginas y postbuild aprobados, tsconfig restaurado.
+
+El correctivo separado SDD-0376 agrupa las seis consultas de rutas Git sin
+relajar guards: RED real 72/24 procesos, GREEN 52/4 y 18 pruebas nuevas.
+Las 52 pruebas CLI anteriores pasaron en 132,71 s. A/B emparejado en tres
+fixtures mejoró 16,9–32,1 %, sin cambios de timeout ni de concurrencia.
+La suite completa posterior pasó 6.936/6.936 en 545 archivos, 214,59 s,
+con configuración original. Docs, numeración, lint focal, gobernanza y
+componentes aprobados; [evidencia del arnés](2026-09-03-worktree-git-probe-local.md).
+Es validación proporcional agregada: no hubo un segundo verify completo.
+No se extrapola el gate histórico de SDD-0374 ni se declara cierre Cloud.
 
 ## Revisión técnica de privacidad del delta
 
