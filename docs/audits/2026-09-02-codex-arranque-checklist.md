@@ -12,8 +12,8 @@ confidencialidad: interno
 
 Este documento es el punto de entrada operativo después del traspaso desde
 Cloud. No reemplaza specs ni runbooks: ordena qué sigue, quién puede hacerlo y
-qué autorización exige. El resumen vigente se actualizó el 2026-09-03 tras
-aplicar 0400. Los puntos anteriores conservan su contexto histórico; antes
+qué autorización exige. El resumen vigente se revalidó el 2026-09-03 después de
+0400 y de la revisión del modo continuo. Los puntos anteriores conservan su contexto histórico; antes
 de cualquier otra operación Git o alojada se deben refrescar sus precondiciones.
 
 ## Snapshot comprobado
@@ -27,7 +27,7 @@ varios cambios. No existe todavía una medición defendible del producto complet
 
 | Bloque | Hecho / total | Situación |
 |---|---:|---|
-| Correcciones locales enumeradas | 27 / 27 | Implementadas/verificadas localmente; no equivale a producción |
+| Correcciones locales del checklist original | 27 / 27 | No incluye los nuevos correctivos de la tabla de continuidad; no equivale a producción |
 | Cierre Git y publicación | 15 / 22 | Lote publicado hasta 70812835 y CI verde; faltan integración y cierre |
 | Cloud y operación alojada | 6 / 32 | 0399 y 0400 aplicadas con permisos verificados; quedan 24 migraciones del paquete |
 | Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
@@ -39,7 +39,7 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último avance verificado · 2026-09-03:** aplicada únicamente 0400 con su
+**Último avance alojado verificado · 2026-09-03:** aplicada únicamente 0400 con su
 autorización nominal independiente, versión de ledger `20260903171553`.
 Las dos RPC de verificación quedaron sin EXECUTE para `anon`/`authenticated`
 y sin grant a `PUBLIC`; `service_role` y `postgres` conservan ejecución.
@@ -49,6 +49,113 @@ cuatro avisos previstos, sin nuevos avisos. No se ejecutó un QR/diploma real.
 Quedan 24 migraciones (`0401`–`0424`) y 50 casillas; no se autorizó `main`.
 [Recibo de 0400 y límites del cierre](2026-09-03-codex-cloud-0400.md).
 Los recibos y el checklist siguen locales, sin nuevo push.
+
+### Modo continuo · cola local y gates separados
+
+La revisión del 2026-09-03 conserva **56/106 (52,8 %)**. No se marcó una tarea
+como terminada por auditarla ni se convirtió este porcentaje en una estimación
+de horas o de preparación comercial. Las 50 casillas abiertas se distribuyen así:
+
+| Grupo | Casillas | Qué puede avanzar sin otro GO |
+|---|---:|---|
+| Frentes técnicos con trabajo local elegible | 6 | RBAC por dominio, policies Portal restantes, CSP, reconciliación de specs, logger/redacción y medición web; el cierre de algunos frentes todavía depende de release o datos autorizados |
+| Migraciones Cloud 0401–0424 | 24 | Revisión de archivos, contratos sintéticos y preflight de metadatos; no aplicación |
+| Integración y cierre Git | 7 | Verificar contención, divergencia, compatibilidad e ignoreCommand; no merge, nuevo push o retirada |
+| Operación, proveedores y decisiones | 13 | Preparar evidencia y verificar metadatos accesibles; no crear entornos alojados, enviar avisos, cambiar secretos/variables ni usar datos reales |
+
+**Regla de continuidad:** un gate no autorizado estaciona sólo su casilla, no
+toda la cola. Se continúa con el siguiente trabajo local elegible en esta misma
+tarea y worktree. No se pregunta qué opción elegir para cada lectura, prueba,
+contrato sintético o corrección local ya comprendida en el objetivo. Las
+decisiones externas se reúnen en un único punto de control; su agrupación no
+convierte una autorización nominal en permiso para otra migración o servicio.
+
+**Estado del objetivo en la app:** el objetivo original existe y sigue marcado
+`blocked`. La herramienta disponible no ofrece una operación de reanudación y
+rechaza crear un duplicado mientras ese objetivo esté inconcluso. No se marca
+como completo para sortear esa restricción. Se puede trabajar en esta misma
+tarea; para recuperar la continuación automática, el objetivo debe reanudarse
+desde los controles de la app, conservando los límites aquí documentados.
+
+**Orden local:** comenzar por la exclusión de las puertas de acceso de Analytics
+con tokens sintéticos, identificada en el informe actual; después avanzar por slices de RBAC/Portal, contratos y pruebas,
+reconciliación documental, observabilidad, CSP y medición web. No abrir nuevos
+módulos ni endurecer helpers globales sin inventario y contrato. Las direcciones
+de entrega Portal son un siguiente slice acotado: tres policies comparan
+Shipping Mark, y su posible cruce entre tenants debe reproducirse en Postgres
+desechable antes de declararlo fallo. No se necesitan direcciones reales.
+
+**Ejecución local por instrucción de Sam · 2026-09-03:** cuatro paquetes
+encadenados en la misma tarea, sin pedir otra elección. Estado focal:
+
+| Paquete | Resultado local | Qué no queda cerrado |
+|---|---|---|
+| SDD-0371 · Analytics | 90/90 focales, 100/100 con consentimiento y navegador con Google interceptado | Publicación y comportamiento del tag real |
+| SDD-0372 · Direcciones Portal | Cruce reproducido; 54 aserciones; 167 contratos SQL y rebuild422 correctos | Aplicación nominal0425; soft delete propio mantiene42501 previo |
+| SDD-0373 · Push | 321/321, incluidas tres autoridades URL ambiguas descubiertas en revisión | Entrega real, rebind/ownership, cotas totales de concurrencia |
+| SDD-0374 · Verificador público | 33/33; errores de lectura/escritura ahora bloquean el lookup | Cupo atómico: carrera39→41 todavía reproducible |
+
+Evidencia: [Analytics](2026-09-03-analytics-local.md),
+[Direcciones](2026-09-03-portal-delivery-addresses-local.md),
+[Push](2026-09-03-push-local.md) y
+[Verificador](2026-09-03-public-verify-local.md).
+Gate conjunto final en ejecución: lint, TypeScript, Edge, 6.926 pruebas/543
+archivos, docs, numeración, componentes y gobernanza ya correctos.
+El primer pase terminó con un typecheck
+corregido; un segundo typecheck detectó aridad de un test Push, ya corregida.
+No se ocultan esos fallos ni el E2E con un flaky y teardown incompleto.
+
+El contador original sigue **56/106**: estos correctivos de la auditoría
+posterior no eran cuatro casillas independientes de ese denominador. No se
+presenta su número de tests como porcentaje de producto ni se cierra una
+casilla amplia de Portal/RBAC por arreglar una entidad.
+
+**Continuación automática:** get_goal todavía devuelve blocked. No hay
+operación de reanudación en las herramientas de objetivos. Se inspeccionó
+la ventana expuesta por el control de escritorio, identificada como ChatGPT;
+la skill computer-use prohíbe automatizar esa aplicación. No se pulsaron
+controles, no se creó otro objetivo y no se editó el estado persistido por
+medios alternativos. Reanudar el mismo objetivo desde la app sigue siendo
+un control del usuario; la elección de la siguiente tarea local no hace falta.
+
+**Siguiente cola local definida, sin nueva ronda de opciones:**
+1. Cerrar y conservar esta tanda tras el gate conjunto.
+2. Contrato de reserva atómica del verificador y comando de soft delete Portal,
+   como slices separados; archivos/pruebas locales, nunca aplicación implícita.
+3. Revisar actualización compatible del fflate transitivo con contratos de replay.
+4. Continuar los inventarios RBAC/Portal, specs, logger, CSP y medición web.
+
+Se añadió **0425 preparada localmente**, además de las24 migraciones anteriores.
+Aplicación, nuevo push, main, despliegue, datos reales y limpieza final siguen
+fuera del permiso local. Sólo se retiró la caché regenerable analytics-check
+creada para la prueba de esta sesión, no otro worktree ni rama.
+
+**Observación Git local:** core.hooksPath en la configuración común apunta a
+la ruta antigua C:/Users/Trabajo/Desktop/DTDCargo/.git/hooks, que no existe.
+No se modificó esa configuración compartida ni se afirma que un hook haya
+ejecutado los gates: se corrieron explícitamente. Revisar su destino y los
+hooks legítimos antes de reparar la configuración durante el cierre Git.
+
+**Corte verificado:** remoto de saneamiento `70812835`, CI `33774952136` verde y
+PR #21 abierto en borrador; deployment `6247512977` en Preview, no producción.
+Worker `f61a18dc`, dos commits documentales por delante y árbol limpio al inicio
+de esta revisión; `origin/main` sigue en `2a2e81bf` y el checkout principal en
+`22cec0c2`, limpio y 20 commits detrás. Permanecen dos worktrees y las dos ramas
+de archivo, sin contención ancestral en `origin/main`. La consulta de las 50
+tareas recientes sólo mostró esta tarea de DTDCargo; no hubo fuentes inaccesibles.
+Hay 362 specs: 267 done, una superseded y 94 abiertas.
+
+**Revalidación local de este corte:** 14/15 pasos medidos; migrations-applied
+omitido por credenciales, no verde completo. Pasan 6.547 unitarios en el segundo
+intento (el primero agotó el tiempo de un CLI sintético), 166 contratos SQL,
+rebuild de421 migraciones y build de158 páginas. E2E:150 pasados/18 omitidos,
+con un worker WebKit terminado por el runner tras no cerrar durante cinco
+minutos; el arnés continuó con aviso. No equivale a smoke autenticado ni a un
+teardown perfecto. No hubo correctivos funcionales nuevos en esta auditoría.
+
+El informe de auditoría de este corte se conserva aparte del contador histórico.
+Sus hallazgos nuevos no se presentan como remediados ni se añaden silenciosamente
+al denominador. [Auditoría y límites del corte](../../AUDIT-2026-09-03.md).
 
 **Avance anterior · publicación y 0399:** los 22 commits autorizados hasta
 `70812835` están publicados en la rama y el CI `33774952136` pasó completo
@@ -587,6 +694,8 @@ están incluidos en aquel push.
   comandos ni integridad financiera. SDD-0368 cierra la cadena de identidad
   que alimenta seis policies Club, incluidos eventos de contexto club; no
   certifica todo su RBAC/integridad ni cohortes fuera de ese contexto.
+  SDD-0372/0425 cubre ahora las tres policies de direcciones, con contrato
+  sintético y sin aplicación alojada; el soft delete previo se registra separado.
   Faltan las demás entidades y permisos fuera de los contratos enumerados.
   No hacer un sweep ni declarar corregido todo el
   Portal por estos slices. Secuencias, transiciones y relación proveedor/cliente
@@ -709,11 +818,15 @@ están incluidos en aquel push.
 
 ## Orden de trabajo recomendado
 
-1. Completar el smoke de /verificar con un QR y diploma reales aprobados antes
-   de cerrar SDD-0328. Revisar después el siguiente gate nominal, 0401, sólo
-   cuando el founder amplíe el alcance; su aplicación exige un OK independiente.
-   El push hasta70812835, su CI y los permisos de 0399/0400 ya están verificados.
-2. Ejecutar, sólo con los GO correspondientes, la secuencia documentada en
+1. Continuar la cola local elegible sin pedir una elección por cada paso:
+   reproducción sintética y slices de seguridad/Portal, pruebas, documentación,
+   observabilidad, CSP y medición. Estacionar cada dependencia externa y seguir
+   con el siguiente trabajo local seguro. El push hasta70812835, su CI y los
+   permisos de 0399/0400 ya están verificados.
+2. Mantener en la cola de gates el smoke de /verificar con QR/diploma reales
+   aprobados y la aplicación nominal de0401. No bloquean la revisión local,
+   pero siguen siendo necesarios antes de cerrar sus alcances. Ejecutar,
+   sólo con los GO correspondientes, la secuencia documentada en
    el acta de release; repetir preflight por migración. SDD-0358 ya separó
    expansión y restricción de Mailing; todavía no se ejecutó el release.
 3. Con autorizaciones individuales, dejar disponibles las RPCs necesarias
@@ -729,9 +842,10 @@ están incluidos en aquel push.
    RPC o versión de aplicación. Completar Telegram
    y los demás gates alojados por separado.
 5. Limpiar worktree y rama de archivo sólo cuando estén contenidos en main.
-6. Con pagos preparado localmente, continuar sólo la siguiente rebanada
-   elegible del checklist: aislamiento Portal restante/documentos por entidad,
-   reconciliación de specs y deuda P2; no reabrir un barrido transversal.
+6. Detener el objetivo completo sólo cuando no quede trabajo local elegible,
+   exista conflicto de ownership o una incertidumbre haga inseguro continuar.
+   En ese punto, presentar juntos los permisos/decisiones pendientes; no
+   interpretar «continuo» como autorización de Cloud, main, datos o limpieza.
 
 ## Stop conditions
 

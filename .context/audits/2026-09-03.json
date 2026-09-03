@@ -1,0 +1,60 @@
+{
+  "date": "2026-09-03",
+  "composite": 76.8,
+  "dimensions": { "seguridad": 84, "datos": 50, "cache": 98, "web": 73 },
+  "findings": { "critical": 0, "high": 6, "medium": 8, "low": 3 },
+  "coverage": {
+    "owasp": "A01-A10 parcialmente; no exhaustivo",
+    "threatdb_run": "7 detectores por ID cuantificados; total automatizable no clasificado",
+    "rls_tables": "257/257 con RLS habilitado; no equivale a 257 tablas con policies",
+    "web": "hallazgos estaticos; aria-busy 19/19; E2E general separado; sin Lighthouse ni validacion focal de los hallazgos",
+    "production_business_rows": false
+  },
+  "deep_layer": { "ran": false, "resilience_score": null },
+  "snapshot": {
+    "head": "f61a18dcf2571fe585617f51137088ae2177b4dc",
+    "published_head": "708128354c36018b2fdd5f7c14136c2c4a03065d",
+    "origin_main": "2a2e81bf554dbe7bd4f05170847e8f02e988d320",
+    "worktrees": 2,
+    "unpublished_commits": 2,
+    "supabase_project": "xpfuzqombmjmxvprjgmi",
+    "cloud_ledger_entries": 408,
+    "pending_package_migrations": 24,
+    "missing_required_rpcs": 13,
+    "security_advisors": { "info": 20, "warn": 180 },
+    "performance_advisors": { "info": 490, "warn": 125 },
+    "ci_run": 33774952136,
+    "ci_conclusion": "success",
+    "deployment_id": 6247512977,
+    "deployment_environment": "Preview",
+    "production_environment": false
+  },
+  "checklist": {
+    "done": 56,
+    "total": 106,
+    "pending": 50,
+    "percent": 52.8,
+    "pending_groups": { "local_fronts": 6, "cloud_migrations": 24, "git_release_gates": 7, "operations_providers_decisions": 13 },
+    "new_audit_findings_added_to_denominator": false
+  },
+  "verification": {
+    "canonical_gate": "completed_with_skips_and_warnings",
+    "exit_code": 0,
+    "measured_steps": 14,
+    "total_steps": 15,
+    "passed_steps": ["lint", "rsc-boundary", "typecheck", "edge-functions", "test", "docs:check", "numbering", "feature-constants", "components:check", "governance:check", "sql-tests", "schema-rebuild", "e2e", "build"],
+    "skipped_steps": [{ "name": "migrations-applied", "reason": "sin credenciales deliberadamente; metadatos Cloud verificados por separado" }],
+    "unit_tests": { "passed": 6547, "files": 540, "full_suite_attempts": 2, "first_attempt_timeout": "harness-worktree-safety: upstream uses another remote; synthetic CLI ETIMEDOUT" },
+    "sql_contracts": 166,
+    "schema_rebuild": { "total_migrations": 421, "from_zero": 403, "ledger_only": 18, "tables": 219, "synthetic_tenants": 2 },
+    "e2e": { "passed": 150, "skipped": 18, "failed_tests": 0, "non_test_errors": 1, "teardown_warning": "WebKit worker did not exit within 300000ms after stop; runner force-killed it; existing absolver continued" },
+    "build": { "passed": true, "pages": 158, "postbuild": true, "tsconfig_restored": true },
+    "artifact_checks": { "json_valid": true, "local_links_checked": 26, "missing_links": 0, "diff_check": true },
+    "dependency_audit": { "critical": 0, "high": 0, "moderate": 1, "low": 0, "advisory": "GHSA-px8p-9vwx-vf98" },
+    "initial_sandbox_run": "blocked_by_EPERM_not_a_code_failure"
+  },
+  "release_authorized": false,
+  "goal": { "existing_status": "blocked", "resume_tool_available": false, "duplicate_created": false },
+  "mutations": { "cloud": false, "production": false, "push": false, "commit": false, "worktree_cleanup": false, "reports_and_checklist_only": true },
+  "next_local_slice": "Analytics: excluir rutas de acceso con tokens sinteticos; despues reproducir direcciones Portal por tenant"
+}

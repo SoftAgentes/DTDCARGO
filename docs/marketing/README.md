@@ -56,7 +56,11 @@ de alta frecuencia y 7–20 quedan marcadas como prioridad editorial hasta instr
 
 ### 📊 Analítica — GA4 + GTM
 - Sin contenedores GTM en código → **gtag.js directo**: GA4 `G-25CD7BZH98` + Ads `AW-561290482` en `components/Analytics.tsx`.
-- **GA NO carga en rutas privadas** (`/studio /portal /m /back /invitar`) → evita mandar PII a Google.
+- **Analytics local SDD-0371 (2026-09-03, sin publicar):** añade `/acceso` y
+  `/entrar` a las exclusiones existentes, protege los cambios de History y
+  bloquea eventos propios en rutas privadas aunque el tag ya esté cargado.
+  Pruebas con llaves sintéticas y Google interceptado; no certifican el proveedor
+  real ni cambian sus cuentas. [Evidencia y límites](../audits/2026-09-03-analytics-local.md).
 - ✅ **Flujo verificado en dtdcargo.com (2026-06-07):** propiedad única "dtdcargo.com" (cuenta DTD Cargo `396905128`), stream → `https://dtdcargo.com`, recibiendo datos. Cuenta vieja "DoorTuDoor" (`208873909`) = dormida.
 - **Pendiente (founder):** borrar **2 contenedores GTM sin uso** (`GTM-KWRDZS4`, `GTM-PD3JF2GW`) — no se usan (es gtag directo). Ver memoria `project_google_analytics_ga4`.
 
