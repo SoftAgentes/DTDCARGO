@@ -65,7 +65,34 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   publicación/Edge/smoke. No publicado; el webhook v14 alojado NO tiene este
   guard. No hubo push, integración, deploy ni invocación alojada.
 
-## Último punto de control · bootstrap E2E delimitado
+## Último punto de control · runbooks de worktrees saneados
+
+Sobre `900b25bbcaf25fe4098ecc0fc6e248a3ef640d2f`, vigesimoprimer incremento
+documental. Allowlist: los tres runbooks de worktrees/apertura/roles, README,
+checklist y este handoff. No cambia AGENTS, runtime, scripts, skills ni permisos.
+
+- Se retiran rutas viejas, copia automática de secretos, instrucciones universales
+  de coordinación y atajos de borrado. La guía distingue el modo autónomo/Forja
+  de AGENTS y el cierre más restrictivo de Codex, sin ampliar el GO actual.
+- Limpieza exige ruta resuelta/registrada, ausencia de sesiones activas, ownership,
+  árbol e índice limpios, publicación, contención local/remota y preservación de
+  archivos ignorados necesarios. Un fallo no habilita fallback destructivo.
+- El helper heredado existe y se leyó completo: start copia env y no congela
+  instalación; finish retira antes de comprobar contención, tiene fallback
+  recursivo y usa branch -D. No se ejecutó ni corrigió. Su corrección es la nueva
+  casilla obligatoria: 51/106 (48,1 %), 55 pendientes, sin inventar un cierre.
+- Las plantillas reducen duplicación y no crean tareas Codex por dividir una lista.
+  No se borraron archivos de proyecto: se reemplazaron guías conservando historia.
+  Sólo esta tarea aparece activa en DTDCargo; ambos worktrees se mantienen.
+- Verificación aprobada antes de commit: 22 enlaces internos, dos snippets
+  PowerShell parseados sin ejecución, recuento 51/106, docs, numeración,
+  gobernanza, componentes, diff y revisión independiente sin Required restantes.
+  No se atribuyen tests de aplicación nuevos a un delta documental.
+- Publicación sigue bloqueada sin GO exacto. No hubo push, integración, deploy,
+  migraciones ni borrado. Siguiente trabajo local: hardening del helper con SDD
+  y pruebas sobre fixtures desechables; los permisos remotos siguen separados.
+
+## Punto anterior · bootstrap E2E delimitado
 
 Sobre `1d4b1452c675b9cc4c4571eff31ae2875f587de0`, vigésimo incremento local,
 sólo documental. Allowlist: `e2e/README.md`,

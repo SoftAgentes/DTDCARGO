@@ -18,6 +18,7 @@ migraciones, contratos SQL y especificaciones SDD activas.
 | Especificaciones funcionales | [`docs/specs/README.md`](docs/specs/README.md) |
 | Auditorías y estado medido | [`docs/audits/`](docs/audits/) |
 | Checklist vigente de arranque Codex | [`docs/audits/2026-09-02-codex-arranque-checklist.md`](docs/audits/2026-09-02-codex-arranque-checklist.md) |
+| Worktrees, roles y limpieza segura | [Runbook operativo](docs/runbooks/git-worktrees-multiventana.md) y [mensajes por rol](docs/runbooks/multi-ventanas-buena-practica.md) |
 | Traspaso Cloud histórico y recuperación de ramas | [Acta y archivo Git verificado](docs/audits/2026-09-02-codex-archivo-y-recuperacion.md); evidencia histórica, no reglas actuales |
 | Cierres y continuidad entre agentes | [`.agents/handoffs/`](.agents/handoffs/) |
 

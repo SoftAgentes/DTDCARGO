@@ -19,7 +19,7 @@ refrescarse antes de cualquier operación Git o alojada.
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
-**Avance del checklist: 51 de 105 casillas completadas (48,6 %); 54 pendientes.** Es un
+**Avance del checklist: 51 de 106 casillas completadas (48,1 %); 55 pendientes.** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
 varios cambios. No existe todavía una medición defendible del producto completo.
@@ -27,7 +27,7 @@ varios cambios. No existe todavía una medición defendible del producto complet
 | Bloque | Hecho / total | Situación |
 |---|---:|---|
 | Correcciones locales enumeradas | 27 / 27 | Implementadas/verificadas localmente; no equivale a producción |
-| Cierre Git y publicación | 12 / 21 | Publicación parcial; falta lote nuevo e integración |
+| Cierre Git y publicación | 12 / 22 | Publicación parcial; falta lote nuevo, integración y corregir el helper heredado |
 | Cloud y operación alojada | 4 / 32 | Metadatos/código y avisos clasificados; aplicación y operación real pendientes |
 | Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
 | Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
@@ -38,7 +38,15 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último preflight de bootstrap:** el control plane sólo devuelve la rama
+**Último saneamiento documental:** los tres runbooks de worktrees ahora
+distinguen roles, autorizaciones y pruebas de limpieza, sin copiar secretos,
+usar rutas antiguas ni recomendar borrado forzado. `AGENTS.md` no se modificó.
+La lectura del helper existente detectó automatismos aún inseguros: se añade
+una tarea concreta para corregirlos antes de volver a usarlo. El denominador
+pasa de 105 a 106 por ese pendiente real; no se cuenta la documentación como
+una limpieza ni como corrección del script. [Guía vigente](../runbooks/git-worktrees-multiventana.md).
+
+**Preflight anterior de bootstrap:** el control plane sólo devuelve la rama
 productiva; no hay branch efímero disponible, y las siete variables E2E están
 ausentes del proceso inspeccionado. Los 18 casos existentes no cubren login
 positivo de Portal/Back/PIN. Se corrigieron inventario y secuencia en
@@ -120,7 +128,8 @@ pasó de46/101 a47/103 por una corrección local y un gate nominal pendiente.
 El arreglo posterior de qs cierra una casilla existente: **48/103**, sin cambiar
 el denominador ni sumar casillas por prueba. El cierre de revisión de metadatos
 y código alojado llevó el punto anterior a **49/103**; clasificar los avisos
-elevó el punto anterior a **50/103**. Club/0424 lleva el vigente a **51/105**.
+elevó el punto anterior a **50/103**. Club/0424 llevó el punto anterior a **51/105**.
+El pendiente del helper de worktrees lleva el vigente a **51/106**.
 SDD-0258 no está cerrado.
 
 **Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
@@ -177,6 +186,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   Ese cierre quedó en `1d4b1452`. El vigésimo incremento corrige sólo el README,
   runbook y seguimiento E2E; no implementa fixtures nuevos, publica ni aplica
   migraciones. La autorización de un SHA anterior conserva ese límite exacto.
+  Ese incremento quedó en `900b25bb`. La revisión de runbooks de worktrees
+  añade un vigesimoprimer incremento documental, sin usar el helper heredado,
+  modificar AGENTS, publicar ni borrar carpetas. Mantiene separado el GO del SHA.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -355,6 +367,13 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [ ] Obtener aprobación explícita para publicar los commits locales posteriores
   a `eabb230b` en `origin/codex/saneamiento-integral`; no reintentar mientras falte.
 - [ ] Confirmar CI de los aislamientos de Academia, Reclamos y Pagos en el SHA publicado.
+- [ ] Corregir `scripts/harness-worktree.mjs` antes de usar sus comandos mutantes
+  en Codex: retirar copia automática de `.env.local`, congelar instalación y
+  validar todos los gates de publicación/contención/ownership antes de retirar
+  una carpeta; eliminar fallback recursivo, `branch -D` y comparación permisiva
+  contra main local. Exigir SDD, pruebas negativas sobre Git desechable y revisión.
+  La inspección confirmó el riesgo; no ejecutó ni modificó ese script.
+  Mientras tanto se usa únicamente el [cierre verificado del runbook](../runbooks/git-worktrees-multiventana.md).
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:

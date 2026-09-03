@@ -1,147 +1,145 @@
-# Runbook — Worktrees: trabajar 3–4 ventanas en paralelo sin sangrado
+# Runbook — Worktrees: aislamiento, publicación y limpieza segura
 
-> **Problema que resuelve:** cuando abrís varias ventanas de Claude/VS Code sobre la **misma carpeta**, todas comparten el mismo árbol de archivos y la misma rama → los cambios sin commitear de una "ensucian" a las otras (el *sangrado*). La solución no es "más ramas": es **una carpeta por tarea** (worktree).
+Dueño: ingeniería · Estado: vigente operativo · Actualizado: 2026-09-02 · Interno.
 
----
+Esta guía explica cómo trabajar sin mezclar cambios ni perder trabajo al cerrar.
+No autoriza comandos por sí misma. La política fuente sigue en
+[`AGENTS.md`](../../AGENTS.md); los permisos concretos de la tarea y los controles
+de la herramienta también se respetan. No se modifica esa política aquí.
 
-## 1. Conceptos en 30 segundos
+## 1. Identificar el rol antes de actuar
 
-- **Rama (branch):** una línea de historia paralela. `main` es la línea oficial → **lo que se pushea a `main` deploya a producción (Vercel)**.
-- **Worktree:** una **segunda carpeta** ligada al mismo repo, parada en **otra rama**, con **sus propios archivos** y su propio estado sin commitear.
-- **Regla de oro que te protege:** no podés tener la misma rama en dos worktrees. `main` vive en UNA sola carpeta. El sangrado se vuelve **imposible por diseño**.
+`AGENTS.md` define ventanas autónomas por defecto y secundarios de Modo Forja.
+No existe una prohibición universal de publicar desde toda rama secundaria ni
+un coordinador central obligatorio para cualquier sesión. Pero tampoco una
+autorización universal para hacer push: manda el rol y el GO de la tarea.
 
-```
-1 ventana  =  1 carpeta (worktree)  =  1 rama  =  1 tarea
-```
+| Contexto | Límite |
+|---|---|
+| Sesión autónoma según `AGENTS.md` | Sólo su trabajo; publicación y cierre con autorización, sin absorber cambios ajenos |
+| Secundario de Modo Forja | Su worktree, rama, verificación y commit; nunca push ni migraciones alojadas |
+| Worker de Codex bajo `source-command-cerrar` | Commit selectivo y, con GO, push de su rama; no integra main ni se elimina a sí mismo |
+| Integración/cierre exclusivo en Codex | Operación separada del worker: integrar/publicar/limpiar sólo con autoridad y exclusividad verificadas |
 
----
+El protocolo `source-command-cerrar` puede ser más restrictivo que el flujo
+autónomo general. En ese cierre no se resuelve una divergencia con merge,
+rebase, reset o force-push: se conserva el trabajo y se entrega al integrador.
+Una instrucción antigua, un objetivo continuo o un resultado verde no amplían
+un GO limitado a cierto SHA, rama o servicio. Un rechazo de permisos no se rodea.
 
-## 2. Estructura (contenedor `DTD-worktrees\` — decisión founder)
+## 2. Ubicación e inventario
 
-Los worktrees van **agrupados en un contenedor**, NO sueltos en el Escritorio:
+En esta instalación el checkout principal es
+`C:\Users\Trabajo\Desktop\Developer\software\DTDCargo`; los worktrees viven
+en el contenedor hermano `C:\Users\Trabajo\Desktop\Developer\software\DTD-worktrees`.
+En otra máquina, obtener primero la ruta principal con `git worktree list`:
+no reutilizar rutas antiguas del Escritorio ni inventar lanes por nombre.
 
-```
-C:\Users\Trabajo\Desktop\
-├─ DTDCargo\                  → main           (integración + deploy · NO editar features acá)
-└─ DTD-worktrees\
-   ├─ brochure\               → feat/brochure  (lane Brochure)
-   └─ seo\                    → chore/seo-faq   (lane SEO / Calculadora)
-```
+Desde el checkout de la tarea, inspeccionar sin modificar archivos:
 
-- `DTDCargo\` (main) = ventana de **integración**: la ÚNICA que mergea y pushea.
-- Los worktrees **siempre afuera de `DTDCargo\`** (el contenedor lo cumple), **nunca anidados adentro** (si no, tsc/eslint/vitest del repo escanean la copia → caos).
-- **Granularidad sana:** una carpeta por **lane activo** (no por los 20 módulos), y **ramas cortas por tarea** adentro (`feat/<tema>`), mergeando a `main` seguido. Ramas largas por módulo = drift + merge hell (evitar).
-- **Clasificación (regla founder):** ante cada tarea nueva, primero se decide a qué lane/worktree pertenece (público→`seo` · brochure→`brochure` · módulo Studio nuevo→worktree nuevo); recién ahí se abre/usa esa ventana. El trabajo lo hace la ventana de ESE escritorio.
-
----
-
-## 3. Comandos exactos
-
-**Crear una carpeta-worktree con una rama nueva** (desde `DTDCargo\`):
-```
-git worktree add ../DTD-worktrees/<tema> -b feat/<tema>
-```
-
-**Dejarla lista para correr** (node_modules y `.env` NO se comparten):
-```
-cd ../DTD-worktrees/<tema>
-pnpm install
-copy ..\..\DTDCargo\.env.local .env.local
-```
-> `pnpm install` en un worktree es rápido: pnpm hardlinkea desde su store global, casi sin disco extra.
-
-**Ver todas las carpetas-worktree:**
-```
-git worktree list
+```powershell
+git rev-parse --show-toplevel
+git branch --show-current
+git status --porcelain=v2 --branch
+git diff --cached --name-status
+git diff --name-status
+git ls-files --others --exclude-standard
+git worktree list --porcelain
 ```
 
-**Commitear dentro de la carpeta** (selectivo, nunca `git add -A`):
-```
-git add <rutas de tu tarea>
-git commit -m "feat(studio): SDD-NNNN — título"
-```
+Listar también las tareas de Codex y verificar sesiones de otras herramientas
+que puedan usar esas rutas; guardar título, estado y `cwd`. Una tarea idle o
+archivada no prueba que su carpeta esté libre de procesos o trabajo único.
+Si no se puede comprobar ownership, no escribir ni retirar el worktree.
 
-**Antes de mergear, traé `main` a tu rama** (resolvés conflictos en tu rama, NO en main):
-```
-git merge main
-```
+Una tarea de escritura usa una carpeta/rama propia. Los worktrees separan
+índice y archivos de trabajo, pero comparten objetos, refs y parte de la
+configuración Git: no hacen imposible todo conflicto. Tampoco protegerían
+archivos compartidos manualmente mediante enlaces.
 
-**Mergear a main y publicar** (desde `DTDCargo\`, con tu OK — esto deploya):
-```
-cd ../DTDCargo
-git merge feat/<tema>
-git push
-```
+## 3. Preparar y verificar el trabajo
 
-**Limpiar cuando la tarea terminó:**
-```
-git worktree remove ../DTD-worktrees/<tema>
-git branch -d feat/<tema>
-```
+Para un worktree nuevo de Codex, usar prefijo `codex/`, salvo nombre pedido por
+Sam. Elegir una base remota actualizada y autorizada, un destino absoluto dentro
+del contenedor y una rama inexistente; no reutilizar una carpeta con contenido.
+`git worktree add --no-track -b <rama> <ruta> <base>` permite no heredar por
+accidente `origin/main` como upstream. Los marcadores se sustituyen por valores
+verificados; este ejemplo no crea nada ni es una orden para ejecutarlo.
 
----
+Dentro del worktree propio, instalar con `pnpm install --frozen-lockfile`.
+No copiar `.env.local` desde producción u otro checkout. Revisar `.env.example`
+y provisionar sólo las variables necesarias del entorno autorizado; PAT de
+Supabase nunca dentro del árbol, ni siquiera gitignored. Los E2E autenticados
+tienen su [runbook efímero](e2e-supabase-efimero.md).
 
-## 4. Un día de trabajo
+Declarar una allowlist antes de editar. Revisar el diff y hacer staging de
+rutas exactas, nunca `git add -A`, `git add .` ni `commit -a`. No asumir que un
+archivo es propio porque aparezca en `git status`; no alterar un índice ajeno.
+SDD/migraciones se numeran con `pnpm sdd:next`, que mira todas las refs.
+Una migración aplicada no se renumera. El índice de specs es generado.
 
-1. **Arranque (~1 min):** `git worktree add ../DTDCargo-<tema> -b feat/<tema>` → abrís esa carpeta en una ventana nueva → `pnpm install` + copiar `.env.local`.
-2. **Durante el día:** cada ventana trabaja en SU carpeta. Commits chicos y seguidos **dentro de su carpeta** (aislados, no se pisan).
-3. **Antes de cerrar:** `node scripts/verify.mjs` verde en esa carpeta → `git merge main` por si hubo cambios.
-4. **Cierre/deploy:** en `DTDCargo\` → `git merge feat/<tema>` → con tu OK `git push` (Vercel publica).
-5. **Limpieza:** `git worktree remove` + `git branch -d`.
+El gate canónico de DTD Cargo es `node scripts/verify.mjs`; ejecutar además
+las comprobaciones y build que exija el alcance o la integración. Una omisión
+`SKIP` no es verde. No lanzar builds que interfieran con otra tarea por rutina,
+ni usar comandos de otros proyectos. El cierre documental usa gates de docs,
+numeración, gobernanza, componentes y diff, sin fingir una ejecución de la app.
 
----
+## 4. Publicar no equivale a integrar, desplegar o limpiar
 
-## 5. Reglas para no chocar
+Antes de publicar, comprobar rama, SHA, ownership, remoto, upstream y
+divergencia después de refrescar referencias. Un worker publica sólo el destino
+aprobado. Si el GO cubre un SHA concreto, commits posteriores quedan fuera.
+Integrar main, aplicar migraciones y promover producción son gates separados.
+Registrar CI por SHA y efecto real de `ignoreCommand`, según `AGENTS.md`:
+un commit documental anidado puede disparar Preview, y un push no demuestra deploy.
 
-- **Cada ventana, un área distinta del código.** Los conflictos solo ocurren si dos ramas editan las **mismas líneas del mismo archivo**.
-- **Archivos compartidos = una sola ventana los toca:** `AGENTS.md`, el sidebar, y sobre todo `docs/specs/README.md` (se autogenera con `pnpm docs:index`) → que los regenere solo la ventana de integración (`main`), después de mergear.
-- **Numeración (specs y migraciones): NO la adivines.** Cada rama toma el siguiente libre mirando **todas** las ramas, y para eso hay herramienta:
-  ```
-  pnpm sdd:next                          # próximo libre de spec y de migración (hace fetch)
-  pnpm sdd:next --reserve <slug>          # prepara la reserva; te imprime el push
-  ```
-  El **29-jul-2026 hubo cuatro colisiones en un día**, y una fue *después* de chequear `origin/main`: entre numerar y pushear pasaron horas y otra ventana se llevó el número. Por eso, si el trabajo va a durar, **reservá**: la reserva publica en `main` un `spec.md` stub con ese número, que es lo que lo hace visible para las demás ventanas. **Un commit vacío no reserva nada** (el escaneo mira carpetas, no mensajes de commit).
+Dejar handoff propio en `.agents/handoffs/YYYY-MM-DD-<slug>-close.md` con rutas,
+commits, pruebas, omisiones y operaciones pendientes. No declarar cierre completo
+ni archivar una tarea bloqueada sin continuidad. El próximo responsable debe
+poder retomar sin acceder a secretos o memoria personal.
 
-  Si igual chocan, el paso `numbering` de `verify.mjs` lo caza al mergear. **La que se mueve es la que NO está en `main`.** ⚠️ Una migración **ya aplicada** no se renumera nunca.
-- **Mergeá seguido y chico.** Una rama que vive días se aleja de `main` y acumula conflictos.
-- **El push/deploy sale SOLO de `main`**, desde `DTDCargo\`, con tu OK.
-- **Namespace de memoria:** abrir Claude en una carpeta-worktree usa una **memoria propia** (el `MEMORY.md` del proyecto se indexa por ruta y NO viaja; el `AGENTS.md`/`CLAUDE.md` sí, viven en el repo). El trabajo que se apoya fuerte en memoria conviene hacerlo desde `DTDCargo\` (integración).
-- **Footgun de upstream:** si creás la rama desde `origin/main` (`-b X origin/main`) queda *trackeando* `main` → un `git push` pelado puede publicar. Correr `git branch --unset-upstream` en la rama nueva.
+## 5. Retirar un worktree: todas las condiciones son obligatorias
 
----
+En Codex bajo `source-command-cerrar`, la limpieza pertenece al cierre
+integrador exclusivo. En modo autónomo se aplica el rol y el GO de `AGENTS.md`:
+la sesión puede cerrar su propio trabajo, sin imponerle un coordinador central.
+En ambos casos se opera desde fuera del candidato y se exige, para **cada**
+carpeta, demostrar antes de borrarla:
 
-## 6. Limpieza de ramas viejas (evita la "confusión de ramas")
+1. Ruta absoluta resuelta, exactamente registrada por Git, distinta del checkout
+   principal y dentro del contenedor esperado. Resolver enlaces; ante duda, parar.
+2. Ninguna tarea/sesión/proceso activo usa ese `cwd` y el ownership está claro.
+3. Árbol e índice limpios, incluidos untracked. Inventariar también archivos
+   ignorados por nombre: un bundle, handoff o archivo único no es basura por estar
+   ignorado. Preservar lo necesario en un destino durable autorizado, sin Git para secretos.
+4. Publicación comprobada: upstream correcto y `rev-list --left-right --count`
+   entre upstream y rama da `0 0`, o evidencia remota equivalente del SHA exacto.
+5. El HEAD del candidato es ancestro de main publicado y del main local desde
+   donde se cierra. Refrescar refs y comprobar el SHA remoto; main local atrasado,
+   una rama sólo commiteada o `branch --merged` por sí solos no bastan.
+6. Handoff, snapshots y evidencia necesarios ya están contenidos o preservados.
 
-Antes de borrar, mirá si está mergeada:
-```
-git branch --merged main          # las que listа acá ya están integradas → seguras de borrar
-git log --oneline main..<rama>    # qué tiene una rama que aún no está en main
-```
-- Mergeada → `git worktree remove ../<carpeta>` (si tiene) + `git branch -d <rama>`.
-- No mergeada y ya no sirve → `git branch -D <rama>` (la `D` mayúscula fuerza; usar a conciencia).
-- Evitá el botón "↑ Push" que crea ramas `preview/<fecha>` automáticas — son las que ensucian la lista.
+Sólo con esas pruebas y autorización, ejecutar `git worktree remove -- <ruta>`
+desde el checkout principal, sin `--force`. Comprobar que desapareció del
+inventario **y** del disco. Después, revisar `git worktree prune --dry-run`:
+no podar entradas ajenas o de rutas temporalmente inaccesibles. Podar únicamente
+cuando los candidatos residuales estén identificados y autorizados.
 
----
+La rama local se retira con `git branch -d <rama>` sólo tras comprobar su
+contención; la remota se conserva salvo autorización explícita de borrado.
+Si cualquier paso falla, detenerse y registrar `LIMPIEZA BLOQUEADA`. No usar
+borrado recursivo, robocopy, `git clean`, reset, force-push o `branch -D` como
+atajo. Recuperar la incertidumbre es preferible a destruir evidencia.
 
-## 7. Verificación (que quedó bien)
+## 6. Herramienta heredada: no confundir existencia con cierre seguro
 
-1. `git worktree list` → una carpeta por lane, cada una en su rama, ninguna repetida.
-2. En una carpeta de feature: hacés un cambio → `git status` lo ve. En `DTDCargo\` → `git status` **NO** lo ve. (Aislamiento confirmado.)
-3. `node scripts/verify.mjs` verde **dentro de cada worktree** (tras `pnpm install`).
+`scripts/harness-worktree.mjs` **sí existe**; no es una pieza pendiente de crear.
+Su `start` usa `feat/`, copia `.env.local` e instala sin lockfile congelado.
+Su `finish` intenta retirar la carpeta antes de comprobar contención, tiene un
+fallback recursivo y puede borrar la rama con `-D`. No verifica tareas activas.
+Por tanto, **sus comandos mutantes no implementan este cierre seguro de Codex**.
+No utilizarlos aquí. Su adaptación requiere cambio de código y pruebas aparte;
+esta revisión documental no afirma haberlos corregido ni ejecutado.
 
----
-
-## 8. Futuro: automatizarlo en el harness
-
-Decisión tomada: que el harness `/feature` gestione el ciclo de vida del worktree, respetando la regla *"nada se mergea/pushea sin OK del founder"*:
-
-```
-  AUTO (local, seguro):  crear worktree+rama · pnpm install · correr el loop implement→verify→review
-  TU OK (sigue gated):   commit · merge a main · push
-```
-
-Piezas a construir cuando se retome:
-1. `scripts/harness-worktree.mjs` → `start <slug>` (crea worktree+rama+install) / `finish <slug>` (merge local + `worktree remove` + `branch -d`, **sin push**).
-2. `.claude/commands/feature.md` worktree-aware: Step 1 invoca `start`; Step 5 (APPROVED) propone `finish`. Los agentes `leader`/`implementer`/`reviewer` no cambian.
-
-> El gate `node scripts/verify.mjs` ya corre desde cualquier `cwd`, así que funciona dentro de un worktree tras `pnpm install`.
+Mensajes de apertura/cierre por rol: [multi-ventanas](multi-ventanas-buena-practica.md).
+Estado del saneamiento: [checklist de arranque](../audits/2026-09-02-codex-arranque-checklist.md).
