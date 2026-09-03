@@ -19,7 +19,7 @@ refrescarse antes de cualquier operación Git o alojada.
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
-**Avance del checklist: 49 de 103 casillas completadas (47,6 %); 54 pendientes.** Es un
+**Avance del checklist: 50 de 103 casillas completadas (48,5 %); 53 pendientes.** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
 varios cambios. No existe todavía una medición defendible del producto completo.
@@ -28,7 +28,7 @@ varios cambios. No existe todavía una medición defendible del producto complet
 |---|---:|---|
 | Correcciones locales enumeradas | 26 / 26 | Implementadas/verificadas localmente; no equivale a producción |
 | Cierre Git y publicación | 12 / 21 | Publicación parcial; falta lote nuevo e integración |
-| Cloud y operación alojada | 3 / 31 | Metadatos/código revisados; aplicación y operación real pendientes |
+| Cloud y operación alojada | 4 / 31 | Metadatos/código y avisos clasificados; aplicación y operación real pendientes |
 | Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
 | Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
 | Orden del producto/documentación | 4 / 12 | qs del tooling corregido; faltan specs y decisiones de producto |
@@ -38,13 +38,19 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último avance local:** SDD-0367 corrige el webhook Kommo para omitir conexiones
+**Último avance:** los 204 avisos de seguridad alojados quedaron clasificados
+en 19 dominios: 20 INFO y 184 WARN, correspondientes a 162 funciones, 20 tablas
+y una extensión. Inventario íntegro y revisión independiente aprobados.
+Esto cierra la casilla de clasificación, no la remediación: no se cambió ningún
+permiso, policy, función ni dato alojado. [Triaje y evidencia por objeto](2026-09-02-codex-triaje-advisors.md).
+
+**Último correctivo local:** SDD-0367 corrige el webhook Kommo para omitir conexiones
 disabled/desconocidas antes de Vault y mutaciones, sin romper la recuperación
 error→active. Una desactivación en vuelo ya no se revierte al finalizar.
 25 regresiones específicas, suite completa6.441/538, Deno4/4, TypeScript del
 test, gates documentales/gobernanza y revisión independiente aprobados.
 No cancela efectos previamente admitidos. Es avance parcial de la casilla
-Kommo: **sigue49/103**, sin nuevo denominador. No publicado ni desplegado.
+Kommo: mantuvo entonces el49/103, sin nuevo denominador. No publicado ni desplegado.
 [Contrato, pruebas y revisión acotada de privacidad](../specs/0367-kommo-webhook-disabled-connection/spec.md).
 
 **Avance anterior:** los dos avisos moderados de qs del tooling quedaron
@@ -79,7 +85,8 @@ con Auth/Storage real.
 pasó de46/101 a47/103 por una corrección local y un gate nominal pendiente.
 El arreglo posterior de qs cierra una casilla existente: **48/103**, sin cambiar
 el denominador ni sumar casillas por prueba. El cierre de revisión de metadatos
-y código alojado lleva el punto vigente a **49/103**. SDD-0258 no está cerrado.
+y código alojado llevó el punto anterior a **49/103**; clasificar los avisos
+eleva el punto vigente a **50/103**. SDD-0258 no está cerrado.
 
 **Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
 integrar, 25 migraciones del paquete sin aplicación autorizada y trabajo de
@@ -119,6 +126,10 @@ se borra mientras conserve trabajo sin publicar/integrar.
   El guard y regresiones de SDD-0367 añaden un decimoquinto incremento local
   sobre f761c278, sin publicar ni modificar el remoto/main. Necesita CI propio
   y una autorización que cubra el SHA final exacto; no hereda un GO anterior.
+  Ese correctivo quedó en `a2456aa2`. El triaje de avisos añade un decimosexto
+  incremento exclusivamente documental sobre ese SHA: no reintenta el push,
+  no modifica `main` ni aplica cambios alojados. La autorización de publicación
+  debe nombrar el SHA final y considerar que puede generar Preview.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -387,9 +398,12 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   explícitas: 0399→0410 y 0407→0411. Se mantiene la repetición de gates al aplicar,
   con cada GO nominal; no se marcaron smokes o despliegues como completados.
   [Acta de preflight](2026-09-02-codex-release-preflight.md).
-- [ ] Clasificar los avisos alojados por dominio: 20 INFO y 184 WARN; no son
-  204 vulnerabilidades confirmadas. No abrir policies ni revocar RPCs
-  legítimas sólo para reducir el contador del asesor.
+- [x] Clasificar los avisos alojados por dominio: 20 INFO y 184 WARN en 19
+  dominios; no son 204 vulnerabilidades confirmadas. Se cruzaron 162 funciones,
+  20 tablas y una extensión con metadatos y 341 referencias locales; snapshot
+  íntegro y revisión independiente aprobados. No abrir policies ni revocar RPCs
+  legítimas sólo para reducir el contador. No se hizo remediación alojada.
+  [Clasificación, próximos gates y límites](2026-09-02-codex-triaje-advisors.md).
 
 ## P1 · seguridad por slices
 

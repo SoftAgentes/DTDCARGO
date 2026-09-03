@@ -45,7 +45,7 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   `docs/audits/2026-09-02-codex-release-preflight.md`. Checklist48/103 sin inflar.
   Ese correctivo quedó en `f12ed8ae`. El cierre siguiente, sólo documental,
   completa 94 columnas/tipos en 16 relaciones, ACL y comparación/auth de las
-  cuatro Edge alojadas. Resultado vigente: 49/103 (47,6 %), 54 pendientes.
+  cuatro Edge alojadas. Resultado entonces: 49/103 (47,6 %), 54 pendientes.
   Dependencias de release 0399→0410 y 0407→0411 explícitas; ninguna aplicada.
   Se conservan los helpers Edge anteriores sin redesplegar: el delta detectado
   está fuera de los helpers llamados por esas entradas. No equivale a smoke.
@@ -61,9 +61,41 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   GREEN25/25; suite6.441/538, Deno4/4, tipos del test, docs/numeración/gobernanza/
   componentes y revisión independiente aprobados. Sin SQL nuevo ni cambios en
   otras Edge. Privacidad revisada sólo en este delta, sin datos reales.
-  Sigue49/103(47,6%);359 specs,92 abiertas. La spec0367 sigue in-progress por
+  Mantuvo49/103(47,6%);359 specs,92 abiertas. La spec0367 sigue in-progress por
   publicación/Edge/smoke. No publicado; el webhook v14 alojado NO tiene este
   guard. No hubo push, integración, deploy ni invocación alojada.
+
+## Último punto de control · clasificación de avisos alojados
+
+El correctivo Kommo quedó en `a2456aa24ded1ac9974181ce2d9babd340bd216d`.
+Este decimosexto incremento local sólo documenta el triaje y actualiza el
+checklist: **50/103 (48,5 %), 53 pendientes**. El denominador no cambió.
+Cloud/operación pasa de3/31 a4/31 por clasificación, no por remediación.
+
+- Advisor observado en `xpfuzqombmjmxvprjgmi` el2026-09-03 a00:09:55 UTC
+  (2026-09-02,20:09:55 Caracas): 204 claves únicas,20 INFO y184 WARN.
+- Inventario:162 funciones distintas,20 tablas y1 extensión,19 dominios.
+  Las21 funciones con aviso anon también tienen aviso authenticated.
+  Nueve son triggers; no se cuentan como RPC ordinarias.
+- Las20 tablas tienen RLS sin policies y no tienen SELECT a nivel tabla para
+  anon/authenticated; no se midieron grants de columna. Cuatro conservan
+  TRUNCATE, vinculado al gate0399; no se demostró un vector API de TRUNCATE.
+  Verificación pública conserva el gate0400 y pagos respeta0421/0422/0423.
+  pg_net no es relocatable; no se ejecuta el traslado genérico del advisor.
+- Verificación: JSON válido, firmas/roles/categorías/objetos emparejados,
+  341 referencias locales válidas (179 menciones RPC,162 CREATE), anexo y
+  agregados íntegros. Revisión independiente aprobada; se precisaron la
+  diferencia entre funciones/endpoints y el alcance de SELECT a nivel tabla.
+- Snapshot:213.771 bytes, SHA-256
+  `8402922847e5de057e7e0b10e2ef7fd8ed38e43fc3ec46020165be62e965452a`.
+  Informe:`docs/audits/2026-09-02-codex-triaje-advisors.md`;
+  datos:`docs/audits/assets/2026-09-02-advisors-security.json`.
+- Allowlist: esos dos archivos, el checklist de arranque y este handoff.
+  Sin runtime, SQL nuevo, lecturas de negocio/PII, invocaciones de RPC,
+  escrituras alojadas, supresiones, push, merge, migraciones o deploy.
+  El CI remoto anterior no cubre los16 incrementos locales. Se requiere
+  aprobación del SHA final/destino; el push puede generar Preview por el
+  handoff anidado. No se reintentó la publicación rechazada.
 
 ## Trabajo rescatado y cerrado
 
