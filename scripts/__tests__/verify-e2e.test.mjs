@@ -9,7 +9,7 @@
 import net from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  absuelveCorrida,
+  classifyE2EReport,
   candidatosDePuerto,
   primerPuertoLibre,
   PUERTO_BASE,
@@ -101,22 +101,22 @@ describe("primerPuertoLibre", () => {
   });
 });
 
-describe("absuelveCorrida", () => {
-  it("absuelve la corrida que pasó entera y salió ≠0 (worker de WebKit)", () => {
-    expect(absuelveCorrida({ expected: 150, unexpected: 0 })).toBe(true);
+describe("clasificación sin absoluciones por contadores", () => {
+  it("no atribuye a WebKit una salida fallida con expected positivo", () => {
+    expect(classifyE2EReport(1, { stats: { expected: 150, unexpected: 0 } }).status).toBe("fail");
   });
 
   it("🔴 NO absuelve una corrida de CERO tests — es el bug que tapó el del puerto", () => {
     // Sin webServer, Playwright sale 1 con expected:0 y unexpected:0. Antes eso
     // caía en la misma rama que "pasaron todos" y salía verde.
-    expect(absuelveCorrida({ expected: 0, unexpected: 0 })).toBe(false);
+    expect(classifyE2EReport(1, { stats: { expected: 0, unexpected: 0 } }).status).toBe("fail");
   });
 
   it("no absuelve si falló un test de verdad", () => {
-    expect(absuelveCorrida({ expected: 149, unexpected: 1 })).toBe(false);
+    expect(classifyE2EReport(1, { stats: { expected: 149, unexpected: 1 } }).status).toBe("fail");
   });
 
   it("no absuelve sin stats", () => {
-    expect(absuelveCorrida(undefined)).toBe(false);
+    expect(classifyE2EReport(1, undefined).status).toBe("fail");
   });
 });

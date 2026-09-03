@@ -87,13 +87,14 @@ de deadlocks. No se aumenta ningún timeout para ocultar fallos.
       y rollback de auditoría. Políticas y permisos previos preservados.
 - [x] Concurrencia real: revalidación tras revocación/transferencia, dos borrados,
       commit/rollback y timeout acotado; no eventos duplicados.
-- [ ] Unitarios, tipos, lint, docs, componentes y gobernanza.
+- [x] Unitarios, tipos, lint, docs, componentes y gobernanza.
 - [x] Browser local con datos sintéticos, sin consultar filas reales.
 - [x] Evidencia y pendientes explícitos; Cloud permanece no aplicado.
 
-La suite Portal pasa27casos. El gate global tiene tres timeouts del CLI en su
-segundo intento; se conserva rojo y continúa en SDD0378. SQL169/rebuild424 y
-build158 pasan. No declarar cierre global ni release hasta completar ese gate.
+La suite Portal pasa27casos. El gate previo tuvo tres timeouts del CLI;
+SDD0378 lo ejecuta después del grupo paralelo y la suite nueva pasa7066/7066,
+550archivos,390,65s. SQL169/rebuild424 y build158 pasan. Sigue E2E con150/18
+y2errores globales, ahora correctamente rojo. No declarar cierre ni release.
 
 ## Gobernanza aplicable (evidencia final en acta)
 

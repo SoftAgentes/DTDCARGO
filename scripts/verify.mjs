@@ -25,7 +25,7 @@ import os from "node:os";
 import path from "node:path";
 import { podarTiposDeRuta, notaDePoda } from "./prune-next-types.mjs";
 import {
-  absuelveCorrida,
+  classifyE2EReport,
   candidatosDePuerto,
   primerPuertoLibre,
   PUERTO_BASE,
@@ -38,106 +38,17 @@ const fail = (m) => console.log(`${C.red}[FAIL]${C.nc} ${m}`);
 const skip = (m) => console.log(`${C.yellow}[SKIP]${C.nc} ${m}`);
 const warn = (m) => console.log(`${C.yellow}[AVISO]${C.nc} ${m}`);
 
-// Reporte JSON del e2e. Corre EN PARALELO al reporter `list` (que es el que se
-// ve en pantalla): sirve para distinguir "un test falló" de "el proceso salió
-// ≠0 sin ningún test fallado". Ver `e2eAbsolver`.
+// Reporte fresco de E2E: se conserva incluso cuando el build siguiente falla.
 const E2E_JSON = path.join(os.tmpdir(), `dtd-e2e-${process.pid}.json`);
 
-/**
- * ¿El e2e salió ≠0 SIN que fallara un solo test?
- *
- * Pasa siempre, y siempre por lo mismo: al terminar la corrida, el worker de
- * **WebKit** (`mobile-safari`, iPhone 14) no cierra en Windows. Playwright
- * espera 300 s, lo mata a la fuerza y devuelve 1 con un "1 error was not a part
- * of any test". Medido el 2026-08-09 sobre cinco corridas del gate: los SEIS
- * cuelgues venían precedidos exclusivamente por tests de `mobile-safari`, nunca
- * de chromium ni de mobile-chrome.
- *
- * Sin esto el gate re-corría la suite entera —~7 min— para llegar al mismo
- * verde. Y NO puede tapar una regresión: si un test falla de verdad,
- * `stats.unexpected` es > 0 y el paso se marca rojo igual. Lo único que absuelve
- * es un proceso que se fue mal habiendo pasado todo.
- */
-function e2eAbsolver(exitStatus) {
-  // `check-e2e.mjs` reserva el exit 2 para fallos del arnés o de su limpieza.
-  // Sólo el exit 1 de Playwright puede corresponder al teardown conocido.
-  if (exitStatus !== 1) return null;
-  let reporte;
+function classifyE2E(exitStatus) {
+  let report;
   try {
-    reporte = JSON.parse(fs.readFileSync(E2E_JSON, "utf8"));
+    report = JSON.parse(fs.readFileSync(E2E_JSON, "utf8"));
   } catch {
-    return null; // sin reporte legible no se absuelve nada
+    return { status: "fail", reason: `E2E: falta un reporte JSON legible en ${E2E_JSON}.` };
   }
-  const stats = reporte.stats;
-  if (!stats) return null;
-
-  // 🔴 Cero tests NO es verde: ver `absuelveCorrida`. Si el webServer no
-  // arrancó, `unexpected` también es 0 y la excusa de abajo describiría un
-  // caso que no ocurrió.
-  if (absuelveCorrida(stats)) {
-    const flaky = stats.flaky ? `, ${stats.flaky} flaky` : "";
-    return (
-      `e2e: ${stats.expected} tests pasaron${flaky} y ninguno falló, pero el proceso salió ≠0 — ` +
-      `es el worker de WebKit que no cierra en Windows, no una regresión. ` +
-      `No se re-corre la suite por eso.`
-    );
-  }
-
-  // Falló al menos un test. ¿Falló el CÓDIGO, o falló el NAVEGADOR en arrancar?
-  return navegadorAusente(reporte, stats);
-}
-
-// Todos los tests que Playwright marcó como fallo real, con sus mensajes de error.
-function testsFallados(nodo, acc = []) {
-  for (const spec of nodo.specs ?? []) {
-    for (const t of spec.tests ?? []) {
-      if (t.status !== "unexpected") continue;
-      const msgs = (t.results ?? [])
-        .flatMap((r) => [r.error?.message, ...(r.errors ?? []).map((e) => e.message)])
-        .filter(Boolean);
-      acc.push({ project: t.projectName ?? "?", msgs });
-    }
-  }
-  for (const hijo of nodo.suites ?? []) testsFallados(hijo, acc);
-  return acc;
-}
-
-/**
- * ¿La suite entera se cayó porque falta un navegador, no porque el código esté mal?
- *
- * El preflight `chromiumInstalled()` sólo mira si existe UNA carpeta que empiece
- * con `chromium`. Es ciego a dos cosas: a los otros motores (el config corre
- * `mobile-safari`, que es **WebKit**) y a la VERSIÓN. Playwright pide una versión
- * exacta —`webkit-2336`, no "algún webkit"—, así que basta actualizar Playwright
- * sin re-correr `playwright install` para que el preflight diga "hay navegadores",
- * la suite arranque igual y los 20 tests de `mobile-safari` fallen en seco.
- * Pasó el 2026-08-11 y mandó a buscar una regresión que no existía: el gate se
- * puso rojo por algo ajeno al cambio, que es exactamente lo que el preflight
- * existe para evitar.
- *
- * No se arregla en el preflight porque para saber qué motor necesita cada
- * proyecto habría que hardcodear el mapa nombre→navegador (`mobile-safari` →
- * webkit), y ese mapa se desincroniza del `playwright.config.ts` en silencio.
- * Acá no hace falta adivinar: se le pregunta al resultado.
- *
- * NO puede tapar una regresión. Absuelve sólo si **TODOS** los fallos son
- * "Executable doesn't exist"; con un solo fallo de aserción mezclado devuelve
- * null y el paso se marca rojo igual. Y nunca calla: nombra los proyectos que
- * se perdieron y el comando que los devuelve.
- */
-function navegadorAusente(reporte, stats) {
-  const fallos = testsFallados({ suites: reporte.suites ?? [] });
-  if (fallos.length === 0) return null;
-  const esFaltaDeNavegador = (f) => f.msgs.some((m) => m.includes("Executable doesn't exist"));
-  if (!fallos.every(esFaltaDeNavegador)) return null; // hay fallos de verdad → ROJO
-
-  const proyectos = [...new Set(fallos.map((f) => f.project))].sort();
-  return (
-    `e2e: ${stats.expected} tests pasaron y los ${fallos.length} fallos son TODOS ` +
-    `"Executable doesn't exist" — falta el navegador, no hay regresión. ` +
-    `⚠️ NO se ejecutó: ${proyectos.join(", ")}. ` +
-    `Recuperas esa cobertura con: pnpm exec playwright install`
-  );
+  return classifyE2EReport(exitStatus, report);
 }
 
 // ¿Hay navegadores de Playwright instalados? El e2e necesita al menos chromium.
@@ -363,6 +274,7 @@ const STEPS = [
   // SDD-0375: dos conexiones PostgreSQL reales; no se absuelve una carrera.
   // Comparte VERIFY_SKIP_SQL=1 y devuelve 3 si no hay Docker/imagen local.
   { name: "public-verify-concurrency", argv: ["scripts/check-public-verify-concurrency.mjs"] },
+  { name: "portal-address-concurrency", argv: ["scripts/check-portal-address-concurrency.mjs"] },
   // ¿El schema se reconstruye desde cero con lo que hay en el repo? Aplica las
   // 267 migraciones en orden sobre un Postgres limpio. Caza lo que
   // `migrations-applied` no puede (ese compara NOMBRES contra el ledger): un
@@ -378,17 +290,20 @@ const STEPS = [
   // → dos ventanas nunca colisionan. Los specs Tier-3 que piden seed se auto-omiten sin creds.
   {
     name: "e2e",
-    // `list` es lo que se ve; `json` va a un archivo y sólo lo lee `e2eAbsolver`
-    // cuando el proceso sale ≠0, para saber si de verdad falló un test.
+    // `json` acredita resultados y lifecycle incluso con exit0. Se conserva.
     // El wrapper ejecuta Playwright en `.next-verify-e2e`, restaura tsconfig y
     // limpia la salida aun si la suite falla. La caché normal `.next` no se toca.
     argv: ["scripts/check-e2e.mjs", "--reporter=list,json"],
     // E2E_PORT NO va acá: lo resuelve `e2ePreflight` en tiempo de ejecución
     // (el runner deja que el env del preflight gane sobre el del paso).
     env: { PLAYWRIGHT_JSON_OUTPUT_NAME: E2E_JSON },
-    retry: 1,
     preflight: e2ePreflight,
-    absolver: e2eAbsolver,
+    classify: classifyE2E,
+    beforeRun: () => {
+      // Nunca aceptar un JSON viejo; si no puede retirarse, fallar sin arrancar.
+      fs.rmSync(E2E_JSON, { force: true });
+      console.log(`E2E: reporte de esta corrida en ${E2E_JSON}`);
+    },
   },
   // Build de PRODUCCIÓN (SDD-0280). Va al final por lo mismo que el e2e: es el
   // paso más lento (~110 s) y no tiene sentido construir si el lint ya rompió.
@@ -424,35 +339,40 @@ for (const step of STEPS) {
       : process.env;
   const attempts = (step.retry ?? 0) + 1;
   let r;
-  let absuelto = null;
+  let decision = null;
   for (let i = 1; i <= attempts; i++) {
-    // El absolvedor lee el reporte de ESTA corrida: si quedó uno viejo, mentiría.
     try {
-      fs.rmSync(E2E_JSON, { force: true });
-    } catch {}
+      step.beforeRun?.();
+    } catch {
+      r = { status: 2 };
+      decision = { status: "fail", reason: "No se pudo preparar evidencia fresca del paso." };
+      break;
+    }
     r = spawnSync(process.execPath, step.argv, { stdio: "inherit", cwd: process.cwd(), env });
     // Un SALTO no se reintenta: falta Docker/Deno/credenciales, y eso no cambia
     // por correrlo de nuevo — sólo imprimiría el mismo [SKIP] dos veces.
-    if (r.status === 0 || r.status === EXIT_SKIPPED) break;
-    // Antes de gastar un reintento: ¿el proceso se fue mal habiendo pasado todo?
-    absuelto = step.absolver ? step.absolver(r.status) : null;
-    if (absuelto) break;
+    if (r.status === EXIT_SKIPPED && !step.classify) break;
+    decision = step.classify?.(r.status) ?? null;
+    if (decision?.status === "pass" || decision?.status === "skip"
+      || (!decision && r.status === 0)) break;
     if (i < attempts) {
       console.log(`${C.dim}   ${step.name} falló (exit ${r.status ?? "señal " + r.signal}) → reintento ${i}/${attempts - 1} (flaky conocido)${C.nc}`);
     }
   }
-  if (r.status === EXIT_SKIPPED) {
+  if (r.status === EXIT_SKIPPED && !step.classify) {
     // El hijo se auto-omitio (sin Docker, sin Deno, sin credenciales). Antes
     // salia 0 y aca se imprimia [OK]: el gate no podia distinguir "paso" de
     // "no corrio", y un cierre declaraba TODO VERDE con pasos apagados.
     skipped.push({ name: step.name, reason: "no se midio (ver su [SKIP] arriba)" });
     warn(`${step.name}: OMITIDO — no se midio`);
-  } else if (r.status === 0) ok(step.name);
-  else if (absuelto) {
-    // Amarillo, no verde: pasó, pero que se vea que hubo una anomalía.
-    warn(absuelto);
-    ok(`${step.name} (con aviso)`);
+  } else if (decision?.status === "skip") {
+    skipped.push({ name: step.name, reason: decision.reason });
+    skip(`${step.name}: ${decision.reason}`);
+  } else if (decision?.status === "pass" || (!decision && r.status === 0)) {
+    if (decision) console.log(decision.reason);
+    ok(step.name);
   } else {
+    if (decision) warn(decision.reason);
     fail(`${step.name} (exit ${r.status ?? "señal " + r.signal})`);
     failures.push(step.name);
   }

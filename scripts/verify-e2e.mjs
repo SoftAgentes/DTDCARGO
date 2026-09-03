@@ -1,7 +1,7 @@
 /**
  * Las dos decisiones del paso `e2e` del gate, separadas de `verify.mjs` para
- * poder PROBARLAS: qué puerto usa el dev server, y cuándo se absuelve una
- * corrida que salió ≠0.
+ * poder PROBARLAS: qué puerto usa el dev server y si el reporte acredita una
+ * corrida completa. SDD-0378: un fallo global nunca se absuelve por sus contadores.
  *
  * Viven juntas porque fallaron juntas el 2026-08-25, y la segunda tapó a la
  * primera: el puerto cayó en un rango que Windows reserva, el dev server nunca
@@ -72,17 +72,109 @@ export function primerPuertoLibre(candidatos) {
   return Number.isInteger(p) && p > 0 ? p : null;
 }
 
+const record = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+const outcomes = ["expected", "unexpected", "flaky", "skipped"];
+const resultStatuses = ["passed", "failed", "timedOut", "skipped"];
+
+/** Lee todas las hojas; una estructura parcialmente legible no acredita cobertura. */
+function reportTests(suites, tests = []) {
+  if (!Array.isArray(suites)) throw new Error("suites inválidas");
+  for (const suite of suites) {
+    if (!record(suite)) throw new Error("suite inválida");
+    if (suite.specs !== undefined) {
+      if (!Array.isArray(suite.specs)) throw new Error("specs inválidos");
+      for (const spec of suite.specs) {
+        if (!record(spec) || !Array.isArray(spec.tests) || spec.tests.length === 0) {
+          throw new Error("tests inválidos");
+        }
+        tests.push(...spec.tests);
+      }
+    }
+    if (suite.suites !== undefined) reportTests(suite.suites, tests);
+  }
+  return tests;
+}
+
+function resultMessages(result) {
+  if (!Array.isArray(result.errors)) throw new Error("errors de resultado inválidos");
+  const errors = result.error === undefined ? result.errors : [result.error, ...result.errors];
+  if (errors.some((error) => !record(error) || typeof error.message !== "string" || !error.message.trim())) {
+    throw new Error("mensaje de error inválido");
+  }
+  return errors.map((error) => error.message);
+}
+
 /**
- * ¿Se puede absolver una corrida de Playwright que salió ≠0?
- *
- * 🔴 **Cero tests NO es verde.** Antes bastaba `unexpected === 0`, y eso también
- * es cierto cuando no corrió NADA: si el `webServer` no arranca, Playwright
- * sale 1 con `expected: 0` y `unexpected: 0`. El gate lo absolvía con el texto
- * del worker de WebKit — que describe el caso OPUESTO, "pasaron todos pero el
- * proceso no cerró". Un paso que no midió tiene que salir rojo, no verde.
+ * SDD-0378. Valida salida, errores globales, estructura y hojas del JSONReporter.
+ * Nunca diagnostica un motor a partir de expected/unexpected. Sólo un fallo
+ * exclusivo de lanzamiento ausente permite SKIP parcial; no acredita éxito.
  */
-export function absuelveCorrida(stats) {
-  if (!stats) return false;
-  if (stats.unexpected !== 0) return false;
-  return Number(stats.expected) > 0;
+export function classifyE2EReport(exitStatus, report) {
+  const fail = (reason) => ({ status: "fail", reason });
+  if (exitStatus !== 0 && exitStatus !== 1) return fail("E2E: salida de wrapper, señal o código no reconocido.");
+  if (!record(report) || !Array.isArray(report.errors)) return fail("E2E: reporte ausente o inválido.");
+  if (report.errors.length > 0) return fail("E2E: hay errores globales; revisar el JSON conservado.");
+  const stats = report.stats;
+  if (!record(stats) || outcomes.some((key) => !Number.isSafeInteger(stats[key]) || stats[key] < 0)) {
+    return fail("E2E: contadores ausentes o inválidos.");
+  }
+  let tests;
+  try {
+    tests = reportTests(report.suites);
+    const counts = Object.fromEntries(outcomes.map((key) => [key, 0]));
+    for (const test of tests) {
+      if (!record(test) || !outcomes.includes(test.status) || !resultStatuses.includes(test.expectedStatus)
+        || !Array.isArray(test.results) || test.results.length === 0) throw new Error("hoja incompleta");
+      counts[test.status]++;
+      for (const result of test.results) {
+        if (!record(result) || !resultStatuses.includes(result.status)) throw new Error("resultado interrumpido o inválido");
+        const messages = resultMessages(result);
+        if (["passed", "skipped"].includes(result.status) && messages.length > 0) throw new Error("errores en resultado aprobado");
+      }
+      // JSONReporter calcula el outcome con TODOS los intentos, no sólo el último.
+      // Los skipped no equivalen a un intento fallido recuperado.
+      let expected = 0;
+      let unexpected = 0;
+      let skipped = 0;
+      for (const result of test.results) {
+        if (result.status === "skipped") {
+          if (test.expectedStatus === "skipped") skipped++;
+        } else if (result.status === test.expectedStatus) expected++;
+        else unexpected++;
+      }
+      const outcome = expected === 0 && unexpected === 0 ? "skipped"
+        : unexpected === 0 ? "expected"
+          : expected === 0 && skipped === 0 ? "unexpected" : "flaky";
+      if (outcome !== test.status) throw new Error("outcome no corresponde a sus intentos");
+      const last = test.results.at(-1);
+      if (test.status === "skipped" && last.status !== "skipped") throw new Error("salto incoherente");
+      if (test.status === "expected" && (last.status !== test.expectedStatus || last.status === "skipped")) {
+        throw new Error("aprobación incoherente");
+      }
+      if (test.status === "flaky" && (last.status !== test.expectedStatus || last.status === "skipped"
+        || !test.results.slice(0, -1).some((result) => result.status !== test.expectedStatus))) {
+        throw new Error("reintento incoherente");
+      }
+      if (test.status === "unexpected" && last.status === test.expectedStatus) throw new Error("fallo incoherente");
+    }
+    if (outcomes.some((key) => counts[key] !== stats[key])) throw new Error("contadores no corresponden a hojas");
+  } catch (error) {
+    return fail(`E2E: reporte incoherente (${error.message}).`);
+  }
+  if (stats.unexpected > 0) {
+    const failedTests = tests.filter((test) => test.status === "unexpected");
+    const missingOnly = failedTests.every((test) => test.results.every((result) => {
+      const messages = resultMessages(result);
+      return result.status === "failed" && messages.length > 0
+        && messages.every((message) => /^browserType\.launch: Executable doesn't exist at [^\r\n]+/.test(message));
+    }));
+    if (exitStatus === 1 && missingOnly) {
+      const projects = [...new Set(failedTests.map((test) => test.projectName ?? "proyecto sin nombre"))].sort();
+      return { status: "skip", reason: `E2E: cobertura incompleta; falta el navegador de ${projects.join(", ")}. No es una aprobación.` };
+    }
+    return fail("E2E: hay pruebas fallidas; revisar el JSON conservado.");
+  }
+  if (exitStatus !== 0) return fail("E2E: proceso fallido aunque las hojas no declaren fallos.");
+  if (stats.expected + stats.flaky === 0) return fail("E2E: cero pruebas aprobadas no acredita una corrida.");
+  return { status: "pass", reason: `E2E: ${stats.expected} aprobadas, ${stats.flaky} recuperadas, ${stats.skipped} omitidas explícitamente.` };
 }

@@ -21,6 +21,28 @@ de cualquier otra operación Git o alojada se deben refrescar sus precondiciones
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
+**Punto vigente posterior · SDD0377/0378:** el borrado lógico Portal ya tiene
+comando auditable local0427 (commit6ae46e81),63aserciones SQL y8escenarios de
+concurrencia aprobados. Action/UI:27casos y navegador sintético en móvil y
+escritorio. Gate15/17:169SQL/rebuild424/build158 correctos; rojo por tres
+timeouts CLI, diagnosticados en0378 junto con el falso verde de E2E. La
+clasificación E2E ahora exige reporte íntegro; errores globales no son éxito.
+[Evidencia Portal](2026-09-03-portal-address-delete-local.md).
+
+| Cola local actual | Estado |
+|---|---|
+| Reserva atómica del verificador,0375 | Implementada y probada localmente |
+| Borrado lógico Portal,0377 | Implementado y probado; cierre global de tests pendiente |
+| Timeouts y veracidad del gate,0378 | En ejecución: aislamiento CLI y lifecycle E2E |
+| fflate/replay | Siguiente bloque, aún sin cambio |
+| RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
+
+La cifra original continúa56/106 (52,8%), no aumenta por subpasos nuevos.
+Las migraciones preparadas sin aplicar son ahora27 (0401–0427), derivadas
+del último ledger0400; no se hizo nueva consulta Cloud en esta continuación.
+Todos los recibos y cambios posteriores a70812835 permanecen sólo locales.
+Las secciones inferiores conservan sus fechas/alcance históricos.
+
 **Continuación vigente · 2026-09-03:** reserva atómica conservada localmente
 en `47b1dd0b` (SDD-0375/0426), no aplicada. Pasaron 25 unitarios focales,
 63 aserciones SQL, carreras reales, 168 contratos y rebuild423. El gate

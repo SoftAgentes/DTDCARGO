@@ -52,5 +52,27 @@ export default defineConfig({
      */
     testTimeout: 20_000,
     hookTimeout: 20_000,
+    // SDD0378: el CLI pasó52/52 aislado, pero agotó10s de spawn bajo la
+    // tanda paralela. Conservar todos los casos y plazos; correr sólo ese
+    // archivo después, sin reducir concurrencia del resto de la suite.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          exclude: ["scripts/__tests__/harness-worktree-safety.test.mjs"],
+          sequence: { groupOrder: 0 },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "worktree-cli",
+          include: ["scripts/__tests__/harness-worktree-safety.test.mjs"],
+          fileParallelism: false,
+          sequence: { groupOrder: 1 },
+        },
+      },
+    ],
   },
 });

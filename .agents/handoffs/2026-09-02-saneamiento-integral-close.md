@@ -5,6 +5,26 @@ Fecha: 2026-09-02 · Última actualización: 2026-09-03
 Rol: worker
 Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
 
+## Continuación actual · Portal y verificación · 2026-09-03
+
+Esta sección posterior prevalece sobre las siguientes. No se modifica el
+objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
+
+- SDD0377/0427: contrato SQL+concurrencia en6ae46e81, sólo local.
+ 63aserciones SQL,8carreras reales; ninguna fila ni migración Cloud tocada.
+ Action/UI27casos, browser sintético móvil/escritorio, histórico conservado.
+- Gate15/17,exit1 por test: primer intento RED de Cancelar, corregido;
+ segundo3timeouts CLI10s, todos los casos Portal pasan.169SQL/rebuild424,
+ tipos/lint/Edge/docs/componentes/gobernanza y build158 correctos.
+- SDD0378 en ejecución: JSON E2E fail-closed, no absolución de errores globales
+ ni reintento de suite completa; preservar reporte después del build.
+ Medición CLI aislada antes de cambiar planificación.
+- Conteo original56/106,52,8%. Ahora27migraciones preparadas0401–0427,
+ según último ledger verificado0400 (no consulta Cloud nueva).
+- Siguiente orden: cerrar0378; fflate/replay; RBAC/Portal restantes,
+ specs/logger/CSP/web. Sin nuevas elecciones de tarea.
+- Sin push nuevo, main, deploy, datos reales ni limpieza final.
+
 ## Continuación vigente · reserva atómica · 2026-09-03
 
 SDD-0375/0426 está conservada localmente en 47b1dd0b, mismo worktree. La carrera
