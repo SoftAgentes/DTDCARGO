@@ -5,7 +5,7 @@ Fecha: 2026-09-02 · Última actualización: 2026-09-03
 Rol: worker
 Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
 
-## Continuación actual · Portal y verificación · 2026-09-03
+## Continuación actual · Portal, verificación y dependencias · 2026-09-03
 
 Esta sección posterior prevalece sobre las siguientes. No se modifica el
 objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
@@ -13,16 +13,26 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
 - SDD0377/0427: contrato SQL+concurrencia en6ae46e81, sólo local.
  63aserciones SQL,8carreras reales; ninguna fila ni migración Cloud tocada.
  Action/UI27casos, browser sintético móvil/escritorio, histórico conservado.
-- Gate15/17,exit1 por test: primer intento RED de Cancelar, corregido;
- segundo3timeouts CLI10s, todos los casos Portal pasan.169SQL/rebuild424,
- tipos/lint/Edge/docs/componentes/gobernanza y build158 correctos.
-- SDD0378 en ejecución: JSON E2E fail-closed, no absolución de errores globales
- ni reintento de suite completa; preservar reporte después del build.
- Medición CLI aislada antes de cambiar planificación.
-- Conteo original56/106,52,8%. Ahora27migraciones preparadas0401–0427,
+- SDD0378 cerrado localmente: clasificación fail-closed y JSON conservado;
+ guard ESM de canales WebKit tras exit0, Safari Windows1worker y unitarios4.
+ Sin aumentar plazos ni retirar casos. Guard48+wrapper3+configSafari12 correctos.
+ E2E real3proyectos150/18,0flaky/0errores globales,211s. Gate16/17 medidos,
+ Cloud SKIP,169SQL/rebuild424 y build158. Primer intento unitario con timeout
+ conservado; se corrigió concurrencia y se midió otra vez sin reintento.
+- SDD0379 fflate0.4.9: commit ef6101c4, sólo dependencia transitiva rrweb.
+ Diez controles reales de codecs/ZIP64+dos de flags/máscaras; instalación
+ congelada y firma/integridad verificadas. pnpm audit no disponible por timeout.
+- SDD0380/0428: cotizaciones por principal activo, cliente vivo y tenant.
+ Cruce real sintético reproducido;63 SQL+31 aplicación correctos.
+ Medición conjunta posterior:7149/7149 en553archivos,421,24s sin reintento;
+170 contratos SQL y rebuild425 correctos. E2E anterior no cubre autenticación
+ Portal de esta corrección.
+- Conteo original56/106,52,8%. Ahora28migraciones preparadas0401–0428,
  según último ledger verificado0400 (no consulta Cloud nueva).
-- Siguiente orden: cerrar0378; fflate/replay; RBAC/Portal restantes,
- specs/logger/CSP/web. Sin nuevas elecciones de tarea.
+- Inventario local efectivo: ocho policies en seis tablas aún usan helpers
+ Portal antiguos. No todas declaradas vulnerables. Siguiente reproducción:
+ prealerta_service_requests, después RBAC/Portal restantes y specs/logger/CSP/web.
+ Sin nuevas elecciones de tarea.
 - Sin push nuevo, main, deploy, datos reales ni limpieza final.
 
 ## Continuación vigente · reserva atómica · 2026-09-03

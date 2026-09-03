@@ -21,24 +21,34 @@ de cualquier otra operación Git o alojada se deben refrescar sus precondiciones
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
-**Punto vigente posterior · SDD0377/0378:** el borrado lógico Portal ya tiene
-comando auditable local0427 (commit6ae46e81),63aserciones SQL y8escenarios de
-concurrencia aprobados. Action/UI:27casos y navegador sintético en móvil y
-escritorio. Gate15/17:169SQL/rebuild424/build158 correctos; rojo por tres
-timeouts CLI, diagnosticados en0378 junto con el falso verde de E2E. La
-clasificación E2E ahora exige reporte íntegro; errores globales no son éxito.
-[Evidencia Portal](2026-09-03-portal-address-delete-local.md).
+**Punto vigente posterior · SDD0377–0380:** borrado lógico Portal implementado:
+63 aserciones SQL, ocho carreras,27 casos de action/UI y navegador sintético.
+Timeouts E2E cerrados localmente:150 aprobados/18 omitidos, ningún error global
+ni flaky,211s. El gate ya rechaza errores globales y reportes incompletos.
+fflate0.4.9 conservado localmente en ef6101c4;10 pruebas de codec y dos de
+privacidad. Audit de dependencias no disponible por timeout, no certificado limpio.
+
+Cotizaciones Portal0380/0428: cruce entre tenants reproducido y corregido,
+63 aserciones SQL y31 casos de aplicación. Conjunto final:7.149/7.149 en553
+archivos,421,24s, sin reintento;170 contratos SQL y rebuild425 aprobados.
+El gate general anterior a0380 midió16/17 pasos (Cloud SKIP) y build158.
+No hay prueba autenticada contra producción ni cierre de todas las políticas.
+[Portal](2026-09-03-portal-address-delete-local.md),
+[verificación](2026-09-03-verification-lifecycle-local.md) y
+[cotizaciones](2026-09-03-portal-quotes-local.md).
 
 | Cola local actual | Estado |
 |---|---|
 | Reserva atómica del verificador,0375 | Implementada y probada localmente |
-| Borrado lógico Portal,0377 | Implementado y probado; cierre global de tests pendiente |
-| Timeouts y veracidad del gate,0378 | En ejecución: aislamiento CLI y lifecycle E2E |
-| fflate/replay | Siguiente bloque, aún sin cambio |
+| Borrado lógico Portal,0377 | Implementado; SQL, carreras, navegador sintético y suite unitaria aprobados |
+| Timeouts y veracidad del gate,0378 | Cerrado localmente; E2E150/18 sin errores globales y suite7149/7149 |
+| fflate/replay,0379 | Parche compatible y controles aprobados; commit ef6101c4 local |
+| Cotizaciones Portal,0380 | Aislamiento de lectura SQL y aplicación corregido;0428 no aplicada |
+| Solicitudes de servicios de recepción | Siguiente reproducción por inventario de políticas efectivo |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original continúa56/106 (52,8%), no aumenta por subpasos nuevos.
-Las migraciones preparadas sin aplicar son ahora27 (0401–0427), derivadas
+Las migraciones preparadas sin aplicar son ahora28 (0401–0428), derivadas
 del último ledger0400; no se hizo nueva consulta Cloud en esta continuación.
 Todos los recibos y cambios posteriores a70812835 permanecen sólo locales.
 Las secciones inferiores conservan sus fechas/alcance históricos.
