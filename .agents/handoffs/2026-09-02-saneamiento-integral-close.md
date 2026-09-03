@@ -65,11 +65,56 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   publicación/Edge/smoke. No publicado; el webhook v14 alojado NO tiene este
   guard. No hubo push, integración, deploy ni invocación alojada.
 
-## Último punto de control · principal Club coherente
+## Último punto de control · destino E2E coherente
+
+Sobre `00d972e2d69922d996d770b6abb2e682589b627a`, SDD-0369 añade el
+decimoctavo incremento local sin publicar. Conserva **51/105 (48,6 %), 54
+pendientes**: progreso parcial del bootstrap, no cierre ni nueva casilla.
+361 specs, 94 abiertas; 0369 permanece in-progress por publicación/CI y
+validación efímera real autorizada. Continúan 421 migraciones/26 gates de
+aplicación pendientes (0399–0424); esta pieza no añade SQL.
+
+- Causa: el guard aceptaba el primer label correcto con dominio ajeno; Next
+  conservaba variables de otro destino y los aliases se mutaban parcialmente.
+- Correctivo: ref DNS válido, href HTTPS exacto sin credenciales/rutas/query,
+  URL canónica, coherencia URL/anon/service-role y rechazo de deny-only efímero.
+  La preparación sólo modifica el entorno después de validar el conjunto.
+  Next local recibe la clave elevada únicamente en la variable de servidor;
+  Preview valida lo declarado, sin inyectar configuración al backend remoto.
+- RED independiente y comprobado por el principal: 23 fallos/13 controles.
+  GREEN focal: 62 pruebas/3 archivos. Suite global: 6.477/539, exit0;
+  TypeScript global, ESLint focal, numeración/gobernanza/componentes aprobados.
+  Índice generado; docs:check y diff:check forman parte del cierre selectivo.
+- CLI Playwright real con --list, proceso de entorno sintético: 18 tests en
+  4 archivos/3 proyectos. Configuración con clave incoherente falla en el
+  guard sin revelar valores. No se inició Next, navegador, seed ni cliente
+  de red. No se presume un smoke autenticado ni identidad del Preview.
+- Revisión independiente: APROBADO sin Required. No se repiten build/browser,
+  SQL/rebuild/advisors o Deno: cambia sólo tooling TS y documentación, no la
+  aplicación, base ni Edge. Se preserva la política de branches efímeros.
+- Allowlist exacta: `scripts/e2e/sdd-0168-fixture.ts`, `playwright.config.ts`,
+  `scripts/__tests__/e2e-target-boundary.test.ts`, `e2e/README.md`,
+  `docs/specs/0369-e2e-project-boundary/spec.md`, `docs/specs/README.md`,
+  `docs/audits/2026-09-02-codex-arranque-checklist.md` y este handoff.
+- La lista de 30 tareas muestra sólo `Audita y limpia worktrees`
+  (`01a05f15-80ff-77b1-9f3a-6b07d21df02d`) activa en DTDCargo. Sin cambios
+  ajenos absorbidos; checkout principal y dos ramas archive conservados.
+- El snapshot congelado de204 avisos conserva SHA-256
+  `8402922847e5de057e7e0b10e2ef7fd8ed38e43fc3ec46020165be62e965452a`.
+  No se consultó metadata/PII alojada ni se regeneró el inventario.
+- Push no reintentado; auto-review exige aprobación explícita del SHA final
+  y destino `origin/codex/saneamiento-integral`, con posible Preview.
+  El GO solicitado hasta00d972e2 no cubre automáticamente este incremento.
+  No main, merge, deploy, migración ni modificación de secretos.
+- Limpieza final bloqueada: los dos worktrees se conservan mientras haya
+  trabajo no publicado/integrado. Siguiente responsable: Sam para GO de push
+  y operaciones alojadas; después integrador exclusivo para cierre Git.
+
+## Punto anterior · principal Club coherente
 
 Sobre `c6accbcd75e05395b6bb0a55fef82f6493b9b516`, SDD-0368/0424 añade el
-decimoséptimo incremento local sin publicar: el commit que contiene este
-handoff. Checklist **51/105 (48,6 %), 54 pendientes**: una corrección local
+decimoséptimo incremento local sin publicar: `00d972e2`. Checklist
+**51/105 (48,6 %), 54 pendientes**: una corrección local
 completada y un nuevo gate nominal pendiente, no casillas por cada prueba.
 360 specs, 93 abiertas; 0368 permanece in-progress por release/smoke.
 

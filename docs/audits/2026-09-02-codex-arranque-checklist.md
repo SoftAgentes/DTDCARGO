@@ -38,7 +38,16 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último avance local:** SDD-0368/0424 cierra la incoherencia entre vínculo,
+**Último avance local:** SDD-0369 impide destinos E2E ajenos y mezcla de
+configuración entre el fixture y Next, incluida la clave sólo-servidor.
+La preparación es atómica; conserva deny-only no efímero y no inyecta claves
+al Next remoto. RED23/13 → GREEN62/62, suite completa6.477/539, TypeScript,
+ESLint, CLI con18 casos enumerados y rechazo temprano, revisión independiente
+aprobados. No se ejecutó login real ni seed; el bootstrap sigue pendiente.
+Mantiene **51/105 (48,6 %)**, sin aumentar casillas por un avance parcial.
+[Contrato y evidencia local](../specs/0369-e2e-project-boundary/spec.md).
+
+**Avance anterior:** SDD-0368/0424 cierra la incoherencia entre vínculo,
 cliente y persona que podía exponer seis lecturas de Club de otro tenant.
 Preserva acceso legítimo, membresías pausadas/canceladas, historia y permisos
 internos. Pasan 374 aserciones, 27 derivas, 166 contratos SQL y rebuild de 421 migraciones;
@@ -143,6 +152,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   Ese punto quedó en `c6accbcd`. SDD-0368/0424 añade un decimoséptimo incremento
   local, con migración, contrato y evidencia documental; no se reintenta el push
   rechazado. Una autorización limitada a c6accbcd no incluye este incremento.
+  Ese correctivo quedó en `00d972e2`. SDD-0369 añade el decimoctavo incremento
+  local: guard/configuración E2E, reproducción y evidencia. No añade SQL ni
+  reintenta push; la autorización debe cubrir el SHA final, no sólo 00d972e2.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -164,8 +176,10 @@ se borra mientras conserve trabajo sin publicar/integrar.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 360; 266 `done`, 1 `superseded` y 93 sin cierre documental
-  (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0368 está
+- Specs reales: 361; 266 `done`, 1 `superseded` y 94 sin cierre documental
+  (79 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0369 está
+  verificada localmente, pendiente de publicación/CI y validación efímera real.
+  El bootstrap no está completo. SDD-0368 está
   verificada localmente, pendiente de publicación/aplicación/smoke. SDD-0367 está
   verificada localmente, pendiente de publicación/Edge/smoke. SDD-0365 y0366
   siguen abiertas hasta verificar publicación, aplicación y smoke del release.
@@ -536,6 +550,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   una estrategia explícita de costo y credenciales antes de activarse en GitHub.
 - [ ] Crear bootstrap no productivo reproducible para Auth/Portal/E2E; hoy un
   clon limpio no puede ejecutar el sistema completo sólo con el repo.
+  SDD-0369 cierra localmente el guard de destino y la coherencia de variables
+  del arnés; la selección CLI de18 casos no es una ejecución autenticada.
+  La política vigente conserva branches efímeros alojados, no un stack local
+  completo. Faltan ampliación de fixtures/journeys y wiring autorizado.
 - [ ] Verificar en los proveedores, sin asumir por código: Kommo live/dry-run,
   Resend, SeaRates, Telegram, VAPID, monitor externo y adjuntos/restore.
 - [ ] Si AWS vuelve a usarse, confirmar cuenta/región, Object Lock, suscripción
@@ -558,7 +576,7 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   acceso; 42 pruebas focales, 29 contratos adicionales y 6.032 pruebas completas
   en 530 archivos. TypeScript, ESLint y gates documentales aprobados.
   [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
-- [ ] Reconciliar las 93 specs no cerradas por rebanadas de dominio. Cambiar un
+- [ ] Reconciliar las 94 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
   El bloqueo23514 de rename con factura archivada quedó corregido localmente
   por SDD-0366/0423, no publicado/aplicado. No basta para cerrar SDD-0258;

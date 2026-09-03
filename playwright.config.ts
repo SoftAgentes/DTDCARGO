@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
-import { applyE2ETier3FixtureAliases } from "./scripts/e2e/sdd-0168-fixture";
+import {
+  applyE2ETier3FixtureAliases,
+  loadE2EEnvironment,
+} from "./scripts/e2e/sdd-0168-fixture";
 
 /**
  * Playwright config para tests E2E.
@@ -28,8 +31,10 @@ type PlaywrightRuntimeEnvironment = Record<string, string | undefined> & {
   E2E_SUPABASE_URL?: string;
   E2E_WORKERS?: string;
   E2E_SUPABASE_ANON_KEY?: string;
+  E2E_SUPABASE_SERVICE_ROLE_KEY?: string;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
 };
 
 type PlaywrightRuntime = ReturnType<typeof resolvePlaywrightRuntime>;
@@ -97,8 +102,8 @@ export function resolveLocalSupabaseDenyPort(
 }
 
 /**
- * Da al `next dev` de Playwright una configuración pública coherente sin copiar
- * secretos al worktree.
+ * Da al `next dev` de Playwright una configuración coherente sin copiar
+ * secretos al worktree. En modo efímero, liga también la clave sólo-servidor.
  *
  * El fallback apunta a un servidor local deny-only levantado por Playwright.
  * Sólo su healthcheck responde 200; toda operación Supabase recibe un error
@@ -116,14 +121,45 @@ export function applyPlaywrightSupabaseEnvironment(
       "NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY deben declararse juntas.",
     );
   }
+  if (env.E2E_ENVIRONMENT_KIND?.trim() === "ephemeral") {
+    const fixture = loadE2EEnvironment(env);
+    if (publicUrl) {
+      let matchesFixture = false;
+      try {
+        matchesFixture = new URL(publicUrl).href === `${fixture.supabaseUrl}/`;
+      } catch {
+        // No propagar el input de URL: podría contener credenciales.
+      }
+      if (!matchesFixture) {
+        throw new Error("NEXT_PUBLIC_SUPABASE_URL no coincide con el destino E2E.");
+      }
+    }
+    if (publicAnonKey && publicAnonKey !== fixture.anonKey) {
+      throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY no coincide con el entorno E2E.");
+    }
+    const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+    if (serviceRoleKey && serviceRoleKey !== fixture.serviceRoleKey) {
+      throw new Error("SUPABASE_SERVICE_ROLE_KEY no coincide con el entorno E2E.");
+    }
+    if (env.E2E_LOCAL_SUPABASE_DENY_SERVER?.trim() === "1") {
+      throw new Error("El modo E2E ephemeral no admite un servidor Supabase deny-only.");
+    }
+    // Un Preview debe configurar su propio Next; sólo se valida lo declarado aquí.
+    if (!runtime.startWebServer || !isLoopbackUrl(runtime.baseURL)) return false;
+    const nextEnvironment = {
+      NEXT_PUBLIC_SUPABASE_URL: fixture.supabaseUrl,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: fixture.anonKey,
+      SUPABASE_SERVICE_ROLE_KEY: fixture.serviceRoleKey,
+    };
+    const changed = Object.entries(nextEnvironment).some(
+      ([name, value]) => env[name] !== value,
+    );
+    Object.assign(env, nextEnvironment);
+    return changed;
+  }
+
   if (publicUrl && publicAnonKey) return false;
   if (!runtime.startWebServer || !isLoopbackUrl(runtime.baseURL)) return false;
-
-  if (env.E2E_ENVIRONMENT_KIND?.trim() === "ephemeral") {
-    env.NEXT_PUBLIC_SUPABASE_URL = env.E2E_SUPABASE_URL;
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY = env.E2E_SUPABASE_ANON_KEY;
-    return true;
-  }
 
   const denyPort = resolveLocalSupabaseDenyPort(env, runtime.port);
   env.E2E_LOCAL_SUPABASE_DENY_SERVER = "1";
@@ -148,9 +184,12 @@ export function resolvePlaywrightRuntime(
 export function preparePlaywrightRuntime(
   env: PlaywrightRuntimeEnvironment = process.env,
 ) {
-  applyE2ETier3FixtureAliases(env);
-  const runtime = resolvePlaywrightRuntime(env);
-  applyPlaywrightSupabaseEnvironment(env, runtime);
+  const preparedEnvironment = { ...env };
+  applyE2ETier3FixtureAliases(preparedEnvironment);
+  const runtime = resolvePlaywrightRuntime(preparedEnvironment);
+  applyPlaywrightSupabaseEnvironment(preparedEnvironment, runtime);
+  // Publicar aliases y claves sólo después de validar el conjunto completo.
+  Object.assign(env, preparedEnvironment);
   return runtime;
 }
 

@@ -123,9 +123,21 @@ export function loadE2EEnvironment(
     );
   }
 
-  const url = new URL(supabaseUrl);
-  const urlProjectRef = url.hostname.split(".")[0];
-  if (url.protocol !== "https:" || urlProjectRef !== projectRef) {
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(projectRef)) {
+    throw new Error(
+      "E2E_SUPABASE_PROJECT_REF debe ser una etiqueta DNS minúscula válida.",
+    );
+  }
+  let url: URL;
+  try {
+    url = new URL(supabaseUrl);
+  } catch {
+    throw new Error("E2E_SUPABASE_URL debe ser una URL HTTPS base válida.");
+  }
+  const expectedOrigin = `https://${projectRef}.supabase.co`;
+  // href también rechaza credenciales, puertos ajenos, rutas, query y fragmento.
+  // URL normaliza la barra raíz y el puerto HTTPS estándar antes de comparar.
+  if (url.href !== `${expectedOrigin}/`) {
     throw new Error(
       "E2E_SUPABASE_URL no corresponde al E2E_SUPABASE_PROJECT_REF autorizado.",
     );
@@ -136,7 +148,7 @@ export function loadE2EEnvironment(
 
   return {
     projectRef,
-    supabaseUrl,
+    supabaseUrl: expectedOrigin,
     anonKey,
     serviceRoleKey,
     password,
@@ -158,8 +170,8 @@ export function applyE2ETier3FixtureAliases(
     if (current && current !== expected) {
       throw new Error(`${name} no coincide con el fixture SDD-0168 sembrado.`);
     }
-    env[name] = expected;
   }
+  Object.assign(env, SDD_0168_TIER3_ALIASES);
 
   return true;
 }

@@ -16,8 +16,9 @@ se puede forzar por separado con `E2E_START_WEB_SERVER=1`:
 
 En un worktree limpio, los casos Tier 0/1 no requieren `.env.local`: si faltan
 las dos variables públicas de Supabase, Playwright levanta un servidor local
-deny-only que rechaza lecturas y escrituras sin salir a la red. Una pareja real
-se conserva intacta y los Tier 3 siguen exigiendo su branch efímero completo.
+deny-only que rechaza lecturas y escrituras sin salir a la red. Fuera del modo
+efímero, una pareja ya configurada se conserva intacta. Los Tier 3 siguen
+exigiendo su branch efímero completo.
 Si el puerto auxiliar calculado estuviera ocupado, se puede declarar
 `E2E_SUPABASE_DENY_PORT` con otro puerto local libre.
 
@@ -92,6 +93,20 @@ corrida CI** — NO contra prod ni dev. Flujo:
    guard completo y deriva automáticamente los tres aliases `STUDIO_E2E_*` del
    fixture sembrado; si alguno fue definido con otro valor, aborta en vez de
    omitir silenciosamente los casos Tier 3.
+   Desde SDD-0369, la URL E2E exige HTTPS y el host exacto
+   `<E2E_SUPABASE_PROJECT_REF>.supabase.co`, sin credenciales, ruta de API,
+   query, fragmento ni puerto no estándar. El ref debe ser una etiqueta DNS
+   minúscula válida; una barra raíz o `:443` son equivalentes.
+   Si Next declara `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   o `SUPABASE_SERVICE_ROLE_KEY`, deben coincidir con el entorno E2E validado;
+   la pareja pública parcial y el flag deny-only activo también hacen abortar.
+   Cuando Playwright inicia Next local, deriva las variables ausentes y
+   normaliza las equivalentes; la service-role queda sólo en la variable del
+   servidor, nunca en `NEXT_PUBLIC_*`. La preparación valida todo antes de
+   modificar el entorno o sus aliases.
+   En Preview sólo verifica coherencia declarada: no inyecta variables al
+   servidor remoto ni demuestra qué backend usa. Eso requiere validación del
+   entorno alojado autorizado. Este guard no completa el bootstrap ni el journey.
 4. **Destruir branch** (`delete_branch`) al terminar.
 
 ### Selector exacto de los 18 E2E autenticados
