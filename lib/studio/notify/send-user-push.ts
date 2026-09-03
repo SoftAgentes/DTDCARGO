@@ -19,6 +19,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureVapid, webpush } from "./vapid";
 import type { PushPayload } from "./send-bug-push";
+import { parsePushSubscription, PUSH_SOCKET_TIMEOUT_MS } from "./push-subscription";
 
 interface StoredSubscription {
   endpoint: string;
@@ -42,8 +43,9 @@ async function loadTargets(
 
   const table = (rows ?? [])
     .map((r) => {
-      const sub = (r as { subscription: StoredSubscription | null }).subscription;
-      if (!sub || typeof sub.endpoint !== "string" || !sub.keys?.p256dh || !sub.keys?.auth) {
+      const sub = parsePushSubscription((r as { subscription: unknown }).subscription);
+      if (!sub) {
+        console.warn("[send-user-push] Suscripción inválida: envío omitido; registro conservado.");
         return null;
       }
       return {
@@ -54,7 +56,7 @@ async function loadTargets(
     })
     .filter((t): t is Extract<Target, { source: "table" }> => t !== null);
 
-  if (table.length > 0) return table;
+  if (rows?.length) return table;
 
   // Fallback de lectura: el jsonb legacy (gateado por channel_push, como el
   // viejo sendBugPushToUser). Solo cuando la tabla no tiene NINGUNA fila.
@@ -67,14 +69,10 @@ async function loadTargets(
       push_subscription: StoredSubscription | null;
     }>();
 
-  if (
-    prefs?.channel_push &&
-    prefs.push_subscription &&
-    typeof prefs.push_subscription.endpoint === "string" &&
-    prefs.push_subscription.keys?.p256dh &&
-    prefs.push_subscription.keys?.auth
-  ) {
-    return [{ source: "legacy", sub: prefs.push_subscription }];
+  if (prefs?.channel_push && prefs.push_subscription) {
+    const sub = parsePushSubscription(prefs.push_subscription);
+    if (sub) return [{ source: "legacy", sub }];
+    console.warn("[send-user-push] Suscripción legacy inválida: envío omitido; registro conservado.");
   }
 
   return [];
@@ -109,7 +107,7 @@ export async function sendPushToUserDevices(
         await webpush.sendNotification(
           { endpoint: t.sub.endpoint, keys: t.sub.keys },
           data,
-          { TTL: 60 * 60 * 24 }, // 24h
+          { TTL: 60 * 60 * 24, timeout: PUSH_SOCKET_TIMEOUT_MS }, // 24h; timeout de socket
         );
         delivered += 1;
         if (t.source === "table") okRowIds.push(t.rowId);
@@ -121,8 +119,8 @@ export async function sendPushToUserDevices(
           else legacyDead = true;
         } else {
           console.error(
-            `[send-user-push] sendNotification falló (user ${userId}, status ${statusCode}):`,
-            (err as Error)?.message ?? err,
+            "[send-user-push] Envío fallido; se conserva la suscripción.",
+            { statusCode: typeof statusCode === "number" ? statusCode : null },
           );
         }
       }
