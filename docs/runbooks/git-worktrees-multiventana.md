@@ -1,6 +1,6 @@
 # Runbook — Worktrees: aislamiento, publicación y limpieza segura
 
-Dueño: ingeniería · Estado: vigente operativo · Actualizado: 2026-09-02 · Interno.
+Dueño: ingeniería · Estado: vigente operativo · Actualizado: 2026-09-03 · Interno.
 
 Esta guía explica cómo trabajar sin mezclar cambios ni perder trabajo al cerrar.
 No autoriza comandos por sí misma. La política fuente sigue en
@@ -131,15 +131,46 @@ Si cualquier paso falla, detenerse y registrar `LIMPIEZA BLOQUEADA`. No usar
 borrado recursivo, robocopy, `git clean`, reset, force-push o `branch -D` como
 atajo. Recuperar la incertidumbre es preferible a destruir evidencia.
 
-## 6. Herramienta heredada: no confundir existencia con cierre seguro
+## 6. Helper con gates: SDD-0370
 
-`scripts/harness-worktree.mjs` **sí existe**; no es una pieza pendiente de crear.
-Su `start` usa `feat/`, copia `.env.local` e instala sin lockfile congelado.
-Su `finish` intenta retirar la carpeta antes de comprobar contención, tiene un
-fallback recursivo y puede borrar la rama con `-D`. No verifica tareas activas.
-Por tanto, **sus comandos mutantes no implementan este cierre seguro de Codex**.
-No utilizarlos aquí. Su adaptación requiere cambio de código y pruebas aparte;
-esta revisión documental no afirma haberlos corregido ni ejecutado.
+La versión de `scripts/harness-worktree.mjs` de SDD-0370 crea `codex/<slug>`
+desde `origin/main` contrastado con el remoto, sin upstream ni copia de entorno.
+`start` instala con `pnpm install --frozen-lockfile`; si falla, devuelve error y
+conserva la carpeta creada para revisión. `--from <ref>` elige otra base explícita.
+La publicación de esta versión sigue siendo independiente: no asumir que un
+checkout antiguo ya contiene el correctivo.
+
+`finish` aplica las condiciones mecánicas de §5 antes de cualquier retirada:
+rutas/registro, índice/árbol, upstream y SHA remoto vivo, main local publicado,
+contención e identidad del handoff versionado. Rechaza enlaces, submódulos,
+índices que oculten cambios e historia sustituida mediante grafts. No hace
+fetch, merge, push, prune ni borrado de respaldo; sólo remove normal y -d opcional.
+
+Desde la raíz del checkout principal en main, después de verificar externamente
+el GO y que ninguna tarea/sesión/proceso use el candidato, revisar primero:
+
+```text
+node scripts/harness-worktree.mjs finish <slug> --confirm-idle <HEAD_COMPLETO_VERIFICADO> --handoff <HANDOFF_RELATIVO> --dry-run
+```
+
+Los marcadores se sustituyen por valores comprobados. `--confirm-idle` es una
+atestación del responsable, **no un detector de procesos ni una autorización**.
+Si no se puede demostrar ownership/inactividad, no se proporciona. Mantener
+exclusividad durante el cierre: no hay transacción atómica entre Git y el SO.
+Con el dry-run aprobado y el mismo estado/GO, retirar `--dry-run` ejecuta la
+retirada. Agregar `--delete-branch` pide eliminar también la rama local con -d.
+No llamar desde el worker que se pretende borrar.
+
+El helper bloquea **todos** los ignorados, incluidos node_modules y .next:
+inventariar/preservar lo necesario y retirar regenerables por separado con
+autorización y rutas verificadas. No hay override que los convierta en basura.
+Un fallo de remove puede dejar estado parcial por Git/SO: no hay reintento
+destructivo; inspeccionar de nuevo disco y registro, conservando la rama.
+El camino válido admite ramas `feat/<slug>` heredadas sin renombrarlas.
+
+La evidencia de pruebas sintéticas y límites vive en
+[SDD-0370](../specs/0370-worktree-safe-lifecycle/spec.md). No equivale a haber
+ejecutado la limpieza de los worktrees reales ni a publicar este código.
 
 Mensajes de apertura/cierre por rol: [multi-ventanas](multi-ventanas-buena-practica.md).
 Estado del saneamiento: [checklist de arranque](../audits/2026-09-02-codex-arranque-checklist.md).

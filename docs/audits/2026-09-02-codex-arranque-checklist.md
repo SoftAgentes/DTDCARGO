@@ -3,7 +3,7 @@ title: "Arranque Codex: estado saneado y checklist ejecutable"
 tipo: auditoria-operativa
 autor: Codex
 created: 2026-09-02
-updated: 2026-09-02
+updated: 2026-09-03
 review-by: 2026-09-09
 confidencialidad: interno
 ---
@@ -19,7 +19,7 @@ refrescarse antes de cualquier operación Git o alojada.
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
-**Avance del checklist: 51 de 106 casillas completadas (48,1 %); 55 pendientes.** Es un
+**Avance del checklist: 52 de 106 casillas completadas (49,1 %); 54 pendientes.** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
 varios cambios. No existe todavía una medición defendible del producto completo.
@@ -27,7 +27,7 @@ varios cambios. No existe todavía una medición defendible del producto complet
 | Bloque | Hecho / total | Situación |
 |---|---:|---|
 | Correcciones locales enumeradas | 27 / 27 | Implementadas/verificadas localmente; no equivale a producción |
-| Cierre Git y publicación | 12 / 22 | Publicación parcial; falta lote nuevo, integración y corregir el helper heredado |
+| Cierre Git y publicación | 13 / 22 | Helper corregido localmente; falta publicar el lote, integrarlo y cerrar |
 | Cloud y operación alojada | 4 / 32 | Metadatos/código y avisos clasificados; aplicación y operación real pendientes |
 | Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
 | Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
@@ -38,7 +38,17 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último saneamiento documental:** los tres runbooks de worktrees ahora
+**Último correctivo local:** SDD-0370 corrige el helper de worktrees: no copia
+secretos, congela la instalación y comprueba preservación, publicación y
+contención antes de retirar. Exige atestación externa de inactividad/ownership
+ligada al HEAD y handoff versionado; no pretende detectar procesos ni otorgar GO.
+Rechaza ignorados, enlaces, índices ocultos e historia sustituida. Sin fallback,
+force, prune global ni branch -D. Pasan 79 casos específicos (27 puros + 52 integración),
+suite completa 6.547/540 y revisión independiente. Cierra una casilla existente:
+**52/106**, sin nuevo denominador. No se limpiaron worktrees reales ni se publicó.
+[Contrato, reproducciones y límites](../specs/0370-worktree-safe-lifecycle/spec.md).
+
+**Saneamiento documental anterior:** los tres runbooks de worktrees ahora
 distinguen roles, autorizaciones y pruebas de limpieza, sin copiar secretos,
 usar rutas antiguas ni recomendar borrado forzado. `AGENTS.md` no se modificó.
 La lectura del helper existente detectó automatismos aún inseguros: se añade
@@ -129,7 +139,8 @@ El arreglo posterior de qs cierra una casilla existente: **48/103**, sin cambiar
 el denominador ni sumar casillas por prueba. El cierre de revisión de metadatos
 y código alojado llevó el punto anterior a **49/103**; clasificar los avisos
 elevó el punto anterior a **50/103**. Club/0424 llevó el punto anterior a **51/105**.
-El pendiente del helper de worktrees lleva el vigente a **51/106**.
+El pendiente del helper de worktrees llevó entonces a **51/106**;
+su corrección local SDD-0370 lleva el vigente a **52/106**.
 SDD-0258 no está cerrado.
 
 **Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
@@ -189,6 +200,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   Ese incremento quedó en `900b25bb`. La revisión de runbooks de worktrees
   añade un vigesimoprimer incremento documental, sin usar el helper heredado,
   modificar AGENTS, publicar ni borrar carpetas. Mantiene separado el GO del SHA.
+  Ese incremento quedó en `3c1e834a`. SDD-0370 añade un vigesimosegundo incremento
+  local para corregir el helper, con pruebas y llamadores sincronizados. No se
+  reintenta el push: la autorización debe cubrir el SHA final de este lote.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -210,8 +224,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 361; 267 `done`, 1 `superseded` y 93 sin cierre documental
-  (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0309 cierra
+- Specs reales: 362; 267 `done`, 1 `superseded` y 94 sin cierre documental
+  (79 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0370 conserva
+  publicación/CI pendientes; su corrección local no cierra el repo. SDD-0309 cierra
   su cobertura técnica ya integrada, sin certificar operación real. SDD-0369 está
   verificada localmente, pendiente de publicación/CI y validación efímera real.
   El bootstrap no está completo. SDD-0368 está
@@ -367,13 +382,14 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [ ] Obtener aprobación explícita para publicar los commits locales posteriores
   a `eabb230b` en `origin/codex/saneamiento-integral`; no reintentar mientras falte.
 - [ ] Confirmar CI de los aislamientos de Academia, Reclamos y Pagos en el SHA publicado.
-- [ ] Corregir `scripts/harness-worktree.mjs` antes de usar sus comandos mutantes
-  en Codex: retirar copia automática de `.env.local`, congelar instalación y
-  validar todos los gates de publicación/contención/ownership antes de retirar
-  una carpeta; eliminar fallback recursivo, `branch -D` y comparación permisiva
-  contra main local. Exigir SDD, pruebas negativas sobre Git desechable y revisión.
-  La inspección confirmó el riesgo; no ejecutó ni modificó ese script.
-  Mientras tanto se usa únicamente el [cierre verificado del runbook](../runbooks/git-worktrees-multiventana.md).
+- [x] Corregir localmente `scripts/harness-worktree.mjs` con SDD-0370: start
+  sin copia de entorno y con lockfile congelado; finish verifica preservación,
+  publicación/contención y exige confirmación externa de ownership/inactividad
+  antes de retirar. Sin fallback recursivo, force, prune global ni branch -D.
+  RED causal y 79 casos específicos, suite 6.547/540, gates y revisión aprobados.
+  No elimina la comprobación humana de procesos/GO ni se ejecutó sobre los
+  worktrees reales. Publicación/CI siguen en sus casillas independientes.
+  [Contrato operativo actualizado](../runbooks/git-worktrees-multiventana.md).
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
 - [ ] Antes de integrar, resolver compatibilidad de aplicación y migraciones:
@@ -622,7 +638,7 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   acceso; 42 pruebas focales, 29 contratos adicionales y 6.032 pruebas completas
   en 530 archivos. TypeScript, ESLint y gates documentales aprobados.
   [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
-- [ ] Reconciliar las 93 specs no cerradas por rebanadas de dominio. Cambiar un
+- [ ] Reconciliar las 94 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
   SDD-0309 ya cerró su alcance de cobertura con siete criterios y tres
   mutaciones causales; operación real/RLS/SDD-0137 quedan fuera. No añade

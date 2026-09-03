@@ -1,339 +1,270 @@
 /**
- * scripts/harness-worktree.mjs — gestión de worktrees del harness DTD Cargo.
- * (sin shebang a propósito: se importa desde tests y vite/rolldown no tolera
- *  el shebang al hoistear los imports; se invoca con `node scripts/...`.)
- *
- * Aísla cada feature/lane en su propia carpeta (worktree) para que el trabajo
- * NUNCA caiga en `main` (la rama de integración). Implementa la pieza
- * "diseñada-no-construida" del runbook git-worktrees-multiventana §8.
- *
- * Uso:
- *   node scripts/harness-worktree.mjs start  <slug> [--from <ref>] [--dry-run]
- *   node scripts/harness-worktree.mjs finish <slug> [--delete-branch] [--dry-run]
- *   node scripts/harness-worktree.mjs list
- *
- * Convenciones (ver el runbook):
- *   - Worktrees agrupados en el contenedor `<parent>/DTD-worktrees/<slug>`
- *     (hermano del repo principal, NUNCA anidado adentro). Decisión founder.
- *   - Rama `feat/<slug>` creada off `main` (local) por default → sin upstream
- *     = cero footgun de `git push` a main.
- *   - `start` copia `.env.local` (gitignored, no viaja) + corre `pnpm install`.
- *   - `finish` remueve el worktree manejando el long-path de Windows (robocopy
- *     /MIR de fallback) + prune. NO mergea, NO pushea (gate del founder).
+ * SDD-0370: lifecycle local, sin push/merge/prune ni borrados de respaldo.
+ * El GO y la comprobación externa de tareas/procesos pertenecen al responsable.
+ * Contrato: docs/runbooks/git-worktrees-multiventana.md.
  */
-
 import { spawnSync } from "node:child_process";
-import { existsSync, copyFileSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, lstatSync, realpathSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
-// ── colores ──
-const C = { g: "\x1b[32m", r: "\x1b[31m", y: "\x1b[33m", d: "\x1b[2m", n: "\x1b[0m" };
-const ok = (m) => console.log(`${C.g}✓${C.n} ${m}`);
-const warn = (m) => console.log(`${C.y}⚠${C.n} ${m}`);
-const info = (m) => console.log(m);
-function die(m) {
-  console.error(`${C.r}✗ ${m}${C.n}`);
-  process.exit(1);
-}
-
-// ────────────────────────────────────────────────
-// Helpers PUROS (exportados para test, sin side effects)
-// ────────────────────────────────────────────────
-
-const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-
-/** Slug válido = kebab-case (a-z, 0-9, guiones simples; sin bordes ni dobles). */
 export function isValidSlug(slug) {
-  return (
-    typeof slug === "string" &&
-    slug.length > 0 &&
-    slug.length <= 60 &&
-    SLUG_RE.test(slug)
-  );
+  return typeof slug === "string" && slug.length > 0 && slug.length <= 60
+    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
+    && !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/.test(slug);
 }
 
-/** Carpeta del worktree para un slug, dado el path del worktree principal. */
 export function worktreePathFor(mainWorktree, slug) {
   return path.join(path.dirname(mainWorktree), "DTD-worktrees", slug);
 }
 
-/** Rama de un slug. */
 export function branchFor(slug) {
-  return `feat/${slug}`;
+  return `codex/${slug}`;
 }
 
-/** Parsea argv (sin `node script`): { cmd, slug, from, dryRun, deleteBranch }. */
 export function parseArgs(argv) {
   const out = {
-    cmd: argv[0],
-    slug: undefined,
-    from: "main",
-    dryRun: false,
-    deleteBranch: false,
+    cmd: argv[0], slug: undefined, from: "origin/main", dryRun: false,
+    deleteBranch: false, confirmIdle: undefined, handoff: undefined,
   };
-  const rest = argv.slice(1);
-  for (let i = 0; i < rest.length; i++) {
-    const a = rest[i];
-    if (a === "--dry-run") out.dryRun = true;
-    else if (a === "--delete-branch") out.deleteBranch = true;
-    else if (a === "--from") out.from = rest[++i];
-    else if (!a.startsWith("--") && out.slug === undefined) out.slug = a;
+  if (![undefined, "help", "--help", "-h", "start", "finish", "list"].includes(out.cmd)) {
+    throw new Error("Comando desconocido.");
+  }
+  const allowed = out.cmd === "start" ? ["--dry-run", "--from"]
+    : out.cmd === "finish" ? ["--dry-run", "--delete-branch", "--confirm-idle", "--handoff"] : [];
+  const seen = new Set();
+  for (let i = 1; i < argv.length; i++) {
+    const arg = argv[i];
+    if (!arg.startsWith("-") && out.slug === undefined && ["start", "finish"].includes(out.cmd)) {
+      out.slug = arg;
+      continue;
+    }
+    if (!allowed.includes(arg) || seen.has(arg)) throw new Error("Argumento desconocido, duplicado o fuera de contexto.");
+    seen.add(arg);
+    if (arg === "--dry-run") out.dryRun = true;
+    else if (arg === "--delete-branch") out.deleteBranch = true;
+    else {
+      const value = argv[++i];
+      if (!value || value.startsWith("-") || /[\r\n\0]/.test(value)) throw new Error(`Falta un valor válido para ${arg}.`);
+      out[{ "--from": "from", "--confirm-idle": "confirmIdle", "--handoff": "handoff" }[arg]] = value;
+    }
   }
   return out;
 }
 
-// ────────────────────────────────────────────────
-// git / shell (side effects)
-// ────────────────────────────────────────────────
-
-function git(args) {
-  const r = spawnSync("git", args, { encoding: "utf8" });
-  return {
-    code: r.status ?? 1,
-    out: (r.stdout || "").trim(),
-    err: ((r.stdout || "") + (r.stderr || "")).trim(),
-  };
+function requireCondition(condition, message) {
+  if (!condition) throw new Error(message);
 }
 
-function gitInherit(args) {
-  return spawnSync("git", args, { stdio: "inherit" }).status ?? 1;
+const normalize = (value) => process.platform === "win32" ? path.resolve(value).toLowerCase() : path.resolve(value);
+const samePath = (left, right) => normalize(left) === normalize(right);
+const oidPattern = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+
+function assertGitEnvironment() {
+  const redirects = /^(GIT_(DIR|WORK_TREE|COMMON_DIR|INDEX_FILE|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|NAMESPACE|CONFIG|CONFIG_COUNT|CONFIG_PARAMETERS|PREFIX|GRAFT_FILE|SHALLOW_FILE))$/i;
+  requireCondition(!Object.keys(process.env).some((key) => redirects.test(key)), "Hay variables Git que redirigen el repositorio; retíralas antes de operar.");
 }
 
-function refExists(ref) {
-  return git(["rev-parse", "--verify", "--quiet", ref]).code === 0;
+function git(cwd, args) {
+  const result = spawnSync("git", ["--no-replace-objects", "--literal-pathspecs", "-C", cwd, ...args], {
+    encoding: "utf8", timeout: 30_000, maxBuffer: 16 * 1024 * 1024,
+    env: { ...process.env, GIT_OPTIONAL_LOCKS: "0", GIT_TERMINAL_PROMPT: "0" },
+  });
+  return { code: result.error || result.signal ? 1 : result.status ?? 1, out: result.stdout ?? "" };
 }
 
-/**
- * Instala deps en el worktree. Devuelve `true` solo si node_modules quedó usable.
- *
- * `shell: true` es OBLIGATORIO en Windows: desde Node 20.12/22/24 el runtime se
- * NIEGA a spawnear `pnpm.cmd` (un .cmd) sin shell — mitigación de CVE-2024-27980.
- * Sin esto el spawn fallaba en silencio, pnpm NUNCA corría y node_modules quedaba
- * vacío (el bug que dejaba el lane sin deps cantando "deps instaladas"). Pasamos el
- * comando como string único (no args array) → el shell resuelve pnpm→pnpm.cmd y de
- * paso esquiva el DEP0190. `cwd: wt` reemplaza al `-C wt` (robusto ante espacios).
- */
-function pnpmInstall(wt) {
-  // pnpm puede salir != 0 con ERR_PNPM_IGNORED_BUILDS (esbuild) → benigno. Por eso
-  // NO confiamos en el exit code: verificamos que el binario que usa el gate exista.
-  spawnSync("pnpm install", { stdio: "inherit", cwd: wt, shell: true });
-  return existsSync(path.join(wt, "node_modules", "vitest", "vitest.mjs"));
+function checkedGit(cwd, args) {
+  const result = git(cwd, args);
+  // No imprimir stderr: un fallo de transporte puede contener URL/credenciales.
+  requireCondition(result.code === 0, `Git no pudo completar ${args[0]}; no se aplican atajos.`);
+  return result.out;
 }
 
-/** Path del worktree principal (el primero de `git worktree list --porcelain`). */
-function mainWorktreePath() {
-  const r = git(["worktree", "list", "--porcelain"]);
-  if (r.code !== 0) die("No es un repo git (o git no está en PATH).");
-  const first = r.out.split("\n").find((l) => l.startsWith("worktree "));
-  if (!first) die("No pude determinar el worktree principal.");
-  return path.normalize(first.slice("worktree ".length).trim());
+function commitAt(cwd, ref) {
+  const sha = checkedGit(cwd, ["rev-parse", "--verify", "--end-of-options", `${ref}^{commit}`]).trim();
+  requireCondition(oidPattern.test(sha), "Git no devolvió un commit válido.");
+  return sha;
 }
 
-/** ¿`wt` es un worktree REGISTRADO por git? Guard del fallback destructivo:
- *  nunca borramos a ciegas una carpeta que git no reconoce como worktree. */
-function isRegisteredWorktree(wt) {
-  const r = git(["worktree", "list", "--porcelain"]);
-  if (r.code !== 0) return false;
-  const norm = (p) => (process.platform === "win32" ? path.resolve(p).toLowerCase() : path.resolve(p));
-  const target = norm(wt);
-  return r.out
-    .split("\n")
-    .filter((l) => l.startsWith("worktree "))
-    .some((l) => norm(l.slice("worktree ".length).trim()) === target);
+function worktrees(cwd) {
+  return checkedGit(cwd, ["worktree", "list", "--porcelain", "-z"])
+    .split("\0\0").filter(Boolean).map((record) => Object.fromEntries(record.split("\0").filter(Boolean).map((line) => {
+      const space = line.indexOf(" ");
+      return space < 0 ? [line, true] : [line.slice(0, space), line.slice(space + 1)];
+    })));
 }
 
-// ────────────────────────────────────────────────
-// Comandos
-// ────────────────────────────────────────────────
+/** No seguir junctions ni enlaces, incluidos padres existentes del destino nuevo. */
+function assertPlainPath(candidate) {
+  let current = path.resolve(candidate);
+  while (true) {
+    try {
+      requireCondition(!lstatSync(current).isSymbolicLink(), "La ruta contiene un enlace o junction; revisar fuera del helper.");
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  if (existsSync(candidate)) requireCondition(samePath(realpathSync(candidate), candidate), "La ruta física no coincide con la registrada.");
+}
 
-function cmdStart({ slug, from, dryRun }) {
-  if (!slug) die("Falta <slug>. Ej: node scripts/harness-worktree.mjs start sdd-0061-fase-b");
-  if (!isValidSlug(slug)) die(`Slug inválido "${slug}". Usá kebab-case (a-z, 0-9, guiones).`);
+function context(slug) {
+  requireCondition(isValidSlug(slug), "Falta un slug válido en kebab-case (sin nombres reservados).");
+  assertGitEnvironment();
+  const entries = worktrees(process.cwd());
+  const primary = entries[0];
+  requireCondition(primary?.worktree && !primary.bare, "No se reconoce un checkout principal normal.");
+  const main = path.resolve(primary.worktree);
+  const target = worktreePathFor(main, slug);
+  assertPlainPath(main);
+  assertPlainPath(target);
+  const common = checkedGit(main, ["rev-parse", "--git-common-dir"]).trim();
+  requireCondition(!existsSync(path.resolve(main, common, "info/grafts")), "Hay info/grafts; no se puede demostrar la historia real.");
+  requireCondition(!samePath(main, target) && samePath(path.dirname(target), path.join(path.dirname(main), "DTD-worktrees")), "Destino fuera del contenedor permitido.");
+  return { main, target, entries };
+}
 
-  const main = mainWorktreePath();
-  const wt = worktreePathFor(main, slug);
-  const branch = branchFor(slug);
+function remoteHead(main, branch) {
+  const ref = `refs/heads/${branch}`;
+  const rows = checkedGit(main, ["ls-remote", "--exit-code", "--refs", "origin", ref]).trim().split(/\r?\n/);
+  requireCondition(rows.length === 1, "No se pudo demostrar el SHA remoto exacto.");
+  const [sha, found] = rows[0].split(/\s+/);
+  requireCondition(found === ref && oidPattern.test(sha), "Respuesta remota inesperada.");
+  return sha;
+}
 
-  if (existsSync(wt)) die(`Ya existe la carpeta ${wt}.`);
-  if (refExists(branch)) die(`La rama ${branch} ya existe. Elegí otro slug o borrala.`);
-  if (!refExists(from)) die(`No encuentro la ref base "${from}".`);
+function assertClean(cwd, { ignored = false } = {}) {
+  const flags = checkedGit(cwd, ["ls-files", "-v", "-z"]).split("\0").filter(Boolean);
+  requireCondition(!flags.some((entry) => /^[a-zS]/.test(entry)), "El índice tiene assume-unchanged/skip-worktree; no se puede demostrar limpieza.");
+  requireCondition(checkedGit(cwd, ["status", "--porcelain=v1", "--untracked-files=all"]).length === 0, "Hay cambios staged, unstaged o untracked; se conserva el checkout.");
+  for (const name of ["MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD", "rebase-merge", "rebase-apply", "BISECT_LOG"]) {
+    const statePath = checkedGit(cwd, ["rev-parse", "--git-path", name]).trim();
+    requireCondition(!existsSync(path.resolve(cwd, statePath)), "Hay una operación Git en curso.");
+  }
+  if (ignored) {
+    const names = checkedGit(cwd, ["ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z"]).split("\0").filter(Boolean);
+    requireCondition(names.length === 0, `Hay archivos ignorados que requieren preservación/retiro previo: ${JSON.stringify(names.slice(0, 20))}`);
+    requireCondition(!checkedGit(cwd, ["ls-files", "--stage", "-z"]).split("\0").some((entry) => entry.startsWith("160000 ")), "El candidato contiene submódulos; necesita revisión separada.");
+  }
+}
 
-  info(`${C.d}── start ${slug} ──────────────────────────${C.n}`);
-  info(`  worktree: ${wt}`);
-  info(`  rama:     ${branch}  (off ${from})`);
-  if (dryRun) {
-    warn("--dry-run: no ejecuto nada.");
+function handoffBlob(cwd, ref, relative) {
+  const entry = checkedGit(cwd, ["ls-tree", "-z", ref, "--", relative]).split("\0").filter(Boolean);
+  requireCondition(entry.length === 1 && /^(100644|100755) blob /.test(entry[0]), "El handoff no es un archivo regular versionado.");
+  const [metadata, name] = entry[0].split("\t");
+  requireCondition(name === relative, "El handoff no coincide con la ruta solicitada.");
+  return metadata.split(" ")[2];
+}
+
+/** Snapshot local repetible. Ninguna condición se delega al resultado de remove. */
+function inspectFinish(args) {
+  const { main, target, entries } = context(args.slug);
+  requireCondition(samePath(process.cwd(), main), "finish sólo puede ejecutarse desde la raíz del checkout principal.");
+  requireCondition(checkedGit(main, ["symbolic-ref", "--quiet", "HEAD"]).trim() === "refs/heads/main", "El principal debe estar en main.");
+  const record = entries.find((entry) => entry.worktree && samePath(entry.worktree, target));
+  requireCondition(record && !record.locked && !record.prunable && !record.detached && !record.bare, "Candidato no registrado, bloqueado, detached o prunable.");
+  requireCondition([`refs/heads/codex/${args.slug}`, `refs/heads/feat/${args.slug}`].includes(record.branch), "La rama registrada no corresponde al candidato.");
+  requireCondition(existsSync(target) && lstatSync(target).isDirectory(), "La carpeta candidata no está disponible.");
+  const targetRoot = checkedGit(target, ["rev-parse", "--show-toplevel"]).replace(/\r?\n$/, "");
+  requireCondition(samePath(targetRoot, target), "El candidato redirige a otro checkout.");
+  const commonFor = (cwd) => path.resolve(cwd, checkedGit(cwd, ["rev-parse", "--git-common-dir"]).trim());
+  requireCondition(samePath(commonFor(target), commonFor(main)), "El candidato apunta a otro repositorio.");
+  assertClean(main);
+  assertClean(target, { ignored: true });
+  const head = commitAt(target, "HEAD");
+  const branch = record.branch.slice("refs/heads/".length);
+  requireCondition(record.HEAD === head && commitAt(main, record.branch) === head, "El HEAD o la rama cambiaron durante la comprobación.");
+  requireCondition(args.confirmIdle === head, "Falta --confirm-idle con el HEAD completo: comprobar externamente ownership, tareas, sesiones y procesos; la opción no concede autorización.");
+  const relative = args.handoff?.replaceAll("\\", "/");
+  requireCondition(relative && !path.posix.isAbsolute(relative) && !path.win32.isAbsolute(relative)
+    && !/[\x00-\x1f:]/.test(relative) && relative.split("/").every((part) => part && part !== "." && part !== ".."), "Falta --handoff con una ruta relativa segura.");
+  for (const cwd of [main, target]) {
+    const file = path.join(cwd, relative);
+    assertPlainPath(file);
+    requireCondition(existsSync(file) && lstatSync(file).isFile(), "El handoff no está preservado como archivo regular.");
+  }
+  const mainHead = commitAt(main, "refs/heads/main");
+  const publishedMain = commitAt(main, "refs/remotes/origin/main");
+  requireCondition(mainHead === publishedMain, "main local no coincide con origin/main; integrar/publicar es una operación separada.");
+  requireCondition(git(main, ["merge-base", "--is-ancestor", head, mainHead]).code === 0, "El candidato no está contenido en main.");
+  requireCondition(checkedGit(main, ["config", "--get", `branch.${branch}.remote`]).trim() === "origin"
+    && checkedGit(main, ["config", "--get", `branch.${branch}.merge`]).trim() === record.branch, "Upstream incorrecto: debe ser la misma rama en origin.");
+  const upstream = checkedGit(main, ["for-each-ref", "--format=%(upstream)", record.branch]).trim();
+  requireCondition(upstream === `refs/remotes/origin/${branch}` && commitAt(main, upstream) === head, "Rama y upstream no coinciden exactamente.");
+  const blob = handoffBlob(main, head, relative);
+  requireCondition(blob === handoffBlob(main, mainHead, relative), "El handoff del candidato no está preservado con el mismo contenido en main.");
+  return { main, target, branch, head, mainHead, blob };
+}
+
+function start(args) {
+  const { main, target } = context(args.slug);
+  const branch = branchFor(args.slug);
+  requireCondition(!existsSync(target), "La carpeta ya existe; no se reutiliza.");
+  requireCondition(git(main, ["show-ref", "--verify", "--quiet", `refs/heads/${branch}`]).code === 1, "La rama existe o no se pudo verificar su ausencia.");
+  const base = commitAt(main, args.from);
+  if (["origin/main", "refs/remotes/origin/main"].includes(args.from)) {
+    requireCondition(remoteHead(main, "main") === base, "origin/main está desactualizado; refrescar referencias es una operación previa.");
+  }
+  console.log(JSON.stringify({ action: "start", worktree: target, branch, base, dryRun: args.dryRun }));
+  if (args.dryRun) return;
+  assertPlainPath(target);
+  // Un SHA fija la base comprobada incluso si la ref cambia antes de crear.
+  checkedGit(main, ["worktree", "add", "--no-track", "-b", branch, target, base]);
+  requireCondition(checkedGit(target, ["for-each-ref", "--format=%(upstream)", `refs/heads/${branch}`]).trim() === "", "Se creó un upstream inesperado; conservar el worktree y revisar.");
+  // Comando estático: shell es necesario para pnpm.cmd en Windows, sin input interpolado.
+  const installed = spawnSync("pnpm install --frozen-lockfile", { cwd: target, stdio: "inherit", shell: true });
+  requireCondition(!installed.error && installed.status === 0, "La instalación falló; el worktree se conserva, pero no está listo. Revisar pnpm install --frozen-lockfile.");
+  console.log("Worktree listo. No se copiaron variables ni secretos.");
+}
+
+function finish(args, removeWorktree) {
+  const proof = inspectFinish(args);
+  requireCondition(remoteHead(proof.main, "main") === proof.mainHead, "main remoto cambió o la referencia local está desactualizada.");
+  requireCondition(remoteHead(proof.main, proof.branch) === proof.head, "La rama remota no coincide con el HEAD del candidato.");
+  console.log(JSON.stringify({ action: "finish", ...proof, deleteBranch: args.deleteBranch, dryRun: args.dryRun }));
+  // El responsable mantiene exclusividad. No se promete una transacción entre Git y el SO.
+  requireCondition(JSON.stringify(inspectFinish(args)) === JSON.stringify(proof), "El estado cambió durante la comprobación; se conserva el worktree.");
+  if (args.dryRun) return;
+  const removed = removeWorktree(proof.main, ["worktree", "remove", "--", proof.target]);
+  requireCondition(removed.code === 0, "git worktree remove falló: no habrá force, fallback, prune ni borrado de rama. Revisar estado físico y registro antes de reintentar.");
+  requireCondition(!existsSync(proof.target) && !worktrees(proof.main).some((entry) => entry.worktree && samePath(entry.worktree, proof.target)), "La retirada no quedó confirmada; la rama se conserva.");
+  console.log("Worktree retirado y ausencia verificada; su contenido versionado sigue publicado e integrado.");
+  if (args.deleteBranch) {
+    requireCondition(commitAt(proof.main, `refs/heads/${proof.branch}`) === proof.head && commitAt(proof.main, "HEAD") === proof.mainHead, "La rama cambió después de retirar la carpeta; no se borra.");
+    checkedGit(proof.main, ["branch", "-d", "--", proof.branch]);
+    console.log("Rama local retirada con -d; la rama remota se conserva.");
+  }
+}
+
+/** La inyección acotada sólo permite probar un error operativo de remove tras los gates. */
+export function runWorktreeCommand(argv, { removeWorktree = git } = {}) {
+  const args = parseArgs(argv);
+  if (args.cmd === "start") return start(args);
+  if (args.cmd === "finish") return finish(args, removeWorktree);
+  if (args.cmd === "list") {
+    assertGitEnvironment();
+    console.log(checkedGit(process.cwd(), ["worktree", "list"]));
     return;
   }
+  console.log(`harness-worktree — SDD-0370
+  start <slug> [--from <ref>] [--dry-run]
+  finish <slug> --confirm-idle <HEAD-completo> --handoff <ruta-relativa> [--delete-branch] [--dry-run]
+  list
 
-  if (gitInherit(["worktree", "add", "-b", branch, wt, from]) !== 0) die("git worktree add falló.");
-  ok(`worktree creado en rama ${branch}`);
-
-  // Sin upstream → cero footgun de `git push` a main (por si `from` era origin/main).
-  git(["-C", wt, "branch", "--unset-upstream"]);
-
-  const env = path.join(main, ".env.local");
-  if (existsSync(env)) {
-    copyFileSync(env, path.join(wt, ".env.local"));
-    ok(".env.local copiado");
-  } else {
-    warn("no hay .env.local en el repo principal — copialo a mano si la app lo necesita");
-  }
-
-  info(`${C.d}pnpm install (store global hardlinkea → rápido)...${C.n}`);
-  if (pnpmInstall(wt)) {
-    ok("deps instaladas");
-  } else {
-    warn("pnpm install NO dejó node_modules usable (revisá la salida de arriba).");
-    info(`  Corré a mano antes del gate:  cd "${wt}" && pnpm install`);
-  }
-
-  info("");
-  ok(`Lane "${slug}" listo.`);
-  info(`  → Abrí una ventana de Claude/terminal en:  ${wt}`);
-  info(`  → Y corre:  /feature ${slug}`);
-  info(`  (recordá: NO implementes features en main; este es tu escritorio aislado)`);
+start: codex/<slug>, base origin/main actual, sin secretos; instalación congelada.
+finish: sólo desde main principal, limpio/actual y con candidato publicado/integrado.
+Comprobar externamente GO, ownership, tareas, sesiones y procesos ANTES de --confirm-idle.
+Los ignorados bloquean: preservarlos/retirarlos previamente con autorización separada.
+No hay push, merge, deploy, prune global, force ni fallback de borrado.`);
 }
 
-/** Remueve el worktree; si falla por el long-path de Windows, hace fallback. */
-function removeWorktreeRobust(wt) {
-  // OJO: `git worktree remove` DESREGISTRA el worktree y RECIÉN DESPUÉS borra la carpeta;
-  // si falla por el long-path, ya quedó desregistrado → un chequeo posterior daría
-  // falso-negativo y dejaría la carpeta huérfana. Por eso capturamos el estado ANTES.
-  // (lo cazó el dogfood: el guard que chequeaba después rompía el caso real)
-  const wasRegistered = isRegisteredWorktree(wt);
-  let r = git(["worktree", "remove", wt]);
-  if (r.code === 0) return true;
-
-  const e = r.err.toLowerCase();
-  // Trabajo sin commitear → NO forzar (proteger). Avisar y parar.
-  if (e.includes("use --force") || e.includes("modified or untracked") || e.includes("contains modified")) {
-    die(`El worktree ${wt} tiene cambios sin commitear. Commiteá/descartá primero.`);
-  }
-
-  // GUARD DESTRUCTIVO: solo nukeamos si ERA un worktree registrado (antes del remove).
-  // Una carpeta cualquiera homónima (que git nunca registró) NO se borra a ciegas.
-  if (!wasRegistered) {
-    die(`${wt} no es un worktree registrado de git — no lo borro a ciegas. Si es basura, borrala a mano.`);
-  }
-
-  // Long-path de Windows (node_modules > MAX_PATH) → fallback de borrado.
-  warn(`git worktree remove falló (${r.err.split("\n").pop()}). Fallback de borrado...`);
-  if (existsSync(wt)) {
-    if (process.platform === "win32") {
-      // robocopy /MIR de una carpeta vacía sobre el target = la vacía (maneja long-paths nativo).
-      const empty = mkdtempSync(path.join(tmpdir(), "wt-empty-"));
-      spawnSync(
-        "robocopy",
-        [empty, wt, "/MIR", "/NFL", "/NDL", "/NJH", "/NJS", "/NC", "/NS", "/R:1", "/W:1"],
-        { stdio: "ignore" },
-      );
-      try { rmSync(wt, { recursive: true, force: true, maxRetries: 3 }); } catch { /* ignore */ }
-      try { rmSync(empty, { recursive: true, force: true }); } catch { /* ignore */ }
-    } else {
-      try { rmSync(wt, { recursive: true, force: true, maxRetries: 3 }); } catch { /* ignore */ }
-    }
-  }
-  git(["worktree", "prune"]);
-  return !existsSync(wt);
-}
-
-function cmdFinish({ slug, deleteBranch, dryRun }) {
-  if (!slug) die("Falta <slug>.");
-  if (!isValidSlug(slug)) die(`Slug inválido "${slug}".`);
-
-  const main = mainWorktreePath();
-  const wt = worktreePathFor(main, slug);
-  const branch = branchFor(slug);
-
-  info(`${C.d}── finish ${slug} ─────────────────────────${C.n}`);
-  if (!existsSync(wt)) warn(`la carpeta ${wt} no existe (¿ya removida?). Igual hago prune.`);
-  else info(`  removiendo worktree ${wt}`);
-  if (dryRun) {
-    warn("--dry-run: no ejecuto. (finish NO mergea, NO pushea).");
-    return;
-  }
-
-  if (removeWorktreeRobust(wt)) ok("worktree removido + prune");
-  else die(`No pude borrar ${wt}. Cerrá procesos que la usen (dev server) y reintentá.`);
-
-  if (deleteBranch) {
-    // `git branch -d` chequea contra HEAD (la rama actual), no contra `main` → poco fiable
-    // desde otro worktree. Verificamos explícitamente que la rama ya esté en `main`.
-    if (!refExists(branch)) {
-      warn(`la rama ${branch} no existe (¿ya borrada?).`);
-    } else {
-      // Se compara contra origin/main, NO contra `main` local: un `main` local
-      // atrasado hace que la rama parezca mergeada y el borrado se lleve
-      // trabajo que nunca se publico. Asi se perdio el codigo de SDD-0091.
-      const base =
-        git(["rev-parse", "--verify", "origin/main"]).code === 0
-          ? "origin/main"
-          : "main";
-      if (base === "main") {
-        warn(
-          "sin origin/main (sin remoto o clone shallow) — se compara contra `main` local, que puede estar atrasado",
-        );
-      }
-      if (git(["merge-base", "--is-ancestor", branch, base]).code === 0) {
-        const r = git(["branch", "-D", branch]);
-        if (r.code === 0) ok(`rama ${branch} borrada (ya esta en ${base})`);
-        else warn(`no pude borrar ${branch}`);
-      } else {
-        const n = (git(["rev-list", "--count", `${base}..${branch}`]).out || "").trim();
-        warn(
-          `rama ${branch} NO borrada: tiene ${n || "algunos"} commit(s) que ${base} no tiene. Publicala primero.`,
-        );
-      }
-    }
-  } else {
-    info(`  rama ${branch} conservada (no se pierde el trabajo). Borrala con --delete-branch tras mergear.`);
-  }
-  info("");
-  warn("finish NO mergea ni pushea. El merge a main + push los haces tú con tu OK.");
-}
-
-function cmdList() {
-  gitInherit(["worktree", "list"]);
-}
-
-function usage() {
-  info(`harness-worktree — aísla cada feature en su worktree (evita trabajar en main)
-
-  node scripts/harness-worktree.mjs start  <slug> [--from <ref>] [--dry-run]
-  node scripts/harness-worktree.mjs finish <slug> [--delete-branch] [--dry-run]
-  node scripts/harness-worktree.mjs list
-
-  start  → crea DTD-worktrees/<slug> en rama feat/<slug> (off main) + .env.local + pnpm install
-  finish → remueve el worktree (maneja long-path Windows) + prune; NO mergea, NO pushea
-  list   → git worktree list`);
-}
-
-function main() {
-  const args = parseArgs(process.argv.slice(2));
-  switch (args.cmd) {
-    case "start":
-      return cmdStart(args);
-    case "finish":
-      return cmdFinish(args);
-    case "list":
-      return cmdList();
-    case "help":
-    case "--help":
-    case "-h":
-    case undefined:
-      return usage();
-    default:
-      warn(`comando desconocido: ${args.cmd}`);
-      usage();
-      process.exit(1);
-  }
-}
-
-// CLI guard: solo ejecuta si se invoca directo (importable para tests sin side effects).
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main();
+  try { runWorktreeCommand(process.argv.slice(2)); }
+  catch (error) {
+    console.error(`OPERACIÓN BLOQUEADA / LIMPIEZA BLOQUEADA: ${error.message}`);
+    process.exitCode = 1;
+  }
 }

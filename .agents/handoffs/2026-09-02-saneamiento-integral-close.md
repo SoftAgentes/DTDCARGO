@@ -65,7 +65,42 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   publicación/Edge/smoke. No publicado; el webhook v14 alojado NO tiene este
   guard. No hubo push, integración, deploy ni invocación alojada.
 
-## Último punto de control · runbooks de worktrees saneados
+## Último punto de control · helper de worktrees corregido localmente
+
+Sobre `3c1e834ac69a78c63e5405a2af3a70c85a86070a`, vigesimosegundo incremento
+local, SDD-0370. Allowlist exacta en su spec: helper, tres archivos de tests/fixture,
+spec/índice, dos runbooks, llamador feature, checklist y este handoff. No AGENTS,
+dependencias, app, SQL, configuración alojada ni permisos externos.
+
+- Start: codex/origin-main actual, sin upstream ni copia de secretos, instalación
+  congelada y error explícito aunque exista marcador Vitest. Conservar worktree
+  recién creado si pnpm falla; no afirmar que está listo.
+- Finish: ruta principal y candidato exactos, árbol/índice/ignorados, historia real,
+  SHA remoto vivo de main y rama, upstream exacto, contención y handoff preservado.
+  Exige confirmación externa de inactividad/ownership por SHA: no detecta procesos
+  ni concede GO. Revalida antes de retirar, sin prometer atomicidad entre procesos.
+  Sólo remove normal y -d opcional; ningún fallback recursivo, force o prune.
+- RED: 20 fallos de parser, 5 CLI causales (incluida retirada sin publicación),
+  y 1 canario de GIT_GRAFT_FILE. GREEN final: 79 específicos, 27 puros y 52 integración;
+  51 usan CLI y 1 importa el comando con sólo remove inyectado para simular fallo.
+- Suite global previa: 6.546 aprobadas/1 fallo de contrato de entorno, 540 archivos.
+  Se corrigieron sólo dos nombres privados del fixture al prefijo VERIFY_, sin
+  tocar .env.example ni su escáner; focal 4/4. Suite final: **6.547/6.547 en 540
+  archivos**, 244,76 s, exit 0, `pnpm test --maxWorkers=4`, sin omisiones.
+- Node --check, ESLint, docs, numeración 362/421, gobernanza 28, componentes 5,
+  nueve enlaces y revisión independiente aprobados. No nuevo build Next,
+  SQL, Deno o navegador: alcance Node/documentación, sin efecto en runtime app.
+- Los fixtures Git propios se retiraron con contención y marcador de ownership
+  comprobados. No instalación pnpm real, red alojada en tests ni mutantes sobre
+  los worktrees reales. Principal limpio en 22cec0c2, remoto main 2a2e81bf y
+  rama eabb230b comprobados vivos e intactos. Sólo esta tarea Codex está activa.
+- Checklist **52/106 (49,1 %), 54 pendientes**: se cierra la casilla del helper,
+  no la publicación ni la limpieza real. 362 specs: 267 done, 1 superseded, 94 abiertas.
+  SDD-0370 sigue in-progress por publicación/CI. 421 migraciones, 26 gates Cloud
+  pendientes; no se aplicó ninguna. El GO de push debe cubrir el SHA final y
+  puede generar Preview. No hubo push, integración, deploy ni borrado real.
+
+## Punto anterior · runbooks de worktrees saneados
 
 Sobre `900b25bbcaf25fe4098ecc0fc6e248a3ef640d2f`, vigesimoprimer incremento
 documental. Allowlist: los tres runbooks de worktrees/apertura/roles, README,

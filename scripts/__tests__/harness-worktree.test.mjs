@@ -39,9 +39,9 @@ describe("harness-worktree · helpers puros", () => {
     });
   });
 
-  it("branchFor → feat/<slug>", () => {
-    expect(branchFor("seo")).toBe("feat/seo");
-    expect(branchFor("sdd-0061-fase-b")).toBe("feat/sdd-0061-fase-b");
+  it("branchFor → codex/<slug>", () => {
+    expect(branchFor("seo")).toBe("codex/seo");
+    expect(branchFor("sdd-0061-fase-b")).toBe("codex/sdd-0061-fase-b");
   });
 
   it("worktreePathFor → <parent>/DTD-worktrees/<slug>, hermano del repo principal", () => {
@@ -56,7 +56,7 @@ describe("harness-worktree · helpers puros", () => {
       const a = parseArgs(["start", "mi-lane"]);
       expect(a.cmd).toBe("start");
       expect(a.slug).toBe("mi-lane");
-      expect(a.from).toBe("main"); // off main por default
+      expect(a.from).toBe("origin/main");
       expect(a.dryRun).toBe(false);
       expect(a.deleteBranch).toBe(false);
     });
@@ -80,5 +80,31 @@ describe("harness-worktree · helpers puros", () => {
       expect(a.cmd).toBeUndefined();
       expect(a.slug).toBeUndefined();
     });
+
+    it("lee confirmación y handoff sin convertirlos en autorización", () => {
+      const a = parseArgs(["finish", "x", "--confirm-idle", "a".repeat(40), "--handoff", "docs/close.md"]);
+      expect(a.confirmIdle).toBe("a".repeat(40));
+      expect(a.handoff).toBe("docs/close.md");
+    });
+
+    it.each([
+      ["start", "x", "--from"],
+      ["start", "x", "--from", "--dry-run"],
+      ["start", "x", "--force"],
+      ["start", "x", "extra"],
+      ["start", "x", "--dry-run", "--dry-run"],
+      ["start", "x", "--delete-branch"],
+      ["finish", "x", "--from", "main"],
+      ["finish", "x", "--confirm-idle"],
+      ["finish", "x", "--handoff"],
+      ["list", "x"],
+      ["unknown", "x"],
+    ])("rechaza argumentos ambiguos: %j", (...args) => {
+      expect(() => parseArgs(args)).toThrow();
+    });
+  });
+
+  it.each(["con", "prn", "aux", "nul", "com1", "lpt9"])("rechaza nombre reservado de Windows: %s", (slug) => {
+    expect(isValidSlug(slug)).toBe(false);
   });
 });

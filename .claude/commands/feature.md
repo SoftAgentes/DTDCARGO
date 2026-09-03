@@ -10,9 +10,9 @@ Orquesta una feature de punta a punta con orden **estructural** (no confía en q
 
 ## Procedimiento (seguir al pie de la letra)
 
-0. **Aislamiento (worktree).** Confirmá que estás en el worktree del lane, **NO en `main`**: `git branch --show-current` debe dar `feat/<slug>`, no `main`.
+0. **Aislamiento (worktree).** Confirma que estás en el worktree del lane, **NO en `main`**: `git branch --show-current` debe dar `codex/<slug>` (o `feat/<slug>` heredada), no `main`.
    - Si estás en `main` (o la carpeta principal `DTDCargo`) → **PARÁ.** Una feature nueva NO se implementa en `main` (ahí se mezcla con todo y choca con otras ventanas). Creá el lane aislado: `node scripts/harness-worktree.mjs start <slug>`, abrí una ventana en `DTD-worktrees/<slug>`, y corré `/feature` **ahí**.
-   - El gate `node scripts/verify.mjs` corre igual desde cualquier worktree (tras el `pnpm install` que `start` ya hace).
+   - El gate `node scripts/verify.mjs` corre igual desde cualquier worktree. `start` usa origin/main actual, no copia entorno e instala con `pnpm install --frozen-lockfile`; si falla, el worktree permanece pero no está listo.
    - ⚠️ Plan mode NO crea el worktree solo — este paso es manual (o vía `start`).
 
 1. **Pre-check.** Corré `node scripts/verify.mjs`. Si está 🔴 → PARÁ y reportá (el repo debe estar verde antes de empezar). Leé `AGENTS.md`, la spec indicada y `.harness/CHECKPOINTS.md`.
@@ -28,7 +28,7 @@ Orquesta una feature de punta a punta con orden **estructural** (no confía en q
    - `CHANGES_REQUESTED` → devolvé los findings al `implementer` (volvé al paso 2).
    - `APPROVED` → seguí al cierre.
 
-5. **Cierre.** El `implementer` actualiza el spec SDD (spec-anchored). Resumí al founder: qué se hizo, qué validó el reviewer, y proponé el commit (`feat(studio): SDD-NNNN — …`). **NO commitees ni `git push` sin OK del founder.** Tras el commit + merge a main + tu OK, limpiá el lane: `node scripts/harness-worktree.mjs finish <slug> --delete-branch` (remueve el worktree manejando el long-path de Windows; **NO** pushea).
+5. **Cierre.** El `implementer` actualiza el spec SDD (spec-anchored). Resume al founder qué se hizo, qué validó el reviewer y el commit propuesto (`feat(studio): SDD-NNNN — …`). **NO hacer commit ni push sin su OK.** Integración/publicación/limpieza respetan el rol y el GO del [runbook](../../docs/runbooks/git-worktrees-multiventana.md); un worker Codex no integra ni se retira a sí mismo. El cierre autorizado se ejecuta desde main principal limpio/actual, después de comprobar externamente inactividad y preservación: `node scripts/harness-worktree.mjs finish <slug> --confirm-idle <HEAD_COMPLETO_VERIFICADO> --handoff <HANDOFF_RELATIVO> --delete-branch --dry-run`. Los marcadores se sustituyen por valores comprobados; sólo retirar `--dry-run` con todas las condiciones satisfechas. Ignorados bloquean y requieren preservación/retiro previo separado. No hay force, fallback long-path, merge ni push automático.
 
 6. **Freno (dos topes duros).** Externo: máximo **3 rondas** implement↔review. Interno: máximo **5 intentos** en el bucle de reparación del `implementer` (Reflexion). Si se agota cualquiera sin verde+aprobado → PARÁ y mostrá al founder dónde se trabó. **No fuerces un `done`.** (Ninguno de los dos es un proceso de fondo: son pasadas que se cortan solas al tope; nada queda corriendo.)
 

@@ -36,5 +36,5 @@ de edición sólo para recuperar historia.
 
 Para preparar una carpeta nueva, dependencias y variables, seguir
 [el runbook de worktrees](git-worktrees-multiventana.md). No copiar `.env.local`,
-no ejecutar el helper heredado ni traer main automáticamente al abrir.
+usar sólo el helper con los gates de SDD-0370 y no traer main automáticamente al abrir.
 Para el mensaje de encargo, usar [la plantilla del rol](multi-ventanas-buena-practica.md).
