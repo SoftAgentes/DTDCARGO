@@ -137,8 +137,11 @@ un control del usuario; la elección de la siguiente tarea local no hace falta.
 
 **Siguiente cola local definida, sin nueva ronda de opciones:**
 
-1. Contrato de reserva atómica del verificador, con concurrencia en PostgreSQL
-   desechable; archivos/pruebas locales, nunca aplicación implícita.
+1. Reserva atómica SDD-0375/0426 implementada: 25 unitarios focales, 63
+   aserciones SQL y carreras con conexiones reales aprobadas; 168 contratos
+   SQL y rebuild423 correctos. El gate conjunto detectó timeouts del arnés
+   de worktrees, en diagnóstico. [Evidencia](2026-09-03-public-verify-atomic-local.md).
+   La migración sigue sin aplicar y el consumidor sin publicar.
 2. Comando de soft delete Portal como slice independiente, sin abrir históricos.
 3. Diagnosticar el cierre E2E sin ocultar timeouts; revisar actualización
    compatible del fflate transitivo con contratos de replay.

@@ -9,6 +9,11 @@ confidencialidad: interno
 
 # Verificador público · SDD-0374 · evidencia local
 
+> Snapshot histórico. La reserva atómica posterior se implementó localmente
+> en SDD-0375/0426. Ver [evidencia vigente del siguiente slice](2026-09-03-public-verify-atomic-local.md).
+> No implica aplicación Cloud ni despliegue; los resultados inferiores son
+> los de SDD-0374, no el estado actual del wrapper.
+
 ## Resultado
 
 Se corrigió únicamente el fallo abierto de isVerifyThrottled. Ante lectura

@@ -5,6 +5,23 @@ Fecha: 2026-09-02 · Última actualización: 2026-09-03
 Rol: worker
 Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
 
+## Continuación vigente · reserva atómica · 2026-09-03
+
+Desde 49af6c82 se implementa SDD-0375/0426 en el mismo worktree. La carrera
+39→41 se reprodujo con dos conexiones PostgreSQL reales. El correctivo local
+pasó 25 unitarios focales, 63 aserciones SQL y concurrencia COMMIT/ROLLBACK,
+clave independiente, reloj tras lock, timeout e aislamiento. Gate conjunto
+con fallo de arnés: 2 timeouts y luego 4 en harness-worktree-safety, no fallo
+del contrato atómico; diagnóstico abierto. 168 SQL y rebuild423 aprobados.
+E2E/build en curso al guardar este checkpoint. Ver
+docs/audits/2026-09-03-public-verify-atomic-local.md.
+
+No cambia el estado blocked del objetivo ni se automatiza la ventana prohibida.
+La cola local continúa sin elegir de nuevo; siguiente: soft delete Portal.
+Checklist original 56/106, sin sumar subpasos como tareas originales.
+Hay 24 migraciones anteriores más 0425/0426 locales sin aplicar. Sin nuevo
+push, main, deploy, datos reales o limpieza final.
+
 ## Punto vigente · cola local desde Analytics · 2026-09-03
 
 Esta sección prevalece sobre los snapshots históricos inferiores. Se continúa

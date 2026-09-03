@@ -4,7 +4,7 @@
  *
  * Corre, en orden: lint → rsc-boundary → typecheck → edge-functions → test →
  * docs:check → numbering → components:check → governance:check →
- * migrations-applied → sql-tests → schema-rebuild → e2e.
+ * migrations-applied → sql-tests → public-verify-concurrency → schema-rebuild → e2e.
  * Es el "init.sh real" del proyecto, multiplataforma (Node, cero deps).
  *
  * El paso `e2e` (Playwright) va último y se OMITE con gracia si no hay
@@ -360,6 +360,9 @@ const STEPS = [
   // futuro para reabrir una escalada ya cerrada). DEGRADA CON GRACIA: sin Docker
   // → SKIP, nunca rojo. `VERIFY_SKIP_SQL=1` para omitirlo a pedido.
   { name: "sql-tests", argv: ["scripts/run-sql-tests.mjs"] },
+  // SDD-0375: dos conexiones PostgreSQL reales; no se absuelve una carrera.
+  // Comparte VERIFY_SKIP_SQL=1 y devuelve 3 si no hay Docker/imagen local.
+  { name: "public-verify-concurrency", argv: ["scripts/check-public-verify-concurrency.mjs"] },
   // ¿El schema se reconstruye desde cero con lo que hay en el repo? Aplica las
   // 267 migraciones en orden sobre un Postgres limpio. Caza lo que
   // `migrations-applied` no puede (ese compara NOMBRES contra el ledger): un

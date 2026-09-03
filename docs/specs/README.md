@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 366 specs)
+### Índice de specs (generado · 367 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -404,6 +404,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0372 | Direcciones Portal por principal y tenant | in-progress | interno |
 | 0373 | Validación de destinos y suscripciones Web Push | in-progress | interno |
 | 0374 | Verificación pública bloqueada ante fallo del throttle | in-progress | interno |
+| 0375 | Reserva atómica del verificador público | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
