@@ -52,9 +52,14 @@ export default defineConfig({
      */
     testTimeout: 20_000,
     hookTimeout: 20_000,
+    // SDD0378: Windows expone32 CPU pero sólo16GB de RAM en este host.
+    // El default31 workers agotó20s al importar un servicio (7125/7126).
+    // Acotar procesos, no ampliar tiempos ni retirar casos. CLI sigue solo;
+    // las otras plataformas conservan el default del runner.
+    maxWorkers: process.platform === "win32" ? 4 : undefined,
     // SDD0378: el CLI pasó52/52 aislado, pero agotó10s de spawn bajo la
     // tanda paralela. Conservar todos los casos y plazos; correr sólo ese
-    // archivo después, sin reducir concurrencia del resto de la suite.
+    // archivo después del grupo unitario acotado.
     projects: [
       {
         extends: true,

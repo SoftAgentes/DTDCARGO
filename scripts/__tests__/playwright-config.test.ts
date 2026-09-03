@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
+import config, {
   preparePlaywrightRuntime,
   resolvePlaywrightExecutionLimits,
   resolveLocalSupabaseDenyPort,
@@ -7,6 +7,12 @@ import {
 } from "../../playwright.config";
 
 describe("resolvePlaywrightRuntime", () => {
+  it("acota sólo Safari Windows conservando los tres proyectos", () => {
+    expect(config.projects?.map((project) => project.name)).toEqual(["chromium", "mobile-chrome", "mobile-safari"]);
+    expect(config.projects?.[0].workers).toBeUndefined();
+    expect(config.projects?.[1].workers).toBeUndefined();
+    expect(config.projects?.[2].workers).toBe(process.platform === "win32" ? 1 : undefined);
+  });
   it("usa localhost y levanta el webServer por defecto", () => {
     expect(resolvePlaywrightRuntime({})).toEqual({
       port: 3001,

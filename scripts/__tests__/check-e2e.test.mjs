@@ -11,9 +11,11 @@ import {
 } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   E2E_DIST_DIR,
+  resolverArgumentosE2E,
   limpiarSalidaE2E,
   prepararSalidaE2E,
 } from "../check-e2e.mjs";
@@ -33,6 +35,16 @@ afterEach(() => {
 });
 
 describe("salida aislada del gate E2E", () => {
+  it("precarga el guard sólo en Windows sin NODE_OPTIONS ni shell", () => {
+    const args = ["--project=mobile-safari", "--reporter=json"];
+    const windows = resolverArgumentosE2E(args, "win32");
+    expect(windows[0]).toBe("--import");
+    expect(path.isAbsolute(fileURLToPath(windows[1]))).toBe(true);
+    expect(fileURLToPath(windows[1]).replaceAll("\\", "/")).toMatch(/\/scripts\/e2e\/webkit-exit\.mjs$/);
+    expect(windows.slice(2)).toEqual(["node_modules/@playwright/test/cli.js", "test", ...args]);
+    expect(resolverArgumentosE2E(args, "linux")).toEqual(["node_modules/@playwright/test/cli.js", "test", ...args]);
+    expect(args).toEqual(["--project=mobile-safari", "--reporter=json"]);
+  });
   it("elimina residuos anteriores sin tocar la caché normal .next", () => {
     const raiz = nuevaRaiz();
     const normal = path.join(raiz, ".next", "dev", "sentinel.txt");

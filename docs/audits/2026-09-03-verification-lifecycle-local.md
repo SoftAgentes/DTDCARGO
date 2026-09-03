@@ -8,7 +8,7 @@ review-by: 2026-09-10
 confidencialidad: interno
 ---
 
-# SDD0378 · evidencia en curso
+# SDD0378 · cierre E2E medido y estabilidad unitaria
 
 ## Estado y alcance
 
@@ -98,8 +98,8 @@ No se tocaron los NetworkProcess antiguos ajenos.
 No basta ese inventario para decir que están vivos: se debe distinguir
 exit del proceso y close de sus pipes. El código instalado de Playwright1.60
 lib/coreBundle.js:8650 registra "process did exit" en el evento close y su
-gracefullyClose espera ese evento. Sonda efímera observacional preparada,
-sin patch de node_modules ni cambio del comportamiento, para medirlo.
+gracefullyClose espera ese evento. Sonda efímera preparada para medir exit,
+close y cada canal propio; no se modificó node_modules.
 
 La corrida mide Next real y los tres proyectos existentes; los Tier3 sin
 entorno autorizado conservan su omisión. El browser focal de Portal es otra
@@ -107,7 +107,120 @@ medición sintética, no evidencia de integración Portal→Cloud.
 
 ## Pendientes
 
-- Localizar el cierre E2E con evidencia real y corregir sólo su causa.
-- Terminar diagnóstico E2E y gate completo; suite unitaria conjunta aprobada.
-- Actualizar checkpoint sin inflar el56/106 original.
-- Después: fflate/replay; RBAC/Portal restante, specs, logs, CSP y web.
+- Cierre local medido; publicación del tooling aún no autorizada.
+- Gates externos y cobertura autenticada permanecen separados.
+- Continuar Portal/RBAC por entidades, luego specs, logs, CSP y web.
+
+## Reproducción causal y corrección posterior
+
+Safari solo, mismos8workers/480s,231297ms, exit1:
+44pass/5flaky/6skip/1fail, errors globales vacío. No fue una aprobación.
+Artefactos safari-events.jsonl, safari-trace-report.json y
+safari-trace-measured.log en el directorio anterior.
+
+| Proceso propio | Evidencia |
+|---|---|
+| 139960 | exit0 a22:27:13UTC; 15s después cuatro canales seguían abiertos; liberación propia y close inmediato |
+| 62360 | exit0 a22:27:38UTC; misma retención15s; liberación propia→close en5ms |
+
+La sonda registró RED antes de intervenir y sólo tras exit0/sin señal.
+No mató PID ni modificó exit codes. Los minirrepros independientes simples
+(incluyendo HTTP/SSE/WebSocket) cerraron normalmente y no reprodujeron el
+problema; no se presentan como evidencia causal.
+
+Esto coincide con el contrato documentado de Node: exit y cierre de stdio
+son eventos distintos ([Node24.15 ChildProcess](https://nodejs.org/download/release/v24.15.0/docs/api/child_process.html#event-close)).
+No se atribuye el origen del handle retenido a un tercero no demostrado.
+
+Corrección persistida: scripts/e2e/webkit-exit.mjs, precargado por --import
+en el CLI Windows y heredado por sus forks. No NODE_OPTIONS ni precarga en
+Next. Matching exacto de ejecutable instalado, --inspector-pipe, stdio y
+ausencia de shell. Sólo tras exit0/sin señal drena15s y libera streams
+propios aún abiertos. No cambia plazos, navegadores, assertions ni resultados.
+
+RED contrato inicial por módulo ausente (no causal), luego dos RED focales:
+aviso sin canales pendientes y URL transformada por jsdom. Corregidos.
+Final51/51:48guard+3wrapper; lint del helper/wrapper aprobado. Conversión
+a ESM evitó modificar ESLint global por un primer archivoCommonJS.
+La causalidad física proviene del JSONL real, no de mocks de ChildProcess.
+
+Revisión de fallos de navegación: primer intento auth interrumpido aunque
+snapshot contiene el encabezado correcto; retry espera load60s y recibe
+HTML200 en2,09s pero no llega a aserciones. Dos fullreload de Next dev y un
+fatal tryAllocPixels de WebKit se observan en el log. No prueban un bug del
+token ni una causa única: no se cambió app/acceso ni se debilitó goto.
+errors globales vacío tampoco certifica consola limpia; existen errores
+del overlay Next en un retry aprobado.
+
+### Guard persistido y límite de recursos
+
+Corrida general guard-full-report.json:146pass/3flaky/18skip/1fail,
+316541ms, exit1, errors globales vacío. El guard liberó los canales propios
+del75724 a15s y permitió terminar. El clasificador correctamente siguió rojo.
+Nuevo fallo real: WebKit48048 no puede arrancar; taskkill del proveedor
+informa «No hay suficientes recursos de memoria», exit3221225501.
+Retry no crea página en60s. No se absuelve como teardown ni bug de producto.
+
+Se limita sólo mobile-safari a1worker en Windows, con8como tope global
+conservado; plataformas restantes/Chrome siguen iguales. Configuración
+RED1/12→GREEN12/12; junto con guard/wrapper63/63. No cambia ninguna aserción
+ni timeout. API por proyecto confirmada en los tipos instalados1.60.
+
+Contraste Safari completo con traza desde primer intento:
+guard-serial-safari-report.json:50pass/0flaky/6skip/0fail,
+284407ms, exit0, errors globales vacío. El91820 también necesitó liberar
+canales después de exit0; guard funcionó sin timeout global. Next y deny-only
+se cerraron, tsconfig fue restaurado. Casos previamente fallidos pasan.
+Esto verifica Safari local y sus negativos, no los Tier3 ni un smoke Cloud.
+La medición conjunta posterior con los tres proyectos se detalla abajo.
+
+## Gate conjunto final del guard y fflate
+
+Log: outputs/e2e-lifecycle-2026-09-03T2207/gate-final.log.
+Terminó exit 0: 16/17 pasos medidos; sólo migrations-applied fue SKIP.
+No es un gate alojado ni un cierre sin reservas.
+
+- Lint, tipos, frontera RSC, cuatro Edge, documentación, numeración,
+  constantes, componentes y 28 políticas de gobernanza aprobados.
+- Unitarios, intento 1: 7.125/7.126, 551/552 archivos, 529,04 s.
+  Un timeout de 20 s durante importación en attachments/service.test.ts.
+  Intento 2 automático existente: 7.126/7.126, 552 archivos, 315,04 s.
+  No se oculta el intento fallido ni se atribuye a un codec de replay.
+- 169 contratos SQL; reserva atómica y ocho carreras Portal aprobadas.
+- Rebuild: 424 archivos, 406 migraciones ejecutables y 18 sólo-ledger;
+  comprobación de aislamiento sobre 219 tablas y dos tenants sintéticos.
+- E2E real: inicio 2026-09-03T23:10:00.783Z, duración 211.048 ms,
+  150 aprobados/18 omitidos/0 flaky/0 inesperados, errors globales vacío.
+  Reporte: C:/Users/Trabajo/AppData/Local/Temp/dtd-e2e-29256.json.
+  El clasificador persistido devuelve pass, indicando las 18 omisiones.
+  Next y deny-only cerraron; tsconfig restaurado. No hubo timeout global.
+- Build de producción correcto: 158 páginas; tsconfig restaurado.
+
+### Concurrencia unitaria posterior
+
+Lectura del runner instalado Vitest 4.1.7: resolveMaxWorkers usa CPU-1 en
+run cuando no hay límite. Este equipo expone 32 procesadores lógicos y
+15,7 GiB de RAM; durante la corrida se midieron sólo 1,14 GiB libres.
+El tiempo agregado de transformación/importación/entorno fue mucho mayor
+en el primer intento. Es evidencia de contención, no un diagnóstico del SO.
+
+El caso de adjuntos intacto pasó solo: 56 ms de test, 25,27 s totales
+(21,29 s de preparación jsdom). Contrato RED de configuración: 1/5 falló
+por maxWorkers indefinido. Tras limitar Windows a 4: contrato y caso
+original 6/6 correctos, 1,52 s totales. Ningún plazo ni prueba se amplió
+o retiró. Plataformas no Windows mantienen su configuración original.
+Primer contraste a cuatro trabajadores: 7.126 aprobados y un fallo,
+447,24 s. No hubo timeout: el fallo fue documental porque se creó la spec0380
+con una referencia a0428 antes de que existiera ese archivo, durante la corrida.
+Fue un error de secuenciación del agente, no un resultado verde ni un defecto
+de concurrencia. Se completaron ambos archivos y se congeló el árbol.
+
+Medición final directa, sin reintento del wrapper:
+7.149/7.149 pruebas en553archivos, 421,24 s, exit0; inicio19:25:56 Caracas.
+Log: outputs/e2e-lifecycle-2026-09-03T2207/quotes-unit-final.log.
+Incluye22casos nuevos de cotizaciones0380 y el control de configuración.
+No se repite una corrida limpia sin cambio que lo justifique.
+
+El alcance local0378 queda cerrado con esa evidencia. E2E150/18 y build158
+corresponden al gate anterior al delta0380; no se presentan como E2E autenticado
+de cotizaciones ni como cobertura de las18pruebas omitidas.

@@ -123,10 +123,13 @@ Los logs de alta/edición/default preexistentes quedan fuera de este slice.
 
 ## Pendientes y orden de release
 
-- Completar cierre global de pruebas y diagnóstico E2E en SDD0378.
+- Suite conjunta posterior:7149/7149 en553archivos,421,24s, sin reintento.
+ Gate0378:16/17 medidos (Cloud SKIP), E2E150/18 sin errores globales y build158.
+ El E2E no incluye autenticación Portal real; el navegador de direcciones
+ sigue siendo un arnés sintético del componente. Evidencia en acta0378.
 - Aplicación nominal de0427, posterior a sus dependencias0425 y auditoría;
   metadatos pre/postflight y permisos efectivos antes de publicar consumidor.
-- Hay27 migraciones preparadas no aplicadas:0401–0427; el conteo se deriva
+- Hay28 migraciones preparadas no aplicadas:0401–0428; el conteo se deriva
   del último ledger verificado0400, no de una nueva lectura Cloud en este slice.
 - No cerrar la casilla amplia Portal/RBAC ni inflar56/106 por este correctivo.
 - Reanudar objetivo original sigue siendo control externo de la app.

@@ -24,11 +24,15 @@ describe("SDD0378: CLI real después de la tanda paralela, sin perder cobertura"
     expect(project("worktree-cli")?.test.sequence?.groupOrder).toBe(1);
     expect(project("worktree-cli")?.test.fileParallelism).toBe(false);
   });
-  it("no reduce el paralelismo del resto de la suite ni amplía timeouts", () => {
-    expect(config.test.maxWorkers).toBeUndefined();
+  it("acota trabajadores en Windows sin ampliar timeouts", () => {
+    expect(config.test.maxWorkers).toBe(process.platform === "win32" ? 4 : undefined);
     expect(project("unit")?.test.maxWorkers).toBeUndefined();
     expect(config.test.testTimeout).toBe(20_000);
     expect(config.test.hookTimeout).toBe(20_000);
     expect(project("worktree-cli")?.test.testTimeout).toBeUndefined();
+  });
+  it("conserva paralelismo por archivo en el grupo unitario", () => {
+    expect(config.test.fileParallelism).toBeUndefined();
+    expect(project("unit")?.test.fileParallelism).toBeUndefined();
   });
 });

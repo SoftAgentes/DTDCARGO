@@ -12,8 +12,8 @@
  * 3. restaura `tsconfig.json` byte por byte si Next lo modificó;
  * 4. borra la salida exclusiva también al fallar la suite.
  *
- * Exit 2 identifica un fallo del propio arnés (spawn o limpieza). Así
- * `verify.mjs` no lo absuelve como el teardown conocido de WebKit.
+ * Exit 2 identifica un fallo del propio arnés (spawn o limpieza).
+ * SDD-0378: ningún error global/real de E2E se absuelve.
  */
 
 import { spawnSync } from "node:child_process";
@@ -23,10 +23,21 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import path from "node:path";
 
 export const E2E_DIST_DIR = ".next-verify-e2e";
+
+export function resolverArgumentosE2E(argv, platform = process.platform) {
+  const cli = ["node_modules/@playwright/test/cli.js", "test", ...argv];
+  if (platform !== "win32") return cli;
+  // fork() hereda execArgv: sólo CLI/workers, no NODE_OPTIONS en Next.
+  return [
+    "--import",
+    pathToFileURL(path.join(path.dirname(fileURLToPath(import.meta.url)), "e2e", "webkit-exit.mjs")).href,
+    ...cli,
+  ];
+}
 
 function rutasAisladas(root) {
   const raiz = path.resolve(root);
@@ -83,7 +94,7 @@ export function ejecutarE2EAislado(argv = process.argv.slice(2)) {
   try {
     const resultado = spawnSync(
       process.execPath,
-      ["node_modules/@playwright/test/cli.js", "test", ...argv],
+      resolverArgumentosE2E(argv),
       {
         cwd: estado.raiz,
         stdio: "inherit",

@@ -1,7 +1,7 @@
 ---
 sdd: "0378"
 title: Verificacion local sin falsos verdes y aislamiento de pruebas CLI
-status: in-progress
+status: done
 author: Codex
 created: 2026-09-03
 updated: 2026-09-03
@@ -54,7 +54,11 @@ No aumentar timeouts para maquillar fallos. No matar procesos ajenos.
 - scripts/__tests__/verify-e2e.test.mjs: conservar pruebas de puertos y actualizar contrato obsoleto.
 - scripts/check-e2e.mjs y scripts/__tests__/check-e2e.test.mjs: lifecycle/reporte sólo si evidencia lo exige.
 - playwright.config.ts: sólo configuración de ejecución/lifecycle demostrada.
-- vitest.config.mts y scripts/__tests__/verification-scheduling.test.mjs: aislamiento CLI si se demuestra.
+- scripts/__tests__/playwright-config.test.ts: límite por proyecto Windows.
+- vitest.config.mts y scripts/__tests__/verification-scheduling.test.mjs:
+  aislamiento CLI y concurrencia Windows sustentados en la corrida medida.
+- scripts/e2e/webkit-exit.mjs y scripts/__tests__/e2e-webkit-exit.test.mjs:
+  liberar exclusivamente canales del WebKit propio ya terminado con exit0.
 - Esta spec, docs/specs/README.md generado.
 - docs/audits/2026-09-03-verification-lifecycle-local.md.
 - docs/audits/2026-09-03-portal-address-delete-local.md: gate agregado.
@@ -67,11 +71,47 @@ No aumentar timeouts para maquillar fallos. No matar procesos ajenos.
       sobre funciones/bucle reales; transporte/lecturaJSON instrumentados.
 - [x] Regresión persistida y clasificación fail-closed.
 - [x] Ningún error mixto ni reporte incompleto se convierte en éxito/SKIP.
-- [ ] Timeouts E2E localizados con evidencia real, no con el mensaje heurístico.
+- [x] Timeouts E2E localizados con evidencia real, no con el mensaje heurístico.
+- [x] Corrección acotada de canales WebKit y corrida completa sin error global.
 - [x] CLI medido solo y planificación validada:7066/7066 en550archivos,
       390,65s, sin ampliar plazos ni cambiar maxWorkers del grupo unitario.
-- [ ] Gate completo y reservas comunicadas, sin falsos porcentajes.
+- [x] Gate completo y reservas comunicadas, sin falsos porcentajes.
+- [x] Contraste de suite completa tras acotar trabajadores Windows.
 
 SGE00.02/04/05/07/12: conservación de evidencia y autoridad, estado verdadero.
 Sin modificación visual ni de captura personal. Los fixtures son sintéticos.
 Un problema externo sólo estaciona su gate; la cola local mantiene su orden.
+
+## Medición conjunta posterior
+
+Gate completo: exit 0 con reservas, 16/17 pasos medidos. E2E real de los tres
+proyectos: 150 aprobados, 18 omitidos, cero flaky, errors vacío, 211.048 ms.
+Build de 158 páginas, 169 contratos SQL, ambos gates de concurrencia y
+rebuild de 424 migraciones correctos. migrations-applied omitido: sin Cloud.
+
+La suite unitaria inicial falló 1/7.126 por timeout de importación de un
+servicio de adjuntos bajo 31 trabajadores (32 CPU/16 GB de RAM). El reintento
+existente aprobó 7.126/7.126, pero no acredita estabilidad. El contrato nuevo
+RED 1/5 y el contraste focal 6/6 sustentan acotar a cuatro trabajadores sólo
+en Windows; no cambia plazos, casos, aislamiento CLI ni otras plataformas.
+Medición final sin reintento: 7.149/7.149 en 553 archivos, 421,24 s. Incluye
+el delta posterior de cotizaciones0380. El intento anterior de cuatro workers
+falló sólo por una referencia documental creada durante la corrida; se conserva
+como fallo, no se atribuye a contención. La medición final congeló los archivos.
+El alcance local de esta spec queda terminado; publicación y Tier3 no incluidos.
+
+## Causa medida y contrato de corrección
+
+Safari instrumentado: dos ChildProcess emitieron exit0 pero no close durante
+15s; al destruir sólo sus propios canales stdio, close llegó en milisegundos.
+La corrida terminó en231,3s, errors globales vacío, pero mantiene1fallo real y
+5flaky: no es una aprobación E2E. Evidencia detallada en el acta0378.
+
+El wrapper precarga un helper sólo en Windows y lo heredan los workers Node,
+no el comando de Next. Sólo intercepta el ejecutable absoluto WebKit resuelto
+por la instalación local, con --inspector-pipe, cinco stdio esperados y sin
+shell. Tras exit0/sin señal espera15s para drenar; si close aún falta, libera
+sólo streams propios abiertos. No mata procesos ni fabrica eventos/resultados.
+No toca procesos vivos, otros ejecutables, otras plataformas ni salidas
+fallidas. Emite aviso sin datos de la página. El clasificador sigue rechazando
+cualquier fallo real/global. No parchea node_modules ni aumenta timeout.

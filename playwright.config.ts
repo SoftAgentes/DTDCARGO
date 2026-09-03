@@ -243,7 +243,13 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile-chrome", use: { ...devices["Pixel 7"] } },
-    { name: "mobile-safari", use: { ...devices["iPhone 14"] } },
+    {
+      name: "mobile-safari",
+      use: { ...devices["iPhone 14"] },
+      // SDD-0378: 8 WebKit Windows reprodujeron falta de recursos al crear
+      // la página. Serializa sólo este proyecto; conserva tests y sus plazos.
+      workers: process.platform === "win32" ? 1 : undefined,
+    },
   ],
   // El destino y el arranque son decisiones distintas. Sin override se conserva
   // la compatibilidad histórica: BASE_URL describe un server externo/existente.
