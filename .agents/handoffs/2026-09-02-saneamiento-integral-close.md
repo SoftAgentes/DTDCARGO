@@ -65,7 +65,53 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   publicación/Edge/smoke. No publicado; el webhook v14 alojado NO tiene este
   guard. No hubo push, integración, deploy ni invocación alojada.
 
-## Último punto de control · clasificación de avisos alojados
+## Último punto de control · principal Club coherente
+
+Sobre `c6accbcd75e05395b6bb0a55fef82f6493b9b516`, SDD-0368/0424 añade el
+decimoséptimo incremento local sin publicar: el commit que contiene este
+handoff. Checklist **51/105 (48,6 %), 54 pendientes**: una corrección local
+completada y un nuevo gate nominal pendiente, no casillas por cada prueba.
+360 specs, 93 abiertas; 0368 permanece in-progress por release/smoke.
+
+- RED causal: vínculo→cliente y cliente→persona de distinto tenant permiten
+  doce lecturas cruzadas en las seis tablas con 0187. 0424 sustituye sólo el
+  helper existente para exigir identidad/tenant coherentes, vínculo active y
+  cliente vivo; preserva firma/OID/ACL, policies, triggers y datos.
+- GREEN: 374 aserciones y 27 derivas; acceso A/B, historia pausada/cancelada,
+  equipo/dual, revocaciones, no DML Portal, paridad e idempotencia aprobados.
+  El canario restrictivo conserva diez aserciones en conexión/PID nuevo,
+  separado de las 364 principales; ambos rollbacks tienen guardas de limpieza.
+  La interferencia observada en el arnés no motivó un workaround de runtime.
+- Root: 166 contratos SQL aprobados con rollback total; rebuild de 421 migraciones
+  (403 desde cero + 18 sólo-ledger), 219 tablas/dos tenants; 37 unitarios Club
+  sin cambios. Docs/numeración/gobernanza/componentes y diff aprobados.
+  Revisor independiente: APROBADO sin bloqueantes, sólo para este delta.
+  No se repitieron build/E2E/Deno/global TypeScript por un delta SQL/documental.
+- Advisors locales: dos WARN heredados, `touch_updated_at` y
+  `academy_enrollments_validate_person`; ninguno en el helper modificado.
+  CLI contra 127.0.0.1 efímero con fixture vacío, nunca linked/Cloud.
+  Contenedores propios de test y advisor retirados; runner SQL con --rm.
+- Metadatos alojados del helper/policies contrastados, sin invocar funciones
+  ni leer miembros/PII. Cloud conserva 0187; no se aplicó 0424. El paquete ahora
+  tiene 421 archivos y 26 gates nominales pendientes (0399–0424). No se regeneró
+  el snapshot congelado de 204 avisos ni se atribuyó remediación alojada.
+- Allowlist exacta: `supabase/migrations/0424_portal_club_principal_tenant.sql`,
+  `supabase/tests/0424_portal_club_principal_tenant.test.sql`,
+  `docs/specs/0368-portal-club-principal-tenant/spec.md`, `docs/specs/README.md`,
+  `docs/audits/2026-09-02-codex-arranque-checklist.md` y este handoff.
+  Ningún archivo runtime TS/TSX, secreto o cambio ajeno incluido.
+- Tareas inspeccionadas: sólo `Audita y limpia worktrees`
+  (`01a05f15-80ff-77b1-9f3a-6b07d21df02d`) activa en DTDCargo. Rol worker;
+  checkout principal limpio en 22cec0c2 y ramas archive conservados.
+- Push no reintentado: requiere nueva aprobación del SHA final hacia
+  `origin/codex/saneamiento-integral`, considerando posible Preview.
+  La solicitud anterior limitada a c6accbcd no autoriza este incremento.
+  CI alojado de eabb230b no cubre los 17 commits locales. Sin merge ni deploy.
+- Limpieza final bloqueada por publicación/integración pendientes: se
+  mantienen exactamente dos worktrees. Siguiente responsable: Sam para los
+  GO específicos y después integrador exclusivo para release/contención.
+
+## Punto anterior · clasificación de avisos alojados
 
 El correctivo Kommo quedó en `a2456aa24ded1ac9974181ce2d9babd340bd216d`.
 Este decimosexto incremento local sólo documenta el triaje y actualiza el
@@ -647,6 +693,11 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
   localmente. Requiere GO nominal después de0421/consumidores/0422 y smoke de
   rename/historial/rechazo financiero. Son420 archivos y25 gates de aplicación
   0399–0423 pendientes en el paquete; no se ejecuta el conjunto en bloque.
+- La migración `0424_portal_club_principal_tenant.sql` está verificada
+  localmente con 374 aserciones/27 derivas, 166 contratos y rebuild de 421 migraciones.
+  Requiere GO nominal propio, preflight fresco, transacción y smoke autorizado
+  de identidad/lecturas/historia Club. No requiere nueva RPC ni deploy previo.
+  El total posterior es 421 archivos y 26 gates (0399–0424); ninguna aplicada.
 - El cambio Telegram requiere configurar/verificar el header secreto en el
   consumidor alojado antes de considerarlo operativo.
 - Vercel creó automáticamente un Preview del SHA publicado: deployment GitHub

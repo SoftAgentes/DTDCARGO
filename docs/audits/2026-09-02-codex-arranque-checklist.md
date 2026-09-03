@@ -19,16 +19,16 @@ refrescarse antes de cualquier operación Git o alojada.
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
-**Avance del checklist: 50 de 103 casillas completadas (48,5 %); 53 pendientes.** Es un
+**Avance del checklist: 51 de 105 casillas completadas (48,6 %); 54 pendientes.** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
 varios cambios. No existe todavía una medición defendible del producto completo.
 
 | Bloque | Hecho / total | Situación |
 |---|---:|---|
-| Correcciones locales enumeradas | 26 / 26 | Implementadas/verificadas localmente; no equivale a producción |
+| Correcciones locales enumeradas | 27 / 27 | Implementadas/verificadas localmente; no equivale a producción |
 | Cierre Git y publicación | 12 / 21 | Publicación parcial; falta lote nuevo e integración |
-| Cloud y operación alojada | 4 / 31 | Metadatos/código y avisos clasificados; aplicación y operación real pendientes |
+| Cloud y operación alojada | 4 / 32 | Metadatos/código y avisos clasificados; aplicación y operación real pendientes |
 | Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
 | Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
 | Orden del producto/documentación | 4 / 12 | qs del tooling corregido; faltan specs y decisiones de producto |
@@ -38,13 +38,22 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último avance:** los 204 avisos de seguridad alojados quedaron clasificados
+**Último avance local:** SDD-0368/0424 cierra la incoherencia entre vínculo,
+cliente y persona que podía exponer seis lecturas de Club de otro tenant.
+Preserva acceso legítimo, membresías pausadas/canceladas, historia y permisos
+internos. Pasan 374 aserciones, 27 derivas, 166 contratos SQL y rebuild de 421 migraciones;
+revisión independiente aprobada. No aplicado ni publicado.
+[Contrato y evidencia local](../specs/0368-portal-club-principal-tenant/spec.md).
+Se añade una corrección local completada y su aplicación nominal pendiente:
+el denominador pasa de 103 a 105. No es un retroceso ni una estimación de tiempo.
+
+**Clasificación anterior:** los 204 avisos de seguridad alojados quedaron clasificados
 en 19 dominios: 20 INFO y 184 WARN, correspondientes a 162 funciones, 20 tablas
 y una extensión. Inventario íntegro y revisión independiente aprobados.
 Esto cierra la casilla de clasificación, no la remediación: no se cambió ningún
 permiso, policy, función ni dato alojado. [Triaje y evidencia por objeto](2026-09-02-codex-triaje-advisors.md).
 
-**Último correctivo local:** SDD-0367 corrige el webhook Kommo para omitir conexiones
+**Correctivo anterior:** SDD-0367 corrige el webhook Kommo para omitir conexiones
 disabled/desconocidas antes de Vault y mutaciones, sin romper la recuperación
 error→active. Una desactivación en vuelo ya no se revierte al finalizar.
 25 regresiones específicas, suite completa6.441/538, Deno4/4, TypeScript del
@@ -86,10 +95,11 @@ pasó de46/101 a47/103 por una corrección local y un gate nominal pendiente.
 El arreglo posterior de qs cierra una casilla existente: **48/103**, sin cambiar
 el denominador ni sumar casillas por prueba. El cierre de revisión de metadatos
 y código alojado llevó el punto anterior a **49/103**; clasificar los avisos
-eleva el punto vigente a **50/103**. SDD-0258 no está cerrado.
+elevó el punto anterior a **50/103**. Club/0424 lleva el vigente a **51/105**.
+SDD-0258 no está cerrado.
 
 **Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
-integrar, 25 migraciones del paquete sin aplicación autorizada y trabajo de
+integrar, 26 migraciones del paquete sin aplicación autorizada y trabajo de
 aplicación/seguridad/documentación todavía pendiente. El worktree activo no
 se borra mientras conserve trabajo sin publicar/integrar.
 
@@ -130,6 +140,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   incremento exclusivamente documental sobre ese SHA: no reintenta el push,
   no modifica `main` ni aplica cambios alojados. La autorización de publicación
   debe nombrar el SHA final y considerar que puede generar Preview.
+  Ese punto quedó en `c6accbcd`. SDD-0368/0424 añade un decimoséptimo incremento
+  local, con migración, contrato y evidencia documental; no se reintenta el push
+  rechazado. Una autorización limitada a c6accbcd no incluye este incremento.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -145,11 +158,15 @@ se borra mientras conserve trabajo sin publicar/integrar.
   la excepción0017 bajo el corte. 15 buckets privados y cuatro versiones Edge
   inventariadas. Hasta 23:48 UTC se revisaron también 94 columnas/tipos, ACL y
   código/auth Edge; no certifica credenciales ni flujos reales. No hubo escritura alojada.
+  El incremento 0424 agrega un archivo local y un gate nominal: 421 archivos y
+  26 pendientes (0399–0424). Se contrastaron sólo metadatos de su helper y
+  policies contra Cloud; no se actualizó el ledger ni se consultaron miembros.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 359; 266 `done`, 1 `superseded` y 92 sin cierre documental
-  (77 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0367 está
+- Specs reales: 360; 266 `done`, 1 `superseded` y 93 sin cierre documental
+  (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0368 está
+  verificada localmente, pendiente de publicación/aplicación/smoke. SDD-0367 está
   verificada localmente, pendiente de publicación/Edge/smoke. SDD-0365 y0366
   siguen abiertas hasta verificar publicación, aplicación y smoke del release.
 
@@ -261,6 +278,13 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   ni comprobantes y con evento mínimo/atómico. RED23514 → GREEN: 323 aserciones
   (18 derivas), 164 contratos SQL y rebuild de 420; revisión independiente aprobada.
   No aplicado. El resto de SDD-0258 y su interfaz siguen sin cierre integral.
+
+- [x] Club Portal ligado a vínculo, cliente y persona del mismo tenant
+  (SDD-0368/0424). Cierra dos cruces en seis lecturas sin cambiar policies,
+  permisos ni historia propia. 374 aserciones, 27 derivas, 166 contratos SQL,
+  rebuild de 421 migraciones y revisión independiente aprobados; 37 unitarios Club conservados;
+  advisors locales con dos WARN heredados, ninguno en el helper corregido.
+  Sólo local: no publicado ni aplicado. No certifica todo Cohortes/Club.
 
 ## P0 · terminar el saneamiento Git y publicar
 
@@ -382,6 +406,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [ ] Aplicar `0423_payment_report_historical_identity.sql` sólo con GO nominal
   después de0421, consumidores y0422 verificados. Smoke de rename autorizado,
   conservación de expediente y rechazo de escrituras financieras sobre archivo.
+- [ ] Aplicar `0424_portal_club_principal_tenant.sql` sólo con GO nominal,
+  preflight fresco y transacción. Smoke autorizado de las seis lecturas Club,
+  identidad coherente e historia propia; sin nueva RPC ni deploy previo.
+  No está aplicada y no requiere leer miembros reales en este saneamiento.
 - [ ] Reconfigurar el webhook Telegram alojado para usar el header secreto,
   desactivar la compatibilidad query y verificar `getWebhookInfo`.
 - [x] Confirmar que el deployment automático de la rama fue Preview, no
@@ -442,8 +470,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   `prealertas` y `prealerta_documents`. SDD-0362 cubre cursos, módulos, lecciones,
   inscripciones, diplomas y progreso de Academia. SDD-0363 cubre reclamos y
   evidencias. SDD-0364 cubre la identidad/tenant de reportes de pago, no sus
-  comandos ni integridad financiera. Faltan las demás entidades; cohortes/Club
-  conservan alcance separado.
+  comandos ni integridad financiera. SDD-0368 cierra la cadena de identidad
+  que alimenta seis policies Club, incluidos eventos de contexto club; no
+  certifica todo su RBAC/integridad ni cohortes fuera de ese contexto.
+  Faltan las demás entidades y permisos fuera de los contratos enumerados.
   No hacer un sweep ni declarar corregido todo el
   Portal por estos slices. Secuencias, transiciones y relación proveedor/cliente
   son hipótesis separadas que necesitan reproducción, no fallos ya confirmados.
@@ -528,7 +558,7 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   acceso; 42 pruebas focales, 29 contratos adicionales y 6.032 pruebas completas
   en 530 archivos. TypeScript, ESLint y gates documentales aprobados.
   [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
-- [ ] Reconciliar las 92 specs no cerradas por rebanadas de dominio. Cambiar un
+- [ ] Reconciliar las 93 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
   El bloqueo23514 de rename con factura archivada quedó corregido localmente
   por SDD-0366/0423, no publicado/aplicado. No basta para cerrar SDD-0258;
@@ -568,7 +598,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
    Aplicar 0416–0420 con gates/smokes de dominio independientes, de una en una
    y con su propio OK. Para pagos:0421 antes de consumidores/smoke,0422 después,
    con autorizaciones independientes;0423 después de esas fases y con smoke
-   nominal de historial. Completar Telegram
+   nominal de historial. 0424 conserva gate independiente para Club, sin nueva
+   RPC o versión de aplicación. Completar Telegram
    y los demás gates alojados por separado.
 5. Limpiar worktree y rama de archivo sólo cuando estén contenidos en main.
 6. Con pagos preparado localmente, continuar sólo la siguiente rebanada
