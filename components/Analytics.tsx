@@ -2,7 +2,7 @@
 
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useLayoutEffect } from "react";
 
 /**
  * Google Analytics 4 (gtag.js) — SOLO el sitio público de dtdcargo.com.
@@ -52,6 +52,8 @@ const PRIVATE_PREFIXES = [
   "/m",
   "/back",
   "/invitar",
+  "/acceso", // recuperación del Studio: el GET no consume el token
+  "/entrar", // enlace corto al Portal: el GET no consume el código
   // Ampliación 2026-07-05 — fuga PII detectada en auditoría de medición:
   "/verificar", // ?c=<Shipping Mark | folio de diploma> viajaba en el page_view
   "/p", //          /p/[token] — packing list con token capability (SDD-0096)
@@ -81,7 +83,10 @@ export function isPrivatePath(pathname: string): boolean {
  * (gtag ni carga ahí); esta redacción queda por si esa exclusión regresara.
  */
 export function sanitizePath(pathname: string): string {
-  return pathname.replace(/^\/track\/[^/]+/, "/track/[code]");
+  return pathname
+    .replace(/^\/track\/[^/]+/, "/track/[code]")
+    .replace(/^\/acceso\/[^/]+/, "/acceso/[token]")
+    .replace(/^\/entrar\/[^/]+/, "/entrar/[code]");
 }
 
 /**
@@ -130,6 +135,7 @@ function PageViews() {
 
   useEffect(() => {
     if (typeof window.gtag !== "function") return;
+    if (isPrivatePath(pathname) || isPrivatePath(window.location.pathname)) return;
     const qs = sanitizeSearch(searchParams);
     const cleanPath = sanitizePath(pathname);
     const path = qs ? `${cleanPath}?${qs}` : cleanPath;
@@ -159,6 +165,7 @@ function WhatsAppConversionTracker() {
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (e.defaultPrevented) return;
+      if (isPrivatePath(window.location.pathname)) return;
       const anchor = (e.target as Element | null)?.closest?.("a[href]") as
         | HTMLAnchorElement
         | null;
@@ -196,13 +203,14 @@ export const WHATSAPP_SHARE_RE = /wa\.me\/\?/i;
  */
 function fireWhatsAppSignals(origin: string) {
   if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  if (isPrivatePath(window.location.pathname)) return;
   if (window.top !== window.self) return;
   window.gtag("event", "conversion", {
     send_to: WHATSAPP_CONVERSION,
     value: 1.0,
     currency: "USD",
   });
-  window.gtag("event", "whatsapp_click", { cta_origin: origin });
+  window.gtag("event", "whatsapp_click", { cta_origin: sanitizePath(origin) });
 }
 
 /**
@@ -224,10 +232,17 @@ export function trackWhatsAppConversion(origin: string) {
  */
 export function trackLead(method: "contacto" | "estimado" | "registro") {
   if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  if (isPrivatePath(window.location.pathname)) return;
   // Mismo guard que la conversión: dentro de un iframe (embed en el portal de
   // clientes ya captados) un "lead" no es captación.
   if (window.top !== window.self) return;
   window.gtag("event", "generate_lead", { lead_method: method });
+}
+
+function disableAnalytics(disabled: boolean) {
+  const flags = window as unknown as Record<string, unknown>;
+  flags[`ga-disable-${GA_ID}`] = disabled;
+  flags[`ga-disable-${ADS_ID}`] = disabled;
 }
 
 export function Analytics() {
@@ -238,12 +253,52 @@ export function Analytics() {
   // ya quedó cargado, y la "medición mejorada" de GA4 (history changes, se
   // activa en la consola, no acá) emitiría hits con la URL privada. La bandera
   // window['ga-disable-<ID>'] apaga el tag por completo mientras sea true.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!GA_ID || typeof window === "undefined") return;
-    const w = window as unknown as Record<string, unknown>;
-    w[`ga-disable-${GA_ID}`] = isPrivate;
-    w[`ga-disable-${ADS_ID}`] = isPrivate;
-  }, [isPrivate]);
+    disableAnalytics(isPrivate || isPrivatePath(window.location.pathname));
+  });
+
+  // React procesa la ruta después de history. Bloquear antes de delegar evita
+  // que los observadores ya instalados vean la URL privada con GA habilitado.
+  // No reactivar al salir: el layout effect lo hace tras confirmar ruta pública.
+  useLayoutEffect(() => {
+    if (!GA_ID) return;
+    const originalPush = window.history.pushState;
+    const originalReplace = window.history.replaceState;
+    function guard(method: History["pushState"]): History["pushState"] {
+      return function (this: History, data, unused, url) {
+        if (url != null) {
+          try {
+            const destination = new URL(url, window.location.href);
+            if (destination.origin === window.location.origin &&
+                isPrivatePath(destination.pathname)) disableAnalytics(true);
+          } catch {
+            // history conserva su validación nativa; no registrar URLs.
+          }
+        }
+        try {
+          return method.call(this, data, unused, url);
+        } catch (error) {
+          disableAnalytics(isPrivatePath(window.location.pathname));
+          throw error;
+        }
+      };
+    }
+    const push = guard(originalPush);
+    const replace = guard(originalReplace);
+    window.history.pushState = push;
+    window.history.replaceState = replace;
+    function onPopState() {
+      if (isPrivatePath(window.location.pathname)) disableAnalytics(true);
+    }
+    window.addEventListener("popstate", onPopState, true);
+    return () => {
+      // No pisar wrappers instalados posteriormente por Next u otro consumidor.
+      if (window.history.pushState === push) window.history.pushState = originalPush;
+      if (window.history.replaceState === replace) window.history.replaceState = originalReplace;
+      window.removeEventListener("popstate", onPopState, true);
+    };
+  }, []);
 
   if (!GA_ID || isPrivate) return null;
 

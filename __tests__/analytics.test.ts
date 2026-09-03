@@ -26,6 +26,15 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
     "/m/cn",
     "/back",
     "/invitar",
+    // Los enlaces de acceso son capabilities, aunque no exijan sesión.
+    "/acceso",
+    "/acceso/",
+    "/acceso/token-sintetico-analytics",
+    "/acceso/token-sintetico-analytics/confirmar",
+    "/entrar",
+    "/entrar/",
+    "/entrar/codigo-sintetico-analytics",
+    "/entrar/codigo-sintetico-analytics/confirmar",
     // Ampliación 2026-07-05 (fuga PII detectada):
     "/verificar", // ?c=<Shipping Mark | folio>
     "/p/abc123", // packing list con token capability (SDD-0096)
@@ -60,6 +69,8 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
     "/verificado", // ≠ /verificar
     "/internacional", // ≠ /interno
     "/menu", // ≠ /m
+    "/accesorios", // ≠ /acceso
+    "/entradas", // ≠ /entrar
   ])("NO excluye %s", (path) => {
     expect(isPrivatePath(path)).toBe(false);
   });
@@ -93,6 +104,27 @@ describe("sanitizeSearch — whitelist de query params (PII nunca sale)", () => 
 });
 
 describe("sanitizePath — redacción del código de tracking", () => {
+  it.each([
+    ["/acceso/token-sintetico-analytics", "/acceso/[token]"],
+    ["/acceso/token-sintetico-analytics/confirmar", "/acceso/[token]/confirmar"],
+    ["/entrar/codigo-sintetico-analytics", "/entrar/[code]"],
+    ["/entrar/codigo-sintetico-analytics/confirmar", "/entrar/[code]/confirmar"],
+  ])("redacta la credencial de acceso en %s", (path, expected) => {
+    expect(sanitizePath(path)).toBe(expected);
+  });
+
+  it.each([
+    "/acceso",
+    "/acceso/",
+    "/entrar",
+    "/entrar/",
+    "/accesorios/bolso",
+    "/entradas/evento",
+    "/noticias/acceso/token-sintetico-analytics",
+  ])("no altera rutas sin segmento de credencial: %s", (path) => {
+    expect(sanitizePath(path)).toBe(path);
+  });
+
   it("redacta el código de /track/[code]", () => {
     expect(sanitizePath("/track/DTD-1004")).toBe("/track/[code]");
     expect(sanitizePath("/track/abc123xyz")).toBe("/track/[code]");
