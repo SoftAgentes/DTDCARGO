@@ -13,14 +13,14 @@ confidencialidad: interno
 Este documento es el punto de entrada operativo después del traspaso desde
 Cloud. No reemplaza specs ni runbooks: ordena qué sigue, quién puede hacerlo y
 qué autorización exige. El resumen vigente se actualizó el 2026-09-03 tras
-aplicar 0399. Los puntos anteriores conservan su contexto histórico; antes
+aplicar 0400. Los puntos anteriores conservan su contexto histórico; antes
 de cualquier otra operación Git o alojada se deben refrescar sus precondiciones.
 
 ## Snapshot comprobado
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
-**Avance del checklist: 55 de 106 casillas completadas (51,9 %); 51 pendientes.** Es un
+**Avance del checklist: 56 de 106 casillas completadas (52,8 %); 50 pendientes.** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
 varios cambios. No existe todavía una medición defendible del producto completo.
@@ -29,7 +29,7 @@ varios cambios. No existe todavía una medición defendible del producto complet
 |---|---:|---|
 | Correcciones locales enumeradas | 27 / 27 | Implementadas/verificadas localmente; no equivale a producción |
 | Cierre Git y publicación | 15 / 22 | Lote publicado hasta 70812835 y CI verde; faltan integración y cierre |
-| Cloud y operación alojada | 5 / 32 | 0399 aplicada y permisos verificados; quedan 25 migraciones del paquete |
+| Cloud y operación alojada | 6 / 32 | 0399 y 0400 aplicadas con permisos verificados; quedan 24 migraciones del paquete |
 | Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
 | Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
 | Orden del producto/documentación | 4 / 12 | qs del tooling corregido; faltan specs y decisiones de producto |
@@ -39,7 +39,18 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último avance verificado · 2026-09-03:** los 22 commits autorizados hasta
+**Último avance verificado · 2026-09-03:** aplicada únicamente 0400 con su
+autorización nominal independiente, versión de ledger `20260903171553`.
+Las dos RPC de verificación quedaron sin EXECUTE para `anon`/`authenticated`
+y sin grant a `PUBLIC`; `service_role` y `postgres` conservan ejecución.
+Definiciones, permisos protegidos, RLS y metadatos comparados permanecen iguales.
+El ledger pasó de 407 a 408 entradas; los advisors bajaron de 204 a 200 por los
+cuatro avisos previstos, sin nuevos avisos. No se ejecutó un QR/diploma real.
+Quedan 24 migraciones (`0401`–`0424`) y 50 casillas; no se autorizó `main`.
+[Recibo de 0400 y límites del cierre](2026-09-03-codex-cloud-0400.md).
+Los recibos y el checklist siguen locales, sin nuevo push.
+
+**Avance anterior · publicación y 0399:** los 22 commits autorizados hasta
 `70812835` están publicados en la rama y el CI `33774952136` pasó completo
 (6.547 pruebas / 540 archivos). El PR #21 sigue en borrador; el deployment
 `6247512977` es Preview, no producción. Se aplicó únicamente
@@ -159,15 +170,15 @@ El pendiente del helper de worktrees llevó entonces a **51/106**;
 su corrección local SDD-0370 llevó el punto anterior a **52/106**.
 SDD-0258 no está cerrado.
 
-**Lo que impide decir “terminado”:** `main` sin integrar, 25 migraciones del
+**Lo que impide decir “terminado”:** `main` sin integrar, 24 migraciones del
 paquete sin aplicación autorizada y trabajo de aplicación/seguridad/documentación
-todavía pendiente. El lote funcional sí está publicado; el recibo de 0399 queda
-local. El worktree activo no se borra mientras conserve trabajo sin integrar.
+todavía pendiente. El lote funcional sí está publicado; los recibos de 0399 y
+0400 quedan locales. El worktree activo no se borra mientras conserve trabajo sin integrar.
 
 ### Historial Git y alojado anterior a la publicación de 70812835
 
 Este apartado conserva la secuencia previa y sus bloqueos ya superados.
-La publicación de los 22 commits, su CI y Cloud 0399 están actualizados en el
+La publicación de los 22 commits, su CI y Cloud 0399/0400 están actualizados en el
 resumen vigente y su recibo; no se debe ejecutar un nuevo push por leer este historial.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
@@ -259,16 +270,17 @@ El paquete y sus commits están enumerados en
 y los límites de la medición están en
 [el acta de publicación](2026-09-02-codex-publicacion-y-preflight.md).
 Posteriormente se publicó la rama hasta `70812835` con autorización exacta;
-su CI alojado pasó y Vercel produjo otro Preview. Se aplicó sólo 0399 con
-su autorización independiente. No hubo merge a `main` ni promoción de la app.
-El recibo actual de 0399 y este checklist no están incluidos en aquel push.
+su CI alojado pasó y Vercel produjo otro Preview. Después se aplicaron 0399 y
+0400 de una en una, cada una con su autorización independiente. No hubo merge
+a `main` ni promoción de la app. Sus recibos y este checklist actualizado no
+están incluidos en aquel push.
 
 ## Lo ya saneado localmente
 
 - [x] Rescate selectivo del trabajo válido y separación de cambios ajenos.
 - [x] Revocación local de `TRUNCATE` público y del RPC público de verificación;
-  migraciones 0399 y 0400 preparadas y contratadas; 0399 ya aplicada y verificada,
-  0400 pendiente de su autorización independiente.
+  migraciones 0399 y 0400 preparadas y contratadas; ambas aplicadas y verificadas
+  con autorizaciones independientes. El smoke real de /verificar sigue pendiente.
 - [x] Neutralización CSV, minimización de logs inbound, cookies de operario
   autenticadas y secretos CBM/Telegram fuera de query en código propio.
 - [x] N+1 principales, reloj de render, accesibilidad, tabs, aislamiento E2E y
@@ -442,8 +454,10 @@ El recibo actual de 0399 y este checklist no están incluidos en aquel push.
   específica y siguiendo el runbook: ledger `20260903164612`, aplicación única,
   postflight de permisos aprobado el 2026-09-03. No autoriza otra migración.
   [Recibo y comparación antes/después](2026-09-03-codex-cloud-0399.md).
-- [ ] Aplicar `0400_revoke_public_verify_rpc_execute.sql` con otra autorización
-  específica y el mismo runbook.
+- [x] Aplicar `0400_revoke_public_verify_rpc_execute.sql` con autorización
+  específica independiente y el mismo runbook: ledger `20260903171553`,
+  permisos verificados, cuatro avisos previstos retirados y ninguno nuevo.
+  [Recibo y límites; smoke real pendiente](2026-09-03-codex-cloud-0400.md).
 - [ ] Aplicar `0401_portal_brand_por_principal.sql` con autorización específica
   separada; la RPC no existe en Cloud hasta completar ese gate.
 - [ ] Aplicar `0402_portal_hidden_statuses_por_principal.sql` con autorización
@@ -529,7 +543,8 @@ El recibo actual de 0399 y este checklist no están incluidos en aquel push.
   20 tablas y una extensión con metadatos y 341 referencias locales; snapshot
   íntegro y revisión independiente aprobados. No abrir policies ni revocar RPCs
   legítimas sólo para reducir el contador. Esa clasificación no hizo remediación;
-  el postflight de 0399 confirmó los mismos 204 avisos, sin altas ni bajas.
+  el postflight de 0399 confirmó los mismos 204 avisos. El postflight posterior
+  de 0400 retiró sólo sus cuatro avisos de RPC: quedan 200, sin avisos nuevos.
   [Clasificación, próximos gates y límites](2026-09-02-codex-triaje-advisors.md).
 
 ## P1 · seguridad por slices
@@ -694,14 +709,15 @@ El recibo actual de 0399 y este checklist no están incluidos en aquel push.
 
 ## Orden de trabajo recomendado
 
-1. Revisar el siguiente gate nominal, 0400, sólo cuando el founder amplíe el
-   alcance; su aplicación exige un OK independiente. El push hasta70812835,
-   su CI completo y la aplicación/verificación de 0399 ya están resueltos.
+1. Completar el smoke de /verificar con un QR y diploma reales aprobados antes
+   de cerrar SDD-0328. Revisar después el siguiente gate nominal, 0401, sólo
+   cuando el founder amplíe el alcance; su aplicación exige un OK independiente.
+   El push hasta70812835, su CI y los permisos de 0399/0400 ya están verificados.
 2. Ejecutar, sólo con los GO correspondientes, la secuencia documentada en
    el acta de release; repetir preflight por migración. SDD-0358 ya separó
    expansión y restricción de Mailing; todavía no se ejecutó el release.
 3. Con autorizaciones individuales, dejar disponibles las RPCs necesarias
-   antes de publicar sus consumidores; comprobar cada migración 0400–0413 sin
+   antes de publicar sus consumidores; comprobar cada migración 0401–0413 sin
    asumir que el orden numérico sustituye una prueba de compatibilidad.
 4. Autorizar integración y deploy de la app; verificar los cuatro flujos de
    lectura mínima y Portal. Aplicar 0414 y 0415 sólo después del smoke de sus
@@ -720,10 +736,11 @@ El recibo actual de 0399 y este checklist no están incluidos en aquel push.
 ## Stop conditions
 
 - La autorización de push ya ejecutada cubrió exactamente los 22 commits hasta
-  70812835 en la rama propia. No incluye el recibo posterior, `main`, force-push
+  70812835 en la rama propia. No incluye los recibos posteriores, `main`, force-push
   ni ramas ajenas; cualquier ampliación exige autorización explícita.
-- La autorización Cloud ejecutada cubrió únicamente 0399 y su verificación.
-  Las otras 25 migraciones y la integración de `main` siguen fuera de alcance.
+- Las autorizaciones Cloud ejecutadas fueron individuales: primero 0399 y
+  después únicamente 0400 con verificación de permisos. No autorizan datos de
+  negocio para el smoke. Las otras 24 migraciones y `main` siguen fuera de alcance.
 - No hay merge, deploy, migración, secreto o escritura de datos implícitos.
 - Un `SKIP` documenta una parte no medida; no se presenta como verde.
 - No se elimina worktree o rama mientras exista cambio no contenido o tarea
