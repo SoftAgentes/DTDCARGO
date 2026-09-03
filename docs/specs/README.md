@@ -338,7 +338,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0306 | Recordatorio de cobranza — y las seis razones para NO mandarlo | in-progress | interno |
 | 0307 | El detalle de compra del portal: qué llegó a Yiwu | done | interno |
 | 0308 | El packing list del proveedor llega al cliente | in-progress | interno |
-| 0309 | B4 ya estaba hecho — y el trigger que reparte dinero no tenía… | in-progress | interno |
+| 0309 | B4 ya estaba hecho — y el trigger que reparte dinero no tenía… | done | interno |
 | 0310 | Barrido de cables sueltos — y el guard que impide perder una … | done | interno |
 | 0311 | «Tu carga llegó a Venezuela» — el aviso que quedó sin disparador | done | interno |
 | 0312 | Contratos para la lógica de negocio que corría sin red | done | interno |

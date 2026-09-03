@@ -1,10 +1,10 @@
 ---
 sdd: "0309"
 title: "B4 ya estaba hecho — y el trigger que reparte dinero no tenía ningún contrato"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-02
 supersedes: null
 superseded_by: null
 related: ["0051", "0250"]
@@ -12,6 +12,13 @@ confidencialidad: interno
 ---
 
 # DTD-0309 — El referido que nunca corrió
+
+> **Cierre técnico · 2026-09-02:** contrato integrado en `origin/main`,
+> reejecutado con siete criterios y tres mutaciones causales en PostgreSQL
+> desechable. El cierre corresponde a cobertura, no a una acreditación real.
+> Las observaciones de producción (cero filas, trigger habilitado y nunca
+> ejecutado) y los 120 contratos de abajo son históricas del 2026-08-26:
+> **no se consultaron filas alojadas para actualizarlas**.
 
 > **B4 —«acreditación automática de referidos»— ya estaba construido.** Mi
 > checklist estaba mal. Lo que faltaba era otra cosa, y más importante.
@@ -56,7 +63,7 @@ cobertura hasta hoy.
 
 ## El contrato
 
-`supabase/tests/0250_referral_settings.test.sql`, seis contratos:
+`supabase/tests/0250_referral_settings.test.sql`, siete criterios en seis bloques:
 
 1. La 1ª factura billable acredita.
 2. 🔴 **No acredita dos veces** — el premio se pagaría doble.
@@ -120,3 +127,23 @@ Con esa versión, la mutación produce el error esperado.
 
 La **aplicación** del crédito a una factura sigue siendo manual y la diseña
 SDD-0137 — acreditar sólo *registra* el premio. Eso no cambió acá.
+
+## Cierre de cobertura · 2026-09-02
+
+- `de94ba47` es ancestro de `origin/main@2a2e81bf`. El contrato y las
+  migraciones 0197/0238/0250 no difieren entre main y el checkout auditado.
+- Contrato real: **GREEN**, los siete criterios pasan. Se expandieron sus
+  includes sin cambiar los archivos de SQL; el cuerpo final es el de0250.
+- Mutaciones independientes en memoria: retirar idempotencia por estado
+  produce `CONTRATO 2 ROTO`; quitar la guarda de factura borrada, `CONTRATO 4
+  ROTO`; retirar conjuntamente tenant del lookup y del UPDATE, `CONTRATO 5
+  ROTO`. Cada variante falla por su aserción esperada, no por sintaxis.
+- Los cuatro recorridos dejan rollback verificado desde una conexión nueva.
+  Contenedor local sin red, sin puertos publicados ni volúmenes; retirado y
+  ausencia comprobada. No hubo migración o escritura alojada.
+- Revisión independiente: aprobada para este alcance. No certifica RLS ni
+  roles, porque el fixture sustituye `get_user_tenant_id`; tampoco prueba
+  cada filtro de tenant por separado, concurrencia, acreditación real,
+  aplicación financiera del crédito o el alcance completo de SDD-0137.
+
+Evidencia, matriz y límites: [acta de cierre técnico](../../audits/2026-09-02-codex-cierre-referidos.md).

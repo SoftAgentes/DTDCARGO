@@ -38,7 +38,15 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último avance local:** SDD-0369 impide destinos E2E ajenos y mezcla de
+**Último avance documental:** SDD-0309 queda cerrada como cobertura técnica
+de Referidos: contrato ya integrado, siete criterios aprobados y tres
+mutaciones causales rechazadas, con rollback y contenedor retirado.
+No certifica RLS, acreditación real ni aplicación del crédito a facturación.
+Las specs abiertas bajan de94 a93; se conserva **51/105 (48,6 %)** porque
+la reconciliación completa sigue pendiente.
+[Acta de cierre y límites](2026-09-02-codex-cierre-referidos.md).
+
+**Correctivo local anterior:** SDD-0369 impide destinos E2E ajenos y mezcla de
 configuración entre el fixture y Next, incluida la clave sólo-servidor.
 La preparación es atómica; conserva deny-only no efímero y no inyecta claves
 al Next remoto. RED23/13 → GREEN62/62, suite completa6.477/539, TypeScript,
@@ -155,6 +163,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   Ese correctivo quedó en `00d972e2`. SDD-0369 añade el decimoctavo incremento
   local: guard/configuración E2E, reproducción y evidencia. No añade SQL ni
   reintenta push; la autorización debe cubrir el SHA final, no sólo 00d972e2.
+  Ese punto quedó en `2f1242b7`. El cierre técnico de cobertura SDD-0309 añade
+  un decimonoveno incremento sólo documental; no modifica SQL ni reintenta
+  el push. Una autorización hasta2f1242b7 no incluye automáticamente esta acta.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -176,8 +187,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 361; 266 `done`, 1 `superseded` y 94 sin cierre documental
-  (79 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0369 está
+- Specs reales: 361; 267 `done`, 1 `superseded` y 93 sin cierre documental
+  (78 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0309 cierra
+  su cobertura técnica ya integrada, sin certificar operación real. SDD-0369 está
   verificada localmente, pendiente de publicación/CI y validación efímera real.
   El bootstrap no está completo. SDD-0368 está
   verificada localmente, pendiente de publicación/aplicación/smoke. SDD-0367 está
@@ -576,8 +588,11 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   acceso; 42 pruebas focales, 29 contratos adicionales y 6.032 pruebas completas
   en 530 archivos. TypeScript, ESLint y gates documentales aprobados.
   [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
-- [ ] Reconciliar las 94 specs no cerradas por rebanadas de dominio. Cambiar un
+- [ ] Reconciliar las 93 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
+  SDD-0309 ya cerró su alcance de cobertura con siete criterios y tres
+  mutaciones causales; operación real/RLS/SDD-0137 quedan fuera. No añade
+  una casilla nueva: reduce el inventario pendiente dentro de esta tarea.
   El bloqueo23514 de rename con factura archivada quedó corregido localmente
   por SDD-0366/0423, no publicado/aplicado. No basta para cerrar SDD-0258;
   conservar como deuda su validación integral, incluida la interfaz legacy.

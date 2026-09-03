@@ -65,7 +65,41 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   publicación/Edge/smoke. No publicado; el webhook v14 alojado NO tiene este
   guard. No hubo push, integración, deploy ni invocación alojada.
 
-## Último punto de control · destino E2E coherente
+## Último punto de control · cobertura de Referidos cerrada
+
+Sobre `2f1242b7ffec9f835d8875025aaeedaf94935197`, este decimonoveno incremento
+local sólo cierra documentalmente SDD-0309. Su contrato está en main desde
+`de94ba47`; los SQL0197/0238/0250 y el test son idénticos a origin/main2a2e81bf.
+No se añade ni modifica código, test, migración, dependencia o dato alojado.
+
+- Contrato real en PostgreSQL17 aislado sin red: GREEN, siete criterios.
+  Mutaciones en memoria: sin estado pendiente → CONTRATO2, sin guarda de
+  borrado → CONTRATO4, sin tenant en lookup+UPDATE juntos → CONTRATO5.
+  Los tres RED fueron causales, no errores de compilación.
+- Cuatro rollbacks verificados desde conexiones nuevas. Contenedor propio
+  `dtd_referral_close_3dd66432a2` retirado y ausencia comprobada, sin volúmenes
+  ni puertos. No se tocó ningún contenedor ajeno ni se creó un backend permanente.
+- Revisor independiente aprobó el cierre de cobertura. Se fecharon como
+  históricas las afirmaciones de producción/120 contratos originales.
+  No se certifican RLS, roles, concurrencia, cada filtro tenant por separado,
+  acreditación real ni aplicación financiera del crédito (SDD-0137).
+- Acta: `docs/audits/2026-09-02-codex-cierre-referidos.md`.
+  Allowlist de cinco rutas: acta, spec0309, índice generado de specs, checklist
+  de arranque y este handoff. No se vuelven a atribuir como nuevas las suites
+  globales del incremento anterior; la matriz SQL focal sí se ejecutó ahora.
+- Inventario:361 specs,267 done,1 superseded y93 abiertas (78 in-progress,
+  8 proposed,4 approved,3 draft). Checklist51/105 (48,6%),54 pendientes:
+  una spec menos abierta dentro de la misma casilla, sin inflar el porcentaje.
+  Continúan421 migraciones y26 gates alojados pendientes; ninguna aplicada.
+- Sólo `Audita y limpia worktrees` (01a05f15-80ff-77b1-9f3a-6b07d21df02d)
+  aparece activa en DTDCargo en la lista de30 tareas. Se conserva el carril
+  worker y el checkout principal. Sin push, integración, deploy ni Cloud.
+- El rechazo de publicación sigue exigiendo autorización del SHA final hacia
+  `origin/codex/saneamiento-integral`, con posible Preview. No se hereda un
+  GO hasta2f1242b7. Dos worktrees preservados por falta de publicación/contención;
+  siguiente responsable Sam para GO y después integrador exclusivo.
+
+## Punto anterior · destino E2E coherente
 
 Sobre `00d972e2d69922d996d770b6abb2e682589b627a`, SDD-0369 añade el
 decimoctavo incremento local sin publicar. Conserva **51/105 (48,6 %), 54
