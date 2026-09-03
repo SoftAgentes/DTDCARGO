@@ -12,14 +12,15 @@ confidencialidad: interno
 
 Este documento es el punto de entrada operativo después del traspaso desde
 Cloud. No reemplaza specs ni runbooks: ordena qué sigue, quién puede hacerlo y
-qué autorización exige. Los números son una medición del 2026-09-02 y deben
-refrescarse antes de cualquier operación Git o alojada.
+qué autorización exige. El resumen vigente se actualizó el 2026-09-03 tras
+aplicar 0399. Los puntos anteriores conservan su contexto histórico; antes
+de cualquier otra operación Git o alojada se deben refrescar sus precondiciones.
 
 ## Snapshot comprobado
 
 ### Resumen para Sam · punto de control vigente del objetivo
 
-**Avance del checklist: 52 de 106 casillas completadas (49,1 %); 54 pendientes.** Es un
+**Avance del checklist: 55 de 106 casillas completadas (51,9 %); 51 pendientes.** Es un
 recuento de tareas, no una estimación de horas restantes ni del porcentaje
 funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
 varios cambios. No existe todavía una medición defendible del producto completo.
@@ -27,8 +28,8 @@ varios cambios. No existe todavía una medición defendible del producto complet
 | Bloque | Hecho / total | Situación |
 |---|---:|---|
 | Correcciones locales enumeradas | 27 / 27 | Implementadas/verificadas localmente; no equivale a producción |
-| Cierre Git y publicación | 13 / 22 | Helper corregido localmente; falta publicar el lote, integrarlo y cerrar |
-| Cloud y operación alojada | 4 / 32 | Metadatos/código y avisos clasificados; aplicación y operación real pendientes |
+| Cierre Git y publicación | 15 / 22 | Lote publicado hasta 70812835 y CI verde; faltan integración y cierre |
+| Cloud y operación alojada | 5 / 32 | 0399 aplicada y permisos verificados; quedan 25 migraciones del paquete |
 | Seguridad pendiente por dominio | 3 / 9 | Comandos de pago verificados localmente; release pendiente |
 | Reproducibilidad y operación | 1 / 4 | Falta entorno E2E completo y verificación de proveedores |
 | Orden del producto/documentación | 4 / 12 | qs del tooling corregido; faltan specs y decisiones de producto |
@@ -38,7 +39,22 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último correctivo local:** SDD-0370 corrige el helper de worktrees: no copia
+**Último avance verificado · 2026-09-03:** los 22 commits autorizados hasta
+`70812835` están publicados en la rama y el CI `33774952136` pasó completo
+(6.547 pruebas / 540 archivos). El PR #21 sigue en borrador; el deployment
+`6247512977` es Preview, no producción. Se aplicó únicamente
+`0399_revoke_truncate_anon_authenticated`, versión de ledger `20260903164612`.
+`anon` y `authenticated` quedaron sin TRUNCATE en las 249 tablas y dos vistas
+de `public`; los demás permisos medidos, RLS y `storage` permanecen iguales.
+Ledger: 407 entradas, una sola añadida. Quedan 25 migraciones (`0400`–`0424`),
+no autorizadas por este permiso. No se integró `main` ni se limpió otro worktree.
+[Recibo de aplicación, permisos y publicación previa](2026-09-03-codex-cloud-0399.md).
+Este recibo y el checklist actualizado quedan locales, sin push adicional.
+
+Los puntos siguientes registran el avance anterior: sus cifras y menciones
+«sin publicar» describen aquel momento, no sustituyen el resumen vigente.
+
+**Correctivo local anterior:** SDD-0370 corrige el helper de worktrees: no copia
 secretos, congela la instalación y comprueba preservación, publicación y
 contención antes de retirar. Exige atestación externa de inactividad/ownership
 ligada al HEAD y handoff versionado; no pretende detectar procesos ni otorgar GO.
@@ -133,26 +149,30 @@ build de 158 páginas y navegador sintético; no se presentan como ejecuciones n
 Las cinco carreras anteriores corresponden a 0422. Sigue pendiente el E2E
 con Auth/Storage real.
 
-**SDD-0365 y 0366 siguen abiertas por publicación/release/smoke.** Con0423 se
+**SDD-0365 y 0366 siguen abiertas por aplicación/release/smoke.** Con0423 se
 pasó de46/101 a47/103 por una corrección local y un gate nominal pendiente.
 El arreglo posterior de qs cierra una casilla existente: **48/103**, sin cambiar
 el denominador ni sumar casillas por prueba. El cierre de revisión de metadatos
 y código alojado llevó el punto anterior a **49/103**; clasificar los avisos
 elevó el punto anterior a **50/103**. Club/0424 llevó el punto anterior a **51/105**.
 El pendiente del helper de worktrees llevó entonces a **51/106**;
-su corrección local SDD-0370 lleva el vigente a **52/106**.
+su corrección local SDD-0370 llevó el punto anterior a **52/106**.
 SDD-0258 no está cerrado.
 
-**Lo que impide decir “terminado”:** lote nuevo sin publicar, `main` sin
-integrar, 26 migraciones del paquete sin aplicación autorizada y trabajo de
-aplicación/seguridad/documentación todavía pendiente. El worktree activo no
-se borra mientras conserve trabajo sin publicar/integrar.
+**Lo que impide decir “terminado”:** `main` sin integrar, 25 migraciones del
+paquete sin aplicación autorizada y trabajo de aplicación/seguridad/documentación
+todavía pendiente. El lote funcional sí está publicado; el recibo de 0399 queda
+local. El worktree activo no se borra mientras conserve trabajo sin integrar.
 
-### Evidencia Git y alojada
+### Historial Git y alojado anterior a la publicación de 70812835
+
+Este apartado conserva la secuencia previa y sus bloqueos ya superados.
+La publicación de los 22 commits, su CI y Cloud 0399 están actualizados en el
+resumen vigente y su recibo; no se debe ejecutar un nuevo push por leer este historial.
 
 - Remoto: `https://github.com/hailuwaycom-sketch/DTDCARGO.git`.
 - `origin/main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
-- Última base publicada: `codex/saneamiento-integral` en
+- Base publicada anterior: `codex/saneamiento-integral` en
   `eabb230b257579d3b5527a8721eebc328d748f79`, 0 detrás / 59 delante de
   `origin/main`. Academia está en el commit local `f1cd9743`, sin publicar:
   auto-review rechazó el push y pidió autorización explícita del commit/destino.
@@ -238,15 +258,17 @@ El paquete y sus commits están enumerados en
 `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`. La evidencia alojada
 y los límites de la medición están en
 [el acta de publicación](2026-09-02-codex-publicacion-y-preflight.md).
-Se publicó la rama hasta `eabb230b` y se abrió el PR; Vercel produjo un preview.
-Los cambios posteriores no están publicados ni tienen CI alojado propio.
-No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
+Posteriormente se publicó la rama hasta `70812835` con autorización exacta;
+su CI alojado pasó y Vercel produjo otro Preview. Se aplicó sólo 0399 con
+su autorización independiente. No hubo merge a `main` ni promoción de la app.
+El recibo actual de 0399 y este checklist no están incluidos en aquel push.
 
 ## Lo ya saneado localmente
 
 - [x] Rescate selectivo del trabajo válido y separación de cambios ajenos.
 - [x] Revocación local de `TRUNCATE` público y del RPC público de verificación;
-  migraciones 0399 y 0400 preparadas, contratadas y todavía no aplicadas.
+  migraciones 0399 y 0400 preparadas y contratadas; 0399 ya aplicada y verificada,
+  0400 pendiente de su autorización independiente.
 - [x] Neutralización CSV, minimización de logs inbound, cookies de operario
   autenticadas y secretos CBM/Telegram fuera de query en código propio.
 - [x] N+1 principales, reloj de render, accesibilidad, tabs, aislamiento E2E y
@@ -355,7 +377,7 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [x] Publicar el lote hasta `eabb230b` en `codex/saneamiento-integral` tras verificar
   remoto privado, permiso ADMIN, alcance de archivos y ausencia de patrones de
   credenciales en las líneas añadidas. La revisión de autorización permitió el
-  push exacto de aquel lote. No autoriza el nuevo push que fue rechazado.
+  push exacto de aquel lote. El push posterior tuvo su autorización independiente.
 - [x] Verificar hash remoto, upstream correcto, 0/0 y diff de los 53 commits.
 - [x] Abrir el PR #21 en borrador, sin merge ni promoción de producción.
 - [x] Corregir el OOM del primer CI mediante límite explícito de heap sólo en
@@ -379,16 +401,18 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 - [x] Confirmar CI del cierre de exportaciones: `eabb230b`, run `33671435585`,
   success con build y árbol reproducible; terminó a las 19:22:45 UTC del
   2026-09-02 (14 min 54 s). No sustituye el CI del siguiente commit.
-- [ ] Obtener aprobación explícita para publicar los commits locales posteriores
-  a `eabb230b` en `origin/codex/saneamiento-integral`; no reintentar mientras falte.
-- [ ] Confirmar CI de los aislamientos de Academia, Reclamos y Pagos en el SHA publicado.
+- [x] Obtener aprobación explícita y publicar los 22 commits posteriores a
+  `eabb230b`, hasta `70812835`, en `origin/codex/saneamiento-integral`.
+  Remoto exacto confirmado; no incluye un push del recibo posterior de 0399.
+- [x] Confirmar CI de Academia, Reclamos, Pagos y todo el lote publicado en
+  `70812835`: run `33774952136` completo y verde, 6.547 pruebas / 540 archivos.
 - [x] Corregir localmente `scripts/harness-worktree.mjs` con SDD-0370: start
   sin copia de entorno y con lockfile congelado; finish verifica preservación,
   publicación/contención y exige confirmación externa de ownership/inactividad
   antes de retirar. Sin fallback recursivo, force, prune global ni branch -D.
   RED causal y 79 casos específicos, suite 6.547/540, gates y revisión aprobados.
   No elimina la comprobación humana de procesos/GO ni se ejecutó sobre los
-  worktrees reales. Publicación/CI siguen en sus casillas independientes.
+  worktrees reales. Publicación/CI se verificaron en sus casillas independientes.
   [Contrato operativo actualizado](../runbooks/git-worktrees-multiventana.md).
 - [ ] Autorizar por separado la integración a `main`; no confundir push de rama
   con merge o deploy.
@@ -406,7 +430,7 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   su intención está contenida en `origin/main`.
 - [ ] Mantener `codex/archive-cloud-handoff-20260828`: conserva un handoff único
   no integrado. Su historia ya quedó recuperable en un bundle local verificado,
-  con hashes idénticos; falta publicar/integrar esa evidencia y resolver la
+  con hashes idénticos; evidencia publicada hasta70812835, falta integrarla y resolver la
   contención antes de borrar la rama. No se restauran instrucciones obsoletas.
   [Acta de recuperación y límites](2026-09-02-codex-archivo-y-recuperacion.md).
 - [x] Retirar el upstream `origin/main` de esa rama archive para evitar una
@@ -414,9 +438,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 ## P0 · gates alojados independientes
 
-- [ ] Aplicar `0399_revoke_truncate_anon_authenticated.sql` con autorización
-  específica, de una en una y siguiendo
-  `docs/runbooks/aplicar-migraciones-prod.md`.
+- [x] Aplicar `0399_revoke_truncate_anon_authenticated.sql` con autorización
+  específica y siguiendo el runbook: ledger `20260903164612`, aplicación única,
+  postflight de permisos aprobado el 2026-09-03. No autoriza otra migración.
+  [Recibo y comparación antes/después](2026-09-03-codex-cloud-0399.md).
 - [ ] Aplicar `0400_revoke_public_verify_rpc_execute.sql` con otra autorización
   específica y el mismo runbook.
 - [ ] Aplicar `0401_portal_brand_por_principal.sql` con autorización específica
@@ -490,7 +515,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   móvil después de los gates de migración/integración.
 - [x] Medir ledger y las 13 RPC nuevas mediante metadatos, sin leer PII ni filas
   de negocio; todas siguen ausentes. Preflight 0399: TRUNCATE en 179 tablas para
-  `anon` y 204 para `authenticated`, sobre 249 tablas de `public`.
+  `anon` y 204 para `authenticated`, sobre 249 tablas de `public`; después de
+  aplicar 0399 ambos quedaron en cero, también en las dos vistas de `public`.
 - [x] Completar preflights de grants/policies por migración, buckets y versión
   real de las cuatro Edge Functions, sin leer datos de negocio.
   Inventarios 0416–0420, precondiciones 0421–0423, 94 columnas/tipos en 16 relaciones,
@@ -502,7 +528,8 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   dominios; no son 204 vulnerabilidades confirmadas. Se cruzaron 162 funciones,
   20 tablas y una extensión con metadatos y 341 referencias locales; snapshot
   íntegro y revisión independiente aprobados. No abrir policies ni revocar RPCs
-  legítimas sólo para reducir el contador. No se hizo remediación alojada.
+  legítimas sólo para reducir el contador. Esa clasificación no hizo remediación;
+  el postflight de 0399 confirmó los mismos 204 avisos, sin altas ni bajas.
   [Clasificación, próximos gates y límites](2026-09-02-codex-triaje-advisors.md).
 
 ## P1 · seguridad por slices
@@ -667,13 +694,14 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 ## Orden de trabajo recomendado
 
-1. Resolver el bloqueo de push de los commits locales y después confirmar su CI
-   en el PR #21; el CI verde actual corresponde sólo a `eabb230b`.
+1. Revisar el siguiente gate nominal, 0400, sólo cuando el founder amplíe el
+   alcance; su aplicación exige un OK independiente. El push hasta70812835,
+   su CI completo y la aplicación/verificación de 0399 ya están resueltos.
 2. Ejecutar, sólo con los GO correspondientes, la secuencia documentada en
    el acta de release; repetir preflight por migración. SDD-0358 ya separó
    expansión y restricción de Mailing; todavía no se ejecutó el release.
 3. Con autorizaciones individuales, dejar disponibles las RPCs necesarias
-   antes de publicar sus consumidores; comprobar cada migración 0399–0413 sin
+   antes de publicar sus consumidores; comprobar cada migración 0400–0413 sin
    asumir que el orden numérico sustituye una prueba de compatibilidad.
 4. Autorizar integración y deploy de la app; verificar los cuatro flujos de
    lectura mínima y Portal. Aplicar 0414 y 0415 sólo después del smoke de sus
@@ -691,9 +719,11 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
 
 ## Stop conditions
 
-- Los pushes de seguimiento quedan limitados a la rama propia y al alcance
-  saneado; no incluyen `main`, force-push ni ramas ajenas. El rechazo vigente
-  exige una nueva autorización explícita; no se rodea mediante otro mecanismo.
+- La autorización de push ya ejecutada cubrió exactamente los 22 commits hasta
+  70812835 en la rama propia. No incluye el recibo posterior, `main`, force-push
+  ni ramas ajenas; cualquier ampliación exige autorización explícita.
+- La autorización Cloud ejecutada cubrió únicamente 0399 y su verificación.
+  Las otras 25 migraciones y la integración de `main` siguen fuera de alcance.
 - No hay merge, deploy, migración, secreto o escritura de datos implícitos.
 - Un `SKIP` documenta una parte no medida; no se presenta como verde.
 - No se elimina worktree o rama mientras exista cambio no contenido o tarea
