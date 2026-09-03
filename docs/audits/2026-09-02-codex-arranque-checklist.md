@@ -38,7 +38,16 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último avance local:** los dos avisos moderados de qs del tooling quedaron
+**Último avance local:** SDD-0367 corrige el webhook Kommo para omitir conexiones
+disabled/desconocidas antes de Vault y mutaciones, sin romper la recuperación
+error→active. Una desactivación en vuelo ya no se revierte al finalizar.
+25 regresiones específicas, suite completa6.441/538, Deno4/4, TypeScript del
+test, gates documentales/gobernanza y revisión independiente aprobados.
+No cancela efectos previamente admitidos. Es avance parcial de la casilla
+Kommo: **sigue49/103**, sin nuevo denominador. No publicado ni desplegado.
+[Contrato, pruebas y revisión acotada de privacidad](../specs/0367-kommo-webhook-disabled-connection/spec.md).
+
+**Avance anterior:** los dos avisos moderados de qs del tooling quedaron
 corregidos con6.16.0:15 regresiones verdes, instalación limpia congelada y audit
 nativo sin avisos. Cambio limitado a desarrollo, no publicado.
 [Evidencia y límites](2026-09-02-codex-qs-tooling.md).
@@ -52,7 +61,7 @@ No cambia la función instalada ni sus permisos. La revisión posterior completa
 Cierra una casilla existente de preflight, no el release ni el smoke alojado.
 [Estado de release y límites](2026-09-02-codex-release-preflight.md).
 
-**Último correctivo funcional:** SDD-0366/0423 corrige el rename de Shipping Mark cuando
+**Correctivo funcional anterior:** SDD-0366/0423 corrige el rename de Shipping Mark cuando
 existen reportes sobre facturas archivadas. Sincroniza sólo identidad, conserva
 pagos/comprobantes/historial y agrega auditoría atómica. No habilita operaciones
 financieras sobre archivos ni reabre la API restringida por 0422.
@@ -107,6 +116,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   La comprobación final del ignoreCommand corrige su interpretación en un
   decimocuarto incremento documental: el handoff anidado no está excluido;
   un push puede generar Preview. No se reintentó la publicación.
+  El guard y regresiones de SDD-0367 añaden un decimoquinto incremento local
+  sobre f761c278, sin publicar ni modificar el remoto/main. Necesita CI propio
+  y una autorización que cubra el SHA final exacto; no hereda un GO anterior.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -125,8 +137,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
 - Checkout principal: limpio en `22cec0c2`, 20 detrás / 0 delante.
 - Worktrees: 2; principal + `codex-saneamiento-integral`.
 - Tareas Codex de DTDCargo: sólo la tarea activa de este saneamiento.
-- Specs reales: 358; 266 `done`, 1 `superseded` y 91 sin cierre documental
-  (76 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0365 y0366
+- Specs reales: 359; 266 `done`, 1 `superseded` y 92 sin cierre documental
+  (77 `in-progress`, 8 `proposed`, 4 `approved`, 3 `draft`). SDD-0367 está
+  verificada localmente, pendiente de publicación/Edge/smoke. SDD-0365 y0366
   siguen abiertas hasta verificar publicación, aplicación y smoke del release.
 
 El paquete y sus commits están enumerados en
@@ -457,8 +470,11 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   no se puede reemplazar localmente `?secret=` por un header sin romper el
   proveedor. Evaluar gateway que inyecte credencial, rotación y redacción de
   access logs. En el código alojado v14, `conn.status` se lee pero no impide
-  procesar conexiones no activas: incluir ese guard y su regresión en esta
-  misma tarea. No se consultaron conexiones reales para afirmar impacto.
+  procesar disabled. SDD-0367 ya lo corrige LOCALMENTE con25 regresiones,
+  conservando error→active y protegiendo una desactivación concurrente.
+  Falta publicar y autorizar el deploy nominal de kommo-webhook; la comparación
+  de fuentes v14 del preflight anterior no incluye este delta. No se consultaron
+  conexiones reales para afirmar impacto. La autenticación sigue pendiente.
 - [ ] Diseñar CSP con nonce para la app y aislar la excepción del visor Marca.
   No retirar `'unsafe-inline'`/`'unsafe-eval'` sin browser/build: Next y los
   documentos navegables pueden romperse.
@@ -498,7 +514,7 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   acceso; 42 pruebas focales, 29 contratos adicionales y 6.032 pruebas completas
   en 530 archivos. TypeScript, ESLint y gates documentales aprobados.
   [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
-- [ ] Reconciliar las 91 specs no cerradas por rebanadas de dominio. Cambiar un
+- [ ] Reconciliar las 92 specs no cerradas por rebanadas de dominio. Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
   El bloqueo23514 de rename con factura archivada quedó corregido localmente
   por SDD-0366/0423, no publicado/aplicado. No basta para cerrar SDD-0258;

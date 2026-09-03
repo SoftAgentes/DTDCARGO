@@ -3,10 +3,10 @@
 // Kommo POSTea form-urlencoded cuando un lead/contacto cambia. Acá:
 //   1. Auth: ?secret=<KOMMO_WEBHOOK_SECRET> (constante-time). 403 si no matchea.
 //   2. Parseo del body (parser puro compartido con Vitest).
-//   3. Resolución de la conexión por account[subdomain] → tenant_id + token (Vault).
+//   3. Conexión active/error por account[subdomain] → tenant_id + token (Vault).
 //   4. Por evento add/update/status: fetch la entidad por id → map → upsert.
 //      Para delete: borra la fila (tenant_id+id).
-//   5. Registra en sync_logs; resetea kommo_connections.status='active' en éxito.
+//   5. Registra en sync_logs; recupera active en éxito sólo si sigue habilitada.
 //   6. Responde 200 salvo secret inválido (403) o error interno (500).
 //
 // verify_jwt=OFF (igual que kommo-sync; gestionado fuera del repo vía dashboard/MCP).
@@ -402,7 +402,7 @@ Deno.serve(async (req: Request) => {
   });
 
   // 3) Resolver conexión por subdomain → tenant_id + token (Vault).
-  //    Sin conexión activa → 200 (no 4xx) para que Kommo no reintente en loop.
+  //    Sin conexión habilitada → 200 (no 4xx) para evitar reintentos en loop.
   if (!parsed.subdomain) {
     return json({ ok: true, ignored: "sin account[subdomain]" }, 200);
   }
@@ -416,6 +416,12 @@ Deno.serve(async (req: Request) => {
   if (connErr) return json({ error: `kommo_connections: ${connErr.message}` }, 500);
   if (!conn) {
     return json({ ok: true, ignored: `sin conexión para ${parsed.subdomain}` }, 200);
+  }
+
+  // SDD-0367: disabled y estados desconocidos no consultan Vault ni procesan.
+  // error sí se admite: su recuperación automática es contrato de SDD-0043.
+  if (conn.status !== "active" && conn.status !== "error") {
+    return json({ ok: true, ignored: "conexión no habilitada" }, 200);
   }
 
   const { data: token, error: tokErr } = await supabase.rpc("kommo_get_token", {
@@ -513,7 +519,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Éxito → resetea el estado de la conexión (arregla deuda #1 parcial).
+    // Éxito → recupera error, pero una desactivación concurrente gana.
+    // No cancela retroactivamente efectos de un request ya admitido.
     await supabase
       .from("kommo_connections")
       .update({
@@ -521,7 +528,9 @@ Deno.serve(async (req: Request) => {
         last_error: null,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", conn.id);
+      .eq("id", conn.id)
+      .eq("tenant_id", conn.tenant_id)
+      .in("status", ["active", "error"]);
 
     return json({ ok: true, events: parsed.events.length, summary }, 200);
   } catch (e) {

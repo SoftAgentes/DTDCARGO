@@ -54,6 +54,16 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   1/0: el handoff anidado no está excluido y un push puede generar Preview.
   La corrección de esa advertencia añade un decimocuarto incremento documental,
   sin repetir auditorías ni cambiar el porcentaje. No se reintentó el push.
+  Ese punto quedó en f761c278. SDD-0367 añade el decimoquinto incremento local:
+  guard del webhook antes de Vault para disabled/estados desconocidos,
+  recuperación error→active conservada y update final por id/tenant/estado
+  actual para no revertir una desactivación concurrente. RED9fallos/16controles,
+  GREEN25/25; suite6.441/538, Deno4/4, tipos del test, docs/numeración/gobernanza/
+  componentes y revisión independiente aprobados. Sin SQL nuevo ni cambios en
+  otras Edge. Privacidad revisada sólo en este delta, sin datos reales.
+  Sigue49/103(47,6%);359 specs,92 abiertas. La spec0367 sigue in-progress por
+  publicación/Edge/smoke. No publicado; el webhook v14 alojado NO tiene este
+  guard. No hubo push, integración, deploy ni invocación alojada.
 
 ## Trabajo rescatado y cerrado
 
