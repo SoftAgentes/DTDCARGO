@@ -1,9 +1,50 @@
 # Cierre técnico · saneamiento integral para transición Cloud → Codex
 
-Fecha: 2026-09-02
+Fecha: 2026-09-02 · Última actualización: 2026-09-03
 
 Rol: worker
 Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
+
+## Punto vigente · cola local desde Analytics · 2026-09-03
+
+Esta sección prevalece sobre los snapshots históricos inferiores. Se continúa
+en la misma tarea y worktree; no se crean objetivos ni tareas duplicados.
+El objetivo guardado sigue `blocked`: no hay API de reanudación disponible.
+La skill computer-use impide automatizar la ventana identificada como ChatGPT;
+se detuvo la inspección sin pulsar controles ni alterar el estado persistido.
+La reanudación automática requiere el control de la app; no otra elección
+de la siguiente corrección local.
+
+- Base de esta tanda: f61a18dc; remoto autorizado y publicado: 70812835.
+  Los recibos de 0399/0400 ya eran dos commits locales adicionales.
+- 37bc0848: auditoría base, especificaciones 0371–0374 y evidencia.
+- 260384b2: Analytics, 90 focales/100 con consentimiento y navegador local
+  interceptado; sin eventos a Google, sin datos reales.
+- 3d3ab047: direcciones Portal, cruce entre tenants reproducido y 0425
+  preparada; 54 aserciones. No aplicada en Cloud. Soft delete propio sigue
+  rechazado con 42501 tanto antes como después; correctivo separado.
+- c1e44555: Push, 321 pruebas; entradas y emisores restringidos, sin envío real.
+- Verificador fail-closed, conservado junto con este punto terminal:
+  33 pruebas; errores bloquean lookup. La carrera
+  39→41 sigue reproducible: cupo atómico es el siguiente slice, no está resuelto.
+- Gate conjunto final: exit 0 con reservas, 14/15 pasos medidos. 6.926
+  unitarios/543 archivos, 167 contratos SQL, rebuild de 422 migraciones y
+  build de 158 páginas correctos.
+  E2E: 150 aprobados/18 omitidos, dos timeouts globales de 480 s (suite y
+  teardown), aceptados con aviso por el arnés. No afirmar causa WebKit sólo
+  por su mensaje genérico. Cloud migrations-applied SKIP por credenciales;
+  no cierre verde completo. Detalle en el checklist de arranque.
+- Checklist original: 56/106 (52,8 %), 50 pendientes. Estos cuatro paquetes
+  posteriores se muestran por separado, sin cambiar el denominador.
+- No nuevo push, main, deploy, aplicación Cloud, datos reales o limpieza final.
+  Hay 24 migraciones anteriores pendientes, más 0425 preparada en esta tanda.
+- core.hooksPath apunta a una ruta antigua inexistente. No se reparó la
+  configuración Git común; los gates se ejecutaron explícitamente.
+
+Cola definida sin opciones nuevas: reserva atómica de verificador;
+comando de soft delete Portal; diagnóstico del cierre E2E y fflate/replay;
+después los slices restantes de RBAC/Portal, specs, logs, CSP y medición web.
+Un gate externo estaciona sólo su casilla; no autoriza operaciones alojadas.
 
 ## Identidad Git
 

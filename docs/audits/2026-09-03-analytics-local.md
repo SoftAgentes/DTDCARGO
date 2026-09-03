@@ -11,8 +11,9 @@ confidencialidad: interno
 
 ## Resultado y alcance
 
-SEC-01 se corrigió en el worktree de saneamiento, sin commit/push/deploy todavía.
-El gate general ya terminó; resultados y límites se separan a continuación.
+SEC-01 se corrigió en el worktree de saneamiento y quedó en el commit local
+260384b2. No hubo push ni despliegue. El primer gate y la verificación conjunta
+posterior se distinguen para no atribuir resultados a una corrida diferente.
 No cambia las 24 migraciones pendientes ni los permisos de main o limpieza.
 
 Los tests independientes reprodujeron 27 fallos de 88: las puertas /acceso y
@@ -26,7 +27,7 @@ this en el wrapper de History; corregida como this: History. La repetición
 independiente de pnpm typecheck terminó con exit0. El primer gate conserva
 su fallo registrado, no se reescribe retroactivamente como verde.
 
-Pasaron6.590 unitarios/541 archivos,166 contratos SQL y rebuild de 422
+En el primer gate pasaron 6.590 unitarios/541 archivos, 166 contratos SQL y rebuild de 422
 migraciones. Lint, frontera RSC, Edge Functions, docs, numeración, componentes
 y gobernanza pasaron. migrations-applied se omitió por credenciales; no es
 verificación Cloud. Build de 158 páginas pasó. E2E: 149 pasados, uno flaky
@@ -91,8 +92,15 @@ no modifica las preferencias de consentimiento de la persona.
 
 ## Continuidad
 
-Cerrar el gate local y conservar los cambios selectivamente; publicación y
-comprobación alojada tienen autorización independiente. Una revisión externa
+La verificación conjunta posterior terminó exit 0 con reservas: 6.926 pruebas
+en 543 archivos, 167 contratos SQL, rebuild de 422 migraciones y build de
+158 páginas correctos. E2E final: 150 aprobados/18 omitidos; dos timeouts
+globales de 480 s, no el flaky del primer pase. El arnés continuó con aviso.
+migrations-applied omitido: 14/15 medidos, no cierre verde completo.
+La evidencia común de los cuatro paquetes se registra en el
+[checklist de continuidad](2026-09-02-codex-arranque-checklist.md).
+Publicación y comprobación alojada tienen autorización independiente. Una revisión externa
 del proveedor real complementaría esta revisión técnica, no la sustituye.
 Direcciones Portal ya reprodujo su cruce y pasó 54 aserciones del correctivo
-local0425/SDD-0372. Sigue Push/SDD-0373 con endpoints y claves sintéticos.
+local 0425/SDD-0372. Push/SDD-0373 y verificador/SDD-0374 también tienen
+correctivos locales probados, con sus límites en los informes separados.

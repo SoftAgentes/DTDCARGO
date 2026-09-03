@@ -18,7 +18,7 @@ Sólo count válido por debajo de 40 y un INSERT confirmado permiten continuar.
 No cambia el límite, la ventana, la UI, la IP obtenida ni la tabla.
 
 RED: 25 fallos / 8 positivos. GREEN: 33/33, sin DB, red, datos reales ni
-enumeración de alumnos. Se preservan conteos0/3/39 y bloqueos40/41/90,
+enumeración de alumnos. Se preservan conteos 0/3/39 y bloqueos 40/41/90,
 ventana exacta de 30 minutos y un único INSERT cuando corresponde.
 Los errores generan aviso genérico sin IP, folio ni mensajes externos.
 
@@ -26,13 +26,20 @@ Implementación: lib/public/verify-throttle.ts:47.
 Consumo: app/verificar/page.tsx:208; lookups condicionados en :215 y :216.
 Contrato: lib/public/verify-throttle.test.ts.
 
+Gate conjunto posterior: tipos/lint, 6.926 pruebas en 543 archivos, 167
+contratos SQL, rebuild de 422 migraciones y build de 158 páginas correctos.
+E2E: 150 aprobados/18 omitidos y dos timeouts globales de 480 s, aceptados
+con aviso por el arnés. migrations-applied omitido: 14/15 medidos, exit 0
+con reservas, no cierre verde completo. Detalle y commits en el checklist
+de continuidad; no hubo nuevo push ni aplicación alojada.
+
 ## Residuo expresamente NO corregido
 
-Dos solicitudes concurrentes observan39 y ambas insertan: el fake termina
+Dos solicitudes concurrentes observan 39 y ambas insertan: el fake termina
 en 41. Este caso sigue reproducible y probado, por lo que SEC-03 permanece
 parcial, no cerrado. La reserva atómica necesita contrato transaccional,
 migración nominal y secuencia de aplicación propias. No usar un mutex de
-proceso como sustituto de concurrencia distribuida ni cambiar0169 aplicada.
+proceso como sustituto de concurrencia distribuida ni cambiar 0169 aplicada.
 
 No se revisó confianza de IP/proxy ni se rediseñaron códigos secuenciales.
 No se midió disponibilidad de QR en producción. El error de control muestra
@@ -51,7 +58,7 @@ Nuevo push, integración, deploy y smoke real siguen requiriendo sus permisos.
 
 Lectura de 0169 confirma un log por IP con índice(ip, created_at), RLS sin
 policies y uso privilegiado. El repo ya utiliza pg_advisory_xact_lock por
-identidad de operación (por ejemplo0147 y0316); no hace falta un mutex en Node.
+identidad de operación (por ejemplo 0147 y 0316); no hace falta un mutex en Node.
 Diseño propuesto, todavía sin migración ni cambio de consumidor:
 
 1. Inventariar escritores/limpieza y verificar confianza/canonicalización de IP.

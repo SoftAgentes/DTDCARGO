@@ -91,7 +91,8 @@ conservados. No constituye aprobación global del legado de Push.
 
 - [x] RED causal con rutas y emisores existentes, sin llamadas de red.
 - [x] Implementación y GREEN; validar positivos sintéticos de cada proveedor.
-- [ ] Suite, typecheck, lint y documentación de límites.
+- [x] Suite, typecheck, lint y documentación de límites; gate conjunto
+  con reservas Cloud/E2E registradas en el checklist.
 - [ ] Release y smoke de dispositivos reales: permisos independientes.
 
 ## Privacidad

@@ -53,7 +53,8 @@ No hay GO de producción ni afirmación de privacidad integral.
 - [x] Reproducción RED independiente.
 - [x] Corrección mínima y pruebas GREEN.
 - [x] Navegador local con solicitudes Google interceptadas.
-- [ ] Gate canónico, revisión y evidencia.
+- [x] Gate canónico, revisión y evidencia: 14/15 medidos; Cloud omitido y
+  E2E con dos timeouts globales. Reservas en el checklist, no cierre completo.
 - [ ] Publicación/verificación alojada: permiso independiente.
 
 ## Reversión

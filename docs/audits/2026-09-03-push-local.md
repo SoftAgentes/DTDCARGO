@@ -12,7 +12,8 @@ confidencialidad: interno
 ## Resultado
 
 SEC-02 tiene correctivo local en cuatro POST y ambos emisores; no se envió
-ninguna notificación real. Validación compartida en entrada y salida,
+ninguna notificación real. Conservado en el commit local c1e44555.
+Validación compartida en entrada y salida,
 incluyendo filas antiguas y fallback legacy. Sin migración ni nueva dependencia.
 
 RED de emisores: 45 fallos esperados / 14 positivos. RED de rutas:
@@ -27,7 +28,12 @@ GREEN final: 321/321 en cinco suites; los tres formatos se prueban además en
 entradas y emisores. ESLint de implementación y seis archivos de prueba: OK.
 Typecheck detectó una aridad de callback en un test; corregida retirando la
 columna no utilizada. Typecheck del gate conjunto final pasó. Suite completa
-del árbol final: 6.926/6.926 en543 archivos. No se confundió Vitest con tipos.
+del árbol final: 6.926/6.926 en 543 archivos. No se confundió Vitest con tipos.
+
+Gate completo final: exit 0 con reservas, 14/15 pasos medidos. 167 contratos SQL,
+rebuild de 422 migraciones y build de 158 páginas correctos. E2E: 150 aprobados/18 omitidos y dos
+timeouts globales de 480 s, aceptados con aviso por el arnés; Cloud omitido.
+No equivale a cierre verde completo ni a entrega Push real.
 
 ## Contrato observado
 
@@ -78,5 +84,5 @@ y recepción efectiva en producción. Aplicación acotada de revisar-datos-ve,
 sin declaración de cumplimiento legal.
 
 Release, nuevo push, main, despliegue y pruebas con datos reales conservan
-sus autorizaciones independientes. El contador histórico56/106 no se aumenta
+sus autorizaciones independientes. El contador histórico 56/106 no se aumenta
 por estas pruebas: SEC-02 pertenece a la auditoría posterior.

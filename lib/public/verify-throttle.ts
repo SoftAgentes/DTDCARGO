@@ -9,8 +9,9 @@
  *
  * Mismo patrón que el anti-abuso de /registro (SDD-0042 §10): cuenta intentos
  * recientes de la IP y, si está bajo el límite, registra este intento.
- * **Fail-open**: ante un error de lectura del throttle NO bloqueamos (no rompemos
- * el escaneo legítimo de un QR por un fallo de infra del propio anti-abuso).
+ * **Fail-closed (SDD-0374)**: una lectura o escritura incierta bloquea la
+ * verificación. No revelar existencia/PII sin registrar el intento.
+ * Count + insert NO es atómico: la reserva concurrente requiere otro cambio.
  *
  * El admin client (service_role) y la IP se reciben por parámetro: este archivo
  * vive del lado público de la frontera (`lib/public`) y NO puede importar
@@ -19,7 +20,7 @@
  *
  * Límite generoso a propósito: una persona escaneando un palet de cajas hace
  * decenas de verificaciones; un enumerador que quiere cosechar folios necesita
- * miles → bloqueado. Ajustá las constantes si el patrón real lo pide.
+ * miles → bloqueado en serie; no garantiza ese cupo bajo concurrencia.
  */
 export const VERIFY_IP_LIMIT = 40;
 export const VERIFY_WINDOW_MINUTES = 30;
@@ -41,22 +42,37 @@ export type ThrottleDb = {
 /**
  * `true` si la IP YA superó el límite en la ventana (el caller NO debe revelar
  * existencia ni PII). Si está bajo el límite, registra el intento y devuelve
- * `false`. Fail-open ante error de lectura.
+ * `false` sólo después de lectura e INSERT confirmados. No es reserva atómica.
  */
 export async function isVerifyThrottled(db: ThrottleDb, ip: string): Promise<boolean> {
-  const windowStart = new Date(
-    Date.now() - VERIFY_WINDOW_MINUTES * 60 * 1000,
-  ).toISOString();
+  const unavailable = () => {
+    console.warn("[public-verify] Control de intentos no disponible; verificación bloqueada.");
+    return true;
+  };
+  try {
+    const windowStart = new Date(
+      Date.now() - VERIFY_WINDOW_MINUTES * 60 * 1000,
+    ).toISOString();
 
-  const { count, error } = await db
-    .from(TABLE)
-    .select("id", { count: "exact", head: true })
-    .eq("ip", ip)
-    .gte("created_at", windowStart);
+    const { count, error } = await db
+      .from(TABLE)
+      .select("id", { count: "exact", head: true })
+      .eq("ip", ip)
+      .gte("created_at", windowStart);
 
-  if (!error && (count ?? 0) >= VERIFY_IP_LIMIT) return true;
+    if (error !== null || typeof count !== "number" || !Number.isSafeInteger(count) || count < 0) {
+      return unavailable();
+    }
+    if (count >= VERIFY_IP_LIMIT) return true;
 
-  // Best-effort: si el insert falla, la verificación sigue (no rompemos el QR).
-  await db.from(TABLE).insert({ ip });
-  return false;
+    const result = await db.from(TABLE).insert({ ip });
+    if (
+      result === null || typeof result !== "object" || Array.isArray(result) ||
+      !("error" in result) || result.error !== null
+    ) return unavailable();
+    return false;
+  } catch {
+    // No registrar IP, folio ni mensajes externos que puedan contenerlos.
+    return unavailable();
+  }
 }

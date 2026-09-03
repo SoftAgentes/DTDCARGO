@@ -20,8 +20,9 @@ SELECT o INSERT fallan. El único consumidor es app/verificar/page.tsx:
 si retorna true, omite tanto la consulta del diploma como la existencia
 del Shipping Mark. Corregir esta porción local no necesita SQL ni datos reales.
 
-pnpm sdd:next consultó 15 refs; libre0371. Las specs0371–0373 pertenecen
-a esta misma sesión aún sin commit;0374 queda libre al unir ambos inventarios.
+Al preparar el slice, pnpm sdd:next consultó 15 refs; libre 0371.
+Las specs 0371–0373 pertenecían a esta misma sesión, entonces aún sin commit;
+0374 quedó libre al unir ambos inventarios.
 Sin reserva remota. No cambiar migraciones aplicadas ni ampliar permiso0400.
 
 ## Contrato
@@ -46,12 +47,15 @@ IP/anti-proxy, disponibilidad alojada y códigos secuenciales no se rediseñan a
 - Esta spec y docs/specs/README.md generado: principal.
 - docs/audits/2026-09-03-public-verify-local.md: principal.
 - docs/audits/2026-09-02-codex-arranque-checklist.md: principal.
+- .agents/handoffs/2026-09-02-saneamiento-integral-close.md: continuidad de la
+  misma tarea; principal. No modifica permisos, herramientas ni skills.
 
 ## Plan
 
 - [x] RED causal de lectura/escritura/respuesta/excepción.
 - [x] GREEN con positivos, límite y preservación.
-- [ ] Verificar tipos, lint, suite y registrar concurrencia aún pendiente.
+- [x] Verificar tipos, lint, suite y registrar concurrencia aún pendiente.
+  Gate conjunto: 14/15 medidos, Cloud omitido y reservas E2E documentadas.
 - [ ] Resolver cupo atómico y smoke alojado en su propio cambio autorizado.
 
 ## Privacidad y gobernanza

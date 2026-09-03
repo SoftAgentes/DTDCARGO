@@ -21,9 +21,10 @@ dos tenants con igual Shipping Mark; PortalA lee1 direcciónB, inserta para
 clientB pese a enviar tenantA (trigger sella B) y modifica1 direcciónB.
 Se verificó ROLLBACK y ausencia de tablas/auth al terminar; sin datos reales.
 
-Numeración: pnpm sdd:next con fetch y15 refs devuelve 0371/0425. El0371 ya
-pertenece al slice local Analytics de esta misma sesión (aún no versionado,
-fuera del escaneo de refs), por lo que0372 es el siguiente no ocupado al unir
+Numeración al preparar el slice: pnpm sdd:next con fetch y 15 refs devuelve
+0371/0425. El 0371 ya pertenecía al slice Analytics de esta misma sesión
+(entonces aún no versionado, fuera del escaneo de refs), por lo que 0372
+era el siguiente no ocupado al unir
 las refs y el trabajo propio. No reserva/push; revalidar antes de integrar.
 
 ## Contrato
@@ -44,7 +45,7 @@ de una regresión; no abrir SELECT de históricos para disimularlo.
 Preflight falla ante ausencia de tablas/RLS/principal o inventario distinto de
 policies. La comprobación local no sustituye preflight/ACL/advisors en Cloud.
 Aplicación0425, datos reales, main, publicación y despliegue no autorizados.
-Las24 migraciones pendientes anteriores conservan sus gates; ésta es adicional.
+Las 24 migraciones pendientes anteriores conservan sus gates; ésta es adicional.
 
 ## Allowlist y ownership
 

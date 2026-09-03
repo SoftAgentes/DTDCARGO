@@ -13,7 +13,8 @@ confidencialidad: interno
 Este documento es el punto de entrada operativo después del traspaso desde
 Cloud. No reemplaza specs ni runbooks: ordena qué sigue, quién puede hacerlo y
 qué autorización exige. El resumen vigente se revalidó el 2026-09-03 después de
-0400 y de la revisión del modo continuo. Los puntos anteriores conservan su contexto histórico; antes
+0400, la revisión del modo continuo y la tanda local SDD-0371–0374. Los puntos
+anteriores conservan su contexto histórico; antes
 de cualquier otra operación Git o alojada se deben refrescar sus precondiciones.
 
 ## Snapshot comprobado
@@ -77,7 +78,7 @@ como completo para sortear esa restricción. Se puede trabajar en esta misma
 tarea; para recuperar la continuación automática, el objetivo debe reanudarse
 desde los controles de la app, conservando los límites aquí documentados.
 
-**Orden local:** comenzar por la exclusión de las puertas de acceso de Analytics
+**Orden acordado al iniciar esta tanda:** comenzar por la exclusión de las puertas de acceso de Analytics
 con tokens sintéticos, identificada en el informe actual; después avanzar por slices de RBAC/Portal, contratos y pruebas,
 reconciliación documental, observabilidad, CSP y medición web. No abrir nuevos
 módulos ni endurecer helpers globales sin inventario y contrato. Las direcciones
@@ -91,19 +92,35 @@ encadenados en la misma tarea, sin pedir otra elección. Estado focal:
 | Paquete | Resultado local | Qué no queda cerrado |
 |---|---|---|
 | SDD-0371 · Analytics | 90/90 focales, 100/100 con consentimiento y navegador con Google interceptado | Publicación y comportamiento del tag real |
-| SDD-0372 · Direcciones Portal | Cruce reproducido; 54 aserciones; 167 contratos SQL y rebuild422 correctos | Aplicación nominal0425; soft delete propio mantiene42501 previo |
+| SDD-0372 · Direcciones Portal | Cruce reproducido; 54 aserciones; 167 contratos SQL y rebuild de 422 correctos | Aplicación nominal 0425; soft delete propio mantiene 42501 previo |
 | SDD-0373 · Push | 321/321, incluidas tres autoridades URL ambiguas descubiertas en revisión | Entrega real, rebind/ownership, cotas totales de concurrencia |
-| SDD-0374 · Verificador público | 33/33; errores de lectura/escritura ahora bloquean el lookup | Cupo atómico: carrera39→41 todavía reproducible |
+| SDD-0374 · Verificador público | 33/33; errores de lectura/escritura ahora bloquean el lookup | Cupo atómico: carrera 39→41 todavía reproducible |
 
 Evidencia: [Analytics](2026-09-03-analytics-local.md),
 [Direcciones](2026-09-03-portal-delivery-addresses-local.md),
 [Push](2026-09-03-push-local.md) y
 [Verificador](2026-09-03-public-verify-local.md).
-Gate conjunto final en ejecución: lint, TypeScript, Edge, 6.926 pruebas/543
-archivos, docs, numeración, componentes y gobernanza ya correctos.
-El primer pase terminó con un typecheck
-corregido; un segundo typecheck detectó aridad de un test Push, ya corregida.
-No se ocultan esos fallos ni el E2E con un flaky y teardown incompleto.
+**Gate conjunto final terminado, exit 0 con reservas: 14/15 pasos medidos.**
+Lint, TypeScript, frontera RSC, cuatro Edge, 6.926/6.926 pruebas en 543
+archivos, docs, numeración, constantes, componentes y gobernanza correctos.
+Pasaron 167 contratos SQL, reconstrucción de 422 migraciones y build de
+158 páginas. La reconstrucción usó PostgreSQL desechable, no Cloud.
+
+E2E final: 150 aprobados y 18 omitidos por falta de entorno autenticado;
+dos errores globales de tiempo agotado de 480 s (suite y teardown).
+El arnés los aceptó con aviso porque ningún test falló. Su mensaje atribuye
+el cierre a WebKit, pero estos dos errores no prueban por sí solos esa causa.
+No es una corrida E2E impecable ni prueba con usuarios reales.
+migrations-applied fue SKIP por credenciales: no es verificación del ledger
+alojado ni cierre verde completo. El primer gate histórico falló en typecheck
+y tuvo un flaky; se corrigieron tipos, incluido un callback de test Push,
+y se repitió el gate completo sin ocultar las reservas del pase final.
+
+Conservación selectiva: 37bc0848 (specs/evidencia), 260384b2 (Analytics),
+3d3ab047 (Portal) y c1e44555 (Push). El correctivo del verificador se conserva
+junto con este punto terminal y el handoff actualizado. Ninguno está publicado.
+El remoto se comprobó de nuevo: saneamiento 70812835, main 2a2e81bf.
+El checkout principal sigue limpio en 22cec0c2; permanecen dos worktrees.
 
 El contador original sigue **56/106**: estos correctivos de la auditoría
 posterior no eran cuatro casillas independientes de ese denominador. No se
@@ -119,13 +136,15 @@ medios alternativos. Reanudar el mismo objetivo desde la app sigue siendo
 un control del usuario; la elección de la siguiente tarea local no hace falta.
 
 **Siguiente cola local definida, sin nueva ronda de opciones:**
-1. Cerrar y conservar esta tanda tras el gate conjunto.
-2. Contrato de reserva atómica del verificador y comando de soft delete Portal,
-   como slices separados; archivos/pruebas locales, nunca aplicación implícita.
-3. Revisar actualización compatible del fflate transitivo con contratos de replay.
+
+1. Contrato de reserva atómica del verificador, con concurrencia en PostgreSQL
+   desechable; archivos/pruebas locales, nunca aplicación implícita.
+2. Comando de soft delete Portal como slice independiente, sin abrir históricos.
+3. Diagnosticar el cierre E2E sin ocultar timeouts; revisar actualización
+   compatible del fflate transitivo con contratos de replay.
 4. Continuar los inventarios RBAC/Portal, specs, logger, CSP y medición web.
 
-Se añadió **0425 preparada localmente**, además de las24 migraciones anteriores.
+Se añadió **0425 preparada localmente**, además de las 24 migraciones anteriores.
 Aplicación, nuevo push, main, despliegue, datos reales y limpieza final siguen
 fuera del permiso local. Sólo se retiró la caché regenerable analytics-check
 creada para la prueba de esta sesión, no otro worktree ni rama.
@@ -136,7 +155,7 @@ No se modificó esa configuración compartida ni se afirma que un hook haya
 ejecutado los gates: se corrieron explícitamente. Revisar su destino y los
 hooks legítimos antes de reparar la configuración durante el cierre Git.
 
-**Corte verificado:** remoto de saneamiento `70812835`, CI `33774952136` verde y
+**Corte histórico anterior a la tanda local:** remoto de saneamiento `70812835`, CI `33774952136` verde y
 PR #21 abierto en borrador; deployment `6247512977` en Preview, no producción.
 Worker `f61a18dc`, dos commits documentales por delante y árbol limpio al inicio
 de esta revisión; `origin/main` sigue en `2a2e81bf` y el checkout principal en
