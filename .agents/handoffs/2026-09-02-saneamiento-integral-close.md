@@ -27,11 +27,16 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
  Medición conjunta posterior:7149/7149 en553archivos,421,24s sin reintento;
 170 contratos SQL y rebuild425 correctos. E2E anterior no cubre autenticación
  Portal de esta corrección.
-- Conteo original56/106,52,8%. Ahora28migraciones preparadas0401–0428,
- según último ledger verificado0400 (no consulta Cloud nueva).
+- SDD0381/0429 cerrado localmente: lectura y reasignación cross-tenant PSR
+  reproducidas de forma independiente; 20 RED de aplicación → 35 GREEN con
+  add-ons. Corrige sólo tres policies Portal y el ámbito de su consulta; equipo
+  preservado. Soft delete propio 42501 es deuda previa separada. Pasaron 100
+  aserciones focales, 171 contratos SQL, rebuild 426 y 7.173/7.173 unitarios.
+- Conteo original 56/106, 52,8 %. Ahora hay 29 migraciones preparadas 0401–0429,
+  según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - Inventario local efectivo: ocho policies en seis tablas aún usan helpers
  Portal antiguos. No todas declaradas vulnerables. Siguiente reproducción:
- prealerta_service_requests, después RBAC/Portal restantes y specs/logger/CSP/web.
+ perfil/client_change_requests en lectura, después RBAC/Portal restantes y specs/logger/CSP/web.
  Sin nuevas elecciones de tarea.
 - Sin push nuevo, main, deploy, datos reales ni limpieza final.
 

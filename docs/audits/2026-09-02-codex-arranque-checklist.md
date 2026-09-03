@@ -44,13 +44,13 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Timeouts y veracidad del gate,0378 | Cerrado localmente; E2E150/18 sin errores globales y suite7149/7149 |
 | fflate/replay,0379 | Parche compatible y controles aprobados; commit ef6101c4 local |
 | Cotizaciones Portal,0380 | Aislamiento de lectura SQL y aplicación corregido;0428 no aplicada |
-| Solicitudes de servicios de recepción | Siguiente reproducción por inventario de políticas efectivo |
+| Solicitudes de servicios de recepción, 0381 | Cerrado localmente: cruce y reasignación bloqueados; 0429 preparada, 35 focales, 171 SQL y suite 7.173/7.173 |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
-La cifra original continúa56/106 (52,8%), no aumenta por subpasos nuevos.
-Las migraciones preparadas sin aplicar son ahora28 (0401–0428), derivadas
-del último ledger0400; no se hizo nueva consulta Cloud en esta continuación.
-Todos los recibos y cambios posteriores a70812835 permanecen sólo locales.
+La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.
+Las migraciones preparadas sin aplicar son ahora 29 (0401–0429), derivadas
+del último ledger 0400; no se hizo nueva consulta Cloud en esta continuación.
+Todos los recibos y cambios posteriores a 70812835 permanecen sólo locales.
 Las secciones inferiores conservan sus fechas/alcance históricos.
 
 **Continuación vigente · 2026-09-03:** reserva atómica conservada localmente
