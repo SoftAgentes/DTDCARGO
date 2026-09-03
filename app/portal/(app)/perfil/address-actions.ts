@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/db/server";
 import { getPortalClient } from "@/lib/portal/portal-queries";
 import {
@@ -12,18 +13,17 @@ import {
   updateClientDeliveryAddress,
   clearDefaultForClient,
   setDefaultDeliveryAddress,
-  softDeleteClientDeliveryAddress,
 } from "@/lib/studio/client-address-queries";
 
 /**
  * Server actions del cliente para SUS direcciones de entrega (SDD-0138 Slice B).
- * Corren con el client de SESIÓN: la RLS self-por-markbox (migr 0198) garantiza
- * que el cliente solo toque sus propias filas, y el trigger sella tenant/markbox
- * desde `clients` (no confía en el body). La identidad se resuelve por sesión.
+ * Cliente de SESIÓN; RLS y triggers sellan identidad/tenant. El borrado usa
+ * exclusivamente el comando estrecho 0427 porque SELECT oculta históricos.
  */
 export type AddressActionState = {
   ok?: boolean;
   error?: string;
+  correlationId?: string;
   fieldErrors?: ClientAddressFieldErrors;
 };
 
@@ -102,19 +102,41 @@ export async function setDefaultAddressAction(formData: FormData): Promise<void>
   }
 }
 
-/** Borra (soft) una dirección del cliente logueado. */
-export async function deleteAddressAction(formData: FormData): Promise<void> {
-  const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return;
-  const id = (formData.get("addressId") as string | null)?.trim();
-  if (!id) return;
-  try {
-    // RLS self-update cubre el soft-delete (set deleted_at) solo en filas propias.
-    await softDeleteClientDeliveryAddress(supabase, id);
-    revalidatePath(PATH);
-  } catch (err) {
-    /* idem */
-    console.error("[deleteAddressAction] falló:", err);
+/** SDD-0377: sólo confirma tras borrado propio + auditoría en una transacción. */
+export async function deleteAddressAction(
+  _prev: AddressActionState,
+  formData: FormData,
+): Promise<AddressActionState> {
+  const values = formData.getAll("addressId");
+  const id = typeof values[0] === "string" ? values[0].trim() : "";
+  if (values.length !== 1 || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return { error: "No se pudo identificar la dirección. Recarga la página e intenta de nuevo." };
   }
+  const correlationId = randomUUID();
+  const failure: AddressActionState = {
+    error: "No se pudo confirmar el borrado. Intenta de nuevo; si continúa, contacta a tu asesor.",
+    correlationId,
+  };
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("delete_portal_delivery_address", {
+      p_address_id: id,
+      p_correlation_id: correlationId,
+    });
+    if (error || data !== true) {
+      console.error("[deleteAddressAction] borrado no confirmado", { correlationId });
+      return failure;
+    }
+  } catch {
+    // Sin cuerpo del proveedor, UUID de dirección ni contenido postal en logs.
+    console.error("[deleteAddressAction] fallo de transporte/sesión", { correlationId });
+    return failure;
+  }
+  try {
+    revalidatePath(PATH);
+  } catch {
+    // La RPC ya confirmó el commit: una caché fallida no revierte ese hecho.
+    console.error("[deleteAddressAction] caché pendiente tras borrado confirmado", { correlationId });
+  }
+  return { ok: true };
 }

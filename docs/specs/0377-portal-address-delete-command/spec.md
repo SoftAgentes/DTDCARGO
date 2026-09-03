@@ -82,14 +82,18 @@ de deadlocks. No se aumenta ningún timeout para ocultar fallos.
 ## Aceptación
 
 - [x] RED SQL causal del UPDATE con RLS real, sin simular la política.
-- [ ] RED UI/action y GREEN sin bajar aserciones.
-- [ ] SQL real: matriz identidad/tenant/propiedad, idempotencia, ACL, postestado
+- [x] RED UI/action y GREEN sin bajar aserciones.
+- [x] SQL real: matriz identidad/tenant/propiedad, idempotencia, ACL, postestado
       y rollback de auditoría. Políticas y permisos previos preservados.
-- [ ] Concurrencia real: revalidación tras revocación/transferencia, dos borrados,
+- [x] Concurrencia real: revalidación tras revocación/transferencia, dos borrados,
       commit/rollback y timeout acotado; no eventos duplicados.
 - [ ] Unitarios, tipos, lint, docs, componentes y gobernanza.
-- [ ] Browser local con datos sintéticos, sin consultar filas reales.
-- [ ] Evidencia y pendientes explícitos; Cloud permanece no aplicado.
+- [x] Browser local con datos sintéticos, sin consultar filas reales.
+- [x] Evidencia y pendientes explícitos; Cloud permanece no aplicado.
+
+La suite Portal pasa27casos. El gate global tiene tres timeouts del CLI en su
+segundo intento; se conserva rojo y continúa en SDD0378. SQL169/rebuild424 y
+build158 pasan. No declarar cierre global ni release hasta completar ese gate.
 
 ## Gobernanza aplicable (evidencia final en acta)
 

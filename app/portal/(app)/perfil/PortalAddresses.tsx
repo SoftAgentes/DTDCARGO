@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   lastMileEstimate,
@@ -108,6 +108,12 @@ function AddressRow({
   // SDD-0268 · segundo paso del borrado. Es estado LOCAL de la fila a propósito:
   // con dos direcciones abiertas, confirmar una no debe armar la otra.
   const [confirmando, setConfirmando] = useState(false);
+  const deleteTriggerRef = useRef<HTMLButtonElement>(null);
+  const wasConfirming = useRef(false);
+  useEffect(() => {
+    if (wasConfirming.current && !confirmando) deleteTriggerRef.current?.focus();
+    wasConfirming.current = confirmando;
+  }, [confirmando]);
   const parts = [address.city, address.state].filter(Boolean).join(", ");
   // Cómo se cobra la entrega, si la ciudad es del catálogo.
   //
@@ -180,8 +186,8 @@ function AddressRow({
         ) : null}
       </div>
 
-      <div className="flex items-center gap-3 flex-shrink-0">
-        {!address.isDefault && (
+      <div className="flex items-center gap-3 min-w-0">
+        {!address.isDefault && !confirmando && (
           <form action={setDefaultAddressAction}>
             <input type="hidden" name="addressId" value={address.id} />
             <PendingTextButton
@@ -208,32 +214,13 @@ function AddressRow({
             frontera o inventar una primitiva para un solo consumidor. Queda
             declarado en la spec, no disimulado. */}
         {confirmando ? (
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <span className="text-[12px] leading-[1.35] text-ink text-right">
-              ¿Eliminar «{address.label?.trim() || address.line}»? Tu asesor
-              deja de verla.
-            </span>
-            <form action={deleteAddressAction}>
-              <input type="hidden" name="addressId" value={address.id} />
-              <PendingTextButton
-                className="text-[12px] font-bold text-status-danger"
-                idle="Sí, eliminar"
-                pending="Eliminando…"
-              />
-            </form>
-            <button
-              type="button"
-              onClick={() => setConfirmando(false)}
-              className="text-[12px] font-semibold text-grey-500 hover:text-ink"
-            >
-              Cancelar
-            </button>
-          </div>
+          <DeleteAddressConfirmation address={address} onCancel={() => setConfirmando(false)} />
         ) : (
           /* `text-status-danger` y no `text-grey-500`: BTN-01 §2 pide variante
              destructiva para el rol destructivo, y estaba invertido —
              "Predeterminar", que no destruye nada, se veía MÁS que esto. */
           <button
+            ref={deleteTriggerRef}
             type="button"
             onClick={() => setConfirmando(true)}
             className="text-[12px] font-semibold text-status-danger hover:underline"
@@ -243,6 +230,77 @@ function AddressRow({
         )}
       </div>
     </li>
+  );
+}
+
+/** Estado transaccional propio de la fila; desmontar al cancelar limpia el error. */
+function DeleteAddressConfirmation({
+  address,
+  onCancel,
+}: {
+  address: ClientDeliveryAddress;
+  onCancel: () => void;
+}) {
+  const [state, action, pending] = useActionState(
+    async (previous: AddressActionState, data: FormData): Promise<AddressActionState> => {
+      try {
+        return await deleteAddressAction(previous, data);
+      } catch {
+        // También cubre el transporte de Server Actions: no perder la fila.
+        return { error: "No se pudo completar el borrado. Intenta de nuevo." };
+      }
+    },
+    initial,
+  );
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const feedbackRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { cancelRef.current?.focus(); }, []);
+  useEffect(() => {
+    if (!pending && (state.error || state.ok)) feedbackRef.current?.focus();
+  }, [state, pending]);
+
+  if (state.ok) {
+    return (
+      <div ref={feedbackRef} tabIndex={-1} role="status" className="text-sm text-ink">
+        Dirección eliminada de la lista activa. Se conserva el historial.
+      </div>
+    );
+  }
+  return (
+    <form action={action} className="flex flex-col gap-2 min-w-0">
+      <span className="text-sm text-ink">
+        ¿Eliminar «{address.label?.trim() || address.line}»? Tu asesor deja de verla.
+        {" "}Se conserva el historial; no podrás restaurarla desde el Portal.
+      </span>
+      <input type="hidden" name="addressId" value={address.id} />
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={pending}
+          aria-busy={pending}
+          className="text-xs font-bold text-status-danger hover:underline disabled:opacity-60"
+        >
+          {pending ? "Eliminando…" : "Sí, eliminar"}
+        </button>
+        <button
+          ref={cancelRef}
+          type="button"
+          onClick={onCancel}
+          disabled={pending}
+          className="text-xs font-semibold text-grey-700 hover:text-ink disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+      </div>
+      {state.error ? (
+        <div ref={feedbackRef} tabIndex={-1} className="min-w-0 break-words">
+          <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
+          {state.correlationId ? (
+            <p className="text-xs text-grey-700">Referencia para tu asesor: {state.correlationId}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </form>
   );
 }
 
