@@ -13,11 +13,60 @@ purga por filas.
 - cleanup SQL/DML: prohibido;
 - teardown: proyecto completo.
 
+## Puerta de entrada: no confundir el paquete actual con el bootstrap completo
+
+Antes de crear recursos, acordar el alcance y el SHA de código. El paquete
+existente tiene seis casos lógicos en tres proyectos Playwright (18 ejecuciones):
+comentarios, confirmaciones de Gastos/Nómina y buscador Studio. No incluye login
+positivo de Portal/Back/PIN, el journey comercial ni una matriz de dos tenants.
+Inventario y selector: [`e2e/README.md`](../../e2e/README.md).
+
+| Gate | Evidencia exigida antes del siguiente paso |
+|---|---|
+| Autorización | GO para crear, sembrar datos ficticios, probar y destruir el entorno concreto, con costo aceptado; no autoriza main ni producción |
+| Identidad | Branch propio, no predeterminado ni persistente; project ref distinto del productivo; registrar branch ID y parent ref |
+| Versión | SHA de app y manifiesto de migraciones esperado; contrastar el ledger completo, no sólo su mayor número |
+| Preparación | Salud y replay correctos, credenciales del mismo branch y entorno coherente conforme a SDD-0369 |
+| Ejecución | Seed una vez; 18 casos seleccionados y ejecutados sin skips; un fallo no se convierte en pase por repetir sólo el subconjunto verde |
+| Cierre | Verificación del fixture separada del teardown; destrucción confirmada por control plane y main preservada |
+
+Usar app local con el backend efímero autorizado o un Preview accesible para
+los cuatro specs. `VERCEL_AUTOMATION_BYPASS_SECRET` sólo está conectado al spec
+de comentarios: no habilita los otros cinco casos en un Preview protegido.
+No relajar la protección de Vercel para suplir esa cobertura del arnés.
+
+El guard de variables no demuestra ownership o salud del branch. El preflight
+de columnas del seed tampoco verifica el ledger ni todas las RPC que consume
+la app. Un branch saludable no incorpora por deducción los commits locales del
+worker. Si faltan migraciones, detenerse y resolver su entrega/aplicación con
+autorización nominal; no usar SQL ad hoc, repair ni un fallback a producción.
+
+Los branches son entornos separados con credenciales propias; el mecanismo de
+creación y la integración Git determinan la fuente de las migraciones. Ver la
+[documentación oficial de Branching](https://supabase.com/docs/guides/deployment/branching).
+La política de este repo conserva el teardown completo y no habilita merges
+de branches alojados, resets ni cambios de configuración por esa referencia.
+
+### Disponibilidad medida · 2026-09-03, antes de 01:17 UTC
+
+- El conector con project ID explícito confirmó `DTD Cargo`, ref
+  `xpfuzqombmjmxvprjgmi`, `ACTIVE_HEALTHY`. `list_branches` devolvió sólo `main`
+  (`5b95d217-1e2a-45b1-b60d-fb091361b70b`, `is_default=true`): cero branches
+  desechables disponibles. Su `persistent=false` **no** la hace elegible.
+- Las siete variables requeridas por `loadE2EEnvironment` estaban ausentes del
+  proceso inspeccionado. No se buscaron ni leyeron valores en archivos secretos
+  o secret managers; su estado fuera de ese proceso no se afirma.
+- El MCP local devolvió una URL placeholder y `fetch failed` al inventariar.
+  No se usó ese fallo para inferir ausencia: la evidencia proviene del conector
+  explícito anterior. No se creó, sembró, modificó ni destruyó ningún recurso.
+- No hubo corrida autenticada. Esta comprobación sólo resuelve disponibilidad
+  y delimita el siguiente gate; no completa el bootstrap ni eleva su porcentaje.
+
 ## Secuencia
 
 1. crear un proyecto/branch Supabase desechable desde el control plane;
 2. esperar estado saludable y `MIGRATIONS_PASSED`;
-3. comprobar que el ledger llegó a la última migración esperada;
+3. contrastar el ledger con el manifiesto de migraciones del SHA autorizado;
 4. cargar en el proceso:
    - `E2E_SUPABASE_PROJECT_REF`;
    - `E2E_SUPABASE_URL`;

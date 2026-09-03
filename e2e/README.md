@@ -38,20 +38,34 @@ Para reusar un servidor ya levantado, usar `E2E_START_WEB_SERVER=0`. El host
 local canónico es `localhost`; no usar `127.0.0.1`, porque Next bloquea por
 seguridad el HMR cross-origin de ese origen.
 
-## Estado de cobertura
+## Cobertura de autenticación y fixtures
 
-| Spec | Tier | Estado | Requiere |
-|---|---|---|---|
-| `smoke.spec.ts` | 0 | ✅ | nada (rutas públicas, 200 + contenido) |
-| `auth.spec.ts` | 1 | ✅ | nada (render + negativos de los 4 logins) |
-| `comments-lifecycle.spec.ts` | 1 | ✅ | Preview + branch efímero + `seed:e2e` |
-| `journey-core.spec.ts` | 1 | ⬜ pendiente | branch + seed-e2e |
-| `portal-cliente.spec.ts` | 2 | ⬜ | branch + seed-e2e |
-| `mobile-operario.spec.ts` | 2 | ⬜ | branch + seed-e2e |
-| `studio-crud.spec.ts` | 3 | ⬜ | branch + seed-e2e |
-| `finanzas.spec.ts` | 3 | ⬜ | branch + seed-e2e |
-| `nomina-settlement-void.spec.ts` | 3 | ✅ | branch efímero + `seed:e2e` + `STUDIO_E2E_*` |
-| `rls-isolation.spec.ts` | 4 | ⬜ | branch + seed-e2e (2 tenants) |
+El árbol contiene 14 archivos `*.spec.ts` al 2026-09-02. Esta tabla describe
+los relacionados con el arranque y el paquete autenticado, no toda la suite.
+«Implementado» significa que existe el test; no que pasó en el entorno actual.
+
+| Spec existente | Alcance implementado | Requisito |
+|---|---|---|
+| `smoke.spec.ts` | Rutas públicas, HTTP y contenido | Sin seed autenticado |
+| `auth.spec.ts` | Render y negativos de los cuatro logins | Sin seed autenticado |
+| `comments-lifecycle.spec.ts` | Crear, eliminar, deshacer y restaurar; identidad y auditoría | App local o Preview con branch efímero + `seed:e2e` |
+| `gastos-expense-void.spec.ts` | Abrir y cancelar confirmación R3 en Studio y móvil | Branch + seed + aliases `STUDIO_E2E_*` |
+| `global-search.spec.ts` | Denegación sin sesión; apertura y faceta del buscador con sesión | Los dos casos Tier 3 requieren branch + seed |
+| `nomina-settlement-void.spec.ts` | Abrir y cancelar confirmación R3 de finiquito | Branch + seed + aliases `STUDIO_E2E_*` |
+
+El selector autenticado inferior contiene **seis casos lógicos × tres
+proyectos = 18 ejecuciones**. Gastos y Nómina cancelan antes de mutar: no prueban
+una anulación consumada. El caso de faceta de búsqueda usa una sola identidad
+por corrida y acepta `Pagos|Contabilidad`: no demuestra por sí solo dos roles.
+Ninguno de estos 18 casos inicia una sesión de cliente del Portal o de Back,
+ni usa el PIN de operario; `/m/erp` reutiliza la sesión Studio.
+
+Los nombres `journey-core.spec.ts`, `portal-cliente.spec.ts`,
+`mobile-operario.spec.ts`, `studio-crud.spec.ts`, `finanzas.spec.ts` y
+`rls-isolation.spec.ts` son **backlog, no archivos ejecutables existentes**.
+Tampoco existen todavía `e2e/fixtures/auth.ts` ni `.github/workflows/e2e.yml`.
+El CI de calidad sí existe en `.github/workflows/quality.yml`; no equivale a
+aprovisionar un branch ni a ejecutar el paquete autenticado.
 
 ## Las 4 superficies de auth (cada una con su mecanismo)
 
@@ -67,8 +81,10 @@ seguridad el HMR cross-origin de ese origen.
 Los specs que hacen login + writes corren contra un **branch efímero de Supabase por
 corrida CI** — NO contra prod ni dev. Flujo:
 
-1. **Crear branch** (Supabase MCP `create_branch` o `supabase branches create`) → DB limpia
-   con todas las migraciones aplicadas.
+1. **Autorizar y crear branch** desde el control plane. Comprobar identidad,
+   salud y ledger contra el manifiesto del checkout que se probará; crear un
+   branch no demuestra que incluya las migraciones aún locales de esa rama.
+   El [runbook efímero](../docs/runbooks/e2e-supabase-efimero.md) define los gates.
 2. **Seed e2e** (`scripts/seed-e2e.ts`): fixture mínimo y determinista para
    SDD-0168, SDD-0226 y SDD-0243 (tenant + 2 usuarios + perfiles/membresías +
    embarque + gasto determinista `EXP-E2E-0243` por USD 24,30 + empleado y
@@ -86,10 +102,14 @@ corrida CI** — NO contra prod ni dev. Flujo:
 3. **Correr** Playwright contra una app que use exclusivamente las variables del
    branch efímero. En local, usar `BASE_URL=http://localhost:<puerto>` y
    `E2E_START_WEB_SERVER=1`; contra Preview, usar su `BASE_URL` y
-   `E2E_START_WEB_SERVER=0`. Si el Preview usa Vercel Authentication, definir
-   también `VERCEL_AUTOMATION_BYPASS_SECRET`; el spec envía los headers
-   oficiales de bypass sin volver obligatoria esa variable para entornos
-   desprotegidos. Cuando `E2E_ENVIRONMENT_KIND=ephemeral`, el config valida el
+   `E2E_START_WEB_SERVER=0`. **Sólo `comments-lifecycle.spec.ts` configura el
+   bypass** al recibir `VERCEL_AUTOMATION_BYPASS_SECRET`. Gastos, búsqueda y
+   Nómina no instalan esos headers; sus contextos no heredan la cookie de
+   comentarios y el config no tiene bypass global. Por eso, el paquete de
+   18 casos requiere app local o un Preview autorizado accesible para los
+   cuatro specs; esa variable sola no habilita el paquete en Preview protegido.
+   No desactivar protecciones para superar este límite. Cuando
+   `E2E_ENVIRONMENT_KIND=ephemeral`, el config valida el
    guard completo y deriva automáticamente los tres aliases `STUDIO_E2E_*` del
    fixture sembrado; si alguno fue definido con otro valor, aborta en vez de
    omitir silenciosamente los casos Tier 3.
@@ -134,14 +154,21 @@ node node_modules/@playwright/test/cli.js test `
 Como preflight no mutante, agregar `--list`: debe informar exactamente
 `Total: 18 tests in 4 files`.
 
-### Pendiente de wiring (próximos pasos, en orden)
-1. Ampliar `scripts/seed-e2e.ts` más allá del fixture SDD-0168 al journey operativo
-   transversal.
-2. `e2e/fixtures/auth.ts` — helpers de login por rol + `storageState` reutilizable
-   (password para Studio/Back, inyección de sesión para Portal, cookie/numpad para operario).
-3. `.github/workflows/e2e.yml` — **primer workflow CI del repo**: create_branch → seed →
-   test → delete_branch. Secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_SERVICE_ROLE_KEY`.
-4. Specs Tier 1 con seed: `journey-core.spec.ts` (cotización → prealerta → orden → embarque).
+### Paquete actual y ampliación posterior
+
+1. **Ejecutar el paquete existente:** autorización del ciclo de vida efímero,
+   identidad y ledger comprobados, secretos sólo en proceso/secret manager,
+   seed, los 18 casos sin omisiones, verificación y teardown terminal. No exige
+   inventar el journey transversal, pero tampoco lo certifica.
+2. **Ampliar el bootstrap del producto:** especificar fixtures por superficie
+   (Portal con cliente/persona/vínculo, Back, operario con PIN y datos operativos),
+   helpers de sesión y aislamiento por tenant, después los recorridos positivos
+   y negativos. Concretar alcance y aceptación antes de implementar los archivos
+   del backlog; no cambiar la política efímera ni usar datos reales.
+3. **Automatizar el ciclo ya validado:** proponer un workflow E2E separado del
+   CI de calidad, con costo, permisos, secretos de mínimo alcance y teardown en
+   caso de error. Su activación requiere autorización; no guardar PAT ni claves
+   en el repo ni copiar `.env.local` de producción.
 
 ## Convención
 - Un spec por dominio/journey. Asserts sobre selectores estructurales (`name=`, roles),

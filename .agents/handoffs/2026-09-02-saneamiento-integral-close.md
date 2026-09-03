@@ -65,7 +65,39 @@ Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
   publicación/Edge/smoke. No publicado; el webhook v14 alojado NO tiene este
   guard. No hubo push, integración, deploy ni invocación alojada.
 
-## Último punto de control · cobertura de Referidos cerrada
+## Último punto de control · bootstrap E2E delimitado
+
+Sobre `1d4b1452c675b9cc4c4571eff31ae2875f587de0`, vigésimo incremento local,
+sólo documental. Allowlist: `e2e/README.md`,
+`docs/runbooks/e2e-supabase-efimero.md`, checklist de arranque y este handoff.
+
+- Inventario fuente: 14 specs E2E existentes; el selector autenticado comprende
+  seis casos en tres proyectos. No prueba Portal/Back/PIN, anulaciones consumadas
+  ni la matriz de dos roles del buscador. Se separan seis specs de backlog y
+  helpers/workflow inexistentes; `quality.yml` ya existe.
+- Antes de 2026-09-03 01:17 UTC, get_project/list_branches con ID explícito
+  confirmaron DTD Cargo saludable y sólo la rama main predeterminada. Cero
+  branches efímeros disponibles. Siete variables requeridas ausentes del proceso,
+  sin inspeccionar secretos de archivos/proveedores. No hubo seed ni E2E.
+- El MCP local dio placeholder/fetch failed: no es evidencia de ausencia.
+  El inventario afirmado proviene del conector explícito, sólo metadatos.
+- La secuencia exige GO del entorno, ownership, SHA/manifiesto frente al ledger,
+  preparación coherente, seed único, 18 casos sin omisiones y teardown terminal.
+  El control de variables/columnas no certifica ledger, RPCs o backend remoto.
+  Se mantiene la decisión de branches alojados; no se introduce un stack local.
+- Required de revisión atendido: el bypass de Preview sólo está conectado a
+  comentarios, no a los otros cinco casos. Se exige app local o Preview
+  accesible para los cuatro specs, sin desactivar protecciones ni ampliar código.
+- Corrección de documentación y definición de gates, no implementación ni
+  cierre del bootstrap. Checklist 51/105, 54 pendientes; specs 361/93 abiertas.
+  No se repiten como nuevas las suites anteriores ni se atribuye una corrida
+  autenticada. Sin push, merge, aplicación, deploy, credenciales ni datos alojados.
+- Revisión independiente aprobada; docs, numeración, gobernanza, componentes,
+  diff e inventario de rutas/casos/enlaces aprobados antes del commit selectivo.
+  El siguiente gate sigue siendo el GO de publicación del SHA exacto; el ciclo
+  efímero necesita autorización separada. Principal y worker se conservan.
+
+## Punto anterior · cobertura de Referidos cerrada
 
 Sobre `2f1242b7ffec9f835d8875025aaeedaf94935197`, este decimonoveno incremento
 local sólo cierra documentalmente SDD-0309. Su contrato está en main desde

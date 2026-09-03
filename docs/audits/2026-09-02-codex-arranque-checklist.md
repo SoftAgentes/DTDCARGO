@@ -38,7 +38,15 @@ quedan el checkout principal y el worktree activo. Después se encadenaron
 correcciones de seguridad, permisos, Portal, CI y pruebas. Por eso esta sesión
 ya no está sólo limpiando carpetas: está remediando hallazgos del proyecto.
 
-**Último avance documental:** SDD-0309 queda cerrada como cobertura técnica
+**Último preflight de bootstrap:** el control plane sólo devuelve la rama
+productiva; no hay branch efímero disponible, y las siete variables E2E están
+ausentes del proceso inspeccionado. Los 18 casos existentes no cubren login
+positivo de Portal/Back/PIN. Se corrigieron inventario y secuencia en
+[el runbook E2E](../runbooks/e2e-supabase-efimero.md): ejecutar lo existente y
+ampliar el bootstrap son entregables distintos. No hubo seed ni escritura
+alojada; se mantiene **51/105 (48,6 %)**.
+
+**Cierre documental anterior:** SDD-0309 queda cerrada como cobertura técnica
 de Referidos: contrato ya integrado, siete criterios aprobados y tres
 mutaciones causales rechazadas, con rollback y contenedor retirado.
 No certifica RLS, acreditación real ni aplicación del crédito a facturación.
@@ -166,6 +174,9 @@ se borra mientras conserve trabajo sin publicar/integrar.
   Ese punto quedó en `2f1242b7`. El cierre técnico de cobertura SDD-0309 añade
   un decimonoveno incremento sólo documental; no modifica SQL ni reintenta
   el push. Una autorización hasta2f1242b7 no incluye automáticamente esta acta.
+  Ese cierre quedó en `1d4b1452`. El vigésimo incremento corrige sólo el README,
+  runbook y seguimiento E2E; no implementa fixtures nuevos, publica ni aplica
+  migraciones. La autorización de un SHA anterior conserva ese límite exacto.
 - [PR #21 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/21):
   no integrable todavía por los gates de release. El CI completo del SHA
   `eabb230b` pasó en el run `33671435585`; también pasaron `726d2f85` en
@@ -566,6 +577,10 @@ No se hizo merge a `main`, promoción, migración ni escritura en Cloud.
   del arnés; la selección CLI de18 casos no es una ejecución autenticada.
   La política vigente conserva branches efímeros alojados, no un stack local
   completo. Faltan ampliación de fixtures/journeys y wiring autorizado.
+  Preflight de control plane: sólo main; variables del proceso ausentes.
+  Los seis casos lógicos existentes se pueden validar como paquete separado
+  cuando haya GO y branch correcto, pero no cierran el bootstrap de Portal.
+  [Secuencia, cobertura real y condiciones](../runbooks/e2e-supabase-efimero.md).
 - [ ] Verificar en los proveedores, sin asumir por código: Kommo live/dry-run,
   Resend, SeaRates, Telegram, VAPID, monitor externo y adjuntos/restore.
 - [ ] Si AWS vuelve a usarse, confirmar cuenta/región, Object Lock, suscripción
