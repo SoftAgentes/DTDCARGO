@@ -26,6 +26,7 @@
 import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { createCronRequestContext } from "@/lib/observability/cron-request-context";
+import type { StructuredLogger } from "@/lib/observability/structured-logger";
 import {
   fetchCeoBriefKpis,
   generateBriefText,
@@ -44,7 +45,10 @@ interface TenantResult {
   briefPreview?: string;
 }
 
-async function runForAllTenants(targetTenantId?: string) {
+async function runForAllTenants(
+  logger: StructuredLogger,
+  targetTenantId?: string,
+) {
   const admin = createAdminClient();
 
   // Listar tenants activos. Si se pasó target_tenant_id (testing manual),
@@ -66,8 +70,13 @@ async function runForAllTenants(targetTenantId?: string) {
   for (const t of (tenants ?? []) as { id: string; slug: string }[]) {
     try {
       const kpis = await fetchCeoBriefKpis(admin, t.id);
-      const brief = await generateBriefText(kpis);
-      const sendResult = await sendCeoBriefToTenant(admin, t.id, brief);
+      const brief = await generateBriefText(kpis, logger);
+      const sendResult = await sendCeoBriefToTenant(
+        admin,
+        t.id,
+        brief,
+        logger,
+      );
       results.push({
         tenant_id: t.id,
         tenant_slug: t.slug,
@@ -96,7 +105,7 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const targetTenantId = url.searchParams.get("tenant_id") ?? undefined;
-    const result = await runForAllTenants(targetTenantId);
+    const result = await runForAllTenants(cron.logger, targetTenantId);
     if (!result.ok) {
       return cron.fail("No se pudo leer los tenants para el brief.", result.error, {
         event: "cron.read_failed",

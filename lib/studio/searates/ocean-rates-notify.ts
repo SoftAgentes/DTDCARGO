@@ -16,6 +16,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 
 import { resolveAdminEntries } from "@/lib/studio/new-client-notify";
 import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
@@ -39,13 +43,17 @@ export async function notifyOceanRatesHealth(
   admin: SupabaseClient,
   tenantId: string,
   alert: OceanRatesAlert,
+  logger: StructuredLogger = createComponentLogger("internal.searates-health"),
 ): Promise<OceanRatesNotifyResult> {
   const result: OceanRatesNotifyResult = { emailSent: 0, telegramAttempted: 0 };
 
   try {
     const admins = await resolveAdminEntries(admin, tenantId);
     if (admins.length === 0) {
-      console.warn("[searates-refresh] sin admins para notificar");
+      logger.warn("notification.targets_missing", {
+        persons: 0,
+        stage: "email",
+      });
     }
 
     for (const a of admins) {
@@ -56,16 +64,26 @@ export async function notifyOceanRatesHealth(
         to_name: "Equipo DTD",
       });
       if (res.ok) result.emailSent += 1;
-      else console.error("[searates-refresh] email de aviso falló:", res.error);
+      else {
+        logger.error("notification.delivery_failed", {
+          error: res.error,
+          failed: 1,
+          stage: "email",
+        });
+      }
     }
 
     // Telegram es independiente de Resend: si el correo está roto, este llega.
     const tg = await dispatchTelegramAlert(admin, tenantId, "equipo", alert.text, {
       logTag: "searates-refresh",
+      logger,
     });
     result.telegramAttempted = tg.chatIds.length;
   } catch (err) {
-    console.error("[searates-refresh] notifyOceanRatesHealth falló:", err);
+    logger.error("notification.dispatch_failed", {
+      error: err,
+      stage: "searates-health",
+    });
   }
 
   return result;

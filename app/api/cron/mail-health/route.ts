@@ -100,7 +100,7 @@ async function run(req: NextRequest, cron: CronRequestContext) {
     };
 
     if (failures.length > 0 && !dry) {
-      const sent = await notifyMailHealth(admin, t.id, failures);
+      const sent = await notifyMailHealth(admin, t.id, failures, cron.logger);
       summary.emailSent = sent.emailSent;
       summary.telegramAttempted = sent.telegramAttempted;
 

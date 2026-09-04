@@ -70,7 +70,12 @@ async function run(req: NextRequest, cron: CronRequestContext) {
       });
     }
     for (const t of (tenants ?? []) as Array<{ id: string }>) {
-      const sent = await notifyOceanRatesHealth(admin, t.id, alert);
+      const sent = await notifyOceanRatesHealth(
+        admin,
+        t.id,
+        alert,
+        cron.logger,
+      );
       notified.push({ tenant_id: t.id, ...sent });
     }
   }

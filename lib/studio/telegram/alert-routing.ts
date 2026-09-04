@@ -32,6 +32,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 
 export const TELEGRAM_ALERT_CATEGORIES = [
@@ -88,6 +92,8 @@ export interface DispatchOptions {
   fallback?: string[] | "none";
   /** Para el log, cuando el mismo módulo dispara varias categorías. */
   logTag?: string;
+  /** Correlador del borde HTTP cuando el aviso nace en un cron. */
+  logger?: StructuredLogger;
 }
 
 export interface DispatchResult {
@@ -134,6 +140,9 @@ export async function resolveCategoryChatIds(
   admin: SupabaseClient,
   tenantId: string,
   category: TelegramAlertCategory,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.telegram-alert-routing",
+  ),
 ): Promise<string[]> {
   try {
     const { data, error } = await admin
@@ -159,7 +168,10 @@ export async function resolveCategoryChatIds(
     }
     return dedupeChatIds(chats);
   } catch (err) {
-    console.error("[alert-routing] resolveCategoryChatIds falló:", err);
+    logger.error("notification.route_read_failed", {
+      error: err,
+      stage: "category",
+    });
     return [];
   }
 }
@@ -168,6 +180,9 @@ export async function resolveCategoryChatIds(
 export async function resolveUserChatIds(
   admin: SupabaseClient,
   userIds: ReadonlyArray<string>,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.telegram-alert-routing",
+  ),
 ): Promise<string[]> {
   const ids = userIds.filter(Boolean);
   if (ids.length === 0) return [];
@@ -184,7 +199,10 @@ export async function resolveUserChatIds(
       ),
     );
   } catch (err) {
-    console.error("[alert-routing] resolveUserChatIds falló:", err);
+    logger.error("notification.route_read_failed", {
+      error: err,
+      stage: "users",
+    });
     return [];
   }
 }
@@ -196,6 +214,9 @@ export async function resolveUserChatIds(
 export async function resolveAdminChatIds(
   admin: SupabaseClient,
   tenantId: string,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.telegram-alert-routing",
+  ),
 ): Promise<string[]> {
   try {
     const { data, error } = await admin
@@ -208,9 +229,13 @@ export async function resolveAdminChatIds(
     return resolveUserChatIds(
       admin,
       (data as Array<{ user_id: string }>).map((r) => r.user_id),
+      logger,
     );
   } catch (err) {
-    console.error("[alert-routing] resolveAdminChatIds falló:", err);
+    logger.error("notification.route_read_failed", {
+      error: err,
+      stage: "admins",
+    });
     return [];
   }
 }
@@ -229,7 +254,8 @@ export async function dispatchTelegramAlert(
   text: string,
   opts: DispatchOptions = {},
 ): Promise<DispatchResult> {
-  const tag = opts.logTag ?? category;
+  const logger =
+    opts.logger ?? createComponentLogger("internal.telegram-alert-routing");
   const empty: DispatchResult = {
     chatIds: [],
     sent: 0,
@@ -238,9 +264,14 @@ export async function dispatchTelegramAlert(
   };
 
   try {
-    const routed = await resolveCategoryChatIds(admin, tenantId, category);
+    const routed = await resolveCategoryChatIds(
+      admin,
+      tenantId,
+      category,
+      logger,
+    );
     const perUser = opts.alsoUserIds?.length
-      ? await resolveUserChatIds(admin, opts.alsoUserIds)
+      ? await resolveUserChatIds(admin, opts.alsoUserIds, logger)
       : [];
 
     let chatIds = dedupeChatIds(routed, perUser);
@@ -250,14 +281,15 @@ export async function dispatchTelegramAlert(
     // configuración a medias.
     if (chatIds.length === 0 && opts.fallback !== "none") {
       const fallbackChats = Array.isArray(opts.fallback)
-        ? await resolveUserChatIds(admin, opts.fallback)
-        : await resolveAdminChatIds(admin, tenantId);
+        ? await resolveUserChatIds(admin, opts.fallback, logger)
+        : await resolveAdminChatIds(admin, tenantId, logger);
       chatIds = dedupeChatIds(fallbackChats);
       usedFallback = chatIds.length > 0;
       if (usedFallback) {
-        console.warn(
-          `[alert-routing] "${tag}" sin destino enlazado — cae al broadcast de admins (${chatIds.length} chats)`,
-        );
+        logger.warn("notification.fallback_used", {
+          mode: "fallback",
+          persons: chatIds.length,
+        });
       }
     }
 
@@ -271,13 +303,20 @@ export async function dispatchTelegramAlert(
         sent += 1;
       } else {
         failed += 1;
-        console.error(`[alert-routing] "${tag}" falló a ${chatId}:`, res.error);
+        logger.error("notification.delivery_failed", {
+          error: res.error,
+          failed: 1,
+          stage: "telegram",
+        });
       }
     }
 
     return { chatIds, sent, failed, usedFallback };
   } catch (err) {
-    console.error(`[alert-routing] dispatchTelegramAlert("${tag}") falló:`, err);
+    logger.error("notification.dispatch_failed", {
+      error: err,
+      stage: "telegram",
+    });
     return empty;
   }
 }

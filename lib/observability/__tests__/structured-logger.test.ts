@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createRequestLogger } from "../structured-logger";
+import {
+  createComponentLogger,
+  createRequestLogger,
+} from "../structured-logger";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -106,5 +109,13 @@ describe("createRequestLogger", () => {
     expect(serialized).not.toContain("owner@example.com");
     expect(serialized).not.toContain("ultra-secret");
     expect(serialized).not.toContain("storage/T1/photo.jpg");
+  });
+});
+
+describe("createComponentLogger", () => {
+  it("genera correlacion para trabajo interno sin Request", () => {
+    const logger = createComponentLogger("internal.mail-health");
+
+    expect(logger.requestId).toMatch(/^[0-9a-f-]{36}$/);
   });
 });

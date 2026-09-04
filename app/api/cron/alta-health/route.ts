@@ -58,7 +58,13 @@ async function run(req: NextRequest, cron: CronRequestContext) {
   const summaries = [];
 
   for (const t of (tenants ?? []) as Array<{ id: string }>) {
-    const rotos = await listAltasSinAcceso(admin, t.id, sinceIso, BATCH_CAP);
+    const rotos = await listAltasSinAcceso(
+      admin,
+      t.id,
+      sinceIso,
+      BATCH_CAP,
+      cron.logger,
+    );
     const summary = {
       tenant_id: t.id,
       sin_acceso: rotos.length,
@@ -75,6 +81,7 @@ async function run(req: NextRequest, cron: CronRequestContext) {
       // telegram_chat_id recibían el aviso dos veces.
       await dispatchTelegramAlert(admin, t.id, "equipo", text, {
         logTag: "alta-health",
+        logger: cron.logger,
       });
 
       const admins = await resolveAdminEntries(admin, t.id);

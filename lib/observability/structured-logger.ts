@@ -155,12 +155,11 @@ function sanitizeFields(fields: LogFields): Record<string, unknown> {
   return safe;
 }
 
-export function createRequestLogger(
-  request: Request,
+function createLogger(
   component: string,
+  requestId: string,
 ): StructuredLogger {
   const stableComponent = checkedIdentifier(component, "component");
-  const requestId = requestIdFrom(request);
 
   function emit(level: LogLevel, event: string, fields: LogFields = {}): void {
     const record = {
@@ -187,4 +186,15 @@ export function createRequestLogger(
       return response;
     },
   };
+}
+
+export function createComponentLogger(component: string): StructuredLogger {
+  return createLogger(component, crypto.randomUUID());
+}
+
+export function createRequestLogger(
+  request: Request,
+  component: string,
+): StructuredLogger {
+  return createLogger(component, requestIdFrom(request));
 }

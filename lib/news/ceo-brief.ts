@@ -17,6 +17,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import type { TextBlock } from "@anthropic-ai/sdk/resources/messages";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 
@@ -164,6 +168,7 @@ export async function fetchCeoBriefKpis(
  */
 export async function generateBriefText(
   kpis: CeoBriefKpis,
+  logger: StructuredLogger = createComponentLogger("internal.ceo-brief"),
 ): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -188,7 +193,10 @@ export async function generateBriefText(
     if (!text) return buildFallbackBrief(kpis);
     return text;
   } catch (err) {
-    console.error("[ceo-brief] LLM error:", err);
+    logger.error("integration.generation_failed", {
+      error: err,
+      stage: "llm",
+    });
     return buildFallbackBrief(kpis);
   }
 }
@@ -248,13 +256,14 @@ export async function sendCeoBriefToTenant(
   supabase: SupabaseClient,
   tenantId: string,
   brief: string,
+  logger: StructuredLogger = createComponentLogger("internal.ceo-brief"),
 ): Promise<{ ok: boolean; sentTo?: string; error?: string }> {
   const routed = await dispatchTelegramAlert(
     supabase,
     tenantId,
     "reportes",
     brief,
-    { fallback: "none", logTag: "ceo-brief" },
+    { fallback: "none", logTag: "ceo-brief", logger },
   );
   if (routed.chatIds.length > 0) {
     if (routed.sent === 0) {

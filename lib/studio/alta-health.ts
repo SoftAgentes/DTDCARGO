@@ -24,6 +24,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 
 /** Días hacia atrás que se vigilan. Más viejo que esto ya no dispara aviso. */
 export const ALTA_LOOKBACK_DAYS = 30;
@@ -47,6 +51,7 @@ export async function listAltasSinAcceso(
   tenantId: string,
   sinceIso: string,
   cap: number,
+  logger: StructuredLogger = createComponentLogger("internal.alta-health"),
 ): Promise<AltaSinAcceso[]> {
   // Dos consultas y un diff en memoria, a propósito: NO se usa el embed de
   // PostgREST (`select("...,client_users(id)")`) porque depende de que la
@@ -79,7 +84,10 @@ export async function listAltasSinAcceso(
   // Ante un error leyendo los accesos NO se reporta "todos rotos": se calla.
   // Un aviso falso de 50 clientes sin puerta quema la confianza en el aviso.
   if (uErr) {
-    console.error("[alta-health] no pude leer client_users:", uErr);
+    logger.error("internal.read_failed", {
+      error: uErr,
+      stage: "client-users",
+    });
     return [];
   }
 

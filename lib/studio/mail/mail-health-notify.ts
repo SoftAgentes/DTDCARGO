@@ -15,6 +15,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendEmail } from "./send-email";
 import {
   resolveAdminEntries,
@@ -52,6 +56,7 @@ export async function notifyMailHealth(
   admin: SupabaseClient,
   tenantId: string,
   failures: MailFailure[],
+  logger: StructuredLogger = createComponentLogger("internal.mail-health"),
 ): Promise<MailHealthNotifyResult> {
   const result: MailHealthNotifyResult = { emailSent: 0, telegramAttempted: 0 };
   if (failures.length === 0) return result;
@@ -59,7 +64,10 @@ export async function notifyMailHealth(
   try {
     const admins = await resolveAdminEntries(admin, tenantId);
     if (admins.length === 0) {
-      console.warn("[mail-health] sin admins para notificar");
+      logger.warn("notification.targets_missing", {
+        persons: 0,
+        stage: "email",
+      });
       return result;
     }
 
@@ -77,17 +85,27 @@ export async function notifyMailHealth(
         metadata: { source: MAIL_HEALTH_SOURCE, failures: failures.length },
       });
       if (res.ok) result.emailSent += 1;
-      else console.error("[mail-health] email de aviso falló:", res.error);
+      else {
+        logger.error("notification.delivery_failed", {
+          error: res.error,
+          failed: 1,
+          stage: "email",
+        });
+      }
     }
 
     // Telegram: independiente de Resend. Si el correo está roto, este llega.
     // UNA vez por CHAT, fuera del bucle de admins (SDD-0271).
     const tg = await dispatchTelegramAlert(admin, tenantId, "equipo", telegramText, {
       logTag: "mail-health",
+      logger,
     });
     result.telegramAttempted = tg.chatIds.length;
   } catch (err) {
-    console.error("[mail-health] notifyMailHealth falló:", err);
+    logger.error("notification.dispatch_failed", {
+      error: err,
+      stage: "mail-health",
+    });
   }
 
   return result;
