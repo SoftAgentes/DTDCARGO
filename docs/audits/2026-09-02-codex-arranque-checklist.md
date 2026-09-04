@@ -13,7 +13,7 @@ confidencialidad: interno
 Este documento es el punto de entrada operativo después del traspaso desde
 Cloud. No reemplaza specs ni runbooks: ordena qué sigue, quién puede hacerlo y
 qué autorización exige. El resumen vigente se revalidó el 2026-09-04 después de
-0400, la revisión del modo continuo y la cola local hasta SDD-0411. Los puntos
+0400, la revisión del modo continuo y la cola local hasta SDD-0412. Los puntos
 anteriores conservan su contexto histórico; antes
 de cualquier otra operación Git o alojada se deben refrescar sus precondiciones.
 
@@ -75,11 +75,13 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Documentos de proveedores RBAC, 0409/0441 | `supplier` hereda defaults y overrides de Proveedores; mapa interno no expuesto a roles API; 183 SQL y rebuild 438; 0441 sin aplicar |
 | Documentos de Naviera RBAC, 0410/0442 | `consolidation` y `booking` heredan defaults y overrides de Naviera; 184 SQL y rebuild 439; 0442 sin aplicar |
 | Adjuntos de Bitácora RBAC, 0411/0443 | `bitacora_task` + bucket propio heredan Bitácora; Soporte queda read-only también ante acceso directo; 185 SQL y rebuild 440; 0443 sin aplicar |
-| RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
+| Documentos sin transacción, 0412/0444 | `none` hereda Documentos, versionado gana su guard y tipos inventados fallan cerrados; 13 focales, 186 SQL y rebuild 441; 0444 sin aplicar |
+| Specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
-La cifra original avanza a 57/106 (53,8 %): se cerró la casilla existente de
-auditar las policies Portal por Shipping Mark/tenant, no se crearon subpasos.
-Las migraciones preparadas sin aplicar son ahora 43 (0401–0443), derivadas
+La cifra original avanza a 58/106 (54,7 %): además de la auditoría Portal ya
+cerrada, se completa la casilla amplia de RBAC por slices; no se crearon
+subpasos por entidad. Las migraciones preparadas sin aplicar son ahora 44
+(0401–0444), derivadas
 del último ledger 0400; no se hizo nueva consulta Cloud en esta continuación.
 Todos los recibos y cambios posteriores a 70812835 permanecen sólo locales.
 Las secciones inferiores conservan sus fechas/alcance históricos.
@@ -768,7 +770,7 @@ están incluidos en aquel push.
   en el orden expansión0421 → consumidores → restricción0422.
   Los uploads inciertos se conservan privados: revisar su disposición con
   identidad/vínculo/hold y autorización; no hay job ni purga automática.
-- [ ] Continuar RBAC de aplicación en la base por slices: lectura minimizada de
+- [x] Continuar RBAC de aplicación en la base por slices: lectura minimizada de
   facturas/dinero y autorización documental por entidad. Cada slice
   necesita SDD, contrato SQL, migración propia y gate Cloud separado; no hacer
   un sweep. SDD-0350 ya cerró la escritura directa de `invoices`, preservando
@@ -797,8 +799,10 @@ están incluidos en aquel push.
   una función interna no ejecutable por roles de API. SDD-0410/0442 incorpora
   `consolidation` y `booking` con la matriz compartida de Naviera.
   SDD-0411/0443 añade `bitacora_task` y corrige el bucket propio para que Soporte
-  sea read-only también ante acceso directo. Falta `none` (documentos sin
-  transacción), que conserva su gate separado.
+  sea read-only también ante acceso directo. SDD-0412/0444 completa `none`,
+  añade el guard faltante al versionado, preserva paths legados sin segundo
+  segmento y hace fallar cerrados los tipos Storage inventados. Los 12 valores
+  del enum quedan cubiertos; un tipo futuro exige otro slice explícito.
 - [x] Auditar por dominio las otras policies Portal que comparan Shipping Mark
   sin tenant. SDD-0357 cubre `invoices` y SDD-0359 cubre `shipments`,
   `shipment_documents` y `shipment_events`. SDD-0361 cubre `suppliers_cn`,

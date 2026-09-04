@@ -177,6 +177,8 @@ export async function addDocumentVersion(
   formData: FormData,
 ): Promise<DocActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "documents");
+  if (denial) return { error: denial };
 
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Sesión expirada. Vuelve a entrar." };

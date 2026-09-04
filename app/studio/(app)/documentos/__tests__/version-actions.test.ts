@@ -17,6 +17,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockCreateClient = vi.fn();
 const mockRevalidate = vi.fn();
 const mockListVersions = vi.fn();
+const mockModuleEditDenial = vi.fn();
 
 vi.mock("@/lib/db/server", () => ({
   createClient: () => mockCreateClient(),
@@ -26,6 +27,9 @@ vi.mock("next/cache", () => ({
 }));
 vi.mock("@/lib/studio/documents/queries", () => ({
   listDocumentVersions: (...a: unknown[]) => mockListVersions(...a),
+}));
+vi.mock("@/lib/studio/rbac-guard", () => ({
+  moduleEditDenial: (...a: unknown[]) => mockModuleEditDenial(...a),
 }));
 
 import {
@@ -123,9 +127,23 @@ function fd(file: File | null, extra: Record<string, string> = {}): FormData {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockModuleEditDenial.mockResolvedValue(null);
 });
 
 describe("addDocumentVersion", () => {
+  it("rechaza por RBAC antes de consultar sesión, tenant, fila o Storage", async () => {
+    const { supabase, uploads, rpcCalls } = makeSupabase({});
+    mockCreateClient.mockResolvedValue(supabase);
+    mockModuleEditDenial.mockResolvedValue("Sin permiso para editar Documentos.");
+
+    const res = await addDocumentVersion(ROOT, fd(pdfFile()));
+
+    expect(res).toEqual({ error: "Sin permiso para editar Documentos." });
+    expect(mockModuleEditDenial).toHaveBeenCalledWith(supabase, "documents");
+    expect(uploads).toHaveLength(0);
+    expect(rpcCalls).toHaveLength(0);
+  });
+
   it("happy path: sube object server-side y llama la RPC; revalida", async () => {
     const { supabase, uploads, removes, rpcCalls } = makeSupabase({});
     mockCreateClient.mockResolvedValue(supabase);
