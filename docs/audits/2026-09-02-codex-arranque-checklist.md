@@ -78,7 +78,7 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Documentos sin transacción, 0412/0444 | `none` hereda Documentos, versionado gana su guard y tipos inventados fallan cerrados; 13 focales, 186 SQL y rebuild 441; 0444 sin aplicar |
 | CSP privada con nonce, 0413 | Cerrada localmente: RED de navegador detectó el script de tema sin nonce; GREEN 35/35, build 158 y Studio/Portal sin errores CSP; Marca y SSG público aislados |
 | Reconciliación de specs | Inventario corregido: 105 abiertas; SDD-0264, 0276, 0287 y 0308 cerradas con `origin/main` y pruebas focales; quedan 101 |
-| Logs y web | Logger central + 17/17 crons + 4/4 Edge Functions + Portal sin logs libres; baseline web cerrada y quedan 174 logs legacy internos |
+| Logs y web | Logger central + 17/17 crons + 4/4 Edge Functions + Portal sin logs libres; baseline web cerrada y quedan 166 logs legacy internos |
 
 La cifra original avanza a 60/106 (56,6 %): además de la auditoría Portal, el
 RBAC por slices y la CSP privada con nonce, ya existe una baseline Lighthouse
@@ -1033,12 +1033,13 @@ están incluidos en aquel push.
   ping GPS. SDD-0432 retiró nueve logs de cuatro internals de Conversaciones y
   enlazó el correlador del cron con el runner, la IA, Telegram y Push. SDD-0433
   retiró nueve logs del flujo de bugs, correlacionó sus cuatro rutas y evitó
-  exponer detalles crudos de Storage/PostgREST. El inventario legacy medido bajó
-  de 183 a 174. Acumulado:
+  exponer detalles crudos de Storage/PostgREST. SDD-0435 retiró ocho logs de las
+  acciones de Usuarios sin registrar emails, usuarios, tokens ni enlaces. El
+  inventario legacy medido bajó de 183 a 166. Acumulado:
   17/17 handlers cron, 4/4 Edge Functions, treinta y tres internals, diez
   superficies Portal y cuatro rutas móviles adoptadas, cero
   `console.*` en esos alcances y
-  7.491 pruebas completas. El inventario general conserva módulos legacy fuera
+  7.504 pruebas completas. El inventario general conserva módulos legacy fuera
   del Portal; la casilla de logs no se marca hasta retirar ese residuo.
   [Acta base](2026-09-04-structured-request-logging.md) y
   [workers drain](2026-09-04-structured-drain-crons.md) y
@@ -1059,7 +1060,8 @@ están incluidos en aquel push.
   y [avisos de entrada](2026-09-04-structured-inbound-notification-producers.md),
   más [rutas móviles](2026-09-04-structured-mobile-routes.md) e
   [internals de Conversaciones](2026-09-04-structured-conversation-internals.md),
-  más [flujo de bugs](2026-09-04-structured-bug-workflow.md).
+  más [flujo de bugs](2026-09-04-structured-bug-workflow.md) y
+  [acciones de Usuarios](2026-09-04-structured-user-actions.md).
 - [x] Medir baseline Lighthouse móvil local y fijar budgets de CSS/fuentes por
   superficie. A11y quedó en 96 público y 100 Portal/Studio/móvil; LCP, CSS,
   bundles y dos gates externos quedan explícitos. INP/CrUX alojado no suma otra

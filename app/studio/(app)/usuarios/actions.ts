@@ -16,6 +16,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { createComponentLogger } from "@/lib/observability/structured-logger";
 import {
   D1OperationError,
   d1Reason,
@@ -102,6 +103,7 @@ export async function inviteUserAction(
   _prev: UserActionState,
   formData: FormData,
 ): Promise<UserActionState> {
+  const logger = createComponentLogger("action.studio.users.invite");
   const partial = {
     email: (formData.get("email") as string | null) ?? undefined,
     role: (formData.get("role") as StudioUserRole | null) ?? undefined,
@@ -155,7 +157,11 @@ export async function inviteUserAction(
       }
     }
   } catch (err) {
-    console.error("[inviteUserAction] member-guard skipped:", err);
+    logger.error("users.member_guard_skipped", {
+      error: err,
+      operation: "invite_user",
+      stage: "member_guard",
+    });
   }
 
   try {
@@ -177,8 +183,8 @@ export async function inviteUserAction(
     // SDD-0026 F2: intentar mandar email automáticamente. Si no hay
     // RESEND_API_KEY o falla, NO rompemos la invitación · el admin tiene
     // el link de fallback en la UI para copy/paste manual.
-    // Errores se loggean a console.error para ser visibles en Vercel runtime
-    // logs sin contaminar el UX del modal.
+    // Los errores quedan correlacionados en logs estructurados sin contaminar
+    // el UX del modal ni exponer datos de la invitación.
     try {
       const { data: link2 } = await supabase
         .from("user_tenants")
@@ -218,11 +224,19 @@ export async function inviteUserAction(
           metadata: { source: "inviteUserAction", invitation_id: invitationId },
         });
         if (!sendResult.ok) {
-          console.error("[inviteUserAction] sendEmail failed:", sendResult.error);
+          logger.error("users.invitation_email_failed", {
+            error: sendResult.error,
+            operation: "invite_user",
+            stage: "send_email",
+          });
         }
       }
     } catch (err) {
-      console.error("[inviteUserAction] sendEmail exception:", err);
+      logger.error("users.invitation_email_exception", {
+        error: err,
+        operation: "invite_user",
+        stage: "send_email",
+      });
     }
 
     revalidatePath("/studio/usuarios");
@@ -432,6 +446,7 @@ export async function sendAccessLinkAction(
   _prev: UserActionState,
   formData: FormData,
 ): Promise<UserActionState> {
+  const logger = createComponentLogger("action.studio.users.access_link");
   const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
   if (!targetUserId) return { errorCode: "invalid_input" };
 
@@ -517,7 +532,11 @@ export async function sendAccessLinkAction(
       ok: false,
       errorCode: "token_insert_failed",
     });
-    console.error("[sendAccessLinkAction] insert token:", tokenErr.message);
+    logger.error("users.access_token_insert_failed", {
+      error: tokenErr,
+      operation: "send_access_link",
+      stage: "insert_token",
+    });
     return { error: "No se pudo generar el enlace de acceso. Reintenta." };
   }
 
@@ -569,10 +588,18 @@ export async function sendAccessLinkAction(
       metadata: { source: "sendAccessLinkAction", target_user_id: targetUserId },
     });
     if (!sendResult.ok) {
-      console.error("[sendAccessLinkAction] sendEmail failed:", sendResult.error);
+      logger.error("users.access_link_email_failed", {
+        error: sendResult.error,
+        operation: "send_access_link",
+        stage: "send_email",
+      });
     }
   } catch (err) {
-    console.error("[sendAccessLinkAction] sendEmail exception:", err);
+    logger.error("users.access_link_email_exception", {
+      error: err,
+      operation: "send_access_link",
+      stage: "send_email",
+    });
   }
 
   await finishD5ExternalEffect(supabase, operationId, { ok: true });
@@ -718,6 +745,7 @@ export async function changeMemberEmailAction(
   _prev: UserActionState,
   formData: FormData,
 ): Promise<UserActionState> {
+  const logger = createComponentLogger("action.studio.users.change_email");
   const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
   if (!targetUserId) return { errorCode: "invalid_input" };
 
@@ -817,7 +845,11 @@ export async function changeMemberEmailAction(
     .is("used_at", null)
     .is("revoked_at", null);
   if (tokenErr) {
-    console.error("[changeMemberEmailAction] revocar tokens falló:", tokenErr);
+    logger.error("users.access_token_revoke_failed", {
+      error: tokenErr,
+      operation: "change_member_email",
+      stage: "revoke_access_tokens",
+    });
   }
 
   const { error: inviteErr } = await admin
@@ -828,10 +860,11 @@ export async function changeMemberEmailAction(
     .is("accepted_at", null)
     .is("revoked_at", null);
   if (inviteErr) {
-    console.error(
-      "[changeMemberEmailAction] revocar invitaciones falló:",
-      inviteErr,
-    );
+    logger.error("users.invitation_revoke_failed", {
+      error: inviteErr,
+      operation: "change_member_email",
+      stage: "revoke_invitations",
+    });
   }
 
   await finishD5ExternalEffect(supabase, operationId, { ok: true });
