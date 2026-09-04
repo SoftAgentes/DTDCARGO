@@ -13,7 +13,7 @@ confidencialidad: interno
 Este documento es el punto de entrada operativo después del traspaso desde
 Cloud. No reemplaza specs ni runbooks: ordena qué sigue, quién puede hacerlo y
 qué autorización exige. El resumen vigente se revalidó el 2026-09-04 después de
-0400, la revisión del modo continuo y la cola local hasta SDD-0404. Los puntos
+0400, la revisión del modo continuo y la cola local hasta SDD-0405. Los puntos
 anteriores conservan su contexto histórico; antes
 de cualquier otra operación Git o alojada se deben refrescar sus precondiciones.
 
@@ -68,11 +68,12 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Catálogo de servicios Portal, 0402/0434 | Cerrado localmente: 3 RED de aplicación + RED SQL; 1.086 Portal/Prealertas, suite 7.292/7.292, 176 SQL y rebuild 431; 0434 sin aplicar |
 | Documentos de factura RBAC, 0403/0435 | Primer slice documental cerrado localmente: filas, bucket, reservas, restauración y RPC privilegiadas; 177 SQL y rebuild 432; 0435 sin aplicar |
 | Documentos de Tesorería RBAC, 0404/0436 | CxP y órdenes de pago heredan accounting/admin en el control central; 178 SQL y rebuild 433; 0436 sin aplicar |
+| Documentos de asientos RBAC, 0405/0437 | `journal_entry` completa los tipos estrictamente contables; 179 SQL y rebuild 434; 0437 sin aplicar |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original avanza a 57/106 (53,8 %): se cerró la casilla existente de
 auditar las policies Portal por Shipping Mark/tenant, no se crearon subpasos.
-Las migraciones preparadas sin aplicar son ahora 36 (0401–0436), derivadas
+Las migraciones preparadas sin aplicar son ahora 37 (0401–0437), derivadas
 del último ledger 0400; no se hizo nueva consulta Cloud en esta continuación.
 Todos los recibos y cambios posteriores a 70812835 permanecen sólo locales.
 Las secciones inferiores conservan sus fechas/alcance históricos.
@@ -779,8 +780,9 @@ están incluidos en aquel push.
   ahora hereda el candado `accounting`/`admin` en metadatos, bucket, reservas,
   restauración y escrituras `SECURITY DEFINER`. La casilla permanece abierta:
   SDD-0404/0436 extiende el mismo control a CxP y órdenes de pago de Tesorería,
-  sin duplicar policies. Faltan los demás tipos documentales y cada uno conserva
-  su gate separado.
+  sin duplicar policies; SDD-0405/0437 suma los asientos y completa los cuatro
+  tipos estrictamente contables. Faltan las entidades con matrices distintas y
+  cada una conserva su gate separado.
 - [x] Auditar por dominio las otras policies Portal que comparan Shipping Mark
   sin tenant. SDD-0357 cubre `invoices` y SDD-0359 cubre `shipments`,
   `shipment_documents` y `shipment_events`. SDD-0361 cubre `suppliers_cn`,
