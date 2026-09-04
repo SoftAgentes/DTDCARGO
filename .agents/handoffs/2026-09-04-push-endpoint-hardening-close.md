@@ -92,10 +92,11 @@ mutaciones alojadas.
   medidos; 501 archivos/6181 pruebas Vitest, 139 contratos SQL, reconstrucción
   de 395 migraciones y build de 158 páginas, todos verdes.
 - `migrations-applied`, ejecutado aparte en modo lectura contra el ledger real:
-  rojo porque Producción contiene `0399_revoke_truncate_anon_authenticated`,
-  `0400_revoke_public_verify_rpc_execute` y
-  `0445_portal_profile_edit_limit`, cuyos archivos todavía no están en
-  `origin/main`. Ninguno pertenece a SDD-0373 y esta rama no los absorbe.
+  rojo porque `0399_revoke_truncate_anon_authenticated` y
+  `0400_revoke_public_verify_rpc_execute` llevan más de 24 horas aplicadas sin
+  archivo en `origin/main`; `0445_portal_profile_edit_limit` aparece amarilla,
+  todavía dentro de la ventana de 24 horas. Ninguna pertenece a SDD-0373 y esta
+  rama no las absorbe.
 - E2E: no medido. No existen las siete variables del entorno efímero exigido
   por `docs/runbooks/e2e-supabase-efimero.md`; las credenciales disponibles
   corresponden a Producción y no se reutilizan para pruebas.
