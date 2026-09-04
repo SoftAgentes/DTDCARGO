@@ -13,7 +13,7 @@
  *  - Insert SOLO vía admin client (la RLS de insert de legal_acceptances exige
  *    tenant_id = get_user_tenant_id(), que da NULL para un cliente del portal → el
  *    cliente NO puede insertar por su RLS). La identidad se resuelve PRIMERO con el
- *    client de SESIÓN (getPortalClient); recién después el admin client escribe,
+ *    principal de SESIÓN; recién después el admin client escribe,
  *    scopeando TODO explícito por markbox/client_id/tenant (service_role bypassa
  *    RLS = defensa en profundidad).
  *  - La aceptación DEBE sellar la medida del SHIPMENT (cbm/weight) + base_amount +
@@ -33,7 +33,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { getPendingAcceptanceInvoice } from "@/lib/portal/portal-legal-queries";
 import { currentClientDocs, hasValidAcceptanceForMarkbox } from "@/lib/studio/legal/queries";
 import { sealAcceptance } from "@/lib/studio/legal/seal";
@@ -71,10 +71,11 @@ export async function registerAcceptanceAction(
 ): Promise<AcceptanceFormState> {
   // 1. Identidad por SESIÓN (no por admin client). Si no es cliente del portal → corte.
   const session = await createClient();
-  const client = await getPortalClient(session);
-  if (!client) {
+  const principal = await getPortalClientPrincipal(session);
+  if (!principal) {
     return { error: "Tu sesión expiró o no eres un cliente del portal. Vuelve a entrar." };
   }
+  const { client, tenantId } = principal;
 
   let admin;
   try {
@@ -83,17 +84,7 @@ export async function registerAcceptanceAction(
     return { error: "No pudimos procesar la aceptación ahora. Prueba de nuevo en un rato." };
   }
 
-  // 2. tenant_id del cliente + la factura borrador DDP + medida del shipment.
-  const { data: clientRow } = await admin
-    .from("clients")
-    .select("tenant_id")
-    .eq("id", client.id)
-    .maybeSingle<{ tenant_id: string }>();
-  const tenantId = String(clientRow?.tenant_id ?? "").trim();
-  if (!tenantId) {
-    return { error: "No pudimos resolver tu cuenta. Contacta a tu asesor." };
-  }
-
+  // 2. Factura borrador DDP + medida del shipment, dentro del principal resuelto.
   const order = await getPendingAcceptanceInvoice(admin, {
     tenantId,
     markbox: client.markbox,

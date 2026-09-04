@@ -102,6 +102,10 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   sólo cliente y releían tenant con admin; el embarque del reclamo omitía tenant.
   Ahora cortan antes de admin y fijan el principal completo. RED 4/4, GREEN 4/4
   y Portal 899/899. Sin correos, adjuntos, reclamos o datos reales.
+- SDD0397 cerrado localmente: aceptación legal y reporte de pago elevaban tras
+  derivar sólo cliente y releían tenant; cancelación conservaba el camino legado.
+  Ahora los tres exigen principal completo y los flujos admin no releen `clients`.
+  RED 5/5, focal/histórico 61/61 y Portal 903/903. Sin efectos reales.
 - Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;

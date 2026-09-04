@@ -45,7 +45,7 @@ function form(overrides: Record<string, string> = {}): FormData {
 }
 
 function io(options: { portal?: boolean; role?: string | null; disabled?: boolean; pending?: number | null;
-  preflightError?: "clients" | "invoices" | "payment_reports"; commandReply?: Reply; commandThrow?: boolean;
+  preflightError?: "invoices" | "payment_reports"; commandReply?: Reply; commandThrow?: boolean;
   commitBeforeError?: boolean; invoiceStatus?: string; existing?: Row } = {}) {
   const client = { id: CLIENT, tenant_id: TENANT, markbox: MARK, name: "Cliente sintético", deleted_at: null };
   const invoice = { id: INVOICE, tenant_id: TENANT, invoice_code: CODE, client_markbox: MARK,
@@ -215,7 +215,7 @@ describe("consumidores · permiso, entrada y preflight fail-closed", () => {
     expect(state.legacy).toEqual([]);
   });
 
-  it.each(["clients", "invoices", "payment_reports"] as const)("error preflight de %s corta antes del upload", async (preflightError) => {
+  it.each(["invoices", "payment_reports"] as const)("error preflight de %s corta antes del upload", async (preflightError) => {
     const { state, upload, remove } = io({ preflightError });
     const result = await reportPaymentAction(CODE, {}, form());
     expect(result.ok).not.toBe(true);

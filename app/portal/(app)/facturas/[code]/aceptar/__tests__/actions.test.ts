@@ -40,9 +40,9 @@ vi.mock("@/lib/http/request-ip", () => ({
   getRequestIp: async () => "190.142.88.214",
 }));
 
-const getPortalClientMock = vi.fn();
+const getPortalClientPrincipalMock = vi.fn();
 vi.mock("@/lib/portal/portal-queries", () => ({
-  getPortalClient: () => getPortalClientMock(),
+  getPortalClientPrincipal: () => getPortalClientPrincipalMock(),
 }));
 
 const getPendingMock = vi.fn();
@@ -132,7 +132,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   insertedRows = [];
   rpcCalls = 0;
-  getPortalClientMock.mockResolvedValue({ id: "c1", markbox: MARKBOX });
+  getPortalClientPrincipalMock.mockResolvedValue({
+    userId: "portal-user",
+    tenantId: TENANT,
+    client: { id: "c1", markbox: MARKBOX },
+  });
   getPendingMock.mockResolvedValue(ORDER);
   hasValidMock.mockResolvedValue(false); // no hay aceptación previa
   currentDocsMock.mockResolvedValue(

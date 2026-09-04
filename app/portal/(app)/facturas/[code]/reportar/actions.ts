@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { countPendingReports, isAtPendingLimit } from "@/lib/portal/payment-report-queries";
 import { validatePaymentReportInput, type PaymentReportFieldErrors } from "@/lib/portal/payment-report-types";
 import { validateProofFile, uploadPaymentProof } from "@/lib/portal/payment-proof";
@@ -49,13 +49,10 @@ export async function reportPaymentAction(
 
   try {
     const session = await createClient();
-    const client = await getPortalClient(session);
-    if (!client) return { error: "Tu sesión expiró o no eres un cliente del portal. Vuelve a entrar." };
+    const principal = await getPortalClientPrincipal(session);
+    if (!principal) return { error: "Tu sesión expiró o no eres un cliente del portal. Vuelve a entrar." };
+    const { client, tenantId } = principal;
     const admin = createAdminClient();
-    const { data: clientRow, error: clientError } = await admin.from("clients")
-      .select("tenant_id").eq("id", client.id).maybeSingle<{ tenant_id: string }>();
-    if (clientError || !clientRow || !uuid(clientRow.tenant_id)) return { error: CONSULT_ERROR };
-    const tenantId = clientRow.tenant_id;
     const { data: invoice, error: invoiceError } = await admin.from("invoices")
       .select("id, currency, status").eq("tenant_id", tenantId).eq("invoice_code", code)
       .eq("client_markbox", client.markbox).is("deleted_at", null)
@@ -123,7 +120,7 @@ export async function cancelPaymentReportAction(
   if (typeof reason !== "string") return { error: "Escribe el motivo de la cancelación. Código: PAGO-MOTIVO." };
   try {
     const session = await createClient();
-    if (!await getPortalClient(session)) return { error: "Tu sesión expiró. Vuelve a entrar." };
+    if (!await getPortalClientPrincipal(session)) return { error: "Tu sesión expiró. Vuelve a entrar." };
     const result = await runPaymentReportCommand(session, {
       verb: "cancel", requestId, reportId, invoiceCode: invoiceCode.trim(), reason,
     });
