@@ -94,6 +94,10 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   el principal completo y fijan tenant/cliente/Shipping Mark. RED 8/8;
   focal/histórico 23/23 y Portal+helper 896/896. La tanda global pasa 7.249/7.249
   unitarias en 569 archivos y lint completo. 0427 intacta; sin datos reales.
+- SDD0395 cerrado localmente: solicitud y avance de cotizaciones elevaban después
+  de derivar sólo cliente y omitían tenant en filtros admin. Ahora validan el
+  principal completo antes de admin y fijan tenant + Shipping Mark. RED 3/3;
+  focal/histórico 18/18 y Portal 895/895. Sin datos ni avisos reales.
 - Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;

@@ -58,6 +58,7 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Activación y completitud Portal, 0392 | Cerrado localmente: RED 3/3; focal/histórico 18/18 y Portal 886/886; 0427 intacta |
 | Reclamos Portal, 0393 | Cerrado localmente: RED 2/2; GREEN 2/2 y Portal 888/888; sin datos reales |
 | Direcciones Portal aplicación, 0394 | Cerrado localmente: RED 8/8; focal/histórico 23/23 y Portal+helper 896/896; 0427 intacta |
+| Cotizaciones Portal aplicación, 0395 | Cerrado localmente: RED 3/3; focal/histórico 18/18 y Portal 895/895; sin avisos reales |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.
@@ -853,6 +854,9 @@ están incluidos en aquel push.
   focal/histórico 23/23 y Portal+helper 896/896. El borrado 0427 quedó intacto y
   no se consultaron o modificaron direcciones reales. Tras la tanda completa,
   pasan 7.249/7.249 unitarias en 569 archivos y el lint global.
+  SDD-0395 cerró solicitud y avance de cotizaciones: el principal completo se
+  valida antes de admin y fija correlativo, lectura, INSERT, UPDATE y aviso. RED
+  3/3, focal/histórico 18/18 y Portal 895/895. No hubo datos ni avisos reales.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
   logout sin esa decisión puede perder entregas pendientes.

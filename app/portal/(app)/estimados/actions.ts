@@ -8,16 +8,15 @@
  * partida) y el asesor lo cotiza/cierra en `/studio/cotizador`. Idempotente: sólo
  * un estimado web elegible se puede avanzar; si ya está en la pista formal, no-op.
  *
- * SEGURIDAD: el dueño se resuelve por la SESIÓN (getPortalClient → markbox) y el
- * update va scopeado por `client_markbox` con admin client (el cliente no tiene RLS
- * de UPDATE sobre quotes). Un cliente no puede avanzar el estimado de otro.
+ * SEGURIDAD: el dueño se resuelve por el principal de sesión y lectura/UPDATE van
+ * scopeados por tenant + Shipping Mark antes y después de elevar a admin.
  */
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { canAdvanceEstimate } from "@/lib/portal/cotizacion-request";
 import { notifyCotizacionRequestToAdmin } from "@/lib/studio/cotizacion-request-notify";
 import type { QuoteStatus } from "@/lib/studio/quote-types";
@@ -47,10 +46,12 @@ export async function advanceEstimateToCotizacionAction(
 
   // Dueño desde la SESIÓN (no del form).
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) {
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar e intenta de nuevo." };
   }
+  const client = principal.client;
+  const tenantId = principal.tenantId;
 
   let admin;
   try {
@@ -66,6 +67,7 @@ export async function advanceEstimateToCotizacionAction(
       "id, tenant_id, quote_code, source, status, service, origin, destination, nota, converted_to_shipment_id",
     )
     .eq("quote_code", code)
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", client.markbox)
     .is("deleted_at", null)
     .maybeSingle<QuoteRow>();
@@ -97,6 +99,7 @@ export async function advanceEstimateToCotizacionAction(
     .from("quotes")
     .update({ source: "studio", updated_at: new Date().toISOString() })
     .eq("id", q.id)
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", client.markbox)
     .eq("source", "web")
     .select("id");
@@ -110,7 +113,7 @@ export async function advanceEstimateToCotizacionAction(
     const description = q.nota?.trim()
       ? `Avanzó su estimado ${q.quote_code} a cotización. Nota: ${q.nota.trim()}`
       : `Avanzó su estimado ${q.quote_code} a cotización formal.`;
-    await notifyCotizacionRequestToAdmin(admin, q.tenant_id, {
+    await notifyCotizacionRequestToAdmin(admin, tenantId, {
       code: q.quote_code,
       markbox: client.markbox,
       clientName: client.name,
