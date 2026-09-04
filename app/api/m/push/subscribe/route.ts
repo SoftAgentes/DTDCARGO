@@ -15,6 +15,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
+import { parsePushSubscription } from "@/lib/studio/notify/push-subscription";
 
 export async function POST(req: Request) {
   const session = await getCurrentOperario();
@@ -29,19 +30,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Body inválido." }, { status: 422 });
   }
 
-  const sub = body as {
-    endpoint?: unknown;
-    keys?: { p256dh?: unknown; auth?: unknown };
-  };
-  const endpoint = typeof sub.endpoint === "string" ? sub.endpoint : null;
-  const p256dh =
-    sub.keys && typeof sub.keys.p256dh === "string" ? sub.keys.p256dh : null;
-  const auth =
-    sub.keys && typeof sub.keys.auth === "string" ? sub.keys.auth : null;
-
-  if (!endpoint || !p256dh || !auth) {
+  const sub = parsePushSubscription(body);
+  if (!sub) {
     return NextResponse.json(
-      { error: "Subscription incompleta (endpoint/p256dh/auth)." },
+      { error: "Suscripción no válida. Vuelve a activar las notificaciones desde tu navegador." },
       { status: 422 },
     );
   }
@@ -55,9 +47,9 @@ export async function POST(req: Request) {
     {
       tenant_id: session.tenant_id,
       operario_id: session.operario_id,
-      endpoint,
-      p256dh,
-      auth,
+      endpoint: sub.endpoint,
+      p256dh: sub.keys.p256dh,
+      auth: sub.keys.auth,
       user_agent: userAgent,
       failure_count: 0,
       last_used_at: new Date().toISOString(),
