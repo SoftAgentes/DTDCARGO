@@ -36,6 +36,11 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   y tenant coherente; la rama Portal excluye trazas `source='admin'` sin cambiar
   los derechos de equipo. RED SQL y aplicación causales; 40 aserciones SQL,
   70 focales, 172 contratos, rebuild 427 y 7.181/7.181 unitarios aprobados.
+- SDD0383 cerrado localmente: el guard service_role anterior omitía 81 componentes y
+  daba 0/0 falso pese a dos construcciones en el layout. El guard AST nuevo
+  cubre los 105 `.tsx/.jsx` de producción; el layout usa una fachada
+  `server-only` que eleva sólo después del principal. Focales 10/10, tipos,
+  lint y suite 7.187/7.187 aprobados.
 - Conteo original 56/106, 52,8 %. Ahora hay 30 migraciones preparadas 0401–0430,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - Inventario local efectivo: ocho policies en seis tablas aún usan helpers

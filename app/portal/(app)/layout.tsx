@@ -2,18 +2,9 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
-import {
-  getPortalClient,
-  getProfileCompleteness,
-} from "@/lib/portal/portal-queries";
-import { getPortalLastReplyAt } from "@/lib/portal/portal-conversation-queries";
+import { getProfileCompleteness } from "@/lib/portal/portal-queries";
 import { isPortalClubMember } from "@/lib/portal/portal-club-queries";
-import {
-  getNextOpenSailing,
-  daysUntil,
-  type PortalSailing,
-} from "@/lib/portal/next-sailing-queries";
+import { getPortalShellPrivateContext } from "@/lib/portal/portal-shell-private-context";
 import { showNortePortal } from "@/lib/portal/demo";
 import { PortalShell } from "../_components/PortalShell";
 import { PortalCalcFab } from "../_components/PortalCalcFab";
@@ -26,9 +17,8 @@ import { PortalPushRegister } from "../_components/PortalPushRegister";
 /**
  * Layout autenticado del portal (SDD-0042 Fase 1b).
  *
- * Guard: `getPortalClient()` resuelve el cliente vía la helper aislada
- * `get_portal_client_id()` — null si no hay sesión vinculada (incluye a un user
- * de equipo del Studio, que NO tiene row en client_users) → redirect al login.
+ * Guard: la fachada privada resuelve el principal Portal coherente con la
+ * sesión antes de cualquier lectura elevada; null redirige al login.
  */
 export default async function PortalAppLayout({
   children,
@@ -36,8 +26,9 @@ export default async function PortalAppLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) redirect("/entrar");
+  const privateContext = await getPortalShellPrivateContext(supabase);
+  if (!privateContext) redirect("/entrar");
+  const { client, soporteLastReplyAt, sailing, sailingDaysToCutoff } = privateContext;
 
   // Dark mode + rediseño Norte del portal (founder 2026-06-20). `showNortePortal`
   // decide quién lo ve: con NORTE_PORTAL_LIVE=true es TODO cliente (formalizado); si
@@ -52,22 +43,12 @@ export default async function PortalAppLayout({
   // admin del Club más adelante.
   const showClub = await isPortalClubMember(supabase);
 
-  // Badge de Soporte (SDD-0148 #4): timestamp del último mensaje del equipo, para
-  // que el nav pinte un punto si hay respuesta nueva. Best-effort (admin) — un
-  // fallo no debe tumbar el portal.
-  const soporteLastReplyAt = await getPortalLastReplyAt(
-    createAdminClient(),
-    client.id,
-  ).catch(() => null);
-
   // Perfil incompleto → la topbar muestra la píldora "Falta completar datos"
   // (Norte). Best-effort: si falla, no la mostramos (no bloquea el portal).
   const profile = await getProfileCompleteness(supabase).catch(() => null);
 
   // Próximo zarpe abierto (SDD-0133) → píldora "Próxima salida" de la topbar.
   // Admin client scopeado por tenant (el cliente no tiene RLS sobre `sailings`).
-  const { sailing, sailingDaysToCutoff } = await loadSailing(client.id);
-
   return (
     <div
       id="portal-shell"
@@ -94,32 +75,4 @@ export default async function PortalAppLayout({
       <PortalPushRegister />
     </div>
   );
-}
-
-/**
- * Próximo zarpe abierto del tenant del cliente. Best-effort: cualquier fallo
- * devuelve null → la píldora simplemente no aparece.
- */
-async function loadSailing(clientId: string): Promise<{
-  sailing: PortalSailing | null;
-  sailingDaysToCutoff: number | null;
-}> {
-  const todayIso = new Date().toISOString().slice(0, 10);
-  try {
-    const admin = createAdminClient();
-    const { data: row } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", clientId)
-      .maybeSingle<{ tenant_id: string }>();
-    const tenantId = String(row?.tenant_id ?? "").trim();
-    if (!tenantId) return { sailing: null, sailingDaysToCutoff: null };
-    const sailing = await getNextOpenSailing(admin, tenantId, todayIso);
-    return {
-      sailing,
-      sailingDaysToCutoff: sailing ? daysUntil(sailing.cutoff, todayIso) : null,
-    };
-  } catch {
-    return { sailing: null, sailingDaysToCutoff: null };
-  }
 }

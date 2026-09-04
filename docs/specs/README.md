@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 374 specs)
+### Índice de specs (generado · 375 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -412,6 +412,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0380 | Lectura de cotizaciones Portal ligada al principal y tenant | in-progress | interno |
 | 0381 | Solicitudes de recepción Portal por principal y tenant | in-progress | interno |
 | 0382 | Perfil y solicitudes de cambio Portal por principal y tenant | in-progress | interno |
+| 0383 | Frontera AST de service_role en componentes Portal | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
