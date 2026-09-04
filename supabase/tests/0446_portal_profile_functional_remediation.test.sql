@@ -338,6 +338,30 @@ begin
 end;
 $identity_assertions$;
 
+set local request.jwt.claim.sub = '00000000-0000-0000-0000-0000000000a1';
+set local role authenticated;
+do $identity_self_scope$
+begin
+  begin
+    perform public.portal_set_identity_photo(
+      '00000000-0000-0000-0000-00000000d7d1/DTD-9002/reemplazo.jpg'
+    );
+    raise exception 'CONTRATO 1 ROTO: un cliente apuntó a evidencia ajena';
+  exception
+    when invalid_parameter_value then null;
+  end;
+end;
+$identity_self_scope$;
+reset role;
+
+do $identity_self_scope_assertions$
+begin
+  assert (select cedula_photo_path from public.clients
+          where id = '00000000-0000-0000-0000-00000000c001') is null,
+    'CONTRATO 1 ROTO: el intento ajeno alteró al cliente autenticado';
+end;
+$identity_self_scope_assertions$;
+
 -- 2 · Cada ficha tiene su historial antes de fusionarse.
 insert into public.client_change_requests(
   id, tenant_id, client_id, proposed_name, status, submitted_by
