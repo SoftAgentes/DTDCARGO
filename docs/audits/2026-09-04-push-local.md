@@ -93,6 +93,14 @@ Los pasos `migrations-applied`, SQL y schema rebuild quedaron omitidos: no habí
 credenciales Supabase ni Docker. Esto respeta el alcance solicitado y no se
 intentó compensar con accesos reales.
 
+### Revalidación del ledger después de PR #25
+
+Tras integrar en `main` la recuperación exacta de `0399`, `0400` y `0445`, se
+actualizó `origin/main` y se ejecutó `node scripts/check-migrations-applied.mjs`
+en modo lectura. El resultado fue exit 0: 398 archivos, 408 entradas de ledger,
+la migración histórica `0017` como única pendiente conocida y ninguna migración
+nueva sin aplicar. No hubo escrituras en Supabase.
+
 ## Confirmación de no acción externa
 
 - No se usaron claves VAPID, endpoints, usuarios, datos ni notificaciones reales.

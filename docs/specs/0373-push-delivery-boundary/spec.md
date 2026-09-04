@@ -109,9 +109,9 @@ incorporar los demás cambios de esa rama.
 - [x] Los orígenes documentados y el comportamiento compatible permanecen cubiertos.
 - [x] TTL existente y timeout de socket de 10 s están verificados por contrato.
 - [ ] `node scripts/verify.mjs` termina sin fallos ni pasos omitidos. Los gates
-  locales deterministas están verdes, pero el cierre canónico permanece
-  bloqueado por el ledger repo↔Producción y por la ausencia de un Supabase E2E
-  efímero autorizado; ninguno se sustituye con credenciales de Producción.
+  locales deterministas y el ledger repo↔Producción están verdes. El cierre
+  canónico permanece bloqueado únicamente por la ausencia de un Supabase E2E
+  efímero autorizado; no se sustituye con credenciales de Producción.
 
 ## Privacidad
 

@@ -112,5 +112,15 @@ Antes de considerar #22 candidata individual a `main`, el integrador debe:
 3. reejecutar `node scripts/verify.mjs` sin omisiones y cambiar la SDD a `done`
    sólo con ese recibo verde.
 
+### Revalidación posterior a PR #25
+
+La PR #25 se integró en `main` mediante el commit
+`b265ce2b39d03ed89f1173812203638b02280c7b`. Después de actualizar
+`origin/main`, `node scripts/check-migrations-applied.mjs` terminó con exit 0:
+398 archivos, 408 entradas de ledger, sólo la migración histórica `0017` como
+pendiente conocida y **ninguna migración nueva sin aplicar**. El gate
+`migrations-applied` de esta candidata queda verde; no se ejecutó ninguna
+escritura en Supabase.
+
 El commit `c1e44555` de SDD-0373 en la PR #21 es una implementación duplicada:
 si #22 se integra, ese slice no debe volver a entrar desde #21.
