@@ -11,8 +11,8 @@
  * (`get_portal_client_id`, helper aislada) → escritura con ADMIN client
  * (service_role) scopeada EXPLÍCITO a ese id (la RLS del portal es read-only
  * para `clients`; el cliente nunca toca el bucket privado directo). Rollback de
- * la foto recién subida si el update falla (no dejar huérfana) + borrado
- * best-effort de la reemplazada (no dejar PII colgada).
+ * la foto recién subida si la RPC atómica falla. Una foto reemplazada se
+ * conserva en el ledger restringido (SDD-0435), no se borra silenciosamente.
  */
 
 import { revalidatePath } from "next/cache";
@@ -63,21 +63,18 @@ export async function uploadCedulaPhotoAction(
   }
 
   // 3. Estado actual (scopeado al id verificado por sesión): tenant + markbox
-  //    para el path y si ya había una foto (reemplazo).
+  //    para construir el path privado. La RPC vuelve a resolver la identidad.
   const { data: row, error: rowErr } = await admin
     .from("clients")
-    .select("tenant_id, markbox, cedula_photo_path")
+    .select("tenant_id, markbox")
     .eq("id", clientId)
     .maybeSingle<{
       tenant_id: string;
       markbox: string;
-      cedula_photo_path: string | null;
     }>();
   if (rowErr || !row) {
     return { error: "No pudimos cargar tu cuenta. Prueba de nuevo." };
   }
-  const oldPath = String(row.cedula_photo_path ?? "").trim() || null;
-
   // 4. Subir la foto nueva al bucket privado (path nuevo por subida).
   const up = await uploadClientPhoto(admin, row.tenant_id, row.markbox, v.file);
   if (up.error || !up.path) {
@@ -85,20 +82,21 @@ export async function uploadCedulaPhotoAction(
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
   }
 
-  // 5. Update con rollback de la foto recién subida si falla.
-  const { error: updErr } = await admin
-    .from("clients")
-    .update({ cedula_photo_path: up.path })
-    .eq("id", clientId);
+  // 5. RPC self-scope: actualiza el puntero y, si es reemplazo, consume un cupo
+  //    en la MISMA transacción. La primera foto es gratuita (SDD-0435).
+  const { error: updErr } = await supabase.rpc("portal_set_identity_photo", {
+    p_new_path: up.path,
+  });
   if (updErr) {
     await admin.storage.from(PHOTO_BUCKET).remove([up.path]).catch(() => {});
     console.error("[uploadCedulaPhotoAction] update error:", updErr);
+    if (updErr.message?.includes("profile_edit_limit_reached")) {
+      return {
+        error:
+          "Ya usaste tus 3 cambios de perfil. Si necesitas corregir algo importante, escríbenos por soporte.",
+      };
+    }
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
-  }
-
-  // 6. Best-effort: borrar la foto vieja reemplazada.
-  if (oldPath) {
-    await admin.storage.from(PHOTO_BUCKET).remove([oldPath]).catch(() => {});
   }
 
   revalidatePath("/portal");
@@ -133,6 +131,9 @@ export async function submitDataChangeRequestAction(
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
   const clientId = portalClientId as string;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   let admin;
   try {
@@ -230,6 +231,8 @@ export async function submitDataChangeRequestAction(
       prev_rif: row.rif,
       prev_phone: row.phone,
       status: "pending",
+      source: "client",
+      submitted_by: user?.id ?? null,
     })
     .select(
       "id, tenant_id, client_id, proposed_name, proposed_rif, proposed_phone, prev_name, prev_rif, prev_phone, status, submitted_at, reviewed_at, reviewed_by, review_note",
@@ -242,6 +245,12 @@ export async function submitDataChangeRequestAction(
       return {
         error:
           "Ya tienes una solicitud en revisión. Espera a que tu asesor la revise.",
+      };
+    }
+    if (insErr.message?.includes("profile_edit_limit_reached")) {
+      return {
+        error:
+          "Ya usaste tus 3 cambios de perfil. Si necesitas corregir algo importante, escríbenos por soporte.",
       };
     }
     console.error("[submitDataChangeRequestAction] insert error:", insErr);

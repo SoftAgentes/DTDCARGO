@@ -21,7 +21,7 @@ tercero no es papeleo: es lo único que delimita quién responde.
 
 | Proveedor | Qué recibe | País | Contrato | Evidencia |
 |---|---|---|---|---|
-| **Supabase** | **Todo**: las 101 tablas con campos de persona y los 11 buckets (documentos de identidad, comprobantes, POD, audio) | ⚠️ NO VERIFICABLE — la región del proyecto no está en el código | ❓ | `lib/db/server.ts` |
+| **Supabase** | **Todo**: tablas con campos de persona y buckets (documentos de identidad, comprobantes, POD, audio) | EE. UU. · `us-east-1`, verificado en Cloud 2026-09-04 | ❓ contrato, subprocesadores y retención | `lib/db/server.ts` |
 | **Vercel** | Hosting y logs de request: IP, user-agent, rutas | EE.UU. | ❓ | `next.config.ts` |
 | **Resend** | Nombre y correo del destinatario + cuerpo del mensaje (bienvenida, estimados, facturas) | EE.UU. | ❓ | `lib/studio/mail/resend-api.ts` |
 | **Cloudflare Workers AI** | 🔴 **El audio completo de las reuniones**, en base64, para transcribir con Whisper | EE.UU. / red global | ❓ | [`lib/studio/bitacora/transcribe.ts:61`](../../../lib/studio/bitacora/transcribe.ts) |
@@ -31,7 +31,7 @@ tercero no es papeleo: es lo único que delimita quién responde.
 | **Nominatim / OpenStreetMap** | 🔴 **La dirección del cliente**, en texto, para geocodificar | Alemania (Fundación OSM) | ❌ **ninguno** | [`lib/studio/geocoding.ts:10`](../../../lib/studio/geocoding.ts) |
 | **Telegram** | Notificaciones al equipo; el cuerpo puede llevar nombre de cliente y código de envío | ❓ | ❓ | `lib/studio/telegram/send-message.ts` · `lib/studio/notify/send-user-telegram.ts` |
 | **AWS — seleccionado, no conectado** | Todavía no recibe datos; recibiría bytes de adjuntos, UUID y metadata técnica mínima para scan y respaldo | EE.UU. · `us-east-1` | DPA publicado; cuenta/aceptación **NO VERIFICABLES** | [`evaluacion-proveedor-respaldo-externo.md`](evaluacion-proveedor-respaldo-externo.md) · [`aws-adjuntos-expediente-contractual.md`](aws-adjuntos-expediente-contractual.md) |
-| **Equipo propio en Yiwu (China)** | Nombres, direcciones y teléfonos de clientes para coordinar carga | 🇨🇳 China | Relación laboral | 🔴 **PIPL aplica** — ver H-7 |
+| **Equipo propio en Yiwu (China)** | Regla propuesta: Shipping Mark y datos de mercancía; cero fotos de identidad. El ACL actual de `client-docs` no demuestra separación regional | 🇨🇳 China | Relación laboral; mecanismo PIPL y consentimiento separado pendientes si se habilita una excepción | 🔴 **PIPL aplica**; gate regional NO IMPLEMENTADO — ver [`fotos-identidad-cliente-v1.md`](fotos-identidad-cliente-v1.md) |
 
 ## 2 · Los que NO reciben datos personales (verificado)
 
@@ -65,11 +65,12 @@ Hay que responder tres cosas: quién queda grabado y si lo sabe · qué dice la
 política de Cloudflare sobre uso y retención del audio que procesa · cuánto tiempo
 vive el archivo en el bucket `bitacora` (hoy: **para siempre**, ver H-4).
 
-### 🟠 Supabase — falta saber dónde vive todo
+### 🟠 Supabase — región verificada; contrato y retención pendientes
 
-Toda la PII del negocio está ahí. La región del proyecto **no está en el código**,
-así que es `NO VERIFICABLE` desde el repositorio y hay que mirarla en el panel. De
-esa respuesta depende si hay transferencia internacional que declarar y a dónde.
+Toda la PII del negocio está ahí. El proyecto DTD Cargo reportó región
+`us-east-1` en Cloud el 2026-09-04. El contrato, subprocesadores, retención y
+disposición de copias siguen `NO VERIFICABLES`; el alojamiento en EE. UU. debe
+evaluarse y declararse aparte de cualquier acceso operativo VE-China.
 
 ---
 

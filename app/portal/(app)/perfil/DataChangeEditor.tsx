@@ -13,6 +13,10 @@ import {
   type ClientChangeRequest,
 } from "@/lib/portal/change-request-types";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import {
+  profileEditQuotaLabel,
+  type ProfileEditQuota,
+} from "@/lib/portal/profile-edit-quota";
 
 const initial: ChangeRequestActionState = {};
 
@@ -31,11 +35,13 @@ export function DataChangeEditor({
   current,
   openRequest,
   lastRejected,
+  quota,
 }: {
   isEmpresa: boolean;
   current: { name: string; doc: string; phone: string };
   openRequest: ClientChangeRequest | null;
   lastRejected: ClientChangeRequest | null;
+  quota: ProfileEditQuota;
 }) {
   const [open, setOpen] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
@@ -53,8 +59,9 @@ export function DataChangeEditor({
     const diff = buildChangeRequestDiff(openRequest, isEmpresa);
     return (
       <div className="mt-6 pt-5 border-t border-grey-200">
+        <QuotaLine quota={quota} />
         <div
-          className="rounded-[12px] bg-paper border border-grey-200 border-l-[3px] p-5"
+          className="mt-3 rounded-[12px] bg-paper border border-grey-200 border-l-[3px] p-5"
           style={{ borderLeftColor: "var(--color-status-warning)" }}
         >
           <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-700">
@@ -131,7 +138,24 @@ export function DataChangeEditor({
 
   return (
     <div className="mt-6 pt-5 border-t border-grey-200">
-      {!open ? (
+      <QuotaLine quota={quota} />
+      {!quota.available || quota.remaining === 0 ? (
+        <div className="mt-3 rounded-[12px] border border-grey-200 bg-paper p-4">
+          <p className="text-[13px] text-grey-700 leading-[1.55]">
+            {quota.available
+              ? "Ya usaste tus 3 cambios de perfil."
+              : "No pudimos consultar tu cupo de cambios en este momento."}{" "}
+            Si necesitas corregir un dato importante, nuestro equipo puede
+            ayudarte.
+          </p>
+          <Link
+            href="/portal/soporte?tema=datos"
+            className="mt-3 min-h-11 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-wine-text hover:text-wine-deep"
+          >
+            <ChatIcon size={14} /> Hablar con soporte
+          </Link>
+        </div>
+      ) : !open ? (
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
           <div className="flex-1">
             <p className="text-[13px] text-grey-700 leading-[1.55]">
@@ -227,6 +251,14 @@ export function DataChangeEditor({
         </form>
       )}
     </div>
+  );
+}
+
+function QuotaLine({ quota }: { quota: ProfileEditQuota }) {
+  return (
+    <p className="text-[11.5px] font-semibold text-grey-500" aria-live="polite">
+      {profileEditQuotaLabel(quota)}. Las direcciones no usan este cupo.
+    </p>
   );
 }
 

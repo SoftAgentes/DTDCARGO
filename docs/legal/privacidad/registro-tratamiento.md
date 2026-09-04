@@ -12,7 +12,7 @@
 **Marca pública:** DTD Cargo
 **Contacto para titulares:** info@dtdcargo.com (asunto "Privacidad")
 **Representante en China (PIPL art. 53):** ⬜ pendiente de decidir
-**Versión:** 1.2 · **Última actualización:** 2026-08-01
+**Versión:** 1.3 · **Última actualización:** 2026-09-04
 
 ---
 
@@ -57,7 +57,7 @@
 
 | Bucket | Qué guarda | Sensible | Conservación | Comportamiento observado |
 |---|---|:-:|---|:-:|
-| `client-docs` | Documento de identidad del cliente | 🔴 | ⬜ | reemplazos físicos; borrado integral NO VERIFICABLE |
+| `client-docs` | Foto del documento de identidad del cliente | 🔴 | Propuesta: vigente mientras sea necesaria; histórica máx. 30 días desde reemplazo | `0445` conserva históricos; purga, gate VE y borrado integral aún no implementados. Ver [`fotos-identidad-cliente-v1.md`](fotos-identidad-cliente-v1.md) |
 | `client-facades` | Foto de la vivienda | 🟠 | ⬜ | reemplazos físicos; borrado integral NO VERIFICABLE |
 | `receipt-photos` | Recepción CN + **POD y firmas** | 🔴 | ⬜ | Gastos móvil elimina objetos; otros flujos difieren |
 | `payment-proofs` | Comprobantes con datos bancarios | 🟠 | ⬜ | borrado integral NO VERIFICABLE |
@@ -115,8 +115,10 @@ persona.
 Detalle completo en [`inventario-terceros.md`](inventario-terceros.md).
 
 Los que faltan resolver: **Nominatim** (dirección del cliente, sin contrato) ·
-**Cloudflare Workers AI** (audio de reuniones) · **Supabase** (región
-`NO VERIFICABLE`) · **equipo de Yiwu** (PIPL, sin consentimiento separado) ·
+**Cloudflare Workers AI** (audio de reuniones) · **Supabase** (región Cloud
+`us-east-1`, verificada 2026-09-04; contratos y retención del proveedor
+NO VERIFICABLES) · **equipo de Yiwu** (PIPL, sin gate regional ni
+consentimiento separado) ·
 **respaldo externo de adjuntos** (proveedor, región, contrato, retención y
 transferencia `NO VERIFICABLE`; no está conectado).
 
