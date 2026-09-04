@@ -12,6 +12,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   SHIPMENT_DOCS_BUCKET,
   SHIPMENT_DOC_MAX_BYTES,
@@ -32,6 +33,8 @@ export async function uploadShipmentDocumentAction(
   formData: FormData,
 ): Promise<DocActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Sesión expirada. Vuelve a entrar." };
 
@@ -97,6 +100,8 @@ export async function deleteShipmentDocumentAction(
   docId: string,
 ): Promise<DocActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
 
   const { data: doc } = await supabase
     .from("shipment_documents")
