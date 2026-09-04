@@ -29,7 +29,7 @@ export function LoginForm({ next, listo }: { next?: string; listo?: boolean }) {
   }, [showPassword]);
 
   return (
-    <div className="studio-dark">
+    <main className="studio-dark">
       <div
         style={{
           width: "100%",
@@ -191,7 +191,7 @@ export function LoginForm({ next, listo }: { next?: string; listo?: boolean }) {
             paddingTop: 20,
             borderTop: "1px solid rgba(255, 255, 255, 0.08)",
             font: "500 11.5px/1.5 Archivo, sans-serif",
-            color: "rgba(255, 255, 255, 0.45)",
+            color: "var(--ink-inv-soft)",
             textAlign: "center",
           }}
         >
@@ -200,13 +200,13 @@ export function LoginForm({ next, listo }: { next?: string; listo?: boolean }) {
           ¿Olvidaste tu contraseña?{" "}
           <Link
             href="/studio/login/recuperar"
-            style={{ color: "#C2747F", textDecoration: "none" }}
+            style={{ color: "var(--ink-inv)", textDecoration: "underline" }}
           >
             Recupérala acá
           </Link>
           .
         </div>
       </div>
-    </div>
+    </main>
   );
 }

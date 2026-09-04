@@ -59,7 +59,7 @@ export default function OperarioVeLoginPage() {
   };
 
   return (
-    <div
+    <main
       style={{
         minHeight: "100dvh",
         background:
@@ -240,7 +240,7 @@ export default function OperarioVeLoginPage() {
       >
         DTD Cargo 2026 · Despacho VE
       </div>
-    </div>
+    </main>
   );
 }
 

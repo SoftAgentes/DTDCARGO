@@ -51,7 +51,7 @@ export default function HomePage() {
     <>
       <Nav />
       <WebPageJsonLd path="/" speakableSelectors={["#respuesta-rapida"]} />
-      <main className="home-surface">
+      <main id="main-content" className="home-surface">
         {/* ── Hero ── */}
         <section className="hero" aria-label="Presentación">
           <div className="hero-grid">

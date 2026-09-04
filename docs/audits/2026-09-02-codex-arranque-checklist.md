@@ -77,12 +77,12 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Adjuntos de Bitácora RBAC, 0411/0443 | `bitacora_task` + bucket propio heredan Bitácora; Soporte queda read-only también ante acceso directo; 185 SQL y rebuild 440; 0443 sin aplicar |
 | Documentos sin transacción, 0412/0444 | `none` hereda Documentos, versionado gana su guard y tipos inventados fallan cerrados; 13 focales, 186 SQL y rebuild 441; 0444 sin aplicar |
 | CSP privada con nonce, 0413 | Cerrada localmente: RED de navegador detectó el script de tema sin nonce; GREEN 35/35, build 158 y Studio/Portal sin errores CSP; Marca y SSG público aislados |
-| Reconciliación de specs | Inventario corregido: 105 abiertas; SDD-0264, 0276 y 0287 cerradas con `origin/main`, pruebas y navegador/PDF real; quedan 102 |
-| Logs y web | Logger central + 17/17 crons + 4/4 Edge Functions + Portal sin logs libres; queda residuo interno legacy y medición web |
+| Reconciliación de specs | Inventario corregido: 105 abiertas; SDD-0264, 0276, 0287 y 0308 cerradas con `origin/main` y pruebas focales; quedan 101 |
+| Logs y web | Logger central + 17/17 crons + 4/4 Edge Functions + Portal sin logs libres; baseline web cerrada y quedan 174 logs legacy internos |
 
-La cifra original avanza a 59/106 (55,7 %): además de la auditoría Portal y el
-RBAC por slices, la aplicación privada reemplaza scripts inline por nonce sin
-volver dinámico el sitio público ni ampliar Marca. No se crearon subpasos por
+La cifra original avanza a 60/106 (56,6 %): además de la auditoría Portal, el
+RBAC por slices y la CSP privada con nonce, ya existe una baseline Lighthouse
+móvil verificable para las cuatro superficies. No se crearon subpasos por
 superficie. Las migraciones preparadas sin aplicar siguen siendo 44
 (0401–0444), derivadas
 del último ledger 0400; no se hizo nueva consulta Cloud en esta continuación.
@@ -99,10 +99,10 @@ tiempos ni cambiar concurrencia. Build158 correcto; E2E150/18 con dos
 timeouts de cierre aún pendientes. [Reserva](2026-09-03-public-verify-atomic-local.md)
 y [correctivo del arnés](2026-09-03-worktree-git-probe-local.md).
 
-**Avance del checklist: 56 de 106 casillas completadas (52,8 %); 50 pendientes.** Es un
-recuento de tareas, no una estimación de horas restantes ni del porcentaje
-funcional del ERP: las casillas tienen tamaños distintos y algunas agrupan
-varios cambios. No existe todavía una medición defendible del producto completo.
+**Referencia de la auditoría inicial: 56 de 106 casillas (52,8 %).** El punto
+vigente está arriba: 60/106. Es un recuento de tareas, no una estimación de horas
+restantes ni del porcentaje funcional del ERP; las casillas tienen tamaños
+distintos y algunas agrupan varios cambios.
 
 | Bloque | Hecho / total | Situación |
 |---|---:|---|
@@ -1038,8 +1038,8 @@ están incluidos en aquel push.
   17/17 handlers cron, 4/4 Edge Functions, treinta y tres internals, diez
   superficies Portal y cuatro rutas móviles adoptadas, cero
   `console.*` en esos alcances y
-  7.468 pruebas completas. El inventario general conserva módulos legacy fuera
-  del Portal; esta casilla no se marca ni aumenta el 59/106.
+  7.491 pruebas completas. El inventario general conserva módulos legacy fuera
+  del Portal; la casilla de logs no se marca hasta retirar ese residuo.
   [Acta base](2026-09-04-structured-request-logging.md) y
   [workers drain](2026-09-04-structured-drain-crons.md) y
   [jobs programados](2026-09-04-structured-scheduled-crons.md), más
@@ -1060,7 +1060,11 @@ están incluidos en aquel push.
   más [rutas móviles](2026-09-04-structured-mobile-routes.md) e
   [internals de Conversaciones](2026-09-04-structured-conversation-internals.md),
   más [flujo de bugs](2026-09-04-structured-bug-workflow.md).
-- [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
+- [x] Medir baseline Lighthouse móvil local y fijar budgets de CSS/fuentes por
+  superficie. A11y quedó en 96 público y 100 Portal/Studio/móvil; LCP, CSS,
+  bundles y dos gates externos quedan explícitos. INP/CrUX alojado no suma otra
+  casilla y requiere despliegue autorizado.
+  [Acta](2026-09-04-web-quality-baseline.md).
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.
 - [ ] Decidir si HailuWay sigue como integración health-only y si SeaRates se

@@ -156,7 +156,7 @@ export function Footer() {
           >
             <MapPinIcon size={13} className="mt-0.5 flex-shrink-0 text-white/50" />
             <span className="text-[13px] leading-[1.5]">
-              <span className="block text-[11px] tracking-[0.1em] uppercase text-white/40 mb-0.5">
+              <span className="block text-[11px] tracking-[0.1em] uppercase text-white/60 mb-0.5">
                 Venezuela
               </span>
               {CONTACT.ve.address}, {CONTACT.ve.city}
@@ -170,7 +170,7 @@ export function Footer() {
           >
             <MapPinIcon size={13} className="mt-0.5 flex-shrink-0 text-white/50" />
             <span className="text-[13px] leading-[1.5]">
-              <span className="block text-[11px] tracking-[0.1em] uppercase text-white/40 mb-0.5">
+              <span className="block text-[11px] tracking-[0.1em] uppercase text-white/60 mb-0.5">
                 China
               </span>
               {CONTACT.cn.address}, {CONTACT.cn.city}
@@ -180,7 +180,7 @@ export function Footer() {
 
         <div className="pt-7 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-5">
-            <span className="text-[12.5px] font-medium tracking-[0.06em] text-white/45">
+            <span className="text-[12.5px] font-medium tracking-[0.06em] text-white/60">
               © {new Date().getFullYear()} {CONTACT.legalName}. Todos los
               derechos reservados.
             </span>
@@ -193,10 +193,10 @@ export function Footer() {
               )}
               <FooterLegalLink href="/privacidad">Privacidad</FooterLegalLink>
               <FooterLegalLink href="/cookies">Cookies</FooterLegalLink>
-              <CookiePreferencesLink className="text-[12.5px] font-medium text-white/45 hover:text-white/80 transition-colors w-fit" />
+              <CookiePreferencesLink className="text-[12.5px] font-medium text-white/60 hover:text-white/80 transition-colors w-fit" />
             </div>
           </div>
-          <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-white/35">
+          <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-white/60">
             CN → VE · Puerta a puerta, todo pagado
           </span>
         </div>
@@ -235,7 +235,7 @@ function FooterLegalLink({ href, children }: { href: string; children: React.Rea
   return (
     <Link
       href={href}
-      className="text-[12.5px] font-medium text-white/45 hover:text-white/80 transition-colors"
+      className="text-[12.5px] font-medium text-white/60 hover:text-white/80 transition-colors"
     >
       {children}
     </Link>

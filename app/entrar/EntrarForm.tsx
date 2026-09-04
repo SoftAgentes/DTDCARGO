@@ -68,7 +68,7 @@ export function EntrarForm({
   );
 
   return (
-    <div
+    <main
       className="min-h-screen flex flex-col items-center px-4 py-6 sm:px-6 sm:py-8 relative overflow-hidden"
       style={{
         // Navy radial de marca (mockup) — el único gradiente permitido en el hero
@@ -297,7 +297,7 @@ export function EntrarForm({
       <p className="w-full max-w-[940px] text-center text-[11px] leading-[1.5] mt-6" style={{ color: "rgba(255,255,255,0.45)" }}>
         DTDCARGO.COM · Portal del cliente
       </p>
-    </div>
+    </main>
   );
 }
 

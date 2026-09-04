@@ -430,6 +430,7 @@ export function Nav() {
         aria-modal="true"
         aria-label="Menú de navegación"
         aria-hidden={!open}
+        inert={!open}
         className={`lg:hidden fixed top-0 right-0 bottom-0 z-[70] w-[82vw] max-w-[360px] bg-paper flex flex-col transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
