@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 402 specs)
+### Índice de specs (generado · 403 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -440,6 +440,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0408 | Documentos de clientes con autorización del módulo Clientes | done | interno |
 | 0409 | Documentos de proveedores con autorización del módulo Proveed… | done | interno |
 | 0410 | Documentos de Naviera con autorización del módulo Naviera | done | interno |
+| 0411 | Adjuntos de Bitácora con autorización del módulo Bitácora | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
