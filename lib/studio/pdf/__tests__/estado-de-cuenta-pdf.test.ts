@@ -11,10 +11,19 @@
  * el archivo que se acaba de bajar.
  */
 
+import { createElement, type ReactElement } from "react";
+import {
+  renderToBuffer,
+  type DocumentProps,
+} from "@react-pdf/renderer";
 import { describe, it, expect } from "vitest";
 import { buildStatementLedger } from "@/lib/portal/statement-ledger";
 import type { PortalInvoiceRow } from "@/lib/portal/portal-types";
-import { fechaCorta, montoConMoneda } from "../estado-de-cuenta-pdf";
+import {
+  EstadoDeCuentaDocument,
+  fechaCorta,
+  montoConMoneda,
+} from "../estado-de-cuenta-pdf";
 
 function inv(over: Partial<PortalInvoiceRow> = {}): PortalInvoiceRow {
   return {
@@ -61,6 +70,26 @@ describe("contrato: el papel sale del MISMO ledger que la pantalla", () => {
     expect(ledger.totalAbono).toBe(400);
     expect(ledger.balance).toBe(1200);
     expect(montoConMoneda(ledger.balance, ledger.currency)).toBe("USD 1,200.00");
+  });
+
+  it("renderiza un archivo PDF real con el ledger compartido", async () => {
+    const ledger = buildStatementLedger([
+      inv({ id: "a", code: "F-1", total: 1000, paid: 400 }),
+      inv({ id: "b", code: "F-2", total: 600 }),
+    ]);
+    const doc = createElement(EstadoDeCuentaDocument, {
+      input: {
+        clientName: "Cliente de prueba",
+        markbox: "DTD-TEST",
+        ledger,
+        emitidoEl: "2026-09-04",
+      },
+    }) as ReactElement<DocumentProps>;
+
+    const pdf = await renderToBuffer(doc);
+
+    expect(pdf.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+    expect(pdf.byteLength).toBeGreaterThan(1_000);
   });
 
   it("una cuenta sin facturas da un ledger vacío y saldo 0 (no explota)", () => {

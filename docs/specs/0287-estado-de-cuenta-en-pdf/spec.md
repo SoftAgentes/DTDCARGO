@@ -1,10 +1,10 @@
 ---
 sdd: "0287"
 title: "El estado de cuenta sale en PDF, para el cliente y para el asesor"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-08-24
-updated: 2026-08-24
+updated: 2026-09-04
 supersedes: null
 superseded_by: null
 related: ["0117","0177","0281"]
@@ -79,3 +79,17 @@ con el motivo escrito.
 ## Adjuntos
 
 Ninguno.
+
+## Reconciliación de estado · 2026-09-04
+
+- La implementación está contenida en `origin/main` (`c6098e1b`) y conserva una
+  única fuente de cálculo para pantalla y documento.
+- Las rutas separan correctamente el principal: Portal no recibe Shipping Mark
+  por URL y Studio exige vista de Facturas además de RLS por tenant.
+- La regresión ahora renderiza `EstadoDeCuentaDocument` con
+  `@react-pdf/renderer` y demuestra un buffer `%PDF-` real, no sólo helpers.
+- Focal completo: 27/27 entre documento, ledger y pantalla Studio. Suite vigente:
+  7.308/7.308; build de 158 rutas, TypeScript y lint correctos.
+- No requiere migración nueva ni datos reales. Los dos avisos de limitación del
+  ledger forman parte del documento y no se presentan como cálculos exactos de
+  información que el modelo no almacena.

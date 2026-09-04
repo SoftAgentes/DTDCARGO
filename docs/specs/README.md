@@ -317,7 +317,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0284 | La recepción de Yiwu sabe de qué compra es — y por eso conoce… | in-progress | interno |
 | 0285 | El cliente ve las fotos de su mercancía en la bodega de Yiwu | in-progress | interno |
 | 0286 | Los GET del Studio respetan el alcance por módulo | done | interno |
-| 0287 | El estado de cuenta sale en PDF, para el cliente y para el as… | in-progress | interno |
+| 0287 | El estado de cuenta sale en PDF, para el cliente y para el as… | done | interno |
 | 0288 | El ERP sabe que el cliente escribió — la alerta de 'sin atend… | in-progress | interno |
 | 0289 | Clientes, Cobranzas y Tracking se exportan a CSV — sin trunca… | done | interno |
 | 0290 | Todos los modales del ERP atrapan el foco — y uno era invisib… | in-progress | interno |
