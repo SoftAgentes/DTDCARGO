@@ -88,4 +88,3 @@ describe("SDD0377: comando de borrado Portal confirmado", () => {
     } finally { log.mockRestore(); }
   });
 });
-
