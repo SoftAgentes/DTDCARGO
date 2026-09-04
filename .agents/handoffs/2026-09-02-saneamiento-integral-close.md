@@ -111,7 +111,7 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   releen `clients` y compras/proveedores/documentos conservan tenant + Shipping
   Mark. RED 12/12, focal/histórico 51/51, conjunto 1.068/1.068 y suite global
   7.274/7.274 en 573 archivos; lint global verde. Sin lecturas reales.
-- Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
+- Conteo original 56/106, 52,8 %. Ahora hay 32 migraciones preparadas 0401–0432,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;
   el barrido SQL paralelo de esta ronda no entregó evidencia utilizable y no se
@@ -1109,5 +1109,18 @@ Shipping Mark; solicitudes rechaza un tenant que no coincida con la sesión.
 Evidencia local: RED 12/12, focales/históricos 47/47, Portal 928/928,
 TypeScript, lint global, documentación, gobernanza, componentes y diff verdes.
 No hubo migración, Cloud, datos reales, push, `main`, despliegue o limpieza. El
-contador original permanece 56/106 y los 31 archivos 0401–0431 siguen sin
+contador original permanece 56/106 y los 32 archivos 0401–0432 siguen sin
 aplicar según el último ledger documentado.
+
+## Continuación local SDD-0400/0432 · cajas Portal
+
+Se reprodujo en PostgreSQL desechable una lectura ajena de `warehouse_boxes`
+cuando `client_users.tenant_id` y el tenant del cliente referenciado no
+coinciden. Los helpers históricos separados combinaban ambas identidades. 0432
+sustituye sólo la policy Portal SELECT por un join coherente, sin DML, ACL,
+Storage, helpers ni cambios a la policy de equipo.
+
+Evidencia: RED causal exit 3, GREEN focal con principal válido/incoherente,
+revocado, staff y `service_role`; 174 contratos SQL y rebuild de 429 migraciones
+(411 desde cero + 18 sólo-ledger), con 219 tablas aisladas. 0432 permanece sin
+aplicar. No hubo Cloud, datos reales, push, `main`, despliegue o limpieza.
