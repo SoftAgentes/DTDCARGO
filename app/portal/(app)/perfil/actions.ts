@@ -18,6 +18,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createComponentLogger } from "@/lib/observability/structured-logger";
 import {
   PHOTO_BUCKET,
   validatePhotoFile,
@@ -50,6 +51,7 @@ export async function uploadCedulaPhotoAction(
   _prev: CedulaPhotoActionState,
   formData: FormData,
 ): Promise<CedulaPhotoActionState> {
+  const logger = createComponentLogger("portal.profile.identity-photo");
   // 1. Principal por SESIÓN: vínculo activo, cliente vivo y tenant coherente.
   const principal = await resolveActionPrincipal();
   if (!principal) {
@@ -90,7 +92,11 @@ export async function uploadCedulaPhotoAction(
   // 4. Subir la foto nueva al bucket privado (path nuevo por subida).
   const up = await uploadClientPhoto(admin, tenantId, row.markbox, v.file);
   if (up.error || !up.path) {
-    console.error("[uploadCedulaPhotoAction] upload error:", up.error);
+    logger.error("portal_profile.action_failed", {
+      error: up.error,
+      operation: "identity_photo",
+      stage: "upload",
+    });
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
   }
 
@@ -103,7 +109,11 @@ export async function uploadCedulaPhotoAction(
     .is("deleted_at", null);
   if (updErr) {
     await admin.storage.from(PHOTO_BUCKET).remove([up.path]).catch(() => {});
-    console.error("[uploadCedulaPhotoAction] update error:", updErr);
+    logger.error("portal_profile.action_failed", {
+      error: updErr,
+      operation: "identity_photo",
+      stage: "write",
+    });
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
   }
 
@@ -137,6 +147,7 @@ export async function submitDataChangeRequestAction(
   _prev: ChangeRequestActionState,
   formData: FormData,
 ): Promise<ChangeRequestActionState> {
+  const logger = createComponentLogger("portal.profile.change-request");
   const principal = await resolveActionPrincipal();
   if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
@@ -267,7 +278,11 @@ export async function submitDataChangeRequestAction(
           "Ya tienes una solicitud en revisión. Espera a que tu asesor la revise.",
       };
     }
-    console.error("[submitDataChangeRequestAction] insert error:", insErr);
+    logger.error("portal_profile.action_failed", {
+      error: insErr,
+      operation: "change_request_submit",
+      stage: "write",
+    });
     return { error: "No pudimos guardar tu solicitud. Prueba de nuevo." };
   }
 
@@ -298,6 +313,7 @@ export async function cancelDataChangeRequestAction(
   prev: ChangeRequestActionState,
 ): Promise<ChangeRequestActionState> {
   void prev;
+  const logger = createComponentLogger("portal.profile.change-request-cancel");
   const principal = await resolveActionPrincipal();
   if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
@@ -320,7 +336,11 @@ export async function cancelDataChangeRequestAction(
     .eq("source", "client")
     .eq("status", "pending");
   if (delErr) {
-    console.error("[cancelDataChangeRequestAction] delete error:", delErr);
+    logger.error("portal_profile.action_failed", {
+      error: delErr,
+      operation: "change_request_cancel",
+      stage: "write",
+    });
     return { error: "No pudimos cancelar la solicitud. Prueba de nuevo." };
   }
 

@@ -14,6 +14,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createComponentLogger } from "@/lib/observability/structured-logger";
 import {
   PHOTO_BUCKET,
   validateAvatarFile,
@@ -35,6 +36,7 @@ export async function updateAvatarAction(
   _prev: AvatarActionState,
   formData: FormData,
 ): Promise<AvatarActionState> {
+  const logger = createComponentLogger("portal.profile.avatar-update");
   // 1. Principal por sesión: vínculo activo, cliente vivo y tenant coherente.
   const principal = await resolveActionPrincipal();
   if (!principal) {
@@ -71,7 +73,11 @@ export async function updateAvatarAction(
   // 4. Subir el avatar nuevo.
   const up = await uploadClientAvatar(admin, tenantId, row.markbox, v.file);
   if (up.error || !up.path) {
-    console.error("[updateAvatarAction] upload error:", up.error);
+    logger.error("portal_profile.action_failed", {
+      error: up.error,
+      operation: "avatar_update",
+      stage: "upload",
+    });
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
   }
 
@@ -84,7 +90,11 @@ export async function updateAvatarAction(
     .is("deleted_at", null);
   if (updErr) {
     await admin.storage.from(PHOTO_BUCKET).remove([up.path]).catch(() => {});
-    console.error("[updateAvatarAction] update error:", updErr);
+    logger.error("portal_profile.action_failed", {
+      error: updErr,
+      operation: "avatar_update",
+      stage: "write",
+    });
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
   }
 

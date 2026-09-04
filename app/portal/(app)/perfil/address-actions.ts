@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/db/server";
+import { createComponentLogger } from "@/lib/observability/structured-logger";
 import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   validateClientAddressInput,
@@ -34,6 +34,7 @@ export async function addAddressAction(
   _prev: AddressActionState,
   formData: FormData,
 ): Promise<AddressActionState> {
+  const logger = createComponentLogger("portal.profile.address-add");
   const supabase = await createClient();
   const principal = await getPortalClientPrincipal(supabase);
   if (!principal) return { error: "Sesión no válida. Vuelve a entrar." };
@@ -49,10 +50,11 @@ export async function addAddressAction(
     }
     await insertClientDeliveryAddress(supabase, client.id, parsed.value, scope);
   } catch (err) {
-    // El detalle NUNCA va al cliente (convención apiError), pero SÍ al log: el
-    // hueco `city_slug` (0347) estuvo 34 días roto en silencio justamente porque
-    // este catch era ciego — el cliente reintentaba y nadie veía por qué fallaba.
-    console.error("[addAddressAction] insert dirección falló:", err);
+    logger.error("portal_profile.action_failed", {
+      error: err,
+      operation: "address_add",
+      stage: "write",
+    });
     return { error: "No se pudo guardar la dirección. Intenta de nuevo." };
   }
   revalidatePath(PATH);
@@ -64,6 +66,7 @@ export async function updateAddressAction(
   _prev: AddressActionState,
   formData: FormData,
 ): Promise<AddressActionState> {
+  const logger = createComponentLogger("portal.profile.address-update");
   const supabase = await createClient();
   const principal = await getPortalClientPrincipal(supabase);
   if (!principal) return { error: "Sesión no válida. Vuelve a entrar." };
@@ -86,7 +89,11 @@ export async function updateAddressAction(
       clientId: client.id,
     });
   } catch (err) {
-    console.error("[updateAddressAction] update dirección falló:", err);
+    logger.error("portal_profile.action_failed", {
+      error: err,
+      operation: "address_update",
+      stage: "write",
+    });
     return { error: "No se pudo actualizar la dirección. Intenta de nuevo." };
   }
   revalidatePath(PATH);
@@ -95,6 +102,7 @@ export async function updateAddressAction(
 
 /** Marca una dirección como predeterminada. */
 export async function setDefaultAddressAction(formData: FormData): Promise<void> {
+  const logger = createComponentLogger("portal.profile.address-default");
   const supabase = await createClient();
   const principal = await getPortalClientPrincipal(supabase);
   if (!principal) return;
@@ -109,7 +117,11 @@ export async function setDefaultAddressAction(formData: FormData): Promise<void>
     revalidatePath(PATH);
   } catch (err) {
     /* no rompemos la navegación por un fallo transitorio, pero lo dejamos escrito */
-    console.error("[setDefaultAddressAction] falló:", err);
+    logger.error("portal_profile.action_failed", {
+      error: err,
+      operation: "address_default",
+      stage: "write",
+    });
   }
 }
 
@@ -123,7 +135,8 @@ export async function deleteAddressAction(
   if (values.length !== 1 || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     return { error: "No se pudo identificar la dirección. Recarga la página e intenta de nuevo." };
   }
-  const correlationId = randomUUID();
+  const logger = createComponentLogger("portal.profile.address-delete");
+  const correlationId = logger.requestId;
   const failure: AddressActionState = {
     error: "No se pudo confirmar el borrado. Intenta de nuevo; si continúa, contacta a tu asesor.",
     correlationId,
@@ -135,19 +148,33 @@ export async function deleteAddressAction(
       p_correlation_id: correlationId,
     });
     if (error || data !== true) {
-      console.error("[deleteAddressAction] borrado no confirmado", { correlationId });
+      logger.error("portal_profile.action_failed", {
+        error,
+        operation: "address_delete",
+        stage: "write",
+        status: "not_confirmed",
+      });
       return failure;
     }
-  } catch {
+  } catch (err) {
     // Sin cuerpo del proveedor, UUID de dirección ni contenido postal en logs.
-    console.error("[deleteAddressAction] fallo de transporte/sesión", { correlationId });
+    logger.error("portal_profile.action_failed", {
+      error: err,
+      operation: "address_delete",
+      stage: "transport",
+    });
     return failure;
   }
   try {
     revalidatePath(PATH);
-  } catch {
+  } catch (err) {
     // La RPC ya confirmó el commit: una caché fallida no revierte ese hecho.
-    console.error("[deleteAddressAction] caché pendiente tras borrado confirmado", { correlationId });
+    logger.error("portal_profile.action_failed", {
+      error: err,
+      operation: "address_delete",
+      stage: "cache",
+      status: "committed",
+    });
   }
   return { ok: true };
 }
