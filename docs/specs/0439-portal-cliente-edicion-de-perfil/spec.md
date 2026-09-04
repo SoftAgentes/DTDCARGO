@@ -1,5 +1,5 @@
 ---
-sdd: "0435"
+sdd: "0439"
 title: "Portal cliente — tres cambios efectivos de perfil y direcciones siempre editables"
 status: in-progress
 author: "Codex + founder"
@@ -11,7 +11,7 @@ related: ["0138", "0145", "0151", "0268"]
 confidencialidad: interna
 ---
 
-# SDD-0435 · Edición controlada del perfil del cliente
+# SDD-0439 · Edición controlada del perfil del cliente
 
 ## Pedido y lectura del contrato
 
