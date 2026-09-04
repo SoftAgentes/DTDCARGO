@@ -15,26 +15,31 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 import { parsePushSubscription } from "@/lib/studio/notify/push-subscription";
 
 export async function POST(req: Request) {
+  const logger = createRequestLogger(req, "api.m.push.subscribe");
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    logger.withResponse(NextResponse.json(body, { status }));
+
   const session = await getCurrentOperario();
   if (!session) {
-    return NextResponse.json({ error: "Sesión inválida." }, { status: 401 });
+    return respond({ error: "Sesión inválida." }, 401);
   }
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Body inválido." }, { status: 422 });
+    return respond({ error: "Body inválido." }, 422);
   }
 
   const sub = parsePushSubscription(body);
   if (!sub) {
-    return NextResponse.json(
+    return respond(
       { error: "Suscripción no válida. Vuelve a activar las notificaciones desde tu navegador." },
-      { status: 422 },
+      422,
     );
   }
 
@@ -58,12 +63,13 @@ export async function POST(req: Request) {
   );
 
   if (error) {
-    console.error("[push/subscribe] upsert error:", error.message);
-    return NextResponse.json(
-      { error: "No se pudo guardar la suscripción." },
-      { status: 500 },
-    );
+    logger.error("mobile_push.subscription_failed", {
+      error,
+      operation: "subscribe",
+      stage: "upsert",
+    });
+    return respond({ error: "No se pudo guardar la suscripción." }, 500);
   }
 
-  return NextResponse.json({ ok: true });
+  return respond({ ok: true });
 }

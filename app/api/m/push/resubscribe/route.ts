@@ -15,23 +15,28 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 import { parsePushSubscription } from "@/lib/studio/notify/push-subscription";
 
 export async function POST(req: Request) {
+  const logger = createRequestLogger(req, "api.m.push.resubscribe");
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    logger.withResponse(NextResponse.json(body, { status }));
+
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Body inválido." }, { status: 422 });
+    return respond({ error: "Body inválido." }, 422);
   }
 
   const input = body !== null && typeof body === "object" && !Array.isArray(body)
     ? body as Record<string, unknown> : null;
   const parsed = parsePushSubscription(input?.subscription);
   if (!parsed) {
-    return NextResponse.json(
+    return respond(
       { error: "Suscripción no válida. Vuelve a activar las notificaciones desde tu navegador." },
-      { status: 422 },
+      422,
     );
   }
   const oldEndpoint =
@@ -62,17 +67,21 @@ export async function POST(req: Request) {
       { onConflict: "endpoint" },
     );
     if (error) {
-      console.error("[push/resubscribe] operario upsert:", error.message);
-      return NextResponse.json({ error: "No se pudo renovar." }, { status: 500 });
+      logger.error("mobile_push.subscription_failed", {
+        error,
+        operation: "resubscribe_operario",
+        stage: "upsert",
+      });
+      return respond({ error: "No se pudo renovar." }, 500);
     }
-    return NextResponse.json({ ok: true, kind: "operario" });
+    return respond({ ok: true, kind: "operario" });
   }
 
   // 2) User staff (sesión Supabase) → user_push_subscriptions.
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) {
-    return NextResponse.json({ error: "Sesión inválida." }, { status: 401 });
+    return respond({ error: "Sesión inválida." }, 401);
   }
   const userId = userResp.user.id;
 
@@ -84,7 +93,7 @@ export async function POST(req: Request) {
     .limit(1)
     .maybeSingle<{ tenant_id: string }>();
   if (!link?.tenant_id) {
-    return NextResponse.json({ error: "Sin acceso al Studio." }, { status: 403 });
+    return respond({ error: "Sin acceso al Studio." }, 403);
   }
 
   // Reemplazar old_endpoint + la fila del endpoint nuevo (rebind).
@@ -103,8 +112,12 @@ export async function POST(req: Request) {
     last_used_at: new Date().toISOString(),
   });
   if (error) {
-    console.error("[push/resubscribe] user insert:", error.message);
-    return NextResponse.json({ error: "No se pudo renovar." }, { status: 500 });
+    logger.error("mobile_push.subscription_failed", {
+      error,
+      operation: "resubscribe_user",
+      stage: "insert",
+    });
+    return respond({ error: "No se pudo renovar." }, 500);
   }
-  return NextResponse.json({ ok: true, kind: "user" });
+  return respond({ ok: true, kind: "user" });
 }

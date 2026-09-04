@@ -26,46 +26,39 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 
 const RATE_LIMIT_SEC = 25;
 
 export async function POST(req: Request) {
+  const logger = createRequestLogger(req, "api.m.tms.ping");
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    logger.withResponse(NextResponse.json(body, { status }));
+
   const session = await getCurrentOperario();
   if (!session) {
-    return NextResponse.json(
-      { error: "Sesión inválida." },
-      { status: 401 },
-    );
+    return respond({ error: "Sesión inválida." }, 401);
   }
   if (session.region !== "ve") {
-    return NextResponse.json(
-      { error: "Solo operarios VE." },
-      { status: 403 },
-    );
+    return respond({ error: "Solo operarios VE." }, 403);
   }
   const activeMode = session.current_mode ?? session.role;
   if (activeMode !== "camionero" && activeMode !== "supervisor") {
-    return NextResponse.json(
-      { error: "Modo activo no permite GPS del camión." },
-      { status: 403 },
-    );
+    return respond({ error: "Modo activo no permite GPS del camión." }, 403);
   }
   if (!session.tms_driver_id) {
-    return NextResponse.json(
-      { error: "Operario sin driver TMS linkeado." },
-      { status: 401 },
-    );
+    return respond({ error: "Operario sin driver TMS linkeado." }, 401);
   }
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Body inválido." }, { status: 422 });
+    return respond({ error: "Body inválido." }, 422);
   }
 
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Body inválido." }, { status: 422 });
+    return respond({ error: "Body inválido." }, 422);
   }
   const { lat, lng, accuracy_m, source } = body as {
     lat?: unknown;
@@ -84,10 +77,7 @@ export async function POST(req: Request) {
     lngNum < -180 ||
     lngNum > 180
   ) {
-    return NextResponse.json(
-      { error: "lat/lng fuera de rango." },
-      { status: 422 },
-    );
+    return respond({ error: "lat/lng fuera de rango." }, 422);
   }
   const accNum =
     accuracy_m == null
@@ -113,9 +103,9 @@ export async function POST(req: Request) {
     .maybeSingle<{ id: string }>();
 
   if (!truck?.id) {
-    return NextResponse.json(
-      { error: "Sin camión TMS linkeado a tu cuenta · pedile al admin que lo asigne." },
-      { status: 412 },
+    return respond(
+      { error: "Sin camión TMS linkeado a tu cuenta · pídele al admin que lo asigne." },
+      412,
     );
   }
   const truckId = truck.id;
@@ -134,13 +124,13 @@ export async function POST(req: Request) {
     const elapsedSec =
       (Date.now() - new Date(lastPing.recorded_at).getTime()) / 1000;
     if (elapsedSec < RATE_LIMIT_SEC) {
-      return NextResponse.json(
+      return respond(
         {
           error: `Rate limit · espera ${Math.ceil(
             RATE_LIMIT_SEC - elapsedSec,
           )}s antes del próximo ping.`,
         },
-        { status: 429 },
+        429,
       );
     }
   }
@@ -157,12 +147,13 @@ export async function POST(req: Request) {
   });
 
   if (error) {
-    console.error("[tms/ping] insert error:", error);
-    return NextResponse.json(
-      { error: "No se pudo guardar GPS." },
-      { status: 500 },
-    );
+    logger.error("mobile_tms.location_write_failed", {
+      error,
+      operation: "ping",
+      stage: "insert",
+    });
+    return respond({ error: "No se pudo guardar GPS." }, 500);
   }
 
-  return NextResponse.json({ ok: true, truck_id: truckId });
+  return respond({ ok: true, truck_id: truckId });
 }

@@ -1025,10 +1025,12 @@ están incluidos en aquel push.
   SDD-0429 retiró cuatro logs de los productores internos de Bitácora y solicitudes
   de cambio, y propagó su correlador hasta in-app, push, Telegram y drains.
   SDD-0430 retiró once logs de cinco productores de avisos de entrada y propagó
-  el correlador de cada uno hasta Telegram. Acumulado: 17/17 handlers cron, 4/4
-  Edge Functions, veintinueve internals y diez
-  superficies Portal adicionales adoptadas, cero `console.*` en esos alcances y
-  7.446 pruebas completas. El inventario general conserva módulos legacy fuera
+  el correlador de cada uno hasta Telegram. SDD-0431 retiró cinco logs de las
+  cuatro rutas móviles, correlacionó todas sus respuestas y corrigió el voseo del
+  ping GPS. Acumulado: 17/17 handlers cron, 4/4 Edge Functions, veintinueve
+  internals, diez superficies Portal y cuatro rutas móviles adoptadas, cero
+  `console.*` en esos alcances y
+  7.459 pruebas completas. El inventario general conserva módulos legacy fuera
   del Portal; esta casilla no se marca ni aumenta el 59/106.
   [Acta base](2026-09-04-structured-request-logging.md) y
   [workers drain](2026-09-04-structured-drain-crons.md) y
@@ -1046,7 +1048,8 @@ están incluidos en aquel push.
   [Proveedores/Prealertas](2026-09-04-structured-portal-suppliers-actions.md) y
   [cierre Portal](2026-09-04-structured-portal-completion.md), más
   [productores internos](2026-09-04-structured-internal-notification-producers.md)
-  y [avisos de entrada](2026-09-04-structured-inbound-notification-producers.md).
+  y [avisos de entrada](2026-09-04-structured-inbound-notification-producers.md),
+  más [rutas móviles](2026-09-04-structured-mobile-routes.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.

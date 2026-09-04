@@ -11,11 +11,16 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 
 export async function POST(req: Request) {
+  const logger = createRequestLogger(req, "api.m.push.unsubscribe");
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    logger.withResponse(NextResponse.json(body, { status }));
+
   const session = await getCurrentOperario();
   if (!session) {
-    return NextResponse.json({ error: "Sesión inválida." }, { status: 401 });
+    return respond({ error: "Sesión inválida." }, 401);
   }
 
   let endpoint: string | null = null;
@@ -35,12 +40,13 @@ export async function POST(req: Request) {
 
   const { error } = await q;
   if (error) {
-    console.error("[push/unsubscribe] delete error:", error.message);
-    return NextResponse.json(
-      { error: "No se pudo desuscribir." },
-      { status: 500 },
-    );
+    logger.error("mobile_push.subscription_failed", {
+      error,
+      operation: "unsubscribe",
+      stage: "delete",
+    });
+    return respond({ error: "No se pudo desuscribir." }, 500);
   }
 
-  return NextResponse.json({ ok: true });
+  return respond({ ok: true });
 }
