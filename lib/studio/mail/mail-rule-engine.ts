@@ -23,6 +23,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "./send-email";
+import { createComponentLogger } from "@/lib/observability/structured-logger";
 import { resolveClientRecipientEmail } from "@/lib/studio/estimado-linking";
 import type { MailRuleEvent } from "@/lib/studio/mail-types";
 
@@ -65,6 +66,7 @@ export async function fireMailEvent(
   tenantId: string,
   input: FireMailEventInput,
 ): Promise<void> {
+  const logger = createComponentLogger("internal.mail-rule-engine");
   try {
     // ── 1. Buscar reglas activas para el evento+tenant ──
     const { data: rulesRaw, error: rulesErr } = await supabaseAdmin
@@ -75,7 +77,12 @@ export async function fireMailEvent(
       .eq("active", true);
 
     if (rulesErr) {
-      console.error(`[mail-rule-engine] read rules failed (${input.event}):`, rulesErr.message);
+      logger.error("mail_rules.read_failed", {
+        error: rulesErr,
+        mode: input.event,
+        operation: "fire_mail_event",
+        stage: "read_rules",
+      });
       return;
     }
     const rules = (rulesRaw ?? []) as MailRuleRow[];
@@ -123,9 +130,12 @@ export async function fireMailEvent(
     for (const rule of rules) {
       const template = templateMap.get(rule.template_id);
       if (!template || !template.active) {
-        console.warn(
-          `[mail-rule-engine] rule ${rule.id} apunta a template inactivo o inexistente, skip.`,
-        );
+        logger.warn("mail_rules.template_unavailable", {
+          mode: input.event,
+          operation: "fire_mail_event",
+          stage: "resolve_template",
+          status: "inactive_or_missing",
+        });
         continue;
       }
 
@@ -135,9 +145,12 @@ export async function fireMailEvent(
       });
 
       if (recipients.length === 0) {
-        console.warn(
-          `[mail-rule-engine] rule ${rule.id} (${input.event}) sin destinatarios resueltos (kind=${rule.recipient_kind}), skip.`,
-        );
+        logger.warn("mail_rules.recipients_unresolved", {
+          mode: input.event,
+          operation: "fire_mail_event",
+          stage: "resolve_recipients",
+          status: rule.recipient_kind,
+        });
         continue;
       }
 
@@ -159,10 +172,12 @@ export async function fireMailEvent(
         if (result.ok) {
           sentAny = true;
         } else {
-          console.error(
-            `[mail-rule-engine] sendEmail failed (rule ${rule.id}, to=${to}):`,
-            result.error,
-          );
+          logger.error("mail_rules.send_failed", {
+            error: result.error,
+            mode: input.event,
+            operation: "fire_mail_event",
+            stage: "send_email",
+          });
         }
       }
 
@@ -177,15 +192,22 @@ export async function fireMailEvent(
           .eq("id", rule.id);
 
         if (bumpErr) {
-          console.error(
-            `[mail-rule-engine] bump trigger_count failed (rule ${rule.id}):`,
-            bumpErr.message,
-          );
+          logger.error("mail_rules.metrics_update_failed", {
+            error: bumpErr,
+            mode: input.event,
+            operation: "fire_mail_event",
+            stage: "update_metrics",
+          });
         }
       }
     }
   } catch (err) {
-    console.error(`[mail-rule-engine] fireMailEvent error (${input.event}):`, err);
+    logger.error("mail_rules.execution_failed", {
+      error: err,
+      mode: input.event,
+      operation: "fire_mail_event",
+      stage: "run_rules",
+    });
   }
 }
 
