@@ -55,7 +55,9 @@ Commit funcional: `09f83a9e8595d189c424de2a37f4a83f5fe2c5d1`
 - Backfill: cuatro solicitudes de cuatro clientes, sin clientes sobre el límite.
 - RLS activa; ledger sin grants directos; RPC disponibles sólo a
   `authenticated`, con `SECURITY DEFINER` y `search_path` vacío.
-- No se autorizó ni ejecutó deploy de aplicación.
+- No se autorizó deploy. La integración Git de Vercel creó automáticamente la
+  preview `dpl_5aTFsvnYozvoqq5Vgn3YYkY4FFgn`; llegó a `Ready` y fue eliminada
+  inmediatamente junto con su alias, sin tocar producción.
 
 ## Gates que siguen abiertos
 
@@ -80,11 +82,11 @@ Commit funcional: `09f83a9e8595d189c424de2a37f4a83f5fe2c5d1`
 ## Publicación y siguiente responsable
 
 El cierre publica `origin/portalcliente` y abre un único PR con base `main`; la
-URL y el hash remoto se validan en el recibo final de la tarea. Para evitar que
-un PR equivalga a autorización de deploy, este handoff queda como último commit
-sólo documental. Al integrar, usar squash o asegurar que el commit resultante
-toque código para que `vercel.json` no omita accidentalmente el deploy que se
-autorice en otro gate.
+URL y el hash remoto se validan en el recibo final de la tarea. El handoff quedó
+como commit documental de cabecera, pero el `ignoreCommand` no excluye esta ruta
+anidada de `.agents/` y Vercel creó una preview automática, ya eliminada. Al
+integrar, usar squash o asegurar que el commit resultante toque código para que
+`vercel.json` no omita accidentalmente el deploy que se autorice en otro gate.
 
 Siguiente responsable: reviewer/integrador del PR; founder para designar y
 autorizar la cuenta empresarial del UAT.
