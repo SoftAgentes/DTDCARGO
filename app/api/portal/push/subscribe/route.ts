@@ -12,24 +12,31 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { parsePushSubscription } from "@/lib/studio/notify/push-subscription";
 
 export async function POST(req: Request) {
+  const logger = createRequestLogger(req, "portal.push.subscribe");
+  const respond = (
+    body: { error: string } | { ok: true },
+    init?: ResponseInit,
+  ) => logger.withResponse(NextResponse.json(body, init));
+
   let supabase;
   try {
     supabase = await createClient();
   } catch {
-    return NextResponse.json({ error: "Sesión inválida." }, { status: 401 });
+    return respond({ error: "Sesión inválida." }, { status: 401 });
   }
 
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user?.id) {
-    return NextResponse.json({ error: "Sesión inválida." }, { status: 401 });
+    return respond({ error: "Sesión inválida." }, { status: 401 });
   }
   const principal = await getPortalClientPrincipal(supabase);
   if (!principal) {
-    return NextResponse.json(
+    return respond(
       { error: "Tu sesión no es un cliente del portal." },
       { status: 403 },
     );
@@ -39,7 +46,7 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Body inválido." }, { status: 422 });
+    return respond({ error: "Body inválido." }, { status: 422 });
   }
 
   // Acepta el sub crudo (lo que manda PortalPushOptIn) O envuelto en `{subscription}`
@@ -51,7 +58,7 @@ export async function POST(req: Request) {
   );
   const sub = parsePushSubscription(raw);
   if (!sub) {
-    return NextResponse.json(
+    return respond(
       { error: "Suscripción no válida. Vuelve a activar las notificaciones desde tu navegador." },
       { status: 422 },
     );
@@ -62,7 +69,7 @@ export async function POST(req: Request) {
   try {
     admin = createAdminClient();
   } catch {
-    return NextResponse.json(
+    return respond(
       { error: "No se pudo guardar la suscripción." },
       { status: 500 },
     );
@@ -82,12 +89,16 @@ export async function POST(req: Request) {
     { onConflict: "endpoint" },
   );
   if (error) {
-    console.error("[portal push/subscribe] upsert error:", error.message);
-    return NextResponse.json(
+    logger.error("portal_push.subscription_failed", {
+      error,
+      operation: "subscribe",
+      stage: "write",
+    });
+    return respond(
       { error: "No se pudo guardar la suscripción." },
       { status: 500 },
     );
   }
 
-  return NextResponse.json({ ok: true });
+  return respond({ ok: true });
 }

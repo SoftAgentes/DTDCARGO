@@ -13,6 +13,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CheckIcon } from "@/components/Icon";
+import { createComponentLogger } from "@/lib/observability/structured-logger";
+
+const logger = createComponentLogger("portal.push-opt-in");
 
 /** Campana inline (el set del portal no tiene BellIcon). */
 function Bell({ size = 16 }: { size?: number }) {
@@ -127,7 +130,11 @@ export function PortalPushOptIn({
       if (!res.ok) throw new Error(`subscribe ${res.status}`);
       setState("subscribed");
     } catch (err) {
-      console.error("[PortalPushOptIn] enable error:", err);
+      logger.error("portal_push.client_failed", {
+        error: err,
+        operation: "enable",
+        stage: "browser",
+      });
       setState("default");
     }
   }, []);
@@ -146,7 +153,11 @@ export function PortalPushOptIn({
       });
       setState("default");
     } catch (err) {
-      console.error("[PortalPushOptIn] disable error:", err);
+      logger.error("portal_push.client_failed", {
+        error: err,
+        operation: "disable",
+        stage: "browser",
+      });
       void refreshState();
     }
   }, [refreshState]);

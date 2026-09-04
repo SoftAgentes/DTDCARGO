@@ -1017,10 +1017,12 @@ están incluidos en aquel push.
   las primitivas in-app, Telegram y despacho, y conectó tres escrituras de bugs.
   SDD-0423 retiró diez logs de agenda/fanout del Portal y propagó el correlador
   hasta el drain inline. SDD-0424 retiró ocho logs de las cuatro capas de
-  consulta/configuración de avisos. Acumulado: 17/17 handlers cron, 4/4 Edge
-  Functions, veintidós internals adoptados, cero `console.*` en esos alcances y
-  7.404 pruebas completas. El inventario general conserva otros módulos legacy;
-  esta casilla no se marca ni aumenta el 59/106.
+  consulta/configuración de avisos. SDD-0425 estructuró las dos rutas, el opt-in
+  y VAPID del Portal, con cinco logs menos. Acumulado: 17/17 handlers cron, 4/4
+  Edge Functions, veintidós internals más cuatro superficies Web Push adoptadas,
+  cero `console.*` en esos alcances y 7.410 pruebas completas. El inventario
+  general conserva otros módulos legacy; esta casilla no se marca ni aumenta el
+  59/106.
   [Acta base](2026-09-04-structured-request-logging.md) y
   [workers drain](2026-09-04-structured-drain-crons.md) y
   [jobs programados](2026-09-04-structured-scheduled-crons.md), más
@@ -1031,7 +1033,8 @@ están incluidos en aquel push.
   [notificaciones de bugs](2026-09-04-structured-bug-notification-internals.md)
   y [primitivas compartidas](2026-09-04-structured-notification-primitives.md),
   más [agenda del Portal](2026-09-04-structured-client-notification-scheduling.md)
-  y [queries de avisos](2026-09-04-structured-client-notification-queries.md).
+  y [queries de avisos](2026-09-04-structured-client-notification-queries.md),
+  más [Web Push Portal](2026-09-04-structured-portal-push.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.

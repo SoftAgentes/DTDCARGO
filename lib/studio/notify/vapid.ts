@@ -18,9 +18,14 @@
  */
 
 import webpush from "web-push";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 
 let vapidConfigured = false;
 let vapidWarned = false;
+const vapidLogger = createComponentLogger("internal.vapid");
 
 /**
  * Configura VAPID en el módulo `web-push` una sola vez por proceso.
@@ -29,7 +34,7 @@ let vapidWarned = false;
  * @returns `true` si VAPID está configurado y se puede enviar push,
  *          `false` si faltan env vars (caller debe hacer no-op).
  */
-export function ensureVapid(): boolean {
+export function ensureVapid(logger: StructuredLogger = vapidLogger): boolean {
   if (vapidConfigured) return true;
 
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -38,10 +43,10 @@ export function ensureVapid(): boolean {
 
   if (!publicKey || !privateKey) {
     if (!vapidWarned) {
-      console.warn(
-        "[vapid] VAPID keys no configuradas en env. Web Push queda en no-op. " +
-          "Generar con: pnpm exec web-push generate-vapid-keys",
-      );
+      logger.warn("push.vapid_unconfigured", {
+        configured: false,
+        stage: "configuration",
+      });
       vapidWarned = true;
     }
     return false;

@@ -10,22 +10,29 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 
 export async function POST(req: Request) {
+  const logger = createRequestLogger(req, "portal.push.unsubscribe");
+  const respond = (
+    body: { error: string } | { ok: true },
+    init?: ResponseInit,
+  ) => logger.withResponse(NextResponse.json(body, init));
+
   let supabase;
   try {
     supabase = await createClient();
   } catch {
-    return NextResponse.json({ error: "Sesión inválida." }, { status: 401 });
+    return respond({ error: "Sesión inválida." }, { status: 401 });
   }
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user?.id) {
-    return NextResponse.json({ error: "Sesión inválida." }, { status: 401 });
+    return respond({ error: "Sesión inválida." }, { status: 401 });
   }
   const principal = await getPortalClientPrincipal(supabase);
   if (!principal) {
-    return NextResponse.json(
+    return respond(
       { error: "Tu sesión no es un cliente del portal." },
       { status: 403 },
     );
@@ -35,21 +42,21 @@ export async function POST(req: Request) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Body inválido." }, { status: 422 });
+    return respond({ error: "Body inválido." }, { status: 422 });
   }
   const endpoint =
     body && typeof (body as { endpoint?: unknown }).endpoint === "string"
       ? (body as { endpoint: string }).endpoint
       : null;
   if (!endpoint) {
-    return NextResponse.json({ error: "Falta el endpoint." }, { status: 422 });
+    return respond({ error: "Falta el endpoint." }, { status: 422 });
   }
 
   let admin;
   try {
     admin = createAdminClient();
   } catch {
-    return NextResponse.json(
+    return respond(
       { error: "No se pudo desactivar." },
       { status: 500 },
     );
@@ -60,12 +67,16 @@ export async function POST(req: Request) {
     .eq("endpoint", endpoint)
     .eq("user_id", principal.userId);
   if (error) {
-    console.error("[portal push/unsubscribe] delete error:", error.message);
-    return NextResponse.json(
+    logger.error("portal_push.subscription_failed", {
+      error,
+      operation: "unsubscribe",
+      stage: "write",
+    });
+    return respond(
       { error: "No se pudo desactivar." },
       { status: 500 },
     );
   }
 
-  return NextResponse.json({ ok: true });
+  return respond({ ok: true });
 }
