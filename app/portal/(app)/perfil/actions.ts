@@ -12,7 +12,7 @@
  * (service_role) scopeada EXPLÍCITO a ese id (la RLS del portal es read-only
  * para `clients`; el cliente nunca toca el bucket privado directo). Rollback de
  * la foto recién subida si la RPC atómica falla. Una foto reemplazada se
- * conserva en el ledger restringido (SDD-0435), no se borra silenciosamente.
+ * conserva en el ledger restringido (SDD-0439), no se borra silenciosamente.
  */
 
 import { revalidatePath } from "next/cache";
@@ -37,6 +37,9 @@ import {
 import { notifyChangeRequestToAdmin } from "@/lib/studio/change-request-notify";
 
 export type CedulaPhotoActionState = { ok?: boolean; error?: string };
+
+const IDENTITY_PHOTO_REPLACEMENT_DISABLED =
+  "Para reemplazar tu documento, solicita ayuda al equipo de soporte. La carga directa desde el portal está temporalmente deshabilitada.";
 
 export async function uploadCedulaPhotoAction(
   _prev: CedulaPhotoActionState,
@@ -63,17 +66,24 @@ export async function uploadCedulaPhotoAction(
   }
 
   // 3. Estado actual (scopeado al id verificado por sesión): tenant + markbox
-  //    para construir el path privado. La RPC vuelve a resolver la identidad.
+  //    para construir el path privado. Los reemplazos quedan fail-closed hasta
+  //    que estén activos la retención, el hold y el control regional de acceso.
+  //    Esta comprobación ocurre ANTES de subir para no crear otro objeto
+  //    sensible que luego dependa de un rollback.
   const { data: row, error: rowErr } = await admin
     .from("clients")
-    .select("tenant_id, markbox")
+    .select("tenant_id, markbox, cedula_photo_path")
     .eq("id", clientId)
     .maybeSingle<{
       tenant_id: string;
       markbox: string;
+      cedula_photo_path: string | null;
     }>();
   if (rowErr || !row) {
     return { error: "No pudimos cargar tu cuenta. Prueba de nuevo." };
+  }
+  if (String(row.cedula_photo_path ?? "").trim()) {
+    return { error: IDENTITY_PHOTO_REPLACEMENT_DISABLED };
   }
   // 4. Subir la foto nueva al bucket privado (path nuevo por subida).
   const up = await uploadClientPhoto(admin, row.tenant_id, row.markbox, v.file);
@@ -83,13 +93,31 @@ export async function uploadCedulaPhotoAction(
   }
 
   // 5. RPC self-scope: actualiza el puntero y, si es reemplazo, consume un cupo
-  //    en la MISMA transacción. La primera foto es gratuita (SDD-0435).
+  //    en la MISMA transacción. La primera foto es gratuita (SDD-0439).
   const { error: updErr } = await supabase.rpc("portal_set_identity_photo", {
     p_new_path: up.path,
   });
   if (updErr) {
-    await admin.storage.from(PHOTO_BUCKET).remove([up.path]).catch(() => {});
+    const { error: cleanupErr } = await admin.storage
+      .from(PHOTO_BUCKET)
+      .remove([up.path]);
+    if (cleanupErr) {
+      console.error("[uploadCedulaPhotoAction] rollback error", {
+        reason: "storage_remove_failed",
+      });
+      return {
+        error:
+          "No pudimos completar ni retirar la carga. Escríbenos por soporte para revisar el archivo de forma segura.",
+      };
+    }
     console.error("[uploadCedulaPhotoAction] update error:", updErr);
+    if (
+      updErr.message?.includes(
+        "identity_photo_replacement_temporarily_disabled",
+      )
+    ) {
+      return { error: IDENTITY_PHOTO_REPLACEMENT_DISABLED };
+    }
     if (updErr.message?.includes("profile_edit_limit_reached")) {
       return {
         error:

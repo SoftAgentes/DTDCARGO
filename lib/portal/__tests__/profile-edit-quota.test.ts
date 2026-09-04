@@ -5,7 +5,7 @@ import {
   UNAVAILABLE_PROFILE_EDIT_QUOTA,
 } from "../profile-edit-quota";
 
-describe("cupo de edición del perfil · SDD-0435", () => {
+describe("cupo de edición del perfil · SDD-0439", () => {
   it("resta cambios aplicados y reservados", () => {
     const quota = mapProfileEditQuota({
       limit_count: 3,

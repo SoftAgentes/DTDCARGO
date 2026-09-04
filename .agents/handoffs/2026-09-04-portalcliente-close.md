@@ -1,4 +1,4 @@
-# Cierre en rama — SDD-0435 Portal cliente
+# Cierre en rama — SDD-0439 Portal cliente
 
 Fecha: 2026-09-04
 Estado: CERRADO EN RAMA
@@ -13,7 +13,8 @@ Commit funcional: `09f83a9e8595d189c424de2a37f4a83f5fe2c5d1`
 - El cliente puede solicitar cambios de nombre, documento y teléfono desde
   `/portal/perfil`.
 - El cupo compartido se limita atómicamente a tres cambios efectivos de datos
-  o reemplazos de foto de cédula durante la vida de la cuenta.
+  o reemplazos de foto de cédula durante la vida de la cuenta; los reemplazos
+  quedan contenidos temporalmente por privacidad.
 - La primera carga cuando no existe foto no consume cupo; rechazo o cancelación
   libera la reserva; una solicitud pendiente impide duplicados.
 - Las direcciones permanecen fuera del cupo: se pueden agregar y editar siempre.
@@ -27,7 +28,7 @@ Commit funcional: `09f83a9e8595d189c424de2a37f4a83f5fe2c5d1`
 - `lib/portal/profile-edit-quota.ts` y su prueba.
 - `supabase/migrations/0445_portal_profile_edit_limit.sql` y
   `supabase/tests/0445_portal_profile_edit_limit.test.sql`.
-- `docs/specs/0435-portal-cliente-edicion-de-perfil/`, índice SDD y documentos
+- `docs/specs/0439-portal-cliente-edicion-de-perfil/`, índice SDD y documentos
   de `docs/legal/privacidad/`.
 - Este handoff.
 
@@ -90,3 +91,17 @@ integrar, usar squash o asegurar que el commit resultante toque código para que
 
 Siguiente responsable: reviewer/integrador del PR; founder para designar y
 autorizar la cuenta empresarial del UAT.
+
+## Adenda de remediación 0445
+
+- Rama separada: `codex/portal-profile-privacy-remediation`, apilada sobre
+  `origin/portalcliente`; no incorpora PR #21 ni se integra directamente a
+  `main`.
+- `0447_identity_photo_replacement_privacy_gate` bloquea nuevos reemplazos
+  dentro de la transacción hasta demostrar purga, legal hold y control regional.
+- La UI distingue foto persistida de URL firmada fallida, usa 60 segundos de
+  vigencia y bloquea el reemplazo antes del upload.
+- El rollback de Storage comprueba `{ error }`; si falla, no anuncia éxito y
+  deriva a soporte sin registrar la ruta sensible.
+- Cloud y Producción siguen sin cambio: 0447 requiere autorización nominal y
+  aplicación individual en un gate posterior.

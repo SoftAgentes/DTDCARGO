@@ -24,7 +24,7 @@ function quota(remaining: number, available = true): ProfileEditQuota {
   };
 }
 
-describe("controles de edición del perfil · SDD-0435", () => {
+describe("controles de edición del perfil · SDD-0439", () => {
   it("bloquea nuevas correcciones de datos cuando se agotaron los 3 cambios", () => {
     render(
       <DataChangeEditor
@@ -62,32 +62,34 @@ describe("controles de edición del perfil · SDD-0435", () => {
     render(
       <CedulaPhotoRow
         label="Cédula de identidad / RIF"
+        hasExistingPhoto
         viewUrl="https://example.test/cedula"
-        quota={quota(2)}
       />,
     );
 
     expect(screen.getByRole("link", { name: /^ver$/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /cambiar foto/i })).toBeTruthy();
-    expect(screen.getByText(/2 de 3 cambios disponibles/i)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /cambiar foto/i })).toBeNull();
+    expect(screen.getByText(/reemplazo directo está temporalmente deshabilitado/i)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /solicitar reemplazo/i })).toBeTruthy();
   });
 
-  it("bloquea el reemplazo agotado, pero no la primera carga faltante", () => {
+  it("no confunde un fallo de firma con la ausencia del documento", () => {
     const { rerender } = render(
       <CedulaPhotoRow
         label="Cédula de identidad / RIF"
-        viewUrl="https://example.test/cedula"
-        quota={quota(0)}
+        hasExistingPhoto
+        viewUrl={null}
       />,
     );
     expect(screen.queryByRole("button", { name: /cambiar foto/i })).toBeNull();
-    expect(screen.getByText(/cupo agotado/i)).toBeTruthy();
+    expect(screen.getByText(/vista temporal no disponible/i)).toBeTruthy();
+    expect(screen.queryByText(/^pendiente$/i)).toBeNull();
 
     rerender(
       <CedulaPhotoRow
         label="Cédula de identidad / RIF"
+        hasExistingPhoto={false}
         viewUrl={null}
-        quota={quota(0)}
       />,
     );
     expect(screen.getByRole("button", { name: /subir foto/i })).toBeTruthy();
