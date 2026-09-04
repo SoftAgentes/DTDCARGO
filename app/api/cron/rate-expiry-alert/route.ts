@@ -20,8 +20,9 @@
  *     "https://.../api/cron/rate-expiry-alert?tenant_id=<uuid>"
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createCronRequestContext } from "@/lib/observability/cron-request-context";
 import { classifyRateExpiry, type RateExpiryLevel } from "@/lib/studio/rate-types";
 import {
   listPublicRatesForExpiryAlert,
@@ -82,28 +83,36 @@ async function runForAllTenants(targetTenantId?: string) {
   return { ok: true, results };
 }
 
-function authorize(req: NextRequest): { ok: boolean; reason?: string } {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return { ok: false, reason: "CRON_SECRET no configurado" };
-  }
-
-  const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
-
-  return { ok: false, reason: "Forbidden" };
-}
-
 export async function GET(req: NextRequest) {
-  const auth = authorize(req);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
-  }
+  const cron = createCronRequestContext(req, "cron.rate-expiry-alert");
+  if (!cron.authorized) return cron.deny();
 
-  const url = new URL(req.url);
-  const targetTenantId = url.searchParams.get("tenant_id") ?? undefined;
-  const result = await runForAllTenants(targetTenantId);
-  return NextResponse.json(result, { status: result.ok ? 200 : 500 });
+  try {
+    const url = new URL(req.url);
+    const targetTenantId = url.searchParams.get("tenant_id") ?? undefined;
+    const result = await runForAllTenants(targetTenantId);
+    if (!result.ok) {
+      return cron.fail(
+        "No se pudo leer los tenants para alertas de tarifas.",
+        result.error,
+        { event: "cron.read_failed", fields: { stage: "read" } },
+      );
+    }
+    return cron.complete(result, {
+      fields: {
+        processed: result.results.length,
+        sent: result.results.filter(
+          (item) => item.telegramSent > 0 || item.emailSent > 0,
+        ).length,
+        failed: result.results.filter((item) => Boolean(item.error)).length,
+      },
+    });
+  } catch (error) {
+    return cron.fail("No se pudo ejecutar la alerta de tarifas.", error, {
+      event: "cron.run_failed",
+      fields: { stage: "run" },
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {

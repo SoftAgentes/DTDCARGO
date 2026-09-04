@@ -26,25 +26,18 @@
  *   curl -H "Authorization: Bearer <CRON_SECRET>" "https://.../api/cron/kommo-contact-status?dry=1"
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import {
+  createCronRequestContext,
+  type CronRequestContext,
+} from "@/lib/observability/cron-request-context";
 import { syncKommoContactStatus } from "@/lib/studio/kommo-contact-status";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-function authorize(req: NextRequest): { ok: boolean; reason?: string } {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
-  const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
-  return { ok: false, reason: "Forbidden" };
-}
-
-export async function GET(req: NextRequest) {
-  const auth = authorize(req);
-  if (!auth.ok) return NextResponse.json({ error: auth.reason }, { status: 403 });
-
+async function run(req: NextRequest, cron: CronRequestContext) {
   // `dry=1` recorre y cuenta SIN encolar. Sirve para responder "¿a cuántos
   // contactos les escribiría algo?" antes de escribirle a ninguno — que es
   // exactamente la pregunta que había que contestar antes de prender esto.
@@ -53,10 +46,10 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient();
   const { data: tenants, error } = await admin.from("tenants").select("id");
   if (error) {
-    return NextResponse.json(
-      { ok: false, error: `Listar tenants: ${error.message}` },
-      { status: 500 },
-    );
+    return cron.fail("No se pudo leer los tenants para Kommo.", error, {
+      event: "cron.read_failed",
+      fields: { stage: "read" },
+    });
   }
 
   const resultados = [];
@@ -68,8 +61,31 @@ export async function GET(req: NextRequest) {
   }
 
   const result = { ok: true, dry, tenants: resultados };
-  console.log("[kommo-contact-status]", JSON.stringify(result));
-  return NextResponse.json(result);
+  return cron.complete(result, {
+    fields: {
+      mode: dry ? "dry-run" : "live",
+      tenantCount: resultados.length,
+      linked: resultados.reduce((total, item) => total + item.vinculados, 0),
+      enqueued: resultados.reduce((total, item) => total + item.encoladas, 0),
+      withBalance: resultados.reduce((total, item) => total + item.conSaldo, 0),
+      inTransit: resultados.reduce((total, item) => total + item.conTransito, 0),
+      inert: resultados.filter((item) => Boolean(item.inerte)).length,
+      truncated: resultados.filter((item) => item.truncado).length,
+    },
+  });
+}
+
+export async function GET(req: NextRequest) {
+  const cron = createCronRequestContext(req, "cron.kommo-contact-status");
+  if (!cron.authorized) return cron.deny();
+  try {
+    return await run(req, cron);
+  } catch (error) {
+    return cron.fail("No se pudo ejecutar el estado de contactos Kommo.", error, {
+      event: "cron.run_failed",
+      fields: { stage: "run" },
+    });
+  }
 }
 
 /**

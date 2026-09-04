@@ -1006,12 +1006,14 @@ están incluidos en aquel push.
 - [ ] Crear logger/redacción/correlación central y aumentar cobertura directa de
   crons y Edge Functions. SDD-0414 creó el helper y adoptó los tres cron con
   prueba previa; SDD-0415 extrajo el contexto común y cerró cuatro workers drain;
-  SDD-0416 añadió cuatro jobs programados. Acumulado: 11/17 cron, 7.340 pruebas
-  completas; quedan 6 cron, logs internos legacy y las Edge Functions, por lo
-  que esta casilla no se marca ni aumenta el 59/106.
+  SDD-0416 añadió cuatro jobs programados y SDD-0417 cerró los seis monitores.
+  Acumulado: 17/17 handlers cron, cero `console.*` en sus rutas y 7.358 pruebas
+  completas. Quedan logs internos legacy y cuatro Edge Functions, por lo que
+  esta casilla no se marca ni aumenta el 59/106.
   [Acta base](2026-09-04-structured-request-logging.md) y
   [workers drain](2026-09-04-structured-drain-crons.md) y
-  [jobs programados](2026-09-04-structured-scheduled-crons.md).
+  [jobs programados](2026-09-04-structured-scheduled-crons.md), más
+  [salud e integraciones](2026-09-04-structured-health-crons.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.

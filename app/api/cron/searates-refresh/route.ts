@@ -20,8 +20,12 @@
  * `?dry=1` corre el refresco y clasifica, pero NO manda el aviso (para probar).
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import {
+  createCronRequestContext,
+  type CronRequestContext,
+} from "@/lib/observability/cron-request-context";
 import { getOceanRate } from "@/lib/studio/searates/searates-api";
 import { refreshOceanRates } from "@/lib/studio/searates/ocean-rates-queries";
 import {
@@ -39,20 +43,7 @@ export const maxDuration = 60;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
-function authorize(req: NextRequest): { ok: boolean; reason?: string } {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
-  const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
-  return { ok: false, reason: "Forbidden" };
-}
-
-export async function GET(req: NextRequest) {
-  const auth = authorize(req);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
-  }
-
+async function run(req: NextRequest, cron: CronRequestContext) {
   const dry = new URL(req.url).searchParams.get("dry") === "1";
 
   const admin = createAdminClient();
@@ -73,7 +64,10 @@ export async function GET(req: NextRequest) {
   if (alert && !dry) {
     const { data: tenants, error } = await admin.from("tenants").select("id");
     if (error) {
-      console.error("[searates-refresh] listar tenants:", error.message);
+      cron.logger.error("cron.notification_targets_failed", {
+        stage: "read",
+        error,
+      });
     }
     for (const t of (tenants ?? []) as Array<{ id: string }>) {
       const sent = await notifyOceanRatesHealth(admin, t.id, alert);
@@ -84,8 +78,31 @@ export async function GET(req: NextRequest) {
   // `summary` ya tiene un campo `ok` (conteo de tarifas ok) → lo anidamos para no
   // chocar con el flag de éxito del endpoint.
   const result = { ok: true, health, dry, summary, notified };
-  console.log("[searates-refresh]", JSON.stringify({ health, ...summary }));
-  return NextResponse.json(result);
+  return cron.complete(result, {
+    fields: {
+      mode: dry ? "dry-run" : "live",
+      health,
+      requested: summary.requested,
+      total: summary.total,
+      succeeded: summary.ok,
+      noRate: summary.no_rate,
+      failed: summary.error,
+      notified: notified.length,
+    },
+  });
+}
+
+export async function GET(req: NextRequest) {
+  const cron = createCronRequestContext(req, "cron.searates-refresh");
+  if (!cron.authorized) return cron.deny();
+  try {
+    return await run(req, cron);
+  } catch (error) {
+    return cron.fail("No se pudo refrescar SeaRates.", error, {
+      event: "cron.refresh_failed",
+      fields: { stage: "refresh" },
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {

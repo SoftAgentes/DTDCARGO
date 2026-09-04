@@ -23,8 +23,9 @@
  * el mismo día y manda otro brief (no hay dedup en V1).
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createCronRequestContext } from "@/lib/observability/cron-request-context";
 import {
   fetchCeoBriefKpis,
   generateBriefText,
@@ -88,30 +89,33 @@ async function runForAllTenants(targetTenantId?: string) {
   return { ok: true, results };
 }
 
-function authorize(req: NextRequest): { ok: boolean; reason?: string } {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) {
-    return { ok: false, reason: "CRON_SECRET no configurado" };
-  }
-
-  // Solo por header: Vercel Cron pasa "Authorization: Bearer <CRON_SECRET>".
-  // El secret nunca se acepta por query-param (terminaría en logs/referrers).
-  const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
-
-  return { ok: false, reason: "Forbidden" };
-}
-
 export async function GET(req: NextRequest) {
-  const auth = authorize(req);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
-  }
+  const cron = createCronRequestContext(req, "cron.ceo-brief");
+  if (!cron.authorized) return cron.deny();
 
-  const url = new URL(req.url);
-  const targetTenantId = url.searchParams.get("tenant_id") ?? undefined;
-  const result = await runForAllTenants(targetTenantId);
-  return NextResponse.json(result, { status: result.ok ? 200 : 500 });
+  try {
+    const url = new URL(req.url);
+    const targetTenantId = url.searchParams.get("tenant_id") ?? undefined;
+    const result = await runForAllTenants(targetTenantId);
+    if (!result.ok) {
+      return cron.fail("No se pudo leer los tenants para el brief.", result.error, {
+        event: "cron.read_failed",
+        fields: { stage: "read" },
+      });
+    }
+    return cron.complete(result, {
+      fields: {
+        tenantCount: result.results.length,
+        sent: result.results.filter((item) => item.ok).length,
+        failed: result.results.filter((item) => !item.ok).length,
+      },
+    });
+  } catch (error) {
+    return cron.fail("No se pudo ejecutar el brief diario.", error, {
+      event: "cron.run_failed",
+      fields: { stage: "run" },
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {

@@ -17,8 +17,12 @@
  *   curl -H "Authorization: Bearer <CRON_SECRET>" "https://.../api/cron/alta-health?dry=1"
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import {
+  createCronRequestContext,
+  type CronRequestContext,
+} from "@/lib/observability/cron-request-context";
 import {
   ALTA_LOOKBACK_DAYS,
   buildAltaHealthMessage,
@@ -34,20 +38,7 @@ export const maxDuration = 60;
 const BATCH_CAP = 100;
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
-function authorize(req: NextRequest): { ok: boolean; reason?: string } {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
-  const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
-  return { ok: false, reason: "Forbidden" };
-}
-
-export async function GET(req: NextRequest) {
-  const auth = authorize(req);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
-  }
-
+async function run(req: NextRequest, cron: CronRequestContext) {
   const url = new URL(req.url);
   const dry = url.searchParams.get("dry") === "1";
   const days = Number(url.searchParams.get("days") ?? ALTA_LOOKBACK_DAYS);
@@ -58,10 +49,10 @@ export async function GET(req: NextRequest) {
 
   const { data: tenants, error } = await admin.from("tenants").select("id");
   if (error) {
-    return NextResponse.json(
-      { ok: false, error: `Listar tenants: ${error.message}` },
-      { status: 500 },
-    );
+    return cron.fail("No se pudo leer los tenants para alta health.", error, {
+      event: "cron.read_failed",
+      fields: { stage: "read" },
+    });
   }
 
   const summaries = [];
@@ -103,8 +94,27 @@ export async function GET(req: NextRequest) {
   }
 
   const result = { ok: true, dry, lookback, tenants: summaries };
-  console.log("[alta-health]", JSON.stringify(result));
-  return NextResponse.json(result);
+  return cron.complete(result, {
+    fields: {
+      mode: dry ? "dry-run" : "live",
+      tenantCount: summaries.length,
+      affected: summaries.reduce((total, item) => total + item.sin_acceso, 0),
+      notified: summaries.reduce((total, item) => total + item.avisados, 0),
+    },
+  });
+}
+
+export async function GET(req: NextRequest) {
+  const cron = createCronRequestContext(req, "cron.alta-health");
+  if (!cron.authorized) return cron.deny();
+  try {
+    return await run(req, cron);
+  } catch (error) {
+    return cron.fail("No se pudo ejecutar alta health.", error, {
+      event: "cron.run_failed",
+      fields: { stage: "run" },
+    });
+  }
 }
 
 function escapeHtml(s: string): string {
