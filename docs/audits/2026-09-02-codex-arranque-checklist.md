@@ -3,7 +3,7 @@ title: "Arranque Codex: estado saneado y checklist ejecutable"
 tipo: auditoria-operativa
 autor: Codex
 created: 2026-09-02
-updated: 2026-09-03
+updated: 2026-09-04
 review-by: 2026-09-09
 confidencialidad: interno
 ---
@@ -12,8 +12,8 @@ confidencialidad: interno
 
 Este documento es el punto de entrada operativo después del traspaso desde
 Cloud. No reemplaza specs ni runbooks: ordena qué sigue, quién puede hacerlo y
-qué autorización exige. El resumen vigente se revalidó el 2026-09-03 después de
-0400, la revisión del modo continuo y la tanda local SDD-0371–0374. Los puntos
+qué autorización exige. El resumen vigente se revalidó el 2026-09-04 después de
+0400, la revisión del modo continuo y la cola local hasta SDD-0403. Los puntos
 anteriores conservan su contexto histórico; antes
 de cualquier otra operación Git o alojada se deben refrescar sus precondiciones.
 
@@ -66,11 +66,12 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Cajas Portal RBAC, 0400/0432 | Cerrado localmente: cruce por vínculo incoherente reproducido y bloqueado; 174 SQL, rebuild 429 y policy de equipo preservada; 0432 sin aplicar |
 | Realtime de conversaciones Portal, 0401/0433 | Cerrado localmente: RED causal; 175 SQL, rebuild 430 y helper booleano ligado a principal+tenant; 0433 sin aplicar |
 | Catálogo de servicios Portal, 0402/0434 | Cerrado localmente: 3 RED de aplicación + RED SQL; 1.086 Portal/Prealertas, suite 7.292/7.292, 176 SQL y rebuild 431; 0434 sin aplicar |
+| Documentos de factura RBAC, 0403/0435 | Primer slice documental cerrado localmente: filas, bucket, reservas, restauración y RPC privilegiadas; 177 SQL y rebuild 432; 0435 sin aplicar |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original avanza a 57/106 (53,8 %): se cerró la casilla existente de
 auditar las policies Portal por Shipping Mark/tenant, no se crearon subpasos.
-Las migraciones preparadas sin aplicar son ahora 34 (0401–0434), derivadas
+Las migraciones preparadas sin aplicar son ahora 35 (0401–0435), derivadas
 del último ledger 0400; no se hizo nueva consulta Cloud en esta continuación.
 Todos los recibos y cambios posteriores a 70812835 permanecen sólo locales.
 Las secciones inferiores conservan sus fechas/alcance históricos.
@@ -773,6 +774,10 @@ están incluidos en aquel push.
   venta. SDD-0357 cerró el SELECT interno y ligó Portal al tenant después de
   comprobar los consumidores financieros, Portal y procesos controlados de
   servicio. El inventario AST congela 18 archivos / 45 llamadas directas.
+  SDD-0403/0435 cierra el primer slice de autorización documental: una factura
+  ahora hereda el candado `accounting`/`admin` en metadatos, bucket, reservas,
+  restauración y escrituras `SECURITY DEFINER`. La casilla permanece abierta:
+  faltan los demás tipos documentales y cada uno conserva su gate separado.
 - [x] Auditar por dominio las otras policies Portal que comparan Shipping Mark
   sin tenant. SDD-0357 cubre `invoices` y SDD-0359 cubre `shipments`,
   `shipment_documents` y `shipment_events`. SDD-0361 cubre `suppliers_cn`,
