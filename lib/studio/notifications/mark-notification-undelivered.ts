@@ -18,6 +18,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 
 /** Statuses de Resend que significan "no llegó a la bandeja del cliente". */
 const UNDELIVERED = new Set(["bounced", "complained", "failed"]);
@@ -54,6 +58,9 @@ export async function markNotificationUndelivered(
   admin: SupabaseClient,
   scheduleId: string,
   status: string,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notification-undelivered",
+  ),
 ): Promise<void> {
   try {
     await admin
@@ -65,6 +72,10 @@ export async function markNotificationUndelivered(
       .eq("id", scheduleId)
       .eq("status", "sent");
   } catch (err) {
-    console.error("[mark-notification-undelivered] falló:", err);
+    logger.error("client_notification.status_write_failed", {
+      error: err,
+      failed: 1,
+      stage: "undelivered",
+    });
   }
 }

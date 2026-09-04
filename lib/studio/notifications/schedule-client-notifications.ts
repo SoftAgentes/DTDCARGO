@@ -13,6 +13,10 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
+import {
   resolveNotifCopy,
   type ClientNotificationRule,
   type DispatchChannel,
@@ -72,6 +76,9 @@ export async function scheduleClientNotifications(
   admin: SupabaseClient,
   tenantId: string,
   ev: ClientDomainEvent,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notification-scheduling",
+  ),
 ): Promise<ScheduleResult> {
   try {
     if (!ev.clientMarkbox) return { scheduled: 0, skipped: 0 };
@@ -116,9 +123,10 @@ export async function scheduleClientNotifications(
       // ancla ETA/ETD sin fecha disponible aún (envío no consolidado / sin
       // itinerario, o un aviso de COMPRA que por definición no tiene ETA) → se
       // salta, no rompe.
-      console.warn(
-        `[client-notif] regla ${chosen.id} anclada en '${chosen.anchor}' sin fecha disponible (${codigoDelAncla(ev.ancla)}) → skip`,
-      );
+      logger.warn("client_notification.schedule_skipped", {
+        skipped: 1,
+        stage: "anchor",
+      });
       return { scheduled: 0, skipped: 1 };
     }
     const scheduledFor = new Date(
@@ -176,10 +184,10 @@ export async function scheduleClientNotifications(
       // de la migración. Se avisa una vez, claro, y se sigue — la recepción ya
       // quedó registrada y SDD-0282 deja la nota en su bitácora.
       if (esCompra && esColumnaInexistente(insErr.code)) {
-        console.warn(
-          "[client-notif] aviso de COMPRA no programado: falta aplicar la migración " +
-            "0389_aviso_que_cuelga_de_la_compra. Hasta entonces sólo se avisa por envío.",
-        );
+        logger.warn("client_notification.schedule_skipped", {
+          skipped: 1,
+          stage: "migration",
+        });
         return { scheduled: 0, skipped: 1, faltaMigracion: true };
       }
       if (insErr.code === "23505") {
@@ -201,19 +209,31 @@ export async function scheduleClientNotifications(
         }
         return { scheduled: 0, skipped: 1 };
       }
-      console.error(`[client-notif] insert agenda falló:`, insErr.message);
+      logger.error("client_notification.schedule_write_failed", {
+        error: insErr,
+        failed: 1,
+        stage: "insert",
+      });
       return { scheduled: 0, skipped: 1 };
     }
 
     // Drain inline best-effort: entrega los inmediatos (offset ≤0) sin esperar al
     // cron. Si falla, el cron los recoge. No bloquea ni throwea.
-    void drainClientNotifications(admin).catch((err) => {
-      console.error("[client-notif] drain inline falló:", err);
+    void drainClientNotifications(admin, logger).catch((err) => {
+      logger.error("client_notification.inline_drain_failed", {
+        error: err,
+        failed: 1,
+        stage: "inline",
+      });
     });
 
     return { scheduled: 1, skipped: 0 };
   } catch (err) {
-    console.error(`[client-notif] scheduleClientNotifications falló:`, err);
+    logger.error("client_notification.schedule_failed", {
+      error: err,
+      failed: 1,
+      stage: "schedule",
+    });
     return { scheduled: 0, skipped: 0 };
   }
 }

@@ -10,6 +10,10 @@
  * rompe la operación de naviera/recepción.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { scheduleClientNotifications } from "./schedule-client-notifications";
 
 /** Un envío alcanzado por el fan-out, con lo mínimo para programar el aviso. */
@@ -26,21 +30,27 @@ async function scheduleForTargets(
   event: string,
   targets: FanoutTarget[],
   eventTime: Date,
+  logger: StructuredLogger,
 ): Promise<number> {
   let scheduled = 0;
   for (const t of targets) {
     if (!t.clientMarkbox) continue;
-    const res = await scheduleClientNotifications(admin, tenantId, {
-      ancla: {
-        kind: "shipment",
-        shipmentId: t.shipmentId,
-        shipmentCode: t.shipmentCode,
+    const res = await scheduleClientNotifications(
+      admin,
+      tenantId,
+      {
+        ancla: {
+          kind: "shipment",
+          shipmentId: t.shipmentId,
+          shipmentCode: t.shipmentCode,
+        },
+        clientMarkbox: t.clientMarkbox,
+        clientName: t.clientName,
+        event,
+        eventTime,
       },
-      clientMarkbox: t.clientMarkbox,
-      clientName: t.clientName,
-      event,
-      eventTime,
-    });
+      logger,
+    );
     scheduled += res.scheduled;
   }
   return scheduled;
@@ -58,6 +68,9 @@ export async function scheduleConsolidationEvent(
   consolidationId: string,
   event: string,
   eventTime: Date = new Date(),
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notification-fanout",
+  ),
 ): Promise<number> {
   try {
     const { data: items } = await admin
@@ -99,9 +112,20 @@ export async function scheduleConsolidationEvent(
       };
     });
 
-    return await scheduleForTargets(admin, tenantId, event, targets, eventTime);
+    return await scheduleForTargets(
+      admin,
+      tenantId,
+      event,
+      targets,
+      eventTime,
+      logger,
+    );
   } catch (err) {
-    console.error(`[client-notif] scheduleConsolidationEvent falló:`, err);
+    logger.error("client_notification.fanout_failed", {
+      error: err,
+      failed: 1,
+      stage: "consolidation",
+    });
     return 0;
   }
 }
@@ -117,6 +141,9 @@ export async function scheduleSailingEvent(
   sailingId: string,
   event: string,
   eventTime: Date = new Date(),
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notification-fanout",
+  ),
 ): Promise<number> {
   try {
     const { data: consols } = await admin
@@ -135,11 +162,16 @@ export async function scheduleSailingEvent(
         c.id,
         event,
         eventTime,
+        logger,
       );
     }
     return scheduled;
   } catch (err) {
-    console.error(`[client-notif] scheduleSailingEvent falló:`, err);
+    logger.error("client_notification.fanout_failed", {
+      error: err,
+      failed: 1,
+      stage: "sailing",
+    });
     return 0;
   }
 }
@@ -171,6 +203,9 @@ export async function scheduleReceiptVeReceived(
   tenantId: string,
   markboxes: Array<string | null | undefined>,
   eventTime: Date = new Date(),
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notification-fanout",
+  ),
 ): Promise<FanoutResultado> {
   const vacio: FanoutResultado = { scheduled: 0, sinDestino: [] };
   try {
@@ -221,11 +256,16 @@ export async function scheduleReceiptVeReceived(
           },
         ],
         eventTime,
+        logger,
       );
     }
     return { scheduled, sinDestino };
   } catch (err) {
-    console.error(`[client-notif] scheduleReceiptVeReceived falló:`, err);
+    logger.error("client_notification.fanout_failed", {
+      error: err,
+      failed: 1,
+      stage: "receipt_ve",
+    });
     return vacio;
   }
 }
@@ -280,6 +320,9 @@ export async function scheduleReceiptInWarehouse(
   tenantId: string,
   recepciones: RecepcionANotificar[],
   eventTime: Date = new Date(),
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notification-fanout",
+  ),
 ): Promise<FanoutResultado> {
   const vacio: FanoutResultado = { scheduled: 0, sinDestino: [] };
   try {
@@ -329,6 +372,7 @@ export async function scheduleReceiptInWarehouse(
             },
           ],
           eventTime,
+          logger,
         );
         continue;
       }
@@ -340,17 +384,22 @@ export async function scheduleReceiptInWarehouse(
       // mismo cuelgue de donde cuelgue, así que el tenant que ya lo tenía
       // configurado no tiene que volver a configurar nada.
       if (rec.prealertaId && rec.prealertaCode) {
-        const res = await scheduleClientNotifications(admin, tenantId, {
-          ancla: {
-            kind: "prealerta",
-            prealertaId: rec.prealertaId,
-            prealertaCode: rec.prealertaCode,
+        const res = await scheduleClientNotifications(
+          admin,
+          tenantId,
+          {
+            ancla: {
+              kind: "prealerta",
+              prealertaId: rec.prealertaId,
+              prealertaCode: rec.prealertaCode,
+            },
+            clientMarkbox: markbox,
+            clientName: null,
+            event: "status:in_warehouse",
+            eventTime,
           },
-          clientMarkbox: markbox,
-          clientName: null,
-          event: "status:in_warehouse",
-          eventTime,
-        });
+          logger,
+        );
         if (res.scheduled > 0) {
           scheduled += res.scheduled;
           continue;
@@ -363,7 +412,11 @@ export async function scheduleReceiptInWarehouse(
     }
     return { scheduled, sinDestino };
   } catch (err) {
-    console.error(`[client-notif] scheduleReceiptInWarehouse falló:`, err);
+    logger.error("client_notification.fanout_failed", {
+      error: err,
+      failed: 1,
+      stage: "receipt_warehouse",
+    });
     return vacio;
   }
 }
