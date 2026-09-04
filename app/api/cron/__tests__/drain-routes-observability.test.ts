@@ -120,7 +120,19 @@ describe.each(routes)("$name", (route) => {
     expect(response.status).toBe(200);
     expect(response.headers.get("x-request-id")).toBe(`test-${route.name}`);
     expect(await response.json()).toEqual({ ok: true, ...route.result });
-    expect(route.drain).toHaveBeenCalledWith(mocks.admin);
+    const correlatedLogger = expect.objectContaining({
+      requestId: `test-${route.name}`,
+    });
+    if (route.name === "workflow-drain") {
+      expect(route.drain).toHaveBeenCalledWith(mocks.admin, 100, correlatedLogger);
+    } else if (
+      route.name === "client-notifications-drain" ||
+      route.name === "push-drain"
+    ) {
+      expect(route.drain).toHaveBeenCalledWith(mocks.admin, correlatedLogger);
+    } else {
+      expect(route.drain).toHaveBeenCalledWith(mocks.admin);
+    }
     expect(JSON.parse(info.mock.calls[0]?.[0] as string)).toMatchObject({
       event: "cron.completed",
       component: route.component,

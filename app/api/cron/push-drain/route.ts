@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const admin = createAdminClient();
-    const result = await drainOperarioPushOutbox(admin);
+    const result = await drainOperarioPushOutbox(admin, cron.logger);
     return cron.complete(
       { ok: true, ...result },
       {

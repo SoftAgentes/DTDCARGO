@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const admin = createAdminClient();
-    const result = await drainWorkflowRuns(admin);
+    const result = await drainWorkflowRuns(admin, 100, cron.logger);
     return cron.complete(
       { ok: true, ...result },
       {

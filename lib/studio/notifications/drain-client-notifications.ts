@@ -15,6 +15,10 @@
  * drain inline tras programar. Best-effort · nunca throwea.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { escapeHtml } from "@/lib/studio/new-client-notify";
 import {
@@ -38,6 +42,9 @@ export interface DrainResult {
 
 export async function drainClientNotifications(
   admin: SupabaseClient,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notifications-drain",
+  ),
 ): Promise<DrainResult> {
   const nowIso = new Date().toISOString();
 
@@ -72,7 +79,7 @@ export async function drainClientNotifications(
       .maybeSingle();
     if (!claimed) continue; // otro dispatcher lo tomó
 
-    const outcome = await dispatchRow(admin, row);
+    const outcome = await dispatchRow(admin, row, logger);
     if (outcome.result === "push_enqueued") enqueuedPush = true;
 
     if (outcome.result === "sent" || outcome.result === "push_enqueued") {
@@ -106,8 +113,8 @@ export async function drainClientNotifications(
 
   // Empuja los push recién encolados sin esperar al cron del minuto.
   if (enqueuedPush) {
-    void drainOperarioPushOutbox(admin).catch((err) => {
-      console.error("[client-notif-drain] push drain inline falló:", err);
+    void drainOperarioPushOutbox(admin, logger).catch((err) => {
+      logger.error("push.inline_drain_failed", { error: err, stage: "inline" });
     });
   }
 
@@ -127,6 +134,7 @@ interface RowDispatch {
 async function dispatchRow(
   admin: SupabaseClient,
   row: ClientNotificationScheduleRow,
+  logger: StructuredLogger,
 ): Promise<RowDispatch> {
   const wantEmail = row.channel === "email" || row.channel === "both";
   const wantPush = row.channel === "push" || row.channel === "both";
@@ -148,7 +156,7 @@ async function dispatchRow(
   }
 
   if (wantPush) {
-    const r = await dispatchPush(admin, row, { title, body });
+    const r = await dispatchPush(admin, row, { title, body }, logger);
     if (r !== "no_destination") anyDestination = true;
     if (r === "sent") anyEnqueued = true; // encolado en outbox durable
     if (r === "transient_fail") transient = "push falló";
@@ -212,6 +220,7 @@ async function dispatchPush(
   admin: SupabaseClient,
   row: ClientNotificationScheduleRow,
   copy: { title: string; body: string },
+  logger: StructuredLogger,
 ): Promise<DispatchOutcome> {
   // markbox → client_id → auth_user_id (portal, SDD-0042).
   const { data: client } = await admin
@@ -236,12 +245,18 @@ async function dispatchPush(
   if (!userId) return "no_destination";
 
   const destino = destinoDelAviso(row.payload);
-  const id = await enqueueUserPush(admin, row.tenant_id, userId, {
-    title: copy.title,
-    body: copy.body,
-    url: destino.path,
-    tag: `client-notif:${row.id}`,
-  });
+  const id = await enqueueUserPush(
+    admin,
+    row.tenant_id,
+    userId,
+    {
+      title: copy.title,
+      body: copy.body,
+      url: destino.path,
+      tag: `client-notif:${row.id}`,
+    },
+    logger,
+  );
   return id ? "sent" : "transient_fail";
 }
 

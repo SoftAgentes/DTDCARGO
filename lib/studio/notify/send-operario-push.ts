@@ -27,6 +27,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { ensureVapid, webpush } from "./vapid";
 import type { PushPayload } from "./send-bug-push";
 import { parsePushSubscription, PUSH_SOCKET_TIMEOUT_MS } from "./push-subscription";
@@ -48,6 +52,9 @@ export async function sendPushToOperario(
   admin: SupabaseClient,
   operarioId: string,
   payload: PushPayload,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.send-operario-push",
+  ),
 ): Promise<number> {
   if (!ensureVapid()) return 0;
 
@@ -77,7 +84,7 @@ export async function sendPushToOperario(
         endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth },
       });
       if (!sub) {
-        console.warn("[send-operario-push] Suscripción inválida: envío omitido; registro conservado.");
+        logger.warn("push.subscription_invalid", { skipped: 1, stage: "parse" });
         return;
       }
       try {
@@ -99,10 +106,12 @@ export async function sendPushToOperario(
           // del encabezado. El operario tiene que poder recibir el próximo
           // aviso aunque la red se haya caído tres veces.
           bumpIds.push(s.id);
-          console.error(
-            "[send-operario-push] Fallo transitorio; se conserva la suscripción.",
-            { statusCode: typeof statusCode === "number" ? statusCode : null },
-          );
+          logger.error("push.delivery_failed", {
+            error: err,
+            failed: 1,
+            stage: "delivery",
+            status: typeof statusCode === "number" ? statusCode : 0,
+          });
         }
       }
     }),

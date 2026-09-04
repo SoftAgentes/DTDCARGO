@@ -17,6 +17,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { ensureVapid, webpush } from "./vapid";
 import type { PushPayload } from "./send-bug-push";
 import { parsePushSubscription, PUSH_SOCKET_TIMEOUT_MS } from "./push-subscription";
@@ -35,6 +39,7 @@ type Target =
 async function loadTargets(
   admin: SupabaseClient,
   userId: string,
+  logger: StructuredLogger,
 ): Promise<Target[]> {
   const { data: rows } = await admin
     .from("user_push_subscriptions")
@@ -45,7 +50,7 @@ async function loadTargets(
     .map((r) => {
       const sub = parsePushSubscription((r as { subscription: unknown }).subscription);
       if (!sub) {
-        console.warn("[send-user-push] Suscripción inválida: envío omitido; registro conservado.");
+        logger.warn("push.subscription_invalid", { skipped: 1, stage: "table" });
         return null;
       }
       return {
@@ -72,7 +77,7 @@ async function loadTargets(
   if (prefs?.channel_push && prefs.push_subscription) {
     const sub = parsePushSubscription(prefs.push_subscription);
     if (sub) return [{ source: "legacy", sub }];
-    console.warn("[send-user-push] Suscripción legacy inválida: envío omitido; registro conservado.");
+    logger.warn("push.subscription_invalid", { skipped: 1, stage: "legacy" });
   }
 
   return [];
@@ -82,10 +87,11 @@ export async function sendPushToUserDevices(
   admin: SupabaseClient,
   userId: string,
   payload: PushPayload,
+  logger: StructuredLogger = createComponentLogger("internal.send-user-push"),
 ): Promise<number> {
   if (!ensureVapid()) return 0;
 
-  const targets = await loadTargets(admin, userId);
+  const targets = await loadTargets(admin, userId, logger);
   if (targets.length === 0) return 0;
 
   const data = JSON.stringify({
@@ -118,10 +124,12 @@ export async function sendPushToUserDevices(
           if (t.source === "table") deadRowIds.push(t.rowId);
           else legacyDead = true;
         } else {
-          console.error(
-            "[send-user-push] Envío fallido; se conserva la suscripción.",
-            { statusCode: typeof statusCode === "number" ? statusCode : null },
-          );
+          logger.error("push.delivery_failed", {
+            error: err,
+            failed: 1,
+            stage: "delivery",
+            status: typeof statusCode === "number" ? statusCode : 0,
+          });
         }
       }
     }),

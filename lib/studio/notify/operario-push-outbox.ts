@@ -15,6 +15,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import type { PushPayload } from "./send-bug-push";
 import { sendPushToOperario } from "./send-operario-push";
 import { sendPushToUserDevices } from "./send-user-push";
@@ -33,6 +37,9 @@ export async function enqueueOperarioPush(
   tenantId: string,
   operarioId: string,
   payload: PushPayload,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.operario-push-outbox",
+  ),
 ): Promise<string | null> {
   try {
     const { data, error } = await admin.rpc("enqueue_operario_push", {
@@ -47,12 +54,12 @@ export async function enqueueOperarioPush(
       },
     });
     if (error) {
-      console.error("[operario-push-outbox] enqueue error:", error.message);
+      logger.error("push.enqueue_failed", { error, stage: "operario" });
       return null;
     }
     return (data as string | null) ?? null;
   } catch (err) {
-    console.error("[operario-push-outbox] enqueue threw:", err);
+    logger.error("push.enqueue_failed", { error: err, stage: "operario" });
     return null;
   }
 }
@@ -69,6 +76,9 @@ export async function enqueueUserPush(
   tenantId: string,
   userId: string,
   payload: PushPayload,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.operario-push-outbox",
+  ),
 ): Promise<string | null> {
   try {
     const { data, error } = await admin.rpc("enqueue_user_push", {
@@ -83,12 +93,12 @@ export async function enqueueUserPush(
       },
     });
     if (error) {
-      console.error("[operario-push-outbox] enqueue_user error:", error.message);
+      logger.error("push.enqueue_failed", { error, stage: "user" });
       return null;
     }
     return (data as string | null) ?? null;
   } catch (err) {
-    console.error("[operario-push-outbox] enqueue_user threw:", err);
+    logger.error("push.enqueue_failed", { error: err, stage: "user" });
     return null;
   }
 }
@@ -102,6 +112,9 @@ export async function enqueueUserPush(
  */
 export async function drainOperarioPushOutbox(
   admin: SupabaseClient,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.operario-push-outbox",
+  ),
 ): Promise<{ processed: number; delivered: number; failed: number }> {
   const { data: events, error } = await admin
     .from("outbox_push_events")
@@ -126,7 +139,12 @@ export async function drainOperarioPushOutbox(
     attempts: number;
   }>) {
     if (ev.target_type === "operario") {
-      const count = await sendPushToOperario(admin, ev.target_id, ev.payload);
+      const count = await sendPushToOperario(
+        admin,
+        ev.target_id,
+        ev.payload,
+        logger,
+      );
       if (count > 0) {
         await admin.rpc("mark_push_sent", { p_event_id: ev.id });
         delivered += 1;
@@ -147,7 +165,12 @@ export async function drainOperarioPushOutbox(
     } else if (ev.target_type === "user") {
       // SDD-0146 Fase 5: push a un user staff (todos sus dispositivos + fallback
       // jsonb legacy). sendPushToUserDevices ya borra las subs muertas (410/404).
-      const count = await sendPushToUserDevices(admin, ev.target_id, ev.payload);
+      const count = await sendPushToUserDevices(
+        admin,
+        ev.target_id,
+        ev.payload,
+        logger,
+      );
       if (count > 0) {
         await admin.rpc("mark_push_sent", { p_event_id: ev.id });
         delivered += 1;
@@ -155,7 +178,7 @@ export async function drainOperarioPushOutbox(
         // 0 entregas: si el user no tiene NINGUNA sub (ni tabla ni jsonb legacy),
         // marcar sent (sin destino → no reintentar 5 veces). Si aún tiene sub,
         // fue transitorio → bump attempts.
-        const hasSub = await userHasAnySubscription(admin, ev.target_id);
+        const hasSub = await userHasAnySubscription(admin, ev.target_id, logger);
         if (!hasSub) {
           await admin.rpc("mark_push_sent", { p_event_id: ev.id });
         } else {
@@ -166,9 +189,7 @@ export async function drainOperarioPushOutbox(
     } else {
       // Target desconocido: mark_sent con log (NUNCA bump en loop — el bump
       // viejo quemaba los 5 attempts en cada corrida del cron del minuto).
-      console.warn(
-        `[operario-push-outbox] target_type desconocido "${ev.target_type}" (evento ${ev.id}) → mark_sent`,
-      );
+      logger.warn("push.target_unknown", { skipped: 1, stage: "dispatch" });
       await admin.rpc("mark_push_sent", { p_event_id: ev.id });
     }
   }
@@ -185,6 +206,7 @@ export async function drainOperarioPushOutbox(
 async function userHasAnySubscription(
   admin: SupabaseClient,
   userId: string,
+  logger: StructuredLogger,
 ): Promise<boolean> {
   try {
     const { count } = await admin
@@ -203,7 +225,10 @@ async function userHasAnySubscription(
       }>();
     return !!(prefs?.channel_push && prefs.push_subscription);
   } catch (err) {
-    console.error("[operario-push-outbox] userHasAnySubscription threw:", err);
+    logger.error("push.subscription_read_failed", {
+      error: err,
+      stage: "subscription",
+    });
     return true; // fail-open: no perder el push por una lectura fallida.
   }
 }

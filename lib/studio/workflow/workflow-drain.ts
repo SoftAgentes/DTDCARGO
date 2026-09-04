@@ -19,6 +19,10 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
+import {
   COMMENT_ENTITY_TYPES,
   type CommentEntityType,
 } from "@/lib/studio/comments/types";
@@ -114,6 +118,7 @@ type RawDrainRow = {
 export async function drainWorkflowRuns(
   supabaseAdmin: SupabaseClient,
   limit = 100,
+  logger: StructuredLogger = createComponentLogger("internal.workflow-drain"),
 ): Promise<DrainResult> {
   const result: DrainResult = { processed: 0, noted: 0, deferred: 0, failed: 0 };
 
@@ -127,7 +132,7 @@ export async function drainWorkflowRuns(
     .limit(limit);
 
   if (error) {
-    console.error("[workflow-drain] read pending failed:", error.message);
+    logger.error("workflow.read_failed", { error, stage: "pending" });
     return result;
   }
 

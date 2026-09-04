@@ -1010,17 +1010,19 @@ están incluidos en aquel push.
   SDD-0418 añadió un logger Deno, correlacionó las 4/4 Edge Functions y eliminó
   doce logs libres, incluido el payload completo del dry-run de write-back.
   SDD-0419 propagó el correlador por cuatro crons de salud y retiró catorce logs
-  crudos de altas, Telegram, correo, SeaRates y brief. Acumulado: 17/17 handlers
-  cron, 4/4 Edge Functions, cinco internals de salud, cero `console.*` en esos
-  alcances y 7.381 pruebas completas. El inventario general aún cuenta 212
-  llamadas legacy fuera del logger canónico; esta casilla no se marca ni aumenta
-  el 59/106.
+  crudos de altas, Telegram, correo, SeaRates y brief. SDD-0420 retiró otros
+  trece logs de push, avisos al cliente y workflows, y propagó el correlador por
+  sus tres drains. Acumulado: 17/17 handlers cron, 4/4 Edge Functions, diez
+  internals adoptados, cero `console.*` en esos alcances y 7.389 pruebas
+  completas. El inventario general conserva otros módulos legacy; esta casilla
+  no se marca ni aumenta el 59/106.
   [Acta base](2026-09-04-structured-request-logging.md) y
   [workers drain](2026-09-04-structured-drain-crons.md) y
   [jobs programados](2026-09-04-structured-scheduled-crons.md), más
   [salud e integraciones](2026-09-04-structured-health-crons.md) y
   [Edge Functions Kommo](2026-09-04-structured-kommo-edge-observability.md), más
-  [internals de salud](2026-09-04-structured-health-internals.md).
+  [internals de salud](2026-09-04-structured-health-internals.md) e
+  [internals de workers](2026-09-04-structured-worker-internals.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.
