@@ -78,7 +78,7 @@ export default async function PortalLabelsPage({
 
   // Servicios de recepción (SDD-0098): menú activo + lo que el cliente ya pidió.
   const [addons, serviceRequests] = await Promise.all([
-    listActivePrealertaAddons(supabase),
+    listActivePrealertaAddons(supabase, { tenantId }),
     listPrealertaServiceRequests(supabase, {
       tenantId,
       prealertaId: prealerta.id,

@@ -33,7 +33,7 @@ export default async function PortalSuppliersPage() {
   const [suppliers, prealertas, addons] = await Promise.all([
     listSuppliers(supabase, { tenantId, markbox: client.markbox }),
     listPrealertas(supabase, { tenantId, markbox: client.markbox }),
-    listActivePrealertaAddons(supabase),
+    listActivePrealertaAddons(supabase, { tenantId }),
   ]);
 
   // Conteo de compras vivas por proveedor (para el próximo código y "N compras").

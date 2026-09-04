@@ -121,7 +121,12 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   principal válido y usaba identidad sin coherencia de tenant. El helper
   booleano nuevo liga principal+cliente+tenant+canal sin exponer filas; 175
   contratos SQL y rebuild 430 verdes. 0433 no aplicada.
-- Conteo original 56/106, 52,8 %. Ahora hay 33 migraciones preparadas 0401–0433,
+- SDD0402/0434 cerrado localmente: tres consumidores omitían tenant y el
+  catálogo aceptaba un vínculo tenant/cliente incoherente. RED 3/3 + RED SQL;
+  GREEN 21/21, Portal+Prealertas 1.086/1.086, suite global 7.292/7.292, 176 SQL
+  y rebuild 431. El inventario final deja cero policies con helpers históricos;
+  0434 no aplicada.
+- Conteo original 57/106, 53,8 %. Ahora hay 34 migraciones preparadas 0401–0434,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;
   el barrido SQL paralelo de esta ronda no entregó evidencia utilizable y no se

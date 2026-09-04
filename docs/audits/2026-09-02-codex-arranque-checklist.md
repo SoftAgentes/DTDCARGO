@@ -65,10 +65,12 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Consumidores de compras Portal, 0399 | Cerrado localmente: RED 12/12; focal/histórico 47/47 y Portal 928/928; tenant + Shipping Mark preservados; sin lecturas reales |
 | Cajas Portal RBAC, 0400/0432 | Cerrado localmente: cruce por vínculo incoherente reproducido y bloqueado; 174 SQL, rebuild 429 y policy de equipo preservada; 0432 sin aplicar |
 | Realtime de conversaciones Portal, 0401/0433 | Cerrado localmente: RED causal; 175 SQL, rebuild 430 y helper booleano ligado a principal+tenant; 0433 sin aplicar |
+| Catálogo de servicios Portal, 0402/0434 | Cerrado localmente: 3 RED de aplicación + RED SQL; 1.086 Portal/Prealertas, suite 7.292/7.292, 176 SQL y rebuild 431; 0434 sin aplicar |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
-La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.
-Las migraciones preparadas sin aplicar son ahora 33 (0401–0433), derivadas
+La cifra original avanza a 57/106 (53,8 %): se cerró la casilla existente de
+auditar las policies Portal por Shipping Mark/tenant, no se crearon subpasos.
+Las migraciones preparadas sin aplicar son ahora 34 (0401–0434), derivadas
 del último ledger 0400; no se hizo nueva consulta Cloud en esta continuación.
 Todos los recibos y cambios posteriores a 70812835 permanecen sólo locales.
 Las secciones inferiores conservan sus fechas/alcance históricos.
@@ -771,7 +773,7 @@ están incluidos en aquel push.
   venta. SDD-0357 cerró el SELECT interno y ligó Portal al tenant después de
   comprobar los consumidores financieros, Portal y procesos controlados de
   servicio. El inventario AST congela 18 archivos / 45 llamadas directas.
-- [ ] Auditar por dominio las otras policies Portal que comparan Shipping Mark
+- [x] Auditar por dominio las otras policies Portal que comparan Shipping Mark
   sin tenant. SDD-0357 cubre `invoices` y SDD-0359 cubre `shipments`,
   `shipment_documents` y `shipment_events`. SDD-0361 cubre `suppliers_cn`,
   `prealertas` y `prealerta_documents`. SDD-0362 cubre cursos, módulos, lecciones,
@@ -787,10 +789,12 @@ están incluidos en aquel push.
   SDD-0401/0433 cubre la entrega Realtime de `conversation_messages` mediante
   una autorización booleana ligada al principal, cliente, tenant y canal;
   preserva el acceso histórico de equipo/servicio y 0433 no está aplicada.
-  Faltan las demás entidades y permisos fuera de los contratos enumerados.
-  No hacer un sweep ni declarar corregido todo el
-  Portal por estos slices. Secuencias, transiciones y relación proveedor/cliente
-  son hipótesis separadas que necesitan reproducción, no fallos ya confirmados.
+  SDD-0402/0434 cubre el último residuo reconstruido: `prealerta_addons` y sus
+  tres consumidores. El inventario final clasifica 42 policies y deja cero
+  expresiones con los helpers históricos de cliente/Shipping Mark/tenant.
+  Esto cierra la auditoría de policies Portal enumerada, no todo el RBAC del ERP.
+  Secuencias, transiciones, integridad financiera y relación proveedor/cliente
+  fuera de esos contratos siguen como hipótesis que requieren reproducción.
 - [x] Retirar `service_role` de todos los RSC del Portal.
   SDD-0336 cerró el primer slice de marca: el baseline bajó de 11 rutas / 23
   construcciones a 10 rutas / 21 construcciones. SDD-0337 movió la visibilidad
