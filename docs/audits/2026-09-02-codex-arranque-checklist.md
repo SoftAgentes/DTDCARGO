@@ -78,7 +78,7 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Documentos sin transacción, 0412/0444 | `none` hereda Documentos, versionado gana su guard y tipos inventados fallan cerrados; 13 focales, 186 SQL y rebuild 441; 0444 sin aplicar |
 | CSP privada con nonce, 0413 | Cerrada localmente: RED de navegador detectó el script de tema sin nonce; GREEN 35/35, build 158 y Studio/Portal sin errores CSP; Marca y SSG público aislados |
 | Reconciliación de specs | Inventario corregido: 105 abiertas; SDD-0264, 0276 y 0287 cerradas con `origin/main`, pruebas y navegador/PDF real; quedan 102 |
-| Logs y web | Logger central + 17/17 crons + 4/4 Edge Functions; queda residuo interno legacy y medición web |
+| Logs y web | Logger central + 17/17 crons + 4/4 Edge Functions + Portal sin logs libres; queda residuo interno legacy y medición web |
 
 La cifra original avanza a 59/106 (55,7 %): además de la auditoría Portal y el
 RBAC por slices, la aplicación privada reemplaza scripts inline por nonce sin
@@ -1020,11 +1020,12 @@ están incluidos en aquel push.
   consulta/configuración de avisos. SDD-0425 estructuró las dos rutas, el opt-in
   y VAPID del Portal, con cinco logs menos. SDD-0426 retiró doce logs de las tres
   capas de acciones de Perfil. SDD-0427 retiró quince logs del módulo de acciones
-  de Proveedores/Prealertas y propagó su correlador por tres helpers. Acumulado:
-  17/17 handlers cron, 4/4 Edge Functions, veintidós internals y ocho superficies
-  Portal adicionales adoptadas, cero `console.*` en esos alcances y 7.422 pruebas
-  completas. El inventario general conserva otros módulos legacy; esta casilla
-  no se marca ni aumenta el 59/106.
+  de Proveedores/Prealertas y propagó su correlador por tres helpers. SDD-0428
+  retiró los tres residuos finales de Academia/error y cerró el inventario Portal.
+  Acumulado: 17/17 handlers cron, 4/4 Edge Functions, veintidós internals y diez
+  superficies Portal adicionales adoptadas, cero `console.*` en esos alcances y
+  7.426 pruebas completas. El inventario general conserva módulos legacy fuera
+  del Portal; esta casilla no se marca ni aumenta el 59/106.
   [Acta base](2026-09-04-structured-request-logging.md) y
   [workers drain](2026-09-04-structured-drain-crons.md) y
   [jobs programados](2026-09-04-structured-scheduled-crons.md), más
@@ -1038,7 +1039,8 @@ están incluidos en aquel push.
   y [queries de avisos](2026-09-04-structured-client-notification-queries.md),
   más [Web Push Portal](2026-09-04-structured-portal-push.md) y
   [acciones de Perfil](2026-09-04-structured-portal-profile-actions.md), más
-  [Proveedores/Prealertas](2026-09-04-structured-portal-suppliers-actions.md).
+  [Proveedores/Prealertas](2026-09-04-structured-portal-suppliers-actions.md) y
+  [cierre Portal](2026-09-04-structured-portal-completion.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.

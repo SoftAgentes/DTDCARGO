@@ -13,6 +13,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createComponentLogger } from "@/lib/observability/structured-logger";
 import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 
 export type LessonToggleResult =
@@ -25,6 +26,7 @@ export async function setLessonComplete(
   done: boolean,
 ): Promise<LessonToggleResult> {
   if (!courseId || !lessonId) return { ok: false, error: "Datos incompletos." };
+  const logger = createComponentLogger("portal.academy.lesson-progress");
 
   let supabase;
   try {
@@ -60,7 +62,11 @@ export async function setLessonComplete(
       { onConflict: "client_markbox,lesson_id", ignoreDuplicates: true },
     );
     if (error) {
-      console.error("[setLessonComplete] upsert error:", error);
+      logger.error("portal_academy.progress_failed", {
+        error,
+        operation: "complete",
+        stage: "write",
+      });
       return { ok: false, error: "No pudimos guardar tu progreso." };
     }
   } else {
@@ -72,7 +78,11 @@ export async function setLessonComplete(
       .eq("course_id", courseId)
       .eq("lesson_id", lessonId);
     if (error) {
-      console.error("[setLessonComplete] delete error:", error);
+      logger.error("portal_academy.progress_failed", {
+        error,
+        operation: "uncomplete",
+        stage: "write",
+      });
       return { ok: false, error: "No pudimos actualizar tu progreso." };
     }
   }

@@ -17,6 +17,9 @@
  */
 
 import { useEffect } from "react";
+import { createComponentLogger } from "@/lib/observability/structured-logger";
+
+const logger = createComponentLogger("portal.error-boundary");
 
 export default function PortalError({
   error,
@@ -26,7 +29,11 @@ export default function PortalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[portal/error-boundary]", error);
+    logger.error("portal.render_failed", {
+      error,
+      operation: "render",
+      stage: "boundary",
+    });
   }, [error]);
 
   return (
@@ -64,7 +71,7 @@ export default function PortalError({
         }}
       >
         Tuvimos un problema al mostrar esta sección. Tu información está a salvo y
-        no se perdió nada. Volvé a intentar en un momento; si sigue igual,
+        no se perdió nada. Vuelve a intentar en un momento; si sigue igual,
         escríbenos y lo resolvemos.
       </p>
 
