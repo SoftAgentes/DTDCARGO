@@ -1,10 +1,10 @@
 ---
 sdd: "0276"
 title: "Una sola puerta pública: /entrar unifica acceder y crear cuenta"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude Code"
 created: 2026-08-20
-updated: 2026-08-20
+updated: 2026-09-04
 supersedes: null
 superseded_by: null
 related: ["0061", "0094", "0225", "0253", "0259"]
@@ -18,7 +18,7 @@ confidencialidad: interno
 El sitio público pasa de **dos puertas de cuenta** a **una**. El nav lleva un
 único botón, **"Entrar o crear cuenta" → `/entrar`**, y esa pantalla ofrece
 **dos filas de peso comparable**: *Ingresar a mi portal* y *Crear mi cuenta y
-Shipping Mark*. `/portal/login` queda como 301 hacia `/entrar`.
+Shipping Mark*. `/portal/login` queda como 308 permanente hacia `/entrar`.
 
 Además se cierra el agujero que motivó el trabajo: **el estado "Revisa tu
 correo" gana una salida hacia el registro**, y la calculadora pública de
@@ -98,8 +98,8 @@ la etiqueta del nav conserva las dos intenciones y no se acorta a "Entrar".
   si el correo existe.
 - **`Nav`**: "Acceder" sale de escritorio y drawer; el botón único queda en las
   tres superficies. Docblock actualizado (supersede la jerarquía del 2026-07-31).
-- **`next.config.ts`**: nuevo 301 `/portal/login → /entrar`; `/track` y
-  `/track/:path*` se reapuntan **directo** a `/entrar` para no encadenar 301→301.
+- **`next.config.ts`**: nuevo 308 `/portal/login → /entrar`; `/track` y
+  `/track/:path*` se reapuntan **directo** a `/entrar` para no encadenar 308→308.
 - **25 archivos** con referencias a `/portal/login` reapuntados, incluidos los
   correos de bienvenida e invitación.
 - **`CalculadoraForm` + `TarifasTabs` + `/tarifas`**: bloque "crear mi cuenta"
@@ -132,7 +132,7 @@ ver la tarifa": `docs/marketing/adquisicion.md` lo desaconseja explícitamente.
 | 6 | Una sola acción primaria en pantalla (BTN-01 §2) | idem |
 | 7 | El CTA de la calculadora NO sale en el embed | `components/CalculadoraForm.cta-registro.test.tsx` |
 | 8 | El CTA va después del estimado | idem |
-| 9 | `/portal/login` → 301 `/entrar` conservando el query | `e2e/smoke.spec.ts` |
+| 9 | `/portal/login` → 308 `/entrar` conservando el query | `e2e/smoke.spec.ts` |
 | 10 | `/track` llega en UN salto | idem |
 | 11 | `/entrar` sin password, con las dos puertas visibles | `e2e/auth.spec.ts` |
 | 12 | La anti-enumeración sigue intacta | los 6 tests de `app/entrar/__tests__/actions.test.ts`, sin tocar |
@@ -224,3 +224,15 @@ cuenta" y **ningún importador**).
 `reportCalcEvent` tiene un payload tipado para el CTA de WhatsApp. Distinguir el
 CTA de cuenta pediría columna nueva y migración, así que **por ahora no sabremos
 cuánta gente lo usa**. Queda dicho, no resuelto en silencio.
+
+## Reconciliación de estado · 2026-09-04
+
+- La spec y la implementación están contenidas en `origin/main`.
+- Las 34 pruebas focales de nav, dos filas, CTA de tarifa y anti-enumeración
+  pasan; la suite completa vigente pasa 7.308/7.308 y el build genera 158 rutas.
+- Navegador de producción local confirmó las dos puertas visibles, cero errores
+  de consola y ausencia de scroll horizontal a 320, 375, 440 y 1024 px.
+- `/portal/login?email=sam%40ejemplo.com` responde 308 y termina en
+  `/entrar?email=sam%40ejemplo.com`; se corrigió la mención histórica a 301.
+- No requiere migración ni verificación Cloud. El hueco de telemetría del CTA es
+  explícitamente fuera de alcance y no invalida la puerta única entregada.

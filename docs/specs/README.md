@@ -294,7 +294,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0261 | En el portal el vino de marca deja de significar "error | proposed | interna |
 | 0262 | Confirmar el borrado de una dirección de entrega del cliente | in-progress | interna |
 | 0263 | El Studio tiene una primitiva de menú de acciones, y deja de … | in-progress | interna |
-| 0264 | La dirección de la bodega en Alibaba, medida contra el formul… | in-progress | interna |
+| 0264 | La dirección de la bodega en Alibaba, medida contra el formul… | done | interna |
 | 0265 | El listado de Clientes dice cuántos hay y deja llegar a los q… | in-progress | interna |
 | 0266 | La cabecera de Clientes deja de competir consigo misma | in-progress | interna |
 | 0267 | Clientes cierra sus tres huecos de accesibilidad — tabla, car… | in-progress | interna |
@@ -306,7 +306,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0273 | El rol y el alcance se cambian desde la ficha, con motivo y c… | in-progress | interna |
 | 0274 | Usuarios y roles en un solo lugar — la fila se calla, los per… | in-progress | interna |
 | 0275 | Los tres pendientes del rediseño de Usuarios, y un cuarto que… | in-progress | interna |
-| 0276 | Una sola puerta pública: /entrar unifica acceder y crear cuenta | in-progress | interno |
+| 0276 | Una sola puerta pública: /entrar unifica acceder y crear cuenta | done | interno |
 | 0277 | El replay de un branch efímero deja de morir en la 0355 | done | interno |
 | 0278 | El enlace de acceso al portal deja de mentir y de romperse po… | in-progress | interno |
 | 0279 | El cliente que ya es cliente deja de pedir un enlace que nadi… | in-progress | interno |

@@ -1,10 +1,10 @@
 ---
 sdd: 0264
 title: La dirección de la bodega en Alibaba, medida contra el formulario real
-status: in-progress
+status: done
 author: Claude (ventana 2026-08-14)
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-09-04
 supersedes: null
 superseded_by: null
 related: [0099]
@@ -126,3 +126,15 @@ Proveedores y Dashboard, y una lección de Academia): un solo cambio las cubre.
 - Revisión visual de `/faq` con el widget desplegado.
 - La medición de origen es reproducible: `logistics.alibaba.com/luyou/shipto`,
   «Agregar dirección» → «Ver más» → pegar la cadena → «Rellenar formulario».
+
+## Reconciliación de estado · 2026-09-04
+
+- La spec y su implementación están contenidas en `origin/main`; no existe delta
+  local de sus archivos de producto contra esa referencia.
+- El build vigente genera 158 rutas y la suite completa pasa 7.308/7.308.
+- En navegador de producción local se abrió `/faq`, se desplegó la pregunta de
+  Alibaba y se verificaron los dos pasos, `浙江省金华市义乌市…`, el distrito y
+  `林冠 DTD-XXXX`, sin errores de consola.
+- No requiere migración ni estado Cloud. La medición del formulario real de
+  Alibaba permanece como evidencia de origen de 2026-08-14; no se volvió a
+  ingresar a una cuenta externa para este cierre documental.

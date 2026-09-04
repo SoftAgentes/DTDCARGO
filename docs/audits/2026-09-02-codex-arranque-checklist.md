@@ -77,7 +77,8 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Adjuntos de Bitácora RBAC, 0411/0443 | `bitacora_task` + bucket propio heredan Bitácora; Soporte queda read-only también ante acceso directo; 185 SQL y rebuild 440; 0443 sin aplicar |
 | Documentos sin transacción, 0412/0444 | `none` hereda Documentos, versionado gana su guard y tipos inventados fallan cerrados; 13 focales, 186 SQL y rebuild 441; 0444 sin aplicar |
 | CSP privada con nonce, 0413 | Cerrada localmente: RED de navegador detectó el script de tema sin nonce; GREEN 35/35, build 158 y Studio/Portal sin errores CSP; Marca y SSG público aislados |
-| Specs, logs y web | Cola posterior; avances por alcance comprobado |
+| Reconciliación de specs | Inventario corregido: 105 abiertas; SDD-0264 y 0276 cerradas con `origin/main`, 34 focales y navegador; quedan 103 |
+| Logs y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original avanza a 59/106 (55,7 %): además de la auditoría Portal y el
 RBAC por slices, la aplicación privada reemplaza scripts inline por nonce sin
@@ -980,7 +981,10 @@ están incluidos en aquel push.
   acceso; 42 pruebas focales, 29 contratos adicionales y 6.032 pruebas completas
   en 530 archivos. TypeScript, ESLint y gates documentales aprobados.
   [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
-- [ ] Reconciliar las 94 specs no cerradas por rebanadas de dominio. Cambiar un
+- [ ] Reconciliar las specs no cerradas por rebanadas de dominio. El inventario
+  vigente encontró 105 reales, no 94; SDD-0264 y SDD-0276 ya cerraron con
+  evidencia en `origin/main`, pruebas y navegador, por lo que quedan 103.
+  [Primer slice](2026-09-04-spec-reconciliation-public-entry.md). Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
   SDD-0309 ya cerró su alcance de cobertura con siete criterios y tres
   mutaciones causales; operación real/RLS/SDD-0137 quedan fuera. No añade
