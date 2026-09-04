@@ -4,7 +4,7 @@
  * Avatar del cliente (SDD-0138 Slice D). Foto de perfil COSMÉTICA, editable
  * cuando quiera — separada de la foto de cédula (verificación, fila de
  * documento de Mi perfil). Mismo patrón de defensa que uploadCedulaPhotoAction:
- * identidad por SESIÓN (`get_portal_client_id`) → ADMIN client scopeado a ese id.
+ * principal por SESIÓN con tenant coherente → ADMIN scopeado a tenant e id.
  * Storage: bucket privado client-docs, sub-path avatar/ (migr 0199).
  *
  * Deploy-seguro: si la migración 0199 todavía no está aplicada, el select/update
@@ -19,21 +19,29 @@ import {
   validateAvatarFile,
   uploadClientAvatar,
 } from "@/lib/portal/client-photo";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 
 export type AvatarActionState = { ok?: boolean; error?: string };
+
+async function resolveActionPrincipal() {
+  try {
+    return await getPortalClientPrincipal(await createClient());
+  } catch {
+    return null;
+  }
+}
 
 export async function updateAvatarAction(
   _prev: AvatarActionState,
   formData: FormData,
 ): Promise<AvatarActionState> {
-  // 1. Identidad por sesión.
-  const supabase = await createClient();
-  const { data: portalClientId, error: idErr } =
-    await supabase.rpc("get_portal_client_id");
-  if (idErr || !portalClientId) {
+  // 1. Principal por sesión: vínculo activo, cliente vivo y tenant coherente.
+  const principal = await resolveActionPrincipal();
+  if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
-  const clientId = portalClientId as string;
+  const clientId = principal.client.id;
+  const tenantId = principal.tenantId;
 
   // 2. Validar la foto.
   const v = validateAvatarFile(formData.get("avatar"));
@@ -46,12 +54,14 @@ export async function updateAvatarAction(
     return { error: "No está disponible ahora. Prueba de nuevo en un rato." };
   }
 
-  // 3. Estado actual (scopeado al id verificado por sesión). Si la columna
+  // 3. Estado actual (scopeado al principal verificado). Si la columna
   //    avatar_path no existe todavía (migr 0199 sin aplicar) → mensaje amable.
   const { data: row, error: rowErr } = await admin
     .from("clients")
     .select("tenant_id, markbox, avatar_path")
+    .eq("tenant_id", tenantId)
     .eq("id", clientId)
+    .is("deleted_at", null)
     .maybeSingle<{ tenant_id: string; markbox: string; avatar_path: string | null }>();
   if (rowErr || !row) {
     return { error: "La foto de perfil no está disponible todavía." };
@@ -59,7 +69,7 @@ export async function updateAvatarAction(
   const oldPath = String(row.avatar_path ?? "").trim() || null;
 
   // 4. Subir el avatar nuevo.
-  const up = await uploadClientAvatar(admin, row.tenant_id, row.markbox, v.file);
+  const up = await uploadClientAvatar(admin, tenantId, row.markbox, v.file);
   if (up.error || !up.path) {
     console.error("[updateAvatarAction] upload error:", up.error);
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
@@ -69,7 +79,9 @@ export async function updateAvatarAction(
   const { error: updErr } = await admin
     .from("clients")
     .update({ avatar_path: up.path })
-    .eq("id", clientId);
+    .eq("tenant_id", tenantId)
+    .eq("id", clientId)
+    .is("deleted_at", null);
   if (updErr) {
     await admin.storage.from(PHOTO_BUCKET).remove([up.path]).catch(() => {});
     console.error("[updateAvatarAction] update error:", updErr);

@@ -41,11 +41,19 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   cubre los 105 `.tsx/.jsx` de producción; el layout usa una fachada
   `server-only` que eleva sólo después del principal. Focales 10/10, tipos,
   lint y suite 7.187/7.187 aprobados.
+- SDD0384 cerrado localmente: las cuatro acciones de Perfil aceptaban un client_id
+  de vínculo tenant/cliente incoherente. RED causal 9/12; ahora resuelven el
+  principal antes de elevar y fijan tenant, cliente vivo y source=client.
+  GREEN 13/13, conjunto Perfil 53/53 y suite 7.200/7.200 en 558 archivos;
+  tipos, lint focal, docs, numeración, gobernanza y componentes aprobados. Sin SQL.
+  Revisión de datos focal: minimización local correcta; retención/Storage real,
+  base y transferencia siguen no verificables sin autorización alojada.
 - Conteo original 56/106, 52,8 %. Ahora hay 30 migraciones preparadas 0401–0430,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
-- Inventario local efectivo: ocho policies en seis tablas aún usan helpers
- Portal antiguos. No todas declaradas vulnerables. Siguiente reproducción:
- perfil/client_change_requests en lectura, después RBAC/Portal restantes y specs/logger/CSP/web.
+- El inventario residual de Portal requiere una reproducción nueva por dominio;
+  el barrido SQL paralelo de esta ronda no entregó evidencia utilizable y no se
+  convierte en hallazgo. Siguiente: inventario local read-only de acciones/RPCs,
+  después RBAC/Portal restantes y specs/logger/CSP/web.
  Sin nuevas elecciones de tarea.
 - Sin push nuevo, main, deploy, datos reales ni limpieza final.
 

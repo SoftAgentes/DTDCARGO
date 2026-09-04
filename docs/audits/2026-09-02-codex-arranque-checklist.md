@@ -47,6 +47,7 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Solicitudes de servicios de recepción, 0381 | Cerrado localmente: cruce y reasignación bloqueados; 0429 preparada, 35 focales, 171 SQL y suite 7.173/7.173 |
 | Perfil y solicitudes de cambio, 0382 | Cerrado localmente: 0430, 70 focales, 172 SQL, rebuild 427 y suite 7.181/7.181 |
 | Frontera service_role Portal, 0383 | Cerrado localmente: 105 componentes cubiertos, guard/fachada 10/10 y suite 7.187/7.187 |
+| Acciones de Perfil Portal, 0384 | Cerrado localmente: RED causal 9/12; GREEN 13/13, Perfil 53/53 y suite 7.200/7.200 |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.
@@ -799,7 +800,10 @@ están incluidos en aquel push.
   tenía dos construcciones. El nuevo guard resuelve imports por AST en todos los
   `.tsx/.jsx` de producción y vuelve a dejar cero imports directos; las dos
   lecturas del layout quedaron en una fachada `server-only` probada. Este cero
-  no certifica dependencias transitivas ni Server Actions.
+  no certifica dependencias transitivas ni Server Actions. SDD-0384 tomó el
+  primer slice de acciones: Perfil ya deriva principal coherente antes de
+  elevar y fija tenant/cliente/origen en fotos y solicitudes. La reproducción
+  causal, 53 pruebas de Perfil y la suite 7.200/7.200 pasan.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
   logout sin esa decisión puede perder entregas pendientes.

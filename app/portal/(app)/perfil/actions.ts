@@ -7,10 +7,10 @@
  * pendiente. La dirección canónica vive en `client_delivery_addresses`
  * (SDD-0138 · address-actions.ts) y el resto de los datos los media el asesor.
  *
- * Misma defensa en profundidad que el resto del portal: identidad por SESIÓN
- * (`get_portal_client_id`, helper aislada) → escritura con ADMIN client
- * (service_role) scopeada EXPLÍCITO a ese id (la RLS del portal es read-only
- * para `clients`; el cliente nunca toca el bucket privado directo). Rollback de
+ * Misma defensa en profundidad que el resto del portal: principal por SESIÓN
+ * con vínculo cliente/tenant coherente → escritura con ADMIN client
+ * (service_role) scopeada EXPLÍCITO a ese tenant e id (la RLS del portal es
+ * read-only para `clients`; el cliente nunca toca el bucket privado directo). Rollback de
  * la foto recién subida si el update falla (no dejar huérfana) + borrado
  * best-effort de la reemplazada (no dejar PII colgada).
  */
@@ -28,7 +28,7 @@ import {
   type ClientDocKind,
 } from "@/lib/studio/client-types";
 import { normalizePhone } from "@/lib/studio/estimado-linking";
-import { getOpenChangeRequest } from "@/lib/portal/change-request-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   buildChangeRequestDiff,
   mapChangeRequestRow,
@@ -38,18 +38,25 @@ import { notifyChangeRequestToAdmin } from "@/lib/studio/change-request-notify";
 
 export type CedulaPhotoActionState = { ok?: boolean; error?: string };
 
+async function resolveActionPrincipal() {
+  try {
+    return await getPortalClientPrincipal(await createClient());
+  } catch {
+    return null;
+  }
+}
+
 export async function uploadCedulaPhotoAction(
   _prev: CedulaPhotoActionState,
   formData: FormData,
 ): Promise<CedulaPhotoActionState> {
-  // 1. Identidad por SESIÓN: el client_id del portal logueado.
-  const supabase = await createClient();
-  const { data: portalClientId, error: idErr } =
-    await supabase.rpc("get_portal_client_id");
-  if (idErr || !portalClientId) {
+  // 1. Principal por SESIÓN: vínculo activo, cliente vivo y tenant coherente.
+  const principal = await resolveActionPrincipal();
+  if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
-  const clientId = portalClientId as string;
+  const clientId = principal.client.id;
+  const tenantId = principal.tenantId;
 
   // 2. Validar la foto (obligatoria: esta action ES la subida de la foto).
   const v = validatePhotoFile(formData.get("cedula_photo"));
@@ -62,12 +69,14 @@ export async function uploadCedulaPhotoAction(
     return { error: "No está disponible ahora. Prueba de nuevo en un rato." };
   }
 
-  // 3. Estado actual (scopeado al id verificado por sesión): tenant + markbox
+  // 3. Estado actual (scopeado al principal verificado): tenant + markbox
   //    para el path y si ya había una foto (reemplazo).
   const { data: row, error: rowErr } = await admin
     .from("clients")
     .select("tenant_id, markbox, cedula_photo_path")
+    .eq("tenant_id", tenantId)
     .eq("id", clientId)
+    .is("deleted_at", null)
     .maybeSingle<{
       tenant_id: string;
       markbox: string;
@@ -79,7 +88,7 @@ export async function uploadCedulaPhotoAction(
   const oldPath = String(row.cedula_photo_path ?? "").trim() || null;
 
   // 4. Subir la foto nueva al bucket privado (path nuevo por subida).
-  const up = await uploadClientPhoto(admin, row.tenant_id, row.markbox, v.file);
+  const up = await uploadClientPhoto(admin, tenantId, row.markbox, v.file);
   if (up.error || !up.path) {
     console.error("[uploadCedulaPhotoAction] upload error:", up.error);
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
@@ -89,7 +98,9 @@ export async function uploadCedulaPhotoAction(
   const { error: updErr } = await admin
     .from("clients")
     .update({ cedula_photo_path: up.path })
-    .eq("id", clientId);
+    .eq("tenant_id", tenantId)
+    .eq("id", clientId)
+    .is("deleted_at", null);
   if (updErr) {
     await admin.storage.from(PHOTO_BUCKET).remove([up.path]).catch(() => {});
     console.error("[uploadCedulaPhotoAction] update error:", updErr);
@@ -118,21 +129,20 @@ export type ChangeRequestActionState = {
  * El cliente PROPONE un cambio a sus datos de identidad (nombre, cédula/RIF,
  * teléfono). No escribe `clients`: crea una solicitud PENDING que el asesor
  * aprueba en el Studio. Mismo blindaje que el resto del portal: identidad por
- * SESIÓN (`get_portal_client_id`) → escritura con ADMIN client (service_role)
- * scopeada a ese id. Solo persiste los campos que CAMBIAN (diff), snapshotea los
+ * SESIÓN con vínculo cliente/tenant coherente → escritura con ADMIN client
+ * (service_role) scopeada a ese tenant e id. Solo persiste los campos que CAMBIAN (diff), snapshotea los
  * valores previos, y rechaza si ya hay una solicitud abierta (una a la vez).
  */
 export async function submitDataChangeRequestAction(
   _prev: ChangeRequestActionState,
   formData: FormData,
 ): Promise<ChangeRequestActionState> {
-  const supabase = await createClient();
-  const { data: portalClientId, error: idErr } =
-    await supabase.rpc("get_portal_client_id");
-  if (idErr || !portalClientId) {
+  const principal = await resolveActionPrincipal();
+  if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
-  const clientId = portalClientId as string;
+  const clientId = principal.client.id;
+  const tenantId = principal.tenantId;
 
   let admin;
   try {
@@ -141,11 +151,13 @@ export async function submitDataChangeRequestAction(
     return { error: "No está disponible ahora. Prueba de nuevo en un rato." };
   }
 
-  // Estado actual (scopeado al id verificado por sesión).
+  // Estado actual (scopeado al principal verificado por sesión).
   const { data: row, error: rowErr } = await admin
     .from("clients")
     .select("tenant_id, markbox, name, rif, phone, doc_kind, advisor_id")
+    .eq("tenant_id", tenantId)
     .eq("id", clientId)
+    .is("deleted_at", null)
     .maybeSingle<{
       tenant_id: string;
       markbox: string;
@@ -160,7 +172,17 @@ export async function submitDataChangeRequestAction(
   }
 
   // Una sola solicitud abierta (refleja el índice único parcial; UX antes del 23505).
-  const open = await getOpenChangeRequest(admin, clientId);
+  const { data: open, error: openErr } = await admin
+    .from("client_change_requests")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("client_id", clientId)
+    .eq("source", "client")
+    .eq("status", "pending")
+    .maybeSingle<{ id: string }>();
+  if (openErr) {
+    return { error: "No pudimos revisar tu solicitud. Prueba de nuevo." };
+  }
   if (open) {
     return {
       error:
@@ -221,7 +243,7 @@ export async function submitDataChangeRequestAction(
   const { data: inserted, error: insErr } = await admin
     .from("client_change_requests")
     .insert({
-      tenant_id: row.tenant_id,
+      tenant_id: tenantId,
       client_id: clientId,
       proposed_name: proposedName,
       proposed_rif: proposedRif,
@@ -230,9 +252,10 @@ export async function submitDataChangeRequestAction(
       prev_rif: row.rif,
       prev_phone: row.phone,
       status: "pending",
+      source: "client",
     })
     .select(
-      "id, tenant_id, client_id, proposed_name, proposed_rif, proposed_phone, prev_name, prev_rif, prev_phone, status, submitted_at, reviewed_at, reviewed_by, review_note",
+      "id, tenant_id, client_id, proposed_name, proposed_rif, proposed_phone, prev_name, prev_rif, prev_phone, status, source, submitted_at, reviewed_at, reviewed_by, review_note",
     )
     .single();
 
@@ -253,7 +276,7 @@ export async function submitDataChangeRequestAction(
     inserted as Parameters<typeof mapChangeRequestRow>[0],
   );
   await notifyChangeRequestToAdmin(admin, {
-    tenantId: row.tenant_id,
+    tenantId,
     markbox: row.markbox,
     clientName: row.name ?? row.markbox,
     advisorId: row.advisor_id,
@@ -275,13 +298,12 @@ export async function cancelDataChangeRequestAction(
   prev: ChangeRequestActionState,
 ): Promise<ChangeRequestActionState> {
   void prev;
-  const supabase = await createClient();
-  const { data: portalClientId, error: idErr } =
-    await supabase.rpc("get_portal_client_id");
-  if (idErr || !portalClientId) {
+  const principal = await resolveActionPrincipal();
+  if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
-  const clientId = portalClientId as string;
+  const clientId = principal.client.id;
+  const tenantId = principal.tenantId;
 
   let admin;
   try {
@@ -293,7 +315,9 @@ export async function cancelDataChangeRequestAction(
   const { error: delErr } = await admin
     .from("client_change_requests")
     .delete()
+    .eq("tenant_id", tenantId)
     .eq("client_id", clientId)
+    .eq("source", "client")
     .eq("status", "pending");
   if (delErr) {
     console.error("[cancelDataChangeRequestAction] delete error:", delErr);
