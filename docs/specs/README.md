@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 400 specs)
+### Índice de specs (generado · 401 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -438,6 +438,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0406 | Documentos de gastos con autorización por módulo | done | interno |
 | 0407 | Documentos de envíos con autorización de Tracking | done | interno |
 | 0408 | Documentos de clientes con autorización del módulo Clientes | done | interno |
+| 0409 | Documentos de proveedores con autorización del módulo Proveed… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
