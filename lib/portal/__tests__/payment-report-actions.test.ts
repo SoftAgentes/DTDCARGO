@@ -86,8 +86,14 @@ function setupIo(
     directWrites: 0,
     commands: [] as { name: string; args: Record<string, unknown> }[],
   };
-  const portalClient = { id: CLIENT_ID, markbox: MARKBOX, name: "Cliente sintético" };
+  const portalClient = {
+    id: CLIENT_ID, tenant_id: TENANT_ID, markbox: MARKBOX,
+    name: "Cliente sintético", deleted_at: null,
+  };
   const session = {
+    auth: { getUser: async () => ({
+      data: { user: { id: "auth-synthetic" } }, error: null,
+    }) },
     rpc: async (name: string, args: Record<string, unknown> = {}) => {
       if (name === "get_portal_client_id") return { data: CLIENT_ID, error: null };
       state.commands.push({ name, args });
@@ -106,6 +112,10 @@ function setupIo(
       throw new Error(`RPC no simulada: ${name}`);
     },
     from: (table: string) => {
+      if (table === "client_users") return replyBuilder(() => ({ data: {
+        auth_user_id: "auth-synthetic", status: "active", client_id: CLIENT_ID,
+        tenant_id: TENANT_ID, clients: portalClient,
+      }, error: null }));
       if (table === "clients") return replyBuilder(() => ({ data: portalClient, error: null }));
       if (table === "payment_reports") {
         state.cancellationTableCalls += 1;

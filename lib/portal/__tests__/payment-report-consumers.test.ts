@@ -60,7 +60,12 @@ function io(options: { portal?: boolean; role?: string | null; disabled?: boolea
     const result = (single = false): Reply => {
       if (source === "admin" && options.preflightError === table) return { data: null, count: null, error: { code: "57014", message: PRIVATE } };
       if (countOnly) return { data: null, count: options.pending === undefined ? 0 : options.pending, error: null };
-      const candidates: Row[] = table === "clients" ? [client] : table === "invoices" ? [invoice]
+      const candidates: Row[] = table === "client_users"
+        ? (options.portal === false ? [] : [{
+            auth_user_id: ACTOR, status: "active", client_id: CLIENT,
+            tenant_id: TENANT, clients: client,
+          }])
+        : table === "clients" ? [client] : table === "invoices" ? [invoice]
         : table === "payment_reports" ? state.reports : table === "user_tenants"
           ? [{ user_id: ACTOR, tenant_id: TENANT, role: options.role === undefined ? "accounting" : options.role,
             disabled_at: options.disabled ? "2026-09-01" : null, warehouse_scope: "all" }]

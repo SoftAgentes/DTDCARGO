@@ -32,7 +32,11 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   add-ons. Corrige sólo tres policies Portal y el ámbito de su consulta; equipo
   preservado. Soft delete propio 42501 es deuda previa separada. Pasaron 100
   aserciones focales, 171 contratos SQL, rebuild 426 y 7.173/7.173 unitarios.
-- Conteo original 56/106, 52,8 %. Ahora hay 29 migraciones preparadas 0401–0429,
+- SDD0382/0430 cerrado localmente: perfil y solicitudes de cambio exigen principal vivo
+  y tenant coherente; la rama Portal excluye trazas `source='admin'` sin cambiar
+  los derechos de equipo. RED SQL y aplicación causales; 40 aserciones SQL,
+  70 focales, 172 contratos, rebuild 427 y 7.181/7.181 unitarios aprobados.
+- Conteo original 56/106, 52,8 %. Ahora hay 30 migraciones preparadas 0401–0430,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - Inventario local efectivo: ocho policies en seis tablas aún usan helpers
  Portal antiguos. No todas declaradas vulnerables. Siguiente reproducción:

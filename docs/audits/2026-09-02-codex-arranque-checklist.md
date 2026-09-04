@@ -45,10 +45,11 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | fflate/replay,0379 | Parche compatible y controles aprobados; commit ef6101c4 local |
 | Cotizaciones Portal,0380 | Aislamiento de lectura SQL y aplicación corregido;0428 no aplicada |
 | Solicitudes de servicios de recepción, 0381 | Cerrado localmente: cruce y reasignación bloqueados; 0429 preparada, 35 focales, 171 SQL y suite 7.173/7.173 |
+| Perfil y solicitudes de cambio, 0382 | Cerrado localmente: 0430, 70 focales, 172 SQL, rebuild 427 y suite 7.181/7.181 |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.
-Las migraciones preparadas sin aplicar son ahora 29 (0401–0429), derivadas
+Las migraciones preparadas sin aplicar son ahora 30 (0401–0430), derivadas
 del último ledger 0400; no se hizo nueva consulta Cloud en esta continuación.
 Todos los recibos y cambios posteriores a 70812835 permanecen sólo locales.
 Las secciones inferiores conservan sus fechas/alcance históricos.
