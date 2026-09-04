@@ -23,6 +23,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 import { getBugDetail } from "@/lib/studio/bug-queries";
@@ -58,6 +62,7 @@ export async function recordBugNotifChannelFailure(
   channel: OutboxChannel,
   attemptsSoFar: number,
   error: unknown,
+  logger: StructuredLogger = createComponentLogger("internal.bug-notif-outbox"),
 ): Promise<void> {
   try {
     await admin
@@ -68,7 +73,11 @@ export async function recordBugNotifChannelFailure(
       })
       .eq("id", notifId);
   } catch (err) {
-    console.error("[bug-notif-outbox] recordChannelFailure threw:", err);
+    logger.error("bug_notification.outbox_write_failed", {
+      error: err,
+      operation: "record_failure",
+      stage: channel,
+    });
   }
 }
 
@@ -77,6 +86,7 @@ async function recordBugNotifChannelSuccess(
   admin: SupabaseClient,
   notifId: string,
   channel: OutboxChannel,
+  logger: StructuredLogger,
 ): Promise<void> {
   try {
     await admin
@@ -87,13 +97,18 @@ async function recordBugNotifChannelSuccess(
       })
       .eq("id", notifId);
   } catch (err) {
-    console.error("[bug-notif-outbox] recordChannelSuccess threw:", err);
+    logger.error("bug_notification.outbox_write_failed", {
+      error: err,
+      operation: "record_success",
+      stage: channel,
+    });
   }
 }
 
 /** Reintenta las filas con email pendiente (ya falló ≥1 vez, < MAX intentos). */
 async function drainEmailOutbox(
   admin: SupabaseClient,
+  logger: StructuredLogger,
 ): Promise<{ processed: number; delivered: number; failed: number }> {
   const { data, error } = await admin
     .from("bug_notifications")
@@ -127,6 +142,7 @@ async function drainEmailOutbox(
         "email",
         MAX_BUG_NOTIF_ATTEMPTS,
         "sin bug_id — no reconstruible",
+        logger,
       );
       failed += 1;
       continue;
@@ -140,6 +156,7 @@ async function drainEmailOutbox(
         "email",
         MAX_BUG_NOTIF_ATTEMPTS,
         "el bug ya no existe",
+        logger,
       );
       failed += 1;
       continue;
@@ -153,6 +170,7 @@ async function drainEmailOutbox(
         "email",
         MAX_BUG_NOTIF_ATTEMPTS,
         "el destinatario no tiene email",
+        logger,
       );
       failed += 1;
       continue;
@@ -184,7 +202,7 @@ async function drainEmailOutbox(
     });
 
     if (result.ok) {
-      await recordBugNotifChannelSuccess(admin, row.id, "email");
+      await recordBugNotifChannelSuccess(admin, row.id, "email", logger);
       delivered += 1;
     } else {
       await recordBugNotifChannelFailure(
@@ -193,6 +211,7 @@ async function drainEmailOutbox(
         "email",
         row.email_attempts,
         result.error,
+        logger,
       );
       failed += 1;
     }
@@ -204,6 +223,7 @@ async function drainEmailOutbox(
 /** Reintenta las filas con Telegram pendiente (ya falló ≥1 vez, < MAX intentos). */
 async function drainTelegramOutbox(
   admin: SupabaseClient,
+  logger: StructuredLogger,
 ): Promise<{ processed: number; delivered: number; failed: number }> {
   const { data, error } = await admin
     .from("bug_notifications")
@@ -242,6 +262,7 @@ async function drainTelegramOutbox(
         "telegram",
         MAX_BUG_NOTIF_ATTEMPTS,
         "sin telegram_chat_id",
+        logger,
       );
       failed += 1;
       continue;
@@ -254,7 +275,7 @@ async function drainTelegramOutbox(
 
     const result = await sendTelegramMessage(chatId, text);
     if (result.ok) {
-      await recordBugNotifChannelSuccess(admin, row.id, "telegram");
+      await recordBugNotifChannelSuccess(admin, row.id, "telegram", logger);
       delivered += 1;
     } else {
       await recordBugNotifChannelFailure(
@@ -263,6 +284,7 @@ async function drainTelegramOutbox(
         "telegram",
         row.telegram_attempts,
         result.error,
+        logger,
       );
       failed += 1;
     }
@@ -272,11 +294,14 @@ async function drainTelegramOutbox(
 }
 
 /** Drena email + Telegram pendientes. Lo llama el cron cada 5 min. */
-export async function drainBugNotificationOutbox(admin: SupabaseClient): Promise<{
+export async function drainBugNotificationOutbox(
+  admin: SupabaseClient,
+  logger: StructuredLogger = createComponentLogger("internal.bug-notif-outbox"),
+): Promise<{
   email: { processed: number; delivered: number; failed: number };
   telegram: { processed: number; delivered: number; failed: number };
 }> {
-  const email = await drainEmailOutbox(admin);
-  const telegram = await drainTelegramOutbox(admin);
+  const email = await drainEmailOutbox(admin, logger);
+  const telegram = await drainTelegramOutbox(admin, logger);
   return { email, telegram };
 }

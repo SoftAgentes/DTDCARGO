@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const admin = createAdminClient();
-    const result = await drainBugNotificationOutbox(admin);
+    const result = await drainBugNotificationOutbox(admin, cron.logger);
     return cron.complete(
       { ok: true, ...result },
       {

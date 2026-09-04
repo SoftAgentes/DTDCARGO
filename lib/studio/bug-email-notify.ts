@@ -12,7 +12,7 @@
  *   3. Telegram · sendBugTelegramToUser (Bot API)
  *
  * Diseño:
- *  - Best-effort por canal: cada falla se loguea a console.error pero
+ *  - Best-effort por canal: cada falla genera telemetría estructurada pero
  *    NO rompe la operación principal del bug ni los otros canales.
  *  - Cada evento respeta `user_notification_prefs` del destinatario (Fase 5 V1):
  *    se cargan una vez por destinatario y se ramifica por `channel_*` +
@@ -38,6 +38,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import {
   enqueueUserPush,
@@ -162,6 +166,7 @@ async function resolveChannels(
   supabaseAdmin: SupabaseClient,
   userId: string,
   type: BugNotifType,
+  logger: StructuredLogger,
 ): Promise<ChannelDecision> {
   let prefs: UserNotificationPrefs | null = null;
   try {
@@ -172,7 +177,10 @@ async function resolveChannels(
       .maybeSingle();
     prefs = (data as UserNotificationPrefs | null) ?? null;
   } catch (err) {
-    console.error("[bug-email-notify] resolveChannels prefs read failed:", err);
+    logger.error("bug_notification.preferences_read_failed", {
+      error: err,
+      stage: "preferences",
+    });
   }
   return computeChannelDecision(prefs, type);
 }
@@ -192,6 +200,7 @@ async function stampDelivered(
     | "delivered_email_at"
     | "delivered_push_at"
     | "delivered_telegram_at",
+  logger: StructuredLogger,
 ): Promise<void> {
   if (!notifId) return;
   try {
@@ -200,7 +209,10 @@ async function stampDelivered(
       .update({ [column]: new Date().toISOString() })
       .eq("id", notifId);
   } catch (err) {
-    console.error("[bug-email-notify] stampDelivered failed:", err);
+    logger.error("bug_notification.delivery_stamp_failed", {
+      error: err,
+      stage: "outbox",
+    });
   }
 }
 
@@ -216,13 +228,17 @@ export async function notifyBugCreatedToAdmin(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
   bug: MinimalBugForNotify,
+  logger: StructuredLogger = createComponentLogger("internal.bug-email-notify"),
 ): Promise<void> {
   if (bug.severity !== "alta" && bug.severity !== "critica") return;
 
   try {
     const admins = await resolveAdminEntries(supabaseAdmin, tenantId);
     if (admins.length === 0) {
-      console.warn("[bug-email-notify] No hay admins para notificar bug", bug.folio);
+      logger.warn("bug_notification.recipient_missing", {
+        skipped: 1,
+        stage: "admin",
+      });
       return;
     }
 
@@ -246,13 +262,18 @@ export async function notifyBugCreatedToAdmin(
       supabaseAdmin,
       tenantId,
       "bugs",
+      logger,
     );
     if (routedBugChats.length > 0) {
       const text = `${notifLabel} · ${bug.folio}\n\n${bug.title}\nReportado por ${reporterName}.\n\n${SITE_URL}${bugUrlPath}`;
       for (const chatId of routedBugChats) {
         const res = await sendTelegramMessage(chatId, text);
         if (!res.ok) {
-          console.error("[bug-email-notify] telegram ruteado falló:", res.error);
+          logger.error("bug_notification.delivery_failed", {
+            error: res.error,
+            failed: 1,
+            stage: "telegram_routed",
+          });
         }
       }
     }
@@ -262,6 +283,7 @@ export async function notifyBugCreatedToAdmin(
         supabaseAdmin,
         admin.user_id,
         "critical_alert",
+        logger,
       );
 
       // Fila del outbox: ancla de retry para email/push/telegram (P3), no solo
@@ -290,19 +312,36 @@ export async function notifyBugCreatedToAdmin(
 
       // Email (puede skip-ar si Resend no está configurado) · fallo → outbox P3.
       if (channels.email) {
-        const result = await sendBugNotification(supabaseAdmin, tenantId, {
-          to: admin.email,
-          bug,
-          notifTypeLabel: notifLabel,
-          recipientName: "Equipo admin",
-          messageExcerpt: excerpt,
-          bugUrlPath,
-          actionLabel,
-        });
+        const result = await sendBugNotification(
+          supabaseAdmin,
+          tenantId,
+          {
+            to: admin.email,
+            bug,
+            notifTypeLabel: notifLabel,
+            recipientName: "Equipo admin",
+            messageExcerpt: excerpt,
+            bugUrlPath,
+            actionLabel,
+          },
+          logger,
+        );
         if (result.ok) {
-          await stampDelivered(supabaseAdmin, notifId, "delivered_email_at");
+          await stampDelivered(
+            supabaseAdmin,
+            notifId,
+            "delivered_email_at",
+            logger,
+          );
         } else if (notifId) {
-          await recordBugNotifChannelFailure(supabaseAdmin, notifId, "email", 0, result.error);
+          await recordBugNotifChannelFailure(
+            supabaseAdmin,
+            notifId,
+            "email",
+            0,
+            result.error,
+            logger,
+          );
         }
       }
 
@@ -310,16 +349,27 @@ export async function notifyBugCreatedToAdmin(
       // (outbox_push_events + cron push-drain cada minuto) en vez de mandar
       // directo — 5 reintentos gratis, sin infraestructura nueva (P3).
       if (channels.push) {
-        const pushId = await enqueueUserPush(supabaseAdmin, tenantId, admin.user_id, {
-          title: `${notifLabel} · ${bug.folio}`,
-          body: `${bug.title} — reportado por ${reporterName}`,
-          url: bugUrlPath,
-          tag: `bug-${bug.id}`,
-          requireInteraction: bug.severity === "critica",
-        });
+        const pushId = await enqueueUserPush(
+          supabaseAdmin,
+          tenantId,
+          admin.user_id,
+          {
+            title: `${notifLabel} · ${bug.folio}`,
+            body: `${bug.title} — reportado por ${reporterName}`,
+            url: bugUrlPath,
+            tag: `bug-${bug.id}`,
+            requireInteraction: bug.severity === "critica",
+          },
+          logger,
+        );
         if (pushId) {
-          await drainOperarioPushOutbox(supabaseAdmin); // near-instant; cron es backstop
-          await stampDelivered(supabaseAdmin, notifId, "delivered_push_at");
+          await drainOperarioPushOutbox(supabaseAdmin, logger); // near-instant; cron es backstop
+          await stampDelivered(
+            supabaseAdmin,
+            notifId,
+            "delivered_push_at",
+            logger,
+          );
         }
       }
 
@@ -327,20 +377,40 @@ export async function notifyBugCreatedToAdmin(
       // Sólo cuando la categoría `bugs` no tiene destino: si lo tiene, el aviso
       // ya salió arriba y repetirlo acá sería el duplicado que cierra SDD-0271.
       if (channels.telegram && routedBugChats.length === 0) {
-        const result = await sendBugTelegramToUser(supabaseAdmin, admin.user_id, {
-          title: `${notifLabel} · ${bug.folio}`,
-          body: `${bug.title}\nReportado por ${reporterName}.`,
-          url: `${SITE_URL}${bugUrlPath}`,
-        });
+        const result = await sendBugTelegramToUser(
+          supabaseAdmin,
+          admin.user_id,
+          {
+            title: `${notifLabel} · ${bug.folio}`,
+            body: `${bug.title}\nReportado por ${reporterName}.`,
+            url: `${SITE_URL}${bugUrlPath}`,
+          },
+          logger,
+        );
         if (result.ok) {
-          await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
+          await stampDelivered(
+            supabaseAdmin,
+            notifId,
+            "delivered_telegram_at",
+            logger,
+          );
         } else if (notifId) {
-          await recordBugNotifChannelFailure(supabaseAdmin, notifId, "telegram", 0, result.error);
+          await recordBugNotifChannelFailure(
+            supabaseAdmin,
+            notifId,
+            "telegram",
+            0,
+            result.error,
+            logger,
+          );
         }
       }
     }
   } catch (err) {
-    console.error("[bug-email-notify] notifyBugCreatedToAdmin failed:", err);
+    logger.error("bug_notification.handler_failed", {
+      error: err,
+      stage: "created",
+    });
   }
 }
 
@@ -353,6 +423,7 @@ export async function notifyBugStateChangeToReporter(
   tenantId: string,
   bug: MinimalBugForNotify,
   actorId: string,
+  logger: StructuredLogger = createComponentLogger("internal.bug-email-notify"),
 ): Promise<void> {
   if (actorId === bug.reporter_id) return;
 
@@ -368,6 +439,7 @@ export async function notifyBugStateChangeToReporter(
       supabaseAdmin,
       bug.reporter_id,
       notifType,
+      logger,
     );
 
     const excerpt = "El admin actualizó el estado de tu reporte.";
@@ -393,49 +465,97 @@ export async function notifyBugStateChangeToReporter(
       : null;
 
     if (channels.email && reporterEmail) {
-      const result = await sendBugNotification(supabaseAdmin, tenantId, {
-        to: reporterEmail,
-        bug,
-        notifTypeLabel: notifLabel,
-        recipientName: reporterName,
-        messageExcerpt: excerpt,
-        bugUrlPath,
-        actionLabel,
-      });
+      const result = await sendBugNotification(
+        supabaseAdmin,
+        tenantId,
+        {
+          to: reporterEmail,
+          bug,
+          notifTypeLabel: notifLabel,
+          recipientName: reporterName,
+          messageExcerpt: excerpt,
+          bugUrlPath,
+          actionLabel,
+        },
+        logger,
+      );
       if (result.ok) {
-        await stampDelivered(supabaseAdmin, notifId, "delivered_email_at");
+        await stampDelivered(
+          supabaseAdmin,
+          notifId,
+          "delivered_email_at",
+          logger,
+        );
       } else if (notifId) {
-        await recordBugNotifChannelFailure(supabaseAdmin, notifId, "email", 0, result.error);
+        await recordBugNotifChannelFailure(
+          supabaseAdmin,
+          notifId,
+          "email",
+          0,
+          result.error,
+          logger,
+        );
       }
     }
 
     if (channels.push) {
-      const pushId = await enqueueUserPush(supabaseAdmin, tenantId, bug.reporter_id, {
-        title: `${bug.folio} · ${stateLabel}`,
-        body: `Tu reporte "${bug.title}" cambió a ${stateLabel}.`,
-        url: bugUrlPath,
-        tag: `bug-${bug.id}`,
-      });
+      const pushId = await enqueueUserPush(
+        supabaseAdmin,
+        tenantId,
+        bug.reporter_id,
+        {
+          title: `${bug.folio} · ${stateLabel}`,
+          body: `Tu reporte "${bug.title}" cambió a ${stateLabel}.`,
+          url: bugUrlPath,
+          tag: `bug-${bug.id}`,
+        },
+        logger,
+      );
       if (pushId) {
-        await drainOperarioPushOutbox(supabaseAdmin);
-        await stampDelivered(supabaseAdmin, notifId, "delivered_push_at");
+        await drainOperarioPushOutbox(supabaseAdmin, logger);
+        await stampDelivered(
+          supabaseAdmin,
+          notifId,
+          "delivered_push_at",
+          logger,
+        );
       }
     }
 
     if (channels.telegram) {
-      const result = await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
-        title: `${bug.folio} · ${stateLabel}`,
-        body: `Tu reporte "${bug.title}" cambió a ${stateLabel}.`,
-        url: `${SITE_URL}${bugUrlPath}`,
-      });
+      const result = await sendBugTelegramToUser(
+        supabaseAdmin,
+        bug.reporter_id,
+        {
+          title: `${bug.folio} · ${stateLabel}`,
+          body: `Tu reporte "${bug.title}" cambió a ${stateLabel}.`,
+          url: `${SITE_URL}${bugUrlPath}`,
+        },
+        logger,
+      );
       if (result.ok) {
-        await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
+        await stampDelivered(
+          supabaseAdmin,
+          notifId,
+          "delivered_telegram_at",
+          logger,
+        );
       } else if (notifId) {
-        await recordBugNotifChannelFailure(supabaseAdmin, notifId, "telegram", 0, result.error);
+        await recordBugNotifChannelFailure(
+          supabaseAdmin,
+          notifId,
+          "telegram",
+          0,
+          result.error,
+          logger,
+        );
       }
     }
   } catch (err) {
-    console.error("[bug-email-notify] notifyBugStateChangeToReporter failed:", err);
+    logger.error("bug_notification.handler_failed", {
+      error: err,
+      stage: "state_change",
+    });
   }
 }
 
@@ -448,6 +568,7 @@ export async function notifyBugMessageToReporter(
   bug: MinimalBugForNotify,
   messageBody: string,
   authorId: string,
+  logger: StructuredLogger = createComponentLogger("internal.bug-email-notify"),
 ): Promise<void> {
   if (authorId === bug.reporter_id) return;
 
@@ -463,6 +584,7 @@ export async function notifyBugMessageToReporter(
       supabaseAdmin,
       bug.reporter_id,
       "new_reply",
+      logger,
     );
 
     const actionLabel = "Ver conversación";
@@ -486,49 +608,97 @@ export async function notifyBugMessageToReporter(
       : null;
 
     if (channels.email && reporterEmail) {
-      const result = await sendBugNotification(supabaseAdmin, tenantId, {
-        to: reporterEmail,
-        bug,
-        notifTypeLabel: notifLabel,
-        recipientName: reporterName,
-        messageExcerpt: excerpt,
-        bugUrlPath,
-        actionLabel,
-      });
+      const result = await sendBugNotification(
+        supabaseAdmin,
+        tenantId,
+        {
+          to: reporterEmail,
+          bug,
+          notifTypeLabel: notifLabel,
+          recipientName: reporterName,
+          messageExcerpt: excerpt,
+          bugUrlPath,
+          actionLabel,
+        },
+        logger,
+      );
       if (result.ok) {
-        await stampDelivered(supabaseAdmin, notifId, "delivered_email_at");
+        await stampDelivered(
+          supabaseAdmin,
+          notifId,
+          "delivered_email_at",
+          logger,
+        );
       } else if (notifId) {
-        await recordBugNotifChannelFailure(supabaseAdmin, notifId, "email", 0, result.error);
+        await recordBugNotifChannelFailure(
+          supabaseAdmin,
+          notifId,
+          "email",
+          0,
+          result.error,
+          logger,
+        );
       }
     }
 
     if (channels.push) {
-      const pushId = await enqueueUserPush(supabaseAdmin, tenantId, bug.reporter_id, {
-        title: `${bug.folio} · Admin respondió`,
-        body: excerpt,
-        url: bugUrlPath,
-        tag: `bug-${bug.id}`,
-      });
+      const pushId = await enqueueUserPush(
+        supabaseAdmin,
+        tenantId,
+        bug.reporter_id,
+        {
+          title: `${bug.folio} · Admin respondió`,
+          body: excerpt,
+          url: bugUrlPath,
+          tag: `bug-${bug.id}`,
+        },
+        logger,
+      );
       if (pushId) {
-        await drainOperarioPushOutbox(supabaseAdmin);
-        await stampDelivered(supabaseAdmin, notifId, "delivered_push_at");
+        await drainOperarioPushOutbox(supabaseAdmin, logger);
+        await stampDelivered(
+          supabaseAdmin,
+          notifId,
+          "delivered_push_at",
+          logger,
+        );
       }
     }
 
     if (channels.telegram) {
-      const result = await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
-        title: `${bug.folio} · Admin respondió`,
-        body: excerpt,
-        url: `${SITE_URL}${bugUrlPath}`,
-      });
+      const result = await sendBugTelegramToUser(
+        supabaseAdmin,
+        bug.reporter_id,
+        {
+          title: `${bug.folio} · Admin respondió`,
+          body: excerpt,
+          url: `${SITE_URL}${bugUrlPath}`,
+        },
+        logger,
+      );
       if (result.ok) {
-        await stampDelivered(supabaseAdmin, notifId, "delivered_telegram_at");
+        await stampDelivered(
+          supabaseAdmin,
+          notifId,
+          "delivered_telegram_at",
+          logger,
+        );
       } else if (notifId) {
-        await recordBugNotifChannelFailure(supabaseAdmin, notifId, "telegram", 0, result.error);
+        await recordBugNotifChannelFailure(
+          supabaseAdmin,
+          notifId,
+          "telegram",
+          0,
+          result.error,
+          logger,
+        );
       }
     }
   } catch (err) {
-    console.error("[bug-email-notify] notifyBugMessageToReporter failed:", err);
+    logger.error("bug_notification.handler_failed", {
+      error: err,
+      stage: "new_reply",
+    });
   }
 }
 
@@ -550,6 +720,7 @@ async function sendBugNotification(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
   opts: SendBugNotificationOpts,
+  logger: StructuredLogger,
 ): Promise<{ ok: boolean; error?: string }> {
   const result = await sendEmail(supabaseAdmin, tenantId, {
     templateSlug: "bug_notification",
@@ -574,7 +745,11 @@ async function sendBugNotification(
     },
   });
   if (!result.ok) {
-    console.error("[bug-email-notify] sendEmail failed:", result.error);
+    logger.error("bug_notification.delivery_failed", {
+      error: result.error,
+      failed: 1,
+      stage: "email",
+    });
   }
   return result;
 }
@@ -626,6 +801,7 @@ async function sendBugTelegramToUser(
     body: string;
     url: string;
   },
+  logger: StructuredLogger,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     const { data: profile } = await supabaseAdmin
@@ -642,11 +818,19 @@ async function sendBugTelegramToUser(
 
     const result = await sendTelegramMessage(chatId, text);
     if (!result.ok) {
-      console.error("[bug-email-notify] sendTelegramMessage failed:", result.error);
+      logger.error("bug_notification.delivery_failed", {
+        error: result.error,
+        failed: 1,
+        stage: "telegram",
+      });
     }
     return result;
   } catch (err) {
-    console.error("[bug-email-notify] sendBugTelegramToUser failed:", err);
+    logger.error("bug_notification.delivery_failed", {
+      error: err,
+      failed: 1,
+      stage: "telegram",
+    });
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }

@@ -126,6 +126,7 @@ describe.each(routes)("$name", (route) => {
     if (route.name === "workflow-drain") {
       expect(route.drain).toHaveBeenCalledWith(mocks.admin, 100, correlatedLogger);
     } else if (
+      route.name === "bug-notifications-drain" ||
       route.name === "client-notifications-drain" ||
       route.name === "push-drain"
     ) {
