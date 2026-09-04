@@ -1,10 +1,10 @@
 ---
 sdd: "0308"
 title: "El packing list del proveedor llega al cliente"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-08-26
-updated: 2026-08-26
+updated: 2026-09-04
 supersedes: null
 superseded_by: null
 related: ["0057","0096","0097","0173"]

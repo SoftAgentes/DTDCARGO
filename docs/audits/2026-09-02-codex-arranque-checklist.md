@@ -983,10 +983,13 @@ están incluidos en aquel push.
   [Acta del cierre](2026-09-02-codex-cierre-exportaciones.md).
 - [ ] Reconciliar las specs no cerradas por rebanadas de dominio. El inventario
   vigente encontró 105 reales, no 94; SDD-0264, SDD-0276 y SDD-0287 ya cerraron
-  con evidencia en `origin/main`, pruebas, navegador y render PDF, por lo que
-  quedan 102. SDD-0300 se revisó y sigue abierta por su hueco de rol operativo.
+  con evidencia en `origin/main`, pruebas, navegador y render PDF. SDD-0308
+  cerró después de confirmar su implementación en `origin/main`, 26 pruebas
+  focales y seis criterios cumplidos, por lo que quedan 101. SDD-0300 se revisó
+  y sigue abierta por su hueco de rol operativo.
   [Primer slice](2026-09-04-spec-reconciliation-public-entry.md) y
-  [segundo slice](2026-09-04-spec-reconciliation-portal-documents.md). Cambiar un
+  [segundo slice](2026-09-04-spec-reconciliation-portal-documents.md) y
+  [tercer slice](2026-09-04-spec-reconciliation-packing-list.md). Cambiar un
   front-matter sólo con evidencia en `main` y estado alojado cuando aplique.
   SDD-0309 ya cerró su alcance de cobertura con siete criterios y tres
   mutaciones causales; operación real/RLS/SDD-0137 quedan fuera. No añade
