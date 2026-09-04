@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 384 specs)
+### Índice de specs (generado · 385 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -422,6 +422,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0390 | Lecturas Portal de pagos y eventos por principal y tenant | done | interno |
 | 0391 | Lecturas núcleo Portal por principal y tenant | done | interno |
 | 0392 | Activación y completitud Portal por principal y tenant | done | interno |
+| 0393 | Reclamos Portal por principal y tenant | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

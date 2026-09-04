@@ -2,8 +2,8 @@
  * Queries del Portal del Cliente para Reclamos (SDD-0101 · Slice B).
  *
  * Mismo criterio de aislamiento que el resto del portal (portal-queries.ts):
- * además de la RLS portal ("client_claims portal self read"), resolvemos el
- * MARKBOX del cliente logueado y filtramos EXPLÍCITO por `client_markbox`.
+ * además de la RLS portal, derivamos el principal coherente y filtramos
+ * EXPLÍCITO por tenant + Shipping Mark.
  *
  * El portal NO está bajo la frontera ESLint público↔ERP (esa solo cubre las
  * rutas públicas + lib/public + app/back), así que reusa los helpers PUROS de
@@ -12,6 +12,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ClaimStatus, ClaimType } from "@/lib/studio/reclamos/claims-types";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 
 /** Subconjunto de `client_claims` que el cliente ve en el portal (read-only). */
 export type PortalClaimRow = {
@@ -29,23 +30,22 @@ export type PortalClaimRow = {
 };
 
 /**
- * Reclamos del cliente logueado (filtrados EXPLÍCITO por su markbox), recientes
+ * Reclamos del cliente logueado (tenant + Shipping Mark explícitos), recientes
  * primero. Hasta 100.
  */
 export async function listMyClaims(
   supabase: SupabaseClient,
 ): Promise<PortalClaimRow[]> {
-  const { data: markbox, error: mkErr } = await supabase.rpc(
-    "get_portal_client_markbox",
-  );
-  if (mkErr || !markbox) return [];
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return [];
 
   const { data, error } = await supabase
     .from("client_claims")
     .select(
       "id, claim_code, claim_type, description, status, amount_usd, insured, shipment_code, container_code, resolution_note, created_at",
     )
-    .eq("client_markbox", markbox as string)
+    .eq("tenant_id", principal.tenantId)
+    .eq("client_markbox", principal.client.markbox)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
