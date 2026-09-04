@@ -68,6 +68,15 @@ describe("SDD-0302: puente de cookies en rutas sin redirección", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
     expect(response.headers.get("x-middleware-next")).toBe("1");
+    const csp = response.headers.get("content-security-policy");
+    const nonce = csp?.match(/'nonce-([^']+)'/)?.[1];
+    expect(nonce).toBeTruthy();
+    expect(csp).toContain("'strict-dynamic'");
+    expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
+    expect(response.headers.get("x-middleware-request-x-nonce")).toBe(nonce);
+    expect(
+      response.headers.get("x-middleware-request-content-security-policy"),
+    ).toBe(csp);
     expect(request.cookies.get("session-fixture")?.value).toBe("fresh");
     expect(request.cookies.get("session-fixture.1")?.value).toBe("chunk");
     expect(response.headers.get("x-middleware-request-cookie")).toContain("session-fixture=fresh");
@@ -89,8 +98,45 @@ describe("SDD-0302: puente de cookies en rutas sin redirección", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it.each(["/m/cn", "/m/cn/recepciones", "/m/ve", "/", "/tarifas", "/contacto"])(
+  it.each([
+    "/m/cn", "/m/cn/recepciones", "/m/ve", "/", "/tarifas", "/contacto",
+    "/marca", "/marca/doc/Logo%20Oficial.html", "/norte.html",
+  ])(
     "%s permanece fuera del matcher",
     (url) => expect(unstable_doesMiddlewareMatch({ config, nextConfig: {}, url })).toBe(false),
   );
+
+  it("emite un nonce distinto para cada request", async () => {
+    authBoundary.getUser.mockResolvedValue({ data: { user: null } });
+
+    const first = await proxy(
+      new NextRequest("https://app-fixture.invalid/portal"),
+    );
+    const second = await proxy(
+      new NextRequest("https://app-fixture.invalid/portal"),
+    );
+    const nonceOf = (response: Response) =>
+      response.headers
+        .get("content-security-policy")
+        ?.match(/'nonce-([^']+)'/)?.[1];
+
+    expect(nonceOf(first)).toBeTruthy();
+    expect(nonceOf(first)).not.toBe(nonceOf(second));
+  });
+
+  it("protege también la respuesta que redirige al login del Studio", async () => {
+    authBoundary.getUser.mockResolvedValueOnce({ data: { user: null } });
+
+    const response = await proxy(
+      new NextRequest("https://app-fixture.invalid/studio/clientes"),
+    );
+    const csp = response.headers.get("content-security-policy");
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://app-fixture.invalid/studio/login",
+    );
+    expect(csp).toContain("'strict-dynamic'");
+    expect(csp).not.toContain("script-src 'self' 'unsafe-inline'");
+  });
 });

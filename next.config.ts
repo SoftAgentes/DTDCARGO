@@ -6,9 +6,10 @@ const isDev = process.env.NODE_ENV === "development";
  * Content Security Policy — defense-in-depth contra XSS.
  *
  * Decisiones explícitas:
- * - `script-src 'unsafe-inline'`: requerido por el `<script type="application/ld+json">`
- *   inline en `app/layout.tsx`. Para sacar 'unsafe-inline' habría que mover el JSON-LD
- *   a un endpoint o implementar nonces (complejo con SSG/ISR de Next).
+ * - `script-src 'unsafe-inline'`: baseline del sitio público estático, requerido
+ *   por sus scripts inline y compatible con SSG/ISR. Las superficies privadas que
+ *   ya son dinámicas NO conservan esta concesión: `proxy.ts` reemplaza el header
+ *   con nonce fresco por request (SDD-0413).
  * - `script-src 'unsafe-eval'` SOLO en dev: Next/Turbopack HMR usa eval(). En prod
  *   está bloqueado.
  * - `style-src 'unsafe-inline'`: los `style={{...}}` attributes están en todo el código.
@@ -146,7 +147,9 @@ const brandDocCspHeader = brandBookCspHeader
   );
 
 /**
- * Security headers aplicados a TODAS las rutas.
+ * Security headers baseline aplicados a TODAS las rutas. En las rutas dinámicas
+ * del proxy, su `Content-Security-Policy` con nonce reemplaza únicamente la CSP;
+ * estos otros headers continúan llegando desde esta configuración.
  *
  * Verificar en prod con: https://securityheaders.com/?q=dtdcargo.com
  * Target: grade A o A+.

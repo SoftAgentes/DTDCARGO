@@ -56,13 +56,43 @@
 
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  buildPrivateAppCsp,
+  createCspNonce,
+} from "@/lib/security/content-security-policy";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
+const CSP_HEADER = "Content-Security-Policy";
+
+function nextWithPrivateCsp(
+  request: NextRequest,
+  nonce: string,
+  csp: string,
+): NextResponse {
+  // Next lee el nonce desde los headers INTERNOS del request para aplicarlo a
+  // sus bundles y scripts inline. El navegador recibe sólo la CSP de response.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set(CSP_HEADER, csp);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set(CSP_HEADER, csp);
+  return response;
+}
+
+function redirectWithPrivateCsp(url: URL, csp: string): NextResponse {
+  const response = NextResponse.redirect(url);
+  response.headers.set(CSP_HEADER, csp);
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
+  const nonce = createCspNonce();
+  const csp = buildPrivateAppCsp(nonce, {
+    development: process.env.NODE_ENV === "development",
   });
+  let supabaseResponse = nextWithPrivateCsp(request, nonce, csp);
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -76,9 +106,9 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
+          // Rehacer la respuesta después de mutar request.cookies preserva
+          // tanto el bridge de cookies como el mismo nonce del request.
+          supabaseResponse = nextWithPrivateCsp(request, nonce, csp);
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           );
@@ -120,13 +150,13 @@ export async function proxy(request: NextRequest) {
     if (!user && !isStudioEntryPoint(pathname)) {
       const url = request.nextUrl.clone();
       url.pathname = "/studio/login";
-      return NextResponse.redirect(url);
+      return redirectWithPrivateCsp(url, csp);
     }
     // Con sesión y EN login → redirect al resumen
     if (user && pathname === "/studio/login") {
       const url = request.nextUrl.clone();
       url.pathname = "/studio/resumen";
-      return NextResponse.redirect(url);
+      return redirectWithPrivateCsp(url, csp);
     }
   }
 
@@ -140,12 +170,12 @@ export async function proxy(request: NextRequest) {
     if (!user && pathname !== "/back/login") {
       const url = request.nextUrl.clone();
       url.pathname = "/back/login";
-      return NextResponse.redirect(url);
+      return redirectWithPrivateCsp(url, csp);
     }
     if (user && pathname === "/back/login") {
       const url = request.nextUrl.clone();
       url.pathname = "/back";
-      return NextResponse.redirect(url);
+      return redirectWithPrivateCsp(url, csp);
     }
   }
 

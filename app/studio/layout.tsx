@@ -13,6 +13,7 @@
 import "./studio.css";
 import type { Metadata } from "next";
 import { Sora, Nunito_Sans } from "next/font/google";
+import { headers } from "next/headers";
 
 /**
  * Tipografía de CAPA SISTEMA (Norte): **Sora** (títulos) + **Nunito Sans**
@@ -59,14 +60,19 @@ try {
 } catch (e) {}
 `.trim();
 
-export default function StudioLayout({
+export default async function StudioLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <>
-      <script dangerouslySetInnerHTML={{ __html: THEME_FOUC_SCRIPT }} />
+      <script
+        nonce={nonce}
+        dangerouslySetInnerHTML={{ __html: THEME_FOUC_SCRIPT }}
+      />
       <div className={`${sora.variable} ${nunitoSans.variable} studio-sys`}>
         {children}
       </div>

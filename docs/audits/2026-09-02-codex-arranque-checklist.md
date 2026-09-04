@@ -13,7 +13,7 @@ confidencialidad: interno
 Este documento es el punto de entrada operativo después del traspaso desde
 Cloud. No reemplaza specs ni runbooks: ordena qué sigue, quién puede hacerlo y
 qué autorización exige. El resumen vigente se revalidó el 2026-09-04 después de
-0400, la revisión del modo continuo y la cola local hasta SDD-0412. Los puntos
+0400, la revisión del modo continuo y la cola local hasta SDD-0413. Los puntos
 anteriores conservan su contexto histórico; antes
 de cualquier otra operación Git o alojada se deben refrescar sus precondiciones.
 
@@ -76,11 +76,13 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Documentos de Naviera RBAC, 0410/0442 | `consolidation` y `booking` heredan defaults y overrides de Naviera; 184 SQL y rebuild 439; 0442 sin aplicar |
 | Adjuntos de Bitácora RBAC, 0411/0443 | `bitacora_task` + bucket propio heredan Bitácora; Soporte queda read-only también ante acceso directo; 185 SQL y rebuild 440; 0443 sin aplicar |
 | Documentos sin transacción, 0412/0444 | `none` hereda Documentos, versionado gana su guard y tipos inventados fallan cerrados; 13 focales, 186 SQL y rebuild 441; 0444 sin aplicar |
-| Specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
+| CSP privada con nonce, 0413 | Cerrada localmente: RED de navegador detectó el script de tema sin nonce; GREEN 35/35, build 158 y Studio/Portal sin errores CSP; Marca y SSG público aislados |
+| Specs, logs y web | Cola posterior; avances por alcance comprobado |
 
-La cifra original avanza a 58/106 (54,7 %): además de la auditoría Portal ya
-cerrada, se completa la casilla amplia de RBAC por slices; no se crearon
-subpasos por entidad. Las migraciones preparadas sin aplicar son ahora 44
+La cifra original avanza a 59/106 (55,7 %): además de la auditoría Portal y el
+RBAC por slices, la aplicación privada reemplaza scripts inline por nonce sin
+volver dinámico el sitio público ni ampliar Marca. No se crearon subpasos por
+superficie. Las migraciones preparadas sin aplicar siguen siendo 44
 (0401–0444), derivadas
 del último ledger 0400; no se hizo nueva consulta Cloud en esta continuación.
 Todos los recibos y cambios posteriores a 70812835 permanecen sólo locales.
@@ -929,9 +931,11 @@ están incluidos en aquel push.
   Falta publicar y autorizar el deploy nominal de kommo-webhook; la comparación
   de fuentes v14 del preflight anterior no incluye este delta. No se consultaron
   conexiones reales para afirmar impacto. La autenticación sigue pendiente.
-- [ ] Diseñar CSP con nonce para la app y aislar la excepción del visor Marca.
-  No retirar `'unsafe-inline'`/`'unsafe-eval'` sin browser/build: Next y los
-  documentos navegables pueden romperse.
+- [x] CSP con nonce para la app privada y excepción del visor Marca aislada
+  (SDD-0413): RED de navegador encontró el script de tema sin nonce; GREEN 35/35,
+  build 158, Studio/Portal sin errores y sitio público aún prerenderizado. El
+  visor mantiene sólo su CSP autorizada; `style-src 'unsafe-inline'` queda como
+  deuda explícita. [Evidencia](2026-09-04-private-app-csp-nonce-local.md).
 
 ## P1 · reproducibilidad y operación
 
