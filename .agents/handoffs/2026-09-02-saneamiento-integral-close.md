@@ -64,6 +64,11 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   derivan el principal canónico antes del dominio y fijan tenant/cliente/curso/
   lección según corresponda. RED 7/7; GREEN 7/7, Portal 874/874, TypeScript y
   lint correctos. 0418 continúa preparada y sin aplicar; no hubo datos reales.
+- SDD0388 cerrado localmente: el CRUD de proveedores resolvía identidad por RPCs
+  separadas y omitía tenant en varios filtros. Alta, edición y borrado ahora
+  derivan el principal canónico y fijan tenant + Shipping Mark. RED 5/5; GREEN
+  5/5, test histórico 9/9 y Portal actual 870/870; tipos y lint correctos. 0417
+  continúa preparada y sin aplicar; las acciones de compras quedan en cola.
 - Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;

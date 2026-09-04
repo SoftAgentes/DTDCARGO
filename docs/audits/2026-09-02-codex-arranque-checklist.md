@@ -51,6 +51,7 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Mensajes Portal, 0385 | Cerrado localmente: RED causal; 22 aserciones, 173 SQL y rebuild 428; 0431 no aplicada |
 | Web Push Portal, 0386 | Cerrado localmente: RED 7/9; GREEN 186/186 y Portal 867/867; sin envío real ni SQL |
 | Academia Portal aplicación, 0387 | Cerrado localmente: RED 7/7; GREEN 7/7 y Portal 874/874; 0418 sigue sin aplicar |
+| Proveedores Portal aplicación, 0388 | Cerrado localmente: RED 5/5; GREEN 5/5 y Portal actual 870/870; 0417 sigue sin aplicar |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.
@@ -818,6 +819,10 @@ están incluidos en aquel push.
   derivan un principal único y fijan tenant, Shipping Mark, curso y lección según
   corresponda. RED 7/7, GREEN 7/7 y conjunto Portal 874/874. La defensa RLS 0418
   conserva su estado preparado y no fue aplicada; no se consultaron datos reales.
+  SDD-0388 cerró el CRUD de proveedores: alta, edición y borrado derivan el
+  principal canónico y fijan tenant + Shipping Mark antes del dominio. RED 5/5,
+  GREEN 5/5, test histórico 9/9 y conjunto Portal actual 870/870. 0417 conserva
+  su estado preparado y sin aplicar; las acciones de compras quedan en cola.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
   logout sin esa decisión puede perder entregas pendientes.
