@@ -20,6 +20,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 
 const MAX_REPLAY_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_TYPES = new Set(["application/gzip", "application/json"]);
@@ -28,16 +29,19 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const logger = createRequestLogger(request, "api.studio.bugs.replay_upload");
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    logger.withResponse(NextResponse.json(body, { status }));
   const { id: bugId } = await params;
   if (!bugId) {
-    return NextResponse.json({ error: "Falta bug id." }, { status: 400 });
+    return respond({ error: "Falta bug id." }, 400);
   }
 
   // Auth — necesitamos el user logueado
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    return respond({ error: "No autorizado." }, 401);
   }
 
   // Validar que el bug existe + caller tiene acceso (reporter o admin
@@ -50,10 +54,7 @@ export async function POST(
     .maybeSingle<{ id: string; reporter_id: string; tenant_id: string }>();
 
   if (bugErr || !bug) {
-    return NextResponse.json(
-      { error: "Bug no encontrado o sin acceso." },
-      { status: 404 },
-    );
+    return respond({ error: "Bug no encontrado o sin acceso." }, 404);
   }
 
   // Parse multipart
@@ -61,35 +62,29 @@ export async function POST(
   try {
     formData = await request.formData();
   } catch {
-    return NextResponse.json(
+    return respond(
       { error: "Body inválido — esperamos multipart/form-data." },
-      { status: 400 },
+      400,
     );
   }
 
   const replay = formData.get("replay");
   if (!(replay instanceof Blob)) {
-    return NextResponse.json(
-      { error: "Falta el field 'replay' con el blob." },
-      { status: 400 },
-    );
+    return respond({ error: "Falta el field 'replay' con el blob." }, 400);
   }
   if (replay.size === 0) {
-    return NextResponse.json(
-      { error: "Blob vacío — nada que subir." },
-      { status: 400 },
-    );
+    return respond({ error: "Blob vacío — nada que subir." }, 400);
   }
   if (replay.size > MAX_REPLAY_SIZE) {
-    return NextResponse.json(
+    return respond(
       { error: `Replay demasiado grande (max ${MAX_REPLAY_SIZE} bytes).` },
-      { status: 413 },
+      413,
     );
   }
   if (replay.type && !ALLOWED_TYPES.has(replay.type)) {
-    return NextResponse.json(
+    return respond(
       { error: `Content-type no permitido: ${replay.type}` },
-      { status: 415 },
+      415,
     );
   }
 
@@ -102,10 +97,7 @@ export async function POST(
   try {
     admin = createAdminClient();
   } catch {
-    return NextResponse.json(
-      { error: "Admin client no configurado." },
-      { status: 500 },
-    );
+    return respond({ error: "Admin client no configurado." }, 500);
   }
 
   const { error: uploadErr } = await admin.storage
@@ -116,11 +108,12 @@ export async function POST(
     });
 
   if (uploadErr) {
-    console.error(`[bug-replay] upload failed for ${bugId}:`, uploadErr.message);
-    return NextResponse.json(
-      { error: `No se pudo subir el replay: ${uploadErr.message}` },
-      { status: 500 },
-    );
+    logger.error("bug_replay.upload_failed", {
+      error: uploadErr,
+      operation: "upload",
+      stage: "storage",
+    });
+    return respond({ error: "No se pudo subir el replay." }, 500);
   }
 
   // Update bug_tech_data.session_replay_url (storage key, no URL pública)
@@ -130,23 +123,24 @@ export async function POST(
     .eq("bug_id", bugId);
 
   if (updateErr) {
-    console.error(
-      `[bug-replay] update bug_tech_data failed for ${bugId}:`,
-      updateErr.message,
-    );
+    logger.warn("bug_replay.association_failed", {
+      error: updateErr,
+      operation: "associate",
+      stage: "database",
+    });
     // No es fatal: el replay está en el bucket, solo no se reflejó en DB.
     // Cleanup nightly puede detectar orfandad o admin puede re-asociar.
-    return NextResponse.json(
+    return respond(
       {
         ok: true,
         warning: "Replay subido pero no se pudo asociar al bug en DB.",
         storage_key: storageKey,
       },
-      { status: 207 },
+      207,
     );
   }
 
-  return NextResponse.json({ ok: true, storage_key: storageKey });
+  return respond({ ok: true, storage_key: storageKey });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -156,18 +150,21 @@ export async function POST(
 const SIGNED_TTL_SECONDS = 600; // 10 min
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const logger = createRequestLogger(request, "api.studio.bugs.replay_read");
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    logger.withResponse(NextResponse.json(body, { status }));
   const { id: bugId } = await params;
   if (!bugId) {
-    return NextResponse.json({ error: "Falta bug id." }, { status: 400 });
+    return respond({ error: "Falta bug id." }, 400);
   }
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    return respond({ error: "No autorizado." }, 401);
   }
 
   // Validar acceso al bug + leer storage key.
@@ -180,26 +177,17 @@ export async function GET(
     .maybeSingle<{ session_replay_url: string | null }>();
 
   if (techErr) {
-    return NextResponse.json(
-      { error: "Bug no encontrado o sin acceso." },
-      { status: 404 },
-    );
+    return respond({ error: "Bug no encontrado o sin acceso." }, 404);
   }
   if (!tech?.session_replay_url) {
-    return NextResponse.json(
-      { error: "Sin replay registrado para este bug." },
-      { status: 404 },
-    );
+    return respond({ error: "Sin replay registrado para este bug." }, 404);
   }
 
   let admin;
   try {
     admin = createAdminClient();
   } catch {
-    return NextResponse.json(
-      { error: "Admin client no configurado." },
-      { status: 500 },
-    );
+    return respond({ error: "Admin client no configurado." }, 500);
   }
 
   const { data: signed, error: signErr } = await admin.storage
@@ -207,14 +195,15 @@ export async function GET(
     .createSignedUrl(tech.session_replay_url, SIGNED_TTL_SECONDS);
 
   if (signErr || !signed?.signedUrl) {
-    console.error(`[bug-replay GET] sign failed:`, signErr?.message);
-    return NextResponse.json(
-      { error: "No se pudo generar URL signed." },
-      { status: 500 },
-    );
+    logger.error("bug_replay.sign_failed", {
+      error: signErr,
+      operation: "read",
+      stage: "sign_url",
+    });
+    return respond({ error: "No se pudo generar URL signed." }, 500);
   }
 
-  return NextResponse.json({
+  return respond({
     signed_url: signed.signedUrl,
     expires_in: SIGNED_TTL_SECONDS,
     storage_key: tech.session_replay_url,

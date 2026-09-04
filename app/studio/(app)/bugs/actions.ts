@@ -16,6 +16,10 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
+import {
   validatePostBugMessageInput,
   type BugActionState,
   type BugAuthorType,
@@ -62,6 +66,7 @@ export async function advanceBugStateAction(
   _prev: BugActionState,
   formData: FormData,
 ): Promise<BugActionState> {
+  const logger = createComponentLogger("action.studio.bugs.advance_state");
   const bugId = (formData.get("bug_id") as string | null)?.trim();
   const newState = formData.get("new_state") as BugState | null;
   const note = (formData.get("note") as string | null)?.trim() || null;
@@ -84,7 +89,7 @@ export async function advanceBugStateAction(
   }
 
   // SDD-0036 F5 · email notif al reportador (best-effort)
-  await notifyStateChangeBestEffort(bugId, userResp.user.id);
+  await notifyStateChangeBestEffort(bugId, userResp.user.id, logger);
 
   revalidatePath("/studio/bugs");
   revalidatePath("/studio/mis-bugs");
@@ -99,6 +104,7 @@ export async function takeBugAction(
   _prev: BugActionState,
   formData: FormData,
 ): Promise<BugActionState> {
+  const logger = createComponentLogger("action.studio.bugs.take");
   const bugId = (formData.get("bug_id") as string | null)?.trim();
   if (!bugId) return { error: "Falta el ID del bug." };
 
@@ -114,7 +120,7 @@ export async function takeBugAction(
   if (error) return { error: error.message };
 
   // SDD-0036 F5 · email notif al reportador (best-effort)
-  await notifyStateChangeBestEffort(bugId, userResp.user.id);
+  await notifyStateChangeBestEffort(bugId, userResp.user.id, logger);
 
   revalidatePath("/studio/bugs");
   revalidatePath("/studio/mis-bugs");
@@ -129,6 +135,7 @@ export async function takeBugAction(
 async function notifyStateChangeBestEffort(
   bugId: string,
   actorId: string,
+  logger: StructuredLogger,
 ): Promise<void> {
   try {
     const supabaseAdmin = createAdminClient();
@@ -161,9 +168,14 @@ async function notifyStateChangeBestEffort(
         reporter_id: bugRow.reporter_id,
       },
       actorId,
+      logger,
     );
   } catch (err) {
-    console.error("[bugs/actions] notifyStateChange failed:", err);
+    logger.error("bug_workflow.notification_failed", {
+      error: err,
+      operation: "change_state",
+      stage: "notify_reporter",
+    });
   }
 }
 
@@ -250,6 +262,7 @@ export async function replyBugMessageAction(
   _prev: BugActionState,
   formData: FormData,
 ): Promise<BugActionState> {
+  const logger = createComponentLogger("action.studio.bugs.reply");
   const partial: Partial<PostBugMessageInput> = {
     bug_id: (formData.get("bug_id") as string | null)?.trim() ?? undefined,
     body: (formData.get("body") as string | null)?.trim() ?? undefined,
@@ -355,11 +368,16 @@ export async function replyBugMessageAction(
           },
           input.body,
           userResp.user.id,
+          logger,
         );
       }
     }
   } catch (err) {
-    console.error("[replyBugMessageAction] timeline/notify failed:", err);
+    logger.error("bug_workflow.message_side_effect_failed", {
+      error: err,
+      operation: "create_message",
+      stage: "timeline_or_notification",
+    });
   }
 
   revalidatePath("/studio/bugs");

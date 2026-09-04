@@ -1028,7 +1028,10 @@ están incluidos en aquel push.
   el correlador de cada uno hasta Telegram. SDD-0431 retiró cinco logs de las
   cuatro rutas móviles, correlacionó todas sus respuestas y corrigió el voseo del
   ping GPS. SDD-0432 retiró nueve logs de cuatro internals de Conversaciones y
-  enlazó el correlador del cron con el runner, la IA, Telegram y Push. Acumulado:
+  enlazó el correlador del cron con el runner, la IA, Telegram y Push. SDD-0433
+  retiró nueve logs del flujo de bugs, correlacionó sus cuatro rutas y evitó
+  exponer detalles crudos de Storage/PostgREST. El inventario legacy medido bajó
+  de 183 a 174. Acumulado:
   17/17 handlers cron, 4/4 Edge Functions, treinta y tres internals, diez
   superficies Portal y cuatro rutas móviles adoptadas, cero
   `console.*` en esos alcances y
@@ -1052,7 +1055,8 @@ están incluidos en aquel push.
   [productores internos](2026-09-04-structured-internal-notification-producers.md)
   y [avisos de entrada](2026-09-04-structured-inbound-notification-producers.md),
   más [rutas móviles](2026-09-04-structured-mobile-routes.md) e
-  [internals de Conversaciones](2026-09-04-structured-conversation-internals.md).
+  [internals de Conversaciones](2026-09-04-structured-conversation-internals.md),
+  más [flujo de bugs](2026-09-04-structured-bug-workflow.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.

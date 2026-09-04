@@ -18,6 +18,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { apiError } from "@/lib/http/api-error";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 import {
   listBugMessages,
   getBugDetail,
@@ -30,20 +31,29 @@ import {
 export const runtime = "nodejs";
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const logger = createRequestLogger(request, "api.studio.bugs.messages_list");
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    logger.withResponse(NextResponse.json(body, { status }));
   const { id } = await params;
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    return respond({ error: "No autorizado." }, 401);
   }
   try {
     const messages = await listBugMessages(supabase, id);
-    return NextResponse.json({ messages });
+    return respond({ messages });
   } catch (err) {
-    return apiError("No pudimos listar mensajes.", err, 500, "bugs:messages");
+    return logger.withResponse(
+      apiError("No pudimos listar mensajes.", err, 500, "bugs:messages", {
+        logger,
+        event: "bug_workflow.messages_list_failed",
+        fields: { operation: "list", stage: "query" },
+      }),
+    );
   }
 }
 
@@ -51,28 +61,28 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const logger = createRequestLogger(request, "api.studio.bugs.messages_post");
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    logger.withResponse(NextResponse.json(body, { status }));
   const { id } = await params;
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
+    return respond({ error: "JSON inválido." }, 400);
   }
 
   const raw = { ...(body as Partial<PostBugMessageInput>), bug_id: id };
   const { input, fieldErrors } = validatePostBugMessageInput(raw);
   if (fieldErrors || !input) {
-    return NextResponse.json(
-      { error: "Datos inválidos.", fieldErrors },
-      { status: 400 },
-    );
+    return respond({ error: "Datos inválidos.", fieldErrors }, 400);
   }
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    return respond({ error: "No autorizado." }, 401);
   }
 
   // Resolver tenant + role del caller
@@ -81,7 +91,7 @@ export async function POST(
     .select("tenant_id, role")
     .maybeSingle<{ tenant_id: string; role: string }>();
   if (!link?.tenant_id) {
-    return NextResponse.json({ error: "Sin tenant." }, { status: 403 });
+    return respond({ error: "Sin tenant." }, 403);
   }
 
   const authorType: "admin" | "user" = link.role === "admin" ? "admin" : "user";
@@ -99,10 +109,14 @@ export async function POST(
     .single();
 
   if (msgErr) {
-    return NextResponse.json(
-      { error: "No pudimos publicar el mensaje.", detail: msgErr.message },
-      { status: msgErr.code === "42501" ? 403 : 500 },
-    );
+    const status = msgErr.code === "42501" ? 403 : 500;
+    logger.error("bug_workflow.message_create_failed", {
+      error: msgErr,
+      operation: "create_message",
+      stage: "insert",
+      status,
+    });
+    return respond({ error: "No pudimos publicar el mensaje." }, status);
   }
 
   // Side-effect: si es reporter y bug está en 'espera' → auto-avanzar a triaje
@@ -160,12 +174,17 @@ export async function POST(
           },
           input.body,
           userResp.user.id,
+          logger,
         );
       }
     }
   } catch (err) {
-    console.error("[bugs/messages] timeline/notify failed:", err);
+    logger.error("bug_workflow.message_side_effect_failed", {
+      error: err,
+      operation: "create_message",
+      stage: "timeline_or_notification",
+    });
   }
 
-  return NextResponse.json({ ok: true, message: msg });
+  return respond({ ok: true, message: msg });
 }

@@ -12,6 +12,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 import { notifyBugStateChangeToReporter } from "@/lib/studio/bug-email-notify";
 import {
   validateAdvanceBugStateInput,
@@ -24,28 +25,28 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const logger = createRequestLogger(request, "api.studio.bugs.state");
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    logger.withResponse(NextResponse.json(body, { status }));
   const { id } = await params;
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
+    return respond({ error: "JSON inválido." }, 400);
   }
 
   const raw = { ...(body as Partial<AdvanceBugStateInput>), bug_id: id };
   const { input, fieldErrors } = validateAdvanceBugStateInput(raw);
   if (fieldErrors || !input) {
-    return NextResponse.json(
-      { error: "Datos inválidos.", fieldErrors },
-      { status: 400 },
-    );
+    return respond({ error: "Datos inválidos.", fieldErrors }, 400);
   }
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    return respond({ error: "No autorizado." }, 401);
   }
 
   const { data, error } = await supabase.rpc("bug_advance_state", {
@@ -74,8 +75,15 @@ export async function PATCH(
             : error.code === "P0003"
               ? "Esa transición de estado no está permitida."
               : "No pudimos cambiar el estado del bug.";
-    if (status === 500) console.error("[bugs:state] rpc error:", error);
-    return NextResponse.json({ error: message }, { status });
+    if (status === 500) {
+      logger.error("bug_workflow.rpc_failed", {
+        error,
+        operation: "change_state",
+        stage: "advance_state",
+        status,
+      });
+    }
+    return respond({ error: message }, status);
   }
 
   // SDD-0036 F5 · email notif al reportador (best-effort, no rompe respuesta)
@@ -107,11 +115,16 @@ export async function PATCH(
           reporter_id: bugRow.reporter_id,
         },
         userResp.user.id,
+        logger,
       );
     }
   } catch (err) {
-    console.error("[bugs/state] notify failed:", err);
+    logger.error("bug_workflow.notification_failed", {
+      error: err,
+      operation: "change_state",
+      stage: "notify_reporter",
+    });
   }
 
-  return NextResponse.json({ ok: true, bug: data });
+  return respond({ ok: true, bug: data });
 }

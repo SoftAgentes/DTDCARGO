@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 424 specs)
+### Índice de specs (generado · 425 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -462,6 +462,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0430 | Observabilidad estructurada en avisos de entrada | done | interno |
 | 0431 | Correlación y logs estructurados en rutas móviles | done | interno |
 | 0432 | Observabilidad estructurada en internals de conversaciones | done | interno |
+| 0433 | Observabilidad estructurada en el flujo de bugs | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

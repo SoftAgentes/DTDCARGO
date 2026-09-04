@@ -11,18 +11,22 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 
 export const runtime = "nodejs";
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const logger = createRequestLogger(request, "api.studio.bugs.take");
+  const respond = (body: Record<string, unknown>, status = 200) =>
+    logger.withResponse(NextResponse.json(body, { status }));
   const { id } = await params;
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 401 });
+    return respond({ error: "No autorizado." }, 401);
   }
 
   const { data, error } = await supabase.rpc("bug_advance_state", {
@@ -48,9 +52,16 @@ export async function POST(
           : status === 409
             ? "El bug no está en un estado que permita tomarlo."
             : "No pudimos tomar el bug.";
-    if (status === 500) console.error("[bugs:take] rpc error:", error);
-    return NextResponse.json({ error: message }, { status });
+    if (status === 500) {
+      logger.error("bug_workflow.rpc_failed", {
+        error,
+        operation: "take",
+        stage: "advance_state",
+        status,
+      });
+    }
+    return respond({ error: message }, status);
   }
 
-  return NextResponse.json({ ok: true, bug: data });
+  return respond({ ok: true, bug: data });
 }
