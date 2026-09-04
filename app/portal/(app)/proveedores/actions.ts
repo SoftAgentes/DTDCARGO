@@ -4,11 +4,10 @@
  * Server actions del Portal · Compras (prealertas) + Proveedores (SDD-0057,
  * Slice B). El cliente del portal CRUD de SUS proveedores y crea SUS compras.
  *
- * IDENTIDAD + AISLAMIENTO: el CRUD de proveedores deriva un principal Portal
- * coherente y fija tenant + Shipping Mark. Las acciones históricas de compras
- * conservan por ahora sus helpers aisladas y su scope por Shipping Mark. La RLS
- * permite que el cliente escriba directo, así que usamos el client de SESIÓN
- * (`createClient`); el service_role queda de respaldo en la policy.
+ * IDENTIDAD + AISLAMIENTO: proveedores y compras derivan un principal Portal
+ * coherente y fijan tenant + Shipping Mark. La RLS permite que el cliente
+ * escriba directo, así que usamos el client de SESIÓN (`createClient`); el
+ * service_role queda de respaldo en la policy.
  *
  * Validación manual con `validate*Input` (sin Zod, patrón del repo). El alta de
  * la compra arma el código del Norte `DTD-{clientNo}-{supplier_seq}-{order_seq}`
@@ -170,15 +169,6 @@ function revalidatePortal() {
   for (const p of PORTAL_PATHS) revalidatePath(p);
 }
 
-/** MARKBOX histórico usado sólo por las acciones de compras pendientes de slice. */
-async function portalMarkbox(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_portal_client_markbox");
-  if (error || !data) return null;
-  return String(data);
-}
-
 // ╔═══════════════════════════════════════════════════════════╗
 // ║ Servicios sobre la compra (add-ons · SDD-0098)            ║
 // ╚═══════════════════════════════════════════════════════════╝
@@ -263,7 +253,9 @@ async function insertPrealertaServiceRequestsFromForm(args: {
   markbox: string;
 }): Promise<void> {
   try {
-    const active = await listActivePrealertaAddons(args.supabase);
+    const active = await listActivePrealertaAddons(args.supabase, {
+      tenantId: args.tenantId,
+    });
     const activeCodes = new Set(active.map((a) => a.code as string));
     const reqs = parseServiceRequestsFromForm(args.formData, activeCodes);
     if (reqs.length === 0) return;
@@ -536,18 +528,17 @@ export async function createPrealertaAction(
   }
 
   const supabase = await createClient();
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
-
-  const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
-  const tenantId = tenantData ? String(tenantData) : null;
-  if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const { tenantId } = principal;
+  const markbox = principal.client.markbox;
 
   // El supplier_seq del proveedor (para armar el code). Scopeado por markbox.
   const { data: supRow, error: supErr } = await supabase
     .from("suppliers_cn")
     .select("supplier_seq")
     .eq("id", input.supplierId)
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", markbox)
     .is("deleted_at", null)
     .maybeSingle<{ supplier_seq: number }>();
@@ -600,6 +591,7 @@ export async function createPrealertaAction(
           .from("suppliers_cn")
           .update({ wechat: supplierWechat })
           .eq("id", input.supplierId)
+          .eq("tenant_id", tenantId)
           .eq("client_markbox", markbox)
           .is("deleted_at", null);
       }
@@ -660,19 +652,17 @@ export async function requestPrealertaServiceAction(
   }
 
   const supabase = await createClient();
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
-
-  const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
-  const tenantId = tenantData ? String(tenantData) : null;
-  if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const { tenantId } = principal;
+  const markbox = principal.client.markbox;
 
   // La compra (scopeada por markbox) → su id.
-  const pre = await getPrealertaByCode(supabase, code, { markbox });
+  const pre = await getPrealertaByCode(supabase, code, { markbox, tenantId });
   if (!pre) return { error: "Esa compra no es válida." };
 
   // El servicio debe estar activo en el menú del tenant.
-  const active = await listActivePrealertaAddons(supabase);
+  const active = await listActivePrealertaAddons(supabase, { tenantId });
   const activeCodes = new Set(active.map((a) => a.code as string));
   const v = validateServiceRequestInput(
     {
@@ -723,11 +713,13 @@ export async function updatePrealertaDetalleAction(
   if (!code) return { error: "Falta la compra." };
 
   const supabase = await createClient();
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return { error: "Tu sesión expiró. Vuelve a entrar." };
+  const { tenantId } = principal;
+  const markbox = principal.client.markbox;
 
   // Scopeado por markbox: una compra de otro cliente no existe para esta sesión.
-  const pre = await getPrealertaByCode(supabase, code, { markbox });
+  const pre = await getPrealertaByCode(supabase, code, { markbox, tenantId });
   if (!pre) return { error: "Esa compra no es válida." };
 
   // Sólo mientras nadie la haya tocado en bodega: una vez recibida, el detalle
@@ -755,10 +747,6 @@ export async function updatePrealertaDetalleAction(
   if (fieldErrors) return { fieldErrors };
   if (!input) return { error: "Datos inválidos." };
 
-  const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
-  const tenantId = tenantData ? String(tenantData) : null;
-  if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
-
   const { error: updErr } = await supabase
     .from("prealertas")
     .update({
@@ -768,6 +756,7 @@ export async function updatePrealertaDetalleAction(
       est_value_usd: input.estValueUsd,
     })
     .eq("id", pre.id)
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", markbox)
     .is("deleted_at", null);
 

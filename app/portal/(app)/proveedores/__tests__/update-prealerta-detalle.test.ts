@@ -54,6 +54,24 @@ const sessionClient = {
 vi.mock("@/lib/db/server", () => ({
   createClient: async () => sessionClient,
 }));
+vi.mock("@/lib/portal/portal-queries", () => ({
+  getPortalClientPrincipal: async () => ({
+    userId: "portal-user",
+    tenantId: "tn",
+    client: {
+      id: "client-1",
+      markbox: MARKBOX,
+      name: "Cliente sintético",
+      email: null,
+      phone: null,
+      address: null,
+      docKind: null,
+      rif: null,
+      city: null,
+      state: null,
+    },
+  }),
+}));
 vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => {
     throw new Error("sin adjuntos en estos tests");
@@ -111,7 +129,7 @@ describe("updatePrealertaDetalleAction · las dos puertas", () => {
     expect(getPrealertaByCodeMock).toHaveBeenCalledWith(
       expect.anything(),
       CODE,
-      { markbox: MARKBOX },
+      { markbox: MARKBOX, tenantId: "tn" },
     );
   });
 
@@ -158,6 +176,7 @@ describe("updatePrealertaDetalleAction · contrato del paso 2", () => {
     await updatePrealertaDetalleAction({}, form({ boxes: "1" }));
     expect(updateFilters[0]).toMatchObject({
       id: "pre-1",
+      tenant_id: "tn",
       client_markbox: MARKBOX,
       deleted_at: null,
     });

@@ -196,20 +196,22 @@ export async function cbmByPrealerta(
 }
 
 /**
- * UNA compra del cliente del portal por su `code`. Filtra por code + markbox: si
- * el code no es suyo (o no existe) → null → la página llama `notFound()`. Misma
- * defensa en profundidad que el resto del portal (markbox explícito + RLS).
+ * UNA compra del cliente del portal por su `code`. Filtra por code + markbox y,
+ * cuando el caller ya derivó el principal, también por tenant: si el code no es
+ * suyo (o no existe) → null → la página llama `notFound()`.
  */
 export async function getPrealertaByCode(
   supabase: SupabaseClient,
   code: string,
-  opts: { markbox: string },
+  opts: { markbox: string; tenantId?: string },
 ): Promise<Prealerta | null> {
-  const { data, error } = await supabase
+  const query = supabase
     .from("prealertas")
     .select(PREALERTA_COLUMNS)
     .eq("code", code)
-    .eq("client_markbox", opts.markbox)
+    .eq("client_markbox", opts.markbox);
+  const scoped = opts.tenantId ? query.eq("tenant_id", opts.tenantId) : query;
+  const { data, error } = await scoped
     .is("deleted_at", null)
     .maybeSingle();
 
@@ -511,19 +513,22 @@ export async function prealertaStats(
 /**
  * Servicios ACTIVOS del menú de recepción para el tenant (merge "DB pisa, código
  * respalda"). Lee `prealerta_addons` (RLS: equipo o cliente del portal del tenant)
- * y lo combina con los DEFAULTS de código. Defensivo: si la tabla no existe (0150
- * sin aplicar en un env) cae a los 7 defaults activos → la pantalla del portal
- * funciona igual ANTES de la migración.
+ * y lo combina con los DEFAULTS de código. Los callers Portal que ya derivaron
+ * principal pasan tenant explícito. Defensivo: si la tabla no existe (0150 sin
+ * aplicar en un env) cae a los 7 defaults activos.
  */
 export async function listActivePrealertaAddons(
   supabase: SupabaseClient,
+  opts: { tenantId?: string } = {},
 ): Promise<PrealertaAddon[]> {
   try {
-    const { data, error } = await supabase
+    const query = supabase
       .from("prealerta_addons")
       .select(
         "code, label, description, notas_placeholder, consent_text, video_url, multi_tracking, sort, is_active",
-      )
+      );
+    const scoped = opts.tenantId ? query.eq("tenant_id", opts.tenantId) : query;
+    const { data, error } = await scoped
       .limit(50);
     if (error) throw error;
     return mergePrealertaAddons(
