@@ -1,6 +1,6 @@
 # Cierre técnico · saneamiento integral para transición Cloud → Codex
 
-Fecha: 2026-09-02 · Última actualización: 2026-09-03
+Fecha: 2026-09-02 · Última actualización: 2026-09-04
 
 Rol: worker
 Estado: SANEAMIENTO LOCAL · PUSH NUEVO BLOQUEADO · PR EN BORRADOR
@@ -111,7 +111,17 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   releen `clients` y compras/proveedores/documentos conservan tenant + Shipping
   Mark. RED 12/12, focal/histórico 51/51, conjunto 1.068/1.068 y suite global
   7.274/7.274 en 573 archivos; lint global verde. Sin lecturas reales.
-- Conteo original 56/106, 52,8 %. Ahora hay 32 migraciones preparadas 0401–0432,
+- SDD0399 cerrado localmente: seis páginas de compras/proveedores descartaban
+  tenant al consumir el principal. Ahora preservan tenant + Shipping Mark;
+  RED 12/12, focal/histórico 47/47 y Portal 928/928. Sin lecturas reales.
+- SDD0400/0432 cerrado localmente: la policy de cajas combinaba tenant y cliente
+  de un vínculo incoherente. El cruce quedó reproducido y bloqueado; 174
+  contratos SQL y rebuild 429 verdes. 0432 no aplicada.
+- SDD0401/0433 cerrado localmente: la policy histórica impedía el Realtime a un
+  principal válido y usaba identidad sin coherencia de tenant. El helper
+  booleano nuevo liga principal+cliente+tenant+canal sin exponer filas; 175
+  contratos SQL y rebuild 430 verdes. 0433 no aplicada.
+- Conteo original 56/106, 52,8 %. Ahora hay 33 migraciones preparadas 0401–0433,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;
   el barrido SQL paralelo de esta ronda no entregó evidencia utilizable y no se
