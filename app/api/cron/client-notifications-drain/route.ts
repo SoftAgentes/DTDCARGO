@@ -10,30 +10,38 @@
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>` (mismo patrón que
  * push-drain / ceo-brief). El disparo inline NO pega a este endpoint.
  */
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createCronRequestContext } from "@/lib/observability/cron-request-context";
 import { drainClientNotifications } from "@/lib/studio/notifications/drain-client-notifications";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-function authorize(req: NextRequest): { ok: boolean; reason?: string } {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
-  const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
-  return { ok: false, reason: "Forbidden" };
-}
-
 export async function GET(req: NextRequest) {
-  const auth = authorize(req);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
-  }
+  const cron = createCronRequestContext(req, "cron.client-notifications-drain");
+  if (!cron.authorized) return cron.deny();
 
-  const admin = createAdminClient();
-  const result = await drainClientNotifications(admin);
-  return NextResponse.json({ ok: true, ...result });
+  try {
+    const admin = createAdminClient();
+    const result = await drainClientNotifications(admin);
+    return cron.complete(
+      { ok: true, ...result },
+      {
+        fields: {
+          processed: result.processed,
+          delivered: result.delivered,
+          skipped: result.skipped,
+          failed: result.failed,
+        },
+      },
+    );
+  } catch (error) {
+    return cron.fail("No se pudo drenar la agenda de avisos.", error, {
+      event: "cron.drain_failed",
+      fields: { stage: "drain" },
+    });
+  }
 }
 
 export async function POST(req: NextRequest) {

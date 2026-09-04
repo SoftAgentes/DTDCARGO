@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 406 specs)
+### Índice de specs (generado · 407 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -444,6 +444,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0412 | Documentos sin transacción y contrato documental fail-closed | done | interno |
 | 0413 | CSP con nonce para superficies privadas | done | interno |
 | 0414 | Logs estructurados y correlacionados para crons | done | interno |
+| 0415 | Observabilidad estructurada de workers drain | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

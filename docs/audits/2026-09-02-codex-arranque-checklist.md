@@ -1004,11 +1004,12 @@ están incluidos en aquel push.
 - [ ] Confirmar la recepción del aviso real de SeaRates (0291); no confundir
   contrato local con entrega de correo/Telegram ni forzar un envío sin OK.
 - [ ] Crear logger/redacción/correlación central y aumentar cobertura directa de
-  crons y Edge Functions. Primer slice local cerrado por SDD-0414: helper
-  reusable y adopción en los tres cron que ya tenían prueba directa, con 21
-  focales y 7.316 pruebas completas; quedan 14 cron y las Edge Functions, por lo
-  que esta casilla no se marca ni aumenta el 59/106.
-  [Acta](2026-09-04-structured-request-logging.md).
+  crons y Edge Functions. SDD-0414 creó el helper y adoptó los tres cron con
+  prueba previa; SDD-0415 extrajo el contexto común y cerró cuatro workers drain.
+  Acumulado: 7/17 cron, 7.328 pruebas completas; quedan 10 cron y las Edge
+  Functions, por lo que esta casilla no se marca ni aumenta el 59/106.
+  [Acta base](2026-09-04-structured-request-logging.md) y
+  [workers drain](2026-09-04-structured-drain-crons.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.
