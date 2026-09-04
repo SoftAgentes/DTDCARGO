@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   validateClientAddressInput,
   type ClientAddressFieldErrors,
@@ -35,17 +35,19 @@ export async function addAddressAction(
   formData: FormData,
 ): Promise<AddressActionState> {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return { error: "Sesión no válida. Vuelve a entrar." };
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return { error: "Sesión no válida. Vuelve a entrar." };
+  const client = principal.client;
+  const scope = { tenantId: principal.tenantId, markbox: client.markbox };
 
   const parsed = validateClientAddressInput(formData);
   if (!parsed.ok) return { fieldErrors: parsed.errors };
 
   try {
     if (parsed.value.isDefault) {
-      await clearDefaultForClient(supabase, client.id);
+      await clearDefaultForClient(supabase, client.id, scope);
     }
-    await insertClientDeliveryAddress(supabase, client.id, parsed.value);
+    await insertClientDeliveryAddress(supabase, client.id, parsed.value, scope);
   } catch (err) {
     // El detalle NUNCA va al cliente (convención apiError), pero SÍ al log: el
     // hueco `city_slug` (0347) estuvo 34 días roto en silencio justamente porque
@@ -63,8 +65,10 @@ export async function updateAddressAction(
   formData: FormData,
 ): Promise<AddressActionState> {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return { error: "Sesión no válida. Vuelve a entrar." };
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return { error: "Sesión no válida. Vuelve a entrar." };
+  const client = principal.client;
+  const scope = { tenantId: principal.tenantId, markbox: client.markbox };
 
   const id = (formData.get("addressId") as string | null)?.trim();
   if (!id) return { error: "Falta la dirección a editar." };
@@ -74,10 +78,13 @@ export async function updateAddressAction(
 
   try {
     if (parsed.value.isDefault) {
-      await clearDefaultForClient(supabase, client.id);
+      await clearDefaultForClient(supabase, client.id, scope);
     }
     // RLS self-update: solo actualiza si la fila es del cliente (markbox).
-    await updateClientDeliveryAddress(supabase, id, parsed.value);
+    await updateClientDeliveryAddress(supabase, id, parsed.value, {
+      ...scope,
+      clientId: client.id,
+    });
   } catch (err) {
     console.error("[updateAddressAction] update dirección falló:", err);
     return { error: "No se pudo actualizar la dirección. Intenta de nuevo." };
@@ -89,12 +96,16 @@ export async function updateAddressAction(
 /** Marca una dirección como predeterminada. */
 export async function setDefaultAddressAction(formData: FormData): Promise<void> {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return;
+  const client = principal.client;
   const id = (formData.get("addressId") as string | null)?.trim();
   if (!id) return;
   try {
-    await setDefaultDeliveryAddress(supabase, client.id, id);
+    await setDefaultDeliveryAddress(supabase, client.id, id, {
+      tenantId: principal.tenantId,
+      markbox: client.markbox,
+    });
     revalidatePath(PATH);
   } catch (err) {
     /* no rompemos la navegación por un fallo transitorio, pero lo dejamos escrito */

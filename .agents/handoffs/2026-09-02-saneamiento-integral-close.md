@@ -89,6 +89,11 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
 - SDD0393 cerrado localmente: la última lectura Portal basada en la RPC histórica
   era reclamos. Ahora corta con principal inválido y fija tenant + Shipping Mark.
   RED 2/2; GREEN 2/2 y Portal 888/888; sin datos reales ni migración nueva.
+- SDD0394 cerrado localmente: alta, edición y predeterminada de direcciones
+  perdían tenant/Shipping Mark al entrar en helpers compartidos. Ahora conservan
+  el principal completo y fijan tenant/cliente/Shipping Mark. RED 8/8;
+  focal/histórico 23/23 y Portal+helper 896/896. La tanda global pasa 7.249/7.249
+  unitarias en 569 archivos y lint completo. 0427 intacta; sin datos reales.
 - Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;

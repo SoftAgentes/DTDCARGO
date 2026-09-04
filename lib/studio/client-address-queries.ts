@@ -2,11 +2,12 @@
  * Queries de direcciones de entrega del cliente (SDD-0138 Slice B · tabla
  * `client_delivery_addresses`, migr 0198). Funciones puras que reciben un
  * `SupabaseClient` — las usan las dos superficies:
- *   · Portal  → con el admin client, scopeado por el `clientId` resuelto por sesión.
+ *   · Portal  → con client de sesión y scope canónico tenant/cliente/Shipping Mark.
  *   · Studio  → con el client de sesión del asesor (RLS por tenant).
  *
- * El trigger de la migración sella `tenant_id` + `client_markbox` desde `clients`,
- * así que en el INSERT solo mandamos `client_id` + los campos del usuario.
+ * El trigger sella `tenant_id` + `client_markbox` desde `clients`; Portal también
+ * los transporta explícitos como defensa de aplicación, y Studio conserva el
+ * contrato histórico basado en `client_id`.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
@@ -26,6 +27,15 @@ type Row = {
   state: string | null;
   reference: string | null;
   is_default: boolean;
+};
+
+export type PortalAddressScope = {
+  tenantId: string;
+  markbox: string;
+};
+
+export type PortalAddressRowScope = PortalAddressScope & {
+  clientId: string;
 };
 
 function mapRow(r: Row): ClientDeliveryAddress {
@@ -63,11 +73,18 @@ export async function listClientDeliveryAddresses(
 export async function clearDefaultForClient(
   supabase: SupabaseClient,
   clientId: string,
+  portalScope?: PortalAddressScope,
 ): Promise<void> {
-  const { error } = await supabase
+  const query = supabase
     .from(TABLE)
     .update({ is_default: false })
-    .eq("client_id", clientId)
+    .eq("client_id", clientId);
+  const scoped = portalScope
+    ? query
+        .eq("tenant_id", portalScope.tenantId)
+        .eq("client_markbox", portalScope.markbox)
+    : query;
+  const { error } = await scoped
     .is("deleted_at", null)
     .eq("is_default", true);
   if (error) throw new Error(error.message);
@@ -82,11 +99,18 @@ export async function insertClientDeliveryAddress(
   supabase: SupabaseClient,
   clientId: string,
   input: ClientDeliveryAddressInput,
+  portalScope?: PortalAddressScope,
 ): Promise<ClientDeliveryAddress> {
   const { data, error } = await supabase
     .from(TABLE)
     .insert({
       client_id: clientId,
+      ...(portalScope
+        ? {
+            tenant_id: portalScope.tenantId,
+            client_markbox: portalScope.markbox,
+          }
+        : {}),
       label: input.label,
       line: input.line,
       city: input.city,
@@ -110,8 +134,9 @@ export async function updateClientDeliveryAddress(
   supabase: SupabaseClient,
   id: string,
   input: ClientDeliveryAddressInput,
+  portalScope?: PortalAddressRowScope,
 ): Promise<void> {
-  const { error } = await supabase
+  const query = supabase
     .from(TABLE)
     .update({
       label: input.label,
@@ -122,7 +147,14 @@ export async function updateClientDeliveryAddress(
       reference: input.reference,
       is_default: input.isDefault,
     })
-    .eq("id", id)
+    .eq("id", id);
+  const scoped = portalScope
+    ? query
+        .eq("tenant_id", portalScope.tenantId)
+        .eq("client_id", portalScope.clientId)
+        .eq("client_markbox", portalScope.markbox)
+    : query;
+  const { error } = await scoped
     .is("deleted_at", null);
   if (error) throw new Error(error.message);
 }
@@ -132,13 +164,20 @@ export async function setDefaultDeliveryAddress(
   supabase: SupabaseClient,
   clientId: string,
   id: string,
+  portalScope?: PortalAddressScope,
 ): Promise<void> {
-  await clearDefaultForClient(supabase, clientId);
-  const { error } = await supabase
+  await clearDefaultForClient(supabase, clientId, portalScope);
+  const query = supabase
     .from(TABLE)
     .update({ is_default: true })
     .eq("id", id)
-    .eq("client_id", clientId)
+    .eq("client_id", clientId);
+  const scoped = portalScope
+    ? query
+        .eq("tenant_id", portalScope.tenantId)
+        .eq("client_markbox", portalScope.markbox)
+    : query;
+  const { error } = await scoped
     .is("deleted_at", null);
   if (error) throw new Error(error.message);
 }
