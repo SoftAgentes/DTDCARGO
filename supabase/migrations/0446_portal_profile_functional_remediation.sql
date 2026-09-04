@@ -1,0 +1,2 @@
+-- SDD-0438 · Reserva del correctivo funcional posterior a la migración 0445.
+-- La implementación se completa en un commit posterior; 0445 permanece intacta.
