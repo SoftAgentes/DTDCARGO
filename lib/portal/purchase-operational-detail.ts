@@ -2,7 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   listarRecepcionesDeCompra,
   type ResumenRecepcion,
@@ -44,10 +44,12 @@ export async function getPortalPurchaseOperationalDetail(
   const code = String(purchaseCode ?? "").trim();
   if (!code) return emptyDetail();
 
-  const client = await getPortalClient(db);
-  if (!client) return emptyDetail();
+  const principal = await getPortalClientPrincipal(db);
+  if (!principal) return emptyDetail();
+  const { client, tenantId } = principal;
 
   const prealerta = await getPrealertaByCode(db, code, {
+    tenantId,
     markbox: client.markbox,
   });
   if (!prealerta) return emptyDetail();

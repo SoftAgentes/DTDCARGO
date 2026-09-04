@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   getNextArrival: vi.fn(),
   getPortalActivation: vi.fn(),
   getPortalAdvisor: vi.fn(),
-  getPortalClient: vi.fn(),
+  getPortalClientPrincipal: vi.fn(),
   getProfileCompleteness: vi.fn(),
   listMyShipments: vi.fn(),
   listMyRecentActivity: vi.fn(),
@@ -30,7 +30,7 @@ vi.mock("@/lib/portal/portal-queries", () => ({
   getNextArrival: mocks.getNextArrival,
   getPortalActivation: mocks.getPortalActivation,
   getPortalAdvisor: mocks.getPortalAdvisor,
-  getPortalClient: mocks.getPortalClient,
+  getPortalClientPrincipal: mocks.getPortalClientPrincipal,
   getProfileCompleteness: mocks.getProfileCompleteness,
   listMyShipments: mocks.listMyShipments,
 }));
@@ -48,6 +48,7 @@ import { getPortalHomePrivateContext } from "../portal-home-private-context";
 
 const db = {} as SupabaseClient;
 const client = { id: "client-1", name: "Cliente", markbox: "DTD-1001" };
+const principal = { userId: "portal-user", tenantId: "tenant-1", client };
 const kpis = { inTransit: 2 };
 const nextArrival = { id: "shipment-1", code: "SHP-1" };
 const rawShipments = [{ id: "shipment-1", status: "in_transit" }];
@@ -57,16 +58,12 @@ const hiddenStatuses = new Set(["in_customs"]);
 const advisor = { id: "advisor-1", name: "Asesor" };
 
 function makeAdmin() {
-  const maybeSingle = vi.fn().mockResolvedValue({ data: { tenant_id: "tenant-1" } });
-  const eq = vi.fn().mockReturnValue({ maybeSingle });
-  const select = vi.fn().mockReturnValue({ eq });
-  const from = vi.fn().mockReturnValue({ select });
-  return { admin: { from } as unknown as SupabaseClient, from, eq };
+  return { admin: { role: "service" } as unknown as SupabaseClient };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getPortalClient.mockResolvedValue(client);
+  mocks.getPortalClientPrincipal.mockResolvedValue(principal);
   mocks.getPortalActivation.mockResolvedValue({ activated: true });
   mocks.getDashboardKpis.mockResolvedValue(kpis);
   mocks.getNextArrival.mockResolvedValue(nextArrival);
@@ -82,7 +79,7 @@ beforeEach(() => {
 
 describe("getPortalHomePrivateContext", () => {
   it("no consulta activación ni eleva sin cliente Portal", async () => {
-    mocks.getPortalClient.mockResolvedValue(null);
+    mocks.getPortalClientPrincipal.mockResolvedValue(null);
 
     await expect(getPortalHomePrivateContext(db)).resolves.toBeNull();
     expect(mocks.getPortalActivation).not.toHaveBeenCalled();
@@ -101,7 +98,7 @@ describe("getPortalHomePrivateContext", () => {
   });
 
   it("acota los tres derivados privados a identidad e ids de sesión", async () => {
-    const { admin, from, eq } = makeAdmin();
+    const { admin } = makeAdmin();
     mocks.createAdminClient.mockReturnValue(admin);
 
     await expect(getPortalHomePrivateContext(db)).resolves.toMatchObject({
@@ -119,8 +116,6 @@ describe("getPortalHomePrivateContext", () => {
       sailing: { id: "sailing-1" },
     });
     expect(mocks.createAdminClient).toHaveBeenCalledTimes(1);
-    expect(from).toHaveBeenCalledWith("clients");
-    expect(eq).toHaveBeenCalledWith("id", "client-1");
     expect(mocks.listPendingAcceptanceInvoices).toHaveBeenCalledWith(admin, {
       tenantId: "tenant-1",
       markbox: "DTD-1001",

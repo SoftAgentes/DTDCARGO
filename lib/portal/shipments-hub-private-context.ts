@@ -5,7 +5,11 @@ import { createAdminClient } from "@/lib/db/admin";
 import { getConsolidationsForShipments } from "@/lib/portal/consolidation-queries";
 import { getNextOpenSailing } from "@/lib/portal/next-sailing-queries";
 import { prealertasConPackingList } from "@/lib/portal/packing-list-queries";
-import { getPortalClient, listMyShipments } from "@/lib/portal/portal-queries";
+import {
+  getPortalClientPrincipal,
+  listMyShipments,
+  type PortalClientPrincipal,
+} from "@/lib/portal/portal-queries";
 import { getHiddenPortalStatusesForPortal } from "@/lib/studio/notifications/portal-visibility-queries";
 import {
   listPrealertaDocumentPresence,
@@ -13,7 +17,7 @@ import {
   listSuppliers,
 } from "@/lib/studio/prealertas/queries";
 
-type PortalClient = NonNullable<Awaited<ReturnType<typeof getPortalClient>>>;
+type PortalClient = PortalClientPrincipal["client"];
 type Shipments = Awaited<ReturnType<typeof listMyShipments>>;
 type Prealertas = Awaited<ReturnType<typeof listPrealertas>>;
 type Suppliers = Awaited<ReturnType<typeof listSuppliers>>;
@@ -36,16 +40,9 @@ export type PortalShipmentsHubPrivateContext = {
 
 async function loadNextSailing(
   admin: SupabaseClient,
-  clientId: string,
+  tenantId: string,
 ): Promise<Sailing> {
   try {
-    const { data: row } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", clientId)
-      .maybeSingle<{ tenant_id: string }>();
-    const tenantId = String(row?.tenant_id ?? "").trim();
-    if (!tenantId) return null;
     return await getNextOpenSailing(
       admin,
       tenantId,
@@ -64,13 +61,18 @@ async function loadNextSailing(
 export async function getPortalShipmentsHubPrivateContext(
   db: SupabaseClient,
 ): Promise<PortalShipmentsHubPrivateContext | null> {
-  const client = await getPortalClient(db);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(db);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
 
   const [rawShipments, prealertas, suppliers, hiddenStatuses] = await Promise.all([
     listMyShipments(db).catch(() => [] as Shipments),
-    listPrealertas(db, { markbox: client.markbox }).catch(() => [] as Prealertas),
-    listSuppliers(db, { markbox: client.markbox }).catch(() => [] as Suppliers),
+    listPrealertas(db, { tenantId, markbox: client.markbox }).catch(
+      () => [] as Prealertas,
+    ),
+    listSuppliers(db, { tenantId, markbox: client.markbox }).catch(
+      () => [] as Suppliers,
+    ),
     getHiddenPortalStatusesForPortal(db).catch(
       () => new Set() as HiddenStatuses,
     ),
@@ -81,6 +83,7 @@ export async function getPortalShipmentsHubPrivateContext(
   const shipmentIds = rawShipments.map((shipment) => shipment.id);
   const docEntries = await listPrealertaDocumentPresence(db, {
     prealertaIds,
+    tenantId,
     markbox: client.markbox,
   }).catch(() => [] as DocumentEntries);
 
@@ -108,7 +111,7 @@ export async function getPortalShipmentsHubPrivateContext(
     getConsolidationsForShipments(admin, shipmentIds).catch(
       () => ({} as Consolidations),
     ),
-    loadNextSailing(admin, client.id),
+    loadNextSailing(admin, tenantId),
   ]);
 
   return {

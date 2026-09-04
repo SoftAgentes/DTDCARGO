@@ -5,8 +5,9 @@ import { createAdminClient } from "@/lib/db/admin";
 import { listMyClaims } from "@/lib/portal/portal-claims";
 import {
   getPortalAdvisor,
-  getPortalClient,
+  getPortalClientPrincipal,
   listMyShipments,
+  type PortalClientPrincipal,
 } from "@/lib/portal/portal-queries";
 import {
   getPortalConversationId,
@@ -22,7 +23,7 @@ import {
 
 type PortalClaims = Awaited<ReturnType<typeof listMyClaims>>;
 type PortalShipments = Awaited<ReturnType<typeof listMyShipments>>;
-type PortalClient = NonNullable<Awaited<ReturnType<typeof getPortalClient>>>;
+type PortalClient = PortalClientPrincipal["client"];
 type PortalAdvisor = Awaited<ReturnType<typeof getPortalAdvisor>>;
 
 export type PortalSupportPrivateContext = {
@@ -63,8 +64,9 @@ function sessionOnlyContext(
 export async function getPortalSupportPrivateContext(
   db: SupabaseClient,
 ): Promise<PortalSupportPrivateContext | null> {
-  const client = await getPortalClient(db);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(db);
+  if (!principal) return null;
+  const { client } = principal;
 
   const [claims, shipments, advisor] = await Promise.all([
     listMyClaims(db).catch(() => [] as PortalClaims),

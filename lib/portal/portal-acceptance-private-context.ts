@@ -6,7 +6,7 @@ import {
   getPendingAcceptanceInvoice,
   latestOrderAcceptanceDocs,
 } from "@/lib/portal/portal-legal-queries";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { currentClientDocs } from "@/lib/studio/legal/queries";
 
 type Order = NonNullable<
@@ -25,22 +25,6 @@ export type PortalAcceptancePrivateContext =
       previousDocs: PreviousDocuments;
     };
 
-async function getTenantId(
-  admin: SupabaseClient,
-  clientId: string,
-): Promise<string> {
-  try {
-    const { data } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", clientId)
-      .maybeSingle<{ tenant_id: string }>();
-    return String(data?.tenant_id ?? "").trim();
-  } catch {
-    return "";
-  }
-}
-
 /**
  * Resuelve la lectura legal sin aceptar tenant, client id ni Shipping Mark del
  * RSC. El único dato externo es el código de factura; identidad y scopes salen
@@ -51,8 +35,9 @@ export async function getPortalAcceptancePrivateContext(
   code: string,
 ): Promise<PortalAcceptancePrivateContext> {
   const invoiceCode = String(code ?? "").trim();
-  const client = await getPortalClient(db);
-  if (!client) return { state: "unauthenticated" };
+  const principal = await getPortalClientPrincipal(db);
+  if (!principal) return { state: "unauthenticated" };
+  const { client, tenantId } = principal;
   if (!invoiceCode) return { state: "unavailable" };
 
   let admin: SupabaseClient;
@@ -61,9 +46,6 @@ export async function getPortalAcceptancePrivateContext(
   } catch {
     return { state: "unavailable" };
   }
-
-  const tenantId = await getTenantId(admin, client.id);
-  if (!tenantId) return { state: "unavailable" };
 
   const order = await getPendingAcceptanceInvoice(admin, {
     tenantId,

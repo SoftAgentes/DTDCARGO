@@ -106,6 +106,11 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   derivar sólo cliente y releían tenant; cancelación conservaba el camino legado.
   Ahora los tres exigen principal completo y los flujos admin no releen `clients`.
   RED 5/5, focal/histórico 61/61 y Portal 903/903. Sin efectos reales.
+- SDD0398 cerrado localmente: siete contextos privados usaban el helper reducido
+  y cinco releían tenant con admin. Ahora todos exigen principal completo, no
+  releen `clients` y compras/proveedores/documentos conservan tenant + Shipping
+  Mark. RED 12/12, focal/histórico 51/51, conjunto 1.068/1.068 y suite global
+  7.274/7.274 en 573 archivos; lint global verde. Sin lecturas reales.
 - Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;

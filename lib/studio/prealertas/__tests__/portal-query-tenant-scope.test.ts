@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   getPrealertaByCode,
   listActivePrealertaAddons,
+  listPrealertas,
+  listSuppliers,
 } from "../queries";
 
 function database(filters: Array<[string, unknown]>) {
@@ -17,6 +19,8 @@ function database(filters: Array<[string, unknown]>) {
           filters.push([column, value]);
           return chain;
         },
+        order: () => chain,
+        range: async () => ({ data: [], error: null }),
         limit: () => chain,
         maybeSingle: async () => ({ data: null, error: null }),
         then: (resolve: (value: unknown) => unknown) =>
@@ -48,5 +52,20 @@ describe("SDD0389 · helpers Portal de compras con tenant explícito", () => {
       tenantId: "tenant-a",
     });
     expect(filters).toContainEqual(["tenant_id", "tenant-a"]);
+  });
+
+  it.each([
+    ["compras", listPrealertas],
+    ["proveedores", listSuppliers],
+  ] as const)("lista de %s aplica tenant + Shipping Mark", async (_label, query) => {
+    const filters: Array<[string, unknown]> = [];
+    await query(database(filters) as never, {
+      tenantId: "tenant-a",
+      markbox: "DTD-0001",
+    });
+    expect(filters).toEqual(expect.arrayContaining([
+      ["tenant_id", "tenant-a"],
+      ["client_markbox", "DTD-0001"],
+    ]));
   });
 });

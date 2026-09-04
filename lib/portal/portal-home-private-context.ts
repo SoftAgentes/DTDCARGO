@@ -9,15 +9,16 @@ import {
   getNextArrival,
   getPortalActivation,
   getPortalAdvisor,
-  getPortalClient,
+  getPortalClientPrincipal,
   getProfileCompleteness,
   listMyShipments,
+  type PortalClientPrincipal,
 } from "@/lib/portal/portal-queries";
 import { listMyRecentActivity } from "@/lib/portal/shipment-events-queries";
 import { getHiddenPortalStatusesForPortal } from "@/lib/studio/notifications/portal-visibility-queries";
 import { getShipmentNaviera } from "@/lib/studio/naviera-tracking/queries";
 
-type PortalClient = NonNullable<Awaited<ReturnType<typeof getPortalClient>>>;
+type PortalClient = PortalClientPrincipal["client"];
 type DashboardKpis = Awaited<ReturnType<typeof getDashboardKpis>>;
 type NextArrival = Awaited<ReturnType<typeof getNextArrival>>;
 type Shipments = Awaited<ReturnType<typeof listMyShipments>>;
@@ -58,24 +59,9 @@ function emptyPrivateContext(): PrivateContext {
   };
 }
 
-async function getTenantId(
-  admin: SupabaseClient,
-  clientId: string,
-): Promise<string> {
-  try {
-    const { data } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", clientId)
-      .maybeSingle<{ tenant_id: string }>();
-    return String(data?.tenant_id ?? "").trim();
-  } catch {
-    return "";
-  }
-}
-
 async function loadPrivateContext(
   client: PortalClient,
+  tenantId: string,
   nextArrival: NextArrival,
 ): Promise<PrivateContext> {
   let admin: SupabaseClient;
@@ -85,15 +71,9 @@ async function loadPrivateContext(
     return emptyPrivateContext();
   }
 
-  const [tenantId, nextArrivalNaviera] = await Promise.all([
-    getTenantId(admin, client.id),
-    nextArrival
-      ? getShipmentNaviera(admin, nextArrival.id).catch(() => null)
-      : Promise.resolve(null),
-  ]);
-  if (!tenantId) {
-    return { ...emptyPrivateContext(), nextArrivalNaviera };
-  }
+  const nextArrivalNaviera = nextArrival
+    ? await getShipmentNaviera(admin, nextArrival.id).catch(() => null)
+    : null;
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const [pendingAcceptance, sailing] = await Promise.all([
@@ -115,8 +95,9 @@ async function loadPrivateContext(
 export async function getPortalHomePrivateContext(
   db: SupabaseClient,
 ): Promise<PortalHomePrivateContext | null> {
-  const client = await getPortalClient(db);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(db);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
 
   const activation = await getPortalActivation(db);
   if (!activation.activated) return { state: "pending", client };
@@ -148,7 +129,7 @@ export async function getPortalHomePrivateContext(
     hiddenStatuses,
     advisor,
   };
-  const privateContext = await loadPrivateContext(client, rawNextArrival);
+  const privateContext = await loadPrivateContext(client, tenantId, rawNextArrival);
 
   return { state: "active", ...sessionContext, ...privateContext };
 }

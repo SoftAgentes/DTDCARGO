@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const mocks = vi.hoisted(() => ({
   createAdminClient: vi.fn(),
-  getPortalClient: vi.fn(),
+  getPortalClientPrincipal: vi.fn(),
   getPrealertaByCode: vi.fn(),
   listarRecepcionesDeCompra: vi.fn(),
   obtenerPackingListDeCompra: vi.fn(),
@@ -14,7 +14,7 @@ vi.mock("@/lib/db/admin", () => ({
   createAdminClient: mocks.createAdminClient,
 }));
 vi.mock("@/lib/portal/portal-queries", () => ({
-  getPortalClient: mocks.getPortalClient,
+  getPortalClientPrincipal: mocks.getPortalClientPrincipal,
 }));
 vi.mock("@/lib/studio/prealertas/queries", () => ({
   getPrealertaByCode: mocks.getPrealertaByCode,
@@ -49,12 +49,12 @@ describe("getPortalPurchaseOperationalDetail", () => {
     await expect(getPortalPurchaseOperationalDetail(db, "  ")).resolves.toEqual(
       empty,
     );
-    expect(mocks.getPortalClient).not.toHaveBeenCalled();
+    expect(mocks.getPortalClientPrincipal).not.toHaveBeenCalled();
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
   });
 
   it("no eleva si el principal no es cliente Portal activo", async () => {
-    mocks.getPortalClient.mockResolvedValue(null);
+    mocks.getPortalClientPrincipal.mockResolvedValue(null);
 
     await expect(
       getPortalPurchaseOperationalDetail(db, "PRE-1001"),
@@ -64,13 +64,16 @@ describe("getPortalPurchaseOperationalDetail", () => {
   });
 
   it("no eleva si la sesión/RLS no prueba que la compra sea suya", async () => {
-    mocks.getPortalClient.mockResolvedValue({ markbox: "DTD-1001" });
+    mocks.getPortalClientPrincipal.mockResolvedValue({
+      userId: "portal-user", tenantId: "tenant-1", client: { markbox: "DTD-1001" },
+    });
     mocks.getPrealertaByCode.mockResolvedValue(null);
 
     await expect(
       getPortalPurchaseOperationalDetail(db, "PRE-AJENA"),
     ).resolves.toEqual(empty);
     expect(mocks.getPrealertaByCode).toHaveBeenCalledWith(db, "PRE-AJENA", {
+      tenantId: "tenant-1",
       markbox: "DTD-1001",
     });
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
@@ -80,7 +83,9 @@ describe("getPortalPurchaseOperationalDetail", () => {
     const admin = { role: "service" };
     const recepcion = { ...empty.recepcion, cajasRecibidas: 3 };
     const packing = { id: "pl-1" };
-    mocks.getPortalClient.mockResolvedValue({ markbox: "DTD-1001" });
+    mocks.getPortalClientPrincipal.mockResolvedValue({
+      userId: "portal-user", tenantId: "tenant-1", client: { markbox: "DTD-1001" },
+    });
     mocks.getPrealertaByCode.mockResolvedValue({ id: "pre-1" });
     mocks.createAdminClient.mockReturnValue(admin);
     mocks.listarRecepcionesDeCompra.mockResolvedValue(recepcion);
@@ -99,7 +104,9 @@ describe("getPortalPurchaseOperationalDetail", () => {
   });
 
   it("falla cerrado si la elevación no está disponible", async () => {
-    mocks.getPortalClient.mockResolvedValue({ markbox: "DTD-1001" });
+    mocks.getPortalClientPrincipal.mockResolvedValue({
+      userId: "portal-user", tenantId: "tenant-1", client: { markbox: "DTD-1001" },
+    });
     mocks.getPrealertaByCode.mockResolvedValue({ id: "pre-1" });
     mocks.createAdminClient.mockImplementation(() => {
       throw new Error("sin service role");

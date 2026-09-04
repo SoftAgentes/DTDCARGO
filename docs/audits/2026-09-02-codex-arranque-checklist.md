@@ -61,6 +61,7 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Cotizaciones Portal aplicación, 0395 | Cerrado localmente: RED 3/3; focal/histórico 18/18 y Portal 895/895; sin avisos reales |
 | Referidos y reclamos elevados, 0396 | Cerrado localmente: RED 4/4; GREEN 4/4 y Portal 899/899; sin correos, adjuntos ni datos reales |
 | Facturas Portal acciones, 0397 | Cerrado localmente: RED 5/5; focal/histórico 61/61 y Portal 903/903; sin efectos reales |
+| Contextos privados Portal, 0398 | Cerrado localmente: RED 12/12; focal/histórico 51/51 y Portal+Prealertas 1.068/1.068; sin lecturas reales |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.
@@ -867,6 +868,11 @@ están incluidos en aquel push.
   el principal completo; aceptación y reporte cortan antes de admin y ya no
   releen `clients`. RED 5/5, focal/histórico 61/61 y Portal 903/903. No hubo
   aceptaciones, comprobantes, avisos, comandos o datos reales.
+  SDD-0398 cerró siete contextos privados: todos exigen principal completo y se
+  eliminaron cinco relecturas admin de tenant. Hub y detalle de compra propagan
+  tenant + Shipping Mark a compras, proveedores y documentos. RED 12/12,
+  focal/histórico 51/51 y Portal+Prealertas 1.068/1.068; la suite global posterior
+  pasa 7.274/7.274 en 573 archivos y el lint global. Sin lecturas reales.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
   logout sin esa decisión puede perder entregas pendientes.

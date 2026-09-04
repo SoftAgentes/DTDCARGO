@@ -8,9 +8,12 @@ import {
   getNextOpenSailing,
   type PortalSailing,
 } from "@/lib/portal/next-sailing-queries";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import {
+  getPortalClientPrincipal,
+  type PortalClientPrincipal,
+} from "@/lib/portal/portal-queries";
 
-type PortalClient = NonNullable<Awaited<ReturnType<typeof getPortalClient>>>;
+type PortalClient = PortalClientPrincipal["client"];
 
 export type PortalShellPrivateContext = {
   client: PortalClient;
@@ -28,22 +31,6 @@ function emptyContext(client: PortalClient): PortalShellPrivateContext {
   };
 }
 
-async function tenantForClient(
-  admin: SupabaseClient,
-  clientId: string,
-): Promise<string> {
-  try {
-    const { data } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", clientId)
-      .maybeSingle<{ tenant_id: string }>();
-    return String(data?.tenant_id ?? "").trim();
-  } catch {
-    return "";
-  }
-}
-
 /**
  * Resuelve el principal con la sesión antes de elevar. El RSC no entrega ids ni
  * tenant; recibe sólo los derivados mínimos que necesita el shell.
@@ -52,8 +39,9 @@ export async function getPortalShellPrivateContext(
   db: SupabaseClient,
   now: Date = new Date(),
 ): Promise<PortalShellPrivateContext | null> {
-  const client = await getPortalClient(db);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(db);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
 
   let admin: SupabaseClient;
   try {
@@ -62,11 +50,9 @@ export async function getPortalShellPrivateContext(
     return emptyContext(client);
   }
 
-  const [soporteLastReplyAt, tenantId] = await Promise.all([
-    getPortalLastReplyAt(admin, client.id).catch(() => null),
-    tenantForClient(admin, client.id),
-  ]);
-  if (!tenantId) return { ...emptyContext(client), soporteLastReplyAt };
+  const soporteLastReplyAt = await getPortalLastReplyAt(admin, client.id).catch(
+    () => null,
+  );
 
   const todayIso = now.toISOString().slice(0, 10);
   const sailing = await getNextOpenSailing(admin, tenantId, todayIso).catch(() => null);

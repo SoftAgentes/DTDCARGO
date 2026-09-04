@@ -7,7 +7,11 @@ import {
   getPendingAcceptanceForShipment,
   type PendingAcceptanceInvoice,
 } from "@/lib/portal/portal-legal-queries";
-import { getMyShipment, getPortalClient } from "@/lib/portal/portal-queries";
+import {
+  getMyShipment,
+  getPortalClientPrincipal,
+  type PortalClientPrincipal,
+} from "@/lib/portal/portal-queries";
 import {
   listShipmentNotificationHistory,
   type PortalNotificationHistoryItem,
@@ -25,7 +29,6 @@ import {
 import type { ShipmentDocument } from "@/lib/studio/shipment-document-types";
 
 type PortalShipment = NonNullable<Awaited<ReturnType<typeof getMyShipment>>>;
-type PortalClient = NonNullable<Awaited<ReturnType<typeof getPortalClient>>>;
 
 export type PortalShipmentPrivateContext = {
   shipment: PortalShipment;
@@ -54,18 +57,12 @@ function sessionOnlyContext(
 
 async function loadPendingAcceptance(
   admin: SupabaseClient,
-  client: PortalClient | null,
+  principal: PortalClientPrincipal,
   shipmentId: string,
 ): Promise<PendingAcceptanceInvoice | null> {
-  if (!client || !showShipmentAcceptanceCta(client.markbox)) return null;
+  const { client, tenantId } = principal;
+  if (!showShipmentAcceptanceCta(client.markbox)) return null;
   try {
-    const { data: row } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", client.id)
-      .maybeSingle<{ tenant_id: string }>();
-    const tenantId = String(row?.tenant_id ?? "").trim();
-    if (!tenantId) return null;
     return await getPendingAcceptanceForShipment(admin, {
       tenantId,
       markbox: client.markbox,
@@ -88,11 +85,11 @@ export async function getPortalShipmentPrivateContext(
   const code = String(shipmentCode ?? "").trim();
   if (!code) return null;
 
-  const [shipment, client] = await Promise.all([
+  const [shipment, principal] = await Promise.all([
     getMyShipment(db, code),
-    getPortalClient(db),
+    getPortalClientPrincipal(db),
   ]);
-  if (!shipment) return null;
+  if (!shipment || !principal) return null;
 
   const documents = await listShipmentDocuments(db, shipment.id).catch(
     () => [] as ShipmentDocument[],
@@ -119,7 +116,7 @@ export async function getPortalShipmentPrivateContext(
       ),
       getShipmentNaviera(admin, shipment.id).catch(() => null),
       getShipmentTrackingSnapshot(admin, shipment.id).catch(() => null),
-      loadPendingAcceptance(admin, client, shipment.id),
+      loadPendingAcceptance(admin, principal, shipment.id),
     ]);
 
   return {

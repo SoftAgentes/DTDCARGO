@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   showShipmentAcceptanceCta: vi.fn(),
   getPendingAcceptanceForShipment: vi.fn(),
   getMyShipment: vi.fn(),
-  getPortalClient: vi.fn(),
+  getPortalClientPrincipal: vi.fn(),
   listShipmentNotificationHistory: vi.fn(),
   getShipmentNaviera: vi.fn(),
   getShipmentTrackingSnapshot: vi.fn(),
@@ -26,7 +26,7 @@ vi.mock("@/lib/portal/portal-legal-queries", () => ({
 }));
 vi.mock("@/lib/portal/portal-queries", () => ({
   getMyShipment: mocks.getMyShipment,
-  getPortalClient: mocks.getPortalClient,
+  getPortalClientPrincipal: mocks.getPortalClientPrincipal,
 }));
 vi.mock("@/lib/studio/notifications/notification-history-queries", () => ({
   listShipmentNotificationHistory: mocks.listShipmentNotificationHistory,
@@ -45,24 +45,19 @@ import { getPortalShipmentPrivateContext } from "../shipment-private-context";
 const db = {} as SupabaseClient;
 const shipment = { id: "shipment-1", code: "ENV-1" };
 const client = { id: "client-1", markbox: "DTD-1001" };
+const principal = { userId: "portal-user", tenantId: "tenant-1", client };
 const documents = [
   { id: "doc-1", storage_path: "tenant/shipment-1/bl.pdf" },
 ];
 
 function makeAdmin() {
-  const maybeSingle = vi.fn().mockResolvedValue({
-    data: { tenant_id: "tenant-1" },
-  });
-  const eq = vi.fn().mockReturnValue({ maybeSingle });
-  const select = vi.fn().mockReturnValue({ eq });
-  const from = vi.fn().mockReturnValue({ select });
-  return { admin: { from } as unknown as SupabaseClient, from, eq };
+  return { admin: { role: "service" } as unknown as SupabaseClient };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getMyShipment.mockResolvedValue(shipment);
-  mocks.getPortalClient.mockResolvedValue(client);
+  mocks.getPortalClientPrincipal.mockResolvedValue(principal);
   mocks.listShipmentDocuments.mockResolvedValue(documents);
   mocks.showShipmentAcceptanceCta.mockReturnValue(true);
   mocks.signDocumentUrls.mockResolvedValue({
@@ -107,7 +102,7 @@ describe("getPortalShipmentPrivateContext", () => {
   });
 
   it("firma y consulta privados sólo con el shipment id comprobado", async () => {
-    const { admin, from, eq } = makeAdmin();
+    const { admin } = makeAdmin();
     mocks.createAdminClient.mockReturnValue(admin);
 
     await expect(
@@ -136,8 +131,6 @@ describe("getPortalShipmentPrivateContext", () => {
       admin,
       "shipment-1",
     );
-    expect(from).toHaveBeenCalledWith("clients");
-    expect(eq).toHaveBeenCalledWith("id", "client-1");
     expect(mocks.getPendingAcceptanceForShipment).toHaveBeenCalledWith(admin, {
       tenantId: "tenant-1",
       markbox: "DTD-1001",
@@ -146,14 +139,13 @@ describe("getPortalShipmentPrivateContext", () => {
   });
 
   it("respeta el gate del CTA y no busca aceptación para ese cliente", async () => {
-    const { admin, from } = makeAdmin();
+    const { admin } = makeAdmin();
     mocks.createAdminClient.mockReturnValue(admin);
     mocks.showShipmentAcceptanceCta.mockReturnValue(false);
 
     await expect(
       getPortalShipmentPrivateContext(db, "ENV-1"),
     ).resolves.toMatchObject({ pendingAcceptance: null });
-    expect(from).not.toHaveBeenCalled();
     expect(mocks.getPendingAcceptanceForShipment).not.toHaveBeenCalled();
   });
 });

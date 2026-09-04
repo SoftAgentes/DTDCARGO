@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   createAdminClient: vi.fn(),
   getPendingAcceptanceInvoice: vi.fn(),
   latestOrderAcceptanceDocs: vi.fn(),
-  getPortalClient: vi.fn(),
+  getPortalClientPrincipal: vi.fn(),
   currentClientDocs: vi.fn(),
 }));
 
@@ -16,7 +16,7 @@ vi.mock("@/lib/portal/portal-legal-queries", () => ({
   latestOrderAcceptanceDocs: mocks.latestOrderAcceptanceDocs,
 }));
 vi.mock("@/lib/portal/portal-queries", () => ({
-  getPortalClient: mocks.getPortalClient,
+  getPortalClientPrincipal: mocks.getPortalClientPrincipal,
 }));
 vi.mock("@/lib/studio/legal/queries", () => ({
   currentClientDocs: mocks.currentClientDocs,
@@ -26,6 +26,7 @@ import { getPortalAcceptancePrivateContext } from "../portal-acceptance-private-
 
 const db = {} as SupabaseClient;
 const client = { id: "client-1", markbox: "DTD-1001" };
+const principal = { userId: "portal-user", tenantId: "tenant-1", client };
 const order = {
   code: "INV-1",
   shipmentCode: "SHP-1",
@@ -35,17 +36,13 @@ const order = {
 const docs = [{ key: "tyc", name: "Términos", version: "v3" }];
 const previousDocs = [{ key: "tyc", version: "v2", body_sha256: "abc" }];
 
-function makeAdmin(tenantId = "tenant-1") {
-  const maybeSingle = vi.fn().mockResolvedValue({ data: { tenant_id: tenantId } });
-  const eq = vi.fn().mockReturnValue({ maybeSingle });
-  const select = vi.fn().mockReturnValue({ eq });
-  const from = vi.fn().mockReturnValue({ select });
-  return { admin: { from } as unknown as SupabaseClient, from, eq };
+function makeAdmin() {
+  return { admin: { role: "service" } as unknown as SupabaseClient };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getPortalClient.mockResolvedValue(client);
+  mocks.getPortalClientPrincipal.mockResolvedValue(principal);
   mocks.getPendingAcceptanceInvoice.mockResolvedValue(order);
   mocks.currentClientDocs.mockResolvedValue(docs);
   mocks.latestOrderAcceptanceDocs.mockResolvedValue(previousDocs);
@@ -53,7 +50,7 @@ beforeEach(() => {
 
 describe("getPortalAcceptancePrivateContext", () => {
   it("no construye admin cuando no hay cliente Portal", async () => {
-    mocks.getPortalClient.mockResolvedValue(null);
+    mocks.getPortalClientPrincipal.mockResolvedValue(null);
 
     await expect(
       getPortalAcceptancePrivateContext(db, "INV-1"),
@@ -69,15 +66,13 @@ describe("getPortalAcceptancePrivateContext", () => {
   });
 
   it("acota orden y documentos a la identidad resuelta por sesión", async () => {
-    const { admin, from, eq } = makeAdmin();
+    const { admin } = makeAdmin();
     mocks.createAdminClient.mockReturnValue(admin);
 
     await expect(
       getPortalAcceptancePrivateContext(db, " INV-1 "),
     ).resolves.toEqual({ state: "ready", order, docs, previousDocs });
     expect(mocks.createAdminClient).toHaveBeenCalledTimes(1);
-    expect(from).toHaveBeenCalledWith("clients");
-    expect(eq).toHaveBeenCalledWith("id", "client-1");
     expect(mocks.getPendingAcceptanceInvoice).toHaveBeenCalledWith(admin, {
       tenantId: "tenant-1",
       markbox: "DTD-1001",
@@ -103,7 +98,7 @@ describe("getPortalAcceptancePrivateContext", () => {
     expect(mocks.latestOrderAcceptanceDocs).not.toHaveBeenCalled();
   });
 
-  it("falla cerrado si no puede crear admin o resolver tenant", async () => {
+  it("falla cerrado si no puede crear admin", async () => {
     mocks.createAdminClient.mockImplementationOnce(() => {
       throw new Error("sin service role");
     });
@@ -111,12 +106,6 @@ describe("getPortalAcceptancePrivateContext", () => {
       getPortalAcceptancePrivateContext(db, "INV-1"),
     ).resolves.toEqual({ state: "unavailable" });
 
-    const { admin } = makeAdmin("");
-    mocks.createAdminClient.mockReturnValue(admin);
-    await expect(
-      getPortalAcceptancePrivateContext(db, "INV-1"),
-    ).resolves.toEqual({ state: "unavailable" });
-    expect(mocks.getPendingAcceptanceInvoice).not.toHaveBeenCalled();
   });
 
   it("falla cerrado si no puede leer el set legal vigente", async () => {

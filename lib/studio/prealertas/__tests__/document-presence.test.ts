@@ -55,6 +55,7 @@ describe("listPrealertaDocumentPresence", () => {
 
     const result = await listPrealertaDocumentPresence(client, {
       prealertaIds: ["p1", "p2", "p1"],
+      tenantId: "tenant-1",
       markbox: "DTD-0001",
     });
 
@@ -74,6 +75,8 @@ describe("listPrealertaDocumentPresence", () => {
       "client_markbox",
       "DTD-0001",
     ]);
+    expect(calls.some((call) => call.method === "eq"
+      && call.args[0] === "tenant_id" && call.args[1] === "tenant-1")).toBe(true);
   });
 
   it("sin ids no toca Supabase", async () => {

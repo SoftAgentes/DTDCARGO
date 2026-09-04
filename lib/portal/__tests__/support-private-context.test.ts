@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 const mocks = vi.hoisted(() => ({
   createAdminClient: vi.fn(),
-  getPortalClient: vi.fn(),
+  getPortalClientPrincipal: vi.fn(),
   getPortalAdvisor: vi.fn(),
   listMyShipments: vi.fn(),
   listMyClaims: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock("@/lib/portal/portal-claims", () => ({
 }));
 vi.mock("@/lib/portal/portal-queries", () => ({
   getPortalAdvisor: mocks.getPortalAdvisor,
-  getPortalClient: mocks.getPortalClient,
+  getPortalClientPrincipal: mocks.getPortalClientPrincipal,
   listMyShipments: mocks.listMyShipments,
 }));
 vi.mock("@/lib/portal/portal-conversation-queries", () => ({
@@ -39,6 +39,7 @@ import { getPortalSupportPrivateContext } from "../support-private-context";
 const db = {} as SupabaseClient;
 const admin = { role: "service" } as unknown as SupabaseClient;
 const client = { id: "client-1", markbox: "DTD-1001", name: "Cliente" };
+const principal = { userId: "portal-user", tenantId: "tenant-1", client };
 const claims = [{ id: "claim-1" }, { id: "claim-2" }];
 const shipments = [{ id: "shipment-1", code: "ENV-1" }];
 const advisor = { id: "advisor-1", name: "Asesora" };
@@ -48,7 +49,7 @@ const evidenceItems = [{ id: "evidence-1", url: "https://signed.test/e" }];
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getPortalClient.mockResolvedValue(client);
+  mocks.getPortalClientPrincipal.mockResolvedValue(principal);
   mocks.listMyClaims.mockResolvedValue(claims);
   mocks.listMyShipments.mockResolvedValue(shipments);
   mocks.getPortalAdvisor.mockResolvedValue(advisor);
@@ -63,7 +64,7 @@ beforeEach(() => {
 
 describe("getPortalSupportPrivateContext", () => {
   it("no consulta ni eleva si el principal no es cliente Portal", async () => {
-    mocks.getPortalClient.mockResolvedValue(null);
+    mocks.getPortalClientPrincipal.mockResolvedValue(null);
 
     await expect(getPortalSupportPrivateContext(db)).resolves.toBeNull();
     expect(mocks.listMyClaims).not.toHaveBeenCalled();

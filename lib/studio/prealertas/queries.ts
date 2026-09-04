@@ -103,7 +103,7 @@ function coercePrealerta(r: Record<string, unknown>): Prealerta {
  */
 export async function listSuppliers(
   supabase: SupabaseClient,
-  opts: { markbox?: string } = {},
+  opts: { markbox?: string; tenantId?: string } = {},
 ): Promise<Supplier[]> {
   // Paginado: los proveedores se acumulan por cliente y esta lista alimenta el
   // selector de la prealerta — uno que no aparece no se puede elegir.
@@ -115,6 +115,7 @@ export async function listSuppliers(
         .is("deleted_at", null)
         .order("supplier_seq", { ascending: true })
         .order("id", { ascending: true });
+      if (opts.tenantId) query = query.eq("tenant_id", opts.tenantId);
       if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
       return query.range(d, h);
     },
@@ -134,7 +135,7 @@ export async function listSuppliers(
  */
 export async function listPrealertas(
   supabase: SupabaseClient,
-  opts: { markbox?: string; status?: string } = {},
+  opts: { markbox?: string; tenantId?: string; status?: string } = {},
 ): Promise<Prealerta[]> {
   let query = supabase
     .from("prealertas")
@@ -142,6 +143,7 @@ export async function listPrealertas(
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .order("id", { ascending: true });
+  if (opts.tenantId) query = query.eq("tenant_id", opts.tenantId);
   if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
   if (opts.status) query = query.eq("status", opts.status);
 
@@ -426,7 +428,7 @@ export type PrealertaDocumentPresence = Pick<
  */
 export async function listPrealertaDocumentPresence(
   supabase: SupabaseClient,
-  opts: { prealertaIds: readonly string[]; markbox: string },
+  opts: { prealertaIds: readonly string[]; markbox: string; tenantId?: string },
 ): Promise<PrealertaDocumentPresence[]> {
   const ids = [...new Set(opts.prealertaIds.filter(Boolean))];
   if (ids.length === 0 || !opts.markbox) return [];
@@ -434,15 +436,18 @@ export async function listPrealertaDocumentPresence(
   try {
     const { rows, complete } = await fetchAllByIds<Record<string, unknown>>(
       ids,
-      (batch, from, to) =>
-        supabase
+      (batch, from, to) => {
+        const query = supabase
           .from("prealerta_documents")
           .select("id, prealerta_id, doc_type")
           .in("prealerta_id", batch)
-          .eq("client_markbox", opts.markbox)
+          .eq("client_markbox", opts.markbox);
+        const scoped = opts.tenantId ? query.eq("tenant_id", opts.tenantId) : query;
+        return scoped
           .is("deleted_at", null)
           .order("id", { ascending: true })
-          .range(from, to),
+          .range(from, to);
+      },
     );
     if (!complete) throw new Error("Lectura documental incompleta");
     return rows.map((row) => ({

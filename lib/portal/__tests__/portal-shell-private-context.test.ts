@@ -3,14 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createAdminClient: vi.fn(),
-  getPortalClient: vi.fn(),
+  getPortalClientPrincipal: vi.fn(),
   getPortalLastReplyAt: vi.fn(),
   getNextOpenSailing: vi.fn(),
   daysUntil: vi.fn(),
 }));
 
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: mocks.createAdminClient }));
-vi.mock("@/lib/portal/portal-queries", () => ({ getPortalClient: mocks.getPortalClient }));
+vi.mock("@/lib/portal/portal-queries", () => ({
+  getPortalClientPrincipal: mocks.getPortalClientPrincipal,
+}));
 vi.mock("@/lib/portal/portal-conversation-queries", () => ({
   getPortalLastReplyAt: mocks.getPortalLastReplyAt,
 }));
@@ -27,21 +29,15 @@ const client = {
   rif: null, city: null, state: null,
 };
 const sailing = { id: "sailing-synthetic", cutoff: "2026-09-10" };
+const principal = { userId: "portal-user", tenantId: "tenant-synthetic", client };
 
-function adminFixture(tenantId = "tenant-synthetic") {
-  const filters: Array<[string, unknown]> = [];
-  const builder = {
-    select: () => builder,
-    eq(key: string, value: unknown) { filters.push([key, value]); return builder; },
-    maybeSingle: async () => ({ data: { tenant_id: tenantId }, error: null }),
-  };
-  const admin = { from: vi.fn(() => builder) };
-  return { admin, filters };
+function adminFixture() {
+  return { admin: { role: "service" } };
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getPortalClient.mockResolvedValue(client);
+  mocks.getPortalClientPrincipal.mockResolvedValue(principal);
   mocks.getPortalLastReplyAt.mockResolvedValue("2026-09-03T12:00:00Z");
   mocks.getNextOpenSailing.mockResolvedValue(sailing);
   mocks.daysUntil.mockReturnValue(7);
@@ -49,20 +45,18 @@ beforeEach(() => {
 
 describe("SDD0383 · contexto privado del shell Portal", () => {
   it("sin principal corta antes de construir un cliente elevado", async () => {
-    mocks.getPortalClient.mockResolvedValue(null);
+    mocks.getPortalClientPrincipal.mockResolvedValue(null);
     expect(await getPortalShellPrivateContext({} as never)).toBeNull();
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
   });
 
   it("deriva soporte y zarpe con un solo admin y scopes exactos", async () => {
-    const { admin, filters } = adminFixture();
+    const { admin } = adminFixture();
     mocks.createAdminClient.mockReturnValue(admin);
     const result = await getPortalShellPrivateContext({} as never, new Date("2026-09-03T18:00:00Z"));
 
     expect(mocks.createAdminClient).toHaveBeenCalledOnce();
     expect(mocks.getPortalLastReplyAt).toHaveBeenCalledWith(admin, client.id);
-    expect(admin.from).toHaveBeenCalledWith("clients");
-    expect(filters).toEqual([["id", client.id]]);
     expect(mocks.getNextOpenSailing).toHaveBeenCalledWith(admin, "tenant-synthetic", "2026-09-03");
     expect(mocks.daysUntil).toHaveBeenCalledWith("2026-09-10", "2026-09-03");
     expect(result).toEqual({
@@ -81,13 +75,13 @@ describe("SDD0383 · contexto privado del shell Portal", () => {
     });
   });
 
-  it("un fallo derivado no tumba el shell ni ensancha consultas", async () => {
-    const { admin } = adminFixture("");
+  it("un fallo derivado no tumba el shell ni corta los demás derivados", async () => {
+    const { admin } = adminFixture();
     mocks.createAdminClient.mockReturnValue(admin);
     mocks.getPortalLastReplyAt.mockRejectedValue(new Error("synthetic query"));
     expect(await getPortalShellPrivateContext({} as never)).toEqual({
-      client, soporteLastReplyAt: null, sailing: null, sailingDaysToCutoff: null,
+      client, soporteLastReplyAt: null, sailing, sailingDaysToCutoff: 7,
     });
-    expect(mocks.getNextOpenSailing).not.toHaveBeenCalled();
+    expect(mocks.getNextOpenSailing).toHaveBeenCalled();
   });
 });
