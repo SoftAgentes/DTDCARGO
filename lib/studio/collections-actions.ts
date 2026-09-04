@@ -39,6 +39,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createComponentLogger } from "@/lib/observability/structured-logger";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   postReceiptJournalEntry,
@@ -101,6 +102,7 @@ export async function registerCollectionFor(
   invoiceId: string,
   raw: Partial<PaymentInput>,
 ): Promise<RegisterCollectionResult> {
+  const logger = createComponentLogger("internal.collections.register");
   // 1. Leer la factura (RLS la acota al tenant).
   const { data: inv, error: readErr } = await supabase
     .from("invoices")
@@ -207,16 +209,19 @@ export async function registerCollectionFor(
         .update({ journal_entry_id: posting.entryId })
         .eq("id", insertedReceipt.id);
     } else if (!posting.ok) {
-      console.error(
-        `[contabilidad] asiento del cobro ${receiptCode} no creado:`,
-        posting.skipped ?? posting.error,
-      );
+      logger.error("collections.receipt_posting_failed", {
+        error: posting.error,
+        operation: "register_collection",
+        stage: "post_receipt_entry",
+        status: posting.skipped ?? "failed",
+      });
     }
   } catch (e) {
-    console.error(
-      `[contabilidad] error inesperado al asentar cobro ${receiptCode}:`,
-      e,
-    );
+    logger.error("collections.receipt_posting_exception", {
+      error: e,
+      operation: "register_collection",
+      stage: "post_receipt_entry",
+    });
   }
 
   return { ok: true, receiptCode, fullyPaid };
@@ -241,6 +246,7 @@ export async function registerUnidentifiedPaymentFor(
   supabase: SupabaseClient,
   raw: Partial<UnidentifiedPaymentInput>,
 ): Promise<UnidentifiedPaymentResult> {
+  const logger = createComponentLogger("internal.collections.register_unidentified");
   const { input, fieldErrors } = validateUnidentifiedPaymentInput(raw);
   if (fieldErrors) return { fieldErrors };
 
@@ -306,16 +312,19 @@ export async function registerUnidentifiedPaymentFor(
         .update({ journal_entry_id: posting.entryId })
         .eq("id", insertedReceipt.id);
     } else if (!posting.ok) {
-      console.error(
-        `[contabilidad] asiento del pago sin identificar ${receiptCode} no creado:`,
-        posting.skipped ?? posting.error,
-      );
+      logger.error("collections.unidentified_posting_failed", {
+        error: posting.error,
+        operation: "register_unidentified_payment",
+        stage: "post_receipt_entry",
+        status: posting.skipped ?? "failed",
+      });
     }
   } catch (e) {
-    console.error(
-      `[contabilidad] error inesperado al asentar pago sin identificar ${receiptCode}:`,
-      e,
-    );
+    logger.error("collections.unidentified_posting_exception", {
+      error: e,
+      operation: "register_unidentified_payment",
+      stage: "post_receipt_entry",
+    });
   }
 
   return { ok: true, receiptCode };
@@ -349,6 +358,7 @@ export async function identifyPaymentFor(
   receiptId: string,
   invoiceId: string,
 ): Promise<IdentifyPaymentResult> {
+  const logger = createComponentLogger("internal.collections.identify");
   // 1. Leer el recibo (RLS lo acota al tenant y excluye anulados).
   const { data: receipt, error: rErr } = await supabase
     .from("payment_receipts")
@@ -455,16 +465,19 @@ export async function identifyPaymentFor(
       entryDate: receipt.received_at,
     });
     if (!posting.ok) {
-      console.error(
-        `[contabilidad] reclasificación de ${receipt.receipt_code} no creada:`,
-        posting.skipped ?? posting.error,
-      );
+      logger.error("collections.reclassification_failed", {
+        error: posting.error,
+        operation: "identify_payment",
+        stage: "post_reclassification_entry",
+        status: posting.skipped ?? "failed",
+      });
     }
   } catch (e) {
-    console.error(
-      `[contabilidad] error inesperado al reclasificar ${receipt.receipt_code}:`,
-      e,
-    );
+    logger.error("collections.reclassification_exception", {
+      error: e,
+      operation: "identify_payment",
+      stage: "post_reclassification_entry",
+    });
   }
 
   return {
@@ -486,6 +499,7 @@ export async function voidReceiptFor(
   receiptId: string,
   reasonRaw: string,
 ): Promise<{ ok?: boolean; error?: string }> {
+  const logger = createComponentLogger("internal.collections.void");
   const reasonResult = validateAuditReason(reasonRaw);
   if (!reasonResult.ok) return { error: reasonResult.error };
 
@@ -547,10 +561,11 @@ export async function voidReceiptFor(
   {
     const r = await voidEntriesForReceipt(receipt.id);
     if (!r.ok) {
-      console.error(
-        `[contabilidad] no se pudieron anular los asientos del recibo ${receipt.receipt_code}:`,
-        r.error,
-      );
+      logger.error("collections.void_entries_failed", {
+        error: r.error,
+        operation: "void_receipt",
+        stage: "void_journal_entries",
+      });
     }
   }
 
