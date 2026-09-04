@@ -13,7 +13,7 @@ confidencialidad: interno
 Este documento es el punto de entrada operativo después del traspaso desde
 Cloud. No reemplaza specs ni runbooks: ordena qué sigue, quién puede hacerlo y
 qué autorización exige. El resumen vigente se revalidó el 2026-09-04 después de
-0400, la revisión del modo continuo y la cola local hasta SDD-0409. Los puntos
+0400, la revisión del modo continuo y la cola local hasta SDD-0410. Los puntos
 anteriores conservan su contexto histórico; antes
 de cualquier otra operación Git o alojada se deben refrescar sus precondiciones.
 
@@ -73,11 +73,12 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Documentos de envíos RBAC, 0407/0439 | Server Actions + Hub + tabla legacy + bucket heredan Tracking; policy Portal preservada; 181 SQL y rebuild 436; 0439 sin aplicar |
 | Documentos de clientes RBAC, 0408/0440 | `client` hereda defaults y overrides del módulo Clientes; 182 SQL y rebuild 437; 0440 sin aplicar |
 | Documentos de proveedores RBAC, 0409/0441 | `supplier` hereda defaults y overrides de Proveedores; mapa interno no expuesto a roles API; 183 SQL y rebuild 438; 0441 sin aplicar |
+| Documentos de Naviera RBAC, 0410/0442 | `consolidation` y `booking` heredan defaults y overrides de Naviera; 184 SQL y rebuild 439; 0442 sin aplicar |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original avanza a 57/106 (53,8 %): se cerró la casilla existente de
 auditar las policies Portal por Shipping Mark/tenant, no se crearon subpasos.
-Las migraciones preparadas sin aplicar son ahora 41 (0401–0441), derivadas
+Las migraciones preparadas sin aplicar son ahora 42 (0401–0442), derivadas
 del último ledger 0400; no se hizo nueva consulta Cloud en esta continuación.
 Todos los recibos y cambios posteriores a 70812835 permanecen sólo locales.
 Las secciones inferiores conservan sus fechas/alcance históricos.
@@ -792,8 +793,9 @@ están incluidos en aquel push.
   guard faltante en sus Server Actions y preserva la lectura Portal de 0416.
   SDD-0408/0440 añade `client` con defaults y overrides de Clientes.
   SDD-0409/0441 suma `supplier` con la matriz de Proveedores y extrae el mapa a
-  una función interna no ejecutable por roles de API. Faltan Naviera, Bitácora y
-  documentos sin transacción; cada slice conserva su gate separado.
+  una función interna no ejecutable por roles de API. SDD-0410/0442 incorpora
+  `consolidation` y `booking` con la matriz compartida de Naviera. Faltan
+  Bitácora y documentos sin transacción; cada slice conserva su gate separado.
 - [x] Auditar por dominio las otras policies Portal que comparan Shipping Mark
   sin tenant. SDD-0357 cubre `invoices` y SDD-0359 cubre `shipments`,
   `shipment_documents` y `shipment_events`. SDD-0361 cubre `suppliers_cn`,
