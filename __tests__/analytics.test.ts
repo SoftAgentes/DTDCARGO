@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  isAnalyticsExcludedUrl,
   isPrivatePath,
   sanitizePath,
   sanitizeSearch,
@@ -26,6 +27,12 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
     "/m/cn",
     "/back",
     "/invitar",
+    // Puertas públicas que transportan capabilities o datos de acceso.
+    "/acceso",
+    "/acceso/token-sintetico-analytics",
+    "/entrar",
+    "/entrar/codigo-sintetico-analytics",
+    "/abrir",
     // Ampliación 2026-07-05 (fuga PII detectada):
     "/verificar", // ?c=<Shipping Mark | folio>
     "/p/abc123", // packing list con token capability (SDD-0096)
@@ -60,8 +67,39 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
     "/verificado", // ≠ /verificar
     "/internacional", // ≠ /interno
     "/menu", // ≠ /m
+    "/accesorios", // ≠ /acceso
+    "/entradas", // ≠ /entrar
+    "/abrigos", // ≠ /abrir
   ])("NO excluye %s", (path) => {
     expect(isPrivatePath(path)).toBe(false);
+  });
+});
+
+describe("isAnalyticsExcludedUrl — la URL completa decide si Google carga", () => {
+  it.each([
+    ["/registro", "ref=REF-SINTETICO-0001", ""],
+    ["/registro", "est=EST-SINTETICO-0001", ""],
+    ["/servicios", "token=secreto-sintetico", ""],
+    ["/servicios", "code=codigo-sintetico", ""],
+    ["/servicios", "email=persona%40example.com", ""],
+    ["/servicios", "", "#access_token=token-sintetico"],
+    ["/servicios", "", "#refresh_token=token-sintetico"],
+  ])("excluye %s?%s%s", (pathname, query, hash) => {
+    expect(
+      isAnalyticsExcludedUrl(pathname, new URLSearchParams(query), hash),
+    ).toBe(true);
+  });
+
+  it("conserva la medición con atribución explícitamente permitida", () => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(
+          "utm_source=instagram&utm_campaign=prueba&gclid=click-sintetico",
+        ),
+        "#cotizar",
+      ),
+    ).toBe(false);
   });
 });
 
@@ -93,6 +131,13 @@ describe("sanitizeSearch — whitelist de query params (PII nunca sale)", () => 
 });
 
 describe("sanitizePath — redacción del código de tracking", () => {
+  it.each([
+    ["/acceso/token-sintetico", "/acceso/[token]"],
+    ["/entrar/codigo-sintetico", "/entrar/[code]"],
+  ])("redacta credenciales en %s", (path, expected) => {
+    expect(sanitizePath(path)).toBe(expected);
+  });
+
   it("redacta el código de /track/[code]", () => {
     expect(sanitizePath("/track/DTD-1004")).toBe("/track/[code]");
     expect(sanitizePath("/track/abc123xyz")).toBe("/track/[code]");

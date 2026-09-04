@@ -37,7 +37,7 @@ tercero no es papeleo: es lo único que delimita quién responde.
 
 | Proveedor | Por qué no |
 |---|---|
-| **Google Analytics 4 / Google Ads** | Excluido de toda ruta con datos de cliente: `PRIVATE_PREFIXES` + `isPrivatePath()` + `sanitizePath()` + whitelist de query params + kill-switch `ga-disable-*`. Verificado en [`components/Analytics.tsx:49-110`](../../../components/Analytics.tsx) |
+| **Google Analytics 4 / Google Ads** | Excluido de rutas privadas y puertas de acceso mediante `PRIVATE_PREFIXES` + `isPrivatePath()`. `isAnalyticsExcludedUrl()` apaga ambos tags ante query no aprobada o credenciales en el fragmento; el guard de History activa `ga-disable-*` antes de una navegación cliente sensible. Defensa adicional: `sanitizePath()` + allowlist de atribución. Verificado en [`components/Analytics.tsx`](../../../components/Analytics.tsx) y sus pruebas sintéticas. |
 | **SeaRates** | Códigos de contenedor y BL, tarifas. No lleva datos de persona. `lib/shared/ocean-rate.ts` · `lib/studio/naviera-tracking/` |
 | **WhatsApp (wa.me)** | Solo son enlaces `wa.me` que abren la app del usuario. DTD no envía nada por API |
 
