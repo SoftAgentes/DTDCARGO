@@ -14,6 +14,7 @@ import {
   FOLDER_SUB_IDS,
   DOCUMENT_ENTITY_TYPES,
   LINK_KIND,
+  entityTypeLabel,
   deriveDocStatus,
   validateDocumentInput,
   topOf,
@@ -211,6 +212,13 @@ describe("LINK_KIND deep-links", () => {
     expect(LINK_KIND.invoice.route).toBe("/studio/facturacion");
     expect(LINK_KIND.none.route).toBeNull();
     expect(LINK_KIND.none.module).toBeNull();
+  });
+
+  it("expense existe en el contrato DB y apunta al módulo Gastos", () => {
+    expect(DOCUMENT_ENTITY_TYPES as readonly string[]).toContain("expense");
+    expect(entityTypeLabel("expense")).toBe("Gasto");
+    expect(LINK_KIND.expense.module).toBe("expenses");
+    expect(LINK_KIND.expense.route).toBe("/studio/gastos");
   });
 });
 

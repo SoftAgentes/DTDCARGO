@@ -30,6 +30,10 @@ describe("hubDeepLink", () => {
     expect(hubDeepLink("invoice")?.href).toBe("/studio/facturacion");
   });
 
+  it("expense → módulo gastos", () => {
+    expect(hubDeepLink("expense")?.href).toBe("/studio/gastos");
+  });
+
   it("consolidation/booking → módulo naviera", () => {
     expect(hubDeepLink("consolidation")?.href).toBe("/studio/naviera");
     expect(hubDeepLink("booking")?.href).toBe("/studio/naviera");
