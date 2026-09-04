@@ -401,7 +401,29 @@ begin
 end;
 $pre_merge$;
 
--- 3 · Un destino de otro tenant falla cerrado y no mueve el ledger.
+-- 3 · Tanto la solicitud como la ficha fallan cerrado ante otro tenant.
+do $request_cross_tenant$
+begin
+  begin
+    update public.client_change_requests
+    set client_id = '00000000-0000-0000-0000-00000000c003'
+    where id = '00000000-0000-0000-0000-00000000e003';
+    raise exception 'CONTRATO 3 ROTO: aceptó reasignar la solicitud a otro tenant';
+  exception
+    when foreign_key_violation then null;
+  end;
+
+  assert (select client_id from public.client_change_requests
+          where id = '00000000-0000-0000-0000-00000000e003') =
+         '00000000-0000-0000-0000-00000000c002',
+    'CONTRATO 3 ROTO: el fallo cross-tenant dejó la solicitud alterada';
+  assert (select client_id from public.client_profile_edits
+          where request_id = '00000000-0000-0000-0000-00000000e003') =
+         '00000000-0000-0000-0000-00000000c002',
+    'CONTRATO 3 ROTO: el fallo cross-tenant movió el asiento de la solicitud';
+end;
+$request_cross_tenant$;
+
 do $cross_tenant$
 begin
   begin
