@@ -78,7 +78,7 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Documentos sin transacción, 0412/0444 | `none` hereda Documentos, versionado gana su guard y tipos inventados fallan cerrados; 13 focales, 186 SQL y rebuild 441; 0444 sin aplicar |
 | CSP privada con nonce, 0413 | Cerrada localmente: RED de navegador detectó el script de tema sin nonce; GREEN 35/35, build 158 y Studio/Portal sin errores CSP; Marca y SSG público aislados |
 | Reconciliación de specs | Inventario corregido: 105 abiertas; SDD-0264, 0276 y 0287 cerradas con `origin/main`, pruebas y navegador/PDF real; quedan 102 |
-| Logs y web | Cola posterior; avances por alcance comprobado |
+| Logs y web | Logger central + 17/17 crons + 4/4 Edge Functions; queda residuo interno legacy y medición web |
 
 La cifra original avanza a 59/106 (55,7 %): además de la auditoría Portal y el
 RBAC por slices, la aplicación privada reemplaza scripts inline por nonce sin
@@ -1007,13 +1007,16 @@ están incluidos en aquel push.
   crons y Edge Functions. SDD-0414 creó el helper y adoptó los tres cron con
   prueba previa; SDD-0415 extrajo el contexto común y cerró cuatro workers drain;
   SDD-0416 añadió cuatro jobs programados y SDD-0417 cerró los seis monitores.
-  Acumulado: 17/17 handlers cron, cero `console.*` en sus rutas y 7.358 pruebas
-  completas. Quedan logs internos legacy y cuatro Edge Functions, por lo que
-  esta casilla no se marca ni aumenta el 59/106.
+  SDD-0418 añadió un logger Deno, correlacionó las 4/4 Edge Functions y eliminó
+  doce logs libres, incluido el payload completo del dry-run de write-back.
+  Acumulado: 17/17 handlers cron, 4/4 Edge Functions, cero `console.*` en sus
+  bordes y 7.371 pruebas completas. Quedan logs internos legacy, por lo que esta
+  casilla no se marca ni aumenta el 59/106.
   [Acta base](2026-09-04-structured-request-logging.md) y
   [workers drain](2026-09-04-structured-drain-crons.md) y
   [jobs programados](2026-09-04-structured-scheduled-crons.md), más
-  [salud e integraciones](2026-09-04-structured-health-crons.md).
+  [salud e integraciones](2026-09-04-structured-health-crons.md) y
+  [Edge Functions Kommo](2026-09-04-structured-kommo-edge-observability.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.

@@ -1,6 +1,7 @@
 // SDD-0043 · orquestación del sync read-only Kommo → tablas espejo.
 // M3: UPSERT idempotente por (tenant_id, id). Cada entidad registra una fila en sync_logs.
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import type { EdgeStructuredLogger } from "../_shared/structured-logger.ts";
 import {
   kommoFetch,
   paginateTasks,
@@ -180,6 +181,7 @@ export async function syncAll(
   supabase: SupabaseClient,
   conn: KommoConnection,
   token: string,
+  logger: EdgeStructuredLogger,
 ): Promise<EntityResult[]> {
   const baseUrl = `https://${conn.subdomain}.${conn.domain}`;
   const t = conn.tenant_id;
@@ -371,9 +373,11 @@ export async function syncAll(
       // espejo contra lo que trajo, y podar contra una lista parcial borra
       // contactos que existen. Antes esto cortaba en silencio.
       if (truncated) {
-        console.warn(
-          "[kommo-sync] contacts: se alcanzo el tope de paginas — lectura PARCIAL",
-        );
+        logger.warn("edge.read_truncated", {
+          entity: "contacts",
+          fetched: items.length,
+          truncated: true,
+        });
       }
       const rows = items.map((c) => mapContactRow(c, t));
       return {
@@ -399,9 +403,11 @@ export async function syncAll(
         "contacts",
       );
       if (truncated) {
-        console.warn(
-          "[kommo-sync] leads: se alcanzo el tope de paginas — lectura PARCIAL",
-        );
+        logger.warn("edge.read_truncated", {
+          entity: "leads",
+          fetched: items.length,
+          truncated: true,
+        });
       }
       const rows = items.map((l) => mapLeadRow(l, t));
       const upserted = await upsertRows(supabase, "kommo_leads", rows);

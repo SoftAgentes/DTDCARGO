@@ -15,6 +15,10 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import {
+  createEdgeRequestLogger,
+  type EdgeStructuredLogger,
+} from "../_shared/structured-logger.ts";
 import { kommoFetch } from "../kommo-sync/kommo-client.ts";
 import { upsertRows } from "../kommo-sync/sync.ts";
 import type { KommoContact, KommoLead } from "../kommo-sync/types.ts";
@@ -95,6 +99,7 @@ async function routeNewLeads(
   token: string,
   conn: ConnRow,
   leadIds: number[],
+  logger: EdgeStructuredLogger,
 ): Promise<Record<string, unknown>> {
   const target = readRecontactoTarget(conn.stage_map);
   if (!target) return { skipped: "sin stage_map.recontacto (enrutador inerte)" };
@@ -230,7 +235,11 @@ async function routeNewLeads(
       routed++;
     } catch (e) {
       // Un lead que falla no debe frenar a los demás ni al espejado.
-      console.error("[kommo-webhook][router] lead", leadId, errMsg(e));
+      logger.error("edge.router_item_failed", {
+        error: e,
+        stage: "router",
+        failed: 1,
+      });
     }
   }
 
@@ -245,6 +254,7 @@ async function applyEntityEvents(
   tenantId: string,
   entity: "lead" | "contact",
   events: KommoWebhookEvent[],
+  logger: EdgeStructuredLogger,
 ): Promise<{ fetched: number; upserted: number; deleted: number }> {
   const table = entity === "lead" ? "kommo_leads" : "kommo_contacts";
   const apiPath = entity === "lead" ? "leads" : "contacts";
@@ -317,27 +327,46 @@ async function applyEntityEvents(
       p_links: u.links,
       p_lead_updated_at: u.updatedAt,
     });
-    if (error) console.error("[kommo-webhook] vínculos", u.leadId, error.message);
+    if (error) {
+      logger.error("edge.link_update_failed", {
+        error,
+        stage: "lead-contact-link",
+        failed: 1,
+      });
+    }
   }
 
   return { fetched, upserted, deleted };
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== "POST") return json({ error: "Usá POST" }, 405);
+  const logger = createEdgeRequestLogger(req, "edge.kommo-webhook");
+  const respond = (body: unknown, status = 200) =>
+    logger.withResponse(json(body, status));
+  const fail = (event: string, error: unknown, status = 500) => {
+    logger.error(event, { error, stage: "database", status });
+    return respond({ error: "Fallo interno de kommo-webhook" }, status);
+  };
+
+  if (req.method !== "POST") return respond({ error: "Usá POST" }, 405);
 
   // 1) Auth del caller — ?secret= vs KOMMO_WEBHOOK_SECRET (constante-time).
   const SECRET = Deno.env.get("KOMMO_WEBHOOK_SECRET");
-  if (!SECRET) return json({ error: "Falta KOMMO_WEBHOOK_SECRET" }, 500);
+  if (!SECRET) {
+    logger.error("edge.config_missing", { stage: "config", status: 500 });
+    return respond({ error: "Configuración incompleta" }, 500);
+  }
   const given = new URL(req.url).searchParams.get("secret") ?? "";
   if (!timingSafeEqual(given, SECRET)) {
-    return json({ error: "Forbidden" }, 403);
+    logger.warn("edge.rejected", { stage: "auth", status: 403 });
+    return respond({ error: "Forbidden" }, 403);
   }
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!SUPABASE_URL || !SERVICE_ROLE) {
-    return json({ error: "Faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY" }, 500);
+    logger.error("edge.config_missing", { stage: "config", status: 500 });
+    return respond({ error: "Configuración incompleta" }, 500);
   }
 
   // 2) Parseo del body form-urlencoded.
@@ -348,7 +377,8 @@ Deno.serve(async (req: Request) => {
     parsed = parseKommoWebhookPayload(crudo);
   } catch (e) {
     // Cuerpo ilegible no debe hacer reintentar infinito a Kommo → 200 con nota.
-    return json({ ok: true, ignored: "body ilegible", detail: errMsg(e) }, 200);
+    logger.warn("edge.body_ignored", { error: e, stage: "parse", status: 200 });
+    return respond({ ok: true, ignored: "body ilegible" }, 200);
   }
   // SDD-0288 rebanada 1 · los mensajes viven fuera de `parsed.events`:
   // el parser de entidades sólo entiende leads/contactos.
@@ -371,10 +401,10 @@ Deno.serve(async (req: Request) => {
   // ni nombres ni teléfonos (§ `valoresEnumerados`).
   const valores = valoresEnumerados(crudo);
   if (Object.keys(valores).length > 0) {
-    console.log(
-      "[kommo-webhook][sdd-0288][valores-enum]",
-      JSON.stringify(valores),
-    );
+    logger.info("edge.enum_shape_observed", {
+      events: Object.keys(valores).length,
+      stage: "parse",
+    });
   }
 
   if (parsed.events.length === 0 && mensajes.length === 0) {
@@ -389,12 +419,12 @@ Deno.serve(async (req: Request) => {
     // ver cómo se llama de verdad el campo, escribir el parser sería adivinar.
     const forma = formaDelCuerpo(crudo);
     if (forma.length > 0) {
-      console.log(
-        "[kommo-webhook][sdd-0288][forma-desconocida]",
-        JSON.stringify({ claves: forma }),
-      );
+      logger.warn("edge.unknown_shape", {
+        unknownKeys: forma.length,
+        stage: "parse",
+      });
     }
-    return json({ ok: true, events: 0 }, 200);
+    return respond({ ok: true, events: 0 }, 200);
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
@@ -404,7 +434,7 @@ Deno.serve(async (req: Request) => {
   // 3) Resolver conexión por subdomain → tenant_id + token (Vault).
   //    Sin conexión habilitada → 200 (no 4xx) para evitar reintentos en loop.
   if (!parsed.subdomain) {
-    return json({ ok: true, ignored: "sin account[subdomain]" }, 200);
+    return respond({ ok: true, ignored: "sin account[subdomain]" }, 200);
   }
   const { data: conn, error: connErr } = await supabase
     .from("kommo_connections")
@@ -413,23 +443,23 @@ Deno.serve(async (req: Request) => {
     )
     .eq("subdomain", parsed.subdomain)
     .maybeSingle<ConnRow>();
-  if (connErr) return json({ error: `kommo_connections: ${connErr.message}` }, 500);
+  if (connErr) return fail("edge.connection_read_failed", connErr);
   if (!conn) {
-    return json({ ok: true, ignored: `sin conexión para ${parsed.subdomain}` }, 200);
+    return respond({ ok: true, ignored: "sin conexión configurada" }, 200);
   }
 
   // SDD-0367: disabled y estados desconocidos no consultan Vault ni procesan.
   // error sí se admite: su recuperación automática es contrato de SDD-0043.
   if (conn.status !== "active" && conn.status !== "error") {
-    return json({ ok: true, ignored: "conexión no habilitada" }, 200);
+    return respond({ ok: true, ignored: "conexión no habilitada" }, 200);
   }
 
   const { data: token, error: tokErr } = await supabase.rpc("kommo_get_token", {
     p_connection_id: conn.id,
   });
-  if (tokErr) return json({ error: `kommo_get_token: ${tokErr.message}` }, 500);
+  if (tokErr) return fail("edge.token_read_failed", tokErr);
   if (!token) {
-    return json({ ok: true, ignored: "token no encontrado en Vault" }, 200);
+    return respond({ ok: true, ignored: "credencial no disponible" }, 200);
   }
 
   const baseUrl = `https://${conn.subdomain}.${conn.domain}`;
@@ -453,6 +483,7 @@ Deno.serve(async (req: Request) => {
         conn.tenant_id,
         entity,
         evs,
+        logger,
       );
       summary[entity] = res;
       await supabase.from("sync_logs").insert({
@@ -500,10 +531,11 @@ Deno.serve(async (req: Request) => {
         }
       }
       summary.mensajes = { recibidos: mensajes.length, estampados, sinEspejar };
-      console.log(
-        "[kommo-webhook][sdd-0288][mensajes]",
-        JSON.stringify(summary.mensajes),
-      );
+      logger.info("edge.messages_processed", {
+        received: mensajes.length,
+        stamped: estampados,
+        unmirrored: sinEspejar,
+      });
     }
 
     // SDD-0244 — enrutado del cliente que vuelve. Va DESPUÉS del espejado (que es
@@ -516,6 +548,7 @@ Deno.serve(async (req: Request) => {
         token as string,
         conn,
         newLeadIds,
+        logger,
       );
     }
 
@@ -532,7 +565,12 @@ Deno.serve(async (req: Request) => {
       .eq("tenant_id", conn.tenant_id)
       .in("status", ["active", "error"]);
 
-    return json({ ok: true, events: parsed.events.length, summary }, 200);
+    logger.info("edge.completed", {
+      events: parsed.events.length,
+      received: mensajes.length,
+      status: "ok",
+    });
+    return respond({ ok: true, events: parsed.events.length, summary }, 200);
   } catch (e) {
     const detail = errMsg(e);
     await supabase.from("sync_logs").insert({
@@ -544,7 +582,8 @@ Deno.serve(async (req: Request) => {
       status: "error",
       error_detail: detail,
     });
-    // Error interno irrecuperable → 500 (Kommo reintenta). Sin filtrar secretos.
-    return json({ error: detail }, 500);
+    // Error interno irrecuperable → 500 (Kommo reintenta); detalle sólo interno.
+    logger.error("edge.run_failed", { error: e, stage: "webhook", status: 500 });
+    return respond({ error: "Fallo interno de kommo-webhook" }, 500);
   }
 });

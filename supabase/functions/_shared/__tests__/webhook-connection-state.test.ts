@@ -159,6 +159,23 @@ function fixture(options: Options = {}) {
   }
   const modules: Record<string, unknown> = {
     "jsr:@supabase/supabase-js@2": { createClient: () => supabase },
+    "../_shared/structured-logger.ts": {
+      createEdgeRequestLogger: (request: Request) => {
+        const requestId = request.headers.get("x-request-id") ?? "edge-test-request";
+        const emit = (event: string, fields?: unknown) =>
+          consoleEntries.push([event, fields]);
+        return {
+          requestId,
+          info: emit,
+          warn: emit,
+          error: emit,
+          withResponse: <T extends Response>(response: T): T => {
+            response.headers.set("x-request-id", requestId);
+            return response;
+          },
+        };
+      },
+    },
     "../kommo-sync/kommo-client.ts": { kommoFetch },
     "../kommo-sync/sync.ts": { upsertRows },
     "../_shared/kommo-mapping.ts": mapping,
@@ -262,7 +279,9 @@ describe("kommo-webhook real — estado de conexión", () => {
 describe("kommo-webhook real — contratos previos", () => {
   it.each(["GET", "PUT", "DELETE"])("mantiene405 para %s sin DB", async (method) => {
     const f = fixture();
-    expect((await f.invoke(MIXED, method)).response.status).toBe(405);
+    const result = await f.invoke(MIXED, method);
+    expect(result.response.status).toBe(405);
+    expect(result.response.headers.get("x-request-id")).toBe("edge-test-request");
     expect(f.operations).toEqual([]);
   });
   it.each([null, "secret-incorrecto"])("mantiene403 sin secret válido (%s)", async (secret) => {

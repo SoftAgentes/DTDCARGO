@@ -21,6 +21,7 @@
 //
 // Auth: igual que kommo-sync / kommo-push-client (verify_jwt=OFF; exige el SERVICE_ROLE del proyecto).
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { createEdgeRequestLogger } from "../_shared/structured-logger.ts";
 import { kommoFetch, kommoWrite, RATE_LIMIT_DELAY_MS, sleep } from "../kommo-sync/kommo-client.ts";
 import {
   esOpReintentable,
@@ -59,29 +60,41 @@ interface LeadReloj {
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Usá POST" }, 405);
+  const logger = createEdgeRequestLogger(req, "edge.kommo-writeback");
+  const respond = (body: unknown, status = 200) =>
+    logger.withResponse(json(body, status));
+  const fail = (event: string, error: unknown, status = 500) => {
+    logger.error(event, { error, stage: "database", status });
+    return respond({ error: "Fallo interno de kommo-writeback" }, status);
+  };
+
+  if (req.method === "OPTIONS") {
+    return logger.withResponse(new Response("ok", { headers: corsHeaders }));
+  }
+  if (req.method !== "POST") return respond({ error: "Usá POST" }, 405);
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!SUPABASE_URL || !SERVICE_ROLE) {
-    return json({ error: "Faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY" }, 500);
+    logger.error("edge.config_missing", { stage: "config", status: 500 });
+    return respond({ error: "Configuración incompleta" }, 500);
   }
 
   const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   const apikey = (req.headers.get("apikey") ?? "").trim();
   if (bearer !== SERVICE_ROLE && apikey !== SERVICE_ROLE) {
-    return json({ error: "Forbidden: requiere el service key del proyecto" }, 403);
+    logger.warn("edge.rejected", { stage: "auth", status: 403 });
+    return respond({ error: "Forbidden: requiere el service key del proyecto" }, 403);
   }
 
   let body: { tenant_id?: string; dry_run?: boolean };
   try {
     body = await req.json();
   } catch {
-    return json({ error: "Body JSON inválido" }, 400);
+    return respond({ error: "Body JSON inválido" }, 400);
   }
   const { tenant_id } = body;
-  if (!tenant_id) return json({ error: "Falta tenant_id" }, 400);
+  if (!tenant_id) return respond({ error: "Falta tenant_id" }, 400);
 
   const supabase: SupabaseClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false },
@@ -96,9 +109,11 @@ Deno.serve(async (req: Request) => {
       .select("id, subdomain, domain, status, writeback_enabled, writeback_dry_run")
       .eq("tenant_id", tenant_id)
       .maybeSingle<ConnRow>();
-    if (connErr) return json({ error: `kommo_connections: ${connErr.message}` }, 500);
-    if (!conn) return json({ error: "No hay kommo_connections para ese tenant_id" }, 404);
-    if (conn.status !== "active") return json({ error: `Conexión en estado "${conn.status}"` }, 409);
+    if (connErr) return fail("edge.connection_read_failed", connErr);
+    if (!conn) return respond({ error: "No hay conexión Kommo configurada" }, 404);
+    if (conn.status !== "active") {
+      return respond({ error: "Conexión Kommo no disponible" }, 409);
+    }
 
     // Escribe de verdad SOLO si está habilitado, sin dry-run, y el body no lo fuerza.
     const willWrite = conn.writeback_enabled && !conn.writeback_dry_run && body.dry_run !== true;
@@ -106,8 +121,8 @@ Deno.serve(async (req: Request) => {
     const { data: token, error: tokErr } = await supabase.rpc("kommo_get_token", {
       p_connection_id: conn.id,
     });
-    if (tokErr) return json({ error: `kommo_get_token: ${tokErr.message}` }, 500);
-    if (!token) return json({ error: "Token no encontrado en Vault" }, 500);
+    if (tokErr) return fail("edge.token_read_failed", tokErr);
+    if (!token) return respond({ error: "Credencial Kommo no disponible" }, 500);
     const tk = token as string;
     const baseUrl = `https://${conn.subdomain}.${conn.domain}`;
 
@@ -117,9 +132,9 @@ Deno.serve(async (req: Request) => {
       "reap_kommo_writeback_stale",
       { p_tenant_id: tenant_id, p_older: "10 minutes" },
     );
-    if (reapErr) return json({ error: `reaper: ${reapErr.message}` }, 500);
+    if (reapErr) return fail("edge.reaper_failed", reapErr);
     if (Number(reaped ?? 0) > 0) {
-      console.log("[kommo-writeback] reservas vencidas soltadas:", reaped);
+      logger.info("edge.stale_reaped", { reaped: Number(reaped) });
     }
 
     // 2b) RESERVAR el lote (no sólo leerlo). `claim_…` pasa las filas a
@@ -131,7 +146,7 @@ Deno.serve(async (req: Request) => {
       "claim_kommo_writeback_batch",
       { p_tenant_id: tenant_id, p_limit: DRAIN_BATCH },
     );
-    if (rowsErr) return json({ error: `outbox claim: ${rowsErr.message}` }, 500);
+    if (rowsErr) return fail("edge.claim_failed", rowsErr);
 
     const pending = (rows ?? []) as OutboxRow[];
 
@@ -179,7 +194,11 @@ Deno.serve(async (req: Request) => {
 
       // DRY-RUN: no escribe. Loguea lo que haría y marca 'skipped'.
       if (!willWrite) {
-        console.log("[kommo-writeback][dry-run] would", req.method, req.path, row.op, row.payload);
+        logger.info("edge.dry_run_item", {
+          method: req.method,
+          operation: row.op,
+          dryRun: true,
+        });
         await supabase.rpc("mark_kommo_writeback_skipped", {
           p_id: row.id,
           p_reason: "dry-run",
@@ -216,7 +235,10 @@ Deno.serve(async (req: Request) => {
             // write-back va a fallar con un error legible si el lead no existe;
             // negar por un hipo de red convertiría el verbo en algo que a veces
             // no hace nada, que es peor que el problema que esto resuelve.
-            console.warn("[kommo-writeback] no se pudo leer el lead vivo:", String(e));
+            logger.warn("edge.optimistic_read_failed", {
+              error: e,
+              stage: "optimistic-check",
+            });
           }
 
           const veredicto = evaluarChequeoOptimista({
@@ -227,7 +249,11 @@ Deno.serve(async (req: Request) => {
           });
 
           if (!veredicto.pisar) {
-            console.log("[kommo-writeback] no se pisa:", row.op, row.kommo_lead_id, veredicto.motivo);
+            logger.info("edge.stale_skipped", {
+              operation: row.op,
+              reasonCode: "stale",
+              skipped: 1,
+            });
             await supabase.rpc("mark_kommo_writeback_skipped", {
               p_id: row.id,
               p_reason: veredicto.motivo,
@@ -288,7 +314,15 @@ Deno.serve(async (req: Request) => {
       error_detail: failed > 0 ? `${failed} envíos fallaron` : null,
     });
 
-    return json({
+    logger.info("edge.completed", {
+      processed: pending.length,
+      succeeded: sent,
+      skipped,
+      failed,
+      stale: pisadasEvitadas,
+      mode: willWrite ? "live" : "dry-run",
+    });
+    return respond({
       processed: pending.length,
       sent,
       skipped,
@@ -309,6 +343,7 @@ Deno.serve(async (req: Request) => {
       records_upserted: 0,
       error_detail: detail,
     });
-    return json({ error: detail }, 500);
+    logger.error("edge.run_failed", { error: e, stage: "writeback", status: 500 });
+    return respond({ error: "Fallo interno de kommo-writeback" }, 500);
   }
 });

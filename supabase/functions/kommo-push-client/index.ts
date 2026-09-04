@@ -18,6 +18,7 @@
 // Auth: igual que kommo-sync (verify_jwt=OFF; exige el SERVICE_ROLE del proyecto). El token de
 // Kommo vive solo en Vault y solo lo lee esta función vía kommo_get_token (modelo SDD-0043).
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { createEdgeRequestLogger } from "../_shared/structured-logger.ts";
 import {
   kommoFetch,
   kommoWrite,
@@ -82,29 +83,43 @@ async function findExistingContactId(
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (req.method !== "POST") return json({ error: "Usá POST" }, 405);
+  const logger = createEdgeRequestLogger(req, "edge.kommo-push-client");
+  const respond = (body: unknown, status = 200) =>
+    logger.withResponse(json(body, status));
+  const fail = (event: string, error: unknown, status = 500) => {
+    logger.error(event, { error, stage: "database", status });
+    return respond({ error: "Fallo interno de kommo-push-client" }, status);
+  };
+
+  if (req.method === "OPTIONS") {
+    return logger.withResponse(new Response("ok", { headers: corsHeaders }));
+  }
+  if (req.method !== "POST") return respond({ error: "Usá POST" }, 405);
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!SUPABASE_URL || !SERVICE_ROLE) {
-    return json({ error: "Faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY" }, 500);
+    logger.error("edge.config_missing", { stage: "config", status: 500 });
+    return respond({ error: "Configuración incompleta" }, 500);
   }
 
   const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   const apikey = (req.headers.get("apikey") ?? "").trim();
   if (bearer !== SERVICE_ROLE && apikey !== SERVICE_ROLE) {
-    return json({ error: "Forbidden: requiere el service key del proyecto" }, 403);
+    logger.warn("edge.rejected", { stage: "auth", status: 403 });
+    return respond({ error: "Forbidden: requiere el service key del proyecto" }, 403);
   }
 
   let body: { tenant_id?: string; client_id?: string; dry_run?: boolean };
   try {
     body = await req.json();
   } catch {
-    return json({ error: "Body JSON inválido" }, 400);
+    return respond({ error: "Body JSON inválido" }, 400);
   }
   const { tenant_id, client_id } = body;
-  if (!tenant_id || !client_id) return json({ error: "Faltan tenant_id / client_id" }, 400);
+  if (!tenant_id || !client_id) {
+    return respond({ error: "Faltan tenant_id / client_id" }, 400);
+  }
 
   // Gate de escritura: por default NO escribe (dry-run). Real solo con KOMMO_PUSH_DRY_RUN="false".
   const dryRun = resolveDryRun(Deno.env.get("KOMMO_PUSH_DRY_RUN"), body.dry_run);
@@ -139,15 +154,17 @@ Deno.serve(async (req: Request) => {
       .select("id, tenant_id, subdomain, domain, status")
       .eq("tenant_id", tenant_id)
       .maybeSingle<KommoConnection>();
-    if (connErr) return json({ error: `kommo_connections: ${connErr.message}` }, 500);
-    if (!conn) return json({ error: "No hay kommo_connections para ese tenant_id" }, 404);
-    if (conn.status !== "active") return json({ error: `Conexión en estado "${conn.status}"` }, 409);
+    if (connErr) return fail("edge.connection_read_failed", connErr);
+    if (!conn) return respond({ error: "No hay conexión Kommo configurada" }, 404);
+    if (conn.status !== "active") {
+      return respond({ error: "Conexión Kommo no disponible" }, 409);
+    }
 
     const { data: token, error: tokErr } = await supabase.rpc("kommo_get_token", {
       p_connection_id: conn.id,
     });
-    if (tokErr) return json({ error: `kommo_get_token: ${tokErr.message}` }, 500);
-    if (!token) return json({ error: "Token no encontrado en Vault" }, 500);
+    if (tokErr) return fail("edge.token_read_failed", tokErr);
+    if (!token) return respond({ error: "Credencial Kommo no disponible" }, 500);
     const tk = token as string;
 
     const baseUrl = `https://${conn.subdomain}.${conn.domain}`;
@@ -160,8 +177,8 @@ Deno.serve(async (req: Request) => {
       .eq("id", client_id)
       .is("deleted_at", null)
       .maybeSingle<ClientRow>();
-    if (cliErr) return json({ error: `clients: ${cliErr.message}` }, 500);
-    if (!client) return json({ error: "Cliente no encontrado" }, 404);
+    if (cliErr) return fail("edge.client_read_failed", cliErr);
+    if (!client) return respond({ error: "Cliente no encontrado" }, 404);
 
     // 3) Definiciones de custom fields (espejo, con type+enums) → markbox/rif/tier.
     const { data: fieldRows } = await supabase
@@ -175,19 +192,23 @@ Deno.serve(async (req: Request) => {
     if (client.kommo_lead_id) {
       const patch = buildLeadPatch(client, fields);
       if (dryRun) {
-        // log REDACTADO (sin PII): solo conteo de campos, no valores.
-        console.log(
-          "[kommo-push-client][dry-run] would PATCH lead",
-          client.kommo_lead_id,
-          "custom_fields:",
-          buildLeadCustomFields(client, fields).length,
-        );
+        logger.info("edge.dry_run", {
+          mode: "patch",
+          customFields: buildLeadCustomFields(client, fields).length,
+          dryRun: true,
+        });
         await logResult(conn.id, "ok");
-        return json({ lead_id: client.kommo_lead_id, mode: "patched", dry_run: true, would: { patch } });
+        return respond({
+          lead_id: client.kommo_lead_id,
+          mode: "patched",
+          dry_run: true,
+          would: { patch },
+        });
       }
       await kommoWrite<KommoLead>(baseUrl, tk, `/api/v4/leads/${client.kommo_lead_id}`, "PATCH", patch);
       await logResult(conn.id, "ok");
-      return json({ lead_id: client.kommo_lead_id, mode: "patched" });
+      logger.info("edge.completed", { mode: "patched", succeeded: 1 });
+      return respond({ lead_id: client.kommo_lead_id, mode: "patched" });
     }
 
     // 5) Dedup de contacto (en vivo — read-only, seguro también en dry-run).
@@ -195,15 +216,14 @@ Deno.serve(async (req: Request) => {
 
     // 5b) DRY-RUN: no escribe nada. Reporta lo que haría y termina.
     if (dryRun) {
-      console.log("[kommo-push-client][dry-run]", {
-        client_id,
+      logger.info("edge.dry_run", {
         mode: matchedContactId ? "would-link-existing-contact" : "would-create-contact",
-        fields_resolved: Object.keys(fields),
-        lead_custom_fields: buildLeadCustomFields(client, fields).length,
-        contact_match: matchedContactId ?? null,
+        customFields: buildLeadCustomFields(client, fields).length,
+        matched: matchedContactId ? 1 : 0,
+        dryRun: true,
       });
       await logResult(conn.id, "ok");
-      return json({
+      return respond({
         dry_run: true,
         mode: matchedContactId ? "would-link-existing-contact" : "would-create-contact",
         would: {
@@ -262,10 +282,12 @@ Deno.serve(async (req: Request) => {
     if (linkErr) throw new Error(`enlace clients.kommo_lead_id: ${linkErr.message}`);
 
     await logResult(conn.id, "ok", { records_upserted: 1 });
-    return json({ lead_id: leadId, contact_id: contactId, mode: "created", contact: contactMode });
+    logger.info("edge.completed", { mode: "created", succeeded: 1 });
+    return respond({ lead_id: leadId, contact_id: contactId, mode: "created", contact: contactMode });
   } catch (e) {
     const detail = e instanceof Error ? e.message : String(e);
     await logResult(null, "error", { error_detail: detail });
-    return json({ error: detail }, 500);
+    logger.error("edge.run_failed", { error: e, stage: "push", status: 500 });
+    return respond({ error: "Fallo interno de kommo-push-client" }, 500);
   }
 });
