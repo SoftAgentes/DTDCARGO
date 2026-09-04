@@ -14,8 +14,9 @@
  *     "https://.../api/cron/bitacora-digest?tenant_id=<uuid>"
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createCronRequestContext } from "@/lib/observability/cron-request-context";
 import { todayCaracasISO } from "@/lib/studio/bitacora/dates";
 import {
   runBitacoraDigestForTenant,
@@ -24,14 +25,6 @@ import {
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Vercel hobby tier max
-
-function authorize(req: NextRequest): { ok: boolean; reason?: string } {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
-  const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
-  return { ok: false, reason: "Forbidden" };
-}
 
 async function runForAllTenants(targetTenantId?: string) {
   const admin = createAdminClient();
@@ -57,14 +50,31 @@ async function runForAllTenants(targetTenantId?: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = authorize(req);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
-  }
+  const cron = createCronRequestContext(req, "cron.bitacora-digest");
+  if (!cron.authorized) return cron.deny();
+
   const url = new URL(req.url);
   const targetTenantId = url.searchParams.get("tenant_id") ?? undefined;
   const result = await runForAllTenants(targetTenantId);
-  return NextResponse.json(result, { status: result.ok ? 200 : 500 });
+  if (!result.ok) {
+    return cron.fail("No se pudo leer los tenants para el digest.", result.error, {
+      event: "cron.read_failed",
+      fields: { stage: "read" },
+    });
+  }
+
+  const metrics = result.results.reduce(
+    (total, item) => ({
+      persons: total.persons + item.persons,
+      pushed: total.pushed + item.pushed,
+      skipped: total.skipped + item.skipped,
+      failed: total.failed + (item.error ? 1 : 0),
+    }),
+    { persons: 0, pushed: 0, skipped: 0, failed: 0 },
+  );
+  return cron.complete(result, {
+    fields: { tenantCount: result.results.length, ...metrics },
+  });
 }
 
 export async function POST(req: NextRequest) {

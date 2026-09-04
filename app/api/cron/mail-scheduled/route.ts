@@ -13,9 +13,9 @@
  * authenticated) y cruza tenants.
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { apiError } from "@/lib/http/api-error";
+import { createCronRequestContext } from "@/lib/observability/cron-request-context";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 
 export const dynamic = "force-dynamic";
@@ -23,14 +23,6 @@ export const maxDuration = 60;
 
 /** Techo por corrida · backstop anti-runaway. */
 const BATCH_CAP = 200;
-
-function authorize(req: NextRequest): { ok: boolean; reason?: string } {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
-  const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
-  return { ok: false, reason: "Forbidden" };
-}
 
 type DueRow = {
   id: string;
@@ -44,10 +36,8 @@ type DueRow = {
 };
 
 export async function GET(req: NextRequest) {
-  const auth = authorize(req);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
-  }
+  const cron = createCronRequestContext(req, "cron.mail-scheduled");
+  if (!cron.authorized) return cron.deny();
 
   const admin = createAdminClient();
   const nowIso = new Date().toISOString();
@@ -61,11 +51,10 @@ export async function GET(req: NextRequest) {
     .limit(BATCH_CAP);
 
   if (dueErr) {
-    return apiError(
+    return cron.fail(
       "No se pudo leer la cola de programados.",
       dueErr,
-      500,
-      "mail-scheduled",
+      { event: "cron.read_failed", fields: { stage: "read" } },
     );
   }
 
@@ -105,8 +94,9 @@ export async function GET(req: NextRequest) {
   }
 
   const summary = { ok: true, processed: rows.length, sent, failed };
-  console.log("[mail-scheduled]", JSON.stringify(summary));
-  return NextResponse.json(summary);
+  return cron.complete(summary, {
+    fields: { processed: rows.length, sent, failed },
+  });
 }
 
 export async function POST(req: NextRequest) {

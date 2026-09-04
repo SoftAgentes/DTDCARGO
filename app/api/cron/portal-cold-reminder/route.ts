@@ -23,9 +23,9 @@
  * usuario) — incrementa las columnas directo con el admin.
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { apiError } from "@/lib/http/api-error";
+import { createCronRequestContext } from "@/lib/observability/cron-request-context";
 import { sendPortalInviteEmail } from "@/lib/studio/portal-invite-email";
 
 export const dynamic = "force-dynamic";
@@ -42,14 +42,6 @@ const BATCH_CAP = 100;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function authorize(req: NextRequest): { ok: boolean; reason?: string } {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
-  const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
-  return { ok: false, reason: "Forbidden" };
-}
-
 type ColdRow = {
   id: string;
   tenant_id: string;
@@ -59,14 +51,12 @@ type ColdRow = {
 };
 
 export async function GET(req: NextRequest) {
-  const auth = authorize(req);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
-  }
+  const cron = createCronRequestContext(req, "cron.portal-cold-reminder");
+  if (!cron.authorized) return cron.deny();
 
   // Gate: apagado por default. El founder lo enciende con PORTAL_COLD_REMINDER=on.
   if (process.env.PORTAL_COLD_REMINDER !== "on") {
-    return NextResponse.json({ ok: true, disabled: true });
+    return cron.complete({ ok: true, disabled: true }, { fields: { mode: "disabled" } });
   }
 
   const admin = createAdminClient();
@@ -86,11 +76,10 @@ export async function GET(req: NextRequest) {
     .limit(BATCH_CAP);
 
   if (dueErr) {
-    return apiError(
+    return cron.fail(
       "No se pudo leer los fríos del portal.",
       dueErr,
-      500,
-      "portal-cold-reminder",
+      { event: "cron.read_failed", fields: { stage: "read" } },
     );
   }
 
@@ -113,11 +102,10 @@ export async function GET(req: NextRequest) {
       .or("bounced_at.not.is.null,complained_at.not.is.null");
 
     if (badErr) {
-      return apiError(
+      return cron.fail(
         "No se pudo leer el historial de rebotes; no se envía nada.",
         badErr,
-        500,
-        "portal-cold-reminder",
+        { event: "cron.read_failed", fields: { stage: "read" } },
       );
     }
     for (const b of (badRows ?? []) as { to_email: string | null }[]) {
@@ -186,8 +174,9 @@ export async function GET(req: NextRequest) {
     skipped,
     skippedBurned,
   };
-  console.log("[portal-cold-reminder]", JSON.stringify(summary));
-  return NextResponse.json(summary);
+  return cron.complete(summary, {
+    fields: { processed: rows.length, sent, failed, skipped, skippedBurned },
+  });
 }
 
 export async function POST(req: NextRequest) {

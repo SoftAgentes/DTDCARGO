@@ -1005,11 +1005,13 @@ están incluidos en aquel push.
   contrato local con entrega de correo/Telegram ni forzar un envío sin OK.
 - [ ] Crear logger/redacción/correlación central y aumentar cobertura directa de
   crons y Edge Functions. SDD-0414 creó el helper y adoptó los tres cron con
-  prueba previa; SDD-0415 extrajo el contexto común y cerró cuatro workers drain.
-  Acumulado: 7/17 cron, 7.328 pruebas completas; quedan 10 cron y las Edge
-  Functions, por lo que esta casilla no se marca ni aumenta el 59/106.
+  prueba previa; SDD-0415 extrajo el contexto común y cerró cuatro workers drain;
+  SDD-0416 añadió cuatro jobs programados. Acumulado: 11/17 cron, 7.340 pruebas
+  completas; quedan 6 cron, logs internos legacy y las Edge Functions, por lo
+  que esta casilla no se marca ni aumenta el 59/106.
   [Acta base](2026-09-04-structured-request-logging.md) y
-  [workers drain](2026-09-04-structured-drain-crons.md).
+  [workers drain](2026-09-04-structured-drain-crons.md) y
+  [jobs programados](2026-09-04-structured-scheduled-crons.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.

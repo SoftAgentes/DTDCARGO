@@ -11,8 +11,9 @@
  *     "https://.../api/cron/conversation-digests?month=2026-06&tenant_id=<uuid>"
  */
 
-import { NextResponse, type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { createCronRequestContext } from "@/lib/observability/cron-request-context";
 import {
   runConversationDigestsForTenant,
   type DigestRunResult,
@@ -20,14 +21,6 @@ import {
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
-
-function authorize(req: NextRequest): { ok: boolean; reason?: string } {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
-  const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
-  return { ok: false, reason: "Forbidden" };
-}
 
 /**
  * Rango del mes a resumir. Sin `?month`: el mes ANTERIOR a hoy (UTC). Con
@@ -93,15 +86,32 @@ async function run(monthParam: string | null, targetTenantId?: string) {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = authorize(req);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
-  }
+  const cron = createCronRequestContext(req, "cron.conversation-digests");
+  if (!cron.authorized) return cron.deny();
+
   const url = new URL(req.url);
   const month = url.searchParams.get("month");
   const tenantId = url.searchParams.get("tenant_id") ?? undefined;
   const result = await run(month, tenantId);
-  return NextResponse.json(result, { status: result.ok ? 200 : 500 });
+  if (!result.ok) {
+    return cron.fail(
+      "No se pudo leer los tenants para los resúmenes.",
+      result.error,
+      { event: "cron.read_failed", fields: { stage: "read" } },
+    );
+  }
+
+  const metrics = result.results.reduce(
+    (total, item) => ({
+      processed: total.processed + item.processed,
+      generated: total.generated + item.generated,
+      skipped: total.skipped + item.skipped,
+    }),
+    { processed: 0, generated: 0, skipped: 0 },
+  );
+  return cron.complete(result, {
+    fields: { tenantCount: result.results.length, ...metrics },
+  });
 }
 
 export async function POST(req: NextRequest) {
