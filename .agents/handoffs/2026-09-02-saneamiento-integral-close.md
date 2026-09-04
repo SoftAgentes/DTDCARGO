@@ -78,6 +78,10 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   resolvían Shipping Mark y omitían tenant. Ahora cortan con principal inválido y
   fijan tenant de fila/envío + Shipping Mark. RED 4/4; focal/histórico 38/38 y
   Portal 878/878; tipos y lint correctos. Sin datos reales ni migración nueva.
+- SDD0391 cerrado localmente: seis lecturas núcleo resolvían sólo Shipping Mark y
+  omitían tenant. Listas/detalles de envíos y facturas, documentos y próximo
+  arribo ahora derivan principal canónico y fijan tenant + Shipping Mark. RED
+  5/5; focal/histórico 24/24 y Portal 883/883; sin datos reales ni migración.
 - Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;

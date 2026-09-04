@@ -2,10 +2,10 @@
  * Queries del Portal del Cliente (SDD-0042). Funciones puras que reciben un
  * `SupabaseClient`.
  *
- * AISLAMIENTO (defensa en profundidad): además de la RLS del portal, estas
- * queries resuelven el MARKBOX del cliente logueado vía
- * `get_portal_client_markbox()` y filtran EXPLÍCITO por `client_markbox`. Sin ese
- * filtro, un principal que sea a la vez user de equipo y cliente del portal
+ * AISLAMIENTO (defensa en profundidad): además de la RLS del portal, las queries
+ * principales derivan un principal coherente y filtran EXPLÍCITO por tenant +
+ * Shipping Mark. Sin esos filtros, un principal que sea a la vez user de equipo
+ * y cliente del portal
  * (tiene row en `user_tenants` Y en `client_users`) recibiría TODO el tenant: la
  * policy "<tabla> by tenant" es permissive (OR) y, sola, no aísla. Mismo criterio
  * que el hardening de `getPortalClient` (resolver el principal del portal primero,
@@ -163,19 +163,20 @@ export async function getPortalAdvisor(
 }
 
 /**
- * Envíos del cliente logueado (filtrados EXPLÍCITO por su markbox), recientes
+ * Envíos del cliente logueado (tenant + Shipping Mark explícitos), recientes
  * primero. Hasta 100; paginación real en una fase siguiente si hace falta.
  */
 export async function listMyShipments(
   supabase: SupabaseClient,
 ): Promise<PortalShipmentRow[]> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return [];
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return [];
 
   const { data, error } = await supabase
     .from("shipments")
     .select("id, code, shipment_service, status, origin, destination, updated_at")
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", principal.tenantId)
+    .eq("client_markbox", principal.client.markbox)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(100);
@@ -195,15 +196,14 @@ export async function listMyShipments(
 
 /**
  * UN envío del cliente logueado por su `code` (Fase 2 · detalle read-only).
- * Filtra por code + markbox del cliente: si el `code` no es suyo (o no existe)
- * → null → la página llama `notFound()`.
+ * Filtra por code + tenant + Shipping Mark: si no es suyo (o no existe) → null.
  */
 export async function getMyShipment(
   supabase: SupabaseClient,
   code: string,
 ): Promise<PortalShipmentDetail | null> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
 
   const { data, error } = await supabase
     .from("shipments")
@@ -211,7 +211,8 @@ export async function getMyShipment(
       "id, code, shipment_service, status, origin, destination, volume_m3, weight_kg, arrived_destination_at, created_at, updated_at",
     )
     .eq("code", code)
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", principal.tenantId)
+    .eq("client_markbox", principal.client.markbox)
     .is("deleted_at", null)
     .maybeSingle();
 
@@ -234,21 +235,22 @@ export async function getMyShipment(
 
 /**
  * Facturas del cliente logueado (SDD-0042 · Fase 3), recientes primero. La RLS
- * del portal ya excluye borradores; filtramos EXPLÍCITO por markbox y `borrador`
- * igualmente (defensa en profundidad). Hasta 100.
+ * del portal ya excluye borradores; filtramos EXPLÍCITO por tenant, Shipping
+ * Mark y `borrador` igualmente (defensa en profundidad). Hasta 100.
  */
 export async function listMyInvoices(
   supabase: SupabaseClient,
 ): Promise<PortalInvoiceRow[]> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return [];
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return [];
 
   const { data, error } = await supabase
     .from("invoices")
     .select(
       "id, invoice_code, status, currency, total_amount, paid_amount, issued_at, due_date, shipment_code",
     )
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", principal.tenantId)
+    .eq("client_markbox", principal.client.markbox)
     .neq("status", "borrador")
     .is("deleted_at", null)
     .order("issued_at", { ascending: false, nullsFirst: false })
@@ -272,15 +274,14 @@ export async function listMyInvoices(
 
 /**
  * UNA factura del cliente logueado por su `invoice_code`. Filtra por code +
- * markbox + no-borrador: si no es suya (o es borrador interno) → null → la
- * página llama `notFound()`.
+ * tenant + Shipping Mark + no-borrador: si no es suya → null.
  */
 export async function getMyInvoice(
   supabase: SupabaseClient,
   code: string,
 ): Promise<PortalInvoiceDetail | null> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
 
   const { data, error } = await supabase
     .from("invoices")
@@ -288,7 +289,8 @@ export async function getMyInvoice(
       "id, tenant_id, invoice_code, client_name, client_rif, client_doc_kind, status, currency, fx_rate, iva_rate, base_amount, iva_amount, total_amount, paid_amount, issued_at, due_date, lines, notes, shipment_id, shipment_code, created_at",
     )
     .eq("invoice_code", code)
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", principal.tenantId)
+    .eq("client_markbox", principal.client.markbox)
     .neq("status", "borrador")
     .is("deleted_at", null)
     .maybeSingle();
@@ -328,21 +330,22 @@ export async function getMyInvoice(
 /**
  * TODOS los documentos del cliente logueado (sección GLOBAL "Documentos" del
  * portal · SDD-0042 Fase 3b), recientes primero, con el código del envío al que
- * pertenecen (embed `shipments(code)`). Filtra EXPLÍCITO por markbox (defensa en
- * profundidad, como el resto del portal). Hasta 200.
+ * pertenecen (embed `shipments(code)`). Filtra EXPLÍCITO por tenant + Shipping
+ * Mark (defensa en profundidad). Hasta 200.
  */
 export async function listMyDocuments(
   supabase: SupabaseClient,
 ): Promise<PortalDocument[]> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return [];
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return [];
 
   const { data, error } = await supabase
     .from("shipment_documents")
     .select(
       "id, doc_type, storage_path, file_name, content_type, size_bytes, created_at, shipment_id, shipments(code)",
     )
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", principal.tenantId)
+    .eq("client_markbox", principal.client.markbox)
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -688,20 +691,22 @@ export async function getDashboardKpis(
  *
  * NOTA: `listMyShipments` no trae `created_at` (la ETA se estima sobre createdAt).
  * Hacemos una lectura puntual del envío elegido para obtener createdAt +
- * arrived_destination_at y estimar honestamente. Filtrado EXPLÍCITO por markbox.
+ * arrived_destination_at y estimar honestamente. Filtrado explícito por tenant
+ * + Shipping Mark.
  */
 export async function getNextArrival(
   supabase: SupabaseClient,
 ): Promise<PortalNextArrival | null> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
 
   const { data, error } = await supabase
     .from("shipments")
     .select(
       "id, code, shipment_service, status, origin, destination, arrived_destination_at, created_at",
     )
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", principal.tenantId)
+    .eq("client_markbox", principal.client.markbox)
     .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(50);

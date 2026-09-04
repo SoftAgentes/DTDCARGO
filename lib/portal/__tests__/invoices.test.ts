@@ -49,11 +49,46 @@ function stub(opts: {
     maybeSingle: () => Promise.resolve({ data: opts.row ?? null, error: null }),
   });
   const supabase = {
+    auth: {
+      getUser: () => Promise.resolve({
+        data: { user: opts.markbox ? { id: "portal-user" } : null },
+        error: null,
+      }),
+    },
     rpc: (fn: string) =>
       fn === "get_portal_client_markbox"
         ? Promise.resolve({ data: opts.markbox, error: null })
         : Promise.resolve({ data: null, error: null }),
     from: (table: string) => {
+      if (table === "client_users") {
+        const principalBuilder: Record<string, unknown> = {};
+        Object.assign(principalBuilder, {
+          select: () => principalBuilder,
+          eq: () => principalBuilder,
+          maybeSingle: () => Promise.resolve({
+            data: opts.markbox ? {
+              client_id: "client-1",
+              tenant_id: "tenant-1",
+              clients: {
+                id: "client-1",
+                tenant_id: "tenant-1",
+                markbox: opts.markbox,
+                name: "Cliente sintético",
+                email: null,
+                phone: null,
+                address: null,
+                rif: null,
+                doc_kind: null,
+                city: null,
+                state: null,
+                deleted_at: null,
+              },
+            } : null,
+            error: null,
+          }),
+        });
+        return principalBuilder;
+      }
       touchedTable = table;
       return builder;
     },
@@ -128,6 +163,7 @@ describe("aislamiento — listMyInvoices / getMyInvoice", () => {
   it("con markbox → filtra EXPLÍCITO por client_markbox y mapea la fila", async () => {
     const { supabase, eqCalls } = stub({ markbox: "DTD-1004", rows: [INV_ROW] });
     const rows = await listMyInvoices(supabase);
+    expect(eqCalls).toContainEqual(["tenant_id", "tenant-1"]);
     expect(eqCalls).toContainEqual(["client_markbox", "DTD-1004"]);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
@@ -150,6 +186,7 @@ describe("aislamiento — listMyInvoices / getMyInvoice", () => {
     const { supabase, eqCalls } = stub({ markbox: "DTD-1004", row: INV_ROW });
     const inv = await getMyInvoice(supabase, "F-2026-0001");
     expect(eqCalls).toContainEqual(["invoice_code", "F-2026-0001"]);
+    expect(eqCalls).toContainEqual(["tenant_id", "tenant-1"]);
     expect(eqCalls).toContainEqual(["client_markbox", "DTD-1004"]);
     expect(inv?.base).toBe(100);
     expect(inv?.lines).toHaveLength(1);
@@ -176,6 +213,7 @@ describe("aislamiento — listMyShipments endurecido", () => {
     };
     const { supabase, eqCalls } = stub({ markbox: "DTD-1004", rows: [SROW] });
     const rows = await listMyShipments(supabase);
+    expect(eqCalls).toContainEqual(["tenant_id", "tenant-1"]);
     expect(eqCalls).toContainEqual(["client_markbox", "DTD-1004"]);
     expect(rows[0]?.code).toBe("DTD-2026-0401");
   });

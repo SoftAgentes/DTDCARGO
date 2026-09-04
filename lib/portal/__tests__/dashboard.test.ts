@@ -39,11 +39,46 @@ function stub(opts: {
     return b;
   }
   const supabase = {
+    auth: {
+      getUser: () => Promise.resolve({
+        data: { user: opts.markbox ? { id: "portal-user" } : null },
+        error: null,
+      }),
+    },
     rpc: (fn: string) =>
       fn === "get_portal_client_markbox"
         ? Promise.resolve({ data: opts.markbox, error: null })
         : Promise.resolve({ data: null, error: null }),
     from: (table: string) => {
+      if (table === "client_users") {
+        const principalBuilder: Record<string, unknown> = {};
+        Object.assign(principalBuilder, {
+          select: () => principalBuilder,
+          eq: () => principalBuilder,
+          maybeSingle: () => Promise.resolve({
+            data: opts.markbox ? {
+              client_id: "client-1",
+              tenant_id: "tenant-1",
+              clients: {
+                id: "client-1",
+                tenant_id: "tenant-1",
+                markbox: opts.markbox,
+                name: "Cliente sintético",
+                email: null,
+                phone: null,
+                address: null,
+                rif: null,
+                doc_kind: null,
+                city: null,
+                state: null,
+                deleted_at: null,
+              },
+            } : null,
+            error: null,
+          }),
+        });
+        return principalBuilder;
+      }
       touched.push(table);
       if (table === "invoices") return builder(opts.invoices ?? []);
       return builder(opts.shipments ?? []);
