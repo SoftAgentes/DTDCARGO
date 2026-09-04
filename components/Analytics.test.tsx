@@ -112,6 +112,9 @@ describe("Analytics — carga inicial sintética", () => {
     "/abrir?token_hash=token-sintetico&type=magiclink",
     "/registro?ref=REF-SINTETICO-0001",
     "/servicios#access_token=token-sintetico",
+    "/servicios?utm_campaign=access_token%3Dtoken-sintetico",
+    "/servicios#id_token=token-sintetico",
+    "/servicios?utm_campaign=payload%3Did_token%3Dtoken-sintetico",
   ])("no monta ni emite Analytics en %s", (path) => {
     navigate(path);
     const { container } = render(<analytics.Analytics />);
@@ -164,6 +167,12 @@ describe("Analytics — navegación cliente sintética", () => {
     ["replaceState", "/abrir?token_hash=token-sintetico&type=magiclink"],
     ["pushState", "/registro?ref=REF-SINTETICO-0002"],
     ["pushState", "/servicios#access_token=token-sintetico"],
+    [
+      "replaceState",
+      "/servicios?utm_content=client_secret%3Dsecreto-sintetico",
+    ],
+    ["pushState", "/servicios#session_token=token-sintetico"],
+    ["replaceState", "/servicios#IDToken=token-sintetico"],
   ] as const)("apaga GA/Ads antes de history.%s hacia %s", (method, destination) => {
     const observed = vi.fn();
     const originalNavigation = window.history[method].bind(window.history);

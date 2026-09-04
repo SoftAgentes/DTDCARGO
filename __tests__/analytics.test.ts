@@ -90,6 +90,82 @@ describe("isAnalyticsExcludedUrl — la URL completa decide si Google carga", ()
     ).toBe(true);
   });
 
+  it.each([
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "origen",
+    "gclid",
+    "gbraid",
+    "wbraid",
+  ])("excluye una credencial anidada en el valor permitido %s", (key) => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(
+          `${key}=access_token%3Dtoken-sintetico-analytics`,
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    "#id_token=token-sintetico",
+    "#auth_token=token-sintetico",
+    "#session_token=token-sintetico",
+    "#client_secret=secreto-sintetico",
+    "#IDToken=token-sintetico",
+    "#id[token]=token-sintetico",
+    "#id_token[]=token-sintetico",
+    "#payload=id_token=token-sintetico",
+    "#%7B%22payload%22%3A%22id_token%3Dtoken-sintetico%22%7D",
+    "#id%5Ftoken%3Dtoken-sintetico",
+    "#id%255Ftoken%253Dtoken-sintetico",
+  ])("excluye el fragmento con credencial %s", (hash) => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(),
+        hash,
+      ),
+    ).toBe(true);
+  });
+
+  it("excluye una credencial con doble codificación dentro de un UTM", () => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(
+          "utm_campaign=id_token%253Dtoken-sintetico-analytics",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    "utm_campaign=payload%3Did_token%3Dtoken-sintetico",
+    "utm_campaign=IDToken%3Dtoken-sintetico",
+  ])("excluye la credencial anidada o normalizada en %s", (query) => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(query),
+      ),
+    ).toBe(true);
+  });
+
+  it("falla cerrado ante un fragmento mal codificado", () => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(),
+        "#campana-50%",
+      ),
+    ).toBe(true);
+  });
+
   it("conserva la medición con atribución explícitamente permitida", () => {
     expect(
       isAnalyticsExcludedUrl(
@@ -98,6 +174,27 @@ describe("isAnalyticsExcludedUrl — la URL completa decide si Google carga", ()
           "utm_source=instagram&utm_campaign=prueba&gclid=click-sintetico",
         ),
         "#cotizar",
+      ),
+    ).toBe(false);
+  });
+
+  it("no confunde texto de campaña ni hashes ordinarios con credenciales", () => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(
+          "utm_campaign=access-token-launch&utm_content=tokenization-guide&gclid=click-sintetico",
+        ),
+        "#guia-token",
+      ),
+    ).toBe(false);
+  });
+
+  it("permite un porcentaje literal dentro de un UTM legítimo", () => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams("utm_campaign=descuento-50%25"),
       ),
     ).toBe(false);
   });

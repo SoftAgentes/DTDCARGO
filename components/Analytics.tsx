@@ -116,29 +116,77 @@ export function sanitizeSearch(searchParams: URLSearchParams): string {
 }
 
 /**
- * Un parámetro no aprobado puede transportar un código, email o capability.
- * Limpiarlo sólo en el page_view manual no basta: gtag/Ads también observan la
- * URL real. Por eso la presencia de cualquier query fuera de la allowlist
- * apaga los tags para esa vista completa.
+ * Un parámetro no aprobado o un valor permitido que anide una credencial puede
+ * transportar un código, email o capability. Limpiarlo sólo en el page_view
+ * manual no basta: gtag/Ads también observan la URL real. Por eso cualquier
+ * query insegura apaga los tags para esa vista completa.
  */
-function hasUnapprovedQuery(searchParams: URLSearchParams): boolean {
-  for (const [key] of searchParams) {
-    if (!ALLOWED_QUERY_PARAMS.has(key.toLowerCase())) return true;
+function hasUnsafeQuery(searchParams: URLSearchParams): boolean {
+  for (const [key, value] of searchParams) {
+    if (
+      !ALLOWED_QUERY_PARAMS.has(key.toLowerCase()) ||
+      hasSensitiveAssignment(value)
+    ) {
+      return true;
+    }
   }
   return false;
 }
 
-const SENSITIVE_HASH_PARAM =
-  /(?:^|[?&#/])(?:access_token|refresh_token|token_hash|token|code|key|secret|password|otp|email|c|est|ref|folio|markbox)=/i;
+const SENSITIVE_URL_KEY =
+  /(?:^|_)(?:token|secret|password|passwd|pwd|pass|otp|code|state|nonce|authorization|auth|bearer|jwt|session|sid|key|signature|sig|hmac|hash|csrf|xsrf|email|c|est|ref|folio|markbox)(?:_|$)|(?:token|secret|password|code|nonce|sessionid|apikey)$/;
+const PARAM_ASSIGNMENT =
+  /(?=(?:^|[^a-z0-9_.\-\[\]])["']?([a-z0-9_.\-\[\]]+)["']?\s*(?:=|:))/gi;
+const URL_INSPECTION_DECODE_PASSES = 2;
+
+function normalizeSensitiveKey(key: string): string {
+  return key
+    .replace(/\[([^\]]*)\]/g, "_$1")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[.-]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
+    .toLowerCase();
+}
+
+function decodeForInspection(
+  value: string,
+  failClosedOnMalformed: boolean,
+): string | null {
+  let decoded = value;
+  for (let pass = 0; pass < URL_INSPECTION_DECODE_PASSES; pass += 1) {
+    if (!decoded.includes("%")) return decoded;
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) return decoded;
+      decoded = next;
+    } catch {
+      return failClosedOnMalformed ? null : decoded;
+    }
+  }
+  // Si todavía queda una capa válida, no adivinar qué ocultaba.
+  return /%[0-9a-f]{2}/i.test(decoded) ? null : decoded;
+}
+
+function hasSensitiveAssignment(
+  value: string,
+  failClosedOnMalformed = false,
+): boolean {
+  const decoded = decodeForInspection(value, failClosedOnMalformed);
+  if (decoded === null) return true;
+
+  PARAM_ASSIGNMENT.lastIndex = 0;
+  for (const match of decoded.matchAll(PARAM_ASSIGNMENT)) {
+    if (SENSITIVE_URL_KEY.test(normalizeSensitiveKey(match[1]))) return true;
+  }
+  return false;
+}
 
 function hasSensitiveHash(hash: string): boolean {
   if (!hash) return false;
-  try {
-    return SENSITIVE_HASH_PARAM.test(decodeURIComponent(hash));
-  } catch {
-    // Un fragmento mal codificado no se envía a un tercero.
-    return true;
-  }
+  // Un fragmento mal codificado no se envía a un tercero.
+  return hasSensitiveAssignment(hash, true);
 }
 
 export function isAnalyticsExcludedUrl(
@@ -148,7 +196,7 @@ export function isAnalyticsExcludedUrl(
 ): boolean {
   return (
     isPrivatePath(pathname) ||
-    hasUnapprovedQuery(searchParams) ||
+    hasUnsafeQuery(searchParams) ||
     hasSensitiveHash(hash)
   );
 }
