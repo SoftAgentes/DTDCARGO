@@ -23,12 +23,14 @@ const ops = {
 let meetingRows: { audio_path: string | null }[] = [];
 let listEntries: { name: string; id: string | null; created_at: string | null }[] =
   [];
+let scanError: { code: string; message: string } | null = null;
 
 function makeAdmin() {
   return {
     from: () => ({
       select: () => ({
         range: (from: number) => {
+          if (scanError) return Promise.resolve({ data: null, error: scanError });
           if (from > 0) return Promise.resolve({ data: [], error: null });
           return Promise.resolve({ data: meetingRows, error: null });
         },
@@ -76,9 +78,11 @@ function seedFixtures() {
 beforeEach(() => {
   ops.reset();
   seedFixtures();
+  scanError = null;
   process.env.CRON_SECRET = "s3cret";
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   delete process.env.CRON_SECRET;
   delete process.env.BITACORA_PURGE_ORPHANS_ENABLED;
 });
@@ -87,9 +91,18 @@ const AUTH = { authorization: "Bearer s3cret" };
 
 describe("auth", () => {
   it("sin Authorization → 403 y NO borra", async () => {
-    const res = await GET(req("", {}) as never);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const res = await GET(
+      req("", { "x-request-id": "bit-deny-001" }) as never,
+    );
     expect(res.status).toBe(403);
+    expect(res.headers.get("x-request-id")).toBe("bit-deny-001");
     expect(ops.removed).toEqual([]);
+    expect(JSON.parse(warn.mock.calls[0]?.[0] as string)).toMatchObject({
+      event: "cron.authorization_denied",
+      component: "cron.bitacora-purge-orphans",
+      requestId: "bit-deny-001",
+    });
   });
 
   it("Bearer incorrecto → 403", async () => {
@@ -101,8 +114,12 @@ describe("auth", () => {
 
 describe("dry-run por defecto (gate apagado)", () => {
   it("detecta 1 huérfano (audio de reunión) pero NO borra nada", async () => {
-    const res = await GET(req("", AUTH) as never);
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const res = await GET(
+      req("", { ...AUTH, "x-request-id": "bit-run-001" }) as never,
+    );
     expect(res.status).toBe(200);
+    expect(res.headers.get("x-request-id")).toBe("bit-run-001");
     const json = (await res.json()) as {
       mode: string;
       orphans: number;
@@ -115,6 +132,44 @@ describe("dry-run por defecto (gate apagado)", () => {
     expect(json.orphans).toBe(1); // orphan-old.webm
     expect(json.deleted).toBe(0);
     expect(ops.removed).toEqual([]);
+    expect(JSON.parse(info.mock.calls[0]?.[0] as string)).toMatchObject({
+      event: "cron.completed",
+      component: "cron.bitacora-purge-orphans",
+      requestId: "bit-run-001",
+      mode: "dry-run",
+      scanned: 3,
+      deleted: 0,
+    });
+  });
+
+  it("correlaciona un fallo de escaneo sin registrar el detalle crudo", async () => {
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    scanError = {
+      code: "PGRST500",
+      message: "owner@example.com Bearer s3cret T1/bitacora/private.webm",
+    };
+
+    const res = await GET(
+      req("", { ...AUTH, "x-request-id": "bit-fail-001" }) as never,
+    );
+
+    expect(res.status).toBe(500);
+    expect(res.headers.get("x-request-id")).toBe("bit-fail-001");
+    expect(JSON.stringify(await res.json())).not.toContain("owner@example.com");
+    const line = errorSpy.mock.calls[0]?.[0] as string;
+    expect(JSON.parse(line)).toMatchObject({
+      event: "cron.scan_failed",
+      component: "cron.bitacora-purge-orphans",
+      requestId: "bit-fail-001",
+      mode: "dry-run",
+      stage: "scan",
+      error: { name: "Object", code: "PGRST500" },
+    });
+    expect(line).not.toContain("owner@example.com");
+    expect(line).not.toContain("s3cret");
+    expect(line).not.toContain("T1/bitacora/private.webm");
   });
 });
 

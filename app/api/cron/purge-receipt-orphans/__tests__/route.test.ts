@@ -22,7 +22,12 @@ const ops = {
 let warehouseRows: { storage_path: string | null }[] = [];
 let podRows: { photo_path: string | null; signature_path: string | null }[] = [];
 let bugRows: { storage_path: string | null }[] = [];
-let listEntries: { name: string; id: string | null; created_at: string | null }[] = [];
+let listEntries: {
+  name: string;
+  id: string | null;
+  created_at: string | null;
+}[] = [];
+let removeError: { code: string; message: string } | null = null;
 
 function makeAdmin() {
   return {
@@ -52,7 +57,7 @@ function makeAdmin() {
         },
         remove: (paths: string[]) => {
           ops.removed.push(...paths);
-          return Promise.resolve({ error: null });
+          return Promise.resolve({ error: removeError });
         },
       }),
     },
@@ -87,9 +92,11 @@ function seedFixtures() {
 beforeEach(() => {
   ops.reset();
   seedFixtures();
+  removeError = null;
   process.env.CRON_SECRET = "s3cret";
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   delete process.env.CRON_SECRET;
   delete process.env.PURGE_RECEIPT_ORPHANS_ENABLED;
 });
@@ -98,9 +105,18 @@ const AUTH = { authorization: "Bearer s3cret" };
 
 describe("auth", () => {
   it("sin Authorization → 403 y NO borra", async () => {
-    const res = await GET(req("", {}) as never);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const res = await GET(
+      req("", { "x-request-id": "receipt-deny-001" }) as never,
+    );
     expect(res.status).toBe(403);
+    expect(res.headers.get("x-request-id")).toBe("receipt-deny-001");
     expect(ops.removed).toEqual([]);
+    expect(JSON.parse(warn.mock.calls[0]?.[0] as string)).toMatchObject({
+      event: "cron.authorization_denied",
+      component: "cron.purge-receipt-orphans",
+      requestId: "receipt-deny-001",
+    });
   });
 
   it("Bearer incorrecto → 403", async () => {
@@ -112,8 +128,12 @@ describe("auth", () => {
 
 describe("dry-run por defecto (gate apagado)", () => {
   it("detecta huérfanos pero NO borra nada", async () => {
-    const res = await GET(req("", AUTH) as never);
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const res = await GET(
+      req("", { ...AUTH, "x-request-id": "receipt-run-001" }) as never,
+    );
     expect(res.status).toBe(200);
+    expect(res.headers.get("x-request-id")).toBe("receipt-run-001");
     const json = (await res.json()) as {
       mode: string;
       orphans: number;
@@ -123,6 +143,14 @@ describe("dry-run por defecto (gate apagado)", () => {
     expect(json.orphans).toBe(1); // orphan-old.jpg
     expect(json.deleted).toBe(0);
     expect(ops.removed).toEqual([]);
+    expect(JSON.parse(info.mock.calls[0]?.[0] as string)).toMatchObject({
+      event: "cron.completed",
+      component: "cron.purge-receipt-orphans",
+      requestId: "receipt-run-001",
+      mode: "dry-run",
+      orphans: 1,
+      deleted: 0,
+    });
   });
 });
 
@@ -152,5 +180,37 @@ describe("modo live (gate encendido)", () => {
     expect(json.mode).toBe("dry-run");
     expect(json.deleted).toBe(0);
     expect(ops.removed).toEqual([]);
+  });
+
+  it("correlaciona un fallo de borrado sin registrar rutas ni mensaje crudo", async () => {
+    const errorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
+    removeError = {
+      code: "STORAGE500",
+      message: "owner@example.com Bearer s3cret orphan-old.jpg",
+    };
+
+    const res = await GET(
+      req("", { ...AUTH, "x-request-id": "receipt-fail-001" }) as never,
+    );
+
+    expect(res.status).toBe(500);
+    expect(res.headers.get("x-request-id")).toBe("receipt-fail-001");
+    expect(JSON.stringify(await res.json())).not.toContain("owner@example.com");
+    const line = errorSpy.mock.calls[0]?.[0] as string;
+    expect(JSON.parse(line)).toMatchObject({
+      event: "cron.delete_failed",
+      component: "cron.purge-receipt-orphans",
+      requestId: "receipt-fail-001",
+      mode: "live",
+      stage: "storage_remove",
+      deletedBeforeFailure: 0,
+      batchSize: 1,
+      error: { name: "Object", code: "STORAGE500" },
+    });
+    expect(line).not.toContain("owner@example.com");
+    expect(line).not.toContain("s3cret");
+    expect(line).not.toContain("orphan-old.jpg");
   });
 });

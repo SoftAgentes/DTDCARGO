@@ -1,4 +1,12 @@
 import { NextResponse } from "next/server";
+import type { StructuredLogger } from "@/lib/observability/structured-logger";
+
+type ApiErrorOptions = {
+  logger?: StructuredLogger;
+  event?: string;
+  fields?: Record<string, unknown>;
+  includeDetail?: boolean;
+};
 
 /**
  * Extrae un mensaje legible de un error desconocido. Cubre `Error` nativo
@@ -28,17 +36,28 @@ function detailOf(err: unknown): string | undefined {
  * @param err          El error crudo (se loguea, no se filtra en prod).
  * @param status       HTTP status (default 500).
  * @param tag          Etiqueta para el log server-side (default "api").
+ * @param options      Logger estructurado opcional para rutas correlacionadas.
  */
 export function apiError(
   userMessage: string,
   err: unknown,
   status = 500,
   tag = "api",
+  options: ApiErrorOptions = {},
 ): NextResponse {
   const detail = detailOf(err);
-  console.error(`[${tag}] ${userMessage}`, detail ?? err);
+  if (options.logger) {
+    options.logger.error(options.event ?? "api.failed", {
+      ...options.fields,
+      status,
+      error: err,
+    });
+  } else {
+    console.error(`[${tag}] ${userMessage}`, detail ?? err);
+  }
   const body: { error: string; detail?: string } = { error: userMessage };
-  if (process.env.NODE_ENV !== "production" && detail) {
+  const includeDetail = options.includeDetail ?? !options.logger;
+  if (process.env.NODE_ENV !== "production" && detail && includeDetail) {
     body.detail = detail;
   }
   return NextResponse.json(body, { status });

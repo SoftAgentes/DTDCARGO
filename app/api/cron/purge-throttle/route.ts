@@ -15,6 +15,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { apiError } from "@/lib/http/api-error";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -31,9 +32,20 @@ function authorize(req: NextRequest): { ok: boolean; reason?: string } {
 }
 
 export async function GET(req: NextRequest) {
+  const startedAt = Date.now();
+  const logger = createRequestLogger(req, "cron.purge-throttle");
   const auth = authorize(req);
   if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
+    logger.warn("cron.authorization_denied", {
+      status: 403,
+      authState:
+        auth.reason === "CRON_SECRET no configurado"
+          ? "not_configured"
+          : "invalid",
+    });
+    return logger.withResponse(
+      NextResponse.json({ error: auth.reason }, { status: 403 }),
+    );
   }
 
   const admin = createAdminClient();
@@ -47,7 +59,13 @@ export async function GET(req: NextRequest) {
     .delete({ count: "exact" })
     .lt("created_at", cutoff);
   if (error) {
-    return apiError("No se pudo purgar el throttle.", error, 500, "purge-throttle");
+    return logger.withResponse(
+      apiError("No se pudo purgar el throttle.", error, 500, "purge-throttle", {
+        logger,
+        event: "cron.delete_failed",
+        fields: { stage: "portal_throttle" },
+      }),
+    );
   }
 
   const { error: pinError, count: pinCount } = await admin
@@ -55,18 +73,42 @@ export async function GET(req: NextRequest) {
     .delete({ count: "exact" })
     .lt("created_at", cutoff);
   if (pinError) {
-    return apiError("No se pudo purgar el throttle de PIN.", pinError, 500, "purge-pin-throttle");
+    return logger.withResponse(
+      apiError(
+        "No se pudo purgar el throttle de PIN.",
+        pinError,
+        500,
+        "purge-pin-throttle",
+        {
+          logger,
+          event: "cron.delete_failed",
+          fields: {
+            stage: "pin_throttle",
+            deletedBeforeFailure: count ?? 0,
+          },
+        },
+      ),
+    );
   }
 
-  return NextResponse.json({
-    ok: true,
-    deleted: (count ?? 0) + (pinCount ?? 0),
-    deletedByTable: {
-      portal_registro_throttle: count ?? 0,
-      operario_pin_attempts: pinCount ?? 0,
-    },
-    cutoff,
+  const deleted = (count ?? 0) + (pinCount ?? 0);
+  logger.info("cron.completed", {
+    deleted,
+    deletedPortalThrottle: count ?? 0,
+    deletedPinAttempts: pinCount ?? 0,
+    durationMs: Date.now() - startedAt,
   });
+  return logger.withResponse(
+    NextResponse.json({
+      ok: true,
+      deleted,
+      deletedByTable: {
+        portal_registro_throttle: count ?? 0,
+        operario_pin_attempts: pinCount ?? 0,
+      },
+      cutoff,
+    }),
+  );
 }
 
 export async function POST(req: NextRequest) {

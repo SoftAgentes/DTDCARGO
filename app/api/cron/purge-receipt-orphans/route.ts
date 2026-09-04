@@ -29,6 +29,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { apiError } from "@/lib/http/api-error";
+import { createRequestLogger } from "@/lib/observability/structured-logger";
 import { pickOrphans, type StoredObject } from "@/lib/studio/storage/receipt-orphans";
 
 export const dynamic = "force-dynamic";
@@ -139,9 +140,20 @@ async function collectKnownPaths(admin: Admin): Promise<Set<string>> {
 }
 
 export async function GET(req: NextRequest) {
+  const startedAt = Date.now();
+  const logger = createRequestLogger(req, "cron.purge-receipt-orphans");
   const auth = authorize(req);
   if (!auth.ok) {
-    return NextResponse.json({ error: auth.reason }, { status: 403 });
+    logger.warn("cron.authorization_denied", {
+      status: 403,
+      authState:
+        auth.reason === "CRON_SECRET no configurado"
+          ? "not_configured"
+          : "invalid",
+    });
+    return logger.withResponse(
+      NextResponse.json({ error: auth.reason }, { status: 403 }),
+    );
   }
 
   const url = new URL(req.url);
@@ -157,11 +169,18 @@ export async function GET(req: NextRequest) {
     known = await collectKnownPaths(admin);
     objects = await listAllObjects(admin);
   } catch (err) {
-    return apiError(
-      "No se pudo escanear el bucket de recibos.",
-      err,
-      500,
-      "purge-receipt-orphans",
+    return logger.withResponse(
+      apiError(
+        "No se pudo escanear el bucket de recibos.",
+        err,
+        500,
+        "purge-receipt-orphans",
+        {
+          logger,
+          event: "cron.scan_failed",
+          fields: { mode: live ? "live" : "dry-run", stage: "scan" },
+        },
+      ),
     );
   }
 
@@ -179,11 +198,23 @@ export async function GET(req: NextRequest) {
       const batch = pick.orphans.slice(i, i + REMOVE_BATCH);
       const { error } = await admin.storage.from(BUCKET).remove(batch);
       if (error) {
-        return apiError(
-          `No se pudo borrar un lote de huérfanos (borrados antes: ${deleted}).`,
-          error,
-          500,
-          "purge-receipt-orphans",
+        return logger.withResponse(
+          apiError(
+            `No se pudo borrar un lote de huérfanos (borrados antes: ${deleted}).`,
+            error,
+            500,
+            "purge-receipt-orphans",
+            {
+              logger,
+              event: "cron.delete_failed",
+              fields: {
+                mode: "live",
+                stage: "storage_remove",
+                deletedBeforeFailure: deleted,
+                batchSize: batch.length,
+              },
+            },
+          ),
         );
       }
       deleted += batch.length;
@@ -202,8 +233,11 @@ export async function GET(req: NextRequest) {
     cappedAt: pick.cappedAt,
     minAgeDays: ORPHAN_MIN_AGE_DAYS,
   };
-  console.log("[purge-receipt-orphans]", JSON.stringify(summary));
-  return NextResponse.json(summary);
+  logger.info("cron.completed", {
+    ...summary,
+    durationMs: Date.now() - startedAt,
+  });
+  return logger.withResponse(NextResponse.json(summary));
 }
 
 export async function POST(req: NextRequest) {
