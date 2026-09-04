@@ -46,6 +46,7 @@ async function portalMarkbox(supabase: SupabaseClient): Promise<string | null> {
 }
 
 export type PortalClientPrincipal = {
+  userId: string;
   tenantId: string;
   client: PortalClient;
 };
@@ -60,13 +61,14 @@ async function resolvePortalClientPrincipal(
 ): Promise<PortalClientPrincipal | null> {
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user?.id) return null;
+  const userId = auth.user.id;
 
   const { data, error } = await supabase
     .from("client_users")
     .select(
       "client_id, tenant_id, clients!inner(id, tenant_id, markbox, name, email, phone, address, rif, doc_kind, city, state, deleted_at)",
     )
-    .eq("auth_user_id", auth.user.id)
+    .eq("auth_user_id", userId)
     .eq("status", "active")
     .maybeSingle();
   if (error || !data || typeof data !== "object" || Array.isArray(data)) return null;
@@ -88,6 +90,7 @@ async function resolvePortalClientPrincipal(
 
   const rawDocKind = (client.doc_kind as string | null) ?? null;
   return {
+    userId,
     tenantId: row.tenant_id,
     client: {
       id: client.id as string,

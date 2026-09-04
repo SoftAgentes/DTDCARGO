@@ -49,6 +49,7 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Frontera service_role Portal, 0383 | Cerrado localmente: 105 componentes cubiertos, guard/fachada 10/10 y suite 7.187/7.187 |
 | Acciones de Perfil Portal, 0384 | Cerrado localmente: RED causal 9/12; GREEN 13/13, Perfil 53/53 y suite 7.200/7.200 |
 | Mensajes Portal, 0385 | Cerrado localmente: RED causal; 22 aserciones, 173 SQL y rebuild 428; 0431 no aplicada |
+| Web Push Portal, 0386 | Cerrado localmente: RED 7/9; GREEN 186/186 y Portal 867/867; sin envío real ni SQL |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.
@@ -809,6 +810,9 @@ están incluidos en aquel push.
   tenant A → cliente B y 0431 ahora resuelve principal activo, cliente vivo y
   tenant coherente antes de cualquier DML. Pasan 22 aserciones focales, los 173
   contratos SQL y rebuild de 428 archivos. La migración no fue aplicada.
+  SDD-0386 cerró seguidamente las rutas Web Push: alta y baja exigen el principal
+  completo antes de elevar; errores Auth/transporte no escriben. RED 7/9,
+  GREEN 186/186 y conjunto Portal 867/867. No hubo suscripción o envío real.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
   logout sin esa decisión puede perder entregas pendientes.

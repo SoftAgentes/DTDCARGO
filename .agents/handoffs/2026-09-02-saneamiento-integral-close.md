@@ -54,6 +54,11 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   Pasaron 22 aserciones focales, 173 contratos SQL y rebuild de 428 archivos
   (410 desde cero + 18 sólo-ledger), con aislamiento de 219 tablas. 0431 no fue
   aplicada ni consultó datos reales.
+- SDD0386 cerrado localmente: alta/baja Web Push aceptaban relación Portal
+  incoherente o retirada; error Auth se ignoraba y transporte/admin escapaban.
+  Ahora ambas rutas derivan user/tenant del principal canónico antes de elevar,
+  conservan rebind y baja propia. RED 7/9; GREEN 186/186, Portal 867/867,
+  TypeScript y lint correctos. Sin suscripción, envío real, SQL o Cloud.
 - Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;

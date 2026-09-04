@@ -20,7 +20,21 @@ function database() {
         is: () => chain,
         in: (column: string, value: unknown) => { write?.filters.push([column, value]); return chain; },
         limit: () => chain,
-        maybeSingle: async () => ({ data: { tenant_id: table === "client_users" ? state.portalTenant : state.tenant }, error: null }),
+        maybeSingle: async () => ({
+          data: table === "client_users"
+            ? (state.portalTenant ? {
+                client_id: "portal-client",
+                tenant_id: state.portalTenant,
+                clients: {
+                  id: "portal-client", tenant_id: state.portalTenant,
+                  markbox: "DTD-PORTAL", name: "Portal sintético",
+                  email: null, phone: null, address: null, rif: null,
+                  doc_kind: null, city: null, state: null, deleted_at: null,
+                },
+              } : null)
+            : { tenant_id: state.tenant },
+          error: null,
+        }),
         delete: () => {
           write = { table, op: "delete", filters: [] }; state.writes.push(write); return chain;
         },
