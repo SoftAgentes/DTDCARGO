@@ -1,7 +1,7 @@
 /**
  * Server action del Portal · "Invitar por correo" (Referidos, cara cliente de
- * SDD-0051). Fina: resuelve identidad por SESIÓN (getPortalClient), delega la
- * lógica testeable a `lib/portal/referral-invite`, y envía el correo best-effort.
+ * SDD-0051). Fina: resuelve el principal completo por sesión, delega la lógica
+ * testeable a `lib/portal/referral-invite`, y envía el correo best-effort.
  *
  * Identidad + aislamiento: el markbox/tenant salen de la sesión (nunca del form).
  * El write corre con ADMIN client SCOPEADO explícito por ese markbox/tenant (la
@@ -14,7 +14,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import {
   inviteReferral,
@@ -35,23 +35,13 @@ export async function inviteReferralAction(
   formData: FormData,
 ): Promise<InviteReferralState> {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) {
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) {
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
+  const { client, tenantId } = principal;
 
   const admin = createAdminClient();
-
-  // Tenant del cliente (scopeado por su id de sesión).
-  const { data: row } = await admin
-    .from("clients")
-    .select("tenant_id")
-    .eq("id", client.id)
-    .maybeSingle<{ tenant_id: string }>();
-  const tenantId = row?.tenant_id;
-  if (!tenantId) {
-    return { error: "No se pudo resolver tu cuenta. Intenta de nuevo." };
-  }
 
   const res = await inviteReferral(admin, {
     tenantId,
