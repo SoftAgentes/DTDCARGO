@@ -55,6 +55,7 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Compras Portal aplicación, 0389 | Cerrado localmente: RED 6/6; focal/histórico 15/15 y Portal+Prealertas 1.025/1.025; 0417 sin aplicar |
 | Pagos y eventos Portal, 0390 | Cerrado localmente: RED 4/4; focal/histórico 38/38 y Portal 878/878; sin datos reales |
 | Lecturas núcleo Portal, 0391 | Cerrado localmente: RED 5/5; focal/histórico 24/24 y Portal 883/883; sin datos reales |
+| Activación y completitud Portal, 0392 | Cerrado localmente: RED 3/3; focal/histórico 18/18 y Portal 886/886; 0427 intacta |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.
@@ -838,6 +839,10 @@ están incluidos en aquel push.
   documentos y próximo arribo derivan principal y fijan tenant + Shipping Mark.
   RED 5/5, focal/histórico 24/24 y Portal 883/883. No se consultaron archivos,
   facturas, envíos ni datos reales.
+  SDD-0392 cerró activación y completitud: aprobación, conteo de envíos, foto y
+  direcciones derivan un principal único y fijan tenant/cliente/Shipping Mark.
+  RED 3/3, focal/histórico 18/18 y Portal 886/886. El borrado transaccional 0427
+  quedó intacto; no se consultaron perfiles, fotos o direcciones reales.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
   logout sin esa decisión puede perder entregas pendientes.

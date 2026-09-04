@@ -34,17 +34,6 @@ import {
   type ShipmentStatus,
 } from "./portal-types";
 
-/**
- * MARKBOX del cliente del portal logueado (helper aislada
- * `get_portal_client_markbox`), o null si el principal no es un cliente del
- * portal. Punto único de resolución para las queries que filtran por markbox.
- */
-async function portalMarkbox(supabase: SupabaseClient): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_portal_client_markbox");
-  if (error || !data) return null;
-  return data as string;
-}
-
 export type PortalClientPrincipal = {
   userId: string;
   tenantId: string;
@@ -523,22 +512,22 @@ export function listMyCotizaciones(
  *   - el asesor aprobó su cuenta (`clients.portal_approved_at` != null), O
  *   - ya tiene ≥1 envío con su markbox (prueba de cliente real → auto-desbloqueo).
  *
- * Resuelve el client_id del portal vía la helper AISLADA (`get_portal_client_id`)
- * para leer `portal_approved_at`, y cuenta envíos por markbox (filtrado EXPLÍCITO,
- * como el resto del archivo). Si el principal no es cliente del portal → no activado.
+ * Deriva un principal coherente para leer `portal_approved_at` y contar envíos
+ * con tenant + Shipping Mark explícitos. Principal inválido → no activado.
  */
 export async function getPortalActivation(
   supabase: SupabaseClient,
 ): Promise<PortalActivation> {
-  const { data: portalClientId, error: idErr } =
-    await supabase.rpc("get_portal_client_id");
-  if (idErr || !portalClientId) return { activated: false, reason: null };
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return { activated: false, reason: null };
 
   // ¿Aprobado por un asesor?
   const { data: clientRow } = await supabase
     .from("clients")
     .select("portal_approved_at")
-    .eq("id", portalClientId as string)
+    .eq("id", principal.client.id)
+    .eq("tenant_id", principal.tenantId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (clientRow && (clientRow.portal_approved_at as string | null)) {
@@ -546,13 +535,11 @@ export async function getPortalActivation(
   }
 
   // ¿Tiene al menos 1 envío? (auto-desbloqueo por primera carga real)
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { activated: false, reason: null };
-
   const { count, error: countErr } = await supabase
     .from("shipments")
     .select("id", { count: "exact", head: true })
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", principal.tenantId)
+    .eq("client_markbox", principal.client.markbox)
     .is("deleted_at", null);
 
   if (!countErr && (count ?? 0) >= 1) {
@@ -567,11 +554,9 @@ export async function getPortalActivation(
  * 2026-06-07). El alta express difiere foto + dirección; acá leemos si ya están
  * cargadas para nudgear "Completa tu perfil" (antes de la 1ª compra).
  *
- * Resuelve el client_id del portal vía la helper AISLADA (`get_portal_client_id`)
- * y lee SU PROPIA fila (la RLS del portal le permite leer su row de clients). Solo
- * deriva booleanos — el `cedula_photo_path` es un puntero a Storage privado, el
- * archivo en sí queda protegido por el bucket. Si el principal no es cliente del
- * portal → todo false (no se le ofrece completar nada).
+ * Deriva un principal coherente y lee SU PROPIA fila. Sólo deriva booleanos: el
+ * `cedula_photo_path` es un puntero a Storage privado y el archivo sigue protegido
+ * por el bucket. Principal inválido → todo false.
  */
 export async function getProfileCompleteness(
   supabase: SupabaseClient,
@@ -582,14 +567,15 @@ export async function getProfileCompleteness(
     complete: false,
   };
 
-  const { data: portalClientId, error: idErr } =
-    await supabase.rpc("get_portal_client_id");
-  if (idErr || !portalClientId) return empty;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return empty;
 
   const { data, error } = await supabase
     .from("clients")
     .select("cedula_photo_path, address")
-    .eq("id", portalClientId as string)
+    .eq("id", principal.client.id)
+    .eq("tenant_id", principal.tenantId)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error || !data) return empty;
 
@@ -604,7 +590,9 @@ export async function getProfileCompleteness(
     const { count } = await supabase
       .from("client_delivery_addresses")
       .select("id", { count: "exact", head: true })
-      .eq("client_id", portalClientId as string)
+      .eq("tenant_id", principal.tenantId)
+      .eq("client_id", principal.client.id)
+      .eq("client_markbox", principal.client.markbox)
       .is("deleted_at", null);
     hasAddress = (count ?? 0) > 0;
   }

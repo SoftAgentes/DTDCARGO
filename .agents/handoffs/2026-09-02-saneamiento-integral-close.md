@@ -82,6 +82,10 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   omitían tenant. Listas/detalles de envíos y facturas, documentos y próximo
   arribo ahora derivan principal canónico y fijan tenant + Shipping Mark. RED
   5/5; focal/histórico 24/24 y Portal 883/883; sin datos reales ni migración.
+- SDD0392 cerrado localmente: activación y completitud combinaban ids de RPCs
+  separadas y omitían scopes. Ahora aprobación, envíos, foto y direcciones usan
+  un principal canónico con tenant/cliente/Shipping Mark explícitos. RED 3/3;
+  focal/histórico 18/18 y Portal 886/886. 0427 intacta; sin datos reales.
 - Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;

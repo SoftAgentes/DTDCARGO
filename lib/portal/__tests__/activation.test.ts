@@ -33,6 +33,12 @@ function stub(opts: {
   let touchedShipments = false;
 
   const supabase = {
+    auth: {
+      getUser: () => Promise.resolve({
+        data: { user: opts.portalClientId ? { id: "portal-user" } : null },
+        error: null,
+      }),
+    },
     rpc(fn: string) {
       if (fn === "get_portal_client_id") {
         return Promise.resolve({ data: opts.portalClientId, error: null });
@@ -43,6 +49,34 @@ function stub(opts: {
       return Promise.resolve({ data: null, error: null });
     },
     from(table: string) {
+      if (table === "client_users") {
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          maybeSingle: () => Promise.resolve({
+            data: opts.portalClientId ? {
+              client_id: opts.portalClientId,
+              tenant_id: "tenant-1",
+              clients: {
+                id: opts.portalClientId,
+                tenant_id: "tenant-1",
+                markbox: opts.markbox ?? "DTD-1007",
+                name: "Cliente sintético",
+                email: null,
+                phone: null,
+                address: null,
+                rif: null,
+                doc_kind: null,
+                city: null,
+                state: null,
+                deleted_at: null,
+              },
+            } : null,
+            error: null,
+          }),
+        };
+        return chain;
+      }
       if (table === "shipments") {
         touchedShipments = true;
         // count query: select(...,{count,head}).eq().is() → resuelve en is()
@@ -58,6 +92,7 @@ function stub(opts: {
       const chain = {
         select: () => chain,
         eq: () => chain,
+        is: () => chain,
         maybeSingle: () =>
           Promise.resolve({
             data: { portal_approved_at: opts.approvedAt ?? null },
