@@ -11,6 +11,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import {
   resolveAdminEntries,
@@ -46,14 +50,17 @@ export async function notifyPaymentReportToAdmin(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
   payload: PaymentReportNotifyPayload,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.payment-report-notify",
+  ),
 ): Promise<void> {
   try {
     const admins = await resolveAdminEntries(supabaseAdmin, tenantId);
     if (admins.length === 0) {
-      console.warn(
-        "[payment-report-notify] sin admins para notificar",
-        payload.invoiceCode,
-      );
+      logger.warn("notification.no_recipients", {
+        operation: "payment_report",
+        stage: "resolve",
+      });
       return;
     }
 
@@ -78,19 +85,26 @@ export async function notifyPaymentReportToAdmin(
         },
       });
       if (!res.ok) {
-        console.error("[payment-report-notify] email falló:", res.error);
+        logger.error("notification.delivery_failed", {
+          error: res.error,
+          failed: 1,
+          operation: "payment_report",
+          stage: "email",
+        });
       }
     }
 
     // Telegram: UNA vez por CHAT, fuera del bucle de admins (SDD-0271).
     await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
       logTag: "payment-report-notify",
+      logger,
     });
   } catch (err) {
-    console.error(
-      "[payment-report-notify] notifyPaymentReportToAdmin falló:",
-      err,
-    );
+    logger.error("notification.dispatch_failed", {
+      error: err,
+      operation: "payment_report",
+      stage: "producer",
+    });
   }
 }
 

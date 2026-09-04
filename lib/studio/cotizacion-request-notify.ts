@@ -12,6 +12,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import {
   resolveAdminEntries,
@@ -43,14 +47,17 @@ export async function notifyCotizacionRequestToAdmin(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
   payload: CotizacionRequestNotifyPayload,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.cotizacion-request-notify",
+  ),
 ): Promise<void> {
   try {
     const admins = await resolveAdminEntries(supabaseAdmin, tenantId);
     if (admins.length === 0) {
-      console.warn(
-        "[cotizacion-request-notify] sin admins para notificar",
-        payload.code,
-      );
+      logger.warn("notification.no_recipients", {
+        operation: "quotation_request",
+        stage: "resolve",
+      });
       return;
     }
 
@@ -72,19 +79,26 @@ export async function notifyCotizacionRequestToAdmin(
         metadata: { source: "cotizacion-request-notify", code: payload.code },
       });
       if (!res.ok) {
-        console.error("[cotizacion-request-notify] email falló:", res.error);
+        logger.error("notification.delivery_failed", {
+          error: res.error,
+          failed: 1,
+          operation: "quotation_request",
+          stage: "email",
+        });
       }
     }
 
     // Telegram: UNA vez por CHAT, fuera del bucle de admins (SDD-0271).
     await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
       logTag: "cotizacion-request-notify",
+      logger,
     });
   } catch (err) {
-    console.error(
-      "[cotizacion-request-notify] notifyCotizacionRequestToAdmin falló:",
-      err,
-    );
+    logger.error("notification.dispatch_failed", {
+      error: err,
+      operation: "quotation_request",
+      stage: "producer",
+    });
   }
 }
 

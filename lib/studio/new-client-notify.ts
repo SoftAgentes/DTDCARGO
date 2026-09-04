@@ -13,12 +13,16 @@
  *     destino configurado en Ajustes › Alertas de Telegram. Antes era uno por
  *     admin, y como dos cuentas admin comparten chat, llegaba duplicado.
  *
- * Best-effort por canal: cada fallo se loguea a console.error pero NO rompe el
+ * Best-effort por canal: cada fallo se registra de forma estructurada pero NO rompe el
  * alta ni los otros canales. Se dispara SOLO en el alta self-service (el alta
  * admin la inicia un humano que ya conoce al cliente).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 
@@ -50,11 +54,15 @@ export async function notifyNewClientToAdmin(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
   payload: NewClientNotifyPayload,
+  logger: StructuredLogger = createComponentLogger("internal.new-client-notify"),
 ): Promise<void> {
   try {
     const admins = await resolveAdminEntries(supabaseAdmin, tenantId);
     if (admins.length === 0) {
-      console.warn("[new-client-notify] sin admins para notificar", payload.markbox);
+      logger.warn("notification.no_recipients", {
+        operation: "new_client",
+        stage: "resolve",
+      });
       return;
     }
 
@@ -78,7 +86,12 @@ export async function notifyNewClientToAdmin(
         metadata: { source: "new-client-notify", markbox: payload.markbox },
       });
       if (!res.ok) {
-        console.error("[new-client-notify] email falló:", res.error);
+        logger.error("notification.delivery_failed", {
+          error: res.error,
+          failed: 1,
+          operation: "new_client",
+          stage: "email",
+        });
       }
     }
 
@@ -92,10 +105,14 @@ export async function notifyNewClientToAdmin(
       tenantId,
       "registro",
       telegramText,
-      { logTag: "new-client-notify" },
+      { logTag: "new-client-notify", logger },
     );
   } catch (err) {
-    console.error("[new-client-notify] notifyNewClientToAdmin falló:", err);
+    logger.error("notification.dispatch_failed", {
+      error: err,
+      operation: "new_client",
+      stage: "producer",
+    });
   }
 }
 

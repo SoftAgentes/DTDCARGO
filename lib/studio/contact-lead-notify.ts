@@ -16,6 +16,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { CONTACT } from "@/lib/design-tokens";
 import {
@@ -39,6 +43,7 @@ export async function notifyContactLeadToAdmin(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
   payload: ContactLeadPayload,
+  logger: StructuredLogger = createComponentLogger("internal.contact-lead-notify"),
 ): Promise<{ ok: boolean }> {
   const subject = `Nuevo contacto web · ${payload.topicLabel} — ${payload.nombre}`;
   const html = buildHtml(payload);
@@ -59,13 +64,21 @@ export async function notifyContactLeadToAdmin(
       metadata: { source: "contact-lead", code: payload.code },
     });
     if (res.ok) emailedOk = true;
-    else console.error("[contact-lead-notify] email falló:", res.error);
+    else {
+      logger.error("notification.delivery_failed", {
+        error: res.error,
+        failed: 1,
+        operation: "contact_lead",
+        stage: "email",
+      });
+    }
   }
 
   // Telegram: UNA vez por CHAT, no una por admin (SDD-0271). El bucle de
   // antes duplicaba el aviso cuando dos cuentas admin comparten chat.
   await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
     logTag: "contact-lead-notify",
+    logger,
   });
 
   return { ok: emailedOk };

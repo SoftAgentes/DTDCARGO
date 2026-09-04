@@ -16,6 +16,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { CONTACT } from "@/lib/design-tokens";
 import {
@@ -54,6 +58,7 @@ export async function notifyEstimadoLeadToAdmin(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
   payload: EstimadoLeadPayload,
+  logger: StructuredLogger = createComponentLogger("internal.estimado-lead-notify"),
 ): Promise<{ ok: boolean }> {
   const subject = `Nuevo estimado web — ${payload.prospectName} ($${payload.totalUsd})`;
   const html = buildHtml(payload);
@@ -74,12 +79,20 @@ export async function notifyEstimadoLeadToAdmin(
       metadata: { source: "estimado-lead" },
     });
     if (res.ok) emailedOk = true;
-    else console.error("[estimado-lead-notify] email falló:", res.error);
+    else {
+      logger.error("notification.delivery_failed", {
+        error: res.error,
+        failed: 1,
+        operation: "estimated_lead",
+        stage: "email",
+      });
+    }
   }
 
   // Telegram: UNA vez por CHAT, no una por admin (SDD-0271).
   await dispatchTelegramAlert(supabaseAdmin, tenantId, "equipo", telegramText, {
     logTag: "estimado-lead-notify",
+    logger,
   });
 
   return { ok: emailedOk };
