@@ -307,7 +307,9 @@ export async function notifyBugCreatedToAdmin(
               actionLabel,
             },
             markDelivered: channels.inapp,
-          })
+          },
+          logger,
+        )
         : null;
 
       // Email (puede skip-ar si Resend no está configurado) · fallo → outbox P3.
@@ -461,7 +463,9 @@ export async function notifyBugStateChangeToReporter(
             actionLabel,
           },
           markDelivered: channels.inapp,
-        })
+        },
+        logger,
+      )
       : null;
 
     if (channels.email && reporterEmail) {
@@ -604,7 +608,9 @@ export async function notifyBugMessageToReporter(
             actionLabel,
           },
           markDelivered: channels.inapp,
-        })
+        },
+        logger,
+      )
       : null;
 
     if (channels.email && reporterEmail) {

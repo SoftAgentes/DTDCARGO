@@ -2,7 +2,7 @@
  * Notificaciones push de eventos del despacho (Sprint 4 v3).
  *
  * Helpers que encolan pushes en momentos clave del flujo OD → entrega.
- * Todos best-effort: si fallan, loguean pero NO rompen la mutación
+ * Todos best-effort: si fallan, registran pero NO rompen la mutación
  * principal (consistente con el patrón mail/telegram).
  *
  * Patrón: encolar en outbox (durable) + drain inline fire-and-forget
@@ -10,6 +10,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import {
   drainOperarioPushOutbox,
   enqueueOperarioPush,
@@ -25,6 +29,7 @@ import {
 export async function notifyCamioneroOdLista(
   admin: SupabaseClient,
   odId: string,
+  logger: StructuredLogger = createComponentLogger("internal.notify-dispatch"),
 ): Promise<void> {
   try {
     const { data: od } = await admin
@@ -58,18 +63,28 @@ export async function notifyCamioneroOdLista(
       ? od.route[0]?.name
       : od.route?.name;
 
-    await enqueueOperarioPush(admin, od.tenant_id, op.id, {
-      title: "Ruta lista para salir",
-      body: `${od.order_code}${routeName ? ` · ${routeName}` : ""} está cargada. Toca para ver la ruta.`,
-      url: "/m/ve/camionero",
-      tag: `od-lista-${od.id}`,
-    });
+    await enqueueOperarioPush(
+      admin,
+      od.tenant_id,
+      op.id,
+      {
+        title: "Ruta lista para salir",
+        body: `${od.order_code}${routeName ? ` · ${routeName}` : ""} está cargada. Toca para ver la ruta.`,
+        url: "/m/ve/camionero",
+        tag: `od-lista-${od.id}`,
+      },
+      logger,
+    );
 
     // Drain inline best-effort (no await bloqueante crítico, pero sí lo
     // esperamos para aprovechar el mismo invocation serverless).
-    await drainOperarioPushOutbox(admin);
+    await drainOperarioPushOutbox(admin, logger);
   } catch (err) {
-    console.error("[notify-dispatch] notifyCamioneroOdLista error:", err);
+    logger.error("notification.dispatch_failed", {
+      error: err,
+      failed: 1,
+      stage: "camionero",
+    });
   }
 }
 

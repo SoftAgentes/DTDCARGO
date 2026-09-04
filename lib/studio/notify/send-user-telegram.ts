@@ -7,17 +7,22 @@
  * máscara de canales — acá solo se hace skip silencioso si no linkeó o si
  * TELEGRAM_BOT_TOKEN no está configurado.
  *
- * SIEMPRE con service_role (lee el perfil de cualquier user). Best-effort: loguea
+ * SIEMPRE con service_role (lee el perfil de cualquier user). Best-effort: registra
  * pero nunca throwea.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 
 export async function sendTelegramToUser(
   admin: SupabaseClient,
   userId: string,
   text: string,
+  logger: StructuredLogger = createComponentLogger("internal.send-user-telegram"),
 ): Promise<boolean> {
   try {
     const { data: profile } = await admin
@@ -31,12 +36,20 @@ export async function sendTelegramToUser(
 
     const result = await sendTelegramMessage(chatId, text);
     if (!result.ok) {
-      console.error("[send-user-telegram] sendTelegramMessage failed:", result.error);
+      logger.error("notification.telegram_delivery_failed", {
+        error: result.error,
+        failed: 1,
+        stage: "send",
+      });
       return false;
     }
     return true;
   } catch (err) {
-    console.error("[send-user-telegram] threw:", err);
+    logger.error("notification.telegram_delivery_failed", {
+      error: err,
+      failed: 1,
+      stage: "dispatch",
+    });
     return false;
   }
 }

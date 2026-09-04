@@ -18,11 +18,15 @@
  *     (`task-{id}` / `recordatorio-bitacora-{fecha}`) las separa.
  *
  * SIEMPRE con service_role (la RLS de bug_notifications solo deja INSERT a
- * service_role). Best-effort: loguea pero nunca throwea. Devuelve el id de la
+ * service_role). Best-effort: registra pero nunca throwea. Devuelve el id de la
  * fila (para estampar delivered_*_at) o null si se saltó/falló.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import type { BugNotifType } from "@/lib/studio/bug-types";
 
 export interface WriteInAppArgs {
@@ -44,6 +48,7 @@ export interface WriteInAppArgs {
 export async function writeInAppNotification(
   supabaseAdmin: SupabaseClient,
   args: WriteInAppArgs,
+  logger: StructuredLogger = createComponentLogger("internal.write-inapp"),
 ): Promise<string | null> {
   // No auto-notificación: el actor no se avisa a sí mismo (gotcha Rumbo).
   if (args.actorId != null && args.actorId === args.userId) return null;
@@ -93,12 +98,18 @@ export async function writeInAppNotification(
       .select("id")
       .single<{ id: string }>();
     if (error) {
-      console.error("[write-inapp] insert failed:", error);
+      logger.error("notification.inapp_write_failed", {
+        error,
+        stage: "insert",
+      });
       return null;
     }
     return data.id;
   } catch (err) {
-    console.error("[write-inapp] threw:", err);
+    logger.error("notification.inapp_write_failed", {
+      error: err,
+      stage: "write",
+    });
     return null;
   }
 }
