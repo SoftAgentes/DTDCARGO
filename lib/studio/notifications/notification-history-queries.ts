@@ -12,6 +12,10 @@
  * interna de la agenda.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { journeyEventLabel } from "./client-notification-types";
 
 /** Un aviso ya enviado, en forma amigable para el portal. */
@@ -45,6 +49,9 @@ export async function listShipmentNotificationHistory(
   admin: SupabaseClient,
   shipmentId: string,
   limit = 20,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.notification-history",
+  ),
 ): Promise<PortalNotificationHistoryItem[]> {
   try {
     const { data, error } = await admin
@@ -74,7 +81,11 @@ export async function listShipmentNotificationHistory(
       sentAt: r.sent_at,
     }));
   } catch (err) {
-    console.error("[client-notif] listShipmentNotificationHistory falló:", err);
+    logger.error("client_notification.query_failed", {
+      error: err,
+      operation: "shipment_history",
+      stage: "read",
+    });
     return [];
   }
 }

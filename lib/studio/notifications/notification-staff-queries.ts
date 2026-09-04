@@ -13,6 +13,10 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPaged } from "@/lib/db/paginate";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { journeyEventLabel } from "./client-notification-types";
 
 export type NotificationStatus =
@@ -117,6 +121,9 @@ function mapStaffRow(r: StaffRow): StaffNotificationItem {
 export async function getNotificationStatusCounts(
   admin: SupabaseClient,
   tenantId: string,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.notification-staff",
+  ),
 ): Promise<NotificationStatusCounts> {
   try {
     // Paginado: son CONTEOS por estado de la cola de avisos al cliente.
@@ -132,7 +139,11 @@ export async function getNotificationStatusCounts(
     if (!complete) return emptyStatusCounts();
     return tallyStatusCounts(rows);
   } catch (err) {
-    console.error("[client-notif] getNotificationStatusCounts falló:", err);
+    logger.error("client_notification.query_failed", {
+      error: err,
+      operation: "status_counts",
+      stage: "read",
+    });
     return emptyStatusCounts();
   }
 }
@@ -145,6 +156,9 @@ export async function listRecentStaffNotifications(
   admin: SupabaseClient,
   tenantId: string,
   limit = 30,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.notification-staff",
+  ),
 ): Promise<StaffNotificationItem[]> {
   try {
     const { data, error } = await admin
@@ -158,7 +172,11 @@ export async function listRecentStaffNotifications(
     if (error || !data) return [];
     return (data as StaffRow[]).map(mapStaffRow);
   } catch (err) {
-    console.error("[client-notif] listRecentStaffNotifications falló:", err);
+    logger.error("client_notification.query_failed", {
+      error: err,
+      operation: "staff_recent",
+      stage: "read",
+    });
     return [];
   }
 }

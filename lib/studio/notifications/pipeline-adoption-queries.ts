@@ -12,6 +12,10 @@
  * error → ceros (un manómetro no rompe la página).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 
 export interface PipelineAdoption {
   /** Recepciones no borradas del tenant. */
@@ -46,6 +50,9 @@ export function computePipelineAdoption(input: {
 export async function getPipelineAdoption(
   supabase: SupabaseClient,
   tenantId: string,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.pipeline-adoption",
+  ),
 ): Promise<PipelineAdoption> {
   try {
     const [totalRes, scannedRes] = await Promise.all([
@@ -69,7 +76,11 @@ export async function getPipelineAdoption(
       scanned: scannedRes.count ?? 0,
     });
   } catch (err) {
-    console.error("[pipeline-adoption] getPipelineAdoption falló:", err);
+    logger.error("client_notification.query_failed", {
+      error: err,
+      operation: "pipeline_adoption",
+      stage: "read",
+    });
     return computePipelineAdoption({ total: 0, scanned: 0 });
   }
 }

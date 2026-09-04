@@ -8,6 +8,10 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
+import {
   CLIENT_JOURNEY_EVENT_KEYS,
   NOTIFICATION_CHANNELS,
   NOTIFICATION_ANCHORS,
@@ -114,6 +118,9 @@ export async function listRules(
   supabase: SupabaseClient,
   tenantId: string,
   clientId?: string | null,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notification-rules",
+  ),
 ): Promise<ClientNotificationRule[]> {
   let q = supabase
     .from("client_notification_rules")
@@ -122,7 +129,11 @@ export async function listRules(
   q = clientId ? q.eq("client_id", clientId) : q.is("client_id", null);
   const { data, error } = await q.order("trigger_event", { ascending: true });
   if (error) {
-    console.error("[client-notif-rules] listRules:", error.message);
+    logger.error("client_notification.rules_failed", {
+      error,
+      operation: "list",
+      stage: "read",
+    });
     return [];
   }
   return (data ?? []) as ClientNotificationRule[];
@@ -133,6 +144,9 @@ export async function upsertRule(
   supabase: SupabaseClient,
   tenantId: string,
   value: ValidatedRule,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notification-rules",
+  ),
 ): Promise<{ error: string } | { ok: true }> {
   // Buscar existente por la clave lógica (default vs override).
   let sel = supabase
@@ -168,7 +182,11 @@ export async function upsertRule(
     : await supabase.from("client_notification_rules").insert(payload);
 
   if (error) {
-    console.error("[client-notif-rules] upsertRule:", error.message);
+    logger.error("client_notification.rules_failed", {
+      error,
+      operation: "upsert",
+      stage: "write",
+    });
     return { error: "No pudimos guardar la regla." };
   }
   return { ok: true };
@@ -180,6 +198,9 @@ export async function deleteRule(
   supabase: SupabaseClient,
   tenantId: string,
   ruleId: string,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notification-rules",
+  ),
 ): Promise<{ error: string } | { ok: true }> {
   const { error } = await supabase
     .from("client_notification_rules")
@@ -193,7 +214,11 @@ export async function deleteRule(
           "La regla ya tiene avisos programados o enviados. Desactívala en vez de borrarla.",
       };
     }
-    console.error("[client-notif-rules] deleteRule:", error.message);
+    logger.error("client_notification.rules_failed", {
+      error,
+      operation: "delete",
+      stage: "write",
+    });
     return { error: "No pudimos borrar la regla." };
   }
   return { ok: true };
@@ -207,6 +232,9 @@ export async function deleteRule(
 export async function seedDefaultRulesForTenant(
   admin: SupabaseClient,
   tenantId: string,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.client-notification-rules",
+  ),
 ): Promise<number> {
   const rows = DEFAULT_SEED_EVENTS.map((evt) => ({
     tenant_id: tenantId,
@@ -232,7 +260,11 @@ export async function seedDefaultRulesForTenant(
     .from("client_notification_rules")
     .insert(toInsert);
   if (error) {
-    console.error("[client-notif-rules] seed:", error.message);
+    logger.error("client_notification.rules_failed", {
+      error,
+      operation: "seed",
+      stage: "write",
+    });
     return 0;
   }
   return toInsert.length;
