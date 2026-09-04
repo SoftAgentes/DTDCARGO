@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   getPrealertaByCode,
   listActivePrealertaAddons,
+  listPrealertaDocuments,
   listPrealertas,
   listSuppliers,
 } from "../queries";
@@ -65,6 +66,20 @@ describe("SDD0389 · helpers Portal de compras con tenant explícito", () => {
     });
     expect(filters).toEqual(expect.arrayContaining([
       ["tenant_id", "tenant-a"],
+      ["client_markbox", "DTD-0001"],
+    ]));
+  });
+
+  it("adjuntos aplican tenant + compra + Shipping Mark antes de firmarse", async () => {
+    const filters: Array<[string, unknown]> = [];
+    await listPrealertaDocuments(database(filters) as never, {
+      tenantId: "tenant-a",
+      prealertaId: "purchase-a",
+      markbox: "DTD-0001",
+    });
+    expect(filters).toEqual(expect.arrayContaining([
+      ["tenant_id", "tenant-a"],
+      ["prealerta_id", "purchase-a"],
       ["client_markbox", "DTD-0001"],
     ]));
   });

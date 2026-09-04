@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   listSuppliers,
   listPrealertas,
@@ -30,12 +30,13 @@ export default async function NuevaCompraPage({
 }) {
   const { proveedor } = await searchParams;
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
 
   const [suppliers, prealertas, addons] = await Promise.all([
-    listSuppliers(supabase, { markbox: client.markbox }),
-    listPrealertas(supabase, { markbox: client.markbox }),
+    listSuppliers(supabase, { tenantId, markbox: client.markbox }),
+    listPrealertas(supabase, { tenantId, markbox: client.markbox }),
     listActivePrealertaAddons(supabase),
   ]);
 

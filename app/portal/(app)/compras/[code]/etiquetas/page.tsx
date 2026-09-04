@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { resolveBrandForPortal } from "@/lib/studio/aliados/brand-resolve";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { listSignedPrealertaDocuments } from "@/lib/portal/prealerta-document-signing";
 import {
   getPrealertaByCode,
@@ -42,15 +42,20 @@ export default async function PortalLabelsPage({
   const code = decodeURIComponent(rawCode);
 
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
 
   const prealerta = await getPrealertaByCode(supabase, code, {
+    tenantId,
     markbox: client.markbox,
   });
   if (!prealerta) notFound();
 
-  const suppliers = await listSuppliers(supabase, { markbox: client.markbox });
+  const suppliers = await listSuppliers(supabase, {
+    tenantId,
+    markbox: client.markbox,
+  });
 
   // SDD-0336: la marca se resuelve por la sesión del Portal, sin aceptar ids ni
   // Shipping Marks y sin construir un service_role para esta lectura.
@@ -75,6 +80,7 @@ export default async function PortalLabelsPage({
   const [addons, serviceRequests] = await Promise.all([
     listActivePrealertaAddons(supabase),
     listPrealertaServiceRequests(supabase, {
+      tenantId,
       prealertaId: prealerta.id,
       markbox: client.markbox,
     }),
@@ -87,6 +93,7 @@ export default async function PortalLabelsPage({
   // El firmador relee los docs permitidos por RLS y sólo entonces firma esos
   // paths; esta página nunca recibe ni puede inyectar una ruta de Storage.
   const signedDocs = await listSignedPrealertaDocuments(supabase, {
+    tenantId,
     prealertaId: prealerta.id,
     markbox: client.markbox,
   });

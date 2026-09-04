@@ -1097,3 +1097,17 @@ pendientes del paquete. No se repitió esa consulta ni se escribió en Cloud.
    Cada operación alojada conserva su autorización específica.
 5. Retirar este worktree únicamente después de probar que sus commits están
    contenidos; mantener las ramas archive hasta auditar su contención.
+
+## Continuación local SDD-0399 · consumidores de compras Portal
+
+Se cerró el residuo de seis páginas que todavía reducían el principal Portal a
+Shipping Mark antes de consultar compras, proveedores, servicios y adjuntos.
+Ahora derivan `client + tenantId`, propagan ambos scopes y fallan cerradas si el
+principal no existe. La lectura previa a firmar adjuntos exige tenant + compra +
+Shipping Mark; solicitudes rechaza un tenant que no coincida con la sesión.
+
+Evidencia local: RED 12/12, focales/históricos 47/47, Portal 928/928,
+TypeScript, lint global, documentación, gobernanza, componentes y diff verdes.
+No hubo migración, Cloud, datos reales, push, `main`, despliegue o limpieza. El
+contador original permanece 56/106 y los 31 archivos 0401–0431 siguen sin
+aplicar según el último ledger documentado.

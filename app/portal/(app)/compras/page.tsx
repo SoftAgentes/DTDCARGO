@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   listPrealertas,
   listSuppliers,
@@ -24,13 +24,14 @@ export const metadata: Metadata = { title: "Mis compras" };
  */
 export default async function PortalPurchasesPage() {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
 
   const [prealertas, suppliers, serviceRequests] = await Promise.all([
-    listPrealertas(supabase, { markbox: client.markbox }),
-    listSuppliers(supabase, { markbox: client.markbox }),
-    listPrealertaServiceRequests(supabase, { markbox: client.markbox }),
+    listPrealertas(supabase, { tenantId, markbox: client.markbox }),
+    listSuppliers(supabase, { tenantId, markbox: client.markbox }),
+    listPrealertaServiceRequests(supabase, { tenantId, markbox: client.markbox }),
   ]);
 
   const supplierName: Record<string, string> = {};

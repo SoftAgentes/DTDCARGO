@@ -390,7 +390,7 @@ function coercePrealertaDocument(r: Record<string, unknown>): PrealertaDocument 
  */
 export async function listPrealertaDocuments(
   supabase: SupabaseClient,
-  opts: { prealertaId: string; markbox?: string },
+  opts: { tenantId?: string; prealertaId: string; markbox?: string },
 ): Promise<PrealertaDocument[]> {
   try {
     let query = supabase
@@ -400,6 +400,7 @@ export async function listPrealertaDocuments(
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(100);
+    if (opts.tenantId) query = query.eq("tenant_id", opts.tenantId);
     if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
 
     const { data, error } = await query;
@@ -626,7 +627,7 @@ async function portalServiceRequestTenant(
 
 export async function listPrealertaServiceRequests(
   supabase: SupabaseClient,
-  opts: { prealertaId?: string; markbox?: string } = {},
+  opts: { tenantId?: string; prealertaId?: string; markbox?: string } = {},
 ): Promise<PrealertaServiceRequest[]> {
   try {
     let portalTenant: string | null = null;
@@ -634,6 +635,7 @@ export async function listPrealertaServiceRequests(
       if (typeof opts.markbox !== "string" || !opts.markbox.trim()) return [];
       portalTenant = await portalServiceRequestTenant(supabase, opts.markbox);
       if (!portalTenant) return [];
+      if (opts.tenantId && opts.tenantId !== portalTenant) return [];
     }
     let query = supabase
       .from("prealerta_service_requests")

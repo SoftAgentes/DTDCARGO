@@ -48,6 +48,7 @@ describe("listSignedPrealertaDocuments", () => {
 
     await expect(
       listSignedPrealertaDocuments(db, {
+        tenantId: "tenant-a",
         prealertaId: "pre-1",
         markbox: "DTD-1001",
       }),
@@ -60,6 +61,7 @@ describe("listSignedPrealertaDocuments", () => {
       },
     ]);
     expect(mocks.listPrealertaDocuments).toHaveBeenCalledWith(db, {
+      tenantId: "tenant-a",
       prealertaId: "pre-1",
       markbox: "DTD-1001",
     });
@@ -75,6 +77,7 @@ describe("listSignedPrealertaDocuments", () => {
 
     await expect(
       listSignedPrealertaDocuments(db, {
+        tenantId: "tenant-a",
         prealertaId: "pre-1",
         markbox: "DTD-1001",
       }),
@@ -90,6 +93,7 @@ describe("listSignedPrealertaDocuments", () => {
 
     await expect(
       listSignedPrealertaDocuments(db, {
+        tenantId: "tenant-a",
         prealertaId: "pre-1",
         markbox: "DTD-1001",
       }),
@@ -105,7 +109,11 @@ describe("listSignedPrealertaDocuments", () => {
 
   it("rechaza argumentos vacíos antes de consultar", async () => {
     await expect(
-      listSignedPrealertaDocuments(db, { prealertaId: "", markbox: "DTD-1001" }),
+      listSignedPrealertaDocuments(db, {
+        tenantId: "tenant-a",
+        prealertaId: "",
+        markbox: "DTD-1001",
+      }),
     ).resolves.toEqual([]);
     expect(mocks.listPrealertaDocuments).not.toHaveBeenCalled();
   });

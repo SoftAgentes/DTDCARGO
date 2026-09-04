@@ -122,6 +122,14 @@ describe("SDD0381 · solicitudes del Portal, sin heredar el ámbito Studio", () 
     expect((await listPrealertaServiceRequests(db, { markbox: MARK })).map(r => r.id))
       .toEqual(["own", "own-second"]);
   });
+  it("rechaza un tenant explícito distinto al derivado de la sesión", async () => {
+    const { db, touched } = fixture();
+    expect(await listPrealertaServiceRequests(db, {
+      tenantId: OTHER,
+      markbox: MARK,
+    })).toEqual([]);
+    expect(touched).not.toContain("prealerta_service_requests");
+  });
   it("Studio sin propiedad markbox conserva su consulta y no resuelve identidad Portal", async () => {
     const { db, touched } = fixture({ user: null, membership: null });
     expect((await listPrealertaServiceRequests(db)).map(r => r.id))

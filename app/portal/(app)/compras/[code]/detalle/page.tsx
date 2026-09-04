@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { getPrealertaByCode } from "@/lib/studio/prealertas/queries";
 import { PurchaseStepDetalle } from "../../nueva/PurchaseStepDetalle";
 
@@ -48,10 +48,12 @@ export default async function CompletarDetalleCompraPage({ params }: Props) {
   const code = decodeURIComponent(raw);
 
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
 
   const prealerta = await getPrealertaByCode(supabase, code, {
+    tenantId,
     markbox: client.markbox,
   });
   if (!prealerta) notFound();

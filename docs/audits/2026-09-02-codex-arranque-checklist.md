@@ -62,6 +62,7 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Referidos y reclamos elevados, 0396 | Cerrado localmente: RED 4/4; GREEN 4/4 y Portal 899/899; sin correos, adjuntos ni datos reales |
 | Facturas Portal acciones, 0397 | Cerrado localmente: RED 5/5; focal/histórico 61/61 y Portal 903/903; sin efectos reales |
 | Contextos privados Portal, 0398 | Cerrado localmente: RED 12/12; focal/histórico 51/51 y Portal+Prealertas 1.068/1.068; sin lecturas reales |
+| Consumidores de compras Portal, 0399 | Cerrado localmente: RED 12/12; focal/histórico 47/47 y Portal 928/928; tenant + Shipping Mark preservados; sin lecturas reales |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.

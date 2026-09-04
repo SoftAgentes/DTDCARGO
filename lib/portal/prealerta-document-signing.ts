@@ -32,13 +32,18 @@ function withoutUrl(doc: PrealertaDocument): SignedPrealertaDocument {
  */
 export async function listSignedPrealertaDocuments(
   db: SupabaseClient,
-  opts: { prealertaId: string; markbox: string },
+  opts: { tenantId: string; prealertaId: string; markbox: string },
 ): Promise<SignedPrealertaDocument[]> {
+  const tenantId = String(opts.tenantId ?? "").trim();
   const prealertaId = String(opts.prealertaId ?? "").trim();
   const markbox = String(opts.markbox ?? "").trim();
-  if (!prealertaId || !markbox) return [];
+  if (!tenantId || !prealertaId || !markbox) return [];
 
-  const docs = await listPrealertaDocuments(db, { prealertaId, markbox });
+  const docs = await listPrealertaDocuments(db, {
+    tenantId,
+    prealertaId,
+    markbox,
+  });
   if (docs.length === 0) return [];
 
   try {

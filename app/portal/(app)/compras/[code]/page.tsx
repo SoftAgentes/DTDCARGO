@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   getPrealertaByCode,
   listPredeclaredBoxes,
@@ -64,18 +64,20 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
   const code = decodeURIComponent(rawCode);
 
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
 
   const prealerta = await getPrealertaByCode(supabase, code, {
+    tenantId,
     markbox: client.markbox,
   });
   if (!prealerta) notFound();
 
   const [cajas, proveedores, servicios, operational] = await Promise.all([
     listPredeclaredBoxes(supabase, prealerta.id),
-    listSuppliers(supabase, { markbox: client.markbox }),
-    listPrealertaServiceRequests(supabase, { markbox: client.markbox }),
+    listSuppliers(supabase, { tenantId, markbox: client.markbox }),
+    listPrealertaServiceRequests(supabase, { tenantId, markbox: client.markbox }),
     getPortalPurchaseOperationalDetail(supabase, code),
   ]);
   const { recepcion, packing } = operational;
