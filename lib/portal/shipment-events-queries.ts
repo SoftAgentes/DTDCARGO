@@ -9,6 +9,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ShipmentStatus } from "@/lib/shared/shipment-public";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 
 export type PortalShipmentEvent = {
   id: string;
@@ -39,13 +40,6 @@ function mapEventRow(row: EventRow): PortalShipmentEvent {
   };
 }
 
-/** Markbox del cliente logueado (RPC), o null si el principal no es del portal. */
-async function portalMarkbox(supabase: SupabaseClient): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_portal_client_markbox");
-  if (error || !data) return null;
-  return String(data);
-}
-
 /**
  * Eventos de UN envío del cliente (más antiguos primero, para el stepper). Filtra
  * por shipment_id + markbox (embed `shipments!inner`). Sin markbox → [].
@@ -54,14 +48,16 @@ export async function listMyShipmentEvents(
   supabase: SupabaseClient,
   shipmentId: string,
 ): Promise<PortalShipmentEvent[]> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return [];
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return [];
 
   const { data, error } = await supabase
     .from("shipment_events")
-    .select("id, status, occurred_at, note, shipments!inner(client_markbox)")
+    .select("id, status, occurred_at, note, shipments!inner(tenant_id, client_markbox)")
     .eq("shipment_id", shipmentId)
-    .eq("shipments.client_markbox", markbox)
+    .eq("tenant_id", principal.tenantId)
+    .eq("shipments.tenant_id", principal.tenantId)
+    .eq("shipments.client_markbox", principal.client.markbox)
     .is("deleted_at", null)
     .order("occurred_at", { ascending: true });
 
@@ -95,13 +91,15 @@ export async function listMyRecentActivity(
   supabase: SupabaseClient,
   limit = 8,
 ): Promise<PortalActivityItem[]> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return [];
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return [];
 
   const { data, error } = await supabase
     .from("shipment_events")
-    .select("id, status, occurred_at, note, shipments!inner(code, client_markbox)")
-    .eq("shipments.client_markbox", markbox)
+    .select("id, status, occurred_at, note, shipments!inner(code, tenant_id, client_markbox)")
+    .eq("tenant_id", principal.tenantId)
+    .eq("shipments.tenant_id", principal.tenantId)
+    .eq("shipments.client_markbox", principal.client.markbox)
     .is("deleted_at", null)
     .order("occurred_at", { ascending: false })
     .limit(limit);
