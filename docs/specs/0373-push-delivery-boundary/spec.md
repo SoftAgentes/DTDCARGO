@@ -1,7 +1,7 @@
 ---
 sdd: "0373"
 title: Validación de destinos y suscripciones Web Push
-status: done
+status: in-progress
 author: Codex
 created: 2026-09-03
 updated: 2026-09-04
@@ -74,6 +74,7 @@ incorporar los demás cambios de esa rama.
 - `docs/specs/0373-push-delivery-boundary/spec.md`
 - `docs/specs/README.md` (generado)
 - `docs/audits/2026-09-04-push-local.md`
+- `.agents/handoffs/2026-09-04-push-endpoint-hardening-close.md`
 - `lib/studio/notify/push-subscription.ts`
 - `lib/studio/notify/send-user-push.ts`
 - `lib/studio/notify/send-operario-push.ts`
@@ -107,8 +108,10 @@ incorporar los demás cambios de esa rama.
 - [x] La frontera compartida bloquea destinos y claves inválidos en entrada y salida.
 - [x] Los orígenes documentados y el comportamiento compatible permanecen cubiertos.
 - [x] TTL existente y timeout de socket de 10 s están verificados por contrato.
-- [x] Gates locales deterministas y recibo técnico finalizados; los E2E que
-  requieren entorno quedan identificados, no ocultos.
+- [ ] `node scripts/verify.mjs` termina sin fallos ni pasos omitidos. Los gates
+  locales deterministas están verdes, pero el cierre canónico permanece
+  bloqueado por el ledger repo↔Producción y por la ausencia de un Supabase E2E
+  efímero autorizado; ninguno se sustituye con credenciales de Producción.
 
 ## Privacidad
 

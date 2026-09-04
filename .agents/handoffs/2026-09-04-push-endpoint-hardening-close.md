@@ -2,8 +2,9 @@
 
 Fecha: 2026-09-04
 
-Estado: **CERRADO EN RAMA**. La implementación está publicada y propuesta a
-`main`; esta ventana worker no fusiona el PR ni despliega producción.
+Estado: **BLOQUEADO SIN TOCAR TRABAJO AJENO**. La implementación está publicada
+en su rama, pero el gate canónico no permite presentarla todavía como candidata
+verde a `main`; esta ventana worker no fusiona el PR ni despliega producción.
 
 ## Tarea y aislamiento
 
@@ -80,3 +81,35 @@ La limpieza física queda bloqueada mientras el commit no esté contenido en
 remota. El siguiente responsable es la ventana integradora que revise y fusione
 el PR #22; después podrá verificar ancestry y limpiar este worktree de forma
 segura.
+
+## Reapertura coordinada · 2026-09-04
+
+La tarea coordinadora `01a06e5e-5b71-7ed2-8f9d-13cc4006d0ec` revalidó la rama
+desde el mismo worktree aislado, sin usar datos de negocio ni ejecutar
+mutaciones alojadas.
+
+- `node scripts/verify.mjs` con `VERIFY_SKIP_E2E=1`: exit 0, **13 de 15** pasos
+  medidos; 501 archivos/6181 pruebas Vitest, 139 contratos SQL, reconstrucción
+  de 395 migraciones y build de 158 páginas, todos verdes.
+- `migrations-applied`, ejecutado aparte en modo lectura contra el ledger real:
+  rojo porque Producción contiene `0399_revoke_truncate_anon_authenticated`,
+  `0400_revoke_public_verify_rpc_execute` y
+  `0445_portal_profile_edit_limit`, cuyos archivos todavía no están en
+  `origin/main`. Ninguno pertenece a SDD-0373 y esta rama no los absorbe.
+- E2E: no medido. No existen las siete variables del entorno efímero exigido
+  por `docs/runbooks/e2e-supabase-efimero.md`; las credenciales disponibles
+  corresponden a Producción y no se reutilizan para pruebas.
+- GitHub al revalidar: PR abierta, `MERGEABLE/CLEAN`; Vercel, Agent Review y
+  Preview Comments verdes en `240b144b`.
+
+Antes de considerar #22 candidata individual a `main`, el integrador debe:
+
+1. recuperar en `main`, mediante un carril separado, los archivos exactos de
+   las migraciones ya aplicadas 0399, 0400 y 0445;
+2. ejecutar el E2E sobre un proyecto Supabase efímero autorizado, sembrarlo,
+   verificarlo y destruirlo según el runbook;
+3. reejecutar `node scripts/verify.mjs` sin omisiones y cambiar la SDD a `done`
+   sólo con ese recibo verde.
+
+El commit `c1e44555` de SDD-0373 en la PR #21 es una implementación duplicada:
+si #22 se integra, ese slice no debe volver a entrar desde #21.
