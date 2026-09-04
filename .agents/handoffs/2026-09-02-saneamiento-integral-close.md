@@ -59,6 +59,11 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   Ahora ambas rutas derivan user/tenant del principal canónico antes de elevar,
   conservan rebind y baja propia. RED 7/9; GREEN 186/186, Portal 867/867,
   TypeScript y lint correctos. Sin suscripción, envío real, SQL o Cloud.
+- SDD0387 cerrado localmente: Academia resolvía Shipping Mark y tenant por vías
+  separadas y omitía tenant en los filtros explícitos. Lecturas y progreso ahora
+  derivan el principal canónico antes del dominio y fijan tenant/cliente/curso/
+  lección según corresponda. RED 7/7; GREEN 7/7, Portal 874/874, TypeScript y
+  lint correctos. 0418 continúa preparada y sin aplicar; no hubo datos reales.
 - Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;

@@ -1,7 +1,7 @@
 /**
  * Queries del Portal · Academia (SDD-0093). El cliente del portal ve SOLO lo
- * suyo: scope por `client_markbox` (`get_portal_client_markbox()` + filtro
- * explícito), mismo aislamiento que `portal-queries.ts`.
+ * suyo: principal canónico + filtros explícitos por `tenant_id` y Shipping
+ * Mark, mismo aislamiento que `portal-queries.ts`.
  *
  * Progreso DERIVADO (Slice D.2): el % de un curso = lecciones publicadas
  * completadas / total publicadas, leído de `academy_lesson_progress`. El portal
@@ -9,6 +9,7 @@
  * sin BOLA). Requiere migraciones 0145 (lectura del catálogo) y 0149 (progreso).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getPortalClientPrincipal } from "./portal-queries";
 
 export interface PortalAcademyCourse {
   courseId: string;
@@ -78,13 +79,6 @@ export interface PortalLessonView {
   nextId: string | null;
 }
 
-/** MARKBOX del cliente del portal logueado, o null si el principal no es cliente. */
-async function portalMarkbox(supabase: SupabaseClient): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_portal_client_markbox");
-  if (error || !data) return null;
-  return data as string;
-}
-
 function pctOf(done: number, total: number): number {
   return total > 0 ? Math.round((done / total) * 100) : 0;
 }
@@ -132,18 +126,21 @@ type LessonRow = {
  */
 async function fetchCourseTree(
   supabase: SupabaseClient,
+  tenantId: string,
   courseId: string,
 ): Promise<{ modules: { id: string; title: string; lessons: LessonRow[] }[]; flat: LessonRow[] }> {
   const [modRes, lesRes] = await Promise.all([
     supabase
       .from("academy_modules")
       .select("id, title, sort")
+      .eq("tenant_id", tenantId)
       .eq("course_id", courseId)
       .is("deleted_at", null)
       .order("sort", { ascending: true }),
     supabase
       .from("academy_lessons")
       .select("id, module_id, title, sort, kind, duration_min, free_preview, widget, video_url")
+      .eq("tenant_id", tenantId)
       .eq("course_id", courseId)
       .eq("status", "publicado")
       .is("deleted_at", null)
@@ -165,12 +162,14 @@ async function fetchCourseTree(
 /** Set de lesson_id completados por el cliente en un curso. */
 async function doneLessonIds(
   supabase: SupabaseClient,
+  tenantId: string,
   markbox: string,
   courseId: string,
 ): Promise<Set<string>> {
   const { data } = await supabase
     .from("academy_lesson_progress")
     .select("lesson_id")
+    .eq("tenant_id", tenantId)
     .eq("client_markbox", markbox)
     .eq("course_id", courseId);
   return new Set(((data ?? []) as { lesson_id: string }[]).map((r) => r.lesson_id));
@@ -198,19 +197,23 @@ type DiplomaRow = {
  * sesión de portal (no lanza).
  */
 export async function getPortalAcademy(supabase: SupabaseClient): Promise<PortalAcademy> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { isMember: false, courses: [], diplomas: [] };
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return { isMember: false, courses: [], diplomas: [] };
+  const { tenantId } = principal;
+  const markbox = principal.client.markbox;
 
   const [enrollRes, dipRes] = await Promise.all([
     supabase
       .from("academy_enrollments")
       .select("id, course_id, academy_courses(title, tier)")
+      .eq("tenant_id", tenantId)
       .eq("client_markbox", markbox)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
     supabase
       .from("academy_diplomas")
       .select("id, folio, course_title, issued_at")
+      .eq("tenant_id", tenantId)
       .eq("client_markbox", markbox)
       .is("deleted_at", null)
       .order("issued_at", { ascending: false }),
@@ -227,12 +230,14 @@ export async function getPortalAcademy(supabase: SupabaseClient): Promise<Portal
       supabase
         .from("academy_lessons")
         .select("id, course_id")
+        .eq("tenant_id", tenantId)
         .in("course_id", courseIds)
         .eq("status", "publicado")
         .is("deleted_at", null),
       supabase
         .from("academy_lesson_progress")
         .select("lesson_id, course_id")
+        .eq("tenant_id", tenantId)
         .eq("client_markbox", markbox)
         .in("course_id", courseIds),
     ]);
@@ -288,21 +293,24 @@ export async function getPortalCourseDetail(
   supabase: SupabaseClient,
   courseId: string,
 ): Promise<PortalCourseDetail | null> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { tenantId } = principal;
+  const markbox = principal.client.markbox;
 
   const { data: courseData } = await supabase
     .from("academy_courses")
     .select("id, title, tier, summary, level, status")
+    .eq("tenant_id", tenantId)
     .eq("id", courseId)
     .is("deleted_at", null)
     .maybeSingle<CourseRow>();
   if (!courseData) return null;
 
   const [{ modules, flat }, done, enrolled] = await Promise.all([
-    fetchCourseTree(supabase, courseId),
-    doneLessonIds(supabase, markbox, courseId),
-    isEnrolled(supabase, markbox, courseId),
+    fetchCourseTree(supabase, tenantId, courseId),
+    doneLessonIds(supabase, tenantId, markbox, courseId),
+    isEnrolled(supabase, tenantId, markbox, courseId),
   ]);
 
   const modulesOut: PortalCourseModule[] = modules.map((m) => ({
@@ -343,12 +351,14 @@ export async function getPortalCourseDetail(
 /** ¿El cliente está inscrito en el curso? (RLS portal SELECT sobre enrollments.) */
 async function isEnrolled(
   supabase: SupabaseClient,
+  tenantId: string,
   markbox: string,
   courseId: string,
 ): Promise<boolean> {
   const { data } = await supabase
     .from("academy_enrollments")
     .select("id")
+    .eq("tenant_id", tenantId)
     .eq("course_id", courseId)
     .eq("client_markbox", markbox)
     .is("deleted_at", null)
@@ -367,20 +377,23 @@ export async function getPortalLesson(
   courseId: string,
   lessonId: string,
 ): Promise<PortalLessonView | null> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { tenantId } = principal;
+  const markbox = principal.client.markbox;
 
   const { data: courseData } = await supabase
     .from("academy_courses")
     .select("id, title")
+    .eq("tenant_id", tenantId)
     .eq("id", courseId)
     .is("deleted_at", null)
     .maybeSingle<{ id: string; title: string }>();
   if (!courseData) return null;
 
   const [{ flat }, done] = await Promise.all([
-    fetchCourseTree(supabase, courseId),
-    doneLessonIds(supabase, markbox, courseId),
+    fetchCourseTree(supabase, tenantId, courseId),
+    doneLessonIds(supabase, tenantId, markbox, courseId),
   ]);
 
   const idx = flat.findIndex((l) => l.id === lessonId);
