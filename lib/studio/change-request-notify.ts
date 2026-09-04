@@ -11,6 +11,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 import { sendTelegramToUser } from "@/lib/studio/notify/send-user-telegram";
 import { sendPushToUserDevices } from "@/lib/studio/notify/send-user-push";
@@ -27,6 +31,9 @@ export async function notifyChangeRequestToAdmin(
     advisorId: string | null;
     diff: ChangeRequestDiffRow[];
   },
+  logger: StructuredLogger = createComponentLogger(
+    "internal.change-request-notify",
+  ),
 ): Promise<void> {
   try {
     const clientUrl = `${SITE_URL}/studio/clientes/${args.markbox}`;
@@ -51,7 +58,12 @@ export async function notifyChangeRequestToAdmin(
         .eq("user_id", args.advisorId)
         .maybeSingle<{ telegram_chat_id: string | null }>();
       if (prof?.telegram_chat_id) {
-        await sendTelegramToUser(supabaseAdmin, args.advisorId, text);
+        await sendTelegramToUser(
+          supabaseAdmin,
+          args.advisorId,
+          text,
+          logger,
+        );
         return;
       }
     }
@@ -59,9 +71,14 @@ export async function notifyChangeRequestToAdmin(
     // UNA vez por CHAT, no una por admin (SDD-0271).
     await dispatchTelegramAlert(supabaseAdmin, args.tenantId, "equipo", text, {
       logTag: "change-request-notify",
+      logger,
     });
   } catch (err) {
-    console.error("[change-request-notify] falló:", err);
+    logger.error("change_request_notification.failed", {
+      error: err,
+      operation: "notify_staff",
+      stage: "dispatch",
+    });
   }
 }
 
@@ -76,6 +93,9 @@ export async function notifyChangeRequestToAdmin(
 export async function notifyChangeRequestResolvedToClient(
   supabaseAdmin: SupabaseClient,
   args: { clientId: string; approved: boolean; note?: string | null },
+  logger: StructuredLogger = createComponentLogger(
+    "internal.change-request-resolved",
+  ),
 ): Promise<void> {
   try {
     const { data: users } = await supabaseAdmin
@@ -112,9 +132,13 @@ export async function notifyChangeRequestResolvedToClient(
         };
 
     for (const id of ids) {
-      await sendPushToUserDevices(supabaseAdmin, id, payload);
+      await sendPushToUserDevices(supabaseAdmin, id, payload, logger);
     }
   } catch (err) {
-    console.error("[change-request-notify] notifyResolved falló:", err);
+    logger.error("change_request_notification.failed", {
+      error: err,
+      operation: "notify_client",
+      stage: "dispatch",
+    });
   }
 }

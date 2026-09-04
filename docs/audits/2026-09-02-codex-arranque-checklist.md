@@ -1022,9 +1022,11 @@ están incluidos en aquel push.
   capas de acciones de Perfil. SDD-0427 retiró quince logs del módulo de acciones
   de Proveedores/Prealertas y propagó su correlador por tres helpers. SDD-0428
   retiró los tres residuos finales de Academia/error y cerró el inventario Portal.
-  Acumulado: 17/17 handlers cron, 4/4 Edge Functions, veintidós internals y diez
+  SDD-0429 retiró cuatro logs de los productores internos de Bitácora y solicitudes
+  de cambio, y propagó su correlador hasta in-app, push, Telegram y drains.
+  Acumulado: 17/17 handlers cron, 4/4 Edge Functions, veinticuatro internals y diez
   superficies Portal adicionales adoptadas, cero `console.*` en esos alcances y
-  7.426 pruebas completas. El inventario general conserva módulos legacy fuera
+  7.431 pruebas completas. El inventario general conserva módulos legacy fuera
   del Portal; esta casilla no se marca ni aumenta el 59/106.
   [Acta base](2026-09-04-structured-request-logging.md) y
   [workers drain](2026-09-04-structured-drain-crons.md) y
@@ -1040,7 +1042,8 @@ están incluidos en aquel push.
   más [Web Push Portal](2026-09-04-structured-portal-push.md) y
   [acciones de Perfil](2026-09-04-structured-portal-profile-actions.md), más
   [Proveedores/Prealertas](2026-09-04-structured-portal-suppliers-actions.md) y
-  [cierre Portal](2026-09-04-structured-portal-completion.md).
+  [cierre Portal](2026-09-04-structured-portal-completion.md), más
+  [productores internos](2026-09-04-structured-internal-notification-producers.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.

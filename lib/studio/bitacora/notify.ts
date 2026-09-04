@@ -12,6 +12,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { writeInAppNotification } from "@/lib/studio/notify/write-inapp";
 import {
   drainOperarioPushOutbox,
@@ -79,6 +83,7 @@ export function computeBitacoraChannelDecision(
 async function readNotifPrefs(
   admin: SupabaseClient,
   userId: string,
+  logger: StructuredLogger,
 ): Promise<NotifPrefsLite | null> {
   try {
     const { data } = await admin
@@ -88,7 +93,11 @@ async function readNotifPrefs(
       .maybeSingle<NotifPrefsLite>();
     return data ?? null;
   } catch (err) {
-    console.error("[bitacora-notify] readNotifPrefs threw:", err);
+    logger.error("bitacora_notification.failed", {
+      error: err,
+      operation: "preferences",
+      stage: "read",
+    });
     return null;
   }
 }
@@ -116,6 +125,9 @@ export interface NotifyTaskAssignedArgs {
 export async function notifyBitacoraTaskAssigned(
   admin: SupabaseClient,
   args: NotifyTaskAssignedArgs,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.bitacora-notify",
+  ),
 ): Promise<void> {
   try {
     const targets = Array.from(new Set(args.assigneeUserIds)).filter(
@@ -130,27 +142,37 @@ export async function notifyBitacoraTaskAssigned(
     let enqueued = false;
 
     for (const userId of targets) {
-      const prefs = await readNotifPrefs(admin, userId);
+      const prefs = await readNotifPrefs(admin, userId, logger);
       const decision = computeBitacoraChannelDecision(prefs, "bitacora_task");
 
       // In-app SIEMPRE (excluye al actor por si acaso — doble candado).
       if (decision.inapp) {
-        await writeInAppNotification(admin, {
-          userId,
-          actorId: args.actorId,
-          bugId: null,
-          type: "bitacora_task",
-          payload: { label, excerpt, url, tag },
-        });
+        await writeInAppNotification(
+          admin,
+          {
+            userId,
+            actorId: args.actorId,
+            bugId: null,
+            type: "bitacora_task",
+            payload: { label, excerpt, url, tag },
+          },
+          logger,
+        );
       }
 
       if (decision.push) {
-        const id = await enqueueUserPush(admin, args.tenantId, userId, {
-          title: "Nueva tarea en Bitácora",
-          body: args.titulo,
-          url,
-          tag,
-        });
+        const id = await enqueueUserPush(
+          admin,
+          args.tenantId,
+          userId,
+          {
+            title: "Nueva tarea en Bitácora",
+            body: args.titulo,
+            url,
+            tag,
+          },
+          logger,
+        );
         if (id) enqueued = true;
       }
 
@@ -159,14 +181,19 @@ export async function notifyBitacoraTaskAssigned(
           admin,
           userId,
           `${label}\n\n${excerpt}\n\n${SITE_URL}${url}`,
+          logger,
         );
       }
     }
 
     // Drain inline para push casi-instantáneo (el cron del minuto es backstop).
-    if (enqueued) await drainOperarioPushOutbox(admin);
+    if (enqueued) await drainOperarioPushOutbox(admin, logger);
   } catch (err) {
-    console.error("[bitacora-notify] notifyBitacoraTaskAssigned threw:", err);
+    logger.error("bitacora_notification.failed", {
+      error: err,
+      operation: "task_assigned",
+      stage: "dispatch",
+    });
   }
 }
 
@@ -310,6 +337,9 @@ export async function runBitacoraDigestForTenant(
   admin: SupabaseClient,
   tenantId: string,
   hoyISO: string,
+  logger: StructuredLogger = createComponentLogger(
+    "internal.bitacora-digest",
+  ),
 ): Promise<DigestTenantResult> {
   const tag = digestTag(hoyISO);
   try {
@@ -340,23 +370,33 @@ export async function runBitacoraDigestForTenant(
       const { label, body } = buildDigestMessage(tasks, hoyISO);
 
       // In-app SIEMPRE (bugId null; no hay actor — lo dispara el sistema).
-      await writeInAppNotification(admin, {
-        userId,
-        bugId: null,
-        type: "bitacora_digest",
-        payload: { label, excerpt: body, url: BITACORA_MOBILE_HOY_PATH, tag },
-      });
+      await writeInAppNotification(
+        admin,
+        {
+          userId,
+          bugId: null,
+          type: "bitacora_digest",
+          payload: { label, excerpt: body, url: BITACORA_MOBILE_HOY_PATH, tag },
+        },
+        logger,
+      );
 
-      const prefs = await readNotifPrefs(admin, userId);
+      const prefs = await readNotifPrefs(admin, userId, logger);
       const decision = computeBitacoraChannelDecision(prefs, "bitacora_digest");
 
       if (decision.push) {
-        const id = await enqueueUserPush(admin, tenantId, userId, {
-          title: label,
-          body,
-          url: BITACORA_MOBILE_HOY_PATH,
-          tag,
-        });
+        const id = await enqueueUserPush(
+          admin,
+          tenantId,
+          userId,
+          {
+            title: label,
+            body,
+            url: BITACORA_MOBILE_HOY_PATH,
+            tag,
+          },
+          logger,
+        );
         if (id) {
           enqueued = true;
           pushed += 1;
@@ -368,11 +408,12 @@ export async function runBitacoraDigestForTenant(
           admin,
           userId,
           `${label}\n\n${body}\n\n${SITE_URL}${BITACORA_MOBILE_HOY_PATH}`,
+          logger,
         );
       }
     }
 
-    if (enqueued) await drainOperarioPushOutbox(admin);
+    if (enqueued) await drainOperarioPushOutbox(admin, logger);
 
     return { tenant_id: tenantId, persons: byPerson.size, pushed, skipped };
   } catch (err) {
