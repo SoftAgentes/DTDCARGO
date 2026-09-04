@@ -48,10 +48,11 @@ No hay prueba autenticada contra producción ni cierre de todas las políticas.
 | Perfil y solicitudes de cambio, 0382 | Cerrado localmente: 0430, 70 focales, 172 SQL, rebuild 427 y suite 7.181/7.181 |
 | Frontera service_role Portal, 0383 | Cerrado localmente: 105 componentes cubiertos, guard/fachada 10/10 y suite 7.187/7.187 |
 | Acciones de Perfil Portal, 0384 | Cerrado localmente: RED causal 9/12; GREEN 13/13, Perfil 53/53 y suite 7.200/7.200 |
+| Mensajes Portal, 0385 | Cerrado localmente: RED causal; 22 aserciones, 173 SQL y rebuild 428; 0431 no aplicada |
 | RBAC/Portal restantes, specs, logs, CSP y web | Cola posterior; avances por alcance comprobado |
 
 La cifra original continúa 56/106 (52,8 %), no aumenta por subpasos nuevos.
-Las migraciones preparadas sin aplicar son ahora 30 (0401–0430), derivadas
+Las migraciones preparadas sin aplicar son ahora 31 (0401–0431), derivadas
 del último ledger 0400; no se hizo nueva consulta Cloud en esta continuación.
 Todos los recibos y cambios posteriores a 70812835 permanecen sólo locales.
 Las secciones inferiores conservan sus fechas/alcance históricos.
@@ -804,6 +805,10 @@ están incluidos en aquel push.
   primer slice de acciones: Perfil ya deriva principal coherente antes de
   elevar y fija tenant/cliente/origen en fotos y solicitudes. La reproducción
   causal, 53 pruebas de Perfil y la suite 7.200/7.200 pasan.
+  SDD-0385 cerró después el RPC de mensajes: una fixture reprodujo la escritura
+  tenant A → cliente B y 0431 ahora resuelve principal activo, cliente vivo y
+  tenant coherente antes de cualquier DML. Pasan 22 aserciones focales, los 173
+  contratos SQL y rebuild de 428 archivos. La migración no fue aplicada.
 - [ ] Definir con operación la retención de colas y borradores browser que
   contienen fotos, firma, documento, GPS, Shipping Mark o tokens. TTL/purga de
   logout sin esa decisión puede perder entregas pendientes.

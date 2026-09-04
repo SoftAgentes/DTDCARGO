@@ -48,7 +48,13 @@ objetivo guardado ni se automatiza su reanudación. Trabajo en el mismo carril.
   tipos, lint focal, docs, numeración, gobernanza y componentes aprobados. Sin SQL.
   Revisión de datos focal: minimización local correcta; retención/Storage real,
   base y transferencia siguen no verificables sin autorización alojada.
-- Conteo original 56/106, 52,8 %. Ahora hay 30 migraciones preparadas 0401–0430,
+- SDD0385/0431 cerrado localmente: el RPC de mensajes aceptaba un vínculo activo
+  tenant A → cliente B y escribía el hilo/mensaje de B. RED causal confirmado;
+  ahora exige principal activo, cliente vivo y tenant coherente antes del DML.
+  Pasaron 22 aserciones focales, 173 contratos SQL y rebuild de 428 archivos
+  (410 desde cero + 18 sólo-ledger), con aislamiento de 219 tablas. 0431 no fue
+  aplicada ni consultó datos reales.
+- Conteo original 56/106, 52,8 %. Ahora hay 31 migraciones preparadas 0401–0431,
   según el último ledger verificado 0400 (sin consulta Cloud nueva).
 - El inventario residual de Portal requiere una reproducción nueva por dominio;
   el barrido SQL paralelo de esta ronda no entregó evidencia utilizable y no se
