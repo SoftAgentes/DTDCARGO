@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 395 specs)
+### Índice de specs (generado · 396 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -433,6 +433,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0401 | Realtime de conversaciones Portal por principal y tenant | done | interno |
 | 0402 | Catálogo de servicios Portal por principal y tenant | done | interno |
 | 0403 | Documentos de factura con autorización por entidad | done | interno |
+| 0404 | Documentos de Tesorería con autorización por entidad | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
