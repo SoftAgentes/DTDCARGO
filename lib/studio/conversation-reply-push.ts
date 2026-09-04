@@ -13,6 +13,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { sendPushToUserDevices } from "@/lib/studio/notify/send-user-push";
 
 function preview(body: string, max = 120): string {
@@ -27,6 +31,9 @@ function preview(body: string, max = 120): string {
 export async function notifyClientReplyPush(
   admin: SupabaseClient,
   args: { clientId: string; body: string },
+  logger: StructuredLogger = createComponentLogger(
+    "internal.conversation-reply-push",
+  ),
 ): Promise<void> {
   try {
     const { data: users } = await admin
@@ -53,9 +60,13 @@ export async function notifyClientReplyPush(
     };
 
     for (const id of ids) {
-      await sendPushToUserDevices(admin, id, payload);
+      await sendPushToUserDevices(admin, id, payload, logger);
     }
   } catch (err) {
-    console.error("[conversation-reply-push] notifyClientReplyPush falló:", err);
+    logger.error("conversation_notification.failed", {
+      error: err,
+      operation: "reply_push",
+      stage: "dispatch",
+    });
   }
 }

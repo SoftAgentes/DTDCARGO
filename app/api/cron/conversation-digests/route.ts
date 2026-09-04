@@ -14,6 +14,7 @@
 import type { NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { createCronRequestContext } from "@/lib/observability/cron-request-context";
+import type { StructuredLogger } from "@/lib/observability/structured-logger";
 import {
   runConversationDigestsForTenant,
   type DigestRunResult,
@@ -54,7 +55,11 @@ function resolveMonth(monthParam: string | null): {
   };
 }
 
-async function run(monthParam: string | null, targetTenantId?: string) {
+async function run(
+  monthParam: string | null,
+  logger: StructuredLogger,
+  targetTenantId?: string,
+) {
   const admin = createAdminClient();
   const { monthStart, monthEndExcl, periodLabel } = resolveMonth(monthParam);
 
@@ -79,6 +84,7 @@ async function run(monthParam: string | null, targetTenantId?: string) {
         monthStart,
         monthEndExcl,
         periodLabel,
+        logger,
       ),
     );
   }
@@ -92,7 +98,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const month = url.searchParams.get("month");
   const tenantId = url.searchParams.get("tenant_id") ?? undefined;
-  const result = await run(month, tenantId);
+  const result = await run(month, cron.logger, tenantId);
   if (!result.ok) {
     return cron.fail(
       "No se pudo leer los tenants para los resúmenes.",

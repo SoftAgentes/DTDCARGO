@@ -10,6 +10,10 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
+import {
   summarizeMonthThread,
   summarizeMonthThreadForClient,
   type DigestMessage,
@@ -28,6 +32,9 @@ export async function runConversationDigestsForTenant(
   monthStart: string, // YYYY-MM-DD · primer día del mes resumido
   monthEndExcl: string, // YYYY-MM-DD · primer día del mes siguiente (exclusivo)
   periodLabel: string, // ej. "julio de 2026"
+  logger: StructuredLogger = createComponentLogger(
+    "internal.conversation-monthly-digest",
+  ),
 ): Promise<DigestRunResult> {
   const res: DigestRunResult = { tenantId, processed: 0, generated: 0, skipped: 0 };
 
@@ -95,26 +102,36 @@ export async function runConversationDigestsForTenant(
         const inN = list.filter((m) => m.direction === "in").length;
         const outN = list.length - inN;
 
-        const r = await summarizeMonthThread(list, { clientName, periodLabel });
+        const r = await summarizeMonthThread(
+          list,
+          { clientName, periodLabel },
+          logger,
+        );
         if ("error" in r) {
           // Antes se tragaba en silencio → digest en 0 sin rastro. Ahora queda en logs.
-          console.error(
-            `[monthly-digest] IA sin resumen (conv=${convId}, ${periodLabel}):`,
-            r.error,
-          );
+          logger.error("conversation_digest.generation_failed", {
+            error: r.error,
+            operation: "internal_summary",
+            stage: "generate",
+          });
           res.skipped += 1;
           continue;
         }
 
         // Resumen client-facing (F3 · portal). Best-effort: si falla, guardamos el
         // interno igual y client_summary queda null (el portal simplemente no lo muestra).
-        const rc = await summarizeMonthThreadForClient(list, { clientName, periodLabel });
+        const rc = await summarizeMonthThreadForClient(
+          list,
+          { clientName, periodLabel },
+          logger,
+        );
         let clientSummary: string | null = null;
         if ("error" in rc) {
-          console.error(
-            `[monthly-digest] IA cliente sin resumen (conv=${convId}, ${periodLabel}):`,
-            rc.error,
-          );
+          logger.error("conversation_digest.generation_failed", {
+            error: rc.error,
+            operation: "client_summary",
+            stage: "generate",
+          });
         } else {
           clientSummary = rc.summary;
         }
@@ -138,18 +155,30 @@ export async function runConversationDigestsForTenant(
             { onConflict: "conversation_id,period" },
           );
         if (upErr) {
-          console.error("[monthly-digest] upsert falló:", upErr.message);
+          logger.error("conversation_digest.write_failed", {
+            error: upErr,
+            operation: "monthly_digest",
+            stage: "upsert",
+          });
           res.skipped += 1;
           continue;
         }
         res.generated += 1;
       } catch (err) {
-        console.error("[monthly-digest] conversación falló:", err);
+        logger.error("conversation_digest.processing_failed", {
+          error: err,
+          operation: "conversation",
+          stage: "process",
+        });
         res.skipped += 1;
       }
     }
   } catch (err) {
-    console.error("[monthly-digest] tenant falló:", err);
+    logger.error("conversation_digest.processing_failed", {
+      error: err,
+      operation: "tenant",
+      stage: "process",
+    });
   }
 
   return res;

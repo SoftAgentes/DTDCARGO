@@ -13,6 +13,10 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import type { ToolUseBlock } from "@anthropic-ai/sdk/resources/messages";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 
 export interface DigestMessage {
   direction: "in" | "out";
@@ -56,6 +60,9 @@ const SCHEMA: Anthropic.Messages.Tool.InputSchema = {
 export async function summarizeMonthThread(
   messages: DigestMessage[],
   opts: { clientName: string; periodLabel: string },
+  logger: StructuredLogger = createComponentLogger(
+    "internal.conversation-digest-extract",
+  ),
 ): Promise<DigestResult> {
   if (messages.length === 0) return { error: "sin mensajes" };
 
@@ -106,11 +113,12 @@ export async function summarizeMonthThread(
     if (!summary) return { error: "Formato de resumen inesperado." };
     return { summary, model: DEFAULT_MODEL };
   } catch (e) {
-    // Logueamos el error real de la IA (404 modelo inexistente, 401 key, rate limit…):
-    // sin esto el fallo es invisible en los logs de Vercel y el digest queda en 0 en
-    // silencio. Incluimos el modelo para diagnosticar de un vistazo cuál se pidió.
     const msg = e instanceof Error ? e.message : "Error de IA";
-    console.error(`[digest-extract] IA falló (model=${DEFAULT_MODEL}):`, msg);
+    logger.error("conversation_digest.ai_failed", {
+      error: e,
+      operation: "internal_summary",
+      stage: "provider",
+    });
     return { error: msg };
   }
 }
@@ -145,6 +153,9 @@ const CLIENT_SCHEMA: Anthropic.Messages.Tool.InputSchema = {
 export async function summarizeMonthThreadForClient(
   messages: DigestMessage[],
   opts: { clientName: string; periodLabel: string },
+  logger: StructuredLogger = createComponentLogger(
+    "internal.conversation-digest-extract",
+  ),
 ): Promise<DigestResult> {
   if (messages.length === 0) return { error: "sin mensajes" };
 
@@ -197,7 +208,11 @@ export async function summarizeMonthThreadForClient(
     return { summary, model: DEFAULT_MODEL };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error de IA";
-    console.error(`[digest-extract] IA cliente falló (model=${DEFAULT_MODEL}):`, msg);
+    logger.error("conversation_digest.ai_failed", {
+      error: e,
+      operation: "client_summary",
+      stage: "provider",
+    });
     return { error: msg };
   }
 }

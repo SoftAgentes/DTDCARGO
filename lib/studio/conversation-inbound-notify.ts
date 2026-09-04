@@ -19,11 +19,15 @@
  * Calca el patrón de `payment-report-notify.ts` / `new-client-notify.ts`: reusa
  * `dispatchTelegramAlert` (SDD-0271): el asesor asignado MÁS el chat de la
  * categoría `conversaciones`, una sola vez por chat — si el asesor ES ese chat,
- * no le llega dos veces. SIEMPRE con service_role. Best-effort: loguea pero NUNCA tira — un
- * fallo del aviso no debe romper el envío del mensaje del cliente.
+ * no le llega dos veces. SIEMPRE con service_role. Best-effort: registra el fallo
+ * pero NUNCA tira — un error del aviso no debe romper el envío del mensaje.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { resolveAdminEntries } from "@/lib/studio/new-client-notify";
 import { dispatchTelegramAlert } from "@/lib/studio/telegram/alert-routing";
 
@@ -64,6 +68,9 @@ async function wantsPortalNotif(
 export async function notifyConversationInbound(
   admin: SupabaseClient,
   args: { conversationId: string; body: string },
+  logger: StructuredLogger = createComponentLogger(
+    "internal.conversation-inbound-notify",
+  ),
 ): Promise<void> {
   try {
     const { data: conv } = await admin
@@ -123,6 +130,7 @@ export async function notifyConversationInbound(
         alsoUserIds: (await wantsPortalNotif(admin, assignedTo)) ? [assignedTo] : [],
         fallback: "none",
         logTag: "conversacion-asignada",
+        logger,
       });
     } else {
       // #2 Round-robin: sin asesor del cliente → asigna al ADMIN menos cargado
@@ -163,9 +171,14 @@ export async function notifyConversationInbound(
         alsoUserIds: (await wantsPortalNotif(admin, best)) ? [best] : [],
         fallback: "none",
         logTag: "conversacion-round-robin",
+        logger,
       });
     }
   } catch (err) {
-    console.error("[conversation-inbound-notify] falló:", err);
+    logger.error("conversation_notification.failed", {
+      error: err,
+      operation: "inbound",
+      stage: "dispatch",
+    });
   }
 }
