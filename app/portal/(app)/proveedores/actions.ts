@@ -19,6 +19,10 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import {
+  createComponentLogger,
+  type StructuredLogger,
+} from "@/lib/observability/structured-logger";
 import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   validateSupplierInput,
@@ -67,6 +71,7 @@ async function uploadPrealertaDoc(
     docType: PrealertaDocType;
     file: File;
   },
+  logger: StructuredLogger,
 ): Promise<boolean> {
   const { file } = args;
   const mime = file.type || "";
@@ -87,7 +92,11 @@ async function uploadPrealertaDoc(
       .from(PREALERTA_DOC_BUCKET)
       .upload(path, buffer, { contentType: mime, upsert: false });
     if (upErr) {
-      console.error("[uploadPrealertaDoc] storage error:", upErr);
+      logger.error("portal_prealerta.attachment_failed", {
+        error: upErr,
+        operation: "attachment_upload",
+        stage: "upload",
+      });
       return false;
     }
 
@@ -103,14 +112,22 @@ async function uploadPrealertaDoc(
       size_bytes: file.size,
     });
     if (insErr) {
-      console.error("[uploadPrealertaDoc] insert error:", insErr);
+      logger.error("portal_prealerta.attachment_failed", {
+        error: insErr,
+        operation: "attachment_register",
+        stage: "write",
+      });
       // Rollback del object huérfano.
       await admin.storage.from(PREALERTA_DOC_BUCKET).remove([path]);
       return false;
     }
     return true;
   } catch (err) {
-    console.error("[uploadPrealertaDoc] unexpected error:", err);
+    logger.error("portal_prealerta.attachment_failed", {
+      error: err,
+      operation: "attachment_process",
+      stage: "unexpected",
+    });
     return false;
   }
 }
@@ -125,7 +142,7 @@ async function uploadPrealertaDocsFromForm(args: {
   tenantId: string;
   prealertaId: string;
   markbox: string;
-}): Promise<void> {
+}, logger: StructuredLogger): Promise<void> {
   const { formData } = args;
   const singles: [string, PrealertaDocType][] = [
     ["doc_packing", "packing"],
@@ -154,12 +171,16 @@ async function uploadPrealertaDocsFromForm(args: {
           markbox: args.markbox,
           docType,
           file,
-        }),
+        }, logger),
       ),
     );
   } catch (err) {
     // createAdminClient puede faltar env en algún entorno → no rompemos el alta.
-    console.error("[uploadPrealertaDocsFromForm] admin client error:", err);
+    logger.error("portal_prealerta.attachment_failed", {
+      error: err,
+      operation: "attachment_batch",
+      stage: "admin_client",
+    });
   }
 }
 
@@ -225,6 +246,7 @@ function parseServiceRequestsFromForm(
 async function firePrealertaServiceEvent(
   tenantId: string,
   prealertaId: string,
+  logger: StructuredLogger,
 ): Promise<void> {
   try {
     const admin = createAdminClient();
@@ -235,7 +257,11 @@ async function firePrealertaServiceEvent(
       serviceKey: null,
     });
   } catch (err) {
-    console.error("[firePrealertaServiceEvent] admin/workflow error:", err);
+    logger.error("portal_prealerta.service_failed", {
+      error: err,
+      operation: "service_workflow",
+      stage: "dispatch",
+    });
   }
 }
 
@@ -251,7 +277,7 @@ async function insertPrealertaServiceRequestsFromForm(args: {
   tenantId: string;
   prealertaId: string;
   markbox: string;
-}): Promise<void> {
+}, logger: StructuredLogger): Promise<void> {
   try {
     const active = await listActivePrealertaAddons(args.supabase, {
       tenantId: args.tenantId,
@@ -286,13 +312,21 @@ async function insertPrealertaServiceRequestsFromForm(args: {
       .from("prealerta_service_requests")
       .insert(rows);
     if (error) {
-      console.error("[insertPrealertaServiceRequests] insert error:", error);
+      logger.error("portal_prealerta.service_failed", {
+        error,
+        operation: "service_request",
+        stage: "write",
+      });
       return;
     }
 
-    await firePrealertaServiceEvent(args.tenantId, args.prealertaId);
+    await firePrealertaServiceEvent(args.tenantId, args.prealertaId, logger);
   } catch (err) {
-    console.error("[insertPrealertaServiceRequests] unexpected:", err);
+    logger.error("portal_prealerta.service_failed", {
+      error: err,
+      operation: "service_request",
+      stage: "unexpected",
+    });
   }
 }
 
@@ -304,6 +338,7 @@ export async function createSupplierAction(
   _prev: SupplierActionState,
   formData: FormData,
 ): Promise<SupplierActionState> {
+  const logger = createComponentLogger("portal.supplier.create");
   const { input, fieldErrors } = validateSupplierInput({
     name: (formData.get("name") as string | null) ?? undefined,
     city: (formData.get("city") as string | null) ?? undefined,
@@ -329,7 +364,11 @@ export async function createSupplierAction(
     .is("deleted_at", null)
     .limit(500);
   if (dupErr) {
-    console.error("[createSupplierAction] dup check error:", dupErr);
+    logger.error("portal_supplier.action_failed", {
+      error: dupErr,
+      operation: "duplicate_check",
+      stage: "read",
+    });
   } else {
     const normalized = input.name.toLowerCase();
     const isDup = (existing ?? []).some(
@@ -382,7 +421,11 @@ export async function createSupplierAction(
     .single<{ id: string }>();
 
   if (insErr || !row) {
-    console.error("[createSupplierAction] insert error:", insErr);
+    logger.error("portal_supplier.action_failed", {
+      error: insErr,
+      operation: "supplier_create",
+      stage: "write",
+    });
     return { error: "No pudimos registrar el proveedor. Prueba de nuevo." };
   }
 
@@ -398,6 +441,7 @@ export async function updateSupplierAction(
   _prev: SupplierActionState,
   formData: FormData,
 ): Promise<SupplierActionState> {
+  const logger = createComponentLogger("portal.supplier.update");
   const supplierId = String(formData.get("supplierId") ?? "").trim();
   if (!supplierId) return { error: "Falta el proveedor a editar." };
 
@@ -434,7 +478,11 @@ export async function updateSupplierAction(
     .is("deleted_at", null);
 
   if (updErr) {
-    console.error("[updateSupplierAction] update error:", updErr);
+    logger.error("portal_supplier.action_failed", {
+      error: updErr,
+      operation: "supplier_update",
+      stage: "write",
+    });
     return { error: "No pudimos guardar los cambios. Prueba de nuevo." };
   }
 
@@ -450,6 +498,7 @@ export async function deleteSupplierAction(
   _prev: DeleteSupplierActionState,
   formData: FormData,
 ): Promise<DeleteSupplierActionState> {
+  const logger = createComponentLogger("portal.supplier.delete");
   const supplierId = String(formData.get("supplierId") ?? "").trim();
   if (!supplierId) return { error: "Falta el proveedor a borrar." };
 
@@ -468,7 +517,11 @@ export async function deleteSupplierAction(
     .eq("client_markbox", markbox)
     .is("deleted_at", null);
   if (countErr) {
-    console.error("[deleteSupplierAction] count error:", countErr);
+    logger.error("portal_supplier.action_failed", {
+      error: countErr,
+      operation: "purchase_count",
+      stage: "read",
+    });
     return { error: "No pudimos borrar el proveedor. Prueba de nuevo." };
   }
   if ((count ?? 0) > 0) {
@@ -483,7 +536,11 @@ export async function deleteSupplierAction(
     .eq("client_markbox", markbox)
     .is("deleted_at", null);
   if (delErr) {
-    console.error("[deleteSupplierAction] update error:", delErr);
+    logger.error("portal_supplier.action_failed", {
+      error: delErr,
+      operation: "supplier_delete",
+      stage: "write",
+    });
     return { error: "No pudimos borrar el proveedor. Prueba de nuevo." };
   }
 
@@ -501,6 +558,7 @@ export async function createPrealertaAction(
   _prev: PrealertaActionState,
   formData: FormData,
 ): Promise<PrealertaActionState> {
+  const logger = createComponentLogger("portal.prealerta.create");
   const estValueRaw = String(formData.get("estValueUsd") ?? "").trim();
   const boxesRaw = String(formData.get("boxes") ?? "").trim();
   // El asistente de 3 pasos (SDD-0173) registra la compra al terminar el paso 1:
@@ -602,7 +660,7 @@ export async function createPrealertaAction(
         tenantId,
         prealertaId: insRow.id,
         markbox,
-      });
+      }, logger);
 
       // Servicios sobre la compra (add-ons · SDD-0098) — best-effort, no tumba el alta.
       await insertPrealertaServiceRequestsFromForm({
@@ -611,7 +669,7 @@ export async function createPrealertaAction(
         tenantId,
         prealertaId: insRow.id,
         markbox,
-      });
+      }, logger);
 
       revalidatePortal();
       return {
@@ -625,7 +683,11 @@ export async function createPrealertaAction(
       lastError = "Reintentando…";
       continue;
     }
-    console.error("[createPrealertaAction] insert error:", insErr);
+    logger.error("portal_prealerta.action_failed", {
+      error: insErr,
+      operation: "prealerta_create",
+      stage: "write",
+    });
     return { error: "No pudimos registrar la compra. Prueba de nuevo." };
   }
 
@@ -644,6 +706,7 @@ export async function requestPrealertaServiceAction(
   _prev: ServiceRequestActionState,
   formData: FormData,
 ): Promise<ServiceRequestActionState> {
+  const logger = createComponentLogger("portal.prealerta.service-request");
   const code = String(formData.get("prealertaCode") ?? "").trim();
   const addonCode = String(formData.get("addonCode") ?? "").trim();
   if (!code) return { error: "Falta la compra." };
@@ -688,11 +751,15 @@ export async function requestPrealertaServiceAction(
     if (error.code === "23505") {
       return { error: "Ya pediste ese servicio para esta compra." };
     }
-    console.error("[requestPrealertaServiceAction] insert error:", error);
+    logger.error("portal_prealerta.service_failed", {
+      error,
+      operation: "service_request",
+      stage: "write",
+    });
     return { error: "No pudimos registrar el servicio. Prueba de nuevo." };
   }
 
-  await firePrealertaServiceEvent(tenantId, pre.id);
+  await firePrealertaServiceEvent(tenantId, pre.id, logger);
   revalidatePortal();
   revalidatePath(`/portal/compras/${encodeURIComponent(code)}/etiquetas`);
   return { ok: true, requestedCount: 1 };
@@ -709,6 +776,7 @@ export async function updatePrealertaDetalleAction(
   _prev: PrealertaActionState,
   formData: FormData,
 ): Promise<PrealertaActionState> {
+  const logger = createComponentLogger("portal.prealerta.update");
   const code = String(formData.get("prealertaCode") ?? "").trim();
   if (!code) return { error: "Falta la compra." };
 
@@ -761,7 +829,11 @@ export async function updatePrealertaDetalleAction(
     .is("deleted_at", null);
 
   if (updErr) {
-    console.error("[updatePrealertaDetalleAction] update error:", updErr);
+    logger.error("portal_prealerta.action_failed", {
+      error: updErr,
+      operation: "prealerta_update",
+      stage: "write",
+    });
     return { error: "No pudimos guardar el detalle. Prueba de nuevo." };
   }
 
@@ -771,7 +843,7 @@ export async function updatePrealertaDetalleAction(
     tenantId,
     prealertaId: pre.id,
     markbox,
-  });
+  }, logger);
 
   revalidatePortal();
   revalidatePath(`/portal/compras/${encodeURIComponent(code)}`);

@@ -1019,10 +1019,12 @@ están incluidos en aquel push.
   hasta el drain inline. SDD-0424 retiró ocho logs de las cuatro capas de
   consulta/configuración de avisos. SDD-0425 estructuró las dos rutas, el opt-in
   y VAPID del Portal, con cinco logs menos. SDD-0426 retiró doce logs de las tres
-  capas de acciones de Perfil. Acumulado: 17/17 handlers cron, 4/4 Edge Functions,
-  veintidós internals y siete superficies Portal adicionales adoptadas, cero
-  `console.*` en esos alcances y 7.417 pruebas completas. El inventario general
-  conserva otros módulos legacy; esta casilla no se marca ni aumenta el 59/106.
+  capas de acciones de Perfil. SDD-0427 retiró quince logs del módulo de acciones
+  de Proveedores/Prealertas y propagó su correlador por tres helpers. Acumulado:
+  17/17 handlers cron, 4/4 Edge Functions, veintidós internals y ocho superficies
+  Portal adicionales adoptadas, cero `console.*` en esos alcances y 7.422 pruebas
+  completas. El inventario general conserva otros módulos legacy; esta casilla
+  no se marca ni aumenta el 59/106.
   [Acta base](2026-09-04-structured-request-logging.md) y
   [workers drain](2026-09-04-structured-drain-crons.md) y
   [jobs programados](2026-09-04-structured-scheduled-crons.md), más
@@ -1035,7 +1037,8 @@ están incluidos en aquel push.
   más [agenda del Portal](2026-09-04-structured-client-notification-scheduling.md)
   y [queries de avisos](2026-09-04-structured-client-notification-queries.md),
   más [Web Push Portal](2026-09-04-structured-portal-push.md) y
-  [acciones de Perfil](2026-09-04-structured-portal-profile-actions.md).
+  [acciones de Perfil](2026-09-04-structured-portal-profile-actions.md), más
+  [Proveedores/Prealertas](2026-09-04-structured-portal-suppliers-actions.md).
 - [ ] Medir Core Web Vitals y fijar budgets de CSS/fuentes por superficie.
 - [ ] Resolver la deriva Brand Book/generador usando únicamente un Norte nuevo;
   no republicar desde copias locales incompletas.
