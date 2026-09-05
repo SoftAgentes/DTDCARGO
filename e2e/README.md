@@ -25,6 +25,11 @@ Para reusar un servidor ya levantado, usar `E2E_START_WEB_SERVER=0`. El host
 local canónico es `localhost`; no usar `127.0.0.1`, porque Next bloquea por
 seguridad el HMR cross-origin de ese origen.
 
+El harness usa 8 workers en una corrida local general y 1 en CI o cuando
+`E2E_ENVIRONMENT_KIND=ephemeral`. Esto evita convertir las 168 pruebas sobre un
+único branch efímero en una prueba de carga accidental. `E2E_WORKERS=1..32`
+permite un override explícito cuando se mida otro perfil de concurrencia.
+
 ## Estado de cobertura
 
 | Spec | Tier | Estado | Requiere |
@@ -62,6 +67,9 @@ corrida CI** — NO contra prod ni dev. Flujo:
    finiquito ficticios). El gasto queda ligado al embarque y al admin, con fecha
    fija al día 15 a las 12:00 UTC del mes de ejecución. Se niega a
    ejecutar contra el `project_ref` productivo y valida que URL/ref coincidan.
+   También normaliza la fila `calculator_settings` del tenant público `dtd`
+   con los `DEFAULT_PARAMS` del código vigente; así un branch recién reconstruido
+   no conserva los defaults históricos de 0103 ni cambia los totales esperados.
    Antes de la primera escritura hace polling read-only y acotado sobre las
    columnas requeridas; si la caché de PostgREST del branch no converge, aborta
    sin sembrar ni reintentar escrituras.

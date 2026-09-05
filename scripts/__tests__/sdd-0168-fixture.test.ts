@@ -4,12 +4,14 @@ import {
   E2E_SCHEMA_PREFLIGHT_RETRY_MS,
   SDD_0168_FIXTURE,
   applyE2ETier3FixtureAliases,
+  buildE2ECalculatorSettings,
   getE2ECommentBody,
   getE2EExpenseOccurredAt,
   getE2ESchemaRetryDelayMs,
   isRetryableE2ESchemaError,
   loadE2EEnvironment,
 } from "../e2e/sdd-0168-fixture";
+import { DEFAULT_PARAMS } from "../../lib/calculadora";
 
 const KEYS = [
   "E2E_SUPABASE_PROJECT_REF",
@@ -118,6 +120,23 @@ describe("fixture determinista de gasto", () => {
     expect(getE2EExpenseOccurredAt(new Date("2026-08-29T23:59:59.999Z"))).toBe(
       "2026-08-15T12:00:00.000Z",
     );
+  });
+});
+
+describe("fixture determinista de calculadora", () => {
+  it("traduce todos los defaults vigentes al contrato de calculator_settings", () => {
+    expect(buildE2ECalculatorSettings(DEFAULT_PARAMS)).toEqual({
+      peso_incluido_kg: 1000,
+      recargo_excedente_kg: 2,
+      descuento_valencia: 0,
+      recargo_embalaje_especial: 50,
+      recargo_bateria_mult: 1.3,
+      threshold_casco_km: 200,
+      tarifa_km_fuera_casco: 1,
+      cbm_max_contenedor: 68,
+      peso_max_contenedor_kg: 27000,
+      peso_max_envio_kg: 9000,
+    });
   });
 });
 

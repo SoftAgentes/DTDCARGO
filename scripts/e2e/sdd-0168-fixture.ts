@@ -1,4 +1,43 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { CalcParams } from "../../lib/calculadora";
+
+export type E2ECalculatorSettings = {
+  peso_incluido_kg: number;
+  recargo_excedente_kg: number;
+  descuento_valencia: number;
+  recargo_embalaje_especial: number;
+  recargo_bateria_mult: number;
+  threshold_casco_km: number;
+  tarifa_km_fuera_casco: number;
+  cbm_max_contenedor: number;
+  peso_max_contenedor_kg: number;
+  peso_max_envio_kg: number;
+};
+
+/**
+ * Traduce los defaults vigentes del calculador al contrato persistido.
+ *
+ * Los branches efímeros reconstruyen el seed histórico de 0103 (500 kg/CBM y
+ * USD 50 de descuento). El E2E debe medir el código actual, no esas constantes
+ * obsoletas, por lo que seed-e2e sincroniza exclusivamente la fila pública del
+ * tenant dtd antes de abrir el navegador.
+ */
+export function buildE2ECalculatorSettings(
+  params: CalcParams,
+): E2ECalculatorSettings {
+  return {
+    peso_incluido_kg: params.pesoIncluidoKg,
+    recargo_excedente_kg: params.recargoExcedenteKg,
+    descuento_valencia: params.descuentoValencia,
+    recargo_embalaje_especial: params.recargoEmbalajeEspecial,
+    recargo_bateria_mult: params.recargoBateriaMult,
+    threshold_casco_km: params.thresholdCascoKm,
+    tarifa_km_fuera_casco: params.tarifaKmFueraCasco,
+    cbm_max_contenedor: params.cbmMaxContenedor,
+    peso_max_contenedor_kg: params.pesoMaxContenedorKg,
+    peso_max_envio_kg: params.pesoMaxEnvioKg,
+  };
+}
 
 export const SDD_0168_FIXTURE = {
   tenantId: "01680000-0000-4000-8000-000000000001",

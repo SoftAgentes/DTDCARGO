@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   preparePlaywrightRuntime,
   resolvePlaywrightRuntime,
+  resolvePlaywrightWorkers,
 } from "../../playwright.config";
 
 describe("resolvePlaywrightRuntime", () => {
@@ -56,5 +57,28 @@ describe("resolvePlaywrightRuntime", () => {
       STUDIO_E2E_EXPENSE_CODE: "EXP-E2E-0243",
       STUDIO_E2E_PAYROLL_SETTLEMENT_CODE: "LIQ-E2E-0226",
     });
+  });
+});
+
+describe("resolvePlaywrightWorkers", () => {
+  it("acota la concurrencia local general a ocho workers", () => {
+    expect(resolvePlaywrightWorkers({})).toBe(8);
+  });
+
+  it("serializa por defecto CI y los branches efímeros", () => {
+    expect(resolvePlaywrightWorkers({ CI: "1" })).toBe(1);
+    expect(
+      resolvePlaywrightWorkers({ E2E_ENVIRONMENT_KIND: "ephemeral" }),
+    ).toBe(1);
+  });
+
+  it("acepta un override explícito y rechaza valores fuera del contrato", () => {
+    expect(resolvePlaywrightWorkers({ E2E_WORKERS: "4" })).toBe(4);
+    expect(() => resolvePlaywrightWorkers({ E2E_WORKERS: "0" })).toThrow(
+      "entre 1 y 32",
+    );
+    expect(() => resolvePlaywrightWorkers({ E2E_WORKERS: "muchos" })).toThrow(
+      "entero entre 1 y 32",
+    );
   });
 });

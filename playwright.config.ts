@@ -18,9 +18,29 @@ import { applyE2ETier3FixtureAliases } from "./scripts/e2e/sdd-0168-fixture";
 // permite que Playwright levante Next usando ese destino explícito.
 type PlaywrightRuntimeEnvironment = Record<string, string | undefined> & {
   BASE_URL?: string;
+  CI?: string;
   E2E_PORT?: string;
   E2E_START_WEB_SERVER?: string;
+  E2E_WORKERS?: string;
 };
+
+export function resolvePlaywrightWorkers(
+  env: PlaywrightRuntimeEnvironment = process.env,
+): number {
+  const configured = env.E2E_WORKERS?.trim();
+  if (configured === undefined || configured === "") {
+    return env.CI || env.E2E_ENVIRONMENT_KIND === "ephemeral" ? 1 : 8;
+  }
+
+  if (!/^\d+$/.test(configured)) {
+    throw new Error("E2E_WORKERS debe ser un entero entre 1 y 32.");
+  }
+  const workers = Number(configured);
+  if (workers < 1 || workers > 32) {
+    throw new Error("E2E_WORKERS debe estar entre 1 y 32.");
+  }
+  return workers;
+}
 
 export function resolvePlaywrightRuntime(
   env: PlaywrightRuntimeEnvironment = process.env,
@@ -46,6 +66,7 @@ const {
   baseURL: BASE_URL,
   startWebServer: START_WEB_SERVER,
 } = preparePlaywrightRuntime();
+const WORKERS = resolvePlaywrightWorkers();
 
 export default defineConfig({
   testDir: "./e2e",
@@ -55,6 +76,10 @@ export default defineConfig({
   // aserciones ni sus timeouts particulares.
   timeout: 60_000,
   fullyParallel: true,
+  // Un branch efímero comparte Auth, PostgREST y fixtures mutables: en ese
+  // entorno el harness es una verificación funcional, no una prueba de carga.
+  // Fuera de CI/efímero se conservan 8 workers y E2E_WORKERS permite ajustar.
+  workers: WORKERS,
   forbidOnly: !!process.env.CI,
   // Local con 1 reintento, no 0. Suena al revés —"si falla, que falle"— pero el
   // que corre el gate acá es un equipo con ~38 worktrees vivos, bastante MÁS
@@ -79,7 +104,12 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile-chrome", use: { ...devices["Pixel 7"] } },
-    { name: "mobile-safari", use: { ...devices["iPhone 14"] } },
+    {
+      name: "mobile-safari",
+      use: { ...devices["iPhone 14"] },
+      // WebKit en Windows se serializa para evitar cierres colgados del worker.
+      workers: process.platform === "win32" ? 1 : undefined,
+    },
   ],
   // El destino y el arranque son decisiones distintas. Sin override se conserva
   // la compatibilidad histórica: BASE_URL describe un server externo/existente.
