@@ -29,6 +29,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureVapid, webpush } from "./vapid";
 import type { PushPayload } from "./send-bug-push";
+import { parsePushSubscription, PUSH_SOCKET_TIMEOUT_MS } from "./push-subscription";
 
 type OperarioSubRow = {
   id: string;
@@ -68,16 +69,25 @@ export async function sendPushToOperario(
   let delivered = 0;
   const deadIds: string[] = [];
   const bumpIds: string[] = [];
+  const okIds: string[] = [];
 
   await Promise.all(
     (subs as OperarioSubRow[]).map(async (s) => {
+      const sub = parsePushSubscription({
+        endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth },
+      });
+      if (!sub) {
+        console.warn("[send-operario-push] Suscripción inválida: envío omitido; registro conservado.");
+        return;
+      }
       try {
         await webpush.sendNotification(
-          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+          { endpoint: sub.endpoint, keys: sub.keys },
           data,
-          { TTL: 60 * 60 * 12 }, // 12h · turno del operario
+          { TTL: 60 * 60 * 12, timeout: PUSH_SOCKET_TIMEOUT_MS }, // 12h; timeout de socket
         );
         delivered += 1;
+        okIds.push(s.id);
       } catch (err) {
         const statusCode = (err as { statusCode?: number })?.statusCode;
         if (statusCode === 410 || statusCode === 404) {
@@ -90,8 +100,8 @@ export async function sendPushToOperario(
           // aviso aunque la red se haya caído tres veces.
           bumpIds.push(s.id);
           console.error(
-            `[send-operario-push] fallo transitorio (op ${operarioId}, status ${statusCode}, fallos ${s.failure_count + 1}):`,
-            (err as Error)?.message ?? err,
+            "[send-operario-push] Fallo transitorio; se conserva la suscripción.",
+            { statusCode: typeof statusCode === "number" ? statusCode : null },
           );
         }
       }
@@ -117,9 +127,6 @@ export async function sendPushToOperario(
   );
 
   // Reset failure_count + last_used_at en las exitosas
-  const okIds = (subs as OperarioSubRow[])
-    .filter((s) => !deadIds.includes(s.id) && !bumpIds.includes(s.id))
-    .map((s) => s.id);
   if (okIds.length > 0) {
     await admin
       .from("operario_push_subscriptions")

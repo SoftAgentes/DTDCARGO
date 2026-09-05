@@ -6,6 +6,7 @@
  * clientes de DB; se inspecciona el payload que se inserta en user_push_subscriptions.
  */
 import { describe, it, expect, vi } from "vitest";
+import { validPushSubscription } from "@/lib/studio/notify/__tests__/push-subscription-fixture";
 
 const insertedRows: Array<Record<string, unknown>> = [];
 
@@ -62,10 +63,7 @@ describe("POST /api/studio/push/subscribe · identidad de la sesión", () => {
     const res = await POST(
       makeReq({
         user_id: "attacker-user",
-        subscription: {
-          endpoint: "https://push/x",
-          keys: { p256dh: "p", auth: "a" },
-        },
+        subscription: validPushSubscription("identity"),
       }),
     );
     expect(res.status).toBe(200);

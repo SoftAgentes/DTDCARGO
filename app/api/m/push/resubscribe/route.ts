@@ -15,39 +15,27 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
-
-interface SubIn {
-  endpoint?: unknown;
-  keys?: { p256dh?: unknown; auth?: unknown };
-}
-
-function parseSub(sub: SubIn | undefined) {
-  const endpoint = typeof sub?.endpoint === "string" ? sub.endpoint : null;
-  const p256dh =
-    sub?.keys && typeof sub.keys.p256dh === "string" ? sub.keys.p256dh : null;
-  const auth =
-    sub?.keys && typeof sub.keys.auth === "string" ? sub.keys.auth : null;
-  if (!endpoint || !p256dh || !auth) return null;
-  return { endpoint, p256dh, auth };
-}
+import { parsePushSubscription } from "@/lib/studio/notify/push-subscription";
 
 export async function POST(req: Request) {
-  let body: { old_endpoint?: unknown; subscription?: SubIn };
+  let body: unknown;
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Body inválido." }, { status: 422 });
   }
 
-  const parsed = parseSub(body.subscription);
+  const input = body !== null && typeof body === "object" && !Array.isArray(body)
+    ? body as Record<string, unknown> : null;
+  const parsed = parsePushSubscription(input?.subscription);
   if (!parsed) {
     return NextResponse.json(
-      { error: "Subscription incompleta (endpoint/p256dh/auth)." },
+      { error: "Suscripción no válida. Vuelve a activar las notificaciones desde tu navegador." },
       { status: 422 },
     );
   }
   const oldEndpoint =
-    typeof body.old_endpoint === "string" ? body.old_endpoint : null;
+    typeof input?.old_endpoint === "string" ? input.old_endpoint : null;
   const userAgent = req.headers.get("user-agent")?.slice(0, 300) ?? null;
   const admin = createAdminClient();
 
@@ -65,8 +53,8 @@ export async function POST(req: Request) {
         tenant_id: operario.tenant_id,
         operario_id: operario.operario_id,
         endpoint: parsed.endpoint,
-        p256dh: parsed.p256dh,
-        auth: parsed.auth,
+        p256dh: parsed.keys.p256dh,
+        auth: parsed.keys.auth,
         user_agent: userAgent,
         failure_count: 0,
         last_used_at: new Date().toISOString(),
@@ -110,10 +98,7 @@ export async function POST(req: Request) {
     tenant_id: link.tenant_id,
     user_id: userId,
     endpoint: parsed.endpoint,
-    subscription: {
-      endpoint: parsed.endpoint,
-      keys: { p256dh: parsed.p256dh, auth: parsed.auth },
-    },
+    subscription: parsed,
     user_agent: userAgent,
     last_used_at: new Date().toISOString(),
   });
