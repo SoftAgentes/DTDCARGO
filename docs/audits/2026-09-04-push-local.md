@@ -101,16 +101,43 @@ en modo lectura. El resultado fue exit 0: 398 archivos, 408 entradas de ledger,
 la migración histórica `0017` como única pendiente conocida y ninguna migración
 nueva sin aplicar. No hubo escrituras en Supabase.
 
+### E2E autenticado en Supabase efímero · 2026-09-05
+
+Con el costo horario confirmado por el founder se usaron dos branches efímeros
+sucesivos, nunca concurrentes y ambos sin datos de Producción. El primero se
+destruyó después de la corrida exploratoria; en el segundo, el preflight enumeró
+exactamente **18 tests en 4 archivos** y el seed preparó únicamente el fixture
+sintético gobernado del runbook.
+
+El selector autenticado documentado en `e2e/README.md` se ejecutó con un worker
+sobre `chromium`, `mobile-chrome` y `mobile-safari`. Resultado del reporte JSON:
+**18 aprobados, 0 omitidos, 0 inesperados, 0 inestables y 0 errores**, en
+202,09 segundos.
+
+Una corrida exploratoria anterior lanzó los 168 casos generales con 16 workers.
+Esa combinación mezcló las expectativas de respaldo local de la calculadora con
+la configuración sembrada por migraciones y produjo saturación en los logins.
+No se usó como recibo de cierre: el contrato gobernado del repositorio exige el
+selector autenticado anterior y `--workers=1`.
+
+El segundo branch efímero se eliminó inmediatamente después de la corrida. El
+inventario posterior de Supabase devolvió únicamente el branch `main`; el cobro
+horario y la persistencia de los fixtures quedaron detenidos.
+
 ## Confirmación de no acción externa
 
 - No se usaron claves VAPID, endpoints, usuarios, datos ni notificaciones reales.
-- No hubo llamadas Push externas ni escrituras Supabase/Cloud.
-- No hubo migraciones, deploy, cambios Vercel o publicación.
-- No hubo push. La rama queda local, aislada y sin upstream.
+- No hubo llamadas Push externas ni escrituras en Supabase de Producción.
+- Las únicas escrituras remotas fueron fixtures sintéticos en el branch E2E
+  efímero ya destruido.
+- No se aplicaron migraciones, no hubo deploy manual ni push a `main`.
+- La rama de la PR se publicó sin force-push; la integración sigue siendo un gate
+  separado.
 
 ## Conclusión
 
-La frontera Push queda cerrada localmente con defensa en profundidad antes de
-persistencia y antes de transporte, pruebas negativas y timeout contractual.
-La integración, publicación y cualquier smoke con proveedor real permanecen
-como gates externos independientes.
+La frontera Push queda cerrada y verificada con defensa en profundidad antes de
+persistencia y antes de transporte, pruebas negativas, timeout contractual y
+E2E autenticado efímero. La PR #22 queda como candidata individual a `main`.
+Su merge y cualquier smoke con proveedor Push real permanecen como gates
+externos independientes.

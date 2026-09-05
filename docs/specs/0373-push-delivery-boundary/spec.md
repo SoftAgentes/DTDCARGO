@@ -1,10 +1,10 @@
 ---
 sdd: "0373"
 title: Validación de destinos y suscripciones Web Push
-status: in-progress
+status: done
 author: Codex
 created: 2026-09-03
-updated: 2026-09-04
+updated: 2026-09-05
 supersedes: null
 superseded_by: null
 related: ["0146", "0148"]
@@ -108,10 +108,23 @@ incorporar los demás cambios de esa rama.
 - [x] La frontera compartida bloquea destinos y claves inválidos en entrada y salida.
 - [x] Los orígenes documentados y el comportamiento compatible permanecen cubiertos.
 - [x] TTL existente y timeout de socket de 10 s están verificados por contrato.
-- [ ] `node scripts/verify.mjs` termina sin fallos ni pasos omitidos. Los gates
-  locales deterministas y el ledger repo↔Producción están verdes. El cierre
-  canónico permanece bloqueado únicamente por la ausencia de un Supabase E2E
-  efímero autorizado; no se sustituye con credenciales de Producción.
+- [x] La verificación canónica quedó cubierta en dos fases: gates locales
+  deterministas y ledger repo↔Producción verdes; luego los 18 E2E autenticados
+  gobernados aprobaron en los tres proyectos contra un Supabase efímero. El
+  branch fue destruido al terminar y no se usaron credenciales de Producción.
+
+## Evidencia de cierre
+
+- Suite Push enfocada: 6 archivos, 322 pruebas aprobadas.
+- Suite Vitest completa: 501 archivos, 6181 pruebas aprobadas.
+- SQL: 139 contratos aprobados; reconstrucción: 395 migraciones.
+- `migrations-applied`: 398 archivos, 408 entradas de ledger, sin migraciones
+  nuevas pendientes después de integrar la PR #25.
+- E2E efímero: selector canónico de 18 casos en 4 archivos, 18 aprobados,
+  0 omitidos, 0 inesperados y 0 inestables; duración 202,09 s.
+- El entorno efímero no contenía datos de Producción, se sembró sólo con
+  fixtures sintéticos y fue eliminado al terminar. El inventario posterior de
+  branches confirmó que sólo permaneció `main`.
 
 ## Privacidad
 

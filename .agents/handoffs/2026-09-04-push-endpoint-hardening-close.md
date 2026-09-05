@@ -2,9 +2,9 @@
 
 Fecha: 2026-09-04
 
-Estado: **BLOQUEADO SIN TOCAR TRABAJO AJENO**. La implementación está publicada
-en su rama, pero el gate canónico no permite presentarla todavía como candidata
-verde a `main`; esta ventana worker no fusiona el PR ni despliega producción.
+Estado: **CANDIDATA INDIVIDUAL A `main`**. La implementación está publicada,
+los gates deterministas, el ledger y los 18 E2E autenticados están verdes. Esta
+ventana coordinadora no fusiona la PR ni despliega Producción.
 
 ## Tarea y aislamiento
 
@@ -14,6 +14,8 @@ verde a `main`; esta ventana worker no fusiona el PR ni despliega producción.
 - Rama: `codex/push-endpoint-hardening-20260904`.
 - Base verificada: `origin/main@2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 - Commit de implementación: `ac65d8d24f0352cab336c596379e3c86df612674`.
+- Base recuperada: `origin/main@b265ce2b39d03ed89f1173812203638b02280c7b`
+  mediante merge no destructivo; incorpora sólo la PR #25 ya autorizada.
 - PR: `https://github.com/hailuwaycom-sketch/DTDCARGO/pull/22`, abierto
   contra `main`, no draft y `mergeStateStatus=CLEAN` al cerrar.
 
@@ -54,12 +56,12 @@ configuración de Vercel ni datos Cloud.
 - Evidencia de implementación ya registrada: suite Vitest completa con 501
   archivos y 6181 pruebas, TypeScript, ESLint enfocado, documentación,
   gobernanza, componentes y build con 158 páginas, todos aprobados.
-- El E2E canónico quedó no verde por ausencia deliberada de variables Supabase
-  y workers Playwright que no terminaron; no se usaron credenciales para
-  ocultar esa limitación.
-- Checks del PR al cerrar: Vercel, Vercel Agent Review y Vercel Preview Comments
-  aprobados. El Preview automático fue eliminado por solicitud del usuario; el
-  estado de GitHub es histórico y no implica un Preview activo.
+- El E2E autenticado canónico enumeró 18 tests en 4 archivos y terminó **18/18**
+  en `chromium`, `mobile-chrome` y `mobile-safari`, con un worker, 0 omitidos,
+  0 inesperados y 0 inestables.
+- Checks del PR antes del recibo final: Vercel, Vercel Agent Review y Vercel
+  Preview Comments aprobados. Un nuevo push puede renovar el Preview automático;
+  eso no equivale a un deploy de Producción.
 
 ## Publicación y gates externos
 
@@ -68,11 +70,13 @@ configuración de Vercel ni datos Cloud.
 - Integración: pendiente de un integrador exclusivo; esta ventana no ejecutó
   merge, rebase, pull ni push a `main`.
 - Migraciones: ninguna creada ni aplicada.
-- Cloud/Supabase: sin escrituras ni acceso a datos reales.
+- Cloud/Supabase: sólo fixtures sintéticos en un branch efímero sin datos de
+  Producción; branch eliminado y presencia posterior limitada a `main`.
 - Push real: no se usaron claves VAPID, endpoints, usuarios ni notificaciones
   reales.
-- Deploy: no se hizo deploy manual ni de producción. El único Preview
-  automático generado por la integración Git fue eliminado.
+- Deploy: no se hizo deploy manual ni de Producción. La publicación de evidencia
+  puede renovar el Preview automático de la PR; sigue siendo una superficie de
+  revisión y no un despliegue a `main`.
 
 ## Limpieza y siguiente responsable
 
@@ -103,14 +107,11 @@ mutaciones alojadas.
 - GitHub al revalidar: PR abierta, `MERGEABLE/CLEAN`; Vercel, Agent Review y
   Preview Comments verdes en `240b144b`.
 
-Antes de considerar #22 candidata individual a `main`, el integrador debe:
-
-1. recuperar en `main`, mediante un carril separado, los archivos exactos de
-   las migraciones ya aplicadas 0399, 0400 y 0445;
-2. ejecutar el E2E sobre un proyecto Supabase efímero autorizado, sembrarlo,
-   verificarlo y destruirlo según el runbook;
-3. reejecutar `node scripts/verify.mjs` sin omisiones y cambiar la SDD a `done`
-   sólo con ese recibo verde.
+Los tres gates de reapertura quedaron cerrados por la coordinadora: la PR #25
+recuperó en `main` los archivos 0399, 0400 y 0445; `migrations-applied` quedó
+verde; y el selector E2E autenticado aprobó 18/18 en un branch efímero que fue
+destruido. La SDD queda en `done` y #22 puede presentarse como candidata
+individual. El merge de #22 continúa pendiente de autorización separada.
 
 ### Revalidación posterior a PR #25
 
