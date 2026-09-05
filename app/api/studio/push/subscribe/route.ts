@@ -20,12 +20,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { apiError } from "@/lib/http/api-error";
-
-interface PushSubscriptionPayload {
-  endpoint: string;
-  keys?: { p256dh?: string; auth?: string };
-  expirationTime?: number | null;
-}
+import { parsePushSubscription } from "@/lib/studio/notify/push-subscription";
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -35,7 +30,7 @@ export async function POST(request: NextRequest) {
   }
   const userId = userResp.user.id;
 
-  let body: { subscription?: PushSubscriptionPayload };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
@@ -45,10 +40,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const sub = body.subscription;
-  if (!sub || typeof sub.endpoint !== "string" || !sub.keys?.p256dh || !sub.keys?.auth) {
+  const sub = parsePushSubscription(
+    body !== null && typeof body === "object" && !Array.isArray(body) && "subscription" in body
+      ? body.subscription : null,
+  );
+  if (!sub) {
     return NextResponse.json(
-      { error: "Subscription inválida: faltan endpoint + keys.p256dh + keys.auth." },
+      { error: "Suscripción no válida. Vuelve a activar las notificaciones desde tu navegador." },
       { status: 400 },
     );
   }
@@ -79,7 +77,7 @@ export async function POST(request: NextRequest) {
     tenant_id: link.tenant_id,
     user_id: userId,
     endpoint: sub.endpoint,
-    subscription: sub as unknown as Record<string, unknown>,
+    subscription: sub,
     user_agent: userAgent,
     last_used_at: new Date().toISOString(),
   });
