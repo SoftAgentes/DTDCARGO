@@ -100,7 +100,7 @@ requieren validación del coordinador con una sesión de prueba.
   tonos compartidos y dominios afectados).
 - Playwright sobre Chrome del sistema: 8 casos pasaron, escritorio/móvil y
   claro/oscuro; recargo, límite, asociación accesible, corrección, texto y CTA; incluye la calculadora terrestre.
-- Typecheck y lint dirigidos: pasaron durante implementación; revisión final abajo.
+- Typecheck final (`tsc --noEmit`): pasó después del último cambio de código.
 - Lint final de los archivos de implementación: 0 errores; el único aviso informa
   que e2e está excluido por la configuración existente.
 - 70 tests adicionales de transporte terrestre, conversaciones y facturas: pasaron.
@@ -113,12 +113,26 @@ requieren validación del coordinador con una sesión de prueba.
   cobertura ni se cambiaron tiempos máximos, exclusiones o controles.
 - Corrida completa con dos trabajadores: 503 archivos, 6188 tests; 6187 pasaron
   y uno aún esperaba warning para consolidando. Esa expectativa se actualizó a info
-  y los 6 tests de ese archivo pasaron. El gate está ejecutando su repetición
-  automática con la corrección; resultado final pendiente en este borrador.
+  y los 6 tests de ese archivo pasaron. Repetición completa final: **503 archivos
+  y 6188 tests aprobados**, sin fallos (730.01 s).
+- Gate: lint, frontera RSC, TypeScript, tests, documentación, numeración, constantes,
+  componentes, gobernanza y **build de producción aprobados**. El postbuild del Norte
+  también terminó y tsconfig.json fue restaurado por el script.
+- Resultado canónico: **10 de 15 pasos medidos, sin fallos; exit 0 con reservas**.
+  No es una validación completa de los 15 pasos.
+- Sin medir por entorno: Edge Functions (Deno/npx ausentes), migraciones aplicadas
+  (sin credenciales), contratos SQL y reconstrucción (sin Docker), e2e general
+  (sin navegadores administrados). La prueba dirigida de 8 casos usó Chrome del
+  sistema y sí pasó; no equivale a ejecutar la suite e2e general.
 
 ## Entrega y límites
 
-PR a main sin integración ni despliegue. Worktree y rama se conservan.
+Entrega prevista por PR a main, sin integración ni despliegue. Worktree y rama
+se conservan. Implementación confirmada en `303ee8e9`.
+El push y la creación del PR fueron rechazados dos veces por la revisión automática,
+que exigió un OK directo adicional aun después de presentar la autorización del
+adjunto. Se solicitó esa confirmación al usuario. No se publicó la rama ni se creó
+un PR mientras falta esa respuesta.
 La inspección remota de main devolvió Branch not protected y rulesets vacíos;
 el aislamiento local no impide un push remoto y no se cambiaron protecciones.
 El checkout principal conserva sus modificaciones anteriores. No se copiaron
