@@ -28,6 +28,9 @@ Base b8294664. Número obtenido con pnpm sdd:next después de que colores regist
   navegación a la compra. Factura/foto sin URL siguen siendo información.
 - Gestionar documentos y etiquetas conserva destino y gana énfasis.
 - Filtros con selección visible y anunciada; controles touch de al menos 44 px.
+- Cabecera alineada al inicio junto a Mis envíos, Nueva compra primero;
+  secundarios con superficie y borde perceptibles en claro/oscuro, hover
+  diferenciado y respuesta de presión sin añadir tokens globales.
 - Ayuda secundaria después de proveedores y acción de alta. Re-comprar dice
   Nueva compra con este proveedor. Cambiar identifica al proveedor.
 - Registrar compra conserva su operación y etiqueta; no se toca persistencia,

@@ -124,25 +124,25 @@ export function PortalAlertasHub({
     <div>
       {/* Header + acciones */}
       <div className="eyebrow eyebrow-wine">Alertas · mis envíos</div>
-      <div className="mt-2 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-        <h1 className="h-display" style={{ fontSize: "clamp(28px, 4.2vw, 44px)" }}>
+      <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-4">
+        <h1 className="h-display shrink-0" style={{ fontSize: "clamp(28px, 4.2vw, 44px)" }}>
           Mis envíos
         </h1>
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto sm:min-w-0 sm:flex-1 [&_.btn]:active:translate-y-0! [&_.btn]:active:shadow-none!">
+          <NewPurchaseButton href="/portal/compras/nueva" primary />
           <button
             type="button"
             onClick={() => setView("track")}
-            className="btn btn-ghost inline-flex items-center gap-2"
+            className="btn btn-ghost inline-flex items-center gap-2 bg-white! border-grey-500! hover:bg-grey-100! hover:border-ink!"
           >
             <RadarIcon size={15} /> Seguimiento total
           </button>
           <Link
             href="/portal/proveedores"
-            className="btn btn-ghost inline-flex items-center gap-2"
+            className="btn btn-ghost inline-flex items-center gap-2 bg-white! border-grey-500! hover:bg-grey-100! hover:border-ink!"
           >
             <TruckIcon size={16} /> Mis proveedores
           </Link>
-          <NewPurchaseButton href="/portal/compras/nueva" primary />
           <ServiceRequestButton markbox={markbox} />
         </div>
       </div>

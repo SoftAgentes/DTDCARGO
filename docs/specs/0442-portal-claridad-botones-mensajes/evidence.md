@@ -100,6 +100,27 @@ se aplicaron BRAND.md y AGENTS vigentes, sin propagar esas instrucciones antigua
 
 ## Reproducir sin producción
 
+### Revisión conjunta adicional · 2026-09-05
+
+- Cabecera agrupada junto al título; Nueva compra precede a Seguimiento total
+  y Mis proveedores. Secundarios con fondo y borde de tokens existentes,
+  hover diferenciado y reducción de elevación al pulsar.
+- Navegador integrado, vista aislada compilada desde componentes reales:
+  revisión visual en claro/oscuro, cabecera móvil a 390 px sin recortes;
+  Enter/Espacio alternan documentos y Tab lleva a la gestión.
+- Foco visible comprobado en Seguimiento total. Compilación de fixture,
+  ESLint, 3/3 tests del hub, governance:check, components:check y docs:check
+  pasan tras el ajuste. No se repitió el build completo de Next.js.
+- A 532 px de viewport, scrollWidth 517 px: sin desbordamiento horizontal.
+  Es comprobación de redistribución, NO certifica zoom nativo al 200%.
+  El navegador sigue en escala 1; el atajo enviado no lo cambió. Prueba
+  nativa pendiente de ajuste manual del zoom. No se da por aprobada.
+- La cuenta de prueba quedó abierta en producción tras entrar; esa sesión
+  no valida el PR. Autenticación, documentos remotos y lector siguen pendientes.
+- El servidor Vite local dejó de responder; para la revisión conjunta se
+  compiló la fixture con Vite a una carpeta temporal y se sirvió estáticamente
+  en 127.0.0.1:4312. No hubo cambios de configuración ni datos en producción.
+
 Desde este worktree, ejecutar `node docs/specs/0442-portal-claridad-botones-mensajes/qa/serve.mjs`.
 En otra terminal ejecutar `node docs/specs/0442-portal-claridad-botones-mensajes/qa/check.mjs`.
 Requiere Edge instalado y fuentes Google accesibles. Nunca ejecutar los formularios
