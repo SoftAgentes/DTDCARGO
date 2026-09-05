@@ -58,6 +58,7 @@
   --success-bg: rgba(31,138,91,0.10);
   --warning: #B8893A;
   --warning-bg: rgba(184,137,58,0.12);
+  --calc-ink-secondary: rgba(255,255,255,0.75); /* SDD-0441: texto secundario sobre navy */
   --on-warning: #0F1E3D;   /* BD-027: texto/ícono SOBRE relleno --warning sólido — navy fijo en ambos temas (el fill cambia, el texto no). Sobre --warning light 5.24 ✅. NO usar --ink (cream en dark, ~1.7). */
   --danger: #A8323E;              /* ERP / Portal */
   --danger-bg: rgba(168,50,62,0.10);
@@ -65,8 +66,8 @@
      usa este par (#C2353F); el ERP/Portal mantiene --danger (#A8323E). Ver DS §4.7 / BRAND-DECISIONS. */
   --danger-web: #C2353F;
   --danger-web-bg: rgba(194,53,63,0.10);
-  --info: #2A6FDB;
-  --info-bg: rgba(42,111,219,0.10);
+  --info: var(--ink); /* SDD-0441: información operativa neutra */
+  --info-bg: var(--neutral-bg);
   --neutral: #6B6B6B;
   --neutral-bg: rgba(107,107,107,0.10);
 
@@ -168,11 +169,12 @@
   --success-bg: rgba(91,207,160,0.14);
   --warning: #DCAB6B;
   --warning-bg: rgba(220,171,107,0.14);
+  --calc-ink-secondary: rgba(255,255,255,0.75); /* SDD-0441: texto secundario sobre navy */
   --on-warning: #0F1E3D;   /* BD-027: navy fijo — sobre --warning dark (#DCAB6B) = 7.92 ✅ */
   --danger: #E07785;
   --danger-bg: rgba(224,119,133,0.14);
-  --info: #6FA0E8;
-  --info-bg: rgba(111,160,232,0.14);
+  --info: var(--ink);
+  --info-bg: var(--neutral-bg);
   --neutral: #A8B0C4;
   --neutral-bg: rgba(168,176,196,0.12);
 

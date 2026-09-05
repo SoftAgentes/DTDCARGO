@@ -868,7 +868,7 @@ function ToastCard({
             role="alert"
             style={{
               font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
+              color: "var(--ink)",
             }}
           >
             {failureMessage}

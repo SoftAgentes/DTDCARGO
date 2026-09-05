@@ -109,7 +109,7 @@ export const CUSTOMS_STATUS_LABELS: Record<CustomsStatus, string> = {
 };
 
 export const CUSTOMS_STATUS_TONES: Record<CustomsStatus, BadgeTone> = {
-  en_revision: "warning",
+  en_revision: "info",
   observacion: "danger",
   liberacion: "info",
   pagado: "info",

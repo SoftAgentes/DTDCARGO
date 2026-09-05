@@ -38,13 +38,13 @@ const STATUS_TONE = {
   'confirmado': 'info',
   'recibido CN': 'info',
   'consolidado': 'info',
-  'zarpado': 'wine',
-  'tránsito': 'wine',
-  'aduana VE': 'warning',
+  'zarpado': 'info',
+  'tránsito': 'info',
+  'aduana VE': 'info',
   'liberado': 'success',
   'entregado': 'success',
-  'demorado': 'danger',
-  'cancelado': 'danger',
+  'demorado': 'warning',
+  'cancelado': 'neutral',
 };
 
 const SHIPMENTS = [

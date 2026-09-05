@@ -63,7 +63,7 @@ export const QR_STATUS_LABELS: Record<QrOrderStatus, string> = {
 };
 
 export const QR_STATUS_TONES: Record<QrOrderStatus, BadgeTone> = {
-  pendiente: "warning",
+  pendiente: "info",
   imprimiendo: "info",
   impreso: "success",
   entregado: "neutral",

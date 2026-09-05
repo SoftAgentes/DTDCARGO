@@ -8,9 +8,9 @@
 type Tone = "wine" | "info" | "warning" | "success" | "ink";
 
 const TONE_COLOR: Record<Tone, string> = {
-  wine: "var(--wine)",
+  wine: "var(--wine-text)",
   info: "var(--info)",
-  warning: "var(--warning)",
+  warning: "var(--ink)",
   success: "var(--success)",
   ink: "var(--ink)",
 };

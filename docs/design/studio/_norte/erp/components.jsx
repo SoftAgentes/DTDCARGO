@@ -132,15 +132,13 @@ function Select({ label, value, onChange, options = [], required, error, style =
 // ── Badge ─────────────────────────────────────────────────────
 function Badge({ tone = 'neutral', children, size = 'md', dot = false, style = {} }) {
   const tones = {
-    /* BRAND-SYNC 2026-07-12: se completa la migración BD-018 (texto --ink + dot semántico) a los
-       tonos que fallan AA en algún tema sobre su -bg: success (light 3.83), info (light 4.20),
-       wine (dark 2.79). warning ya migrado. danger (5.61) y neutral (4.68) pasan → texto directo. */
-    success: { bg: 'var(--success-bg)', fg: 'var(--ink)', dot: 'var(--success)' },
-    warning: { bg: 'var(--warning-bg)', fg: 'var(--ink)', dot: 'var(--warning)' },
-    danger: { bg: 'var(--danger-bg)', fg: 'var(--danger)' },
+    /* SDD-0441: tinta neutra e icono semántico; la espera no es error. */
+    success: { bg: 'var(--neutral-bg)', fg: 'var(--ink)', dot: 'var(--success)' },
+    warning: { bg: 'var(--bg-surface)', fg: 'var(--ink)', dot: 'var(--warning)' },
+    danger: { bg: 'var(--neutral-bg)', fg: 'var(--ink)', dot: 'var(--danger)' },
     info: { bg: 'var(--info-bg)', fg: 'var(--ink)', dot: 'var(--info)' },
     wine: { bg: 'var(--wine-tint)', fg: 'var(--ink)', dot: 'var(--wine-text)' },
-    neutral: { bg: 'var(--neutral-bg)', fg: 'var(--ink-soft)' }
+    neutral: { bg: 'var(--neutral-bg)', fg: 'var(--ink)' }
   }[tone];
   const sizes = {
     sm: { h: 18, px: 6, fs: 10.5 },
@@ -156,7 +154,12 @@ function Badge({ tone = 'neutral', children, size = 'md', dot = false, style = {
       letterSpacing: '0.02em', whiteSpace: 'nowrap',
       ...style
     }}>
-      {(dot || tones.dot) && <span style={{ width: 6, height: 6, borderRadius: '50%', background: tones.dot || tones.fg }} />}
+      <svg aria-hidden="true" viewBox="0 0 24 24" width={sizes.fs+2} height={sizes.fs+2} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,color:tones.dot||tones.fg}}>
+        {tone === 'warning' ? <path d="M12 3 2 21h20L12 3Zm0 6v5m0 3h.01" /> : <>
+          <circle cx="12" cy="12" r="9" />
+          <path d={tone === 'success' ? 'm7 12 3 3 7-7' : tone === 'danger' ? 'm8 8 8 8m0-8-8 8' : tone === 'neutral' ? 'M12 7v5l3 2' : 'M12 11v6m0-10h.01'} />
+        </>}
+      </svg>
       {children}
     </span>);
 
@@ -472,9 +475,9 @@ function Avatar({ initials, color = 'wine', size = 32, style = {} }) {
   const colors = {
     wine: { bg: 'var(--wine-tint)', fg: 'var(--wine)' },
     info: { bg: 'var(--info-bg)', fg: 'var(--info)' },
-    success: { bg: 'var(--success-bg)', fg: 'var(--success)' },
-    warning: { bg: 'var(--warning-bg)', fg: 'var(--warning)' },
-    neutral: { bg: 'var(--neutral-bg)', fg: 'var(--ink-soft)' }
+    success: { bg: 'var(--neutral-bg)', fg: 'var(--success)' },
+    warning: { bg: 'var(--bg-surface)', fg: 'var(--warning)' },
+    neutral: { bg: 'var(--neutral-bg)', fg: 'var(--ink)' }
   }[color];
   return (
     <div style={{

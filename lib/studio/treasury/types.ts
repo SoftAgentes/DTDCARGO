@@ -183,7 +183,7 @@ export const BILL_STATUS_META: Record<
   BillStatus,
   { label: string; tone: "success" | "danger" | "warning" | "info" | "neutral" }
 > = {
-  pendiente: { label: "Pendiente", tone: "warning" },
+  pendiente: { label: "Pendiente", tone: "info" },
   parcial: { label: "Parcial", tone: "info" },
   pagada: { label: "Pagada", tone: "success" },
   anulada: { label: "Anulada", tone: "neutral" },

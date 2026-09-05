@@ -21,12 +21,14 @@ export function DecimalInput({
   id,
   placeholder,
   className,
+  "aria-describedby": describedBy,
 }: {
   value: number;
   onValueChange: (n: number) => void;
   id?: string;
   placeholder?: string;
   className?: string;
+  "aria-describedby"?: string;
 }) {
   const [text, setText] = useState(() => (value ? String(value) : ""));
 
@@ -52,6 +54,7 @@ export function DecimalInput({
   return (
     <input
       id={id}
+      aria-describedby={describedBy}
       type="text"
       inputMode="decimal"
       value={text}

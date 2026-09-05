@@ -193,7 +193,7 @@ export function statusBadgeTone(
     case "emitida":
       return "info";
     case "parcial":
-      return "warning";
+      return "info";
     case "vencida":
       return "danger";
     case "borrador":

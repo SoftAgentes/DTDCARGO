@@ -20,6 +20,7 @@ components/CalculadoraForm.tsx
 components/DecimalInput.tsx
 components/DestinoCombobox.tsx
 components/StatusIcon.tsx
+components/UltimoKmCalculator.tsx
 docs/design/studio/_norte/BRAND-DECISIONS.md
 docs/design/studio/_norte/CHANGELOG.md
 docs/design/studio/_norte/CLAUDE.md
@@ -29,10 +30,18 @@ docs/design/studio/_norte/erp/data.jsx
 docs/design/studio/_norte/erp/tokens.css
 docs/marketing/README.md
 docs/specs/0441-colores-semanticos-marca/allowlist.txt
+docs/specs/0441-colores-semanticos-marca/assets/calculator-before-after.png
+docs/specs/0441-colores-semanticos-marca/assets/calculator-dark-mobile.png
+docs/specs/0441-colores-semanticos-marca/assets/dark-desktop.png
+docs/specs/0441-colores-semanticos-marca/assets/dark-mobile.png
+docs/specs/0441-colores-semanticos-marca/assets/light-desktop.png
+docs/specs/0441-colores-semanticos-marca/assets/light-mobile.png
+docs/specs/0441-colores-semanticos-marca/assets/measure-contrast.txt
 docs/specs/0441-colores-semanticos-marca/audit.md
 docs/specs/0441-colores-semanticos-marca/spec.md
 docs/specs/README.md
 e2e/calculadora-semantic-colors.spec.ts
+lib/portal/__tests__/invoices.test.ts
 lib/shared/shipment-public.semantic-colors.test.ts
 lib/shared/shipment-public.ts
 lib/studio/__tests__/invoice-types.test.ts
@@ -42,6 +51,7 @@ lib/studio/agent-types.ts
 lib/studio/bitacora/bitacora-types.ts
 lib/studio/bug-types.ts
 lib/studio/club/group-buy-types.ts
+lib/studio/conversaciones/__tests__/conversaciones.test.ts
 lib/studio/conversaciones/conversations-types.ts
 lib/studio/customs-types.ts
 lib/studio/dispatch-types.ts
@@ -49,6 +59,7 @@ lib/studio/documents/types.ts
 lib/studio/inventory/types.ts
 lib/studio/invoice-types.ts
 lib/studio/mail-types.ts
+lib/studio/naviera/__tests__/consolidation-request-status.test.ts
 lib/studio/naviera/types.ts
 lib/studio/no-olvidar-types.ts
 lib/studio/nomina/registration-types.ts

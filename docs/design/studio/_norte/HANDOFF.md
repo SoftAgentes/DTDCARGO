@@ -19,6 +19,12 @@
 
 ## 🟢 Estado actual · v4.6 (2026-07-10)
 
+> **Enmienda semántica local 2026-09-05 (SDD-0441, Sam):** la política de
+> Estados y mensajes de BRAND.md/CLAUDE.md sustituye los ejemplos anteriores
+> que usan vino para información o rojo para espera normal. Ver CHANGELOG.
+> El puntero de runtime es v5.0 (lib/marca/brand-book.ts); este Norte conserva
+> v4.6. No se sobrescribe el book v5.0 alojado ni se publica la copia antigua.
+
 > **Versión única del proyecto: v4.6** (2026-07-10). Ciclo de accesibilidad WCAG AA (BD-016…019),
 > hardening de gradientes (BD-022/023) y split de terminología MARKBOX/Shipping Mark (BD-021).
 > Ver `BRAND-DECISIONS.md` BD-016…027 para el detalle completo.

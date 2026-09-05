@@ -81,7 +81,7 @@ describe("badge de estado de factura", () => {
   it("mapea tono → token de estado de marca", () => {
     expect(INVOICE_TONE_COLOR[invoiceStatusTone("pagada")]).toBe("#1F8A5B");
     expect(INVOICE_TONE_COLOR[invoiceStatusTone("emitida")]).toBe("#0F1E3D");
-    expect(INVOICE_TONE_COLOR[invoiceStatusTone("parcial")]).toBe("#B8893A");
+    expect(INVOICE_TONE_COLOR[invoiceStatusTone("parcial")]).toBe("#0F1E3D");
   });
   it("invoiceDisplayStatus deriva 'vencida' sin tocar el status crudo", () => {
     const past = "2020-01-01";

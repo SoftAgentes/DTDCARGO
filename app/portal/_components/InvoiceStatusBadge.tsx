@@ -1,3 +1,4 @@
+import { StatusIcon } from "@/components/StatusIcon";
 import {
   invoiceDisplayStatus,
   invoiceStatusLabel,
@@ -25,7 +26,7 @@ export function InvoiceStatusBadge({
   const label = invoiceStatusLabel(effective);
   return (
     <span className={`badge-status badge-status-${tone}`}>
-      <span className="badge-status-dot" aria-hidden />
+      <StatusIcon tone={tone} />
       {label}
     </span>
   );
