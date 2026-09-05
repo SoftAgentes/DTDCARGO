@@ -205,17 +205,35 @@ se aplica para pasar el gate. Pruebas SQL/schema efímeras y revisión sí son
 preintegración. Omisiones en checks críticos bloquean aprobación hasta evidencia
 o excepción explícita, aunque el proceso salga 0.
 
-Al 2026-09-05 el workflow «Calidad local sin secretos» existe en PR #21,
-no en main. No se crea un competidor aquí. Checks Vercel/Agent Review/Preview
-Comments no sustituyen pruebas. Harness se valida con Node tests, docs/index,
-numbering, skills oficiales y diff-check; no requiere tests de producto ni acceso
-Cloud por sí mismo.
+Al 2026-09-05 el workflow «Calidad local sin secretos» se extrae de PR #21
+como unidad mínima SDD-0349 sobre main, en la rama local
+`codex/ci-quality-extract-20260905`. No se integra el saneamiento completo.
+SDD-0444 incorpora esa unidad local y añade `pnpm harness:test` explícito al job:
+`pnpm test` ejecuta Vitest, que no descubre los archivos `.node.mjs` del harness.
+El contrato del workflow debe fallar si se elimina/condiciona ese paso o se
+ignora su fallo; nunca inferir cobertura del harness a partir de Vitest.
+
+La extracción y la combinación necesitan evidencia propia sobre sus SHA locales;
+un CI verde histórico de #21 no las valida. La corrida alojada y los required
+checks no existen para estas correcciones hasta publicación autorizada.
+Checks Vercel/Agent Review/Preview Comments no sustituyen pruebas. Consultar
+los resultados por gate y pendientes en los handoffs de SDD-0349 y SDD-0444.
+
+Esto no hace compatibles #21 y #32 completos. Comparten diez rutas de tooling
+y documentación. Al integrar #21 después, revisar sus tests que importan
+`runWorktreeCommand` (ausente en #32) y los contratos de `finish`: #21 elimina
+con comprobaciones, #32 solo informa. No elegir una versión completa de los
+archivos para resolverlos. Trasladar a project-rules las correcciones técnicas
+de AGENTS de #21 sin restaurar su metodología antigua; validar la nueva combinación.
 
 Pipeline observado: vercel.json usa ignoreCommand sobre HEAD^ HEAD,
-excluye docs/Markdown salvo docs/marketing. El repo documenta Vercel como
+excluye docs/** y Markdown de la raíz mediante :(exclude,glob)*.md, pero
+comprueba docs/marketing aparte. Markdown en otras subcarpetas sí puede
+disparar build. El repo documenta Vercel como
 publicador de main; confirma configuración efectiva de proyecto/ambiente antes
 de cada release. El SHA servido no se deduce de un HTTP 200 ni de un merge.
-Esta migración no modifica pipeline, no mergea y no despliega producción.
+La corrección modifica solo el workflow de calidad; no altera el pipeline de
+producción, no publica esta revisión, no mergea main y no despliega.
 
 Release requiere evidencia: autorización, PR/SHA integrado, checks aplicables,
 migraciones por nombre y una por vez según runbook, ID de deployment READY y
@@ -229,7 +247,8 @@ Preparar revert por PR o redeploy aprobado de versión conocida según el caso.
 Recomendaciones GitHub (no activadas):
 PR obligatoria; impedir push directo/force/delete main; revisión y conversaciones
 resueltas; invalidar aprobación con nuevos commits; checks requeridos por SHA.
-Primero integrar/validar CI propuesta #21 y decidir SQL/E2E por alcance; después
+Primero revisar/publicar con autorización la extracción mínima SDD-0349 y la
+combinación SDD-0444 con harness:test; decidir SQL/E2E por alcance. Después
 activar el nombre real `Calidad local sin secretos` más checks aplicables,
 sin inventar un check inexistente. Separar credenciales Worker sin admin de
 integración. CODEOWNERS para harness/gobernanza/DB solo con responsables reales.

@@ -7,7 +7,7 @@ created: 2026-09-05
 updated: 2026-09-05
 supersedes: null
 superseded_by: null
-related: ["0020"]
+related: ["0020", "0349"]
 confidencialidad: interno
 ---
 
@@ -49,6 +49,10 @@ no se sustituye ni cambia su runtime. Esta spec afecta exclusivamente ingenierí
 - docs/README.md, esta spec e índice generado docs/specs/README.md.
 - .claude/commands/feature.md, .claude/agents/{leader,implementer,reviewer}.md.
 - .harness/CHECKPOINTS.md.
+- .github/workflows/quality.yml y scripts/__tests__/ci-workflow-contract.test.mjs
+  (CI extraída en SDD-0349 y ampliada para ejecutar harness:test).
+- docs/specs/0349-ci-calidad-sin-secretos/spec.md y
+  .agents/handoffs/2026-09-05-ci-quality-extract.md (incorporados por merge local A).
 - scripts/harness-worktree.mjs, scripts/next-number.mjs, scripts/director-status.mjs.
 - scripts/tests/{harness-worktree,director-status}.node.mjs,
   scripts/tests/next-number.integration.node.mjs; traslado del test previo de
@@ -64,8 +68,9 @@ Handoffs por tarea reutilizan carpeta existente. Claim cooperativo por worktree;
 sin protecciones remotas no es un límite de seguridad absoluto.
 
 Se conserva verify y sus checks de producto. Ledger producción se clasifica como
-release; nunca aplicar una migración solo para aprobar una PR. No se duplica CI
-en revisión #21. Nueva prueba harness queda conectada al gate local.
+release; nunca aplicar una migración solo para aprobar una PR. CI se extrae
+selectivamente de #21 como SDD-0349, sin sus cambios de producto. La corrección
+añade harness:test explícito a ese job, además del gate local verify.
 
 La reserva 0444 fue creada desde inventario de refs, PRs y trabajo sin commit.
 La ref local conserva el commit stub; la spec completa viaja en esta rama.
@@ -76,3 +81,27 @@ de implementación. Integración y producción permanecen sin autorización.
 
 [Auditoría y validación](../../audits/2026-09-05-codex-engineering.md).
 [Handoff](../../../.agents/handoffs/2026-09-05-engineering-director-worker.md).
+
+## Corrección de recepción — 2026-09-05
+
+La auditoría de #32 sobre 2db92f9979ef3380cc608d2f5ea8ce3d4bfaac2c exige
+restaurar C3 y conectar las pruebas Node al CI efectivo. Corrección local
+terminada y validada; done no significa publicación ni integración aprobada.
+Autorización específica de esta revisión: solo trabajo y commits locales; no
+push, publicación/actualización de PR, merge main, producción ni protecciones.
+Esta restricción sustituye el permiso de publicación del encargo inicial.
+
+- [x] C3 exige RLS habilitado para toda tabla nueva y tratamiento explícito del
+  DDL destructivo con default/respaldo y estrategia segura, sin permiso productivo.
+- [x] Workflow de calidad ejecuta pnpm harness:test sin condición ni bypass.
+- [x] Contrato de CI prueba rechazo de omisión y formas de ocultar el gate.
+- [x] Combinación local con A validada, con fallos y SKIPs de main separados
+  de la corrección y sin importar arreglos de producto.
+
+Evidencia: 6188 pruebas Vitest, 12 Node del harness, 16 contratos de CI dentro
+de Vitest y build con 158 páginas. El contrato focal falló antes del paso nuevo
+y pasó después. Build requirió un reintento por una descarga fallida de Google Fonts; los
+demás gates de B pasaron sin SKIPs. Detalle y límites en el handoff.
+
+La integración futura de #21 continúa pendiente: sus contratos runWorktreeCommand
+y finish y sus cambios de AGENTS no son intercambiables con #32.
