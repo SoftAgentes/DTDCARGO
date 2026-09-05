@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ALERT_STAGE_META,
@@ -22,7 +22,7 @@ import {
   ContainerIcon,
   DocIcon,
   CheckIcon,
-  DownloadIcon,
+  ChevronDownIcon,
   RadarIcon,
   TruckIcon,
   WarehouseIcon,
@@ -77,16 +77,7 @@ function formatEta(iso: string | null): string | null {
 }
 
 function StageIcon({ stage, size = 16 }: { stage: AlertStage; size?: number }) {
-  if (stage === "prealerta")
-    return (
-      <span
-        className="font-bold leading-none"
-        style={{ fontSize: `${size + 3}px` }}
-        aria-hidden
-      >
-        +
-      </span>
-    );
+  if (stage === "prealerta") return <DocIcon size={size} />;
   if (stage === "alerta") return <BoxIcon size={size} />;
   if (stage === "bodegave") return <WarehouseIcon size={size} />;
   if (stage === "recibido") return <CheckIcon size={size} />;
@@ -151,7 +142,7 @@ export function PortalAlertasHub({
           >
             <TruckIcon size={16} /> Mis proveedores
           </Link>
-          <NewPurchaseButton href="/portal/compras/nueva" />
+          <NewPurchaseButton href="/portal/compras/nueva" primary />
           <ServiceRequestButton markbox={markbox} />
         </div>
       </div>
@@ -192,8 +183,9 @@ export function PortalAlertasHub({
               key={t.k}
               type="button"
               onClick={() => setStage(t.k)}
-              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12.5px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-                on ? "bg-white text-wine-text card-shadow" : "text-grey-500 hover:text-ink"
+              aria-pressed={on}
+              className={`inline-flex items-center gap-1.5 min-h-12 rounded-full px-4 py-2 text-[12.5px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
+                on ? "bg-white text-ink underline underline-offset-4 card-shadow" : "text-grey-500 hover:text-ink"
               }`}
             >
               {t.l}
@@ -241,6 +233,7 @@ function AlertRow({
   open: boolean;
   onToggleDocs: () => void;
 }) {
+  const panelId = useId();
   const m = ALERT_STAGE_META[item.stage];
   const color = TONE_COLOR[m.tone];
   // Es un ENVÍO (tiene detalle propio) vs. una compra todavía en prealerta (tiene
@@ -299,36 +292,28 @@ function AlertRow({
           {isEnvio ? (
             <Link
               href={`/portal/envios/${encodeURIComponent(item.code)}`}
-              className="inline-flex items-center gap-1.5 rounded text-[12.5px] font-bold text-wine-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+              className="inline-flex items-center gap-1.5 rounded text-[12.5px] font-bold text-ink underline underline-offset-4 min-h-12 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             >
               Ver seguimiento <ArrowIcon size={13} />
             </Link>
           ) : (
-            <button
-              type="button"
-              onClick={onToggleDocs}
-              aria-expanded={open}
-              className={`inline-flex items-center gap-1.5 rounded-[9px] border px-3 py-1.5 text-[12px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-                open ? "border-grey-300 bg-paper" : "border-grey-200 bg-white hover:bg-paper"
-              } text-ink`}
-            >
-              <DocIcon size={13} /> Documentos{" "}
-              <span
-                className="text-[10px]"
-                style={{
-                  fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-                  color: docCount ? "var(--color-status-success)" : "var(--color-grey-500)",
-                }}
-              >
-                {docCount}/3
-              </span>
-            </button>
+            <>
+              <span className="text-xs text-grey-700">Documentos: {docCount}/3 disponibles</span>
+              <button type="button" onClick={onToggleDocs} aria-expanded={open} aria-controls={panelId}
+                aria-label={`${open ? "Ocultar" : "Ver"} documentos de ${item.code}`}
+                className="btn btn-ghost min-h-12 inline-flex items-center gap-2">
+                <DocIcon size={16} /> {open ? "Ocultar documentos" : "Ver documentos"}
+                <ChevronDownIcon size={16} className={open ? "rotate-180" : ""} />
+              </button>
+            </>
           )}
         </div>
       </div>
 
-      {open && !isEnvio ? (
-        <DocsPanel code={item.code} docs={docs} />
+      {!isEnvio ? (
+        <div id={panelId} hidden={!open}>
+          {open ? <DocsPanel code={item.code} docs={docs} /> : null}
+        </div>
       ) : null}
     </div>
   );
@@ -363,26 +348,19 @@ function DocsPanel({ code, docs }: { code: string; docs: DocPresence | undefined
         {rows.map((r) => {
           const contenido = (
             <>
-              <span
-                style={{
-                  color: r.ok
-                    ? "var(--color-status-success)"
-                    : "var(--color-grey-500)",
-                }}
-              >
-                {r.ok ? <CheckIcon size={14} /> : <DownloadIcon size={14} />}
-              </span>
-              <span className="flex-1 text-[12px] font-semibold text-ink">
-                {r.label}
-              </span>
-              {/* SDD-0308 · sólo el packing list tiene a dónde llevar. La flecha
-                  es lo que distingue el chip que abre algo del que sólo informa;
-                  sin ella, dos controles idénticos se comportarían distinto. */}
-              {r.href ? <ArrowIcon size={13} className="text-grey-500" /> : null}
+              <DocIcon size={16} className="text-ink" />
+              <span className="flex-1 text-sm font-semibold text-ink">{r.label}</span>
+              {r.href ? (
+                <span className="inline-flex items-center gap-2 text-sm text-ink underline underline-offset-4">
+                  Consultar <ArrowIcon size={16} />
+                </span>
+              ) : (
+                <span className="text-xs text-grey-700">{r.ok ? "Recibido" : "Pendiente"}</span>
+              )}
             </>
           );
           const base =
-            "flex items-center gap-2 rounded-[10px] px-3 py-2.5 text-left";
+            "flex min-h-12 items-center gap-2 rounded-[10px] px-3 py-3 text-left";
           const fondo = {
             background: r.ok
               ? "color-mix(in srgb, var(--color-status-success) 12%, transparent)"
@@ -410,7 +388,7 @@ function DocsPanel({ code, docs }: { code: string; docs: DocPresence | undefined
       </div>
       <Link
         href={`/portal/compras/${encodeURIComponent(code)}/etiquetas`}
-        className="mt-3 inline-flex items-center gap-1.5 rounded text-[12.5px] font-bold text-wine-text hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        className="btn btn-primary mt-4 min-h-12 inline-flex items-center gap-2"
       >
         Gestionar documentos y etiquetas <ArrowIcon size={13} />
       </Link>
@@ -469,7 +447,7 @@ function SeguimientoTotal({
         // `flex w-fit`, no `inline-flex`: `.eyebrow` de abajo también es
         // inline-flex, así que en inline los dos caían en la MISMA línea y el
         // guion del eyebrow se montaba sobre el texto del botón.
-        className="flex w-fit items-center gap-1.5 text-[12.5px] font-semibold text-grey-700 hover:text-ink mb-4"
+        className="btn btn-ghost flex w-fit min-h-12 items-center gap-2 mb-4"
       >
         <ArrowIcon size={13} className="rotate-180" /> Volver a Alertas · mis envíos
       </button>

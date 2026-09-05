@@ -58,6 +58,18 @@ conserva handler y requisitos existentes. La ayuda usa details/summary nativo.
 - docs/specs/0442-portal-claridad-botones-mensajes/spec.md
 - docs/specs/0442-portal-claridad-botones-mensajes/evidence.md
 
+- docs/specs/0442-portal-claridad-botones-mensajes/qa/index.html
+- docs/specs/0442-portal-claridad-botones-mensajes/qa/fixture.tsx
+- docs/specs/0442-portal-claridad-botones-mensajes/qa/serve.mjs
+- docs/specs/0442-portal-claridad-botones-mensajes/qa/check.mjs
+- docs/specs/0442-portal-claridad-botones-mensajes/assets/desktop-light.png
+- docs/specs/0442-portal-claridad-botones-mensajes/assets/desktop-dark.png
+- docs/specs/0442-portal-claridad-botones-mensajes/assets/mobile-light.png
+- docs/specs/0442-portal-claridad-botones-mensajes/assets/mobile-dark.png
+- docs/specs/0442-portal-claridad-botones-mensajes/assets/before-desktop-light.png
+
+- app/portal/_components/NewPurchaseButton.tsx
+
 ## Coordinación
 
 Colores confirmó no tocar estos componentes; sí cambia tokens globales y badges

@@ -75,9 +75,50 @@ export function SuppliersClient({
             que ya tengas.
           </p>
         </div>
-        <NewPurchaseButton href="/portal/compras/nueva" />
+        <NewPurchaseButton href="/portal/compras/nueva" primary />
       </div>
 
+      {/* ── Lista de proveedores ── */}
+      {suppliers.length === 0 ? (
+        <div className="mt-6 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">
+          <div className="text-[16px] font-bold text-ink">
+            Todavía no registraste proveedores.
+          </div>
+          <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
+            Agrega tu primer proveedor chino para generar su código y las
+            etiquetas que va a pegar en cada caja.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-6 flex flex-col gap-3">
+          {suppliers.map((s) => (
+            <SupplierCard key={s.id} supplier={s} />
+          ))}
+        </div>
+      )}
+
+      {/* ── Agregar proveedor nuevo ── */}
+      <div className="mt-5">
+        {adding ? (
+          <AddSupplierForm
+            onDone={() => setAdding(false)}
+            onCancel={() => setAdding(false)}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="btn btn-ghost inline-flex items-center gap-2"
+          >
+            Agregar proveedor
+          </button>
+        )}
+      </div>
+
+      <details className="mt-6">
+        <summary className="min-h-12 cursor-pointer py-3 text-sm font-semibold text-ink underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
+          Ayuda para comprar y enviar desde China
+        </summary>
       {/* ── Por qué registrar importa ── */}
       <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7">
         <div className="text-[15px] font-bold text-ink">
@@ -139,42 +180,7 @@ export function SuppliersClient({
           Shipping Mark en el querystring (SDD-0099). */}
       <GuiaAlibabaCard markbox={markbox} variante="portal" className="mt-5" />
 
-      {/* ── Lista de proveedores ── */}
-      {suppliers.length === 0 ? (
-        <div className="mt-6 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">
-          <div className="text-[16px] font-bold text-ink">
-            Todavía no registraste proveedores.
-          </div>
-          <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
-            Agrega tu primer proveedor chino para generar su código y las
-            etiquetas que va a pegar en cada caja.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-6 flex flex-col gap-3">
-          {suppliers.map((s) => (
-            <SupplierCard key={s.id} supplier={s} />
-          ))}
-        </div>
-      )}
-
-      {/* ── Agregar proveedor nuevo ── */}
-      <div className="mt-5">
-        {adding ? (
-          <AddSupplierForm
-            onDone={() => setAdding(false)}
-            onCancel={() => setAdding(false)}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            className="btn btn-ghost inline-flex items-center gap-2"
-          >
-            + Agregar proveedor nuevo
-          </button>
-        )}
-      </div>
+      </details>
 
       {/* ── Galería de servicios + video-ayuda (Capa 2 · SDD-0098) ── */}
       <PrealertaServiceGallery addons={addons} />
@@ -183,7 +189,7 @@ export function SuppliersClient({
       <div className="mt-8">
         <Link
           href="/portal/compras"
-          className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-wine-text hover:underline"
+          className="inline-flex items-center gap-1.5 text-[13.5px] font-bold text-ink underline underline-offset-4"
         >
           Ver todas mis compras <ArrowIcon size={14} />
         </Link>
@@ -276,7 +282,7 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
       </div>
 
       {confirmingDelete ? (
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="text-[12px] text-grey-700">¿Borrar proveedor?</span>
           <form action={deleteAction}>
             <input type="hidden" name="supplierId" value={supplier.id} />
@@ -298,7 +304,7 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
           </button>
         </div>
       ) : (
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setEditing(true)}
@@ -324,9 +330,9 @@ function SupplierCard({ supplier }: { supplier: SupplierView }) {
           )}
           <Link
             href={`/portal/compras/nueva?proveedor=${encodeURIComponent(supplier.id)}`}
-            className="btn btn-ghost inline-flex items-center gap-1.5"
+            className="btn btn-ghost min-h-12 inline-flex items-center gap-2 whitespace-normal"
           >
-            Re-comprar <ArrowIcon size={14} />
+            Nueva compra con este proveedor <ArrowIcon size={14} />
           </Link>
         </div>
       )}
