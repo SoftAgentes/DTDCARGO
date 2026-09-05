@@ -131,8 +131,9 @@ Entrega prevista por PR a main, sin integración ni despliegue. Worktree y rama
 se conservan. Implementación confirmada en `303ee8e9`.
 El push y la creación del PR fueron rechazados dos veces por la revisión automática,
 que exigió un OK directo adicional aun después de presentar la autorización del
-adjunto. Se solicitó esa confirmación al usuario. No se publicó la rama ni se creó
-un PR mientras falta esa respuesta.
+adjunto. El usuario confirmó la publicación de la rama y la apertura del PR el
+2026-09-05. Esa autorización se limita a la rama propia y el PR hacia main;
+no incluye integración ni despliegue.
 La inspección remota de main devolvió Branch not protected y rulesets vacíos;
 el aislamiento local no impide un push remoto y no se cambiaron protecciones.
 El checkout principal conserva sus modificaciones anteriores. No se copiaron
