@@ -15,12 +15,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { LANG_COOKIE_NAME, type Lang } from "@/lib/lang";
+import { lookupForReceptionAction } from "./actions";
 import { RecibirClient } from "./_components/RecibirClient";
 
 export const metadata = { title: "Recibir" };
 export const dynamic = "force-dynamic";
 
-export default async function RecibirIndexPage() {
+export default async function RecibirIndexPage({ searchParams }: { searchParams: Promise<{ box?: string }> }) {
   const operario = await getCurrentOperario();
   if (!operario) redirect("/m/cn/login");
   if (operario.region !== "cn") redirect("/m/cn");
@@ -28,5 +29,7 @@ export default async function RecibirIndexPage() {
   const cookieLang = (await cookies()).get(LANG_COOKIE_NAME)?.value;
   const lang: Lang = cookieLang === "cn" ? "cn" : "es";
 
-  return <RecibirClient initialLang={lang} />;
+  const { box } = await searchParams;
+  const initial = box ? await lookupForReceptionAction(box) : null;
+  return <RecibirClient initialLang={lang} initialLookup={initial?.found ? initial : undefined} />;
 }

@@ -221,6 +221,7 @@ export async function getPrealertaByCode(
 
 /** Datos que ve el proveedor en la página pública /p/{token} (sin login). */
 export type ProviderShareData = {
+  tenantId: string;
   code: string;
   description: string;
   boxes: number;
@@ -267,7 +268,7 @@ export async function getProviderShareByToken(
   try {
     const { data: p, error } = await supabase
       .from("prealertas")
-      .select("id, code, description, boxes, client_markbox, supplier_id")
+      .select("id, tenant_id, code, boxes, client_markbox, supplier_id")
       .eq("share_token", token)
       .is("deleted_at", null)
       .is("share_disabled_at", null) // PORT-4: link desactivado → notFound
@@ -275,17 +276,12 @@ export async function getProviderShareByToken(
         id: string;
         code: string;
         description: string;
+        tenant_id: string;
         boxes: number;
         client_markbox: string;
         supplier_id: string | null;
       }>();
     if (error || !p) return null;
-
-    const { data: c } = await supabase
-      .from("clients")
-      .select("name")
-      .eq("markbox", p.client_markbox)
-      .maybeSingle<{ name: string }>();
 
     let supplierName: string | null = null;
     let supplierWechat: string | null = null;
@@ -302,11 +298,12 @@ export async function getProviderShareByToken(
     const predeclaredBoxes = await listPredeclaredBoxes(supabase, p.id);
 
     return {
+      tenantId: p.tenant_id,
       code: p.code,
-      description: p.description,
+      description: "", // Customer-entered free text is not part of the supplier projection.
       boxes: Math.round(num(p.boxes)),
       markbox: p.client_markbox,
-      clientName: c?.name ?? null,
+      clientName: null, // Private supplier projection never reads client identity.
       supplierName,
       supplierWechat,
       predeclaredBoxes,

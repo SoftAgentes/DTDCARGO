@@ -189,6 +189,7 @@ create table public.shipping_label_versions (
   primary key (tenant_id, version)
 );
 alter table public.shipping_label_versions enable row level security;
+revoke all on public.shipping_label_versions from public, anon, authenticated, service_role;
 grant select on public.shipping_label_versions to authenticated;
 grant select, insert on public.shipping_label_versions to service_role;
 create policy shipping_label_versions_tenant_read on public.shipping_label_versions

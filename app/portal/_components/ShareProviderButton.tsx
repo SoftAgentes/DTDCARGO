@@ -19,7 +19,8 @@ export function ShareProviderButton({ token }: { token: string }) {
   const [copied, setCopied] = useState(false);
 
   const url = origin ? `${origin}/p/${token}` : "";
-  const waText = `我的货物标签和收货地址 / Etiquetas y dirección de mi pedido: ${url}`;
+  const waText = `请通过此链接填写 DTD Cargo 装箱单及发票（在线填写或上传 Excel），然后打印标签并在每个箱子贴一张，以便仓库识别和接收货物。
+Completa el packing list y factura de DTD Cargo en este enlace (formulario o Excel). Imprime las etiquetas y pega una en cada caja para identificarla al recibir en el almacén: ${url}`;
   const waLink = `https://wa.me/?text=${encodeURIComponent(waText)}`;
 
   async function copy() {

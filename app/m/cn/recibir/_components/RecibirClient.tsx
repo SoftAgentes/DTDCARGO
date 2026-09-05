@@ -8,6 +8,8 @@
  * (mismo que estiba) y ActionButton. Piel oscura (bg-sidebar) como /m/cn/estibar.
  */
 
+import { RECEPTION_INSTRUCTIONS } from "@/lib/studio/prealertas/reception-instructions";
+import { defaultAddon } from "@/lib/studio/prealertas/addons";
 import { useState } from "react";
 import Link from "next/link";
 import { QrScanner } from "@/app/m/_components/QrScanner";
@@ -26,13 +28,13 @@ const t = (lang: Lang, es: string, cn: string) => (lang === "cn" ? cn : es);
 
 type View = "scan" | "confirm" | "done";
 
-export function RecibirClient({ initialLang }: { initialLang: Lang }) {
+export function RecibirClient({ initialLang, initialLookup }: { initialLang: Lang; initialLookup?: ReceptionLookup }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
-  const [view, setView] = useState<View>("scan");
+  const [view, setView] = useState<View>(initialLookup ? "confirm" : "scan");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lookup, setLookup] = useState<ReceptionLookup | null>(null);
-  const [count, setCount] = useState<string>("");
+  const [lookup, setLookup] = useState<ReceptionLookup | null>(initialLookup ?? null);
+  const [selectedCodes, setSelectedCodes] = useState<string[]>(initialLookup?.pendingCodes ?? []);
   const [result, setResult] = useState<ReceiveState | null>(null);
 
   const setLang = (next: Lang) => {
@@ -43,7 +45,7 @@ export function RecibirClient({ initialLang }: { initialLang: Lang }) {
   const reset = () => {
     setView("scan");
     setLookup(null);
-    setCount("");
+    setSelectedCodes([]);
     setResult(null);
     setError(null);
   };
@@ -73,15 +75,20 @@ export function RecibirClient({ initialLang }: { initialLang: Lang }) {
 
     setBusy(true);
     setError(null);
-    const res = await lookupForReceptionAction(parsed.code);
-    setBusy(false);
+    let res;
+    try {
+      res = await lookupForReceptionAction(parsed.code);
+    } catch {
+      setError(t(lang, "No se pudo consultar la caja. Revisa la conexión y vuelve a escanear.", "无法查询箱子，请检查网络后重试。"));
+      return;
+    } finally { setBusy(false); }
 
     if (!res.found) {
       setError(res.error);
       return;
     }
     setLookup(res);
-    setCount(String(res.expected));
+    setSelectedCodes(res.pendingCodes);
     setView("confirm");
   }
 
@@ -181,12 +188,11 @@ export function RecibirClient({ initialLang }: { initialLang: Lang }) {
           <ConfirmCard
             lang={lang}
             lookup={lookup}
-            count={count}
-            setCount={setCount}
+            selectedCodes={selectedCodes}
+            setSelectedCodes={setSelectedCodes}
             onCancel={reset}
             onReceive={async () => {
-              const confirmed = count.trim() === "" ? null : Number(count);
-              const res = await receivePrealertaAction(lookup.boxCode, confirmed);
+              const res = await receivePrealertaAction(lookup.boxCode, selectedCodes);
               if (!res.ok) return { error: res.error ?? "Error" };
               setResult(res);
               setView("done");
@@ -208,18 +214,19 @@ export function RecibirClient({ initialLang }: { initialLang: Lang }) {
 function ConfirmCard({
   lang,
   lookup,
-  count,
-  setCount,
+  selectedCodes,
+  setSelectedCodes,
   onCancel,
   onReceive,
 }: {
   lang: Lang;
   lookup: ReceptionLookup;
-  count: string;
-  setCount: (v: string) => void;
+  selectedCodes: string[];
+  setSelectedCodes: (v: string[]) => void;
   onCancel: () => void;
   onReceive: () => Promise<{ error: string } | undefined>;
 }) {
+  const [mode, setMode] = useState<"lot" | "partial">("lot");
   if (lookup.alreadyReceived) {
     return (
       <div style={cardStyle}>
@@ -263,45 +270,20 @@ function ConfirmCard({
         />
       </div>
 
-      {/* Rectificar cantidad */}
-      <label
-        style={{
-          display: "block",
-          marginTop: 14,
-          font: "700 10.5px/1.3 var(--f-sans)",
-          color: "var(--ink-side-soft)",
-          textTransform: "uppercase",
-          letterSpacing: "0.06em",
-        }}
-      >
-        {t(lang, "Cajas que llegaron", "实际到货箱数")}
-      </label>
-      <input
-        type="number"
-        inputMode="numeric"
-        min={1}
-        value={count}
-        onChange={(e) => setCount(e.target.value)}
-        aria-label={t(lang, "Cantidad de cajas que llegaron", "实际到货箱数")}
-        style={{
-          width: "100%",
-          marginTop: 6,
-          padding: "12px 14px",
-          borderRadius: "var(--r-md)",
-          background: "var(--surface-inv)",
-          border: "1px solid var(--border-inv)",
-          color: "var(--ink-side-strong)",
-          font: "800 22px/1 var(--f-mono)",
-          textAlign: "center",
-        }}
-      />
-      <p style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-side-soft)", margin: "6px 0 0" }}>
-        {t(
-          lang,
-          "Corrige la cantidad si llegaron más o menos de las anunciadas.",
-          "如实际到货与通知不符,请修改数量。",
-        )}
-      </p>
+      <fieldset style={{ border: "1px solid var(--border-inv)", borderRadius: "var(--r-md)", padding: 12, marginTop: 14, color: "var(--ink-side-strong)" }}>
+        <legend>{t(lang, "¿Cómo quieres recibir?", "如何接收？")}</legend>
+        <label style={{ display: "block", padding: 8 }}><input type="radio" name="reception-mode" checked={mode === "lot"} onChange={() => { setMode("lot"); setSelectedCodes(lookup.pendingCodes); }} /> {t(lang, "Lote completo", "接收整批")} · {lookup.expected}</label>
+        <label style={{ display: "block", padding: 8 }}><input type="radio" name="reception-mode" checked={mode === "partial"} onChange={() => { setMode("partial"); setSelectedCodes([lookup.boxCode]); }} /> {t(lang, "Solo esta caja / recepción parcial", "仅此箱 / 部分接收")}</label>
+        {mode === "partial" && <div style={{ maxHeight: 220, overflow: "auto" }}>
+          {lookup.pendingCodes.map(code => <label key={code} style={{ display: "block", padding: 8 }}><input type="checkbox" checked={selectedCodes.includes(code)} disabled={code === lookup.boxCode} onChange={e => setSelectedCodes(e.target.checked ? [...selectedCodes, code] : selectedCodes.filter(c => c !== code))} /> {code}</label>)}
+        </div>}
+      </fieldset>
+      <p style={{ color: "var(--ink-side-soft)" }}>{t(lang, "Confirma únicamente las cajas que tienes presentes. Recibir cajas no confirma el conteo de artículos.", "只确认已到货的箱子。收箱不代表已核对箱内商品数量。")}</p>
+      {lookup.services.length > 0 && <section style={{ color: "var(--ink-side-strong)", border: "1px solid var(--warning-border)", padding: 12 }}>
+        <strong>{t(lang, "Servicios pendientes de esta compra", "该订单待办服务")}</strong>
+        <ul>{lookup.services.map(service => <li key={service.code}>{defaultAddon(service.code)?.label ?? service.code}<p>{t(lang, RECEPTION_INSTRUCTIONS[service.code]?.es ?? "Consulta el alcance con operaciones.", RECEPTION_INSTRUCTIONS[service.code]?.zh ?? "请向仓库负责人确认服务内容。")}</p></li>)}</ul>
+        <p>{t(lang, "Estas tareas siguen pendientes después de recibir las cajas.", "收箱后仍须完成这些服务。")}</p>
+      </section>}
 
       <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
         <button type="button" onClick={onCancel} style={{ ...ghostBtn, flex: 1, marginTop: 0 }}>
@@ -311,7 +293,7 @@ function ConfirmCard({
           <ActionButton
             variant="primary"
             size="default"
-            idleLabel={t(lang, "Recibir", "接收")}
+            idleLabel={t(lang, `Confirmar recepción de ${selectedCodes.length} ${selectedCodes.length === 1 ? "caja" : "cajas"}`, `确认接收 ${selectedCodes.length} 箱`)}
             loadingLabel={t(lang, "Recibiendo…", "接收中…")}
             successLabel={t(lang, "Recibida ✓", "已接收 ✓")}
             idleIcon={Icon.check(16)}
@@ -362,6 +344,7 @@ function DoneCard({
         {t(lang, "Recepción registrada", "接收已登记")}
       </div>
       <Mono center>{result.receiptCode}</Mono>
+      <Link href="/m/cn/servicios" style={{ ...ghostBtn, display: "block" }}>{t(lang, "Ver tareas de revisión y servicios", "查看验货及服务任务")}</Link>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 14 }}>
         <Row label={t(lang, "Cliente", "客户")} value={result.clientMarkbox ?? "—"} />

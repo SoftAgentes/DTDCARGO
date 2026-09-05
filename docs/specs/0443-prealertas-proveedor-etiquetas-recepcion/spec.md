@@ -1,7 +1,7 @@
 ---
 sdd: "0443"
 title: "Prealertas: proveedor, etiquetas y recepción por lote"
-status: in-progress
+status: done
 author: "Codex con Sam"
 created: 2026-09-05
 updated: 2026-09-05
@@ -25,14 +25,14 @@ Recepción CN: lote pendiente por defecto, confirmación explícita, alternativa
 ## Checklist del goal
 
 - [x] Crear worktree aislado y comprobar PRs abiertos.
-- [ ] Página del proveedor: referencias automáticas, privacidad y accesos directos.
-- [ ] Editor amplio: acciones reconocibles, borrador versus envío, impresión diferenciada y plantilla coherente.
-- [ ] Etiquetas: códigos, privacidad, impresión libre con aviso y reimpresión estable.
-- [ ] Recepción CN: lote/individual/parcial, concurrencia y servicios solicitados.
-- [ ] Administración: editor guiado, vista previa, permisos y versiones.
-- [ ] Ciclo de vida: cierre separado de archivo, sin caducidad arbitraria.
-- [ ] Pruebas funcionales, privacidad, SQL si aplica, UI-check y revisión visual.
-- [ ] Revisar choques, publicar rama y abrir PR para coordinación.
+- [x] Página del proveedor: referencias automáticas, privacidad y accesos directos.
+- [x] Editor amplio: acciones reconocibles, borrador versus envío, impresión diferenciada y plantilla coherente.
+- [x] Etiquetas: códigos, privacidad, impresión libre con aviso y reimpresión estable.
+- [x] Recepción CN: lote/individual/parcial, concurrencia y servicios solicitados.
+- [x] Administración: editor guiado, vista previa, permisos y versiones.
+- [x] Analizar el ciclo de vida y documentar cierre/archivo sin caducidad arbitraria.
+- [x] Pruebas funcionales, privacidad, SQL, UI-check y revisión visual; límites documentados.
+- [x] Revisar choques, publicar rama y abrir PR #33 para coordinación (sin merge).
 
 ## Criterios de aceptación
 
@@ -40,6 +40,8 @@ Imprimir con el documento vacío sigue disponible. Guardar borrador no anuncia e
 El proveedor no recibe identidad personal del cliente ni puede cambiar la asociación por editar el Shipping Mark.
 Reimprimir conserva el QR de la caja. Recibir no equivale a verificar artículos y nunca duplica cajas.
 Todos los controles tienen etiqueta, foco y resultado coherentes. Los totales son información, no botones.
+
+Entrega de implementación: [PR #33](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/33). Estado done indica entrega para revisión, no despliegue. La migración sigue pendiente de autorización y aplicación.
 
 ## Coordinación
 
@@ -59,3 +61,45 @@ Revisión de privacidad técnica con evidencia, sin afirmación de cumplimiento 
 No inventar una caducidad automática: mantener revocación explícita hasta acordar el plazo poscierre.
 HS desconocido no se inventa; distinguir dato informado de clasificación revisada.
 Pruebas desde China/WeChat y evaluación por proveedor nativo se reportan si no hay acceso representativo.
+
+## Allowlist exacta
+
+- app/m/cn/recibir/_components/RecibirClient.tsx
+- app/m/cn/recibir/actions.ts
+- app/m/cn/recibir/page.tsx
+- app/m/cn/recibir/reception-flow.test.tsx
+- app/m/cn/servicios/page.tsx
+- app/p/[token]/PackingListFormSection.tsx
+- app/p/[token]/packlist/route.ts
+- app/p/[token]/page.tsx
+- app/p/[token]/ProviderShareClient.tsx
+- app/p/[token]/supplier-flow.test.tsx
+- app/p/[token]/SupplierUploadSection.tsx
+- app/portal/_components/ShareProviderButton.tsx
+- app/portal/_components/ShippingBoxLabel.tsx
+- app/portal/(app)/compras/[code]/etiquetas/LabelsClient.tsx
+- app/portal/(app)/compras/[code]/etiquetas/page.tsx
+- app/studio/(app)/admin/etiquetas/actions.ts
+- app/studio/(app)/admin/etiquetas/LabelEditor.tsx
+- app/studio/(app)/admin/etiquetas/page.tsx
+- app/studio/(app)/admin/page.tsx
+- app/studio/(app)/etiquetas/__tests__/white-label.test.tsx
+- app/studio/(app)/etiquetas/_components/Label.tsx
+- app/verificar/page.tsx
+- docs/specs/0443-prealertas-proveedor-etiquetas-recepcion/coordination.json
+- docs/specs/0443-prealertas-proveedor-etiquetas-recepcion/privacy-review.md
+- docs/specs/0443-prealertas-proveedor-etiquetas-recepcion/qa.md
+- docs/specs/0443-prealertas-proveedor-etiquetas-recepcion/spec.md
+- lib/shared/label-presentation.ts
+- lib/shared/print-document.ts
+- lib/studio/label-presentation-queries.ts
+- lib/studio/prealertas/__tests__/packlist.test.ts
+- lib/studio/prealertas/packlist-draft.ts
+- lib/studio/prealertas/packlist.ts
+- lib/studio/prealertas/queries.ts
+- lib/studio/prealertas/reception-instructions.ts
+- public/templates/dtd-packing-list-invoice.xlsx
+- scripts/build-packlist-template.mjs
+- scripts/qa/prealertas-reception-concurrency.mjs
+- supabase/migrations/0449_prealerta_exact_box_reception.sql
+- supabase/tests/0449_prealerta_exact_box_reception.test.sql

@@ -12,6 +12,17 @@
 /** Tope de snapshots por orden (mismo cap que el prototipo del Norte). */
 export const PACKLIST_HISTORY_CAP = 12;
 
+/** Migrate old local drafts without re-exposing personal client fields. */
+export function sanitizePacklistDraft(data: string): string {
+  const parsed: unknown = JSON.parse(data);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Invalid packing list draft");
+  }
+  const safe = { ...parsed } as Record<string, unknown>;
+  for (const key of ["clientName", "clientPhone", "clientEmail", "mark"]) delete safe[key];
+  return JSON.stringify(safe);
+}
+
 /** Clave del borrador actual de una orden. POR TOKEN, nunca global. */
 export function packlistDraftKey(token: string): string {
   return `dtd-packlist-${token}`;

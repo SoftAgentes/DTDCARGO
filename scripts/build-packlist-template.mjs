@@ -166,18 +166,18 @@ async function main() {
 
   // ── Filas 5-8: grilla SUPPLIER (izq, prefill) / CLIENT (der) — v4.4 ──
   // ⚠️ Las 5 celdas de prefill que usa fillPacklist viven FIJAS:
-  //   C5 = 公司名称 (Proveedor) · C6 = 唛头 (Mark) · C7 = 客户 (Cliente)
+  //   C5 = 公司名称 (Proveedor) · C6 = 唛头 (Mark) · C7 = 订单 (Compra)
   //   C8 = 微信 (WeChat) · I3 = folio.  NO mover sin actualizar packlist.ts + test.
   const infoRows = [
     { row: 5, zh: "公司名称", es: "Empresa / Proveedor", prefill: true, mono: false },
     { row: 6, zh: "唛头", es: "Shipping Mark", prefill: true, mono: true },
-    { row: 7, zh: "客户", es: "Cliente", prefill: true, mono: false },
+    { row: 7, zh: "订单", es: "Compra", prefill: true, mono: true },
     { row: 8, zh: "微信", es: "WeChat", prefill: true, mono: false },
   ];
   // Columna derecha de la grilla — datos del cliente/proveedor (sin prefill).
   const infoRight = [
     { row: 5, zh: "邮箱", es: "Email proveedor" },
-    { row: 6, zh: "客户电话", es: "Tel. cliente" },
+    { row: 6, zh: "供应商电话", es: "Tel. proveedor" },
     { row: 7, zh: "地址 / 城市", es: "Dirección / Ciudad" },
     { row: 8, zh: "日期", es: "Fecha" },
   ];
@@ -371,7 +371,7 @@ async function main() {
   const notes = [
     "1. Marca cada caja con el Shipping Mark del cliente (唛头). Sin él, esto generará retraso en la exportación.  请在每个箱子上写客户唛头；缺唛头会延误出口。",
     "2. Llena este documento antes de enviar y mándalo con la carga, o súbelo en tu link de DTD.  发货前填写本单并随货发送，或在链接上传。",
-    "3. Sube a tu link de DTD tus documentos originales: tu factura comercial y tu packing list originales.  在 DTD 链接上传公司原始单据：商业发票和装箱单原件。",
+    "3. Completa el formulario o sube el Excel. Otros originales solo si DTD los solicita.  在线填写或上传 Excel，任选一种。仅在 DTD 要求时提供其他原始单据。",
     "4. Si la mercancía es de marca, declara la marca real; si no, escribe \"无 / ninguna\". Ocultar la marca es riesgo en aduana del proveedor.  品牌货请如实填写品牌，否则填\"无\"。",
     "5. La descarga la organiza y paga el proveedor; si la hace nuestra bodega, se cobra por volumen/peso.  卸货由供应商安排并承担；如由我方卸货，按体积/重量收费。",
     "6. Prohibido enviar mercancía peligrosa o restringida.  禁止危险品、违禁品入仓。",
@@ -455,7 +455,7 @@ async function main() {
   await wb.xlsx.writeFile(OUT);
   console.log(`[build-packlist-template] escrito: ${OUT}`);
   console.log(
-    "[build-packlist-template] prefill cells: C5(proveedor) C6(markbox) C7(cliente) C8(wechat) I3(folio)",
+    "[build-packlist-template] prefill cells: C5(proveedor) C6(markbox) C7(compra) C8(wechat) I3(folio)",
   );
 }
 

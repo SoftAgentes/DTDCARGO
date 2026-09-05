@@ -1,0 +1,52 @@
+[
+  {
+    "number": 32,
+    "title": "chore(harness): SDD-0444 — Director y Workers Codex con integración por PR",
+    "overlap": []
+  },
+  {
+    "number": 31,
+    "title": "SDD-0441: colores semánticos de marca y avisos de calculadora",
+    "overlap": []
+  },
+  {
+    "number": 30,
+    "title": "feat(portal): SDD-0442 — claridad de botones, documentos y navegación",
+    "overlap": []
+  },
+  {
+    "number": 29,
+    "title": "fix(studio): SDD-0440 — restaurar replay de 0223",
+    "overlap": []
+  },
+  {
+    "number": 28,
+    "title": "test(e2e): SDD-0440 — sanear harness efímero",
+    "overlap": []
+  },
+  {
+    "number": 27,
+    "title": "fix(portal): SDD-0439 — contener reemplazo de cédula",
+    "overlap": []
+  },
+  {
+    "number": 26,
+    "title": "fix(studio): SDD-0438 — remediación funcional del perfil",
+    "overlap": []
+  },
+  {
+    "number": 24,
+    "title": "feat(DTD-0371): excluir accesos y URLs con credenciales de Analytics",
+    "overlap": []
+  },
+  {
+    "number": 23,
+    "title": "feat(portal): SDD-0435 — edición controlada del perfil cliente",
+    "overlap": []
+  },
+  {
+    "number": 21,
+    "title": "Saneamiento integral Cloud a Codex: lote completo para revisión",
+    "overlap": []
+  }
+]
