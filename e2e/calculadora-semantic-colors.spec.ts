@@ -47,3 +47,34 @@ for (const theme of ["light", "dark"]) {
     await expect(peso).not.toHaveAttribute("aria-describedby");
   });
 }
+
+// SDD-0360 + SDD-0441: comprobar comportamiento y presentación juntos.
+for (const theme of ["light", "dark"]) {
+  test(`Selector combinado: teclado, Escape, clic y cursor en ${theme}`, async ({ page }) => {
+    await page.goto(`/tarifas/embed?theme=${theme}`);
+    const combo = page.locator("#panel-ddp").getByRole("combobox");
+    await combo.click();
+    await combo.pressSequentially("mara", { delay: 10 });
+    await expect(combo).toHaveValue("mara");
+    await combo.press("ArrowDown");
+    await expect(combo).toHaveAttribute("aria-activedescendant", /.+/);
+    await combo.press("Enter");
+    await expect(combo).toHaveAttribute("aria-expanded", "false");
+    const selected = await combo.inputValue();
+    expect(selected).not.toBe("mara");
+    await combo.fill("caracas");
+    await combo.press("Escape");
+    await expect(combo).toHaveValue(selected);
+    await combo.fill("maracay");
+    await page.getByRole("option").filter({ hasText: "Maracay" }).first().click();
+    await expect(combo).toHaveValue(/Maracay/);
+    await combo.fill("maracaibo");
+    await combo.press("Home");
+    await combo.press("ArrowRight");
+    await combo.pressSequentially("X");
+    await expect(combo).toHaveValue("mXaracaibo");
+    await expect(combo).toHaveCSS("color", "rgb(255, 255, 255)");
+    expect(await combo.evaluate(e => getComputedStyle(e).boxShadow)).not.toBe("none");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+}

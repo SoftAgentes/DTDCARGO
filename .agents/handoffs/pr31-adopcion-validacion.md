@@ -58,3 +58,16 @@ Ninguno nuevo; no absorber cambios de #30.
 ## HANDOFF AL DIRECTOR
 
 Pendiente cierre local. Esta sesión depende del árbol hasta terminar la escritura.
+
+## Avance de validación combinada
+
+Merge local 331541c020b53027b888a6f1667827f601ec6000 sobre main 74bb52ab.
+Índice regenerado: 311 specs. Selector conserva ambas SDD sin conflicto textual.
+PASÓ: 20 pruebas focales en 3 archivos (13 selector + 7 semántica).
+PASÓ: 12 escenarios Playwright en Chrome instalado, escritorio/móvil y claro/oscuro;
+se añadieron 4 escenarios de teclado, Escape, clic y cursor manual al archivo existente.
+Capturas locales ignoradas: test-results/pr31-selector-{light,dark}-{desktop,mobile}.png.
+QA con datos fallback, sin credenciales ni datos reales. Badge de desarrollo registra
+3 avisos de configuración Supabase ausente; no es un error visual del producto.
+Director asignó slot de pnpm verify con VITEST_MAX_WORKERS=4. Pendiente resultado;
+los resultados históricos no validan esta combinación. Sin publicación autorizada.
