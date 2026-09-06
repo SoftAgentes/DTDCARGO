@@ -2,7 +2,7 @@
 
 Task ID: 2026-09-05-destino-focus-extract. Fecha: 2026-09-05.
 Owner/claim: 01a073a6-f21d-7483-9b74-4d9f3464c295, Worker.
-Estado: en-progreso.
+Estado: lista-para-revision-del-Director.
 Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/destino-focus-fix-20260905.
 Rama: codex/destino-focus-fix-20260905.
 Base: origin/main b8294664a1b4f9e25c423dd814f4813fa5b1be8f, revalidada con fetch.
@@ -45,9 +45,12 @@ No importar auditorías/handoffs históricos ni otros cambios de #21.
 - PASÓ después: node node_modules/vitest/vitest.mjs run
   components/DestinoCombobox.test.tsx, 13/13. Log: %TEMP%/dtd-destino-green.log.
 - PASÓ: ESLint de ambos TSX, docs:check y diff-check.
+- PASÓ focal en A/cf1570d6: 19/19, componente 13 + contrato CI 6. Comando:
+  node node_modules/vitest/vitest.mjs run components/DestinoCombobox.test.tsx
+  scripts/__tests__/ci-workflow-contract.test.mjs. Log: %TEMP%/dtd-destino-A-focal.log.
 - PASÓ navegador: fixture Vite de datos ficticios con el componente real y
-  app/globals.css, en Edge local mediante agent-browser0.36.0. Escritura mara,
-  frame/edición protegidos por los unitarios; cursor en posición2 + x = maxra,
+  app/globals.css, en Edge local mediante agent-browser 0.36.0. Escritura mara,
+  frame/edición protegidos por los unitarios; cursor en posición 2 + x = maxra,
   Escape restaura la selección, flechas/Enter y clic eligen y cierran el popup,
   con foco de vuelta al input. También se comprobó cursor mediante mouse real.
   Sin errores de página/overlay; red observada solo 127.0.0.1, sin servicios
@@ -58,14 +61,50 @@ No importar auditorías/handoffs históricos ni otros cambios de #21.
   El servidor temporal necesitó rutas Windows largas y watcher por polling;
   se resolvió fuera del repo. Browser/servidor propios detenidos al terminar.
 - Compatibilidad #31: Director informó git merge-file --stdout sobre copias
-  de base b8294664, foco46afa953 y colores648bddf6: exit0 sin marcadores,
+  de base b8294664, foco 46afa953 y colores 648bddf6: exit 0 sin marcadores,
   preservando selectOnMouseUpRef y calc-ink-secondary, sin requestAnimationFrame.
   Mi inspección de diff confirma tres cambios de estilo en #31. Se incorpora
   esa evidencia sin duplicar la prueba; no acredita #31 completa ni revisión
   visual de colores combinados. Ambas quedan para integración posterior.
-- PENDIENTE: verify completo en B final y evidencia de equivalencia de producto
-  entre extracción/A/B. Director autorizó concentrar allí suite/build; en A y
-  extracción se comprobarán docs/alcance y foco sin repetir producto equivalente.
+- PASÓ en verify de B: harness 12/12; ESLint completo (0 errores/8 warnings
+  heredados); frontera RSC; TypeScript;
+  Edge 4/4; Vitest: 501 archivos / 6191 pruebas; docs:check, numbering,
+  feature-constants, components:check y governance:check.
+- SKIP migrations-applied: sin credenciales Supabase; no se leyó producción.
+- SKIP sql-tests: Docker no disponible.
+- SKIP schema-rebuild: Docker no disponible.
+- SKIP e2e general: VERIFY_SKIP_E2E=1, omisión explícita para este slice; la
+  fixture local es evidencia acotada y no sustituye toda la suite E2E.
+- PASÓ: build del mismo verify, 158 páginas y tsconfig.json restaurado; sin
+  reintento. Resultado canónico: exit 0, 12 de 16 pasos medidos, cero fallos y
+  cuatro SKIPs. No se declara verde integral. Suite completa: 260,35s; verify
+  completo: 10m49s, del 2026-09-06T00:30:25Z al 00:41:14Z (UTC).
+  Director autorizó concentrar suite/build en B; A/extracción reutilizan
+  producto equivalente con checks propios.
+
+Equivalencia medida antes de verify: extracción 3f9cd305, A/cf1570d6 y B/1206833d
+comparten los árboles app, components, lib, public, supabase, e2e y los blobs
+next.config.ts, tsconfig.json, pnpm-lock.yaml, pnpm-workspace.yaml,
+postcss.config.mjs, vitest.config.ts, vitest.setup.ts, playwright.config.ts,
+scripts/check-build.mjs y scripts/prune-next-types.mjs. package.json también
+coincide al excluir scripts (B añade comandos de harness, sin cambiar runtime
+ni dependencias). Árbol components: 3b9558defe7214de1cca8fab818f4bdaad8557fd.
+Reproducir con git rev-parse <SHA>:<path>; mapa completo local en
+%TEMP%/dtd-destino-product-equivalence.json. Esto acredita esos inputs de producto,
+no equivalencia de todo el repositorio ni de las pruebas de tooling.
+Director confirmó además diff vacío entre los tres SHA para app/components/lib/
+public/supabase y el alcance incremental A: 7 paths / B: 9 paths.
+
+Verify se ejecuta en B/1206833d36ec22401b46cc3050e2a470c3e6de66, árbol completo
+7a94d124877103aa8de7ba6508a9154191615585. Comando pnpm verify mediante
+%TEMP%/dtd-destino-verify.mjs; log/meta/result en %TEMP%/dtd-destino-verify-B/.
+Ambiente: CI=true, NEXT_TELEMETRY_DISABLED=1, heap 4096, Deno temporal verificado,
+credenciales retiradas y sin .env.local. VERIFY_SKIP_E2E=1 omite explícitamente
+la suite general fuera del alcance; la fixture acotada no se presenta como
+verde de esa suite. Ledger carece de credenciales; SQL/schema dependen de Docker.
+Las cuatro omisiones están individualizadas arriba. El cierre posterior a
+1206833d solo modifica handoffs/specs e índice; se revalidan docs/alcance y
+equivalencia antes de entregar los SHA finales, sin repetir producto idéntico.
 
 ## COMMITS
 
@@ -80,7 +119,9 @@ El Director conserva pushes y actualizaciones de PR; esta sesión no publica.
 
 ## PENDIENTES DE ESTA TAREA
 
-Integración local A/B, verify en combinación final y cierre de evidencia.
+Ninguno de implementación/validación local aplicable. Pendiente fuera del
+Worker: revisión final del Director, publicación de SHA y CI alojada. No se
+ejecutan ledger, SQL/schema o E2E general como parte del cierre de este slice.
 
 ## FUERA DE ALCANCE DETECTADO
 

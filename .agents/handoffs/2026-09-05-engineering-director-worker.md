@@ -14,7 +14,7 @@ Este alcance sustituye el permiso de publicación del encargo inicial.
 
 ## EXTENSIÓN ACTUAL — SDD-0360
 
-Task ID: 2026-09-05-destino-focus-extract. Estado: combinación local en validación.
+Task ID: 2026-09-05-destino-focus-extract. Estado: lista para revisión del Director.
 El Director publicó c36d7e26 en #32; CI detectó la carrera de foco de main antes
 de llegar al harness. Ahora se incorpora A/cf1570d6 con el arreglo de producto
 ef99fca5fff6cf9b4562255370876313ffd7ced3, sin cambiar workflow ni gates.
@@ -22,10 +22,15 @@ Allowlist adicional: cinco paths de SDD-0360 y handoffs/specs0349/0444 solo
 para coordinación/dependencia/evidencia. Se conservan C3 y harness:test.
 
 Dos regresiones de frames fallaron sobre original y pasan 13/13 focales con
-el arreglo exacto de46afa953; las diez previas permanecen intactas. Fixture
+el arreglo exacto de 46afa953; las diez previas permanecen intactas. Fixture
 local ficticia pasó teclado, mouse, Escape y cursor manual. Verify completo
-se ejecutará aquí sobre el producto combinado; no se duplica suite/build en
-A ni extracción si sus árboles de producto son equivalentes. Ver
+pasó en B/1206833d: 6191 unitarios, 12 del harness, build de 158 páginas y
+controles locales de lint/tipos/RSC/Edge/docs/numeración/componentes/gobernanza.
+Resultado: 12 de 16 pasos medidos, sin fallos; omitidos ledger sin credenciales,
+SQL/schema sin Docker y E2E general con omisión explícita. No es verde integral.
+Producto/configs/dependencias relevantes equivalentes con extracción/A; tras
+1206833d solo cambian handoffs/specs/índice, verificados aparte. No se repite
+suite/build de producto idéntico. Ver
 [handoff SDD-0360](2026-09-05-destino-focus-extract.md).
 Push/actualización de #32 reservados al Director. El historial inferior conserva
 la corrección previa de CI y no constituye evidencia alojada de esta extensión.

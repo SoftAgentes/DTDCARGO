@@ -345,7 +345,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0313 | Portal — paso 1 de Nueva compra: el alta de proveedor que no … | done | interno |
 | 0314 | La segunda puerta de la máquina de estados del Bug Reporter | done | interno |
 | 0349 | Automatizar calidad local sin secretos en GitHub Actions | done | interno |
-| 0360 | Evitar que el foco tardío borre la búsqueda de destino | in-progress | interno |
+| 0360 | Evitar que el foco tardío borre la búsqueda de destino | done | interno |
 | 0373 | Validación de destinos y suscripciones Web Push | done | interno |
 | 0444 | Harness Codex con Director, Workers y PR como frontera | done | interno |
 
