@@ -107,6 +107,7 @@ export function DestinoCombobox({
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const selectOnMouseUpRef = useRef(false);
 
   // El caller puede cambiar la ciudad por fuera (o cambiar el catálogo): el
   // texto visible sigue a la selección mientras no se esté escribiendo.
@@ -206,6 +207,7 @@ export function DestinoCombobox({
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    selectOnMouseUpRef.current = false;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       if (!open) {
@@ -256,6 +258,7 @@ export function DestinoCombobox({
         }
         placeholder="Escribe tu ciudad…"
         onChange={(e) => {
+          selectOnMouseUpRef.current = false;
           setQuery(e.target.value);
           setDirty(true);
           setActive(0);
@@ -263,11 +266,22 @@ export function DestinoCombobox({
             setOpen(true);
           }
         }}
-        onFocus={() => {
+        onFocus={(e) => {
           abrir();
-          // Seleccionar el texto: el primer tecleo reemplaza la ciudad anterior
-          // en vez de concatenarse con ella.
-          requestAnimationFrame(() => inputRef.current?.select());
+          // Seleccionar antes de la primera tecla; un frame tardío puede
+          // seleccionar la búsqueda nueva y hacer que la siguiente la borre.
+          e.currentTarget.select();
+          selectOnMouseUpRef.current = true;
+        }}
+        onMouseUp={(e) => {
+          if (!selectOnMouseUpRef.current) return;
+          // Sólo el clic que dio foco: después se respeta el cursor manual.
+          e.preventDefault();
+          e.currentTarget.select();
+          selectOnMouseUpRef.current = false;
+        }}
+        onBlur={() => {
+          selectOnMouseUpRef.current = false;
         }}
         onKeyDown={handleKeyDown}
         className="w-full px-3.5 h-[52px] rounded-[12px] text-[15px] text-[var(--color-on-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-on-accent)]"

@@ -25,7 +25,10 @@ No buscamos certificación — adoptamos la **disciplina**. Cada documento contr
 | Contrato / NDA firmado | `docs/legal/` (binario **fuera de git** → Drive + puntero) |
 | Planilla de costos / tarifa | `docs/operaciones/` |
 | Transcripción de sesión | `docs/archive/` (no crece sin control) |
-| Definición de agente/skill | `docs/agents/` |
+| Agentes/skills del producto Studio | `docs/agents/` |
+| Skills de ingeniería Codex | `.agents/skills/` (Director y Worker) |
+| Reglas técnicas de agentes | `docs/engineering/project-rules.md` |
+| Metodología de ingeniería | [Director y Workers](runbooks/codex-engineering.md) |
 
 ## Regla de adjuntos (memorizable)
 

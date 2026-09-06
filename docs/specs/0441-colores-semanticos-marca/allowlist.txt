@@ -1,3 +1,4 @@
+.agents/handoffs/pr31-adopcion-validacion.md
 BRAND.md
 app/back/(auth)/login/page.tsx
 app/globals.css
