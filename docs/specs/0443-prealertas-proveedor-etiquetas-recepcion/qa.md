@@ -192,7 +192,18 @@ Evidencia del delta de privacidad: app/m/cn/login/page.tsx:88,
 app/m/cn/login/actions.ts:30 y app/m/cn/recibir/page.tsx:27. No hay captura nueva de
 identidad personal ni ampliación de permisos. La revisión independiente sigue
 recomendada y pendiente del Director.
-# QA combinada · corrección autorizada 2026-09-06
+# QA combinada · validación c8c79298 · 2026-09-06
+
+Correcciones autorizadas PASÓ sobre c8c79298:24/24 matriz,87focales,12/12 errores
+con aserciones tinta/borde/live/contraste y2/2 WebKit reflow+scroll+nombres. Primer
+WebKit falló selector externo de celda (Nºcaja vsTotaluds); expectativa conservada
+y selección por contenido corregida, evidencia inicial preservada en handoff.
+Verify exit0:14/16 ejecutados PASÓ,6240tests/510archivos,140SQLrollback,schemarebuild
+y build. NO EJECUTADOS ledgerprod yE2Egeneral. E2Efocal público12/12 PASÓ aparte.
+Contraste cuerpo errores16.49:1 claro/13.08:1 oscuro; no afirmar AAglobal.
+Handoff: .agents/handoffs/portal-colors-reception-integration-20260906.md.
+
+## Evidencia anterior al delta (conservada)
 
 En HEAD1611edd3: matriz22/24, dos fallos de overflow móvil; ocho errores simulados
 observados. Main74bb también reproduce overflow y cuerpos text-wine. Se corrigen

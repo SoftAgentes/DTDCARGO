@@ -1,94 +1,59 @@
-# Integración local colores / claridad / recepción — 2026-09-06
-
-Owner: 01a0735d-04b6-79b3-9c68-bcc5007153b2. Estado: en-progreso.
-Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/portal-colors-reception-integration-20260906.
-Rama: codex/portal-colors-reception-integration-20260906.
-Base origin/main verificada por fetch: 74bb52ab9677f96908cc032a15f2364ab9d94716.
+# Integración local · colores, claridad del portal y recepción
 
 ## OBJETIVO ORIGINAL
 
-Confirmar coexistencia local de #31 colores, #30 claridad y #33 recepción.
-Fuentes inmutables: 7b3e03de656bd5c14e1593065ce7adddf037ad20,
-742611622e4675cbaad9ab879a0a8affcdfe0c86,
-0217e3b7d386483648c10799e2e564361f7f1ce1.
-Conservar SDD0441/0442/0443 in-progress. SDD0449 no aplicar.
-
-## Alcance y permisos
-
-Allowlist implementación cero: merges locales de esos SHA, índice generado,
-este handoff y artefactos QA externos. Si conflicto de código/hallazgo, proponer
-fix al Director antes de editar. Sin BRAND/Norte/UI inventada ni rediseño.
-Conservar tres árboles fuente. Node_modules propio frozenlock; sin junctions
-compartidas, .env, secretos, Cloud, seeds, push, main ni cleanup A/B.
-Claim propio antes de editar. Commits locales autorizados por encargo.
-
-## Aceptación y dependencias
-
-Pruebas focales tokens/selector0360, documentos/proveedores/alertas30, QR33.
-QA fixture con componentes reales y tokens actuales: distinguir sin Auth de UAT
-real, QR físico y China pendientes. Lecturas de marca/Norte/skills antes de visual.
-Slot pesado ocupado por integración perfil: no build/devserver/E2E hasta asignación.
-No asumir vivo ni reiniciar fixture26268.
+Combinar PR31+30+33 y validar en aislamiento; remediar los dos hallazgos asignados por Director. Sin push, merge a main, despliegue, Cloud ni datos compartidos.
+Owner: 01a0735d-04b6-79b3-9c68-bcc5007153b2.
+Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/portal-colors-reception-integration-20260906.
+Rama: codex/portal-colors-reception-integration-20260906. SDD0441/0442/0443 reutilizados, sin declarar done la aceptación global.
 
 ## COMPLETADO
 
-Worktree creado desde base exacta, ownership reclamado. Fuentes sin modificar.
+Base74bb52ab9677f96908cc032a15f2364ab9d94716. Fuentes exactas:
+- PR31:7b3e03de656bd5c14e1593065ce7adddf037ad20.
+- PR30:742611622e4675cbaad9ab879a0a8affcdfe0c86.
+- PR33:0217e3b7d386483648c10799e2e564361f7f1ce1.
+
+Cero conflictos de código; índice SDD regenerado. Dependencias propias813paquetes con lockfile congelado, sin junction a otro worktree, sin copiar .env ni cambios preexistentes.
+Delta autorizado: cuatro cambios de clases en PackingListFormSection/SupplierUploadSection. Tabla relative contiene sr-only y conserva scroll local; errores de campos, envío genérico y upload usan text-ink con borde border-status-danger. Sin cambios de fórmulas, mensajes, live-region, datos, acciones o contratos.
+Clasificación: dos no conformidades preexistentes remediadas por BRAND/ERR-01/A11Y-01. Cumplimiento observado del delta, no adopción global certificada.
 
 ## VALIDACIÓN
 
-Pendiente combinación y focales; no reutilizar verdes previos como prueba conjunta.
+SHA producto medido: c8c79298e7c18f121d6f7c700beb15cfc419bfbb.
+Evidencia externa: C:/Users/AKX generator/Desktop/Developer/DTD-backups/director-goal-20260905/portal-colors-reception-integration-20260906/post-fix/.
+
+- PASÓ87focales/14archivos,26.56s,maxWorkers2: focal.log.
+- PASÓ24/24matriz Chromium escritorio1440/móvil390,claro/oscuro;8errores simulados registrados: visual-check.log/visual-results.json/capturas.
+- PASÓ12/12errores,23.5s: campos, envío genérico sin fieldErrors, upload en4contextos. Aserciones texto visible, aria-live=polite, tinta, borde2px/danger y contraste>=4.5. Medido16.49:1 claro/13.08:1 oscuro sobre fondos uniformes. errors.log/errors-results.json/error-asserted-*.png.
+- PASÓ2/2WebKit móvil,3.7s,exit0/cierre normal. Documento<=390,tabla overflow:auto y scrollWidth>clientWidth/scrollLeft>0; nombre celda y campo preservados. webkit-retry.log/webkit-results.json.
+- PASÓpnpm verify exit0:14/16pasos realmente ejecutados; harness,lint(0errores8warnings),rsc-boundary,typecheck,4EdgeFunctionsDeno,6240tests/510archivos(386.78s),docs,numeración,featureconstants,componentes,gobernanza,140contratosSQL rollback,schemarebuild381migraciones y build. verify.log.
+- NO EJECUTADOS en verify: migrations-applied(sin credenciales producción),E2Egeneral(VERIFY_SKIP_E2E=1). SQL/rebuild sólo PostgreSQL propio desechable autorizado;0449 no aplicada a Cloud.
+- PASÓE2Efocal público12/12,28.5s,exit0,sin flaky/skips. Archivo existente e2e/calculadora-semantic-colors.spec.ts,Chromium+mobile-chrome,workers1,config repo. Next propio4318/PID15656/handle81664; rutas reales con defaults sin credenciales. public-e2e.log/public-e2e-results.json. No reemplaza E2Egeneral.
+- PASÓUI-check del delta(ui-check.md),diff --check e índice documental.
+
+Trazabilidad: matriz anterior22/24 falló overflow. Comparación con blobs main74bb también falla html971px vs882px combinación,viewport390: spans sr-only absolutos sin contenedor posicionado. Evidencia anterior preservada fuera de post-fix.
+Primer WebKit0/2 falló selector externo `.locator('td.calc .sr-only').first()` esperando Total uds; la primera celda real es Nºcaja. Se agregó `.filter({hasText:/Total uds:/})` antes de first. Se mantienen aserciones de texto/nombre,reflow,scroll y campo P.unit. Sin cambio producto ni relajación. webkit-first-results.json,webkit.log ywebkit-artifacts conservan primera falla; nueva corrida usawebkit-retry-artifacts.
 
 ## COMMITS
 
-Pendientes.
+ae2ddcd0 contrato;92b3b7d2 merge31;d5fabbb0 merge30;ef0e9aba merge33;1611edd3 evidencia inicial;c8c79298 corrección autorizada.
+Commit posterior a c8 actualiza sólo documentación de cierre; evidencia producto refiere c8.
 
 ## PR / BRANCH
 
-Rama de integración sólo local; sin publicación autorizada.
+Sólo rama local; sin nuevo PR ni push autorizado. PRs fuente conservados. No merge a main, deploy o Cloud.
 
 ## PENDIENTES DE ESTA TAREA
 
-Combinar, revisar conflictos, instalar dependencias propias, focales y solicitar
-slot pesado para QA/verify. Registrar límites de aceptación y SHAs medidos.
+Revisión independiente del Director y decisión de integración/publicación. Aceptación global requiere Auth/PIN/UAT,proveedor real,QR físico/impresión,China/WeChat y configuración real de etiquetas; fixture acredita sólo DEFAULT. Ledgerprod/E2Egeneral NO EJECUTADOS. No ocultar SKIPs detrás de exit0.
 
 ## FUERA DE ALCANCE DETECTADO
 
-Checkout principal tiene documentación de restauración sin commit; no copiada.
+ES/Copiar proveedor en stressdark≈3:1; no corregidos. warning-border recepción no definido; sin cambio no asignado. MobileLayout fuerza light: dark es stress adicional,no soporte ofrecido. Fondo navy deliberado de RecibirClient,no fallo del wrapper. ToastProvider/cámara no ejercitados en fixture.
+Brand Book distribuido v5 vs Norte localv4.6: no se reemplaza ni publica copia. Documentación de restauración preexistente en main intacta. No AAglobal.
 
 ## HANDOFF AL DIRECTOR
 
-En curso. Claims/árboles fuente no se alteran; coordinación de slot pendiente.
-
-## Avance local · ef0e9aba
-
-Combinación concluida: 92b3b7d2 (#31), d5fabbb0 (#30), ef0e9aba (#33).
-Cero conflictos de código; conflictos de índice resueltos regenerando 313 specs.
-PASÓ instalación propia pnpm install --frozen-lockfile (813 paquetes, exit 0).
-PASÓ 87 pruebas focales / 14 archivos / 34.04 s sobre ef0e9aba, maxWorkers=2:
-tokens, selector0360, documentos/proveedores/alertas30, QR/login/recepción33,
-flujo proveedor y packing. Ningún cambio de producto añadido.
-Artefactos QA externos preparados en
-C:/Users/AKX generator/Desktop/Developer/DTD-backups/director-goal-20260905/portal-colors-reception-integration-20260906/.
-Install/focal logs preservados allí; serve.mjs, fixture.tsx e index.html sin arrancar.
-Fixture reutiliza componentes reales y CSS actuales; acciones servidor bloqueadas,
-scanner omitido explícitamente: no acredita cámara/QR físico/Auth/UAT/China.
-Lecturas BRAND/Norte, gobernanza, /ui-check y agent-browser-verify realizadas.
-El checklist ui-check conserva referencias antiguas de fuentes/MARKBOX; prevalecen
-BRAND actual y tokens de cada superficie. Sin cambiar esas fuentes ni documentos.
-Director aclaró: SQL/rebuild en PostgreSQL propio desechable sin red autorizados;
-0449 prohibida en Cloud/producción/proyecto test compartido. No aplicada aún.
-No usar DB compartida paramétrica: fixture TEST tiene descuento 50; no modificar
-expectativas, tokens ni DB para obtener verde.
-Pendiente slot pesado tras integración perfil: NO build/devserver/E2E iniciados.
-
-## QA y ampliación autorizada · 2026-09-06
-
-Slot recibido; fixture externo sobre1611edd3:22/24 y8errores observados.
-Overflow de tabla y cuerpos de error en vino reproducidos también enmain74bb.
-Director asigna corrección sólo PackingListFormSection y SupplierUploadSection:
-tabla relative conserva sr-only y scroll local; errores text-ink con borde danger.
-Reutilizados SDD0441/0443 y allowlist. No otros cambios de producto.
-Validación del nuevo delta pendiente; no hereda los87focales deef0e9aba.
-Siguiente: commitlocal,24vistas+8errores,87focales,verify y12E2E. Sinpush/Cloud.
-Fuera de alcance: contraste ES/Copiar en stressdark, warning-border de recepción;
-Auth/PIN/UAT/QRfísico/China y configuración real deetiquetas siguen pendientes.
+Implementación y comprobaciones locales asignadas terminadas. Navegadores y servidores Vite/Next propios cerrados,puertos4317/4318 libres al cierre. Slot pesado liberable. Conservar rama/worktree/evidencia.
+Guard/ownership propio verificados antes de commits; liberar claim al acabar escritura. Director recibe SHAfinal y diferencia documental. No producción aprobada.
