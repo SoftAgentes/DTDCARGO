@@ -1,0 +1,4 @@
+interface:
+  display_name: "Director DTD Cargo"
+  short_description: "Coordina Workers, SDD y revisión de PRs"
+  default_prompt: "Usa $director para reconstruir cómo estamos hoy y recomendar el siguiente trabajo."
