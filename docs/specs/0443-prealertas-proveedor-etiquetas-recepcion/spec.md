@@ -1,10 +1,10 @@
 ---
 sdd: "0443"
 title: "Prealertas: proveedor, etiquetas y recepción por lote"
-status: done
+status: in-progress
 author: "Codex con Sam"
 created: 2026-09-05
-updated: 2026-09-05
+updated: 2026-09-06
 supersedes: null
 superseded_by: null
 related: ["0057", "0096", "0097", "0153", "0154", "0308", "0442"]
@@ -41,7 +41,7 @@ El proveedor no recibe identidad personal del cliente ni puede cambiar la asocia
 Reimprimir conserva el QR de la caja. Recibir no equivale a verificar artículos y nunca duplica cajas.
 Todos los controles tienen etiqueta, foco y resultado coherentes. Los totales son información, no botones.
 
-Entrega de implementación: [PR #33](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/33). Estado done indica entrega para revisión, no despliegue. La migración sigue pendiente de autorización y aplicación.
+Entrega de implementación: [PR #33](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/33). Aceptación reabierta por los dos hallazgos de acceso QR; entrega y despliegue se registran por separado. La migración sigue pendiente de autorización y aplicación.
 
 ## Coordinación
 
@@ -103,3 +103,20 @@ Pruebas desde China/WeChat y evaluación por proveedor nativo se reportan si no 
 - scripts/qa/prealertas-reception-concurrency.mjs
 - supabase/migrations/0449_prealerta_exact_box_reception.sql
 - supabase/tests/0449_prealerta_exact_box_reception.test.sql
+
+## Corrección QR · 2026-09-06
+
+Task pr33-qr-remediation-20260906. Director aprobó ampliar las rutas exactas:
+
+- app/m/cn/login/page.tsx
+- app/m/cn/login/actions.ts
+- app/m/cn/login/qr-login.test.tsx
+- app/m/cn/recibir/qr-entry.test.tsx
+- .agents/handoffs/pr33-qr-remediation-20260906.md
+- docs/specs/README.md
+
+Se conserva únicamente box validado con isBoxCode; PIN correcto retorna a una ruta
+interna fija. No se acepta returnTo arbitrario ni contextos múltiples. found:false
+muestra su error recuperable; excepciones inesperadas usan copy genérico, sin detalle
+interno. Reintentar vuelve a consultar y nunca confirma recepción automáticamente.
+Criterios QR cubiertos con pruebas focalizadas; aceptación global aún en revisión.

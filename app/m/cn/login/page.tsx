@@ -28,6 +28,7 @@ import {
   type Lang,
 } from "@/lib/lang";
 import { signInOperarioAction } from "./actions";
+import { isBoxCode } from "@/lib/studio/etiquetas-qr";
 import type { SignInOperarioState } from "@/lib/studio/operario-types";
 
 const t = (lang: Lang, es: string, cn: string) => (lang === "cn" ? cn : es);
@@ -84,6 +85,10 @@ export default function OperarioLoginPage() {
   const submitPin = (full: string) => {
     const fd = new FormData();
     fd.set("pin", full);
+    const boxes = new URLSearchParams(window.location.search).getAll("box");
+    if (boxes.length === 1 && isBoxCode(boxes[0])) {
+      fd.set("box", boxes[0].trim().toUpperCase());
+    }
     // React 19 exige startTransition al invocar useActionState fuera de <form>
     startTransition(() => formAction(fd));
   };
