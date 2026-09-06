@@ -206,6 +206,116 @@ begin
 end;
 $contract$;
 
+-- Un nombre conocido no demuestra que la regla proteja los datos. Registrar
+-- ambos escenarios antes del assert final permite ver los dos rojos del SQL
+-- original sin que el primer fallo oculte el caso NOT VALID.
+create temporary table constraint_probe (
+  scenario text primary key,
+  rejects_negative boolean not null,
+  rejects_zero boolean not null,
+  rejects_null boolean not null,
+  validated boolean not null,
+  preserves_value boolean not null
+) on commit drop;
+
+create function pg_temp.probe_0448_constraint(p_scenario text)
+returns void
+language plpgsql
+as $probe$
+declare
+  v_negative boolean := false;
+  v_zero boolean := false;
+  v_null boolean := false;
+begin
+  -- El SQL inválido se ejecuta realmente. Si una escritura inesperadamente
+  -- pasa, la excepción propia revierte su subtransacción antes de continuar.
+  begin
+    update public.calculator_settings set peso_max_envio_kg = -1;
+    raise exception using errcode = 'Z0448', message = 'revertir sonda negativa';
+  exception
+    when check_violation then v_negative := true;
+    when sqlstate 'Z0448' then null;
+  end;
+  begin
+    update public.calculator_settings set peso_max_envio_kg = 0;
+    raise exception using errcode = 'Z0448', message = 'revertir sonda cero';
+  exception
+    when check_violation then v_zero := true;
+    when sqlstate 'Z0448' then null;
+  end;
+  begin
+    update public.calculator_settings set peso_max_envio_kg = null;
+    raise exception using errcode = 'Z0448', message = 'revertir sonda nula';
+  exception
+    when not_null_violation then v_null := true;
+    when sqlstate 'Z0448' then null;
+  end;
+
+  insert into constraint_probe
+  select p_scenario, v_negative, v_zero, v_null,
+    exists (
+      select 1 from pg_catalog.pg_constraint
+      where conrelid = 'public.calculator_settings'::regclass
+        and conname = 'calculator_settings_peso_max_envio_kg_check'
+        and contype = 'c' and convalidated
+    ),
+    (select peso_max_envio_kg = 7777 from public.calculator_settings
+     where tenant_id = '04480000-0000-4000-8000-000000000001');
+end;
+$probe$;
+
+alter table public.calculator_settings
+  drop constraint calculator_settings_peso_max_envio_kg_check;
+alter table public.calculator_settings
+  add constraint calculator_settings_peso_max_envio_kg_check check (true);
+\ir ../migrations/0448_restore_calculator_settings_0223_history.sql
+select pg_temp.probe_0448_constraint('homonimo_debil');
+
+alter table public.calculator_settings
+  drop constraint calculator_settings_peso_max_envio_kg_check;
+alter table public.calculator_settings
+  add constraint calculator_settings_peso_max_envio_kg_check
+  check (peso_max_envio_kg > 0) not valid;
+\ir ../migrations/0448_restore_calculator_settings_0223_history.sql
+select pg_temp.probe_0448_constraint('not_valid');
+
+-- Repetir sobre el resultado reparado conserva valor y protección efectiva.
+\ir ../migrations/0448_restore_calculator_settings_0223_history.sql
+select pg_temp.probe_0448_constraint('repetida');
+
+do $constraint_contract$
+declare
+  v_failures text;
+begin
+  select string_agg(
+    scenario || ': negative=' || rejects_negative || ', zero=' || rejects_zero
+    || ', null=' || rejects_null || ', validated=' || validated
+    || ', preserved=' || preserves_value, '; ' order by scenario
+  ) into v_failures from constraint_probe
+  where not (rejects_negative and rejects_zero and rejects_null
+             and validated and preserves_value);
+  if v_failures is not null then
+    raise exception 'TEST 0448: CHECK no converge: %', v_failures;
+  end if;
+end;
+$constraint_contract$;
+
+-- Invocación real con el rol público después de todas las reparaciones.
+set local role anon;
+do $anon_contract$
+declare
+  v_config jsonb;
+begin
+  select to_jsonb(config) into strict v_config
+  from public.public_calculator_config() config;
+  if (v_config ->> 'peso_max_envio_kg')::numeric is distinct from 7777
+     or (select count(*) from jsonb_object_keys(v_config)) <> 10 then
+    raise exception 'TEST 0448: RPC anon perdió el valor o la firma de diez campos';
+  end if;
+end;
+$anon_contract$;
+reset role;
+
 rollback;
 
 select to_regclass('public.calculator_settings') is null

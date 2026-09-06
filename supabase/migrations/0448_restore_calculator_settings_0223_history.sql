@@ -13,6 +13,17 @@ begin
     raise exception '0448 requiere public.calculator_settings y public.tenants';
   end if;
 
+  -- El nombre pertenece al CHECK de esta migración. No retirar por accidente
+  -- una PK, UNIQUE o FK si un schema divergente lo reutilizó para otro objeto.
+  if exists (
+    select 1 from pg_catalog.pg_constraint
+    where conrelid = 'public.calculator_settings'::regclass
+      and conname = 'calculator_settings_peso_max_envio_kg_check'
+      and contype <> 'c'
+  ) then
+    raise exception '0448 abortado: el constraint de peso máximo existe y no es CHECK';
+  end if;
+
   if exists (
     select 1
     from pg_catalog.pg_attribute attribute
@@ -54,20 +65,16 @@ alter table public.calculator_settings
   alter column peso_max_envio_kg set default 9000,
   alter column peso_max_envio_kg set not null;
 
-do $constraint$
-begin
-  if not exists (
-    select 1
-    from pg_catalog.pg_constraint constraint_row
-    where constraint_row.conrelid = 'public.calculator_settings'::regclass
-      and constraint_row.conname = 'calculator_settings_peso_max_envio_kg_check'
-  ) then
-    alter table public.calculator_settings
-      add constraint calculator_settings_peso_max_envio_kg_check
-      check (peso_max_envio_kg > 0);
-  end if;
-end;
-$constraint$;
+-- Reparación determinista del CHECK que pertenece a 0223/0448: el nombre no
+-- demuestra ni su expresión ni que esté validado. Recrearlo valida las filas
+-- existentes y elimina el falso verde de CHECK(true) o NOT VALID. No se tocan
+-- los demás constraints. Ejecutar el archivo completo en una sola transacción.
+alter table public.calculator_settings
+  drop constraint if exists calculator_settings_peso_max_envio_kg_check;
+
+alter table public.calculator_settings
+  add constraint calculator_settings_peso_max_envio_kg_check
+  check (peso_max_envio_kg > 0);
 
 create function public.public_calculator_config()
 returns table(
@@ -138,6 +145,15 @@ begin
 
   if to_regprocedure('public.public_calculator_config()') is null then
     raise exception '0448 falló: public_calculator_config() no existe';
+  end if;
+
+  if not exists (
+    select 1 from pg_catalog.pg_constraint
+    where conrelid = 'public.calculator_settings'::regclass
+      and conname = 'calculator_settings_peso_max_envio_kg_check'
+      and contype = 'c' and convalidated
+  ) then
+    raise exception '0448 falló: el CHECK de peso máximo no quedó validado';
   end if;
 
   if exists (
