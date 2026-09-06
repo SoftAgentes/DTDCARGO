@@ -117,3 +117,15 @@ producción. No modificar protecciones, secretos ni producto para volver verde C
 SDD-0444 podrá integrar esta unidad local y añadir `pnpm harness:test` explícito;
 es un cambio posterior: main aún no tiene ese script y este CI mínimo no puede
 invocar un comando inexistente. El CI combinado requiere su propia validación.
+
+## Dependencia correctiva SDD-0360 — 2026-09-05
+
+Tras publicar A como #34, el CI falló en la carrera de foco de DestinoCombobox
+presente en main. Se incorpora selectivamente SDD-0360, producto ef99fca5,
+para corregir esa conducta conservando las diez pruebas existentes y sumando
+tres regresiones. No se modifica este workflow para eludir el fallo.
+Allowlist adicional: los cinco paths de SDD-0360 y este spec/handoff de A solo
+para dependencia/alcance. Se verifica la combinación final en B y se reutiliza
+la evidencia de producto en A únicamente tras demostrar árboles equivalentes.
+Foco/navegador y estado de gates se registran en el handoff de SDD-0360.
+Push/actualización de #34 reservados al Director; esta sesión solo integra local.
