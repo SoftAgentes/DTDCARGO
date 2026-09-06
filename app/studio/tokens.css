@@ -46,8 +46,8 @@
   /* BD-020: --danger-web es SOLO para web pública (marketing); Studio/Portal siguen en --danger. */
   --danger-web: #C2353F;
   --danger-web-bg: rgba(194,53,63,0.10);
-  --info: #2A6FDB;
-  --info-bg: rgba(42,111,219,0.10);
+  --info: var(--ink); /* SDD-0441: información operativa neutra */
+  --info-bg: var(--neutral-bg);
   --neutral: #6B6B6B;
   --neutral-bg: rgba(107,107,107,0.10);
 
@@ -292,8 +292,8 @@
      por dejar de referenciarlo desde ese archivo. El FILL sigue en --danger. */
   --danger-text: var(--color-status-danger-on-dark, #F6929A);
   --danger-bg: rgba(224,119,133,0.14);
-  --info: #6FA0E8;
-  --info-bg: rgba(111,160,232,0.14);
+  --info: var(--ink);
+  --info-bg: var(--neutral-bg);
   --neutral: #A8B0C4;
   --neutral-bg: rgba(168,176,196,0.12);
 

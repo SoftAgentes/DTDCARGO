@@ -1,5 +1,15 @@
 # Changelog · v1.1+
 
+## 2026-09-05 · SDD-0441 · Semántica de estados autorizada por Sam
+
+Información y espera normal pasan a navy/neutro. Advertencias usan dorado localizado;
+éxito confirma hechos y error conserva rojo localizado con texto neutro. Fuentes
+actualizadas: CLAUDE.md, erp/tokens.css, erp/components.jsx y erp/data.jsx.
+BRAND.md y consumidores de producción cambian en el mismo PR. No se publica
+el bucket ni se declara regenerado el standalone v4.6. Esta decisión posterior
+prevalece sobre ejemplos antiguos de estados del book distribuido.
+
+
 ## 2026-07-19 · 🔄 NORTE-SYNC patch v4.6 — Glass (BD-031) + Glow (BD-030) + Shipping Mark único (BD-029) + mockups T2 (BD-032) · sin bump
 
 Sync desde el proyecto de diseño (`NORTE-SYNC-2026-07-19.md`), aplicado a este repo (Norte). Cierra 4 decisiones que nunca se habían espejado (el repo cortaba en BD-028). **Sigue v4.6** (patch, sin bump); el **Brand Book físico NO se regeneró** (el .zip lo indica explícito). Verificado contra el código real, no solo copiado del checklist:

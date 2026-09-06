@@ -265,7 +265,7 @@ export function scheduledStatusBadgeTone(s: ScheduledStatus): BadgeTone {
   if (s === "sent") return "success";
   if (s === "failed") return "danger";
   if (s === "canceled") return "neutral";
-  return "wine"; // queued · acento de marca (match Norte mailing-scheduled.jsx)
+  return "info"; // queued: espera normal, sin alarma.
 }
 
 // ─── KPIs (computed) ─────────────────────────────────────────

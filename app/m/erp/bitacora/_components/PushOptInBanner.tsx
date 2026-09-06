@@ -138,7 +138,7 @@ export function PushOptInBanner() {
         padding: "12px 14px",
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
-        borderLeft: "3px solid var(--wine)",
+        borderLeft: "3px solid var(--info)",
         borderRadius: "var(--r-md)",
         marginBottom: 16,
         display: "flex",
@@ -219,7 +219,7 @@ export function PushOptInBanner() {
         </div>
       )}
       {status === "blocked" && (
-        <div style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--warning)" }}>
+        <div style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink)" }}>
           El navegador bloqueó los avisos. Actívalos desde los ajustes del sitio y
           vuelve a probar.
         </div>
