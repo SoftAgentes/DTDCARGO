@@ -112,11 +112,26 @@ regenera el único conflicto, `docs/specs/README.md`.
   después del guard, regreso a público, hashchange/popstate y señales públicas.
   No hay solicitudes hacia Google ni errores de página. El comportamiento
   interno del proveedor y la integración completa de Next no quedan certificados.
-- El gate canónico de esta combinación y la revisión independiente del nuevo
-  SHA siguen pendientes; ver el handoff vivo. No se heredan los verdes anteriores.
+- Revalidación independiente favorable de
+  `7d13021224292b4b6379ebdd2f4e9d34b9273166`: 183 casos propios del auditor
+  (129 de detector/sanitizador y 54 React/jsdom). El P1 está corregido en el
+  alcance reproducido; no se demostraron nuevos bloqueantes. No hereda las
+  pruebas del Worker ni aprueba merge/release.
+- `pnpm verify` de ese SHA: 14/16 pasos reales, sin fallos ni reintentos;
+  6359 pruebas en 502 archivos, 12 pruebas del harness, 4 Edge Functions,
+  139 contratos SQL, schema reconstruido (380 migraciones + 18 sólo-ledger,
+  aislamiento de 219 tablas) y build/postbuild aprobados. Lint: 0 errores,
+  8 warnings históricos. Completado el 2026-09-05 a las 23:10 America/Caracas.
+- Omisiones explícitas: ledger de producción sin credenciales, fuera del
+  alcance, y E2E general por navegadores Playwright ausentes. Los 20 escenarios
+  Edge focales no sustituyen esa suite. Exit 0 no es verde completo; Director
+  debe clasificar las omisiones antes de aprobar integración. Evidencia,
+  huellas y revisión independiente en el handoff vivo.
 
-La SDD conserva `in-progress`. Publicar, integrar y desplegar mantienen sus
-permisos separados; no cambian SQL, credenciales, consentimiento ni IDs.
+La SDD conserva `in-progress` hasta esa clasificación. El cierre documental
+posterior a `7d130212` no cambia producto ni tests y se revisa por delta.
+Publicar, integrar y desplegar mantienen sus permisos separados; no cambian
+SQL, credenciales, consentimiento ni IDs.
 
 ## Reversión
 
