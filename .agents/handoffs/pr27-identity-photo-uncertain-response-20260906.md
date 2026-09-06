@@ -8,7 +8,7 @@
 - Base remota portalcliente: 4289efc317c060620a7de9335030e9cd612d9aec.
 - Main verificado: 74bb52ab9677f96908cc032a15f2364ab9d94716.
 - SDD: 0439-portal-cliente-edicion-de-perfil, in-progress.
-- Estado: lista para revisión independiente, sin publicación.
+- Estado: revisión independiente focal favorable; pendiente validación combinada, sin publicación.
 
 ## OBJETIVO ORIGINAL
 
@@ -117,8 +117,8 @@ Corrección para PR27; rama aislada arriba. No publicación autorizada.
 
 ## PENDIENTES DE ESTA TAREA
 
-Revisión independiente por auditor asignado y validación combinada que coordina
-Director. No repetir verify individual: Director reservó próxima pesada para
+Validación combinada que coordina Director. No repetir verify individual:
+Director reservó próxima pesada para
 la combinación PR26+23+27 después de revisión y SHAs finales.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -132,6 +132,25 @@ ni modificó fixture/worktreePR30. Informado al Director, sin reinicio unilatera
 Se solicita revisión independiente del SHA final, especialmente allowlist SQL,
 revalidación de autoridad y carrera postlectura. No integración automática.
 Auditor 01a073c1-7226-76a1-b60e-810754458ad0 recibió d7717861 y evidencia;
-su revisión sigue pendiente al registrar este cierre técnico. Claim se libera
+su revisión focal fue favorable. Claim se libera
 tras commit documental y se retoma si el auditor solicita corrección. Conservar
 worktree/dependencias propias; liberación no autoriza limpieza.
+
+### Revisión independiente recibida
+
+Auditor confirmó código d7717861 y entrega8a66e958 (delta sólo dos documentos).
+14 escenarios propios PASÓ, exit0, con SDK real/offline y blobs inmutables;
+no reutilizó las 27 pruebas del Worker. Sin hallazgos bloqueantes nuevos; cierra
+el P2 de borrar foto comprometida tras respuesta perdida. Contrastó la allowlist
+contra SQL0445/0446/0447, revalidación de autoridad y carrera postlectura.
+
+La limpieza no es atómica DB/Storage: su garantía depende del rechazo de la
+única RPC y el UUID server-side exclusivo, no publicado al navegador. Un nuevo
+escritor que reutilice/publique ese path requeriría coordinación adicional.
+La revisión no certifica funciones Cloud distintas, retención, purga ni hold.
+
+Informe durable:
+`C:/Users/AKX generator/Desktop/Developer/DTD-backups/director-goal-20260905/pr27-uncertain-response-independent-review.md`.
+Resultados propios: `profile-chain-evidence` no sustituye esta revisión;
+su nueva evidencia está en `director-goal-20260905/pr27-fixed-evidence/`.
+No autoriza merge, deploy ni Cloud. El código revisado permanece sin cambios.

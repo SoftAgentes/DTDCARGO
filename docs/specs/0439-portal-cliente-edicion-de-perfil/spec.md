@@ -168,7 +168,9 @@ tenant/prefijo/cuenta cambiados, puntero concurrente y commit posterior a lectur
 nula conservan el archivo. Cleanup fallido comunica soporte sin éxito falso.
 Final: 27/27 (24 identidad + 3 cuota), TypeScript, ESLint focal, docs:check,
 governance:check y components:check PASÓ. Código d7717861 enviado a revisión
-independiente; resultado en handoff. Sin push, build/verify masivo ni Cloud.
+independiente, favorable con 14 escenarios propios SDK/offline y sin nuevos
+bloqueos; detalle y límites en handoff. Falta validación combinada coordinada
+por Director. Sin push, build/verify masivo ni Cloud.
 
 ## Fuera de alcance
 
