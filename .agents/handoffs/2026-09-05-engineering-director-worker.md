@@ -12,6 +12,24 @@ Prohibidos en esta corrección: push, publicación/actualización de PR, merge m
 producción, protecciones/credenciales y cleanup de ramas/worktrees.
 Este alcance sustituye el permiso de publicación del encargo inicial.
 
+## EXTENSIÓN ACTUAL — SDD-0360
+
+Task ID: 2026-09-05-destino-focus-extract. Estado: combinación local en validación.
+El Director publicó c36d7e26 en #32; CI detectó la carrera de foco de main antes
+de llegar al harness. Ahora se incorpora A/cf1570d6 con el arreglo de producto
+ef99fca5fff6cf9b4562255370876313ffd7ced3, sin cambiar workflow ni gates.
+Allowlist adicional: cinco paths de SDD-0360 y handoffs/specs0349/0444 solo
+para coordinación/dependencia/evidencia. Se conservan C3 y harness:test.
+
+Dos regresiones de frames fallaron sobre original y pasan 13/13 focales con
+el arreglo exacto de46afa953; las diez previas permanecen intactas. Fixture
+local ficticia pasó teclado, mouse, Escape y cursor manual. Verify completo
+se ejecutará aquí sobre el producto combinado; no se duplica suite/build en
+A ni extracción si sus árboles de producto son equivalentes. Ver
+[handoff SDD-0360](2026-09-05-destino-focus-extract.md).
+Push/actualización de #32 reservados al Director. El historial inferior conserva
+la corrección previa de CI y no constituye evidencia alojada de esta extensión.
+
 ## CORRECCIÓN COMPLETADA LOCALMENTE
 
 Punto de partida: PR draft #32, HEAD local/remoto original

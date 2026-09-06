@@ -53,6 +53,10 @@ no se sustituye ni cambia su runtime. Esta spec afecta exclusivamente ingenierí
   (CI extraída en SDD-0349 y ampliada para ejecutar harness:test).
 - docs/specs/0349-ci-calidad-sin-secretos/spec.md y
   .agents/handoffs/2026-09-05-ci-quality-extract.md (incorporados por merge local A).
+- components/DestinoCombobox.tsx y components/DestinoCombobox.test.tsx;
+  docs/specs/0360-destino-combobox-focus-race/spec.md y
+  .agents/handoffs/2026-09-05-destino-focus-extract.md (dependencia correctiva
+  puntual autorizada, incorporada a través de A; ver SDD-0360).
 - scripts/harness-worktree.mjs, scripts/next-number.mjs, scripts/director-status.mjs.
 - scripts/tests/{harness-worktree,director-status}.node.mjs,
   scripts/tests/next-number.integration.node.mjs; traslado del test previo de
@@ -105,3 +109,14 @@ demás gates de B pasaron sin SKIPs. Detalle y límites en el handoff.
 
 La integración futura de #21 continúa pendiente: sus contratos runWorktreeCommand
 y finish y sus cambios de AGENTS no son intercambiables con #32.
+
+## Dependencia correctiva SDD-0360 — 2026-09-05
+
+El CI publicado de #32/c36d7e26 falló en la carrera de foco del componente
+público ya presente en main, antes de ejecutar harness:test. Se incorpora el
+arreglo selectivo ef99fca5 a través de A, conservando el workflow y todos los
+gates. No se incorpora #21 completa. B concentra verify de producto y el
+harness; A/extracción reutilizan suite/build solo con árboles de producto
+equivalentes, más comprobaciones propias. Evidencia y SHA en handoff SDD-0360.
+La publicación/actualización de #32 queda a cargo del Director; esta sesión
+solo prepara commits y merges locales para su revisión.

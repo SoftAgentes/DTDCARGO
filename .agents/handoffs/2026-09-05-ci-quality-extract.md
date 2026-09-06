@@ -6,7 +6,28 @@ Task ID: 2026-09-05-ci-harness-remediation, unidad A.
 Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/ci-quality-extract-20260905.
 Rama: codex/ci-quality-extract-20260905.
 Base: origin/main@b8294664a1b4f9e25c423dd814f4813fa5b1be8f.
-Destino posterior: revisión local por Director; sin publicación autorizada.
+Destino posterior: revisión local por Director; pushes reservados al Director.
+
+## EXTENSIÓN ACTUAL — SDD-0360
+
+Task ID: 2026-09-05-destino-focus-extract. Estado: integración local en validación.
+La extracción CI c6ffc009 ya fue publicada por el Director como PR #34.
+Su CI reportó el fallo de foco previo a Escape en DestinoCombobox; se incorpora
+el arreglo real, sin alterar workflow, orden de gates o pruebas existentes.
+
+Producto: ef99fca5fff6cf9b4562255370876313ffd7ced3; documentación de extracción:
+3f9cd305caf9651ee2a4876c2ed1fb1f7ca8574d. Solo se fusiona esta rama selectiva,
+no #21. El conflicto del índice se resuelve con su generador.
+Allowlist adicional: los cinco paths de SDD-0360 y este handoff/spec0349 solo
+para dependencia/alcance/evidencia. El workflow conserva el blob e9f3ad39.
+Regresión: dos rojos deterministas y 13/13 focales después; navegador local
+ficticio pasó foco, edición, Escape, flechas/Enter, selección y cursor con mouse.
+Verify completo se concentra en B; pendiente evidencia final de equivalencia
+del producto y checks propios de A. Fuente durable:
+[handoff SDD-0360](2026-09-05-destino-focus-extract.md).
+
+Esta sesión no publica. Entrega SHA final al Director; main/producción quedan
+fuera de alcance. El resto de este documento conserva la extracción CI inicial.
 
 ## OBJETIVO ORIGINAL
 
@@ -70,7 +91,8 @@ sin crear otro commit para insertar el hash del propio documento.
 
 ## PR / BRANCH
 
-Rama local codex/ci-quality-extract-20260905; no tiene PR ni publicación.
+Rama codex/ci-quality-extract-20260905. La entrega inicial no tenía PR;
+el Director publicó después PR #34. La corrección actual queda local para revisión.
 La PR #21 es fuente, no destino ni aprobación de esta unidad.
 
 ## PENDIENTES DE ESTA TAREA
