@@ -8,13 +8,11 @@ import Link from "next/link";
  * Mono, gris, más chica) — el término que el importador veterano del modelo EE.UU.
  * ya conoce. Los dos términos viajan SIEMPRE juntos en el mismo control.
  *
- * Compacto (~40px, ghost bordeado en vino) en vez del bloque vino lleno de 48px:
- * baja el peso visual (el vino lleno queda para "Registrar compra" dentro de
- * la pantalla completa, que es el commit real) y es IDÉNTICO en todo el
- * portal (sidebar, dashboard, /proveedores, /compras, hub de alertas —
- * mismo control, siempre lleva a `/portal/compras/nueva`).
+ * En encabezados, primary usa la variante primaria de 48px para destacar
+ * la siguiente acción. El resto conserva el patrón compacto de 40px.
+ * Siempre navega al formulario; Registrar compra es la acción que persiste.
  */
-export function NewPurchaseButton({ href }: { href: string }) {
+export function NewPurchaseButton({ href, primary = false }: { href: string; primary?: boolean }) {
   const inner = (
     <>
       <span
@@ -25,9 +23,9 @@ export function NewPurchaseButton({ href }: { href: string }) {
         +
       </span>
       <span className="flex flex-col items-start leading-none gap-1 text-left">
-        <span className="text-[14px] font-bold text-ink">Nueva compra</span>
+        <span className={`text-[14px] font-bold ${primary ? "" : "text-ink"}`}>Nueva compra</span>
         <span
-          className="text-[10.5px] uppercase tracking-[0.1em] text-grey-700"
+          className={`text-[10.5px] uppercase tracking-[0.1em] ${primary ? "" : "text-grey-700"}`}
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
         >
           = prealerta
@@ -37,9 +35,9 @@ export function NewPurchaseButton({ href }: { href: string }) {
   );
 
   const className =
-    "btn btn-ghost inline-flex items-center gap-2.5 flex-shrink-0";
+    `btn ${primary ? "btn-primary" : "btn-ghost"} inline-flex items-center gap-2.5 flex-shrink-0`;
   const style = {
-    height: 40,
+    height: primary ? 48 : 40,
     padding: "0 14px",
     borderColor: "var(--color-wine)",
   } as const;
