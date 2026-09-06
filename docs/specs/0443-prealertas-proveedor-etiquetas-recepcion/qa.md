@@ -132,3 +132,63 @@ Se compararon todos los archivos de esta tarea con los diez PR abiertos #21, #23
 #24 y #26–#32. No había archivos compartidos en esa consulta; `coordination.json`
 conserva el resultado. Esto no sustituye las pruebas de integración del coordinador
 cuando cambien las ramas o se integren sus comportamientos.
+## Corrección QR local · 2026-09-06 · 6254e1f1
+
+Tras incorporar origin/main 74bb52ab mediante merge local 37301e04, se corrigieron
+los dos hallazgos de la review 5123317133. El login propaga exclusivamente un box
+validado y la acción construye /m/cn/recibir?box=... después del PIN correcto.
+Valores repetidos, File, URLs y returnTo arbitrario no determinan la navegación.
+
+La entrada autenticada muestra found:false con mensaje persistente y opciones
+Reintentar consulta / Volver a escanear. La primera fuerza una consulta nueva por
+GET; ninguna acción registra recepción. Excepciones inesperadas no exponen su
+mensaje interno. Un box ausente conserva el escáner normal; uno inválido muestra
+un error sin consulta de mercancía. Se conserva el control de sesión y región.
+
+Pruebas focalizadas: 27/27 PASÓ, en tres archivos, con datos sintéticos y auth/DB
+simulados. La fase roja inicial tuvo siete fallos de producto más un fallo del
+mock useActionState (objeto inestable): ese mock se corrigió sin reducir aserciones.
+La prueba de UI verifica que pulsar los cuatro dígitos transmite la caja. Otras
+pruebas ejercitan la acción real y el destino exacto; no se presentan como E2E con
+un PIN real ni una sesión contra Supabase.
+
+UI-CHECK sobre el diff: acciones son enlaces de navegación con estilos canonical
+studio-btn, hover/foco existentes y altura mínima mediante token s-12; texto de
+error separado, sin mensaje de éxito falso, sin color inventado ni nuevo componente.
+H1 y role=alert exponen el resumen; para chino se ofrece título, ayuda y acciones.
+Revisión de código PASÓ; nueva prueba visual en navegador y lector real NO EJECUTADO.
+La revisión visual anterior del proveedor no se cuenta como evidencia de esta pantalla.
+
+Privacidad técnica del delta: CORRECTO (login/page.tsx:submitPin y
+login/actions.ts:signInOperarioAction), se transporta solo el identificador operativo
+que ya está en el QR; no se agregan nombres, contacto ni persistencia. CORRECTO
+(recibir/page.tsx:RecibirIndexPage), se exige sesión antes de consultar y no se
+imprimen detalles de excepciones. NO VERIFICABLE: retención de logs de infraestructura,
+impresión, China/WeChat y comportamiento real de red; no se cambian sus políticas
+ni se afirma cumplimiento legal. Inventario/consentimiento/derechos/borrado/auditoría/
+terceros/transferencias/decisiones/firma/titulares conservan el alcance de la revisión
+original; este delta no incorpora una nueva captura o integración.
+
+No se tocó 0449. El ledger de producción es un pendiente de release, no motivo para
+aplicar migraciones antes de revisar la PR. Esta corrección solo autoriza commits
+locales; el PR remoto conserva e2ec0adc hasta una publicación autorizada posterior.
+## Resultado final de verify · 6254e1f1
+
+PASÓ: harness (12), lint, frontera RSC, typecheck, Edge Functions (4 entradas con
+Deno 2.9.6), Vitest (505 archivos / 6228 pruebas), docs, numeración, constantes,
+componentes, gobernanza, SQL (140 contratos), schema-rebuild (381 aplicadas + 18
+solo-ledger; aislamiento de 219 tablas) y build. Total: 14 de 16 pasos ejecutados.
+NO DISPONIBLE: migrations-applied, sin credenciales; corresponde a release.
+NO EJECUTADO: E2E, omitido explícitamente por Director, sin entorno asignado a #33.
+No constituye cobertura completa. No se tocó el schema de producción ni la 0449.
+
+Comando: node scripts/verify.mjs (entrypoint de pnpm verify), con
+VITEST_MAX_WORKERS=4, VERIFY_DENO_BIN apuntando al Deno 2.9.6 local aprobado y
+VERIFY_SKIP_E2E=1. Log: %TEMP%/pr33-qr-6254e1f1-verify.log.
+El gate restauró tsconfig.json; no se entrega modificación automática de Next.
+Las correcciones se conservan en 6254e1f1; después solo cambió documentación.
+
+Evidencia del delta de privacidad: app/m/cn/login/page.tsx:88,
+app/m/cn/login/actions.ts:30 y app/m/cn/recibir/page.tsx:27. No hay captura nueva de
+identidad personal ni ampliación de permisos. La revisión independiente sigue
+recomendada y pendiente del Director.
