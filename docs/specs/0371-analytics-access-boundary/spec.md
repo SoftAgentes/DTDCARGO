@@ -4,7 +4,7 @@ title: Analytics fuera de puertas de acceso y URLs con credenciales
 status: in-progress
 author: Codex
 created: 2026-09-03
-updated: 2026-09-05
+updated: 2026-09-06
 supersedes: null
 superseded_by: null
 related: ["0250", "0253", "0278"]
@@ -138,8 +138,29 @@ ni se cambia el guard. Requisitos y matriz por caso en el handoff. Si se elige
 un entorno completamente local, su adaptación pertenece a SDD-0440/#28 y no se
 implementa aquí.
 
-La SDD conserva `in-progress` por E2E/entorno y clasificación de omisiones. El
-cierre documental posterior a `7d130212` no cambia producto ni tests y se revisa por delta.
+## Validación E2E acotada · 2026-09-06
+
+Sobre `b787b6f15762ee94a98150a7f49a3c4a1c2e546b`, con código idéntico a
+`7d130212`, se ejecutó la selección autorizada de 129 casos sin backend:
+43 por cada proyecto original, un worker, 129 intentos totales, cero fallos,
+cero flaky y cero skips dentro de esa selección. Exit 0 en 11 minutos; Next
+local y WebKit cerraron normalmente. No cambió configuración, producto ni tests.
+
+El preflight comparó cada tupla proyecto/archivo/línea/título contra la matriz
+antes de iniciar. Credenciales ausentes, Analytics apagado en desarrollo y
+piloto de adjuntos apagado; los fallbacks públicos son los reales del código.
+Los dos escenarios de hidratación que fallaron en #30 pasaron al primer intento
+en mobile-chrome y en los otros motores; no se atribuye la causa a concurrencia
+sólo por esta comparación. JSON completo, stdout y manifiesto de selección
+quedan respaldados fuera de TEMP y enlazados con sus huellas desde el handoff.
+
+Quedan fuera de esta corrida 21 casos que necesitan configuración Supabase y
+18 autenticados que además requieren fixture/seed. No se afirma 168/168 ni se
+reescribe el resultado histórico 14/16 del gate. Esta suite general no valida
+Google: la evidencia focal de Analytics conserva sus propios límites.
+
+La SDD conserva `in-progress` por esos 39 E2E/entorno y clasificación de omisiones.
+El cierre documental posterior a `7d130212` no cambia producto ni tests y se revisa por delta.
 Publicar, integrar y desplegar mantienen sus permisos separados; no cambian
 SQL, credenciales, consentimiento ni IDs.
 
