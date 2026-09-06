@@ -1,3 +1,4 @@
+import { getLabelPresentation } from "@/lib/studio/label-presentation-queries";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { jetbrainsMonoUi } from "@/lib/fonts";
@@ -42,6 +43,7 @@ export default async function ProviderSharePage({
   // service_role (política `aliados service_role all`, migr 0362).
   const brand = await resolveBrandForClient(admin, { markbox: data.markbox });
 
+  const presentation = await getLabelPresentation(admin, data.tenantId);
   const labels =
     data.predeclaredBoxes.length > 0
       ? buildLabelsFromBoxes(data.code, data.predeclaredBoxes)
@@ -54,13 +56,12 @@ export default async function ProviderSharePage({
       <ProviderShareClient
         token={token}
         code={data.code}
-        description={data.description}
         markbox={data.markbox}
-        clientName={data.clientName}
         supplierName={data.supplierName}
         supplierWechat={data.supplierWechat}
         labels={labels}
         brand={brand}
+        presentation={presentation.settings}
       />
     </div>
   );

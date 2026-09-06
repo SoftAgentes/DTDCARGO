@@ -1,3 +1,4 @@
+import { getLabelPresentation } from "@/lib/studio/label-presentation-queries";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
@@ -63,6 +64,7 @@ export default async function PortalLabelsPage({
   const brand = await resolveBrandForClient(createAdminClient(), {
     markbox: client.markbox,
   });
+  const presentation = await getLabelPresentation(createAdminClient(), prealerta.tenant_id);
   const supplier = prealerta.supplier_id
     ? (suppliers.find((s) => s.id === prealerta.supplier_id) ?? null)
     : null;
@@ -134,6 +136,7 @@ export default async function PortalLabelsPage({
     <>
       <LabelsClient
         brand={brand}
+        presentation={presentation.settings}
         code={prealerta.code}
         markbox={client.markbox}
         clientName={client.name}

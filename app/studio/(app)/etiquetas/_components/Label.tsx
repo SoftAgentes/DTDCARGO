@@ -145,7 +145,7 @@ export function Label({
               letterSpacing: "0.02em",
             }}
           >
-            SHIPPING TO · {brand.name}
+            {brand.name}
           </div>
           <div
             style={{
@@ -210,7 +210,7 @@ export function Label({
               color: "#0F1E3D",
             }}
           >
-            {client.name}
+            {/* Identidad del cliente omitida: la etiqueta opera por Shipping Mark. */}
           </div>
           {/* Sin línea de razón social aparte: para empresa, `name` YA es la
               razón social (ver LabelClient en ../page.tsx). */}

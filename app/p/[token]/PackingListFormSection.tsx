@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckIcon, CloseIcon, DownloadIcon } from "@/components/Icon";
+import { useRouter } from "next/navigation";
+import { printMarkbox } from "@/lib/shared/markbox-chain";
+import { printDocument } from "@/lib/shared/print-document";
 import { CONTACT } from "@/lib/design-tokens";
 import {
   PACKING_LIST_CURRENCIES,
@@ -13,6 +16,7 @@ import {
   packlistDraftKey,
   packlistHistoryKey,
   pushHistory,
+  sanitizePacklistDraft,
   type PacklistHistEntry,
 } from "@/lib/studio/prealertas/packlist-draft";
 
@@ -61,9 +65,9 @@ const WAREHOUSE_RULES: {
     en: "Fill this document before shipping and send it with the cargo, or upload it on your DTD link.",
   },
   {
-    zh: "在你的 DTD 链接上传公司原始单据：商业发票和装箱单原件。",
-    es: "Sube a tu link de DTD los documentos originales de tu empresa: tu factura comercial y tu packing list originales.",
-    en: "Upload your company's original documents to your DTD link: your original commercial invoice and packing list.",
+    zh: "在线填写或上传 Excel，任选一种。仅在 DTD 要求时提供其他原始单据。",
+    es: "Completa el formulario o sube el Excel: elige una opción. Adjunta otros documentos originales solo si DTD te los solicita.",
+    en: "Complete the form or upload Excel: choose one option. Attach other original documents only if DTD requests them.",
   },
   {
     zh: '品牌货请如实填写品牌名；否则填"无"。',
@@ -127,7 +131,7 @@ function fmtTs(ts: number): string {
 type SubmitState =
   | { kind: "idle" }
   | { kind: "sending" }
-  | { kind: "ok"; folio: string | null; versionNo: number }
+  | { kind: "ok"; folio: string | null; versionNo: number; labelsNeedReview?: boolean }
   | { kind: "error"; message: string };
 
 type FieldErrors = Partial<Record<"contacto" | "rows" | "tooMany", string>>;
@@ -141,9 +145,6 @@ type Draft = {
   address: string;
   city: string;
   mark: string;
-  clientName: string;
-  clientPhone: string;
-  clientEmail: string;
   docDate: string;
   currency: PackingListCurrency;
   note: string;
@@ -171,14 +172,15 @@ export function PackingListFormSection({
   supplierName,
   supplierWechat,
   markbox,
-  clientName,
+  code,
 }: {
   token: string;
   supplierName?: string | null;
   supplierWechat?: string | null;
   markbox?: string | null;
-  clientName?: string | null;
+  code?: string;
 }) {
+  const router = useRouter();
   const cn = CONTACT.cn;
 
   const [lang, setLang] = useState<Lang>("es");
@@ -192,10 +194,7 @@ export function PackingListFormSection({
   const [city, setCity] = useState("");
 
   // CLIENT — el 唛头 (mark) viene prefilled de la orden.
-  const [mark, setMark] = useState(markbox ?? "DTD-");
-  const [client, setClient] = useState(clientName ?? "");
-  const [clientPhone, setClientPhone] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
+  const mark = markbox ?? "";
   const [docDate, setDocDate] = useState(isoToday());
 
   const [currency, setCurrency] = useState<PackingListCurrency>("USD");
@@ -298,9 +297,6 @@ export function PackingListFormSection({
       address,
       city,
       mark,
-      clientName: client,
-      clientPhone,
-      clientEmail,
       docDate,
       currency,
       note,
@@ -315,9 +311,6 @@ export function PackingListFormSection({
       address,
       city,
       mark,
-      client,
-      clientPhone,
-      clientEmail,
       docDate,
       currency,
       note,
@@ -333,10 +326,6 @@ export function PackingListFormSection({
     if (typeof d.wechat === "string") setWechat(d.wechat);
     if (typeof d.address === "string") setAddress(d.address);
     if (typeof d.city === "string") setCity(d.city);
-    if (typeof d.mark === "string") setMark(d.mark);
-    if (typeof d.clientName === "string") setClient(d.clientName);
-    if (typeof d.clientPhone === "string") setClientPhone(d.clientPhone);
-    if (typeof d.clientEmail === "string") setClientEmail(d.clientEmail);
     if (typeof d.docDate === "string") setDocDate(d.docDate);
     if (d.currency === "USD" || d.currency === "RMB" || d.currency === "EUR")
       setCurrency(d.currency);
@@ -352,9 +341,19 @@ export function PackingListFormSection({
       if (cancelled) return;
       try {
         const raw = localStorage.getItem(packlistDraftKey(token));
-        if (raw) applyDraft(JSON.parse(raw) as Partial<Draft>);
+        if (raw) {
+          const clean = sanitizePacklistDraft(raw);
+          localStorage.setItem(packlistDraftKey(token), clean);
+          applyDraft(JSON.parse(clean) as Partial<Draft>);
+        }
         const h = localStorage.getItem(packlistHistoryKey(token));
-        if (h) setHistory(JSON.parse(h) as HistEntry[]);
+        if (h) {
+          const clean = (JSON.parse(h) as HistEntry[]).flatMap(entry => {
+            try { return [{ ...entry, data: sanitizePacklistDraft(entry.data) }]; } catch { return []; }
+          });
+          localStorage.setItem(packlistHistoryKey(token), JSON.stringify(clean));
+          setHistory(clean);
+        }
       } catch {
         /* localStorage no disponible / corrupto → seguimos con el prefill */
       }
@@ -371,11 +370,13 @@ export function PackingListFormSection({
     try {
       localStorage.setItem(packlistDraftKey(token), JSON.stringify(draft));
       setSaveStatus({
-        text: `${tr(lang, "Autoguardado", "Autosaved")} · 已保存 ${fmtTs(Date.now())}`,
+        text: `${tr(lang, "Borrador en este navegador", "Draft in this browser")} · 已保存 ${fmtTs(Date.now())}`,
         tone: "steady",
       });
+      return true;
     } catch {
-      /* cuota llena / modo privado → el form sigue usable en memoria */
+      setSaveStatus({ text: tr(lang, "No se pudo guardar el borrador en este navegador. Mantén esta página abierta.", "Could not save the draft in this browser. Keep this page open."), tone: "steady" });
+      return false;
     }
   }, [token, draft, lang]);
 
@@ -415,10 +416,10 @@ export function PackingListFormSection({
   );
 
   function saveVersion() {
-    persist();
+    if (!persist()) return;
     snapshot(tr(lang, "manual", "manual"));
     setSaveStatus({
-      text: `${tr(lang, "Versión guardada", "Version saved")} · 已保存 ${fmtTs(Date.now())}`,
+      text: `${tr(lang, "Borrador guardado en este navegador", "Draft saved in this browser")} · 已保存 ${fmtTs(Date.now())}`,
       tone: "pulse",
     });
   }
@@ -497,32 +498,6 @@ export function PackingListFormSection({
     });
   }
 
-  // ── Excel vacío (CSV UTF-8 con BOM, abre en Excel) — portado de downloadXls ──
-  function downloadEmptyCsv() {
-    const headers = [
-      "品牌/Marca",
-      "货号/Código",
-      "中文品名",
-      "英文品名/Nombre",
-      "材质HS/Material",
-      "箱号/N.caja",
-      "件数/Cajas",
-      "每箱装量/Uds caja",
-      "单价/P.unit",
-      "每箱重 kg",
-      "每箱体积 CBM",
-    ];
-    const lines = [headers.join(",")];
-    for (let i = 0; i < 15; i++) lines.push(headers.map(() => "").join(","));
-    const csv = "﻿" + lines.join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "DTD-PackingList-vacio.csv";
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
-  }
-
   // ── Footer de bodega: texto canónico desde CONTACT.cn ──────────────────
   const whText = [
     `${cn.companyCjk} (DTD)`,
@@ -555,10 +530,10 @@ export function PackingListFormSection({
           // ahora SÍ se persisten server-side (SDD-0097, migr 0148). Los datos
           // del cliente y el folio siguen en el documento + borrador local.
           supplierCompany: company,
-          supplierContact: client,
+          supplierContact: "",
           supplierEmail: email,
           supplierWechat: wechat,
-          supplierPhone: clientPhone,
+          supplierPhone: "",
           supplierAddress: address,
           supplierCity: city,
           currency,
@@ -573,6 +548,7 @@ export function PackingListFormSection({
         ok?: boolean;
         folio?: string | null;
         versionNo?: number;
+        labelsNeedReview?: boolean;
         error?: string;
         fieldErrors?: FieldErrors;
       } = {};
@@ -583,10 +559,12 @@ export function PackingListFormSection({
       }
 
       if (res.ok && data.ok) {
+        router.refresh();
         setSubmit({
           kind: "ok",
           folio: data.folio ?? null,
           versionNo: data.versionNo ?? 1,
+          labelsNeedReview: data.labelsNeedReview,
         });
         return;
       }
@@ -688,8 +666,8 @@ export function PackingListFormSection({
           ))}
         </select>
 
-        <button type="button" onClick={saveVersion} className="tbtn tbtn-primary">
-          <SaveGlyph /> {tr(lang, "Guardar", "Save")} / 保存
+        <button type="button" onClick={saveVersion} className="tbtn">
+          <SaveGlyph /> {tr(lang, "Guardar borrador", "Save draft")} / 保存
         </button>
         <button
           type="button"
@@ -699,9 +677,9 @@ export function PackingListFormSection({
         >
           {tr(lang, "Historial", "History")} / 历史
         </button>
-        <button type="button" onClick={downloadEmptyCsv} className="tbtn">
-          <DownloadIcon size={14} /> {tr(lang, "Excel vacío", "Empty Excel")} / 空表
-        </button>
+        <a href={`/p/${token}/packlist`} download className="tbtn">
+          <DownloadIcon size={14} /> {tr(lang, "Usar Excel", "Use Excel")} / 下载 Excel
+        </a>
         {/* SDD-0308 · `aria-pressed` y no `aria-expanded`: esto no despliega un
             panel, cambia el estado del documento. Y el rótulo cambia con el
             estado — un botón que dice siempre lo mismo no dice qué va a pasar. */}
@@ -716,11 +694,15 @@ export function PackingListFormSection({
             ? `${tr(lang, "Salir", "Exit")} / 退出全屏`
             : `${tr(lang, "Pantalla completa", "Full screen")} / 全屏`}
         </button>
-        <button type="button" onClick={() => window.print()} className="tbtn tbtn-print">
-          <PrintGlyph /> PDF · 打印
+        <button type="button" onClick={() => printDocument("packing-list")} className="tbtn">
+          <PrintGlyph /> {tr(lang, "Imprimir documento / PDF", "Print document / PDF")} · 打印文件
         </button>
       </div>
 
+      <p className="no-print mt-4 text-sm text-grey-700">
+        在输入框内填写，合计自动计算。草稿仅保存在此浏览器；点击“提交”发送。
+        <span className="block">{tr(lang, "Escribe en los campos con borde. Los totales se calculan solos. Guardar borrador no envía el documento: usa Enviar documento a DTD al terminar.", "Fill the bordered fields. Totals are calculated automatically. Saving a draft does not submit it: use Send document to DTD when ready.")}</span>
+      </p>
       {/* Panel de historial (no imprime) */}
       {showHistory && (
         <div className="no-print mt-3 rounded-[12px] border border-grey-200 bg-grey-100 p-3">
@@ -756,7 +738,7 @@ export function PackingListFormSection({
         </div>
       )}
 
-      {submit.kind === "ok" ? (
+      {submit.kind === "ok" && (
         <div
           ref={okRef}
           tabIndex={-1}
@@ -773,6 +755,7 @@ export function PackingListFormSection({
               </span>
             </span>
           </div>
+          {submit.labelsNeedReview && <p className="mt-3 text-grey-700">箱数与标签不同，请联系仓库核对。 · La cantidad del documento no coincide con las etiquetas actuales. Contacta al almacén para reconciliar las cajas; puedes abrir e imprimir las etiquetas disponibles.</p>}
           {submit.folio && (
             <div
               className="mt-2 text-[13px] text-grey-700"
@@ -800,8 +783,8 @@ export function PackingListFormSection({
             修改 · {tr(lang, "Corregir / reenviar", "Edit / resend")}
           </button>
         </div>
-      ) : (
-        <>
+      )}
+      <div className={submit.kind === "ok" ? "pl-submitted-body" : undefined}>
           {/* ── Encabezado del documento: identidad CN + teléfonos + folio ── */}
           <header className="pl-head mt-5">
             <div className="pl-phones" style={{ fontFamily: MONO_CJK }}>
@@ -902,52 +885,11 @@ export function PackingListFormSection({
             {/* Cliente */}
             <div className="pl-igroup">
               <div className="pl-ighead">
-                <span lang="zh-CN">客户</span>{" "}
-                <span lang="es">{tr(lang, "Cliente", "Client")}</span>
+                <span lang="zh-CN">发货标识</span>{" "}
+                <span lang="es">{tr(lang, "Referencia de envío", "Shipping reference")}</span>
               </div>
-              <InfoRow
-                labelZh="唛头"
-                labelLat="Mark"
-                value={mark}
-                onChange={setMark}
-                placeholder="DTD-XXXX"
-                mono
-                autoComplete="off"
-              />
-              <InfoRow
-                labelZh="客户名"
-                labelLat={tr(lang, "Nombre", "Name")}
-                value={client}
-                onChange={setClient}
-                placeholder={tr(lang, "客户名 / Nombre", "客户名 / Name")}
-                autoComplete="name"
-              />
-              <div className="pl-irow pl-irow-addr">
-                <span className="pl-il">
-                  <span lang="zh-CN">客户电话</span>{" "}
-                  <span lang="es">{tr(lang, "Tel.", "Phone")}</span>
-                </span>
-                <input
-                  value={clientPhone}
-                  onChange={(e) => setClientPhone(e.target.value)}
-                  placeholder="+58... / 客户电话"
-                  aria-label={tr(lang, "Teléfono del cliente", "Client phone")}
-                  type="tel"
-                  autoComplete="tel"
-                  style={{ fontFamily: MONO_CJK }}
-                />
-                <span className="pl-il pl-il-city">
-                  <span lang="zh-CN">邮箱</span> Email
-                </span>
-                <input
-                  className="pl-in-city"
-                  value={clientEmail}
-                  onChange={(e) => setClientEmail(e.target.value)}
-                  placeholder="email@..."
-                  aria-label={tr(lang, "Email del cliente", "Client email")}
-                  type="email"
-                />
-              </div>
+              <div className="pl-irow"><span className="pl-il">唛头 · Shipping Mark</span><strong>{printMarkbox(mark)}</strong></div>
+              <div className="pl-irow"><span className="pl-il">订单 ·  {tr(lang, "Compra", "Purchase")}</span><strong>{code}</strong></div>
               <div className="pl-irow">
                 <span className="pl-il">
                   <span lang="zh-CN">日期</span>{" "}
@@ -991,6 +933,7 @@ export function PackingListFormSection({
             <span lang="zh-CN">货物明细</span>{" "}
             <span lang="es">{tr(lang, "Detalle de mercancía", "Goods detail")}</span>
           </div>
+          <p className="no-print mt-2 text-sm text-grey-700">不知道 HS 编码时，请说明材质并联系仓库确认，不要猜测。 · Si desconoces el código HS, describe el material y pide confirmación al almacén; no inventes el código.</p>
           <div className="mt-1.5 overflow-x-auto rounded-[12px] border border-grey-200">
             <table className="w-full border-collapse" style={{ minWidth: 1000 }}>
               <thead>
@@ -1208,7 +1151,7 @@ export function PackingListFormSection({
                           aria-label={`Agregar ítem en la caja de la fila ${i + 1} / 同箱加货`}
                           title="Agregar ítem en esta caja / 同箱加货"
                         >
-                          +
+                          + 同箱 · {tr(lang, "Misma caja", "Same box")}
                         </button>
                         <button
                           type="button"
@@ -1217,7 +1160,7 @@ export function PackingListFormSection({
                           aria-label={`Quitar fila ${i + 1} / 删除行`}
                           title="Quitar fila / 删除行"
                         >
-                          <CloseIcon size={15} />
+                          <CloseIcon size={15} /> {tr(lang, "Quitar", "Remove")}
                         </button>
                       </td>
                     </tr>
@@ -1351,7 +1294,7 @@ export function PackingListFormSection({
           >
             {sending
               ? "提交中… · " + tr(lang, "Enviando…", "Sending…")
-              : "提交 · " + tr(lang, "Enviar a DTD", "Send to DTD")}
+              : "提交 · " + tr(lang, "Enviar documento a DTD", "Send document to DTD")}
           </button>
 
           {/* ── Reglas de ingreso a bodega (trilingüe, parte del documento) ── */}
@@ -1412,8 +1355,7 @@ export function PackingListFormSection({
               {whText}
             </pre>
           </section>
-        </>
-      )}
+      </div>
 
       {/* Estilos del documento (clases locales, tokens de marca pública). */}
       <style>{`
@@ -1788,7 +1730,7 @@ export function PackingListFormSection({
             text-align: center;
           }
           .pl-doc { border: 0 !important; box-shadow: none !important; padding: 0 !important; }
-          @page { size: A4 landscape; margin: 8mm; }
+
           .pl-doc td.c-del, .pl-doc td.c-act,
           .pl-doc .rowdel, .pl-doc .rowadd, .pl-doc .grpTog { display: none !important; }
           /* Caja Padre: en papel TODOS los sub-ítems se imprimen (aunque estén colapsados). */
@@ -1801,6 +1743,17 @@ export function PackingListFormSection({
           .pl-date-hidden { display: none !important; }
           .pl-datebtn { display: none !important; }
           .pl-wh { page-break-inside: avoid; }
+        }
+        @media screen {
+          .pl-doc .pl-submitted-body { display: none; }
+          .pl-doc .tbtn, .pl-doc .rowadd, .pl-doc .rowdel, .pl-doc .pl-datebtn { min-height: 44px; border: 1px solid var(--color-grey-300); background: var(--color-white); color: var(--color-ink); border-radius: 8px; padding: 8px; cursor: pointer; }
+          .pl-doc .rowadd, .pl-doc .rowdel { width: auto; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+          .pl-doc .c-act { min-width: 130px; }
+          .pl-doc .pl-cell, .pl-doc .pl-irow input { border: 1px solid var(--color-grey-300); border-radius: 6px; background: var(--color-white); min-height: 36px; }
+          .pl-doc td.calc, .pl-doc input[readonly] { background: var(--color-grey-100); color: var(--color-grey-700); }
+          .pl-doc button:hover, .pl-doc a.tbtn:hover { background: var(--color-grey-100); color: var(--color-ink); }
+          .pl-doc :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+          .pl-doc button:disabled { cursor: wait; }
         }
       `}</style>
     </section>
@@ -2009,7 +1962,7 @@ function Th({
       {lat && (
         <span className="th-lat" lang="es">
           {lat}
-          {calc ? " ▸" : ""}
+          {calc ? " · auto" : ""}
         </span>
       )}
     </th>

@@ -36,9 +36,9 @@ describe("setInlineCell", () => {
     expect(out).toContain("Juan &amp; &lt;Co&gt;");
   });
 
-  it("valor vacío → XML sin cambios", () => {
+  it("valor vacío borra el contenido anterior", () => {
     const xml = `<c r="C10" s="24" t="s"><v>5</v></c>`;
-    expect(setInlineCell(xml, "C10", "   ")).toBe(xml);
+    expect(setInlineCell(xml, "C10", "   ")).not.toContain("<v>5</v>");
   });
 
   it("ref inexistente → XML sin cambios", () => {
@@ -72,7 +72,7 @@ describe("fillPacklist (template real)", () => {
     expect(sheet).toContain('t="inlineStr"');
     expect(sheet).toContain("DTD-9000"); // 唛头 (C6)
     expect(sheet).toContain("DTD-9000-1-1"); // folio (I3)
-    expect(sheet).toContain("Cliente Demo"); // 客户 (C7)
+    expect(sheet).not.toContain("Cliente Demo"); // 客户 (C7)
     expect(sheet).toContain("Proveedor Demo"); // 公司名称 (C5)
     expect(sheet).toContain("wxid_demo"); // 微信 (C8)
   });
@@ -95,7 +95,8 @@ describe("fillPacklist (template real)", () => {
       ).test(sheet);
     expect(cellHas("C5", "Yiwu Proveedor")).toBe(true);
     expect(cellHas("C6", "DTD-1234")).toBe(true);
-    expect(cellHas("C7", "Acme Cliente")).toBe(true);
+    expect(cellHas("C7", "DTD-1234-2-3")).toBe(true);
+    expect(sheet).not.toContain("Acme Cliente");
     expect(cellHas("C8", "wxid_abc")).toBe(true);
     expect(cellHas("I3", "DTD-1234-2-3")).toBe(true);
   });
