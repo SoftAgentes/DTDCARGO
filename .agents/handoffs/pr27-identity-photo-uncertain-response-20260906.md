@@ -8,7 +8,7 @@
 - Base remota portalcliente: 4289efc317c060620a7de9335030e9cd612d9aec.
 - Main verificado: 74bb52ab9677f96908cc032a15f2364ab9d94716.
 - SDD: 0439-portal-cliente-edicion-de-perfil, in-progress.
-- Estado: en progreso, asignación explícita del Director.
+- Estado: lista para revisión independiente, sin publicación.
 
 ## OBJETIVO ORIGINAL
 
@@ -67,7 +67,7 @@ y storage-runner.cjs; SDK real con fetch offline y Storage espía, no DB real.
 | Final SDK real + cuota | PASÓ 27/27: 24 identidad + 3 cuota, 2 archivos |
 | ESLint dos archivos y diff --check | PASÓ |
 | docs:check, governance:check, components:check | PASÓ, 28 políticas/5 fuentes |
-| TypeScript noEmit | EN CURSO al preparar revisión |
+| TypeScript noEmit | PASÓ exit 0; handle95975 terminal, log sin errores |
 | build/verify masivo y Cloud/E2E hosted | NO EJECUTADO: encargo focal, slot reservado a PR28 y sin permiso Cloud |
 
 Los tests usan Supabase2.106.1 real con fetch totalmente offline y helper upload
@@ -107,7 +107,9 @@ Revisión técnica, no asesoría legal ni declaración global de cumplimiento.
 
 ## COMMITS
 
-Commit local que contiene este documento; SHA final comunicado al Director.
+Código y pruebas: d7717861936bb2b4a5538c76811d2e2a9df3bcac.
+Actualización del resultado TypeScript: commit documental que contiene esta
+versión; SHA final comunicado al Director. Código inmutable enviado al auditor.
 
 ## PR / BRANCH
 
@@ -115,13 +117,21 @@ Corrección para PR27; rama aislada arriba. No publicación autorizada.
 
 ## PENDIENTES DE ESTA TAREA
 
-Terminar TypeScript y revisión independiente por auditor asignado.
+Revisión independiente por auditor asignado y validación combinada que coordina
+Director. No repetir verify individual: Director reservó próxima pesada para
+la combinación PR26+23+27 después de revisión y SHAs finales.
 
 ## FUERA DE ALCANCE DETECTADO
 
 Retención/purga/hold regional siguen sin activarse; conservar contención0447.
+En lectura de cierre PID26268 ya no estaba disponible; esta tarea no lo detuvo
+ni modificó fixture/worktreePR30. Informado al Director, sin reinicio unilateral.
 
 ## HANDOFF AL DIRECTOR
 
 Se solicita revisión independiente del SHA final, especialmente allowlist SQL,
 revalidación de autoridad y carrera postlectura. No integración automática.
+Auditor 01a073c1-7226-76a1-b60e-810754458ad0 recibió d7717861 y evidencia;
+su revisión sigue pendiente al registrar este cierre técnico. Claim se libera
+tras commit documental y se retoma si el auditor solicita corrección. Conservar
+worktree/dependencias propias; liberación no autoriza limpieza.
