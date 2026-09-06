@@ -60,14 +60,14 @@ function docker(argv, input) {
   return spawnSync('docker', argv, { input, encoding: 'utf8', maxBuffer: 10e6, timeout: 60000 });
 }
 function sql(db, text, fail = false) {
-  const result = docker(['exec', '-i', name, 'psql', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', db, '--single-transaction', '-f', '-'], `set local statement_timeout='15s';\n${text}`);
+  const result = docker(['exec', '-i', name, 'psql', '-h', '127.0.0.1', '-X', '-qAt', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', db, '--single-transaction', '-f', '-'], `set local statement_timeout='15s';\n${text}`);
   assert.equal(result.error, undefined, result.error?.message);
   if (fail) assert.notEqual(result.status, 0, 'Expected transaction rejection');
   else assert.equal(result.status, 0, result.stderr);
   return { output: result.stdout.trim(), error: result.stderr };
 }
 function create(db) {
-  const result = docker(['exec', name, 'createdb', '-U', 'postgres', db]);
+  const result = docker(['exec', name, 'createdb', '-h', '127.0.0.1', '-U', 'postgres', db]);
   assert.equal(result.status, 0, result.stderr);
   sql(db, setup + seed);
 }
@@ -81,8 +81,10 @@ function checkTerminal(db, target, before) {
 try {
   const result = docker(['run', '--rm', '-d', '--name', name, '--network', 'none', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', 'postgres:17']);
   assert.equal(result.status, 0, result.stderr); started = true;
+  // The entrypoint's temporary server accepts Unix sockets before final startup.
+  // Probe final TCP loopback; --network none still prevents external networking.
   let ready = false;
-  for (let n = 0; n < 60; n++) { if (docker(['exec', name, 'pg_isready', '-U', 'postgres']).status === 0) { ready = true; break; } Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500); }
+  for (let n = 0; n < 60; n++) { if (docker(['exec', name, 'pg_isready', '-h', '127.0.0.1', '-t', '1', '-U', 'postgres']).status === 0) { ready = true; break; } Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 500); }
   assert(ready, 'PostgreSQL not ready');
   historical('baseline');
   const original = sql('baseline', snapshot).output;

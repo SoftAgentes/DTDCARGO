@@ -141,3 +141,22 @@ prohibida; conservación del worktree requerida. Hallazgo StoragePR27 fuera de a
 - HANDOFF AL DIRECTOR: revisar este delta sobre ce9312a3 y conservar las condiciones
   anteriores. Sin push/PR remota/main/Cloud. Claim se libera tras commit y verificación;
   conservar el worktree de0380 sin trasladar cambios.
+
+## Corrección del arranque del runner (2026-09-06)
+
+Director reportó un fallo de createdb previo al SQL: la sonda por socket Unix
+podía aceptar el servidor temporal del entrypoint postgres17 y continuar justo
+cuando éste se detiene. Se cambia únicamente el transporte del runner a TCP
+loopback 127.0.0.1 para pg_isready, createdb y psql; Docker conserva network none.
+La sonda usa timeout1s, hasta60 intentos con pausa500ms y timeout60s por proceso
+Docker. No cambia migración, fixtures SQL ni assertions.
+
+PASÓ: arranque frío propio sin volumen previo y los14 grupos del contrato
+(1controlRED y13GREEN), exit0; log %TEMP%/pr26-tcp-startup.log. El contenedor
+propio fue retirado por finally. PASÓ node --check y diff --check.
+NO EJECUTADO verify/build por coordinación de recursos.
+
+El commit que contiene esta sección solo cambia runner y handoff sobre07d1dea1.
+Código SQL revisado sigue equivalente a ce9312a3 salvo comentario ya aprobado.
+Director, auditor y owner de integración reciben SHA nuevo para consumirlo en
+su propio worktree. No push/main/Cloud; claim se libera al cerrar esta corrección.
