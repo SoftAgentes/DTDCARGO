@@ -190,6 +190,45 @@ Director asignó a #24 E2E sin backend con tres proyectos y un worker para
 aislar los fallos de hidratación. Ese resultado futuro no cambia retroactivamente
 el gate fallido de este SHA.
 
+## Focal autorizada por Director · 2026-09-06
+
+Claim retomado en el mismo worktree, HEAD
+`2e64f18786329004f521868f1887dd5a9ec11470`. Equivalencia comprobada:
+`git diff 5029124c..2e64f187 --name-only` sólo contiene este handoff y
+SDD0442/evidence.md. No cambió producto, tests, helpers, lockfile ni configuración.
+
+Preflight JSON validó exactamente estas tuplas y ningún otro caso:
+
+| Archivo / proyecto | Línea / caso | Resultado por intento |
+|---|---|---|
+| e2e/calculadora-hidratacion.spec.ts / mobile-chrome | 42: el CBM tecleado antes del JS igual produce precio | PASÓ, retry 0, único intento, 15.320 ms |
+| mismo archivo / proyecto | 61: el toggle tocado antes del JS igual abre el consolidado | PASÓ, retry 0, único intento, 6.298 ms |
+
+Comando: Playwright test con esos dos selectores, `--project=mobile-chrome
+--workers=1 --reporter=list,json` y output externo nuevo. Sin override de
+aserciones, timeouts ni retries: configuración local conserva 1 retry y trace
+on-first-retry. No se generaron traces porque ambos pasaron al primer intento.
+Resultado terminal exit 0: 2 expected, 0 unexpected, 0 flaky, 0 skipped;
+duración total 69.575 ms (incluye arranque). No se ejecutó verify ni build.
+
+Comparación con el gate anterior: código idéntico al medido 5029124c; mismos
+Next 16.2.11/Playwright 1.60, proyecto mobile-chrome y localhost:3662.
+Ahora sólo dos casos y un worker frente a 168 casos/tres proyectos/11 workers.
+Sin credenciales ni placeholders; GA vacío, piloto de adjuntos 0, desarrollo.
+La caché .next existente se conservó: no es experimento de caché fría ni de
+una sola variable. El log aún registra configuración Supabase ausente y un
+timeout de solicitud de 3 s durante arranque; no hubo timeout de los tests.
+Conclusión: los dos fallos NO se reprodujeron bajo estas condiciones. Un pase
+no demuestra que la concurrencia sea la causa ni convierte el gate previo en
+verde. El resultado #24 procede de otro SHA y no sustituye esta comprobación.
+
+Evidencia durable:
+`C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr30-focal-hydration-20260906T040940458Z`.
+Preflight JSON, metadata con SHA/hashes/entorno sin secretos, runner, log,
+JSON final completo, resultado terminal, resumen por intento y manifest SHA-256.
+Fixture PID26268 preservado. Slot devuelto al Director tras terminal; claim se
+libera tras commit documental. Sin push, main, producción ni nuevas suites.
+
 Incidente resuelto: index.lock vacío impedía merge. Director comprobó ausencia
 de operación Git y lo movió a respaldo fuera del repo. Este Worker no eliminó
 locks ni procesos ajenos. El siguiente intento autorizado pasó sin conflictos.

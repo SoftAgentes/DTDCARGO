@@ -148,3 +148,16 @@ recuperación y checklist en el [handoff de adopción](../../../.agents/handoffs
 Siguen pendientes zoom nativo 200%, lector real, sesión del PR y flujos con datos
 de prueba; contraste definitivo depende de #31. PR permanece draft. Esta fase
 dejó evidencia y commits locales, sin push, integración a main ni producción.
+
+### Focal de hidratación · 2026-09-06
+
+Sobre `2e64f187` (sólo dos documentos distintos de `5029124c`), se repitieron
+exclusivamente los casos originales de `calculadora-hidratacion.spec.ts:42/61`,
+mobile-chrome, workers=1, manteniendo configuración y aserciones. Ambos PASÓ
+al primer intento: 15.320 ms y 6.298 ms; 0 fallos, 0 flaky, 0 SKIPs. JSON final
+completo y preflight de dos tuplas preservados en respaldo durable, detallado
+en el handoff anterior. Trace on-first-retry no produjo archivos al no haber retry.
+
+No se reprodujeron los dos fallos con esta selección y caché existente. No
+demuestra que 11 workers fueran la causa ni reemplaza el gate fallido anterior.
+Autenticación, zoom 200%, lector y QA combinada siguen pendientes.
