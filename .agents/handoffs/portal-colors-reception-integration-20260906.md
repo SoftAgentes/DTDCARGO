@@ -58,3 +58,25 @@ Checkout principal tiene documentación de restauración sin commit; no copiada.
 ## HANDOFF AL DIRECTOR
 
 En curso. Claims/árboles fuente no se alteran; coordinación de slot pendiente.
+
+## Avance local · ef0e9aba
+
+Combinación concluida: 92b3b7d2 (#31), d5fabbb0 (#30), ef0e9aba (#33).
+Cero conflictos de código; conflictos de índice resueltos regenerando 313 specs.
+PASÓ instalación propia pnpm install --frozen-lockfile (813 paquetes, exit 0).
+PASÓ 87 pruebas focales / 14 archivos / 34.04 s sobre ef0e9aba, maxWorkers=2:
+tokens, selector0360, documentos/proveedores/alertas30, QR/login/recepción33,
+flujo proveedor y packing. Ningún cambio de producto añadido.
+Artefactos QA externos preparados en
+C:/Users/AKX generator/Desktop/Developer/DTD-backups/director-goal-20260905/portal-colors-reception-integration-20260906/.
+Install/focal logs preservados allí; serve.mjs, fixture.tsx e index.html sin arrancar.
+Fixture reutiliza componentes reales y CSS actuales; acciones servidor bloqueadas,
+scanner omitido explícitamente: no acredita cámara/QR físico/Auth/UAT/China.
+Lecturas BRAND/Norte, gobernanza, /ui-check y agent-browser-verify realizadas.
+El checklist ui-check conserva referencias antiguas de fuentes/MARKBOX; prevalecen
+BRAND actual y tokens de cada superficie. Sin cambiar esas fuentes ni documentos.
+Director aclaró: SQL/rebuild en PostgreSQL propio desechable sin red autorizados;
+0449 prohibida en Cloud/producción/proyecto test compartido. No aplicada aún.
+No usar DB compartida paramétrica: fixture TEST tiene descuento 50; no modificar
+expectativas, tokens ni DB para obtener verde.
+Pendiente slot pesado tras integración perfil: NO build/devserver/E2E iniciados.
