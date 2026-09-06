@@ -355,24 +355,57 @@ export async function listMyDocuments(
  *     calculadora pública (etapa lead), y
  *   - **cotizaciones** (`source!='web'`): lo formal — lo que le armó un asesor o
  *     lo que pidió él mismo desde el portal ("Nueva cotización").
- * Filtra EXPLÍCITO por markbox (defensa en profundidad) + la policy "quotes portal
- * self read" (migr 0117). Hasta 100.
+ * SDD0380: principal Portal vivo/coherente y filtro explícito tenant+markbox,
+ * además de la policy "quotes portal self read" (0428). Hasta 100.
  */
 type PortalQuoteKind = "estimado" | "cotizacion";
+type PortalQuoteScope = { tenantId: string; markbox: string };
+
+/** No reutilizar un Shipping Mark aislado como autoridad. Tampoco heredar el
+ * ámbito Studio de una sesión híbrida: este contexto pertenece sólo al Portal. */
+async function portalQuoteScope(supabase: SupabaseClient): Promise<PortalQuoteScope | null> {
+  try {
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError || !auth.user?.id) return null;
+    const { data, error } = await supabase
+      .from("client_users")
+      .select("client_id, tenant_id, clients!inner(id, tenant_id, markbox, deleted_at)")
+      .eq("auth_user_id", auth.user.id)
+      .eq("status", "active")
+      .maybeSingle();
+    if (error || !data || typeof data !== "object" || Array.isArray(data)) return null;
+    const row = data as Record<string, unknown>;
+    const embedded = row.clients;
+    const client = Array.isArray(embedded)
+      ? (embedded.length === 1 ? embedded[0] : null)
+      : embedded;
+    if (!client || typeof client !== "object" || Array.isArray(client)) return null;
+    const c = client as Record<string, unknown>;
+    if (typeof row.tenant_id !== "string" || !row.tenant_id.trim() ||
+        typeof row.client_id !== "string" || !row.client_id.trim() ||
+        c.id !== row.client_id || c.tenant_id !== row.tenant_id ||
+        c.deleted_at !== null || typeof c.markbox !== "string" || !c.markbox.trim()) return null;
+    return { tenantId: row.tenant_id, markbox: c.markbox };
+  } catch {
+    // Transporte/identidad no verificable: no consultar cotizaciones ni usar admin.
+    return null;
+  }
+}
 
 async function listMyQuotes(
   supabase: SupabaseClient,
   kind: PortalQuoteKind,
 ): Promise<PortalEstimateRow[]> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return [];
+  const scope = await portalQuoteScope(supabase);
+  if (!scope) return [];
 
   const base = supabase
     .from("quotes")
     .select(
       "id, quote_code, status, source, service, origin, destination, total_usd, nota, converted_to_shipment_id, created_at, updated_at",
     )
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", scope.tenantId)
+    .eq("client_markbox", scope.markbox)
     .is("deleted_at", null);
   const filtered =
     kind === "estimado" ? base.eq("source", "web") : base.neq("source", "web");
@@ -399,7 +432,7 @@ async function listMyQuotes(
     updatedAt: r.updated_at as string,
   }));
 
-  await attachShipmentCodes(supabase, rows);
+  await attachShipmentCodes(supabase, rows, scope);
   return rows;
 }
 
@@ -408,14 +441,15 @@ async function listMyQuotes(
  * Slice C): `quotes.converted_to_shipment_id` guarda el uuid, pero el portal
  * enlaza por código (`/portal/envios/[code]`).
  *
- * Una sola query extra (`.in`) sobre los ids distintos, con el client de SESIÓN →
- * la RLS del portal por markbox decide qué es legible. Si un envío no lo es, su
+ * Una sola query extra (`.in`) sobre los ids distintos, con el client de SESIÓN,
+ * RLS y ámbito Portal tenant+markbox explícito. Si un envío no es propio, su
  * código queda en null y la fila degrada al texto sin enlace (nunca filtra un
  * envío ajeno). Muta `rows` in-place.
  */
 async function attachShipmentCodes(
   supabase: SupabaseClient,
   rows: PortalEstimateRow[],
+  scope: PortalQuoteScope,
 ): Promise<void> {
   const ids = [
     ...new Set(
@@ -429,6 +463,8 @@ async function attachShipmentCodes(
   const { data, error } = await supabase
     .from("shipments")
     .select("id, code")
+    .eq("tenant_id", scope.tenantId)
+    .eq("client_markbox", scope.markbox)
     .in("id", ids)
     .is("deleted_at", null);
   if (error || !data) return;
