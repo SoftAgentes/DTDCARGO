@@ -1,7 +1,7 @@
 ---
 sdd: 0360
 title: Evitar que el foco tardío borre la búsqueda de destino
-status: in-progress
+status: done
 author: Codex
 created: 2026-09-02
 updated: 2026-09-05
@@ -48,7 +48,7 @@ deterministas y comprobaciones nuevas sobre las combinaciones entregadas.
 - docs/specs/README.md (generado)
 - .agents/handoffs/2026-09-05-destino-focus-extract.md
 
-En A/B solo se amplía coordinación en sus handoffs vigentes y specs0349/0444
+En A/B solo se amplía coordinación en sus handoffs vigentes y specs 0349/0444
 para incorporar esta dependencia. Workflow y gates permanecen intactos.
 
 ## Gobernanza
@@ -68,12 +68,23 @@ para incorporar esta dependencia. Workflow y gates permanecen intactos.
   incluyendo Escape y cursor manual después de editar.
 - [x] Navegador local con fixture ficticio comprueba foco, escritura, Escape,
   flechas/Enter, clic y cursor; sin credenciales ni datos reales.
-- [ ] Combinación final pasa gates aplicables de pnpm verify; registrar cada
+- [x] Combinación final pasa gates aplicables de pnpm verify; registrar cada
   fallo/SKIP externo. Suite/build se reutilizan solo con equivalencia demostrada
   del árbol de producto; docs/gates afectados se verifican después de coordinar.
 - [x] Compatibilidad textual con #31 648bddf6 informada por Director sobre
   copias temporales; no prueba integración/validación visual completa de #31.
-- [ ] Producto en commit identificable, merges locales A/B y handoff con SHA.
+- [x] Producto en commit identificable, merges locales A/B y handoff con SHA.
+
+## Resultado local de la extracción
+
+Producto ef99fca5, incorporado a A/cf1570d6 y B/1206833d. En B pasaron 6191
+unitarios, 12 pruebas del harness y build de 158 páginas; verify midió 12/16 pasos,
+sin fallos y con ledger/SQL/schema/E2E general omitidos explícitamente.
+Focales 13/13 en extracción y 19/19 en A (componente+contrato CI); fixture local
+con teclado/mouse y dos rojos deterministas previos. Árboles de producto y
+dependencias relevantes equivalentes; cierre documental posterior se verifica
+por separado. done describe este alcance local, no aprobación/publicación ni
+verde global de producción o de las cuatro superficies.
 
 ## Autorización y entrega
 

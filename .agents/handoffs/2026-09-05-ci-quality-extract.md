@@ -10,7 +10,7 @@ Destino posterior: revisión local por Director; pushes reservados al Director.
 
 ## EXTENSIÓN ACTUAL — SDD-0360
 
-Task ID: 2026-09-05-destino-focus-extract. Estado: integración local en validación.
+Task ID: 2026-09-05-destino-focus-extract. Estado: lista para revisión del Director.
 La extracción CI c6ffc009 ya fue publicada por el Director como PR #34.
 Su CI reportó el fallo de foco previo a Escape en DestinoCombobox; se incorpora
 el arreglo real, sin alterar workflow, orden de gates o pruebas existentes.
@@ -22,8 +22,12 @@ Allowlist adicional: los cinco paths de SDD-0360 y este handoff/spec0349 solo
 para dependencia/alcance/evidencia. El workflow conserva el blob e9f3ad39.
 Regresión: dos rojos deterministas y 13/13 focales después; navegador local
 ficticio pasó foco, edición, Escape, flechas/Enter, selección y cursor con mouse.
-Verify completo se concentra en B; pendiente evidencia final de equivalencia
-del producto y checks propios de A. Fuente durable:
+Verify completo pasó en B/1206833d: 12 de 16 pasos medidos, sin fallos;
+6191 unitarios, 12 del harness y build de 158 páginas. SKIPs separados:
+ledger sin credenciales, SQL/schema sin Docker y E2E general omitido explícitamente.
+A pasó 19/19 focales (13 del componente + 6 del contrato CI); docs/alcance
+comprobados al cierre. Producto/configs/dependencias relevantes equivalentes
+entre extracción/A/B; cambios posteriores solo documentales. Fuente durable:
 [handoff SDD-0360](2026-09-05-destino-focus-extract.md).
 
 Esta sesión no publica. Entrega SHA final al Director; main/producción quedan
