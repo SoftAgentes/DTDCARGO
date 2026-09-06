@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -46,6 +47,7 @@ describe("SDD-0349 · CI de calidad sin secretos", () => {
       "pnpm typecheck",
       "pnpm edge:check",
       "pnpm test",
+      "pnpm harness:test",
       "pnpm docs:check",
       "pnpm sdd:check",
       "node scripts/check-feature-constants.mjs",
@@ -77,5 +79,64 @@ describe("SDD-0349 · CI de calidad sin secretos", () => {
       expect(step).toMatch(/^        env:\r?\n          NODE_OPTIONS: "--max-old-space-size=4096"\s*$/m);
     }
     expect(workflow).not.toMatch(/continue-on-error|ignoreBuildErrors/);
+  });
+});
+
+// Parsear YAML distingue un paso ejecutable de texto que solo menciona el comando.
+// ESLint ya declara js-yaml: resolver desde él evita añadir un manifest/lockfile.
+const fromEslint = createRequire(createRequire(import.meta.url).resolve("eslint/package.json"));
+const { load: loadYaml } = fromEslint("js-yaml");
+
+function assertRequiredHarness(job) {
+  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+    throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
+  }
+  const steps = job.steps?.filter((step) => step.run?.trim() === "pnpm harness:test") ?? [];
+  if (steps.length !== 1) {
+    throw new Error("Falta un único paso ejecutable pnpm harness:test");
+  }
+  const step = steps[0];
+  if (Object.hasOwn(step, "if") || Object.hasOwn(step, "continue-on-error")) {
+    throw new Error("El harness debe ejecutarse sin condición ni tolerancia de errores");
+  }
+}
+
+describe("SDD-0444 · el harness es obligatorio en CI", () => {
+  const qualityJob = loadYaml(workflow).jobs.quality;
+
+  it("ejecuta el runner Node como paso obligatorio y propaga su resultado", () => {
+    expect(() => assertRequiredHarness(qualityJob)).not.toThrow();
+  });
+
+  it.each([
+    ["paso eliminado", (job) => {
+      job.steps = job.steps.filter((step) => step.run !== "pnpm harness:test");
+    }],
+    ["comando solo impreso", (job) => {
+      job.steps.find((step) => step.run === "pnpm harness:test").run = "echo pnpm harness:test";
+    }],
+    ["fallo oculto por el shell", (job) => {
+      job.steps.find((step) => step.run === "pnpm harness:test").run += " || true";
+    }],
+    ["paso desactivado", (job) => {
+      job.steps.find((step) => step.run === "pnpm harness:test").if = false;
+    }],
+    ["paso condicionado", (job) => {
+      job.steps.find((step) => step.run === "pnpm harness:test").if = "github.event_name == 'workflow_dispatch'";
+    }],
+    ["error del paso ignorado", (job) => {
+      job.steps.find((step) => step.run === "pnpm harness:test")["continue-on-error"] = true;
+    }],
+    ["job desactivado", (job) => { job.if = false; }],
+    ["error del job ignorado", (job) => { job["continue-on-error"] = true; }],
+  ])("rechaza %s", (_name, mutate) => {
+    const job = structuredClone(qualityJob);
+    mutate(job);
+    expect(() => assertRequiredHarness(job)).toThrow();
+  });
+
+  it("una mención del comando en un comentario no sustituye el paso", () => {
+    const commented = workflow.replace("run: pnpm harness:test", "# run: pnpm harness:test");
+    expect(() => assertRequiredHarness(loadYaml(commented).jobs.quality)).toThrow();
   });
 });

@@ -65,6 +65,9 @@ jobs:
       - name: Unitarios
         run: pnpm test
 
+      - name: Harness Director Worker
+        run: pnpm harness:test
+
       - name: Documentacion SDD
         run: pnpm docs:check
 
