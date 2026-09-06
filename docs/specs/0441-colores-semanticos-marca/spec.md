@@ -33,8 +33,9 @@ La matriz normativa está en BRAND.md, sección Estados y mensajes.
 
 VIS-01, FRM-01, ERR-01, A11Y-01 y CMP-01. Cambio de presentación: ningún enum,
 permiso, validación, fórmula, contrato SQL ni transición cambia.
-Prealertas: sólo tonos de display en types.ts y badge. Sin crear compras,
-proveedores ni modificar enlaces, packing list o documentos.
+Prealertas: tonos de display en types.ts y badge. La ampliación autorizada del
+2026-09-06 incluye el cuerpo de errores del packing list y upload público;
+sin crear compras, proveedores ni modificar contratos de enlaces/documentos.
 No se retira el arnés ni se modifica AGENTS.md: tarea independiente.
 
 ## Fuentes y derivados
@@ -53,3 +54,14 @@ Ver audit.md para clasificación por superficie, pruebas y límites de verificac
 
 Se enumera en allowlist.txt junto a esta spec. Cualquier archivo fuera de esa
 lista requiere revisar el alcance antes del commit.
+
+## Ampliación de QA combinada · 2026-09-06
+
+Director autoriza corregir dos no conformidades preexistentes reproducidas al
+combinar 0441 y 0443: texto de errores en vino y overflow móvil por spans sr-only
+sin contenedor posicionado. El cuerpo de los errores pasa a text-ink, con borde
+local border-status-danger; se conservan mensajes, live region y lógica de envío.
+La tabla conserva su scroll local y sus etiquetas accesibles, con position:relative.
+Clasificación: remediación hacia cumplimiento de BRAND/ERR-01/A11Y-01, pendiente
+de validar el nuevo SHA. No aplica a contratos SQL, datos, permisos o fórmulas.
+Contraste de ES/Copiar y servicios de recepción siguen fuera de este delta.

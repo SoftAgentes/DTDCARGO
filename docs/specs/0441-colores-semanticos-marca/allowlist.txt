@@ -74,3 +74,5 @@ lib/studio/treasury/types.ts
 lib/studio/user-types.ts
 lib/studio/warehouse-cn-types.ts
 lib/studio/warehouse-ve-types.ts
+app/p/[token]/PackingListFormSection.tsx
+app/p/[token]/SupplierUploadSection.tsx

@@ -120,3 +120,14 @@ interna fija. No se acepta returnTo arbitrario ni contextos múltiples. found:fa
 muestra su error recuperable; excepciones inesperadas usan copy genérico, sin detalle
 interno. Reintentar vuelve a consultar y nunca confirma recepción automáticamente.
 Criterios QR cubiertos con pruebas focalizadas; aceptación global aún en revisión.
+
+## Corrección de QA combinada · 2026-09-06
+
+Director autoriza en la combinación local con 0441: tabla del packing list con
+contenedor posicionado para spans sr-only (mantener scroll local y accesibilidad),
+y errores de packing list/upload con cuerpo neutro y borde de error localizado.
+Sólo PackingListFormSection.tsx y SupplierUploadSection.tsx reciben cambios de
+producto. Ambos defectos se reprodujeron con componentes de main74bb52ab: son
+preexistentes remediados por política compartida, no regresiones atribuidas a 0443.
+Repetir matriz 24 vistas, 8 errores, focales, verify y E2E sobre el nuevo SHA.
+Presentación de etiquetas DEFAULT no acredita configuración de un tenant real.

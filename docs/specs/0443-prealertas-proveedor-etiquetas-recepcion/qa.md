@@ -192,3 +192,14 @@ Evidencia del delta de privacidad: app/m/cn/login/page.tsx:88,
 app/m/cn/login/actions.ts:30 y app/m/cn/recibir/page.tsx:27. No hay captura nueva de
 identidad personal ni ampliación de permisos. La revisión independiente sigue
 recomendada y pendiente del Director.
+# QA combinada · corrección autorizada 2026-09-06
+
+En HEAD1611edd3: matriz22/24, dos fallos de overflow móvil; ocho errores simulados
+observados. Main74bb también reproduce overflow y cuerpos text-wine. Se corrigen
+en combinación con0441, pendiente validar nuevoSHA; no reutilizar verdes previos.
+Evidencia externa en DTD-backups/director-goal-20260905/portal-colors-reception-integration-20260906.
+Recepciónlight usa wrapperreal y fondo navy deliberado del componente; dark es
+stress adicional, no soporte ofrecido por MobileLayout. Auth/PIN, escritura real,
+QR físico, China/WeChat, configuración tenant y UAT siguen pendientes.
+FUERA DE ALCANCE DETECTADO: contraste ES/Copiar en stressdark y token warning-border
+de recepción no definido. No se alteran para obtener verde ni se omiten del informe.

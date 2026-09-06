@@ -207,7 +207,7 @@ export function SupplierUploadSection({ token }: { token: string }) {
           </div>
         )}
         {state.kind === "error" && (
-          <p className="mt-4 text-[12.5px] leading-[1.55] text-wine">
+          <p className="mt-4 border-l-2 border-status-danger pl-3 text-[12.5px] leading-[1.55] text-ink">
             {state.message}
           </p>
         )}

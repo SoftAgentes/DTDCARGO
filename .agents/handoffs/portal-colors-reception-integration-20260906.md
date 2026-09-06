@@ -80,3 +80,15 @@ Director aclaró: SQL/rebuild en PostgreSQL propio desechable sin red autorizado
 No usar DB compartida paramétrica: fixture TEST tiene descuento 50; no modificar
 expectativas, tokens ni DB para obtener verde.
 Pendiente slot pesado tras integración perfil: NO build/devserver/E2E iniciados.
+
+## QA y ampliación autorizada · 2026-09-06
+
+Slot recibido; fixture externo sobre1611edd3:22/24 y8errores observados.
+Overflow de tabla y cuerpos de error en vino reproducidos también enmain74bb.
+Director asigna corrección sólo PackingListFormSection y SupplierUploadSection:
+tabla relative conserva sr-only y scroll local; errores text-ink con borde danger.
+Reutilizados SDD0441/0443 y allowlist. No otros cambios de producto.
+Validación del nuevo delta pendiente; no hereda los87focales deef0e9aba.
+Siguiente: commitlocal,24vistas+8errores,87focales,verify y12E2E. Sinpush/Cloud.
+Fuera de alcance: contraste ES/Copiar en stressdark, warning-border de recepción;
+Auth/PIN/UAT/QRfísico/China y configuración real deetiquetas siguen pendientes.
