@@ -7,7 +7,7 @@
 - Base asignada: origin/main 74bb52ab9677f96908cc032a15f2364ab9d94716.
 - SDD: docs/specs/0442-portal-claridad-botones-mensajes/spec.md, in-progress.
 - PR: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/30 (draft).
-- Estado: adopción local lista para revisión; aceptación de producto pendiente.
+- Estado: gate local terminado, exit 1 por E2E; aceptación de producto pendiente.
 
 ## OBJETIVO ORIGINAL
 
@@ -41,7 +41,7 @@ Sobre merge 6f7535e9, con cambios documentales de adopción:
 | pnpm components:check | PASÓ: 5 fuentes |
 | pnpm sdd:check | PASÓ con avisos de colisiones históricas exceptuadas por el script; no se modificaron |
 | git diff --check | PASÓ |
-| pnpm verify / build completo | NO EJECUTADO: slot reservado a #31; coordinación requerida |
+| pnpm verify / build completo | Corrida posterior sobre 5029124c: ver registro abajo |
 | Zoom nativo 200%, lector, sesión del PR | NO EJECUTADO en esta fase; escenarios abajo |
 | QA definitiva con colores #31 | NO EJECUTADO: esperar head revisado |
 
@@ -49,10 +49,96 @@ La primera corrida empezó antes del merge; TypeScript fue interrumpido y se
 repitió después. Solo la segunda corrida sustenta esta tabla.
 Evidencia previa de producto: SDD0442/evidence.md; no sustituye el gate final.
 
+### Gate local sobre 5029124c
+
+Director asignó el slot después de #24. `pnpm verify` sobre
+`5029124c99417c37f2222c2bc369df78f6ec0401`, base `74bb52ab` incorporada.
+VITEST_MAX_WORKERS=4; Deno 2.9.6 temporal; Docker disponible. Sin archivo
+`.env.local`, sin copiar secretos, sin variables de Supabase/credenciales en el
+proceso hijo y sin activar omisiones manuales. E2E usa localhost:3662;
+el fixture compartido con Sam en 4312 permanece intacto.
+
+| Paso | Resultado |
+|---|---|
+| harness | PASÓ: 12 pruebas |
+| lint | PASÓ: 0 errores, 8 warnings preexistentes |
+| RSC boundary | PASÓ: 1.586 módulos |
+| typecheck | PASÓ |
+| edge-functions | PASÓ: 4 funciones, Deno 2.9.6 |
+| test | PASÓ: 6.196 pruebas, 504 archivos |
+| docs:check | PASÓ |
+| numbering / sdd:check | PASÓ con excepciones históricas existentes |
+| feature-constants | PASÓ: 5 flags |
+| components:check | PASÓ: 5 fuentes |
+| governance:check | PASÓ: 28 políticas |
+| migrations-applied | NO EJECUTADO / SKIP: sin URL/service role; ledger de release, no habilitar producción para este gate |
+| sql-tests | PASÓ: 139 contratos en Postgres 17 efímero |
+| schema-rebuild | PASÓ: 380 migraciones de esquema + 18 ledger-only; 219 tablas y aislamiento de 2 tenants efímeros |
+| e2e | FALLÓ, exit 1; segundo intento con interrupción del trabajador atascado en cierre |
+| build | PASÓ: compilación 51 s, TypeScript 3,1 min, 158 páginas y postbuild; tsconfig restaurado |
+
+Resultado terminal: `pnpm verify` exit 1, 14 pasos PASÓ, 1 FALLÓ (E2E),
+1 NO EJECUTADO (migrations-applied); 15/16 ejecutados. Build registra ausencia
+de configuración para contenido público, pero termina exit 0; esto no valida
+contenido conectado ni autenticación. Slot liberado al Director tras terminal.
+
+Primer intento E2E: 133 expected, 15 unexpected, 2 flaky, 18 skipped, de
+168 casos, 433 s. Cuatro casos auth y uno de redirección global-search fallaron
+en los tres proyectos. Los dos flaky son navegación Chromium a studio/login
+en attachments-gastos-pilot-network y token inválido en acceso: timeout de
+60 s recuperado en retry, causa no determinada. No atribuirlos sin prueba a
+Supabase. El runner configura 11 workers E2E en esta máquina; el límite de
+Vitest no limita Playwright. No se cambió la configuración durante la corrida.
+
+Log completo fuera de Git: `%TEMP%/dtd-pr30-verify-5029124c.log`.
+JSON del primer intento preservado: `%TEMP%/dtd-pr30-e2e-5029124c-1.json`.
+El runner borra su JSON al empezar otro paso. El observador externo preservó
+el primero, pero no alcanzó a copiar el segundo antes del borrado: JSON del
+segundo intento NO DISPONIBLE. Sus totales se respaldan en el resumen textual
+completo del runner y sus fallos en error-context/trace; no en un JSON inventado.
+
+Segundo intento E2E: 132 passed, 17 failed, 1 flaky, 18 skipped, 168 casos,
+11,7 min según resumen. Matriz de fallos finales:
+
+| Caso | Chromium | Chrome móvil | Safari móvil | Evidencia / clasificación |
+|---|---|---|---|---|
+| auth: Studio email/password (línea 21) | FALLÓ | FALLÓ | FALLÓ | formulario ausente; error-context muestra URL/key Supabase ausente, proxy.ts:67 |
+| auth: Back email/password (línea 91) | FALLÓ | FALLÓ | FALLÓ | mismo error de configuración |
+| auth: Portal magic link (línea 98) | FALLÓ | FALLÓ | FALLÓ | campo email ausente; mismo error de configuración |
+| auth: Portal dos puertas (línea 105) | FALLÓ | FALLÓ | FALLÓ | encabezado ausente; mismo error de configuración |
+| global-search: sin sesión redirige (línea 22) | FALLÓ | FALLÓ | FALLÓ | conserva /studio/dashboard; mismo error de configuración, no evidencia de acceso exitoso |
+| calculadora-hidratacion: CBM antes del JS (línea 42) | PASÓ | FALLÓ | PASÓ | React no tomó campo en 20 s; cero marcadores, causa no determinada |
+| calculadora-hidratacion: toggle antes del JS (línea 61) | PASÓ | FALLÓ | PASÓ | React no tomó toggle en 20 s; causa no determinada |
+
+Flaky segundo intento: `cbm-ayuda.spec.ts:111`, Chrome móvil: popover seguía
+oculto al esperar 1.500 ms, recuperado en retry. Registrar separado
+de fallos persistentes. No inferir que todos los timeouts son por Supabase.
+18 SKIPs por fixtures/credenciales ausentes: comments-lifecycle 3,
+gastos-expense-void 6, global-search autenticado 6, nomina-settlement-void 3.
+No hubo llamadas con credenciales de producción.
+
+Cierre atascado: último resultado 23:45:46 -04. A las 23:48:06 y 23:48:34,
+Playwright PID2012 mantuvo CPU 8,984375 s y worker PID29588 3,90625 s;
+sin JSON. Timeout de test y slots de teardown: 60 s. Director autorizó
+recuperación limitada. Se respaldaron 53 artifacts (48.959.529 bytes), primer
+JSON y log en `%TEMP%/dtd-pr30-e2e-5029124c-attempt2-artifacts`, con manifiesto
+SHA-256. Se revalidó PID29588, parent2012, inicio 23:44:31.147 y ruta
+Playwright 1.60 del worktree; se terminó exclusivamente ese worker. El padre
+entregó exit 1 y verify continuó al build; no hubo escalada al padre ni nueva
+suite manual. Clasificación: E2E FALLÓ con cierre interrumpido, nunca verde.
+
+Respaldo durable fuera de TEMP y Git:
+`C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr30-verify-20260905-5029124c`.
+Incluye los 53 artifacts, primer JSON, log previo a recuperación y log final;
+56 archivos verificados contra `manifest.json` con rutas relativas y SHA-256.
+El segundo JSON sigue NO DISPONIBLE. Después del gate sólo se modificaron
+este handoff y SDD0442/evidence.md; docs:check y git diff --check PASÓ.
+
 ## COMMITS
 
 Previos publicados: 42b7b607, c6ee85d2, 648ded94.
-Local: 6f7535e9 (merge base). Adopción documental: commit que contiene este documento.
+Locales: 6f7535e9 (merge base), 5029124c (adopción documental, SHA medido).
+Actualización de evidencia: commit documental que contiene este registro final.
 
 ## PR / BRANCH
 
@@ -78,12 +164,17 @@ PR #30 y rama indicadas arriba; publicación de esta fase no autorizada.
    expandido/contraído, destino/pestaña de enlaces, pendientes informativos,
    foco al navegar y formularios. Árbol AX no sustituye lector de pantalla.
 7. Fuente JetBrains Mono móvil; contraste combinado después del HEAD revisado
-   #31. pnpm verify completo pendiente de coordinación.
+   #31. Resolver pendientes del gate registrado arriba antes del cierre.
 
 ## FUERA DE ALCANCE DETECTADO
 
 Servidor Vite de fixture no respondió; revisión sirvió compilación estática
 temporal. No se convierte esta fase en reparación de servidor o autenticación.
+Los dos fallos de hidratación de calculadora, el flaky del popover público y
+el estancamiento de cierre WebKit se entregan al Director como hallazgos fuera
+del cambio Portal. Se mantienen 8 warnings lint anteriores (6 de variables
+sin usar en tests de compra y 2 de componentes CRM). No se modificó el harness
+para ocultar fallos ni se repitió manualmente la suite sin nuevos prerrequisitos.
 
 ## HANDOFF AL DIRECTOR
 
@@ -95,6 +186,9 @@ worktree, node_modules, .next y tsconfig.tsbuildinfo; sin limpieza autorizada.
 Claim se libera al finalizar la escritura de esta fase; confirmar resultado en
 mensaje al Director. La sesión sigue consumiendo worktree/fixture: liberación
 del claim NO autoriza cleanup ni transferencia automática a otro Worker.
+Director asignó a #24 E2E sin backend con tres proyectos y un worker para
+aislar los fallos de hidratación. Ese resultado futuro no cambia retroactivamente
+el gate fallido de este SHA.
 
 Incidente resuelto: index.lock vacío impedía merge. Director comprobó ausencia
 de operación Git y lo movió a respaldo fuera del repo. Este Worker no eliminó

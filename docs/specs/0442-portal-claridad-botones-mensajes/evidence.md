@@ -127,3 +127,24 @@ Requiere Edge instalado y fuentes Google accesibles. Nunca ejecutar los formular
 para simular éxito: las acciones de la fixture fallan expresamente.
 Para el antes, arrancar serve.mjs con QA_BASELINE=1 y QA_PORT=4313; lee el
 componente desde git show b8294664, sin escribir el checkout.
+
+## Gate posterior a adopción Director/Worker · 2026-09-05
+
+SHA medido: `5029124c99417c37f2222c2bc369df78f6ec0401`, con base `74bb52ab`.
+`pnpm verify` terminó exit 1: 14 pasos PASÓ, E2E FALLÓ y migrations-applied
+NO EJECUTADO por falta de credenciales; 15/16 pasos ejecutados. Build PASÓ,
+incluidos TypeScript, 158 páginas y postbuild. Unitarias: 6.196/6.196;
+SQL: 139 contratos; reconstrucción: 380 migraciones de esquema + 18 ledger-only.
+
+E2E segundo intento automático: 132 aprobados, 17 fallidos, 1 flaky y 18 SKIPs.
+Quince fallos muestran configuración Supabase ausente; dos son hidratación de
+calculadora en Chrome móvil, causa independiente no resuelta. Se interrumpió
+un trabajador WebKit estancado en cierre con autorización del Director; el
+padre entregó exit 1 y el gate continuó a build. No es una corrida verde.
+Primer JSON íntegro preservado; segundo JSON no se alcanzó a guardar antes del
+borrado del runner, pero hay resumen textual y artifacts. Matriz, evidencias,
+recuperación y checklist en el [handoff de adopción](../../../.agents/handoffs/pr30-adopcion-validacion-20260905.md).
+
+Siguen pendientes zoom nativo 200%, lector real, sesión del PR y flujos con datos
+de prueba; contraste definitivo depende de #31. PR permanece draft. Esta fase
+dejó evidencia y commits locales, sin push, integración a main ni producción.
