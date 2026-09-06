@@ -210,3 +210,23 @@ Esta corrección no absorbe la incidencia Storage de PR27. No hay push/main/Clou
 Verify/build masivo NO EJECUTADO por coordinación de recursos de PR28; evidencia
 focal y estado final se conservan en el handoff propio. La revisión independiente
 y aceptación permanecen pendientes.
+## Condición de publicación tras revisión independiente (2026-09-06)
+
+El auditor reprodujo un deadlock con dos conexiones y merge_clients0361 real,
+tanto en baseline 7f68d384 como en ce9312a3. CREATE TRIGGER mantiene un lock sobre
+client_change_requests y puede formar un ciclo con una fusión concurrente. En
+ambas pruebas se abortó la fusión y terminó la migración sin escritura parcial.
+Es una limitación operativa preexistente, no una regresión del arreglo de cadenas.
+No se garantiza que lectores continúen sin interrupciones ni que fusiones y
+escrituras simplemente esperen.
+
+Antes de aplicar 0446, Director debe coordinar una ventana sin fusiones ni
+transacciones concurrentes relevantes y su finalización antes del DDL. Ante
+40P01, debe reintentarse completa la transacción abortada, sea migración o fusión;
+nunca continuar desde una sentencia parcial. También debe planificar el manejo
+de timeout. Esta condición no autoriza aplicar la migración ni cambia el orden
+de locks o el SQL ejecutable. Rendimiento y frecuencia productiva no medidos.
+
+El dictamen independiente es favorable para el arreglo de cadenas sobre
+ce9312a3a6b12408f1fb9f8c6964a55b8a8e808e; no equivale a aceptación integral
+de perfil, merge ni producción. La validación combinada con PR27 sigue pendiente.

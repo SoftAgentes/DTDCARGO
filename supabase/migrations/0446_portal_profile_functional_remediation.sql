@@ -168,7 +168,10 @@ declare
   v_visited uuid[];
 begin
   -- One-time repair: hold a stable graph and ledger while resolving terminal
-  -- survivors. Readers remain available; concurrent merges/writes wait.
+  -- survivors. The preceding DDL can conflict with concurrent transactions;
+  -- neither uninterrupted reads nor wait-only merges/writes are guaranteed.
+  -- Release requires a quiet window for merges/relevant transactions. On 40P01,
+  -- retry the entire aborted transaction, never a partial migration or merge.
   lock table public.clients, public.client_profile_edits in share row exclusive mode;
   for v_source in
     select distinct edit.client_id, edit.tenant_id

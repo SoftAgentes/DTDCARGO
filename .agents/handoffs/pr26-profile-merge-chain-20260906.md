@@ -101,13 +101,19 @@ Logs sintéticos locales: %TEMP%/pr26-merge-chain-red.log (antes del arreglo),
 %TEMP%/pr26-merge-chain-final.log (última corrida). El runner imprime JSON con
 refs y escenarios; no inventa conteos ni reutiliza resultados de otro SHA.
 
-Revisión de locks pendiente del auditor: el backfill adquiere SHARE ROW EXCLUSIVE
-sobre clients y ledger; lectores normales continúan y escritores esperan hasta
-commit. CREATE TRIGGER previo adquiere locks sobre solicitudes/clientes: revisar
-inversión potencial con merge_clients0361 y otras escrituras concurrentes. No se
-ha medido concurrencia entre DDL y tráfico real ni se promete ausencia de deadlock.
-Planificar ventana y timeout/reintento de migración autorizado; un fallo debe revertir
-la transacción completa. No aplicar para satisfacer un gate preintegración.
+Revisión independiente de locks completada sobre ce9312a3: deadlock reproducido
+en baseline y fix mediante dos conexiones y merge0361 real. CREATE TRIGGER previo
+puede formar un ciclo de locks con una fusión; no hay garantía de lectores sin
+interrupción ni de que escritores/fusiones simplemente esperen. Es un límite
+operativo preexistente, sin regresión atribuida al fix. En la prueba abortó la
+fusión y terminó la migración sin escritura parcial.
+
+Condición obligatoria de release para Director: coordinar una ventana sin fusiones
+ni transacciones concurrentes relevantes, esperar su finalización antes del DDL
+y planificar timeout/deadlock. Ante 40P01, reintentar la transacción abortada
+completa, tanto si fue migración como fusión; nunca reintentar parcialmente.
+No aplicar para satisfacer un gate preintegración. No se modifica SQL ejecutable
+ni orden de locks en esta corrección documental.
 
 Privacidad advisory: CORRECTO en0446 bloque backfill, no cambia tenant ni copia
 campos personales, ni imprime IDs/rutas en errores. NO VERIFICABLE retención y
@@ -116,3 +122,22 @@ latencia productivas. No hay cambios de UI; UI-CHECK no aplica a este delta SQL.
 Revisión independiente solicitada sobre el próximo SHA local. Publicación sigue
 prohibida; conservación del worktree requerida. Hallazgo StoragePR27 fuera de alcance.
 Última corrida:14 grupos JSON esperados (1control RED original +13 GREEN), incluido tenant nulo: PASÓ. Solo se retiraron contenedores propios del runner. El commit que contiene este handoff fija el SHA de revisión; se reporta por mensaje para evitar autorreferencias.
+
+## Corrección documental posterior a auditoría
+
+- COMPLETADO: comentario0446 y spec/handoff corrigen la garantía de espera y
+  documentan quietud de fusiones/transacciones y reintento transaccional40P01.
+- VALIDACIÓN: equivalencia exacta del SQL al excluir únicamente las líneas de
+  comentario modificadas contra ce9312a3; diff --check y docs:check. Los resultados
+  de cada comprobación se entregan al Director con el SHA final.
+- NO EJECUTADO: suites SQL completas, verify/build; delta sin cambio ejecutable
+  y Director indicó conservar la evidencia anterior sin repetir suites enteras.
+- COMMITS: ce9312a3 contiene el arreglo revisado; el commit que contiene esta
+  sección solo corrige comentarios y documentación en tres rutas.
+- PENDIENTES DE ESTA TAREA: auditor confirma el delta documental final; Director
+  coordina validación combinada, aceptación y permisos de publicación/release.
+- FUERA DE ALCANCE DETECTADO: concurrencia preexistente documentada como condición
+  de release; cambiar locks queda fuera del encargo. StoragePR27 sigue separado.
+- HANDOFF AL DIRECTOR: revisar este delta sobre ce9312a3 y conservar las condiciones
+  anteriores. Sin push/PR remota/main/Cloud. Claim se libera tras commit y verificación;
+  conservar el worktree de0380 sin trasladar cambios.
