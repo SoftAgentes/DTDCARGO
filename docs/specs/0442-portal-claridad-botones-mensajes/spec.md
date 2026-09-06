@@ -60,6 +60,8 @@ conserva handler y requisitos existentes. La ayuda usa details/summary nativo.
 - app/portal/(app)/compras/nueva/SupplierPicker.tsx
 - docs/specs/0442-portal-claridad-botones-mensajes/spec.md
 - docs/specs/0442-portal-claridad-botones-mensajes/evidence.md
+- docs/specs/README.md (generado; adopción Director/Worker)
+- .agents/handoffs/pr30-adopcion-validacion-20260905.md
 
 - docs/specs/0442-portal-claridad-botones-mensajes/qa/index.html
 - docs/specs/0442-portal-claridad-botones-mensajes/qa/fixture.tsx
@@ -77,8 +79,9 @@ conserva handler y requisitos existentes. La ayuda usa details/summary nativo.
 
 Colores confirmó no tocar estos componentes; sí cambia tokens globales y badges
 compartidos. Revalidar contraste después de integrar esa rama. Los PR 23/27
-trabajan perfil; 28 arnés; no se modifican esos archivos. El índice SDD generado
-lo regenera coordinación, según runbook multiventana.
+trabajan perfil; 28 arnés; no se modifican esos archivos. En la adopción
+Director/Worker, el índice SDD se regenera en esta rama por asignación del
+Director. La fase de adopción autoriza solo commits locales, sin push ni release.
 
 ## Evidencia
 
