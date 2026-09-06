@@ -4,7 +4,7 @@ title: "Portal cliente — edición controlada y contención de fotos de identid
 status: in-progress
 author: "Codex + founder"
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-09-06
 supersedes: null
 superseded_by: null
 related: ["0138", "0145", "0151", "0186", "0191", "0268"]
@@ -89,8 +89,15 @@ crea una fila `identity_photo` y sigue disponible, pero un reemplazo intenta
 crear esa fila y se rechaza dentro de la misma transacción antes de mover el
 puntero. El Portal repite el guard antes del upload para evitar crear objetos
 que dependan de rollback. Si una carrera o fallo ocurre después de subir, la
-action comprueba el resultado de `Storage.remove()` y nunca anuncia éxito si la
-compensación falla.
+action distingue rechazo SQL explícito de respuesta incierta. Ante error vuelve
+a resolver el cliente de sesión y lee únicamente el puntero/tenant/prefijo y
+estado retirado de esa cuenta. Si confirma el mismo objeto conserva la carga;
+si no puede reconciliar conserva y deriva a soporte sin anunciar éxito. Un
+puntero vacío tras pérdida de respuesta no prueba rollback: el commit puede
+seguir en vuelo. Sólo un rechazo SQL exacto conocido con respuesta HTTP 4xx,
+identidad/tenant/prefijo estables y puntero distinto habilita retirar el objeto
+nuevo de esta invocación. Se comprueba `Storage.remove()` y también su excepción;
+no se anuncia éxito si la compensación falla. No se repite la RPC de escritura.
 
 Las solicitudes históricas aprobadas por el cliente se contabilizan. Los
 reemplazos de foto anteriores a 0445 no pueden reconstruirse con certeza y no se
@@ -147,6 +154,19 @@ Esta revisión técnica no constituye asesoría legal.
 - `app/portal/(app)/perfil/PortalAddresses.test.tsx`
 - `app/portal/(app)/perfil/ProfileEditControls.test.tsx`
 - `app/portal/(app)/perfil/IdentityPhotoAction.test.ts`
+- `.agents/handoffs/pr27-identity-photo-uncertain-response-20260906.md`
+
+### Corrección aislada · respuesta perdida (2026-09-06)
+
+Base PR27 `82fc49ff`; SDD permanece in-progress. Se conserva el bloqueo0447,
+cuota y primera carga. RED sobre actions base: 14 fallos/7 aprobados incluyendo
+commit con respuesta perdida que dejaba puntero sin objeto. GREEN inicial:
+21/21 con SDK Supabase real 2.106.1, helper upload real y transporte offline.
+El test simula commit y respuesta por separado; no demuestra comportamiento
+de una base real ni aplica migraciones. Reconciliación fallida, fila retirada,
+tenant/prefijo/cuenta cambiados, puntero concurrente y commit posterior a lectura
+nula conservan el archivo. Cleanup fallido comunica soporte sin éxito falso.
+Resultado final y revisión independiente en handoff; sin push ni Cloud.
 
 ## Fuera de alcance
 
