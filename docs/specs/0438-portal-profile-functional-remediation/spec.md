@@ -4,7 +4,7 @@ title: "Remediación funcional del cupo y la evidencia de perfil"
 status: in-progress
 author: "Codex"
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-09-06
 supersedes: null
 superseded_by: null
 related:
@@ -84,7 +84,7 @@ Un error aborta la transacción completa de `merge_clients`.
 
 ### D3 · El histórico se repara sin inventar consumos
 
-El backfill sólo cambia `client_id` y `tenant_id` de asientos cuya ficha ya
+El backfill sólo cambia `client_id`, conservando `tenant_id`, de asientos cuya ficha ya
 apunta a un superviviente válido. No inserta, borra, libera ni aplica cupos.
 
 ## 4. Seguridad y datos
@@ -144,13 +144,69 @@ Este chequeo técnico no es asesoría legal.
 - [x] La fusión deja cero asientos en la ficha retirada y conserva cardinalidad.
 - [x] El caso cross-tenant revierte sin mover asientos.
 - [x] `authenticated` conserva sólo la RPC self-scope; los triggers no son API.
-- [x] El contrato SQL `0446` pasa en PostgreSQL desechable.
-- [x] `docs:check`, `governance:check`, `components:check`, numbering y rebuild
+- [x] El contrato SQL `0446` pasa en PostgreSQL desechable, incluida la cadena histórica de dos saltos.
+- [ ] `docs:check`, `governance:check`, `components:check`, numbering y rebuild
       local pasan.
-- [ ] Aplicación Cloud permanece pendiente de autorización nominal separada.
+Release separado: aplicación Cloud pendiente de autorización nominal; no es una prueba preintegración.
 
 ## 8. Estado de entrega
 
-Implementación y gates locales completos el 2026-09-04. La spec permanece
-`in-progress` porque la aplicación nominal de `0446` en Cloud conserva su gate
-independiente.
+La entrega inicial de 2026-09-04 tuvo validación local. La aceptación se reabre por la cadena histórica y permanece in-progress hasta revisión de esta corrección. Cloud es un gate de release independiente, no la causa del estado SDD.
+
+## 9. Corrección de cadena histórica · 2026-09-06
+
+Task pr26-profile-merge-chain-20260906. Base PR26 7f68d384; main incorporado74bb52ab.
+El auditor reprodujo A→B→C con merge_clients0361 real antes de0446: B ya retirado
+hacía abortar el guard de un solo salto aunque C era un superviviente válido.
+No se afirma que esa cadena exista en producción: el caso es sintético.
+
+Metadata list_migrations de producción consultada con autorización:409entradas,
+0445 presente (20260904193612),0446 no consta. No se leyeron filas de negocio ni
+se escribió en Cloud. El Director autorizó corregir0446 aún no aplicada;0445 es
+inmutable. La ausencia del ledger no prueba ausencia de SQL manual sin registrar.
+
+El nuevo bloque recorre cada origen con ledger hasta su terminal y detecta visitas
+repetidas sin limitar arbitrariamente la longitud. Verifica tenant en todos los
+saltos, incluido el origen contra el tenant del asiento. Rechaza destino ausente,
+terminal retirado sin sucesor y nodo activo que señale una fusión. Solo reasigna
+client_id; preserva todos los otros campos/IDs/estados/cuotas. No comprime ni borra
+la historia clients.merged_into_client_id. Los triggers/RPC/ACL fuera del backfill
+conservan el código original.
+
+Un lock transaccional SHARE ROW EXCLUSIVE en clients y client_profile_edits evita
+que el grafo o ledger cambien mientras se resuelven los terminales. Es reparación
+única de release, no parte de cada petición. Debe planificarse la ventana y medirse
+latencia/volumen antes de aplicar; no se afirma rendimiento sobre datos productivos.
+
+Allowlist adicional aprobada:
+
+- scripts/qa/profile-merge-chain.mjs
+- .agents/handoffs/pr26-profile-merge-chain-20260906.md
+
+Prueba reproducible, sin npm ni.env, con Docker PostgreSQL17 propio y sin red:
+
+```powershell
+node scripts/qa/profile-merge-chain.mjs --baseline-ref 7f68d38436a75ca3a84c087ca36d689f79ecd31e --privacy-ref 82fc49ff0a81c88929fdd0493ded27e9e8c1f0a2
+```
+
+El runner exige SHA completos y falla si falta el blob0447. Lee migraciones reales
+0361/0445/0446 del checkout;0447 y baseline por git show. Soporte de tablas del
+fixture0358 y auditoría del contrato0446; no es un rebuild integral. El cleanup
+finally solo retira su contenedor creado por el propio runner. No usa directorios
+ni credenciales de otra sesión. Para obtener refs faltantes, coordinar lectura/fetch
+con Director; no cambia el código0447 ni aplica su política de Storage por separado.
+
+Cobertura: RED original y GREEN corregido A→B→C,16saltos reales,fan-in,idempotencia,
+ciclo,self-loop,destino inexistente/retirado,tenant intermedio/terminal/ledger,
+origen activo inválido,rollback de un UPDATE válido previo y DDL/RPC/historia,
+y0445→0446→0447 con fusiones reales repetidas,cuota agotada y ACL del ledger.
+
+Gobernanza: cumplimiento de conservación, tenant y fallo atómico; no aplica UI.
+Privacidad advisory: CORRECTO en0446 bloque backfill, solo reasigna vínculo interno,
+no copia valores personales y mantiene tenant; NO VERIFICABLE retención/logs de
+infraestructura y tiempos en producción. No se afirma cumplimiento legal.
+
+Esta corrección no absorbe la incidencia Storage de PR27. No hay push/main/Cloud.
+Verify/build masivo NO EJECUTADO por coordinación de recursos de PR28; evidencia
+focal y estado final se conservan en el handoff propio. La revisión independiente
+y aceptación permanecen pendientes.

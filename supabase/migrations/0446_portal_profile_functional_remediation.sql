@@ -161,31 +161,57 @@ create trigger clients_profile_edits_follow_merge
 -- Repara merges ocurridos después de aplicar 0445 y antes de este correctivo.
 -- La cardinalidad no cambia: sólo se reasigna el dueño canónico del asiento.
 do $backfill_guard$
+declare
+  v_source record;
+  v_client record;
+  v_current_id uuid;
+  v_visited uuid[];
 begin
-  if exists (
-    select 1
-    from public.client_profile_edits as edit
-    join public.clients as retired on retired.id = edit.client_id
-    join public.clients as survivor on survivor.id = retired.merged_into_client_id
+  -- One-time repair: hold a stable graph and ledger while resolving terminal
+  -- survivors. Readers remain available; concurrent merges/writes wait.
+  lock table public.clients, public.client_profile_edits in share row exclusive mode;
+  for v_source in
+    select distinct edit.client_id, edit.tenant_id
+    from public.client_profile_edits edit
+    join public.clients retired on retired.id = edit.client_id
     where retired.merged_into_client_id is not null
-      and (
-        retired.merged_into_client_id = retired.id
-        or survivor.deleted_at is not null
-        or survivor.tenant_id is distinct from retired.tenant_id
-      )
-  ) then
-    raise exception '0446 abortado: merge histórico inválido en client_profile_edits';
-  end if;
+    order by edit.client_id, edit.tenant_id
+  loop
+    if v_source.tenant_id is null then
+      raise exception '0446 abortado: merge histórico inválido (tenant ausente) en client_profile_edits';
+    end if;
+    v_current_id := v_source.client_id;
+    v_visited := array[]::uuid[];
+    loop
+      if v_current_id = any(v_visited) then
+        raise exception '0446 abortado: merge histórico inválido (ciclo) en client_profile_edits';
+      end if;
+      v_visited := pg_catalog.array_append(v_visited, v_current_id);
+      select client.id, client.tenant_id, client.deleted_at, client.merged_into_client_id
+        into v_client from public.clients client where client.id = v_current_id;
+      if not found or v_client.tenant_id is distinct from v_source.tenant_id then
+        raise exception '0446 abortado: merge histórico inválido (destino o tenant) en client_profile_edits';
+      end if;
+      if v_client.merged_into_client_id is null then
+        if v_client.deleted_at is not null then
+          raise exception '0446 abortado: merge histórico inválido (terminal retirado) en client_profile_edits';
+        end if;
+        exit;
+      end if;
+      if v_client.deleted_at is null then
+        raise exception '0446 abortado: merge histórico inválido (origen activo) en client_profile_edits';
+      end if;
+      v_current_id := v_client.merged_into_client_id;
+    end loop;
+
+    -- Preserve tenant, IDs, statuses, timestamps and consumed/reserved quota.
+    -- A→B→C changes only the ledger owner to C; the merge history stays intact.
+    update public.client_profile_edits
+    set client_id = v_current_id
+    where client_id = v_source.client_id and tenant_id = v_source.tenant_id;
+  end loop;
 end;
 $backfill_guard$;
-
-update public.client_profile_edits as edit
-set client_id = survivor.id,
-    tenant_id = survivor.tenant_id
-from public.clients as retired
-join public.clients as survivor on survivor.id = retired.merged_into_client_id
-where edit.client_id = retired.id
-  and retired.merged_into_client_id is not null;
 
 -- Mantiene el contrato público de 0445, pero invalida de forma atómica el
 -- veredicto derivado cuando cambia la evidencia que lo sustentaba.

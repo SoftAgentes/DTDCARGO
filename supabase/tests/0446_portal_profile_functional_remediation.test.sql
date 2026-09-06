@@ -170,6 +170,14 @@ insert into public.client_profile_edits(
   'identity_photo', 'applied', 'anterior.jpg', 'nueva.jpg', now()
 );
 
+-- A second historical hop must resolve through the already-retired intermediary.
+insert into public.clients(id, tenant_id, markbox, merged_into_client_id, deleted_at)
+values ('00000000-0000-0000-0000-00000000c012',
+        '00000000-0000-0000-0000-00000000d7d0', 'DTD-9012',
+        '00000000-0000-0000-0000-00000000c011', now());
+update public.client_profile_edits set client_id = '00000000-0000-0000-0000-00000000c012'
+where id = '00000000-0000-0000-0000-00000000f001';
+
 \ir ../migrations/0446_portal_profile_functional_remediation.sql
 
 do $backfill$
@@ -189,6 +197,7 @@ where id = '00000000-0000-0000-0000-00000000f001';
 delete from public.clients
 where id in (
   '00000000-0000-0000-0000-00000000c011',
+  '00000000-0000-0000-0000-00000000c012',
   '00000000-0000-0000-0000-00000000c010'
 );
 delete from public.tenants
