@@ -1,11 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
+  isAnalyticsExcludedUrl,
   isPrivatePath,
   sanitizePath,
   sanitizeSearch,
   WHATSAPP_LINK_RE,
   WHATSAPP_SHARE_RE,
 } from "@/components/Analytics";
+
+const ATTRIBUTION_KEYS = [
+  "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+  "origen", "gclid", "gbraid", "wbraid",
+];
+const MALFORMED_CREDENTIAL_QUERIES = ATTRIBUTION_KEYS.flatMap((key) =>
+  ["%25ZZ", "%25"].map((suffix) =>
+    `${key}=id_token%253DSYNTHETIC${suffix}`,
+  ),
+);
 
 /**
  * Capa de medición (GA4 + Google Ads) — components/Analytics.tsx.
@@ -26,6 +37,12 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
     "/m/cn",
     "/back",
     "/invitar",
+    // Puertas públicas que transportan capabilities o datos de acceso.
+    "/acceso",
+    "/acceso/token-sintetico-analytics",
+    "/entrar",
+    "/entrar/codigo-sintetico-analytics",
+    "/abrir",
     // Ampliación 2026-07-05 (fuga PII detectada):
     "/verificar", // ?c=<Shipping Mark | folio>
     "/p/abc123", // packing list con token capability (SDD-0096)
@@ -60,12 +77,175 @@ describe("isPrivatePath — GA no carga en rutas con PII", () => {
     "/verificado", // ≠ /verificar
     "/internacional", // ≠ /interno
     "/menu", // ≠ /m
+    "/accesorios", // ≠ /acceso
+    "/entradas", // ≠ /entrar
+    "/abrigos", // ≠ /abrir
   ])("NO excluye %s", (path) => {
     expect(isPrivatePath(path)).toBe(false);
   });
 });
 
+describe("isAnalyticsExcludedUrl — la URL completa decide si Google carga", () => {
+  it.each(MALFORMED_CREDENTIAL_QUERIES)(
+    "bloquea credenciales con escapes mixtos en %s",
+    (query) => {
+      expect(isAnalyticsExcludedUrl("/servicios", new URLSearchParams(query))).toBe(true);
+    },
+  );
+
+  it.each([
+    "utm_campaign=%25ZZ%26client%255Fsecret%253DSYNTHETIC",
+    "utm_campaign=id%255Btoken%255D%253DSYNTHETIC%25",
+    "utm_campaign=id_token%25253DSYNTHETIC%25ZZ",
+    "utm_campaign=id_token%2525253DSYNTHETIC%25ZZ",
+    "utm_campaign=%25E0%25A4%25ZZ",
+  ])("rechaza credenciales o codificación ambigua en %s", (query) => {
+    expect(isAnalyticsExcludedUrl("/servicios", new URLSearchParams(query))).toBe(true);
+  });
+
+  it.each(ATTRIBUTION_KEYS)("conserva atribución legítima con porcentaje en %s", (key) => {
+    for (const value of ["descuento-50%25", "oferta%2520de%2520caf%25C3%25A9-50%25"]) {
+      const query = `${key}=${value}`;
+      const params = new URLSearchParams(query);
+      expect(isAnalyticsExcludedUrl("/servicios", params, "#cotizar")).toBe(false);
+      expect(sanitizeSearch(params)).toBe(params.toString());
+    }
+  });
+
+  it.each([
+    ["/registro", "ref=REF-SINTETICO-0001", ""],
+    ["/registro", "est=EST-SINTETICO-0001", ""],
+    ["/servicios", "token=secreto-sintetico", ""],
+    ["/servicios", "code=codigo-sintetico", ""],
+    ["/servicios", "email=persona%40example.com", ""],
+    ["/servicios", "", "#access_token=token-sintetico"],
+    ["/servicios", "", "#refresh_token=token-sintetico"],
+  ])("excluye %s?%s%s", (pathname, query, hash) => {
+    expect(
+      isAnalyticsExcludedUrl(pathname, new URLSearchParams(query), hash),
+    ).toBe(true);
+  });
+
+  it.each([
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "origen",
+    "gclid",
+    "gbraid",
+    "wbraid",
+  ])("excluye una credencial anidada en el valor permitido %s", (key) => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(
+          `${key}=access_token%3Dtoken-sintetico-analytics`,
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    "#id_token=token-sintetico",
+    "#auth_token=token-sintetico",
+    "#session_token=token-sintetico",
+    "#client_secret=secreto-sintetico",
+    "#IDToken=token-sintetico",
+    "#id[token]=token-sintetico",
+    "#id_token[]=token-sintetico",
+    "#payload=id_token=token-sintetico",
+    "#%7B%22payload%22%3A%22id_token%3Dtoken-sintetico%22%7D",
+    "#id%5Ftoken%3Dtoken-sintetico",
+    "#id%255Ftoken%253Dtoken-sintetico",
+  ])("excluye el fragmento con credencial %s", (hash) => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(),
+        hash,
+      ),
+    ).toBe(true);
+  });
+
+  it("excluye una credencial con doble codificación dentro de un UTM", () => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(
+          "utm_campaign=id_token%253Dtoken-sintetico-analytics",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it.each([
+    "utm_campaign=payload%3Did_token%3Dtoken-sintetico",
+    "utm_campaign=IDToken%3Dtoken-sintetico",
+  ])("excluye la credencial anidada o normalizada en %s", (query) => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(query),
+      ),
+    ).toBe(true);
+  });
+
+  it("falla cerrado ante un fragmento mal codificado", () => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(),
+        "#campana-50%",
+      ),
+    ).toBe(true);
+  });
+
+  it("conserva la medición con atribución explícitamente permitida", () => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(
+          "utm_source=instagram&utm_campaign=prueba&gclid=click-sintetico",
+        ),
+        "#cotizar",
+      ),
+    ).toBe(false);
+  });
+
+  it("no confunde texto de campaña ni hashes ordinarios con credenciales", () => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams(
+          "utm_campaign=access-token-launch&utm_content=tokenization-guide&gclid=click-sintetico",
+        ),
+        "#guia-token",
+      ),
+    ).toBe(false);
+  });
+
+  it("permite un porcentaje literal dentro de un UTM legítimo", () => {
+    expect(
+      isAnalyticsExcludedUrl(
+        "/servicios",
+        new URLSearchParams("utm_campaign=descuento-50%25"),
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("sanitizeSearch — whitelist de query params (PII nunca sale)", () => {
+  it.each(MALFORMED_CREDENTIAL_QUERIES)(
+    "omite defensivamente la atribución con credencial en %s",
+    (query) => {
+      expect(sanitizeSearch(new URLSearchParams(`utm_source=prueba&${query}`))).toBe(
+        "utm_source=prueba",
+      );
+    },
+  );
+
   it("deja pasar SOLO atribución (utm/origen/click IDs)", () => {
     const qs = new URLSearchParams(
       "utm_source=instagram&utm_medium=bio&utm_campaign=enlaces&origen=ddp&gclid=abc123",
@@ -93,6 +273,13 @@ describe("sanitizeSearch — whitelist de query params (PII nunca sale)", () => 
 });
 
 describe("sanitizePath — redacción del código de tracking", () => {
+  it.each([
+    ["/acceso/token-sintetico", "/acceso/[token]"],
+    ["/entrar/codigo-sintetico", "/entrar/[code]"],
+  ])("redacta credenciales en %s", (path, expected) => {
+    expect(sanitizePath(path)).toBe(expected);
+  });
+
   it("redacta el código de /track/[code]", () => {
     expect(sanitizePath("/track/DTD-1004")).toBe("/track/[code]");
     expect(sanitizePath("/track/abc123xyz")).toBe("/track/[code]");
