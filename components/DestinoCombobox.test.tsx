@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, within } from "@testing-library/react";
+import { act, render, screen, cleanup, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import type { Ciudad } from "@/lib/calculadora";
@@ -39,7 +39,10 @@ const opciones = () => within(screen.getByRole("listbox")).getAllByRole("option"
 beforeEach(() => {
   vi.clearAllMocks();
 });
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 describe("DestinoCombobox", () => {
   it("muestra la ciudad elegida y abre con TODAS al enfocar", async () => {
@@ -134,6 +137,57 @@ describe("DestinoCombobox", () => {
     // Un texto a medias NO es un destino: el valor real sigue siendo el slug.
     expect(combo()).toHaveValue("Valencia (sede)");
     expect(screen.getByTestId("elegido")).toHaveTextContent("valencia");
+  });
+
+  it("reemplaza la etiqueta al escribir antes del primer frame de foco", async () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    await user.click(combo());
+    await user.keyboard("mara");
+    expect(combo()).toHaveValue("mara");
+    act(() => frames.forEach((callback) => callback(0)));
+    expect(combo()).toHaveValue("mara");
+  });
+
+  it("un frame de foco entre letras no selecciona la búsqueda ya escrita", async () => {
+    const frames: FrameRequestCallback[] = [];
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+      frames.push(callback);
+      return frames.length;
+    });
+    const user = userEvent.setup();
+    render(<Harness />);
+
+    await user.click(combo());
+    // Aislamos el frame tardío del mecanismo de selección del clic inicial.
+    // El navegador ya tiene la etiqueta seleccionada cuando empiezan las teclas.
+    (combo() as HTMLInputElement).select();
+    await user.keyboard("mar");
+    expect(combo()).toHaveValue("mar");
+    act(() => frames.forEach((callback) => callback(0)));
+    await user.keyboard("a");
+    expect(combo()).toHaveValue("mara");
+    await user.keyboard("{Escape}");
+    expect(combo()).toHaveValue("Valencia (sede)");
+    expect(screen.getByTestId("elegido")).toHaveTextContent("valencia");
+  });
+
+  it("respeta el cursor manual después de empezar a escribir", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    await user.click(combo());
+    await user.keyboard("mara");
+    const input = combo() as HTMLInputElement;
+    input.setSelectionRange(2, 2);
+    fireEvent.mouseUp(input);
+    await user.keyboard("x");
+    expect(input).toHaveValue("maxra");
   });
 
   it("hacer click afuera tampoco deja un texto a medias", async () => {

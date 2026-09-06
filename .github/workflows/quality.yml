@@ -1,0 +1,93 @@
+name: Calidad continua
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Calidad local sin secretos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Preparar pnpm 11 y Node 24
+        uses: pnpm/setup@703c52620218391530e48b9e8870d5c0082e1b9b # v2.1.0
+        with:
+          version: 11.19.0
+          runtime: node@24
+          cache: true
+          install: false
+
+      - name: Preparar Deno 2
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with:
+          deno-version: v2.x
+
+      - name: Instalar dependencias desde el lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint
+        run: pnpm lint
+
+      - name: Frontera RSC
+        run: node scripts/check-rsc-boundary.mjs
+
+      - name: TypeScript
+        # El primer runner privado agotó el heap implícito de ~2 GiB (exit 134).
+        # Límite explícito, no memoria reservada: deja margen al SO del runner.
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: pnpm typecheck
+
+      - name: Edge Functions
+        run: pnpm edge:check
+
+      - name: Unitarios
+        run: pnpm test
+
+      - name: Harness Director Worker
+        run: pnpm harness:test
+
+      - name: Documentacion SDD
+        run: pnpm docs:check
+
+      - name: Numeracion SDD y migraciones
+        run: pnpm sdd:check
+
+      - name: Constantes de features
+        run: node scripts/check-feature-constants.mjs
+
+      - name: Registro de componentes
+        run: pnpm components:check
+
+      - name: Gobernanza ejecutable
+        run: pnpm governance:check
+
+      - name: Build de produccion sin secretos
+        # Next vuelve a comprobar tipos; sus procesos Node heredan este límite.
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: node scripts/check-build.mjs
+
+      - name: Confirmar arbol reproducible
+        run: git diff --exit-code

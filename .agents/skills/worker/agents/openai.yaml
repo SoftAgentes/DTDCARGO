@@ -1,0 +1,4 @@
+interface:
+  display_name: "Worker DTD Cargo"
+  short_description: "Completa una tarea en un worktree aislado"
+  default_prompt: "Usa $worker para ejecutar el objetivo asignado hasta pruebas, commits y handoff."

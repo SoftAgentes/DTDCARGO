@@ -1,251 +1,139 @@
-/**
- * scripts/next-number.mjs — ¿qué número de spec/migración está libre DE VERDAD?
- *
- * SIN SHEBANG a propósito (mismo motivo que los otros checks: el `#!` rompe el
- * parser de Vite si el módulo se importa desde un test).
- *
- * POR QUÉ EXISTE
- * "Mirar el disco local" no alcanza: hay 15-20 worktrees en paralelo y cada uno
- * ve sólo su rama. El 29-jul hubo CUATRO colisiones en un día. Este script mira
- * **todas las refs** (locales y remotas) después de un `git fetch`, así que ve
- * los números que otras ventanas ya tomaron aunque todavía no estén en tu árbol.
- *
- * PERO EL FETCH NO CIERRA LA CARRERA. Entre que numerás y que pusheás pueden
- * pasar horas — que es exactamente cómo se duplicó la spec 0175. Para cerrarla
- * hay que RESERVAR: publicar el número en `main` apenas lo decidís.
- *
- * ⭐ LA RESERVA NO ES UN COMMIT VACÍO. Un commit sin archivos no reserva nada:
- * el próximo `next-number` escanea CARPETAS, no mensajes de commit, así que
- * vería el número libre igual. La reserva crea el `spec.md` de verdad (stub en
- * `status: draft`), que es lo que hace visible el número para todo el mundo.
- *
- * Una reserva NO dispara deploy. `vercel.json` **sí** tiene `ignoreCommand`
- * (`git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/**' ':(exclude,glob)*.md'`),
- * y el stub toca un solo `.md` bajo `docs/`, así que el build se cancela solo.
- * Aun así `--reserve` **prepara y NO pushea**: publicar en `main` es una
- * decisión tuya, no un efecto secundario de pedir un número.
- *
- * ⚠️ Este bloque decía lo contrario —"cada reserva dispara un deploy"— y era
- * FALSO. Corregido el 2026-08-14: ese aviso hizo que una ventana se saltara la
- * reserva ("no tengo OK para pushear") y terminó implementando el SDD-0262 por
- * duplicado, en paralelo con otra. El costo del aviso equivocado fue una
- * implementación completa a la basura.
- *
- * Uso:
- *   node scripts/next-number.mjs                    → próximo libre de spec y de migración
- *   node scripts/next-number.mjs --reserve <slug>   → prepara la reserva (no pushea)
- *   node scripts/next-number.mjs --reserve <slug> --push   → reserva y publica
- *   node scripts/next-number.mjs --no-fetch         → sin red (usa lo que ya tienes)
- *
- * Exit: 0 = ok · 1 = error de uso o de git
+/** Inventario global y reservas SDD en ramas: nunca publica ni modifica main.
+ * --no-fetch es advisory y no permite reservar. --reserve <slug> crea refs
+ * locales durables; --push publica exclusivamente la reserva canónica.
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-
-const C = {
-  green: "\x1b[32m",
-  red: "\x1b[31m",
-  dim: "\x1b[2m",
-  yellow: "\x1b[33m",
-  bold: "\x1b[1m",
-  nc: "\x1b[0m",
-};
+import { fileURLToPath } from "node:url";
 
 function git(args, opts = {}) {
-  return execFileSync("git", args, {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", opts.quiet ? "ignore" : "inherit"],
-    ...opts,
-  }).trim();
+  return execFileSync("git", args, { encoding: "utf8", stdio: ["pipe", "pipe", "pipe"], ...opts }).trim();
 }
-
-/**
- * Todos los números ya tomados en CUALQUIER ref (local o remota).
- *
- * `git ls-tree` por ref en vez de `git log -S` o de leer el disco: es lo único
- * que ve el árbol REAL de cada rama, incluidas las de otras ventanas que
- * todavía no mergeaste.
- *
- * @param {"specs"|"migrations"} kind
- * @returns {Set<number>}
- */
+const lines = (s) => s.split(/\r?\n/).filter(Boolean);
+const directory = (kind) => kind === "specs" ? "docs/specs" : "supabase/migrations";
+const pattern = (kind) => kind === "specs" ? /^docs\/specs\/(\d{4})(?!\d)/ : /^supabase\/migrations\/(\d{4})(?!\d)/;
 export function takenNumbers(kind, refs, lsTree) {
-  const dir = kind === "specs" ? "docs/specs" : "supabase/migrations";
-  const re =
-    kind === "specs"
-      ? /docs\/specs\/(\d{4})/
-      : /supabase\/migrations\/(\d{4})/;
   const taken = new Set();
-  for (const ref of refs) {
-    for (const line of lsTree(ref, dir)) {
-      const m = line.match(re);
-      if (m) taken.add(parseInt(m[1], 10));
-    }
+  for (const ref of refs) for (const name of lsTree(ref, directory(kind))) {
+    const match = name.match(pattern(kind));
+    if (match) taken.add(Number(match[1]));
   }
   return taken;
 }
-
-/** El primer número libre por encima del máximo tomado. */
-export function nextFree(taken) {
-  const max = taken.size ? Math.max(...taken) : 0;
-  return max + 1;
-}
-
+export function nextFree(taken) { return (taken.size ? Math.max(...taken) : 0) + 1; }
 const pad = (n) => String(n).padStart(4, "0");
 
-function allRefs() {
-  return git([
-    "for-each-ref",
-    "--format=%(refname:short)",
-    "refs/heads",
-    "refs/remotes",
-  ])
-    .split(/\r?\n/)
-    .filter(Boolean);
+function refresh() {
+  git(["fetch", "--quiet", "origin", "+refs/heads/*:refs/remotes/origin/*"]);
+  const remote = git(["remote", "get-url", "origin"]);
+  const github = remote.match(/github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?$/);
+  if (!github) return;
+  // REST pagination includes fork PRs; no silent gh pr list default limit.
+  const numbers = lines(execFileSync("gh", ["api", "--paginate",
+    `repos/${github[1]}/${github[2]}/pulls?state=open&per_page=100`, "--jq", ".[].number"],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }));
+  for (const number of numbers) {
+    if (!/^\d+$/.test(number)) throw new Error("Inventario PR inválido");
+    git(["fetch", "--quiet", "origin", `+refs/pull/${number}/head:refs/dtd/pr/${number}`]);
+  }
 }
 
-function lsTreeFactory() {
-  return (ref, dir) => {
-    try {
-      return git(["ls-tree", "-r", "--name-only", ref, "--", dir], {
-        quiet: true,
-      }).split(/\r?\n/);
-    } catch {
-      return []; // ref sin ese directorio → nada que aportar
+export function inventory() {
+  const refs = lines(git(["for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes", "refs/dtd"]));
+  const sources = new Map();
+  for (const ref of refs) sources.set(ref, lines(git(["ls-tree", "-r", "--name-only", ref, "--", "docs/specs", "supabase/migrations"])));
+  const records = git(["worktree", "list", "--porcelain", "-z"]).split("\0\0").filter(Boolean);
+  for (const record of records) {
+    const fields = record.split("\0");
+    if (fields.includes("bare")) continue;
+    const root = fields.find((f) => f.startsWith("worktree "))?.slice(9);
+    if (!root || !fs.statSync(root).isDirectory()) throw new Error(`Worktree no accesible: ${root}`);
+    const names = [];
+    for (const kind of ["specs", "migrations"]) {
+      const dir = directory(kind);
+      try {
+        for (const entry of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
+          if (entry.isSymbolicLink()) throw new Error(`Inventario ambiguo: symlink ${root}/${dir}/${entry.name}`);
+          names.push(`${dir}/${entry.name}`);
+        }
+      } catch (error) { if (error.code !== "ENOENT") throw error; }
     }
-  };
+    sources.set(`worktree:${root}`, names);
+  }
+  const result = { refs: refs.length, collisions: [] };
+  for (const kind of ["specs", "migrations"]) {
+    result[kind] = takenNumbers(kind, [...sources.keys()], (ref) => sources.get(ref));
+    const identities = new Map();
+    for (const [source, names] of sources) for (const name of names) {
+      const match = name.match(pattern(kind));
+      if (!match) continue;
+      const identity = kind === "specs" ? name.split("/").slice(0, 3).join("/") : name;
+      if (!identities.has(match[1])) identities.set(match[1], new Map());
+      const variants = identities.get(match[1]);
+      if (!variants.has(identity)) variants.set(identity, source);
+    }
+    for (const [number, variants] of identities) if (variants.size > 1)
+      result.collisions.push(`${kind} ${number}: ${[...variants].map(([name, source]) => `${name} (${source})`).join("; ")}`);
+  }
+  return result;
 }
 
-const STUB = (num, slug, hoy) => `---
-sdd: "${num}"
-title: "RESERVADO — ${slug}"
-status: draft
-author: "Claude Code"
-created: ${hoy}
-updated: ${hoy}
-supersedes: null
-superseded_by: null
-related: []
-confidencialidad: interno
----
-
-# SDD-${num} — RESERVADO
-
-Número reservado el ${hoy} para evitar que dos ventanas lo tomen a la vez
-(\`scripts/next-number.mjs --reserve\`). El contenido llega en el commit del
-trabajo real.
-
-Si esta spec sigue así después de unos días, o el trabajo se abandonó o alguien
-se olvidó de llenarla: preguntá antes de reusar el número.
-`;
-
-/**
- * Arma la reserva SIN tocar tu working tree ni tu rama: escribe el blob, arma
- * un índice temporal a partir del árbol de origin/main, y crea el commit con
- * `commit-tree`. Tu rama queda exactamente igual que antes.
- */
-function prepararReserva(num, slug, hoy) {
+export function prepareReservation(num, slug, today = new Date().toISOString().slice(0, 10)) {
+  if (!/^\d{4}$/.test(num) || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) throw new Error("Número/slug inválido");
+  const ref = `refs/heads/codex/sdd-reserve-${num}-${slug}`;
+  const lock = `refs/dtd/reservations/${num}`;
   const rel = `docs/specs/${num}-${slug}/spec.md`;
-  const tmpIndex = path.join(
-    fs.mkdtempSync(path.join(os.tmpdir(), "dtd-reserva-")),
-    "index",
-  );
-  const tmpFile = path.join(path.dirname(tmpIndex), "spec.md");
-  fs.writeFileSync(tmpFile, STUB(num, slug, hoy), "utf8");
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "dtd-reserva-"));
+  try {
+    const env = { ...process.env, GIT_INDEX_FILE: path.join(temp, "index") };
+    const parent = git(["rev-parse", "refs/remotes/origin/main^{commit}"]);
+    const stub = `---\nsdd: "${num}"\ntitle: "RESERVADO — ${slug}"\nstatus: draft\nauthor: "Codex"\ncreated: ${today}\nupdated: ${today}\nsupersedes: null\nsuperseded_by: null\nrelated: []\nconfidencialidad: interno\n---\n\n# SDD-${num} — RESERVADO\n\nReserva del ${today}. Completar en la rama de trabajo e integrar mediante PR.\n`;
+    const blob = git(["hash-object", "-w", "--stdin"], { input: stub });
+    git(["read-tree", parent], { env });
+    git(["update-index", "--add", "--cacheinfo", `100644,${blob},${rel}`], { env });
+    const tree = git(["write-tree"], { env });
+    const commit = git(["commit-tree", tree, "-p", parent, "-m", `chore(sdd): reserva SDD-${num} — ${slug}`]);
+    // Atomic create-only CAS for both a numeric lock and the descriptive branch.
+    git(["update-ref", "--stdin"], { input: `start\ncreate ${lock} ${commit}\ncreate ${ref} ${commit}\nprepare\ncommit\n` });
+    return { commit, ref, rel, remoteRef: `refs/heads/codex/sdd-reserve-${num}` };
+  } finally { fs.rmSync(temp, { recursive: true, force: true }); }
+}
 
-  const blob = git(["hash-object", "-w", tmpFile]);
-  const env = { ...process.env, GIT_INDEX_FILE: tmpIndex };
-  git(["read-tree", "origin/main"], { env });
-  git(["update-index", "--add", "--cacheinfo", `100644,${blob},${rel}`], { env });
-  const tree = git(["write-tree"], { env });
-  const commit = git([
-    "commit-tree",
-    tree,
-    "-p",
-    "origin/main",
-    "-m",
-    `chore(sdd): reserva SDD-${num} — ${slug}\n\nNúmero reservado para que otra ventana no lo tome (ver scripts/next-number.mjs).\nLa spec real llega en el commit del trabajo.`,
-  ]);
-  return { commit, rel };
+export function publishReservation({ commit, remoteRef }) {
+  if (!/^refs\/heads\/codex\/sdd-reserve-\d{4}$/.test(remoteRef) || !/^[a-f0-9]{40,64}$/.test(commit)) throw new Error("Destino de reserva inválido");
+  // Empty expected value: creation only, even if another machine won after fetch.
+  git(["push", "--no-follow-tags", `--force-with-lease=${remoteRef}:`, "origin", `${commit}:${remoteRef}`]);
 }
 
 function main(argv) {
   const noFetch = argv.includes("--no-fetch");
-  const doPush = argv.includes("--push");
-  const ri = argv.indexOf("--reserve");
-  const slug = ri !== -1 ? argv[ri + 1] : null;
-
-  if (ri !== -1 && (!slug || slug.startsWith("--"))) {
-    console.error(
-      `${C.red}✖${C.nc} --reserve necesita un slug: node scripts/next-number.mjs --reserve portal-estado-de-cuenta`,
-    );
-    return 1;
-  }
-  if (slug && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
-    console.error(
-      `${C.red}✖${C.nc} el slug va en kebab-case, sin acentos ni mayúsculas: '${slug}'`,
-    );
-    return 1;
-  }
-
+  const push = argv.includes("--push");
+  const index = argv.indexOf("--reserve");
+  const slug = index < 0 ? null : argv[index + 1];
+  const allowed = argv.filter((_, i) => i !== index + 1 || index < 0);
+  if (allowed.some((a) => !["--no-fetch", "--push", "--reserve"].includes(a)) ||
+      (index >= 0 && (!slug || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug))) || (push && !slug))
+    throw new Error("Uso: next-number.mjs [--no-fetch | --reserve <slug> [--push]]");
+  if (noFetch && slug) throw new Error("--no-fetch es advisory: no permite reservar");
   if (!noFetch) {
-    try {
-      git(["fetch", "--quiet", "origin"], { quiet: true });
-    } catch {
-      console.warn(
-        `${C.yellow}⚠${C.nc} no pude hacer fetch (¿sin red?) — los números pueden estar viejos`,
-      );
+    try { refresh(); } catch (error) {
+      if (slug) throw new Error(`Reserva cancelada: fetch/inventario PR incompleto. ${error.message}`);
+      console.warn(`ADVISORY: fetch/inventario PR incompleto. ${error.message}`);
     }
-  }
-
-  const refs = allRefs();
-  const lsTree = lsTreeFactory();
-  const specs = takenNumbers("specs", refs, lsTree);
-  const migs = takenNumbers("migrations", refs, lsTree);
-  const nextSpec = pad(nextFree(specs));
-  const nextMig = pad(nextFree(migs));
-
-  console.log(`${C.dim}   ${refs.length} refs miradas (locales + remotas)${C.nc}`);
-  console.log(`   spec libre     → ${C.bold}${C.green}${nextSpec}${C.nc}`);
-  console.log(`   migración libre → ${C.bold}${C.green}${nextMig}${C.nc}`);
-
-  if (!slug) {
-    console.log(
-      `${C.dim}\n   Para que nadie te lo pise mientras trabajas:\n` +
-        `     node scripts/next-number.mjs --reserve <slug>${C.nc}`,
-    );
-    return 0;
-  }
-
-  const { commit, rel } = prepararReserva(nextSpec, slug, new Date().toISOString().slice(0, 10));
-  console.log(`\n${C.green}✓${C.nc} reserva preparada: ${C.bold}${rel}${C.nc}`);
-  console.log(`${C.dim}   commit ${commit} (sobre origin/main · tu rama NO se tocó)${C.nc}`);
-
-  if (!doPush) {
-    console.log(
-      `\n${C.yellow}⚠ Falta publicarla${C.nc} — hasta que no esté en main, no reserva nada:\n` +
-        `     ${C.bold}git push origin ${commit}:refs/heads/main${C.nc}\n` +
-        `${C.dim}   El stub es doc-only, así que el ignoreCommand de vercel.json cancela el build: NO despliega.\n` +
-        `   Después, en tu rama: git fetch origin && git merge origin/main${C.nc}`,
-    );
-    return 0;
-  }
-
-  git(["push", "origin", `${commit}:refs/heads/main`]);
-  console.log(`${C.green}✓${C.nc} publicada en main. Ahora: git fetch origin && git merge origin/main`);
-  return 0;
+  } else console.warn("ADVISORY: sin fetch ni actualización de PR; no garantiza disponibilidad remota.");
+  const found = inventory();
+  for (const collision of found.collisions) console.warn(`ADVISORY colisión entre fuentes (puede ser histórica): ${collision}`);
+  console.log(`${found.refs} refs + worktrees; spec siguiente: ${pad(nextFree(found.specs))}; migración siguiente: ${pad(nextFree(found.migrations))}`);
+  if (!slug) return;
+  const reservation = prepareReservation(pad(nextFree(found.specs)), slug);
+  console.log(`Reserva local durable: ${reservation.ref}\nCommit: ${reservation.commit}\nArchivo: ${reservation.rel}`);
+  if (push) {
+    publishReservation(reservation);
+    console.log(`Reserva publicada: ${reservation.remoteRef}. Integración únicamente mediante PR.`);
+  } else console.log(`Pendiente de publicación remota (otras máquinas aún no la ven):\ngit push --no-follow-tags --force-with-lease=${reservation.remoteRef}: origin ${reservation.commit}:${reservation.remoteRef}\nIntegración únicamente mediante PR; no reutilices números de reservas abandonadas.`);
 }
-
-const isEntryPoint =
-  process.argv[1] && import.meta.filename === path.resolve(process.argv[1]);
-
-if (isEntryPoint) {
-  try {
-    process.exitCode = main(process.argv.slice(2));
-  } catch (e) {
-    console.error(`${C.red}✖${C.nc} ${e?.message ?? e}`);
-    process.exitCode = 1;
-  }
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  try { main(process.argv.slice(2)); } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
