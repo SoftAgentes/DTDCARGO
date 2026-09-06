@@ -128,8 +128,18 @@ regenera el único conflicto, `docs/specs/README.md`.
   debe clasificar las omisiones antes de aprobar integración. Evidencia,
   huellas y revisión independiente en el handoff vivo.
 
-La SDD conserva `in-progress` hasta esa clasificación. El cierre documental
-posterior a `7d130212` no cambia producto ni tests y se revisa por delta.
+La continuación de preparación instaló Chromium/Headless Shell 1223 y WebKit
+2287 para Playwright 1.60.0. Ambos motores arrancaron/cerraron `about:blank` y
+el `--list` conserva los tres proyectos, 168 casos en 14 archivos. No se
+ejecutó la suite: por código, 129 casos son elegibles sin backend, 21 necesitan
+URL/anon para render sano y 18 requieren fixture autenticado. El comando
+preparado falla cerrado sin entorno efímero real; no se usan claves ficticias
+ni se cambia el guard. Requisitos y matriz por caso en el handoff. Si se elige
+un entorno completamente local, su adaptación pertenece a SDD-0440/#28 y no se
+implementa aquí.
+
+La SDD conserva `in-progress` por E2E/entorno y clasificación de omisiones. El
+cierre documental posterior a `7d130212` no cambia producto ni tests y se revisa por delta.
 Publicar, integrar y desplegar mantienen sus permisos separados; no cambian
 SQL, credenciales, consentimiento ni IDs.
 

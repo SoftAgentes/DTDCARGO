@@ -1,7 +1,7 @@
 # Worker · PR24 / SDD-0371 · remediación de Analytics
 
 Fecha: 2026-09-05
-Estado: lista-para-revision; remediación validada localmente, dos omisiones explícitas
+Estado: lista-para-revision; remediación validada, E2E preparado y pendiente de entorno real
 Task: pr24-analytics-remediation-20260905
 Owner / sesión: 01a073a6-f21d-7483-9b74-4d9f3464c295
 Director: 01a073cc-1278-7422-81da-9f85c2fff047
@@ -51,7 +51,7 @@ Autorizados: worktree nuevo, merge local, instalación congelada, implementació
 | SQL / schema-rebuild | PASÓ | 139 contratos con rollback total; 380 migraciones desde cero, 18 sólo-ledger y aislamiento de 219 tablas. Contenedores locales efímeros. |
 | Build + postbuild | PASÓ | Compilación, tipos, prerender y Norte; tsconfig restaurado, .next-verify eliminada por runner. |
 | Ledger Cloud | NO EJECUTADO — SKIP | Fuera del alcance; sin NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY. No se copian ni usan credenciales. |
-| E2E general Playwright | NO DISPONIBLE — SKIP | Navegadores gestionados ausentes. Los 20 escenarios focales de Edge no se presentan como esta suite. |
+| E2E general Playwright | NO EJECUTADO — SKIP del gate | Navegadores ausentes durante verify; instalados después en la continuación descrita abajo. Los 20 escenarios focales de Edge no se presentan como esta suite. |
 | Revisión independiente del SHA 7d130212 | PASÓ en alcance focal | 129 casos de detector/sanitizador + 54 React/jsdom propios del auditor; no hereda los 215/20 del Worker ni aprueba merge/release. |
 
 Comando focal: node node_modules/vitest/vitest.mjs run __tests__/analytics.test.ts components/Analytics.test.tsx.
@@ -76,6 +76,39 @@ El navegador usa hooks Next adaptados a History en un fixture local y next/scrip
 
 Incidencias de preparación: el primer merge se detuvo por falta de identidad Git antes de modificar producto; se usó identidad Codex por comando sin configuración global. Una invocación temprana de pnpm test abrió un preflight de instalación mientras aún se preparaban dependencias y se interrumpió; no produjo evidencia RED. La reproducción válida se ejecutó después de terminar la instalación, mediante el entry de Vitest. dtd-pr24-red.log conserva ese intento de preparación, separado del RED causal.
 
+## Continuación E2E · preparación terminada, no ejecutada
+
+Director autorizó instalar los navegadores de la versión Playwright fijada y preparar los tres proyectos, conservando #30 el slot pesado. `pnpm exec playwright install chromium` y `pnpm exec playwright install webkit` terminaron exit 0 sin cambios de package/lockfile/config/tests. API de Playwright 1.60.0 y arranque headless de `about:blank` verificaron:
+
+- Chromium 148.0.7778.96: C:/Users/AKX generator/AppData/Local/ms-playwright/chromium-1223/chrome-win64/chrome.exe.
+- Headless Shell: C:/Users/AKX generator/AppData/Local/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-win64/chrome-headless-shell.exe.
+- WebKit 26.4: C:/Users/AKX generator/AppData/Local/ms-playwright/webkit-2287/Playwright.exe.
+
+La caché es compartida; se notificó a Director y owner #30. No se levantó Next ni se ejecutó E2E. La colección `--list` conserva 168 casos/14 archivos, 56 por proyecto (chromium, mobile-chrome, mobile-safari). Clasificación estática por código de 93df9bbe, no resultados PASS:
+
+| Grupo | Lógicos | Tres proyectos | Requisito |
+|---|---:|---:|---|
+| Contratos públicos/negativos sin backend de negocio | 43 | 129 | Fallbacks reales, Analytics apagado en dev, piloto adjuntos apagado. |
+| Rutas con URL/anon requerida para render sano | 7 | 21 | Configuración Supabase real efímera/local autorizada, sin claves ficticias. |
+| Journeys autenticados | 6 | 18 | Entorno efímero, esquema, seed y usuarios sintéticos autorizados. |
+
+Los siete con configuración son cuatro logins Studio/Back/Portal, global-search Tier 1, attachments network y smoke `/track` hasta `/entrar`. `proxy.ts:69-73` y `lib/db/server.ts:22-24` exigen URL/key; el SDK instalado rechazó sus ausencias sin hacer red. Los dos casos lógicos network y `/track` (seis ejecuciones) podrían no detectar un 500 por sus aserciones: no contarlos como auth válida con stub. Los seis autenticados están en comments-lifecycle (1), gastos-expense-void (2), global-search (2) y nomina-settlement-void (1).
+
+Comandos preparados fuera del repo:
+
+```powershell
+# Ya ejecutado: colección segura, no inicia servidor.
+& 'C:/Users/AKX generator/AppData/Local/Temp/dtd-pr24-e2e-ready.ps1'
+# NO EJECUTADO: sólo con slot y fixture real preparado/autorizado.
+& 'C:/Users/AKX generator/AppData/Local/Temp/dtd-pr24-e2e-ready.ps1' -Run
+```
+
+El runner conserva los tres proyectos y `--workers=1`, valida source/árbol/ausencia de .env/guard efímero real, usa localhost y puerto propio, no imprime variables y deja logs/traces en TEMP. Se comprobó que `-Run` falla antes de levantar Next si falta E2E_SUPABASE_PROJECT_REF. No crea entorno, claves, seed ni migraciones. El guard actual exige HTTPS+ref coincidente; Docker/Postgres por sí solo no habilita los tiers Supabase.
+
+Informe completo y matriz por caso: C:/Users/AKX generator/AppData/Local/Temp/dtd-pr24-e2e-preparacion.md y dtd-pr24-e2e-matrix.csv/.json. CSV SHA-256: af5a9e3279d21831513d435daece227fac5b384cf5e94900a19aabedf185ab09. Evidencia de arranque: dtd-pr24-browser-preflight.json, SHA-256 75548561fc1b55f2010f10f413a012789c1be1d20c6d6a3be0d75790adfdc075. Logs de instalación: dtd-pr24-playwright-install.log y dtd-pr24-webkit-install.log. Ambos listados y el script quedan en TEMP; el informe detalla comandos del guard/seed previstos y no ejecutados.
+
+Una adaptación completamente local pertenece a SDD-0440/#28: falta configuración/runtime Supabase local real, claves de esa instancia y soporte explícito en el guard, conservando rechazo de producción. Debe incluir GoTrue/PostgREST/DB, puertos propios, seed idempotente y dependencias #29→#28 para esquema y defaults de calculadora. La PR28 sigue en 80eea11e, verificada por gh; se leyó su spec/diff y no se integró. No se implementa esta ampliación dentro de PR24.
+
 ## Revisión técnica acotada de datos · revisar-datos-ve
 
 Inventario del delta de transporte:
@@ -97,7 +130,8 @@ Alcance limitado a minimización y salida hacia terceros del cambio asignado; no
 ## COMMITS
 
 - 7d13021224292b4b6379ebdd2f4e9d34b9273166: merge local con padres main74bb52ab y PR24 545af575; corrección y evidencia focal. SHA de producto revisado y medido por el gate.
-- Commit de cierre que contiene esta versión del documento: sólo handoff y evidencia de SDD-0371; no cambia código ni tests. SHA final comunicado al Director para revisión del delta documental, sin recursión de commits.
+- 93df9bbed6524a83fa0ccbfd196b670e64a0a1b3: cierre documental de verify y revisión independiente; sólo handoff y spec.
+- Commit que contiene esta versión del documento: preparación E2E y límites, sólo handoff y spec; no cambia código, configuración ni tests. SHA final comunicado al Director para revisión del delta documental, sin recursión de commits.
 
 ## PR / BRANCH
 
@@ -105,7 +139,7 @@ PR fuente: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/24. Rama nueva s�
 
 ## PENDIENTES DE ESTA TAREA
 
-Implementación, pruebas locales disponibles y revalidación independiente focal terminadas. Director debe revisar el delta documental y clasificar las omisiones del gate (E2E general no disponible; ledger Cloud fuera de alcance) antes de aprobar integración. Continuación asignada al recibir el resultado: preparar Chromium de la versión Playwright fijada, inspeccionar entorno E2E local/sintético y entregar comando seguro; no iniciar E2E/build pesado mientras #30 ocupa verify. No cambiar package/lock, usar producción ni ejecutar seed remoto. La SDD conserva in-progress; no se transforma exit 0 en aprobación global. Publicación, CI alojada, base/SHA vigente, merge y release conservan sus gates y permisos separados.
+Implementación, validaciones medidas, revisión independiente focal y preparación de navegadores/colección terminadas. E2E general pendiente de entorno real autorizado y slot; 18 autenticados requieren además fixture/seed. Una adaptación local del harness se coordina bajo SDD0440/#28, fuera de esta implementación. Director revisa el delta documental y clasifica omisiones antes de aprobar integración. La SDD conserva in-progress; no se transforma exit 0 en aprobación global. Publicación, CI alojada, base/SHA vigente, merge y release conservan sus gates y permisos separados.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -113,4 +147,4 @@ Operación interna/retención de Google no verificables con fixtures. Los ocho w
 
 ## HANDOFF AL DIRECTOR
 
-Producto revisado y validado en 7d130212; evidencia final lista para revisión por delta documental. Slot pesado liberado. Claim retenido para la continuación E2E asignada, hasta terminar sus escrituras; no borrar ni reutilizar el worktree. Director conserva ownership de clasificación de omisiones, revisión e integración. El informe independiente permanece enlazado; esta entrega no se autocertifica independiente.
+Producto revisado y validado en 7d130212; evidencia final lista para revisión por delta documental. Slot pesado liberado y preparación E2E concluida. Tras el commit final se libera claim y se confirma en el mensaje al Director; al retomar se reclama de nuevo. No borrar ni reutilizar el worktree. Director conserva ownership de entorno/slot, clasificación de omisiones, revisión e integración. El informe independiente permanece enlazado; esta entrega no se autocertifica independiente.
