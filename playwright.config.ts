@@ -29,7 +29,7 @@ export function resolvePlaywrightWorkers(
 ): number {
   const configured = env.E2E_WORKERS?.trim();
   if (configured === undefined || configured === "") {
-    return env.CI || env.E2E_ENVIRONMENT_KIND === "ephemeral" ? 1 : 8;
+    return env.CI || env.E2E_ENVIRONMENT_KIND?.trim() === "ephemeral" ? 1 : 8;
   }
 
   if (!/^\d+$/.test(configured)) {

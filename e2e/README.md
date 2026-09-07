@@ -29,6 +29,7 @@ El harness usa 8 workers en una corrida local general y 1 en CI o cuando
 `E2E_ENVIRONMENT_KIND=ephemeral`. Esto evita convertir las 168 pruebas sobre un
 único branch efímero en una prueba de carga accidental. `E2E_WORKERS=1..32`
 permite un override explícito cuando se mida otro perfil de concurrencia.
+El kind se recorta igual que en el guard: ` ephemeral ` conserva un worker.
 
 ## Estado de cobertura
 
@@ -67,6 +68,9 @@ corrida CI** — NO contra prod ni dev. Flujo:
    finiquito ficticios). El gasto queda ligado al embarque y al admin, con fecha
    fija al día 15 a las 12:00 UTC del mes de ejecución. Se niega a
    ejecutar contra el `project_ref` productivo y valida que URL/ref coincidan.
+   Acepta únicamente `https://<ref>.supabase.co` o su raíz con `/`, sin userinfo,
+   puertos explícitos, paths, query/hash ni dominios alternativos. No confundir
+   compartir el primer segmento del hostname con pertenecer al mismo origen.
    También normaliza la fila `calculator_settings` del tenant público `dtd`
    con los `DEFAULT_PARAMS` del código vigente; así un branch recién reconstruido
    no conserva los defaults históricos de 0103 ni cambia los totales esperados.

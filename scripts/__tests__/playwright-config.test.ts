@@ -72,6 +72,12 @@ describe("resolvePlaywrightWorkers", () => {
     ).toBe(1);
   });
 
+  it("serializa el mismo kind con espacios que acepta el guard efímero", () => {
+    expect(
+      resolvePlaywrightWorkers({ E2E_ENVIRONMENT_KIND: " ephemeral " }),
+    ).toBe(1);
+  });
+
   it("acepta un override explícito y rechaza valores fuera del contrato", () => {
     expect(resolvePlaywrightWorkers({ E2E_WORKERS: "4" })).toBe(4);
     expect(() => resolvePlaywrightWorkers({ E2E_WORKERS: "0" })).toThrow(

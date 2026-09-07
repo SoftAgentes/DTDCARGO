@@ -163,8 +163,14 @@ export function loadE2EEnvironment(
   }
 
   const url = new URL(supabaseUrl);
-  const urlProjectRef = url.hostname.split(".")[0];
-  if (url.protocol !== "https:" || urlProjectRef !== projectRef) {
+  const expectedOrigin = `https://${projectRef}.supabase.co`;
+  // El origen compara el host completo; la entrada completa impide ocultar
+  // userinfo, :443, paths normalizados (a/..), query o hash detrás de URL.origin.
+  // Sólo se admite la raíz canónica, con slash opcional, nunca un host alterno.
+  if (
+    url.origin !== expectedOrigin ||
+    (supabaseUrl !== expectedOrigin && supabaseUrl !== `${expectedOrigin}/`)
+  ) {
     throw new Error(
       "E2E_SUPABASE_URL no corresponde al E2E_SUPABASE_PROJECT_REF autorizado.",
     );

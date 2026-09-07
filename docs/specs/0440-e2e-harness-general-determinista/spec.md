@@ -4,7 +4,7 @@ title: "Harness E2E general determinista en Supabase efímero"
 status: in-progress
 author: "Codex"
 created: 2026-09-05
-updated: 2026-09-05
+updated: 2026-09-06
 supersedes: null
 superseded_by: null
 related: ["0168", "0172", "0243"]
@@ -25,6 +25,8 @@ con tres expectativas de negocio desalineadas.
 ## Decisión
 
 - CI y cualquier entorno declarado `ephemeral` usan un worker por defecto.
+  El kind se normaliza con `trim`, igual que el guard, para que espacios de
+  configuración no reactiven ocho workers en un entorno efímero válido.
 - Una corrida local no efímera usa ocho workers; `E2E_WORKERS=1..32` permite
   ajustar la concurrencia de forma explícita y validada.
 - WebKit móvil se serializa en Windows para que su cierre no cuelgue el gate.
@@ -39,6 +41,14 @@ con tres expectativas de negocio desalineadas.
 La normalización requiere `E2E_ENVIRONMENT_KIND=ephemeral`, project ref
 confirmado y URL coincidente. El guard existente prohíbe Producción. No crea
 PII, no lee datos de negocio y no introduce una migración.
+
+La revisión del 2026-09-06 detectó que el guard preexistente comparaba solo la
+primera etiqueta del hostname. Director autorizó restringirlo al origen HTTPS
+canónico completo `https://<ref>.supabase.co`, con slash raíz opcional; no admite
+userinfo, puertos explícitos, paths normalizados, query/hash ni otros hosts.
+Se compara también la entrada completa para que `URL.origin` no oculte esos
+componentes. Las pruebas del entrypoint real del seed usan un espía sin red y
+demuestran que producción, ref distinto y origen ajeno abortan antes del cliente.
 
 ## Gobernanza
 
@@ -58,6 +68,12 @@ PII, no lee datos de negocio y no introduce una migración.
 - `scripts/__tests__/playwright-config.test.ts`
 - `scripts/__tests__/sdd-0168-fixture.test.ts`
 - `e2e/README.md`
+- `.agents/handoffs/pr28-e2e-harness-validation-20260906.md`
+
+Dependencia incorporada por merge, sin autoría en esta unidad: PR #29 corregida
+(`17d58fe4`, producto `1e31b9a3`) materializa el estado 0222/0223 mediante 0448.
+Su migración/test y handoffs se revisan en la unidad #29. Aplicarla requiere
+autorización nominal, preflight de metadatos y ejecutor transaccional único.
 
 ## Criterios de aceptación
 
@@ -65,7 +81,9 @@ PII, no lee datos de negocio y no introduce una migración.
 - [x] El preflight exige las columnas que se van a actualizar.
 - [x] El seed verifica que la fila pública quedó normalizada.
 - [x] CI y Supabase efímero usan un worker por defecto.
+- [x] El kind efímero con espacios conserva el mismo límite de concurrencia.
 - [x] `E2E_WORKERS` acepta sólo enteros entre 1 y 32.
+- [x] El guard exige URL canónica completa y rechaza producción/ref/origen/aliases divergentes antes de crear cliente.
 - [x] Las pruebas unitarias, documentación, gobernanza y TypeScript pasan.
 - [ ] Una corrida hospedada de los 168 E2E confirma el contrato completo.
 
@@ -78,8 +96,21 @@ PII, no lee datos de negocio y no introduce una migración.
 
 ## Estado
 
-Implementación local completa: 23/23 pruebas focalizadas, TypeScript, lint del
-alcance, documentación, gobernanza, componentes, numeración y `diff --check`
-verdes. El inventario de Playwright conserva exactamente 168 pruebas en 14
-archivos. La prueba hospedada completa mantiene un gate de costo separado porque
-requiere crear un nuevo branch efímero.
+La combinación local usa main `74bb52ab` + PR #29 corregida `17d58fe4` + PR #28
+`80eea11e`. El índice se regeneró conservando las 311 specs de ambas ramas.
+La revisión añadió regresiones autorizadas: 14 fallos sobre el código original
+y 44/44 focales verdes después de corregir concurrencia y guard de URL. El
+inventario del CLI conserva 168 pruebas en 14 archivos, 56 por proyecto; resolvió
+8 workers locales, 1 en CI y 4 con override explícito. No se ejecutaron E2E
+contra Supabase ni se sembró un entorno remoto.
+
+Sobre `b08116f8`, `pnpm verify` terminó sin fallos: 14/16 pasos ejecutados,
+6.216 tests, 140 contratos SQL, reconstrucción de 381 migraciones más 18
+solo-ledger y build de producción. E2E general y ledger remoto no se midieron.
+Las revisiones independientes de #28 y #29 fueron favorables sobre sus SHA;
+la evidencia y las condiciones de release se registran en el handoff de la tarea.
+El cierre posterior cambia únicamente documentación, conservando el código medido.
+
+La corrida hospedada de 168 E2E sigue pendiente de autorización de
+entorno/costo y es requisito para cerrar este SDD. Un verify local con E2E/ledger
+omitidos no sustituye ese criterio.
