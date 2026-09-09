@@ -1,12 +1,16 @@
 import {
+  E2E_PUBLIC_TENANT_SLUG,
   E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS,
   SDD_0168_FIXTURE,
+  buildE2ECalculatorSettings,
+  buildE2ECalculatorSettingsBaseline,
   createE2EAdminClient,
   getE2EExpenseOccurredAt,
   getE2ESchemaRetryDelayMs,
   isRetryableE2ESchemaError,
   loadE2EEnvironment,
 } from "./e2e/sdd-0168-fixture";
+import { DEFAULT_PARAMS } from "../lib/calculadora";
 
 type AdminClient = ReturnType<typeof createE2EAdminClient>;
 type SchemaError = { code?: string; message: string };
@@ -50,6 +54,11 @@ const REQUIRED_SCHEMA = [
     table: "nomina_settlement_lines",
     columns:
       "id, tenant_id, settlement_id, kind, label, days, base_usd, amount_usd, created_at",
+  },
+  {
+    table: "calculator_settings",
+    columns:
+      "tenant_id, peso_incluido_kg, recargo_excedente_kg, descuento_valencia, recargo_embalaje_especial, recargo_bateria_mult, threshold_casco_km, tarifa_km_fuera_casco, cbm_max_contenedor, peso_max_contenedor_kg, peso_max_envio_kg",
   },
 ] as const;
 
@@ -203,6 +212,61 @@ async function check(error: { message: string } | null, context: string) {
   if (error) throw new Error(`${context}: ${error.message}`);
 }
 
+async function normalizePublicCalculatorSettings(
+  admin: AdminClient,
+): Promise<void> {
+  const settings = buildE2ECalculatorSettings(DEFAULT_PARAMS);
+  const { data: tenant, error: tenantError } = await admin
+    .from("tenants")
+    .select("id")
+    .eq("slug", E2E_PUBLIC_TENANT_SLUG)
+    .single();
+  await check(tenantError, "No se pudo resolver el tenant público dtd");
+  if (!tenant?.id) {
+    throw new Error("El branch efímero no contiene el tenant público dtd.");
+  }
+
+  const selectedColumns = Object.keys(settings).join(", ");
+  // Única escritura del seed fuera del tenant de fixture, sin respaldo ni
+  // restauración: el estado previo se lee y se emite ANTES de sobrescribir,
+  // para que un apuntado equivocado quede diagnosticable en el log. Si esa
+  // lectura falla se aborta: no se sobrescribe a ciegas.
+  const { data: baseline, error: baselineError } = await admin
+    .from("calculator_settings")
+    .select(selectedColumns)
+    .eq("tenant_id", tenant.id)
+    .maybeSingle();
+  await check(
+    baselineError,
+    "No se pudo leer la calculadora pública antes de normalizarla",
+  );
+  console.log(
+    JSON.stringify(
+      buildE2ECalculatorSettingsBaseline(
+        String(tenant.id),
+        baseline as Record<string, unknown> | null,
+      ),
+    ),
+  );
+
+  const { data, error } = await admin
+    .from("calculator_settings")
+    .update(settings)
+    .eq("tenant_id", tenant.id)
+    .select(selectedColumns)
+    .single();
+  await check(error, "No se pudo normalizar la calculadora pública E2E");
+
+  const stored = data as Record<string, unknown> | null;
+  for (const [column, expected] of Object.entries(settings)) {
+    if (Number(stored?.[column]) !== expected) {
+      throw new Error(
+        `La calculadora E2E no confirmó ${column}=${expected}.`,
+      );
+    }
+  }
+}
+
 async function main() {
   const environment = loadE2EEnvironment();
   const admin = createE2EAdminClient(environment);
@@ -211,6 +275,7 @@ async function main() {
 
   await waitForRequiredSchema(admin);
   await assertFixtureAbsent(admin);
+  await normalizePublicCalculatorSettings(admin);
 
   const { error: tenantError } = await admin.from("tenants").insert({
     id: fixture.tenantId,
@@ -398,6 +463,7 @@ async function main() {
       expenseId: fixture.expenseId,
       expenseCode: fixture.expenseCode,
       expenseOccurredAt,
+      calculatorSettingsNormalized: true,
       payrollSettlementId: fixture.payrollSettlementId,
       payrollSettlementCode: fixture.payrollSettlementCode,
       adminUserId: adminUser.id,
