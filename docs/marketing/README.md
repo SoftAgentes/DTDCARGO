@@ -59,7 +59,8 @@ de alta frecuencia y 7–20 quedan marcadas como prioridad editorial hasta instr
 
 ### 📊 Analítica — GA4 + GTM
 - Sin contenedores GTM en código → **gtag.js directo**: GA4 `G-25CD7BZH98` + Ads `AW-561290482` en `components/Analytics.tsx`.
-- **GA NO carga en rutas privadas** (`/studio /portal /m /back /invitar`) → evita mandar PII a Google.
+- **GA/Ads NO cargan en rutas privadas o de acceso** (`/studio /portal /m /back /invitar /acceso /entrar /abrir`, entre otras), ni cuando la URL lleva query no aprobada o credenciales en el fragmento. La allowlist conserva sólo atribución (`utm_*`, `origen`, `gclid`, `gbraid`, `wbraid`); el guard de History apaga ambos tags antes de una navegación cliente sensible. Contratos sintéticos: `__tests__/analytics.test.ts` y `components/Analytics.test.tsx`.
+- **Remediación local SDD-0371 (2026-09-05):** la inspección también bloquea credenciales anidadas cuando un valor de atribución mezcla escapes válidos y porcentajes malformados. La decodificación sólo sirve para inspeccionar; la atribución legítima conserva su valor original, incluidos porcentajes y Unicode. El sanitizador omite valores sensibles como defensa adicional. Evidencia y límites en el [handoff de remediación](../../.agents/handoffs/pr24-analytics-remediation-20260905.md); esta validación local no acredita un despliegue ni el procesamiento interno de Google.
 - ✅ **Flujo verificado en dtdcargo.com (2026-06-07):** propiedad única "dtdcargo.com" (cuenta DTD Cargo `396905128`), stream → `https://dtdcargo.com`, recibiendo datos. Cuenta vieja "DoorTuDoor" (`208873909`) = dormida.
 - **Pendiente (founder):** borrar **2 contenedores GTM sin uso** (`GTM-KWRDZS4`, `GTM-PD3JF2GW`) — no se usan (es gtag directo). Ver memoria `project_google_analytics_ga4`.
 
@@ -179,7 +180,7 @@ Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy *
 1. **Nunca quitar el 301** `doortudoor.com → dtdcargo.com` (transfiere la autoridad SEO).
 2. **No dejar expirar `doortudoor.com`** — registrado + redirigiendo ≥1 año (idealmente indefinido).
 3. **`doortudoor.com` NO debe volver a servir contenido propio** (sería duplicado / autoridad dividida).
-4. **GA/analítica NO en rutas privadas** (PII → viola ToS de GA).
+4. **GA/analítica NO en rutas privadas, puertas de acceso ni URLs con credenciales o códigos.**
 5. Anuncios pagos ≠ SEO orgánico: la Final URL de un ad no afecta ranking.
 
 ## Pendientes
