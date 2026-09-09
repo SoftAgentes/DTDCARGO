@@ -4,7 +4,7 @@
 - Task ID: `pr29-replay-validation-20260906`.
 - Owner / sesión: Worker `01a073a6-f21d-7483-9b74-4d9f3464c295`.
 - Director: `01a073cc-1278-7422-81da-9f85c2fff047`.
-- Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/pr29-replay-validation-20260906`.
+- Worktree: `<local>/DTD-worktrees/pr29-replay-validation-20260906`.
 - Rama: `codex/pr29-replay-validation-20260906`.
 - Base revalidada: `origin/main` = `74bb52ab9677f96908cc032a15f2364ab9d94716`.
 - PR fuente: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/29, HEAD `4af6aac1223f008ffb58f7e161d601b1317ef243`.
@@ -191,7 +191,7 @@ main y HEAD fuente. Node 24.19.0; PostgreSQL 17.11 local (Debian); imagen
 | Ledger/replay hospedado/aplicación productiva | NO EJECUTADO: fuera de autorización. |
 
 Evidencia absoluta:
-`C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr29-replay-validation-20260906/`.
+`<local>/DTD-backups/pr29-replay-validation-20260906/`.
 Contiene runners, SQL exacto de cada sonda, snapshots, logs y resultados JSON.
 
 | Artefacto | SHA-256 |
@@ -246,7 +246,7 @@ invoca realmente la RPC como anon y exige diez campos y el valor conservado.
 - SHA-256 log verde: `8d412bdb51a8271f3c39fd7be986b5905cdb6dbb77a8f243883cb810a2abc695`.
 
 Validación completa sobre `1e31b9a3` terminada; evidencia nueva en
-`C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr29-replay-validation-20260906/post-fix/`.
+`<local>/DTD-backups/pr29-replay-validation-20260906/post-fix/`.
 
 | Comprobación final | Resultado |
 |---|---|
