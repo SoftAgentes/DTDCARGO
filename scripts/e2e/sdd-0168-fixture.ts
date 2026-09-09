@@ -1,4 +1,94 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { CalcParams } from "../../lib/calculadora";
+
+export type E2ECalculatorSettings = {
+  peso_incluido_kg: number;
+  recargo_excedente_kg: number;
+  descuento_valencia: number;
+  recargo_embalaje_especial: number;
+  recargo_bateria_mult: number;
+  threshold_casco_km: number;
+  tarifa_km_fuera_casco: number;
+  cbm_max_contenedor: number;
+  peso_max_contenedor_kg: number;
+  peso_max_envio_kg: number;
+};
+
+/**
+ * Traduce los defaults vigentes del calculador al contrato persistido.
+ *
+ * Los branches efímeros reconstruyen el seed histórico de 0103 (500 kg/CBM y
+ * USD 50 de descuento). El E2E debe medir el código actual, no esas constantes
+ * obsoletas, por lo que seed-e2e sincroniza exclusivamente la fila pública del
+ * tenant dtd antes de abrir el navegador.
+ */
+export function buildE2ECalculatorSettings(
+  params: CalcParams,
+): E2ECalculatorSettings {
+  return {
+    peso_incluido_kg: params.pesoIncluidoKg,
+    recargo_excedente_kg: params.recargoExcedenteKg,
+    descuento_valencia: params.descuentoValencia,
+    recargo_embalaje_especial: params.recargoEmbalajeEspecial,
+    recargo_bateria_mult: params.recargoBateriaMult,
+    threshold_casco_km: params.thresholdCascoKm,
+    tarifa_km_fuera_casco: params.tarifaKmFueraCasco,
+    cbm_max_contenedor: params.cbmMaxContenedor,
+    peso_max_contenedor_kg: params.pesoMaxContenedorKg,
+    peso_max_envio_kg: params.pesoMaxEnvioKg,
+  };
+}
+
+/** Único tenant ajeno al fixture que el seed puede tocar. */
+export const E2E_PUBLIC_TENANT_SLUG = "dtd";
+
+/** Columnas que el seed sobrescribe; el orden fija la salida auditable. */
+export const E2E_CALCULATOR_SETTINGS_COLUMNS = [
+  "peso_incluido_kg",
+  "recargo_excedente_kg",
+  "descuento_valencia",
+  "recargo_embalaje_especial",
+  "recargo_bateria_mult",
+  "threshold_casco_km",
+  "tarifa_km_fuera_casco",
+  "cbm_max_contenedor",
+  "peso_max_contenedor_kg",
+  "peso_max_envio_kg",
+] as const satisfies readonly (keyof E2ECalculatorSettings)[];
+
+export type E2ECalculatorSettingsBaseline = {
+  step: "calculator-settings-baseline";
+  tenantSlug: string;
+  tenantId: string;
+  previous: Record<string, unknown>;
+};
+
+/**
+ * Deja por escrito lo que el seed está a punto de sobrescribir.
+ *
+ * Normalizar `calculator_settings` es la única escritura del seed fuera del
+ * tenant de fixture y no lleva respaldo ni restauración: el branch efímero se
+ * destruye entero al terminar. Emitir el estado previo mantiene el costo en
+ * una línea de log y hace diagnosticable un apuntado equivocado, en vez de
+ * depender de la memoria de quien corrió el gate. Un valor ausente se emite
+ * como `null` para que la clave no desaparezca del registro.
+ */
+export function buildE2ECalculatorSettingsBaseline(
+  tenantId: string,
+  previous: Record<string, unknown> | null | undefined,
+  tenantSlug: string = E2E_PUBLIC_TENANT_SLUG,
+): E2ECalculatorSettingsBaseline {
+  const snapshot: Record<string, unknown> = {};
+  for (const column of E2E_CALCULATOR_SETTINGS_COLUMNS) {
+    snapshot[column] = previous?.[column] ?? null;
+  }
+  return {
+    step: "calculator-settings-baseline",
+    tenantSlug,
+    tenantId,
+    previous: snapshot,
+  };
+}
 
 export const SDD_0168_FIXTURE = {
   tenantId: "01680000-0000-4000-8000-000000000001",
@@ -124,8 +214,14 @@ export function loadE2EEnvironment(
   }
 
   const url = new URL(supabaseUrl);
-  const urlProjectRef = url.hostname.split(".")[0];
-  if (url.protocol !== "https:" || urlProjectRef !== projectRef) {
+  const expectedOrigin = `https://${projectRef}.supabase.co`;
+  // El origen compara el host completo; la entrada completa impide ocultar
+  // userinfo, :443, paths normalizados (a/..), query o hash detrás de URL.origin.
+  // Sólo se admite la raíz canónica, con slash opcional, nunca un host alterno.
+  if (
+    url.origin !== expectedOrigin ||
+    (supabaseUrl !== expectedOrigin && supabaseUrl !== `${expectedOrigin}/`)
+  ) {
     throw new Error(
       "E2E_SUPABASE_URL no corresponde al E2E_SUPABASE_PROJECT_REF autorizado.",
     );
