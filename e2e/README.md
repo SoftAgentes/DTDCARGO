@@ -25,11 +25,18 @@ Para reusar un servidor ya levantado, usar `E2E_START_WEB_SERVER=0`. El host
 local canónico es `localhost`; no usar `127.0.0.1`, porque Next bloquea por
 seguridad el HMR cross-origin de ese origen.
 
-El harness usa 8 workers en una corrida local general y 1 en CI o cuando
-`E2E_ENVIRONMENT_KIND=ephemeral`. Esto evita convertir las 168 pruebas sobre un
-único branch efímero en una prueba de carga accidental. `E2E_WORKERS=1..32`
-permite un override explícito cuando se mida otro perfil de concurrencia.
-El kind se recorta igual que en el guard: ` ephemeral ` conserva un worker.
+En una corrida local general el harness abre `min(8, max(1, floor(núcleos/2)))`
+workers —la mitad de la máquina con tope de ocho, nunca más que el default
+histórico de Playwright— y 1 en CI o cuando `E2E_ENVIRONMENT_KIND=ephemeral`.
+Esto evita convertir las 168 pruebas sobre un único branch efímero en una prueba
+de carga accidental. `E2E_WORKERS=1..32` permite un override explícito cuando se
+mida otro perfil de concurrencia, y es la única vía para pedir más de lo que da
+la máquina. El kind se recorta igual que en el guard: ` ephemeral ` conserva un
+worker. Serializar es una concesión consciente: con un worker no se detectan
+regresiones de paralelismo (ver la tabla de gobernanza de SDD-0440).
+Aparte de eso, `mobile-safari` se limita a un worker en Windows porque el cierre
+de WebKit deja el proceso colgado; el límite es por proyecto y no afecta a
+`chromium` ni a `mobile-chrome`.
 
 ## Estado de cobertura
 
@@ -74,6 +81,10 @@ corrida CI** — NO contra prod ni dev. Flujo:
    También normaliza la fila `calculator_settings` del tenant público `dtd`
    con los `DEFAULT_PARAMS` del código vigente; así un branch recién reconstruido
    no conserva los defaults históricos de 0103 ni cambia los totales esperados.
+   Esa es la única escritura fuera del tenant de fixture y no lleva respaldo, así
+   que el seed imprime primero una línea
+   `{"step":"calculator-settings-baseline",…}` con los valores previos y aborta
+   si no puede leerlos: un apuntado equivocado queda en el log de la corrida.
    Antes de la primera escritura hace polling read-only y acotado sobre las
    columnas requeridas; si la caché de PostgREST del branch no converge, aborta
    sin sembrar ni reintentar escrituras.

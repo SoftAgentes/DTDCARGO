@@ -4,7 +4,7 @@ title: "Harness E2E general determinista en Supabase efímero"
 status: in-progress
 author: "Codex"
 created: 2026-09-05
-updated: 2026-09-06
+updated: 2026-09-09
 supersedes: null
 superseded_by: null
 related: ["0168", "0172", "0243"]
@@ -27,12 +27,20 @@ con tres expectativas de negocio desalineadas.
 - CI y cualquier entorno declarado `ephemeral` usan un worker por defecto.
   El kind se normaliza con `trim`, igual que el guard, para que espacios de
   configuración no reactiven ocho workers en un entorno efímero válido.
-- Una corrida local no efímera usa ocho workers; `E2E_WORKERS=1..32` permite
-  ajustar la concurrencia de forma explícita y validada.
+- Una corrida local no efímera resuelve `min(8, max(1, floor(núcleos/2)))`.
+  El ocho fijo anterior no era relativo a nada: en un equipo de cuatro núcleos
+  subía la concurrencia de 2 a 8 respecto del default histórico de Playwright
+  (`workers: "50%"`), justo lo contrario del objetivo de acotar contención.
+  La fórmula nunca pide más que ese default ni más de ocho, y
+  `E2E_WORKERS=1..32` conserva el override explícito y validado.
 - WebKit móvil se serializa en Windows para que su cierre no cuelgue el gate.
+  El límite es por proyecto y no toca `chromium` ni `mobile-chrome`; Playwright
+  1.60 lo declara (`TestProject.workers`) y lo honra en el planificador.
 - `seed-e2e.ts`, protegido por los guards de entorno ya existentes, actualiza
   únicamente `calculator_settings` del tenant público `dtd` con
   `DEFAULT_PARAMS` y verifica la postcondición antes de ejecutar Playwright.
+  Antes de sobrescribir lee y emite el estado previo de esas diez columnas: es
+  la única escritura del seed fuera del tenant de fixture y no lleva respaldo.
 - No se cambian expectativas para aceptar precios históricos: el branch se
   normaliza al contrato vigente que el producto declara como fallback.
 
@@ -41,6 +49,13 @@ con tres expectativas de negocio desalineadas.
 La normalización requiere `E2E_ENVIRONMENT_KIND=ephemeral`, project ref
 confirmado y URL coincidente. El guard existente prohíbe Producción. No crea
 PII, no lee datos de negocio y no introduce una migración.
+
+Normalizar `calculator_settings` del tenant público `dtd` es la única escritura
+del seed fuera del tenant de fixture, y no restaura el valor anterior: el branch
+efímero se destruye completo al terminar y la lista de denegación sólo excluye el
+ref productivo. Para que un apuntado equivocado sea diagnosticable, el seed
+emite el estado previo de las diez columnas antes de sobrescribirlas y aborta si
+esa lectura falla. Respaldo y restauración quedan fuera de alcance.
 
 La revisión del 2026-09-06 detectó que el guard preexistente comparaba solo la
 primera etiqueta del hostname. Director autorizó restringirlo al origen HTTPS
@@ -57,6 +72,15 @@ demuestran que producción, ref distinto y origen ajeno abortan antes del client
 | SGE-00 | cumplimiento | El harness falla ante workers inválidos o una postcondición de seed distinta. |
 | AUD-01 | no aplica | No cambia eventos de producto ni auditoría de negocio. |
 | MP-01 | no aplica | Los datos son fixtures efímeros y no se modifica su ciclo de retención. |
+| SGE-00 · concurrencia E2E | excepción | Serializar CI y efímero elimina la capacidad de detectar regresiones de paralelismo, y el criterio hospedado pendiente se validará serializado, o sea probando estrictamente menos que la corrida de 16 workers que originó el problema. Aceptado para separar contención de infraestructura del contrato de negocio; recuperar esa cobertura exige una corrida paralela declarada aparte, con `E2E_WORKERS` explícito y su propia autorización de entorno. |
+| SGE-00 · auditoría del seed | cumplimiento | La escritura fuera del tenant de fixture emite su estado previo antes de sobrescribir y aborta si no puede leerlo. |
+
+**Qué deja de cubrirse.** Con un worker no se ejercitan carreras entre pruebas,
+fugas de estado compartido ni contención de Auth/PostgREST: un fallo que sólo
+aparezca en paralelo pasará verde. La corrida hospedada de los 168 E2E, criterio
+abierto de este SDD, hereda esa limitación y por eso no cierra la pregunta de
+paralelismo, sólo la de contrato funcional. Queda registrado aquí, no sólo en un
+comentario de `playwright.config.ts`.
 
 ## Allowlist exacta
 
@@ -70,8 +94,9 @@ demuestran que producción, ref distinto y origen ajeno abortan antes del client
 - `e2e/README.md`
 - `.agents/handoffs/pr28-e2e-harness-validation-20260906.md`
 
-Dependencia incorporada por merge, sin autoría en esta unidad: PR #29 corregida
-(`17d58fe4`, producto `1e31b9a3`) materializa el estado 0222/0223 mediante 0448.
+Dependencia incorporada por merge, sin autoría en esta unidad: PR #29 publicada
+(`03a7d0c0`, producto `1e31b9a3`, sobre la revisión `17d58fe4`) materializa el
+estado 0222/0223 mediante 0448.
 Su migración/test y handoffs se revisan en la unidad #29. Aplicarla requiere
 autorización nominal, preflight de metadatos y ejecutor transaccional único.
 
@@ -80,9 +105,15 @@ autorización nominal, preflight de metadatos y ejecutor transaccional único.
 - [x] El mapper del seed contiene las diez reglas vigentes de calculadora.
 - [x] El preflight exige las columnas que se van a actualizar.
 - [x] El seed verifica que la fila pública quedó normalizada.
-- [x] CI y Supabase efímero usan un worker por defecto.
+- [x] CI y Supabase efímero usan un worker por defecto, sin importar la máquina.
 - [x] El kind efímero con espacios conserva el mismo límite de concurrencia.
-- [x] `E2E_WORKERS` acepta sólo enteros entre 1 y 32.
+- [x] La corrida local resuelve `min(8, max(1, floor(núcleos/2)))` y nunca pide
+      más workers que el default histórico de Playwright ni más de ocho.
+- [x] `E2E_WORKERS` acepta sólo enteros entre 1 y 32 y manda sobre la máquina.
+- [x] `mobile-safari` lleva un worker en Windows y ninguno en las demás
+      plataformas; `chromium` y `mobile-chrome` no reciben límite por proyecto.
+- [x] El seed emite el estado previo de las diez columnas de la calculadora
+      pública antes de sobrescribirlas y aborta si no puede leerlo.
 - [x] El guard exige URL canónica completa y rechaza producción/ref/origen/aliases divergentes antes de crear cliente.
 - [x] Las pruebas unitarias, documentación, gobernanza y TypeScript pasan.
 - [ ] Una corrida hospedada de los 168 E2E confirma el contrato completo.
@@ -96,8 +127,11 @@ autorización nominal, preflight de metadatos y ejecutor transaccional único.
 
 ## Estado
 
-La combinación local usa main `74bb52ab` + PR #29 corregida `17d58fe4` + PR #28
-`80eea11e`. El índice se regeneró conservando las 311 specs de ambas ramas.
+La rama publicada de PR #28 es `087b4f6e` (candidata limpia: main `74bb52ab` +
+PR #29 publicada `03a7d0c0` + el contenido de `80eea11e`, ambos ancestros).
+La validación del 2026-09-06 se hizo sobre la combinación local previa
+(`17d58fe4` + `80eea11e`), conservada como evidencia fechada.
+El índice se regeneró conservando las 311 specs de ambas ramas.
 La revisión añadió regresiones autorizadas: 14 fallos sobre el código original
 y 44/44 focales verdes después de corregir concurrencia y guard de URL. El
 inventario del CLI conserva 168 pruebas en 14 archivos, 56 por proyecto; resolvió
@@ -110,6 +144,13 @@ solo-ledger y build de producción. E2E general y ledger remoto no se midieron.
 Las revisiones independientes de #28 y #29 fueron favorables sobre sus SHA;
 la evidencia y las condiciones de release se registran en el handoff de la tarea.
 El cierre posterior cambia únicamente documentación, conservando el código medido.
+
+La ronda del 2026-09-09 atendió las observaciones de la revisión de PR #28 sobre
+`087b4f6e`: criterio y prueba de la serialización WebKit, concesión de cobertura
+registrada arriba, concurrencia local relativa con tope, emisión del estado
+previo del seed y refresco de identificadores. Focal Vitest 63/63 (antes 44),
+typecheck y lint sin hallazgos nuevos, y la colección del CLI conserva 168
+pruebas con workers 8 (local, 22 núcleos), 1 (CI) y 4 (override).
 
 La corrida hospedada de 168 E2E sigue pendiente de autorización de
 entorno/costo y es requisito para cerrar este SDD. Un verify local con E2E/ledger
