@@ -1,7 +1,7 @@
 # PR29: publicación de la corrección revisada de 0448
 
 - Owner: Director, `director-pr29-publication-20260907`.
-- Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/pr29-publication-review-20260907`.
+- Worktree: `<local>/DTD-worktrees/pr29-publication-review-20260907`.
 - Rama local: `codex/pr29-publication-review-20260907`.
 - PR existente: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/29.
 - Destino autorizado: `codex/0448-replay-0223-history`; head observado antes de publicar `4af6aac1223f008ffb58f7e161d601b1317ef243`.
@@ -30,7 +30,7 @@ y ejecutar el archivo completo en una transacción, conforme al runbook.
 ## Validación
 
 Resultados actuales del candidato y recibos externos:
-`C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr29-publication-review-20260907/`.
+`<local>/DTD-backups/pr29-publication-review-20260907/`.
 
 - Numeración: PASÓ; conserva colisiones históricas ya registradas.
 - Índice documental: PASÓ.
