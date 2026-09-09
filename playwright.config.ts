@@ -1,3 +1,4 @@
+import { cpus } from "node:os";
 import { defineConfig, devices } from "@playwright/test";
 import { applyE2ETier3FixtureAliases } from "./scripts/e2e/sdd-0168-fixture";
 
@@ -19,17 +20,32 @@ import { applyE2ETier3FixtureAliases } from "./scripts/e2e/sdd-0168-fixture";
 type PlaywrightRuntimeEnvironment = Record<string, string | undefined> & {
   BASE_URL?: string;
   CI?: string;
+  E2E_ENVIRONMENT_KIND?: string;
   E2E_PORT?: string;
   E2E_START_WEB_SERVER?: string;
   E2E_WORKERS?: string;
 };
 
+/** Techo de la corrida local general; nunca se abren más workers que esto. */
+export const E2E_LOCAL_WORKERS_CAP = 8;
+
 export function resolvePlaywrightWorkers(
   env: PlaywrightRuntimeEnvironment = process.env,
+  cpuCount: number = cpus().length,
 ): number {
   const configured = env.E2E_WORKERS?.trim();
   if (configured === undefined || configured === "") {
-    return env.CI || env.E2E_ENVIRONMENT_KIND?.trim() === "ephemeral" ? 1 : 8;
+    if (env.CI || env.E2E_ENVIRONMENT_KIND?.trim() === "ephemeral") return 1;
+    // Local sin override: mitad de los núcleos lógicos, con tope de ocho.
+    // Un 8 fijo no era relativo a nada. Playwright resuelve `workers: "50%"`
+    // por defecto (`playwright/lib/common/index.js:587` →
+    // `resolveWorkers`, 678-682 = `max(1, floor(cpus * 0.5))`), así que en un
+    // equipo de cuatro núcleos el 8 SUBÍA la concurrencia de 2 a 8: lo
+    // contrario de acotar la contención que motivó este SDD. Con esta fórmula
+    // el harness nunca pide más que ese default histórico ni más de ocho.
+    const cores =
+      Number.isFinite(cpuCount) && cpuCount >= 1 ? Math.floor(cpuCount) : 1;
+    return Math.min(E2E_LOCAL_WORKERS_CAP, Math.max(1, Math.floor(cores / 2)));
   }
 
   if (!/^\d+$/.test(configured)) {
@@ -40,6 +56,24 @@ export function resolvePlaywrightWorkers(
     throw new Error("E2E_WORKERS debe estar entre 1 y 32.");
   }
   return workers;
+}
+
+/**
+ * WebKit móvil se serializa en Windows: su cierre deja el worker colgado y el
+ * gate no termina. El límite es por proyecto, no global, así que `chromium` y
+ * `mobile-chrome` conservan la concurrencia resuelta arriba.
+ *
+ * El contrato existe y el motor lo honra (verificado contra el Playwright 1.60
+ * instalado): `TestProject.workers?: number|string` en
+ * `playwright/types/test.d.ts:744`; `playwright/lib/runner/index.js:5071-5072`
+ * registra `_workerLimitPerProjectId` con `project.workers` y la línea 6062 lo
+ * aplica al calcular los trabajadores reales
+ * (`Math.min(project.workers ?? Number.MAX_SAFE_INTEGER, testGroups.length)`).
+ */
+export function resolveWebkitProjectWorkers(
+  platform: NodeJS.Platform = process.platform,
+): 1 | undefined {
+  return platform === "win32" ? 1 : undefined;
 }
 
 export function resolvePlaywrightRuntime(
@@ -78,7 +112,8 @@ export default defineConfig({
   fullyParallel: true,
   // Un branch efímero comparte Auth, PostgREST y fixtures mutables: en ese
   // entorno el harness es una verificación funcional, no una prueba de carga.
-  // Fuera de CI/efímero se conservan 8 workers y E2E_WORKERS permite ajustar.
+  // Fuera de CI/efímero la concurrencia es relativa a la máquina con tope de
+  // ocho, y E2E_WORKERS permite fijarla de forma explícita.
   workers: WORKERS,
   forbidOnly: !!process.env.CI,
   // Local con 1 reintento, no 0. Suena al revés —"si falla, que falle"— pero el
@@ -108,7 +143,7 @@ export default defineConfig({
       name: "mobile-safari",
       use: { ...devices["iPhone 14"] },
       // WebKit en Windows se serializa para evitar cierres colgados del worker.
-      workers: process.platform === "win32" ? 1 : undefined,
+      workers: resolveWebkitProjectWorkers(),
     },
   ],
   // El destino y el arranque son decisiones distintas. Sin override se conserva

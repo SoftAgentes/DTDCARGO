@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createClient } from "@supabase/supabase-js";
 import {
+  E2E_CALCULATOR_SETTINGS_COLUMNS,
+  E2E_PUBLIC_TENANT_SLUG,
   E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS,
   E2E_SCHEMA_PREFLIGHT_RETRY_MS,
   SDD_0168_FIXTURE,
   applyE2ETier3FixtureAliases,
   buildE2ECalculatorSettings,
+  buildE2ECalculatorSettingsBaseline,
   createE2EAdminClient,
   getE2ECommentBody,
   getE2EExpenseOccurredAt,
@@ -206,6 +209,76 @@ describe("fixture determinista de calculadora", () => {
       peso_max_contenedor_kg: 27000,
       peso_max_envio_kg: 9000,
     });
+  });
+});
+
+describe("registro auditable de la escritura fuera del fixture", () => {
+  const TENANT_ID = "0dtd0000-0000-4000-8000-000000000001";
+
+  it("cubre exactamente las columnas que el seed sobrescribe", () => {
+    expect([...E2E_CALCULATOR_SETTINGS_COLUMNS]).toEqual(
+      Object.keys(buildE2ECalculatorSettings(DEFAULT_PARAMS)),
+    );
+  });
+
+  it("emite los valores previos de las diez columnas antes de sobrescribir", () => {
+    const previous = {
+      peso_incluido_kg: 500,
+      recargo_excedente_kg: 2,
+      descuento_valencia: 50,
+      recargo_embalaje_especial: 50,
+      recargo_bateria_mult: 1.3,
+      threshold_casco_km: 200,
+      tarifa_km_fuera_casco: 1,
+      cbm_max_contenedor: 68,
+      peso_max_contenedor_kg: 27000,
+      peso_max_envio_kg: 9000,
+      // Una columna ajena no se filtra al registro.
+      tenant_id: TENANT_ID,
+    };
+
+    const baseline = buildE2ECalculatorSettingsBaseline(TENANT_ID, previous);
+
+    expect(baseline).toEqual({
+      step: "calculator-settings-baseline",
+      tenantSlug: E2E_PUBLIC_TENANT_SLUG,
+      tenantId: TENANT_ID,
+      previous: {
+        peso_incluido_kg: 500,
+        recargo_excedente_kg: 2,
+        descuento_valencia: 50,
+        recargo_embalaje_especial: 50,
+        recargo_bateria_mult: 1.3,
+        threshold_casco_km: 200,
+        tarifa_km_fuera_casco: 1,
+        cbm_max_contenedor: 68,
+        peso_max_contenedor_kg: 27000,
+        peso_max_envio_kg: 9000,
+      },
+    });
+    // El registro sirve para diagnosticar: los defaults históricos de 0103
+    // quedan distinguibles de los vigentes que el seed va a escribir.
+    expect(baseline.previous).not.toEqual(
+      buildE2ECalculatorSettings(DEFAULT_PARAMS),
+    );
+    expect(JSON.parse(JSON.stringify(baseline))).toEqual(baseline);
+  });
+
+  it("conserva la clave con null cuando la fila previa no existe o está incompleta", () => {
+    expect(buildE2ECalculatorSettingsBaseline(TENANT_ID, null).previous).toEqual(
+      Object.fromEntries(
+        E2E_CALCULATOR_SETTINGS_COLUMNS.map((column) => [column, null]),
+      ),
+    );
+    expect(
+      buildE2ECalculatorSettingsBaseline(TENANT_ID, { peso_incluido_kg: 0 })
+        .previous,
+    ).toMatchObject({ peso_incluido_kg: 0, descuento_valencia: null });
+  });
+
+  it("nombra el único tenant ajeno al fixture que el seed puede tocar", () => {
+    expect(E2E_PUBLIC_TENANT_SLUG).toBe("dtd");
+    expect(E2E_PUBLIC_TENANT_SLUG).not.toBe(SDD_0168_FIXTURE.tenantSlug);
   });
 });
 

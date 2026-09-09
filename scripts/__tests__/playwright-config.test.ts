@@ -1,9 +1,18 @@
+import { cpus } from "node:os";
 import { describe, expect, it } from "vitest";
-import {
+import playwrightConfig, {
+  E2E_LOCAL_WORKERS_CAP,
   preparePlaywrightRuntime,
   resolvePlaywrightRuntime,
   resolvePlaywrightWorkers,
+  resolveWebkitProjectWorkers,
 } from "../../playwright.config";
+
+// Default histórico de Playwright antes de que este SDD fijara la clave:
+// `workers: "50%"` (playwright/lib/common/index.js:587) resuelto por
+// `resolveWorkers` (678-682) como `max(1, floor(cpus * 0.5))`.
+const playwrightDefaultWorkers = (cores: number) =>
+  Math.max(1, Math.floor(cores * 0.5));
 
 describe("resolvePlaywrightRuntime", () => {
   it("usa localhost y levanta el webServer por defecto", () => {
@@ -61,14 +70,51 @@ describe("resolvePlaywrightRuntime", () => {
 });
 
 describe("resolvePlaywrightWorkers", () => {
-  it("acota la concurrencia local general a ocho workers", () => {
-    expect(resolvePlaywrightWorkers({})).toBe(8);
+  it.each([
+    [1, 1],
+    [2, 1],
+    [4, 2],
+    [8, 4],
+    [12, 6],
+    [16, 8],
+    [22, 8],
+    [64, 8],
+  ])(
+    "acota la corrida local a la mitad de %i núcleos con tope de ocho",
+    (cores, expected) => {
+      const workers = resolvePlaywrightWorkers({}, cores);
+      expect(workers).toBe(expected);
+      // Invariante del SDD: acotar nunca puede SUBIR la concurrencia respecto
+      // del default que regía antes de fijar la clave.
+      expect(workers).toBeLessThanOrEqual(playwrightDefaultWorkers(cores));
+      expect(workers).toBeLessThanOrEqual(E2E_LOCAL_WORKERS_CAP);
+    },
+  );
+
+  it.each([0, -4, Number.NaN, Number.POSITIVE_INFINITY])(
+    "resuelve un worker cuando el conteo de núcleos no es utilizable: %s",
+    (cores) => {
+      expect(resolvePlaywrightWorkers({}, cores)).toBe(1);
+    },
+  );
+
+  it("usa los núcleos reales de la máquina cuando no se le pasa un conteo", () => {
+    expect(resolvePlaywrightWorkers({})).toBe(
+      Math.min(E2E_LOCAL_WORKERS_CAP, playwrightDefaultWorkers(cpus().length)),
+    );
   });
 
   it("serializa por defecto CI y los branches efímeros", () => {
     expect(resolvePlaywrightWorkers({ CI: "1" })).toBe(1);
     expect(
       resolvePlaywrightWorkers({ E2E_ENVIRONMENT_KIND: "ephemeral" }),
+    ).toBe(1);
+  });
+
+  it("serializa CI y efímero sin importar cuántos núcleos tenga la máquina", () => {
+    expect(resolvePlaywrightWorkers({ CI: "1" }, 64)).toBe(1);
+    expect(
+      resolvePlaywrightWorkers({ E2E_ENVIRONMENT_KIND: "ephemeral" }, 64),
     ).toBe(1);
   });
 
@@ -80,11 +126,49 @@ describe("resolvePlaywrightWorkers", () => {
 
   it("acepta un override explícito y rechaza valores fuera del contrato", () => {
     expect(resolvePlaywrightWorkers({ E2E_WORKERS: "4" })).toBe(4);
+    // El override es la única vía para pedir más de lo que da la máquina.
+    expect(resolvePlaywrightWorkers({ E2E_WORKERS: "16" }, 2)).toBe(16);
     expect(() => resolvePlaywrightWorkers({ E2E_WORKERS: "0" })).toThrow(
       "entre 1 y 32",
     );
     expect(() => resolvePlaywrightWorkers({ E2E_WORKERS: "muchos" })).toThrow(
       "entero entre 1 y 32",
     );
+  });
+});
+
+describe("resolveWebkitProjectWorkers", () => {
+  it("serializa WebKit móvil en Windows y no lo limita en otras plataformas", () => {
+    expect(resolveWebkitProjectWorkers("win32")).toBe(1);
+    for (const platform of ["linux", "darwin", "freebsd"] as const) {
+      expect(resolveWebkitProjectWorkers(platform)).toBeUndefined();
+    }
+  });
+
+  it("aplica el límite sólo al proyecto mobile-safari del config publicado", () => {
+    const projects = playwrightConfig.projects ?? [];
+    expect(projects.map((project) => project.name)).toEqual([
+      "chromium",
+      "mobile-chrome",
+      "mobile-safari",
+    ]);
+
+    const byName = new Map(projects.map((project) => [project.name, project]));
+    // Playwright honra el límite por proyecto: TestProject.workers
+    // (playwright/types/test.d.ts:744) se registra en
+    // _workerLimitPerProjectId (lib/runner/index.js:5071-5072) y acota los
+    // trabajadores reales en la línea 6062.
+    const webkit = byName.get("mobile-safari");
+    // La clave existe en toda plataforma (defineConfig con un solo argumento
+    // devuelve el mismo objeto): fuera de Windows vale undefined, y si alguien
+    // borrara la línea esta aserción lo detecta igual en Linux o macOS.
+    expect(webkit && "workers" in webkit).toBe(true);
+    expect(webkit?.workers).toBe(process.platform === "win32" ? 1 : undefined);
+    expect(webkit?.workers).toBe(resolveWebkitProjectWorkers());
+
+    for (const name of ["chromium", "mobile-chrome"] as const) {
+      expect(byName.get(name)?.workers).toBeUndefined();
+      expect("workers" in (byName.get(name) ?? {})).toBe(false);
+    }
   });
 });

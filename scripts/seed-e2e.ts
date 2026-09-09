@@ -1,7 +1,9 @@
 import {
+  E2E_PUBLIC_TENANT_SLUG,
   E2E_SCHEMA_PREFLIGHT_MAX_ATTEMPTS,
   SDD_0168_FIXTURE,
   buildE2ECalculatorSettings,
+  buildE2ECalculatorSettingsBaseline,
   createE2EAdminClient,
   getE2EExpenseOccurredAt,
   getE2ESchemaRetryDelayMs,
@@ -217,7 +219,7 @@ async function normalizePublicCalculatorSettings(
   const { data: tenant, error: tenantError } = await admin
     .from("tenants")
     .select("id")
-    .eq("slug", "dtd")
+    .eq("slug", E2E_PUBLIC_TENANT_SLUG)
     .single();
   await check(tenantError, "No se pudo resolver el tenant público dtd");
   if (!tenant?.id) {
@@ -225,6 +227,28 @@ async function normalizePublicCalculatorSettings(
   }
 
   const selectedColumns = Object.keys(settings).join(", ");
+  // Única escritura del seed fuera del tenant de fixture, sin respaldo ni
+  // restauración: el estado previo se lee y se emite ANTES de sobrescribir,
+  // para que un apuntado equivocado quede diagnosticable en el log. Si esa
+  // lectura falla se aborta: no se sobrescribe a ciegas.
+  const { data: baseline, error: baselineError } = await admin
+    .from("calculator_settings")
+    .select(selectedColumns)
+    .eq("tenant_id", tenant.id)
+    .maybeSingle();
+  await check(
+    baselineError,
+    "No se pudo leer la calculadora pública antes de normalizarla",
+  );
+  console.log(
+    JSON.stringify(
+      buildE2ECalculatorSettingsBaseline(
+        String(tenant.id),
+        baseline as Record<string, unknown> | null,
+      ),
+    ),
+  );
+
   const { data, error } = await admin
     .from("calculator_settings")
     .update(settings)

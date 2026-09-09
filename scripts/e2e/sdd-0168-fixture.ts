@@ -39,6 +39,57 @@ export function buildE2ECalculatorSettings(
   };
 }
 
+/** Único tenant ajeno al fixture que el seed puede tocar. */
+export const E2E_PUBLIC_TENANT_SLUG = "dtd";
+
+/** Columnas que el seed sobrescribe; el orden fija la salida auditable. */
+export const E2E_CALCULATOR_SETTINGS_COLUMNS = [
+  "peso_incluido_kg",
+  "recargo_excedente_kg",
+  "descuento_valencia",
+  "recargo_embalaje_especial",
+  "recargo_bateria_mult",
+  "threshold_casco_km",
+  "tarifa_km_fuera_casco",
+  "cbm_max_contenedor",
+  "peso_max_contenedor_kg",
+  "peso_max_envio_kg",
+] as const satisfies readonly (keyof E2ECalculatorSettings)[];
+
+export type E2ECalculatorSettingsBaseline = {
+  step: "calculator-settings-baseline";
+  tenantSlug: string;
+  tenantId: string;
+  previous: Record<string, unknown>;
+};
+
+/**
+ * Deja por escrito lo que el seed está a punto de sobrescribir.
+ *
+ * Normalizar `calculator_settings` es la única escritura del seed fuera del
+ * tenant de fixture y no lleva respaldo ni restauración: el branch efímero se
+ * destruye entero al terminar. Emitir el estado previo mantiene el costo en
+ * una línea de log y hace diagnosticable un apuntado equivocado, en vez de
+ * depender de la memoria de quien corrió el gate. Un valor ausente se emite
+ * como `null` para que la clave no desaparezca del registro.
+ */
+export function buildE2ECalculatorSettingsBaseline(
+  tenantId: string,
+  previous: Record<string, unknown> | null | undefined,
+  tenantSlug: string = E2E_PUBLIC_TENANT_SLUG,
+): E2ECalculatorSettingsBaseline {
+  const snapshot: Record<string, unknown> = {};
+  for (const column of E2E_CALCULATOR_SETTINGS_COLUMNS) {
+    snapshot[column] = previous?.[column] ?? null;
+  }
+  return {
+    step: "calculator-settings-baseline",
+    tenantSlug,
+    tenantId,
+    previous: snapshot,
+  };
+}
+
 export const SDD_0168_FIXTURE = {
   tenantId: "01680000-0000-4000-8000-000000000001",
   shipmentId: "01680000-0000-4000-8000-000000000002",
