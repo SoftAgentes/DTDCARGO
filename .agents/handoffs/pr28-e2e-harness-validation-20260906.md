@@ -1,7 +1,14 @@
 # PR #28 — candidata limpia apilada sobre PR #29 y validación de SDD-0440
 
 - Fecha: 2026-09-07 (candidata limpia). Validación previa fechada: 2026-09-06.
-- Task ID: `pr28-clean-stack-20260907`, relevo de `pr28-e2e-harness-validation-20260906`.
+- Task ID: `pr28-clean-stack-20260907`, relevo de `pr28-e2e-harness-validation-20260906`;
+  relevo vigente `pr28-observaciones-revision-20260909` (ver la última sección).
+- Nombre del archivo: se conserva `pr28-e2e-harness-validation-20260906.md` como
+  identificador durable del linaje —el primer Task ID de la cadena—, no como fecha
+  del contenido. El cuerpo acumula los relevos posteriores (2026-09-07 candidata
+  limpia, 2026-09-09 observaciones de revisión) y cada sección lleva su fecha.
+  Renombrarlo cambiaría la allowlist exacta de SDD-0440 y las referencias ya
+  publicadas en la PR, así que la aclaración va acá y el nombre no se toca.
 - Owner / sesión: Worker B `claude-worker-b-clean-stack-20260907` (Claude Desktop).
 - Director: `claude-director-desktop-20260907`.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/pr28-clean-stack-20260907`.
@@ -17,7 +24,8 @@
   base histórica del delta focal: `17d58fe44f641c7af7ee6e874b5b56a96fb8f427`.
 - SDD existente: `docs/specs/0440-e2e-harness-general-determinista/spec.md`, `in-progress`;
   sin reservar ni asignar número nuevo.
-- Estado de tarea: lista-para-revision. SDD sigue in-progress por los 168 E2E hospedados.
+- Estado de tarea: revisada con observaciones atendidas el 2026-09-09; de vuelta
+  con el Director. SDD sigue in-progress por los 168 E2E hospedados.
 
 ## Objetivo y aceptación del relevo (2026-09-07)
 
@@ -266,3 +274,132 @@ Worker `01a073a6-f21d-7483-9b74-4d9f3464c295`, Director
   liberado tras este commit y comprobado en `closure-manifest.json`. Siguiente
   acción: revisar, hacer el push normal al head de #28 y luego cambiar la base
   de #28 a la rama de #29. Worktree, rama y evidencias externas se conservan.
+
+## Ronda de observaciones de revisión (2026-09-09)
+
+- Task ID: `pr28-observaciones-revision-20260909`, relevo de `pr28-clean-stack-20260907`.
+- Owner / sesión: Worker A21 `worker-a21-pr28-observaciones` (claim tomado y liberado al cierre).
+- Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/e2e-harness-general-20260905`,
+  creado para esta tarea desde `origin/codex/e2e-harness-general-20260905`. El árbol
+  del Director (`.claude/worktrees/dtd-cargo-director-checklist-2f1d6f`) no se tocó,
+  ni ningún otro worktree ajeno: `pr28-clean-stack-20260907` quedó intacto.
+- Rama: `codex/e2e-harness-general-20260905`, la publicada de PR #28, con upstream
+  propio. Base al empezar: `087b4f6e`. Publicación (commit + push sin force)
+  autorizada por el encargo. No autorizado y no ejecutado: merge, retarget de la
+  base, deploy, migraciones, `main` y la rama de PR #29.
+- Refs consultadas al empezar (2026-09-09): PR #28 OPEN, head
+  `087b4f6e8dfa828f9395b129bd7ee23947d8015a`, base `codex/0448-replay-0223-history`,
+  `mergeable=MERGEABLE` / `mergeStateStatus=CLEAN`.
+- Instalación: `corepack pnpm@11.19.0 install --frozen-lockfile --prefer-offline`,
+  exit 0 en 1 m 6,7 s, `pnpm-lock.yaml` sin cambios. Sin `.env`, sin variables
+  Supabase/E2E, sin credenciales copiadas.
+
+### Observaciones atendidas
+
+| # | Observación de la revisión | Qué se hizo |
+|---|---|---|
+| 1 | La serialización de WebKit era la única afirmación sin criterio ni prueba | `resolveWebkitProjectWorkers(platform)` exportada y usada por el proyecto `mobile-safari`; criterio nuevo en la spec y dos pruebas: la función pura (win32 → 1; linux/darwin/freebsd → sin límite) y el config publicado (la clave existe en toda plataforma, vale 1 sólo en Windows y `chromium`/`mobile-chrome` no reciben límite). El comentario cita que el motor lo honra, verificado contra el Playwright 1.60 instalado: `TestProject.workers` en `playwright/types/test.d.ts:744`; `lib/runner/index.js:5071-5072` alimenta `_workerLimitPerProjectId` y la línea 6062 aplica `Math.min(project.workers ?? Number.MAX_SAFE_INTEGER, testGroups.length)`. La línea se conserva: es contrato público y sí se honra |
+| 2 | La concesión de cobertura no estaba registrada en gobernanza | Fila `SGE-00 · concurrencia E2E` clasificada `excepción` en la tabla del SDD, más un párrafo **Qué deja de cubrirse**: con un worker no se ejercitan carreras, fugas de estado compartido ni contención de Auth/PostgREST, y la corrida hospedada pendiente hereda la limitación —valida el contrato funcional, no el paralelismo—. Segunda fila `SGE-00 · auditoría del seed` en `cumplimiento` |
+| 3 | El 8 fijo local subía la concurrencia respecto del default anterior | **Decidido cambiarlo** a relativo con tope: `min(8, max(1, floor(núcleos/2)))`, con `E2E_WORKERS` intacto como único override. Cubierto por tabla de casos (1→1, 2→1, 4→2, 8→4, 12→6, 16→8, 22→8, 64→8), por conteos inutilizables (0, -4, NaN, Infinity → 1) y por el invariante «nunca más que el default histórico ni más de ocho» |
+| 4 | La escritura fuera del tenant de fixture no era auditable | `buildE2ECalculatorSettingsBaseline` + `E2E_CALCULATOR_SETTINGS_COLUMNS` + `E2E_PUBLIC_TENANT_SLUG` en el fixture; el seed lee las diez columnas y emite `{"step":"calculator-settings-baseline",…}` **antes** de sobrescribir, y aborta si esa lectura falla. Sin respaldo ni restauración: eso queda fuera de alcance y así está escrito en el SDD |
+| 5 | La spec citaba SHAs que no eran los integrados | Estado: PR #28 `80eea11e` → `087b4f6e` (con `80eea11e`/`17d58fe4` nombrados como ancestros de la combinación local del 06). Allowlist: dependencia de PR #29 `17d58fe4` → `03a7d0c0` publicada, conservando `1e31b9a3` como su commit de producto |
+| 6 | Cosméticos | `E2E_ENVIRONMENT_KIND?: string` declarado en `PlaywrightRuntimeEnvironment`, que era justo la variable sobre la que ramifica la función. El nombre del handoff se conserva y se explica arriba por qué no se renombra |
+
+Alcance sin cambios: los mismos nueve paths de la allowlist, ninguno agregado.
+Ninguna aserción, timeout, reintento ni guard se debilitó; el conteo de pruebas
+sube de 6.216 a 6.235 (las 19 nuevas están en los dos focales).
+
+### Validación (2026-09-09, sobre el árbol de esta ronda)
+
+| Comprobación | Comando (cwd = worktree) | Resultado |
+|---|---|---|
+| Focal Vitest | `node node_modules/vitest/vitest.mjs run scripts/__tests__/playwright-config.test.ts scripts/__tests__/sdd-0168-fixture.test.ts` | PASÓ: 63/63 en 2 archivos (44 antes), 0 skips |
+| Typecheck aislado | `node scripts/prune-next-types.mjs && tsc --noEmit` | PASÓ: tipos de ruta sanos, TypeScript 5.9.3 |
+| Lint focal | `eslint` sobre los cinco archivos de código tocados | PASÓ: 0 problemas |
+| Colección Playwright | `@playwright/test/cli.js test --list --reporter=json` en tres modos | Colección, no ejecución: 168 pruebas; workers 8 (local, 22 núcleos → `min(8, floor(22/2))`), 1 (`CI=1`), 4 (`E2E_WORKERS=4`). Idénticos a la ronda anterior en esta máquina |
+| Espacios/CRLF | `git diff --check` | PASÓ |
+| `pnpm verify` | `VERIFY_SKIP_E2E=1 VITEST_MAX_WORKERS=4 NODE_OPTIONS=--max-old-space-size=4096 node scripts/verify.mjs` | exit 0; 14 de 16 pasos medidos, sin fallos |
+
+Gates de `pnpm verify` (una sola corrida, sin reintentos):
+
+| Gate | Resultado |
+|---|---|
+| harness | PASÓ: 12/12 (`node --test`), 15,0 s |
+| lint | PASÓ: 0 errores, 8 warnings preexistentes en archivos ajenos (CRM y portal) |
+| rsc-boundary | PASÓ: 1.586 módulos, sin cruces server→client |
+| typecheck | PASÓ |
+| edge-functions | PASÓ: 4 funciones compilan con Deno 2.x vía `npx deno@2` |
+| test | PASÓ: 6.235/6.235 en 501 archivos, Vitest 4.1.7, 4 workers, 246,8 s, 0 skips |
+| docs:check | PASÓ (el índice generado no cambió: sólo se movió `updated` en el front matter) |
+| numbering | PASÓ: 311 specs · 399 migraciones, sin números repetidos |
+| feature-constants | PASÓ: 5 banderas |
+| components:check | PASÓ |
+| governance:check | PASÓ |
+| migrations-applied | NO DISPONIBLE: SKIP sin `NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`; no se aportaron credenciales ni se consultó el ledger remoto |
+| sql-tests | PASÓ: 140 contratos en PostgreSQL desechable con rollback total, incluido `0448_restore_calculator_settings_0223_history.test.sql` |
+| schema-rebuild | PASÓ: 399 migraciones (381 desde cero + 18 sólo-ledger), aislamiento multi-tenant en 219 tablas |
+| e2e | NO EJECUTADO: `VERIFY_SKIP_E2E=1`; sin Supabase efímero, credenciales ni navegadores instalados |
+| build | PASÓ: Next.js 16.2.11, compilación 50 s |
+
+Al terminar: `git status --short` sólo con los siete archivos modificados de esta
+ronda, sin `.next`, `.next-verify` ni `deno.lock`, y sin contenedores
+`dtd_sqltest_*`/`dtd_rebuild_*` vivos. Los siete contenedores Supabase ajenos
+(`dtd-pr28-auth-02b5674f-20260906`) siguen corriendo y no se tocaron.
+
+### Límites de esta ronda
+
+- **168 E2E hospedados y Auth18 alojado: NO EJECUTADOS.** Sigue sin haber branch
+  efímero autorizado, credenciales ni navegadores; la colección de 168 casos es
+  inventario, no corrida. Ese criterio del SDD continúa abierto.
+- **Serializado por diseño.** Cuando esa corrida se autorice será con un worker:
+  probará menos que la corrida de 16 que originó el problema. Está registrado como
+  excepción de gobernanza, no resuelto.
+- No se creó ningún cliente Supabase real ni se envió tráfico a producción; el
+  cambio del seed se prueba con datos sintéticos y funciones puras.
+- El límite local sigue resolviendo 8 **en esta máquina** (22 núcleos). El cambio
+  se nota en equipos de 4 a 14 núcleos, donde antes se pedían 8 fijos.
+
+## Cierre Worker (2026-09-09)
+
+- **OBJETIVO ORIGINAL:** atender las seis observaciones de la revisión de PR #28
+  para dejarla cerrable, sin ampliar la allowlist, sin mergear, sin retargetear la
+  base y sin tocar `main` ni la rama de #29.
+- **COMPLETADO:** las seis. Las dos bloqueantes —criterio y prueba de la
+  serialización WebKit, y registro de la concesión de cobertura en la tabla de
+  gobernanza— quedaron cerradas; el 8 fijo se decidió y se cambió a relativo con
+  tope; el seed emite el estado previo antes de sobrescribir; los identificadores
+  de commit apuntan a lo integrado; los cosméticos están resueltos o explicados.
+- **VALIDACIÓN:** focal 63/63; typecheck PASÓ; lint focal PASÓ; colección
+  168/8-1-4 PASÓ; `git diff --check` PASÓ; `pnpm verify` exit 0 con 14/16 gates
+  medidos (6.235 tests, 140 contratos SQL, 399 migraciones, build).
+  NO DISPONIBLE: `migrations-applied`. NO EJECUTADO: `e2e`, Auth18 alojado y los
+  168 E2E hospedados.
+- **COMMITS:** tres unidades lógicas con `git add -- <paths>`, nunca `git add -A`,
+  y trailer `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`:
+  código y pruebas; documentación (spec + `e2e/README.md`); este handoff.
+- **PR / BRANCH:** PR #28 sigue OPEN con base `codex/0448-replay-0223-history`,
+  ahora con el head de esta ronda tras el push fast-forward a
+  `codex/e2e-harness-general-20260905`. Sin force, sin merge, sin cambio de base,
+  sin edición del cuerpo de la PR.
+- **PENDIENTES DE ESTA TAREA:** revisión del Director sobre el nuevo head. La
+  corrida hospedada de los 168 E2E sigue siendo el único criterio abierto de
+  SDD-0440 y depende de autorización de entorno/costo; por eso la spec conserva
+  `status: in-progress`.
+- **FUERA DE ALCANCE DETECTADO:** ocho warnings de lint preexistentes en CRM y
+  portal (`PurchaseStepDetalle.test.tsx`, `KommoBoardView.tsx`, `KommoClient.tsx`);
+  `migrations-applied` no medible sin credenciales; los siete contenedores Supabase
+  del árbol `pr28-clean-stack-20260907` llevan días corriendo y ocupan memoria; el
+  shell sigue sin identidad Git en ninguna capa (se fijó por variables de entorno
+  para estos commits, sin escribir config compartida); la lista de denegación del
+  guard sigue teniendo una sola entrada, así que un proyecto no productivo con
+  datos reales seguiría siendo escribible —ahora al menos queda registrado en el
+  log—; el workflow «Calidad continua» sólo se dispara en PR contra `main`, de
+  modo que con la base actual no habrá corrida alojada para #28. Nada de esto se
+  tocó en esta ronda.
+- **HANDOFF AL DIRECTOR:** verificar el head publicado de la rama, el diff de nueve
+  paths contra `origin/codex/0448-replay-0223-history` y la tabla de gobernanza
+  del SDD. Decisiones que necesitan tu criterio: (a) si la corrida hospedada
+  serializada basta para cerrar el criterio abierto o hay que declarar aparte una
+  corrida paralela; (b) cuándo integrar #29 para que la base de #28 vuelva a
+  `main` y CI corra. Worktree, rama y claim: worktree y rama se conservan, claim
+  liberado tras el último commit.
