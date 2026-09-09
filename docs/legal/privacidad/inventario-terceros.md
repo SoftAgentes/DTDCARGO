@@ -37,9 +37,22 @@ tercero no es papeleo: es lo único que delimita quién responde.
 
 | Proveedor | Por qué no |
 |---|---|
-| **Google Analytics 4 / Google Ads** | Excluido de toda ruta con datos de cliente: `PRIVATE_PREFIXES` + `isPrivatePath()` + `sanitizePath()` + whitelist de query params + kill-switch `ga-disable-*`. Verificado en [`components/Analytics.tsx:49-110`](../../../components/Analytics.tsx) |
+| **Google Analytics 4 / Google Ads** | Excluido de rutas privadas y puertas de acceso mediante `PRIVATE_PREFIXES` + `isPrivatePath()`. `isAnalyticsExcludedUrl()` apaga ambos tags ante query no aprobada o credenciales en el fragmento; el guard de History activa `ga-disable-*` antes de una navegación cliente sensible. Defensa adicional: `sanitizePath()` + allowlist de atribución. Verificado en [`components/Analytics.tsx`](../../../components/Analytics.tsx) y sus pruebas sintéticas. |
 | **SeaRates** | Códigos de contenedor y BL, tarifas. No lleva datos de persona. `lib/shared/ocean-rate.ts` · `lib/studio/naviera-tracking/` |
 | **WhatsApp (wa.me)** | Solo son enlaces `wa.me` que abren la app del usuario. DTD no envía nada por API |
+
+**Límite de la evidencia de Google (SDD-0371, 2026-09-05):** el título de esta
+sección no certifica ausencia de datos personales en el proveedor. Se reprodujo
+en la PR #24 una credencial anidada que atravesaba el filtro al mezclar escapes
+válidos y porcentajes malformados. La remediación inspecciona esos escapes sin
+devolverlos como texto seguro por un error de decodificación y elimina valores
+sensibles de `sanitizeSearch()`. Pruebas sintéticas cubren los nueve parámetros
+de atribución, carga inicial, navegación y helpers; el navegador usa el módulo
+real `next/script`, adaptador de navegación y respuesta inerte interceptada.
+No se enviaron datos a Google. Retención, contratos, configuración interna y
+comportamiento del proveedor real siguen **NO VERIFICABLES** en esta revisión.
+Evidencia acotada por archivo/línea en el
+[handoff](../../../.agents/handoffs/pr24-analytics-remediation-20260905.md).
 
 ---
 
