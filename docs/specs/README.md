@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 313 specs)
+### Índice de specs (generado · 390 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -344,13 +344,90 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0312 | Contratos para la lógica de negocio que corría sin red | done | interno |
 | 0313 | Portal — paso 1 de Nueva compra: el alta de proveedor que no … | done | interno |
 | 0314 | La segunda puerta de la máquina de estados del Bug Reporter | done | interno |
+| 0315 | Las exportaciones CSV no ejecutan fórmulas de terceros | done | interno |
+| 0316 | Los logs de email inbound no exponen al remitente | done | interno |
+| 0317 | Acceso CBM sin secreto en URL | done | interno |
+| 0318 | Presencia documental del Portal en lote | done | interno |
+| 0319 | Reloj compartido CRM sin render impuro | done | interno |
+| 0320 | E2E local sin secretos alojados | done | interno |
+| 0321 | E2E local acotado y con concurrencia estable | done | interno |
+| 0322 | Relaciones de órdenes leídas en lote | done | interno |
+| 0323 | Fundamentos Web Quality sin barreras críticas | done | interno |
+| 0324 | Tabs del Studio con teclado y un solo tab stop | done | interno |
+| 0325 | Throttle fail-closed para el acceso CBM interno | done | interno |
+| 0326 | Retirar el secreto del webhook Telegram de la URL | in-progress | interno |
+| 0327 | Cookie autenticada para sesiones de operario | done | interno |
+| 0328 | Cerrar el bypass público del throttle de verificación | in-progress | interno |
+| 0329 | Aislar la caché de Next usada por el gate E2E | done | interno |
+| 0330 | Retirar el envío de direcciones de clientes a Nominatim | done | interno |
+| 0331 | Retirar consultas de identidad por URL insegura | done | interno |
+| 0332 | Retener la llave KMS del backup WORM junto con el bucket | done | interno |
+| 0333 | Validar la configuración completa de integraciones en Studio | done | interno |
+| 0334 | Retirar la configuración activa del Payload CMS descontinuado | done | interno |
+| 0335 | Contener el crecimiento de service_role en Portal y ordenar e… | done | interno |
+| 0340 | Firmar adjuntos de prealerta desde una lectura autorizada por… | done | interno |
+| 0343 | Encapsular el detalle operativo de compras del Portal | done | interno |
+| 0344 | Encapsular el contexto privado de Soporte del Portal | done | interno |
+| 0345 | Encapsular el contexto privado del detalle de envío del Portal | done | interno |
+| 0346 | Encapsular el contexto privado del listado de envíos del Portal | done | interno |
+| 0347 | Encapsular el contexto privado del home del Portal | done | interno |
+| 0348 | Encapsular la lectura privada de aceptación del Portal | done | interno |
 | 0349 | Automatizar calidad local sin secretos en GitHub Actions | done | interno |
 | 0360 | Evitar que el foco tardío borre la búsqueda de destino | done | interno |
+| 0367 | Webhook Kommo: respetar desactivación sin romper recuperación… | in-progress | interno |
+| 0369 | Mantener un único proyecto declarado en la preparación E2E | in-progress | interno |
+| 0370 | Cerrar worktrees solamente después de verificar su preservación | in-progress | interno |
+| 0371 | Analytics fuera de puertas de acceso y URLs con credenciales | in-progress | interno |
 | 0373 | Validación de destinos y suscripciones Web Push | done | interno |
+| 0374 | Verificación pública bloqueada ante fallo del throttle | in-progress | interno |
+| 0376 | Comprobaciones Git agrupadas sin relajar el cierre seguro | done | interno |
+| 0378 | Verificacion local sin falsos verdes y aislamiento de pruebas… | done | interno |
+| 0379 | Parche compatible del fflate transitivo y contratos de replay | done | interno |
 | 0380 | Lectura de cotizaciones Portal ligada al principal y tenant | in-progress | interno |
+| 0383 | Frontera AST de service_role en componentes Portal | in-progress | interno |
+| 0384 | Acciones de Perfil Portal por principal y tenant | in-progress | interno |
+| 0386 | Web Push Portal por principal y tenant coherentes | done | interno |
+| 0387 | Academia Portal en aplicación por principal y tenant | done | interno |
+| 0388 | Proveedores Portal en aplicación por principal y tenant | done | interno |
+| 0389 | Compras Portal en aplicación por principal y tenant | done | interno |
+| 0390 | Lecturas Portal de pagos y eventos por principal y tenant | done | interno |
+| 0391 | Lecturas núcleo Portal por principal y tenant | done | interno |
+| 0392 | Activación y completitud Portal por principal y tenant | done | interno |
+| 0393 | Reclamos Portal por principal y tenant | done | interno |
+| 0394 | Mutaciones de direcciones Portal por principal y tenant | done | interno |
+| 0395 | Escrituras de cotizaciones Portal por principal y tenant | done | interno |
+| 0396 | Acciones elevadas Portal por principal y tenant | done | interno |
+| 0397 | Acciones de facturas Portal por principal y tenant | done | interno |
+| 0398 | Contextos privados Portal por principal y tenant | done | interno |
+| 0399 | Consumidores de compras Portal por principal y tenant | done | interno |
+| 0413 | CSP con nonce para superficies privadas | done | interno |
+| 0414 | Logs estructurados y correlacionados para crons | done | interno |
+| 0415 | Observabilidad estructurada de workers drain | done | interno |
+| 0416 | Observabilidad estructurada de jobs programados | done | interno |
+| 0417 | Observabilidad estructurada de salud e integraciones | done | interno |
+| 0418 | Observabilidad estructurada de Edge Functions Kommo | done | interno |
+| 0419 | Observabilidad estructurada en internals de salud | done | interno |
+| 0420 | Observabilidad estructurada en internals de workers | done | interno |
+| 0421 | Observabilidad estructurada en notificaciones de bugs | done | interno |
+| 0422 | Observabilidad estructurada en primitivas de notificación | done | interno |
+| 0423 | Observabilidad estructurada en agenda de avisos del Portal | done | interno |
+| 0424 | Observabilidad estructurada en consultas de avisos del Portal | done | interno |
+| 0425 | Observabilidad estructurada en Web Push del Portal | done | interno |
+| 0426 | Observabilidad estructurada en acciones de Perfil Portal | done | interno |
+| 0427 | Observabilidad estructurada en Proveedores y Prealertas Portal | done | interno |
+| 0428 | Cierre de observabilidad estructurada del Portal | done | interno |
+| 0429 | Observabilidad estructurada en productores internos de avisos | done | interno |
+| 0430 | Observabilidad estructurada en avisos de entrada | done | interno |
+| 0431 | Correlación y logs estructurados en rutas móviles | done | interno |
+| 0432 | Observabilidad estructurada en internals de conversaciones | done | interno |
+| 0433 | Observabilidad estructurada en el flujo de bugs | done | interno |
+| 0434 | Baseline web y accesibilidad de shells de entrada | done | interno |
+| 0435 | Observabilidad estructurada en acciones de Usuarios | done | interno |
+| 0436 | Observabilidad estructurada en contabilidad de Cobranzas | done | interno |
+| 0437 | Observabilidad estructurada en el motor de reglas de correo | done | interno |
 | 0440 | Harness E2E general determinista en Supabase efímero | in-progress | interna |
 | 0444 | Harness Codex con Director, Workers y PR como frontera | done | interno |
 | 0448 | Replay del estado final de 0222/0223 en calculator_settings | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0315, 0316, 0317, 0318, 0319, 0320, 0321, 0322, 0323, 0324, 0325, 0326, 0327, 0328, 0329, 0330, 0331, 0332, 0333, 0334, 0335, 0336, 0337, 0338, 0339, 0340, 0341, 0342, 0343, 0344, 0345, 0346, 0347, 0348, 0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357, 0358, 0359, 0361, 0362, 0363, 0364, 0365, 0366, 0367, 0368, 0369, 0370, 0371, 0372, 0374, 0375, 0376, 0377, 0378, 0379, 0381, 0382, 0383, 0384, 0385, 0386, 0387, 0388, 0389, 0390, 0391, 0392, 0393, 0394, 0395, 0396, 0397, 0398, 0399, 0400, 0401, 0402, 0403, 0404, 0405, 0406, 0407, 0408, 0409, 0410, 0411, 0412, 0413, 0414, 0415, 0416, 0417, 0418, 0419, 0420, 0421, 0422, 0423, 0424, 0425, 0426, 0427, 0428, 0429, 0430, 0431, 0432, 0433, 0434, 0435, 0436, 0437, 0438, 0439, 0441, 0442, 0443, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357, 0358, 0359, 0361, 0362, 0363, 0364, 0365, 0366, 0368, 0372, 0375, 0377, 0381, 0382, 0385, 0400, 0401, 0402, 0403, 0404, 0405, 0406, 0407, 0408, 0409, 0410, 0411, 0412, 0438, 0439, 0441, 0442, 0443, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
