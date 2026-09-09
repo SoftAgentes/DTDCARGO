@@ -377,10 +377,19 @@ ronda, sin `.next`, `.next-verify` ni `deno.lock`, y sin contenedores
 - **COMMITS:** tres unidades lógicas con `git add -- <paths>`, nunca `git add -A`,
   y trailer `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>`:
   código y pruebas; documentación (spec + `e2e/README.md`); este handoff.
-- **PR / BRANCH:** PR #28 sigue OPEN con base `codex/0448-replay-0223-history`,
-  ahora con el head de esta ronda tras el push fast-forward a
-  `codex/e2e-harness-general-20260905`. Sin force, sin merge, sin cambio de base,
-  sin edición del cuerpo de la PR.
+- **PR / BRANCH:** PR #28 sigue OPEN con base `codex/0448-replay-0223-history`.
+  Push fast-forward `087b4f6e..3baa48b1` a `codex/e2e-harness-general-20260905`,
+  sin force, sin merge, sin cambio de base, sin edición del cuerpo de la PR.
+  Head publicado: `3baa48b1bd3140195c3088e1a5f1fe760033d0c9`;
+  `mergeable=MERGEABLE`, `mergeStateStatus=UNSTABLE` mientras corrían los checks.
+  Checks disparados por el push: sólo los de Vercel (`Vercel` deployment,
+  `Vercel Agent Review`, `Vercel Preview Comments`), los tres en verde; es
+  preview automático del repositorio, no un despliegue solicitado ni producción.
+  **«Calidad continua» NO corrió:** el workflow sólo se dispara en `pull_request`
+  y `push` contra `main`, y la base de #28 es la rama de #29. Su última corrida
+  para esta rama sigue siendo la del 2026-09-07 (éxito, 13 m 35 s), de cuando la
+  base era `main`. Habrá corrida alojada recién cuando #29 se integre y la base
+  vuelva a `main`.
 - **PENDIENTES DE ESTA TAREA:** revisión del Director sobre el nuevo head. La
   corrida hospedada de los 168 E2E sigue siendo el único criterio abierto de
   SDD-0440 y depende de autorización de entorno/costo; por eso la spec conserva
