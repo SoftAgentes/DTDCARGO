@@ -412,3 +412,97 @@ ronda, sin `.next`, `.next-verify` ni `deno.lock`, y sin contenedores
   corrida paralela; (b) cuándo integrar #29 para que la base de #28 vuelva a
   `main` y CI corra. Worktree, rama y claim: worktree y rama se conservan, claim
   liberado tras el último commit.
+
+## Relevo de integración de base (2026-09-09, Worker A23)
+
+- Task ID: `pr28-base-merge-20260909`. Owner / sesión: `worker-a23-pr28-basemerge`.
+- Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/e2e-harness-general-20260905`,
+  rama `codex/e2e-harness-general-20260905`. Claim tomado antes de editar y liberado al cerrar.
+- Encargo: traer la punta de la base a la rama de #28 con merge normal para devolver
+  la PR a estado fusionable. Sin rebase (rama publicada), sin force push, sin mergear
+  ninguna PR, sin tocar `main` ni la rama de #29.
+
+### Qué pasó
+
+PR #28 quedó `CONFLICTING`/`DIRTY` contra su base `codex/0448-replay-0223-history`.
+Desde el ancestro común `03a7d0c0`, #29 tocó 6 paths y #28 tocó 9; la intersección
+era **exactamente uno**: `docs/specs/README.md`. `git merge` reportó un único
+conflicto de contenido, en ese archivo, y sólo en la línea «Huecos en el correlativo».
+Los otros cinco paths de #29 entraron limpios.
+
+Merge ejecutado: `origin/codex/0448-replay-0223-history` = `f0677e8b` sobre
+`codex/e2e-harness-general-20260905` = `e62a13a9`, con `--no-ff --no-commit`.
+Commit de merge resultante: `efb41824`.
+
+### Por qué chocó — precedente a recordar
+
+`docs/specs/README.md` **no se mantiene a mano: se genera** con
+`scripts/build-docs-index.mjs`, que recorre `docs/specs/*/spec.md` y reescribe la
+región entre `AUTO-INDEX:START` y `AUTO-INDEX:END`. Cada rama que crea una spec
+regenera el índice completo, y la línea de huecos del correlativo es una sola línea
+derivada del conjunto entero de specs. Dos ramas que crean specs distintas producen
+dos versiones distintas de esa misma línea sobre el mismo ancestro: Git no puede
+hacer otra cosa que marcar conflicto.
+
+**Regla general:** dos ramas apiladas que regeneran el mismo artefacto generado
+chocan siempre, aunque su trabajo real no se solape en nada. No es error de ningún
+Worker ni señal de alcances mal repartidos. Es consecuencia estructural de versionar
+un artefacto derivado. Ocurrirá otra vez con cualquier índice, cápsula o baseline
+generado, y en particular cada vez que dos ramas vivas creen specs a la vez.
+
+**Cómo se resuelve:** nunca editando el artefacto a mano ni eligiendo «ours»/«theirs»
+—ambas opciones pierden la spec de la otra rama—. Se completa el merge del resto,
+se corre el generador y se deja que el artefacto se reconstruya desde el estado
+fusionado del árbol; luego se corre su modo `--check`. Acá el conflicto caía entero
+dentro de la región `AUTO-INDEX`, así que regenerar borró los marcadores solo.
+
+### Resolución y evidencia
+
+- `node scripts/build-docs-index.mjs` → «312 specs, 136 huecos». Cero marcadores de
+  conflicto restantes.
+- El índice resuelto es la **unión exacta**, verificada contra cada padre: frente a la
+  versión de #28 sólo entra la fila `0448` y los huecos `0445, 0446, 0447`; frente a la
+  de #29 sólo entra la fila `0440` y desaparece `0440` de los huecos. Nada se perdió de
+  ninguna rama.
+- Alcance intacto: el diff de la rama contra `origin/codex/0448-replay-0223-history`
+  sigue siendo **los mismos nueve paths** de la allowlist de SDD-0440, lista idéntica
+  antes y después del merge, ni uno más. GitHub también reporta 9 archivos para la PR.
+
+### Validación (2026-09-09)
+
+- `docs:check` (`build-docs-index.mjs --check`): PASÓ (exit 0).
+- `sdd:check` (`check-numbering.mjs`): PASÓ (exit 0), 312 specs · 399 migraciones,
+  sin números repetidos; los choques históricos ya aplicados en prod siguen marcados
+  como no renumerables.
+- `governance:check` (`build-governance-capsule.mjs --check`): PASÓ (exit 0),
+  28 políticas aprobadas, cápsula vigente.
+- `vitest run scripts/__tests__/`: PASÓ, 30 archivos, 229 pruebas.
+- `typecheck` (`prune-next-types.mjs` + `tsc --noEmit`): PASÓ (exit 0).
+- `git diff --check`: PASÓ.
+- NO EJECUTADO: `pnpm verify` completo, lint y los E2E hospedados. Este relevo no
+  cambia código de producto —el merge sólo incorpora documentación, handoffs y
+  `supabase/migrations-baseline.json` de #29, y regenera un índice—, y la validación
+  de producto de #28 es la ya registrada en el cierre previo de esta misma fecha.
+  NO DISPONIBLE: `migrations-applied`, sin credenciales.
+
+### Publicación
+
+Push fast-forward `e62a13a9..efb41824` a `codex/e2e-harness-general-20260905`,
+sin force. Tras el push, PR #28: `mergeable=MERGEABLE` (dejó de estar
+`CONFLICTING`), `mergeStateStatus` pasó de `UNSTABLE` a `CLEAN` al
+terminar el deployment de Vercel: los tres checks (`Vercel`, `Vercel Agent
+Review`, `Vercel Preview Comments`) quedaron en verde. Sigue OPEN, con base
+`codex/0448-replay-0223-history`. **No se mergeó ninguna PR**: integrar la base en
+la rama es otra operación, y el merge de #28 y su despliegue conservan sus
+autorizaciones propias.
+
+### Pendientes y fuera de alcance
+
+- PENDIENTES DE ESTA TAREA: ninguno. Queda para el Director confirmar los checks de
+  Vercel al terminar y decidir la integración.
+- FUERA DE ALCANCE DETECTADO: mientras #29 siga siendo la base, «Calidad continua» no
+  corre para #28 —el workflow sólo se dispara contra `main`—, así que la PR no tendrá
+  corrida alojada de CI hasta que #29 se integre; ya estaba registrado en el cierre
+  anterior y sigue igual. El shell continúa sin identidad Git en ninguna capa: se pasó
+  por `-c user.name/-c user.email` sólo para este commit, sin escribir config
+  compartida. Nada de esto se tocó acá.
