@@ -1,0 +1,68 @@
+-- ─────────────────────────────────────────────────────────────
+-- 0399 · SDD n/a (higiene de permisos) · `anon` y `authenticated` dejan de
+--        poder TRUNCATE en `public`.
+--
+-- MEDIDO en prod el 2026-08-28 (salió de rebote aplicando la 0394): de las 249
+-- tablas de `public`, **`anon` tenía TRUNCATE en 180 y `authenticated` en 205**.
+-- Ninguna migración de este repo lo concede — se verificó: los `grant all on`
+-- que existen van todos a `service_role`. Entró fuera de banda.
+--
+-- ⚠️ **TRUNCATE IGNORA RLS por completo.** No hay policy que lo detenga, ni la
+-- mejor escrita. Es la única operación de borrado masivo que se salta el modelo
+-- de seguridad entero del ERP.
+--
+-- ── POR QUÉ ES HIGIENE Y NO UNA URGENCIA ──────────────────────────────────
+--
+-- Se midió si era alcanzable, antes de escribir esto, y NO lo es hoy:
+--
+--   1. CERO funciones mencionan `truncate`, en ningún schema.
+--   2. De las 44 `security invoker` ejecutables por esos roles, ninguna corre
+--      SQL dinámico. La única de `public` con `execute` dinámico es
+--      `rls_auto_enable` — `security definer`, y ellos no pueden ejecutarla.
+--   3. `anon` y `authenticated` son **NOLOGIN**: no hay conexión directa a
+--      Postgres como ellos. El único camino es `authenticator` (credencial del
+--      servidor) haciendo `set role`.
+--   4. PostgREST **no expone TRUNCATE**: su `DELETE` genera `DELETE FROM`, que
+--      sí respeta RLS.
+--
+-- El cero de (1) y (2) se validó con CONTROL POSITIVO —382 funciones en
+-- `public`, 72 invoker, 44 ejecutables, 1 con `execute`— porque un cero por
+-- filtro roto se ve idéntico a uno real.
+--
+-- Se quita igual, y por una razón concreta: **el día que alguien escriba una
+-- función `security invoker` con SQL dinámico expuesta por RPC, el privilegio
+-- se vuelve explotable y nada se pone rojo.** Ningún contrato del gate lo
+-- miraba, porque el schema reconstruido desde el repo sale limpio: los default
+-- privileges de la plataforma no viven en ninguna migración. El contrato que
+-- acompaña a esta migración cierra ese punto ciego.
+--
+-- ── LO QUE ESTA MIGRACIÓN **NO** TOCA, a propósito ────────────────────────
+--
+--   · **El schema `storage`.** Tiene 3 tablas con el mismo TRUNCATE para
+--     `anon`/`authenticated`, pero son de la plataforma: Supabase gestiona sus
+--     grants y un upgrade puede revertir lo que hagamos. Tocarlas puede romper
+--     Storage. Si se decide, va en su propia migración y con su propia prueba.
+--   · **`REFERENCES` y `TRIGGER`**, que llegaron por la misma vía. Fuera del
+--     alcance pedido; se dejan anotados para que no se redescubran.
+--   · **Los default privileges.** No hace falta y se midió por qué: las 249
+--     tablas de `public` tienen owner `postgres`, y el default de `postgres`
+--     sobre `public` es `{postgres=arwdDxtm, service_role=arwdDxtm}` — **sin**
+--     `anon` ni `authenticated`. O sea, las tablas nuevas ya nacen limpias.
+--     ⚠️ Riesgo residual: el default de `supabase_admin` SÍ los incluye, así que
+--     una tabla creada por ese rol nacería con TRUNCATE. No lo podemos cambiar
+--     (requiere ser `supabase_admin`) y hoy no ocurre: las 249 son de
+--     `postgres`. El contrato no puede vigilar eso; queda escrito acá.
+--
+-- ── QUÉ NO SE ROMPE ───────────────────────────────────────────────────────
+--
+-- `service_role` y `postgres` conservan TRUNCATE — el borrado masivo legítimo
+-- (workers, retención, mantenimiento) no se toca. Y `anon`/`authenticated`
+-- conservan SELECT/INSERT/UPDATE/DELETE donde los tenían: esto sólo quita `D`.
+--
+-- Idempotente: un `revoke` de un privilegio ya revocado es un no-op.
+--
+-- NO aplicar a prod desde la rama — la aplica coordinación con el OK del founder
+-- NOMBRANDO esta migración (docs/runbooks/aplicar-migraciones-prod.md).
+-- ─────────────────────────────────────────────────────────────
+
+revoke truncate on all tables in schema public from anon, authenticated;
