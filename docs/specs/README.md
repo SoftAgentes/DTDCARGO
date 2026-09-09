@@ -377,7 +377,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0367 | Webhook Kommo: respetar desactivación sin romper recuperación… | in-progress | interno |
 | 0369 | Mantener un único proyecto declarado en la preparación E2E | in-progress | interno |
 | 0370 | Cerrar worktrees solamente después de verificar su preservación | in-progress | interno |
-| 0371 | Excluir puertas de acceso de Analytics | in-progress | interno |
+| 0371 | Analytics fuera de puertas de acceso y URLs con credenciales | in-progress | interno |
 | 0373 | Validación de destinos y suscripciones Web Push | done | interno |
 | 0374 | Verificación pública bloqueada ante fallo del throttle | in-progress | interno |
 | 0376 | Comprobaciones Git agrupadas sin relajar el cierre seguro | done | interno |
