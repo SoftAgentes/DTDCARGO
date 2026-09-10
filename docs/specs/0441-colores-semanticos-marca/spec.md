@@ -4,7 +4,7 @@ title: Colores semánticos de marca y avisos de calculadora
 status: in-progress
 author: Codex · autorizado por Sam
 created: 2026-09-05
-updated: 2026-09-05
+updated: 2026-09-10
 supersedes: null
 superseded_by: null
 related: [0165, 0257, 0275]
@@ -48,6 +48,22 @@ no se resube una copia antigua ni se atribuye a producción este cambio local.
 ## Evidencia
 
 Ver audit.md para clasificación por superficie, pruebas y límites de verificación.
+
+### Cierre de la aritmética histórica del merge de PR #31
+
+La allowlist quedó congelada con 76 rutas de implementación. El delta neto del
+merge incorporó una ruta editorial adicional,
+`.agents/handoffs/pr31-publication-review-20260907.md`, creada durante la revisión
+de publicación posterior al congelamiento: `76 + 1 = 77`. Ese handoff no cambió
+producto, CSS ni comportamiento, pero fue una no conformidad literal de alcance.
+Queda registrado aquí como evidencia de entrega fuera de la allowlist de producto
+para que no se vuelva a interpretar como una ruta funcional omitida.
+
+El correctivo del 2026-09-10 mantiene la allowlist honesta para toda ruta de
+producto o prueba que modifica, incluido el consumidor indirecto
+`app/portal/(app)/reclamos/_components/PortalClaims.tsx` y su prueba focal. Los
+handoffs de cierre siguen siendo artefactos de control de la tarea, no
+consumidores de los estilos ni parte del barrido visual.
 
 ## Allowlist exacta
 
