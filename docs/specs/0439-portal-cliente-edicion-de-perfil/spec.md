@@ -1,17 +1,17 @@
 ---
-sdd: "0435"
-title: "Portal cliente — tres cambios efectivos de perfil y direcciones siempre editables"
+sdd: "0439"
+title: "Portal cliente — edición controlada y contención de fotos de identidad"
 status: in-progress
 author: "Codex + founder"
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-09-06
 supersedes: null
 superseded_by: null
-related: ["0138", "0145", "0151", "0268"]
+related: ["0138", "0145", "0151", "0186", "0191", "0268"]
 confidencialidad: interna
 ---
 
-# SDD-0435 · Edición controlada del perfil del cliente
+# SDD-0439 · Edición controlada del perfil del cliente
 
 ## Pedido y lectura del contrato
 
@@ -32,8 +32,9 @@ cupo vuelve a quedar disponible.
 - La primera carga de una foto faltante completa el expediente y no consume
   cupo; cada reemplazo posterior sí consume uno.
 - Email, Shipping Mark y avatar cosmético permanecen fuera de esta edición.
-- No se borra la foto de identidad reemplazada: queda en Storage privado y su
-  ruta sólo vive en el ledger restringido para mantener trazabilidad.
+- La migración histórica 0445 conserva la foto de identidad reemplazada y su
+  ruta en un ledger restringido. Como todavía no existen purga gobernada, hold
+  y control regional, 0447 bloquea nuevos reemplazos de forma fail-closed.
 - Los tres cambios son un límite de negocio de por vida. No existe bypass en la
   UI ni escritura directa a `clients` desde el portal.
 
@@ -53,10 +54,11 @@ cupo vuelve a quedar disponible.
 2. Enviar una solicitud pendiente reserva un cupo atómicamente en PostgreSQL.
 3. Aprobarla convierte la reserva en cambio aplicado; rechazarla o cancelarla la
    libera.
-4. Reemplazar una foto existente consume un cupo y actualiza el puntero a la
-   nueva foto en la misma transacción de base de datos.
-5. Cuando no queda cupo, servidor y UI bloquean nuevas solicitudes y reemplazos
-   con un mensaje que conduce a soporte.
+4. Reemplazar una foto existente permanece deshabilitado en UI y base de datos
+   hasta demostrar purga, hold y control regional. El cliente conserva un
+   enlace a soporte para tramitar la corrección.
+5. Cuando no queda cupo, servidor y UI bloquean nuevas solicitudes de datos con
+   un mensaje que conduce a soporte.
 6. La primera foto, si falta, se puede cargar incluso con cupo agotado porque no
    es un reemplazo.
 7. Cada dirección muestra “Editar”; el formulario sale prellenado, valida los
@@ -65,7 +67,7 @@ cupo vuelve a quedar disponible.
 
 ## Persistencia y seguridad
 
-La migración 0445 crea `client_profile_edits`, un ledger sin grants directos
+La migración histórica 0445 crea `client_profile_edits`, un ledger sin grants directos
 para `anon`, `authenticated` ni `service_role`. Su trigger `SECURITY DEFINER`
 serializa por fila de `clients`, de modo que dos solicitudes simultáneas no
 pueden superar el límite. El portal sólo recibe totales agregados mediante una
@@ -82,19 +84,36 @@ La sustitución de foto usa otra RPC `SECURITY DEFINER` que:
 - escribe auditoría canónica sin copiar nombre, documento, teléfono ni rutas al
   payload de auditoría.
 
+La migración 0447 agrega un trigger previo sobre el ledger: una primera carga no
+crea una fila `identity_photo` y sigue disponible, pero un reemplazo intenta
+crear esa fila y se rechaza dentro de la misma transacción antes de mover el
+puntero. El Portal repite el guard antes del upload para evitar crear objetos
+que dependan de rollback. Si una carrera o fallo ocurre después de subir, la
+action distingue rechazo SQL explícito de respuesta incierta. Ante error vuelve
+a resolver el cliente de sesión y lee únicamente el puntero/tenant/prefijo y
+estado retirado de esa cuenta. Si confirma el mismo objeto conserva la carga;
+si no puede reconciliar conserva y deriva a soporte sin anunciar éxito. Un
+puntero vacío tras pérdida de respuesta no prueba rollback: el commit puede
+seguir en vuelo. Sólo un rechazo SQL exacto conocido con respuesta HTTP 4xx,
+identidad/tenant/prefijo estables y puntero distinto habilita retirar el objeto
+nuevo de esta invocación. Se comprueba `Storage.remove()` y también su excepción;
+no se anuncia éxito si la compensación falla. No se repite la RPC de escritura.
+
 Las solicitudes históricas aprobadas por el cliente se contabilizan. Los
 reemplazos de foto anteriores a 0445 no pueden reconstruirse con certeza y no se
-inventan.
+inventan. 0445 no se renumera ni se reescribe porque ya fue aplicada; este SDD
+fue renumerado desde 0435 a 0439 para resolver la colisión con otra rama.
 
 ## Datos personales · revisión VE/CN
 
 | Estado | Evidencia |
 |---|---|
 | ENCONTRADO | Nombre, documento, teléfono, foto de identidad y direcciones son datos personales; la foto/documento exige acceso restringido y trazabilidad. |
-| CORRECTO | Storage privado, URL firmada temporal, validación server-side, aislamiento por sesión/RLS, ledger no expuesto y auditoría sin valores PII. |
+| CORRECTO | Storage privado, URL firmada de 60 segundos, validación server-side, aislamiento por sesión/RLS, ledger no expuesto y auditoría sin valores PII. |
 | CORRECTO | La rectificación de datos existe, pero mantiene aprobación humana para identidad documentada. |
+| CORRECTO | 0447 y la UI contienen nuevos reemplazos: no crean otra versión histórica mientras falten los controles de disposición y acceso. |
 | ENCONTRADO | La directiva propuesta `docs/legal/privacidad/fotos-identidad-cliente-v1.md` fija históricos por máximo 30 días, borrado integral solicitado y cero acceso China, pero aún no está activa. |
-| ENCONTRADO | La policy vigente de `client-docs` no distingue VE de CN y no existe purga; no se presenta la directiva propuesta como control implementado. |
+| ENCONTRADO | La policy vigente de `client-docs` no distingue VE de CN y no existe purga; la contención no se presenta como implementación de esos controles. |
 | NO VERIFICABLE | Fundamento por categoría, holds reales, contratos y eliminación en copias de proveedor requieren validación humana/profesional. |
 
 Esta revisión técnica no constituye asesoría legal.
@@ -104,17 +123,18 @@ Esta revisión técnica no constituye asesoría legal.
 | Política | Clasificación | Aplicación |
 |---|---|---|
 | SGE-00 | cumplimiento | El límite vive en servidor/DB; se informa estado y siguiente paso. |
-| AUD-01 / AUD-02 | cumplimiento | Reserva, aplicación, liberación y sustitución dejan eventos estructurados sin PII en payload. |
+| AUD-01 / AUD-02 | cumplimiento | Reserva, aplicación y liberación dejan eventos estructurados sin PII; el reemplazo contenido no deja éxito falso. |
 | FRM-01 / ERR-01 / LOD-01 | cumplimiento | Labels persistentes, errores próximos al campo y estados pendientes. |
-| UPL-01 | cumplimiento | Tipo, tamaño, propósito y privacidad se explican antes de elegir el archivo. |
+| UPL-01 | cumplimiento | Tipo, tamaño, propósito y privacidad se explican; un reemplazo bloqueado no inicia upload. |
 | A11Y-01 / BTN-01 | cumplimiento | Controles con nombre accesible, foco y área táctil mínima. |
-| MP-01 | no aplica | Editar/agregar no es acción destructiva; la eliminación existente conserva su confirmación propia. |
+| MP-01 | no conformidad contenida | Falta disposición gobernada de históricos; 0447 impide ampliar el inventario hasta cerrar ese control. |
 
 ## Allowlist exacta
 
-- `docs/specs/0435-portal-cliente-edicion-de-perfil/spec.md`
+- `docs/specs/0439-portal-cliente-edicion-de-perfil/spec.md`
 - `docs/specs/README.md` (generado)
 - `docs/legal/privacidad/fotos-identidad-cliente-v1.md`
+- `docs/legal/privacidad/revision-0445-2026-09-04.md`
 - `docs/legal/privacidad/README.md`
 - `docs/legal/privacidad/registro-tratamiento.md`
 - `docs/legal/privacidad/mapa-de-borrado.md`
@@ -122,6 +142,8 @@ Esta revisión técnica no constituye asesoría legal.
 - `.agents/handoffs/2026-09-04-portalcliente-close.md`
 - `supabase/migrations/0445_portal_profile_edit_limit.sql`
 - `supabase/tests/0445_portal_profile_edit_limit.test.sql`
+- `supabase/migrations/0447_identity_photo_replacement_privacy_gate.sql`
+- `supabase/tests/0447_identity_photo_replacement_privacy_gate.test.sql`
 - `lib/portal/profile-edit-quota.ts`
 - `lib/portal/__tests__/profile-edit-quota.test.ts`
 - `app/portal/(app)/perfil/page.tsx`
@@ -131,6 +153,24 @@ Esta revisión técnica no constituye asesoría legal.
 - `app/portal/(app)/perfil/PortalAddresses.tsx`
 - `app/portal/(app)/perfil/PortalAddresses.test.tsx`
 - `app/portal/(app)/perfil/ProfileEditControls.test.tsx`
+- `app/portal/(app)/perfil/IdentityPhotoAction.test.ts`
+- `.agents/handoffs/pr27-identity-photo-uncertain-response-20260906.md`
+
+### Corrección aislada · respuesta perdida (2026-09-06)
+
+Base PR27 `82fc49ff`; SDD permanece in-progress. Se conserva el bloqueo0447,
+cuota y primera carga. RED sobre actions base: 14 fallos/7 aprobados incluyendo
+commit con respuesta perdida que dejaba puntero sin objeto. GREEN inicial:
+21/21 con SDK Supabase real 2.106.1, helper upload real y transporte offline.
+El test simula commit y respuesta por separado; no demuestra comportamiento
+de una base real ni aplica migraciones. Reconciliación fallida, fila retirada,
+tenant/prefijo/cuenta cambiados, puntero concurrente y commit posterior a lectura
+nula conservan el archivo. Cleanup fallido comunica soporte sin éxito falso.
+Final: 27/27 (24 identidad + 3 cuota), TypeScript, ESLint focal, docs:check,
+governance:check y components:check PASÓ. Código d7717861 enviado a revisión
+independiente, favorable con 14 escenarios propios SDK/offline y sin nuevos
+bloqueos; detalle y límites en handoff. Falta validación combinada coordinada
+por Director. Sin push, build/verify masivo ni Cloud.
 
 ## Fuera de alcance
 
@@ -145,16 +185,16 @@ Esta revisión técnica no constituye asesoría legal.
 - Pruebas unitarias del cálculo/mapeo del cupo.
 - Pruebas de UI para bloqueo, reemplazo de foto y edición prellenada de dirección.
 - Contrato SQL desechable: límite atómico, liberación por rechazo/cancelación,
-  primera foto gratis, reemplazo contabilizado, ACL/RPC y aislamiento.
+  primera foto gratis, reemplazo contenido, ACL/RPC y aislamiento.
 - `pnpm docs:check`, `pnpm typecheck`, `pnpm lint`, pruebas focalizadas,
   `pnpm governance:check`, `pnpm components:check` y `node scripts/verify.mjs`.
 
 ### Resultado local
 
-- 15/15 pruebas focalizadas pasaron; la suite Vitest completa pasó con 5.882
-  pruebas en 500 archivos.
-- 140/140 contratos SQL pasaron y el esquema se reconstruyó desde cero con las
-  378 migraciones aplicables; aislamiento multi-tenant: verde.
+- 17/17 pruebas focalizadas pasaron; la suite Vitest completa pasó con 5.884
+  pruebas en 501 archivos.
+- 141/141 contratos SQL pasaron y el esquema se reconstruyó desde cero con las
+  379 migraciones aplicables; aislamiento multi-tenant: verde.
 - Lint (0 errores), TypeScript, Edge Functions, documentación, numeración,
   componentes, gobernanza y build de producción: verdes.
 - La verificación integral terminó 14/15: Playwright global quedó rojo porque el
@@ -173,6 +213,8 @@ Esta revisión técnica no constituye asesoría legal.
 - Backfill: 4 solicitudes de 4 clientes; cero clientes quedaron sobre el límite.
 - RLS activa, sin grants directos al ledger; las dos RPC quedan ejecutables solo
   por `authenticated`, con `SECURITY DEFINER` y `search_path` vacío.
+- `0447_identity_photo_replacement_privacy_gate` no está aplicada a Cloud: este
+  documento no presenta la contención como activa en Producción.
 - UAT autenticado permanece pendiente: el código del Portal no se despliega
   hasta `cerrar` y falta identificar la cuenta empresarial y las mutaciones
   aprobadas.

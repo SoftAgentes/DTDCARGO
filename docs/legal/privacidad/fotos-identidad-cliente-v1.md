@@ -103,11 +103,13 @@ se debe describir públicamente como tratamiento localizado solo en Venezuela.
 
 | Estado | Evidencia |
 |---|---|
-| CORRECTO | `client-docs` es privado y la foto vigente se entrega mediante URL firmada de 60 segundos (`supabase/migrations/0091_portal_self_register.sql:29-41`; `app/studio/(app)/clientes/[markbox]/page.tsx:206-213`). |
+| CORRECTO | `client-docs` es privado y la foto vigente se entrega mediante URL firmada de 60 segundos (`supabase/migrations/0091_portal_self_register.sql:29-41`; `app/studio/(app)/clientes/[markbox]/page.tsx:206-213`; `app/portal/(app)/perfil/page.tsx`). |
 | CORRECTO | La migración 0445 preserva el objeto sustituido y restringe las rutas históricas al ledger sin grants directos (`supabase/migrations/0445_portal_profile_edit_limit.sql:41-118,389-397`). |
+| CORRECTO | La migración 0447 y el guard del Portal bloquean nuevos reemplazos antes de mover el puntero; una primera carga sigue disponible. El rollback de Storage comprueba `{ error }` y no anuncia éxito si falla. |
 | ENCONTRADO | La policy de Storage permite leer y borrar `client-docs` a cualquier miembro autenticado del tenant, sin condición de región (`supabase/migrations/0091_portal_self_register.sql:52-68`). |
 | ENCONTRADO | El módulo Clientes admite `operations` y la ficha firma la foto sin gate regional (`lib/studio/rbac.ts:90`; `app/studio/(app)/clientes/[markbox]/page.tsx:206-213`). |
 | ENCONTRADO | No hay worker que purgue históricos a 30 días ni flujo integral de solicitud; hoy conservar el objeto es indefinido. |
+| NO VERIFICABLE | La contención 0447 no está activa en Cloud hasta que exista autorización nominal, aplicación individual y verificación posterior. |
 | NO VERIFICABLE | Contratos, base aplicable por categoría, holds reales y eliminación en backups/proveedores requieren evidencia humana y del proveedor. |
 
 ## 7. Controles que activan esta directiva
@@ -116,13 +118,18 @@ se debe describir públicamente como tratamiento localizado solo en Venezuela.
    capacidad explícita; el chequeo debe existir en servidor y base de datos.
 2. Sacar las versiones históricas de la policy ordinaria de listado/lectura.
 3. Al reemplazar, invalidar la verificación anterior y exigir revisión de la
-   nueva foto.
+   nueva foto. La migración funcional 0446 lo implementa por separado; falta su
+   merge, aplicación nominal y verificación Cloud.
 4. Implementar purga fail-closed a 30 días, con `dry-run`, holds, manifiesto sin
    PII y recibo auditable.
 5. Implementar el inventario end-to-end de solicitudes y verificarlo con una
    cuenta autorizada antes de prometer eliminación completa.
 6. Corregir la Política de Privacidad pública solo después de validación legal y
    de comprobar que estos controles están activos.
+
+Hasta cerrar 1, 2, 4 y 5, la migración 0447 mantiene el reemplazo self-service
+deshabilitado. Esta contención evita ampliar el inventario de históricos, pero
+no equivale a purga, legal hold, borrado integral ni control regional.
 
 ---
 

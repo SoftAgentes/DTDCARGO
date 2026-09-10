@@ -32,7 +32,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("PortalAddresses · SDD-0435 · edición siempre disponible", () => {
+describe("PortalAddresses · SDD-0439 · edición siempre disponible", () => {
   it("abre un formulario prellenado para la dirección propia", async () => {
     const user = userEvent.setup();
     montar({ reference: "Portón azul" });

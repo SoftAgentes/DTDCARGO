@@ -288,10 +288,13 @@ ante solicitud del titular. La disposición debe alcanzar el objeto de
 borrar solo `clients.cedula_photo_path` no satisface la solicitud.
 
 Estado técnico al 2026-09-04: **ENCONTRADO**, no ejecutable todavía. `0445`
-preserva la ruta histórica, pero no instala purga ni gate regional. La policy de
-Storage de `0091` sigue permitiendo lectura y borrado a miembros autenticados del
-tenant sin distinguir VE de CN. Hasta cerrar esos controles, no se afirma que la
-retención de 30 días ni la exclusión del equipo China estén implementadas.
+preserva la ruta histórica y `0447` contiene nuevos reemplazos antes de mover el
+puntero, pero no instala purga ni gate regional. La policy de Storage de `0091`
+sigue permitiendo lectura y borrado a miembros autenticados del tenant sin
+distinguir VE de CN. Hasta cerrar esos controles, no se afirma que la retención
+de 30 días ni la exclusión del equipo China estén implementadas. La aplicación
+de 0447 en Cloud permanece **NO VERIFICABLE** hasta autorización nominal y
+comprobación posterior.
 
 ---
 

@@ -97,6 +97,7 @@ export default async function PortalProfilePage() {
   // por sesión. Best-effort: sin columna/archivo → null, sin romper.
   let avatarUrl: string | null = null;
   let cedulaUrl: string | null = null;
+  let hasCedulaPhoto = false;
   try {
     const admin = createAdminClient();
     const { data: row } = await admin
@@ -109,6 +110,7 @@ export default async function PortalProfilePage() {
       }>();
     const avatarPath = String(row?.avatar_path ?? "").trim();
     const cedulaPath = String(row?.cedula_photo_path ?? "").trim();
+    hasCedulaPhoto = cedulaPath.length > 0;
     if (avatarPath) {
       const { data: signed } = await admin.storage
         .from(PHOTO_BUCKET)
@@ -118,7 +120,7 @@ export default async function PortalProfilePage() {
     if (cedulaPath) {
       const { data: signed } = await admin.storage
         .from(PHOTO_BUCKET)
-        .createSignedUrl(cedulaPath, 3600);
+        .createSignedUrl(cedulaPath, 60);
       cedulaUrl = signed?.signedUrl ?? null;
     }
   } catch {
@@ -343,8 +345,8 @@ export default async function PortalProfilePage() {
             <div className="mt-5">
               <CedulaPhotoRow
                 label={esEmpresa ? "Documento RIF" : "Cédula de identidad / RIF"}
+                hasExistingPhoto={hasCedulaPhoto}
                 viewUrl={cedulaUrl}
-                quota={profileEditQuota}
               />
             </div>
 

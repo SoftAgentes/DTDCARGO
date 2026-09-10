@@ -57,7 +57,7 @@
 
 | Bucket | Qué guarda | Sensible | Conservación | Comportamiento observado |
 |---|---|:-:|---|:-:|
-| `client-docs` | Foto del documento de identidad del cliente | 🔴 | Propuesta: vigente mientras sea necesaria; histórica máx. 30 días desde reemplazo | `0445` conserva históricos; purga, gate VE y borrado integral aún no implementados. Ver [`fotos-identidad-cliente-v1.md`](fotos-identidad-cliente-v1.md) |
+| `client-docs` | Foto del documento de identidad del cliente | 🔴 | Propuesta: vigente mientras sea necesaria; histórica máx. 30 días desde reemplazo | `0445` conserva históricos; `0447` contiene nuevos reemplazos mientras purga, gate VE y borrado integral siguen sin implementar. Cloud: NO VERIFICABLE. Ver [`fotos-identidad-cliente-v1.md`](fotos-identidad-cliente-v1.md) |
 | `client-facades` | Foto de la vivienda | 🟠 | ⬜ | reemplazos físicos; borrado integral NO VERIFICABLE |
 | `receipt-photos` | Recepción CN + **POD y firmas** | 🔴 | ⬜ | Gastos móvil elimina objetos; otros flujos difieren |
 | `payment-proofs` | Comprobantes con datos bancarios | 🟠 | ⬜ | borrado integral NO VERIFICABLE |

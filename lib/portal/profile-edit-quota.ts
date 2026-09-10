@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** SDD-0435: límite vitalicio compartido por datos aprobados + reemplazos de ID. */
+/** SDD-0439: límite vitalicio compartido por datos aprobados + reemplazos de ID. */
 export const PROFILE_EDIT_LIMIT = 3;
 
 export type ProfileEditQuota = {
