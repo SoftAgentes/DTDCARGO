@@ -118,7 +118,7 @@ prefijo embebido dentro de otro nombre, campos de configuración, URLs normales
 y objetos Stripe pi/acct/evt. Cero regresiones en ese corpus no equivale a
 demostrar ausencia universal de falsos positivos en texto arbitrario.
 
-**Criterio 5 pendiente, no aprobado:** la revisión independiente reprodujo que
+**Criterio 5 pendiente, no aprobado y con pruebas rojas:** la revisión independiente reprodujo que
 `sb_secret_configuration_validation_failed` y
 `sk_org_configurationvalidationfailed`, nombres inventados de configuración,
 se redactan con estos patrones y no se redactaban en la base. Son falsos
@@ -128,7 +128,10 @@ prefijos son compatibles con los formatos documentados; excluir minúsculas,
 palabras o imponer estructura self-hosted a todas las claves dejaría credenciales
 posibles sin redactar. Hace falta decisión sobre esta colisión entre legibilidad
 y redacción conservadora, o evidencia adicional de formato para acotar sin
-debilitar. SDD permanece `in-progress` y la PR permanece en borrador.
+debilitar. Tres pruebas sin skip de aceptación preservan la expectativa original
+de Sam: Supabase, Stripe y un nombre largo de Slack. La suite final tiene 92
+aprobadas y tres fallidas; el gate no puede quedar verde ocultando este pendiente.
+SDD permanece `in-progress` y la PR permanece en borrador.
 
 ## Gobernanza
 

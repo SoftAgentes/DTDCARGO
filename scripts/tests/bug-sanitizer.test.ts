@@ -124,3 +124,15 @@ describe("otras familias previamente soportadas", () => {
     expect(redactTokensInText(input)).toBe(REDACTED);
   });
 });
+
+// Criterio 5 del encargo: estos casos adversariales fallan en el borrador.
+// No omitirlos ni cambiar la expectativa sin resolver la aceptación con Sam.
+describe("aceptación 5 pendiente: identificadores largos de configuración", () => {
+  it.each([
+    "sb_secret_configuration_validation_failed",
+    "sk_org_configurationvalidationfailed",
+    "xapp-connection-authentication-failed",
+  ])("preserva el identificador inventado %s", (input) => {
+    expect(redactTokensInText(input)).toBe(input);
+  });
+});
