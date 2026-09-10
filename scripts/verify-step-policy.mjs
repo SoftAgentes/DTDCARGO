@@ -74,6 +74,11 @@ export const STEP_POLICY = Object.freeze({
     reason:
       "Valida una cápsula derivada para agentes; su omisión reduce evidencia de gobernanza, no cobertura del binario desplegable.",
   }),
+  "pending-migration-symbols": Object.freeze({
+    critical: true,
+    reason:
+      "Cruza los simbolos que el codigo invoca contra las migraciones declaradas pendientes: es lo unico que impide que llegue a main codigo que depende de una RPC o tabla ausente en produccion. Sin medirlo, el cierre no prueba nada sobre ese riesgo.",
+  }),
   "migrations-applied": Object.freeze({
     critical: true,
     reason:
