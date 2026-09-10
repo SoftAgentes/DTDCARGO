@@ -27,9 +27,17 @@ async function loadPolicy() {
 
 test("verify conecta la política explícita al veredicto final", async () => {
   const source = await readFile(new URL("../verify.mjs", import.meta.url), "utf8");
+  const packageJson = JSON.parse(
+    await readFile(new URL("../../package.json", import.meta.url), "utf8"),
+  );
 
   assert.match(source, /assertCompleteStepPolicy/);
   assert.match(source, /buildVerifyVerdict/);
+  assert.match(source, /scripts\/tests\/verify-critical-coverage\.node\.mjs/);
+  assert.match(
+    packageJson.scripts["harness:test"],
+    /scripts\/tests\/verify-critical-coverage\.node\.mjs/,
+  );
 });
 
 test("todos los pasos tienen clasificación y motivo, sin entradas huérfanas", async () => {
@@ -58,6 +66,7 @@ test("un crítico sin medir no se confunde con un cierre completo", async () => 
   });
 
   assert.equal(complete.kind, "complete");
+  assert.equal(complete.tone, "ok");
   assert.equal(complete.exitCode, 0);
   assert.equal(complete.message, "verify: TODO VERDE ✓ (2/2 pasos medidos)");
 
@@ -96,6 +105,21 @@ test("un fallo conserva exit 1 y además nombra los críticos sin medir", async 
 
   assert.equal(verdict.kind, "failed");
   assert.equal(verdict.exitCode, 1);
-  assert.match(verdict.message, /1 fallo\(s\): lint/);
+  assert.match(verdict.message, /1 fallo\(s\) → lint/);
   assert.match(verdict.message, /CRÍTICOS SIN MEDIR: migrations-applied/);
+});
+
+test("un fallo con cobertura completa conserva el cierre rojo previo sin avisos nuevos", async () => {
+  const { buildVerifyVerdict } = await loadPolicy();
+  const verdict = buildVerifyVerdict({
+    stepNames: ["lint", "migrations-applied"],
+    skipped: [],
+    failures: ["lint"],
+  });
+
+  assert.equal(verdict.kind, "failed");
+  assert.equal(verdict.tone, "fail");
+  assert.equal(verdict.exitCode, 1);
+  assert.equal(verdict.message, "verify: 1 fallo(s) → lint");
+  assert.doesNotMatch(verdict.message, /INCOMPLETO|SIN MEDIR|COBERTURA PARCIAL/);
 });

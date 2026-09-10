@@ -305,7 +305,16 @@ const EXIT_SKIPPED = 3;
 // Cada check = un binario JS invocado con el mismo node que corre este script.
 const STEPS = [
   // Harness en repos temporales sin red ni credenciales. No se descubre por Vitest.
-  { name: "harness", argv: ["--test", "scripts/tests/director-status.node.mjs", "scripts/tests/harness-worktree.node.mjs", "scripts/tests/next-number.integration.node.mjs"] },
+  {
+    name: "harness",
+    argv: [
+      "--test",
+      "scripts/tests/director-status.node.mjs",
+      "scripts/tests/harness-worktree.node.mjs",
+      "scripts/tests/next-number.integration.node.mjs",
+      "scripts/tests/verify-critical-coverage.node.mjs",
+    ],
+  },
   { name: "lint", argv: ["node_modules/eslint/bin/eslint.js", "."] },
   // Frontera RSC: caza un server module que usa un VALOR de un módulo "use client"
   // (typecheck/vitest no lo ven; explota 500 en runtime — ver SDD-0050). Cero deps, rápido.

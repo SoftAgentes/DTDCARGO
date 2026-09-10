@@ -7,6 +7,13 @@
  * cobertura parcial, pero no invalida por sí solo la evidencia del artefacto
  * desplegable.
  *
+ * El exit distingue fallos de ejecución, no disponibilidad de evidencia:
+ * un paso que corre y falla sale 1; una omisión crítica sale 0 con un veredicto
+ * de CIERRE INCOMPLETO. Los worktrees ordinarios no reciben credenciales de
+ * producción y volverlos rojos por diseño haría rutinario ignorar el rojo. El
+ * exit 0 tampoco autoriza aprobación: el veredicto obliga a conseguir la
+ * medición o una excepción explícita antes de presentar el cierre como completo.
+ *
  * La política vive separada del runner para que cada paso nuevo tenga que
  * declarar su impacto y para probar el veredicto sin ejecutar el gate entero.
  */
@@ -160,7 +167,7 @@ export function buildVerifyVerdict({ stepNames, skipped, failures }) {
       criticalMissing,
       noncriticalMissing,
       message:
-        `verify: ${failures.length} fallo(s): ${failures.join(", ")}.` +
+        `verify: ${failures.length} fallo(s) → ${failures.join(", ")}` +
         criticalSuffix +
         omittedSuffix(noncriticalMissing),
     };
