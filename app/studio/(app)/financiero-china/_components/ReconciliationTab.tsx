@@ -273,7 +273,7 @@ export function ReconciliationTab({
                 ¥{st.total_rmb.toLocaleString("en-US", { minimumFractionDigits: 2 })}
               </span>
               <span style={{ textAlign: "right" }}>
-                <Badge tone={statementStatusTone(st.status)} size="sm" dot>
+                <Badge tone={statementStatusTone(st.status)} size="sm">
                   {statementStatusLabel(st.status)}
                 </Badge>
               </span>

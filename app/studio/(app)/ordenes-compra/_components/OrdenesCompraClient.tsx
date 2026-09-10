@@ -585,7 +585,7 @@ function DtdTab({
       align: "right",
       render: (po) => (
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Badge tone={purchaseOrderStatusTone(po.status)} size="sm" dot>
+          <Badge tone={purchaseOrderStatusTone(po.status)} size="sm">
             {purchaseOrderStatusLabel(po.status)}
           </Badge>
         </div>
@@ -968,7 +968,7 @@ function ClienteTab({
               {p.boxes}
             </span>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <Badge tone={prealertaStatusTone(p.status)} size="sm" dot>
+              <Badge tone={prealertaStatusTone(p.status)} size="sm">
                 {prealertaStatusLabel(p.status)}
               </Badge>
             </div>

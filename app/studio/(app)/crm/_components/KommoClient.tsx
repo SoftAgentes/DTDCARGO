@@ -276,7 +276,7 @@ export function KommoClient({
             gap: 6,
           }}
         >
-          <Badge tone={connTone(overview.connStatus)} dot>
+          <Badge tone={connTone(overview.connStatus)}>
             {connLabel(overview.connStatus)}
           </Badge>
           <span

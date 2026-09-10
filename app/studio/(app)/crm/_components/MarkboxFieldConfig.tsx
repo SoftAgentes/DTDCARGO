@@ -59,7 +59,7 @@ export function MarkboxFieldConfig({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <Badge tone={configured ? "success" : "neutral"} dot>
+        <Badge tone={configured ? "success" : "neutral"}>
           {configured ? "Configurado" : "Sin configurar"}
         </Badge>
       </div>

@@ -216,7 +216,7 @@ export function LibroDiarioTab({
                 ${fmtAmount(totals.debit)}
               </span>
               <span>
-                <Badge tone={entryStatusBadgeTone(entry.status)} size="sm" dot>
+                <Badge tone={entryStatusBadgeTone(entry.status)} size="sm">
                   {entryStatusLabel(entry.status)}
                 </Badge>
               </span>
