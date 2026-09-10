@@ -7,49 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "shipping-label-presentation-without-0449",
-      "primarySymbol": "shipping_label_versions",
-      "migration": "0449_prealerta_exact_box_reception",
-      "symbols": [
-        {
-          "kind": "table",
-          "name": "shipping_label_versions",
-          "callSites": [
-            "lib/studio/label-presentation-queries.ts:5"
-          ]
-        },
-        {
-          "kind": "function",
-          "name": "save_shipping_label_presentation",
-          "callSites": [
-            "app/studio/(app)/admin/etiquetas/actions.ts:13"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/label-presentation-queries.ts:8",
-          "contains": "?? DEFAULT_LABEL_PRESENTATION",
-          "degradation": "La lectura ausente conserva la presentación predeterminada."
-        },
-        {
-          "site": "lib/studio/label-presentation-queries.ts:10",
-          "contains": "available: !error",
-          "degradation": "El error de lectura se convierte en una bandera explícita de disponibilidad."
-        },
-        {
-          "site": "app/studio/(app)/admin/etiquetas/LabelEditor.tsx:25",
-          "contains": "disabled={!available}",
-          "degradation": "La acción de guardar queda deshabilitada cuando la tabla no está disponible."
-        },
-        {
-          "site": "app/studio/(app)/admin/etiquetas/LabelEditor.tsx:26",
-          "contains": "if (!available)",
-          "degradation": "La acción conserva además un guard explícito antes de llamar la RPC ausente."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
