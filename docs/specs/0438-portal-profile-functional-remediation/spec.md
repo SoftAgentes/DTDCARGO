@@ -8,7 +8,7 @@ updated: 2026-09-06
 supersedes: null
 superseded_by: null
 related:
-  - "SDD-0435"
+  - "SDD-0439"
   - "migration:0361"
   - "migration:0445"
 confidencialidad: interno

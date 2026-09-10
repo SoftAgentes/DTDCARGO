@@ -457,7 +457,7 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
               ${fmtAmount(balance)}
             </span>
             <span>
-              <Badge tone={statusBadgeTone(ds)} size="sm" dot>
+              <Badge tone={statusBadgeTone(ds)} size="sm">
                 {statusLabel(ds)}
               </Badge>
             </span>

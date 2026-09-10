@@ -161,3 +161,95 @@ en el handoff anterior. Trace on-first-retry no produjo archivos al no haber ret
 No se reprodujeron los dos fallos con esta selección y caché existente. No
 demuestra que 11 workers fueran la causa ni reemplaza el gate fallido anterior.
 Autenticación, zoom 200%, lector y QA combinada siguen pendientes.
+
+## Reparación restaurativa · decisión founder del 2026-07-28
+
+### Corte de código y decisión
+
+Capturas y prueba focal regeneradas el 2026-09-10 contra el código de
+`f42e6a4605c0850053832331cf15d71e53e28ca8` (base asignada
+`8ee41f19fb25cfe8b9cd4f01e8110ca507745ed2`). Ese commit restaura la decisión
+del founder del 2026-07-28: `AlibabaAddressGuide` y `ChinaSupplierClip` vuelven
+a estar visibles al cargar y permanecen juntos, fuera del `<details>` que PR #30
+cerró sobre ellos sin declarar la reversión.
+
+La ayuda secundaria sigue plegada por decisión explícita de este slice:
+«Por qué registrar a tu proveedor importa», su mensaje asociado y
+`GuiaAlibabaCard` conservan el `<details>/<summary>` nativo después de la lista,
+el alta y el par operativo. Así se preserva el reordenamiento autorizado por
+SDD-0442 sin esconder el contenido necesario mientras el cliente compra en China.
+
+### Cinco capturas regeneradas
+
+Las cuatro capturas “después” se produjeron con el harness versionado
+`qa/serve.mjs` + `qa/check.mjs`, Microsoft Edge/Chromium y datos ficticios. El
+harness cargó el checkout en `f42e6a4605c0850053832331cf15d71e53e28ca8`:
+por eso muestran el orden final del header que el set anterior no reflejaba.
+La captura “antes” se ejecutó desde el mismo checkout/SHA con
+`QA_BASELINE=1`; por diseño del harness, solo `PortalAlertasHub.tsx` se obtiene
+de `b8294664` para conservar una comparación histórica auténtica.
+
+| Archivo | Dimensiones | Bytes | SHA-256 |
+|---|---:|---:|---|
+| `before-desktop-light.png` | 1440×1000 | 64.605 | `90640637ccfe1f3b8f351cfad2d74832b6d7df889b71ba62d79af022203896bb` |
+| `desktop-light.png` | 1440×1000 | 96.612 | `76e561e9fce0ed7fc168c351dcb4acb12e1d840b75abc78bef68f2f23755ee5c` |
+| `desktop-dark.png` | 1440×1000 | 92.015 | `0bf349cdf92c379f684dc8656600ebfd7d6fe01246c9912a1aa9bd8f638e1574` |
+| `mobile-light.png` | 390×1069 (full page; viewport 390×844) | 90.018 | `29c51ef2f5e3da8c3ec21654cd5b0a838589a65eb4d8db601a32476d19c5b98b` |
+| `mobile-dark.png` | 390×1069 (full page; viewport 390×844) | 86.414 | `815636f3fbefe22def7e85380e77f6a5f6c4a21d45ea15965cbf4d5253ca4c5e` |
+
+Resultado del harness: PASÓ, exit 0. Doce vistas (Mis envíos, Proveedores y
+Documentos en desktop/móvil y claro/oscuro) quedaron sin overflow horizontal;
+el control documental midió 48 px, mostró foco sólido y alternó con teclado;
+no hubo errores JavaScript. JetBrains Mono estuvo disponible en desktop y no
+confirmada en móvil, límite histórico que estas capturas no pretenden cerrar.
+
+### Regresión y límites
+
+- PASÓ: `SuppliersClient.test.tsx`, 1/1. Afirma que el par founder está visible
+  y fuera del `<details>`; conserva ayuda secundaria plegada, orden después de
+  proveedor/alta y URL de recompra con el proveedor.
+- Cumplimiento A11Y-01/VIS-01: primitiva nativa, foco/teclado conservados,
+  jerarquía restaurada sin tokens, fuentes ni tratamientos nuevos.
+- No aplica BTN-01/CMP-01/LNK-01: no cambia acciones, componentes ni enlaces.
+- Estas son fixtures locales con datos ficticios. No cubren autenticación,
+  Supabase, operaciones reales, lector de pantalla ni zoom nativo 200 %; la
+  revisión visual `/ui-check` corresponde al Director antes de integrar.
+
+### Gate de cierre Worker · 2026-09-10
+
+SHA al iniciar el gate: `188f26c010e3575ef4edae717e1f93c0fd369402`;
+el código de producto medido sigue siendo
+`f42e6a4605c0850053832331cf15d71e53e28ca8`.
+
+- **PASÓ** — `pnpm install --frozen-lockfile`, ejecutado mediante Corepack
+  porque `pnpm` no estaba expuesto en el `PATH`: 932 entradas de política de
+  supply chain y 813 paquetes instalados, sin cambiar el lockfile.
+- **PASÓ** — prueba focal `SuppliersClient.test.tsx`: 1 archivo, 1 prueba.
+- **PASÓ** — `pnpm docs:check` y `pnpm sdd:check`. El índice generado no cambió;
+  numbering conservó 11 advertencias históricas y cerró sin duplicados nuevos.
+- **FALLÓ (TIMEOUT)** — `pnpm verify` no produjo cierre canónico. Antes del
+  atasco pasaron harness 12/12, RSC boundary (1.596 módulos), TypeScript,
+  4 Edge Functions, 6.496/6.496 unitarias en 513 archivos, docs, numbering,
+  feature constants, component registry, governance, 145 contratos SQL y la
+  reconstrucción de 385 migraciones de esquema + 18 ledger-only (219 tablas,
+  2 tenants). ESLint terminó con 0 errores y 8 warnings preexistentes.
+- **NO EJECUTADO** — `migrations-applied`, por ausencia de
+  `NEXT_PUBLIC_SUPABASE_URL` y service role. No se copiaron secretos ni se
+  consultó producción.
+- **FALLÓ (TIMEOUT)** — E2E inició 186 pruebas con 8 workers. Los flujos
+  protegidos reportaron repetidamente la ausencia de URL/key de Supabase; los
+  casos Tier 3 sin fixture sembrada se omitieron. El último evento emitido fue
+  el número 167 y luego Playwright quedó más de 5 minutos sin salida, pese al
+  timeout configurado de 60 segundos por prueba. A los 14,5 minutos del paso se
+  interrumpió de forma controlada; no hubo JSON/resumen final ni quedó un
+  proceso del worktree. No apareció un fallo asociado a Proveedores antes del
+  atasco. Esta evidencia parcial no se presenta como verde ni como cobertura
+  autenticada.
+- **NO EJECUTADO dentro de `pnpm verify` / PASÓ por separado** — el timeout de
+  E2E impidió que el gate alcanzara `build`. `node scripts/check-build.mjs`
+  terminó luego con exit 0: compilación, TypeScript, 160 páginas estáticas,
+  postbuild Norte y restauración de `tsconfig.json`.
+
+Por tanto, la implementación y su regresión focal están verificadas, pero el
+gate canónico queda **FALLÓ (TIMEOUT)**. No certifica E2E autenticado, Supabase,
+UAT, producción, lector de pantalla ni zoom nativo 200 %.

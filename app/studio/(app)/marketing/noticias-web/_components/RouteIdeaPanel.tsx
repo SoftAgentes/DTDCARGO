@@ -222,7 +222,7 @@ function RouteIdeaResultView({
         <div className="flex flex-col gap-1.5 min-w-0">
           <span className="eyebrow">Veredicto del cerebro</span>
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge tone={isFlujoA ? "success" : "wine"} size="md" dot>
+            <Badge tone={isFlujoA ? "success" : "wine"} size="md">
               {isFlujoA ? "Flujo A · Noticia" : "Flujo B · Redes / WhatsApp"}
             </Badge>
             <Badge tone="neutral" size="md">

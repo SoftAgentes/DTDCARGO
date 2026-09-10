@@ -229,7 +229,7 @@ export function UsersClient({
                       gap: "var(--s-2)",
                     }}
                   >
-                    <Badge tone={roleBadgeTone(r)} size="sm" dot>
+                    <Badge tone={roleBadgeTone(r)} size="sm">
                       {ROLE_LABELS[r]}
                     </Badge>
                     <span

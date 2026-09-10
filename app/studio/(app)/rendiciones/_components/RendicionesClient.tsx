@@ -247,7 +247,7 @@ export function RendicionesClient({
                     </td>
                     <td style={cellNum}>{r.receipt_count}</td>
                     <td style={{ padding: "10px 14px" }}>
-                      <Badge tone={renditionStatusTone(r.status)} dot>
+                      <Badge tone={renditionStatusTone(r.status)}>
                         {renditionStatusLabel(r.status)}
                       </Badge>
                     </td>

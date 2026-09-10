@@ -4,7 +4,7 @@ title: "Datos de la empresa: el error deja de ser mudo — y son DOS gates, no u
 status: in-progress
 author: "founder"
 created: 2026-08-25
-updated: 2026-08-25
+updated: 2026-09-10
 supersedes: null
 superseded_by: null
 related: ["0298", "0297", "0120", "0273"]
@@ -127,3 +127,30 @@ mensaje está en nombrar su contexto.
 navegador. La cadena está probada por tipos y por la función pura; que el texto
 llegue al usuario depende del `FormError` que ya existía en la línea 146 del
 drawer y que no se tocó.
+
+## Cierre de la deuda de frontera client→Node (2026-09-10)
+
+La advertencia anterior no era hipotética. Webpack reprodujo esta traza desde
+un componente cliente de Usuarios:
+
+```text
+node:crypto
+  <- lib/studio/audit/d1-access-config-adapters.ts
+  <- app/studio/(app)/usuarios/_components/ficha/RolYAlcanceCard.tsx
+  <- app/studio/(app)/usuarios/_components/UserDetailDrawer.tsx
+  <- app/studio/(app)/usuarios/_components/UsersClient.tsx
+```
+
+`RolYAlcanceCard` sólo necesitaba `D1_REASON_MIN_LENGTH`. El umbral pasa a
+`lib/studio/audit/d1-access-config.shared.ts`, un módulo puro sin imports; el
+adapter de servidor lo consume y lo reexporta por compatibilidad, mientras el
+componente cliente importa directamente el módulo compartido. No cambia el
+número, la validación ni ningún texto visible.
+
+La protección durable amplía `scripts/check-rsc-boundary.mjs`: desde cada raíz
+`"use client"` recorre imports/reexports locales de runtime y falla si alcanza
+un esquema `node:*`, mostrando la traza completa. Los imports de tipo se ignoran
+y un módulo de archivo `"use server"` corta el recorrido, porque esa es la
+frontera legítima de Server Actions. La prueba focal cubre la fuga transitiva,
+la frontera `"use server"`, el borrado de tipos y conserva el chequeo inverso
+server→client que ya existía.

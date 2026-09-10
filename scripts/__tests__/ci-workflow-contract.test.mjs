@@ -50,6 +50,7 @@ describe("SDD-0349 · CI de calidad sin secretos", () => {
       "pnpm harness:test",
       "pnpm docs:check",
       "pnpm sdd:check",
+      "node scripts/check-pending-migration-symbols.mjs",
       "node scripts/check-feature-constants.mjs",
       "pnpm components:check",
       "pnpm governance:check",
@@ -138,5 +139,50 @@ describe("SDD-0444 · el harness es obligatorio en CI", () => {
   it("una mención del comando en un comentario no sustituye el paso", () => {
     const commented = workflow.replace("run: pnpm harness:test", "# run: pnpm harness:test");
     expect(() => assertRequiredHarness(loadYaml(commented).jobs.quality)).toThrow();
+  });
+});
+
+function assertRequiredPendingMigrationSymbols(job) {
+  if (!job || Object.hasOwn(job, "if") || Object.hasOwn(job, "continue-on-error")) {
+    throw new Error("El job de calidad debe ser obligatorio y propagar fallos");
+  }
+  const command = "node scripts/check-pending-migration-symbols.mjs";
+  const steps = job.steps?.filter((step) => step.run?.trim() === command) ?? [];
+  if (steps.length !== 1) {
+    throw new Error("Falta un único paso ejecutable para símbolos de migraciones pendientes");
+  }
+  if (Object.hasOwn(steps[0], "if") || Object.hasOwn(steps[0], "continue-on-error")) {
+    throw new Error("El check de símbolos pendientes debe correr sin condición ni tolerancia de errores");
+  }
+}
+
+describe("SDD-0450 · el check repo contra repo es obligatorio en CI", () => {
+  const qualityJob = loadYaml(workflow).jobs.quality;
+  const command = "node scripts/check-pending-migration-symbols.mjs";
+
+  it("ejecuta el check como paso propio y propaga su resultado", () => {
+    expect(() => assertRequiredPendingMigrationSymbols(qualityJob)).not.toThrow();
+  });
+
+  it.each([
+    ["paso eliminado", (job) => {
+      job.steps = job.steps.filter((step) => step.run !== command);
+    }],
+    ["comando solo impreso", (job) => {
+      job.steps.find((step) => step.run === command).run = `echo ${command}`;
+    }],
+    ["fallo oculto por el shell", (job) => {
+      job.steps.find((step) => step.run === command).run += " || true";
+    }],
+    ["paso condicionado", (job) => {
+      job.steps.find((step) => step.run === command).if = "github.event_name == 'workflow_dispatch'";
+    }],
+    ["error ignorado", (job) => {
+      job.steps.find((step) => step.run === command)["continue-on-error"] = true;
+    }],
+  ])("rechaza %s", (_name, mutate) => {
+    const job = structuredClone(qualityJob);
+    mutate(job);
+    expect(() => assertRequiredPendingMigrationSymbols(job)).toThrow();
   });
 });

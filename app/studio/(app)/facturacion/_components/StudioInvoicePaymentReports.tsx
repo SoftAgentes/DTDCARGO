@@ -96,7 +96,7 @@ function ReportRow({ item, first }: { item: ReportWithProof; first: boolean }) {
         <span style={{ font: "800 14px/1 var(--f-mono)", color: "var(--ink)" }}>
           {report.currency} ${fmt(report.amount)}
         </span>
-        <Badge tone={paymentStatusTone(status)} size="sm" dot>
+        <Badge tone={paymentStatusTone(status)} size="sm">
           {paymentStatusLabel(status)}
         </Badge>
         <span

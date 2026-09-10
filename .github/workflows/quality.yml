@@ -74,6 +74,9 @@ jobs:
       - name: Numeracion SDD y migraciones
         run: pnpm sdd:check
 
+      - name: Codigo contra migraciones pendientes
+        run: node scripts/check-pending-migration-symbols.mjs
+
       - name: Constantes de features
         run: node scripts/check-feature-constants.mjs
 

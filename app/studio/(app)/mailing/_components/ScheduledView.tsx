@@ -212,7 +212,7 @@ export function ScheduledView({ scheduled }: Props) {
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Badge tone={scheduledStatusBadgeTone(it.status)} size="sm" dot>
+                <Badge tone={scheduledStatusBadgeTone(it.status)} size="sm">
                   {scheduledStatusLabel(it.status)}
                 </Badge>
 

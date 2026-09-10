@@ -358,7 +358,7 @@ function PostingBar({
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         {posted ? (
           <>
-            <Badge tone="success" size="md" dot>
+            <Badge tone="success" size="md">
               Asentado · {posted.postedAt.slice(0, 10)}
             </Badge>
             <span

@@ -155,7 +155,7 @@ export function BillDrawer({
           }}
         >
           <div>
-            <Badge tone={billStatusTone(bill.status)} dot>
+            <Badge tone={billStatusTone(bill.status)}>
               {billStatusLabel(bill.status)}
             </Badge>
             <div

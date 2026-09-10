@@ -140,7 +140,7 @@ export function PoDrawer({
             flexWrap: "wrap",
           }}
         >
-          <Badge tone={purchaseOrderStatusTone(po.status)} dot>
+          <Badge tone={purchaseOrderStatusTone(po.status)}>
             {purchaseOrderStatusLabel(po.status)}
           </Badge>
           <div style={{ textAlign: "right" }}>

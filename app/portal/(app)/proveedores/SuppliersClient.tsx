@@ -115,6 +115,19 @@ export function SuppliersClient({
         )}
       </div>
 
+      {/* ── Dirección de nuestra bodega CN, en el formato que piden
+          Alibaba/1688/Taobao: campo por campo, con copia individual y el
+          Shipping Mark ya puesto. Reemplaza a la card local que armaba el mismo
+          texto con menos campos y una sola copia a granel. ── */}
+      {/* El par del momento "estoy comprando en China": qué pongo en el
+          formulario de la web de compra, y qué le mando al proveedor por
+          WeChat. Van juntos a propósito — separados, el cliente encontraba uno
+          sin enterarse del otro (founder 2026-07-28). */}
+      <div className="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+        <AlibabaAddressGuide markbox={markbox} />
+        <ChinaSupplierClip markbox={markbox} />
+      </div>
+
       <details className="mt-6">
         <summary className="min-h-12 cursor-pointer py-3 text-sm font-semibold text-ink underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink">
           Ayuda para comprar y enviar desde China
@@ -160,19 +173,6 @@ export function SuppliersClient({
           Copia el código y envíaselo SOLO al proveedor — a nosotros nos llega
           automático al registrarlo.
         </p>
-      </div>
-
-      {/* ── Dirección de nuestra bodega CN, en el formato que piden
-          Alibaba/1688/Taobao: campo por campo, con copia individual y el
-          Shipping Mark ya puesto. Reemplaza a la card local que armaba el mismo
-          texto con menos campos y una sola copia a granel. ── */}
-      {/* El par del momento "estoy comprando en China": qué pongo en el
-          formulario de la web de compra, y qué le mando al proveedor por
-          WeChat. Van juntos a propósito — separados, el cliente encontraba uno
-          sin enterarse del otro (founder 2026-07-28). */}
-      <div className="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
-        <AlibabaAddressGuide markbox={markbox} />
-        <ChinaSupplierClip markbox={markbox} />
       </div>
 
       {/* Tercer elemento del mismo momento: el cliente que nunca compró en Alibaba
