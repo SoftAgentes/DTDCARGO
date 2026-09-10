@@ -10,6 +10,7 @@ app/portal/_components/InvoiceStatusBadge.tsx
 app/portal/_components/PrealertaStatusBadge.tsx
 app/portal/_components/StatusBadge.tsx
 app/studio/(app)/tarifas/_components/RateDrawer.tsx
+app/studio/(app)/tarifas/_components/RateDrawer.test.tsx
 app/studio/(app)/tracking/_components/StatusBadge.tsx
 app/studio/_components/ui/Badge.tsx
 app/studio/_components/ui/ErrorAlert.tsx
