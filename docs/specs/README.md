@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 394 specs)
+### Índice de specs (generado · 395 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -383,6 +383,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0376 | Comprobaciones Git agrupadas sin relajar el cierre seguro | done | interno |
 | 0378 | Verificacion local sin falsos verdes y aislamiento de pruebas… | done | interno |
 | 0379 | Parche compatible del fflate transitivo y contratos de replay | done | interno |
+| 0380 | Lectura de cotizaciones Portal ligada al principal y tenant | in-progress | interno |
 | 0383 | Frontera AST de service_role en componentes Portal | in-progress | interno |
 | 0384 | Acciones de Perfil Portal por principal y tenant | in-progress | interno |
 | 0386 | Web Push Portal por principal y tenant coherentes | done | interno |
@@ -433,5 +434,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0448 | Replay del estado final de 0222/0223 en calculator_settings | in-progress | interno |
 | 0449 | Observabilidad estructurada en acciones de Usuarios | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357, 0358, 0359, 0361, 0362, 0363, 0364, 0365, 0366, 0368, 0372, 0375, 0377, 0380, 0381, 0382, 0385, 0400, 0401, 0402, 0403, 0404, 0405, 0406, 0407, 0408, 0409, 0410, 0411, 0412, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357, 0358, 0359, 0361, 0362, 0363, 0364, 0365, 0366, 0368, 0372, 0375, 0377, 0381, 0382, 0385, 0400, 0401, 0402, 0403, 0404, 0405, 0406, 0407, 0408, 0409, 0410, 0411, 0412, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
