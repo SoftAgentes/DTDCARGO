@@ -6,22 +6,28 @@ import {
   uploadCedulaPhotoAction,
   type CedulaPhotoActionState,
 } from "./actions";
+import Link from "next/link";
 
 const initial: CedulaPhotoActionState = {};
 
 /**
  * Fila de documento "Cédula / RIF" de Identidad y documentos (Norte docRow ·
  * SDD-0145). Dos estados:
- *  - Cargada  → check verde + "Ver" (signed URL server-side, 1h).
+ *  - Cargada  → check verde + "Ver" (signed URL server-side, 60 s).
  *  - Pendiente → subida inline (picker + auto-submit, mismo patrón que
  *    AvatarEditor). Reemplaza al form "Completa tu perfil" para la foto.
+ * El reemplazo queda fail-closed hasta activar los controles de privacidad
+ * documentados para versiones históricas.
  */
 export function CedulaPhotoRow({
   label,
+  hasExistingPhoto,
   viewUrl,
 }: {
   label: string;
-  /** Signed URL de la foto ya cargada, o null si falta. */
+  /** Existencia persistida; no depende de que la firma temporal haya servido. */
+  hasExistingPhoto: boolean;
+  /** Signed URL temporal, o null si no pudo firmarse. */
   viewUrl: string | null;
 }) {
   const [state, action, pending] = useActionState(
@@ -29,14 +35,15 @@ export function CedulaPhotoRow({
     initial,
   );
   const fileRef = useRef<HTMLInputElement>(null);
-  const done = !!viewUrl;
+  const done = hasExistingPhoto;
+  const canChoose = !done;
 
   return (
     <div>
       {/* Pendiente → borde izquierdo ámbar (SDD-0151): que la fila resalte, no
           solo el punto tenue. Cargada → borde neutro. */}
       <div
-        className="flex items-center gap-3 rounded-[10px] bg-paper border border-grey-200 px-4 py-3"
+        className="flex flex-wrap items-center gap-3 rounded-[10px] bg-paper border border-grey-200 px-4 py-3 sm:flex-nowrap"
         style={
           done
             ? undefined
@@ -61,16 +68,27 @@ export function CedulaPhotoRow({
           {label}
         </span>
 
-        {done ? (
-          <a
-            href={viewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-shrink-0 text-[12.5px] font-bold text-wine-text hover:text-wine-deep"
-          >
-            Ver
-          </a>
-        ) : (
+        <div className="ml-auto flex w-full items-center justify-end gap-2 sm:w-auto sm:flex-shrink-0">
+          {done && viewUrl ? (
+            <a
+              href={viewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-h-11 rounded-[4px] px-1 inline-flex items-center text-[12.5px] font-bold text-wine-text hover:text-wine-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+            >
+              Ver
+            </a>
+          ) : done ? (
+            <span className="text-[11.5px] font-semibold text-grey-700">
+              Vista temporal no disponible
+            </span>
+          ) : (
+            <span className="text-[11px] font-bold tracking-[0.08em] uppercase text-grey-700">
+              Pendiente
+            </span>
+          )}
+
+          {canChoose ? (
           <form action={action} className="flex items-center gap-3 flex-shrink-0">
             <input
               ref={fileRef}
@@ -83,11 +101,6 @@ export function CedulaPhotoRow({
                   e.currentTarget.form?.requestSubmit();
               }}
             />
-            {/* grey-700: --color-status-warning sobre paper no llega a 4.5:1
-                en tema claro (AA texto pequeño); el ámbar queda en el punto. */}
-            <span className="text-[11px] font-bold tracking-[0.08em] uppercase text-grey-700">
-              Pendiente
-            </span>
             <button
               type="button"
               disabled={pending}
@@ -98,13 +111,27 @@ export function CedulaPhotoRow({
                 if (fileRef.current) fileRef.current.value = "";
                 fileRef.current?.click();
               }}
-              className="text-[12.5px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60"
+              className="min-h-11 rounded-[4px] px-1 text-[12.5px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             >
-              {pending ? "Subiendo…" : "Subir foto"}
+              {pending ? "Subiendo…" : done ? "Cambiar foto" : "Subir foto"}
             </button>
           </form>
-        )}
+          ) : null}
+        </div>
       </div>
+
+      <p className="mt-2 text-[12px] text-grey-500 leading-[1.5]">
+        JPG, PNG, WebP o HEIC · máximo 8 MB. La foto queda privada y la usa el
+        equipo de DTD para verificar tu identidad. {done ? "El reemplazo directo está temporalmente deshabilitado." : "La primera carga no usa tu cupo."}
+      </p>
+      {done ? (
+        <Link
+          href="/portal/soporte?tema=datos"
+          className="min-h-11 rounded-[4px] inline-flex items-center text-[12px] font-semibold text-wine-text hover:text-wine-deep focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+        >
+          Solicitar reemplazo del documento
+        </Link>
+      ) : null}
 
       {/* role="status" SIEMPRE montado (texto condicional adentro): varios
           lectores de pantalla no anuncian regiones que nacen junto con su
@@ -127,8 +154,10 @@ export function CedulaPhotoRow({
       >
         {state.error
           ? state.error
-          : state.ok && !done
-            ? "Foto recibida. Tu asesor la revisa antes de tu primera carga."
+          : state.ok
+            ? done
+              ? "Foto actualizada."
+              : "Foto recibida. Tu asesor la revisa antes de tu primera carga."
             : ""}
       </p>
     </div>

@@ -40,8 +40,8 @@ export function DocumentsClient({ docs }: { docs: PortalDocView[] }) {
                 type="button"
                 onClick={() => setType(c.key)}
                 aria-pressed={on}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[12.5px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
-                  on ? "bg-white text-wine-text card-shadow" : "text-grey-500 hover:text-ink"
+                className={`inline-flex items-center gap-1.5 min-h-12 rounded-full px-4 py-2 text-[12.5px] font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink ${
+                  on ? "bg-white text-ink underline underline-offset-4 card-shadow" : "text-grey-500 hover:text-ink"
                 }`}
               >
                 {c.label}
@@ -141,7 +141,7 @@ function DocCard({ doc }: { doc: PortalDocView }) {
       <div className="mt-4 pt-3 border-t border-grey-200 flex items-center justify-between gap-2">
         <span className="text-[11.5px] text-grey-500">{doc.meta}</span>
         {doc.url ? (
-          <span className="text-[12.5px] font-semibold text-wine-text inline-flex items-center gap-1">
+          <span className="text-[12.5px] font-semibold text-ink underline underline-offset-4 inline-flex items-center gap-1">
             {abre ? "Ver" : "Descargar"}{" "}
             <ArrowIcon
               size={13}
@@ -149,7 +149,7 @@ function DocCard({ doc }: { doc: PortalDocView }) {
             />
           </span>
         ) : (
-          <span className="text-[12px] text-grey-500">No se pudo abrir</span>
+          <span className="text-[12px] text-grey-500">Enlace no disponible</span>
         )}
       </div>
     </>
@@ -157,14 +157,14 @@ function DocCard({ doc }: { doc: PortalDocView }) {
 
   if (!doc.url) {
     return (
-      <div className="bg-white border border-grey-200 rounded-[16px] p-5 opacity-70">
+      <div className="bg-white border border-grey-200 rounded-[16px] p-5">
         {body}
       </div>
     );
   }
 
   const clase =
-    "card-link group block bg-white border border-grey-200 rounded-[16px] p-5 transition-colors hover:border-ink focus-visible:border-ink";
+    "card-link group block bg-white border border-grey-200 rounded-[16px] p-5 transition-colors hover:border-ink focus-visible:border-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
 
   // SDD-0308 · un documento que vive DENTRO del portal (hoy el packing list del
   // proveedor) no se descarga: se abre. Sacarlo en pestaña nueva con `<a
@@ -184,7 +184,7 @@ function DocCard({ doc }: { doc: PortalDocView }) {
       target="_blank"
       rel="noopener noreferrer"
       className={clase}
-      aria-label={etiquetaAccesible}
+      aria-label={`${etiquetaAccesible} · abre en una pestaña nueva`}
     >
       {body}
     </a>

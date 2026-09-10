@@ -167,7 +167,7 @@ export const STATUS_COLORS: Record<ShipmentStatus, string> = {
   consolidating: "#0F1E3D",
   shipped: "#0F1E3D",
   in_transit: "#0F1E3D",
-  in_customs: "#B8893A",
+  in_customs: "#0F1E3D",
   arrived_destination: "#0F1E3D",
   delayed_warehouse: "#B8893A",
   out_for_delivery: "#0F1E3D",
@@ -175,4 +175,12 @@ export const STATUS_COLORS: Record<ShipmentStatus, string> = {
   delivered: "#1F8A5B",
   exception: "#C2353F",
   cancelled: "#6B6B6B",
+};
+
+/** SDD-0441: presentación por significado; no cambia el ciclo de envío. */
+export const STATUS_TONES: Record<ShipmentStatus, "neutral" | "info" | "success" | "warning" | "danger"> = {
+  draft: "neutral", in_warehouse: "info", consolidating: "info", shipped: "info",
+  in_transit: "info", in_customs: "info", arrived_destination: "info",
+  delayed_warehouse: "warning", out_for_delivery: "info", last_mile: "info",
+  delivered: "success", exception: "danger", cancelled: "neutral",
 };

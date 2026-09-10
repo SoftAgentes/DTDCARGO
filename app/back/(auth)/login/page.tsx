@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { StatusIcon } from "@/components/StatusIcon";
 import { signIn, type SignInState } from "./actions";
 
 const initialState: SignInState = {};
@@ -160,15 +161,19 @@ export default function BackLoginPage() {
           <div
             role="alert"
             style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
               padding: "10px 12px",
-              background: "rgba(194,53,63,0.18)",
-              border: "1px solid rgba(194,53,63,0.35)",
+              background: "transparent",
+              border: "1px solid var(--color-status-danger-on-dark)",
               borderRadius: 6,
-              color: "#FFC2C7",
+              color: "var(--color-on-accent)",
               font: "500 12.5px/1.4 Archivo, sans-serif",
             }}
           >
-            {state.error}
+            <StatusIcon tone="danger" style={{ color: "var(--color-status-danger-on-dark)" }} />
+            <span>{state.error}</span>
           </div>
         )}
 

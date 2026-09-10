@@ -150,7 +150,7 @@ export const STATUS_LABELS: Record<ConversationStatus, string> = {
 };
 
 export const STATUS_TONES: Record<ConversationStatus, BadgeTone> = {
-  abierto: "warning",
+  abierto: "info",
   pendiente: "info",
   resuelto: "success",
 };

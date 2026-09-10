@@ -65,10 +65,10 @@ export function paymentStatusLabel(s: PaymentStatus, locale: Locale): string {
   return t(locale, PAYMENT_STATUS_LABEL_KEYS[s]);
 }
 
-export const PAYMENT_STATUS_TONES: Record<PaymentStatus, "success" | "warning" | "danger"> = {
+export const PAYMENT_STATUS_TONES: Record<PaymentStatus, "success" | "info"> = {
   pagado: "success",
-  parcial: "warning",
-  pendiente: "danger",
+  parcial: "info",
+  pendiente: "info",
 };
 
 export type WarehouseReceipt = {
@@ -184,7 +184,7 @@ export function receiptStatusLabel(
  * - danger  → alerta / problema
  */
 export const RECEIPT_STATUS_TONES: Record<WarehouseReceiptStatus, BadgeTone> = {
-  pendiente_consolidacion: "warning",
+  pendiente_consolidacion: "info",
   consolidado: "success",
   incidencia: "danger",
 };

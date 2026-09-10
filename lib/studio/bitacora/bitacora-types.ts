@@ -112,7 +112,7 @@ export const ESTADO_META: Record<
 > = {
   pendiente: { label: "Pendiente", tone: "neutral" },
   en_curso: { label: "En curso", tone: "info" },
-  en_revision: { label: "En revisión", tone: "warning" },
+  en_revision: { label: "En revisión", tone: "info" },
   hecho: { label: "Hecho", tone: "success" },
 };
 
@@ -130,7 +130,7 @@ export const TIPO_META: Record<
   { label: string; tone: BitacoraBadgeTone }
 > = {
   empleado: { label: "Interna", tone: "neutral" },
-  entregable_cliente: { label: "Esperando al cliente", tone: "warning" },
+  entregable_cliente: { label: "Esperando al cliente", tone: "info" },
 };
 
 export const ROLE_QUEUE_LABELS: Record<BitacoraAssignableRole, string> = {

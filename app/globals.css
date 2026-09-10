@@ -84,6 +84,9 @@
 /* VIS-02 · chino por contexto. El alias histórico --f-cn permanece en UI
    y Noto Serif SC solo queda disponible para documento formal lang="zh-CN". */
 :root {
+  /* SDD-0441: navy fijo aprobado BD-027, incluso cuando ink invierte por tema. */
+  --on-warning: #0F1E3D;
+  --calc-ink-secondary: rgba(255, 255, 255, 0.75);
   --f-cn-ui:
     var(--font-noto-sc), "Noto Sans SC", var(--font-archivo), "Archivo",
     system-ui, sans-serif;
@@ -110,7 +113,7 @@
   --hero-fill-strong: rgba(255, 255, 255, 0.15); /* badge sobre el navy */
   --hero-border: rgba(255, 255, 255, 0.3);       /* borde de botón ghost sobre navy */
   --hero-accent: #dd8088;          /* wine suave que lee sobre navy */
-  --portal-info: #2c5d8f;          /* azul informativo (KPI Facturado · actividad) */
+  --portal-info: var(--color-ink); /* SDD-0441: información operativa neutra */
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -150,7 +153,7 @@
   /* El héroe sube un escalón sobre el fondo navy de la página (resalta como card) */
   --hero-from: #1b2e54;
   --hero-to: #25406c;
-  --portal-info: #5b9bd5;
+  --portal-info: var(--color-ink);
   color-scheme: dark;
 }
 
@@ -989,31 +992,21 @@
   background: currentColor;
   flex-shrink: 0;
 }
-.badge-status-info {
+/* SDD-0441: el tono queda en el punto; el texto siempre se lee. */
+.badge-status-info { --badge-accent: var(--color-ink); }
+.badge-status-success { --badge-accent: var(--color-status-success); }
+.badge-status-warning { --badge-accent: var(--color-status-warning); }
+.badge-status-danger { --badge-accent: var(--color-status-danger); }
+.badge-status-neutral { --badge-accent: var(--color-grey-500); }
+.badge-status {
   color: var(--color-ink);
-  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
   border-color: color-mix(in srgb, var(--color-ink) 20%, transparent);
 }
-.badge-status-success {
-  color: var(--color-status-success);
-  background: color-mix(in srgb, var(--color-status-success) 8%, transparent);
-  border-color: color-mix(in srgb, var(--color-status-success) 20%, transparent);
-}
-.badge-status-warning {
-  color: var(--color-status-warning);
-  background: color-mix(in srgb, var(--color-status-warning) 8%, transparent);
-  border-color: color-mix(in srgb, var(--color-status-warning) 20%, transparent);
-}
-.badge-status-danger {
-  color: var(--color-status-danger);
-  background: color-mix(in srgb, var(--color-status-danger) 8%, transparent);
-  border-color: color-mix(in srgb, var(--color-status-danger) 20%, transparent);
-}
-.badge-status-neutral {
-  color: var(--color-grey-500);
-  background: color-mix(in srgb, var(--color-grey-500) 8%, transparent);
-  border-color: color-mix(in srgb, var(--color-grey-500) 20%, transparent);
-}
+.badge-status-dot { background: var(--badge-accent, var(--color-ink)); }
+.badge-status > svg { color: var(--badge-accent, var(--color-ink)); }
+/* El icono dorado requiere superficie sólida: sobre el tinte neutro daba <3:1. */
+.badge-status.badge-status-warning { background: var(--color-white); }
 
 /* ──────────────────────────────────────────────────────────────────
    Ocean Drift — container del Hero en oleaje calmo.
@@ -1992,7 +1985,7 @@
   /* Estado */
   --success: var(--color-status-success);
   --warning: var(--color-status-warning);
-  --on-warning: var(--color-ink); /* navy fijo sobre relleno warning */
+  --on-warning: #0F1E3D; /* navy fijo aprobado BD-027; no invertir con el tema */
   /* Sombras (navy · espejo de .card-shadow del brand book) */
   --shadow-sm: 0 1px 3px rgba(15, 30, 61, 0.06), 0 1px 2px rgba(15, 30, 61, 0.04);
   --shadow-md: 0 2px 6px rgba(15, 30, 61, 0.06), 0 8px 16px rgba(15, 30, 61, 0.08);
