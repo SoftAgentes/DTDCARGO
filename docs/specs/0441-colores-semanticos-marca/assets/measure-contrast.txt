@@ -1,0 +1,9 @@
+(() => {
+const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');canvas.width=canvas.height=1;
+const rgba=color=>{ctx.clearRect(0,0,1,1);ctx.fillStyle=color;ctx.fillRect(0,0,1,1);return [...ctx.getImageData(0,0,1,1).data].map((x,i)=>i===3?x/255:x)};
+const blend=(fg,bg)=>fg.slice(0,3).map((v,i)=>v*fg[3]+bg[i]*(1-fg[3]));
+const lum=c=>c.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);
+const ratio=(a,b)=>{const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+const bgOf=el=>{const stack=[];for(let n=el;n;n=n.parentElement)stack.unshift(rgba(getComputedStyle(n).backgroundColor));return stack.reduce((bg,fg)=>blend(fg,bg),[255,255,255]);};
+return JSON.stringify([...document.querySelectorAll('main span')].filter(e=>e.firstElementChild?.tagName==='svg').map(e=>{const bg=bgOf(e);return {text:e.textContent,textRatio:+ratio(blend(rgba(getComputedStyle(e).color),bg),bg).toFixed(2),iconRatio:+ratio(blend(rgba(getComputedStyle(e.firstElementChild).color),bg),bg).toFixed(2)}}));
+})()

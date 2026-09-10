@@ -73,7 +73,7 @@ describe("labels + badge tones", () => {
 
   it("estado mapea label y tono esperados", () => {
     expect(statusLabel("abierto")).toBe("Abierto");
-    expect(statusTone("abierto")).toBe("warning");
+    expect(statusTone("abierto")).toBe("info");
     expect(statusTone("pendiente")).toBe("info");
     expect(statusTone("resuelto")).toBe("success");
     expect(Object.keys(STATUS_LABELS).sort()).toEqual(["abierto", "pendiente", "resuelto"]);

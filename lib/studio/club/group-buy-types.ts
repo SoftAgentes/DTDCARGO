@@ -108,10 +108,10 @@ export function groupBuyStatusTone(
   s: GroupBuyStatus,
 ): "success" | "warning" | "wine" | "info" | "neutral" {
   return {
-    abierta: "success",
-    cerrada: "warning",
-    en_consolidacion: "wine",
-    completada: "info",
+    abierta: "info",
+    cerrada: "neutral",
+    en_consolidacion: "info",
+    completada: "success",
     cancelada: "neutral",
   }[s] as "success" | "warning" | "wine" | "info" | "neutral";
 }

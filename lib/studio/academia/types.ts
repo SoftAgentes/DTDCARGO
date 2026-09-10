@@ -186,7 +186,7 @@ export function courseStatusLabel(s: CourseStatus): string {
 
 /** Tono de Badge para el estado del curso (tonos del sistema). */
 export function courseStatusTone(s: CourseStatus): "neutral" | "warning" | "success" {
-  return { borrador: "neutral", proximamente: "warning", publicado: "success" }[s] as
+  return { borrador: "neutral", proximamente: "info", publicado: "success" }[s] as
     "neutral" | "warning" | "success";
 }
 
@@ -203,7 +203,7 @@ export function cohortStatusLabel(s: CohortStatus): string {
 
 /** Tono de Badge para el estado de la cohorte (tonos del sistema). */
 export function cohortStatusTone(s: CohortStatus): "neutral" | "warning" | "wine" | "success" {
-  return { proximamente: "neutral", en_curso: "wine", completado: "success" }[s] as
+  return { proximamente: "neutral", en_curso: "info", completado: "success" }[s] as
     "neutral" | "wine" | "success";
 }
 
