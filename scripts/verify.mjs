@@ -353,6 +353,9 @@ const STEPS = [
   // un archivo del repo no está aplicado. DEGRADA CON GRACIA: sin creds/red/RPC
   // → SKIP (no rojo), igual que el e2e. `retry: 1` porque toca la red.
   { name: "migrations-applied", argv: ["scripts/check-migrations-applied.mjs"], retry: 1 },
+  // ¿El código alcanzable desde app depende de un símbolo que sólo nace en una
+  // migración declarada pendiente? Repo contra repo: no usa red, credenciales ni SKIP.
+  { name: "pending-migration-symbols", argv: ["scripts/check-pending-migration-symbols.mjs"] },
   // Contratos de SQL (supabase/tests/*.test.sql) contra un Postgres desechable en
   // Docker: RLS, GRANTs, triggers de inmutabilidad. Existían pero no los corría
   // nadie — un contrato que nadie verifica se degrada en silencio (basta un GRANT
