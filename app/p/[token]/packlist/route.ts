@@ -59,14 +59,13 @@ export async function GET(
   try {
     filled = fillPacklist(templateBytes, {
       markbox: data.markbox,
-      clientName: data.clientName ?? "",
+      clientName: "",
       supplierName: data.supplierName ?? "",
       supplierWechat: data.supplierWechat ?? "",
       code: data.code,
     });
   } catch {
-    // Si el pre-llenado falla, servimos el template tal cual (el proveedor lo llena).
-    filled = templateBytes;
+    return new NextResponse("No pudimos preparar tu Excel. Intenta de nuevo.", { status: 502 });
   }
 
   const fileName = `PackingList-${data.code}.xlsx`;
@@ -211,8 +210,11 @@ export async function POST(
     console.warn("[packing POST] notify falló (la fila ya se guardó):", e);
   }
 
+  const { data: labelState, error: labelError } = await admin.from("prealertas").select("boxes")
+    .eq("id", ids.prealertaId).eq("tenant_id", ids.tenantId).maybeSingle();
   return NextResponse.json({
     ok: true,
+    labelsNeedReview: Boolean(labelError) || Number(labelState?.boxes) !== input.totals.ctns,
     folio: row.folio,
     versionNo: row.version_no,
   });

@@ -10,9 +10,10 @@
  * Misma defensa en profundidad que el resto del portal: identidad por SESIÓN
  * (`get_portal_client_id`, helper aislada) → escritura con ADMIN client
  * (service_role) scopeada EXPLÍCITO a ese id (la RLS del portal es read-only
- * para `clients`; el cliente nunca toca el bucket privado directo). Rollback de
- * la foto recién subida si el update falla (no dejar huérfana) + borrado
- * best-effort de la reemplazada (no dejar PII colgada).
+ * para `clients`; el cliente nunca toca el bucket privado directo). Limpieza de
+ * la foto nueva sólo ante rechazo confirmado; una respuesta perdida exige
+ * reconciliar el puntero autorizado antes de decidir. Una foto reemplazada se
+ * conserva en el ledger restringido (SDD-0439), no se borra silenciosamente.
  */
 
 import { revalidatePath } from "next/cache";
@@ -37,6 +38,9 @@ import {
 import { notifyChangeRequestToAdmin } from "@/lib/studio/change-request-notify";
 
 export type CedulaPhotoActionState = { ok?: boolean; error?: string };
+
+const IDENTITY_PHOTO_REPLACEMENT_DISABLED =
+  "Para reemplazar tu documento, solicita ayuda al equipo de soporte. La carga directa desde el portal está temporalmente deshabilitada.";
 
 export async function uploadCedulaPhotoAction(
   _prev: CedulaPhotoActionState,
@@ -63,21 +67,26 @@ export async function uploadCedulaPhotoAction(
   }
 
   // 3. Estado actual (scopeado al id verificado por sesión): tenant + markbox
-  //    para el path y si ya había una foto (reemplazo).
+  //    para construir el path privado. Los reemplazos quedan fail-closed hasta
+  //    que estén activos la retención, el hold y el control regional de acceso.
+  //    Esta comprobación ocurre ANTES de subir para no crear otro objeto
+  //    sensible que luego dependa de un rollback.
   const { data: row, error: rowErr } = await admin
     .from("clients")
-    .select("tenant_id, markbox, cedula_photo_path")
+    .select("tenant_id, markbox, cedula_photo_path, deleted_at")
     .eq("id", clientId)
     .maybeSingle<{
       tenant_id: string;
       markbox: string;
       cedula_photo_path: string | null;
+      deleted_at: string | null;
     }>();
-  if (rowErr || !row) {
+  if (rowErr || !row || row.deleted_at != null) {
     return { error: "No pudimos cargar tu cuenta. Prueba de nuevo." };
   }
-  const oldPath = String(row.cedula_photo_path ?? "").trim() || null;
-
+  if (String(row.cedula_photo_path ?? "").trim()) {
+    return { error: IDENTITY_PHOTO_REPLACEMENT_DISABLED };
+  }
   // 4. Subir la foto nueva al bucket privado (path nuevo por subida).
   const up = await uploadClientPhoto(admin, row.tenant_id, row.markbox, v.file);
   if (up.error || !up.path) {
@@ -85,20 +94,107 @@ export async function uploadCedulaPhotoAction(
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
   }
 
-  // 5. Update con rollback de la foto recién subida si falla.
-  const { error: updErr } = await admin
-    .from("clients")
-    .update({ cedula_photo_path: up.path })
-    .eq("id", clientId);
-  if (updErr) {
-    await admin.storage.from(PHOTO_BUCKET).remove([up.path]).catch(() => {});
-    console.error("[uploadCedulaPhotoAction] update error:", updErr);
-    return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
+  // 5. RPC self-scope: actualiza el puntero y, si es reemplazo, consume un cupo
+  //    en la MISMA transacción. La primera foto es gratuita (SDD-0439).
+  let updErr: { code?: string; message?: string } | null = null;
+  let mutationStatus = 0;
+  try {
+    const result = await supabase.rpc("portal_set_identity_photo", {
+      p_new_path: up.path,
+    });
+    updErr = result.error;
+    mutationStatus = result.status;
+  } catch {
+    // Transporte/SDK puede lanzar o devolver error. Ninguno prueba rollback.
+    updErr = {};
   }
+  if (updErr) {
+    const uncertain = () => {
+      console.error("[uploadCedulaPhotoAction] update uncertain", {
+        reason: "identity_photo_requires_reconciliation",
+      });
+      return {
+        error:
+          "No pudimos confirmar el estado de tu foto. Conservamos la carga para no perderla. Escríbenos por soporte antes de volver a subirla.",
+      };
+    };
+    // La sesión puede cambiar durante el upload. No reconciliar otra cuenta,
+    // un cliente retirado/fusionado ni un prefijo que cambió concurrentemente.
+    let current;
+    try {
+      const identity = await supabase.rpc("get_portal_client_id");
+      if (identity.error || identity.data !== clientId) return uncertain();
+      const result = await admin
+        .from("clients")
+        .select("tenant_id, markbox, cedula_photo_path, deleted_at")
+        .eq("id", clientId)
+        .maybeSingle<{
+          tenant_id: string;
+          markbox: string;
+          cedula_photo_path: string | null;
+          deleted_at: string | null;
+        }>();
+      if (result.error || !result.data) return uncertain();
+      current = result.data;
+    } catch {
+      return uncertain();
+    }
+    if (
+      current.deleted_at != null ||
+      current.tenant_id !== row.tenant_id ||
+      current.markbox !== row.markbox ||
+      !up.path.startsWith(`${row.tenant_id}/${row.markbox}/`) ||
+      up.path.includes("..") || up.path.includes("/avatar/")
+    ) return uncertain();
 
-  // 6. Best-effort: borrar la foto vieja reemplazada.
-  if (oldPath) {
-    await admin.storage.from(PHOTO_BUCKET).remove([oldPath]).catch(() => {});
+    if (current.cedula_photo_path === up.path) {
+      // El servidor sí comprometió la foto. Nunca borrar por el error de red.
+      revalidatePath("/portal");
+      revalidatePath("/portal/perfil");
+      return { ok: true };
+    }
+
+    // Un puntero distinto/null no prueba rollback: el commit puede seguir en
+    // vuelo. Sólo estos rechazos SQL exactos de 0445/0447 prueban no-commit.
+    const rejected = mutationStatus >= 400 && mutationStatus < 500 && [
+      "P0001:identity_photo_replacement_temporarily_disabled",
+      "P0001:profile_edit_limit_reached",
+      "P0001:profile_client_not_found",
+      "22023:invalid_identity_photo_path",
+      "22023:identity_photo_object_not_found",
+      "42501:portal_session_required",
+    ].includes(`${updErr.code}:${updErr.message}`);
+    if (!rejected) return uncertain();
+
+    try {
+      const { error: cleanupErr } = await admin.storage
+        .from(PHOTO_BUCKET)
+        .remove([up.path]);
+      if (cleanupErr) throw cleanupErr;
+    } catch {
+      console.error("[uploadCedulaPhotoAction] rollback error", {
+        reason: "storage_remove_failed",
+      });
+      return {
+        error:
+          "No pudimos completar ni retirar la carga. Escríbenos por soporte para revisar el archivo de forma segura.",
+      };
+    }
+    console.error("[uploadCedulaPhotoAction] update rejected", {
+      reason: "identity_photo_rpc_rejected",
+    });
+    if (
+      updErr.message === "identity_photo_replacement_temporarily_disabled"
+    ) {
+      return { error: IDENTITY_PHOTO_REPLACEMENT_DISABLED };
+    }
+    if (updErr.message === "profile_edit_limit_reached") {
+      return {
+        error:
+          "Ya usaste tus 3 cambios de perfil. Si necesitas corregir algo importante, escríbenos por soporte.",
+      };
+    }
+    return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
   }
 
   revalidatePath("/portal");
@@ -133,6 +229,9 @@ export async function submitDataChangeRequestAction(
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
   const clientId = portalClientId as string;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   let admin;
   try {
@@ -230,6 +329,8 @@ export async function submitDataChangeRequestAction(
       prev_rif: row.rif,
       prev_phone: row.phone,
       status: "pending",
+      source: "client",
+      submitted_by: user?.id ?? null,
     })
     .select(
       "id, tenant_id, client_id, proposed_name, proposed_rif, proposed_phone, prev_name, prev_rif, prev_phone, status, submitted_at, reviewed_at, reviewed_by, review_note",
@@ -242,6 +343,12 @@ export async function submitDataChangeRequestAction(
       return {
         error:
           "Ya tienes una solicitud en revisión. Espera a que tu asesor la revise.",
+      };
+    }
+    if (insErr.message?.includes("profile_edit_limit_reached")) {
+      return {
+        error:
+          "Ya usaste tus 3 cambios de perfil. Si necesitas corregir algo importante, escríbenos por soporte.",
       };
     }
     console.error("[submitDataChangeRequestAction] insert error:", insErr);

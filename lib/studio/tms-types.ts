@@ -153,9 +153,9 @@ export const TRUCK_STATUS_LABELS: Record<TruckStatus, string> = {
 };
 
 export const TRUCK_STATUS_TONES: Record<TruckStatus, BadgeTone> = {
-  disponible: "success",
+  disponible: "info",
   cargando: "info",
-  en_ruta: "wine",
+  en_ruta: "info",
   mantenimiento: "warning",
 };
 
@@ -171,9 +171,9 @@ export const DRIVER_STATUS_LABELS: Record<DriverStatus, string> = {
 };
 
 export const DRIVER_STATUS_TONES: Record<DriverStatus, BadgeTone> = {
-  disponible: "success",
+  disponible: "info",
   cargando: "info",
-  en_ruta: "wine",
+  en_ruta: "info",
   descanso: "neutral",
 };
 
@@ -186,7 +186,7 @@ export const ROUTE_STATUS_LABELS: Record<TmsRouteStatus, string> = {
 
 export const ROUTE_STATUS_TONES: Record<TmsRouteStatus, BadgeTone> = {
   planificado: "info",
-  en_ruta: "wine",
+  en_ruta: "info",
   completado: "success",
   cancelado: "neutral",
 };

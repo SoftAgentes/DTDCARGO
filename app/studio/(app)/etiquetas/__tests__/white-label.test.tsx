@@ -11,7 +11,8 @@
  * que se repite. Por eso hay además un contador fijo — si alguien saca una
  * superficie del registro, el contador grita.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { resolveBrand, type BrandContext } from "@/lib/shared/brand-context";
@@ -97,7 +98,7 @@ const SALIDAS: {
 }[] = [
   {
     nombre: "Etiqueta de la caja · formato compacto (A4-8up, el default)",
-    marcaCasa: "SHIPPING TO · DTD Cargo",
+    marcaCasa: "DTD Cargo",
     render: (brand, markbox) =>
       renderToStaticMarkup(
         <Label
@@ -113,7 +114,7 @@ const SALIDAS: {
   },
   {
     nombre: "Etiqueta de la caja · formato grande",
-    marcaCasa: "SHIPPING TO · DTD Cargo",
+    marcaCasa: "DTD Cargo",
     render: (brand, markbox) =>
       renderToStaticMarkup(
         <Label
@@ -153,7 +154,6 @@ const SALIDAS: {
           code="FA-1232-1-1"
           description="Cajas de mercancía"
           markbox={markbox}
-          clientName="Comercial Los Andes"
           supplierName="Yiwu Trading Co."
           supplierWechat={null}
           labels={buildLabels("FA-1232-1-1", 2)}
@@ -197,6 +197,12 @@ describe("white-label documental · SDD-0255", () => {
       expect(visible).toContain("FA-1232");
       // Las dos mitades: sin ésta, un renderer que imprima la cadena entera pasa.
       expect(visible).not.toContain("DC-FA-1232");
+    });
+  }
+
+  for (const salida of SALIDAS) {
+    it(`${salida.nombre} · no publica el nombre del cliente`, () => {
+      expect(textoVisible(salida.render(DIRECTO, "DTD-9058"))).not.toContain("Comercial Los Andes");
     });
   }
 

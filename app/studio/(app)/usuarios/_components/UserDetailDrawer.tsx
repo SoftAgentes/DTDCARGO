@@ -518,7 +518,7 @@ function Dato({
         {etiqueta}
       </span>
       {alerta ? (
-        <Badge tone="warning" size="sm" dot>
+        <Badge tone="warning" size="sm">
           {valor}
         </Badge>
       ) : (

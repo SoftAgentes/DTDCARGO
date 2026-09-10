@@ -100,11 +100,11 @@ export function ProviderLinkDrawer({
         <div style={{ marginBottom: 18 }}>
           <span style={label}>Estado</span>
           {active ? (
-            <Badge tone="success" size="md" dot>
+            <Badge tone="success" size="md">
               Activo
             </Badge>
           ) : (
-            <Badge tone="danger" size="md" dot>
+            <Badge tone="danger" size="md">
               Desactivado
             </Badge>
           )}

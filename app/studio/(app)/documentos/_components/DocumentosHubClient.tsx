@@ -554,7 +554,7 @@ export function DocumentosHubClient({
                     {formatDocSize(d.size_bytes)}
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <Badge tone={st.tone} size="sm" dot>
+                    <Badge tone={st.tone} size="sm">
                       {st.label}
                     </Badge>
                   </div>

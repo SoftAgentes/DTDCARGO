@@ -146,7 +146,7 @@ describe("statusBadgeTone (mapeo del spec)", () => {
   it("mapea cada estado al tono correcto", () => {
     expect(statusBadgeTone("pagada")).toBe("success");
     expect(statusBadgeTone("emitida")).toBe("info");
-    expect(statusBadgeTone("parcial")).toBe("warning");
+    expect(statusBadgeTone("parcial")).toBe("info");
     expect(statusBadgeTone("vencida")).toBe("danger");
     expect(statusBadgeTone("borrador")).toBe("neutral");
     expect(statusBadgeTone("anulada")).toBe("neutral");

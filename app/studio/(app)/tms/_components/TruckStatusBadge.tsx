@@ -8,14 +8,12 @@ import {
 export function TruckStatusBadge({
   status,
   size = "sm",
-  dot = true,
 }: {
   status: TruckStatus;
   size?: "sm" | "md";
-  dot?: boolean;
 }) {
   return (
-    <Badge tone={TRUCK_STATUS_TONES[status]} size={size} dot={dot}>
+    <Badge tone={TRUCK_STATUS_TONES[status]} size={size}>
       {TRUCK_STATUS_LABELS[status]}
     </Badge>
   );

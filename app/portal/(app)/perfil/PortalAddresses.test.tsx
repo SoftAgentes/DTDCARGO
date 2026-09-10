@@ -15,12 +15,14 @@ const mocks = vi.hoisted(() => ({
   deleteAddressAction: vi.fn(),
   setDefaultAddressAction: vi.fn(),
   addAddressAction: vi.fn(),
+  updateAddressAction: vi.fn(),
 }));
 
 vi.mock("./address-actions", () => ({
   deleteAddressAction: mocks.deleteAddressAction,
   setDefaultAddressAction: mocks.setDefaultAddressAction,
   addAddressAction: mocks.addAddressAction,
+  updateAddressAction: mocks.updateAddressAction,
 }));
 
 const { PortalAddresses } = await import("./PortalAddresses");
@@ -28,6 +30,33 @@ const { PortalAddresses } = await import("./PortalAddresses");
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+});
+
+describe("PortalAddresses · SDD-0439 · edición siempre disponible", () => {
+  it("abre un formulario prellenado para la dirección propia", async () => {
+    const user = userEvent.setup();
+    montar({ reference: "Portón azul" });
+
+    await user.click(screen.getByRole("button", { name: /^editar$/i }));
+
+    expect(screen.getByRole("textbox", { name: /^dirección/i })).toHaveValue(
+      BASE.line,
+    );
+    expect(screen.getByRole("textbox", { name: /^ciudad/i })).toHaveValue(
+      BASE.city,
+    );
+    expect(
+      screen.getByRole("textbox", { name: /punto de referencia/i }),
+    ).toHaveValue("Portón azul");
+    expect(
+      document.querySelector('input[name="addressId"]'),
+    ).toHaveAttribute("value", BASE.id);
+  });
+
+  it("editar no depende del cupo del perfil", () => {
+    montar();
+    expect(screen.getByRole("button", { name: /^editar$/i })).toBeEnabled();
+  });
 });
 
 const BASE: ClientDeliveryAddress = {

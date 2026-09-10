@@ -35,18 +35,26 @@ function stub(opts: {
       is: () => b,
       order: () => b,
       limit: () => Promise.resolve({ data: rows, error: null }),
+      maybeSingle: () => Promise.resolve({ data: rows[0] ?? null, error: null }),
       then: (resolve: (v: { data: unknown; error: null }) => unknown) =>
         Promise.resolve({ data: rows, error: null }).then(resolve),
     });
     return b;
   }
   const supabase = {
+    auth: { getUser: async () => ({ data: { user: { id: "portal-fixture" } }, error: null }) },
     rpc: (fn: string) =>
       fn === "get_portal_client_markbox"
         ? Promise.resolve({ data: opts.markbox, error: null })
         : Promise.resolve({ data: null, error: null }),
     from: (table: string) => {
       touched.push(table);
+      if (table === "client_users") {
+        return builder(opts.markbox ? [{
+          client_id: "client-fixture", tenant_id: "tenant-fixture",
+          clients: { id: "client-fixture", tenant_id: "tenant-fixture", markbox: opts.markbox, deleted_at: null },
+        }] : []);
+      }
       return builder(
         table === "shipments" ? (opts.shipments ?? []) : (opts.quotes ?? []),
       );

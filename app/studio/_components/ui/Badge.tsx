@@ -1,23 +1,6 @@
-/**
- * Badge primitive · DTD Studio
- *
- * Pill con tono (success/warning/danger/info/wine/neutral) y opcional dot.
- * Diseño (Norte): docs/design/studio/_norte/erp/components.jsx
- *
- * SDD-0275: `danger` era el ÚNICO tono cuyo texto seguía siendo el color crudo,
- * y en OSCURO daba 4,19:1 sobre su propio fondo — bajo AA. No se resolvió como
- * los otros cinco (texto a --ink) porque este es el rojo de ALARMA y perder el
- * rojo pierde el significado: se resolvió con `--danger-text`, que en oscuro
- * apunta al rojo on-dark ya aprobado. El fill de botones no cambia.
- *
- * BRAND-SYNC v4.6 (BD-018, completado 2026-07-12): success/warning/info/wine
- * fallan AA como texto directo sobre su -bg en algún tema (success light 3.83 ·
- * info light 4.20 · warning light 2.79 · wine dark 2.79) → texto `--ink` (o
- * `--wine-text`) + dot semántico. danger (5.61) y neutral (4.68) sí pasan como
- * texto directo, quedan igual.
- */
-
+/** Estados: texto neutro y señal semántica localizada · SDD-0441. */
 import type { CSSProperties, ReactNode } from "react";
+import { StatusIcon } from "@/components/StatusIcon";
 
 export type BadgeTone =
   | "success"
@@ -32,18 +15,17 @@ export type BadgeSize = "xs" | "sm" | "md";
 interface BadgeProps {
   tone?: BadgeTone;
   size?: BadgeSize;
-  dot?: boolean;
   children: ReactNode;
   style?: CSSProperties;
 }
 
 const TONES: Record<BadgeTone, { bg: string; fg: string; dot?: string }> = {
-  success: { bg: "var(--success-bg)", fg: "var(--ink)", dot: "var(--success)" },
-  warning: { bg: "var(--warning-bg)", fg: "var(--ink)", dot: "var(--warning)" },
-  danger: { bg: "var(--danger-bg)", fg: "var(--danger-text)" },
+  success: { bg: "var(--neutral-bg)", fg: "var(--ink)", dot: "var(--success)" },
+  warning: { bg: "var(--bg-surface)", fg: "var(--ink)", dot: "var(--warning)" },
+  danger: { bg: "var(--neutral-bg)", fg: "var(--ink)", dot: "var(--danger-text)" },
   info: { bg: "var(--info-bg)", fg: "var(--ink)", dot: "var(--info)" },
   wine: { bg: "var(--wine-tint)", fg: "var(--ink)", dot: "var(--wine-text)" },
-  neutral: { bg: "var(--neutral-bg)", fg: "var(--ink-soft)" },
+  neutral: { bg: "var(--neutral-bg)", fg: "var(--ink)" },
 };
 
 const SIZES: Record<BadgeSize, { h: number; px: number; fs: number }> = {
@@ -55,7 +37,6 @@ const SIZES: Record<BadgeSize, { h: number; px: number; fs: number }> = {
 export function Badge({
   tone = "neutral",
   size = "md",
-  dot = false,
   children,
   style,
 }: BadgeProps) {
@@ -78,16 +59,7 @@ export function Badge({
         ...style,
       }}
     >
-      {(dot || toneDot) && (
-        <span
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: toneDot || fg,
-          }}
-        />
-      )}
+      <StatusIcon tone={tone} size={fs + 2} style={{ color: toneDot || fg }} />
       {children}
     </span>
   );

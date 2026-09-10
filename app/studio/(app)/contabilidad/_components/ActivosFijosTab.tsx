@@ -278,7 +278,7 @@ export function ActivosFijosTab({
                 ${fmtAmount(s.netBookValue)}
               </span>
               <span>
-                <Badge tone={assetStatusBadgeTone(a.status)} size="sm" dot>
+                <Badge tone={assetStatusBadgeTone(a.status)} size="sm">
                   {assetStatusLabel(a.status)}
                 </Badge>
               </span>

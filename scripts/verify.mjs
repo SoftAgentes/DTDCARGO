@@ -17,7 +17,8 @@
  * ERR_PNPM_IGNORED_BUILDS (esbuild). Llamar al entry JS lo esquiva.
  *
  * Uso:  node scripts/verify.mjs   ·   o:  pnpm verify
- * Exit: 0 = todo verde · 1 = al menos un check falló (corre TODOS y los lista).
+ * Exit: 0 = ningún check medido falló; el VEREDICTO dice si el cierre quedó
+ * completo o con críticos sin medir · 1 = al menos un check falló.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -31,6 +32,10 @@ import {
   PUERTO_BASE,
   PUERTO_RANGO,
 } from "./verify-e2e.mjs";
+import {
+  assertCompleteStepPolicy,
+  buildVerifyVerdict,
+} from "./verify-step-policy.mjs";
 
 const C = { green: "\x1b[32m", red: "\x1b[31m", dim: "\x1b[2m", yellow: "\x1b[33m", nc: "\x1b[0m" };
 const ok = (m) => console.log(`${C.green}[OK]${C.nc}   ${m}`);
@@ -300,7 +305,16 @@ const EXIT_SKIPPED = 3;
 // Cada check = un binario JS invocado con el mismo node que corre este script.
 const STEPS = [
   // Harness en repos temporales sin red ni credenciales. No se descubre por Vitest.
-  { name: "harness", argv: ["--test", "scripts/tests/director-status.node.mjs", "scripts/tests/harness-worktree.node.mjs", "scripts/tests/next-number.integration.node.mjs"] },
+  {
+    name: "harness",
+    argv: [
+      "--test",
+      "scripts/tests/director-status.node.mjs",
+      "scripts/tests/harness-worktree.node.mjs",
+      "scripts/tests/next-number.integration.node.mjs",
+      "scripts/tests/verify-critical-coverage.node.mjs",
+    ],
+  },
   { name: "lint", argv: ["node_modules/eslint/bin/eslint.js", "."] },
   // Frontera RSC: caza un server module que usa un VALOR de un módulo "use client"
   // (typecheck/vitest no lo ven; explota 500 en runtime — ver SDD-0050). Cero deps, rápido.
@@ -353,6 +367,9 @@ const STEPS = [
   // un archivo del repo no está aplicado. DEGRADA CON GRACIA: sin creds/red/RPC
   // → SKIP (no rojo), igual que el e2e. `retry: 1` porque toca la red.
   { name: "migrations-applied", argv: ["scripts/check-migrations-applied.mjs"], retry: 1 },
+  // ¿El código alcanzable desde app depende de un símbolo que sólo nace en una
+  // migración declarada pendiente? Repo contra repo: no usa red, credenciales ni SKIP.
+  { name: "pending-migration-symbols", argv: ["scripts/check-pending-migration-symbols.mjs"] },
   // Contratos de SQL (supabase/tests/*.test.sql) contra un Postgres desechable en
   // Docker: RLS, GRANTs, triggers de inmutabilidad. Existían pero no los corría
   // nadie — un contrato que nadie verifica se degrada en silencio (basta un GRANT
@@ -392,6 +409,15 @@ const STEPS = [
   // Construye aislado en `.next-verify` y limpia — ver scripts/check-build.mjs.
   { name: "build", argv: ["scripts/check-build.mjs"] },
 ];
+
+try {
+  // Un paso agregado o retirado sin decidir su impacto rompe el gate antes de
+  // correr nada: la clasificación nunca puede quedar desfasada en silencio.
+  assertCompleteStepPolicy(STEPS.map((step) => step.name));
+} catch (error) {
+  fail(`verify-policy: ${error.message}`);
+  process.exit(1);
+}
 
 const failures = [];
 /**
@@ -462,22 +488,15 @@ console.log(
 
 for (const om of skipped) warn(`omitido: ${om.name} — ${om.reason}`);
 
-if (failures.length > 0) {
-  fail(`verify: ${failures.length} fallo(s) → ${failures.join(", ")}`);
-  process.exit(1);
-}
+const verdict = buildVerifyVerdict({
+  stepNames: STEPS.map((step) => step.name),
+  skipped,
+  failures,
+});
 
-if (skipped.length > 0) {
-  // Verde CON RESERVA, y se dice con todas las letras. No es rojo —el entorno
-  // no es culpa del cambio— pero tampoco se puede citar como "todo verde":
-  // exactamente eso paso cinco veces con migrations-applied apagado.
-  warn(
-    `verify: sin fallos, pero ${skipped.length} paso(s) NO se midieron → ${skipped
-      .map((om) => om.name)
-      .join(", ")}. Esto NO es un cierre verde completo.`,
-  );
-  process.exit(0);
-}
-
-ok(`verify: TODO VERDE ✓ (${corrieron}/${STEPS.length} pasos medidos)`);
-process.exit(0);
+// Una sola línea final. Si faltó medir algo crítico lo nombra acá, aunque además
+// haya fallos, para que el cierre no dependa de encontrar el [SKIP] anterior.
+if (verdict.tone === "fail") fail(verdict.message);
+else if (verdict.tone === "warn") warn(verdict.message);
+else ok(verdict.message);
+process.exit(verdict.exitCode);

@@ -897,7 +897,7 @@ function ReferidosTab({
                   )}
                 </div>
                 <span>
-                  <Badge tone={stt.tone} size="sm" dot>
+                  <Badge tone={stt.tone} size="sm">
                     {stt.label}
                   </Badge>
                 </span>

@@ -476,7 +476,7 @@ export function recoveryStatusLabel(s: NoOlvidarRecoveryStatus): string {
 export function recoveryStatusBadgeTone(s: NoOlvidarRecoveryStatus): BadgeTone {
   if (s === "completed") return "success";
   if (s === "approved") return "info";
-  if (s === "pending") return "warning";
+  if (s === "pending") return "info";
   if (s === "rejected" || s === "expired") return "danger";
   return "neutral";
 }

@@ -455,7 +455,7 @@ function SailingsTab({
               gap: 5,
             }}
           >
-            <Badge tone={sailingStatusTone(s.status)} size="sm" dot>
+            <Badge tone={sailingStatusTone(s.status)} size="sm">
               {sailingStatusLabel(s.status)}
             </Badge>
             {(s.status === "abierto" || s.status === "cutoff") && (
@@ -955,7 +955,7 @@ function ContainerDetail({
               >
                 {c.ref}
               </code>
-              <Badge tone={containerStatusTone(c.status)} dot>
+              <Badge tone={containerStatusTone(c.status)}>
                 {containerStatusLabel(c.status)}
               </Badge>
             </div>
@@ -1862,7 +1862,7 @@ function BookingsTab({
               )}
             </div>
             <span style={{ textAlign: "right" }}>
-              <Badge tone={bookingStatusTone(b.status)} size="sm" dot>
+              <Badge tone={bookingStatusTone(b.status)} size="sm">
                 {bookingStatusLabel(b.status)}
               </Badge>
             </span>

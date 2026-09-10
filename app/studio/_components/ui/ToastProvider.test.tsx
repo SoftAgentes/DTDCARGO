@@ -435,6 +435,38 @@ describe("ToastProvider · AVS-01", () => {
     expect(screen.queryByText("Estado actualizado")).not.toBeInTheDocument();
   });
 
+  it("reemplaza el icono de exito por error cuando falla una accion", async () => {
+    const toast = renderProvider();
+    const action = vi.fn().mockRejectedValue(new Error("fallo"));
+    act(() =>
+      toast.show({
+        eventKey: "bitacora:undo",
+        tone: "success",
+        message: "Registro eliminado.",
+        priority: "high",
+        scope: "module",
+        dedupeKey: "bitacora:undo:1",
+        duration: "undo",
+        action: {
+          label: "Deshacer",
+          onSelect: action,
+          failureMessage: "No se pudo deshacer.",
+        },
+      }),
+    );
+    const card = screen.getByText("Registro eliminado.").closest("[data-toast-id]");
+    expect(card?.querySelector('path[d="M7.5 12.5l3 3 6-6"]')).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Deshacer" }));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("No se pudo deshacer.");
+    expect(card?.querySelector('path[d="M7.5 12.5l3 3 6-6"]')).toBeNull();
+    expect(card?.querySelector('path[d="M15 9l-6 6M9 9l6 6"]')).not.toBeNull();
+  });
+
   it("Escape retira el toast enfocado y devuelve el foco", async () => {
     const toast = renderProvider();
     const previous = screen.getByRole("button", { name: "Control previo" });

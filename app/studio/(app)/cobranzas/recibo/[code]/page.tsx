@@ -176,7 +176,7 @@ export default async function ReceiptPrintPage({
           ← Volver a Cobranzas
         </Link>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <Badge tone={applicationStatusTone(receipt.application_status)} dot>
+          <Badge tone={applicationStatusTone(receipt.application_status)}>
             {applicationStatusLabel(receipt.application_status)}
           </Badge>
           <Badge tone={fundClassTone(receipt.fund_class)}>

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "$doc": [
+    "Excepciones explícitas para scripts/check-pending-migration-symbols.mjs.",
+    "Este archivo está separado de migrations-baseline.json: el baseline declara qué migración",
+    "está pendiente; este contrato declara, solo cuando aplica, por qué código alcanzable puede",
+    "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
+    "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
+  ],
+  "degradations": []
+}
