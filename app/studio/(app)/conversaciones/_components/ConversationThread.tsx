@@ -229,7 +229,7 @@ export function ConversationThread({ conv, agents, realtimeTick = 0 }: Props) {
               <span style={{ font: "900 16px/1.1 var(--f-display)", color: "var(--ink)" }}>
                 {conv.client_name}
               </span>
-              <Badge tone={channelTone(ch)} size="sm" dot>
+              <Badge tone={channelTone(ch)} size="sm">
                 {channelLabel(ch)}
               </Badge>
               {conv.is_case && (

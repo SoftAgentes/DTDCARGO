@@ -493,7 +493,7 @@ function GroupedTable({
                 }}
               >
                 {group.stats.alertCount > 0 && (
-                  <Badge tone="danger" size="sm" dot>
+                  <Badge tone="danger" size="sm">
                     {group.stats.alertCount} alerta
                     {group.stats.alertCount === 1 ? "" : "s"}
                   </Badge>
@@ -631,7 +631,7 @@ function GroupedTable({
                         )}
                       </span>
                       <span>
-                        <Badge tone={statusBadgeTone(s.status)} size="sm" dot>
+                        <Badge tone={statusBadgeTone(s.status)} size="sm">
                           {STATUS_LABELS[s.status]}
                         </Badge>
                       </span>

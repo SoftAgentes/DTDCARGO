@@ -8,14 +8,12 @@ import {
 export function RouteStatusBadge({
   status,
   size = "sm",
-  dot = true,
 }: {
   status: TmsRouteStatus;
   size?: "sm" | "md";
-  dot?: boolean;
 }) {
   return (
-    <Badge tone={ROUTE_STATUS_TONES[status]} size={size} dot={dot}>
+    <Badge tone={ROUTE_STATUS_TONES[status]} size={size}>
       {ROUTE_STATUS_LABELS[status]}
     </Badge>
   );

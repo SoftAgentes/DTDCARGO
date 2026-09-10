@@ -778,7 +778,9 @@ function ToastCard({
   onAction: (toast: ToastRecord) => Promise<void>;
   onFocusEnter: (id: string, event: FocusEvent<HTMLElement>) => void;
 }) {
-  const tone = TONE_BY_KIND[toast.tone];
+  const tone = TONE_BY_KIND[
+    toast.actionState === "failed" ? "error" : toast.tone
+  ];
   const t = useT();
   const failureMessage = toast.actionError ?? t("chrome.toast.action_failed");
   const state =

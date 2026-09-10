@@ -222,7 +222,7 @@ export function ScorecardTab({
                   gap: 8,
                 }}
               >
-                <Badge tone={gradeBadgeTone(s.grade)} dot={s.grade != null}>
+                <Badge tone={gradeBadgeTone(s.grade)}>
                   {gradeLabel(s.grade)}
                 </Badge>
                 <span
@@ -289,7 +289,7 @@ function ScorecardDetailDrawer({
       title={card.name}
       subtitle={`${card.city ? `${card.city}, China · ` : ""}${card.client_markbox}`}
       titleAccessory={
-        <Badge tone={gradeBadgeTone(card.grade)} dot={card.grade != null}>
+        <Badge tone={gradeBadgeTone(card.grade)}>
           {gradeLabel(card.grade)}
           {card.score != null ? ` · ${card.score}` : ""}
         </Badge>
@@ -443,7 +443,7 @@ function ScorecardDetailDrawer({
                         : ""}
                     </div>
                   </div>
-                  <Badge tone={supplierClaimStatusTone(c.status)} size="sm" dot>
+                  <Badge tone={supplierClaimStatusTone(c.status)} size="sm">
                     {supplierClaimStatusLabel(c.status)}
                   </Badge>
                 </div>

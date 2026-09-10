@@ -968,10 +968,9 @@
 
 /* ──────────────────────────────────────────────────────────────────
    Badge de estado de envío (StatusBadge) — tokenizado por TONO para que se adapte
-   al tema del portal. En CLARO los colores espejan STATUS_COLORS 1:1 (cero cambio
-   para clientes reales); en OSCURO usan los tokens de estado brillantes (los hex
-   fijos navy eran invisibles sobre la card oscura). bg/borde con color-mix sobre
-   `transparent` → el badge se ve igual sobre card o sobre el fondo de página.
+   al tema del portal. En CLARO y OSCURO, texto, fondo y borde usan un tratamiento
+   neutro legible; el color semántico queda localizado en el punto o icono. Warning
+   usa una superficie sólida para mantener el contraste del acento dorado.
    ────────────────────────────────────────────────────────────────── */
 .badge-status {
   display: inline-flex;

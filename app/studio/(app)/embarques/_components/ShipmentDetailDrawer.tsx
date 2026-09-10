@@ -102,7 +102,7 @@ export function ShipmentDetailDrawer({
                 </Link>
               )}
             </div>
-            <Badge tone={statusBadgeTone(shipment.status)} size="md" dot>
+            <Badge tone={statusBadgeTone(shipment.status)} size="md">
               {STATUS_LABELS[shipment.status]}
             </Badge>
           </div>

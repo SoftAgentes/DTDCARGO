@@ -229,7 +229,7 @@ export function ChargesTab({
                   {fmtAmount(c.net_amount, c.currency)}
                 </span>
                 <span>
-                  <Badge tone={chargeStatusTone(c.status)} size="sm" dot>
+                  <Badge tone={chargeStatusTone(c.status)} size="sm">
                     {chargeStatusLabel(c.status)}
                   </Badge>
                 </span>

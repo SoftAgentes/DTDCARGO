@@ -148,7 +148,7 @@ export function ConciliacionTab({
                 ${fmtAmount(s.closing_balance)}
               </span>
               <span style={{ textAlign: "right" }}>
-                <Badge tone={statementStatusBadgeTone(s.status)} size="sm" dot>
+                <Badge tone={statementStatusBadgeTone(s.status)} size="sm">
                   {statementStatusLabel(s.status)}
                 </Badge>
               </span>
@@ -357,7 +357,7 @@ function MovementRow({
             marginBottom: 4,
           }}
         >
-          <Badge tone={isCredit ? "success" : "wine"} size="sm" dot>
+          <Badge tone={isCredit ? "success" : "wine"} size="sm">
             {lineDirectionLabel(line.direction)}
           </Badge>
         </div>
@@ -436,7 +436,7 @@ function MovementRow({
         )}
         {line.status !== "pending" && (
           <>
-            <Badge tone={lineStatusBadgeTone(line.status)} size="sm" dot>
+            <Badge tone={lineStatusBadgeTone(line.status)} size="sm">
               {lineStatusLabel(line.status)}
             </Badge>
             <ActionButton

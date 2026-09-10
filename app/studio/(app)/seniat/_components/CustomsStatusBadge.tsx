@@ -13,14 +13,12 @@ import {
 export function CustomsStatusBadge({
   status,
   size = "sm",
-  dot = true,
 }: {
   status: CustomsStatus;
   size?: "sm" | "md";
-  dot?: boolean;
 }) {
   return (
-    <Badge tone={CUSTOMS_STATUS_TONES[status]} size={size} dot={dot}>
+    <Badge tone={CUSTOMS_STATUS_TONES[status]} size={size}>
       {CUSTOMS_STATUS_LABELS[status]}
     </Badge>
   );

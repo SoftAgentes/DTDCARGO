@@ -99,29 +99,39 @@ if (gaps.length) {
   table += `\n> **Huecos en el correlativo:** ${gaps.join(", ")} — código sin spec o renumerado, auditar caso por caso.\n`;
 }
 
+function renderReadme(md) {
+  const block = `${START}\n${table}${END}`;
+  if (md.includes(START) && md.includes(END)) {
+    return md.replace(new RegExp(`${escapeRe(START)}[\\s\\S]*${escapeRe(END)}`), block);
+  }
+  return md.trimEnd() + "\n\n" + block + "\n";
+}
+
 // Reporte
 if (missingConfid.length) {
   console.warn(`⚠ ${missingConfid.length}/${rows.length} specs sin 'confidencialidad' (default: interno). Backfill incremental: ${missingConfid.join(", ")}`);
 }
-if (errors.length) {
-  console.error("✖ docs:check — errores de front-matter:");
-  for (const e of errors) console.error("  - " + e);
+
+if (!existsSync(README)) {
+  errors.push(`falta ${README}`);
+} else {
+  const md = readFileSync(README, "utf8");
+  const expected = renderReadme(md);
+  if (checkOnly) {
+    if (md !== expected) {
+      errors.push(`${README}: índice desactualizado; ejecuta 'pnpm docs:index'`);
+    }
+  } else {
+    writeFileSync(README, expected);
+    console.log(`✓ índice regenerado en ${README} — ${rows.length} specs${gaps.length ? `, ${gaps.length} huecos` : ""}`);
+  }
 }
 
-if (!checkOnly) {
-  if (!existsSync(README)) {
-    console.error(`falta ${README}`);
-    process.exit(1);
-  }
-  let md = readFileSync(README, "utf8");
-  const block = `${START}\n${table}${END}`;
-  if (md.includes(START) && md.includes(END)) {
-    md = md.replace(new RegExp(`${escapeRe(START)}[\\s\\S]*${escapeRe(END)}`), block);
-  } else {
-    md = md.trimEnd() + "\n\n" + block + "\n";
-  }
-  writeFileSync(README, md);
-  console.log(`✓ índice regenerado en ${README} — ${rows.length} specs${gaps.length ? `, ${gaps.length} huecos` : ""}`);
+if (errors.length) {
+  console.error("✖ docs:check — errores:");
+  for (const e of errors) console.error("  - " + e);
+} else if (checkOnly) {
+  console.log(`✓ docs:check — índice sincronizado con ${rows.length} specs`);
 }
 
 process.exit(errors.length ? 1 : 0);

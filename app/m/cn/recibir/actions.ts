@@ -153,6 +153,7 @@ export async function lookupForReceptionAction(
 export type ReceiveState = {
   ok?: boolean;
   error?: string;
+  failureKind?: "permanent" | "transient";
   receiptCode?: string;
   prealertaCode?: string;
   clientName?: string | null;
@@ -189,7 +190,7 @@ export async function receivePrealertaAction(
   });
 
   if (error) {
-    return { error: humanizeReceiveError(error.message) };
+    return humanizeReceiveError(error);
   }
 
   const res = (data ?? {}) as {
@@ -262,17 +263,41 @@ export async function receivePrealertaAction(
   };
 }
 
-function humanizeReceiveError(msg: string): string {
-  if (msg.includes("P0001")) return "Operario no encontrado.";
-  if (msg.includes("P0002")) return "Operario inactivo.";
-  if (msg.includes("P0003")) return "Solo operarios de China reciben acá.";
-  if (msg.includes("P0135")) return "No tienes un almacén asignado.";
-  if (msg.includes("P0130"))
-    return "Esa caja no existe · revisa la etiqueta.";
-  if (msg.includes("P0131")) return "Esa caja ya se había recibido.";
-  if (msg.includes("P0132"))
-    return "Esa etiqueta no viene de una compra anunciada.";
-  if (msg.includes("P0133")) return "La compra de esa caja no está activa.";
-  if (msg.includes("P0134")) return "No hay cajas para recibir en esa compra.";
-  return "No se pudo recibir. Intenta de nuevo.";
+function humanizeReceiveError(error: {
+  code?: string | null;
+  message?: string | null;
+}): Pick<ReceiveState, "error" | "failureKind"> {
+  const hasCode = (code: string) =>
+    error.code === code || Boolean(error.message?.includes(code));
+
+  // PostgREST no encontró la RPC en el schema cache: ningún reintento del
+  // operario puede reparar un contrato de servidor/base ausente.
+  if (hasCode("PGRST202")) {
+    return {
+      error:
+        "La recepción no está disponible. Avisa al responsable; no la intentes de nuevo.",
+      failureKind: "permanent",
+    };
+  }
+
+  if (hasCode("P0001")) return { error: "Operario no encontrado." };
+  if (hasCode("P0002")) return { error: "Operario inactivo." };
+  if (hasCode("P0003"))
+    return { error: "Solo operarios de China reciben acá." };
+  if (hasCode("P0135")) return { error: "No tienes un almacén asignado." };
+  if (hasCode("P0130"))
+    return { error: "Esa caja no existe · revisa la etiqueta." };
+  if (hasCode("P0131"))
+    return { error: "Esa caja ya se había recibido." };
+  if (hasCode("P0132"))
+    return { error: "Esa etiqueta no viene de una compra anunciada." };
+  if (hasCode("P0133"))
+    return { error: "La compra de esa caja no está activa." };
+  if (hasCode("P0134"))
+    return { error: "No hay cajas para recibir en esa compra." };
+
+  return {
+    error: "No se pudo recibir por un problema temporal. Intenta de nuevo.",
+    failureKind: "transient",
+  };
 }

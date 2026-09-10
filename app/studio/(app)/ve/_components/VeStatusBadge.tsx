@@ -15,11 +15,9 @@ import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 export function VeStatusBadge({
   status,
   size = "sm",
-  dot = true,
 }: {
   status: ShipmentStatus;
   size?: "sm" | "md";
-  dot?: boolean;
 }) {
   // Fallback al label generico si status no es VE (no debería pasar
   // en este módulo, pero defensivo)
@@ -28,7 +26,7 @@ export function VeStatusBadge({
   const tone = isVe ? VE_STATUS_TONES[status] : "neutral";
 
   return (
-    <Badge tone={tone} size={size} dot={dot}>
+    <Badge tone={tone} size={size}>
       {label}
     </Badge>
   );

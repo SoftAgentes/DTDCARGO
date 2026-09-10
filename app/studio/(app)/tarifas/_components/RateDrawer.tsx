@@ -481,6 +481,14 @@ export function RateDrawer({
                 borderRadius: "var(--r-sm)",
               }}
             >
+              <StatusIcon
+                tone="danger"
+                style={{
+                  color: "var(--danger-text)",
+                  display: "inline",
+                  marginRight: "var(--s-1)",
+                }}
+              />
               {state.error ?? createError}
             </p>
           )}
