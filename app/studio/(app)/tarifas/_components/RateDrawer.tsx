@@ -10,6 +10,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { StatusIcon } from "@/components/StatusIcon";
 import {
   RATE_SERVICE_OPTIONS,
   priceMode,
@@ -472,10 +473,10 @@ export function RateDrawer({
               role="alert"
               style={{
                 font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
+                color: "var(--ink)",
                 margin: 0,
                 padding: "10px 12px",
-                background: "var(--danger-bg)",
+                background: "var(--bg-surface)",
                 border: "1px solid var(--danger)",
                 borderRadius: "var(--r-sm)",
               }}
@@ -571,7 +572,7 @@ export function RateDrawer({
                 <button
                   type="button"
                   className="studio-btn studio-btn-ghost studio-btn-sm"
-                  style={{ color: "var(--danger)" }}
+                  style={{ color: "var(--danger-text)" }}
                   onClick={() => setConfirmDelete(true)}
                 >
                   Eliminar
@@ -641,10 +642,11 @@ function FieldError({ msg }: { msg: string }) {
     <p
       style={{
         font: "500 11px/1.3 var(--f-sans)",
-        color: "var(--danger)",
+        color: "var(--ink)",
         margin: "var(--s-1) 0 0",
       }}
     >
+      <StatusIcon tone="danger" style={{ color: "var(--danger-text)", display: "inline", marginRight: "var(--s-1)" }} />
       {msg}
     </p>
   );

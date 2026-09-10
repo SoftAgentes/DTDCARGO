@@ -230,8 +230,8 @@ export const BUG_STATE_LABELS: Record<BugState, string> = {
 
 export const BUG_STATE_TONES: Record<BugState, BadgeTone> = {
   nuevo: "info",
-  triaje: "wine",
-  espera: "warning",
+  triaje: "info",
+  espera: "info",
   progreso: "info",
   resuelto: "success",
   descartado: "neutral",

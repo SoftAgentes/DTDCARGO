@@ -16,6 +16,7 @@
  *   <ErrorAlert state={res} compact />   // padding/fuente reducidos (en drawers densos)
  */
 
+import { StatusIcon } from "@/components/StatusIcon";
 import {
   resolveErrorMessage,
   useT,
@@ -39,14 +40,15 @@ export function ErrorAlert({ state, compact = false }: ErrorAlertProps) {
       role="alert"
       style={{
         padding: compact ? "8px 10px" : "10px 12px",
-        background: "var(--danger-bg)",
+        background: "var(--bg-surface)",
         border: "1px solid var(--danger)",
         borderRadius: "var(--r-sm, 6px)",
-        color: "var(--danger)",
+        color: "var(--ink)",
         font: `500 ${compact ? "11.5px" : "12.5px"}/1.4 var(--f-sans)`,
         margin: 0,
       }}
     >
+      <StatusIcon tone="danger" style={{ color: "var(--danger-text)", display: "inline", marginRight: "var(--s-2)", verticalAlign: "middle" }} />
       {msg}
     </div>
   );

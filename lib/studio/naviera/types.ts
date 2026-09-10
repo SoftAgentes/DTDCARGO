@@ -162,10 +162,10 @@ export const BOOKING_STATUS: Record<
   BookingStatus,
   { label: string; tone: BadgeTone }
 > = {
-  abierto: { label: "Abierto", tone: "warning" },
+  abierto: { label: "Abierto", tone: "info" },
   solicitado: { label: "Solicitado", tone: "info" },
   confirmado: { label: "Confirmado", tone: "success" },
-  cerrado: { label: "Cerrado", tone: "wine" },
+  cerrado: { label: "Cerrado", tone: "neutral" },
   zarpado: { label: "Zarpado", tone: "info" },
   transito: { label: "En tránsito", tone: "info" },
 };
@@ -200,7 +200,7 @@ export const CONTAINER_STATUS: Record<
   // SDD-0157: el operario CN pide abrir el contenedor → 'solicitada' (sin ref);
   // la oficina autoriza (→ 'consolidando') o rechaza (→ 'rechazada').
   solicitada: { label: "Solicitada", tone: "info" },
-  consolidando: { label: "Consolidando", tone: "warning" },
+  consolidando: { label: "Consolidando", tone: "info" },
   cerrado: { label: "Cerrado", tone: "success" },
   zarpado: { label: "Zarpado", tone: "info" },
   arribado: { label: "Arribado", tone: "neutral" },

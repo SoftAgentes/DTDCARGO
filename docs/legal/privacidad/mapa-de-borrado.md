@@ -277,6 +277,25 @@ el vencimiento aplicable o legal hold y quedar registrada. Sin decisión de
 retención, contrato y procedimiento de terminación del proveedor, el borrado de
 la copia externa sigue **NO VERIFICABLE**.
 
+## 9 · Fotos de identidad del cliente
+
+La política propuesta
+[`fotos-identidad-cliente-v1.md`](fotos-identidad-cliente-v1.md) clasifica la
+foto histórica reemplazada como 🟢 **BORRA** al cumplir 30 días, salvo hold u
+obligación identificada. La foto vigente se revisa al terminar la relación o
+ante solicitud del titular. La disposición debe alcanzar el objeto de
+`client-docs`, todas las rutas de `client_profile_edits`, temporales y backups;
+borrar solo `clients.cedula_photo_path` no satisface la solicitud.
+
+Estado técnico al 2026-09-04: **ENCONTRADO**, no ejecutable todavía. `0445`
+preserva la ruta histórica y `0447` contiene nuevos reemplazos antes de mover el
+puntero, pero no instala purga ni gate regional. La policy de Storage de `0091`
+sigue permitiendo lectura y borrado a miembros autenticados del tenant sin
+distinguir VE de CN. Hasta cerrar esos controles, no se afirma que la retención
+de 30 días ni la exclusión del equipo China estén implementadas. La aplicación
+de 0447 en Cloud permanece **NO VERIFICABLE** hasta autorización nominal y
+comprobación posterior.
+
 ---
 
 *Documento vivo. Se actualiza cuando llegue la respuesta de la abogada y cada vez
