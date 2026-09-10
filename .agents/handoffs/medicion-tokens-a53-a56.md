@@ -9,14 +9,14 @@
 - **Base asignada:** `8ee41f19fb25cfe8b9cd4f01e8110ca507745ed2` (`main`)
 - **Objetivo:** dictaminar con evidencia `archivo:línea`, valores de color resueltos y diff de merges las ocho acusaciones A5.3/A5.6 contra las PR #31 y #30, sin corregir producto.
 - **SDD:** ninguno; auditoría read-only de código ya fusionado.
-- **Estado de tarea:** implementación documental cerrada; publicación en curso.
+- **Estado de tarea:** cerrada y publicada para revisión.
 - **Aceptación:** un documento en `docs/audits/2026-09-10-medicion-31-y-30.md`; ocho veredictos explícitos; reformulación o ausencia de defecto cuando corresponda; tabla final con esfuerzo y dueño de decisión; estados de validación explícitos.
 - **Alcance permitido:** este handoff y `docs/audits/2026-09-10-medicion-31-y-30.md`.
 - **Excluido:** código, CSS, specs, tests, migraciones, ruleset, merge, deploy y cleanup.
 - **Dependencias:** ninguna; puede correr en paralelo con SDD-0450, A5.1 y A5.4.
 - **Permisos:** commits locales, push de esta rama y PR borrador contra `main`; sin merge ni producción.
 - **Último resultado:** auditoría terminada y validada dentro de los límites disponibles; `pnpm verify` FALLÓ sólo en E2E sin credenciales, después de que build y los demás gates ejecutados pasaran.
-- **Siguiente paso:** publicar esta rama, abrir el PR borrador y entregar al Director para decisión/priorización; no fusionar.
+- **Siguiente paso:** el Director revisa el PR borrador #43 y decide la priorización de arreglos; no fusionar desde esta sesión.
 
 ## Cierre obligatorio
 
@@ -47,17 +47,19 @@ Crear un único dictamen documental, sin modificar producto, que clasifique como
 
 ### COMMITS
 
-- Commit inicial: pendiente de crear; contendrá auditoría y este cierre.
+- `1de5e768` — `docs(audit): dictaminar acusaciones de PR31 y PR30`; contiene la auditoría y el cierre Worker previo a la publicación.
+- Commit que contiene esta actualización: recibos finales de rama/PR.
 
 ### PR / BRANCH
 
 - Rama local: `codex/medicion-tokens-a53-a56` sobre `8ee41f19fb25cfe8b9cd4f01e8110ca507745ed2`.
-- Push: pendiente del commit inicial, autorizado por el encargo.
-- PR borrador contra `main`: pendiente de abrir tras el push; no autoriza merge ni producción.
+- Rama remota: `origin/codex/medicion-tokens-a53-a56`.
+- PR borrador contra `main`: #43 — `https://github.com/hailuwaycom-sketch/DTDCARGO/pull/43`.
+- No se fusionó ni desplegó; el PR no autoriza producción.
 
 ### PENDIENTES DE ESTA TAREA
 
-Crear commits selectivos, publicar esta rama, abrir el PR borrador y actualizar este handoff con los recibos de publicación.
+Ninguno dentro del alcance autorizado. Queda revisión e integración en manos del Director.
 
 ### FUERA DE ALCANCE DETECTADO
 
