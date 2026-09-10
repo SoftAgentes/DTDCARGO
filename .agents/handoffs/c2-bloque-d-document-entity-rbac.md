@@ -1,154 +1,139 @@
-# Handoff Worker — bloque RBAC documento-entidad
+# Handoff Worker — bloque D, RBAC documento-entidad
 
-Fecha: 2026-09-10 · Estado: bloqueada por dependencia SQL fuera de alcance.
-Owner/claim: `codex-worker-c2-bloque-d-document-entity-rbac-20260910`.
+Fecha: 2026-09-10 · Estado: lista para revisión en PR apilada.
+Owner/claim: `worker-c2-bloque-d-20260910-root`.
 Task ID: `c2-bloque-d-document-entity-rbac`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c2-bloque-d-document-entity-rbac`.
 Rama: `codex/c2-bloque-d-document-entity-rbac`.
-Base asignada: `main@8ee41f19fb25cfe8b9cd4f01e8110ca507745ed2`.
+Base dura: `codex/c2-prerequisito-0416-portal-shipments@967bb375e488c6fca7fd123ec675a571a0ddcff5` (PR #47).
 Origen selectivo: `ea9952a47f4adf14c48c91e6d0147597beb94aa7` (cabeza publicada de PR #21).
 
 ## OBJETIVO ORIGINAL
 
-Llevar a `main`, mediante una sola PR draft, el bloque «RBAC documento-entidad»
-extraído de PR #21: diez specs SDD-0403–0412, diez migraciones 0435–0444 y sus
-diez contratos SQL, sin importar el resto de #21 ni aplicar nada a producción.
-
-## CONTRATO DE TAREA
-
-- SDD asignadas: `0403` a `0412`, sin renumeración.
-- Alcance permitido: los 30 archivos fuente; entradas nuevas únicamente en
-  `pendingBelowCutoff` de `supabase/migrations-baseline.json`; índice regenerado
-  `docs/specs/README.md`; este handoff.
-- Exclusiones: `app/**`, `lib/**`, cualquier otra spec/migración de #21, cambio
-  de `cutoff`, PR #21, ruleset, merge, deploy, Cloud y producción.
-- Dependencias duras: ninguna. Archivos compartidos con otras ramas:
-  `docs/specs/README.md` y `supabase/migrations-baseline.json`; cualquier
-  conflicto futuro se resuelve regenerando índice y uniendo entradas del baseline.
-- Autorizado: commits locales selectivos, push de esta rama y una PR draft a
-  `main`. No autorizado: merge, aplicación de migraciones, producción ni cleanup.
-
-## ACEPTACIÓN
-
-- [x] Los 30 archivos están presentes e idénticos al objeto `ea9952a4`.
-- [x] Diez entradas exactas nuevas en `pendingBelowCutoff`; `cutoff` sigue en 238.
-- [x] `pnpm sdd:check` y `pnpm docs:check` pasan; índice regenerado por comando.
-- [x] Diez contratos SQL pasan en PostgreSQL local desechable.
-- [ ] Reconstrucción de esquema desde cero pasa con las diez migraciones.
-- [ ] `pnpm verify` se ejecuta y cada gate/SKIP queda clasificado sin fallos.
-- [x] No se consultan filas reales, no se escribe Cloud y no se aplica migración.
-- [ ] Rama publicada y PR draft lista explícitamente las diez migraciones y
-  declara que fusionar no autoriza aplicarlas.
+Cerrar el bloque D preservando de inmediato las 33 rutas locales sin respaldo,
+rebasar la rama propia sobre el único prerrequisito externo de la cadena
+0435→0444 y entregar una PR draft apilada sobre PR #47. El alcance es diez specs
+SDD-0403–0412, diez migraciones 0435–0444, sus diez contratos SQL, las entradas
+correspondientes de `pendingBelowCutoff`, el índice SDD regenerado y este handoff.
 
 ## COMPLETADO
 
-- Se leyeron enteras las diez specs y las diez migraciones. La correspondencia
-  por dominio quedó confirmada: 0403↔0435 invoice, 0404↔0436 treasury,
-  0405↔0437 accounting, 0406↔0438 expense, 0407↔0439 shipment,
-  0408↔0440 client, 0409↔0441 supplier, 0410↔0442 naviera,
-  0411↔0443 bitacora y 0412↔0444 unlinked.
-- Se copiaron los 30 paths exactos desde
-  `ea9952a47f4adf14c48c91e6d0147597beb94aa7`; 30/30 hashes de blob del
-  working tree coinciden con ese objeto.
-- Se añadieron diez claves exactas a `pendingBelowCutoff`, una por migración,
-  con qué hace, motivo de espera, consecuencia mientras espera, autorización
-  nominal de Sam e idempotencia/prerrequisito. El JSON parsea, contiene 15
-  esperas totales y conserva `cutoff: 238`.
-- `docs/specs/README.md` fue regenerado exclusivamente con `pnpm docs:index`.
-- No se importó ningún archivo `app/**`, `lib/**` ni otro archivo de PR #21.
-- No se consultó el ledger ni ninguna fila de negocio: no hay `.env.local` ni
-  variables Supabase. No hubo escritura Cloud ni aplicación de migraciones.
+- Se reclamó el worktree con owner `worker-c2-bloque-d-20260910-root` y se
+  verificaron raíz, rama y aislamiento antes de escribir.
+- Las 33 rutas pendientes se respaldaron antes del rebase en cuatro commits
+  selectivos por unidad lógica: specs/índice, migraciones/baseline, contratos y
+  handoff. Nunca se usó `git add -A`.
+- Se rebasó exclusivamente esta rama sobre
+  `codex/c2-prerequisito-0416-portal-shipments@967bb375`. La rama y el worktree
+  del otro Worker no se modificaron.
+- El único conflicto fue `docs/specs/README.md`: durante el rebase se conservó
+  el índice de la base y después se regeneró con `corepack pnpm docs:index`, como
+  exigía el encargo. `supabase/migrations-baseline.json` se integró sin conflicto
+  y conserva la unión de entradas.
+- La comparación posterior al rebase confirmó los 30 archivos del bloque con
+  blobs idénticos 30/30 contra `ea9952a4`.
+- Frente a `origin/main`, el baseline contiene exactamente once claves nuevas:
+  el prerrequisito `0416_portal_shipments_tenant_boundary` de la base y las diez
+  migraciones 0435–0444 del bloque. `cutoff` permanece en 238.
+- La reconstrucción desde cero que había bloqueado la ronda anterior pasó
+  completa en la primera iteración con 0416 presente.
+- No se importó ningún archivo `app/**` o `lib/**`, no se tocó PR #21 ni ninguna
+  de las otras PR, y no hubo merge, deploy, lectura de filas reales, escritura
+  Cloud ni aplicación de migraciones.
 
 ## VALIDACIÓN
 
-- **PASÓ** — `corepack pnpm install --frozen-lockfile`: Node 24.20.0,
-  pnpm 12.3.4, 813 paquetes; lockfile sin cambios.
-- **PASÓ** — identidad de origen al cierre: 30 paths presentes y 0 diferencias
-  de blob contra `ea9952a4`.
-- **PASÓ** — `corepack pnpm docs:index`: índice regenerado, 405 specs y 44 huecos.
-- **PASÓ** — `corepack pnpm sdd:check`: 405 specs, 413 migraciones, sin números
-  repetidos nuevos; sólo avisos históricos eximidos por el propio gate.
+- **PASÓ** — `corepack pnpm install --frozen-lockfile`: pnpm 12.3.4; lockfile sin
+  cambios.
+- **PASÓ** — `corepack pnpm docs:index`: índice generado con 406 specs y 43
+  huecos.
+- **PASÓ** — `corepack pnpm sdd:check`: 406 specs y 414 migraciones; únicamente
+  colisiones históricas eximidas por el gate.
 - **PASÓ** — `corepack pnpm docs:check`.
-- **PASÓ** dentro de `pnpm verify`: harness 12/12; lint con 0 errores y 8
-  warnings preexistentes; frontera RSC; TypeScript; 4 Edge Functions;
-  Vitest 513 archivos / 6496 pruebas; docs; numbering; feature constants;
-  components y governance.
-- **NO DISPONIBLE** dentro de `pnpm verify`: `migrations-applied` emitió SKIP
-  por ausencia de `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`.
-  No se consultó el ledger real.
-- **PASÓ** dentro de `pnpm verify`: 155/155 contratos SQL en `postgres:17`,
-  rollback total. Los diez contratos 0435–0444 aparecen individualmente como
-  PASÓ.
-- **FALLÓ** dentro de `pnpm verify`: `schema-rebuild` murió en
-  `0439_shipment_document_entity_rbac.sql:75` tras 384 de 413 migraciones:
-  `0439: policies de shipment_documents ausentes o con drift`.
-- **EVIDENCIA DEL BLOQUEO**: `0439` líneas 40–59 exige que
-  `shipment_documents portal self read` contenga `client_users`, `auth.uid()`
-  y `tenant_id`. En la base 8ee41f19, 0086 conserva la policy histórica basada
-  en `get_portal_client_markbox()`. La migración que la endurece es
-  `0416_portal_shipments_tenant_boundary.sql` de PR #21; no existe en
-  `8ee41f19` ni en `origin/main`, y sólo está en `refs/dtd/pr/21` y
-  `origin/codex/saneamiento-integral`. El test 0439 crea sintéticamente la policy
-  endurecida en sus líneas 199–215, por eso el contrato focal pasa aunque el
-  rebuild real falle.
-- **FALLÓ / INTERRUMPIDO** — E2E general de `pnpm verify`: produjo fallos de
-  rutas autenticadas por falta de URL/clave pública Supabase y no emitió resumen
-  terminal. Tras más de dos minutos sin salida, la inspección mostró cero
-  procesos Node/Playwright; se cerró la PTY colgada con Ctrl+C. No se atribuye
-  cobertura E2E completa ni un conteo final.
-- **PASÓ** — `corepack pnpm build` ejecutado aparte porque `verify` no llegó a
-  su último gate: compilación, TypeScript y 160 páginas generadas. Los mensajes
-  por Supabase ausente fueron fallbacks no fatales; exit 0.
-- **PASÓ** — revisión final de alcance: 33 paths cambiados, todos dentro del
-  allowlist (30 fuentes + índice + baseline + handoff), `git diff --check` en 0
-  y sin whitespace terminal detectado. `sdd:check` y `docs:check` se repitieron
-  en verde después del handoff/baseline final.
+- **PASÓ** — integridad posterior al rebase: base `967bb375` es ancestro; 30
+  paths comprobados, 0 diferencias de blob contra `ea9952a4`.
+- **PASÓ** — baseline: 11 claves nuevas frente a `origin/main`, incluidas 0416 y
+  0435–0444; `cutoff` actual y de `origin/main` es 238.
+- **PASÓ** dentro de `corepack pnpm verify` — harness 12/12; lint con 0 errores y
+  8 warnings preexistentes; frontera RSC; TypeScript; 4 Edge Functions; Vitest
+  513 archivos / 6496 pruebas; docs; numbering; feature constants; components y
+  governance.
+- **NO DISPONIBLE** dentro de `corepack pnpm verify` — `migrations-applied`
+  emitió SKIP por ausencia de `NEXT_PUBLIC_SUPABASE_URL` y
+  `SUPABASE_SERVICE_ROLE_KEY`; no se midió ni se declara pasado el ledger real.
+- **PASÓ** dentro de `corepack pnpm verify` — `sql-tests`: 156 contratos en
+  `postgres:17`, rollback total. Los contratos 0416 y 0435–0444 pasaron
+  individualmente.
+- **PASÓ** dentro de `corepack pnpm verify` — `schema-rebuild`: 414 archivos
+  detectados; 396 migraciones aplicadas desde cero; 18 ledger-only verificadas;
+  aislamiento multi-tenant validado sobre 219 tablas y dos tenants.
+- **NO DISPONIBLE** dentro de `corepack pnpm verify` — E2E sin
+  `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Primera corrida:
+  153 pasaron, 18 omitidas y 15 fallaron. Reintento 1/1: 152 pasaron, 18
+  omitidas, 15 fallaron y una prueba ajena quedó flaky pero pasó al reintento.
+  Las 15 fallas en ambos intentos son las mismas cinco comprobaciones de login,
+  portal y redirección auth en chromium, mobile-chrome y mobile-safari, con el
+  error explícito de URL/clave Supabase ausentes. No se atribuyen como regresión
+  del bloque D ni como cobertura pasada.
+- **PASÓ** dentro de `corepack pnpm verify` — build de producción: compilación,
+  TypeScript, 160 páginas estáticas y restauración automática de `tsconfig.json`.
+- **FALLÓ** — resultado agregado de `corepack pnpm verify` (exit 1): 15 de 16
+  pasos se ejecutaron; el único gate fallido fue E2E, clasificado arriba como
+  NO DISPONIBLE por configuración pública ausente. Esto no es verde global.
+- **PASÓ** — revisión de alcance previa al cierre: 33 paths y solo los 33 del
+  allowlist; `git diff --check` sin hallazgos y árbol limpio antes de actualizar
+  este handoff.
 
 ## COMMITS
 
-Ninguno. La validación falló antes del commit; no se creó un commit conocido
-como incapaz de reconstruir el esquema.
+- `3451d56e` — specs SDD-0403–0412 del RBAC documental.
+- `7de2d61d` — migraciones 0435–0444 y sus esperas en el baseline.
+- `a11c82ad` — contratos SQL 0435–0444.
+- `db7c521f` — respaldo del handoff que existía antes del rebase.
+- `9d93a707` — índice SDD regenerado después del rebase.
+- El commit que contiene este cierre de handoff se registra como commit
+  selectivo adicional; su SHA final queda visible en la rama y la PR.
 
 ## PR / BRANCH
 
-Rama local `codex/c2-bloque-d-document-entity-rbac`, base y `origin/main` en
-`8ee41f19fb25cfe8b9cd4f01e8110ca507745ed2`. No se publicó y no se abrió PR:
-la aceptación de rebuild está roja y la corrección exige cambiar el alcance u
-orden de integración. PR #21 no fue modificada ni cerrada.
+- Head: `codex/c2-bloque-d-document-entity-rbac`.
+- Base: `codex/c2-prerequisito-0416-portal-shipments` (PR #47, head
+  `967bb375e488c6fca7fd123ec675a571a0ddcff5`).
+- Dependencia dura: PR #47 se fusiona primero. Esta rama no debe rebasarse sobre
+  `main` ni incorporar una copia de 0416.
+- PR draft: se abrirá después de publicar la rama y su URL se fijará en el
+  commit final de este handoff.
+- Fusionar cualquiera de estas PR no autoriza aplicar migraciones a producción.
 
 ## PENDIENTES DE ESTA TAREA
 
-Decisión del Director sobre la dependencia dura `0416`:
-
-1. Recomendado: extraer primero, en otra PR/orden, el trío exacto
-   `docs/specs/0359-portal-shipments-tenant-boundary/spec.md`,
-   `supabase/migrations/0416_portal_shipments_tenant_boundary.sql` y
-   `supabase/tests/0416_portal_shipments_tenant_boundary.test.sql`, incluida su
-   espera nominal en el baseline. Tras integrarlo a main, actualizar esta rama
-   por merge de `origin/main` y repetir validación. Así C2 conserva sus 30
-   archivos verbatim.
-2. Alternativa que cambia este alcance: autorizar esos tres archivos y su
-   entrada baseline dentro de C2. El conjunto dejaría de ser de 30 archivos.
-3. Alternativa incompatible con “verbatim”: reescribir 0439 para migrar desde la
-   policy histórica. No se ejecutó.
-
-Después de la decisión faltan rebuild verde, `pnpm verify` sin fallos,
-revalidación de identidad/scope, commits selectivos, push y PR draft.
+- Ningún pendiente de implementación o validación focal del bloque.
+- Completar la publicación autorizada, abrir la PR draft apilada y fijar aquí su
+  URL final.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- Las specs verbatim 0406, 0407 y 0412 conservan referencias a guardias de
-  aplicación de su PR original. El recorte ordenado excluye esos archivos y no
-  se reinterpretó el estado histórico `done`; este PR no re-certifica el alcance
-  de aplicación original.
 - Ocho warnings lint preexistentes en pruebas de Compras y componentes CRM.
-- E2E general depende de configuración Supabase no presente en este worktree.
+- El E2E general no está disponible sin la configuración pública de Supabase;
+  las 15 fallas reproducidas quedan documentadas arriba.
+- `migrations-applied` no está disponible sin credenciales del ledger real.
+- La prueba E2E `calculadora-semantic-colors.spec.ts` tuvo un fallo transitorio
+  ajeno y pasó su retry; no se modificó.
 
 ## HANDOFF AL DIRECTOR
 
-El bloque está preparado dentro del allowlist, pero no es integrable todavía:
-`0439` tiene una dependencia comprobada de 0416 que contradice “ninguna dura”.
-El Director debe escoger el orden/alcance anterior; no se debe publicar ni
-integrar esta rama hasta conseguir rebuild verde. No hubo merge, deploy,
-producción, lectura de filas reales ni cambios a PR #21. El claim se libera al
-terminar esta escritura; rama y worktree se conservan.
+El bloque D está reconstruido y validado sobre su única dependencia externa. La
+revisión debe conservar la topología apilada: PR #47 primero y luego esta PR. La
+PR del bloque permanecerá draft y su merge no autoriza ejecutar
+`0435_invoice_document_entity_rbac.sql`,
+`0436_treasury_document_entity_rbac.sql`,
+`0437_accounting_document_entity_rbac.sql`,
+`0438_expense_document_entity_rbac.sql`,
+`0439_shipment_document_entity_rbac.sql`,
+`0440_client_document_entity_rbac.sql`,
+`0441_supplier_document_entity_rbac.sql`,
+`0442_naviera_document_entity_rbac.sql`,
+`0443_bitacora_document_entity_rbac.sql` ni
+`0444_unlinked_document_entity_rbac.sql` en producción. No hubo merge ni
+aplicación de migraciones. Rama y worktree se conservan; el claim se libera al
+terminar la publicación y la verificación remota.
