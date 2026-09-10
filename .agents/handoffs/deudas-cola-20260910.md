@@ -101,16 +101,17 @@ Validación final bajo carga: `verify` pasó 6526/6526 tests en 521 archivos, si
 - Deuda 1: `ff08ef99` — comentario aditivo de 0449 y contrato inicial.
 - Deuda 3: `67e7d2a8` — veredicto razonado de conservar el fixture.
 - Deuda 4: `bfb709aa` — trazabilidad existente de PR #27 contrastada con #38 y #41.
-- Deuda 2: commit que contiene esta actualización — fixture mínimo con frontera real, medición y cierre de validación.
+- Deuda 2: `4dbe2dff` — fixture mínimo con frontera real, medición y cierre de validación.
+- Cierre documental: commit que contiene esta actualización — URL de PR y entrega al Director; no modifica el test ni requiere repetir el gate. Hash final registrado en la PR.
 
 ## PR / BRANCH
 
-Publicación y PR en borrador autorizadas, paso inmediato tras este commit. Rama `codex/deudas-cola-20260910`, base `main`, worktree indicado arriba. URL y SHA publicados se registrarán en el cierre documental de esta misma rama.
+[PR #60 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/60), abierta contra `main`, rama `codex/deudas-cola-20260910`, worktree indicado arriba. Cuatro commits de deuda publicados; este cierre documental se publica en la misma rama. Base `origin/main` revalidada tras el gate: continúa en `710a8e0695f416700d75e7bc42e8e5cb889751e8`. El SHA final de la rama y del cierre documental se registra en la PR sin recursión de autohashes.
 
 ## PENDIENTES DE ESTA TAREA
 
 - Ningún cambio de implementación pendiente para las cuatro deudas; las deudas 3 y 4 cierran con los veredictos razonados aceptados por el encargo.
-- Publicar rama y abrir PR draft; registrar su URL y liberar claim al concluir la escritura.
+- Entrega publicada en PR #60 draft. No queda implementación adicional autorizada; integración/merge no forman parte de este encargo.
 - Cierre de validación global pendiente: revalidar E2E en un entorno con configuración Supabase aprobada y resolver/explicar la espera de su reintento; el ledger sigue NO DISPONIBLE. No se pide ni se ejecuta producción para aprobar esta corrección documental/de tests. Estas limitaciones impiden declarar el gate completo o la rama lista para merge.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -122,4 +123,6 @@ Publicación y PR en borrador autorizadas, paso inmediato tras este commit. Rama
 
 ## HANDOFF AL DIRECTOR
 
-Revisar los cuatro veredictos y commits separados, especialmente la frontera de 201 filas y las mediciones caliente/frío. El alcance de producto es vacío; la única modificación de migración es el comentario aditivo. Publicación draft autorizada; integración y producción requieren sus autorizaciones separadas. La configuración/espera E2E y el ledger deben coordinarse fuera de esta allowlist. Subagentes realizaron revisiones de lectura y finalizaron; la escritura es de este Worker. Claim retenido hasta registrar la publicación y cerrar la sesión; worktree y rama se conservan.
+Revisar la PR #60 y los cuatro veredictos/commits separados, especialmente la frontera de 201 filas y las mediciones caliente/frío. El alcance de producto es vacío; la única modificación de migración es el comentario aditivo. Integración y producción requieren sus autorizaciones separadas. La configuración/espera E2E y el ledger deben coordinarse fuera de esta allowlist antes de declarar gate completo. El CI hospedado de «Calidad local sin secretos» tampoco cubre E2E autenticado ni Supabase.
+
+Subagentes de lectura finalizados. Escritura y publicación terminadas al cierre; claim `codex-worker-deudas-cola-20260910` liberado como último paso de la sesión. No quedan procesos de la captura E2E interrumpida. Worktree y rama conservados, sin merge, deploy ni cambios de producción. La comprobación final de remoto, estado limpio y liberación se informa junto a la URL de PR en la respuesta al Director.
