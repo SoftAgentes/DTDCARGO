@@ -84,11 +84,12 @@ Login, permisos/filas, journeys de portal y Safari físico: NO EJECUTADO. No apl
 
 ## COMMITS
 
-Commit que contiene este documento: diagnóstico, recibos y documentación. SHA final en PR para evitar autorreferencia.
+- `e4d4f6e2a319888241a4ea1d458d07d6baf51eaf`: diagnóstico, recibos y documentación.
+- Commit que contiene esta actualización del handoff: enlace de PR y cierre de publicación. SHA final en PR para evitar autorreferencia.
 
 ## PR / BRANCH
 
-`codex/d2-webkit-auth-cors` contra `main`, PR draft autorizado. Consultar la PR de esta rama para URL y SHA final. Sin merge ni deploy manual; los checks/previews del proveedor pueden dispararse por los archivos de sonda, sin modificar el pipeline.
+[PR #59 — BORRADOR](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/59), `codex/d2-webkit-auth-cors` contra `main`, publicada con autorización. SHA final en PR. Sin merge ni deploy manual; los checks/previews del proveedor pueden dispararse por los archivos de sonda, sin modificar el pipeline.
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -107,4 +108,4 @@ Una nueva captura tendría que determinar si se emitió OPTIONS, qué respondió
 
 Revisar dictamen parcial y recibos válidos 03/04/05/06/07/08. El protocolo anónimo no reproduce rechazo HTTPS real; no se entrega arreglo. Decidir ampliación diagnóstica para aceptación 2. Publicación solo draft, sin integración ni numeración SDD.
 
-Sin consumidores ni listeners auxiliares D2 pendientes; siete servicios compartidos preservados. Claim se libera al terminar escritura y publicación; verificar recibo de cierre de sesión antes de retomar. No borrar rama/worktree.
+Sin consumidores ni listeners auxiliares D2 pendientes; siete servicios compartidos preservados. Claim se libera al terminar esta escritura y publicación; el resultado de liberación se registra en el cierre de sesión y la PR #59. No borrar rama/worktree.
