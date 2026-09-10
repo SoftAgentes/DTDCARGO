@@ -284,7 +284,7 @@ export function DestinoCombobox({
           selectOnMouseUpRef.current = false;
         }}
         onKeyDown={handleKeyDown}
-        className="w-full px-3.5 h-[52px] rounded-[12px] text-[15px] text-white focus:outline-none focus:ring-2 focus:ring-wine/40"
+        className="w-full px-3.5 h-[52px] rounded-[12px] text-[15px] text-[var(--color-on-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--color-on-accent)]"
         style={{
           border: "1.5px solid rgba(255,255,255,0.14)",
           background: "rgba(255,255,255,0.04)",
@@ -375,7 +375,7 @@ export function DestinoCombobox({
                   <span
                     style={{
                       fontSize: 11.5,
-                      color: "rgba(255,255,255,0.45)",
+                      color: "var(--calc-ink-secondary)",
                       whiteSpace: "nowrap",
                     }}
                   >
@@ -392,7 +392,7 @@ export function DestinoCombobox({
                       whiteSpace: "nowrap",
                       borderRadius: 6,
                       padding: "3px 6px",
-                      color: "var(--wine-on-dark, var(--color-wine-on-dark))",
+                      color: "var(--color-on-accent)",
                       background: "rgba(255,255,255,0.08)",
                     }}
                   >

@@ -32,7 +32,7 @@ export const REGISTRATION_STATUS_META: Record<
   RegistrationStatus,
   { label: string; tone: NominaBadgeTone }
 > = {
-  pendiente: { label: "Pendiente", tone: "warning" },
+  pendiente: { label: "Pendiente", tone: "info" },
   aprobada: { label: "Aprobada", tone: "success" },
   rechazada: { label: "Rechazada", tone: "danger" },
 };

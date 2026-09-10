@@ -158,12 +158,12 @@ export const DISPATCH_ORDER_STATUS_LABELS: Record<DispatchOrderStatus, string> =
 
 export const DISPATCH_ORDER_STATUS_TONES: Record<DispatchOrderStatus, BadgeTone> = {
   creada: "info",
-  cargando: "warning",
-  lista: "wine",
-  en_ruta: "wine",
+  cargando: "info",
+  lista: "info",
+  en_ruta: "info",
   entregada: "success",
   cerrada: "neutral",
-  cancelada: "danger",
+  cancelada: "neutral",
 };
 
 export const DISPATCH_HUB_LABELS: Record<DispatchHub, string> = {
@@ -193,8 +193,8 @@ export const DISPATCH_PAYMENT_LABELS: Record<DispatchPaymentStatus, string> = {
 
 export const DISPATCH_PAYMENT_TONES: Record<DispatchPaymentStatus, BadgeTone> = {
   pagado: "success",
-  parcial: "warning",
-  pendiente: "danger",
+  parcial: "info",
+  pendiente: "info",
 };
 
 // ─────────────────────────────────────────────────────────────
