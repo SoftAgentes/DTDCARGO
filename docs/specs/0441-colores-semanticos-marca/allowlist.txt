@@ -5,6 +5,8 @@ app/globals.css
 app/m/_components/KpiCard.tsx
 app/m/emp/_components/ReciboTab.tsx
 app/m/erp/bitacora/_components/PushOptInBanner.tsx
+app/p/[token]/PackingListFormSection.tsx
+app/p/[token]/SupplierUploadSection.tsx
 app/portal/(app)/perfil/ProfilePendingBanner.tsx
 app/portal/(app)/reclamos/_components/PortalClaims.test.tsx
 app/portal/(app)/reclamos/_components/PortalClaims.tsx

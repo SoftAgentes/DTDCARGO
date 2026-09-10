@@ -37,6 +37,24 @@ Prealertas: sólo tonos de display en types.ts y badge. Sin crear compras,
 proveedores ni modificar enlaces, packing list o documentos.
 No se retira el arnés ni se modifica AGENTS.md: tarea independiente.
 
+### Rescate del portal público del proveedor · 2026-09-10
+
+Sam autoriza ampliar este slice únicamente a la presentación de
+`app/p/[token]/PackingListFormSection.tsx` y `SupplierUploadSection.tsx`:
+los errores de campos, envío y adjuntos usan texto neutro con rojo localizado
+en el borde; la tabla posicionada contiene los textos `sr-only` y conserva
+el scroll horizontal interno. No cambia mensajes, fórmulas, validaciones,
+datos, enlaces, documentos, acciones ni contratos. Las dos rutas se agregan
+a la allowlist; el handoff de rescate es un artefacto de control autorizado.
+
+Revalidación contra `origin/main` en `13facbada82da3f09e295e90bbcccbfc10ed165c`:
+ambos componentes conservaban exactamente los blobs de `c8c79298^`, anteriores
+a las cuatro correcciones de clases de `c8c79298`. Las PR #33 y #46 ya estaban
+integradas; no resolvieron este delta. Se porta solo ese cambio de producto,
+sin los handoffs ni las notas de QA históricas del commit fuente.
+La evidencia y los límites de validación actuales quedan en
+[el handoff de rescate](../../../.agents/handoffs/rescate-dtd-0441-proveedor.md).
+
 ## Fuentes y derivados
 
 Editables: BRAND.md, CLAUDE.md y tokens/componentes/data del Norte, estilos y
