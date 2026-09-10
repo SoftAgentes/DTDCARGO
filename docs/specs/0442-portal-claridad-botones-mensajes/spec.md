@@ -4,7 +4,7 @@ title: Portal del cliente - claridad de botones y mensajes
 status: in-progress
 author: Codex
 created: 2026-09-05
-updated: 2026-09-05
+updated: 2026-09-10
 supersedes: null
 superseded_by: null
 related: [0057, 0170, 0171, 0308, 0313]
@@ -86,3 +86,41 @@ Director. La fase de adopción autoriza solo commits locales, sin push ni releas
 ## Evidencia
 
 Ver [evidence.md](evidence.md), con límites y clasificación por criterio.
+
+## Restauración de la decisión founder · 2026-09-10
+
+PR #30 reordenó la ayuda de Proveedores dentro de un `<details>` cerrado y, sin
+declararlo como decisión de producto, ocultó al cargar el par que Sam había
+fijado el 2026-07-28 para el momento «estoy comprando en China»:
+`AlibabaAddressGuide` y `ChinaSupplierClip`. Este slice restaura esa decisión;
+no es un ajuste cosmético ni un rediseño.
+
+La reparación saca **el par completo y su comentario de decisión** del
+`<details>` y lo deja, todavía junto, después de la lista/alta de proveedores y
+antes de la ayuda secundaria. El `<details>` conserva cerrado por defecto la
+explicación «Por qué registrar a tu proveedor importa», su mensaje asociado y
+`GuiaAlibabaCard`. Este reparto preserva el reordenamiento autorizado por
+SDD-0442 —proveedores y alta antes de ayuda secundaria— sin convertir una ayuda
+operativa inmediata en contenido que el cliente deba descubrir.
+
+El test de `SuppliersClient` fija las dos mitades de la decisión: el par está
+visible y fuera del `<details>` al cargar; la ayuda secundaria sigue plegada,
+después de la recompra y del alta, y la recompra conserva el proveedor en su URL.
+
+### Gobernanza y allowlist de este slice
+
+`AGENT-BRIEF` exige SDD y allowlist exacta para cambios de comportamiento; esa
+secuencia también aplica en Portal. Se reutiliza SDD-0442 y, para esta
+restauración, el alcance queda limitado a:
+
+- `app/portal/(app)/proveedores/SuppliersClient.tsx`
+- `app/portal/(app)/proveedores/SuppliersClient.test.tsx`
+- `docs/specs/0442-portal-claridad-botones-mensajes/spec.md`
+- `docs/specs/0442-portal-claridad-botones-mensajes/evidence.md`
+- `docs/specs/0442-portal-claridad-botones-mensajes/assets/*.png`
+- `.agents/handoffs/a5-1-direccion-bodega-cn-visible.md`
+
+Clasificación: `cumplimiento` de A11Y-01 al conservar el `<details>/<summary>`
+nativo, su teclado y foco; `cumplimiento` de VIS-01 al restaurar jerarquía sin
+tokens, fuentes ni tratamientos nuevos; `no aplica` BTN-01, CMP-01 y LNK-01
+porque no cambia una acción, no crea/reemplaza componentes y no altera enlaces.

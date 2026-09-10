@@ -122,7 +122,7 @@ export function RecentQuotesCard({ quotes }: { quotes: RecentQuoteRow[] }) {
                   {q.client_markbox} · {formatDate(q.created_at)}
                 </div>
               </div>
-              <Badge tone={statusBadgeTone(q.status)} size="sm" dot>
+              <Badge tone={statusBadgeTone(q.status)} size="sm">
                 {statusLabel(q.status)}
               </Badge>
               <span

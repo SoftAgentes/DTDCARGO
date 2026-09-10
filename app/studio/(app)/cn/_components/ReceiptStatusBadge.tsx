@@ -20,15 +20,13 @@ import { useT } from "@/lib/i18n";
 export function ReceiptStatusBadge({
   status,
   size = "sm",
-  dot = true,
 }: {
   status: WarehouseReceiptStatus;
   size?: "sm" | "md";
-  dot?: boolean;
 }) {
   const t = useT();
   return (
-    <Badge tone={RECEIPT_STATUS_TONES[status]} size={size} dot={dot}>
+    <Badge tone={RECEIPT_STATUS_TONES[status]} size={size}>
       {t(RECEIPT_STATUS_LABEL_KEYS[status])}
     </Badge>
   );

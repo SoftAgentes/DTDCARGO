@@ -118,7 +118,7 @@ export default async function QuoteDetailPage({
         >
           {quote.client_name}
         </h1>
-        <Badge tone={statusBadgeTone(displayStatus)} size="md" dot>
+        <Badge tone={statusBadgeTone(displayStatus)} size="md">
           {statusLabel(displayStatus)}
         </Badge>
       </div>

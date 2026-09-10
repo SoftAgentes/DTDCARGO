@@ -125,7 +125,7 @@ export function StageMapConfig({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <Badge tone={mappedCount > 0 ? "success" : "neutral"} dot>
+        <Badge tone={mappedCount > 0 ? "success" : "neutral"}>
           {mappedCount > 0 ? `${mappedCount} de 3 mapeadas` : "Sin mapear"}
         </Badge>
       </div>

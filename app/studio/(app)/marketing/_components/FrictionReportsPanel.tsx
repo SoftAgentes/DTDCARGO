@@ -249,7 +249,7 @@ export function FrictionReportsPanel({
                   >
                     {r.title}
                   </span>
-                  <Badge tone={frictionStatusTone(status)} size="sm" dot>
+                  <Badge tone={frictionStatusTone(status)} size="sm">
                     {FRICTION_STATUS_LABELS[status]}
                   </Badge>
                   {isAdmin && status !== "resolved" && (

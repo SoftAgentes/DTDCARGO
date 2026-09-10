@@ -8,14 +8,12 @@ import {
 export function DriverStatusBadge({
   status,
   size = "sm",
-  dot = true,
 }: {
   status: DriverStatus;
   size?: "sm" | "md";
-  dot?: boolean;
 }) {
   return (
-    <Badge tone={DRIVER_STATUS_TONES[status]} size={size} dot={dot}>
+    <Badge tone={DRIVER_STATUS_TONES[status]} size={size}>
       {DRIVER_STATUS_LABELS[status]}
     </Badge>
   );
