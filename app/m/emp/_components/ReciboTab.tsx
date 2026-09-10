@@ -129,7 +129,7 @@ export function ReciboTab({
             <span
               style={{
                 font: l.kind === "total" ? "700 13px/1.3 var(--f-sans)" : "400 12.5px/1.3 var(--f-sans)",
-                color: l.kind === "deduction" ? "var(--danger)" : "var(--ink)",
+                color: "var(--ink)",
               }}
             >
               {l.label}
@@ -137,7 +137,7 @@ export function ReciboTab({
             <span
               style={{
                 font: l.kind === "total" ? "800 13px/1.3 var(--f-sans)" : "600 12.5px/1.3 var(--f-sans)",
-                color: l.kind === "deduction" ? "var(--danger)" : "var(--ink)",
+                color: "var(--ink)",
               }}
             >
               {l.kind === "deduction" ? "-" : ""}

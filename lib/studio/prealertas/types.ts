@@ -40,9 +40,9 @@ export const PREALERTA_STATUS: Record<
   { label: string; tone: BadgeTone }
 > = {
   anunciada: { label: "Anunciada", tone: "info" },
-  en_camino: { label: "En camino", tone: "warning" },
+  en_camino: { label: "En camino", tone: "info" },
   recibida: { label: "Recibida en CN", tone: "success" },
-  consolidada: { label: "Consolidada", tone: "wine" },
+  consolidada: { label: "Consolidada", tone: "success" },
   cancelada: { label: "Cancelada", tone: "neutral" },
 };
 

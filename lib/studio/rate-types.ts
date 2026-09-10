@@ -51,7 +51,7 @@ export function rateStatusTone(
 ): "neutral" | "success" | "warning" {
   switch (status) {
     case "draft":
-      return "warning";
+      return "neutral";
     case "published":
       return "success";
     case "archived":

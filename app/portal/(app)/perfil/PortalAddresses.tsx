@@ -8,6 +8,7 @@ import {
 } from "@/lib/studio/client-address-types";
 import {
   addAddressAction,
+  updateAddressAction,
   setDefaultAddressAction,
   deleteAddressAction,
   type AddressActionState,
@@ -36,7 +37,7 @@ export type AddressCity = {
 
 /**
  * Direcciones de entrega del cliente (SDD-0138 Slice B+C · Norte PortalProfile).
- * Lista + marcar predeterminada + agregar + eliminar. Read-write: el cliente
+ * Lista + editar + marcar predeterminada + agregar + eliminar. Read-write: el cliente
  * gestiona LAS SUYAS (la RLS y las server actions garantizan la propiedad). El
  * mismo esquema lo edita el asesor desde el Studio.
  *
@@ -108,6 +109,7 @@ function AddressRow({
   // SDD-0268 · segundo paso del borrado. Es estado LOCAL de la fila a propósito:
   // con dos direcciones abiertas, confirmar una no debe armar la otra.
   const [confirmando, setConfirmando] = useState(false);
+  const [editing, setEditing] = useState(false);
   const parts = [address.city, address.state].filter(Boolean).join(", ");
   // Cómo se cobra la entrega, si la ciudad es del catálogo.
   //
@@ -119,6 +121,19 @@ function AddressRow({
     ? (cities.find((c) => c.id === address.citySlug) ?? null)
     : null;
   const estimate = catalogCity ? lastMileEstimate(catalogCity) : null;
+
+  if (editing) {
+    return (
+      <li className="rounded-[12px] border border-grey-200 bg-paper p-4">
+        <EditForm
+          address={address}
+          cities={cities}
+          onDone={() => setEditing(false)}
+        />
+      </li>
+    );
+  }
+
   return (
     <li
       className="rounded-[12px] border border-grey-200 bg-paper p-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3"
@@ -181,6 +196,13 @@ function AddressRow({
       </div>
 
       <div className="flex items-center gap-3 flex-shrink-0">
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="min-h-11 px-1 text-[12px] font-semibold text-wine-text hover:text-wine-deep"
+        >
+          Editar
+        </button>
         {!address.isDefault && (
           <form action={setDefaultAddressAction}>
             <input type="hidden" name="addressId" value={address.id} />
@@ -255,9 +277,6 @@ function AddForm({
 }) {
   const [state, action, pending] = useActionState(addAddressAction, initial);
   const fe = state.fieldErrors;
-  // Ciudad del catálogo del calculador; "otra" → texto libre sin estimado.
-  const [citySel, setCitySel] = useState<string>(cities.length > 0 ? "" : "otra");
-  const selected = cities.find((c) => c.id === citySel) ?? null;
 
   // Al confirmarse, cerramos el form (la lista ya se revalidó server-side).
   useEffect(() => {
@@ -269,54 +288,7 @@ function AddForm({
       action={action}
       className="mt-4 rounded-[12px] border border-grey-200 bg-white p-4 flex flex-col gap-3"
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Input name="label" label="Etiqueta (opcional)" placeholder="Casa, Oficina…" error={fe?.label} />
-        <Input name="line" label="Dirección" placeholder="Calle, edificio, nº" error={fe?.line} required />
-        {cities.length > 0 ? (
-          <label className="flex flex-col gap-1.5">
-            <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
-              Ciudad
-            </span>
-            <select
-              value={citySel}
-              onChange={(e) => setCitySel(e.target.value)}
-              className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-wine"
-            >
-              <option value="">Selecciona tu ciudad…</option>
-              {cities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-              <option value="otra">Otra ciudad…</option>
-            </select>
-            {/* La ciudad del catálogo viaja como label (display) + slug (estimado). */}
-            {selected ? (
-              <>
-                <input type="hidden" name="city" value={selected.label} />
-                <input type="hidden" name="citySlug" value={selected.id} />
-              </>
-            ) : null}
-          </label>
-        ) : (
-          <Input name="city" label="Ciudad" placeholder="Valencia" error={fe?.city} />
-        )}
-        <Input name="state" label="Estado" placeholder="Carabobo" error={fe?.state} />
-      </div>
-      {cities.length > 0 && citySel === "otra" ? (
-        <Input
-          name="city"
-          label="¿Cuál ciudad?"
-          placeholder="Escribe tu ciudad"
-          error={fe?.city}
-        />
-      ) : null}
-      <Input name="reference" label="Punto de referencia (opcional)" placeholder="Frente a la plaza…" error={fe?.reference} />
-
-      <label className="flex items-center gap-2 text-[13px] text-grey-700">
-        <input type="checkbox" name="isDefault" className="accent-wine" /> Marcar como
-        predeterminada
-      </label>
+      <AddressFields cities={cities} errors={fe} />
 
       {state.error ? (
         <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
@@ -341,6 +313,169 @@ function AddForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function EditForm({
+  address,
+  cities,
+  onDone,
+}: {
+  address: ClientDeliveryAddress;
+  cities: AddressCity[];
+  onDone: () => void;
+}) {
+  const [state, action, pending] = useActionState(updateAddressAction, initial);
+
+  useEffect(() => {
+    if (state.ok) onDone();
+  }, [state.ok, onDone]);
+
+  return (
+    <form action={action} className="flex w-full flex-col gap-3">
+      <input type="hidden" name="addressId" value={address.id} />
+      <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine-text">
+        Editar dirección
+      </div>
+      <AddressFields
+        cities={cities}
+        errors={state.fieldErrors}
+        address={address}
+      />
+
+      {state.error ? (
+        <PortalFieldError nivel="formulario">{state.error}</PortalFieldError>
+      ) : null}
+
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <button
+          type="submit"
+          disabled={pending}
+          aria-busy={pending}
+          className="btn btn-primary inline-flex items-center justify-center gap-2 disabled:opacity-60"
+        >
+          {pending ? "Guardando…" : "Guardar cambios"}
+          {pending ? null : <ArrowIcon size={15} />}
+        </button>
+        <button
+          type="button"
+          onClick={onDone}
+          disabled={pending}
+          className="btn btn-ghost inline-flex items-center justify-center disabled:opacity-60"
+        >
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AddressFields({
+  cities,
+  errors,
+  address,
+}: {
+  cities: AddressCity[];
+  errors?: AddressActionState["fieldErrors"];
+  address?: ClientDeliveryAddress;
+}) {
+  // Ciudad del catálogo del calculador; "otra" conserva el texto libre actual.
+  const catalogValue =
+    address?.citySlug && cities.some((city) => city.id === address.citySlug)
+      ? address.citySlug
+      : null;
+  const [citySel, setCitySel] = useState<string>(
+    catalogValue ?? (address?.city || cities.length === 0 ? "otra" : ""),
+  );
+  const selected = cities.find((city) => city.id === citySel) ?? null;
+
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Input
+          name="label"
+          label="Etiqueta (opcional)"
+          placeholder="Casa, Oficina…"
+          defaultValue={address?.label ?? ""}
+          error={errors?.label}
+        />
+        <Input
+          name="line"
+          label="Dirección"
+          placeholder="Calle, edificio, nº"
+          defaultValue={address?.line ?? ""}
+          error={errors?.line}
+          required
+        />
+        {cities.length > 0 ? (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
+              Ciudad
+            </span>
+            <select
+              value={citySel}
+              onChange={(event) => setCitySel(event.target.value)}
+              className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-wine"
+            >
+              <option value="">Selecciona tu ciudad…</option>
+              {cities.map((city) => (
+                <option key={city.id} value={city.id}>
+                  {city.label}
+                </option>
+              ))}
+              <option value="otra">Otra ciudad…</option>
+            </select>
+            {selected ? (
+              <>
+                <input type="hidden" name="city" value={selected.label} />
+                <input type="hidden" name="citySlug" value={selected.id} />
+              </>
+            ) : null}
+          </label>
+        ) : (
+          <Input
+            name="city"
+            label="Ciudad"
+            placeholder="Valencia"
+            defaultValue={address?.city ?? ""}
+            error={errors?.city}
+          />
+        )}
+        <Input
+          name="state"
+          label="Estado"
+          placeholder="Carabobo"
+          defaultValue={address?.state ?? ""}
+          error={errors?.state}
+        />
+      </div>
+      {cities.length > 0 && citySel === "otra" ? (
+        <Input
+          name="city"
+          label="¿Cuál ciudad?"
+          placeholder="Escribe tu ciudad"
+          defaultValue={address?.city ?? ""}
+          error={errors?.city}
+        />
+      ) : null}
+      <Input
+        name="reference"
+        label="Punto de referencia (opcional)"
+        placeholder="Frente a la plaza…"
+        defaultValue={address?.reference ?? ""}
+        error={errors?.reference}
+      />
+
+      <label className="min-h-11 flex items-center gap-2 text-[13px] text-grey-700">
+        <input
+          type="checkbox"
+          name="isDefault"
+          defaultChecked={address?.isDefault ?? false}
+          className="accent-wine"
+        />{" "}
+        Marcar como predeterminada
+      </label>
+    </>
   );
 }
 
@@ -370,12 +505,14 @@ function Input({
   label,
   placeholder,
   error,
+  defaultValue,
   required = false,
 }: {
   name: string;
   label: string;
   placeholder?: string;
   error?: string;
+  defaultValue?: string;
   required?: boolean;
 }) {
   return (
@@ -387,6 +524,7 @@ function Input({
       <input
         name={name}
         placeholder={placeholder}
+        defaultValue={defaultValue}
         required={required}
         className="h-11 px-3 rounded-[10px] bg-white border-[1.5px] border-grey-200 outline-none text-[14px] text-ink transition-colors focus:border-wine"
       />

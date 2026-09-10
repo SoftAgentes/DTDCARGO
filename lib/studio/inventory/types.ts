@@ -54,14 +54,14 @@ interface StatusMeta {
 
 const CN_STATUS_META: Record<CnStockStatus, StatusMeta> = {
   recibido: { label: "Recibido", tone: "info" },
-  listo: { label: "Listo p/ consolidar", tone: "wine" },
-  consolidando: { label: "Consolidando", tone: "warning" },
+  listo: { label: "Listo p/ consolidar", tone: "info" },
+  consolidando: { label: "Consolidando", tone: "info" },
   transito: { label: "En tránsito", tone: "info" },
 };
 
 const VE_STATUS_META: Record<VeStockStatus, StatusMeta> = {
   transito: { label: "En tránsito", tone: "info" },
-  aduana: { label: "En aduana", tone: "warning" },
+  aduana: { label: "En aduana", tone: "info" },
   entrega: { label: "En entrega", tone: "success" },
   entregado: { label: "Entregado", tone: "neutral" },
 };

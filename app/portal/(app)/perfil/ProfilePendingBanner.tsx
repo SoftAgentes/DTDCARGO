@@ -27,7 +27,7 @@ export function ProfilePendingBanner({
   return (
     <div
       className="mt-6 card-shadow bg-white border border-grey-200 rounded-[16px] border-l-[3px] p-5 sm:p-6"
-      style={{ borderLeftColor: "var(--color-status-warning)" }}
+      style={{ borderLeftColor: "var(--color-ink)" }}
     >
       {/* Eyebrow en grey-700 (AA): el ámbar 11px sobre blanco no llega a 4.5:1
           — el estado lo llevan el borde izquierdo y el punto (aria-hidden).
@@ -48,7 +48,7 @@ export function ProfilePendingBanner({
             >
               <span
                 className="block h-2 w-2 flex-shrink-0 rounded-full"
-                style={{ background: "var(--color-status-warning)" }}
+                style={{ background: "var(--color-ink)" }}
                 aria-hidden
               />
               <span className="flex-1 text-[13.5px] font-semibold text-ink">
