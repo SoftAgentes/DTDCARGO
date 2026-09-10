@@ -214,3 +214,42 @@ confirmada en móvil, límite histórico que estas capturas no pretenden cerrar.
 - Estas son fixtures locales con datos ficticios. No cubren autenticación,
   Supabase, operaciones reales, lector de pantalla ni zoom nativo 200 %; la
   revisión visual `/ui-check` corresponde al Director antes de integrar.
+
+### Gate de cierre Worker · 2026-09-10
+
+SHA al iniciar el gate: `188f26c010e3575ef4edae717e1f93c0fd369402`;
+el código de producto medido sigue siendo
+`f42e6a4605c0850053832331cf15d71e53e28ca8`.
+
+- **PASÓ** — `pnpm install --frozen-lockfile`, ejecutado mediante Corepack
+  porque `pnpm` no estaba expuesto en el `PATH`: 932 entradas de política de
+  supply chain y 813 paquetes instalados, sin cambiar el lockfile.
+- **PASÓ** — prueba focal `SuppliersClient.test.tsx`: 1 archivo, 1 prueba.
+- **PASÓ** — `pnpm docs:check` y `pnpm sdd:check`. El índice generado no cambió;
+  numbering conservó 11 advertencias históricas y cerró sin duplicados nuevos.
+- **FALLÓ (TIMEOUT)** — `pnpm verify` no produjo cierre canónico. Antes del
+  atasco pasaron harness 12/12, RSC boundary (1.596 módulos), TypeScript,
+  4 Edge Functions, 6.496/6.496 unitarias en 513 archivos, docs, numbering,
+  feature constants, component registry, governance, 145 contratos SQL y la
+  reconstrucción de 385 migraciones de esquema + 18 ledger-only (219 tablas,
+  2 tenants). ESLint terminó con 0 errores y 8 warnings preexistentes.
+- **NO EJECUTADO** — `migrations-applied`, por ausencia de
+  `NEXT_PUBLIC_SUPABASE_URL` y service role. No se copiaron secretos ni se
+  consultó producción.
+- **FALLÓ (TIMEOUT)** — E2E inició 186 pruebas con 8 workers. Los flujos
+  protegidos reportaron repetidamente la ausencia de URL/key de Supabase; los
+  casos Tier 3 sin fixture sembrada se omitieron. El último evento emitido fue
+  el número 167 y luego Playwright quedó más de 5 minutos sin salida, pese al
+  timeout configurado de 60 segundos por prueba. A los 14,5 minutos del paso se
+  interrumpió de forma controlada; no hubo JSON/resumen final ni quedó un
+  proceso del worktree. No apareció un fallo asociado a Proveedores antes del
+  atasco. Esta evidencia parcial no se presenta como verde ni como cobertura
+  autenticada.
+- **NO EJECUTADO dentro de `pnpm verify` / PASÓ por separado** — el timeout de
+  E2E impidió que el gate alcanzara `build`. `node scripts/check-build.mjs`
+  terminó luego con exit 0: compilación, TypeScript, 160 páginas estáticas,
+  postbuild Norte y restauración de `tsconfig.json`.
+
+Por tanto, la implementación y su regresión focal están verificadas, pero el
+gate canónico queda **FALLÓ (TIMEOUT)**. No certifica E2E autenticado, Supabase,
+UAT, producción, lector de pantalla ni zoom nativo 200 %.
