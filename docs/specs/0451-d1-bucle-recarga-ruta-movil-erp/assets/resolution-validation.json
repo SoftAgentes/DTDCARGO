@@ -1,0 +1,128 @@
+{
+    "taskId":  "d1-bucle-modulos-m-erp",
+    "sdd":  "0451",
+    "date":  "2026-09-10",
+    "scope":  "documentary resolution of H1 from external PR28 evidence",
+    "base":  "710a8e0695f416700d75e7bc42e8e5cb889751e8",
+    "headBeforeResolution":  "ebf5c091127e7d324699d68139121bcb0de8b89f",
+    "branch":  "codex/d1-bucle-modulos-m-erp",
+    "newH1Measurement":  false,
+    "productChanges":  false,
+    "source":  {
+                   "path":  "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/clean-instance-runner-v3-transport-20260907/handoff.md",
+                   "sha256":  "e1dc9bff1d17d6e8de863500e0dcadade2dc9e3817fb265f17561625ab6f73bb",
+                   "lineCount":  710,
+                   "inspected":  "single document only; underlying receipts not mined or rerun",
+                   "decisiveLines":  [
+                                         407,
+                                         626,
+                                         627,
+                                         628,
+                                         690,
+                                         698,
+                                         8
+                                     ]
+               },
+    "documentaryChecks":  {
+                              "sddCheck":  "PASÓ",
+                              "docsCheck":  "PASÓ",
+                              "diffCheck":  "PASÓ",
+                              "scopeAndProtectedArtifacts":  "PASÓ",
+                              "originalHandoffJsonAppendix":  "PASÓ: unchanged from prior HEAD and JSON equivalent to original receipt"
+                          },
+    "verify":  {
+                   "command":  "corepack pnpm verify",
+                   "environment":  {
+                                       "VERIFY_SKIP_E2E":  "1",
+                                       "VERIFY_SKIP_SQL":  "1"
+                                   },
+                   "exitCode":  0,
+                   "executedSteps":  13,
+                   "totalSteps":  17,
+                   "failedSteps":  [
+
+                                   ],
+                   "passedSteps":  [
+                                       "harness",
+                                       "lint",
+                                       "rsc-boundary",
+                                       "typecheck",
+                                       "edge-functions",
+                                       "test",
+                                       "docs:check",
+                                       "numbering",
+                                       "feature-constants",
+                                       "components:check",
+                                       "governance:check",
+                                       "pending-migration-symbols",
+                                       "build"
+                                   ],
+                   "verdict":  "CIERRE INCOMPLETO: CRÍTICOS SIN MEDIR; no failures in executed checks",
+                   "unitTests":  {
+                                     "files":  521,
+                                     "passed":  6526,
+                                     "durationSeconds":  139
+                                 },
+                   "harnessTests":  18,
+                   "lintWarnings":  8,
+                   "build":  "PASÓ with postbuild; tsconfig.json restored; .next-verify absent",
+                   "log":  {
+                               "path":  "C:\\Users\\AKXGEN~1\\AppData\\Local\\Temp\\d1-resolution-verify-20260910.log",
+                               "sha256":  "8ae84b9210a261796a96b6f087ad52ebe54104c3c1a4adb0c5f1927a314c90e9",
+                               "bytes":  44108,
+                               "createdAtUtc":  "2026-09-10T20:51:15.4799393Z",
+                               "lastWriteAtUtc":  "2026-09-10T20:56:25.0469534Z"
+                           },
+                   "skipped":  [
+                                   {
+                                       "check":  "migrations-applied",
+                                       "status":  "NO DISPONIBLE",
+                                       "reason":  "Missing NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY; no production ledger query"
+                                   },
+                                   {
+                                       "check":  "sql-tests",
+                                       "status":  "NO EJECUTADO",
+                                       "reason":  "Document-only change and no containers authorized; VERIFY_SKIP_SQL=1"
+                                   },
+                                   {
+                                       "check":  "schema-rebuild",
+                                       "status":  "NO EJECUTADO",
+                                       "reason":  "Document-only change and no containers authorized; VERIFY_SKIP_SQL=1"
+                                   },
+                                   {
+                                       "check":  "e2e",
+                                       "status":  "NO EJECUTADO",
+                                       "availability":  "NO DISPONIBLE",
+                                       "reason":  "Supabase configuration absent, established in previous round; VERIFY_SKIP_E2E=1 prevents starting a server in this documentary close"
+                                   }
+                               ]
+               },
+    "probeTests":  {
+                       "currentRun":  "NO EJECUTADO",
+                       "reason":  "Unchanged instrument; local-server execution excluded",
+                       "previousEvidence":  "24/24 PASÓ in previous round; does not reproduce H1"
+                   },
+    "protectedArtifacts":  [
+                               {
+                                   "path":  "scripts/probes/navigation-emitter.mjs",
+                                   "sha256":  "e23a71636cbb9e04601a36256a9fb09598c7dc758edee983ac2aded528fa8081",
+                                   "unchangedFrom":  "ebf5c091127e7d324699d68139121bcb0de8b89f"
+                               },
+                               {
+                                   "path":  "scripts/probes/navigation-emitter.node.mjs",
+                                   "sha256":  "da98e57f391ec857252087a7105b30d4b45db5a84a281a81d0f7ee855a0f5e72",
+                                   "unchangedFrom":  "ebf5c091127e7d324699d68139121bcb0de8b89f"
+                               },
+                               {
+                                   "path":  "docs/specs/0451-d1-bucle-recarga-ruta-movil-erp/assets/unauthenticated-60s.json",
+                                   "sha256":  "91f491f0cb9623d13488c55196ce6a0c80f713ae0dca58df598c382e63a9eb9a",
+                                   "unchangedFrom":  "ebf5c091127e7d324699d68139121bcb0de8b89f"
+                               },
+                               {
+                                   "path":  "docs/specs/0451-d1-bucle-recarga-ruta-movil-erp/assets/verify-interrupted.json",
+                                   "sha256":  "852eb585666cb8c3336789a77b71c533d9dce0bf74575f8a9dc10ebd1059ed16",
+                                   "unchangedFrom":  "ebf5c091127e7d324699d68139121bcb0de8b89f"
+                               }
+                           ],
+    "remoteCiLimit":  "Calidad local sin secretos does not cover authenticated E2E or Supabase validation"
+}

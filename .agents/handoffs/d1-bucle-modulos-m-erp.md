@@ -1,172 +1,218 @@
 # d1-bucle-modulos-m-erp
 
-Fecha: 2026-09-10. Estado: bloqueada la aceptación autenticada; sonda lista para revisión.
+**VEREDICTO FINAL DE H1: artefacto del servidor de desarrollo, desaparecido bajo
+compilación de producción en la corrida L de la tarea externa PR #28. No afecta
+a los usuarios de la aplicación desplegada con esa compilación.** SDD-0451 está
+`done` como resolución documental. Esta tarea no arregló el bucle; conserva su
+sonda reutilizable y la corrida propia HTTP 500 inconclusa. El emisor H1 nunca
+se observó directamente: quedó acotado por eliminación.
+
+Fecha: 2026-09-10. Estado: lista-para-revision; cierre documental completo.
 Owner: `d1-01a08ce3-75c2-7f91-943e-cfef2e86cd3d`.
-Sesión: `01a08ce3-75c2-7f91-943e-cfef2e86cd3d`.
+Sesión: `01a08ce3-75c2-7f91-943e-cfef2e86cd3d`, continuación de la misma tarea.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/d1-bucle-modulos-m-erp`.
 Rama: `codex/d1-bucle-modulos-m-erp`. Base: `710a8e0695f416700d75e7bc42e8e5cb889751e8`.
+HEAD al retomar: `ebf5c091127e7d324699d68139121bcb0de8b89f`, árbol limpio.
 SDD: `docs/specs/0451-d1-bucle-recarga-ruta-movil-erp/spec.md`.
 
 ## OBJETIVO ORIGINAL
 
-Observar directamente el emisor del bucle de `/m/erp?tab=expenses` bajo
-`next dev --webpack`, entregar sonda reutilizable y decidir después si la evidencia
-autoriza una corrección mínima del grafo. Sin cambios de producto antes de observar.
+El encargo inicial fue observar el emisor de `/m/erp?tab=expenses` y entregar
+una sonda reutilizable. Sam corrigió el encargo al aportar el handoff completo
+de otra tarea: **cerrar SDD-0451 como documento de resolución**, sin reproducir
+ni medir nada nuevo. El hallazgo entregado inicialmente, del 2026-09-08, estaba
+vencido y omitía L y las siete corridas posteriores. La resolución ya existía;
+esta tarea la registra con atribución y preserva sus propios límites.
 
-## Contrato
+## Contrato vigente
 
-- Aceptación: tipo de navegación primero; pila en llamadas de navegación y
-  beforeunload; persistencia sessionStorage; 60 s con salida cruda; módulo concreto
-  si se observa; medición posterior solo si se corrige; spec con dictamen fiel.
-- Alcance: sonda/artefactos; `app/m/erp/**` y módulos que señale la sonda, mínimo;
-  SDD-0451, índice regenerado y este handoff.
-- Excluidos: Studio, configuración Next/Playwright, package.json, Supabase,
-  cutoff/baseline/ruleset, PR #21 y rama de reserva.
-- Permisos: commits selectivos, push de rama propia y PR draft a main. No merge,
-  deploy, migraciones ni eliminación de ramas/worktrees. Dependencias: ninguna.
-- Gobernanza: cambios de comportamiento/visuales no aplican mientras solo se
-  instrumenta. Si la evidencia apunta a Studio, detener corrección y reportar.
+- Aceptación: spec `done`, síntoma I y emisor acotado, criterio previo de
+  refutación y L, siete Auth18, residuo directo, corrida propia inconclusa,
+  guía actualizada y PR #58 descrita como sonda más cierre documental.
+- Allowlist: `docs/specs/0451-d1-bucle-recarga-ruta-movil-erp/**`,
+  `docs/specs/README.md` solo por regeneración y este handoff; descripción PR #58.
+- Excluidos: código/pruebas de `scripts/probes/**`, `app/**`, `lib/**`, Studio,
+  Playwright, Supabase, cutoff, baseline, ruleset y escritura en PR #28.
+- Permisos: commits selectivos, push de rama propia a sí misma, actualizar PR
+  en borrador. No merge, sacar de draft, deploy, entornos, servidores,
+  contenedores, migraciones, nueva SDD ni borrado de ramas/worktrees.
+- Dependencias: ninguna; no requiere Supabase ni sesión autenticada.
+- Gobernanza de comportamiento y visual: no aplica, cambio documental.
+  Los recibos originales se preservan; no se copian secretos ni datos de negocio.
 
 ## COMPLETADO
 
-- Hallazgo externo de 71 líneas leído completo. Su última condición de lectura
-  contradice la bifurcación del encargo; rige la instrucción explícita actual:
-  `reload` mantiene hipótesis React Refresh; `navigate` la refuta para ese bucle.
-- Raíz/rama/base/estado limpio y guard verificados. Sin claim previo. Procesos
-  focales inspeccionados corresponden al lanzamiento de esta tarea y sus padres;
-  sin servidor de este worktree ni dependencias iniciales. Claim adquirido.
-- Sonda reutilizable `scripts/probes/navigation-emitter.mjs`, pruebas reales de
-  Chromium en `scripts/probes/navigation-emitter.node.mjs` y guía `probe.md` en
-  SDD-0451. No se modificó producto. Breakpoints nativos de seis operaciones,
-  `Error.stack`, frames CDP, introspección de factory y sessionStorage.
-- Pruebas 24/24; se detectó y corrigió el rearmado de breakpoints entre documentos.
-  Casos negativos impiden confundir pérdida de persistencia, HTTP 500 o salida al
-  login con observación válida. `OBSERVED` solo significa cobertura instrumental.
-- Corrida **no autenticada** de 60 000 ms contra Next 16.2.11 Webpack, Node v24.20.0,
-  Chromium 148.0.7778.96, `http://127.0.0.1:4319/m/erp?tab=expenses`.
+- Spec reescrita y `status: done`; índice regenerado. La rama entrega una sonda
+  reutilizable y el cierre documental de H1, sin arreglo de producto.
+- Fuente única externa leída en solo lectura, sin minar el resto del árbol:
+  `C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/clean-instance-runner-v3-transport-20260907/handoff.md`.
+  710 líneas; SHA-256
+  `e1dc9bff1d17d6e8de863500e0dcadade2dc9e3817fb265f17561625ab6f73bb`.
+- I: 151 `navigations` sin hidratar en 60 s (L407), contador que incluía cambios
+  de historia; tasa corregida de 75–76 documentos/60,1 s (L627).
+- Emisor: acotado por eliminación entre 22 sitios, con ajuste temporal en
+  102 ciclos y tres navegadores (L626), React Refresh de webpack en
+  `.next-e2e-local-auth/dev/static/chunks/webpack.js:695-704`, módulo sin factory.
+  No se observó directamente; la spec conserva esa laguna.
+- Criterio previo de refutación: si `navigations` crecía bajo producción, la
+  hipótesis quedaba refutada (L690, ronda 8 preservada; ronda 9 lo reitera en
+  L616). L superó esa prueba: **2026-09-08T23:42Z–2026-09-09T00:13Z**, build exit
+  0 en 270.675 ms, build ID no vacío, 221 fragmentos; **1 navegación hidratada en
+  146 ms**, login 200, rutas 4/4, Auth18 completa **11/18** (L407).
+- Continuidad externa: **M, n1, n2, n3, O, P, Q = siete Auth18 18/18**; cinco
+  cierres limpios y dos tolerados por el mismo cierre de navegador, sin pruebas
+  fallidas (L6–8). No se atribuye 18/18 a L ni a esta tarea.
+- Guía `probe.md`: H1 resuelto; uso futuro solo si una recurrencia cambia el
+  diagnóstico o el Director necesita observación directa para priorizar el grafo,
+  con caso observable, entorno efímero autenticado y ejecución autorizada.
+- Código y pruebas de la sonda intactos. Los recibos anteriores siguen íntegros.
+  No se abrió ningún entorno ni se ejecutó una nueva medición de H1.
 
-TIPO DE NAVEGACIÓN: `navigate` inicial (1); sucesores: 0. TIPO DEL BUCLE H1: NO DISPONIBLE.
+### Nuestra corrida: evidencia histórica, sin éxito retroactivo
 
-### Dictamen limitado por la evidencia
+TIPO DE NAVEGACIÓN: `navigate` inicial (1); sucesores: 0. TIPO DEL BUCLE H1 EN ESTA SONDA: NO DISPONIBLE.
 
-Ventana `2026-09-10T20:02:30.344Z` → `20:03:30.344Z`: 1 documento, 1 petición
-iniciada dentro de la ventana, 1 llamada a reload y 1 beforeunload. Pausas CDP:
-491 ms. La petición inicial antecede a la ventana; no sumar ambos contadores.
+Sonda **no autenticada**, ventana `2026-09-10T20:02:30.344Z`–`20:03:30.344Z`:
+60 000 ms; 1 documento, 1 petición iniciada dentro de la ventana, 1 llamada a
+reload, 1 beforeunload y 491 ms en pausas CDP. La petición inicial antecede a la
+ventana; los contadores no se suman. HTTP 500 por URL/key Supabase ausentes en
+`proxy.ts:67`. El siguiente 500 llegó a `20:03:33.032Z`, fuera de la ventana.
 
-Documento HTTP 500: `proxy.ts:67` falla al crear Supabase por falta de URL/key.
-**El primer navigate fue el arranque que ordenó el runner: no refuta H1.** No hubo
-sucesores observados en los 60 s. Sí se capturó una operación nativa `reload`:
-`performFullReload` en `webpack-internal:///(pages-dir-browser)/.../hot-reloader-pages.js:412:21`,
-llamada desde `handleApplyUpdates:374:13`; corresponde a la pantalla de error.
-Fuente instalada: `node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js:443`.
-El log de Next registró `Fast Refresh had to perform a full reload due to a runtime error`
-junto a `Your project's URL and Key are required to create a Supabase client!`.
-La siguiente respuesta HTTP 500 llegó a `20:03:33.032Z`, fuera de la ventana.
+La pila directa de `performFullReload` en
+`webpack-internal:///(pages-dir-browser)/.../hot-reloader-pages.js:412:21`, desde
+`handleApplyUpdates:374:13`, corresponde al recargador de la pantalla de error de
+Next; fuente instalada equivalente en
+`node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js:443`.
+El log relacionaba el full reload con el error de configuración. `modules: []`:
+ningún módulo sin factory observado. Snapshot final de sessionStorage destruido,
+exit 2; el recibo crudo conserva el error. La sonda entregada ya incluía reintento
+acotado y clasificación `INCONCLUSIVE`, sin cambios en esta continuación.
 
-`modules: []`: no se observó módulo sin factory. El snapshot final de sessionStorage
-falló por contexto destruido; la salida original conserva ese error y salió 2.
-La versión entregada añade reintento acotado de snapshot sin extender el contador,
-propaga errores de persistencia y clasifica explícitamente `INCONCLUSIVE`.
-La salida original permanece íntegra abajo; no se reescribió para aparentar verde.
-
-**H1 no confirmado ni refutado.** No hay base para nombrar un módulo causal, medir
-sus ciclos/chunks ni arreglar el grafo. «75 → 1» sería una comparación inválida
-entre ERP autenticado y una pantalla de error. SDD sigue `in-progress`.
-
-### Bloqueo real de entorno
-
-Este worktree no tenía `.env.local` ni variables Supabase/E2E. La ruta requiere
-`auth.getUser()` y membresía activa (`app/m/erp/page.tsx:44-47,74-98`) y consulta
-filas de negocio. Los siete servicios locales preexistentes fueron inventariados
-solo por ID/nombre/estado/puertos: ninguno publica al host; no hay listeners en
-55431/55432/54321/54322. No se cambió ninguno.
-
-El fixture histórico H fija SHA `02b5674f...`, genera contraseña en memoria y
-requiere overlay/seed/autorización de otra corrida. No proporciona sesión lista
-para base `710a8e06`. Se pidió a Sam endpoint efímero accesible y ruta externa del
-mecanismo de acceso autorizado, sin pedir secretos en chat; respuesta pendiente.
-No se copió entorno ajeno, no se aplicaron migraciones ni se usó producción.
+**Esta corrida no confirmó ni refutó H1 por sí misma.** El primer `navigate`
+fue ordenado por el runner. No hubo medición autenticada, módulo causal ni
+comparación válida «75 → 1». El recibo original permanece en
+`docs/specs/0451-d1-bucle-recarga-ruta-movil-erp/assets/unauthenticated-60s.json`
+y pegado íntegro al final. El acceso efímero pendiente del encargo anterior deja
+de ser requisito por el cambio explícito a cierre documental, no por reparación
+del entorno. No se copió configuración ni se tocaron los servicios ajenos.
 
 ## VALIDACIÓN
 
-- **PASÓ** `corepack pnpm install --frozen-lockfile`: exit 0, pnpm 12.3.4,
-  813 paquetes; package.json y lockfile intactos.
-- **PASÓ** `node --test scripts/probes/navigation-emitter.node.mjs`: 24/24,
-  0 skips, exit 0 (corrida final: 38,34 s). Instrumento validado con fixtures, no H1.
-- **PASÓ** control sintético del CLI completo, 1 s, exit 0, `OBSERVED` técnico,
-  sin emisor. SHA-256 de la sonda ejecutada:
-  `e23a71636cbb9e04601a36256a9fb09598c7dc758edee983ac2aded528fa8081`.
-- **PASÓ** sintaxis Node, lint focal, docs:check, sdd:check y git diff --check.
-- **NO DISPONIBLE** aceptación de sonda autenticada H1. Intento de disponibilidad
-  no autenticado de 60 s: exit 2, HTTP 500 y copia final destruida; salida abajo.
-- **NO EJECUTADO** comparación antes/después, ciclos/chunks: no hubo emisor H1
-  confirmado ni corrección de producto que justificara esas comprobaciones.
-- **FALLÓ / INCOMPLETO** `corepack pnpm verify`: exit 1 tras interrupción explícita
-  del árbol propio, después de fallos E2E y 357 s sin progreso. No hubo resumen
-  final del runner ni JSON E2E; no se interpreta el exit de la interrupción como
-  ejecución completa. Recibo: `assets/verify-interrupted.json` en SDD-0451.
-- **PASÓ** dentro de verify: harness (18 tests), lint (0 errores, 8 warnings),
-  rsc-boundary, typecheck, edge-functions (4), Vitest (521 archivos/6526 tests),
+### Cierre documental actual
+
+Alcance observado: cambios documentales sobre HEAD `ebf5c091`, base `710a8e06`.
+Los hashes y resultados quedan en
+`docs/specs/0451-d1-bucle-recarga-ruta-movil-erp/assets/resolution-validation.json`.
+
+- **PASÓ** guard/ownership y estado inicial: rama/worktree asignados, claim
+  previo ausente, continuidad de sesión verificada antes de reclamar el mismo owner.
+- **PASÓ** `corepack pnpm docs:index`, índice de 408 specs regenerado.
+- **PASÓ** `corepack pnpm sdd:check` y `corepack pnpm docs:check`, exit 0;
+  colisiones históricas de migraciones ya aplicadas siguen informadas sin cambios.
+- **PASÓ** revisión documental independiente de la spec/guía contra la fuente
+  única: atribución, contador, cronología, prueba de refutación, residuo y urgencia.
+- **PASÓ en lo ejecutado / CIERRE INCOMPLETO del gate** `corepack pnpm verify`,
+  exit 0: **13 de 17 pasos ejecutados**, ninguno falló. Invocado con
+  `VERIFY_SKIP_E2E=1` y `VERIFY_SKIP_SQL=1` para cumplir el encargo sin entornos.
+  El propio resumen declara críticos sin medir; no es verde completo de producto.
+- **PASÓ** harness (18/18), lint (0 errores, 8 warnings), rsc-boundary,
+  typecheck, edge-functions (4), Vitest (**521 archivos, 6526 tests**, 139 s),
   docs:check, numbering, feature-constants (5), components:check,
-  governance:check y pending-migration-symbols.
-- **FALLÓ / PARCIAL** E2E: 186 tests recolectados; stdout registró 123 intentos
-  `ok`, 29 `x` y 15 omitidos. **Incluyen retries, no son resultados finales por
-  test.** El último fue el intento 167, `mobile-safari/global-search.spec.ts:22`.
-  Logins fallaron con URL/key Supabase ausentes; H1/Tier 3 fue omitido sin fixture.
+  governance:check, pending-migration-symbols y build con postbuild.
+  El build restauró `tsconfig.json` y retiró `.next-verify`; comprobado al final.
 - **NO DISPONIBLE** migrations-applied: `sin NEXT_PUBLIC_SUPABASE_URL /
-  SUPABASE_SERVICE_ROLE_KEY`, sin consulta de ledger productivo.
-- **NO EJECUTADO** SQL/schema: `VERIFY_SKIP_SQL=1` por alcance sin migraciones.
-  `E2E_WORKERS=2` limitó concurrencia, sin cambiar tests/configuración.
-- **PASÓ** build separado: `node scripts/check-build.mjs`, exit 0, incluye
-  postbuild Norte; restauró tsconfig.json y eliminó su salida `.next-verify`.
-  Log externo `%TEMP%/d1-build-20260910.log`; hash en recibo de validación.
-  Es build productivo de validación, no medición del emisor Webpack.
-- Check remoto «Calidad local sin secretos»: pendiente al cierre; no se presenta
-  como cobertura autenticada. El push disparó el preview Vercel automático (pasó);
-  no hubo merge ni despliegue de producción.
+  SUPABASE_SERVICE_ROLE_KEY`; degradó con SKIP, sin consultar el ledger productivo.
+- **NO DISPONIBLE** E2E autenticado: falta configuración Supabase; la corrida
+  anterior ya lo comprobó. En este cierre **NO EJECUTADO** por instrucción de no
+  levantar entornos; omisión explícita antes de que Playwright inicie servidor.
+- **NO EJECUTADO** SQL/schema: cambio documental sin migraciones y prohibición de
+  contenedores, `VERIFY_SKIP_SQL=1`. No se aplicaron migraciones para pasar checks.
+- **NO EJECUTADO** pruebas Chromium de la sonda, UI funcional, nueva reproducción,
+  ciclos/chunks o comparación antes/después: código intacto y sin cambio de
+  producto; además las pruebas focales requieren servidor local.
+- El build de `verify` comprueba compilación, no el emisor de H1. «Calidad local
+  sin secretos» no cubre E2E autenticado ni validación con Supabase.
+- **PASÓ** control de allowlist, `git diff --check` e integridad: sonda/pruebas y
+  los dos recibos anteriores idénticos a `ebf5c091`; apéndice crudo del handoff
+  intacto e igual al JSON original. Fuente PR #28 conserva su SHA-256.
+
+### Ronda anterior, preservada como historial
+
+- **PASÓ histórico** instalación congelada (813 paquetes), sonda **24/24**, sin
+  skips; control sintético del CLI 1 s, sintaxis/lint focal y controles documentales.
+  Valida instrumento, no H1; estas pruebas no se reejecutaron en el cierre.
+- **FALLÓ / INCOMPLETO histórico** `corepack pnpm verify`, exit 1 tras detener
+  su árbol propio luego de 357 s sin progreso. Sin resumen final ni JSON E2E.
+  Recibo íntegro: `assets/verify-interrupted.json` de SDD-0451. Los 186 tests
+  recolectados, 123 intentos `ok`, 29 `x` y 15 omitidos incluían retries y no son
+  resultados finales por test. Fallos de login por configuración ausente;
+  H1/Tier 3 omitido sin fixture. No se convierte esa ejecución en PASÓ.
+- **PASÓ histórico** checks previos del gate: harness 18, lint (8 warnings), RSC,
+  TypeScript, Edge Functions 4, Vitest 521 archivos/6526 tests, docs/numeración,
+  constantes/componentes/gobernanza y símbolos de migraciones pendientes.
+- **NO DISPONIBLE histórico** migrations-applied, sin URL/service role; no se
+  consultó ledger productivo. **NO EJECUTADO histórico** SQL/schema por alcance.
+- **PASÓ histórico** build separado `node scripts/check-build.mjs`, exit 0 con
+  postbuild, tsconfig restaurado y salida retirada; evidencia en recibo anterior.
+- «Calidad local sin secretos» remoto de `ebf5c091` observado SUCCESS al retomar;
+  prueba ese SHA previo, no certifica el nuevo commit ni H1 autenticado.
 
 ## COMMITS
 
-`e9fa802491a290460985602462b7c02256b86fa6`: sonda, controles, SDD y recibo inicial.
-Commit que contiene la actualización de este documento: cierre de validación y publicación.
+- `e9fa802491a290460985602462b7c02256b86fa6`: instrumento, pruebas y recibo original.
+- `ebf5c091127e7d324699d68139121bcb0de8b89f`: evidencia anterior y bloqueo autenticado.
+- **Commit que contiene este documento**: resolución atribuida de H1, guía,
+  índice y cierre de validación; SHA final se registra en la descripción de PR #58.
 
 ## PR / BRANCH
 
 [PR #58](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/58), OPEN/DRAFT,
-base `main`. Rama y worktree indicados arriba. Push explícito de rama propia a sí
-misma realizado; reserva 0451 intacta. Sin merge ni deploy manual.
+base `main`. Rama `codex/d1-bucle-modulos-m-erp`, worktree indicado arriba.
+El commit de cierre se publica explícitamente de la rama propia a sí misma;
+la descripción recoge su SHA y la comprobación remota final, sin atribuirle
+checks ejecutados sobre el HEAD anterior.
+Entrega: sonda reutilizable más cierre documental de H1; cero arreglo de producto.
+No merge, cambio de draft, deploy manual, ruleset ni modificación de la reserva.
 
 ## PENDIENTES DE ESTA TAREA
 
-Acceso al entorno efímero; corrida autenticada fiel de 60 s, lectura del tipo del
-bucle y pila, módulo concreto si aplica; corrección solo si evidencia/allowlist
-la permiten, con comparación posterior. Repetir E2E completo una vez resuelta la
-disponibilidad y coordinar aparte su falta de progreso. No quedan implementación
-ni pruebas focales pendientes de la sonda; sí los criterios autenticados de H1.
+Ninguno para la aceptación documental. No queda una reproducción autenticada
+pendiente para resolver H1. Las omisiones de producto del gate son límites
+declarados del alcance, no requisitos para volver a medir H1. La revisión e
+integración de la PR quedan separadas del cierre de la SDD.
 
 ## FUERA DE ALCANCE DETECTADO
 
-H2 de Safari/CORS pertenece a otra tarea. La falta de configuración y el recargador
-de su pantalla HTTP 500 son evidencia de disponibilidad, no una causa de H1.
-No se alteró el transporte de los servicios ni se convirtió en tarea de producto.
-El E2E dejó de progresar en WebKit desde `20:15:42.130Z`; a `20:21:39.225Z` se
-detuvo el árbol propio de verify (PID 26220, 10 procesos, rutas de hijos verificadas
-en este worktree). No se recibió un error final de cierre que permita nombrar la
-causa exacta de la espera; el timeout de cierre de 300 s en el código de Playwright
-es contexto, no prueba de causa. No se arregla ni cambia su configuración aquí.
+**Recomendación 5, sin urgencia:** imports de `/m` desde Studio cruzan espacio
+de nombres, mientras las rutas Studio que no cruzan hidratan (fuente L698).
+Observación de producto legítima; el posible arreglo del grafo sigue pendiente,
+con SDD propia futura y confirmación del emisor antes de intervenir. **Dueño del
+seguimiento: Director de ingeniería**, quien asignará un Worker de producto.
+No se implementó ni se reservó número. Deja de ser urgente porque ambas condiciones
+previas se cumplieron: bucle ausente bajo producción en L y los 18 tests pasando
+en las siete corridas posteriores. No es pendiente de esta tarea documental.
+
+H2 Safari/CORS pertenece a otra tarea. El HTTP 500 y su recargador son límites de
+nuestra observación, no causa de H1. La falta de progreso WebKit del verify previo
+queda en su recibo: no hay error final de cierre que pruebe su causa exacta; el
+valor de timeout de Playwright en código era contexto, no evidencia causal.
+No se persigue ni se modifica configuración E2E para este cierre.
 
 ## HANDOFF AL DIRECTOR
 
-Revisar instrumento/recibo y coordinar endpoint/session fixture local accesible.
-Sin evidencia autenticada no aprobar diagnóstico ni declarar esta SDD done.
-El servidor de sonda propio (PID raíz 29976/hijo 20108, puerto 4319) fue detenido
-tras verificar comando, rama/ruta del hijo y relación de procesos; puerto liberado.
-El árbol E2E propio también quedó detenido; ningún proceso de otro worktree fue
-incluido. No quedan servidores/browsers propios ni listeners 4319/3612. Ownership
-se libera con `harness-worktree release` tras el último commit/push; el cierre de
-la sesión verifica ausencia del claim. Worktree y rama se conservan para retomar.
-No integración ni producción. PR draft es la frontera de revisión, no aprobación
-del diagnóstico ni cierre de la SDD.
+Revisar la sonda reutilizable y aceptar el cierre documental de H1 con sus citas
+externas. El diagnóstico no requiere otra corrida propia. La única laguna es la
+observación directa del emisor, conservada como residuo, no como bloqueo de SDD.
+Seguir la recomendación 5 sin urgencia mediante una futura asignación de producto;
+no hay SDD nueva tomada. No hay cambios de contratos de producto compartidos.
+
+PR #58 continúa draft; integración/merge y release quedan separados y no autorizados.
+No se iniciaron servidores, contenedores ni browsers en esta continuación. Los
+procesos propios de sonda/E2E anteriores ya estaban cerrados según el handoff
+previo; no se tocaron procesos ni trabajo de otras sesiones. La sesión escritora
+es este Worker; el subagente solo revisó documentación en lectura. Se libera el
+claim al acabar toda la escritura y se verifica su ausencia antes de finalizar.
+Worktree y rama se conservan; no hay autorización de limpieza.
 
 ## Salida cruda de la sonda (60 s, NO autenticada)
 

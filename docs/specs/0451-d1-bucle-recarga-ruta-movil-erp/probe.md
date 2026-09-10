@@ -1,9 +1,27 @@
 # Sonda reutilizable de navegación
 
-Dueño: Worker d1. Estado: instrumento validado; H1 pendiente de entorno autenticado.
+Dueño: Worker d1. Estado: instrumento validado; H1 resuelto documentalmente.
 Fecha: 2026-09-10. Clasificación: interno.
 
-## Ejecutar
+## Cuándo tiene sentido usarla
+
+El caso que motivó esta sonda ya está resuelto: la corrida L de la tarea externa
+PR #28 eliminó el bucle bajo compilación de producción y las siete corridas
+posteriores lograron Auth18 18/18. La [SDD-0451](spec.md) atribuye y cita esa
+evidencia. Nuestra corrida HTTP 500 sigue inconclusa; no aportó la resolución.
+
+El emisor H1 fue acotado por eliminación, nunca observado directamente. La sonda
+hace barata esa observación pendiente si una recurrencia cambia el diagnóstico
+o si el Director prioriza la recomendación 5 sobre el grafo y necesita conocer
+la pila y el módulo antes de decidir un arreglo. Se conserva para esos casos,
+sin convertir la laguna en una nueva condición para cerrar H1.
+
+Las instrucciones siguientes son para una tarea futura con ejecución autorizada,
+entorno efímero autenticado y un caso observable. El cierre documental actual
+no levanta servidores, no ejecuta la sonda ni repite sus pruebas. Un HTTP 500 por
+falta de configuración no justifica medir otra vez el mismo escenario.
+
+## Ejecutar en una tarea futura autorizada
 
 Desde el worktree que se quiere medir, con su servidor **`next dev --webpack`**:
 
@@ -90,4 +108,6 @@ sí pueden contener identificadores: usar solo fixtures y revisar antes de versi
 sin configuración Supabase. Su documento fue HTTP 500; el primer `navigate` no
 es un bucle. Capturó un `reload` de `performFullReload` del runtime de la pantalla
 de error, sin módulo ausente observado. No confirma ni refuta H1. La lectura
-completa y el bloqueo de entorno están en el handoff de la tarea.
+completa está en el handoff de la tarea. El entorno ausente fue un límite de
+aquella corrida, no un pendiente del cierre documental actual. El recibo y las
+pruebas de la sonda se conservan sin cambios.
