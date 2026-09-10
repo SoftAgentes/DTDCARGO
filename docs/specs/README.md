@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 396 specs)
+### Índice de specs (generado · 406 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -401,6 +401,16 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0397 | Acciones de facturas Portal por principal y tenant | done | interno |
 | 0398 | Contextos privados Portal por principal y tenant | done | interno |
 | 0399 | Consumidores de compras Portal por principal y tenant | done | interno |
+| 0403 | Documentos de factura con autorización por entidad | done | interno |
+| 0404 | Documentos de Tesorería con autorización por entidad | done | interno |
+| 0405 | Documentos de asientos con autorización por entidad | done | interno |
+| 0406 | Documentos de gastos con autorización por módulo | done | interno |
+| 0407 | Documentos de envíos con autorización de Tracking | done | interno |
+| 0408 | Documentos de clientes con autorización del módulo Clientes | done | interno |
+| 0409 | Documentos de proveedores con autorización del módulo Proveed… | done | interno |
+| 0410 | Documentos de Naviera con autorización del módulo Naviera | done | interno |
+| 0411 | Adjuntos de Bitácora con autorización del módulo Bitácora | done | interno |
+| 0412 | Documentos sin transacción y contrato documental fail-closed | done | interno |
 | 0413 | CSP con nonce para superficies privadas | done | interno |
 | 0414 | Logs estructurados y correlacionados para crons | done | interno |
 | 0415 | Observabilidad estructurada de workers drain | done | interno |
@@ -436,5 +446,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0449 | Observabilidad estructurada en acciones de Usuarios | done | interno |
 | 0450 | Código contra símbolos de migraciones pendientes | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0362, 0363, 0364, 0365, 0366, 0368, 0372, 0375, 0377, 0381, 0382, 0385, 0400, 0401, 0402, 0403, 0404, 0405, 0406, 0407, 0408, 0409, 0410, 0411, 0412, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0362, 0363, 0364, 0365, 0366, 0368, 0372, 0375, 0377, 0381, 0382, 0385, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
