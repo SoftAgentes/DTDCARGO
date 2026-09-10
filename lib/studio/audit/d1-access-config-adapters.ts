@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { D1_REASON_MIN_LENGTH } from "./d1-access-config.shared";
+
+export { D1_REASON_MIN_LENGTH } from "./d1-access-config.shared";
 
 export type D1OperationType =
   | "membership.invite"
@@ -100,13 +103,6 @@ export async function executeD1Operation(
   }
   return data as unknown as D1OperationResult;
 }
-
-/**
- * Largo mínimo de un motivo para que cuente como motivo. Por debajo de esto
- * `d1Reason` cae al texto por defecto. Se exporta para que la UI que pide el
- * motivo valide contra el MISMO número y no contra una copia a mano.
- */
-export const D1_REASON_MIN_LENGTH = 8;
 
 export function d1Reason(
   value: FormDataEntryValue | null,
