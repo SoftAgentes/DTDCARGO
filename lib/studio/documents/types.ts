@@ -137,7 +137,7 @@ export const DOC_STATUS: Record<
 > = {
   firmado: { label: "Firmado", tone: "success" },
   vigente: { label: "Vigente", tone: "success" },
-  pendiente: { label: "Pendiente", tone: "warning" },
+  pendiente: { label: "Pendiente", tone: "info" },
   borrador: { label: "Borrador", tone: "neutral" },
   vencido: { label: "Vencido", tone: "danger" },
   "por-vencer": { label: "Por vencer", tone: "warning" },

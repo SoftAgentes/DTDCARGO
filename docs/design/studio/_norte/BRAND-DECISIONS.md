@@ -28,6 +28,15 @@
 
 ---
 
+## Decisión local posterior · SDD-0441 · 2026-09-05
+
+Sam autoriza la política de **Estados y mensajes** de BRAND.md: vino para marca;
+navy/neutro para información y espera; dorado para atención; verde sólo para
+confirmación real y rojo localizado para error. Se propaga a tokens y componentes
+del Norte y a las cinco superficies. No cambia etiquetas ni contratos del negocio.
+Esta enmienda prevalece sobre ejemplos anteriores que confunden espera con error.
+Se identifica por SDD para no ocupar un número BD del registro externo sin reservarlo.
+
 ## 📌 Cómo se registra una decisión
 
 Cada entrada es un bloque con este formato. No se borran entradas: las decisiones revertidas se marcan `SUPERSEDED` y se enlaza la que las reemplaza.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   ORIGENES_DISPONIBLES,
   getDestinosDisponibles,
@@ -10,6 +10,7 @@ import {
   type ModoCotizacionTerrestre,
 } from "@/lib/data/tarifas-terrestres-vzla";
 import { calcularFleteTerrestre } from "@/lib/calc/fleteTerrestre";
+import { StatusIcon } from "@/components/StatusIcon";
 import { DecimalInput } from "@/components/DecimalInput";
 import { TruckIcon, WarningIcon } from "@/components/Icon";
 import { CONFIG } from "@/lib/calculadora";
@@ -30,6 +31,7 @@ import { CONFIG } from "@/lib/calculadora";
  * - Resultado expandible con desglose detallado
  */
 export function UltimoKmCalculator() {
+  const noticeId = useId();
   const [origen, setOrigen] = useState<Origen>("Valencia");
   // `destinoPicked` = lo que el usuario eligió (intent). Puede quedar stale
   // cuando cambia origen, pero `destino` (computado abajo) siempre refleja
@@ -167,11 +169,13 @@ export function UltimoKmCalculator() {
           <DecimalInput
             value={pesoKg}
             onValueChange={setPesoKg}
+            aria-describedby={pesoKg > CONFIG.pesoMaxContenedorKg ? `${noticeId}-peso` : undefined}
             className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-semibold text-ink text-center"
           />
           {pesoKg > CONFIG.pesoMaxContenedorKg && (
-            <span className="text-[11.5px] leading-[1.4] font-medium text-status-warning">
-              Esto es más que el peso permitido por contenedor; consulte a su
+            <span role="status" id={`${noticeId}-peso`} className="flex items-start gap-1.5 text-[11.5px] leading-[1.4] font-medium text-ink">
+              <StatusIcon tone="warning" style={{ color: "var(--color-status-warning)" }} />
+              Esto es más que el peso permitido por contenedor; consulta a tu
               asesor
             </span>
           )}
@@ -184,12 +188,14 @@ export function UltimoKmCalculator() {
           <DecimalInput
             value={volumenM3}
             onValueChange={setVolumenM3}
+            aria-describedby={volumenM3 > CONFIG.cbmMaxContenedor ? `${noticeId}-volumen` : undefined}
             placeholder="opcional"
             className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-semibold text-ink text-center"
           />
           {volumenM3 > CONFIG.cbmMaxContenedor && (
-            <span className="text-[11.5px] leading-[1.4] font-medium text-status-warning">
-              Eso es más que un contenedor. Consulte a su asesor
+            <span role="status" id={`${noticeId}-volumen`} className="flex items-start gap-1.5 text-[11.5px] leading-[1.4] font-medium text-ink">
+              <StatusIcon tone="warning" style={{ color: "var(--color-status-warning)" }} />
+              Eso es más que un contenedor. Consulta a tu asesor
             </span>
           )}
         </label>
@@ -295,25 +301,23 @@ export function UltimoKmCalculator() {
               <div
                 className="mt-4 rounded-[10px] p-3.5 text-[12.5px] leading-[1.5]"
                 style={{
-                  background: resultado.warning
-                    ? "rgba(184,137,58,0.2)"
-                    : "rgba(31,138,91,0.18)",
-                  color: "rgba(255,255,255,0.92)",
+                  background: "transparent",
+                  color: "var(--color-on-accent)",
                   border: resultado.warning
-                    ? "1px solid rgba(184,137,58,0.5)"
-                    : "1px solid rgba(31,138,91,0.5)",
+                    ? "1px solid var(--color-status-warning)"
+                    : "1px solid var(--calc-ink-secondary)",
                 }}
               >
                 {resultado.warning && (
                   <div className="font-semibold mb-1 flex items-start gap-1.5">
-                    <WarningIcon size={14} className="flex-shrink-0 mt-0.5" />
+                    <StatusIcon tone="warning" style={{ color: "var(--color-status-warning)" }} />
                     <span>{resultado.warning}</span>
                   </div>
                 )}
                 {resultado.notaCasco && (
-                  <div>
-                    {resultado.modoAplicado === "cbm-casco" ? "✓" : "ⓘ"}{" "}
-                    {resultado.notaCasco}
+                  <div className="flex items-start gap-1.5">
+                    <StatusIcon tone="info" />
+                    <span>{resultado.notaCasco}</span>
                   </div>
                 )}
               </div>

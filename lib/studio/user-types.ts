@@ -471,7 +471,7 @@ export function invitationStatusLabel(s: InvitationStatus): string {
 
 export function invitationStatusBadgeTone(s: InvitationStatus): BadgeTone {
   if (s === "accepted") return "success";
-  if (s === "pending") return "warning";
+  if (s === "pending") return "info";
   return "neutral";  // revoked + expired
 }
 

@@ -47,9 +47,9 @@ export const SALES_ORDER_STATUS: Record<
   { label: string; tone: BadgeTone }
 > = {
   confirmada: { label: "Confirmada", tone: "info" },
-  parcial: { label: "Facturada parcial", tone: "warning" },
+  parcial: { label: "Facturada parcial", tone: "info" },
   facturada: { label: "Facturada", tone: "success" },
-  cerrada: { label: "Cerrada", tone: "wine" },
+  cerrada: { label: "Cerrada", tone: "neutral" },
   cancelada: { label: "Cancelada", tone: "neutral" },
 };
 

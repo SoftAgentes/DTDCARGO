@@ -90,6 +90,32 @@ Source of truth en código: `HERO.headline` en [`lib/design-tokens.ts`](lib/desi
 
 Los valores canónicos viven en el Norte (`docs/design/studio/_norte/erp/tokens.css`); en este repo los equivalentes están en `app/globals.css` / `lib/design-tokens.ts` (web) y `app/studio/tokens.css` (Studio). **Nunca** uses hex literales en HTML/JSX cuando exista un token equivalente.
 
+### Estados y mensajes · decisión del founder · 2026-09-05
+
+Esta política sustituye el uso de vino como tono informativo y de rojo para
+esperas normales. Aplica a web pública, Portal, Studio, móvil y Back.
+
+| Estado | Significado | Tratamiento | Ejemplo |
+|---|---|---|---|
+| Información / pendiente | Operación normal o dato por completar | Texto neutro, icono informativo y superficie navy/neutra discreta | Falta el peso; en tránsito; pago pendiente sin vencimiento |
+| Atención | Riesgo o intervención necesaria | Acento dorado, texto neutro legible y siguiente acción | La carga requiere cotización con un asesor |
+| Éxito | Confirmación real de una operación | Icono verde y texto neutro | Pago confirmado; entrega completada |
+| Error | Entrada inválida o fallo real | Rojo localizado en icono, borde o campo; cuerpo neutro | No se pudo guardar; corrige el formato |
+| Marca | Identidad, selección o acción | Vino en el acento o CTA | Cotizar envío |
+
+- Un recargo calculado es información: explica el importe o la regla; no acusa un error.
+- Exceder el alcance de la calculadora deriva al asesor con advertencia, sin marcar el peso como inválido.
+- Pendiente, parcial, en camino y en aduana no prueban riesgo por sí solos.
+  Vencimiento, incidencia y bloqueo se evalúan por su consecuencia real.
+- No recolorear tarjetas completas ni cambiar acciones de marca para comunicar estados.
+- Todo estado se entiende por texto e icono; nunca sólo por color. Las etiquetas y
+  reglas del negocio se conservan. Los mensajes de campo usan asociación accesible.
+- Información usa `--info` como alias de tinta neutra por tema. Atención mantiene
+  el dorado existente; error mantiene el rojo semántico. No se crea una paleta nueva.
+- Texto normal >= 4.5:1; iconos y controles que comunican estado >= 3:1 en claro y
+  oscuro. Un acento que no alcance contraste se usa decorativamente junto al icono
+  neutro y la explicación; no como texto pequeño.
+
 ### Light theme
 ```
 --wine:        #7F0F1A   /* Acento primario · CTAs · links · acentos */
@@ -111,7 +137,7 @@ Los valores canónicos viven en el Norte (`docs/design/studio/_norte/erp/tokens.
 --warning: #B8893A   /* Riesgo real (ETA en demora, etc.) — dorado. Como TEXTO de badge NO se lee (2.79:1) → texto --ink + dot dorado (ver ♿) */
 --danger:  #A8323E   /* Errores y vencidos · ERP / Portal */
 --danger-web: #C2353F /* Errores · marketing / web pública — split por superficie (BD-020) */
---info:    #2A6FDB
+--info:    var(--ink) /* Información y espera normal: navy/neutro por tema */
 ```
 
 ### Dark theme — `[data-theme="dark"]`
