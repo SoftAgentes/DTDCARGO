@@ -6,6 +6,8 @@ app/m/_components/KpiCard.tsx
 app/m/emp/_components/ReciboTab.tsx
 app/m/erp/bitacora/_components/PushOptInBanner.tsx
 app/portal/(app)/perfil/ProfilePendingBanner.tsx
+app/portal/(app)/reclamos/_components/PortalClaims.test.tsx
+app/portal/(app)/reclamos/_components/PortalClaims.tsx
 app/portal/_components/InvoiceStatusBadge.tsx
 app/portal/_components/PrealertaStatusBadge.tsx
 app/portal/_components/StatusBadge.tsx

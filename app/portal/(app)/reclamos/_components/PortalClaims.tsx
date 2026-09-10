@@ -22,6 +22,7 @@ import type { PortalClaimRow } from "@/lib/portal/portal-claims";
 import type { ClaimEvidenceItem } from "@/lib/studio/reclamos/claim-evidence";
 import { createPortalClaimAction, type PortalClaimState } from "../actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { StatusIcon } from "@/components/StatusIcon";
 
 const initial: PortalClaimState = {};
 
@@ -255,6 +256,7 @@ function ClaimCard({
 }) {
   const step = claimStatusStep(claim.status);
   const terminal = isClaimTerminal(claim.status);
+  const tone = claimStatusTone(claim.status);
 
   return (
     <div className="bg-white border border-grey-200 rounded-[14px] p-5">
@@ -280,9 +282,9 @@ function ClaimCard({
           <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.5]">{claim.description}</p>
         </div>
         <span
-          className={`badge-status badge-status-${claimStatusTone(claim.status)} whitespace-nowrap`}
+          className={`badge-status badge-status-${tone} whitespace-nowrap`}
         >
-          <span className="badge-status-dot" aria-hidden />
+          <StatusIcon tone={tone} />
           {claimStatusLabel(claim.status)}
         </span>
       </div>
