@@ -28,30 +28,15 @@ import { esperarHidratado } from "./_helpers/hidratacion";
 const ANCHOS = [320, 360, 375] as const;
 const RUTAS = ["/", "/tarifas", "/faq"] as const;
 
-/**
- * Mide el desborde horizontal del documento.
- *
- * Oculta antes el toolbar de Agentation, que `app/layout.tsx` monta SOLO con
- * `NODE_ENV === "development"` — y el webServer de este config corre
- * `next dev`. Sin ocultarlo, el test mediría un artefacto que producción no
- * tiene. (Medido: hoy no mueve el `scrollWidth`, pero es dev-only igual.)
- */
+/** Mide el desborde horizontal del documento. */
 async function medirDesborde(page: Page) {
   return page.evaluate(() => {
     const de = document.documentElement;
-    const toolbar = document.querySelector('[class*="styles-module__toolbar"]');
-    let agentation = toolbar;
-    while (agentation && agentation.parentElement !== document.body) {
-      agentation = agentation.parentElement;
-    }
-    const previo = agentation ? (agentation as HTMLElement).style.display : null;
-    if (agentation) (agentation as HTMLElement).style.display = "none";
 
     const clientWidth = de.clientWidth;
     const scrollWidth = de.scrollWidth;
     const culpables: string[] = [];
     for (const el of document.querySelectorAll("body *")) {
-      if (agentation?.contains(el)) continue;
       // Los `fixed` no extienden el área de scroll: si se salen, es porque otro
       // elemento ya ensanchó el ICB. Reportarlos es mandar a arreglar el síntoma.
       if (getComputedStyle(el).position === "fixed") continue;
@@ -64,7 +49,6 @@ async function medirDesborde(page: Page) {
       }
     }
 
-    if (agentation) (agentation as HTMLElement).style.display = previo ?? "";
     return { scrollWidth, clientWidth, culpables: culpables.slice(0, 6) };
   });
 }
