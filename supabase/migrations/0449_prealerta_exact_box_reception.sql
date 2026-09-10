@@ -1,4 +1,5 @@
 -- SDD-0443: exact physical box reception; prepares SQL only, no production application.
+-- APLICADA a producción el 2026-09-10; la línea anterior conserva el estado al preparar el SQL.
 create or replace function public.receive_prealerta_boxes_as_operario(
   p_operario_id     uuid,
   p_code            text,               -- DTD-B-NNNNNN escaneado (o el `b` del QR)
