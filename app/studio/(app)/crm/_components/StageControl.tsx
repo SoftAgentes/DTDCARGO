@@ -65,7 +65,7 @@ export function StageControl({
 
   if (enCamino) {
     return (
-      <Badge tone="info" size="sm" dot>
+      <Badge tone="info" size="sm">
         En camino
       </Badge>
     );

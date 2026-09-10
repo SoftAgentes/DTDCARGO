@@ -193,7 +193,7 @@ export function ReferralDrawer({
           <DataField
             label="Estado"
             value={
-              <Badge tone={stt.tone} dot>
+              <Badge tone={stt.tone}>
                 {stt.label}
               </Badge>
             }

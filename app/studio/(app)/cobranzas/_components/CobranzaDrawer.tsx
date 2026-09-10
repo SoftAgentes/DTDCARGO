@@ -99,7 +99,7 @@ export function CobranzaDrawer({
   const refresh = () => router.refresh();
 
   const stageBadge = (
-    <Badge tone={stageTone(receivable.stage)} dot>
+    <Badge tone={stageTone(receivable.stage)}>
       {stageLabel(receivable.stage)}
     </Badge>
   );

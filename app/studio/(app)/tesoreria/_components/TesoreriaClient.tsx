@@ -478,7 +478,7 @@ function PayablesTab({
                   )}
                 </div>
                 <span style={{ textAlign: "right" }}>
-                  <Badge tone={stageTone(p.stage)} size="sm" dot>
+                  <Badge tone={stageTone(p.stage)} size="sm">
                     {stageLabel(p.stage)}
                   </Badge>
                 </span>

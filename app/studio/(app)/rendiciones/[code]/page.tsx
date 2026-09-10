@@ -115,7 +115,7 @@ export default async function RenditionPrintPage({
           ← Volver a Rendiciones
         </Link>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <Badge tone={renditionStatusTone(data.rendition.status)} dot>
+          <Badge tone={renditionStatusTone(data.rendition.status)}>
             {renditionStatusLabel(data.rendition.status)}
           </Badge>
           <Link

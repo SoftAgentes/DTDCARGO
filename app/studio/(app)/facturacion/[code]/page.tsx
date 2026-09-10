@@ -157,7 +157,7 @@ export default async function InvoiceDetailPage({
         >
           {invoice.client_name}
         </h1>
-        <Badge tone={statusBadgeTone(ds)} size="md" dot>
+        <Badge tone={statusBadgeTone(ds)} size="md">
           {statusLabel(ds)}
         </Badge>
       </div>

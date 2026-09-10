@@ -182,7 +182,7 @@ export function OvDrawer({
             flexWrap: "wrap",
           }}
         >
-          <Badge tone={salesOrderStatusTone(so.status)} dot>
+          <Badge tone={salesOrderStatusTone(so.status)}>
             {salesOrderStatusLabel(so.status)}
           </Badge>
           <div style={{ textAlign: "right" }}>

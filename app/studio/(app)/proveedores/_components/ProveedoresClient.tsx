@@ -747,7 +747,7 @@ function IncomingTab({
       align: "right",
       render: (p) => (
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Badge tone={prealertaStatusTone(p.status)} size="sm" dot>
+          <Badge tone={prealertaStatusTone(p.status)} size="sm">
             {prealertaStatusLabel(p.status)}
           </Badge>
         </div>

@@ -330,7 +330,7 @@ function DocCard({
               {doc.name}
             </span>
             {cur ? (
-              <Badge tone="success" size="sm" dot>
+              <Badge tone="success" size="sm">
                 Vigente {cur.version}
               </Badge>
             ) : (
@@ -1166,11 +1166,11 @@ function AcceptanceModal({
       >
         <div style={{ display: "flex", gap: "var(--s-2)", flexWrap: "wrap" }}>
           {anyStale ? (
-            <Badge tone="warning" size="sm" dot>
+            <Badge tone="warning" size="sm">
               Versión no vigente
             </Badge>
           ) : (
-            <Badge tone="success" size="sm" dot>
+            <Badge tone="success" size="sm">
               En versión vigente
             </Badge>
           )}

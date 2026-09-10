@@ -155,7 +155,7 @@ export function BugsTab({ bugs, isAdmin }: BugsTabProps) {
                     {b.module}
                   </div>
                 </div>
-                <Badge tone={BUG_STATE_TONES[b.state]} size="md" dot>
+                <Badge tone={BUG_STATE_TONES[b.state]} size="md">
                   {BUG_STATE_LABELS[b.state]}
                 </Badge>
                 <div

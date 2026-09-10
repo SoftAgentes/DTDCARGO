@@ -211,7 +211,7 @@ function Fila({
 
       <Td>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-start" }}>
-          <Badge tone={tone} size="sm" dot>
+          <Badge tone={tone} size="sm">
             {ROLE_LABELS[member.role]}
           </Badge>
           <span style={{ font: "400 11px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
@@ -222,7 +222,7 @@ function Fila({
 
       <Td>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-1)", alignItems: "flex-start" }}>
-          <Badge tone={accessStageBadgeTone(etapa)} size="sm" dot>
+          <Badge tone={accessStageBadgeTone(etapa)} size="sm">
             {ACCESS_STAGE_LABELS[etapa]}
           </Badge>
           <span

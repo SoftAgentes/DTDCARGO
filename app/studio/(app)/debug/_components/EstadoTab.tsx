@@ -59,9 +59,9 @@ const INTEGRATION_DESCRIPTIONS: Record<IntegrationKey, string> = {
 };
 
 function statusBadge(s: IntegrationStatus) {
-  if (s === "active") return <Badge tone="success" size="md" dot>Activo</Badge>;
-  if (s === "mock") return <Badge tone="warning" size="md" dot>Mock</Badge>;
-  return <Badge tone="danger" size="md" dot>Falta</Badge>;
+  if (s === "active") return <Badge tone="success" size="md">Activo</Badge>;
+  if (s === "mock") return <Badge tone="warning" size="md">Mock</Badge>;
+  return <Badge tone="danger" size="md">Falta</Badge>;
 }
 
 function deployStateTone(
@@ -553,7 +553,7 @@ function HealthBadge({ health }: { health: IntegrationHealth }) {
         minWidth: 140,
       }}
     >
-      <Badge tone={tone} size="md" dot>
+      <Badge tone={tone} size="md">
         {label}
       </Badge>
       {detailText && (
@@ -610,7 +610,7 @@ function DeploysList({
                 minWidth: 90,
               }}
             >
-              <Badge tone={deployStateTone(d.state)} size="md" dot>
+              <Badge tone={deployStateTone(d.state)} size="md">
                 {deployStateLabel(d.state)}
               </Badge>
               <span

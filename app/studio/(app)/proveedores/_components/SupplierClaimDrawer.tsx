@@ -129,7 +129,7 @@ export function SupplierClaimDrawer({
       }
       titleAccessory={
         editing ? (
-          <Badge tone={supplierClaimStatusTone(status)} dot>
+          <Badge tone={supplierClaimStatusTone(status)}>
             {supplierClaimStatusLabel(status)}
           </Badge>
         ) : undefined

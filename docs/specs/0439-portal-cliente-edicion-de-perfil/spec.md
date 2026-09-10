@@ -104,6 +104,13 @@ reemplazos de foto anteriores a 0445 no pueden reconstruirse con certeza y no se
 inventan. 0445 no se renumera ni se reescribe porque ya fue aplicada; este SDD
 fue renumerado desde 0435 a 0439 para resolver la colisión con otra rama.
 
+Nota de trazabilidad: los comentarios SQL de `0445_portal_profile_edit_limit.sql`
+(aplicada) y `0446_portal_profile_functional_remediation.sql` (pendiente)
+conservan deliberadamente `SDD-0435`. La primera es historia aplicada que no se
+reescribe; en la segunda se preserva el contenido ya revisado hasta decidir su
+aplicación, para no invalidar esa revisión. Esta excepción histórica no cambia
+la numeración vigente de este SDD, que es 0439.
+
 ## Datos personales · revisión VE/CN
 
 | Estado | Evidencia |
