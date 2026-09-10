@@ -159,12 +159,12 @@ export function TelegramAlertsPanel({
                 {d.label}
               </span>
               {d.chatId ? (
-                <Badge tone="success" size="xs" dot>
+                <Badge tone="success" size="xs">
                   Enlazado
                   {d.telegramUsername ? ` · @${d.telegramUsername}` : ""}
                 </Badge>
               ) : (
-                <Badge tone="warning" size="xs" dot>
+                <Badge tone="warning" size="xs">
                   Pendiente de enlazar
                 </Badge>
               )}

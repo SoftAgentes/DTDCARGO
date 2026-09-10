@@ -245,7 +245,7 @@ export function DocsPanel({
                     )}
                   </div>
 
-                  <Badge tone={st.tone} size="sm" dot>
+                  <Badge tone={st.tone} size="sm">
                     {st.label}
                   </Badge>
 
@@ -777,7 +777,7 @@ export function VersionHistoryDrawer({
                         Vigente
                       </Badge>
                     )}
-                    <Badge tone={st.tone} size="sm" dot>
+                    <Badge tone={st.tone} size="sm">
                       {st.label}
                     </Badge>
                     <button

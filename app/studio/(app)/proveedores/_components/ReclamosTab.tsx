@@ -273,7 +273,7 @@ export function ReclamosTab({
                 {shortDate(c.created_at)}
               </span>
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <Badge tone={supplierClaimStatusTone(c.status)} size="sm" dot>
+                <Badge tone={supplierClaimStatusTone(c.status)} size="sm">
                   {supplierClaimStatusLabel(c.status)}
                 </Badge>
               </div>

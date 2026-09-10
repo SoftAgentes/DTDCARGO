@@ -523,7 +523,7 @@ export function DireccionTab({
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <Badge tone={wbGateTone(writeback.gate)} dot>
+              <Badge tone={wbGateTone(writeback.gate)}>
                 {wbGateLabel(writeback.gate)}
               </Badge>
               <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>

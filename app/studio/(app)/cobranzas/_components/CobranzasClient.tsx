@@ -500,7 +500,7 @@ function UnidentifiedSection({
           >
             {r.receipt_code}
           </span>
-          <Badge tone={applicationStatusTone(r.application_status)} size="sm" dot>
+          <Badge tone={applicationStatusTone(r.application_status)} size="sm">
             {applicationStatusLabel(r.application_status)}
           </Badge>
           <Badge tone={fundClassTone(r.fund_class)} size="sm">
@@ -722,7 +722,7 @@ function ReceivablesTable({
               )}
             </div>
             <span style={{ textAlign: "right" }}>
-              <Badge tone={stageTone(r.stage)} size="sm" dot>
+              <Badge tone={stageTone(r.stage)} size="sm">
                 {stageLabel(r.stage)}
               </Badge>
             </span>

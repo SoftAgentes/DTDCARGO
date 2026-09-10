@@ -397,7 +397,7 @@ function QuotesTable({
                 </div>
                 {isUnlinkedWebEstimate(quote) ? (
                   <div style={{ marginTop: 4 }}>
-                    <Badge tone="warning" size="sm" dot>
+                    <Badge tone="warning" size="sm">
                       Web · sin vincular
                     </Badge>
                   </div>
@@ -457,7 +457,6 @@ function QuotesTable({
                 <Badge
                   tone={statusBadgeTone(displayStatus as Quote["status"])}
                   size="sm"
-                  dot
                 >
                   {statusLabel(displayStatus as Quote["status"])}
                 </Badge>

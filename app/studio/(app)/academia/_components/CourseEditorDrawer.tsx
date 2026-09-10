@@ -145,7 +145,7 @@ export function CourseEditorDrawer({
                   <Badge tone="wine" size="sm">
                     {tierLabel(tree.tier)}
                   </Badge>
-                  <Badge tone={courseStatusTone(tree.status)} size="sm" dot>
+                  <Badge tone={courseStatusTone(tree.status)} size="sm">
                     {courseStatusLabel(tree.status)}
                   </Badge>
                   {tree.level && (
@@ -382,7 +382,6 @@ function ModuleBlock({
                   <Badge
                     tone={l.status === "publicado" ? "success" : "neutral"}
                     size="sm"
-                    dot
                   >
                     {lessonStatusLabel(l.status)}
                   </Badge>

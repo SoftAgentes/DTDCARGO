@@ -316,7 +316,7 @@ function OrdersTable({
               ${fmt(so.total_usd)}
             </span>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <Badge tone={salesOrderStatusTone(so.status)} size="sm" dot>
+              <Badge tone={salesOrderStatusTone(so.status)} size="sm">
                 {salesOrderStatusLabel(so.status)}
               </Badge>
             </div>

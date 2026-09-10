@@ -279,7 +279,7 @@ export function ServiceRequestsTab({
                   {shortDate(r.created_at)}
                 </span>
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <Badge tone={psrStatusTone(r.status)} size="sm" dot>
+                  <Badge tone={psrStatusTone(r.status)} size="sm">
                     {psrStatusLabel(r.status)}
                   </Badge>
                 </div>

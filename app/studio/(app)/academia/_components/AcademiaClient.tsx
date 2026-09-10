@@ -287,7 +287,7 @@ function CatalogTab({ courses }: { courses: CourseWithCounts[] }) {
             >
               <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
                 <Badge tone="wine" size="sm">{tierLabel(c.tier)}</Badge>
-                <Badge tone={courseStatusTone(c.status)} size="sm" dot>
+                <Badge tone={courseStatusTone(c.status)} size="sm">
                   {courseStatusLabel(c.status)}
                 </Badge>
               </div>

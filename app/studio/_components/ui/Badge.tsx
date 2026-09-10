@@ -15,7 +15,6 @@ export type BadgeSize = "xs" | "sm" | "md";
 interface BadgeProps {
   tone?: BadgeTone;
   size?: BadgeSize;
-  dot?: boolean;
   children: ReactNode;
   style?: CSSProperties;
 }
