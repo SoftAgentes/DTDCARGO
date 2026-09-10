@@ -125,15 +125,31 @@ export async function esperarHidratado(
         intervals: [50, 100, 200, 400],
       })
       .toBe(true);
-  } catch {
-    const conMarcador = await contarHidratados(el);
-    throw new Error(
-      `React nunca tomó ${quien} en ${TIMEOUT_HIDRATACION / 1000} s. ` +
+  } catch (causa) {
+    const causaOriginal =
+      causa instanceof Error ? causa.message : String(causa);
+    let diagnostico: string;
+
+    try {
+      const conMarcador = await contarHidratados(el);
+      diagnostico =
         `Nodos con marcador en la página: ${conMarcador}. ` +
         (conMarcador === 0
           ? `Cero: o la página no hidrató, o react-dom renombró "${CLAVE_PROPS}" ` +
             `y hay que actualizar e2e/_helpers/hidratacion.ts.`
-          : `Hay ${conMarcador}, así que React vive: el nodo que se espera no es parte de su árbol.`),
+          : `Hay ${conMarcador}, así que React vive: el nodo que se espera no es parte de su árbol.`);
+    } catch (errorConteo) {
+      const detalleConteo =
+        errorConteo instanceof Error ? errorConteo.message : String(errorConteo);
+      diagnostico =
+        `No se pudo contar los nodos con marcador porque el contexto de la página ` +
+        `dejó de estar disponible durante el diagnóstico. Error del conteo: ${detalleConteo}.`;
+    }
+
+    throw new Error(
+      `React nunca tomó ${quien} en ${TIMEOUT_HIDRATACION / 1000} s. ` +
+        `Causa original: ${causaOriginal}. ${diagnostico}`,
+      { cause: causa },
     );
   }
 }

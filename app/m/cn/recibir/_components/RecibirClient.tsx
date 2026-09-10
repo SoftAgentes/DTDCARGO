@@ -48,6 +48,15 @@ export function RecibirClient({ initialLang }: { initialLang: Lang }) {
     setError(null);
   };
 
+  const returnToScanWithError = (message: string) => {
+    setBusy(false);
+    setView("scan");
+    setLookup(null);
+    setCount("");
+    setResult(null);
+    setError(message);
+  };
+
   async function onDetected(raw: string) {
     const parsed = parseScannedLabel(raw);
     if (parsed.kind === "verify_url") {
@@ -73,16 +82,26 @@ export function RecibirClient({ initialLang }: { initialLang: Lang }) {
 
     setBusy(true);
     setError(null);
-    const res = await lookupForReceptionAction(parsed.code);
-    setBusy(false);
-
-    if (!res.found) {
-      setError(res.error);
-      return;
+    try {
+      const res = await lookupForReceptionAction(parsed.code);
+      if (!res.found) {
+        setError(res.error);
+        return;
+      }
+      setLookup(res);
+      setCount(String(res.expected));
+      setView("confirm");
+    } catch {
+      returnToScanWithError(
+        t(
+          lang,
+          "No se pudo buscar la caja por un problema temporal. Intenta de nuevo.",
+          "暂时无法查询箱子。请重试。",
+        ),
+      );
+    } finally {
+      setBusy(false);
     }
-    setLookup(res);
-    setCount(String(res.expected));
-    setView("confirm");
   }
 
   return (
@@ -146,6 +165,7 @@ export function RecibirClient({ initialLang }: { initialLang: Lang }) {
       {/* Banner de error (fuera de flujo) */}
       {error && (
         <div
+          role="alert"
           style={{
             margin: "12px 14px 0",
             padding: "10px 12px",
@@ -186,12 +206,48 @@ export function RecibirClient({ initialLang }: { initialLang: Lang }) {
             onCancel={reset}
             onReceive={async () => {
               const confirmed = count.trim() === "" ? null : Number(count);
-              const res = await receivePrealertaAction(lookup.boxCode, confirmed);
-              if (!res.ok) return { error: res.error ?? "Error" };
-              setResult(res);
-              setView("done");
-              return undefined;
+              setError(null);
+              try {
+                const res = await receivePrealertaAction(
+                  lookup.boxCode,
+                  confirmed,
+                );
+                if (!res.ok) {
+                  const message =
+                    res.failureKind === "permanent"
+                      ? t(
+                          lang,
+                          "La recepción no está disponible. Avisa al responsable; no la intentes de nuevo.",
+                          "收货功能不可用。请通知负责人，不要重试。",
+                        )
+                      : res.failureKind === "transient"
+                        ? t(
+                            lang,
+                            "No se pudo recibir por un problema temporal. Intenta de nuevo.",
+                            "暂时无法收货。请重试。",
+                          )
+                        : (res.error ??
+                          t(lang, "No se pudo recibir.", "无法收货。"));
+
+                  if (res.failureKind === "permanent") {
+                    returnToScanWithError(message);
+                  }
+                  return { error: message };
+                }
+                setResult(res);
+                setView("done");
+                return undefined;
+              } catch {
+                const message = t(
+                  lang,
+                  "No se pudo confirmar la recepción por un problema temporal. Vuelve a escanear e intenta de nuevo.",
+                  "暂时无法确认收货。请重新扫描后再试。",
+                );
+                returnToScanWithError(message);
+                return { error: message };
+              }
             }}
+            onError={setError}
           />
         )}
 
@@ -212,6 +268,7 @@ function ConfirmCard({
   setCount,
   onCancel,
   onReceive,
+  onError,
 }: {
   lang: Lang;
   lookup: ReceptionLookup;
@@ -219,6 +276,7 @@ function ConfirmCard({
   setCount: (v: string) => void;
   onCancel: () => void;
   onReceive: () => Promise<{ error: string } | undefined>;
+  onError: (message: string) => void;
 }) {
   if (lookup.alreadyReceived) {
     return (
@@ -317,6 +375,7 @@ function ConfirmCard({
             idleIcon={Icon.check(16)}
             successIcon={Icon.check(16)}
             onAction={onReceive}
+            onError={onError}
           />
         </div>
       </div>

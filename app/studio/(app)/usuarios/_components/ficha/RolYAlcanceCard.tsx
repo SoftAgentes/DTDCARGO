@@ -30,7 +30,7 @@
 
 import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
-import { D1_REASON_MIN_LENGTH } from "@/lib/studio/audit/d1-access-config-adapters";
+import { D1_REASON_MIN_LENGTH } from "@/lib/studio/audit/d1-access-config.shared";
 import {
   ROLE_DESCRIPTIONS,
   ROLE_LABELS,
@@ -49,8 +49,8 @@ import {
 
 /**
  * Mínimo que exige `d1Reason` para no caer al texto enlatado del servidor.
- * Se importa del adaptador en vez de copiarse: si el umbral sube allá, esto
- * sube solo. Antes era un `8` a mano atado nada más que por un comentario.
+ * Se importa del módulo puro compartido: si el umbral sube allá, esto sube
+ * solo sin arrastrar el adapter de servidor ni `node:crypto` al cliente.
  */
 const MOTIVO_MIN = D1_REASON_MIN_LENGTH;
 
