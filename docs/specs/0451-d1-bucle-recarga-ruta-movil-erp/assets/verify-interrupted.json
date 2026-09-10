@@ -1,0 +1,56 @@
+{
+  "status": "INTERRUPTED_INCOMPLETE",
+  "command": "corepack pnpm verify",
+  "env": {
+    "VERIFY_SKIP_SQL": "1",
+    "E2E_WORKERS": "2"
+  },
+  "head": "e9fa802491a290460985602462b7c02256b86fa6",
+  "lastProgress": "2026-09-10T20:15:42.130Z",
+  "stoppedAt": "2026-09-10T20:21:39.225Z",
+  "stopReason": "No progress for 357 seconds after mobile-safari global-search failure; no runner close receipt. Owned verify process tree stopped. Missing Supabase URL/key already observed in auth failures.",
+  "collectedTests": 186,
+  "stdoutAttempts": {
+    "ok": 123,
+    "x": 29,
+    "-": 15
+  },
+  "lastAttempt": "  x  167 [mobile-safari] › e2e\\global-search.spec.ts:22:7 › Tier 1 · buscador global protegido por auth › sin sesión, /studio rebota al login (⌘K no expuesto) (5.6s)",
+  "warning": "Attempt counts include retries; they are not final unique test results. No final E2E summary.",
+  "logPath": "C:\\Users\\AKXGEN~1\\AppData\\Local\\Temp\\d1-verify-20260910.log",
+  "logSha256": "8e0beb8ab2398a310ed9b9907085455481b4e2304addd3d5d24ee6c7069cc05f",
+  "playwrightJsonPresent": false,
+  "exitCode": 1,
+  "completedChecks": [
+    "harness:18 tests",
+    "lint:0 errors/8 warnings",
+    "rsc-boundary",
+    "typecheck",
+    "edge-functions:4",
+    "test:521 files/6526 tests",
+    "docs:check",
+    "numbering",
+    "feature-constants:5",
+    "components:check",
+    "governance:check",
+    "pending-migration-symbols"
+  ],
+  "unavailable": [
+    "migrations-applied:missing credentials"
+  ],
+  "notExecuted": [
+    "sql-tests:VERIFY_SKIP_SQL=1",
+    "schema-rebuild:VERIFY_SKIP_SQL=1",
+    "build:not reached within interrupted verify; run separately"
+  ],
+  "standaloneBuild": {
+    "command": "node scripts/check-build.mjs",
+    "status": "PASO",
+    "exitCode": 0,
+    "postbuild": true,
+    "tsconfigRestored": true,
+    "outputRemoved": true,
+    "logPath": "C:\\Users\\AKXGEN~1\\AppData\\Local\\Temp\\d1-build-20260910.log",
+    "logSha256": "d58cc9ee7e13c5b8f282a08e76c38723bbc0d24bb41755e820de41e3c1730d5d"
+  }
+}
