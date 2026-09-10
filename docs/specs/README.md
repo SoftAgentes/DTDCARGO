@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 406 specs)
+### Índice de specs (generado · 407 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
