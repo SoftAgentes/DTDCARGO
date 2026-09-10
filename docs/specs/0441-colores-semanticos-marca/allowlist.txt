@@ -14,6 +14,7 @@ app/studio/(app)/tracking/_components/StatusBadge.tsx
 app/studio/_components/ui/Badge.tsx
 app/studio/_components/ui/ErrorAlert.tsx
 app/studio/_components/ui/ToastProvider.tsx
+app/studio/_components/ui/ToastProvider.test.tsx
 app/studio/tokens.css
 app/tarifas/embed/page.tsx
 components/CalculadoraForm.semantic-colors.test.tsx
