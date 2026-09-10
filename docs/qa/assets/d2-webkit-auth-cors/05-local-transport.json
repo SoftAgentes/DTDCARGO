@@ -1,0 +1,614 @@
+{
+  "startedAt": "2026-09-10T20:10:10.169Z",
+  "containerId": "ddc222aa5272701f9671692488465e54b85eaea46b3ae666f0198f4f20694e1a",
+  "target": "127.0.0.1:8000 inside existing Kong",
+  "listeners": [
+    {
+      "host": "127.0.0.1",
+      "port": 55431
+    },
+    {
+      "host": "::1",
+      "port": 55431
+    }
+  ],
+  "requests": [
+    {
+      "at": "2026-09-10T20:10:10.361Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:3743",
+      "requestedHeaders": null,
+      "clientPid": 27500,
+      "statusLine": "HTTP/1.1 401 Unauthorized",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:15.237Z"
+    },
+    {
+      "at": "2026-09-10T20:10:17.035Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey",
+      "clientPid": 38536,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:20.172Z"
+    },
+    {
+      "at": "2026-09-10T20:10:20.164Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": null,
+      "clientPid": 40876,
+      "statusLine": "HTTP/1.1 401 Unauthorized",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:23.299Z"
+    },
+    {
+      "at": "2026-09-10T20:10:23.378Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "clientPid": 31008,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey,authorization,x-client-info,x-supabase-api-version",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:26.527Z"
+    },
+    {
+      "at": "2026-09-10T20:10:26.515Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": null,
+      "clientPid": 16272,
+      "statusLine": "HTTP/1.1 403 Forbidden",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:30.089Z"
+    },
+    {
+      "at": "2026-09-10T20:10:30.296Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey",
+      "clientPid": 15476,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:33.747Z"
+    },
+    {
+      "at": "2026-09-10T20:10:33.730Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": null,
+      "clientPid": 8180,
+      "statusLine": "HTTP/1.1 401 Unauthorized",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:37.007Z"
+    },
+    {
+      "at": "2026-09-10T20:10:37.116Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "clientPid": 42156,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey,authorization,x-client-info,x-supabase-api-version",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:40.461Z"
+    },
+    {
+      "at": "2026-09-10T20:10:40.424Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": null,
+      "clientPid": 23080,
+      "statusLine": "HTTP/1.1 403 Forbidden",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:43.793Z"
+    },
+    {
+      "at": "2026-09-10T20:10:46.043Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": "apikey",
+      "clientPid": 34396,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:50.273Z"
+    },
+    {
+      "at": "2026-09-10T20:10:50.249Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": null,
+      "clientPid": 4416,
+      "statusLine": "HTTP/1.1 401 Unauthorized",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:54.734Z"
+    },
+    {
+      "at": "2026-09-10T20:10:54.909Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "clientPid": 44740,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey,authorization,x-client-info,x-supabase-api-version",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:10:58.120Z"
+    },
+    {
+      "at": "2026-09-10T20:10:58.113Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": null,
+      "clientPid": 28636,
+      "statusLine": "HTTP/1.1 403 Forbidden",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:01.294Z"
+    },
+    {
+      "at": "2026-09-10T20:11:01.391Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": "apikey",
+      "clientPid": 25000,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:04.554Z"
+    },
+    {
+      "at": "2026-09-10T20:11:04.546Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": null,
+      "clientPid": 44692,
+      "statusLine": "HTTP/1.1 401 Unauthorized",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:07.699Z"
+    },
+    {
+      "at": "2026-09-10T20:11:07.815Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "clientPid": 20176,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey,authorization,x-client-info,x-supabase-api-version",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:10.995Z"
+    },
+    {
+      "at": "2026-09-10T20:11:10.978Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": null,
+      "clientPid": 33016,
+      "statusLine": "HTTP/1.1 403 Forbidden",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:14.197Z"
+    },
+    {
+      "at": "2026-09-10T20:11:18.041Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey",
+      "clientPid": 34736,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:21.267Z"
+    },
+    {
+      "at": "2026-09-10T20:11:21.258Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": null,
+      "clientPid": 13088,
+      "statusLine": "HTTP/1.1 401 Unauthorized",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:24.407Z"
+    },
+    {
+      "at": "2026-09-10T20:11:24.673Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "clientPid": 19744,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey,authorization,x-client-info,x-supabase-api-version",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:28.066Z"
+    },
+    {
+      "at": "2026-09-10T20:11:28.055Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": null,
+      "clientPid": 38108,
+      "statusLine": "HTTP/1.1 403 Forbidden",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:31.238Z"
+    },
+    {
+      "at": "2026-09-10T20:11:31.490Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey",
+      "clientPid": 43932,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:34.688Z"
+    },
+    {
+      "at": "2026-09-10T20:11:34.677Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": null,
+      "clientPid": 32840,
+      "statusLine": "HTTP/1.1 401 Unauthorized",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:37.886Z"
+    },
+    {
+      "at": "2026-09-10T20:11:38.231Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "clientPid": 35340,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey,authorization,x-client-info,x-supabase-api-version",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:41.412Z"
+    },
+    {
+      "at": "2026-09-10T20:11:41.404Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": null,
+      "clientPid": 16952,
+      "statusLine": "HTTP/1.1 403 Forbidden",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:44.566Z"
+    },
+    {
+      "at": "2026-09-10T20:11:46.649Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": "apikey",
+      "clientPid": 42936,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:49.836Z"
+    },
+    {
+      "at": "2026-09-10T20:11:49.827Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": null,
+      "clientPid": 40108,
+      "statusLine": "HTTP/1.1 401 Unauthorized",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:53.001Z"
+    },
+    {
+      "at": "2026-09-10T20:11:53.365Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "clientPid": 6244,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey,authorization,x-client-info,x-supabase-api-version",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:56.551Z"
+    },
+    {
+      "at": "2026-09-10T20:11:56.539Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": null,
+      "clientPid": 28620,
+      "statusLine": "HTTP/1.1 403 Forbidden",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:11:59.722Z"
+    },
+    {
+      "at": "2026-09-10T20:12:00.040Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": "apikey",
+      "clientPid": 19892,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:12:03.239Z"
+    },
+    {
+      "at": "2026-09-10T20:12:03.228Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": null,
+      "clientPid": 1736,
+      "statusLine": "HTTP/1.1 401 Unauthorized",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:12:06.425Z"
+    },
+    {
+      "at": "2026-09-10T20:12:06.721Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "clientPid": 14236,
+      "statusLine": "HTTP/1.1 200 OK",
+      "corsHeaders": [
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Allow-Headers: apikey,authorization,x-client-info,x-supabase-api-version",
+        "Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "Server: kong/2.8.1"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:12:09.958Z"
+    },
+    {
+      "at": "2026-09-10T20:12:09.942Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://127.0.0.1:50117",
+      "requestedHeaders": null,
+      "clientPid": 8800,
+      "statusLine": "HTTP/1.1 403 Forbidden",
+      "corsHeaders": [
+        "Access-Control-Allow-Credentials: true",
+        "Access-Control-Allow-Origin: *",
+        "Access-Control-Expose-Headers: X-Total-Count, Link, X-Supabase-Api-Version",
+        "Vary: Origin"
+      ],
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:12:13.191Z"
+    }
+  ],
+  "changesToServices": false,
+  "finishedAt": "2026-09-10T20:12:17.175Z",
+  "remainingOwnedConnections": 0
+}

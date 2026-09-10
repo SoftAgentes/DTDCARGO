@@ -25,6 +25,22 @@ Para reusar un servidor ya levantado, usar `E2E_START_WEB_SERVER=0`. El host
 local canónico es `localhost`; no usar `127.0.0.1`, porque Next bloquea por
 seguridad el HMR cross-origin de ese origen.
 
+**Auth WebKit / H2 (diagnóstico 2026-09-10):** esa nota de HMR no explica por sí
+sola un `Fetch API cannot load .../auth/v1/user due to access control checks`.
+WebKit también usa ese mensaje cuando falla el transporte del preflight; un
+puerto cerrado reproduce `Load failed` sin respuesta ni cabecera CORS que validar.
+La sonda anónima nativa contra Supabase HTTPS real expuso **401 en ambos motores**,
+incluido el origen de documento `https://dtdcargo.com`. El transporte directo local
+no estaba publicado; la medición auxiliar contra Kong se documenta separadamente.
+Consulta el [dictamen, matriz y recibos D2](../docs/qa/d2-webkit-auth-cors.md) antes
+de clasificar ese mensaje como fallo confirmado de producto. El mecanismo exacto
+del evento H histórico sigue inconcluso: no se conserva respuesta Auth de Safari.
+Conserva el error y verifica transporte, OPTIONS, respuesta visible desde JS y
+navegaciones; no lo silencies ni generalices una excepción a todo `Load failed`.
+El `beforeEach` de 90 s de la corrida E es una incidencia distinta según sus
+primarios, anterior a cargar producto; tampoco es el cierre de workers mencionado
+abajo. La sonda opt-in vive en `e2e/diagnostics/` y no entra en la suite general.
+
 En una corrida local general el harness abre `min(8, max(1, floor(núcleos/2)))`
 workers —la mitad de la máquina con tope de ocho, nunca más que el default
 histórico de Playwright— y 1 en CI o cuando `E2E_ENVIRONMENT_KIND=ephemeral`.

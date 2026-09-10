@@ -1,0 +1,578 @@
+{
+  "schemaVersion": 1,
+  "taskId": "d2-webkit-auth-cors",
+  "source": "Selected historical metadata; no runtime executed by this extractor",
+  "backupRoot": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906",
+  "primaryFiles": [
+    {
+      "path": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/runtime-clean-start-20260907-e/receipts/auth18-clean-start-20260907-e/playwright-artifacts/comments-lifecycle-SDD-016-c30b4-erva-relaciones-y-auditoría-mobile-safari/error-context.md",
+      "bytes": 575,
+      "sha256": "6a7ade94c0e680dd36f49233a9e0efcdbf2d79f2551e4bb4099015e974c4cc44"
+    },
+    {
+      "path": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/runtime-clean-start-20260907-e/source/e2e/comments-lifecycle.spec.ts",
+      "bytes": 14280,
+      "sha256": "dbe71628d603b72e5bb8d6bf9815ef0d0bc92225a9239db661fb10b25135c7c7"
+    },
+    {
+      "path": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/runtime-clean-start-20260907-h/receipts/auth18-clean-start-20260907-h/playwright-artifacts/gastos-expense-void-Tier-3-489de-mación-y-conserva-el-recibo-chromium/trace.zip",
+      "bytes": 4694956,
+      "sha256": "47899dfc1bb21553174e8a3f9bad56448c750021ca7d79c7e5ab9be1a1c4154e"
+    },
+    {
+      "path": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/runtime-clean-start-20260907-h/receipts/auth18-clean-start-20260907-h/playwright-artifacts/gastos-expense-void-Tier-3-489de-mación-y-conserva-el-recibo-mobile-safari/trace.zip",
+      "bytes": 2689230,
+      "sha256": "5994ddfdbb806b9c99795feca80f192430cb17cbd42e0b719ab3e940e04a89ec"
+    },
+    {
+      "path": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/runtime-clean-start-20260907-h/receipts/auth18-clean-start-20260907-h/reports/auth18-progress.jsonl",
+      "bytes": 5708,
+      "sha256": "b34cc11d66011822c4acaa47006dfe84428f1ea79a4085339e7c3c1f42b1c60b"
+    }
+  ],
+  "extractionPolicy": {
+    "zipMembers": [
+      "test.trace",
+      "0-trace.trace",
+      "0-trace.network"
+    ],
+    "zipResponseResourcesExtracted": false,
+    "requestHeadersEmitted": false,
+    "cookiesEmitted": false,
+    "responseBodiesEmitted": false,
+    "domSnapshotsEmitted": false,
+    "arbitraryStacksEmitted": false,
+    "selectedResponseHeaders": [
+      "access-control-allow-origin",
+      "access-control-allow-headers",
+      "access-control-allow-methods",
+      "access-control-allow-credentials",
+      "access-control-expose-headers",
+      "access-control-max-age",
+      "vary"
+    ],
+    "jsonParsing": "Only selected network URLs, hook call IDs, navigation call ID, error types and run-progress metadata; no DOM snapshot parsing"
+  },
+  "runE": {
+    "errorFile": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/runtime-clean-start-20260907-e/receipts/auth18-clean-start-20260907-e/playwright-artifacts/comments-lifecycle-SDD-016-c30b4-erva-relaciones-y-auditoría-mobile-safari/error-context.md",
+    "errors": [
+      {
+        "line": 15,
+        "message": "Test timeout of 90000ms exceeded while running \"beforeEach\" hook."
+      },
+      {
+        "line": 19,
+        "message": "Tearing down \"context\" exceeded the test timeout of 90000ms."
+      }
+    ],
+    "fileModifiedAt": "2026-09-08T12:03:30.230Z",
+    "fileModifiedAtMeaning": "Filesystem metadata, not a browser event timestamp",
+    "tracePresent": false,
+    "frozenHookFile": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/runtime-clean-start-20260907-e/source/e2e/comments-lifecycle.spec.ts",
+    "hookLines": [
+      {
+        "line": 94,
+        "text": "  test.beforeEach(async ({ page }) => {"
+      },
+      {
+        "line": 95,
+        "text": "    // El Studio mantiene la preferencia real del rail en localStorage. En los"
+      },
+      {
+        "line": 96,
+        "text": "    // proyectos móviles, el rail expandido consume casi todo el viewport y"
+      },
+      {
+        "line": 97,
+        "text": "    // tapa el compositor; este contrato aísla la interacción de comentarios."
+      },
+      {
+        "line": 98,
+        "text": "    await page.addInitScript(() => {"
+      },
+      {
+        "line": 99,
+        "text": "      localStorage.setItem(\"studio_sidebar_collapsed\", \"1\");"
+      },
+      {
+        "line": 100,
+        "text": "    });"
+      },
+      {
+        "line": 101,
+        "text": "  });"
+      }
+    ],
+    "standardPlaywrightImport": true,
+    "limits": [
+      "No trace is preserved for this E failure. Error context cannot distinguish fixture creation from addInitScript execution.",
+      "The frozen hook has no navigation or product HTTP. It does not exercise application /auth/v1/user.",
+      "The 90000 ms context teardown is separately reported; its presence does not prove the current worker cap resolved initialization."
+    ]
+  },
+  "runH": {
+    "chromium": {
+      "archiveFile": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/runtime-clean-start-20260907-h/receipts/auth18-clean-start-20260907-h/playwright-artifacts/gastos-expense-void-Tier-3-489de-mación-y-conserva-el-recibo-chromium/trace.zip",
+      "members": {
+        "test.trace": {
+          "bytes": 74800,
+          "sha256": "72fed354c38912520de333290cf7cce46b06d985a9ddea9f4d61215b20f352dd"
+        },
+        "0-trace.trace": {
+          "bytes": 2516177,
+          "sha256": "360d90b17eb16c25141bf5f071dd06b063a23aeb39ea5ed917061766ca784e36"
+        },
+        "0-trace.network": {
+          "bytes": 1826680,
+          "sha256": "adc33896c525753c74a6158eb54f3e3f9a9b19ed18c0ce295821132000e5b592"
+        }
+      },
+      "authRequests": [
+        {
+          "member": "0-trace.network",
+          "line": 23,
+          "method": "GET",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "startedDateTime": "2026-09-08T15:42:31.960Z",
+          "time": 70.911,
+          "_monotonicTime": 21183.722,
+          "status": 200,
+          "corsHeaders": [
+            {
+              "name": "Access-Control-Allow-Credentials",
+              "value": "true"
+            },
+            {
+              "name": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "name": "Access-Control-Expose-Headers",
+              "value": "X-Total-Count, Link, X-Supabase-Api-Version"
+            },
+            {
+              "name": "Vary",
+              "value": "Origin"
+            }
+          ],
+          "timings": {
+            "dns": -1,
+            "connect": -1,
+            "ssl": -1,
+            "send": 0,
+            "wait": 63.719,
+            "receive": 7.192
+          }
+        },
+        {
+          "member": "0-trace.network",
+          "line": 24,
+          "method": "GET",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "startedDateTime": "2026-09-08T15:42:32.035Z",
+          "time": 65.171,
+          "_monotonicTime": 21259,
+          "status": 200,
+          "corsHeaders": [
+            {
+              "name": "Access-Control-Allow-Credentials",
+              "value": "true"
+            },
+            {
+              "name": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "name": "Access-Control-Expose-Headers",
+              "value": "X-Total-Count, Link, X-Supabase-Api-Version"
+            },
+            {
+              "name": "Vary",
+              "value": "Origin"
+            }
+          ],
+          "timings": {
+            "dns": -1,
+            "connect": -1,
+            "ssl": -1,
+            "send": 0,
+            "wait": 64.152,
+            "receive": 1.019
+          }
+        }
+      ],
+      "firstMobileDocuments": [
+        {
+          "member": "0-trace.network",
+          "line": 27,
+          "url": "http://127.0.0.1:3743/m/erp?tab=expenses",
+          "startedDateTime": "2026-09-08T15:42:31.897Z",
+          "time": 469.69800000000004,
+          "_monotonicTime": 21121.32,
+          "status": 200
+        },
+        {
+          "member": "0-trace.network",
+          "line": 43,
+          "url": "http://127.0.0.1:3743/m/erp?tab=expenses",
+          "startedDateTime": "2026-09-08T15:42:33.265Z",
+          "time": 291.937,
+          "_monotonicTime": 22488.836,
+          "status": 200
+        }
+      ]
+    },
+    "safari": {
+      "archiveFile": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/runtime-clean-start-20260907-h/receipts/auth18-clean-start-20260907-h/playwright-artifacts/gastos-expense-void-Tier-3-489de-mación-y-conserva-el-recibo-mobile-safari/trace.zip",
+      "members": {
+        "test.trace": {
+          "bytes": 26670,
+          "sha256": "95b04997fc0165006e212cec79bad97174134a82bbc9c5b25c5f6ce8b6ec33b7"
+        },
+        "0-trace.trace": {
+          "bytes": 466622,
+          "sha256": "9dc76e3d900eb506f7a8aaef6715dba60217149a32d07bc3635a5f9c13a0c2df"
+        },
+        "0-trace.network": {
+          "bytes": 7258685,
+          "sha256": "165595ec056738905c12db3abb96be3315c77e460fa7940b48c7487a8ea8ca7f"
+        }
+      },
+      "clock": {
+        "browserName": "webkit",
+        "playwrightVersion": "1.60.0",
+        "platform": "win32",
+        "wallTime": 1788882239277,
+        "monotonicTime": 108499.557
+      },
+      "hookEvents": [
+        {
+          "member": "test.trace",
+          "line": 3,
+          "type": "before",
+          "callId": "hook@2",
+          "title": "beforeEach hook",
+          "startTime": 108478.771,
+          "method": "hook"
+        },
+        {
+          "member": "test.trace",
+          "line": 4,
+          "type": "before",
+          "callId": "fixture@23",
+          "title": "Fixture \"context\"",
+          "startTime": 108485.281,
+          "method": "fixture"
+        },
+        {
+          "member": "test.trace",
+          "line": 5,
+          "type": "before",
+          "callId": "pw:api@24",
+          "title": "Create context",
+          "startTime": 108485.871,
+          "method": "pw:api"
+        },
+        {
+          "member": "test.trace",
+          "line": 6,
+          "type": "after",
+          "callId": "pw:api@24",
+          "endTime": 108498.327
+        },
+        {
+          "member": "test.trace",
+          "line": 7,
+          "type": "after",
+          "callId": "fixture@23",
+          "endTime": 108500.464
+        },
+        {
+          "member": "test.trace",
+          "line": 8,
+          "type": "before",
+          "callId": "fixture@25",
+          "title": "Fixture \"page\"",
+          "startTime": 108501.067,
+          "method": "fixture"
+        },
+        {
+          "member": "test.trace",
+          "line": 9,
+          "type": "before",
+          "callId": "pw:api@26",
+          "title": "Create page",
+          "startTime": 108502.01,
+          "method": "pw:api"
+        },
+        {
+          "member": "test.trace",
+          "line": 10,
+          "type": "after",
+          "callId": "pw:api@26",
+          "endTime": 108621.132
+        },
+        {
+          "member": "test.trace",
+          "line": 11,
+          "type": "after",
+          "callId": "fixture@25",
+          "endTime": 108621.196
+        },
+        {
+          "member": "test.trace",
+          "line": 12,
+          "type": "before",
+          "callId": "pw:api@27",
+          "title": "Add init script",
+          "startTime": 108622.167,
+          "method": "pw:api"
+        },
+        {
+          "member": "test.trace",
+          "line": 13,
+          "type": "after",
+          "callId": "pw:api@27",
+          "endTime": 108628.405
+        },
+        {
+          "member": "test.trace",
+          "line": 14,
+          "type": "after",
+          "callId": "hook@2",
+          "endTime": 108628.478
+        }
+      ],
+      "hookDurationMs": 149.707,
+      "navigationEvents": [
+        {
+          "member": "0-trace.trace",
+          "line": 89,
+          "type": "before",
+          "callId": "call@194",
+          "startTime": 111119.524,
+          "class": "Frame",
+          "method": "goto",
+          "url": "/m/erp?tab=expenses",
+          "waitUntil": "domcontentloaded"
+        },
+        {
+          "member": "0-trace.trace",
+          "line": 101,
+          "type": "after",
+          "callId": "call@194",
+          "endTime": 111672.152
+        }
+      ],
+      "pageErrors": [
+        {
+          "member": "0-trace.trace",
+          "line": 96,
+          "time": 111371.916,
+          "calculatedWallTime": "2026-09-08T15:44:02.149Z",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "name": "Fetch API cannot load http",
+          "message": "/127.0.0.1:55431/auth/v1/user due to access control checks."
+        },
+        {
+          "member": "0-trace.trace",
+          "line": 98,
+          "time": 111381.883,
+          "calculatedWallTime": "2026-09-08T15:44:02.159Z",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "name": "Fetch API cannot load http",
+          "message": "/127.0.0.1:55431/auth/v1/user due to access control checks."
+        },
+        {
+          "member": "0-trace.trace",
+          "line": 100,
+          "time": 111397.29,
+          "calculatedWallTime": "2026-09-08T15:44:02.174Z",
+          "url": "http://127.0.0.1:3743/__nextjs_original-stack-frames",
+          "name": "Fetch API cannot load http",
+          "message": "/127.0.0.1:3743/__nextjs_original-stack-frames due to access control checks."
+        }
+      ],
+      "loadFailedConsole": [
+        {
+          "member": "0-trace.trace",
+          "line": 97,
+          "time": 111372.139,
+          "text": "TypeError: Load failed"
+        },
+        {
+          "member": "0-trace.trace",
+          "line": 99,
+          "time": 111396.402,
+          "text": "TypeError: Load failed"
+        }
+      ],
+      "authRequests": [],
+      "firstMobileDocuments": [
+        {
+          "member": "0-trace.network",
+          "line": 24,
+          "url": "http://127.0.0.1:3743/m/erp?tab=expenses",
+          "startedDateTime": "2026-09-08T15:44:01.980Z",
+          "time": 290.3,
+          "_monotonicTime": 111202.746,
+          "status": 200
+        },
+        {
+          "member": "0-trace.network",
+          "line": 40,
+          "url": "http://127.0.0.1:3743/m/erp?tab=expenses",
+          "startedDateTime": "2026-09-08T15:44:03.085Z",
+          "time": 283.242,
+          "_monotonicTime": 112307.972,
+          "status": 200
+        }
+      ]
+    },
+    "progressFile": "C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/runtime-clean-start-20260907-h/receipts/auth18-clean-start-20260907-h/reports/auth18-progress.jsonl",
+    "safariProgress": [
+      {
+        "line": 108,
+        "event": "test-begin",
+        "file": "comments-lifecycle.spec.ts",
+        "project": "mobile-safari",
+        "retry": 0,
+        "at": "2026-09-08T15:43:36.684Z",
+        "jsonlLine": 26
+      },
+      {
+        "line": 108,
+        "event": "test-end",
+        "file": "comments-lifecycle.spec.ts",
+        "project": "mobile-safari",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 18081,
+        "at": "2026-09-08T15:43:55.487Z",
+        "jsonlLine": 27
+      },
+      {
+        "line": 76,
+        "event": "test-begin",
+        "file": "gastos-expense-void.spec.ts",
+        "project": "mobile-safari",
+        "retry": 0,
+        "at": "2026-09-08T15:43:55.501Z",
+        "jsonlLine": 28
+      },
+      {
+        "line": 76,
+        "event": "test-end",
+        "file": "gastos-expense-void.spec.ts",
+        "project": "mobile-safari",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 3730,
+        "at": "2026-09-08T15:43:59.248Z",
+        "jsonlLine": 29
+      },
+      {
+        "line": 99,
+        "event": "test-begin",
+        "file": "gastos-expense-void.spec.ts",
+        "project": "mobile-safari",
+        "retry": 0,
+        "at": "2026-09-08T15:43:59.255Z",
+        "jsonlLine": 30
+      },
+      {
+        "line": 99,
+        "event": "test-end",
+        "file": "gastos-expense-void.spec.ts",
+        "project": "mobile-safari",
+        "status": "timedOut",
+        "retry": 0,
+        "durationMs": 60610,
+        "at": "2026-09-08T15:45:00.241Z",
+        "jsonlLine": 31
+      },
+      {
+        "line": 52,
+        "event": "test-begin",
+        "file": "global-search.spec.ts",
+        "project": "mobile-safari",
+        "retry": 0,
+        "at": "2026-09-08T15:45:00.937Z",
+        "jsonlLine": 32
+      },
+      {
+        "line": 52,
+        "event": "test-end",
+        "file": "global-search.spec.ts",
+        "project": "mobile-safari",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 3151,
+        "at": "2026-09-08T15:45:04.178Z",
+        "jsonlLine": 33
+      },
+      {
+        "line": 68,
+        "event": "test-begin",
+        "file": "global-search.spec.ts",
+        "project": "mobile-safari",
+        "retry": 0,
+        "at": "2026-09-08T15:45:04.208Z",
+        "jsonlLine": 34
+      },
+      {
+        "line": 68,
+        "event": "test-end",
+        "file": "global-search.spec.ts",
+        "project": "mobile-safari",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 3673,
+        "at": "2026-09-08T15:45:07.894Z",
+        "jsonlLine": 35
+      },
+      {
+        "line": 14,
+        "event": "test-begin",
+        "file": "nomina-settlement-void.spec.ts",
+        "project": "mobile-safari",
+        "retry": 0,
+        "at": "2026-09-08T15:45:07.903Z",
+        "jsonlLine": 36
+      },
+      {
+        "line": 14,
+        "event": "test-end",
+        "file": "nomina-settlement-void.spec.ts",
+        "project": "mobile-safari",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5547,
+        "at": "2026-09-08T15:45:13.464Z",
+        "jsonlLine": 37
+      }
+    ],
+    "runEnd": {
+      "jsonlLine": 38,
+      "event": "end-run",
+      "status": "failed",
+      "total": 18,
+      "passed": 16,
+      "skipped": 0,
+      "failed": 2,
+      "globalErrors": 0,
+      "at": "2026-09-08T15:45:13.647Z"
+    },
+    "verifiedObservations": [
+      "The H beforeEach completed in 149.707 ms before the later auth errors; it is not the E 90000 ms hook timeout.",
+      "Both auth errors and a same-origin Next stack-frame error occur inside the /m/erp goto interval.",
+      "Chromium preserves two auth GET responses with status 200 and Access-Control-Allow-Origin: *.",
+      "Safari preserves no auth network response; these archives cannot establish a missing Safari CORS response header."
+    ],
+    "limits": [
+      "Coincidence with navigation is measured. Cancellation causality requires a separate controlled probe.",
+      "The same-origin Next error prevents interpreting the generic access-control message alone as proof of server CORS rejection.",
+      "Only failing H tests retained traces. There is no passing mobile-chrome trace for this test in the inspected directory."
+    ]
+  }
+}

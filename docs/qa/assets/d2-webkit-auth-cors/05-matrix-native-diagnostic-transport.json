@@ -1,0 +1,1807 @@
+{
+  "startedAt": "2026-09-10T20:10:16.452Z",
+  "node": "v24.20.0",
+  "platform": "win32",
+  "probeSha256": "e122006e58b6498341225e31f9dafa1591e29c2cf9d014c76f76cd15c009a102",
+  "publicConfigSource": "scripts/e2e/sdd-0168-fixture.ts:169 + Supabase get_publishable_keys (legacy anon active), 2026-09-10",
+  "productionOrigin": "https://xpfuzqombmjmxvprjgmi.supabase.co",
+  "scope": "GET /auth/v1/user only; no session, no body consumption, no product navigation",
+  "transport": "diagnostic loopback IPv4+IPv6 to existing Kong via docker exec nc; Connection close; service configuration unchanged",
+  "rows": [
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 3.2250000000001364,
+      "newPageMs": 67.7804000000001,
+      "addInitScriptMs": 2.4284999999999854,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 6260.5,
+        "bodyRead": false
+      },
+      "contextCloseMs": 4.373799999999392
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 4.835799999999836,
+      "newPageMs": 50.8108000000002,
+      "addInitScriptMs": 0.8897999999999229,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 6693.5999999940395,
+        "bodyRead": false
+      },
+      "contextCloseMs": 22.51639999999861
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 8.404199999999037,
+      "newPageMs": 132.02210000000014,
+      "addInitScriptMs": 4.621800000000803,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 6706.399999991059,
+        "bodyRead": false
+      },
+      "contextCloseMs": 6.826500000002852
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 4.183199999999488,
+      "newPageMs": 74.53900000000067,
+      "addInitScriptMs": 2.1578000000008615,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 6671.899999991059,
+        "bodyRead": false
+      },
+      "contextCloseMs": 8.489199999999983
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "http://localhost:50117",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 4.589900000002672,
+      "newPageMs": 243.41899999999805,
+      "addInitScriptMs": 2.1291999999994005,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 605.5999999940395,
+        "bodyRead": false
+      },
+      "contextCloseMs": 44.911199999998644
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "http://localhost:50117",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 12.48070000000007,
+      "newPageMs": 217.55099999999948,
+      "addInitScriptMs": 3.0908000000017637,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 572.5,
+        "bodyRead": false
+      },
+      "contextCloseMs": 77.9343000000008
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 52.37960000000021,
+      "newPageMs": 168.72070000000167,
+      "addInitScriptMs": 11.040600000000268,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 8687.60000000894,
+        "bodyRead": false
+      },
+      "contextCloseMs": 6.432300000000396
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 8.084200000004785,
+      "newPageMs": 127.90419999999722,
+      "addInitScriptMs": 2.1670000000012806,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 6377.70000000298,
+        "bodyRead": false
+      },
+      "contextCloseMs": 5.869299999998475
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 4.530800000000454,
+      "newPageMs": 69.87910000000556,
+      "addInitScriptMs": 1.2010000000009313,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 6304.29999999702,
+        "bodyRead": false
+      },
+      "contextCloseMs": 5.470099999998638
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 3.302800000004936,
+      "newPageMs": 89.19320000000153,
+      "addInitScriptMs": 1.1313999999983935,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 6380.79999999702,
+        "bodyRead": false
+      },
+      "contextCloseMs": 5.285799999997835
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "http://127.0.0.1:50117",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 2.9657999999981257,
+      "newPageMs": 63.50680000000284,
+      "addInitScriptMs": 1.306299999996554,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 556.2000000029802,
+        "bodyRead": false
+      },
+      "contextCloseMs": 2.9503999999942607
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "http://127.0.0.1:50117",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 2.736400000001595,
+      "newPageMs": 61.665899999999965,
+      "addInitScriptMs": 0.9867000000012922,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 477.70000000298023,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.3268000000025495
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "https://dtdcargo.com",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "https://dtdcargo.com",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 2.644899999999325,
+      "newPageMs": 87.35920000000624,
+      "addInitScriptMs": 1.178700000004028,
+      "source": {
+        "origin": "https://dtdcargo.com",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 561.3999999910593,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.3324999999967986
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 121.30169999999998,
+      "documentOrigin": "https://dtdcargo.com",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "https://dtdcargo.com",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 2.400000000001455,
+      "newPageMs": 62.17960000000312,
+      "addInitScriptMs": 1.0118000000002212,
+      "source": {
+        "origin": "https://dtdcargo.com",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 488.5,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.8166000000055647
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 40.27490000000398,
+      "newPageMs": 274.3600000000006,
+      "addInitScriptMs": 13.216099999997823,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 6365,
+        "bodyRead": false
+      },
+      "contextCloseMs": 5.019499999994878
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 31.940600000001723,
+      "newPageMs": 176.0628999999899,
+      "addInitScriptMs": 7.709600000001956,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 6565,
+        "bodyRead": false
+      },
+      "contextCloseMs": 4.64069999998901
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 28.244800000000396,
+      "newPageMs": 166.09599999999045,
+      "addInitScriptMs": 8.192500000004657,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 6392,
+        "bodyRead": false
+      },
+      "contextCloseMs": 7.156400000007125
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 48.5286999999953,
+      "newPageMs": 235.63969999999972,
+      "addInitScriptMs": 11.2612999999983,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 6333,
+        "bodyRead": false
+      },
+      "contextCloseMs": 5.327199999999721
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "http://localhost:50117",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 32.136799999992945,
+      "newPageMs": 185.3527000000031,
+      "addInitScriptMs": 9.625,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 555,
+        "bodyRead": false
+      },
+      "contextCloseMs": 5.779400000013993
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://localhost:50117",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "http://localhost:50117",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 38.63790000000154,
+      "newPageMs": 220.78459999999905,
+      "addInitScriptMs": 9.78399999999965,
+      "source": {
+        "origin": "http://localhost:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 568,
+        "bodyRead": false
+      },
+      "contextCloseMs": 4.298699999999371
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 34.69099999999162,
+      "newPageMs": 241.3301000000065,
+      "addInitScriptMs": 14.764799999989918,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 6349,
+        "bodyRead": false
+      },
+      "contextCloseMs": 5.48399999999674
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 48.7844000000041,
+      "newPageMs": 255.79360000000452,
+      "addInitScriptMs": 10.792799999995623,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 6353,
+        "bodyRead": false
+      },
+      "contextCloseMs": 6.312300000005052
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 43.157299999991665,
+      "newPageMs": 215.97550000000047,
+      "addInitScriptMs": 10.273300000000745,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 6384,
+        "bodyRead": false
+      },
+      "contextCloseMs": 6.255300000004354
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "local anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "*",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "vary": "Origin"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        }
+      ],
+      "contextMs": 36.05189999999129,
+      "newPageMs": 204.5514000000112,
+      "addInitScriptMs": 8.8350999999966,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 6466,
+        "bodyRead": false
+      },
+      "contextCloseMs": 8.245000000009895
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "http://127.0.0.1:50117",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 59.985899999999674,
+      "newPageMs": 303.6817999999912,
+      "addInitScriptMs": 12.785499999998137,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 537,
+        "bodyRead": false
+      },
+      "contextCloseMs": 5.3312000000005355
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "http://127.0.0.1:50117",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "http://127.0.0.1:50117",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 53.9603999999963,
+      "newPageMs": 334.65340000001015,
+      "addInitScriptMs": 10.029199999989942,
+      "source": {
+        "origin": "http://127.0.0.1:50117",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 557,
+        "bodyRead": false
+      },
+      "contextCloseMs": 4.6124999999883585
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "https://dtdcargo.com",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "https://dtdcargo.com",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 41.92909999999392,
+      "newPageMs": 312.2127000000037,
+      "addInitScriptMs": 11.390599999998813,
+      "source": {
+        "origin": "https://dtdcargo.com",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 576,
+        "bodyRead": false
+      },
+      "contextCloseMs": 5.5917999999946915
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 78.13590000000113,
+      "documentOrigin": "https://dtdcargo.com",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "https://dtdcargo.com",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 49.127699999997276,
+      "newPageMs": 247.13880000000063,
+      "addInitScriptMs": 9.179300000003423,
+      "source": {
+        "origin": "https://dtdcargo.com",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 549,
+        "bodyRead": false
+      },
+      "contextCloseMs": 4.226299999994808
+    }
+  ],
+  "controls": [
+    {
+      "project": "mobile-chrome",
+      "name": "ok",
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 7.200000002980232,
+        "bodyRead": false
+      },
+      "passed": true
+    },
+    {
+      "project": "mobile-chrome",
+      "name": "missing-origin",
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Failed to fetch",
+        "ms": 4.5
+      },
+      "passed": true
+    },
+    {
+      "project": "mobile-chrome",
+      "name": "missing-authorization",
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Failed to fetch",
+        "ms": 6.0999999940395355
+      },
+      "passed": true
+    },
+    {
+      "project": "mobile-safari",
+      "name": "ok",
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 3.9999999999999964,
+        "bodyRead": false
+      },
+      "passed": true
+    },
+    {
+      "project": "mobile-safari",
+      "name": "missing-origin",
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Load failed",
+        "ms": 4
+      },
+      "passed": true
+    },
+    {
+      "project": "mobile-safari",
+      "name": "missing-authorization",
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Load failed",
+        "ms": 4
+      },
+      "passed": true
+    }
+  ],
+  "controlRequests": [
+    {
+      "method": "OPTIONS",
+      "path": "/ok",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey,authorization"
+    },
+    {
+      "method": "GET",
+      "path": "/ok",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": null
+    },
+    {
+      "method": "OPTIONS",
+      "path": "/missing-origin",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey,authorization"
+    },
+    {
+      "method": "OPTIONS",
+      "path": "/missing-authorization",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey,authorization"
+    },
+    {
+      "method": "OPTIONS",
+      "path": "/ok",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey,authorization"
+    },
+    {
+      "method": "GET",
+      "path": "/ok",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": null
+    },
+    {
+      "method": "OPTIONS",
+      "path": "/missing-origin",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey,authorization"
+    },
+    {
+      "method": "OPTIONS",
+      "path": "/missing-authorization",
+      "origin": "http://localhost:50117",
+      "requestedHeaders": "apikey,authorization"
+    }
+  ],
+  "documentListeners": [
+    {
+      "host": "127.0.0.1",
+      "port": 50117
+    },
+    {
+      "host": "::1",
+      "port": 50117
+    }
+  ],
+  "finishedAt": "2026-09-10T20:12:17.148Z"
+}

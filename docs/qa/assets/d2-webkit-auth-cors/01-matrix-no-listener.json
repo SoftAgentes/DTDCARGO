@@ -1,0 +1,1676 @@
+{
+  "startedAt": "2026-09-10T20:00:21.603Z",
+  "node": "v24.20.0",
+  "platform": "win32",
+  "publicConfigSource": "scripts/e2e/sdd-0168-fixture.ts:169 + Supabase get_publishable_keys (legacy anon active), 2026-09-10",
+  "productionOrigin": "https://xpfuzqombmjmxvprjgmi.supabase.co",
+  "scope": "GET /auth/v1/user only; no session, no body consumption, no product navigation",
+  "transport": "existing listener (no provision or mutation)",
+  "rows": [
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "failure": {
+            "errorText": "net::ERR_CONNECTION_REFUSED"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+        }
+      ],
+      "contextMs": 12.030399999999986,
+      "newPageMs": 81.93209999999999,
+      "addInitScriptMs": 3.1943999999999733,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Failed to fetch",
+        "ms": 2051.7000000029802
+      },
+      "contextCloseMs": 6.551500000000033
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "failure": {
+            "errorText": "net::ERR_CONNECTION_REFUSED"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+        }
+      ],
+      "contextMs": 2.698699999999917,
+      "newPageMs": 52.71360000000004,
+      "addInitScriptMs": 0.9864000000002306,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Failed to fetch",
+        "ms": 2056.5
+      },
+      "contextCloseMs": 3.479000000000269
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://localhost:55431/auth/v1/user",
+          "failure": {
+            "errorText": "net::ERR_CONNECTION_REFUSED"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+        }
+      ],
+      "contextMs": 2.7628999999997177,
+      "newPageMs": 55.37339999999949,
+      "addInitScriptMs": 1.5132000000003245,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Failed to fetch",
+        "ms": 2355
+      },
+      "contextCloseMs": 3.651400000000649
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://localhost:55431/auth/v1/user",
+          "failure": {
+            "errorText": "net::ERR_CONNECTION_REFUSED"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+        }
+      ],
+      "contextMs": 3.209500000000844,
+      "newPageMs": 75.75760000000082,
+      "addInitScriptMs": 1.8307999999997264,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Failed to fetch",
+        "ms": 2337.7999999970198
+      },
+      "contextCloseMs": 3.9161000000003696
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "http://localhost:63090",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 3.512399999999616,
+      "newPageMs": 67.28589999999895,
+      "addInitScriptMs": 1.0434000000004744,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 3379.5,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.7510999999994965
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "http://localhost:63090",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 3.238599999998769,
+      "newPageMs": 68.90170000000035,
+      "addInitScriptMs": 2.267099999999118,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 471.3999999910593,
+        "bodyRead": false
+      },
+      "contextCloseMs": 2.955900000000838
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "failure": {
+            "errorText": "net::ERR_CONNECTION_REFUSED"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+        }
+      ],
+      "contextMs": 2.997400000000198,
+      "newPageMs": 63.17870000000039,
+      "addInitScriptMs": 1.224500000000262,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Failed to fetch",
+        "ms": 2052.5
+      },
+      "contextCloseMs": 3.880300000000716
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "failure": {
+            "errorText": "net::ERR_CONNECTION_REFUSED"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+        }
+      ],
+      "contextMs": 2.6925000000010186,
+      "newPageMs": 67.27200000000084,
+      "addInitScriptMs": 0.9487000000008265,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Failed to fetch",
+        "ms": 2030.8999999910593
+      },
+      "contextCloseMs": 3.2312999999994645
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://localhost:55431/auth/v1/user",
+          "failure": {
+            "errorText": "net::ERR_CONNECTION_REFUSED"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+        }
+      ],
+      "contextMs": 3.9685999999965134,
+      "newPageMs": 65.61390000000029,
+      "addInitScriptMs": 1.3103999999984808,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Failed to fetch",
+        "ms": 2349.0999999940395
+      },
+      "contextCloseMs": 4.259999999998399
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://localhost:55431/auth/v1/user",
+          "failure": {
+            "errorText": "net::ERR_CONNECTION_REFUSED"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+        }
+      ],
+      "contextMs": 4.344799999998941,
+      "newPageMs": 79.27709999999934,
+      "addInitScriptMs": 1.2269999999989523,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Failed to fetch",
+        "ms": 2361.7000000029802
+      },
+      "contextCloseMs": 3.8696000000018103
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "http://127.0.0.1:63090",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 2.4694000000017695,
+      "newPageMs": 55.34339999999793,
+      "addInitScriptMs": 0.959500000000844,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 372.80000001192093,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.0838000000003376
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "http://127.0.0.1:63090",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 2.4870000000009895,
+      "newPageMs": 59.21549999999843,
+      "addInitScriptMs": 0.967000000000553,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 396.30000001192093,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.799799999997049
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "https://dtdcargo.com",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "https://dtdcargo.com",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 2.326199999999517,
+      "newPageMs": 51.358000000000175,
+      "addInitScriptMs": 0.977999999999156,
+      "source": {
+        "origin": "https://dtdcargo.com",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 402.90000000596046,
+        "bodyRead": false
+      },
+      "contextCloseMs": 2.9830000000001746
+    },
+    {
+      "project": "mobile-chrome",
+      "browserVersion": "148.0.7778.96",
+      "device": {
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.7778.96 Mobile Safari/537.36",
+        "viewport": {
+          "width": 412,
+          "height": 839
+        },
+        "screen": {
+          "width": 412,
+          "height": 915
+        },
+        "deviceScaleFactor": 2.625,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 110.36649999999997,
+      "documentOrigin": "https://dtdcargo.com",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "access-control-allow-credentials": "true",
+            "access-control-allow-origin": "https://dtdcargo.com",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "content-type": "application/json",
+            "server": "cloudflare",
+            "vary": "Origin"
+          }
+        }
+      ],
+      "contextMs": 2.5864000000001397,
+      "newPageMs": 52.15010000000257,
+      "addInitScriptMs": 1.2760999999991327,
+      "source": {
+        "origin": "https://dtdcargo.com",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 356.59999999403954,
+        "bodyRead": false
+      },
+      "contextCloseMs": 2.800100000000384
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Could not connect to server"
+        },
+        {
+          "kind": "pageerror",
+          "name": "Fetch API cannot load http",
+          "message": "/127.0.0.1:55431/auth/v1/user due to access control checks."
+        },
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "failure": {
+            "errorText": "Could not connect to server"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: Could not connect to server"
+        }
+      ],
+      "contextMs": 19.80750000000262,
+      "newPageMs": 255.48340000000098,
+      "addInitScriptMs": 8.663400000001275,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Load failed",
+        "ms": 2054
+      },
+      "contextCloseMs": 3.8179999999993015
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Could not connect to server"
+        },
+        {
+          "kind": "pageerror",
+          "name": "Fetch API cannot load http",
+          "message": "/127.0.0.1:55431/auth/v1/user due to access control checks."
+        },
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "failure": {
+            "errorText": "Could not connect to server"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: Could not connect to server"
+        }
+      ],
+      "contextMs": 31.586200000001554,
+      "newPageMs": 153.14459999999963,
+      "addInitScriptMs": 7.053100000000995,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Load failed",
+        "ms": 2037
+      },
+      "contextCloseMs": 4.70260000000053
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Could not connect to server"
+        },
+        {
+          "kind": "pageerror",
+          "name": "Fetch API cannot load http",
+          "message": "/localhost:55431/auth/v1/user due to access control checks."
+        },
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://localhost:55431/auth/v1/user",
+          "failure": {
+            "errorText": "Could not connect to server"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: Could not connect to server"
+        }
+      ],
+      "contextMs": 31.10900000000038,
+      "newPageMs": 147.90439999999944,
+      "addInitScriptMs": 6.760600000001432,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Load failed",
+        "ms": 2240
+      },
+      "contextCloseMs": 2.6068000000013853
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Could not connect to server"
+        },
+        {
+          "kind": "pageerror",
+          "name": "Fetch API cannot load http",
+          "message": "/localhost:55431/auth/v1/user due to access control checks."
+        },
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://localhost:55431/auth/v1/user",
+          "failure": {
+            "errorText": "Could not connect to server"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: Could not connect to server"
+        }
+      ],
+      "contextMs": 32.31989999999496,
+      "newPageMs": 143.1327999999994,
+      "addInitScriptMs": 6.988199999999779,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Load failed",
+        "ms": 2266
+      },
+      "contextCloseMs": 3.710400000003574
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "http://localhost:63090",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 32.351199999997334,
+      "newPageMs": 165.17949999999837,
+      "addInitScriptMs": 8.148099999998522,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 648,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.703800000002957
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://localhost:63090",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "http://localhost:63090",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 36.146099999998114,
+      "newPageMs": 180.57620000000315,
+      "addInitScriptMs": 8.313199999996868,
+      "source": {
+        "origin": "http://localhost:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 645,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.486799999998766
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Could not connect to server"
+        },
+        {
+          "kind": "pageerror",
+          "name": "Fetch API cannot load http",
+          "message": "/127.0.0.1:55431/auth/v1/user due to access control checks."
+        },
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "failure": {
+            "errorText": "Could not connect to server"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: Could not connect to server"
+        }
+      ],
+      "contextMs": 34.345399999998335,
+      "newPageMs": 184.86619999999675,
+      "addInitScriptMs": 10.572500000002037,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Load failed",
+        "ms": 2047
+      },
+      "contextCloseMs": 3.841499999994994
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "local-ip",
+      "url": "http://127.0.0.1:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Could not connect to server"
+        },
+        {
+          "kind": "pageerror",
+          "name": "Fetch API cannot load http",
+          "message": "/127.0.0.1:55431/auth/v1/user due to access control checks."
+        },
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://127.0.0.1:55431/auth/v1/user",
+          "failure": {
+            "errorText": "Could not connect to server"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: Could not connect to server"
+        }
+      ],
+      "contextMs": 33.9597999999969,
+      "newPageMs": 152.26459999999497,
+      "addInitScriptMs": 8.507599999997183,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Load failed",
+        "ms": 2031
+      },
+      "contextCloseMs": 3.0016000000032363
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Could not connect to server"
+        },
+        {
+          "kind": "pageerror",
+          "name": "Fetch API cannot load http",
+          "message": "/localhost:55431/auth/v1/user due to access control checks."
+        },
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://localhost:55431/auth/v1/user",
+          "failure": {
+            "errorText": "Could not connect to server"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: Could not connect to server"
+        }
+      ],
+      "contextMs": 27.092400000001362,
+      "newPageMs": 143.21169999999984,
+      "addInitScriptMs": 6.727200000001176,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Load failed",
+        "ms": 2272.0000000000005
+      },
+      "contextCloseMs": 2.938800000003539
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "local-name",
+      "url": "http://localhost:55431/auth/v1/user",
+      "keySource": "real anon (local unavailable preflight control)",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Could not connect to server"
+        },
+        {
+          "kind": "pageerror",
+          "name": "Fetch API cannot load http",
+          "message": "/localhost:55431/auth/v1/user due to access control checks."
+        },
+        {
+          "kind": "requestfailed",
+          "method": "GET",
+          "url": "http://localhost:55431/auth/v1/user",
+          "failure": {
+            "errorText": "Could not connect to server"
+          }
+        },
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: Could not connect to server"
+        }
+      ],
+      "contextMs": 31.180499999994936,
+      "newPageMs": 138.1475999999966,
+      "addInitScriptMs": 6.5451000000030035,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "fetch-rejected",
+        "name": "TypeError",
+        "message": "Load failed",
+        "ms": 2269
+      },
+      "contextCloseMs": 5.708700000002864
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "http://127.0.0.1:63090",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 48.45520000000397,
+      "newPageMs": 223.6872000000003,
+      "addInitScriptMs": 10.932199999995646,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 596,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.4491000000052736
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "http://127.0.0.1:63090",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "http://127.0.0.1:63090",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 33.99510000000009,
+      "newPageMs": 197.7456999999995,
+      "addInitScriptMs": 9.071100000001024,
+      "source": {
+        "origin": "http://127.0.0.1:63090",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 600,
+        "bodyRead": false
+      },
+      "contextCloseMs": 2.860000000000582
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "https://dtdcargo.com",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "apikey-only",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 401 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 401,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "https://dtdcargo.com",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 28.569599999995262,
+      "newPageMs": 137.03750000000582,
+      "addInitScriptMs": 8.22769999999582,
+      "source": {
+        "origin": "https://dtdcargo.com",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 401,
+        "type": "cors",
+        "ms": 551.0000000000001,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.20679999999993
+    },
+    {
+      "project": "mobile-safari",
+      "browserVersion": "26.4",
+      "device": {
+        "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.4 Mobile/15E148 Safari/604.1",
+        "viewport": {
+          "width": 390,
+          "height": 664
+        },
+        "screen": {
+          "width": 390,
+          "height": 844
+        },
+        "deviceScaleFactor": 3,
+        "isMobile": true,
+        "hasTouch": true
+      },
+      "launchMs": 66.5721999999987,
+      "documentOrigin": "https://dtdcargo.com",
+      "destination": "real-https",
+      "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+      "keySource": "real anon",
+      "headerProfile": "sdk-anon-headers",
+      "events": [
+        {
+          "kind": "console",
+          "type": "error",
+          "text": "Failed to load resource: the server responded with a status of 403 ()"
+        },
+        {
+          "kind": "response",
+          "method": "GET",
+          "status": 403,
+          "headers": {
+            "content-type": "application/json",
+            "access-control-allow-origin": "https://dtdcargo.com",
+            "vary": "Origin",
+            "access-control-allow-credentials": "true",
+            "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+            "server": "cloudflare"
+          }
+        }
+      ],
+      "contextMs": 30.0283999999956,
+      "newPageMs": 159.99060000000463,
+      "addInitScriptMs": 8.893300000003364,
+      "source": {
+        "origin": "https://dtdcargo.com",
+        "synthetic": true,
+        "secureContext": true
+      },
+      "result": {
+        "outcome": "http-response-visible",
+        "status": 403,
+        "type": "cors",
+        "ms": 519,
+        "bodyRead": false
+      },
+      "contextCloseMs": 3.2184000000052038
+    }
+  ],
+  "finishedAt": "2026-09-10T20:01:13.645Z"
+}

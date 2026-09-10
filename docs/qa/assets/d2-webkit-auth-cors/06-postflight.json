@@ -1,0 +1,41 @@
+{
+  "at": "2026-09-10T20:14:40.244Z",
+  "ports": [
+    {
+      "host": "127.0.0.1",
+      "port": 55431,
+      "result": "ECONNREFUSED"
+    },
+    {
+      "host": "::1",
+      "port": 55431,
+      "result": "ECONNREFUSED"
+    },
+    {
+      "host": "localhost",
+      "port": 55431,
+      "result": "ECONNREFUSED"
+    }
+  ],
+  "docker": [
+    "261155c8179e supabase_auth_dtd-pr28-auth-02b5674f-20260906_transition-v29 9999/tcp",
+    "c1da09c879a2 supabase_storage_dtd-pr28-auth-02b5674f-20260906 5000/tcp",
+    "36ad1143af0e supabase_rest_dtd-pr28-auth-02b5674f-20260906 3000/tcp",
+    "e0d07d0ab4e2 supabase_realtime_dtd-pr28-auth-02b5674f-20260906 4000/tcp",
+    "170e5772624d supabase_inbucket_dtd-pr28-auth-02b5674f-20260906 8025/tcp",
+    "ddc222aa5272 supabase_kong_dtd-pr28-auth-02b5674f-20260906 8000/tcp",
+    "94efa9cf3e86 supabase_db_dtd-pr28-auth-02b5674f-20260906 5432/tcp"
+  ],
+  "kongProcesses": [
+    "PID                 PPID                COMMAND",
+    "557                 384                 nginx",
+    "2370                557                 nginx"
+  ],
+  "kongPorts": {
+    "8000/tcp": []
+  },
+  "ownedListenersClosed": true,
+  "ncStillPresent": false,
+  "productionCredentialsCopied": false,
+  "productionResponseBodiesRead": false
+}

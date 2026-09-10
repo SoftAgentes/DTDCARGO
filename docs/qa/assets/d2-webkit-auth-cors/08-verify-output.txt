@@ -1,0 +1,677 @@
+corepack : $ node scripts/verify.mjs
+En línea: 2 Carácter: 29
++ $env:VERIFY_SKIP_E2E = '1'; corepack pnpm verify 2>&1 | Tee-Object -F ...
++                             ~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ node scripts/verify.mjs:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+
+[2m── harness ──────────────────────────────────[0m
+✔ NUL worktree paths and overlap evidence (2.4061ms)
+✔ offline snapshot preserves index, dirty files and refs; absent remote stays unavailable (722.5416ms)
+✔ helpers reject unsafe input and use Codex defaults (2.8953ms)
+✔ isolated lifecycle enforces worktree guard, claims and report-only cleanup (3642.4521ms)
+✔ local reservation survives process and preserves HEAD, index, and dirty files (2338.2401ms)
+✔ dirty specs and migrations from all linked worktrees count (1241.4299ms)
+✔ local CAS rejects second claimant regardless of slug, with no partial branch (1074.0741ms)
+✔ remote create-only lease rejects racing independent clone and never changes main (1703.1351ms)
+✔ offline reserve and failed fetch fail closed without refs (955.5328ms)
+✔ historical cross-ref collisions are reported without blocking reservation (1464.3564ms)
+✔ simultaneous processes cannot both claim the same local number (854.2872ms)
+✔ missing registered worktree makes reservation fail closed (961.9491ms)
+✔ verify conecta la política explícita al veredicto final (6.918ms)
+✔ todos los pasos tienen clasificación y motivo, sin entradas huérfanas (2.6324ms)
+✔ un crítico sin medir no se confunde con un cierre completo (0.9049ms)
+✔ un omitido no crítico queda como cobertura parcial, no como crítico (0.4515ms)
+✔ un fallo conserva exit 1 y además nombra los críticos sin medir (0.4649ms)
+✔ un fallo con cobertura completa conserva el cierre rojo previo sin avisos nuevos (0.4961ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10703.1649
+[32m[OK][0m   harness
+
+[2m── lint ──────────────────────────────────[0m
+
+C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\app\portal\(app)\compras\nueva\NewPurchaseWizard.test.tsx
+  34:12  warning  '_prev' is defined but never used  @typescript-eslint/no-unused-vars
+  34:41  warning  '_fd' is defined but never used    @typescript-eslint/no-unused-vars
+  38:12  warning  '_prev' is defined but never used  @typescript-eslint/no-unused-vars
+  38:40  warning  '_fd' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\app\portal\(app)\compras\nueva\PurchaseStepDetalle.test.tsx
+  22:12  warning  '_prev' is defined but never used  @typescript-eslint/no-unused-vars
+  22:41  warning  '_fd' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\app\studio\(app)\crm\_components\KommoBoardView.tsx
+  124:19  warning  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\app\studio\(app)\crm\_components\KommoBoardView.tsx:124:19
+  122 |   // component: se fija acá y la derivada lo recibe, en vez de que cada tarjeta
+  123 |   // llame a Date.now() y una columna quede medio segundo desfasada de la otra.
+> 124 |   const ahoraMs = Date.now();
+      |                   ^^^^^^^^^^ Cannot call impure function
+  125 |
+  126 |   const activeId = pipelineId ?? pipelines[0].id;
+  127 |  react-hooks/purity
+
+C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\app\studio\(app)\crm\_components\KommoClient.tsx
+  553:19  warning  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\app\studio\(app)\crm\_components\KommoClient.tsx:553:19
+  551 |   // cliente coinciden y el punto aparece un tick después, imperceptible.
+  552 |   const [ahoraMs, setAhoraMs] = useState<number | null>(null);
+> 553 |   useEffect(() => setAhoraMs(Date.now()), []);
+      |                   ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  554 |
+  555 |   return (
+  556 |     <div  react-hooks/set-state-in-effect
+
+✖ 8 problems (0 errors, 8 warnings)
+
+[32m[OK][0m   lint
+
+[2m── rsc-boundary ──────────────────────────────────[0m
+[2m── rsc-boundary ── escaneados 1597 módulos en app, lib ──[0m
+[32m[OK][0m   sin cruces server→client de valores ni client→node: transitivos
+[32m[OK][0m   rsc-boundary
+
+[2m── typecheck ──────────────────────────────────[0m
+[32m[OK][0m   typecheck
+
+[2m── edge-functions ──────────────────────────────────[0m
+[2m   4 función(es) · deno 2.x vía npx deno@2[0m
+npm warn Unknown project config "auto-install-peers". This will stop working in the next major version of npm. See
+`npm help npmrc` for supported config options.
+npm warn Unknown project config "strict-dep-builds". This will stop working in the next major version of npm. See `npm
+help npmrc` for supported config options.
+Check supabase/functions/kommo-push-client/index.ts
+Check supabase/functions/kommo-sync/index.ts
+Check supabase/functions/kommo-webhook/index.ts
+Check supabase/functions/kommo-writeback/index.ts
+[32m[OK][0m   edge-functions: 4 función(es) compilan
+[32m[OK][0m   edge-functions
+
+[2m── test ──────────────────────────────────[0m
+
+ RUN  v4.1.7 C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/d2-webkit-auth-cors
+
+Not implemented: navigation to another Document
+
+ Test Files  521 passed (521)
+      Tests  6526 passed (6526)
+   Start at  16:02:47
+   Duration  198.50s (transform 125.62s, setup 325.74s, import 323.45s, tests 296.14s, environment 2464.83s)
+
+[32m[OK][0m   test
+
+[2m── docs:check ──────────────────────────────────[0m
+✓ docs:check — índice sincronizado con 407 specs
+[32m[OK][0m   docs:check
+
+[2m── numbering ──────────────────────────────────[0m
+[2m   407 specs · 414 migraciones[0m
+[33m   ⏸ 0057[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0057_seo_drafts_brief_fields · 0057_user_profiles_locale_nullable[0m
+[33m   ⏸ 0058[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0058_platform_admins · 0058_user_invitations_region[0m
+[33m   ⏸ 0243[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0243_clients_doc_kind_backfill · 0243_warehouse_boxes_seq_partial_unique[0m
+[33m   ⏸ 0247[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0247_client_notifications · 0247_grant_next_consolidation_ref_authenticated[0m
+[33m   ⏸ 0277[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0277_calculator_cities_destinos_faltantes · 0277_version_rls_auto_enable[0m
+[33m   ⏸ 0297[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0297_container_types_activos_y_capacidad_util · 0297_legal_docs_body_hash[0m
+[33m   ⏸ 0336[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0336_pod_closes_shipment · 0336_rate_ddp_850_septiembre_2026[0m
+[33m   ⏸ 0362[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0362_aliados_base · 0362_kommo_lead_contacts[0m
+[33m   ⏸ 0363[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0363_kommo_contacts_telefono · 0363_storage_bug_replays_restrictive[0m
+[33m   ⏸ 0342[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0342_kommo_contact_link · 0342_phone_match_key_relleno[0m
+[33m   ⏸ 0394[0m — choque histórico ya aplicado en prod, NO se renumera:[2m 0394_bug_reporter_tuteo_y_revoke_anon · 0394_documents_sin_borrado_duro · 0394_bug_state_transitions_via_rpc_only[0m
+[32m[OK][0m   numbering: sin números repetidos
+[32m[OK][0m   numbering
+
+[2m── feature-constants ──────────────────────────────────[0m
+[32m[OK][0m   feature-constants: 5 bandera(s) coinciden con lo declarado
+[32m[OK][0m   feature-constants
+
+[2m── components:check ──────────────────────────────────[0m
+CMP-01 válido: 5 fuente(s), agregado reproducible y cero rutas rotas
+[32m[OK][0m   components:check
+
+[2m── governance:check ──────────────────────────────────[0m
+Gobernanza: 28 política(s) aprobada(s) · cápsula vigente
+[32m[OK][0m   governance:check
+
+[2m── migrations-applied ──────────────────────────────────[0m
+[33m[SKIP][0m migrations-applied: sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (¿worktree sin .env.local?)
+[33m[AVISO][0m migrations-applied: OMITIDO — no se midio
+
+[2m── pending-migration-symbols ──────────────────────────────────[0m
+[32m[OK][0m pending-migration-symbols: 0 ROJO · 0 AMARILLO declarado(s)
+[32m[OK][0m   pending-migration-symbols
+
+[2m── sql-tests ──────────────────────────────────[0m
+[2m   156 prueba(s) · postgres:17 · contenedor efímero[0m
+[32m   ✓[0m [2m0012_rls_perf_and_rpc_guards.test.sql[0m
+[32m   ✓[0m [2m0022_receipt_photos.test.sql[0m
+[32m   ✓[0m [2m0024_dispatch_core.test.sql[0m
+[32m   ✓[0m [2m0028_bug_reporter.test.sql[0m
+[32m   ✓[0m [2m0072_operario_action.test.sql[0m
+[32m   ✓[0m [2m0093_comments_hardening.test.sql[0m
+[32m   ✓[0m [2m0097_documentos_hub.test.sql[0m
+[32m   ✓[0m [2m0098_fidelizacion_referidos.test.sql[0m
+[32m   ✓[0m [2m0102_capa_legal.test.sql[0m
+[32m   ✓[0m [2m0114_financiero_china.test.sql[0m
+[32m   ✓[0m [2m0115_partner_statements.test.sql[0m
+[32m   ✓[0m [2m0123_rendiciones.test.sql[0m
+[32m   ✓[0m [2m0128_sales_order_invoicing_hardening.test.sql[0m
+[32m   ✓[0m [2m0147_supplier_packing_uploads.test.sql[0m
+[32m   ✓[0m [2m0152_client_claims.test.sql[0m
+[32m   ✓[0m [2m0179_nomina_settlements.test.sql[0m
+[32m   ✓[0m [2m0236_supplier_scorecard.test.sql[0m
+[32m   ✓[0m [2m0241_estiba_por_zonas.test.sql[0m
+[32m   ✓[0m [2m0250_referral_settings.test.sql[0m
+[32m   ✓[0m [2m0261_audit_entity_catalog_validate.test.sql[0m
+[32m   ✓[0m [2m0261b_comments_acl_least_privilege.test.sql[0m
+[32m   ✓[0m [2m0262_comments_lifecycle_contract.test.sql[0m
+[32m   ✓[0m [2m0263_harden_postgres_public_default_table_acl.test.sql[0m
+[32m   ✓[0m [2m0264_harden_comment_mentions_validate_execute.test.sql[0m
+[32m   ✓[0m [2m0265_comments_lifecycle_hardening.test.sql[0m
+[32m   ✓[0m [2m0267_audit_contract_append_only.test.sql[0m
+[32m   ✓[0m [2m0268_tenant_lifecycle_guardrails.test.sql[0m
+[32m   ✓[0m [2m0270_audit_governed_query_rbac.test.sql[0m
+[32m   ✓[0m [2m0271_repair_branch_replay_history.test.sql[0m
+[32m   ✓[0m [2m0272_skip_superseded_invite_history.test.sql[0m
+[32m   ✓[0m [2m0273_skip_platform_admin_bootstrap_history.test.sql[0m
+[32m   ✓[0m [2m0274_restore_calculator_settings_history.test.sql[0m
+[32m   ✓[0m [2m0275_restore_pin_search_path_history.test.sql[0m
+[32m   ✓[0m [2m0276_restore_revoke_anon_rpc_sweep_history.test.sql[0m
+[32m   ✓[0m [2m0277_version_rls_auto_enable.test.sql[0m
+[32m   ✓[0m [2m0278_restore_rls_auto_enable_history.test.sql[0m
+[32m   ✓[0m [2m0279_restore_tenant_lifecycle_acl_history.test.sql[0m
+[32m   ✓[0m [2m0280_repair_sdd0118_split_history.test.sql[0m
+[32m   ✓[0m [2m0281_repair_invite_skip_split_history.test.sql[0m
+[32m   ✓[0m [2m0282_repair_platform_admin_skip_split_history.test.sql[0m
+[32m   ✓[0m [2m0283_repair_calculator_settings_split_history.test.sql[0m
+[32m   ✓[0m [2m0284_repair_pin_search_path_split_history.test.sql[0m
+[32m   ✓[0m [2m0285_repair_revoke_anon_split_history.test.sql[0m
+[32m   ✓[0m [2m0286_repair_tenant_acl_split_history.test.sql[0m
+[32m   ✓[0m [2m0287_repair_replay_gate_split_history.test.sql[0m
+[32m   ✓[0m [2m0288_finalize_replay_gate_split_history.test.sql[0m
+[32m   ✓[0m [2m0289_audit_d1_access_configuration.test.sql[0m
+[32m   ✓[0m [2m0290_audit_d2_financial_domain.test.sql[0m
+[32m   ✓[0m [2m0291_audit_d3_commercial_cycle.test.sql[0m
+[32m   ✓[0m [2m0292_audit_d4_logistics_r3.test.sql[0m
+[32m   ✓[0m [2m0293_audit_d5_residual_and_writer_retirement.test.sql[0m
+[32m   ✓[0m [2m0294_audit_d2_human_reasons.test.sql[0m
+[32m   ✓[0m [2m0295_audit_d3_human_reasons.test.sql[0m
+[32m   ✓[0m [2m0296_audit_d4_empty_search_path.test.sql[0m
+[32m   ✓[0m [2m0297_container_types_activos_y_capacidad_util.test.sql[0m
+[32m   ✓[0m [2m0297_legal_docs_body_hash.test.sql[0m
+[32m   ✓[0m [2m0298_consolidation_plans.test.sql[0m
+[32m   ✓[0m [2m0300_pod_seal.test.sql[0m
+[32m   ✓[0m [2m0301_audit_legal_holds.test.sql[0m
+[32m   ✓[0m [2m0304_audit_retention_batches.test.sql[0m
+[32m   ✓[0m [2m0306_expense_receipts_tenant_boundary.test.sql[0m
+[32m   ✓[0m [2m0307_documents_attachment_metadata.test.sql[0m
+[32m   ✓[0m [2m0308_document_upload_intents.test.sql[0m
+[32m   ✓[0m [2m0309_document_reserve_finalize_rpcs.test.sql[0m
+[32m   ✓[0m [2m0310_erp_attachments_bucket.test.sql[0m
+[32m   ✓[0m [2m0311_document_scan_outbox.test.sql[0m
+[32m   ✓[0m [2m0312_document_backup_outbox.test.sql[0m
+[32m   ✓[0m [2m0313_document_restore_retention.test.sql[0m
+[32m   ✓[0m [2m0314_expenses_document_adapter.test.sql[0m
+[32m   ✓[0m [2m0316_nomina_settlement_void_governance.test.sql[0m
+[32m   ✓[0m [2m0317_partner_claim_payment_governance.test.sql[0m
+[32m   ✓[0m [2m0318_customs_clearance_governance.test.sql[0m
+[32m   ✓[0m [2m0319_claim_indemnity_payment_governance.test.sql[0m
+[32m   ✓[0m [2m0320_tms_route_completion_governance.test.sql[0m
+[32m   ✓[0m [2m0321_warehouse_ve_delivery_governance.test.sql[0m
+[32m   ✓[0m [2m0322_naviera_consolidation_authorization_governance.test.sql[0m
+[32m   ✓[0m [2m0323_inspection_report_retirement_governance.test.sql[0m
+[32m   ✓[0m [2m0324_dispatch_order_cancellation_governance.test.sql[0m
+[32m   ✓[0m [2m0325_operario_pin_login_hardening.test.sql[0m
+[32m   ✓[0m [2m0326_public_tracking_privacy_throttle.test.sql[0m
+[32m   ✓[0m [2m0327_internal_function_grants.test.sql[0m
+[32m   ✓[0m [2m0328_camionero_dispatch_assignment.test.sql[0m
+[32m   ✓[0m [2m0329_user_profiles_tenant_scope.test.sql[0m
+[32m   ✓[0m [2m0330_freight_carriers_tariffs.test.sql[0m
+[32m   ✓[0m [2m0332_seed_tarifario_benito.test.sql[0m
+[32m   ✓[0m [2m0333_retira_tarifa_terrestre_sembrada.test.sql[0m
+[32m   ✓[0m [2m0334_brand_catalog_public_gate.test.sql[0m
+[32m   ✓[0m [2m0335_brand_assets_preview_metadata.test.sql[0m
+[32m   ✓[0m [2m0336_pod_closes_shipment.test.sql[0m
+[32m   ✓[0m [2m0337_feature_flags_seed_and_trigger.test.sql[0m
+[32m   ✓[0m [2m0338_ve_locality_catalog_read_policy.test.sql[0m
+[32m   ✓[0m [2m0340_expense_void_governance.test.sql[0m
+[32m   ✓[0m [2m0341_client_merge_duplicados.test.sql[0m
+[32m   ✓[0m [2m0342_kommo_contact_link.test.sql[0m
+[32m   ✓[0m [2m0343_kommo_unsorted_mirror.test.sql[0m
+[32m   ✓[0m [2m0344_kommo_writeback_contact_target.test.sql[0m
+[32m   ✓[0m [2m0346_r2_bucket_lock_backup_receipts.test.sql[0m
+[32m   ✓[0m [2m0349_duplicados_dentro_del_legado.test.sql[0m
+[32m   ✓[0m [2m0350_audit_d5_studio_access_link.test.sql[0m
+[32m   ✓[0m [2m0351_operario_rpc_exige_rol.test.sql[0m
+[32m   ✓[0m [2m0352_invitacion_nominal.test.sql[0m
+[32m   ✓[0m [2m0353_normaliza_telefonos_clientes.test.sql[0m
+[32m   ✓[0m [2m0354_studio_access_tokens.test.sql[0m
+[32m   ✓[0m [2m0355_superadmin_llaves_del_sistema.test.sql[0m
+[32m   ✓[0m [2m0356_superadmin_legal_renditions_gate.test.sql[0m
+[32m   ✓[0m [2m0357_role_module_overrides.test.sql[0m
+[32m   ✓[0m [2m0358_merge_clients_exige_rol.test.sql[0m
+[32m   ✓[0m [2m0359_confirm_payment_report_exige_rol.test.sql[0m
+[32m   ✓[0m [2m0360_portal_access_links.test.sql[0m
+[32m   ✓[0m [2m0362_aliados_base.test.sql[0m
+[32m   ✓[0m [2m0362_kommo_lead_contacts.test.sql[0m
+[32m   ✓[0m [2m0363_storage_bug_replays_restrictive.test.sql[0m
+[32m   ✓[0m [2m0364_kommo_outbox_fusiona_payload.test.sql[0m
+[32m   ✓[0m [2m0365_kommo_outbox_claim.test.sql[0m
+[32m   ✓[0m [2m0366_kommo_outbox_fusiona_arrays.test.sql[0m
+[32m   ✓[0m [2m0367_client_markbox_historial.test.sql[0m
+[32m   ✓[0m [2m0368_public_calc_events.test.sql[0m
+[32m   ✓[0m [2m0369_rename_legacy_markboxes.test.sql[0m
+[32m   ✓[0m [2m0370_lote_legado_solo_vendedor.test.sql[0m
+[32m   ✓[0m [2m0371_insignia_pelada_del_aliado.test.sql[0m
+[32m   ✓[0m [2m0372_insignia_no_choca_con_codigos.test.sql[0m
+[32m   ✓[0m [2m0373_lote_legado_con_nombre.test.sql[0m
+[32m   ✓[0m [2m0376_kommo_writeback_chequeo_optimista.test.sql[0m
+[32m   ✓[0m [2m0377_kommo_outbox_post_idempotente.test.sql[0m
+[32m   ✓[0m [2m0379_legado_al_rango_8000.test.sql[0m
+[32m   ✓[0m [2m0380_lote_legado_devuelve_el_resumen.test.sql[0m
+[32m   ✓[0m [2m0381_verificar_resuelve_por_conjunto.test.sql[0m
+[32m   ✓[0m [2m0382_price_books.test.sql[0m
+[32m   ✓[0m [2m0383_clients_phone_last10_y_vinculo.test.sql[0m
+[32m   ✓[0m [2m0384_price_book_valor_pactado.test.sql[0m
+[32m   ✓[0m [2m0386_telegram_rutas_de_alerta.test.sql[0m
+[32m   ✓[0m [2m0387_audit_d5_studio_email_change.test.sql[0m
+[32m   ✓[0m [2m0388_replay_gate_platform_admins_history.test.sql[0m
+[32m   ✓[0m [2m0389_aviso_que_cuelga_de_la_compra.test.sql[0m
+[32m   ✓[0m [2m0390_kommo_tasks.test.sql[0m
+[32m   ✓[0m [2m0391_kommo_leads_ultimo_mensaje.test.sql[0m
+[32m   ✓[0m [2m0392_factura_congela_documento_del_cliente.test.sql[0m
+[32m   ✓[0m [2m0393_academia_widget_alibaba_curso.test.sql[0m
+[32m   ✓[0m [2m0398_audit_comment_action_summary.test.sql[0m
+[32m   ✓[0m [2m0416_portal_shipments_tenant_boundary.test.sql[0m
+[32m   ✓[0m [2m0428_portal_quotes_principal_tenant.test.sql[0m
+[32m   ✓[0m [2m0435_invoice_document_entity_rbac.test.sql[0m
+[32m   ✓[0m [2m0436_treasury_document_entity_rbac.test.sql[0m
+[32m   ✓[0m [2m0437_accounting_document_entity_rbac.test.sql[0m
+[32m   ✓[0m [2m0438_expense_document_entity_rbac.test.sql[0m
+[32m   ✓[0m [2m0439_shipment_document_entity_rbac.test.sql[0m
+[32m   ✓[0m [2m0440_client_document_entity_rbac.test.sql[0m
+[32m   ✓[0m [2m0441_supplier_document_entity_rbac.test.sql[0m
+[32m   ✓[0m [2m0442_naviera_document_entity_rbac.test.sql[0m
+[32m   ✓[0m [2m0443_bitacora_document_entity_rbac.test.sql[0m
+[32m   ✓[0m [2m0444_unlinked_document_entity_rbac.test.sql[0m
+[32m   ✓[0m [2m0445_portal_profile_edit_limit.test.sql[0m
+[32m   ✓[0m [2m0446_portal_profile_functional_remediation.test.sql[0m
+[32m   ✓[0m [2m0447_identity_photo_replacement_privacy_gate.test.sql[0m
+[32m   ✓[0m [2m0448_restore_calculator_settings_0223_history.test.sql[0m
+[32m   ✓[0m [2m0449_prealerta_exact_box_reception.test.sql[0m
+[2m   156 contrato(s) de SQL verificado(s) · rollback total[0m
+[32m[OK][0m   sql-tests
+
+[2m── schema-rebuild ──────────────────────────────────[0m
+[2m   reconstruyendo 414 migraciones sobre postgres:17…[0m
+[2m   396 migraciones aplicadas desde cero · schema reconstruible[0m
+[2m   18 migraciones sólo-ledger verificadas: no tocan el schema[0m
+[2m   aislamiento multi-tenant verificado (barrido de 219 tablas + 2 tenants reales)[0m
+[32m[OK][0m   schema-rebuild
+
+[2m── e2e ──────────────────────────────────[0m
+[33m[SKIP][0m e2e: VERIFY_SKIP_E2E=1 (omitido a pedido)
+
+[2m── build ──────────────────────────────────[0m
+▲ Next.js 16.2.11 (Turbopack)
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 28.4s
+  Running TypeScript ...
+
+  We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+  The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+    - include was updated to add '.next-verify/types/**/*.ts'
+    - include was updated to add '.next-verify/dev/types/**/*.ts'
+
+  Finished TypeScript in 72s ...
+  Collecting page data using 21 workers ...
+  Generating static pages using 21 workers (0/160) ...
+listPublishedPosts error: Error: Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY
+    at <unknown> (C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\.next-verify\server\chunks
+\ssr\[root-of-the-server]__1zk9df1._.js:1:2243)
+    at c (C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\.next-verify\server\chunks\ssr\[ro
+ot-of-the-server]__1_bde8f._.js:1:2488)
+    at k (C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\.next-verify\server\chunks\ssr\[ro
+ot-of-the-server]__1_bde8f._.js:1:5278)
+    at stringify (<anonymous>)
+[getPublicServicios] error inesperado: Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY
+  Generating static pages using 21 workers (40/160)
+  Generating static pages using 21 workers (80/160)
+listPublishedPosts error: Error: Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY
+    at <unknown> (C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\.next-verify\server\chunks
+\[root-of-the-server]__0lg-xko._.js:1:1265)
+    at r (C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\.next-verify\server\chunks\[root-o
+f-the-server]__0lg-xko._.js:1:1510)
+    at T (C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\.next-verify\server\chunks\0v3s_ne
+xt_dist_esm_build_templates_app-route_1o_m5j-.js:1:18316)
+    at f (C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\d2-webkit-auth-cors\.next-verify\server\chunks\0v3s_ne
+xt_dist_esm_build_templates_app-route_1o_m5j-.js:1:18513)
+[getPublicCbmRate] error inesperado: Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY
+[getPublicCalculatorConfig] error inesperado: Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY
+[getPublicCalculatorCities] error inesperado: Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY
+[getPublicCarrierTariffs] error inesperado: Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY
+[getPublicFclRoutes] error inesperado: Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY
+[getPublicFclRoutes] error inesperado: Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY
+[getPublicServicios] error inesperado: Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY
+  Generating static pages using 21 workers (120/160)
+✓ Generating static pages using 21 workers (160/160) in 1679ms
+  Finalizing page optimization ...
+
+Route (app)                                          Revalidate  Expire
+┌ ○ /                                                       30d      1y
+├ ○ /_not-found
+├ ƒ /abrir
+├ ○ /academia
+├ ƒ /acceso/[token]
+├ ƒ /admin/cbm-estudio
+├ ƒ /api/contact
+├ ƒ /api/conversaciones/email
+├ ƒ /api/cron/alta-health
+├ ƒ /api/cron/bitacora-digest
+├ ƒ /api/cron/bitacora-purge-orphans
+├ ƒ /api/cron/bug-notifications-drain
+├ ƒ /api/cron/ceo-brief
+├ ƒ /api/cron/client-notifications-drain
+├ ƒ /api/cron/conversation-digests
+├ ƒ /api/cron/kommo-contact-status
+├ ƒ /api/cron/mail-health
+├ ƒ /api/cron/mail-scheduled
+├ ƒ /api/cron/portal-cold-reminder
+├ ƒ /api/cron/purge-receipt-orphans
+├ ƒ /api/cron/purge-throttle
+├ ƒ /api/cron/push-drain
+├ ƒ /api/cron/rate-expiry-alert
+├ ƒ /api/cron/searates-refresh
+├ ƒ /api/cron/workflow-drain
+├ ƒ /api/debug/health
+├ ƒ /api/email/unsubscribe
+├ ƒ /api/email/unsubscribe/[token]
+├ ƒ /api/m/push/resubscribe
+├ ƒ /api/m/push/subscribe
+├ ƒ /api/m/push/unsubscribe
+├ ƒ /api/m/tms/ping
+├ ƒ /api/marca/bundle/[section]
+├ ƒ /api/marca/download/[assetId]
+├ ƒ /api/marca/seleccion
+├ ƒ /api/newsletter/subscribe
+├ ƒ /api/portal/push/subscribe
+├ ƒ /api/portal/push/unsubscribe
+├ ƒ /api/public/calc-event
+├ ƒ /api/public/estimacion
+├ ƒ /api/public/ocean-rate
+├ ƒ /api/registro/check
+├ ƒ /api/studio/agents/run
+├ ƒ /api/studio/attachments/[id]/download
+├ ƒ /api/studio/attachments/[id]/finalize
+├ ƒ /api/studio/attachments/[id]/reauthorize
+├ ƒ /api/studio/attachments/[id]/restore
+├ ƒ /api/studio/attachments/reserve
+├ ƒ /api/studio/audit/export
+├ ƒ /api/studio/bitacora/export
+├ ƒ /api/studio/bitacora/transcribe
+├ ƒ /api/studio/bugs
+├ ƒ /api/studio/bugs/[id]
+├ ƒ /api/studio/bugs/[id]/messages
+├ ƒ /api/studio/bugs/[id]/prompt
+├ ƒ /api/studio/bugs/[id]/replay
+├ ƒ /api/studio/bugs/[id]/state
+├ ƒ /api/studio/bugs/[id]/take
+├ ƒ /api/studio/comercial/export
+├ ƒ /api/studio/conversaciones/[id]
+├ ƒ /api/studio/kpis
+├ ƒ /api/studio/legal/evidence/[code]
+├ ƒ /api/studio/operativo/export
+├ ƒ /api/studio/push/subscribe
+├ ƒ /api/studio/searates/probe
+├ ƒ /api/studio/shipments
+├ ƒ /api/studio/shipments/[id]
+├ ƒ /api/studio/shipments/[id]/events
+├ ƒ /api/telegram/webhook
+├ ƒ /api/webhooks/resend
+├ ƒ /api/well-known/assetlinks
+├ ƒ /back
+├ ○ /back/login
+├ ○ /brochure                                               30d      1y
+├ ○ /calculadora-terrestre
+├ ○ /contacto
+├ ○ /cookies
+├ ƒ /email/baja
+├ ○ /enlaces
+├ ƒ /entrar
+├ ƒ /entrar/[code]
+├ ○ /faq
+├ ○ /fcl                                                     5m      1y
+├ ƒ /fcl/embed
+├ ○ /glosario
+├ ○ /importar-de-china
+├ ● /importar-de-china/[ciudad]
+│ ├ /importar-de-china/valencia
+│ ├ /importar-de-china/maracay
+│ ├ /importar-de-china/maracaibo
+│ └ [+15 more paths]
+├ ƒ /interno
+├ ƒ /interno/marca
+├ ƒ /interno/marca/d/[bundle]
+├ ƒ /interno/marca/enlaces
+├ ƒ /interno/marca/whatsapp
+├ ƒ /invitar/[token]
+├ ƒ /ir/bitacora/tarea/[id]
+├ ○ /llenado
+├ ○ /m
+├ ƒ /m/cn
+├ ƒ /m/cn/estibar
+├ ƒ /m/cn/estibar/[consolidationId]
+├ ○ /m/cn/login
+├ ƒ /m/cn/nueva
+├ ƒ /m/cn/recepcion/[id]/editar
+├ ƒ /m/cn/recibir
+├ ƒ /m/cn/servicios
+├ ƒ /m/emp
+├ ƒ /m/emp/recibo/[period]/pdf
+├ ƒ /m/emp/registro
+├ ƒ /m/erp
+├ ƒ /m/erp/bitacora
+├ ƒ /m/erp/bitacora/tarea/[id]
+├ ƒ /m/ve/bodeguero
+├ ƒ /m/ve/bodeguero/recepcion
+├ ƒ /m/ve/bodeguero/recepcion/[id]
+├ ƒ /m/ve/camionero
+├ ○ /m/ve/login
+├ ƒ /m/ve/modos
+├ ƒ /marca
+├ ƒ /marca/asset/[name]
+├ ƒ /marca/brand-book
+├ ƒ /marca/doc/[...ruta]
+├ ○ /nosotros
+├ ○ /noticias
+├ ƒ /noticias/[slug]
+├ ƒ /noticias/-/opengraph-image
+├ ƒ /p/[token]
+├ ƒ /p/[token]/packlist
+├ ƒ /p/[token]/upload
+├ ƒ /portal
+├ ƒ /portal/academia
+├ ƒ /portal/academia/[courseId]
+├ ƒ /portal/academia/[courseId]/[lessonId]
+├ ƒ /portal/callback
+├ ƒ /portal/club
+├ ƒ /portal/compras
+├ ƒ /portal/compras/[code]
+├ ƒ /portal/compras/[code]/detalle
+├ ƒ /portal/compras/[code]/etiquetas
+├ ƒ /portal/compras/nueva
+├ ƒ /portal/cotizaciones
+├ ƒ /portal/cotizaciones/nueva
+├ ƒ /portal/cuenta
+├ ƒ /portal/documentos
+├ ƒ /portal/envios
+├ ƒ /portal/envios/[code]
+├ ƒ /portal/estimados
+├ ƒ /portal/facturas
+├ ƒ /portal/facturas/[code]
+├ ƒ /portal/facturas/[code]/aceptar
+├ ƒ /portal/facturas/[code]/comprobante
+├ ƒ /portal/facturas/[code]/pdf
+├ ƒ /portal/facturas/[code]/reportar
+├ ƒ /portal/facturas/estado-de-cuenta/pdf
+├ ƒ /portal/finanzas
+├ ƒ /portal/mensajes
+├ ƒ /portal/perfil
+├ ƒ /portal/proveedores
+├ ƒ /portal/reclamos
+├ ƒ /portal/referidos
+├ ƒ /portal/registro
+├ ƒ /portal/soporte
+├ ○ /pre-alertas
+├ ○ /privacidad
+├ ○ /puerta-a-puerta
+├ ƒ /registro
+├ ○ /robots.txt
+├ ○ /servicios
+├ ○ /servicios/fcl
+├ ○ /servicios/inspeccion
+├ ○ /servicios/lcl
+├ ○ /servicios/puerta-a-puerta
+├ ○ /shipping-mark
+├ ○ /sitemap.xml
+├ ƒ /studio
+├ ƒ /studio/academia
+├ ƒ /studio/academia/diplomas
+├ ƒ /studio/admin
+├ ƒ /studio/admin/agentes
+├ ƒ /studio/admin/agentes/[skillSlug]
+├ ƒ /studio/admin/alertas-telegram
+├ ƒ /studio/admin/etiquetas
+├ ƒ /studio/admin/feature-flags
+├ ƒ /studio/admin/notificaciones
+├ ƒ /studio/admin/notificaciones/estado
+├ ƒ /studio/admin/rutas
+├ ƒ /studio/ajustes
+├ ƒ /studio/bitacora
+├ ƒ /studio/bitacora/nueva
+├ ƒ /studio/bitacora/tarea/[id]
+├ ƒ /studio/bugs
+├ ƒ /studio/calendario
+├ ƒ /studio/clientes
+├ ƒ /studio/clientes/[markbox]
+├ ƒ /studio/clientes/[markbox]/estado-de-cuenta
+├ ƒ /studio/clientes/[markbox]/estado-de-cuenta/pdf
+├ ƒ /studio/clientes/duplicados
+├ ƒ /studio/clientes/migrar-legado
+├ ƒ /studio/club
+├ ƒ /studio/cn
+├ ƒ /studio/cobranzas
+├ ƒ /studio/cobranzas/recibo/[code]
+├ ƒ /studio/cola-qr
+├ ƒ /studio/cola-qr/[id]/imprimir
+├ ƒ /studio/contabilidad
+├ ƒ /studio/conversaciones
+├ ƒ /studio/costing
+├ ƒ /studio/cotizador
+├ ƒ /studio/cotizador/[code]
+├ ƒ /studio/cotizador/[code]/pdf
+├ ƒ /studio/crm
+├ ƒ /studio/dashboard
+├ ƒ /studio/debug
+├ ƒ /studio/despacho
+├ ƒ /studio/despacho/dashboard
+├ ƒ /studio/despacho/reglas
+├ ƒ /studio/direccion
+├ ƒ /studio/documentos
+├ ƒ /studio/embarques
+├ ƒ /studio/etiquetas
+├ ƒ /studio/facturacion
+├ ƒ /studio/facturacion/[code]
+├ ƒ /studio/facturacion/[code]/pdf
+├ ƒ /studio/fidelizacion
+├ ƒ /studio/financiero-china
+├ ƒ /studio/fiscal
+├ ƒ /studio/gastos
+├ ƒ /studio/inspecciones
+├ ƒ /studio/inventario
+├ ƒ /studio/legal
+├ ƒ /studio/legal/evidencia/[code]
+├ ƒ /studio/legal/expediente/[code]
+├ ƒ /studio/login
+├ ○ /studio/login/recuperar
+├ ƒ /studio/mailing
+├ ƒ /studio/marketing
+├ ƒ /studio/marketing/calendario
+├ ƒ /studio/marketing/docs
+├ ƒ /studio/marketing/hub
+├ ƒ /studio/marketing/newsletter
+├ ƒ /studio/marketing/noticias-web
+├ ƒ /studio/menciones
+├ ƒ /studio/mis-bugs
+├ ƒ /studio/naviera
+├ ƒ /studio/no-olvidar
+├ ƒ /studio/nomina
+├ ƒ /studio/nomina/finiquito/[id]/pdf
+├ ƒ /studio/operarios
+├ ƒ /studio/ordenes-compra
+├ ƒ /studio/ordenes-venta
+├ ƒ /studio/proveedores
+├ ƒ /studio/reclamos
+├ ƒ /studio/rendiciones
+├ ƒ /studio/rendiciones/[code]
+├ ƒ /studio/rendiciones/[code]/export
+├ ƒ /studio/reportes
+├ ƒ /studio/resumen
+├ ƒ /studio/seniat
+├ ƒ /studio/servicios
+├ ƒ /studio/tarifas
+├ ƒ /studio/tesoreria
+├ ƒ /studio/tms
+├ ƒ /studio/tracking
+├ ƒ /studio/tracking/[id]
+├ ƒ /studio/tracking/nuevo
+├ ƒ /studio/usuarios
+├ ƒ /studio/ve
+├ ○ /tarifas                                                 5m      1y
+├ ƒ /tarifas/embed
+├ ○ /terminos
+└ ƒ /verificar
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+
+[norte] generado: docs\design\studio\_norte\_norte.html
+[norte] snapshot web: public\norte.html
+[norte] pantallas: 50% construido · 10 listas · 0 en obra · 10 en diseño (20 módulos)
+[norte] datos: 18/22 entidades con tabla real (18✅ 4🟡 0❌)
+[norte] movimiento reciente: 10 specs con fecha
+[norte] servir:  npx --yes serve "docs/design/studio/_norte" -l 3010
+[norte] abrir:   http://localhost:3010/_norte.html
+[build] tsconfig.json restaurado (Next le inyectó el distDir)
+[build] build de producción OK
+[32m[OK][0m   build
+
+[2m── resumen ───────────────────────────────────[0m
+[2m   15 de 17 pasos corrieron de verdad[0m
+[33m[AVISO][0m omitido: migrations-applied — no se midio (ver su [SKIP] arriba)
+[33m[AVISO][0m omitido: e2e — VERIFY_SKIP_E2E=1 (omitido a pedido)
+[33m[AVISO][0m verify: CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied, e2e. No hubo fallos en lo medido (15/17); exit 0 NO equivale a cierre verde completo.

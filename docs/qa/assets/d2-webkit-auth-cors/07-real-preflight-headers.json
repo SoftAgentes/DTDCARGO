@@ -1,0 +1,80 @@
+{
+  "at": "2026-09-10T20:08:56.408Z",
+  "method": "OPTIONS",
+  "url": "https://xpfuzqombmjmxvprjgmi.supabase.co/auth/v1/user",
+  "scope": "Node header observation, not browser CORS verdict; no authorization or response body",
+  "rows": [
+    {
+      "origin": "http://localhost:56712",
+      "requestedHeaders": "apikey",
+      "status": 200,
+      "headers": {
+        "access-control-allow-headers": "apikey",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "access-control-allow-origin": "*",
+        "access-control-max-age": "3600",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "origin": "http://localhost:56712",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "status": 200,
+      "headers": {
+        "access-control-allow-headers": "apikey,authorization,x-client-info,x-supabase-api-version",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "access-control-allow-origin": "*",
+        "access-control-max-age": "3600",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:56712",
+      "requestedHeaders": "apikey",
+      "status": 200,
+      "headers": {
+        "access-control-allow-headers": "apikey",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "access-control-allow-origin": "*",
+        "access-control-max-age": "3600",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "origin": "http://127.0.0.1:56712",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "status": 200,
+      "headers": {
+        "access-control-allow-headers": "apikey,authorization,x-client-info,x-supabase-api-version",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "access-control-allow-origin": "*",
+        "access-control-max-age": "3600",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "origin": "https://dtdcargo.com",
+      "requestedHeaders": "apikey",
+      "status": 200,
+      "headers": {
+        "access-control-allow-headers": "apikey",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "access-control-allow-origin": "*",
+        "access-control-max-age": "3600",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "origin": "https://dtdcargo.com",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "status": 200,
+      "headers": {
+        "access-control-allow-headers": "apikey,authorization,x-client-info,x-supabase-api-version",
+        "access-control-allow-methods": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,TRACE,CONNECT",
+        "access-control-allow-origin": "*",
+        "access-control-max-age": "3600",
+        "server": "cloudflare"
+      }
+    }
+  ]
+}
