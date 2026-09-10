@@ -4,7 +4,7 @@ title: "Recibir por escaneo · la etiqueta pre-declarada materializa la recepci�
 status: in-progress
 author: "founder"
 created: 2026-07-17
-updated: 2026-07-17
+updated: 2026-09-10
 supersedes: null
 superseded_by: null
 related: ["0153", "0152", "0027", "0045", "0105", "0067"]
@@ -50,6 +50,23 @@ escanea DTD-B ─► lookup (solo lectura): "es de <cliente>, compra <code>, N c
 | Recibir **más** de lo anunciado crea las extras | Si llegaron 10 y se anunciaron 8, el trigger crea 2 recibidas nuevas. Rectificar hacia arriba está soportado. |
 | Recibir **menos** deja el resto `esperada` | Llegaron 5 de 8 → se adoptan 5, las otras 3 siguen esperando y se reciben en el próximo envío escaneando. Es el "lote partido" del founder, del lado de la recepción. |
 | Requiere la etiqueta **DTD-B** (no la del proveedor `?c=`) | La del proveedor identifica al cliente, no a la caja. Escanearla muestra el mismo aviso que en estiba. |
+| Toda espera termina aunque una Server Action rechace | El lookup libera `busy` en `finally`. Si el lookup o la recepción rechazan por red, excepción no manejada o respuesta de Next, la pantalla muestra un error bilingüe y vuelve o permanece en el escáner; una pantalla dedicada no puede depender de cerrar y reabrir. |
+| `PGRST202` es permanente desde la perspectiva del operario | Significa que PostgREST no encuentra la RPC: repetir la misma recepción no puede reparar el contrato servidor/base. El copy manda a avisar al responsable y explícitamente no a reintentar. |
+
+### 3.1 Taxonomía de errores de recepción · 2026-09-10
+
+- Los nueve códigos reales ya emitidos por las validaciones de operario y la RPC
+  conservan mensajes de negocio específicos: `P0001`, `P0002`, `P0003`, `P0130`,
+  `P0131`, `P0132`, `P0133`, `P0134` y `P0135`.
+- Sólo `PGRST202` se agrega como señal permanente de infraestructura conocida. Se
+  reconoce por el campo `code` de PostgREST (con compatibilidad para mensajes que
+  incluyan el código) y no se inventa un catálogo `P0136`/`P0137` que la base no emite.
+- Los demás fallos quedan como temporales o no determinados y ofrecen un reintento
+  desde la UI. Los rechazos de transporte de la acción se capturan en el cliente y
+  liberan la espera antes de ofrecer el siguiente intento.
+- El mensaje permanente y los mensajes nuevos de recuperación tienen copy explícito
+  español/chino mediante `t(lang, …)`; nunca se muestra al operario el error crudo,
+  SQL, rutas internas ni detalles de la RPC.
 
 ## 4. Scope
 
@@ -58,7 +75,8 @@ escanea DTD-B ─► lookup (solo lectura): "es de <cliente>, compra <code>, N c
   (`0245`, SECURITY DEFINER + service_role) — errcodes P0130–P0135.
 - **`/m/cn/recibir`** — pantalla del operario: escanear → tarjeta de confirmación con
   cliente + compra + cantidad rectificable → recibir → resumen. Reusa `QrScanner` +
-  `ActionButton`. Bilingüe ES/中文.
+  `ActionButton`. Bilingüe ES/中文. Incluye recuperación de rechazos de ambas Server
+  Actions y diferencia entre fallo transitorio y bloqueo permanente de la RPC.
 - **Entrada en el home** del operario (`/m/cn`), arriba de "Estibar".
 
 ### Fuera de scope (pendiente honesto)
@@ -79,3 +97,7 @@ escanea DTD-B ─► lookup (solo lectura): "es de <cliente>, compra <code>, N c
    efímeros mueren en el seed).
 3. Aplicar `0245` a prod **con OK del founder nombrándola**, de a una.
 4. Prueba con **carga real** (estrategia del founder) — sin datos de prueba en prod.
+5. Vitest focal de `RecibirClient`: el rechazo del lookup libera `busy`; el rechazo
+   de recibir vuelve al escáner; `PGRST202` se muestra en chino sin invitar a reintentar.
+6. Vitest focal de la Server Action: `PGRST202` se clasifica permanente, un fallo no
+   catalogado conserva tratamiento transitorio y `P0134` se reconoce por `error.code`.
