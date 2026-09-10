@@ -27,7 +27,8 @@ reutilizable entregada; PR #58 permanece en borrador, sin integración ni releas
 
 ## Fuente única y trazabilidad
 
-Fuente externa de solo lectura, aportada por Sam:
+Fuente externa de solo lectura. La localizó el Director al preparar la corrida
+autenticada de esta tarea; Sam decidió cerrar D1 como documental sobre ella:
 
 ```text
 C:/Users/AKX generator/Desktop/Developer/DTD-backups/pr28-e2e-harness-validation-20260906/local-supabase-auth-feasibility-20260906/clean-instance-runner-v3-transport-20260907/handoff.md
