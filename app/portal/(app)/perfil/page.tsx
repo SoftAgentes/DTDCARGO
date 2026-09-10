@@ -19,6 +19,10 @@ import {
   getLastResolvedRequest,
 } from "@/lib/portal/change-request-queries";
 import type { ClientChangeRequest } from "@/lib/portal/change-request-types";
+import {
+  getPortalProfileEditQuota,
+  UNAVAILABLE_PROFILE_EDIT_QUOTA,
+} from "@/lib/portal/profile-edit-quota";
 import { AvatarEditor } from "./AvatarEditor";
 import { PortalAddresses } from "./PortalAddresses";
 import { CopyCodeButton } from "./CopyCodeButton";
@@ -127,6 +131,7 @@ export default async function PortalProfilePage() {
   // suyas (client_id = get_portal_client_id()).
   let openRequest: ClientChangeRequest | null = null;
   let lastResolvedRequest: ClientChangeRequest | null = null;
+  let profileEditQuota = UNAVAILABLE_PROFILE_EDIT_QUOTA;
   try {
     [openRequest, lastResolvedRequest] = await Promise.all([
       getOpenChangeRequest(supabase, client.id),
@@ -135,6 +140,11 @@ export default async function PortalProfilePage() {
   } catch {
     openRequest = null;
     lastResolvedRequest = null;
+  }
+  try {
+    profileEditQuota = await getPortalProfileEditQuota(supabase);
+  } catch {
+    profileEditQuota = UNAVAILABLE_PROFILE_EDIT_QUOTA;
   }
 
   const esEmpresa = client.docKind === "empresa";
@@ -284,6 +294,7 @@ export default async function PortalProfilePage() {
                   ? lastResolvedRequest
                   : null
               }
+              quota={profileEditQuota}
             />
           </section>
 
@@ -333,11 +344,8 @@ export default async function PortalProfilePage() {
               <CedulaPhotoRow
                 label={esEmpresa ? "Documento RIF" : "Cédula de identidad / RIF"}
                 viewUrl={cedulaUrl}
+                quota={profileEditQuota}
               />
-              <p className="mt-2 text-[12px] text-grey-500 leading-[1.5]">
-                La foto queda privada — solo la ve el equipo de DTD para
-                verificar tu identidad antes de tu primera carga.
-              </p>
             </div>
 
             {/* Registrar empresa (solo persona) — mediado por el asesor. */}
