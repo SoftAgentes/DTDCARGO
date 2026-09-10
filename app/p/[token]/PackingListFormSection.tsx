@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckIcon, CloseIcon, DownloadIcon } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 import { useRouter } from "next/navigation";
 import { printMarkbox } from "@/lib/shared/markbox-chain";
 import { printDocument } from "@/lib/shared/print-document";
@@ -935,7 +936,7 @@ export function PackingListFormSection({
           </div>
           <p className="no-print mt-2 text-sm text-grey-700">不知道 HS 编码时，请说明材质并联系仓库确认，不要猜测。 · Si desconoces el código HS, describe el material y pide confirmación al almacén; no inventes el código.</p>
           <div className="mt-1.5 overflow-x-auto rounded-[12px] border border-grey-200">
-            <table className="w-full border-collapse" style={{ minWidth: 1000 }}>
+            <table className="relative w-full border-collapse" style={{ minWidth: 1000 }}>
               <thead>
                 <tr>
                   <Th className="c-idx">#</Th>
@@ -1268,17 +1269,33 @@ export function PackingListFormSection({
           {/* Errores + envío (anunciados a lectores de pantalla) */}
           <div role="status" aria-live="polite" className="no-print">
             {(fieldErrors.rows || fieldErrors.contacto || fieldErrors.tooMany) && (
-              <ul className="mt-4 list-disc pl-5 text-[12.5px] leading-[1.55] text-wine">
-                {fieldErrors.rows && <li>{fieldErrors.rows}</li>}
-                {fieldErrors.contacto && <li>{fieldErrors.contacto}</li>}
-                {fieldErrors.tooMany && <li>{fieldErrors.tooMany}</li>}
+              <ul className="mt-4 list-disc border-l-2 border-status-danger pl-5 text-[12.5px] leading-[1.55] text-ink">
+                {fieldErrors.rows && (
+                  <li>
+                    <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
+                    {fieldErrors.rows}
+                  </li>
+                )}
+                {fieldErrors.contacto && (
+                  <li>
+                    <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
+                    {fieldErrors.contacto}
+                  </li>
+                )}
+                {fieldErrors.tooMany && (
+                  <li>
+                    <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
+                    {fieldErrors.tooMany}
+                  </li>
+                )}
               </ul>
             )}
             {submit.kind === "error" &&
               !fieldErrors.rows &&
               !fieldErrors.contacto &&
               !fieldErrors.tooMany && (
-                <p className="mt-4 text-[12.5px] leading-[1.55] text-wine">
+                <p className="mt-4 border-l-2 border-status-danger pl-3 text-[12.5px] leading-[1.55] text-ink">
+                  <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
                   {submit.message}
                 </p>
               )}

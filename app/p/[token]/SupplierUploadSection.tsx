@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CheckIcon } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 
 const BRAND_CJK = "var(--font-archivo), var(--font-noto-sc)";
 
@@ -207,7 +208,8 @@ export function SupplierUploadSection({ token }: { token: string }) {
           </div>
         )}
         {state.kind === "error" && (
-          <p className="mt-4 text-[12.5px] leading-[1.55] text-wine">
+          <p className="mt-4 border-l-2 border-status-danger pl-3 text-[12.5px] leading-[1.55] text-ink">
+            <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
             {state.message}
           </p>
         )}
