@@ -1,0 +1,162 @@
+{
+  "navigationTypes": {
+    "navigate": 1,
+    "reload": 0,
+    "back_forward": 0,
+    "prerender": 0
+  },
+  "successorNavigationTypes": {
+    "navigate": 0,
+    "reload": 0,
+    "back_forward": 0,
+    "prerender": 0
+  },
+  "documentCount": 1,
+  "documentRequestCount": 1,
+  "emitterCount": 1,
+  "beforeunloadCount": 1,
+  "durationMs": 60000,
+  "targetPath": "/m/erp?tab=expenses",
+  "startedAt": "2026-09-10T20:02:24.248Z",
+  "windowStart": "2026-09-10T20:02:30.344Z",
+  "windowEnd": "2026-09-10T20:03:30.344Z",
+  "finalPath": "/m/erp?tab=expenses",
+  "head": "710a8e0695f416700d75e7bc42e8e5cb889751e8",
+  "branch": "codex/d1-bucle-modulos-m-erp",
+  "nodeVersion": "v24.20.0",
+  "browserVersion": "148.0.7778.96",
+  "debuggerPauseMs": 491,
+  "errors": [
+    "Final persistence snapshot: Error: page.evaluate: Execution context was destroyed, most likely because of a navigation"
+  ],
+  "persistedEvents": null,
+  "events": [
+    {
+      "kind": "document-request",
+      "at": 1789070544257,
+      "requestId": "5E05924B6B596480C557236C2AD424D7",
+      "path": "/m/erp?tab=expenses",
+      "initiatorType": "other",
+      "initiatorStack": null
+    },
+    {
+      "kind": "document-response",
+      "at": 1789070550340,
+      "requestId": "5E05924B6B596480C557236C2AD424D7",
+      "path": "/m/erp?tab=expenses",
+      "status": 500
+    },
+    {
+      "navigationType": "navigate",
+      "kind": "document",
+      "at": 1789070550344,
+      "documentId": "c888989a-f9fd-453c-a288-e34a655aaf83",
+      "path": "/m/erp?tab=expenses",
+      "stack": "Error\n    at window.<computed> (dtd-navigation-probe-init.js:4:48)\n    at initProbe (dtd-navigation-probe-init.js:17:18)\n    at dtd-navigation-probe-init.js:24:3"
+    },
+    {
+      "navigationType": "navigate",
+      "kind": "armed",
+      "at": 1789070550366,
+      "documentId": "c888989a-f9fd-453c-a288-e34a655aaf83",
+      "path": "/m/erp?tab=expenses",
+      "stack": "Error\n    at window.<computed> (dtd-navigation-probe-init.js:4:48)\n    at eval (eval at initProbe (:23:3), <anonymous>:1:8)\n    at initProbe (dtd-navigation-probe-init.js:23:3)\n    at dtd-navigation-probe-init.js:24:3",
+      "targets": [
+        "reload",
+        "assign",
+        "replace",
+        "href",
+        "window.location",
+        "document.location"
+      ]
+    },
+    {
+      "navigationType": "navigate",
+      "kind": "emitter",
+      "at": 1789070593528,
+      "documentId": "c888989a-f9fd-453c-a288-e34a655aaf83",
+      "path": "/m/erp?tab=expenses",
+      "stack": "Error\n    at eval (eval at performFullReload (webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js), <anonymous>:1:899)\n    at performFullReload (webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js:412:21)\n    at handleApplyUpdates (webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js:374:13)\n    at eval (webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js:399:9)",
+      "methods": [
+        "reload"
+      ],
+      "callFrames": [
+        {
+          "functionName": "performFullReload",
+          "url": "webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js",
+          "line": 412,
+          "column": 21
+        },
+        {
+          "functionName": "handleApplyUpdates",
+          "url": "webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js",
+          "line": 374,
+          "column": 13
+        },
+        {
+          "functionName": "",
+          "url": "webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js",
+          "line": 399,
+          "column": 9
+        }
+      ],
+      "modules": [],
+      "pauseReason": "other"
+    },
+    {
+      "kind": "requested-navigation",
+      "at": 1789070593762,
+      "reason": "reload",
+      "disposition": "currentTab",
+      "path": "/m/erp?tab=expenses"
+    },
+    {
+      "navigationType": "navigate",
+      "kind": "beforeunload",
+      "at": 1789070593687,
+      "documentId": "c888989a-f9fd-453c-a288-e34a655aaf83",
+      "path": "/m/erp?tab=expenses",
+      "stack": "Error\n    at window.<computed> (dtd-navigation-probe-init.js:4:48)\n    at dtd-navigation-probe-init.js:18:57\n    at performFullReload (webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js:412:21)\n    at handleApplyUpdates (webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js:374:13)\n    at eval (webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js:399:9)",
+      "attribution": "lifecycle observer; this stack alone does not identify the emitter"
+    },
+    {
+      "kind": "document-request",
+      "at": 1789070593852,
+      "requestId": "B38D2B6D20A7F318311EB3CC2C0A6D3C",
+      "path": "/m/erp?tab=expenses",
+      "initiatorType": "script",
+      "initiatorStack": {
+        "callFrames": [
+          {
+            "functionName": "performFullReload",
+            "scriptId": "143",
+            "url": "webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js",
+            "lineNumber": 411,
+            "columnNumber": 20
+          },
+          {
+            "functionName": "handleApplyUpdates",
+            "scriptId": "143",
+            "url": "webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js",
+            "lineNumber": 373,
+            "columnNumber": 12
+          },
+          {
+            "functionName": "eval",
+            "scriptId": "143",
+            "url": "webpack-internal:///(pages-dir-browser)/./node_modules/.pnpm/next@16.2.11_@babel+core@7._c109d269927a2f2a1fd6b2137273bd88/node_modules/next/dist/client/dev/hot-reloader/pages/hot-reloader-pages.js",
+            "lineNumber": 398,
+            "columnNumber": 8
+          }
+        ]
+      }
+    },
+    {
+      "kind": "document-response",
+      "at": 1789070613032,
+      "requestId": "B38D2B6D20A7F318311EB3CC2C0A6D3C",
+      "path": "/m/erp?tab=expenses",
+      "status": 500
+    }
+  ]
+}
