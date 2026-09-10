@@ -15,6 +15,7 @@ const STEP_NAMES = [
   "components:check",
   "governance:check",
   "migrations-applied",
+  "pending-migration-symbols",
   "sql-tests",
   "schema-rebuild",
   "e2e",
