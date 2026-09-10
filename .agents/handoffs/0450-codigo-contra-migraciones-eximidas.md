@@ -9,7 +9,7 @@
 - Estado de tarea: lista-para-revisión
 - Dependencias: ninguna; independiente de los bloques B, C y D
 - Último resultado: implementación y validación focal completas; cierre canónico medido con limitaciones externas registradas.
-- Siguiente paso: publicar la rama, abrir el PR borrador y entregar al Director para revisión del diff y del gate hospedado.
+- Siguiente paso: el Director revisa el diff, el resultado del gate hospedado y decide integración; este Worker no fusiona.
 
 ## OBJETIVO ORIGINAL
 
@@ -47,7 +47,7 @@ Agregar un check sin credenciales ni red que falle cuando código alcanzable des
   - **NO EJECUTADO** `migrations-applied`: faltaron `NEXT_PUBLIC_SUPABASE_URL` y la service-role key; fue el único SKIP del gate.
   - **FALLÓ** E2E tras el reintento completo: 153 pasaron, 15 fallaron y 18 se omitieron. Las 15 fallas son las mismas cinco rutas dependientes de Supabase en Chromium, Mobile Chrome y Mobile Safari al faltar `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY`. Playwright además forzó el cierre de `worker-45` tras 300000 ms; no se presenta como verde.
 - **NO DISPONIBLE** E2E autenticado ni validación funcional contra Supabase sin credenciales. No aplica como prueba focal de este cambio de harness y no se copiaron secretos al worktree.
-- **NO EJECUTADO todavía** el gate hospedado de GitHub Actions; se registrará después del push/PR.
+- GitHub Actions inició el gate hospedado `Calidad local sin secretos` para el PR #44; su resultado se verifica al cierre de la sesión y no amplía la cobertura a E2E autenticado ni Supabase.
 
 ## COMMITS
 
@@ -58,12 +58,13 @@ Agregar un check sin credenciales ni red que falle cuando código alcanzable des
 
 - Rama: `codex/0450-codigo-contra-migraciones-eximidas`
 - Base PR: `main`
-- PR: pendiente de publicación; autorizado como borrador.
+- PR borrador: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/44
+- Rama publicada como `origin/codex/0450-codigo-contra-migraciones-eximidas`, sin force push.
 - No autorizado: merge, deploy, migraciones de producción, ruleset, force push o limpieza.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Publicar la rama y abrir el PR borrador; luego registrar URL y resultado del gate hospedado.
+- Ninguno de implementación. Revisión, eventual merge y cualquier release corresponden al Director con sus autorizaciones separadas.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -73,4 +74,4 @@ Agregar un check sin credenciales ni red que falle cuando código alcanzable des
 
 ## HANDOFF AL DIRECTOR
 
-Revisar el parser/alcance estático, la declaración amarilla de 0449 y la obligatoriedad del paso CI. El gate es E4: solo ve migraciones que E3 ya declaró pendientes; no detecta una ausencia no registrada como 0447 ni objetos fuera de las cuatro formas DDL (por ejemplo, 0428 solo altera una policy). No certifica el ledger ni producción. Ownership sigue activo por `codex-worker-0450-20260910` hasta completar publicación y PR.
+Revisar el parser/alcance estático, la declaración amarilla de 0449 y la obligatoriedad del paso CI. El gate es E4: solo ve migraciones que E3 ya declaró pendientes; no detecta una ausencia no registrada como 0447 ni objetos fuera de las cuatro formas DDL (por ejemplo, 0428 solo altera una policy). No certifica el ledger ni producción. El Worker libera su claim después de publicar este cierre; la rama y el worktree se conservan.
