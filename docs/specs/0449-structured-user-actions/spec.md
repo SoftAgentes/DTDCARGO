@@ -11,7 +11,7 @@ related: ["0024", "0136", "0250", "0272", "0433"]
 confidencialidad: interno
 ---
 
-# SDD-0435 · Observabilidad estructurada en acciones de Usuarios
+# SDD-0449 · Observabilidad estructurada en acciones de Usuarios
 
 ## Problema
 
