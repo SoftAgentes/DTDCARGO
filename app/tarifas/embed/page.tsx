@@ -43,7 +43,7 @@ export default async function TarifasEmbedPage({
       // data-portal-theme="dark" → globals.css redefine los --color-* y el form
       // cascadea a oscuro. En claro no se pone el atributo (tokens light).
       data-portal-theme={dark ? "dark" : undefined}
-      className="min-h-screen"
+      className="rp-surface min-h-screen"
       style={{ background: "var(--bg-glow)" }}
     >
       <div className="p-4">

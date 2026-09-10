@@ -42,9 +42,9 @@ export const PURCHASE_ORDER_STATUS: Record<
 > = {
   borrador: { label: "Borrador", tone: "neutral" },
   confirmada: { label: "Confirmada", tone: "info" },
-  recibida: { label: "Recibida", tone: "warning" },
+  recibida: { label: "Recibida", tone: "success" },
   facturada: { label: "Facturada (Bill)", tone: "success" },
-  cerrada: { label: "Cerrada", tone: "wine" },
+  cerrada: { label: "Cerrada", tone: "neutral" },
   cancelada: { label: "Cancelada", tone: "neutral" },
 };
 

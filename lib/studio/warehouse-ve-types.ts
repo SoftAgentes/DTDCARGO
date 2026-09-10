@@ -53,9 +53,9 @@ export const VE_STATUS_LABELS: Record<VeStatus, string> = {
  */
 export const VE_STATUS_TONES: Record<VeStatus, BadgeTone> = {
   arrived_destination: "info",
-  in_customs: "warning",
-  out_for_delivery: "wine",
-  last_mile: "wine",
+  in_customs: "info",
+  out_for_delivery: "info",
+  last_mile: "info",
   delivered: "success",
   exception: "danger",
 };

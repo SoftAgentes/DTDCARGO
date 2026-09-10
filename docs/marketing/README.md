@@ -6,6 +6,9 @@
 
 ## Cómo usar este tree
 
+- **Colores de avisos (2026-09-05):** [SDD-0441](../specs/0441-colores-semanticos-marca/spec.md) aplica la política de [BRAND.md](../../BRAND.md) a la calculadora: recargo informativo neutro y derivación al asesor con atención dorada. Tarifas y fórmulas no cambian.
+
+
 - **Punto de entrada = este README** (índice + estado + reglas).
 - **Plan maestro de acción** (digital + Google Ads, con la auditoría de los 4 activos + las 5 prioridades y su estado): [`plan-accion-digital.md`](plan-accion-digital.md).
 - **Identidad y estrategia** (propósito · misión · visión · valores · objetivos + norte interno): [`estrategia.md`](estrategia.md) · identidad pública/legal + NAP + nombres: [`identidad.md`](identidad.md) · línea de ventas cliente-ancla: [`ventas.md`](ventas.md) · **embudo de ventas operativo + mapa de etapas Kommo (MARKBOX) + campos del Kanban**: [`embudo-ventas.md`](embudo-ventas.md) · **sistema de adquisición (oferta + canal + proceso de prospección, manual del asesor)**: [`adquisicion.md`](adquisicion.md) · **precios de la competencia verificados (motores de precio de Asiaven e Import2Ven, mínimos del mercado, dónde queda DTD)**: [`competencia-precios.md`](competencia-precios.md).

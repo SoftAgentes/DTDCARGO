@@ -264,7 +264,7 @@ describe("labels y tones de cohorte", () => {
 
   it("cohortStatusTone devuelve tonos del sistema", () => {
     expect(cohortStatusTone("proximamente")).toBe("neutral");
-    expect(cohortStatusTone("en_curso")).toBe("wine");
+    expect(cohortStatusTone("en_curso")).toBe("info");
     expect(cohortStatusTone("completado")).toBe("success");
   });
 

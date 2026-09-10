@@ -401,7 +401,7 @@ export function agentStatusBadgeTone(s: AgentStatus): BadgeTone {
 export function runStatusBadgeTone(s: AgentRunStatus): BadgeTone {
   if (s === "ok") return "success";
   if (s === "running") return "info";
-  if (s === "needs_approval") return "wine";
+  if (s === "needs_approval") return "info";
   if (s === "timeout") return "warning";
   if (s === "error") return "danger";
   return "neutral";
@@ -409,7 +409,7 @@ export function runStatusBadgeTone(s: AgentRunStatus): BadgeTone {
 
 export function approvalStatusBadgeTone(s: AgentApprovalStatus): BadgeTone {
   if (s === "approved") return "success";
-  if (s === "pending") return "wine";
+  if (s === "pending") return "info";
   if (s === "rejected") return "danger";
   return "neutral";
 }

@@ -49,9 +49,9 @@ describe("estados nuevos SDD-0157", () => {
     }
   });
 
-  it("los status conocidos previos siguen intactos", () => {
+  it("las etiquetas previas se conservan y consolidar es información operativa", () => {
     expect(containerStatusLabel("consolidando")).toBe("Consolidando");
-    expect(containerStatusTone("consolidando")).toBe("warning");
+    expect(containerStatusTone("consolidando")).toBe("info");
     expect(containerStatusLabel("cerrado")).toBe("Cerrado");
   });
 
