@@ -120,5 +120,12 @@ no es autorización para repetir migraciones, seed o modificar esos servicios.
 
 Pruebas focales: PASÓ, 24/24, 0 skips; incluyen operaciones nativas, rearmado,
 factory sintética, pérdida real de persistencia, HTTP 500 y redirección al login
-con 200. `corepack pnpm verify`: en curso. El ledger sin credenciales se clasifica
-NO DISPONIBLE. No se toma verde local como E2E autenticado.
+con 200. `corepack pnpm verify`: FALLÓ / INCOMPLETO, interrumpido tras 357 s sin
+progreso en un fallo WebKit; ya había fallos de login por configuración Supabase
+ausente. Pasaron sus checks previos, incluidos 6526 tests en 521 archivos. El
+recibo de interrupción está en `assets/verify-interrupted.json`; no hay resumen
+E2E final y los conteos de stdout incluyen intentos/retries. `migrations-applied`
+fue NO DISPONIBLE por credenciales; SQL/schema, NO EJECUTADO por alcance. Build
+separado PASÓ, exit 0 con postbuild y restauración de tsconfig.json. No se toma
+verde local como E2E autenticado. Entrega en PR #58 draft; diagnóstico y SDD
+permanecen abiertos hasta la corrida autenticada.

@@ -39,6 +39,9 @@ Endpoint loopback por sí solo no certifica que el backend sea efímero.
    un bucle. Sin documentos sucesores no se puede elegir una rama del diagnóstico.
 2. En documentos sucesores del bucle: `reload` mantiene la hipótesis React Refresh;
    `navigate` la refuta para ese bucle. Verificar después los eventos `emitter`.
+   El `navigationType` de un `emitter`/`beforeunload` describe cómo entró el
+   documento que está saliendo. El tipo resultante de la operación se lee en el
+   **siguiente evento `document`**, no en el evento que anuncia su salida.
 3. `methods` identifica la operación nativa interceptada. `stack` viene de
    `new Error().stack` mientras el llamador está pausado; `callFrames` es la pila
    independiente de CDP, con línea/columna base 1. `beforeunload` es un observador,

@@ -101,31 +101,59 @@ No se copió entorno ajeno, no se aplicaron migraciones ni se usó producción.
   no autenticado de 60 s: exit 2, HTTP 500 y copia final destruida; salida abajo.
 - **NO EJECUTADO** comparación antes/después, ciclos/chunks: no hubo emisor H1
   confirmado ni corrección de producto que justificara esas comprobaciones.
-- `corepack pnpm verify`: EN CURSO, log externo `%TEMP%/d1-verify-20260910.log`.
-  `VERIFY_SKIP_SQL=1` respeta el alcance sin aplicar migraciones; SQL/schema se
-  registrarán NO EJECUTADO. `E2E_WORKERS=2` limita concurrencia, sin cambiar tests.
-- `migrations-applied`: sin credenciales se reportará NO DISPONIBLE.
+- **FALLÓ / INCOMPLETO** `corepack pnpm verify`: exit 1 tras interrupción explícita
+  del árbol propio, después de fallos E2E y 357 s sin progreso. No hubo resumen
+  final del runner ni JSON E2E; no se interpreta el exit de la interrupción como
+  ejecución completa. Recibo: `assets/verify-interrupted.json` en SDD-0451.
+- **PASÓ** dentro de verify: harness (18 tests), lint (0 errores, 8 warnings),
+  rsc-boundary, typecheck, edge-functions (4), Vitest (521 archivos/6526 tests),
+  docs:check, numbering, feature-constants (5), components:check,
+  governance:check y pending-migration-symbols.
+- **FALLÓ / PARCIAL** E2E: 186 tests recolectados; stdout registró 123 intentos
+  `ok`, 29 `x` y 15 omitidos. **Incluyen retries, no son resultados finales por
+  test.** El último fue el intento 167, `mobile-safari/global-search.spec.ts:22`.
+  Logins fallaron con URL/key Supabase ausentes; H1/Tier 3 fue omitido sin fixture.
+- **NO DISPONIBLE** migrations-applied: `sin NEXT_PUBLIC_SUPABASE_URL /
+  SUPABASE_SERVICE_ROLE_KEY`, sin consulta de ledger productivo.
+- **NO EJECUTADO** SQL/schema: `VERIFY_SKIP_SQL=1` por alcance sin migraciones.
+  `E2E_WORKERS=2` limitó concurrencia, sin cambiar tests/configuración.
+- **PASÓ** build separado: `node scripts/check-build.mjs`, exit 0, incluye
+  postbuild Norte; restauró tsconfig.json y eliminó su salida `.next-verify`.
+  Log externo `%TEMP%/d1-build-20260910.log`; hash en recibo de validación.
+  Es build productivo de validación, no medición del emisor Webpack.
+- Check remoto «Calidad local sin secretos»: pendiente al cierre; no se presenta
+  como cobertura autenticada. El push disparó el preview Vercel automático (pasó);
+  no hubo merge ni despliegue de producción.
 
 ## COMMITS
 
-Commit que contiene este documento: sonda, controles, SDD y recibo inicial.
-Hashes finales y validación canónica se registran en la PR al publicar.
+`e9fa802491a290460985602462b7c02256b86fa6`: sonda, controles, SDD y recibo inicial.
+Commit que contiene la actualización de este documento: cierre de validación y publicación.
 
 ## PR / BRANCH
 
-PR pendiente. Rama y worktree indicados arriba; base PR `main`.
+[PR #58](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/58), OPEN/DRAFT,
+base `main`. Rama y worktree indicados arriba. Push explícito de rama propia a sí
+misma realizado; reserva 0451 intacta. Sin merge ni deploy manual.
 
 ## PENDIENTES DE ESTA TAREA
 
 Acceso al entorno efímero; corrida autenticada fiel de 60 s, lectura del tipo del
 bucle y pila, módulo concreto si aplica; corrección solo si evidencia/allowlist
-la permiten, con comparación posterior. Terminar verify y publicar draft.
+la permiten, con comparación posterior. Repetir E2E completo una vez resuelta la
+disponibilidad y coordinar aparte su falta de progreso. No quedan implementación
+ni pruebas focales pendientes de la sonda; sí los criterios autenticados de H1.
 
 ## FUERA DE ALCANCE DETECTADO
 
 H2 de Safari/CORS pertenece a otra tarea. La falta de configuración y el recargador
 de su pantalla HTTP 500 son evidencia de disponibilidad, no una causa de H1.
 No se alteró el transporte de los servicios ni se convirtió en tarea de producto.
+El E2E dejó de progresar en WebKit desde `20:15:42.130Z`; a `20:21:39.225Z` se
+detuvo el árbol propio de verify (PID 26220, 10 procesos, rutas de hijos verificadas
+en este worktree). No se recibió un error final de cierre que permita nombrar la
+causa exacta de la espera; el timeout de cierre de 300 s en el código de Playwright
+es contexto, no prueba de causa. No se arregla ni cambia su configuración aquí.
 
 ## HANDOFF AL DIRECTOR
 
@@ -133,7 +161,12 @@ Revisar instrumento/recibo y coordinar endpoint/session fixture local accesible.
 Sin evidencia autenticada no aprobar diagnóstico ni declarar esta SDD done.
 El servidor de sonda propio (PID raíz 29976/hijo 20108, puerto 4319) fue detenido
 tras verificar comando, rama/ruta del hijo y relación de procesos; puerto liberado.
-Claim retenido mientras termina validación/publicación. No integración ni producción.
+El árbol E2E propio también quedó detenido; ningún proceso de otro worktree fue
+incluido. No quedan servidores/browsers propios ni listeners 4319/3612. Ownership
+se libera con `harness-worktree release` tras el último commit/push; el cierre de
+la sesión verifica ausencia del claim. Worktree y rama se conservan para retomar.
+No integración ni producción. PR draft es la frontera de revisión, no aprobación
+del diagnóstico ni cierre de la SDD.
 
 ## Salida cruda de la sonda (60 s, NO autenticada)
 
