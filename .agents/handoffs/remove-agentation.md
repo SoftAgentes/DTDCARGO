@@ -94,7 +94,7 @@ Resultados frescos de esta sesión; no se reutilizan como pruebas actuales los r
 | E2E | NO DISPONIBLE | Credenciales no disponibles según el encargo; no se buscaron ni copiaron, no se lanzó E2E ni se afirma un fallo observado. |
 | `git diff --check 1da6eb01^ 1da6eb01` | PASÓ | Exit 0 en el cambio heredado. |
 | Guard/ownership y revisión del diff del cierre | PASÓ | Claim exclusivo de esta sesión, rama propia; única escritura de archivo: este handoff. |
-| PR draft contra main, aceptación 6 | Entrega documental bloqueada | Cuerpo con esta evidencia y estado explícito; no presenta la eliminación como lista para integrar. URL y SHA final registrados en la PR y entrega. |
+| PR draft contra main, aceptación 6 | PASÓ como entrega documental bloqueada | [PR #55](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/55), con esta evidencia y estado explícito; no presenta la eliminación como lista para integrar. |
 
 El alcance de esta salida es demostrar que **no debe continuarse con la retirada bajo el criterio autorizado de ausencia de uso**. No demuestra que retirar la herramienta sea siempre incorrecto ni sustituye una decisión explícita de desinstalarla pese a su integración de desarrollo.
 
@@ -105,7 +105,7 @@ El alcance de esta salida es demostrar que **no debe continuarse con la retirada
 
 ## PR / BRANCH
 
-- PR draft contra `main`, de la rama `codex/remove-agentation-20260910`, titulada como **BLOQUEADA: Agentation tiene uso activo en desarrollo**. URL en la entrega y en los metadatos de GitHub.
+- [PR draft #55](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/55) contra `main`, de la rama `codex/remove-agentation-20260910`, titulada `[BLOQUEADA] chore(harness): revisar retirada de Agentation con uso activo`.
 - Rama remota respaldada y actualizada por push normal; el commit heredado sigue siendo ancestro. No se rebaseó, fusionó, desplegó ni borró nada.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/remove-agentation-20260910`.
 
