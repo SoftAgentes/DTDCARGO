@@ -37,6 +37,8 @@ correspondientes de `pendingBelowCutoff`, el índice SDD regenerado y este hando
   migraciones 0435–0444 del bloque. `cutoff` permanece en 238.
 - La reconstrucción desde cero que había bloqueado la ronda anterior pasó
   completa en la primera iteración con 0416 presente.
+- Se publicó la rama propia mediante push normal, sin reescritura remota, y se
+  abrió PR draft apilada #50 con base exacta en la rama de PR #47.
 - No se importó ningún archivo `app/**` o `lib/**`, no se tocó PR #21 ni ninguna
   de las otras PR, y no hubo merge, deploy, lectura de filas reales, escritura
   Cloud ni aplicación de migraciones.
@@ -101,15 +103,15 @@ correspondientes de `pendingBelowCutoff`, el índice SDD regenerado y este hando
   `967bb375e488c6fca7fd123ec675a571a0ddcff5`).
 - Dependencia dura: PR #47 se fusiona primero. Esta rama no debe rebasarse sobre
   `main` ni incorporar una copia de 0416.
-- PR draft: se abrirá después de publicar la rama y su URL se fijará en el
-  commit final de este handoff.
+- PR draft: #50, `https://github.com/hailuwaycom-sketch/DTDCARGO/pull/50`.
+- Estado remoto verificado: OPEN, draft, base y head correctos; diff de 33 rutas
+  dentro del allowlist.
 - Fusionar cualquiera de estas PR no autoriza aplicar migraciones a producción.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Ningún pendiente de implementación o validación focal del bloque.
-- Completar la publicación autorizada, abrir la PR draft apilada y fijar aquí su
-  URL final.
+- Ningún pendiente de implementación, validación focal o publicación de esta
+  tarea. Quedan la revisión y el orden de integración a cargo del Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -122,9 +124,9 @@ correspondientes de `pendingBelowCutoff`, el índice SDD regenerado y este hando
 
 ## HANDOFF AL DIRECTOR
 
-El bloque D está reconstruido y validado sobre su única dependencia externa. La
-revisión debe conservar la topología apilada: PR #47 primero y luego esta PR. La
-PR del bloque permanecerá draft y su merge no autoriza ejecutar
+El bloque D está reconstruido y validado sobre su única dependencia externa en
+PR draft #50. La revisión debe conservar la topología apilada: PR #47 primero y
+luego #50. La PR del bloque permanecerá draft y su merge no autoriza ejecutar
 `0435_invoice_document_entity_rbac.sql`,
 `0436_treasury_document_entity_rbac.sql`,
 `0437_accounting_document_entity_rbac.sql`,
