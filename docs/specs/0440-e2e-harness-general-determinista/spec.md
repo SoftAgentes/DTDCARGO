@@ -4,7 +4,7 @@ title: "Harness E2E general determinista en Supabase efímero"
 status: in-progress
 author: "Codex"
 created: 2026-09-05
-updated: 2026-09-09
+updated: 2026-09-10
 supersedes: null
 superseded_by: null
 related: ["0168", "0172", "0243"]
@@ -43,6 +43,11 @@ con tres expectativas de negocio desalineadas.
   la única escritura del seed fuera del tenant de fixture y no lleva respaldo.
 - No se cambian expectativas para aceptar precios históricos: el branch se
   normaliza al contrato vigente que el producto declara como fallback.
+- `esperarHidratado()` conserva como `cause` el fallo original de su condición
+  y lo incluye en el mensaje final. El conteo global de marcadores es un
+  diagnóstico opcional: si la navegación destruye el contexto antes de poder
+  tomarlo, el helper informa esa indisponibilidad sin reemplazar el fallo de
+  hidratación por el error secundario de `page.evaluate()`.
 
 ## Seguridad y datos
 
@@ -74,6 +79,7 @@ demuestran que producción, ref distinto y origen ajeno abortan antes del client
 | MP-01 | no aplica | Los datos son fixtures efímeros y no se modifica su ciclo de retención. |
 | SGE-00 · concurrencia E2E | excepción | Serializar CI y efímero elimina la capacidad de detectar regresiones de paralelismo, y el criterio hospedado pendiente se validará serializado, o sea probando estrictamente menos que la corrida de 16 workers que originó el problema. Aceptado para separar contención de infraestructura del contrato de negocio; recuperar esa cobertura exige una corrida paralela declarada aparte, con `E2E_WORKERS` explícito y su propia autorización de entorno. |
 | SGE-00 · auditoría del seed | cumplimiento | La escritura fuera del tenant de fixture emite su estado previo antes de sobrescribir y aborta si no puede leerlo. |
+| SGE-00 · diagnóstico de hidratación | cumplimiento | El fallo primario de `expect.poll` sobrevive como mensaje y `cause`; una prueba simula la destrucción del contexto durante el conteo y evita que `page.evaluate()` suplante el diagnóstico. |
 
 **Qué deja de cubrirse.** Con un worker no se ejercitan carreras entre pruebas,
 fugas de estado compartido ni contención de Auth/PostgREST: un fallo que sólo
@@ -91,8 +97,11 @@ comentario de `playwright.config.ts`.
 - `scripts/seed-e2e.ts`
 - `scripts/__tests__/playwright-config.test.ts`
 - `scripts/__tests__/sdd-0168-fixture.test.ts`
+- `e2e/_helpers/hidratacion.ts`
+- `scripts/__tests__/hidratacion.test.ts`
 - `e2e/README.md`
 - `.agents/handoffs/pr28-e2e-harness-validation-20260906.md`
+- `.agents/handoffs/d4-hidratacion-diagnostico.md`
 
 Dependencia incorporada por merge, sin autoría en esta unidad: PR #29 publicada
 (`03a7d0c0`, producto `1e31b9a3`, sobre la revisión `17d58fe4`) materializa el
@@ -115,6 +124,12 @@ autorización nominal, preflight de metadatos y ejecutor transaccional único.
 - [x] El seed emite el estado previo de las diez columnas de la calculadora
       pública antes de sobrescribirlas y aborta si no puede leerlo.
 - [x] El guard exige URL canónica completa y rechaza producción/ref/origen/aliases divergentes antes de crear cliente.
+- [x] El error original de hidratación se conserva en el mensaje y como
+      `cause`, incluso si el contexto muere durante el diagnóstico.
+- [x] El conteo de marcadores sigue disponible cuando puede obtenerse y su
+      propio fallo nunca reemplaza al de hidratación.
+- [x] La regresión focal falla sobre el helper original al recibir sólo
+      `Execution context was destroyed` y pasa después del arreglo.
 - [x] Las pruebas unitarias, documentación, gobernanza y TypeScript pasan.
 - [ ] Una corrida hospedada de los 168 E2E confirma el contrato completo.
 
@@ -124,6 +139,8 @@ autorización nominal, preflight de metadatos y ejecutor transaccional único.
 - crear otro branch efímero sin autorización de costo;
 - fusionar las PR #21, #22, #23 o #24;
 - cambiar precios, límites o comportamiento de la calculadora de Producción.
+- ajustar `TIMEOUT_HIDRATACION` o resolver la lentitud de hidratación bajo
+  carga, que son decisiones de rendimiento de producto separadas.
 
 ## Estado
 
@@ -155,3 +172,10 @@ pruebas con workers 8 (local, 22 núcleos), 1 (CI) y 4 (override).
 La corrida hospedada de 168 E2E sigue pendiente de autorización de
 entorno/costo y es requisito para cerrar este SDD. Un verify local con E2E/ledger
 omitidos no sustituye ese criterio.
+
+La ronda del 2026-09-10 corrige únicamente el diagnóstico de
+`esperarHidratado()`: la regresión focal reprodujo primero que un contexto
+destruido ocultaba la condición original y luego pasó 2/2 casos, con y sin
+conteo disponible. No cambió la firma pública, el marcador interno de React ni
+los 20 s de espera. La validación general y sus omisiones quedan registradas en
+el handoff `d4-hidratacion-diagnostico`.
