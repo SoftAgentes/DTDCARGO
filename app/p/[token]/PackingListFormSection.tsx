@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CheckIcon, CloseIcon, DownloadIcon } from "@/components/Icon";
+import { StatusIcon } from "@/components/StatusIcon";
 import { useRouter } from "next/navigation";
 import { printMarkbox } from "@/lib/shared/markbox-chain";
 import { printDocument } from "@/lib/shared/print-document";
@@ -1269,9 +1270,24 @@ export function PackingListFormSection({
           <div role="status" aria-live="polite" className="no-print">
             {(fieldErrors.rows || fieldErrors.contacto || fieldErrors.tooMany) && (
               <ul className="mt-4 list-disc border-l-2 border-status-danger pl-5 text-[12.5px] leading-[1.55] text-ink">
-                {fieldErrors.rows && <li>{fieldErrors.rows}</li>}
-                {fieldErrors.contacto && <li>{fieldErrors.contacto}</li>}
-                {fieldErrors.tooMany && <li>{fieldErrors.tooMany}</li>}
+                {fieldErrors.rows && (
+                  <li>
+                    <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
+                    {fieldErrors.rows}
+                  </li>
+                )}
+                {fieldErrors.contacto && (
+                  <li>
+                    <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
+                    {fieldErrors.contacto}
+                  </li>
+                )}
+                {fieldErrors.tooMany && (
+                  <li>
+                    <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
+                    {fieldErrors.tooMany}
+                  </li>
+                )}
               </ul>
             )}
             {submit.kind === "error" &&
@@ -1279,6 +1295,7 @@ export function PackingListFormSection({
               !fieldErrors.contacto &&
               !fieldErrors.tooMany && (
                 <p className="mt-4 border-l-2 border-status-danger pl-3 text-[12.5px] leading-[1.55] text-ink">
+                  <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
                   {submit.message}
                 </p>
               )}
