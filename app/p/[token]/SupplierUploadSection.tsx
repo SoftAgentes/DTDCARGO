@@ -133,12 +133,9 @@ export function SupplierUploadSection({ token }: { token: string }) {
         className="mt-1.5 text-[12.5px] text-grey-700 leading-[1.55] max-w-[58ch]"
         lang="zh"
       >
-        上传产品照片，以及贵公司的原始单据（商业发票和装箱单原件），以便识别货物并在海关进行归类。如在线填写有问题，也可在此上传填好的 Excel。
+        请选择填写好的 Excel 或产品照片。仅在 DTD 要求时上传其他原始单据。
         <span lang="es" className="block text-grey-500 mt-1">
-          Sube los documentos originales de tu empresa (tu factura comercial y tu
-          packing list originales) y fotos de tus productos, para poder
-          identificarlos y codificarlos en aduana. Si tuviste problemas online,
-          también puedes subir aquí el Excel llenado.
+          Si trabajaste en Excel, súbelo aquí. Puedes adjuntar fotos del producto. Otros documentos originales solo si DTD te los solicita.
         </span>
       </p>
 
@@ -146,7 +143,7 @@ export function SupplierUploadSection({ token }: { token: string }) {
         <label
           htmlFor="supplier-files"
           className="btn btn-ghost cursor-pointer inline-flex items-center gap-2"
-          title="上传发票、装箱单、Excel及产品照片，以便识别货物并进行报关归类。 · Adjunta tu factura, packing list y Excel, y fotos de los productos (para identificarlos y codificarlos en aduana)."
+          title="选择文件 · Elegir Excel o fotos"
         >
           选择文件 · Elegir archivos
           <input

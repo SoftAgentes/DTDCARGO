@@ -1,11 +1,12 @@
 "use client";
 
+import { printDocument } from "@/lib/shared/print-document";
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { ShippingBoxLabel } from "@/app/portal/_components/ShippingBoxLabel";
+import type { LabelPresentation } from "@/lib/shared/label-presentation";
 import { CheckIcon, DownloadIcon } from "@/components/Icon";
 import { CONTACT } from "@/lib/design-tokens";
 import type { BoxLabel } from "@/lib/studio/prealertas/types";
-import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
 import { PackingListFormSection } from "./PackingListFormSection";
 import { SupplierUploadSection } from "./SupplierUploadSection";
 import type { BrandContext } from "@/lib/shared/brand-context";
@@ -29,32 +30,37 @@ const MONO_CJK =
 export function ProviderShareClient({
   token,
   code,
-  description,
   markbox,
-  clientName,
   supplierName,
   supplierWechat,
   labels,
   brand,
+  presentation,
 }: {
   token: string;
   code: string;
-  description: string;
+  description?: string;
   markbox: string;
-  clientName: string | null;
   supplierName: string | null;
   supplierWechat: string | null;
   labels: BoxLabel[];
   /** SDD-0255 · marca con la que se pinta. Obligatoria: sin default silencioso. */
   brand: BrandContext;
+  presentation?: LabelPresentation;
 }) {
   const [copied, setCopied] = useState(false);
+  const [showPrintNotice, setShowPrintNotice] = useState(false);
+  const [printNoticed, setPrintNoticed] = useState(false);
+  function printLabels() {
+    if (!printNoticed) { setShowPrintNotice(true); return; }
+    printDocument("labels");
+  }
 
   const cn = CONTACT.cn;
   const addressText = [
     `收货人 / Destinatario: ${brand.name} - ${printMarkbox(markbox)}`,
     `电话 / Teléfono: ${cn.phone}`,
-    `地址 / Dirección: 浙江省${cn.addressCjk}`,
+    `地址 / Dirección: ${cn.addressCjk}`,
     `邮编 / Código postal: ${cn.postalCode}`,
     `仓库联系人 / Contacto: ${cn.contactPersonCjk}`,
   ].join("\n");
@@ -112,6 +118,10 @@ export function ProviderShareClient({
 
         @media print {
           body * { visibility: hidden !important; }
+          html[data-print-surface="packing-list"] .labels-print-area { display: none !important; }
+          html[data-print-surface="packing-list"] .pl-doc, html[data-print-surface="packing-list"] .pl-doc * { visibility: visible !important; }
+          html[data-print-surface="packing-list"] .pl-doc { position: absolute; left: 0; top: 0; width: 100%; }
+          html:not([data-print-surface="packing-list"]) .pl-full { display: none !important; }
           .labels-print-area, .labels-print-area * { visibility: visible !important; }
           .labels-print-area {
             position: absolute; left: 0; top: 0; width: 100%;
@@ -124,6 +134,16 @@ export function ProviderShareClient({
         }
       `}</style>
 
+      {showPrintNotice && <section role="region" aria-label="Antes de imprimir" className="no-print mx-auto max-w-[680px] p-6 bg-white border border-grey-200 rounded-[16px]">
+        <h2 className="text-lg font-bold text-ink">打印前请核对装箱单 · Antes de imprimir</h2>
+        <p className="mt-3 text-grey-700">请确认箱数和装箱内容。修改后，请核对并重新打印受影响的标签。
+          <span className="block">Revisa que el packing list refleje las cajas que enviarás. Si cambias la distribución o la cantidad, revisa y vuelve a imprimir las etiquetas afectadas. Puedes continuar ahora.</span>
+        </p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button autoFocus type="button" className="btn btn-primary" onClick={() => { setPrintNoticed(true); setShowPrintNotice(false); printDocument("labels"); }}>继续打印 · Continuar e imprimir</button>
+          <a href="#packing-list" className="btn btn-ghost" onClick={() => setShowPrintNotice(false)}>检查装箱单 · Revisar packing list</a>
+        </div>
+      </section>}
       <div className="mx-auto w-full max-w-[680px] px-5 py-10">
         {/* Header */}
         <div className="no-print">
@@ -144,13 +164,36 @@ export function ProviderShareClient({
               {code}
             </span>
             <span className="text-[13px] text-grey-500">
-              {description}
-              {supplierName ? ` · ${supplierName}` : ""}
+              {supplierName}
             </span>
           </div>
 
+          <p className="mt-4 text-sm text-grey-700">填写装箱单 → 打印标签 → 每箱贴一张。
+            <span className="block">Completa el packing list, imprime las etiquetas y pega una en cada caja. Los códigos permiten identificar tu mercancía y registrar su recepción.</span>
+          </p>
+          <nav aria-label="Acciones del proveedor" className="mt-4 flex flex-wrap gap-3">
+            <a href="#packing-list" className="btn btn-primary">填写装箱单 · Completar packing list</a>
+            <button type="button" className="btn btn-ghost" onClick={printLabels}>打印标签 · Imprimir etiquetas</button>
+            <a href="#delivery" className="btn btn-ghost">收货地址 · Ver dirección</a>
+          </nav>
+        </div>
+        {/* (a) PASO 1 — Packing list / factura ONLINE (SDD-0096): llenar + enviar */}
+        <div className="no-print mt-8">
+          <StepEyebrow n={1} zh="第一步" es="Paso 1" />
+        </div>
+        <div id="packing-list" className="pl-full">
+          <PackingListFormSection
+            token={token}
+            supplierName={supplierName}
+            supplierWechat={supplierWechat}
+            markbox={markbox}
+            code={code}
+          />
+        </div>
+
+        <div className="no-print">
           {/* Dirección de la bodega CN */}
-          <section className="mt-7 bg-white border border-grey-200 rounded-[16px] p-6">
+          <section id="delivery" className="mt-7 bg-white border border-grey-200 rounded-[16px] p-6">
             <div className="text-[15px] font-bold text-ink" lang="zh">
               收货地址{" "}
               <span lang="es" className="text-grey-500 font-semibold">
@@ -202,7 +245,7 @@ export function ProviderShareClient({
               </div>
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={printLabels}
                 className="btn btn-primary inline-flex items-center gap-2 flex-shrink-0"
               >
                 打印标签 · Imprimir etiquetas <DownloadIcon size={15} />
@@ -214,40 +257,24 @@ export function ProviderShareClient({
         {/* Grilla de etiquetas (pantalla + impresión) */}
         <div className="labels-print-area mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
           {labels.map((l) => (
-            <LabelCard
+            <ShippingBoxLabel
               key={l.boxN}
               label={l}
-              clientName={clientName ?? printMarkbox(markbox)}
               markbox={markbox}
-              brand={brand}
+              brandName={brand.name}
+              presentation={presentation}
             />
           ))}
         </div>
 
-        {/* (a) PASO 1 — Packing list / factura ONLINE (SDD-0096): llenar + enviar */}
-        <div className="no-print mt-8">
-          <StepEyebrow n={1} zh="第一步" es="Paso 1" />
-        </div>
-        <div className="pl-full">
-          <PackingListFormSection
-            token={token}
-            supplierName={supplierName}
-            supplierWechat={supplierWechat}
-            markbox={markbox}
-            clientName={clientName}
-          />
-        </div>
-
         {/* (b) PASO 2 — Fallback: descargar el Excel pre-llenado (GET, se mantiene).
             Secundario respecto al online → título con menos peso + botón ghost. */}
-        <div className="no-print mt-8">
-          <StepEyebrow n={2} zh="第二步" es="Paso 2" />
-        </div>
+
         <section className="no-print mt-3 bg-white border border-grey-200 rounded-[16px] p-6">
           <div className="text-[14px] font-bold text-grey-700" lang="zh">
             下载 Excel{" "}
             <span lang="es" className="text-grey-500 font-semibold">
-              · Descargar el Excel
+              · Alternativa: trabajar en Excel
             </span>
           </div>
           <p
@@ -270,9 +297,7 @@ export function ProviderShareClient({
         </section>
 
         {/* (c) PASO 3 — Subir fotos del producto + Excel llenado + otros documentos */}
-        <div className="no-print mt-8">
-          <StepEyebrow n={3} zh="第三步" es="Paso 3" />
-        </div>
+
         <SupplierUploadSection token={token} />
       </div>
     </div>
@@ -297,81 +322,6 @@ function StepEyebrow({ n, zh, es }: { n: number; zh: string; es: string }) {
         {zh}
         <span lang="es"> · {es}</span>
       </span>
-    </div>
-  );
-}
-
-function LabelCard({
-  label,
-  clientName,
-  markbox,
-  brand,
-}: {
-  label: BoxLabel;
-  clientName: string;
-  markbox: string;
-  brand: BrandContext;
-}) {
-  // SDD-0153: QR real → /verificar. Con la caja pre-declarada lleva su DTD-B en
-  // `&b=` (escaneable por caja al recibir/estibar); si no, solo el Shipping Mark.
-  const verifyUrl = labelVerifyUrl(
-    markbox,
-    label.boxN,
-    label.totalBoxes,
-    label.boxCode,
-  );
-  return (
-    <div
-      className="label-card bg-white border rounded-[10px] p-4 text-center"
-      style={{ borderColor: "var(--color-grey-300)" }}
-    >
-      <div
-        className="text-[8px] font-bold tracking-[0.14em] uppercase"
-        style={{ color: "var(--color-grey-500)" }}
-      >
-        Shipping to {brand.name}
-      </div>
-      <div className="mx-auto my-3 grid place-items-center" style={{ width: 56, height: 56 }}>
-        <QRCodeSVG
-          value={verifyUrl}
-          size={56}
-          fgColor="#0F1E3D"
-          bgColor="#ffffff"
-          level="M"
-          aria-label={
-            label.boxCode
-              ? `扫描箱子 Escanear caja ${label.boxCode}`
-              : `Verificar ${printMarkbox(markbox)}`
-          }
-        />
-      </div>
-      <div
-        className="text-[12px] font-bold"
-        style={{ color: "var(--color-ink)", fontFamily: MONO }}
-      >
-        {label.code}
-      </div>
-      <div
-        className="mt-1 text-[9px] font-bold leading-tight"
-        style={{ color: "var(--color-wine)", fontFamily: MONO_CJK }}
-      >
-        第 {label.boxN}/{label.totalBoxes} 箱 · Caja {label.boxN}/{label.totalBoxes}
-      </div>
-      {/* SDD-0153: el código único de la caja, legible por si el QR falla. */}
-      {label.boxCode && (
-        <div
-          className="mt-1 text-[8.5px] font-bold tracking-[0.04em]"
-          style={{ color: "var(--color-grey-700)", fontFamily: MONO }}
-        >
-          {label.boxCode}
-        </div>
-      )}
-      <div
-        className="mt-1 text-[8px] truncate"
-        style={{ color: "var(--color-grey-700)" }}
-      >
-        {clientName}
-      </div>
     </div>
   );
 }

@@ -45,6 +45,8 @@ export type ReceptionLookup = {
   clientMarkbox: string;
   clientName: string | null;
   supplierName: string | null;
+  pendingCodes: string[];
+  services: { code: string; status: string }[];
   expected: number; // cuántas esperadas siguen sin recibir en esa compra
 };
 
@@ -125,14 +127,15 @@ export async function lookupForReceptionAction(
     : { data: null };
 
   // Cuántas esperadas siguen sin recibir en esa compra.
-  const { count: expected } = await admin
-    .from("warehouse_boxes")
-    .select("id", { count: "exact", head: true })
-    .eq("prealerta_id", box.prealerta_id)
-    .eq("status", "esperada")
-    .is("receipt_id", null)
-    .is("deleted_at", null);
+  const [{ data: pending, count: pendingCount, error: pendingError }, { data: services, error: servicesError }] = await Promise.all([
+    admin.from("warehouse_boxes").select("code", { count: "exact" }).eq("tenant_id", auth.session.tenant_id)
+      .eq("prealerta_id", box.prealerta_id).eq("status", "esperada").is("receipt_id", null).is("deleted_at", null).order("seq").limit(1000),
+    admin.from("prealerta_service_requests").select("addon_code,status").eq("tenant_id", auth.session.tenant_id)
+      .eq("prealerta_id", box.prealerta_id).in("status", ["solicitada", "en_proceso"]).is("deleted_at", null),
+  ]);
+  if (pendingError || servicesError) return { found: false, error: "No se pudieron consultar las cajas y servicios. Intenta otra vez." };
 
+  if ((pendingCount ?? 0) > (pending?.length ?? 0)) return { found: false, error: "Este lote supera 1000 cajas. Solicita recepción asistida al equipo de operaciones." };
   return {
     found: true,
     alreadyReceived: box.status === "recibida",
@@ -142,7 +145,9 @@ export async function lookupForReceptionAction(
     // PRIVACIDAD (hallazgo H-7): solo Shipping Mark, nunca el nombre real.
     clientName: null,
     supplierName: supplier?.name ?? null,
-    expected: expected ?? 0,
+    pendingCodes: (pending ?? []).map(b => b.code as string),
+    expected: pending?.length ?? 0,
+    services: (services ?? []).map(s => ({ code: s.addon_code as string, status: s.status as string })),
   };
 }
 
@@ -163,7 +168,7 @@ export type ReceiveState = {
 
 export async function receivePrealertaAction(
   code: string,
-  boxesConfirmed: number | null,
+  boxCodes: string[],
 ): Promise<ReceiveState> {
   const auth = await requireCnOperario();
   if ("error" in auth) return { error: auth.error };
@@ -172,24 +177,20 @@ export async function receivePrealertaAction(
   if (!isBoxCode(trimmed)) {
     return { error: "Código de caja inválido." };
   }
-  // El conteo rectificado, si vino, tiene que ser un entero ≥ 1.
-  let confirmed: number | null = null;
-  if (boxesConfirmed != null) {
-    if (!Number.isInteger(boxesConfirmed) || boxesConfirmed < 1) {
-      return { error: "La cantidad tiene que ser un número entero de 1 o más." };
-    }
-    confirmed = boxesConfirmed;
+  if (!Array.isArray(boxCodes) || boxCodes.length < 1 || boxCodes.length > 5000 ||
+      boxCodes.some(code => typeof code !== "string" || !isBoxCode(code))) {
+    return { error: "Selecciona las cajas presentes." };
   }
 
   const admin = createAdminClient();
-  const { data, error } = await admin.rpc("receive_prealerta_as_operario", {
+  const { data, error } = await admin.rpc("receive_prealerta_boxes_as_operario", {
     p_operario_id: auth.session.operario_id,
     p_code: trimmed,
-    p_boxes_confirmed: confirmed,
+    p_box_codes: boxCodes,
   });
 
   if (error) {
-    return { error: humanizeReceiveError(error.message) };
+    return { error: humanizeReceiveError(error.code + " " + error.message) };
   }
 
   const res = (data ?? {}) as {
@@ -273,6 +274,8 @@ function humanizeReceiveError(msg: string): string {
   if (msg.includes("P0132"))
     return "Esa etiqueta no viene de una compra anunciada.";
   if (msg.includes("P0133")) return "La compra de esa caja no está activa.";
+  if (msg.includes("P0136")) return "Selecciona las cajas presentes, incluida la escaneada.";
+  if (msg.includes("P0137")) return "Las cajas cambiaron o ya fueron recibidas. Escanea de nuevo para actualizar.";
   if (msg.includes("P0134")) return "No hay cajas para recibir en esa compra.";
   return "No se pudo recibir. Intenta de nuevo.";
 }

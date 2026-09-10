@@ -118,6 +118,7 @@ interface AdminSection {
 }
 
 const SECTIONS: AdminSection[] = [
+  { id: "shipping-labels", group: "BÁSICO", label: "Edición de etiquetas", icon: "tag", description: "Vista previa e impresión por código, con presentación versionada.", href: "/studio/admin/etiquetas" },
   // ─── BÁSICO ──────────────────────────────────────────────
   {
     id: "company",

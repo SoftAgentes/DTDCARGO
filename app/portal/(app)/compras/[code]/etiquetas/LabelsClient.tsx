@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { QRCodeSVG } from "qrcode.react";
+import { ShippingBoxLabel } from "@/app/portal/_components/ShippingBoxLabel";
+import type { LabelPresentation } from "@/lib/shared/label-presentation";
 import { ArrowIcon, CheckIcon, DownloadIcon } from "@/components/Icon";
 import type { BoxLabel } from "@/lib/studio/prealertas/types";
-import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
 import type { BrandContext } from "@/lib/shared/brand-context";
-import { printMarkbox } from "@/lib/shared/markbox-chain";
 
 /**
  * Vista de etiquetas imprimibles de una compra (SDD-0057 · Slice B · V1).
@@ -26,11 +25,11 @@ import { printMarkbox } from "@/lib/shared/markbox-chain";
 export function LabelsClient({
   code,
   markbox,
-  clientName,
   supplierName,
   description,
   labels,
   brand,
+  presentation,
 }: {
   code: string;
   markbox: string;
@@ -40,6 +39,7 @@ export function LabelsClient({
   labels: BoxLabel[];
   /** SDD-0255 · marca con la que se pinta. Obligatoria: sin default silencioso. */
   brand: BrandContext;
+  presentation?: LabelPresentation;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -132,95 +132,14 @@ export function LabelsClient({
       {/* Grilla de etiquetas (vista pantalla + área de impresión) */}
       <div className="labels-print-area mt-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
         {labels.map((l, i) => (
-          <LabelCard
+          <ShippingBoxLabel
             key={l.boxCode ?? `${l.code}-${l.boxN}-${i}`}
             label={l}
             markbox={markbox}
-            brand={brand}
-            clientName={clientName}
+            brandName={brand.name}
+            presentation={presentation}
           />
         ))}
-      </div>
-    </div>
-  );
-}
-
-const MONO = "var(--font-jetbrains-mono), ui-monospace, monospace";
-
-function LabelCard({
-  label,
-  markbox,
-  clientName,
-  brand,
-}: {
-  label: BoxLabel;
-  markbox: string;
-  clientName: string;
-  brand: BrandContext;
-}) {
-  // QR real → /verificar. Con caja pre-declarada lleva su DTD-B en `&b=`.
-  const verifyUrl = labelVerifyUrl(
-    markbox,
-    label.boxN,
-    label.totalBoxes,
-    label.boxCode,
-  );
-  return (
-    <div
-      className="label-card bg-white border rounded-[10px] p-4 text-center"
-      style={{ borderColor: "var(--color-grey-300)" }}
-    >
-      <div
-        className="text-[8px] font-bold tracking-[0.14em] uppercase"
-        style={{ color: "var(--color-grey-500)" }}
-      >
-        Shipping to {brand.name}
-      </div>
-
-      <div
-        className="mx-auto my-3 grid place-items-center"
-        style={{ width: 56, height: 56 }}
-      >
-        <QRCodeSVG
-          value={verifyUrl}
-          size={56}
-          fgColor="#0F1E3D"
-          bgColor="#ffffff"
-          level="M"
-          aria-label={
-            label.boxCode
-              ? `Escanear caja ${label.boxCode}`
-              : `Verificar ${printMarkbox(markbox)}`
-          }
-        />
-      </div>
-
-      <div
-        className="text-[12px] font-bold"
-        style={{ color: "var(--color-ink)", fontFamily: MONO }}
-      >
-        {label.code}
-      </div>
-      <div
-        className="mt-1 text-[10px] font-bold"
-        style={{ color: "var(--color-wine)", fontFamily: MONO }}
-      >
-        Caja {label.boxN} / {label.totalBoxes}
-      </div>
-      {/* SDD-0153: el código único de la caja, legible por si el QR falla. */}
-      {label.boxCode && (
-        <div
-          className="mt-1 text-[8.5px] font-bold tracking-[0.04em]"
-          style={{ color: "var(--color-grey-700)", fontFamily: MONO }}
-        >
-          {label.boxCode}
-        </div>
-      )}
-      <div
-        className="mt-1 text-[8px] truncate"
-        style={{ color: "var(--color-grey-700)" }}
-      >
-        {clientName}
       </div>
     </div>
   );

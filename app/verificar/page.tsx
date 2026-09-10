@@ -192,9 +192,10 @@ function Campo({ label, valor }: { label: string; valor: string }) {
 export default async function VerificarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ c?: string }>;
+  searchParams: Promise<{ c?: string; b?: string }>;
 }) {
-  const { c } = await searchParams;
+  const { c, b } = await searchParams;
+  const boxCode = typeof b === "string" && /^DTD-B-\d{6,}$/.test(b) ? b : null;
   const mark = normMark(c);
   // Un folio de diploma (DTD-AC-YYYY-NNNN) toma la rama de diploma; cualquier otro
   // código se trata como Shipping Mark de carga (flujo SDD-0097 original).
@@ -331,6 +332,11 @@ export default async function VerificarPage({
               </div>
             )}
 
+            {!folioMode && boxCode && <section className="mt-6 rounded-lg border border-grey-200 p-5">
+              <p className="text-ink font-bold">箱号 · Caja {boxCode}</p>
+              <p className="mt-2 text-grey-700">仓库人员请登录接收。 · El personal de almacén puede registrar la recepción con su sesión.</p>
+              <Link href={`/m/cn/recibir?box=${encodeURIComponent(boxCode)}`} className="btn btn-primary mt-4">仓库接收 · Recibir en almacén</Link>
+            </section>}
             {/* ─── Carga verificada ─── */}
             {verified && (
               <div className="mt-6">
