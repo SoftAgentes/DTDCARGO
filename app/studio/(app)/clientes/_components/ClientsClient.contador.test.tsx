@@ -56,6 +56,11 @@ function cliente(i: number): Client {
 
 const FILTROS_VACIOS: ClientFilters = { tier: "all", limite: 200 };
 
+// El contador usa las filas recibidas; limite y topeAlcanzado vienen del servidor.
+// Dos filas distinguen el plural y clients.length de total/limite; una basta
+// para navegar o mostrar el techo. El remanente usa 201 para detectar un contador
+// recortado al primer bloque. Conservamos los límites reales (200/400/1000)
+// sin convertir estos contratos de UI en una prueba de carga de la tabla.
 function renderLista(over: {
   cuantos?: number;
   total?: number;
@@ -63,7 +68,7 @@ function renderLista(over: {
   topeAlcanzado?: boolean;
   filters?: ClientFilters;
 }) {
-  const cuantos = over.cuantos ?? 200;
+  const cuantos = over.cuantos ?? 2;
   return render(
     <ClientsClient
       clients={Array.from({ length: cuantos }, (_, i) => cliente(i))}
@@ -84,21 +89,21 @@ afterEach(cleanup);
 
 describe("ClientsClient · el tope deja de ser invisible (SDD-0265)", () => {
   it("dice cuántos se ven y cuántos hay", () => {
-    renderLista({ cuantos: 200, total: 451 });
+    renderLista({ cuantos: 2, total: 451 });
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Mostrando 200 de 451 clientes",
+      "Mostrando 2 de 451 clientes",
     );
   });
 
   it("cuando entran todos no habla de topes ni ofrece traer más", () => {
-    renderLista({ cuantos: 12, total: 12 });
-    expect(screen.getByRole("status")).toHaveTextContent("12 clientes");
+    renderLista({ cuantos: 2, total: 2 });
+    expect(screen.getByRole("status")).toHaveTextContent("2 clientes");
     expect(screen.queryByRole("button", { name: /Ver .* más/ })).not.toBeInTheDocument();
   });
 
   it("el botón anuncia cuántos faltan de verdad, no un bloque redondo", () => {
-    // 451 - 400 = 51, no 200.
-    renderLista({ cuantos: 400, total: 451, limite: 400 });
+    // 252 - 201 = 51: supera el primer bloque y cuenta lo recibido, no el limite.
+    renderLista({ cuantos: 201, total: 252, limite: 400 });
     expect(screen.getByRole("button", { name: "Ver 51 más" })).toBeVisible();
   });
 
@@ -106,7 +111,7 @@ describe("ClientsClient · el tope deja de ser invisible (SDD-0265)", () => {
     mocks.params = new URLSearchParams("q=perez&tier=vip");
     const user = userEvent.setup();
     renderLista({
-      cuantos: 200,
+      cuantos: 1,
       total: 451,
       filters: { tier: "vip", q: "perez", limite: 200 },
     });
@@ -124,7 +129,7 @@ describe("ClientsClient · el tope deja de ser invisible (SDD-0265)", () => {
 
   it("no ofrece pasar del techo de PostgREST: lo dice y manda a buscar", () => {
     renderLista({
-      cuantos: 1000,
+      cuantos: 1,
       total: 4200,
       limite: 1000,
       topeAlcanzado: true,
@@ -136,12 +141,12 @@ describe("ClientsClient · el tope deja de ser invisible (SDD-0265)", () => {
 
   it("con filtros activos aclara que el total es el de la búsqueda", () => {
     renderLista({
-      cuantos: 200,
+      cuantos: 2,
       total: 300,
       filters: { tier: "vip", limite: 200 },
     });
     expect(screen.getByRole("status")).toHaveTextContent(
-      "Mostrando 200 de 300 clientes que coinciden con los filtros",
+      "Mostrando 2 de 300 clientes que coinciden con los filtros",
     );
   });
 });
