@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 390 specs)
+### Índice de specs (generado · 391 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -425,9 +425,10 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0437 | Observabilidad estructurada en el motor de reglas de correo | done | interno |
 | 0440 | Harness E2E general determinista en Supabase efímero | in-progress | interna |
 | 0441 | Colores semánticos de marca y avisos de calculadora | in-progress | interna |
+| 0442 | Portal del cliente - claridad de botones y mensajes | in-progress | interna |
 | 0444 | Harness Codex con Director, Workers y PR como frontera | done | interno |
 | 0448 | Replay del estado final de 0222/0223 en calculator_settings | in-progress | interno |
 | 0449 | Observabilidad estructurada en acciones de Usuarios | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357, 0358, 0359, 0361, 0362, 0363, 0364, 0365, 0366, 0368, 0372, 0375, 0377, 0380, 0381, 0382, 0385, 0400, 0401, 0402, 0403, 0404, 0405, 0406, 0407, 0408, 0409, 0410, 0411, 0412, 0435, 0438, 0439, 0442, 0443, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357, 0358, 0359, 0361, 0362, 0363, 0364, 0365, 0366, 0368, 0372, 0375, 0377, 0380, 0381, 0382, 0385, 0400, 0401, 0402, 0403, 0404, 0405, 0406, 0407, 0408, 0409, 0410, 0411, 0412, 0435, 0438, 0439, 0443, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

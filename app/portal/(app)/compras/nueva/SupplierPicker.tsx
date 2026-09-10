@@ -662,10 +662,10 @@ export function SupplierPicker({
               setSupplierQuery("");
               setSupplierOpen(true);
             }}
-            className="flex-shrink-0 text-[12px] font-semibold"
+            className="btn btn-ghost min-h-12 shrink-0 whitespace-normal text-xs font-semibold"
             style={{ color: "var(--color-wine-text)" }}
           >
-            Cambiar
+            Cambiar proveedor
           </button>
         </div>
       )}
@@ -737,7 +737,7 @@ export function SupplierPicker({
               disabled={newSupplierPending}
               className="btn btn-ghost disabled:opacity-60"
             >
-              Cambiar
+              Cambiar proveedor
             </button>
           </div>
         </div>
