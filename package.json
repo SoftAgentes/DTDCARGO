@@ -41,7 +41,7 @@
     "marketing:reader": "node scripts/build-marketing-reader.mjs",
     "verify": "node scripts/verify.mjs",
     "harness:status": "node scripts/director-status.mjs",
-    "harness:test": "node --test scripts/tests/director-status.node.mjs scripts/tests/harness-worktree.node.mjs scripts/tests/next-number.integration.node.mjs"
+    "harness:test": "node --test scripts/tests/director-status.node.mjs scripts/tests/harness-worktree.node.mjs scripts/tests/next-number.integration.node.mjs scripts/tests/verify-critical-coverage.node.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
