@@ -1,0 +1,152 @@
+{
+  "startedAt": "2026-09-10T20:05:03.217Z",
+  "containerId": "ddc222aa5272701f9671692488465e54b85eaea46b3ae666f0198f4f20694e1a",
+  "target": "127.0.0.1:8000 inside existing Kong",
+  "listeners": [
+    {
+      "host": "127.0.0.1",
+      "port": 55431
+    },
+    {
+      "host": "::1",
+      "port": 55431
+    }
+  ],
+  "requests": [
+    {
+      "at": "2026-09-10T20:05:08.327Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:53857",
+      "requestedHeaders": null,
+      "clientPid": 17096,
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:05:18.289Z"
+    },
+    {
+      "at": "2026-09-10T20:05:18.877Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:53857",
+      "requestedHeaders": null,
+      "clientPid": 7620,
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:05:28.910Z"
+    },
+    {
+      "at": "2026-09-10T20:05:29.457Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://localhost:53857",
+      "requestedHeaders": null,
+      "clientPid": 9516,
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:05:39.685Z"
+    },
+    {
+      "at": "2026-09-10T20:05:39.809Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://localhost:53857",
+      "requestedHeaders": null,
+      "clientPid": 35816,
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:05:49.909Z"
+    },
+    {
+      "at": "2026-09-10T20:05:52.600Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://127.0.0.1:53857",
+      "requestedHeaders": null,
+      "clientPid": 38700,
+      "transportExit": 0,
+      "closedAt": "2026-09-10T20:06:02.071Z"
+    },
+    {
+      "at": "2026-09-10T20:06:03.204Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://127.0.0.1:53857",
+      "requestedHeaders": null,
+      "clientPid": 6500,
+      "transportExit": 0,
+      "closedAt": "2026-09-10T20:06:07.163Z"
+    },
+    {
+      "at": "2026-09-10T20:06:07.297Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://127.0.0.1:53857",
+      "requestedHeaders": null,
+      "clientPid": 8124,
+      "transportExit": 0,
+      "closedAt": "2026-09-10T20:06:10.582Z"
+    },
+    {
+      "at": "2026-09-10T20:06:10.684Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "localhost:55431",
+      "origin": "http://127.0.0.1:53857",
+      "requestedHeaders": null,
+      "clientPid": 12072,
+      "transportExit": 0,
+      "closedAt": "2026-09-10T20:06:13.953Z"
+    },
+    {
+      "at": "2026-09-10T20:06:16.639Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:53857",
+      "requestedHeaders": "apikey",
+      "clientPid": 45480,
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:06:19.814Z"
+    },
+    {
+      "at": "2026-09-10T20:06:19.804Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:53857",
+      "requestedHeaders": null,
+      "clientPid": 46852,
+      "transportExit": 0,
+      "closedAt": "2026-09-10T20:06:23.108Z"
+    },
+    {
+      "at": "2026-09-10T20:06:23.493Z",
+      "method": "OPTIONS",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:53857",
+      "requestedHeaders": "apikey,authorization,x-client-info,x-supabase-api-version",
+      "clientPid": 34496,
+      "transportExit": null,
+      "closedAt": "2026-09-10T20:06:26.696Z"
+    },
+    {
+      "at": "2026-09-10T20:06:26.687Z",
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "host": "127.0.0.1:55431",
+      "origin": "http://localhost:53857",
+      "requestedHeaders": null,
+      "clientPid": 23400,
+      "transportExit": 0,
+      "closedAt": "2026-09-10T20:06:29.954Z"
+    }
+  ],
+  "changesToServices": false,
+  "finishedAt": "2026-09-10T20:06:30.129Z",
+  "remainingOwnedConnections": 0
+}

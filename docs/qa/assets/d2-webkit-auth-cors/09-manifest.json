@@ -1,0 +1,75 @@
+{
+  "at": "2026-09-10T20:16:03.736Z",
+  "base": "710a8e0695f416700d75e7bc42e8e5cb889751e8",
+  "artifactChecks": "PASÓ",
+  "matrixCases": 56,
+  "controls": 12,
+  "probeSha256": "e122006e58b6498341225e31f9dafa1591e29c2cf9d014c76f76cd15c009a102",
+  "artifacts": [
+    {
+      "name": "01-matrix-no-listener.json",
+      "bytes": 51967,
+      "sha256": "4e0f80ed92a366b7f131d20affe6adc902f09905496c3796f0aa6223ee51a95e",
+      "classification": "DISCARDED preliminary instrument; not CORS evidence"
+    },
+    {
+      "name": "02-local-transport.json",
+      "bytes": 4258,
+      "sha256": "e6f8d0dc61ff2123d4f001fbd753253f5a5cf8033c53c48962ce679ae83f535a",
+      "classification": "DISCARDED preliminary instrument; not CORS evidence"
+    },
+    {
+      "name": "02-matrix-diagnostic-transport.json",
+      "bytes": 28400,
+      "sha256": "050cd42f78513b842b980cb89ffc2d93e9bafefb9ec9c6ed0dd5425559405914",
+      "classification": "DISCARDED preliminary instrument; not CORS evidence"
+    },
+    {
+      "name": "03-historical-evidence.json",
+      "bytes": 19690,
+      "sha256": "6bdcfcdaeba5550dabd6f7cdb9d7a661d71ddc45acf068adbe7ae3e33ac41fc9",
+      "classification": "accepted evidence, scope in report"
+    },
+    {
+      "name": "04-matrix-native-direct.json",
+      "bytes": 54489,
+      "sha256": "3ae6bb7bf511f0d19e317592fd2022f7c4ac236f5ed4f502b38343424f156c37",
+      "classification": "accepted evidence, scope in report"
+    },
+    {
+      "name": "05-local-transport.json",
+      "bytes": 21059,
+      "sha256": "a92cd934a14d1364d7fcbc519d6688e3b7e248779879e8297edd8bbcbc7dc421",
+      "classification": "accepted evidence, scope in report"
+    },
+    {
+      "name": "05-matrix-native-diagnostic-transport.json",
+      "bytes": 55610,
+      "sha256": "29ab725ed60bf9384dd847257772b3f8044c8e1bfd3afdd51a84685970e79f80",
+      "classification": "accepted evidence, scope in report"
+    },
+    {
+      "name": "06-postflight.json",
+      "bytes": 1260,
+      "sha256": "9ca1624b163474e300c4f14abcfe3ecb2c8db57c77bb1dafd4a361cd2a270e03",
+      "classification": "accepted evidence, scope in report"
+    },
+    {
+      "name": "07-real-preflight-headers.json",
+      "bytes": 2957,
+      "sha256": "aaefb05fabfcccb1b48801a528d9b2a49c0db7d383a303504f991c4394311f9d",
+      "classification": "accepted evidence, scope in report"
+    },
+    {
+      "name": "08-verify-output.txt",
+      "bytes": 34319,
+      "sha256": "0ac44cfa474e4cdbdd41cb09633f7b381f3a93c08b471467a622fd4947399d55",
+      "classification": "accepted evidence, scope in report"
+    }
+  ],
+  "verifyOriginal": {
+    "path": "C:/Users/AKX generator/AppData/Local/Temp/d2-verify-20260910.log",
+    "sha256": "ca79dd9b160cb80f79e7bbf69c143d583e97292b8cad2c802c4a6d6eeac16cf2",
+    "note": "Tracked verify output only normalizes EOL and whitespace for diff --check; matrix JSON is unmodified."
+  }
+}
