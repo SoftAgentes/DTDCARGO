@@ -3,14 +3,14 @@
 - Fecha: 2026-09-11
 - Owner / sesión: Worker Claude Code, claim `claude-d18bce87-6770-4e8e-a576-63018623eb68` (se libera al cerrar)
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/merge-driver-symbol-declarations`
-- Rama: `codex/merge-driver-symbol-declarations`, sin upstream
-- Base verificada: `07d000970011ee12364e31124ebe4b301f064b40` (`origin/main` después de `git fetch origin`)
-- Estado de tarea: lista-para-revision, sin publicar (falta autorización de Sam)
+- Rama: `codex/merge-driver-symbol-declarations`, publicada en `origin` con upstream
+- Base verificada: `07d000970011ee12364e31124ebe4b301f064b40` (`origin/main` después de `git fetch origin`); al publicar, `main` estaba en `bbc7493f`, sin cambios en estos archivos
+- Estado de tarea: lista-para-revision; PR draft [#88](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/88)
 - SDD: no aplica; enmienda de ADR-0002 (ver «Decisión de SDD»)
 - Dependencias: ninguna para integrar. Consumidores: integración serial de #75, #76, #77, #78, #82 y #83.
-- Permisos del encargo: commits locales. Publicar la rama y abrir PR draft solo con autorización de Sam. Sin merge, deploy ni producción.
-- Último resultado: implementación, pruebas, ensayo y cierre documental completos.
-- Siguiente paso: autorización de Sam para publicar la rama y abrir la PR draft; después, revisión del Director.
+- Permisos del encargo: commits locales; Sam autorizó el 2026-09-11 publicar la rama y abrir la PR draft. Sin merge, deploy ni producción.
+- Último resultado: implementación, pruebas, ensayo, cierre documental y publicación completos.
+- Siguiente paso: revisión del Director de #88 y del CI hospedado.
 
 ## Decisión de SDD
 
@@ -176,29 +176,34 @@ Observado sobre la base `07d00097` y los commits `40721b4d`, `2fd726fe` y `8ee7a
 | `corepack pnpm install --frozen-lockfile` | PASÓ: lockfile sin cambios; aviso preexistente de `pnpm.onlyBuiltDependencies` |
 | Ensayo de merge en repo temporal | PASÓ para el driver: A reproduce el choque en 5 de 6 PR; B y B' unen las seis con exit 0 y declaraciones idénticas; C respeta el retiro. El gate sobre la unión da exit 2 por un ancla de L03 que ajusta la PR (fuera de alcance 2); D confirma la interacción del baseline (fuera de alcance 1). |
 | `corepack pnpm verify` | NO EJECUTADO: cambio solo de harness (driver, su prueba, `.gitattributes` y ADR). No toca código de producto, SQL, dependencias ni entradas del build; typecheck, Vitest, E2E, build, rebuild de schema y `migrations-applied` no ejercitan este diff. |
-| CI hospedado `Calidad local sin secretos` | NO DISPONIBLE: la rama no está publicada. Cuando se publique, su paso `pnpm harness:test` descubre `merge-generated-records.node.mjs` y corre los nueve casos nuevos. |
+| CI hospedado de #88 | NO DISPONIBLE al cerrar el handoff: la corrida estaba en curso (1 check pasando, 2 pendientes). El resultado vive en la PR; el paso `pnpm harness:test` del workflow descubre `merge-generated-records.node.mjs` y corre los nueve casos nuevos. |
 
 ## COMMITS
 
 - `40721b4d` — `chore(harness): driver dtd-generated-records une declaraciones de símbolos pendientes`
   (driver, pruebas, `.gitattributes` y enmienda de ADR-0002).
 - `2fd726fe` — `docs(harness): ADR-0002 precisa la interacción con el baseline según el ensayo`.
+- `f2fd88ed` — `docs(handoff): cerrar merge-driver-symbol-declarations con ensayo y evidencia`.
 - `8ee7a475` — `chore(harness): prueba el conflicto por dos ediciones distintas de una declaración`.
-- Commit que contiene este documento: handoff de la tarea.
+- `56da11c2` — `docs(handoff): registrar la prueba de dos ediciones distintas en merge-driver-symbol-declarations`.
+- Commit que contiene esta versión del documento: PR #88 y evidencia de 0409.
 
 ## PR / BRANCH
 
-- Rama local `codex/merge-driver-symbol-declarations`, base `main` en `07d00097`,
+- Rama `codex/merge-driver-symbol-declarations`, base `main` en `07d00097`,
   worktree indicado arriba.
-- Sin publicar: no hay rama remota ni PR. Con autorización de Sam:
-  `git push -u origin codex/merge-driver-symbol-declarations:codex/merge-driver-symbol-declarations`
-  y `gh pr create --base main --head codex/merge-driver-symbol-declarations --draft`.
+- Publicada con autorización de Sam, sin force:
+  `git push -u origin codex/merge-driver-symbol-declarations:codex/merge-driver-symbol-declarations`.
+- PR draft [#88](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/88), base `main`, head
+  `56da11c2` al abrirla. GitHub la reportó `MERGEABLE` y `BEHIND`: `main` avanzó a
+  `bbc7493f` (#85, #81, #74, #73, #72, #70) sin tocar estos archivos. CI al abrirla:
+  1 check pasando y 2 pendientes.
 - Merge y deploy: no autorizados, no ejecutados.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Publicar la rama y abrir la PR draft cuando Sam lo autorice. Hasta entonces no
-  hay respaldo remoto ni corrida de CI hospedada.
+- Confirmar el CI hospedado de #88, en curso al cerrar. Si falla, la corrección
+  va en esta misma rama.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -210,10 +215,15 @@ Observado sobre la base `07d00097` y los commits `40721b4d`, `2fd726fe` y `8ee7a
    ROJO `delete_portal_delivery_address`. Sin código alcanzable que use los
    símbolos, ese gate no lo vería. `check-migrations-applied` tampoco: imprime
    cada espera como «sin aplicar A PROPÓSITO» sin cruzarla con el ledger
-   (`scripts/check-migrations-applied.mjs:351-355`). Afecta a cualquier registro
-   que retire una espera ya presente en main mientras otra rama que toca el
-   baseline se integra localmente. Requiere decisión del Director sobre esa
-   regla; aquí no se cambió.
+   (`scripts/check-migrations-applied.mjs:351-355`).
+   **Ya ocurre:** #85 retiró `0409_bank_reconciliation_rbac` de main
+   (`bbc7493f`). Al actualizar #75 con ese main en un clon configurado, 0409
+   vuelve a `pendingBelowCutoff` sin conflicto. Como 0409 no crea funciones,
+   tablas, vistas ni columnas, el gate queda en `0 ROJO · 1 AMARILLO` y ningún
+   control lo detecta. Afecta a toda rama que parta de antes de un registro así,
+   haya tocado el baseline y se actualice con `git merge origin/main` en un clon
+   configurado, y a los merges locales del Director. Requiere decisión del
+   Director sobre esa regla; aquí no se cambió.
 2. **Ancla por línea compartida entre #76 y #83.** Ambas editan
    `app/portal/(app)/page.tsx`. Con las dos integradas, la evidencia de L03
    `app/portal/(app)/page.tsx:123` (`getPortalAdvisor(supabase).catch(() => null)`)
@@ -228,14 +238,16 @@ Observado sobre la base `07d00097` y los commits `40721b4d`, `2fd726fe` y `8ee7a
 
 ## HANDOFF AL DIRECTOR
 
-1. Revisa las decisiones visibles: edición unilateral three-way, encabezado
-   estricto sin base, versión 1 y orden base-primero.
+1. Revisa #88 y sus decisiones visibles: edición unilateral three-way,
+   encabezado estricto sin base, versión 1 y orden base-primero. Está `BEHIND`
+   respecto de main, sin solapamiento de archivos.
 2. Para que la serie del bloque C lo aproveche, esta PR debe entrar a main (o a
    la rama de integración) antes de fusionar la segunda PR que toca el archivo.
    Este clon no necesita reinstalar: `merge.dtd-generated-records` ya está en su
    `.git/config` común. En clones nuevos: `node scripts/install-merge-drivers.mjs`.
    El merge hospedado de GitHub no usa el driver: si marca conflicto, actualiza
-   la rama en un clon configurado con `git merge origin/main`.
+   la rama en un clon configurado con `git merge origin/main`. En ese merge,
+   revisa que no reaparezcan esperas retiradas como 0409 (fuera de alcance 1).
 3. Después de cada merge serial, corre `node scripts/check-pending-migration-symbols.mjs`:
    el driver no valida sitios ni evidencia. Cuando convivan #76 y #83, espera el
    exit 2 de L03 (fuera de alcance 2).
