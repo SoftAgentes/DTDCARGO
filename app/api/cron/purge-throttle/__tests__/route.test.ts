@@ -2,9 +2,10 @@
  * Tests del cron de purga del throttle (/api/cron/purge-throttle).
  *
  * Cubre: sin/mal Authorization → 403 SIN tocar la DB; con el Bearer correcto →
- * ejecuta el DELETE filtrado por created_at y devuelve el count borrado.
- * `public_verify_throttle` (SDD-0455): corte propio de 60 min, atado a la
- * ventana que cuenta /verificar, y su fallo después de las otras dos purgas.
+ * ejecuta el DELETE con `count: "exact"`, filtrado por created_at, y devuelve el
+ * count borrado. `public_verify_throttle` (SDD-0455): corte propio de 60 min,
+ * atado a la ventana que cuenta /verificar, y su fallo después de las otras dos
+ * purgas.
  *
  * El admin client se mockea (sin DB real) y registra cada delete().lt().
  */
@@ -18,7 +19,7 @@ const DELETED: Record<string, number> = {
 };
 
 const ops = {
-  calls: [] as { table: string; column: string; value: string }[],
+  calls: [] as { table: string; count: string | undefined; column: string; value: string }[],
   failTable: null as string | null,
   reset() {
     this.calls = [];
@@ -29,9 +30,9 @@ const ops = {
 function makeAdmin() {
   return {
     from: (table: string) => ({
-      delete: () => ({
+      delete: (options?: { count?: string }) => ({
         lt: (column: string, value: string) => {
-          ops.calls.push({ table, column, value });
+          ops.calls.push({ table, count: options?.count, column, value });
           if (ops.failTable === table) {
             return Promise.resolve({ error: { message: "boom" }, count: null });
           }
@@ -101,6 +102,8 @@ describe("GET /api/cron/purge-throttle", () => {
       "operario_pin_attempts",
       "public_verify_throttle",
     ]);
+    // Sin `count: "exact"`, PostgREST no devuelve el conteo y `deleted` mentiría en 0.
+    expect(ops.calls.every((c) => c.count === "exact")).toBe(true);
     expect(ops.calls.every((c) => c.column === "created_at")).toBe(true);
   });
 });
