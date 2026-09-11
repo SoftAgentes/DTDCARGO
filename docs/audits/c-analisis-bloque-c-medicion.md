@@ -15,13 +15,13 @@ El SQL de la PR se lee con `git show` en memoria y se envía por stdin a `psql`;
 |Orden comunicado sin C, 0017 última|`62a2b9f95119dd6426c446e8c9756d0e9ea4ac0b3253a7b55bc789e50319a76e`|
 |Orden comunicado seguido de C|`dce3319b7e6ea769681538e3b35d4cbf7d9f47baba9b776ecb57d440f5f0e2bd`|
 
-La divergencia con 0017 última es exactamente cuatro GRANT service_role (cinco líneas de dump contando un encabezado ACL); aparece antes y después de C. El SQL de C sí cambia el catálogo sin C: 124 líneas únicas anteriores y 942 nuevas, como indicador de diferencia, no conteo de objetos. No se infiere una diferencia de datos reales de esas líneas.
+Las únicas líneas exclusivas detectadas con 0017 última son cuatro GRANT service_role y un encabezado ACL; son las mismas antes y después de C. El comparador de diferencias usa conjuntos de líneas, no un diff estructural de objetos; no detectaría por sí solo reordenamiento de líneas repetidas. La igualdad numérico/tardío, en cambio, sí se verifica con SHA-256 del dump completo normalizado. El SQL de C cambia el catálogo sin C: 124 líneas únicas anteriores y 942 nuevas, como indicador de diferencia, no conteo de objetos. No se infiere una diferencia de datos reales de esas líneas.
 
 Escaneo estático equivalente al check, rehecho sobre los 446 textos: `created=416`, `referenced=319`, `orphans=[]`; paths ASCII, por lo que el sort utilizado coincide con LC_ALL=C. El check canónico sin adaptación también se ejecutó sobre la rama base a través de `corepack pnpm verify`: 396 migraciones, 18 LEDGER_ONLY y aislamiento PASÓ.
 
 El veredicto de C procede del núcleo real de ejecución del check reproducido mediante transporte por stdin, no de haber ejecutado el archivo canónico sobre un checkout que contenga C. Esta distinción permite cumplir la prohibición de extraer los archivos. No se sustituyó SQL por fixtures focales: se ejecutó el historial completo con los stubs mínimos del propio check.
 
-Para reproducir la corrida definitiva se ejecuta **el segundo bloque javascript** de este documento; éste reutiliza y adapta en memoria el primero, que se conserva como instrumento exploratorio. No ejecutar sólo el primero para evaluar el orden de producción.
+Para reproducir la corrida definitiva se ejecuta **el segundo bloque javascript** de este documento; éste reutiliza y adapta en memoria el primero, que se conserva como instrumento exploratorio. No ejecutar sólo el primero para evaluar el orden de producción. Se usó el tag `postgres:17`, resuelto a `postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675` según `docker image inspect`. Para comparar los mismos hashes en otra fecha, sustituir en memoria ese tag por este digest; un tag actualizado reproduce el procedimiento, no necesariamente esos bytes.
 
 ```powershell
 @'
