@@ -13,12 +13,12 @@ confidencialidad: interno
 
 # SDD-0372 — Direcciones Portal por principal y tenant
 
-> **Nota de importación — 2026-09-10.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: in-progress` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0425_portal_delivery_addresses_tenant_boundary` está **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción**: el estado de la
-> cabecera no significa que este contrato esté vigente en la base real. Aplicarla exige OK
-> nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-10, actualizada el 2026-09-11.** Esta spec se importa
+> desde la PR #21 con su contenido original. Su migración `0425_portal_delivery_addresses_tenant_boundary`
+> **fue APLICADA a producción el 2026-09-11 con OK de Sam nombrándola**, antes de fusionar
+> esta PR y para no dejar el Portal llamando una RPC inexistente.
+> Ledger: `20260911040935 / 0425_portal_delivery_addresses_tenant_boundary`.
+> Por eso **no figura** en `pendingBelowCutoff`.
 
 ## Fuente
 

@@ -7,42 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "l16-portal-address-delete-pending-command",
-      "primarySymbol": "delete_portal_delivery_address",
-      "migration": "0427_portal_delete_delivery_address_command",
-      "symbols": [
-        {
-          "kind": "function",
-          "name": "delete_portal_delivery_address",
-          "callSites": [
-            "app/portal/(app)/perfil/address-actions.ts:131"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "app/portal/(app)/perfil/address-actions.ts:118",
-          "contains": "No se pudo confirmar el borrado. Intenta de nuevo; si continúa, contacta a tu asesor.",
-          "degradation": "Mientras la RPC no exista, el borrado no está disponible: se devuelve un error recuperable con correlación y se conserva la dirección. La funcionalidad queda pendiente de aplicación nominal de 0425 y 0427; no se presenta como operativa en producción."
-        },
-        {
-          "site": "app/portal/(app)/perfil/address-actions.ts:135",
-          "contains": "if (error || data !== true)",
-          "degradation": "La RPC ausente o cualquier resultado distinto de true falla cerrado: no confirma éxito, no revalida ni usa borrado legacy/admin."
-        },
-        {
-          "site": "app/portal/(app)/perfil/PortalAddresses.tsx:274",
-          "contains": "return { error: \"No se pudo completar el borrado. Intenta de nuevo.\" };",
-          "degradation": "Un fallo del transporte de Server Actions también conserva la fila y devuelve estado de error, sin eliminación optimista."
-        },
-        {
-          "site": "app/portal/(app)/perfil/PortalAddresses.tsx:322",
-          "contains": "<PortalFieldError nivel=\"formulario\"",
-          "degradation": "La confirmación muestra error accesible persistente, permite reintentar y conserva la dirección; la lista sólo cambia cuando llega el estado confirmado desde servidor."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }

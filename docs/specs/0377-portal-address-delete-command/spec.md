@@ -13,12 +13,12 @@ confidencialidad: interno
 
 # SDD-0377 — Borrado lógico de direcciones Portal
 
-> **Nota de importación — 2026-09-10.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: in-progress` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0427_portal_delete_delivery_address_command` está **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción**: el estado de la
-> cabecera no significa que este contrato esté vigente en la base real. Aplicarla exige OK
-> nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-10, actualizada el 2026-09-11.** Esta spec se importa
+> desde la PR #21 con su contenido original. Su migración `0427_portal_delete_delivery_address_command`
+> **fue APLICADA a producción el 2026-09-11 con OK de Sam nombrándola**, antes de fusionar
+> esta PR y para no dejar el Portal llamando una RPC inexistente.
+> Ledger: `20260911041034 / 0427_portal_delete_delivery_address_command`.
+> Por eso **no figura** en `pendingBelowCutoff`.
 
 ## Fuente, alcance y permisos
 
