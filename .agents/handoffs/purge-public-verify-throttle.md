@@ -3,15 +3,20 @@
 Fecha: 2026-09-11. Task ID: `purge-public-verify-throttle`.
 Owner / sesión escritora: `purge-verify-throttle-claude-06f6e292`, sesión Claude Code `06f6e292-7184-4464-8357-5a65c7c1db87`.
 Estado de tarea: **lista-para-revision** en [PR #86](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/86), en borrador.
-- El Director la aprobó técnicamente y registró la decisión de Sam. La integra él en su turno de la cola.
+- El Director la aprobó técnicamente en `66ca1dca` y registró la decisión de Sam. La integra él en su turno de la cola.
+- El merge de main `7af73a64`, pedido por el monitor de CI, cambió el head: el Director revalida el head vigente.
 - Sam autorizó el push y la PR el 2026-09-11 y activó el monitor de CI (auto-fix).
-- No hay merge ni cambios en producción desde esta sesión. La PR no pasa a ready.
+- No hay merge a main ni cambios en producción desde esta sesión. La PR no pasa a ready.
 
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/purge-public-verify-throttle`.
 Rama: `codex/purge-public-verify-throttle`, publicada en `origin` con upstream propio.
 Base: `50100cc4` (origin/main al reservar) más el commit de reserva `6e26212b`.
-- Se actualizó con tres merges de origin/main: `cc5ee896` (main en `bbc7493f`), `f20804c7` (main en `ef7b008e`, pedido por el monitor de CI) y `75e56ed5` (main en `4eedeb8a`, pedido por el Director).
+- Se actualizó con cuatro merges de origin/main:
+  - `cc5ee896` (main en `bbc7493f`);
+  - `f20804c7` (main en `ef7b008e`, pedido por el monitor de CI);
+  - `75e56ed5` (main en `4eedeb8a`, pedido por el Director);
+  - `7af73a64` (main en `aec8dfe0`, PR #87, pedido por el monitor de CI).
 - GitHub marcaba conflicto solo en el índice generado `docs/specs/README.md`; en local lo resolvió el driver `dtd-generated-records`.
 
 SDD: `docs/specs/0455-purge-public-verify-throttle/spec.md`, `status: done`: todos sus criterios quedaron cumplidos el 2026-09-11. La PR, el merge y el release se registran por separado.
@@ -81,14 +86,14 @@ Sin merge a main, lectura ni escritura de producción, ni despliegue.
   - **Actualización:** merge de main (`75e56ed5`), `docs:index` y `verify` completo sobre `781eb547`. `git diff origin/main -- supabase/` quedó vacío y el diff contra main tiene 8 archivos.
   - El Director dio la PR por **aprobada técnicamente** en `a36d0aff` y aceptó la excepción del e2e por credenciales.
 - **Decisión de Sam y cierre de la spec:**
-  - El Director comunicó el 2026-09-11 la aprobación nominal de Sam, con la cita textual «Apruebo la retención de 60 min de #86». Según el Director, cubre también el borrado del historial actual.
+  - El Director comunicó el 2026-09-11 la aprobación nominal de Sam, con la cita textual «Apruebo la retención de 60 min de #86». Según el Director, cubre también el borrado del historial actual: su pregunta a Sam unía la retención y el borrado, y Sam respondió con esa frase.
   - Esa cita llegó por mensaje del Director; no la vi directamente en esta sesión.
-  - La spec pasó a `status: done` con el criterio marcado y la cita. Los resultados de Release 1, 2 y 3 quedaron anotados en la propia spec.
+  - La spec pasó a `status: done` con el criterio marcado y la cita (`517b39cd`). Los resultados de Release 1, 2 y 3 quedaron anotados en la propia spec.
 - **Revisión focal `revisar-datos-ve`** en la spec: 5 CORRECTO, 5 ENCONTRADO (preexistentes) y 5 NO VERIFICABLE. **No es asesoría legal.**
 
 ## VALIDACIÓN
 
-Árbol de producto validado completo en `781eb547`. Después solo cambiaron documentos: el cierre de la spec y este handoff. Node 24.20.0, pnpm 12.3.4 vía Corepack y Docker 29.7.2. Sin credenciales ni `.env`. Guiones, recibo y logs quedan fuera de Git, en la carpeta scratchpad de la sesión (`pvt/run.mjs`, `pvt/route-runner.ts`, `pvt/receipt.json`, `verify-630b81ac.log`, `verify-run2.log`, `verify-run3.log`).
+Árbol de producto validado completo en `781eb547`. Después cambiaron solo documentos (el cierre de la spec y este handoff) y entró main, que tuvo su validación afectada. Node 24.20.0, pnpm 12.3.4 vía Corepack y Docker 29.7.2. Sin credenciales ni `.env`. Guiones, recibo y logs quedan fuera de Git, en la carpeta scratchpad de la sesión (`pvt/run.mjs`, `pvt/route-runner.ts`, `pvt/receipt.json`, `verify-630b81ac.log`, `verify-run2.log`, `verify-run3.log`).
 
 `corepack pnpm verify`, corrida 3 (SHA `781eb547`, 15:12–15:29 −04:00, vigilante de 15 min sin salida, sin cuelgue). Exit 1. Veredicto literal: `verify: 1 fallo(s) → e2e CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.`
 
@@ -128,9 +133,9 @@ Otras comprobaciones:
 | `corepack pnpm install --frozen-lockfile` | PASÓ (36,9 s); lockfile intacto |
 | Vitest focal: RED antes de implementar y GREEN después | RED: 4 fallan y 3 pasan (los 403). GREEN: 7/7, y 12/12 con `spec-migration-refs` en cada ajuste |
 | ESLint focal (ruta y test) | PASÓ, sin avisos |
-| `docs:index` / `docs:check` / `sdd:check` tras cada cambio y merge | PASÓ |
-| Cierre de la spec (`done`) | `docs:index`, `docs:check`, `sdd:check`, Vitest focal 12/12 y `git diff --check`: resultados en el mensaje del commit de cierre |
-| `git diff --check`, allowlist y `git diff origin/main -- supabase/` | PASÓ: 8 archivos contra main (7 de la allowlist más este handoff) y ninguno bajo `supabase/` |
+| `docs:index` / `docs:check` / `sdd:check` tras cada cambio y merge | PASÓ (425 specs tras el merge de `aec8dfe0`) |
+| Tras el último merge (`7af73a64`) | PASÓ: diff de 8 archivos contra main y ninguno bajo `supabase/`; `docs:check`, `sdd:check`, `pending-migration-symbols` (0/0), `typecheck`, Vitest focal 12/12 y ESLint focal |
+| Cierre de la spec (`517b39cd`) | PASÓ: `docs:index` (solo cambió la fila 0455), `docs:check`, `sdd:check`, Vitest focal 12/12 y `git diff --check` |
 | Verificación efímera (ruta real + PostgREST + Supabase Postgres) | PASÓ. Detalle debajo |
 | `verify`, corrida 1 (SHA `630b81ac`) | FALLÓ: `test` por un defecto propio, corregido en `f35680b2`, y e2e colgado 20 min. Detuve solo mi árbol con `taskkill /PID 31300 /T /F` (31 procesos) |
 | `verify`, corrida 2 (SHA `f35680b2`) | 15 de 17 PASÓ; e2e con los mismos 15 fallos ambientales (más 2 flaky de `calculadora-semantic-colors.spec.ts:53`); `migrations-applied` NO DISPONIBLE |
@@ -157,13 +162,13 @@ Detalle de la verificación efímera (recibo del 2026-09-11 11:41–11:47 UTC):
 - `ab86cd12` fix(DTD-0455): purga en el cron y test.
 - `630b81ac` docs(legal): DTD-0455, auditoría, registro y mapa.
 - `f35680b2` docs(DTD-0455): cita de 0426 por número y línea, para el contrato spec→migración.
-- `1a018901`, `6d3233b6`, `e078f711` y `a36d0aff` chore(harness): versiones previas de este handoff.
-- `cc5ee896`, `f20804c7` y `75e56ed5`: merges de origin/main, con el índice generado resuelto por el driver.
+- `1a018901`, `6d3233b6`, `e078f711`, `a36d0aff` y `66ca1dca` chore(harness): versiones previas de este handoff.
+- `cc5ee896`, `f20804c7`, `75e56ed5` y `7af73a64`: merges de origin/main, con el índice generado resuelto por el driver.
 - `2e34df9a` docs(legal): 12 escritores de `portal_registro_throttle`, `public_track_log` matizado y fila de §4.2 corregida.
 - `004b1300` test(DTD-0455): `count: "exact"` afirmado en cada DELETE.
 - `781eb547` docs(DTD-0455): spec ajustada a la revisión del Director.
 - `517b39cd` docs(DTD-0455): spec cerrada (`done`) con la decisión de Sam y los resultados del catálogo.
-- Commit que contiene este documento: handoff con la decisión y la evidencia de catálogo; su hash queda en la PR.
+- Commit que contiene este documento: handoff tras el merge de `aec8dfe0`; su hash queda en la PR.
 
 ## PR / BRANCH
 
@@ -171,12 +176,12 @@ Detalle de la verificación efímera (recibo del 2026-09-11 11:41–11:47 UTC):
 
 - Publicada a sí misma, sin force.
 - Título: «fix(DTD-0455): purgar public_verify_throttle a 60 min en el cron de purga».
-- Cada push dispara el preview de Vercel, automático del proveedor, y el CI (la facturación ya está resuelta). No hubo deploy manual.
+- Cada push dispara el preview de Vercel, automático del proveedor, y el CI. No hubo deploy manual.
 - La reserva 0455 queda visible por la PR; el lock `codex/sdd-reserve-0455` no se publicó aparte.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Que el CI del SHA final quede verde, y la integración del Director en su turno de la cola. La PR no pasa a ready desde esta sesión.
+1. Que el CI del SHA final quede verde, la revalidación del head vigente por el Director y su integración en el turno de la cola. La PR no pasa a ready desde esta sesión.
 2. E2E autenticado y ledger real: NO DISPONIBLE sin credenciales. Los mide un entorno con `.env.local` o una CI con secretos.
 3. Después del despliegue: comprobar que la corrida de las 04:00 UTC responde 200 y no deja `[purge-verify-throttle]` en los logs.
 
@@ -194,11 +199,11 @@ Detalle de la verificación efímera (recibo del 2026-09-11 11:41–11:47 UTC):
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** integrar la PR #86 en su turno de la cola cuando el CI del SHA final esté verde. La PR queda en borrador hasta que el Director decida.
+- **Siguiente acción:** revalidar el head vigente, que difiere de `66ca1dca` solo por el merge de main `7af73a64` y este handoff. Después, integrar la PR #86 en su turno de la cola con el CI verde. La PR queda en borrador hasta que el Director decida.
 - **Producción:** el merge despliega en Vercel y activa la purga a las 04:00 UTC. La primera corrida borra de forma irreversible las ~32 filas acumuladas, efecto que cubre la decisión de Sam comunicada por el Director. No es migrate-first y no hay migraciones.
 - **Después del despliegue:** la corrida de las 04:00 UTC debe responder 200, sin `[purge-verify-throttle]` en los logs. Una preview no ejecuta crons.
 - **Reversión:** revertir la PR. Lo borrado no se recupera desde la app.
-- **Main:** la rama incluye main hasta `4eedeb8a`. Cada PR que regenera el índice puede volver a marcar conflicto en `docs/specs/README.md`; se resuelve con otro merge de origin/main y el driver.
+- **Main:** la rama incluye main hasta `aec8dfe0`. Cada PR que regenera el índice puede volver a marcar conflicto en `docs/specs/README.md`; se resuelve con otro merge de origin/main y el driver.
 - **Compartidos:**
   - con main, solo `docs/specs/README.md` (generado, driver `dtd-generated-records`);
   - con PR #80, ningún archivo. Esa PR cambia `lib/public/verify-throttle.ts`, pero conserva `VERIFY_WINDOW_MINUTES`, que el test importa;
