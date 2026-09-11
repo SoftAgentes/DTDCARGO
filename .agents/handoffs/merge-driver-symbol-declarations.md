@@ -65,7 +65,7 @@ entrada.
   configuración vive en el `.git/config` común y ya aplica a todos los worktrees
   de este clon.
 - `scripts/tests/merge-generated-records.node.mjs`: fixture de declaraciones en
-  el repo temporal y ocho casos nuevos: seis ejecutan merges Git reales en
+  el repo temporal y nueve casos nuevos: siete ejecutan merges Git reales en
   repositorios temporales, uno invoca el driver directamente y otro verifica el
   `.gitattributes` real con `git check-attr`:
   1. contrato del `.gitattributes` real: los tres registros usan el driver;
@@ -76,7 +76,8 @@ entrada.
   5. conflicto por `$doc` cambiado en una sola rama;
   6. conflicto por el mismo id agregado con contenido distinto;
   7. conflicto por borrado contra edición;
-  8. rechazo, sin tocar `%A`, de ids repetidos, claves JSON duplicadas y
+  8. conflicto por dos ediciones distintas de la misma declaración;
+  9. rechazo, sin tocar `%A`, de ids repetidos, claves JSON duplicadas y
      `schemaVersion` 2.
 - `docs/architecture/decisions/0002-merge-semantico-registros-generados.md`:
   enmienda con contexto, reglas, interacción con el baseline, límite, evidencia
@@ -157,7 +158,7 @@ usó el vigente, igual al de GitHub.
 
 ## VALIDACIÓN
 
-Observado sobre la base `07d00097` y los commits `40721b4d` y `2fd726fe`:
+Observado sobre la base `07d00097` y los commits `40721b4d`, `2fd726fe` y `8ee7a475`:
 
 | Comprobación | Resultado |
 |---|---|
@@ -165,8 +166,8 @@ Observado sobre la base `07d00097` y los commits `40721b4d` y `2fd726fe`:
 | `corepack pnpm harness:test` antes del cambio | PASÓ: 33/33 |
 | `node scripts/install-merge-drivers.mjs --check` antes y después | PASÓ |
 | `node --check scripts/merge-generated-records.mjs` | PASÓ |
-| `node --test scripts/tests/merge-generated-records.node.mjs` | PASÓ: 13/13 (5 previos + 8 nuevos), 46 s |
-| `corepack pnpm harness:test` después del cambio | PASÓ: 41/41 en 7 archivos, 0 omitidos |
+| `node --test scripts/tests/merge-generated-records.node.mjs` | PASÓ: 14/14 (5 previos + 9 nuevos) |
+| `corepack pnpm harness:test` después del cambio | PASÓ: 42/42 en 7 archivos, 0 omitidos |
 | `corepack pnpm exec eslint` sobre driver y prueba | PASÓ: 0 errores, 0 avisos |
 | `corepack pnpm docs:check` | PASÓ: índice sincronizado con 416 specs |
 | `corepack pnpm sdd:check` | PASÓ: sin números repetidos; solo choques históricos exentos |
@@ -175,13 +176,14 @@ Observado sobre la base `07d00097` y los commits `40721b4d` y `2fd726fe`:
 | `corepack pnpm install --frozen-lockfile` | PASÓ: lockfile sin cambios; aviso preexistente de `pnpm.onlyBuiltDependencies` |
 | Ensayo de merge en repo temporal | PASÓ para el driver: A reproduce el choque en 5 de 6 PR; B y B' unen las seis con exit 0 y declaraciones idénticas; C respeta el retiro. El gate sobre la unión da exit 2 por un ancla de L03 que ajusta la PR (fuera de alcance 2); D confirma la interacción del baseline (fuera de alcance 1). |
 | `corepack pnpm verify` | NO EJECUTADO: cambio solo de harness (driver, su prueba, `.gitattributes` y ADR). No toca código de producto, SQL, dependencias ni entradas del build; typecheck, Vitest, E2E, build, rebuild de schema y `migrations-applied` no ejercitan este diff. |
-| CI hospedado `Calidad local sin secretos` | NO DISPONIBLE: la rama no está publicada. Cuando se publique, su paso `pnpm harness:test` descubre `merge-generated-records.node.mjs` y corre los ocho casos nuevos. |
+| CI hospedado `Calidad local sin secretos` | NO DISPONIBLE: la rama no está publicada. Cuando se publique, su paso `pnpm harness:test` descubre `merge-generated-records.node.mjs` y corre los nueve casos nuevos. |
 
 ## COMMITS
 
 - `40721b4d` — `chore(harness): driver dtd-generated-records une declaraciones de símbolos pendientes`
   (driver, pruebas, `.gitattributes` y enmienda de ADR-0002).
 - `2fd726fe` — `docs(harness): ADR-0002 precisa la interacción con el baseline según el ensayo`.
+- `8ee7a475` — `chore(harness): prueba el conflicto por dos ediciones distintas de una declaración`.
 - Commit que contiene este documento: handoff de la tarea.
 
 ## PR / BRANCH
