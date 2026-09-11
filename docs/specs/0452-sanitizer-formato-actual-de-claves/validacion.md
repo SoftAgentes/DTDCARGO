@@ -1,8 +1,98 @@
 # Validación SDD-0452
 
 Dueño: Worker `worker-sanitizer-0452-20260910-root`. Fecha: 2026-09-10.
-Estado: bloqueada por aceptación 5. Base inicial: `b7ad23977b1905a25ba3154e52238f0e7baaaaa4`.
-Solo entradas sintéticas, sin claves reales ni consultas a archivos archivados.
+Estado: SDD `done`; aceptación 5 resuelta por decisión del Director comunicada
+por Sam. Cierre local con límites de entorno explícitos; PR sigue en borrador.
+Base inicial: `b7ad23977b1905a25ba3154e52238f0e7baaaaa4`.
+La validación usa entradas sintéticas. Consultar archivos archivados está
+excluido; el incidente de alcance se registra abajo. No se incorporan claves reales.
+
+Las secciones históricas conservan los recibos del bloqueo previo en
+`d54f232c`; no describen la aceptación vigente. La decisión y sus condiciones
+de revisión viven en los trade-offs de [la spec](spec.md).
+
+## Reanudación de cierre, 2026-09-10
+
+- PASÓ: árbol inicialmente limpio en `d54f232c`, guard y claim del mismo owner.
+- PASÓ: `git fetch origin` y merge de `origin/main` en la rama propia, sin
+  reescritura ni conflictos: `e736c089b393ae89786e497726bbfecf76bb4088` incorpora
+  `e325cb4deb7d11375aa2dbca348496177d1e4350`. No integra esta PR a main.
+- PASÓ: los 92 casos previos permanecen idénticos normalizando CRLF; los tres
+  adversariales conservan sus entradas y exigen `[REDACTED]`. Revisión
+  independiente del diff confirma ausencia de skip/todo o cambios positivos.
+- PASÓ: focal real `node node_modules/vitest/vitest.mjs run
+  scripts/tests/bug-sanitizer.test.ts`, 95/95, exit 0.
+- PASÓ: `corepack pnpm harness:test`, 26/26, seis archivos descubiertos;
+  E1 5/5 y contratos de descubrimiento 3/3.
+- Sanitizador idéntico a `d54f232c`: SHA-256
+  `DFF87AB66D6CB8482B4F292D624C524187022488613FF0920A05D9BC8AA2EAF9`.
+- Suite de cierre: SHA-256
+  `9D15ED5F55738415CAC79E3E9A7684AB52B7576C060986C3E9A09E763D0B557C`.
+
+`corepack pnpm verify` corre sobre el merge `e736c089` más el diff de cierre,
+sin banderas de skip. Solo existe `.env.example`; la comprobación del entorno
+registra presencia/ausencia, nunca valores de credenciales.
+
+| Comprobación | Estado | Evidencia / límite de esta reanudación |
+|---|---|---|
+| harness de verify | PASÓ | 18/18; E1/discovery medidos aparte por harness:test 26/26 |
+| lint | PASÓ | 0 errores; 8 avisos preexistentes fuera de alcance |
+| rsc-boundary | PASÓ | 1597 módulos, sin cruces prohibidos |
+| typecheck | PASÓ | TypeScript sin errores |
+| edge-functions | PASÓ | Cuatro entradas compilan |
+| test | PASÓ | 6621/6621 en 522 archivos; ninguna de las tres rojas anteriores permanece |
+| docs:check | PASÓ | Índice de 409 specs; regenerado y revalidado tras done |
+| numbering | PASÓ | Sin colisiones nuevas; excepciones históricas intactas |
+| feature-constants | PASÓ | Cinco banderas coinciden |
+| components:check | PASÓ | Registro válido |
+| governance:check | PASÓ | Cápsula de 28 políticas consistente |
+| migrations-applied | NO DISPONIBLE | Sin URL/service-role; skip del runner, sin consulta a producción |
+| pending-migration-symbols | PASÓ | Cero ROJO y cero AMARILLO |
+| sql-tests | PASÓ | 156 contratos con rollback en Postgres desechable |
+| schema-rebuild | PASÓ | 396 migraciones + 18 solo-ledger; 219 tablas y fixtures de dos tenants |
+| e2e | NO DISPONIBLE | Retry completo: 152 passed / 15 failed / 1 flaky / 18 skipped; paso exit 1 por entorno |
+| build | PASÓ | Build + postbuild; 160 páginas estáticas; tsconfig restaurado por el runner |
+
+La primera pasada E2E emitió errores de URL/API key ausentes en `proxy.ts:67`.
+El caso adicional de acceso `auth.spec.ts:74` dio `net::ERR_ABORTED` y pasó en
+retry: navegación flaky recuperada, sin atribuir causa exacta ni confundirla
+con falta de Supabase. La corrida se quedó sin salida nueva durante 464 segundos
+en Mobile Safari. A las 20:19:02 -04:00 el Worker detuvo únicamente el árbol
+E2E PID 24096, tras verificar su parentesco directo con verify PID 18892.
+No se detuvo verify ni otra sesión. Esa pasada es parcial, no tiene resumen
+final completo y no se cuenta como PASÓ. El primer intento del paso E2E terminó
+con exit 1; verify inició su único reintento automático. No se atribuye causa
+exacta al bloqueo de salida.
+
+El reintento automático sí terminó (4.4 min): 152 passed, 15 failed, 1 flaky
+y 18 skipped. Los quince fallos son exactamente `auth.spec.ts:21`, `:91`,
+`:98`, `:105` y `global-search.spec.ts:22`, cada uno en chromium, mobile-chrome
+y mobile-safari. El log muestra falta de URL/API key en `proxy.ts:67`, antes de
+resolver sesión/redirección. Esta cobertura queda NO DISPONIBLE por configuración;
+el paso E2E salió 1, no PASÓ. El caso de acceso `auth.spec.ts:74` en chromium
+también pasó tras retry en esta segunda pasada y queda registrado como el único
+flaky, separado del grupo de quince. Los 18 skips no se cuentan como ejecutados.
+
+Recibos fuera de Git: `%TEMP%/dtd-sanitizer-0452-cierre-20260910/verify.log`
+y `e2e-interruption.json`. Veredicto final literal, retirando solo códigos ANSI:
+
+```text
+   16 de 17 pasos corrieron de verdad
+[AVISO] omitido: migrations-applied — no se midio (ver su [SKIP] arriba)
+[FAIL] verify: 1 fallo(s) → e2e CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.
+```
+
+Exit del proceso: **1**. Quince pasos PASARON, E2E devolvió fallo por entorno
+y migrations-applied no se midió. No se presenta como verde completo ni como
+certificación de producción. No se activaron skips, no se cambiaron workflows,
+verify, ruleset ni patrones para conseguir el cierre. Después de cambiar solo
+documentación se regeneró el índice y se validaron docs:check, sdd:check y
+git diff --check; no se repitieron innecesariamente las pruebas de producto.
+
+Incidente de revisión separado: una búsqueda del subagente devolvió rutas
+fuera de las previstas y salida truncada. Se detuvo ese tipo de búsqueda;
+no hubo escrituras ni copia de claves. No se puede certificar que ese comando
+excluyera `docs/archive/**`, ni afirmar que lo leyó. Detalle en el handoff.
 
 ## Instalación y entorno
 
@@ -79,7 +169,7 @@ Las salidas completas se conservan localmente fuera de Git bajo
 El fallo adicional de URL visto durante exploración inicial está separado en la
 spec como problema previo, no contado entre los 48 fallos de formato.
 
-## Gates finales
+## Histórico: gates anteriores a la decisión
 
 - PASÓ: `corepack pnpm harness:test`, runner final, 26/26, exit 0,
   seis archivos descubiertos. Incluye E1 5/5 y descubrimiento 3/3.
@@ -107,7 +197,7 @@ Se repitió verify con los 95 casos. Solo la repetición de E2E se omitió con
 `VERIFY_SKIP_E2E=1`, tras las dos corridas reales de entorno incompleto arriba.
 Esa omisión se registra NO EJECUTADO en la segunda corrida, no como PASÓ.
 
-## Revisión adversarial de legibilidad
+## Histórico: revisión adversarial de legibilidad
 
 **FALLÓ el criterio 5 fuera del corpus inicial.** Dos identificadores inventados
 de configuración (`sb_secret_configuration_validation_failed` y
@@ -133,7 +223,7 @@ El recibo `sanitizer-acceptance-pending.log` queda junto a los anteriores fuera
 de Git. Los 92 casos del arreglo siguen verdes; las tres regresiones de lectura
 quedan visibles y bloquean el paso unitario hasta resolver la aceptación.
 
-## Gate final con los negativos presentes
+## Histórico: gate con las expectativas originales
 
 Comando en PowerShell (variable solo en el proceso de esta corrida):
 

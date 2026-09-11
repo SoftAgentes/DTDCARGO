@@ -125,14 +125,17 @@ describe("otras familias previamente soportadas", () => {
   });
 });
 
-// Criterio 5 del encargo: estos casos adversariales fallan en el borrador.
-// No omitirlos ni cambiar la expectativa sin resolver la aceptación con Sam.
-describe("aceptación 5 pendiente: identificadores largos de configuración", () => {
+// SDD-0452, decisión del Director (2026-09-10): sobre-redacción aceptada.
+// Midió cero identificadores de estas formas en app/lib/scripts/supabase.
+// Perder un código de error cuesta una consulta; filtrar una clave expone la DB.
+// Exigir mayúsculas no garantiza detectar toda clave. Revisar ante colisión real
+// o un discriminador de formato garantizado, conservando la detección de claves.
+describe("aceptación 5: sobre-redacción elegida de identificadores largos", () => {
   it.each([
     "sb_secret_configuration_validation_failed",
     "sk_org_configurationvalidationfailed",
     "xapp-connection-authentication-failed",
-  ])("preserva el identificador inventado %s", (input) => {
-    expect(redactTokensInText(input)).toBe(input);
+  ])("redacta el identificador inventado %s según la decisión aceptada", (input) => {
+    expect(redactTokensInText(input)).toBe(REDACTED);
   });
 });
