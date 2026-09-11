@@ -464,19 +464,22 @@ export async function prealertaStats(
 /**
  * Servicios ACTIVOS del menú de recepción para el tenant (merge "DB pisa, código
  * respalda"). Lee `prealerta_addons` (RLS: equipo o cliente del portal del tenant)
- * y lo combina con los DEFAULTS de código. Defensivo: si la tabla no existe (0150
- * sin aplicar en un env) cae a los 7 defaults activos → la pantalla del portal
- * funciona igual ANTES de la migración.
+ * y lo combina con los DEFAULTS de código. Los callers Portal que ya derivaron
+ * principal pasan tenant explícito. Defensivo: si la tabla no existe (0150 sin
+ * aplicar en un env) cae a los 7 defaults activos.
  */
 export async function listActivePrealertaAddons(
   supabase: SupabaseClient,
+  opts: { tenantId?: string } = {},
 ): Promise<PrealertaAddon[]> {
   try {
-    const { data, error } = await supabase
+    const query = supabase
       .from("prealerta_addons")
       .select(
         "code, label, description, notas_placeholder, consent_text, video_url, multi_tracking, sort, is_active",
-      )
+      );
+    const scoped = opts.tenantId ? query.eq("tenant_id", opts.tenantId) : query;
+    const { data, error } = await scoped
       .limit(50);
     if (error) throw error;
     return mergePrealertaAddons(
