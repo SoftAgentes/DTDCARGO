@@ -4,7 +4,7 @@ title: "Código contra símbolos de migraciones pendientes"
 status: done
 author: "Codex"
 created: 2026-09-10
-updated: 2026-09-10
+updated: 2026-09-11
 supersedes: null
 superseded_by: null
 related: ["0443", "0444"]
@@ -198,3 +198,72 @@ no los cubre ni certifica corrección de producto.
 `app/portal/(app)/compras/[code]/etiquetas/page.tsx:67` consumen la presentación
 sin usar la bandera `available`. Es un hallazgo real de producto y se registra
 en el handoff como **FUERA DE ALCANCE DETECTADO**; no se corrige en esta rama.
+
+## Corrección 2026-09-11: enmascarado por unidades UTF-16
+
+**Defecto.** `maskSqlNonCode` y `maskJavaScriptComments` construían la máscara
+con `[...texto]`, que itera code points, pero la escribían con índices UTF-16
+(`texto[i]`, `startsWith(…, i)`, `indexOf`). Cada carácter astral (emoji fuera
+del BMP) desplazaba una posición el resto de la máscara: se blanqueaban
+caracteres de código real tras cada comentario o literal, quedaban visibles
+restos de comentario y, en JS/TS, se borraban saltos de línea. El gate reportaba
+líneas equivocadas y podía omitir DDL e imports; una arista perdida convierte un
+ROJO real en silencio.
+
+**Corrección.** Ambas máscaras parten del texto en unidades UTF-16 (`split("")`,
+mediante un único helper documentado). La máscara solo sustituye unidades por
+espacios: conserva longitud, índices y saltos de línea. No cambian las formas
+DDL cubiertas, el grafo, el contrato de declaraciones ni los niveles
+ROJO/AMARILLO/silencio.
+
+**Regresión.** `scripts/tests/pending-migration-symbols-utf16.node.mjs` corre en
+`pnpm harness:test`. Sus siete casos fallan con el enmascarado anterior, también
+al retirar el invariante de máscara, y pasan con el nuevo:
+
+- un par sustituto enmascarado ocupa dos espacios;
+- TS con astrales antes de `.rpc()` reporta la línea exacta, con LF y CRLF;
+- SQL con astrales en un comentario justo antes de `create function` extrae el
+  símbolo;
+- las formas de 0090 (astrales en literales) y 0128
+  (`ALTER TABLE ... ADD COLUMN`) conservan sus símbolos;
+- una declaración anclada a la línea real pasa como AMARILLO;
+- un import tras un comentario con astrales conserva la arista y el ROJO.
+
+**Impacto medido sobre main `3c610701`.**
+
+- 9 de 420 migraciones contienen astrales; con la máscara anterior, 8 producían
+  texto enmascarado de otra longitud. La extracción pasa de 1076 a 1080
+  símbolos, sin pérdidas y sin cambios en migraciones sin astrales. 0090
+  recupera `function:public.comments_freeze_immutable`, y 0128 recupera
+  `column:public.sales_orders.invoicing_total_boxes`,
+  `function:public.prealerta_sales_order_in_tenant` y
+  `function:public.sales_order_claim_and_invoice`. Ambas migraciones son no
+  eximidas: si una pendiente reemplaza esos símbolos, ahora cuenta como
+  redefinición y no como ausencia.
+- 130 de 2480 fuentes JS/TS contienen astrales; con la máscara anterior 120
+  cambiaban su número de líneas enmascaradas, y con la corrección ninguna. Dos
+  imports externos (`react`, `node:fs`) se perdían sin crear aristas; los 1637
+  módulos alcanzables no cambian.
+- El conjunto de símbolos pendientes-únicos no cambia y el gate sigue en
+  `0 ROJO · 0 AMARILLO`: no aparecen ROJO nuevos.
+
+**Caso que lo destapó.** En el head remoto de L06 (`1b655967`), la llamada real
+a `get_portal_packing_list_documents` está en
+`lib/portal/packing-list-queries.ts:231`. El gate anterior la situaba en `:125`,
+rechazaba la declaración anclada a la línea real (exit 2) y dejaba el símbolo en
+ROJO. Con la corrección, sobre una extracción de ese head: `0 ROJO · 1 AMARILLO`,
+con el sitio `:231`.
+
+- [x] Máscaras SQL y JS/TS por unidades UTF-16, con longitud, índices y líneas
+      conservados.
+- [x] Siete regresiones del harness que fallan con el código anterior y pasan
+      con el nuevo.
+- [x] Main sin ROJO nuevos; extracción comparada en todas las migraciones.
+- [x] Extracción del head de L06: `0 ROJO · 1 AMARILLO` en `:231`.
+
+**Validación.** PASARON `pnpm harness:test` (33/33, siete nuevas), la prueba
+focal existente del check con el contrato CI (29/29), el checker en el árbol y
+sobre la extracción de L06, `pnpm lint` (0 errores; 8 avisos preexistentes
+ajenos), `pnpm docs:check`, `pnpm sdd:check` y `git diff --check`.
+`pnpm verify` quedó NO EJECUTADO: el cambio es solo de harness y se valida con
+sus pruebas propias. Detalle en `.agents/handoffs/c-fix-pending-symbols-utf16.md`.
