@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClient, getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   validateClientAddressInput,
   type ClientAddressFieldErrors,
@@ -12,7 +13,6 @@ import {
   updateClientDeliveryAddress,
   clearDefaultForClient,
   setDefaultDeliveryAddress,
-  softDeleteClientDeliveryAddress,
 } from "@/lib/studio/client-address-queries";
 
 /**
@@ -24,6 +24,7 @@ import {
 export type AddressActionState = {
   ok?: boolean;
   error?: string;
+  correlationId?: string;
   fieldErrors?: ClientAddressFieldErrors;
 };
 
@@ -102,19 +103,49 @@ export async function setDefaultAddressAction(formData: FormData): Promise<void>
   }
 }
 
-/** Borra (soft) una dirección del cliente logueado. */
-export async function deleteAddressAction(formData: FormData): Promise<void> {
-  const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return;
-  const id = (formData.get("addressId") as string | null)?.trim();
-  if (!id) return;
-  try {
-    // RLS self-update cubre el soft-delete (set deleted_at) solo en filas propias.
-    await softDeleteClientDeliveryAddress(supabase, id);
-    revalidatePath(PATH);
-  } catch (err) {
-    /* idem */
-    console.error("[deleteAddressAction] falló:", err);
+/** SDD-0377: sólo confirma tras borrado propio + auditoría en una transacción. */
+export async function deleteAddressAction(
+  _prev: AddressActionState,
+  formData: FormData,
+): Promise<AddressActionState> {
+  const values = formData.getAll("addressId");
+  const id = typeof values[0] === "string" ? values[0].trim() : "";
+  if (values.length !== 1 || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return { error: "No se pudo identificar la dirección. Recarga la página e intenta de nuevo." };
   }
+  const correlationId = randomUUID();
+  const failure: AddressActionState = {
+    error: "No se pudo confirmar el borrado. Intenta de nuevo; si continúa, contacta a tu asesor.",
+    correlationId,
+  };
+  try {
+    const supabase = await createClient();
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    const principal = await getPortalClientPrincipal(supabase);
+    // El helper exige vínculo activo y cliente/tenant coherentes. El caller
+    // además compara el actor; la RPC revalida propiedad exacta bajo locks.
+    if (authError || !auth.user?.id || !principal || principal.userId !== auth.user.id) {
+      console.error("[deleteAddressAction] falló:", { correlationId, stage: "principal" });
+      return failure;
+    }
+    const { data, error } = await supabase.rpc("delete_portal_delivery_address", {
+      p_address_id: id,
+      p_correlation_id: correlationId,
+    });
+    if (error || data !== true) {
+      console.error("[deleteAddressAction] falló:", { correlationId, stage: "write", status: "not_confirmed" });
+      return failure;
+    }
+  } catch {
+    // Conserva console.error sin cuerpo del proveedor, UUID de dirección ni PII.
+    console.error("[deleteAddressAction] falló:", { correlationId, stage: "transport" });
+    return failure;
+  }
+  try {
+    revalidatePath(PATH);
+  } catch {
+    // La RPC ya confirmó el commit: una caché fallida no revierte ese hecho.
+    console.error("[deleteAddressAction] falló:", { correlationId, stage: "cache", status: "committed" });
+  }
+  return { ok: true };
 }
