@@ -136,6 +136,10 @@ objetivo es que el gate no pueda esperar para siempre y que lo diga.
   `docs/runbooks/codex-engineering.md`.
 - Fuera de alcance: `playwright.config.ts` (retries, workers y timeouts), los
   specs e2e, el producto, la CI y los demás pasos de verify.
+- Integrar el cambio a main **sí dispara el deploy de producción en Vercel**.
+  El `ignoreCommand` de `vercel.json` excluye sólo `docs/**` y el Markdown de
+  la raíz, no `scripts/**` ni `.agents/**`. El artefacto de la aplicación no
+  cambia, pero la autorización de merge tiene que cubrir ese deploy.
 
 ## Criterios de aceptación
 
@@ -151,24 +155,41 @@ objetivo es que el gate no pueda esperar para siempre y que lo diga.
 - [x] Reintento, salto (exit 3), absolución y preflight siguen iguales, con y
       sin watchdog.
 - [x] Los valores inválidos de los límites rompen el gate antes de correr pasos.
-- [x] `corepack pnpm harness:test` PASÓ, y `corepack pnpm verify` completo corre
-      sin que el watchdog afecte una corrida normal.
+- [x] `corepack pnpm harness:test` PASÓ: 48/48 en local y 48/48 en la CI de
+      ubuntu sobre `3028e2dc` (run 34631252080).
+- [x] `corepack pnpm verify` completo se corrió y su resultado quedó registrado
+      paso por paso. El watchdog no afecta una corrida normal. El `verify` no
+      salió verde:
+      - sobre `9c9aaebb` salió **FALLÓ (exit 1)**;
+      - el e2e se colgó de verdad y el watchdog lo reportó COLGADO/TIMEOUT;
+      - `migrations-applied` quedó sin medir por falta de credenciales de
+        Supabase; sin Supabase ese paso tampoco puede quedar verde en este
+        entorno.
+
+      Lo que exige el criterio se cumplió:
+      - el primer intento del e2e, que terminó solo, no fue tocado por el
+        watchdog;
+      - los otros 14 pasos que corrieron PASARON.
 
 ## Validación (2026-09-11)
 
 - El `corepack pnpm verify` completo sobre `9c9aaebb` reprodujo el cuelgue de
-  L21:
+  L21 y salió **FALLÓ (exit 1)**:
   - el primer intento del e2e terminó solo (150 passed, 15 failed por falta de
     Supabase, 3 flaky, 18 skipped en 13.5 min, con un worker forzado a los
     300 s) y el watchdog no intervino;
   - el reintento calló después de 51 resultados. A los 10 min sin salida, el
     watchdog cortó su árbol (raíz PID 43060, 25 procesos, 0 sobrevivientes, 6
     aún en cierre) y el paso quedó `[FAIL] e2e — COLGADO/TIMEOUT: …`;
-  - `build` corrió y pasó, y el veredicto salió con exit 1 y el motivo.
+  - `build` corrió y pasó, y el veredicto salió con exit 1 y el motivo,
+    además de `migrations-applied` sin medir.
 - Tres corridas del e2e real con límite total de 4 min cortaron entre 44 y 57
   procesos. La tercera cruzó la lista exacta del corte, por PID y hora de
   creación, contra 35 procesos de otros worktrees: no quedó ningún ajeno dentro
   del corte ni ningún descendiente fuera.
+- La CI «Calidad local sin secretos» sobre `3028e2dc` PASÓ (run 34631252080):
+  todos sus pasos, con `harness:test` 48/48 en ubuntu-24.04. Es la primera
+  ejecución en Linux de las pruebas con procesos reales.
 - El detalle está en `.agents/handoffs/verify-e2e-watchdog.md`.
 
 ## Gobernanza
@@ -187,12 +208,17 @@ objetivo es que el gate no pueda esperar para siempre y que lo diga.
 - Windows no re-parenta. Si un proceso intermedio del árbol murió antes del
   corte, sus hijos quedan fuera del recorrido. En los cuelgues observados el
   árbol entero estaba vivo; si algo sobrevive, el gate lo nombra.
+- La confirmación de identidad (mismo PID y misma hora de creación) sólo existe
+  en Windows. En POSIX, `ps` no da la hora de creación, así que `created` es
+  `null` y el corte confía en el PID. Ahí no hace falta tanto: el huérfano se
+  re-parenta y el PPID siempre es de un proceso vivo.
+- Queda una ventana residual de reciclaje de PID entre el inventario y el
+  corte. Son milisegundos, y el corte vuelve a confirmar la identidad antes de
+  re-matar o acusar a un sobreviviente. Las pruebas no matan por PID lo que ya
+  se cortó: sus procesos tienen un tope de vida propio.
 - Un paso cortado deja el `.next` del worktree como lo dejaría un `taskkill`
   manual. El build usa `.next-verify` y no depende de él.
 - El watchdog cubre sólo el e2e, que es el único paso que se colgó. Los demás
   siguen sin límite.
 - En Windows, el inventario depende de PowerShell/CIM (~1 s por consulta). Sin
   él, el corte se limita a la raíz más `taskkill /T` y el reporte lo declara.
-- Las pruebas con procesos reales usan `ps` en POSIX. Se validaron en Windows;
-  en Linux las ejecuta la CI «Calidad local sin secretos» cuando se publique la
-  rama.

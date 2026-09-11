@@ -22,10 +22,14 @@ import {
   runWatched,
 } from "../verify-watchdog.mjs";
 
-// Procesos de prueba. Sin `${}`: el texto va tal cual al archivo.
+// Procesos de prueba. Sin `${}`: el texto va tal cual al archivo. Los que no
+// terminan solos tienen un tope de vida de 2 min, muy por encima de los límites
+// que se prueban: si el watchdog fallara, no quedan colgados ni obligan a la
+// limpieza a matar por PID (en Windows un PID muerto se recicla enseguida).
 const FIXTURES = {
-  // Árbol de tres niveles que, una vez completo, calla para siempre. El nivel 0
-  // late mientras el árbol se arma, así el silencio empieza con los tres vivos.
+  // Árbol de tres niveles que, una vez completo, calla hasta su tope de vida.
+  // El nivel 0 late mientras el árbol se arma, así el silencio empieza con los
+  // tres vivos.
   "arbol-colgado.mjs": `
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -40,12 +44,13 @@ if (nivel === 0) {
     console.log("ARBOL LISTO");
   }, 100);
 }
-setInterval(() => {}, 1 << 30);
+setTimeout(() => process.exit(0), 120000);
 `,
-  // Escribe sin parar y no termina nunca: la inactividad no lo ve.
+  // Escribe sin parar hasta su tope de vida: la inactividad no lo ve.
   "charlatan.mjs": `
 let n = 0;
 setInterval(() => { n += 1; (n % 2 ? process.stdout : process.stderr).write("latido " + n + "\\n"); }, 100);
+setTimeout(() => process.exit(0), 120000);
 `,
   // Termina sola con el exit pedido, escribiendo por ambos canales.
   "normal.mjs": `
@@ -65,7 +70,7 @@ const [archivo, modo] = process.argv.slice(2);
 fs.appendFileSync(archivo, "x");
 const intento = fs.readFileSync(archivo, "utf8").length;
 console.log("intento " + intento);
-if (modo === "cuelga") setInterval(() => {}, 1 << 30);
+if (modo === "cuelga") setTimeout(() => process.exit(0), 120000);
 else if (modo === "falla-luego-pasa") process.exitCode = intento === 1 ? 1 : 0;
 else process.exitCode = Number(modo);
 `,
@@ -243,7 +248,8 @@ test("un árbol que calla se corta entero por inactividad, y sólo ese árbol", 
   const f = fixture(t);
   // Mismo script, mismo binario, fuera del árbol: no puede caer.
   const ajeno = spawn(node, [f("arbol-colgado.mjs"), "0", "0", f("ajeno-listo.txt")], { stdio: "ignore" });
-  t.after(() => matarSiVive(ajeno.pid));
+  // Por su handle, no por PID: si ya hubiera terminado, Node no le manda nada.
+  t.after(() => ajeno.kill("SIGKILL"));
   const stdout = sumidero();
   const avisos = [];
   const r = await runWatched({
@@ -256,7 +262,13 @@ test("un árbol que calla se corta entero por inactividad, y sólo ese árbol", 
     onTimeout: (motivo) => avisos.push(motivo),
   });
   const pids = pidsDe(stdout.texto());
-  t.after(() => pids.forEach(({ pid }) => matarSiVive(pid)));
+  // Sólo lo que el watchdog no cortó o dejó vivo. Un PID ya cortado puede estar
+  // reciclado por un proceso ajeno (Windows los reusa enseguida): no se toca.
+  t.after(() => {
+    const cortados = new Set((r.kill?.targets ?? []).map((p) => p.pid));
+    const vivos = new Set((r.kill?.survivors ?? []).map((p) => p.pid));
+    for (const { pid } of pids) if (!cortados.has(pid) || vivos.has(pid)) matarSiVive(pid);
+  });
 
   assert.match(stdout.texto(), /ARBOL LISTO/);
   assert.deepEqual(pids.map((p) => p.nivel).sort(), [0, 1, 2]);
@@ -289,7 +301,8 @@ test("una salida que gotea sin terminar se corta por el límite total", LENTO, a
     stdout,
     stderr: sumidero(),
   });
-  t.after(() => matarSiVive(r.kill?.rootPid));
+  // Sólo sobrevivientes: la raíz ya cortada no se toca, su PID pudo reciclarse.
+  t.after(() => (r.kill?.survivors ?? []).forEach(({ pid }) => matarSiVive(pid)));
   assert.equal(r.timedOut?.kind, "total");
   assert.ok(r.timedOut.elapsedMs >= 1_500);
   assert.match(stdout.texto(), /latido/);

@@ -234,9 +234,9 @@ const primeraLinea = (error) => String(error?.message ?? error).split(/\r?\n/)[0
 const dormir = (ms) => new Promise((listo) => setTimeout(listo, ms));
 
 async function esperarQueTerminen(procesos, { isAlive, settleMs, pollMs }) {
-  const limite = Date.now() + settleMs;
+  const limite = monotonicNow() + settleMs;
   let vivos = procesos.filter((p) => isAlive(p.pid));
-  while (vivos.length > 0 && Date.now() < limite) {
+  while (vivos.length > 0 && monotonicNow() < limite) {
     await dormir(pollMs);
     vivos = vivos.filter((p) => isAlive(p.pid));
   }
