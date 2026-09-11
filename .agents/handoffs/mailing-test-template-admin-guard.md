@@ -3,18 +3,21 @@
 Fecha: 2026-09-11. Task ID: `mailing-test-template-admin-guard`.
 Owner / sesión: `claude-e271ce80-5e1f-46da-930b-ae096413cfda` (Worker Claude Code; sin subagentes escritores).
 
-Estado de tarea: lista-para-revision, sin publicar (el push y la PR draft esperan autorización de Sam). Estado SDD: `done`, con los criterios 1-7 cumplidos. PR, merge y release se registran aparte.
+Estado de tarea: lista-para-revision, publicada como [PR #91 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/91) con autorización de Sam en la sesión. Estado SDD: `done`, con los criterios 1-7 cumplidos. Merge y release se registran aparte.
 
 - Repo: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO` (checkout principal no modificado).
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/mailing-test-template-admin-guard`, creado con `node scripts/harness-worktree.mjs start mailing-test-template-admin-guard`.
-- Rama: `codex/mailing-test-template-admin-guard`, sin upstream.
+- Rama: `codex/mailing-test-template-admin-guard`, con upstream `origin/codex/mailing-test-template-admin-guard`.
 - Base inicial: `07d000970011ee12364e31124ebe4b301f064b40` (`origin/main` al crear el worktree). El encargo citaba `3c6107012f754953323202a7386b3e7811593814`: es ancestro de esa base y `app/studio/(app)/mailing/` no cambió entre ambos.
 - Reserva: fast-forward a `821a9df8`, cuyo padre es `50100cc4` (`origin/main` tras PR #70). Sin rebase.
-- Base actual: `c6c673127dea93e6adb9094f6d217cfa1ec6974c` (`origin/main` con #72, #73 y #74), incorporada con el merge `2e0e3a35`. Sin rebase.
+- Actualizaciones de main, ambas con merge y sin rebase:
+  - `2e0e3a35` trajo `c6c67312` (#72, #73, #74).
+  - `c7184f85` trajo `bbc7493f` (#81, #85), antes de publicar.
+- Base actual: `bbc7493f92b762900346e62d96db32c37e5792da`.
 - SDD: `docs/specs/0453-mailing-test-template-admin-guard/spec.md`. El número lo asignó el Director (sesión «Hola Director», `dtdcargo-5f`) tras `pnpm sdd:next` sobre 209 refs y worktrees.
-  - Reserva local del Director: rama `codex/sdd-reserve-0453-mailing-test-template-admin-guard` y lock `refs/dtd/reservations/0453`, commit `821a9df8f2c913e369df9f41be722b2b16418fe1`. No está publicada.
+  - Reserva local del Director: rama `codex/sdd-reserve-0453-mailing-test-template-admin-guard` y lock `refs/dtd/reservations/0453`, commit `821a9df8f2c913e369df9f41be722b2b16418fe1`. No está publicada; el Director decidió dejarla como está.
   - El Director aprobó spec nueva: no reabrir 0026 ni 0085.
-- Origen del hallazgo: FUERA DE ALCANCE #1 y fila c4 del handoff `c-l08-mailing-rbac.md`. Su PR #74 ya está integrada en main (`c6c67312`); la migración `0408_mailing_admin_rbac` sigue pendiente de aplicar.
+- Origen del hallazgo: FUERA DE ALCANCE #1 y fila c4 del handoff `c-l08-mailing-rbac.md`. Su PR #74 ya está integrada en main; la migración `0408_mailing_admin_rbac` sigue pendiente de aplicar.
 
 ## OBJETIVO ORIGINAL
 
@@ -32,14 +35,16 @@ Añadir a `sendTestTemplateAction` (`app/studio/(app)/mailing/actions.ts:111-161
   - Admin: mismo `sendEmail(adminClient, tenant, { templateSlug, to, vars: buildSampleVars(...), metadata })`, mismo mensaje y `revalidatePath("/studio/mailing")`.
 - **Spec 0453:** completa sobre el stub de la reserva, con contexto, alcance, tabla antes/después, aceptación, allowlist exacta, gobernanza y no-objetivos. Estado `done`.
   - El criterio 7 se precisó antes del cierre: «se registra por paso y ningún paso falla por este cambio».
-- **Índice:** `docs/specs/README.md` regenerado con `corepack pnpm docs:index` (421 specs y 32 huecos tras el merge).
+- **Índice:** `docs/specs/README.md` regenerado con `corepack pnpm docs:index` (423 specs y 30 huecos tras el último merge).
+- **Revisión:** el Director aprobó la revisión sobre `9e90dd35` (base `c6c67312`).
+- **Publicación:** rama en origin y PR draft #91 contra main.
 
-Alcance contra `origin/main` (`c6c67312`): 4 archivos, +255/−1. Son `actions.ts` (+5), el test nuevo (+173), la spec (+75) y el índice (conteo 420 → 421 y fila 0453), más este handoff. Coincide exactamente con la allowlist aprobada por el Director.
+Alcance contra `origin/main` (`bbc7493f`): 5 archivos, +396/−1. Son `actions.ts` (+5), el test nuevo (+173), la spec (+75), el índice (conteo y fila 0453) y este handoff. Coincide exactamente con la allowlist aprobada por el Director.
 
 ## VALIDACIÓN
 
-- **PASÓ** aislamiento: `start`, `guard`, `claim --owner claude-e271ce80-5e1f-46da-930b-ae096413cfda`. `guard --owner` y la rama se revalidaron antes del fast-forward, de cada commit y del merge.
-- **PASÓ** `corepack pnpm install --frozen-lockfile` (35.8 s), Node 24.20.0 / pnpm 12.3.4. El lockfile no cambió entre `07d00097` y `c6c67312`.
+- **PASÓ** aislamiento: `start`, `guard`, `claim --owner claude-e271ce80-5e1f-46da-930b-ae096413cfda`. `guard --owner` y la rama se revalidaron antes del fast-forward, de cada commit, de cada merge y del push. El claim se liberó tras el primer cierre y se volvió a tomar para publicar.
+- **PASÓ** `corepack pnpm install --frozen-lockfile` (35.8 s), Node 24.20.0 / pnpm 12.3.4. El lockfile no cambió entre `07d00097` y `bbc7493f`.
 - **PASÓ** línea base en `07d00097`: `lib/studio/rbac-actions-guard.test.ts` 55/55, incluido `mailing/actions.ts`. Esto demuestra que el anti-drift por archivo no ve la action sin guard.
 - **FALLÓ, esperado (fase roja)** en `821a9df8` con el test nuevo y `actions.ts` intacto: 7 fallos y 2 aprobados de 9.
   - Fallaron los 6 roles no-admin y el override LOCKED, con `expected { ok: true, …(1) } to deeply equal { Object (error) }`: hoy el correo sale.
@@ -65,18 +70,23 @@ Alcance contra `origin/main` (`c6c67312`): 4 archivos, +255/−1. Son `actions.t
       - mobile-safari, 28/62: 21 pasaron, 4 fallaron (`auth.spec.ts:21, 91, 98, 105`) y 3 se omitieron. Desde las 11:59:14Z, silencio.
     - **NO EJECUTADO** build dentro de verify: va después de e2e. Se cubrió aparte (siguiente punto).
 - **PASÓ** `node scripts/check-build.mjs` sobre `838fc99f`, corrido aparte tras detener verify, de 12:16:59Z a 12:26:26Z: «build de producción OK» en `.next-verify` aislado. El script restauró `tsconfig.json`, y el Norte regenerado es un archivo ignorado.
-- **Tras el merge de `origin/main`** (`2e0e3a35`, padres `82c5afa3` y `c6c67312`):
-  - **PASÓ** merge semántico del índice con el driver `dtd-generated-records` (verificado con `install-merge-drivers.mjs --check`) y `docs:index` (421 specs, 32 huecos). Contra main, el índice solo cambia el conteo y la fila 0453.
-  - **PASÓ** `docs:check` (421), `sdd:check` (numbering sin repetidos) y `git diff --cached --check`.
-  - **PASÓ** `node scripts/check-pending-migration-symbols.mjs`: 0 ROJO · 0 AMARILLO, con 0408, 0424 y 0432 ya en main.
+- **Tras el merge de `c6c67312`** (`2e0e3a35`, padres `82c5afa3` y `c6c67312`):
+  - **PASÓ** merge semántico del índice con el driver `dtd-generated-records` (verificado con `install-merge-drivers.mjs --check`) y `docs:index` (421 specs).
+  - **PASÓ** `docs:check`, `sdd:check`, `git diff --cached --check` y `pending-migration-symbols` (0 ROJO · 0 AMARILLO).
   - **PASÓ** Vitest focal y RBAC: 3 archivos y 100 tests.
-  - **NO EJECUTADO** tras el merge: typecheck, lint, Vitest completo, build y e2e. Main solo trajo SQL, specs, handoffs, baseline e índice (14 archivos, ningún TS/JS), así que el código TS/JS de `2e0e3a35` es idéntico al de `838fc99f` y esos resultados siguen aplicando.
-  - **NO EJECUTADO** tras el merge: sql-tests y schema-rebuild. Los contratos 0408, 0424 y 0432 se validaron en sus propias PRs; este cambio no toca SQL.
+  - **NO EJECUTADO** el resto: ese merge solo trajo SQL, specs, handoffs, baseline e índice, sin TS/JS.
+- **Tras el merge de `bbc7493f`** (`c7184f85`, padres `9e90dd35` y `bbc7493f`), antes de publicar:
+  - **PASÓ** merge semántico del índice y `docs:index` (423 specs, 30 huecos). Contra main, el índice solo cambia el conteo y la fila 0453.
+  - **PASÓ** `docs:check` (423), `sdd:check` y `git diff --cached --check`.
+  - **PASÓ** `pending-migration-symbols`: 0 ROJO · 0 AMARILLO, con 0409 ya aplicada y 0417/0429 pendientes.
+  - **PASÓ** Vitest focal, RBAC y `lib/studio/prealertas/__tests__/service-request-scope.test.ts`: 4 archivos y 125 tests.
+  - **PASÓ** `corepack pnpm typecheck` completo (exit 0, 18:01:40Z → 18:03:07Z), porque main trajo `lib/studio/prealertas/queries.ts`.
+  - **NO EJECUTADO** tras este merge: lint completo, Vitest completo, build, sql-tests, schema-rebuild y e2e. Lint, Vitest y build los cubre la CI «Calidad local sin secretos» del head. Los contratos 0417 y 0429 se validaron en #81, y este cambio no toca SQL.
 - **NO EJECUTADO**, por no aplicar:
   - `/ui-check`: no hay UI.
   - revisión `revisar-datos-ve`: no se captura, mueve ni borra un dato personal; el cambio reduce quién puede disparar un envío.
 - **NO DISPONIBLE:** E2E autenticado y migrations-applied, por falta de credenciales Supabase en el worktree. No se copiaron secretos ni se consultó producción.
-- **NO DISPONIBLE:** CI remota. La rama no está publicada.
+- **CI remota:** la CI «Calidad local sin secretos» de la PR #91 se registra por SHA en la PR.
 
 ### Detención del E2E colgado
 
@@ -93,11 +103,12 @@ Alcance contra `origin/main` (`c6c67312`): 4 archivos, +255/−1. Son `actions.t
 
 Evidencia local fuera de Git, en el scratchpad de la sesión (`…/e271ce80-5e1f-46da-930b-ae096413cfda/scratchpad/`):
 
-- corridas: `install.log`, `red.log`, `green.log`, `green-focal-verbose.log`, `postmerge-vitest.log`, `sdd-check.log`;
+- corridas: `install.log`, `red.log`, `green.log`, `green-focal-verbose.log`, `postmerge-vitest.log`, `postmerge2-vitest.log`, `postmerge2-typecheck.log`, `sdd-check.log`;
 - verify: `verify.log`/`.clean.log`, `verify.sha`/`.start`/`.end`/`.exit`/`.status`, `e2e-section.txt`;
 - detención: `proc-tree.ps1`, `survivors.ps1`, `proc-tree-{before,prekill}-36740.txt`, `taskkill.log`, `survivors-check.txt`;
 - build: `build.log` y `build.*`;
-- escaneo: `scan-unguarded-actions.mjs` y `.txt`.
+- escaneo: `scan-unguarded-actions.mjs` y `.txt`;
+- publicación: `pr-body.md`.
 
 ## COMMITS
 
@@ -105,17 +116,25 @@ Evidencia local fuera de Git, en el scratchpad de la sesión (`…/e271ce80-5e1f
 - `838fc99fe4851313d31af09c54fe8a47b2756960` — `feat(studio): SDD-0453 — guard admin en el envío de prueba de Mailing`: guard, test, spec e índice (4 archivos, +245/−7).
 - `82c5afa31d6382a1f9c0bd5d246f4f355f92db95` — `docs(sdd): SDD-0453 — criterio 7 precisado y estado done`: spec e índice.
 - `2e0e3a35f97bbf34787e1c0be220db1dcb1c91c3` — merge de `origin/main` `c6c67312` (#72, #73, #74). El índice se regeneró con `docs:index`.
-- Commit que contiene este documento — cierre del Worker. Su SHA va en la PR; no se crea un commit recursivo para registrarlo.
+- `9e90dd35f7add8516c5bd90fa90f65dce5fa6d8e` — primer cierre del handoff. Es el head que revisó el Director.
+- `c7184f857ebe5a1a4c819d10e0398481b3824d34` — merge de `origin/main` `bbc7493f` (#81, #85). El índice se regeneró con `docs:index`. Fue el primer head publicado.
+- Commit que contiene este documento — handoff final con la publicación y la PR. Su SHA va en la PR; no se crea un commit recursivo para registrarlo.
 
 ## PR / BRANCH
 
-Sin publicar. La rama `codex/mailing-test-template-admin-guard` es local, en el worktree `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/mailing-test-template-admin-guard`, con base `main` (`c6c67312` al cerrar). El push de la rama a sí misma y la PR draft contra main esperan autorización de Sam en la sesión.
+[PR #91 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/91), base `main`, rama `codex/mailing-test-template-admin-guard`, worktree `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/mailing-test-template-admin-guard`.
+
+- **Publicación:** push explícito de la rama a sí misma (`git push -u origin codex/mailing-test-template-admin-guard:codex/mailing-test-template-admin-guard`), con autorización de Sam en la sesión. Antes se confirmaron guard, árbol limpio, main en `bbc7493f` tras un fetch nuevo, `origin/main` como ancestro del head y la rama remota inexistente.
+- **PR:** `gh pr create --base main --draft`, con el cuerpo en `pr-body.md` (scratchpad). El head final se actualiza en el cuerpo de la PR.
+- No se fusionó ni se desplegó a mano. Vercel puede generar su preview automático de rama.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Publicar la rama y abrir la PR draft cuando Sam lo autorice. No hay pendientes de implementación ni de aceptación.
+- Ninguno para la aceptación de SDD-0453 ni para la publicación autorizada. La CI del head y la integración se registran en la PR #91 y corresponden al Director.
 
 ## FUERA DE ALCANCE DETECTADO
+
+El Director registró el #1 como seguimiento de seguridad aparte y el dato del #3 para la tarea del watchdog.
 
 1. **El anti-drift RBAC valida por archivo, no por action.** `lib/studio/rbac-actions-guard.test.ts:76-77` usa `src.includes("moduleEditDenial")`: un export nuevo sin guard, en un archivo que ya lo usa en otra action, pasa en verde. Así sobrevivió este caso.
    - Propuesta: check por export (AST) con allowlist por función.
@@ -128,14 +147,14 @@ Sin publicar. La rama `codex/mailing-test-template-admin-guard` es local, en el 
    - Aparte, `bugs/actions.ts:174` `updateBugAdminAction`: su nombre sugiere admin-only, pero el archivo está en la ALLOWLIST como abierto por diseño. Conviene confirmar dónde vive esa verificación.
 2. **Cabecera de `mailing/actions.ts` desactualizada.** La lista «Cobertura» (`:12`) nombra `sendTestEmailAction`, que no existe (la real es `sendTestTemplateAction`). `:14` ya estaba en el FUERA DE ALCANCE #2 de L08. Es solo documentación.
 3. **E2E se cuelga en mobile-safari en este entorno,** como en L08: sin salida durante más de 16 min y con un worker sin navegador. Playwright no tiene `globalTimeout` (`playwright.config.ts:111` fija `timeout: 60_000` por test), así que no aborta solo.
-   - Hay una sesión Worker titulada «Agregar watchdog al E2E de verify».
-   - Dato útil para esa tarea: al terminar el árbol a la fuerza desde Git Bash, el shim `corepack` devolvió `0` a su padre. Un watchdog o un wrapper debe leer el resumen de `verify.mjs`, no el código de salida del shim.
+   - Dato para la tarea del watchdog: al terminar el árbol a la fuerza desde Git Bash, el shim `corepack` devolvió `0` a su padre. Un watchdog o un wrapper debe leer el resumen de `verify.mjs`, no el código de salida del shim.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** cuando Sam lo autorice, push de la rama a sí misma y PR draft contra main. Después, tu revisión por SHA y la CI «Calidad local sin secretos» del head.
-- **Validación parcial:** la corrida canónica de verify quedó interrumpida en e2e por el cuelgue conocido. Los pasos previos pasaron, E2E falló por entorno con el mismo conjunto que L08 y el build se corrió aparte. Después del merge se revalidó lo que la combinación podía afectar. Acéptala o recházala explícitamente.
-- **Orden:** sin dependencias. #74 (L08) ya está en main. Este guard cierra en la app lo que 0408 cerrará en la base cuando se aplique, y no depende de que 0408 esté aplicada.
-- **Compartidos:** `docs/specs/README.md` es generado. Si otra PR lo toca, se regenera con `corepack pnpm docs:index` en vez de elegir un lado; el merge driver ya lo resolvió una vez.
-- **Reserva:** la rama `codex/sdd-reserve-0453-mailing-test-template-admin-guard` y el lock `refs/dtd/reservations/0453` siguen locales. Esta rama contiene su commit (`821a9df8`); decidir su publicación o limpieza te corresponde a ti. No se borró nada.
-- **Sesiones consumidoras:** solo esta sesión escribió en el worktree. El claim se libera con `release --owner claude-e271ce80-5e1f-46da-930b-ae096413cfda` inmediatamente después del commit que contiene este documento.
+- **Siguiente acción:** revisar la PR #91 por SHA, consultar la CI requerida «Calidad local sin secretos» del head final e integrar con autorización.
+  - Revisaste `9e90dd35`. Desde entonces solo entraron el merge `c7184f85` (#81, #85; solo se cruza el índice generado) y este handoff.
+- **Validación parcial:** la corrida canónica de verify quedó interrumpida en e2e por el cuelgue conocido. Los pasos previos pasaron, E2E falló por entorno con el mismo conjunto que L08 y el build se corrió aparte. Después de cada merge se revalidó lo que la combinación podía afectar. Acéptala o recházala explícitamente.
+- **Orden:** sin dependencias. #74 ya está en main. Este guard cierra en la app lo que 0408 cerrará en la base cuando se aplique, y no depende de que 0408 esté aplicada.
+- **Compartidos:** `docs/specs/README.md` es generado. Si otra PR lo toca antes de integrar, se regenera con `corepack pnpm docs:index`; el merge driver lo resolvió dos veces.
+- **Reserva:** la rama `codex/sdd-reserve-0453-mailing-test-template-admin-guard` y el lock `refs/dtd/reservations/0453` quedan locales, como decidiste. No se borró nada.
+- **Sesiones consumidoras:** solo esta sesión escribió en el worktree. El claim se libera con `release --owner claude-e271ce80-5e1f-46da-930b-ae096413cfda` tras el push del commit que contiene este documento. El worktree y la rama quedan como están.
