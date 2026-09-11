@@ -301,10 +301,10 @@ function assertSameDeclarationsHeader(current, other) {
   }
 }
 
-// Three-way por id. A diferencia de pendingBelowCutoff, una eliminación
-// unilateral sí gana si la otra rama conserva la entrada igual a la base:
-// retirar la declaración es el cierre esperado al aplicar su migración, y
-// resucitarla dejaría una excepción vencida que el gate rechaza.
+// Three-way por id. Como en pendingBelowCutoff, una eliminación unilateral
+// gana si la otra rama conserva la entrada igual a la base: retirar la
+// declaración es el cierre esperado al aplicar su migración, y resucitarla
+// dejaría una excepción vencida que el gate rechaza.
 function mergeDeclarationEntry(base, current, other, id) {
   if (deepEqual(current, other)) return current;
   if (deepEqual(current, base)) return other;

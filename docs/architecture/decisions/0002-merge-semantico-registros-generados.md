@@ -143,10 +143,11 @@ configurados no tienen que reinstalar. Reglas:
 1. `degradations` se fusiona three-way por `id`. Las adiciones con ids distintos
    se conservan, una adición idéntica en ambos lados queda una sola vez y la
    edición de un solo lado gana según la base.
-2. **A diferencia de `pendingBelowCutoff`, una eliminación unilateral sí gana**
-   si la otra rama conserva la entrada igual a la base. Retirar la declaración es
-   el cierre esperado al aplicar su migración; resucitarla dejaría una excepción
-   vencida que `check-pending-migration-symbols` rechaza con exit 2.
+2. **Una eliminación unilateral gana** si la otra rama conserva la entrada igual
+   a la base, como en `pendingBelowCutoff` desde la enmienda de retiro unilateral
+   (más abajo). Retirar la declaración es el cierre esperado al aplicar su
+   migración; resucitarla dejaría una excepción vencida que
+   `check-pending-migration-symbols` rechaza con exit 2.
 3. Fallan cerrados el mismo id con contenido distinto en ambos lados (dos
    adiciones o dos ediciones) y borrar contra editar.
 4. El encabezado (`schemaVersion`, `$doc` y cualquier clave fuera de
@@ -166,16 +167,16 @@ configurados no tienen que reinstalar. Reglas:
 
 ### Interacción conocida con el baseline
 
-Si una rama retira a la vez una espera de `pendingBelowCutoff` y su declaración,
-y se fusiona con el driver contra otra rama que también cambió el baseline, el
-baseline conserva la espera (regla 1 de la decisión original). La declaración,
-en cambio, queda retirada: Git toma el retiro si la otra rama no tocó las
-declaraciones, y este driver lo respeta si también las cambió. Si hay código
-alcanzable que usa esos símbolos, `check-pending-migration-symbols` lo reporta
-ROJO; si no lo hay, ese gate no lo ve. La salida es quitar a mano la espera
-resucitada. El efecto es anterior a esta enmienda (el ensayo lo reproduce sin
-tocar las declaraciones); cambiar la regla del baseline es otra decisión,
-registrada como fuera de alcance en el handoff de la tarea.
+Una rama de registro retira a la vez una espera de `pendingBelowCutoff` y su
+declaración. Desde la enmienda de retiro unilateral, el driver aplica los dos
+retiros aunque la otra rama también haya cambiado esos archivos: ni la espera ni
+la declaración resucitan. Queda un caso: la primera actualización de una rama
+creada antes de esa enmienda corre el driver anterior de su propio árbol, y la
+espera resucita salvo que se fuerce el driver de main (punto 4 de esa enmienda).
+Si una espera resucita y hay código alcanzable que usa sus símbolos,
+`check-pending-migration-symbols` lo reporta ROJO; si no lo hay, ese gate no lo
+ve, y la señal es una espera que no es propia de la rama en el diff del baseline
+contra main.
 
 ### Límite y evidencia
 
@@ -187,7 +188,8 @@ Git usa el `.gitattributes` y el script del árbol de la rama que hace el merge,
 no los de main. Integrar una rama antigua dentro de main usa el driver nuevo; el
 sentido contrario, no. En una rama creada antes de esta enmienda, el primer
 `git merge origin/main` deja el archivo en conflicto textual y fusiona el
-baseline con el driver anterior. Resolver con
+baseline con el driver anterior, salvo que se fuerce el de main como indica el
+punto 4 de la enmienda de retiro unilateral. Resolver con
 `git checkout -m -- supabase/pending-migration-symbol-declarations.json` y
 `git add`, y verificar el baseline contra origin/main. Tras ese primer merge el
 árbol ya trae la regla y el driver nuevos, y `git checkout -m` los usa. Ese
