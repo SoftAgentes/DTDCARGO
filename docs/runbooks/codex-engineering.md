@@ -205,6 +205,13 @@ se aplica para pasar el gate. Pruebas SQL/schema efímeras y revisión sí son
 preintegración. Omisiones en checks críticos bloquean aprobación hasta evidencia
 o excepción explícita, aunque el proceso salga 0.
 
+El e2e de verify corre con watchdog (SDD-0454). `VERIFY_E2E_IDLE_MIN` minutos
+sin salida (10 por defecto) o `VERIFY_E2E_TIMEOUT_MIN` en total (60) terminan
+sólo el árbol de procesos del paso y lo reportan FALLÓ con motivo
+COLGADO/TIMEOUT, sin reintento. Ya no hace falta cortar ese árbol a mano: cita
+la línea `watchdog:` como evidencia y revisa a mano sólo los sobrevivientes que
+nombre.
+
 Al 2026-09-05 el workflow «Calidad local sin secretos» se extrae de PR #21
 como unidad mínima SDD-0349 sobre main, en la rama local
 `codex/ci-quality-extract-20260905`. No se integra el saneamiento completo.
