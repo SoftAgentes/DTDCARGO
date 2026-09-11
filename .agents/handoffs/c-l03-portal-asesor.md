@@ -4,10 +4,11 @@ Fecha: 2026-09-11. Task ID: `c-l03-portal-asesor`.
 Owner / sesión escritora: `c-l03-worker-20260911-claude` (Worker Claude Code asignado por el Director). Estado de tarea: lista-para-revision en PR draft #83; **MIGRATE-FIRST**: no se fusiona antes de aplicar y verificar 0403 en producción.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO` (checkout principal intacto).
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l03-portal-asesor`.
-Rama: `codex/c-l03-portal-asesor`. Base real: `3c6107012f754953323202a7386b3e7811593814` (origin/main al crear el worktree). Main avanzó dos veces durante la tarea y se incorporó por merge, sin rebase:
+Rama: `codex/c-l03-portal-asesor`. Base real: `3c6107012f754953323202a7386b3e7811593814` (origin/main al crear el worktree). Main avanzó tres veces durante la tarea y se incorporó por merge, sin rebase:
 - `7fb767f6`: trae `b7e8b484` (#71, registro de aplicación de 0425/0427; #79, SDD-0450, checker UTF-16). Sin conflictos.
-- `94372af9`: trae `07d000970011ee12364e31124ebe4b301f064b40` (#69, L19, SDD-0385, 0431 pendiente). El driver `dtd-generated-records` unió baseline e índice.
-Ninguno de los dos cambió las rutas de código del lote.
+- `94372af9`: trae `07d00097` (#69, L19, SDD-0385, 0431 pendiente). El driver `dtd-generated-records` unió baseline e índice.
+- `9fdc6dd6`: trae `50100cc4902c4a2a4398327ba0de6dc30810c834` (#70, L21, SDD-0401, 0433 pendiente). También con el driver.
+Ninguno cambió las rutas de código, SQL, spec, tests ni declaraciones del lote.
 
 Origen de solo lectura: `ea9952a47f4adf14c48c91e6d0147597beb94aa7` (head de PR #21). Commit fuente de SDD-0338 en el origen: `121bfdc5892c917d5ae7263c1f7ec4223667de29`. Base común con main: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 SDD: `docs/specs/0338-asesor-portal-por-principal/spec.md`, importada. No se reservó número: 0338 y 0403 no existían en main. Fuera de esta rama, sólo `codex/saneamiento-integral` (head de #21) contiene 0338/0403, con los mismos blobs: es la misma spec, no una colisión.
@@ -31,7 +32,7 @@ Preparar como PR draft contra main el lote L03 del bloque C: migración 0403, su
 - Los cuatro blobs son también los de `121bfdc5`: ningún commit posterior de #21 los tocó.
 - Nota de importación fechada 2026-09-11 bajo el H1, con la forma de la de 0363. Menciona MIGRATE-FIRST, el corte focal y que la meta `service_role` de la aceptación no aplica: su test de frontera no existe en main. `status: done` y el frontmatter se conservan como estado histórico del origen. Al retirar exactamente la nota se recupera `28d10745`.
 - Historial de main desde la base común: `portal-queries.ts` sólo cambió en `3f03569a` (SDD-0380, cotizaciones) y `dcf99a7f` (L18, principal). Ninguno tocó `getPortalAdvisor`: por AST es igual en `2a2e81bf` y en `3c610701`. Inicio y Soporte no cambiaron en main desde la base común. La Soporte de main (`ef6101c2`) es exactamente la preimagen del hunk de `121bfdc5`.
-- Actualización con main en dos merges (`7fb767f6`, `94372af9`). Frente a `origin/main` `07d00097`, la rama difiere exactamente en las 11 rutas del lote más este handoff. Los archivos de código, SQL, spec y tests conservan los blobs de `419d7ec0`. Baseline e índice sólo suman la entrada y la fila del lote sobre lo de main.
+- Actualización con main en tres merges (`7fb767f6`, `94372af9`, `9fdc6dd6`). Frente a `origin/main` `50100cc4`, la rama difiere exactamente en las 11 rutas del lote más este handoff. Código, SQL, spec, tests y declaraciones conservan los blobs de `419d7ec0`. Baseline e índice sólo suman, sobre lo de main, la entrada y la fila del lote.
 
 ### Adopción focal por ruta (líneas en `419d7ec0`, iguales en el árbol final salvo donde se indica)
 
@@ -42,9 +43,9 @@ Preparar como PR draft contra main el lote L03 del bloque C: migración 0403, su
 | `app/portal/(app)/soporte/page.tsx` | Comentario del hilo (L87) y llamada (L100): `getPortalAdvisor(supabase)`. | Blob resultante `88ca9369`, el mismo de `121bfdc5`. AST: sólo cambian el `try` del asesor y el comentario del hilo. `admin` se conserva para evidencia, hilo, id de conversación y resúmenes; 5 raíces JSX idénticas. No adopta `support-private-context`. |
 | `lib/portal/__tests__/portal-advisor-query.test.ts` | Test del origen, idéntico: 4 casos. | Ver tabla de blobs. |
 | `lib/portal/__tests__/portal-advisor-query-rpc-states.test.ts` | Nuevo, 6 casos. RPC presente: sólo la RPC, sin argumentos ni lecturas de tablas, y sólo cuatro campos aunque la respuesta trajera ids; también fila como objeto. RPC ausente (PGRST202), sin EXECUTE (42501), respuesta vacía, y excepción del transporte que se propaga a los `catch` de las páginas. | Aceptación 7, sin tocar tests existentes. |
-| `supabase/migrations-baseline.json` | Sólo la espera `0403_portal_advisor_por_principal`: L40 en `419d7ec0`; tras el merge con L19 el driver la ubica en L44, antes de la 0431. | Dice «bloque C L03 / SDD-0338», MIGRATE-FIRST, OK nominal de Sam, runbook y name exacto. Frente a cada main (`3c610701` y `07d00097`), sin la entrada nueva el JSON es igual; cutoff 238, `$doc` y las demás esperas, incluida 0431, intactos; texto de la entrada sin cambios. |
+| `supabase/migrations-baseline.json` | Sólo la espera `0403_portal_advisor_por_principal`: L40 en `419d7ec0`; tras los merges con L19 y L21 el driver la ubica entre las esperas 0431 y 0433. | Dice «bloque C L03 / SDD-0338», MIGRATE-FIRST, OK nominal de Sam, runbook y name exacto. Frente a cada main (`3c610701`, `07d00097`, `50100cc4`), sin la entrada nueva el JSON es igual: cutoff 238, `$doc` y las demás esperas intactos, y el texto de la entrada no cambia. |
 | `supabase/pending-migration-symbol-declarations.json` | Grupo `l03-portal-advisor-pending-rpc`: llamada en `portal-queries.ts:145`; evidencia en `portal-queries.ts:146`, `page.tsx:123`, `PortalAdvisorCard.tsx:64`, `soporte/page.tsx:100` y `:174`. | Conforme al `$doc` y al patrón de L16. ROJO pasa a AMARILLO declarado. |
-| `docs/specs/README.md` | Regenerado con `corepack pnpm docs:index`: 416 specs en `419d7ec0`; 417 tras el merge con L19, unido por el driver. | Entra la fila 0338 y sale de la lista de huecos; `docs:check` sincronizado en ambos árboles. |
+| `docs/specs/README.md` | Regenerado con `corepack pnpm docs:index`. Tiene 416 specs en `419d7ec0`; tras los merges con L19 y L21 queda en 418, unido por el driver. | Entra la fila 0338 y sale de la lista de huecos; `docs:check` sincronizado en cada árbol. |
 
 ### Línea que reporta el checker
 
@@ -102,7 +103,7 @@ Esto no es asesoría legal. Conviene una segunda opinión de otro modelo sobre l
 
 ## VALIDACIÓN
 
-Producto validado: `419d7ec0b36eaa88dee30ea82aaeacb91a6f40fb` sobre la base `3c610701`; revalidación de lo afectado sobre los merges `7fb767f6` y `94372af9`. Node 24.20.0, Corepack 0.35.0, pnpm 12.3.4, Docker 29.7.2. Sin credenciales ni `.env` operativo. Recibos fuera de Git, en la carpeta de evidencia del Director (`…/scratchpad/c-l03-portal-asesor/`): `install.log`, `spec-note-identity.json`, `ast-compare.json`, `baseline-check*.json`, `diffs/`, `merge/`, `pending-symbols*.log`, `docs-sdd*.log`, `merge2-checks.log`, `schema-rebuild*.log`, `sql-focal-0403.log`, `sql-tests-merge2.log`, `vitest-focal*.log`, `vitest-advisor-verbose.log`, `typecheck*.log`, `eslint-focal.log`, `merge-drivers.log`, `harness-merge.log`, `verify.log`, `verify.exit` y `verify.meta`.
+Producto validado: `419d7ec0b36eaa88dee30ea82aaeacb91a6f40fb` sobre la base `3c610701`; revalidación de lo afectado sobre los merges `7fb767f6`, `94372af9` y `9fdc6dd6`. Node 24.20.0, Corepack 0.35.0, pnpm 12.3.4, Docker 29.7.2. Sin credenciales ni `.env` operativo. Recibos fuera de Git, en la carpeta de evidencia del Director (`…/scratchpad/c-l03-portal-asesor/`): `install.log`, `spec-note-identity.json`, `ast-compare.json`, `baseline-check*.json`, `diffs/`, `merge/`, `pending-symbols*.log`, `docs-sdd*.log`, `merge2-checks.log`, `merge3-checks.log`, `schema-rebuild*.log`, `sql-focal-0403.log`, `sql-tests-merge2.log`, `sql-tests-merge3.log`, `vitest-focal*.log`, `vitest-advisor-verbose.log`, `typecheck*.log`, `eslint-focal.log`, `merge-drivers.log`, `harness-merge.log`, `verify.log`, `verify.exit` y `verify.meta`.
 
 | Comprobación | Estado y evidencia |
 |---|---|
@@ -123,11 +124,11 @@ Producto validado: `419d7ec0b36eaa88dee30ea82aaeacb91a6f40fb` sobre la base `3c6
 | ESLint de las cinco rutas TS | PASÓ, 0 problemas |
 | Baseline y declaraciones frente a la base | PASÓ: JSON válido, una sola clave nueva, cutoff 238 y `$doc` iguales |
 | `git diff --check` y allowlist | PASÓ: 12 rutas exactas con el handoff; ninguna fuera de la allowlist |
-| Combinación con L02 (#76, head `092ca77d`, home `9fe0b82d`) | PASÓ: `git merge-file` en ambos órdenes, 0 conflictos, resultado `7015d694` = home tras `121bfdc5` en #21. Ni #71, ni #79, ni #69 tocan la home |
+| Combinación con L02 (#76, head `092ca77d`, home `9fe0b82d`) | PASÓ: `git merge-file` en ambos órdenes, 0 conflictos, resultado `7015d694` = home tras `121bfdc5` en #21. Ni #71, #79, #69 ni #70 tocan la home |
 | `corepack pnpm verify` | FALLÓ, exit 1, sobre `419d7ec0` (06:15:31-06:42:58). Ejecutó 16 de 17 pasos: 15 PASÓ, `e2e` FALLÓ por el entorno y `migrations-applied` quedó omitido. Veredicto literal: `verify: 1 fallo(s) → e2e CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.` El vigilante terminó en FIN, sin cuelgue. No se presenta como verde ni se reintentó a mano. |
 | `/ui-check` | NO EJECUTADO: lo corre el Director; JSX idéntico |
 | E2E autenticado y ledger real | NO DISPONIBLE: sin credenciales; fuera de la autorización |
-| CI alojado de la PR | PASÓ sobre el producto: `Calidad continua` / `Calidad local sin secretos` sobre `419d7ec0` ([run 34589070680](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/34589070680)), 14 min 34 s. Preview de Vercel: pass. No cubre E2E autenticado ni Supabase. Las corridas de `7fb767f6` y `d8ce6492` quedaron en curso al publicar el SHA final. El CI del SHA final (segundo merge y este documento) se registra en la PR. |
+| CI alojado de la PR | PASÓ en `Calidad continua` / `Calidad local sin secretos` sobre `419d7ec0` ([run 34589070680](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/34589070680), 14 min 34 s) y sobre `d8ce6492`, que es producto + primer merge + handoff ([run 34591580602](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/34591580602)). La corrida de `7fb767f6` se canceló al quedar reemplazada; la de `def49b97` quedó en curso al publicar. Preview de Vercel: pass. No cubre E2E autenticado ni Supabase. El CI del SHA final se registra en la PR. |
 
 Detalle de `verify`:
 
@@ -177,7 +178,21 @@ Detalle de `verify`:
 | `node scripts/check-schema-rebuild.mjs` | PASÓ: inventario de 422; 404 migraciones desde cero, 18 sólo-ledger, aislamiento en 219 tablas |
 | `node scripts/run-sql-tests.mjs` | PASÓ: 164 contratos, incluidos 0403 y 0431; rollback total; sin contenedores propios al terminar |
 | `git diff --check` y rutas frente a `origin/main` | PASÓ: exactamente las 11 rutas del lote y este handoff |
-| Vitest, typecheck, `harness:test`, verify y build sobre los merges | NO EJECUTADO de nuevo sobre `94372af9`. Main sólo trajo handoffs, specs, el checker con su test (ya revalidados tras el primer merge) y SQL/contrato de L19 (cubiertos arriba). No hubo código `app/`/`lib/`, dependencias ni configuración de build. El CI alojado corre sobre el SHA final publicado. |
+
+### Revalidación tras el tercer merge (`9fdc6dd6`, #70 / L21)
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| Claim, guard `--owner`, rama, HEAD esperado y árbol limpio antes del merge | PASÓ |
+| `git merge-tree` y merge real con el driver `dtd-generated-records` | PASÓ: merge semántico de baseline e índice, 0 conflictos |
+| Baseline frente a `origin/main` `50100cc4` | PASÓ: una línea añadida (la espera 0403, texto sin cambios); cutoff 238, `$doc` y esperas 0409/0418/0419/0430/0431/0433 intactos |
+| `corepack pnpm docs:check` y `sdd:check` | PASÓ: 418 specs / 423 migraciones; sólo colisiones históricas declaradas |
+| `node scripts/check-pending-migration-symbols.mjs` | PASÓ: 0 ROJO, 1 AMARILLO (`get_portal_advisor`) |
+| `node scripts/check-schema-rebuild.mjs` | PASÓ: inventario de 423; 405 migraciones desde cero, 18 sólo-ledger, aislamiento en 219 tablas |
+| `node scripts/run-sql-tests.mjs` | PASÓ: 165 contratos, incluidos 0403, 0431 y 0433; rollback total; sin contenedores propios al terminar |
+| `git diff --check` y rutas frente a `origin/main` | PASÓ: exactamente las 11 rutas del lote y este handoff |
+| Código, SQL, spec, tests y declaraciones frente a `419d7ec0` | PASÓ: sin cambios |
+| Vitest, typecheck, `harness:test`, verify y build sobre los merges 2 y 3 | NO EJECUTADO de nuevo. #69 y #70 sólo trajeron SQL/contrato, spec, índice, baseline y handoffs; ya se revalidó todo eso arriba. No hubo código `app/`/`lib/`, dependencias ni configuración de build. El CI alojado corre sobre el SHA final publicado. |
 
 ## COMMITS
 
@@ -185,7 +200,9 @@ Detalle de `verify`:
 - `7fb767f6f18242ab805909ba8898dec9d554b3e6`: merge de origin/main (`b7e8b484`, #71 y #79), sin conflictos.
 - `d8ce6492eb56bcfac1bfbd6546e45197c46d1f77`: `chore(harness): cerrar handoff L03 asesor Portal`. Primera versión de cierre de este documento.
 - `94372af93eab74876ce586dacbf27a88c778c46c`: merge de origin/main (`07d00097`, #69), con el driver en baseline e índice.
-- Commit que contiene esta actualización del documento: `chore(harness): actualizar handoff L03 tras merge con L19`. Sólo documentación; el hash final queda en la PR.
+- `def49b9773ad9dc749c4cfdb5537cd6947f44daa`: `chore(harness): actualizar handoff L03 tras merge con L19`.
+- `9fdc6dd65befe19ca1754a616db12e95eed4dafc`: merge de origin/main (`50100cc4`, #70), con el driver en baseline e índice.
+- Commit que contiene esta actualización del documento: `chore(harness): actualizar handoff L03 tras merge con L21`. Sólo documentación; el hash final queda en la PR.
 
 ## PR / BRANCH
 
@@ -202,15 +219,16 @@ Detalle de `verify`:
 1. **Comentarios que quedan desactualizados fuera de la allowlist.** `lib/portal/__tests__/advisor.test.ts:7-8` dice que `getPortalAdvisor` «es admin-scopeada»; `app/portal/(app)/reclamos/actions.ts:73-74` justifica una lectura con admin «mismo criterio que getPortalAdvisor». Sólo comentarios, sin efecto funcional.
 2. **SQL 0403, `limit 1` sin `order by` (L41).** Con varios vínculos activos, la RPC elegiría uno arbitrario. En estas vistas no ocurre: el principal de L18 usa `maybeSingle` (`portal-queries.ts:73`), devuelve null y la página sale antes. Se importa idéntico.
 3. **Declaraciones sin merge driver.** L01, L02, L04, L05 y L06 también agregan grupos a `degradations`, así que al integrar habrá conflicto textual; se resuelve por unión. Baseline e índice sí tienen `dtd-generated-records`.
-4. **GitHub no ejecuta `dtd-generated-records`.** Tras #69, la PR #83 se vio CONFLICTING aunque el merge local con el driver era limpio. Cada PR que entre a main tocando baseline o índice repetirá ese estado hasta rehacer el merge local.
+4. **GitHub no ejecuta `dtd-generated-records`.** Tras #69 y otra vez tras #70, la PR #83 se vio CONFLICTING aunque el merge local con el driver era limpio. Cada PR que entre a main tocando baseline o índice repetirá ese estado hasta rehacer el merge local.
 5. **Allowlist histórica de 0338.** `scripts/__tests__/portal-service-role-boundary.test.mjs` y la meta «10 rutas / 18 construcciones» no existen en main; pertenecen al saneamiento de #21 y no se importan.
 6. **Fallback silencioso.** Ni main ni el origen registran el fallo de esta lectura. Si el Director quiere la misma observabilidad que pidió en L02 (código o mensaje, sin ids ni datos del asesor), es un cambio acotado a `getPortalAdvisor` y su test.
 7. **Heredados del entorno, sin cambios.** Aviso de pnpm 12 sobre `pnpm.onlyBuiltDependencies` ignorado; 8 advertencias de lint en los 4 archivos intactos citados; los 15 fallos E2E ambientales ya conocidos en L16/L18/L02 y un flaky recuperado. No son regresiones de L03.
 
 ## HANDOFF AL DIRECTOR
 
-- **Orden migrate-first.** Revisar la PR #83 sobre el SHA final (main estaba en `07d00097` al publicar). Con OK nominal de Sam, aplicar 0403 individualmente con name `0403_portal_advisor_por_principal` según el runbook, y verificar el objeto y su ACL. Después, en esta rama: retirar la espera del baseline y la declaración `l03`, actualizar la nota de SDD-0338, revalidar y recién entonces fusionar.
+- **Orden migrate-first.** Revisar la PR #83 sobre el SHA final (main estaba en `50100cc4` al publicar). Con OK nominal de Sam, aplicar 0403 individualmente con name `0403_portal_advisor_por_principal` según el runbook, y verificar el objeto y su ACL. Después, en esta rama: retirar la espera del baseline y la declaración `l03`, actualizar la nota de SDD-0338, revalidar y recién entonces fusionar.
+- **Main en movimiento.** Main avanzó tres veces durante la tarea; en cada caso se hizo merge y se revalidó lo afectado. No se persiguen más avances después de este cierre. Si main vuelve a moverse, quien actualice la rama en la ventana de integración repite el merge local con el driver: GitHub puede marcar CONFLICTING por baseline o índice aunque el merge semántico sea limpio.
 - **Serialización con L02 (#76).** Comparten sólo `app/portal/(app)/page.tsx`, con hunks separados. La simulación en ambos órdenes da 0 conflictos y el blob `7015d694` de #21. Baseline e índice se resuelven con el driver; declaraciones, por unión. Quien entre segundo hace merge de origin/main y revalida.
 - **Otros lotes.** Ninguna rama `codex/c-*` local o remota toca `portal-queries.ts`, Soporte ni los tests del asesor. Sin dependencia de 0402 ni de L05.
-- **Incidente de ownership durante el cierre, resuelto.** Un commit del handoff falló porque faltaba su archivo de mensaje, y la cadena siguió: publicó sólo el merge `7fb767f6` y liberó el claim antes de tiempo. Se volvió a reclamar con el mismo owner (el claim se adquirió sin conflicto, así que no había claim ajeno), se completó `d8ce6492` y se volvió a liberar. Para el segundo merge se reclamó de nuevo antes de escribir.
+- **Incidente de ownership durante el cierre, resuelto.** Un commit del handoff falló porque faltaba su archivo de mensaje, y la cadena siguió: publicó sólo el merge `7fb767f6` y liberó el claim antes de tiempo. Se volvió a reclamar con el mismo owner (el claim se adquirió sin conflicto, así que no había claim ajeno) y se completó `d8ce6492`. Para los merges 2 y 3 se reclamó antes de escribir y se liberó al final; desde el incidente, cada paso aborta con una comprobación explícita.
 - **Ownership.** Escritura finalizada con esta actualización. Tras su commit y push se libera el claim con `node scripts/harness-worktree.mjs release --owner c-l03-worker-20260911-claude`; el estado efectivo se verifica en los metadatos Git del worktree. Worktree y rama se conservan. No hay subagentes ni sesiones consumidoras delegadas.
