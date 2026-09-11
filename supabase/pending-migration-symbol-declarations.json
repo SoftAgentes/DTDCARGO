@@ -7,5 +7,42 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "l01-portal-brand-pending-rpc",
+      "primarySymbol": "get_portal_brand",
+      "migration": "0401_portal_brand_por_principal",
+      "symbols": [
+        {
+          "kind": "function",
+          "name": "get_portal_brand",
+          "callSites": [
+            "lib/studio/aliados/brand-resolve.ts:66"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/aliados/brand-resolve.ts:67",
+          "contains": "if (error) return DTD_BRAND;",
+          "degradation": "MIGRATE-FIRST. Mientras 0401 no exista, PostgREST responde error (PGRST202) y el helper devuelve la marca DTD completa: no lee aliados con service_role ni existe fallback admin/legacy. Para el cliente de un aliado eso sustituye su marca white-label por la de DTD; por eso esta PR no se fusiona antes de aplicar y verificar 0401 en producción."
+        },
+        {
+          "site": "lib/shared/brand-context.ts:112",
+          "contains": "if (!aliado) return DTD_BRAND;",
+          "degradation": "Sin fila (cliente directo, vínculo revocado o cliente eliminado) resolveBrand devuelve la marca DTD completa, nunca campos vacíos: ningún documento sale a medio pintar."
+        },
+        {
+          "site": "app/portal/(app)/facturas/[code]/comprobante/page.tsx:78",
+          "contains": "const brand = await resolveBrandForPortal(supabase);",
+          "degradation": "El comprobante sigue leyendo la factura propia con la sesión y RLS; sólo emisor, pie y tagline caen a la marca DTD hasta aplicar 0401. La página ya no construye service_role."
+        },
+        {
+          "site": "app/portal/(app)/compras/[code]/etiquetas/page.tsx:61",
+          "contains": "const brand = await resolveBrandForPortal(supabase);",
+          "degradation": "Las etiquetas se generan igual, con la presentación vigente y las cajas pre-declaradas; sólo la marca impresa cae a DTD hasta aplicar 0401."
+        }
+      ]
+    }
+  ]
 }
