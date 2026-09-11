@@ -112,7 +112,8 @@ está fuera del alcance de E1.
 La prueba crea repositorios Git temporales y simula dos ramas con specs distintas
 y dos claves distintas del baseline. También prueba misma clave con texto
 distinto, retiro unilateral en ambos sentidos, borrado contra edición, retiro de
-filas del índice, ausencia de configuración y claves JSON duplicadas.
+filas del índice, una rama con el driver anterior en su árbol, ausencia de
+configuración y claves JSON duplicadas.
 
 Rollback: retirar las dos reglas de `.gitattributes`. La configuración local
 inactiva no cambia archivos sin esos atributos; si se desea limpiar el clon:
@@ -167,27 +168,62 @@ de alcance.
    que solo trae el lado actual (%A), en el orden en que ese lado las escribió.
    La misma regla ordena las claves de primer nivel. En la metodología, el
    Worker actualiza su rama y el Director valida la cabeza de una PR con
-   `git merge origin/main`. Git pasa main como %B, así que el resultado es el
-   texto de main más las adiciones de la rama: coincide con el control semántico
-   del Director y deja el diff contra main limitado a esas líneas.
+   `git merge origin/main`. Git pasa main como %B, así que, cuando el árbol de la
+   rama ya trae este driver (ver el punto 4), el resultado es el texto de main
+   más las adiciones de la rama: coincide con el control semántico del Director
+   y deja el diff contra main limitado a esas líneas.
 3. El índice `docs/specs/README.md` no cambia. Ya fusiona cada fila three-way con
    `mergeValue`, retiro unilateral incluido, y regenera orden, conteo y huecos.
    Debe seguir así porque el índice deriva del árbol de specs, que Git fusiona
    three-way: si main borra o renumera una spec que la rama no tocó, la carpeta
    desaparece y su fila también. Una unión dejaría la fila huérfana y
    `docs:check` en rojo. Una prueba nueva fija ese comportamiento.
+4. Transición. Git ejecuta el driver del árbol de la rama que se actualiza: el
+   instalador registra una ruta relativa (`scripts/install-merge-drivers.mjs:12`)
+   y el merge corre antes de que el árbol reciba el driver de main. Por eso la
+   primera actualización de una rama creada antes de esta enmienda, si también
+   cambió el baseline, corre el driver anterior: resucita las esperas que main ya
+   retiró (0409 y 0418 en las ramas abiertas al 2026-09-11) y ordena como antes.
+   Una vez confirmado ese merge, el driver nuevo trata la espera resucitada como
+   una adición de la rama y ya no la retira. Esa primera actualización se hace
+   con el driver de main, en Git Bash:
+
+   ```bash
+   drv="$(cygpath -m "$TEMP")/dtd-merge-driver-main.mjs"
+   git show origin/main:scripts/merge-generated-records.mjs > "$drv"
+   git -c merge.dtd-generated-records.driver="node \"$drv\" %O %A %B %P" merge origin/main
+   ```
+
+   En Linux o macOS, `drv="$(mktemp -d)/dtd-merge-driver-main.mjs"`. Después,
+   `git diff origin/main -- supabase/migrations-baseline.json` debe mostrar solo
+   las esperas propias de la rama y la coma que gana la última espera de main.
+   Si una espera resucitada ya quedó confirmada, se quita a mano en la rama. Una
+   rama que no tocó el baseline no necesita nada: Git toma el de main sin
+   ejecutar ningún driver.
 
 ### Consecuencias
 
 - El orden depende del sentido del merge; las claves y los motivos, no. La
   prueba lo compara en ambos sentidos. Fusionar una rama sobre un main local,
   fuera de la metodología, o encadenar cabezas de PR en una rama de integración
-  deja lo que agrega la cabeza entrante antes de lo acumulado. Ningún gate
-  depende del orden.
+  deja lo que agrega la cabeza entrante antes de lo acumulado. En `git rebase` y
+  `git cherry-pick` los papeles se invierten: %A es el HEAD donde se reaplica
+  (main, en un rebase sobre main) y %B el commit reaplicado, así que un rebase
+  deja el orden de la rama con lo nuevo de main al final. La metodología no usa
+  rebase. Ningún gate depende del orden.
 - Una rama de registro que se actualiza con main conserva su retiro aunque main
   haya agregado o editado otras esperas.
 - Si un lado retira y el otro edita la misma espera, el merge sigue bloqueado:
   hay que decidir a mano si la migración se aplicó.
+- La primera actualización de una rama anterior a esta enmienda necesita el
+  driver de main (punto 4); sin él, la espera resucitada queda como adición de
+  la rama.
+- Riesgo nuevo: una espera perdida por accidente, por una edición a mano o una
+  resolución de conflicto que la borra, ahora se retira sin aviso al fusionar, y
+  ningún gate del CI lo detecta. Regla de revisión: todo `-` en el diff del
+  baseline contra main fuera de una PR de registro autorizada es una no
+  conformidad. No cuenta la coma que gana la última espera cuando se agrega
+  otra: aparece como `-` y `+` de la misma espera con el mismo motivo.
 
 ### Alternativas descartadas
 
@@ -205,9 +241,12 @@ de alcance.
 y deja el texto exacto de main más las adiciones de la rama, que una rama de
 registro conserva su retiro, que borrar contra editar falla en ambos sentidos,
 que una base o un lado entrante con claves duplicadas se rechazan sin tocar
-`%A` y que el índice retira la fila de una spec renumerada. Los tres merges del
-ensayo, pasados por el driver nuevo, dan el texto de main más 0434 (L22) o más
-0450 (#87), y ninguna espera retirada reaparece.
+`%A` y que el índice retira la fila de una spec renumerada. También fija la
+transición: una rama con el driver anterior en su árbol lo ejecuta en su primera
+actualización y la espera resucitada sobrevive a la siguiente, mientras que el
+driver de main forzado con `-c` deja el texto de main más la rama. Los tres
+merges del ensayo, pasados por el driver nuevo, dan el texto de main más 0434
+(L22) o más 0450 (#87), y ninguna espera retirada reaparece.
 
 Rollback: revertir esta enmienda devuelve la unión. `.gitattributes` y el
 instalador no cambian.
