@@ -17,12 +17,11 @@ confidencialidad: interno
 
 # SDD-0352 — RBAC financiero para conciliación bancaria
 
-> **Nota de importación — 2026-09-10.** Esta spec entró a `main` desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0409_bank_reconciliation_rbac` está **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción**: el `done` de la
-> cabecera no significa que este contrato esté vigente en la base real. Aplicarla exige OK
-> nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-10; actualizada el 2026-09-11.** Esta spec entró a `main` desde
+> la PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0409_bank_reconciliation_rbac` **fue APLICADA a producción el 2026-09-11** con OK nominal de
+> Sam (ledger `20260911111907 / 0409_bank_reconciliation_rbac`) y se verificó contra el objeto;
+> el registro y la vuelta atrás están en `.agents/handoffs/0409-aplicacion-prod-20260911.md`.
 
 ## Estado real
 
