@@ -4,6 +4,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const INDEX_PATH = "docs/specs/README.md";
 const BASELINE_PATH = "supabase/migrations-baseline.json";
+const DECLARATIONS_PATH = "supabase/pending-migration-symbol-declarations.json";
+const DECLARATIONS_SCHEMA_VERSION = 1;
 const INDEX_START = "<!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->";
 const INDEX_END = "<!-- AUTO-INDEX:END -->";
 const MISSING = Symbol("missing");
@@ -45,13 +47,18 @@ function mergeValue(base, current, other, label) {
   throw new Error(`conflicto real en ${label}: ambos lados cambiaron el mismo valor`);
 }
 
-function orderedUnionKeys(base, current, other) {
-  const baseKeys = Object.keys(base);
+// La base conserva su orden; lo agregado se ordena para que el resultado no
+// dependa del sentido del merge.
+function orderedUnion(baseKeys, currentKeys, otherKeys) {
   const known = new Set(baseKeys);
-  const added = [...new Set([...Object.keys(current), ...Object.keys(other)])]
+  const added = [...new Set([...currentKeys, ...otherKeys])]
     .filter((key) => !known.has(key))
     .sort();
   return [...baseKeys, ...added];
+}
+
+function orderedUnionKeys(base, current, other) {
+  return orderedUnion(Object.keys(base), Object.keys(current), Object.keys(other));
 }
 
 function mergeObjectByKey(base, current, other, label) {
@@ -247,6 +254,104 @@ function mergeBaseline(baseText, currentText, otherText) {
   return `${JSON.stringify(result, null, 2)}\n`;
 }
 
+// El driver solo valida lo que necesita para unir por id. Símbolos, sitios y
+// evidencia siguen a cargo de scripts/check-pending-migration-symbols.mjs.
+function validateDeclarations(value, label) {
+  if (!isObject(value)) throw new Error(`${label}: la raíz debe ser un objeto`);
+  if (value.schemaVersion !== DECLARATIONS_SCHEMA_VERSION) {
+    throw new Error(
+      `${label}: schemaVersion ${JSON.stringify(value.schemaVersion)} no soportado; ` +
+        `este driver fusiona la versión ${DECLARATIONS_SCHEMA_VERSION}`,
+    );
+  }
+  if (!Array.isArray(value.degradations)) {
+    throw new Error(`${label}: degradations debe ser un array`);
+  }
+  const ids = new Set();
+  for (const [index, entry] of value.degradations.entries()) {
+    if (!isObject(entry) || typeof entry.id !== "string" || entry.id.trim() === "") {
+      throw new Error(`${label}: degradations[${index}] requiere un id string no vacío`);
+    }
+    if (ids.has(entry.id)) throw new Error(`${label}: id duplicado '${entry.id}'`);
+    ids.add(entry.id);
+  }
+}
+
+// El encabezado (schemaVersion, $doc y cualquier clave fuera de degradations)
+// define el contrato de todas las entradas. Si difiere entre ramas, aunque solo
+// una lo haya cambiado, ninguna unión por entrada lo reconcilia.
+function assertSameDeclarationsHeader(current, other) {
+  const keys = new Set([...Object.keys(current), ...Object.keys(other)]);
+  keys.delete("degradations");
+  for (const key of keys) {
+    const currentValue = Object.hasOwn(current, key) ? current[key] : MISSING;
+    const otherValue = Object.hasOwn(other, key) ? other[key] : MISSING;
+    if (!deepEqual(currentValue, otherValue)) {
+      throw new Error(
+        `conflicto real en declaraciones.${key}: difiere entre las ramas; ` +
+          "el encabezado del contrato no se fusiona automáticamente",
+      );
+    }
+  }
+}
+
+// Three-way por id. A diferencia de pendingBelowCutoff, una eliminación
+// unilateral sí gana si la otra rama conserva la entrada igual a la base:
+// retirar la declaración es el cierre esperado al aplicar su migración, y
+// resucitarla dejaría una excepción vencida que el gate rechaza.
+function mergeDeclarationEntry(base, current, other, id) {
+  if (deepEqual(current, other)) return current;
+  if (deepEqual(current, base)) return other;
+  if (deepEqual(other, base)) return current;
+  const label = `degradations[id=${id}]`;
+  if (current === MISSING || other === MISSING) {
+    throw new Error(`conflicto real en ${label}: borrado contra edición`);
+  }
+  if (base === MISSING) {
+    throw new Error(
+      `conflicto real en ${label}: ambas ramas agregan el mismo id con contenido distinto`,
+    );
+  }
+  throw new Error(`conflicto real en ${label}: ambas ramas editaron la declaración de forma distinta`);
+}
+
+function mergeDeclarations(baseText, currentText, otherText) {
+  const base = parseJsonWithoutDuplicateKeys(baseText, "declaraciones base");
+  const current = parseJsonWithoutDuplicateKeys(currentText, "declaraciones actual");
+  const other = parseJsonWithoutDuplicateKeys(otherText, "declaraciones entrante");
+  validateDeclarations(base, "declaraciones base");
+  validateDeclarations(current, "declaraciones actual");
+  validateDeclarations(other, "declaraciones entrante");
+  assertSameDeclarationsHeader(current, other);
+
+  const byId = (entries) => new Map(entries.map((entry) => [entry.id, entry]));
+  const baseById = byId(base.degradations);
+  const currentById = byId(current.degradations);
+  const otherById = byId(other.degradations);
+  const pick = (entries, id) => (entries.has(id) ? entries.get(id) : MISSING);
+  const degradations = [];
+  for (const id of orderedUnion(
+    [...baseById.keys()],
+    [...currentById.keys()],
+    [...otherById.keys()],
+  )) {
+    const merged = mergeDeclarationEntry(
+      pick(baseById, id),
+      pick(currentById, id),
+      pick(otherById, id),
+      id,
+    );
+    if (merged !== MISSING) degradations.push(merged);
+  }
+
+  const result = Object.create(null);
+  for (const key of Object.keys(current)) {
+    result[key] = key === "degradations" ? degradations : current[key];
+  }
+  validateDeclarations(result, "declaraciones fusionadas");
+  return `${JSON.stringify(result, null, 2)}\n`;
+}
+
 function renderIndex(rows) {
   const sorted = [...rows.values()].sort((left, right) => left.num.localeCompare(right.num));
   let table = `### Índice de specs (generado · ${sorted.length} specs)\n\n`;
@@ -332,6 +437,8 @@ function main() {
     merged = mergeBaseline(base, current, other);
   } else if (repoPath === INDEX_PATH) {
     merged = mergeIndex(base, current, other);
+  } else if (repoPath === DECLARATIONS_PATH) {
+    merged = mergeDeclarations(base, current, other);
   } else {
     throw new Error(`ruta no autorizada para este driver: ${repoPath}`);
   }
