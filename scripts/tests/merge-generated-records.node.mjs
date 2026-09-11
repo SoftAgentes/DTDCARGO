@@ -469,6 +469,23 @@ test("falla cerrado si una rama retira una declaración que la otra edita", (t) 
   );
 });
 
+test("falla cerrado si ambas ramas editan la misma declaración de forma distinta", (t) => {
+  const repo = createRepo(t);
+  const editEvidence = (text) => (value) => {
+    const entry = value.degradations.find((candidate) => candidate.id === "base-vigente");
+    entry.evidence[0].degradation = text;
+  };
+  makeDeclarationBranches(repo, {
+    other: editEvidence("texto other"),
+    current: editEvidence("texto current"),
+  });
+
+  mergeExpectingDeclarationConflict(
+    repo,
+    /conflicto real en degradations\[id=base-vigente\]: ambas ramas editaron la declaración de forma distinta/u,
+  );
+});
+
 test("rechaza ids repetidos, claves duplicadas y schemaVersion desconocido sin tocar %A", (t) => {
   const dir = mkdtempSync(path.join(tmpdir(), "dtd-merge-declarations-"));
   t.after(() => safeRemoveTemp(dir));
