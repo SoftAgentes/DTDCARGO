@@ -1,7 +1,7 @@
 ---
 sdd: "0453"
 title: "Mailing — guard admin en el envío de prueba de plantillas"
-status: in-progress
+status: done
 author: "Claude Code (Worker mailing-test-template-admin-guard)"
 created: 2026-09-11
 updated: 2026-09-11
@@ -46,7 +46,7 @@ confidencialidad: interno
 4. Sin sesión no hay envío.
 5. El admin conserva el envío descrito en la tabla.
 6. Los criterios 2 y 3 fallan sin el guard y pasan con él. La evidencia está en el handoff.
-7. `pnpm verify` se registra por paso. E2E autenticado y `migrations-applied` quedan NO DISPONIBLE: no hay credenciales y no se copian secretos.
+7. `pnpm verify` se registra por paso y ningún paso falla por este cambio. E2E autenticado y `migrations-applied` quedan NO DISPONIBLE: no hay credenciales y no se copian secretos.
 
 ## Allowlist exacta
 
