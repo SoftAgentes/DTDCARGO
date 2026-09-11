@@ -13,6 +13,13 @@ confidencialidad: interno
 
 # SDD-0362 — Academia Portal: frontera del alumno
 
+> **Nota de importación — 2026-09-10.** Esta spec entró a `main` desde la PR #21 con su
+> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
+> Su migración `0418_portal_academia_tenant_boundary` está **declarada pendiente** en
+> `supabase/migrations-baseline.json` y **no se ha aplicado a producción**: el `done` de la
+> cabecera no significa que este contrato esté vigente en la base real. Aplicarla exige OK
+> nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+
 ## Evidencia y objetivo
 
 Las policies de 0144/0145/0149 comparan Shipping Mark sin tenant en
