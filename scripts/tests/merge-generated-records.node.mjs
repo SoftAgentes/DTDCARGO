@@ -402,6 +402,26 @@ test("respeta el retiro de una declaración según la base y no la resucita", (t
   assert.equal(reverseText, forwardText);
 });
 
+test("una declaración retirada en ambas ramas queda retirada", (t) => {
+  const repo = createRepo(t);
+  const retire = (value) => {
+    value.degradations = value.degradations.filter((entry) => entry.id !== "base-retirable");
+  };
+  makeDeclarationBranches(repo, {
+    // La rama entrante también agrega otra declaración: así el archivo difiere
+    // entre ramas y Git invoca el driver en vez de tomar un lado idéntico.
+    other: (value) => {
+      retire(value);
+      value.degradations.push(declaration("l05-rama-other"));
+    },
+    current: retire,
+  });
+
+  const { merged, forwardText, reverseText } = mergeDeclarationsBothWays(repo);
+  assert.deepEqual(declarationIds(merged), ["base-vigente", "l05-rama-other"]);
+  assert.equal(reverseText, forwardText);
+});
+
 test("toma la edición unilateral de una declaración vigente según la base", (t) => {
   const repo = createRepo(t);
   const edited = declaration("base-vigente", { site: "lib/base-vigente.ts:42" });
