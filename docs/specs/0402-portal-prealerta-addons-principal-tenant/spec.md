@@ -19,11 +19,13 @@ confidencialidad: interno
 > `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
 > `done` de la cabecera no significa que este contrato esté vigente en la base real. Aplicarla
 > exige OK nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
-> La evidencia y las casillas de aplicación también describen la rama de origen. En `main`,
-> las tres páginas usan `getPortalClient` y `listActivePrealertaAddons` no acepta tenant: esa
-> opción pertenece al código de SDD-0389, ausente en `main`. Esta importación **no** incorpora
-> los tres consumidores ni el test de scope; su adopción espera una decisión de alcance del
-> Director (ver `.agents/handoffs/c-l22-portal-addons.md`).
+> La evidencia y las casillas de aplicación describen la rama de origen, donde las tres páginas
+> ya derivaban el principal. En `main`, `listActivePrealertaAddons` no aceptaba tenant: esa
+> opción pertenece al código de SDD-0389, que nunca llegó a `main`. Por decisión del Director
+> (opción A, 2026-09-11), esta importación trae de SDD-0389 **sólo** el hunk de esa función
+> (`opts.tenantId` opcional y `.eq("tenant_id", …)` cuando viene), compatible con los demás
+> llamadores, y adopta los tres consumidores, el test de scope del origen y un test del callee.
+> El resto de SDD-0389 sigue sin código en `main` (ver `.agents/handoffs/c-l22-portal-addons.md`).
 
 ## Evidencia y autoridad
 
