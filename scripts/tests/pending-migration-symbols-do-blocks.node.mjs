@@ -6,9 +6,9 @@
  * bloque DO (forma de 0426) no nacía en la pendiente: el código que la llama
  * quedaba en 0 ROJO y declararla daba exit 2.
  *
- * Los cuatro primeros casos fallan con el enmascarado anterior; los dos últimos
- * fijan lo que no debe cambiar: cuerpos de función, literales no ejecutados y
- * nombres calculados siguen sin crear símbolos.
+ * Los casos de extracción fallan con el enmascarado anterior. Las guardas fijan
+ * lo que no debe cambiar: cuerpos de función, literales no ejecutados, nombres
+ * calculados y funciones de usuario `esquema.execute(…)` no crean símbolos.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -172,6 +172,33 @@ test("una función creada en un bloque DO aplicado es redefinición, no ausencia
   assert.deepEqual(findPendingOnlySymbols(migrations, ["0450_fixture_pending_redefinition"]), []);
 });
 
+test("anidado DO → EXECUTE → DO, execute (…), mayúsculas y un DO entre comillas simples crean símbolos", () => {
+  const sql = [
+    "do $outer$",
+    "begin",
+    "  execute $sql$",
+    "    do $inner$",
+    "    begin",
+    "      execute 'create table public.fixture_nested (id uuid)';",
+    "    end",
+    "    $inner$",
+    "  $sql$;",
+    "  execute ('create table public.fixture_paren (id uuid)');",
+    "end",
+    "$outer$;",
+    "DO LANGUAGE PLPGSQL $$ BEGIN EXECUTE PG_CATALOG.FORMAT('CREATE TABLE PUBLIC.FIXTURE_UPPER (ID UUID)'); END $$;",
+    // Cuerpo DO como literal simple: dentro, las comillas del EXECUTE van dobladas.
+    "do 'begin execute ''create table public.fixture_quoted_do (id uuid)''; end';",
+  ].join("\n");
+
+  assert.deepEqual(keys(sql), [
+    "table:public.fixture_nested",
+    "table:public.fixture_paren",
+    "table:public.fixture_quoted_do",
+    "table:public.fixture_upper",
+  ]);
+});
+
 test("cuerpos de función, literales no ejecutados y comentarios no crean símbolos", () => {
   const sql = [
     "create or replace function public.fixture_rotate() returns void language plpgsql as $$",
@@ -213,5 +240,18 @@ test("un nombre calculado en la plantilla EXECUTE no produce símbolos falsos", 
   // Sin la guarda de nombre completo aparecerían table:public.public,
   // table:public.if, table:public.fixture_, table:public.fixture_part_ o
   // column:public.if.note: todos coincidirían con tokens de código alcanzable.
+  assert.deepEqual(keys(sql), []);
+});
+
+test("una función de usuario esquema.execute(…) no es la sentencia EXECUTE", () => {
+  const sql = [
+    "do $$",
+    "begin",
+    "  perform public.execute('create table public.not_executed (id uuid)');",
+    "  perform ops.execute(pg_catalog.format('create table public.not_formatted (id uuid)'));",
+    "  perform \"Ops\".execute('create view public.not_quoted as select 1');",
+    "end $$;",
+  ].join("\n");
+
   assert.deepEqual(keys(sql), []);
 });

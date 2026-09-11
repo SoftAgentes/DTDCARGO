@@ -318,8 +318,9 @@ DDL que ya cubría.
   - el código del cuerpo de un bloque DO, por ejemplo un `alter table … add
     column` dentro de un `if`;
   - el contenido de un literal que es argumento directo de `EXECUTE` o la
-    plantilla de `format()` bajo `EXECUTE`. Los literales simples se
-    desescapan (`''` → `'`).
+    plantilla de `format()` bajo `EXECUTE`. Un `execute` precedido por punto
+    (`esquema.execute(…)`) es una función de usuario y no cuenta. Los literales
+    simples se desescapan (`''` → `'`).
 - No cuentan cuerpos de función, asignaciones a variables, `raise`,
   `comment on … is`, `perform format(…)` ni datos. Se siguen hasta cuatro
   niveles DO → EXECUTE → DO.
@@ -336,7 +337,7 @@ DDL que ya cubría.
   ni el formato de salida.
 
 **Regresión.** `scripts/tests/pending-migration-symbols-do-blocks.node.mjs`
-corre en `pnpm harness:test` con seis casos:
+corre en `pnpm harness:test` con ocho casos:
 
 - ROJO exacto para una RPC creada con `EXECUTE format()` dentro de un DO
   pendiente (forma de 0426, con astrales) y llamada desde TS alcanzable;
@@ -346,14 +347,21 @@ corre en `pnpm harness:test` con seis casos:
   escapadas y `format()` sin marcadores;
 - una función creada en un DO aplicado y redefinida por una pendiente no es
   ausencia;
+- anidamiento DO → EXECUTE → DO, `execute (…)`, palabras clave en mayúsculas y
+  un DO con cuerpo entre comillas simples;
 - guardas: cuerpos de función, literales no ejecutados y comentarios no crean
-  símbolos, y los nombres calculados no dan símbolos falsos.
+  símbolos; los nombres calculados no dan símbolos falsos, y una función de
+  usuario `esquema.execute(…)` no es la sentencia `EXECUTE`.
 
-Los cuatro primeros fallan con el checker de `origin/main` `07d00097` y pasan
-con el nuevo; las dos guardas pasan en ambos. Mutaciones del nuevo: sin la
-guarda de nombre completo falla el caso de nombres calculados; entrar en todo
-literal (desenmascarado ingenuo) o en todo literal de un DO falla el de cuerpos
-de función; sin bloques DO fallan los cuatro primeros.
+Los cinco casos de extracción fallan con el checker de `origin/main`
+`07d00097` y pasan con el nuevo; las tres guardas pasan en ambos. La guarda de
+`esquema.execute(…)` falla con la primera versión de esta corrección
+(`fd2cb77a`). Mutaciones del nuevo:
+
+- sin la guarda de nombre completo falla el caso de nombres calculados;
+- entrar en todo literal (desenmascarado ingenuo) o en todo literal de un DO
+  hace fallar el de cuerpos de función y el de `esquema.execute(…)`;
+- sin bloques DO fallan los cinco casos de extracción.
 
 **Impacto medido.**
 
@@ -384,7 +392,19 @@ de función; sin bloques DO fallan los cuatro primeros.
 - `EXECUTE` de una variable. El único caso de main es 0296 (`execute v_after`):
   reescribe la definición de `operario_action` leída con `pg_get_functiondef`,
   una redefinición y no un símbolo nuevo.
-- Nombres de objeto o esquemas calculados (`%I`, `||`) no se extraen.
+- Nombres de objeto o esquemas calculados (`%I`) no se extraen. La guarda de
+  nombre completo descarta a propósito los nombres cortados con `||`
+  (`'create table public.x_' || sufijo`).
+- `do language '…'`: con el nombre del lenguaje entre comillas, el cuerpo no se
+  reconoce como bloque DO; solo cuentan `do` y `do language plpgsql`.
+- Plantillas armadas con otra función, como `execute concat(…)`: solo se
+  reconoce `format()`.
+- Cadenas `E'…'`: el escáner no interpreta escapes con barra invertida, y
+  `execute E'…'` no se reconoce como plantilla.
+- Una función de usuario llamada `execute` e invocada sin esquema
+  (`perform execute('…')`) se leería como la sentencia `EXECUTE`.
+- Ninguno de estos patrones aparece hoy en las 428 migraciones de main
+  `4eedeb8a`.
 - Los literales con DDL que no se pasan a `EXECUTE`, como las etiquetas
   `'CREATE TABLE'` del event trigger de 0277, se ignoran por diseño.
 - Complemento posible, no implementado: que `schema-rebuild` compare lo que
@@ -408,3 +428,19 @@ errores y 8 avisos preexistentes en archivos ajenos; el merge no trajo
 archivos lintables. `pnpm verify` quedó NO EJECUTADO: el cambio es solo de
 harness y se valida con sus pruebas propias. Detalle en
 `.agents/handoffs/pending-symbols-do-blocks.md`.
+
+**Revisión de #90 (2026-09-11).** El Director la dio por lista tras actualizar
+con main. Se aplicaron también sus sugerencias opcionales:
+
+- H1: un `execute` precedido por punto (`esquema.execute(…)`) ya no se lee como
+  la sentencia `EXECUTE`;
+- H4: casos de anidamiento, `execute (…)`, mayúsculas y DO entre comillas
+  simples;
+- H2: los límites documentados arriba.
+
+Sobre main `4eedeb8a` (428 migraciones, 147 con 228 bloques DO), la extracción
+pasa de 1083 a 1084 símbolos, con el mismo único nuevo de 0141. Los
+pendientes-únicos no cambian y el gate queda en `0 ROJO · 0 AMARILLO`; la
+extracción de L17 sigue en `1 ROJO` en `lib/public/verify-throttle.ts:27`.
+PASARON `pnpm harness:test` (41/41), la prueba focal Vitest con el contrato CI
+(29/29), ESLint focal, `pnpm docs:check`, `pnpm sdd:check` y `git diff --check`.

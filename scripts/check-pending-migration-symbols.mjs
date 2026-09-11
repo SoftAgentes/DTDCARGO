@@ -227,8 +227,12 @@ function tokensBefore(code, index, count) {
 
 /** Literal que es el cuerpo de un `DO [LANGUAGE plpgsql]`. */
 const DO_BODY_CONTEXT = /(?:^| )do(?: language plpgsql)?$/;
-/** Literal pasado directo a EXECUTE, solo o como plantilla de [pg_catalog.]format(). */
-const EXECUTE_TEMPLATE_CONTEXT = /(?:^| )execute(?: \()?(?: (?:pg_catalog \. )?format \()?$/;
+/**
+ * Literal pasado directo a EXECUTE, solo o como plantilla de [pg_catalog.]format().
+ * Un `execute` precedido por punto es una función de usuario (`public.execute(…)`),
+ * no la sentencia de PL/pgSQL.
+ */
+const EXECUTE_TEMPLATE_CONTEXT = /(?:^|(?<!\.) )execute(?: \()?(?: (?:pg_catalog \. )?format \()?$/;
 /** DO → EXECUTE → DO…: más niveles son inusuales y no se siguen. */
 const MAX_EXECUTED_DEPTH = 4;
 
@@ -244,7 +248,9 @@ function executedSqlViews(sql, plpgsql = false, depth = 0) {
   const views = [code];
   if (depth >= MAX_EXECUTED_DEPTH) return views;
   for (const literal of literals) {
-    const context = tokensBefore(code, literal.start, 6);
+    // Siete tokens: la forma más larga (`execute ( pg_catalog . format (`) y el
+    // anterior a `execute`, que decide si es una función `esquema.execute(…)`.
+    const context = tokensBefore(code, literal.start, 7);
     if (DO_BODY_CONTEXT.test(context)) {
       views.push(...executedSqlViews(literal.text, true, depth + 1));
     } else if (plpgsql && EXECUTE_TEMPLATE_CONTEXT.test(context)) {
