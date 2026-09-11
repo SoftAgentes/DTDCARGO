@@ -1,6 +1,6 @@
 # aliado-tenant-coherence — Coherencia de tenant en `clients.aliado_id` (SDD-0456 / migración 0450)
 
-Fecha: 2026-09-11. Task ID: `aliado-tenant-coherence`. Estado de tarea: lista-para-revision (sin publicar: espera el OK de Sam para push y PR draft). Estado SDD-0456: `done`, que no significa aplicada.
+Fecha: 2026-09-11. Task ID: `aliado-tenant-coherence`. Estado de tarea: lista-para-revision. El Director la aprobó con un ajuste del orden de la baseline, ya aplicado. Sin publicar: espera el OK de Sam para push y PR draft. Estado SDD-0456: `done`, que no significa aplicada.
 Owner / sesión escritora: `admiring-pascal-832793-fd-b54374` (sesión Claude `admiring-pascal-832793-fd`).
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/aliado-tenant-coherence`.
@@ -38,7 +38,7 @@ Impedir en la base que `clients.aliado_id` apunte a un aliado de otro tenant, si
   - forma exacta de la FK y supervivencia de la FK simple;
   - cada cruce frenado con `23503:clients_aliado_mismo_tenant_fkey`, y aceptación de los casos legítimos;
   - borrados iguales antes y después.
-- **Baseline:** la espera `0450_clients_aliado_mismo_tenant`, unida por el driver a las esperas nuevas de main. Quedan 12 esperas y `cutoff: 238`.
+- **Baseline:** `pendingBelowCutoff` queda con el orden exacto de main y la espera `0450_clients_aliado_mismo_tenant` al final. Frente a origin/main solo cambian la coma de la última entrada de main y la línea nueva. El driver de merge había conservado el orden de la rama, igual que le pasó a L22, y el Director pidió corregirlo. Quedan 12 esperas y `cutoff: 238`.
 - **Spec 0456:** contexto, alcance, diseño (FK, locks e idempotencia), semántica, allowlist y aceptación. Índice regenerado: 423 specs.
 - **Resolución de marca por tenant:** con la FK, todo join por `aliado_id` queda dentro del tenant por construcción, incluidos `resolveBrandForClient` (admin y sesión) y la RPC 0401. La lectura con sesión del Studio ya filtraba por RLS (verificado abajo). El filtro explícito en SQL o TS no se implementó, por decisión del Director (ver FUERA DE ALCANCE).
 
@@ -109,6 +109,7 @@ Sobre el árbol final (`bcb2e69e`, con origin/main `6fdc00b4` mergeado):
 
 Cambios posteriores al verify, solo de documentación y texto:
 - el aviso de impacto de los locks en la espera 0450 de la baseline, que pidió el Director;
+- el orden de `pendingBelowCutoff`, igual al de main, con la 0450 al final (ajuste de la revisión del Director; los textos de las entradas no cambian);
 - la aceptación y el estado `done` de la spec 0456, más el índice regenerado;
 - este handoff.
 
@@ -141,7 +142,10 @@ No se ejecutó verificación contra datos reales. Esta revisión no es asesoría
 - `cee03d1c` — docs(handoff): handoff en progreso.
 - `aa535e0b` — merge de origin/main `6fdc00b4` (PR #70, #72, #73, #74 y #81), baseline e índice unidos por el driver.
 - `bcb2e69e` — fix(studio): SDD-0456: 0450 en una sola sentencia con locks, `lock_timeout` y postflight, más el contrato y la spec según la revisión.
-- Commit que contiene este documento: cierre durable. Incluye el aviso de impacto en la espera 0450 de la baseline, la aceptación y el estado `done` de la spec 0456, el índice y este handoff (hash final en la PR).
+- `d357284f` — fix(studio): SDD-0456 cierre: aviso de impacto de locks en la espera 0450, aceptación y estado `done` de la spec 0456, e índice.
+- `8570f713` — docs(handoff): primer cierre de este documento.
+- fix(studio): SDD-0456 — baseline con el orden exacto de main y la 0450 al final (ajuste de la revisión del Director); es el commit inmediatamente anterior a este documento.
+- Commit que contiene este documento: handoff con ese ajuste (hashes finales en la PR).
 
 ## PR / BRANCH
 
@@ -179,6 +183,6 @@ Sin publicar. Rama local `codex/aliado-tenant-coherence` (base `main`, al día c
   5. smoke del embed;
   6. retirar la espera del baseline.
 - No crea funciones, así que el punto ciego del gate de símbolos con bloques `do` (hallazgo de L17) no la afecta, y no requiere declaración. Confirmado por el Director.
-- Posibles conflictos con otros lotes, por unión con el driver `dtd-generated-records`: `supabase/migrations-baseline.json` y `docs/specs/README.md`. En GitHub no corre el driver: si main avanza antes de fusionar, hay que repetir el merge en la rama. `brand-resolve.ts` no se tocó.
+- Posibles conflictos con otros lotes, por unión con el driver `dtd-generated-records`: `supabase/migrations-baseline.json` y `docs/specs/README.md`. En GitHub no corre el driver: si main avanza antes de fusionar, hay que repetir el merge en la rama. Después de ese merge, revisar que `pendingBelowCutoff` conserve el orden de main, porque el driver conserva el orden de la rama. `git diff origin/main -- supabase/migrations-baseline.json` debe mostrar solo la coma y la línea de la 0450. `brand-resolve.ts` no se tocó.
 - Sin subagentes escritores. El único subagente fue un revisor de solo lectura. Retiré mis contenedores (`dtd_atc_*`); los `dtd_rebuild_*` y `dtd_sqltest_*` los retiran sus propios scripts. No se tocaron procesos ni contenedores de otras sesiones.
 - Ownership: se libera al cierre con `node scripts/harness-worktree.mjs release --owner admiring-pascal-832793-fd-b54374`, después de la última escritura. Se conservan el worktree y la rama.
