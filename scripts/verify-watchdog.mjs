@@ -126,6 +126,8 @@ export function describeKill(report) {
       ? "sobrevivientes: 0"
       : `SOBREVIVIENTES: ${vivos.length} (${vivos.map((p) => `PID ${p.pid} ${p.name}`).join(", ")}) — revisar a mano`,
   );
+  const enCierre = report.closing ?? [];
+  if (enCierre.length > 0) partes.push(`${enCierre.length} aún en cierre del sistema, ya no corren`);
   if (report.error) partes.push(`error: ${report.error}`);
   return `watchdog: ${partes.join("; ")}.`;
 }
@@ -318,6 +320,15 @@ export async function killProcessTree(rootPid, {
     }
   }
   informe.survivors = vivos.map(({ pid, name }) => ({ pid, name }));
+  // Un proceso ya terminado puede seguir listado mientras el sistema cierra su
+  // E/S pendiente (Chrome tardó hasta ~3 min en la validación de SDD-0454; en
+  // POSIX es el zombi aún sin recoger). No corre código y el sistema lo libera
+  // solo: se informa aparte, nunca como sobreviviente.
+  const terminados = informe.targets.filter((p) => !vivos.some((v) => v.pid === p.pid));
+  informe.closing =
+    informe.inventory === "ok"
+      ? ((await confirmarMismos(terminados, list)) ?? []).map(({ pid, name }) => ({ pid, name }))
+      : [];
   return informe;
 }
 

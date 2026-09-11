@@ -272,7 +272,10 @@ test("un árbol que calla se corta entero por inactividad, y sólo ese árbol", 
   assert.deepEqual(r.kill.survivors, []);
   assert.equal(cortados.has(ajeno.pid), false);
   assert.equal(isProcessAlive(ajeno.pid), true, "el proceso ajeno no debía tocarse");
-  assert.match(describeKill(r.kill), /^watchdog: raíz PID \d+; \d+ proceso\(s\) del árbol propio terminados \(.+\); sobrevivientes: 0\.$/);
+  assert.match(
+    describeKill(r.kill),
+    /^watchdog: raíz PID \d+; \d+ proceso\(s\) del árbol propio terminados \(.+\); sobrevivientes: 0(; \d+ aún en cierre del sistema, ya no corren)?\.$/,
+  );
 });
 
 test("una salida que gotea sin terminar se corta por el límite total", LENTO, async (t) => {
@@ -306,7 +309,8 @@ test("sin inventario de procesos el corte se limita a la raíz y lo declara", as
   });
   assert.deepEqual(muertos, [4242]);
   assert.equal(informe.inventory, "no disponible (ps no disponible)");
-  assert.match(describeKill(informe), /se cortó sólo desde la raíz; sobrevivientes: 0/);
+  assert.match(describeKill(informe), /se cortó sólo desde la raíz; sobrevivientes: 0\.$/);
+  assert.deepEqual(informe.closing, []);
 });
 
 test("el corte alcanza a lo que nace durante el corte, y nunca a un PID reusado", async () => {
@@ -325,6 +329,8 @@ test("el corte alcanza a lo que nace durante el corte, y nunca a un PID reusado"
   });
   assert.deepEqual(muertos, [10, 11, 12]);
   assert.deepEqual(informe.survivors, []);
+  // Ya no corren pero el sistema aún los lista: en cierre, no sobrevivientes.
+  assert.deepEqual(informe.closing.map((p) => p.pid), [10, 11, 12]);
 
   // El PID 11 sigue "vivo", pero ya es OTRO proceso: no se re-mata ni se acusa.
   let listados = 0;
@@ -339,8 +345,10 @@ test("el corte alcanza a lo que nace durante el corte, y nunca a un PID reusado"
   });
   assert.deepEqual(muertos2, [10, 11]);
   assert.deepEqual(reusado.survivors, []);
+  assert.deepEqual(reusado.closing, []);
 
-  // Si de verdad sobrevive, se reintenta una vez y se acusa con nombre.
+  // Si de verdad sobrevive, se reintenta una vez y se acusa con nombre; la raíz
+  // ya terminada que el sistema aún lista va aparte, como «en cierre».
   const muertos3 = [];
   const terco = await killProcessTree(10, {
     platform: "win32",
@@ -352,7 +360,11 @@ test("el corte alcanza a lo que nace durante el corte, y nunca a un PID reusado"
   });
   assert.deepEqual(muertos3, [10, 11, 11]);
   assert.deepEqual(terco.survivors, [{ pid: 11, name: "chrome.exe" }]);
-  assert.match(describeKill(terco), /SOBREVIVIENTES: 1 \(PID 11 chrome\.exe\) — revisar a mano/);
+  assert.deepEqual(terco.closing, [{ pid: 10, name: "node.exe" }]);
+  assert.match(
+    describeKill(terco),
+    /SOBREVIVIENTES: 1 \(PID 11 chrome\.exe\) — revisar a mano; 1 aún en cierre del sistema, ya no corren\.$/,
+  );
 });
 
 test("verify: un paso colgado queda FALLÓ con motivo, sin reintento ni absolución, y el gate sigue", LENTO, async (t) => {

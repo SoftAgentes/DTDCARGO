@@ -89,7 +89,12 @@ objetivo es que el gate no pueda esperar para siempre y que lo diga.
    - no se usa `taskkill /T`, que arma el árbol sin mirar la hora de creación.
      Queda sólo como respaldo si no hay inventario;
    - el gate imprime qué terminó (raíz y cantidad por ejecutable) y los
-     sobrevivientes, que deberían ser cero.
+     sobrevivientes, que deberían ser cero;
+   - un proceso ya terminado que el sistema todavía lista, porque está
+     cerrando su E/S pendiente, se informa como «aún en cierre del sistema, ya
+     no corren», no como sobreviviente. En la validación real, Chrome tardó
+     hasta unos 3 minutos en desaparecer después del corte, igual que con el
+     `taskkill` manual de L08.
 4. El paso queda **FALLÓ** con un motivo explícito que empieza por
    `COLGADO/TIMEOUT:`, en su línea `[FAIL]` y en el veredicto final
    (`verify: 1 fallo(s) → e2e [COLGADO/TIMEOUT: …]`), con exit 1. No es SKIP ni
