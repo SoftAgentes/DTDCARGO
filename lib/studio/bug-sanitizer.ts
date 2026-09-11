@@ -15,7 +15,7 @@
  *       · userinfo Basic Auth (user:password@host)
  *       · tokens conocidos embebidos en path (/auth/jwt/eyJ.../callback)
  *   - Headers sensibles (Authorization, Cookie, X-API-Key, etc.)
- *   - Tokens en texto libre (Bearer, JWT, Stripe, AWS, GitHub, Slack,
+ *   - Tokens en texto libre (Bearer, JWT, Supabase, Stripe, AWS, GitHub, Slack,
  *     OpenAI/Anthropic, custom prefix _live_ / _test_, generic key=value)
  *   - URLs sensibles inline en mensajes de consola
  *
@@ -71,25 +71,37 @@ const SENSITIVE_HEADER_NAMES = new Set([
  * como `sk_[REDACTED]_xxx`.
  */
 const TOKEN_PATTERNS: Array<{ name: string; re: RegExp }> = [
+  // SDD-0452: formatos/fuentes y umbrales heurísticos en la spec.
+  // GitHub recomienda ghs_ + 36+ chars incluyendo . _ -. Antes de JWT para
+  // consumir el token de instalación completo; un punto final de prosa se conserva.
+  { name: "GitHub installation", re: /\bghs_[A-Za-z0-9._-]{35,}[A-Za-z0-9_-](?![A-Za-z0-9_-])/g },
   // JWT (3 partes base64url separadas por punto). Mínimo 20 chars en header.
   { name: "JWT", re: /\beyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g },
   // Bearer tokens en text ("Bearer xxx") · greedy hasta whitespace/comilla
   { name: "Bearer", re: /\bBearer\s+[A-Za-z0-9._\-+/=]{16,}/gi },
   // Basic auth en text ("Basic base64...")
   { name: "Basic", re: /\bBasic\s+[A-Za-z0-9+/=]{8,}/gi },
+  // Supabase actual: prefijos exactos + base64url. Mínimo 20 para no ocultar
+  // menciones/configuración cortas; NO longitud fija ni validación de credencial.
+  // Sin \b final: también hay que consumir un guion terminal del secreto.
+  { name: "Supabase", re: /\bsb_(?:secret|publishable)_[A-Za-z0-9_-]{20,}(?![A-Za-z0-9_-])/g },
   // Stripe-style: sk_live, sk_test, pk_live, pk_test, rk_live, rk_test, whsec_*
+  // whsec_ no exige entorno; sk_org_ usa organización, no live/test.
   // CRITICAL: pattern SIN grupos de captura para evitar el bug del callback.
-  { name: "Stripe", re: /\b(?:sk|pk|rk|whsec)_(?:live|test)_[A-Za-z0-9]{16,}\b/g },
+  { name: "Stripe", re: /\b(?:(?:sk|pk|rk|whsec)_(?:live|test)|sk_org|whsec)_[A-Za-z0-9]{16,}\b/g },
   // Custom *_live_*/*_test_* / *_prod_*/*_dev_* (proprietary token shape)
   { name: "Custom prefix", re: /\b[a-z][a-z0-9_]{1,15}_(?:live|test|prod|dev)_[A-Za-z0-9]{16,}\b/gi },
-  // AWS Access Key (AKIA + 16 chars)
-  { name: "AWS Access Key", re: /\bAKIA[0-9A-Z]{16}\b/g },
+  // AWS Access Key (AKIA permanente / ASIA temporal STS + 16 chars)
+  { name: "AWS Access Key", re: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g },
   // AWS Secret asignado a env var (genérico — el value puede tener cualquier shape)
   { name: "AWS Secret", re: /\b(?:aws_?secret(?:_?access)?_?key)\s*[:=]\s*['"]?[A-Za-z0-9/+=]{40}['"]?/gi },
-  // GitHub tokens (ghp_, gho_, ghu_, ghs_, ghr_, ghi_, ght_)
-  { name: "GitHub", re: /\bgh[oprusti]_[A-Za-z0-9]{30,}\b/g },
+  // GitHub clásico y PAT de grano fino; instalación compuesta se procesa arriba.
+  { name: "GitHub", re: /\b(?:gh[oprusti]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,})\b/g },
   // Slack tokens (xoxa-, xoxb-, xoxp-, xoxr-, xoxs-)
-  { name: "Slack", re: /\bxox[abprs]-[A-Za-z0-9-]{10,}\b/g },
+  // El prefijo xoxe. pertenece al access token rotado completo.
+  { name: "Slack", re: /\b(?:xoxe\.)?xox[abprs]-[A-Za-z0-9-]{10,}\b/g },
+  // App, workflow y refresh documentados; no ampliar a xox<letra arbitraria>.
+  { name: "Slack app/workflow/refresh", re: /\b(?:xapp|xwfp|xoxe)-[A-Za-z0-9-]{20,}(?![A-Za-z0-9_-])/g },
   // OpenAI / Anthropic keys (sk-..., sk-ant-..., sk-proj-...)
   { name: "OpenAI/Anthropic", re: /\bsk-(?:ant|proj)?-?[A-Za-z0-9_-]{32,}\b/g },
   // GenericKeyValue: <word_with_token_meaning>=<value16+>
@@ -244,7 +256,7 @@ function redactTokenPatternsOnly(text: string): string {
  * Sanitiza texto libre: redacta tokens conocidos + URLs sensibles inline.
  *
  * Cobertura:
- *   - TOKEN_PATTERNS (JWT, Bearer, Basic, Stripe, custom prefix _live_/_test_,
+ *   - TOKEN_PATTERNS (JWT, Bearer, Basic, Supabase, Stripe, custom prefix _live_/_test_,
  *     AWS, GitHub, Slack, OpenAI/Anthropic, generic key=value)
  *   - URLs sensibles dentro del texto (delega a redactUrl, que cubre
  *     query/hash/userinfo/path tokens)
