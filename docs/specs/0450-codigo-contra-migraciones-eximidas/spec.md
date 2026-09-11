@@ -364,6 +364,15 @@ de función; sin bloques DO fallan los cuatro primeros.
   hay siete plantillas `EXECUTE` en bloques DO y ninguna contiene DDL cubierto.
   Pendientes-únicos: ninguno antes ni después. Gate `0 ROJO · 0 AMARILLO` en
   ambos, con 1637 módulos alcanzables.
+- **main `47fca222`** (tras #70 y #72, incorporado a esta rama con merge): 423
+  migraciones, 142 con 219 bloques DO. La extracción pasa de 1082 a 1083, con
+  el mismo único nuevo de 0141. El único pendiente-único,
+  `portal_can_read_conversation_message` (0433), es igual antes y después y
+  sigue en silencio. Gate `0 ROJO · 0 AMARILLO`, exit 0.
+- **PRs abiertas** (13 heads al 2026-09-11): el conjunto de pendientes-únicos,
+  con clave y migración, solo cambia en #80 (L17), que suma
+  `reserve_public_verify_attempt`. En las otras doce es idéntico, así que su
+  veredicto no puede cambiar.
 - **Extracción de L17 `07e54dfc` (`git archive`):** el checker anterior da
   `0 ROJO`, exit 0; el nuevo, `1 ROJO`: `reserve_public_verify_attempt` (0426)
   en `lib/public/verify-throttle.ts:27`, exit 1. Con una declaración de
@@ -391,9 +400,11 @@ de función; sin bloques DO fallan los cuatro primeros.
 - [x] Extracción de L17: ROJO en `lib/public/verify-throttle.ts:27`, sin tocar
       su worktree.
 
-**Validación.** PASARON `pnpm harness:test` (39/39, seis nuevas), la prueba
-focal Vitest del check con el contrato CI (29/29), el checker en el árbol y
-sobre la extracción de L17, ESLint, `pnpm docs:check`, `pnpm sdd:check` y
-`git diff --check`. `pnpm verify` quedó NO EJECUTADO: el cambio es solo de
+**Validación.** Con esta rama combinada con main `47fca222` PASARON
+`pnpm harness:test` (39/39, seis nuevas), la prueba focal Vitest del check con
+el contrato CI (29/29), el checker en el árbol y sobre la extracción de L17,
+`pnpm docs:check`, `pnpm sdd:check` y `git diff --check`. `pnpm lint` dio 0
+errores y 8 avisos preexistentes en archivos ajenos; el merge no trajo
+archivos lintables. `pnpm verify` quedó NO EJECUTADO: el cambio es solo de
 harness y se valida con sus pruebas propias. Detalle en
 `.agents/handoffs/pending-symbols-do-blocks.md`.
