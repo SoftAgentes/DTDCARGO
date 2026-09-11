@@ -2,13 +2,13 @@
 
 Fecha: 2026-09-11. Task ID: `purge-public-verify-throttle`.
 Owner / sesión escritora: `purge-verify-throttle-claude-06f6e292`, sesión Claude Code `06f6e292-7184-4464-8357-5a65c7c1db87`.
-Estado de tarea: **lista-para-revision** en [PR #86](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/86), en borrador. Sam autorizó el push y la PR el 2026-09-11; no hay merge ni cambios en producción.
+Estado de tarea: **lista-para-revision** en [PR #86](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/86), en borrador. Sam autorizó el push y la PR el 2026-09-11, y activó el monitor de CI (auto-fix). No hay merge ni cambios en producción.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/purge-public-verify-throttle`.
 Rama: `codex/purge-public-verify-throttle`, publicada en `origin` con upstream propio.
 Base: `50100cc4` (origin/main al reservar) más el commit de reserva `6e26212b`.
-- Se actualizó con el merge `cc5ee896` de origin/main (`bbc7493f`).
-- GitHub marcaba la PR como CONFLICTING solo por el índice generado `docs/specs/README.md`; en local lo resolvió el driver `dtd-generated-records`.
+- Se actualizó con merges de origin/main: `cc5ee896` (main en `bbc7493f`) y `f20804c7` (main en `ef7b008e`, tras la PR #84, a pedido del monitor de CI).
+- En ambos casos GitHub marcaba la PR como CONFLICTING solo por el índice generado `docs/specs/README.md`; en local lo resolvió el driver `dtd-generated-records`.
 
 SDD: `docs/specs/0455-purge-public-verify-throttle/spec.md`, `status: in-progress`.
 Origen: hallazgo de la revisión de datos de L17 (PR #80, `.agents/handoffs/c-l17-verificar-throttle.md` en `codex/c-l17-verificar-throttle`).
@@ -18,7 +18,7 @@ Permisos usados:
 - commits selectivos y reserva SDD local;
 - detener el árbol de procesos de mi propio `verify` colgado;
 - push de la rama propia y PR draft (autorizados por Sam);
-- merge de origin/main en la rama propia.
+- merges de origin/main en la rama propia.
 
 Sin merge a main, lectura ni escritura de producción, ni despliegue.
 
@@ -64,28 +64,28 @@ Sin merge a main, lectura ni escritura de producción, ni despliegue.
   - `mapa-de-borrado.md:189`: fila nueva en §E.
 - **Verificación efímera de la ruta real** contra `supabase/postgres:17.6.1.165` y `postgrest/postgrest:v16.1`, en contenedores propios con la base en red `--internal`. Detalle en VALIDACIÓN.
 - **Corrección tras la primera corrida de `verify`:** la spec citaba el archivo de 0426, ausente en esta rama, y el contrato spec→migración lo rechazó. Ahora lo cita como `0426:37,41` (`f35680b2`).
-- **Publicación:** PR #86 en borrador y merge de origin/main para dejarla sin conflictos en GitHub.
+- **Publicación:** PR #86 en borrador, con dos merges de origin/main para dejarla sin conflictos en GitHub. El segundo lo pidió el monitor de CI.
 - **Revisión focal `revisar-datos-ve`** en la spec: 5 CORRECTO, 4 ENCONTRADO (preexistentes) y 5 NO VERIFICABLE. **No es asesoría legal.**
 
 ## VALIDACIÓN
 
-El árbol de producto se validó completo en `f35680b2` y con validación afectada tras el merge `cc5ee896`. El handoff se agrega después sin tocar esos archivos. Node 24.20.0, pnpm 12.3.4 vía Corepack y Docker 29.7.2. Sin credenciales ni `.env`. Guiones, recibo y logs quedan fuera de Git, en la carpeta scratchpad de la sesión (`pvt/run.mjs`, `pvt/route-runner.ts`, `pvt/receipt.json`, `verify-630b81ac.log`, `verify-run2.log`).
+El árbol de producto se validó completo en `f35680b2` y con validación afectada tras cada merge con main (`cc5ee896`, `f20804c7`). El handoff se agrega después sin tocar esos archivos. Node 24.20.0, pnpm 12.3.4 vía Corepack y Docker 29.7.2. Sin credenciales ni `.env`. Guiones, recibo y logs quedan fuera de Git, en la carpeta scratchpad de la sesión (`pvt/run.mjs`, `pvt/route-runner.ts`, `pvt/receipt.json`, `verify-630b81ac.log`, `verify-run2.log`).
 
 | Comprobación | Estado y evidencia |
 |---|---|
-| `harness-worktree guard` / `claim` / `guard --owner` antes de cada commit y del push | PASÓ |
+| `harness-worktree guard` / `claim` / `guard --owner` antes de cada commit y push | PASÓ |
 | `corepack pnpm install --frozen-lockfile` | PASÓ (36,9 s); lockfile intacto |
 | Vitest focal antes de implementar (RED) | FALLÓ como se esperaba: 4 fallan y 3 pasan (los 403) |
 | Vitest focal después (GREEN) | PASÓ: 7/7, y 12/12 junto con `spec-migration-refs` tras la corrección |
 | ESLint focal (ruta y test) | PASÓ, sin avisos |
 | `corepack pnpm typecheck` | PASÓ |
-| `corepack pnpm docs:index` / `docs:check` | PASÓ, 418 specs (423 tras el merge) |
+| `corepack pnpm docs:index` / `docs:check` | PASÓ, 418 specs (424 tras el último merge) |
 | `corepack pnpm sdd:check` | PASÓ: sin números repetidos; choques históricos declarados |
 | `git diff --check` y allowlist | PASÓ: 7 archivos de la allowlist de la spec, más este handoff |
 | Verificación efímera (ruta real + PostgREST + Supabase Postgres) | PASÓ. Detalle debajo |
 | `corepack pnpm verify`, corrida 1 (SHA `630b81ac`) | FALLÓ: `test` por un defecto propio (ya corregido) y e2e colgado. Detalle debajo |
 | `corepack pnpm verify`, corrida 2 (SHA `f35680b2`, 09:05–09:32 −04:00) | FALLÓ, exit 1: 15 de 17 pasos PASÓ, `e2e` FALLÓ (ambiental) y `migrations-applied` NO DISPONIBLE. Veredicto literal: `verify: 1 fallo(s) → e2e CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.` No se absuelve ni se presenta como verde |
-| Tras el merge con main (`cc5ee896`) | PASÓ la validación afectada: diff de la PR contra main = 8 archivos; `docs:check` (423 specs), `sdd:check`, `pending-migration-symbols` (0 ROJO / 0 AMARILLO), `typecheck`, Vitest focal 12/12 y ESLint focal. El `verify` completo no se repitió sobre el merge; la combinación la valida el Director antes de integrar (runbook) |
+| Tras cada merge con main (`cc5ee896`, `f20804c7`) | PASÓ la validación afectada: diff de la PR contra main = 8 archivos; `docs:check` (423 y 424 specs), `sdd:check`, `pending-migration-symbols` (0 ROJO / 0 AMARILLO), `typecheck`, Vitest focal 12/12 y ESLint focal. El `verify` completo no se repitió sobre los merges; la combinación la valida el Director antes de integrar (runbook) |
 | `/ui-check` | NO EJECUTADO: sin cambio visual |
 | E2E autenticado y `migrations-applied` | NO DISPONIBLE: sin credenciales |
 | Producción (catálogo, conteo, primera corrida) | NO EJECUTADO: fuera de la autorización; ver HANDOFF AL DIRECTOR |
@@ -138,7 +138,9 @@ Detalle de `verify`, corrida 1 (SHA `630b81ac`):
 - `f35680b2` docs(DTD-0455): cita de 0426 por número y línea, para el contrato spec→migración.
 - `1a018901` chore(harness): primera versión de este handoff.
 - `cc5ee896` merge de origin/main (`bbc7493f`), con el índice generado resuelto por el driver.
-- Commit que contiene este documento: actualización del handoff con la PR; su hash queda en la PR.
+- `6d3233b6` chore(harness): handoff con la PR #86.
+- `f20804c7` merge de origin/main (`ef7b008e`, PR #84), a pedido del monitor de CI.
+- Commit que contiene este documento: actualización del handoff tras el segundo merge; su hash queda en la PR.
 
 ## PR / BRANCH
 
@@ -146,7 +148,8 @@ Detalle de `verify`, corrida 1 (SHA `630b81ac`):
 
 - Publicada a sí misma con `git push -u origin codex/purge-public-verify-throttle:codex/purge-public-verify-throttle`.
 - Título: «fix(DTD-0455): purgar public_verify_throttle a 60 min en el cron de purga».
-- El push disparó el preview de Vercel, automático del proveedor; no hubo deploy manual.
+- Cada push dispara el preview de Vercel, automático del proveedor; no hubo deploy manual.
+- El comentario de `vercel[bot]` es solo el estado del preview y no requirió cambios.
 - El SHA final es el commit que contiene este documento, y su CI se reporta en la PR.
 - La reserva 0455 queda visible por la PR; el lock `codex/sdd-reserve-0455` no se publicó aparte.
 
@@ -177,7 +180,7 @@ Detalle de `verify`, corrida 1 (SHA `630b81ac`):
 - **No es migrate-first.** No hay migraciones. Sin el privilegio DELETE, el cron respondería 500 a diario después de purgar las otras dos tablas, sin daño de datos.
 - **Después del despliegue:** la corrida de las 04:00 UTC debe responder 200, sin `[purge-verify-throttle]` en los logs. Una preview no ejecuta crons.
 - **Reversión:** revertir la PR. Lo borrado no se recupera desde la app.
-- **Main:** la rama incluye main hasta `bbc7493f`. Si main avanza y GitHub vuelve a marcar conflicto en el índice generado, basta otro merge de origin/main en la rama; el driver lo resuelve. Lo hago a pedido.
+- **Main:** la rama incluye main hasta `ef7b008e`. Cada PR que se integra y regenera el índice vuelve a marcar conflicto en `docs/specs/README.md`. Con el monitor de CI activo, lo resuelvo con otro merge de origin/main y el driver.
 - **Compartidos:**
   - con main, solo `docs/specs/README.md` (generado, driver `dtd-generated-records`);
   - con PR #80, ningún archivo. Esa PR cambia `lib/public/verify-throttle.ts`, pero conserva `VERIFY_WINDOW_MINUTES`, que el test importa;
