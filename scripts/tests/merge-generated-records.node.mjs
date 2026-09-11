@@ -405,6 +405,78 @@ test("el índice retira la fila de una spec que main renumeró y conserva la de 
   run(repo, process.execPath, ["scripts/build-docs-index.mjs", "--check"]);
 });
 
+// Driver anterior simulado: une pendingBelowCutoff y nunca aplica un retiro,
+// como la regla 1 original. Deja una marca para saber qué driver corrió.
+const UNION_DRIVER = [
+  'import { readFileSync, writeFileSync } from "node:fs";',
+  "const [, currentFile, otherFile] = process.argv.slice(2);",
+  'const read = (file) => JSON.parse(readFileSync(file, "utf8"));',
+  "const current = read(currentFile);",
+  "current.pendingBelowCutoff = {",
+  "  ...read(otherFile).pendingBelowCutoff,",
+  "  ...current.pendingBelowCutoff,",
+  "};",
+  'writeFileSync(currentFile, JSON.stringify(current, null, 2) + "\\n", "utf8");',
+  'console.error("driver de la rama: unión");',
+  "",
+].join("\n");
+
+test("la rama corre el driver de su propio árbol: la primera actualización fuerza el de main", (t) => {
+  const repo = createRepo(t);
+  const driverFile = path.join(repo, "scripts", "merge-generated-records.mjs");
+  // Base y rama llevan el driver anterior; main recibe el retiro de 0409 y
+  // después el driver nuevo, como cuando esta enmienda entra a main.
+  writeFileSync(driverFile, UNION_DRIVER, "utf8");
+  makeMainAndBranch(repo, {
+    main: (entries) => without(entries, "0409_bank_rbac"),
+    branch: (entries) => [...entries, ["0436_rama", "espera 0436"]],
+  });
+  git(repo, ["switch", "main"]);
+  copyFileSync(DRIVER_SOURCE, driverFile);
+  commitAll(repo, "main recibe el driver nuevo");
+  git(repo, ["switch", "branch"]);
+  const branchTip = git(repo, ["rev-parse", "HEAD"]).stdout.trim();
+
+  // Sin override, Git ejecuta el driver que la rama tiene en su árbol.
+  const plain = git(repo, ["merge", "--no-edit", "main"]);
+  assert.match(plain.stderr, /driver de la rama: unión/u);
+  assert.ok(Object.hasOwn(readBaseline(repo).pendingBelowCutoff, "0409_bank_rbac"));
+
+  // El merge trajo el driver nuevo, pero la espera resucitada ya cuenta como
+  // adición de la rama: la actualización siguiente no la retira.
+  git(repo, ["switch", "main"]);
+  setPending(repo, [
+    ...Object.entries(readBaseline(repo).pendingBelowCutoff),
+    ["0450_aliado", "espera 0450"],
+  ]);
+  commitAll(repo, "main integra 0450");
+  git(repo, ["switch", "branch"]);
+  const next = git(repo, ["merge", "--no-edit", "main"]);
+  assert.match(next.stderr, /merge semántico: supabase\/migrations-baseline\.json/u);
+  assert.ok(Object.hasOwn(readBaseline(repo).pendingBelowCutoff, "0409_bank_rbac"));
+
+  // Con el driver de main forzado en la primera actualización, gana el retiro.
+  git(repo, ["switch", "-c", "override", branchTip]);
+  const mainDriver = path.join(repo, ".git", "dtd-merge-driver-main.mjs").replaceAll("\\", "/");
+  writeFileSync(
+    mainDriver,
+    git(repo, ["show", "main:scripts/merge-generated-records.mjs"]).stdout,
+    "utf8",
+  );
+  const forced = git(repo, [
+    "-c",
+    `merge.dtd-generated-records.driver=node "${mainDriver}" %O %A %B %P`,
+    "merge",
+    "--no-edit",
+    "main",
+  ]);
+  assert.match(forced.stderr, /merge semántico: supabase\/migrations-baseline\.json/u);
+  assert.doesNotMatch(forced.stderr, /driver de la rama/u);
+  const expected = readBaseline(repo, "main");
+  expected.pendingBelowCutoff["0436_rama"] = "espera 0436";
+  assert.equal(readFileSync(baselineFile(repo), "utf8"), serializeBaseline(expected));
+});
+
 test("sin instalar el driver el merge bloquea y no inventa una unión textual", (t) => {
   const repo = createRepo(t, { installDriver: false });
   makeIndependentBranches(repo);
