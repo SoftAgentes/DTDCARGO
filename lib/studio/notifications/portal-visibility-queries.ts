@@ -33,16 +33,39 @@ export async function getHiddenPortalStatusesForPortal(
 ): Promise<Set<ShipmentStatus>> {
   try {
     const { data, error } = await db.rpc("get_portal_hidden_shipment_statuses");
-    if (error || !Array.isArray(data)) return new Set();
+    if (error || !Array.isArray(data)) {
+      console.error(
+        "[client-notif] getHiddenPortalStatusesForPortal falló:",
+        errorLabel(error, "respuesta sin lista"),
+      );
+      return new Set();
+    }
 
     return new Set(
       data
         .map((row) => String((row as { status?: unknown }).status ?? "").trim())
         .filter(Boolean) as ShipmentStatus[],
     );
-  } catch {
+  } catch (err) {
+    console.error(
+      "[client-notif] getHiddenPortalStatusesForPortal falló:",
+      errorLabel(err, "excepción sin detalle"),
+    );
     return new Set();
   }
+}
+
+/**
+ * Sólo el código o el mensaje del error, nunca el objeto completo: el log no
+ * vuelca detalles, ids de cliente o tenant ni datos de la sesión.
+ */
+function errorLabel(err: unknown, fallback: string): string {
+  if (err && typeof err === "object") {
+    const { code, message } = err as { code?: unknown; message?: unknown };
+    if (typeof code === "string" && code) return code;
+    if (typeof message === "string" && message) return message;
+  }
+  return fallback;
 }
 
 /**

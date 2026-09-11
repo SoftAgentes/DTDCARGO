@@ -101,26 +101,69 @@ describe("getHiddenPortalStatusesForPortal", () => {
     await expect(getHiddenPortalStatusesForPortal(db)).resolves.toEqual(new Set());
   });
 
+  // Ids ficticios: si el log volcara el objeto del error, aparecerían aquí.
+  const CLIENT_ID = "10000000-0000-0000-0000-000000000001";
+  const TENANT_ID = "aaaaaaaa-0000-0000-0000-000000000001";
+  const USER_ID = "20000000-0000-0000-0000-000000000001";
+
+  /** El log sólo lleva la etiqueta del sitio y el código o mensaje: ningún id. */
+  function expectLogWithoutIds(calls: unknown[][]) {
+    const logged = JSON.stringify(calls);
+    for (const id of [CLIENT_ID, TENANT_ID, USER_ID]) {
+      expect(logged).not.toContain(id);
+    }
+    expect(logged).not.toMatch(
+      /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+    );
+  }
+
   // L02 es migrate-first: sin 0402 aplicada, PostgREST responde PGRST202. La
   // página no rompe, pero el set vacío MUESTRA todos los hitos, incluidos los
-  // que una regla del tenant oculta.
-  it("RPC ausente (PGRST202): set vacío, muestra todos los hitos", async () => {
-    const { db, rpc } = makePortal(null, {
-      code: "PGRST202",
-      message:
-        "Could not find the function public.get_portal_hidden_shipment_statuses without parameters in the schema cache",
-    });
+  // que una regla del tenant oculta. El fallo queda registrado, sin ids.
+  it("RPC ausente (PGRST202): set vacío, muestra todos los hitos y lo registra", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const { db, rpc } = makePortal(null, {
+        code: "PGRST202",
+        message:
+          "Could not find the function public.get_portal_hidden_shipment_statuses without parameters in the schema cache",
+        details: `cliente ${CLIENT_ID} · tenant ${TENANT_ID}`,
+        hint: `usuario ${USER_ID}`,
+      });
 
-    await expect(getHiddenPortalStatusesForPortal(db)).resolves.toEqual(new Set());
-    expect(rpc).toHaveBeenCalledOnce();
-    expect(rpc).toHaveBeenCalledWith("get_portal_hidden_shipment_statuses");
+      await expect(getHiddenPortalStatusesForPortal(db)).resolves.toEqual(new Set());
+      expect(rpc).toHaveBeenCalledOnce();
+      expect(rpc).toHaveBeenCalledWith("get_portal_hidden_shipment_statuses");
+      expect(log).toHaveBeenCalledOnce();
+      expect(log).toHaveBeenCalledWith(
+        "[client-notif] getHiddenPortalStatusesForPortal falló:",
+        "PGRST202",
+      );
+      expectLogWithoutIds(log.mock.calls);
+    } finally {
+      log.mockRestore();
+    }
   });
 
-  it("fallo de transporte (promesa rechazada): set vacío sin propagar", async () => {
-    const rpc = vi.fn().mockRejectedValue(new Error("fetch failed"));
-    const db = { rpc } as unknown as SupabaseClient;
+  it("fallo de transporte (promesa rechazada): set vacío sin propagar y lo registra", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const failure = Object.assign(new Error("fetch failed"), {
+        cause: { clientId: CLIENT_ID, tenantId: TENANT_ID, userId: USER_ID },
+      });
+      const rpc = vi.fn().mockRejectedValue(failure);
+      const db = { rpc } as unknown as SupabaseClient;
 
-    await expect(getHiddenPortalStatusesForPortal(db)).resolves.toEqual(new Set());
-    expect(rpc).toHaveBeenCalledOnce();
+      await expect(getHiddenPortalStatusesForPortal(db)).resolves.toEqual(new Set());
+      expect(rpc).toHaveBeenCalledOnce();
+      expect(log).toHaveBeenCalledOnce();
+      expect(log).toHaveBeenCalledWith(
+        "[client-notif] getHiddenPortalStatusesForPortal falló:",
+        "fetch failed",
+      );
+      expectLogWithoutIds(log.mock.calls);
+    } finally {
+      log.mockRestore();
+    }
   });
 });

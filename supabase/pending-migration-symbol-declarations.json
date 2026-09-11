@@ -24,13 +24,18 @@
       "evidence": [
         {
           "site": "lib/studio/notifications/portal-visibility-queries.ts:36",
-          "contains": "if (error || !Array.isArray(data)) return new Set();",
+          "contains": "if (error || !Array.isArray(data)) {",
           "degradation": "Mientras la RPC no exista, PostgREST responde error (PGRST202) y el lector devuelve set vacío: el Portal MUESTRA todos los hitos, incluidos los que una regla del tenant oculta. No rompe la página, pero cambia lo que ve el cliente; es fail-open, el mismo criterio que main aplica hoy ante un fallo de lectura. Por eso L02 es MIGRATE-FIRST: el código no se fusiona antes de aplicar y verificar 0402."
         },
         {
-          "site": "lib/studio/notifications/portal-visibility-queries.ts:44",
-          "contains": "return new Set();",
-          "degradation": "Una excepción del cliente o del transporte también devuelve set vacío: no propaga el error a la página y nunca oculta de más."
+          "site": "lib/studio/notifications/portal-visibility-queries.ts:39",
+          "contains": "errorLabel(error, \"respuesta sin lista\")",
+          "degradation": "Cada fallo queda registrado con console.error y la etiqueta [client-notif] getHiddenPortalStatusesForPortal falló, sólo con el código o el mensaje (PGRST202 si falta la RPC), sin ids de cliente, tenant ni sesión: la degradación se detecta en los logs."
+        },
+        {
+          "site": "lib/studio/notifications/portal-visibility-queries.ts:52",
+          "contains": "errorLabel(err, \"excepción sin detalle\")",
+          "degradation": "Una excepción del cliente o del transporte se registra igual, sólo con código o mensaje, y el lector devuelve set vacío (L54): no propaga el error a la página y nunca oculta de más."
         },
         {
           "site": "app/portal/(app)/page.tsx:63",
