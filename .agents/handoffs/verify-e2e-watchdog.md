@@ -2,11 +2,19 @@
 
 Fecha: 2026-09-11. Task ID: `verify-e2e-watchdog`.
 Owner / sesión escritora: `verify-e2e-watchdog-claude-20260911` (Worker Claude Code, sesión `awesome-kapitsa-269943-82`). No hubo subagentes. No había un Director identificable para esta tarea, así que seguí el procedimiento SDD del runbook sin convertir la sesión en centro de integración.
-Estado: lista-para-revision, solo en local. Falta la autorización de Sam para publicar la rama y abrir la PR draft. No está integrada.
+Estado: lista-para-revision. La [PR #89](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/89) está publicada en borrador contra main, con autorización de Sam. No está integrada.
 
-- Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/verify-e2e-watchdog`, creado con `node scripts/harness-worktree.mjs start verify-e2e-watchdog` después de `git fetch origin`. `guard` y `claim --owner verify-e2e-watchdog-claude-20260911` PASARON sobre el árbol limpio; `guard --owner` se revalidó antes de cada commit.
-- Rama: `codex/verify-e2e-watchdog`, sin upstream. Nació en `07d00097` (origin/main al crearla) y avanzó con fast-forward al commit de reserva `e36329b8`, cuyo padre es `50100cc4`. Durante la tarea origin/main pasó a `50100cc4` (merge de la PR #70), así que esa es la base vigente. Entre `07d00097` y `50100cc4` no cambiaron `package.json` ni el lockfile.
-- SDD: `docs/specs/0454-verify-e2e-watchdog/spec.md`, en `done`: se cumplieron todos sus criterios. La PR y el merge se registran aparte. La reservé con `node scripts/next-number.mjs --reserve verify-e2e-watchdog`, que creó la ref local `codex/sdd-reserve-0454-verify-e2e-watchdog` y el lock `refs/dtd/reservations/0454`. No hice push. El inventario previo daba 0453 como libre, pero otra sesión la reservó antes; la reserva atómica me asignó 0454 sin choque.
+- Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/verify-e2e-watchdog`, creado con `node scripts/harness-worktree.mjs start verify-e2e-watchdog` después de `git fetch origin`. `guard` y `claim --owner verify-e2e-watchdog-claude-20260911` PASARON sobre el árbol limpio.
+  - `guard --owner` se revalidó antes de cada commit y del push.
+  - El claim se liberó al cierre local y se volvió a tomar para publicar.
+- Rama: `codex/verify-e2e-watchdog`, con upstream `origin/codex/verify-e2e-watchdog`.
+  - Nació en `07d00097` (origin/main al crearla) y avanzó con fast-forward al commit de reserva `e36329b8`, cuyo padre es `50100cc4`.
+  - Entre `07d00097` y `50100cc4` no cambiaron `package.json` ni el lockfile.
+  - Antes de publicar hice merge de `origin/main` `bbc7493f` en la rama (`a96e0a2b`). Main había integrado L20, L15, L08, L11 y el registro de 0409. El único archivo en común era el índice generado `docs/specs/README.md`: lo resolvió el merge driver `dtd-generated-records` y lo regeneré con `docs:index` (423 specs).
+- SDD: `docs/specs/0454-verify-e2e-watchdog/spec.md`, en `done`: se cumplieron todos sus criterios. La PR y el merge se registran aparte.
+  - La reservé con `node scripts/next-number.mjs --reserve verify-e2e-watchdog`, que creó la ref local `codex/sdd-reserve-0454-verify-e2e-watchdog` y el lock `refs/dtd/reservations/0454`.
+  - El inventario previo daba 0453 como libre, pero otra sesión la reservó antes; la reserva atómica me asignó 0454 sin choque.
+  - La ref de reserva no se publicó aparte. La PR #89 contiene la spec, y el inventario de `next-number` lee las PRs abiertas, así que el número ya es visible para otras máquinas.
 
 ## OBJETIVO ORIGINAL
 
@@ -54,7 +62,7 @@ Evidencia de partida: los handoffs de L21 y L08, cada uno en su rama, y los de L
 
 ## VALIDACIÓN
 
-Cada entrada indica el contenido sobre el que se midió. Base: `50100cc4`.
+Cada entrada indica el contenido sobre el que se midió.
 
 **Pruebas y checks de harness**
 
@@ -67,6 +75,7 @@ Cada entrada indica el contenido sobre el que se midió. Base: `50100cc4`.
   - `docs:index` (418 specs), `docs:check`, `sdd:check` (solo aparecen los choques históricos exentos) y `git diff --check`.
   - Con configuración inválida el gate sale 1 antes de correr pasos: `VERIFY_E2E_IDLE_MIN=abc` y `VERIFY_E2E_TIMEOUT_MIN=0` imprimen `[FAIL] verify-watchdog: … inválido`.
 - PASÓ, sobre `9c9aaebb`: watchdog y critical-coverage 21/21 en 36.5 s, ESLint y `git diff --check`.
+- PASÓ, después del merge de `origin/main` en la rama (`a96e0a2b`): `docs:check` (423 specs), `sdd:check` y `corepack pnpm harness:test` 48/48 en 21 s. El merge solo trae cambios de producto y DB ajenos, y no toca el harness. La corrida completa de `verify` sigue siendo la de `9c9aaebb`; la revalidación completa de la combinación corresponde al Director antes de integrar.
 
 **Validación con el e2e real y límite total de 4 min.** Usé drivers fuera de Git con el argv real del e2e.
 
@@ -118,8 +127,8 @@ Corrió sobre `9c9aaebb`, de 2026-09-11T12:28:10Z a 13:18:12Z (50 min). En el á
 **Lo que no se ejecutó**
 
 - NO EJECUTADO: una segunda corrida completa de `verify` con `VERIFY_E2E_TIMEOUT_MIN` corto. La había planeado para ver el veredicto del gate con un cuelgue. Dejó de hacer falta: la corrida normal reprodujo un cuelgue real y recorrió ese mismo camino, del FAIL con motivo hasta build y el veredicto con exit 1. El límite total con el e2e real quedó validado con v1–v3 (v1 y v2 a través de `runStep`) y en las pruebas unitarias.
-- NO DISPONIBLE: correr las pruebas nuevas en Linux. No hay una imagen de Node local en Docker y WSL solo tiene `docker-desktop`. Descargar una imagen requiere autorización. Las correrá la CI «Calidad local sin secretos» (ubuntu-24.04, `pnpm harness:test`) al publicar, y esa será su primera ejecución en Linux.
-- NO EJECUTADO: la CI remota. La rama no está publicada.
+- NO DISPONIBLE en local: correr las pruebas nuevas en Linux. No hay una imagen de Node local en Docker y WSL solo tiene `docker-desktop`. Descargar una imagen requiere autorización. Las corre la CI de la PR.
+- CI remota «Calidad continua / Calidad local sin secretos» (ubuntu-24.04, incluye `pnpm harness:test`): se dispara con cada push de la rama. El resultado del SHA final se consulta en la PR #89; este documento no atribuye un verde que no se vio.
 - NO EJECUTADO, porque no aplica:
   - `/ui-check`: no hay UI.
   - `revisar-datos-ve`: el inventario de procesos solo lee PID, PPID, hora de creación y nombre de ejecutable, y no persiste nada.
@@ -127,10 +136,10 @@ Corrió sobre `9c9aaebb`, de 2026-09-11T12:28:10Z a 13:18:12Z (50 min). En el á
 
 Logs fuera de Git, en `C:/Users/AKXGEN~1/AppData/Local/Temp/claude/C--Users-AKX-generator-Desktop-Developer-DTDCARGO--claude-worktrees-awesome-kapitsa-269943/ac340725-a53a-4085-a937-d4f3007c4d04/scratchpad/verify-e2e-watchdog/`:
 
-- `install.*` y `harness-test.log`;
+- `install.*`, `harness-test.log` y `harness-test-postmerge.log`;
 - `real-e2e-watchdog*.log` y `real-e2e-watchdog*.mjs` (drivers v1, v2 y v3);
 - `verify-normal.{log,plain.log,sha,start,end,exit,status}`;
-- `sdd-check.log`.
+- `sdd-check.log` y `pr-body.md`.
 
 ## COMMITS
 
@@ -138,24 +147,23 @@ Logs fuera de Git, en `C:/Users/AKXGEN~1/AppData/Local/Temp/claude/C--Users-AKX-
 - `ff576bae` — `docs(harness): SDD-0454 — especificar el watchdog del e2e de verify`: spec e índice.
 - `4d6dac1a` — `chore(harness): SDD-0454 — watchdog del paso e2e de verify`: los cinco scripts, las dos pruebas y la nota del runbook.
 - `9c9aaebb` — `chore(harness): SDD-0454 — distinguir procesos en cierre de sobrevivientes`: `closing` en el informe del corte, sus pruebas y la nota en la spec. Salió del hallazgo de la validación v2.
-- El commit que contiene este documento: la spec en `done` con su sección de validación, el índice regenerado y este handoff. No se crea un commit recursivo para registrar su propio hash.
+- `ffcd5220` — `docs(harness): SDD-0454 — cierre del Worker con validación del watchdog`: spec en `done` con su validación, índice y la primera versión de este handoff.
+- `a96e0a2b` — merge de `origin/main` `bbc7493f` en la rama. Solo coincidía el índice generado, que quedó regenerado.
+- El commit que contiene esta versión del documento: registra la PR #89 y el merge. No se crea un commit recursivo para registrar su propio hash; el SHA final está en la PR.
 
 ## PR / BRANCH
 
-Sin PR ni push. La rama es `codex/verify-e2e-watchdog`, contra base `main`, en el worktree indicado arriba. Con autorización de Sam, la publicación sería:
+[PR #89 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/89): base `main`, rama `codex/verify-e2e-watchdog`, worktree el indicado arriba.
 
-```text
-git push -u origin codex/verify-e2e-watchdog:codex/verify-e2e-watchdog
-gh pr create --base main --head codex/verify-e2e-watchdog --draft --body-file <cuerpo>
-```
-
-La reserva 0454 sigue siendo local. Hasta que se publique la rama o la ref de reserva, otras máquinas no la ven.
+- Se publicó con push explícito de la rama a sí misma (`git push -u origin codex/verify-e2e-watchdog:codex/verify-e2e-watchdog`), con autorización de Sam del 2026-09-11.
+- El head al crearla era `a96e0a2b`.
+- No se mergeó ni se desplegó a mano. El push puede disparar el preview automático de Vercel de la rama, que no es producción.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Publicar la rama y abrir la PR draft, solo con autorización de Sam. Al publicar hay que comprobar por SHA que la CI «Calidad local sin secretos» pasa `harness:test` en ubuntu, porque será la primera ejecución en Linux de las pruebas con procesos reales (`ps`, `/proc`).
+- Comprobar por SHA que la CI «Calidad local sin secretos» de la PR #89 pasa, en particular `pnpm harness:test` en ubuntu. Es la primera ejecución en Linux de las pruebas con procesos reales (`ps`, `/proc`). Si falla, se corrige en esta misma rama.
 
-No queda nada más pendiente para la aceptación de la spec.
+No queda nada más pendiente para la aceptación de la spec. La revisión y la integración son del Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -163,11 +171,11 @@ No queda nada más pendiente para la aceptación de la spec.
 2. **Los demás pasos siguen sin límite.** `sql-tests`, `schema-rebuild` y `build` podrían colgarse igual que el e2e; no se ha observado. El runner ya admite `watchdog` por paso, pero aplicarlo exige decidir sus límites en otra spec.
 3. **La causa del cuelgue del e2e sigue sin conocerse.** El `verify` de esta tarea la reprodujo con el patrón de L21: la pasada 1 cierra con `worker-49` forzado a los 300 s, y el reintento enmudece después de 51 resultados, con una traza del webServer por Supabase como última salida. L08 anotó que un worker creado segundos antes del silencio no tenía navegador hijo y que el silencio empieza en mobile-safari. Esta tarea solo acota la espera; no investiga Playwright ni WebKit en Windows.
 4. **La cabecera de `verify.mjs` está desactualizada.** «Corre, en orden: lint → … → e2e» omite `harness`, `feature-constants`, `pending-migration-symbols` y `build`. Es un comentario histórico que no toqué para no mezclar cambios.
-5. **En el índice, 0453 aparece como hueco:** la reservó otra sesión y aún no está en main. Se resuelve cuando esa spec se integre y se regenere el índice.
 
 ## HANDOFF AL DIRECTOR
 
-- **Qué revisar:** el diff completo frente a `50100cc4`.
+- **Siguiente acción:** revisar la PR #89 por SHA y comprobar su CI.
+- **Qué revisar:** el diff frente a main.
   - `verify-runner.mjs` extrae la ejecución de un paso sin cambiar la de los pasos sin watchdog, que siguen con `spawnSync` heredando la terminal. En el `verify` completo, los 15 pasos distintos del e2e dieron lo mismo que en las corridas de otros Workers.
   - El corte va por PID, con la guarda de hora de creación.
   - Un cuelgue no se reintenta.
@@ -176,10 +184,11 @@ No queda nada más pendiente para la aceptación de la spec.
   - `buildVerifyVerdict` acepta ahora `{ name, reason }` además de nombres, y con nombres sale idéntico.
   - `EXIT_SKIPPED` pasó a `verify-runner.mjs`. Antes era una constante local no exportada de `verify.mjs`, así que no hay consumidores externos.
   - No toca `playwright.config.ts`, retries, workers ni timeouts de Playwright.
-- **Integración:** la base es `50100cc4`. Si main avanza, hay que hacer merge de origin/main en esta rama y volver a correr `harness:test` y `docs:check`. `docs/specs/README.md` usa el merge driver `dtd-generated-records`, y conviene regenerarlo con `docs:index` si choca con la spec 0453 de otra sesión. Integrar el cambio no despliega producto; es tooling del gate.
-- **Efecto en los otros Workers:** con esto integrado, sus próximos `verify` ya no esperan indefinidamente. Si el e2e calla 10 min, falla con COLGADO/TIMEOUT, corta solo su árbol y sigue con `build`. Pueden citar la línea `watchdog:` en vez de hacer el `taskkill` manual que describe el runbook.
-- **Publicación:** pendiente de autorización. Los comandos están arriba, y la CI en ubuntu es la primera ejecución Linux de las pruebas nuevas.
+- **Integración:** la rama ya incluye main hasta `bbc7493f`.
+  - Si main vuelve a avanzar, hay que hacer merge de origin/main en esta rama y repetir `harness:test` y `docs:check`. `docs/specs/README.md` usa el merge driver `dtd-generated-records`; conviene regenerarlo con `docs:index`, también si choca con la spec 0453 de otra sesión.
+  - Integrar el cambio no despliega producto; es tooling del gate.
+- **Efecto en los otros Workers:** con esto integrado, sus próximos `verify` ya no esperan indefinidamente. Si el e2e calla 10 min, falla con COLGADO/TIMEOUT, corta solo su árbol y sigue con `build`. Pueden citar la línea `watchdog:` en vez de hacer el `taskkill` manual.
 - **Ownership y procesos:**
   - No quedan procesos propios (comprobado a las 13:20:10Z) y ninguna otra sesión depende de este worktree.
-  - El claim se libera después del commit de este documento, con `node scripts/harness-worktree.mjs release --owner verify-e2e-watchdog-claude-20260911`.
+  - El claim se libera después del commit y push de esta versión, con `node scripts/harness-worktree.mjs release --owner verify-e2e-watchdog-claude-20260911`.
   - No se borran la rama ni el worktree. La reserva local 0454 (ref y lock) se conserva, y el número no se reutiliza.
