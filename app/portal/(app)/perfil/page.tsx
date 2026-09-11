@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient, getProfileCompleteness } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal, getProfileCompleteness } from "@/lib/portal/portal-queries";
 import { PHOTO_BUCKET } from "@/lib/portal/client-photo";
 import { buildPortalSupplierMark, ciudadDeCuenta } from "@/lib/portal/portal-types";
 import { docKindLabel } from "@/lib/studio/client-types";
@@ -14,10 +14,7 @@ import {
 } from "@/lib/public/rates-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { WhatsAppIcon } from "@/components/Icon";
-import {
-  getOpenChangeRequest,
-  getLastResolvedRequest,
-} from "@/lib/portal/change-request-queries";
+import { getPortalChangeRequestSnapshot } from "@/lib/portal/change-request-queries";
 import type { ClientChangeRequest } from "@/lib/portal/change-request-types";
 import {
   getPortalProfileEditQuota,
@@ -49,8 +46,9 @@ export const metadata: Metadata = { title: "Mi perfil" };
  */
 export default async function PortalProfilePage() {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client } = principal;
 
   // Direcciones (SDD-0138 Slice B). Best-effort: sin migración 0198 → lista vacía.
   let addresses: ClientDeliveryAddress[] = [];
@@ -129,16 +127,15 @@ export default async function PortalProfilePage() {
   }
 
   // Solicitud de cambio de datos (SDD-0151). Best-effort: sin migración 0220
-  // (tabla ausente) → null, sin romper. RLS del portal deja al cliente leer las
-  // suyas (client_id = get_portal_client_id()).
+  // (tabla ausente) → null, sin romper. El snapshot fija tenant, cliente y
+  // origen Portal a partir del mismo principal verificado al entrar.
   let openRequest: ClientChangeRequest | null = null;
   let lastResolvedRequest: ClientChangeRequest | null = null;
   let profileEditQuota = UNAVAILABLE_PROFILE_EDIT_QUOTA;
   try {
-    [openRequest, lastResolvedRequest] = await Promise.all([
-      getOpenChangeRequest(supabase, client.id),
-      getLastResolvedRequest(supabase, client.id),
-    ]);
+    const snapshot = await getPortalChangeRequestSnapshot(supabase, principal);
+    openRequest = snapshot.open;
+    lastResolvedRequest = snapshot.lastResolved;
   } catch {
     openRequest = null;
     lastResolvedRequest = null;

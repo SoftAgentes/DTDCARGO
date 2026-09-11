@@ -14,8 +14,56 @@ import {
   type ClientChangeRequest,
 } from "./change-request-types";
 
+import {
+  getPortalClientPrincipal,
+  type PortalClientPrincipal,
+} from "./portal-queries";
+
 const COLS =
   "id, tenant_id, client_id, proposed_name, proposed_rif, proposed_phone, prev_name, prev_rif, prev_phone, status, source, submitted_at, reviewed_at, reviewed_by, review_note";
+
+export type PortalChangeRequestSnapshot = {
+  open: ClientChangeRequest | null;
+  lastResolved: ClientChangeRequest | null;
+};
+
+/**
+ * Lectura Portal autocontenida. No reutiliza las queries genéricas del Studio:
+ * fija tenant, cliente y source derivados del principal antes de consultar.
+ */
+export async function getPortalChangeRequestSnapshot(
+  supabase: SupabaseClient,
+  resolvedPrincipal?: PortalClientPrincipal,
+): Promise<PortalChangeRequestSnapshot> {
+  try {
+    const principal = resolvedPrincipal ?? await getPortalClientPrincipal(supabase);
+    if (!principal) return { open: null, lastResolved: null };
+    const scope = (query: ReturnType<SupabaseClient["from"]>) => query
+      .select(COLS)
+      .eq("tenant_id", principal.tenantId)
+      .eq("client_id", principal.client.id)
+      .eq("source", "client");
+    const [openResult, resolvedResult] = await Promise.all([
+      scope(supabase.from("client_change_requests"))
+        .eq("status", "pending")
+        .maybeSingle(),
+      scope(supabase.from("client_change_requests"))
+        .in("status", ["approved", "rejected"])
+        .order("reviewed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    const open = !openResult.error && openResult.data
+      ? mapChangeRequestRow(openResult.data as Parameters<typeof mapChangeRequestRow>[0])
+      : null;
+    const lastResolved = !resolvedResult.error && resolvedResult.data
+      ? mapChangeRequestRow(resolvedResult.data as Parameters<typeof mapChangeRequestRow>[0])
+      : null;
+    return { open, lastResolved };
+  } catch {
+    return { open: null, lastResolved: null };
+  }
+}
 
 /** La solicitud PENDING del cliente, o null si no tiene ninguna abierta. */
 export async function getOpenChangeRequest(

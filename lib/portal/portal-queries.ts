@@ -45,46 +45,87 @@ async function portalMarkbox(supabase: SupabaseClient): Promise<string | null> {
   return data as string;
 }
 
+export type PortalClientPrincipal = {
+  userId: string;
+  tenantId: string;
+  client: PortalClient;
+};
+
 /**
- * El cliente vinculado al `auth.uid()` actual (su propio registro `clients`).
- * Devuelve null si la sesión no está habilitada como portal.
- *
- * Resuelve el `client_id` del portal vía la helper AISLADA PRIMERO. Si es null,
- * el principal NO es un cliente del portal (p.ej. un user de equipo): cortamos.
- * El filtro explícito por id previene que la policy "clients by tenant" le
- * devuelva un cliente cualquiera del tenant a un user de equipo.
+ * Principal Portal resuelto desde la sesión y su vínculo activo. A diferencia
+ * de las helpers históricas, comprueba la coherencia tenant/cliente aun cuando
+ * una sesión híbrida tenga policies de equipo adicionales.
+ */
+async function resolvePortalClientPrincipal(
+  supabase: SupabaseClient,
+): Promise<PortalClientPrincipal | null> {
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user?.id) return null;
+  const userId = auth.user.id;
+
+  const { data, error } = await supabase
+    .from("client_users")
+    .select(
+      "client_id, tenant_id, clients!inner(id, tenant_id, markbox, name, email, phone, address, rif, doc_kind, city, state, deleted_at)",
+    )
+    .eq("auth_user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error || !data || typeof data !== "object" || Array.isArray(data)) return null;
+
+  const row = data as Record<string, unknown>;
+  const embedded = row.clients;
+  const rawClient = Array.isArray(embedded)
+    ? (embedded.length === 1 ? embedded[0] : null)
+    : embedded;
+  if (!rawClient || typeof rawClient !== "object" || Array.isArray(rawClient)) return null;
+  const client = rawClient as Record<string, unknown>;
+  if (
+    typeof row.client_id !== "string" || !row.client_id.trim() ||
+    typeof row.tenant_id !== "string" || !row.tenant_id.trim() ||
+    client.id !== row.client_id || client.tenant_id !== row.tenant_id ||
+    client.deleted_at !== null || typeof client.markbox !== "string" ||
+    !client.markbox.trim() || typeof client.name !== "string" || !client.name.trim()
+  ) return null;
+
+  const rawDocKind = (client.doc_kind as string | null) ?? null;
+  return {
+    userId,
+    tenantId: row.tenant_id,
+    client: {
+      id: client.id as string,
+      markbox: client.markbox,
+      name: client.name,
+      email: (client.email as string | null) ?? null,
+      phone: (client.phone as string | null) ?? null,
+      address: (client.address as string | null) ?? null,
+      docKind:
+        rawDocKind === "persona" || rawDocKind === "empresa" ? rawDocKind : null,
+      rif: (client.rif as string | null) ?? null,
+      city: (client.city as string | null) ?? null,
+      state: (client.state as string | null) ?? null,
+    },
+  };
+}
+
+export async function getPortalClientPrincipal(
+  supabase: SupabaseClient,
+): Promise<PortalClientPrincipal | null> {
+  try {
+    return await resolvePortalClientPrincipal(supabase);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * El cliente de la sesión Portal, con vínculo activo y tenant coherente.
+ * Una sesión de equipo sin principal Portal válido no hereda un cliente.
  */
 export async function getPortalClient(
   supabase: SupabaseClient,
 ): Promise<PortalClient | null> {
-  const { data: portalClientId, error: idErr } =
-    await supabase.rpc("get_portal_client_id");
-  if (idErr || !portalClientId) return null;
-
-  const { data, error } = await supabase
-    .from("clients")
-    .select("id, markbox, name, email, phone, address, rif, doc_kind, city, state")
-    .eq("id", portalClientId as string)
-    .maybeSingle();
-
-  if (error || !data) return null;
-
-  // `doc_kind` es texto libre en DB (migr 0092); sólo aceptamos los canónicos.
-  const rawDocKind = (data.doc_kind as string | null) ?? null;
-
-  return {
-    id: data.id as string,
-    markbox: data.markbox as string,
-    name: data.name as string,
-    email: (data.email as string | null) ?? null,
-    phone: (data.phone as string | null) ?? null,
-    address: (data.address as string | null) ?? null,
-    docKind:
-      rawDocKind === "persona" || rawDocKind === "empresa" ? rawDocKind : null,
-    rif: (data.rif as string | null) ?? null,
-    city: (data.city as string | null) ?? null,
-    state: (data.state as string | null) ?? null,
-  };
+  return (await getPortalClientPrincipal(supabase))?.client ?? null;
 }
 
 /**
