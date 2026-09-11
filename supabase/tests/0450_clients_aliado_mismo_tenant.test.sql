@@ -8,19 +8,27 @@
 --   1. RED: sin 0450, la base acepta enlazar un cliente de T1 al aliado de T2 (el
 --      hueco que reprodujo L01), y la lectura de marca por ese vínculo entrega la
 --      marca de la otra empresa.
---   2. Con filas incoherentes, 0450 falla en el preflight con P0001 y un mensaje
---      que lleva sólo el CONTEO (ni uuid ni Shipping Mark), sin dejar DDL ni
---      tocar filas. El archivo no contiene DML y el preflight corre primero.
---   3. Aplicada y reaplicada: catálogo idéntico y cero filas modificadas.
---   4. La FK compuesta queda validada, MATCH SIMPLE, ON DELETE RESTRICT y ON
+--   2. Estático: el archivo no trae DML, y `lock_timeout`, los locks (en orden
+--      fijo) y el preflight corren antes del primer DDL.
+--   3. Con filas incoherentes, 0450 falla en el preflight con P0001 y un mensaje
+--      que lleva sólo el CONTEO: ni uuid ni Shipping Mark.
+--   4. Una constraint homónima con otra forma (drift) hace fallar el postflight
+--      en vez de darse por buena.
+--   5. Aplicada sobre datos coherentes no cambia ninguna fila; reaplicada, deja el
+--      catálogo idéntico.
+--   6. Catálogo: FK compuesta validada, MATCH SIMPLE, ON DELETE RESTRICT y ON
 --      UPDATE NO ACTION. La simple de la 0362 sigue viva: el embed PostgREST
 --      `aliados:aliado_id` depende de ella.
---   5. Enlazar, dar de alta o mover de tenant (al cliente o al aliado) cruzando
---      tenants falla con 23503. El mismo tenant y el cliente directo se aceptan.
---      `deleted_at` no exime.
---   6. Borrar un aliado con clientes se bloquea IGUAL que antes de 0450 (mismo
+--   7. Cruzar tenants (enlazar, dar de alta, mover al cliente o al aliado) falla
+--      con 23503 de `clients_aliado_mismo_tenant_fkey`. El mismo tenant y el
+--      cliente directo se aceptan. `deleted_at` no exime.
+--   8. Borrar un aliado con clientes se bloquea IGUAL que antes de 0450 (mismo
 --      SQLSTATE). Sin clientes se borra igual que antes. Borrar un cliente de
---      aliado y borrar el tenant entero terminan igual antes y después.
+--      aliado y borrar el tenant entero del fixture terminan igual antes y
+--      después.
+--
+-- Lo que NO mide: que un fallo no deje cambios a medias. Eso lo garantiza la
+-- transacción de la migración (todo va en un solo `do`), no este contrato.
 
 begin;
 
@@ -141,6 +149,24 @@ begin
 end;
 $$;
 
+-- Igual, pero con la constraint que frenó la sentencia: 'SQLSTATE:constraint'.
+create function pg_temp.outcome_fk(p_sql text) returns text
+language plpgsql as $$
+declare
+  v_constraint text;
+begin
+  begin
+    execute p_sql;
+    raise exception using errcode = 'PT450', message = 'deshacer';
+  exception
+    when sqlstate 'PT450' then return 'ok';
+    when others then
+      get stacked diagnostics v_constraint = constraint_name;
+      return sqlstate || ':' || coalesce(nullif(v_constraint, ''), '?');
+  end;
+end;
+$$;
+
 -- La marca que le llega a un cliente por el vínculo: el mismo join de
 -- `resolveBrandForClient` y de la 0401, sin RLS (como service_role).
 create function pg_temp.brand_of(p_client uuid) returns text
@@ -207,7 +233,7 @@ select pg_temp.assert_true(
 rollback to savepoint red_cruce;
 release savepoint red_cruce;
 
--- ── Borrados ANTES de 0450: la referencia del punto 6 ───────────────────────
+-- Borrados ANTES de 0450: la referencia del punto 8.
 create temporary table borrados_antes as select pg_temp.borrados() as resultado;
 
 select pg_temp.assert_true(
@@ -217,11 +243,36 @@ select pg_temp.assert_true(
      from borrados_antes),
   'Referencia: hoy un aliado con clientes no se borra y uno sin clientes sí');
 
--- ── 2. Preflight: con filas incoherentes, 0450 falla sin tocar nada ──────────
+-- ── 2. Estático: sin DML, y lock_timeout, locks y preflight antes del DDL ────
+do $contrato_estatico$
+declare
+  v_codigo text := lower(regexp_replace(regexp_replace(
+    pg_read_file('/sb/migrations/0450_clients_aliado_mismo_tenant.sql'),
+    '/\*.*?\*/', '', 'g'), '--[^\n]*', '', 'g'));
+  v_timeout int := strpos(v_codigo, 'set local lock_timeout');
+  v_lock_aliados int := strpos(v_codigo, 'lock table public.aliados in access exclusive mode');
+  v_lock_clients int := strpos(v_codigo, 'lock table public.clients in share row exclusive mode');
+  v_preflight int := strpos(v_codigo, 'raise exception ''0450: % cliente(s)');
+  v_primer_ddl int := regexp_instr(v_codigo, '\m(alter|create|drop|comment)\M');
+begin
+  -- El UPDATE se reconoce por su `set`, para no confundirlo con el
+  -- `on update no action` de la FK.
+  perform pg_temp.assert_true(
+    v_codigo !~ '\m(insert\s+into|delete\s+from|merge\s+into|truncate|copy)\M'
+    and v_codigo !~ '\mupdate\s+(only\s+)?[a-z0-9_."]+(\s+(as\s+)?[a-z0-9_]+)?\s+set\M',
+    'La migración contiene DML');
+  perform pg_temp.assert_true(
+    0 < v_timeout and v_timeout < v_lock_aliados and v_lock_aliados < v_lock_clients
+    and v_lock_clients < v_preflight and v_preflight < v_primer_ddl,
+    format('Orden roto: lock_timeout %s, lock aliados %s, lock clients %s, preflight %s, primer DDL %s',
+      v_timeout, v_lock_aliados, v_lock_clients, v_preflight, v_primer_ddl));
+end;
+$contrato_estatico$;
+
+-- ── 3. Preflight: con filas incoherentes, 0450 falla y reporta sólo el conteo ─
 do $contrato_preflight$
 declare
   v_migration text := pg_read_file('/sb/migrations/0450_clients_aliado_mismo_tenant.sql');
-  v_codigo text;
   v_failed boolean := false;
   v_state text;
   v_message text;
@@ -229,18 +280,6 @@ declare
   v_hint text;
   v_logs text;
 begin
-  -- El archivo no trae DML, y el preflight es lo primero que corre. El UPDATE se
-  -- reconoce por su `set`, para no confundirlo con el `on update no action` de la FK.
-  v_codigo := regexp_replace(v_migration, '--[^\n]*', '', 'g');
-  perform pg_temp.assert_true(
-    v_codigo !~* '\m(insert\s+into|delete\s+from|merge\s+into|truncate)\M'
-    and v_codigo !~* '\mupdate\s+(only\s+)?[a-z0-9_."]+(\s+(as\s+)?[a-z0-9_]+)?\s+set\M',
-    'La migración contiene DML');
-  perform pg_temp.assert_true(
-    strpos(v_codigo, 'do $preflight$') > 0
-    and strpos(v_codigo, 'do $preflight$') < strpos(v_codigo, 'alter table'),
-    'El preflight no corre antes del primer DDL');
-
   begin
     -- Dos clientes de T1 enlazados al aliado de T2.
     update public.clients
@@ -269,15 +308,6 @@ begin
       v_logs !~* '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-' and v_logs !~ '[A-Z]{2,4}-[0-9]',
       format('El mensaje del preflight filtra ids o Shipping Marks: %s', v_logs));
 
-    perform pg_temp.assert_true(
-      not exists (select 1 from pg_constraint
-                   where conname in ('clients_aliado_mismo_tenant_fkey', 'aliados_tenant_id_id_key')),
-      'El preflight dejó DDL a medias');
-    perform pg_temp.assert_true(
-      (select count(*) from public.clients c join public.aliados a on a.id = c.aliado_id
-        where a.tenant_id <> c.tenant_id) = 2,
-      'El preflight tocó las filas incoherentes');
-
     raise exception using errcode = 'PT451', message = 'deshacer las filas incoherentes sintéticas';
   exception when sqlstate 'PT451' then null;
   end;
@@ -288,7 +318,45 @@ begin
 end;
 $contrato_preflight$;
 
--- ── 3. Aplicar 0450 sobre datos coherentes: sin DML e idempotente ───────────
+-- ── 4. Drift: una constraint homónima con otra forma no se da por buena ──────
+do $contrato_drift$
+declare
+  v_migration text := pg_read_file('/sb/migrations/0450_clients_aliado_mismo_tenant.sql');
+  v_failed boolean := false;
+  v_state text;
+  v_message text;
+begin
+  begin
+    -- Alguien creó a mano la FK con el mismo nombre, pero con CASCADE.
+    alter table public.aliados add constraint aliados_tenant_id_id_key unique (tenant_id, id);
+    alter table public.clients add constraint clients_aliado_mismo_tenant_fkey
+      foreign key (tenant_id, aliado_id) references public.aliados (tenant_id, id)
+      on delete cascade;
+
+    begin
+      execute v_migration;
+    exception when others then
+      get stacked diagnostics v_state = returned_sqlstate, v_message = message_text;
+      v_failed := true;
+    end;
+
+    perform pg_temp.assert_true(
+      v_failed and v_state = 'P0001'
+      and v_message like '0450: clients_aliado_mismo_tenant_fkey existe con otra forma%',
+      format('El postflight dio por buena una FK homónima con CASCADE: %s %s', v_state, v_message));
+
+    raise exception using errcode = 'PT452', message = 'deshacer el drift sintético';
+  exception when sqlstate 'PT452' then null;
+  end;
+
+  perform pg_temp.assert_true(
+    not exists (select 1 from pg_constraint
+                 where conname in ('clients_aliado_mismo_tenant_fkey', 'aliados_tenant_id_id_key')),
+    'El fixture no volvió a su estado sin 0450');
+end;
+$contrato_drift$;
+
+-- ── 5. Aplicar 0450 sobre datos coherentes: sin DML e idempotente ───────────
 create temporary table filas_antes as select pg_temp.row_snapshot() as filas;
 
 \ir ../migrations/0450_clients_aliado_mismo_tenant.sql
@@ -307,7 +375,7 @@ select pg_temp.assert_true(
 select pg_temp.assert_true((select filas from filas_antes) = pg_temp.row_snapshot(),
   'Aplicar 0450 modificó filas');
 
--- ── 4. Catálogo ─────────────────────────────────────────────────────────────
+-- ── 6. Catálogo ─────────────────────────────────────────────────────────────
 select pg_temp.assert_true(
   pg_temp.constraint_shape('public.clients', 'clients_aliado_mismo_tenant_fkey') - 'comment'
     = jsonb_build_object(
@@ -350,7 +418,7 @@ select pg_temp.assert_true(
       and c.confrelid = 'public.aliados'::regclass) = 2,
   'clients debe tener exactamente dos FK hacia aliados: la simple y la compuesta');
 
--- ── 5. Comportamiento ───────────────────────────────────────────────────────
+-- ── 7. Comportamiento ───────────────────────────────────────────────────────
 select pg_temp.assert_true(
   pg_temp.brand_of('cccccccc-0000-0000-0000-000000000006') = 'Marca HR',
   'El cliente de HR dejó de recibir la marca de su aliado');
@@ -371,35 +439,35 @@ select pg_temp.assert_true(pg_temp.outcome($q$
           'bbbbbbbb-0000-0000-0000-00000000000a')$q$) = 'ok',
   'Dar de alta un cliente de un aliado del mismo tenant quedó bloqueado');
 
-select pg_temp.assert_true(pg_temp.outcome($q$
+select pg_temp.assert_true(pg_temp.outcome_fk($q$
   update public.clients set aliado_id = 'bbbbbbbb-0000-0000-0000-00000000000b'
-   where id = 'cccccccc-0000-0000-0000-000000000001'$q$) = '23503',
-  'Enlazar un cliente de T1 al aliado de T2 no falló con 23503');
+   where id = 'cccccccc-0000-0000-0000-000000000001'$q$) = '23503:clients_aliado_mismo_tenant_fkey',
+  'Enlazar un cliente de T1 al aliado de T2 no lo frenó la FK compuesta');
 
 -- El Shipping Mark cumple la insignia de DC, así que el guard de la 0362 lo deja
 -- pasar y es la FK compuesta la que frena.
-select pg_temp.assert_true(pg_temp.outcome($q$
+select pg_temp.assert_true(pg_temp.outcome_fk($q$
   insert into public.clients (tenant_id, markbox, name, aliado_id)
   values ('aaaaaaaa-0000-0000-0000-000000000001', 'DC-0002', 'Cruzado',
-          'bbbbbbbb-0000-0000-0000-00000000000b')$q$) = '23503',
-  'Dar de alta un cliente de T1 bajo el aliado de T2 no falló con 23503');
+          'bbbbbbbb-0000-0000-0000-00000000000b')$q$) = '23503:clients_aliado_mismo_tenant_fkey',
+  'Dar de alta un cliente de T1 bajo el aliado de T2 no lo frenó la FK compuesta');
 
-select pg_temp.assert_true(pg_temp.outcome($q$
+select pg_temp.assert_true(pg_temp.outcome_fk($q$
   update public.clients set deleted_at = now(), aliado_id = 'bbbbbbbb-0000-0000-0000-00000000000b'
-   where id = 'cccccccc-0000-0000-0000-000000000002'$q$) = '23503',
+   where id = 'cccccccc-0000-0000-0000-000000000002'$q$) = '23503:clients_aliado_mismo_tenant_fkey',
   'Un cliente borrado lógicamente pudo quedar enlazado al aliado de otro tenant');
 
-select pg_temp.assert_true(pg_temp.outcome($q$
+select pg_temp.assert_true(pg_temp.outcome_fk($q$
   update public.clients set tenant_id = 'aaaaaaaa-0000-0000-0000-000000000002'
-   where id = 'cccccccc-0000-0000-0000-000000000006'$q$) = '23503',
-  'Mover de tenant a un cliente de HR sin soltar su aliado no falló con 23503');
+   where id = 'cccccccc-0000-0000-0000-000000000006'$q$) = '23503:clients_aliado_mismo_tenant_fkey',
+  'Mover de tenant a un cliente de HR sin soltar su aliado no lo frenó la FK compuesta');
 
-select pg_temp.assert_true(pg_temp.outcome($q$
+select pg_temp.assert_true(pg_temp.outcome_fk($q$
   update public.aliados set tenant_id = 'aaaaaaaa-0000-0000-0000-000000000002'
-   where id = 'bbbbbbbb-0000-0000-0000-00000000000a'$q$) = '23503',
-  'Mover de tenant al aliado HR, que tiene clientes, no falló con 23503');
+   where id = 'bbbbbbbb-0000-0000-0000-00000000000a'$q$) = '23503:clients_aliado_mismo_tenant_fkey',
+  'Mover de tenant al aliado HR, que tiene clientes, no lo frenó la FK compuesta');
 
--- ── 6. Borrados DESPUÉS de 0450: iguales que antes ──────────────────────────
+-- ── 8. Borrados DESPUÉS de 0450: iguales que antes ──────────────────────────
 create temporary table borrados_despues as select pg_temp.borrados() as resultado;
 
 select pg_temp.assert_true(

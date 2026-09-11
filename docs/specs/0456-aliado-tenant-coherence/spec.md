@@ -7,7 +7,7 @@ created: 2026-09-11
 updated: 2026-09-11
 supersedes: null
 superseded_by: null
-related: ["0255", "0269", "0336"]
+related: ["0255", "0269"]
 confidencialidad: interno
 ---
 
@@ -18,7 +18,7 @@ confidencialidad: interno
 
 ## Contexto
 
-Hallazgo del lote L01 (PR #82, rama `codex/c-l01-portal-marca`, SDD-0336). La
+Hallazgo del lote L01 (SDD-0336, PR #82, rama `codex/c-l01-portal-marca`). La
 columna `clients.aliado_id` nació en la migración 0362 con una FK simple a
 `aliados (id)` que no compara tenants, y tampoco los comparan los guards de 0362,
 0371 y 0372. La marca white-label se resuelve por ese vínculo:
@@ -52,11 +52,22 @@ anterior a L01.
   tenant.
 - **Se conserva la FK simple de 0362.** PostgREST solo resuelve con FKs de una
   columna el embed por columna `aliados:aliado_id (...)`, que usan
-  `brand-resolve.ts:41` y `app/studio/(app)/etiquetas/page.tsx:82`. Si se
-  reemplazara, la marca caería a DTD en silencio.
+  `brand-resolve.ts:41` y `app/studio/(app)/etiquetas/page.tsx:82`. Verificado con
+  PostgREST 16.1: sin la simple, ese embed responde PGRST200 y la marca caería a
+  DTD en silencio.
 - **Coherencia por construcción.** Con la FK, todo join por `aliado_id` queda
   dentro del tenant, incluidos 0401 y `resolveBrandForClient`. La lectura con
   sesión del Studio ya filtraba por la RLS `aliados by tenant` (0362:146-149).
+- **Una sola sentencia, con locks antes del preflight.**
+  - Locks, preflight y DDL van en un único bloque `do`.
+  - `lock_timeout` de 5 s, como en la 0342 y la 0383.
+  - Antes del conteo, y en ese orden: `aliados` en ACCESS EXCLUSIVE y `clients` en
+    SHARE ROW EXCLUSIVE.
+  - Así, entre el conteo y la FK no se cuela una fila incoherente, y `clients`
+    sigue legible mientras se valida la FK.
+- **Idempotente sin drops.** Crea solo lo que falta, y un postflight comprueba la
+  forma exacta. Si ya existe una constraint con el mismo nombre y otra forma, la
+  migración falla.
 
 ### Semántica
 
@@ -69,12 +80,13 @@ anterior a L01.
 | Mover de tenant a un aliado con clientes | se acepta | 23503 (ON UPDATE NO ACTION) |
 | Borrar un aliado con clientes | 23503 (RESTRICT de 0362) | 23503 (RESTRICT) |
 | Borrar un aliado sin clientes, o un cliente de aliado | se acepta | se acepta |
-| Borrar el tenant entero (cascada) | se acepta | se acepta |
+| Borrar el tenant entero, en el fixture con la cascada de 0006 | igual antes y después | igual antes y después |
 | Cliente con `deleted_at` | la FK lo mira | la FK lo mira: el borrado lógico no exime |
 
-Los SQLSTATE son los que observó el contrato en PostgreSQL 17.11. No se usa
-`ON DELETE SET NULL`: sin lista de columnas pondría en NULL también
-`clients.tenant_id`.
+Los SQLSTATE son los que observó el contrato en PostgreSQL 17.11. El caso del
+tenant solo compara antes y después dentro del fixture; en producción, la 0268 ya
+impide borrar tenants. No se usa `ON DELETE SET NULL`: sin lista de columnas
+pondría en NULL también `clients.tenant_id`.
 
 ## Allowlist exacta
 
@@ -87,18 +99,26 @@ Los SQLSTATE son los que observó el contrato en PostgreSQL 17.11. No se usa
 ## Aceptación
 
 - [ ] RED: sin 0450, el contrato reproduce el cruce de tenants y la marca ajena.
-- [ ] Con filas incoherentes, 0450 falla en el preflight (P0001), reporta solo el
-      conteo, no deja DDL y no toca filas. El archivo no tiene DML.
-- [ ] Aplicada y reaplicada, el catálogo es idéntico y no se modifica ninguna fila.
+- [ ] Análisis estático del archivo: sin DML; `lock_timeout`, locks y preflight
+      antes del primer DDL.
+- [ ] Con filas incoherentes, 0450 falla en el preflight (P0001) y reporta solo el
+      conteo.
+- [ ] Una constraint con el mismo nombre y otra forma hace fallar el postflight.
+- [ ] Aplicada sobre datos coherentes no modifica filas, y reaplicada deja el
+      catálogo idéntico.
 - [ ] FK compuesta validada, MATCH SIMPLE, ON DELETE RESTRICT y ON UPDATE NO ACTION.
       La FK simple de 0362 sigue viva.
-- [ ] Los cruces de tenant se rechazan con 23503 y los casos legítimos se aceptan.
-- [ ] Los borrados (aliado con y sin clientes, cliente de aliado, tenant entero)
-      terminan igual antes y después.
+- [ ] Los cruces de tenant se rechazan con 23503 de la FK compuesta y los casos
+      legítimos se aceptan.
+- [ ] Los borrados terminan igual antes y después.
+- [ ] El contrato detecta cada mutación de la migración.
 - [ ] El embed PostgREST `aliados:aliado_id` sigue resolviendo con las dos FK
-      (PostgREST v16.1 efímero).
+      (PostgREST 16.1 efímero).
 - [ ] `check-schema-rebuild`, contratos SQL, `sdd:check`, `docs:check` y
       `check-pending-migration-symbols` en verde; `pnpm verify` registrado paso a paso.
+
+Que un fallo no deje cambios a medias lo garantiza la transacción de la
+migración, porque todo va en un solo `do`. El contrato no lo mide desde adentro.
 
 ## Producción
 

@@ -24,9 +24,9 @@
 -- LA FK SIMPLE DE LA 0362 SE QUEDA
 -- PostgREST resuelve el embed por columna `aliados:aliado_id (...)`
 -- (brand-resolve.ts y app/studio/(app)/etiquetas/page.tsx) sólo con FKs de UNA
--- columna. Si la compuesta la reemplazara, el embed se quedaría sin relación y
--- la marca caería a DTD en silencio para todo cliente de aliado. Las dos
--- conviven: la simple sirve al embed y la compuesta exige el tenant.
+-- columna. Verificado con PostgREST 16.1: sin la simple, ese embed responde
+-- PGRST200 y la marca caería a DTD en silencio para todo cliente de aliado. Las
+-- dos conviven: la simple sirve al embed y la compuesta exige el tenant.
 --
 -- SEMÁNTICA: LA MISMA DE LA FK SIMPLE
 --   · MATCH SIMPLE: con `aliado_id` NULL (cliente directo) no se chequea nada.
@@ -40,6 +40,18 @@
 --   · Sin índice nuevo, igual que la FK simple: sólo se consulta al borrar o
 --     mover un aliado, que es raro.
 --
+-- UNA SOLA SENTENCIA, CON LOCKS ANTES DEL PREFLIGHT
+-- Locks, preflight y DDL van en un único bloque `do`: el conteo y la FK comparten
+-- transacción aunque alguien la aplique fuera de una. Los locks se toman antes
+-- del conteo y en orden fijo. `aliados` va en ACCESS EXCLUSIVE, que la
+-- constraint única pide igual, así no hay que subir de nivel a mitad de camino.
+-- `clients` va en SHARE ROW EXCLUSIVE: frena escrituras y deja leer mientras se
+-- valida la FK. Así, entre el conteo y la FK no se cuela una fila incoherente,
+-- que fallaría como 23503 crudo y con uuids en el DETAIL. `lock_timeout` de 5 s,
+-- como en la 0342 y la 0383: si otra transacción retiene alguna de las dos
+-- tablas, la migración falla rápido en vez de encolar las lecturas del Studio y
+-- del Portal.
+--
 -- PREFLIGHT SIN DML
 -- Si ya existen filas incoherentes, la migración FALLA antes de cualquier DDL y
 -- no toca nada. Reporta sólo el CONTEO; el mensaje queda en los logs, así que no
@@ -47,17 +59,28 @@
 -- del tenant correcto o dejar `aliado_id` en NULL) se decide aparte con el
 -- founder. Esta migración nunca las corrige en silencio.
 --
+-- IDEMPOTENTE SIN DROPS
+-- Crea sólo lo que falta y después comprueba la forma exacta de lo que quedó: si
+-- una constraint con el mismo nombre ya existía con otra forma, falla en vez de
+-- darla por buena. Como no suelta nada, una FK futura que reutilice
+-- `aliados_tenant_id_id_key` no rompe una reaplicación.
+--
 -- NO aplicar a Producción desde esta rama. Requiere el OK nominal de Sam y el
 -- runbook docs/runbooks/aplicar-migraciones-prod.md: de a una y con el name
 -- exacto `0450_clients_aliado_mismo_tenant`.
 -- ─────────────────────────────────────────────────────────────
 
--- ─── 0. Preflight: nada de DML silencioso ────────────────────────────────────
-
-do $preflight$
+do $migracion$
 declare
   v_incoherentes bigint;
 begin
+  set local lock_timeout = '5s';
+  set local statement_timeout = '60s';
+
+  lock table public.aliados in access exclusive mode;
+  lock table public.clients in share row exclusive mode;
+
+  -- ─── Preflight: nada de DML silencioso ─────────────────────────────────────
   select count(*)
     into v_incoherentes
     from public.clients c
@@ -70,36 +93,77 @@ begin
       using hint = 'Decidir cada fila aparte con el founder (reasignar el aliado del tenant correcto '
                    || 'o dejar aliado_id en NULL) y volver a aplicar.';
   end if;
+
+  -- ─── El destino de la FK compuesta ─────────────────────────────────────────
+  -- Trivialmente única, porque `id` ya es PK. Existe sólo porque una FK
+  -- compuesta necesita del otro lado una constraint única con esas columnas.
+  if not exists (
+    select 1 from pg_catalog.pg_constraint
+     where conrelid = 'public.aliados'::regclass and conname = 'aliados_tenant_id_id_key'
+  ) then
+    alter table public.aliados
+      add constraint aliados_tenant_id_id_key unique (tenant_id, id);
+  end if;
+
+  -- ─── La FK compuesta ───────────────────────────────────────────────────────
+  if not exists (
+    select 1 from pg_catalog.pg_constraint
+     where conrelid = 'public.clients'::regclass and conname = 'clients_aliado_mismo_tenant_fkey'
+  ) then
+    alter table public.clients
+      add constraint clients_aliado_mismo_tenant_fkey
+      foreign key (tenant_id, aliado_id)
+      references public.aliados (tenant_id, id)
+      match simple
+      on update no action
+      on delete restrict;
+  end if;
+
+  -- ─── Postflight: la forma exacta, también si ya existían ───────────────────
+  if not exists (
+    select 1
+      from pg_catalog.pg_constraint c
+     where c.conrelid = 'public.aliados'::regclass
+       and c.conname = 'aliados_tenant_id_id_key'
+       and c.contype = 'u'
+       and c.conkey = array[
+             (select attnum from pg_catalog.pg_attribute
+               where attrelid = 'public.aliados'::regclass and attname = 'tenant_id'),
+             (select attnum from pg_catalog.pg_attribute
+               where attrelid = 'public.aliados'::regclass and attname = 'id')]
+  ) then
+    raise exception '0450: aliados_tenant_id_id_key existe con otra forma; revisar antes de aplicar';
+  end if;
+
+  if not exists (
+    select 1
+      from pg_catalog.pg_constraint c
+     where c.conrelid = 'public.clients'::regclass
+       and c.conname = 'clients_aliado_mismo_tenant_fkey'
+       and c.contype = 'f'
+       and c.confrelid = 'public.aliados'::regclass
+       and c.confmatchtype = 's'
+       and c.confdeltype = 'r'
+       and c.confupdtype = 'a'
+       and c.convalidated
+       and c.conkey = array[
+             (select attnum from pg_catalog.pg_attribute
+               where attrelid = 'public.clients'::regclass and attname = 'tenant_id'),
+             (select attnum from pg_catalog.pg_attribute
+               where attrelid = 'public.clients'::regclass and attname = 'aliado_id')]
+       and c.confkey = array[
+             (select attnum from pg_catalog.pg_attribute
+               where attrelid = 'public.aliados'::regclass and attname = 'tenant_id'),
+             (select attnum from pg_catalog.pg_attribute
+               where attrelid = 'public.aliados'::regclass and attname = 'id')]
+  ) then
+    raise exception '0450: clients_aliado_mismo_tenant_fkey existe con otra forma; revisar antes de aplicar';
+  end if;
 end;
-$preflight$;
-
--- ─── 1. El destino de la FK compuesta ────────────────────────────────────────
--- Idempotente: primero se suelta la FK y después su destino, y se vuelven a
--- crear en el orden inverso.
-
-alter table public.clients
-  drop constraint if exists clients_aliado_mismo_tenant_fkey;
-
-alter table public.aliados
-  drop constraint if exists aliados_tenant_id_id_key;
-
--- Trivialmente única, porque `id` ya es PK. Existe sólo porque una FK compuesta
--- necesita del otro lado una constraint única con exactamente esas columnas.
-alter table public.aliados
-  add constraint aliados_tenant_id_id_key unique (tenant_id, id);
+$migracion$;
 
 comment on constraint aliados_tenant_id_id_key on public.aliados is
   'SDD-0456: destino de clients_aliado_mismo_tenant_fkey. Trivialmente única (id ya es PK).';
-
--- ─── 2. La FK compuesta ──────────────────────────────────────────────────────
-
-alter table public.clients
-  add constraint clients_aliado_mismo_tenant_fkey
-  foreign key (tenant_id, aliado_id)
-  references public.aliados (tenant_id, id)
-  match simple
-  on update no action
-  on delete restrict;
 
 comment on constraint clients_aliado_mismo_tenant_fkey on public.clients is
   'SDD-0456: un cliente sólo cuelga de un aliado de su mismo tenant. Convive con la FK simple de la 0362, '
