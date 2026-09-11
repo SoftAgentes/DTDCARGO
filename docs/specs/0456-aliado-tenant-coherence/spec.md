@@ -1,7 +1,7 @@
 ---
 sdd: "0456"
 title: "Un cliente sólo cuelga de un aliado de su tenant"
-status: in-progress
+status: done
 author: "Claude"
 created: 2026-09-11
 updated: 2026-09-11
@@ -98,24 +98,26 @@ pondría en NULL también `clients.tenant_id`.
 
 ## Aceptación
 
-- [ ] RED: sin 0450, el contrato reproduce el cruce de tenants y la marca ajena.
-- [ ] Análisis estático del archivo: sin DML; `lock_timeout`, locks y preflight
+- [x] RED: sin 0450, el contrato reproduce el cruce de tenants y la marca ajena.
+- [x] Análisis estático del archivo: sin DML; `lock_timeout`, locks y preflight
       antes del primer DDL.
-- [ ] Con filas incoherentes, 0450 falla en el preflight (P0001) y reporta solo el
+- [x] Con filas incoherentes, 0450 falla en el preflight (P0001) y reporta solo el
       conteo.
-- [ ] Una constraint con el mismo nombre y otra forma hace fallar el postflight.
-- [ ] Aplicada sobre datos coherentes no modifica filas, y reaplicada deja el
+- [x] Una constraint con el mismo nombre y otra forma hace fallar el postflight.
+- [x] Aplicada sobre datos coherentes no modifica filas, y reaplicada deja el
       catálogo idéntico.
-- [ ] FK compuesta validada, MATCH SIMPLE, ON DELETE RESTRICT y ON UPDATE NO ACTION.
+- [x] FK compuesta validada, MATCH SIMPLE, ON DELETE RESTRICT y ON UPDATE NO ACTION.
       La FK simple de 0362 sigue viva.
-- [ ] Los cruces de tenant se rechazan con 23503 de la FK compuesta y los casos
+- [x] Los cruces de tenant se rechazan con 23503 de la FK compuesta y los casos
       legítimos se aceptan.
-- [ ] Los borrados terminan igual antes y después.
-- [ ] El contrato detecta cada mutación de la migración.
-- [ ] El embed PostgREST `aliados:aliado_id` sigue resolviendo con las dos FK
+- [x] Los borrados terminan igual antes y después.
+- [x] El contrato detecta cada una de las 16 mutaciones de la migración.
+- [x] El embed PostgREST `aliados:aliado_id` sigue resolviendo con las dos FK
       (PostgREST 16.1 efímero).
-- [ ] `check-schema-rebuild`, contratos SQL, `sdd:check`, `docs:check` y
-      `check-pending-migration-symbols` en verde; `pnpm verify` registrado paso a paso.
+- [x] `check-schema-rebuild`, contratos SQL, `sdd:check`, `docs:check` y
+      `check-pending-migration-symbols` en verde; `pnpm verify` registrado paso a
+      paso. El e2e falla por el entorno sin Supabase y `migrations-applied` quedó
+      sin medir; el detalle está en el handoff.
 
 Que un fallo no deje cambios a medias lo garantiza la transacción de la
 migración, porque todo va en un solo `do`. El contrato no lo mide desde adentro.
@@ -124,9 +126,11 @@ migración, porque todo va en un solo `do`. El contrato no lo mide desde adentro
 
 `done` en esta spec no significa aplicada. La migración queda declarada pendiente
 en `supabase/migrations-baseline.json`. Aplicarla exige el OK nominal de Sam y el
-runbook `docs/runbooks/aplicar-migraciones-prod.md`: de a una y con el name exacto.
-Antes conviene, con autorización de Sam, un conteo agregado de solo lectura de las
-filas incoherentes. El preflight falla cerrado si existen.
+runbook `docs/runbooks/aplicar-migraciones-prod.md`: de a una, con el name exacto
+y en horario de baja actividad. Mientras corre, los locks pausan brevemente las
+lecturas de marca y las altas y ediciones de clientes. Antes conviene, con
+autorización de Sam, un conteo agregado de solo lectura de las filas incoherentes;
+el preflight falla cerrado si existen.
 
 Gobernanza: no conformidad de aislamiento multi-tenant corregida localmente y
 verificada en Postgres efímero. Producción sigue NO VERIFICABLE hasta su gate
