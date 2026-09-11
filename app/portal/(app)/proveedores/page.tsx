@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   listSuppliers,
   listPrealertas,
@@ -26,13 +26,14 @@ export const metadata: Metadata = { title: "Tus proveedores" };
  */
 export default async function PortalSuppliersPage() {
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
 
   const [suppliers, prealertas, addons] = await Promise.all([
     listSuppliers(supabase, { markbox: client.markbox }),
     listPrealertas(supabase, { markbox: client.markbox }),
-    listActivePrealertaAddons(supabase),
+    listActivePrealertaAddons(supabase, { tenantId }),
   ]);
 
   // Conteo de compras vivas por proveedor (para el próximo código y "N compras").
