@@ -165,13 +165,15 @@ configurados no tienen que reinstalar. Reglas:
 ### Interacción conocida con el baseline
 
 Si una rama retira a la vez una espera de `pendingBelowCutoff` y su declaración,
-y se fusiona con el driver contra otra rama que también cambió ambos archivos,
-el baseline conserva la espera (regla 1 de la decisión original) y las
-declaraciones respetan el retiro. Si hay código alcanzable que usa esos
-símbolos, `check-pending-migration-symbols` lo reporta ROJO; si no lo hay, ese
-gate no lo ve. La salida es quitar a mano la espera resucitada. Cambiar la regla
-del baseline es otra decisión, registrada como fuera de alcance en el handoff de
-la tarea.
+y se fusiona con el driver contra otra rama que también cambió el baseline, el
+baseline conserva la espera (regla 1 de la decisión original). La declaración,
+en cambio, queda retirada: Git toma el retiro si la otra rama no tocó las
+declaraciones, y este driver lo respeta si también las cambió. Si hay código
+alcanzable que usa esos símbolos, `check-pending-migration-symbols` lo reporta
+ROJO; si no lo hay, ese gate no lo ve. La salida es quitar a mano la espera
+resucitada. El efecto es anterior a esta enmienda (el ensayo lo reproduce sin
+tocar las declaraciones); cambiar la regla del baseline es otra decisión,
+registrada como fuera de alcance en el handoff de la tarea.
 
 ### Límite y evidencia
 
