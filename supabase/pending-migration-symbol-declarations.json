@@ -7,5 +7,52 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "l05-portal-profile-private-context-pending-rpc",
+      "primarySymbol": "get_portal_private_profile_context",
+      "migration": "0405_portal_perfil_privado_por_principal",
+      "symbols": [
+        {
+          "kind": "function",
+          "name": "get_portal_private_profile_context",
+          "callSites": [
+            "lib/portal/profile-private-context.ts:33"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/portal/profile-private-context.ts:34",
+          "contains": "if (error) return EMPTY;",
+          "degradation": "MIGRATE-FIRST. Mientras 0405 no exista, PostgREST responde error (PGRST202) y el helper devuelve el contexto vacío: sin Shipping Marks anteriores ni URLs firmadas de avatar/cédula, sin construir service_role ni firmar ningún path. No hay fallback admin/legacy. Esta PR no se fusiona antes de aplicar y verificar 0405 en producción."
+        },
+        {
+          "site": "app/portal/(app)/perfil/page.tsx:81",
+          "contains": "await getPortalPrivateProfileContext(supabase);",
+          "degradation": "El perfil sigue mostrando identidad, direcciones, cupo y solicitudes, pero desaparecen el bloque de códigos anteriores (se oculta con lista vacía) y las fotos firmadas del avatar y de la cédula."
+        },
+        {
+          "site": "app/portal/(app)/perfil/page.tsx:85",
+          "contains": "const hasCedulaPhoto = completeness.hasPhoto;",
+          "degradation": "La existencia persistida de la foto de identidad sale de la lectura de sesión de completitud, no de 0405: la fila de cédula conserva su estado cargado y el reemplazo sigue bloqueado."
+        },
+        {
+          "site": "app/portal/(app)/perfil/CedulaPhotoRow.tsx:83",
+          "contains": "Vista temporal no disponible",
+          "degradation": "Con documento persistido y sin URL firmada, la fila informa que la vista temporal no está disponible en lugar de 'Pendiente' y no ofrece subir otra foto."
+        },
+        {
+          "site": "app/portal/(app)/perfil/actions.ts:88",
+          "contains": "return { error: IDENTITY_PHOTO_REPLACEMENT_DISABLED };",
+          "degradation": "Aun si la UI ofreciera la carga, la acción rechaza el reemplazo antes de subir cuando ya existe cédula: la ausencia de 0405 no reabre la carga de PII de identidad."
+        },
+        {
+          "site": "app/portal/(app)/perfil/AvatarEditor.tsx:44",
+          "contains": "initials(name)",
+          "degradation": "Sin URL firmada el avatar cosmético cae a iniciales y el botón invita a subir foto de perfil: el avatar vigente deja de verse hasta aplicar 0405, sin afectar el cupo de edición."
+        }
+      ]
+    }
+  ]
 }
