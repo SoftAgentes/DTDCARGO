@@ -36,5 +36,7 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {}
+  "pendingBelowCutoff": {
+    "0409_bank_reconciliation_rbac": "Pendiente de aplicar: piloto L09 del bloque C (SDD-0352), importado sin código de producto. Restringe ocho policies de conciliación bancaria a accounting/admin activos del tenant. Fusionar la PR NO autoriza aplicarla a producción. Sam debe autorizar expresamente esta migración según docs/runbooks/aplicar-migraciones-prod.md; aplicar de a una con name exacto 0409_bank_reconciliation_rbac. Retirar esta entrada solo después de aplicación y verificación autorizadas; conservar cutoff 238 y las demás entradas."
+  }
 }

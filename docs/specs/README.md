@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 409 specs)
+### Índice de specs (generado · 410 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -373,6 +373,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0347 | Encapsular el contexto privado del home del Portal | done | interno |
 | 0348 | Encapsular la lectura privada de aceptación del Portal | done | interno |
 | 0349 | Automatizar calidad local sin secretos en GitHub Actions | done | interno |
+| 0352 | Aplicar RBAC financiero a conciliación bancaria | done | interno |
 | 0359 | Aislar envíos, documentos e hitos Portal por principal y tenant | done | interno |
 | 0360 | Evitar que el foco tardío borre la búsqueda de destino | done | interno |
 | 0367 | Webhook Kommo: respetar desactivación sin romper recuperación… | in-progress | interno |
@@ -448,5 +449,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0451 | Resolución de H1 y sonda reutilizable de navegación móvil ERP | done | interno |
 | 0452 | Sanitizador: formatos actuales de claves y descubrimiento de … | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0352, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0362, 0363, 0364, 0365, 0366, 0368, 0372, 0375, 0377, 0381, 0382, 0385, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0362, 0363, 0364, 0365, 0366, 0368, 0372, 0375, 0377, 0381, 0382, 0385, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
