@@ -7,5 +7,47 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "l03-portal-advisor-pending-rpc",
+      "primarySymbol": "get_portal_advisor",
+      "migration": "0403_portal_advisor_por_principal",
+      "symbols": [
+        {
+          "kind": "function",
+          "name": "get_portal_advisor",
+          "callSites": [
+            "lib/portal/portal-queries.ts:145"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/portal/portal-queries.ts:146",
+          "contains": "if (error) return null;",
+          "degradation": "Mientras la RPC no exista, PostgREST responde error (PGRST202) y getPortalAdvisor devuelve null de forma permanente: el Portal deja de mostrar el asesor asignado y degrada al contacto público de DTD Cargo. No rompe la página ni inventa un nombre. Es silencioso, igual que main, que tampoco registra los fallos de esta lectura. Por eso L03 es MIGRATE-FIRST: el código no se fusiona antes de aplicar y verificar 0403."
+        },
+        {
+          "site": "app/portal/(app)/page.tsx:123",
+          "contains": "getPortalAdvisor(supabase).catch(() => null)",
+          "degradation": "Inicio: advisor queda null; una excepción del transporte también termina en null por el catch. El resto del dashboard se renderiza igual."
+        },
+        {
+          "site": "app/portal/(app)/_components/PortalAdvisorCard.tsx:64",
+          "contains": "{model.name ?? \"Equipo DTD Cargo\"}",
+          "degradation": "La tarjeta Tu asesor no desaparece: muestra Equipo DTD Cargo y Atención al cliente, con el WhatsApp y el teléfono públicos (buildAdvisorCardModel sin asesor). Desaparecen el nombre, el cargo, la foto y el enlace directo del asesor."
+        },
+        {
+          "site": "app/portal/(app)/soporte/page.tsx:100",
+          "contains": "advisor = await getPortalAdvisor(supabase);",
+          "degradation": "Soporte: el try/catch deja advisor en null ante error o excepción. Reclamos, evidencias, hilo, resúmenes y envío de mensajes no dependen de la RPC."
+        },
+        {
+          "site": "app/portal/(app)/soporte/page.tsx:174",
+          "contains": "model.isReal && model.name ? model.name : \"Tu equipo DTD Cargo\"",
+          "degradation": "El chat se encabeza con Tu equipo DTD Cargo y Atención al cliente, y Otros canales enlaza al WhatsApp público en lugar del número del asesor."
+        }
+      ]
+    }
+  ]
 }

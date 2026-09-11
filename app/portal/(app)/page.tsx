@@ -117,12 +117,10 @@ export default async function PortalHomePage() {
   }
   const sailingDaysToCutoff = sailing ? daysUntil(sailing.cutoff, todayIso) : null;
 
-  // Asesor asignado (card "Tu asesor" del Norte). Admin client — el cliente del
-  // portal no tiene RLS sobre los perfiles del equipo; se resuelve SOLO el suyo.
+  // Asesor asignado (card "Tu asesor" del Norte). La RPC deriva el cliente por
+  // auth.uid(), verifica la membresía activa y devuelve sólo el perfil asignado.
   // Best-effort: si falla, la card cae al contacto público (nunca inventa nombre).
-  const advisor = await getPortalAdvisor(createAdminClient(), client.id).catch(
-    () => null,
-  );
+  const advisor = await getPortalAdvisor(supabase).catch(() => null);
 
   return (
     <div className="flex flex-col gap-7">
