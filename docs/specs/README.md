@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 415 specs)
+### Índice de specs (generado · 416 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -366,6 +366,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0334 | Retirar la configuración activa del Payload CMS descontinuado | done | interno |
 | 0335 | Contener el crecimiento de service_role en Portal y ordenar e… | done | interno |
 | 0340 | Firmar adjuntos de prealerta desde una lectura autorizada por… | done | interno |
+| 0342 | Resolver y firmar Documentos del Portal desde el principal | done | interno |
 | 0343 | Encapsular el detalle operativo de compras del Portal | done | interno |
 | 0344 | Encapsular el contexto privado de Soporte del Portal | done | interno |
 | 0345 | Encapsular el contexto privado del detalle de envío del Portal | done | interno |
@@ -454,5 +455,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0451 | Resolución de H1 y sonda reutilizable de navegación móvil ERP | done | interno |
 | 0452 | Sanitizador: formatos actuales de claves y descubrimiento de … | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0364, 0365, 0366, 0368, 0375, 0381, 0385, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0350, 0351, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0364, 0365, 0366, 0368, 0375, 0381, 0385, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
