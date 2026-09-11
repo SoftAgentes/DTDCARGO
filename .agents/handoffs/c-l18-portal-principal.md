@@ -141,20 +141,25 @@ Recibos locales fuera de Git: `%TEMP%/dtd-c-l18-20260910/blob-identity.json` y `
 
 ## COMMITS
 
-Commit de implementación: el commit que contiene esta versión del documento.
-Incluye código focal, SQL/contrato/spec con nota, tests, baseline e índice.
+- `dcf99a7f`: implementación focal, SQL/contrato/spec con nota en el mismo commit,
+  tests, baseline e índice. Corresponde al producto validado por verify.
+- Commit que contiene esta actualización del documento: cierre de handoff con
+  URL de PR y resultados finales; sólo documentación, sin cambios de producto.
 
 ## PR / BRANCH
 
-PR draft a publicar contra main tras este commit; rama y worktree indicados arriba.
+[PR #66 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/66), abierta
+contra `main`; rama `codex/c-l18-portal-principal` publicada con upstream propio.
+Worktree conservado en la ruta indicada arriba.
 Fusionar NO autoriza aplicar `0430_portal_profile_change_requests_principal_tenant` a producción.
 
 ## PENDIENTES DE ESTA TAREA
 
-Publicar rama/PR draft y completar cierre de ownership. La implementación focal,
-reconstrucción, contratos y unitarios están completos. E2E autenticado y ledger
+Ninguno de implementación o preparación del lote. La rama y PR draft están
+publicadas; revisión/integración pendientes del Director. E2E autenticado y ledger
 productivo siguen NO DISPONIBLES; no son permiso para obtener/copiar credenciales
-ni para aplicar la migración. La revisión de integración corresponde al Director.
+ni para aplicar la migración. CI remoto se consulta por separado y no sustituye
+los recibos locales ni acredita Supabase productivo.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -184,4 +189,7 @@ Siguiente acción del Director: revisar el corte y salvedades, coordinar los sei
 dependientes y cualquier futura integración con autorización específica. La PR
 no autoriza release ni aplicar SQL. No hubo acceso a filas productivas, merge,
 cambio de ruleset, otras ramas ni cleanup de worktrees.
-Ownership retenido mientras termina publicación; no borrar worktree.
+Escritura finalizada con esta actualización. Al completar su commit/push se libera
+el claim con `node scripts/harness-worktree.mjs release --owner c-l18-worker-20260910-codex`;
+el estado efectivo se verifica en los metadatos Git del worktree. No hay subagentes
+escribiendo ni sesiones consumidoras delegadas activas. Conservar rama y worktree.
