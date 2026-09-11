@@ -1,7 +1,7 @@
 ---
 sdd: "0454"
 title: "Watchdog del e2e de verify: un cuelgue es FALLÓ con motivo, no una espera infinita"
-status: in-progress
+status: done
 author: "Claude Code (Worker) para Sam"
 created: 2026-09-11
 updated: 2026-09-11
@@ -139,27 +139,44 @@ objetivo es que el gate no pueda esperar para siempre y que lo diga.
 
 ## Criterios de aceptación
 
-- [ ] Un proceso que calla durante el límite de inactividad se termina con todo
+- [x] Un proceso que calla durante el límite de inactividad se termina con todo
       su árbol (tres niveles, con la salida heredada por los nietos), y un
       proceso ajeno que corre el mismo script sigue vivo.
-- [ ] Una salida que gotea sin terminar se corta por el límite total.
-- [ ] Una corrida que termina sola conserva su exit (0, 1, 3), stdout y stderr,
+- [x] Una salida que gotea sin terminar se corta por el límite total.
+- [x] Una corrida que termina sola conserva su exit (0, 1, 3), stdout y stderr,
       sin corte. Un proceso lento pero activo no se corta.
-- [ ] En el runner, un paso colgado queda FALLÓ con motivo COLGADO/TIMEOUT, sin
+- [x] En el runner, un paso colgado queda FALLÓ con motivo COLGADO/TIMEOUT, sin
       reintento ni absolvedor, y el paso siguiente corre. El veredicto sale 1 y
       nombra el motivo.
-- [ ] Reintento, salto (exit 3), absolución y preflight siguen iguales, con y
+- [x] Reintento, salto (exit 3), absolución y preflight siguen iguales, con y
       sin watchdog.
-- [ ] Los valores inválidos de los límites rompen el gate antes de correr pasos.
-- [ ] `corepack pnpm harness:test` PASÓ, y `corepack pnpm verify` completo corre
+- [x] Los valores inválidos de los límites rompen el gate antes de correr pasos.
+- [x] `corepack pnpm harness:test` PASÓ, y `corepack pnpm verify` completo corre
       sin que el watchdog afecte una corrida normal.
+
+## Validación (2026-09-11)
+
+- El `corepack pnpm verify` completo sobre `9c9aaebb` reprodujo el cuelgue de
+  L21:
+  - el primer intento del e2e terminó solo (150 passed, 15 failed por falta de
+    Supabase, 3 flaky, 18 skipped en 13.5 min, con un worker forzado a los
+    300 s) y el watchdog no intervino;
+  - el reintento calló después de 51 resultados. A los 10 min sin salida, el
+    watchdog cortó su árbol (raíz PID 43060, 25 procesos, 0 sobrevivientes, 6
+    aún en cierre) y el paso quedó `[FAIL] e2e — COLGADO/TIMEOUT: …`;
+  - `build` corrió y pasó, y el veredicto salió con exit 1 y el motivo.
+- Tres corridas del e2e real con límite total de 4 min cortaron entre 44 y 57
+  procesos. La tercera cruzó la lista exacta del corte, por PID y hora de
+  creación, contra 35 procesos de otros worktrees: no quedó ningún ajeno dentro
+  del corte ni ningún descendiente fuera.
+- El detalle está en `.agents/handoffs/verify-e2e-watchdog.md`.
 
 ## Gobernanza
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
 | SGE-00.07 · estado visible y verdadero (aplicado al gate) | cumplimiento | Un cuelgue sale FALLÓ con exit 1 y motivo en la línea final. No puede presentarse como SKIP, verde ni cierre completo. |
-| SGE-00.11 · qué ocurrió y qué sigue | cumplimiento | El motivo nombra el límite vencido y su variable. El corte informa raíz, procesos terminados y sobrevivientes. |
+| SGE-00.11 · qué ocurrió y qué sigue | cumplimiento | El motivo nombra el límite vencido y su variable. El corte informa raíz, procesos terminados, sobrevivientes y procesos aún en cierre. |
 | SGE-00.06 · prevenir antes de informar | cumplimiento | Un límite inválido rompe el gate antes de correr pasos. |
 | AUD-01 | no aplica | Tooling local. No cambia eventos de producto ni auditoría de negocio. |
 | MP-01 / datos personales | no aplica | No captura, mueve ni borra datos. El inventario de procesos sólo lee PID, PPID, hora de creación y nombre de ejecutable, y no se persiste. |
@@ -176,3 +193,6 @@ objetivo es que el gate no pueda esperar para siempre y que lo diga.
   siguen sin límite.
 - En Windows, el inventario depende de PowerShell/CIM (~1 s por consulta). Sin
   él, el corte se limita a la raíz más `taskkill /T` y el reporte lo declara.
+- Las pruebas con procesos reales usan `ps` en POSIX. Se validaron en Windows;
+  en Linux las ejecuta la CI «Calidad local sin secretos» cuando se publique la
+  rama.
