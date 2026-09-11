@@ -1,7 +1,7 @@
 # L02 — Visibilidad de hitos del Portal por principal (RPC 0402)
 
 Fecha: 2026-09-11. Task ID: `c-l02-portal-visibilidad`.
-Owner / sesión escritora: `c-l02-worker-20260911-claude` (Claude Code, Worker asignado por el Director). Estado: lista-para-revision en PR draft; **migrate-first**, no se fusiona antes de aplicar y verificar 0402.
+Owner / sesión escritora: `c-l02-worker-20260911-claude` (Claude Code, Worker asignado por el Director). Estado: lista-para-revision en PR draft, con la corrección de revisión del Director aplicada (registro de fallos del lector); **migrate-first**, no se fusiona antes de aplicar y verificar 0402.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l02-portal-visibilidad`.
 Rama: `codex/c-l02-portal-visibilidad`. Base: `3c6107012f754953323202a7386b3e7811593814` (origin/main; no avanzó durante la tarea).
@@ -26,17 +26,17 @@ Preparar L02 del bloque C como PR draft contra main. Importar la migración 0402
 - Nota de importación fechada 2026-09-11 bajo el H1, con la forma de la de 0363. Menciona MIGRATE-FIRST y el corte focal; `status: done` y el frontmatter se conservan como estado histórico del origen. Al retirar exactamente la nota se recupera `fe152f4c`.
 - **Hallazgo de base:** los cinco archivos de código de main son idénticos a la base común `2a2e81bf`; el diff base→main es vacío en los cinco. Toda la diferencia viene de #21, incluidos los contextos privados excluidos. «Conservar lo de main» significa conservar las páginas vigentes enteras y tomar de #21 sólo la lectura por RPC.
 
-### Adopción focal por ruta (líneas en `b92e6853`)
+### Adopción focal por ruta (líneas en `a851c88d`)
 
 | Ruta | Cambio | Justificación |
 |---|---|---|
-| `lib/studio/notifications/portal-visibility-queries.ts` | Añade `getHiddenPortalStatusesForPortal` (L24-46) con **cuerpo idéntico al origen**. La cabecera (L11-17) describe el camino por RPC y el motivo del migrate-first. | Es el único lector nuevo. `getHiddenPortalStatusesForClient` y `getHiddenPortalStatuses` quedan byte a byte, con sus tests, para cumplir «conserva lo de main» y «pasan los tests existentes». Quedan sin consumidores; su retiro es decisión del Director. |
+| `lib/studio/notifications/portal-visibility-queries.ts` | Añade `getHiddenPortalStatusesForPortal` (L24-56): cuerpo del origen más el registro de fallos de la corrección de revisión (`console.error` en L37-40 y L50-53; helper privado `errorLabel` en L58-69). La cabecera (L11-17) describe el camino por RPC y el motivo del migrate-first. | Es el único lector nuevo. `getHiddenPortalStatusesForClient` y `getHiddenPortalStatuses` quedan byte a byte, con sus tests, para cumplir «conserva lo de main» y «pasan los tests existentes». Quedan sin consumidores; su retiro es decisión del Director. |
 | `app/portal/(app)/page.tsx` | Import (L23) y llamada (L63): `getHiddenPortalStatusesForPortal(supabase)` en vez de `getHiddenPortalStatusesForClient(createAdminClient(), client.id)`. | Sólo cambia cómo se obtiene el set. `if (!client) return null` (L45) ya exige principal. Asesor, zarpe, aceptación, naviera y push se conservan. |
 | `app/portal/(app)/envios/page.tsx` | Import (L17) y llamada (L56), igual que inicio. | Mismo criterio; `if (!client) return null` en L45. Documentos, packing, consolidados y banner se conservan. |
 | `app/portal/(app)/envios/[code]/page.tsx` | Import (L10). En L69-76, RPC **sólo si hay `client`**. `const admin` baja a L80, su primer consumidor. Se retira `resolveClientTenant`, que queda sin llamadas. | Main no consultaba sin cliente (sin tenant, set vacío). La condición conserva ese caso y la precondición del origen, cuyo contexto privado exige principal. Evita también el `limit 1` de la RPC cuando el principal de L18 se anula por vínculos múltiples (`maybeSingle`). El JSDoc de `loadPendingAcceptance` vuelve a quedar sobre su función. |
-| `lib/studio/notifications/__tests__/portal-visibility-queries.test.ts` | Conserva los 5 tests existentes (L36-75) y añade el helper y los 3 casos del origen (L77-102) y 2 mínimos: RPC ausente PGRST202 (L107-117) y promesa rechazada (L119-125). | Aceptación 7, sin debilitar nada. |
+| `lib/studio/notifications/__tests__/portal-visibility-queries.test.ts` | Conserva los 5 tests existentes (L36-75) y añade el helper y los 3 casos del origen (L77-102) y 2 mínimos: RPC ausente PGRST202 (L123-146) y promesa rechazada (L148-168). Con la corrección, ambos espían `console.error`, exigen una sola llamada con la etiqueta y el código o mensaje exactos, y usan ids ficticios en `details`, `hint` y `cause` (L104-118) para comprobar que el log no lleva ningún id ni UUID. | Aceptación 7, sin debilitar nada. |
 | `supabase/migrations-baseline.json` | Sólo la espera `0402_portal_hidden_statuses_por_principal`. | Bloque C L02 / SDD-0337, MIGRATE-FIRST, motivo fail-open, OK nominal de Sam, runbook y name exacto. Cutoff 238, `$doc` y las esperas 0409/0418/0419/0430 intactos: sin la entrada nueva, el JSON es igual a la base. |
-| `supabase/pending-migration-symbol-declarations.json` | Grupo `l02-portal-hidden-statuses-pending-rpc`: llamada en `portal-visibility-queries.ts:35`, con evidencia en L36/L44 y en inicio L63, envíos L56 y detalle L75. | Conforme al `$doc` y al patrón de L16. Resultado: 0 ROJO, 1 AMARILLO. |
+| `supabase/pending-migration-symbol-declarations.json` | Grupo `l02-portal-hidden-statuses-pending-rpc`: llamada en `portal-visibility-queries.ts:35`, con evidencia en L36, L39 y L52 (condición y registro de ambas ramas) y en inicio L63, envíos L56 y detalle L75. | Conforme al `$doc` y al patrón de L16. Resultado: 0 ROJO, 1 AMARILLO. |
 | `docs/specs/README.md` | Regenerado con `corepack pnpm docs:index`. | 416 specs; entra la fila 0337 y sale del listado de huecos. |
 
 **JSX sin cambios:** los bloques `return` de las tres páginas son idénticos antes y después (inicio 2 de 2, envíos 1 de 1, detalle 1 de 1).
@@ -45,23 +45,23 @@ Preparar L02 del bloque C como PR draft contra main. Importar la migración 0402
 
 **Main y el código adoptado son fail-open. Se conserva el criterio del origen, y eso es lo que obliga al migrate-first.**
 
-| Caso | main hoy (`3c610701`; módulo `7a1dce9a`) | Adoptado (`b92e6853`; módulo `57fab9a2`) |
+| Caso | main hoy (`3c610701`; módulo `7a1dce9a`) | Adoptado (`a851c88d`; módulo `f6320102`) |
 |---|---|---|
 | Lectura | Admin client: `clients.tenant_id` por id (L30-34) y reglas por tenant/cliente (L58-63). | RPC con la sesión; identidad desde `auth.uid()` (L35). |
-| Error devuelto por PostgREST | `if (error \|\| !data) return hidden;` (L64): set vacío, sin log. | `if (error \|\| !Array.isArray(data)) return new Set();` (L36): set vacío, sin log. |
-| Excepción | El catch de L86-88 hace `console.error` y devuelve set vacío; el de `ForClient` (L38-40) devuelve set vacío. | El catch de L43-45 devuelve set vacío, sin log. |
+| Error devuelto por PostgREST | `if (error \|\| !data) return hidden;` (L64): set vacío, sin log. | `if (error \|\| !Array.isArray(data))` (L36): `console.error` con la etiqueta fija y sólo el código o el mensaje (L37-40), y set vacío (L41). |
+| Excepción | El catch de L86-88 hace `console.error` y devuelve set vacío; el de `ForClient` (L38-40) devuelve set vacío. | El catch (L49-55) registra igual con `console.error` y devuelve set vacío. |
 | Sin principal válido | Inicio y envíos: `return null`. Detalle (L74-77): sin tenant, set vacío. | Igual. Detalle (L74-76): sin `client` no consulta y queda set vacío. |
 | Efecto en pantalla | Se muestran todos los hitos, también los que una regla oculta. | Igual. |
 | RPC 0402 ausente | No aplica. | PGRST202 en cada vista: set vacío **permanente**. El cliente ve «en aduana» u otro hito que su tenant ocultó; la página no rompe. |
 
-Con 0402 aplicada antes del código, el fallo vuelve a ser transitorio y equivalente a main. La migración es aditiva (función, comentario y ACL) y el código vigente de main no la llama, así que aplicarla primero no altera la operación actual. El fail-open queda declarado en la PR, en este handoff, en la entrada del baseline y en la declaración de símbolos.
+Con 0402 aplicada antes del código, el fallo vuelve a ser transitorio y equivalente a main. La migración es aditiva (función, comentario y ACL) y el código vigente de main no la llama, así que aplicarla primero no altera la operación actual. El fail-open queda declarado en la PR, en este handoff, en la entrada del baseline y en la declaración de símbolos. Tras la corrección de revisión, el adoptado registra las dos ramas de fallo (main sólo registra la excepción), siempre sin ids: la degradación, incluido el PGRST202 permanente, queda visible en los logs.
 
 ### Datos personales y gobernanza
 
-- **Datos personales: no aplica.** No se capturan, mueven ni borran datos personales. La RPC devuelve sólo nombres de status (0402, L12 y L43-48), y el contrato exige que la firma no exponga `tenant_id`, `client_id`, `trigger_event` ni `visible_in_portal` (test L100-104). El lector entrega `Set<ShipmentStatus>` (módulo L38-42). La identidad se resuelve en la base (L25) y la app deja de enviar ids a una lectura con service_role: es minimización. No se abrió `revisar-datos-ve`.
+- **Datos personales: no aplica.** No se capturan, mueven ni borran datos personales. La RPC devuelve sólo nombres de status (0402, L12 y L43-48), y el contrato exige que la firma no exponga `tenant_id`, `client_id`, `trigger_event` ni `visible_in_portal` (test L100-104). El lector entrega `Set<ShipmentStatus>` (módulo L44-48) y sus registros de fallo llevan sólo el código o el mensaje (`errorLabel`, L58-69). La identidad se resuelve en la base (L25) y la app deja de enviar ids a una lectura con service_role: es minimización. No se abrió `revisar-datos-ve`.
 - **SGE-00.05, cumplimiento.** Identidad y tenant en la base (L18-28), EXECUTE sólo para `authenticated` (L55-58). El contrato incluye pruebas negativas de ACL (L80-84), otro tenant (L122-132), vínculo revocado (L134-141) y cliente eliminado (L143-150).
 - **SGE-00.12, cumplimiento.** Sin merge, sin aplicar 0402, sin leer producción.
-- **ERR-01, no aplica a mensajes.** No hay error visible ni mutación. La observabilidad se registra como hallazgo.
+- **ERR-01, no aplica a mensajes.** No hay error visible ni mutación. La observabilidad del fallo se atendió en la corrección de revisión: ambas ramas quedan registradas, sin ids ni datos de la sesión.
 - **VIS-01/02, MOT-01, LOD-01, A11Y-01 y CMP-01, no aplica.** JSX idéntico.
 
 ## VALIDACIÓN
@@ -110,10 +110,27 @@ Detalle de `verify`:
 | e2e | NO DISPONIBLE como validación de acceso/Supabase: el runner corrió y FALLÓ (exit 1) por el entorno, no por L02. Puerto propio 3117; 186 tests con 8 workers. Primera pasada: 150 PASÓ, 15 FALLÓ, 3 flaky y 18 omitidos (14,7 min). Los 15 fallos son los ambientales conocidos de L16/L18: `auth.spec.ts:21/91/98/105` y `global-search.spec.ts:22` en chromium, mobile-chrome y mobile-safari; causa observada en `proxy.ts:67`, «Your project's URL and Key are required to create a Supabase client!». Flaky recuperados (chromium): `attachments-gastos-pilot-network.spec.ts:4`, `auth.spec.ts:74` y `calculadora-semantic-colors.spec.ts:5`. Error fuera de test: `worker-49 process did not exit within 300000ms after stop, force-killed it` (cierre de Playwright; log L2658). Reintento automático de verify: 152 PASÓ, los mismos 15 FALLÓ, 1 flaky (`auth.spec.ts:74` en mobile-chrome) y 18 omitidos (11,2 min). Es el reintento 1/1 que trae verify; no hubo reintento manual. Sin credenciales, el E2E no ejerce con sesión las tres vistas del Portal que cambian. |
 | build | PASÓ: compilación de producción en 34,3 s, TypeScript y 160/160 páginas estáticas. `check-build` restauró `tsconfig.json`; el árbol versionado quedó intacto al terminar, sin contenedores propios y con el puerto 3117 libre. |
 
+### Corrección de revisión del Director (`a851c88d`)
+
+El Director pidió registrar las dos ramas de fallo del lector adoptado. El cambio queda dentro de `portal-visibility-queries.ts`, su test y los anclajes de la declaración; la semántica (set vacío) no cambia. Recibos: `vitest-focal-fix.log`, `typecheck-fix.log`, `eslint-focal-fix.log`, `pending-symbols-fix.log` y `diffs/fix-logging-*.diff`.
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| guard, claim y guard `--owner` más rama antes del commit | PASÓ |
+| Vitest focal `portal-visibility-queries.test.ts` | PASÓ: 10/10. Los tests de PGRST202 y de promesa rechazada exigen una sola llamada a `console.error` con la etiqueta y el código o mensaje exactos, y ningún id ni UUID en el log |
+| `corepack pnpm typecheck` | PASÓ |
+| ESLint del módulo y el test | PASÓ, 0 problemas |
+| `git diff --check` | PASÓ |
+| `node scripts/check-pending-migration-symbols.mjs` | PASÓ: 0 ROJO, 1 AMARILLO; evidencia reanclada a L36, L39 y L52, con la llamada en L35 sin cambio |
+| `corepack pnpm verify` | NO EJECUTADO de nuevo, por indicación del Director: el cambio es de registro dentro de un solo módulo, su test y los anclajes de la declaración, sin SQL, JSX, rutas ni dependencias. verify completo ya corrió sobre `b92e6853` |
+| CI alojado del SHA final | Se registra en la PR #76: corre al publicar el commit que contiene este documento, que incluye `a851c88d` |
+
 ## COMMITS
 
 - `b92e68530043b3d37758ce5b69b2c8bc153cd5c1`: `feat(studio): SDD-0337 — importar L02 visibilidad Portal por principal (migrate-first)`. Contiene SQL, contrato, spec con nota, módulo, test, tres páginas, baseline, declaración e índice; es el producto que validó verify.
-- Commit que contiene este documento: `chore(harness): cerrar handoff L02 visibilidad Portal`. Sólo documentación; el hash final se anota en la PR.
+- `7733c437de1c248d42be00fbddae05cb4fb8ad90`: `chore(harness): cerrar handoff L02 visibilidad Portal`. Primera versión de este documento; sólo documentación.
+- `a851c88d891e1b9859c56a4acd25e6e300f5addf`: `fix(studio): SDD-0337 — registrar fallos del lector de hitos ocultos del Portal`. Corrección de revisión: módulo, test y anclajes de la declaración.
+- Commit que contiene esta actualización del documento: `chore(harness): actualizar handoff L02 tras la corrección de revisión`. Sólo documentación; el hash final se anota en la PR.
 
 ## PR / BRANCH
 
@@ -127,7 +144,7 @@ Detalle de `verify`:
 
 ## FUERA DE ALCANCE DETECTADO
 
-1. **Observabilidad.** Main registra con `console.error` las excepciones de la lectura de reglas (L87 de `7a1dce9a`); el lector del origen no registra nada, y ninguno de los dos registra errores devueltos por PostgREST, PGRST202 incluido. Si se quiere una señal operativa del migrate-first, bastan dos líneas de `console.error` acotado, sin PII, en L36/L44. No se hizo para conservar el cuerpo del origen.
+1. **Observabilidad, resuelta en la corrección de revisión (`a851c88d`).** El lector del origen no registraba nada; ahora ambas ramas registran con `console.error` sólo el código o el mensaje. Main sigue sin registrar los errores que devuelve PostgREST en sus lectores con admin client (L64 de `7a1dce9a`), que quedan sin consumidores.
 2. **SQL 0402, `limit 1` sin `order by` (L27).** Con varios vínculos activos, la RPC elige uno arbitrario. En estas vistas lo mitigan el principal de L18 y la condición del detalle. El SQL se importa idéntico.
 3. **Lectores con admin client sin consumidores tras L02.** `getHiddenPortalStatuses` interpola `clientId` en `.or()` (L56 de main). Conviene retirarlos después de aplicar y verificar 0402, con decisión del Director.
 4. **Allowlist histórica de 0337.** Incluye `scripts/__tests__/portal-service-role-boundary.test.mjs` y la meta «10 rutas / 19 construcciones de service_role», que no existen en main; pertenecen al saneamiento de #21 y no se importan.
@@ -147,5 +164,5 @@ Detalle de `verify`:
   5. CI y revisión del SHA final; merge con `--match-head-commit`.
 - **Producción:** main publica en Vercel, así que la autorización del merge debe cubrir ese efecto. Fusionar no autoriza aplicar 0402, ni aplicar 0402 autoriza fusionar.
 - **Compartido con otros lotes:** índice y baseline (con driver) con #69, #70, #72, #73, #74 y #75; declaraciones sin driver con #75. Ninguna PR abierta toca los cinco archivos de código. L03 tocará después la home (import de `getPortalAdvisor` y su llamada) y `portal-queries`, en hunks distintos de los de L02.
-- **Decisiones pendientes para el Director:** retirar los lectores con admin client y añadir el `console.error` acotado (hallazgos 1 y 3).
+- **Decisiones pendientes para el Director:** retirar los lectores con admin client (hallazgo 3). El registro acotado del hallazgo 1 ya está aplicado en `a851c88d`.
 - **Ownership:** la escritura termina con este documento. Tras su commit y push se libera el claim con `node scripts/harness-worktree.mjs release --owner c-l02-worker-20260911-claude`; el estado efectivo queda en los metadatos Git del worktree. No hubo subagentes escritores ni quedan sesiones consumidoras delegadas. Se conservan rama y worktree; no se borró nada.
