@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 416 specs)
+### Índice de specs (generado · 417 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -454,6 +454,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0450 | Código contra símbolos de migraciones pendientes | done | interno |
 | 0451 | Resolución de H1 y sonda reutilizable de navegación móvil ERP | done | interno |
 | 0452 | Sanitizador: formatos actuales de claves y descubrimiento de … | done | interno |
+| 0456 | Un cliente sólo cuelga de un aliado de su tenant | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0364, 0365, 0366, 0368, 0375, 0381, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0364, 0365, 0366, 0368, 0375, 0381, 0400, 0401, 0402, 0435, 0445, 0446, 0447, 0453, 0454, 0455 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
