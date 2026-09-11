@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
 import {
   getMyReferralProgram,
   type PortalReferralProgram,
@@ -22,8 +20,8 @@ export const metadata: Metadata = { title: "Referidos" };
  * "Referidos" (cara cliente de SDD-0051 · Norte PortalReferidos, portal/app.jsx
  * L1121). Read-only: código para compartir + nivel (derivado de la facturación) +
  * créditos + a quién refirió. La identidad se resuelve por SESIÓN (getPortalClient)
- * y los datos se leen con admin client scopeado por markbox (patrón Mensajes; la
- * tabla `referrals` no tiene RLS de portal).
+ * y los datos se leen mediante una RPC que deriva cliente y tenant desde la
+ * sesión. La tabla `referrals` permanece cerrada al Portal.
  *
  * Marca del PORTAL (paper/wine + clases del sitio público). El único fondo oscuro
  * es el hero del código (gradiente navy→ink permitido por el brand para el portal
@@ -41,13 +39,8 @@ export default async function PortalReferralsPage() {
     return <PortalVerifyGate module="referidos" profile={profile} />;
   }
 
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
-
-  const program = await getMyReferralProgram(
-    createAdminClient(),
-    client.markbox,
-  );
+  const program = await getMyReferralProgram(supabase);
+  if (!program) return null;
 
   return (
     <div>
