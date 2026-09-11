@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { resolveBrandForClient } from "@/lib/studio/aliados/brand-resolve";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import {
   getPrealertaByCode,
   listPrealertaDocuments,
@@ -46,8 +46,9 @@ export default async function PortalLabelsPage({
   const code = decodeURIComponent(rawCode);
 
   const supabase = await createClient();
-  const client = await getPortalClient(supabase);
-  if (!client) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  const { client, tenantId } = principal;
 
   const prealerta = await getPrealertaByCode(supabase, code, {
     markbox: client.markbox,
@@ -83,7 +84,7 @@ export default async function PortalLabelsPage({
 
   // Servicios de recepción (SDD-0098): menú activo + lo que el cliente ya pidió.
   const [addons, serviceRequests] = await Promise.all([
-    listActivePrealertaAddons(supabase),
+    listActivePrealertaAddons(supabase, { tenantId }),
     listPrealertaServiceRequests(supabase, {
       prealertaId: prealerta.id,
       markbox: client.markbox,
