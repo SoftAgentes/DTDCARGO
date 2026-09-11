@@ -8,14 +8,42 @@
  * lugar el cobro anticipado). Esta capa resuelve el conjunto de statuses ocultos
  * respetando la precedencia override-por-cliente → default-del-tenant.
  *
- * Se llama con el admin client (el cliente del portal no lee esta tabla). Sin
- * regla para un status → visible (default). Falla-seguro: ante error devuelve el
- * set vacío (se muestra todo), nunca oculta de más por un fallo.
+ * SDD-0337: el Portal (inicio, envíos y detalle) llama a
+ * `getHiddenPortalStatusesForPortal` con su sesión; la RPC de la migración 0402
+ * deriva cliente y tenant en la base. Las dos lecturas con admin client de más
+ * abajo se conservan sin cambios. Sin regla para un status → visible (default).
+ * Falla-seguro: ante error devuelve el set vacío (se muestra todo), nunca oculta
+ * de más por un fallo. Sin la RPC ese error sería permanente; por eso 0402 se
+ * aplica antes de desplegar este consumidor (migrate-first).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ShipmentStatus } from "@/lib/shared/shipment-public";
 
 const STATUS_PREFIX = "status:";
+
+/**
+ * Statuses ocultos para el cliente del Portal autenticado.
+ *
+ * La RPC deriva cliente y tenant desde `auth.uid()`; no acepta ids de entrada y
+ * sólo devuelve el nombre de cada status oculto. Ante error muestra todo (set
+ * vacío), que es la degradación segura ya vigente.
+ */
+export async function getHiddenPortalStatusesForPortal(
+  db: SupabaseClient,
+): Promise<Set<ShipmentStatus>> {
+  try {
+    const { data, error } = await db.rpc("get_portal_hidden_shipment_statuses");
+    if (error || !Array.isArray(data)) return new Set();
+
+    return new Set(
+      data
+        .map((row) => String((row as { status?: unknown }).status ?? "").trim())
+        .filter(Boolean) as ShipmentStatus[],
+    );
+  } catch {
+    return new Set();
+  }
+}
 
 /**
  * Conveniencia para el portal: resuelve el tenant del cliente (por su id) y

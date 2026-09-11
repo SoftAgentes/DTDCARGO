@@ -14,7 +14,7 @@ import {
   STATUS_LABELS,
   type ShipmentStatus,
 } from "@/lib/portal/portal-types";
-import { getHiddenPortalStatusesForClient } from "@/lib/studio/notifications/portal-visibility-queries";
+import { getHiddenPortalStatusesForPortal } from "@/lib/studio/notifications/portal-visibility-queries";
 import {
   getNextOpenSailing,
   daysUntil,
@@ -53,10 +53,7 @@ export default async function PortalShipmentsPage() {
   // SDD-0156 · Slice D: si la config del tenant oculta un hito (ej. "en aduana"),
   // la lista muestra el último estado VISIBLE — el badge y el % no delatan el hito
   // oculto (coherente con el stepper del detalle). Falla-seguro → sin sustitución.
-  const hiddenStatuses = await getHiddenPortalStatusesForClient(
-    createAdminClient(),
-    client.id,
-  );
+  const hiddenStatuses = await getHiddenPortalStatusesForPortal(supabase);
   const shipments = rawShipments.map((s) => ({
     ...s,
     status: effectiveVisibleStatus(s.status, s.service, hiddenStatuses),
