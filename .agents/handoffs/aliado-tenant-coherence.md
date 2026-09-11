@@ -1,16 +1,16 @@
 # aliado-tenant-coherence — Coherencia de tenant en `clients.aliado_id` (SDD-0456 / migración 0450)
 
-Fecha: 2026-09-11. Task ID: `aliado-tenant-coherence`. Estado de tarea: lista-para-revision. El Director la aprobó con un ajuste del orden de la baseline, ya aplicado. Sin publicar: espera el OK de Sam para push y PR draft. Estado SDD-0456: `done`, que no significa aplicada.
+Fecha: 2026-09-11. Task ID: `aliado-tenant-coherence`. Estado de tarea: lista-para-revision. Publicada como PR draft #87 con el OK de Sam. El Director la aprobó con un ajuste del orden de la baseline, ya aplicado. Estado SDD-0456: `done`, que no significa aplicada.
 Owner / sesión escritora: `admiring-pascal-832793-fd-b54374` (sesión Claude `admiring-pascal-832793-fd`).
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/aliado-tenant-coherence`.
-Rama: `codex/aliado-tenant-coherence`. Base al crear: `07d000970011ee12364e31124ebe4b301f064b40`. Actualizada con origin/main `6fdc00b4474e0a8835f118e405b809e4c907814f` en el merge `aa535e0b`; al cierre no hay commits nuevos en main.
-Permisos del encargo: commits locales selectivos. Publicar la rama o abrir la PR draft requiere la autorización de Sam en esta sesión. Sin merge, sin producción, sin leer filas de negocio.
+Rama: `codex/aliado-tenant-coherence`. Base al crear: `07d000970011ee12364e31124ebe4b301f064b40`. Actualizada con origin/main por merges, sin rebase: `6fdc00b4` en `aa535e0b`, y `bbc7493f` (PR #85, 0409 aplicada) en `676c1d4a`, justo antes de publicar.
+Permisos del encargo: commits locales selectivos. Sam autorizó en esta sesión, el 2026-09-11, publicar la rama y abrir la PR draft. Sin merge, sin producción, sin leer filas de negocio.
 
 ## Asignación (Director, sesión `dtdcargo-5f`)
 
 - **SDD-0456.** El Director la reservó localmente en `codex/sdd-reserve-0456-aliado-tenant-coherence` (`efde2001`); se incorporó por cherry-pick (`a0800910`). Las 0454 y 0455 ya las habían tomado otras sesiones.
-- **Migración 0450**, la siguiente libre según el inventario de 217 refs y worktrees, registrada a esta tarea. Sigue libre en origin/main `6fdc00b4`.
+- **Migración 0450**, la siguiente libre según el inventario de 217 refs y worktrees, registrada a esta tarea. Sigue libre en origin/main `bbc7493f`.
 - **Base `main` (opción B).** La FK no se ata a la PR #82, que es migrate-first y espera el OK de Sam para 0401.
 - **Sin cambios TS.** La FK garantiza la coherencia, y no se toca `lib/studio/aliados/brand-resolve.ts` para no chocar con #82.
 - **Filtro explícito de `get_portal_brand()`:** queda en FUERA DE ALCANCE, como seguimiento para cuando 0401 esté en main.
@@ -110,6 +110,7 @@ Sobre el árbol final (`bcb2e69e`, con origin/main `6fdc00b4` mergeado):
 Cambios posteriores al verify, solo de documentación y texto:
 - el aviso de impacto de los locks en la espera 0450 de la baseline, que pidió el Director;
 - el orden de `pendingBelowCutoff`, igual al de main, con la 0450 al final (ajuste de la revisión del Director; los textos de las entradas no cambian);
+- el merge de main `bbc7493f` (PR #85: 0409 sale de la baseline; toca solo la baseline, un handoff y la spec 0352), con la baseline reconstruida otra vez como main + 0450;
 - la aceptación y el estado `done` de la spec 0456, más el índice regenerado;
 - este handoff.
 
@@ -144,17 +145,21 @@ No se ejecutó verificación contra datos reales. Esta revisión no es asesoría
 - `bcb2e69e` — fix(studio): SDD-0456: 0450 en una sola sentencia con locks, `lock_timeout` y postflight, más el contrato y la spec según la revisión.
 - `d357284f` — fix(studio): SDD-0456 cierre: aviso de impacto de locks en la espera 0450, aceptación y estado `done` de la spec 0456, e índice.
 - `8570f713` — docs(handoff): primer cierre de este documento.
-- fix(studio): SDD-0456 — baseline con el orden exacto de main y la 0450 al final (ajuste de la revisión del Director); es el commit inmediatamente anterior a este documento.
-- Commit que contiene este documento: handoff con ese ajuste (hashes finales en la PR).
+- `ad9e0621` — fix(studio): SDD-0456 — baseline con el orden exacto de main y la 0450 al final (ajuste de la revisión del Director).
+- `bbc54ac4` — docs(handoff): registro de ese ajuste.
+- `676c1d4a` — merge de origin/main `bbc7493f` (PR #85), con la baseline reconstruida como main + 0450. Es el head con el que se abrió la PR #87.
+- Commit que contiene este documento: handoff con la publicación de la PR #87 (hash final en la PR).
 
 ## PR / BRANCH
 
-Sin publicar. Rama local `codex/aliado-tenant-coherence` (base `main`, al día con `6fdc00b4`), en el worktree indicado arriba. Falta la autorización de Sam para publicar la rama y abrir la PR draft contra `main`.
+- **PR:** [#87 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/87), título «fix(studio): SDD-0456 — clients.aliado_id solo acepta aliados del mismo tenant (0450 pendiente de aplicar)», base `main`.
+- **Rama:** `codex/aliado-tenant-coherence`, en el worktree indicado arriba. Se publicó a sí misma con `git push -u origin codex/aliado-tenant-coherence:codex/aliado-tenant-coherence`, sin force, con el OK de Sam.
+- **Head:** `676c1d4a` al abrir la PR. El commit que contiene este documento se publica después, con un push normal.
+- Sin merge y sin aplicar migraciones.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Autorización de Sam para `git push -u origin codex/aliado-tenant-coherence:codex/aliado-tenant-coherence` y para la PR draft.
-- Revisión del Director y CI alojado sobre el SHA publicado.
+- CI alojado sobre el SHA publicado y revisión final en la PR #87. El Director ya aprobó la rama. Pasar la PR de borrador a lista y fusionar le corresponde al Director.
 - Antes de aplicar 0450 (tarea aparte, con OK nominal de Sam y runbook): un conteo agregado de solo lectura, con su autorización: `select count(*) from public.clients c join public.aliados a on a.id = c.aliado_id where a.tenant_id <> c.tenant_id;`. Si da > 0, se decide fila por fila; el preflight falla cerrado igualmente.
 - **Impacto esperado al aplicar.** Mientras corre la migración:
   - `aliados` queda en ACCESS EXCLUSIVE, así que las lecturas de marca del Portal y del Studio, y los listados de aliados, esperan.
@@ -176,9 +181,9 @@ Sin publicar. Rama local `codex/aliado-tenant-coherence` (base `main`, al día c
 ## HANDOFF AL DIRECTOR
 
 - 0450 es independiente de #82 y aditiva: no reescribe funciones ni filas. Orden seguro:
-  1. revisar;
-  2. publicar con OK de Sam;
-  3. fusionar;
+  1. revisar: hecho, aprobada por el Director;
+  2. publicar con OK de Sam: hecho, PR #87 en borrador;
+  3. fusionar: lo decide el Director sobre el SHA revisado, repitiendo antes el merge de main si avanzó;
   4. aplicar 0450 en otra tarea: conteo agregado autorizado, de a una, name exacto, en horario de baja actividad por los locks;
   5. smoke del embed;
   6. retirar la espera del baseline.
