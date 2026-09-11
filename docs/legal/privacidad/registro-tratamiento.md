@@ -12,7 +12,7 @@
 **Marca pública:** DTD Cargo
 **Contacto para titulares:** info@dtdcargo.com (asunto "Privacidad")
 **Representante en China (PIPL art. 53):** ⬜ pendiente de decidir
-**Versión:** 1.3 · **Última actualización:** 2026-09-04
+**Versión:** 1.4 · **Última actualización:** 2026-09-11
 
 ---
 
@@ -100,6 +100,16 @@ Estas huellas siguen siendo identificadores técnicos y se conservan solo para
 anti-abuso. No se reutilizan para marketing, perfilado ni decisiones sobre la
 persona.
 
+## 4.3 · Anti-abuso de `/verificar` (SDD-0455)
+
+| Destino | Dato | Minimización | Retención | Estado de rollout |
+|---|---|---|---|---|
+| `public_verify_throttle.ip` | IP en claro de quien consulta `/verificar` (QR de cajas y diplomas), con `created_at` | solo se cuenta dentro de la ventana de 30 min; fuera de ella no tiene uso | purga técnica de filas con más de 60 min; el cron corre una vez al día, así que una fila dura hasta unas 25 h | **CORRECTO en código** (`app/api/cron/purge-throttle/route.ts:36,78-82`); Producción NO VERIFICABLE hasta desplegar y ver la primera corrida |
+
+A diferencia de las huellas de §4.2, esta IP se guarda en claro: el throttle
+cuenta por su texto exacto (`lib/public/verify-throttle.ts`). Base de licitud y
+aviso: ⬜.
+
 ## 5 · Titulares que no son usuarios
 
 | Quién | Qué se le captura | ¿Se le avisa? | ¿Cómo ejerce sus derechos? |
@@ -109,6 +119,7 @@ persona.
 | Contacto del proveedor CN | nombre y contacto | ❌ | ⬜ ninguna vía |
 | Referido | contacto que da un cliente | ✅ parcial (`/privacidad` §1) | ⬜ |
 | Pagador tercero | nombre y relación | ❌ (solo Acuerdo cl. 7.4) | ⬜ |
+| Quien escanea un QR en `/verificar` (almacén, destinatario) | IP y hora de la consulta (§4.3) | ⚠️ solo la política general: el pie de `/verificar` enlaza `/privacidad`, que menciona la IP «para prevenir usos indebidos» | ⬜ |
 
 ## 6 · A dónde van
 
