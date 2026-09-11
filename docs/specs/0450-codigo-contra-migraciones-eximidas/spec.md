@@ -63,9 +63,12 @@ Extrae de todas las migraciones del checkout estos DDL:
 - `CREATE [OR REPLACE] VIEW`;
 - `ALTER TABLE ... ADD COLUMN [IF NOT EXISTS]`.
 
-Los comentarios, literales y cuerpos dollar-quoted no cuentan como DDL. Los
-identificadores se normalizan con reglas de PostgreSQL y las columnas se
-identifican como `tabla.columna`.
+Los comentarios, literales y cuerpos dollar-quoted no cuentan como DDL, con
+una excepción: el cuerpo de un bloque `DO`, que se ejecuta al aplicar la
+migración. Su DDL estático y los literales pasados directamente a `EXECUTE`,
+solos o como plantilla de `format()`, sí cuentan (corrección 2026-09-11,
+bloques DO). Los identificadores se normalizan con reglas de PostgreSQL y las
+columnas se identifican como `tabla.columna`.
 
 Un símbolo extraído de una migración pendiente es **ausente** solo cuando
 ninguna migración no eximida crea el mismo símbolo. Si una función aparece en
@@ -142,6 +145,9 @@ transitivo desde `app/**`; permanecen en silencio.
   señal. Tampoco demuestra que una policy, grant, trigger o dato seed exista.
 - **El grafo es estático y literal.** Imports calculados, nombres DB construidos
   dinámicamente y acceso indirecto sin el nombre del símbolo pueden escapar.
+- **Del DDL dinámico solo se lee el literal.** En un bloque DO cuentan el DDL
+  estático y las plantillas literales de `EXECUTE`. Un `EXECUTE` de una variable
+  o un nombre de objeto calculado (`%I`, `||`) no crea símbolo.
 - **No certifica producción.** Clasifica el código según el baseline del repo;
   no consulta el ledger real ni prueba RLS, permisos, datos o comportamiento.
   `migrations-applied`, E2E autenticado y pruebas Supabase conservan fronteras
@@ -267,3 +273,127 @@ sobre la extracción de L06, `pnpm lint` (0 errores; 8 avisos preexistentes
 ajenos), `pnpm docs:check`, `pnpm sdd:check` y `git diff --check`.
 `pnpm verify` quedó NO EJECUTADO: el cambio es solo de harness y se valida con
 sus pruebas propias. Detalle en `.agents/handoffs/c-fix-pending-symbols-utf16.md`.
+
+## Corrección 2026-09-11: DDL en bloques DO
+
+**Defecto.** `maskSqlNonCode` dejaba en blanco todo cuerpo dollar-quoted,
+también el de `DO $…$`. A diferencia del cuerpo de una función, un bloque DO se
+ejecuta al aplicar la migración. La 0426 de L17 (PR #80, head `07e54dfc`) crea
+`reserve_public_verify_attempt` con
+`execute pg_catalog.format($ddl$ create or replace function … $ddl$, v_body)`
+dentro de `do $migration$`. El símbolo no nacía en la pendiente: la llamada de
+`lib/public/verify-throttle.ts:27`, alcanzable desde `app/verificar/page.tsx`,
+quedaba en `0 ROJO`, y declararla daba exit 2 («no identifica un único símbolo
+pendiente ausente»).
+
+**Alternativas evaluadas.**
+
+1. **Extraer el DDL que corre en bloques DO (elegida).** Solo entra en lo que se
+   ejecuta al aplicar: el cuerpo de cada `DO [LANGUAGE plpgsql]` y, dentro de
+   él, los literales pasados directamente a `EXECUTE`, solos o como plantilla de
+   `[pg_catalog.]format()`. Sigue siendo repo contra repo, sin credenciales,
+   red, Docker ni SKIP, y no depende de que alguien recuerde anotar.
+2. **Anotación explícita en la migración, validada contra el catálogo efímero
+   de `check-schema-rebuild`.** Descartada como mecanismo principal:
+   - `schema-rebuild` sale con SKIP sin Docker o con `VERIFY_SKIP_SQL=1`. La
+     validación heredaría esa omisión y rompería la propiedad «sin SKIP» de
+     este gate: en local, una anotación sin verificar pasaría.
+   - Hoy solo compara una huella de esquema para `LEDGER_ONLY`. Validar
+     anotaciones exigiría fotografiar el catálogo antes y después de cada
+     pendiente, un contrato nuevo dentro de otro gate crítico.
+   - Depende de disciplina: si se olvida la anotación, el punto ciego sigue.
+3. **Desenmascarar todo el dollar-quoting.** Descartada: leería DDL de cuerpos
+   de función que solo corre al invocarlos, como el
+   `execute 'create table public.dynamic_only…'` que la prueba Vitest existente
+   exige ignorar.
+
+La corrección es una enmienda y no una SDD nueva: no cambia el objetivo, los
+niveles ni el contrato de declaraciones; amplía la lectura de las cuatro formas
+DDL que ya cubría.
+
+**Contrato resultante.**
+
+- Cuentan como DDL de la migración:
+  - el texto fuera de literales, como antes;
+  - el código del cuerpo de un bloque DO, por ejemplo un `alter table … add
+    column` dentro de un `if`;
+  - el contenido de un literal que es argumento directo de `EXECUTE` o la
+    plantilla de `format()` bajo `EXECUTE`. Los literales simples se
+    desescapan (`''` → `'`).
+- No cuentan cuerpos de función, asignaciones a variables, `raise`,
+  `comment on … is`, `perform format(…)` ni datos. Se siguen hasta cuatro
+  niveles DO → EXECUTE → DO.
+- **Nombre completo.** A un nombre extraído no pueden seguirle más caracteres
+  de identificador, un punto, un marcador `%` de `format()` ni el fin del
+  fragmento; `if` y `only` tampoco cuentan como nombre. Así, las plantillas con
+  nombre calculado (`%I.%I`, `public.%I`, `if not exists %I`, `fixture_%s`,
+  `'…_' || sufijo`) no dan símbolos falsos como `public` o `if`, que
+  coincidirían con cualquier token alcanzable.
+- **Simetría con aplicadas.** Un símbolo creado en un bloque DO de una
+  migración no eximida cuenta como existente; si una pendiente lo redefine, es
+  redefinición y no ausencia.
+- No cambian las formas DDL cubiertas, el grafo, las declaraciones, los niveles
+  ni el formato de salida.
+
+**Regresión.** `scripts/tests/pending-migration-symbols-do-blocks.node.mjs`
+corre en `pnpm harness:test` con seis casos:
+
+- ROJO exacto para una RPC creada con `EXECUTE format()` dentro de un DO
+  pendiente (forma de 0426, con astrales) y llamada desde TS alcanzable;
+  `revoke`, `grant` y `comment` no crean símbolos;
+- la declaración anclada a la llamada real pasa como AMARILLO;
+- DDL estático en DO, `do language plpgsql`, literal simple con comillas
+  escapadas y `format()` sin marcadores;
+- una función creada en un DO aplicado y redefinida por una pendiente no es
+  ausencia;
+- guardas: cuerpos de función, literales no ejecutados y comentarios no crean
+  símbolos, y los nombres calculados no dan símbolos falsos.
+
+Los cuatro primeros fallan con el checker de `origin/main` `07d00097` y pasan
+con el nuevo; las dos guardas pasan en ambos. Mutaciones del nuevo: sin la
+guarda de nombre completo falla el caso de nombres calculados; entrar en todo
+literal (desenmascarado ingenuo) o en todo literal de un DO falla el de cuerpos
+de función; sin bloques DO fallan los cuatro primeros.
+
+**Impacto medido.**
+
+- **main `07d00097`:** 421 migraciones, 140 con 215 bloques DO. La extracción
+  pasa de 1081 a 1082 símbolos, sin pérdidas y sin cambios en migraciones sin
+  DO. El único nuevo es `column:public.fiscal_settings.iva_withholding_agent`,
+  de 0141 (aplicada: `add column` condicional dentro de un DO). En todo el árbol
+  hay siete plantillas `EXECUTE` en bloques DO y ninguna contiene DDL cubierto.
+  Pendientes-únicos: ninguno antes ni después. Gate `0 ROJO · 0 AMARILLO` en
+  ambos, con 1637 módulos alcanzables.
+- **Extracción de L17 `07e54dfc` (`git archive`):** el checker anterior da
+  `0 ROJO`, exit 0; el nuevo, `1 ROJO`: `reserve_public_verify_attempt` (0426)
+  en `lib/public/verify-throttle.ts:27`, exit 1. Con una declaración de
+  demostración, solo en una copia descartable, el anterior da exit 2 y el nuevo
+  `0 ROJO · 1 AMARILLO`, exit 0.
+
+**Límites que persisten.**
+
+- `EXECUTE` de una variable. El único caso de main es 0296 (`execute v_after`):
+  reescribe la definición de `operario_action` leída con `pg_get_functiondef`,
+  una redefinición y no un símbolo nuevo.
+- Nombres de objeto o esquemas calculados (`%I`, `||`) no se extraen.
+- Los literales con DDL que no se pasan a `EXECUTE`, como las etiquetas
+  `'CREATE TABLE'` del event trigger de 0277, se ignoran por diseño.
+- Complemento posible, no implementado: que `schema-rebuild` compare lo que
+  cada pendiente crea en el catálogo efímero con la extracción estática.
+  Necesita SDD propia, porque suma Docker como fuente de verdad.
+
+- [x] Una función creada con DDL dinámico literal en un bloque DO pendiente y
+      llamada desde TS alcanzable da ROJO; su declaración valida como AMARILLO.
+- [x] Cuerpos de función y literales no ejecutados siguen sin crear símbolos;
+      los nombres calculados no producen símbolos falsos.
+- [x] Main sin cambios de veredicto ni pendientes-únicos nuevos; extracción
+      comparada en todas las migraciones.
+- [x] Extracción de L17: ROJO en `lib/public/verify-throttle.ts:27`, sin tocar
+      su worktree.
+
+**Validación.** PASARON `pnpm harness:test` (39/39, seis nuevas), la prueba
+focal Vitest del check con el contrato CI (29/29), el checker en el árbol y
+sobre la extracción de L17, ESLint, `pnpm docs:check`, `pnpm sdd:check` y
+`git diff --check`. `pnpm verify` quedó NO EJECUTADO: el cambio es solo de
+harness y se valida con sus pruebas propias. Detalle en
+`.agents/handoffs/pending-symbols-do-blocks.md`.

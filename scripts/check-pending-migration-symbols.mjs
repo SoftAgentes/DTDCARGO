@@ -59,6 +59,15 @@ const IGNORED_DIRECTORIES = new Set([
 
 const IDENTIFIER = String.raw`(?:"(?:[^"]|"")+"|[A-Za-z_][A-Za-z0-9_$]*)`;
 const QUALIFIED_IDENTIFIER = String.raw`(?:(?<schema>${IDENTIFIER})\s*\.\s*)?(?<name>${IDENTIFIER})`;
+/**
+ * Un nombre extraído debe estar completo: no lo siguen más caracteres de
+ * identificador, un punto (cualificado a medias), un marcador de format()
+ * (`%I`, `%s`) ni el fin del fragmento (un literal concatenado con `||` puede
+ * cortarlo). Sin esto, plantillas EXECUTE como `create table public.%I` o
+ * `create table if not exists %I` darían símbolos falsos (`public`, `if`).
+ */
+const NAME_END = String.raw`(?![A-Za-z0-9_$"%]|\s*\.|$)`;
+const IF_NOT_EXISTS = String.raw`(?:if\s+not\s+exists\s+)?(?!if\s+not\s+exists\b)`;
 
 export function normalizeRepoPath(value) {
   return path.posix.normalize(String(value).replaceAll("\\", "/")).replace(/^\.\//, "");
@@ -111,9 +120,16 @@ function utf16Units(text) {
   return text.split("");
 }
 
-/** Enmascara comentarios y literales SQL sin mover líneas ni offsets. */
-export function maskSqlNonCode(sql) {
+const DOLLAR_QUOTE_TAG = /\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/y;
+
+/**
+ * Separa código de comentarios y literales SQL sin mover líneas ni offsets.
+ * Devuelve la vista de código (comentarios y literales en blanco) y cada literal
+ * con su posición y su texto ya sin comillas (`''` → `'` en los simples).
+ */
+function scanSql(sql) {
   const out = utf16Units(sql);
+  const literals = [];
   const blank = (index) => {
     if (out[index] !== "\n" && out[index] !== "\r") out[index] = " ";
   };
@@ -145,26 +161,33 @@ export function maskSqlNonCode(sql) {
     }
 
     if (sql[i] === "'") {
+      const start = i;
       blank(i++);
+      let closed = false;
       while (i < sql.length) {
         if (sql[i] === "'" && sql[i + 1] === "'") {
           blank(i++);
           blank(i++);
         } else if (sql[i] === "'") {
           blank(i++);
+          closed = true;
           break;
         } else {
           blank(i++);
         }
       }
+      literals.push({ start, text: sql.slice(start + 1, closed ? i - 1 : i).replaceAll("''", "'") });
       continue;
     }
 
     if (sql[i] === "$") {
-      const tag = sql.slice(i).match(/^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/)?.[0];
+      DOLLAR_QUOTE_TAG.lastIndex = i;
+      const tag = DOLLAR_QUOTE_TAG.exec(sql)?.[0];
       if (tag) {
+        const start = i;
         const end = sql.indexOf(tag, i + tag.length);
         const limit = end === -1 ? sql.length : end + tag.length;
+        literals.push({ start, text: sql.slice(start + tag.length, end === -1 ? sql.length : end) });
         while (i < limit) blank(i++);
         continue;
       }
@@ -173,8 +196,75 @@ export function maskSqlNonCode(sql) {
     i += 1;
   }
 
-  return out.join("");
+  return { code: out.join(""), literals };
 }
+
+/** Enmascara comentarios y literales SQL sin mover líneas ni offsets. */
+export function maskSqlNonCode(sql) {
+  return scanSql(sql).code;
+}
+
+/**
+ * Últimos `count` tokens de código antes de `index`, en minúsculas y separados
+ * por un espacio. La vista de código ya dejó comentarios y literales en blanco.
+ */
+function tokensBefore(code, index, count) {
+  const tokens = [];
+  let i = index - 1;
+  while (tokens.length < count) {
+    while (i >= 0 && /\s/.test(code[i])) i -= 1;
+    if (i < 0) break;
+    const end = i + 1;
+    if (/[A-Za-z0-9_$]/.test(code[i])) {
+      while (i >= 0 && /[A-Za-z0-9_$]/.test(code[i])) i -= 1;
+    } else {
+      i -= 1;
+    }
+    tokens.unshift(code.slice(i + 1, end).toLowerCase());
+  }
+  return tokens.join(" ");
+}
+
+/** Literal que es el cuerpo de un `DO [LANGUAGE plpgsql]`. */
+const DO_BODY_CONTEXT = /(?:^| )do(?: language plpgsql)?$/;
+/** Literal pasado directo a EXECUTE, solo o como plantilla de [pg_catalog.]format(). */
+const EXECUTE_TEMPLATE_CONTEXT = /(?:^| )execute(?: \()?(?: (?:pg_catalog \. )?format \()?$/;
+/** DO → EXECUTE → DO…: más niveles son inusuales y no se siguen. */
+const MAX_EXECUTED_DEPTH = 4;
+
+/**
+ * Vistas de código SQL que corren al aplicar la migración. Además del texto
+ * enmascarado, entra en el cuerpo de cada bloque DO (PL/pgSQL que se ejecuta en
+ * ese momento) y, dentro de él, en cada literal pasado directamente a EXECUTE,
+ * solo o como plantilla de format(). No entra en cuerpos de función ni en otros
+ * literales: su DDL solo correría si alguien los invoca después.
+ */
+function executedSqlViews(sql, plpgsql = false, depth = 0) {
+  const { code, literals } = scanSql(sql);
+  const views = [code];
+  if (depth >= MAX_EXECUTED_DEPTH) return views;
+  for (const literal of literals) {
+    const context = tokensBefore(code, literal.start, 6);
+    if (DO_BODY_CONTEXT.test(context)) {
+      views.push(...executedSqlViews(literal.text, true, depth + 1));
+    } else if (plpgsql && EXECUTE_TEMPLATE_CONTEXT.test(context)) {
+      views.push(...executedSqlViews(literal.text, false, depth + 1));
+    }
+  }
+  return views;
+}
+
+const CREATED_OBJECTS = [
+  ["function", new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?function\s+${QUALIFIED_IDENTIFIER}${NAME_END}`, "gi")],
+  ["table", new RegExp(String.raw`\bcreate\s+table\s+${IF_NOT_EXISTS}${QUALIFIED_IDENTIFIER}${NAME_END}`, "gi")],
+  ["view", new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?view\s+${QUALIFIED_IDENTIFIER}${NAME_END}`, "gi")],
+];
+const ALTER_TABLE = new RegExp(
+  String.raw`\balter\s+table\s+(?:if\s+exists\s+)?(?!if\s+exists\b)(?:only\s+)?(?!only\b)`
+    + String.raw`${QUALIFIED_IDENTIFIER}${NAME_END}(?<body>[\s\S]*?)(?:;|$)`,
+  "gi",
+);
+const ADD_COLUMN = new RegExp(String.raw`\badd\s+column\s+${IF_NOT_EXISTS}(?<column>${IDENTIFIER})${NAME_END}`, "gi");
 
 function symbolFromMatch(kind, groups, migration) {
   const schema = normalizeIdentifier(groups.schema ?? "public");
@@ -183,44 +273,32 @@ function symbolFromMatch(kind, groups, migration) {
 }
 
 /**
- * Extrae los tipos de DDL cubiertos por SDD-0450. La función es pura: recibe
- * texto SQL y devuelve símbolos canónicos, sin leer disco.
+ * Extrae los tipos de DDL cubiertos por SDD-0450, incluido el DDL de bloques DO
+ * (estático o como literal de EXECUTE). La función es pura: recibe texto SQL y
+ * devuelve símbolos canónicos, sin leer disco.
  */
 export function extractCreatedSymbols(sql, migration = "fixture") {
-  const code = maskSqlNonCode(sql);
   const symbols = new Map();
-  const definitions = [
-    ["function", new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?function\s+${QUALIFIED_IDENTIFIER}`, "gi")],
-    ["table", new RegExp(String.raw`\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?${QUALIFIED_IDENTIFIER}`, "gi")],
-    ["view", new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?view\s+${QUALIFIED_IDENTIFIER}`, "gi")],
-  ];
 
-  for (const [kind, regexp] of definitions) {
-    for (const match of code.matchAll(regexp)) {
-      addSymbol(symbols, symbolFromMatch(kind, match.groups, migration));
+  for (const code of executedSqlViews(sql)) {
+    for (const [kind, regexp] of CREATED_OBJECTS) {
+      for (const match of code.matchAll(regexp)) {
+        addSymbol(symbols, symbolFromMatch(kind, match.groups, migration));
+      }
     }
-  }
 
-  const alterTable = new RegExp(
-    String.raw`\balter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?${QUALIFIED_IDENTIFIER}(?<body>[\s\S]*?)(?:;|$)`,
-    "gi",
-  );
-  const addColumn = new RegExp(
-    String.raw`\badd\s+column\s+(?:if\s+not\s+exists\s+)?(?<column>${IDENTIFIER})`,
-    "gi",
-  );
-
-  for (const statement of code.matchAll(alterTable)) {
-    const schema = normalizeIdentifier(statement.groups.schema ?? "public");
-    const relation = normalizeIdentifier(statement.groups.name);
-    for (const column of statement.groups.body.matchAll(addColumn)) {
-      addSymbol(symbols, {
-        kind: "column",
-        schema,
-        relation,
-        name: normalizeIdentifier(column.groups.column),
-        migration,
-      });
+    for (const statement of code.matchAll(ALTER_TABLE)) {
+      const schema = normalizeIdentifier(statement.groups.schema ?? "public");
+      const relation = normalizeIdentifier(statement.groups.name);
+      for (const column of statement.groups.body.matchAll(ADD_COLUMN)) {
+        addSymbol(symbols, {
+          kind: "column",
+          schema,
+          relation,
+          name: normalizeIdentifier(column.groups.column),
+          migration,
+        });
+      }
     }
   }
 
