@@ -77,12 +77,13 @@ Una fila con más de 30 minutos no cambia ninguna decisión: su única finalidad
   compartido; la frecuencia permitida depende del plan de Vercel) o purgar dentro
   de la RPC (migración nueva). Ambas opciones quedan fuera.
 - **Invariante.** La retención es ≥ 2 × `VERIFY_WINDOW_MINUTES`. La fija un test
-  (`__tests__/route.test.ts:136-143`) que importa la constante. Se prefirió una
-  constante explícita a derivarla: los documentos legales declaran «60 min», y una
-  derivación los desactualizaría sin aviso. Si la ventana crece, el test falla y
-  obliga a revisar juntos la retención, esta spec y `docs/legal/privacidad`.
-  Cuando PR #80 esté en `main`, su guard (`lib/public/verify-throttle.test.ts:147-154`
-  en esa rama) ata la constante al SQL de 0426 y la cadena queda cerrada.
+  (`__tests__/route.test.ts`, «el corte no alcanza la ventana…») que importa la
+  constante. Se prefirió una constante explícita a derivarla: los documentos
+  legales declaran «60 min», y una derivación los desactualizaría sin aviso. Si la
+  ventana crece, el test falla y obliga a revisar juntos la retención, esta spec y
+  `docs/legal/privacidad`. Cuando PR #80 esté en `main`, su guard
+  (`lib/public/verify-throttle.test.ts:147-154` en esa rama) ata la constante al
+  SQL de 0426 y la cadena queda cerrada.
 
 ## Diseño
 
@@ -127,8 +128,9 @@ Sin cambios en `vercel.json`, en la autenticación, en las otras tablas ni en
 - `docs/specs/0455-purge-public-verify-throttle/spec.md` y `docs/specs/README.md`
   (generado con `pnpm docs:index`).
 - `docs/legal/privacidad/AUDITORIA-2026-07.md`: corrección de §2.1, filas 61-64 y
-  nota 66-71.
-- `docs/legal/privacidad/registro-tratamiento.md`: versión 1.4, §4.3 y fila en §5.
+  la nota posterior.
+- `docs/legal/privacidad/registro-tratamiento.md`: versión 1.4, fila de
+  `public_track_log` en §4.2, §4.3 y fila en §5.
 - `docs/legal/privacidad/mapa-de-borrado.md`: fila en §E.
 - `.agents/handoffs/purge-public-verify-throttle.md`.
 
@@ -142,13 +144,17 @@ baseline y las declaraciones de símbolos, `lib/public/**`, `app/verificar/**`,
 - [x] RED: con el test nuevo y la ruta anterior, fallan 4 de 7; pasan solo los
   tres casos 403.
 - [x] GREEN (`route.test.ts`, 7/7):
-  - tres tablas en orden y todas por `created_at`;
+  - tres tablas en orden, todas por `created_at` y con `count: "exact"`;
   - corte de 60 min para `public_verify_throttle` y de 48 h para las otras dos;
   - guard ≥ 2 × ventana;
   - fallo de la tercera purga: 500 genérico, con las dos anteriores ya hechas.
 - [x] Verificación efímera de la ruta **real** contra `supabase/postgres:17.6.1.165`
   y `postgrest/postgrest:v16.1` locales. Detalle abajo.
-- [x] Documentos de privacidad corregidos con `archivo:línea`.
+- [x] Documentos de privacidad corregidos con `archivo:línea`:
+  - auditoría §2.1: cuatro tablas, con los 12 escritores de
+    `portal_registro_throttle` y la huella de `public_track_log` desde 0326;
+  - registro: §4.2 (`public_track_log`), §4.3 y §5;
+  - mapa: §E.
 - [x] Gates locales: registrados en el handoff con PASÓ/FALLÓ/NO DISPONIBLE.
 - [ ] **Sam aprueba**, al autorizar el merge, la retención de 60 min y el borrado
   irreversible del historial (ver Release). Mientras falte, la spec sigue
@@ -177,7 +183,9 @@ eliminó al terminar. Guion y recibo quedan fuera de Git, en el scratchpad de la
 ## Release y reversión
 
 Los crons de Vercel se ejecutan sobre el despliegue de producción, según su
-documentación: una preview no purga. Antes de fusionar:
+documentación: una preview no purga. El merge a `main` despliega en Vercel y activa
+la purga desde la corrida siguiente de las 04:00 UTC, así que la autorización del
+merge tiene que cubrir ese efecto. Antes de fusionar:
 
 1. **Decisión de Sam sobre el historial.** La primera corrida tras el despliegue
    borra de forma irreversible todas las filas con más de 60 min, es decir, todo
@@ -222,7 +230,7 @@ proveedor son NO VERIFICABLES.
 
 Alcance: retención y minimización de `public_verify_throttle` y documentos
 corregidos. Marco: Venezuela (CRBV art. 28; SC 332/2001, **temporalidad**; SC
-759/2025). RGPD y 21.719 solo como referencia. Resumen: 5 CORRECTO, 4 ENCONTRADO
+759/2025). RGPD y 21.719 solo como referencia. Resumen: 5 CORRECTO, 5 ENCONTRADO
 (preexistentes, fuera de alcance) y 5 NO VERIFICABLE.
 
 | Dato | Qué es | Finalidad | Base de licitud | Retención | Quién lo ve |
@@ -230,23 +238,31 @@ corregidos. Marco: Venezuela (CRBV art. 28; SC 332/2001, **temporalidad**; SC
 | `public_verify_throttle.ip` (`0169:25`) | IP en claro del visitante | anti-enumeración de `/verificar` (`0169:2-10`) | NO VERIFICABLE | filas con más de 60 min, en el cron diario; vida máxima ~25 h (`route.ts:36,78-82`; `vercel.json:22-23`) | solo `service_role` (RLS sin policies, `0169:38`) |
 | `public_verify_throttle.created_at` (`0169:26`) | hora del intento | ventana de 30 min | NO VERIFICABLE | igual | igual |
 
-- CORRECTO — la retención existe y está acotada: `route.ts:36,57-59,78-82`;
-  `route.test.ts:119-134`. En la verificación efímera se borraron 1.000.003 filas
-  viejas y se conservaron las 3 recientes.
+- CORRECTO — la retención existe y está acotada: `route.ts:36,57-59,78-82` y los
+  tests de corte de `route.test.ts`. En la verificación efímera se borraron
+  1.000.003 filas viejas y se conservaron las 3 recientes.
 - CORRECTO — la purga no toca la ventana contada: corte de 60 min contra ventana
-  de 30 (`verify-throttle.ts:25`), con guard en `route.test.ts:136-143`.
+  de 30 (`verify-throttle.ts:25`), con guard en `route.test.ts`.
 - CORRECTO — el cambio no captura ni envía datos nuevos. Solo borra. La respuesta
   lleva conteos y cortes, sin IP (`route.ts:92-106`). El log de error lleva el
   mensaje del proveedor, sin filas (`route.ts:83-89`; `lib/http/api-error.ts:38-39`).
 - CORRECTO — `anon` no puede borrar ni leer la tabla: RLS sin policies
   (`0169:38`), medido en local (204 `*/0`, `[]`).
 - CORRECTO — los documentos describen columnas y retención reales:
-  `AUDITORIA-2026-07.md:61-71`, `registro-tratamiento.md` §4.3 y §5,
-  `mapa-de-borrado.md` §E.
+  - `AUDITORIA-2026-07.md` §2.1, con las cuatro tablas y los 12 escritores de
+    `portal_registro_throttle`;
+  - `registro-tratamiento.md` §4.2, §4.3 y §5;
+  - `mapa-de-borrado.md` §E.
 - ENCONTRADO — `public_track_log` no tiene purga. No hay DELETE ni cron en
-  `supabase/migrations/` ni en `app/`/`lib/`. Aun así,
-  `registro-tratamiento.md:95` dice «48 h en cron». Temporalidad (SC 332/2001).
-  Arreglo en un SDD propio: agregarla al cron o corregir la fila.
+  `supabase/migrations/` ni en `app/`/`lib/`. Desde `0326` guarda una huella
+  (`0326_public_tracking_privacy_throttle.sql:32`), pero sin backfill: las filas
+  previas pueden conservar la IP en claro. El registro §4.2 ya no dice «48 h en
+  cron». Temporalidad (SC 332/2001). La purga se deja a un SDD propio.
+- ENCONTRADO — `portal-login-mail:` guarda en `portal_registro_throttle` una huella
+  SHA-256 **sin sal** del email (`app/entrar/actions.ts:113,117`), que se revierte
+  probando correos conocidos. El registro §4.2 describe ese namespace como «no
+  email». Arreglo en un SDD propio: sal o HMAC con secreto de servidor, y
+  declararlo en §4.2.
 - ENCONTRADO — `no_olvidar_access_log` conserva `ip_address` y `user_agent` sin
   plazo (`0017_no_olvidar.sql:121-129,430-436`). Es inmutable por diseño y
   necesita una decisión de retención propia.
