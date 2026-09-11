@@ -68,7 +68,10 @@ Las 24 migraciones pendientes anteriores conservan sus gates; ésta es adicional
 - [x] Reproducir cruce con migraciones reales y fixture independiente.
 - [x] Implementar migración local y verificar negativos/positivos/preservación.
 - [x] Rebuild y gate SQL local; actualizar evidencia sin inflar contador histórico.
-- [ ] Preflight y aplicación Cloud nominal: requiere autorización independiente.
+- [x] Preflight y aplicación Cloud nominal: requiere autorización independiente.
+      Aplicada el 2026-09-11 con OK nominal de Sam; ledger
+      `20260911040935 / 0425_portal_delivery_addresses_tenant_boundary`;
+      [registro de aplicación](../../../.agents/handoffs/0425-0427-aplicacion-prod-20260911.md).
 
 ## Reversión
 
