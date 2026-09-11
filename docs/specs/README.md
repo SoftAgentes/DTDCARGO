@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 415 specs)
+### Índice de specs (generado · 416 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -393,6 +393,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0382 | Perfil y solicitudes de cambio Portal por principal y tenant | in-progress | interno |
 | 0383 | Frontera AST de service_role en componentes Portal | in-progress | interno |
 | 0384 | Acciones de Perfil Portal por principal y tenant | in-progress | interno |
+| 0385 | Mensajes Portal por principal y tenant coherentes | done | interno |
 | 0386 | Web Push Portal por principal y tenant coherentes | done | interno |
 | 0387 | Academia Portal en aplicación por principal y tenant | done | interno |
 | 0388 | Proveedores Portal en aplicación por principal y tenant | done | interno |
@@ -454,5 +455,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0451 | Resolución de H1 y sonda reutilizable de navegación móvil ERP | done | interno |
 | 0452 | Sanitizador: formatos actuales de claves y descubrimiento de … | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0364, 0365, 0366, 0368, 0375, 0381, 0385, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0364, 0365, 0366, 0368, 0375, 0381, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
