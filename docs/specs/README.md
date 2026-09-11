@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 415 specs)
+### Índice de specs (generado · 416 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -385,6 +385,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0372 | Direcciones Portal por principal y tenant | in-progress | interno |
 | 0373 | Validación de destinos y suscripciones Web Push | done | interno |
 | 0374 | Verificación pública bloqueada ante fallo del throttle | in-progress | interno |
+| 0375 | Reserva atómica del verificador público | in-progress | interno |
 | 0376 | Comprobaciones Git agrupadas sin relajar el cierre seguro | done | interno |
 | 0377 | Borrado logico de direcciones Portal confirmado y auditable | in-progress | interno |
 | 0378 | Verificacion local sin falsos verdes y aislamiento de pruebas… | done | interno |
@@ -454,5 +455,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0451 | Resolución de H1 y sonda reutilizable de navegación móvil ERP | done | interno |
 | 0452 | Sanitizador: formatos actuales de claves y descubrimiento de … | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0364, 0365, 0366, 0368, 0375, 0381, 0385, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0351, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0364, 0365, 0366, 0368, 0381, 0385, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
