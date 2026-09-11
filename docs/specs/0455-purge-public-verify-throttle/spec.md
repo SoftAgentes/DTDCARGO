@@ -1,7 +1,7 @@
 ---
 sdd: "0455"
 title: "Retención de public_verify_throttle en el cron purge-throttle"
-status: in-progress
+status: done
 author: "Claude (Worker)"
 created: 2026-09-11
 updated: 2026-09-11
@@ -106,7 +106,7 @@ Sin cambios en `vercel.json`, en la autenticación, en las otras tablas ni en
 | Opción | Decisión y evidencia |
 |---|---|
 | Índice por `created_at` | **No hace falta.** Tras la primera corrida la tabla guarda como máximo ~25 h de filas. Con el índice actual `(ip, created_at)` (`0169:32-34`) el DELETE es `Seq Scan` (plan medido). La ruta real purgó 1.000.003 filas en 4,8 s y la corrida siguiente tardó 0,35 s. Un índice extra encarecería cada INSERT de `/verificar`, que es el camino caliente, para acelerar una tarea diaria sobre una tabla pequeña. |
-| `grant delete` explícito a `service_role` | **No en esta PR; queda como precondición de release.** En la imagen `supabase/postgres` los default privileges dan ALL a `service_role`, y la tabla creada como `postgres` recibe DELETE (medido). En producción el runbook solo registró INSERT y además anota «`anon`/`authenticated` sin SELECT» (`aplicar-migraciones-prod.md:179-181`), que no coincide con esos defaults. Por eso DELETE en producción es NO VERIFICABLE. Si la consulta de catálogo de Release da `false`, hace falta una migración `grant delete`, con número coordinado por el Director, antes de fusionar. |
+| `grant delete` explícito a `service_role` | **No hace falta.** En la imagen `supabase/postgres` los default privileges dan ALL a `service_role`, y la tabla creada como `postgres` recibe DELETE (medido). En producción el runbook solo registró INSERT (`aplicar-migraciones-prod.md:179-181`). El 2026-09-11 el Director verificó por catálogo que `service_role` tiene DELETE (Release 2). |
 | Corregir el comentario de 0169 | **No hace falta ni se puede.** 0169 está aplicada y no se edita. Su línea 18 («puede limpiarla por antigüedad») se vuelve cierta con este cambio. El comentario de catálogo (`0169:29-30`) no habla de retención y no es inexacto. No se registra deuda. |
 | Comentario de 0426 | «sin purga» (`0426:119` en PR #80) describe la RPC, que sigue sin purgar. Sigue siendo cierto. |
 
@@ -156,9 +156,10 @@ baseline y las declaraciones de símbolos, `lib/public/**`, `app/verificar/**`,
   - registro: §4.2 (`public_track_log`), §4.3 y §5;
   - mapa: §E.
 - [x] Gates locales: registrados en el handoff con PASÓ/FALLÓ/NO DISPONIBLE.
-- [ ] **Sam aprueba**, al autorizar el merge, la retención de 60 min y el borrado
-  irreversible del historial (ver Release). Mientras falte, la spec sigue
-  `in-progress`.
+- [x] **Sam aprueba** la retención de 60 min y el borrado irreversible del
+  historial (ver Release). Aprobación nominal del 2026-09-11, comunicada por el
+  Director de ingeniería con la cita textual «Apruebo la retención de 60 min de
+  #86». Según el Director, cubre también el borrado del historial actual.
 
 ### Verificación efímera (2026-09-11)
 
@@ -192,9 +193,12 @@ merge tiene que cubrir ese efecto. Antes de fusionar:
    lo acumulado desde el 2026-07-16. No existe hold para esta tabla. Si hay un
    incidente de enumeración bajo análisis o un requerimiento que obligue a
    conservar, la decisión se toma antes del merge.
+   - Resultado: aprobada el 2026-09-11 (ver Pruebas y aceptación).
 2. **Privilegio en producción**, con autorización y sin leer filas:
    `select has_table_privilege('service_role', 'public.public_verify_throttle', 'DELETE');`.
    Si da `false`, primero va la migración `grant delete`.
+   - Resultado del Director, por catálogo, 2026-09-11: `service_role` tiene DELETE
+     (`relacl` `arwdDxtm`), `anon` y `authenticated` no, y RLS está activa.
 3. **Tamaño del primer barrido (opcional, con autorización):**
    `select count(*) from public.public_verify_throttle where created_at < now() - interval '60 minutes';`.
    - En local, 1 M de filas tardó 4,8 s bajo un `statement_timeout` de 8 s en
@@ -203,6 +207,8 @@ merge tiene que cubrir ese efecto. Antes de fusionar:
      500 todos los días sin purgar esta tabla. Las otras dos purgas no se ven
      afectadas.
    - Contingencia: una purga manual única, autorizada según el runbook de producción.
+   - Resultado del Director, por metadata y `pg_stat`, 2026-09-11: la tabla ocupa
+     8 KB y tiene unas 32 filas; el primer barrido no corre riesgo con los 8 s.
 
 Después del despliegue, la corrida siguiente de las 04:00 UTC debe responder 200,
 sin `[purge-verify-throttle]` en los logs. Con autorización, el conteo de filas
@@ -277,12 +283,14 @@ corregidos. Marco: Venezuela (CRBV art. 28; SC 332/2001, **temporalidad**; SC
   QR. El pie de `/verificar` enlaza `/privacidad` (`app/verificar/page.tsx:558`;
   `components/Footer.tsx:194`), que menciona la IP «para prevenir usos
   indebidos» (`app/privacidad/page.tsx:65-66`).
-- NO VERIFICABLE — el privilegio DELETE de `service_role` en producción (Release 2).
+- NO VERIFICABLE desde esta sesión — el privilegio DELETE de `service_role` en
+  producción. El Director lo reporta presente por catálogo el 2026-09-11 (Release 2).
 - NO VERIFICABLE — las copias en respaldos/PITR y WAL de Supabase y los logs de
   Vercel. En local, las tuplas borradas ocupan espacio (154 MB antes y después)
   hasta que autovacuum las recicla.
-- NO VERIFICABLE — el tamaño real del backlog y la duración del primer barrido
-  frente al `statement_timeout` de producción (Release 3).
+- NO VERIFICABLE desde esta sesión — el tamaño real del backlog. El Director
+  reporta 8 KB y unas 32 filas (Release 3); la duración real se verá en la primera
+  corrida.
 - NO VERIFICABLE — la precisión horaria de la invocación del cron según el plan
   de Vercel.
 
