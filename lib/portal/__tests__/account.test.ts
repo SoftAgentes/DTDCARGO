@@ -5,16 +5,15 @@
  *  - `getPortalClient` ahora trae `address` (dirección/ciudad de entrega) además
  *    de id/markbox/name/email/phone — y lo mapea con null-safety (el alta del
  *    cliente es mediada por el admin: campos opcionales pueden venir null).
- *  - Aislamiento: si la helper `get_portal_client_id()` no resuelve un cliente
- *    (p.ej. un user de equipo del Studio, que NO tiene row en client_users),
- *    `getPortalClient` corta y devuelve null SIN consultar `clients` (no expone
- *    una fila ajena del tenant).
+ *  - Aislamiento: resuelve `auth.uid()` + `client_users` y valida que el cliente
+ *    embebido siga vivo y comparta client_id/tenant. Sin sesión autenticada
+ *    se corta antes de consultar la relación.
  *  - `buildPortalSupplierMark`: la marca que el proveedor escribe en cada caja
  *    como Shipping Mark (唛头) ES el MARKBOX, normalizado (mayúsculas, sin espacios
  *    accidentales), sin prefijos ni PII.
  *
  * `getPortalClient` recibe un SupabaseClient — usamos un stub mínimo que encadena
- * `rpc(...)` + `from().select().eq().maybeSingle()`, igual que el resto de la suite.
+ * `auth.getUser()` + `client_users.select().eq().maybeSingle()`.
  */
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -22,40 +21,42 @@ import { getPortalClient } from "../portal-queries";
 import { buildPortalSupplierMark } from "../portal-types";
 
 /**
- * Stub de SupabaseClient para `getPortalClient`.
- *  - `rpc("get_portal_client_id")` → `{ data: portalClientId, error }`.
- *  - `from("clients").select(...).eq(...).maybeSingle()` → `{ data: row, error }`.
- * Registra si se consultó `clients` para poder afirmar el corte temprano.
+ * Stub de SupabaseClient para `getPortalClient`. Registra si se consultó el
+ * vínculo para poder afirmar el corte temprano sin sesión.
  */
 function clientStub(opts: {
   portalClientId: string | null;
-  rpcError?: boolean;
+  authError?: boolean;
   row?: Record<string, unknown> | null;
   rowError?: boolean;
-}): { supabase: SupabaseClient; queriedClients: () => boolean } {
-  let queriedClients = false;
+}): { supabase: SupabaseClient; queriedMembership: () => boolean } {
+  let queriedMembership = false;
+  const authUserId = opts.portalClientId ? "auth-synthetic" : null;
   const supabase = {
-    rpc(fn: string) {
-      if (fn === "get_portal_client_id") {
-        return Promise.resolve({
-          data: opts.portalClientId,
-          error: opts.rpcError ? { message: "rpc fail" } : null,
-        });
-      }
-      return Promise.resolve({ data: null, error: null });
-    },
+    auth: { getUser: async () => ({
+      data: { user: authUserId ? { id: authUserId } : null },
+      error: opts.authError ? { message: "auth fail" } : null,
+    }) },
     from() {
-      queriedClients = true;
+      queriedMembership = true;
+      let rows = opts.portalClientId && opts.row ? [{
+        auth_user_id: authUserId,
+        status: "active",
+        client_id: opts.portalClientId,
+        tenant_id: opts.row.tenant_id,
+        clients: opts.row,
+      }] : [];
       const chain = {
         select() {
           return chain;
         },
-        eq() {
+        eq(key: string, value: unknown) {
+          rows = rows.filter(row => row[key as keyof typeof row] === value);
           return chain;
         },
         maybeSingle() {
           return Promise.resolve({
-            data: opts.row ?? null,
+            data: rows.length === 1 ? rows[0] : null,
             error: opts.rowError ? { message: "row fail" } : null,
           });
         },
@@ -63,11 +64,12 @@ function clientStub(opts: {
       return chain;
     },
   } as unknown as SupabaseClient;
-  return { supabase, queriedClients: () => queriedClients };
+  return { supabase, queriedMembership: () => queriedMembership };
 }
 
 const FULL_ROW = {
   id: "c-1",
+  tenant_id: "tenant-synthetic",
   markbox: "DTD-1001",
   name: "Empresa Demo S.A.",
   email: "compras@demosa.com.ve",
@@ -79,6 +81,7 @@ const FULL_ROW = {
   // "Datos de cuenta" mientras el cliente no tenga dirección predeterminada.
   city: "Valencia",
   state: "Carabobo",
+  deleted_at: null,
 };
 
 describe("getPortalClient — incluye address (dirección de entrega)", () => {
@@ -125,7 +128,10 @@ describe("getPortalClient — incluye address (dirección de entrega)", () => {
   it("address/identidad ausente → null (no rompe; el admin puede no haberla cargado)", async () => {
     const { supabase } = clientStub({
       portalClientId: "c-2",
-      row: { id: "c-2", markbox: "DTD-1003", name: "Tenant Prueba SRL" }, // sin email/phone/address/rif/doc_kind
+      row: {
+        id: "c-2", tenant_id: "tenant-synthetic", markbox: "DTD-1003",
+        name: "Tenant Prueba SRL", deleted_at: null,
+      }, // sin email/phone/address/rif/doc_kind
     });
     const client = await getPortalClient(supabase);
 
@@ -137,27 +143,27 @@ describe("getPortalClient — incluye address (dirección de entrega)", () => {
     expect(client?.rif).toBeNull();
   });
 
-  it("aislamiento: sin client_id del portal → null SIN consultar clients", async () => {
-    // Caso user de equipo del Studio: no tiene row en client_users → la helper
-    // devuelve null → no debemos leer la tabla clients (evita fuga de una fila ajena).
-    const { supabase, queriedClients } = clientStub({ portalClientId: null });
+  it("aislamiento: sin sesión Portal → null sin consultar el vínculo", async () => {
+    // Sin sesión verificada no se consulta el vínculo ni su cliente embebido.
+    const { supabase, queriedMembership } = clientStub({ portalClientId: null });
     const client = await getPortalClient(supabase);
 
     expect(client).toBeNull();
-    expect(queriedClients()).toBe(false);
+    expect(queriedMembership()).toBe(false);
   });
 
-  it("error de la RPC → null, también sin consultar clients", async () => {
-    const { supabase, queriedClients } = clientStub({
-      portalClientId: null,
-      rpcError: true,
+  it("error de autenticación → null, también sin consultar el vínculo", async () => {
+    const { supabase, queriedMembership } = clientStub({
+      portalClientId: "c-1",
+      authError: true,
+      row: FULL_ROW,
     });
     expect(await getPortalClient(supabase)).toBeNull();
-    expect(queriedClients()).toBe(false);
+    expect(queriedMembership()).toBe(false);
   });
 
   it("error al leer la fila → null", async () => {
-    const { supabase } = clientStub({ portalClientId: "c-1", rowError: true });
+    const { supabase } = clientStub({ portalClientId: "c-1", row: FULL_ROW, rowError: true });
     expect(await getPortalClient(supabase)).toBeNull();
   });
 });
