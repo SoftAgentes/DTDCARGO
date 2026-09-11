@@ -53,7 +53,7 @@ ventana de 30 minutos:
 | Lector | Ventana | Evidencia |
 |---|---|---|
 | `isVerifyThrottled` en `main` (fail-open, cuenta + insert) | `VERIFY_WINDOW_MINUTES = 30`; cuenta `created_at >= ahora − 30 min` | `lib/public/verify-throttle.ts:25,47-55` |
-| RPC `reserve_public_verify_attempt` de 0426 (PR #80, sin integrar ni aplicar) | `interval '30 minutes'`, reloj de Postgres tras el lock | `0426_public_verify_atomic_reservation.sql:37,41` en esa rama |
+| RPC `reserve_public_verify_attempt` de 0426 (PR #80, sin integrar ni aplicar) | `interval '30 minutes'`, reloj de Postgres tras el lock | `0426:37,41` en la rama de PR #80; el archivo no existe en esta rama |
 
 Ningún otro código lee la tabla (`git grep public_verify_throttle` en la base).
 Una fila con más de 30 minutos no cambia ninguna decisión: su única finalidad
