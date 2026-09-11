@@ -59,28 +59,34 @@ function mergeObjectByKey(base, current, other, label) {
     throw new Error(`${label} debe ser un objeto JSON en las tres versiones`);
   }
   const result = Object.create(null);
-  for (const key of orderedUnionKeys(base, current, other)) {
+  for (const key of incomingFirstKeys(current, other)) {
     const baseValue = Object.hasOwn(base, key) ? base[key] : MISSING;
     const currentValue = Object.hasOwn(current, key) ? current[key] : MISSING;
     const otherValue = Object.hasOwn(other, key) ? other[key] : MISSING;
 
-    // Es una unión de entradas, no "gana el lado que borró". Si solo una
-    // rama quita una clave que la otra todavía conserva, se preserva. Un
-    // delete/edit es ambiguo y debe resolverse a mano; dos deletes sí acuerdan.
-    if (currentValue === MISSING && otherValue === MISSING) continue;
-    if (currentValue === MISSING || otherValue === MISSING) {
-      const present = currentValue === MISSING ? otherValue : currentValue;
-      if (baseValue !== MISSING && !deepEqual(present, baseValue)) {
+    // Three-way por clave, retiros incluidos. Quitar una espera es el acto que
+    // registra la aplicación de su migración: si un lado la quita y el otro la
+    // conserva igual a la base, gana el retiro. Resucitarla reabriría la espera
+    // de algo ya aplicado. Borrar contra editar es ambiguo y se resuelve a mano.
+    if (baseValue !== MISSING && (currentValue === MISSING) !== (otherValue === MISSING)) {
+      const kept = currentValue === MISSING ? otherValue : currentValue;
+      if (!deepEqual(kept, baseValue)) {
         throw new Error(`conflicto real en ${label}.${key}: borrado contra edición`);
       }
-      result[key] = present;
-      continue;
     }
 
     const merged = mergeValue(baseValue, currentValue, otherValue, `${label}.${key}`);
     if (merged !== MISSING) result[key] = merged;
   }
   return result;
+}
+
+// Orden del baseline: primero las claves del lado entrante (%B), en su orden, y
+// al final las que solo trae el lado actual (%A), en el orden en que las
+// escribió. En `git merge origin/main` desde una rama, %B es main: el resultado
+// es el texto de main más lo que agrega la rama, sin reordenar lo de main.
+function incomingFirstKeys(current, other) {
+  return [...new Set([...Object.keys(other), ...Object.keys(current)])];
 }
 
 // JSON.parse acepta claves duplicadas y conserva silenciosamente la última.
@@ -225,7 +231,7 @@ function mergeBaseline(baseText, currentText, otherText) {
   validateBaseline(other, "baseline entrante");
 
   const result = Object.create(null);
-  for (const key of orderedUnionKeys(base, current, other)) {
+  for (const key of incomingFirstKeys(current, other)) {
     if (key === "pendingBelowCutoff") {
       result[key] = mergeObjectByKey(
         base.pendingBelowCutoff,
