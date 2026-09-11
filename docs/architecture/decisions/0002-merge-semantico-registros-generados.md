@@ -6,6 +6,7 @@
 | Fecha | 2026-09-10 |
 | Dueño | ingeniería DTD Cargo |
 | SDD | no aplica: harness/gobernanza, sin comportamiento de producto |
+| Enmiendas | 2026-09-11 · retiro unilateral y orden en `pendingBelowCutoff` (ver al final) |
 | Confidencialidad | interno |
 
 ## Contexto y medición
@@ -45,10 +46,11 @@ Ambos archivos siguen versionados y `.gitattributes` los asigna a
 El driver aplica estas reglas:
 
 1. Para `pendingBelowCutoff`, hace un three-way por clave. Adiciones con claves
-   distintas se conservan; una eliminación unilateral no gana sobre la entrada
-   que el otro lado conserva; borrar contra editar falla; la misma clave con
-   textos distintos falla y deja el archivo sin resolver. Solo dos lados que
-   coinciden en quitar la clave pueden retirarla durante la fusión.
+   distintas se conservan; la misma clave con textos distintos falla y deja el
+   archivo sin resolver; borrar contra editar falla. Desde la enmienda del
+   2026-09-11, una eliminación unilateral gana si el otro lado conserva la
+   entrada igual a la base, y el resultado sigue el orden del lado entrante con
+   lo que solo trae el lado actual al final.
 2. Rechaza JSON inválido, objetos con claves duplicadas, motivos vacíos, cutoff
    no entero y cambios ambiguos fuera de `pendingBelowCutoff`.
 3. Para el índice, une las filas por número SDD y **regenera** conteo, orden y
@@ -109,8 +111,8 @@ está fuera del alcance de E1.
 
 La prueba crea repositorios Git temporales y simula dos ramas con specs distintas
 y dos claves distintas del baseline. También prueba misma clave con texto
-distinto, eliminación unilateral, ausencia de configuración y claves JSON
-duplicadas.
+distinto, retiro unilateral en ambos sentidos, borrado contra edición, retiro de
+filas del índice, ausencia de configuración y claves JSON duplicadas.
 
 Rollback: retirar las dos reglas de `.gitattributes`. La configuración local
 inactiva no cambia archivos sin esos atributos; si se desea limpiar el clon:
@@ -118,3 +120,94 @@ inactiva no cambia archivos sin esos atributos; si se desea limpiar el clon:
 ```text
 git config --local --remove-section merge.dtd-generated-records
 ```
+
+## Enmienda 2026-09-11 · retiro unilateral y orden en `pendingBelowCutoff`
+
+### Contexto
+
+El `$doc` del baseline define el retiro como el registro de una aplicación:
+«AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí». Las PR de
+registro hacen eso, una migración por vez: #85 retiró
+`0409_bank_reconciliation_rbac` y #92, `0418_portal_academia_tenant_boundary`.
+
+La regla 1 original unía las entradas: si solo un lado quitaba una clave, se
+conservaba. Una rama creada antes de un registro que se actualizaba con
+`git merge origin/main` en un clon configurado resucitaba la espera sin
+conflicto. Además, el orden «base primero y adiciones ordenadas por nombre» no
+reproducía el de main cuando main había integrado esperas en otro orden.
+
+Ensayo con commits reales pasados por el driver anterior (%O = merge-base,
+%A = la rama, %B = main):
+
+| Merge | Resultado del driver anterior |
+|---|---|
+| L22 (#84): `c8058bcf` con `bbc7493f`, main después de #85 | 0409 reaparece primera; 0417 y 0429 quedan al final, fuera de su lugar en main |
+| L22 (#84): `968258c5` con `c6c67312` | 0431 y 0433 quedan antes que 0408, 0424 y 0432; en main, 0408 y 0424 van primero y 0432 va entre ambas |
+| cabeza de #87 (`00f257e1`) con la de #92 (`82e3e8ce`) | 0418 reaparece primera |
+
+El Worker de L22 lo corrigió a mano: `fe7c2c5d` restituyó el orden de main y el
+merge `79298160` quedó en main más 0434. GitHub fusiona sin driver: si una rama
+con la espera resucitada llega a main, reabre la espera de una migración ya
+aplicada. Ningún gate lo distingue: `check-migrations-applied` imprime cada
+espera como «sin aplicar A PROPÓSITO» sin cruzarla con el ledger
+(`scripts/check-migrations-applied.mjs:351-355`). Hasta ahora lo detectaba el
+control semántico del Director (baseline = main + entradas nuevas de la rama),
+a costa de una corrección manual por Worker. La PR #88 lo registró como fuera
+de alcance.
+
+### Decisión
+
+1. `pendingBelowCutoff` aplica three-way por clave también a los retiros: si un
+   lado quita la clave y el otro la conserva igual a la base, gana el retiro. Dos
+   retiros coinciden. Siguen iguales la unión de adiciones concurrentes, el
+   conflicto por la misma clave con motivos distintos, el conflicto borrado
+   contra edición, el rechazo de claves duplicadas y la exigencia de motivos no
+   vacíos.
+2. Orden: primero las claves del lado entrante (%B), en su orden, y al final las
+   que solo trae el lado actual (%A), en el orden en que ese lado las escribió.
+   La misma regla ordena las claves de primer nivel. En la metodología, el
+   Worker actualiza su rama y el Director valida la cabeza de una PR con
+   `git merge origin/main`. Git pasa main como %B, así que el resultado es el
+   texto de main más las adiciones de la rama: coincide con el control semántico
+   del Director y deja el diff contra main limitado a esas líneas.
+3. El índice `docs/specs/README.md` no cambia. Ya fusiona cada fila three-way con
+   `mergeValue`, retiro unilateral incluido, y regenera orden, conteo y huecos.
+   Debe seguir así porque el índice deriva del árbol de specs, que Git fusiona
+   three-way: si main borra o renumera una spec que la rama no tocó, la carpeta
+   desaparece y su fila también. Una unión dejaría la fila huérfana y
+   `docs:check` en rojo. Una prueba nueva fija ese comportamiento.
+
+### Consecuencias
+
+- El orden depende del sentido del merge; las claves y los motivos, no. La
+  prueba lo compara en ambos sentidos. Fusionar una rama sobre un main local,
+  fuera de la metodología, o encadenar cabezas de PR en una rama de integración
+  deja lo que agrega la cabeza entrante antes de lo acumulado. Ningún gate
+  depende del orden.
+- Una rama de registro que se actualiza con main conserva su retiro aunque main
+  haya agregado o editado otras esperas.
+- Si un lado retira y el otro edita la misma espera, el merge sigue bloqueado:
+  hay que decidir a mano si la migración se aplicó.
+
+### Alternativas descartadas
+
+- Conservar la unión y corregir a mano: es el costo que motivó esta enmienda, y
+  ningún gate distingue una espera resucitada de una vigente.
+- Tomar el orden del lado actual (%A) y poner al final lo nuevo del entrante: en
+  `git merge origin/main`, %A es la rama, así que reproduce el desorden de L22.
+- Orden de la base con adiciones ordenadas por nombre (regla anterior): no
+  depende del sentido, pero no reproduce main cuando este integró esperas fuera
+  del orden numérico.
+
+### Evidencia y rollback
+
+`scripts/tests/merge-generated-records.node.mjs` fija que el retiro de main gana
+y deja el texto exacto de main más las adiciones de la rama, que una rama de
+registro conserva su retiro, que borrar contra editar falla en ambos sentidos,
+que una base o un lado entrante con claves duplicadas se rechazan sin tocar
+`%A` y que el índice retira la fila de una spec renumerada. Los tres merges del
+ensayo, pasados por el driver nuevo, dan el texto de main más 0434 (L22) o más
+0450 (#87), y ninguna espera retirada reaparece.
+
+Rollback: revertir esta enmienda devuelve la unión. `.gitattributes` y el
+instalador no cambian.
