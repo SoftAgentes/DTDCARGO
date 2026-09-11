@@ -101,9 +101,19 @@ function addSymbol(target, symbol) {
   target.set(complete.key, complete);
 }
 
+/**
+ * Divide el texto en unidades UTF-16: las mismas que indexan `text[i]`,
+ * `startsWith(…, i)` e `indexOf`. No usar `[...text]`, que itera code points:
+ * cada carácter astral (emoji fuera del BMP) desplazaría la máscara una
+ * posición, movería líneas y ocultaría DDL, imports o sitios de llamada.
+ */
+function utf16Units(text) {
+  return text.split("");
+}
+
 /** Enmascara comentarios y literales SQL sin mover líneas ni offsets. */
 export function maskSqlNonCode(sql) {
-  const out = [...sql];
+  const out = utf16Units(sql);
   const blank = (index) => {
     if (out[index] !== "\n" && out[index] !== "\r") out[index] = " ";
   };
@@ -248,9 +258,12 @@ export function findPendingOnlySymbols(migrations, pendingMigrationNames) {
     .sort((a, b) => a.key.localeCompare(b.key));
 }
 
-/** Enmascara solo comentarios JS/TS; conserva strings para imports y símbolos DB. */
+/**
+ * Enmascara solo comentarios JS/TS, sin mover líneas ni offsets; conserva
+ * strings para imports y símbolos DB.
+ */
 export function maskJavaScriptComments(source) {
-  const out = [...source];
+  const out = utf16Units(source);
   let quote = null;
 
   for (let i = 0; i < source.length;) {
