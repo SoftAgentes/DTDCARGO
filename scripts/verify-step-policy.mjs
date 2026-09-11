@@ -14,6 +14,10 @@
  * exit 0 tampoco autoriza aprobación: el veredicto obliga a conseguir la
  * medición o una excepción explícita antes de presentar el cierre como completo.
  *
+ * Un paso que el watchdog corta por COLGADO/TIMEOUT (SDD-0454) es un FALLO con
+ * motivo, nunca una omisión: corrió y no terminó. Sale 1 como cualquier fallo
+ * y el motivo viaja hasta la línea final.
+ *
  * La política vive separada del runner para que cada paso nuevo tenga que
  * declarar su impacto y para probar el veredicto sin ejecutar el gate entero.
  */
@@ -130,17 +134,40 @@ export function assertCompleteStepPolicy(stepNames) {
   }
 }
 
+/**
+ * Un fallo es el nombre del paso o `{ name, reason }`. El motivo lo pone quien
+ * sabe por qué no hay un exit que citar —hoy, el watchdog ante un paso
+ * COLGADO— y viaja hasta la línea final, para que el cierre no dependa de
+ * encontrar el [FAIL] anterior.
+ */
+function normalizeFailures(failures) {
+  return failures.map((failure) =>
+    typeof failure === "string"
+      ? { name: failure, reason: null }
+      : { name: failure?.name, reason: failure?.reason ?? null },
+  );
+}
+
+const failureLabel = (failure) =>
+  failure.reason ? `${failure.name} [${failure.reason}]` : failure.name;
+
 function assertKnownResults(stepNames, skipped, failures) {
   const known = new Set(stepNames);
   const resultNames = [
     ...skipped.map((step) => step.name),
-    ...failures,
+    ...failures.map((failure) => failure.name),
   ];
   const unknown = [...new Set(resultNames.filter((name) => !known.has(name)))];
   const repeatedSkipped = duplicates(skipped.map((step) => step.name));
+  const blankReasons = failures
+    .filter((failure) => failure.reason !== null && !String(failure.reason).trim())
+    .map((failure) => failure.name);
   if (unknown.length > 0) throw new Error(`resultados de pasos desconocidos: ${unknown.join(", ")}`);
   if (repeatedSkipped.length > 0) {
     throw new Error(`pasos omitidos duplicados: ${repeatedSkipped.join(", ")}`);
+  }
+  if (blankReasons.length > 0) {
+    throw new Error(`fallos con motivo vacío: ${blankReasons.join(", ")}`);
   }
 }
 
@@ -152,7 +179,8 @@ function omittedSuffix(noncriticalMissing) {
 
 /** Devuelve la única línea final y el exit correspondiente a la evidencia. */
 export function buildVerifyVerdict({ stepNames, skipped, failures }) {
-  assertKnownResults(stepNames, skipped, failures);
+  const failed = normalizeFailures(failures);
+  assertKnownResults(stepNames, skipped, failed);
   const criticalMissing = skipped
     .map((step) => step.name)
     .filter((name) => STEP_POLICY[name].critical);
@@ -161,7 +189,7 @@ export function buildVerifyVerdict({ stepNames, skipped, failures }) {
     .filter((name) => !STEP_POLICY[name].critical);
   const measured = stepNames.length - skipped.length;
 
-  if (failures.length > 0) {
+  if (failed.length > 0) {
     const criticalSuffix = criticalMissing.length > 0
       ? ` CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: ${criticalMissing.join(", ")}.`
       : "";
@@ -172,7 +200,7 @@ export function buildVerifyVerdict({ stepNames, skipped, failures }) {
       criticalMissing,
       noncriticalMissing,
       message:
-        `verify: ${failures.length} fallo(s) → ${failures.join(", ")}` +
+        `verify: ${failed.length} fallo(s) → ${failed.map(failureLabel).join(", ")}` +
         criticalSuffix +
         omittedSuffix(noncriticalMissing),
     };
