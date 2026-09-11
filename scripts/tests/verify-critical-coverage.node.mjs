@@ -37,7 +37,7 @@ test("verify conecta la política explícita al veredicto final", async () => {
   assert.match(source, /scripts\/tests\/verify-critical-coverage\.node\.mjs/);
   assert.match(
     packageJson.scripts["harness:test"],
-    /scripts\/tests\/verify-critical-coverage\.node\.mjs/,
+    /scripts\/tests\/run-harness\.mjs/,
   );
 });
 
