@@ -92,7 +92,7 @@ quedan fuera de ese piloto.
 | Destino | Dato | Minimización | Retención | Estado de rollout |
 |---|---|---|---|---|
 | `operario_pin_attempts` | huella SHA-256 de tenant + región + IP | no conserva IP cruda ni PIN | 48 h en cron | **CORRECTO en Cloud: migration 0325 aplicada y ACL verificadas; código compatible incluido en el rollout autorizado** |
-| `public_track_log.ip` | huella SHA-256 del origen | deja de guardar IP cruda | 48 h en cron | **ENCONTRADO en migration 0326; Cloud NO VERIFICABLE** |
+| `public_track_log.ip` | huella SHA-256 del origen desde `0326`; las filas previas pueden conservar IP cruda | deja de guardar IP cruda en filas nuevas; sin backfill | **ninguna**: no hay cron ni DELETE (corregido por SDD-0455; antes decía «48 h en cron») | **ENCONTRADO en migration 0326; Cloud NO VERIFICABLE** |
 | `portal_registro_throttle.ip` (`portal-login:`) | huella SHA-256 de IP | separada por namespace; no email | 48 h en cron | **ENCONTRADO en código local; Producción NO VERIFICABLE** |
 | rrweb | DOM de últimos 15 s | inputs y texto enmascarados; flag off por defecto | ⬜ | **ENCONTRADO en código local; Producción NO VERIFICABLE** |
 
