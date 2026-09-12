@@ -155,9 +155,9 @@ describe("isVerifyThrottled · escenarios de la suite previa (0169) sobre la RPC
   });
 });
 
-describe("isVerifyThrottled · RPC ausente o con error de base (migrate-first)", () => {
+describe("isVerifyThrottled · RPC ausente o con error de base", () => {
   it.each([
-    ["PGRST202", "función fuera de la caché de esquema: 0426 sin aplicar"],
+    ["PGRST202", "función fuera de la caché de esquema: caché desactualizada o DROP FUNCTION"],
     ["42883", "función inexistente en PostgreSQL"],
     ["42501", "EXECUTE no concedido al rol que llama"],
     ["55P03", "lock_timeout de 2 s bajo contención de la misma IP"],
