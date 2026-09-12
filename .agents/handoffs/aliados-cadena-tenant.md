@@ -29,6 +29,7 @@ Dependencias: la 0450 y la 0401 ya están aplicadas en producción, y `pendingBe
 Interrupción: un corte de red (ENOTFOUND) detuvo la sesión mientras corría el contrato SQL. Al retomar se comprobó el árbol real antes de repetir nada: HEAD `85486484`, los dos borradores sin commitear, la corrección del caso SH ya aplicada y el guard OK.
 Ronda 2 (2026-09-12, revisión del Director sobre `0df1270e`): alcance y ejecución aceptados, incluidos `docs/specs/README.md` como generado y la precisión del criterio 4 (la 23503 alcanzable en `createClientAction` es la de la 0450). El Director amplió la allowlist a exactamente `supabase/migrations-baseline.json`, `app/studio/(app)/clientes/__tests__/alta-bajo-aliado.test.ts` y este handoff, para cerrar dos huecos de su allowlist original: la espera de la 0451 en el baseline y la prueba TS commiteada del 23503 con su control rojo.
 Ronda 3 (2026-09-12, revisión del Director sobre `967ddb7f`): el Director verificó de forma independiente y aceptó la espera, la prueba con su control rojo y `verify-r2.meta` con su log. La ronda es solo de texto, con allowlist limitada a la spec 0461 y este handoff: se corrigieron los tres pasajes de la spec que contradecían la PR (Alcance, criterio 4 y Producción), sin tocar `status`, título ni el resto.
+Ronda 4 (2026-09-12, revisión del Director sobre `50f56d15`, aceptada): solo texto, con allowlist limitada a la spec y este handoff. La sección «Allowlist exacta» de la spec pasa a listar, una ruta por viñeta, exactamente los 8 archivos de `git diff --name-only main...HEAD`. Se agregaron el baseline y la prueba TS con el estilo de la 0456. La comparación uno a uno encontró además que la spec figuraba como «Esta spec», sin ruta y en la misma viñeta que el índice; ahora aparece con su ruta literal y en viñeta propia.
 
 ## OBJETIVO ORIGINAL
 
@@ -220,6 +221,18 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 | `git diff --check` | PASÓ, en la spec y en este handoff. |
 | `corepack pnpm verify` | NO EJECUTADO. Desde `967ddb7f`, donde `verify-r2.meta` prueba la corrida completa, solo cambia prosa de la spec y del handoff; código, SQL, pruebas y baseline quedan idénticos. Lo demuestra `git diff --stat 967ddb7f..HEAD`, que lista solo esos dos archivos (salida en la descripción de la PR y en el reporte al Director). |
 
+### Ronda 4 (solo texto: la allowlist de la spec y este handoff)
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| `claim` / `guard --owner` | PASÓ: el claim se readquirió al empezar y el guard corrió antes de cada commit. |
+| «Allowlist exacta» contra `git diff --name-only main...HEAD` | PASÓ: las 8 rutas coinciden una a una. Antes del cambio faltaban el baseline y la prueba TS, y la spec no tenía ruta literal. La tabla lado a lado está en la descripción de la PR y en el reporte al Director. |
+| `node scripts/build-docs-index.mjs --check` | PASÓ: 439 specs; `status` y título sin cambios. |
+| `corepack pnpm sdd:check` | PASÓ. |
+| `corepack pnpm governance:check` | PASÓ. |
+| `git diff --check` | PASÓ, en la spec y en este handoff. |
+| `corepack pnpm verify` | NO EJECUTADO, con el motivo de la ronda 3: desde `967ddb7f` solo cambia prosa de la spec y del handoff, y `git diff --stat 967ddb7f..HEAD` sigue listando solo esos dos archivos. |
+
 ## REVISIÓN FOCAL DE DATOS Y GOBERNANZA
 
 - **Datos (`revisar-datos-ve`): no aplica.** No se captura, mueve ni borra ningún dato personal: son constraints de integridad y un filtro de lectura. Los preflights reportan solo conteos, y la mutación que agrega ids al mensaje hace fallar el contrato. La base deja de aceptar el vínculo por el que un cliente de T1 podía recibir la marca y el contacto de soporte de un aliado de T2.
@@ -239,7 +252,9 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 - `728b74e5` — test(studio): SDD-0461 — el 23503 de la FK de tenant en `createClientAction` (ronda 2).
 - `967ddb7f` — docs(handoff): SDD-0461 — ronda 2 (el head que prueba `verify-r2.meta`).
 - `554eec6e` — docs(sdd): SDD-0461 — ronda 3: la spec deja de contradecir la PR.
-- Commit que contiene este documento: nota de la ronda 3 (hash final en la PR).
+- `50f56d15` — docs(handoff): SDD-0461 — ronda 3: nota de la corrección de la spec.
+- `90906578` — docs(sdd): SDD-0461 — ronda 4: la allowlist de la spec coincide con el diff.
+- Commit que contiene este documento: nota de la ronda 4 (hash final en la PR).
 
 ## PR / BRANCH
 
@@ -247,13 +262,14 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 - **Rama:** `codex/aliados-cadena-tenant`, publicada a sí misma y sin force.
   - Ronda 1: head `0df1270e`.
   - Ronda 2: `470ca41d`, `728b74e5` y `967ddb7f`, en un único push normal después del verify de ese head.
-  - Ronda 3: `554eec6e` y el commit que contiene este documento, en un único push normal y sin verify (ver la tabla de la ronda 3).
+  - Ronda 3: `554eec6e` y `50f56d15`, en un único push normal y sin verify.
+  - Ronda 4: `90906578` y el commit que contiene este documento, en un único push normal y sin verify (ver la tabla de la ronda 4).
 - Worktree el indicado arriba. Sin merge, sin salir de borrador y sin aplicar migraciones.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **CI y revisión:** CI alojado sobre el head publicado de la ronda 3 y revisión final del Director. El ruleset exige el check verde sobre el commit que se fusiona. Sacar la PR de borrador y fusionar le corresponde al Director.
-- **Spec 0461:** la ronda 3 corrigió los tres pasajes que contradecían la PR. Queda una observación que no se tocó por instrucción del Director: la sección «Allowlist exacta» de la spec todavía no lista `supabase/migrations-baseline.json` ni `app/studio/(app)/clientes/__tests__/alta-bajo-aliado.test.ts`, que entraron en la ronda 2.
+- **CI y revisión:** CI alojado sobre el head publicado de la ronda 4 y revisión final del Director. El ruleset exige el check verde sobre el commit que se fusiona. Sacar la PR de borrador y fusionar le corresponde al Director.
+- **Spec 0461:** alineada con la PR. La ronda 3 corrigió los tres pasajes, y la ronda 4 dejó su «Allowlist exacta» igual, uno a uno, a `git diff --name-only main...HEAD`.
 - **Antes de aplicar la 0451**, en una tarea aparte con el OK nominal de Sam y el runbook: repetir los dos conteos agregados de solo lectura que ahora imprime la espera. El preflight falla cerrado igual.
 - **Después de aplicar:**
   - smoke del listado de aliados de una ficha de cliente (embed `clients:client_id`) y de la marca del Portal;
@@ -274,7 +290,7 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 ## HANDOFF AL DIRECTOR
 
 - **Orden seguro:**
-  1. revisar la PR sobre el head de la ronda 3 y su CI;
+  1. revisar la PR sobre el head de la ronda 4 y su CI;
   2. fusionar sobre el SHA revisado, repitiendo antes el merge de main si avanzó; con la espera declarada, `migrations-applied` exime a la 0451 con motivo escrito;
   3. aplicar la 0451 en otra tarea: OK nominal de Sam, de a una, name exacto `0451_aliados_cadena_mismo_tenant`, en horario de baja actividad y con los dos conteos previos;
   4. smoke del listado de aliados y de la marca del Portal;
