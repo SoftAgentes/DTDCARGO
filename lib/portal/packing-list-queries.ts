@@ -221,34 +221,18 @@ export type PackingListComoDocumento = {
  * del portal (`/portal/compras/[code]`), así que la fila no dice "Descargar"
  * ni abre pestaña nueva.
  *
- * 🔴 Mismo contrato que sus vecinas: admin client, y el `client_markbox` es acá
- * el control de acceso efectivo, no un respaldo.
+ * SDD-0342: la RPC deriva el cliente desde auth.uid(); este caller ya no recibe
+ * ni reenvía Shipping Mark, client id o tenant id.
  */
 export async function listarPackingListsComoDocumentos(
-  admin: SupabaseClient,
-  markbox: string,
+  db: SupabaseClient,
 ): Promise<PackingListComoDocumento[]> {
-  if (!markbox) return [];
-
   try {
-    const { data, error } = await admin
-      .from("packing_list_submissions")
-      .select("id, folio, created_at, total_ctns, prealertas(code)")
-      .eq("client_markbox", markbox)
-      .eq("is_current", true)
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false })
-      // Mismo tope que `listMyDocuments`. Explícito y por debajo del máximo de
-      // PostgREST, que no se sortea subiendo este número.
-      .limit(200);
+    const { data, error } = await db.rpc("get_portal_packing_list_documents");
     if (error) throw error;
 
     return ((data as Record<string, unknown>[] | null) ?? []).flatMap((r) => {
-      // El embed viene como objeto o como array según cómo resuelva PostgREST
-      // la relación; se normalizan los dos en vez de asumir uno.
-      const rel = r.prealertas as { code?: string } | { code?: string }[] | null;
-      const pre = Array.isArray(rel) ? rel[0] : rel;
-      const code = pre?.code;
+      const code = String(r.purchase_code ?? "").trim();
       // Sin código de compra la fila no tiene a dónde llevar: se omite en vez
       // de pintar una tarjeta que no abre nada.
       if (!code) return [];
@@ -257,8 +241,8 @@ export async function listarPackingListsComoDocumentos(
           id: String(r.id),
           purchaseCode: code,
           folio: (r.folio as string | null) ?? null,
-          enviadoEl: String(r.created_at),
-          cajas: Number(r.total_ctns) || 0,
+          enviadoEl: String(r.submitted_at),
+          cajas: Number(r.boxes) || 0,
         },
       ];
     });

@@ -20,7 +20,7 @@ import {
 import { getShipmentNaviera } from "@/lib/studio/naviera-tracking/queries";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import { effectiveVisibleStatus } from "@/lib/portal/portal-types";
-import { getHiddenPortalStatusesForClient } from "@/lib/studio/notifications/portal-visibility-queries";
+import { getHiddenPortalStatusesForPortal } from "@/lib/studio/notifications/portal-visibility-queries";
 import { PortalPending } from "../_components/PortalPending";
 import { PortalDashboardNorte } from "./_components/PortalDashboardNorte";
 import { PendingAcceptanceCard } from "./_components/PendingAcceptanceCard";
@@ -60,10 +60,7 @@ export default async function PortalHomePage() {
   // SDD-0156 · Slice D: si la config del tenant oculta un hito (ej. "en aduana"),
   // el dashboard muestra el último estado VISIBLE — el héroe y los badges no
   // delatan el hito oculto. Falla-seguro → sin sustitución.
-  const hiddenStatuses = await getHiddenPortalStatusesForClient(
-    createAdminClient(),
-    client.id,
-  );
+  const hiddenStatuses = await getHiddenPortalStatusesForPortal(supabase);
   const shipments = rawShipments.map((s) => ({
     ...s,
     status: effectiveVisibleStatus(s.status, s.service, hiddenStatuses),
