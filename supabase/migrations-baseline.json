@@ -36,7 +36,5 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {
-    "0406_portal_packing_lists_por_principal": "PENDIENTE DE APLICAR — bloque C L06 / SDD-0342. MIGRATE-FIRST: crea la RPC get_portal_packing_list_documents() (SECURITY DEFINER, search_path vacío, sin parámetros, EXECUTE sólo authenticated), que devuelve los packing lists vigentes del principal Portal de la sesión, acotados por vínculo activo, cliente vivo, tenant y Shipping Mark, sin contacto del proveedor, filas ni montos. El código de esta PR la consume en /portal/documentos y NO se fusiona antes de aplicar y verificar 0406 en producción: sin la RPC, Documentos omite los packing lists (falla cerrado, sin fallback admin). Fusionar NO autoriza aplicarla. Requiere OK nominal de Sam y docs/runbooks/aplicar-migraciones-prod.md; aplicar individualmente con name exacto 0406_portal_packing_lists_por_principal. No subir cutoff 238 ni modificar las demás esperas. Tras aplicación y verificación autorizadas, retirar esta entrada junto con la declaración l06-portal-documents-packing-lists-pending-rpc de supabase/pending-migration-symbol-declarations.json y actualizar la nota de importación de la spec 0342."
-  }
+  "pendingBelowCutoff": {}
 }

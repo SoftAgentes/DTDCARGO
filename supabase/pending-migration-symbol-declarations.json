@@ -7,42 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "l06-portal-documents-packing-lists-pending-rpc",
-      "primarySymbol": "get_portal_packing_list_documents",
-      "migration": "0406_portal_packing_lists_por_principal",
-      "symbols": [
-        {
-          "kind": "function",
-          "name": "get_portal_packing_list_documents",
-          "callSites": [
-            "lib/portal/packing-list-queries.ts:231"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/portal/packing-list-queries.ts:232",
-          "contains": "if (error) throw error;",
-          "degradation": "MIGRATE-FIRST. Mientras 0406 no exista, PostgREST responde error (PGRST202) y el helper lo lanza a su catch: no hay lectura de packing_list_submissions por Shipping Mark, no se construye service_role y no existe fallback admin/legacy. Esta PR no se fusiona antes de aplicar y verificar 0406 en producción."
-        },
-        {
-          "site": "lib/portal/packing-list-queries.ts:252",
-          "contains": "return [];",
-          "degradation": "Cualquier error o rechazo de la RPC (ausente, denegada o transporte caído) devuelve lista vacía: la sección de packing lists falla cerrada sin exponer filas de otro cliente ni tumbar la pantalla."
-        },
-        {
-          "site": "app/portal/(app)/documentos/page.tsx:56",
-          "contains": "listarPackingListsComoDocumentos(supabase),",
-          "degradation": "La página sigue listando por RLS y firmando server-only los documentos de envío (BL, POD, otros); sólo desaparecen las tarjetas de packing list hasta aplicar 0406."
-        },
-        {
-          "site": "app/portal/(app)/documentos/page.tsx:141",
-          "contains": "Todavía no hay documentos.",
-          "degradation": "Un cliente cuyo único documento sea un packing list verá el estado vacío con enlace a su asesor mientras 0406 no exista; por eso la integración es migrate-first."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
