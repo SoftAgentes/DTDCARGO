@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, lstatSync, realpathSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { isValidSlug, worktreePathFor, worktreeContainers, resolveCandidate, mainWorktreeFrom, branchFor, parseArgs, isSensitiveIgnoredName } from '../harness-worktree.mjs';
+import { isValidSlug, worktreePathFor, worktreeContainers, resolveCandidate, mainWorktreeFrom, branchFor, parseArgs, isSensitiveIgnoredName, parseWorktrees } from '../harness-worktree.mjs';
 import { MAX_BUFFER } from '../harness-spawn.mjs';
 const script = fileURLToPath(new URL('../harness-worktree.mjs', import.meta.url));
 function gitAt(cwd, args) {
@@ -40,6 +40,64 @@ test('helpers reject unsafe input and use Codex defaults', () => {
   assert.equal(parseArgs(['start', 'seo']).from, 'origin/main');
   assert.equal(parseArgs(['guard', '--owner', 'session-1']).owner, 'session-1');
   for (const args of [['start', 'a', '--from'], ['start', 'a', '--foo'], ['finish', 'a', '--delete-branch'], ['guard', 'a'], ['start', 'a', '--owner', 'x']]) assert.throws(() => parseArgs(args));
+});
+// Armado del porcelain `-z`: cada campo termina en NUL y cada registro lleva un NUL extra.
+const porcelainOf = (records) => records.map((fields) => fields.join('\0') + '\0\0').join('');
+test('parseWorktrees conserva todos los registros y expone locked y prunable', () => {
+  const entries = parseWorktrees(porcelainOf([
+    ['worktree /repos/DTDCARGO.git', 'bare'],
+    ['worktree /repos/co/principal', 'HEAD ' + 'a'.repeat(40), 'branch refs/heads/codex/principal'],
+    ['worktree /repos/co/con-razon', 'HEAD ' + 'b'.repeat(40), 'branch refs/heads/codex/con-razon', 'locked el Director lo pidió'],
+    ['worktree /repos/co/sin-razon', 'HEAD ' + 'c'.repeat(40), 'branch refs/heads/codex/sin-razon', 'locked'],
+    ['worktree /repos/co/fantasma', 'HEAD ' + 'd'.repeat(40), 'branch refs/heads/codex/fantasma', 'prunable gitdir file points to non-existent location'],
+    ['worktree /repos/co/suelto', 'HEAD ' + 'e'.repeat(40), 'detached'],
+  ]));
+  // Ningún registro se descarta y el orden es el de git: `entries[0]` sigue siendo el primero del
+  // porcelain, que es la invariante que `mainWorktreeFrom` verifica. Descartar acá el bare se la
+  // sacaría de abajo, y además hacía que el harness declarara «principal» al árbol de un Worker.
+  assert.equal(entries.length, 6);
+  assert.deepEqual(entries[0], { path: '/repos/DTDCARGO.git', branch: null, bare: true, locked: false, lockedReason: null, prunable: false, prunableReason: null });
+  assert.deepEqual(entries[1], { path: '/repos/co/principal', branch: 'refs/heads/codex/principal', bare: false, locked: false, lockedReason: null, prunable: false, prunableReason: null });
+  // Bloqueado con razón y bloqueado a secas: los dos son `locked: true`, y el segundo no es invisible.
+  assert.deepEqual([entries[2].locked, entries[2].lockedReason], [true, 'el Director lo pidió']);
+  assert.deepEqual([entries[3].locked, entries[3].lockedReason], [true, null]);
+  assert.deepEqual([entries[4].prunable, entries[4].prunableReason], [true, 'gitdir file points to non-existent location']);
+  assert.equal(entries[4].locked, false);
+  // HEAD detached: sin campo `branch`. `guard` lo rechaza por falsy y el informe lo publica como null.
+  assert.equal(entries[5].branch, null);
+});
+test('finish publica locked y prunable, y sigue creyéndole al disco y no a git', (t) => {
+  const { sandbox, repo, git, cli } = sandboxRepo(t, 'dtd-harness-locked-');
+  const report = (out) => JSON.parse(out.slice(0, out.indexOf('\n}') + 2));
+  writeFileSync(path.join(repo, 'tracked.txt'), 'fixture\n');
+  git(['add', 'tracked.txt']); git(['commit', '-m', 'fixture']);
+  git(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
+  cli(['start', 'worker']); cli(['start', 'fantasma']);
+  const worker = path.join(sandbox, 'DTD-worktrees', 'worker');
+  const fantasma = path.join(sandbox, 'DTD-worktrees', 'fantasma');
+  // Un worktree sano: los cuatro campos en su forma negativa, que es la que se ve casi siempre.
+  const sano = report(cli(['finish', 'worker']));
+  assert.deepEqual([sano.locked, sano.lockedReason, sano.prunable, sano.prunableReason], [false, null, false, null]);
+  git(['worktree', 'lock', '--reason', 'el Director lo pidió', worker]);
+  const trabado = report(cli(['finish', 'worker']));
+  assert.deepEqual([trabado.locked, trabado.lockedReason], [true, 'el Director lo pidió']);
+  // Solo informe: el bloqueo se nombra y no se levanta. Se relee con `-z` a propósito, porque sin
+  // `-z` git cita y escapa la razón en octal (`locked "el Director lo pidi\303\263"`).
+  assert.equal(parseWorktrees(git(['worktree', 'list', '--porcelain', '-z'])).find((e) => e.path.endsWith('worker')).lockedReason, 'el Director lo pidió');
+  assert.equal(trabado.cleanupAuthorized, false);
+  // Bloqueado sin razón: sigue siendo `true`, con la razón en null. Un bloqueo deliberado del que
+  // git no guardó motivo no puede leerse igual que «no está bloqueado».
+  git(['worktree', 'unlock', worker]); git(['worktree', 'lock', worker]);
+  assert.deepEqual([report(cli(['finish', 'worker'])).locked, report(cli(['finish', 'worker'])).lockedReason], [true, null]);
+  // EL LÍMITE QUE SE CONSERVA: git ya llama `prunable` a un worktree borrado del disco, y `finish`
+  // igual lo rechaza por `existsSync`. Si git y el disco discrepan, manda el disco: el informe
+  // publica la opinión de git como evidencia, nunca como autorización para cerrar ni para podar.
+  rmSync(fantasma, { recursive: true, force: true });
+  const muerto = parseWorktrees(git(['worktree', 'list', '--porcelain', '-z'])).find((e) => e.path.endsWith('fantasma'));
+  assert.equal(muerto.prunable, true);
+  assert.match(muerto.prunableReason, /non-existent/);
+  assert.match(cli(['finish', 'fantasma'], repo, false), /registrado pero no existe en disco/);
+  assert.match(git(['worktree', 'list', '--porcelain']), /fantasma/);
 });
 test('isolated lifecycle enforces worktree guard, claims and report-only cleanup', (t) => {
   const { sandbox, repo, git, cli } = sandboxRepo(t, 'dtd-harness-test-');

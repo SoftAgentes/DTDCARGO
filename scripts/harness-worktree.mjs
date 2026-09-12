@@ -56,12 +56,46 @@ function mustGit(args, cwd) {
   return r.out;
 }
 const normalize = (p) => process.platform === 'win32' ? path.resolve(p).toLowerCase() : path.resolve(p);
-function worktrees() {
-  return mustGit(['worktree', 'list', '--porcelain', '-z']).split('\0\0').filter(Boolean).map((entry) => {
+// Un campo del porcelain es `clave` pelada o `clave valor`. `bare` y `detached` llegan siempre
+// pelados; `locked` y `prunable`, de las dos formas —`locked` a secas cuando se bloqueó sin razón,
+// `prunable gitdir file points to non-existent location` cuando git la da—, medido con git 2.55.
+// Por eso el booleano mira las dos formas y la razón solo la segunda: bloqueado sin razón es
+// `locked: true` con `lockedReason: null`, que es un bloqueo deliberado del que git no guardó motivo,
+// nunca un bloqueo invisible.
+const hasField = (fields, key) => fields.some((f) => f === key || f.startsWith(`${key} `));
+const fieldValue = (fields, key) => fields.find((f) => f.startsWith(`${key} `))?.slice(key.length + 1) ?? null;
+/**
+ * Registros de `git worktree list --porcelain -z`, **tal cual los emite git**: no se descarta
+ * ninguno y no se reordena. `entries[0]` sigue siendo el primer registro del porcelain, que es la
+ * invariante sobre la que `mainWorktreeFrom` verifica el principal; filtrar acá la entrada bare se
+ * la sacaría de abajo. Quién no es candidato lo decide cada consumidor con el flag `bare`.
+ *
+ * El `-z` no es cosmético: sin él git **cita y escapa en octal** la razón de un lock con caracteres
+ * no ASCII (`locked "el Director lo pidi\303\263"`), así que la razón cruda solo sale de este
+ * formato. Medido con git 2.55.
+ *
+ * Pura y exportada para fijar por prueba el parseo sobre una salida literal, incluido el registro
+ * bare y las dos formas de `locked`, sin depender de armar el repo que los produce.
+ *
+ * @param {string} porcelain — salida de `git worktree list --porcelain -z`.
+ */
+export function parseWorktrees(porcelain) {
+  return porcelain.split('\0\0').filter(Boolean).map((entry) => {
     const fields = entry.split('\0');
     // `bare` es un campo sin valor: marca el repo común cuando no tiene checkout propio.
-    return { path: fields.find((f) => f.startsWith('worktree '))?.slice(9), branch: fields.find((f) => f.startsWith('branch '))?.slice(7), bare: fields.includes('bare') };
+    return {
+      path: fieldValue(fields, 'worktree'),
+      branch: fieldValue(fields, 'branch'),
+      bare: fields.includes('bare'),
+      locked: hasField(fields, 'locked'),
+      lockedReason: fieldValue(fields, 'locked'),
+      prunable: hasField(fields, 'prunable'),
+      prunableReason: fieldValue(fields, 'prunable'),
+    };
   });
+}
+function worktrees() {
+  return parseWorktrees(mustGit(['worktree', 'list', '--porcelain', '-z']));
 }
 /**
  * Checkout principal **verificado**, o `null` cuando no hay ninguno.
@@ -261,8 +295,8 @@ function main() {
       const head = mustGit(['rev-parse', 'HEAD'], target);
       const remote = git(['rev-parse', '--verify', 'refs/remotes/origin/main']);
       const included = remote.code === 0 ? git(['merge-base', '--is-ancestor', head, remote.out]).code === 0 : null;
-      console.log(JSON.stringify({ candidate: target, branch: entry.branch ?? null, head, hasChanges: Boolean(status), hasIgnoredFiles: ignored.count > 0, ignoredEntryCount: ignored.count, ignoredEntries: ignored.preview, sensitiveIgnoredFiles: ignored.sensitive, claim, includedInCachedOriginMain: included, cleanupAuthorized: false }, null, 2));
-      console.log('Solo informe: no borra ni poda. El inventario ignorado es compacto: un directorio ignorado completo se colapsa en una entrada y solo se expande un nivel para nombrar archivos sensibles, nunca para leerlos; `ignoredEntries` muestra hasta 50 y `ignoredEntryCount` da el total. origin/main es una referencia local que puede estar atrasada. El claim no prueba ausencia de otras sesiones. El Director debe verificar sesiones, procesos, archivos ignorados y publicación con remoto actualizado antes de limpieza manual: docs/runbooks/codex-engineering.md#cleanup.');
+      console.log(JSON.stringify({ candidate: target, branch: entry.branch ?? null, head, hasChanges: Boolean(status), hasIgnoredFiles: ignored.count > 0, ignoredEntryCount: ignored.count, ignoredEntries: ignored.preview, sensitiveIgnoredFiles: ignored.sensitive, claim, locked: entry.locked, lockedReason: entry.lockedReason, prunable: entry.prunable, prunableReason: entry.prunableReason, includedInCachedOriginMain: included, cleanupAuthorized: false }, null, 2));
+      console.log('Solo informe: no borra ni poda. El inventario ignorado es compacto: un directorio ignorado completo se colapsa en una entrada y solo se expande un nivel para nombrar archivos sensibles, nunca para leerlos; `ignoredEntries` muestra hasta 50 y `ignoredEntryCount` da el total. origin/main es una referencia local que puede estar atrasada. El claim no prueba ausencia de otras sesiones. `locked` y `prunable` repiten lo que dice git del candidato —que alguien lo marcó a propósito, con su razón si la dio, y que git ya lo considera desechable— como evidencia para la limpieza manual, no como decisión: este informe no poda ni desbloquea nada. Un candidato ausente en disco se sigue rechazando por `existsSync` y no por lo que opine git: si git y el disco discrepan, manda el disco. El Director debe verificar sesiones, procesos, archivos ignorados y publicación con remoto actualizado antes de limpieza manual: docs/runbooks/codex-engineering.md#cleanup.');
       break;
     }
     case 'list': console.log(mustGit(['worktree', 'list'])); break;
