@@ -55,8 +55,9 @@ otro tenant, 0 clientes con aliado de otro tenant y 1 lista de precios.
   - `get_portal_brand()` redefinida con `and a.tenant_id = c.tenant_id`.
 - `createClientAction`: traduce el 23503 de `clients_aliado_mismo_tenant_fkey`.
 - Contrato SQL desechable.
-- Fuera de alcance por el encargo: modificar 0362, 0382, 0401 o 0450; el Portal;
-  `supabase/migrations-baseline.json`; aplicar en producción.
+- Espera de la 0451 declarada en `pendingBelowCutoff` de `supabase/migrations-baseline.json`.
+- Fuera de alcance por el encargo: modificar 0362, 0382, 0401 o 0450; el Portal; aplicar
+  en producción.
 
 ## Diseño
 
@@ -139,9 +140,9 @@ tienen su RED medido.
       modificar la 0401. Fuera de esa línea es idéntica a la 0401 en cuerpo, encabezado y
       ACL.
 - [x] `createClientAction` traduce el 23503 de `clients_aliado_mismo_tenant_fkey` con el
-      mensaje de la lectura previa, y otro 23503 conserva el genérico. Se verificó con una
-      prueba temporal fuera del diff: la prueba versionada necesita ampliar la allowlist
-      (ver el handoff).
+      mensaje de la lectura previa, y otro 23503 conserva el genérico. La prueba está
+      versionada en `app/studio/(app)/clientes/__tests__/alta-bajo-aliado.test.ts`, con dos
+      casos y control rojo demostrado: sin el `if` nuevo falla, y restaurado pasa 13/13.
 - [x] El contrato SQL cubre:
   - los RED de insignia mezclada, lista ajena, ancla ajena y marca ajena;
   - para las dos FK, el rechazo 23503 del cruce y la aceptación del mismo tenant;
@@ -168,10 +169,11 @@ porque locks, preflight y DDL van en un solo `do`. El contrato no lo mide desde 
 
 `0451_aliados_cadena_mismo_tenant` no está aplicada, y `done` en esta spec no significará
 aplicada. Aplicarla exige el OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`:
-de a una, con el name exacto y en horario de baja actividad. El encargo excluyó
-`supabase/migrations-baseline.json`, así que esta rama no declara la espera. El Director
-decide entre aplicarla antes de fusionar o declarar la espera aparte, porque con
-credenciales el gate `migrations-applied` marcará la 0451 como faltante.
+de a una, con el name exacto y en horario de baja actividad. Esta rama declara la espera
+en `pendingBelowCutoff` de `supabase/migrations-baseline.json`, con el impacto de locks y
+los conteos que hay que repetir antes de aplicar, así que `migrations-applied` la exime
+con motivo escrito. La espera se retira únicamente tras la aplicación y la verificación
+autorizadas.
 
 Gobernanza:
 
