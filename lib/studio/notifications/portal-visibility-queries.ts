@@ -13,8 +13,8 @@
  * deriva cliente y tenant en la base. Las dos lecturas con admin client de más
  * abajo se conservan sin cambios. Sin regla para un status → visible (default).
  * Falla-seguro: ante error devuelve el set vacío (se muestra todo), nunca oculta
- * de más por un fallo. Sin la RPC ese error sería permanente; por eso 0402 se
- * aplica antes de desplegar este consumidor (migrate-first).
+ * de más por un fallo. 0402 ya está aplicada en producción, así que ese error
+ * vuelve a ser transitorio: se cumplió el orden migrate-first.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ShipmentStatus } from "@/lib/shared/shipment-public";

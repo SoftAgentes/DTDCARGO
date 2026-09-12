@@ -117,9 +117,9 @@ describe("getHiddenPortalStatusesForPortal", () => {
     );
   }
 
-  // L02 es migrate-first: sin 0402 aplicada, PostgREST responde PGRST202. La
-  // página no rompe, pero el set vacío MUESTRA todos los hitos, incluidos los
-  // que una regla del tenant oculta. El fallo queda registrado, sin ids.
+  // 0402 ya está aplicada, pero el lector sigue tolerando PGRST202 (caché de
+  // esquema sin recargar, entorno sin la RPC): la página no rompe y el set
+  // vacío MUESTRA todos los hitos. El fallo queda registrado, sin ids.
   it("RPC ausente (PGRST202): set vacío, muestra todos los hitos y lo registra", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     try {
