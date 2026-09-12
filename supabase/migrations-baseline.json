@@ -36,7 +36,5 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {
-    "0426_public_verify_atomic_reservation": "PENDIENTE DE APLICAR — bloque C L17 / SDD-0375. MIGRATE-FIRST: crea la RPC reserve_public_verify_attempt(text) (SECURITY INVOKER, EXECUTE solo service_role, exige READ COMMITTED) que reserva de forma atómica el cupo de 40 intentos en 30 minutos por IP de /verificar, sin DML ni cambios en la tabla de 0169. El consumidor lib/public/verify-throttle.ts de la PR L17 bloquea toda verificación si la RPC no existe: aplicar y verificar 0426 ANTES de fusionar o desplegar esa PR. Fusionar NO autoriza aplicar la migración a producción. Requiere OK nominal de Sam y docs/runbooks/aplicar-migraciones-prod.md; aplicar individualmente con name exacto 0426_public_verify_atomic_reservation. No subir cutoff 238 ni modificar las demás esperas. Retirar esta entrada únicamente tras aplicación y verificación autorizadas."
-  }
+  "pendingBelowCutoff": {}
 }
