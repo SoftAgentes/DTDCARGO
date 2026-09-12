@@ -58,7 +58,11 @@ El arreglo: `resolveCandidate` —pura y exportada— resuelve contra `git workt
 
 1. ~~Publicar la rama y abrir la PR~~ — hecho: [PR #97](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/97), autorizada por el encargo, que pone la PR como frontera.
 2. ~~Esperar el CI alojado~~ — hecho, y dos veces: verde sobre `7aefc71c` y sobre `ff6f2a9c`.
-2b. **Segundo merge de `main`** (`1c065bc4`, las seis migrate-first) pedido por el Director el 2026-09-12, resuelto sin conflicto por el driver `dtd-generated-records`: `docs:check` da 436 specs, el número que él predijo, y el merge no tocó ninguno de mis dos archivos de `scripts/`. **Preparado local y sin publicar** por pedido suyo: #96 se liberó sobre la misma base y publicar las dos a la vez haría correr dos CI para fusionar una. Se publica cuando dé la señal, junto con un segundo merge trivial si #96 entra antes.
+2b. **Dos merges más de `main`**, ambos pedidos por el Director el 2026-09-12 y resueltos sin conflicto por el driver `dtd-generated-records`:
+   - `1c065bc4` — las seis migrate-first, 33 archivos. Se preparó local y **no se publicó**, porque #96 se había liberado sobre la misma base y publicar las dos a la vez haría correr dos CI para fusionar una sola.
+   - `62f0f6f0` — #96 ya fusionada, un solo archivo de handoff ajeno.
+   `docs:check` da **436 specs** con la fila 0458, el número que el Director predijo, medido y no asumido. Ninguno de los dos merges tocó `scripts/harness-worktree.mjs` ni su prueba (`git diff ff6f2a9c HEAD --` sobre esos dos archivos sale vacío); `scripts/` sí recibió `check-public-verify-concurrency.mjs`, ajeno y ya fusionado en main.
+   **Límite de la revalidación:** la rama ahora contiene producto ajeno llegado con los merges (`app/`, `lib/`, `supabase/`) y la validación local **no lo cubre** — se corrió el harness, no `pnpm test` ni las pruebas SQL. Cada una de esas PRs pasó su propio CI antes de entrar a `main`, y el CI de esta rama las corre todas; esa cobertura existe pero **no la produjo esta sesión**.
 3. ~~Liberar el claim~~ — hecho al cerrar la sesión de escritura.
 4. **Integración: del Director.** No se mergea desde acá. Falta decidir si se espera una corrida del CI sobre el head final antes de integrar.
 
