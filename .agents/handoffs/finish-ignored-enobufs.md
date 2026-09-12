@@ -75,6 +75,13 @@ Sobre `4897bb1d`, con Node 24.20.0, pnpm vía corepack y git 2.55.0.windows.5.
 - `4897bb1d` — `fix(harness): finish inventaria ignorados de forma compacta y git deja de romperse por ENOBUFS` (script + pruebas).
 - El commit que trae este documento cierra la tarea.
 
+## PR / BRANCH
+
+[PR #94 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/94): base `main`, rama `claude/stoic-thompson-6ef73b`, worktree el indicado arriba.
+
+- Publicada con la autorización del encargo («open a draft PR»). Push de la rama a sí misma, sin force.
+- No se pasó a ready, no se mergeó ni se desplegó a mano.
+
 ## PENDIENTES DE ESTA TAREA
 
 Ninguno de implementación. Falta la revisión del Director y la CI del head publicado.
