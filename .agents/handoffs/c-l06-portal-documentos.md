@@ -5,7 +5,7 @@ Owner / sesión escritora: ronda 1 `c-l06-worker-20260911-claude` (terminada y l
 **Ya no aplica el bloqueo migrate-first:** `0406_portal_packing_lists_por_principal` fue aplicada a producción el 2026-09-12 con OK nominal de Sam (ledger `20260912022540`), así que la rama dejó de declararla como espera y puede integrarse en el orden normal.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l06-portal-documentos`.
-Rama: `codex/c-l06-portal-documentos`. Base: `3c6107012f754953323202a7386b3e7811593814` (origin/main al crear; sin avances al cerrar la ronda 1). En la ronda 2, partiendo de `94958f8e`, se fusionó `origin/main` en `6c282b44fba04c550afcf6bb6511dfb0fd26770a` con el merge `7521151f`. Sin rebase ni force en ninguna ronda.
+Rama: `codex/c-l06-portal-documentos`. Base: `3c6107012f754953323202a7386b3e7811593814` (origin/main al crear; sin avances al cerrar la ronda 1). En la ronda 2 hubo **dos** merges de `origin/main`, ambos sin conflictos: partiendo de `94958f8e` se fusionó `6c282b44` (merge `7521151f`) y, tras aterrizar la PR #78, se fusionó `ce0239268fc5ce2fbdf5ae989efe026fc1b604d5` (merge `ca148f42`). Sin rebase ni force en ninguna ronda.
 Origen de solo lectura: `ea9952a47f4adf14c48c91e6d0147597beb94aa7`, PR #21 (merge-base con main `2a2e81bf`).
 Permisos del encargo: ronda 1 y ronda 2, commits selectivos y push de la rama a sí misma; PR sigue en draft. NO merge, NO aplicar migraciones, NO tocar Supabase, NO deploy. En la ronda 2 el Director marca **cuándo** se publica: los commits quedan locales hasta que llegue el SHA de main posterior a la PR #78.
 
@@ -47,32 +47,44 @@ Los tests que ejercitan el caso «RPC ausente (PGRST202)» se conservan por la m
 
 **Sólo cambiaron comentarios:** ni una aserción, ni un nombre de test, ni una línea de código. Se barrió además el resto del diff buscando menciones vencidas de «migrate-first», «pendiente», «espera», «declaración» y «mientras no se aplique»: las que quedan son correctas y se dejaron como están —«Todavía no hay documentos.» es el copy del estado vacío, `markboxEsperado` en `packing-list-queries.ts:48,100-124` es de otro lote y describe el packing list del proveedor, y `'TEST 0406: la RPC no existe'` es el mensaje de una aserción del contrato SQL—.
 
+### Segundo merge: `ce023926` (PR #78 aterrizada)
+
+El Director marcó el turno cuando la PR #78 (L04 referidos, SDD-0339 / migración 0404) fusionó. Merge `ca148f42`, **sin un solo conflicto**, con el override del driver **igual que la primera vez** aunque ya no hiciera falta: los tres blobs de `scripts/merge-generated-records.mjs` —el de mi rama, el de `6c282b44` y el del main nuevo— son el mismo `4a5af4e5`, así que el driver del repo ya es el corregido. Se usó el override de todos modos por indicación del Director, para que el resultado no dependa de acertar qué árbol lee git.
+
+Lo que trajo main: la migración `0404_portal_referidos_por_principal` con su contrato, la spec 0339, el árbol de referidos del Portal y el arreglo de harness de SDD-0457 (#94). **Main no tocó ninguno de mis archivos de producto**, y se comprobó por blob: los 12 archivos de producto/spec/SQL de esta rama tienen exactamente el mismo hash antes (`d17f17fa`) y después (`ca148f42`) del merge. Lo único que cambió fue el índice, y lo cambió el driver.
+
+**Comprobaciones que pidió el Director, una por una:**
+
+- **Identidad de 0406 después del merge** — intacta: `md5sum` da `1502718da4773838c51bf9a460952a95`, `wc -c` da **1785**, blob `f6c3308e`. Es byte a byte el archivo que se aplicó a producción. No hizo falta parar.
+- **Conteo del índice** — la predicción del Director era **431** con las tres filas (0339 de #78, 0342 de esta rama, 0457 de #94) y **dio 431**, medido no asumido: main venía en 430, el driver dejó 431, `node scripts/build-docs-index.mjs` **no cambió un byte** (blob `45ff75fb` antes y después) y `docs:check` confirma «índice sincronizado con 431 specs». Contra main el índice difiere sólo en 430 → 431, la fila `| 0342 | … |` y el retiro de 0342 de la lista de huecos. No se forzó nada.
+- **Los dos registros generados** siguen con **diff vacío** contra el main nuevo. Se confirmó además en el archivo de main, no por suposición: `origin/main:supabase/migrations-baseline.json` trae `cutoff: 238` y `pendingBelowCutoff: {}` —la PR #78 retiró su propia espera de 0404 al fusionar— y `origin/main:supabase/pending-migration-symbol-declarations.json` trae `degradations: []`. Los blobs de main (`93939af9` y `8e52d5b3`) eran **ya idénticos a los de esta rama antes del merge**, así que no hubo nada que reconciliar.
+
 ### Diff contra `origin/main` por archivo tras la ronda 2
 
-`git diff origin/main...HEAD --stat` — 14 archivos, +1034 −44 (este handoff crece con la ronda 2):
+`git diff origin/main...HEAD --numstat` contra `ce023926` — **14 archivos**. Los 13 de código, spec e índice suman **+839 −44**; este handoff va aparte porque crece con cada edición y cualquier número que escriba acá se invalida al guardarlo. Las cifras son las de `--numstat`, no las estimadas de `--stat` que traía una versión anterior de esta tabla:
 
 | Archivo | Δ | Qué es |
 |---|---|---|
 | `supabase/migrations/0406_portal_packing_lists_por_principal.sql` | +51 | Migración **aplicada en prod** el 2026-09-12; idéntica al ledger. |
 | `supabase/tests/0406_portal_packing_lists_por_principal.test.sql` | +137 | Contrato SQL del origen. |
 | `supabase/tests/0406_portal_packing_lists_mismo_markbox.test.sql` | +94 | Contrato nuevo: mismo Shipping Mark en dos tenants. |
-| `lib/portal/packing-list-queries.ts` | +20 −10 | `listarPackingListsComoDocumentos` lee la RPC con la sesión. |
+| `lib/portal/packing-list-queries.ts` | +7 −23 | `listarPackingListsComoDocumentos` lee la RPC con la sesión; se va la lectura `service_role` por Shipping Mark. |
 | `lib/portal/signed-portal-documents.ts` | +36 | Firmador `server-only` de paths releídos por RLS. |
 | `lib/portal/__tests__/portal-packing-list-documents.test.ts` | +42 | Test del origen (#21). |
-| `lib/portal/__tests__/portal-packing-list-documents.rpc-state.test.ts` | +84 | Estados de la RPC; regresión del fallo cerrado sin fallback admin. |
+| `lib/portal/__tests__/portal-packing-list-documents.rpc-state.test.ts` | +91 | Estados de la RPC; regresión del fallo cerrado sin fallback admin. |
 | `lib/portal/__tests__/signed-portal-documents.test.ts` | +68 | Test del origen (#21). |
 | `lib/portal/__tests__/signed-portal-documents.scope.test.ts` | +88 | Alcance real de `signDocumentUrls`: bucket, TTL y paths ajenos. |
-| `app/portal/(app)/documentos/page.tsx` | +12 −13 | Composición de la página; JSX sin cambios. |
-| `app/portal/(app)/documentos/PortalDocumentsPage.rpc-state.test.tsx` | +125 | Composición de la página con RPC presente/ausente y firma no disponible. |
+| `app/portal/(app)/documentos/page.tsx` | +6 −19 | Composición de la página; JSX sin cambios. |
+| `app/portal/(app)/documentos/PortalDocumentsPage.rpc-state.test.tsx` | +131 | Composición de la página con RPC presente/ausente y firma no disponible. |
 | `docs/specs/0342-documentos-portal-por-principal/spec.md` | +85 | Spec con la nota de importación **actualizada a «aplicada»**. |
-| `docs/specs/README.md` | +3 −2 | Fila 0342, conteo 429 y hueco 0342 retirado. |
-| `.agents/handoffs/c-l06-portal-documentos.md` | nuevo | Este documento, con la ronda 1 y la ronda 2. |
+| `docs/specs/README.md` | +3 −2 | Fila 0342, conteo 430 → 431 y hueco 0342 retirado. |
+| `.agents/handoffs/c-l06-portal-documentos.md` | (aparte) | Este documento, con la ronda 1 y la ronda 2. |
 
 **Ya no aparecen** `supabase/migrations-baseline.json` ni `supabase/pending-migration-symbol-declarations.json`: quedaron iguales a main. `git diff --check origin/main...HEAD` limpio.
 
 ### Validación de la ronda 2
 
-Recibos fuera de Git en `…\454d97be-b1e0-4fc9-97e9-c6bb621ba84c\scratchpad\l06-ronda2\`: `verify.log`, `verify.exit`, `verify.sha`, `verify.start`, `verify.end`, `build2.log`, `build2.exit`, `build2.start`, `build2.end`, `vitest-focal.log`, `vitest-focal2.log`, `eslint-focal.log`, `nota.txt`, `patch-nota.mjs`, `vitest-docstring.log`, `eslint-docstring.log`, `typecheck-docstring.log`, `edits.mjs`, `edits2.mjs`, `edits3.mjs`, `edits4.mjs`, `edits5.mjs` y el driver extraído `dtd-merge-driver-main.mjs`. Node 24.20.0, pnpm 12.3.4. Sin `.env` operativo: el árbol sólo tiene `.env.example`.
+Recibos fuera de Git en `…\454d97be-b1e0-4fc9-97e9-c6bb621ba84c\scratchpad\l06-ronda2\`: `verify.log`, `verify.exit`, `verify.sha`, `verify.start`, `verify.end`, `build2.log`, `build2.exit`, `build2.start`, `build2.end`, `vitest-focal.log`, `vitest-focal2.log`, `eslint-focal.log`, `nota.txt`, `patch-nota.mjs`, `vitest-docstring.log`, `eslint-docstring.log`, `typecheck-docstring.log`, `edits.mjs`, `edits2.mjs`, `edits3.mjs`, `edits4.mjs`, `edits5.mjs`, `edits6.mjs` y, del segundo merge, `merge2.log`, `sql-tests2.log`, `schema-rebuild2.log`, `sdd-check2.log`, `pending-symbols2.log`, `docs-index2.log`, `docs-check2.log`, `vitest-focal3.log`, `eslint-focal3.log`, `typecheck2.log`, `rsc-boundary2.log`, `components2.log` y `governance2.log`, más los dos drivers extraídos `dtd-merge-driver-main.mjs` y `dtd-merge-driver-main2.mjs`. Node 24.20.0, pnpm 12.3.4. Sin `.env` operativo: el árbol sólo tiene `.env.example`.
 
 | Comprobación | Estado y evidencia |
 |---|---|
@@ -92,10 +104,22 @@ Recibos fuera de Git en `…\454d97be-b1e0-4fc9-97e9-c6bb621ba84c\scratchpad\l06
 | `verify` · `test` | **PASÓ en el reintento 1/1** que el propio gate contempla para el flaky conocido. Primera pasada: 8 archivos / 16 tests fallados, **los 16 por `Test timed out in 20000ms`** más errores `[vitest-pool]: Failed to start forks worker` (la máquina no pudo forkear workers). Los 8 archivos son ajenos al alcance: `hub-fichas`, `PortalAlertasHub`, `NewReceiptDrawer`, `PortalAddresses.delete-state`, `MobileErpClient.expense-void`, `CotizadorClient.borrado`, `register-error-summary` y `register-ciudad-entrega`. Segunda pasada: **537 archivos / 6751 tests en verde** (180,69 s). Ningún test de L06 falló en ninguna de las dos. |
 | `verify` · `sql-tests` | **PASÓ**: 174 contratos con rollback total, incluidos `0406_portal_packing_lists_por_principal` y `0406_portal_packing_lists_mismo_markbox`. |
 | `verify` · `schema-rebuild` | **PASÓ**: 413 migraciones aplicadas desde cero, 18 sólo-ledger, aislamiento multi-tenant verificado (219 tablas, 2 tenants). |
-| `verify` · `migrations-applied` | **NO DISPONIBLE**: `[SKIP] sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY`, y el gate lo marca `[AVISO] OMITIDO — no se midio`. El ledger real **no** se midió en este árbol: la evidencia de que 0406 está aplicada es la que entregó el Director. |
+| `verify` · `migrations-applied` | **NO DISPONIBLE**: `[SKIP] sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY`, y el gate lo marca `[AVISO] OMITIDO — no se midio`. El ledger real **no** se midió en este árbol: la evidencia de que 0406 está aplicada es la que entregó el Director. **Dato del Director, no evidencia de este Worker:** confirmó que no hay `.env.local` en ninguna máquina de esta sesión —tampoco en el checkout principal—, así que este paso no lo midió nadie acá nunca; y midió él por MCP contra producción que no hay huecos, que toda migración de main por encima del corte 238 está aplicada, y que las únicas seis presentes en producción sin estar en main son las migrate-first en vuelo, 0406 entre ellas. Queda registrado como dato de él: este Worker no lo verificó y no tiene autorización para hacerlo. |
 | `verify` · `e2e` | **FALLÓ (exit 1)**, sin colgarse: la suite terminó en 4,8 min y el watchdog de SDD-0454 no tuvo que intervenir. 152 pasaron, 15 fallaron, 1 flaky, 18 omitidos. Los 15 fallos son **los ambientales conocidos** —`auth.spec.ts:21/91/98/105` y `global-search.spec.ts:22` en chromium, mobile-chrome y mobile-safari—, causados por la falta de configuración de Supabase: sin ella `/studio/login` no pinta `form` y `/studio/dashboard` no rebota al login, y el servidor de pruebas imprime `Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY`. El flaky es `auth.spec.ts:74` en chromium, el mismo de la ronda 1. **Ningún spec de Documentos ni de packing lists falló.** Como validación de acceso el paso es NO DISPONIBLE por falta de configuración, pero **el fallo no se absuelve**. |
 | `verify` · `build` | **FALLÓ dentro de verify (exit 1) por red, y PASÓ aislado.** Dentro de verify, Turbopack avisó `Error while requesting resource` para dos subsets `.woff2` de Noto Sans SC en `https://fonts.gstatic.com` y eso derivó en 8 errores `Can't resolve '@vercel/turbopack-next/internal/font/google/font'` en el CSS generado de `next/font/google`, con traza única a `./app/layout.tsx`. **El diff de esta rama no toca `app/layout.tsx`, ni fuentes, ni CSS.** Diagnóstico con evidencia nueva antes de repetir: las dos URL exactas del error responden `HTTP 200` al medirlas con `curl`. Con eso, `node scripts/check-build.mjs` aislado sobre el mismo árbol (23:35:21 → 23:37:34): **PASÓ**, «build de producción OK», `tsconfig.json` restaurado y árbol limpio. No es un reintento de `verify`: es el paso de build, aislado en `.next-verify`. El veredicto de `verify` **sigue siendo FALLÓ**. |
 | Corrección de docstrings (`46faf3c9`) | **PASÓ**: vitest sobre los dos archivos tocados, 2 archivos / **8 tests** en verde; ESLint exit 0 sin hallazgos; `corepack pnpm typecheck` exit 0. Recibos `vitest-docstring.log`, `eslint-docstring.log` y `typecheck-docstring.log`. No se volvió a correr `verify` entero: el cambio es de comentarios y `verify` se vuelve a medir después del segundo merge. |
+| **Segundo merge (`ca148f42`)** · identidad de 0406 | **PASÓ**: md5 `1502718da4773838c51bf9a460952a95`, 1785 B, blob `f6c3308e`. Sin cambios. |
+| **Segundo merge** · `git diff origin/main` de los dos registros generados | **PASÓ**: **0 bytes** en los dos, contra `ce023926`. |
+| **Segundo merge** · índice | **PASÓ**: 431 specs. El driver ya dejó el canónico (`build-docs-index.mjs` no cambió un byte) y `docs:check` lo confirma sincronizado. |
+| **Segundo merge** · blobs de mis 12 archivos | **PASÓ**: idénticos antes y después del merge; main no tocó ninguno. |
+| **Segundo merge** · `sql-tests` | **PASÓ**: **175** contratos con rollback total, ahora con `0404_portal_referidos_por_principal` junto a los dos de 0406. Este gate sí se volvió a correr entero porque el set de migraciones cambió. |
+| **Segundo merge** · `schema-rebuild` | **PASÓ**: **414** migraciones desde cero, 18 sólo-ledger, aislamiento multi-tenant verificado (219 tablas, 2 tenants). |
+| **Segundo merge** · `sdd:check` / `pending-migration-symbols` | **PASÓ** / **PASÓ**: 431 specs · 432 migraciones sin números repetidos; `0 ROJO · 0 AMARILLO`. |
+| **Segundo merge** · `typecheck` / ESLint focal / `rsc-boundary` | **PASÓ** / **PASÓ** / **PASÓ**: exit 0; ESLint sin hallazgos en los 8 archivos; 1598 módulos sin cruces server→client ni client→node. |
+| **Segundo merge** · `components:check` / `governance:check` | **PASÓ** / **PASÓ**: CMP-01 válido; 28 políticas aprobadas, cápsula vigente. |
+| **Segundo merge** · Vitest focal | **PASÓ**: 8 archivos / **30 tests**, incluidos los nuevos de referidos que main trajo y que comparten `lib/portal`. |
+| **Segundo merge** · `install-merge-drivers --check` | **PASÓ**. |
+| **Segundo merge** · `corepack pnpm verify` entero | **NO EJECUTADO, y se dice por qué.** Por acuerdo con el Director no se repitió: el merge no tocó producto de esta rama (blobs idénticos) y su veredicto de la corrida anterior sigue en pie en este mismo documento. En su lugar se corrieron por separado **los gates cuyo insumo sí cambió** (sql-tests y schema-rebuild, porque entró 0404) más los rápidos de arriba. **Sin medir en esta pasada:** `harness`, `lint` completo, `edge-functions`, `test` completo (6751), `feature-constants`, `e2e` y `build`. Lo mide el CI alojado sobre el SHA publicado. |
 | `/ui-check` | **NO EJECUTADO**: lo corre el Director. El JSX no cambió en ninguna de las dos rondas; esta ronda sólo tocó JSON de registros, una nota de spec y este handoff. |
 | Producción / Supabase | **NO EJECUTADO** por límite del encargo: no se aplicó ninguna migración, no se leyeron filas, no se copió ninguna credencial y no se abrió conexión alguna. |
 | Publicación / `git push` | **NO EJECUTADO a propósito**: el Director marca el momento. Los tres commits de la ronda 2 quedan locales. |
@@ -277,21 +301,27 @@ Ronda 2:
 - `77371956`: nota de importación de la spec 0342 actualizada a «aplicada a producción», con el ledger `20260912022540`.
 - `deefc9bd`: primer cierre del handoff de la ronda 2.
 - `46faf3c9`: docstrings de los dos tests de estado de la RPC, que dejan de decir «migrate-first». Sólo comentarios. Su mensaje se rehízo con `--amend` por un typo, sobre un commit que **nunca** estuvo publicado (el remoto seguía en `94958f8e`); no hubo force push ni reescritura de historia publicada.
-- Commit que contiene esta última versión del documento: cierre durable de la ronda 2; hash final en la PR.
+- `ca148f42`: merge de origin/main `ce023926` (PR #78, L04 referidos / 0404) con el driver de main. Sin conflictos; sólo el índice se reconcilió, a 431 specs.
+- Commit que contiene esta última versión del documento: cierre durable de la ronda 2; es el head publicado en la PR.
 
 ## PR / BRANCH
 
 [PR #77](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/77), **sigue en borrador**, base `main`, rama `codex/c-l06-portal-documentos`, worktree indicado arriba. Rama publicada explícitamente a sí misma, sin force: `1b655967` al abrir la PR y `94958f8e` al cerrar la ronda 1. Sin merge, sin aplicar migraciones y sin deploy en ninguna ronda.
 
-**Los commits de la ronda 2 quedan LOCALES al cerrar este documento.** El Director marca el momento de publicar: la PR #78 fusiona antes y mueve main, así que publicar ahora dejaría la rama atrasada y haría correr el CI en balde. Cuando llegue el SHA nuevo de main se hace un segundo `git merge origin/main` con el mismo override del driver, se revalida lo que corresponda y se publica de una sola vez. La autorización de publicar ya está dada por el encargo; lo que falta es la señal.
+**Publicada al cerrar la ronda 2**, en un solo `git push origin codex/c-l06-portal-documentos` de la rama a sí misma, sin force y sin tocar ninguna otra rama. El orden fue el que pidió el Director: los commits quedaron locales mientras la PR #78 estaba en CI, y se publicó recién con main en `ce023926`, después del segundo merge y de la revalidación. Base de la PR: `main`.
 
-El título de la PR todavía dice «[NO FUSIONAR ANTES DE APLICAR 0406] feat(studio): SDD-0342 — importar L06 documentos Portal por principal (migrate-first)». Ese aviso **quedó obsoleto** con la aplicación del 2026-09-12. Por indicación del Director, el cambio de título y el paso de draft a **ready for review** los hace el Worker **junto con el push**, no antes: retirar el prefijo y el «(migrate-first)», y dejar el formato que el Director viene aprobando en #78 → `feat(studio): SDD-0342 — L06 documentos Portal por principal (0406 ya aplicada)`.
+**Título y estado actualizados en el mismo acto que el push**, como pidió el Director. Se retiró el prefijo «[NO FUSIONAR ANTES DE APLICAR 0406]» y el «(migrate-first)», que quedaron obsoletos con la aplicación, y quedó el formato aprobado en #78:
+
+> `feat(studio): SDD-0342 — L06 documentos Portal por principal (0406 ya aplicada)`
+
+La PR pasó de **draft a ready for review**. Sigue sin fusionarse y sin desplegarse: eso lo decide el Director.
 
 ## PENDIENTES DE ESTA TAREA
 
 - ~~Aplicar 0406 antes de fusionar y después retirar la espera, la declaración y actualizar la nota~~. **Hecho:** 0406 se aplicó el 2026-09-12 (ledger `20260912022540`) y la ronda 2 retiró la espera del baseline y la declaración `l06-portal-documents-packing-lists-pending-rpc`, y actualizó la nota de la spec 0342. El bloqueo migrate-first ya no aplica.
 - ~~Depende de la corrección del harness en `c-fix-pending-symbols-utf16`~~. **Hecho:** el arreglo está en main y esta rama lo trae desde el merge `7521151f`. El gate da `0 ROJO · 0 AMARILLO`.
-- **Segundo merge y publicación, a la señal del Director.** Falta el SHA de main posterior a la PR #78: con él, `git merge origin/main` con el override del driver, revalidación de lo afectado y un único push de la rama a sí misma.
+- ~~Segundo merge y publicación a la señal del Director~~. **Hecho:** main llegó en `ce023926`, el merge `ca148f42` entró sin conflictos, se revalidó y se publicó en un solo push, con el título y el paso a ready en el mismo acto.
+- **Falta el CI alojado sobre el head publicado**, y es lo que mide de verdad lo que acá quedó sin medir en la segunda pasada: `harness`, `lint` completo, `edge-functions`, `test` completo, `feature-constants`, `e2e` y `build`.
 - **`migrations-applied` sin medir** en este árbol por falta de `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. La evidencia de que 0406 está aplicada es la que entregó el Director, no una consulta hecha aquí. Esto no autoriza copiar credenciales.
 - **`e2e` sin cobertura real** por la misma falta de configuración: los fallos que registra son ambientales, no del producto. Hace falta el CI alojado o una corrida con configuración de Supabase.
 - CI alojado del SHA publicado, revisión del Director y `/ui-check` (el JSX no cambió en ninguna de las dos rondas).
@@ -309,9 +339,9 @@ El título de la PR todavía dice «[NO FUSIONAR ANTES DE APLICAR 0406] feat(stu
 ## HANDOFF AL DIRECTOR
 
 - **La rama ya no es migrate-first.** 0406 está aplicada (ledger `20260912022540`) y la espera, la declaración y la nota quedaron al día. El orden que falta es: PR #78 fusiona → llega el SHA de main → segundo merge con el override del driver → publicar → CI → revisión → fusionar → desplegar.
-- **Título y `ready for review`: los hace el Worker al publicar**, en el mismo acto que el push. Queda `feat(studio): SDD-0342 — L06 documentos Portal por principal (0406 ya aplicada)`, con el formato de #78 y sin el prefijo «[NO FUSIONAR…]» ni el «(migrate-first)».
+- **Título y `ready for review`: hechos** junto con el push. Quedó `feat(studio): SDD-0342 — L06 documentos Portal por principal (0406 ya aplicada)`, sin el prefijo «[NO FUSIONAR…]» ni el «(migrate-first)».
 - **Estado de la espera al cerrar esta versión:** el Director avisó que `main` ya está en `664bb4b2` (incluye la PR #94 del harness) con CI verde, pero que la PR #78 va delante y todavía está en CI. **No se fusionó `664bb4b2`**: el segundo merge se hace con el SHA que el Director mande cuando #78 aterrice, y con el override del driver igual, aunque la rama ya lleve el driver corregido —no cuesta nada y no conviene que el resultado dependa de acertar qué árbol lee git—.
-- **Publicación pendiente de tu señal.** Los tres commits de la ronda 2 están en local. Cuando mandes el SHA de main: `git fetch origin`, merge con el driver de main extraído a un archivo fuera del repo, revalidación y un solo `git push origin codex/c-l06-portal-documentos`. Sin force, sin rebase, sin tocar otras ramas.
-- **Conflictos esperables en el segundo merge:** los mismos dos registros generados (`docs/specs/README.md` y `supabase/migrations-baseline.json`) y, si otra rama declara símbolos, `supabase/pending-migration-symbol-declarations.json`, que main ya puso bajo el mismo driver. El código de producto de esta rama (`packing-list-queries.ts`, `documentos/page.tsx`) no lo toca nadie más hasta donde llega `6c282b44`.
-- Revisar la PR sobre el SHA que quede publicado y la base `6c282b44` (o la que resulte del segundo merge). En ninguna ronda se tocó producción, se aplicó una migración, se fusionó ni se desplegó.
+- **Publicada.** Un solo push de la rama a sí misma, sin force. Revisá sobre el head publicado y la base `ce023926`. El diff son **14 archivos**; los dos registros generados no aparecen porque quedaron idénticos a main.
+- **Para tu verificación de que el producto no se movió**, contra el head que ya revisaste (`94958f8e`): de los 12 archivos de producto/spec/SQL, **nueve tienen el blob idéntico** —`page.tsx` `bbc9bc8d`, `packing-list-queries.ts` `c7eb2fd6`, `signed-portal-documents.ts` `9dfe756e`, `0406…sql` `f6c3308e`, sus dos contratos `2934fefc` y `aa9cec41`, los dos tests de origen `5b0ea4da` y `6958dc32`, y el de alcance `26443b06`— y **tres cambiaron, los tres a propósito y ninguno en su lógica**: `PortalDocumentsPage.rpc-state.test.tsx` `2d20df0a` → `26f29f43` y `portal-packing-list-documents.rpc-state.test.ts` `46775508` → `09e7a813`, sólo el docstring, en `46faf3c9` a pedido tuyo; y la spec `37c82384` → `1aaea599`, sólo la nota de importación, en `77371956`. **Cero cambios en el código que corre.**
+- En ninguna ronda se tocó producción, se aplicó una migración, se fusionó a main ni se desplegó.
 - Ownership: ronda 1 liberada con `release --owner c-l06-worker-20260911-claude`. La ronda 2 mantiene el claim `c-l06-worker-20260911-ronda2` **tomado** a propósito, porque la escritura no terminó: falta el segundo merge y el push. Se libera después de publicar. Sin subagentes ni contenedores propios activos. Se conservan worktree y rama.
