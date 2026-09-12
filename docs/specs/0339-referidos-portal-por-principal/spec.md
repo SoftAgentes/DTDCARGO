@@ -16,15 +16,16 @@ confidencialidad: interno
 
 # SDD-0339 — Referidos del Portal por principal
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0404_portal_referidos_por_principal` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
-> `done` de la cabecera no significa que este contrato esté vigente en la base real. Es
-> **MIGRATE-FIRST**: la página de Referidos consume la RPC desde esta misma PR, así que 0404
-> debe aplicarse y verificarse en producción antes de fusionar; sin ella la página falla
-> cerrada y queda vacía. Aplicarla exige OK nominal de Sam y el runbook
-> `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-11; actualizada el 2026-09-12.** Esta spec se importa desde la
+> PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0404_portal_referidos_por_principal` **fue APLICADA a producción el 2026-09-12** con OK nominal
+> de Sam (ledger `20260912022404 / 0404_portal_referidos_por_principal`), con el archivo de esta
+> rama idéntico al aplicado (md5 `4f5ef947e393817f7c65f0710ff227e7`, 2952 B); esta ronda queda
+> asentada en `.agents/handoffs/c-l04-portal-referidos.md`. Por eso 0404 ya **no** figura como
+> espera en `supabase/migrations-baseline.json` ni tiene declaración en
+> `supabase/pending-migration-symbol-declarations.json`. El orden migrate-first se cumplió: la RPC
+> `get_portal_referral_program()` existe en la base antes de fusionar el código que la consume,
+> así que la página de Referidos deja de fallar cerrada y no queda vacía al integrarse.
 
 ## Estado real
 
