@@ -51,3 +51,21 @@ export async function resolveBrandForClient(
   const row = Array.isArray(data.aliados) ? data.aliados[0] : data.aliados;
   return resolveBrand((row ?? null) as AliadoBrandRow | null);
 }
+
+/**
+ * Marca del cliente del Portal autenticado.
+ *
+ * La RPC no recibe `clientId` ni Shipping Mark: resuelve la vinculación activa
+ * desde `auth.uid()` y devuelve únicamente las columnas públicas de marca. Así
+ * las páginas no construyen un service_role ni dependen de filtros manuales.
+ * Un cliente directo, una sesión revocada o cualquier error caen a DTD.
+ */
+export async function resolveBrandForPortal(
+  db: SupabaseClient,
+): Promise<BrandContext> {
+  const { data, error } = await db.rpc("get_portal_brand");
+  if (error) return DTD_BRAND;
+
+  const row = Array.isArray(data) ? data[0] : data;
+  return resolveBrand((row ?? null) as AliadoBrandRow | null);
+}
