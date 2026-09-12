@@ -15,17 +15,20 @@ confidencialidad: interno
 
 # SDD-0336 — Resolver la marca del Portal por el principal autenticado
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0401_portal_brand_por_principal` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
-> `done` de la cabecera no significa que este contrato esté vigente en la base real.
-> **MIGRATE-FIRST:** el código importado consume la RPC, así que 0401 se aplica y verifica en
-> producción **antes** de fusionar la importación; sin la RPC, el comprobante y las etiquetas
-> pintan la marca DTD a los clientes de un aliado. Aplicarla exige OK nominal de Sam y el
-> runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-11; actualizada el 2026-09-12.** Esta spec se importa desde la
+> PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0401_portal_brand_por_principal` **fue APLICADA a producción el 2026-09-12** con OK nominal de
+> Sam (ledger `20260912004121 / 0401_portal_brand_por_principal`), con el archivo de esta rama
+> idéntico al aplicado (md5 `5316823bf152618b7717c1b0582731eb`, 1765 B); el registro de la
+> aplicación está en `.agents/handoffs/` y esta ronda queda asentada en
+> `.agents/handoffs/c-l01-portal-marca.md`. Por eso 0401 ya **no** figura como espera en
+> `supabase/migrations-baseline.json` ni tiene declaración en
+> `supabase/pending-migration-symbol-declarations.json`. El orden migrate-first se cumplió: la RPC
+> existe en la base antes de fusionar el código que la consume, así que el comprobante y las
+> etiquetas no caen a la marca DTD para los clientes de un aliado.
 > Corte focal del bloque C (L01): sólo cambia de dónde sale la marca; etiquetas conserva su
-> presentación vigente. No se importan `scripts/__tests__/portal-service-role-boundary.test.mjs`
+> presentación vigente y el acotado por principal y tenant que main ya trae de L18, L11 y L22.
+> No se importan `scripts/__tests__/portal-service-role-boundary.test.mjs`
 > (ausente en main; su criterio «10 rutas / 21 construcciones» no es verificable aquí) ni los
 > documentos de auditoría/handoff de la allowlist original.
 
