@@ -1,4 +1,4 @@
-# Handoff — `finish` con inventario ignorado compacto (ENOBUFS)
+# Handoff — ENOBUFS en el harness: `finish` y el hook `Stop` de `verify`
 
 Fecha: 2026-09-11. Task ID: `finish-ignored-enobufs`.
 Owner / sesión escritora: `finish-ignored-enobufs-claude-20260911` (Worker Claude Code, worktree `admiring-pascal-832793`). No hubo subagentes.
@@ -16,6 +16,8 @@ Estado: lista-para-revision. No está integrada.
 
 Encargo: listar ignorados de forma compacta conservando `hasIgnoredFiles` y la marca de archivos sensibles `.env*` sin imprimir contenido; dar búfer generoso al helper `git()` sin ocultar errores; pruebas en `scripts/tests/*.node.mjs`; `finish` sigue siendo solo informe; validar `harness:test`, `docs:check`, `sdd:check` y `git diff --check`.
 
+**Ampliación pedida por Sam durante la sesión:** «arregla también el hook de verify», por el hallazgo que esta misma tarea había levantado en `scripts/harness-verify-hook.mjs`. Entró al alcance, a la misma rama y la misma PR.
+
 ## CAUSA RAÍZ, CONFIRMADA EN ESTA SESIÓN
 
 Medido sobre `DTD-worktrees/c-l01-portal-marca`, que reproduce el defecto igual que el worktree original:
@@ -25,6 +27,13 @@ Medido sobre `DTD-worktrees/c-l01-portal-marca`, que reproduce el defecto igual 
 - `spawnSync` sin `maxBuffer` corta en 1 MB: devuelve `status: null`, `stdout` vacío y el error solo en `r.error` (`spawnSync git ENOBUFS`). El helper `git()` descartaba `r.error`, así que `mustGit` caía al mensaje genérico «git ls-files falló.» y el Director se quedaba sin informe.
 - Antes del arreglo: `node scripts/harness-worktree.mjs finish c-l01-portal-marca` → exit 1, «git ls-files falló.».
 - Después: exit 0 en **0,67 s**, con `ignoredEntryCount: 7`.
+
+**El hook `Stop` tenía el mismo defecto, con una consecuencia peor.** `scripts/harness-verify-hook.mjs` capturaba toda la salida de `verify.mjs` con `spawnSync` sin `maxBuffer`. Al pasar de 1 MB, **spawnSync mata al hijo**: el gate se corta a media corrida y, como `r.status` queda `null`, la condición `r.status === 0` fallaba y el hook bloqueaba el cierre anunciando ROJO un gate que nunca terminó — y que podía venir verde.
+
+Reproducido con el hook tal como está en `HEAD`, contra un `verify` falso que escribe 3 MB y sale 0:
+
+- hook original → **exit 2**, «🛑 Harness gate en ROJO», con la cola llena de relleno;
+- hook arreglado, mismo fixture → **exit 0**, stderr vacío.
 
 ## COMPLETADO
 
@@ -44,36 +53,64 @@ Medido sobre `DTD-worktrees/c-l01-portal-marca`, que reproduce el defecto igual 
 - `runGit names a buffer overflow…`: `GIT_MAX_BUFFER ≥ 32 MB`, una corrida normal, un desbordamiento forzado con `maxBuffer: 4` que exige `ENOBUFS` en `err`, y la tabla de nombres sensibles.
 - `finish inventories ignored files compactly…`: worktree con **1.200 archivos ignorados** en 40 paquetes × `dist/chunks` (directorios ignorados anidados), un `.env.local` en la raíz y un `.env.production` dentro de `secrets/`, que `--directory` colapsa. Comprueba: informe vacío antes de ensuciar; `> 1.000` archivos en el listado expandido frente a `≤ 10` entradas informadas; `ignoredEntries` exacto; `sensitiveIgnoredFiles` con **los dos** `.env`, incluido el anidado; que el informe no contiene el contenido secreto, ni rutas del interior del directorio colapsado, ni supera 4.000 caracteres; y que nada se borró.
 
+**`scripts/harness-verify-hook.mjs`**
+
+- El spawn de `verify.mjs` recibe `HOOK_MAX_BUFFER = 64 MB`, igual que el `execSync` de `git status` y el spawn de `check-unpublished.mjs`.
+- `clasificarGate` (exportada) separa tres casos que antes se aplastaban en uno: **medido y verde** (exit 0) deja cerrar; **medido y rojo** (exit ≠ 0) bloquea con exit 2 y ahora nombra el código; **sin medir** (error de spawn, desbordamiento, señal) informa el motivo por stderr y **deja cerrar**, coherente con el fail-open que el encabezado del archivo ya prometía. Un gate que no terminó no es un gate rojo.
+- El cuerpo pasó a `main()` con el guard `import.meta.url === pathToFileURL(process.argv[1]).href`, para poder importar el módulo en pruebas sin ejecutar el hook. El flujo, el orden de los pasos y el anti-loop `stop_hook_active` quedan idénticos.
+- El mensaje de bloqueo ahora dice `ROJO (exit N)`; el del gate sin medir arranca con `⚠️ Harness:` y la frase «SIN MEDIR».
+- No se tocó `.claude/settings.json`: el hook se registra igual que antes.
+
+**`scripts/tests/harness-verify-hook.node.mjs`** (nuevo, 2 pruebas)
+
+- Unitaria de `clasificarGate`: verde, rojo con código, ENOBUFS (el motivo nombra los 64 MB), spawn no lanzado (ENOENT) y muerte por señal.
+- Integración con un sandbox propio: repo git de mentira, un cambio en `app/` y un `scripts/verify.mjs` falso. Cubre que sin cambios en código el gate **ni se lanza**, que `stop_hook_active` corta antes, el rojo normal (exit 2 con la cola real), el verde normal, **el verde ruidoso de 3 MB que antes salía exit 2 y ahora sale 0 sin avisos**, el rojo ruidoso que sigue bloqueando con la última línea del gate, y el `[AVISO]` de rama sin publicar que llega a stderr sin decidir el cierre.
+
 ## VALIDACIÓN
 
-Sobre `4897bb1d`, con Node 24.20.0, pnpm vía corepack y git 2.55.0.windows.5.
+Sobre `4897bb1d` (parte 1) y el commit del hook (parte 2), con Node 24.20.0, pnpm vía corepack y git 2.55.0.windows.5.
 
-- **PASÓ** — `corepack pnpm harness:test`: 9 archivos descubiertos, **73/73** en 56,5 s.
+- **PASÓ** — `corepack pnpm harness:test`: **10 archivos descubiertos, 75/75**. (Antes del hook: 9 archivos, 73/73 en 56,5 s.)
 - **PASÓ** — `corepack pnpm docs:check`: índice sincronizado, 427 specs.
 - **PASÓ** — `corepack pnpm sdd:check`: sin números repetidos; solo los choques históricos ya exentos.
 - **PASÓ** — `git diff --check`: sin hallazgos.
-- **PASÓ** — `eslint scripts/harness-worktree.mjs scripts/tests/harness-worktree.node.mjs`: 0 errores, 0 advertencias.
-- **PASÓ** — reproducción y arreglo sobre un worktree real (`c-l01-portal-marca`, solo lectura): fallaba con exit 1 antes, sale 0 en 0,67 s después, con las 7 entradas esperadas.
+- **PASÓ** — `eslint` sobre los cuatro archivos tocados: 0 errores, 0 advertencias. El exit code se leyó bien esta vez; en la primera corrida quedó tapado por un `tail` en la tubería, y se repitió.
+- **PASÓ** — reproducción y arreglo de `finish` sobre un worktree real (`c-l01-portal-marca`, solo lectura): fallaba con exit 1 antes, sale 0 en 0,67 s después, con las 7 entradas esperadas.
+- **PASÓ** — reproducción y arreglo del hook, con el archivo tal como está en `HEAD` y un `verify` falso de 3 MB que sale 0: original **exit 2** («ROJO»), arreglado **exit 0** con stderr vacío.
+- **PASÓ (no requerido)** — `corepack pnpm test`: **530 archivos, 6727 tests, exit 0** en 171 s. No hacía falta para un cambio de harness; se corrió para medir salida y de paso confirma que el producto sigue verde.
 - **PASÓ** — mutación de las pruebas, sobre copias en scratch, nunca sobre el árbol de trabajo. Cada mutante deja rojo exactamente la prueba que le toca:
   1. quitar `--directory` → cae el informe compacto;
   2. quitar la rama `if (r.error)` → cae el desbordamiento nombrado;
   3. bajar `GIT_MAX_BUFFER` a 1 MB → cae la cota del búfer;
-  4. anular la expansión de un nivel → cae el `.env` anidado.
+  4. anular la expansión de un nivel → cae el `.env` anidado;
+  5. quitar `maxBuffer` del spawn del gate → cae el verde ruidoso del hook;
+  6. volver a la clasificación vieja (`r.status === 0` o rojo) → cae la prueba del hook.
+
+**Cuánta salida produce `verify` de verdad: medición, y corrección de lo que dije antes.** En la primera ronda afirmé que «un `verify` completo con e2e supera 1 MB sin esfuerzo». **No lo tenía medido y la medición lo desmiente en parte:** `corepack pnpm test` capturado a archivo ocupa **361 bytes**, porque fuera de TTY el reporter de vitest imprime solo el resumen. Los pasos de tests unitarios no aportan volumen.
+
+Lo que sí sostiene el arreglo, sin inventar cifras:
+
+- El defecto es estructural y está **probado**: pasado el búfer, `spawnSync` mata el gate y el hook lo informa ROJO aunque venga verde (evidencia arriba).
+- El volumen plausible viene del paso `e2e`, no de los tests unitarios: el handoff de SDD-0454 documenta que la salida del webServer «goteaba sin parar» durante toda la ventana del watchdog, y a eso se suman los volcados de fallos de Playwright y el reintento. **No pude medirlo aquí**: el e2e exige Supabase y esta sesión no lo tiene.
+- Con qué frecuencia se cruzaba 1 MB en la práctica queda **SIN MEDIR**. El arreglo quita el precipicio y, cuando se cruce, lo dice en vez de mentir.
 
 **Pruebas de producto que no aplican, y por qué.** El cambio vive en `scripts/`, no lo importa ninguna ruta de `app/`, `lib/` ni `supabase/`, y no altera artefacto de app ni esquema:
 
-- NO APLICA: `vitest`, `playwright`, `typecheck`, `rsc-boundary`, `components:check`, `governance:check`, `edge:check`, `sql-tests`, `schema-rebuild` y `migrations-applied`. No se tocó producto, tipos, componentes, gobernanza, edge functions ni SQL.
+- NO APLICA: `playwright`, `typecheck`, `rsc-boundary`, `components:check`, `governance:check`, `edge:check`, `sql-tests`, `schema-rebuild` y `migrations-applied`. No se tocó producto, tipos, componentes, gobernanza, edge functions ni SQL. (`vitest` tampoco aplicaba, pero se corrió igual y salió verde: queda arriba como evidencia.)
 - NO APLICA: `/ui-check` y `ui-pro` (no hay UI), y `revisar-datos-ve` (no se captura, mueve ni borra dato personal alguno; el informe nombra rutas ignoradas, nunca su contenido).
 - NO EJECUTADO: `corepack pnpm verify` completo. Es el cierre canónico de producto y aquí no hay cambio de producto; además su paso `e2e` exige Supabase, que esta sesión no tiene. El paso `harness` de `verify` corre justo lo que sí se ejecutó arriba.
 - NO EJECUTADO: la CI de GitHub Actions sobre este head. Queda para el Director al publicar.
 - NO EJECUTADO: `finish` contra un worktree con `.env` real dentro de un directorio ignorado. Ese camino se cubre con el fixture de la prueba; no se creó un `.env` con secretos en un worktree real a propósito.
+- NO EJECUTADO: el hook `Stop` contra un `verify` **real** que desborde el búfer. Haría falta un `verify` con e2e de verdad y sin Supabase no corre. Se probó con el gate falso, que ejercita exactamente la misma ruta de `spawnSync`.
 
 **No se tocó producción.** Ni Supabase, ni migraciones, ni datos de negocio.
 
 ## COMMITS
 
 - `4897bb1d` — `fix(harness): finish inventaria ignorados de forma compacta y git deja de romperse por ENOBUFS` (script + pruebas).
-- El commit que trae este documento cierra la tarea.
+- `d23436a0` y `a18adc2a` — handoff de la primera ronda y registro de la PR #94.
+- `f86f60d6` — `fix(harness): el hook Stop deja de matar el gate y de informar ROJO un verify verde` (hook + pruebas).
+- El commit que trae esta versión del documento cierra la tarea.
 
 ## PR / BRANCH
 
@@ -88,16 +125,18 @@ Ninguno de implementación. Falta la revisión del Director y la CI del head pub
 
 ## FUERA DE ALCANCE DETECTADO
 
-1. **`scripts/harness-verify-hook.mjs:49` tiene el mismo defecto, y es peor.** Captura toda la salida de `verify.mjs` con `spawnSync` sin `maxBuffer`. Un `verify` completo con e2e supera 1 MB sin esfuerzo; entonces `r.status` queda `null`, la condición `r.status === 0` falla y **el hook bloquea el cierre informando rojo aunque `verify` haya salido verde**, mostrando una salida vacía o truncada. No lo toqué: es otro script y otro contrato. Merece tarea propia.
-2. **`scripts/check-unpublished.mjs:41` también captura sin `maxBuffer`**, pero sus cuatro comandos (`rev-parse`, `for-each-ref`, `rev-list --count`, `fetch --quiet`) producen salidas pequeñas. Riesgo bajo; conviene igualar el helper cuando se atienda el punto 1.
-3. **`finish` sigue pidiendo `git status --untracked-files=all`.** Ya no revienta gracias al búfer, pero solo se usa como booleano `hasChanges`: un worktree con un árbol grande **no ignorado** materializa un listado entero para nada. Cambiarlo altera semántica y merece su propia decisión.
-4. **La expansión de directorios colapsados llega a un nivel.** Un `.env` a mayor profundidad dentro de un directorio ignorado (p. ej. `node_modules/<pkg>/.env`) no se nombra. Es deliberado: el barrido recursivo `**/.env*` sobre ese mismo worktree tardó **18 s** y devolvió 0 resultados, es decir, el costo era del recorrido, no de la salida. El directorio colapsado sí aparece en `ignoredEntries`, y la línea final dice que la expansión es de un nivel.
-5. **`aliado-tenant-coherence` ya no figura en `git worktree list`.** El defecto se reprodujo en `c-l01-portal-marca`, que es equivalente. No busqué qué pasó con aquel worktree ni toqué ninguno ajeno.
+1. ~~`scripts/harness-verify-hook.mjs:49`~~ **ATENDIDO en esta misma tarea**, a pedido de Sam. Queda arriba, en COMPLETADO y VALIDACIÓN.
+2. **`scripts/check-unpublished.mjs:41` sigue capturando sin `maxBuffer`** en su propio helper `git()`. Desde el hook ya no importa (el spawn que lo lanza sí tiene búfer), pero corriéndolo directo el helper conserva el límite de 1 MB. Sus cuatro comandos (`rev-parse`, `for-each-ref`, `rev-list --count`, `fetch --quiet`) producen salidas pequeñas, así que el riesgo es bajo y no lo toqué.
+3. **El hook captura, no transmite.** Con 64 MB el corte queda lejísimos, pero la salida del gate sigue materializándose entera en memoria y el usuario no ve progreso mientras corre. Transmitir con `spawn` asíncrono y guardar solo una cola acotada sería mejor; es otro diseño y merece su propia decisión.
+4. **`finish` sigue pidiendo `git status --untracked-files=all`.** Ya no revienta gracias al búfer, pero solo se usa como booleano `hasChanges`: un worktree con un árbol grande **no ignorado** materializa un listado entero para nada. Cambiarlo altera semántica y merece su propia decisión.
+5. **La expansión de directorios colapsados llega a un nivel.** Un `.env` a mayor profundidad dentro de un directorio ignorado (p. ej. `node_modules/<pkg>/.env`) no se nombra. Es deliberado: el barrido recursivo `**/.env*` sobre ese mismo worktree tardó **18 s** y devolvió 0 resultados, es decir, el costo era del recorrido, no de la salida. El directorio colapsado sí aparece en `ignoredEntries`, y la línea final dice que la expansión es de un nivel.
+6. **`aliado-tenant-coherence` ya no figura en `git worktree list`.** El defecto se reprodujo en `c-l01-portal-marca`, que es equivalente. No busqué qué pasó con aquel worktree ni toqué ninguno ajeno.
 
 ## HANDOFF AL DIRECTOR
 
 - **Siguiente acción:** revisar la PR en borrador y correr su CI. La PR no se pasa a ready ni se mergea desde aquí.
 - **Contratos compartidos:** el JSON de `finish` **suma** campos (`ignoredEntryCount`, `ignoredEntries`, `sensitiveIgnoredFiles`) y ninguno cambia de nombre ni de tipo; `hasIgnoredFiles` conserva su significado. `runGit` y `GIT_MAX_BUFFER` quedan exportados por si otro script del harness quiere el mismo helper. No hay consumidores externos hoy.
+- **Contrato del hook `Stop`:** los códigos de salida no cambian de significado (0 deja cerrar, 2 bloquea) y `.claude/settings.json` queda igual. Lo que cambia es **cuándo** sale 2: solo con un gate medido en rojo. Un gate que no se pudo medir ahora sale 0 con un aviso `⚠️ Harness: … SIN MEDIR` en stderr, así que un cierre que antes se trababa por un falso rojo ahora pasa. Si el Director prefiere que ese caso bloquee, es una línea; quedó así porque el propio encabezado del archivo promete fail-open ante errores del hook.
 - **Integración y producción:** integrar a main **dispara el deploy de producción en Vercel**, porque el `ignoreCommand` de `vercel.json` no excluye `scripts/**`. El artefacto de la app no cambia, pero la autorización de merge tiene que cubrir ese deploy.
-- **Efecto en los demás Workers:** con esto integrado, `finish` vuelve a funcionar en cualquier worktree con dependencias instaladas y, además, nombra los `.env*` que antes ni se listaban.
+- **Efecto en los demás Workers:** con esto integrado, `finish` vuelve a funcionar en cualquier worktree con dependencias instaladas y, además, nombra los `.env*` que antes ni se listaban. Y el hook `Stop` deja de trabar cierres por un gate que en realidad nunca terminó.
 - **Ownership:** el claim `finish-ignored-enobufs-claude-20260911` se libera al cerrar. La rama y el worktree se conservan; no se borra nada.
