@@ -2,10 +2,16 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * SDD-0342 · L06 migrate-first. Composición de /portal/documentos frente a la
- * RPC 0406: sin ella, la página conserva los documentos de envío (leídos por
- * RLS y firmados server-only) y sólo omite los packing lists. Nunca construye
- * service_role para leer packing lists.
+ * SDD-0342 · composición de /portal/documentos según lo que devuelva la RPC
+ * 0406, ya aplicada en producción. Si la lectura de packing lists falla —ACL
+ * revocada, error de PostgREST o transporte caído—, la página conserva los
+ * documentos de envío (leídos por RLS y firmados server-only) y sólo omite los
+ * packing lists; si además el cliente no tenía documentos de envío, ve el
+ * estado vacío con contacto al asesor en vez de una pantalla rota.
+ *
+ * Los casos llamados «RPC ausente» simulan esa respuesta adversa con un mock;
+ * no son el estado de la base. Lo que se afirma en todos es que la página nunca
+ * construye service_role para leer packing lists.
  */
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),

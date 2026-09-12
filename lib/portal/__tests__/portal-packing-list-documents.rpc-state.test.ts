@@ -4,11 +4,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { listarPackingListsComoDocumentos } from "../packing-list-queries";
 
 /**
- * SDD-0342 · L06 migrate-first. La RPC `get_portal_packing_list_documents`
- * (0406) puede estar presente, ausente (PGRST202 mientras no se aplique),
- * denegada o inalcanzable. En todos los fallos la sección queda vacía y el
- * helper NO cae a leer `packing_list_submissions` por Shipping Mark: no hay
- * fallback admin/legacy que reabra la lectura sin tenant.
+ * SDD-0342 · contrato de fallo cerrado de `listarPackingListsComoDocumentos`.
+ * La RPC `get_portal_packing_list_documents` (0406) **está aplicada en
+ * producción**, así que lo que sigue no describe una espera: describe qué pasa
+ * ante cualquier respuesta adversa de una RPC que existe —denegada por ACL
+ * (42501), error de PostgREST (`PGRST202` si alguien la sacara del catálogo) o
+ * transporte caído— y ante la respuesta normal, con filas y sin filas.
+ *
+ * Lo que estas pruebas custodian es que en TODOS los fallos la sección queda
+ * vacía y el helper NO cae a leer `packing_list_submissions` por Shipping Mark:
+ * no hay fallback admin/legacy que reabra la lectura sin tenant. Ese era el
+ * agujero que 0406 cerró, y `from` mockeado para lanzar es lo que impide
+ * reintroducirlo sin que nadie se dé cuenta.
  */
 function sessionDb(rpcImpl: () => Promise<unknown>) {
   const rpc = vi.fn(rpcImpl);
