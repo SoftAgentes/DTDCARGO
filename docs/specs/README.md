@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 434 specs)
+### Índice de specs (generado · 435 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -394,6 +394,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0372 | Direcciones Portal por principal y tenant | in-progress | interno |
 | 0373 | Validación de destinos y suscripciones Web Push | done | interno |
 | 0374 | Verificación pública bloqueada ante fallo del throttle | in-progress | interno |
+| 0375 | Reserva atómica del verificador público | in-progress | interno |
 | 0376 | Comprobaciones Git agrupadas sin relajar el cierre seguro | done | interno |
 | 0377 | Borrado logico de direcciones Portal confirmado y auditable | in-progress | interno |
 | 0378 | Verificacion local sin falsos verdes y aislamiento de pruebas… | done | interno |
@@ -473,5 +474,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0456 | Un cliente sólo cuelga de un aliado de su tenant | done | interno |
 | 0457 | ENOBUFS y errores tapados en el harness: un subproceso que no… | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0364, 0365, 0366, 0375, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0364, 0365, 0366, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
