@@ -36,7 +36,5 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {
-    "0401_portal_brand_por_principal": "PENDIENTE DE APLICAR — bloque C L01 / SDD-0336. MIGRATE-FIRST: crea la RPC get_portal_brand() (SECURITY DEFINER, search_path vacío, sin parámetros, EXECUTE sólo authenticated), que devuelve únicamente los ocho campos públicos de marca white-label del aliado del cliente Portal de la sesión, derivado de auth.uid() con vínculo activo y cliente vivo, sin tenant, ids, acuerdos ni tarifa del aliado. El código de esta PR la consume en el comprobante de factura y en las etiquetas de compra del Portal y NO se fusiona antes de aplicar y verificar 0401 en producción: sin la RPC, esas páginas pintan la marca DTD a los clientes de un aliado (sin fallback admin). Fusionar NO autoriza aplicarla. Requiere OK nominal de Sam y docs/runbooks/aplicar-migraciones-prod.md; aplicar individualmente con name exacto 0401_portal_brand_por_principal. No subir cutoff 238 ni modificar las demás esperas. Tras aplicación y verificación autorizadas, retirar esta entrada junto con la declaración l01-portal-brand-pending-rpc de supabase/pending-migration-symbol-declarations.json y actualizar la nota de importación de la spec 0336."
-  }
+  "pendingBelowCutoff": {}
 }
