@@ -17,14 +17,15 @@ confidencialidad: interno
 
 # SDD-0351 — RBAC admin-only para Mailing
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0408_mailing_admin_rbac` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
-> `done` de la cabecera no significa que este contrato esté vigente en la base real. Aplicarla
-> exige OK nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`. El
-> checklist de auditoría y los handoffs del 2026-09-02 que cita su allowlist histórica no
-> forman parte de este lote.
+> **Nota de importación — 2026-09-11, actualizada tras la aplicación.** Esta spec entró a
+> `main` desde la PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0408_mailing_admin_rbac` **fue APLICADA a producción el 2026-09-11** con OK nominal de Sam
+> (ledger `20260912000826 / 0408_mailing_admin_rbac`) y se verificó contra el objeto: 21
+> policies admin más 4 de `service_role`, ninguna policy extra para `authenticated` o
+> `public`, ACL CRUD mínima por tabla y las dos RPC reservadas a `service_role`. El registro y
+> la vuelta atrás están en `.agents/handoffs/lote-11-migraciones-aplicadas-20260911.md`. El
+> checklist de auditoría y los handoffs del 2026-09-02 que cita su allowlist histórica no forman
+> parte de este lote. Falta el smoke funcional de Mailing.
 
 ## Estado real
 

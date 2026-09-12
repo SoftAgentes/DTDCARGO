@@ -124,6 +124,15 @@ migración, porque todo va en un solo `do`. El contrato no lo mide desde adentro
 
 ## Producción
 
+> **Nota de aplicación — 2026-09-11.** `0450_clients_aliado_mismo_tenant` **fue APLICADA a
+> producción el 2026-09-11** con OK nominal de Sam (ledger
+> `20260912001001 / 0450_clients_aliado_mismo_tenant`) y se verificó contra el objeto: la unique
+> `aliados_tenant_id_id_key`, la FK compuesta `clients_aliado_mismo_tenant_fkey` validada con
+> MATCH SIMPLE, ON DELETE RESTRICT y ON UPDATE NO ACTION, y la FK simple de 0362 conservada. Ya
+> no es una espera del baseline. El registro y la vuelta atrás están en
+> `.agents/handoffs/lote-11-migraciones-aplicadas-20260911.md`. El párrafo siguiente describe el
+> estado previo a esa aplicación; el smoke del embed de marca sigue pendiente.
+
 `done` en esta spec no significa aplicada. La migración queda declarada pendiente
 en `supabase/migrations-baseline.json`. Aplicarla exige el OK nominal de Sam y el
 runbook `docs/runbooks/aplicar-migraciones-prod.md`: de a una, con el name exacto
