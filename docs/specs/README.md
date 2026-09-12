@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 433 specs)
+### Índice de specs (generado · 437 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -366,8 +366,11 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0334 | Retirar la configuración activa del Payload CMS descontinuado | done | interno |
 | 0335 | Contener el crecimiento de service_role en Portal y ordenar e… | done | interno |
 | 0336 | Resolver la marca del Portal por el principal autenticado | done | interno |
+| 0337 | Resolver la visibilidad de hitos del Portal por el principal … | done | interno |
+| 0338 | Resolver el asesor del Portal por el principal autenticado | done | interno |
 | 0339 | Resolver el programa de referidos del Portal por principal | done | interno |
 | 0340 | Firmar adjuntos de prealerta desde una lectura autorizada por… | done | interno |
+| 0341 | Resolver el contexto privado de Perfil por principal autenticado | done | interno |
 | 0342 | Resolver y firmar Documentos del Portal desde el principal | done | interno |
 | 0343 | Encapsular el detalle operativo de compras del Portal | done | interno |
 | 0344 | Encapsular el contexto privado de Soporte del Portal | done | interno |
@@ -391,6 +394,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0372 | Direcciones Portal por principal y tenant | in-progress | interno |
 | 0373 | Validación de destinos y suscripciones Web Push | done | interno |
 | 0374 | Verificación pública bloqueada ante fallo del throttle | in-progress | interno |
+| 0375 | Reserva atómica del verificador público | in-progress | interno |
 | 0376 | Comprobaciones Git agrupadas sin relajar el cierre seguro | done | interno |
 | 0377 | Borrado logico de direcciones Portal confirmado y auditable | in-progress | interno |
 | 0378 | Verificacion local sin falsos verdes y aislamiento de pruebas… | done | interno |
@@ -472,5 +476,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0458 | finish miraba medio universo: los worktrees de .claude/worktr… | done | interno |
 | 0459 | No hay respuesta para «no sé»: el harness elegía un checkout … | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0337, 0338, 0341, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0364, 0365, 0366, 0375, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0364, 0365, 0366, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

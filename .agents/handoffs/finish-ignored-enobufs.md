@@ -3,7 +3,12 @@
 Fecha: 2026-09-11. Task ID: `finish-ignored-enobufs`.
 Owner / sesión escritora: `finish-ignored-enobufs-claude-20260911` (Worker Claude Code, worktree `admiring-pascal-832793`). No hubo subagentes.
 
-Estado: lista-para-revision, **segunda ronda** tras la revisión del Director. No está integrada.
+Estado: **integrada**.
+
+- La [PR #94](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/94) se fusionó a `main` el 2026-09-11 en el commit de merge `664bb4b2`, con el head `902620f8` y su CI en verde (run 34669415893: «Calidad local sin secretos» SUCCESS, `harness:test` 12 archivos y 81/81 en ubuntu).
+- La integró el Director (`dtdcargo-4d`), que verificó antes que main fuera ancestro del head, los cuatro checks en verde, MERGEABLE/CLEAN, que nada saliera de `scripts/ docs/specs/ .agents/` y que `docs/specs/README.md` solo cambiara lo esperado (428 → 429 specs y la fila de 0457). La autorización de merge, con su deploy de Vercel, la dio Sam al pedir llevar lo pendiente a producción ese día.
+- Verificado por el Worker de forma independiente antes de escribir esto: `902620f8` es ancestro de `origin/main` y `664bb4b2` es el merge de la #94.
+- Esta línea se corrige **después** del merge, en su propia rama y PR: las secciones de abajo conservan la redacción del momento en que se escribieron, que es evidencia fechada.
 
 ## RONDA 2 — LA CI EN LINUX DESTAPÓ UN DEFECTO DEL ARREGLO
 
@@ -194,11 +199,13 @@ Lo que sí sostiene el arreglo, sin inventar cifras:
 [PR #94 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/94): base `main`, rama `claude/stoic-thompson-6ef73b`, worktree el indicado arriba.
 
 - Publicada con la autorización del encargo («open a draft PR»). Push de la rama a sí misma, sin force.
-- Pasada a **ready** el 2026-09-11 a pedido de Sam. No se mergeó ni se desplegó a mano; ready no autoriza merge.
+- Pasada a **ready** el 2026-09-11 a pedido de Sam, y **fusionada** ese mismo día por el Director en `664bb4b2`. El Worker no mergeó ni desplegó a mano; ready no autorizaba merge.
 
 ## PENDIENTES DE ESTA TAREA
 
-Ninguno de implementación. Falta la revisión del Director y la CI del head publicado.
+Ninguno. La revisión del Director se aplicó en la ronda 2, la CI del head quedó verde y la PR está fusionada.
+
+Se conservan sin borrar, porque la limpieza es del Director y necesita su propia autorización: el worktree `admiring-pascal-832793`, la rama `claude/stoic-thompson-6ef73b` (ya en main) y la reserva local de SDD-0457 (`refs/dtd/reservations/0457` y `refs/heads/codex/sdd-reserve-0457-harness-spawn-enobufs`, nunca publicadas).
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -209,11 +216,14 @@ Ninguno de implementación. Falta la revisión del Director y la CI del head pub
 3. **El hook captura, no transmite.** Con 64 MB el corte queda lejísimos, pero la salida del gate sigue materializándose entera en memoria y el usuario no ve progreso mientras corre. Transmitir con `spawn` asíncrono y guardar solo una cola acotada sería mejor; es otro diseño y merece su propia decisión.
 4. **`finish` sigue pidiendo `git status --untracked-files=all`.** Ya no revienta gracias al búfer, pero solo se usa como booleano `hasChanges`: un worktree con un árbol grande **no ignorado** materializa un listado entero para nada. Cambiarlo altera semántica y merece su propia decisión.
 5. **La expansión de directorios colapsados llega a un nivel.** Un `.env` a mayor profundidad dentro de un directorio ignorado (p. ej. `node_modules/<pkg>/.env`) no se nombra. Es deliberado: el barrido recursivo `**/.env*` sobre ese mismo worktree tardó **18 s** y devolvió 0 resultados, es decir, el costo era del recorrido, no de la salida. El directorio colapsado sí aparece en `ignoredEntries`, y la línea final dice que la expansión es de un nivel.
-6. **`aliado-tenant-coherence` ya no figura en `git worktree list`.** El defecto se reprodujo en `c-l01-portal-marca`, que es equivalente. No busqué qué pasó con aquel worktree ni toqué ninguno ajeno.
+6. **`finish` no alcanza a los worktrees de `.claude/worktrees/`.** Al cerrar, el Director sugirió correr `node scripts/harness-worktree.mjs finish` sobre este worktree y no aplica: el comando solo resuelve candidatos bajo `<padre-del-checkout>/DTD-worktrees/<slug>`, así que sin slug responde «Slug inválido» y con el nombre del worktree «El candidato no es un worktree registrado y disponible», ambos con exit 1. No es una regresión del arreglo —verificado contra `c-l01-portal-marca`, que sí vive donde `finish` mira—, pero los worktrees que crea la app de Claude Code quedan fuera de su alcance y su informe hay que armarlo a mano con `ignoredReport`.
+
+   **Decidido por el Director el 2026-09-11: `finish` sí debe cubrirlos.** El argumento que sostiene la decisión, por si alguien la revisa después: hoy buena parte de las sesiones trabaja en `.claude/worktrees/`, y un comando de cierre que solo ve la mitad del universo es el mismo «verde por omisión» que esta misma tarea eliminó de `check-unpublished` y del propio `finish`. Se hace en **tarea aparte, con su propio SDD y su propia PR**, y **no** en esta rama: había seis PRs migrate-first en cadena, y meter un cambio de alcance del harness en medio de ese tren rompe la trazabilidad. Hasta entonces, sobre estos worktrees no se corre `finish` y su informe se arma a mano con `ignoredReport`.
+7. **`aliado-tenant-coherence` ya no figura en `git worktree list`.** El defecto se reprodujo en `c-l01-portal-marca`, que es equivalente. No busqué qué pasó con aquel worktree ni toqué ninguno ajeno.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** revisar el head nuevo cuando su CI esté verde. La PR está en ready desde el 2026-09-11; el merge sigue siendo del Director y no se hizo desde aquí.
+- **Siguiente acción:** ninguna sobre esta tarea: está integrada en `664bb4b2`. Lo único abierto es la limpieza del worktree y la rama, que es decisión del Director y no se hizo desde aquí.
 - **Contratos compartidos:** el JSON de `finish` **suma** campos (`ignoredEntryCount`, `ignoredEntries`, `sensitiveIgnoredFiles`) y ninguno cambia de nombre ni de tipo; `hasIgnoredFiles` conserva su significado. `runGit` y `GIT_MAX_BUFFER` quedan exportados por si otro script del harness quiere el mismo helper. No hay consumidores externos hoy.
 - **Contrato de `check-unpublished`:** exit y semántica intactos (siempre 0, informativo, no falla el gate). Lo que cambia es que un git roto ya no puede salir `[OK]`: el listado o el conteo fallidos producen `[AVISO] … SIN MEDIR`. Como el hook reenvía todo lo que contenga `[AVISO]`, esos casos ahora se ven en el cierre. `ramasSinPublicar` conserva su firma; `main` acepta un git inyectado con `runGit` por defecto.
 - **Contrato del hook `Stop`:** los códigos de salida no cambian de significado (0 deja cerrar, 2 bloquea) y `.claude/settings.json` queda igual. Solo un exit 0 del gate deja cerrar; un gate medido en rojo y un gate sin medir bloquean los dos, y se distinguen por el mensaje, no por el código. Respecto de `main`, el cambio neto es que **un gate verde cuya salida desborde el búfer ya no se lee como rojo**, y que un gate sin medir se anuncia como tal. Decisión de Sam: el sin medir bloquea.
