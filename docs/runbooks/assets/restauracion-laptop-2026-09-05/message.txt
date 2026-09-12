@@ -1,0 +1,108 @@
+Estoy en la computadora nueva y quiero restaurar el proyecto DTDCargo desde un pendrive preparado en la computadora anterior.
+
+OBJETIVO
+
+Restaurar de forma segura:
+
+1. El repositorio Git completo.
+2. Las ramas y referencias que podrían no estar publicadas.
+3. Los archivos locales cifrados.
+4. El entorno necesario para trabajar.
+
+MODO DE TRABAJO OBLIGATORIO
+
+- Avanza estrictamente un paso por vez.
+- No me muestres todos los pasos juntos.
+- Ejecuta solamente el paso actual, reporta el resultado y detente hasta que yo diga “continuar”.
+- Inspecciona directamente la computadora; no me mandes a ejecutar comandos que tú puedas ejecutar.
+- Responde en español venezolano neutro, con tuteo y sin voseo.
+- No hagas push, merge, deploy, migraciones, escrituras en Supabase, cambios en Vercel ni limpieza de ramas o worktrees.
+- No sobrescribas archivos existentes sin inspeccionarlos y obtener mi autorización.
+- No borres nada del pendrive.
+- No copies directamente estructuras antiguas de worktrees ni uses sus archivos `.git`; los worktrees deberán reconstruirse.
+- Nunca me pidas que escriba contraseñas en el chat.
+- Cuando haga falta la contraseña del archivo cifrado, abre una terminal o ventana visible de 7-Zip para que yo la introduzca directamente. La contraseña no debe aparecer en comandos, logs ni mensajes.
+
+MATERIAL DISPONIBLE
+
+El pendrive puede aparecer con una letra distinta de `F:` en esta computadora. Debes localizar una carpeta llamada:
+
+DTDCargo-migracion-20260905
+
+Dentro deben existir exactamente estos archivos:
+
+- DTDCargo-git.bundle
+- DTDCargo-local-cifrado.7z
+- SHA256SUMS.txt
+
+Valores esperados:
+
+DTDCargo-git.bundle
+SHA-256:
+0a03e88c27d9af024350cb9411264bbc633b1e5c792379d76fc0c5529327f2e5
+
+DTDCargo-local-cifrado.7z
+SHA-256:
+15118724c8a92c3624a088f7a65b4dfb6fa287247cb1c2b7ed76c724263a629e
+
+EVIDENCIA DE ORIGEN
+
+- El bundle pesa aproximadamente 141,15 MB.
+- El archivo cifrado pesa aproximadamente 11,44 MB.
+- `git bundle verify` confirmó historia completa.
+- El archivo 7z fue creado con cifrado de encabezados y contraseña.
+- Una prueba completa de 7-Zip con la contraseña correcta terminó con código 0.
+- El pendrive fue expulsado correctamente en la computadora anterior.
+- El repositorio remoto privado es:
+  https://github.com/hailuwaycom-sketch/DTDCARGO.git
+- `main` estaba limpio y sincronizado con `origin/main` en:
+  b8294664a1b4f9e25c423dd814f4813fa5b1be8f
+- Había siete worktrees registrados y todos estaban limpios.
+- El bundle contiene todas las ramas y referencias locales.
+- Dos ramas de archivo dependían especialmente del bundle:
+  - codex/archive-cloud-handoff-20260828 @ d05b63553b2c56c7cc31dec5dd6898b00f51b5fc
+  - codex/archive-primary-pnpm-20260902 @ d390092fbf88f00893c5bb4161a342b3b7e859dd
+
+El archivo cifrado contiene, entre otros:
+
+- `.env.local`
+- `.mcp.json`
+- `.codex/`
+- `.forge/`
+- `.obsidian/`
+- `.vscode/`
+- `PRIVADO-NO-SUBIR-AL-REPO/`
+- `docs-legal/`
+- `docs/legal/casos/`
+- `docs/legal/DTDcapalegalconsolidada/`
+- `equipo-crm/`
+- `dashboard/`
+- `docs/design/studio/_norte/uploads/`
+
+Estos archivos deben extraerse primero en una carpeta temporal aislada. No los extraigas directamente encima del nuevo clon. Debes comparar y restaurar selectivamente.
+
+La configuración global de Codex y Agent Skills de la computadora anterior no está dentro del proyecto. Las rutas absolutas dentro de `.codex`, `.forge`, `.mcp.json` o configuraciones de marketplace pueden apuntar a la computadora vieja y deben revisarse antes de restaurarlas.
+
+Versiones utilizadas en la computadora anterior:
+
+- Git 2.54.0.windows.1
+- Node.js 24.15.0
+- pnpm 11.1.2
+- 7-Zip 26.02 de 64 bits
+
+Supabase, Vercel y la base de datos permanecen en la nube y no deben “mudarse”. Más adelante habrá que autenticar GitHub, Codex, Supabase MCP mediante OAuth y Vercel, pero cada acceso será una fase separada.
+
+PRIMER PASO ÚNICO
+
+Haz solamente esto ahora:
+
+1. Detecta las unidades extraíbles disponibles.
+2. Localiza `DTDCargo-migracion-20260905`.
+3. Confirma que estén los tres archivos esperados.
+4. Lee `SHA256SUMS.txt`.
+5. Recalcula el SHA-256 de los dos respaldos.
+6. Compara los valores calculados con los esperados.
+7. Reporta rutas, tamaños y si ambos hashes coinciden.
+8. Detente y espera a que yo diga “continuar”.
+
+En este primer paso no instales programas, no extraigas el archivo 7z, no clones el repositorio y no solicites la contraseña.
