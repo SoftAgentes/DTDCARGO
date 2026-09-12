@@ -8,14 +8,65 @@
  * lugar el cobro anticipado). Esta capa resuelve el conjunto de statuses ocultos
  * respetando la precedencia override-por-cliente → default-del-tenant.
  *
- * Se llama con el admin client (el cliente del portal no lee esta tabla). Sin
- * regla para un status → visible (default). Falla-seguro: ante error devuelve el
- * set vacío (se muestra todo), nunca oculta de más por un fallo.
+ * SDD-0337: el Portal (inicio, envíos y detalle) llama a
+ * `getHiddenPortalStatusesForPortal` con su sesión; la RPC de la migración 0402
+ * deriva cliente y tenant en la base. Las dos lecturas con admin client de más
+ * abajo se conservan sin cambios. Sin regla para un status → visible (default).
+ * Falla-seguro: ante error devuelve el set vacío (se muestra todo), nunca oculta
+ * de más por un fallo. 0402 ya está aplicada en producción, así que ese error
+ * vuelve a ser transitorio: se cumplió el orden migrate-first.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ShipmentStatus } from "@/lib/shared/shipment-public";
 
 const STATUS_PREFIX = "status:";
+
+/**
+ * Statuses ocultos para el cliente del Portal autenticado.
+ *
+ * La RPC deriva cliente y tenant desde `auth.uid()`; no acepta ids de entrada y
+ * sólo devuelve el nombre de cada status oculto. Ante error muestra todo (set
+ * vacío), que es la degradación segura ya vigente.
+ */
+export async function getHiddenPortalStatusesForPortal(
+  db: SupabaseClient,
+): Promise<Set<ShipmentStatus>> {
+  try {
+    const { data, error } = await db.rpc("get_portal_hidden_shipment_statuses");
+    if (error || !Array.isArray(data)) {
+      console.error(
+        "[client-notif] getHiddenPortalStatusesForPortal falló:",
+        errorLabel(error, "respuesta sin lista"),
+      );
+      return new Set();
+    }
+
+    return new Set(
+      data
+        .map((row) => String((row as { status?: unknown }).status ?? "").trim())
+        .filter(Boolean) as ShipmentStatus[],
+    );
+  } catch (err) {
+    console.error(
+      "[client-notif] getHiddenPortalStatusesForPortal falló:",
+      errorLabel(err, "excepción sin detalle"),
+    );
+    return new Set();
+  }
+}
+
+/**
+ * Sólo el código o el mensaje del error, nunca el objeto completo: el log no
+ * vuelca detalles, ids de cliente o tenant ni datos de la sesión.
+ */
+function errorLabel(err: unknown, fallback: string): string {
+  if (err && typeof err === "object") {
+    const { code, message } = err as { code?: unknown; message?: unknown };
+    if (typeof code === "string" && code) return code;
+    if (typeof message === "string" && message) return message;
+  }
+  return fallback;
+}
 
 /**
  * Conveniencia para el portal: resuelve el tenant del cliente (por su id) y

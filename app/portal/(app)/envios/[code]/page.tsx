@@ -7,7 +7,7 @@ import {
   listMyShipmentEvents,
   stepDatesFromEvents,
 } from "@/lib/portal/shipment-events-queries";
-import { getHiddenPortalStatuses } from "@/lib/studio/notifications/portal-visibility-queries";
+import { getHiddenPortalStatusesForPortal } from "@/lib/studio/notifications/portal-visibility-queries";
 import { listShipmentNotificationHistory } from "@/lib/studio/notifications/notification-history-queries";
 import type { ShipmentStatus } from "@/lib/shared/shipment-public";
 import { showShipmentAcceptanceCta } from "@/lib/portal/demo";
@@ -68,16 +68,16 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
 
   // Hitos ocultos del stepper (SDD-0156 · Slice D): la config por tenant puede
   // ocultar un status del portal (ej. "en aduana" → se dispara cobro anticipado
-  // en su lugar). Se resuelve con el admin client (el cliente no lee la tabla de
-  // reglas). Falla-seguro → set vacío (muestra todo).
-  const admin = createAdminClient();
-  const tenantId = client ? await resolveClientTenant(admin, client.id) : null;
-  const hiddenStatuses: ReadonlySet<ShipmentStatus> = tenantId
-    ? await getHiddenPortalStatuses(admin, tenantId, client?.id ?? null)
+  // en su lugar). La RPC deriva cliente y tenant desde auth.uid(), sin aceptar
+  // ids de entrada. Falla-seguro → set vacío (muestra todo). Sin principal
+  // Portal válido no se consulta, igual que antes.
+  const hiddenStatuses: ReadonlySet<ShipmentStatus> = client
+    ? await getHiddenPortalStatusesForPortal(supabase)
     : new Set<ShipmentStatus>();
 
   // Historial de avisos enviados de este envío (SDD-0156 · Slice C · loose end).
   // Read-only, scopeado al envío PROPIO (admin, sin RLS de cliente sobre la cola).
+  const admin = createAdminClient();
   const notificationHistory = await listShipmentNotificationHistory(
     admin,
     shipment.id,
@@ -133,23 +133,6 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
  * misma invariante que el dashboard. Best-effort: un fallo del admin client no
  * debe romper el detalle del envío → null (el card no se muestra).
  */
-/** Tenant del cliente logueado (por su id ya verificado por sesión). null si no. */
-async function resolveClientTenant(
-  admin: SupabaseClient,
-  clientId: string,
-): Promise<string | null> {
-  try {
-    const { data } = await admin
-      .from("clients")
-      .select("tenant_id")
-      .eq("id", clientId)
-      .maybeSingle<{ tenant_id: string }>();
-    return String(data?.tenant_id ?? "").trim() || null;
-  } catch {
-    return null;
-  }
-}
-
 async function loadPendingAcceptance(
   admin: SupabaseClient,
   clientId: string,
