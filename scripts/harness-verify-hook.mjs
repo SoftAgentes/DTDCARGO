@@ -10,51 +10,92 @@
  * Se registra como hook `Stop` en `.claude/settings.json`. Diseño defensivo:
  *   - Respeta `stop_hook_active` (anti-loop infinito).
  *   - Fail-open: cualquier error propio → exit 0 (nunca te traba por un bug del hook).
+ *   - Un gate que NO se pudo medir se informa como tal; nunca se disfraza de ROJO.
  */
 import { readFileSync } from "node:fs";
 import { execSync, spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 
-// 1. Input del hook por stdin. Si ya venimos de un stop-hook, no re-bloquear (anti-loop).
-let input = {};
-try {
-  input = JSON.parse(readFileSync(0, "utf8") || "{}");
-} catch {
-  /* sin stdin / no-JSON → seguimos */
-}
-if (input.stop_hook_active) process.exit(0);
+// spawnSync MATA al hijo al superar maxBuffer. Con el 1 MB por defecto, un `verify`
+// largo (el e2e solo ya escribe de sobra) moría a media corrida y el hook lo informaba
+// como ROJO: cierre bloqueado por un gate que nunca terminó. 64 MB deja el corte fuera
+// del alcance de cualquier salida de texto real.
+export const HOOK_MAX_BUFFER = 64 * 1024 * 1024;
 
-// 2. ¿Hay cambios sin commitear en código? (solo app/ lib/ supabase/)
-let changed = "";
-try {
-  changed = execSync("git status --porcelain -- app lib supabase", { encoding: "utf8" });
-} catch {
-  process.exit(0); // sin git o error → fail-open
-}
-// 2b. Trabajo COMMITEADO que nunca se publicó. Va antes del corto-circuito
-//     porque es justo el estado en el que no hay cambios sin commitear: todo
-//     prolijo, todo verde, y la rama nunca pusheada. Así se perdió SDD-0091.
-//     Es un AVISO en stderr, no un bloqueo: hay ramas legítimamente a medias.
-try {
-  const u = spawnSync(process.execPath, ["scripts/check-unpublished.mjs"], {
-    encoding: "utf8",
-  });
-  if ((u.stdout || "").includes("[AVISO]")) process.stderr.write(u.stdout);
-} catch {
-  /* el aviso nunca traba el cierre */
+/**
+ * Veredicto del gate. Solo un código de salida distinto de cero bloquea el cierre.
+ * Un gate sin medir (spawn fallido, salida desbordada, señal) se informa sin trabar.
+ */
+export function clasificarGate(resultado) {
+  if (resultado.error) {
+    const motivo = resultado.error.code === "ENOBUFS"
+      ? `el gate se canceló al pasar de ${Math.round(HOOK_MAX_BUFFER / 1024 / 1024)} MB de salida capturada`
+      : `el gate no se pudo lanzar: ${resultado.error.message}`;
+    return { bloquea: false, medido: false, motivo };
+  }
+  if (resultado.status === null) {
+    return { bloquea: false, medido: false, motivo: `el gate terminó por la señal ${resultado.signal ?? "desconocida"}, sin código de salida` };
+  }
+  if (resultado.status === 0) return { bloquea: false, medido: true, motivo: "verde" };
+  return { bloquea: true, medido: true, motivo: `ROJO (exit ${resultado.status})` };
 }
 
-if (!changed.trim()) process.exit(0); // no tocaste código → cierre instantáneo
+function main() {
+  // 1. Input del hook por stdin. Si ya venimos de un stop-hook, no re-bloquear (anti-loop).
+  let input = {};
+  try {
+    input = JSON.parse(readFileSync(0, "utf8") || "{}");
+  } catch {
+    /* sin stdin / no-JSON → seguimos */
+  }
+  if (input.stop_hook_active) return 0;
 
-// 3. Tocaste código → corre el gate.
-const r = spawnSync(process.execPath, ["scripts/verify.mjs"], { encoding: "utf8" });
-if (r.status === 0) process.exit(0); // verde → dejar cerrar
+  // 2. ¿Hay cambios sin commitear en código? (solo app/ lib/ supabase/)
+  let changed = "";
+  try {
+    changed = execSync("git status --porcelain -- app lib supabase", { encoding: "utf8", maxBuffer: HOOK_MAX_BUFFER });
+  } catch {
+    return 0; // sin git o error → fail-open
+  }
+  // 2b. Trabajo COMMITEADO que nunca se publicó. Va antes del corto-circuito
+  //     porque es justo el estado en el que no hay cambios sin commitear: todo
+  //     prolijo, todo verde, y la rama nunca pusheada. Así se perdió SDD-0091.
+  //     Es un AVISO en stderr, no un bloqueo: hay ramas legítimamente a medias.
+  try {
+    const u = spawnSync(process.execPath, ["scripts/check-unpublished.mjs"], {
+      encoding: "utf8",
+      maxBuffer: HOOK_MAX_BUFFER,
+    });
+    if ((u.stdout || "").includes("[AVISO]")) process.stderr.write(u.stdout);
+  } catch {
+    /* el aviso nunca traba el cierre */
+  }
 
-// 4. Rojo → bloquear el cierre y mostrar el final del output a Claude.
-const tail = ((r.stdout || "") + "\n" + (r.stderr || "")).slice(-1800);
-process.stderr.write(
-  "🛑 Harness gate en ROJO (hay cambios en app/lib/supabase). " +
-    "Corré y arreglá `node scripts/verify.mjs` antes de cerrar:\n\n" +
-    tail +
-    "\n",
-);
-process.exit(2);
+  if (!changed.trim()) return 0; // no tocaste código → cierre instantáneo
+
+  // 3. Tocaste código → corre el gate.
+  const r = spawnSync(process.execPath, ["scripts/verify.mjs"], { encoding: "utf8", maxBuffer: HOOK_MAX_BUFFER });
+  const veredicto = clasificarGate(r);
+
+  // 4. Sin medir → se dice qué pasó y se deja cerrar. Un gate que no terminó no es un gate rojo.
+  if (!veredicto.medido) {
+    process.stderr.write(
+      `⚠️ Harness: ${veredicto.motivo}. El gate quedó SIN MEDIR y el cierre no se bloquea; ` +
+        "conviene correr `node scripts/verify.mjs` a mano.\n",
+    );
+    return 0;
+  }
+  if (!veredicto.bloquea) return 0; // verde → dejar cerrar
+
+  // 5. Rojo → bloquear el cierre y mostrar el final del output a Claude.
+  const tail = ((r.stdout || "") + "\n" + (r.stderr || "")).slice(-1800);
+  process.stderr.write(
+    `🛑 Harness gate en ${veredicto.motivo} — hay cambios en app/lib/supabase. ` +
+      "Corré y arreglá `node scripts/verify.mjs` antes de cerrar:\n\n" +
+      tail +
+      "\n",
+  );
+  return 2;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) process.exit(main());
