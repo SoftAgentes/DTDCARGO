@@ -4,9 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * SDD-0341 · adopción del contexto privado en /portal/perfil (lote L05).
  * Página y helper reales; sólo se simulan la sesión, Storage y las lecturas
- * ajenas al contexto privado. Con la RPC 0405 se firman únicamente los paths
- * que ella devuelve; sin ella (PGRST202) el perfil degrada a vacío sin elevar
- * privilegios y sin reabrir el reemplazo de la foto de identidad (SDD-0439).
+ * ajenas al contexto privado. Con la RPC 0405 —aplicada a producción el
+ * 2026-09-12— se firman únicamente los paths que ella devuelve; si la RPC
+ * responde error, el perfil degrada a vacío sin elevar privilegios y sin
+ * reabrir el reemplazo de la foto de identidad (SDD-0439). El guardia del
+ * helper es genérico: el caso de abajo usa PGRST202 como error concreto, pero
+ * cubre igual un rechazo de RLS o un fallo de PostgREST.
  */
 
 const mocks = vi.hoisted(() => ({
