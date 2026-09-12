@@ -18,12 +18,12 @@
 import { readFileSync } from "node:fs";
 import { execSync, spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
+import { MAX_BUFFER } from "./harness-spawn.mjs";
 
-// spawnSync MATA al hijo al superar maxBuffer. Con el 1 MB por defecto, un `verify`
-// largo (el e2e solo ya escribe de sobra) moría a media corrida y el hook lo informaba
-// como ROJO: cierre bloqueado por un gate que nunca terminó. 64 MB deja el corte fuera
-// del alcance de cualquier salida de texto real; si aun así se cruza, ahora se dice.
-export const HOOK_MAX_BUFFER = 64 * 1024 * 1024;
+// El búfer vive en harness-spawn.mjs. Acá importa por qué: spawnSync MATA al hijo al
+// superarlo, así que con el 1 MB por defecto un `verify` largo moría a media corrida y el
+// hook lo informaba como ROJO. 64 MB deja el corte fuera del alcance de cualquier salida
+// de texto real; si aun así se cruza, ahora se dice en vez de inventar un veredicto.
 
 /**
  * Veredicto del gate. Solo un exit 0 deja cerrar: un rojo bloquea por su veredicto y un
@@ -33,7 +33,7 @@ export const HOOK_MAX_BUFFER = 64 * 1024 * 1024;
 export function clasificarGate(resultado) {
   if (resultado.error) {
     const motivo = resultado.error.code === "ENOBUFS"
-      ? `el gate se canceló al pasar de ${Math.round(HOOK_MAX_BUFFER / 1024 / 1024)} MB de salida capturada`
+      ? `el gate se canceló al pasar de ${Math.round(MAX_BUFFER / 1024 / 1024)} MB de salida capturada`
       : `el gate no se pudo lanzar: ${resultado.error.message}`;
     return { bloquea: true, medido: false, motivo };
   }
@@ -57,7 +57,7 @@ function main() {
   // 2. ¿Hay cambios sin commitear en código? (solo app/ lib/ supabase/)
   let changed = "";
   try {
-    changed = execSync("git status --porcelain -- app lib supabase", { encoding: "utf8", maxBuffer: HOOK_MAX_BUFFER });
+    changed = execSync("git status --porcelain -- app lib supabase", { encoding: "utf8", maxBuffer: MAX_BUFFER });
   } catch {
     return 0; // sin git o error → fail-open
   }
@@ -68,7 +68,7 @@ function main() {
   try {
     const u = spawnSync(process.execPath, ["scripts/check-unpublished.mjs"], {
       encoding: "utf8",
-      maxBuffer: HOOK_MAX_BUFFER,
+      maxBuffer: MAX_BUFFER,
     });
     if ((u.stdout || "").includes("[AVISO]")) process.stderr.write(u.stdout);
   } catch {
@@ -78,7 +78,7 @@ function main() {
   if (!changed.trim()) return 0; // no tocaste código → cierre instantáneo
 
   // 3. Tocaste código → corre el gate.
-  const r = spawnSync(process.execPath, ["scripts/verify.mjs"], { encoding: "utf8", maxBuffer: HOOK_MAX_BUFFER });
+  const r = spawnSync(process.execPath, ["scripts/verify.mjs"], { encoding: "utf8", maxBuffer: MAX_BUFFER });
   const veredicto = clasificarGate(r);
   if (!veredicto.bloquea) return 0; // verde → dejar cerrar
 

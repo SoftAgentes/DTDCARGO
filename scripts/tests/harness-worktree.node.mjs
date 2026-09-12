@@ -5,14 +5,15 @@ import { tmpdir } from 'node:os';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { isValidSlug, worktreePathFor, branchFor, parseArgs, runGit, GIT_MAX_BUFFER, isSensitiveIgnoredName } from '../harness-worktree.mjs';
+import { isValidSlug, worktreePathFor, branchFor, parseArgs, isSensitiveIgnoredName } from '../harness-worktree.mjs';
+import { MAX_BUFFER } from '../harness-spawn.mjs';
 const script = fileURLToPath(new URL('../harness-worktree.mjs', import.meta.url));
 function gitAt(cwd, args) {
-  const r = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: GIT_MAX_BUFFER });
+  const r = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: MAX_BUFFER });
   assert.equal(r.status, 0, r.stderr); return r.stdout.trim();
 }
 function cliAt(cwd, args, success) {
-  const r = spawnSync(process.execPath, [script, ...args], { cwd, encoding: 'utf8', maxBuffer: GIT_MAX_BUFFER });
+  const r = spawnSync(process.execPath, [script, ...args], { cwd, encoding: 'utf8', maxBuffer: MAX_BUFFER });
   assert.equal(r.status === 0, success, r.stdout + r.stderr); return r.stdout;
 }
 function sandboxRepo(t, prefix) {
@@ -70,13 +71,8 @@ test('isolated lifecycle enforces worktree guard, claims and report-only cleanup
   git(['switch', '--detach'], worker); cli(['guard'], worker, false);
   git(['switch', 'codex/principal']); git(['switch', 'main'], worker); cli(['guard'], worker, false);
 });
-test('runGit names a buffer overflow instead of masking it as a generic git failure', () => {
-  // ENOBUFS leaves status null and empty stderr: without this the caller only saw «git ls-files falló».
-  assert.ok(GIT_MAX_BUFFER >= 32 * 1024 * 1024);
-  const version = runGit(['--version']);
-  assert.equal(version.code, 0); assert.match(version.out, /^git version/);
-  const overflow = runGit(['--version'], process.cwd(), 4);
-  assert.notEqual(overflow.code, 0); assert.match(overflow.err, /ENOBUFS/);
+test('the sensitive-name table flags .env* and nothing else', () => {
+  // El búfer y el desbordamiento se prueban en harness-spawn.node.mjs, donde ahora viven.
   for (const name of ['.env', '.env.local', '.ENV.Production', '.envrc']) assert.ok(isSensitiveIgnoredName(name));
   for (const name of ['env.local', 'environment.ts', 'node_modules', 'readme.md']) assert.equal(isSensitiveIgnoredName(name), false);
 });

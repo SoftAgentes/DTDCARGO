@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { ramasSinPublicar, runGit, main, GIT_MAX_BUFFER } from '../check-unpublished.mjs';
+import { ramasSinPublicar, main } from '../check-unpublished.mjs';
 const script = fileURLToPath(new URL('../check-unpublished.mjs', import.meta.url));
 /** Corre `main` con un git de mentira y devuelve lo que imprimió. */
 function salidaDe(respuestas) {
@@ -19,12 +19,8 @@ function salidaDe(respuestas) {
   }
   return lineas.join('\n');
 }
-test('runGit nombra el desbordamiento y ramasSinPublicar conserva su contrato', () => {
-  assert.ok(GIT_MAX_BUFFER >= 32 * 1024 * 1024);
-  const version = runGit(['--version']);
-  assert.equal(version.code, 0); assert.match(version.out, /^git version/);
-  const desbordado = runGit(['--version'], 4);
-  assert.notEqual(desbordado.code, 0); assert.match(desbordado.err, /ENOBUFS/);
+test('ramasSinPublicar conserva su contrato: filtra ceros y ordena de más a menos', () => {
+  // El helper de git y su búfer se prueban en harness-spawn.node.mjs, donde ahora viven.
   const contar = { publicada: 0, vieja: 3, nueva: 1 };
   assert.deepEqual(ramasSinPublicar(['publicada', 'vieja', 'nueva'], (rama) => contar[rama]), [
     { rama: 'vieja', commits: 3 },

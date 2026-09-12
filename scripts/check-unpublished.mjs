@@ -32,7 +32,7 @@
  * Uso:  node scripts/check-unpublished.mjs [--fetch]
  * Exit: 0 siempre (informativo). 2 = bug del propio check.
  */
-import { spawnSync } from "node:child_process";
+import { runGit } from "./harness-spawn.mjs";
 
 const C = {
   yellow: "\x1b[33m",
@@ -41,18 +41,9 @@ const C = {
   nc: "\x1b[0m",
 };
 
-// Mismo motivo que en harness-worktree.mjs y en el hook `Stop`: spawnSync corta —y mata
-// al hijo— al pasar el 1 MB por defecto. Acá los listados son chicos y el riesgo es bajo,
-// pero un corte silencioso pondría en verde justo el check que existe para que nada quede
-// sin medir. El número se repite en los tres scripts a propósito: cada uno es autónomo.
-export const GIT_MAX_BUFFER = 64 * 1024 * 1024;
-
-export function runGit(args, maxBuffer = GIT_MAX_BUFFER) {
-  const r = spawnSync("git", args, { encoding: "utf8", maxBuffer });
-  // Un fallo de spawn deja status en null y stderr vacío: se nombra en vez de perderlo.
-  if (r.error) return { code: r.status ?? 1, out: "", err: `git ${args.join(" ")}: ${r.error.message}` };
-  return { code: r.status ?? 1, out: (r.stdout ?? "").trim(), err: (r.stderr ?? "").trim() };
-}
+// El búfer y el manejo del error de spawn viven en harness-spawn.mjs. Acá los listados son
+// chicos y el desbordamiento es improbable, pero un corte silencioso pondría en verde justo
+// el check que existe para que nada quede sin medir.
 
 /**
  * Ramas locales con commits que `ref` no tiene. PURA respecto de git: recibe el

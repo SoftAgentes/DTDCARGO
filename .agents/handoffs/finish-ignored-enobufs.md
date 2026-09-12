@@ -37,25 +37,41 @@ Reproducido con el hook tal como está en `HEAD`, contra un `verify` falso que e
 
 ## COMPLETADO
 
+**`scripts/harness-spawn.mjs`** (nuevo, módulo compartido)
+
+Pedido de Sam: «consolida GIT_MAX_BUFFER en un módulo compartido». Se consolidó el helper entero, no solo la constante, porque `runGit` estaba duplicado casi carácter por carácter en `harness-worktree.mjs` y en `check-unpublished.mjs`.
+
+- `MAX_BUFFER` (64 MB) y `runGit(args, cwd = process.cwd(), maxBuffer = MAX_BUFFER)`, que devuelve `{ code, out, err }` y nunca lanza. `err` trae el stderr de git o, si `spawnSync` falló, el motivo real (ENOBUFS, ENOENT…).
+- El encabezado explica la causa común de los tres defectos de esta tarea, para que el próximo que toque un `spawnSync` del harness no repita el patrón.
+- Sin shebang, por el mismo motivo que `check-unpublished.mjs`: se importa desde pruebas y el `#!` rompe el parser de Vite.
+- Consumidores: `harness-worktree.mjs` (importa `runGit` y conserva su alias `const git = runGit`, así sus ~15 llamadas quedan intactas), `harness-verify-hook.mjs` (importa `MAX_BUFFER`; `HOOK_MAX_BUFFER` desaparece) y `check-unpublished.mjs` (importa `runGit`). No quedan copias: `grep GIT_MAX_BUFFER|HOOK_MAX_BUFFER` en `scripts/` no devuelve nada.
+- Cada consumidor conserva un comentario corto con **su** motivo y apunta al módulo; el número y el manejo del error viven en un solo lugar.
+
+**`scripts/tests/harness-spawn.node.mjs`** (nuevo, 2 pruebas). Las aserciones del búfer que estaban duplicadas en las pruebas de `harness-worktree` y `check-unpublished` se movieron acá; esas dos quedaron con lo suyo.
+
+- Cota del búfer, corrida normal y desbordamiento forzado (`maxBuffer: 4`) que exige `ENOBUFS` en `err`, el prefijo `git --version:` y `out` vacío.
+- Que `runGit` informe el fallo de git **sin lanzar** y que **respete el cwd**: fuera de un repo `rev-parse` falla con el stderr de git, dentro devuelve `true`, y un subcomando inexistente es código ≠ 0 con motivo.
+- El cwd se pasa explícito y se deriva de la ubicación del archivo, así la prueba no depende de desde dónde se corra. Lo verifiqué corriéndola desde `%TEMP%`.
+
 **`scripts/harness-worktree.mjs`**
 
 - `ignoredReport(target)` (exportada) sustituye al `ls-files` plano en `finish` y usa `--directory -z`: un directorio ignorado completo se colapsa en una entrada.
 - El informe conserva `hasIgnoredFiles` y suma `ignoredEntryCount` (total), `ignoredEntries` (hasta 50 entradas) y `sensitiveIgnoredFiles`.
 - Los directorios colapsados se expanden **un nivel** con `readdirSync` para nombrar `.env*` anidados, saltando symlinks y lo que no sea directorio. Se nombran, nunca se abren: el informe no lee ni imprime contenido.
 - `isSensitiveIgnoredName` (exportada) marca `.env`, `.env.local`, `.envrc` y demás `.env*`, sin distinguir mayúsculas. No marca `env.local` ni `environment.ts`.
-- `runGit` (exportada, antes `git()` privada; `const git = runGit` conserva los llamantes) recibe `GIT_MAX_BUFFER = 64 MB` y, cuando `spawnSync` falla, **devuelve el error real** (`git <args>: spawnSync git ENOBUFS`) en vez de dejar `err` vacío. No se silencia nada: un fallo sigue siendo código ≠ 0.
+- El helper de git pasó a `harness-spawn.mjs` (ver arriba): búfer de 64 MB y error de spawn nombrado, en vez del mensaje genérico. `const git = runGit` conserva intactas las llamadas del archivo. No se silencia nada: un fallo sigue siendo código ≠ 0.
 - La línea final de `finish` explica el inventario compacto, el nivel de expansión y el tope de 50, además de las advertencias que ya tenía.
 - **Alcance intacto:** `finish` sigue siendo solo informe. No borra, no poda, no toca el árbol ignorado que acaba de nombrar; la prueba lo verifica contando los ignorados antes y después.
 
 **`scripts/tests/harness-worktree.node.mjs`** (2 pruebas nuevas, 4 en total)
 
 - Los helpers de sandbox (`gitAt`, `cliAt`, `sandboxRepo`) subieron a ámbito de módulo; la prueba existente quedó igual salvo esas tres líneas.
-- `runGit names a buffer overflow…`: `GIT_MAX_BUFFER ≥ 32 MB`, una corrida normal, un desbordamiento forzado con `maxBuffer: 4` que exige `ENOBUFS` en `err`, y la tabla de nombres sensibles.
+- La tabla de nombres sensibles: marca `.env`, `.env.local`, `.ENV.Production` y `.envrc`; no marca `env.local`, `environment.ts`, `node_modules` ni `readme.md`. (Las aserciones del búfer se mudaron a `harness-spawn.node.mjs`.)
 - `finish inventories ignored files compactly…`: worktree con **1.200 archivos ignorados** en 40 paquetes × `dist/chunks` (directorios ignorados anidados), un `.env.local` en la raíz y un `.env.production` dentro de `secrets/`, que `--directory` colapsa. Comprueba: informe vacío antes de ensuciar; `> 1.000` archivos en el listado expandido frente a `≤ 10` entradas informadas; `ignoredEntries` exacto; `sensitiveIgnoredFiles` con **los dos** `.env`, incluido el anidado; que el informe no contiene el contenido secreto, ni rutas del interior del directorio colapsado, ni supera 4.000 caracteres; y que nada se borró.
 
 **`scripts/harness-verify-hook.mjs`**
 
-- El spawn de `verify.mjs` recibe `HOOK_MAX_BUFFER = 64 MB`, igual que el `execSync` de `git status` y el spawn de `check-unpublished.mjs`.
+- El spawn de `verify.mjs` recibe el `MAX_BUFFER` compartido, igual que el `execSync` de `git status` y el spawn de `check-unpublished.mjs`.
 - `clasificarGate` (exportada) separa tres casos que antes se aplastaban en uno: **medido y verde** (exit 0) deja cerrar; **medido y rojo** (exit ≠ 0) bloquea con exit 2 y ahora nombra el código; **sin medir** (error de spawn, desbordamiento, señal) **también bloquea con exit 2**, pero con un mensaje que dice «SIN MEDIR» y el motivo, nunca «ROJO». Solo un exit 0 deja cerrar: el rojo bloquea por su veredicto y el sin medir por la ausencia de él.
   - Esta es una **decisión de Sam del 2026-09-11**, tomada sobre la primera versión, que dejaba cerrar el gate sin medir apoyándose en el fail-open del encabezado. Se invirtió a pedido suyo: «que el gate sin medir bloquee igual». El fail-open queda para los errores propios del hook (sin git, stdin raro, el aviso de publicación), que siguen sin trabar nada.
   - La única salida si el gate jamás logra medirse es el anti-loop `stop_hook_active`, que ya existía: el segundo intento de cierre pasa. Está anotado en el encabezado del archivo.
@@ -73,7 +89,7 @@ Reproducido con el hook tal como está en `HEAD`, contra un `verify` falso que e
 
 Pedido aparte de Sam: «arregla también el helper de check-unpublished». Al abrirlo, el búfer era el problema menor.
 
-- `runGit` (exportada, antes `git()` privada) recibe `GIT_MAX_BUFFER = 64 MB` y **devuelve `err`**. Antes el helper descartaba `stderr` y `r.error` por completo: solo sobrevivían `code` y `out`.
+- El helper `git()` privado desapareció: ahora importa `runGit` de `harness-spawn.mjs`. Antes descartaba `stderr` y `r.error` por completo, y solo sobrevivían `code` y `out`.
 - **El defecto de fondo era un falso verde.** El `code` del listado de ramas **no se miraba**: si `for-each-ref` fallaba, `listado.out` quedaba vacío, `ramas` vacío, `pendientes` vacío y el script imprimía **`[OK] sin trabajo commiteado fuera de origin/main`**. Es decir, justo el check que existe porque SDD-0091 se perdió sin que nadie lo midiera, salía en verde cuando no había medido nada. Ahora un listado fallido sale `[AVISO] … SIN MEDIR` con el motivo.
 - **Un conteo que falla ya no cuenta como 0.** `rev-list --count` con error apartaba la rama a `0 commits sin publicar`, indistinguible de una rama al día. Ahora esas ramas van a un bloque `[AVISO] N rama(s) SIN MEDIR contra origin/main` con su motivo.
 - El aviso de `origin/main` ausente conserva su texto y ahora agrega el error real de git, en vez de adivinar siempre «¿clone shallow o sin remoto?».
@@ -82,7 +98,7 @@ Pedido aparte de Sam: «arregla también el helper de check-unpublished». Al ab
 
 **`scripts/tests/check-unpublished.node.mjs`** (nuevo, 3 pruebas). El script no tenía ninguna, pese a que su encabezado decía «se importa desde su test».
 
-- `runGit` con desbordamiento forzado (`ENOBUFS` en `err`), la cota del búfer y el contrato de `ramasSinPublicar` (filtra ceros, ordena de más a menos, lista vacía).
+- El contrato de `ramasSinPublicar`: filtra ceros, ordena de más a menos y aguanta la lista vacía. (Las aserciones del búfer se mudaron a `harness-spawn.node.mjs`.)
 - Con git inyectado: el único verde posible (todo medido y nada pendiente), el listado fallido, el conteo fallido y la base ausente — los tres **sin `[OK]`** — y el aviso de siempre con su recordatorio de SDD-0091.
 - Contra git de verdad, en un sandbox: sin `origin/main` avisa y no sale verde; con todo publicado sale `[OK]`; con una rama de un commit por delante la nombra con su conteo.
 
@@ -90,11 +106,11 @@ Pedido aparte de Sam: «arregla también el helper de check-unpublished». Al ab
 
 Sobre `4897bb1d` (parte 1) y el commit del hook (parte 2), con Node 24.20.0, pnpm vía corepack y git 2.55.0.windows.5.
 
-- **PASÓ** — `corepack pnpm harness:test`: **11 archivos descubiertos, 78/78**. (9 archivos y 73/73 antes del hook; 10 y 75/75 antes de check-unpublished.)
+- **PASÓ** — `corepack pnpm harness:test`: **12 archivos descubiertos, 80/80** en 70 s. (9 y 73/73 antes del hook; 10 y 75/75 antes de check-unpublished; 11 y 78/78 antes de consolidar.)
 - **PASÓ** — `corepack pnpm docs:check`: índice sincronizado, 427 specs.
 - **PASÓ** — `corepack pnpm sdd:check`: sin números repetidos; solo los choques históricos ya exentos.
 - **PASÓ** — `git diff --check`: sin hallazgos.
-- **PASÓ** — `eslint` sobre los seis archivos tocados: 0 errores, 0 advertencias.
+- **PASÓ** — `eslint` sobre los ocho archivos tocados: 0 errores, 0 advertencias.
 - **PASÓ** — `node scripts/check-unpublished.mjs` contra el repo real: 18 ramas con trabajo fuera de `origin/main`, mismo formato que antes, exit 0. El exit code se leyó bien esta vez; en la primera corrida quedó tapado por un `tail` en la tubería, y se repitió.
 - **PASÓ** — reproducción y arreglo de `finish` sobre un worktree real (`c-l01-portal-marca`, solo lectura): fallaba con exit 1 antes, sale 0 en 0,67 s después, con las 7 entradas esperadas.
 - **PASÓ** — reproducción y arreglo del hook, con el archivo tal como está en `HEAD` y un `verify` falso de 3 MB que sale 0: original **exit 2** («ROJO»), arreglado **exit 0** con stderr vacío.
@@ -110,7 +126,12 @@ Sobre `4897bb1d` (parte 1) y el commit del hook (parte 2), con Node 24.20.0, pnp
   7. devolver `bloquea: false` para el gate sin medir → caen las **dos** pruebas del hook;
   8. devolver el `git()` viejo de check-unpublished (sin búfer ni `err`) → cae su unitaria;
   9. dejar de mirar el `code` del listado → vuelve el falso `[OK]` y cae la prueba;
-  10. que un conteo fallido vuelva a contar 0 → cae la misma prueba.
+  10. que un conteo fallido vuelva a contar 0 → cae la misma prueba;
+  11. bajar `MAX_BUFFER` del módulo compartido a 1 MB → cae la prueba del búfer;
+  12. tapar otra vez el error de spawn en el módulo → cae la misma;
+  13. que `runGit` ignore el cwd → cae la prueba del cwd.
+
+  Los mutantes 11 a 13 se corrieron dentro de un repo git de mentira, con una corrida de control en verde: en un scratch sin repo, la prueba del cwd fallaba por el entorno y no por el mutante.
 
 **Cuánta salida produce `verify` de verdad: medición, y corrección de lo que dije antes.** En la primera ronda afirmé que «un `verify` completo con e2e supera 1 MB sin esfuerzo». **No lo tenía medido y la medición lo desmiente en parte:** `corepack pnpm test` capturado a archivo ocupa **361 bytes**, porque fuera de TTY el reporter de vitest imprime solo el resumen. Los pasos de tests unitarios no aportan volumen.
 
@@ -137,7 +158,8 @@ Lo que sí sostiene el arreglo, sin inventar cifras:
 - `d23436a0` y `a18adc2a` — handoff de la primera ronda y registro de la PR #94.
 - `f86f60d6` — `fix(harness): el hook Stop deja de matar el gate y de informar ROJO un verify verde` (hook + pruebas).
 - `fa8dd55c` — `fix(harness): el gate sin medir también bloquea el cierre, anunciado como tal`.
-- El commit de `check-unpublished.mjs` y su prueba nueva.
+- `fdbed151` — `fix(harness): check-unpublished deja de poder salir verde sin haber medido nada`.
+- El commit de `harness-spawn.mjs`, su prueba y los tres consumidores.
 - El commit que trae esta versión del documento cierra la tarea.
 
 ## PR / BRANCH
@@ -156,7 +178,7 @@ Ninguno de implementación. Falta la revisión del Director y la CI del head pub
 1. ~~`scripts/harness-verify-hook.mjs:49`~~ **ATENDIDO en esta misma tarea**, a pedido de Sam. Queda arriba, en COMPLETADO y VALIDACIÓN.
 2. ~~`scripts/check-unpublished.mjs:41`~~ **ATENDIDO en esta misma tarea**, a pedido de Sam. Queda arriba, en COMPLETADO y VALIDACIÓN.
 2b. **El `git fetch --quiet` de `--fetch` sigue sin mirarse.** Es deliberado y viejo: trabajar sin red es normal y la medición sigue con la ref en caché. Pero un fetch fallido no se nombra, así que la base puede estar vieja sin que se diga. Cambiarlo toca la semántica de «offline es normal» y no lo hice.
-2c. **`GIT_MAX_BUFFER` está repetido en tres scripts** (`harness-worktree.mjs`, `harness-verify-hook.mjs` con su propio nombre, y ahora `check-unpublished.mjs`). Cada uno queda autónomo y documenta su motivo, que es el estilo de `scripts/`; consolidarlo en un módulo compartido es razonable y es decisión del Director.
+2c. ~~`GIT_MAX_BUFFER` repetido en tres scripts~~ **ATENDIDO**, a pedido de Sam: vive en `scripts/harness-spawn.mjs` junto con `runGit`. Queda arriba, en COMPLETADO.
 3. **El hook captura, no transmite.** Con 64 MB el corte queda lejísimos, pero la salida del gate sigue materializándose entera en memoria y el usuario no ve progreso mientras corre. Transmitir con `spawn` asíncrono y guardar solo una cola acotada sería mejor; es otro diseño y merece su propia decisión.
 4. **`finish` sigue pidiendo `git status --untracked-files=all`.** Ya no revienta gracias al búfer, pero solo se usa como booleano `hasChanges`: un worktree con un árbol grande **no ignorado** materializa un listado entero para nada. Cambiarlo altera semántica y merece su propia decisión.
 5. **La expansión de directorios colapsados llega a un nivel.** Un `.env` a mayor profundidad dentro de un directorio ignorado (p. ej. `node_modules/<pkg>/.env`) no se nombra. Es deliberado: el barrido recursivo `**/.env*` sobre ese mismo worktree tardó **18 s** y devolvió 0 resultados, es decir, el costo era del recorrido, no de la salida. El directorio colapsado sí aparece en `ignoredEntries`, y la línea final dice que la expansión es de un nivel.

@@ -1,8 +1,8 @@
 /** Worktree lifecycle safety. Cleanup is a Director-reviewed manual operation. */
-import { spawnSync } from 'node:child_process';
 import { existsSync, realpathSync, writeFileSync, readFileSync, readdirSync, unlinkSync, lstatSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { runGit } from './harness-spawn.mjs';
 
 export function isValidSlug(slug) {
   return typeof slug === 'string' && slug.length <= 60 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
@@ -36,14 +36,8 @@ export function parseArgs(argv) {
   if (out.owner !== undefined && !['claim', 'release', 'guard'].includes(out.cmd)) throw new Error('--owner solo aplica a claim, release o guard.');
   return out;
 }
-// A worktree with dependencies emits listings far past the 1 MB spawnSync default; ENOBUFS aborted finish.
-export const GIT_MAX_BUFFER = 64 * 1024 * 1024;
-export function runGit(args, cwd = process.cwd(), maxBuffer = GIT_MAX_BUFFER) {
-  const r = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer });
-  // A spawn failure leaves status null and no stderr: name it instead of degrading to a generic message.
-  if (r.error) return { code: r.status ?? 1, out: '', err: `git ${args.join(' ')}: ${r.error.message}` };
-  return { code: r.status ?? 1, out: (r.stdout || '').trim(), err: (r.stderr || '').trim() };
-}
+// Buffer and spawn-error handling live in harness-spawn.mjs: a worktree with dependencies
+// emits listings far past the 1 MB spawnSync default, and ENOBUFS used to abort finish.
 const git = runGit;
 function mustGit(args, cwd) {
   const r = git(args, cwd);

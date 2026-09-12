@@ -5,10 +5,11 @@ import { tmpdir } from 'node:os';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { clasificarGate, HOOK_MAX_BUFFER } from '../harness-verify-hook.mjs';
+import { clasificarGate } from '../harness-verify-hook.mjs';
+import { MAX_BUFFER } from '../harness-spawn.mjs';
 const hook = fileURLToPath(new URL('../harness-verify-hook.mjs', import.meta.url));
 test('un gate sin medir bloquea igual que un rojo, pero no se disfraza de rojo', () => {
-  assert.ok(HOOK_MAX_BUFFER >= 32 * 1024 * 1024);
+  assert.ok(MAX_BUFFER >= 32 * 1024 * 1024);
   assert.deepEqual(clasificarGate({ status: 0 }), { bloquea: false, medido: true, motivo: 'verde' });
   const rojo = clasificarGate({ status: 1 });
   assert.equal(rojo.bloquea, true); assert.equal(rojo.medido, true); assert.match(rojo.motivo, /ROJO \(exit 1\)/);
