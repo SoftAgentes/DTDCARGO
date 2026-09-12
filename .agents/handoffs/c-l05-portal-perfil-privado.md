@@ -1,11 +1,15 @@
 # L05 · contexto privado del perfil Portal (0405 / SDD-0341)
 
-Fecha: 2026-09-11. Estado de tarea: lista-para-revision (PR draft #75; MIGRATE-FIRST).
-Owner / sesión escritora: `c-l05-worker-20260911-claude` (Worker Claude asignado por el Director).
+Ronda 1 — Fecha: 2026-09-11. Owner: `c-l05-worker-20260911-claude`.
+Ronda 2 — Fecha: 2026-09-12. Owner / sesión escritora: `worker-c-l05-r2-2026-09-12`
+(Worker Claude asignado por el Director). Estado de tarea: **preparada, sin publicar**
+(esperando el SHA del Director; van #76 y #83 antes). 0405 **ya está aplicada en producción**,
+así que el bloqueo migrate-first de la ronda 1 dejó de aplicar.
 Task ID: `c-l05-portal-perfil-privado`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l05-portal-perfil-privado`.
-Rama: `codex/c-l05-portal-perfil-privado`. Base: `3c6107012f754953323202a7386b3e7811593814`
-(origin/main; `git fetch origin` antes de publicar confirmó que main no avanzó).
+Rama: `codex/c-l05-portal-perfil-privado`. Base de la ronda 1:
+`3c6107012f754953323202a7386b3e7811593814`. Base de la ronda 2: `origin/main` en
+`f93c0f2c` (merge de la PR #77), traído en el merge `c879e381`.
 Origen congelado de solo lectura: `ea9952a47f4adf14c48c91e6d0147597beb94aa7` (head de PR #21).
 SDD: `docs/specs/0341-perfil-privado-portal-por-principal/spec.md` (importada; `status: done` histórico).
 
@@ -17,7 +21,19 @@ adopción focal del helper en `app/portal/(app)/perfil/page.tsx` sobre la versi�
 de main. Declarar `0405_portal_perfil_privado_por_principal` pendiente. La PR se integra
 SOLO DESPUÉS de aplicar 0405 en producción (migrate-first, como L16).
 
+**Ronda 2 (2026-09-12):** actualizar la PR #75 tras la aplicación de 0405 en producción.
+Merge de main con el driver de main, retirar la espera del baseline y la declaración del
+símbolo, pasar la nota de la spec a «aplicada en producción», regenerar el índice, barrer
+texto rancio (incluido el cuerpo de la PR), revalidar y dejar todo commiteado **sin push**
+hasta que el Director dé el SHA.
+
 ## COMPLETADO
+
+### Ronda 1 — importación migrate-first (2026-09-11)
+
+Lo de esta subsección es **evidencia fechada de la ronda 1**, no el estado actual: cuando dice
+«espera declarada», «1 AMARILLO» o «416 specs» describe cómo quedó el 2026-09-11. El estado
+vigente está en «Ronda 2», más abajo.
 
 - Aislamiento: rama/base asignadas, árbol limpio al inicio, `guard` y `claim` PASÓ;
   guard `--owner` y rama revalidados antes de cada commit y del push.
@@ -167,7 +183,98 @@ proveedores. Esta revisión no es asesoría legal; conviene una segunda opinión
 - Excepción documental: la nota rompe sólo el blob final de la spec; contenido fuente
   íntegro al retirarla. Excepción de adaptación: TTL de la cédula justificado arriba.
 
+### Ronda 2 — 0405 aplicada en producción
+
+Evidencia de la aplicación, entregada por el Director (no consultada acá): ledger
+`20260912022835`, md5 del payload `60c500b5bf20603d28be7aa56f28ed64`, 1617 bytes, idénticos
+al archivo de esta rama. Autorizada por Sam nombrando la migración.
+
+- **Aislamiento revalidado antes de editar**: raíz `…/DTD-worktrees/c-l05-portal-perfil-privado`,
+  rama `codex/c-l05-portal-perfil-privado`, head `b7e53696` (el revisado por el Director),
+  árbol limpio. `guard` PASÓ; `claim --owner worker-c-l05-r2-2026-09-12` adquirido. No se
+  tocó ningún otro worktree ni rama.
+- **Merge de main con el driver de main**, en su propio commit (`c879e381`), separado de la
+  retirada de la espera. Sin conflictos. El override no es ritual: `merge.dtd-generated-records.driver`
+  está configurado como `node scripts/merge-generated-records.mjs %O %A %B %P`, una ruta
+  **relativa al árbol de la rama**, así que git habría corrido el driver viejo de acá.
+  Se corrió el de `origin/main`, volcado a `$TEMP/dtd-merge-driver-main.mjs`
+  (md5 `b4563696716d6893d48e619ec0e9eca4`, igual al blob de main).
+- **Medición del driver viejo con blobs** (base = `merge-base` `3c610701`; %A = `b7e53696`;
+  %B = `origin/main`). El driver viejo de esta rama **habría resucitado 4 esperas**
+  que main ya había retirado:
+
+  | Clave de `pendingBelowCutoff` | Base | main (%B) | Rama (%A) | Driver viejo | Driver de main |
+  |---|---|---|---|---|---|
+  | `0409_bank_reconciliation_rbac` | presente | retirada | presente, igual a la base | **resucitada** | retirada |
+  | `0418_portal_academia_tenant_boundary` | presente | retirada | presente, igual a la base | **resucitada** | retirada |
+  | `0419_portal_reclamos_tenant_boundary` | presente | retirada | presente, igual a la base | **resucitada** | retirada |
+  | `0430_portal_profile_change_requests_principal_tenant` | presente | retirada | presente, igual a la base | **resucitada** | retirada |
+  | `0405_portal_perfil_privado_por_principal` | ausente | ausente | agregada por la rama | conservada | conservada |
+
+  Corrido de verdad sobre los tres blobs: el driver viejo deja **5 claves**, el de main deja
+  **1** (la propia, que esta ronda retira). La causa está en el bloque que el arreglo de main
+  reemplazó: el viejo hacía `result[key] = present` cuando un solo lado borraba la clave, de
+  modo que un retiro unilateral perdía contra la conservación. El de main resuelve el retiro
+  como tres-vías por clave.
+- **Retirada de la espera y de la declaración** (`cca49664`). Los dos registros quedan
+  idénticos a main:
+  - `supabase/migrations-baseline.json`: `cutoff` 238, `pendingBelowCutoff` en `{}`.
+    `git diff origin/main -- supabase/migrations-baseline.json` **VACÍO**.
+  - `supabase/pending-migration-symbol-declarations.json`: `degradations` en `[]`.
+    `git diff origin/main -- supabase/pending-migration-symbol-declarations.json` **VACÍO**.
+  - No se tocó ninguna otra espera ni el cutoff.
+- **Auditoría del camino degradado (pedida explícitamente).** La declaración retirada anclaba
+  su evidencia principal en `lib/portal/profile-private-context.ts:34`, `if (error) return EMPTY;`.
+  Eso **no es un guardia de «RPC inexistente»**: el helper no inspecciona `error.code`, no
+  menciona `PGRST202` ni `42883` ni «does not exist» en ninguna línea (verificado por grep
+  sobre todos los archivos del diff). Es un **manejo genérico de error de PostgREST**, y sigue
+  vivo y necesario porque sigue alcanzable con 0405 aplicada: rechazo de RLS, sesión sin
+  vínculo Portal activo, y fallos transitorios de red o de PostgREST. Igual `if (!row) return EMPTY;`,
+  que absorbe el fallo cerrado de la propia RPC. **No quedó código muerto y no se borró nada.**
+  Los otros sitios que citaba la declaración (`CedulaPhotoRow.tsx:83`, `actions.ts:88`,
+  `AvatarEditor.tsx:44`) son **preexistentes en main**, están fuera de este diff y siguen
+  correctos: describen la degradación por *firma ausente*, que puede pasar igual con la RPC
+  viva.
+- **Nota de importación de la spec 0341** reescrita a «**fue APLICADA a producción el
+  2026-09-12**», con ledger `20260912022835`, md5 y bytes, en el formato ya integrado en main
+  (`docs/specs/0339-referidos-portal-por-principal/spec.md` y
+  `docs/specs/0342-documentos-portal-por-principal/spec.md`). Se conservó el párrafo del corte
+  focal L05 y el del TTL de 60 s de SDD-0439. El frontmatter no se tocó, igual que en 0339/0342.
+- **Índice regenerado con el script** (`corepack pnpm run docs:index`): **432 specs**, 25 huecos.
+  El número se **midió**, no se asumió: `docs:check` ya daba «índice sincronizado con 432
+  specs» tras el merge, y regenerar no produjo ningún cambio (idempotente). Diff contra main:
+  431 → 432, se agrega la fila de 0341 y 0341 sale de la lista de huecos. Cuadra.
+- **Barrido de texto rancio** (`86d65ae5`), en su propio commit. Único hallazgo real en código:
+  el docstring de `app/portal/(app)/perfil/page.private-context.test.tsx` decía «sin ella
+  (PGRST202) el perfil degrada a vacío», escenario imposible ya en producción. Ahora describe
+  el guardia genérico, con `PGRST202` como error concreto del fixture. **Sin tocar aserciones
+  ni nombres de test**, por instrucción del encargo.
+  - Revisados y **conservados a propósito**: el nombre del test en la línea 142 («sin la RPC
+    0405…») y su fixture `code: "PGRST202"` (son nombre y aserción); la aserción SQL
+    `'TEST 0405: la RPC no existe'` (`supabase/tests/0405_…test.sql:68`); los «pendiente» de
+    `perfil/page.tsx:61/84/277`, que son el aviso de solicitudes de SDD-0151 y no tienen
+    relación con migraciones; y las filas de `docs/specs/README.md` de otras specs.
+  - **El cuerpo de la PR era el registro más rancio**, tal como avisó el Director: abría con
+    «NO FUSIONAR ANTES DE APLICAR 0405», tenía una sección «Orden obligatorio (migrate-first)»
+    con seis pasos por hacer que ya están hechos, declaraba el baseline con la espera y el
+    archivo de declaraciones con la declaración, decía «416 specs» y traía una columna
+    «L05 sin 0405». Reescrito íntegro. **El Director lo aprobó expresamente y aclaró que no
+    excede el punto 6: es aplicarlo donde más se ve**, porque es lo primero que lee cualquiera
+    que abra la PR, y ya lo había aprobado en dos casos iguales de este lote. Se conservó todo lo
+    que sigue siendo cierto: la justificación del TTL, el diff focal, la revisión de datos y el
+    fuera de alcance. El cuerpo viejo quedó íntegro fuera de Git en `pr75-body-viejo.md` y el
+    nuevo en `pr75-body-nuevo.md` (ruta en VALIDACIÓN). El cuerpo nuevo se aplica **en el mismo
+    acto del push**, no después.
+- **La migración no se tocó.** `supabase/migrations/0405_portal_perfil_privado_por_principal.sql`
+  conserva md5 `60c500b5bf20603d28be7aa56f28ed64`, 1617 bytes y blob `06fb2e2c…`, verificado
+  antes y después del merge. El encabezado «NO aplicar a Producción desde esta rama. Requiere
+  autorización específica.» **no es texto rancio**: enuncia una regla permanente del repo, no
+  un estado de esta migración, y por eso se conserva tal cual (misma decisión que el Director
+  ya tomó para 0403).
+
 ## VALIDACIÓN
+
+### Ronda 1 (2026-09-11) — evidencia fechada
 
 Producto validado en el commit `8080168c` (árbol = base + corte L05), Node/pnpm de
 Corepack. Evidencia fuera de Git en
@@ -217,27 +324,144 @@ Detalle del gate canónico `corepack pnpm verify` sobre `8080168c` (log `verify.
 | e2e | FALLÓ por entorno (exit 1), servidor de desarrollo propio en el puerto 3441. Los 15 casos son los ambientales conocidos de L16/L18: `auth.spec.ts:21/91/98/105` y `global-search.spec.ts:22` en chromium, mobile-chrome y mobile-safari, con `proxy.ts:67` creando Supabase sin URL/clave. Primera pasada: 151 PASÓ / 15 FALLÓ / 2 flaky / 18 omitidos (5,4 min). Reintento automático del propio gate (no manual): 153 PASÓ / 15 FALLÓ / 18 omitidos (9,4 min). Al cerrar, Playwright forzó `worker-45` tras 300000 ms. No se reintentó a mano ni se tocó configuración |
 | build | PASÓ: build de producción completo; el runner restauró `tsconfig.json` (Next le inyectó `distDir`). Árbol limpio al terminar y sin contenedores efímeros propios |
 
+### Ronda 2 — revalidación
+
+`corepack pnpm run verify` sobre el árbol de la ronda 2 (merge + retirada + barrido). Log
+completo fuera de Git en
+`C:\Users\AKXGEN~1\AppData\Local\Temp\claude\C--Users-AKX-generator-Desktop-Developer-DTDCARGO\454d97be-b1e0-4fc9-97e9-c6bb621ba84c\scratchpad\`
+(`verify.log`, `pr75-body-viejo.md`, `pr75-body-nuevo.md`, `blobs/`, `driver-old-branch.mjs`,
+`driver-new-main.mjs`).
+
+Veredicto literal, que **no se presenta como verde**:
+
+```
+16 de 17 pasos corrieron de verdad
+[AVISO] omitido: migrations-applied — no se midio (ver su [SKIP] arriba)
+[FAIL] verify: 1 fallo(s) → e2e [COLGADO/TIMEOUT: sin salida durante 10 min; límite de
+inactividad 10 min (VERIFY_E2E_IDLE_MIN)] CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR:
+migrations-applied.
+```
+
+| Comprobación | Resultado |
+|---|---|
+| guard / claim / raíz y rama verificadas antes de editar y antes de cada commit | PASÓ |
+| Merge de `origin/main` con el driver de main, sin conflictos | PASÓ |
+| Medición del driver viejo con blobs (4 esperas que habría resucitado) | PASÓ: 5 claves con el viejo, 1 con el de main |
+| `git diff origin/main -- supabase/migrations-baseline.json` | PASÓ: **VACÍO** |
+| `git diff origin/main -- supabase/pending-migration-symbol-declarations.json` | PASÓ: **VACÍO** |
+| md5 y bytes de `0405_portal_perfil_privado_por_principal.sql` | PASÓ: `60c500b5bf20603d28be7aa56f28ed64`, 1617 B, blob `06fb2e2c…`; sin cambios antes ni después del merge |
+| `git diff --check` | PASÓ |
+| harness | PASÓ, 35 pruebas |
+| lint | PASÓ: 0 errores; 6 avisos en archivos ajenos intactos |
+| rsc-boundary | PASÓ |
+| typecheck | PASÓ |
+| edge-functions | PASÓ, 4 funciones compilan |
+| test (Vitest) | PASÓ, 541 archivos / 6765 tests |
+| docs:check | PASÓ, índice sincronizado con **432 specs** |
+| numbering | PASÓ: 432 specs · 433 migraciones, sin números repetidos; colisiones históricas ya declaradas |
+| feature-constants | PASÓ, 5 banderas |
+| components:check | PASÓ |
+| governance:check | PASÓ, 28 políticas aprobadas · cápsula vigente |
+| pending-migration-symbols | PASÓ: **0 ROJO · 0 AMARILLO** (la declaración retirada ya no hace falta y una sobreviviente sería excepción vencida) |
+| sql-tests | PASÓ, **176** contratos en contenedor efímero, incluido `0405_portal_perfil_privado_por_principal.test.sql` |
+| schema-rebuild | PASÓ: 433 migraciones, 415 desde cero, 18 sólo-ledger, aislamiento multi-tenant de 219 tablas + 2 tenants reales |
+| build | PASÓ: build de producción OK; el runner restauró `tsconfig.json` |
+| `migrations-applied` | **NO DISPONIBLE**: `[SKIP]` por falta de `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. No hay `.env.local` en esta máquina (comprobado en el worktree y en el checkout principal) y **no se copiaron secretos**. Crítico sin medir: la prueba de que 0405 está aplicada es la del Director, no una consulta hecha acá |
+| `e2e` | **NO DISPONIBLE por configuración ausente**, y además con un cierre anómalo. Detalle abajo |
+| `/ui-check` | NO EJECUTADO: lo corre el Director; el JSX no cambió en ninguna de las dos rondas |
+| CI alojado del head de la ronda 2 | NO EJECUTADO: sólo existe después de publicar |
+
+**`e2e` en detalle.** Servidor de desarrollo propio en el puerto 3441, 186 tests, 8 workers.
+Primera pasada: **153 PASÓ / 15 FALLÓ / 18 omitidos** (5,3 min). Los 15 son exactamente los
+ambientales conocidos, todos por `proxy.ts:67` creando el cliente Supabase sin URL ni clave:
+`auth.spec.ts:21`, `:91`, `:98`, `:105` y `global-search.spec.ts:22`, en chromium,
+mobile-chrome y mobile-safari. Ninguno toca `/portal/perfil` ni nada de este diff. **Los dos
+flakes públicos conocidos (`calculadora-hidratacion.spec.ts:42` y `smoke.spec.ts:150`) no
+aparecieron**: la primera pasada no reportó ningún flaky.
+
+**Anomalía del reintento, que es nueva y se reporta aparte.** El reintento automático del gate
+(no manual) **se colgó**: alcanzó 123 casos en verde y dejó de emitir salida durante 10
+minutos, sin resumen. Lo cortó el **watchdog del paso e2e de `verify`, que es SDD-0454**
+(`docs/specs/0454-verify-e2e-watchdog/spec.md`, «Watchdog del e2e de verify: un cuelgue es
+FALLÓ con motivo, no una espera infinita»), y mató sólo su propio árbol de procesos: raíz PID
+29364, 29 procesos terminados (`chrome-headless-shell.exe`×18, `node.exe`×10, `cmd.exe`×1),
+0 sobrevivientes. Por eso el motivo final del paso es `COLGADO/TIMEOUT` y no «15 fallos
+ambientales».
+
+Cronología del watchdog, verificada por ref (**no** es SDD-0457, que es el ENOBUFS de `finish`,
+el hook `Stop` y `check-unpublished`): `scripts/verify-watchdog.mjs` está **ausente** en el
+merge-base `3c610701` y en el head de la ronda 1 `b7e53696`, y **presente** en `origin/main`,
+donde lo agregó `4d6dac1a` — `chore(harness): SDD-0454 — watchdog del paso e2e de verify`.
+O sea: ya estaba en main antes de este merge; a **esta rama** llegó con el merge `c879e381`.
+
+No es un tercer flake de un test: es el paso entero quedándose mudo, y probablemente la misma
+fragilidad de cierre que en la ronda 1 se vio como `worker-45` forzado a los 300 s, ahora sí
+detectada en vez de tapada. No se reintentó a mano, no se tocó la configuración y no se absuelve
+el paso.
+
+**Segunda medición, del Worker de #76, aportada por el Director:** allá el cuelgue fue en la
+**primera** pasada, después de `[mobile-safari] auth.spec.ts:74`; acá la primera pasada terminó
+completa (153 / 15 / 18, con los 15 ambientales de siempre y **cero** flaky) y el que quedó mudo
+fue el **reintento**, a los 123 casos. Dos puntos de cuelgue distintos con el mismo síntoma, lo
+que apunta al **cierre del runner con la suite en paralelo**, no a un test concreto.
+
 ## COMMITS
 
 - `8080168c`: `feat(studio): SDD-0341 — importar L05 contexto privado del perfil Portal
   (migrate-first)`. SQL, contrato, spec con nota, helper y test, adopción en la página,
   test de adopción, baseline, declaración e índice. Es el producto validado por `verify`.
-- Commit que contiene este documento: cierre durable del handoff; sólo documentación, sin
-  cambios de producto. Su hash final queda en la PR.
+- `b7e53696`: `docs(handoff): cerrar L05 con PR migrate-first y evidencia de validación`.
+  Cierre durable de la ronda 1; sólo documentación. Es el head que revisó el Director.
+
+Ronda 2, en unidades lógicas separadas para que el merge sea auditable:
+
+- `c879e381`: `Merge remote-tracking branch 'origin/main' into codex/c-l05-portal-perfil-privado`.
+  Sólo el merge, con el driver de main. Sin conflictos.
+- `cca49664`: `feat(studio): SDD-0341 — retirar la espera de 0405, ya aplicada en producción`.
+  Baseline y declaraciones idénticos a main, y nota de la spec 0341 a «aplicada en producción».
+- `86d65ae5`: `docs(studio): SDD-0341 — corregir el docstring rancio del test de adopción`.
+  Sólo el docstring; ni una aserción ni un nombre de test.
+- Commit que contiene este documento: cierre durable de la ronda 2; sólo documentación.
+  Su hash final queda en la PR.
+
+Nunca se usó `git add -A`: cada commit se armó nombrando sus rutas. Sin reset, sin force push,
+sin cambiar de rama.
 
 ## PR / BRANCH
 
 [PR #75 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/75), base `main`,
-rama `codex/c-l05-portal-perfil-privado` publicada a sí misma con upstream propio. Título:
-`[NO FUSIONAR ANTES DE APLICAR 0405] feat(studio): SDD-0341 — L05 contexto privado del
-perfil Portal (migrate-first)`. Worktree conservado en la ruta indicada arriba.
+rama `codex/c-l05-portal-perfil-privado` con upstream propio. Head remoto todavía en
+`b7e53696`: **la ronda 2 no se publicó**.
+
+Al publicar, y sólo a la señal del Director, en este orden y en un solo acto:
+
+1. Un **solo** push de la rama a sí misma.
+2. Título sin el prefijo: `feat(studio): SDD-0341 — L05 contexto privado del perfil Portal
+   (0405 ya aplicada)`.
+3. Cuerpo reescrito (`pr75-body-nuevo.md`) y paso a *ready for review*, junto con ese push.
+
+El prefijo `[NO FUSIONAR ANTES DE APLICAR 0405]` se retira **al publicar, no antes**: mientras
+el head remoto siga atrasado, es el único freno propio que tiene la PR. **Después del push la
+rama se congela** hasta que el Director fusione: nada de empujar líneas de handoff después, que
+es lo que le canceló la corrida de CI a otra PR de este lote y lo pagan las que esperan detrás.
+Si aparece algo que sólo se puede saber después de publicar —el resultado del CI alojado es el
+único caso legítimo— va por mensaje al Director, no por push.
+
+Worktree y rama conservados en la ruta indicada arriba.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Ninguno de implementación o preparación del lote. Quedan fuera del Worker: revisión del
-  Director, `/ui-check` y la secuencia migrate-first autorizada por Sam.
-- E2E autenticado y ledger productivo siguen NO DISPONIBLES; no autorizan obtener o copiar
-  credenciales ni aplicar la migración.
+- **Publicar**: falta el SHA del Director. Van #76 y #83 antes. Todo está commiteado en local
+  y sin push, a la espera.
+- **CI alojado del head de la ronda 2**: es lo que de verdad mide lo que acá quedó sin medir
+  (`e2e` completo y el resto en un entorno con configuración). Sólo existe después del push.
+- **`migrations-applied` sin medir** en este árbol por falta de `NEXT_PUBLIC_SUPABASE_URL` /
+  `SUPABASE_SERVICE_ROLE_KEY`. No autoriza obtener ni copiar credenciales.
+- **`e2e` sin cobertura real** por la misma falta de configuración, y con el reintento colgado
+  (ver VALIDACIÓN). Hace falta el CI alojado o una corrida con configuración de Supabase.
+- Revisión del Director y `/ui-check` (el JSX no cambió en ninguna de las dos rondas).
+- Nada pendiente de implementación. Merge, deploy y cualquier toque de producción quedan fuera
+  del Worker; «cerrar» esta tarea no los autoriza.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -255,25 +479,61 @@ perfil Portal (migrate-first)`. Worktree conservado en la ruta indicada arriba.
 - Ocho avisos de lint en cuatro archivos ajenos intactos (tabla de `verify`).
 - Arranque de workers de Vitest frágil bajo carga en este equipo (primer intento focal).
 
+### Detectado en la ronda 2
+
+- **El paso `e2e` se cuelga, y no sólo falla por entorno.** Acá el reintento automático llegó a
+  123 casos verdes y quedó mudo 10 minutos; lo cortó el watchdog **SDD-0454** (29 procesos del
+  propio árbol). El Worker de #76 midió el mismo síntoma en otro punto: cuelgue en la **primera**
+  pasada, tras `[mobile-safari] auth.spec.ts:74`. Dos puntos distintos, mismo síntoma, así que
+  apunta al **cierre del runner con la suite en paralelo**, no a un test. Es un hallazgo distinto
+  de los 15 fallos ambientales y de los dos flakes públicos conocidos. Ajeno a este diff: merece
+  tarea propia, con los dos logs como evidencia.
+- **El driver de merge se resuelve desde el árbol de la rama**, así que cualquier rama de esta
+  generación que haga `git merge origin/main` **sin** el override corre el driver viejo y
+  resucita esperas ya retiradas. En esta rama habrían sido 4. No es un defecto de main —main ya
+  está arreglado— sino una trampa de las ramas viejas del lote: vale dejarlo escrito donde lo
+  lea el próximo, no sólo en handoffs sueltos.
+- ~~Desajuste entre el nombre del test `page.private-context.test.tsx:145` («sin la RPC 0405
+  degrada a vacío…») y su docstring corregido~~. **No es un hallazgo: resuelto por el Director.**
+  El nombre se queda, y es fiel. Un `it()` nombra la condición que **arma**, y esta la sigue
+  armando con un mock: la RPC respondiendo como ausente. Además sigue siendo un caso que hay que
+  cubrir, porque puede pasar de verdad con la ACL revocada o un `DROP FUNCTION` futuro. El
+  docstring era otra cosa: afirmaba algo sobre **cuándo se iba a aplicar la migración**, y eso sí
+  caducó. Son dos niveles distintos, cada uno diciendo la verdad del suyo.
+- **La RPC 0405 usa `limit 1` sin orden** y ya está aplicada: corregirlo pide una migración
+  nueva, no un cambio en esta rama. Sigue siendo segura detrás del principal L18.
+- `docs/legal/privacidad/registro-tratamiento.md` sigue sin inventariar `clients.avatar_path`
+  ni `client_markbox_history` (arrastre de la ronda 1, sin cambios).
+
 ## HANDOFF AL DIRECTOR
 
-- **Orden migrate-first obligatorio:** 1) revisar esta PR; 2) OK nominal de Sam para
-  `0405_portal_perfil_privado_por_principal`; 3) aplicarla sola con el runbook
-  `docs/runbooks/aplicar-migraciones-prod.md` y name exacto; 4) verificar objeto, ACL y
-  `SECURITY DEFINER`; 5) en esta rama, retirar la espera del baseline, la declaración
-  `l05-portal-profile-private-context-pending-rpc` y actualizar la nota de la spec (patrón
-  `b49f1c0b` de L16); 6) revalidar y sólo entonces fusionar. Fusionar no autoriza aplicar,
-  y aplicar no autoriza fusionar.
-- Compartidos: #69, #70, #72, #73 y #74 también tocan `supabase/migrations-baseline.json` y
-  `docs/specs/README.md` (unir por entradas; driver `dtd-generated-records`). Ninguna toca
-  `perfil/**`, el helper ni `supabase/pending-migration-symbol-declarations.json`; #71 no
-  toca estas rutas. Heads observados: #69 `b7a922b9`, #70 `4e100f8d`, #72 `db214b92`,
-  #73 `19a28b13`, #74 `a11131ef`.
-- `/ui-check` pendiente del Director. Resumen JSX: ningún nodo cambia; las props
-  `avatarUrl`, `viewUrl`, `hasExistingPhoto` y la lista de códigos conservan nombres y
-  valores con la RPC presente, y quedan vacías sin ella (tabla de comportamiento).
-- Sin merge, sin aplicar 0405, sin leer producción, sin deploy. No se tocó la rama de #21.
-- Ownership: escritura terminada con este documento. Tras su commit y push se libera el claim
-  con `node scripts/harness-worktree.mjs release --owner c-l05-worker-20260911-claude`; el
-  estado efectivo se verifica en los metadatos Git del worktree. Sin subagentes ni sesiones
-  consumidoras delegadas. Conservar rama y worktree.
+- **El orden migrate-first ya se cumplió**, así que el bloqueo de la ronda 1 caducó: 1) la PR
+  fue revisada en `b7e53696`; 2) Sam dio el OK nominal nombrando la migración; 3) se aplicó
+  sola, ledger `20260912022835`; 4) el Director verificó objeto, ACL y `SECURITY DEFINER`;
+  5) esta ronda retiró la espera, la declaración y actualizó la nota de la spec; 6) se
+  revalidó. Queda el paso 7, que es suyo: fusionar. **Aplicar 0405 no autorizó fusionar**, y
+  este handoff tampoco: merge y producción son decisiones aparte.
+- **Lo que hay que hacer con esta rama, en orden y sin excepción**, cuando llegue su turno
+  detrás de #76 y #83: (1) merge de main con el override del driver, (2) revalidación,
+  (3) handoff y cuerpo de la PR commiteados, (4) **un solo** push, (5) título y paso a ready
+  junto con ese push. Los pasos 1–3 ya están hechos sobre `f93c0f2c`. Si main avanzó desde
+  entonces, hay que repetir 1–3 **con el override**, porque el driver de esta rama sigue siendo
+  el viejo: sin el override resucita esperas retiradas.
+- **Recordatorio del override**, por si lo corre otra sesión:
+  `drv="$(cygpath -m "$TEMP")/dtd-merge-driver-main.mjs"; git show origin/main:scripts/merge-generated-records.mjs > "$drv"; git -c merge.dtd-generated-records.driver="node \"$drv\" %O %A %B %P" merge origin/main`
+- Compartidos: cualquier PR del lote que toque `supabase/migrations-baseline.json`,
+  `docs/specs/README.md` o `supabase/pending-migration-symbol-declarations.json` se une por
+  entradas con el driver `dtd-generated-records`. Los tres archivos de esta rama quedan
+  **idénticos a main**, así que ya no hay nada que unir por acá: sólo la fila 0341 del índice.
+- `/ui-check` pendiente del Director. Resumen JSX: ningún nodo cambia; las props `avatarUrl`,
+  `viewUrl`, `hasExistingPhoto` y la lista de códigos conservan nombres y valores cuando la RPC
+  responde, y quedan vacías si falla (tabla de comportamiento).
+- **Lo que no se hizo, a propósito:** sin push, sin merge a main, sin deploy, sin tocar
+  producción, sin leer filas de negocio ni PII, sin copiar secretos, sin tocar la migración
+  0405, sin tocar la rama de #21 ni ningún otro worktree.
+- Ownership: escritura terminada con este documento. La ronda 2 corrió con
+  `claim --owner worker-c-l05-r2-2026-09-12`; el claim se mantiene mientras quede el push
+  pendiente y se libera con
+  `node scripts/harness-worktree.mjs release --owner worker-c-l05-r2-2026-09-12` cuando la
+  escritura termine de verdad. Sin subagentes ni sesiones consumidoras delegadas. Conservar
+  rama y worktree.
