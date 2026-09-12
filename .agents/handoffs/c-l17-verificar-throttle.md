@@ -300,8 +300,9 @@ delta es exactamente +1, la propia 0375, y 0375 sale de la lista de huecos
 
 ### Barrido de texto rancio (punto 6)
 
-Commit propio `1dc9fe94`, sólo prosa. **Ni una aserción ni un nombre de test
-cambian**, y el archivo de la migración no se toca.
+Commit propio `1dc9fe94`, sólo prosa: ni una aserción cambia y el archivo de la
+migración no se toca. Los dos nombres de test se corrigieron después, en
+`6fb9d2e9`, tras la revisión del Director (ver abajo).
 
 - `lib/public/verify-throttle.ts:13`: «Aplicar/verificar 0426 antes de desplegar
   este consumidor» describía un estado superado → registra la aplicación. La
@@ -313,16 +314,31 @@ cambian**, y el archivo de la migración no se toca.
   decía «no autorizados», que ya es falso. Se separan: aplicación hecha y
   autorizada nominalmente `[x]`; smoke posdespliegue `[ ]`, fuera de esta rama.
 
-**Deliberadamente NO tocado**, por la regla de no cambiar nombres de test:
+**Dos nombres de test corregidos tras la revisión del Director** (commit propio
+`6fb9d2e9`). Los dejé intactos en la primera pasada y se los consulté; él afinó
+la regla: no es «nunca toques un nombre de test», es **no toques un nombre que
+describe fielmente el escenario que el test simula**. Estos dos no hacían eso,
+así que sí cambian:
 
-- `verify-throttle.test.ts:158` — `describe("… RPC ausente o con error de base (migrate-first)")`.
-  «RPC ausente» sigue siendo el escenario que el mock simula; «(migrate-first)»
-  es una etiqueta de proceso ya histórica. Queda a decisión del Director si
-  quiere que cambie, porque es un nombre de test.
-- `verify-throttle.test.ts:160` — la etiqueta `"función fuera de la caché de esquema: 0426 sin aplicar"`
-  del `it.each`. Entra en el nombre del caso vía `%s`. PGRST202 por caché de
-  esquema sigue siendo posible con la RPC aplicada; la coletilla «0426 sin
-  aplicar» es la parte histórica.
+- `verify-throttle.test.ts:158` — el `describe` decía «isVerifyThrottled · RPC
+  ausente o con error de base **(migrate-first)**». La parte que describe el
+  escenario —RPC ausente o con error de base— es correcta y se queda;
+  «(migrate-first)» no describe un escenario sino el orden de trabajo del
+  proyecto, que ya pasó. Sale sólo ese paréntesis.
+- `verify-throttle.test.ts:160` — la etiqueta de `PGRST202` decía «función fuera
+  de la caché de esquema: **0426 sin aplicar**». Eso no describe el mock:
+  afirma un estado del despliegue, y ya es falso. Queda la causa genérica y se
+  reemplaza la afirmación por las causas que siguen vivas: «caché desactualizada
+  o DROP FUNCTION». La ACL revocada ya tiene su propia fila (`42501`).
+
+El contraste que marcó el Director: un nombre que dice «sin la RPC 0405» describe
+la condición que el test arma con un mock —la RPC respondiendo como ausente— y
+por eso se conserva; el nuestro afirmaba un hecho sobre producción. Uno nombra el
+escenario, el otro afirma un hecho.
+
+Alcance real del cambio: **2 líneas**, sin tocar aserciones, sin tocar los
+códigos de error y sin cambiar la estructura del `it.each`. Suite focal 33/33 en
+verde después.
 
 Falsos positivos descartados al barrer:
 `scripts/check-public-verify-concurrency.mjs:149` y spec 83–85
@@ -353,7 +369,7 @@ Invariantes del encargo, medidas una por una:
 | **Punto 7** · md5 y bytes de `0426_public_verify_atomic_reservation.sql` | PASÓ — `8e4f06a4ce6f02dfb0aa2af683a92e37`, 5622 B, blob `718f2e6a`, idéntico a `07e54dfc` |
 | **Punto 5** · conteo del índice medido con `docs:check`, no asumido | PASÓ — 433 aquí contra 432 en main; delta +1 = 0375 |
 | `git diff --check` | PASÓ |
-| Vitest focal `lib/public/verify-throttle.test.ts` | PASÓ — 33/33, sin tocar aserciones ni nombres |
+| Vitest focal `lib/public/verify-throttle.test.ts` | PASÓ — 33/33 antes y después de corregir los dos nombres; sin tocar aserciones, códigos de error ni la estructura del `it.each` |
 
 `corepack pnpm verify` completo sobre el árbol ya fusionado: **FALLÓ, exit 1**.
 Corrieron 16 de 17 pasos; 14 PASÓ, 1 NO DISPONIBLE y 1 FALLÓ.
@@ -397,16 +413,28 @@ El watchdog de SDD-0454 funcionó como se diseñó: cortó por inactividad a los
 `cmd.exe`×1— con **0 sobrevivientes**, y lo declaró FALLÓ con motivo en vez de
 omitido.
 
-**Dato nuevo para el Director: el cuelgue ocurrió en un punto distinto a los dos
-ya medidos.** No fue tras `[mobile-safari] auth.spec.ts:74` ni en el reintento:
-fue en la **primera pasada**, que nunca terminó ni llegó a lanzar reintento
-(un solo `Running 186 tests using 8 workers`). Quedó muda en el **caso 168 de
-186**, después de:
+**Tercer punto de cuelgue, y qué lectura tiene.** El corte ocurrió en un punto
+distinto a los dos ya medidos. No fue tras `[mobile-safari] auth.spec.ts:74` ni
+en un reintento: fue en la **primera pasada**, que nunca terminó ni llegó a
+lanzar reintento (un solo `Running 186 tests using 8 workers`). Quedó muda en el
+**caso 168 de 186**, después de:
 
 - último OK: `165 [mobile-safari] cbm-ayuda.spec.ts:111`;
 - y tres omitidos seguidos: `166 [mobile-safari] comments-lifecycle.spec.ts:108`,
   `167 [mobile-safari] gastos-expense-void.spec.ts:76`,
   `168 [mobile-safari] gastos-expense-void.spec.ts:99`.
+
+Los tres puntos medidos hasta ahora son, entonces:
+
+1. primera pasada, tras `[mobile-safari] auth.spec.ts:74`;
+2. reintento, mudo a los 123 casos;
+3. esta ronda: primera pasada, caso 168/186, tras `[mobile-safari] cbm-ayuda.spec.ts:111`.
+
+**Lectura del Director, y es la que vale: tres puntos distintos confirman la
+hipótesis, no la contradicen.** Que el cuelgue caiga cada vez en un sitio
+diferente es más consistente con «el runner bajo carga, con el servidor caído»
+que con «hay un test que se cuelga»: si fuera un test, se colgaría siempre en el
+mismo. Nada de esta ronda toca el e2e, el dev server ni la configuración.
 
 Conteo de la pasada interrumpida: 123 OK, 15 fallos ambientales finales, 8
 omitidos. Los 15 fallos son exactamente el conjunto conocido de `proxy.ts:67`:
@@ -414,16 +442,22 @@ omitidos. Los 15 fallos son exactamente el conjunto conocido de `proxy.ts:67`:
 en mobile-safari (4+4), más `global-search.spec.ts:22` en chromium y
 mobile-chrome (2).
 
-**Segundo dato nuevo: un tercer flake distinto.** Los dos conocidos y ajenos
-—`calculadora-hidratacion.spec.ts:42` y `smoke.spec.ts:150`— pasaron en todos
-sus proyectos esta vez. El que flakeó fue
-`smoke.spec.ts:97` («las rutas viejas de calc/estimación redirigen (301)»), que
-falló en chromium y **se recuperó en el reintento #1**, y pasó limpio en
-mobile-chrome. No estaba en la lista de flakes conocidos.
+**Sobre el «tercer flake»: no es un flake, y no se levanta tarea de flakes.**
+Esta ronda flakeó `smoke.spec.ts:97` («las rutas viejas de calc/estimación
+redirigen (301)»), que falló en chromium y se recuperó en el reintento #1;
+los dos conocidos —`calculadora-hidratacion.spec.ts:42` y `smoke.spec.ts:150`—
+pasaron limpios. El Director retiró expresamente su propia regla de «un tercero
+distinto ya es tarea», y con razón: los tres se midieron en corridas donde **el
+WebServer está roto** por falta de credenciales de Supabase. En un servidor
+degradado, cualquier test que cargue una página puede fallar de forma
+intermitente. **No son tres observaciones independientes de inestabilidad del
+producto: son tres observaciones de que no podemos medir inestabilidad del e2e
+en estas máquinas.** Que nadie salga a cazar tests inestables con datos que no
+lo sostienen.
 
-Esto es correlación, no causalidad: nadie corrió el e2e sobre main limpio, que
-es el experimento que aislaría la causa. Nada de esta ronda toca el e2e, el dev
-server ni la configuración.
+La tarea real, que estos datos refuerzan, es la que el Director ya tenía
+anotada: **conseguir que el e2e autenticado se pueda correr en algún lado.**
+Mientras tanto, el CI alojado es el que decide.
 
 ### Cuerpo de la PR reescrito (declaración explícita)
 
@@ -443,7 +477,9 @@ de las declaraciones, y se añade la auditoría del camino degradado.
 - `2e7b862c` — `chore(db): retirar la espera 0426 aplicada`.
 - `3fcba092` — `docs(specs): registrar 0426 aplicada a producción en la spec 0375`.
 - `1dc9fe94` — `docs(DTD-0375): el consumidor y la spec ya no anuncian 0426 como pendiente`.
-- El commit que contiene este documento cierra la ronda.
+- `d4a35546` — `docs(handoff)`: cierre inicial de la ronda 2.
+- `6fb9d2e9` — `docs(DTD-0375): dos nombres de test dejan de afirmar el estado del despliegue`, tras la revisión del Director.
+- El commit que contiene esta versión del documento cierra la ronda con sus tres correcciones aplicadas.
 
 Diff contra `origin/main` tras la ronda: **8 archivos** (antes 9).
 `supabase/migrations-baseline.json` salió del diff al quedar idéntico a main, y
@@ -478,9 +514,9 @@ Estado tras la ronda 2 (2026-09-12):
 5. Cablear el runner en `scripts/verify.mjs` + `verify-step-policy.mjs` + su test de gate es una decisión pendiente. El runner usa por defecto `postgres:17-alpine` y `run-sql-tests.mjs:37` usa `postgres:17`: defaults inconsistentes.
 6. Quien integre #21 completo no debe tomar su `app/verificar/page.tsx`: borraría la sección `boxCode` de SDD-0443.
 7. Carga de la máquina: tres verify de otros Workers en paralelo provocaron un timeout de arranque del pool de Vitest (ya documentado, ronda 1). Aviso heredado de pnpm sobre `pnpm.onlyBuiltDependencies`.
-8. **(Ronda 2) Tercer punto de cuelgue del e2e local, distinto a los dos medidos.** Primera pasada, caso 168/186, tras `165 [mobile-safari] cbm-ayuda.spec.ts:111` y tres omitidos de `comments-lifecycle` / `gastos-expense-void`. No hubo reintento. Detalle y conteos en «Validación de la ronda 2». Ajeno a esta PR; el experimento que aislaría la causa (e2e sobre main limpio) nadie lo ha corrido.
-9. **(Ronda 2) Tercer flake público distinto:** `smoke.spec.ts:97` falló en chromium y se recuperó en el reintento #1. Los dos flakes conocidos (`calculadora-hidratacion.spec.ts:42` y `smoke.spec.ts:150`) pasaron limpios esta vez. Ajeno a esta PR.
-10. **(Ronda 2) Dos nombres de test con etiqueta «migrate-first» ya histórica**, deliberadamente no tocados por la regla de no cambiar nombres de test: `verify-throttle.test.ts:158` y la etiqueta de `:160`. Decisión del Director si quiere que cambien.
+8. **El e2e autenticado no se puede correr en estas máquinas.** Es la tarea real que estos datos refuerzan, y la única que corresponde levantar del e2e. Sin `.env.local` en ningún árbol, el WebServer arranca roto (`proxy.ts:67`) y ni `migrations-applied` ni el e2e cierran. Mientras tanto decide el CI alojado.
+9. **El cuelgue del e2e local: tres puntos distintos, misma lectura.** (1) primera pasada tras `[mobile-safari] auth.spec.ts:74`; (2) reintento, mudo a los 123 casos; (3) esta ronda, primera pasada, caso 168/186 tras `[mobile-safari] cbm-ayuda.spec.ts:111`. Que caiga cada vez en un sitio distinto es más consistente con «el runner bajo carga con el servidor caído» que con «hay un test que se cuelga»: si fuera un test, sería siempre el mismo. Ajeno a esta PR. El watchdog de SDD-0454 hizo lo suyo las tres veces.
+10. **No se levanta tarea de flakes, a propósito.** `smoke.spec.ts:97` (esta ronda), `calculadora-hidratacion.spec.ts:42` y `smoke.spec.ts:150` se midieron todos con el WebServer roto por falta de credenciales. En un servidor degradado cualquier test que cargue una página puede fallar intermitentemente: no son tres observaciones independientes de inestabilidad del producto, son tres observaciones de que no podemos medir inestabilidad del e2e en estas máquinas. Que nadie salga a cazar tests inestables con datos que no lo sostienen. El Director retiró expresamente su regla previa de «un tercero distinto ya es tarea».
 
 ## HANDOFF AL DIRECTOR
 
