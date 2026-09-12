@@ -9,6 +9,7 @@ Rama: `codex/c-l03-portal-asesor`. Base real: `3c6107012f754953323202a7386b3e781
 - `94372af9`: trae `07d00097` (#69, L19, SDD-0385, 0431 pendiente). El driver `dtd-generated-records` unió baseline e índice.
 - `9fdc6dd6`: trae `50100cc4902c4a2a4398327ba0de6dc30810c834` (#70, L21, SDD-0401, 0433 pendiente). También con el driver.
 - `7181ff02` (ronda 2): trae `ce0239268fc5ce2fbdf5ae989efe026fc1b604d5` (#78, L04, SDD-0339, con 0404 ya aplicada; y de arrastre #82, #94 y el registro del lote). Con el driver de main por override, no con el de la rama.
+- `d0a84e76` (ronda 2, turno de integración): trae `0413d4a155448213a641552f6fedc489dea76858` (#76, L02, SDD-0337, 0402; y #77, L06, SDD-0342, 0406). Con el override, ya redundante porque la rama lleva el driver de main. Único archivo de código compartido: `app/portal/(app)/page.tsx`, con L02.
 Ninguno cambió las rutas de código, SQL, spec ni tests del lote.
 
 Origen de solo lectura: `ea9952a47f4adf14c48c91e6d0147597beb94aa7` (head de PR #21). Commit fuente de SDD-0338 en el origen: `121bfdc5892c917d5ae7263c1f7ec4223667de29`. Base común con main: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
@@ -177,6 +178,17 @@ Con el driver viejo el archivo habría vuelto a declarar **seis** migraciones ya
 
 **Ya no aparecen** `supabase/migrations-baseline.json` ni `supabase/pending-migration-symbol-declarations.json`: quedaron iguales a main. `git diff --check` limpio.
 
+### Último merge del turno de integración — `main` `0413d4a1`
+
+El Director avisó el turno al fusionar #76 y dio el SHA medido: `0413d4a155448213a641552f6fedc489dea76858`, con 432 specs, `cutoff` 238 y `pendingBelowCutoff` vacío. Antes de tocar nada: `guard --owner` OK, rama correcta, `HEAD = 120a09e5`, árbol limpio. Base del merge: `ce023926`. Main cambió **23 archivos**: #76 (L02 visibilidad, SDD-0337, migración 0402) y #77 (L06 documentos, SDD-0342, migración 0406), con sus specs, tests, contratos y handoffs.
+
+- **Merge `d0a84e76`, sin conflictos.** Se usó el override del driver igual que antes, aunque esta vez era **redundante**: tras el merge anterior la rama ya lleva el driver de main (`4a5af4e5`, el mismo blob en los dos lados). Se conservó por disciplina y se verificó el blob extraído antes de usarlo.
+- **El archivo compartido con L02 era el riesgo real de este merge: `app/portal/(app)/page.tsx`.** Resultado exactamente el previsto en la ronda 1: blob **`7015d694`**, el de la home tras `121bfdc5` en #21. Los hunks quedan separados —L02 cambia el import y la llamada de estados ocultos a `getHiddenPortalStatusesForPortal(supabase)`; L03, el comentario y la llamada del asesor en la línea 120— y **`createAdminClient` sigue en uso en las líneas 90, 102 y 180**, así que el import no queda huérfano. Dos lotes retirando usos de `service_role` del mismo archivo era justo el caso que podía romper lint: se comprobó, no se supuso.
+- **Índice: 433 specs**, el número que anticipó el Director, con la fila 0338 más las 0337, 0339 y 0342 de main; 24 huecos. `docs:index` no cambió un byte sobre lo que dejó el driver y `docs:check` lo confirma sincronizado.
+- **Los dos registros generados siguen idénticos a main**, medido **leyendo el blob de main**, no asumido: `93939af96cbe3bec89c2ab80bdb8073d8ff4fabe` y `8e52d5b3d8c5448aaa9d90fb3f8df0199097fdbe`, con `git diff origin/main -- <archivo>` vacío en los dos.
+- **0403 intacta:** `md5 bfae7279d28a8cf28961e0783ee23f36` y 1711 B después del merge. No se editó: está aplicada y es inmutable.
+- **Producto byte a byte igual al head revisado `bb1ca346`** en la migración, el contrato, `portal-queries.ts`, Soporte y el test del origen. Sólo cambian el docstring ya autorizado (`82a598a4`) y `page.tsx`; este último **por el hunk de L02 que llega desde main**, no por L03.
+
 ### Validación de la ronda 2
 
 Medida sobre `82a598a4e9aa0b72e4c396dd1549ebb088169072` (merge + los tres commits) con base `origin/main` `ce023926`. Node 24.20.0, pnpm 12.3.4 por corepack, Docker disponible. **Sin credenciales ni `.env.local`** en este worktree ni en el checkout principal. Recibos fuera de Git, en el scratchpad de la sesión (`…/scratchpad/c-l03-ronda2/`): `verify.log`, `verify.meta`, `e2e-block.txt`, `base.json` / `ours.json` / `theirs.json` y los dos drivers ejecutados sobre ellos.
@@ -210,6 +222,34 @@ Medida sobre `82a598a4e9aa0b72e4c396dd1549ebb088169072` (merge + los tres commit
 | CI alojado de GitHub | **NO EJECUTADO todavía**: la ronda 2 no está publicada. Corre con el push del turno de integración y es el que decide. |
 | `/ui-check` | **NO EJECUTADO**: lo corre el Director. El JSX no cambia en ninguna de las dos rondas. |
 | Producción / Supabase | **NO EJECUTADO** por límite del encargo: no se aplicó ninguna migración, no se leyeron filas, no se abrió conexión y no se copió ninguna credencial. |
+
+#### Revalidación tras el último merge (`d0a84e76`, sobre `main` `0413d4a1`)
+
+Recibos fuera de Git: `verify3.log`, `verify3.meta`, `e2e3-block.txt` en la misma carpeta del scratchpad.
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| `guard --owner`, rama, HEAD esperado y árbol limpio antes del merge | **PASÓ**: `HEAD = 120a09e5`, sin cambios pendientes. |
+| Merge con el override del driver | **PASÓ**: sin conflictos. El blob extraído de `origin/main` es `4a5af4e5`, el mismo que ya lleva la rama: el override fue **redundante** esta vez y se conservó por disciplina. |
+| `app/portal/(app)/page.tsx` (compartido con L02) | **PASÓ**: blob `7015d694`, el previsto en la ronda 1. Hunks separados y `createAdminClient` sigue usado en las líneas 90, 102 y 180 — sin import huérfano. |
+| Los dos registros generados contra el **blob de main** | **PASÓ**: `93939af9…` y `8e52d5b3…` idénticos; `git diff origin/main -- <archivo>` vacío en los dos. |
+| `0403_portal_advisor_por_principal.sql` | **PASÓ**: `md5 bfae7279d28a8cf28961e0783ee23f36`, 1711 B, antes y después del merge y también después de `verify`. |
+| Producto contra el head revisado `bb1ca346` | **PASÓ**: migración, contrato, `portal-queries.ts`, Soporte y el test del origen byte a byte iguales. Cambian sólo el docstring autorizado (`82a598a4`) y `page.tsx`, este último por el hunk de L02 que llega de main. |
+| `corepack pnpm docs:index` + `docs:check` | **PASÓ**: **433 specs**, 24 huecos, el número que anticipó el Director. `docs:index` no cambió un byte sobre lo que dejó el driver. |
+| `corepack pnpm sdd:check` | **PASÓ**: 433 specs / 434 migraciones. |
+| `node scripts/check-pending-migration-symbols.mjs` | **PASÓ**: 0 ROJO · 0 AMARILLO. |
+| `node scripts/install-merge-drivers.mjs --check` | **PASÓ**. |
+| ESLint de las cinco rutas TS del lote | **PASÓ**: 0 problemas. |
+| Vitest `lib/portal/__tests__` completo | **PASÓ**: 36 archivos / 355 tests (sube desde 30/335: L02 y L06 trajeron los suyos). |
+| `corepack pnpm typecheck` | **PASÓ**. |
+| `git diff --check` y rutas contra `origin/main` | **PASÓ**: exactamente las 10 rutas. |
+| `corepack pnpm verify` sobre `d0a84e76` | **FALLÓ, exit 1** (01:49 → 02:31). 16 de 17 pasos corrieron: **15 PASÓ**, `migrations-applied` **NO DISPONIBLE (SKIP)** y `e2e` **FALLÓ**. Veredicto literal: `verify: 1 fallo(s) → e2e CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.` |
+| `verify` · pasos verdes | **PASÓ**: harness 35 pruebas · lint · rsc-boundary 1598 módulos · typecheck · edge-functions 4 · **test 6773 en 541 archivos** · docs:check 433 · numbering 433/434 · feature-constants 5 · components:check · governance:check · pending-migration-symbols 0/0 · **sql-tests 177 contratos** con rollback total (incluidos 0403, 0402 y 0406) · **schema-rebuild** 416 desde cero, 18 sólo-ledger, aislamiento en 219 tablas · **build** compilado en 19,5 s y 160/160 páginas. |
+| `verify` · `migrations-applied` | **NO DISPONIBLE**: `[SKIP] sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY`. El ledger real no se mide en esta máquina. |
+| `verify` · `e2e` | **FALLÓ, y esta vez el paso terminó completo: no se colgó y el watchdog no intervino.** Dos pasadas con el mismo resultado exacto — 153 pasaron, **15 fallaron**, 18 omitidos (4,9 min y 5,7 min) — y los 15 son **todos ambientales por credenciales ausentes**: `auth.spec.ts:21/91/98/105` y `global-search.spec.ts:22`, cada uno en chromium, mobile-chrome y mobile-safari, con el WebServer registrando «Your project's URL and Key are required to create a Supabase client!». **Ningún otro spec falló y no hubo flakes.** Se registra **NO DISPONIBLE por configuración ausente**: sin credenciales el E2E no ejerce Inicio ni Soporte con sesión. El CI alojado es el que decide. |
+| Contraste con el cuelgue reportado en el lote | La corrida anterior de esta rama (`82a598a4`) fue cortada por el watchdog a los 10 min de silencio en el test 167/186, y el Worker de #76 midió el mismo cuelgue tres veces —también fuera de `verify`, unos 18 min tras `[mobile-safari] auth.spec.ts:74`— sobre el árbol con #78 y #77. **Aquí, sobre el árbol que ya incluye #76, el mismo paso terminó dos veces sin colgarse.** No se investigó ni se reintentó a propósito: es un dato, no un diagnóstico. Nadie corrió el e2e sobre main limpio, que es el experimento que aislaría la causa, así que queda como correlación. |
+| `/ui-check` | **NO EJECUTADO**: lo corre el Director. El JSX no cambia en ninguna ronda. |
+| Producción / Supabase | **NO EJECUTADO**: ninguna migración aplicada, ninguna fila leída, ninguna conexión abierta, ninguna credencial copiada. |
 
 ## VALIDACIÓN (RONDA 1)
 
@@ -320,13 +360,14 @@ Ronda 2 (sobre `bb1ca346`):
 - `2b8db764`: `chore(db): retirar la espera 0403 aplicada y su declaración de símbolos`. Baseline y declaraciones vuelven a ser idénticos a main.
 - `9d6bd997`: `docs(specs): registrar 0403 aplicada a producción en la spec 0338`. Nota de importación con ledger, md5 y bytes.
 - `82a598a4`: `docs(portal): quitar el «migrate-first» rancio del docstring del test del asesor`. Sólo comentario; ninguna aserción ni nombre de test cambia.
-- Commit que contiene este documento: cierre durable de la ronda 2. El hash final queda en la PR.
+- `d0a84e76017f7f8ea156e9cb9851f2bb98bcb241`: merge de origin/main (`0413d4a1`, #76 y #77) en el turno de integración, con el override. Sin conflictos.
+- Commit que contiene este documento: cierre durable de la ronda 2, escrito **antes** del push para no cancelar la corrida de CI. El hash publicado queda en la PR.
 
 ## PR / BRANCH
 
 [PR #83 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/83), base `main`, rama `codex/c-l03-portal-asesor`, worktree indicado arriba. Sin merge a main, sin aplicar nada a Supabase, sin leer producción y sin deploy.
 
-**Estado al cerrar la ronda 2: NO publicada.** Por indicación del Director la ronda 2 queda commiteada en local y **sin push**: #77 y #76 entran antes y cada merge mueve `main`, así que publicar ahora haría que el ruleset rechace la rama por no estar al día y el CI corra para nada. Mientras el head remoto siga en `bb1ca346`, el prefijo «[NO FUSIONAR ANTES DE APLICAR 0403]» del título es el único freno propio de la PR y **se conserva a propósito**.
+**Estado: PUBLICADA en el turno de integración, y congelada.** Durante toda la preparación la rama quedó sin push (el head remoto siguió en `bb1ca346`) con el prefijo «[NO FUSIONAR ANTES DE APLICAR 0403]» como único freno propio. Con el turno y el SHA de main (`0413d4a1`) se hizo el último merge, la revalidación y el commit de este documento, y sólo entonces un único `git push origin codex/c-l03-portal-asesor:codex/c-l03-portal-asesor`, sin force, con el cambio de título y el paso de borrador a listo en el mismo acto. Título publicado: «feat(studio): SDD-0338 — L03 asesor Portal por principal (0403 ya aplicada)»; el prefijo se retiró porque la condición se cumplió.
 
 Turno de integración: van #76 y después esta PR; el Director manda el SHA cuando #76 fusione.
 
@@ -336,7 +377,7 @@ Orden exacto del turno, **sin excepción**: (1) último merge de `origin/main` c
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Publicación, a la espera del SHA de `main` del Director**: último merge con el override, revalidación de lo afectado y push + título + ready en un solo paso. Es lo único que queda de esta tarea.
+- **Ninguno del Worker.** La publicación se completó en el turno de integración: merge con `0413d4a1`, revalidación, handoff commiteado, un solo push, título nuevo y PR lista para revisión. La rama queda congelada: no habrá más commits hasta que el Director fusione.
 - Ninguno de implementación: SQL, contrato, spec con la nota actualizada, adopción focal, tests, retirada de espera y declaración, índice y handoff están entregados.
 - Revisión del Director, CI alojado del SHA final y `/ui-check` (el JSX no cambia en ninguna de las dos rondas).
 - E2E autenticado y ledger real siguen NO DISPONIBLES en esta máquina, por ausencia de `.env.local`. No son permiso para copiar credenciales ni para tocar producción; el CI de GitHub es el que decide.
@@ -363,8 +404,9 @@ Orden exacto del turno, **sin excepción**: (1) último merge de `origin/main` c
 
 ### Ronda 2 — vigente
 
-- **Siguiente acción, tuya:** mandarme el SHA de `main` cuando fusione #76, que va inmediatamente antes de esta PR. Con él hago el último merge con el override, revalido lo afectado, **dejo este documento escrito y commiteado** y sólo entonces publico de una sola vez (push de la rama a sí misma, título nuevo y paso de borrador a listo). Hasta entonces la rama queda commiteada en local y sin push, con el prefijo «[NO FUSIONAR ANTES DE APLICAR 0403]» todavía puesto como freno.
-- **Congelamiento tras publicar.** Después del push no habrá más commits en esta rama hasta que la fusiones: cancelarían la corrida de CI y, en cola serial, el costo lo pagan las PRs de atrás.
+- **Siguiente acción, tuya:** revisar la PR #83, ya lista y al día con `main` `0413d4a1`, correr `/ui-check` (0 líneas de JSX cambian) y fusionar. El turno se cumplió en el orden pactado: merge con el override, revalidación, este documento commiteado y **un solo** push con el título nuevo y el paso a listo en el mismo acto.
+- **Rama congelada.** No habrá más commits acá hasta que fusiones: cancelarían la corrida de CI y, en cola serial, el costo lo pagan las PRs de atrás. Si main se mueve otra vez y hace falta actualizar, pedímelo y lo hago en un turno nuevo, con el mismo orden.
+- **Lo que no se midió sigue sin medirse:** E2E autenticado y ledger real son NO DISPONIBLE en esta máquina. El CI alojado del SHA publicado es el que decide.
 - **La condición migrate-first está cumplida y verificada por ti:** 0403 aplicada el 2026-09-12, ledger `20260912022746`, md5 `bfae7279d28a8cf28961e0783ee23f36` y 1711 B iguales al archivo de esta rama antes y después del merge. Aquí no se leyó ni se escribió nada en producción.
 - **Serialización con L02 (#76) y L17 (#77).** Con L02 sólo comparto `app/portal/(app)/page.tsx`, con hunks separados (simulado en ambos órdenes en la ronda 1: 0 conflictos). Quien entre segundo rehace el merge; en mi caso ya está previsto. Nada más del lote toca `portal-queries.ts`, Soporte ni los tests del asesor.
 - **Revisión sugerida:** el diff de producto de esta ronda es sólo el comentario del docstring; lo demás es la retirada de los dos registros generados y la nota de la spec. El producto que el CI midió en la ronda 1 sigue con los mismos blobs.
