@@ -8,7 +8,11 @@ Estado: lista-para-revision. No está integrada.
 - **Worktree:** `C:/Users/AKX generator/Desktop/Developer/DTDCARGO/.claude/worktrees/admiring-pascal-832793`.
   Es un worktree enlazado que la sesión ya recibió aislado, no el checkout principal y no `main`, así que **no** se creó otro con `harness-worktree.mjs start`: crear uno anidado habría duplicado el aislamiento que ya existía. `guard` PASÓ y el claim se tomó antes de editar; se revalidó `guard --owner` antes del commit.
 - **Rama:** `claude/stoic-thompson-6ef73b`, nacida en `543bbe0a`, que ya contiene el `origin/main` en caché. No se integró main durante la tarea porque no avanzó.
-- **SDD:** ninguno. El encargo no asignó ID y el runbook reserva la asignación al Director (`docs/runbooks/codex-engineering.md`, sección SDD). El cambio es de harness, no de comportamiento de producto ni de Studio, así que no toca la allowlist de gobernanza. Si el Director quiere spec, la reserva es suya; nada del diff depende de un número.
+- **SDD:** `docs/specs/0457-harness-spawn-enobufs/spec.md`, en `done`. La primera versión de este handoff decía «ninguno», porque el encargo no asignó ID y el runbook reserva la asignación al Director; Sam la autorizó después («mueve la reserva SDD»).
+  - Reservada con `corepack pnpm sdd:next --reserve harness-spawn-enobufs`, que creó `refs/dtd/reservations/0457` y `refs/heads/codex/sdd-reserve-0457-harness-spawn-enobufs` sobre `origin/main`, sin tocar HEAD.
+  - El inventario previo dio 0457 libre sobre 203 refs y worktrees. Las advertencias de colisión que imprime son históricas y de la PR #21, ajenas a esta tarea.
+  - El stub se movió a la rama con `git cherry-pick` (`6cc31857`); la rama de reserva y su lock quedan intactos y **sin publicar**: la PR lleva la spec, así que el número ya es visible.
+  - Índice regenerado con `docs:index`: 428 specs, con la fila 0457.
 
 ## OBJETIVO ORIGINAL
 
@@ -167,7 +171,7 @@ Lo que sí sostiene el arreglo, sin inventar cifras:
 [PR #94 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/94): base `main`, rama `claude/stoic-thompson-6ef73b`, worktree el indicado arriba.
 
 - Publicada con la autorización del encargo («open a draft PR»). Push de la rama a sí misma, sin force.
-- No se pasó a ready, no se mergeó ni se desplegó a mano.
+- Pasada a **ready** el 2026-09-11 a pedido de Sam. No se mergeó ni se desplegó a mano; ready no autoriza merge.
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -186,7 +190,7 @@ Ninguno de implementación. Falta la revisión del Director y la CI del head pub
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** revisar la PR en borrador y correr su CI. La PR no se pasa a ready ni se mergea desde aquí.
+- **Siguiente acción:** revisar la PR y correr su CI. Está **en ready** desde el 2026-09-11, a pedido de Sam; el merge sigue siendo del Director y no se hizo desde aquí.
 - **Contratos compartidos:** el JSON de `finish` **suma** campos (`ignoredEntryCount`, `ignoredEntries`, `sensitiveIgnoredFiles`) y ninguno cambia de nombre ni de tipo; `hasIgnoredFiles` conserva su significado. `runGit` y `GIT_MAX_BUFFER` quedan exportados por si otro script del harness quiere el mismo helper. No hay consumidores externos hoy.
 - **Contrato de `check-unpublished`:** exit y semántica intactos (siempre 0, informativo, no falla el gate). Lo que cambia es que un git roto ya no puede salir `[OK]`: el listado o el conteo fallidos producen `[AVISO] … SIN MEDIR`. Como el hook reenvía todo lo que contenga `[AVISO]`, esos casos ahora se ven en el cierre. `ramasSinPublicar` conserva su firma; `main` acepta un git inyectado con `runGit` por defecto.
 - **Contrato del hook `Stop`:** los códigos de salida no cambian de significado (0 deja cerrar, 2 bloquea) y `.claude/settings.json` queda igual. Solo un exit 0 del gate deja cerrar; un gate medido en rojo y un gate sin medir bloquean los dos, y se distinguen por el mensaje, no por el código. Respecto de `main`, el cambio neto es que **un gate verde cuya salida desborde el búfer ya no se lee como rojo**, y que un gate sin medir se anuncia como tal. Decisión de Sam: el sin medir bloquea.

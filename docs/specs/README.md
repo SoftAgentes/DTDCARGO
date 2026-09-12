@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 427 specs)
+### Índice de specs (generado · 428 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -465,6 +465,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0454 | Watchdog del e2e de verify: un cuelgue es FALLÓ con motivo, n… | done | interno |
 | 0455 | Retención de public_verify_throttle en el cron purge-throttle | done | interno |
 | 0456 | Un cliente sólo cuelga de un aliado de su tenant | done | interno |
+| 0457 | ENOBUFS y errores tapados en el harness: un subproceso que no… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0341, 0342, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0364, 0365, 0366, 0375, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
