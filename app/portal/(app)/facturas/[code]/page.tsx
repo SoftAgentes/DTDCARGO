@@ -213,7 +213,7 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {reports.length > 0 ? (
+      {reports === null || reports.length > 0 ? (
         <div className="mt-6">
           <InvoicePaymentReports invoiceCode={inv.code} reports={reports} />
         </div>
