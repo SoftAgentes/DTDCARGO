@@ -186,6 +186,7 @@ personales, pero se encontró acá y conviene mirarlo.
 | `mail_logs` | 215 | 🔴 lleva destinatarios |
 | `public_track_log` | — | 🔴 IP de quien consulta un envío |
 | `operario_pin_attempts` | — | 🟢 BORRA — huella anti-abuso; purga técnica a 48 h |
+| `public_verify_throttle` | — | 🟢 BORRA — IP en claro de `/verificar`; purga técnica de filas con más de 60 min en el cron diario (SDD-0455) |
 | `outbox_push_events` | 0 | 🟢 BORRA — transitoria por diseño |
 | `kommo_writeback_outbox` | — | 🔴 payloads con datos del cliente |
 | `sync_logs` · `user_role_audit` | — | 🔴 sin revisar |

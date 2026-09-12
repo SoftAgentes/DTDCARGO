@@ -31,8 +31,7 @@ import { formatInvoiceAmount } from "@/lib/portal/portal-types";
 import { buildComprobante } from "@/lib/portal/comprobante";
 import { CONTACT } from "@/lib/design-tokens";
 import { BrandMark } from "@/components/BrandMark";
-import { createAdminClient } from "@/lib/db/admin";
-import { resolveBrandForClient } from "@/lib/studio/aliados/brand-resolve";
+import { resolveBrandForPortal } from "@/lib/studio/aliados/brand-resolve";
 import { printMarkbox } from "@/lib/shared/markbox-chain";
 import { ArrowIcon } from "@/components/Icon";
 import { PrintButton } from "./PrintButton";
@@ -74,12 +73,9 @@ export default async function PortalComprobantePage({ params }: Props) {
   // si no hay match (ajena, borrador o inexistente) → 404. Igual que el detalle.
   if (!inv || !client) notFound();
 
-  // SDD-0255 · la marca del documento. ⚠️ ADMIN client a propósito: la política
-  // de `aliados` filtra por `get_user_tenant_id()` y un usuario del portal no
-  // tiene fila en `user_tenants`; con su sesión esto daría DTD siempre, callado.
-  const brand = await resolveBrandForClient(createAdminClient(), {
-    markbox: client.markbox,
-  });
+  // SDD-0336: la RPC deriva el cliente desde auth.uid() y sólo devuelve campos
+  // públicos de marca. La página ya no construye un service_role.
+  const brand = await resolveBrandForPortal(supabase);
 
   const c = buildComprobante(inv);
   const pill = statusPill(c, inv.dueDate);
