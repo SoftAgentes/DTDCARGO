@@ -36,7 +36,5 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {
-    "0402_portal_hidden_statuses_por_principal": "PENDIENTE DE APLICAR — bloque C L02 / SDD-0337. MIGRATE-FIRST: el código de esta PR no se fusiona antes de aplicar y verificar 0402 en producción. Crea la RPC get_portal_hidden_shipment_statuses() sin parámetros (identidad desde auth.uid(), EXECUTE sólo authenticated); inicio, envíos y detalle del Portal leen por ella los hitos ocultos. Motivo del orden: ante error el lector devuelve set vacío y MUESTRA todos los hitos (fail-open, mismo criterio que main ante fallo de lectura); sin la RPC ese error es permanente y el cliente vería también los hitos que una regla del tenant oculta. La migración es aditiva y el código vigente de main no la llama. Fusionar NO autoriza aplicarla: requiere OK nominal de Sam y docs/runbooks/aplicar-migraciones-prod.md; aplicar individualmente con name exacto 0402_portal_hidden_statuses_por_principal. No subir cutoff 238 ni modificar las demás esperas. Tras aplicar y verificar, retirar esta entrada y la declaración l02 de pending-migration-symbol-declarations.json, y actualizar la nota de SDD-0337, antes de fusionar."
-  }
+  "pendingBelowCutoff": {}
 }

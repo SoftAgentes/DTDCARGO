@@ -16,16 +16,19 @@ confidencialidad: interno
 
 # SDD-0337 — Visibilidad de hitos del Portal por principal autenticado
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0402_portal_hidden_statuses_por_principal` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
-> `done` de la cabecera no significa que este contrato esté vigente en la base real. Aplicarla
-> exige OK nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
-> **MIGRATE-FIRST:** el código de este lote no se fusiona antes de aplicar y verificar 0402,
-> porque sin la RPC el Portal muestra todos los hitos, incluidos los que una regla oculta. El
-> corte L02 adopta sólo la lectura por RPC en las tres vistas vigentes; no importa la allowlist
-> histórica completa ni la meta de construcciones `service_role` de la aceptación.
+> **Nota de importación — 2026-09-11; actualizada el 2026-09-12.** Esta spec se importa desde la
+> PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0402_portal_hidden_statuses_por_principal` **fue APLICADA a producción el 2026-09-12** con OK
+> nominal de Sam (ledger `20260912022703 / 0402_portal_hidden_statuses_por_principal`), con el
+> archivo de esta rama idéntico al aplicado (md5 `b28cacbbd4d84d736ecd16f1016aa38d`, 2068 B);
+> esta ronda queda asentada en `.agents/handoffs/c-l02-portal-visibilidad.md`. Por eso 0402 ya
+> **no** figura como espera en `supabase/migrations-baseline.json` ni tiene declaración en
+> `supabase/pending-migration-symbol-declarations.json`. El orden migrate-first se cumplió: la
+> RPC `get_portal_hidden_shipment_statuses()` existe en la base antes de fusionar el código que
+> la consume, así que el Portal no mostrará los hitos que una regla del tenant oculta y el
+> fail-open del lector vuelve a ser transitorio, igual que en main. El corte L02 adopta sólo la
+> lectura por RPC en las tres vistas vigentes; no importa la allowlist histórica completa ni la
+> meta de construcciones `service_role` de la aceptación.
 
 ## Estado real
 

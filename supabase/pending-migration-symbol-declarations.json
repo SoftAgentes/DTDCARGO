@@ -7,52 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "l02-portal-hidden-statuses-pending-rpc",
-      "primarySymbol": "get_portal_hidden_shipment_statuses",
-      "migration": "0402_portal_hidden_statuses_por_principal",
-      "symbols": [
-        {
-          "kind": "function",
-          "name": "get_portal_hidden_shipment_statuses",
-          "callSites": [
-            "lib/studio/notifications/portal-visibility-queries.ts:35"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/notifications/portal-visibility-queries.ts:36",
-          "contains": "if (error || !Array.isArray(data)) {",
-          "degradation": "Mientras la RPC no exista, PostgREST responde error (PGRST202) y el lector devuelve set vacío: el Portal MUESTRA todos los hitos, incluidos los que una regla del tenant oculta. No rompe la página, pero cambia lo que ve el cliente; es fail-open, el mismo criterio que main aplica hoy ante un fallo de lectura. Por eso L02 es MIGRATE-FIRST: el código no se fusiona antes de aplicar y verificar 0402."
-        },
-        {
-          "site": "lib/studio/notifications/portal-visibility-queries.ts:39",
-          "contains": "errorLabel(error, \"respuesta sin lista\")",
-          "degradation": "Cada fallo queda registrado con console.error y la etiqueta [client-notif] getHiddenPortalStatusesForPortal falló, sólo con el código o el mensaje (PGRST202 si falta la RPC), sin ids de cliente, tenant ni sesión: la degradación se detecta en los logs."
-        },
-        {
-          "site": "lib/studio/notifications/portal-visibility-queries.ts:52",
-          "contains": "errorLabel(err, \"excepción sin detalle\")",
-          "degradation": "Una excepción del cliente o del transporte se registra igual, sólo con código o mensaje, y el lector devuelve set vacío (L54): no propaga el error a la página y nunca oculta de más."
-        },
-        {
-          "site": "app/portal/(app)/page.tsx:63",
-          "contains": "getHiddenPortalStatusesForPortal(supabase)",
-          "degradation": "Inicio: con set vacío effectiveVisibleStatus no sustituye; el héroe y los badges muestran el estado real, también un hito que la regla oculta."
-        },
-        {
-          "site": "app/portal/(app)/envios/page.tsx:56",
-          "contains": "getHiddenPortalStatusesForPortal(supabase)",
-          "degradation": "Lista de envíos: badge, porcentaje y Seguimiento total muestran el estado real, sin sustitución."
-        },
-        {
-          "site": "app/portal/(app)/envios/[code]/page.tsx:75",
-          "contains": "getHiddenPortalStatusesForPortal(supabase)",
-          "degradation": "Detalle: el stepper recibe set vacío y no oculta ningún hito. Sin principal Portal válido la RPC no se consulta y se muestra todo, igual que main."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
