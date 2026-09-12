@@ -45,11 +45,49 @@ function mustGit(args, cwd) {
   return r.out;
 }
 const normalize = (p) => process.platform === 'win32' ? path.resolve(p).toLowerCase() : path.resolve(p);
-function worktrees() {
-  return mustGit(['worktree', 'list', '--porcelain', '-z']).split('\0\0').filter(Boolean).map((entry) => {
+// Un campo del porcelain es `clave` pelada o `clave valor`. `locked` y `prunable` llegan de las dos
+// formas —`locked` a secas cuando se bloqueó sin razón, `prunable gitdir file points to non-existent
+// location` cuando git la da—, medido con git 2.55. Por eso el booleano mira las dos y la razón solo
+// la segunda: bloqueado sin razón es `locked: true` con `lockedReason: null`, no un bloqueo invisible.
+const hasField = (fields, key) => fields.some((f) => f === key || f.startsWith(`${key} `));
+const fieldValue = (fields, key) => fields.find((f) => f.startsWith(`${key} `))?.slice(key.length + 1) ?? null;
+/**
+ * Registros de `git worktree list --porcelain -z`, **sin el del repositorio bare**.
+ *
+ * Un repo bare emite un registro propio con el campo `bare`, sin árbol de trabajo ni rama, y git lo
+ * emite PRIMERO. Dejarlo dentro hacía que `entries[0]` —del que salen el checkout principal, su
+ * contenedor de worktrees, el rechazo de `guard` y el candidato de `finish`— apuntara a un directorio
+ * que no es checkout de nada, y sin que fallara ninguna prueba. `scripts/next-number.mjs` ya lo
+ * descartaba; acá faltaba, y la asimetría entre dos lectores del mismo porcelain era el supuesto
+ * silencioso: hoy se cumple por casualidad, porque el checkout principal de este repo no es bare.
+ *
+ * Medido con git 2.55: en un repo normal el principal va primero aunque su nombre no sea el primero
+ * alfabéticamente (los vinculados sí vienen ordenados por ruta), así que lo único que le quitaba el
+ * primer puesto al principal era justamente el registro bare.
+ *
+ * Pura y exportada para fijar el caso por prueba sobre una salida literal, sin depender de armar un
+ * repo bare; la prueba de integración arma uno igual, porque el orden lo decide git y no esta función.
+ */
+export function parseWorktrees(porcelain) {
+  return porcelain.split('\0\0').filter(Boolean).flatMap((entry) => {
     const fields = entry.split('\0');
-    return { path: fields.find((f) => f.startsWith('worktree '))?.slice(9), branch: fields.find((f) => f.startsWith('branch '))?.slice(7) };
+    if (fields.includes('bare')) return [];
+    return [{
+      path: fieldValue(fields, 'worktree'),
+      branch: fieldValue(fields, 'branch'),
+      locked: hasField(fields, 'locked'),
+      lockedReason: fieldValue(fields, 'locked'),
+      prunable: hasField(fields, 'prunable'),
+      prunableReason: fieldValue(fields, 'prunable'),
+    }];
   });
+}
+function worktrees() {
+  const entries = parseWorktrees(mustGit(['worktree', 'list', '--porcelain', '-z']));
+  // Sin el registro bare, un repo bare sin worktrees vinculados deja la lista vacía. Se nombra en vez
+  // de morir en `entries[0].path` con un TypeError sin contexto.
+  if (!entries.length) throw new Error('git worktree list no devolvió ningún worktree con árbol de trabajo: revisión manual del Director.');
+  return entries;
 }
 function safeTarget(slug) {
   const entries = worktrees();
@@ -150,8 +188,8 @@ function main() {
       const head = mustGit(['rev-parse', 'HEAD'], target);
       const remote = git(['rev-parse', '--verify', 'refs/remotes/origin/main']);
       const included = remote.code === 0 ? git(['merge-base', '--is-ancestor', head, remote.out]).code === 0 : null;
-      console.log(JSON.stringify({ candidate: target, branch: entry.branch ?? null, head, hasChanges: Boolean(status), hasIgnoredFiles: ignored.count > 0, ignoredEntryCount: ignored.count, ignoredEntries: ignored.preview, sensitiveIgnoredFiles: ignored.sensitive, claim, includedInCachedOriginMain: included, cleanupAuthorized: false }, null, 2));
-      console.log('Solo informe: no borra ni poda. El inventario ignorado es compacto: un directorio ignorado completo se colapsa en una entrada y solo se expande un nivel para nombrar archivos sensibles, nunca para leerlos; `ignoredEntries` muestra hasta 50 y `ignoredEntryCount` da el total. origin/main es una referencia local que puede estar atrasada. El claim no prueba ausencia de otras sesiones. El Director debe verificar sesiones, procesos, archivos ignorados y publicación con remoto actualizado antes de limpieza manual: docs/runbooks/codex-engineering.md#cleanup.');
+      console.log(JSON.stringify({ candidate: target, branch: entry.branch ?? null, head, hasChanges: Boolean(status), hasIgnoredFiles: ignored.count > 0, ignoredEntryCount: ignored.count, ignoredEntries: ignored.preview, sensitiveIgnoredFiles: ignored.sensitive, claim, locked: entry.locked, lockedReason: entry.lockedReason, prunable: entry.prunable, prunableReason: entry.prunableReason, includedInCachedOriginMain: included, cleanupAuthorized: false }, null, 2));
+      console.log('Solo informe: no borra ni poda. El inventario ignorado es compacto: un directorio ignorado completo se colapsa en una entrada y solo se expande un nivel para nombrar archivos sensibles, nunca para leerlos; `ignoredEntries` muestra hasta 50 y `ignoredEntryCount` da el total. origin/main es una referencia local que puede estar atrasada. El claim no prueba ausencia de otras sesiones. `locked` y `prunable` repiten lo que dice git del candidato —que alguien lo marcó a propósito, con su razón si la dio, y que git ya lo considera desechable— como evidencia para la limpieza manual, no como decisión: este informe no poda. Un candidato ausente en disco se sigue rechazando por `existsSync` y no por lo que opine git: si git y el disco discrepan, manda el disco. El Director debe verificar sesiones, procesos, archivos ignorados y publicación con remoto actualizado antes de limpieza manual: docs/runbooks/codex-engineering.md#cleanup.');
       break;
     }
     case 'list': console.log(mustGit(['worktree', 'list'])); break;
