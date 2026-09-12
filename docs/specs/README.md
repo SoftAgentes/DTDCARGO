@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 416 specs)
+### Índice de specs (generado · 432 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -365,8 +365,11 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0333 | Validar la configuración completa de integraciones en Studio | done | interno |
 | 0334 | Retirar la configuración activa del Payload CMS descontinuado | done | interno |
 | 0335 | Contener el crecimiento de service_role en Portal y ordenar e… | done | interno |
+| 0336 | Resolver la marca del Portal por el principal autenticado | done | interno |
+| 0339 | Resolver el programa de referidos del Portal por principal | done | interno |
 | 0340 | Firmar adjuntos de prealerta desde una lectura autorizada por… | done | interno |
 | 0341 | Resolver el contexto privado de Perfil por principal autenticado | done | interno |
+| 0342 | Resolver y firmar Documentos del Portal desde el principal | done | interno |
 | 0343 | Encapsular el detalle operativo de compras del Portal | done | interno |
 | 0344 | Encapsular el contexto privado de Soporte del Portal | done | interno |
 | 0345 | Encapsular el contexto privado del detalle de envío del Portal | done | interno |
@@ -374,12 +377,15 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0347 | Encapsular el contexto privado del home del Portal | done | interno |
 | 0348 | Encapsular la lectura privada de aceptación del Portal | done | interno |
 | 0349 | Automatizar calidad local sin secretos en GitHub Actions | done | interno |
+| 0351 | Aplicar RBAC admin-only al dominio Mailing | done | interno |
 | 0352 | Aplicar RBAC financiero a conciliación bancaria | done | interno |
 | 0359 | Aislar envíos, documentos e hitos Portal por principal y tenant | done | interno |
 | 0360 | Evitar que el foco tardío borre la búsqueda de destino | done | interno |
+| 0361 | Aislar proveedores, prealertas y sus documentos por principal… | done | interno |
 | 0362 | Aislar el aprendizaje del Portal por principal y tenant | done | interno |
 | 0363 | Aislar reclamos y evidencias del Portal por principal y tenant | done | interno |
 | 0367 | Webhook Kommo: respetar desactivación sin romper recuperación… | in-progress | interno |
+| 0368 | Aislar el principal de Club por vínculo, cliente y persona | in-progress | interno |
 | 0369 | Mantener un único proyecto declarado en la preparación E2E | in-progress | interno |
 | 0370 | Cerrar worktrees solamente después de verificar su preservación | in-progress | interno |
 | 0371 | Analytics fuera de puertas de acceso y URLs con credenciales | in-progress | interno |
@@ -391,9 +397,11 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0378 | Verificacion local sin falsos verdes y aislamiento de pruebas… | done | interno |
 | 0379 | Parche compatible del fflate transitivo y contratos de replay | done | interno |
 | 0380 | Lectura de cotizaciones Portal ligada al principal y tenant | in-progress | interno |
+| 0381 | Solicitudes de recepción Portal por principal y tenant | in-progress | interno |
 | 0382 | Perfil y solicitudes de cambio Portal por principal y tenant | in-progress | interno |
 | 0383 | Frontera AST de service_role en componentes Portal | in-progress | interno |
 | 0384 | Acciones de Perfil Portal por principal y tenant | in-progress | interno |
+| 0385 | Mensajes Portal por principal y tenant coherentes | done | interno |
 | 0386 | Web Push Portal por principal y tenant coherentes | done | interno |
 | 0387 | Academia Portal en aplicación por principal y tenant | done | interno |
 | 0388 | Proveedores Portal en aplicación por principal y tenant | done | interno |
@@ -408,6 +416,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0397 | Acciones de facturas Portal por principal y tenant | done | interno |
 | 0398 | Contextos privados Portal por principal y tenant | done | interno |
 | 0399 | Consumidores de compras Portal por principal y tenant | done | interno |
+| 0400 | Cajas del Portal por principal y tenant coherentes | done | interno |
+| 0401 | Realtime de conversaciones Portal por principal y tenant | done | interno |
+| 0402 | Catálogo de servicios Portal por principal y tenant | done | interno |
 | 0403 | Documentos de factura con autorización por entidad | done | interno |
 | 0404 | Documentos de Tesorería con autorización por entidad | done | interno |
 | 0405 | Documentos de asientos con autorización por entidad | done | interno |
@@ -454,6 +465,11 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0450 | Código contra símbolos de migraciones pendientes | done | interno |
 | 0451 | Resolución de H1 y sonda reutilizable de navegación móvil ERP | done | interno |
 | 0452 | Sanitizador: formatos actuales de claves y descubrimiento de … | done | interno |
+| 0453 | Mailing — guard admin en el envío de prueba de plantillas | done | interno |
+| 0454 | Watchdog del e2e de verify: un cuelgue es FALLÓ con motivo, n… | done | interno |
+| 0455 | Retención de public_verify_throttle en el cron purge-throttle | done | interno |
+| 0456 | Un cliente sólo cuelga de un aliado de su tenant | done | interno |
+| 0457 | ENOBUFS y errores tapados en el harness: un subproceso que no… | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0336, 0337, 0338, 0339, 0342, 0350, 0351, 0353, 0354, 0355, 0356, 0357, 0358, 0361, 0364, 0365, 0366, 0368, 0375, 0381, 0385, 0400, 0401, 0402, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0337, 0338, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0364, 0365, 0366, 0375, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
-import { listMyDocuments, getPortalClient } from "@/lib/portal/portal-queries";
 import { listarPackingListsComoDocumentos } from "@/lib/portal/packing-list-queries";
-import { signDocumentUrls } from "@/lib/studio/shipment-document-queries";
+import { listSignedPortalDocuments } from "@/lib/portal/signed-portal-documents";
 import {
   shipmentDocTypeLabel,
   shipmentDocTypeShort,
@@ -50,24 +48,13 @@ export default async function PortalDocumentsPage() {
     return <PortalVerifyGate module="documentos" profile={profile} />;
   }
 
-  const client = await getPortalClient(supabase);
-
   // SDD-0308 · dos fuentes, no una. `shipment_documents` son los archivos que
   // sube el equipo; los packing lists los llena el proveedor y no son archivos.
   // La bajada de esta pantalla prometía los dos desde el principio.
-  const [docs, packingLists] = await Promise.all([
-    listMyDocuments(supabase),
-    client
-      ? listarPackingListsComoDocumentos(createAdminClient(), client.markbox)
-      : Promise.resolve([]),
+  const [signedDocs, packingLists] = await Promise.all([
+    listSignedPortalDocuments(supabase),
+    listarPackingListsComoDocumentos(supabase),
   ]);
-
-  const urls = docs.length
-    ? await signDocumentUrls(
-        createAdminClient(),
-        docs.map((d) => d.storagePath),
-      )
-    : {};
   const waLink = buildWhatsAppLink(
     "Hola DTD Cargo, soy cliente y necesito un documento de mis envíos.",
   );
@@ -75,7 +62,7 @@ export default async function PortalDocumentsPage() {
   // Se aplanan acá (etiquetas, meta y signed URL ya resueltas) para que el
   // componente cliente no arrastre tipos de `lib/studio` ni vuelva a derivar
   // nada: solo filtra y pinta.
-  const deEnvios = docs.map((doc) => ({
+  const deEnvios = signedDocs.map(({ document: doc, url }) => ({
     orden: doc.createdAt,
     view: {
       id: doc.id,
@@ -86,7 +73,7 @@ export default async function PortalDocumentsPage() {
       meta: [formatDocSize(doc.sizeBytes), formatDate(doc.createdAt)]
         .filter(Boolean)
         .join(" · "),
-      url: urls[doc.storagePath] ?? null,
+      url,
     } satisfies PortalDocView,
   }));
 
