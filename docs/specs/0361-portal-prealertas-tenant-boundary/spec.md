@@ -17,14 +17,15 @@ confidencialidad: interno
 
 # SDD-0361 — Frontera Portal de compras y proveedores
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0417_portal_prealertas_tenant_boundary` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
-> `done` de la cabecera no significa que este contrato esté vigente en la base real. Orden de
-> aplicación: 0417 **antes** que `0429_portal_service_requests_principal_tenant` (SDD-0381),
-> cuyo contrato la incluye; de a una, nunca en bundle. Aplicarla exige OK nominal de Sam y el
-> runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-11, actualizada tras la aplicación.** Esta spec entró a
+> `main` desde la PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0417_portal_prealertas_tenant_boundary` **fue APLICADA a producción el 2026-09-11** con OK
+> nominal de Sam (ledger `20260912000050 / 0417_portal_prealertas_tenant_boundary`) y se
+> verificó contra el objeto; el registro y la vuelta atrás están en
+> `.agents/handoffs/lote-11-migraciones-aplicadas-20260911.md`. Se aplicó sola y **antes** que
+> `0429_portal_service_requests_principal_tenant` (SDD-0381), cuyo contrato la incluye, como
+> exigía el orden declarado. Falta el smoke funcional de compras, proveedores y adjuntos del
+> Portal.
 
 ## Evidencia y alcance
 

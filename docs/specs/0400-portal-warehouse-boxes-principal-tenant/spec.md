@@ -13,12 +13,12 @@ confidencialidad: interno
 
 # SDD0400 · Cajas del Portal por principal y tenant coherentes
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0432_portal_warehouse_boxes_tenant_boundary` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
-> `done` de la cabecera no significa que este contrato esté vigente en la base real. Aplicarla
-> exige OK nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-11, actualizada tras la aplicación.** Esta spec entró a
+> `main` desde la PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0432_portal_warehouse_boxes_tenant_boundary` **fue APLICADA a producción el 2026-09-11**
+> con OK nominal de Sam (ledger `20260911235835 / 0432_portal_warehouse_boxes_tenant_boundary`)
+> y se verificó contra el objeto; el registro y la vuelta atrás están en
+> `.agents/handoffs/lote-11-migraciones-aplicadas-20260911.md`.
 
 ## Evidencia y autoridad
 
