@@ -28,6 +28,15 @@ confidencialidad: interno
 > `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs `2026-09-02-*` de la allowlist;
 > entran fuera de ella los dos registros de migraciones pendientes, que exigen los gates
 > `migrations-applied` y `pending-migration-symbols`, y ese handoff.
+>
+> **Desviaciones respecto del origen**, decididas por el Director el 2026-09-12 antes de cualquier
+> aplicación. `0410` y `0415` fijan `set local lock_timeout = '5s'` y `statement_timeout = '60s'` antes
+> de su primer lock: `0415` toma ACCESS EXCLUSIVE sobre `mail_logs` y, sin tope, su espera dejaba en
+> cola envíos, webhook de Resend, crons y la consola de Mailing. Se conserva la recomendación de
+> aplicar `0415` en baja actividad de correo. `0410` además normaliza el email como
+> `String.prototype.trim()` de JS en ambos lados (detalle en SDD-0353). Los contratos `0410` y `0415`
+> agregan las aserciones estáticas de los timeouts y los casos de normalización, así que ya no son
+> idénticos al origen.
 
 ## Hallazgo
 

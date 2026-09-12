@@ -32,6 +32,17 @@ confidencialidad: interno
 > allowlist; entran fuera de ella los dos registros de migraciones pendientes, que exigen los gates
 > `migrations-applied` y `pending-migration-symbols`, y el handoff de esta importación,
 > `.agents/handoffs/c-l10-recordatorios-cobranzas.md`, donde queda la evidencia local.
+>
+> **Desviaciones respecto del origen**, decididas por el Director el 2026-09-12 antes de cualquier
+> aplicación. (1) `0410` limpia `clients.email` y `mail_logs.to_email` con el mismo conjunto que
+> `String.prototype.trim()` de JS (TAB, LF, VT, FF, CR, espacio, NBSP, U+1680, U+2000–U+200A, U+2028,
+> U+2029, U+202F, U+205F, U+3000 y BOM) y compara ambos lados en minúsculas. El origen usaba `btrim` a
+> secas, que sólo quita espacios, mientras `send-email.ts` guarda `to_email` con `trim().toLowerCase()`:
+> un email con salto de línea, tab o NBSP al borde perdía su queja. (2) `0410` fija
+> `set local lock_timeout = '5s'` y `statement_timeout = '60s'` antes de su primer lock. El contrato
+> `0410` agrega los casos infelices de normalización, la matriz de los 25 blancos con controles
+> negativos y la aserción estática de los timeouts; por eso la migración y su contrato ya no son
+> idénticos al origen.
 
 ## Estado real
 
