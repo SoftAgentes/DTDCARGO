@@ -43,7 +43,9 @@ La declaración retirada apuntaba a un `try/catch` que **no se escribió para el
 
 Los tests que ejercitan el caso «RPC ausente (PGRST202)» se conservan por la misma razón: lo que afirman es el contrato duradero —fallo cerrado, lista vacía y **cero** caída a leer `packing_list_submissions` por Shipping Mark con `service_role`—, no el estado de la migración. El `expect(from).not.toHaveBeenCalled()` sigue siendo la regresión que impide reintroducir el fallback admin sin tenant.
 
-Único residuo de redacción, **no corregido a propósito** (queda a criterio del Director si vale un commit): el docstring de `lib/portal/__tests__/portal-packing-list-documents.rpc-state.test.ts:7-8` dice «L06 migrate-first» y «(PGRST202 mientras no se aplique)». La frase quedó vieja; el test no. No se tocó para no mezclar cambios de código con el alcance de esta ronda.
+**Los docstrings atrasados sí se corrigieron**, por instrucción del Director y en su propio commit (`46faf3c9`). Eran dos, no uno: `lib/portal/__tests__/portal-packing-list-documents.rpc-state.test.ts:7-8` («L06 migrate-first», «PGRST202 mientras no se aplique») y `app/portal/(app)/documentos/PortalDocumentsPage.rpc-state.test.tsx:5` («L06 migrate-first»). El motivo: un comentario que dice «mientras no se aplique» cuando la migración ya está aplicada es el registro rancio que después hace que alguien saque la conclusión contraria —que el fallo cerrado era provisional y que con la RPC en la base sobra—. Ahora dicen el contrato duradero que los tests afirman, y en la página se aclara que los casos llamados «RPC ausente» simulan la respuesta con un mock y no describen el estado de la base.
+
+**Sólo cambiaron comentarios:** ni una aserción, ni un nombre de test, ni una línea de código. Se barrió además el resto del diff buscando menciones vencidas de «migrate-first», «pendiente», «espera», «declaración» y «mientras no se aplique»: las que quedan son correctas y se dejaron como están —«Todavía no hay documentos.» es el copy del estado vacío, `markboxEsperado` en `packing-list-queries.ts:48,100-124` es de otro lote y describe el packing list del proveedor, y `'TEST 0406: la RPC no existe'` es el mensaje de una aserción del contrato SQL—.
 
 ### Diff contra `origin/main` por archivo tras la ronda 2
 
@@ -70,7 +72,7 @@ Los tests que ejercitan el caso «RPC ausente (PGRST202)» se conservan por la m
 
 ### Validación de la ronda 2
 
-Recibos fuera de Git en `…\454d97be-b1e0-4fc9-97e9-c6bb621ba84c\scratchpad\l06-ronda2\`: `verify.log`, `verify.exit`, `verify.sha`, `verify.start`, `verify.end`, `build2.log`, `build2.exit`, `build2.start`, `build2.end`, `vitest-focal.log`, `vitest-focal2.log`, `eslint-focal.log`, `nota.txt`, `patch-nota.mjs`, `edits.mjs`, `edits2.mjs`, `edits3.mjs` y el driver extraído `dtd-merge-driver-main.mjs`. Node 24.20.0, pnpm 12.3.4. Sin `.env` operativo: el árbol sólo tiene `.env.example`.
+Recibos fuera de Git en `…\454d97be-b1e0-4fc9-97e9-c6bb621ba84c\scratchpad\l06-ronda2\`: `verify.log`, `verify.exit`, `verify.sha`, `verify.start`, `verify.end`, `build2.log`, `build2.exit`, `build2.start`, `build2.end`, `vitest-focal.log`, `vitest-focal2.log`, `eslint-focal.log`, `nota.txt`, `patch-nota.mjs`, `vitest-docstring.log`, `eslint-docstring.log`, `typecheck-docstring.log`, `edits.mjs`, `edits2.mjs`, `edits3.mjs`, `edits4.mjs`, `edits5.mjs` y el driver extraído `dtd-merge-driver-main.mjs`. Node 24.20.0, pnpm 12.3.4. Sin `.env` operativo: el árbol sólo tiene `.env.example`.
 
 | Comprobación | Estado y evidencia |
 |---|---|
@@ -93,6 +95,7 @@ Recibos fuera de Git en `…\454d97be-b1e0-4fc9-97e9-c6bb621ba84c\scratchpad\l06
 | `verify` · `migrations-applied` | **NO DISPONIBLE**: `[SKIP] sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY`, y el gate lo marca `[AVISO] OMITIDO — no se midio`. El ledger real **no** se midió en este árbol: la evidencia de que 0406 está aplicada es la que entregó el Director. |
 | `verify` · `e2e` | **FALLÓ (exit 1)**, sin colgarse: la suite terminó en 4,8 min y el watchdog de SDD-0454 no tuvo que intervenir. 152 pasaron, 15 fallaron, 1 flaky, 18 omitidos. Los 15 fallos son **los ambientales conocidos** —`auth.spec.ts:21/91/98/105` y `global-search.spec.ts:22` en chromium, mobile-chrome y mobile-safari—, causados por la falta de configuración de Supabase: sin ella `/studio/login` no pinta `form` y `/studio/dashboard` no rebota al login, y el servidor de pruebas imprime `Faltan NEXT_PUBLIC_SUPABASE_URL o NEXT_PUBLIC_SUPABASE_ANON_KEY`. El flaky es `auth.spec.ts:74` en chromium, el mismo de la ronda 1. **Ningún spec de Documentos ni de packing lists falló.** Como validación de acceso el paso es NO DISPONIBLE por falta de configuración, pero **el fallo no se absuelve**. |
 | `verify` · `build` | **FALLÓ dentro de verify (exit 1) por red, y PASÓ aislado.** Dentro de verify, Turbopack avisó `Error while requesting resource` para dos subsets `.woff2` de Noto Sans SC en `https://fonts.gstatic.com` y eso derivó en 8 errores `Can't resolve '@vercel/turbopack-next/internal/font/google/font'` en el CSS generado de `next/font/google`, con traza única a `./app/layout.tsx`. **El diff de esta rama no toca `app/layout.tsx`, ni fuentes, ni CSS.** Diagnóstico con evidencia nueva antes de repetir: las dos URL exactas del error responden `HTTP 200` al medirlas con `curl`. Con eso, `node scripts/check-build.mjs` aislado sobre el mismo árbol (23:35:21 → 23:37:34): **PASÓ**, «build de producción OK», `tsconfig.json` restaurado y árbol limpio. No es un reintento de `verify`: es el paso de build, aislado en `.next-verify`. El veredicto de `verify` **sigue siendo FALLÓ**. |
+| Corrección de docstrings (`46faf3c9`) | **PASÓ**: vitest sobre los dos archivos tocados, 2 archivos / **8 tests** en verde; ESLint exit 0 sin hallazgos; `corepack pnpm typecheck` exit 0. Recibos `vitest-docstring.log`, `eslint-docstring.log` y `typecheck-docstring.log`. No se volvió a correr `verify` entero: el cambio es de comentarios y `verify` se vuelve a medir después del segundo merge. |
 | `/ui-check` | **NO EJECUTADO**: lo corre el Director. El JSX no cambió en ninguna de las dos rondas; esta ronda sólo tocó JSON de registros, una nota de spec y este handoff. |
 | Producción / Supabase | **NO EJECUTADO** por límite del encargo: no se aplicó ninguna migración, no se leyeron filas, no se copió ninguna credencial y no se abrió conexión alguna. |
 | Publicación / `git push` | **NO EJECUTADO a propósito**: el Director marca el momento. Los tres commits de la ronda 2 quedan locales. |
@@ -272,7 +275,9 @@ Ronda 2:
 - `7521151f`: merge de origin/main `6c282b44` con el driver de main (override ADR-0002 §4). Sin conflictos; baseline e índice resueltos por unión semántica.
 - `6dc493a8`: retirada de la espera 0406 del baseline y de la declaración `l06-portal-documents-packing-lists-pending-rpc`, ahora que la migración está aplicada.
 - `77371956`: nota de importación de la spec 0342 actualizada a «aplicada a producción», con el ledger `20260912022540`.
-- Commit que contiene este documento: cierre durable de la ronda 2; hash final en la PR.
+- `deefc9bd`: primer cierre del handoff de la ronda 2.
+- `46faf3c9`: docstrings de los dos tests de estado de la RPC, que dejan de decir «migrate-first». Sólo comentarios. Su mensaje se rehízo con `--amend` por un typo, sobre un commit que **nunca** estuvo publicado (el remoto seguía en `94958f8e`); no hubo force push ni reescritura de historia publicada.
+- Commit que contiene esta última versión del documento: cierre durable de la ronda 2; hash final en la PR.
 
 ## PR / BRANCH
 
@@ -280,7 +285,7 @@ Ronda 2:
 
 **Los commits de la ronda 2 quedan LOCALES al cerrar este documento.** El Director marca el momento de publicar: la PR #78 fusiona antes y mueve main, así que publicar ahora dejaría la rama atrasada y haría correr el CI en balde. Cuando llegue el SHA nuevo de main se hace un segundo `git merge origin/main` con el mismo override del driver, se revalida lo que corresponda y se publica de una sola vez. La autorización de publicar ya está dada por el encargo; lo que falta es la señal.
 
-El título de la PR todavía dice «[NO FUSIONAR ANTES DE APLICAR 0406] feat(studio): SDD-0342 — importar L06 documentos Portal por principal (migrate-first)». Ese aviso **quedó obsoleto** con la aplicación del 2026-09-12 y conviene retirarlo al integrar; el Worker no lo cambió porque editar el título es una acción visible sobre el remoto y esta ronda cierra sin publicar.
+El título de la PR todavía dice «[NO FUSIONAR ANTES DE APLICAR 0406] feat(studio): SDD-0342 — importar L06 documentos Portal por principal (migrate-first)». Ese aviso **quedó obsoleto** con la aplicación del 2026-09-12. Por indicación del Director, el cambio de título y el paso de draft a **ready for review** los hace el Worker **junto con el push**, no antes: retirar el prefijo y el «(migrate-first)», y dejar el formato que el Director viene aprobando en #78 → `feat(studio): SDD-0342 — L06 documentos Portal por principal (0406 ya aplicada)`.
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -294,7 +299,7 @@ El título de la PR todavía dice «[NO FUSIONAR ANTES DE APLICAR 0406] feat(stu
 ## FUERA DE ALCANCE DETECTADO
 
 - ~~**Defecto de `scripts/check-pending-migration-symbols.mjs` (SDD-0450):** máscara por code points indexada en UTF-16 (líneas 106 y 253)~~. **Cerrado en main**: el arreglo y su prueba (`scripts/tests/pending-migration-symbols-utf16.node.mjs`) llegaron a esta rama con el merge `7521151f`. El diagnóstico de la ronda 1 se conserva en VALIDACIÓN como evidencia de cómo se detectó.
-- **Docstring viejo en `lib/portal/__tests__/portal-packing-list-documents.rpc-state.test.ts:7-8`** («L06 migrate-first», «PGRST202 mientras no se aplique»). El texto quedó desfasado con 0406 aplicada; las aserciones no. No se tocó: el encargo de esta ronda no incluye cambios de código de producto ni de tests, y el Director decide si vale un commit aparte.
+- ~~**Docstrings viejos** en los dos tests de estado de la RPC («L06 migrate-first», «PGRST202 mientras no se aplique»)~~. **Corregidos** dentro del alcance, por instrucción del Director, en el commit `46faf3c9`. Ver «El camino degradado no quedó muerto».
 - **La exposición cruzada por Shipping Mark sigue abierta en producción** hasta que esta PR se fusione y despliegue: aplicar 0406 crea la RPC, pero main todavía lee `packing_list_submissions` con `service_role` filtrando sólo por `client_markbox`. Ver REVISIÓN FOCAL DE DATOS.
 - Allowlist original de 0342 no importada: `scripts/__tests__/portal-service-role-boundary.test.mjs` (el criterio «6 rutas / 12 construcciones» no es verificable en main) y los documentos de auditoría/handoff de #21.
 - Premisa del encargo: main no evolucionó `packing-list-queries.ts` ni `documentos/page.tsx` (blobs = merge-base); no hubo nada de SDD-0449/RBAC que conservar en ellos.
@@ -304,7 +309,8 @@ El título de la PR todavía dice «[NO FUSIONAR ANTES DE APLICAR 0406] feat(stu
 ## HANDOFF AL DIRECTOR
 
 - **La rama ya no es migrate-first.** 0406 está aplicada (ledger `20260912022540`) y la espera, la declaración y la nota quedaron al día. El orden que falta es: PR #78 fusiona → llega el SHA de main → segundo merge con el override del driver → publicar → CI → revisión → fusionar → desplegar.
-- **Retirar el prefijo «[NO FUSIONAR ANTES DE APLICAR 0406]» del título de la PR #77** al integrar. El Worker no lo hizo por no actuar sobre el remoto en una ronda que cierra sin publicar.
+- **Título y `ready for review`: los hace el Worker al publicar**, en el mismo acto que el push. Queda `feat(studio): SDD-0342 — L06 documentos Portal por principal (0406 ya aplicada)`, con el formato de #78 y sin el prefijo «[NO FUSIONAR…]» ni el «(migrate-first)».
+- **Estado de la espera al cerrar esta versión:** el Director avisó que `main` ya está en `664bb4b2` (incluye la PR #94 del harness) con CI verde, pero que la PR #78 va delante y todavía está en CI. **No se fusionó `664bb4b2`**: el segundo merge se hace con el SHA que el Director mande cuando #78 aterrice, y con el override del driver igual, aunque la rama ya lleve el driver corregido —no cuesta nada y no conviene que el resultado dependa de acertar qué árbol lee git—.
 - **Publicación pendiente de tu señal.** Los tres commits de la ronda 2 están en local. Cuando mandes el SHA de main: `git fetch origin`, merge con el driver de main extraído a un archivo fuera del repo, revalidación y un solo `git push origin codex/c-l06-portal-documentos`. Sin force, sin rebase, sin tocar otras ramas.
 - **Conflictos esperables en el segundo merge:** los mismos dos registros generados (`docs/specs/README.md` y `supabase/migrations-baseline.json`) y, si otra rama declara símbolos, `supabase/pending-migration-symbol-declarations.json`, que main ya puso bajo el mismo driver. El código de producto de esta rama (`packing-list-queries.ts`, `documentos/page.tsx`) no lo toca nadie más hasta donde llega `6c282b44`.
 - Revisar la PR sobre el SHA que quede publicado y la base `6c282b44` (o la que resulte del segundo merge). En ninguna ronda se tocó producción, se aplicó una migración, se fusionó ni se desplegó.
