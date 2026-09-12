@@ -125,9 +125,14 @@ tienen su RED medido.
 
 - `supabase/migrations/0451_aliados_cadena_mismo_tenant.sql`
 - `supabase/tests/0451_aliados_cadena_mismo_tenant.test.sql`
+- `supabase/migrations-baseline.json`: solo la espera `0451_aliados_cadena_mismo_tenant` en
+  `pendingBelowCutoff`.
 - `app/studio/(app)/clientes/actions.ts`: solo la rama 23503 de `createClientAction`,
   antes del mensaje genérico (línea 224 antes del cambio).
-- Esta spec y `docs/specs/README.md` (generado por `pnpm docs:index`).
+- `app/studio/(app)/clientes/__tests__/alta-bajo-aliado.test.ts`: solo los dos casos del
+  23503 y el punto 6 de la cabecera.
+- `docs/specs/0461-aliados-cadena-tenant/spec.md`: esta spec.
+- `docs/specs/README.md`: generado por `pnpm docs:index`.
 - `.agents/handoffs/aliados-cadena-tenant.md`.
 
 ## Aceptación
