@@ -13,13 +13,15 @@ confidencialidad: interno
 
 # SDD0382 · perfil y solicitudes de cambio Portal
 
-> **Nota de importación — 2026-09-10.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: in-progress` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0430_portal_profile_change_requests_principal_tenant` queda **declarada pendiente**
-> en `supabase/migrations-baseline.json`; este lote no la aplica a producción. Las casillas
-> completadas heredadas del origen no acreditan producción: el `done` de una spec importada
-> tampoco significa que el contrato esté vigente en la base real. Aplicarla exige OK nominal
-> de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`. Fusionar esta PR NO lo autoriza.
+> **Nota de importación — 2026-09-10; actualizada el 2026-09-11.** Esta spec entró a `main`
+> desde la PR #21 con su contenido original, `status: in-progress` incluido. Su migración
+> `0430_portal_profile_change_requests_principal_tenant` **fue APLICADA a producción el
+> 2026-09-11** con OK nominal de Sam (ledger
+> `20260911235728 / 0430_portal_profile_change_requests_principal_tenant`) y se verificó
+> contra el objeto; el registro y la vuelta atrás están en
+> `.agents/handoffs/lote-11-migraciones-aplicadas-20260911.md`. Las casillas completadas que
+> hereda del origen siguen describiendo esa rama: la aplicación acredita la migración, no el
+> resto de la spec.
 
 ## Evidencia y autoridad
 

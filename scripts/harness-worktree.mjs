@@ -1,8 +1,8 @@
 /** Worktree lifecycle safety. Cleanup is a Director-reviewed manual operation. */
-import { spawnSync } from 'node:child_process';
-import { existsSync, realpathSync, writeFileSync, readFileSync, unlinkSync, lstatSync } from 'node:fs';
+import { existsSync, realpathSync, writeFileSync, readFileSync, readdirSync, unlinkSync, lstatSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { runGit } from './harness-spawn.mjs';
 
 export function isValidSlug(slug) {
   return typeof slug === 'string' && slug.length <= 60 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
@@ -36,10 +36,9 @@ export function parseArgs(argv) {
   if (out.owner !== undefined && !['claim', 'release', 'guard'].includes(out.cmd)) throw new Error('--owner solo aplica a claim, release o guard.');
   return out;
 }
-function git(args, cwd = process.cwd()) {
-  const r = spawnSync('git', args, { cwd, encoding: 'utf8' });
-  return { code: r.status ?? 1, out: (r.stdout || '').trim(), err: (r.stderr || '').trim() };
-}
+// Buffer and spawn-error handling live in harness-spawn.mjs: a worktree with dependencies
+// emits listings far past the 1 MB spawnSync default, and ENOBUFS used to abort finish.
+const git = runGit;
 function mustGit(args, cwd) {
   const r = git(args, cwd);
   if (r.code !== 0) throw new Error(r.err || `git ${args[0]} falló.`);
@@ -78,6 +77,28 @@ function guard(owner) {
     if (!claim || claim.owner !== owner) throw new Error('La sesión no posee el claim de este worktree.');
   }
   return root;
+}
+// `.env*` names are evidence for the Director; this command never opens them.
+export const isSensitiveIgnoredName = (name) => /^\.env/i.test(name);
+const IGNORED_PREVIEW = 50;
+const baseName = (entry) => entry.replace(/\/+$/, '').split('/').pop();
+function childEntries(root, dir) {
+  const full = path.join(root, dir);
+  if (!existsSync(full)) return [];
+  const stat = lstatSync(full);
+  if (stat.isSymbolicLink() || !stat.isDirectory()) return [];
+  return readdirSync(full).map((name) => dir + name);
+}
+/**
+ * Compact inventory of ignored entries. `--directory` collapses a wholly ignored directory into one
+ * line, so a 25 MB listing of node_modules becomes a handful of entries. Collapsed directories are
+ * expanded one level so a nested .env is still named. Report only: nothing is opened, moved or removed.
+ */
+export function ignoredReport(target) {
+  const entries = mustGit(['ls-files', '--others', '--ignored', '--exclude-standard', '--directory', '-z'], target).split('\0').filter(Boolean);
+  const nested = entries.filter((entry) => entry.endsWith('/')).flatMap((dir) => childEntries(target, dir));
+  const sensitive = [...new Set([...entries, ...nested].filter((entry) => isSensitiveIgnoredName(baseName(entry))))].sort();
+  return { count: entries.length, preview: entries.slice(0, IGNORED_PREVIEW), sensitive };
 }
 function readClaim(root) {
   const file = claimPath(root);
@@ -124,13 +145,13 @@ function main() {
       const entry = entries.find((e) => normalize(e.path) === normalize(target));
       if (!entry || !existsSync(target)) throw new Error('El candidato no es un worktree registrado y disponible.');
       const status = mustGit(['status', '--porcelain=v1', '--untracked-files=all'], target);
-      const ignored = mustGit(['ls-files', '--others', '--ignored', '--exclude-standard'], target);
+      const ignored = ignoredReport(target);
       const claim = readClaim(target);
       const head = mustGit(['rev-parse', 'HEAD'], target);
       const remote = git(['rev-parse', '--verify', 'refs/remotes/origin/main']);
       const included = remote.code === 0 ? git(['merge-base', '--is-ancestor', head, remote.out]).code === 0 : null;
-      console.log(JSON.stringify({ candidate: target, branch: entry.branch ?? null, head, hasChanges: Boolean(status), hasIgnoredFiles: Boolean(ignored), claim, includedInCachedOriginMain: included, cleanupAuthorized: false }, null, 2));
-      console.log('Solo informe: no borra ni poda. origin/main es una referencia local que puede estar atrasada. El claim no prueba ausencia de otras sesiones. El Director debe verificar sesiones, procesos, archivos ignorados y publicación con remoto actualizado antes de limpieza manual: docs/runbooks/codex-engineering.md#cleanup.');
+      console.log(JSON.stringify({ candidate: target, branch: entry.branch ?? null, head, hasChanges: Boolean(status), hasIgnoredFiles: ignored.count > 0, ignoredEntryCount: ignored.count, ignoredEntries: ignored.preview, sensitiveIgnoredFiles: ignored.sensitive, claim, includedInCachedOriginMain: included, cleanupAuthorized: false }, null, 2));
+      console.log('Solo informe: no borra ni poda. El inventario ignorado es compacto: un directorio ignorado completo se colapsa en una entrada y solo se expande un nivel para nombrar archivos sensibles, nunca para leerlos; `ignoredEntries` muestra hasta 50 y `ignoredEntryCount` da el total. origin/main es una referencia local que puede estar atrasada. El claim no prueba ausencia de otras sesiones. El Director debe verificar sesiones, procesos, archivos ignorados y publicación con remoto actualizado antes de limpieza manual: docs/runbooks/codex-engineering.md#cleanup.');
       break;
     }
     case 'list': console.log(mustGit(['worktree', 'list'])); break;

@@ -124,3 +124,39 @@ test("un fallo con cobertura completa conserva el cierre rojo previo sin avisos 
   assert.equal(verdict.message, "verify: 1 fallo(s) → lint");
   assert.doesNotMatch(verdict.message, /INCOMPLETO|SIN MEDIR|COBERTURA PARCIAL/);
 });
+
+test("un paso colgado es un fallo con motivo en la línea final, nunca una omisión", async () => {
+  const { buildVerifyVerdict } = await loadPolicy();
+  const reason =
+    "COLGADO/TIMEOUT: sin salida durante 10 min; límite de inactividad 10 min (VERIFY_E2E_IDLE_MIN)";
+  const verdict = buildVerifyVerdict({
+    stepNames: ["lint", "e2e", "build"],
+    skipped: [],
+    failures: [{ name: "e2e", reason }],
+  });
+
+  assert.equal(verdict.kind, "failed");
+  assert.equal(verdict.tone, "fail");
+  assert.equal(verdict.exitCode, 1);
+  assert.equal(verdict.message, `verify: 1 fallo(s) → e2e [${reason}]`);
+  assert.deepEqual(verdict.criticalMissing, []);
+  assert.doesNotMatch(verdict.message, /TODO VERDE|SIN MEDIR|COBERTURA PARCIAL/);
+
+  const mixed = buildVerifyVerdict({
+    stepNames: ["lint", "e2e", "migrations-applied"],
+    skipped: [{ name: "migrations-applied", reason: "sin credenciales" }],
+    failures: ["lint", { name: "e2e", reason }],
+  });
+  assert.match(mixed.message, /^verify: 2 fallo\(s\) → lint, e2e \[COLGADO\/TIMEOUT: /);
+  assert.match(mixed.message, /CRÍTICOS SIN MEDIR: migrations-applied\./);
+  assert.deepEqual(mixed.criticalMissing, ["migrations-applied"]);
+
+  assert.throws(
+    () => buildVerifyVerdict({ stepNames: ["e2e"], skipped: [], failures: [{ name: "e2e", reason: "  " }] }),
+    /motivo vacío: e2e/,
+  );
+  assert.throws(
+    () => buildVerifyVerdict({ stepNames: ["e2e"], skipped: [], failures: [{ name: "otro", reason }] }),
+    /pasos desconocidos: otro/,
+  );
+});

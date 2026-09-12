@@ -12,6 +12,13 @@
  * algo ajeno al cambio. Reusa el `next dev` de este worktree si ya está
  * corriendo (lock por-dir de Next); si no, levanta el suyo en E2E_PORT.
  *
+ * El e2e corre bajo WATCHDOG (SDD-0454): si pasa `VERIFY_E2E_IDLE_MIN` minutos
+ * sin escribir nada (10 por defecto) o supera `VERIFY_E2E_TIMEOUT_MIN` en total
+ * (60, reintento incluido), se termina SÓLO su árbol de procesos y el paso queda
+ * FALLÓ con motivo COLGADO/TIMEOUT: nunca SKIP ni verde, y no se reintenta. Ya
+ * no hace falta buscar ese árbol a mano ni cortarlo con `taskkill`. Ver
+ * scripts/verify-watchdog.mjs.
+ *
  * Invoca cada binario con `node <entry>` DIRECTO (no vía `pnpm <script>`) a propósito:
  * en este entorno `pnpm run` dispara un preflight `install` que falla con
  * ERR_PNPM_IGNORED_BUILDS (esbuild). Llamar al entry JS lo esquiva.
@@ -28,20 +35,20 @@ import { podarTiposDeRuta, notaDePoda } from "./prune-next-types.mjs";
 import {
   absuelveCorrida,
   candidatosDePuerto,
+  envParaSalidaCanalizada,
   primerPuertoLibre,
   PUERTO_BASE,
   PUERTO_RANGO,
 } from "./verify-e2e.mjs";
+import { C, createReporter, runStep } from "./verify-runner.mjs";
 import {
   assertCompleteStepPolicy,
   buildVerifyVerdict,
 } from "./verify-step-policy.mjs";
+import { resolveWatchdogLimits } from "./verify-watchdog.mjs";
 
-const C = { green: "\x1b[32m", red: "\x1b[31m", dim: "\x1b[2m", yellow: "\x1b[33m", nc: "\x1b[0m" };
-const ok = (m) => console.log(`${C.green}[OK]${C.nc}   ${m}`);
-const fail = (m) => console.log(`${C.red}[FAIL]${C.nc} ${m}`);
-const skip = (m) => console.log(`${C.yellow}[SKIP]${C.nc} ${m}`);
-const warn = (m) => console.log(`${C.yellow}[AVISO]${C.nc} ${m}`);
+const out = createReporter();
+const { ok, fail, warn } = out;
 
 // Reporte JSON del e2e. Corre EN PARALELO al reporter `list` (que es el que se
 // ve en pantalla): sirve para distinguir "un test falló" de "el proceso salió
@@ -294,13 +301,17 @@ function e2ePort() {
   return primerPuertoLibre(candidatosDePuerto(process.cwd()));
 }
 
-/**
- * Contrato de salida de los pasos que DEGRADAN CON GRACIA (sql-tests,
- * schema-rebuild, edge-functions, migrations-applied): 0 = corrio y paso ·
- * 1 = fallo · 3 = NO CORRIO. Antes el salto salia 0 y era indistinguible de un
- * verde. Si agregas un paso que puede auto-omitirse, sale con este codigo.
- */
-const EXIT_SKIPPED = 3;
+// Límites del watchdog del e2e (SDD-0454). Se leen ANTES de correr nada: un
+// valor inválido rompe el gate igual que una política de pasos incompleta.
+// El contrato de salida de los pasos que degradan con gracia (exit 3 = NO
+// CORRIÓ) vive ahora en scripts/verify-runner.mjs, junto a quien lo aplica.
+let e2eWatchdog;
+try {
+  e2eWatchdog = resolveWatchdogLimits(process.env);
+} catch (error) {
+  fail(`verify-watchdog: ${error.message}`);
+  process.exit(1);
+}
 
 // Cada check = un binario JS invocado con el mismo node que corre este script.
 const STEPS = [
@@ -313,6 +324,7 @@ const STEPS = [
       "scripts/tests/harness-worktree.node.mjs",
       "scripts/tests/next-number.integration.node.mjs",
       "scripts/tests/verify-critical-coverage.node.mjs",
+      "scripts/tests/verify-watchdog.node.mjs",
     ],
   },
   { name: "lint", argv: ["node_modules/eslint/bin/eslint.js", "."] },
@@ -396,8 +408,17 @@ const STEPS = [
     argv: ["node_modules/@playwright/test/cli.js", "test", "--reporter=list,json"],
     // E2E_PORT NO va acá: lo resuelve `e2ePreflight` en tiempo de ejecución
     // (el runner deja que el env del preflight gane sobre el del paso).
-    env: { PLAYWRIGHT_JSON_OUTPUT_NAME: E2E_JSON },
+    env: {
+      PLAYWRIGHT_JSON_OUTPUT_NAME: E2E_JSON,
+      // El watchdog canaliza la salida; en una terminal real se ve como antes.
+      ...envParaSalidaCanalizada(process.stdout),
+    },
     retry: 1,
+    // SDD-0454: el 2026-09-11 este paso calló 30 y 48 min sin terminar. Bajo
+    // watchdog, un cuelgue termina su árbol propio (Playwright, next dev,
+    // workers, navegadores) y queda FALLÓ con motivo COLGADO/TIMEOUT; no se
+    // reintenta ni se absuelve. Un fallo común conserva su `retry`.
+    watchdog: e2eWatchdog,
     preflight: e2ePreflight,
     absolver: e2eAbsolver,
   },
@@ -425,57 +446,20 @@ const failures = [];
  * fallo del cambio, pero tampoco son un verde — y el resumen tiene que decirlo.
  */
 const skipped = [];
+
+// El absolvedor lee el reporte de ESTA corrida: si quedó uno viejo, mentiría.
+function limpiarReporteE2E() {
+  try {
+    fs.rmSync(E2E_JSON, { force: true });
+  } catch {}
+}
+
+// Preflight, intentos, absolvedor, watchdog y clasificación de cada paso viven
+// en scripts/verify-runner.mjs, donde se prueban con pasos falsos (SDD-0454).
 for (const step of STEPS) {
-  console.log(`\n${C.dim}── ${step.name} ──────────────────────────────────${C.nc}`);
-  let preflightEnv = null;
-  if (step.preflight) {
-    const pf = step.preflight();
-    if (pf?.skip) {
-      skip(`${step.name}: ${pf.reason}`);
-      skipped.push({ name: step.name, reason: pf.reason });
-      continue;
-    }
-    if (pf?.note) console.log(`${C.dim}   ${pf.note}${C.nc}`);
-    preflightEnv = pf?.env ?? null;
-  }
-  const env =
-    step.env || preflightEnv
-      ? { ...process.env, ...step.env, ...preflightEnv }
-      : process.env;
-  const attempts = (step.retry ?? 0) + 1;
-  let r;
-  let absuelto = null;
-  for (let i = 1; i <= attempts; i++) {
-    // El absolvedor lee el reporte de ESTA corrida: si quedó uno viejo, mentiría.
-    try {
-      fs.rmSync(E2E_JSON, { force: true });
-    } catch {}
-    r = spawnSync(process.execPath, step.argv, { stdio: "inherit", cwd: process.cwd(), env });
-    // Un SALTO no se reintenta: falta Docker/Deno/credenciales, y eso no cambia
-    // por correrlo de nuevo — sólo imprimiría el mismo [SKIP] dos veces.
-    if (r.status === 0 || r.status === EXIT_SKIPPED) break;
-    // Antes de gastar un reintento: ¿el proceso se fue mal habiendo pasado todo?
-    absuelto = step.absolver ? step.absolver() : null;
-    if (absuelto) break;
-    if (i < attempts) {
-      console.log(`${C.dim}   ${step.name} falló (exit ${r.status ?? "señal " + r.signal}) → reintento ${i}/${attempts - 1} (flaky conocido)${C.nc}`);
-    }
-  }
-  if (r.status === EXIT_SKIPPED) {
-    // El hijo se auto-omitio (sin Docker, sin Deno, sin credenciales). Antes
-    // salia 0 y aca se imprimia [OK]: el gate no podia distinguir "paso" de
-    // "no corrio", y un cierre declaraba TODO VERDE con pasos apagados.
-    skipped.push({ name: step.name, reason: "no se midio (ver su [SKIP] arriba)" });
-    warn(`${step.name}: OMITIDO — no se midio`);
-  } else if (r.status === 0) ok(step.name);
-  else if (absuelto) {
-    // Amarillo, no verde: pasó, pero que se vea que hubo una anomalía.
-    warn(absuelto);
-    ok(`${step.name} (con aviso)`);
-  } else {
-    fail(`${step.name} (exit ${r.status ?? "señal " + r.signal})`);
-    failures.push(step.name);
-  }
+  const resultado = await runStep(step, { out, beforeAttempt: limpiarReporteE2E });
+  if (resultado.skipped) skipped.push(resultado.skipped);
+  if (resultado.failure) failures.push(resultado.failure);
 }
 
 console.log(`\n${C.dim}── resumen ───────────────────────────────────${C.nc}`);
