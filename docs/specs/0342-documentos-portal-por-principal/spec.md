@@ -17,14 +17,17 @@ confidencialidad: interno
 
 # SDD-0342 — Documentos del Portal por principal
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0406_portal_packing_lists_por_principal` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
-> `done` de la cabecera no significa que este contrato esté vigente en la base real.
-> **MIGRATE-FIRST:** el código importado consume la RPC, así que 0406 se aplica y verifica en
-> producción **antes** de fusionar la importación; sin la RPC, Documentos omite los packing lists.
-> Aplicarla exige OK nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-11; actualizada el 2026-09-12.** Esta spec se importa desde la
+> PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0406_portal_packing_lists_por_principal` **fue APLICADA a producción el 2026-09-12** con OK
+> nominal de Sam (ledger `20260912022540 / 0406_portal_packing_lists_por_principal`), con el
+> archivo de esta rama idéntico al aplicado (md5 `1502718da4773838c51bf9a460952a95`, 1785 B); el
+> registro de la aplicación está en `.agents/handoffs/` y esta ronda queda asentada en
+> `.agents/handoffs/c-l06-portal-documentos.md`. Por eso 0406 ya **no** figura como espera en
+> `supabase/migrations-baseline.json` ni tiene declaración en
+> `supabase/pending-migration-symbol-declarations.json`. El orden migrate-first se cumplió: la RPC
+> existe en la base antes de fusionar el código que la consume, así que Documentos lista los
+> packing lists del principal en vez de omitirlos.
 > Corte focal del bloque C (L06): no se importan `scripts/__tests__/portal-service-role-boundary.test.mjs`
 > (inventario RSC ausente en main) ni los documentos de auditoría/handoff de la allowlist original.
 
