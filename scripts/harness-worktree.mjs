@@ -8,9 +8,20 @@ export function isValidSlug(slug) {
   return typeof slug === 'string' && slug.length <= 60 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
     && !/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i.test(slug);
 }
+const CODEX_CONTAINER = 'DTD-worktrees';
+const CLAUDE_CONTAINER = path.join('.claude', 'worktrees');
 export function worktreePathFor(mainWorktree, slug) {
   if (!isValidSlug(slug)) throw new Error('Slug inválido; usa kebab-case seguro.');
-  return path.join(path.dirname(mainWorktree), 'DTD-worktrees', slug);
+  return path.join(path.dirname(mainWorktree), CODEX_CONTAINER, slug);
+}
+/**
+ * Los dos contenedores donde este repo aloja worktrees vinculados: el de la metodología
+ * Codex, que `start` crea, y el que la app de Claude Code crea dentro del propio checkout.
+ * Es un filtro de pertenencia, nunca una fuente: el candidato de `finish` sale siempre de
+ * `git worktree list`, jamás de una ruta armada con el nombre que se pasó.
+ */
+export function worktreeContainers(mainWorktree) {
+  return [path.join(path.dirname(mainWorktree), CODEX_CONTAINER), path.join(mainWorktree, CLAUDE_CONTAINER)];
 }
 export function branchFor(slug) {
   if (!isValidSlug(slug)) throw new Error('Slug inválido.');
@@ -51,14 +62,51 @@ function worktrees() {
     return { path: fields.find((f) => f.startsWith('worktree '))?.slice(9), branch: fields.find((f) => f.startsWith('branch '))?.slice(7) };
   });
 }
-function safeTarget(slug) {
-  const entries = worktrees();
-  const main = realpathSync(entries[0].path);
-  const target = worktreePathFor(main, slug);
+function assertNotRedirected(target) {
   const container = path.dirname(target);
   if (existsSync(container) && (lstatSync(container).isSymbolicLink() || normalize(realpathSync(container)) !== normalize(container))) throw new Error('Contenedor de worktrees redirigido: revisión manual requerida.');
   if (existsSync(target) && (lstatSync(target).isSymbolicLink() || normalize(realpathSync(target)) !== normalize(target))) throw new Error('Worktree redirigido: revisión manual requerida.');
-  return { target, entries };
+  return target;
+}
+function startTarget(slug) {
+  const entries = worktrees();
+  return assertNotRedirected(worktreePathFor(realpathSync(entries[0].path), slug));
+}
+const sameName = (a, b) => process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
+const nameList = (entries) => entries.length ? [...entries.map((e) => path.basename(e.path))].sort().join(', ') : 'ninguno';
+/**
+ * Candidato de `finish`, resuelto contra la lista real de `git worktree list`. Antes se armaba
+ * la ruta con `worktreePathFor`, así que el comando solo veía `DTD-worktrees/<slug>` y respondía
+ * «Slug inválido» o «no es un worktree registrado» ante los de `.claude/worktrees/`, donde hoy
+ * trabaja buena parte de las sesiones: un cierre que mira medio universo es el mismo verde por
+ * omisión que SDD-0457 quitó de `check-unpublished`. Sin nombre informa sobre el worktree donde
+ * se corre —ahí no hay ambigüedad que resolver, así que no se exige contenedor conocido—; con
+ * nombre exige pertenecer a `worktreeContainers`. El checkout principal nunca es candidato.
+ *
+ * Pura y exportada. El nombre solo se **compara** con entradas ya registradas y nunca se
+ * concatena a una ruta, así que `..`, separadores o un nombre absoluto no pueden señalar nada
+ * de fuera: como mucho no coinciden con ninguna entrada.
+ *
+ * @param {{path: string, branch?: string}[]} entries — `git worktree list`, principal primero.
+ * @param {string} main — ruta real del checkout principal.
+ * @param {string|undefined} name — nombre del directorio del worktree; sin él, el actual.
+ * @param {string|null} cwdRoot — raíz del worktree desde donde se corre, o null si no se pudo saber.
+ */
+export function resolveCandidate(entries, main, name, cwdRoot) {
+  const containers = worktreeContainers(main);
+  const linked = entries.filter((e) => normalize(e.path) !== normalize(main));
+  const eligible = linked.filter((e) => containers.some((c) => normalize(path.dirname(e.path)) === normalize(c)));
+  if (name === undefined) {
+    const here = cwdRoot === null ? undefined : linked.find((e) => normalize(e.path) === normalize(cwdRoot));
+    if (here) return here;
+    const donde = cwdRoot === null ? 'no se pudo determinar desde dónde corrés' : normalize(cwdRoot) === normalize(main)
+      ? `estás en el checkout principal (${cwdRoot}), que nunca es candidato` : `${cwdRoot} no es un worktree vinculado de este repo`;
+    throw new Error(`Sin nombre, finish informa sobre el worktree actual, y ${donde}. Pasá el nombre del directorio. Candidatos: ${nameList(eligible)}.`);
+  }
+  const matches = eligible.filter((e) => sameName(path.basename(e.path), name));
+  if (matches.length > 1) throw new Error(`«${name}» nombra ${matches.length} worktrees registrados (${matches.map((e) => e.path).join('; ')}): corré finish sin nombre desde el que te toca.`);
+  if (matches.length === 0) throw new Error(`No hay worktree registrado llamado «${name}». finish resuelve contra git worktree list y acepta los de ${containers.join(' y ')}. Candidatos: ${nameList(eligible)}.`);
+  return matches[0];
 }
 function claimPath(root) {
   return path.join(mustGit(['rev-parse', '--absolute-git-dir'], root), 'harness-session-claim.json');
@@ -109,7 +157,7 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   switch (args.cmd) {
     case 'start': {
-      const { target } = safeTarget(args.slug);
+      const target = startTarget(args.slug);
       const branch = branchFor(args.slug);
       if (existsSync(target)) throw new Error(`Ya existe ${target}.`);
       if (git(['show-ref', '--verify', '--quiet', `refs/heads/${branch}`]).code === 0) throw new Error(`Ya existe ${branch}.`);
@@ -141,9 +189,12 @@ function main() {
       break;
     }
     case 'finish': {
-      const { target, entries } = safeTarget(args.slug);
-      const entry = entries.find((e) => normalize(e.path) === normalize(target));
-      if (!entry || !existsSync(target)) throw new Error('El candidato no es un worktree registrado y disponible.');
+      const entries = worktrees();
+      const here = git(['rev-parse', '--show-toplevel']);
+      const entry = resolveCandidate(entries, realpathSync(entries[0].path), args.slug, here.code === 0 ? here.out : null);
+      // `path.resolve` para que el informe use los separadores de la plataforma: git los devuelve con `/` también en Windows.
+      const target = assertNotRedirected(path.resolve(entry.path));
+      if (!existsSync(target)) throw new Error(`El worktree «${path.basename(target)}» está registrado pero no existe en disco (${target}): revisión manual del Director.`);
       const status = mustGit(['status', '--porcelain=v1', '--untracked-files=all'], target);
       const ignored = ignoredReport(target);
       const claim = readClaim(target);
@@ -156,7 +207,7 @@ function main() {
     }
     case 'list': console.log(mustGit(['worktree', 'list'])); break;
     case undefined: case 'help': case '--help': case '-h':
-      console.log('harness-worktree start <slug> [--from <ref>] [--dry-run]\nharness-worktree guard [--owner <id>]\nharness-worktree claim|release --owner <id> [--dry-run]\nharness-worktree finish <slug> [--dry-run] (solo informe)\nharness-worktree list\nDefault: codex/<slug>, origin/main, --no-track. Sin copias de entorno ni instalación implícita.');
+      console.log('harness-worktree start <slug> [--from <ref>] [--dry-run]\nharness-worktree guard [--owner <id>]\nharness-worktree claim|release --owner <id> [--dry-run]\nharness-worktree finish [<nombre>] [--dry-run] (solo informe)\nharness-worktree list\nDefault: codex/<slug>, origin/main, --no-track. Sin copias de entorno ni instalación implícita.\nstart siempre crea en DTD-worktrees/<slug>; finish informa sobre cualquier worktree registrado de DTD-worktrees/ o .claude/worktrees/, y sin nombre sobre el actual.');
       break;
     default: throw new Error(`Comando desconocido: ${args.cmd}`);
   }

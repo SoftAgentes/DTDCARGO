@@ -37,7 +37,8 @@ codex --cd "<ruta>"
 ```
 
 `start` crea rama `codex/<slug>` sin upstream desde origin/main, fuera del
-checkout principal, en el contenedor hermano DTD-worktrees. No mueve trabajo,
+checkout principal, en el contenedor hermano DTD-worktrees. Ese sigue siendo su
+único destino; `finish` en cambio informa sobre cualquier worktree registrado. No mueve trabajo,
 no copia .env, no instala dependencias, no publica. GitHub no disponible:
 usa una base local verificada con `--from <ref>`, declara antigüedad y no
 integres hasta verificar el remoto.
@@ -265,8 +266,12 @@ merge_group; ahora no está verificada esa capacidad ni es necesaria para arranc
 
 ## Cleanup
 
-`harness-worktree finish` solo informa: no elimina. Director limpia únicamente
-tras solicitud de limpieza o autorización concreta de cierre con cleanup:
+`harness-worktree finish` solo informa: no elimina. Resuelve el candidato contra
+`git worktree list`, así que cubre tanto `DTD-worktrees/<slug>` como los worktrees
+que crea la app de Claude Code en `<checkout>/.claude/worktrees/<nombre>`; sin
+argumento informa sobre el worktree desde donde se corre, y el checkout principal
+nunca es candidato (SDD-0458). Director limpia únicamente tras solicitud de
+limpieza o autorización concreta de cierre con cleanup:
 
 1. Identificar ruta absoluta registrada, branch, HEAD y owner/sesiones/procesos.
    Excluir checkout principal, su propio cwd y worktrees preexistentes protegidos
