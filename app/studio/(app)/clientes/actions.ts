@@ -221,6 +221,14 @@ export async function createClientAction(
     if (error.code === "23514" && /insignia|Shipping Mark/i.test(error.message)) {
       return { error: error.message };
     }
+    // La FK compuesta de la migr 0450 rechaza con 23503 un aliado de otro tenant.
+    // El alta ya leyó el aliado con la sesión (RLS) más arriba, así que esto sólo
+    // pasa en una carrera: se responde lo mismo que esa lectura, en vez del nombre
+    // crudo de la constraint. Las FK de la migr 0451 viven en `aliados` y no
+    // disparan en este insert.
+    if (error.code === "23503" && /clients_aliado_mismo_tenant_fkey/.test(error.message)) {
+      return { error: "Ese aliado no existe o no está disponible." };
+    }
     return { error: `No se pudo crear el cliente: ${error.message}` };
   }
 

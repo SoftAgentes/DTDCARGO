@@ -13,6 +13,9 @@
  *   5. la colisión de correlativo deja de mentir: antes se reportaba como
  *      "ya existe ese RIF/cédula" y mandaba al usuario a buscar una ficha que no
  *      existe.
+ *   6. el 23503 de la FK de tenant de la migr 0450 responde lo mismo que la
+ *      lectura previa del aliado, en vez del nombre crudo de la constraint
+ *      (SDD-0461); cualquier otro 23503 conserva el mensaje genérico.
  *
  * Supabase se mockea — sin red ni DB real.
  */
@@ -206,5 +209,27 @@ describe("createClientAction · el 23505 deja de mentir", () => {
 
     expect(res.error).toMatch(/usa la insignia de un aliado/);
     expect(res.error).not.toMatch(/^No se pudo crear el cliente:/);
+  });
+
+  it("el 23503 de la FK de tenant (migr 0450) responde como la lectura previa del aliado", async () => {
+    clientsWriteError = {
+      code: "23503",
+      message: 'insert or update on table "clients" violates foreign key constraint "clients_aliado_mismo_tenant_fkey"',
+    };
+
+    const res = await createClientAction({}, clientForm({ aliadoId: "aliado-hr" }));
+
+    expect(res.error).toBe("Ese aliado no existe o no está disponible.");
+  });
+
+  it("otro 23503 conserva el mensaje genérico", async () => {
+    clientsWriteError = {
+      code: "23503",
+      message: 'insert or update on table "clients" violates foreign key constraint "clients_aliado_id_fkey"',
+    };
+
+    const res = await createClientAction({}, clientForm({ aliadoId: "aliado-hr" }));
+
+    expect(res.error).toMatch(/^No se pudo crear el cliente: /);
   });
 });
