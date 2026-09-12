@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 432 specs)
+### Índice de specs (generado · 433 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -367,6 +367,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0335 | Contener el crecimiento de service_role en Portal y ordenar e… | done | interno |
 | 0336 | Resolver la marca del Portal por el principal autenticado | done | interno |
 | 0337 | Resolver la visibilidad de hitos del Portal por el principal … | done | interno |
+| 0338 | Resolver el asesor del Portal por el principal autenticado | done | interno |
 | 0339 | Resolver el programa de referidos del Portal por principal | done | interno |
 | 0340 | Firmar adjuntos de prealerta desde una lectura autorizada por… | done | interno |
 | 0342 | Resolver y firmar Documentos del Portal desde el principal | done | interno |
@@ -471,5 +472,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0456 | Un cliente sólo cuelga de un aliado de su tenant | done | interno |
 | 0457 | ENOBUFS y errores tapados en el harness: un subproceso que no… | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0338, 0341, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0364, 0365, 0366, 0375, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0341, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0364, 0365, 0366, 0375, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
