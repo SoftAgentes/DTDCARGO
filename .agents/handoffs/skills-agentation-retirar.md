@@ -2,7 +2,7 @@
 
 - Fecha: 2026-09-12. Owner / sesión escritora: `director-skills-agentation-20260912` (Claude Code, Opus 5).
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/skills-agentation-retirar`.
-- Rama: `codex/skills-agentation-retirar`. Base: `origin/main` = `e3dcd314b1a8dc9b5467fcbd23ac2dd1926ba9fc`.
+- Rama: `codex/skills-agentation-retirar`. Base de la ronda 1: `origin/main` = `e3dcd314b1a8dc9b5467fcbd23ac2dd1926ba9fc`. En la ronda 2 se fusionó `origin/main` = `29e32ed9` dentro de la rama, sin rebase ni force.
 - Estado de tarea: lista-para-revisión.
 - SDD: no aplica. No hay cambio de comportamiento de Studio ni de producto; el alcance es documentación de agentes y su manifiesto de instalación.
 
@@ -56,6 +56,20 @@ Los handoffs históricos que mencionan el borrado son evidencia fechada y se con
   entradas y ninguna reindentación.
 - `pnpm verify`: **NO EJECUTADO**, no aplica. No hay cambio de producto ni de sus pruebas; el
   worktree no tiene dependencias instaladas por diseño del harness.
+
+## RONDA 2 — PUESTA AL DÍA CON MAIN
+
+Sam autorizó el 2026-09-12 integrar esta PR. Estaba `MERGEABLE/BEHIND`: ocho commits detrás de
+`main`, y el ruleset exige la rama al día y el check verde **sobre el commit que se fusiona**.
+Se fusionó `origin/main` `29e32ed9` (que trae SDD-0460) dentro de la rama, con merge normal.
+
+- Sin conflictos: los cinco archivos que llegaron de main (spec 0460, su handoff, índice de specs,
+  `scripts/harness-worktree.mjs` y sus pruebas) no tocan ninguna ruta de esta entrega.
+- El borrado sobrevivió intacto: `.agents/skills/` conserva solo `director` y `worker`, y
+  `skills-lock.json` no tiene ninguna entrada `agentation`. El diff contra main sigue siendo
+  exactamente los tres archivos borrados, `skills-lock.json` y este handoff.
+- Revalidado sobre el estado fusionado: `docs:check` **PASÓ** (438 specs, uno más por 0460) y
+  `check-numbering` **PASÓ**. `pnpm verify` sigue sin aplicar: no hay cambio de producto.
 
 ## PENDIENTES
 
