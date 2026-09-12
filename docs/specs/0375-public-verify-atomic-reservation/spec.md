@@ -68,8 +68,9 @@ original sigue blocked en la app; no se duplica ni se modifica por otra vía.
 
 ## Release y límites
 
-Aplicar y verificar nominalmente 0426 ANTES de desplegar el consumidor.
-Sin RPC, el nuevo consumidor bloquea de forma segura; no publicar antes.
+0426 se aplicó y verificó nominalmente el 2026-09-12, antes de fusionar este
+consumidor (ledger 20260912022928). Sin RPC el consumidor bloquea de forma
+segura: ese orden es el que hay que conservar en cualquier reaplicación.
 La coexistencia con una versión antigua que escribe directamente no ofrece
 la garantía nueva. service_role conserva sus privilegios previos de tabla:
 este slice no pretende impedir escrituras administrativas fuera de la RPC.
@@ -104,7 +105,8 @@ operario_pin_attempts; no incluye public_verify_throttle. La retención de esta
 - [x] Permisos reales, invoker, aislamiento, preservación, drift y reejecución.
 - [x] SQL general, rebuild, tipos, lint, suite y gate proporcional; informar SKIP.
 - [x] Evidencia y conservación local selectiva; no aumentar contador original por un subpaso.
-- [ ] Aplicación 0426 y release/smoke: gates externos independientes, no autorizados.
+- [x] Aplicación 0426: aplicada a producción el 2026-09-12 (ledger 20260912022928).
+- [ ] Release/smoke posdespliegue: gate externo independiente, fuera de esta rama.
 
 Checkpoint47b1dd0b. El gate inicial pasó 168 contratos SQL, concurrencia,
 rebuild423 y build158; falló por timeouts de worktrees. SDD-0376 corrigió ese

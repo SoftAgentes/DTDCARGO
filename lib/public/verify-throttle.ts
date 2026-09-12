@@ -10,7 +10,8 @@
  * SDD-0375 / migración 0426: la RPC cuenta y registra bajo un lock transaccional
  * por clave textual IP. Sólo una reserva confirmada permite el lookup.
  * Sin RPC o ante incertidumbre bloquea, sin fallback al contador separado.
- * Aplicar/verificar 0426 antes de desplegar este consumidor.
+ * 0426 está aplicada en producción desde el 2026-09-12 (ledger 20260912022928):
+ * la RPC existe y este consumidor reserva contra ella, no contra el contador.
  *
  * El admin client (service_role) y la IP se reciben por parámetro: este archivo
  * vive del lado público de la frontera (`lib/public`) y NO puede importar
