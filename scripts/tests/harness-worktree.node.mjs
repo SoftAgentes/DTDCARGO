@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, lstatSync, realpathSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { isValidSlug, worktreePathFor, worktreeContainers, resolveCandidate, branchFor, parseArgs, isSensitiveIgnoredName } from '../harness-worktree.mjs';
+import { isValidSlug, worktreePathFor, worktreeContainers, resolveCandidate, mainWorktreeFrom, branchFor, parseArgs, isSensitiveIgnoredName } from '../harness-worktree.mjs';
 import { MAX_BUFFER } from '../harness-spawn.mjs';
 const script = fileURLToPath(new URL('../harness-worktree.mjs', import.meta.url));
 function gitAt(cwd, args) {
@@ -203,4 +203,64 @@ test('finish cubre los worktrees de .claude/worktrees sin perder los de DTD-work
   rmSync(fantasma, { recursive: true, force: true });
   assert.match(git(['worktree', 'list', '--porcelain']), /claude\/fantasma/);
   assert.match(cli(['finish', 'fantasma'], repo, false), /registrado pero no existe en disco/);
+});
+test('mainWorktreeFrom verifica el principal y devuelve null cuando no hay ninguno', () => {
+  const principal = path.resolve(path.join('repos', 'DTDCARGO'));
+  const comun = path.join(principal, '.git');
+  const linked = { path: path.join(principal, '.claude', 'worktrees', 'wt'), branch: 'refs/heads/codex/wt' };
+  const bare = path.resolve(path.join('repos', 'repo.git'));
+  // Repo normal: el porcelain lista el principal primero y el common-dir lo confirma.
+  assert.equal(mainWorktreeFrom([{ path: principal }, linked], comun), principal);
+  // Repo bare: `entries[0]` es el propio bare, así que NO hay principal. Antes se devolvía igual.
+  assert.equal(mainWorktreeFrom([{ path: bare, bare: true }, linked], bare), null);
+  // El flag manda esté donde esté: un repo común sin checkout no deja principal que elegir.
+  assert.equal(mainWorktreeFrom([linked, { path: bare, bare: true }], comun), null);
+  // La posición se verifica, no se confía: si el common-dir no cuelga de entries[0], es «no sé».
+  assert.equal(mainWorktreeFrom([{ path: linked.path }, { path: principal }], comun), null);
+  // Lo que decide es la relación entre el common-dir y entries[0], no cómo se llame el directorio:
+  // si cuelga del propio árbol, lo identifica aunque no se llame `.git`...
+  assert.equal(mainWorktreeFrom([{ path: principal }], path.join(principal, 'otro-dir')), principal);
+  // ...y si cuelga de otro lado no lo identifica aunque sí se llame `.git`. Esta condición única
+  // es la que cubre sola el caso bare, y por eso el flag y el chequeo de nombre se fueron.
+  assert.equal(mainWorktreeFrom([{ path: principal }], path.join(path.dirname(principal), 'otro', '.git')), null);
+  // Sin datos no se inventa: lista vacía, o common-dir que git no pudo dar.
+  assert.equal(mainWorktreeFrom([], comun), null);
+  assert.equal(mainWorktreeFrom([{ path: principal }], null), null);
+  // El «no sé» se propaga a resolveCandidate sin convertirse en respuesta: por nombre se niega...
+  assert.throws(() => resolveCandidate([{ path: bare, bare: true }, linked], null, 'wt', null), /no tiene checkout principal verificable/);
+  // ...y el camino que no necesita el principal sigue funcionando igual.
+  assert.equal(resolveCandidate([{ path: bare, bare: true }, linked], null, undefined, linked.path).path, linked.path);
+  // La entrada bare no es un worktree vinculado ni candidato de nada.
+  assert.throws(() => resolveCandidate([{ path: bare, bare: true }, linked], null, undefined, bare), /no es un worktree vinculado/);
+});
+test('en un repo bare el harness no elige un principal: se niega con motivo donde hace falta', (t) => {
+  const sandbox = mkdtempSync(path.join(tmpdir(), 'dtd-harness-bare-'));
+  t.after(() => { assert.ok(path.resolve(sandbox).startsWith(path.resolve(tmpdir()) + path.sep)); rmSync(sandbox, { recursive: true, force: true }); });
+  const origen = path.join(sandbox, 'origen'); mkdirSync(origen);
+  gitAt(origen, ['init', '-q', '-b', 'main']);
+  gitAt(origen, ['config', 'user.email', 'test@example.invalid']); gitAt(origen, ['config', 'user.name', 'Fixture']);
+  writeFileSync(path.join(origen, 'tracked.txt'), 'fixture\n');
+  gitAt(origen, ['add', '-A']); gitAt(origen, ['commit', '-qm', 'fixture']);
+  // Repo común SIN checkout propio: el caso donde `entries[0]` no es un árbol de trabajo.
+  const bare = path.join(sandbox, 'repo.git');
+  gitAt(sandbox, ['clone', '-q', '--bare', origen, 'repo.git']);
+  const uno = path.join(sandbox, 'uno');
+  gitAt(bare, ['worktree', 'add', '-q', '--no-track', '-b', 'codex/uno', uno, 'main']);
+  assert.match(gitAt(bare, ['worktree', 'list', '--porcelain']), /(^|\n)bare(\n|$)/);
+  // Un worktree linked legítimo se sigue pudiendo usar: no hay principal que lo desplace.
+  assert.match(cliAt(uno, ['guard'], true), /Guard OK/);
+  // finish sin nombre no necesita el principal, así que informa igual que en un repo normal.
+  const informe = cliAt(uno, ['finish'], true);
+  assertSamePath(JSON.parse(informe.slice(0, informe.indexOf('\n}') + 2)).candidate, uno);
+  // Lo que sí lo necesita se niega nombrando el motivo y la salida, en vez de resolver contra
+  // contenedores derivados de un repo que no es un árbol de trabajo.
+  const porNombre = cliAt(uno, ['finish', 'uno'], false);
+  assert.match(porNombre, /no tiene checkout principal verificable/);
+  assert.match(porNombre, /Corré finish sin nombre/);
+  assert.match(porNombre, /Worktrees vinculados: uno\./);
+  assert.doesNotMatch(porNombre, /Candidatos: ninguno/);
+  const start = cliAt(uno, ['start', 'nuevo', '--dry-run'], false);
+  assert.match(start, /no tiene checkout principal verificable/);
+  assert.match(start, /start no puede decidir dónde crear/);
+  assert.equal(existsSync(path.join(sandbox, 'DTD-worktrees', 'nuevo')), false);
 });

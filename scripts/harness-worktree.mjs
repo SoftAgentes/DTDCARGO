@@ -59,9 +59,55 @@ const normalize = (p) => process.platform === 'win32' ? path.resolve(p).toLowerC
 function worktrees() {
   return mustGit(['worktree', 'list', '--porcelain', '-z']).split('\0\0').filter(Boolean).map((entry) => {
     const fields = entry.split('\0');
-    return { path: fields.find((f) => f.startsWith('worktree '))?.slice(9), branch: fields.find((f) => f.startsWith('branch '))?.slice(7) };
+    // `bare` es un campo sin valor: marca el repo común cuando no tiene checkout propio.
+    return { path: fields.find((f) => f.startsWith('worktree '))?.slice(9), branch: fields.find((f) => f.startsWith('branch '))?.slice(7), bare: fields.includes('bare') };
   });
 }
+/**
+ * Checkout principal **verificado**, o `null` cuando no hay ninguno.
+ *
+ * `entries[0]` era el principal por convención del porcelain, y nadie preguntaba si existía.
+ * Medido con git 2.55: en un repo no bare el principal se lista primero siempre —da igual desde
+ * qué worktree se consulte, y da igual que otro se llame `aaa`—, así que la posición no estaba
+ * mal; lo que faltaba era la pregunta. Si el repo común es **bare** no hay checkout principal,
+ * `entries[0]` es el propio bare, y quien lo tratara como principal razonaría sobre una ruta que
+ * no es un árbol de trabajo. Descartar la entrada bare sin más es peor: el primero pasa a ser el
+ * worktree de un Worker y el harness lo declara «checkout principal», rechazando su `guard`.
+ *
+ * Acá no se elige: si no hay principal se devuelve `null` y cada consumidor decide qué hacer con
+ * el «no sé», que nunca puede ser contestar igual que cuando sí lo hay.
+ *
+ * La posición se **verifica** en vez de confiarse, con una sola condición: el checkout principal
+ * es el árbol cuyo `.git` es el directorio común, o sea `dirname(--git-common-dir)`. En un repo
+ * normal eso da `entries[0]` y coincide; en uno bare el común es el propio `repo.git`, cuyo
+ * `dirname` es su carpeta contenedora y nunca el `entries[0]` que el porcelain trae —el bare
+ * mismo—, así que no coincide y la respuesta es `null`. Una primera versión sumaba a esto el
+ * flag `bare` y un chequeo del nombre `.git`; la mutación mostró que **ninguno de los dos
+ * cambiaba un resultado** y se fueron: la comparación sola los cubre. El flag se sigue leyendo
+ * en `worktrees()`, pero para otra cosa —excluir esa entrada de los candidatos—, y eso sí lo
+ * fija una prueba.
+ *
+ * Ojo con la vía obvia: `git rev-parse --is-bare-repository` devuelve **`false`** desde un
+ * worktree linked de un repo bare (medido), así que confirma la hipótesis equivocada.
+ *
+ * Pura y exportada para poder fijar por prueba el caso bare sin depender del repo donde corre.
+ *
+ * @param {{path: string, bare?: boolean}[]} entries — `git worktree list --porcelain`.
+ * @param {string|null} commonDir — `git rev-parse --path-format=absolute --git-common-dir`.
+ * @returns {string|null} ruta del checkout principal, o null si no hay o no se pudo verificar.
+ */
+export function mainWorktreeFrom(entries, commonDir) {
+  if (!entries.length || !entries[0].path || !commonDir) return null;
+  return normalize(path.dirname(commonDir)) === normalize(entries[0].path) ? entries[0].path : null;
+}
+/** Lee la lista y el common-dir juntos: el principal se verifica contra los dos. */
+function repoState() {
+  const entries = worktrees();
+  const common = git(['rev-parse', '--path-format=absolute', '--git-common-dir']);
+  const main = mainWorktreeFrom(entries, common.code === 0 ? common.out : null);
+  return { entries, main: main === null ? null : realpathSync(main) };
+}
+const SIN_PRINCIPAL = 'Este repo no tiene checkout principal verificable (el repo común es bare, o su git-common-dir no cuelga de un árbol de trabajo)';
 function assertNotRedirected(target) {
   const container = path.dirname(target);
   if (existsSync(container) && (lstatSync(container).isSymbolicLink() || normalize(realpathSync(container)) !== normalize(container))) throw new Error('Contenedor de worktrees redirigido: revisión manual requerida.');
@@ -69,8 +115,11 @@ function assertNotRedirected(target) {
   return target;
 }
 function startTarget(slug) {
-  const entries = worktrees();
-  return assertNotRedirected(worktreePathFor(realpathSync(entries[0].path), slug));
+  const { main } = repoState();
+  // `start` deriva el contenedor del principal: sin principal no hay dónde crear, y adivinar
+  // un hermano de un repo bare sería inventar la respuesta que no existe.
+  if (main === null) throw new Error(`${SIN_PRINCIPAL}, así que start no puede decidir dónde crear el worktree. Creá el árbol a mano con git worktree add y corré guard adentro.`);
+  return assertNotRedirected(worktreePathFor(main, slug));
 }
 const sameName = (a, b) => process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
 const nameList = (entries) => entries.length ? [...entries.map((e) => path.basename(e.path))].sort().join(', ') : 'ninguno';
@@ -87,25 +136,32 @@ const nameList = (entries) => entries.length ? [...entries.map((e) => path.basen
  * concatena a una ruta, así que `..`, separadores o un nombre absoluto no pueden señalar nada
  * de fuera: como mucho no coinciden con ninguna entrada.
  *
- * @param {{path: string, branch?: string}[]} entries — `git worktree list`, principal primero.
- * @param {string} main — ruta real del checkout principal.
+ * Sin checkout principal (`main === null`) los dos caminos se separan en vez de igualarse: el
+ * que no lo necesita —informar sobre el worktree donde se corre— sigue funcionando, y el que sí
+ * lo necesita —resolver por nombre, que deriva los contenedores del principal— se niega con
+ * motivo en vez de resolver contra rutas inventadas a partir de un repo bare.
+ *
+ * @param {{path: string, branch?: string, bare?: boolean}[]} entries — `git worktree list`.
+ * @param {string|null} main — checkout principal verificado, o null si no hay ninguno.
  * @param {string|undefined} name — nombre del directorio del worktree; sin él, el actual.
  * @param {string|null} cwdRoot — raíz del worktree desde donde se corre, o null si no se pudo saber.
  */
 export function resolveCandidate(entries, main, name, cwdRoot) {
-  const containers = worktreeContainers(main);
-  const linked = entries.filter((e) => normalize(e.path) !== normalize(main));
-  const eligible = linked.filter((e) => containers.some((c) => normalize(path.dirname(e.path)) === normalize(c)));
+  const containers = main === null ? null : worktreeContainers(main);
+  const linked = entries.filter((e) => !e.bare && (main === null || normalize(e.path) !== normalize(main)));
+  const eligible = containers === null ? [] : linked.filter((e) => containers.some((c) => normalize(path.dirname(e.path)) === normalize(c)));
+  const candidatos = containers === null ? `Worktrees vinculados: ${nameList(linked)}` : `Candidatos: ${nameList(eligible)}`;
   if (name === undefined) {
     const here = cwdRoot === null ? undefined : linked.find((e) => normalize(e.path) === normalize(cwdRoot));
     if (here) return here;
-    const donde = cwdRoot === null ? 'no se pudo determinar desde dónde corrés' : normalize(cwdRoot) === normalize(main)
+    const donde = cwdRoot === null ? 'no se pudo determinar desde dónde corrés' : main !== null && normalize(cwdRoot) === normalize(main)
       ? `estás en el checkout principal (${cwdRoot}), que nunca es candidato` : `${cwdRoot} no es un worktree vinculado de este repo`;
-    throw new Error(`Sin nombre, finish informa sobre el worktree actual, y ${donde}. Pasá el nombre del directorio. Candidatos: ${nameList(eligible)}.`);
+    throw new Error(`Sin nombre, finish informa sobre el worktree actual, y ${donde}. Pasá el nombre del directorio. ${candidatos}.`);
   }
+  if (containers === null) throw new Error(`${SIN_PRINCIPAL}, y los contenedores que finish acepta se derivan de él, así que no puedo resolver «${name}» por nombre. Corré finish sin nombre desde el worktree que querés informar. ${candidatos}.`);
   const matches = eligible.filter((e) => sameName(path.basename(e.path), name));
   if (matches.length > 1) throw new Error(`«${name}» nombra ${matches.length} worktrees registrados (${matches.map((e) => e.path).join('; ')}): corré finish sin nombre desde el que te toca.`);
-  if (matches.length === 0) throw new Error(`No hay worktree registrado llamado «${name}». finish resuelve contra git worktree list y acepta los de ${containers.join(' y ')}. Candidatos: ${nameList(eligible)}.`);
+  if (matches.length === 0) throw new Error(`No hay worktree registrado llamado «${name}». finish resuelve contra git worktree list y acepta los de ${containers.join(' y ')}. ${candidatos}.`);
   return matches[0];
 }
 function claimPath(root) {
@@ -113,9 +169,13 @@ function claimPath(root) {
 }
 function guard(owner) {
   const root = realpathSync(mustGit(['rev-parse', '--show-toplevel']));
-  const entries = worktrees();
-  const entry = entries.find((e) => normalize(e.path) === normalize(root));
-  if (!entry || normalize(realpathSync(entries[0].path)) === normalize(root)) throw new Error('Trabajo rechazado: el checkout principal no es un workspace de implementación.');
+  const { entries, main } = repoState();
+  const entry = entries.find((e) => !e.bare && normalize(e.path) === normalize(root));
+  if (!entry) throw new Error('Trabajo rechazado: este árbol no es un worktree registrado de este repo.');
+  // Sin principal la comparación no se omite por comodidad: es que ninguno lo es, así que
+  // ningún árbol puede ser rechazado por serlo. El chequeo de linked worktree de más abajo
+  // sigue siendo el que impide trabajar sobre el repo común.
+  if (main !== null && normalize(main) === normalize(root)) throw new Error('Trabajo rechazado: el checkout principal no es un workspace de implementación.');
   if (!entry.branch || entry.branch === 'refs/heads/main') throw new Error('Trabajo rechazado: main o HEAD detached.');
   const gitDir = mustGit(['rev-parse', '--absolute-git-dir']);
   const common = mustGit(['rev-parse', '--path-format=absolute', '--git-common-dir']);
@@ -189,9 +249,9 @@ function main() {
       break;
     }
     case 'finish': {
-      const entries = worktrees();
+      const { entries, main } = repoState();
       const here = git(['rev-parse', '--show-toplevel']);
-      const entry = resolveCandidate(entries, realpathSync(entries[0].path), args.slug, here.code === 0 ? here.out : null);
+      const entry = resolveCandidate(entries, main, args.slug, here.code === 0 ? here.out : null);
       // `path.resolve` para que el informe use los separadores de la plataforma: git los devuelve con `/` también en Windows.
       const target = assertNotRedirected(path.resolve(entry.path));
       if (!existsSync(target)) throw new Error(`El worktree «${path.basename(target)}» está registrado pero no existe en disco (${target}): revisión manual del Director.`);
