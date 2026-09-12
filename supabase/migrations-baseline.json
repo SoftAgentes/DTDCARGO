@@ -36,7 +36,5 @@
     "AL APLICAR una que estaba en `pendingBelowCutoff`: sacala de ahí (ya no es una espera)."
   ],
   "cutoff": 238,
-  "pendingBelowCutoff": {
-    "0404_portal_referidos_por_principal": "PENDIENTE DE APLICAR — bloque C L04 / SDD-0339. MIGRATE-FIRST: crea get_portal_referral_program() (SECURITY DEFINER, EXECUTE sólo authenticated), que la página Portal de Referidos consume desde esta misma PR; sin la función la página falla cerrada y queda vacía. Aplicar y verificar 0404 en producción ANTES de fusionar; ni la revisión ni la fusión de la PR autorizan aplicarla. Requiere OK nominal de Sam y docs/runbooks/aplicar-migraciones-prod.md; aplicar individualmente con name exactamente 0404_portal_referidos_por_principal. No subir cutoff 238 ni modificar las demás esperas. Retirar esta entrada, junto con su declaración en pending-migration-symbol-declarations.json, únicamente tras aplicación y verificación autorizadas."
-  }
+  "pendingBelowCutoff": {}
 }

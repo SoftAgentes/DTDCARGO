@@ -7,37 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "l04-portal-referral-program-pending-rpc",
-      "primarySymbol": "get_portal_referral_program",
-      "migration": "0404_portal_referidos_por_principal",
-      "symbols": [
-        {
-          "kind": "function",
-          "name": "get_portal_referral_program",
-          "callSites": [
-            "lib/portal/portal-referral-queries.ts:67"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/portal/portal-referral-queries.ts:68",
-          "contains": "if (error) return null;",
-          "degradation": "Mientras 0404 no esté aplicada la RPC no existe (PGRST202): la lectura falla cerrada y devuelve null, sin fallback a service_role ni a lecturas por Shipping Mark. No inventa créditos, nivel ni referidos y no lee datos de otro cliente. Referidos no está operativo hasta la aplicación nominal de 0404: es MIGRATE-FIRST."
-        },
-        {
-          "site": "lib/portal/portal-referral-queries.ts:74",
-          "contains": "if (!row || !markbox) return null;",
-          "degradation": "Un snapshot vacío o sin Shipping Mark (sesión sin vínculo Portal activo o cliente eliminado) también devuelve null: no existe programa parcial."
-        },
-        {
-          "site": "app/portal/(app)/referidos/page.tsx:43",
-          "contains": "if (!program) return null;",
-          "degradation": "Con programa null la página no renderiza contenido dentro del shell del Portal: ni código, ni montos, ni nivel, ni lista. Queda vacía, no engañosa; por eso la PR no se fusiona antes de aplicar y verificar 0404."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
