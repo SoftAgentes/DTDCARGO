@@ -1,12 +1,14 @@
 /**
- * SDD-0338 · L03 — estados de la RPC `get_portal_advisor` (migración 0403) vistos
- * desde `getPortalAdvisor`. Complementa el test importado del origen
- * (`portal-advisor-query.test.ts`) con los dos caminos que deciden el orden
- * migrate-first:
+ * SDD-0338 · L03 — estados de la RPC `get_portal_advisor` vistos desde
+ * `getPortalAdvisor`. La migración 0403 que la crea está aplicada a producción
+ * (ledger 20260912022746). Complementa el test importado del origen
+ * (`portal-advisor-query.test.ts`) con los dos caminos que la lectura debe
+ * sostener en runtime:
  *  - RPC presente: sólo la RPC con la sesión, sin ids ni lecturas de tablas, y
  *    únicamente los cuatro campos públicos del asesor.
- *  - RPC ausente (PGRST202), sin permiso o con excepción del transporte: nunca
- *    un asesor inventado; Inicio y Soporte caen al contacto público.
+ *  - RPC que devuelve error (no encontrada en el schema cache, o sin EXECUTE) o
+ *    excepción del transporte: nunca un asesor inventado; Inicio y Soporte caen
+ *    al contacto público.
  * Datos ficticios.
  */
 import { describe, expect, it, vi } from "vitest";
