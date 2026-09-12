@@ -44,7 +44,9 @@ El arreglo: `resolveCandidate` —pura y exportada— resuelve contra `git workt
 | `eslint` sobre los 2 archivos tocados | PASÓ — 0 problemas |
 | `git diff --check` | PASÓ |
 | `corepack pnpm verify` | **NO EJECUTADO** — su paso `e2e` exige Supabase, que esta sesión no tiene |
-| CI alojado sobre `7aefc71c` (SHA publicado con `main` integrado) | PASÓ — los 4 checks: «Calidad local sin secretos» en 14m38s, Vercel, Vercel Agent Review y Vercel Preview Comments ([run 34674576901](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/34674576901)) |
+| CI alojado sobre `7aefc71c` | PASÓ — los 4 checks, «Calidad local sin secretos» en 14m38s |
+| CI alojado sobre `ff6f2a9c` | PASÓ — los 4 checks, «Calidad local sin secretos» en 8m51s ([run 34675256173](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/34675256173)) |
+| `docs:check` tras el segundo merge de `main` | PASÓ — 436 specs, con la fila 0458 |
 
 **Siete mutantes** dejan rojo exactamente la prueba que les toca: quitar el contenedor `.claude/worktrees`; que sin nombre deje de mirar el worktree actual; devolver al checkout principal a la lista de candidatos; armar la ruta con `path.join(contenedor, nombre)`; elegir el primero ante un nombre ambiguo; volver al mensaje genérico; y dejar de distinguir un candidato registrado pero ausente en disco. **El séptimo sobrevivió en la primera ronda**: la prueba que lo mata se escribió por eso.
 
@@ -55,7 +57,8 @@ El arreglo: `resolveCandidate` —pura y exportada— resuelve contra `git workt
 ## Pendientes de esta tarea
 
 1. ~~Publicar la rama y abrir la PR~~ — hecho: [PR #97](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/97), autorizada por el encargo, que pone la PR como frontera.
-2. ~~Esperar el CI alojado~~ — hecho: verde sobre `7aefc71c`, el SHA con `main` `f93c0f2c` integrado. Este commit del handoff deja la rama en un SHA posterior; el CI verificado es el de `7aefc71c` y su único cambio respecto del head es este archivo.
+2. ~~Esperar el CI alojado~~ — hecho, y dos veces: verde sobre `7aefc71c` y sobre `ff6f2a9c`.
+2b. **Segundo merge de `main`** (`1c065bc4`, las seis migrate-first) pedido por el Director el 2026-09-12, resuelto sin conflicto por el driver `dtd-generated-records`: `docs:check` da 436 specs, el número que él predijo, y el merge no tocó ninguno de mis dos archivos de `scripts/`. **Preparado local y sin publicar** por pedido suyo: #96 se liberó sobre la misma base y publicar las dos a la vez haría correr dos CI para fusionar una. Se publica cuando dé la señal, junto con un segundo merge trivial si #96 entra antes.
 3. ~~Liberar el claim~~ — hecho al cerrar la sesión de escritura.
 4. **Integración: del Director.** No se mergea desde acá. Falta decidir si se espera una corrida del CI sobre el head final antes de integrar.
 
