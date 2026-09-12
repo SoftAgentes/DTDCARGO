@@ -16,15 +16,17 @@ confidencialidad: interno
 
 # SDD-0341 — Contexto privado de Perfil por principal
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0405_portal_perfil_privado_por_principal` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
-> `done` de la cabecera no significa que este contrato esté vigente en la base real. Aplicarla
-> exige OK nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
-> **Migrate-first:** el código que llama a la RPC —`lib/portal/profile-private-context.ts` y su
-> adopción en `app/portal/(app)/perfil/page.tsx`— **no se integra a `main` antes de aplicar y
-> verificar 0405**; sin ella el perfil pierde los Shipping Marks anteriores y las fotos firmadas.
+> **Nota de importación — 2026-09-11; actualizada el 2026-09-12.** Esta spec se importa desde la
+> PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0405_portal_perfil_privado_por_principal` **fue APLICADA a producción el 2026-09-12** con OK
+> nominal de Sam (ledger `20260912022835 / 0405_portal_perfil_privado_por_principal`), con el
+> archivo de esta rama idéntico al aplicado (md5 `60c500b5bf20603d28be7aa56f28ed64`, 1617 B); esta
+> ronda queda asentada en `.agents/handoffs/c-l05-portal-perfil-privado.md`. Por eso 0405 ya **no**
+> figura como espera en `supabase/migrations-baseline.json` ni tiene declaración en
+> `supabase/pending-migration-symbol-declarations.json`. El orden migrate-first se cumplió: la RPC
+> `get_portal_private_profile_context()` existe en la base antes de fusionar el código que la
+> consume, así que el perfil conserva los Shipping Marks anteriores y las fotos firmadas del avatar
+> y de la cédula al integrarse, en vez de quedar sin códigos ni imágenes.
 > El lote L05 importa sólo la migración, su contrato, el helper con su test y la adopción en la
 > página; el resto de la allowlist histórica, incluido el inventario de
 > `scripts/__tests__/portal-service-role-boundary.test.mjs`, queda fuera. El helper conserva la
