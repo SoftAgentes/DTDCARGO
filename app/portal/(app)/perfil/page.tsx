@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
-import { createAdminClient } from "@/lib/db/admin";
 import { getPortalClientPrincipal, getProfileCompleteness } from "@/lib/portal/portal-queries";
-import { PHOTO_BUCKET } from "@/lib/portal/client-photo";
+import { getPortalPrivateProfileContext } from "@/lib/portal/profile-private-context";
 import { buildPortalSupplierMark, ciudadDeCuenta } from "@/lib/portal/portal-types";
 import { docKindLabel } from "@/lib/studio/client-types";
 import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries";
@@ -71,60 +70,19 @@ export default async function PortalProfilePage() {
   ]);
   const calcDestinos = combinarDestinos(calcCities, calcTariffs);
 
-  // Códigos que este cliente TUVO (SDD-0258). Se leen con el ADMIN client y
-  // SCOPEADO por `client.id` —el cliente resuelto por sesión, nunca por un
-  // parámetro— porque la RLS de `client_markbox_history` es para el equipo, no
-  // para el portal. Best-effort: si la migr 0367 no está, lista vacía.
+  // Códigos que este cliente TUVO (SDD-0258) y fotos del bucket privado (avatar
+  // cosmético + cédula de verificación) · SDD-0341: la RPC 0405 deriva cliente y
+  // tenant de la sesión; el firmador server-only no recibe ids ni paths y la
+  // página sólo ve códigos y URLs firmadas. Sin principal o ante fallo → vacío.
   //
-  // Se le muestra porque le sirve de verdad: su proveedor en China puede tener
-  // el código viejo rotulado, y necesita saber que esa caja llega igual.
-  let codigosAnteriores: string[] = [];
-  try {
-    const { data } = await createAdminClient()
-      .from("client_markbox_history")
-      .select("markbox")
-      .eq("client_id", client.id)
-      .order("retired_at", { ascending: false });
-    codigosAnteriores = (data ?? []).map((r) => String(r.markbox));
-  } catch {
-    codigosAnteriores = [];
-  }
-
-  // Fotos del bucket privado (avatar cosmético + cédula de verificación):
-  // signed URLs server-side con el ADMIN client, scopeado al cliente resuelto
-  // por sesión. Best-effort: sin columna/archivo → null, sin romper.
-  let avatarUrl: string | null = null;
-  let cedulaUrl: string | null = null;
-  let hasCedulaPhoto = false;
-  try {
-    const admin = createAdminClient();
-    const { data: row } = await admin
-      .from("clients")
-      .select("avatar_path, cedula_photo_path")
-      .eq("id", client.id)
-      .maybeSingle<{
-        avatar_path: string | null;
-        cedula_photo_path: string | null;
-      }>();
-    const avatarPath = String(row?.avatar_path ?? "").trim();
-    const cedulaPath = String(row?.cedula_photo_path ?? "").trim();
-    hasCedulaPhoto = cedulaPath.length > 0;
-    if (avatarPath) {
-      const { data: signed } = await admin.storage
-        .from(PHOTO_BUCKET)
-        .createSignedUrl(avatarPath, 3600);
-      avatarUrl = signed?.signedUrl ?? null;
-    }
-    if (cedulaPath) {
-      const { data: signed } = await admin.storage
-        .from(PHOTO_BUCKET)
-        .createSignedUrl(cedulaPath, 60);
-      cedulaUrl = signed?.signedUrl ?? null;
-    }
-  } catch {
-    avatarUrl = null;
-    cedulaUrl = null;
-  }
+  // Los códigos se le muestran porque le sirven de verdad: su proveedor en China
+  // puede tener el código viejo rotulado, y necesita saber que esa caja llega igual.
+  const { previousMarkboxes: codigosAnteriores, avatarUrl, cedulaUrl } =
+    await getPortalPrivateProfileContext(supabase);
+  // Existencia persistida de la foto de identidad (SDD-0439): no depende de la
+  // firma temporal ni de la RPC 0405; es la misma lectura de sesión que el aviso
+  // "1 pendiente", así un fallo de firma nunca ofrece reemplazar el documento.
+  const hasCedulaPhoto = completeness.hasPhoto;
 
   // Solicitud de cambio de datos (SDD-0151). Best-effort: sin migración 0220
   // (tabla ausente) → null, sin romper. El snapshot fija tenant, cliente y
