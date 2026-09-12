@@ -18,7 +18,7 @@ Estado: lista-para-revision. **No está integrada.** La PR es la frontera; el me
 1. `scripts/harness-worktree.mjs` — el arreglo.
 2. `scripts/tests/harness-worktree.node.mjs` — dos pruebas nuevas y un ajuste de aserción.
 3. `docs/specs/0459-principal-sin-inferir/spec.md` — spec completa (el stub reservado, reescrito).
-4. `docs/specs/README.md` — índice regenerado con `docs:index` (433 specs).
+4. `docs/specs/README.md` — índice regenerado con `docs:index`; tras el merge de `main` quedó en 437 specs.
 5. `.agents/handoffs/principal-sin-inferir.md` — este archivo.
 
 **`docs/runbooks/codex-engineering.md` NO se tocó**, y es deliberado: el runbook describe el flujo normal del repo, que no es bare, y el caso nuevo no aparece en ninguno de sus pasos. Si el Director prefiere una línea ahí, la agrego.
@@ -50,26 +50,39 @@ Bloquearía a un Worker en su propio árbol. `next-number.mjs` descarta `bare` p
 
 | comprobación | resultado |
 | --- | --- |
-| `corepack pnpm harness:test` (Windows) | PASÓ — 85/85 |
+| `corepack pnpm harness:test` (Windows) | PASÓ — 85/85 al publicar, y de nuevo tras el merge de `main` |
 | `node --test` sobre el archivo tocado | PASÓ — 8/8, incluidas las 6 de SDD-0457/0458 sin tocarlas |
-| `corepack pnpm docs:check` | PASÓ — 433 specs |
+| `corepack pnpm docs:check` | PASÓ — 433 specs al publicar; **437** tras el merge de `main` `12de40dd`, con las filas 0458 y 0459 |
 | `corepack pnpm sdd:check` | PASÓ — sin números repetidos |
 | `eslint` sobre los 2 archivos de código | PASÓ — 0 problemas |
 | `git diff --check` | PASÓ |
 | comportamiento contra un repo `--bare` real y contra DTDCARGO | PASÓ |
 | `corepack pnpm verify` | **NO EJECUTADO** — su paso `e2e` exige Supabase, que esta sesión no tiene |
-| CI alojado | **PENDIENTE** — se registra por mensaje al Director, no con otro push |
+| CI alojado | ver la sección del CI: la primera publicación **no tuvo** el check obligatorio por la base apilada; lo obtiene con el push del merge de `main` |
 
 **Seis mutantes** dejan rojo la prueba que les toca. Los dos que sobrevivieron en la primera ronda no se taparon con más pruebas: señalaban código que no hacía falta y se borró.
 
 **Pruebas de producto que no aplican.** El cambio vive en `scripts/` y ninguna ruta de `app/`, `lib/` ni `supabase/` importa este archivo: `playwright`, `typecheck`, `rsc-boundary`, `components:check`, `governance:check`, `edge:check`, `sql-tests`, `schema-rebuild` y `migrations-applied` no aplican. Tampoco `/ui-check` (no hay UI) ni `revisar-datos-ve` (no se trata dato personal alguno).
 
+## Lo que aprendimos del CI de este repo, medido en esta tarea
+
+Lo pidió el Director para que no se vuelva a suponer. Todo salió de que #98 nació apilada sobre la rama de #97, y todo es sobre `.github/workflows/quality.yml`, que declara `on: pull_request: branches: [main]`.
+
+1. **Una PR cuya base no es `main` no tiene el check obligatorio**, y eso no se nota: «Calidad local sin secretos» simplemente no aparece y `gh pr checks` sale **0** porque los checks de Vercel que sí están pasaron. El `mergeStateStatus: CLEAN` de esa PR tampoco significa validada — significa que el ruleset de `main` no le aplica.
+2. **Cambiar la base a `main` NO dispara el workflow.** Un cambio de base emite `edited`, que no está entre los tipos por defecto de `on: pull_request` (`opened`, `synchronize`, `reopened`). Medido: `gh run list --branch codex/principal-sin-inferir` seguía en cero después de `gh pr edit 98 --base main`.
+3. **Un run de `workflow_dispatch` pasa el gate pero no cuenta para el ruleset.** El run `34679112636` salió `success` sobre `9efc8c88` y el check **nunca figuró** en la PR: sirve como evidencia de que el código pasa, no para satisfacer la regla.
+4. **Lo que sí lo da es un `synchronize`**, o sea cualquier push. Una PR apilada queda `BEHIND` y necesita el merge de `main` igual, así que ese merge —el que había que hacer de todos modos— es el evento que le da el check. No hicieron falta commits vacíos ni cerrar y reabrir la PR, y el Director los descartó explícitamente.
+
+**No medido, anotado y no perseguido:** #98 mostraba `BEHIND` y no `BLOCKED` por el check faltante; se sospecha que estar detrás tiene precedencia en ese campo, pero no se comprobó y no cambia nada.
+
 ## Pendientes de esta tarea
 
-1. Publicar y abrir la PR. **Una vez publicada, la rama se congela**: el resultado del CI se le manda al Director por mensaje, no con otro commit.
-2. Integrar `main` cuando #97 aterrice, y resolver ahí una sola vez.
+1. ~~Publicar y abrir la PR~~ — hecho: [PR #98](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/98). Su base se movió de la rama de #97 a `main` por el motivo del punto 1 de arriba.
+2. ~~Integrar `main` cuando #97 aterrice~~ — hecho: #97 fusionada, `main` en `12de40dd`, traído acá con el driver `dtd-generated-records` y **sin conflicto en `scripts/harness-worktree.mjs`**, que era el punto donde las dos tareas se tocaban. `docs:check` da **437 specs** con las filas 0458 y 0459, y el archivo conserva `worktreeContainers`/`resolveCandidate` de #97 junto con `mainWorktreeFrom`/`repoState` de esta tarea.
 3. Liberar el claim al cerrar la escritura.
 4. **Integración: del Director.**
+
+**Límite de la revalidación tras el merge:** la rama ahora contiene producto ajeno llegado con `main` (`app/`, `lib/`, `supabase/`) y la validación local **no lo cubre** — se corrió el harness, no `pnpm test` ni las pruebas SQL. Esa cobertura existe por el CI de cada PR que entró a `main`, pero no la produjo esta sesión.
 
 ## FUERA DE ALCANCE DETECTADO
 
