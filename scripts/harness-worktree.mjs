@@ -8,9 +8,20 @@ export function isValidSlug(slug) {
   return typeof slug === 'string' && slug.length <= 60 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)
     && !/^(con|prn|aux|nul|com[0-9]|lpt[0-9])$/i.test(slug);
 }
+const CODEX_CONTAINER = 'DTD-worktrees';
+const CLAUDE_CONTAINER = path.join('.claude', 'worktrees');
 export function worktreePathFor(mainWorktree, slug) {
   if (!isValidSlug(slug)) throw new Error('Slug inválido; usa kebab-case seguro.');
-  return path.join(path.dirname(mainWorktree), 'DTD-worktrees', slug);
+  return path.join(path.dirname(mainWorktree), CODEX_CONTAINER, slug);
+}
+/**
+ * Los dos contenedores donde este repo aloja worktrees vinculados: el de la metodología
+ * Codex, que `start` crea, y el que la app de Claude Code crea dentro del propio checkout.
+ * Es un filtro de pertenencia, nunca una fuente: el candidato de `finish` sale siempre de
+ * `git worktree list`, jamás de una ruta armada con el nombre que se pasó.
+ */
+export function worktreeContainers(mainWorktree) {
+  return [path.join(path.dirname(mainWorktree), CODEX_CONTAINER), path.join(mainWorktree, CLAUDE_CONTAINER)];
 }
 export function branchFor(slug) {
   if (!isValidSlug(slug)) throw new Error('Slug inválido.');
@@ -45,67 +56,160 @@ function mustGit(args, cwd) {
   return r.out;
 }
 const normalize = (p) => process.platform === 'win32' ? path.resolve(p).toLowerCase() : path.resolve(p);
-// Un campo del porcelain es `clave` pelada o `clave valor`. `locked` y `prunable` llegan de las dos
-// formas —`locked` a secas cuando se bloqueó sin razón, `prunable gitdir file points to non-existent
-// location` cuando git la da—, medido con git 2.55. Por eso el booleano mira las dos y la razón solo
-// la segunda: bloqueado sin razón es `locked: true` con `lockedReason: null`, no un bloqueo invisible.
+// Un campo del porcelain es `clave` pelada o `clave valor`. `bare` y `detached` llegan siempre
+// pelados; `locked` y `prunable`, de las dos formas —`locked` a secas cuando se bloqueó sin razón,
+// `prunable gitdir file points to non-existent location` cuando git la da—, medido con git 2.55.
+// Por eso el booleano mira las dos formas y la razón solo la segunda: bloqueado sin razón es
+// `locked: true` con `lockedReason: null`, que es un bloqueo deliberado del que git no guardó motivo,
+// nunca un bloqueo invisible.
 const hasField = (fields, key) => fields.some((f) => f === key || f.startsWith(`${key} `));
 const fieldValue = (fields, key) => fields.find((f) => f.startsWith(`${key} `))?.slice(key.length + 1) ?? null;
 /**
- * Registros de `git worktree list --porcelain -z`, **sin el del repositorio bare**.
+ * Registros de `git worktree list --porcelain -z`, **tal cual los emite git**: no se descarta
+ * ninguno y no se reordena. `entries[0]` sigue siendo el primer registro del porcelain, que es la
+ * invariante sobre la que `mainWorktreeFrom` verifica el principal; filtrar acá la entrada bare se
+ * la sacaría de abajo. Quién no es candidato lo decide cada consumidor con el flag `bare`.
  *
- * Un repo bare emite un registro propio con el campo `bare`, sin árbol de trabajo ni rama, y git lo
- * emite PRIMERO. Dejarlo dentro hacía que `entries[0]` —del que salen el checkout principal, su
- * contenedor de worktrees, el rechazo de `guard` y el candidato de `finish`— apuntara a un directorio
- * que no es checkout de nada, y sin que fallara ninguna prueba. `scripts/next-number.mjs` ya lo
- * descartaba; acá faltaba, y la asimetría entre dos lectores del mismo porcelain era el supuesto
- * silencioso: hoy se cumple por casualidad, porque el checkout principal de este repo no es bare.
+ * El `-z` no es cosmético: sin él git **cita y escapa en octal** la razón de un lock con caracteres
+ * no ASCII (`locked "el Director lo pidi\303\263"`), así que la razón cruda solo sale de este
+ * formato. Medido con git 2.55.
  *
- * Medido con git 2.55: en un repo normal el principal va primero aunque su nombre no sea el primero
- * alfabéticamente (los vinculados sí vienen ordenados por ruta), así que lo único que le quitaba el
- * primer puesto al principal era justamente el registro bare.
+ * Pura y exportada para fijar por prueba el parseo sobre una salida literal, incluido el registro
+ * bare y las dos formas de `locked`, sin depender de armar el repo que los produce.
  *
- * Pura y exportada para fijar el caso por prueba sobre una salida literal, sin depender de armar un
- * repo bare; la prueba de integración arma uno igual, porque el orden lo decide git y no esta función.
+ * @param {string} porcelain — salida de `git worktree list --porcelain -z`.
  */
 export function parseWorktrees(porcelain) {
-  return porcelain.split('\0\0').filter(Boolean).flatMap((entry) => {
+  return porcelain.split('\0\0').filter(Boolean).map((entry) => {
     const fields = entry.split('\0');
-    if (fields.includes('bare')) return [];
-    return [{
+    // `bare` es un campo sin valor: marca el repo común cuando no tiene checkout propio.
+    return {
       path: fieldValue(fields, 'worktree'),
       branch: fieldValue(fields, 'branch'),
+      bare: fields.includes('bare'),
       locked: hasField(fields, 'locked'),
       lockedReason: fieldValue(fields, 'locked'),
       prunable: hasField(fields, 'prunable'),
       prunableReason: fieldValue(fields, 'prunable'),
-    }];
+    };
   });
 }
 function worktrees() {
-  const entries = parseWorktrees(mustGit(['worktree', 'list', '--porcelain', '-z']));
-  // Sin el registro bare, un repo bare sin worktrees vinculados deja la lista vacía. Se nombra en vez
-  // de morir en `entries[0].path` con un TypeError sin contexto.
-  if (!entries.length) throw new Error('git worktree list no devolvió ningún worktree con árbol de trabajo: revisión manual del Director.');
-  return entries;
+  return parseWorktrees(mustGit(['worktree', 'list', '--porcelain', '-z']));
 }
-function safeTarget(slug) {
+/**
+ * Checkout principal **verificado**, o `null` cuando no hay ninguno.
+ *
+ * `entries[0]` era el principal por convención del porcelain, y nadie preguntaba si existía.
+ * Medido con git 2.55: en un repo no bare el principal se lista primero siempre —da igual desde
+ * qué worktree se consulte, y da igual que otro se llame `aaa`—, así que la posición no estaba
+ * mal; lo que faltaba era la pregunta. Si el repo común es **bare** no hay checkout principal,
+ * `entries[0]` es el propio bare, y quien lo tratara como principal razonaría sobre una ruta que
+ * no es un árbol de trabajo. Descartar la entrada bare sin más es peor: el primero pasa a ser el
+ * worktree de un Worker y el harness lo declara «checkout principal», rechazando su `guard`.
+ *
+ * Acá no se elige: si no hay principal se devuelve `null` y cada consumidor decide qué hacer con
+ * el «no sé», que nunca puede ser contestar igual que cuando sí lo hay.
+ *
+ * La posición se **verifica** en vez de confiarse, con una sola condición: el checkout principal
+ * es el árbol cuyo `.git` es el directorio común, o sea `dirname(--git-common-dir)`. En un repo
+ * normal eso da `entries[0]` y coincide; en uno bare el común es el propio `repo.git`, cuyo
+ * `dirname` es su carpeta contenedora y nunca el `entries[0]` que el porcelain trae —el bare
+ * mismo—, así que no coincide y la respuesta es `null`. Una primera versión sumaba a esto el
+ * flag `bare` y un chequeo del nombre `.git`; la mutación mostró que **ninguno de los dos
+ * cambiaba un resultado** y se fueron: la comparación sola los cubre. El flag se sigue leyendo
+ * en `worktrees()`, pero para otra cosa —excluir esa entrada de los candidatos—, y eso sí lo
+ * fija una prueba.
+ *
+ * Ojo con la vía obvia: `git rev-parse --is-bare-repository` devuelve **`false`** desde un
+ * worktree linked de un repo bare (medido), así que confirma la hipótesis equivocada.
+ *
+ * Pura y exportada para poder fijar por prueba el caso bare sin depender del repo donde corre.
+ *
+ * @param {{path: string, bare?: boolean}[]} entries — `git worktree list --porcelain`.
+ * @param {string|null} commonDir — `git rev-parse --path-format=absolute --git-common-dir`.
+ * @returns {string|null} ruta del checkout principal, o null si no hay o no se pudo verificar.
+ */
+export function mainWorktreeFrom(entries, commonDir) {
+  if (!entries.length || !entries[0].path || !commonDir) return null;
+  return normalize(path.dirname(commonDir)) === normalize(entries[0].path) ? entries[0].path : null;
+}
+/** Lee la lista y el common-dir juntos: el principal se verifica contra los dos. */
+function repoState() {
   const entries = worktrees();
-  const main = realpathSync(entries[0].path);
-  const target = worktreePathFor(main, slug);
+  const common = git(['rev-parse', '--path-format=absolute', '--git-common-dir']);
+  const main = mainWorktreeFrom(entries, common.code === 0 ? common.out : null);
+  return { entries, main: main === null ? null : realpathSync(main) };
+}
+const SIN_PRINCIPAL = 'Este repo no tiene checkout principal verificable (el repo común es bare, o su git-common-dir no cuelga de un árbol de trabajo)';
+function assertNotRedirected(target) {
   const container = path.dirname(target);
   if (existsSync(container) && (lstatSync(container).isSymbolicLink() || normalize(realpathSync(container)) !== normalize(container))) throw new Error('Contenedor de worktrees redirigido: revisión manual requerida.');
   if (existsSync(target) && (lstatSync(target).isSymbolicLink() || normalize(realpathSync(target)) !== normalize(target))) throw new Error('Worktree redirigido: revisión manual requerida.');
-  return { target, entries };
+  return target;
+}
+function startTarget(slug) {
+  const { main } = repoState();
+  // `start` deriva el contenedor del principal: sin principal no hay dónde crear, y adivinar
+  // un hermano de un repo bare sería inventar la respuesta que no existe.
+  if (main === null) throw new Error(`${SIN_PRINCIPAL}, así que start no puede decidir dónde crear el worktree. Creá el árbol a mano con git worktree add y corré guard adentro.`);
+  return assertNotRedirected(worktreePathFor(main, slug));
+}
+const sameName = (a, b) => process.platform === 'win32' ? a.toLowerCase() === b.toLowerCase() : a === b;
+const nameList = (entries) => entries.length ? [...entries.map((e) => path.basename(e.path))].sort().join(', ') : 'ninguno';
+/**
+ * Candidato de `finish`, resuelto contra la lista real de `git worktree list`. Antes se armaba
+ * la ruta con `worktreePathFor`, así que el comando solo veía `DTD-worktrees/<slug>` y respondía
+ * «Slug inválido» o «no es un worktree registrado» ante los de `.claude/worktrees/`, donde hoy
+ * trabaja buena parte de las sesiones: un cierre que mira medio universo es el mismo verde por
+ * omisión que SDD-0457 quitó de `check-unpublished`. Sin nombre informa sobre el worktree donde
+ * se corre —ahí no hay ambigüedad que resolver, así que no se exige contenedor conocido—; con
+ * nombre exige pertenecer a `worktreeContainers`. El checkout principal nunca es candidato.
+ *
+ * Pura y exportada. El nombre solo se **compara** con entradas ya registradas y nunca se
+ * concatena a una ruta, así que `..`, separadores o un nombre absoluto no pueden señalar nada
+ * de fuera: como mucho no coinciden con ninguna entrada.
+ *
+ * Sin checkout principal (`main === null`) los dos caminos se separan en vez de igualarse: el
+ * que no lo necesita —informar sobre el worktree donde se corre— sigue funcionando, y el que sí
+ * lo necesita —resolver por nombre, que deriva los contenedores del principal— se niega con
+ * motivo en vez de resolver contra rutas inventadas a partir de un repo bare.
+ *
+ * @param {{path: string, branch?: string, bare?: boolean}[]} entries — `git worktree list`.
+ * @param {string|null} main — checkout principal verificado, o null si no hay ninguno.
+ * @param {string|undefined} name — nombre del directorio del worktree; sin él, el actual.
+ * @param {string|null} cwdRoot — raíz del worktree desde donde se corre, o null si no se pudo saber.
+ */
+export function resolveCandidate(entries, main, name, cwdRoot) {
+  const containers = main === null ? null : worktreeContainers(main);
+  const linked = entries.filter((e) => !e.bare && (main === null || normalize(e.path) !== normalize(main)));
+  const eligible = containers === null ? [] : linked.filter((e) => containers.some((c) => normalize(path.dirname(e.path)) === normalize(c)));
+  const candidatos = containers === null ? `Worktrees vinculados: ${nameList(linked)}` : `Candidatos: ${nameList(eligible)}`;
+  if (name === undefined) {
+    const here = cwdRoot === null ? undefined : linked.find((e) => normalize(e.path) === normalize(cwdRoot));
+    if (here) return here;
+    const donde = cwdRoot === null ? 'no se pudo determinar desde dónde corrés' : main !== null && normalize(cwdRoot) === normalize(main)
+      ? `estás en el checkout principal (${cwdRoot}), que nunca es candidato` : `${cwdRoot} no es un worktree vinculado de este repo`;
+    throw new Error(`Sin nombre, finish informa sobre el worktree actual, y ${donde}. Pasá el nombre del directorio. ${candidatos}.`);
+  }
+  if (containers === null) throw new Error(`${SIN_PRINCIPAL}, y los contenedores que finish acepta se derivan de él, así que no puedo resolver «${name}» por nombre. Corré finish sin nombre desde el worktree que querés informar. ${candidatos}.`);
+  const matches = eligible.filter((e) => sameName(path.basename(e.path), name));
+  if (matches.length > 1) throw new Error(`«${name}» nombra ${matches.length} worktrees registrados (${matches.map((e) => e.path).join('; ')}): corré finish sin nombre desde el que te toca.`);
+  if (matches.length === 0) throw new Error(`No hay worktree registrado llamado «${name}». finish resuelve contra git worktree list y acepta los de ${containers.join(' y ')}. ${candidatos}.`);
+  return matches[0];
 }
 function claimPath(root) {
   return path.join(mustGit(['rev-parse', '--absolute-git-dir'], root), 'harness-session-claim.json');
 }
 function guard(owner) {
   const root = realpathSync(mustGit(['rev-parse', '--show-toplevel']));
-  const entries = worktrees();
-  const entry = entries.find((e) => normalize(e.path) === normalize(root));
-  if (!entry || normalize(realpathSync(entries[0].path)) === normalize(root)) throw new Error('Trabajo rechazado: el checkout principal no es un workspace de implementación.');
+  const { entries, main } = repoState();
+  const entry = entries.find((e) => !e.bare && normalize(e.path) === normalize(root));
+  if (!entry) throw new Error('Trabajo rechazado: este árbol no es un worktree registrado de este repo.');
+  // Sin principal la comparación no se omite por comodidad: es que ninguno lo es, así que
+  // ningún árbol puede ser rechazado por serlo. El chequeo de linked worktree de más abajo
+  // sigue siendo el que impide trabajar sobre el repo común.
+  if (main !== null && normalize(main) === normalize(root)) throw new Error('Trabajo rechazado: el checkout principal no es un workspace de implementación.');
   if (!entry.branch || entry.branch === 'refs/heads/main') throw new Error('Trabajo rechazado: main o HEAD detached.');
   const gitDir = mustGit(['rev-parse', '--absolute-git-dir']);
   const common = mustGit(['rev-parse', '--path-format=absolute', '--git-common-dir']);
@@ -147,7 +251,7 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   switch (args.cmd) {
     case 'start': {
-      const { target } = safeTarget(args.slug);
+      const target = startTarget(args.slug);
       const branch = branchFor(args.slug);
       if (existsSync(target)) throw new Error(`Ya existe ${target}.`);
       if (git(['show-ref', '--verify', '--quiet', `refs/heads/${branch}`]).code === 0) throw new Error(`Ya existe ${branch}.`);
@@ -179,9 +283,12 @@ function main() {
       break;
     }
     case 'finish': {
-      const { target, entries } = safeTarget(args.slug);
-      const entry = entries.find((e) => normalize(e.path) === normalize(target));
-      if (!entry || !existsSync(target)) throw new Error('El candidato no es un worktree registrado y disponible.');
+      const { entries, main } = repoState();
+      const here = git(['rev-parse', '--show-toplevel']);
+      const entry = resolveCandidate(entries, main, args.slug, here.code === 0 ? here.out : null);
+      // `path.resolve` para que el informe use los separadores de la plataforma: git los devuelve con `/` también en Windows.
+      const target = assertNotRedirected(path.resolve(entry.path));
+      if (!existsSync(target)) throw new Error(`El worktree «${path.basename(target)}» está registrado pero no existe en disco (${target}): revisión manual del Director.`);
       const status = mustGit(['status', '--porcelain=v1', '--untracked-files=all'], target);
       const ignored = ignoredReport(target);
       const claim = readClaim(target);
@@ -189,12 +296,12 @@ function main() {
       const remote = git(['rev-parse', '--verify', 'refs/remotes/origin/main']);
       const included = remote.code === 0 ? git(['merge-base', '--is-ancestor', head, remote.out]).code === 0 : null;
       console.log(JSON.stringify({ candidate: target, branch: entry.branch ?? null, head, hasChanges: Boolean(status), hasIgnoredFiles: ignored.count > 0, ignoredEntryCount: ignored.count, ignoredEntries: ignored.preview, sensitiveIgnoredFiles: ignored.sensitive, claim, locked: entry.locked, lockedReason: entry.lockedReason, prunable: entry.prunable, prunableReason: entry.prunableReason, includedInCachedOriginMain: included, cleanupAuthorized: false }, null, 2));
-      console.log('Solo informe: no borra ni poda. El inventario ignorado es compacto: un directorio ignorado completo se colapsa en una entrada y solo se expande un nivel para nombrar archivos sensibles, nunca para leerlos; `ignoredEntries` muestra hasta 50 y `ignoredEntryCount` da el total. origin/main es una referencia local que puede estar atrasada. El claim no prueba ausencia de otras sesiones. `locked` y `prunable` repiten lo que dice git del candidato —que alguien lo marcó a propósito, con su razón si la dio, y que git ya lo considera desechable— como evidencia para la limpieza manual, no como decisión: este informe no poda. Un candidato ausente en disco se sigue rechazando por `existsSync` y no por lo que opine git: si git y el disco discrepan, manda el disco. El Director debe verificar sesiones, procesos, archivos ignorados y publicación con remoto actualizado antes de limpieza manual: docs/runbooks/codex-engineering.md#cleanup.');
+      console.log('Solo informe: no borra ni poda. El inventario ignorado es compacto: un directorio ignorado completo se colapsa en una entrada y solo se expande un nivel para nombrar archivos sensibles, nunca para leerlos; `ignoredEntries` muestra hasta 50 y `ignoredEntryCount` da el total. origin/main es una referencia local que puede estar atrasada. El claim no prueba ausencia de otras sesiones. `locked` y `prunable` repiten lo que dice git del candidato —que alguien lo marcó a propósito, con su razón si la dio, y que git ya lo considera desechable— como evidencia para la limpieza manual, no como decisión: este informe no poda ni desbloquea nada. Un candidato ausente en disco se sigue rechazando por `existsSync` y no por lo que opine git: si git y el disco discrepan, manda el disco. El Director debe verificar sesiones, procesos, archivos ignorados y publicación con remoto actualizado antes de limpieza manual: docs/runbooks/codex-engineering.md#cleanup.');
       break;
     }
     case 'list': console.log(mustGit(['worktree', 'list'])); break;
     case undefined: case 'help': case '--help': case '-h':
-      console.log('harness-worktree start <slug> [--from <ref>] [--dry-run]\nharness-worktree guard [--owner <id>]\nharness-worktree claim|release --owner <id> [--dry-run]\nharness-worktree finish <slug> [--dry-run] (solo informe)\nharness-worktree list\nDefault: codex/<slug>, origin/main, --no-track. Sin copias de entorno ni instalación implícita.');
+      console.log('harness-worktree start <slug> [--from <ref>] [--dry-run]\nharness-worktree guard [--owner <id>]\nharness-worktree claim|release --owner <id> [--dry-run]\nharness-worktree finish [<nombre>] [--dry-run] (solo informe)\nharness-worktree list\nDefault: codex/<slug>, origin/main, --no-track. Sin copias de entorno ni instalación implícita.\nstart siempre crea en DTD-worktrees/<slug>; finish informa sobre cualquier worktree registrado de DTD-worktrees/ o .claude/worktrees/, y sin nombre sobre el actual.');
       break;
     default: throw new Error(`Comando desconocido: ${args.cmd}`);
   }
