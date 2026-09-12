@@ -13,16 +13,17 @@ confidencialidad: interno
 
 # SDD0381 · solicitudes de servicios de recepción
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: in-progress` incluido, que refleja su estado **en la rama de
-> origen**. Su migración `0429_portal_service_requests_principal_tenant` queda **declarada
-> pendiente** en `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta
-> tarea**. Orden de aplicación: **después** de `0417_portal_prealertas_tenant_boundary`
-> (SDD-0361), porque su contrato la incluye; de a una, nunca en bundle. El cambio de
-> `lib/studio/prealertas/queries.ts` se adopta de forma focal sobre main (sólo contexto y
-> consulta de solicitudes) y no usa objetos creados por 0417 ni 0429, así que no es
-> migrate-first. Aplicarla exige OK nominal de Sam y el runbook
-> `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-11, actualizada tras la aplicación.** Esta spec entró a
+> `main` desde la PR #21 con su contenido original, `status: in-progress` incluido. Su
+> migración `0429_portal_service_requests_principal_tenant` **fue APLICADA a producción el
+> 2026-09-11** con OK nominal de Sam (ledger
+> `20260912000143 / 0429_portal_service_requests_principal_tenant`) y se verificó contra el
+> objeto; el registro y la vuelta atrás están en
+> `.agents/handoffs/lote-11-migraciones-aplicadas-20260911.md`. Se aplicó sola y **después** de
+> `0417_portal_prealertas_tenant_boundary` (SDD-0361), porque su contrato la incluye. El cambio
+> de `lib/studio/prealertas/queries.ts` se adoptó de forma focal sobre main (sólo contexto y
+> consulta de solicitudes) y no usa objetos creados por 0417 ni 0429, así que no era
+> migrate-first. Falta el smoke funcional de servicios de recepción del Portal.
 
 ## Evidencia y autoridad
 

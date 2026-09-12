@@ -13,12 +13,13 @@ confidencialidad: interno
 
 # SDD0385 · mensajes Portal por principal y tenant coherentes
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0431_portal_post_message_principal_tenant` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
-> `done` de la cabecera no significa que este contrato esté vigente en la base real. Aplicarla
-> exige OK nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-11, actualizada tras la aplicación.** Esta spec entró a
+> `main` desde la PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0431_portal_post_message_principal_tenant` **fue APLICADA a producción el 2026-09-11** con
+> OK nominal de Sam (ledger `20260912000336 / 0431_portal_post_message_principal_tenant`) y se
+> verificó contra el objeto: `portal_post_message(text)` conserva firma, retorno `uuid`,
+> `SECURITY DEFINER` y la ACL de `authenticated`/`service_role`. El registro y la vuelta atrás
+> están en `.agents/handoffs/lote-11-migraciones-aplicadas-20260911.md`.
 
 ## Evidencia y autoridad
 

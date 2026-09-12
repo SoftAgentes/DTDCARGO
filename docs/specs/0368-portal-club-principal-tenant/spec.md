@@ -13,13 +13,16 @@ confidencialidad: interno
 
 # SDD-0368 — Club Portal: coherencia del principal
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: in-progress` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0424_portal_club_principal_tenant` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: este
-> contrato **no está vigente** en la base real y las casillas marcadas que hereda del origen no
-> acreditan producción. Aplicarla exige OK nominal de Sam y el runbook
-> `docs/runbooks/aplicar-migraciones-prod.md`.
+> **Nota de importación — 2026-09-11, actualizada tras la aplicación.** Esta spec entró a
+> `main` desde la PR #21 con su contenido original, `status: in-progress` incluido. Su
+> migración `0424_portal_club_principal_tenant` **fue APLICADA a producción el 2026-09-11** con
+> OK nominal de Sam (ledger `20260912000248 / 0424_portal_club_principal_tenant`) y se verificó
+> contra el objeto: el cuerpo de `get_portal_person_id()` quedó con el md5 que exige su
+> postflight, con la firma, el owner, la ACL y las seis policies dependientes conservadas. El
+> registro y la vuelta atrás están en
+> `.agents/handoffs/lote-11-migraciones-aplicadas-20260911.md`. Las casillas marcadas que
+> hereda del origen siguen describiendo esa rama: la aplicación acredita la migración, no el
+> resto de la spec.
 
 ## Objetivo y evidencia inicial
 
