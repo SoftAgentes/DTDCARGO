@@ -7,20 +7,22 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { clasificarGate, HOOK_MAX_BUFFER } from '../harness-verify-hook.mjs';
 const hook = fileURLToPath(new URL('../harness-verify-hook.mjs', import.meta.url));
-test('un gate sin medir no se disfraza de gate rojo', () => {
+test('un gate sin medir bloquea igual que un rojo, pero no se disfraza de rojo', () => {
   assert.ok(HOOK_MAX_BUFFER >= 32 * 1024 * 1024);
   assert.deepEqual(clasificarGate({ status: 0 }), { bloquea: false, medido: true, motivo: 'verde' });
   const rojo = clasificarGate({ status: 1 });
   assert.equal(rojo.bloquea, true); assert.equal(rojo.medido, true); assert.match(rojo.motivo, /ROJO \(exit 1\)/);
   // spawnSync mata al hijo al desbordar el búfer: el gate no terminó, así que no hay veredicto.
-  const desbordado = clasificarGate({ status: null, error: Object.assign(new Error('spawnSync ENOBUFS'), { code: 'ENOBUFS' }) });
-  assert.equal(desbordado.bloquea, false); assert.equal(desbordado.medido, false); assert.match(desbordado.motivo, /64 MB de salida capturada/);
+  const desbordado = clasificarGate({ status: null, signal: 'SIGTERM', error: Object.assign(new Error('spawnSync ENOBUFS'), { code: 'ENOBUFS' }) });
+  assert.equal(desbordado.bloquea, true); assert.equal(desbordado.medido, false); assert.match(desbordado.motivo, /64 MB de salida capturada/);
   const noLanzado = clasificarGate({ status: null, error: Object.assign(new Error('spawnSync ENOENT'), { code: 'ENOENT' }) });
-  assert.equal(noLanzado.medido, false); assert.match(noLanzado.motivo, /ENOENT/);
-  const porSenal = clasificarGate({ status: null, signal: 'SIGTERM' });
-  assert.equal(porSenal.bloquea, false); assert.equal(porSenal.medido, false); assert.match(porSenal.motivo, /SIGTERM/);
+  assert.equal(noLanzado.bloquea, true); assert.equal(noLanzado.medido, false); assert.match(noLanzado.motivo, /ENOENT/);
+  const porSenal = clasificarGate({ status: null, signal: 'SIGKILL' });
+  assert.equal(porSenal.bloquea, true); assert.equal(porSenal.medido, false); assert.match(porSenal.motivo, /SIGKILL/);
+  // Ningún motivo sin medir puede leerse como un veredicto rojo.
+  for (const sinMedir of [desbordado, noLanzado, porSenal]) assert.doesNotMatch(sinMedir.motivo, /ROJO/);
 });
-test('el hook bloquea solo por un gate rojo medido, y una salida enorme ya no lo rompe', (t) => {
+test('el hook deja cerrar solo con un gate verde, y una salida enorme ya no lo engaña', (t) => {
   const sandbox = mkdtempSync(path.join(tmpdir(), 'dtd-hook-test-'));
   // This fixture is the only recursive deletion target; never a real checkout.
   t.after(() => { assert.ok(path.resolve(sandbox).startsWith(path.resolve(tmpdir()) + path.sep)); rmSync(sandbox, { recursive: true, force: true }); });
@@ -58,7 +60,7 @@ test('el hook bloquea solo por un gate rojo medido, y una salida enorme ya no lo
   // mataba al gate a media corrida y el hook informaba ROJO un gate verde.
   fakeVerify({ exit: 0, megas: 3 });
   const verdeRuidoso = correr();
-  assert.equal(verdeRuidoso.status, 0, verdeRuidoso.stderr);
+  assert.equal(verdeRuidoso.status, 0, verdeRuidoso.stderr.slice(0, 300));
   assert.doesNotMatch(verdeRuidoso.stderr, /🛑|SIN MEDIR/);
   // Y un rojo ruidoso sigue bloqueando, con la cola real del final de la corrida.
   fakeVerify({ exit: 3, megas: 3 });
@@ -66,6 +68,14 @@ test('el hook bloquea solo por un gate rojo medido, y una salida enorme ya no lo
   assert.equal(rojoRuidoso.status, 2);
   assert.match(rojoRuidoso.stderr, /🛑 Harness gate en ROJO \(exit 3\)/);
   assert.match(rojoRuidoso.stderr, /ULTIMA-LINEA-DEL-GATE/);
+  // Un gate que desborda el búfer de verdad: spawnSync lo mata, no hay veredicto y el
+  // cierre se bloquea diciendo SIN MEDIR, nunca ROJO.
+  fakeVerify({ exit: 0, megas: 80 });
+  const sinMedir = correr();
+  assert.equal(sinMedir.status, 2);
+  assert.match(sinMedir.stderr, /SIN MEDIR/);
+  assert.match(sinMedir.stderr, /64 MB de salida capturada/);
+  assert.doesNotMatch(sinMedir.stderr, /gate en ROJO/);
   // El aviso de rama sin publicar llega a stderr sin decidir el cierre.
   writeFileSync(path.join(sandbox, 'scripts', 'check-unpublished.mjs'), "process.stdout.write('[AVISO] rama sin publicar\\n');\n");
   fakeVerify({ exit: 0 });

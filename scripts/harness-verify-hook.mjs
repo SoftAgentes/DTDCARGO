@@ -8,9 +8,12 @@
  * el cierre (exit 2) y devuelve el error a Claude para que lo arregle.
  *
  * Se registra como hook `Stop` en `.claude/settings.json`. Diseño defensivo:
- *   - Respeta `stop_hook_active` (anti-loop infinito).
- *   - Fail-open: cualquier error propio → exit 0 (nunca te traba por un bug del hook).
- *   - Un gate que NO se pudo medir se informa como tal; nunca se disfraza de ROJO.
+ *   - Respeta `stop_hook_active` (anti-loop infinito). Es la única salida si el gate
+ *     nunca logra medirse: el segundo intento de cierre pasa.
+ *   - Fail-open ante errores propios del hook: sin git, stdin raro o el aviso de
+ *     publicación nunca traban el cierre.
+ *   - Un gate SIN MEDIR (spawn fallido, salida desbordada, señal) bloquea igual que un
+ *     ROJO, porque no hay veredicto; pero se anuncia como tal, nunca disfrazado de rojo.
  */
 import { readFileSync } from "node:fs";
 import { execSync, spawnSync } from "node:child_process";
@@ -19,22 +22,23 @@ import { pathToFileURL } from "node:url";
 // spawnSync MATA al hijo al superar maxBuffer. Con el 1 MB por defecto, un `verify`
 // largo (el e2e solo ya escribe de sobra) moría a media corrida y el hook lo informaba
 // como ROJO: cierre bloqueado por un gate que nunca terminó. 64 MB deja el corte fuera
-// del alcance de cualquier salida de texto real.
+// del alcance de cualquier salida de texto real; si aun así se cruza, ahora se dice.
 export const HOOK_MAX_BUFFER = 64 * 1024 * 1024;
 
 /**
- * Veredicto del gate. Solo un código de salida distinto de cero bloquea el cierre.
- * Un gate sin medir (spawn fallido, salida desbordada, señal) se informa sin trabar.
+ * Veredicto del gate. Solo un exit 0 deja cerrar: un rojo bloquea por su veredicto y un
+ * gate sin medir (spawn fallido, salida desbordada, señal) bloquea por la ausencia de él.
+ * `medido` separa los dos motivos, que el mensaje nunca debe confundir.
  */
 export function clasificarGate(resultado) {
   if (resultado.error) {
     const motivo = resultado.error.code === "ENOBUFS"
       ? `el gate se canceló al pasar de ${Math.round(HOOK_MAX_BUFFER / 1024 / 1024)} MB de salida capturada`
       : `el gate no se pudo lanzar: ${resultado.error.message}`;
-    return { bloquea: false, medido: false, motivo };
+    return { bloquea: true, medido: false, motivo };
   }
   if (resultado.status === null) {
-    return { bloquea: false, medido: false, motivo: `el gate terminó por la señal ${resultado.signal ?? "desconocida"}, sin código de salida` };
+    return { bloquea: true, medido: false, motivo: `el gate terminó por la señal ${resultado.signal ?? "desconocida"}, sin código de salida` };
   }
   if (resultado.status === 0) return { bloquea: false, medido: true, motivo: "verde" };
   return { bloquea: true, medido: true, motivo: `ROJO (exit ${resultado.status})` };
@@ -76,25 +80,18 @@ function main() {
   // 3. Tocaste código → corre el gate.
   const r = spawnSync(process.execPath, ["scripts/verify.mjs"], { encoding: "utf8", maxBuffer: HOOK_MAX_BUFFER });
   const veredicto = clasificarGate(r);
-
-  // 4. Sin medir → se dice qué pasó y se deja cerrar. Un gate que no terminó no es un gate rojo.
-  if (!veredicto.medido) {
-    process.stderr.write(
-      `⚠️ Harness: ${veredicto.motivo}. El gate quedó SIN MEDIR y el cierre no se bloquea; ` +
-        "conviene correr `node scripts/verify.mjs` a mano.\n",
-    );
-    return 0;
-  }
   if (!veredicto.bloquea) return 0; // verde → dejar cerrar
 
-  // 5. Rojo → bloquear el cierre y mostrar el final del output a Claude.
+  // 4. Bloquear el cierre y mostrar el final del output a Claude. El rojo medido y el gate
+  //    sin medir comparten el exit 2, pero jamás el mensaje: son cosas distintas.
   const tail = ((r.stdout || "") + "\n" + (r.stderr || "")).slice(-1800);
-  process.stderr.write(
-    `🛑 Harness gate en ${veredicto.motivo} — hay cambios en app/lib/supabase. ` +
-      "Corré y arreglá `node scripts/verify.mjs` antes de cerrar:\n\n" +
-      tail +
-      "\n",
-  );
+  const encabezado = veredicto.medido
+    ? `🛑 Harness gate en ${veredicto.motivo} — hay cambios en app/lib/supabase. ` +
+      "Corré y arreglá `node scripts/verify.mjs` antes de cerrar:"
+    : `🛑 Harness gate SIN MEDIR: ${veredicto.motivo}. No hay veredicto, así que el cierre se ` +
+      "bloquea igual: hay que correr `node scripts/verify.mjs` a mano y confirmar que está " +
+      "verde. Cola de lo que alcanzó a correr:";
+  process.stderr.write(encabezado + "\n\n" + tail + "\n");
   return 2;
 }
 

@@ -56,15 +56,18 @@ Reproducido con el hook tal como está en `HEAD`, contra un `verify` falso que e
 **`scripts/harness-verify-hook.mjs`**
 
 - El spawn de `verify.mjs` recibe `HOOK_MAX_BUFFER = 64 MB`, igual que el `execSync` de `git status` y el spawn de `check-unpublished.mjs`.
-- `clasificarGate` (exportada) separa tres casos que antes se aplastaban en uno: **medido y verde** (exit 0) deja cerrar; **medido y rojo** (exit ≠ 0) bloquea con exit 2 y ahora nombra el código; **sin medir** (error de spawn, desbordamiento, señal) informa el motivo por stderr y **deja cerrar**, coherente con el fail-open que el encabezado del archivo ya prometía. Un gate que no terminó no es un gate rojo.
+- `clasificarGate` (exportada) separa tres casos que antes se aplastaban en uno: **medido y verde** (exit 0) deja cerrar; **medido y rojo** (exit ≠ 0) bloquea con exit 2 y ahora nombra el código; **sin medir** (error de spawn, desbordamiento, señal) **también bloquea con exit 2**, pero con un mensaje que dice «SIN MEDIR» y el motivo, nunca «ROJO». Solo un exit 0 deja cerrar: el rojo bloquea por su veredicto y el sin medir por la ausencia de él.
+  - Esta es una **decisión de Sam del 2026-09-11**, tomada sobre la primera versión, que dejaba cerrar el gate sin medir apoyándose en el fail-open del encabezado. Se invirtió a pedido suyo: «que el gate sin medir bloquee igual». El fail-open queda para los errores propios del hook (sin git, stdin raro, el aviso de publicación), que siguen sin trabar nada.
+  - La única salida si el gate jamás logra medirse es el anti-loop `stop_hook_active`, que ya existía: el segundo intento de cierre pasa. Está anotado en el encabezado del archivo.
 - El cuerpo pasó a `main()` con el guard `import.meta.url === pathToFileURL(process.argv[1]).href`, para poder importar el módulo en pruebas sin ejecutar el hook. El flujo, el orden de los pasos y el anti-loop `stop_hook_active` quedan idénticos.
-- El mensaje de bloqueo ahora dice `ROJO (exit N)`; el del gate sin medir arranca con `⚠️ Harness:` y la frase «SIN MEDIR».
+- Los dos bloqueos comparten el exit 2 y jamás el mensaje: el rojo medido dice `🛑 Harness gate en ROJO (exit N)`; el sin medir, `🛑 Harness gate SIN MEDIR: <motivo>`. Ambos adjuntan la cola de 1800 caracteres — en el caso desbordado, lo que el gate alcanzó a escribir antes de que `spawnSync` lo matara.
 - No se tocó `.claude/settings.json`: el hook se registra igual que antes.
 
 **`scripts/tests/harness-verify-hook.node.mjs`** (nuevo, 2 pruebas)
 
-- Unitaria de `clasificarGate`: verde, rojo con código, ENOBUFS (el motivo nombra los 64 MB), spawn no lanzado (ENOENT) y muerte por señal.
-- Integración con un sandbox propio: repo git de mentira, un cambio en `app/` y un `scripts/verify.mjs` falso. Cubre que sin cambios en código el gate **ni se lanza**, que `stop_hook_active` corta antes, el rojo normal (exit 2 con la cola real), el verde normal, **el verde ruidoso de 3 MB que antes salía exit 2 y ahora sale 0 sin avisos**, el rojo ruidoso que sigue bloqueando con la última línea del gate, y el `[AVISO]` de rama sin publicar que llega a stderr sin decidir el cierre.
+- Unitaria de `clasificarGate`: verde, rojo con código, ENOBUFS (el motivo nombra los 64 MB), spawn no lanzado (ENOENT) y muerte por señal. Los tres casos sin medir bloquean, y se exige que **ningún motivo sin medir contenga la palabra ROJO**.
+- Integración con un sandbox propio: repo git de mentira, un cambio en `app/` y un `scripts/verify.mjs` falso. Cubre que sin cambios en código el gate **ni se lanza**, que `stop_hook_active` corta antes, el rojo normal (exit 2 con la cola real), el verde normal, **el verde ruidoso de 3 MB que antes salía exit 2 y ahora sale 0 sin avisos**, el rojo ruidoso que sigue bloqueando con la última línea del gate, **un gate que desborda los 64 MB de verdad** (exit 2 con «SIN MEDIR» y sin «gate en ROJO»), y el `[AVISO]` de rama sin publicar que llega a stderr sin decidir el cierre.
+- El desbordamiento real cuesta **354 ms** medidos: `spawnSync` mata al hijo en cuanto cruza el límite, así que la prueba no espera a que escriba los 80 MB.
 
 ## VALIDACIÓN
 
@@ -77,6 +80,7 @@ Sobre `4897bb1d` (parte 1) y el commit del hook (parte 2), con Node 24.20.0, pnp
 - **PASÓ** — `eslint` sobre los cuatro archivos tocados: 0 errores, 0 advertencias. El exit code se leyó bien esta vez; en la primera corrida quedó tapado por un `tail` en la tubería, y se repitió.
 - **PASÓ** — reproducción y arreglo de `finish` sobre un worktree real (`c-l01-portal-marca`, solo lectura): fallaba con exit 1 antes, sale 0 en 0,67 s después, con las 7 entradas esperadas.
 - **PASÓ** — reproducción y arreglo del hook, con el archivo tal como está en `HEAD` y un `verify` falso de 3 MB que sale 0: original **exit 2** («ROJO»), arreglado **exit 0** con stderr vacío.
+- **PASÓ** — el gate sin medir bloquea y se anuncia bien, con un `verify` falso de 80 MB: **exit 2** y el encabezado literal «🛑 Harness gate SIN MEDIR: el gate se canceló al pasar de 64 MB de salida capturada. No hay veredicto, así que el cierre se bloquea igual…», seguido de la cola de lo capturado.
 - **PASÓ (no requerido)** — `corepack pnpm test`: **530 archivos, 6727 tests, exit 0** en 171 s. No hacía falta para un cambio de harness; se corrió para medir salida y de paso confirma que el producto sigue verde.
 - **PASÓ** — mutación de las pruebas, sobre copias en scratch, nunca sobre el árbol de trabajo. Cada mutante deja rojo exactamente la prueba que le toca:
   1. quitar `--directory` → cae el informe compacto;
@@ -84,7 +88,8 @@ Sobre `4897bb1d` (parte 1) y el commit del hook (parte 2), con Node 24.20.0, pnp
   3. bajar `GIT_MAX_BUFFER` a 1 MB → cae la cota del búfer;
   4. anular la expansión de un nivel → cae el `.env` anidado;
   5. quitar `maxBuffer` del spawn del gate → cae el verde ruidoso del hook;
-  6. volver a la clasificación vieja (`r.status === 0` o rojo) → cae la prueba del hook.
+  6. volver a la clasificación vieja (`r.status === 0` o rojo) → cae la prueba del hook;
+  7. devolver `bloquea: false` para el gate sin medir → caen las **dos** pruebas del hook.
 
 **Cuánta salida produce `verify` de verdad: medición, y corrección de lo que dije antes.** En la primera ronda afirmé que «un `verify` completo con e2e supera 1 MB sin esfuerzo». **No lo tenía medido y la medición lo desmiente en parte:** `corepack pnpm test` capturado a archivo ocupa **361 bytes**, porque fuera de TTY el reporter de vitest imprime solo el resumen. Los pasos de tests unitarios no aportan volumen.
 
@@ -136,7 +141,7 @@ Ninguno de implementación. Falta la revisión del Director y la CI del head pub
 
 - **Siguiente acción:** revisar la PR en borrador y correr su CI. La PR no se pasa a ready ni se mergea desde aquí.
 - **Contratos compartidos:** el JSON de `finish` **suma** campos (`ignoredEntryCount`, `ignoredEntries`, `sensitiveIgnoredFiles`) y ninguno cambia de nombre ni de tipo; `hasIgnoredFiles` conserva su significado. `runGit` y `GIT_MAX_BUFFER` quedan exportados por si otro script del harness quiere el mismo helper. No hay consumidores externos hoy.
-- **Contrato del hook `Stop`:** los códigos de salida no cambian de significado (0 deja cerrar, 2 bloquea) y `.claude/settings.json` queda igual. Lo que cambia es **cuándo** sale 2: solo con un gate medido en rojo. Un gate que no se pudo medir ahora sale 0 con un aviso `⚠️ Harness: … SIN MEDIR` en stderr, así que un cierre que antes se trababa por un falso rojo ahora pasa. Si el Director prefiere que ese caso bloquee, es una línea; quedó así porque el propio encabezado del archivo promete fail-open ante errores del hook.
+- **Contrato del hook `Stop`:** los códigos de salida no cambian de significado (0 deja cerrar, 2 bloquea) y `.claude/settings.json` queda igual. Solo un exit 0 del gate deja cerrar; un gate medido en rojo y un gate sin medir bloquean los dos, y se distinguen por el mensaje, no por el código. Respecto de `main`, el cambio neto es que **un gate verde cuya salida desborde el búfer ya no se lee como rojo**, y que un gate sin medir se anuncia como tal. Decisión de Sam: el sin medir bloquea.
 - **Integración y producción:** integrar a main **dispara el deploy de producción en Vercel**, porque el `ignoreCommand` de `vercel.json` no excluye `scripts/**`. El artefacto de la app no cambia, pero la autorización de merge tiene que cubrir ese deploy.
 - **Efecto en los demás Workers:** con esto integrado, `finish` vuelve a funcionar en cualquier worktree con dependencias instaladas y, además, nombra los `.env*` que antes ni se listaban. Y el hook `Stop` deja de trabar cierres por un gate que en realidad nunca terminó.
 - **Ownership:** el claim `finish-ignored-enobufs-claude-20260911` se libera al cerrar. La rama y el worktree se conservan; no se borra nada.
