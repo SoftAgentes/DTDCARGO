@@ -58,7 +58,38 @@ está excluida de toda ruta con datos de cliente · RLS por tenant.
 | `nomina_employee_registrations` | + `national_id`, `photo_path` | — | **ninguno, por diseño** | `0180_employee_invites_registrations.sql` |
 | `legal_acceptances` | `ip`, `client_markbox`, `hash` | — | append-only | `0102_capa_legal.sql:86` |
 | `newsletter_subscribers` | `email`, `consent_ip_hash`, `user_agent` | — | `unsubscribed_at` | `0259_newsletter_subscribers.sql` |
-| `no_olvidar_access_log`, `portal_registro_throttle`, `public_track_log`, `public_verify_throttle` | `ip_address`, `user_agent` | — | throttle purga | varias |
+| `public_verify_throttle` | `ip` (IP en claro de quien consulta `/verificar`), `created_at` | — | purga técnica de filas con más de 60 min, cron diario (SDD-0455) | `0169_public_verify_throttle.sql:23-27` · `app/api/cron/purge-throttle/route.ts:36,78-82` |
+| `portal_registro_throttle` | `ip`: clave de 12 escritores en cuatro formas (IP en claro con o sin prefijo, huella SHA-256 de la IP, huella SHA-256 sin sal del email; detalle en la nota), `created_at` | — | purga técnica a 48 h, mismo cron | `0094_portal_registro_throttle.sql:20-24` · `app/api/cron/purge-throttle/route.ts:27,62-65` |
+| `public_track_log` | `ip` (huella SHA-256 desde `0326`; las filas previas pueden conservar la IP en claro), `code`, `found`, `requested_at` | — | **ninguno**: sin backfill ni purga | `0059_public_track_rpc.sql:24-30` · `0326_public_tracking_privacy_throttle.sql:32,90-91` |
+| `no_olvidar_access_log` | `user_id`, `ip_address`, `user_agent` | — | **ninguno**: inmutable; cascada al borrar el usuario | `0017_no_olvidar.sql:121-129,430-436` |
+
+> **Corrección del 2026-09-11 (SDD-0455).** Estas cuatro filas eran una sola, con
+> `ip_address`/`user_agent` y «throttle purga». Esas columnas solo existen en
+> `no_olvidar_access_log`; las otras tres guardan `ip`. Ninguna purga alcanzaba a
+> `public_verify_throttle`, `public_track_log` ni `no_olvidar_access_log`, y
+> SDD-0455 incorpora solo la primera. Verificado contra el árbol del 2026-09-11,
+> no contra `d35d0f2a`; producción NO VERIFICABLE.
+>
+> Quién escribe `portal_registro_throttle.ip` (12 sitios):
+>
+> - **IP en claro con prefijo:** `contact:` (`app/api/contact/route.ts:143`),
+>   `newsletter:` (`app/api/newsletter/subscribe/route.ts:70-71`), `calc:`
+>   (`app/api/public/calc-event/route.ts:76`), `est:`
+>   (`app/api/public/estimacion/route.ts:82`), `docheck:`
+>   (`app/api/registro/check/route.ts:72`), `packing:`
+>   (`app/p/[token]/packlist/route.ts:132`) y `upload:`
+>   (`app/p/[token]/upload/route.ts:141`).
+> - **IP en claro sin prefijo:** `app/registro/actions.ts:126,143` y
+>   `app/m/emp/actions.ts:86,98`.
+> - **Huella SHA-256 de la IP:** `portal-login:` (`app/entrar/actions.ts:106-109`)
+>   y `studio-recuperar:` (`app/studio/(auth)/login/recuperar/actions.ts:64-67`).
+> - **Huella SHA-256 sin sal del email:** `portal-login-mail:`
+>   (`app/entrar/actions.ts:113,117`). Sin sal, se revierte probando correos
+>   conocidos.
+>
+> `public_track_log`: la huella rige desde `0326`
+> (`0326_public_tracking_privacy_throttle.sql:32`). Ninguna migración hace
+> backfill ni purga, así que las filas previas pueden conservar la IP en claro.
 
 Otras **90 tablas** tienen `name` o `notes`; la mayoría se refieren a entidades
 (proveedores, navieras, rutas), pero `notes` es texto libre en todas y por eso

@@ -116,6 +116,11 @@ export async function sendTestTemplateAction(
   if (!templateId) return { error: "Falta template_id." };
 
   const supabase = await createClient();
+  // SDD-0453: invocable como endpoint y envía con service_role, así que exige
+  // el mismo guard admin que el resto del módulo antes de leer o enviar nada.
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
 

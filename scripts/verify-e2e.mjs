@@ -86,3 +86,17 @@ export function absuelveCorrida(stats) {
   if (stats.unexpected !== 0) return false;
   return Number(stats.expected) > 0;
 }
+
+/**
+ * El watchdog del gate (SDD-0454) canaliza la salida del e2e para medir la
+ * inactividad, y un Playwright que escribe a un pipe cree que no hay terminal:
+ * pierde los colores y el reporter `list` deja de reescribir líneas. Si quien
+ * corre el gate SÍ está en una terminal, se le pasa su tamaño con
+ * `PLAYWRIGHT_FORCE_TTY` (Playwright 1.60, `terminalScreen` en
+ * `lib/runner/index.js`) y la corrida se ve como antes. Un valor puesto a mano
+ * gana; sin terminal —un Worker que guarda el log— no se agrega nada.
+ */
+export function envParaSalidaCanalizada(stdout, env = process.env) {
+  if (!stdout?.isTTY || env.PLAYWRIGHT_FORCE_TTY !== undefined) return {};
+  return { PLAYWRIGHT_FORCE_TTY: `${stdout.columns || 100}x${stdout.rows || 40}` };
+}

@@ -464,19 +464,22 @@ export async function prealertaStats(
 /**
  * Servicios ACTIVOS del menú de recepción para el tenant (merge "DB pisa, código
  * respalda"). Lee `prealerta_addons` (RLS: equipo o cliente del portal del tenant)
- * y lo combina con los DEFAULTS de código. Defensivo: si la tabla no existe (0150
- * sin aplicar en un env) cae a los 7 defaults activos → la pantalla del portal
- * funciona igual ANTES de la migración.
+ * y lo combina con los DEFAULTS de código. Los callers Portal que ya derivaron
+ * principal pasan tenant explícito. Defensivo: si la tabla no existe (0150 sin
+ * aplicar en un env) cae a los 7 defaults activos.
  */
 export async function listActivePrealertaAddons(
   supabase: SupabaseClient,
+  opts: { tenantId?: string } = {},
 ): Promise<PrealertaAddon[]> {
   try {
-    const { data, error } = await supabase
+    const query = supabase
       .from("prealerta_addons")
       .select(
         "code, label, description, notas_placeholder, consent_text, video_url, multi_tracking, sort, is_active",
-      )
+      );
+    const scoped = opts.tenantId ? query.eq("tenant_id", opts.tenantId) : query;
+    const { data, error } = await scoped
       .limit(50);
     if (error) throw error;
     return mergePrealertaAddons(
@@ -535,20 +538,57 @@ function coercePsr(r: Record<string, unknown>): PrealertaServiceRequest {
 
 /**
  * Solicitudes de servicio de UNA compra (o todas las del cliente por `markbox`).
- * El cliente del portal pasa `markbox` (defensa en profundidad + RLS). Defensivo:
+ * SDD0381: enviar markbox activa ámbito Portal verificado (tenant+cliente),
+ * incluso con permisos Studio adicionales. Sin esa propiedad conserva Studio.
+ * No reutilizar este contexto para cambiar otros consumidores. Defensivo:
  * [] si la tabla aún no existe (0150 sin aplicar) → no rompe la página.
  */
+async function portalServiceRequestTenant(
+  supabase: SupabaseClient,
+  markbox: string,
+): Promise<string | null> {
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user?.id) return null;
+  const { data, error } = await supabase
+    .from("client_users")
+    .select("client_id, tenant_id, clients!inner(id, tenant_id, markbox, deleted_at)")
+    .eq("auth_user_id", auth.user.id)
+    .eq("status", "active")
+    .maybeSingle();
+  if (error || !data || typeof data !== "object" || Array.isArray(data)) return null;
+  const row = data as Record<string, unknown>;
+  const embedded = row.clients;
+  const client = Array.isArray(embedded)
+    ? (embedded.length === 1 ? embedded[0] : null)
+    : embedded;
+  if (!client || typeof client !== "object" || Array.isArray(client)) return null;
+  const c = client as Record<string, unknown>;
+  if (typeof row.tenant_id !== "string" || !row.tenant_id.trim() ||
+      typeof row.client_id !== "string" || !row.client_id.trim() ||
+      c.id !== row.client_id || c.tenant_id !== row.tenant_id ||
+      c.deleted_at !== null || c.markbox !== markbox) return null;
+  return row.tenant_id;
+}
+
 export async function listPrealertaServiceRequests(
   supabase: SupabaseClient,
-  opts: { prealertaId?: string; markbox?: string } = {},
+  opts: { tenantId?: string; prealertaId?: string; markbox?: string } = {},
 ): Promise<PrealertaServiceRequest[]> {
   try {
+    let portalTenant: string | null = null;
+    if ("markbox" in opts) {
+      if (typeof opts.markbox !== "string" || !opts.markbox.trim()) return [];
+      portalTenant = await portalServiceRequestTenant(supabase, opts.markbox);
+      if (!portalTenant) return [];
+      if (opts.tenantId && opts.tenantId !== portalTenant) return [];
+    }
     let query = supabase
       .from("prealerta_service_requests")
       .select(PSR_COLUMNS)
       .is("deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(500);
+    if (portalTenant) query = query.eq("tenant_id", portalTenant);
     if (opts.prealertaId) query = query.eq("prealerta_id", opts.prealertaId);
     if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
 
