@@ -28,6 +28,7 @@ Aceptación del encargo, en seis puntos:
 Dependencias: la 0450 y la 0401 ya están aplicadas en producción, y `pendingBelowCutoff` está vacío en main.
 Interrupción: un corte de red (ENOTFOUND) detuvo la sesión mientras corría el contrato SQL. Al retomar se comprobó el árbol real antes de repetir nada: HEAD `85486484`, los dos borradores sin commitear, la corrección del caso SH ya aplicada y el guard OK.
 Ronda 2 (2026-09-12, revisión del Director sobre `0df1270e`): alcance y ejecución aceptados, incluidos `docs/specs/README.md` como generado y la precisión del criterio 4 (la 23503 alcanzable en `createClientAction` es la de la 0450). El Director amplió la allowlist a exactamente `supabase/migrations-baseline.json`, `app/studio/(app)/clientes/__tests__/alta-bajo-aliado.test.ts` y este handoff, para cerrar dos huecos de su allowlist original: la espera de la 0451 en el baseline y la prueba TS commiteada del 23503 con su control rojo.
+Ronda 3 (2026-09-12, revisión del Director sobre `967ddb7f`): el Director verificó de forma independiente y aceptó la espera, la prueba con su control rojo y `verify-r2.meta` con su log. La ronda es solo de texto, con allowlist limitada a la spec 0461 y este handoff: se corrigieron los tres pasajes de la spec que contradecían la PR (Alcance, criterio 4 y Producción), sin tocar `status`, título ni el resto.
 
 ## OBJETIVO ORIGINAL
 
@@ -206,7 +207,18 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 | `check-pending-migration-symbols`, con la 0451 declarada pendiente | PASÓ: 0 ROJO · 0 AMARILLO (`pending-symbols-r2.log`). |
 | `node scripts/build-docs-index.mjs --check` | PASÓ: 439 specs sincronizadas. |
 | JSON del baseline, `git diff --check` y allowlist | PASÓ: JSON válido, `cutoff` 238 y una sola espera. Cada commit de la ronda contiene solo su archivo, y frente a `0df1270e` cambian exactamente el baseline, la prueba y este handoff. |
-| `corepack pnpm verify` sobre el head final (el commit que contiene este documento) | Corre después de este commit y antes del único push, tras comprobar que no haya otro verify ni e2e en la máquina. El veredicto por paso queda en la descripción de la PR #103 (sección Validación) y en el reporte al Director, porque escribirlo acá cambiaría el head verificado. La corrida de la ronda 1 (`80b72653`) queda arriba como historial. |
+| `corepack pnpm verify` sobre `967ddb7f` (head final de la ronda 2) | **FALLÓ, exit 1**, solo por el e2e de entorno: los mismos 15 escenarios en las dos pasadas, sin configuración Supabase. 15 de 17 pasos PASARON, incluidos `test` (6811), `sql-tests` (180 contratos, con el de la 0451) y `schema-rebuild` (419 migraciones y el barrido multi-tenant). `migrations-applied` quedó NO EJECUTADO. Antes de lanzarlo se comprobó que no hubiera otro verify ni e2e. Detalle por paso en la descripción de la PR #103, `verify-r2.meta` y `verify-r2.log`. |
+
+### Ronda 3 (solo texto: la spec y este handoff)
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| `claim` / `guard --owner` | PASÓ: el claim se readquirió al empezar y el guard corrió antes de cada commit. |
+| `node scripts/build-docs-index.mjs --check` | PASÓ: 439 specs sincronizadas; `status` y título no cambiaron. |
+| `corepack pnpm sdd:check` | PASÓ: sin números repetidos. |
+| `corepack pnpm governance:check` | PASÓ. |
+| `git diff --check` | PASÓ, en la spec y en este handoff. |
+| `corepack pnpm verify` | NO EJECUTADO. Desde `967ddb7f`, donde `verify-r2.meta` prueba la corrida completa, solo cambia prosa de la spec y del handoff; código, SQL, pruebas y baseline quedan idénticos. Lo demuestra `git diff --stat 967ddb7f..HEAD`, que lista solo esos dos archivos (salida en la descripción de la PR y en el reporte al Director). |
 
 ## REVISIÓN FOCAL DE DATOS Y GOBERNANZA
 
@@ -225,22 +237,23 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 - `0df1270e` — docs(handoff): cierre de la ronda 1 y spec en `done` (el head que revisó el Director).
 - `470ca41d` — chore(db): SDD-0461 — espera de la 0451 en `migrations-baseline.json` (ronda 2).
 - `728b74e5` — test(studio): SDD-0461 — el 23503 de la FK de tenant en `createClientAction` (ronda 2).
-- Commit que contiene este documento: handoff de la ronda 2 (hash final en la PR).
+- `967ddb7f` — docs(handoff): SDD-0461 — ronda 2 (el head que prueba `verify-r2.meta`).
+- `554eec6e` — docs(sdd): SDD-0461 — ronda 3: la spec deja de contradecir la PR.
+- Commit que contiene este documento: nota de la ronda 3 (hash final en la PR).
 
 ## PR / BRANCH
 
 - **PR:** [#103 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/103), «fix(studio): SDD-0461 — la cadena de aliados no cruza tenants (0451 pendiente de aplicar)», base `main`.
 - **Rama:** `codex/aliados-cadena-tenant`, publicada a sí misma y sin force.
   - Ronda 1: head `0df1270e`.
-  - Ronda 2: `470ca41d`, `728b74e5` y el commit que contiene este documento salen en un único push normal, después del verify del head final.
+  - Ronda 2: `470ca41d`, `728b74e5` y `967ddb7f`, en un único push normal después del verify de ese head.
+  - Ronda 3: `554eec6e` y el commit que contiene este documento, en un único push normal y sin verify (ver la tabla de la ronda 3).
 - Worktree el indicado arriba. Sin merge, sin salir de borrador y sin aplicar migraciones.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **CI y revisión:** CI alojado sobre el head de la ronda 2 y revisión final del Director. El ruleset exige el check verde sobre el commit que se fusiona. Sacar la PR de borrador y fusionar le corresponde al Director.
-- **La spec 0461 quedó desactualizada frente a la ronda 2.** No se tocó porque está fuera de la allowlist ampliada.
-  - La línea 59 (Alcance) pone el baseline entre lo excluido; la 143 (criterio 4) dice que la prueba versionada necesita ampliar la allowlist; y la 172 (Producción) dice que la rama no declara la espera. Las tres cosas quedaron resueltas en `470ca41d` y `728b74e5`.
-  - Para que la spec lo refleje hay que ampliar la allowlist a `docs/specs/0461-aliados-cadena-tenant/spec.md`. Esos textos no cambian el estado ni el título, así que el índice no se movería.
+- **CI y revisión:** CI alojado sobre el head publicado de la ronda 3 y revisión final del Director. El ruleset exige el check verde sobre el commit que se fusiona. Sacar la PR de borrador y fusionar le corresponde al Director.
+- **Spec 0461:** la ronda 3 corrigió los tres pasajes que contradecían la PR. Queda una observación que no se tocó por instrucción del Director: la sección «Allowlist exacta» de la spec todavía no lista `supabase/migrations-baseline.json` ni `app/studio/(app)/clientes/__tests__/alta-bajo-aliado.test.ts`, que entraron en la ronda 2.
 - **Antes de aplicar la 0451**, en una tarea aparte con el OK nominal de Sam y el runbook: repetir los dos conteos agregados de solo lectura que ahora imprime la espera. El preflight falla cerrado igual.
 - **Después de aplicar:**
   - smoke del listado de aliados de una ficha de cliente (embed `clients:client_id`) y de la marca del Portal;
@@ -261,7 +274,7 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 ## HANDOFF AL DIRECTOR
 
 - **Orden seguro:**
-  1. revisar la PR sobre el head de la ronda 2 y su CI;
+  1. revisar la PR sobre el head de la ronda 3 y su CI;
   2. fusionar sobre el SHA revisado, repitiendo antes el merge de main si avanzó; con la espera declarada, `migrations-applied` exime a la 0451 con motivo escrito;
   3. aplicar la 0451 en otra tarea: OK nominal de Sam, de a una, name exacto `0451_aliados_cadena_mismo_tenant`, en horario de baja actividad y con los dos conteos previos;
   4. smoke del listado de aliados y de la marca del Portal;
