@@ -316,6 +316,8 @@ Ronda 2:
 
 La PR pasó de **draft a ready for review**. Sigue sin fusionarse y sin desplegarse: eso lo decide el Director.
 
+**El cuerpo de la PR también se reescribió, y esto va más allá de lo que pidió el Director, así que se declara.** El encargo nombraba el título y el paso a ready; el cuerpo no. Pero decía, en un banner al principio: «MIGRATE-FIRST. Esta PR consume una RPC que todavía no existe en producción. **No fusionar** hasta aplicar…», más una dependencia de `c-fix-pending-symbols-utf16` «(PR por crear)», la descripción de la espera y la declaración como si siguieran ahí, y una sección entera titulada «`pending-migration-symbols`: FALLÓ». Es el mismo registro rancio que el Director mandó corregir en los docstrings, y peor ubicado: es lo primero que lee quien revisa, y le diría exactamente lo contrario de lo que corresponde hacer. Se conservó todo lo que sigue siendo cierto —seguridad, comportamiento ante fallo, qué cambia— y el diagnóstico del defecto UTF-16 quedó en un bloque plegable marcado como resuelto, no borrado. El cuerpo anterior está guardado íntegro fuera de Git en `pr77-body-viejo.md`, y el nuevo en `pr77-body-nuevo.md`. Si el Director prefiere otra redacción, se cambia.
+
 ## PENDIENTES DE ESTA TAREA
 
 - ~~Aplicar 0406 antes de fusionar y después retirar la espera, la declaración y actualizar la nota~~. **Hecho:** 0406 se aplicó el 2026-09-12 (ledger `20260912022540`) y la ronda 2 retiró la espera del baseline y la declaración `l06-portal-documents-packing-lists-pending-rpc`, y actualizó la nota de la spec 0342. El bloqueo migrate-first ya no aplica.
