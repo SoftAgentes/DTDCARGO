@@ -15,7 +15,19 @@
 -- 0415 restringe el SELECT a admin DESPUÉS de desplegar/verificar el facade.
 -- Corrección previa a publicación/aplicación; no es una migración histórica.
 -- NO aplicar a Cloud/Producción desde esta rama. Gate individual obligatorio.
+--
+-- IMPORTACIÓN L10 (2026-09-12). Dos desviaciones respecto de la PR #21,
+-- decididas por el Director antes de cualquier aplicación:
+--   · clients.email y mail_logs.to_email se limpian con el mismo conjunto que
+--     String.prototype.trim() de JS y se comparan en minúsculas: send-email.ts
+--     guarda to_email con trim().toLowerCase(), y btrim a secas sólo quita
+--     espacios, así que un email con salto de línea, tab o NBSP perdía su queja;
+--   · lock_timeout y statement_timeout propios antes del primer lock, como en
+--     0342, 0383, 0450 y 0451.
 -- ─────────────────────────────────────────────────────────────
+
+set local lock_timeout = '5s';
+set local statement_timeout = '60s';
 
 do $preflight$
 begin
@@ -54,6 +66,18 @@ as $$
 declare
   v_tenant uuid := public.get_user_tenant_id();
   v_role text := public.current_studio_role();
+  -- Blancos que quita String.prototype.trim() de JS (WhiteSpace y LineTerminator
+  -- de ECMAScript), en decimal: TAB, LF, VT, FF y CR (9-13), espacio (32),
+  -- NBSP (160), U+1680 (5760), U+2000-U+200A (8192-8202), U+2028 (8232),
+  -- U+2029 (8233), U+202F (8239), U+205F (8287), U+3000 (12288) y BOM (65279).
+  v_blank constant text := (
+    select pg_catalog.string_agg(pg_catalog.chr(code_point), '')
+    from pg_catalog.unnest(array[
+      9, 10, 11, 12, 13, 32, 160, 5760,
+      8192, 8193, 8194, 8195, 8196, 8197, 8198, 8199, 8200, 8201, 8202,
+      8232, 8233, 8239, 8287, 12288, 65279
+    ]) as code_point
+  );
 begin
   if v_tenant is null or v_role is null or v_role not in ('accounting', 'admin') then
     raise exception 'Acceso no autorizado a contexto de cobranza'
@@ -79,7 +103,7 @@ begin
     select
       r.invoice_id,
       r.client_markbox,
-      nullif(pg_catalog.btrim(c.email), '') as email
+      nullif(pg_catalog.btrim(c.email, v_blank), '') as email
     from requested as r
     left join public.clients as c
       on c.tenant_id = v_tenant
@@ -95,7 +119,8 @@ begin
       from public.mail_logs as complaint_log
       where complaint_log.tenant_id = v_tenant
         and complaint_log.complained_at is not null
-        and pg_catalog.lower(complaint_log.to_email) = pg_catalog.lower(context.email)
+        and pg_catalog.lower(pg_catalog.btrim(complaint_log.to_email, v_blank))
+          = pg_catalog.lower(context.email)
     ) as complained,
     (
       select pg_catalog.max((reminder_log.sent_at at time zone 'UTC')::date)

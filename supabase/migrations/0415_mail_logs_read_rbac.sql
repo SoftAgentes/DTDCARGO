@@ -2,6 +2,15 @@
 -- Requiere 0410 aplicada + app que usa collections_mail_context desplegada y
 -- verificada. El catálogo SQL no certifica ese segundo requisito.
 -- No aplicar a Cloud/Producción desde esta rama; autorización individual.
+--
+-- IMPORTACIÓN L10 (2026-09-12). Desviación respecto de la PR #21, decidida por
+-- el Director antes de cualquier aplicación: lock_timeout y statement_timeout
+-- propios antes del primer lock. La restricción toma ACCESS EXCLUSIVE sobre
+-- mail_logs; sin tope, su espera dejaba en cola envíos, webhook de Resend, crons
+-- y la consola de Mailing. Patrón de 0342, 0383, 0450 y 0451.
+
+set local lock_timeout = '5s';
+set local statement_timeout = '60s';
 
 do $preflight$
 begin

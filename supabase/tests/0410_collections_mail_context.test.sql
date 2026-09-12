@@ -97,12 +97,126 @@ insert into public.mail_logs (id, tenant_id, to_email, complained_at, sent_at, m
   ('55000000-3000-0000-0000-000000000003', '10000000-3000-0000-0000-000000000001', 'uno@example.test', null, '2026-08-30T10:00:00Z', '{"event":"invoice_overdue","source_ref":{"id":"53000000-3000-0000-0000-000000000001"}}'),
   ('56000000-3000-0000-0000-000000000001', '20000000-3000-0000-0000-000000000002', 'otro@example.test', null, null, '{}');
 
+-- Importación L10: normalización del email en un tenant C con su propio
+-- accounting. La lista es la de String.prototype.trim() de JS, en decimal, y
+-- tiene que quitarse igual en clients.email y en mail_logs.to_email.
+select pg_catalog.set_config(
+  'test.trim_blancos',
+  '{9,10,11,12,13,32,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288,65279}',
+  true
+);
+
+insert into public.user_tenants (user_id, tenant_id, role, disabled_at) values
+  ('cccccccc-3000-0000-0000-000000000001', '30000000-3000-0000-0000-000000000003', 'accounting', null);
+
+-- Casos con nombre. N008-N010 son controles negativos: trim() de JS NO quita
+-- U+200B, U+0085 ni U+180E, así que una queja registrada sin ellos no aplica.
+insert into public.clients (id, tenant_id, markbox, email) values
+  ('57000000-3000-0000-0000-000000000001', '30000000-3000-0000-0000-000000000003', 'DTD-N001', E'salto@example.test\n'),
+  ('57000000-3000-0000-0000-000000000002', '30000000-3000-0000-0000-000000000003', 'DTD-N002', E'\ttab@example.test'),
+  ('57000000-3000-0000-0000-000000000003', '30000000-3000-0000-0000-000000000003', 'DTD-N003', pg_catalog.chr(160) || 'nbsp@example.test' || pg_catalog.chr(160)),
+  ('57000000-3000-0000-0000-000000000004', '30000000-3000-0000-0000-000000000003', 'DTD-N004', pg_catalog.chr(65279) || 'bom@example.test' || pg_catalog.chr(65279)),
+  ('57000000-3000-0000-0000-000000000005', '30000000-3000-0000-0000-000000000003', 'DTD-N005', 'ideografico@example.test' || pg_catalog.chr(12288)),
+  ('57000000-3000-0000-0000-000000000006', '30000000-3000-0000-0000-000000000003', 'DTD-N006', E'\t'),
+  ('57000000-3000-0000-0000-000000000007', '30000000-3000-0000-0000-000000000003', 'DTD-N007', 'Mixto@Example.test'),
+  ('57000000-3000-0000-0000-000000000008', '30000000-3000-0000-0000-000000000003', 'DTD-N008', pg_catalog.chr(8203) || 'zw@example.test'),
+  ('57000000-3000-0000-0000-000000000009', '30000000-3000-0000-0000-000000000003', 'DTD-N009', 'nel@example.test' || pg_catalog.chr(133)),
+  ('57000000-3000-0000-0000-000000000010', '30000000-3000-0000-0000-000000000003', 'DTD-N010', 'mvs@example.test' || pg_catalog.chr(6158));
+insert into public.invoices (id, tenant_id, client_markbox)
+select ('58000000-3000-0000-0000-' || pg_catalog.lpad(n::text, 12, '0'))::uuid,
+       '30000000-3000-0000-0000-000000000003'::uuid,
+       'DTD-N' || pg_catalog.lpad(n::text, 3, '0')
+from pg_catalog.generate_series(1, 10) as n;
+insert into public.mail_logs (id, tenant_id, to_email, complained_at, sent_at, metadata) values
+  ('59000000-3000-0000-0000-000000000001', '30000000-3000-0000-0000-000000000003', 'salto@example.test', now(), null, '{}'),
+  ('59000000-3000-0000-0000-000000000002', '30000000-3000-0000-0000-000000000003', 'tab@example.test', now(), null, '{}'),
+  ('59000000-3000-0000-0000-000000000003', '30000000-3000-0000-0000-000000000003', 'nbsp@example.test', now(), null, '{}'),
+  ('59000000-3000-0000-0000-000000000004', '30000000-3000-0000-0000-000000000003', 'bom@example.test', now(), null, '{}'),
+  ('59000000-3000-0000-0000-000000000005', '30000000-3000-0000-0000-000000000003', 'ideografico@example.test', now(), null, '{}'),
+  ('59000000-3000-0000-0000-000000000007', '30000000-3000-0000-0000-000000000003', E'MIXTO@example.test\t', now(), null, '{}'),
+  ('59000000-3000-0000-0000-000000000008', '30000000-3000-0000-0000-000000000003', 'zw@example.test', now(), null, '{}'),
+  ('59000000-3000-0000-0000-000000000009', '30000000-3000-0000-0000-000000000003', 'nel@example.test', now(), null, '{}'),
+  ('59000000-3000-0000-0000-000000000010', '30000000-3000-0000-0000-000000000003', 'mvs@example.test', now(), null, '{}');
+
+-- Matriz completa: cada blanco a ambos lados del email (W) y un email que es
+-- sólo ese blanco (B). La queja de W se registra ya limpia, como la guarda
+-- send-email.ts. Los literales van casteados: en UNION ALL se resolverían a text.
+insert into public.clients (id, tenant_id, markbox, email)
+select ('5a000000-3000-0000-0000-' || pg_catalog.lpad(cp::text, 12, '0'))::uuid,
+       '30000000-3000-0000-0000-000000000003'::uuid,
+       'DTD-W' || cp,
+       pg_catalog.chr(cp) || 'w' || cp || '@example.test' || pg_catalog.chr(cp)
+from pg_catalog.unnest(pg_catalog.current_setting('test.trim_blancos')::integer[]) as cp
+union all
+select ('5d000000-3000-0000-0000-' || pg_catalog.lpad(cp::text, 12, '0'))::uuid,
+       '30000000-3000-0000-0000-000000000003'::uuid,
+       'DTD-B' || cp,
+       pg_catalog.chr(cp)
+from pg_catalog.unnest(pg_catalog.current_setting('test.trim_blancos')::integer[]) as cp;
+insert into public.invoices (id, tenant_id, client_markbox)
+select ('5b000000-3000-0000-0000-' || pg_catalog.lpad(cp::text, 12, '0'))::uuid,
+       '30000000-3000-0000-0000-000000000003'::uuid,
+       'DTD-W' || cp
+from pg_catalog.unnest(pg_catalog.current_setting('test.trim_blancos')::integer[]) as cp
+union all
+select ('5e000000-3000-0000-0000-' || pg_catalog.lpad(cp::text, 12, '0'))::uuid,
+       '30000000-3000-0000-0000-000000000003'::uuid,
+       'DTD-B' || cp
+from pg_catalog.unnest(pg_catalog.current_setting('test.trim_blancos')::integer[]) as cp;
+insert into public.mail_logs (id, tenant_id, to_email, complained_at, sent_at, metadata)
+select ('5c000000-3000-0000-0000-' || pg_catalog.lpad(cp::text, 12, '0'))::uuid,
+       '30000000-3000-0000-0000-000000000003'::uuid,
+       'w' || cp || '@example.test', now(), null, '{}'::jsonb
+from pg_catalog.unnest(pg_catalog.current_setting('test.trim_blancos')::integer[]) as cp;
+
 \ir ../migrations/0410_collections_mail_context.sql
+
+-- Importación L10: 0410 fija lock_timeout y statement_timeout antes de su
+-- primer lock o DDL (lectura estática del archivo, sin comentarios) y los deja
+-- vigentes en la transacción que la aplica.
+do $lock_timeout_0410$
+declare
+  v_code text := pg_catalog.regexp_replace(
+    pg_catalog.pg_read_file('/sb/migrations/0410_collections_mail_context.sql'),
+    '--[^\n]*', '', 'g'
+  );
+  v_lock integer := pg_catalog.strpos(v_code, 'set local lock_timeout = ''5s'';');
+  v_statement integer := pg_catalog.strpos(v_code, 'set local statement_timeout = ''60s'';');
+  v_first integer := pg_catalog.regexp_instr(
+    v_code,
+    '^[[:space:]]*(do|create|alter|drop|grant|revoke|comment|lock|select|insert|update|delete|truncate)\M',
+    1, 1, 0, 'in', 1
+  );
+begin
+  if v_lock = 0 or v_statement = 0 or v_first = 0
+     or v_lock > v_first or v_statement > v_first then
+    raise exception 'TEST 0410: lock_timeout y statement_timeout deben ir antes del primer lock o DDL (lock_timeout=%, statement_timeout=%, primera sentencia=%)',
+      v_lock, v_statement, v_first;
+  end if;
+  if pg_catalog.current_setting('lock_timeout') <> '5s'
+     or pg_catalog.current_setting('statement_timeout') <> '1min' then
+    raise exception 'TEST 0410: la migración no dejó lock_timeout 5s y statement_timeout 60s en su transacción (%, %)',
+      pg_catalog.current_setting('lock_timeout'), pg_catalog.current_setting('statement_timeout');
+  end if;
+end;
+$lock_timeout_0410$;
 
 -- El runner 0415 repite la misma matriz DESPUÉS de la restricción. Sin esa
 -- variable se prueba que expansión y consumidor antiguo son compatibles.
 \if :{?apply_mail_logs_close}
+  -- 0415 tiene que fijar sus propios timeouts: se anulan antes de incluirla.
+  set local lock_timeout = 0;
+  set local statement_timeout = 0;
   \ir ../migrations/0415_mail_logs_read_rbac.sql
+  do $lock_timeout_0415$
+  begin
+    if pg_catalog.current_setting('lock_timeout') <> '5s'
+       or pg_catalog.current_setting('statement_timeout') <> '1min' then
+      raise exception 'TEST 0415: la migración no dejó lock_timeout 5s y statement_timeout 60s en su transacción (%, %)',
+        pg_catalog.current_setting('lock_timeout'), pg_catalog.current_setting('statement_timeout');
+    end if;
+  end;
+  $lock_timeout_0415$;
   select pg_catalog.set_config('test.mail_logs_closed', 'true', true);
 \else
   select pg_catalog.set_config('test.mail_logs_closed', 'false', true);
@@ -227,6 +341,69 @@ begin
 end;
 $other_tenant$;
 
+-- Importación L10: la RPC limpia clients.email y mail_logs.to_email como
+-- String.prototype.trim() de JS y compara en minúsculas. Acumula todos los casos
+-- que fallan para que un control rojo los liste completos.
+set local "request.jwt.claim.sub" = 'cccccccc-3000-0000-0000-000000000001';
+do $email_normalization$
+declare
+  v_fallas text[] := array[]::text[];
+  v_caso record;
+  v_cp integer;
+begin
+  for v_caso in
+    select *
+    from (values
+      ('58000000-3000-0000-0000-000000000001'::uuid, 'salto de línea al final', true, true),
+      ('58000000-3000-0000-0000-000000000002'::uuid, 'tab al inicio', true, true),
+      ('58000000-3000-0000-0000-000000000003'::uuid, 'NBSP a ambos lados', true, true),
+      ('58000000-3000-0000-0000-000000000004'::uuid, 'BOM a ambos lados', true, true),
+      ('58000000-3000-0000-0000-000000000005'::uuid, 'U+3000 al final', true, true),
+      ('58000000-3000-0000-0000-000000000006'::uuid, 'email que es sólo un tab', false, false),
+      ('58000000-3000-0000-0000-000000000007'::uuid, 'queja con mayúsculas y tab en to_email', true, true),
+      ('58000000-3000-0000-0000-000000000008'::uuid, 'U+200B no se quita (control negativo)', true, false),
+      ('58000000-3000-0000-0000-000000000009'::uuid, 'U+0085 no se quita (control negativo)', true, false),
+      ('58000000-3000-0000-0000-000000000010'::uuid, 'U+180E no se quita (control negativo)', true, false)
+    ) as esperado(invoice_id, caso, has_email, complained)
+  loop
+    if not exists (
+      select 1
+      from public.collections_mail_context(array[v_caso.invoice_id]) as context
+      where context.has_email = v_caso.has_email
+        and context.complained = v_caso.complained
+    ) then
+      v_fallas := v_fallas || v_caso.caso;
+    end if;
+  end loop;
+
+  foreach v_cp in array pg_catalog.current_setting('test.trim_blancos')::integer[] loop
+    if not exists (
+      select 1
+      from public.collections_mail_context(array[
+        ('5b000000-3000-0000-0000-' || pg_catalog.lpad(v_cp::text, 12, '0'))::uuid
+      ]) as context
+      where context.has_email and context.complained
+    ) then
+      v_fallas := v_fallas || ('U+' || pg_catalog.upper(pg_catalog.lpad(pg_catalog.to_hex(v_cp), 4, '0')) || ' a ambos lados');
+    end if;
+    if not exists (
+      select 1
+      from public.collections_mail_context(array[
+        ('5e000000-3000-0000-0000-' || pg_catalog.lpad(v_cp::text, 12, '0'))::uuid
+      ]) as context
+      where not context.has_email and not context.complained
+    ) then
+      v_fallas := v_fallas || ('email que es sólo U+' || pg_catalog.upper(pg_catalog.lpad(pg_catalog.to_hex(v_cp), 4, '0')));
+    end if;
+  end loop;
+
+  if pg_catalog.cardinality(v_fallas) > 0 then
+    raise exception 'TEST 0410: normalización del email distinta de trim() de JS en % caso(s): %',
+      pg_catalog.cardinality(v_fallas), pg_catalog.array_to_string(v_fallas, '; ');
+  end if;
+end;
+$email_normalization$;
+
 -- Admin conserva la consola completa del tenant.
 set local "request.jwt.claim.sub" = 'aaaaaaaa-3000-0000-0000-000000000001';
 do $admin_allowed$
@@ -247,7 +424,9 @@ reset role;
 set local role service_role;
 do $service_role_kept$
 begin
-  if (select count(*) from public.mail_logs) <> 4 then
+  -- 4 filas de los tenants A y B más 34 del tenant C de normalización
+  -- (9 casos con nombre y 25 de la matriz).
+  if (select count(*) from public.mail_logs) <> 38 then
     raise exception 'TEST 0410: service_role perdió mail_logs';
   end if;
 end;
