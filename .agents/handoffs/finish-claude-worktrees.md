@@ -9,7 +9,7 @@ Estado: lista-para-revision. **No está integrada.** La PR es la frontera; el me
 
 - **Worktree:** `C:/Users/AKX generator/Desktop/Developer/DTDCARGO/.claude/worktrees/cranky-yonath-83f00c`.
   La sesión ya lo recibió aislado —es justamente uno de los worktrees que esta tarea arregla—, así que **no** se creó otro con `start`: anidar habría duplicado el aislamiento existente. `claim --owner cranky-yonath-83f00c` tomado antes de editar.
-- **Rama:** `claude/youthful-driscoll-120aae`, nacida en `ce023926` (`main` al arrancar). No se integró `main` durante la tarea porque no avanzó.
+- **Rama:** `claude/youthful-driscoll-120aae`, nacida en `ce023926` (`main` al arrancar). Después de publicar, `main` avanzó con la PR #77 (L06 documentos Portal) y se integró `origin/main` `f93c0f2c` en la rama: el único solapamiento era `docs/specs/README.md`, que resolvió el driver `dtd-generated-records` sin conflicto, y `docs:check` quedó en verde con 432 specs y las dos filas (0342 y 0458) presentes. Nada de L06 se tocó.
 - **SDD:** `docs/specs/0458-harness-finish-claude-worktrees/spec.md`, en `done`.
   - Reservado con `corepack pnpm sdd:next --reserve harness-finish-claude-worktrees`: creó `refs/dtd/reservations/0458` y `refs/heads/codex/sdd-reserve-0458-harness-finish-claude-worktrees` sobre `origin/main`, sin tocar HEAD. El inventario previo dio 0458 libre sobre 209 refs y worktrees; las advertencias de colisión que imprime son históricas y de la PR #21, ajenas a esta tarea.
   - El stub se movió a la rama con `git cherry-pick` (`d3f257a7`). La rama de reserva y su lock quedan intactos y **sin publicar**: la PR lleva la spec, así que el número ya es visible.
@@ -44,6 +44,7 @@ El arreglo: `resolveCandidate` —pura y exportada— resuelve contra `git workt
 | `eslint` sobre los 2 archivos tocados | PASÓ — 0 problemas |
 | `git diff --check` | PASÓ |
 | `corepack pnpm verify` | **NO EJECUTADO** — su paso `e2e` exige Supabase, que esta sesión no tiene |
+| CI alojado sobre `7aefc71c` (SHA publicado con `main` integrado) | PASÓ — los 4 checks: «Calidad local sin secretos» en 14m38s, Vercel, Vercel Agent Review y Vercel Preview Comments ([run 34674576901](https://github.com/hailuwaycom-sketch/DTDCARGO/actions/runs/34674576901)) |
 
 **Siete mutantes** dejan rojo exactamente la prueba que les toca: quitar el contenedor `.claude/worktrees`; que sin nombre deje de mirar el worktree actual; devolver al checkout principal a la lista de candidatos; armar la ruta con `path.join(contenedor, nombre)`; elegir el primero ante un nombre ambiguo; volver al mensaje genérico; y dejar de distinguir un candidato registrado pero ausente en disco. **El séptimo sobrevivió en la primera ronda**: la prueba que lo mata se escribió por eso.
 
@@ -53,10 +54,10 @@ El arreglo: `resolveCandidate` —pura y exportada— resuelve contra `git workt
 
 ## Pendientes de esta tarea
 
-1. Publicar la rama y abrir la PR con la spec 0458 (autorizado por el encargo, que pone la PR como frontera).
-2. Esperar el CI alojado sobre el SHA publicado y registrarlo acá.
-3. Liberar el claim cuando termine la escritura.
-4. **Integración: del Director.** No se mergea desde acá.
+1. ~~Publicar la rama y abrir la PR~~ — hecho: [PR #97](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/97), autorizada por el encargo, que pone la PR como frontera.
+2. ~~Esperar el CI alojado~~ — hecho: verde sobre `7aefc71c`, el SHA con `main` `f93c0f2c` integrado. Este commit del handoff deja la rama en un SHA posterior; el CI verificado es el de `7aefc71c` y su único cambio respecto del head es este archivo.
+3. ~~Liberar el claim~~ — hecho al cerrar la sesión de escritura.
+4. **Integración: del Director.** No se mergea desde acá. Falta decidir si se espera una corrida del CI sobre el head final antes de integrar.
 
 ## FUERA DE ALCANCE DETECTADO
 
