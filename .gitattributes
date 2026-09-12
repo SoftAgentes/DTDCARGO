@@ -26,10 +26,12 @@ supabase/tests/*.sql -text
 
 # Registros compartidos que varias PR modifican sin solapamiento semantico.
 # No usar el driver `union`: une lineas, corrompe JSON y desordena el indice.
+# Politica por archivo: docs/architecture/decisions/0002-merge-semantico-registros-generados.md
 # Configuracion por clon (falla cerrado si falta):
 #   node scripts/install-merge-drivers.mjs
 docs/specs/README.md merge=dtd-generated-records
 supabase/migrations-baseline.json merge=dtd-generated-records
+supabase/pending-migration-symbol-declarations.json merge=dtd-generated-records
 
 # Binarios: git no los toca.
 *.png binary
