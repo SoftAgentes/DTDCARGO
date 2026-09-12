@@ -2,10 +2,10 @@
 
 Fecha: 2026-09-11; **ronda 2 el 2026-09-11/12** (0402 aplicada en producción).
 Task ID: `c-l02-portal-visibilidad`.
-Owner / sesión escritora ronda 1: `c-l02-worker-20260911-claude`. Ronda 2: `worker-c-l02-session-454d97be` (Claude Code, Worker asignado por el Director; el claim de la ronda 1 estaba liberado). Estado: **lista para revisión, PR #76 fuera de borrador**; 0402 ya está APLICADA en producción, así que la PR **deja de ser migrate-first** y no declara nada pendiente. Falta el push, que el Director autoriza en el encargo pero cuyo momento marca él.
+Owner / sesión escritora ronda 1: `c-l02-worker-20260911-claude`. Ronda 2: `worker-c-l02-session-454d97be` (Claude Code, Worker asignado por el Director; el claim de la ronda 1 estaba liberado). Estado: **PUBLICADA y CONGELADA**, PR #76 fuera de borrador, al día con `main` = `f93c0f2c`. 0402 está APLICADA en producción, así que la PR **no es migrate-first** y no declara nada pendiente. La rama no se vuelve a tocar hasta que el Director fusione.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l02-portal-visibilidad`.
-Rama: `codex/c-l02-portal-visibilidad`. Base de la ronda 1: `3c6107012f754953323202a7386b3e7811593814`. En la ronda 2 se fusionó `origin/main` = `664bb4b22a314eb58161abd6518df653090db78f` (ya incluye la PR #94 del harness) dentro de la rama, sin rebase ni force push.
+Rama: `codex/c-l02-portal-visibilidad`. Base de la ronda 1: `3c6107012f754953323202a7386b3e7811593814`. En la ronda 2 se fusionó `origin/main` = `664bb4b2` y en la ronda 3, ya con #78 y #77 integradas, `origin/main` = `f93c0f2c5ff18ad1902e96424095147f97dd5b40`. Siempre merge dentro de la rama, sin rebase ni force push.
 Origen de solo lectura: `ea9952a47f4adf14c48c91e6d0147597beb94aa7` (head de la PR #21). Base común con main: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 SDD: `docs/specs/0337-visibilidad-portal-por-principal/spec.md`, importada. No se reservó número: 0337 y 0402 no existían en main.
 
@@ -138,13 +138,23 @@ Ronda 2 (todos en local, sin push):
 - `c5e477c43607f46becf9cbf4050171a222e3f664`: merge de `origin/main` (`664bb4b2`) en la rama, con el driver de registros generados de main. Sin conflictos.
 - `30a089a2`: `chore(db): 0402 aplicada a producción antes de fusionar`. Retira la espera de `migrations-baseline.json`, retira la declaración `l02-…` de `pending-migration-symbol-declarations.json` —ambos quedan idénticos a main— y pasa la nota de 0337 a aplicada, con el ledger. Mismo procedimiento que `b49f1c0b` en L16.
 - `cf24f7a5`: `docs(studio): SDD-0337 — el lector ya no anuncia 0402 como pendiente`. Sólo comentarios del módulo y del test; ninguna línea ejecutable, ningún test debilitado.
-- Commit que contiene esta actualización del documento: `chore(harness): actualizar handoff L02 con la ronda de 0402 aplicada`. Sólo documentación; el hash final se anota en la PR al publicar.
+- `59366c6c`: `chore(harness): actualizar handoff L02 con la ronda de 0402 aplicada`. Sólo documentación.
+- `65281942`: `chore(harness): anotar que main avanzó a ce023926 durante la ronda`. Sólo documentación.
+- `d022ccd1`: `chore(harness): cerrar el hallazgo del limit 1 con la evidencia del esquema`. Sólo documentación.
+- `f17a7a55`: `chore(harness): acotar el hallazgo 13, el marcador V1 está en la otra restricción`. Sólo documentación.
+
+Ronda 3 (publicada):
+
+- `102ed5b9`: merge de `origin/main` (`f93c0f2c`, con #78 y #77 dentro), con el driver de main. Sin conflictos.
+- Commit que contiene esta actualización del documento: `chore(harness): cerrar L02 con la rama al día y publicada`. Sólo documentación; es el último commit de la rama y su hash se informa al Director.
+
+En ninguna de las tres rondas `docs/specs/README.md` necesitó commit propio: el driver lo dejó siempre en el mismo estado que produce `docs:index`.
 
 `docs/specs/README.md` no aparece en un commit propio de la ronda 2: el merge driver ya lo había dejado en el mismo estado que produce `docs:index`, así que la regeneración no cambió ningún byte.
 
 ## PR / BRANCH
 
-[PR #76](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/76). Título de la ronda 2: «feat(studio): SDD-0337 — L02 visibilidad Portal por principal (0402 aplicada en producción)»; se retiró el prefijo «[NO FUSIONAR ANTES DE APLICAR 0402]». **Fuera de borrador** (`isDraft: false`). Base `main`; rama `codex/c-l02-portal-visibilidad`, publicada a sí misma con upstream propio. Worktree conservado en la ruta de arriba. El Worker no fusionó ni aplicó migraciones en ninguna ronda.
+[PR #76](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/76). Título de la ronda 2: «feat(studio): SDD-0337 — L02 visibilidad Portal por principal (0402 aplicada en producción)»; se retiró el prefijo «[NO FUSIONAR ANTES DE APLICAR 0402]». **Fuera de borrador** (`isDraft: false`). Base `main`; rama `codex/c-l02-portal-visibilidad`, publicada **a sí misma** con upstream propio, en un solo push y **sin force**. Al día con `main` = `f93c0f2c`. Worktree conservado en la ruta de arriba. El Worker no fusionó a `main` ni aplicó migraciones en ninguna de las tres rondas.
 
 ## RONDA 2 — 0402 APLICADA EN PRODUCCIÓN (retiro de la espera)
 
@@ -226,12 +236,119 @@ Detalle de `verify` en la ronda 2 (los conteos suben porque la rama ya trae main
 | `/ui-check` | NO EJECUTADO: lo corre el Director. El JSX sigue idéntico; la ronda 2 no tocó ninguna línea ejecutable de producto |
 | E2E autenticado y ledger real contra Supabase | NO DISPONIBLE en local: sin credenciales, fuera de la autorización del Worker |
 | CI alojado del SHA de la ronda 2 | NO EJECUTADO todavía: depende del push, que el Director agenda |
+## RONDA 3 — ACTUALIZACIÓN FINAL CON MAIN Y PUBLICACIÓN
+
+Turno dado por el Director tras fusionar la **PR #77**. `origin/main` = `f93c0f2c5ff18ad1902e96424095147f97dd5b40`, con 431 specs, `cutoff` 238 y `pendingBelowCutoff` en `{}`.
+
+### Merge
+
+Mismo procedimiento que la ronda 2: driver de registros generados **de main** extraído a un temporal fuera del repo, y `git -c merge.dtd-generated-records.driver=… merge origin/main`. Merge commit `102ed5b9`, **sin un solo conflicto**.
+
+El único archivo que main y la rama tocaban a la vez era `docs/specs/README.md`, que tiene driver. `supabase/migrations-baseline.json` **ya no se solapa**, porque desde la ronda 2 la rama no lo modifica respecto a main: main lo cambió y la rama no, así que el merge lo tomó de main sin intervención. Lo mismo vale para las declaraciones de símbolos.
+
+### Verificación de las invariantes que pedía el Director
+
+| Qué | Cómo se midió | Resultado |
+|---|---|---|
+| `0402_….sql` sin cambiar un byte | `md5sum` y `wc -c` tras el merge | **md5 `b28cacbbd4d84d736ecd16f1016aa38d`, 2068 B.** Blob `2641599c`, el mismo desde la importación |
+| `pendingBelowCutoff` de main | Leído del blob de `origin/main` y parseado, **no asumido** | `cutoff` 238 y `pendingBelowCutoff` con **0 claves**. #77 sí retiró su propia espera al fusionar |
+| `degradations` de main | Igual, leído del blob | `[]` |
+| `supabase/migrations-baseline.json` contra main | `git diff origin/main HEAD --` | **VACÍO** (0 bytes). Blob `93939af9` idéntico en los dos lados |
+| `supabase/pending-migration-symbol-declarations.json` contra main | Igual | **VACÍO** (0 bytes). Blob `8e52d5b3` idéntico |
+
+### Índice de specs: 432, no 431
+
+La predicción de la ronda 2 (431) quedó corta porque **#77 entró en el medio con su 0342**, así que main ya venía en 431 y con 0337 el total es **432**. El Director lo corrigió antes de que lo midiera.
+
+- `corepack pnpm docs:index` → **432 specs, 25 huecos**.
+- `corepack pnpm docs:check` → índice sincronizado con 432 specs.
+- Las tres filas conviven: **0337** (esta rama), **0339** (#78) y **0342** (#77).
+- El diff del índice contra main es exactamente el esperado: 431 → 432, fila 0337 añadida y 0337 fuera de la lista de huecos. Nada más.
+- Por segunda vez, **el generador no cambió un solo byte** respecto a lo que había dejado el driver en el merge: el árbol quedó limpio tras regenerar. No se forzó nada.
+
+### Integridad del producto revisado
+
+Contra el head que el Director revisó (`092ca77d`), los cinco archivos de producto de L02 quedan así:
+
+| Archivo | Estado |
+|---|---|
+| `app/portal/(app)/page.tsx` | **Blob idéntico** |
+| `app/portal/(app)/envios/page.tsx` | **Blob idéntico** |
+| `app/portal/(app)/envios/[code]/page.tsx` | **Blob idéntico** |
+| `supabase/migrations/0402_….sql` | **Blob idéntico** (`2641599c`) |
+| `supabase/tests/0402_….test.sql` | **Blob idéntico** (`faa056f3`) |
+| `lib/studio/notifications/portal-visibility-queries.ts` | Difiere sólo por el comentario de `cf24f7a5`: `f6320102` → `29edc121`, 2 líneas |
+| `lib/studio/notifications/__tests__/portal-visibility-queries.test.ts` | Difiere sólo por el comentario de `cf24f7a5`: `42d8fa0e` → `5932b49e`, 3 líneas |
+
+El diff completo de los cinco entre `092ca77d` y el head publicado son **5 inserciones y 5 supresiones, todas de comentario**, en los dos archivos que el Director ya autorizó.
+
+### Convivencia con el código nuevo de #78 y #77
+
+Este merge trajo código real, no sólo registros. Se revisó la superficie de contacto:
+
+- main tocó `app/portal/(app)/documentos/page.tsx`, `app/portal/(app)/referidos/page.tsx`, `lib/portal/packing-list-queries.ts`, `lib/portal/portal-referral-queries.ts` y añadió `lib/portal/signed-portal-documents.ts` con sus pruebas. **Ninguno de los cinco archivos de L02 aparece en ese diff**, así que no hubo conflicto textual ni módulo compartido.
+- Se comprobó por grep que los únicos consumidores de `getHiddenPortalStatusesForPortal` siguen siendo las tres páginas de L02, y que **#78 y #77 no añadieron consumidores** de `getHiddenPortalStatusesForClient` ni de `getHiddenPortalStatuses`. El hallazgo 3 queda igual: esos dos lectores con admin client siguen sin consumidores y su retiro sigue siendo decisión del Director, fuera de esta tarea.
+
+### Validación de la ronda 3
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| guard / guard `--owner` y rama antes de cada commit | PASÓ |
+| Diffs de baseline y declaraciones contra main | PASÓ: ambos **VACÍOS**, blobs idénticos |
+| Integridad de `0402_….sql` | PASÓ: md5 y bytes sin cambio |
+| Blobs de los 5 archivos contra `092ca77d` | PASÓ: 5 idénticos, 2 con sólo el comentario autorizado |
+| `corepack pnpm docs:index` + `docs:check` | PASÓ: 432 specs, árbol limpio tras regenerar |
+| `corepack pnpm sdd:check` | PASÓ: sin números repetidos; sólo colisiones históricas ya declaradas |
+| `node scripts/check-pending-migration-symbols.mjs` | PASÓ: **0 ROJO · 0 AMARILLO** |
+| Vitest focal `portal-visibility-queries.test.ts` | PASÓ: 10/10 |
+| ESLint de los cinco archivos tocados | PASÓ: 0 problemas |
+| `git diff --check` | PASÓ |
+| `corepack pnpm verify` | **FALLÓ, exit 1.** 16 de 17 pasos corrieron: **15 PASÓ**, `e2e` FALLÓ **por cuelgue** y `migrations-applied` quedó en SKIP. Veredicto literal: `verify: 1 fallo(s) → e2e [COLGADO/TIMEOUT: sin salida durante 10 min; límite de inactividad 10 min (VERIFY_E2E_IDLE_MIN)] CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.` **Esta ronda el e2e dio MENOS cobertura que las anteriores, no más** |
+
+Detalle de `verify` en la ronda 3 (conteos más altos porque el árbol ya trae #78 y #77):
+
+| Paso | Estado y evidencia |
+|---|---|
+| harness | PASÓ |
+| lint | PASÓ: **0 errores**, 8 advertencias, todas en archivos que esta tarea no toca |
+| rsc-boundary | PASÓ: 1598 módulos |
+| typecheck | PASÓ |
+| edge-functions | PASÓ |
+| test | PASÓ: **6763 tests en 539 archivos, 0 fallos** (141,6 s). Subía desde 6740/532: las pruebas nuevas de #78 y #77 pasan junto a las de L02 en el árbol fusionado |
+| docs:check | PASÓ: 432 specs |
+| numbering | PASÓ: 432 specs / 433 migraciones; sólo colisiones históricas declaradas |
+| feature-constants · components:check · governance:check | PASÓ |
+| migrations-applied | **NO DISPONIBLE (SKIP)**: sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. El ledger real no se midió acá |
+| pending-migration-symbols | PASÓ: **0 ROJO · 0 AMARILLO** |
+| sql-tests | PASÓ: **176 contratos**, incluido `0402_portal_hidden_statuses_por_principal.test.sql`; postgres:17 efímero, rollback total |
+| schema-rebuild | PASÓ: 433 migraciones, 415 desde cero, 18 sólo-ledger, aislamiento en 219 tablas y 2 tenants |
+| e2e | **FALLÓ por COLGADO/TIMEOUT.** Ver la investigación abajo |
+| build | PASÓ: build de producción OK, `tsconfig.json` restaurado, árbol versionado intacto |
+
+#### El cuelgue del e2e, investigado
+
+No se reportó como «ambiental conocido» sin comprobarlo, porque el síntoma **cambió** respecto a las rondas 1 y 2, donde el paso terminó con 15 fallos. Lo que se midió:
+
+1. **En `verify`:** el paso se quedó sin salida 10 minutos y el watchdog de SDD-0454 —que main trajo en esta ronda— lo mató y lo declaró FALLÓ con motivo, no omitido. Terminó el árbol propio del paso: 25 procesos (`chrome-headless-shell`×15, `node`×9, `cmd`×1), **0 sobrevivientes**. El watchdog hizo exactamente su trabajo.
+2. **Reproducción fuera de `verify`:** `corepack pnpm test:e2e` a secas se colgó **en el mismo punto exacto**, tras el test #141 (`[mobile-safari] auth.spec.ts:74`), y siguió sin salida ~18 minutos hasta que se mató a mano. O sea: no es artefacto del watchdog ni de `verify`.
+3. **Aislamiento del sospechoso:** `test:e2e e2e/auth.spec.ts --project=mobile-safari` **no se cuelga**. Termina en 1,4 min con **4 fallos y 3 pasados**, y los 4 son los ambientales de siempre —`auth.spec.ts:21`, `:91`, `:98`, `:105`— con la causa conocida en el log: `Your project's URL and Key are required to create a Supabase client!`.
+
+**Conclusión:** el cuelgue **no está en un test**; aparece sólo con la suíte completa en paralelo (3 proyectos, hasta 8 workers) mientras el WebServer escupe errores de Supabase por falta de credenciales. Es un atasco del runner bajo carga, del mismo entorno sin credenciales que ya causaba los fallos de antes.
+
+**No atribuible a L02, con el razonamiento explícito:** los cuatro tests implicados cargan `/studio`, `/back` y `/entrar`, y **ninguna de las tres rutas que L02 modifica** (`/portal`, `/portal/envios`, `/portal/envios/[code]`) aparece en ellos. Además los cinco archivos de producto de L02 son blob idéntico al head revisado salvo dos comentarios.
+
+**Lo que NO se hizo y hay que decir:** no se corrió el experimento que aislaría la causa, que sería el mismo e2e sobre `main` limpio sin esta rama. Por eso queda como **correlación, no causalidad**: las rondas 1 y 2 terminaron el paso sobre el árbol previo a #78/#77 y la ronda 3 se cuelga sobre el árbol que las incluye. Hacer ese experimento exige otro worktree y sale del alcance de esta tarea; queda anotado abajo como hallazgo para el Director, que tiene cinco PRs detrás que van a pegar con lo mismo.
+| `/ui-check` | NO EJECUTADO: lo corre el Director. El JSX de L02 sigue idéntico y esta ronda no cambió ninguna línea ejecutable propia |
+| E2E autenticado contra Supabase | **NO DISPONIBLE**: sin credenciales en el worktree, fuera de la autorización del Worker. No se absuelve: las tres vistas de L02 nunca se ejercieron con sesión en local |
+| Ledger real (`migrations-applied`) | **NO DISPONIBLE** por lo mismo. Que 0402 esté aplicada es evidencia del Director, no de este worktree |
+| CI alojado del SHA publicado | NO EJECUTADO al cerrar este documento: corre después del push. **Se informa al Director por mensaje, no se empuja** |
 ## PENDIENTES DE ESTA TAREA
 
-- **Push, cuando el Director dé el SHA de main.** #78 ya está fusionada (`ce023926`); falta #77. Publicar ahora dejaría la rama atrasada y el ruleset la rechazaría. Al recibir el aviso: `git merge origin/main` con el mismo override del driver de main, revalidar lo afectado y publicar de una sola vez. Publicar ya está autorizado por el encargo; el momento lo marca el Director.
-- **Al hacer ese último merge hay que regenerar el índice de specs.** La rama y `ce023926` están las dos en 430 specs, pero con filas distintas: la rama tiene 0337 y main tiene 0339. Tras unir, `corepack pnpm docs:index` debe dejar **431** con las dos filas; si `docs:check` se queja, el driver no unió bien y hay que revisarlo antes de publicar.
-- Revisión del Director y CI alojado del SHA final publicado. `/ui-check` lo corre el Director (el JSX sigue idéntico).
-- E2E autenticado y ledger real siguen NO DISPONIBLES en local: sin credenciales. No son permiso para copiarlas. `migrations-applied` sólo se puede medir donde haya credenciales; 0402 ya no es una espera, así que ese paso deja de tener un pendiente por diseño.
+- **Ninguno de implementación, preparación ni publicación.** La rama quedó al día con `main` = `f93c0f2c`, publicada en un solo push sin force, y la PR #76 está fuera de borrador con el título sin el prefijo de bloqueo.
+- **LA RAMA ESTÁ CONGELADA.** Regla del Director: publicado el head, no se toca hasta que él fusione. Un commit posterior —aunque sean dos líneas de handoff— hace que GitHub **cancele la corrida de CI a mitad de camino** y vuelva a encolar; con varias PRs esperando detrás eso cuesta cuartos de hora de cola. Si aparece algo que sólo se sabe después de publicar, como el resultado del CI alojado, **se informa por mensaje y no se empuja**.
+- Revisión del Director, CI alojado del SHA publicado y `/ui-check`, que corre él.
+- E2E autenticado y ledger real siguen **NO DISPONIBLES** en local por falta de credenciales, y eso no es permiso para copiarlas. Las tres vistas de L02 nunca se ejercieron con sesión en este worktree; quien quiera esa cobertura tiene que buscarla donde haya credenciales.
+- El merge a `main` y su efecto de publicar en Vercel siguen siendo decisión y autorización del Director. Cerrar esta tarea no las concede.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -276,6 +393,8 @@ Detalle de `verify` en la ronda 2 (los conteos suben porque la rama ya trae main
 
     O sea: la candidata natural a relajarse es justo la que **no** rompe nada —está marcada V1 y «varios usuarios de portal por cliente» es una evolución de producto previsible—, mientras que la que sí rompe, `unique (auth_user_id)`, no está marcada como limitación en ninguna parte del archivo (el único otro «V1» está en L9 y habla de policies read-only) ni figura como evolución prevista. **El riesgo residual es más chico de lo que decía la versión anterior de esta entrada, y conviene que se note: un riesgo sobredimensionado se descarta igual que uno omitido.** Lo que queda es documentar la dependencia donde se usa, no un cambio pendiente. Indicación explícita del Director: **no se arregla en esta tarea**.
 
+14. **Ronda 3 — el paso `e2e` de `verify` se cuelga con la suíte completa en este entorno, y eso afecta a toda la cola de integración.** Medido dos veces en el mismo punto (tras `[mobile-safari] auth.spec.ts:74`), dentro y fuera de `verify`; en aislamiento el mismo spec termina en 1,4 min con los 4 fallos ambientales de siempre. No es un test roto: es el runner atascado con 3 proyectos en paralelo mientras el WebServer falla por falta de credenciales de Supabase. **El watchdog de SDD-0454 lo convierte en un FALLÓ con motivo en vez de un cuelgue infinito, que es justo para lo que se escribió.** Queda como correlación y no causalidad: no se corrió el e2e sobre `main` limpio, que es el experimento que lo aislaría, porque exige otro worktree. **Aviso práctico para el Director:** las PRs que vienen detrás van a encontrar el mismo cierre incompleto en local, así que conviene decidir si eso se diagnostica aparte o se acepta como límite conocido del entorno sin credenciales. No se diagnosticó ni se reparó acá.
+
 ## HANDOFF AL DIRECTOR
 
 - **Orden migrate-first: cumplido.** Los pasos 1 a 4 del plan de la ronda 1 están hechos: la PR se revisó, Sam autorizó 0402 nombrándola, el Director la aplicó y verificó (ledger `20260912022703`) y esta ronda retiró la espera, la declaración y la nota. El gate quedó en 0 ROJO y 0 AMARILLO.
@@ -286,4 +405,4 @@ Detalle de `verify` en la ronda 2 (los conteos suben porque la rama ya trae main
 - **Producción:** main publica en Vercel, así que la autorización del merge debe cubrir ese efecto. Fusionar no autoriza aplicar 0402, ni aplicar 0402 autoriza fusionar.
 - **Compartido con otros lotes:** índice y baseline (con driver) con #69, #70, #72, #73, #74 y #75; declaraciones sin driver con #75. Ninguna PR abierta toca los cinco archivos de código. L03 tocará después la home (import de `getPortalAdvisor` y su llamada) y `portal-queries`, en hunks distintos de los de L02.
 - **Decisiones pendientes para el Director:** retirar los lectores con admin client (hallazgo 3). El registro acotado del hallazgo 1 ya está aplicado en `a851c88d`.
-- **Ownership:** en la ronda 2 el claim es `worker-c-l02-session-454d97be` y **se mantiene abierto a propósito**, porque falta el push y un último merge de main; se libera con `node scripts/harness-worktree.mjs release --owner worker-c-l02-session-454d97be` cuando termine esa escritura. El claim de la ronda 1 (`c-l02-worker-20260911-claude`) ya estaba liberado, así que no se robó ninguno. No hubo subagentes escritores ni quedan sesiones consumidoras delegadas. Se conservan rama y worktree; no se borró nada.
+- **Ownership:** el claim de las rondas 2 y 3 es `worker-c-l02-session-454d97be` y **se libera al terminar este documento**, porque la escritura acabó con el push y la rama queda congelada. El claim de la ronda 1 (`c-l02-worker-20260911-claude`) ya estaba liberado, así que no se robó ninguno. No hubo subagentes escritores ni quedan sesiones consumidoras delegadas. Se conservan rama y worktree; no se borró nada.
