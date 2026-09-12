@@ -1,7 +1,7 @@
 ---
 sdd: "0461"
 title: "La cadena de aliados no cruza tenants"
-status: in-progress
+status: done
 author: "Claude"
 created: 2026-09-12
 updated: 2026-09-12
@@ -31,7 +31,7 @@ FK simples que no comparan tenants:
   devuelve su lista sin filtrar `pb.tenant_id`: el cliente de T1 se cotiza con la lista
   de T2.
 - `aliados.client_id` (0362:66). `convertirEnAliadoAction`
-  (`app/studio/(app)/clientes/actions.ts:880-888`) inserta el `clientId` del formulario,
+  (`app/studio/(app)/clientes/actions.ts:880-888` en main) inserta el `clientId` del formulario,
   y la RLS de `aliados` solo mira `aliados.tenant_id`.
 
 Además, `get_portal_brand()` (0401:41-42) resuelve la marca con `a.id = c.aliado_id`
@@ -154,7 +154,12 @@ tienen su RED medido.
   - los selects exactos del código responden byte a byte igual antes y después;
   - los cruces dan 409 · 23503, tanto por la sesión del Studio como por service_role;
   - la contraprueba sin la FK simple da PGRST200.
-- [ ] `pnpm verify` registrado paso a paso (detalle en el handoff).
+- [x] `pnpm verify` registrado paso a paso sobre `80b72653` (detalle en el handoff):
+      15 de 17 pasos PASARON, incluidos `sql-tests` (180 contratos, con el de la 0451) y
+      `schema-rebuild` (419 migraciones desde cero). `e2e` FALLÓ por entorno: los mismos
+      15 escenarios de `auth.spec.ts` y `global-search.spec.ts` en las dos pasadas, sin
+      configuración Supabase (`proxy.ts:67`). `migrations-applied` quedó NO EJECUTADO por
+      falta de credenciales. El gate no está completo.
 
 Que un fallo no deje cambios a medias lo garantiza la transacción de la migración,
 porque locks, preflight y DDL van en un solo `do`. El contrato no lo mide desde adentro.

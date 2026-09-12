@@ -476,7 +476,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0458 | finish miraba medio universo: los worktrees de .claude/worktr… | done | interno |
 | 0459 | No hay respuesta para «no sé»: el harness elegía un checkout … | done | interno |
 | 0460 | `finish` informa lo que git sabe del candidato: locked y prun… | done | interno |
-| 0461 | La cadena de aliados no cruza tenants | in-progress | interno |
+| 0461 | La cadena de aliados no cruza tenants | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0364, 0365, 0366, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
