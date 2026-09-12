@@ -9,9 +9,9 @@ Estado: lista-para-revision. **No está integrada.** La PR es la frontera; el me
 
 - **Worktree:** `C:/Users/AKX generator/Desktop/Developer/DTDCARGO/.claude/worktrees/nervous-tharp-418741`.
   La sesión lo recibió ya aislado, así que **no** se creó otro con `start`: anidar habría duplicado el aislamiento existente. `guard` PASÓ y `claim --owner nervous-tharp-418741` se tomó antes de editar; se revalidó `guard --owner` antes del primer commit.
-- **Rama:** `claude/quizzical-dijkstra-809aae`, nacida en `0413d4a1`, que es `origin/main` al arrancar y al cerrar (se verificó con `git fetch`: main no avanzó durante la tarea).
+- **Rama:** `claude/quizzical-dijkstra-809aae`, nacida en `0413d4a1` (`origin/main` al arrancar). **Durante la tarea `main` avanzó a `147f9561`** con la PR de L03 asesor Portal, y se integró antes de publicar: el merge (`9223347b`) no tuvo conflictos —el único solapamiento era `docs/specs/README.md`, que resolvió el driver `dtd-generated-records`— y `docs:check` quedó en verde con **434 specs**. Nada de L03 se tocó, y el diff de esta rama contra `origin/main` sigue siendo 5 archivos: los 2 de `scripts/`, la spec, el índice y este handoff.
 - **No se tocó:** producción, Supabase, migraciones, `app/`, `lib/`, `.claude/settings.json`. Sin `git add -A`, sin force push, sin cambios en ramas ni worktrees ajenos.
-- **SDD:** `docs/specs/0460-harness-worktrees-bare-locked/spec.md`, en `done`. Reservado con `pnpm sdd:next --reserve harness-worktrees-bare-locked`, que creó `refs/dtd/reservations/0460` y `refs/heads/codex/sdd-reserve-0460-harness-worktrees-bare-locked` sobre `origin/main`, sin tocar HEAD; el stub entró a la rama con `git cherry-pick` (`84c8b919`). La rama de reserva y su lock quedan intactos y **sin publicar**: la PR lleva la spec. Índice regenerado con `docs:index`: 433 specs.
+- **SDD:** `docs/specs/0460-harness-worktrees-bare-locked/spec.md`, en `done`. Reservado con `pnpm sdd:next --reserve harness-worktrees-bare-locked`, que creó `refs/dtd/reservations/0460` y `refs/heads/codex/sdd-reserve-0460-harness-worktrees-bare-locked` sobre `origin/main`, sin tocar HEAD; el stub entró a la rama con `git cherry-pick` (`84c8b919`). La rama de reserva y su lock quedan intactos y **sin publicar**: la PR lleva la spec. Índice regenerado con `docs:index`: 433 specs al escribir la spec, 434 tras integrar `main`.
 
 ## ⚠️ DOS COSAS QUE SOLO EL DIRECTOR PUEDE RESOLVER
 
@@ -36,7 +36,7 @@ Medido con `git merge-tree --write-tree HEAD claude/youthful-driscoll-120aae` y 
 | `scripts/harness-worktree.mjs` (~línea 96) | mi `worktrees()` nuevo queda pegado a `safeTarget`, que #97 reemplaza por `assertNotRedirected` | **conservar las dos mitades**: mi `worktrees()` completo (con `parseWorktrees` y la guarda de lista vacía) seguido del `function assertNotRedirected(target) {` de #97. Lo único que se descarta son las 4 líneas de la cabecera de `safeTarget`, que #97 elimina de todos modos |
 | `scripts/tests/harness-worktree.node.mjs` (línea 8) | las dos ramas agregan imports nombrados del mismo módulo | **unión**: `import { isValidSlug, worktreePathFor, worktreeContainers, resolveCandidate, branchFor, parseArgs, isSensitiveIgnoredName, parseWorktrees } from '../harness-worktree.mjs';` |
 
-**Resultado del merge resuelto así: `run-harness.mjs` → 85/85 en verde** (81 de `main` + 2 de #97 + 2 mías), con el índice regenerado en 434 specs. También se verificó que los dos cambios **se componen**: el `entry` que #97 saca de `resolveCandidate` es un registro de `parseWorktrees`, así que lleva `locked`/`prunable` y el JSON sigue funcionando; y el `finish` de #97 hereda gratis el filtro del `bare`. Mis pruebas se insertaron arriba del archivo, no al final, justamente para no solapar con el bloque que #97 agrega al final.
+**Resultado del merge resuelto así: `run-harness.mjs` → 85/85 en verde** (81 de `main` + 2 de #97 + 2 mías). Esa corrida se hizo sobre `2dbedf4f`, antes de integrar `main`; después del merge se revalidó con `merge-tree` sobre el head final y el juego de conflictos es **idéntico** —los mismos dos archivos, con `README.md` resuelto solo por el driver—, porque L03 no toca ninguna de las dos regiones. También se verificó que los dos cambios **se componen**: el `entry` que #97 saca de `resolveCandidate` es un registro de `parseWorktrees`, así que lleva `locked`/`prunable` y el JSON sigue funcionando; y el `finish` de #97 hereda gratis el filtro del `bare`. Mis pruebas se insertaron arriba del archivo, no al final, justamente para no solapar con el bloque que #97 agrega al final.
 
 ## Qué estaba mal y qué se hizo
 
@@ -70,7 +70,7 @@ Detalle interno sin efecto externo: `branch` pasa de `undefined` a `null` cuando
 | la misma suite sobre el **merge resuelto con #97** | PASÓ — **85/85** |
 | `eslint` sobre los 2 archivos tocados | PASÓ — 0 problemas |
 | `corepack pnpm lint` | PASÓ — 0 errores (8 warnings preexistentes en `app/`, ajenos y anteriores) |
-| `corepack pnpm docs:check` | PASÓ — 433 specs |
+| `corepack pnpm docs:check` | PASÓ — 434 specs, ya con `main` integrado |
 | `corepack pnpm sdd:check` | PASÓ — sin números repetidos (las ⏸ son choques históricos ya aplicados en prod) |
 | `git diff --check` | PASÓ |
 | `finish` real contra `DTD-worktrees/c-l17-verificar-throttle` | PASÓ — solo lectura; informe con los 4 campos nuevos y los anteriores intactos |
@@ -88,6 +88,7 @@ Detalle interno sin efecto externo: `branch` pasa de `undefined` a `null` cuando
 - `84c8b919` — `chore(sdd): reserva SDD-0460` (cherry-pick del stub).
 - `3155f5b3` — `fix(harness): worktrees() descarta el registro bare y expone locked y prunable` (código + pruebas).
 - `2dbedf4f` — `docs(sdd): SDD-0460` (spec + índice regenerado).
+- `9223347b` — merge de `origin/main` `147f9561`, sin conflictos, antes de publicar.
 - El commit que trae este documento cierra la tarea.
 
 ## Pendientes de esta tarea

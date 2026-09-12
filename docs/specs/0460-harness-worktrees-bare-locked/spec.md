@@ -150,7 +150,7 @@ porque el `ignoreCommand` de `vercel.json` no excluye `scripts/**`.
 | `node scripts/tests/run-harness.mjs` (Windows) | PASÓ — 12 archivos, 83/83 |
 | `eslint` sobre los 2 archivos tocados | PASÓ — 0 problemas |
 | `corepack pnpm lint` | PASÓ |
-| `corepack pnpm docs:check` | PASÓ |
+| `corepack pnpm docs:check` | PASÓ — 434 specs, con `origin/main` `147f9561` integrado |
 | `corepack pnpm sdd:check` | PASÓ |
 | `git diff --check` | PASÓ |
 | `finish` real contra `DTD-worktrees/c-l17-verificar-throttle` (solo lectura) | PASÓ — informe con los 4 campos nuevos y los anteriores intactos |
