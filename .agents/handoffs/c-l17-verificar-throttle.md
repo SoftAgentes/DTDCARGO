@@ -1,7 +1,7 @@
 # L17 — Reserva atómica del throttle de /verificar
 
 Fecha: 2026-09-11. Task ID: `c-l17-verificar-throttle`.
-Owner / sesión escritora ronda 1: `c-l17-worker-20260911-claude`; ronda 2: `claude-worker-l17-r2`. Estado: **0426 aplicada en producción** (2026-09-12, ledger `20260912022928`); la rama ya no es migrate-first y queda lista para revisión del Director. El merge lo serializa él.
+Owner / sesión escritora ronda 1: `c-l17-worker-20260911-claude`; ronda 2: `claude-worker-l17-r2`. Estado: **0426 aplicada en producción** (2026-09-12, ledger `20260912022928`); la rama ya no es migrate-first. Ronda 3: al día con main `0e4e2ad9`, publicada y en *ready for review*, congelada a la espera de que el Director fusione.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l17-verificar-throttle`.
 Rama: `codex/c-l17-verificar-throttle`. Base: `3c6107012f754953323202a7386b3e7811593814` (origin/main sin avance al validar).
@@ -485,6 +485,141 @@ Diff contra `origin/main` tras la ronda: **8 archivos** (antes 9).
 `supabase/migrations-baseline.json` salió del diff al quedar idéntico a main, y
 `supabase/pending-migration-symbol-declarations.json` nunca estuvo.
 
+## RONDA 3 — ACTUALIZACIÓN FINAL CON MAIN Y PUBLICACIÓN
+
+Fecha: 2026-09-12. Owner: `claude-worker-l17-r2` (misma sesión escritora).
+Turno asignado por el Director: última migrate-first del lote, después de #75.
+`origin/main` al empezar: `0e4e2ad9704282fc39d6439d8a0c642679d55150` (PR #75,
+L05 perfil privado), con 434 specs y 0337/0338/0339/0341/0342 ya integradas.
+SHA confirmado contra el que dio el Director antes de tocar nada.
+
+### Merge
+
+Mismo procedimiento que la ronda 2, con el override obligatorio del driver
+(`merge.dtd-generated-records.driver` sigue siendo una ruta relativa al árbol de
+la rama, así que sin override correría el driver viejo):
+
+```sh
+git fetch origin
+drv="$(cygpath -m "$TEMP")/dtd-merge-driver-main.mjs"
+git show origin/main:scripts/merge-generated-records.mjs > "$drv"
+git -c merge.dtd-generated-records.driver="node \"$drv\" %O %A %B %P" merge origin/main
+```
+
+Driver de main verificado por md5 antes de usarlo: `b4563696716d6893d48e619ec0e9eca4`.
+Merge limpio, sin conflictos, en su propio commit `7504c3fa`. Entró L03 (0403) y
+L05 (0405) con sus specs, tests y handoffs: 18 archivos, ninguno en colisión con
+esta rama.
+
+### Invariantes medidas contra el main nuevo
+
+| Comprobación | Resultado |
+|---|---|
+| Índice de specs, medido con `docs:check` y no asumido | PASÓ — **435**, contra 434 en main; delta +1 = la propia 0375. Es el número que predijo el Director |
+| `git diff origin/main -- supabase/migrations-baseline.json` | PASÓ — **VACÍO**. md5 del archivo y del blob de main: `59b976cfd391f9431e23f11e41a04046`. `cutoff` 238, `pendingBelowCutoff` con 0 claves |
+| `git diff origin/main -- supabase/pending-migration-symbol-declarations.json` | PASÓ — **VACÍO**. md5 a ambos lados: `d2ff7560a84064be086a7dd96efb62c5`. `degradations` 0 |
+| `0426_public_verify_atomic_reservation.sql` | PASÓ — md5 `8e4f06a4ce6f02dfb0aa2af683a92e37`, 5622 B, blob `718f2e6a`. No se tocó en ninguna ronda |
+| `git diff --name-only origin/main HEAD` | PASÓ — **8 archivos, exactamente los propios** y ninguno más |
+
+Los 8 archivos: `.agents/handoffs/c-l17-verificar-throttle.md`,
+`docs/specs/0375-public-verify-atomic-reservation/spec.md`,
+`docs/specs/README.md`, `lib/public/verify-throttle.ts`,
+`lib/public/verify-throttle.test.ts`,
+`scripts/check-public-verify-concurrency.mjs`,
+`supabase/migrations/0426_public_verify_atomic_reservation.sql`,
+`supabase/tests/0426_public_verify_atomic_reservation.test.sql`.
+
+**Solapamiento con las cinco PR anteriores: ninguno, medido en vez de supuesto.**
+Esta rama toca el sitio público (`lib/public/`) y su runner, no el Portal. Ni
+`lib/portal/`, ni `app/portal/`, ni las migraciones 0401–0406 aparecen en su
+diff.
+
+### Integridad contra el head revisado `07e54dfc`
+
+Comparación blob a blob de los archivos de producto:
+
+| Archivo | `07e54dfc` | HEAD | |
+|---|---|---|---|
+| `supabase/migrations/0426_public_verify_atomic_reservation.sql` | `718f2e6a` | `718f2e6a` | **idéntico** |
+| `supabase/tests/0426_public_verify_atomic_reservation.test.sql` | `ffbcb47f` | `ffbcb47f` | **idéntico** |
+| `scripts/check-public-verify-concurrency.mjs` | `e5bc55f2` | `e5bc55f2` | **idéntico** |
+| `lib/public/verify-throttle.ts` | `da2cb6e0` | `40a67744` | difiere: 1 línea de docstring → 2 (punto 6) |
+| `lib/public/verify-throttle.test.ts` | `065aa435` | `c32364b2` | difiere: las 2 frases autorizadas en `6fb9d2e9` |
+| `docs/specs/0375-public-verify-atomic-reservation/spec.md` | `5ac88ba9` | `b4fc5a0f` | difiere: nota de importación (punto 4) y §Release/aceptación (punto 6) |
+
+Los tres que difieren son exactamente los tres asignados. El diff de
+`verify-throttle.test.ts` contra `07e54dfc` es literalmente dos líneas: el
+paréntesis «(migrate-first)» del `describe` y la etiqueta de `PGRST202`.
+
+### Validación de la ronda 3
+
+`corepack pnpm verify` completo sobre el árbol ya fusionado con `0e4e2ad9`:
+**FALLÓ, exit 1**. Corrieron 16 de 17 pasos: 14 PASÓ, 1 NO DISPONIBLE, 1 FALLÓ.
+
+| Paso | Resultado |
+|---|---|
+| harness | PASÓ |
+| lint | PASÓ |
+| rsc-boundary | PASÓ — 1599 módulos, sin cruces server→client ni client→node |
+| typecheck | PASÓ |
+| edge-functions | PASÓ — 4 funciones compilan |
+| test (Vitest completo) | PASÓ — 543 archivos, 6809 pruebas |
+| docs:check | PASÓ — índice sincronizado con **435 specs** |
+| numbering | PASÓ — sin números repetidos (435 specs · 436 migraciones) |
+| feature-constants | PASÓ — 5 banderas |
+| components:check | PASÓ |
+| governance:check | PASÓ |
+| migrations-applied | **NO DISPONIBLE por configuración ausente** — SKIP sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` |
+| pending-migration-symbols | PASÓ — 0 ROJO · 0 AMARILLO declarado |
+| sql-tests | PASÓ — **179 contratos** con rollback total, incluido `0426_public_verify_atomic_reservation.test.sql` |
+| schema-rebuild | PASÓ — 436 en inventario, 418 desde cero, 18 sólo-ledger, aislamiento sobre 219 tablas + 2 tenants reales |
+| e2e | **NO DISPONIBLE por configuración ausente** — ver abajo |
+| build | PASÓ — build de producción OK |
+
+Cierre del propio verify: «16 de 17 pasos corrieron de verdad … CIERRE ADEMÁS
+INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied». Exit 1 aquí es entorno, no
+producto.
+
+#### e2e: NO DISPONIBLE, con el diagnóstico ya cerrado
+
+Se registra como **NO DISPONIBLE por configuración ausente**. **El diagnóstico
+está cerrado** por decisión del Director: cuatro Workers midieron cuatro puntos
+de cuelgue distintos, más una corrida que no se colgó, y la causa acordada es
+**el runner bajo carga con el WebServer caído por falta de credenciales de
+Supabase**. No se diagnostica, no se reintenta a mano, no se toca configuración
+y no se absuelve. No se levanta tarea de tests inestables: con el WebServer roto
+no se puede medir inestabilidad del e2e en estas máquinas. **El CI alojado es el
+que decide.**
+
+Esta corrida: la primera pasada terminó normal —152 aprobados, 16 fallos
+ambientales de `proxy.ts:67` (`auth.spec.ts` y `global-search.spec.ts:22`), 18
+omitidos, 1 flaky— y fue el reintento el que quedó mudo. El watchdog de SDD-0454
+cortó por inactividad a los 10 min, terminó **sólo** el árbol de procesos del
+paso (raíz PID 40176; 29 procesos: `chrome-headless-shell.exe`×18,
+`node.exe`×10, `cmd.exe`×1) con **0 sobrevivientes**, y lo declaró FALLÓ con
+motivo en vez de omitido.
+
+### Publicación
+
+Un solo push de la rama a sí misma, con el título sin prefijo de bloqueo y el
+paso a *ready for review* en el mismo acto, tal como pidió el Director:
+
+- Título: «feat(DTD-0375): L17 reserva atómica del throttle de /verificar (0426 ya aplicada)».
+- Cuerpo reescrito (la reescritura queda declarada en la ronda 2); el anterior
+  está respaldado fuera de Git.
+
+**Después del push la rama queda congelada hasta que el Director fusione.** No
+se empujan commits de handoff sobre un CI en marcha: esa fue la causa de tres
+corridas canceladas esta noche en dos sesiones distintas. El resultado del CI
+alojado se le reporta por mensaje, nombrando explícitamente el check «Calidad
+local sin secretos», porque una PR puede mostrarse en verde sin que ese check
+haya corrido nunca.
+
+### Commits de la ronda 3
+
+- `7504c3fa` — merge de `origin/main` (`0e4e2ad9`) con el override del driver, solo.
+- El commit que contiene esta sección cierra la ronda y es el SHA que se publica.
+
 ## PENDIENTES DE ESTA TAREA
 
 Estado tras la ronda 2 (2026-09-12):
@@ -500,10 +635,14 @@ Estado tras la ronda 2 (2026-09-12):
   el checkout principal. El CI alojado es el que decide.
 - La spec 0375 se mantiene en `status: in-progress` a propósito: su única
   casilla abierta es el release/smoke posdespliegue.
-- Secuencia acordada con el Director para esta ronda: van #83 y #75 antes; todo
-  queda commiteado **sin push** hasta que él mande el SHA. Después del push la
-  rama se congela hasta que él fusione — no se empujan commits de handoff sobre
-  un CI en marcha.
+- Secuencia cumplida: #83 y #75 se integraron primero; esta rama fue la última
+  migrate-first del lote. Con el SHA del Director (`0e4e2ad9`) se hizo el merge,
+  la revalidación y **un solo** push, con el título sin prefijo y el paso a ready
+  en el mismo acto. **La rama queda congelada hasta que él fusione**: no se
+  empujan commits de handoff sobre un CI en marcha.
+- Falta reportarle el CI alojado nombrando explícitamente el check «Calidad
+  local sin secretos», no «los checks están verdes»: una PR puede mostrarse en
+  verde sin que ese check haya corrido nunca.
 
 ## FUERA DE ALCANCE DETECTADO
 
