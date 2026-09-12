@@ -1,18 +1,21 @@
 # L01 — Marca del Portal por principal (RPC 0401 / SDD-0336)
 
-Fecha: 2026-09-11. Task ID: `c-l01-portal-marca`.
-Owner / sesión escritora: `c-l01-worker-20260911-claude`. Estado: lista-para-revision en PR borrador; **MIGRATE-FIRST: no fusionar antes de aplicar y verificar 0401 en producción**.
+Fecha: 2026-09-11; ronda 2 el 2026-09-12. Task ID: `c-l01-portal-marca`.
+Owner / sesión escritora: ronda 1 `c-l01-worker-20260911-claude` (terminada y liberada); ronda 2 `pr82-update-worker-20260912-claude`, por adopción explícita del Director sobre el mismo worktree y la misma rama. Estado: lista-para-revision en PR borrador.
+**Ya no aplica el bloqueo migrate-first:** `0401_portal_brand_por_principal` fue aplicada a producción el 2026-09-12 con OK nominal de Sam (ledger `20260912004121`), así que la rama dejó de declararla como espera y puede integrarse en el orden normal.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l01-portal-marca`.
-Rama: `codex/c-l01-portal-marca`. Base: `3c6107012f754953323202a7386b3e7811593814` (origin/main al crear). Al cierre, origin/main había avanzado a `5894538d0c99dd597bfff136b6283c364671b19c` (PR #71: registro de 0425/0427); se fusionó en esta rama sin rebase, con el merge `282c63919d80b95c6d0884a65200bcc76d648826`.
+Rama: `codex/c-l01-portal-marca`. Base: `3c6107012f754953323202a7386b3e7811593814` (origin/main al crear). En la ronda 1 se fusionó `5894538d` (merge `282c6391`). En la ronda 2, partiendo de `5d6721f9`, se fusionó `origin/main` en `2cb48ee46c45c64dc56b36d42ffabb03b6142f30` con el merge `90fb5ee8`. Sin rebase ni force en ninguna ronda.
 Origen de solo lectura: `ea9952a47f4adf14c48c91e6d0147597beb94aa7`, PR #21.
-Permisos del encargo: commits selectivos, push de la rama a sí misma y PR draft. NO merge, NO aplicar 0401, NO leer producción, NO deploy.
+Permisos del encargo: ronda 1 y ronda 2, commits selectivos y push de la rama a sí misma; PR sigue en draft. NO merge, NO aplicar migraciones, NO tocar Supabase, NO deploy.
 
 ## OBJETIVO ORIGINAL
 
 Preparar L01 del bloque C como PR draft contra main: la marca white-label del Portal se resuelve con la RPC 0401 `get_portal_brand()`, ligada al principal autenticado, en el comprobante de factura y en las etiquetas de compra (SDD-0336).
 
 ## COMPLETADO
+
+> Lo que sigue describe la **ronda 1** tal como se cerró el 2026-09-11 y se conserva como evidencia fechada. Tres puntos quedaron superados por la ronda 2: el baseline y la declaración de símbolos ya no llevan 0401, y la página de etiquetas ahora parte de la versión de `main` con el acotado por principal y tenant. La sección «RONDA 2» manda sobre estos tres.
 
 - **Idénticos por blob al origen:** migración 0401, su contrato, `brand-resolve.ts` y el test de origen (tabla en VALIDACIÓN). El `brand-resolve.ts` de #21 es el de main (`fb34e571`) más `resolveBrandForPortal` al final. `resolveBrandForClient` queda intacta porque la sigue usando `app/p/[token]/page.tsx:44`, así que la adaptación mínima coincide con el origen.
 - **Spec 0336** exacta más una nota fechada 2026-09-11 con la forma de 0363: pendiente en baseline, MIGRATE-FIRST, OK nominal de Sam más runbook, y corte focal. Sin la nota coincide byte a byte con `4b6696c1` (2858 B). Se conservan `status: done` y todo el frontmatter; no se reservó número (0336 y 0401 no existían en main).
@@ -23,7 +26,75 @@ Preparar L01 del bloque C como PR draft contra main: la marca white-label del Po
 - **Declaración** `l01-portal-brand-pending-rpc` con el patrón de L16/L06: sitio real `lib/studio/aliados/brand-resolve.ts:66` y cuatro evidencias ancladas. Gate: 0 ROJO · 1 AMARILLO.
 - **Índice** regenerado con `corepack pnpm docs:index` (416 specs).
 
+## RONDA 2 — 2026-09-12 · 0401 aplicada y rama al día con `main`
+
+Adopción explícita del worktree y la rama de la ronda 1, cuya sesión terminó. Antes de editar: `guard` OK, `git status --porcelain --untracked-files=all` vacío, `HEAD = 5d6721f97b902817c5751dfd732f2752362efec1` y claim nuevo `pr82-update-worker-20260912-claude`. No se creó otra rama ni otro worktree; no se ejecutó nada contra Supabase.
+
+### Lo que cambió
+
+- **0401 dejó de ser una espera.** La migración se aplicó a producción el 2026-09-12 con OK nominal de Sam, ledger `20260912004121 / 0401_portal_brand_por_principal`. El archivo de esta rama es el aplicado: `md5sum` local da `5316823bf152618b7717c1b0582731eb` y 1765 B sobre `supabase/migrations/0401_portal_brand_por_principal.sql`, los mismos del ledger. Por eso `supabase/migrations-baseline.json` vuelve a `cutoff: 238` con `pendingBelowCutoff` vacío y `$doc` intacto, y `supabase/pending-migration-symbol-declarations.json` a `degradations: []`. Los dos quedan **idénticos a `origin/main`**: `git diff origin/main -- <archivo>` sale vacío en ambos, así que ya no aparecen en el diff de la PR.
+- **Nota de importación de la spec 0336** reescrita con el patrón de `docs/specs/0352-bank-reconciliation-rbac/spec.md`: migración aplicada, fecha, ledger, identidad del archivo y registro en `.agents/handoffs/`. Frontmatter intacto (`status: done`, `updated: 2026-09-02`). Se anota además que etiquetas conserva el acotado por principal y tenant que main trae de L18, L11 y L22.
+- **Merge de `origin/main` `2cb48ee4`** con el driver semántico **de main**, no con la copia de esta rama: la rama nació antes de #88 y #93, y su driver viejo podía resucitar esperas ya retiradas. Se usó el override del punto 4 «Transición» del ADR-0002 (`git -c merge.dtd-generated-records.driver="node \"<driver-de-main>\" %O %A %B %P" merge --no-commit origin/main`), con el driver extraído de `origin/main:scripts/merge-generated-records.mjs` a un archivo fuera del repo. Resolvió por unión semántica el baseline y `docs/specs/README.md` (índice regenerado a 428 specs, la fila 0336 en su lugar y el hueco 0336 retirado; `docs:index` posterior no cambió un byte). Tras este merge la rama ya lleva el driver corregido y `.gitattributes` de main, así que el próximo merge no necesita override.
+
+### Resolución del conflicto de `app/portal/(app)/compras/[code]/etiquetas/page.tsx`
+
+Contra la base del merge `5894538d`, cada lado tocó la página así: esta rama cambió el import de marca (línea 6) y la resolución de marca (59–67); `main` cambió el import del principal (línea 7), la obtención del cliente (49–50) y la llamada de addons (86). Git sólo marcó conflicto en el bloque de imports, porque las líneas 6 y 7 caen en el mismo hunk; el resto lo fusionó sin ambigüedad. **No se eligió `ours` ni `theirs` en bloque.**
+
+| Zona | Esta rama (`5d6721f9`) | `origin/main` (`2cb48ee4`) | Resultado (`90fb5ee8`) |
+|---|---|---|---|
+| Imports 6–7 — **conflicto real, resuelto a mano** | `resolveBrandForPortal` + `getPortalClient` | `resolveBrandForClient` + `getPortalClientPrincipal` | Se conservan **las dos líneas cambiadas**: `resolveBrandForPortal` (6) de esta rama y `getPortalClientPrincipal` (7) de main. Quedan cero referencias a `resolveBrandForClient` y a `getPortalClient` en el archivo. |
+| Cliente de la sesión 49–51 — auto | Sin cambio respecto a la base (`getPortalClient`) | `getPortalClientPrincipal` + `const { client, tenantId } = principal` | **Main**: el acotado por principal y tenant se conserva entero. |
+| Marca 62 — auto | Comentario SDD-0336 + `resolveBrandForPortal(supabase)` | Sin cambio respecto a la base (comentario SDD-0255 + `resolveBrandForClient(createAdminClient(), { markbox })`) | **Esta rama**: la marca sale de la RPC `get_portal_brand()` con la sesión del Portal; la página deja de construir `service_role` para leer la marca. |
+| Addons 82 — auto | Sin cambio respecto a la base | `listActivePrealertaAddons(supabase, { tenantId })` | **Main**: el acotado por tenant de L22 se conserva. |
+| `getLabelPresentation(createAdminClient(), …)` 63, `listPredeclaredBoxes` 79, JSX 130–219 | Igual a la base | Igual a la base | Sin cambio; `createAdminClient` sigue importado porque lo usan la presentación (63) y el firmado de adjuntos (107). |
+
+Comprobación del resultado: `git diff origin/main -- app/portal/(app)/compras/[code]/etiquetas/page.tsx` son exactamente los dos hunks de marca (import y llamada, 4 insertadas y 9 borradas) sobre la versión de main; no aparecen ni el principal, ni `tenantId`, ni los addons, porque ya vienen de main sin tocar.
+
+### Diff contra `origin/main` por archivo tras la ronda 2
+
+`git diff origin/main...HEAD --stat` — 10 archivos. Las cifras de código son +517 −19; este handoff añade el resto y crece con la ronda 2:
+
+| Archivo | Δ | Qué es |
+|---|---|---|
+| `supabase/migrations/0401_portal_brand_por_principal.sql` | +55 | Migración aplicada en prod el 2026-09-12; idéntica al ledger. |
+| `supabase/tests/0401_portal_brand_por_principal.test.sql` | +216 | Contrato SQL de la RPC. |
+| `lib/studio/aliados/brand-resolve.ts` | +18 | `resolveBrandForPortal`; `resolveBrandForClient` intacta para `app/p/[token]/page.tsx`. |
+| `lib/studio/aliados/__tests__/brand-resolve.test.ts` | +45 | Test del origen (#21). |
+| `lib/studio/aliados/__tests__/brand-resolve-portal-rpc.test.ts` | +79 | Test nuevo de la RPC, 5 casos. |
+| `app/portal/(app)/facturas/[code]/comprobante/page.tsx` | +4 −8 | Marca por RPC; deja de construir `service_role`. Main no tocó esta página en la ronda 2. |
+| `app/portal/(app)/compras/[code]/etiquetas/page.tsx` | +4 −9 | Sólo los dos hunks de marca sobre la versión de main. |
+| `docs/specs/0336-marca-portal-por-principal/spec.md` | +93 | Spec con la nota de importación actualizada. |
+| `docs/specs/README.md` | +3 −2 | Fila 0336, conteo 428 y hueco 0336 retirado. |
+| `.agents/handoffs/c-l01-portal-marca.md` | nuevo | Este documento, con la ronda 1 y la ronda 2. |
+
+**Ya no aparecen** `supabase/migrations-baseline.json` ni `supabase/pending-migration-symbol-declarations.json`: quedaron iguales a main. `git diff --check origin/main...HEAD` limpio.
+
+### Validación de la ronda 2
+
+Sobre `d01909dcb479ee6124ba7ba3c7a4d15839bc87ed` (los tres commits de la ronda sobre `2cb48ee4`). Recibos fuera de Git en `…/scratchpad/pr82/`: `verify.log`, `verify-clean.log`, `verify.exit`, `verify.meta`, `merge.log`, `docs-index.log`, `docs-check.log`, `sdd-check.log`, `pending-symbols.log`, `vitest-focal.log` y el driver extraído `dtd-merge-driver-main.mjs`. No se copiaron credenciales ni se tocó Supabase.
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| `guard` / `claim` / `guard --owner` | **PASÓ**: guard al tomar el árbol, claim `pr82-update-worker-20260912-claude`, y `guard --owner` revalidado antes de cada commit y antes del push. Estado inicial vacío y `HEAD = 5d6721f9` como indicaba la asignación. |
+| Identidad de 0401 contra el ledger | **PASÓ**: `md5sum` local `5316823bf152618b7717c1b0582731eb` y 1765 B, iguales a los del ledger `20260912004121`. Comprobación local sobre el archivo; **no** se consultó producción. |
+| Merge con el driver de `main` (override ADR-0002 §4) | **PASÓ**: un solo conflicto (`etiquetas/page.tsx`); baseline e índice resueltos por unión semántica. El baseline resultante del driver se reprodujo después con los tres blobs y dio el mismo objeto (`92f97587aa…`), así que el merge commit conserva exactamente lo que calculó el driver y la retirada de 0401 va en su propio commit. |
+| `git diff origin/main -- supabase/migrations-baseline.json` | **PASÓ**: vacío. `cutoff: 238`, `pendingBelowCutoff: {}`, `$doc` intacto. |
+| `git diff origin/main -- supabase/pending-migration-symbol-declarations.json` | **PASÓ**: vacío. `degradations: []`. |
+| `node scripts/check-pending-migration-symbols.mjs` | **PASÓ**: `0 ROJO · 0 AMARILLO declarado(s)`, con el gate de main que ya ve DDL dentro de bloques `DO` (#90). |
+| `corepack pnpm docs:index` / `corepack pnpm docs:check` | **PASÓ**: 428 specs, 28 huecos; el índice que dejó el driver ya era el canónico (`docs:index` no cambió un byte) y `docs:check` lo confirma sincronizado. |
+| `corepack pnpm sdd:check` | **PASÓ**: sin números repetidos. Conserva los choques históricos declarados de **migraciones**, entre ellos el de 0336 (`0336_pod_closes_shipment` · `0336_rate_ddp_850_septiembre_2026`), ajeno a la spec 0336. |
+| Vitest focal `lib/studio/aliados/__tests__/brand-resolve*.test.ts` | **PASÓ**: 2 archivos, 8 tests. |
+| `git diff --check origin/main...HEAD` | **PASÓ**: sin espacios finales ni marcadores; 10 archivos en el diff. |
+| `corepack pnpm verify` | **FALLÓ, exit 1** (20:51:53 → 21:23:33 −04:00). 16 de 17 pasos corrieron de verdad: **15 PASÓ** (harness, lint, rsc-boundary, typecheck, edge-functions, test, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, sql-tests, schema-rebuild, build), `migrations-applied` **NO DISPONIBLE** y `e2e` **FALLÓ**. Veredicto literal: `verify: 1 fallo(s) → e2e [COLGADO/TIMEOUT: sin salida durante 10 min; límite de inactividad 10 min (VERIFY_E2E_IDLE_MIN)] CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.` No se absuelve ni se presenta como verde. |
+| `verify` · `migrations-applied` | **NO DISPONIBLE**: `[SKIP] sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY`. El ledger real no se midió en este árbol; la evidencia de que 0401 está aplicada es la que entregó el Director, no una consulta hecha aquí. |
+| `verify` · `e2e` | **FALLÓ con motivo COLGADO/TIMEOUT.** El watchdog de SDD-0454 cortó el paso tras 10 min sin salida y lo dejó FALLÓ, sin reintento. Los 29 fallos que alcanzó a registrar antes del corte son los ambientales conocidos —`auth.spec.ts:21/91/98/105` y `global-search.spec.ts:22` en chromium, mobile-chrome y mobile-safari, con el error en `proxy.ts:67` al crear el cliente Supabase sin URL ni clave—, y 123 casos pasaron. Ningún spec del comprobante ni de las etiquetas falló. Como validación de acceso o de Supabase el paso es **NO DISPONIBLE** por falta de configuración, pero el corte por inactividad **no se absuelve**: el resto de la suite no se midió. |
+| Procesos tras el corte | **PASÓ**: `watchdog: raíz PID 23740; 25 proceso(s) del árbol propio terminados (chrome-headless-shell.exe×15, node.exe×9, cmd.exe×1); sobrevivientes: 0.` No hizo falta `taskkill` y no se tocó ningún proceso ajeno. |
+| Producción / Supabase | **NO EJECUTADO** por límite del encargo: no se aplicó ninguna migración, no se leyeron filas y no se abrió conexión alguna. |
+| `/ui-check` | **NO EJECUTADO**: lo corre el Director. El JSX no cambió en la ronda 2; el conflicto y su resolución quedan por encima del primer `return (`. |
+
 ## DIFF FOCAL POR ARCHIVO
+
+> Tabla de la **ronda 1**, contra `main` en `3c610701`. Para el estado vigente contra `2cb48ee4`, ver «Diff contra `origin/main` por archivo tras la ronda 2»: los números de línea de `etiquetas/page.tsx` se corrieron y el comentario de main pasó a ser el de SDD-0255 sobre la versión con principal.
 
 `lib/studio/aliados/brand-resolve.ts` (main `fb34e571` → `a7a0e6eb`, +18 líneas):
 
@@ -68,6 +139,8 @@ Preparar L01 del bloque C como PR draft contra main: la marca white-label del Po
 Conclusión: el único modo de fallo nuevo es la RPC ausente para clientes de aliado. No expone datos (cae a la marca de la casa, completa y sin fallback admin), pero degrada el white-label, y `lib/shared/brand-context.ts:4–7` documenta que eso no es cosmético: hay un caso legal donde un membrete de la casa debilitó la defensa de «aliado independiente». Ese modo queda fuera de producción con el orden migrate-first. 0401 es aditiva (función + ACL) y main no la llama, así que aplicarla antes de fusionar no cambia el comportamiento vigente. El comentario fechado de `brand-context.ts:20–21` («445 de 445 con `aliado_id` NULL») sugiere que hoy no habría clientes de aliado afectados, pero es NO VERIFICABLE sin leer producción; el orden migrate-first se mantiene igual.
 
 ## VALIDACIÓN
+
+> Validación de la **ronda 1**, sobre `12ffba6a`. La de la ronda 2, sobre `d01909dc`, está en su propia sección más arriba.
 
 Árbol de producto: commit `12ffba6a916ae1cd1b0f47a418e49d2d9d4b2cf8` sobre `3c610701`. Node 24.20.0, Corepack 0.35.0, pnpm 12.3.4, Docker 29.7.2. Sin credenciales copiadas ni `.env` operativo. Recibos fuera de Git en `C:\Users\AKXGEN~1\AppData\Local\Temp\claude\C--Users-AKX-generator-Desktop-Developer-DTDCARGO\454d97be-b1e0-4fc9-97e9-c6bb621ba84c\scratchpad\c-l01-portal-marca\`: `install.log`, `docs-sdd.log`, `pending-symbols-1-sin-declaracion.log`, `pending-symbols-2-con-declaracion.log`, `check-pending-migration-symbols.utf16-a6b2081b.mjs` y `pending-symbols-3-checker-utf16.log`, `vitest-focal.log`, `typecheck.log`, `eslint-focal.log`, `sql-0401-focal.log`, `schema-rebuild.log`, `order-check.mjs`, `order-check.sql` y `order-check.log`, `diff-focal-tracked.patch`, `verify.log`, `verify.exit` y `verify.meta`.
 
@@ -167,23 +240,36 @@ Verificación contra datos reales: no ejecutada (sin autorización para producci
 
 ## COMMITS
 
+Ronda 1:
+
 - `12ffba6a916ae1cd1b0f47a418e49d2d9d4b2cf8`: SDD-0336 — migración y contrato 0401, spec con nota, adopción focal, tests, baseline, declaración e índice.
 - `282c63919d80b95c6d0884a65200bcc76d648826`: merge de origin/main `5894538d` (PR #71: handoff de aplicación de 0425/0427 y nota de la spec 0372), sin conflictos ni cambios de producto.
-- Commit que contiene este documento: cierre durable del handoff; hash final en la PR.
+- `5d6721f97b902817c5751dfd732f2752362efec1`: cierre del handoff de la ronda 1.
+
+Ronda 2:
+
+- `90fb5ee8c43f8bdbeba75498c240a399fec6f4bd`: merge de origin/main `2cb48ee4` con el driver de main; única resolución manual, el bloque de imports de `etiquetas/page.tsx`.
+- `45097c05148d289884ba03d4b047a98287ba0c18`: retirada de la espera 0401 del baseline y de la declaración `l01-portal-brand-pending-rpc`, ahora que la migración está aplicada.
+- `d01909dcb479ee6124ba7ba3c7a4d15839bc87ed`: nota de importación de la spec 0336 actualizada a «aplicada a producción».
+- Commit que contiene este documento: cierre durable de la ronda 2; hash final en la PR.
 
 ## PR / BRANCH
 
-[PR #82 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/82), título «[NO FUSIONAR ANTES DE APLICAR 0401] feat(studio): SDD-0336 — importar L01 marca Portal por principal (migrate-first)», base `main`, rama `codex/c-l01-portal-marca`, worktree indicado arriba. Rama publicada explícitamente a sí misma (`12ffba6a` al abrir la PR); sin merge ni aplicación de migraciones.
+[PR #82](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/82), **sigue en borrador**, base `main`, rama `codex/c-l01-portal-marca`, worktree indicado arriba. Rama publicada explícitamente a sí misma, sin force: `12ffba6a` al abrir la PR en la ronda 1 y el head de la ronda 2 al cierre de este documento. Sin merge, sin aplicar migraciones y sin deploy en ninguna ronda.
+
+El título de la PR todavía dice «[NO FUSIONAR ANTES DE APLICAR 0401] … (migrate-first)». Ese aviso **quedó obsoleto** con la aplicación del 2026-09-12 y conviene que el Director lo retire al integrar; el Worker no lo cambió porque la edición del título de la PR no está en el encargo de esta ronda.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Antes de fusionar:** aplicar `0401_portal_brand_por_principal` en producción con OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md` (de a una, name exacto) y verificar catálogo, ACL y una llamada como `authenticated`. Después, en esta rama: retirar la espera del baseline y la declaración `l01-portal-brand-pending-rpc`, actualizar la nota de 0336 (patrón del commit `b49f1c0b` de L16) y revalidar.
+- ~~Aplicar 0401 antes de fusionar y después retirar la espera, la declaración y la nota~~. **Hecho:** 0401 se aplicó el 2026-09-12 (ledger `20260912004121`) y la ronda 2 retiró la espera del baseline y la declaración `l01-portal-brand-pending-rpc`, y actualizó la nota de la spec 0336. El bloqueo migrate-first ya no aplica.
+- **`e2e` sin medir.** El paso quedó FALLÓ por COLGADO/TIMEOUT del watchdog tras los fallos ambientales de configuración; hace falta una corrida con configuración de Supabase (o la del CI alojado) para tener cobertura real. No se reintentó: el contrato del watchdog es sin reintento y repetirlo en este árbol, sin credenciales, no aportaría evidencia nueva.
+- **`migrations-applied` sin medir** en este árbol por falta de `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. Ni esto ni lo anterior autorizan copiar credenciales.
 - CI alojado del SHA publicado, revisión del Director y `/ui-check`.
-- E2E autenticado y ledger real quedan sin validar; no son autorización para copiar credenciales ni aplicar migraciones.
+- Retirar de la PR el título «[NO FUSIONAR ANTES DE APLICAR 0401] … (migrate-first)», ya obsoleto.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Coherencia de tenant aliado↔cliente:** 0401 (41–42) no exige `a.tenant_id = c.tenant_id`, y el esquema vigente acepta un `clients.aliado_id` de otro tenant (0362:130, 284–327). Demostrado en la prueba de orden (`order-check.log`, observación en `<stdin>:211` y `:221`). Detalle y arreglo propuesto en la revisión de datos.
+- **Coherencia de tenant aliado↔cliente — resuelto en `main` durante la ronda 2.** El hallazgo de la ronda 1 (0401:41–42 no exige `a.tenant_id = c.tenant_id` y el esquema aceptaba un `clients.aliado_id` de otro tenant, 0362:130 y 284–327, demostrado en `order-check.log`) fue atendido por SDD-0456 y la migración `0450_clients_aliado_mismo_tenant`, que main ya trae y que esta rama incorpora con el merge. El arreglo es la FK compuesta `(tenant_id, aliado_id) → aliados (tenant_id, id)`, conservando la FK simple para el embed de PostgREST; su cabecera cita expresamente la RPC 0401 de esta PR. La RPC en sí sigue uniendo sólo por `a.id = c.aliado_id`, pero ya no puede existir un vínculo cruzado que explotar. Esta rama **no** modifica 0401 ni añade migración nueva.
 - La RPC tampoco filtra aliados eliminados o suspendidos (`aliados.deleted_at`/`status`, 0362:73–74, 98). Es el mismo comportamiento que `resolveBrandForClient` en main (41–52), sin cambio en L01.
 - `app/p/[token]/page.tsx:44` sigue usando `resolveBrandForClient(admin, { markbox })`: es el enlace del proveedor, sin sesión Portal, así que no es consumidor de la RPC.
 - Etiquetas sigue construyendo service_role para `getLabelPresentation` (62) y para el firmado (106). Es preexistente; lo retoman L22 u otros lotes.
@@ -195,8 +281,18 @@ Verificación contra datos reales: no ejecutada (sin autorización para producci
 
 ## HANDOFF AL DIRECTOR
 
-- Título de la PR con «[NO FUSIONAR ANTES DE APLICAR 0401]». 0401 no tiene dependencias SQL C y es aditiva: tras aplicarla, main sigue igual. Orden seguro: aplicar 0401 → verificar → retirar espera y declaración en esta rama → fusionar → desplegar.
-- L22 va después y comparte etiquetas: esta rama sólo cambia las líneas 6 y 59–61. L22 debe partir de main con L01 integrado y conservar `presentation` y `listPredeclaredBoxes`.
+Ronda 2 (2026-09-12):
+
+- **La PR ya es integrable por este lado.** 0401 está aplicada, la rama no declara esperas y su diff contra `origin/main` `2cb48ee4` son 10 archivos. Sigue en **draft** y el merge lo hace el Director; esta sesión no fusionó, no desplegó y no tocó Supabase.
+- **Lo que hay que mirar en la revisión:** el bloque de imports de `app/portal/(app)/compras/[code]/etiquetas/page.tsx`, que es la única resolución manual del merge, y que el diff de esa página contra main sean exactamente los dos hunks de marca. El acotado por principal y tenant de L18, L11 y L22 se conserva íntegro, incluido `listActivePrealertaAddons(supabase, { tenantId })`.
+- **Cobertura incompleta que el Director debe pesar antes de integrar:** `e2e` FALLÓ por COLGADO/TIMEOUT y `migrations-applied` quedó sin medir. El resto del gate, incluido `build`, pasó. El exit 1 del `verify` es real y no se presenta como verde.
+- **Conflictos con otros lotes:** el baseline y las declaraciones ya no aparecen en el diff, así que dejaron de ser fuente de conflicto. Queda `docs/specs/README.md`, que el driver `dtd-generated-records` resuelve por unión; tras este merge la rama ya lleva el driver corregido de #88/#93 y no hace falta el override del ADR-0002 en el próximo merge.
+- **Ownership:** se libera al cierre con `node scripts/harness-worktree.mjs release --owner pr82-update-worker-20260912-claude`, después de la última escritura, commit y publicación. Sin subagentes. No se levantaron contenedores propios en esta ronda salvo los efímeros de `sql-tests` y `schema-rebuild` dentro del `verify`, que el gate retira; el watchdog dejó 0 sobrevivientes de su corte. Se conservan worktree y rama.
+
+Ronda 1 (2026-09-11), como quedó registrado entonces:
+
+- Título de la PR con «[NO FUSIONAR ANTES DE APLICAR 0401]». 0401 no tiene dependencias SQL C y es aditiva: tras aplicarla, main sigue igual. Orden seguro: aplicar 0401 → verificar → retirar espera y declaración en esta rama → fusionar → desplegar. **Ese orden ya se cumplió.**
+- L22 va después y comparte etiquetas: esta rama sólo cambia las líneas 6 y 59–61. L22 debe partir de main con L01 integrado y conservar `presentation` y `listPredeclaredBoxes`. **Resuelto al revés:** L22 entró a main primero (PR #84) y la ronda 2 incorporó su versión de la página; `presentation` y `listPredeclaredBoxes` siguen ahí.
 - Conflictos esperables sólo en baseline, índice y declaraciones con otros lotes (por ejemplo L06, #77): resolver por unión. Baseline e índice tienen el driver `dtd-generated-records`; en las declaraciones hay que unir a mano los elementos de `degradations`.
 - Revisar la PR sobre los SHA publicados y la base `3c610701`. No se tocó producción, no se aplicó 0401, no se fusionó ni se desplegó.
-- Ownership: se libera al cierre con `node scripts/harness-worktree.mjs release --owner c-l01-worker-20260911-claude`, después de la última escritura, commit y publicación. Sin subagentes. Los contenedores propios (`dtd_l01sql_*`, `dtd_l01order_*`, y los `dtd_rebuild_*`/`dtd_sqltest_*` de este worktree) quedaron retirados; no se tocaron el stack Supabase `dtd-pr28-auth-*` ni procesos de otras sesiones. Se conservan worktree y rama.
+- Ownership de la ronda 1: liberado con `node scripts/harness-worktree.mjs release --owner c-l01-worker-20260911-claude`. Los contenedores propios (`dtd_l01sql_*`, `dtd_l01order_*`, y los `dtd_rebuild_*`/`dtd_sqltest_*` de ese worktree) quedaron retirados; no se tocaron el stack Supabase `dtd-pr28-auth-*` ni procesos de otras sesiones.
