@@ -163,6 +163,8 @@ Sam autorizó `0402_portal_hidden_statuses_por_principal` nombrándola y el Dire
 
 `origin/main` = `664bb4b2` (incluye la PR #94 del harness). Se fusionó con el driver de registros generados **de main**, extraído a un temporal fuera del repo, porque el de la rama es anterior y resucita entradas retiradas. El driver de la rama (`8cd8d315`) y el de main (`4a5af4e5`) difieren en 127 inserciones.
 
+**Aviso: `origin/main` ya avanzó otra vez durante esta ronda.** Mientras corría `verify`, otra sesión del repositorio hizo fetch y el ref compartido pasó de `664bb4b2` a `ce023926`, que fusiona la **PR #78 (L04 referidos)**. `664bb4b2` sigue siendo ancestro de `ce023926`, así que el merge de esta ronda no queda inválido: sólo incompleto. Por eso el diff de la rama contra `origin/main` **hoy muestra los archivos de L04 como borrados**, que es un artefacto de estar atrasada, no un borrado real; el aporte propio se mide contra `664bb4b2`. Los dos retiros se comprobaron VACÍOS contra **ambos** SHA, porque L04 también dejó `pendingBelowCutoff` en `{}` y `degradations` en `[]`. Falta #77; no se fusionó `ce023926` porque el momento lo marca el Director.
+
 Con el de main el merge quedó **sin un solo conflicto**: los dos únicos archivos que main y la rama tocaban a la vez son registros generados con driver en `.gitattributes` (`docs/specs/README.md` y `supabase/migrations-baseline.json`), y el driver los resolvió preservando lo de main — `pendingBelowCutoff` vacío, sin resucitar las esperas 0409/0418/0419/0430 que main ya retiró — y añadiendo sólo lo de la rama. Ningún archivo de producto entró en conflicto: main no tocó los cinco archivos de código de L02 ni la spec 0337. Merge commit `c5e477c4`.
 
 ### Retiro de la espera y de la declaración
@@ -226,7 +228,8 @@ Detalle de `verify` en la ronda 2 (los conteos suben porque la rama ya trae main
 | CI alojado del SHA de la ronda 2 | NO EJECUTADO todavía: depende del push, que el Director agenda |
 ## PENDIENTES DE ESTA TAREA
 
-- **Push, cuando el Director dé el SHA de main.** Las PR #78 y #77 fusionan antes; publicar ahora dejaría la rama atrasada y el ruleset la rechazaría. Al recibir el aviso: `git merge origin/main` con el mismo override del driver, revalidar lo afectado y publicar de una sola vez. Publicar ya está autorizado por el encargo; el momento lo marca el Director.
+- **Push, cuando el Director dé el SHA de main.** #78 ya está fusionada (`ce023926`); falta #77. Publicar ahora dejaría la rama atrasada y el ruleset la rechazaría. Al recibir el aviso: `git merge origin/main` con el mismo override del driver de main, revalidar lo afectado y publicar de una sola vez. Publicar ya está autorizado por el encargo; el momento lo marca el Director.
+- **Al hacer ese último merge hay que regenerar el índice de specs.** La rama y `ce023926` están las dos en 430 specs, pero con filas distintas: la rama tiene 0337 y main tiene 0339. Tras unir, `corepack pnpm docs:index` debe dejar **431** con las dos filas; si `docs:check` se queja, el driver no unió bien y hay que revisarlo antes de publicar.
 - Revisión del Director y CI alojado del SHA final publicado. `/ui-check` lo corre el Director (el JSX sigue idéntico).
 - E2E autenticado y ledger real siguen NO DISPONIBLES en local: sin credenciales. No son permiso para copiarlas. `migrations-applied` sólo se puede medir donde haya credenciales; 0402 ya no es una espera, así que ese paso deja de tener un pendiente por diseño.
 
