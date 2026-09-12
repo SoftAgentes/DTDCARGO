@@ -13,16 +13,21 @@ confidencialidad: interno
 
 # SDD-0375 — Reserva atómica del verificador público
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: in-progress` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0426_public_verify_atomic_reservation` está **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción**: el estado de la
-> cabecera no significa que este contrato esté vigente en la base real. **Migrate-first:** el
-> consumidor `lib/public/verify-throttle.ts` bloquea toda verificación si la RPC no existe, así
-> que 0426 se aplica y verifica ANTES de fusionar o desplegar ese consumidor. Aplicarla exige OK
-> nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`. Corte focal L17: no se
-> importan el cableado del runner en `scripts/verify.mjs` ni su test, ni las auditorías o el
-> handoff de la rama de origen.
+> **Nota de importación — 2026-09-11; actualizada el 2026-09-12.** Esta spec se importa desde la
+> PR #21 con su contenido original, `status: in-progress` incluido, que refleja su estado **en la
+> rama de origen**. Su migración `0426_public_verify_atomic_reservation` **fue APLICADA a
+> producción el 2026-09-12** con OK nominal de Sam (ledger `20260912022928 /
+> 0426_public_verify_atomic_reservation`), con el archivo de esta rama idéntico al aplicado (md5
+> `8e4f06a4ce6f02dfb0aa2af683a92e37`, 5622 B); esta ronda queda asentada en
+> `.agents/handoffs/c-l17-verificar-throttle.md`. Por eso 0426 ya **no** figura como espera en
+> `supabase/migrations-baseline.json` ni tiene declaración en
+> `supabase/pending-migration-symbol-declarations.json`. El orden migrate-first se cumplió: la RPC
+> `reserve_public_verify_attempt(text)` existe en la base —SECURITY INVOKER, EXECUTE sólo para
+> `service_role`— antes de fusionar el código que la consume, así que `/verificar` reserva su cupo
+> en vez de bloquear toda verificación. `status: in-progress` se conserva a propósito: la
+> aceptación de release/smoke posdespliegue sigue abierta y no la decide esta rama. Corte focal
+> L17: no se importan el cableado del runner en `scripts/verify.mjs` ni su test, ni las auditorías
+> o el handoff de la rama de origen.
 
 ## Fuente y autorización
 
