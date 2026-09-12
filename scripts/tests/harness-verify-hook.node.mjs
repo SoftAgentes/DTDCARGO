@@ -20,8 +20,12 @@ test('un gate sin medir bloquea igual que un rojo, pero no se disfraza de rojo',
   assert.equal(noLanzado.bloquea, true); assert.equal(noLanzado.medido, false); assert.match(noLanzado.motivo, /ENOENT/);
   const porSenal = clasificarGate({ status: null, signal: 'SIGKILL' });
   assert.equal(porSenal.bloquea, true); assert.equal(porSenal.medido, false); assert.match(porSenal.motivo, /SIGKILL/);
+  // En Linux un desbordamiento suele llegar con status 0, porque el hijo alcanza a salir
+  // bien antes del corte. Un exit 0 con error NO es un gate verde: nunca midió.
+  const verdeFalso = clasificarGate({ status: 0, signal: null, error: Object.assign(new Error('spawnSync ENOBUFS'), { code: 'ENOBUFS' }) });
+  assert.equal(verdeFalso.bloquea, true); assert.equal(verdeFalso.medido, false);
   // Ningún motivo sin medir puede leerse como un veredicto rojo.
-  for (const sinMedir of [desbordado, noLanzado, porSenal]) assert.doesNotMatch(sinMedir.motivo, /ROJO/);
+  for (const sinMedir of [desbordado, noLanzado, porSenal, verdeFalso]) assert.doesNotMatch(sinMedir.motivo, /ROJO/);
 });
 test('el hook deja cerrar solo con un gate verde, y una salida enorme ya no lo engaña', (t) => {
   const sandbox = mkdtempSync(path.join(tmpdir(), 'dtd-hook-test-'));
@@ -38,7 +42,11 @@ test('el hook deja cerrar solo con un gate verde, y una salida enorme ya no lo e
       `writeFileSync(${JSON.stringify(marca)}, 'corrió');`,
       `for (let i = 0; i < ${megas}; i++) process.stdout.write('x'.repeat(1024 * 1024));`,
       "process.stdout.write('\\nULTIMA-LINEA-DEL-GATE\\n');",
-      `process.exit(${exit});`,
+      // `process.exitCode`, NUNCA `process.exit()`: en Linux las escrituras a un pipe son
+      // asíncronas y `exit()` descarta lo pendiente. Medido con Node 24: de 3.145.751 bytes
+      // llegaban 146.176 y la última línea se perdía, mientras en Windows llegaba todo. Eso
+      // hacía fallar en la CI la prueba de que la cola conserva el final del gate.
+      `process.exitCode = ${exit};`,
     ].join('\n'));
   }
   const correr = (input = '{}') => spawnSync(process.execPath, [hook], { cwd: sandbox, input, encoding: 'utf8' });

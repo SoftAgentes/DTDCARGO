@@ -87,6 +87,24 @@ exporta `MAX_BUFFER` (64 MB) y `runGit(args, cwd, maxBuffer)`, que devuelve
 ENOENT…) en vez de perderlo. Sus tres consumidores importan de ahí; no quedan
 copias del número ni del helper en `scripts/`.
 
+**4. El `error` manda sobre el `status`.** Medido con Node 24 en las dos
+plataformas, provocando ENOBUFS 60 veces dentro de `node:24`:
+
+| | `r.error.code` | `r.status` |
+| --- | --- | --- |
+| Windows | ENOBUFS siempre | `null` con SIGTERM |
+| Linux | ENOBUFS siempre | **0 en 51 de 60 corridas** |
+
+En Linux git alcanza a terminar bien antes de que el padre lo corte, así que el
+`status` de un desbordamiento no es de fiar y el `error` sí. La primera versión
+de `runGit` hacía `code: r.status ?? 1` y en Linux devolvía `{ code: 0, out: "" }`:
+un desbordamiento leído como éxito con salida vacía. Habría informado como limpio
+un worktree lleno de ignorados y habría devuelto a `check-unpublished` su `[OK]`
+sin medición — la misma clase de mentira que esta spec elimina, reintroducida por
+el arreglo. Lo destapó la CI en Linux (run 34666711465) y lo confirmó la medición.
+`normalizeGitResult` es pura y exportada justo para fijar ese caso por prueba, sin
+depender de la carrera.
+
 ### Alternativas descartadas
 
 - **Solo subir el `maxBuffer` de `finish`.** Deja el 25 MB de listado
@@ -128,13 +146,17 @@ excluye `scripts/**`.
    caminos (listado, conteo y base) salen `[AVISO]`.
 7. Un fallo de spawn se nombra en vez de degradarse a un mensaje genérico. —
    **CUMPLE**: `err` trae `git <args>: spawnSync git ENOBUFS`.
-8. `pnpm harness:test` en verde. — **CUMPLE**: 12 archivos, 80/80.
+8. Un desbordamiento es un fallo aunque git alcance a salir con 0. — **CUMPLE**:
+   `normalizeGitResult({ status: 0, error: ENOBUFS })` da código ≠ 0 y `out` vacío.
+9. `pnpm harness:test` en verde en las dos plataformas. — **CUMPLE**: 12 archivos,
+   81/81 en Windows y en Linux (`node:24`).
 
 ## Validación (2026-09-11/12)
 
 | comprobación | resultado |
 | --- | --- |
-| `corepack pnpm harness:test` | PASÓ — 12 archivos, 80/80 |
+| `corepack pnpm harness:test` (Windows, fuera de TTY) | PASÓ — 12 archivos, 81/81 |
+| la misma suite en Linux (`node:24`, repo real) | PASÓ — 81/81 |
 | `corepack pnpm docs:check` | PASÓ |
 | `corepack pnpm sdd:check` | PASÓ — sin números repetidos |
 | `git diff --check` | PASÓ |
@@ -154,6 +176,21 @@ y, en el módulo compartido, bajar `MAX_BUFFER`, tapar el error de spawn e
 ignorar el `cwd`. Los tres últimos se corrieron dentro de un repo git de mentira
 y con una corrida de control en verde: en un scratch sin repo, la prueba del
 `cwd` fallaba por el entorno y no por el mutante.
+
+**Ronda de CI en rojo, y qué enseñó.** La primera publicación dejó la CI en rojo
+en Linux con dos pruebas propias caídas, iguales en las cinco corridas de la rama
+(run 34666711465). Ninguna era intermitencia y ninguna era ajena:
+
+1. `runGit(['--version'], repo, 4)` devolvía `code: 0`. No era un problema de la
+   prueba sino del helper: ver la decisión 4. El arreglo es que el error mande.
+2. La cola del gate perdía la última línea. Tampoco era del hook: **el fixture se
+   truncaba a sí mismo**. En Linux las escrituras a un pipe son asíncronas y
+   `process.exit()` descarta lo pendiente; medido, de 3.145.751 bytes llegaban
+   146.176. Con `process.exitCode` llega todo, y en Windows nunca se notó porque
+   ahí esas escrituras son síncronas.
+
+La lección operativa quedó en el harness: estas dos pruebas ahora se corren
+también en Linux antes de publicar, con la salida canalizada.
 
 **Pruebas de producto que no aplican.** El cambio vive en `scripts/` y ninguna
 ruta de `app/`, `lib/` ni `supabase/` lo importa: `playwright`, `typecheck`,

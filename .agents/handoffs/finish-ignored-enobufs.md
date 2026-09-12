@@ -3,7 +3,30 @@
 Fecha: 2026-09-11. Task ID: `finish-ignored-enobufs`.
 Owner / sesión escritora: `finish-ignored-enobufs-claude-20260911` (Worker Claude Code, worktree `admiring-pascal-832793`). No hubo subagentes.
 
-Estado: lista-para-revision. No está integrada.
+Estado: lista-para-revision, **segunda ronda** tras la revisión del Director. No está integrada.
+
+## RONDA 2 — LA CI EN LINUX DESTAPÓ UN DEFECTO DEL ARREGLO
+
+El Director (`dtdcargo-4d`) rechazó integrar el head `33e0e573`: la CI estaba en ROJO en Linux con dos pruebas mías caídas, igual en las cinco corridas de la rama (run 34666711465). Medí las dos con Node 24 real dentro de `node:24` antes de tocar nada, y una de ellas **no era un problema de la prueba sino de mi arreglo**.
+
+**1. `runGit` devolvía éxito ante un desbordamiento.** Medido, provocando ENOBUFS 60 veces en Linux:
+
+| | `r.error.code` | `r.status` |
+| --- | --- | --- |
+| Windows | ENOBUFS siempre | `null` con SIGTERM |
+| Linux | ENOBUFS siempre | **0 en 51 de 60 corridas** |
+
+En Linux git alcanza a salir con 0 antes de que el padre lo corte. Mi helper hacía `code: r.status ?? 1`, así que devolvía **`{ code: 0, out: "" }`**: un desbordamiento leído como éxito con salida vacía. Con eso, `finish` habría informado **`hasIgnoredFiles: false`** en un worktree lleno de ignorados, y `check-unpublished` habría vuelto a imprimir `[OK]` sin listar una rama. Es decir, el arreglo reintroducía en Linux la misma clase de mentira que esta tarea eliminó.
+
+- Corregido: en `normalizeGitResult` **el error manda sobre el status** (`code: r.status || 1`).
+- La función se extrajo pura y exportada para fijar el caso por prueba sin depender de la carrera. Importa: con el mutante puesto, la prueba pura falla siempre, mientras que la de integración pasó por suerte en una corrida donde el `status` cayó del lado `null`.
+- El hook ya estaba bien por mirar `error` primero, pero ahora su prueba fija el caso `status: 0` + ENOBUFS como SIN MEDIR.
+
+**2. La cola del gate perdía la última línea, y era mi fixture.** En Linux las escrituras a un pipe son asíncronas y `process.exit()` descarta lo pendiente: medido, de 3.145.751 bytes llegaban **146.176**. En Windows nunca se notó porque ahí son síncronas. El hook y su `slice(-1800)` estaban bien; el fixture ahora usa `process.exitCode`.
+
+**Verificación en la plataforma que fallaba.** `node scripts/tests/run-harness.mjs` dentro de `node:24`, sobre un repo git real armado en el contenedor: **81/81**. Los primeros intentos daban tres fallos que eran artefacto de mi contenedor —monté el worktree, cuyo `.git` es un archivo que apunta a una ruta de Windows, y git devolvía 128—, no del código.
+
+También se hizo el merge de `origin/main` `6c282b44` que pidió el Director, con el override del driver de main; tras regenerar, `docs/specs/README.md` quedó idéntico a lo que produce el script (429 specs).
 
 - **Worktree:** `C:/Users/AKX generator/Desktop/Developer/DTDCARGO/.claude/worktrees/admiring-pascal-832793`.
   Es un worktree enlazado que la sesión ya recibió aislado, no el checkout principal y no `main`, así que **no** se creó otro con `harness-worktree.mjs start`: crear uno anidado habría duplicado el aislamiento que ya existía. `guard` PASÓ y el claim se tomó antes de editar; se revalidó `guard --owner` antes del commit.
@@ -190,7 +213,7 @@ Ninguno de implementación. Falta la revisión del Director y la CI del head pub
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** revisar la PR y correr su CI. Está **en ready** desde el 2026-09-11, a pedido de Sam; el merge sigue siendo del Director y no se hizo desde aquí.
+- **Siguiente acción:** revisar el head nuevo cuando su CI esté verde. La PR está en ready desde el 2026-09-11; el merge sigue siendo del Director y no se hizo desde aquí.
 - **Contratos compartidos:** el JSON de `finish` **suma** campos (`ignoredEntryCount`, `ignoredEntries`, `sensitiveIgnoredFiles`) y ninguno cambia de nombre ni de tipo; `hasIgnoredFiles` conserva su significado. `runGit` y `GIT_MAX_BUFFER` quedan exportados por si otro script del harness quiere el mismo helper. No hay consumidores externos hoy.
 - **Contrato de `check-unpublished`:** exit y semántica intactos (siempre 0, informativo, no falla el gate). Lo que cambia es que un git roto ya no puede salir `[OK]`: el listado o el conteo fallidos producen `[AVISO] … SIN MEDIR`. Como el hook reenvía todo lo que contenga `[AVISO]`, esos casos ahora se ven en el cierre. `ramasSinPublicar` conserva su firma; `main` acepta un git inyectado con `runGit` por defecto.
 - **Contrato del hook `Stop`:** los códigos de salida no cambian de significado (0 deja cerrar, 2 bloquea) y `.claude/settings.json` queda igual. Solo un exit 0 del gate deja cerrar; un gate medido en rojo y un gate sin medir bloquean los dos, y se distinguen por el mensaje, no por el código. Respecto de `main`, el cambio neto es que **un gate verde cuya salida desborde el búfer ya no se lee como rojo**, y que un gate sin medir se anuncia como tal. Decisión de Sam: el sin medir bloquea.
