@@ -272,6 +272,84 @@ al archivo de esta rama. Autorizada por Sam nombrando la migración.
   un estado de esta migración, y por eso se conserva tal cual (misma decisión que el Director
   ya tomó para 0403).
 
+### Segundo merge, al llegar el turno (main `147f9561`)
+
+El Director dio el turno tras fusionar #83. main quedó en
+`147f9561db182609c994626eca4429775d31fcfb`, con 433 specs.
+
+- **Merge con el override, otra vez obligatorio** (`753c5029`). Se volvió a comprobar que
+  `git config --get merge.dtd-generated-records.driver` sigue devolviendo
+  `node scripts/merge-generated-records.mjs %O %A %B %P`, ruta relativa al árbol de **esta**
+  rama: sin el override git habría corrido de nuevo el driver viejo. Se usó el de main
+  (md5 `b4563696716d6893d48e619ec0e9eca4`). Sin conflictos.
+- **El merge no pisó código ajeno, comprobado por diferencia de árboles.** `git diff --name-only origin/main HEAD`
+  devuelve **exactamente los 9 archivos de esta rama** y ninguno más. Los dos archivos que el
+  Director marcó como riesgo por venir de #76 y #83 quedaron **byte a byte iguales a main**:
+  `app/portal/(app)/page.tsx` y `lib/portal/portal-queries.ts`.
+- **El aviso sobre `app/portal/(app)/page.tsx` no aplica a esta rama, y se verificó en vez de
+  suponerlo:** esta PR toca `app/portal/(app)/perfil/page.tsx` —la página de Perfil—, no la
+  home del Portal. Son archivos distintos. El único solape real con lo que main cambió desde la
+  base era `docs/specs/README.md`, que resuelve el driver.
+- **Compatibilidad con lo que trajo el merge:** main modificó `lib/portal/portal-queries.ts`,
+  del que Perfil importa `getPortalClientPrincipal` y `getProfileCompleteness`. El cambio de main
+  no alteró ninguna firma exportada (`git diff` sobre las líneas `export` no devuelve nada), así
+  que la adopción de Perfil no se ve afectada. Lo confirma además `typecheck` en la revalidación.
+- **Índice: 434 specs, medido, no asumido.** `docs:check` dio «índice sincronizado con 434
+  specs» y regenerar con el script no produjo ningún cambio. Contra main: 433 → 434, entra la
+  fila 0341 y 0341 sale de la lista de huecos. Coincide con lo que anticipó el Director.
+- **Los dos registros generados siguen idénticos al main nuevo**, comprobado leyendo el blob de
+  main y comparando md5, no sólo con `git diff`:
+  `supabase/migrations-baseline.json` → `59b976cfd391f9431e23f11e41a04046` en ambos lados;
+  `supabase/pending-migration-symbol-declarations.json` → `d2ff7560a84064be086a7dd96efb62c5` en
+  ambos. `cutoff` 238, `pendingBelowCutoff` `{}`, `degradations` `[]`.
+- **La migración sigue intacta**: md5 `60c500b5bf20603d28be7aa56f28ed64`, 1617 bytes.
+
+#### Revalidación sobre el segundo merge
+
+`corepack pnpm run verify`, log en `verify-r3.log`. Veredicto literal, **no** se presenta como
+verde: `16 de 17 pasos corrieron de verdad` · `[FAIL] verify: 1 fallo(s) → e2e
+[COLGADO/TIMEOUT: sin salida durante 10 min; límite de inactividad 10 min (VERIFY_E2E_IDLE_MIN)]
+CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.`
+
+| Comprobación | Resultado |
+|---|---|
+| harness | PASÓ |
+| lint | PASÓ: 0 errores; 8 avisos en archivos ajenos intactos |
+| rsc-boundary | PASÓ: 1599 módulos escaneados en `app`, `lib` |
+| typecheck | PASÓ — cubre que la adopción de Perfil sigue compilando contra el `portal-queries.ts` que trajo main |
+| edge-functions | PASÓ, 4 funciones compilan |
+| test (Vitest) | PASÓ, **543 archivos / 6780 tests** (subió desde 541/6765 por lo que trajo el merge) |
+| docs:check | PASÓ, **434 specs** |
+| numbering | PASÓ: 434 specs · 435 migraciones, sin números repetidos |
+| feature-constants | PASÓ, 5 banderas |
+| components:check | PASÓ, CMP-01 válido |
+| governance:check | PASÓ, 28 políticas aprobadas · cápsula vigente |
+| pending-migration-symbols | PASÓ: **0 ROJO · 0 AMARILLO** |
+| sql-tests | PASÓ, **178** contratos en contenedor efímero, incluido el de 0405 |
+| schema-rebuild | PASÓ: 435 migraciones, 417 desde cero, 18 sólo-ledger, aislamiento de 219 tablas + 2 tenants |
+| build | PASÓ |
+| `migrations-applied` | **NO DISPONIBLE**: `[SKIP]` sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. Sigue sin haber `.env.local` y no se copiaron secretos |
+| `e2e` | **NO DISPONIBLE**: se colgó. Ver abajo |
+
+**`e2e`: NO DISPONIBLE, y el cuelgue fue en un punto nuevo.** Por instrucción del Director no se
+diagnostica; se registra y se sigue. Esta vez **no hubo primera pasada completa ni reintento**:
+una sola `Running 186 tests using 8 workers`, 105 casos emitidos en verde, y el último fue
+`[mobile-safari] attachments-gastos-pilot.spec.ts:20` (índice 138). A los 10 minutos sin salida
+lo cortó el watchdog **SDD-0454**: raíz PID 35336, 29 procesos del propio árbol terminados
+(`chrome-headless-shell.exe`×18, `node.exe`×10, `cmd.exe`×1), 0 sobrevivientes.
+
+Los tres puntos de cuelgue medidos hasta ahora, que ya no son dos:
+
+| Corrida | Pasada | Último caso emitido |
+|---|---|---|
+| PR #76 | primera | `[mobile-safari] auth.spec.ts:74` |
+| L05 ronda 2 (main `f93c0f2c`) | **reintento** (la primera cerró 153/15/18) | 123 casos |
+| L05 segundo merge (main `147f9561`) | primera | `[mobile-safari] attachments-gastos-pilot.spec.ts:20`, 105 casos |
+
+Tres puntos distintos, ninguno estable, así que **el cuelgue no está atado a un test**. Se avisó
+al Director por ser un punto nuevo. No se reintentó a mano, no se tocó la configuración y no se
+absuelve el paso: los 15 fallos ambientales de siempre ni siquiera llegaron a reportarse esta vez.
+
 ## VALIDACIÓN
 
 ### Ronda 1 (2026-09-11) — evidencia fechada
@@ -429,16 +507,17 @@ sin cambiar de rama.
 
 ## PR / BRANCH
 
-[PR #75 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/75), base `main`,
-rama `codex/c-l05-portal-perfil-privado` con upstream propio. Head remoto todavía en
-`b7e53696`: **la ronda 2 no se publicó**.
+[PR #75](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/75), base `main`, rama
+`codex/c-l05-portal-perfil-privado` con upstream propio.
 
-Al publicar, y sólo a la señal del Director, en este orden y en un solo acto:
+El Director dio el turno tras fusionar #83. Este commit es el último antes del push, y la
+publicación va en **un solo acto**, en este orden:
 
 1. Un **solo** push de la rama a sí misma.
 2. Título sin el prefijo: `feat(studio): SDD-0341 — L05 contexto privado del perfil Portal
    (0405 ya aplicada)`.
-3. Cuerpo reescrito (`pr75-body-nuevo.md`) y paso a *ready for review*, junto con ese push.
+3. Cuerpo reescrito (`pr75-body-nuevo.md`, ya aprobado por el Director) y paso a
+   *ready for review*, en el mismo acto que el push.
 
 El prefijo `[NO FUSIONAR ANTES DE APLICAR 0405]` se retira **al publicar, no antes**: mientras
 el head remoto siga atrasado, es el único freno propio que tiene la PR. **Después del push la
@@ -451,8 +530,9 @@ Worktree y rama conservados en la ruta indicada arriba.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Publicar**: falta el SHA del Director. Van #76 y #83 antes. Todo está commiteado en local
-  y sin push, a la espera.
+- ~~Publicar: falta el SHA del Director~~. **Hecho**: el Director dio el turno con main en
+  `147f9561`, se hizo el segundo merge con el override, se revalidó y se publicó en un solo
+  push, con el título sin prefijo y el paso a ready en el mismo acto.
 - **CI alojado del head de la ronda 2**: es lo que de verdad mide lo que acá quedó sin medir
   (`e2e` completo y el resto en un entorno con configuración). Sólo existe después del push.
 - **`migrations-applied` sin medir** en este árbol por falta de `NEXT_PUBLIC_SUPABASE_URL` /
@@ -481,13 +561,16 @@ Worktree y rama conservados en la ruta indicada arriba.
 
 ### Detectado en la ronda 2
 
-- **El paso `e2e` se cuelga, y no sólo falla por entorno.** Acá el reintento automático llegó a
-  123 casos verdes y quedó mudo 10 minutos; lo cortó el watchdog **SDD-0454** (29 procesos del
-  propio árbol). El Worker de #76 midió el mismo síntoma en otro punto: cuelgue en la **primera**
-  pasada, tras `[mobile-safari] auth.spec.ts:74`. Dos puntos distintos, mismo síntoma, así que
-  apunta al **cierre del runner con la suite en paralelo**, no a un test. Es un hallazgo distinto
-  de los 15 fallos ambientales y de los dos flakes públicos conocidos. Ajeno a este diff: merece
-  tarea propia, con los dos logs como evidencia.
+- **El paso `e2e` se cuelga, y no sólo falla por entorno. Ya van tres puntos distintos.**
+  Ronda 2 acá: el **reintento**, mudo a los 123 casos. PR #76: la **primera** pasada, tras
+  `[mobile-safari] auth.spec.ts:74`. Segundo merge acá: la **primera** pasada otra vez, pero en
+  otro lugar — `[mobile-safari] attachments-gastos-pilot.spec.ts:20`, 105 casos, y esta vez sin
+  llegar siquiera a reportar los 15 fallos ambientales. Las tres las cortó el watchdog
+  **SDD-0454**. Tres puntos que no se repiten descartan que sea un test concreto y apuntan al
+  **cierre del runner con la suite en paralelo**. Es un hallazgo distinto de los fallos
+  ambientales y de los dos flakes públicos conocidos. Ajeno a este diff: merece tarea propia, con
+  los tres logs como evidencia. Por instrucción del Director no se diagnosticó más allá de
+  localizar el punto.
 - **El driver de merge se resuelve desde el árbol de la rama**, así que cualquier rama de esta
   generación que haga `git merge origin/main` **sin** el override corre el driver viejo y
   resucita esperas ya retiradas. En esta rama habrían sido 4. No es un defecto de main —main ya
