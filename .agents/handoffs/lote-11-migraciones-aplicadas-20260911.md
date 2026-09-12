@@ -51,7 +51,8 @@ retira el EXECUTE a `authenticated`).
 ## Qué cierra cada una y cómo se verificó
 
 Cada bloque toma «qué cierra» del estado previo capturado y la verificación de las notas del
-Director (`NOTAS.md` del lote).
+Director (`NOTAS.md` del lote). La de 0434 es la excepción: no estaba en esas notas y viene de un
+sondeo de catálogo posterior, del 2026-09-12, que se transcribe en su bloque.
 
 ### 0419_portal_reclamos_tenant_boundary · SDD-0363 · L13 · `20260911235547`
 
@@ -92,13 +93,21 @@ tenant A hacia un cliente de B podía leer el catálogo de A. Ahora exige princi
 (vínculo activo, cliente vivo y mismo tenant), y conserva rama de equipo, escritura,
 `service_role`, ACL y RLS.
 
-**Verificación.** ⚠️ **La única del lote sin verificación por objeto escrita.** `NOTAS.md` trae su
-captura de estado previo y su reversión, pero **no** una sección «0434 — APLICADA Y VERIFICADA»
-como las otras diez. Lo que sí consta: la fila del ledger `20260911235932` con md5
-`f59e054988b67b57a3f52af1807aa93d` y 3233 B, iguales al archivo de `main` (revalidado en esta
-rama); su posición entre 0432 y 0417 respeta el orden autorizado; el cierre del Director afirma
-«11 de 11 aplicadas y verificadas»; y el volcado de advisors posterior no muestra ningún lint
-nuevo. **Queda pendiente dejar por escrito el detalle contra el objeto** (ver PENDIENTES).
+**Verificación.** El Director la corrió aparte, con un sondeo de catálogo en producción el
+2026-09-12, sin leer filas: `NOTAS.md` no la traía y este handoff la incorpora acá. Ledger
+`20260911235932 / 0434_portal_prealerta_addons_principal_tenant`, md5
+`f59e054988b67b57a3f52af1807aa93d` y 3233 B, iguales al archivo de `main` (revalidado también en
+esta rama). «prealerta_addons read» (SELECT, `{authenticated}`, PERMISSIVE) quedó con:
+
+```sql
+((tenant_id = get_user_tenant_id()) OR (EXISTS (SELECT 1 FROM (client_users cu JOIN clients client ON (((client.id = cu.client_id) AND (client.tenant_id = cu.tenant_id) AND (client.deleted_at IS NULL)))) WHERE ((cu.auth_user_id = (SELECT auth.uid() AS uid)) AND (cu.status = 'active'::text) AND (cu.tenant_id = prealerta_addons.tenant_id)))))
+```
+
+Cumple el criterio del postflight de 0434: `get_user_tenant_id`, `client_users`, `clients`,
+`auth.uid()`, `client.tenant_id = cu.tenant_id`, `cu.tenant_id = prealerta_addons.tenant_id`,
+`client.deleted_at is null`, y **ya no aparece `get_portal_client_tenant`**. «prealerta_addons
+tenant write» (ALL) y «prealerta_addons service_role all» (ALL) intactas, 3 policies en total; RLS
+activa; ACL de `authenticated` `arwdxtm`, sin cambios.
 
 ### 0417_portal_prealertas_tenant_boundary · SDD-0361 · L11 · `20260912000050`
 
@@ -595,7 +604,6 @@ commit;
   perfil y solicitudes de cambio, Club, mensajes y su Realtime en `/portal/soporte`, catálogo de
   servicios, y la administración de Mailing con un usuario admin y con uno no-admin. Tampoco el
   smoke del embed de marca de 0450 (etiquetas del Studio o comprobante de un cliente de aliado).
-- **La verificación por objeto de 0434 no quedó escrita** (ver su bloque y PENDIENTES).
 - **Esta tarea no ejecutó `pnpm verify`** ni ninguna prueba de producto: el cambio es de registro y
   documentación. En particular, el paso `migrations-applied` **no se midió aquí**; será el Director
   quien lea su verde sobre un árbol sincronizado con `origin/main`, como manda el runbook.
@@ -651,22 +659,21 @@ reversión. Sin tocar producción ni ninguna migración.
      `supabase/migrations-baseline.json`.
   2. `docs(specs): registrar las 11 migraciones aplicadas a producción` — las 11 `spec.md` y el
      commit que contiene este documento. Los hashes finales quedan en la PR.
-- **PR / BRANCH:** rama `codex/c-registro-lote-20260911`, base `main`, PR **draft** (queda
-  pendiente el smoke funcional y la nota de verificación de 0434). Worktree
+  3. `docs(handoff): completar la verificación por objeto de 0434` — sólo este documento, con el
+     sondeo de catálogo que corrió el Director el 2026-09-12.
+- **PR / BRANCH:** rama `codex/c-registro-lote-20260911`, base `main`, PR **draft**: queda
+  pendiente el smoke funcional del Portal y de Mailing. Worktree
   `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\c-registro-lote-20260911`.
 - Fusionar esta PR **no aplica nada**: las 11 migraciones ya están aplicadas y verificadas, y el
   diff es de registro y documentación.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Ninguno para la aceptación del registro: baseline, notas y handoff quedaron completos y las seis
-  comprobaciones aplicables pasaron.
-- **Dejar por escrito la verificación por objeto de 0434** (`prealerta_addons read`), la única del
-  lote sin ese detalle en `NOTAS.md`. Es un hueco **documental**, no una contradicción: el ledger,
-  el md5 y el tamaño están; falta la constancia de la policy resultante. Sondeo sugerido, de sólo
-  catálogo: `select policyname, qual from pg_policies where tablename='prealerta_addons'`. **No lo
-  ejecutó esta tarea**, que no toca Supabase. Si el Director la deja escrita, conviene sacar la
-  advertencia de la nota de este handoff.
+- **Ninguno.** Baseline, notas y handoff quedaron completos y las seis comprobaciones aplicables
+  pasaron. El único hueco que quedaba —la verificación por objeto de 0434, que no estaba en
+  `NOTAS.md`— lo cerró el Director con un sondeo de catálogo en producción el 2026-09-12, y su
+  evidencia está transcrita en el bloque de 0434. Las 11 migraciones tienen ahora su verificación
+  escrita.
 
 ## FUERA DE ALCANCE DETECTADO
 
