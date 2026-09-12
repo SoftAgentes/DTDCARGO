@@ -27,6 +27,7 @@ Aceptación del encargo, en seis puntos:
 
 Dependencias: la 0450 y la 0401 ya están aplicadas en producción, y `pendingBelowCutoff` está vacío en main.
 Interrupción: un corte de red (ENOTFOUND) detuvo la sesión mientras corría el contrato SQL. Al retomar se comprobó el árbol real antes de repetir nada: HEAD `85486484`, los dos borradores sin commitear, la corrección del caso SH ya aplicada y el guard OK.
+Ronda 2 (2026-09-12, revisión del Director sobre `0df1270e`): alcance y ejecución aceptados, incluidos `docs/specs/README.md` como generado y la precisión del criterio 4 (la 23503 alcanzable en `createClientAction` es la de la 0450). El Director amplió la allowlist a exactamente `supabase/migrations-baseline.json`, `app/studio/(app)/clientes/__tests__/alta-bajo-aliado.test.ts` y este handoff, para cerrar dos huecos de su allowlist original: la espera de la 0451 en el baseline y la prueba TS commiteada del 23503 con su control rojo.
 
 ## OBJETIVO ORIGINAL
 
@@ -79,6 +80,25 @@ Que la cadena de aliados no pueda cruzar tenants, de modo que ningún cliente se
   - `resolve_price_book` intacto para la cadena legítima, el raíz sin lista, el directo y el cliente de DC.
   - Borrados iguales antes y después: `{"tenant_entero":"ok","aliado_sin_nada":"ok","cliente_de_aliado":"ok","aliado_con_subaliado":"23503","cliente_ancla_de_aliado":"23503"}`.
 - **Spec 0461** completa: contexto, alcance, diseño, semántica, impacto de locks, allowlist, aceptación y producción. Índice regenerado con 439 specs.
+- **Ronda 2 — espera de la 0451 en `supabase/migrations-baseline.json` (`470ca41d`).**
+  - Agrega la clave `0451_aliados_cadena_mismo_tenant` en `pendingBelowCutoff`, con el estilo de las esperas de la 0450 (`fdb9a088`, en su versión final con aviso de locks) y de la 0434 (`6aefb1ee`).
+  - Qué dice:
+    - qué hace la migración;
+    - que su preflight falla cerrado y reporta solo el conteo;
+    - que el conteo agregado de solo lectura del Director del 2026-09-12 dio 0 y 0, pero el preflight se queda;
+    - los dos conteos que hay que repetir antes de aplicar;
+    - el impacto de locks: `aliados` y `clients` en ACCESS EXCLUSIVE, con `clients` bloqueada también para las lecturas del Studio y del Portal, así que va en horario de baja actividad.
+  - Cierra con el literal exigido: «Fusionar la PR NO autoriza aplicarla a producción. Requiere OK nominal de Sam y docs/runbooks/aplicar-migraciones-prod.md; aplicar individualmente con name exacto 0451_aliados_cadena_mismo_tenant. No subir cutoff 238 ni modificar las demás esperas. Retirar esta entrada únicamente tras aplicación y verificación autorizadas.»
+  - Validado al parsear:
+    - `cutoff` sigue en 238 y `$doc` no cambió;
+    - es la única espera;
+    - la serialización es idéntica a `JSON.stringify(…, null, 2)`;
+    - el diff son 3 líneas agregadas y 1 retirada.
+- **Ronda 2 — prueba TS commiteada del 23503 (`728b74e5`).**
+  - Van en `alta-bajo-aliado.test.ts`, dentro de `describe("createClientAction · el 23505 deja de mentir")`.
+  - Son los dos casos del bloque que había quedado en este handoff, formateados como sus vecinos.
+  - Casos: el 23503 de `clients_aliado_mismo_tenant_fkey` responde «Ese aliado no existe o no está disponible.», y otro 23503 (`clients_aliado_id_fkey`) conserva «No se pudo crear el cliente: …».
+  - Se agrega además el punto 6 a la cabecera de la prueba.
 
 ## EVIDENCIA EMPÍRICA — PostgREST 16.1
 
@@ -172,6 +192,22 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 | `_norte/backend/README.md` (lectura previa exigida por AGENTS.md) | NO DISPONIBLE: no existe ni en el worktree ni en el checkout principal. Se leyeron AGENT-BRIEF, ERR-01, las migraciones y el handoff de la 0450. |
 | `/ui-check` | NO EJECUTADO: no hay cambio visual. |
 
+### Ronda 2 (sobre `728b74e5`, antes del commit que contiene este documento)
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| Estado al retomar | HEAD `0df1270e` igual a `origin/codex/aliados-cadena-tenant`, árbol limpio y origin/main sin avances (`42c8839e`). |
+| `claim` / `guard --owner` | PASÓ. El claim se readquirió al retomar, porque se había liberado al cerrar la ronda 1, y el guard corrió antes de cada commit. |
+| **Control rojo** de la prueba del 23503 | HECHO, con el rojo esperado. Sin el `if` nuevo de `actions.ts`, `vitest run alta-bajo-aliado` salió exit 1 con exactamente 1 fallo, «el 23503 de la FK de tenant (migr 0450) responde como la lectura previa del aliado», y 12 en verde. Expected: «Ese aliado no existe o no está disponible.». Received: `No se pudo crear el cliente: insert or update on table "clients" violates foreign key constraint "clients_aliado_mismo_tenant_fkey"` (`vitest-control-rojo.log`). |
+| Restauración de `actions.ts` | PASÓ: desde una copia de respaldo; `git diff --exit-code -- actions.ts` da 0, idéntico a HEAD. |
+| Prueba focal en verde | PASÓ: 13/13 (`vitest-verde.log`). |
+| `scripts/check-migrations-applied.test.mjs` (vitest) | PASÓ: 22/22 (`vitest-migrations-applied-r2.log`). |
+| `corepack pnpm harness:test` | PASÓ: 12 archivos y 87 pruebas, 0 fallos (`harness-test-r2.log`). |
+| `check-pending-migration-symbols`, con la 0451 declarada pendiente | PASÓ: 0 ROJO · 0 AMARILLO (`pending-symbols-r2.log`). |
+| `node scripts/build-docs-index.mjs --check` | PASÓ: 439 specs sincronizadas. |
+| JSON del baseline, `git diff --check` y allowlist | PASÓ: JSON válido, `cutoff` 238 y una sola espera. Cada commit de la ronda contiene solo su archivo, y frente a `0df1270e` cambian exactamente el baseline, la prueba y este handoff. |
+| `corepack pnpm verify` sobre el head final (el commit que contiene este documento) | Corre después de este commit y antes del único push, tras comprobar que no haya otro verify ni e2e en la máquina. El veredicto por paso queda en la descripción de la PR #103 (sección Validación) y en el reporte al Director, porque escribirlo acá cambiaría el head verificado. La corrida de la ronda 1 (`80b72653`) queda arriba como historial. |
+
 ## REVISIÓN FOCAL DE DATOS Y GOBERNANZA
 
 - **Datos (`revisar-datos-ve`): no aplica.** No se captura, mueve ni borra ningún dato personal: son constraints de integridad y un filtro de lectura. Los preflights reportan solo conteos, y la mutación que agrega ids al mensaje hace fallar el contrato. La base deja de aceptar el vínculo por el que un cliente de T1 podía recibir la marca y el contacto de soporte de un aliado de T2.
@@ -186,44 +222,29 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 - `715de761` — fix(studio): SDD-0461 — `createClientAction` traduce el 23503 de la FK de tenant.
 - `d058efad` — docs(sdd): SDD-0461 — spec e índice.
 - `80b72653` — merge de origin/main `42c8839e` (PR #102, solo handoffs).
-- Commit que contiene este documento: el handoff y el cierre de la spec (hash final en la PR).
+- `0df1270e` — docs(handoff): cierre de la ronda 1 y spec en `done` (el head que revisó el Director).
+- `470ca41d` — chore(db): SDD-0461 — espera de la 0451 en `migrations-baseline.json` (ronda 2).
+- `728b74e5` — test(studio): SDD-0461 — el 23503 de la FK de tenant en `createClientAction` (ronda 2).
+- Commit que contiene este documento: handoff de la ronda 2 (hash final en la PR).
 
 ## PR / BRANCH
 
-- **PR:** en borrador contra `main`. Se abrió inmediatamente después de publicar el commit que contiene este documento, y su URL está en la PR y en el reporte al Director.
-- **Rama:** `codex/aliados-cadena-tenant`, publicada a sí misma con `git push -u origin codex/aliados-cadena-tenant:codex/aliados-cadena-tenant`, sin force.
+- **PR:** [#103 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/103), «fix(studio): SDD-0461 — la cadena de aliados no cruza tenants (0451 pendiente de aplicar)», base `main`.
+- **Rama:** `codex/aliados-cadena-tenant`, publicada a sí misma y sin force.
+  - Ronda 1: head `0df1270e`.
+  - Ronda 2: `470ca41d`, `728b74e5` y el commit que contiene este documento salen en un único push normal, después del verify del head final.
 - Worktree el indicado arriba. Sin merge, sin salir de borrador y sin aplicar migraciones.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **CI y revisión:** CI alojado sobre el SHA publicado y revisión del Director. Sacar la PR de borrador y fusionar le corresponde al Director.
-- **Prueba TS versionada del 23503:** la allowlist del encargo no incluye pruebas TS, así que la verificación se hizo con una prueba temporal fuera del diff. Si el Director amplía la allowlist a `app/studio/(app)/clientes/__tests__/alta-bajo-aliado.test.ts`, este bloque va dentro de `describe("createClientAction · el 23505 deja de mentir")`:
-
-  ```ts
-  it("el 23503 de la FK de tenant (migr 0450) responde como la lectura previa del aliado", async () => {
-    clientsWriteError = {
-      code: "23503",
-      message: 'insert or update on table "clients" violates foreign key constraint "clients_aliado_mismo_tenant_fkey"',
-    };
-    const res = await createClientAction({}, clientForm({ aliadoId: "aliado-hr" }));
-    expect(res.error).toBe("Ese aliado no existe o no está disponible.");
-  });
-
-  it("otro 23503 conserva el mensaje genérico", async () => {
-    clientsWriteError = {
-      code: "23503",
-      message: 'insert or update on table "clients" violates foreign key constraint "clients_aliado_id_fkey"',
-    };
-    const res = await createClientAction({}, clientForm({ aliadoId: "aliado-hr" }));
-    expect(res.error).toMatch(/^No se pudo crear el cliente: /);
-  });
-  ```
-
-- **Baseline:** la excluyó el encargo. Antes o al fusionar, el Director decide si aplica la 0451 o si declara su espera en `supabase/migrations-baseline.json`, con el aviso de locks de arriba. Con credenciales, `migrations-applied` la marcará faltante.
-- **Antes de aplicar**, en una tarea aparte con el OK nominal de Sam y el runbook: repetir el conteo agregado de solo lectura justo antes. El preflight falla cerrado igual.
-  - `select count(*) from public.aliados h join public.aliados p on p.id = h.parent_aliado_id where p.tenant_id <> h.tenant_id;`
-  - `select count(*) from public.aliados a join public.clients c on c.id = a.client_id where c.tenant_id <> a.tenant_id;`
-- **Después de aplicar:** smoke del listado de aliados de la ficha de un cliente (embed `clients:client_id`) y de la marca del Portal, porque la versión de PostgREST de producción no se verificó.
+- **CI y revisión:** CI alojado sobre el head de la ronda 2 y revisión final del Director. El ruleset exige el check verde sobre el commit que se fusiona. Sacar la PR de borrador y fusionar le corresponde al Director.
+- **La spec 0461 quedó desactualizada frente a la ronda 2.** No se tocó porque está fuera de la allowlist ampliada.
+  - La línea 59 (Alcance) pone el baseline entre lo excluido; la 143 (criterio 4) dice que la prueba versionada necesita ampliar la allowlist; y la 172 (Producción) dice que la rama no declara la espera. Las tres cosas quedaron resueltas en `470ca41d` y `728b74e5`.
+  - Para que la spec lo refleje hay que ampliar la allowlist a `docs/specs/0461-aliados-cadena-tenant/spec.md`. Esos textos no cambian el estado ni el título, así que el índice no se movería.
+- **Antes de aplicar la 0451**, en una tarea aparte con el OK nominal de Sam y el runbook: repetir los dos conteos agregados de solo lectura que ahora imprime la espera. El preflight falla cerrado igual.
+- **Después de aplicar:**
+  - smoke del listado de aliados de una ficha de cliente (embed `clients:client_id`) y de la marca del Portal;
+  - retirar la espera de `pendingBelowCutoff`, como en `b3da7310`.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -240,14 +261,15 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 ## HANDOFF AL DIRECTOR
 
 - **Orden seguro:**
-  1. revisar la PR y su CI;
-  2. decidir baseline o aplicación de la 0451;
-  3. fusionar sobre el SHA revisado, repitiendo antes el merge de main si avanzó;
-  4. aplicar la 0451 en otra tarea: OK nominal de Sam, de a una, name exacto `0451_aliados_cadena_mismo_tenant`, en horario de baja actividad y con el conteo agregado previo;
-  5. smoke del listado de aliados y de la marca del Portal;
-  6. si se declaró espera, retirarla.
+  1. revisar la PR sobre el head de la ronda 2 y su CI;
+  2. fusionar sobre el SHA revisado, repitiendo antes el merge de main si avanzó; con la espera declarada, `migrations-applied` exime a la 0451 con motivo escrito;
+  3. aplicar la 0451 en otra tarea: OK nominal de Sam, de a una, name exacto `0451_aliados_cadena_mismo_tenant`, en horario de baja actividad y con los dos conteos previos;
+  4. smoke del listado de aliados y de la marca del Portal;
+  5. retirar la espera tras la aplicación y la verificación autorizadas.
 - **Aditiva respecto de producción:** no reescribe filas, y solo redefine `get_portal_brand()` agregando la línea del filtro. La 0450 y la 0401 no se tocan.
-- **Gate de símbolos:** `get_portal_brand()` ya existe en producción (0401), así que la 0451 no crea símbolos nuevos y no requiere declaración.
-- **Conflictos posibles:** `docs/specs/README.md`, que se une con el driver `dtd-generated-records`. En GitHub no corre el driver: si main avanza con specs nuevas antes de fusionar, hay que repetir el merge en la rama.
+- **Gate de símbolos:** con la 0451 declarada pendiente da 0 ROJO · 0 AMARILLO. `get_portal_brand()` nace en la 0401, ya aplicada, y el código solo nombra la constraint de la 0450, así que no requiere declaración.
+- **Conflictos posibles al fusionar,** por el driver `dtd-generated-records`: `docs/specs/README.md` y ahora también `supabase/migrations-baseline.json`.
+  - En GitHub no corre el driver. Si main avanza con specs o esperas nuevas, hay que repetir el merge en la rama.
+  - Después, revisar que `pendingBelowCutoff` conserve el orden de main con la 0451 al final.
 - **Contenedores propios, todos retirados:** `dtd_act_sql_focal`, `dtd_act_mut`, `dtd_act_pgrst_db`, `dtd_act_pgrst_rest` y la red `dtd_act_net`. Los `dtd_sqltest_*` y `dtd_rebuild_*` los retiran sus scripts. No se tocó el stack `dtd-pr28-auth-*` ni ningún proceso ajeno.
 - **Ownership:** se libera al cierre con `node scripts/harness-worktree.mjs release --owner aliados-cadena-tenant-20260912`, después de la última escritura. Se conservan el worktree y la rama.
