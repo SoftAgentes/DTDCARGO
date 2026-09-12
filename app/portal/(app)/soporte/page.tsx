@@ -84,8 +84,7 @@ export default async function PortalSoportePage({
   const evidence: Record<string, ClaimEvidenceItem[]> = {};
   for (const [k, v] of evidenceMap) evidence[k] = v;
 
-  // Hilo del asesor + asesor asignado (el cliente no tiene RLS sobre esas tablas
-  // → admin client scopeado por client.id, igual que en Mensajes/Conversaciones).
+  // Hilo del asesor: admin scopeado por client.id, igual que Conversaciones.
   let thread: PortalThreadMessage[] = [];
   try {
     thread = await getPortalThread(admin, client.id);
@@ -98,7 +97,7 @@ export default async function PortalSoportePage({
   );
   let advisor: PortalAdvisor | null = null;
   try {
-    advisor = await getPortalAdvisor(admin, client.id);
+    advisor = await getPortalAdvisor(supabase);
   } catch {
     advisor = null;
   }

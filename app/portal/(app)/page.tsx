@@ -20,7 +20,7 @@ import {
 import { getShipmentNaviera } from "@/lib/studio/naviera-tracking/queries";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import { effectiveVisibleStatus } from "@/lib/portal/portal-types";
-import { getHiddenPortalStatusesForClient } from "@/lib/studio/notifications/portal-visibility-queries";
+import { getHiddenPortalStatusesForPortal } from "@/lib/studio/notifications/portal-visibility-queries";
 import { PortalPending } from "../_components/PortalPending";
 import { PortalDashboardNorte } from "./_components/PortalDashboardNorte";
 import { PendingAcceptanceCard } from "./_components/PendingAcceptanceCard";
@@ -60,10 +60,7 @@ export default async function PortalHomePage() {
   // SDD-0156 · Slice D: si la config del tenant oculta un hito (ej. "en aduana"),
   // el dashboard muestra el último estado VISIBLE — el héroe y los badges no
   // delatan el hito oculto. Falla-seguro → sin sustitución.
-  const hiddenStatuses = await getHiddenPortalStatusesForClient(
-    createAdminClient(),
-    client.id,
-  );
+  const hiddenStatuses = await getHiddenPortalStatusesForPortal(supabase);
   const shipments = rawShipments.map((s) => ({
     ...s,
     status: effectiveVisibleStatus(s.status, s.service, hiddenStatuses),
@@ -117,12 +114,10 @@ export default async function PortalHomePage() {
   }
   const sailingDaysToCutoff = sailing ? daysUntil(sailing.cutoff, todayIso) : null;
 
-  // Asesor asignado (card "Tu asesor" del Norte). Admin client — el cliente del
-  // portal no tiene RLS sobre los perfiles del equipo; se resuelve SOLO el suyo.
+  // Asesor asignado (card "Tu asesor" del Norte). La RPC deriva el cliente por
+  // auth.uid(), verifica la membresía activa y devuelve sólo el perfil asignado.
   // Best-effort: si falla, la card cae al contacto público (nunca inventa nombre).
-  const advisor = await getPortalAdvisor(createAdminClient(), client.id).catch(
-    () => null,
-  );
+  const advisor = await getPortalAdvisor(supabase).catch(() => null);
 
   return (
     <div className="flex flex-col gap-7">
