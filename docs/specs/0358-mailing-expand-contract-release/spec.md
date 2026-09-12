@@ -33,7 +33,9 @@ confidencialidad: interno
 > aplicación. `0410` y `0415` fijan `set local lock_timeout = '5s'` y `statement_timeout = '60s'` antes
 > de su primer lock: `0415` toma ACCESS EXCLUSIVE sobre `mail_logs` y, sin tope, su espera dejaba en
 > cola envíos, webhook de Resend, crons y la consola de Mailing. Se conserva la recomendación de
-> aplicar `0415` en baja actividad de correo. `0410` además normaliza el email como
+> aplicar `0415` en baja actividad de correo. El tope rige sólo dentro de la transacción de aplicación,
+> como la de `apply_migration`: el `set local` va al nivel superior del archivo y en autocommit no tiene
+> efecto, a diferencia de 0450 y 0451, que lo fijan dentro de su bloque `do`. `0410` además normaliza el email como
 > `String.prototype.trim()` de JS en ambos lados (detalle en SDD-0353). Los contratos `0410` y `0415`
 > agregan las aserciones estáticas de los timeouts y los casos de normalización, así que ya no son
 > idénticos al origen.

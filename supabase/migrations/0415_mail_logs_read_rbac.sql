@@ -4,10 +4,10 @@
 -- No aplicar a Cloud/Producción desde esta rama; autorización individual.
 --
 -- IMPORTACIÓN L10 (2026-09-12). Desviación respecto de la PR #21, decidida por
--- el Director antes de cualquier aplicación: lock_timeout y statement_timeout
--- propios antes del primer lock. La restricción toma ACCESS EXCLUSIVE sobre
--- mail_logs; sin tope, su espera dejaba en cola envíos, webhook de Resend, crons
--- y la consola de Mailing. Patrón de 0342, 0383, 0450 y 0451.
+-- el Director antes de cualquier aplicación: set local lock_timeout y
+-- statement_timeout antes del primer lock, como 0450/0451 pero fuera de un do:
+-- rige en la transacción de aplicación. La restricción toma ACCESS EXCLUSIVE
+-- sobre mail_logs; sin tope, su espera encolaba envíos, Resend, crons y Mailing.
 
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';

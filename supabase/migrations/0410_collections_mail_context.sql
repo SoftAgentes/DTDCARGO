@@ -22,8 +22,8 @@
 --     String.prototype.trim() de JS y se comparan en minúsculas: send-email.ts
 --     guarda to_email con trim().toLowerCase(), y btrim a secas sólo quita
 --     espacios, así que un email con salto de línea, tab o NBSP perdía su queja;
---   · lock_timeout y statement_timeout propios antes del primer lock, como en
---     0342, 0383, 0450 y 0451.
+--   · set local lock_timeout y statement_timeout antes del primer lock, como
+--     0450/0451 pero fuera de un do: rige en la transacción de aplicación.
 -- ─────────────────────────────────────────────────────────────
 
 set local lock_timeout = '5s';

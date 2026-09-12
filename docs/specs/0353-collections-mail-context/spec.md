@@ -39,7 +39,9 @@ confidencialidad: interno
 > U+2029, U+202F, U+205F, U+3000 y BOM) y compara ambos lados en minúsculas. El origen usaba `btrim` a
 > secas, que sólo quita espacios, mientras `send-email.ts` guarda `to_email` con `trim().toLowerCase()`:
 > un email con salto de línea, tab o NBSP al borde perdía su queja. (2) `0410` fija
-> `set local lock_timeout = '5s'` y `statement_timeout = '60s'` antes de su primer lock. El contrato
+> `set local lock_timeout = '5s'` y `statement_timeout = '60s'` antes de su primer lock, al nivel superior del
+> archivo: rige dentro de la transacción de aplicación, como la de `apply_migration`, y en autocommit no
+> tiene efecto; 0450 y 0451, en cambio, lo fijan dentro de su bloque `do`. El contrato
 > `0410` agrega los casos infelices de normalización, la matriz de los 25 blancos con controles
 > negativos y la aserción estática de los timeouts; por eso la migración y su contrato ya no son
 > idénticos al origen.
