@@ -1,14 +1,15 @@
 # L03 · Asesor del Portal por principal y tenant (RPC 0403)
 
-Fecha: 2026-09-11. Task ID: `c-l03-portal-asesor`.
-Owner / sesión escritora: `c-l03-worker-20260911-claude` (Worker Claude Code asignado por el Director). Estado de tarea: lista-para-revision en PR draft #83; **MIGRATE-FIRST**: no se fusiona antes de aplicar y verificar 0403 en producción.
+Fecha: 2026-09-11; ronda 2 el 2026-09-12. Task ID: `c-l03-portal-asesor`.
+Owner / sesión escritora: ronda 1 `c-l03-worker-20260911-claude` (terminada y liberada); ronda 2 `c-l03-worker-20260912-claude`, por adopción explícita del Director sobre el mismo worktree y la misma rama. Estado de tarea: lista-para-revision en PR borrador #83. **Ya no es migrate-first**: 0403 se aplicó a producción el 2026-09-12 con OK nominal de Sam (ledger `20260912022746`), así que la rama no declara ninguna espera ni ninguna degradación pendiente.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO` (checkout principal intacto).
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l03-portal-asesor`.
 Rama: `codex/c-l03-portal-asesor`. Base real: `3c6107012f754953323202a7386b3e7811593814` (origin/main al crear el worktree). Main avanzó tres veces durante la tarea y se incorporó por merge, sin rebase:
 - `7fb767f6`: trae `b7e8b484` (#71, registro de aplicación de 0425/0427; #79, SDD-0450, checker UTF-16). Sin conflictos.
 - `94372af9`: trae `07d00097` (#69, L19, SDD-0385, 0431 pendiente). El driver `dtd-generated-records` unió baseline e índice.
 - `9fdc6dd6`: trae `50100cc4902c4a2a4398327ba0de6dc30810c834` (#70, L21, SDD-0401, 0433 pendiente). También con el driver.
-Ninguno cambió las rutas de código, SQL, spec, tests ni declaraciones del lote.
+- `7181ff02` (ronda 2): trae `ce0239268fc5ce2fbdf5ae989efe026fc1b604d5` (#78, L04, SDD-0339, con 0404 ya aplicada; y de arrastre #82, #94 y el registro del lote). Con el driver de main por override, no con el de la rama.
+Ninguno cambió las rutas de código, SQL, spec ni tests del lote.
 
 Origen de solo lectura: `ea9952a47f4adf14c48c91e6d0147597beb94aa7` (head de PR #21). Commit fuente de SDD-0338 en el origen: `121bfdc5892c917d5ae7263c1f7ec4223667de29`. Base común con main: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`.
 SDD: `docs/specs/0338-asesor-portal-por-principal/spec.md`, importada. No se reservó número: 0338 y 0403 no existían en main. Fuera de esta rama, sólo `codex/saneamiento-integral` (head de #21) contiene 0338/0403, con los mismos blobs: es la misma spec, no una colisión.
@@ -101,7 +102,116 @@ Esto no es asesoría legal. Conviene una segunda opinión de otro modelo sobre l
 - **VIS-01/02, MOT-01, LOD-01, A11Y-01, CMP-01, FRM-01: no aplica.** JSX idéntico.
 - **AUD-01/02, MP-01, BTN-01: no aplica.** Sin acciones ni escrituras.
 
-## VALIDACIÓN
+## RONDA 2 — 2026-09-12 · 0403 aplicada en producción y rama al día con `main`
+
+Adopción explícita del worktree y la rama de la ronda 1, cuya sesión terminó y liberó su claim. Antes de editar: `guard` OK, `git status --porcelain=v1` vacío, `HEAD = bb1ca3465153bc2cc0d9e83434d11f1e7b48ca2e` (el head publicado que revisó el Director) y claim nuevo `c-l03-worker-20260912-claude`. No se creó otra rama ni otro worktree, no se tocó el checkout principal ni ningún árbol ajeno, y **no se ejecutó nada contra Supabase**: la evidencia de que 0403 está aplicada la entregó el Director, no una consulta hecha aquí.
+
+Con esto la PR #83 **deja de ser migrate-first**: no queda nada declarado como pendiente.
+
+### Lo que cambió
+
+- **0403 dejó de ser una espera.** `0403_portal_advisor_por_principal` se aplicó a producción el 2026-09-12 con OK nominal de Sam, ledger `20260912022746 / 0403_portal_advisor_por_principal`. El archivo de esta rama es el aplicado: `md5sum` local da `bfae7279d28a8cf28961e0783ee23f36` y 1711 B, los mismos del ledger, **antes y después del merge** (blob `dc812ba645047a3e9712e5be4b30e44a2b445f5d`, el mismo de la ronda 1: el merge no tocó un byte). Es comprobación **local sobre el archivo**, no una consulta a producción. Por eso `supabase/migrations-baseline.json` vuelve a `cutoff: 238` con `pendingBelowCutoff` vacío y `$doc` intacto.
+- **Declaración de símbolos retirada.** `l03-portal-advisor-pending-rpc` sale de `supabase/pending-migration-symbol-declarations.json`, que vuelve a `degradations: []`. Los dos registros quedan **idénticos a `origin/main`**: `git diff origin/main -- <archivo>` vacío en ambos y blobs iguales a los de main (`93939af96cbe3bec89c2ab80bdb8073d8ff4fabe` y `8e52d5b3d8c5448aaa9d90fb3f8df0199097fdbe`). Ya no aparecen en el diff de la PR. El gate pasa de **1 AMARILLO declarado** a **0 ROJO · 0 AMARILLO**.
+- **Nota de importación de la spec 0338** reescrita con el patrón aprobado de `docs/specs/0339-referidos-portal-por-principal/spec.md` (#78, ya en main): migración aplicada, fecha, ledger, identidad del archivo (md5 y bytes) y remisión a este handoff. Ya no anuncia espera ni bloqueo; deja dicho que el orden migrate-first **se cumplió**, porque la RPC existe en la base antes de fusionar el código que la consume. Se conserva el alcance focal del corte L03 y el **frontmatter intacto** (`status: done`, `updated: 2026-09-02`): ese `done` sigue siendo el importado de #21.
+- **Un merge de `origin/main` `ce0239268fc5ce2fbdf5ae989efe026fc1b604d5`** (#78, L04 referidos), con el driver semántico **de main** y no con la copia de la rama.
+- **Texto rancio corregido** en su propio commit: el docstring de `lib/portal/__tests__/portal-advisor-query-rpc-states.test.ts` presentaba los casos como «los dos caminos que deciden el orden migrate-first». Ahora describe lo que los casos fijan de verdad. **No se tocó ninguna aserción ni el nombre de ningún test**, incluidos los `describe` que nombran «RPC 0403 presente» y «RPC 0403 ausente o con error».
+- **Índice de specs regenerado y medido**: 431 specs (main traía 430), 26 huecos, 0338 fuera de la lista de huecos. Medido con `docs:index` + `docs:check` y con `sdd:check` (431 specs / 432 migraciones), no asumido.
+
+### Auditoría del camino degradado: no hay código muerto
+
+La declaración retirada apuntaba a cinco sitios. Con la RPC ya existente en la base, ninguno queda sin uso:
+
+| Sitio | ¿Sigue siendo correcto? |
+|---|---|
+| `lib/portal/portal-queries.ts:146` — `if (error) return null;` | **Sí.** No es un guardia de «RPC inexistente»: es el manejo genérico de error de PostgREST y sigue alcanzable en runtime (5xx, timeout de statement, `EXECUTE` revocado, PostgREST sin schema cache tras un reinicio). Conserva además la semántica de main, que también devolvía null ante error de lectura. |
+| `app/portal/(app)/page.tsx:123` — `.catch(() => null)` | **Sí.** Cubre excepciones del transporte, que `getPortalAdvisor` no traga a propósito. |
+| `app/portal/(app)/soporte/page.tsx:100` — `try/catch` | **Sí.** Mismo caso que Inicio. |
+| `app/portal/(app)/_components/PortalAdvisorCard.tsx:64` y `soporte/page.tsx:174` — fallback «Equipo DTD Cargo» / «Tu equipo DTD Cargo» | **Sí, y es un camino esperable con datos reales.** El null sigue siendo alcanzable **por diseño** en tres condiciones que la propia 0403 impone: cliente sin `advisor_id`, asesor que dejó de ser miembro activo del tenant, o perfil del asesor sin nombre. El contrato SQL las prueba, así que el fallback público no es residuo de la espera. |
+
+Conclusión: **nada que borrar**. Los tests del camino de error se conservan tal cual —PGRST202 y 42501 siguen siendo respuestas posibles de PostgREST, no sólo síntomas de «migración sin aplicar»—; sólo se corrigió el comentario que los presentaba como el criterio del orden migrate-first.
+
+### El merge: qué resolvió el driver y por qué con el override
+
+Base del merge: `git merge-base` = `50100cc4902c4a2a4398327ba0de6dc30810c834`. Main cambió **103 archivos** entre esa base y `ce023926`; la rama cambió **12**. Los **únicos compartidos** son `supabase/migrations-baseline.json` y `docs/specs/README.md`: ningún archivo de producto de L03 (`lib/portal/portal-queries.ts`, las dos páginas, los dos tests, la migración y su contrato) fue tocado por main, así que **no hubo conflicto de producto que resolver** y no se descartó ningún lado. `supabase/pending-migration-symbol-declarations.json` no lo cambió main en esa ventana (seguía en `degradations: []`), así que la unión textual conservó el grupo l03 sin conflicto; se retiró después, aparte.
+
+El override era imprescindible: git ejecuta el driver del árbol de la rama, y el de esta rama (blob `8cd8d31543727cf5c73c2548a088b8030d3006ba`) es anterior a la corrección, mientras main lleva `4a5af4e54f74a80270ddd6c15d6fa8bb14d5b530`. Se comprobó con los tres blobs reales de este merge, ejecutando los dos drivers fuera del repo:
+
+| Clave de `pendingBelowCutoff` | Base `50100cc4` | Esta rama `bb1ca346` | `origin/main` `ce023926` | Driver **viejo** (rama) | Driver **de main** (usado) |
+|---|---|---|---|---|---|
+| `0409_bank_reconciliation_rbac` | presente | igual a la base | retirada (aplicada) | **resucitada** | **retirada** |
+| `0418_portal_academia_tenant_boundary` | presente | igual a la base | retirada (aplicada) | **resucitada** | **retirada** |
+| `0419_portal_reclamos_tenant_boundary` | presente | igual a la base | retirada (aplicada) | **resucitada** | **retirada** |
+| `0430_portal_profile_change_requests_principal_tenant` | presente | igual a la base | retirada (aplicada) | **resucitada** | **retirada** |
+| `0431_portal_post_message_principal_tenant` | presente | igual a la base | retirada (aplicada) | **resucitada** | **retirada** |
+| `0433_portal_conversation_realtime_principal_tenant` | presente | igual a la base | retirada (aplicada) | **resucitada** | **retirada** |
+| `0403_portal_advisor_por_principal` | ausente | añadida por L03 | ausente | conservada | conservada |
+| `cutoff` / `$doc` | 238 | 238 | 238 | 238 | 238, `$doc` de main |
+
+Con el driver viejo el archivo habría vuelto a declarar **seis** migraciones ya aplicadas como pendientes. El merge commit `7181ff02` contiene exactamente lo que calculó el driver de main (0403 como única espera), y la retirada va en su propio commit `2b8db764`: así el merge queda auditable por separado.
+
+`docs/specs/README.md` se resolvió por unión semántica y **no se editó a mano**: `corepack pnpm docs:index` posterior no cambió un byte y `docs:check` lo confirma sincronizado en 431 specs. Con el merge llegó también el `.gitattributes` de main, que ya pone `supabase/pending-migration-symbol-declarations.json` bajo el driver (línea 34): en un próximo merge de esta rama ese archivo ya se une semánticamente.
+
+### El encabezado de la migración no se toca
+
+`supabase/migrations/0403_portal_advisor_por_principal.sql` conserva su comentario «NO aplicar a Producción desde esta rama. Requiere autorización específica por basename y el runbook…». Dos razones, en este orden:
+
+1. **Identidad byte a byte con lo aplicado.** El ledger ancla `md5 bfae7279d28a8cf28961e0783ee23f36` y 1711 B. Editar un comentario cambiaría el md5 del archivo y abriría drift entre el repo y el payload que Supabase guardó, que es exactamente la clase de corrupción que `.gitattributes` documenta para los artefactos de ledger.
+2. **Precedente en main.** `0401_portal_brand_por_principal.sql` y `0404_portal_referidos_por_principal.sql` ya están aplicadas e integradas y **conservan la misma línea** en main. La regla además sigue siendo cierta como regla: no se aplica a producción desde una rama de feature.
+
+### Diff contra `origin/main` `ce023926` tras la ronda 2
+
+`git diff --stat origin/main...HEAD` — **10 archivos**:
+
+| Archivo | Qué es |
+|---|---|
+| `supabase/migrations/0403_portal_advisor_por_principal.sql` | Migración **aplicada en producción** el 2026-09-12; idéntica al ledger en md5 y bytes. |
+| `supabase/tests/0403_portal_advisor_por_principal.test.sql` | Contrato SQL desechable de la RPC, importado del origen. |
+| `lib/portal/portal-queries.ts` | `getPortalAdvisor(db)` sobre `get_portal_advisor()`; deja de construir `service_role` y de leer `clients`/`user_tenants`/`user_profiles`. |
+| `app/portal/(app)/page.tsx` | Comentario y llamada del asesor con la sesión del cliente. JSX sin cambios. |
+| `app/portal/(app)/soporte/page.tsx` | Comentario del hilo y llamada del asesor. JSX sin cambios. |
+| `lib/portal/__tests__/portal-advisor-query.test.ts` | Test del origen, idéntico (4 casos). |
+| `lib/portal/__tests__/portal-advisor-query-rpc-states.test.ts` | Test nuevo (6 casos), con el docstring corregido en esta ronda. |
+| `docs/specs/0338-asesor-portal-por-principal/spec.md` | Spec con la nota de importación actualizada (0403 aplicada). |
+| `docs/specs/README.md` | Fila 0338, conteo 431 y hueco 0338 retirado. |
+| `.agents/handoffs/c-l03-portal-asesor.md` | Este documento, con la ronda 1 y la ronda 2. |
+
+**Ya no aparecen** `supabase/migrations-baseline.json` ni `supabase/pending-migration-symbol-declarations.json`: quedaron iguales a main. `git diff --check` limpio.
+
+### Validación de la ronda 2
+
+Medida sobre `82a598a4e9aa0b72e4c396dd1549ebb088169072` (merge + los tres commits) con base `origin/main` `ce023926`. Node 24.20.0, pnpm 12.3.4 por corepack, Docker disponible. **Sin credenciales ni `.env.local`** en este worktree ni en el checkout principal. Recibos fuera de Git, en el scratchpad de la sesión (`…/scratchpad/c-l03-ronda2/`): `verify.log`, `verify.meta`, `e2e-block.txt`, `base.json` / `ours.json` / `theirs.json` y los dos drivers ejecutados sobre ellos.
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| `guard` / `claim` / `guard --owner` | **PASÓ**: guard al tomar el árbol, claim `c-l03-worker-20260912-claude`, y `guard --owner` + rama revalidados antes de los commits. Estado inicial vacío y `HEAD = bb1ca346`, como decía la asignación. |
+| Identidad de 0403 contra el ledger | **PASÓ**: `md5sum` local `bfae7279d28a8cf28961e0783ee23f36` y 1711 B, **antes y después del merge** (blob `dc812ba6…` sin cambio). Comprobación local sobre el archivo; **no** se consultó producción. |
+| Merge de `origin/main` `ce023926` con el driver de main (override) | **PASÓ**: sin conflictos. Baseline resuelto clave por clave (seis esperas retiradas, 0403 conservada) e índice por unión semántica. Ningún archivo de producto de L03 fue tocado por main: 2 archivos compartidos de 103 que main cambió. |
+| El override era necesario, no ritual | **PASÓ (medido)**: con los tres blobs reales, el driver viejo de la rama (`8cd8d315`) devuelve las **seis** esperas que main ya retiró; el de main (`4a5af4e5`) las retira. Ejecutados fuera del repo, sin tocar el árbol. |
+| `git diff origin/main -- supabase/migrations-baseline.json` | **PASÓ**: **vacío**. `cutoff: 238`, `pendingBelowCutoff` vacío, `$doc` intacto; blob idéntico al de main (`93939af9…`). |
+| `git diff origin/main -- supabase/pending-migration-symbol-declarations.json` | **PASÓ**: **vacío**. `degradations: []`; blob idéntico al de main (`8e52d5b3…`). |
+| Blobs de producto frente a la ronda 1 (`419d7ec0`) | **PASÓ**: idénticos en SQL, contrato, `portal-queries.ts`, las dos páginas y el test del origen. El único cambio es el docstring del test nuevo. |
+| `node scripts/check-pending-migration-symbols.mjs` | **PASÓ**: `0 ROJO · 0 AMARILLO declarado(s)`, con el checker de main. Antes de esta ronda: 1 AMARILLO declarado. |
+| `node scripts/install-merge-drivers.mjs --check` | **PASÓ**. |
+| `corepack pnpm docs:index` + `docs:check` | **PASÓ**: índice sincronizado, **431 specs**, 26 huecos, 0338 fuera de la lista de huecos. El índice que dejó el driver ya era el canónico: `docs:index` no cambió un byte. |
+| `corepack pnpm sdd:check` | **PASÓ**: 431 specs / 432 migraciones; sólo los choques históricos de migraciones ya declarados. |
+| Vitest focal del asesor (3 archivos) | **PASÓ**: 17/17 sobre el contenido final del docstring. |
+| `git diff --check` | **PASÓ**: sin espacios finales ni marcadores; 10 archivos en el diff contra main. |
+| `corepack pnpm verify` | **FALLÓ, exit 1** (00:28 → 01:37). 16 de 17 pasos corrieron de verdad: **15 PASÓ**, `migrations-applied` **NO DISPONIBLE (SKIP)** y `e2e` **FALLÓ**. Veredicto literal: `verify: 1 fallo(s) → e2e [COLGADO/TIMEOUT: sin salida durante 10 min; límite de inactividad 10 min (VERIFY_E2E_IDLE_MIN)] CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.` No se absuelve ni se presenta como verde. |
+| `verify` · harness / lint / rsc-boundary / typecheck / edge-functions | **PASÓ**: 35 pruebas de harness; lint sin errores; frontera RSC; TypeScript; 4 Edge Functions compilan. |
+| `verify` · test (Vitest completo) | **PASÓ**: **6752 tests**. |
+| `verify` · docs:check / numbering / feature-constants / components:check / governance:check | **PASÓ**: 431 specs, sin números repetidos, 5 banderas, registro de componentes y gobernanza ejecutable. |
+| `verify` · pending-migration-symbols | **PASÓ**: 0 ROJO · 0 AMARILLO. |
+| `verify` · sql-tests | **PASÓ**: **174 contratos** con rollback total, incluido `0403_portal_advisor_por_principal.test.sql`. |
+| `verify` · schema-rebuild | **PASÓ**: 432 migraciones inventariadas, 414 aplicadas desde cero, 18 sólo-ledger, aislamiento multi-tenant en 219 tablas. |
+| `verify` · build | **PASÓ**: compilación en 39,3 s y 160/160 páginas estáticas. `tsconfig.json` restaurado: al terminar el único archivo modificado del árbol era este handoff. |
+| `verify` · `migrations-applied` | **NO DISPONIBLE**: `[SKIP] sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (¿worktree sin .env.local?)`. El ledger real **no se midió aquí**; la evidencia de que 0403 está aplicada es la que entregó el Director. |
+| `verify` · `e2e` | **FALLÓ**, y esta vez **el paso no terminó**: 186 tests con 8 workers, el último reportado fue el 167 y el watchdog de SDD-0454 lo cortó por inactividad (sin salida durante 10 min), terminando 25 procesos del árbol propio (`chrome-headless-shell`×15, `node`×9, `cmd`×1; 0 sobrevivientes). Resultado parcial: 123 pasaron, **14 fallaron duro**, 1 flaky recuperado y 15 omitidos; 19 tests nunca reportaron. Los 14 duros son **todos ambientales**: `auth.spec.ts:21/91/98/105` en chromium, mobile-chrome y mobile-safari (12) y `global-search.spec.ts:22` en chromium y mobile-chrome (2), con el servidor registrando «Your project's URL and Key are required to create a Supabase client!» en `proxy.ts:67`. Se registran **NO DISPONIBLE por configuración ausente**. El flaky es `smoke.spec.ts:150` (`/track` → `/entrar`) en chromium: falló la primera vez y pasó en el reintento, y pasa en mobile-chrome; es público, ajeno a L03 y se reporta igual, sin absolver. **Ningún spec del asesor, de Inicio ni de Soporte falló.** El corte por inactividad es un dato nuevo frente a las corridas de esta noche en otros lotes, donde el paso terminaba con 15 fallos y reintento: aquí no hubo reintento porque el watchdog cortó antes. Sin credenciales el E2E no ejerce Inicio ni Soporte con sesión, así que **no valida esta superficie en ningún caso**. |
+| `verify` · watchdog del e2e | **Funcionó como está especificado**: cortó sólo el árbol de procesos del paso, lo declaró en el log y dejó 0 sobrevivientes. No se ejecutó ningún `taskkill` a mano y no se tocó proceso ajeno. |
+| CI alojado de GitHub | **NO EJECUTADO todavía**: la ronda 2 no está publicada. Corre con el push del turno de integración y es el que decide. |
+| `/ui-check` | **NO EJECUTADO**: lo corre el Director. El JSX no cambia en ninguna de las dos rondas. |
+| Producción / Supabase | **NO EJECUTADO** por límite del encargo: no se aplicó ninguna migración, no se leyeron filas, no se abrió conexión y no se copió ninguna credencial. |
+
+## VALIDACIÓN (RONDA 1)
 
 Producto validado: `419d7ec0b36eaa88dee30ea82aaeacb91a6f40fb` sobre la base `3c610701`; revalidación de lo afectado sobre los merges `7fb767f6`, `94372af9` y `9fdc6dd6`. Node 24.20.0, Corepack 0.35.0, pnpm 12.3.4, Docker 29.7.2. Sin credenciales ni `.env` operativo. Recibos fuera de Git, en la carpeta de evidencia del Director (`…/scratchpad/c-l03-portal-asesor/`): `install.log`, `spec-note-identity.json`, `ast-compare.json`, `baseline-check*.json`, `diffs/`, `merge/`, `pending-symbols*.log`, `docs-sdd*.log`, `merge2-checks.log`, `merge3-checks.log`, `schema-rebuild*.log`, `sql-focal-0403.log`, `sql-tests-merge2.log`, `sql-tests-merge3.log`, `vitest-focal*.log`, `vitest-advisor-verbose.log`, `typecheck*.log`, `eslint-focal.log`, `merge-drivers.log`, `harness-merge.log`, `verify.log`, `verify.exit` y `verify.meta`.
 
@@ -202,17 +312,30 @@ Detalle de `verify`:
 - `94372af93eab74876ce586dacbf27a88c778c46c`: merge de origin/main (`07d00097`, #69), con el driver en baseline e índice.
 - `def49b9773ad9dc749c4cfdb5537cd6947f44daa`: `chore(harness): actualizar handoff L03 tras merge con L19`.
 - `9fdc6dd65befe19ca1754a616db12e95eed4dafc`: merge de origin/main (`50100cc4`, #70), con el driver en baseline e índice.
-- Commit que contiene esta actualización del documento: `chore(harness): actualizar handoff L03 tras merge con L21`. Sólo documentación; el hash final queda en la PR.
+- `def49b9773ad9dc749c4cfdb5537cd6947f44daa` y `bb1ca3465153bc2cc0d9e83434d11f1e7b48ca2e`: `chore(harness): actualizar handoff L03 tras merge con L19` y `…tras merge con L21`. Sólo documentación de la ronda 1.
+
+Ronda 2 (sobre `bb1ca346`):
+
+- `7181ff0212ed61492c8ef86cc73b627dbe5d43b5`: merge de origin/main (`ce023926`, #78), con el driver **de main** en baseline e índice. Sin conflictos.
+- `2b8db764`: `chore(db): retirar la espera 0403 aplicada y su declaración de símbolos`. Baseline y declaraciones vuelven a ser idénticos a main.
+- `9d6bd997`: `docs(specs): registrar 0403 aplicada a producción en la spec 0338`. Nota de importación con ledger, md5 y bytes.
+- `82a598a4`: `docs(portal): quitar el «migrate-first» rancio del docstring del test del asesor`. Sólo comentario; ninguna aserción ni nombre de test cambia.
+- Commit que contiene este documento: cierre durable de la ronda 2. El hash final queda en la PR.
 
 ## PR / BRANCH
 
-[PR #83 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/83): «[NO FUSIONAR ANTES DE APLICAR 0403] feat(studio): SDD-0338 — L03 asesor Portal por principal (migrate-first)». Base `main`; rama `codex/c-l03-portal-asesor`, publicada a sí misma con upstream propio. Worktree conservado en la ruta de arriba. Sin merge a main ni aplicación de migraciones.
+[PR #83 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/83), base `main`, rama `codex/c-l03-portal-asesor`, worktree indicado arriba. Sin merge a main, sin aplicar nada a Supabase, sin leer producción y sin deploy.
+
+**Estado al cerrar la ronda 2: NO publicada.** Por indicación del Director la ronda 2 queda commiteada en local y **sin push**: #77 y #76 entran antes y cada merge mueve `main`, así que publicar ahora haría que el ruleset rechace la rama por no estar al día y el CI corra para nada. Mientras el head remoto siga en `bb1ca346`, el prefijo «[NO FUSIONAR ANTES DE APLICAR 0403]» del título es el único freno propio de la PR y **se conserva a propósito**.
+
+Cuando el Director mande el SHA de `main`: último merge con el override del driver, revalidación de lo afectado y entonces, de una sola vez, `git push origin codex/c-l03-portal-asesor:codex/c-l03-portal-asesor` (sin force), cambio de título a «feat(studio): SDD-0338 — L03 asesor Portal por principal (0403 ya aplicada)» y paso de borrador a listo. El título y el `ready` van **junto con** el push, nunca antes. La integración la hace el Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Ninguno de implementación o preparación: SQL, contrato, spec, adopción focal, tests, baseline, declaración, índice, PR y handoff están entregados.
-- Revisión del Director, CI del SHA final y `/ui-check`.
-- E2E autenticado y ledger real siguen NO DISPONIBLES. No son permiso para copiar credenciales ni para aplicar la migración.
+- **Publicación, a la espera del SHA de `main` del Director**: último merge con el override, revalidación de lo afectado y push + título + ready en un solo paso. Es lo único que queda de esta tarea.
+- Ninguno de implementación: SQL, contrato, spec con la nota actualizada, adopción focal, tests, retirada de espera y declaración, índice y handoff están entregados.
+- Revisión del Director, CI alojado del SHA final y `/ui-check` (el JSX no cambia en ninguna de las dos rondas).
+- E2E autenticado y ledger real siguen NO DISPONIBLES en esta máquina, por ausencia de `.env.local`. No son permiso para copiar credenciales ni para tocar producción; el CI de GitHub es el que decide.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -224,7 +347,25 @@ Detalle de `verify`:
 6. **Fallback silencioso.** Ni main ni el origen registran el fallo de esta lectura. Si el Director quiere la misma observabilidad que pidió en L02 (código o mensaje, sin ids ni datos del asesor), es un cambio acotado a `getPortalAdvisor` y su test.
 7. **Heredados del entorno, sin cambios.** Aviso de pnpm 12 sobre `pnpm.onlyBuiltDependencies` ignorado; 8 advertencias de lint en los 4 archivos intactos citados; los 15 fallos E2E ambientales ya conocidos en L16/L18/L02 y un flaky recuperado. No son regresiones de L03.
 
+### Actualización de la ronda 2
+
+8. **Sigue abierto el punto 1, y ahora es más engañoso.** `lib/portal/__tests__/advisor.test.ts:7-8` afirma que `getPortalAdvisor` «es admin-scopeada» y `app/portal/(app)/reclamos/actions.ts:73-74` justifica su lectura con admin «mismo criterio que getPortalAdvisor». Con esta PR integrada las dos frases quedan **falsas en main**, no sólo desactualizadas. Son comentarios, sin efecto funcional, y están fuera de la allowlist de SDD-0338: no se tocan aquí. Merece una tarea corta de limpieza de comentarios del Portal.
+9. **Los encabezados «NO aplicar a Producción desde esta rama» sobreviven a la aplicación.** No es sólo 0403: `0401` y `0404`, ya aplicadas e integradas, conservan la misma línea en main. Corregirlos uno por uno **no es seguro**, porque cambiaría el md5 del archivo frente al payload del ledger. Si el Director quiere que el texto deje de contradecir al ledger, es una decisión de política (por ejemplo, redactar el aviso como regla permanente en el generador o en el runbook), no un arreglo por PR.
+10. **El punto 3 de la ronda 1 quedó resuelto en main.** `supabase/pending-migration-symbol-declarations.json` ya está bajo `merge=dtd-generated-records` en el `.gitattributes` de main (línea 34) y el driver de main sabe unir ese archivo. El conflicto textual que preveía la ronda 1 para L01/L02/L04/L05/L06 dejó de aplicar; en esta rama el archivo además ya no aparece en el diff.
+11. **El punto 4 sigue vigente y explica el CONFLICTING de GitHub.** GitHub no ejecuta `dtd-generated-records`. Cada PR que entre a main tocando baseline o índice vuelve a dejar #83 como CONFLICTING hasta rehacer el merge local con el override. Además, **toda rama del lote nacida antes de la corrección del driver arrastra el driver viejo en su propio árbol**: sin `-c merge.dtd-generated-records.driver=…` apuntando al de main, el merge resucita las esperas que main ya retiró. Se comprobó aquí con los blobs: seis esperas revividas.
+12. **Heredados del entorno, sin cambios.** En esta máquina no hay `.env.local` en ningún worktree ni en el checkout principal: `migrations-applied` queda en SKIP y el paso `e2e` falla por credenciales ausentes en `auth.spec.ts:21/91/98/105` y `global-search.spec.ts:22`. En esta corrida se midieron **14** de esos fallos duros (los 12 de `auth` en chromium, mobile-chrome y mobile-safari, y los 2 de `global-search` en chromium y mobile-chrome): el 15º nunca reportó porque el watchdog cortó el paso por inactividad en el test 167 de 186. Se registran **NO DISPONIBLE por configuración ausente**, no como verde. Aparte, `smoke.spec.ts:150` en chromium quedó flaky recuperado: público y ajeno a L03, pero se reporta. Persisten también el aviso de pnpm 12 sobre `pnpm.onlyBuiltDependencies` y las 8 advertencias de lint en los 4 archivos intactos ya citados.
+
 ## HANDOFF AL DIRECTOR
+
+### Ronda 2 — vigente
+
+- **Siguiente acción, tuya:** mandarme el SHA de `main` cuando sea mi turno. Con él hago el último merge con el override del driver, revalido lo afectado y publico de una sola vez (push de la rama a sí misma, título nuevo y paso de borrador a listo). Hasta entonces la rama queda commiteada en local y sin push, con el prefijo «[NO FUSIONAR ANTES DE APLICAR 0403]» todavía puesto como freno.
+- **La condición migrate-first está cumplida y verificada por ti:** 0403 aplicada el 2026-09-12, ledger `20260912022746`, md5 `bfae7279d28a8cf28961e0783ee23f36` y 1711 B iguales al archivo de esta rama antes y después del merge. Aquí no se leyó ni se escribió nada en producción.
+- **Serialización con L02 (#76) y L17 (#77).** Con L02 sólo comparto `app/portal/(app)/page.tsx`, con hunks separados (simulado en ambos órdenes en la ronda 1: 0 conflictos). Quien entre segundo rehace el merge; en mi caso ya está previsto. Nada más del lote toca `portal-queries.ts`, Soporte ni los tests del asesor.
+- **Revisión sugerida:** el diff de producto de esta ronda es sólo el comentario del docstring; lo demás es la retirada de los dos registros generados y la nota de la spec. El producto que el CI midió en la ronda 1 sigue con los mismos blobs.
+- **Ownership.** Claim de la ronda 2: `c-l03-worker-20260912-claude`. Se conserva mientras quede escritura pendiente (el merge final y el push). Al terminar se libera con `node scripts/harness-worktree.mjs release --owner c-l03-worker-20260912-claude`. Worktree y rama se conservan: no se borra nada.
+
+### Ronda 1 — histórico, ya cumplido
 
 - **Orden migrate-first.** Revisar la PR #83 sobre el SHA final (main estaba en `50100cc4` al publicar). Con OK nominal de Sam, aplicar 0403 individualmente con name `0403_portal_advisor_por_principal` según el runbook, y verificar el objeto y su ACL. Después, en esta rama: retirar la espera del baseline y la declaración `l03`, actualizar la nota de SDD-0338, revalidar y recién entonces fusionar.
 - **Main en movimiento.** Main avanzó tres veces durante la tarea; en cada caso se hizo merge y se revalidó lo afectado. No se persiguen más avances después de este cierre. Si main vuelve a moverse, quien actualice la rama en la ventana de integración repite el merge local con el driver: GitHub puede marcar CONFLICTING por baseline o índice aunque el merge semántico sea limpio.
