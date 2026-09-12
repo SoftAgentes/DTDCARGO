@@ -69,15 +69,33 @@ Reproducido con el hook tal como está en `HEAD`, contra un `verify` falso que e
 - Integración con un sandbox propio: repo git de mentira, un cambio en `app/` y un `scripts/verify.mjs` falso. Cubre que sin cambios en código el gate **ni se lanza**, que `stop_hook_active` corta antes, el rojo normal (exit 2 con la cola real), el verde normal, **el verde ruidoso de 3 MB que antes salía exit 2 y ahora sale 0 sin avisos**, el rojo ruidoso que sigue bloqueando con la última línea del gate, **un gate que desborda los 64 MB de verdad** (exit 2 con «SIN MEDIR» y sin «gate en ROJO»), y el `[AVISO]` de rama sin publicar que llega a stderr sin decidir el cierre.
 - El desbordamiento real cuesta **354 ms** medidos: `spawnSync` mata al hijo en cuanto cruza el límite, así que la prueba no espera a que escriba los 80 MB.
 
+**`scripts/check-unpublished.mjs`**
+
+Pedido aparte de Sam: «arregla también el helper de check-unpublished». Al abrirlo, el búfer era el problema menor.
+
+- `runGit` (exportada, antes `git()` privada) recibe `GIT_MAX_BUFFER = 64 MB` y **devuelve `err`**. Antes el helper descartaba `stderr` y `r.error` por completo: solo sobrevivían `code` y `out`.
+- **El defecto de fondo era un falso verde.** El `code` del listado de ramas **no se miraba**: si `for-each-ref` fallaba, `listado.out` quedaba vacío, `ramas` vacío, `pendientes` vacío y el script imprimía **`[OK] sin trabajo commiteado fuera de origin/main`**. Es decir, justo el check que existe porque SDD-0091 se perdió sin que nadie lo midiera, salía en verde cuando no había medido nada. Ahora un listado fallido sale `[AVISO] … SIN MEDIR` con el motivo.
+- **Un conteo que falla ya no cuenta como 0.** `rev-list --count` con error apartaba la rama a `0 commits sin publicar`, indistinguible de una rama al día. Ahora esas ramas van a un bloque `[AVISO] N rama(s) SIN MEDIR contra origin/main` con su motivo.
+- El aviso de `origin/main` ausente conserva su texto y ahora agrega el error real de git, en vez de adivinar siempre «¿clone shallow o sin remoto?».
+- `main(ejecutar = runGit)` acepta el git inyectado, siguiendo la decisión de diseño que el propio archivo ya documenta para `ramasSinPublicar` («PURA respecto de git… así el test no necesita un repo de verdad»). Es lo que permite probar los caminos en los que git falla.
+- **Contrato intacto:** exit 0 siempre, 2 solo por bug del propio check; no pushea, no borra, no falla el gate. Todos los mensajes nuevos usan el prefijo `[AVISO]`, que es lo que el hook `Stop` busca para reenviarlos, así que ahora se ven en el cierre en vez de perderse.
+
+**`scripts/tests/check-unpublished.node.mjs`** (nuevo, 3 pruebas). El script no tenía ninguna, pese a que su encabezado decía «se importa desde su test».
+
+- `runGit` con desbordamiento forzado (`ENOBUFS` en `err`), la cota del búfer y el contrato de `ramasSinPublicar` (filtra ceros, ordena de más a menos, lista vacía).
+- Con git inyectado: el único verde posible (todo medido y nada pendiente), el listado fallido, el conteo fallido y la base ausente — los tres **sin `[OK]`** — y el aviso de siempre con su recordatorio de SDD-0091.
+- Contra git de verdad, en un sandbox: sin `origin/main` avisa y no sale verde; con todo publicado sale `[OK]`; con una rama de un commit por delante la nombra con su conteo.
+
 ## VALIDACIÓN
 
 Sobre `4897bb1d` (parte 1) y el commit del hook (parte 2), con Node 24.20.0, pnpm vía corepack y git 2.55.0.windows.5.
 
-- **PASÓ** — `corepack pnpm harness:test`: **10 archivos descubiertos, 75/75**. (Antes del hook: 9 archivos, 73/73 en 56,5 s.)
+- **PASÓ** — `corepack pnpm harness:test`: **11 archivos descubiertos, 78/78**. (9 archivos y 73/73 antes del hook; 10 y 75/75 antes de check-unpublished.)
 - **PASÓ** — `corepack pnpm docs:check`: índice sincronizado, 427 specs.
 - **PASÓ** — `corepack pnpm sdd:check`: sin números repetidos; solo los choques históricos ya exentos.
 - **PASÓ** — `git diff --check`: sin hallazgos.
-- **PASÓ** — `eslint` sobre los cuatro archivos tocados: 0 errores, 0 advertencias. El exit code se leyó bien esta vez; en la primera corrida quedó tapado por un `tail` en la tubería, y se repitió.
+- **PASÓ** — `eslint` sobre los seis archivos tocados: 0 errores, 0 advertencias.
+- **PASÓ** — `node scripts/check-unpublished.mjs` contra el repo real: 18 ramas con trabajo fuera de `origin/main`, mismo formato que antes, exit 0. El exit code se leyó bien esta vez; en la primera corrida quedó tapado por un `tail` en la tubería, y se repitió.
 - **PASÓ** — reproducción y arreglo de `finish` sobre un worktree real (`c-l01-portal-marca`, solo lectura): fallaba con exit 1 antes, sale 0 en 0,67 s después, con las 7 entradas esperadas.
 - **PASÓ** — reproducción y arreglo del hook, con el archivo tal como está en `HEAD` y un `verify` falso de 3 MB que sale 0: original **exit 2** («ROJO»), arreglado **exit 0** con stderr vacío.
 - **PASÓ** — el gate sin medir bloquea y se anuncia bien, con un `verify` falso de 80 MB: **exit 2** y el encabezado literal «🛑 Harness gate SIN MEDIR: el gate se canceló al pasar de 64 MB de salida capturada. No hay veredicto, así que el cierre se bloquea igual…», seguido de la cola de lo capturado.
@@ -89,7 +107,10 @@ Sobre `4897bb1d` (parte 1) y el commit del hook (parte 2), con Node 24.20.0, pnp
   4. anular la expansión de un nivel → cae el `.env` anidado;
   5. quitar `maxBuffer` del spawn del gate → cae el verde ruidoso del hook;
   6. volver a la clasificación vieja (`r.status === 0` o rojo) → cae la prueba del hook;
-  7. devolver `bloquea: false` para el gate sin medir → caen las **dos** pruebas del hook.
+  7. devolver `bloquea: false` para el gate sin medir → caen las **dos** pruebas del hook;
+  8. devolver el `git()` viejo de check-unpublished (sin búfer ni `err`) → cae su unitaria;
+  9. dejar de mirar el `code` del listado → vuelve el falso `[OK]` y cae la prueba;
+  10. que un conteo fallido vuelva a contar 0 → cae la misma prueba.
 
 **Cuánta salida produce `verify` de verdad: medición, y corrección de lo que dije antes.** En la primera ronda afirmé que «un `verify` completo con e2e supera 1 MB sin esfuerzo». **No lo tenía medido y la medición lo desmiente en parte:** `corepack pnpm test` capturado a archivo ocupa **361 bytes**, porque fuera de TTY el reporter de vitest imprime solo el resumen. Los pasos de tests unitarios no aportan volumen.
 
@@ -115,6 +136,8 @@ Lo que sí sostiene el arreglo, sin inventar cifras:
 - `4897bb1d` — `fix(harness): finish inventaria ignorados de forma compacta y git deja de romperse por ENOBUFS` (script + pruebas).
 - `d23436a0` y `a18adc2a` — handoff de la primera ronda y registro de la PR #94.
 - `f86f60d6` — `fix(harness): el hook Stop deja de matar el gate y de informar ROJO un verify verde` (hook + pruebas).
+- `fa8dd55c` — `fix(harness): el gate sin medir también bloquea el cierre, anunciado como tal`.
+- El commit de `check-unpublished.mjs` y su prueba nueva.
 - El commit que trae esta versión del documento cierra la tarea.
 
 ## PR / BRANCH
@@ -131,7 +154,9 @@ Ninguno de implementación. Falta la revisión del Director y la CI del head pub
 ## FUERA DE ALCANCE DETECTADO
 
 1. ~~`scripts/harness-verify-hook.mjs:49`~~ **ATENDIDO en esta misma tarea**, a pedido de Sam. Queda arriba, en COMPLETADO y VALIDACIÓN.
-2. **`scripts/check-unpublished.mjs:41` sigue capturando sin `maxBuffer`** en su propio helper `git()`. Desde el hook ya no importa (el spawn que lo lanza sí tiene búfer), pero corriéndolo directo el helper conserva el límite de 1 MB. Sus cuatro comandos (`rev-parse`, `for-each-ref`, `rev-list --count`, `fetch --quiet`) producen salidas pequeñas, así que el riesgo es bajo y no lo toqué.
+2. ~~`scripts/check-unpublished.mjs:41`~~ **ATENDIDO en esta misma tarea**, a pedido de Sam. Queda arriba, en COMPLETADO y VALIDACIÓN.
+2b. **El `git fetch --quiet` de `--fetch` sigue sin mirarse.** Es deliberado y viejo: trabajar sin red es normal y la medición sigue con la ref en caché. Pero un fetch fallido no se nombra, así que la base puede estar vieja sin que se diga. Cambiarlo toca la semántica de «offline es normal» y no lo hice.
+2c. **`GIT_MAX_BUFFER` está repetido en tres scripts** (`harness-worktree.mjs`, `harness-verify-hook.mjs` con su propio nombre, y ahora `check-unpublished.mjs`). Cada uno queda autónomo y documenta su motivo, que es el estilo de `scripts/`; consolidarlo en un módulo compartido es razonable y es decisión del Director.
 3. **El hook captura, no transmite.** Con 64 MB el corte queda lejísimos, pero la salida del gate sigue materializándose entera en memoria y el usuario no ve progreso mientras corre. Transmitir con `spawn` asíncrono y guardar solo una cola acotada sería mejor; es otro diseño y merece su propia decisión.
 4. **`finish` sigue pidiendo `git status --untracked-files=all`.** Ya no revienta gracias al búfer, pero solo se usa como booleano `hasChanges`: un worktree con un árbol grande **no ignorado** materializa un listado entero para nada. Cambiarlo altera semántica y merece su propia decisión.
 5. **La expansión de directorios colapsados llega a un nivel.** Un `.env` a mayor profundidad dentro de un directorio ignorado (p. ej. `node_modules/<pkg>/.env`) no se nombra. Es deliberado: el barrido recursivo `**/.env*` sobre ese mismo worktree tardó **18 s** y devolvió 0 resultados, es decir, el costo era del recorrido, no de la salida. El directorio colapsado sí aparece en `ignoredEntries`, y la línea final dice que la expansión es de un nivel.
@@ -141,6 +166,7 @@ Ninguno de implementación. Falta la revisión del Director y la CI del head pub
 
 - **Siguiente acción:** revisar la PR en borrador y correr su CI. La PR no se pasa a ready ni se mergea desde aquí.
 - **Contratos compartidos:** el JSON de `finish` **suma** campos (`ignoredEntryCount`, `ignoredEntries`, `sensitiveIgnoredFiles`) y ninguno cambia de nombre ni de tipo; `hasIgnoredFiles` conserva su significado. `runGit` y `GIT_MAX_BUFFER` quedan exportados por si otro script del harness quiere el mismo helper. No hay consumidores externos hoy.
+- **Contrato de `check-unpublished`:** exit y semántica intactos (siempre 0, informativo, no falla el gate). Lo que cambia es que un git roto ya no puede salir `[OK]`: el listado o el conteo fallidos producen `[AVISO] … SIN MEDIR`. Como el hook reenvía todo lo que contenga `[AVISO]`, esos casos ahora se ven en el cierre. `ramasSinPublicar` conserva su firma; `main` acepta un git inyectado con `runGit` por defecto.
 - **Contrato del hook `Stop`:** los códigos de salida no cambian de significado (0 deja cerrar, 2 bloquea) y `.claude/settings.json` queda igual. Solo un exit 0 del gate deja cerrar; un gate medido en rojo y un gate sin medir bloquean los dos, y se distinguen por el mensaje, no por el código. Respecto de `main`, el cambio neto es que **un gate verde cuya salida desborde el búfer ya no se lee como rojo**, y que un gate sin medir se anuncia como tal. Decisión de Sam: el sin medir bloquea.
 - **Integración y producción:** integrar a main **dispara el deploy de producción en Vercel**, porque el `ignoreCommand` de `vercel.json` no excluye `scripts/**`. El artefacto de la app no cambia, pero la autorización de merge tiene que cubrir ese deploy.
 - **Efecto en los demás Workers:** con esto integrado, `finish` vuelve a funcionar en cualquier worktree con dependencias instaladas y, además, nombra los `.env*` que antes ni se listaban. Y el hook `Stop` deja de trabar cierres por un gate que en realidad nunca terminó.
