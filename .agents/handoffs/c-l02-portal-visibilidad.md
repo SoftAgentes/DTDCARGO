@@ -260,7 +260,21 @@ Detalle de `verify` en la ronda 2 (los conteos suben porque la rama ya trae main
 
     **Regla que deja el Director para la próxima:** mientras el head remoto siga atrasado, el freno se retira **al publicar**, no antes. El título y el paso a «ready» van junto con el push, en el mismo momento, no en la preparación.
 
-13. **Dependencia implícita entre el índice único y cinco funciones del Portal — riesgo real, sin arreglar acá.** El `limit 1` de `0402` es correcto **porque** existe `client_users_auth_user_id_key`, y **ningún comentario de las cinco funciones lo dice** (`0401`, `0402`, `0404`, `0424`, `0431`). Si alguien retirara ese índice único —por ejemplo para permitir que un usuario cuelgue de dos clientes, que es justo lo que el comentario de `0080` describe como decisión «V1»—, cuatro o más funciones del Portal se volverían **no deterministas en silencio**, eligiendo un vínculo arbitrario, y **ninguna prueba fallaría**: los contratos SQL no cubren el caso de dos vínculos porque el esquema no lo admite. La corrección depende de una garantía que vive en otra migración y que nadie declaró en el punto donde se usa. Indicación explícita del Director: **no se arregla en esta tarea**; queda escrito para que se decida aparte.
+13. **Dependencia implícita entre `unique (auth_user_id)` y cinco funciones del Portal — riesgo real pero acotado, sin arreglar acá.** El `limit 1` de `0402` es correcto **porque** existe `client_users_auth_user_id_key`, y **ningún comentario de las cinco funciones lo dice** (`0401`, `0402`, `0404`, `0424`, `0431`). La corrección depende de una garantía que vive en otra migración y que nadie declaró en el punto donde se usa: **eso es el hallazgo y sigue siendo válido.**
+
+    **Qué lo dispara, con precisión** (corrección del Director a una versión previa de esta entrada, que atribuía el marcador «V1» a la restricción equivocada). En `supabase/migrations/0080_portal_cliente.sql` hay dos restricciones y el marcador de versión está en una sola:
+
+    ```
+    29:  unique (tenant_id, client_id),   -- 1 acceso de portal por cliente (V1)
+    30:  unique (auth_user_id)            -- 1 cliente por auth.user
+    ```
+
+    | Cambio de esquema | ¿Rompe el `limit 1`? | Por qué |
+    |---|---|---|
+    | Relajar `unique (tenant_id, client_id)` (L29, **la marcada V1**) | **No** | Un cliente pasaría a tener varios usuarios de portal, pero cada `auth_user_id` seguiría apuntando a un solo cliente. El CTE filtra por `auth_user_id`, así que `portal_client` sigue devolviendo 0 o 1 filas |
+    | Retirar `unique (auth_user_id)` (L30, **sin marcador de versión**) | **Sí** | Permitiría que **una misma persona** cuelgue de dos clientes. Ahí cuatro o más funciones del Portal se volverían no deterministas en silencio, eligiendo un vínculo arbitrario, y **ninguna prueba fallaría**: los contratos SQL no cubren el caso porque el esquema hoy no lo admite |
+
+    O sea: la candidata natural a relajarse es justo la que **no** rompe nada —está marcada V1 y «varios usuarios de portal por cliente» es una evolución de producto previsible—, mientras que la que sí rompe, `unique (auth_user_id)`, no está marcada como limitación en ninguna parte del archivo (el único otro «V1» está en L9 y habla de policies read-only) ni figura como evolución prevista. **El riesgo residual es más chico de lo que decía la versión anterior de esta entrada, y conviene que se note: un riesgo sobredimensionado se descarta igual que uno omitido.** Lo que queda es documentar la dependencia donde se usa, no un cambio pendiente. Indicación explícita del Director: **no se arregla en esta tarea**.
 
 ## HANDOFF AL DIRECTOR
 
