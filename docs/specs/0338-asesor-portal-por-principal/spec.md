@@ -16,17 +16,19 @@ confidencialidad: interno
 
 # SDD-0338 — Asesor del Portal por principal autenticado
 
-> **Nota de importación — 2026-09-11.** Esta spec se importa desde la PR #21 con su
-> contenido original, `status: done` incluido, que refleja su estado **en la rama de origen**.
-> Su migración `0403_portal_advisor_por_principal` queda **declarada pendiente** en
-> `supabase/migrations-baseline.json` y **no se ha aplicado a producción en esta tarea**: el
-> `done` de la cabecera no significa que este contrato esté vigente en la base real. Aplicarla
-> exige OK nominal de Sam y el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
-> **MIGRATE-FIRST:** el código de este lote no se fusiona antes de aplicar y verificar 0403,
-> porque sin la RPC Inicio y Soporte pierden el asesor asignado y muestran a todos los clientes
-> el contacto público. El corte L03 adopta sólo la lectura por RPC en las dos vistas vigentes;
-> no importa la allowlist histórica completa ni la meta de construcciones `service_role` de la
-> aceptación, cuyo test de frontera no existe en main.
+> **Nota de importación — 2026-09-11; actualizada el 2026-09-12.** Esta spec se importa desde la
+> PR #21 con su contenido original, `status: done` incluido. Su migración
+> `0403_portal_advisor_por_principal` **fue APLICADA a producción el 2026-09-12** con OK nominal
+> de Sam (ledger `20260912022746 / 0403_portal_advisor_por_principal`), con el archivo de esta
+> rama idéntico al aplicado (md5 `bfae7279d28a8cf28961e0783ee23f36`, 1711 B); esta ronda queda
+> asentada en `.agents/handoffs/c-l03-portal-asesor.md`. Por eso 0403 ya **no** figura como
+> espera en `supabase/migrations-baseline.json` ni tiene declaración en
+> `supabase/pending-migration-symbol-declarations.json`. El orden migrate-first se cumplió: la RPC
+> `get_portal_advisor()` existe en la base antes de fusionar el código que la consume, así que
+> Inicio y Soporte resuelven el asesor asignado por la sesión del cliente y no degradan al
+> contacto público al integrarse. El corte L03 adopta sólo la lectura por RPC en las dos vistas
+> vigentes; no importa la allowlist histórica completa ni la meta de construcciones
+> `service_role` de la aceptación, cuyo test de frontera no existe en main.
 
 ## Estado real
 
