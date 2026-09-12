@@ -25,10 +25,14 @@
  * No pushea, no borra, no falla el gate. Es un AVISO: hay ramas que legítimamente
  * están a medias. Lo que no puede pasar es que nadie las vea.
  *
+ * LO QUE NO SE PUDO MEDIR TAMBIÉN SE DICE
+ * Si git falla —listado, conteo o la base misma— sale [AVISO] con el motivo, nunca
+ * [OK]. Un verde por un git que se rompió sería exactamente el agujero que esto tapa.
+ *
  * Uso:  node scripts/check-unpublished.mjs [--fetch]
  * Exit: 0 siempre (informativo). 2 = bug del propio check.
  */
-import { spawnSync } from "node:child_process";
+import { runGit } from "./harness-spawn.mjs";
 
 const C = {
   yellow: "\x1b[33m",
@@ -37,10 +41,9 @@ const C = {
   nc: "\x1b[0m",
 };
 
-function git(args) {
-  const r = spawnSync("git", args, { encoding: "utf8" });
-  return { code: r.status ?? 1, out: (r.stdout ?? "").trim() };
-}
+// El búfer y el manejo del error de spawn viven en harness-spawn.mjs. Acá los listados son
+// chicos y el desbordamiento es improbable, pero un corte silencioso pondría en verde justo
+// el check que existe para que nada quede sin medir.
 
 /**
  * Ramas locales con commits que `ref` no tiene. PURA respecto de git: recibe el
@@ -59,39 +62,66 @@ export function ramasSinPublicar(ramas, contar) {
   return out.sort((a, b) => b.commits - a.commits);
 }
 
-function main() {
-  if (process.argv.includes("--fetch")) git(["fetch", "origin", "main", "--quiet"]);
+/** `ejecutar` se inyecta para poder probar los caminos en los que git falla. */
+export function main(ejecutar = runGit) {
+  if (process.argv.includes("--fetch")) ejecutar(["fetch", "origin", "main", "--quiet"]);
 
   const base = "origin/main";
-  if (git(["rev-parse", "--verify", base]).code !== 0) {
+  const verificada = ejecutar(["rev-parse", "--verify", base]);
+  if (verificada.code !== 0) {
     console.log(
-      `${C.yellow}[AVISO]${C.nc} sin ${base} (¿clone shallow o sin remoto?) — no se puede medir qué falta publicar`,
+      `${C.yellow}[AVISO]${C.nc} sin ${base} (¿clone shallow o sin remoto?) — no se puede medir qué falta publicar` +
+        (verificada.err ? `${C.dim} · ${verificada.err}${C.nc}` : ""),
     );
     return 0;
   }
 
-  const listado = git(["for-each-ref", "--format=%(refname:short)", "refs/heads"]);
+  // Sin listado no hay medición. Un [OK] acá sería el falso verde que este check evita.
+  const listado = ejecutar(["for-each-ref", "--format=%(refname:short)", "refs/heads"]);
+  if (listado.code !== 0) {
+    console.log(
+      `${C.yellow}[AVISO]${C.nc} no se pudieron listar las ramas locales — qué falta publicar quedó SIN MEDIR` +
+        `${C.dim} · ${listado.err || "git for-each-ref falló"}${C.nc}`,
+    );
+    return 0;
+  }
   const ramas = listado.out.split("\n").map((x) => x.trim()).filter(Boolean);
 
+  // Un conteo que falla no es una rama al día: se aparta en vez de contarse como 0.
+  const sinMedir = [];
   const pendientes = ramasSinPublicar(ramas, (rama) => {
-    const r = git(["rev-list", "--count", `${base}..${rama}`]);
-    return r.code === 0 ? Number(r.out) || 0 : 0;
+    const r = ejecutar(["rev-list", "--count", `${base}..${rama}`]);
+    if (r.code !== 0) {
+      sinMedir.push({ rama, motivo: r.err || "git rev-list falló" });
+      return 0;
+    }
+    return Number(r.out) || 0;
   });
 
-  if (pendientes.length === 0) {
+  if (pendientes.length === 0 && sinMedir.length === 0) {
     console.log(`${C.green}[OK]${C.nc}   sin trabajo commiteado fuera de ${base}`);
     return 0;
   }
 
-  console.log(
-    `${C.yellow}[AVISO]${C.nc} ${pendientes.length} rama(s) con trabajo que NO está en ${base}:`,
-  );
-  for (const p of pendientes) {
-    console.log(`${C.dim}   ${p.rama} → ${p.commits} commit(s) sin publicar${C.nc}`);
+  if (pendientes.length > 0) {
+    console.log(
+      `${C.yellow}[AVISO]${C.nc} ${pendientes.length} rama(s) con trabajo que NO está en ${base}:`,
+    );
+    for (const p of pendientes) {
+      console.log(`${C.dim}   ${p.rama} → ${p.commits} commit(s) sin publicar${C.nc}`);
+    }
+    console.log(
+      `${C.dim}   Una rama sin pushear con el gate verde NO es trabajo guardado: así se perdió SDD-0091.${C.nc}`,
+    );
   }
-  console.log(
-    `${C.dim}   Una rama sin pushear con el gate verde NO es trabajo guardado: así se perdió SDD-0091.${C.nc}`,
-  );
+  if (sinMedir.length > 0) {
+    console.log(
+      `${C.yellow}[AVISO]${C.nc} ${sinMedir.length} rama(s) SIN MEDIR contra ${base}:`,
+    );
+    for (const s of sinMedir) {
+      console.log(`${C.dim}   ${s.rama} → ${s.motivo}${C.nc}`);
+    }
+  }
   return 0;
 }
 
