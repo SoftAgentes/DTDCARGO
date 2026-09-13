@@ -13,21 +13,52 @@ confidencialidad: interno
 
 # SDD-0365 — Seguridad de los comandos de reportes de pago
 
-> **Nota de importación — 2026-09-12.** Esta spec se importa desde la PR #21 con su contenido
-> original, `status: in-progress` incluido. Sus migraciones `0421_payment_report_commands` y
-> `0422_payment_report_command_boundary` están **PENDIENTES DE APLICAR** y declaradas en
-> `supabase/migrations-baseline.json`. El código de consumidores es **MIGRATE-FIRST** respecto de
-> 0421: la dependencia está declarada en `supabase/pending-migration-symbol-declarations.json` y la
-> PR no se fusiona antes de aplicar y verificar 0420 y 0421. Orden: 0420 y 0421 → despliegue y smoke
-> de alta, cancelación, confirmación y rechazo → 0422 → 0423. Corte L14 sobre `main`:
-> `reportar/actions.ts` incorpora además el hunk de SDD-0397 que usa el principal canónico de L18,
-> con los tres casos del reporte de `portal-invoice-actions-principal-scope.test.ts` (sin la
-> aceptación); `payment-report-queries.ts` y `payment-reports.test.ts` quedan en su versión de
-> SDD-0365, sin el cambio de SDD-0390; `facturacion/[code]/page.tsx` y
-> `StudioInvoicePaymentReports.tsx` conservan el retiro de `Badge.dot` de SDD-0441. No se importan
-> `scripts/test-payment-report-commands.mjs`, el checklist ni los handoffs de la allowlist original:
-> la evidencia de carreras reales, advisors y navegador descrita abajo es de la rama de origen y no
-> se repitió en esta importación. Registro en `.agents/handoffs/c-l14-portal-comandos-recibos.md`.
+> **Nota de importación — 2026-09-12; actualizada el 2026-09-13.** Esta spec se importa desde la PR
+> #21 (`ea9952a4`; commits `12ee7407`, `7f4c1046`, `85912909`, `bcf111a8` y `f649bdbc`) con su
+> contenido original, `status: in-progress` incluido. Su migración de expansión
+> `0421_payment_report_commands` **fue APLICADA a producción el 2026-09-13** por el Director con OK
+> nominal de Sam, de a una y después de 0420 (ledger `20260913224126 / 0421_payment_report_commands`,
+> 1 sentencia, md5 `6944ffddf61f4d20514ff78aad7f983f`, 22086 bytes; el ledger quedó en 452 filas tras
+> las dos de L14), con el archivo de esta rama idéntico al aplicado:
+> `git show HEAD:supabase/migrations/0421_payment_report_commands.sql` da el mismo md5 y los mismos
+> 22086 bytes. Se aplicó con `apply_migration` y name exacto por el conector `claude.ai Supabase`
+> (proyecto `xpfuzqombmjmxvprjgmi`), `{"success": true}` al primer intento y sin leer ninguna fila de
+> negocio. Preflight, leído antes del catálogo: schema, tabla, wrappers y columnas no existían; bucket
+> privado `payment-proofs` presente; `append_audit_event` y `append_audit_event_v1` presentes.
+> Postflight, leído después y sin filas: `payment_reports` con las columnas nuevas `cancelled_at`,
+> `cancelled_by` y `resolution_reason` y los CHECKs `payment_reports_cancellation_pair` y
+> `payment_reports_resolution_reason_length`; schema `payment_private` con ACL
+> `{postgres=UC, authenticated=U}`; tabla `payment_private.report_commands` con RLS activa y relacl
+> `{postgres=arwdDxtm}`, `authenticated` y `service_role` sin SELECT/INSERT/UPDATE/DELETE; triggers
+> `report_commands_immutable` y `payment_reports_command_fields` presentes;
+> `payment_private.run_report_command(uuid,uuid,text,jsonb)` SECURITY DEFINER, owner postgres,
+> `search_path=""`, ACL `{postgres=X, authenticated=X}`; wrappers `create_portal_payment_report`,
+> `cancel_portal_payment_report` y `resolve_payment_report` SECURITY INVOKER con EXECUTE
+> authenticated=true, anon=false y service_role=false; `audit_entity_types` con la fila `payment_report`
+> activa. Advisors de seguridad de producción antes y después de 0420+0421, comparados hallazgo por
+> hallazgo: antes `rls_enabled_no_policy` INFO 21, `extension_in_public` WARN 1,
+> `anon_security_definer_function_executable` WARN 22 y
+> `authenticated_security_definer_function_executable` WARN 175; después, idéntico salvo
+> `rls_enabled_no_policy` INFO 22: entra `payment_private.report_commands`, tabla con RLS activa y sin
+> policies. Es intencional: los recibos no tienen CRUD por API y sólo los escribe el comando definer.
+> Ningún WARN cambió; `run_report_command` no aparece en los lints de definer porque vive en
+> `payment_private`, fuera del schema expuesto. El registro de esta ronda está en
+> `.agents/handoffs/c-l14-portal-comandos-recibos.md` («RONDA 2»). Por eso 0421 ya **no** figura como
+> espera en `supabase/migrations-baseline.json` ni tiene declaración en
+> `supabase/pending-migration-symbol-declarations.json`; el orden migrate-first se cumplió: las tres
+> RPC y las tres columnas existen en la base antes de fusionar el código que las consume, así que
+> `runPaymentReportCommand` ya no puede caer en `PGRST202` ni las lecturas de `REPORT_COLS` en un
+> rechazo por columna inexistente. La restricción `0422_payment_report_command_boundary` sigue
+> **PENDIENTE DE APLICAR**, declarada en el baseline; fusionar no autoriza aplicarla. Orden de L14:
+> **0420 y 0421 (aplicadas) → despliegue de esta PR y smoke de alta, cancelación, confirmación y
+> rechazo → 0422 → 0423**. Corte L14 sobre `main`: `reportar/actions.ts` incorpora además el hunk de
+> SDD-0397 que usa el principal canónico de L18, con los tres casos del reporte de
+> `portal-invoice-actions-principal-scope.test.ts` (sin la aceptación); `payment-report-queries.ts` y
+> `payment-reports.test.ts` quedan en su versión de SDD-0365, sin el cambio de SDD-0390;
+> `facturacion/[code]/page.tsx` y `StudioInvoicePaymentReports.tsx` conservan el retiro de `Badge.dot`
+> de SDD-0441. No se importan `scripts/test-payment-report-commands.mjs`, el checklist ni los handoffs
+> de la allowlist original: la evidencia de carreras reales, advisors locales y navegador descrita abajo
+> es de la rama de origen y no se repitió en esta importación.
 
 ## Objetivo y evidencia
 

@@ -13,15 +13,35 @@ confidencialidad: interno
 
 # SDD-0364 — Reportes de pago: frontera del principal
 
-> **Nota de importación — 2026-09-12.** Esta spec se importa desde la PR #21 con su contenido
-> original, `status: done` incluido: ese estado describe el aislamiento técnico local de la rama de
-> origen, no la aplicación en producción. Su migración `0420_portal_payment_reports_tenant_boundary`
-> está **PENDIENTE DE APLICAR** y declarada en `supabase/migrations-baseline.json`; fusionar no
-> autoriza aplicarla. Lote L14 del bloque C: 0420 se aplica junto con 0421 **antes** de desplegar
-> los comandos de SDD-0365 y precede al cierre 0422, que compara las huellas exactas de estas tres
-> policies. Siguen abiertas las casillas de push y del gate Cloud. No se importan el checklist
-> `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs `2026-09-02-*` de la allowlist
-> original; esta importación queda asentada en `.agents/handoffs/c-l14-portal-comandos-recibos.md`.
+> **Nota de importación — 2026-09-12; actualizada el 2026-09-13.** Esta spec se importa desde la PR
+> #21 (`ea9952a4`; commit `e9d49980`) con su contenido original, `status: done` incluido: ese estado
+> describe el aislamiento técnico local de la rama de origen. Su migración
+> `0420_portal_payment_reports_tenant_boundary` **fue APLICADA a producción el 2026-09-13** por el
+> Director con OK nominal de Sam, de a una y antes de 0421 (ledger
+> `20260913223809 / 0420_portal_payment_reports_tenant_boundary`, 1 sentencia, md5
+> `b1d7b9429b84df5eaefbe384fb109c60`, 4849 bytes; el ledger quedó en 452 filas tras las dos de L14),
+> con el archivo de esta rama idéntico al aplicado:
+> `git show HEAD:supabase/migrations/0420_portal_payment_reports_tenant_boundary.sql` da el mismo md5 y
+> los mismos 4849 bytes. Se aplicó con `apply_migration` y name exacto por el conector
+> `claude.ai Supabase` (proyecto `xpfuzqombmjmxvprjgmi`), sin leer ninguna fila de negocio. Preflight,
+> leído antes del catálogo y sin filas: las 5 policies de `payment_reports` con sus cmd/roles/permissive
+> exactos, RLS activa y relacl `authenticated=arwdxtm`. Postflight, leído después: las 3 policies Portal
+> con vínculo `client_users` + `auth.uid()` + tenant + Shipping Mark (INSERT sólo with_check con
+> `reportado`), 0 policies con `get_portal_client_markbox`, relacl sin cambios y 5 policies en total.
+> Advisors de seguridad de producción antes y después de 0420+0421, comparados hallazgo por hallazgo:
+> antes `rls_enabled_no_policy` INFO 21, `extension_in_public` WARN 1,
+> `anon_security_definer_function_executable` WARN 22 y
+> `authenticated_security_definer_function_executable` WARN 175; después, idéntico salvo
+> `rls_enabled_no_policy` INFO 22, que entra por `payment_private.report_commands` de 0421 (intencional:
+> recibos sin CRUD por API, escritos sólo por el comando definer); ningún WARN cambió y 0420 no añade
+> ningún hallazgo. El registro de esta ronda está en `.agents/handoffs/c-l14-portal-comandos-recibos.md`
+> («RONDA 2»). Por eso 0420 ya **no** figura como espera en `supabase/migrations-baseline.json`. Las
+> dos casillas abiertas del plan describen la rama de origen: el push (PR #104) y la aplicación de 0420
+> ocurrieron en esta importación; el smoke de los comandos sigue pendiente. Lote L14 del bloque C:
+> **0420 y 0421 (aplicadas) → despliegue de esta PR y smoke de los comandos de SDD-0365 → 0422 →
+> 0423**; 0422 compara las huellas exactas de estas tres policies y sigue pendiente. No se importan el
+> checklist `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs `2026-09-02-*` de la
+> allowlist original.
 
 ## Evidencia y objetivo
 

@@ -13,14 +13,19 @@ confidencialidad: interno
 
 # SDD-0366 — Identidad histórica de reportes de pago
 
-> **Nota de importación — 2026-09-12.** Esta spec se importa desde la PR #21 con su contenido
-> original, `status: in-progress` incluido. Su migración `0423_payment_report_historical_identity`
-> está **PENDIENTE DE APLICAR** y declarada en `supabase/migrations-baseline.json`; se aplica al
-> final de L14, después de 0421 y 0422, porque su preflight exige la expansión y la restricción. Es
-> SQL-only: no trae código app/lib. No se importaron `docs/audits/2026-09-02-codex-release-preflight.md`
-> (el enlace «Evidencia y preflight parcial» no resuelve en `main`), el checklist ni los handoffs
-> `2026-09-02-*`; esa evidencia sigue en la rama de origen. Registro en
-> `.agents/handoffs/c-l14-portal-comandos-recibos.md`.
+> **Nota de importación — 2026-09-12; actualizada el 2026-09-13.** Esta spec se importa desde la PR
+> #21 con su contenido original, `status: in-progress` incluido. Su migración
+> `0423_payment_report_historical_identity` está **PENDIENTE DE APLICAR** y declarada en
+> `supabase/migrations-baseline.json`; se aplica al final de L14, después de 0422, porque su preflight
+> exige la expansión y la restricción. De sus dependencias,
+> `0420_portal_payment_reports_tenant_boundary` y `0421_payment_report_commands` **fueron APLICADAS a
+> producción el 2026-09-13** con OK nominal de Sam (ledgers `20260913223809` y `20260913224126`;
+> identidad, preflight, postflight y advisors en las notas de SDD-0364 y SDD-0365) y
+> `0422_payment_report_command_boundary` sigue pendiente, después del despliegue de esta PR y del smoke
+> de los comandos. Es SQL-only: no trae código app/lib. No se importaron
+> `docs/audits/2026-09-02-codex-release-preflight.md` (el enlace «Evidencia y preflight parcial» no
+> resuelve en `main`), el checklist ni los handoffs `2026-09-02-*`; esa evidencia sigue en la rama de
+> origen. Registro en `.agents/handoffs/c-l14-portal-comandos-recibos.md`.
 
 ## Objetivo y evidencia de origen
 
