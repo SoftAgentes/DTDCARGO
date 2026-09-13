@@ -5,11 +5,11 @@
  * contador; hasta ahora sólo existía como tabla en pantalla (SDD-0177).
  *
  * ⚠️ **Un route handler NO ejecuta el layout `(app)`.** El gate de sesión del
- * portal vive ahí, así que acá no protege nada. Quien protege es
- * `listMyInvoices`: resuelve el markbox por la RPC `get_portal_client_markbox`
- * (acotada a `auth.uid()`) y filtra por `client_markbox` + `neq borrador`. Sin
- * sesión de portal no hay markbox y devuelve lista vacía antes de consultar
- * nada. Fail-closed por construcción, no por el layout.
+ * portal vive ahí, así que acá no protege nada. Protegen `getPortalClient`, que
+ * corta sin principal Portal vivo y coherente, y `listMyInvoices`, que resuelve
+ * ese principal y filtra por su tenant + Shipping Mark + `neq borrador`
+ * (SDD-0462). Sin sesión de portal responde 404 antes de consultar facturas.
+ * Fail-closed por construcción, no por el layout.
  *
  * No hay parámetro de cliente **a propósito**: la cuenta es la del que está
  * logueado y no hay forma de pedir la de otro. Un `[markbox]` en la URL sería

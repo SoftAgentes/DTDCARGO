@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 441 specs)
+### Índice de specs (generado · 446 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -381,6 +381,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0349 | Automatizar calidad local sin secretos en GitHub Actions | done | interno |
 | 0351 | Aplicar RBAC admin-only al dominio Mailing | done | interno |
 | 0352 | Aplicar RBAC financiero a conciliación bancaria | done | interno |
+| 0353 | Minimizar el contexto de correo de Cobranzas | done | interno |
+| 0358 | Separar expansión y restricción del release de Mailing | done | interno |
 | 0359 | Aislar envíos, documentos e hitos Portal por principal y tenant | done | interno |
 | 0360 | Evitar que el foco tardío borre la búsqueda de destino | done | interno |
 | 0361 | Aislar proveedores, prealertas y sus documentos por principal… | done | interno |
@@ -479,6 +481,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0458 | finish miraba medio universo: los worktrees de .claude/worktr… | done | interno |
 | 0459 | No hay respuesta para «no sé»: el harness elegía un checkout … | done | interno |
 | 0460 | `finish` informa lo que git sabe del candidato: locked y prun… | done | interno |
+| 0461 | La cadena de aliados no cruza tenants | done | interno |
+| 0462 | Las facturas del Portal quedan ligadas al tenant del principal | done | interno |
+| 0463 | Por RLS, el Portal sólo lee facturas del tenant de su vínculo | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0350, 0354, 0355, 0356, 0357, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
