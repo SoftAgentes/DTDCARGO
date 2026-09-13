@@ -7,52 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "l10-collections-mail-context-pending-rpc",
-      "primarySymbol": "collections_mail_context",
-      "migration": "0410_collections_mail_context",
-      "symbols": [
-        {
-          "kind": "function",
-          "name": "collections_mail_context",
-          "callSites": [
-            "lib/studio/collections/recordatorios-queries.ts:56"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/collections/recordatorios-queries.ts:59",
-          "contains": "if (error) throw new Error(error.message);",
-          "degradation": "Mientras 0410 no esté aplicada la RPC no existe: PostgREST responde PGRST202 («Could not find the function public.collections_mail_context(p_invoice_ids) in the schema cache», medido con postgrest-js 2.106.1 contra PostgREST v16.1 local) y contextoDeEnvio lanza. No hay fallback a mail_logs ni a clients.email: nunca devuelve un contexto vacío que deje escribir a quien marcó spam."
-        },
-        {
-          "site": "app/studio/(app)/cobranzas/actions.ts:280",
-          "contains": "return { error: \"No se pudo calcular la lista de recordatorios.\" };",
-          "degradation": "previewRecordatorios captura la excepción y devuelve ese mensaje: la vista previa no calcula destinatarios ni omitidos."
-        },
-        {
-          "site": "app/studio/(app)/cobranzas/actions.ts:310",
-          "contains": "const ctx = await contextoDeEnvio(supabase, cola);",
-          "degradation": "enviarRecordatorios calcula el contexto antes de crear el cliente admin y del bucle de fireMailEvent: si lanza, no sale ningún correo."
-        },
-        {
-          "site": "app/studio/(app)/cobranzas/actions.ts:344",
-          "contains": "return { error: \"No se pudieron enviar los recordatorios.\" };",
-          "degradation": "El envío devuelve ese error sin enviar nada ni revalidar la ruta."
-        },
-        {
-          "site": "app/studio/(app)/cobranzas/_components/RecordatoriosDrawer.tsx:92",
-          "contains": "{errorEnvio ?? preview?.error}",
-          "degradation": "El cajón de recordatorios de Cobranzas muestra el error como alerta."
-        },
-        {
-          "site": "app/studio/(app)/cobranzas/_components/RecordatoriosDrawer.tsx:96",
-          "contains": "{!cargando && !preview?.error && (",
-          "degradation": "Con error no se muestran resumen, listas ni botón de envío. Los recordatorios de cobranza no operan hasta aplicar 0410: es MIGRATE-FIRST y la PR no se fusiona antes de aplicar y verificar 0410."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
