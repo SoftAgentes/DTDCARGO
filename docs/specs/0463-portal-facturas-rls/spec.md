@@ -318,8 +318,10 @@ Hallazgos, sobre los de SDD-0462:
 
 ## Producción
 
-`0452_portal_invoices_tenant_rls` no está aplicada, y `done` en esta spec no significa
-aplicada.
+`0452_portal_invoices_tenant_rls` **fue aplicada a producción el 2026-09-13** con autorización
+nominal de Sam: ledger `20260913175856`, md5 `85878be79c2bea3922e4a542de6e3b81` y 10.991 bytes,
+idénticos al archivo de `main`; registro en `.agents/handoffs/0452-aplicacion-prod-20260913.md`.
+`done` en esta spec no acredita la aplicación por sí mismo; lo acredita el ledger.
 
 - Aplicarla exige el OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`: de a
   una, con el name exacto y en baja actividad de facturas.
