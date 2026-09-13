@@ -311,16 +311,26 @@ const TERMINAL_SHIPMENT_STATUSES = new Set([
 /**
  * Contexto del cliente para el panel del hilo: MARKBOX, envíos activos y saldo
  * CxC. No duplica data operativa — los envíos linkean al módulo y el saldo es un
- * agregado (link a Cobranzas en la UI). Devuelve null si el cliente no existe.
+ * agregado (link a Cobranzas en la UI). La RPC resuelve el cliente desde el hilo
+ * y devuelve sólo saldo/moneda. Devuelve null si no hay contexto autorizado.
  */
 export async function getClientContext(
   supabase: SupabaseClient,
-  clientId: string,
+  conversationId: string,
 ): Promise<ConversationClientContext | null> {
+  const { data: outstanding, error: outstandingError } = await supabase
+    .rpc("conversation_client_outstanding", {
+      p_conversation_id: conversationId,
+    })
+    .maybeSingle<{ client_id: string; balance: number | string; currency: string }>();
+  if (outstandingError || !outstanding) return null;
+  const balance = Number(outstanding.balance);
+  if (!Number.isFinite(balance) || balance < 0) return null;
+
   const { data: client, error } = await supabase
     .from("clients")
     .select("id, markbox, name, email, phone")
-    .eq("id", clientId)
+    .eq("id", outstanding.client_id)
     .is("deleted_at", null)
     .maybeSingle<{
       id: string;
@@ -344,22 +354,6 @@ export async function getClientContext(
     .filter((s) => !TERMINAL_SHIPMENT_STATUSES.has(s.status))
     .slice(0, 5);
 
-  // Saldo CxC: Σ (total − paid) de facturas no-borrador, moneda dominante.
-  const { data: invoices } = await supabase
-    .from("invoices")
-    .select("currency, total_amount, paid_amount")
-    .eq("client_markbox", client.markbox)
-    .neq("status", "borrador")
-    .is("deleted_at", null);
-
-  const { balance, currency } = aggregateOutstanding(
-    ((invoices as Array<{
-      currency: string;
-      total_amount: number | null;
-      paid_amount: number | null;
-    }> | null) ?? []),
-  );
-
   return {
     client_id: client.id,
     markbox: client.markbox,
@@ -368,30 +362,6 @@ export async function getClientContext(
     phone: client.phone,
     activeShipments,
     outstandingBalance: balance,
-    outstandingCurrency: currency,
+    outstandingCurrency: outstanding.currency,
   };
-}
-
-/** Agrega saldo pendiente por moneda y devuelve la moneda dominante. Pura. */
-export function aggregateOutstanding(
-  invoices: Array<{
-    currency: string;
-    total_amount: number | null;
-    paid_amount: number | null;
-  }>,
-): { balance: number; currency: string } {
-  const byCurrency = new Map<string, { total: number; balance: number }>();
-  for (const inv of invoices) {
-    const e = byCurrency.get(inv.currency) ?? { total: 0, balance: 0 };
-    e.total += Number(inv.total_amount ?? 0);
-    e.balance += Math.max(0, Number(inv.total_amount ?? 0) - Number(inv.paid_amount ?? 0));
-    byCurrency.set(inv.currency, e);
-  }
-  const currencies = [...byCurrency.keys()];
-  const currency =
-    currencies
-      .slice()
-      .sort((a, b) => (byCurrency.get(b)?.total ?? 0) - (byCurrency.get(a)?.total ?? 0))[0] ??
-    "USD";
-  return { balance: byCurrency.get(currency)?.balance ?? 0, currency };
 }

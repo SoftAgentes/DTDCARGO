@@ -48,6 +48,21 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
 } {
   const calls: Record<string, Recorded> = {};
 
+  const rpcChain = (rows: Record<string, unknown>[]) => {
+    const chain: Record<string, unknown> = {
+      order: () => chain,
+      range: (desde: number, hasta: number) => {
+        const pedido = hasta - desde + 1;
+        const trozo = rows.slice(
+          desde,
+          desde + Math.min(pedido, SERVER_CAP),
+        );
+        return Promise.resolve({ data: trozo, error: null });
+      },
+    };
+    return chain;
+  };
+
   const client = {
     from(table: string) {
       const rows = rowsByTable[table] ?? [];
@@ -92,6 +107,9 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
           Promise.resolve(result).then(resolve),
       };
       return chain;
+    },
+    rpc(fn: string) {
+      return rpcChain(rowsByTable[fn] ?? []);
     },
   } as unknown as SupabaseClient;
 
@@ -434,23 +452,17 @@ const NOW = new Date("2026-06-15T00:00:00Z");
 // ── commercialByClient (reusa clientsWithTier 0051) ────────────
 describe("commercialByClient", () => {
   it("rankea por facturación USD-normalizada (desc) + tier derivado + distribución", async () => {
-    // clientsWithTier lee invoices (facturación trailing-12m) + clients.
-    const invoices = [
-      // Cliente Platinum (>= 300k): facturación grande dentro de los 12m.
-      { client_markbox: "DTD-1", currency: "USD", total_amount: 320000, fx_rate: null, status: "pagada", issued_at: "2026-05-01", created_at: "2026-05-01" },
-      // Cliente Bronze (< 50k).
-      { client_markbox: "DTD-2", currency: "USD", total_amount: 10000, fx_rate: null, status: "emitida", issued_at: "2026-04-01", created_at: "2026-04-01" },
-      // VES normalizada a USD: 73000 / 36.5 = 2000 (no mueve el tier de DTD-2).
-      { client_markbox: "DTD-2", currency: "VES", total_amount: 73000, fx_rate: 36.5, status: "emitida", issued_at: "2026-04-10", created_at: "2026-04-10" },
-      // Factura vieja (fuera de los 12m) → no cuenta.
-      { client_markbox: "DTD-1", currency: "USD", total_amount: 999999, fx_rate: null, status: "pagada", issued_at: "2024-01-01", created_at: "2024-01-01" },
+    // La normalización y ventana ya vienen agregadas desde la RPC mínima.
+    const billing = [
+      { client_markbox: "DTD-1", billed_usd: 320000 },
+      { client_markbox: "DTD-2", billed_usd: 12000 },
     ];
     const clients = [
       { id: "1", markbox: "DTD-1", name: "Alfa" },
       { id: "2", markbox: "DTD-2", name: "Beta" },
       { id: "3", markbox: "DTD-3", name: "Gamma" }, // sin facturación
     ];
-    const { client } = stub({ invoices, clients });
+    const { client } = stub({ studio_client_annual_billing: billing, clients });
     const out = await commercialByClient(client, NOW);
 
     expect(out.totalClients).toBe(3);
@@ -470,7 +482,7 @@ describe("commercialByClient", () => {
   });
 
   it("sin clientes → ranking vacío, totales en 0", async () => {
-    const { client } = stub({ invoices: [], clients: [] });
+    const { client } = stub({ studio_client_annual_billing: [], clients: [] });
     const out = await commercialByClient(client, NOW);
     expect(out.totalClients).toBe(0);
     expect(out.ranking).toEqual([]);
