@@ -10,6 +10,12 @@
  * policy "<tabla> by tenant" es permissive (OR) y, sola, no aísla. Mismo criterio
  * que el hardening de `getPortalClient` (resolver el principal del portal primero,
  * filtrar explícito por su identificador).
+ *
+ * FACTURAS (SDD-0462): el Shipping Mark es único POR TENANT y la policy Portal de
+ * `invoices` (0085) compara sólo el Shipping Mark. Por eso los lectores de facturas
+ * no usan la RPC: resuelven el principal vivo y coherente
+ * (`getPortalClientPrincipal`) y filtran por su `tenant_id` y su Shipping Mark.
+ * Sin principal cortan antes de consultar.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
@@ -229,21 +235,23 @@ export async function getMyShipment(
 
 /**
  * Facturas del cliente logueado (SDD-0042 · Fase 3), recientes primero. La RLS
- * del portal ya excluye borradores; filtramos EXPLÍCITO por markbox y `borrador`
- * igualmente (defensa en profundidad). Hasta 100.
+ * del portal ya excluye borradores; filtramos EXPLÍCITO por tenant y Shipping
+ * Mark del principal y por `borrador` igualmente (defensa en profundidad,
+ * SDD-0462). Hasta 100.
  */
 export async function listMyInvoices(
   supabase: SupabaseClient,
 ): Promise<PortalInvoiceRow[]> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return [];
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return [];
 
   const { data, error } = await supabase
     .from("invoices")
     .select(
       "id, invoice_code, status, currency, total_amount, paid_amount, issued_at, due_date, shipment_code",
     )
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", principal.tenantId)
+    .eq("client_markbox", principal.client.markbox)
     .neq("status", "borrador")
     .is("deleted_at", null)
     .order("issued_at", { ascending: false, nullsFirst: false })
@@ -267,23 +275,38 @@ export async function listMyInvoices(
 
 /**
  * UNA factura del cliente logueado por su `invoice_code`. Filtra por code +
- * markbox + no-borrador: si no es suya (o es borrador interno) → null → la
- * página llama `notFound()`.
+ * tenant + Shipping Mark del principal + no-borrador: si no es suya (o es
+ * borrador interno) → null → la página llama `notFound()`. El código es único
+ * POR TENANT: sin el tenant, el mismo código en otra empresa con el mismo
+ * Shipping Mark devolvía dos filas y la factura propia daba 404 (SDD-0462).
  */
 export async function getMyInvoice(
   supabase: SupabaseClient,
   code: string,
 ): Promise<PortalInvoiceDetail | null> {
-  const markbox = await portalMarkbox(supabase);
-  if (!markbox) return null;
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return null;
+  return getMyInvoiceForPrincipal(supabase, principal, code);
+}
 
+/**
+ * `getMyInvoice` para quien ya resolvió el principal con
+ * `getPortalClientPrincipal`: la ruta del PDF usa UNA sola resolución para la
+ * factura y para los datos del emisor (SDD-0462).
+ */
+export async function getMyInvoiceForPrincipal(
+  supabase: SupabaseClient,
+  principal: PortalClientPrincipal,
+  code: string,
+): Promise<PortalInvoiceDetail | null> {
   const { data, error } = await supabase
     .from("invoices")
     .select(
       "id, tenant_id, invoice_code, client_name, client_rif, client_doc_kind, status, currency, fx_rate, iva_rate, base_amount, iva_amount, total_amount, paid_amount, issued_at, due_date, lines, notes, shipment_id, shipment_code, created_at",
     )
     .eq("invoice_code", code)
-    .eq("client_markbox", markbox)
+    .eq("tenant_id", principal.tenantId)
+    .eq("client_markbox", principal.client.markbox)
     .neq("status", "borrador")
     .is("deleted_at", null)
     .maybeSingle();
@@ -292,9 +315,9 @@ export async function getMyInvoice(
 
   return {
     id: data.id as string,
-    // SDD-0298: lo necesita la ruta del PDF para leer los datos del emisor con
-    // el cliente admin — el del portal no ve `tenants` (no está en
-    // `user_tenants`).
+    // SDD-0298: tenant emisor. Coincide con el del principal por el filtro;
+    // la ruta del PDF igual lee los datos del emisor con `principal.tenantId`
+    // (SDD-0462), nunca con este campo.
     tenantId: data.tenant_id as string,
     clientRif: (data.client_rif as string | null) ?? null,
     clientDocKind: (data.client_doc_kind as string | null) ?? null,

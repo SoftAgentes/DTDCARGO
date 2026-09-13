@@ -6,11 +6,12 @@
  * a su banco: sin PDF, el equipo la armaba a mano o mandaba una captura.
  *
  * ⚠️ **Un route handler NO ejecuta el layout `(app)`.** El gate de sesión del
- * portal vive en ese layout, así que acá no protege nada. Quien protege es
- * `getMyInvoice`: resuelve el markbox vía la RPC `get_portal_client_markbox`
- * (acotada a `auth.uid()`) y filtra por `client_markbox` + `neq borrador`. Sin
- * sesión de portal el markbox es null y la función devuelve null antes de
- * consultar nada. Fail-closed por construcción, no por el layout.
+ * portal vive en ese layout, así que acá no protege nada. Quien protege es el
+ * principal Portal (SDD-0462): `getPortalClientPrincipal` exige sesión, vínculo
+ * activo y cliente vivo del mismo tenant, y se resuelve ANTES de leer la
+ * factura. Sin principal responde 404 sin consultar facturas. Con principal,
+ * `getMyInvoiceForPrincipal` filtra por código + tenant + Shipping Mark +
+ * `neq borrador`. Fail-closed por construcción, no por el layout.
  *
  * Los tres casos —no existe, no es tuya, es un borrador interno— responden el
  * MISMO 404. Distinguirlos le confirmaría a cualquiera qué códigos existen.
@@ -24,7 +25,10 @@ import { createElement, type ReactElement } from "react";
 import type { DocumentProps } from "@react-pdf/renderer";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getMyInvoice, getPortalClient } from "@/lib/portal/portal-queries";
+import {
+  getMyInvoiceForPrincipal,
+  getPortalClientPrincipal,
+} from "@/lib/portal/portal-queries";
 import { getCompanyDataForTenant } from "@/lib/studio/company-queries";
 import { FacturaDocument } from "@/lib/studio/pdf/factura-pdf";
 import { noEncontrado, nombreSeguro, respuestaPdf } from "@/lib/studio/pdf/pdf-response";
@@ -40,24 +44,29 @@ export async function GET(
 
   const supabase = await createClient();
 
-  const inv = await getMyInvoice(supabase, code);
+  // SDD-0462 · Primero el principal: su tenant gobierna la factura y el emisor.
+  // El Shipping Mark sólo es único dentro de un tenant, así que la factura nunca
+  // decide de qué empresa se leen los datos.
+  const principal = await getPortalClientPrincipal(supabase);
+  if (!principal) return noEncontrado("Factura");
+
+  const inv = await getMyInvoiceForPrincipal(supabase, principal, code);
   if (!inv) return noEncontrado("Factura");
 
   // El markbox no viene en el detalle de la factura del portal; sale del propio
-  // cliente logueado. Si por lo que sea no resuelve, el papel sale sin esa
-  // línea en vez de no salir.
+  // principal, que ya está resuelto.
   // 🔴 Los datos del emisor NO se pueden leer con el cliente del portal:
   // `getCompanyData` resuelve el tenant por `user_tenants`, y un cliente del
   // portal no está ahí (medido 2026-08-25: 2 de 133 cuentas). Con el cliente
   // del usuario, esta factura salía sin razón social, sin RIF y sin datos de
   // pago — y es la copia que el cliente le lleva a su contador.
   //
-  // La propiedad ya quedó probada arriba por `getMyInvoice` (markbox del
-  // usuario logueado); recién por eso se lee con admin, acotado a ESE tenant.
-  const [client, company] = await Promise.all([
-    getPortalClient(supabase).catch(() => null),
-    getCompanyDataForTenant(createAdminClient(), inv.tenantId).catch(() => null),
-  ]);
+  // La propiedad ya quedó probada arriba (principal + factura de su tenant);
+  // recién por eso se lee con admin, acotado al tenant DEL PRINCIPAL.
+  const company = await getCompanyDataForTenant(
+    createAdminClient(),
+    principal.tenantId,
+  ).catch(() => null);
 
   const doc = createElement(FacturaDocument, {
     invoice: {
@@ -65,7 +74,7 @@ export async function GET(
       clientName: inv.clientName,
       clientRif: inv.clientRif,
       clientDocKind: inv.clientDocKind,
-      clientMarkbox: client?.markbox ?? null,
+      clientMarkbox: principal.client.markbox,
       shipmentCode: inv.shipmentCode,
       currency: inv.currency,
       fxRate: inv.fxRate,
