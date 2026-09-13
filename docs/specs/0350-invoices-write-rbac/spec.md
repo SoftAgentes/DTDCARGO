@@ -34,9 +34,11 @@ confidencialidad: interno
 > checklist `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs `2026-09-02-*` de la
 > allowlist; entran fuera de ella el registro de migraciones pendientes, que exige el gate
 > `migrations-applied`, y el handoff de esta importación, `.agents/handoffs/c-l07-fidelizacion-conversations.md`,
-> donde queda la evidencia local. La vuelta atrás de 0407, probada en PostgreSQL 17 local (el catálogo de
-> `invoices` queda idéntico a `main` después de aplicarla y revertirla), está en la sección «VUELTA ATRÁS
-> DE 0407 Y 0414» de ese handoff; si 0414 estaba aplicada, primero se revierte 0414.
+> donde queda la evidencia local. La vuelta atrás de 0407, probada en PostgreSQL 17 local con
+> `0452_portal_invoices_tenant_rls` aplicada y sin ella (el catálogo de `invoices` queda idéntico al de
+> antes de 0407), está en la sección «VUELTA ATRÁS DE 0407 Y 0414» de ese handoff. No toca `invoices
+> portal self read`: la deja como la encuentra y lo comprueba al final. Si 0414 estaba aplicada, primero
+> se revierte 0414.
 >
 > **Desviación respecto del origen**, pre-autorizada por el Director el 2026-09-12 antes de cualquier
 > aplicación: `0407` fija `set local lock_timeout = '5s'` y `statement_timeout = '60s'` antes de su

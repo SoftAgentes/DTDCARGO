@@ -28,14 +28,29 @@ confidencialidad: interno
 > app después, no hay error; RLS devuelve cero filas a los roles no financieros, Fidelización, CRM y
 > Reportes dejan a todos los clientes en Bronze, Conversaciones muestra saldo 0 y el drawer de la OV
 > «Facturas · 0». Tras 0414 accounting y admin conservan lectura y escritura de su tenant y las tres RPC
-> siguen respondiendo. En el Portal, un vínculo coherente conserva sus facturas y, si su Shipping Mark se
-> repite en otro tenant, deja de ver las del otro tenant, que la policy histórica exponía (medido).
-> **Frontera aceptada por el Director como intencional (ronda 2):** un vínculo activo cuyo cliente está
-> borrado, o cuyo vínculo y cliente no coinciden de tenant, deja de leer facturas **sin ningún mensaje de
-> error**: la lectura devuelve cero filas. Las páginas del Portal ya mandan a esos principales a
-> `/entrar` desde el layout (`app/portal/(app)/layout.tsx:39-40`); la descarga del PDF por URL no pasa
-> por el layout (`app/portal/(app)/facturas/[code]/pdf/route.ts:41-44`) y pasa de entregar la factura a
-> responder 404 «Factura no encontrado.».
+> siguen respondiendo.
+>
+> **Portal, en los dos órdenes (ronda 3).** 0414 vuelve a crear `invoices portal self read` con la
+> expresión coherente por tenant. Es la misma que deja `0452_portal_invoices_tenant_rls` (SDD-0463,
+> pendiente en `main`).
+> - **Con 0452 aplicada antes:** para el Portal, 0414 no cambia nada y la frontera rige desde 0452. El
+>   preflight de 0414 pasa, porque pide la policy por nombre, y la foto de catálogo tras 0414 es idéntica
+>   con 0452 previa y sin ella (medido).
+> - **Sin 0452:** 0414 cierra por sí misma la lectura del Portal entre tenants con Shipping Mark repetido
+>   (medido).
+>
+> **Frontera aceptada por el Director como intencional (ronda 2).** Un vínculo activo cuyo cliente está
+> borrado, o cuyo vínculo y cliente no coinciden de tenant, no lee facturas y **no recibe ningún mensaje de
+> error**: la lectura devuelve cero filas. Un vínculo coherente conserva las suyas y no ve las de otro
+> tenant.
+>
+> En la app no cambia nada en ningún orden. Desde SDD-0462 (PR #107, en `main`), las lecturas de facturas
+> del Portal resuelven el principal y filtran por su tenant:
+> - el layout manda a esos principales a `/entrar` (`app/portal/(app)/layout.tsx:39-40`);
+> - la ruta del PDF resuelve el principal antes de leer la factura y responde 404
+>   (`app/portal/(app)/facturas/[code]/pdf/route.ts:50-51`).
+>
+> La frontera sólo se ve en la consulta directa a PostgREST con el JWT del propio usuario.
 >
 > **Test de inventario (ronda 2).** `scripts/__tests__/invoice-read-boundary.test.mjs` entra idéntico al
 > origen (blob `97c82149`), sin ajustar su lista de lectores: el inventario que congela, 45 llamadas
@@ -44,13 +59,20 @@ confidencialidad: interno
 > existen en `main`, así que no requiere código de producto ausente (SDD-0322, SDD-0390 u otros). Pasa
 > focal 3/3. Control rojo: un lector ficticio de `invoices` fuera de la lista lo hace fallar (19 archivos
 > contra 18) y, al retirarlo, vuelve a verde. Las PR #104 y #105 no alteran ese inventario: un conteo AST
-> de los 15 archivos de producción que tocan da 0 cambios. No se importan el checklist
-> `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs `2026-09-02-*` de la allowlist;
-> entran fuera de ella el registro de migraciones pendientes, que exige el gate `migrations-applied`, y el
-> handoff `.agents/handoffs/c-l07-fidelizacion-conversations.md`, donde quedan el inventario de lectores y
-> escritores, la paridad, los locks y la vuelta atrás de 0414 probada en local (sección «VUELTA ATRÁS DE
-> 0407 Y 0414»: el catálogo de `invoices` queda idéntico al de antes de 0414 después de aplicarla y
-> revertirla).
+> de los 15 archivos de producción que tocan da 0 cambios. Tras incorporar `main` en la ronda 3 (PR #107
+> y #108), el test sigue pasando 3/3 con las mismas 45 llamadas en 18 archivos: SDD-0462 no cambió las
+> lecturas directas.
+>
+> No se importan el checklist `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs
+> `2026-09-02-*` de la allowlist. Entran fuera de ella el registro de migraciones pendientes, que exige el
+> gate `migrations-applied`, y el handoff `.agents/handoffs/c-l07-fidelizacion-conversations.md`. Ahí
+> quedan el inventario de lectores y escritores, la paridad, los locks y la vuelta atrás de 0414, probada
+> en local con 0452 aplicada y sin ella (sección «VUELTA ATRÁS DE 0407 Y 0414»).
+>
+> **Esa vuelta atrás, a propósito, no restaura la policy Portal vulnerable de 0085.** Deja `invoices portal
+> self read` con la expresión coherente por tenant, y su postflight la exige.
+> - Con 0452 aplicada, el catálogo de `invoices` queda idéntico al de antes de 0414.
+> - Sin 0452, sólo difiere en esa policy.
 >
 > **Desviación respecto del origen**, pre-autorizada por el Director el 2026-09-12 antes de cualquier
 > aplicación: `0414` fija `set local lock_timeout = '5s'` y `statement_timeout = '60s'` antes de su
