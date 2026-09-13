@@ -101,6 +101,10 @@ export async function getCompanyData(
  * El llamador prueba primero la propiedad con el cliente del usuario y recién
  * después lee con el admin, acotado al tenant probado — el patrón de siempre
  * para las lecturas del portal.
+ *
+ * 🔴 SDD-0462: con el admin no hay RLS que acote, así que oficinas y cuentas se
+ * filtran por ese tenant igual que la fila de `tenants`. Sin el filtro, el PDF
+ * de la factura del portal imprimía las cuentas bancarias de TODAS las empresas.
  */
 export async function getCompanyDataForTenant(
   supabase: SupabaseClient,
@@ -118,12 +122,14 @@ export async function getCompanyDataForTenant(
     supabase
       .from("company_offices")
       .select("id, country, name, address, sort_order")
+      .eq("tenant_id", tenantId)
       .is("deleted_at", null)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true }),
     supabase
       .from("company_bank_accounts")
       .select("id, bank_name, account_type, currency, account_number, sort_order")
+      .eq("tenant_id", tenantId)
       .is("deleted_at", null)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true }),

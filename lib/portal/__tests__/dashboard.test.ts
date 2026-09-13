@@ -8,17 +8,20 @@
  *  - `getNextArrival`: el próximo envío ACTIVO (degradado: code/ruta/estado/ETA),
  *    null si no hay activo; aislamiento sin markbox.
  *
- * Las KPIs se calculan sobre lo que devuelven `listMyShipments`/`listMyInvoices`
- * (filtradas por markbox). El stub sirve filas distintas por tabla.
+ * Las KPIs se calculan sobre lo que devuelven `listMyShipments` (filtrada por
+ * markbox) y `listMyInvoices` (tenant + markbox del principal, SDD-0462). El stub
+ * sirve filas distintas por tabla.
  */
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getDashboardKpis, getNextArrival } from "../portal-queries";
 
 /**
- * Stub encadenable. `rpc("get_portal_client_markbox")` → markbox. El query builder
- * (`from(table).select().eq().is().order().limit()`) resuelve en `.limit()` con las
- * filas de esa tabla; `getNextArrival` también usa esta cadena (resuelve en limit).
+ * Stub encadenable. `rpc("get_portal_client_markbox")` → markbox. Con markbox, la
+ * sesión es además la de un principal Portal vivo (`auth.getUser()` + vínculo en
+ * `client_users`, que resuelve en `.maybeSingle()`), como exige `listMyInvoices`.
+ * El query builder (`from(table).select().eq().is().order().limit()`) resuelve en
+ * `.limit()` con las filas de esa tabla; `getNextArrival` también usa esta cadena.
  */
 function stub(opts: {
   markbox: string | null;
@@ -26,6 +29,26 @@ function stub(opts: {
   invoices?: Record<string, unknown>[];
 }): { supabase: SupabaseClient; touched: () => string[] } {
   const touched: string[] = [];
+  const membership = opts.markbox
+    ? {
+        client_id: "client-1",
+        tenant_id: "tenant-1",
+        clients: {
+          id: "client-1",
+          tenant_id: "tenant-1",
+          markbox: opts.markbox,
+          name: "Cliente demo",
+          email: null,
+          phone: null,
+          address: null,
+          rif: null,
+          doc_kind: null,
+          city: null,
+          state: null,
+          deleted_at: null,
+        },
+      }
+    : null;
   function builder(rows: Record<string, unknown>[]) {
     const b: Record<string, unknown> = {};
     Object.assign(b, {
@@ -35,10 +58,18 @@ function stub(opts: {
       is: () => b,
       order: () => b,
       limit: () => Promise.resolve({ data: rows, error: null }),
+      maybeSingle: () => Promise.resolve({ data: membership, error: null }),
     });
     return b;
   }
   const supabase = {
+    auth: {
+      getUser: () =>
+        Promise.resolve({
+          data: { user: opts.markbox ? { id: "user-1" } : null },
+          error: null,
+        }),
+    },
     rpc: (fn: string) =>
       fn === "get_portal_client_markbox"
         ? Promise.resolve({ data: opts.markbox, error: null })
