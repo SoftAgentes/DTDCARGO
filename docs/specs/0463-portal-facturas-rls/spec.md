@@ -231,8 +231,8 @@ PostgreSQL 17.11 local, encima de todo main sembrado:
 
 | Caso | Locks retenidos hasta el COMMIT | Duración |
 |---|---|---|
-| Reemplazo (forma 0085) | ACCESS EXCLUSIVE sobre `invoices`; ACCESS SHARE sobre `client_users` y `clients` | unos 7 ms |
-| Sin cambios (forma final, después de L07) | Los mismos: el deparse de `pg_get_expr` también toma ACCESS SHARE sobre las tablas que nombra la expresión | unos 5 ms |
+| Reemplazo (forma 0085) | ACCESS EXCLUSIVE sobre `invoices`; ACCESS SHARE sobre `client_users` y `clients` | 6,9 y 8,9 ms, en dos corridas |
+| Sin cambios (forma final, después de L07) | Los mismos: el deparse de `pg_get_expr` también toma ACCESS SHARE sobre las tablas que nombra la expresión | 4,9 y 5,7 ms, en dos corridas |
 
 Contención, con un lector que retenía `invoices` 15 s:
 
