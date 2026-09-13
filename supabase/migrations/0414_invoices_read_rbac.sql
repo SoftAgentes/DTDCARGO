@@ -1,6 +1,16 @@
 -- 0414 · SDD-0357 · Lectura de facturas por rol financiero o principal Portal.
 -- Gate individual: 0411–0413 aplicadas + app con los tres facades desplegada.
 -- No aplicar a Cloud/Producción desde esta rama.
+--
+-- IMPORTACIÓN L07 (2026-09-12). Desviación respecto de la PR #21, pre-autorizada
+-- por el Director antes de cualquier aplicación: set local lock_timeout y
+-- statement_timeout antes del primer lock, como 0450/0451 pero fuera de un do:
+-- rige en la transacción de aplicación. 0414 toma ACCESS EXCLUSIVE sobre
+-- invoices (y ACCESS SHARE sobre clients y client_users); sin tope, su espera
+-- dejaba en cola toda lectura de facturas, incluido el Portal.
+
+set local lock_timeout = '5s';
+set local statement_timeout = '60s';
 
 do $preflight$
 declare v_signature text;

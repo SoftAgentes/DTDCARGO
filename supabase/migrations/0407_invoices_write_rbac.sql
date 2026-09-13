@@ -21,6 +21,16 @@
 -- NO aplicar a Cloud/Producción desde esta rama. Gate individual obligatorio:
 -- docs/runbooks/aplicar-migraciones-prod.md.
 -- ─────────────────────────────────────────────────────────────
+--
+-- IMPORTACIÓN L07 (2026-09-12). Desviación respecto de la PR #21, pre-autorizada
+-- por el Director antes de cualquier aplicación: set local lock_timeout y
+-- statement_timeout antes del primer lock, como 0450/0451 pero fuera de un do:
+-- rige en la transacción de aplicación. 0407 toma ACCESS EXCLUSIVE sobre
+-- invoices; sin tope, su espera dejaba en cola toda lectura de facturas
+-- (Facturación, Cobranzas, Portal, tablero y reportes).
+
+set local lock_timeout = '5s';
+set local statement_timeout = '60s';
 
 do $preflight$
 begin
