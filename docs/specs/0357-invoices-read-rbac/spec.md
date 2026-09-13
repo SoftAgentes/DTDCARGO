@@ -63,6 +63,22 @@ confidencialidad: interno
 > y #108), el test sigue pasando 3/3 con las mismas 45 llamadas en 18 archivos: SDD-0462 no cambió las
 > lecturas directas.
 >
+> **Ajuste del test en la ronda 3: tope propio de 60 s.** Deja de ser idéntico al origen sólo en eso: la
+> primera prueba recibe `60_000` como tercer argumento de `it`, con un comentario que lo justifica. La
+> lista, el recorrido y las aserciones no cambian.
+> - **Por qué.** El `verify` completo sobre `799c8ae3` falló en `test` sólo por esta prueba, en los dos
+>   intentos: `Test timed out in 20000ms`, con 22,4 s y 20,8 s. Lee y parsea unos 1.600 módulos y, bajo la
+>   carga de la suite, pasa del tope global de 20 s (`vitest.config.ts:50`). Sola tarda unos 2,5 s.
+> - **No debilita la prueba.** Es sincrónica: Vitest no puede cortarla a mitad y sólo compara la duración
+>   al terminar (`withTimeout` de `@vitest/runner` 4.1.7). Una copia temporal con tope de 1 ms falló con
+>   `Test timed out in 1ms.` después de 2,2 s de recorrido. El control rojo del inventario se repitió con
+>   el tope nuevo: 19 archivos contra 18, y verde al retirarlo.
+> - **Descartado: prefiltrar por el texto `invoices`.** Parsear sólo los módulos que lo contienen pierde
+>   literales escritos con escapes, como `'inv\x6fices'`, que el AST sí cuenta. La variante sin pérdida
+>   (texto `invoices` o una barra invertida) parsea 350 módulos, pero sólo baja de 1,6 a 1,0 s, porque
+>   leer los 1.600 archivos cuesta 0,7 s. Con esa proporción, los 22 s bajo carga quedarían en unos 13 s,
+>   todavía cerca del tope.
+>
 > No se importan el checklist `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs
 > `2026-09-02-*` de la allowlist. Entran fuera de ella el registro de migraciones pendientes, que exige el
 > gate `migrations-applied`, y el handoff `.agents/handoffs/c-l07-fidelizacion-conversations.md`. Ahí

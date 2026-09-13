@@ -56,6 +56,10 @@ function invoiceCalls(source) {
 }
 
 describe("SDD-0357 · frontera de lectura de facturas", () => {
+  // L07, ronda 3: tope propio de 60 s. La prueba lee y parsea unos 1.600
+  // módulos y, bajo la carga de `pnpm verify`, tardó 22,4 s y 20,8 s contra el
+  // tope global de 20 s. Es sincrónica: el tope no la corta a mitad, sólo la
+  // marca en rojo si al terminar lo pasó. El inventario exigido no cambia.
   it("congela el inventario de callers de producción sin contar comentarios o fixtures", () => {
     const actual = {};
     for (const path of ["app", "lib", "supabase/functions"].flatMap((root) => filesUnder(resolve(root)))) {
@@ -66,7 +70,7 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     expect(actual).toEqual(BASELINE);
     expect(Object.keys(actual)).toHaveLength(18);
     expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(45);
-  });
+  }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {
     expect(invoiceCalls(`// db.from("invoices")
