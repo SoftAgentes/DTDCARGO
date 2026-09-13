@@ -7,17 +7,18 @@ created: 2026-09-13
 updated: 2026-09-13
 supersedes: null
 superseded_by: null
-related: ["0042", "0359", "0382"]
+related: ["0042", "0359", "0382", "0462"]
 confidencialidad: interno
 ---
 
 # SDD-0463 · Por RLS, el Portal sólo lee facturas del tenant de su vínculo
 
-> La base deja de entregarle a un cliente del Portal, por PostgREST y con su propio JWT,
-> las facturas de otra empresa que tenga un cliente con su mismo Shipping Mark. La
-> migración `0452_portal_invoices_tenant_rls` reemplaza solo la policy Portal de
-> `invoices` por la expresión idéntica a la de la 0414 de L07 (PR #106). Así converge con
-> L07 en cualquier orden y puede aplicarse antes, sin despliegue.
+> La capa de aplicación ya está cerrada en main desde `4c07759c` (PR #107, SDD-0462). Esta
+> SDD cierra lo que queda: la consulta directa a PostgREST con el JWT del propio usuario,
+> con la que un cliente del Portal lee las facturas de otra empresa que tenga un cliente
+> con su mismo Shipping Mark. La migración `0452_portal_invoices_tenant_rls` reemplaza
+> solo la policy Portal de `invoices` por la expresión idéntica a la de la 0414 de L07
+> (PR #106). Así converge con L07 en cualquier orden y puede aplicarse antes, sin despliegue.
 
 ## Contexto
 
@@ -26,9 +27,12 @@ confidencialidad: interno
   compara solo `client_markbox = public.get_portal_client_markbox()`. Esa helper
   (`supabase/migrations/0080_portal_cliente.sql:49-55`) no mira el tenant ni la baja del
   cliente.
-- SDD-0462 (PR #107) cerró la exposición en la aplicación y la midió abierta en la base:
-  con PostgREST efímero, `GET /invoices` con el JWT de un cliente devolvía facturas de
-  otro tenant antes y después de su arreglo.
+- **Capa de aplicación, cerrada.** SDD-0462 (`docs/specs/0462-portal-facturas-tenant/spec.md`,
+  PR #107) está en main desde `4c07759c`. Los lectores de facturas del Portal resuelven el
+  principal y filtran por su tenant, y la ruta del PDF resuelve el principal antes de leer
+  la factura. SDD-0462 midió que la base seguía abierta: con PostgREST efímero,
+  `GET /invoices` con el JWT de un cliente devolvía facturas de otro tenant antes y después
+  de su arreglo. Ese es el residual que cierra esta SDD.
 - L07 (PR #106) reemplaza esa policy en `0414_invoices_read_rbac`, líneas 62-80 de su
   archivo en la rama `codex/c-l07-fidelizacion-conversations`. Pero la 0414 es el último
   paso de su lote MIGRATE-FIRST y no se puede adelantar.
@@ -48,9 +52,9 @@ confidencialidad: interno
 - Contrato SQL desechable `supabase/tests/0452_portal_invoices_tenant_rls.test.sql`.
 - Espera de la 0452 en `pendingBelowCutoff` de `supabase/migrations-baseline.json`.
 - Fuera de alcance:
-  - el código de la aplicación, que es de SDD-0462;
+  - el código de la aplicación, que SDD-0462 ya cerró en main;
   - `payment_reports`, que cierra la 0420 de la PR #104;
-  - los archivos de L07, incluida la 0414, y los de las PR #104, #105 y #107;
+  - los archivos de L07, incluida la 0414, y los de las PR #104 y #105;
   - la helper `get_portal_client_markbox()`, que otras policies siguen usando;
   - aplicar en producción.
 
@@ -124,15 +128,19 @@ Es la misma de la 0414, que el Director aceptó como intencional en L07:
 
 - Un vínculo activo cuyo cliente está borrado, o cuyo vínculo y cliente son de tenants
   distintos, deja de leer facturas **sin ningún mensaje de error**: cero filas.
-- En la app esos principales ya no entran a las páginas del Portal. `getPortalClient`
-  delega en `getPortalClientPrincipal` (`lib/portal/portal-queries.ts:125-129`) y el
-  layout redirige a `/entrar` (`app/portal/(app)/layout.tsx:39`).
-- La descarga del PDF por URL no pasa por el layout
-  (`app/portal/(app)/facturas/[code]/pdf/route.ts:43-44` en main). Sin la PR #107, pasa
-  de entregar la factura a responder 404, como midió L07 para la 0414.
+- En la app, esos principales ya no leen facturas desde `4c07759c`.
+  - `getPortalClient` delega en `getPortalClientPrincipal`
+    (`lib/portal/portal-queries.ts:131-135`), y el layout los redirige a `/entrar`
+    (`app/portal/(app)/layout.tsx:40`).
+  - La ruta del PDF, que no pasa por el layout, resuelve el principal antes de leer la
+    factura y responde 404 (`app/portal/(app)/facturas/[code]/pdf/route.ts:50-54`).
+  - La 0452 no cambia lo que muestra la app: cierra la misma frontera en la base.
 - Un vínculo coherente conserva sus facturas, incluida la anulada.
 
 ## Evidencia
+
+Todo se midió sobre el head de esta rama con main `4c07759c` incorporado. Las cifras de
+cada medición están en el handoff de la tarea `portal-facturas-rls`, con su head.
 
 ### Contrato SQL con control rojo
 
@@ -223,24 +231,26 @@ PostgreSQL 17.11 local, encima de todo main sembrado:
 
 | Caso | Locks retenidos hasta el COMMIT | Duración |
 |---|---|---|
-| Reemplazo (forma 0085) | ACCESS EXCLUSIVE sobre `invoices`; ACCESS SHARE sobre `client_users` y `clients` | 6,9 ms |
-| Sin cambios (forma final, después de L07) | Los mismos: el deparse de `pg_get_expr` también toma ACCESS SHARE sobre las tablas que nombra la expresión | 4,9 ms |
+| Reemplazo (forma 0085) | ACCESS EXCLUSIVE sobre `invoices`; ACCESS SHARE sobre `client_users` y `clients` | unos 7 ms |
+| Sin cambios (forma final, después de L07) | Los mismos: el deparse de `pg_get_expr` también toma ACCESS SHARE sobre las tablas que nombra la expresión | unos 5 ms |
 
 Contención, con un lector que retenía `invoices` 15 s:
 
 - con `--single-transaction` y en autocommit, la 0452 cortó a los 5,2 s en su
   `lock table` con `canceling statement due to lock timeout`;
 - se revirtió entera: la policy siguió en la forma de 0085;
-- un lector nuevo que llegó 1 s después de la migración esperó 4,2 s y terminó normal;
-- el lector que retenía `invoices` terminó sin cambios, a los 15,2 s.
+- un lector nuevo que llegó 1 s después de la migración esperó unos 4,2 s y terminó normal;
+- el lector que retenía `invoices` terminó sin cambios.
 
 ## Coordinación con las PR abiertas
 
 - **#106 (L07):** su SQL no cambia. Cuando la 0452 esté aplicada, su espera de la 0414 y su
-  sección «Frontera del Portal al aplicar 0414» describen como nuevo algo que ya rige. El
-  texto propuesto está en el handoff, para que el Director se lo asigne al Worker de L07.
-- **#107 (SDD-0462):** complementaria. Allí va la capa de aplicación y acá la de RLS.
-- El detalle de `git merge-tree` contra #104, #105, #106 y #107 queda en el handoff.
+  sección «Frontera del Portal al aplicar 0414» describen como nuevo algo que ya rige, y su
+  vuelta atrás de la 0414 recrea la policy de la 0085. El texto propuesto está en el
+  handoff, para que el Director se lo asigne al Worker de L07.
+- **#107 (SDD-0462):** fusionada en main (`4c07759c`) e incorporada a esta rama por merge.
+  Allí va la capa de aplicación y acá la de RLS.
+- El detalle de `git merge-tree` contra #104, #105 y #106 queda en el handoff.
 
 ## Datos personales (`revisar-datos-ve`)
 
@@ -255,8 +265,9 @@ Hallazgos, sobre los de SDD-0462:
 
 1. **ENCONTRADO en main; esta SDD lo corrige (hallazgo 3 de SDD-0462).**
    `supabase/migrations/0085_portal_invoices_rls.sql:19-26` permite esa lectura por
-   PostgREST. Normas: CRBV art. 28, acceso a los datos propios y a conocer su uso y
-   finalidad; y CRBV art. 60, confidencialidad y vida privada.
+   PostgREST, aunque la app ya no la muestra desde `4c07759c`. Normas: CRBV art. 28, acceso
+   a los datos propios y a conocer su uso y finalidad; y CRBV art. 60, confidencialidad y
+   vida privada.
 2. **CORRECTO, en local.** `supabase/migrations/0452_portal_invoices_tenant_rls.sql:150-168`
    limita la lectura al tenant del vínculo, medido con PostgREST y datos sintéticos. En
    producción sigue abierto hasta aplicar la 0452 o la 0414.
@@ -300,9 +311,8 @@ Hallazgos, sobre los de SDD-0462:
 - [x] Espera en `supabase/migrations-baseline.json`, sin tocar el `cutoff` ni las demás
       esperas.
 - [x] Revisión de datos personales, con lo no verificable declarado.
-- [x] Ningún archivo propio de las PR #104 a #107. Solo se comparten los registros comunes:
-      `docs/specs/README.md` con las cuatro y `supabase/migrations-baseline.json` con #104,
-      #105 y #106.
+- [x] Ningún archivo propio de las PR #104, #105 y #106. Solo se comparten los registros
+      comunes `docs/specs/README.md` y `supabase/migrations-baseline.json`.
 
 `pnpm verify`, con su veredicto por paso y el HEAD verificado, queda registrado en el handoff.
 
@@ -316,7 +326,8 @@ aplicada.
 - Antes, con su autorización, hay que leer el catálogo de policies de `invoices`, sin filas.
   La 0085 se aplicó fuera de banda: si su expresión en producción no es la del repo, el
   preflight aborta y hay que revisar antes de aplicar.
-- Se recomienda aplicarla **antes** de L07. No depende de ningún despliegue.
+- Se recomienda aplicarla **antes** de L07. No depende de ningún despliegue: la capa de
+  aplicación ya está en main desde `4c07759c`.
 - La espera en `pendingBelowCutoff` lleva el impacto de locks, la lectura previa y el smoke.
   Se retira únicamente tras la aplicación y la verificación autorizadas.
 
