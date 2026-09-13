@@ -55,7 +55,8 @@ otro tenant, 0 clientes con aliado de otro tenant y 1 lista de precios.
   - `get_portal_brand()` redefinida con `and a.tenant_id = c.tenant_id`.
 - `createClientAction`: traduce el 23503 de `clients_aliado_mismo_tenant_fkey`.
 - Contrato SQL desechable.
-- Espera de la 0451 declarada en `pendingBelowCutoff` de `supabase/migrations-baseline.json`.
+- Espera de la 0451 declarada en `pendingBelowCutoff` de `supabase/migrations-baseline.json`
+  por la PR #103 y retirada tras la aplicación del 2026-09-13 (sección «Producción»).
 - Fuera de alcance por el encargo: modificar 0362, 0382, 0401 o 0450; el Portal; aplicar
   en producción.
 
@@ -172,18 +173,25 @@ porque locks, preflight y DDL van en un solo `do`. El contrato no lo mide desde 
 
 ## Producción
 
-`0451_aliados_cadena_mismo_tenant` no está aplicada, y `done` en esta spec no significará
-aplicada. Aplicarla exige el OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`:
-de a una, con el name exacto y en horario de baja actividad. Esta rama declara la espera
-en `pendingBelowCutoff` de `supabase/migrations-baseline.json`, con el impacto de locks y
-los conteos que hay que repetir antes de aplicar, así que `migrations-applied` la exime
-con motivo escrito. La espera se retira únicamente tras la aplicación y la verificación
-autorizadas.
+`0451_aliados_cadena_mismo_tenant` **quedó aplicada a producción el 2026-09-13** por el
+Director, con autorización de Sam y conforme a `docs/runbooks/aplicar-migraciones-prod.md`:
+de a una, con el name exacto, en domingo de baja actividad. Ledger `20260913224613`,
+una sentencia, md5 `f080433e7c647a462f240680ea87621d`, 16.477 bytes, idénticos al archivo
+de `main`. Los dos conteos agregados previos dieron 0 y 0 sobre 3 aliados, y el preflight
+de la migración los repitió en la misma transacción. Postflight de catálogo: las cuatro
+constraints (`clients_tenant_id_id_key`, `aliados_tenant_id_id_key`,
+`aliados_parent_mismo_tenant_fkey`, `aliados_client_mismo_tenant_fkey`) existen y están
+validadas, y `get_portal_brand()` conserva `SECURITY DEFINER`, `search_path` vacío y su ACL
+con el filtro `a.tenant_id = c.tenant_id` en el cuerpo. La espera que la PR #103 declaró en
+`pendingBelowCutoff` se retiró en la PR de registro; el detalle está en
+`.agents/handoffs/0451-aplicacion-prod-20260913.md`.
 
 Gobernanza:
 
-- **No conformidad** de aislamiento multi-tenant, corregida localmente y verificada en
-  Postgres y PostgREST efímeros. Producción sigue NO VERIFICABLE hasta aplicar.
+- **No conformidad** de aislamiento multi-tenant, corregida y verificada en Postgres y
+  PostgREST efímeros, y aplicada a producción el 2026-09-13 con postflight de catálogo.
+  Producción tiene un solo tenant (conteo agregado del mismo día), así que la frontera es
+  preventiva.
 - **ERR-01, cumplimiento:** el 23503 se traduce a un copy seguro que ya existía, sin SQL
   ni nombre de constraint.
 - Sin cambio visual ni tratamiento nuevo de datos personales.
