@@ -19,30 +19,53 @@ confidencialidad: interno
 
 # SDD-0354 — Facturación anual minimizada
 
-> **Nota de importación — 2026-09-12.** Esta spec se importa desde la PR #21 (`ea9952a4`; commits
-> `a5d9c897` y `219f9400`) con su contenido original, `status: done` incluido: ese estado describe el
-> cierre técnico local de la rama de origen, no la aplicación en producción. Su migración
-> `0411_client_annual_billing_facade` está **PENDIENTE DE APLICAR** y declarada en
-> `supabase/migrations-baseline.json`; fusionar no autoriza aplicarla. Lote L07 del bloque C: **0407 →
-> 0411, 0412 y 0413 → despliegue y smoke por roles → 0414**; el preflight de 0411 exige 0407. Es
-> **MIGRATE-FIRST**: sin 0411 la RPC no existe (PGRST202, medido con postgrest-js 2.106.1 contra
-> PostgREST v16.1), `clientAnnualBilling` lanza y fallan Fidelización, el CRM (su analítica corre en
-> todas las pestañas) y Reportes → Comercial; `commercialByAgent` traga el error, pero comparte la carga
-> con `commercialByClient`, que falla. El degradado está declarado en
-> `supabase/pending-migration-symbol-declarations.json`. `lib/studio/fidelizacion/queries.ts` y los dos
-> tests entran idénticos al origen: `main` no tocó esos archivos desde la base común.
+> **Nota de importación — 2026-09-12; actualizada el 2026-09-13.** Esta spec se importa desde la PR
+> #21 (`ea9952a4`; commits `a5d9c897` y `219f9400`) con su contenido original, `status: done`
+> incluido: ese estado describe el cierre técnico local de la rama de origen. Su migración
+> `0411_client_annual_billing_facade` **fue APLICADA a producción el 2026-09-13** por el Director
+> con OK nominal de Sam, después de 0407 (ledger `20260913224418 /
+> 0411_client_annual_billing_facade`, md5 `f178a2d028f658b8d84da36005bc58ee`, 5628 bytes), con el
+> archivo de esta rama idéntico al aplicado: `git show
+> HEAD:supabase/migrations/0411_client_annual_billing_facade.sql` da el mismo md5 y los mismos 5628
+> bytes, sólo LF; es el blob `7d44ed29`, idéntico al origen. Se aplicó con `apply_migration` y name
+> exacto por el conector `claude.ai Supabase` (proyecto `xpfuzqombmjmxvprjgmi`), `{"success": true}`
+> al primer intento y sin leer ninguna fila de negocio. Postflight, leído del catálogo sin filas:
+> `studio_client_annual_billing` SECURITY DEFINER, STABLE, `search_path=""`, owner postgres, EXECUTE
+> para `authenticated` y sin EXECUTE para `anon`, comentario presente. Advisors de seguridad de
+> producción antes y después del bloque 0407 + 0411 + 0412 + 0413, comparados hallazgo por hallazgo:
+> antes `rls_enabled_no_policy` INFO 22, `extension_in_public` WARN 1,
+> `anon_security_definer_function_executable` WARN 22 y
+> `authenticated_security_definer_function_executable` WARN 175; después, idéntico salvo
+> `authenticated_security_definer_function_executable` WARN 178. Los tres hallazgos nuevos son
+> exactamente `public.studio_client_annual_billing`, `public.conversation_client_outstanding` y
+> `public.sales_order_invoice_refs`: RPC SECURITY DEFINER con EXECUTE para `authenticated`, con el
+> control de rol y de módulo (overrides de SDD-0252) adentro; `anon` sigue sin EXECUTE (su lint
+> quedó en 22). Ningún otro hallazgo cambió; 0407 no cambió ninguno. Es el efecto esperado, el lint
+> que ya cargan las demás RPC definer del Studio, no una regresión. El registro de esta ronda está
+> en `.agents/handoffs/c-l07-fidelizacion-conversations.md` («RONDA 4»). Por eso 0411 ya **no**
+> figura como espera en `supabase/migrations-baseline.json` ni tiene declaración en
+> `supabase/pending-migration-symbol-declarations.json`; el orden migrate-first se cumplió: la RPC
+> existe en la base antes de fusionar el código que la consume, así que `clientAnnualBilling` ya no
+> puede caer en `PGRST202`. Lote L07 del bloque C: **0407, 0411, 0412 y 0413 (aplicadas) → fusión y
+> despliegue de esta PR y smoke por roles → 0414**. La medición local de la ronda 1 sigue valiendo
+> como descripción de lo que pasaría sin la RPC: PGRST202 (postgrest-js 2.106.1 contra PostgREST
+> v16.1), `clientAnnualBilling` lanza y fallan Fidelización, el CRM (su analítica corre en todas las
+> pestañas) y Reportes → Comercial; `commercialByAgent` traga el error, pero comparte la carga con
+> `commercialByClient`, que falla. `lib/studio/fidelizacion/queries.ts` y los dos tests entran
+> idénticos al origen: `main` no tocó esos archivos desde la base común.
 >
-> Paridad medida contra el cálculo de `main` con datos sintéticos y PostgREST: igual en la ventana de 12
-> meses (bordes de año y de día UTC), monedas, tasas, estados, clientes fusionados y tenants. **Diverge**
-> donde `main` fallaba: la RPC excluye facturas borradas y con `issued_at` futuro, neta los totales
-> negativos, suma en `numeric` (12 × 12.500 VES / 3 da 50.000 USD, nivel Silver; `main` sumaba
-> 49.999,99999999999 y daba Bronze) y no suma a un principal dual la factura de otro tenant que `main`
-> tomaba por la policy Portal histórica. Esas divergencias quedan como decisión del Director en el
-> handoff. No se importan el checklist `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los
-> handoffs `2026-09-02-*` de la allowlist; entran fuera de ella los dos registros de migraciones
-> pendientes, que exigen los gates `migrations-applied` y `pending-migration-symbols`, y el handoff de
-> esta importación, `.agents/handoffs/c-l07-fidelizacion-conversations.md`. Sin desviaciones: la
-> migración y su contrato son idénticos al origen.
+> Paridad medida contra el cálculo de `main` con datos sintéticos y PostgREST: igual en la ventana
+> de 12 meses (bordes de año y de día UTC), monedas, tasas, estados, clientes fusionados y tenants.
+> **Diverge** donde `main` fallaba: la RPC excluye facturas borradas y con `issued_at` futuro, neta
+> los totales negativos, suma en `numeric` (12 × 12.500 VES / 3 da 50.000 USD, nivel Silver; `main`
+> sumaba 49.999,99999999999 y daba Bronze) y no suma a un principal dual la factura de otro tenant
+> que `main` tomaba por la policy Portal histórica. Esas divergencias quedan como decisión del
+> Director en el handoff. No se importan el checklist
+> `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs `2026-09-02-*` de la
+> allowlist; entran fuera de ella el registro de migraciones pendientes, por la espera de 0414, que
+> exige el gate `migrations-applied`, y el handoff de esta importación,
+> `.agents/handoffs/c-l07-fidelizacion-conversations.md`. Sin desviaciones: la migración y su
+> contrato son idénticos al origen.
 
 ## Estado real
 

@@ -19,25 +19,35 @@ confidencialidad: interno
 
 # SDD-0357 — Lectura de facturas con autorización completa
 
-> **Nota de importación — 2026-09-12.** Esta spec se importa desde la PR #21 (`ea9952a4`; commit
-> `702de3f4`) con su contenido original, `status: done` incluido: ese estado describe el cierre técnico
-> local de la rama de origen, no un release. `0414_invoices_read_rbac` está **PENDIENTE DE APLICAR** y
-> declarada en `supabase/migrations-baseline.json`; fusionar no autoriza aplicarla. Lote L07 del bloque C:
-> **0407 → 0411, 0412 y 0413 → despliegue de L07 y smoke por roles → 0414**. Precisión medida en local
-> encima de `main`: si 0414 se aplica con el código de `main` todavía desplegado, o si se revierte sólo la
-> app después, no hay error; RLS devuelve cero filas a los roles no financieros, Fidelización, CRM y
-> Reportes dejan a todos los clientes en Bronze, Conversaciones muestra saldo 0 y el drawer de la OV
-> «Facturas · 0». Tras 0414 accounting y admin conservan lectura y escritura de su tenant y las tres RPC
-> siguen respondiendo.
+> **Nota de importación — 2026-09-12; actualizada el 2026-09-13.** Esta spec se importa desde la PR
+> #21 (`ea9952a4`; commit `702de3f4`) con su contenido original, `status: done` incluido: ese estado
+> describe el cierre técnico local de la rama de origen, no un release. `0414_invoices_read_rbac`
+> está **PENDIENTE DE APLICAR** y declarada en `supabase/migrations-baseline.json`; fusionar no
+> autoriza aplicarla. Lote L07 del bloque C: **0407, 0411, 0412 y 0413, aplicadas a producción el
+> 2026-09-13** por el Director con OK nominal de Sam (ledgers `20260913224300`, `20260913224418`,
+> `20260913224437` y `20260913224453`; identidad, preflight, postflight y advisors en las notas de
+> SDD-0350 y SDD-0354 a SDD-0356 y en el handoff, «RONDA 4») **→ fusión y despliegue de esta PR y
+> smoke por roles → 0414**. El preflight de 0414 exige las tres RPC como SECURITY DEFINER y
+> exactamente las policies `invoices_team_select` e `invoices portal self read`: el postflight de
+> producción del 2026-09-13 dio eso. Precisión medida en local encima de `main`: si 0414 se aplica
+> con el código de `main` todavía desplegado, o si se revierte sólo la app después, no hay error;
+> RLS devuelve cero filas a los roles no financieros, Fidelización, CRM y Reportes dejan a todos los
+> clientes en Bronze, Conversaciones muestra saldo 0 y el drawer de la OV «Facturas · 0». Tras 0414
+> accounting y admin conservan lectura y escritura de su tenant y las tres RPC siguen respondiendo.
 >
-> **Portal, en los dos órdenes (ronda 3).** 0414 vuelve a crear `invoices portal self read` con la
-> expresión coherente por tenant. Es la misma que deja `0452_portal_invoices_tenant_rls` (SDD-0463,
-> pendiente en `main`).
-> - **Con 0452 aplicada antes:** para el Portal, 0414 no cambia nada y la frontera rige desde 0452. El
->   preflight de 0414 pasa, porque pide la policy por nombre, y la foto de catálogo tras 0414 es idéntica
->   con 0452 previa y sin ella (medido).
-> - **Sin 0452:** 0414 cierra por sí misma la lectura del Portal entre tenants con Shipping Mark repetido
->   (medido).
+> **Portal, en los dos órdenes (ronda 3; estado real en la ronda 4).** 0414 vuelve a crear `invoices
+> portal self read` con la expresión coherente por tenant. Es la misma que dejó
+> `0452_portal_invoices_tenant_rls` (SDD-0463), **aplicada a producción el 2026-09-13** (ledger
+> `20260913175856`), antes que 0407: el preflight de 0407 ya encontró la policy Portal con esa
+> expresión. Producción tiene un solo tenant (conteo agregado autorizado del 2026-09-13), así que la
+> frontera entre tenants es preventiva.
+>
+> - **Con 0452 aplicada antes, que es el caso de producción:** para el Portal, 0414 no cambia nada y
+>   la frontera rige desde 0452. El preflight de 0414 pasa, porque pide la policy por nombre, y la
+>   foto de catálogo tras 0414 es idéntica con 0452 previa y sin ella (medido).
+>
+> - **Sin 0452:** 0414 habría cerrado por sí misma la lectura del Portal entre tenants con Shipping
+>   Mark repetido (medido).
 >
 > **Frontera aceptada por el Director como intencional (ronda 2).** Un vínculo activo cuyo cliente está
 > borrado, o cuyo vínculo y cliente no coinciden de tenant, no lee facturas y **no recibe ningún mensaje de
