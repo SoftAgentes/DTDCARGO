@@ -1,11 +1,11 @@
 # L10 — Contexto de correo de Cobranzas y cierre de lectura de `mail_logs` (0410 → 0415)
 
-Fecha: 2026-09-12. Task ID: `c-l10-recordatorios-cobranzas`.
-Owner / sesión escritora: `c-l10-recordatorios-cobranzas-20260912` (Worker asignado por el Director; sin subagentes ni otras sesiones escritoras). Tres rondas en la misma sesión, todas antes del primer push: la 1 importa el lote; la 2 aplica la decisión del Director (opción (a) de normalización y `lock_timeout` propios); la 3 aplica su corrección documental (condición transaccional de `set local` y precedente correcto).
-Estado de tarea: lista-para-revision. PR en borrador. **MIGRATE-FIRST: no fusionar antes de aplicar y verificar 0410.** Release y aplicación de migraciones quedan fuera de esta tarea.
+Fecha: 2026-09-12; ronda 2 de la PR el 2026-09-13. Task ID: `c-l10-recordatorios-cobranzas`.
+Owner / sesión escritora: `c-l10-recordatorios-cobranzas-20260912` (Worker asignado por el Director; sin subagentes ni otras sesiones escritoras). Tres rondas en la misma sesión, todas antes del primer push: la 1 importa el lote; la 2 aplica la decisión del Director (opción (a) de normalización y `lock_timeout` propios); la 3 aplica su corrección documental (condición transaccional de `set local` y precedente correcto). Ronda 2 de la PR (2026-09-13): misma sesión y mismo owner, con el claim reclamado de nuevo, después de que el Director aplicó 0410 a producción.
+Estado de tarea: lista-para-revision. PR #105 en borrador. **Ya no aplica el bloqueo migrate-first:** `0410_collections_mail_context` fue aplicada a producción el 2026-09-13 con OK nominal de Sam (ledger `20260913184537`), así que la rama dejó de declararla como espera y la PR puede integrarse en el orden normal; `0415_mail_logs_read_rbac` sigue pendiente y va sólo después del smoke de Cobranzas. Release y aplicación de migraciones quedan fuera de esta tarea.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO` (checkout principal en `main`, sin tocar).
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l10-recordatorios-cobranzas`.
-Rama: `codex/c-l10-recordatorios-cobranzas`. Base asignada: `origin/main` `42c8839e8e5ccad63e5bff8c05347b95fb720a9b`. Antes del primer commit `origin/main` avanzó a `bca98147672a6255192b62b247ab3f5c44061bb2` (merge de la PR #103) y la rama se actualizó por fast-forward, sin merge commit, rebase ni force: esa es la base efectiva de la PR.
+Rama: `codex/c-l10-recordatorios-cobranzas`. Base asignada: `origin/main` `42c8839e8e5ccad63e5bff8c05347b95fb720a9b`. Antes del primer commit `origin/main` avanzó a `bca98147672a6255192b62b247ab3f5c44061bb2` (merge de la PR #103) y la rama se actualizó por fast-forward, sin merge commit, rebase ni force: esa fue la base efectiva de la ronda 1 de la PR. En la ronda 2, partiendo de `f555f5eb`, se fusionó `origin/main` `8ec7ebe3d7c3c40163503a9e745c4127871382e6` con el merge `e118f7c0`; sin rebase ni force en ninguna ronda.
 Origen de solo lectura: `refs/dtd/pr/21` = `origin/codex/saneamiento-integral` = `ea9952a47f4adf14c48c91e6d0147597beb94aa7` (PR #21, 2026-09-04). Base común con `main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`. Commits de origen del lote: `e0c560a6` (SDD-0353) y `fa420f3f` (SDD-0358).
 SDD: `docs/specs/0353-collections-mail-context/spec.md` y `docs/specs/0358-mailing-expand-contract-release/spec.md`, con el frontmatter de origen (`status: done`) y nota de importación que registra las desviaciones y la condición de `set local`. Migraciones `0410_collections_mail_context` y `0415_mail_logs_read_rbac`, declaradas pendientes. Sin reserva de número: se conserva la numeración de origen. El barrido de todas las refs locales y remotas, salvo la PR #21, no encontró `supabase/migrations/0410_*`, `0415_*`, `docs/specs/0353-*` ni `0358-*`.
 Permisos: commits selectivos; push de la rama a sí misma y PR en borrador contra `main`, autorizados por Sam. Prohibidos: merge, sacar la PR de borrador, deploy, aplicar migraciones, tocar el ruleset, borrar ramas o worktrees y leer filas de negocio.
@@ -33,6 +33,8 @@ Ronda 3, revisión del Director sobre `458b3542`: acepta la normalización, la m
 - Diagnosticar el e2e de la corrida de referencia y revisar procesos huérfanos.
 
 ## COMPLETADO
+
+> Lo que sigue describe la **ronda 1 de la PR** (tres iteraciones internas cerradas el 2026-09-12 antes del primer push) y se conserva como evidencia fechada. Quedaron superados por la ronda 2: la espera y la declaración de 0410, que ya no existen porque la migración está aplicada; el bloqueo migrate-first y la primera línea de la PR; la nota de importación de 0353; y la secuencia de release, cuyo paso 1 ya ocurrió. La sección «RONDA 2» manda sobre esos puntos.
 
 ### Archivos y relación con el origen
 
@@ -116,7 +118,119 @@ Cada nota va fechada y sigue el patrón de `docs/specs/0352-bank-reconciliation-
 
 Cobertura del diff: los dos TS están en la allowlist de 0353 (L54-55). Las migraciones, los contratos, las specs y el índice están en la de 0353, en la de 0358 o en ambas. No hizo falta ningún archivo fuera de la allowlist asignada.
 
+## RONDA 2 — 2026-09-13 · 0410 aplicada y rama al día con `main`
+
+Misma sesión y mismo owner que la ronda 1 (`c-l10-recordatorios-cobranzas-20260912`), con el claim reclamado de nuevo. Antes de editar: `guard` OK, `git status --porcelain` vacío y `HEAD = f555f5eb5e2d12fd995a0c947bfdc0217a870dcc`, la cabeza publicada. No se creó otra rama ni otro worktree; desde esta sesión no se ejecutó nada contra Supabase. Las tres «rondas» de la sección COMPLETADO fueron iteraciones internas antes del primer push; esta es la segunda ronda de la PR #105.
+
+### Lo que cambió
+
+- **0410 dejó de ser una espera.** `0410_collections_mail_context` fue aplicada a producción el 2026-09-13 por el Director con autorización nominal de Sam, desde el archivo exacto de `f555f5eb`. Evidencia entregada por el Director (recibos fuera de Git en `…/scratchpad/prod-0410/`), copiada tal cual:
+  - Ledger de producción: 449 → 450 filas. Fila `20260913184537 | 0410_collections_mail_context | 1 sentencia | md5 e80119c3c381d20c009c7dbd569557f4 | 7186 bytes`.
+  - Preflight leído antes (catálogo, sin filas): `mail_logs` con relacl `authenticated=rxtm`, sin INSERT/UPDATE/DELETE/TRUNCATE; policy `mail_logs_tenant_select` presente junto con `mail_logs_no_delete`, `mail_logs_no_insert_authenticated`, `mail_logs_no_update_authenticated` y `service_role_all_mail_logs`; la RPC no existía; helpers `get_user_tenant_id()` y `current_studio_role()` presentes.
+  - Postflight leído después: `collections_mail_context(uuid[])` SECURITY DEFINER, STABLE, `search_path=""`, owner postgres, ACL `{postgres=X, service_role=X, authenticated=X}`, `anon` sin EXECUTE, comentario SDD-0353, retorno `TABLE(invoice_id uuid, client_markbox text, has_email boolean, complained boolean, last_reminder_on date)`. relacl y policies de `mail_logs` idénticos a los del preflight.
+  - Conteo informativo autorizado (solo agregado): 0 clientes vivos con email con blancos distintos del espacio al borde.
+  - Advisors de seguridad de producción antes y después, comparados hallazgo por hallazgo. Antes: `rls_enabled_no_policy` INFO 21 · `extension_in_public` WARN 1 · `anon_security_definer_function_executable` WARN 22 · `authenticated_security_definer_function_executable` WARN 174. Después: idéntico salvo `authenticated_security_definer_function_executable` WARN 175. La única diferencia es UN hallazgo nuevo: `public.collections_mail_context` aparece en `authenticated_security_definer_function_executable`. Es el efecto esperado e intencional: la RPC es SECURITY DEFINER y `authenticated` necesita EXECUTE; el control de rol (accounting|admin) y de tenant va adentro, y `anon` sigue sin EXECUTE (su lint quedó en 22). Ningún otro hallazgo cambió. Es el lint que ya cargan las demás RPC definer del Studio; no es una regresión.
+  - Conector: `claude.ai Supabase`, proyecto `xpfuzqombmjmxvprjgmi`, `apply_migration` con name exacto, `{"success": true}` al primer intento. No se leyó ninguna fila de negocio.
+  - **Identidad comprobada aquí, en local:** `git show HEAD:supabase/migrations/0410_collections_mail_context.sql | md5sum` da `e80119c3c381d20c009c7dbd569557f4` y `wc -c` da 7186, con 0 CR; es el blob `e65b0276` que la rama lleva desde `be31a98d`. No se consultó producción desde esta sesión.
+  - **Lo que esto cierra:** el análisis 1 (MIGRATE-FIRST) ya no bloquea. La RPC existe en la base antes de fusionar el código que la consume, así que `contextoDeEnvio` no puede caer en `PGRST202` en producción. La medición de la ronda 1 sigue valiendo como descripción de lo que pasaría sin la RPC.
+- **Registros.** `supabase/migrations-baseline.json` vuelve al blob de `main` (0451 sola, `cutoff: 238`, `$doc` intacto) más la única espera viva de L10, `0415_mail_logs_read_rbac`, actualizada: dice que 0410 quedó aplicada el 2026-09-13 con su ledger e identidad, que el paso siguiente es desplegar esta PR (fusionarla incluida) y verificar la vista previa de recordatorios con accounting y admin, y que 0415 se aplica sólo después de ese smoke; conserva la frase literal de la condición transaccional, el orden de L10 con 0410 marcada como aplicada y el párrafo literal de autorización. `git diff origin/main -- supabase/migrations-baseline.json` son 2 líneas: la coma que gana 0451 y la línea de 0415. `supabase/pending-migration-symbol-declarations.json` es byte a byte el de `main` (`degradations: []`) y ya no aparece en el diff de la PR. Gate: `0 ROJO · 0 AMARILLO`.
+- **Notas de las specs.** La de 0353 pasa al patrón de una migración aplicada (`0336` en L01 ronda 2, `0352`): fecha, ledger, identidad del archivo, preflight, postflight, advisors, conteo y registro en este handoff; frontmatter intacto (`status: done`, `updated: 2026-09-02`). En la de 0358 sólo cambió lo que mencionaba a 0410 como pendiente. El índice no cambia por esto.
+- **Merge de `origin/main` `8ec7ebe3`** (commit `e118f7c0`, padres `f555f5eb` y `8ec7ebe3`), sin rebase ni force. Trae #107, #108 y #109 (SDD-0462, SDD-0463 y el registro de 0452 aplicada). Se forzó el driver de `main` con el override del punto 4 de la enmienda de retiro unilateral del ADR-0002 (`git -c merge.dtd-generated-records.driver="node \"<driver-de-main>\" %O %A %B %P" merge --no-commit --no-ff origin/main`), con el driver extraído de `origin/main:scripts/merge-generated-records.mjs` a un archivo fuera del repo; el de esta rama era idéntico (md5 `b4563696716d6893d48e619ec0e9eca4` en ambos), porque la rama nació después de las enmiendas del 2026-09-11.
+  - `docs/specs/README.md`: `✓ merge semántico`; unión de las filas 0462 y 0463 de `main` con 0353 y 0358 de la rama, 443 specs y 20 huecos. `node scripts/build-docs-index.mjs` después no cambió un byte.
+  - `supabase/migrations-baseline.json` y `supabase/pending-migration-symbol-declarations.json`: `main` no los cambió en neto desde la base `bca98147` (la espera de 0452 entró en #107 y #108 y salió en #109), así que Git conservó los de esta rama sin ejecutar el driver. La retirada de 0410 va en el commit siguiente, `4d5e4aac`.
+  - **Conflictos: ninguno.** L10 no comparte código con esas PR; los 15 archivos de `main` entraron tal cual.
+- **Cuerpo de la PR.** La primera línea deja de ser «No fusionar antes de aplicar y verificar 0410» y pasa a decir el estado real: 0410 aplicada; fusionar y desplegar es el paso 2 del orden; 0415 va después del smoke.
+
+### Diff contra `origin/main` por archivo tras la ronda 2
+
+`git diff origin/main...HEAD --stat` sobre la cabeza de código `db061ca5`, 11 archivos, más este handoff:
+
+| Archivo | Δ | Qué es |
+|---|---|---|
+| `supabase/migrations/0410_collections_mail_context.sql` | +167 | Migración **aplicada en prod el 2026-09-13**; blob `e65b0276`, idéntico al ledger (md5 `e80119c3…`, 7186 B). Sin cambios desde `f555f5eb`. |
+| `supabase/migrations/0415_mail_logs_read_rbac.sql` | +78 | Migración **pendiente**; blob `1d4c6abb`. Sin cambios desde `f555f5eb`. |
+| `supabase/tests/0410_collections_mail_context.test.sql` | +439 | Contrato de 0410 con la normalización, la matriz de 25 blancos y las aserciones de timeouts (`7a5e8163`). |
+| `supabase/tests/0415_mail_logs_read_rbac.test.sql` | +33 | Contrato de 0415 con su aserción estática (`2317e414`). |
+| `lib/studio/collections/recordatorios-queries.ts` | +20 −61 | `contextoDeEnvio` por la RPC; idéntico al origen #21 (`243d0ce3`). |
+| `lib/studio/collections/__tests__/recordatorios-queries.test.ts` | +81 | Test nuevo, 3 casos; idéntico al origen (`ba781b47`). |
+| `docs/specs/0353-collections-mail-context/spec.md` | +131 | Spec con la nota de importación reescrita: 0410 aplicada, ledger, identidad, preflight, postflight, advisors y conteo. |
+| `docs/specs/0358-mailing-expand-contract-release/spec.md` | +128 | Spec con la nota ajustada: 0410 aplicada, 0415 pendiente tras el smoke. |
+| `docs/specs/README.md` | +4 −2 | Filas 0353 y 0358 y su retiro de los huecos; el conteo pasa a 443 con las 0462 y 0463 que trae `main`. |
+| `supabase/migrations-baseline.json` | +2 −1 | Sólo la espera de 0415 y la coma que gana 0451; `cutoff`, `$doc` y 0451 iguales a `main`. |
+| `.agents/handoffs/c-l10-recordatorios-cobranzas.md` | +444 en `db061ca5`; crece con esta ronda | Este documento. |
+
+**Ya no aparece** `supabase/pending-migration-symbol-declarations.json`: quedó igual a `main`. `git diff --check origin/main...HEAD` limpio.
+
+### Validación de la ronda 2
+
+Sobre `db061ca5afd3abef97c304192f9eacc60b9136a9` (el merge más los dos commits de la ronda; el commit del handoff viene después y sólo agrega este documento). Recibos fuera de Git en la carpeta del scratchpad de esta tarea: `r2-precheck-verify.log`, `r2-precheck-verify-2.log`, `r2-merge.log`, `r2-registers.log`, `r2-commits-11-12.log`, `verify-r2-db061ca5.log`, `.meta`, `.exit` y `-clean.log`, `e2e-diagnostico-r2.log` y `orphans-check-r2.log`; scripts `apply-r2-registers.mjs`, `check-waits-r2.mjs`, `apply-spec-notes-r2.mjs`, `run-verify-r2.sh`, `running-verify-check.ps1`, `orphans-check-r2.ps1` y el driver extraído `dtd-merge-driver-main.mjs`. No se copiaron credenciales ni se tocó Supabase.
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| `claim` / `guard --owner` | PASÓ: claim reclamado de nuevo con el mismo owner; guard revalidado antes del merge, de cada commit, del verify y del push. Árbol limpio y `HEAD = f555f5eb` al empezar |
+| Identidad de 0410 contra el ledger | PASÓ: md5 `e80119c3c381d20c009c7dbd569557f4`, 7186 bytes y 0 CR sobre `HEAD:supabase/migrations/0410_collections_mail_context.sql`, iguales a los del ledger `20260913184537`. Comprobación local; no se consultó producción |
+| Merge con el driver de `main` (override ADR-0002 §4) | PASÓ: sin conflictos; índice por unión semántica y regenerado sin cambios; baseline y declaraciones no pasaron por el driver porque `main` no los cambió en neto |
+| `git diff origin/main -- supabase/migrations-baseline.json` | PASÓ: sólo la coma de 0451 y la línea de 0415; `cutoff 238`, `$doc` y 0451 iguales a `main` |
+| `git diff origin/main -- supabase/pending-migration-symbol-declarations.json` | PASÓ: vacío, `degradations: []` |
+| `check-waits-r2.mjs` (15 comprobaciones) | PASÓ: claves exactas, ledger e identidad de 0410, paso siguiente, orden de L10, frase literal de la condición transaccional, párrafo literal de autorización, sin MIGRATE-FIRST y sin cita de 0342 ni 0383 |
+| `node scripts/check-pending-migration-symbols.mjs` | PASÓ: `0 ROJO · 0 AMARILLO declarado(s)` |
+| `node scripts/build-docs-index.mjs` / `--check` | PASÓ: el índice del driver ya era el canónico (443 specs); `docs:check` sincronizado tras las notas |
+| `corepack pnpm sdd:check` | PASÓ: sin números repetidos |
+| Frontmatter de 0353 y 0358 | PASÓ: igual al del origen `refs/dtd/pr/21` |
+| `git diff --check` | PASÓ, en cada commit y en `origin/main...HEAD` |
+| Chequeo previo al verify | PASÓ: sin otro verify, e2e, dev server, vitest o rebuild en la máquina; sin puertos 3100–3799 en escucha; sin contenedores. Repetido dentro del lanzador |
+| **`corepack pnpm verify` sobre `db061ca5`** | **FALLÓ, exit 1**, entre las 14:57:39 y las 15:31:13 (−04:00), con HEAD `db061ca5` y árbol limpio al inicio y al final (`verify-r2-db061ca5.meta`). Corrieron de verdad 16 de 17 pasos: 15 PASÓ, `migrations-applied` NO DISPONIBLE y `e2e` FALLÓ, colgado y cortado por el watchdog. Veredicto literal y detalle abajo. No se absuelve ni se presenta como verde |
+| `verify` · `migrations-applied` | NO DISPONIBLE: `[SKIP] migrations-applied: sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY`. El ledger real no se midió en este árbol; la evidencia de que 0410 está aplicada es la que entregó el Director, no una consulta hecha aquí. No autoriza copiar credenciales |
+| `verify` · `e2e` | **FALLÓ con motivo COLGADO/TIMEOUT**, esta vez en la primera pasada: imprimió 167 de 186 resultados y se quedó 10 min en silencio; el watchdog de SDD-0454 lo cortó, sin reintento. Hasta ahí, 123 aprobadas, 15 omitidas y 29 renglones de fallo: 28 son los 14 ambientales conocidos con su reintento interno y 1 es un flaky de `calculadora-semantic-colors.spec.ts:53:7` que pasó en su reintento. Como validación de acceso o de Supabase el paso es NO DISPONIBLE por falta de configuración, pero el corte no se absuelve: 19 resultados de mobile-safari no se midieron. Detalle en la lista de abajo |
+| Procesos tras el verify | PASÓ: ninguno. El watchdog terminó 29 procesos de su propio árbol (raíz PID 6084; chrome-headless-shell ×18, node ×10, cmd ×1) con 0 sobrevivientes. Después (`orphans-check-r2.log`, 15:31): ningún proceso con la ruta del worktree salvo los shells de este chequeo; ningún chrome-headless-shell ni Playwright; ningún `node` del verify (los seis `node.exe` creados a las 15:25:59 son servidores MCP y del runtime de Codex, ajenos y sin tocar); sin puertos 3100–3799 en escucha; sin `next dev`; sin contenedores `dtd_l10_*`. No hubo nada que detener |
+| Producción / Supabase | NO EJECUTADO por límite del encargo: la aplicación de 0410 la hizo el Director; desde esta sesión no se abrió conexión, no se aplicó nada y no se leyeron filas |
+| `/ui-check` | NO EJECUTADO por no aplicar: la ronda no toca UI |
+
+Detalle por paso de `corepack pnpm verify` sobre `db061ca5` (`verify-r2-db061ca5.log`; Node 24.20.0, pnpm 12.3.4, Docker 29.7.2; 14:57:39 → 15:31:13 −04:00):
+
+| Paso | Estado y evidencia |
+|---|---|
+| harness | PASÓ, 41 pruebas |
+| lint | PASÓ, 0 errores y 8 advertencias en archivos que esta PR no toca: `NewPurchaseWizard.test.tsx` (4), `PurchaseStepDetalle.test.tsx` (2), `KommoBoardView.tsx` (1) y `KommoClient.tsx` (1); las mismas de la ronda 1 |
+| rsc-boundary | PASÓ, 1599 módulos escaneados |
+| typecheck | PASÓ |
+| edge-functions | PASÓ, 4 funciones compilan con Deno |
+| test | PASÓ, 545 archivos y 6833 pruebas (`main` sumó `portal-invoices-tenant-boundary.test.ts`) |
+| docs:check | PASÓ, 443 specs sincronizadas |
+| numbering | PASÓ, 443 specs · 440 migraciones; conserva los choques históricos declarados |
+| feature-constants | PASÓ, 5 banderas |
+| components:check | PASÓ |
+| governance:check | PASÓ, 28 políticas aprobadas |
+| migrations-applied | NO DISPONIBLE: `[SKIP] migrations-applied: sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY`; no se midió el ledger real |
+| pending-migration-symbols | PASÓ, `0 ROJO · 0 AMARILLO declarado(s)` |
+| sql-tests | PASÓ, 183 contratos con rollback, incluidos `✓ 0410_collections_mail_context.test.sql`, `✓ 0415_mail_logs_read_rbac.test.sql` y el de 0452 que trae `main` |
+| schema-rebuild | PASÓ: inventario de 440; 422 migraciones desde cero y 18 sólo-ledger sin cambio de esquema; aislamiento multi-tenant en 219 tablas con 2 tenants |
+| e2e | **FALLÓ: colgado en la primera pasada y cortado por el watchdog de SDD-0454.** Detalle en la lista siguiente |
+| build | PASÓ: 160 de 160 páginas estáticas generadas; `[build] build de producción OK`. Los errores de `listPublishedPosts` y `getPublic*` por Supabase sin configurar salen durante la generación estática y no la detienen |
+
+Diagnóstico del e2e, leído del log sin volver a correrlo (`e2e-diagnostico-r2.log`):
+- **Arranque:** dev server propio en el puerto 3010; 186 pruebas con 8 workers.
+- **Primera pasada, colgada:** no llegó al resumen de Playwright ni al reintento automático. Imprimió 167 de 186 resultados: chromium 68 (sus 67 pruebas más el reintento del flaky), mobile-chrome 67/67 y mobile-safari 32/67. Hasta ahí, 123 aprobadas, 15 omitidas y 29 renglones de fallo.
+  - 28 renglones son los 14 ambientales conocidos con su reintento interno: `auth.spec.ts:21`, `:91`, `:98` y `:105` en chromium, mobile-chrome y mobile-safari, y `global-search.spec.ts:22` en chromium y mobile-chrome. Causa registrada por el WebServer: el cliente Supabase sin URL ni clave en `proxy.ts:67` (85 apariciones).
+  - 1 renglón es `[chromium] calculadora-semantic-colors.spec.ts:53:7 › … en dark` (L928, 13,2 s), que **pasó en su reintento** (`retry #1`, L969, 12,2 s) y pasó a la primera en mobile-chrome y mobile-safari; en la corrida de la ronda 1 pasó en los tres navegadores. Es un flaky de la calculadora pública, fuera de L10 y de lo que `main` sumó desde la base (#107–#109 tocan facturas del Portal), en una corrida con chromium más lento (las pruebas de `auth` tardaron 36 s frente a 14 s en la ronda 1).
+  - El 15.º ambiental de la ronda 1, `global-search.spec.ts:22:7` en mobile-safari, no llegó a imprimirse.
+- **Dónde se colgó:** el último resultado fue el 167, `[mobile-safari] gastos-expense-void.spec.ts:99:7`, omitida (L2007). Después, 29 líneas del WebServer con el mismo error de `proxy.ts:67` y 10 minutos de silencio. Es el mismo punto donde se colgó el reintento de la ronda 1, tras `gastos-expense-void.spec.ts:99:7` de mobile-safari. El reporter imprime cada prueba al terminar, así que el log no nombra la que quedó en curso; por el orden de la única pasada completa que hay (ronda 1), la siguiente de mobile-safari es `global-search.spec.ts:22:7`, que falla con ese mismo error. Inferencia reforzada por dos corridas, no un registro.
+- **Corte:** `watchdog: raíz PID 6084; 29 proceso(s) del árbol propio terminados (chrome-headless-shell.exe×18, node.exe×10, cmd.exe×1); sobrevivientes: 0.`
+- **Relación con L10:** ningún archivo de `e2e/` menciona Cobranzas, recordatorios, Mailing, `mail_logs` ni `collections`; los specs sólo apuntan a `/studio/login`, `dashboard`, `gastos`, `nomina`, `tracking`, `attachments` y `global-search`, y en el log hay 0 menciones de `/studio/cobranzas`, `/studio/mailing` o `recordatorios` fuera de rutas de archivo y de la tabla del build. Nada contradice que L10 no toca UI ni rutas del e2e.
+
+Veredicto literal: `verify: 1 fallo(s) → e2e [COLGADO/TIMEOUT: sin salida durante 10 min; límite de inactividad 10 min (VERIFY_E2E_IDLE_MIN)] CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.` No se absuelve ni se presenta como verde.
+- `verify-r2-db061ca5.meta`: inicio 14:57:39, fin 15:31:13 (−04:00), exit 1, HEAD `db061ca5…` al inicio y al final, y 0 líneas de `git status --porcelain` al inicio y al final.
+- Recibos: `.log`, `.exit`, `-resumen.log` y `e2e-diagnostico-r2.log`.
+
+### Secuencia de release, actualizada
+
+1. **0410: hecho.** Aplicada el 2026-09-13 (ledger `20260913184537`); espera y declaración retiradas en esta rama.
+2. **Fusionar (Director) y desplegar esta PR.** Smoke: la vista previa de recordatorios de Cobranzas con accounting y admin debe mostrar resumen, listas y botón de envío sin la alerta de error, con las señales de spam y último recordatorio que ya mostraba. Lo hace Sam o alguien del equipo con cuentas reales.
+3. **0415**, sólo después de ese smoke, con OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`, en una ventana de bajo tráfico de correo y dentro de una transacción (su `lock_timeout` de 5 s la corta y la revierte si hay contención; se reintenta). Verificar `mail_logs_admin_select`, `authenticated=r` y otra vez la vista previa con accounting. Retirar su espera en una rama propia.
+
 ## ANÁLISIS 1 — MIGRATE-FIRST
+
+> **Ronda 2 (2026-09-13):** 0410 ya está aplicada en producción, así que el orden migrate-first se cumplió y este bloqueo dejó de regir. El análisis se conserva como evidencia fechada de lo que pasaría sin la RPC. Las «consecuencias aplicadas» de abajo rigieron hasta la ronda 2: la primera línea de la PR ya dice el estado real, y la declaración y la espera de 0410 se retiraron (ver «RONDA 2»).
 
 **Veredicto: MIGRATE-FIRST. Falla cerrado: lanza, la acción devuelve error y no se envía ningún correo.**
 
@@ -393,21 +507,28 @@ Ronda 2:
 
 Ronda 3:
 - `be31a98d687540ffe411988414da81d75f6720e5` — sólo texto: cabeceras de 0410 y 0415 con el precedente correcto y el mismo número de líneas, frase literal de la condición transaccional en las esperas y la misma precisión en las notas de 0353 y 0358.
-- Commit que contiene este documento: cierre durable de las tres rondas. Es la cabeza publicada; su hash va en la PR y en el reporte final.
+- `f555f5eb5e2d12fd995a0c947bfdc0217a870dcc` — este documento en su versión de la ronda 1 de la PR; cabeza publicada el 2026-09-12. Su check `Calidad local sin secretos` pasó en GitHub.
+
+Ronda 2 de la PR (2026-09-13):
+- `e118f7c04f82e77955d5b0659c549dfae3079bae` — merge de `origin/main` `8ec7ebe3` con el driver de `main`; índice a 443 specs; sin conflictos.
+- `4d5e4aace715ef7d4284e50124c90ea160762709` — 0410 aplicada: sale de `pendingBelowCutoff` y de las declaraciones; la espera de 0415 dice el estado real. Gate `0 ROJO · 0 AMARILLO`.
+- `db061ca5afd3abef97c304192f9eacc60b9136a9` — notas de 0353 y 0358 con la aplicación de 0410. **Cabeza de código de la ronda 2: `verify` completo.**
+- Commit que contiene esta versión del documento: sólo agrega este handoff. Es la cabeza publicada de la ronda 2; su hash va en el reporte al Director.
 
 El orden deja cada commit intermedio verde para `pending-migration-symbols`: el SQL entra sin esperas, las esperas entran sin código alcanzable y el código entra con su declaración.
 
 ## PR / BRANCH
 
-PR en borrador contra `main` desde `codex/c-l10-recordatorios-cobranzas`, publicada con un único push normal de la rama a sí misma, después de todos los commits. `8ae4e5e5` no se publicó. La PR se abre después de este commit, así que su URL queda en el reporte al Director. Worktree conservado en la ruta de arriba. Sin merge, deploy ni aplicación de migraciones.
+PR #105 en borrador contra `main` desde `codex/c-l10-recordatorios-cobranzas`: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/105. Ronda 1 publicada el 2026-09-12 con `f555f5eb` en un único push normal después de todos los commits; `8ae4e5e5` no se publicó. Ronda 2 publicada el 2026-09-13, también con un único push normal después de todos sus commits; el cuerpo de la PR se actualizó con `gh pr edit` para quitar «No fusionar antes de aplicar y verificar 0410» de la primera línea y poner el estado real. Worktree conservado en la ruta de arriba. Sin merge, deploy ni aplicación de migraciones desde esta sesión.
 
-**Fusionar NO autoriza aplicar 0410 ni 0415. Y fusionar antes de aplicar 0410 deja los recordatorios de cobranza sin operar en producción.**
+**Fusionar NO autoriza aplicar 0415. Fusionar y desplegar es el paso 2 del orden de L10; 0415 va sólo después del smoke de la vista previa de recordatorios con accounting y admin.**
 
 ## PENDIENTES DE ESTA TAREA
 
-- **`e2e` sin cobertura completa en la corrida de referencia.** La primera pasada midió las 186 pruebas y dio sólo los 15 fallos ambientales. El reintento se colgó y el watchdog cortó el paso. Hace falta una corrida con configuración de Supabase, o la del CI alojado, para tener cobertura real. No se reintentó: el contrato del watchdog es sin reintento, y el Director pidió no repetir el verify.
-- **`migrations-applied` sin medir** en este árbol, por falta de `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`. Ni esto ni lo anterior autorizan copiar credenciales.
-- CI alojado (`quality`) del SHA publicado y revisión del Director.
+- **`e2e` sin cobertura completa en las dos corridas.** En la ronda 1 la primera pasada terminó con los 15 ambientales y el reintento se colgó; en la ronda 2 se colgó la primera pasada tras 167 de 186 resultados, en el mismo punto de mobile-safari, con los 14 ambientales que alcanzó a medir y un flaky que pasó al reintentar. Hace falta una corrida con configuración de Supabase para tener cobertura real: el CI alojado (`Calidad local sin secretos`) no corre e2e, contratos SQL, rebuild ni `migrations-applied`. No se reintentó: el contrato del watchdog es sin reintento.
+- **`migrations-applied` sin medir** en este árbol, por falta de `NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`; la evidencia de que 0410 está aplicada es la del Director. Ni esto ni lo anterior autorizan copiar credenciales.
+- CI alojado (`quality`) del SHA publicado de la ronda 2 y revisión del Director.
+- Merge (Director) y despliegue; smoke de la vista previa de recordatorios con accounting y admin (Sam o alguien del equipo, con cuentas reales); después, 0415 con OK nominal de Sam y retiro de su espera en una rama propia.
 - Ninguno de implementación o preparación del lote. La decisión de normalización ya está tomada y aplicada.
 
 ## FUERA DE ALCANCE DETECTADO
@@ -431,14 +552,14 @@ PR en borrador contra `main` desde `codex/c-l10-recordatorios-cobranzas`, public
   - Esperas y declaración.
   - Tabla de lectores del análisis 2.
   - La ronda 3 sólo cambia texto (diff de migraciones con sólo comentarios). Nada impidió aplicar el punto 2 de la ronda 2.
-  - El e2e de la corrida de referencia queda FALLÓ, colgado y cortado por el watchdog; su primera pasada dio sólo los 15 ambientales.
-- **Secuencia de release, cada paso con su autorización:**
-  1. **0410**, con OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`. Antes, leer el `relacl` de `mail_logs` (catálogo). Si Sam lo autoriza, el conteo agregado de emails con blancos raros sólo informa. Aplicar con name exacto por `apply_migration`, que es transaccional; si se aplicara en autocommit, usar una sesión con `set lock_timeout`. Verificar contra el objeto: `prosecdef`, `proconfig`, `proacl` y comentario.
-  2. En esta rama, retirar la espera y la declaración de 0410, como hizo L01 en su ronda 2. Después, fusionar (Director), desplegar y verificar la vista previa de recordatorios con accounting y admin.
-  3. **0415**, con OK nominal de Sam, en una ventana de bajo tráfico de correo y dentro de una transacción. Su `lock_timeout` de 5 s la corta y la revierte si hay contención; se reintenta. Verificar `mail_logs_admin_select`, `authenticated=r` y otra vez la vista previa con accounting. Retirar su espera en una rama propia.
+  - El e2e de la corrida de referencia de la ronda 1 quedó FALLÓ, colgado y cortado por el watchdog; su primera pasada dio sólo los 15 ambientales. El verify de la ronda 2 está en la sección «RONDA 2».
+- **Secuencia de release, cada paso con su autorización** (detalle en «RONDA 2 › Secuencia de release, actualizada»):
+  1. **0410: hecho** el 2026-09-13 (ledger `20260913184537`). Espera y declaración retiradas en esta rama.
+  2. **Fusionar (Director) y desplegar esta PR**; smoke de la vista previa de recordatorios con accounting y admin.
+  3. **0415**, sólo después de ese smoke, con OK nominal de Sam, en una ventana de bajo tráfico de correo y dentro de una transacción. Su `lock_timeout` de 5 s la corta y la revierte si hay contención; se reintenta. Verificar `mail_logs_admin_select`, `authenticated=r` y otra vez la vista previa con accounting. Retirar su espera en una rama propia.
 - **Conflictos con la PR #104:** baseline, declaraciones e índice, resueltos por el driver `dtd-generated-records`. No hay código compartido.
 - **Sesiones consumidoras:** ninguna otra usa este worktree.
-  - No quedan contenedores propios (`dtd_l10_*`) ni procesos huérfanos de la corrida de `458b3542`.
+  - No quedan contenedores propios (`dtd_l10_*`) ni procesos huérfanos de la corrida de `458b3542` ni de la de `db061ca5` (watchdog con 0 sobrevivientes y chequeo posterior limpio, sin nada que detener).
   - El stack `dtd-pr28-auth-*` y los worktrees y ramas de `aliados-cadena-tenant` y `c-l14-portal-comandos-recibos` no se tocaron.
   - Ownership liberado al cierre con `node scripts/harness-worktree.mjs release --owner c-l10-recordatorios-cobranzas-20260912`, después del commit y del push.
   - Se conservan worktree y rama.
