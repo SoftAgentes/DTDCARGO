@@ -7,5 +7,124 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "l07-client-annual-billing-pending-rpc",
+      "primarySymbol": "studio_client_annual_billing",
+      "migration": "0411_client_annual_billing_facade",
+      "symbols": [
+        {
+          "kind": "function",
+          "name": "studio_client_annual_billing",
+          "callSites": [
+            "lib/studio/fidelizacion/queries.ts:51"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/fidelizacion/queries.ts:51",
+          "contains": ".rpc(\"studio_client_annual_billing\", { p_as_of: asOf })",
+          "degradation": "Mientras 0411 no esté aplicada la RPC no existe: PostgREST responde PGRST202 («Could not find the function public.studio_client_annual_billing(p_as_of) in the schema cache», medido con postgrest-js 2.106.1 contra PostgREST v16.1 local). No hay fallback a la lectura directa de invoices."
+        },
+        {
+          "site": "lib/db/paginate.ts:131",
+          "contains": "if (error) throw new Error(error.message);",
+          "degradation": "fetchAllPaged convierte ese error en excepción: clientAnnualBilling lanza y nunca devuelve un mapa vacío que baje de nivel a los clientes en silencio."
+        },
+        {
+          "site": "app/studio/(app)/fidelizacion/page.tsx:35",
+          "contains": "clientsWithTier(supabase),",
+          "degradation": "La página de Fidelización espera clientsWithTier y tierCounts en el mismo Promise.all: la excepción la lleva al error del segmento y no se muestra la cartera por nivel (medido: ambas lanzan)."
+        },
+        {
+          "site": "app/studio/(app)/crm/page.tsx:86",
+          "contains": "getKommoAnalytics(supabase),",
+          "degradation": "La analítica del CRM corre en todas las pestañas y getKommoAnalytics espera clientAnnualBilling sin captura (lib/studio/kommo-analytics.ts:497): la página del CRM falla completa (medido)."
+        },
+        {
+          "site": "app/studio/(app)/reportes/page.tsx:75",
+          "contains": "commercialByClient(supabase),",
+          "degradation": "Reportes → Comercial espera commercialByClient, que llama clientsWithTier (lib/studio/reports/queries.ts:529): la categoría falla (medido)."
+        },
+        {
+          "site": "lib/studio/reports/queries.ts:619",
+          "contains": "clientAnnualBilling(supabase, now).catch(() => new Map<string, number>()),",
+          "degradation": "commercialByAgent sí traga el error y dejaría en cero los ingresos por asesor, pero comparte el Promise.all de la categoría con commercialByClient, que ya falla. Fidelización, CRM y Reportes → Comercial no operan hasta aplicar 0411: es MIGRATE-FIRST y la PR no se fusiona antes de aplicar y verificar 0407 y 0411."
+        }
+      ]
+    },
+    {
+      "id": "l07-conversation-outstanding-pending-rpc",
+      "primarySymbol": "conversation_client_outstanding",
+      "migration": "0412_conversation_outstanding_facade",
+      "symbols": [
+        {
+          "kind": "function",
+          "name": "conversation_client_outstanding",
+          "callSites": [
+            "lib/studio/conversaciones/conversations-queries.ts:322"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/conversaciones/conversations-queries.ts:322",
+          "contains": ".rpc(\"conversation_client_outstanding\", {",
+          "degradation": "Mientras 0412 no esté aplicada la RPC no existe y PostgREST responde PGRST202 (medido con postgrest-js 2.106.1 contra PostgREST v16.1 local)."
+        },
+        {
+          "site": "lib/studio/conversaciones/conversations-queries.ts:326",
+          "contains": "if (outstandingError || !outstanding) return null;",
+          "degradation": "getClientContext devuelve null sin lanzar y sin consultar clientes ni envíos: nunca publica un saldo cero inventado."
+        },
+        {
+          "site": "app/api/studio/conversaciones/[id]/route.ts:57",
+          "contains": "return NextResponse.json({ messages, context, digests });",
+          "degradation": "La API del hilo responde 200 con context: null; mensajes y resúmenes siguen cargando."
+        },
+        {
+          "site": "app/studio/(app)/conversaciones/_components/ConversationThread.tsx:618",
+          "contains": "Sin envíos en curso",
+          "degradation": "El panel lateral muestra sólo el nombre del cliente, sin Shipping Mark, email ni teléfono, y «Sin envíos en curso» aunque haya envíos activos."
+        },
+        {
+          "site": "app/studio/(app)/conversaciones/_components/ConversationThread.tsx:653",
+          "contains": ": \"—\"}",
+          "degradation": "El saldo pendiente se muestra como «—» en todos los hilos. Es un degradado silencioso en todas las conversaciones: MIGRATE-FIRST, la PR no se fusiona ni se despliega antes de aplicar y verificar 0412."
+        }
+      ]
+    },
+    {
+      "id": "l07-sales-order-invoice-refs-pending-rpc",
+      "primarySymbol": "sales_order_invoice_refs",
+      "migration": "0413_sales_order_invoice_facade",
+      "symbols": [
+        {
+          "kind": "function",
+          "name": "sales_order_invoice_refs",
+          "callSites": [
+            "lib/studio/sales-orders/queries.ts:242"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/sales-orders/queries.ts:242",
+          "contains": ".rpc(\"sales_order_invoice_refs\", { p_sales_order_ids: batch })",
+          "degradation": "Mientras 0413 no esté aplicada la RPC no existe: PostgREST responde PGRST202 («Could not find the function public.sales_order_invoice_refs(p_sales_order_ids) in the schema cache», medido con postgrest-js 2.106.1 contra PostgREST v16.1 local). No hay fallback a la lectura directa de invoices ni lista vacía."
+        },
+        {
+          "site": "lib/db/paginate.ts:131",
+          "contains": "if (error) throw new Error(error.message);",
+          "degradation": "fetchAllByIds pagina con fetchAllPaged, que convierte el error en excepción: listInvoicesBySalesOrder y listInvoicesForSalesOrder lanzan."
+        },
+        {
+          "site": "app/studio/(app)/ordenes-venta/page.tsx:53",
+          "contains": "const list = await listInvoicesForSalesOrder(supabase, so.id);",
+          "degradation": "La página de Órdenes de venta espera las referencias de cada orden dentro de un Promise.all: con al menos una orden, la excepción la lleva al error del segmento. Es MIGRATE-FIRST: la PR no se fusiona ni se despliega antes de aplicar y verificar 0413."
+        }
+      ]
+    }
+  ]
 }
