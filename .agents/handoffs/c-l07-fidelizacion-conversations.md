@@ -1,8 +1,8 @@
 # L07 — RBAC de facturas y facades de Fidelización, Conversaciones y Órdenes de venta (0407, 0411–0413 → 0414)
 
-Fecha: 2026-09-12 (rondas 1 y 2) y 2026-09-13 (ronda 3). Task ID: `c-l07-fidelizacion-conversations`.
+Fecha: 2026-09-12 (rondas 1 y 2) y 2026-09-13 (rondas 3 y 4). Task ID: `c-l07-fidelizacion-conversations`.
 Owner / sesión escritora: `c-l07-fidelizacion-conversations-20260912` (Worker asignado por el Director; sin subagentes ni otras sesiones escritoras).
-Rondas: tres, en la misma sesión.
+Rondas: cuatro, en la misma sesión y con el mismo owner.
 - **Ronda 1.** Importa el lote y publica la PR #106 en `0d247073`.
 - **Ronda 2.** Aplica la revisión del Director sobre ese head: cambios visibles y frontera del Portal en la PR, test de inventario, esperas y notas, y vuelta atrás probada de 0407 y 0414. Publica `c09b5155`.
 - **Ronda 3.** Tres cambios:
@@ -11,18 +11,19 @@ Rondas: tres, en la misma sesión.
   - rehace la vuelta atrás de 0414 para que nunca restaure la policy Portal de 0085.
 
   Como el merge trae código y SQL nuevos, repite `verify` completo. El primero, sobre `799c8ae3`, falló en `test` sólo por el tope de 20 s del test de inventario. Con el tope propio de 60 s se repitió sobre `dd7e6f49`. La corrida intermedia sobre `2abd3e0d` se interrumpió a propósito (ver «Ronda 3»).
+- **Ronda 4.** El Director aplicó 0407, 0411, 0412 y 0413 a producción el 2026-09-13. La rama incorpora `main` por merge dos veces (`76797beb`, con PR #109 y PR #105; y `a9a12eed`, con PR #110), retira esas cuatro esperas y las tres declaraciones, reescribe la espera de 0414 y las notas de las specs con el patrón de migración aplicada, y la PR deja de ser migrate-first. Repite `verify` completo sobre el head de código de la ronda. Registro en «RONDA 4».
 
-Estado de tarea: lista-para-revision. PR #106 en borrador. **MIGRATE-FIRST: no fusionar antes de aplicar y verificar 0407, 0411, 0412 y 0413.** 0414 va después del despliegue de esta PR y del smoke por roles. Release y aplicación de migraciones quedan fuera de esta tarea.
+Estado de tarea: lista-para-revision. PR #106 en borrador. **Ya no aplica el bloqueo migrate-first:** `0407_invoices_write_rbac`, `0411_client_annual_billing_facade`, `0412_conversation_outstanding_facade` y `0413_sales_order_invoice_facade` fueron aplicadas a producción el 2026-09-13 con OK nominal de Sam (ledgers `20260913224300`, `20260913224418`, `20260913224437` y `20260913224453`), así que la rama dejó de declararlas como espera y la PR puede integrarse en el orden normal; `0414_invoices_read_rbac` sigue pendiente y va sólo después del despliegue de esta PR y del smoke por roles. Release y aplicación de migraciones quedan fuera de esta tarea.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO` (checkout principal en `main`, sin tocar).
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l07-fidelizacion-conversations`.
 Rama: `codex/c-l07-fidelizacion-conversations`.
 - **Base original.** `origin/main` `bca98147672a6255192b62b247ab3f5c44061bb2`, sin cambios hasta la ronda 2.
-- **Base efectiva de la PR.** En la ronda 3 la rama incorporó `origin/main` `a3dbac042de81a17bc38e50833ea40651a878f1c` con el merge `0d166684`.
+- **Base efectiva de la PR.** En la ronda 3 la rama incorporó `origin/main` `a3dbac042de81a17bc38e50833ea40651a878f1c` con el merge `0d166684`. En la ronda 4 incorporó `origin/main` `76797beb3bb30c05ff493b388bb28b0cfb6314b7` con el merge `94e42666` y, por aviso del Director antes del push, `origin/main` `a9a12eed87ed10f5eb14d80dbd591de64b1da698` con el merge `2c04e369`; sin rebase ni force en ninguna ronda.
 
 Origen de solo lectura: `refs/dtd/pr/21` = `origin/codex/saneamiento-integral` = `ea9952a47f4adf14c48c91e6d0147597beb94aa7`. Base común de la PR #21 con `main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`. Commits de origen del lote: `ff3b4fa1` (SDD-0350), `a5d9c897` y `219f9400` (SDD-0354), `8b112b5a` (SDD-0355), `3ca9a79d` (SDD-0356) y `702de3f4` (SDD-0357).
 SDD:
 - **Specs.** `docs/specs/0350-invoices-write-rbac`, `0354-client-annual-billing-facade`, `0355-conversation-outstanding-facade`, `0356-sales-order-invoice-facade` y `0357-invoices-read-rbac`, con el frontmatter de origen (`status: done`) y nota de importación.
-- **Migraciones.** `0407_invoices_write_rbac`, `0411_client_annual_billing_facade`, `0412_conversation_outstanding_facade`, `0413_sales_order_invoice_facade` y `0414_invoices_read_rbac`, declaradas pendientes.
+- **Migraciones.** `0407_invoices_write_rbac`, `0411_client_annual_billing_facade`, `0412_conversation_outstanding_facade` y `0413_sales_order_invoice_facade`, aplicadas a producción el 2026-09-13 (ronda 4); `0414_invoices_read_rbac`, declarada pendiente.
 - **Numeración.** Sin reserva de número: se conserva la de origen. Ninguna ref local o remota fuera de la PR #21 tiene esas migraciones ni esas carpetas de spec.
 
 Permisos: commits selectivos; push de la rama a sí misma y PR en borrador contra `main`, autorizados por Sam. Prohibidos: merge a `main`, sacar la PR de borrador, deploy, aplicar migraciones, tocar el ruleset, borrar ramas o worktrees y leer filas de negocio.
@@ -44,6 +45,14 @@ Aceptación:
   - Espera de 0414, nota de 0357 y sección de la PR correctas en los dos órdenes respecto de 0452.
   - Vuelta atrás de 0414 que nunca recrea la policy de 0085, con postflight de expresión exacta, probada en dos escenarios (con 0452 y sin ella) con fotos de catálogo y la cadena 0414 → 0407.
   - `verify` completo sobre el head de código final y allowlist cubriendo el diff contra `main`.
+- **Ronda 4:**
+  - Claim con el mismo owner; árbol limpio y head `42dd00c2` al empezar.
+  - Merge de `origin/main` `76797beb` y, antes del push, de `a9a12eed`, sin rebase ni force, con el driver semántico de `main`; índice regenerado con el script.
+  - Esperas de 0407, 0411, 0412 y 0413 y las tres declaraciones de L07 retiradas; espera de 0414 actualizada con las cuatro aplicadas y el paso siguiente; `cutoff` intacto; gate `0 ROJO · 0 AMARILLO`.
+  - Notas de 0350, 0354, 0355 y 0356 con el patrón de migración aplicada; en 0357 sólo lo que mencionaba a 0407 y 0411–0413 como pendientes; frontmatter intacto.
+  - PR sin bloqueo migrate-first, con el estado real en la primera línea.
+  - `verify` completo sobre el head final con veredicto por paso y meta, lanzado sólo cuando no corría otro verify.
+  - Todos los commits antes de un único push normal; PR en borrador; claim liberado.
 
 ## OBJETIVO ORIGINAL
 
@@ -64,11 +73,23 @@ Ronda 3, sobre `c09b5155`. `main` avanzó a `a3dbac04` con la PR #107 (SDD-0462:
 4. `verify` completo.
 5. Un único push normal.
 
+Ronda 4, sobre `42dd00c2`. El Director aplicó a producción `0407_invoices_write_rbac`, `0411_client_annual_billing_facade`, `0412_conversation_outstanding_facade` y `0413_sales_order_invoice_facade` el 2026-09-13, de a una y en ese orden, con autorización de Sam, desde los archivos exactos de ese head. Pide dejar la PR lista para fusionar, como L01, L10 y L14 en sus rondas «migración aplicada»:
+1. Claim con el mismo owner; árbol limpio y head `42dd00c2`.
+2. Incorporar `origin/main` `76797beb` por merge, con el driver semántico de `main`, y regenerar el índice. Aviso posterior, antes del push: `main` avanzó a `a9a12eed` (PR #110, registro de 0451 aplicada; retira su espera); volver a mergear con el driver y correr el verify sobre el head final.
+3. Retirar las esperas de 0407, 0411, 0412 y 0413 y las tres declaraciones; actualizar la espera de 0414; `cutoff` intacto.
+4. Notas de importación con el patrón «migración aplicada»; en 0357 sólo lo que las mencionaba como pendientes.
+5. Primera línea de la PR con el estado real.
+6. `verify` completo sobre el head final, sin pisar el verify del Worker de L14.
+7. Sección «RONDA 4» en este handoff, sin marcadores.
+8. Todos los commits antes de un único push normal; PR en borrador; liberar el claim.
+
 ## COMPLETADO
+
+> Lo que sigue describe las rondas 1 a 3 y se conserva como evidencia fechada. Quedaron superados por la ronda 4: las esperas y declaraciones de 0407 y 0411–0413, que ya no existen porque esas migraciones están aplicadas; el bloqueo migrate-first y la primera línea de la PR; las notas de importación de 0350, 0354, 0355 y 0356; la frontera del Portal «en los dos órdenes», que en producción quedó en el caso de 0452 aplicada antes que 0407; y la secuencia de release, cuyos pasos 1 y 2 ya ocurrieron. La sección «RONDA 4» manda sobre esos puntos.
 
 ### Archivos y relación con el origen
 
-Diff contra `origin/main` `a3dbac04`, después del merge de la ronda 3: 29 archivos más este handoff, los mismos que en la ronda 2. `node allowlist-coverage.mjs origin/main` da 30 archivos y 0 sin cubrir: 27 por la allowlist exacta de alguna spec y 3 declarados en las notas de importación (la baseline, las declaraciones y este handoff).
+Diff contra `origin/main` `a3dbac04`, después del merge de la ronda 3: 29 archivos más este handoff, los mismos que en la ronda 2. `node allowlist-coverage.mjs origin/main` da 30 archivos y 0 sin cubrir: 27 por la allowlist exacta de alguna spec y 3 declarados en las notas de importación (la baseline, las declaraciones y este handoff). Tras la ronda 4 (base `76797beb`) son 28 archivos más este handoff: las declaraciones ya no aparecen porque quedaron iguales a `main`; 27 por allowlist y 2 por notas (ver «RONDA 4»).
 
 | Archivo | Relación con el origen |
 |---|---|
@@ -93,8 +114,8 @@ Diff contra `origin/main` `a3dbac04`, después del merge de la ronda 3: 29 archi
 | `scripts/__tests__/invoice-read-boundary.test.mjs` | ronda 2: nuevo, idéntico (`97c82149`), sin ajustar su lista de lectores. Ronda 3 (`dd7e6f49`): sólo suma el tope propio de 60 s de la primera prueba y su comentario; lista, recorrido y aserciones idénticos |
 | las cinco `docs/specs/…/spec.md` | origen más la nota de importación; frontmatter intacto. En las rondas 2 y 3, las notas de 0350 y 0357 suman la vuelta atrás, la frontera del Portal en los dos órdenes, el test y su tope propio |
 | `docs/specs/README.md` | regenerado con `node scripts/build-docs-index.mjs`. Tras el merge de la ronda 3 da 446 specs, con 0462 y 0463 de `main` |
-| `supabase/migrations-baseline.json` | cinco esperas de L07 más 0451 y 0452 de `main`; `cutoff 238` y `$doc` idénticos a `main`, comprobado por valor. En la ronda 3 cambian las esperas de 0414 y 0407 |
-| `supabase/pending-migration-symbol-declarations.json` | tres declaraciones AMARILLO; `schemaVersion` y `$doc` idénticos a `main` |
+| `supabase/migrations-baseline.json` | cinco esperas de L07 más 0451 y 0452 de `main`; `cutoff 238` y `$doc` idénticos a `main`, comprobado por valor. En la ronda 3 cambian las esperas de 0414 y 0407. Ronda 4: sólo la espera de 0414, reescrita, más 0451 y 0415 de `main`; 3 líneas de diff |
+| `supabase/pending-migration-symbol-declarations.json` | tres declaraciones AMARILLO; `schemaVersion` y `$doc` idénticos a `main`. Ronda 4: byte a byte igual a `main` (`degradations: []`); ya no está en el diff |
 
 La identidad se comprobó con `git hash-object` al importar y con `git rev-parse HEAD:<ruta>` contra `refs/dtd/pr/21:<ruta>`: el primer commit (`6330cb46`) guarda los diez SQL idénticos al origen y la desviación queda sola en el segundo (`b6fdf92f`). El test de la ronda 2 se comprobó igual en `e952e4bd`; en la ronda 3, `git diff e952e4bd dd7e6f49` sobre el test da sólo el comentario y el tope (5 líneas más y 1 menos). Los SQL van byte a byte (`-text` en `.gitattributes`) y se comprobó con Node que ningún archivo tocado tiene CR.
 
@@ -237,7 +258,130 @@ portal revocado: (0 filas)
 commercial T1 con vínculo Portal en T2: 1000 filas (tope de PostgREST), T1 1000
 ```
 
+## RONDA 4 — 2026-09-13 · 0407 y 0411–0413 aplicadas y rama al día con `main`
+
+Misma sesión y mismo owner que las rondas 1 a 3 (`c-l07-fidelizacion-conversations-20260912`), con el claim reclamado de nuevo. Antes de editar: `guard` OK, `git status --porcelain` vacío y `HEAD = 42dd00c2f5eac2eb23300ea83a1e64fdb49cbca5`, la cabeza publicada de la ronda 3. No se creó otra rama ni otro worktree; desde esta sesión no se ejecutó nada contra Supabase. Precedente: la ronda 2 de L10 (`.agents/handoffs/c-l10-recordatorios-cobranzas.md`, «RONDA 2»).
+
+### Lo que cambió
+
+- **0407, 0411, 0412 y 0413 dejaron de ser esperas.** Las cuatro fueron aplicadas a producción el 2026-09-13 por el Director, de a una y en ese orden, con autorización de Sam, desde los archivos exactos de `42dd00c2`. Evidencia entregada por el Director (recibos fuera de Git en `…/scratchpad/prod-l07/` y `prod-l14/`), copiada tal cual:
+  - Ledger de producción, una fila por migración, con name exacto:
+    - `20260913224300 | 0407_invoices_write_rbac | 1 sentencia | md5 57b489f7c181f930a3dce82bb15dc449 | 5355 bytes`
+    - `20260913224418 | 0411_client_annual_billing_facade | md5 f178a2d028f658b8d84da36005bc58ee | 5628 bytes`
+    - `20260913224437 | 0412_conversation_outstanding_facade | md5 ed692e75b4ea9e3dba1799dbbfec613d | 4024 bytes`
+    - `20260913224453 | 0413_sales_order_invoice_facade | md5 f501e4e17df340b6dc9dbf86e19c721a | 3337 bytes`
+    - Ledger total tras las cuatro: 457 filas.
+  - Preflight de 0407, leído del catálogo sin filas: policies `invoices by tenant` [ALL] e `invoices portal self read` [SELECT, ya con la expresión de 0452]; relacl `authenticated=arwdxtm`.
+  - Postflight de 0407: policies `invoices_team_select`, `invoices_accounting_insert`, `invoices_accounting_update` e `invoices portal self read`; 0 restos de la histórica; `authenticated` SELECT, INSERT y UPDATE true y DELETE false (relacl `arwxtm`); comentario de tabla actualizado.
+  - Postflight de las tres RPC: SECURITY DEFINER, STABLE, `search_path=""`, owner postgres, EXECUTE `authenticated=true` y `anon=false`, comentario presente.
+  - Advisors de seguridad de producción antes y después del bloque, comparados hallazgo por hallazgo. Antes (tras L14): `rls_enabled_no_policy` INFO 22 · `extension_in_public` WARN 1 · `anon_security_definer_function_executable` WARN 22 · `authenticated_security_definer_function_executable` WARN 175. Después: idéntico salvo `authenticated_security_definer_function_executable` WARN 178. Los tres hallazgos nuevos son exactamente `public.studio_client_annual_billing`, `public.conversation_client_outstanding` y `public.sales_order_invoice_refs`: RPC SECURITY DEFINER con EXECUTE para `authenticated`, con el control de rol y de módulo (overrides de SDD-0252) adentro; `anon` sigue sin EXECUTE (su lint quedó en 22). 0407 no cambió ningún hallazgo. Es el efecto esperado, el mismo lint que cargan las demás RPC definer del Studio; no es una regresión.
+  - Conector: `claude.ai Supabase`, proyecto `xpfuzqombmjmxvprjgmi`, `apply_migration` con name exacto, `{"success": true}` al primer intento en las cuatro. No se leyó ninguna fila de negocio.
+  - Contexto: producción tiene un solo tenant (conteo agregado autorizado del 2026-09-13), así que la frontera entre tenants de las policies es preventiva. `0452_portal_invoices_tenant_rls` ya estaba aplicada antes de 0407 (ledger `20260913175856`, registrada por la PR #109): el preflight de 0407 encontró la policy Portal con su expresión.
+  - **Identidad comprobada aquí, en local:** `git show HEAD:supabase/migrations/<archivo> | md5sum` y `wc -c` sobre `42dd00c2` dan exactamente los md5 y bytes del ledger: 0407 `57b489f7…` y 5355 (blob `8b55df68`), 0411 `f178a2d0…` y 5628 (blob `7d44ed29`), 0412 `ed692e75…` y 4024 (blob `e2c519ac`) y 0413 `f501e4e1…` y 3337 (blob `4d927a53`); 0 CR. Ninguno de esos archivos existe en `main`, así que el merge no los tocó. No se consultó producción desde esta sesión.
+  - **Lo que esto cierra:** el análisis 1 (MIGRATE-FIRST POR FACADE) ya no bloquea. Las tres RPC existen en la base antes de fusionar el código que las consume, así que `clientAnnualBilling` y `listInvoicesForSalesOrder` no pueden caer en `PGRST202` en producción y `getClientContext` no degrada a `null` por RPC ausente. La medición de la ronda 1 sigue valiendo como descripción de lo que pasaría sin ellas. También quedó cumplido el preflight de 0411 (exigía `invoices_team_select`, que creó 0407) y el de 0414 (exige las tres RPC como SECURITY DEFINER y exactamente `invoices_team_select` e `invoices portal self read`): el postflight de producción dio eso.
+- **Merge de `origin/main` `76797beb`** (commit `94e42666`, padres `42dd00c2` y `76797beb`), sin rebase ni force. Desde `a3dbac04` entraron la PR #109 (registro de 0452 aplicada; retiró su espera) y la PR #105 (L10: 0410 aplicada, 0415 pendiente, código de Cobranzas y sus specs): 13 archivos, ninguno de L07. Se usó el driver de `main` con el override (`git -c merge.dtd-generated-records.driver="node \"<driver-de-main>\" %O %A %B %P" merge --no-commit --no-ff origin/main`), con el driver extraído de `origin/main:scripts/merge-generated-records.mjs` a un archivo fuera del repo; el de esta rama es idéntico (md5 `b4563696716d6893d48e619ec0e9eca4` en ambos).
+  - **Conflictos: ninguno.** «✓ merge semántico» en dos registros:
+    - `supabase/migrations-baseline.json`: quedaron 0451 y 0415 idénticas a `main` (0452 salió, como en #109) y 0407, 0411–0414 idénticas a la rama; `cutoff 238` y `$doc` iguales a `main`, comprobado por valor. La retirada de las cuatro aplicadas va en el commit siguiente.
+    - `docs/specs/README.md`: unión de las filas 0353 y 0358 de `main` con 0350 y 0354–0357 de la rama; `node scripts/build-docs-index.mjs` después no cambió un byte (448 specs, 15 huecos).
+  - `supabase/pending-migration-symbol-declarations.json` no lo tocó `main`, así que Git conservó el de la rama sin ejecutar el driver; se vacía en el commit siguiente.
+  - `git diff --check` limpio.
+- **Segundo merge, de `origin/main` `a9a12eed`** (commit `2c04e369`, padres `e9ed92ab` y `a9a12eed`), por aviso del Director antes del push: entró la PR #110 (registro de 0451 aplicada; retira su espera y actualiza la spec 0461), 3 archivos ajenos a L07. Mismo driver de `main` (md5 sin cambios). **Conflictos: ninguno.** «✓ merge semántico» en `supabase/migrations-baseline.json`: en `main` queda sólo la espera de 0415 y en la rama la de 0414, comprobado por valor (`cutoff 238`, `$doc` y 0415 iguales a `main`; 0414 igual al texto de la ronda). El índice regenerado no cambió (448 specs). Las declaraciones ya eran iguales a `main`. Es el head de código de la ronda 4.
+- **Registros** (commit `fd6044d4`, antes del segundo merge). `supabase/migrations-baseline.json` queda con las esperas de `main` (0451 y 0415 en ese momento; tras el segundo merge, sólo 0415) más la única espera viva de L07, `0414_invoices_read_rbac`, reescrita: dice que 0407, 0411, 0412 y 0413 quedaron aplicadas el 2026-09-13 con sus ledgers, md5 y bytes, que su postflight dio exactamente lo que el preflight de 0414 exige, que 0452 está aplicada antes que 0407 y que producción tiene un solo tenant; que el paso siguiente es fusionar y desplegar esta PR y hacer el smoke por roles, y que 0414 se aplica sólo después de ese smoke. Conserva la frase literal de la condición transaccional de `set local`, la frontera del Portal, los locks, la vuelta atrás que no restaura la policy de 0085 y el párrafo literal de autorización. `git diff origin/main -- supabase/migrations-baseline.json` son 3 líneas: la coma que gana 0415 y la línea de 0414. `supabase/pending-migration-symbol-declarations.json` es byte a byte el de `main` (`degradations: []`, md5 `d2ff7560a84064be086a7dd96efb62c5`) y ya no aparece en el diff de la PR. Gate: `0 ROJO · 0 AMARILLO declarado(s)`. `apply-registers-r4.mjs` hizo 25 comprobaciones por valor, todas OK (`round4/registers.log`).
+- **Notas de las specs** (commit `e9ed92ab`). Las de 0350, 0354, 0355 y 0356 pasan al patrón de una migración aplicada (`0353` en L10, ronda 2): fecha, ledger, identidad del archivo comprobada aquí, conector y name exacto, preflight y postflight, advisors comparados y registro en esta sección; cada una dice por qué su migración ya no figura como espera ni tiene declaración, y que el orden migrate-first se cumplió. En la de 0357 sólo cambió lo que mencionaba a 0407 y 0411–0413 como pendientes, más el estado real de 0452 (aplicada antes que 0407) y el contexto de un solo tenant, que el Director pidió para la nota. Frontmatter intacto en las cinco, comprobado contra `refs/dtd/pr/21`. El índice no cambia por esto.
+- **Cuerpo de la PR.** La primera línea deja de ser «No fusionar antes de aplicar y verificar 0407, 0411, 0412 y 0413» y pasa a decir el estado real: las cuatro aplicadas; fusionar y desplegar es el paso 3 del orden; 0414 va después del smoke por roles. La tabla de migraciones lleva los ledgers, «Frontera del Portal» pasa al caso real (0452 aplicada antes, un solo tenant) y hay una sección nueva con la evidencia de producción.
+- **Sin cambios de código ni de SQL.** Los 10 SQL y los 12 archivos de código y pruebas de L07 son los mismos de `dd7e6f49`.
+
+### Diff contra `origin/main` por archivo tras la ronda 4
+
+`git diff --stat origin/main...HEAD` sobre la cabeza de código `2c04e369` (base `a9a12eed`): 28 archivos más este handoff, 29 en total, 4041 líneas más y 217 menos. `node allowlist-coverage.mjs origin/main` da 0 sin cubrir: 27 por la allowlist exacta de alguna spec y 2 declarados en las notas de importación (la baseline y este handoff). Ya no aparece `supabase/pending-migration-symbol-declarations.json`, que quedó igual a `main`.
+
+| Archivo | Δ | Qué es |
+|---|---|---|
+| `supabase/migrations/0407_invoices_write_rbac.sql` | +124 | **Aplicada en prod el 2026-09-13**; blob `8b55df68`, idéntico al ledger (md5 `57b489f7…`, 5355 B) |
+| `supabase/migrations/0411_client_annual_billing_facade.sql` | +159 | **Aplicada en prod el 2026-09-13**; blob `7d44ed29` (md5 `f178a2d0…`, 5628 B) |
+| `supabase/migrations/0412_conversation_outstanding_facade.sql` | +108 | **Aplicada en prod el 2026-09-13**; blob `e2c519ac` (md5 `ed692e75…`, 4024 B) |
+| `supabase/migrations/0413_sales_order_invoice_facade.sql` | +85 | **Aplicada en prod el 2026-09-13**; blob `4d927a53` (md5 `f501e4e1…`, 3337 B) |
+| `supabase/migrations/0414_invoices_read_rbac.sql` | +104 | **Pendiente**, después del despliegue y del smoke; sin cambios desde `b6fdf92f` |
+| `supabase/tests/0407…`, `0411…`, `0412…`, `0413…` y `0414…test.sql` | +283, +254, +189, +165 y +298 | Contratos SQL, sin cambios desde la ronda 1 |
+| `lib/studio/fidelizacion/queries.ts`, `fidelizacion/__tests__/queries.test.ts` y `reports/__tests__/queries.test.ts` | 80, 110 y 36 líneas | SDD-0354, idénticos al origen |
+| `app/api/studio/conversaciones/[id]/route.ts`, `conversations-queries.ts`, `conversations-types.ts`, `conversaciones.test.ts` y `client-context.test.ts` | 2, 58, 2 y 25 líneas, y +98 | SDD-0355, con los cortes de la ronda 1 |
+| `lib/studio/sales-orders/queries.ts` y `lib/studio/__tests__/orders-relations-batch.test.ts` | 67 líneas y +109 | SDD-0356, sólo esa spec |
+| `scripts/__tests__/invoice-read-boundary.test.mjs` | +92 | Inventario de lectores, con el tope propio de la ronda 3 |
+| las cinco `docs/specs/…/spec.md` | +133, +134, +124, +118 y +193 | Specs con las notas de la ronda 4 |
+| `docs/specs/README.md` | 9 líneas | Filas 0350 y 0354–0357 y su retiro de los huecos; 448 specs con lo que trae `main` |
+| `supabase/migrations-baseline.json` | +2 −1 | Sólo la espera de 0414 y la coma que gana 0415; `cutoff`, `$doc` y 0415 iguales a `main` |
+| `.agents/handoffs/c-l07-fidelizacion-conversations.md` | +1096 en `2c04e369`; crece con esta ronda | Este documento |
+
+`git diff --check origin/main...HEAD` limpio.
+
+### Validación de la ronda 4
+
+Recibos fuera de Git en `round4/` del scratchpad de esta tarea: `merge.log`, `merge-2.log`, `registers.log`, `notes.log`, `allowlist-coverage-e9ed92ab.txt`, `allowlist-coverage-2c04e369.txt`, `test-invoice-read-boundary-r4.log`, `precheck-verify-r4.log`, `verify-2c04e369.log`, `.meta` y `.exit`, `orphans-r4.log`, y los scripts `apply-registers-r4.mjs`, `apply-notes-r4.mjs`, `whose-verify.ps1`, `running-verify-check.ps1` y el driver extraído `tools/dtd-merge-driver-main.mjs`. No se copiaron credenciales ni se tocó Supabase.
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| `claim` / `guard --owner` | PASÓ: claim reclamado de nuevo con el mismo owner; guard antes del merge, de cada commit, del verify y del push. Árbol limpio y `HEAD = 42dd00c2` al empezar |
+| Identidad de 0407, 0411, 0412 y 0413 contra el ledger | PASÓ: md5 y bytes de `git show HEAD:<archivo>` iguales a los cuatro ledgers; 0 CR. Comprobación local; no se consultó producción |
+| Merges con el driver de `main` (override): `76797beb` y `a9a12eed` | PASÓ: sin conflictos en ninguno; «✓ merge semántico» en baseline (dos veces) e índice; índice regenerado sin cambios (448 specs) las dos veces |
+| `git diff origin/main -- supabase/migrations-baseline.json` | PASÓ: 3 líneas; `cutoff 238`, `$doc` y 0415 iguales a `main`; sólo 0415 y 0414 como esperas |
+| `git diff origin/main -- supabase/pending-migration-symbol-declarations.json` | PASÓ: vacío, byte a byte igual (md5 `d2ff7560…`) |
+| `apply-registers-r4.mjs` (25 comprobaciones) | PASÓ: claves exactas, ledgers, md5, «quedaron APLICADAS», paso siguiente, un solo tenant, frase literal de la condición transaccional, párrafo literal de autorización, sin el orden obligatorio viejo |
+| `node scripts/check-pending-migration-symbols.mjs` | PASÓ: `0 ROJO · 0 AMARILLO declarado(s)` |
+| `node scripts/build-docs-index.mjs --check` y `corepack pnpm sdd:check` | PASÓ: 448 specs sincronizadas; sin números repetidos |
+| Frontmatter de las cinco specs | PASÓ: igual al del origen `refs/dtd/pr/21` |
+| `git diff --check` | PASÓ, en cada commit y en `origin/main...HEAD` |
+| Cobertura de allowlists contra `origin/main` | PASÓ, sobre `e9ed92ab` y de nuevo sobre `2c04e369`: 29 archivos, 0 sin cubrir |
+| Gates tras el segundo merge (`2c04e369`) | PASÓ: `0 ROJO · 0 AMARILLO`; 448 specs sincronizadas; sin números repetidos; `git diff --check origin/main...HEAD` limpio |
+| `invoice-read-boundary.test.mjs` focal tras el merge | PASÓ: 3/3; `main` no sumó llamadas directas a `invoices` desde `a3dbac04` (L10 toca `mail_logs`). Tardó 45 s con el verify ajeno corriendo, dentro de su tope propio |
+| Chequeo previo al verify | PASÓ, con espera: un `node scripts/verify.mjs` ajeno (pid 43508, iniciado a las 18:56 −04:00; presumiblemente el del Worker de L14 que el Director anticipó, su worktree no se ve en las líneas de comando) siguió vivo durante toda la preparación de la ronda. Sondeos con `whose-verify.ps1` (`wait-foreign-verify.log`): vivo a las 23:13:21Z, 23:14:34Z, 23:16:20Z y 23:16:39Z; «sin verify.mjs vivo» a las 23:17:05Z y confirmado 20 s después. En ese momento (`precheck-verify-r4.log`): ningún proceso de verify, vitest, playwright, next ni rebuild; sin puertos 3100–3799 en escucha; 0 contenedores. Las dos entradas `bash.exe` del recibo son los shells del propio lanzador en segundo plano, cuya línea de comandos incluye el texto del script (la palabra `verify.mjs` va en un comentario), no un verify. El verify propio arrancó a las 23:17:29Z |
+| **`corepack pnpm verify` sobre `2c04e369`** | **FALLÓ, exit 1, sólo por `e2e`**, entre las 23:17:28Z y las 23:42:25Z, con HEAD `2c04e369` y árbol limpio al inicio y al final (`verify-2c04e369.meta`). Corrieron 16 de 17 pasos: 15 PASÓ, `migrations-applied` NO DISPONIBLE y `e2e` FALLÓ por las 15 ambientales conocidas, en las dos pasadas, sin watchdog. Veredicto literal: `[FAIL] verify: 1 fallo(s) → e2e CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.` Detalle por paso abajo. No se absuelve ni se presenta como verde |
+| Procesos tras el verify | PASÓ: ninguno del árbol propio. Al terminar (23:42:25Z) no quedó ningún proceso de vitest, playwright, next ni chrome-headless-shell, ningún puerto 3100–3799 en escucha y 0 contenedores (`orphans-r4.log`). Sí apareció un `node scripts/verify.mjs` ajeno nuevo (pid 30368, iniciado a las 23:42:34Z, nueve segundos después del fin del mío y con otro árbol de procesos), que no se tocó. El árbol siguió limpio en `2c04e369` |
+| Producción / Supabase | NO EJECUTADO por límite del encargo: la aplicación la hizo el Director; desde esta sesión no se abrió conexión, no se aplicó nada y no se leyeron filas |
+| `/ui-check` | NO EJECUTADO por no aplicar: la ronda no toca UI |
+
+Detalle por paso de `corepack pnpm verify` sobre `2c04e369` (`verify-2c04e369.log`; Node 24.20.0, pnpm 12.3.4, Docker 29.7.2; 23:17:28Z → 23:42:25Z; lanzado con `run_in_background` desde `wait-then-verify-r4.sh`, que esperó a que terminara el verify ajeno y volvió a comprobar antes de arrancar):
+
+| Paso | Estado y evidencia |
+|---|---|
+| harness | PASÓ |
+| lint | PASÓ, 0 errores y 8 advertencias en archivos que esta PR no toca; las mismas de las rondas anteriores |
+| rsc-boundary | PASÓ |
+| typecheck | PASÓ |
+| edge-functions | PASÓ, 4 funciones compilan |
+| test | PASÓ en el primer intento, sin reintento: 548 archivos y 6.842 pruebas (`main` sumó los tests de L10), incluida la del inventario con su tope propio |
+| docs:check | PASÓ, 448 specs sincronizadas |
+| numbering | PASÓ, 448 specs · 445 migraciones, sin números repetidos |
+| feature-constants | PASÓ, 5 banderas |
+| components:check | PASÓ |
+| governance:check | PASÓ, 28 políticas aprobadas |
+| migrations-applied | NO DISPONIBLE: `[SKIP] migrations-applied: sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY`. El ledger real no se midió en este árbol; la evidencia de que 0407 y 0411–0413 están aplicadas es la que entregó el Director, no una consulta hecha aquí. No autoriza copiar credenciales |
+| pending-migration-symbols | PASÓ, `0 ROJO · 0 AMARILLO declarado(s)` |
+| sql-tests | PASÓ, 188 contratos con rollback total, incluidos los cinco de L07 (0407, 0411, 0412, 0413 y 0414) y los de 0410, 0415, 0451 y 0452 que trae `main` |
+| schema-rebuild | PASÓ: 427 migraciones desde cero y aislamiento multi-tenant en 219 tablas con 2 tenants |
+| e2e | **FALLÓ**, en las dos pasadas, por las 15 ambientales conocidas; sin watchdog del verify. Detalle abajo |
+| build | PASÓ: `[build] build de producción OK` |
+
+Diagnóstico del e2e, leído del log sin volver a correrlo:
+- **Las dos pasadas** dieron 15 fallidas, 1 flaky, 18 omitidas y 152 aprobadas: 186 pruebas con 8 workers, 11,1 min la primera y 4,6 min el reintento.
+- **Las 15 fallidas son las mismas de las rondas 1 a 3 y de L10:** `auth.spec.ts:21`, `:91`, `:98` y `:105` y `global-search.spec.ts:22`, en chromium, mobile-chrome y mobile-safari. Fallan porque el worktree no tiene configuración de Supabase.
+- **Flaky, ajenos a L07:** `attachments-gastos-pilot.spec.ts:20` en chromium en la primera pasada y `auth.spec.ts:74` en chromium en el reintento; los dos pasaron en su segundo intento interno de Playwright.
+- **Por qué la primera pasada tardó 11,1 min:** Playwright registró `worker-46 process did not exit within 300000ms after stop, force-killed it`; lo cortó el propio Playwright a los 300 s, no el watchdog del verify, y la pasada llegó a su resumen. En el reintento no se repitió. Es el mismo síntoma que L10 registró en su ronda 2.
+- **Relación con L07:** ningún spec de `e2e/` cubre Fidelización, Conversaciones ni Órdenes de venta, y la ronda no toca UI ni rutas del e2e.
+
+Veredicto literal: `[FAIL] verify: 1 fallo(s) → e2e CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.` No se absuelve ni se presenta como verde.
+- `verify-2c04e369.meta`: inicio 23:17:28Z, fin 23:42:25Z, exit 1, HEAD `2c04e369` al inicio y al final, y 0 líneas de `git status --porcelain` al inicio y al final.
+- Recibos: `verify-2c04e369.log`, `.meta`, `.exit`, `precheck-verify-r4.log`, `wait-foreign-verify.log` y `orphans-r4.log`.
+
+### Secuencia de release, actualizada
+
+1. **0452: hecho.** Aplicada el 2026-09-13 (ledger `20260913175856`), antes que 0407; registrada por la PR #109.
+2. **0407 → 0411, 0412 y 0413: hecho.** Aplicadas el 2026-09-13 (ledgers `20260913224300`, `20260913224418`, `20260913224437` y `20260913224453`); esperas y declaraciones retiradas en esta rama.
+3. **Fusionar (Director) y desplegar esta PR.** Smoke por roles con cuentas reales: Fidelización, CRM (Dirección) y Reportes → Comercial con commercial, support y accounting; panel de Conversaciones con commercial, operations, support y admin; drawer de Órdenes de venta con commercial, operations y accounting; lista y detalle de facturas del Portal con un cliente. Deben verse los datos de hoy con los cambios listados en la PR («Cambios de comportamiento visibles al desplegar»), sin errores de RPC.
+4. **0414**, sólo después de ese smoke, con OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`, dentro de una transacción y en baja actividad (su `lock_timeout` de 5 s la corta y la revierte si hay contención; se reintenta). Verificar `invoices_accounting_select`, `invoices portal self read` con la expresión coherente y la ACL sin DELETE, y otra vez las pantallas por rol. Retirar su espera en una rama propia.
+
 ## ANÁLISIS 1 — MIGRATE-FIRST POR FACADE
+
+> Ronda 4: este análisis ya no bloquea. Las tres RPC existen en producción desde el 2026-09-13, antes de fusionar el código que las consume (ver «RONDA 4»). La medición sigue valiendo como descripción de lo que pasaría sin ellas.
 
 **Veredicto: las tres facades son MIGRATE-FIRST.** 0411 y 0413 fallan ruidosamente; 0412 degrada en silencio. 0407 es requisito de 0411: su preflight exige `invoices_team_select` (`0411:30-39`).
 
@@ -919,6 +1063,10 @@ Recibos en el scratchpad de la tarea:
 
 ## VALIDACIÓN
 
+### Ronda 4 — verify completo sobre el head de código
+
+Está en «RONDA 4 › Validación de la ronda 4», con el veredicto por paso, la meta y el diagnóstico del e2e.
+
 ### Ronda 3 — verify completo sobre el head de código
 
 **Head verificado: `dd7e6f4940b987d6b3a9e070b109862ddf470905`.** Meta en `round3/verify-dd7e6f49.meta`:
@@ -1025,24 +1173,30 @@ Ronda 3:
 - `0d166684` Merge origin/main (a3dbac04: PR #107 SDD-0462 y PR #108 SDD-0463) en codex/c-l07-fidelizacion-conversations. Sin conflictos textuales; driver semántico en la baseline y el índice.
 - `799c8ae3` docs(db): SDD-0350 y SDD-0357 — ronda 3: frontera del Portal en los dos órdenes con 0452 y vuelta atrás de 0414 que no restaura la policy de 0085. Su `verify` falló en `test` por el tope de 20 s del test de inventario.
 - `dd7e6f49` test(studio): SDD-0357 — tope propio de 60 s para el inventario de lectores de invoices (L07, ronda 3). Rehace el commit local `2abd3e0d`, nunca publicado, para corregir un ejemplo de la nota. Head de código verificado en la ronda 3.
-- Commit que contiene este documento: docs(handoff): L07 — ronda 3. Sólo cambia este archivo.
+- `42dd00c2` docs(handoff): L07 — ronda 3: merge de main con 0452, frontera en los dos órdenes y vuelta atrás de 0414 sin la policy de 0085. Sólo cambia este archivo.
+
+Ronda 4:
+- `94e42666` Merge origin/main (76797beb: PR #109 registro de 0452 aplicada y PR #105 L10) en codex/c-l07-fidelizacion-conversations. Sin conflictos; driver semántico de `main` en la baseline y el índice.
+- `fd6044d4` chore(db): SDD-0350 y SDD-0354 a SDD-0357 — retirar las esperas y declaraciones de 0407 y 0411–0413, aplicadas el 2026-09-13 (L07, ronda 4).
+- `e9ed92ab` docs(specs): SDD-0350 y SDD-0354 a SDD-0357 — notas de importación con 0407 y 0411–0413 aplicadas (L07, ronda 4).
+- `2c04e369` Merge origin/main (a9a12eed: PR #110 registro de 0451 aplicada) en codex/c-l07-fidelizacion-conversations. Sin conflictos; driver semántico en la baseline. Head de código verificado en la ronda 4.
+- Commit que contiene este documento: docs(handoff): L07 — ronda 4. Sólo cambia este archivo.
 
 ## PR / BRANCH
 
-- Rama `codex/c-l07-fidelizacion-conversations`, publicada a sí misma con un único push normal por ronda, sin force. Ronda 1 en `0d247073`, ronda 2 en `c09b5155` y ronda 3 después de todos sus commits.
-- PR #106 en borrador contra `main`: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/106. El cuerpo se actualizó en cada ronda; el head final queda en la PR.
-- Base `main` `a3dbac04`, incorporada por merge.
+- Rama `codex/c-l07-fidelizacion-conversations`, publicada a sí misma con un único push normal por ronda, sin force. Ronda 1 en `0d247073`, ronda 2 en `c09b5155`, ronda 3 en `42dd00c2` y ronda 4 después de todos sus commits.
+- PR #106 en borrador contra `main`: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/106. El cuerpo se actualizó en cada ronda; el head final queda en la PR. Desde la ronda 4 no tiene bloqueo migrate-first.
+- Base `main` `a9a12eed`, incorporada por merge en la ronda 4 (primero `76797beb`, después `a9a12eed`; antes `a3dbac04` en la ronda 3).
 - Worktree `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l07-fidelizacion-conversations`, conservado.
 
 ## PENDIENTES DE ESTA TAREA
 
-Ninguno para la aceptación de la extracción ni de las rondas 2 y 3. Lo que sigue pertenece a release o a decisión del Director, no a esta tarea:
-- el conteo agregado de la fuga del Portal, que el Director pide a Sam;
-- aplicar 0452, que SDD-0463 recomienda antes de L07;
-- aplicar 0407 y 0411–0413 con autorización;
-- fusionar y desplegar;
+Ninguno para la aceptación de la extracción ni de las rondas 2, 3 y 4. Lo que sigue pertenece a release o a decisión del Director, no a esta tarea:
+- fusionar y desplegar esta PR (paso 3 del orden; 0452, 0407 y 0411–0413 ya están aplicadas);
 - el smoke por roles;
-- 0414.
+- 0414, sólo después de ese smoke, con OK nominal de Sam y el runbook, y el retiro de su espera en una rama propia.
+
+Ya resueltos fuera de esta tarea: el conteo agregado del Portal (hecho por el Director con autorización de Sam el 2026-09-13: un solo tenant), la aplicación de 0452 (PR #109) y la de 0407 y 0411–0413 (ronda 4).
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -1061,7 +1215,14 @@ Ninguno para la aceptación de la extracción ni de las rondas 2 y 3. Lo que sig
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción.** Revisar la ronda 3 de la PR #106. El orden de release no es un único paso DB: 0452 (recomendado antes, SDD-0463) → 0407 → 0411, 0412 y 0413, cada una con OK nominal de Sam y el runbook → fusión y despliegue → smoke por roles → 0414. Con la ronda 3 no quedan decisiones abiertas de L07.
+- **Siguiente acción.** Revisar la ronda 4 de la PR #106 y fusionarla en el orden normal: ya no hay bloqueo migrate-first. Orden de release: 0452 (hecho) → 0407 → 0411, 0412 y 0413 (hecho el 2026-09-13) → **fusión y despliegue de esta PR → smoke por roles** → 0414 con OK nominal de Sam y el runbook. Con la ronda 4 no quedan decisiones abiertas de L07.
+- **Decisiones del Director (ronda 4), aplicadas:**
+  1. **Merge de `origin/main` `76797beb` y, por su aviso antes del push, de `a9a12eed`:** hechos sin rebase ni force, sin conflictos, con el driver semántico de `main` e índice regenerado. En `main` queda sólo la espera de 0415; en la rama, la de 0414.
+  2. **Registros:** salen las esperas de 0407, 0411, 0412 y 0413 y las tres declaraciones; la espera de 0414 queda actualizada con las cuatro aplicadas y el paso siguiente; `cutoff` intacto; gate `0 ROJO · 0 AMARILLO`.
+  3. **Notas de las specs:** 0350, 0354, 0355 y 0356 con el patrón de migración aplicada; 0357 sólo en lo que las mencionaba como pendientes; advisors registrados como efecto esperado.
+  4. **PR sin migrate-first:** primera línea con el estado real.
+  5. **Verify completo** sobre el head de código de la ronda 4, lanzado sólo cuando terminó el verify ajeno.
+  6. **Un único push normal**, PR en borrador y claim liberado.
 - **Decisiones del Director (ronda 3), aplicadas:**
   1. **Merge de `origin/main`:** hecho sin rebase ni force, sin conflictos textuales, con el driver semántico e índice regenerado.
   2. **Textos en los dos órdenes:** la espera de 0414, la nota de 0357 y la sección de la PR valen con 0452 aplicada antes y sin ella; la espera de 0407 y la nota de 0350 describen su vuelta atrás.
@@ -1093,4 +1254,5 @@ Ninguno para la aceptación de la extracción ni de las rondas 2 y 3. Lo que sig
   - **Ronda 3.** Se levantaron y retiraron `dtd_l07_pg`, `dtd_l07_rest` y la red `dtd_l07_net` (dos corridas y el complemento), antes del verify.
     - El verify detenido sobre `2abd3e0d` se terminó con `taskkill /T /F` desde su `corepack`.
     - Después no quedaron procesos de verify, Vitest, Playwright ni Next, ni contenedores.
+  - **Ronda 4.** Sin contenedores ni servicios propios: no se levantó PostgreSQL ni PostgREST. El verify propio se lanzó sólo cuando terminó el ajeno (ver «RONDA 4 › Validación de la ronda 4») y al final no quedaron procesos suyos.
   - **Claim.** Liberado al terminar la escritura de cada ronda.
