@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 439 specs)
+### Índice de specs (generado · 444 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -379,8 +379,13 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0347 | Encapsular el contexto privado del home del Portal | done | interno |
 | 0348 | Encapsular la lectura privada de aceptación del Portal | done | interno |
 | 0349 | Automatizar calidad local sin secretos en GitHub Actions | done | interno |
+| 0350 | Aplicar RBAC de escritura a facturas en la base | done | interno |
 | 0351 | Aplicar RBAC admin-only al dominio Mailing | done | interno |
 | 0352 | Aplicar RBAC financiero a conciliación bancaria | done | interno |
+| 0354 | Minimizar la facturación anual para Fidelización y CRM | done | interno |
+| 0355 | Minimizar el saldo de cliente en Conversaciones | done | interno |
+| 0356 | Minimizar referencias de facturas en Órdenes de venta | done | interno |
+| 0357 | Cerrar lectura cruda de facturas por rol y principal Portal | done | interno |
 | 0359 | Aislar envíos, documentos e hitos Portal por principal y tenant | done | interno |
 | 0360 | Evitar que el foco tardío borre la búsqueda de destino | done | interno |
 | 0361 | Aislar proveedores, prealertas y sus documentos por principal… | done | interno |
@@ -478,5 +483,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0460 | `finish` informa lo que git sabe del candidato: locked y prun… | done | interno |
 | 0461 | La cadena de aliados no cruza tenants | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0350, 0353, 0354, 0355, 0356, 0357, 0358, 0364, 0365, 0366, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0353, 0358, 0364, 0365, 0366, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
