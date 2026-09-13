@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { STEPS } from "../verify.mjs";
 
+// Lista esperada de pasos; se contrasta con los STEPS reales que exporta verify
+// (SDD-0464), así una entrada nueva o retirada del gate rompe esta prueba.
 const STEP_NAMES = [
   "harness",
   "lint",
@@ -34,7 +37,9 @@ test("verify conecta la política explícita al veredicto final", async () => {
 
   assert.match(source, /assertCompleteStepPolicy/);
   assert.match(source, /buildVerifyVerdict/);
-  assert.match(source, /scripts\/tests\/verify-critical-coverage\.node\.mjs/);
+  // El paso harness ya no lleva lista manual: usa el descubrimiento de harness:test.
+  assert.match(source, /discoverHarnessTests\(\)/);
+  assert.doesNotMatch(source, /scripts\/tests\/verify-critical-coverage\.node\.mjs/);
   assert.match(
     packageJson.scripts["harness:test"],
     /scripts\/tests\/run-harness\.mjs/,
@@ -44,6 +49,7 @@ test("verify conecta la política explícita al veredicto final", async () => {
 test("todos los pasos tienen clasificación y motivo, sin entradas huérfanas", async () => {
   const { STEP_POLICY, assertCompleteStepPolicy } = await loadPolicy();
 
+  assert.deepEqual(STEPS.map((step) => step.name), STEP_NAMES);
   assert.doesNotThrow(() => assertCompleteStepPolicy(STEP_NAMES));
   assert.deepEqual(Object.keys(STEP_POLICY).sort(), [...STEP_NAMES].sort());
   for (const [name, policy] of Object.entries(STEP_POLICY)) {

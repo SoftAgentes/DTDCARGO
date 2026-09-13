@@ -31,7 +31,9 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { podarTiposDeRuta, notaDePoda } from "./prune-next-types.mjs";
+import { discoverHarnessTests } from "./tests/run-harness.mjs";
 import {
   absuelveCorrida,
   candidatosDePuerto,
@@ -313,19 +315,25 @@ try {
   process.exit(1);
 }
 
+// Los archivos del paso harness salen del MISMO descubrimiento que
+// `pnpm harness:test` (SDD-0464): cada scripts/tests/*.node.mjs entra sin
+// editar este archivo, y un directorio sin pruebas rompe el gate al cargar en
+// vez de correr vacío. Antes había una lista manual que se quedaba corta.
+let harnessTests;
+try {
+  harnessTests = discoverHarnessTests();
+} catch (error) {
+  fail(`harness: ${error.message}`);
+  process.exit(1);
+}
+
 // Cada check = un binario JS invocado con el mismo node que corre este script.
-const STEPS = [
+export const STEPS = [
   // Harness en repos temporales sin red ni credenciales. No se descubre por Vitest.
   {
     name: "harness",
-    argv: [
-      "--test",
-      "scripts/tests/director-status.node.mjs",
-      "scripts/tests/harness-worktree.node.mjs",
-      "scripts/tests/next-number.integration.node.mjs",
-      "scripts/tests/verify-critical-coverage.node.mjs",
-      "scripts/tests/verify-watchdog.node.mjs",
-    ],
+    argv: ["--test", ...harnessTests],
+    preflight: () => ({ note: `${harnessTests.length} archivos scripts/tests/*.node.mjs descubiertos` }),
   },
   { name: "lint", argv: ["node_modules/eslint/bin/eslint.js", "."] },
   // Frontera RSC: caza un server module que usa un VALOR de un módulo "use client"
@@ -440,13 +448,6 @@ try {
   process.exit(1);
 }
 
-const failures = [];
-/**
- * Pasos que NO corrieron. Se lleva aparte de `failures` a proposito: no son un
- * fallo del cambio, pero tampoco son un verde — y el resumen tiene que decirlo.
- */
-const skipped = [];
-
 // El absolvedor lee el reporte de ESTA corrida: si quedó uno viejo, mentiría.
 function limpiarReporteE2E() {
   try {
@@ -454,33 +455,52 @@ function limpiarReporteE2E() {
   } catch {}
 }
 
-// Preflight, intentos, absolvedor, watchdog y clasificación de cada paso viven
-// en scripts/verify-runner.mjs, donde se prueban con pasos falsos (SDD-0454).
-for (const step of STEPS) {
-  const resultado = await runStep(step, { out, beforeAttempt: limpiarReporteE2E });
-  if (resultado.skipped) skipped.push(resultado.skipped);
-  if (resultado.failure) failures.push(resultado.failure);
+/**
+ * Corre los pasos en orden y termina el proceso con el veredicto. Vive detrás
+ * de una frontera CLI/import (SDD-0464): importar este módulo desde una prueba
+ * expone `STEPS` sin lanzar el gate; solo el entry `node scripts/verify.mjs`
+ * lo ejecuta. El comportamiento del entry no cambia.
+ */
+export async function main() {
+  const failures = [];
+  /**
+   * Pasos que NO corrieron. Se lleva aparte de `failures` a proposito: no son un
+   * fallo del cambio, pero tampoco son un verde — y el resumen tiene que decirlo.
+   */
+  const skipped = [];
+
+  // Preflight, intentos, absolvedor, watchdog y clasificación de cada paso viven
+  // en scripts/verify-runner.mjs, donde se prueban con pasos falsos (SDD-0454).
+  for (const step of STEPS) {
+    const resultado = await runStep(step, { out, beforeAttempt: limpiarReporteE2E });
+    if (resultado.skipped) skipped.push(resultado.skipped);
+    if (resultado.failure) failures.push(resultado.failure);
+  }
+
+  console.log(`\n${C.dim}── resumen ───────────────────────────────────${C.nc}`);
+  // Cuantos de los pasos declarados se MIDIERON de verdad. Este es el numero que
+  // hay que citar al cerrar: "13 de 13" no es lo mismo que "11 de 13".
+  const corrieron = STEPS.length - skipped.length;
+  console.log(
+    `${C.dim}   ${corrieron} de ${STEPS.length} pasos corrieron de verdad${C.nc}`,
+  );
+
+  for (const om of skipped) warn(`omitido: ${om.name} — ${om.reason}`);
+
+  const verdict = buildVerifyVerdict({
+    stepNames: STEPS.map((step) => step.name),
+    skipped,
+    failures,
+  });
+
+  // Una sola línea final. Si faltó medir algo crítico lo nombra acá, aunque además
+  // haya fallos, para que el cierre no dependa de encontrar el [SKIP] anterior.
+  if (verdict.tone === "fail") fail(verdict.message);
+  else if (verdict.tone === "warn") warn(verdict.message);
+  else ok(verdict.message);
+  process.exit(verdict.exitCode);
 }
 
-console.log(`\n${C.dim}── resumen ───────────────────────────────────${C.nc}`);
-// Cuantos de los pasos declarados se MIDIERON de verdad. Este es el numero que
-// hay que citar al cerrar: "13 de 13" no es lo mismo que "11 de 13".
-const corrieron = STEPS.length - skipped.length;
-console.log(
-  `${C.dim}   ${corrieron} de ${STEPS.length} pasos corrieron de verdad${C.nc}`,
-);
-
-for (const om of skipped) warn(`omitido: ${om.name} — ${om.reason}`);
-
-const verdict = buildVerifyVerdict({
-  stepNames: STEPS.map((step) => step.name),
-  skipped,
-  failures,
-});
-
-// Una sola línea final. Si faltó medir algo crítico lo nombra acá, aunque además
-// haya fallos, para que el cierre no dependa de encontrar el [SKIP] anterior.
-if (verdict.tone === "fail") fail(verdict.message);
-else if (verdict.tone === "warn") warn(verdict.message);
-else ok(verdict.message);
-process.exit(verdict.exitCode);
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
+  await main();
+}
