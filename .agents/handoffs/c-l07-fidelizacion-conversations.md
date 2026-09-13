@@ -2,10 +2,11 @@
 
 Fecha: 2026-09-12. Task ID: `c-l07-fidelizacion-conversations`.
 Owner / sesión escritora: `c-l07-fidelizacion-conversations-20260912` (Worker asignado por el Director; sin subagentes ni otras sesiones escritoras).
-Estado de tarea: lista-para-revision. PR en borrador. **MIGRATE-FIRST: no fusionar antes de aplicar y verificar 0407, 0411, 0412 y 0413.** 0414 va después del despliegue de esta PR y del smoke por roles. Release y aplicación de migraciones quedan fuera de esta tarea.
+Rondas: dos, en la misma sesión. La 1 importa el lote y publica la PR #106 en `0d247073`. La 2 aplica la revisión del Director sobre ese head: sección de cambios visibles y frontera del Portal en la PR, test de inventario, esperas y notas, y vuelta atrás probada de 0407 y 0414. La ronda 2 no cambia código de producto ni SQL de migraciones desde `961ec85e`.
+Estado de tarea: lista-para-revision. PR #106 en borrador. **MIGRATE-FIRST: no fusionar antes de aplicar y verificar 0407, 0411, 0412 y 0413.** 0414 va después del despliegue de esta PR y del smoke por roles. Release y aplicación de migraciones quedan fuera de esta tarea.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO` (checkout principal en `main`, sin tocar).
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l07-fidelizacion-conversations`.
-Rama: `codex/c-l07-fidelizacion-conversations`. Base: `origin/main` `bca98147672a6255192b62b247ab3f5c44061bb2`; comprobado sin cambios antes del verify y antes del push.
+Rama: `codex/c-l07-fidelizacion-conversations`. Base: `origin/main` `bca98147672a6255192b62b247ab3f5c44061bb2`; comprobado sin cambios antes del verify, antes del push de la ronda 1 y al empezar la ronda 2.
 Origen de solo lectura: `refs/dtd/pr/21` = `origin/codex/saneamiento-integral` = `ea9952a47f4adf14c48c91e6d0147597beb94aa7`. Base común con `main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`. Commits de origen del lote: `ff3b4fa1` (SDD-0350), `a5d9c897` y `219f9400` (SDD-0354), `8b112b5a` (SDD-0355), `3ca9a79d` (SDD-0356) y `702de3f4` (SDD-0357).
 SDD: `docs/specs/0350-invoices-write-rbac`, `0354-client-annual-billing-facade`, `0355-conversation-outstanding-facade`, `0356-sales-order-invoice-facade` y `0357-invoices-read-rbac`, con el frontmatter de origen (`status: done`) y nota de importación. Migraciones `0407_invoices_write_rbac`, `0411_client_annual_billing_facade`, `0412_conversation_outstanding_facade`, `0413_sales_order_invoice_facade` y `0414_invoices_read_rbac`, declaradas pendientes. Sin reserva de número: se conserva la numeración de origen; ninguna ref local o remota fuera de la PR #21 tiene esas migraciones ni esas carpetas de spec.
 Permisos: commits selectivos; push de la rama a sí misma y PR en borrador contra `main`, autorizados por Sam. Prohibidos: merge, sacar la PR de borrador, deploy, aplicar migraciones, tocar el ruleset, borrar ramas o worktrees y leer filas de negocio.
@@ -16,16 +17,30 @@ Aceptación:
 - Cinco análisis antes de publicar: migrate-first por facade, inventario de lectores y escritores de `invoices`, paridad con controles rojos, datos personales y financieros, y locks con timeouts.
 - `lock_timeout` y `statement_timeout` pre-autorizados en las migraciones con ACCESS EXCLUSIVE sobre `invoices`, con aserción estática.
 - `corepack pnpm verify` completo sobre el head de código, con veredicto por paso y archivo meta.
+- **Ronda 2:**
+  - Sección «Cambios de comportamiento visibles al desplegar» en la PR.
+  - Frontera del Portal de 0414 explícita en su espera y en la PR, con la ausencia de mensaje de error.
+  - `invoice-read-boundary.test.mjs` importado si pasa contra el código real sin requerir código ausente, con control rojo.
+  - Vuelta atrás de 0407 y 0414 escrita, probada con comparación de catálogo y citada desde las esperas.
+  - Validación proporcional sin verify completo, con `git diff --stat 961ec85e..HEAD` limitado al test, las notas, las esperas y el handoff.
 
 ## OBJETIVO ORIGINAL
 
 Extraer el lote L07 del bloque C desde la PR #21: el RBAC de escritura y lectura de `invoices` (0407 y 0414) y las tres facades que lo preparan, que son la facturación anual de Fidelización, CRM y Reportes (0411), el saldo de Conversaciones (0412) y las referencias de facturas de Órdenes de venta (0413). Traer su SQL, specs, código y pruebas, listo para revisión en una PR borrador contra `main`, sin aplicar nada a producción ni leer filas de negocio. Es el lote de mayor riesgo del bloque: restringe quién lee y escribe facturas.
 
+Ronda 2, revisión del Director sobre `0d247073`. Acepta la PR en lo sustancial y decide seis puntos:
+1. Acepta las divergencias de paridad y pide listarlas en lenguaje llano en la PR.
+2. Acepta como intencional la frontera del Portal de 0414 y pide declararla, con la ausencia de mensaje de error, en la espera y en la PR.
+3. Deja sin cambios la fuga del Portal mientras dimensiona su exposición con Sam.
+4. Confirma fuera de alcance la página de Órdenes de venta.
+5. Pide importar el test de inventario si pasa contra el código real.
+6. Pide la vuelta atrás de 0407 y 0414, probada con comparación de catálogo.
+
 ## COMPLETADO
 
 ### Archivos y relación con el origen
 
-Diff contra `origin/main` `bca98147`: 28 archivos de producto más este handoff.
+Diff contra `origin/main` `bca98147`: 29 archivos más este handoff, 28 de la ronda 1 y el test de inventario de la ronda 2.
 
 | Archivo | Relación con el origen |
 |---|---|
@@ -47,29 +62,78 @@ Diff contra `origin/main` `bca98147`: 28 archivos de producto más este handoff.
 | `lib/studio/conversaciones/__tests__/client-context.test.ts` | nuevo, idéntico (`c82f3013`) |
 | `lib/studio/sales-orders/queries.ts` | `main` más sólo los trozos de SDD-0356: import de `fetchAllByIds` (`:16`), `SalesOrderInvoiceRef` sin fechas (`:207-212`) y `listInvoicesForSalesOrder` sobre `listInvoicesBySalesOrder` (`:218-262`) |
 | `lib/studio/__tests__/orders-relations-batch.test.ts` | nuevo, recortado: el origen `e813f645` mezclaba SDD-0322 y SDD-0356 |
-| las cinco `docs/specs/…/spec.md` | origen más la nota de importación; frontmatter intacto |
-| `docs/specs/README.md` | regenerado con `node scripts/build-docs-index.mjs`: 444 specs; 0350 y 0354–0357 salen de la lista de huecos |
-| `supabase/migrations-baseline.json` | cinco esperas; `cutoff 238`, `$doc` y la espera de 0451 idénticos a `main`, comprobado por valor |
+| `scripts/__tests__/invoice-read-boundary.test.mjs` | ronda 2: nuevo, idéntico (`97c82149`), sin ajustar su lista de lectores |
+| las cinco `docs/specs/…/spec.md` | origen más la nota de importación; frontmatter intacto. En la ronda 2, las notas de 0350 y 0357 suman la vuelta atrás, la frontera del Portal y el test |
+| `docs/specs/README.md` | regenerado con `node scripts/build-docs-index.mjs`: 444 specs; 0350 y 0354–0357 salen de la lista de huecos. La ronda 2 no lo cambia |
+| `supabase/migrations-baseline.json` | cinco esperas; `cutoff 238`, `$doc` y la espera de 0451 idénticos a `main`, comprobado por valor. En la ronda 2 cambian sólo las esperas de 0407 y 0414 |
 | `supabase/pending-migration-symbol-declarations.json` | tres declaraciones AMARILLO; `schemaVersion` y `$doc` idénticos a `main` |
 
-La identidad se comprobó con `git hash-object` al importar y con `git rev-parse HEAD:<ruta>` contra `refs/dtd/pr/21:<ruta>`: el primer commit (`6330cb46`) guarda los diez SQL idénticos al origen y la desviación queda sola en el segundo (`b6fdf92f`). Los SQL van byte a byte (`-text` en `.gitattributes`) y se comprobó con Node que ningún archivo tocado tiene CR.
+La identidad se comprobó con `git hash-object` al importar y con `git rev-parse HEAD:<ruta>` contra `refs/dtd/pr/21:<ruta>`: el primer commit (`6330cb46`) guarda los diez SQL idénticos al origen y la desviación queda sola en el segundo (`b6fdf92f`). El test de la ronda 2 se comprobó igual en `e952e4bd`. Los SQL van byte a byte (`-text` en `.gitattributes`) y se comprobó con Node que ningún archivo tocado tiene CR.
 
 ### Solapamientos con `main` y resolución
 
 - Desde la base común, `main` sólo tocó dos líneas del alcance: `STATUS_TONES.abierto` pasó de `warning` a `info` y su expectativa en el test. Se conservan; de esos dos archivos sólo entra lo de L07.
 - En el origen, `lib/studio/sales-orders/queries.ts` y `orders-relations-batch.test.ts` mezclan SDD-0322 (commit `1faff60b`: `listPrealertasBySalesOrder`, columna `sales_order_id` de prealertas, ítems de compra y lectura de las páginas) con SDD-0356 (`3ca9a79d`). Entra sólo 0356. La spec 0322 está en `main` sin ese código. El test recortado conserva los casos de facturas (agrupación por RPC sin consulta por orden, error que no se vuelve vacío y lote vacío) y agrega uno: el helper de una orden delega en la misma RPC. En el cliente falso, `from` lanza para probar que no hay lectura directa.
 - `digest-extract.ts` y `monthly-digest.ts`, que la PR #21 cambió en la misma carpeta por observabilidad, no entran.
-- `scripts/__tests__/invoice-read-boundary.test.mjs`, de la allowlist de SDD-0357, no entra: está fuera del alcance asignado.
+- `scripts/__tests__/invoice-read-boundary.test.mjs`, de la allowlist de SDD-0357, quedó fuera en la ronda 1 y entró en la ronda 2 por decisión del Director (ver «Ronda 2»).
 - No hubo merge ni conflicto textual: `origin/main` no se movió durante la tarea.
 
 ### Esperas y declaración
 
-- `supabase/migrations-baseline.json`: una espera por migración, en el estilo de las PR #104 y #105. Cada una lleva lo que hace la migración, el orden obligatorio de L07, las lecturas de catálogo previas (0407), la condición transaccional literal de `set local` (0407 y 0414), locks y contención medidos, qué rompe en silencio (0414) y el párrafo literal de autorización.
+- `supabase/migrations-baseline.json`: una espera por migración, en el estilo de las PR #104 y #105. Cada una lleva lo que hace la migración, el orden obligatorio de L07, las lecturas de catálogo previas (0407), la condición transaccional literal de `set local` (0407 y 0414), locks y contención medidos, qué rompe en silencio (0414) y el párrafo literal de autorización. En la ronda 2, las de 0407 y 0414 remiten a la vuelta atrás probada, y la de 0414 declara la frontera del Portal.
 - `supabase/pending-migration-symbol-declarations.json`: `studio_client_annual_billing`, `conversation_client_outstanding` y `sales_order_invoice_refs` quedan AMARILLO con su sitio de llamada y la evidencia del degradado. El gate da `0 ROJO · 3 AMARILLO`.
 
 ### Specs importadas
 
-Las cinco conservan el frontmatter de origen. Cada nota de importación, con el patrón de `0352-bank-reconciliation-rbac`, registra el origen y sus commits, los cortes, la paridad medida, el estado real **pendiente de aplicar** y los archivos que entran fuera de su allowlist: los registros de pendientes y este handoff. Las notas de 0350 y 0357 registran además la desviación de timeouts. Cada archivo del diff queda cubierto por la allowlist de alguna spec o por esas notas.
+Las cinco conservan el frontmatter de origen. Cada nota de importación, con el patrón de `0352-bank-reconciliation-rbac`, registra el origen y sus commits, los cortes, la paridad medida, el estado real **pendiente de aplicar** y los archivos que entran fuera de su allowlist: los registros de pendientes y este handoff. Las notas de 0350 y 0357 registran además la desviación de timeouts y, desde la ronda 2, la vuelta atrás; la de 0357 suma la frontera del Portal aceptada y el test de inventario. Cada archivo del diff queda cubierto por la allowlist de alguna spec o por esas notas. El test de la ronda 2 ya estaba en la allowlist de 0357.
+
+### Ronda 2
+
+**Decisiones del Director aplicadas:**
+1. **Divergencias de paridad, aceptadas.** El cuerpo de la PR #106 tiene «Cambios de comportamiento visibles al desplegar», con los siete cambios en lenguaje llano y lo que no tiene efecto visible.
+2. **Frontera del Portal con 0414, aceptada.** La espera de 0414, la nota de 0357 y la PR la declaran explícita, sin mensaje de error, con la medición de abajo.
+3. **Fuga del Portal.** Sin cambios en esta ronda; queda en manos del Director con Sam y 0414 conserva su lugar.
+4. **Órdenes de venta y SDD-0322.** Fuera de alcance, en «FUERA DE ALCANCE DETECTADO» 3.
+5. **Test de inventario.** Importado sin ajustes.
+6. **Vuelta atrás de 0407 y 0414.** Escrita y probada, en la sección «VUELTA ATRÁS DE 0407 Y 0414».
+
+**Test de inventario.**
+- **Qué entra.** Entra idéntico al origen: blob `97c82149` en `e952e4bd`. Congela 45 llamadas directas `from("invoices")` en 18 archivos de `app/`, `lib/` y `supabase/functions/`, sin contar tests, comentarios ni ejemplos. Además comprueba que los widgets `monthRevenue`, `invoicesDue`, `pendingCollect` y `avgTicket` siguen en el módulo `invoices`, cerrado a overrides para los cinco roles no financieros.
+- **Sin ajustes.** Su lista coincide archivo por archivo con el inventario AST de esta rama (`inventory-l07-head.txt`). Sus imports existen en `main`: `canAccessModule` (`lib/studio/rbac.ts:318`) y `KPI_CATALOG` (`lib/studio/dashboard/dashboard-catalog.ts:51`). No requiere SDD-0322, SDD-0390 ni otro código ausente.
+- **Vitest lo descubre.** `vitest.config.ts` no restringe `include` y sólo excluye `node_modules`, `.next`, `.claude` y `e2e` (`:31`), igual que con los demás `scripts/__tests__/*.test.mjs`.
+- **Focal.** PASÓ, 3/3 (`round2/test-invoice-read-boundary-focal.log`).
+- **Control rojo.** `lib/studio/__l07_control_rojo_lector_facturas.ts`, con un `db.from("invoices")`, hizo fallar la primera prueba con `expected { …(19) } to deeply equal { …(18) }` (`round2/test-invoice-read-boundary-redcontrol.log`). El archivo se borró en el mismo comando y la prueba volvió a pasar 3/3 (`round2/test-invoice-read-boundary-after-revert.log`).
+- **PR #104 y #105.** El conteo AST de los 14 y 1 archivos de producción que tocan da 0 cambios (`results/branch-inventory-delta.txt`).
+
+**Frontera del Portal, medida.** Sonda en PostgreSQL 17.11 efímero (`results/portal-pdf-probe.txt`):
+- Reproduce la lectura exacta de `getMyInvoice`: código, Shipping Mark resuelto por `get_portal_client_markbox()` y sin borradores ni borradas.
+- Corre como `authenticated`, en `main` y tras 0407, 0411–0413 y 0414, dentro de una transacción revertida.
+
+| Identidad | Factura | Shipping Mark resuelto | En `main` | Tras 0414 |
+|---|---|---|---|---|
+| vínculo activo con cliente borrado | X01 (de su cliente) | DEAD | visible | no visible |
+| vínculo coherente de T1, Shipping Mark repetido en T2 | D01 (de T1) | DUP | visible | visible |
+| vínculo coherente de T1, Shipping Mark repetido en T2 | D2-01 (de T2) | DUP | visible | no visible |
+| vínculo incoherente (vínculo en T1, cliente de T2) | D01 | DUP | visible | no visible |
+| vínculo incoherente (vínculo en T1, cliente de T2) | D2-01 | DUP | visible | no visible |
+
+Cómo se ve en la app:
+- **Páginas.** El layout del Portal resuelve el principal con `getPortalClient`, que ya rechaza cliente borrado y tenant incoherente (`lib/portal/portal-queries.ts:80-87`), y manda a `/entrar` (`app/portal/(app)/layout.tsx:39-40`). En las páginas no cambia nada.
+- **PDF por URL.** La ruta del PDF es un route handler: no pasa por el layout y llama `getMyInvoice` antes de cualquier guard (`app/portal/(app)/facturas/[code]/pdf/route.ts:41-44`). Sin fila responde `noEncontrado("Factura")`, un 404 con «Factura no encontrado.» (`lib/studio/pdf/pdf-response.ts:59-63`).
+- **Mensajes.** Ningún caso emite un mensaje de error propio.
+
+**Esperas y notas.**
+- `supabase/migrations-baseline.json`: sólo cambian las esperas de 0407 y 0414. `cutoff`, `$doc`, 0451, 0411, 0412, 0413 y el párrafo literal de autorización quedan idénticos, comprobado por valor. La de 0407 remite a la vuelta atrás; la de 0414 declara la frontera del Portal y remite a la vuelta atrás.
+- Notas: 0350 suma la referencia a la vuelta atrás. 0357 suma la frontera aceptada, la importación del test con su control rojo y la referencia a la vuelta atrás. Las otras tres specs y el índice no cambian.
+
+**PR #106.** Cuerpo actualizado y sigue en borrador. Suma:
+- «Cambios de comportamiento visibles al desplegar»;
+- «Frontera del Portal al aplicar 0414»;
+- «Vuelta atrás de 0407 y 0414, probada»;
+- la validación de la ronda 2;
+- las decisiones del Director.
+
+**Sin producto.** `git diff --stat 961ec85e..HEAD` (en «VALIDACIÓN») sólo muestra el test, dos notas de specs, el baseline y este handoff.
 
 ## ANÁLISIS 1 — MIGRATE-FIRST POR FACADE
 
@@ -98,7 +162,7 @@ Las tres son aditivas. Tras aplicarlas, el código de `main` devuelve lo mismo q
 ## ANÁLISIS 2 — LECTORES Y ESCRITORES DE `invoices` EN `main` `bca98147`
 
 Método:
-- **Inventario AST propio.** Recorre con TypeScript cada `from("invoices")`, con su cadena de métodos y su receptor, en `app/`, `lib/`, `components/`, `scripts/` y `supabase/functions/`. Da 48 llamadas de producción en 21 archivos y ninguna `.delete()`. Con L07 quedan 45 en 18, el mismo inventario que congelaba el origen.
+- **Inventario AST propio.** Recorre con TypeScript cada `from("invoices")`, con su cadena de métodos y su receptor, en `app/`, `lib/`, `components/`, `scripts/` y `supabase/functions/`. Da 48 llamadas de producción en 21 archivos y ninguna `.delete()`. Con L07 quedan 45 en 18, el mismo inventario que congela el test de la ronda 2.
 - **Embeds.** Se buscaron `invoices(`, `invoices!` e `invoice_id(`: no hay ninguno.
 - **SQL.** Las funciones que leen o escriben `invoices` se sacaron por `grep` sobre las 419 migraciones, con su modo `SECURITY`.
 - **Vistas y Realtime.** No hay vistas ni publicación Realtime sobre `invoices`. Los helpers de documentos y comentarios que la consultan son definer.
@@ -135,7 +199,7 @@ Hecho previo verificado en el catálogo: la policy efectiva `invoices by tenant`
 | **Fidelización, CRM y Reportes → Comercial**: `clientAnnualBilling` de `main` (`lib/studio/fidelizacion/queries.ts:71`) | sesión | fidelizacion (commercial, support), kommo (commercial) y reports (accounting) | tenant completo | igual | **código de `main`: cero filas sin error y todos los clientes en Bronze** (medido); código L07: RPC definer, igual para los autorizados |
 | **Conversaciones**: `getClientContext` de `main` (`conversations-queries.ts:348`) | sesión | conversaciones (commercial, operations, support) | lee | igual | **código de `main`: saldo 0 falso sin error** (medido; el principal dual ve 777 USD de otro tenant); código L07: RPC |
 | **Órdenes de venta**: `listInvoicesForSalesOrder` de `main` (`sales-orders/queries.ts:226`) | sesión | sales-orders (commercial, operations, accounting) | lee | igual | **código de `main`: «Facturas · 0» sin error para commercial y operations** (medido); código L07: RPC |
-| **Portal**: `listMyInvoices` y `getMyInvoice` (`lib/portal/portal-queries.ts:241` y `:280`) para lista, detalle y PDF | sesión, policy Portal | cliente Portal | policy por Shipping Mark sin tenant: con el mismo Shipping Mark en dos tenants lee facturas del otro (medido: D2-01 desde T1) | igual | un vínculo coherente conserva sus facturas. **Deja de ver**, sin error, las del otro tenant, las de un vínculo activo a un cliente borrado y las de un vínculo incoherente: la lista queda vacía y el detalle da `notFound` |
+| **Portal**: `listMyInvoices` y `getMyInvoice` (`lib/portal/portal-queries.ts:241` y `:280`) para lista, detalle y PDF | sesión, policy Portal | cliente Portal | policy por Shipping Mark sin tenant: con el mismo Shipping Mark en dos tenants lee facturas del otro (medido: D2-01 desde T1) | igual | un vínculo coherente conserva sus facturas y deja de ver las de otro tenant con su mismo Shipping Mark: la lista las pierde y su detalle da `notFound`. **Frontera aceptada (ronda 2):** un vínculo activo con cliente borrado o incoherente deja de leer facturas sin ningún mensaje de error. El layout ya lo manda a `/entrar`, así que en la app sólo se nota en el PDF por URL, que pasa a 404 (medido) |
 | Portal con service_role: `lib/portal/portal-legal-queries.ts:116`, `:200` y `:261` y `app/portal/(app)/facturas/[code]/reportar/actions.ts:86`, tras resolver el principal por sesión | service_role | cliente Portal | igual | igual | igual |
 | Procesos: cron `kommo-contact-status` (`lib/studio/kommo-contact-status.ts:214`) | service_role | cron | igual | igual | igual |
 | Funciones SQL definer que leen `invoices`: `next_invoice_code`, `comment_entity_in_tenant`, `document_entity_in_tenant` (0215/0314), `payment_reports_validate_invoice`, `get_portal_referral_program` (0404), `sales_order_claim_and_invoice` y `confirm_payment_report` | definer | según su gate | igual | igual | igual |
@@ -144,14 +208,14 @@ Hecho previo verificado en el catálogo: la policy efectiva `invoices by tenant`
 Fallas silenciosas marcadas:
 1. 0414 con el código de `main` todavía desplegado, o revirtiendo sólo la app después de 0414.
 2. 0412 aplicada sin el despliegue es inocua, pero desplegar sin 0412 degrada el panel en silencio.
-3. Portal tras 0414: vínculo con cliente borrado o incoherente.
+3. Portal tras 0414: vínculo con cliente borrado o incoherente. Es frontera aceptada por el Director; en la app sólo se nota en el PDF por URL, que responde 404.
 4. 0407 para escrituras por PostgREST de roles no financieros, sin camino desde la app.
 
 Con L07 desplegado, ningún lector ni escritor legítimo se rompe, así que no hizo falta ningún arreglo fuera del allowlist.
 
 ## ANÁLISIS 3 — PARIDAD DE CADA FACADE CON EL CONSUMIDOR DE `main`
 
-Cifras medidas con el arnés de postgrest-js y datos sintéticos, en la etapa «tras 0413»: RPC aplicadas y RLS todavía de `main` + 0407. Los tenants T1 y T2 comparten Shipping Marks.
+Cifras medidas con el arnés de postgrest-js y datos sintéticos, en la etapa «tras 0413»: RPC aplicadas y RLS todavía de `main` + 0407. Los tenants T1 y T2 comparten Shipping Marks. En la ronda 2 el Director aceptó todas las divergencias; la PR las lista en lenguaje llano.
 
 **0411 — facturación anual por Shipping Mark (USD, accounting de T1)**
 
@@ -218,7 +282,7 @@ Inventario de lo que cruza la frontera en este lote:
 | Facturas leídas por el Portal (`getMyInvoice`: `client_name`, `client_rif`, `client_doc_kind`, montos, líneas y notas; `lib/portal/portal-queries.ts:283`) | identidad fiscal y datos económicos | autoservicio del cliente | el principal Portal |
 
 Hallazgos:
-1. **ENCONTRADO, grave; lo cierra 0414.** Con la policy Portal histórica (`supabase/migrations/0085_portal_invoices_rls.sql:19-25`) y el mismo Shipping Mark en dos tenants, un cliente Portal lee facturas de otro tenant, con nombre, RIF, montos y líneas: medido D2-01 desde un vínculo de T1. Le corresponden la CRBV art. 28 (acceso a los datos propios) y el art. 60 (confidencialidad). Arreglo: 0414 (`0414:62-80`) exige vínculo, cliente y tenant coherentes, y se midió que la exposición cesa. Pendiente de aplicar.
+1. **ENCONTRADO, grave; lo cierra 0414.** Con la policy Portal histórica (`supabase/migrations/0085_portal_invoices_rls.sql:19-25`) y el mismo Shipping Mark en dos tenants, un cliente Portal lee facturas de otro tenant, con nombre, RIF, montos y líneas: medido D2-01 desde un vínculo de T1. Le corresponden la CRBV art. 28 (acceso a los datos propios) y el art. 60 (confidencialidad). Arreglo: 0414 (`0414:62-80`) exige vínculo, cliente y tenant coherentes, y se midió que la exposición cesa. Pendiente de aplicar. La ruta del PDF la expone además por URL, porque lee la factura antes de resolver el principal (`app/portal/(app)/facturas/[code]/pdf/route.ts:41-44`).
 2. **ENCONTRADO; lo cierran 0411–0413 con 0414.** Hoy commercial, operations, warehouse, support y marketing leen cada factura del tenant con moneda, tasa, estado, fechas, RIF, líneas y notas (policy `invoices by tenant` y `0230:36`), aunque sólo necesitan agregados. Es el punto 2 del checklist, minimización (SC 332/2001: finalidad). Tras 0414 leen 0 filas y reciben sólo las columnas de las RPC.
 3. **ENCONTRADO; lo cierra 0407.** Esos cinco roles también pueden crear, modificar, anular y borrar facturas por PostgREST (medido).
 4. **CORRECTO. Minimización de columnas:** 2 columnas en `0411:44-47`, 3 en `0412:20` y 6 en `0413:19-22`, sin cliente, líneas, tasa, notas ni datos fiscales. El helper de OV descarta `created_at` antes de la UI (`lib/studio/sales-orders/queries.ts:254-259`), y el test lo afirma.
@@ -231,7 +295,7 @@ Hallazgos:
 NO VERIFICABLE:
 - Zona horaria de la base de producción.
 - ACL y policies reales de `invoices` en producción. La espera de 0407 trae la lectura de catálogo.
-- Si hoy existe en producción el mismo Shipping Mark en dos tenants: el conteo agregado necesita autorización y no se leyó.
+- Si hoy existe en producción el mismo Shipping Mark en dos tenants: el conteo agregado necesita autorización y no se leyó. El Director lo pide a Sam.
 - Base de licitud, retención y avisos, que están fuera del repo.
 
 Fuera de alcance legal: redacción de políticas, contratos con encargados y decisión sobre la base de licitud. Conviene pedir una segunda opinión de otro modelo sobre este análisis. Esto no es asesoría legal.
@@ -270,7 +334,301 @@ Desviación pre-autorizada y su condición:
 
 Riesgos operativos:
 - Mientras 0407 o 0414 esperan, hasta 5 s, queda en cola toda lectura de facturas: Facturación, Cobranzas, Portal, tablero y reportes. Conviene aplicarlas en baja actividad; si cortan, se reintentan.
-- No se preparó rollback SQL. Revertir 0414 exige recrear `invoices_team_select` y la policy Portal histórica, y reabre la fuga entre tenants. Revertir 0407 exige recrear la policy FOR ALL y el DELETE. Hay que evaluarlo aparte según el runbook.
+- La vuelta atrás de 0407 y 0414 está escrita y probada en local (sección siguiente). Ninguna pierde datos: revertir 0414 reabre la lectura cruda del equipo y la fuga del Portal entre tenants, y revertir 0407 reabre la escritura y el DELETE de los roles no financieros. Primero 0414, después 0407.
+
+## VUELTA ATRÁS DE 0407 Y 0414 (PROBADA)
+
+Ronda 2, por pedido del Director.
+- **Qué son.** Ninguno de estos dos bloques SQL es una migración: no se guardan en `supabase/migrations` ni se registran en el ledger.
+- **Cómo se aplican.** Sólo con OK nominal de Sam, siguiendo `docs/runbooks/aplicar-migraciones-prod.md` y dentro de una transacción.
+- **Locks y timeouts.** Los dos fijan `lock_timeout` 5 s y `statement_timeout` 60 s, como las migraciones, y toman el mismo ACCESS EXCLUSIVE sobre `invoices`.
+- **Controles.** El preflight comprueba que la tabla está exactamente como la deja su migración, y el postflight, que quedó como estaba antes.
+
+Orden y alcance:
+- **Sólo 0407 aplicada:** se revierte 0407.
+- **0414 aplicada:** primero se revierte 0414. Revertir 0407 con 0414 aplicada aborta en su preflight con «revertir 0414 primero» y no deja nada a medias (medido).
+- **Volver la app a `main` con 0414 aplicada** rompe en silencio Fidelización, CRM, Reportes, Conversaciones y Órdenes de venta (análisis 2). Antes de volver la app, se revierte 0414.
+- **Las tres RPC de 0411–0413 quedan.** No son parte de esta vuelta atrás; retirarlas con la app de L07 desplegada rompe esas pantallas (MIGRATE-FIRST).
+- **Producción.**
+  - Antes de aplicar 0407 conviene guardar la lectura de catálogo de su espera. Esta vuelta atrás devuelve el estado de `main`: si lo capturado difiere, hay que ajustarla antes de usarla.
+  - En producción `authenticated` puede tener además REFERENCES, TRIGGER o MAINTAIN, que la base local no tiene. La vuelta atrás sólo toca DELETE, que es lo que 0407 quita, y GRANT y REVOKE editan la misma entrada del ACL, así que el resto queda igual (en local, `relacl` idéntico).
+
+### SQL de la vuelta atrás de 0414
+
+```sql
+-- VUELTA ATRÁS DE 0414 · L07 / SDD-0357. NO es una migración: no se guarda en
+-- supabase/migrations ni se registra en el ledger. Aplicar sólo con OK nominal
+-- de Sam y dentro de una transacción. Deja public.invoices como la dejan
+-- 0407 y 0411–0413 (antes de 0414). No toca filas ni las tres RPC. Reabre la
+-- lectura cruda de facturas para el equipo del tenant y la policy Portal
+-- histórica por Shipping Mark sin tenant.
+set local lock_timeout = '5s';
+set local statement_timeout = '60s';
+
+do $preflight$
+declare
+  v_policies text := (
+    select pg_catalog.string_agg(p.policyname || ':' || p.cmd, ', ' order by p.policyname collate "C")
+    from pg_catalog.pg_policies as p
+    where p.schemaname = 'public' and p.tablename = 'invoices'
+  );
+begin
+  if (select count(*) from pg_catalog.pg_policies
+      where schemaname = 'public' and tablename = 'invoices') <> 4
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices_accounting_select' and cmd = 'SELECT')
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices_accounting_insert' and cmd = 'INSERT')
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices_accounting_update' and cmd = 'UPDATE')
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices portal self read' and cmd = 'SELECT'
+         and qual like '%client_users%') then
+    raise exception 'vuelta atrás de 0414: invoices no está como la deja 0414 (policies: %)', v_policies;
+  end if;
+  if pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'DELETE') then
+    raise exception 'vuelta atrás de 0414: authenticated tiene DELETE; la ACL no es la de 0407';
+  end if;
+end;
+$preflight$;
+
+drop policy invoices_accounting_select on public.invoices;
+create policy invoices_team_select
+  on public.invoices for select
+  to authenticated
+  using (
+    tenant_id = (select public.get_user_tenant_id())
+  );
+
+drop policy "invoices portal self read" on public.invoices;
+create policy "invoices portal self read"
+  on public.invoices for select to authenticated
+  using (
+    deleted_at is null
+    and status <> 'borrador'
+    and client_markbox is not null
+    and client_markbox = public.get_portal_client_markbox()
+  );
+
+comment on table public.invoices is
+  'SDD-0021/0350: facturas operativas y financieras. SELECT interno permanece tenant-wide por compatibilidad con consumidores agregados; INSERT/UPDATE requieren accounting o admin en RLS (0407). authenticated no tiene DELETE físico: borradores usan soft-delete y hechos emitidos se anulan. service_role queda reservado a jobs/RPCs controladas.';
+
+do $postflight$
+begin
+  if (select count(*) from pg_catalog.pg_policies
+      where schemaname = 'public' and tablename = 'invoices') <> 4
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices_team_select' and cmd = 'SELECT')
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices portal self read' and cmd = 'SELECT'
+         and qual like '%get_portal_client_markbox%')
+     or exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices_accounting_select')
+     or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'SELECT')
+     or pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'DELETE') then
+    raise exception 'vuelta atrás de 0414: estado final inválido';
+  end if;
+end;
+$postflight$;
+```
+
+### SQL de la vuelta atrás de 0407
+
+```sql
+-- VUELTA ATRÁS DE 0407 · L07 / SDD-0350. NO es una migración: no se guarda en
+-- supabase/migrations ni se registra en el ledger. Aplicar sólo con OK nominal
+-- de Sam, dentro de una transacción y, si 0414 estaba aplicada, después de
+-- revertir 0414. Deja public.invoices con las policies, la ACL y el comentario
+-- de main bca98147 (antes de 0407). No toca filas.
+set local lock_timeout = '5s';
+set local statement_timeout = '60s';
+
+do $preflight$
+declare
+  v_policies text := (
+    select pg_catalog.string_agg(p.policyname || ':' || p.cmd, ', ' order by p.policyname collate "C")
+    from pg_catalog.pg_policies as p
+    where p.schemaname = 'public' and p.tablename = 'invoices'
+  );
+begin
+  if exists (
+    select 1 from pg_catalog.pg_policies
+    where schemaname = 'public' and tablename = 'invoices'
+      and policyname = 'invoices_accounting_select'
+  ) then
+    raise exception 'vuelta atrás de 0407: 0414 sigue aplicada; revertir 0414 primero (policies: %)', v_policies;
+  end if;
+  if (select count(*) from pg_catalog.pg_policies
+      where schemaname = 'public' and tablename = 'invoices') <> 4
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices_team_select' and cmd = 'SELECT')
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices_accounting_insert' and cmd = 'INSERT')
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices_accounting_update' and cmd = 'UPDATE')
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices portal self read' and cmd = 'SELECT'
+         and qual like '%get_portal_client_markbox%') then
+    raise exception 'vuelta atrás de 0407: invoices no está como la deja 0407 (policies: %)', v_policies;
+  end if;
+  if pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'DELETE') then
+    raise exception 'vuelta atrás de 0407: authenticated ya tiene DELETE; comparar con la ACL capturada antes de 0407';
+  end if;
+end;
+$preflight$;
+
+drop policy invoices_team_select on public.invoices;
+drop policy invoices_accounting_insert on public.invoices;
+drop policy invoices_accounting_update on public.invoices;
+
+create policy "invoices by tenant"
+  on public.invoices for all
+  to authenticated
+  using (tenant_id = public.get_user_tenant_id())
+  with check (tenant_id = public.get_user_tenant_id());
+
+grant delete on public.invoices to authenticated;
+
+comment on table public.invoices is
+  'SDD-0021: facturas operativas. State machine borrador → emitida → parcial/pagada · vencida (visual) · anulada. paid_amount es acumulador (el ledger de pagos es Cobranzas, Bloque 2). Soft delete via deleted_at. RLS por tenant_id.';
+
+do $postflight$
+begin
+  if (select count(*) from pg_catalog.pg_policies
+      where schemaname = 'public' and tablename = 'invoices') <> 2
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices by tenant' and cmd = 'ALL')
+     or not exists (select 1 from pg_catalog.pg_policies
+       where schemaname = 'public' and tablename = 'invoices'
+         and policyname = 'invoices portal self read' and cmd = 'SELECT')
+     or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'SELECT')
+     or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'INSERT')
+     or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'UPDATE')
+     or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'DELETE') then
+    raise exception 'vuelta atrás de 0407: estado final inválido';
+  end if;
+end;
+$postflight$;
+```
+
+### Prueba
+
+Local y efímera, nunca producción:
+- **Base.** `postgres:17` (17.11) con las 419 migraciones de `main` `bca98147`, sin las 18 sólo-ledger ni L07, más la siembra sintética de la ronda 1.
+- **Foto de catálogo determinística, sin OID.** Incluye:
+  - todas las policies de `invoices`, con nombre, permissive, roles, comando, `qual` y `with_check`;
+  - `relacl` y los flags de RLS, más el ACL por columna;
+  - el comentario de la tabla;
+  - los privilegios efectivos de anon, authenticated y service_role en los ocho verbos;
+  - `proacl`, `prosecdef` y `proconfig` de `get_user_tenant_id`, `current_studio_role`, `get_portal_client_markbox`, `auth.uid`, `void_invoice_with_audit_reason` y las tres RPC.
+- **Comportamiento.** Además de la foto, una matriz de lectura de 16 identidades (visibles, borradas y de T2) y la matriz de escritura de 10 identidades y 5 operaciones.
+- **Secuencia.**
+  1. `main`.
+  2. 0407 y su vuelta atrás.
+  3. 0407 otra vez en transacción revertida.
+  4. 0407, 0411, 0412 y 0413.
+  5. 0414.
+  6. Vuelta atrás de 0407 fuera de orden, revertida.
+  7. Vuelta atrás de 0414.
+  8. 0414 otra vez en transacción revertida.
+  9. Cadena completa: 0414, vuelta atrás de 0414 y vuelta atrás de 0407.
+
+### Recibo
+
+`results/rollback/recibo.txt`: 23 comprobaciones, todas OK.
+
+```
+# Prueba de vuelta atrás L07 · 2026-09-13T01:40:16.690Z
+PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+base: l07_work = main bca98147 (419 migraciones, sin ledger-only ni L07) + siembra sintética
+OK   · 0407 aplica (commit)
+OK   · control: la foto detecta el cambio de 0407 (4 líneas sólo antes, 6 sólo después)
+OK   · vuelta atrás de 0407 aplica (commit)
+OK   · catálogo tras revertir 0407 idéntico a main (md5 eea99782464a89cbc45e3647990a4b7d vs eea99782464a89cbc45e3647990a4b7d; 12 líneas)
+OK   · matriz de lectura por identidad idéntica a main tras revertir 0407
+OK   · matriz de escritura por rol idéntica a main tras revertir 0407
+OK   · 0407 vuelve a pasar su preflight sobre el estado restaurado (transacción revertida)
+OK   · tras esa prueba revertida el catálogo sigue idéntico a main
+OK   · 0407, 0411, 0412 y 0413 aplican (commit)
+OK   · 0414 aplica (commit)
+OK   · control: la foto detecta el cambio de 0414 (3 líneas sólo antes, 6 sólo después)
+OK   · control: revertir 0407 con 0414 aplicada aborta en su preflight
+OK   · ese intento no deja nada a medias
+OK   · vuelta atrás de 0414 aplica (commit)
+OK   · catálogo tras revertir 0414 idéntico al de antes de 0414 (md5 232ea029615ac26d47ecc7d4f49c49b4 vs 232ea029615ac26d47ecc7d4f49c49b4; 17 líneas)
+OK   · matriz de lectura por identidad idéntica a la de antes de 0414
+OK   · matriz de escritura por rol idéntica a la de antes de 0414
+OK   · 0414 vuelve a pasar su preflight sobre el estado restaurado (transacción revertida)
+OK   · tras esa prueba revertida el catálogo sigue idéntico al de antes de 0414
+OK   · 0414 aplica otra vez (commit)
+OK   · cadena de vuelta atrás 0414 → 0407 aplica (dos commits)
+OK   · tras la cadena completa, invoices y helpers idénticos a main (md5 eea99782464a89cbc45e3647990a4b7d vs eea99782464a89cbc45e3647990a4b7d; 12 líneas; las tres RPC de 0411–0413 siguen existiendo)
+OK   · matriz de lectura por identidad idéntica a main tras la cadena completa
+OK   · matriz de escritura por rol idéntica a main tras la cadena completa
+```
+
+Qué cambia 0407 en la foto y restaura su vuelta atrás (`results/rollback/02-diff-main-vs-0407.txt`):
+
+```
+SOLO ANTES
+comment|SDD-0021: facturas operativas. State machine borrador → emitida → parcial/pagada · vencida (visual) · anulada. paid_amount es acumulador (el ledger de pagos es Cobranzas, Bloque 2). Soft delete via deleted_at. RLS por tenant_id.
+policy|invoices by tenant|PERMISSIVE|authenticated|ALL|(tenant_id = get_user_tenant_id())|(tenant_id = get_user_tenant_id())
+priv|authenticated|DELETE=true,INSERT=true,MAINTAIN=false,REFERENCES=false,SELECT=true,TRIGGER=false,TRUNCATE=false,UPDATE=true
+relacl|{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=arwd/postgres}|rls=true|force=false
+
+SOLO DESPUES
+comment|SDD-0021/0350: facturas operativas y financieras. SELECT interno permanece tenant-wide por compatibilidad con consumidores agregados; INSERT/UPDATE requieren accounting o admin en RLS (0407). authenticated no tiene DELETE físico: borradores usan soft-delete y hechos emitidos se anulan. service_role queda reservado a jobs/RPCs controladas.
+policy|invoices_accounting_insert|PERMISSIVE|authenticated|INSERT|-|((tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id)) AND (( SELECT current_studio_role() AS current_studio_role) = ANY (ARRAY['accounting'::text, 'admin'::text])))
+policy|invoices_accounting_update|PERMISSIVE|authenticated|UPDATE|((tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id)) AND (( SELECT current_studio_role() AS current_studio_role) = ANY (ARRAY['accounting'::text, 'admin'::text])))|((tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id)) AND (( SELECT current_studio_role() AS current_studio_role) = ANY (ARRAY['accounting'::text, 'admin'::text])))
+policy|invoices_team_select|PERMISSIVE|authenticated|SELECT|(tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id))|-
+priv|authenticated|DELETE=false,INSERT=true,MAINTAIN=false,REFERENCES=false,SELECT=true,TRIGGER=false,TRUNCATE=false,UPDATE=true
+relacl|{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=arw/postgres}|rls=true|force=false
+```
+
+Qué cambia 0414 y restaura su vuelta atrás (`results/rollback/06-diff-before-vs-0414.txt`):
+
+```
+SOLO ANTES
+comment|SDD-0021/0350: facturas operativas y financieras. SELECT interno permanece tenant-wide por compatibilidad con consumidores agregados; INSERT/UPDATE requieren accounting o admin en RLS (0407). authenticated no tiene DELETE físico: borradores usan soft-delete y hechos emitidos se anulan. service_role queda reservado a jobs/RPCs controladas.
+policy|invoices portal self read|PERMISSIVE|authenticated|SELECT|((deleted_at IS NULL) AND (status <> 'borrador'::invoice_status) AND (client_markbox IS NOT NULL) AND (client_markbox = get_portal_client_markbox()))|-
+policy|invoices_team_select|PERMISSIVE|authenticated|SELECT|(tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id))|-
+
+SOLO DESPUES
+comment|SDD-0021/0350/0357: lectura y escritura internas requieren accounting/admin activos del tenant. Portal sólo lee sus facturas no borrador/vivas mediante vínculo activo, cliente vivo y tenant coincidente. Módulos no financieros usan RPCs minimizadas 0411–0413. authenticated no tiene DELETE físico; service_role se reserva a procesos controlados.
+policy|invoices portal self read|PERMISSIVE|authenticated|SELECT|((deleted_at IS NULL) AND (status <> 'borrador'::invoice_status) AND (client_markbox IS NOT NULL) AND (EXISTS ( SELECT 1
+   FROM (client_users cu
+     JOIN clients c ON (((c.id = cu.client_id) AND (c.tenant_id = cu.tenant_id) AND (c.deleted_at IS NULL))))
+  WHERE ((cu.auth_user_id = ( SELECT auth.uid() AS uid)) AND (cu.status = 'active'::text) AND (cu.tenant_id = invoices.tenant_id) AND (c.markbox = invoices.client_markbox)))))|-
+policy|invoices_accounting_select|PERMISSIVE|authenticated|SELECT|((tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id)) AND (( SELECT current_studio_role() AS current_studio_role) = ANY (ARRAY['accounting'::text, 'admin'::text])))|-
+```
+
+Tras la cadena completa, `invoices` y los helpers coinciden con `main`. Sólo quedan las tres líneas `proacl-rpc` de 0411–0413, que `main` no tiene (`results/rollback/10-diff-main-vs-full-chain.txt`).
+
+### Qué no vuelve igual
+
+- **Comportamiento.** Nada: foto y matrices idénticas.
+- **OID internos.** Cambian los de las policies recreadas; no son semánticos y la foto los excluye.
+- **Filas.** La vuelta atrás no deshace filas escritas mientras la migración estuvo aplicada. 0407 y 0414 no escriben filas, y las escrituras legítimas de ese periodo quedan con su auditoría.
+- **Seguridad.** Se pierde, que es el objetivo de las migraciones:
+  - revertir 0414 reabre la lectura cruda de facturas para todo el equipo del tenant y la exposición del Portal entre tenants con Shipping Mark repetido;
+  - revertir 0407 reabre INSERT, UPDATE y DELETE por PostgREST a commercial, operations, warehouse, support y marketing.
+
+Recibos en el scratchpad de la tarea:
+- `results/rollback/`: fotos, logs, matrices y diffs `01`–`10`.
+- `tools/rollback/`: `revert-0407.sql`, `revert-0414.sql`, `snapshot.sql` y `rollback-test.mjs`.
+- `tools/`: `read-matrix.sql` y `write-matrix.sql`.
 
 ## COORDINACIÓN CON PR ABIERTAS Y HALLAZGOS PREVIOS
 
@@ -281,6 +639,7 @@ Riesgos operativos:
   - `reportar/actions.ts` de L14 lee la factura con service_role después de resolver el principal, así que 0414 no lo afecta.
   - No hay solape de locks: 0414 bloquea `invoices` y 0420/0422 bloquean `payment_reports`.
 - **PR #105 (L10, 0410 → 0415).** Sólo comparte los mismos tres registros. 0410 lee `invoices` como definer, y 0415 no toca `invoices`.
+- **Test de inventario (ronda 2).** Ninguna de las dos PR altera sus 45 llamadas: el conteo AST de los 14 archivos de producción de la #104 y el de la #105 da 0 cambios (`results/branch-inventory-delta.txt`).
 - **SDD-0390 y SDD-0397**, `done` en `main` sin todo su código. L07 no depende de ellas: la policy Portal de 0414 es autocontenida, con EXISTS sobre `client_users` y `clients`, evaluable con la RLS que `main` ya da al Portal (`client_users self or tenant read` y `clients portal self read`, verificadas en el catálogo). Las lecturas de facturas del Portal (`lib/portal/portal-queries.ts:235-300`) están fuera de sus allowlists. 0414 no corrige `get_portal_client_markbox()` (`limit 1` sin tenant).
 
 ## CONTROLES ROJOS
@@ -292,8 +651,14 @@ Riesgos operativos:
 5. **Falla silenciosa de 0414 con el código de `main`.** Fidelización `{}` para support, todo Bronze. Conversaciones con saldo 0, y 777 USD de T2 para el dual. OV «Facturas · 0».
 6. **Fuga del Portal en `main`.** D2-01 de T2 visible desde un vínculo de T1; deja de verse tras 0414. El bloque `regression_reproduced` del contrato 0414 reproduce la lectura cruzada antes de aplicar.
 7. **Matriz de escritura.** En `main` los roles no financieros escriben y borran; tras 0407 no.
+8. **Test de inventario (ronda 2).** Un lector ficticio de `invoices` fuera de la lista lo hace fallar (19 archivos contra 18); retirado, vuelve a verde.
+9. **Vuelta atrás (ronda 2).**
+   - La foto de catálogo detecta el cambio de cada migración: con 0407, 4 líneas sólo antes y 6 sólo después; con 0414, 3 y 6. Tras la vuelta atrás vuelve a coincidir.
+   - Revertir 0407 con 0414 aplicada aborta con «revertir 0414 primero» sin dejar nada a medias.
 
 ## VALIDACIÓN
+
+### Ronda 1 — verify sobre el head de código
 
 **`corepack pnpm verify` completo** sobre `961ec85eaf612b6ec9c6064721b56b6ef7ce2bf5`, el head de código:
 - **Entorno.** Rama limpia sobre la base `bca98147`. Corrió de 2026-09-13T00:47:25Z a 01:24:20Z con Node v24.20.0, pnpm 12.3.4 y Docker 29.7.2.
@@ -327,7 +692,7 @@ Riesgos operativos:
 - **La flaky es ajena a L07.** Es `e2e/calculadora-semantic-colors.spec.ts:53` en mobile-chrome: falló la variante light en la primera pasada y la dark en el reintento (`toHaveValue`, `:58`).
 - **Cobertura de L07.** Ninguna prueba e2e entra con sesión a Fidelización, CRM, Reportes, Conversaciones ni Órdenes de venta. El código de L07 lo cubren Vitest, los contratos SQL y el arnés de PostgREST.
 - **Procesos huérfanos, revisados al terminar.** No queda ningún proceso de verify, Playwright, `next dev` ni `chrome-headless-shell`, nada escucha en 3191 y no quedan contenedores `dtd_sqltest_*`, `dtd_rebuild_*` ni `dtd_l07_*`.
-- **Commit del handoff.** El commit que contiene este documento sólo agrega este archivo, sin cambios de código; por eso no se repitió verify.
+- **Commit del handoff de la ronda 1.** `0d247073` sólo agregó este archivo, sin cambios de código; por eso no se repitió verify.
 - **CI.** El workflow de calidad no corre `sql-tests` ni `schema-rebuild`: esta corrida local es la única evidencia de esos dos pasos.
 
 Validación focal previa, recibos en `C:/Users/AKXGEN~1/AppData/Local/Temp/claude/C--Users-AKX-generator-Desktop-Developer-DTDCARGO/a4705ad7-612e-488b-9826-2cd036e3da72/scratchpad/c-l07-fidelizacion-conversations/`:
@@ -341,25 +706,75 @@ Validación focal previa, recibos en `C:/Users/AKXGEN~1/AppData/Local/Temp/claud
 - Herramientas: `tools/measure-db.mjs`, `tools/seed-l07.sql`, `tools/parity.mts`, `tools/locks.sql`, `tools/contention.mjs`, `tools/write-matrix.sql`, `tools/make-redcontrols.mjs`, `tools/invoice-inventory.mjs` y `mainsrc/` (copias de `main` `bca98147`).
 - `/ui-check`: **NO EJECUTADO** por no aplicar. No cambia ningún componente, estilo ni página: sólo `lib/`, una ruta API, SQL y documentación.
 
+### Ronda 2 — validación proporcional
+
+Sin verify completo: desde `961ec85e` no cambió código de producto ni SQL de migraciones. La corrida fue sobre `4200d1d669cabac8edcad951a004dbf9bea0a07f` (C8), con el árbol limpio y `origin/main` en `bca98147`, de 2026-09-13T01:54:26Z a 01:57:47Z (`round2/validations.meta`).
+
+| Comprobación | Veredicto | Cifras |
+|---|---|---|
+| `corepack pnpm vitest run scripts/__tests__/invoice-read-boundary.test.mjs` (focal) | PASÓ | 3/3. Su control rojo FALLÓ como se esperaba (19 archivos contra 18) y al retirarlo volvió a PASAR 3/3 |
+| `corepack pnpm test` | PASÓ | 546 archivos y 6.820 pruebas; en la ronda 1 fueron 545 y 6.817, y la diferencia es el test importado (`round2/val-test.log`) |
+| `corepack pnpm harness:test` | PASÓ | 87 pruebas, 0 fallidas (`round2/val-harness-test.log`) |
+| `node scripts/build-docs-index.mjs --check` | PASÓ | 444 specs |
+| `corepack pnpm sdd:check` | PASÓ | sin números repetidos; sólo los choques históricos declarados |
+| `git diff --check 961ec85e HEAD` y `git diff --check` del árbol | PASÓ | sin problemas |
+| eslint focal sobre el test importado | PASÓ | sin avisos |
+| `node scripts/check-pending-migration-symbols.mjs` | PASÓ | 0 ROJO · 3 AMARILLO; el baseline editado parsea |
+| `node scripts/build-governance-capsule.mjs --check` | PASÓ | 28 políticas |
+| Prueba de vuelta atrás de 0407 y 0414 | PASÓ | 23 comprobaciones OK (sección «VUELTA ATRÁS DE 0407 Y 0414») |
+| Sonda de la frontera del Portal | PASÓ | 5 casos, en la tabla de «Ronda 2» |
+| `corepack pnpm verify` completo | NO EJECUTADO | no cambió código de producto ni SQL de migraciones desde `961ec85e`; vale la corrida de la ronda 1 |
+| `/ui-check` | NO EJECUTADO | sin cambios de UI |
+
+`git diff --stat 961ec85e..4200d1d6` (`round2/val-diff-stat.log`). La primera línea es este handoff tal como lo publicó la ronda 1:
+
+```
+ .../handoffs/c-l07-fidelizacion-conversations.md   | 393 +++++++++++++++++++++
+ docs/specs/0350-invoices-write-rbac/spec.md        |   4 +-
+ docs/specs/0357-invoices-read-rbac/spec.md         |  26 +-
+ scripts/__tests__/invoice-read-boundary.test.mjs   |  88 +++++
+ supabase/migrations-baseline.json                  |   4 +-
+ 5 files changed, 506 insertions(+), 9 deletions(-)
+```
+
+El commit que contiene este documento sólo cambia este archivo. Su `git diff --stat` final contra `961ec85e` va en la PR y en el reporte al Director.
+
+Recibos de la ronda 2, en el scratchpad de la tarea:
+- `round2/`: `validations.meta`, `val-*.log`, `test-invoice-read-boundary-{focal,redcontrol,after-revert}.log` y `pr-body-r2.md`.
+- `results/rollback/`, `results/portal-pdf-probe.txt` y `results/branch-inventory-delta.txt`.
+- `commit-msgs/c7.txt` y `commit-msgs/c8.txt`.
+- Herramientas: `tools/rollback/`, `tools/read-matrix.sql`, `tools/portal-pdf-probe.sql` y `tools/branch-inventory-delta.mjs`.
+
 ## COMMITS
 
+Ronda 1:
 - `6330cb46` feat(studio): SDD-0350 y SDD-0354 a SDD-0357 — importar L07 SQL 0407, 0411–0414 y contratos, pendientes. Diez SQL idénticos al origen.
 - `b6fdf92f` fix(db): SDD-0350 y SDD-0357 — 0407 y 0414 fijan lock_timeout y statement_timeout (L07). Desviación y aserciones.
 - `f9bbf24d` feat(studio): SDD-0354, SDD-0355 y SDD-0356 — Fidelización, Conversaciones y Órdenes de venta leen facturas por RPC minimizada.
 - `dddd918a` chore(db): declarar 0407 y 0411–0414 pendientes de aplicar y el degradado migrate-first (L07).
 - `961ec85e` docs(specs): SDD-0350 y SDD-0354 a SDD-0357 — importar specs de L07 con nota de importación. Es el head de código verificado.
-- Commit que contiene este documento: docs(handoff): L07 — RBAC de facturas y facades de Fidelización, Conversaciones y Órdenes de venta. Sólo agrega este archivo.
+- `0d247073` docs(handoff): L07 — RBAC de facturas y facades de Fidelización, Conversaciones y Órdenes de venta. Primera versión de este documento; sólo lo agregó.
+
+Ronda 2:
+- `e952e4bd` test(studio): SDD-0357 — importar el test de inventario de lectores de invoices (L07, ronda 2). Test idéntico al origen.
+- `4200d1d6` docs(db): SDD-0350 y SDD-0357 — esperas y notas de 0407 y 0414 con la vuelta atrás probada y la frontera del Portal (L07, ronda 2).
+- Commit que contiene este documento: docs(handoff): L07 — ronda 2 (vuelta atrás probada, frontera del Portal, test de inventario y decisiones del Director). Sólo cambia este archivo.
 
 ## PR / BRANCH
 
-- Rama `codex/c-l07-fidelizacion-conversations`, publicada a sí misma con un único push después de todos los commits.
-- PR en borrador contra `main`, abierta después del push; su URL y el head final quedan en la PR y en el reporte al Director, porque no existen al commitear este documento.
+- Rama `codex/c-l07-fidelizacion-conversations`, publicada a sí misma. La ronda 1 se publicó con un único push en `0d247073`, y la ronda 2 con otro único push normal, sin force, después de todos sus commits.
+- PR #106 en borrador contra `main`: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/106. El cuerpo se actualizó en la ronda 2; el head final queda en la PR.
 - Base `main` `bca98147`.
 - Worktree `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l07-fidelizacion-conversations`, conservado.
 
 ## PENDIENTES DE ESTA TAREA
 
-Ninguno para la aceptación de la extracción. Lo que sigue pertenece a release o a decisión del Director, no a esta tarea: aplicar 0407 y 0411–0413 con autorización, fusionar y desplegar, el smoke por roles y 0414.
+Ninguno para la aceptación de la extracción ni de la ronda 2. Lo que sigue pertenece a release o a decisión del Director, no a esta tarea:
+- el conteo agregado de la fuga del Portal, que el Director pide a Sam;
+- aplicar 0407 y 0411–0413 con autorización;
+- fusionar y desplegar;
+- el smoke por roles;
+- 0414.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -370,24 +785,40 @@ Ninguno para la aceptación de la extracción. Lo que sigue pertenece a release 
 
    `softDeleteInvoice` no restringe el estado (`app/studio/(app)/facturacion/actions.ts:715-731`), así que una factura emitida borrada puede seguir contando o recibir recordatorios. 0414 conserva esa lectura para accounting y admin. Preexistente.
 2. `commercialByAgent` traga el error de la facturación y publica ingresos por asesor en cero sin aviso (`lib/studio/reports/queries.ts:619`).
-3. La página de Órdenes de venta pide relaciones por orden (`app/studio/(app)/ordenes-venta/page.tsx:39-57`). SDD-0322 está en `main` como spec, pero su código batch y el de la página no.
+3. La página de Órdenes de venta pide relaciones por orden (`app/studio/(app)/ordenes-venta/page.tsx:39-57`). SDD-0322 está en `main` como spec, pero su código batch y el de la página no. En la ronda 2 el Director lo confirmó fuera del alcance de L07.
 4. `get_portal_client_markbox()` y `get_user_tenant_id()` resuelven con `limit 1` sin orden. Un principal con varios vínculos o membresías obtiene un Shipping Mark o tenant arbitrario, y las tres RPC dependen de `get_user_tenant_id()`.
 5. La server action `getReceivableHistory` no tiene gate de módulo (`app/studio/(app)/cobranzas/actions.ts:208-221`). Lee recibos y gestiones bajo RLS, no `invoices`.
 6. `app/api/studio/__tests__/route-auth.test.ts:190` mockea `getClientContext` sin afirmar su argumento: no detectaría una vuelta a `conv.client_id`.
-7. `scripts/__tests__/invoice-read-boundary.test.mjs`, de la allowlist de SDD-0357, no se importó. Su inventario congelado de 45 llamadas en 18 archivos coincide con esta rama.
+7. **Ruta del PDF del Portal sin guard de principal.** `app/portal/(app)/facturas/[code]/pdf/route.ts:41-44` lee la factura con `getMyInvoice` antes de resolver el principal, y `get_portal_client_markbox()` no comprueba cliente vivo ni tenant. Hasta aplicar 0414, un vínculo con cliente borrado o incoherente, y un Shipping Mark repetido en otro tenant, descargan por URL facturas que las páginas no les muestran (medido en la base: X01, D01 y D2-01 visibles). Con 0414 aplicada responde 404. Es parte de la fuga que el Director está dimensionando.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción.** Revisar la PR en borrador. El orden de release no es un único paso DB: 0407 → 0411, 0412 y 0413, cada una con OK nominal de Sam y el runbook → fusión y despliegue → smoke por roles → 0414.
-- **Decisiones pendientes:**
-  1. **Divergencias de las facades con `main`**, todas medidas y todas defectos de `main`. ¿Se aceptan tal como vienen o alguna RPC debe imitar a `main`?
-     - 0411 excluye facturas borradas y con `issued_at` futuro, neta los negativos y suma exacto. En el umbral, L07-DEC pasa de Bronze a Silver. Los negativos y las fechas futuras sólo entran por SQL: la app fuerza montos ≥ 0 y fija `issued_at` al emitir.
-     - 0412 excluye anuladas, lo que la spec busca, no trunca y resuelve el empate de moneda por código.
-     - 0413 no trunca y oculta las facturas de órdenes borradas.
-  2. **Cambio del Portal con 0414.** Un vínculo activo a un cliente borrado, o incoherente de tenant, deja de ver facturas sin error, y el principal dual conserva sólo su derecho Portal. ¿Conforme?
-  3. **Prioridad de la fuga del Portal en `main`.** Con el mismo Shipping Mark en dos tenants, `main` la sigue exponiendo hasta aplicar 0414. Saber si hoy ocurre en producción necesita un conteo agregado autorizado.
-  4. **Página de Órdenes de venta.** Sigue con una llamada RPC por orden (SDD-0322 sin código en `main`). ¿Lote aparte?
-  5. **Import del test de inventario.** ¿Importar `invoice-read-boundary.test.mjs` en un lote propio?
-  6. **Rollback.** Evaluar un plan de vuelta atrás para 0407 y 0414 antes de su OK individual.
+- **Siguiente acción.** Revisar la ronda 2 de la PR #106. El orden de release no es un único paso DB: 0407 → 0411, 0412 y 0413, cada una con OK nominal de Sam y el runbook → fusión y despliegue → smoke por roles → 0414. Con la ronda 2 no quedan decisiones abiertas de L07.
+- **Decisiones del Director (ronda 2), aplicadas:**
+  1. **Divergencias de paridad:** aceptadas y listadas en la PR, en «Cambios de comportamiento visibles al desplegar».
+  2. **Frontera del Portal con 0414:** aceptada. Declarada, sin mensaje de error, en la espera de 0414, la nota de 0357 y la PR, con la sonda de «Ronda 2».
+  3. **Fuga del Portal:** sin cambios en L07; 0414 conserva su lugar.
+  4. **Página de Órdenes de venta y SDD-0322:** fuera de alcance (FUERA DE ALCANCE 3).
+  5. **Test de inventario:** importado sin ajustes, con control rojo.
+  6. **Vuelta atrás:** escrita y probada; las esperas de 0407 y 0414 remiten a su sección.
+- **Pendiente del Director: el conteo agregado.** Con autorización de Sam, sirve para dimensionar la fuga del Portal. Consulta sugerida, no ejecutada: sólo conteos y ninguna fila.
+
+  ```sql
+  select count(*) filter (where i.tenant_id <> cu.tenant_id) as facturas_de_otro_tenant,
+         count(*) filter (where c.deleted_at is not null) as con_cliente_borrado,
+         count(*) filter (where c.tenant_id <> cu.tenant_id) as con_vinculo_incoherente,
+         count(distinct cu.auth_user_id) as principales
+  from public.client_users cu
+  join public.clients c on c.id = cu.client_id
+  join public.invoices i on i.client_markbox = c.markbox
+  where cu.status = 'active' and cu.auth_user_id is not null
+    and i.deleted_at is null and i.status <> 'borrador'
+    and (i.tenant_id <> cu.tenant_id or c.deleted_at is not null or c.tenant_id <> cu.tenant_id);
+  ```
+
+  - **Límite.** Es una cota superior: `get_portal_client_markbox()` toma un solo vínculo activo por usuario (`limit 1`).
 - **Cambios compartidos.** Los tres registros entran en conflicto textual con las PR #104 y #105. Integrar en serie y regenerar el índice con el script.
-- **Sesiones consumidoras.** Ninguna. Retirados los contenedores `dtd_l07_pg` y `dtd_l07_rest`, la red `dtd_l07_net` y el contenedor desechable `dtd_l07_expr` del borde bisiesto. Claim liberado al terminar la escritura.
+- **Sesiones consumidoras.** Ninguna.
+  - **Ronda 1.** Se retiraron los contenedores `dtd_l07_pg` y `dtd_l07_rest`, la red `dtd_l07_net` y el contenedor desechable `dtd_l07_expr`.
+  - **Ronda 2.** Se levantaron y retiraron otra vez `dtd_l07_pg`, `dtd_l07_rest` y la red, para la prueba de vuelta atrás y la sonda del PDF.
+  - **Claim.** Liberado al terminar la escritura de cada ronda.
