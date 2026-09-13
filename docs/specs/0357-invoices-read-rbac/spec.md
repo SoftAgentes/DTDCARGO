@@ -28,15 +28,29 @@ confidencialidad: interno
 > app después, no hay error; RLS devuelve cero filas a los roles no financieros, Fidelización, CRM y
 > Reportes dejan a todos los clientes en Bronze, Conversaciones muestra saldo 0 y el drawer de la OV
 > «Facturas · 0». Tras 0414 accounting y admin conservan lectura y escritura de su tenant y las tres RPC
-> siguen respondiendo. En el Portal, un vínculo coherente conserva sus facturas; con el mismo Shipping
-> Mark en dos tenants la policy histórica exponía las del otro tenant (medido) y deja de hacerlo; un
-> vínculo con cliente borrado o con tenant incoherente deja de ver facturas, sin error. El inventario AST
-> de esta rama da 45 llamadas directas en 18 archivos, el mismo que congelaba el origen. No se importan
-> `scripts/__tests__/invoice-read-boundary.test.mjs` (fuera del alcance asignado a L07), el checklist
+> siguen respondiendo. En el Portal, un vínculo coherente conserva sus facturas y, si su Shipping Mark se
+> repite en otro tenant, deja de ver las del otro tenant, que la policy histórica exponía (medido).
+> **Frontera aceptada por el Director como intencional (ronda 2):** un vínculo activo cuyo cliente está
+> borrado, o cuyo vínculo y cliente no coinciden de tenant, deja de leer facturas **sin ningún mensaje de
+> error**: la lectura devuelve cero filas. Las páginas del Portal ya mandan a esos principales a
+> `/entrar` desde el layout (`app/portal/(app)/layout.tsx:39-40`); la descarga del PDF por URL no pasa
+> por el layout (`app/portal/(app)/facturas/[code]/pdf/route.ts:41-44`) y pasa de entregar la factura a
+> responder 404 «Factura no encontrado.».
+>
+> **Test de inventario (ronda 2).** `scripts/__tests__/invoice-read-boundary.test.mjs` entra idéntico al
+> origen (blob `97c82149`), sin ajustar su lista de lectores: el inventario que congela, 45 llamadas
+> directas `from("invoices")` en 18 archivos, coincide con el código real de esta rama, y sus imports
+> (`canAccessModule` de `lib/studio/rbac.ts` y `KPI_CATALOG` de `lib/studio/dashboard/dashboard-catalog.ts`)
+> existen en `main`, así que no requiere código de producto ausente (SDD-0322, SDD-0390 u otros). Pasa
+> focal 3/3. Control rojo: un lector ficticio de `invoices` fuera de la lista lo hace fallar (19 archivos
+> contra 18) y, al retirarlo, vuelve a verde. Las PR #104 y #105 no alteran ese inventario: un conteo AST
+> de los 15 archivos de producción que tocan da 0 cambios. No se importan el checklist
 > `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs `2026-09-02-*` de la allowlist;
 > entran fuera de ella el registro de migraciones pendientes, que exige el gate `migrations-applied`, y el
 > handoff `.agents/handoffs/c-l07-fidelizacion-conversations.md`, donde quedan el inventario de lectores y
-> escritores, la paridad y los locks.
+> escritores, la paridad, los locks y la vuelta atrás de 0414 probada en local (sección «VUELTA ATRÁS DE
+> 0407 Y 0414»: el catálogo de `invoices` queda idéntico al de antes de 0414 después de aplicarla y
+> revertirla).
 >
 > **Desviación respecto del origen**, pre-autorizada por el Director el 2026-09-12 antes de cualquier
 > aplicación: `0414` fija `set local lock_timeout = '5s'` y `statement_timeout = '60s'` antes de su
