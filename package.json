@@ -26,6 +26,7 @@
     "governance:plugin:test": "node .agents/plugins/plugins/erp-studio-governance/scripts/run-forward-tests.mjs",
     "governance:plugin:sync": "node .agents/plugins/plugins/erp-studio-governance/scripts/reinstall-plugin.mjs --install",
     "governance:plugin:check": "node .agents/plugins/plugins/erp-studio-governance/scripts/reinstall-plugin.mjs --check",
+    "skills:check": "node scripts/check-skills-manifest.mjs",
     "docs:index": "node scripts/build-docs-index.mjs",
     "docs:check": "node scripts/build-docs-index.mjs --check",
     "sdd:next": "node scripts/next-number.mjs",
