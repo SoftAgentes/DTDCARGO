@@ -6,11 +6,13 @@
  *    (vía `invoiceStatusTone`) y la derivación visual de "vencida"
  *    (`invoiceDisplayStatus`, reusada del Studio).
  *  - AISLAMIENTO de las queries: `listMyInvoices`/`getMyInvoice` resuelven el
- *    markbox del portal PRIMERO y filtran EXPLÍCITO por `client_markbox` — sin
- *    markbox (principal no-cliente) cortan SIN tocar la tabla. El MISMO hardening
- *    se aplicó a `listMyShipments` (defensa contra el principal team+portal,
- *    donde la policy "by tenant" es permissive OR y, sola, mostraría todo el
- *    tenant en el portal).
+ *    principal Portal PRIMERO y filtran EXPLÍCITO por su `tenant_id` y su
+ *    `client_markbox` (SDD-0462: el Shipping Mark es único POR tenant) — sin
+ *    principal cortan SIN tocar ninguna tabla. `listMyShipments` conserva el
+ *    hardening por markbox (defensa contra el principal team+portal, donde la
+ *    policy "by tenant" es permissive OR y, sola, mostraría todo el tenant en
+ *    el portal). El cruce entre tenants se prueba en
+ *    `portal-invoices-tenant-boundary.test.ts`.
  */
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -23,10 +25,13 @@ import {
 import { listMyInvoices, getMyInvoice, listMyShipments } from "../portal-queries";
 
 /**
- * Stub encadenable de SupabaseClient. `rpc("get_portal_client_markbox")` →
- * `{ data: markbox }`. El query builder (`from().select().eq()...`) registra los
- * `.eq(col, val)` y la tabla tocada, y resuelve en `.limit()` (listas) o
- * `.maybeSingle()` (detalle).
+ * Stub encadenable de SupabaseClient. Con `markbox`, la sesión es la de un
+ * principal Portal vivo y coherente (SDD-0462): `auth.getUser()` devuelve un uid
+ * y `client_users` su vínculo activo con el cliente de ese Shipping Mark en
+ * `tenant-1`. `rpc("get_portal_client_markbox")` → `{ data: markbox }` para los
+ * lectores que siguen resolviendo por RPC (envíos). El query builder registra los
+ * `.eq(col, val)` y las tablas tocadas, y resuelve en `.limit()` (listas) o
+ * `.maybeSingle()` (vínculo y detalle).
  */
 function stub(opts: {
   markbox: string | null;
@@ -34,31 +39,65 @@ function stub(opts: {
   row?: Record<string, unknown> | null;
 }) {
   const eqCalls: [string, unknown][] = [];
-  let touchedTable: string | null = null;
-  const builder: Record<string, unknown> = {};
-  Object.assign(builder, {
-    select: () => builder,
-    eq: (col: string, val: unknown) => {
-      eqCalls.push([col, val]);
-      return builder;
-    },
-    neq: () => builder,
-    is: () => builder,
-    order: () => builder,
-    limit: () => Promise.resolve({ data: opts.rows ?? [], error: null }),
-    maybeSingle: () => Promise.resolve({ data: opts.row ?? null, error: null }),
-  });
+  const touched: string[] = [];
+  const membership = opts.markbox
+    ? {
+        client_id: "client-1",
+        tenant_id: "tenant-1",
+        clients: {
+          id: "client-1",
+          tenant_id: "tenant-1",
+          markbox: opts.markbox,
+          name: "Demo Pyme C.A.",
+          email: null,
+          phone: null,
+          address: null,
+          rif: null,
+          doc_kind: null,
+          city: null,
+          state: null,
+          deleted_at: null,
+        },
+      }
+    : null;
+  const builder = (table: string) => {
+    const b: Record<string, unknown> = {};
+    Object.assign(b, {
+      select: () => b,
+      eq: (col: string, val: unknown) => {
+        eqCalls.push([col, val]);
+        return b;
+      },
+      neq: () => b,
+      is: () => b,
+      order: () => b,
+      limit: () => Promise.resolve({ data: opts.rows ?? [], error: null }),
+      maybeSingle: () =>
+        Promise.resolve({
+          data: table === "client_users" ? membership : (opts.row ?? null),
+          error: null,
+        }),
+    });
+    return b;
+  };
   const supabase = {
+    auth: {
+      getUser: () =>
+        Promise.resolve({
+          data: { user: opts.markbox ? { id: "user-1" } : null },
+          error: null,
+        }),
+    },
     rpc: (fn: string) =>
       fn === "get_portal_client_markbox"
         ? Promise.resolve({ data: opts.markbox, error: null })
         : Promise.resolve({ data: null, error: null }),
     from: (table: string) => {
-      touchedTable = table;
-      return builder;
+      touched.push(table);
+      return builder(table);
     },
   } as unknown as SupabaseClient;
-  return { supabase, eqCalls, touchedTable: () => touchedTable };
+  return { supabase, eqCalls, touched };
 }
 
 describe("formatInvoiceAmount", () => {
@@ -119,15 +158,16 @@ const INV_ROW = {
 };
 
 describe("aislamiento — listMyInvoices / getMyInvoice", () => {
-  it("sin markbox del portal → [] SIN consultar invoices", async () => {
-    const { supabase, touchedTable } = stub({ markbox: null });
+  it("sin principal del portal → [] SIN consultar invoices", async () => {
+    const { supabase, touched } = stub({ markbox: null });
     expect(await listMyInvoices(supabase)).toEqual([]);
-    expect(touchedTable()).toBeNull();
+    expect(touched).toEqual([]);
   });
 
-  it("con markbox → filtra EXPLÍCITO por client_markbox y mapea la fila", async () => {
+  it("con principal → filtra EXPLÍCITO por tenant y client_markbox y mapea la fila", async () => {
     const { supabase, eqCalls } = stub({ markbox: "DTD-1004", rows: [INV_ROW] });
     const rows = await listMyInvoices(supabase);
+    expect(eqCalls).toContainEqual(["tenant_id", "tenant-1"]);
     expect(eqCalls).toContainEqual(["client_markbox", "DTD-1004"]);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
@@ -140,16 +180,17 @@ describe("aislamiento — listMyInvoices / getMyInvoice", () => {
     });
   });
 
-  it("getMyInvoice sin markbox → null SIN consultar", async () => {
-    const { supabase, touchedTable } = stub({ markbox: null });
+  it("getMyInvoice sin principal → null SIN consultar", async () => {
+    const { supabase, touched } = stub({ markbox: null });
     expect(await getMyInvoice(supabase, "F-2026-0001")).toBeNull();
-    expect(touchedTable()).toBeNull();
+    expect(touched).toEqual([]);
   });
 
-  it("getMyInvoice filtra por invoice_code + client_markbox y mapea el detalle", async () => {
+  it("getMyInvoice filtra por invoice_code + tenant + client_markbox y mapea el detalle", async () => {
     const { supabase, eqCalls } = stub({ markbox: "DTD-1004", row: INV_ROW });
     const inv = await getMyInvoice(supabase, "F-2026-0001");
     expect(eqCalls).toContainEqual(["invoice_code", "F-2026-0001"]);
+    expect(eqCalls).toContainEqual(["tenant_id", "tenant-1"]);
     expect(eqCalls).toContainEqual(["client_markbox", "DTD-1004"]);
     expect(inv?.base).toBe(100);
     expect(inv?.lines).toHaveLength(1);
@@ -159,9 +200,9 @@ describe("aislamiento — listMyInvoices / getMyInvoice", () => {
 
 describe("aislamiento — listMyShipments endurecido", () => {
   it("sin markbox → [] SIN consultar shipments", async () => {
-    const { supabase, touchedTable } = stub({ markbox: null });
+    const { supabase, touched } = stub({ markbox: null });
     expect(await listMyShipments(supabase)).toEqual([]);
-    expect(touchedTable()).toBeNull();
+    expect(touched).toEqual([]);
   });
 
   it("con markbox → filtra EXPLÍCITO por client_markbox", async () => {
