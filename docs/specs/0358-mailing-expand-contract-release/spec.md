@@ -15,19 +15,21 @@ confidencialidad: interno
 
 # SDD-0358 — Release compatible de Cobranzas/Mailing
 
-> **Nota de importación — 2026-09-12.** Esta spec se importa desde la PR #21 (`ea9952a4`; commit
-> `fa420f3f`) con su contenido original, `status: done` incluido: describe el cierre técnico local de la
-> rama de origen, no un release. `0410_collections_mail_context` y `0415_mail_logs_read_rbac` están
-> **PENDIENTES DE APLICAR** y declaradas por separado en `supabase/migrations-baseline.json`; fusionar no
-> autoriza aplicar ninguna. Lote L10 del bloque C: **0410 → despliegue y verificación de Cobranzas →
-> 0415**. Precisión medida en local sobre `main`: si 0415 se aplica con el consumidor anterior todavía
+> **Nota de importación — 2026-09-12; actualizada el 2026-09-13.** Esta spec se importa desde la PR
+> #21 (`ea9952a4`; commit `fa420f3f`) con su contenido original, `status: done` incluido: describe el
+> cierre técnico local de la rama de origen, no un release. `0410_collections_mail_context` **fue
+> APLICADA a producción el 2026-09-13** con OK nominal de Sam (ledger `20260913184537`; preflight,
+> postflight y advisors en la nota de SDD-0353) y `0415_mail_logs_read_rbac` sigue **PENDIENTE DE
+> APLICAR**, declarada en `supabase/migrations-baseline.json`; fusionar no autoriza aplicarla. Lote L10
+> del bloque C: **0410 (aplicada) → despliegue y verificación de Cobranzas → 0415**. Precisión medida
+> en local sobre `main`: si 0415 se aplica con el consumidor anterior todavía
 > desplegado no hay error; RLS devuelve cero filas de `mail_logs` a accounting y la vista previa pierde
 > las quejas de spam y el último recordatorio. La «Evidencia local de cierre» conserva las cifras de la
 > rama de origen; las de esta importación, el inventario de lectores de `mail_logs` y los locks están en
 > `.agents/handoffs/c-l10-recordatorios-cobranzas.md`. No se importan el checklist
 > `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs `2026-09-02-*` de la allowlist;
-> entran fuera de ella los dos registros de migraciones pendientes, que exigen los gates
-> `migrations-applied` y `pending-migration-symbols`, y ese handoff.
+> entra fuera de ella la espera de 0415 en el baseline, que exige el gate `migrations-applied`, y ese
+> handoff.
 >
 > **Desviaciones respecto del origen**, decididas por el Director el 2026-09-12 antes de cualquier
 > aplicación. `0410` y `0415` fijan `set local lock_timeout = '5s'` y `statement_timeout = '60s'` antes

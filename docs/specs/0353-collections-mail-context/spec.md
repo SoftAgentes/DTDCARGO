@@ -18,20 +18,46 @@ confidencialidad: interno
 
 # SDD-0353 — Contexto de correo mínimo para Cobranzas
 
-> **Nota de importación — 2026-09-12.** Esta spec se importa desde la PR #21 (`ea9952a4`; commits
-> `e0c560a6` y `fa420f3f`) con su contenido original, `status: done` incluido: ese estado describe el
-> cierre técnico local de la rama de origen, no la aplicación en producción. Su migración
-> `0410_collections_mail_context` está **PENDIENTE DE APLICAR** y declarada en
-> `supabase/migrations-baseline.json`; fusionar no autoriza aplicarla. Lote L10 del bloque C, con
-> orden obligatorio **0410 → despliegue y verificación de Cobranzas → 0415** (SDD-0358): la decisión 5
-> la cumple 0415, no 0410. Es **MIGRATE-FIRST**: sin 0410 la RPC no existe, `contextoDeEnvio` lanza y
-> la vista previa y el envío de recordatorios fallan cerrados sin enviar nada; el degradado está
-> declarado en `supabase/pending-migration-symbol-declarations.json`. `recordatorios-queries.ts` y su
-> test entran idénticos al origen: `main` no tocó ese módulo desde la base común. No se importan el
-> checklist `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs `2026-09-02-*` de la
-> allowlist; entran fuera de ella los dos registros de migraciones pendientes, que exigen los gates
-> `migrations-applied` y `pending-migration-symbols`, y el handoff de esta importación,
-> `.agents/handoffs/c-l10-recordatorios-cobranzas.md`, donde queda la evidencia local.
+> **Nota de importación — 2026-09-12; actualizada el 2026-09-13.** Esta spec se importa desde la PR
+> #21 (`ea9952a4`; commits `e0c560a6` y `fa420f3f`) con su contenido original, `status: done`
+> incluido: ese estado describe el cierre técnico local de la rama de origen. Su migración
+> `0410_collections_mail_context` **fue APLICADA a producción el 2026-09-13** por el Director con OK
+> nominal de Sam (ledger `20260913184537 / 0410_collections_mail_context`, 1 sentencia, md5
+> `e80119c3c381d20c009c7dbd569557f4`, 7186 bytes; el ledger pasó de 449 a 450 filas), con el archivo
+> de esta rama idéntico al aplicado: `git show HEAD:supabase/migrations/0410_collections_mail_context.sql`
+> da el mismo md5 y los mismos 7186 bytes, sólo LF. Se aplicó con `apply_migration` y name exacto por el
+> conector `claude.ai Supabase` (proyecto `xpfuzqombmjmxvprjgmi`), `{"success": true}` al primer
+> intento y sin leer ninguna fila de negocio. Preflight, leído antes del catálogo y sin filas:
+> `mail_logs` con relacl `authenticated=rxtm`, sin INSERT, UPDATE, DELETE ni TRUNCATE; policy
+> `mail_logs_tenant_select` presente junto con `mail_logs_no_delete`,
+> `mail_logs_no_insert_authenticated`, `mail_logs_no_update_authenticated` y
+> `service_role_all_mail_logs`; la RPC no existía; helpers `get_user_tenant_id()` y
+> `current_studio_role()` presentes. Postflight, leído después: `collections_mail_context(uuid[])`
+> SECURITY DEFINER, STABLE, `search_path=""`, owner postgres, ACL
+> `{postgres=X, service_role=X, authenticated=X}`, `anon` sin EXECUTE, comentario SDD-0353 y retorno
+> `TABLE(invoice_id uuid, client_markbox text, has_email boolean, complained boolean, last_reminder_on date)`;
+> relacl y policies de `mail_logs` idénticos a los del preflight. Advisors de seguridad de producción
+> antes y después, comparados hallazgo por hallazgo: antes `rls_enabled_no_policy` INFO 21,
+> `extension_in_public` WARN 1, `anon_security_definer_function_executable` WARN 22 y
+> `authenticated_security_definer_function_executable` WARN 174; después, idéntico salvo
+> `authenticated_security_definer_function_executable` WARN 175. La única diferencia es UN hallazgo
+> nuevo: `public.collections_mail_context` aparece en `authenticated_security_definer_function_executable`.
+> Es el efecto esperado e intencional: la RPC es SECURITY DEFINER y `authenticated` necesita EXECUTE; el
+> control de rol (accounting|admin) y de tenant va adentro, y `anon` sigue sin EXECUTE (su lint quedó en
+> 22). Ningún otro hallazgo cambió; es el lint que ya cargan las demás RPC definer del Studio, no una
+> regresión. Conteo informativo autorizado, sólo agregado: 0 clientes vivos con email con blancos
+> distintos del espacio al borde. El registro de esta ronda está en
+> `.agents/handoffs/c-l10-recordatorios-cobranzas.md` («RONDA 2»). Por eso 0410 ya **no** figura como
+> espera en `supabase/migrations-baseline.json` ni tiene declaración en
+> `supabase/pending-migration-symbol-declarations.json`; el orden migrate-first se cumplió: la RPC
+> existe en la base antes de fusionar el código que la consume, así que `contextoDeEnvio` ya no puede
+> caer en `PGRST202`. Sigue el orden de L10 (SDD-0358): **0410 (aplicada) → despliegue de esta PR y
+> verificación de la vista previa de recordatorios con accounting y admin → 0415**; la decisión 5 la
+> cumple 0415, que sigue pendiente. `recordatorios-queries.ts` y su test entran idénticos al origen:
+> `main` no tocó ese módulo desde la base común. No se importan el checklist
+> `docs/audits/2026-09-02-codex-arranque-checklist.md` ni los handoffs `2026-09-02-*` de la allowlist;
+> entran fuera de ella la espera de 0415 en el baseline, que exige el gate `migrations-applied`, y el
+> handoff de esta importación, donde queda la evidencia local.
 >
 > **Desviaciones respecto del origen**, decididas por el Director el 2026-09-12 antes de cualquier
 > aplicación. (1) `0410` limpia `clients.email` y `mail_logs.to_email` con el mismo conjunto que
