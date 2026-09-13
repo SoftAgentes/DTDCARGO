@@ -198,9 +198,9 @@ arreglo. La app ya no lo muestra, pero la base lo sigue permitiendo. Lo mismo va
 
 Una migración que reemplace **solo** `invoices portal self read`:
 
-- con el predicado **idéntico, carácter por carácter,** al de 0414
-  (`supabase/migrations/0414_invoices_read_rbac.sql:62-80` en la PR #106), el mismo
-  nombre y `to authenticated`;
+- con el predicado **idéntico, carácter por carácter,** al de la migración
+  `0414_invoices_read_rbac` de la PR #106 (líneas 62-80 de su archivo, que todavía no
+  está en main), el mismo nombre y `to authenticated`;
 - con un preflight que exija esa policy y no dependa del estado de la policy de equipo:
   `invoices by tenant` antes de 0407, e `invoices_team_select` o
   `invoices_accounting_select` después;
