@@ -1,15 +1,31 @@
 # L07 — RBAC de facturas y facades de Fidelización, Conversaciones y Órdenes de venta (0407, 0411–0413 → 0414)
 
-Fecha: 2026-09-12. Task ID: `c-l07-fidelizacion-conversations`.
+Fecha: 2026-09-12 (rondas 1 y 2) y 2026-09-13 (ronda 3). Task ID: `c-l07-fidelizacion-conversations`.
 Owner / sesión escritora: `c-l07-fidelizacion-conversations-20260912` (Worker asignado por el Director; sin subagentes ni otras sesiones escritoras).
-Rondas: dos, en la misma sesión. La 1 importa el lote y publica la PR #106 en `0d247073`. La 2 aplica la revisión del Director sobre ese head: sección de cambios visibles y frontera del Portal en la PR, test de inventario, esperas y notas, y vuelta atrás probada de 0407 y 0414. La ronda 2 no cambia código de producto ni SQL de migraciones desde `961ec85e`.
+Rondas: tres, en la misma sesión.
+- **Ronda 1.** Importa el lote y publica la PR #106 en `0d247073`.
+- **Ronda 2.** Aplica la revisión del Director sobre ese head: cambios visibles y frontera del Portal en la PR, test de inventario, esperas y notas, y vuelta atrás probada de 0407 y 0414. Publica `c09b5155`.
+- **Ronda 3.** Tres cambios:
+  - incorpora `main` `a3dbac04` por merge (PR #107, SDD-0462; PR #108, SDD-0463);
+  - reescribe los textos de la frontera del Portal para que valgan en los dos órdenes respecto de `0452_portal_invoices_tenant_rls`;
+  - rehace la vuelta atrás de 0414 para que nunca restaure la policy Portal de 0085.
+
+  Como el merge trae código y SQL nuevos, repite `verify` completo. El primero, sobre `799c8ae3`, falló en `test` sólo por el tope de 20 s del test de inventario. Con el tope propio de 60 s se repitió sobre `dd7e6f49`. La corrida intermedia sobre `2abd3e0d` se interrumpió a propósito (ver «Ronda 3»).
+
 Estado de tarea: lista-para-revision. PR #106 en borrador. **MIGRATE-FIRST: no fusionar antes de aplicar y verificar 0407, 0411, 0412 y 0413.** 0414 va después del despliegue de esta PR y del smoke por roles. Release y aplicación de migraciones quedan fuera de esta tarea.
 Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO` (checkout principal en `main`, sin tocar).
 Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l07-fidelizacion-conversations`.
-Rama: `codex/c-l07-fidelizacion-conversations`. Base: `origin/main` `bca98147672a6255192b62b247ab3f5c44061bb2`; comprobado sin cambios antes del verify, antes del push de la ronda 1 y al empezar la ronda 2.
-Origen de solo lectura: `refs/dtd/pr/21` = `origin/codex/saneamiento-integral` = `ea9952a47f4adf14c48c91e6d0147597beb94aa7`. Base común con `main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`. Commits de origen del lote: `ff3b4fa1` (SDD-0350), `a5d9c897` y `219f9400` (SDD-0354), `8b112b5a` (SDD-0355), `3ca9a79d` (SDD-0356) y `702de3f4` (SDD-0357).
-SDD: `docs/specs/0350-invoices-write-rbac`, `0354-client-annual-billing-facade`, `0355-conversation-outstanding-facade`, `0356-sales-order-invoice-facade` y `0357-invoices-read-rbac`, con el frontmatter de origen (`status: done`) y nota de importación. Migraciones `0407_invoices_write_rbac`, `0411_client_annual_billing_facade`, `0412_conversation_outstanding_facade`, `0413_sales_order_invoice_facade` y `0414_invoices_read_rbac`, declaradas pendientes. Sin reserva de número: se conserva la numeración de origen; ninguna ref local o remota fuera de la PR #21 tiene esas migraciones ni esas carpetas de spec.
-Permisos: commits selectivos; push de la rama a sí misma y PR en borrador contra `main`, autorizados por Sam. Prohibidos: merge, sacar la PR de borrador, deploy, aplicar migraciones, tocar el ruleset, borrar ramas o worktrees y leer filas de negocio.
+Rama: `codex/c-l07-fidelizacion-conversations`.
+- **Base original.** `origin/main` `bca98147672a6255192b62b247ab3f5c44061bb2`, sin cambios hasta la ronda 2.
+- **Base efectiva de la PR.** En la ronda 3 la rama incorporó `origin/main` `a3dbac042de81a17bc38e50833ea40651a878f1c` con el merge `0d166684`.
+
+Origen de solo lectura: `refs/dtd/pr/21` = `origin/codex/saneamiento-integral` = `ea9952a47f4adf14c48c91e6d0147597beb94aa7`. Base común de la PR #21 con `main`: `2a2e81bf554dbe7bd4f05170847e8f02e988d320`. Commits de origen del lote: `ff3b4fa1` (SDD-0350), `a5d9c897` y `219f9400` (SDD-0354), `8b112b5a` (SDD-0355), `3ca9a79d` (SDD-0356) y `702de3f4` (SDD-0357).
+SDD:
+- **Specs.** `docs/specs/0350-invoices-write-rbac`, `0354-client-annual-billing-facade`, `0355-conversation-outstanding-facade`, `0356-sales-order-invoice-facade` y `0357-invoices-read-rbac`, con el frontmatter de origen (`status: done`) y nota de importación.
+- **Migraciones.** `0407_invoices_write_rbac`, `0411_client_annual_billing_facade`, `0412_conversation_outstanding_facade`, `0413_sales_order_invoice_facade` y `0414_invoices_read_rbac`, declaradas pendientes.
+- **Numeración.** Sin reserva de número: se conserva la de origen. Ninguna ref local o remota fuera de la PR #21 tiene esas migraciones ni esas carpetas de spec.
+
+Permisos: commits selectivos; push de la rama a sí misma y PR en borrador contra `main`, autorizados por Sam. Prohibidos: merge a `main`, sacar la PR de borrador, deploy, aplicar migraciones, tocar el ruleset, borrar ramas o worktrees y leer filas de negocio.
 Aceptación:
 - L07 extraído desde la PR #21 con SQL, contratos, specs, código y pruebas, conservando lo que `main` agregó.
 - Una espera por migración con orden obligatorio, locks medidos y párrafo literal de autorización, sin tocar `cutoff`.
@@ -23,6 +39,11 @@ Aceptación:
   - `invoice-read-boundary.test.mjs` importado si pasa contra el código real sin requerir código ausente, con control rojo.
   - Vuelta atrás de 0407 y 0414 escrita, probada con comparación de catálogo y citada desde las esperas.
   - Validación proporcional sin verify completo, con `git diff --stat 961ec85e..HEAD` limitado al test, las notas, las esperas y el handoff.
+- **Ronda 3:**
+  - Merge de `origin/main` sin rebase ni force, con el driver semántico para baseline, declaraciones e índice, conservando la espera de 0452 y las de L07, e índice regenerado con el script.
+  - Espera de 0414, nota de 0357 y sección de la PR correctas en los dos órdenes respecto de 0452.
+  - Vuelta atrás de 0414 que nunca recrea la policy de 0085, con postflight de expresión exacta, probada en dos escenarios (con 0452 y sin ella) con fotos de catálogo y la cadena 0414 → 0407.
+  - `verify` completo sobre el head de código final y allowlist cubriendo el diff contra `main`.
 
 ## OBJETIVO ORIGINAL
 
@@ -36,11 +57,18 @@ Ronda 2, revisión del Director sobre `0d247073`. Acepta la PR en lo sustancial 
 5. Pide importar el test de inventario si pasa contra el código real.
 6. Pide la vuelta atrás de 0407 y 0414, probada con comparación de catálogo.
 
+Ronda 3, sobre `c09b5155`. `main` avanzó a `a3dbac04` con la PR #107 (SDD-0462: lecturas de facturas del Portal por tenant del principal, PDF y datos del emisor incluidos) y la PR #108 (SDD-0463: migración `0452_portal_invoices_tenant_rls`, pendiente, que deja la policy Portal con la expresión de 0414). El Director pide:
+1. Incorporar `main` por merge, con el driver semántico.
+2. Adaptar los textos de la frontera a los dos órdenes, partiendo del «TEXTO PROPUESTO PARA LA PR #106» de `.agents/handoffs/portal-facturas-rls.md`.
+3. Por decisión suya, que la vuelta atrás de 0414 nunca recree la policy vulnerable de 0085, con postflight de expresión exacta y prueba en los dos escenarios.
+4. `verify` completo.
+5. Un único push normal.
+
 ## COMPLETADO
 
 ### Archivos y relación con el origen
 
-Diff contra `origin/main` `bca98147`: 29 archivos más este handoff, 28 de la ronda 1 y el test de inventario de la ronda 2.
+Diff contra `origin/main` `a3dbac04`, después del merge de la ronda 3: 29 archivos más este handoff, los mismos que en la ronda 2. `node allowlist-coverage.mjs origin/main` da 30 archivos y 0 sin cubrir: 27 por la allowlist exacta de alguna spec y 3 declarados en las notas de importación (la baseline, las declaraciones y este handoff).
 
 | Archivo | Relación con el origen |
 |---|---|
@@ -62,84 +90,158 @@ Diff contra `origin/main` `bca98147`: 29 archivos más este handoff, 28 de la ro
 | `lib/studio/conversaciones/__tests__/client-context.test.ts` | nuevo, idéntico (`c82f3013`) |
 | `lib/studio/sales-orders/queries.ts` | `main` más sólo los trozos de SDD-0356: import de `fetchAllByIds` (`:16`), `SalesOrderInvoiceRef` sin fechas (`:207-212`) y `listInvoicesForSalesOrder` sobre `listInvoicesBySalesOrder` (`:218-262`) |
 | `lib/studio/__tests__/orders-relations-batch.test.ts` | nuevo, recortado: el origen `e813f645` mezclaba SDD-0322 y SDD-0356 |
-| `scripts/__tests__/invoice-read-boundary.test.mjs` | ronda 2: nuevo, idéntico (`97c82149`), sin ajustar su lista de lectores |
-| las cinco `docs/specs/…/spec.md` | origen más la nota de importación; frontmatter intacto. En la ronda 2, las notas de 0350 y 0357 suman la vuelta atrás, la frontera del Portal y el test |
-| `docs/specs/README.md` | regenerado con `node scripts/build-docs-index.mjs`: 444 specs; 0350 y 0354–0357 salen de la lista de huecos. La ronda 2 no lo cambia |
-| `supabase/migrations-baseline.json` | cinco esperas; `cutoff 238`, `$doc` y la espera de 0451 idénticos a `main`, comprobado por valor. En la ronda 2 cambian sólo las esperas de 0407 y 0414 |
+| `scripts/__tests__/invoice-read-boundary.test.mjs` | ronda 2: nuevo, idéntico (`97c82149`), sin ajustar su lista de lectores. Ronda 3 (`dd7e6f49`): sólo suma el tope propio de 60 s de la primera prueba y su comentario; lista, recorrido y aserciones idénticos |
+| las cinco `docs/specs/…/spec.md` | origen más la nota de importación; frontmatter intacto. En las rondas 2 y 3, las notas de 0350 y 0357 suman la vuelta atrás, la frontera del Portal en los dos órdenes, el test y su tope propio |
+| `docs/specs/README.md` | regenerado con `node scripts/build-docs-index.mjs`. Tras el merge de la ronda 3 da 446 specs, con 0462 y 0463 de `main` |
+| `supabase/migrations-baseline.json` | cinco esperas de L07 más 0451 y 0452 de `main`; `cutoff 238` y `$doc` idénticos a `main`, comprobado por valor. En la ronda 3 cambian las esperas de 0414 y 0407 |
 | `supabase/pending-migration-symbol-declarations.json` | tres declaraciones AMARILLO; `schemaVersion` y `$doc` idénticos a `main` |
 
-La identidad se comprobó con `git hash-object` al importar y con `git rev-parse HEAD:<ruta>` contra `refs/dtd/pr/21:<ruta>`: el primer commit (`6330cb46`) guarda los diez SQL idénticos al origen y la desviación queda sola en el segundo (`b6fdf92f`). El test de la ronda 2 se comprobó igual en `e952e4bd`. Los SQL van byte a byte (`-text` en `.gitattributes`) y se comprobó con Node que ningún archivo tocado tiene CR.
+La identidad se comprobó con `git hash-object` al importar y con `git rev-parse HEAD:<ruta>` contra `refs/dtd/pr/21:<ruta>`: el primer commit (`6330cb46`) guarda los diez SQL idénticos al origen y la desviación queda sola en el segundo (`b6fdf92f`). El test de la ronda 2 se comprobó igual en `e952e4bd`; en la ronda 3, `git diff e952e4bd dd7e6f49` sobre el test da sólo el comentario y el tope (5 líneas más y 1 menos). Los SQL van byte a byte (`-text` en `.gitattributes`) y se comprobó con Node que ningún archivo tocado tiene CR.
 
 ### Solapamientos con `main` y resolución
 
 - Desde la base común, `main` sólo tocó dos líneas del alcance: `STATUS_TONES.abierto` pasó de `warning` a `info` y su expectativa en el test. Se conservan; de esos dos archivos sólo entra lo de L07.
 - En el origen, `lib/studio/sales-orders/queries.ts` y `orders-relations-batch.test.ts` mezclan SDD-0322 (commit `1faff60b`: `listPrealertasBySalesOrder`, columna `sales_order_id` de prealertas, ítems de compra y lectura de las páginas) con SDD-0356 (`3ca9a79d`). Entra sólo 0356. La spec 0322 está en `main` sin ese código. El test recortado conserva los casos de facturas (agrupación por RPC sin consulta por orden, error que no se vuelve vacío y lote vacío) y agrega uno: el helper de una orden delega en la misma RPC. En el cliente falso, `from` lanza para probar que no hay lectura directa.
 - `digest-extract.ts` y `monthly-digest.ts`, que la PR #21 cambió en la misma carpeta por observabilidad, no entran.
-- `scripts/__tests__/invoice-read-boundary.test.mjs`, de la allowlist de SDD-0357, quedó fuera en la ronda 1 y entró en la ronda 2 por decisión del Director (ver «Ronda 2»).
-- No hubo merge ni conflicto textual: `origin/main` no se movió durante la tarea.
+- `scripts/__tests__/invoice-read-boundary.test.mjs`, de la allowlist de SDD-0357, quedó fuera en la ronda 1 y entró en la ronda 2 por decisión del Director.
+- **Ronda 3, merge de `a3dbac04`** (`git merge --no-ff --no-commit origin/main`, commit `0d166684`, padres `c09b5155` y `a3dbac04`):
+  - **Sin conflictos textuales.** El driver `dtd-generated-records`, verificado con `node scripts/install-merge-drivers.mjs --check`, fusionó los dos registros que tocaban ambos lados («✓ merge semántico» en los dos).
+    - `supabase/migrations-baseline.json`: siete esperas. 0451 y 0452 son idénticas a `main`, y 0407 y 0411–0414, a la rama; `cutoff` y `$doc` sin cambios.
+    - `docs/specs/README.md`: `node scripts/build-docs-index.mjs` lo regeneró sin diferencias frente al resultado del driver (446 specs).
+  - `supabase/pending-migration-symbol-declarations.json` no cambió: `main` no lo tocó.
+  - Ningún archivo de código, migración ni prueba de L07 se solapa con los de #107 y #108.
 
 ### Esperas y declaración
 
-- `supabase/migrations-baseline.json`: una espera por migración, en el estilo de las PR #104 y #105. Cada una lleva lo que hace la migración, el orden obligatorio de L07, las lecturas de catálogo previas (0407), la condición transaccional literal de `set local` (0407 y 0414), locks y contención medidos, qué rompe en silencio (0414) y el párrafo literal de autorización. En la ronda 2, las de 0407 y 0414 remiten a la vuelta atrás probada, y la de 0414 declara la frontera del Portal.
+- `supabase/migrations-baseline.json`: una espera por migración, en el estilo de las PR #104 y #105. Cada una lleva lo que hace la migración, el orden obligatorio de L07, las lecturas de catálogo previas (0407), la condición transaccional literal de `set local` (0407 y 0414), locks y contención medidos, qué rompe en silencio (0414) y el párrafo literal de autorización.
+  - En la ronda 2, las de 0407 y 0414 remiten a la vuelta atrás probada.
+  - En la ronda 3, la de 0414 declara la frontera del Portal en los dos órdenes respecto de 0452 y la vuelta atrás que no restaura la policy de 0085; la de 0407, que su vuelta atrás no toca la policy Portal.
 - `supabase/pending-migration-symbol-declarations.json`: `studio_client_annual_billing`, `conversation_client_outstanding` y `sales_order_invoice_refs` quedan AMARILLO con su sitio de llamada y la evidencia del degradado. El gate da `0 ROJO · 3 AMARILLO`.
 
 ### Specs importadas
 
-Las cinco conservan el frontmatter de origen. Cada nota de importación, con el patrón de `0352-bank-reconciliation-rbac`, registra el origen y sus commits, los cortes, la paridad medida, el estado real **pendiente de aplicar** y los archivos que entran fuera de su allowlist: los registros de pendientes y este handoff. Las notas de 0350 y 0357 registran además la desviación de timeouts y, desde la ronda 2, la vuelta atrás; la de 0357 suma la frontera del Portal aceptada y el test de inventario. Cada archivo del diff queda cubierto por la allowlist de alguna spec o por esas notas. El test de la ronda 2 ya estaba en la allowlist de 0357.
+Las cinco conservan el frontmatter de origen. Cada nota de importación, con el patrón de `0352-bank-reconciliation-rbac`, registra el origen y sus commits, los cortes, la paridad medida, el estado real **pendiente de aplicar** y los archivos que entran fuera de su allowlist: los registros de pendientes y este handoff. Las notas de 0350 y 0357 registran además la desviación de timeouts y la vuelta atrás. La de 0357 suma la frontera del Portal en los dos órdenes, el test de inventario con su tope propio y la vuelta atrás que no restaura la policy de 0085.
 
 ### Ronda 2
 
 **Decisiones del Director aplicadas:**
 1. **Divergencias de paridad, aceptadas.** El cuerpo de la PR #106 tiene «Cambios de comportamiento visibles al desplegar», con los siete cambios en lenguaje llano y lo que no tiene efecto visible.
-2. **Frontera del Portal con 0414, aceptada.** La espera de 0414, la nota de 0357 y la PR la declaran explícita, sin mensaje de error, con la medición de abajo.
-3. **Fuga del Portal.** Sin cambios en esta ronda; queda en manos del Director con Sam y 0414 conserva su lugar.
+2. **Frontera del Portal con 0414, aceptada.** La espera de 0414, la nota de 0357 y la PR la declaran explícita, sin mensaje de error. Su redacción se rehízo en la ronda 3.
+3. **Fuga del Portal.** Sin cambios en esa ronda. En la ronda 3, `main` la cerró en la app (SDD-0462) y la 0452 la cierra en la base (SDD-0463).
 4. **Órdenes de venta y SDD-0322.** Fuera de alcance, en «FUERA DE ALCANCE DETECTADO» 3.
-5. **Test de inventario.** Importado sin ajustes.
-6. **Vuelta atrás de 0407 y 0414.** Escrita y probada, en la sección «VUELTA ATRÁS DE 0407 Y 0414».
+5. **Test de inventario.** Importado sin ajustes en esa ronda. En la ronda 3 recibe un tope propio de 60 s (ver «Ronda 3»).
+6. **Vuelta atrás de 0407 y 0414.** Escrita y probada. Se rehízo en la ronda 3.
 
 **Test de inventario.**
 - **Qué entra.** Entra idéntico al origen: blob `97c82149` en `e952e4bd`. Congela 45 llamadas directas `from("invoices")` en 18 archivos de `app/`, `lib/` y `supabase/functions/`, sin contar tests, comentarios ni ejemplos. Además comprueba que los widgets `monthRevenue`, `invoicesDue`, `pendingCollect` y `avgTicket` siguen en el módulo `invoices`, cerrado a overrides para los cinco roles no financieros.
-- **Sin ajustes.** Su lista coincide archivo por archivo con el inventario AST de esta rama (`inventory-l07-head.txt`). Sus imports existen en `main`: `canAccessModule` (`lib/studio/rbac.ts:318`) y `KPI_CATALOG` (`lib/studio/dashboard/dashboard-catalog.ts:51`). No requiere SDD-0322, SDD-0390 ni otro código ausente.
-- **Vitest lo descubre.** `vitest.config.ts` no restringe `include` y sólo excluye `node_modules`, `.next`, `.claude` y `e2e` (`:31`), igual que con los demás `scripts/__tests__/*.test.mjs`.
-- **Focal.** PASÓ, 3/3 (`round2/test-invoice-read-boundary-focal.log`).
-- **Control rojo.** `lib/studio/__l07_control_rojo_lector_facturas.ts`, con un `db.from("invoices")`, hizo fallar la primera prueba con `expected { …(19) } to deeply equal { …(18) }` (`round2/test-invoice-read-boundary-redcontrol.log`). El archivo se borró en el mismo comando y la prueba volvió a pasar 3/3 (`round2/test-invoice-read-boundary-after-revert.log`).
-- **PR #104 y #105.** El conteo AST de los 14 y 1 archivos de producción que tocan da 0 cambios (`results/branch-inventory-delta.txt`).
+- **Sin ajustes en la ronda 2.** Su lista coincide archivo por archivo con el inventario AST de esta rama. Sus imports existen en `main`: `canAccessModule` (`lib/studio/rbac.ts:318`) y `KPI_CATALOG` (`lib/studio/dashboard/dashboard-catalog.ts:51`). No requiere SDD-0322, SDD-0390 ni otro código ausente.
+- **Vitest lo descubre.** `vitest.config.ts` no restringe `include` y sólo excluye `node_modules`, `.next`, `.claude` y `e2e` (`:31`).
+- **Focal.** PASÓ, 3/3.
+- **Control rojo.** Un `db.from("invoices")` en `lib/studio/__l07_control_rojo_lector_facturas.ts` hizo fallar la primera prueba con `expected { …(19) } to deeply equal { …(18) }`. Retirado, volvió a pasar 3/3.
+- **PR #104 y #105.** El conteo AST de los 14 y 1 archivos de producción que tocan da 0 cambios.
 
-**Frontera del Portal, medida.** Sonda en PostgreSQL 17.11 efímero (`results/portal-pdf-probe.txt`):
-- Reproduce la lectura exacta de `getMyInvoice`: código, Shipping Mark resuelto por `get_portal_client_markbox()` y sin borradores ni borradas.
-- Corre como `authenticated`, en `main` y tras 0407, 0411–0413 y 0414, dentro de una transacción revertida.
+La ronda 2 midió la frontera del Portal sobre `bca98147`, con el código del Portal anterior a SDD-0462. Sus cifras de la ruta del PDF («hoy entrega la factura y tras 0414 responde 404») ya no valen en `main`: la ronda 3 las reemplaza (ver «Ronda 3»).
 
-| Identidad | Factura | Shipping Mark resuelto | En `main` | Tras 0414 |
-|---|---|---|---|---|
-| vínculo activo con cliente borrado | X01 (de su cliente) | DEAD | visible | no visible |
-| vínculo coherente de T1, Shipping Mark repetido en T2 | D01 (de T1) | DUP | visible | visible |
-| vínculo coherente de T1, Shipping Mark repetido en T2 | D2-01 (de T2) | DUP | visible | no visible |
-| vínculo incoherente (vínculo en T1, cliente de T2) | D01 | DUP | visible | no visible |
-| vínculo incoherente (vínculo en T1, cliente de T2) | D2-01 | DUP | visible | no visible |
+### Ronda 3
 
-Cómo se ve en la app:
-- **Páginas.** El layout del Portal resuelve el principal con `getPortalClient`, que ya rechaza cliente borrado y tenant incoherente (`lib/portal/portal-queries.ts:80-87`), y manda a `/entrar` (`app/portal/(app)/layout.tsx:39-40`). En las páginas no cambia nada.
-- **PDF por URL.** La ruta del PDF es un route handler: no pasa por el layout y llama `getMyInvoice` antes de cualquier guard (`app/portal/(app)/facturas/[code]/pdf/route.ts:41-44`). Sin fila responde `noEncontrado("Factura")`, un 404 con «Factura no encontrado.» (`lib/studio/pdf/pdf-response.ts:59-63`).
-- **Mensajes.** Ningún caso emite un mensaje de error propio.
+**Merge.** Ver «Solapamientos con `main` y resolución». Tras el merge:
+- `invoice-read-boundary.test.mjs` pasó focal 3/3 (`round3/test-invoice-read-boundary-post-merge.log`).
+- El inventario AST propio sigue en 45 llamadas en 18 archivos (`round3/inventory-post-merge.txt`): SDD-0462 cambió cómo se leen las facturas del Portal, pero no la cantidad de llamadas directas.
+- Pasaron los gates de símbolos (0 ROJO · 3 AMARILLO), índice (446 specs) y numeración, y la cobertura de allowlists (`round3/allowlist-coverage-post-merge.txt`).
 
-**Esperas y notas.**
-- `supabase/migrations-baseline.json`: sólo cambian las esperas de 0407 y 0414. `cutoff`, `$doc`, 0451, 0411, 0412, 0413 y el párrafo literal de autorización quedan idénticos, comprobado por valor. La de 0407 remite a la vuelta atrás; la de 0414 declara la frontera del Portal y remite a la vuelta atrás.
-- Notas: 0350 suma la referencia a la vuelta atrás. 0357 suma la frontera aceptada, la importación del test con su control rojo y la referencia a la vuelta atrás. Las otras tres specs y el índice no cambian.
+**Test de inventario: tope propio de 60 s (`dd7e6f49`).**
+- **Qué falló.** El `verify` completo sobre `799c8ae3` salió en rojo en `test` sólo por la primera prueba de `invoice-read-boundary.test.mjs`, en el intento y en el reintento: `Test timed out in 20000ms`, con 22.381 ms y 20.821 ms. Las otras 6.838 pruebas pasaron.
+- **Causa.** La prueba lee y parsea con TypeScript unos 1.600 módulos de `app/`, `lib/` y `supabase/functions/`. Sola tarda unos 2,5 s, pero bajo la carga de la suite pasa del tope global de 20 s (`vitest.config.ts:50`).
+- **Ajuste.** `60_000` como tercer argumento de `it`, con un comentario que lo justifica. La lista, el recorrido y las aserciones quedan idénticos al origen, y la nota de 0357 registra el cambio.
+- **Por qué no debilita la prueba.** Es sincrónica: Vitest no puede cortarla a mitad y sólo compara la duración cuando termina (`withTimeout`, `node_modules/.pnpm/@vitest+runner@4.1.7/node_modules/@vitest/runner/dist/chunk-artifact.js:2288-2291`). Una copia temporal con tope de 1 ms falló con `Test timed out in 1ms.` a los 2.198 ms, después de recorrer todo.
+- **Controles.**
+  - Focal: 3/3.
+  - Control rojo del inventario, repetido con el tope nuevo: `expected { …(19) } to deeply equal { …(18) }`, y verde al retirar el lector ficticio.
+  - Suite completa, con el mismo comando que el paso `test` de `verify`: 547 archivos y 6.839 pruebas. Esta prueba tardó 18.943 ms y es la más lenta de la suite; la siguiente, 7.046 ms.
+- **Descartado: prefiltrar por el texto `invoices`.** Se probó primero y se retiró antes del commit. Medición con el mismo AST sobre el árbol real (`round3/prefilter-variants.log`):
 
-**PR #106.** Cuerpo actualizado y sigue en borrador. Suma:
-- «Cambios de comportamiento visibles al desplegar»;
-- «Frontera del Portal al aplicar 0414»;
-- «Vuelta atrás de 0407 y 0414, probada»;
-- la validación de la ronda 2;
-- las decisiones del Director.
+  | Variante | Módulos parseados | Inventario del árbol | Mediana de 5 |
+  |---|---|---|---|
+  | sin prefiltro (origen) | 1.612 | 45 en 18 | 1.605 ms |
+  | texto `invoices` | 66 | 45 en 18 | 759 ms |
+  | texto `invoices` o un escape que deletree sus letras | 175 | 45 en 18 | 848 ms |
+  | texto `invoices` o una barra invertida | 350 | 45 en 18 | 969 ms |
+  | sólo recorrer y leer | 0 | — | 674 ms |
 
-**Sin producto.** `git diff --stat 961ec85e..HEAD` (en «VALIDACIÓN») sólo muestra el test, dos notas de specs, el baseline y este handoff.
+  - **El primero pierde casos.** En el árbol actual da el mismo inventario, pero deja fuera literales escritos con escapes que el AST sí cuenta: `'inv\x6fices'`, `` `\u{69}nvoices` ``, `"inv\oices"`, el escape unicode de cuatro dígitos de la `i` y la continuación de línea dentro del literal. Pierde 5 de los 6 casos sintéticos.
+  - **Las variantes sin pérdida ahorran poco.** Bajan de 1,6 a 0,85 o 1,0 s, porque leer los archivos cuesta 0,7 s. Bajo carga quedarían cerca del tope, así que no lo evitan.
+  - **Para recortar la prueba.** Si el Director quiere hacerlo, la variante segura más simple es «texto `invoices` o una barra invertida».
+- **Commit rehecho antes de publicar.** El primer commit del ajuste, `2abd3e0d`, dejó mal un ejemplo en la nota de 0357 y en su mensaje: el escape unicode de cuatro dígitos se decodificó al escribirlo y quedó el literal plano `"invoices"`, que no ilustra nada.
+  - Su `verify` se detuvo en `e2e`. Hasta ahí todo había pasado, `test` incluido.
+  - El ejemplo pasó a ser `'inv\x6fices'` y el commit local, nunca publicado, se rehízo como `dd7e6f49`: mismo padre, mismo blob del test (`b40e3936`) y una sola línea distinta en la nota.
+  - El árbol de procesos de ese verify se terminó con `taskkill /T /F` desde su `corepack`. No quedaron procesos ni contenedores.
+
+**Qué cambió en `main` y cómo lo toma L07:**
+- **SDD-0462 (PR #107).** `listMyInvoices`, `getMyInvoice` y `getMyInvoiceForPrincipal` resuelven primero el principal Portal vivo y coherente y filtran por su `tenant_id` y su Shipping Mark (`lib/portal/portal-queries.ts:242-253` y `:283-308`). La ruta del PDF resuelve el principal antes de leer la factura y responde 404 sin él (`app/portal/(app)/facturas/[code]/pdf/route.ts:50-51`). Los datos del emisor se filtran por el tenant del principal (`lib/studio/company-queries.ts:125` y `:132`). En la app, la frontera del Portal ya no depende de la RLS.
+- **SDD-0463 (PR #108).** `0452_portal_invoices_tenant_rls`, pendiente, reemplaza sólo `invoices portal self read` por la expresión idéntica a la de 0414 dentro de un único `do`. Su preflight acepta la forma de 0085 (la reemplaza) o la final (no la toca).
+  - **Su medición.** El catálogo de policies converge con L07 en orden cronológico, en el rebuild numérico y con L07 sola (md5 `345b2d1080a2e87e93639f2f0be8b28b`).
+  - **La mía, en esta ronda.** La foto tras 0414 es idéntica con 0452 previa y sin ella.
+
+**Textos en los dos órdenes.** Adaptan el «TEXTO PROPUESTO PARA LA PR #106» de `.agents/handoffs/portal-facturas-rls.md`, que sólo valía si 0452 se aplicaba antes.
+- **Espera de 0414.**
+  - Qué hace 0414 con la policy Portal y qué pasa con 0452 aplicada antes y sin ella.
+  - Su preflight pasa con las dos formas.
+  - Frontera aceptada sin mensaje de error, que rige desde la primera de las dos migraciones que se aplique.
+  - En la app no cambia nada en ningún orden, por SDD-0462.
+  - La vuelta atrás nueva y la remisión a sus recibos.
+- **Espera de 0407.** La vuelta atrás no toca la policy Portal y está probada con 0452 y sin ella.
+- **Notas de 0357 y 0350.** Lo mismo que las esperas, más el test de inventario tras el merge.
+- **PR #106.** «Frontera del Portal al aplicar 0414», «Vuelta atrás de 0407 y 0414, probada», «Qué trae», validación y decisiones de la ronda 3.
+
+**Sonda de la app con el código de `main`.** `tools/portal-app-probe-r3.mts` llama a `listMyInvoices` y `getMyInvoice` de la rama tras el merge, con un cliente que simula la sesión de supabase-js (`auth.getUser()` devuelve el `sub` del JWT). Además hace `GET /invoices` directo por PostgREST v16.1 con el JWT de cada identidad, en cuatro estados:
+- sin 0452, antes de 0414 (policy de 0085);
+- con 0452, antes de 0414;
+- tras 0414;
+- tras revertir 0414.
+
+Resultado (`results/rollback-r3/portal-app-*.json` y `portal-directo-resumen.txt`):
+- **App.** La lista y el detalle son idénticos en los cuatro estados para las seis identidades: DUP T1 ve D01 y D02; DUP T2 ve D2-01, S2-01 y S2-X; cliente borrado, incoherente y revocado, nada; el comercial con vínculo Portal en T2, A2-01.
+- **Lectura directa de las cinco identidades Portal puras.** Con la policy de 0085, DUP T1 lee también D2-01, S2-01 y S2-X de T2; el vínculo con cliente borrado lee X01; el incoherente, cinco facturas de los dos tenants. Con 0452, tras 0414 y tras revertir 0414 es la misma: DUP T1 sólo sus dos de T1, y cero filas para el borrado y el incoherente.
+
+```
+SIN 0452, ANTES DE 0414 (0085)
+portal DUP T1 (coherente): D01@T1,D02@T1,D2-01@T2,S2-01@T2,S2-X@T2
+portal DUP T2 (coherente): D01@T1,D02@T1,D2-01@T2,S2-01@T2,S2-X@T2
+portal cliente borrado: X01@T1
+portal incoherente (vínculo T1, cliente T2): D01@T1,D02@T1,D2-01@T2,S2-01@T2,S2-X@T2
+portal revocado: (0 filas)
+commercial T1 con vínculo Portal en T2: 1000 filas (tope de PostgREST), T1 1000
+
+CON 0452, ANTES DE 0414
+portal DUP T1 (coherente): D01@T1,D02@T1
+portal DUP T2 (coherente): D2-01@T2,S2-01@T2,S2-X@T2
+portal cliente borrado: (0 filas)
+portal incoherente (vínculo T1, cliente T2): (0 filas)
+portal revocado: (0 filas)
+commercial T1 con vínculo Portal en T2: 1000 filas (tope de PostgREST), T1 1000
+
+TRAS 0414
+portal DUP T1 (coherente): D01@T1,D02@T1
+portal DUP T2 (coherente): D2-01@T2,S2-01@T2,S2-X@T2
+portal cliente borrado: (0 filas)
+portal incoherente (vínculo T1, cliente T2): (0 filas)
+portal revocado: (0 filas)
+commercial T1 con vínculo Portal en T2: A2-01@T2
+
+TRAS REVERTIR 0414 (sin 0452)
+portal DUP T1 (coherente): D01@T1,D02@T1
+portal DUP T2 (coherente): D2-01@T2,S2-01@T2,S2-X@T2
+portal cliente borrado: (0 filas)
+portal incoherente (vínculo T1, cliente T2): (0 filas)
+portal revocado: (0 filas)
+commercial T1 con vínculo Portal en T2: 1000 filas (tope de PostgREST), T1 1000
+```
 
 ## ANÁLISIS 1 — MIGRATE-FIRST POR FACADE
 
 **Veredicto: las tres facades son MIGRATE-FIRST.** 0411 y 0413 fallan ruidosamente; 0412 degrada en silencio. 0407 es requisito de 0411: su preflight exige `invoices_team_select` (`0411:30-39`).
 
-Método. Se usó postgrest-js 2.106.1, el cliente que usa supabase-js en la app, contra PostgREST v16.1 con `db-max-rows` 1.000. Debajo corría el esquema de `main` reconstruido en `postgres:17` (17.11) con 419 migraciones, sin las 18 sólo-ledger ni las cinco de L07. Cada rol entró con su propio JWT HS256 y datos sintéticos. Se ejecutaron lado a lado las funciones reales de esta rama y las de `main` (`bca98147`, copiadas fuera del repo con `git show`).
+Método. Se usó postgrest-js 2.106.1, el cliente que usa supabase-js en la app, contra PostgREST v16.1 con `db-max-rows` 1.000. Debajo corría el esquema de `main` reconstruido en `postgres:17` (17.11) con 419 migraciones, sin las 18 sólo-ledger ni las cinco de L07. Cada rol entró con su propio JWT HS256 y datos sintéticos. Se ejecutaron lado a lado las funciones reales de esta rama y las de `main` (`bca98147`, copiadas fuera del repo con `git show`). La ronda 3 no cambia estos consumidores: #107 y #108 no tocan Fidelización, CRM, Reportes, Conversaciones ni Órdenes de venta.
 
 | Facade | Sin la RPC, medido | Consumidores y efecto |
 |---|---|---|
@@ -159,12 +261,17 @@ Consecuencias:
 
 Las tres son aditivas. Tras aplicarlas, el código de `main` devuelve lo mismo que antes: se midieron idénticas la facturación, el contexto y las referencias de `main` en las etapas «main» y «tras 0413». Aplicarlas antes de fusionar no cambia el comportamiento vigente.
 
-## ANÁLISIS 2 — LECTORES Y ESCRITORES DE `invoices` EN `main` `bca98147`
+## ANÁLISIS 2 — LECTORES Y ESCRITORES DE `invoices`
+
+Medido en las rondas 1 y 2 sobre `main` `bca98147`. La ronda 3 lo revisó tras incorporar `a3dbac04`:
+- el inventario sigue en 45 llamadas directas en 18 archivos con L07;
+- SDD-0462 cambió cómo filtran las lecturas del Portal, no quién llega;
+- 0452 sólo cambia la policy Portal.
 
 Método:
-- **Inventario AST propio.** Recorre con TypeScript cada `from("invoices")`, con su cadena de métodos y su receptor, en `app/`, `lib/`, `components/`, `scripts/` y `supabase/functions/`. Da 48 llamadas de producción en 21 archivos y ninguna `.delete()`. Con L07 quedan 45 en 18, el mismo inventario que congela el test de la ronda 2.
+- **Inventario AST propio.** Recorre con TypeScript cada `from("invoices")`, con su cadena de métodos y su receptor, en `app/`, `lib/`, `components/`, `scripts/` y `supabase/functions/`. En `bca98147` da 48 llamadas de producción en 21 archivos y ninguna `.delete()`. Con L07 quedan 45 en 18, antes y después del merge de la ronda 3, el mismo inventario que congela el test de la ronda 2.
 - **Embeds.** Se buscaron `invoices(`, `invoices!` e `invoice_id(`: no hay ninguno.
-- **SQL.** Las funciones que leen o escriben `invoices` se sacaron por `grep` sobre las 419 migraciones, con su modo `SECURITY`.
+- **SQL.** Las funciones que leen o escriben `invoices` se sacaron por `grep` sobre las migraciones, con su modo `SECURITY`.
 - **Vistas y Realtime.** No hay vistas ni publicación Realtime sobre `invoices`. Los helpers de documentos y comentarios que la consultan son definer.
 - **Matriz por rol.** La lectura (PostgREST, `count exact`) y la escritura (SQL como `authenticated`, con rollback) se midieron en tres etapas: en `main`, tras 0407 y tras 0414.
 
@@ -199,7 +306,7 @@ Hecho previo verificado en el catálogo: la policy efectiva `invoices by tenant`
 | **Fidelización, CRM y Reportes → Comercial**: `clientAnnualBilling` de `main` (`lib/studio/fidelizacion/queries.ts:71`) | sesión | fidelizacion (commercial, support), kommo (commercial) y reports (accounting) | tenant completo | igual | **código de `main`: cero filas sin error y todos los clientes en Bronze** (medido); código L07: RPC definer, igual para los autorizados |
 | **Conversaciones**: `getClientContext` de `main` (`conversations-queries.ts:348`) | sesión | conversaciones (commercial, operations, support) | lee | igual | **código de `main`: saldo 0 falso sin error** (medido; el principal dual ve 777 USD de otro tenant); código L07: RPC |
 | **Órdenes de venta**: `listInvoicesForSalesOrder` de `main` (`sales-orders/queries.ts:226`) | sesión | sales-orders (commercial, operations, accounting) | lee | igual | **código de `main`: «Facturas · 0» sin error para commercial y operations** (medido); código L07: RPC |
-| **Portal**: `listMyInvoices` y `getMyInvoice` (`lib/portal/portal-queries.ts:241` y `:280`) para lista, detalle y PDF | sesión, policy Portal | cliente Portal | policy por Shipping Mark sin tenant: con el mismo Shipping Mark en dos tenants lee facturas del otro (medido: D2-01 desde T1) | igual | un vínculo coherente conserva sus facturas y deja de ver las de otro tenant con su mismo Shipping Mark: la lista las pierde y su detalle da `notFound`. **Frontera aceptada (ronda 2):** un vínculo activo con cliente borrado o incoherente deja de leer facturas sin ningún mensaje de error. El layout ya lo manda a `/entrar`, así que en la app sólo se nota en el PDF por URL, que pasa a 404 (medido) |
+| **Portal**: `listMyInvoices`, `getMyInvoice` y `getMyInvoiceForPrincipal` (`lib/portal/portal-queries.ts:242-253` y `:283-308`, tras SDD-0462) para lista, detalle y los dos PDF | sesión, policy Portal | cliente Portal con principal vivo y coherente | desde SDD-0462 filtran por tenant y Shipping Mark del principal; sin principal no consultan. La RLS de 0085 igual deja leer por PostgREST directo facturas de otro tenant con el mismo Shipping Mark y las de vínculos con cliente borrado o incoherente (medido) | igual | la app lee lo mismo (medido en los dos órdenes). **Frontera aceptada:** por PostgREST directo, un vínculo coherente ya no ve las de otro tenant y uno con cliente borrado o incoherente lee cero filas, sin error. Con 0452 aplicada antes, eso rige desde 0452 y 0414 no lo cambia |
 | Portal con service_role: `lib/portal/portal-legal-queries.ts:116`, `:200` y `:261` y `app/portal/(app)/facturas/[code]/reportar/actions.ts:86`, tras resolver el principal por sesión | service_role | cliente Portal | igual | igual | igual |
 | Procesos: cron `kommo-contact-status` (`lib/studio/kommo-contact-status.ts:214`) | service_role | cron | igual | igual | igual |
 | Funciones SQL definer que leen `invoices`: `next_invoice_code`, `comment_entity_in_tenant`, `document_entity_in_tenant` (0215/0314), `payment_reports_validate_invoice`, `get_portal_referral_program` (0404), `sales_order_claim_and_invoice` y `confirm_payment_report` | definer | según su gate | igual | igual | igual |
@@ -208,14 +315,14 @@ Hecho previo verificado en el catálogo: la policy efectiva `invoices by tenant`
 Fallas silenciosas marcadas:
 1. 0414 con el código de `main` todavía desplegado, o revirtiendo sólo la app después de 0414.
 2. 0412 aplicada sin el despliegue es inocua, pero desplegar sin 0412 degrada el panel en silencio.
-3. Portal tras 0414: vínculo con cliente borrado o incoherente. Es frontera aceptada por el Director; en la app sólo se nota en el PDF por URL, que responde 404.
+3. Portal por PostgREST directo tras 0414, o tras 0452: un vínculo con cliente borrado o incoherente lee cero filas. Es frontera aceptada por el Director. En la app no se nota, porque desde SDD-0462 esos principales no leen facturas.
 4. 0407 para escrituras por PostgREST de roles no financieros, sin camino desde la app.
 
 Con L07 desplegado, ningún lector ni escritor legítimo se rompe, así que no hizo falta ningún arreglo fuera del allowlist.
 
 ## ANÁLISIS 3 — PARIDAD DE CADA FACADE CON EL CONSUMIDOR DE `main`
 
-Cifras medidas con el arnés de postgrest-js y datos sintéticos, en la etapa «tras 0413»: RPC aplicadas y RLS todavía de `main` + 0407. Los tenants T1 y T2 comparten Shipping Marks. En la ronda 2 el Director aceptó todas las divergencias; la PR las lista en lenguaje llano.
+Cifras medidas con el arnés de postgrest-js y datos sintéticos, en la etapa «tras 0413»: RPC aplicadas y RLS todavía de `main` + 0407. Los tenants T1 y T2 comparten Shipping Marks. En la ronda 2 el Director aceptó todas las divergencias; la PR las lista en lenguaje llano. #107 y #108 no tocan estos consumidores.
 
 **0411 — facturación anual por Shipping Mark (USD, accounting de T1)**
 
@@ -279,10 +386,14 @@ Inventario de lo que cruza la frontera en este lote:
 | `studio_client_annual_billing.billed_usd` | dato económico agregado del cliente | nivel | ídem |
 | `conversation_client_outstanding.client_id`, `balance` y `currency` | saldo por cobrar del cliente | panel del hilo | Conversaciones efectivo |
 | `sales_order_invoice_refs`: `id`, `sales_order_id`, `invoice_code`, `total_amount`, `status` y `created_at` | referencia económica sin identidad del cliente | drawer de la OV; `created_at` sólo pagina | Órdenes de venta efectivo |
-| Facturas leídas por el Portal (`getMyInvoice`: `client_name`, `client_rif`, `client_doc_kind`, montos, líneas y notas; `lib/portal/portal-queries.ts:283`) | identidad fiscal y datos económicos | autoservicio del cliente | el principal Portal |
+| Facturas leídas por el Portal (`getMyInvoiceForPrincipal`: `client_name`, `client_rif`, `client_doc_kind`, montos, líneas y notas; `lib/portal/portal-queries.ts:297-308`) | identidad fiscal y datos económicos | autoservicio del cliente | el principal Portal |
 
 Hallazgos:
-1. **ENCONTRADO, grave; lo cierra 0414.** Con la policy Portal histórica (`supabase/migrations/0085_portal_invoices_rls.sql:19-25`) y el mismo Shipping Mark en dos tenants, un cliente Portal lee facturas de otro tenant, con nombre, RIF, montos y líneas: medido D2-01 desde un vínculo de T1. Le corresponden la CRBV art. 28 (acceso a los datos propios) y el art. 60 (confidencialidad). Arreglo: 0414 (`0414:62-80`) exige vínculo, cliente y tenant coherentes, y se midió que la exposición cesa. Pendiente de aplicar. La ruta del PDF la expone además por URL, porque lee la factura antes de resolver el principal (`app/portal/(app)/facturas/[code]/pdf/route.ts:41-44`).
+1. **ENCONTRADO, grave; en la app lo cerró `main`, en la base lo cierran 0452 o 0414.** Con la policy Portal histórica (`supabase/migrations/0085_portal_invoices_rls.sql:19-25`) y el mismo Shipping Mark en dos tenants, un cliente Portal lee facturas de otro tenant, con nombre, RIF, montos y líneas. Le corresponden la CRBV art. 28 (acceso a los datos propios) y el art. 60 (confidencialidad).
+   - **Medido.** En la ronda 1, D2-01 desde un vínculo de T1. En la ronda 3, por PostgREST directo, D2-01, S2-01 y S2-X desde DUP T1.
+   - **En la app.** Desde SDD-0462 (PR #107), `main` ya no lo expone.
+   - **En la base.** La consulta directa a PostgREST con el JWT del propio usuario la cierra la primera de 0452 (SDD-0463) o 0414 (`0414:62-80`), que exigen vínculo, cliente y tenant coherentes. Medido en los dos órdenes; pendientes de aplicar.
+   - **Vuelta atrás.** La de 0414 no la reabre (ronda 3).
 2. **ENCONTRADO; lo cierran 0411–0413 con 0414.** Hoy commercial, operations, warehouse, support y marketing leen cada factura del tenant con moneda, tasa, estado, fechas, RIF, líneas y notas (policy `invoices by tenant` y `0230:36`), aunque sólo necesitan agregados. Es el punto 2 del checklist, minimización (SC 332/2001: finalidad). Tras 0414 leen 0 filas y reciben sólo las columnas de las RPC.
 3. **ENCONTRADO; lo cierra 0407.** Esos cinco roles también pueden crear, modificar, anular y borrar facturas por PostgREST (medido).
 4. **CORRECTO. Minimización de columnas:** 2 columnas en `0411:44-47`, 3 en `0412:20` y 6 en `0413:19-22`, sin cliente, líneas, tasa, notas ni datos fiscales. El helper de OV descarta `created_at` antes de la UI (`lib/studio/sales-orders/queries.ts:254-259`), y el test lo afirma.
@@ -303,19 +414,20 @@ Fuera de alcance legal: redacción de políticas, contratos con encargados y dec
 ## ANÁLISIS 5 — ORDEN DE APLICACIÓN, LOCKS Y TIMEOUTS
 
 Medición local y efímera, no de producción:
-- **Contenedor y base.** `dtd_l07_pg` (`postgres:17`, 17.11), con los stubs de plataforma del repo y las 419 migraciones de `main`.
+- **Contenedor y base.** `dtd_l07_pg` (`postgres:17`, 17.11), con los stubs de plataforma del repo y las 419 migraciones de `main` `bca98147`. La ronda 3 no cambia 0407 ni 0414, y la 0452 de `main` toca otra sentencia de la misma tabla.
 - **Datos.** Sintéticos, 1.355 facturas en T1 y 5 en T2, insertados con `session_replication_role = replica`.
 - **Aplicación.** Cada migración en su propia transacción, leyendo `pg_locks` del propio backend antes del COMMIT.
-- **Limpieza.** Contenedores y red retirados antes del verify. El stack ajeno `dtd-pr28-auth-*` no se tocó.
+- **Limpieza.** Contenedores y red retirados antes de cada verify. El stack ajeno `dtd-pr28-auth-*` no se tocó.
 
 | Paso | Migración | Qué hace | Requiere | Locks retenidos hasta COMMIT | Timeouts | Compatibilidad |
 |---|---|---|---|---|---|---|
-| 1 | 0407 | policies separadas y ACL sin DELETE | `invoices`, helpers de 0200 y la policy histórica `invoices by tenant` con cmd ALL (preflight `0407:35-57`) | **ACCESS EXCLUSIVE sobre `invoices`**, más AccessShare y ShareUpdateExclusive; objeto `pg_policy` en AccessExclusive; 16 de catálogo; ~14 ms sin contención | **propios, en la transacción: 5 s y 60 s**; medidos en `5s` y `1min` con la sesión en `0` | compatible con `main`: misma lectura y escritores legítimos intactos (medido) |
+| 0 (recomendado, SDD-0463) | 0452 | policy Portal coherente por tenant | la de 0085 o la final | ACCESS EXCLUSIVE sobre `invoices` y ACCESS SHARE sobre `client_users` y `clients` (medido en SDD-0463) | dentro de su `do` | independiente de L07; converge en los dos órdenes |
+| 1 | 0407 | policies separadas y ACL sin DELETE | `invoices`, helpers de 0200 y la policy histórica `invoices by tenant` con cmd ALL (preflight `0407:35-57`) | **ACCESS EXCLUSIVE sobre `invoices`**, más AccessShare y ShareUpdateExclusive; objeto `pg_policy` en AccessExclusive; 16 de catálogo; ~14 ms sin contención | **propios, en la transacción: 5 s y 60 s**; medidos en `5s` y `1min` con la sesión en `0` | compatible con `main`, con 0452 o sin ella: misma lectura y escritores legítimos intactos (medido) |
 | 2 | 0411 | RPC de facturación anual | 0407 (`0411:30-39`), `studio_role_module_overrides` y helpers | ninguno sobre tablas de usuario; objeto de la función en ShareUpdateExclusive; ~10 ms | sin propios: no toma locks de tabla | aditiva |
 | 3 | 0412 | RPC de saldo por hilo | conversations, clients, invoices, overrides y helpers | ídem; ~10 ms | sin propios | aditiva |
 | 4 | 0413 | RPC de referencias por OV | sales_orders, invoices, overrides y helpers | ídem; ~8 ms | sin propios | aditiva |
 | 5 | — | **despliegue de esta PR** y smoke por roles: Fidelización, CRM (Dirección) y Reportes → Comercial con commercial, support y accounting; panel de Conversaciones con commercial, operations, support y admin; drawer de OV con commercial, operations y accounting; lista y detalle de facturas del Portal | 0407 y 0411–0413 aplicadas y verificadas | — | — | antes de este paso el código nuevo no opera (MIGRATE-FIRST) |
-| 6 | 0414 | lectura interna sólo accounting y admin; Portal por vínculo, cliente y tenant | las tres RPC como definer y exactamente las dos policies de lectura previas (`0414:15-48`) | **ACCESS EXCLUSIVE sobre `invoices`**, más AccessShare y ShareUpdateExclusive; **ACCESS SHARE sobre `clients` y `client_users`**; dos objetos `pg_policy` en AccessExclusive; 19 de catálogo; ~14 ms | **propios: 5 s y 60 s**; medidos en `5s` y `1min` | rompe **en silencio** el código anterior (análisis 2) |
+| 6 | 0414 | lectura interna sólo accounting y admin; policy Portal coherente por tenant (idéntica si 0452 ya está) | las tres RPC como definer y exactamente las dos policies de lectura previas (`0414:15-48`) | **ACCESS EXCLUSIVE sobre `invoices`**, más AccessShare y ShareUpdateExclusive; **ACCESS SHARE sobre `clients` y `client_users`**; dos objetos `pg_policy` en AccessExclusive; 19 de catálogo; ~14 ms | **propios: 5 s y 60 s**; medidos en `5s` y `1min` | rompe **en silencio** el código anterior (análisis 2) |
 
 **Contención**, con otra sesión que retenía ACCESS SHARE sobre `invoices` durante 15 s. En los cuatro casos la migración se aplicó dentro de una transacción, desde una sesión **sin** `lock_timeout` propio. Un lector nuevo, también sin `lock_timeout`, llegó 2 s después de empezar la migración:
 
@@ -327,72 +439,112 @@ Medición local y efímera, no de producción:
 | 0414 actual | cortó en `DROP POLICY` (`0414:51`) a los 5,001 s con el mismo error; se revirtió entera | 2,997 s |
 
 Desviación pre-autorizada y su condición:
-- **Qué cambia.** 0407 y 0414 fijan `set local lock_timeout = '5s'` y `set local statement_timeout = '60s'` al nivel superior del archivo, antes del primer lock, como L10 y a diferencia de 0450 y 0451, que lo fijan dentro de su `do`.
+- **Qué cambia.** 0407 y 0414 fijan `set local lock_timeout = '5s'` y `set local statement_timeout = '60s'` al nivel superior del archivo, antes del primer lock, como L10 y a diferencia de 0450, 0451 y 0452, que lo fijan dentro de su `do`.
 - **Autorización cumplida.** Ningún preflight, postflight ni contrato depende de la identidad o posición del archivo: sólo hay `\ir` en los contratos y el texto de un mensaje en `0411:38`.
 - **Contratos.** Agregan la aserción estática: los timeouts van antes de la primera sentencia `do|create|alter|drop|grant|revoke|comment|lock|select|insert|update|delete|truncate`, leída sin comentarios. También comprueban en la transacción `pg_settings` 5000 y 60000.
 - **Autocommit.** El tope de lock_timeout/statement_timeout rige solo si se aplica dentro de una transacción, como hace apply_migration; si se aplicara en autocommit, no tiene efecto: usar entonces una sesión con `set lock_timeout`. Medido: `SET LOCAL` fuera de transacción emite `WARNING: SET LOCAL can only be used in transaction blocks` y `lock_timeout` sigue en `0`.
 
 Riesgos operativos:
 - Mientras 0407 o 0414 esperan, hasta 5 s, queda en cola toda lectura de facturas: Facturación, Cobranzas, Portal, tablero y reportes. Conviene aplicarlas en baja actividad; si cortan, se reintentan.
-- La vuelta atrás de 0407 y 0414 está escrita y probada en local (sección siguiente). Ninguna pierde datos: revertir 0414 reabre la lectura cruda del equipo y la fuga del Portal entre tenants, y revertir 0407 reabre la escritura y el DELETE de los roles no financieros. Primero 0414, después 0407.
+- La vuelta atrás de 0407 y 0414 está escrita y probada en local (sección siguiente). Ninguna pierde datos:
+  - revertir 0414 reabre la lectura cruda del equipo, pero **no** la del Portal;
+  - revertir 0407 reabre la escritura y el DELETE de los roles no financieros.
+
+  Primero 0414, después 0407.
 
 ## VUELTA ATRÁS DE 0407 Y 0414 (PROBADA)
 
-Ronda 2, por pedido del Director.
+La ronda 3 la rehízo por decisión del Director: **la vuelta atrás de 0414 nunca restaura la policy Portal vulnerable de 0085.** La versión de la ronda 2 la recreaba y su postflight la exigía. Con 0452 aplicada eso reabría la lectura del Portal entre tenants, y sin 0452 la reintroducía.
 - **Qué son.** Ninguno de estos dos bloques SQL es una migración: no se guardan en `supabase/migrations` ni se registran en el ledger.
 - **Cómo se aplican.** Sólo con OK nominal de Sam, siguiendo `docs/runbooks/aplicar-migraciones-prod.md` y dentro de una transacción.
 - **Locks y timeouts.** Los dos fijan `lock_timeout` 5 s y `statement_timeout` 60 s, como las migraciones, y toman el mismo ACCESS EXCLUSIVE sobre `invoices`.
-- **Controles.** El preflight comprueba que la tabla está exactamente como la deja su migración, y el postflight, que quedó como estaba antes.
+- **Controles.** El preflight comprueba que la tabla está exactamente como la deja su migración, con la lista exacta de policies (nombre:comando). El postflight comprueba que quedó como se espera.
+- **Normalización.** Las expresiones Portal se comparan como en 0452: `pg_get_expr` con `search_path` vacío y sin espacios, restaurando el `search_path` al terminar.
+
+Qué hace cada una:
+- **Vuelta atrás de 0414:**
+  - borra `invoices_accounting_select`, recrea `invoices_team_select` como la dejó 0407 y restaura el comentario de 0407;
+  - **no toca `invoices portal self read`**. El preflight exige que esté con la expresión coherente por tenant, que es la que deja 0414 en cualquier escenario. El postflight exige esa misma expresión exacta y que ninguna policy de `invoices` use `get_portal_client_markbox()`.
+  - **No restaura la policy vulnerable, a propósito.**
+- **Vuelta atrás de 0407:**
+  - borra sus tres policies, recrea `invoices by tenant` con su expresión de `main`, devuelve DELETE a `authenticated` y restaura el comentario de `main`;
+  - **no toca `invoices portal self read`**. Acepta la de 0085 o la coherente, guarda su forma en `l07.forma_portal_antes` y el postflight comprueba que no cambió.
 
 Orden y alcance:
 - **Sólo 0407 aplicada:** se revierte 0407.
 - **0414 aplicada:** primero se revierte 0414. Revertir 0407 con 0414 aplicada aborta en su preflight con «revertir 0414 primero» y no deja nada a medias (medido).
 - **Volver la app a `main` con 0414 aplicada** rompe en silencio Fidelización, CRM, Reportes, Conversaciones y Órdenes de venta (análisis 2). Antes de volver la app, se revierte 0414.
 - **Las tres RPC de 0411–0413 quedan.** No son parte de esta vuelta atrás; retirarlas con la app de L07 desplegada rompe esas pantallas (MIGRATE-FIRST).
+- **Estado final sin 0452.** Tras las dos vueltas atrás, `invoices` queda como `main` más 0452: la policy Portal coherente por tenant (medido). Aplicar 0452 después no cambia nada: su preflight reconoce la forma final.
 - **Producción.**
-  - Antes de aplicar 0407 conviene guardar la lectura de catálogo de su espera. Esta vuelta atrás devuelve el estado de `main`: si lo capturado difiere, hay que ajustarla antes de usarla.
+  - Antes de aplicar 0407 conviene guardar la lectura de catálogo de su espera: esta vuelta atrás devuelve el estado anterior a 0407 y debe coincidir con lo capturado.
   - En producción `authenticated` puede tener además REFERENCES, TRIGGER o MAINTAIN, que la base local no tiene. La vuelta atrás sólo toca DELETE, que es lo que 0407 quita, y GRANT y REVOKE editan la misma entrada del ACL, así que el resto queda igual (en local, `relacl` idéntico).
 
 ### SQL de la vuelta atrás de 0414
 
 ```sql
--- VUELTA ATRÁS DE 0414 · L07 / SDD-0357. NO es una migración: no se guarda en
--- supabase/migrations ni se registra en el ledger. Aplicar sólo con OK nominal
--- de Sam y dentro de una transacción. Deja public.invoices como la dejan
--- 0407 y 0411–0413 (antes de 0414). No toca filas ni las tres RPC. Reabre la
--- lectura cruda de facturas para el equipo del tenant y la policy Portal
--- histórica por Shipping Mark sin tenant.
+-- VUELTA ATRÁS DE 0414 · L07 / SDD-0357 (ronda 3). NO es una migración: no se
+-- guarda en supabase/migrations ni se registra en el ledger. Aplicar sólo con OK
+-- nominal de Sam, siguiendo docs/runbooks/aplicar-migraciones-prod.md y dentro
+-- de una transacción. No toca filas, la ACL ni las tres RPC de 0411–0413.
+--
+-- Revierte sólo lo interno de 0414: borra invoices_accounting_select, recrea
+-- invoices_team_select como la dejó 0407 y restaura el comentario de 0407.
+--
+-- A PROPÓSITO, NO RESTAURA LA POLICY PORTAL VULNERABLE, EN NINGÚN ESCENARIO.
+-- "invoices portal self read" queda con la expresión coherente por tenant que
+-- dejan 0452 y 0414: vínculo activo, cliente vivo, tenant coincidente en
+-- vínculo, cliente y factura, y Shipping Mark. La de 0085 compara sólo el
+-- Shipping Mark: recrearla reabriría, con 0452 aplicada, o reintroduciría, sin
+-- 0452, la lectura del Portal entre tenants con Shipping Mark repetido. El
+-- preflight y el postflight exigen esa expresión exacta, normalizada como en
+-- 0452 (pg_get_expr con search_path vacío y sin espacios).
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
 
 do $preflight$
 declare
-  v_policies text := (
-    select pg_catalog.string_agg(p.policyname || ':' || p.cmd, ', ' order by p.policyname collate "C")
-    from pg_catalog.pg_policies as p
-    where p.schemaname = 'public' and p.tablename = 'invoices'
-  );
+  c_forma_coherente constant text :=
+    '((deleted_atISNULL)AND(status<>''borrador''::public.invoice_status)AND(client_markboxISNOTNULL)'
+    || 'AND(EXISTS(SELECT1FROM(public.client_userscuJOINpublic.clientscON'
+    || '(((c.id=cu.client_id)AND(c.tenant_id=cu.tenant_id)AND(c.deleted_atISNULL))))'
+    || 'WHERE((cu.auth_user_id=(SELECTauth.uid()ASuid))AND(cu.status=''active''::text)'
+    || 'AND(cu.tenant_id=invoices.tenant_id)AND(c.markbox=invoices.client_markbox)))))';
+  v_search_path text := pg_catalog.current_setting('search_path');
+  v_policies text;
+  v_forma text;
 begin
-  if (select count(*) from pg_catalog.pg_policies
-      where schemaname = 'public' and tablename = 'invoices') <> 4
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices_accounting_select' and cmd = 'SELECT')
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices_accounting_insert' and cmd = 'INSERT')
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices_accounting_update' and cmd = 'UPDATE')
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices portal self read' and cmd = 'SELECT'
-         and qual like '%client_users%') then
-    raise exception 'vuelta atrás de 0414: invoices no está como la deja 0414 (policies: %)', v_policies;
+  perform pg_catalog.set_config('search_path', '', true);
+
+  select pg_catalog.string_agg(p.polname::text || ':' || p.polcmd::text, ', ' order by p.polname::text collate "C")
+    into v_policies
+    from pg_catalog.pg_policy as p
+   where p.polrelid = 'public.invoices'::pg_catalog.regclass;
+
+  if v_policies is distinct from
+     'invoices portal self read:r, invoices_accounting_insert:a, invoices_accounting_select:r, invoices_accounting_update:w' then
+    raise exception 'vuelta atrás de 0414: invoices no tiene las policies que deja 0414 (policies: %)', v_policies;
   end if;
+
+  select pg_catalog.regexp_replace(pg_catalog.pg_get_expr(p.polqual, p.polrelid), '\s', '', 'g')
+    into v_forma
+    from pg_catalog.pg_policy as p
+   where p.polrelid = 'public.invoices'::pg_catalog.regclass
+     and p.polname = 'invoices portal self read'
+     and p.polcmd = 'r'
+     and p.polpermissive
+     and p.polroles = array[pg_catalog.to_regrole('authenticated')::pg_catalog.oid]
+     and p.polwithcheck is null;
+
+  if v_forma is distinct from c_forma_coherente then
+    raise exception 'vuelta atrás de 0414: la policy "invoices portal self read" no tiene la expresión coherente por tenant de 0452/0414; revisar antes de seguir';
+  end if;
+
   if pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'DELETE') then
     raise exception 'vuelta atrás de 0414: authenticated tiene DELETE; la ACL no es la de 0407';
   end if;
+
+  perform pg_catalog.set_config('search_path', v_search_path, true);
 end;
 $preflight$;
 
@@ -404,37 +556,59 @@ create policy invoices_team_select
     tenant_id = (select public.get_user_tenant_id())
   );
 
-drop policy "invoices portal self read" on public.invoices;
-create policy "invoices portal self read"
-  on public.invoices for select to authenticated
-  using (
-    deleted_at is null
-    and status <> 'borrador'
-    and client_markbox is not null
-    and client_markbox = public.get_portal_client_markbox()
-  );
-
 comment on table public.invoices is
   'SDD-0021/0350: facturas operativas y financieras. SELECT interno permanece tenant-wide por compatibilidad con consumidores agregados; INSERT/UPDATE requieren accounting o admin en RLS (0407). authenticated no tiene DELETE físico: borradores usan soft-delete y hechos emitidos se anulan. service_role queda reservado a jobs/RPCs controladas.';
 
 do $postflight$
+declare
+  c_forma_coherente constant text :=
+    '((deleted_atISNULL)AND(status<>''borrador''::public.invoice_status)AND(client_markboxISNOTNULL)'
+    || 'AND(EXISTS(SELECT1FROM(public.client_userscuJOINpublic.clientscON'
+    || '(((c.id=cu.client_id)AND(c.tenant_id=cu.tenant_id)AND(c.deleted_atISNULL))))'
+    || 'WHERE((cu.auth_user_id=(SELECTauth.uid()ASuid))AND(cu.status=''active''::text)'
+    || 'AND(cu.tenant_id=invoices.tenant_id)AND(c.markbox=invoices.client_markbox)))))';
+  v_search_path text := pg_catalog.current_setting('search_path');
+  v_policies text;
+  v_forma text;
+  v_con_helper bigint;
 begin
-  if (select count(*) from pg_catalog.pg_policies
-      where schemaname = 'public' and tablename = 'invoices') <> 4
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices_team_select' and cmd = 'SELECT')
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices portal self read' and cmd = 'SELECT'
-         and qual like '%get_portal_client_markbox%')
-     or exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices_accounting_select')
+  perform pg_catalog.set_config('search_path', '', true);
+
+  select pg_catalog.string_agg(p.polname::text || ':' || p.polcmd::text, ', ' order by p.polname::text collate "C")
+    into v_policies
+    from pg_catalog.pg_policy as p
+   where p.polrelid = 'public.invoices'::pg_catalog.regclass;
+
+  select pg_catalog.regexp_replace(pg_catalog.pg_get_expr(p.polqual, p.polrelid), '\s', '', 'g')
+    into v_forma
+    from pg_catalog.pg_policy as p
+   where p.polrelid = 'public.invoices'::pg_catalog.regclass
+     and p.polname = 'invoices portal self read'
+     and p.polcmd = 'r'
+     and p.polpermissive
+     and p.polroles = array[pg_catalog.to_regrole('authenticated')::pg_catalog.oid]
+     and p.polwithcheck is null;
+
+  select count(*)
+    into v_con_helper
+    from pg_catalog.pg_policy as p
+   where p.polrelid = 'public.invoices'::pg_catalog.regclass
+     and (coalesce(pg_catalog.pg_get_expr(p.polqual, p.polrelid), '') like '%get_portal_client_markbox%'
+          or coalesce(pg_catalog.pg_get_expr(p.polwithcheck, p.polrelid), '') like '%get_portal_client_markbox%');
+
+  if v_policies is distinct from
+       'invoices portal self read:r, invoices_accounting_insert:a, invoices_accounting_update:w, invoices_team_select:r'
+     or v_forma is distinct from c_forma_coherente
+     or v_con_helper <> 0
      or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'SELECT')
+     or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'INSERT')
+     or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'UPDATE')
      or pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'DELETE') then
-    raise exception 'vuelta atrás de 0414: estado final inválido';
+    raise exception 'vuelta atrás de 0414: estado final inválido (policies: %; policy Portal coherente: %; policies con get_portal_client_markbox: %)',
+      v_policies, v_forma is not distinct from c_forma_coherente, v_con_helper;
   end if;
+
+  perform pg_catalog.set_config('search_path', v_search_path, true);
 end;
 $postflight$;
 ```
@@ -442,49 +616,72 @@ $postflight$;
 ### SQL de la vuelta atrás de 0407
 
 ```sql
--- VUELTA ATRÁS DE 0407 · L07 / SDD-0350. NO es una migración: no se guarda en
--- supabase/migrations ni se registra en el ledger. Aplicar sólo con OK nominal
--- de Sam, dentro de una transacción y, si 0414 estaba aplicada, después de
--- revertir 0414. Deja public.invoices con las policies, la ACL y el comentario
--- de main bca98147 (antes de 0407). No toca filas.
+-- VUELTA ATRÁS DE 0407 · L07 / SDD-0350 (ronda 3). NO es una migración: no se
+-- guarda en supabase/migrations ni se registra en el ledger. Aplicar sólo con OK
+-- nominal de Sam, siguiendo docs/runbooks/aplicar-migraciones-prod.md, dentro de
+-- una transacción y, si 0414 estaba aplicada, después de revertir 0414. No toca
+-- filas.
+--
+-- Borra las tres policies de 0407, recrea "invoices by tenant" con su expresión
+-- de main, devuelve DELETE a authenticated y restaura el comentario de main.
+-- NO toca "invoices portal self read": la deja exactamente como la encuentra,
+-- sea la de 0085 (0407 sin 0414 ni 0452) o la coherente por tenant de 0452/0414,
+-- y el postflight comprueba que no cambió.
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
 
 do $preflight$
 declare
-  v_policies text := (
-    select pg_catalog.string_agg(p.policyname || ':' || p.cmd, ', ' order by p.policyname collate "C")
-    from pg_catalog.pg_policies as p
-    where p.schemaname = 'public' and p.tablename = 'invoices'
-  );
+  c_forma_0085 constant text :=
+    '((deleted_atISNULL)AND(status<>''borrador''::public.invoice_status)AND(client_markboxISNOTNULL)'
+    || 'AND(client_markbox=public.get_portal_client_markbox()))';
+  c_forma_coherente constant text :=
+    '((deleted_atISNULL)AND(status<>''borrador''::public.invoice_status)AND(client_markboxISNOTNULL)'
+    || 'AND(EXISTS(SELECT1FROM(public.client_userscuJOINpublic.clientscON'
+    || '(((c.id=cu.client_id)AND(c.tenant_id=cu.tenant_id)AND(c.deleted_atISNULL))))'
+    || 'WHERE((cu.auth_user_id=(SELECTauth.uid()ASuid))AND(cu.status=''active''::text)'
+    || 'AND(cu.tenant_id=invoices.tenant_id)AND(c.markbox=invoices.client_markbox)))))';
+  v_search_path text := pg_catalog.current_setting('search_path');
+  v_policies text;
+  v_forma text;
 begin
-  if exists (
-    select 1 from pg_catalog.pg_policies
-    where schemaname = 'public' and tablename = 'invoices'
-      and policyname = 'invoices_accounting_select'
-  ) then
+  perform pg_catalog.set_config('search_path', '', true);
+
+  select pg_catalog.string_agg(p.polname::text || ':' || p.polcmd::text, ', ' order by p.polname::text collate "C")
+    into v_policies
+    from pg_catalog.pg_policy as p
+   where p.polrelid = 'public.invoices'::pg_catalog.regclass;
+
+  if v_policies like '%invoices_accounting_select%' then
     raise exception 'vuelta atrás de 0407: 0414 sigue aplicada; revertir 0414 primero (policies: %)', v_policies;
   end if;
-  if (select count(*) from pg_catalog.pg_policies
-      where schemaname = 'public' and tablename = 'invoices') <> 4
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices_team_select' and cmd = 'SELECT')
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices_accounting_insert' and cmd = 'INSERT')
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices_accounting_update' and cmd = 'UPDATE')
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices portal self read' and cmd = 'SELECT'
-         and qual like '%get_portal_client_markbox%') then
-    raise exception 'vuelta atrás de 0407: invoices no está como la deja 0407 (policies: %)', v_policies;
+
+  if v_policies is distinct from
+     'invoices portal self read:r, invoices_accounting_insert:a, invoices_accounting_update:w, invoices_team_select:r' then
+    raise exception 'vuelta atrás de 0407: invoices no tiene las policies que deja 0407 (policies: %)', v_policies;
   end if;
+
+  select pg_catalog.regexp_replace(pg_catalog.pg_get_expr(p.polqual, p.polrelid), '\s', '', 'g')
+    into v_forma
+    from pg_catalog.pg_policy as p
+   where p.polrelid = 'public.invoices'::pg_catalog.regclass
+     and p.polname = 'invoices portal self read'
+     and p.polcmd = 'r'
+     and p.polpermissive
+     and p.polroles = array[pg_catalog.to_regrole('authenticated')::pg_catalog.oid]
+     and p.polwithcheck is null;
+
+  if v_forma is null or (v_forma <> c_forma_0085 and v_forma <> c_forma_coherente) then
+    raise exception 'vuelta atrás de 0407: la policy "invoices portal self read" no es la de 0085 ni la coherente por tenant; revisar antes de seguir';
+  end if;
+
   if pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'DELETE') then
     raise exception 'vuelta atrás de 0407: authenticated ya tiene DELETE; comparar con la ACL capturada antes de 0407';
   end if;
+
+  -- La policy Portal no se toca: se guarda su forma para comprobarlo al final.
+  perform pg_catalog.set_config('l07.forma_portal_antes', v_forma, true);
+  perform pg_catalog.set_config('search_path', v_search_path, true);
 end;
 $preflight$;
 
@@ -504,21 +701,39 @@ comment on table public.invoices is
   'SDD-0021: facturas operativas. State machine borrador → emitida → parcial/pagada · vencida (visual) · anulada. paid_amount es acumulador (el ledger de pagos es Cobranzas, Bloque 2). Soft delete via deleted_at. RLS por tenant_id.';
 
 do $postflight$
+declare
+  v_search_path text := pg_catalog.current_setting('search_path');
+  v_policies text;
+  v_forma text;
 begin
-  if (select count(*) from pg_catalog.pg_policies
-      where schemaname = 'public' and tablename = 'invoices') <> 2
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices by tenant' and cmd = 'ALL')
-     or not exists (select 1 from pg_catalog.pg_policies
-       where schemaname = 'public' and tablename = 'invoices'
-         and policyname = 'invoices portal self read' and cmd = 'SELECT')
+  perform pg_catalog.set_config('search_path', '', true);
+
+  select pg_catalog.string_agg(p.polname::text || ':' || p.polcmd::text, ', ' order by p.polname::text collate "C")
+    into v_policies
+    from pg_catalog.pg_policy as p
+   where p.polrelid = 'public.invoices'::pg_catalog.regclass;
+
+  select pg_catalog.regexp_replace(pg_catalog.pg_get_expr(p.polqual, p.polrelid), '\s', '', 'g')
+    into v_forma
+    from pg_catalog.pg_policy as p
+   where p.polrelid = 'public.invoices'::pg_catalog.regclass
+     and p.polname = 'invoices portal self read'
+     and p.polcmd = 'r'
+     and p.polpermissive
+     and p.polroles = array[pg_catalog.to_regrole('authenticated')::pg_catalog.oid]
+     and p.polwithcheck is null;
+
+  if v_policies is distinct from 'invoices by tenant:*, invoices portal self read:r'
+     or v_forma is distinct from pg_catalog.current_setting('l07.forma_portal_antes', true)
      or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'SELECT')
      or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'INSERT')
      or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'UPDATE')
      or not pg_catalog.has_table_privilege('authenticated', 'public.invoices', 'DELETE') then
-    raise exception 'vuelta atrás de 0407: estado final inválido';
+    raise exception 'vuelta atrás de 0407: estado final inválido (policies: %; policy Portal intacta: %)',
+      v_policies, v_forma is not distinct from pg_catalog.current_setting('l07.forma_portal_antes', true);
   end if;
+
+  perform pg_catalog.set_config('search_path', v_search_path, true);
 end;
 $postflight$;
 ```
@@ -526,121 +741,164 @@ $postflight$;
 ### Prueba
 
 Local y efímera, nunca producción:
-- **Base.** `postgres:17` (17.11) con las 419 migraciones de `main` `bca98147`, sin las 18 sólo-ledger ni L07, más la siembra sintética de la ronda 1.
-- **Foto de catálogo determinística, sin OID.** Incluye:
-  - todas las policies de `invoices`, con nombre, permissive, roles, comando, `qual` y `with_check`;
+- **Base.** `postgres:17` (17.11) con las migraciones de `main` `a3dbac04`, sin las 18 sólo-ledger, sin L07 y sin 0452, más la siembra sintética de la ronda 1. Cada escenario corre en su propia base, copiada de esa.
+- **Foto de catálogo de la ronda 3.** Es determinística, sin OID, con `search_path` vacío y un registro por línea. Incluye:
+  - todas las policies de `invoices`, con nombre, permissive, roles, comando, `qual` y `with_check` normalizados, y su comentario;
+  - la forma de la policy Portal (`coherente-por-tenant`, `0085-solo-shipping-mark` u otra);
   - `relacl` y los flags de RLS, más el ACL por columna;
   - el comentario de la tabla;
   - los privilegios efectivos de anon, authenticated y service_role en los ocho verbos;
-  - `proacl`, `prosecdef` y `proconfig` de `get_user_tenant_id`, `current_studio_role`, `get_portal_client_markbox`, `auth.uid`, `void_invoice_with_audit_reason` y las tres RPC.
-- **Comportamiento.** Además de la foto, una matriz de lectura de 16 identidades (visibles, borradas y de T2) y la matriz de escritura de 10 identidades y 5 operaciones.
-- **Secuencia.**
-  1. `main`.
-  2. 0407 y su vuelta atrás.
-  3. 0407 otra vez en transacción revertida.
-  4. 0407, 0411, 0412 y 0413.
-  5. 0414.
-  6. Vuelta atrás de 0407 fuera de orden, revertida.
-  7. Vuelta atrás de 0414.
-  8. 0414 otra vez en transacción revertida.
-  9. Cadena completa: 0414, vuelta atrás de 0414 y vuelta atrás de 0407.
+  - `proacl`, `prosecdef` y `proconfig` de los helpers y de las tres RPC.
+- **Comportamiento.** Además de la foto, la matriz de lectura de 16 identidades y la matriz de escritura de 10 identidades y 5 operaciones.
+- **Escenario (i): `main` con 0452 aplicada, más L07.**
+  1. 0452.
+  2. 0407 y su vuelta atrás, más 0407 otra vez en transacción revertida.
+  3. 0407 a 0413.
+  4. 0414.
+  5. Vuelta atrás de 0407 fuera de orden, revertida.
+  6. Vuelta atrás de 0414.
+  7. 0414 otra vez en transacción revertida.
+  8. Cadena 0414 → vuelta atrás de 0414 → vuelta atrás de 0407.
+- **Escenario (ii): `main` sin 0452, más L07.**
+  1. 0407 a 0413.
+  2. 0414.
+  3. Vuelta atrás de 0414.
+  4. 0414 otra vez en transacción revertida.
+  5. Cadena 0414 → vuelta atrás de 0414 → vuelta atrás de 0407.
+  6. 0452 al final, en transacción revertida.
+- **Complemento.**
+  - La vuelta atrás de 0407 sola sobre `main` sin 0452, con la policy de 0085.
+  - La foto tras 0414 comparada entre los dos escenarios.
+- **Primera corrida de la ronda 3** (`results/rollback-r3-corrida1/`). Todas sus comprobaciones de catálogo, matrices y cadenas dieron OK. Marcó FALLA sólo la comparación de la lectura directa por PostgREST, por un error de mi expectativa: incluía al comercial dual, que además es del equipo, y cuya lectura directa sigue la policy de equipo (1.000 filas de T1 antes de 0414 y tras revertirla) y no la del Portal. Se corrigió la expectativa para comparar sólo las cinco identidades Portal puras, se sumó un control explícito del dual y se repitió todo desde una base nueva. Los recibos de abajo son de esa segunda corrida.
 
-### Recibo
+### Recibos
 
-`results/rollback/recibo.txt`: 23 comprobaciones, todas OK.
+`results/rollback-r3/recibo.txt` (indentado cuatro espacios dentro del bloque):
 
 ```
-# Prueba de vuelta atrás L07 · 2026-09-13T01:40:16.690Z
-PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
-base: l07_work = main bca98147 (419 migraciones, sin ledger-only ni L07) + siembra sintética
-OK   · 0407 aplica (commit)
-OK   · control: la foto detecta el cambio de 0407 (4 líneas sólo antes, 6 sólo después)
-OK   · vuelta atrás de 0407 aplica (commit)
-OK   · catálogo tras revertir 0407 idéntico a main (md5 eea99782464a89cbc45e3647990a4b7d vs eea99782464a89cbc45e3647990a4b7d; 12 líneas)
-OK   · matriz de lectura por identidad idéntica a main tras revertir 0407
-OK   · matriz de escritura por rol idéntica a main tras revertir 0407
-OK   · 0407 vuelve a pasar su preflight sobre el estado restaurado (transacción revertida)
-OK   · tras esa prueba revertida el catálogo sigue idéntico a main
-OK   · 0407, 0411, 0412 y 0413 aplican (commit)
-OK   · 0414 aplica (commit)
-OK   · control: la foto detecta el cambio de 0414 (3 líneas sólo antes, 6 sólo después)
-OK   · control: revertir 0407 con 0414 aplicada aborta en su preflight
-OK   · ese intento no deja nada a medias
-OK   · vuelta atrás de 0414 aplica (commit)
-OK   · catálogo tras revertir 0414 idéntico al de antes de 0414 (md5 232ea029615ac26d47ecc7d4f49c49b4 vs 232ea029615ac26d47ecc7d4f49c49b4; 17 líneas)
-OK   · matriz de lectura por identidad idéntica a la de antes de 0414
-OK   · matriz de escritura por rol idéntica a la de antes de 0414
-OK   · 0414 vuelve a pasar su preflight sobre el estado restaurado (transacción revertida)
-OK   · tras esa prueba revertida el catálogo sigue idéntico al de antes de 0414
-OK   · 0414 aplica otra vez (commit)
-OK   · cadena de vuelta atrás 0414 → 0407 aplica (dos commits)
-OK   · tras la cadena completa, invoices y helpers idénticos a main (md5 eea99782464a89cbc45e3647990a4b7d vs eea99782464a89cbc45e3647990a4b7d; 12 líneas; las tres RPC de 0411–0413 siguen existiendo)
-OK   · matriz de lectura por identidad idéntica a main tras la cadena completa
-OK   · matriz de escritura por rol idéntica a main tras la cadena completa
+    # Ronda 3 · vuelta atrás de 0414 y 0407 en dos escenarios · 2026-09-13T15:54:09.849Z
+    PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+    base: main a3dbac04 sin L07 ni 0452 (sin las 18 sólo-ledger) + siembra sintética; cada escenario en su propia base copiada
+
+    ## Escenario (i) · main con 0452 aplicada + L07
+    OK    · 0452 aplica sobre main y reemplaza la policy de 0085 (NOTICE «reemplazada»)
+    OK    · 0452 sólo cambia la policy Portal (2 líneas sólo antes y 2 sólo después, todas de la policy Portal; forma coherente-por-tenant)
+    OK    · 0407 aplica encima de main + 0452
+    OK    · vuelta atrás de 0407 aplica con la policy Portal de 0452
+    OK    · catálogo tras 0407 → vuelta atrás idéntico a main + 0452 (md5 4b36e49903b18fd1eeacf1cf5350f214 = 4b36e49903b18fd1eeacf1cf5350f214; 15 líneas)
+    OK    · matrices de lectura y escritura idénticas a main + 0452 tras revertir 0407
+    OK    · 0407 vuelve a pasar su preflight sobre ese estado (transacción revertida)
+    OK    · 0407, 0411, 0412 y 0413 aplican (commit)
+    OK    · 0414 aplica con 0452 ya aplicada (su preflight pasa)
+    OK    · 0414 no cambia la policy Portal cuando 0452 está aplicada (3 líneas sólo antes y 3 sólo después, ninguna de la policy Portal)
+    OK    · control: revertir 0407 con 0414 aplicada aborta en su preflight
+    OK    · ese intento no deja nada a medias
+    OK    · vuelta atrás de 0414 aplica (commit)
+    OK    · (i) catálogo tras revertir 0414 idéntico al estado posterior a 0452 y previo a 0414 (md5 431f3a4285e63a8618e5ad35f5622e2e = 431f3a4285e63a8618e5ad35f5622e2e; 22 líneas; forma Portal coherente-por-tenant)
+    OK    · (i) matrices de lectura y escritura idénticas a las de antes de 0414
+    OK    · (i) 0414 se puede volver a aplicar: su preflight pasa (transacción revertida)
+    OK    · (i) tras esa prueba el catálogo sigue idéntico al de antes de 0414
+    OK    · (i) cadena 0414 → vuelta atrás de 0414 → vuelta atrás de 0407 aplica (tres commits)
+    OK    · (i) tras la cadena, invoices y helpers idénticos a main + 0452 (md5 4b36e49903b18fd1eeacf1cf5350f214 = 4b36e49903b18fd1eeacf1cf5350f214; 15 líneas; quedan las tres RPC)
+    OK    · (i) matrices idénticas a main + 0452 tras la cadena
+
+    ## Escenario (ii) · main sin 0452 + L07
+    OK    · main sin 0452 tiene la policy Portal de 0085 (forma 0085-solo-shipping-mark)
+    OK    · 0407, 0411, 0412 y 0413 aplican (commit)
+    OK    · 0414 aplica sin 0452
+    OK    · 0414 deja la policy Portal coherente por tenant (forma coherente-por-tenant)
+    OK    · vuelta atrás de 0414 aplica (commit)
+    OK    · (ii) policies de equipo y contabilidad, ACL, comentario y helpers vuelven al estado previo a 0414; sólo difiere la policy Portal, que queda coherente por tenant y no vuelve a la de 0085 (2 líneas sólo antes y 2 sólo después)
+    OK    · (ii) sin las líneas de la policy Portal, catálogo idéntico al previo a 0414 (md5 f077a4c5b7737a65f3595305bd443d1b = f077a4c5b7737a65f3595305bd443d1b; 19 líneas)
+    OK    · (ii) matriz de escritura idéntica a la de antes de 0414
+    OK    · (ii) matriz de lectura: el equipo lee igual que antes de 0414; sólo cambian identidades Portal (4: portal DUP T1: 5 | 0 | 3 → 2 | 0 | 0 ; portal DUP T2: 5 | 0 | 3 → 3 | 0 | 3 ; portal cliente borrado: 1 | 0 | 0 → 0 | 0 | 0 ; portal incoherente: 5 | 0 | 3 → 0 | 0 | 0)
+    OK    · (ii) 0414 se puede volver a aplicar: su preflight pasa (transacción revertida)
+    OK    · (ii) cadena 0414 → vuelta atrás de 0414 → vuelta atrás de 0407 aplica (tres commits)
+    OK    · (ii) tras la cadena, todo idéntico a main salvo la policy Portal, que queda coherente por tenant (md5 sin Portal 1c446612844bda6f29f9592ea33d238b = 1c446612844bda6f29f9592ea33d238b)
+    OK    · (ii) el estado final de la cadena coincide con main + 0452 del escenario (i) (md5 4b36e49903b18fd1eeacf1cf5350f214 = 4b36e49903b18fd1eeacf1cf5350f214)
+    OK    · (ii) tras la cadena, escritura idéntica a main y lectura idéntica a main + 0452
+    OK    · (ii) 0452 aplicada después sigue pasando: «ya tenía la forma final; sin cambios» (transacción revertida)
+    OK    · app del Portal (listMyInvoices y getMyInvoice, código de main tras SDD-0462): mismas facturas con 0085, con 0452, con 0414 y tras revertir 0414
+    OK    · lectura directa por PostgREST de las 5 identidades Portal puras: con 0085 difiere; con 0452 (antes de 0414), tras 0414 y tras revertir 0414 es la misma
+    OK    · control del comercial dual (equipo + Portal): lee T1 por la policy de equipo antes de 0414 y tras revertirla, y sólo su factura Portal A2-01@T2 tras 0414
 ```
 
-Qué cambia 0407 en la foto y restaura su vuelta atrás (`results/rollback/02-diff-main-vs-0407.txt`):
+`results/rollback-r3/recibo-complemento.txt`:
+
+```
+    # Ronda 3 · complemento · 2026-09-13T15:54:30.640Z
+    PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+    OK    · main sin 0452 conserva la policy Portal de 0085
+    OK    · 0407 aplica sobre main sin 0452
+    OK    · vuelta atrás de 0407 (ronda 3) aplica con la policy Portal de 0085 y la deja intacta
+    OK    · catálogo tras 0407 → vuelta atrás idéntico a main sin 0452 (md5 37386ed4d1021b86710b9af9256649e5 = 37386ed4d1021b86710b9af9256649e5; 15 líneas)
+    OK    · matrices de lectura y escritura idénticas a main sin 0452 tras revertir 0407
+    OK    · 0407 vuelve a pasar su preflight sobre ese estado (transacción revertida)
+    OK    · la foto tras 0414 es idéntica con 0452 previa y sin ella (md5 8fad4fbd84318c8ac7dab3763b24d2eb = 8fad4fbd84318c8ac7dab3763b24d2eb; 22 líneas)
+    md5 de las líneas de policies tras 0414: (i) 41eb5bc28ebfb8290f964ebb5e843021 · (ii) 41eb5bc28ebfb8290f964ebb5e843021
+```
+
+Escenario (i): qué cambia 0414 con 0452 aplicada, sin ninguna línea de la policy Portal (`results/rollback-r3/i-06-diff-before-vs-0414.txt`). La vuelta atrás lo devuelve exacto:
 
 ```
 SOLO ANTES
-comment|SDD-0021: facturas operativas. State machine borrador → emitida → parcial/pagada · vencida (visual) · anulada. paid_amount es acumulador (el ledger de pagos es Cobranzas, Bloque 2). Soft delete via deleted_at. RLS por tenant_id.
-policy|invoices by tenant|PERMISSIVE|authenticated|ALL|(tenant_id = get_user_tenant_id())|(tenant_id = get_user_tenant_id())
-priv|authenticated|DELETE=true,INSERT=true,MAINTAIN=false,REFERENCES=false,SELECT=true,TRIGGER=false,TRUNCATE=false,UPDATE=true
-relacl|{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=arwd/postgres}|rls=true|force=false
-
-SOLO DESPUES
 comment|SDD-0021/0350: facturas operativas y financieras. SELECT interno permanece tenant-wide por compatibilidad con consumidores agregados; INSERT/UPDATE requieren accounting o admin en RLS (0407). authenticated no tiene DELETE físico: borradores usan soft-delete y hechos emitidos se anulan. service_role queda reservado a jobs/RPCs controladas.
-policy|invoices_accounting_insert|PERMISSIVE|authenticated|INSERT|-|((tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id)) AND (( SELECT current_studio_role() AS current_studio_role) = ANY (ARRAY['accounting'::text, 'admin'::text])))
-policy|invoices_accounting_update|PERMISSIVE|authenticated|UPDATE|((tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id)) AND (( SELECT current_studio_role() AS current_studio_role) = ANY (ARRAY['accounting'::text, 'admin'::text])))|((tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id)) AND (( SELECT current_studio_role() AS current_studio_role) = ANY (ARRAY['accounting'::text, 'admin'::text])))
-policy|invoices_team_select|PERMISSIVE|authenticated|SELECT|(tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id))|-
-priv|authenticated|DELETE=false,INSERT=true,MAINTAIN=false,REFERENCES=false,SELECT=true,TRIGGER=false,TRUNCATE=false,UPDATE=true
-relacl|{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=arw/postgres}|rls=true|force=false
-```
-
-Qué cambia 0414 y restaura su vuelta atrás (`results/rollback/06-diff-before-vs-0414.txt`):
-
-```
-SOLO ANTES
-comment|SDD-0021/0350: facturas operativas y financieras. SELECT interno permanece tenant-wide por compatibilidad con consumidores agregados; INSERT/UPDATE requieren accounting o admin en RLS (0407). authenticated no tiene DELETE físico: borradores usan soft-delete y hechos emitidos se anulan. service_role queda reservado a jobs/RPCs controladas.
-policy|invoices portal self read|PERMISSIVE|authenticated|SELECT|((deleted_at IS NULL) AND (status <> 'borrador'::invoice_status) AND (client_markbox IS NOT NULL) AND (client_markbox = get_portal_client_markbox()))|-
-policy|invoices_team_select|PERMISSIVE|authenticated|SELECT|(tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id))|-
+policy-comment|invoices_team_select|-
+policy|invoices_team_select|PERMISSIVE|authenticated|r|(tenant_id = ( SELECT public.get_user_tenant_id() AS get_user_tenant_id))|-
 
 SOLO DESPUES
 comment|SDD-0021/0350/0357: lectura y escritura internas requieren accounting/admin activos del tenant. Portal sólo lee sus facturas no borrador/vivas mediante vínculo activo, cliente vivo y tenant coincidente. Módulos no financieros usan RPCs minimizadas 0411–0413. authenticated no tiene DELETE físico; service_role se reserva a procesos controlados.
-policy|invoices portal self read|PERMISSIVE|authenticated|SELECT|((deleted_at IS NULL) AND (status <> 'borrador'::invoice_status) AND (client_markbox IS NOT NULL) AND (EXISTS ( SELECT 1
-   FROM (client_users cu
-     JOIN clients c ON (((c.id = cu.client_id) AND (c.tenant_id = cu.tenant_id) AND (c.deleted_at IS NULL))))
-  WHERE ((cu.auth_user_id = ( SELECT auth.uid() AS uid)) AND (cu.status = 'active'::text) AND (cu.tenant_id = invoices.tenant_id) AND (c.markbox = invoices.client_markbox)))))|-
-policy|invoices_accounting_select|PERMISSIVE|authenticated|SELECT|((tenant_id = ( SELECT get_user_tenant_id() AS get_user_tenant_id)) AND (( SELECT current_studio_role() AS current_studio_role) = ANY (ARRAY['accounting'::text, 'admin'::text])))|-
+policy-comment|invoices_accounting_select|-
+policy|invoices_accounting_select|PERMISSIVE|authenticated|r|((tenant_id = ( SELECT public.get_user_tenant_id() AS get_user_tenant_id)) AND (( SELECT public.current_studio_role() AS current_studio_role) = ANY (ARRAY['accounting'::text, 'admin'::text])))|-
 ```
 
-Tras la cadena completa, `invoices` y los helpers coinciden con `main`. Sólo quedan las tres líneas `proacl-rpc` de 0411–0413, que `main` no tiene (`results/rollback/10-diff-main-vs-full-chain.txt`).
+Escenario (ii): qué queda distinto del estado previo a 0414 después de revertir 0414. Es sólo la policy Portal, que queda coherente por tenant en lugar de la de 0085 (`results/rollback-r3/ii-03-diff-before-vs-revert-0414.txt`):
+
+```
+SOLO ANTES
+policy|invoices portal self read|PERMISSIVE|authenticated|r|((deleted_at IS NULL) AND (status <> 'borrador'::public.invoice_status) AND (client_markbox IS NOT NULL) AND (client_markbox = public.get_portal_client_markbox()))|-
+portal-forma|0085-solo-shipping-mark
+
+SOLO DESPUES
+policy|invoices portal self read|PERMISSIVE|authenticated|r|((deleted_at IS NULL) AND (status <> 'borrador'::public.invoice_status) AND (client_markbox IS NOT NULL) AND (EXISTS ( SELECT 1 FROM (public.client_users cu JOIN public.clients c ON (((c.id = cu.client_id) AND (c.tenant_id = cu.tenant_id) AND (c.deleted_at IS NULL)))) WHERE ((cu.auth_user_id = ( SELECT auth.uid() AS uid)) AND (cu.status = 'active'::text) AND (cu.tenant_id = invoices.tenant_id) AND (c.markbox = invoices.client_markbox)))))|-
+portal-forma|coherente-por-tenant
+```
 
 ### Qué no vuelve igual
 
-- **Comportamiento.** Nada: foto y matrices idénticas.
+- **Policy Portal.** A propósito, nunca vuelve a la de 0085:
+  - con 0452 aplicada, no hay diferencia, porque 0452 ya la dejó coherente;
+  - sin 0452, la policy Portal queda coherente por tenant en lugar de la de 0085. Se nota sólo en la lectura directa de identidades Portal: DUP T1 5 → 2, DUP T2 5 → 3, vínculo con cliente borrado 1 → 0 e incoherente 5 → 0. El equipo, la escritura y la app quedan iguales.
 - **OID internos.** Cambian los de las policies recreadas; no son semánticos y la foto los excluye.
 - **Filas.** La vuelta atrás no deshace filas escritas mientras la migración estuvo aplicada. 0407 y 0414 no escriben filas, y las escrituras legítimas de ese periodo quedan con su auditoría.
 - **Seguridad.** Se pierde, que es el objetivo de las migraciones:
-  - revertir 0414 reabre la lectura cruda de facturas para todo el equipo del tenant y la exposición del Portal entre tenants con Shipping Mark repetido;
+  - revertir 0414 reabre la lectura cruda de facturas para todo el equipo del tenant, pero no la del Portal;
   - revertir 0407 reabre INSERT, UPDATE y DELETE por PostgREST a commercial, operations, warehouse, support y marketing.
 
 Recibos en el scratchpad de la tarea:
-- `results/rollback/`: fotos, logs, matrices y diffs `01`–`10`.
-- `tools/rollback/`: `revert-0407.sql`, `revert-0414.sql`, `snapshot.sql` y `rollback-test.mjs`.
-- `tools/`: `read-matrix.sql` y `write-matrix.sql`.
+- **Ronda 3:**
+  - `results/rollback-r3/`: fotos, logs, matrices, diffs, JSON de la sonda y recibos.
+  - `results/rollback-r3-corrida1/`: la primera corrida.
+  - `tools/rollback/r3/`: `revert-0414.sql`, `revert-0407.sql`, `snapshot.sql`, `rollback-test-r3.mjs` y `extra-0407-y-convergencia.mjs`.
+  - `tools/`: `portal-app-probe-r3.mts` y `measure-db.mjs`, que ahora admite `L07_EXTRA_SKIP` y `L07_WORK_DB`.
+- **Ronda 2, reemplazada:** `results/rollback/` y `tools/rollback/`.
 
 ## COORDINACIÓN CON PR ABIERTAS Y HALLAZGOS PREVIOS
 
-- **PR #104 (L14, 0420–0423).** No comparte archivos de código con L07; comparte `supabase/migrations-baseline.json`, `supabase/pending-migration-symbol-declarations.json` y `docs/specs/README.md`, así que habrá conflicto textual en el segundo merge. README y baseline usan el driver `dtd-generated-records`; las declaraciones se unen a mano. Interacción SQL:
-  - Los comandos de L14 leen y actualizan `invoices` dentro de `payment_private.run_report_command`, que es definer y no pasa por RLS. Da igual el orden respecto de 0407 y 0414.
+- **PR #107 y #108, ya en `main` (ronda 3).** L07 las incorpora por merge.
+  - **#107 (SDD-0462).** Cierra la frontera del Portal en la app; L07 no toca esos archivos.
+  - **#108 (SDD-0463).** Su `0452_portal_invoices_tenant_rls` deja la misma expresión que 0414.
+    - **Convergencia.** Su preflight acepta las dos formas y el de 0414 pide la policy por nombre, así que convergen en cualquier orden (SDD-0463 y ronda 3).
+    - **Orden recomendado.** SDD-0463 recomienda aplicar 0452 antes de L07, sin despliegue asociado. Las esperas y textos de L07 valen en los dos órdenes.
+    - **Su FUERA DE ALCANCE 2** (la vuelta atrás de 0414 recreaba 0085) queda resuelto en la ronda 3.
+- **PR #104 (L14, 0420–0423).** No comparte archivos de código con L07; comparte `supabase/migrations-baseline.json`, `supabase/pending-migration-symbol-declarations.json` y `docs/specs/README.md`. Los tres usan el driver `dtd-generated-records`, que los fusionó sin conflicto en la ronda 3 (medido con `main`; SDD-0463 midió lo mismo con #104, #105 y #106). Interacción SQL:
+  - Los comandos de L14 leen y actualizan `invoices` dentro de `payment_private.run_report_command`, que es definer y no pasa por RLS. Da igual el orden respecto de 0407, 0414 y 0452.
   - Los preflights de 0421 y 0422 sólo exigen `relrowsecurity` en `invoices`, sin huellas de sus policies ni de su ACL.
-  - En el Portal, el detalle de factura de L14 sigue leyendo la factura con `getMyInvoice` por sesión, sujeto a la policy de 0414: el mismo resultado para un vínculo coherente.
   - `reportar/actions.ts` de L14 lee la factura con service_role después de resolver el principal, así que 0414 no lo afecta.
   - No hay solape de locks: 0414 bloquea `invoices` y 0420/0422 bloquean `payment_reports`.
 - **PR #105 (L10, 0410 → 0415).** Sólo comparte los mismos tres registros. 0410 lee `invoices` como definer, y 0415 no toca `invoices`.
-- **Test de inventario (ronda 2).** Ninguna de las dos PR altera sus 45 llamadas: el conteo AST de los 14 archivos de producción de la #104 y el de la #105 da 0 cambios (`results/branch-inventory-delta.txt`).
-- **SDD-0390 y SDD-0397**, `done` en `main` sin todo su código. L07 no depende de ellas: la policy Portal de 0414 es autocontenida, con EXISTS sobre `client_users` y `clients`, evaluable con la RLS que `main` ya da al Portal (`client_users self or tenant read` y `clients portal self read`, verificadas en el catálogo). Las lecturas de facturas del Portal (`lib/portal/portal-queries.ts:235-300`) están fuera de sus allowlists. 0414 no corrige `get_portal_client_markbox()` (`limit 1` sin tenant).
+- **Test de inventario.** Ninguna de las PR abiertas ni #107 alteran sus 45 llamadas: el conteo AST de los archivos de producción de #104 y #105 da 0 cambios, y con #107 incorporada el test pasa 3/3.
+- **SDD-0390 y SDD-0397**, `done` en `main` sin todo su código. L07 no depende de ellas: la policy Portal de 0414 es autocontenida, con EXISTS sobre `client_users` y `clients`, evaluable con la RLS que `main` ya da al Portal (`client_users self or tenant read` y `clients portal self read`, verificadas en el catálogo). 0414 no corrige `get_portal_client_markbox()` (`limit 1` sin tenant).
 
 ## CONTROLES ROJOS
 
@@ -649,101 +907,104 @@ Recibos en el scratchpad de la tarea:
 3. **Migrate-first.** PGRST202 en las tres RPC antes de aplicarlas; los consumidores lanzan (0411 y 0413) o devuelven null (0412).
 4. **Paridad.** Casos donde `main` difiere: L07-DEC en Bronze frente a Silver, L07-A 3.623,45 frente a 2.650, principal dual 4.400,45 frente a 2.650, TIE en VES 100 frente a USD 70, ANUL 1.100 frente a 100, BIG 1.000 frente a 1.100 y OV-BIG 200 frente a 210.
 5. **Falla silenciosa de 0414 con el código de `main`.** Fidelización `{}` para support, todo Bronze. Conversaciones con saldo 0, y 777 USD de T2 para el dual. OV «Facturas · 0».
-6. **Fuga del Portal en `main`.** D2-01 de T2 visible desde un vínculo de T1; deja de verse tras 0414. El bloque `regression_reproduced` del contrato 0414 reproduce la lectura cruzada antes de aplicar.
+6. **Fuga del Portal por RLS.** Sin 0452 ni 0414, DUP T1 lee D2-01, S2-01 y S2-X de T2 por PostgREST directo (ronda 3); deja de verlas con 0452 o con 0414. El bloque `regression_reproduced` del contrato 0414 reproduce la lectura cruzada antes de aplicar.
 7. **Matriz de escritura.** En `main` los roles no financieros escriben y borran; tras 0407 no.
-8. **Test de inventario (ronda 2).** Un lector ficticio de `invoices` fuera de la lista lo hace fallar (19 archivos contra 18); retirado, vuelve a verde.
-9. **Vuelta atrás (ronda 2).**
-   - La foto de catálogo detecta el cambio de cada migración: con 0407, 4 líneas sólo antes y 6 sólo después; con 0414, 3 y 6. Tras la vuelta atrás vuelve a coincidir.
+8. **Test de inventario.** Un lector ficticio de `invoices` fuera de la lista lo hace fallar (19 archivos contra 18); retirado, vuelve a verde.
+   - En la ronda 3 se repitió con el tope de 60 s y dio el mismo resultado.
+   - Una copia con tope de 1 ms falló con `Test timed out in 1ms.` a los 2.198 ms: el tope se aplica y se mide al terminar.
+9. **Vuelta atrás (ronda 3).**
+   - La foto detecta cada cambio: 0452 cambia sólo la policy Portal; 0414 con 0452 aplicada no toca la policy Portal; 0414 sin 0452 sí la cambia.
    - Revertir 0407 con 0414 aplicada aborta con «revertir 0414 primero» sin dejar nada a medias.
+   - La primera corrida de la ronda 3 demostró que el arnés falla ante una expectativa mal planteada (la del comercial dual).
 
 ## VALIDACIÓN
 
-### Ronda 1 — verify sobre el head de código
+### Ronda 3 — verify completo sobre el head de código
 
-**`corepack pnpm verify` completo** sobre `961ec85eaf612b6ec9c6064721b56b6ef7ce2bf5`, el head de código:
-- **Entorno.** Rama limpia sobre la base `bca98147`. Corrió de 2026-09-13T00:47:25Z a 01:24:20Z con Node v24.20.0, pnpm 12.3.4 y Docker 29.7.2.
-- **Salida.** Verify sale con **1**: «1 fallo(s) → e2e», con el cierre además incompleto porque `migrations-applied` quedó sin medir.
-- **Recibos.** `verify-961ec85e.log`, `verify-961ec85e-clean.log`, `verify-961ec85e.meta` y `verify-961ec85e.exit`.
+**Head verificado: `dd7e6f4940b987d6b3a9e070b109862ddf470905`.** Meta en `round3/verify-dd7e6f49.meta`:
+- rama `codex/c-l07-fidelizacion-conversations`, árbol limpio;
+- `origin/main` y merge-base `a3dbac04`;
+- inicio 16:51:38Z y fin 17:07:44Z;
+- Node v24.20.0, pnpm 12.3.4 y Docker 29.7.2.
 
-| Paso | Veredicto | Cifras y motivo |
-|---|---|---|
-| harness | PASÓ | pruebas del harness de verify, worktree y watchdog |
-| lint | PASÓ | — |
-| rsc-boundary | PASÓ | 1.599 módulos de `app` y `lib` sin cruces |
-| typecheck | PASÓ | — |
-| edge-functions | PASÓ | 4 funciones compilan |
-| test | PASÓ | 545 archivos y 6.817 pruebas de Vitest |
-| docs:check | PASÓ | 444 specs |
-| numbering | PASÓ | sin números repetidos |
-| feature-constants | PASÓ | 5 banderas |
-| components:check | PASÓ | — |
-| governance:check | PASÓ | — |
-| migrations-applied | NO DISPONIBLE | el worktree no tiene `NEXT_PUBLIC_SUPABASE_URL` ni `SUPABASE_SERVICE_ROLE_KEY`; es un paso crítico sin medir, y las cinco migraciones de L07 están pendientes por diseño |
-| pending-migration-symbols | PASÓ | 0 ROJO · 3 AMARILLO declarados |
-| sql-tests | PASÓ | 185 contratos con rollback total, incluidos `0407`, `0411`, `0412`, `0413` y `0414` |
-| schema-rebuild | PASÓ | 424 migraciones desde cero (419 de `main` y 5 de L07) y aislamiento multi-tenant verificado (219 tablas, 2 tenants) |
-| e2e | FALLÓ | diagnóstico abajo |
-| build | PASÓ | — |
+Se lanzó con `run_in_background` después de comprobar que no corría otro verify, Vitest ni Playwright.
 
-**Diagnóstico del e2e con el log, sin volver a correrlo.** Usó un dev server propio en el puerto 3191 y corrió 186 pruebas con 8 workers.
-- **Primera pasada.** 15 fallidas, 1 flaky, 18 omitidas y 152 pasadas en 13,9 min, más «1 error was not a part of any test»: `worker-47 process did not exit within 300000ms after stop, force-killed it`. Ahí se colgó: un worker de Playwright no terminó al detenerse y el propio Playwright lo mató a los 300 s. Eso explica la duración frente al reintento. El watchdog de verify no intervino.
-- **Reintento 1/1 («flaky conocido»).** Las mismas 15 fallidas, 1 flaky, 18 omitidas y 152 pasadas en 8,7 min, sin error fuera de pruebas ni corte del watchdog.
-- **Las 15 fallidas son las previstas.** Son `e2e/auth.spec.ts:21`, `:91`, `:98` y `:105` y `e2e/global-search.spec.ts:22`, cada una en chromium, mobile-chrome y mobile-safari. Fallan por aserción (`toBeVisible` y `toHaveURL`) porque el servidor no tiene configuración de Supabase: el log repite «Your project's URL and Key are required to create a Supabase client!» desde `proxy.ts:67`.
-- **La flaky es ajena a L07.** Es `e2e/calculadora-semantic-colors.spec.ts:53` en mobile-chrome: falló la variante light en la primera pasada y la dark en el reintento (`toHaveValue`, `:58`).
-- **Cobertura de L07.** Ninguna prueba e2e entra con sesión a Fidelización, CRM, Reportes, Conversaciones ni Órdenes de venta. El código de L07 lo cubren Vitest, los contratos SQL y el arnés de PostgREST.
-- **Procesos huérfanos, revisados al terminar.** No queda ningún proceso de verify, Playwright, `next dev` ni `chrome-headless-shell`, nada escucha en 3191 y no quedan contenedores `dtd_sqltest_*`, `dtd_rebuild_*` ni `dtd_l07_*`.
-- **Commit del handoff de la ronda 1.** `0d247073` sólo agregó este archivo, sin cambios de código; por eso no se repitió verify.
-- **CI.** El workflow de calidad no corre `sql-tests` ni `schema-rebuild`: esta corrida local es la única evidencia de esos dos pasos.
+`corepack pnpm verify` salió con exit 1, sólo por `e2e`. Su línea final: `[FAIL] verify: 1 fallo(s) → e2e CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.`
+- **PASÓ:**
+  - harness, lint, typecheck y components:check;
+  - rsc-boundary: sin cruces server→client ni client→node;
+  - edge-functions: 4 funciones compilan;
+  - test: 547 archivos y 6.839 pruebas en el primer intento, sin reintento, incluida la prueba del inventario con su tope propio;
+  - docs:check (446 specs) y numbering (446 specs y 443 migraciones, sin números repetidos);
+  - feature-constants (5 banderas) y governance:check (28 políticas);
+  - pending-migration-symbols: 0 ROJO · 3 AMARILLO;
+  - sql-tests: 186 contratos, con 0407, 0411, 0412, 0413, 0414 y 0452 en verde;
+  - schema-rebuild: 425 migraciones desde cero y aislamiento multi-tenant (219 tablas y 2 tenants);
+  - build.
+- **NO DISPONIBLE:** `migrations-applied`, porque el worktree no tiene `NEXT_PUBLIC_SUPABASE_URL` ni `SUPABASE_SERVICE_ROLE_KEY`.
+- **FALLÓ:** `e2e`, también en su reintento, sin watchdog ni workers colgados.
+  - Primera pasada: 15 fallidas, 1 flaky, 18 omitidas y 152 aprobadas, en 4,5 min.
+  - Reintento: 15 fallidas, 2 flaky, 18 omitidas y 151 aprobadas, en 4,6 min.
+  - Las 15 fallidas son las mismas en las dos pasadas y en `799c8ae3`: `auth.spec.ts:21`, `:91`, `:98` y `:105` y `global-search.spec.ts:22`, en chromium, mobile-chrome y mobile-safari. Fallan porque el worktree no tiene configuración de Supabase.
+  - Flaky: `auth.spec.ts:74` en chromium, en las dos pasadas. En el reintento se sumó `smoke.spec.ts:150` en chromium, con `page.goto: net::ERR_ABORTED` sobre `/track/S-2026-0142`; pasó en su segundo intento. Ninguno de los dos toca archivos de L07.
+- **Al terminar:** no quedaron procesos de verify, Vitest, Playwright ni Next, ni contenedores, y el árbol seguía limpio en `dd7e6f49`.
 
-Validación focal previa, recibos en `C:/Users/AKXGEN~1/AppData/Local/Temp/claude/C--Users-AKX-generator-Desktop-Developer-DTDCARGO/a4705ad7-612e-488b-9826-2cd036e3da72/scratchpad/c-l07-fidelizacion-conversations/`:
-- `corepack pnpm vitest run` sobre fidelización, reportes, conversaciones, órdenes de venta, `orders-relations-batch` y `route-auth`: **PASÓ**, 14 archivos y 235 pruebas.
-- Los cinco contratos L07 en PostgreSQL 17.11 efímero, en bases limpias: **PASÓ** (`results/contract-*.txt`). Controles rojos de timeouts: **FALLARON como se esperaba** (`results/redcontrol-*.txt`).
-- `node scripts/check-pending-migration-symbols.mjs`: **PASÓ**, 0 ROJO y 3 AMARILLO (`gate-pending-symbols.log`).
-- `node scripts/build-docs-index.mjs --check`: **PASÓ**, 444 specs (`gate-docs-check.log`). `node scripts/check-numbering.mjs`: **PASÓ**, sólo choques históricos (`gate-sdd-check.log`). `node scripts/build-governance-capsule.mjs --check`: **PASÓ**, 28 políticas (`gate-governance-check.log`).
-- `git diff --check`: **PASÓ**. Ningún archivo tocado tiene CR.
-- Inventario AST: `inventory-main-bca98147.txt` da 48 llamadas en 21 archivos; `inventory-l07-head.txt`, 45 en 18.
-- Mediciones: `results/parity-{main,after0407,after0413,after0414}.json`, `results/write-{main,after0407,after0414}.txt`, `results/locks-*.txt`, `results/contention-*.txt` y `results/autocommit-set-local.txt`.
-- Herramientas: `tools/measure-db.mjs`, `tools/seed-l07.sql`, `tools/parity.mts`, `tools/locks.sql`, `tools/contention.mjs`, `tools/write-matrix.sql`, `tools/make-redcontrols.mjs`, `tools/invoice-inventory.mjs` y `mainsrc/` (copias de `main` `bca98147`).
-- `/ui-check`: **NO EJECUTADO** por no aplicar. No cambia ningún componente, estilo ni página: sólo `lib/`, una ruta API, SQL y documentación.
+**Corridas anteriores de la ronda 3:**
+- **`799c8ae3`**, de 16:01:46Z a 16:22:16Z, exit 1 (`round3/verify-799c8ae3.*`).
+  - FALLÓ `test` sólo por el tope de 20 s del test de inventario: 547 archivos y 6.839 pruebas, 1 fallida, con 22.381 ms en el intento y 20.821 ms en el reintento.
+  - FALLÓ `e2e`: en las dos pasadas, las 15 conocidas sin configuración de Supabase y el flaky `auth.spec.ts:74`, sin watchdog.
+  - PASÓ el resto: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO · 3 AMARILLO), sql-tests (186 contratos), schema-rebuild (425 migraciones) y build. `migrations-applied` quedó NO DISPONIBLE.
+- **`2abd3e0d`**, desde las 16:43:19Z, detenido a propósito a las 16:50:14Z durante `e2e` (`round3/verify-2abd3e0d-interrumpido.*`).
+  - Hasta ahí pasaron todos los pasos, `test` incluido: 547 archivos y 6.839 pruebas.
+  - Se detuvo para corregir un ejemplo de la nota de 0357 y rehacer el commit (ver «Ronda 3»).
 
-### Ronda 2 — validación proporcional
-
-Sin verify completo: desde `961ec85e` no cambió código de producto ni SQL de migraciones. La corrida fue sobre `4200d1d669cabac8edcad951a004dbf9bea0a07f` (C8), con el árbol limpio y `origin/main` en `bca98147`, de 2026-09-13T01:54:26Z a 01:57:47Z (`round2/validations.meta`).
+Comprobaciones focales de la ronda 3 (recibos en `round3/` y `results/rollback-r3/` del scratchpad):
 
 | Comprobación | Veredicto | Cifras |
 |---|---|---|
-| `corepack pnpm vitest run scripts/__tests__/invoice-read-boundary.test.mjs` (focal) | PASÓ | 3/3. Su control rojo FALLÓ como se esperaba (19 archivos contra 18) y al retirarlo volvió a PASAR 3/3 |
-| `corepack pnpm test` | PASÓ | 546 archivos y 6.820 pruebas; en la ronda 1 fueron 545 y 6.817, y la diferencia es el test importado (`round2/val-test.log`) |
-| `corepack pnpm harness:test` | PASÓ | 87 pruebas, 0 fallidas (`round2/val-harness-test.log`) |
-| `node scripts/build-docs-index.mjs --check` | PASÓ | 444 specs |
-| `corepack pnpm sdd:check` | PASÓ | sin números repetidos; sólo los choques históricos declarados |
-| `git diff --check 961ec85e HEAD` y `git diff --check` del árbol | PASÓ | sin problemas |
-| eslint focal sobre el test importado | PASÓ | sin avisos |
-| `node scripts/check-pending-migration-symbols.mjs` | PASÓ | 0 ROJO · 3 AMARILLO; el baseline editado parsea |
-| `node scripts/build-governance-capsule.mjs --check` | PASÓ | 28 políticas |
-| Prueba de vuelta atrás de 0407 y 0414 | PASÓ | 23 comprobaciones OK (sección «VUELTA ATRÁS DE 0407 Y 0414») |
-| Sonda de la frontera del Portal | PASÓ | 5 casos, en la tabla de «Ronda 2» |
-| `corepack pnpm verify` completo | NO EJECUTADO | no cambió código de producto ni SQL de migraciones desde `961ec85e`; vale la corrida de la ronda 1 |
+| Merge con el driver semántico | PASÓ | «✓ merge semántico» en la baseline y el índice; sin conflictos; driver verificado con `install-merge-drivers.mjs --check` (`round3/merge.log`) |
+| Índice regenerado con `node scripts/build-docs-index.mjs` | PASÓ | 446 specs, sin diferencias frente al driver |
+| Baseline y declaraciones tras el merge | PASÓ | siete esperas, cada una idéntica a su lado; `cutoff` y `$doc` iguales; declaraciones iguales a la rama |
+| `invoice-read-boundary.test.mjs` tras el merge | PASÓ | 3/3; inventario AST propio: 45 llamadas en 18 archivos |
+| Tope propio del test de inventario (`dd7e6f49`) | PASÓ | focal 3/3; control rojo del inventario, 19 contra 18 y verde al retirarlo; copia con tope de 1 ms en rojo a los 2.198 ms (`round3/test-tope-*.log`) |
+| Suite completa con el tope (`node node_modules/vitest/vitest.mjs run`, reporter JSON) | PASÓ | sobre `2abd3e0d`, con el mismo blob del test que el head final (`b40e3936`): 547 archivos y 6.839 pruebas en 151 s; la prueba del inventario tardó 18.943 ms (`round3/vitest-full-2abd3e0d.log` y `.json`) |
+| `verify` sobre `2abd3e0d`, detenido a propósito en `e2e` | NO EJECUTADO desde `e2e` | antes de detenerlo pasaron harness, lint, rsc-boundary, typecheck, edge-functions, `test` (547 archivos y 6.839 pruebas), docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, sql-tests (186 contratos) y schema-rebuild (`round3/verify-2abd3e0d-interrumpido.*`) |
+| Medición del prefiltro descartado | PASÓ | mismo inventario en el árbol; el prefiltro por texto pierde 5 de 6 literales con escapes (`round3/prefilter-variants.log`) |
+| Gates de símbolos, índice y numeración tras el merge | PASÓ | 0 ROJO · 3 AMARILLO; 446 specs; sin números repetidos |
+| Cobertura de allowlists contra `origin/main` | PASÓ | tras el merge y de nuevo sobre `dd7e6f49`: 30 archivos, 0 sin cubrir, 27 por allowlist y 3 por notas (`round3/allowlist-coverage-dd7e6f49.txt`) |
+| Aplicación de las esperas de 0414 y 0407 | PASÓ | por literal JSON exacto; `cutoff`, `$doc`, las otras cinco esperas y el párrafo literal intactos, comprobado por valor |
+| Vuelta atrás en los dos escenarios | PASÓ | recibo con todas las comprobaciones en OK (segunda corrida) |
+| Complemento: 0407 sola sin 0452 y convergencia tras 0414 | PASÓ | recibo con todas las comprobaciones en OK |
 | `/ui-check` | NO EJECUTADO | sin cambios de UI |
 
-`git diff --stat 961ec85e..4200d1d6` (`round2/val-diff-stat.log`). La primera línea es este handoff tal como lo publicó la ronda 1:
+### Ronda 2 — validación proporcional
 
-```
- .../handoffs/c-l07-fidelizacion-conversations.md   | 393 +++++++++++++++++++++
- docs/specs/0350-invoices-write-rbac/spec.md        |   4 +-
- docs/specs/0357-invoices-read-rbac/spec.md         |  26 +-
- scripts/__tests__/invoice-read-boundary.test.mjs   |  88 +++++
- supabase/migrations-baseline.json                  |   4 +-
- 5 files changed, 506 insertions(+), 9 deletions(-)
-```
+Sin verify completo en esa ronda, porque no cambió código de producto ni SQL de migraciones desde `961ec85e`. La corrida fue sobre `4200d1d669cabac8edcad951a004dbf9bea0a07f`, con el árbol limpio:
 
-El commit que contiene este documento sólo cambia este archivo. Su `git diff --stat` final contra `961ec85e` va en la PR y en el reporte al Director.
+| Comprobación | Veredicto | Cifras |
+|---|---|---|
+| `invoice-read-boundary.test.mjs` focal | PASÓ | 3/3; su control rojo falló como se esperaba y volvió a verde |
+| `corepack pnpm test` | PASÓ | 546 archivos y 6.820 pruebas |
+| `corepack pnpm harness:test` | PASÓ | 87 pruebas |
+| `docs:check`, `sdd:check`, `git diff --check`, eslint focal, pending-migration-symbols y governance:check | PASÓ | 444 specs; 0 ROJO · 3 AMARILLO; 28 políticas |
+| Prueba de vuelta atrás de la ronda 2 | PASÓ | 23 comprobaciones OK; su SQL de 0414 quedó reemplazado en la ronda 3 |
 
-Recibos de la ronda 2, en el scratchpad de la tarea:
-- `round2/`: `validations.meta`, `val-*.log`, `test-invoice-read-boundary-{focal,redcontrol,after-revert}.log` y `pr-body-r2.md`.
-- `results/rollback/`, `results/portal-pdf-probe.txt` y `results/branch-inventory-delta.txt`.
-- `commit-msgs/c7.txt` y `commit-msgs/c8.txt`.
-- Herramientas: `tools/rollback/`, `tools/read-matrix.sql`, `tools/portal-pdf-probe.sql` y `tools/branch-inventory-delta.mjs`.
+### Ronda 1 — verify sobre `961ec85e`
+
+`corepack pnpm verify` sobre `961ec85eaf612b6ec9c6064721b56b6ef7ce2bf5` salió con 1 por `e2e`.
+- **PASÓ:** harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check y build.
+  - test: 545 archivos y 6.817 pruebas.
+  - pending-migration-symbols: 0 ROJO · 3 AMARILLO.
+  - sql-tests: 185 contratos.
+  - schema-rebuild: 424 migraciones.
+- **NO DISPONIBLE:** `migrations-applied`.
+- **FALLÓ:** `e2e`, con las 15 fallidas de `auth.spec.ts` y `global-search.spec.ts` sin configuración de Supabase y el flaky ajeno de `calculadora-semantic-colors.spec.ts:53`. En la primera pasada un worker de Playwright no terminó y lo forzó el propio Playwright a los 300 s. Recibos: `verify-961ec85e.log`, `.meta` y `.exit`.
+
+Además, en la ronda 1:
+- Vitest focal: 14 archivos y 235 pruebas.
+- Los cinco contratos pasaron en bases limpias, y sus controles rojos de timeouts fallaron como se esperaba.
+- Inventario AST: 48 llamadas en 21 archivos en `bca98147`, y 45 en 18 con L07.
+- Mediciones: paridad, matrices, locks y contención en `results/`.
 
 ## COMMITS
 
@@ -752,25 +1013,32 @@ Ronda 1:
 - `b6fdf92f` fix(db): SDD-0350 y SDD-0357 — 0407 y 0414 fijan lock_timeout y statement_timeout (L07). Desviación y aserciones.
 - `f9bbf24d` feat(studio): SDD-0354, SDD-0355 y SDD-0356 — Fidelización, Conversaciones y Órdenes de venta leen facturas por RPC minimizada.
 - `dddd918a` chore(db): declarar 0407 y 0411–0414 pendientes de aplicar y el degradado migrate-first (L07).
-- `961ec85e` docs(specs): SDD-0350 y SDD-0354 a SDD-0357 — importar specs de L07 con nota de importación. Es el head de código verificado.
-- `0d247073` docs(handoff): L07 — RBAC de facturas y facades de Fidelización, Conversaciones y Órdenes de venta. Primera versión de este documento; sólo lo agregó.
+- `961ec85e` docs(specs): SDD-0350 y SDD-0354 a SDD-0357 — importar specs de L07 con nota de importación. Head de código verificado en la ronda 1.
+- `0d247073` docs(handoff): L07 — RBAC de facturas y facades de Fidelización, Conversaciones y Órdenes de venta. Primera versión de este documento.
 
 Ronda 2:
-- `e952e4bd` test(studio): SDD-0357 — importar el test de inventario de lectores de invoices (L07, ronda 2). Test idéntico al origen.
+- `e952e4bd` test(studio): SDD-0357 — importar el test de inventario de lectores de invoices (L07, ronda 2).
 - `4200d1d6` docs(db): SDD-0350 y SDD-0357 — esperas y notas de 0407 y 0414 con la vuelta atrás probada y la frontera del Portal (L07, ronda 2).
-- Commit que contiene este documento: docs(handoff): L07 — ronda 2 (vuelta atrás probada, frontera del Portal, test de inventario y decisiones del Director). Sólo cambia este archivo.
+- `c09b5155` docs(handoff): L07 — ronda 2: vuelta atrás probada, frontera del Portal, test de inventario y decisiones del Director.
+
+Ronda 3:
+- `0d166684` Merge origin/main (a3dbac04: PR #107 SDD-0462 y PR #108 SDD-0463) en codex/c-l07-fidelizacion-conversations. Sin conflictos textuales; driver semántico en la baseline y el índice.
+- `799c8ae3` docs(db): SDD-0350 y SDD-0357 — ronda 3: frontera del Portal en los dos órdenes con 0452 y vuelta atrás de 0414 que no restaura la policy de 0085. Su `verify` falló en `test` por el tope de 20 s del test de inventario.
+- `dd7e6f49` test(studio): SDD-0357 — tope propio de 60 s para el inventario de lectores de invoices (L07, ronda 3). Rehace el commit local `2abd3e0d`, nunca publicado, para corregir un ejemplo de la nota. Head de código verificado en la ronda 3.
+- Commit que contiene este documento: docs(handoff): L07 — ronda 3. Sólo cambia este archivo.
 
 ## PR / BRANCH
 
-- Rama `codex/c-l07-fidelizacion-conversations`, publicada a sí misma. La ronda 1 se publicó con un único push en `0d247073`, y la ronda 2 con otro único push normal, sin force, después de todos sus commits.
-- PR #106 en borrador contra `main`: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/106. El cuerpo se actualizó en la ronda 2; el head final queda en la PR.
-- Base `main` `bca98147`.
+- Rama `codex/c-l07-fidelizacion-conversations`, publicada a sí misma con un único push normal por ronda, sin force. Ronda 1 en `0d247073`, ronda 2 en `c09b5155` y ronda 3 después de todos sus commits.
+- PR #106 en borrador contra `main`: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/106. El cuerpo se actualizó en cada ronda; el head final queda en la PR.
+- Base `main` `a3dbac04`, incorporada por merge.
 - Worktree `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/c-l07-fidelizacion-conversations`, conservado.
 
 ## PENDIENTES DE ESTA TAREA
 
-Ninguno para la aceptación de la extracción ni de la ronda 2. Lo que sigue pertenece a release o a decisión del Director, no a esta tarea:
+Ninguno para la aceptación de la extracción ni de las rondas 2 y 3. Lo que sigue pertenece a release o a decisión del Director, no a esta tarea:
 - el conteo agregado de la fuga del Portal, que el Director pide a Sam;
+- aplicar 0452, que SDD-0463 recomienda antes de L07;
 - aplicar 0407 y 0411–0413 con autorización;
 - fusionar y desplegar;
 - el smoke por roles;
@@ -786,22 +1054,24 @@ Ninguno para la aceptación de la extracción ni de la ronda 2. Lo que sigue per
    `softDeleteInvoice` no restringe el estado (`app/studio/(app)/facturacion/actions.ts:715-731`), así que una factura emitida borrada puede seguir contando o recibir recordatorios. 0414 conserva esa lectura para accounting y admin. Preexistente.
 2. `commercialByAgent` traga el error de la facturación y publica ingresos por asesor en cero sin aviso (`lib/studio/reports/queries.ts:619`).
 3. La página de Órdenes de venta pide relaciones por orden (`app/studio/(app)/ordenes-venta/page.tsx:39-57`). SDD-0322 está en `main` como spec, pero su código batch y el de la página no. En la ronda 2 el Director lo confirmó fuera del alcance de L07.
-4. `get_portal_client_markbox()` y `get_user_tenant_id()` resuelven con `limit 1` sin orden. Un principal con varios vínculos o membresías obtiene un Shipping Mark o tenant arbitrario, y las tres RPC dependen de `get_user_tenant_id()`.
+4. `get_portal_client_markbox()` y `get_user_tenant_id()` resuelven con `limit 1` sin orden. Un principal con varios vínculos o membresías obtiene un Shipping Mark o tenant arbitrario, y las tres RPC dependen de `get_user_tenant_id()`. Las lecturas de facturas del Portal ya no usan la primera desde SDD-0462.
 5. La server action `getReceivableHistory` no tiene gate de módulo (`app/studio/(app)/cobranzas/actions.ts:208-221`). Lee recibos y gestiones bajo RLS, no `invoices`.
 6. `app/api/studio/__tests__/route-auth.test.ts:190` mockea `getClientContext` sin afirmar su argumento: no detectaría una vuelta a `conv.client_id`.
-7. **Ruta del PDF del Portal sin guard de principal.** `app/portal/(app)/facturas/[code]/pdf/route.ts:41-44` lee la factura con `getMyInvoice` antes de resolver el principal, y `get_portal_client_markbox()` no comprueba cliente vivo ni tenant. Hasta aplicar 0414, un vínculo con cliente borrado o incoherente, y un Shipping Mark repetido en otro tenant, descargan por URL facturas que las páginas no les muestran (medido en la base: X01, D01 y D2-01 visibles). Con 0414 aplicada responde 404. Es parte de la fuga que el Director está dimensionando.
+7. **Ruta del PDF del Portal sin guard de principal (ronda 2): resuelto en `main` por SDD-0462 (PR #107).** Ahora resuelve el principal antes de leer la factura y responde 404 sin él (`app/portal/(app)/facturas/[code]/pdf/route.ts:50-51`), y lee los datos del emisor con el tenant del principal.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción.** Revisar la ronda 2 de la PR #106. El orden de release no es un único paso DB: 0407 → 0411, 0412 y 0413, cada una con OK nominal de Sam y el runbook → fusión y despliegue → smoke por roles → 0414. Con la ronda 2 no quedan decisiones abiertas de L07.
-- **Decisiones del Director (ronda 2), aplicadas:**
-  1. **Divergencias de paridad:** aceptadas y listadas en la PR, en «Cambios de comportamiento visibles al desplegar».
-  2. **Frontera del Portal con 0414:** aceptada. Declarada, sin mensaje de error, en la espera de 0414, la nota de 0357 y la PR, con la sonda de «Ronda 2».
-  3. **Fuga del Portal:** sin cambios en L07; 0414 conserva su lugar.
-  4. **Página de Órdenes de venta y SDD-0322:** fuera de alcance (FUERA DE ALCANCE 3).
-  5. **Test de inventario:** importado sin ajustes, con control rojo.
-  6. **Vuelta atrás:** escrita y probada; las esperas de 0407 y 0414 remiten a su sección.
-- **Pendiente del Director: el conteo agregado.** Con autorización de Sam, sirve para dimensionar la fuga del Portal. Consulta sugerida, no ejecutada: sólo conteos y ninguna fila.
+- **Siguiente acción.** Revisar la ronda 3 de la PR #106. El orden de release no es un único paso DB: 0452 (recomendado antes, SDD-0463) → 0407 → 0411, 0412 y 0413, cada una con OK nominal de Sam y el runbook → fusión y despliegue → smoke por roles → 0414. Con la ronda 3 no quedan decisiones abiertas de L07.
+- **Decisiones del Director (ronda 3), aplicadas:**
+  1. **Merge de `origin/main`:** hecho sin rebase ni force, sin conflictos textuales, con el driver semántico e índice regenerado.
+  2. **Textos en los dos órdenes:** la espera de 0414, la nota de 0357 y la sección de la PR valen con 0452 aplicada antes y sin ella; la espera de 0407 y la nota de 0350 describen su vuelta atrás.
+  3. **Vuelta atrás de 0414:** nunca recrea la policy de 0085. Tiene postflight de expresión exacta y está probada en los dos escenarios con fotos de catálogo, la cadena 0414 → 0407 y la vuelta atrás de 0407 sola sin 0452.
+  4. **Verify completo:** sobre el head de código de la ronda 3, con veredicto por paso.
+     - El primero (`799c8ae3`) falló en `test` por el tope de 20 s del test de inventario.
+     - El ajuste está en `dd7e6f49`: tope propio de 60 s, sin tocar lista, recorrido ni aserciones. El verify se repitió sobre ese head.
+     - La corrida intermedia sobre `2abd3e0d` se detuvo a propósito en `e2e` para corregir un ejemplo de la nota; hasta ahí había pasado todo, `test` incluido.
+- **Decisiones anteriores**, ya aplicadas en la ronda 2: divergencias de paridad, frontera del Portal, SDD-0322 fuera de alcance, test de inventario y vuelta atrás.
+- **Pendiente del Director: el conteo agregado.** Con autorización de Sam, sirve para dimensionar la exposición histórica del Portal. Consulta sugerida, no ejecutada: sólo conteos y ninguna fila.
 
   ```sql
   select count(*) filter (where i.tenant_id <> cu.tenant_id) as facturas_de_otro_tenant,
@@ -817,8 +1087,10 @@ Ninguno para la aceptación de la extracción ni de la ronda 2. Lo que sigue per
   ```
 
   - **Límite.** Es una cota superior: `get_portal_client_markbox()` toma un solo vínculo activo por usuario (`limit 1`).
-- **Cambios compartidos.** Los tres registros entran en conflicto textual con las PR #104 y #105. Integrar en serie y regenerar el índice con el script.
+- **Cambios compartidos.** La baseline, las declaraciones y el índice se fusionan con el driver semántico; conviene integrar en serie y regenerar el índice con el script.
 - **Sesiones consumidoras.** Ninguna.
-  - **Ronda 1.** Se retiraron los contenedores `dtd_l07_pg` y `dtd_l07_rest`, la red `dtd_l07_net` y el contenedor desechable `dtd_l07_expr`.
-  - **Ronda 2.** Se levantaron y retiraron otra vez `dtd_l07_pg`, `dtd_l07_rest` y la red, para la prueba de vuelta atrás y la sonda del PDF.
+  - **Rondas 1 y 2.** Contenedores y red retirados.
+  - **Ronda 3.** Se levantaron y retiraron `dtd_l07_pg`, `dtd_l07_rest` y la red `dtd_l07_net` (dos corridas y el complemento), antes del verify.
+    - El verify detenido sobre `2abd3e0d` se terminó con `taskkill /T /F` desde su `corepack`.
+    - Después no quedaron procesos de verify, Vitest, Playwright ni Next, ni contenedores.
   - **Claim.** Liberado al terminar la escritura de cada ronda.
