@@ -86,7 +86,7 @@ de L14 y se apliquen 0422 y 0423, para no mover la superficie que se prueba. Dep
 W2 puede cambiar lo que `get_portal_client_markbox()` devuelve a las policies que W3 lee; ambas son
 preventivas con un solo tenant y se resuelven integrando W2 primero.
 
-## Gate humano pendiente (no tocado en esta sesión)
+## Gate humano pendiente (no tocado en esta sesión; guion en el archivo de smokes)
 
 | Smoke | Migración que destraba |
 |---|---|
@@ -97,7 +97,7 @@ preventivas con un solo tenant y se resuelven integrando W2 primero.
 Cada aplicación exige OK nominal de Sam por nombre y el runbook; después, retirar su espera en una
 rama propia, como con 0451 y 0452.
 
-## Limpieza pendiente de autorización (nada se borró)
+## Limpieza propuesta al inicio de la sesión (estado antes de la ejecución nocturna; lo ejecutado y lo conservado está en «Ejecución nocturna»)
 
 - Remotas: 79 ramas ancestro de `main`, todas con PR MERGED salvo `feat/sdd-0255-aliados-white-label`,
   que es ancestro sin PR. Tabla completa en el anexo. Las 9 con contenido propio conservan el
