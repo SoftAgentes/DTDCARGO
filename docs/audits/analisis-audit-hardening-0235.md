@@ -1,6 +1,6 @@
 # Análisis por lotes de SDD-0235 (`codex/audit-hardening-20260801`) contra main
 
-Dueño: Worker `worker-w4-analisis-0235-20260914`. Fecha: 2026-09-14. Estado: análisis completo; PR en borrador registrada en el [handoff](../../.agents/handoffs/analisis-audit-hardening-0235.md). Clasificación: interno. SDD: no corresponde reservar número; no se modifica la spec 0235.
+Dueño: Worker `worker-w4-analisis-0235-20260914`. Fecha: 2026-09-14. Estado: análisis completo; [PR #113 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/113); estado de validación y publicación en el [handoff](../../.agents/handoffs/analisis-audit-hardening-0235.md). Clasificación: interno. SDD: no corresponde reservar número; no se modifica la spec 0235.
 
 ## Veredicto
 
