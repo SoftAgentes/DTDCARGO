@@ -11,7 +11,10 @@ const BASELINE = {
   "app/portal/(app)/facturas/[code]/reportar/actions.ts": 1,
   "app/studio/(app)/cobranzas/actions.ts": 1,
   "app/studio/(app)/cobranzas/recibo/[code]/page.tsx": 1,
-  "app/studio/(app)/facturacion/actions.ts": 10,
+  // SDD-0465: +1 por la lectura previa de `softDeleteInvoice` (id, status,
+  // invoice_code, deleted_at), detrás de moduleEditDenial("invoices") y con el
+  // cliente de sesión bajo RLS; decide el mensaje antes del UPDATE condicionado.
+  "app/studio/(app)/facturacion/actions.ts": 11,
   "app/studio/(app)/fidelizacion/actions.ts": 2,
   "lib/portal/portal-legal-queries.ts": 3,
   "lib/portal/portal-queries.ts": 2,
@@ -69,7 +72,7 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     }
     expect(actual).toEqual(BASELINE);
     expect(Object.keys(actual)).toHaveLength(18);
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(45);
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(46);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {
