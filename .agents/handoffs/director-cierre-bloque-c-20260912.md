@@ -312,10 +312,53 @@ PR en borrador con la autorización de publicación de este encargo. Sin merge.
   mezclan accesibilidad, CSP, observabilidad y SDD ajenos, y 39 colisiones textuales o estructurales
   sin resolver. Merece una decisión de dirección propia, no un lote más.
 
+## CIERRE DEL OBJETIVO — 2026-09-14
+
+Los cuatro tramos están integrados y desplegados; falta sólo lo que exige una prueba de pantalla
+con cuentas reales. Autorizaciones de Sam: por nombre (0452, 0410, 0420, 0421) y en bloque el
+2026-09-13 sobre la lista nombrada por el Director («te autorizo todos los pendientes que estén»),
+registrada literal en `.agents/handoffs/0451-aplicacion-prod-20260913.md`.
+
+| Tramo | PR | Merge | Migraciones aplicadas (ledger) |
+|---|---|---|---|
+| 1 · Aliados | #103 → `bca98147` | 2026-09-12 | 0451 `20260913224613` |
+| 3 · L10 Cobranzas | #105 → `76797beb` | 2026-09-13 | 0410 `20260913184537` |
+| 4 · L07 Facturas | #106 → `70ee6f45` | 2026-09-14 | 0407 `…224300`, 0411 `…224418`, 0412 `…224437`, 0413 `…224453` |
+| 2 · L14 Reportes de pago | #104 → `36204665` | 2026-09-14 | 0420 `20260913223809`, 0421 `20260913224126` |
+| Portal (hallazgo) | #107 → `4c07759c`, #108 → `a3dbac04` | 2026-09-13 | 0452 `20260913175856` |
+| Registros y arnés | #109, #110, #111 → `80c6bc6c` | 2026-09-13/14 | — |
+
+Ledger de producción: 449 → 457 filas el 2026-09-13, cada una con el md5 y los bytes del archivo
+revisado; preflight y postflight de catálogo por migración; advisors comparados hallazgo por
+hallazgo, sólo con los cambios esperados (las RPC definer nuevas y la tabla privada de recibos con
+RLS sin policies). Ninguna fila de negocio leída. Conteo agregado autorizado: **producción tiene un
+solo tenant**, así que toda la frontera multi-tenant es preventiva y la fuga de facturas del Portal
+no pudo ocurrir.
+
+**Pendiente, con gate humano (no se aplicó a propósito):**
+
+1. Smoke de Cobranzas (vista previa de recordatorios con accounting y admin) → `0415`.
+2. Smoke de reportes de pago (alta, cancelación, confirmación y rechazo) → `0422` → `0423`.
+3. Smoke por roles de Fidelización, CRM, Conversaciones y Órdenes de venta → `0414`.
+Las cuatro esperas siguen declaradas en `pendingBelowCutoff`; cada aplicación exige OK nominal y
+el runbook, y después retirar su espera en una rama propia.
+
+**Cleanup:** worktrees integrados removidos y purgados; ramas remotas fusionadas borradas; quedan
+las reservas stub locales 0461–0464, que `-d` rechaza y `-D` está prohibido. En el checkout
+principal hay un `stash@{0}` preexistente («Director adoption: preserve local AGENTS before main
+74bb52ab») que no se tocó, y en `DTD-worktrees/` una carpeta `_pr-bodies-backup` ajena a esta
+sesión.
+
+**Fuera del objetivo, para decisión de Sam:** SDD-0235 (endurecimiento de auth/adjuntos) sólo en
+`codex/audit-hardening-20260801`; SDD-0390 y SDD-0397 `done` sin todo su código; lectores
+financieros que no filtran facturas borradas (incluida la cola de recordatorios); el helper de
+direcciones de entrega sin filtro de tenant; la corrida hospedada del E2E que deja la spec 0440
+`in-progress`; las ocho entradas de terceros en `skills-lock.json` (el checker nuevo las acepta;
+retirarlas es decisión de Sam); el resto de la PR #21 (111 archivos mezclados); y el E2E
+autenticado sin configuración Supabase, que sigue impidiendo un `verify` completo en verde.
+
 ## HANDOFF AL DIRECTOR
 
-Siguiente acción: asignar el tramo 1 con el prompt de arriba. La reserva SDD-0461 está creada pero
-sin publicar, así que no excluye a otro equipo hasta que salga a `origin`. El cleanup dejó dos
-cosas abiertas que necesitan una autorización puntual de Sam: la purga del directorio huérfano y el
-borrado de las dos ramas remotas recomendadas para descarte. Ownership de esta rama de coordinación:
-`director-cierre-bloque-c-20260912`, sin liberar mientras el objetivo siga abierto.
+Objetivo cerrado en lo que no depende de una persona. Siguiente acción cuando Sam vuelva: los
+tres smokes y, con OK nominal, `0415`, `0422` → `0423` y `0414`, cada una con su registro.
+Ownership de esta rama de coordinación liberado al fusionar este cierre.
