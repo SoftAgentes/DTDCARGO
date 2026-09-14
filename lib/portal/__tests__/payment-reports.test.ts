@@ -11,7 +11,7 @@
  *    filtra por tenant + invoice + status.
  *  - Mapper + labels/tonos + tope de pendientes.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   validatePaymentReportInput,
@@ -31,6 +31,18 @@ import {
   countPendingReports,
   isAtPendingLimit,
 } from "../payment-report-queries";
+
+vi.mock("../portal-queries", () => ({
+  getPortalClientPrincipal: async (supabase: SupabaseClient) => {
+    const { data } = await supabase.rpc("get_portal_client_markbox");
+    if (!data) return null;
+    return {
+      userId: "portal-user",
+      tenantId: "tenant-1",
+      client: { markbox: String(data) },
+    };
+  },
+}));
 
 const TODAY = "2026-07-01";
 
@@ -197,6 +209,7 @@ describe("listMyInvoiceReports · aislamiento por markbox", () => {
     await listMyInvoiceReports(supabase, "F-2026-0001");
     expect(touchedTable()).toBe("payment_reports");
     expect(eqCalls).toContainEqual(["invoice_code", "F-2026-0001"]);
+    expect(eqCalls).toContainEqual(["tenant_id", "tenant-1"]);
     expect(eqCalls).toContainEqual(["client_markbox", "DTD-0007"]);
   });
 
