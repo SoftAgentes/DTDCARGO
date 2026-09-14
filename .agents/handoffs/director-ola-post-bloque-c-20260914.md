@@ -135,7 +135,7 @@ hallazgos menores de L07 sin encargo (ingresos por asesor que tragan el error, c
 - PASÓ: verificación independiente de la PR #113 (blobs idénticos y `--find-object` sobre `main`, subconjunto de la spec 0235, textos desfasados en `main`).
 - PASÓ: revisión de la PR #114 (identidad de blobs con #21, columnas tenant_id en el esquema, grep de escrituras).
 - PASÓ: revisión de la PR #115 (SQL completo, precedente de esperas en #103 y #108, columnas y redefiniciones históricas).
-- NO VERIFICADO: ID de deployment en Vercel; resultado de W1 hasta que cierre; corrección de W2 en curso.
+- NO VERIFICADO: ID de deployment en Vercel; resultado de W1 hasta que cierre; check de #115 sobre `d6006f7b` en curso.
 
 ## COMMITS
 
@@ -151,7 +151,7 @@ publicación pendiente de permiso.
 
 - Recibir el cierre de cada Worker, revisar su PR completa (diff, alcance, SDD, tests, omisiones)
   sobre el head final y registrar aquí el SHA revisado y el veredicto.
-- W2 usó 0453 (registrado). Pendiente: recibir la corrección de W2 con la espera de 0453 en el baseline y revisar el head nuevo.
+- W2 usó 0453 (registrado); espera declarada en el baseline y spec alineada (rondas 2 y 3 revisadas).
 - Pedir a Sam, en bloque, las autorizaciones que siguen abiertas: smokes y OK nominal por
   migración, limpieza remota y local, publicación de esta rama de coordinación y decisiones.
 
@@ -275,8 +275,14 @@ a medida que lleguen y preparar el bloque de autorizaciones para Sam.
   baseline (una entrada nueva `0453_portal_helpers_principal_determinista`, 4543 caracteres, cutoff 238 y las
   otras cuatro esperas intactas, JSON válido) y el handoff del Worker. Ronda 3 pedida, solo texto: la spec 0466
   debe listar el baseline en «Alcance» y «Allowlist exacta» limitado a esa espera.
-- **Veredicto Director: APROBADA en lo técnico; la corrección de la espera ya está en la rama; falta la
-  ronda 3 de texto de la spec y el check verde sobre el head final antes de integrar.** Integración con autorización de merge y check verde sobre el head final.
+- Ronda 3 recibida y verificada: head `d6006f7b`; frente a `15ea0316` cambian solo la spec 0466 («Alcance» y
+  «Allowlist exacta» incluyen `supabase/migrations-baseline.json` limitado a la espera de 0453; `status` y
+  `updated` sin cambio) y el handoff del Worker. La PR toca exactamente seis archivos y todos figuran en la
+  allowlist de la spec. Claim liberado.
+- **Veredicto Director: APROBADA para integración**, sujeta a autorización de merge de Sam y al check
+  «Calidad local sin secretos» verde sobre `d6006f7b` (en curso al cerrar la revisión). Un merge a `main`
+  no cambia código desplegado: solo agrega el archivo SQL, su contrato, la spec y la espera. Aplicar 0453
+  es una autorización aparte. Integración con autorización de merge y check verde sobre el head final.
   Aplicar 0453 a producción es una autorización aparte (OK nominal por nombre y runbook), precedida
   de la lectura sin filas de `pg_get_functiondef` de las tres funciones y de los dos conteos
   agregados, ambos con autorización de Sam.
