@@ -186,9 +186,9 @@ a medida que lleguen y preparar el bloque de autorizaciones para Sam.
 - Handoff del Worker con las ocho secciones; claim `worker-w4-analisis-0235-20260914` liberado;
   `finish` informa árbol limpio y sin claim. `docs:check` y `sdd:check` PASARON según el Worker;
   `verify` NO EJECUTADO por ser documental, aceptado.
-- Checks de la PR al revisar: «Calidad local sin secretos» en curso, Vercel preview SUCCESS.
-- **Veredicto Director: APROBADA para integración**, sujeta a autorización de merge de Sam y al check
-  verde sobre `bc407625`. Sin efecto productivo de código; un merge a `main` redespliega el mismo
+- Checks de la PR: «Calidad local sin secretos» SUCCESS sobre `bc407625` (verificado después de la revisión); Vercel preview SUCCESS.
+- **Veredicto Director: APROBADA para integración**, sujeta a autorización de merge de Sam; el check
+  requerido ya está verde sobre `bc407625`. Sin efecto productivo de código; un merge a `main` redespliega el mismo
   código (Vercel no excluye `.agents/`), efecto a cubrir en la autorización.
 - Corrección del dictamen del 2026-09-12 §3: `codex/audit-hardening-20260801` pasa de CONSERVAR a
   **descarte recomendado** (C2), pendiente de autorización; único blob sin equivalente, el handoff
@@ -222,8 +222,7 @@ a medida que lleguen y preparar el bloque de autorizaciones para Sam.
   paralelo) y `migrations-applied` NO DISPONIBLE sin credenciales, aceptado porque la PR no trae
   migración; el resto de pasos PASÓ, build incluido.
 - Claim `worker-w3-portal-reportes-20260914` liberado; `finish` informa árbol limpio y sin claim.
-- Checks de la PR al revisar: «Calidad local sin secretos» en curso sobre `b071a90f`; Vercel preview
-  SUCCESS.
+- Checks de la PR: «Calidad local sin secretos» SUCCESS sobre `b071a90f` (verificado después de la revisión); Vercel preview SUCCESS.
 - **Veredicto Director: APROBADA técnicamente. REQUIERE INTEGRACIÓN PREVIA**: se integra solo
   después de que Sam cierre el smoke de reportes de pago de L14 y se apliquen 0422 y 0423, para no
   mover la superficie que se prueba; con autorización de merge y check verde sobre el head final.
@@ -272,8 +271,12 @@ a medida que lleguen y preparar el bloque de autorizaciones para Sam.
   fusionar. Corrección devuelta a W2 el 2026-09-14 con allowlist ampliada solo a
   `supabase/migrations-baseline.json` (una entrada nueva, sin subir el cutoff ni tocar las otras
   cuatro esperas).
-- **Veredicto Director: APROBADA en lo técnico; REQUIERE CORRECCIÓN menor (espera en el baseline)
-  antes de integrar.** Integración con autorización de merge y check verde sobre el head final.
+- Ronda 2 recibida y verificada por el Director: head `15ea0316`; frente a `01518252` cambian solo el
+  baseline (una entrada nueva `0453_portal_helpers_principal_determinista`, 4543 caracteres, cutoff 238 y las
+  otras cuatro esperas intactas, JSON válido) y el handoff del Worker. Ronda 3 pedida, solo texto: la spec 0466
+  debe listar el baseline en «Alcance» y «Allowlist exacta» limitado a esa espera.
+- **Veredicto Director: APROBADA en lo técnico; la corrección de la espera ya está en la rama; falta la
+  ronda 3 de texto de la spec y el check verde sobre el head final antes de integrar.** Integración con autorización de merge y check verde sobre el head final.
   Aplicar 0453 a producción es una autorización aparte (OK nominal por nombre y runbook), precedida
   de la lectura sin filas de `pg_get_functiondef` de las tres funciones y de los dos conteos
   agregados, ambos con autorización de Sam.
