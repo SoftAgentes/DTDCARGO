@@ -34,10 +34,13 @@ confidencialidad: interno
   el Shipping Mark del cliente del vínculo activo sin comprobar que el cliente viva ni que
   vínculo y cliente sean del mismo tenant. El Shipping Mark es único **por tenant**
   (`supabase/migrations/0006_clients.sql:23`): un vínculo incoherente (vínculo en T1, cliente en
-  T2) o con cliente borrado obtiene un Shipping Mark y, por cada policy que compara sólo ese
-  valor (`shipments portal self read` de 0080, entre otras), lee filas de otro tenant. SDD-0463
-  cerró ese cruce para `invoices` reemplazando la policy; la helper siguió igual porque otras
-  policies la usan. Además usa `limit 1` sin orden: hoy `unique (auth_user_id)`
+  T2) o con cliente borrado obtiene un Shipping Mark, y por las policies que comparaban sólo ese
+  valor (`shipments portal self read` de 0080, entre otras) leía filas de otro tenant. Las
+  migraciones de frontera del Portal por principal y tenant reemplazaron esas policies (0416 la
+  de envíos y 0452 la de facturas, entre otras): sobre el schema de main reconstruido ninguna
+  policy ni función nombra ya la helper. Lo que queda es la RPC, que sigue entregándoles ese
+  Shipping Mark a los lectores y las acciones del Portal. Además usa `limit 1` sin orden: hoy
+  `unique (auth_user_id)`
   (`0080_portal_cliente.sql:30`) impide dos vínculos por usuario, y ninguna migración la retiró
   (verificado sobre `supabase/migrations/*.sql`; el handoff `c-l02-portal-visibilidad`, hallazgo
   13, ya había anotado que esa garantía vive en otra migración y nadie la declara donde se usa).
@@ -49,8 +52,16 @@ confidencialidad: interno
   de la tabla, comandos SECURITY DEFINER como `merge_clients`, `rename_client_markbox` o el de
   0427, `service_role`) el trigger es la última defensa y acepta cualquier cliente vivo: un
   vínculo de otro tenant o con cliente borrado escribe direcciones de un cliente que no es suyo.
-- Producción tiene un solo tenant según el conteo autorizado del 2026-09-13: la frontera es
-  preventiva para las membresías y correctiva para los vínculos incoherentes o borrados.
+- Producción tiene un solo tenant según el conteo autorizado del 2026-09-13. La lectura agregada
+  que autorizó Sam el 2026-09-14, sin ids ni datos, dio 0 usuarios con más de una membresía
+  activa, 1 vínculo `client_users` activo cuyo cliente está borrado y 0 vínculos activos con
+  tenant distinto al de su cliente: la frontera es preventiva para las membresías y los tenants,
+  y correctiva para ese vínculo.
+- La lectura de catálogo del mismo día, sin filas, encontró una deriva: producción corre el
+  cuerpo de 0198 **sin su comentario interno** de tres líneas, con md5(prosrc)
+  `7db6f812a549df579f2d7d0d6cd72298`, `search_path=public` y ACL
+  `{postgres=X/postgres,service_role=X/postgres}`. Con ese cuerpo, el preflight de la ronda 3
+  abortaba. Los otros dos coinciden con 0200 y 0080.
 
 ## Alcance
 
@@ -70,9 +81,8 @@ confidencialidad: interno
   - `current_studio_role()` (`0200:70-82`), `get_portal_client_id()` (`0080:40-45`),
     `get_portal_client_tenant()` (`0105:44-49`) y `get_portal_person_id()` (`0187:28-40`), que
     comparten el `limit 1` y quedan para su propia tarea;
-  - las policies que comparan sólo el Shipping Mark (`shipments portal self read` de 0080 y
-    afines): con la helper corregida dejan de servir a vínculos inválidos, pero un vínculo válido
-    sigue leyendo por Shipping Mark sin tenant hasta que cada una se reemplace como hizo 0452;
+  - las policies del Portal, que ya no usan la helper: sobre el schema de main reconstruido,
+    cero policies y cero funciones la nombran, así que la 0453 no cambia ninguna lectura por RLS;
   - aplicar en producción.
 
 ## Diseño
@@ -138,9 +148,14 @@ Con RLS (sesión del Portal o del Studio) los resultados no cambian: el trigger 
      columnas que las funciones nombran;
    - las tres funciones existen con su forma: retorno, lenguaje, `SECURITY DEFINER`,
      volatilidad (`stable` las helpers, `volatile` el trigger) y ACL (`authenticated` ejecuta
-     las helpers, `anon` no; nadie más que el dueño ejecuta la función del trigger);
+     las helpers y no la función del trigger, y `anon` no ejecuta ninguna; el resto de la ACL,
+     como `service_role` en producción, no se exige y la huella la conserva);
    - el cuerpo normalizado (sin espacios) de cada una es el histórico de 0200 / 0080 / 0198 o
-     el final de 0453; cualquier otro aborta para revisar antes de aplicar;
+     el final de 0453. Para la función del trigger acepta además la **forma Cloud** de 0198, el
+     mismo cuerpo sin su comentario interno, que corre en producción: la constante
+     `c_validate_0198_cloud` es la lectura del 2026-09-14 carácter por carácter, como 0423 acepta
+     el cuerpo de 0195 del repo o de Cloud. Cualquier otro cuerpo aborta para revisar antes de
+     aplicar;
    - el trigger `client_delivery_addresses_validate_trg` está vivo: `BEFORE INSERT OR UPDATE
      FOR EACH ROW`, habilitado y apuntando a la función;
    - guarda en un GUC de sesión la huella md5 del catálogo dependiente: oid, dueño, ACL y
@@ -157,31 +172,45 @@ Con RLS (sesión del Portal o del Studio) los resultados no cambian: el trigger 
 
 Idempotente: reaplicada sobre la forma final no cambia nada (mismo oid, misma huella).
 
-### Locks y tiempos (PostgreSQL 17.11 local, fixture confirmado, migración en su transacción)
+### Locks y tiempos (PostgreSQL 17.11 local, schema completo con la forma de producción)
 
-- Locks retenidos hasta el COMMIT: `AccessShareLock` sobre `clients`, `client_users`,
-  `user_tenants` y sus índices (lecturas del preflight y del smoke del postflight),
-  `RowExclusiveLock` sobre `pg_description` (los comentarios), locks de objeto sobre las tres
-  funciones y `AccessShareLock` sobre catálogos. **Ningún lock de tabla exclusivo:** ninguna
-  lectura ni escritura del Studio o del Portal hace cola detrás.
-- Duración: 26,6 ms la aplicación y 26,3 ms la reaplicación.
-- `lock_timeout` de 5 s sólo actuaría si otra sesión tuviera un lock incompatible sobre esos
-  catálogos (por ejemplo un `ALTER FUNCTION` concurrente).
+Medido sobre las 431 migraciones de main sin la 0453 (603 policies), con los tres cuerpos y las
+ACL que se leyeron en producción el 2026-09-14 y la migración en su propia transacción:
+
+- Locks retenidos hasta el COMMIT: sólo `AccessShareLock` sobre tablas del producto, 19 tablas y
+  28 índices. `clients`, `client_users` y `user_tenants` los toma el smoke del postflight; el
+  resto (`shipments`, `prealertas`, `client_claims`, `documents`, `dispatch_orders`, `academy_*`
+  y otras) los toma el deparse con `pg_get_expr` de la huella, sobre las tablas que nombran las
+  subconsultas de las policies. En catálogos, `RowExclusiveLock` sobre `pg_description` por los
+  comentarios. **Ningún lock hace esperar lecturas ni escrituras.**
+- Contención: con otra sesión reteniendo `ACCESS EXCLUSIVE` sobre `clients`, como haría un DDL
+  concurrente, la 0453 cortó a los 5,0 s por `lock_timeout` en la huella del preflight, se
+  revirtió, las tres funciones quedaron intactas y los timeouts de la sesión volvieron a 0.
+- Duración: de 63 a 89 ms la aplicación (tres corridas) y de 67 a 68 ms la reaplicación.
+- Corrección de las rondas 1 a 3, que decían «sólo `AccessShareLock` sobre `clients`,
+  `client_users` y `user_tenants`; 26,6 ms»: se había medido sobre el fixture mínimo del
+  contrato, sin policies con subconsultas, y no representaba producción.
 - Las sesiones en curso adoptan la definición nueva cuando se invalida su caché de planes; las
   policies no se reescriben porque referencian la función por oid.
 
 ### Frontera e impacto en la aplicación
 
-- **Usuario con dos membresías activas** (hoy ninguno en producción): con 0453 no ve filas en
+- **Usuario con dos membresías activas** (0 en la lectura agregada del 2026-09-14): con 0453 no ve filas en
   ninguna tabla «by tenant», no puede insertar ni actualizar, y las RPC responden `42501`;
   `getUserTenantId()` (`lib/auth/session.ts:31-36`) devuelve `null`. `getStudioAccess`
   (`lib/studio/rbac-guard.ts:72-78`) seguiría devolviendo un rol por su propio `limit(1)`, así
   que el usuario vería el Studio vacío en lugar de un mensaje claro. Es el estado seguro; el
   mensaje claro es un cambio de aplicación fuera de este alcance y queda reportado.
-- **Vínculo del Portal incoherente o con cliente borrado:** la helper devuelve `NULL` y toda
-  policy por Shipping Mark deja de servirle filas, sin error. En la aplicación esos principales
-  ya no entran desde `4c07759c` (`getPortalClientPrincipal` + redirección a `/entrar`); la 0453
-  cierra la misma frontera en las policies que aún comparan sólo el Shipping Mark.
+- **Vínculo del Portal incoherente o con cliente borrado** (el 2026-09-14 había 1 con cliente
+  borrado y 0 incoherentes): `get_portal_client_markbox()` le devuelve `NULL`. En el schema de
+  main ninguna policy ni función nombra ya la helper, así que no cambia ninguna lectura por RLS.
+  Cambia la RPC que usan los lectores del Portal, que con `NULL` devuelven vacío
+  (`lib/portal/portal-queries.ts:173-174`, entre otros), y sus acciones, que responden «Tu sesión
+  expiró. Vuelve a entrar.» sin escribir (`app/portal/(app)/proveedores/actions.ts:326-327`,
+  `app/portal/(app)/academia/actions.ts:39-40`). En la app ese principal ya no entra:
+  `resolvePortalClientPrincipal` devuelve `null` si el cliente del vínculo está borrado
+  (`lib/portal/portal-queries.ts:89-95`) y el layout lo manda a `/entrar`
+  (`app/portal/(app)/layout.tsx:39-40`).
 - **Escrituras de direcciones sin RLS:** los tres escritores SECURITY DEFINER de producción
   (`merge_clients` 0361, `rename_client_markbox` 0371 y `delete_delivery_address` 0427) validan
   antes la membresía o el vínculo del principal contra el tenant del cliente; el trigger nuevo
@@ -199,13 +228,14 @@ los recibos están en `.agents/handoffs/portal-helpers-principal-determinista.md
 `scripts/run-sql-tests.mjs`. Aplica las migraciones reales 0006, 0080, 0081, 0198, 0230, 0347,
 0425, 0411, 0258, 0261, 0267, 0294 y 0427 sobre stubs mínimos, y toma `get_user_tenant_id()` y
 `current_studio_role()` del propio archivo 0200 por regexp, así el RED corre contra las
-definiciones de main. 113 aserciones.
+definiciones de main. 119 aserciones.
 
 | Punto | Qué defiende |
 |---|---|
 | 1. RED | Sin 0453: con dos membresías `get_user_tenant_id()` eligió un tenant y «clients by tenant» mostró 5 filas de ese tenant; el vínculo con cliente borrado obtuvo Shipping Mark y leyó 1 envío; el incoherente (vínculo en A, cliente en B) leyó 2 envíos `DUP`, uno por tenant; con la unique retirada y dos vínculos activos la helper eligió uno; sin RLS, el vínculo de otro tenant, el de cliente borrado, el equipo de otro tenant y el titular de otro cliente escribieron direcciones, también por un comando SECURITY DEFINER real |
 | 2. Estático | Timeouts de sesión antes del preflight; preflight → tres `create or replace` → postflight → `reset`; exactamente tres funciones y tres comentarios; sin DML, grants, policies, triggers, tablas, índices, locks ni `ALTER`; bloques `do` cerrados |
 | 3. Huellas | Las formas históricas que acepta el preflight coinciden con las definiciones reales de 0200, 0080 y 0198 |
+| 3b. Forma de producción | En un savepoint: el cuerpo de 0198 sin su comentario (construido desde el archivo real), `search_path=public`, las ACL exactas y los dos triggers de producción coinciden con el literal de la lectura del 2026-09-14, copiado en el contrato y no tomado de la migración. El preflight acepta, la 0453 deja las tres formas finales y conserva las ACL exactas y el trigger, y `c_validate_0198_cloud` es esa lectura carácter por carácter. Un cuerpo casi Cloud, sin el filtro de cliente vivo, aborta en el preflight con «0453 abortada: el cuerpo de client_delivery_addresses_validate_client()…» y no toca el catálogo |
 | 4. Drift (13 casos) y postflight | Trigger ausente o deshabilitado; cuerpo desconocido en cada una de las tres; sin `SECURITY DEFINER`; `anon` con EXECUTE, `authenticated` sin EXECUTE en la helper o con EXECUTE en la función del trigger; `client_users` sin RLS; `disabled_at` renombrada; `auth.uid()` ausente: `P0001` **en el preflight** («0453 requiere…» / «0453 abortada…»), sin uuid ni Shipping Marks, y catálogo intacto. El bloque del postflight, ejecutado solo con una huella sintética, rechaza con «0453: cambió el catálogo dependiente…» |
 | 5. Aplicada | Timeouts restaurados; policies, funciones dependientes, trigger y ACL de tablas idénticos; las tres funciones conservan oid, dueño, ACL, `SECURITY DEFINER` y volatilidad y quedan con `search_path` vacío; filas idénticas; reaplicar no cambia nada |
 | 6. Comportamiento | Una membresía activa (o una activa y otra desactivada) resuelve su tenant y la RPC 0411 responde `DUP=1000,OTHER=250` para A y `DUP=777` para B; dos membresías → `NULL`, cero clientes, direcciones y facturas, `INSERT` en `42501`, `UPDATE` sobre cero filas y la RPC en `42501`. Vínculo coherente → su Shipping Mark; borrado, incoherente, revocado, invitado, equipo, sin vínculo o sin identidad → `NULL` y cero envíos; dos vínculos activos → `NULL`, y al revocar el segundo vuelve a resolver. El trigger sin RLS rechaza con `42501` los ocho cruces de la tabla y acepta con sellado al equipo del tenant, al titular, al miembro de dos tenants y a las escrituras sin principal; `23514` sin uuid para el cliente borrado; el comando DEFINER real repite los rechazos y aceptaciones; los caminos con RLS no cambian; el comando 0427 borra la dirección propia con un solo evento y sigue rechazando al incoherente y al de cliente borrado; el renombre de Shipping Mark por el equipo pasa el trigger y la helper lo sigue |
@@ -231,6 +261,21 @@ definiciones de main. 113 aserciones.
     cualquier «0453…» como rechazo; y «postflight sin huella», que no era observable. El contrato
     se endureció (el drift debe rechazarse en el preflight, y el bloque del postflight se ejecuta
     solo con una huella sintética) y los dos murieron. Resultado final: 30 de 30.
+- **Ronda 4, control rojo sobre la versión anterior:** con la 0453 de la ronda 3 (`d224613d`),
+  el contrato nuevo aborta en el caso de producción con «0453 abortada: el cuerpo de
+  client_delivery_addresses_validate_client() no es el de 0198 ni el final», el mismo mensaje
+  que midió el Director en producción. Tres mutantes nuevos, todos muertos en ese preflight: la
+  condición sin la forma Cloud, la constante Cloud igual a la de 0198 del repo y la constante
+  Cloud sin el filtro de cliente vivo. La serie completa (30, más los 3 y la versión de la
+  ronda 3) dio 34 de 34, con los dos controles en verde.
+- **El md5 de producción no se reproduce en local.** Ninguna versión de 0198 en git
+  (`2678d4f2`, `f27f4941`) carece del comentario, y 1152 variantes de espacios, sangría, líneas
+  en blanco, bordes y fin de línea sobre el archivo sin comentario no dan `7db6f812…`: el texto de
+  producción difiere también en espacios. Por eso el preflight y el contrato comparan la forma
+  normalizada, que sí coincide.
+- **Sobre el schema completo reconstruido** con la forma y las ACL de producción: la 0453 de la
+  ronda 3 aborta con ese mismo mensaje y la de la ronda 4 aplica, deja las tres formas finales y
+  conserva las ACL exactas.
 
 ### Gates
 
@@ -243,10 +288,12 @@ handoff.
 
 No es asesoría legal.
 
-- **ENCONTRADO en main; esta SDD lo corrige.** Un vínculo del Portal incoherente o con cliente
-  borrado obtenía un Shipping Mark y, por las policies que comparan sólo ese valor, leía envíos
-  de otro tenant (`0080_portal_cliente.sql:49-55` y `:79-85`); y, sin RLS, podía crear
-  direcciones postales bajo un cliente que no es suyo (`0198_client_delivery_addresses.sql:125-152`).
+- **ENCONTRADO en main; esta SDD lo corrige.** `get_portal_client_markbox()` le entrega un
+  Shipping Mark a un vínculo del Portal incoherente o con cliente borrado
+  (`0080_portal_cliente.sql:49-55`). Por RLS ya no expone filas: las policies que lo usaban para
+  leer envíos de otro tenant, como la de `0080_portal_cliente.sql:79-85`, se reemplazaron y en
+  main ninguna lo nombra. Sin RLS, el trigger dejaba crear direcciones postales bajo un cliente
+  que no es suyo (`0198_client_delivery_addresses.sql:125-152`).
   Normas de referencia: CRBV art. 28 (acceso a los datos propios y conocer su uso) y art. 60
   (confidencialidad y vida privada).
 - **CORRECTO, en local.** La 0453 devuelve `NULL` a esos vínculos y el trigger rechaza al
@@ -255,10 +302,12 @@ No es asesoría legal.
 - **CORRECTO.** La migración no agrega campos, columnas, logs ni tratamientos. Sus mensajes no
   llevan ids ni Shipping Marks; el mensaje de cliente borrado deja de incluir el uuid que 0198
   incluía. No se leyó ninguna fila de producción.
-- **NO VERIFICABLE: si la exposición ocurrió en producción.** Requiere el conteo agregado de
-  vínculos activos con cliente borrado o de tenant distinto al de su cliente, que el Director
-  puede pedir con autorización; el conteo del 2026-09-13 acredita un solo tenant, lo que hace
-  imposible el cruce entre tenants pero no el de cliente borrado.
+- **Conteos del 2026-09-14,** agregados, autorizados por Sam y sin ids ni datos: 0 vínculos
+  activos con tenant distinto al de su cliente y un solo tenant, así que a esa fecha el cruce
+  entre tenants no era posible en producción; 1 vínculo activo con cliente borrado, al que la
+  helper le entregaba el Shipping Mark de su propio cliente borrado, del mismo tenant.
+- **NO VERIFICABLE:** si ese principal llegó a usar ese valor. Haría falta revisar registros de
+  acceso de la API con retención suficiente; no se pidieron ni se leyeron.
 
 ## Allowlist exacta
 
@@ -284,8 +333,12 @@ No es asesoría legal.
 - [x] Cero cambios en `app` y `lib`; los consumidores que convendría ajustar están en el
       handoff como FUERA DE ALCANCE.
 - [x] Migración única 0453 con timeouts de sesión, preflight que falla cerrado y postflight;
-      idempotente y sin DML. Locks y tiempos medidos.
+      idempotente y sin DML. Locks, contención y tiempos medidos sobre el schema completo.
 - [x] Control rojo y mutantes con el resultado esperado.
+- [x] Ronda 4: el preflight acepta la forma Cloud de 0198 medida en producción el 2026-09-14 y
+      ninguna otra. El contrato lo prueba con la forma y las ACL de producción, con un cuerpo
+      casi Cloud que aborta, con la 0453 de la ronda 3 como control rojo y con tres mutantes
+      nuevos, todos muertos.
 - [x] Revisión de datos personales con lo no verificable declarado.
 
 ## Producción
@@ -295,13 +348,14 @@ acredita la aplicación; lo acredita el ledger.
 
 - Aplicarla exige el OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`: de a una,
   con el name exacto. No depende de ningún despliegue: la aplicación no cambia.
-- Antes, con autorización, leer el catálogo (sin filas): `pg_get_functiondef` de las tres
-  funciones y el trigger de `client_delivery_addresses`. Si algún cuerpo en producción no es el
-  del repo, el preflight aborta y hay que revisar antes de aplicar.
-- Conteo previo recomendado, agregado y sin ids: membresías activas por usuario mayores que uno
-  en `user_tenants`, y vínculos activos de `client_users` con cliente borrado o con tenant
-  distinto al de su cliente. Un resultado mayor que cero no impide aplicar: identifica a quién
-  la 0453 va a cerrar el acceso, para resolverlo antes o avisar.
+- **Lectura previa hecha el 2026-09-14,** con autorización de Sam y sólo catálogo y agregados:
+  la deriva del cuerpo de 0198 (ver Contexto) y los conteos 0 / 1 / 0. La ronda 4 acepta esa
+  forma; sobre el schema completo, la 0453 de la ronda 3 aborta con el mismo mensaje que en
+  producción y la de la ronda 4 aplica.
+- Antes de aplicar, repetir esa lectura: `pg_get_functiondef` de las tres funciones y del
+  trigger, cero policies que nombren la helper y los tres conteos. Entre la lectura y la
+  aplicación pueden cambiar. Si aparece otro cuerpo, el preflight aborta y hay que revisar. Un
+  conteo mayor que cero no impide aplicar: identifica a quién la 0453 le cierra la resolución.
 - Después: smoke de una sesión del Studio (lista de clientes) y de una del Portal (Mi perfil ›
   Direcciones y envíos), y `migrations-applied` en verde.
 - Gobernanza: no conformidad de aislamiento multi-tenant corregida localmente y verificada en
