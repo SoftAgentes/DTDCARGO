@@ -343,8 +343,10 @@ No es asesoría legal.
 
 ## Producción
 
-`0453_portal_helpers_principal_determinista` **no está aplicada**. `done` en esta spec no
-acredita la aplicación; lo acredita el ledger.
+`0453_portal_helpers_principal_determinista` **fue aplicada a producción el 2026-09-14** con autorización
+nominal de Sam: ledger `20260914145345`, una sentencia, md5 `bceb07887ca0e4ddbd0c7a638ea645b4` y 25.194 bytes,
+idénticos al archivo de `main` `4b01ac58`; registro en `.agents/handoffs/0453-aplicacion-prod-20260914.md`.
+`done` en esta spec no acredita la aplicación por sí mismo; lo acredita el ledger.
 
 - Aplicarla exige el OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`: de a una,
   con el name exacto. No depende de ningún despliegue: la aplicación no cambia.
@@ -352,12 +354,19 @@ acredita la aplicación; lo acredita el ledger.
   la deriva del cuerpo de 0198 (ver Contexto) y los conteos 0 / 1 / 0. La ronda 4 acepta esa
   forma; sobre el schema completo, la 0453 de la ronda 3 aborta con el mismo mensaje que en
   producción y la de la ronda 4 aplica.
-- Antes de aplicar, repetir esa lectura: `pg_get_functiondef` de las tres funciones y del
-  trigger, cero policies que nombren la helper y los tres conteos. Entre la lectura y la
-  aplicación pueden cambiar. Si aparece otro cuerpo, el preflight aborta y hay que revisar. Un
-  conteo mayor que cero no impide aplicar: identifica a quién la 0453 le cierra la resolución.
-- Después: smoke de una sesión del Studio (lista de clientes) y de una del Portal (Mi perfil ›
-  Direcciones y envíos), y `migrations-applied` en verde.
+- **Lectura repetida el 2026-09-14, inmediatamente antes de aplicar:** los tres cuerpos, sus ACL y los
+  dos triggers idénticos a la primera lectura; cero policies y cero funciones que nombren la helper;
+  conteos 0 / 1 / 0. Antes de cualquier reaplicación futura, repetir esa lectura:
+  `pg_get_functiondef` de las tres funciones y del trigger, cero policies que nombren la helper y los
+  tres conteos, porque entre la lectura y la aplicación pueden cambiar. Si aparece otro cuerpo, el
+  preflight aborta y hay que revisar. Un conteo mayor que cero no impide aplicar: identifica a quién la
+  0453 le cierra la resolución.
+- **Postflight en producción, 2026-09-14:** las tres funciones con su cuerpo final y `search_path` vacío,
+  dueño y ACL sin cambios, triggers intactos, cero policies y cero funciones que nombren la helper, 302
+  policies con la helper de tenant como antes, y las dos helpers en NULL sin JWT. Advisors de seguridad
+  comparados antes y después en el registro de aplicación.
+- Pendiente de Sam: smoke de una sesión del Studio (lista de clientes) y de una del Portal (Mi perfil ›
+  Direcciones y envíos), y `migrations-applied` en verde con credenciales.
 - Gobernanza: no conformidad de aislamiento multi-tenant corregida localmente y verificada en
-  PostgreSQL efímero; en producción NO VERIFICABLE hasta aplicar. Sin cambio visual: `/ui-check`
-  no aplica.
+  PostgreSQL efímero; en producción verificada por catálogo tras la aplicación del 2026-09-14.
+  Sin cambio visual: `/ui-check` no aplica.
