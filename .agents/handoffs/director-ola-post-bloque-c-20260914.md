@@ -133,7 +133,8 @@ hallazgos menores de L07 sin encargo (ingresos por asesor que tragan el error, c
 - PASÓ: guard y claim de este worktree.
 - NO EJECUTADO: `corepack pnpm verify` sobre esta rama, que solo contiene documentación de dirección.
 - PASÓ: verificación independiente de la PR #113 (blobs idénticos y `--find-object` sobre `main`, subconjunto de la spec 0235, textos desfasados en `main`).
-- NO VERIFICADO: ID de deployment en Vercel; resultados de W1, W2 y W3 hasta que cierren.
+- PASÓ: revisión de la PR #114 (identidad de blobs con #21, columnas tenant_id en el esquema, grep de escrituras).
+- NO VERIFICADO: ID de deployment en Vercel; resultados de W1 y W2 hasta que cierren.
 
 ## COMMITS
 
@@ -194,6 +195,43 @@ a medida que lleguen y preparar el bloque de autorizaciones para Sam.
 - Lotes propuestos por W4 que quedan como decisiones de Sam: C1 cierre documental de SDD-0235
   (estado de la spec y tres textos desfasados); C2 borrado de la rama remota; R1 retención de
   `public_track_log` (política de retención primero; spec nueva).
+
+### W3 · PR #114 · `codex/portal-reportes-principal-0390-0397` · SHA revisado `b071a90fdc00419b712dec663d7a2d3ebfa3f4e8` (producto en `3f0d59ac`)
+
+- Alcance: 11 archivos, todos dentro de la allowlist: `lib/portal/payment-report-queries.ts`,
+  `lib/portal/shipment-events-queries.ts`, `app/portal/(app)/facturas/[code]/aceptar/actions.ts`,
+  cinco tests de `lib/portal` y de `aceptar/`, las specs 0390 y 0397 (nota de extracción fechada
+  bajo el H1, `status: done` y `updated` intactos, mismo precedente que las notas de L14) y el
+  handoff del Worker. Sin migración, sin `supabase/`, sin Studio, sin esperas.
+- Identidad: los ocho archivos de producto y tests son byte a byte el blob del head de la PR #21
+  (`refs/dtd/pr/21`, `ea9952a4`); comprobado por el Director con `git rev-parse` por ruta.
+- SDD-0390: `listMyInvoiceReports`, `listMyShipmentEvents` y `listMyRecentActivity` dejan la RPC
+  `get_portal_client_markbox()` y resuelven `getPortalClientPrincipal()`; filtran `tenant_id` y
+  Shipping Mark, más `shipments.tenant_id` en los eventos. Columnas verificadas en el esquema de
+  `main`: `shipment_events.tenant_id` (0002/0003, índice 0013) y `payment_reports.tenant_id` (0195).
+- SDD-0397: `registerAcceptanceAction` toma tenant y Shipping Mark del principal de sesión y
+  desaparece la relectura `admin.from("clients").select("tenant_id")`. Test histórico ajustado y
+  `portal-invoice-actions-principal-scope.test.ts` pasa del recorte de L14 a la versión completa.
+- Escrituras: `git grep` sobre `lib/portal` y `app/portal` sin tests solo encuentra `select` sobre
+  `payment_reports`; ninguna vuelta a DML directo ni a `confirm_payment_report`; los comandos siguen
+  por los wrappers de 0421.
+- Validación del Worker: vitest focal 52 archivos / 833 pruebas PASÓ; typecheck PASÓ; ESLint focal
+  PASÓ; docs, numbering y símbolos pendientes PASÓ; `E2E_PORT=3103 corepack pnpm verify` sobre
+  `3f0d59ac` FALLÓ solo por el e2e ambiental (watchdog, sin Supabase, dos verify ajenos en
+  paralelo) y `migrations-applied` NO DISPONIBLE sin credenciales, aceptado porque la PR no trae
+  migración; el resto de pasos PASÓ, build incluido.
+- Claim `worker-w3-portal-reportes-20260914` liberado; `finish` informa árbol limpio y sin claim.
+- Checks de la PR al revisar: «Calidad local sin secretos» en curso sobre `b071a90f`; Vercel preview
+  SUCCESS.
+- **Veredicto Director: APROBADA técnicamente. REQUIERE INTEGRACIÓN PREVIA**: se integra solo
+  después de que Sam cierre el smoke de reportes de pago de L14 y se apliquen 0422 y 0423, para no
+  mover la superficie que se prueba; con autorización de merge y check verde sobre el head final.
+  Un merge a `main` despliega código del Portal: la autorización debe cubrirlo.
+- FUERA DE ALCANCE que deja W3, sin encargo: lecturas del Portal que siguen solo por Shipping Mark
+  (`listMyShipments`, `getMyShipment`, `portal-academy-queries.ts`, `academia/actions.ts`,
+  `proveedores/actions.ts`), candidatas a un slice propio; `getReportById` sin llamador; auditorías
+  y handoffs del saneamiento de #21 que las specs citan y no están en `main`; contención de
+  `verify` concurrentes en la misma máquina (cuelgue recurrente del e2e en mobile-safari).
 
 ### Método de blobs aplicado a las demás ramas del dictamen (Director, 2026-09-14)
 
