@@ -134,7 +134,8 @@ hallazgos menores de L07 sin encargo (ingresos por asesor que tragan el error, c
 - NO EJECUTADO: `corepack pnpm verify` sobre esta rama, que solo contiene documentación de dirección.
 - PASÓ: verificación independiente de la PR #113 (blobs idénticos y `--find-object` sobre `main`, subconjunto de la spec 0235, textos desfasados en `main`).
 - PASÓ: revisión de la PR #114 (identidad de blobs con #21, columnas tenant_id en el esquema, grep de escrituras).
-- NO VERIFICADO: ID de deployment en Vercel; resultados de W1 y W2 hasta que cierren.
+- PASÓ: revisión de la PR #115 (SQL completo, precedente de esperas en #103 y #108, columnas y redefiniciones históricas).
+- NO VERIFICADO: ID de deployment en Vercel; resultado de W1 hasta que cierre; corrección de W2 en curso.
 
 ## COMMITS
 
@@ -150,7 +151,7 @@ publicación pendiente de permiso.
 
 - Recibir el cierre de cada Worker, revisar su PR completa (diff, alcance, SDD, tests, omisiones)
   sobre el head final y registrar aquí el SHA revisado y el veredicto.
-- Registrar si W2 usó 0453 o la liberó.
+- W2 usó 0453 (registrado). Pendiente: recibir la corrección de W2 con la espera de 0453 en el baseline y revisar el head nuevo.
 - Pedir a Sam, en bloque, las autorizaciones que siguen abiertas: smokes y OK nominal por
   migración, limpieza remota y local, publicación de esta rama de coordinación y decisiones.
 
@@ -232,6 +233,55 @@ a medida que lleguen y preparar el bloque de autorizaciones para Sam.
   `proveedores/actions.ts`), candidatas a un slice propio; `getReportById` sin llamador; auditorías
   y handoffs del saneamiento de #21 que las specs citan y no están en `main`; contención de
   `verify` concurrentes en la misma máquina (cuelgue recurrente del e2e en mobile-safari).
+
+### W2 · PR #115 · `codex/portal-helpers-principal-determinista` · SHA revisado `015182525c545a8ea021cfab7b5941732029d7a2` (migración en `1fdfe9fb`)
+
+- Alcance: cinco archivos, todos dentro de la allowlist: `supabase/migrations/0453_portal_helpers_principal_determinista.sql`
+  (382 líneas), `supabase/tests/0453_*.test.sql` (866 líneas, 113 aserciones, control RED con
+  `-v apply_fix=false`), la spec 0466 (`done`, `created` y `updated` 2026-09-14), el índice de specs
+  regenerado (453) y el handoff del Worker. Cero cambios en `app/` y `lib/`.
+- SQL revisado línea a línea por el Director:
+  - Timeouts de sesión (`lock_timeout` 5 s, `statement_timeout` 30 s) al inicio y `reset` al final,
+    como 0422.
+  - Preflight que falla cerrado: RLS y columnas de las cuatro tablas; forma de las tres funciones
+    (retorno, lenguaje, SECURITY DEFINER, volatilidad) y ACL (anon sin EXECUTE, authenticated con
+    EXECUTE en las dos helpers, nadie en la función del trigger); cuerpo normalizado igual al
+    histórico (0200 / 0080 / 0198, últimas definiciones en `main`) o al final; trigger
+    `client_delivery_addresses_validate_trg` vivo con la forma de 0198; huella md5 del catálogo
+    dependiente (ACL y dueño de las tres, funciones y policies que las nombran, trigger).
+  - `get_user_tenant_id()`: tenant de la única membresía activa, NULL con cero o más de una
+    (`array_agg … having count(*) = 1`). `get_portal_client_markbox()`: Shipping Mark del único
+    vínculo activo cuyo cliente vive y comparte tenant, NULL en otro caso. Trigger: con principal,
+    membresía activa en el tenant del cliente o vínculo activo a ese mismo cliente, si no 42501;
+    sin principal conserva el sellado de 0198. `create or replace` conserva oid, dueño y ACL.
+  - Postflight: cuerpos finales exactos con `search_path` vacío, huella idéntica, y las dos helpers
+    devuelven NULL sin principal.
+- Riesgo semántico que debe conocer Sam: con dos membresías activas un usuario queda sin tenant y
+  el Studio se le muestra vacío sin mensaje (`getStudioAccess`). Hoy no puede ocurrir: producción
+  tiene un solo tenant y `user_tenants` tiene PK `(user_id, tenant_id)`; `client_users` conserva
+  `unique (auth_user_id)`. Es una frontera preventiva y fail-closed, coherente con 0430 y 0452.
+- Validación del Worker: contrato GREEN 113 aserciones sobre PostgreSQL 17 efímero, control RED,
+  30 mutantes muertos, locks medidos (solo AccessShareLock, 26,6 ms); `E2E_PORT=3102 corepack pnpm
+  verify` sobre `aa083acb` FALLÓ solo por el e2e ambiental, con sql-tests (194), schema-rebuild y
+  build en verde; `migrations-applied` SKIP sin credenciales.
+- Claim `worker-w2-portal-helpers-20260914` liberado; `finish` sin claim.
+- Checks de la PR al revisar: «Calidad local sin secretos» en curso sobre `01518252`; Vercel preview
+  SUCCESS.
+- **Omisión detectada: la PR no declara la espera de 0453 en `pendingBelowCutoff`**, a diferencia
+  de las PRs #103 (0451) y #108 (0452). Con credenciales, `migrations-applied` saldría rojo al
+  fusionar. Corrección devuelta a W2 el 2026-09-14 con allowlist ampliada solo a
+  `supabase/migrations-baseline.json` (una entrada nueva, sin subir el cutoff ni tocar las otras
+  cuatro esperas).
+- **Veredicto Director: APROBADA en lo técnico; REQUIERE CORRECCIÓN menor (espera en el baseline)
+  antes de integrar.** Integración con autorización de merge y check verde sobre el head final.
+  Aplicar 0453 a producción es una autorización aparte (OK nominal por nombre y runbook), precedida
+  de la lectura sin filas de `pg_get_functiondef` de las tres funciones y de los dos conteos
+  agregados, ambos con autorización de Sam.
+- FUERA DE ALCANCE que deja W2: `current_studio_role()`, `get_portal_client_id()`,
+  `get_portal_client_tenant()` y `get_portal_person_id()` comparten el `limit 1`; policies del
+  Portal que comparan solo el Shipping Mark (patrón 0080); `getStudioAccess` sin mensaje ante dos
+  membresías; `unique (auth_user_id)` sin comentario que declare sus dependientes;
+  `_norte/backend/README.md` vive en `docs/design/studio/_norte/backend/README.md`, no en la raíz.
 
 ### Método de blobs aplicado a las demás ramas del dictamen (Director, 2026-09-14)
 
