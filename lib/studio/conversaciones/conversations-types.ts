@@ -105,7 +105,7 @@ export type ConversationClientContext = {
   phone: string | null;
   /** Envíos activos (no terminales) del cliente. */
   activeShipments: { id: string; code: string; status: string }[];
-  /** Saldo CxC pendiente (Σ total − paid de facturas no-borrador), moneda dominante. */
+  /** Saldo CxC pendiente (excluye borradores/anuladas), moneda dominante. */
   outstandingBalance: number;
   outstandingCurrency: string;
 };
