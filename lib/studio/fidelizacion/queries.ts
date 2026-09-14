@@ -11,7 +11,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPaged } from "@/lib/db/paginate";
 import {
-  invoiceUsdAmount,
   REFERRAL_RULES,
   tierOf,
   TIERS,
@@ -20,43 +19,21 @@ import {
   type Tier,
   type TierId,
 } from "./types";
-import type { InvoiceCurrency, InvoiceStatus } from "@/lib/studio/invoice-types";
 
 // ── Motor de niveles (derivado de invoices, trailing-12m) ─────
 
-/** Estados de factura que cuentan para la facturación (excluye borrador/anulada). */
-const BILLABLE_STATUSES: InvoiceStatus[] = [
-  "emitida",
-  "parcial",
-  "pagada",
-  "vencida",
-];
-
-/** Fecha (YYYY-MM-DD) de hace 12 meses respecto a `now`. */
-function trailingStart(now: Date): string {
-  const d = new Date(now);
-  d.setFullYear(d.getFullYear() - 1);
-  return d.toISOString().slice(0, 10);
-}
-
-type BillingRow = {
+type BillingAggregateRow = {
   client_markbox: string;
-  currency: InvoiceCurrency;
-  total_amount: number;
-  fx_rate: number | null;
-  status: InvoiceStatus;
-  issued_at: string | null;
-  created_at: string | null;
+  billed_usd: number;
 };
 
 /**
  * Facturación por cliente de los últimos 12 meses, USD-normalizada (§3.2).
  *
- * - Agrega `invoices` del tenant (RLS).
- * - Excluye `borrador` y `anulada`.
- * - Usa `issued_at` (o `created_at` como fallback) de referencia de fecha,
- *   igual que `invoiceKpis`.
- * - Normaliza cada factura a USD vía `invoiceUsdAmount` (VES/fx_rate; CNY → 0).
+ * La RPC `studio_client_annual_billing` hace el cálculo dentro de la base y
+ * devuelve sólo Shipping Mark + total agregado. El caller no recibe facturas,
+ * estados, monedas, tasas ni fechas individuales. La función SQL deriva el
+ * tenant y valida el rol de la sesión; `p_as_of` sólo admite el presente.
  *
  * Devuelve `Map<markbox, billedUsd>`.
  */
@@ -64,53 +41,36 @@ export async function clientAnnualBilling(
   supabase: SupabaseClient,
   now: Date = new Date(),
 ): Promise<Map<string, number>> {
-  // Paginado: acá se SUMA la facturación anual por cliente, que es lo que
-  // decide su nivel de fidelización. Truncar baja de nivel a quien no le toca.
+  const asOf = now.toISOString().slice(0, 10);
+
+  // Aunque ya viene agregado, puede haber más de 1.000 clientes. Se pagina
+  // para no degradar silenciosamente los tiers de la cola truncada.
   const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
     (d, h) =>
       supabase
-        .from("invoices")
-        .select(
-          "client_markbox, currency, total_amount, fx_rate, status, issued_at, created_at",
-        )
-        .order("id", { ascending: true })
+        .rpc("studio_client_annual_billing", { p_as_of: asOf })
+        .order("client_markbox", { ascending: true })
         .range(d, h),
   );
   if (!complete) {
-    throw new Error("Las facturas superan el tope de lectura; la facturación anual quedaría corta.");
+    throw new Error("Los agregados de facturación superan el tope de lectura.");
   }
 
-
-  const start = trailingStart(now);
   const out = new Map<string, number>();
-
   const rows = ((data as Record<string, unknown>[] | null) ?? []).map(
-    (r): BillingRow => ({
+    (r): BillingAggregateRow => ({
       client_markbox: String(r.client_markbox ?? ""),
-      currency: r.currency as InvoiceCurrency,
-      total_amount: Number(r.total_amount) || 0,
-      fx_rate:
-        r.fx_rate == null
-          ? null
-          : Number.isFinite(Number(r.fx_rate))
-            ? Number(r.fx_rate)
-            : null,
-      status: r.status as InvoiceStatus,
-      issued_at: (r.issued_at as string | null) ?? null,
-      created_at: (r.created_at as string | null) ?? null,
+      billed_usd: Number(r.billed_usd) || 0,
     }),
   );
 
   for (const r of rows) {
-    if (!BILLABLE_STATUSES.includes(r.status)) continue;
-    const refDate = (r.issued_at ?? r.created_at)?.slice(0, 10);
-    if (!refDate || refDate < start) continue;
     if (!r.client_markbox) continue;
-
-    const usd = invoiceUsdAmount(r);
-    if (usd <= 0) continue;
-
-    out.set(r.client_markbox, (out.get(r.client_markbox) ?? 0) + usd);
+    if (r.billed_usd <= 0) continue;
+    out.set(
+      r.client_markbox,
+      (out.get(r.client_markbox) ?? 0) + r.billed_usd,
+    );
   }
 
   return out;

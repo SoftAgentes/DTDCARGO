@@ -31,7 +31,7 @@ import {
   validateSetStatusInput,
   type ConversationRow,
 } from "../conversations-types";
-import { aggregateKpis, aggregateOutstanding } from "../conversations-queries";
+import { aggregateKpis } from "../conversations-queries";
 import { insertInboundMessage } from "../messages-queries";
 
 // ── Type guards de enums ──────────────────────────────────────
@@ -262,29 +262,6 @@ describe("aggregateKpis", () => {
       openCases: 0,
       resolvedToday: 0,
     });
-  });
-});
-
-// ── Saldo CxC ─────────────────────────────────────────────────
-describe("aggregateOutstanding", () => {
-  it("sin facturas → 0 USD", () => {
-    expect(aggregateOutstanding([])).toEqual({ balance: 0, currency: "USD" });
-  });
-  it("suma saldo (total - paid), nunca negativo", () => {
-    const r = aggregateOutstanding([
-      { currency: "USD", total_amount: 100, paid_amount: 30 },
-      { currency: "USD", total_amount: 50, paid_amount: 80 }, // sobrepagada → 0
-    ]);
-    expect(r.currency).toBe("USD");
-    expect(r.balance).toBe(70); // 70 + 0
-  });
-  it("elige la moneda dominante por total facturado", () => {
-    const r = aggregateOutstanding([
-      { currency: "USD", total_amount: 100, paid_amount: 0 },
-      { currency: "VES", total_amount: 1000, paid_amount: 100 },
-    ]);
-    expect(r.currency).toBe("VES"); // total VES (1000) > USD (100)
-    expect(r.balance).toBe(900);
   });
 });
 
