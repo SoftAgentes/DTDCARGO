@@ -83,6 +83,9 @@ export type PaymentReport = {
   note: string | null;
   confirmedBy: string | null;
   confirmedAt: string | null;
+  cancelledAt: string | null;
+  cancelledBy: string | null;
+  resolutionReason: string | null;
   createdAt: string;
 };
 
@@ -127,7 +130,7 @@ function isMethod(v: string): v is PaymentReportMethod {
 
 /** ¿String YYYY-MM-DD que representa una fecha real? */
 function isIsoDate(v: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || v.length !== 10 || v.startsWith("0000-")) return false;
   const d = new Date(`${v}T00:00:00Z`);
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
 }
@@ -151,7 +154,7 @@ export function validatePaymentReportInput(
     fieldErrors.amount = "Escribe el monto que pagaste (mayor a 0).";
   } else if (amount > 9_999_999.99) {
     fieldErrors.amount = "Ese monto es demasiado alto. Revisa la cifra.";
-  } else if (Math.round(amount * 100) !== amount * 100) {
+  } else if (Number(amount.toFixed(2)) !== amount) {
     fieldErrors.amount = "El monto puede tener máximo 2 decimales.";
   }
 
@@ -163,7 +166,7 @@ export function validatePaymentReportInput(
     fieldErrors.method = "Método de pago no válido.";
   }
 
-  // Fecha del pago: real, no futura, no absurdamente vieja (> 2 años).
+  // Fecha del pago: real y no futura; no se inventa un límite de antigüedad.
   const paidAt = String(raw.paidAt ?? "").trim();
   if (!paidAt) {
     fieldErrors.paidAt = "Indica la fecha del pago.";

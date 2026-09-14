@@ -64,45 +64,92 @@ export function hasProofFile(raw: FormDataEntryValue | null): boolean {
 
 /**
  * Sube el comprobante al bucket privado y devuelve el `storage_path`. Recibe el
- * admin client (service_role). Devuelve `{ error }` si falla (el caller decide el
- * rollback).
+ * admin client (service_role). Devuelve `{ error }` si falla. Un resultado
+ * incierto del registro posterior no autoriza borrar el objeto: podría estar
+ * vinculado a un reporte confirmado en DB antes de perderse la respuesta.
  */
 export async function uploadPaymentProof(
   admin: SupabaseClient,
-  args: { tenantId: string; invoiceId: string; reportId: string; file: File },
+  args: { tenantId: string; invoiceId: string; reportId: string; file: File; expectedPath?: string },
 ): Promise<{ path?: string; error?: string }> {
-  const ext = mimeToExt(args.file.type);
-  const path = `${args.tenantId}/${args.invoiceId}/${args.reportId}/${crypto.randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await args.file.arrayBuffer());
-  const { error } = await admin.storage.from(PROOF_BUCKET).upload(path, buffer, {
-    contentType: args.file.type,
-    cacheControl: "0", // evidencia: no cachear agresivo
-    upsert: false,
-  });
-  if (error) return { error: error.message };
-  return { path };
+  const unavailable = {
+    error: "No pudimos verificar el comprobante. Conservamos cualquier archivo recibido; reintenta con el mismo archivo. Código: PAGO-COMPROBANTE.",
+  };
+  if (![args.tenantId, args.invoiceId, args.reportId].every(
+    (id) => typeof id === "string" && id.length === 36 && CANONICAL_UUID.test(id),
+  )) {
+    return { error: "No pudimos validar el destino del comprobante. Código: PAGO-COMPROBANTE." };
+  }
+  const check = validateProofFile(args.file);
+  if (!check.ok) return { error: check.error };
+
+  try {
+    const bytes = await check.file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    // UUIDv8 derivado del contenido, sin usar el nombre local ni reemplazar
+    // evidencia. El consumidor debe conservar reportId en el mismo intento.
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)).slice(0, 16);
+    digest[6] = (digest[6] & 0x0f) | 0x80;
+    digest[8] = (digest[8] & 0x3f) | 0x80;
+    const hex = Buffer.from(digest).toString("hex");
+    const objectId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    const path = `${args.tenantId}/${args.invoiceId}/${args.reportId}/${objectId}.${mimeToExt(check.file.type)}`;
+    if (args.expectedPath !== undefined && args.expectedPath !== path) {
+      return { error: "Este intento debe conservar su comprobante original. Revisa el reporte antes de iniciar otro. Código: PAGO-COMPROBANTE." };
+    }
+    const bucket = admin.storage.from(PROOF_BUCKET);
+    try {
+      const { error } = await bucket.upload(path, buffer, {
+        contentType: check.file.type,
+        cacheControl: "0",
+        upsert: false,
+      });
+      if (!error) return { path };
+    } catch {
+      // Puede haberse guardado antes de perder respuesta. Sólo una lectura
+      // exacta permite recuperar ese resultado; no basta el código Duplicate.
+    }
+    const { data, error } = await bucket.download(path);
+    if (error || !data || data.size !== buffer.byteLength) return unavailable;
+    const existing = Buffer.from(await data.arrayBuffer());
+    return existing.equals(buffer) ? { path } : unavailable;
+  } catch {
+    return unavailable;
+  }
 }
 
-/** Borra un objeto del bucket (rollback si el insert del reporte falla). */
-export async function removePaymentProof(
-  admin: SupabaseClient,
-  path: string,
-): Promise<void> {
-  await admin.storage.from(PROOF_BUCKET).remove([path]);
-}
+type PaymentProofScope = { tenantId: string; invoiceId: string; reportId: string };
+
+const UUID_PART = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const CANONICAL_UUID = new RegExp(`^${UUID_PART}$`);
+const CANONICAL_PROOF_PATH = new RegExp(
+  `^${UUID_PART}/${UUID_PART}/${UUID_PART}/${UUID_PART}\\.(pdf|jpg|png|webp|heic|heif)$`,
+);
 
 /**
  * Firma una URL temporal para VER el comprobante (server-side, admin client). El
- * ownership ya lo garantizó la RLS de tabla por markbox/tenant antes de llamar acá.
+ * caller debe autorizar primero factura y reporte mediante la sesión. La RLS
+ * del reporte no valida su path: comprobar también su contexto antes de usar
+ * admin impide firmar referencias ajenas o históricas incoherentes.
  */
 export async function createProofSignedUrl(
   admin: SupabaseClient,
   path: string,
+  scope: PaymentProofScope,
   expiresInSeconds = 300,
 ): Promise<string | null> {
-  const { data, error } = await admin.storage
-    .from(PROOF_BUCKET)
-    .createSignedUrl(path, expiresInSeconds);
-  if (error || !data) return null;
-  return data.signedUrl;
+  if (!scope || !CANONICAL_PROOF_PATH.test(path)
+    || !path.startsWith(`${scope.tenantId}/${scope.invoiceId}/${scope.reportId}/`)
+    || !Number.isInteger(expiresInSeconds) || expiresInSeconds < 1 || expiresInSeconds > 300) {
+    return null;
+  }
+  try {
+    const { data, error } = await admin.storage
+      .from(PROOF_BUCKET)
+      .createSignedUrl(path, expiresInSeconds);
+    if (error || !data) return null;
+    return data.signedUrl;
+  } catch {
+    return null;
+  }
 }

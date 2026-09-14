@@ -27,6 +27,7 @@ import {
 import {
   mapPaymentReportRow,
   listMyInvoiceReports,
+  listInvoiceReports,
   countPendingReports,
   isAtPendingLimit,
 } from "../payment-report-queries";
@@ -38,6 +39,8 @@ function stub(opts: {
   markbox: string | null;
   rows?: Record<string, unknown>[];
   count?: number;
+  queryError?: boolean;
+  queryThrow?: boolean;
 }) {
   const eqCalls: [string, unknown][] = [];
   let touchedTable: string | null = null;
@@ -52,7 +55,10 @@ function stub(opts: {
     is: () => builder,
     // Las listas resuelven en `.order()`; el count en `.select({head:true})`
     // → devolvemos el thenable en ambos puntos.
-    order: () => Promise.resolve({ data: opts.rows ?? [], error: null }),
+    order: () => opts.queryThrow
+      ? Promise.reject(new Error("synthetic_private_transport_detail"))
+      : Promise.resolve({ data: opts.queryError ? null : opts.rows ?? [],
+        error: opts.queryError ? { code: "57014", message: "synthetic_private_db_detail" } : null }),
     then: undefined,
   });
   const supabase = {
@@ -71,6 +77,7 @@ function stub(opts: {
 // count usa un builder que resuelve directo (head:true) — stub aparte.
 function countStub(count: number) {
   const eqCalls: [string, unknown][] = [];
+  const isCalls: [string, unknown][] = [];
   const builder: Record<string, unknown> = {};
   Object.assign(builder, {
     select: () => builder,
@@ -78,12 +85,14 @@ function countStub(count: number) {
       eqCalls.push([col, val]);
       return builder;
     },
-    is: () => Promise.resolve({ count, error: null }),
+    is: (col: string, value: unknown) => { isCalls.push([col, value]); return builder; },
+    then: (resolve: (value: { count: number; error: null }) => unknown) =>
+      Promise.resolve({ count, error: null }).then(resolve),
   });
   const supabase = {
     from: () => builder,
   } as unknown as SupabaseClient;
-  return { supabase, eqCalls };
+  return { supabase, eqCalls, isCalls };
 }
 
 describe("validatePaymentReportInput", () => {
@@ -103,6 +112,18 @@ describe("validatePaymentReportInput", () => {
   it("acepta coma decimal en el monto", () => {
     const { input } = validatePaymentReportInput({ ...base, amount: "99,90" }, TODAY);
     expect(input?.amount).toBe(99.9);
+  });
+
+  it.each(["1.10", "0.29"])("acepta %s sin falso rechazo por coma flotante", (amount) => {
+    const result = validatePaymentReportInput({ ...base, amount }, TODAY);
+    expect(result.fieldErrors).toBeUndefined();
+    expect(result.input?.amount).toBe(Number(amount));
+  });
+
+  it("rechaza el año 0000 antes de transportar una fecha incompatible con PostgreSQL", () => {
+    const result = validatePaymentReportInput({ ...base, paidAt: "0000-01-01" }, TODAY);
+    expect(result.input).toBeUndefined();
+    expect(result.fieldErrors?.paidAt).toMatch(/\S/);
   });
 
   it("rechaza monto <= 0", () => {
@@ -179,17 +200,37 @@ describe("listMyInvoiceReports · aislamiento por markbox", () => {
     expect(eqCalls).toContainEqual(["client_markbox", "DTD-0007"]);
   });
 
-  it("sin markbox (principal no-cliente) → [] sin tocar la tabla", async () => {
+  it("sin markbox (principal no-cliente) → null sin tocar la tabla", async () => {
     const { supabase, touchedTable } = stub({ markbox: null });
     const res = await listMyInvoiceReports(supabase, "F-2026-0001");
-    expect(res).toEqual([]);
+    expect(res).toBeNull();
     expect(touchedTable()).toBeNull();
+  });
+});
+
+describe.each([
+  { label: "Portal", list: (client: SupabaseClient) => listMyInvoiceReports(client, "F-2026-0001") },
+  { label: "Studio", list: (client: SupabaseClient) => listInvoiceReports(client, { tenantId: "t1", invoiceId: "inv1" }) },
+])("listas de reportes · $label", ({ list }) => {
+  it("devuelve null ante error DB, no una lista vacía válida", async () => {
+    const { supabase } = stub({ markbox: "DTD-0007", queryError: true });
+    await expect(list(supabase)).resolves.toBeNull();
+  });
+
+  it("devuelve null ante rechazo de transporte, sin propagar detalles", async () => {
+    const { supabase } = stub({ markbox: "DTD-0007", queryThrow: true });
+    await expect(list(supabase)).resolves.toBeNull();
+  });
+
+  it("conserva [] para una lectura exitosa sin reportes", async () => {
+    const { supabase } = stub({ markbox: "DTD-0007", rows: [] });
+    await expect(list(supabase)).resolves.toEqual([]);
   });
 });
 
 describe("countPendingReports", () => {
   it("filtra por tenant + invoice + status reportado", async () => {
-    const { supabase, eqCalls } = countStub(3);
+    const { supabase, eqCalls, isCalls } = countStub(3);
     const n = await countPendingReports(supabase, {
       tenantId: "t1",
       invoiceId: "inv1",
@@ -198,6 +239,8 @@ describe("countPendingReports", () => {
     expect(eqCalls).toContainEqual(["tenant_id", "t1"]);
     expect(eqCalls).toContainEqual(["invoice_id", "inv1"]);
     expect(eqCalls).toContainEqual(["status", "reportado"]);
+    expect(isCalls).toContainEqual(["cancelled_at", null]);
+    expect(isCalls).toContainEqual(["deleted_at", null]);
   });
 });
 
@@ -217,12 +260,20 @@ describe("mapPaymentReportRow", () => {
       note: null,
       confirmed_by: null,
       confirmed_at: null,
+      cancelled_at: "2026-07-01T12:00:00Z",
+      cancelled_by: "44000000-0000-4000-8000-000000000004",
+      resolution_reason: "Motivo preservado separado de la nota",
       created_at: "2026-07-01T00:00:00Z",
     });
     expect(r.amount).toBe(150.5);
     expect(r.method).toBe("zelle");
     expect(r.status).toBe("reportado");
     expect(r.proofPath).toBe("t/inv/r/x.pdf");
+    expect(r).toMatchObject({
+      cancelledAt: "2026-07-01T12:00:00Z",
+      cancelledBy: "44000000-0000-4000-8000-000000000004",
+      resolutionReason: "Motivo preservado separado de la nota",
+    });
   });
 });
 
