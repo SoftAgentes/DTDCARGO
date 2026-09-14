@@ -156,6 +156,14 @@ Aceptadas las cuatro deudas, incluida la desviación con evidencia en `skills-lo
 - **Validación proporcional:** `node scripts/build-docs-index.mjs --check`, `corepack pnpm sdd:check` y `git diff --check` PASARON; `pnpm verify` NO EJECUTADO en esta ronda: desde `2ac1b7f2` solo cambió documentación, demostrado con `git diff --stat 2ac1b7f2..HEAD` (spec, índice y handoff), citado en la respuesta al Director.
 - Claim reclamado para la ronda, un único push normal de la rama a sí misma, PR #111 sigue en borrador, claim liberado al terminar.
 
+## RONDA 3 — al día con main tras la PR #104 (2026-09-13, noche)
+
+`origin/main` avanzó a `362046658d3bcfd0ccc0581a7f0bed5d60065967` (PR #104, L14: código de producto del Portal, tres specs, baseline con las esperas de 0422 y 0423, índice regenerado) y GitHub marcaba la #111 CONFLICTING solo por `docs/specs/README.md`.
+
+- Claim reclamado sobre árbol limpio y head `f91004fa`. Merge `b204f3f1` de `origin/main` `36204665` en la rama, sin rebase ni force, con el driver semántico de main forzado por `-c merge.dtd-generated-records.driver` (idéntico al de la rama): 37 archivos entrantes, sin conflicto. `docs/specs/README.md` regenerado con `node scripts/build-docs-index.mjs`: hash `e7f8b9cf` antes y después, ni un byte cambió (452 specs).
+- Validación proporcional sobre `b204f3f1`, sin repetir el verify completo (el código de la rama no cambia y lo entrante ya está verificado en main): `corepack pnpm harness:test` PASÓ (14 archivos, 98/98); `node scripts/check-pending-migration-symbols.mjs` PASÓ (`0 ROJO · 0 AMARILLO`; pendientes 0414, 0415, 0422 y 0423, cero declaraciones); `node scripts/build-docs-index.mjs --check` PASÓ (452 specs); `corepack pnpm sdd:check` PASÓ; `corepack pnpm governance:check` PASÓ (28 políticas); `corepack pnpm test` PASÓ (555 archivos, 7226 pruebas, incluidas las nuevas de L14); `git diff --check` PASÓ. Log `ronda3-harness-y-test.log` en la carpeta del scratchpad.
+- Commit que contiene esta nota, un único push normal, PR #111 en borrador, claim liberado al terminar.
+
 ## PR / BRANCH
 
 - Rama: `codex/harness-gate-simbolos-por-relacion`, base `main`, worktree indicado arriba. Push explícito de la rama a sí misma tras el commit de este documento.
