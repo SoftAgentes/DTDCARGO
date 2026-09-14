@@ -142,8 +142,8 @@ y quedan fuera los ítems con gate humano:
 
 | PR | Head revisado | Merge commit | Hora (UTC) | Vercel en el merge |
 |---|---|---|---|---|
-| #113 | `bc40762581de19cc518a89242237635877eda8cc` | `832c0370a2369b9a85a92b4236836977e4871183` | 2026-09-14T06:58:26Z | success, vía estado de GitHub; ID de deployment no verificado |
-| #116 | `a10efa93ac88ed0970b95c55098108818e339813` (puesta al día de `831799a3`) | `7cd50f4a451e10117f94f857cf4a7176b4a007a4` | 2026-09-14T07:20:02Z | se registra al confirmarse |
+| #113 | `bc40762581de19cc518a89242237635877eda8cc` | `832c0370a2369b9a85a92b4236836977e4871183` | 2026-09-14T06:58:26Z | success, vía estado de GitHub; ID de deployment no verificado. «Calidad continua» success sobre el merge |
+| #116 | `a10efa93ac88ed0970b95c55098108818e339813` (puesta al día de `831799a3`) | `7cd50f4a451e10117f94f857cf4a7176b4a007a4` | 2026-09-14T07:20:02Z | success, vía estado de GitHub; ID de deployment no verificado. «Calidad continua» success sobre el merge |
 
 - #115: puesta al día con `main` `832c0370` por la API de GitHub (`update-branch` con
   `expected_head_sha` `d6006f7b`; head nuevo `d224613d`). **Retenida**: vuelve a W2 en ronda 4.
