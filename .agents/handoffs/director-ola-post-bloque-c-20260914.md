@@ -132,11 +132,13 @@ hallazgos menores de L07 sin encargo (ingresos por asesor que tragan el error, c
 - PASÓ: `list_migrations` del proyecto de producción, solo metadatos; ninguna fila de negocio leída.
 - PASÓ: guard y claim de este worktree.
 - NO EJECUTADO: `corepack pnpm verify` sobre esta rama, que solo contiene documentación de dirección.
-- NO VERIFICADO: ID de deployment en Vercel; resultados de los Workers hasta que cierren.
+- PASÓ: verificación independiente de la PR #113 (blobs idénticos y `--find-object` sobre `main`, subconjunto de la spec 0235, textos desfasados en `main`).
+- NO VERIFICADO: ID de deployment en Vercel; resultados de W1, W2 y W3 hasta que cierren.
 
 ## COMMITS
 
-- Commit que contiene este documento; el SHA final se registra aquí al actualizar.
+- `fcab70f0` — handoff inicial de la ola (asignaciones, reservas, matriz, anexo de ramas).
+- Commit que contiene esta actualización (revisión de la PR #113 y método de blobs); SHA en la PR cuando se publique.
 
 ## PR / BRANCH
 
@@ -160,6 +162,52 @@ publicación pendiente de permiso.
 
 Sesión Director activa con claim sobre este worktree. Siguiente acción: revisar los cuatro cierres
 a medida que lleguen y preparar el bloque de autorizaciones para Sam.
+
+## Revisión de PRs de esta ola
+
+### W4 · PR #113 · `codex/analisis-audit-hardening-0235` · SHA revisado `bc40762581de19cc518a89242237635877eda8cc`
+
+- Alcance: dos archivos, solo documentación (`docs/audits/analisis-audit-hardening-0235.md`, 137 líneas,
+  y el handoff del Worker, 74 líneas). Sin producto, sin SQL, sin cambio de estado de la spec 0235.
+- Veredicto del Worker: 42 archivos de `origin/codex/audit-hardening-20260801` (head `ec7adeb9`):
+  17 IDÉNTICOS por blob, 25 SUPERADOS, 0 VIGENTES, 0 EN CONFLICTO. La rama entró a `main` por otra
+  vía (hotfix `1955474e` y carril Gobernanza 9, merge `76b242bd`); `git cherry` no lo ve porque los
+  patch-id difieren.
+- Verificación independiente del Director sobre `b07ad98b`: 17 blobs idénticos (coincide); de los 25
+  distintos, 20 blobs exactos de la rama aparecen en la historia de `main` con `git log
+  --find-object` (re-aterrizajes del 2026-08-01 al 2026-09-11); los 5 restantes son documentos
+  (`.env.example`, spec 0235, `mapa-de-borrado.md`, `registro-tratamiento.md`, handoff histórico) y
+  la tabla los justifica línea a línea. Comprobado además que la spec 0235 de la rama es subconjunto
+  estricto de la de `main` (0 líneas quitadas, 10 agregadas) y que `main` todavía dice en
+  `mapa-de-borrado.md` §8 que 0326–0329 «siguen fuera de Producción», contra el ledger
+  (`20260803091250` a `20260803091410`): el hallazgo documental C1 es real.
+- Handoff del Worker con las ocho secciones; claim `worker-w4-analisis-0235-20260914` liberado;
+  `finish` informa árbol limpio y sin claim. `docs:check` y `sdd:check` PASARON según el Worker;
+  `verify` NO EJECUTADO por ser documental, aceptado.
+- Checks de la PR al revisar: «Calidad local sin secretos» en curso, Vercel preview SUCCESS.
+- **Veredicto Director: APROBADA para integración**, sujeta a autorización de merge de Sam y al check
+  verde sobre `bc407625`. Sin efecto productivo de código; un merge a `main` redespliega el mismo
+  código (Vercel no excluye `.agents/`), efecto a cubrir en la autorización.
+- Corrección del dictamen del 2026-09-12 §3: `codex/audit-hardening-20260801` pasa de CONSERVAR a
+  **descarte recomendado** (C2), pendiente de autorización; único blob sin equivalente, el handoff
+  histórico `6cf1f32a`, preservable con un tag si Sam lo quiere.
+- Lotes propuestos por W4 que quedan como decisiones de Sam: C1 cierre documental de SDD-0235
+  (estado de la spec y tres textos desfasados); C2 borrado de la rama remota; R1 retención de
+  `public_track_log` (política de retención primero; spec nueva).
+
+### Método de blobs aplicado a las demás ramas del dictamen (Director, 2026-09-14)
+
+`git diff --name-only main...rama`; por archivo, blob idéntico en `main`, blob presente en la historia
+de `main` (`--find-object`) o sin equivalente. Mide contenido, no commits.
+
+| Rama | Archivos | Idénticos | Blob en historia de main | Sin equivalente | Lectura |
+|---|---|---|---|---|---|
+| `codex/governance-final-100` | 101 | 71 | 27 | 3 (`docs/governance/README.md`, spec 0226, índice de specs) | producto íntegro en `main`; revisar solo dos documentos antes de descartar |
+| `codex/portal-colors-reception-integration-20260906` | 101 | 76 | 19 | 6 (su handoff, specs 0441 y 0443 con allowlist y qa, índice) | producto íntegro en `main`; revisar si las notas de QA de 0441/0443 aportan algo antes de descartar |
+| `feat/no-olvidar` | 52 | 0 | 0 | 52 | trabajo propio real (SDD-0025 `approved`); la migración 0017 sí está aplicada en producción desde el 2026-09-10; rescate por lotes es decisión de Sam |
+| `feat/sdd-0286-api-alcance-por-modulo` | 10 | 1 | 0 | 9 | versiones más viejas de archivos que `main` ya reescribió (SDD-0286 `done`); descarte recomendado tras comparación línea a línea |
+| `claude/jolly-proskuriakova-3da0aa` | 24 | 0 | 2 | 22 | barrido DDP real; decisión de marca |
+| `preview/portal-nueva-compra` | 1 | 0 | 0 | 1 | SOLO-PREVIEW, no integrable por diseño |
 
 ## Anexo · ramas remotas ancestro de `main` (79)
 
