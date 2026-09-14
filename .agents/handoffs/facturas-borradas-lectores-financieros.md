@@ -80,12 +80,13 @@ citar cada línea.
 - `fed55e04` — `fix(studio)`: los siete lectores excluyen facturas borradas + tests por lector (criterios 1-3 y 5).
 - `5787a62f` — `fix(studio)`: `softDeleteInvoice` sólo acepta borradores + su test + inventario SDD-0357 (criterio 4 y 5).
 - `b5f05179` — `docs(sdd)`: spec 0465 e índice.
-- Cierre: commit que contiene este documento (hash final en la PR).
+- `1e10d27b` — `docs(handoff)`: cierre (validación, pendientes, fuera de alcance); es el head con el que se abrió la PR #116.
+- Cierre final: commit que contiene este documento con la URL de la PR (hash final en la PR).
 
 ## PR / BRANCH
 
 - Rama `codex/facturas-borradas-lectores-financieros` → `origin/codex/facturas-borradas-lectores-financieros`, base `main` (`b07ad98b`), worktree arriba.
-- PR: pendiente de creación al momento de este commit (se abre en borrador tras el push; la URL y el SHA revisado se registran en el commit de cierre).
+- PR: [#116](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/116), en borrador, base `main`. Abierta con head `1e10d27b`; el head a revisar es el commit que contiene esta línea (el último de la rama), que sólo cambia este handoff.
 
 ## PENDIENTES DE ESTA TAREA
 
