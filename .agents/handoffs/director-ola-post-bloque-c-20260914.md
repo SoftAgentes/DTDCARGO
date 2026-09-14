@@ -1,7 +1,7 @@
 # director-ola-post-bloque-c — Ola de cuatro Workers tras el cierre del bloque C
 
 - Fecha: 2026-09-14.
-- Owner / sesión escritora: `director-ola-post-bloque-c-20260914` (Claude Code, Fable 5.1), sesión Director.
+- Owner / sesión escritora: `director-ola-post-bloque-c-20260914` (Claude Code; Fable 5.1 hasta la revisión de W1, Opus 5 desde la ejecución nocturna), sesión Director.
 - Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 - Worktree de coordinación: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/director-ola-post-bloque-c-20260914`.
 - Rama: `codex/director-ola-post-bloque-c-20260914`, creada desde `origin/main` `b07ad98bda4da35086d8207640321a7995fc8f24`.
@@ -12,6 +12,10 @@
   publicar cada rama propia y abrir su PR en borrador. **Sin merge, sin despliegue, sin aplicar
   migraciones, sin smokes, sin limpieza, sin borrar ramas.** Esta rama de coordinación todavía no
   tiene permiso de publicación; queda local.
+- Autorización en bloque (Sam, 2026-09-14, textos literales, después del mensaje del Director que
+  enumeraba merges, migraciones, limpieza y publicación): «CONTIA AVANZA» y «hagas todas las tareas
+  continuas sin detenerte. Me voy a ir a dormir, pero tú sigue trabajando en todos los pendientes,
+  Director.» Alcance y exclusiones en la sección «Ejecución nocturna».
 
 ## OBJETIVO ORIGINAL
 
@@ -116,6 +120,101 @@ E2E hospedado con secretos en CI o aceptar SDD-0440 sin ese criterio; ocho entra
 hallazgos menores de L07 sin encargo (ingresos por asesor que tragan el error, consultas por orden en
 Órdenes de venta con SDD-0322 sin código, `getReceivableHistory` sin gate de módulo, mock débil en
 `route-auth.test.ts`).
+
+## Ejecución nocturna — autorización en bloque del 2026-09-14
+
+**Interpretación registrada.** Los dos mensajes de Sam llegan justo después del mensaje del Director que
+enumeraba, en orden y por nombre, lo que necesitaba autorización. Se tratan como autorización en bloque de
+ESA lista, con el mismo criterio que la del 2026-09-13 (`.agents/handoffs/0451-aplicacion-prod-20260913.md`),
+y quedan fuera los ítems con gate humano:
+
+| Ítem enumerado | Tratamiento |
+|---|---|
+| 1 · Merges #113 → #115 → #116, con despliegue por Vercel | autorizado; cada merge sobre head revisado, check requerido verde y rama al día (el ruleset exige `strict`) |
+| 1 · #114 | FUERA: depende del smoke de L14 y de 0422 y 0423 |
+| 2 · 0415, 0422 y 0423, 0414 | FUERA: gate humano (smokes con cuentas reales) |
+| 2 · 0453 y sus dos lecturas previas sin filas | lecturas hechas; aplicación NO ejecutada por los hallazgos de abajo |
+| 3 · Limpieza nombrada | ejecutada solo donde hay evidencia de cero pérdida; el resto se conserva por la regla del runbook |
+| 4 · Publicación de esta rama con PR en borrador | autorizada; al final de la noche, con todo escrito antes del push |
+| 5 · Decisiones de dirección | FUERA: son de Sam |
+
+### Merges
+
+| PR | Head revisado | Merge commit | Hora (UTC) | Vercel en el merge |
+|---|---|---|---|---|
+| #113 | `bc40762581de19cc518a89242237635877eda8cc` | `832c0370a2369b9a85a92b4236836977e4871183` | 2026-09-14T06:58:26Z | success, vía estado de GitHub; ID de deployment no verificado |
+
+- #115: puesta al día con `main` `832c0370` por la API de GitHub (`update-branch` con
+  `expected_head_sha` `d6006f7b`; head nuevo `d224613d`). **Retenida**: vuelve a W2 en ronda 4.
+- #116: puesta al día igual (`expected_head_sha` `831799a3`; head nuevo `a10efa93`). #113 no toca el
+  índice de specs, así que no hizo falta regenerarlo. Merge cuando el check requerido quede verde.
+
+### 0453 — lecturas previas en producción (autorizadas, sin filas) y decisión
+
+Proyecto `xpfuzqombmjmxvprjgmi`, 2026-09-14, solo catálogo y agregados.
+
+- `get_user_tenant_id()`: cuerpo normalizado igual al de 0200; SECURITY DEFINER, estable, owner postgres,
+  `proconfig` `{search_path=public}`, ACL `{postgres=X/postgres,authenticated=X/postgres}`.
+- `get_portal_client_markbox()`: cuerpo normalizado igual al de 0080; mismo perfil, ACL
+  `{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}`.
+- `client_delivery_addresses_validate_client()`: **el cuerpo NO es el del archivo 0198**, le falta el comentario
+  interno de tres líneas. md5(prosrc) `7db6f812a549df579f2d7d0d6cd72298`; volátil; ACL
+  `{postgres=X/postgres,service_role=X/postgres}`. El trigger `client_delivery_addresses_validate_trg` está vivo
+  (tgtype 23, habilitado).
+- Conteos: 0 usuarios con más de una membresía activa; **1 vínculo `client_users` activo con cliente borrado**;
+  0 vínculos activos con tenant distinto.
+
+**Decisión: 0453 no se aplica esta noche.** Su preflight compara el cuerpo normalizado con la forma de 0198 del
+repo y abortaría sin cambiar nada. Además, el vínculo con cliente borrado cambia el impacto con que se pidió la
+autorización («hoy no puede pasar»): ese principal pasaría a recibir NULL de la helper. La app ya lo rechaza
+(`lib/portal/portal-queries.ts:93` exige cliente vivo y `app/portal/(app)/layout.tsx:40` lo manda a `/entrar`),
+así que no pierde nada visible, pero la autorización tiene que darse con ese dato a la vista. Ronda 4 pedida a W2:
+aceptar en el preflight la forma Cloud de 0198 (precedente de 0423), probarla en el contrato y registrar la deriva
+y los conteos en la spec y en la espera. La foto de advisors de seguridad tomada antes quedó fuera de Git y no se
+usó: se repite antes de aplicar.
+
+### Limpieza
+
+| Rama local borrada con `-D` | SHA | Evidencia de cero pérdida |
+|---|---|---|
+| `codex/c-integracion-ola1` | `67d9ad58d3eaf736396ea3baa3b7a48d2d759d4a` | 61 archivos: 37 idénticos y 21 con su blob en la historia de `main`; solo difieren tres registros generados (índice de specs, baseline y declaraciones de símbolos) |
+| `codex/pr33-schema-validation-20260907` | `a427c755c0b83ee50df47ec38f21865b7a2b1a0f` | 39 archivos, todos idénticos o con su blob en la historia de `main` |
+| `codex/profile-integration-validation-20260906` | `50bb5f1b7f5670ddfb6c1ab17496004801983b85` | 25 archivos; solo difiere el índice de specs, que es generado |
+| `codex/remove-agentation-20260910` | `0e49cd42ac2ccc4db0b82a7c7c26a25f38ff8763` | contenido propio respaldado en GitHub por `refs/pull/55/head` (PR #55 cerrada) |
+| `codex/sdd-reserve-0444-engineering-director-worker` | `b7874e9623646097e88625516c1dd8519f175721` | spec 0444 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0451-d1-bucle-recarga-ruta-movil-erp` | `29e2d614c9b85fd6971fc9c8ccdd6079bd1a9c43` | spec 0451 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0452-sanitizer-formato-actual-de-claves` | `20ac7f6d52e17ed772c83d9e811202ca23145c83` | spec 0452 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0456-aliado-tenant-coherence` | `efde200193597f2f5e3711247db275b79d6fccad` | spec 0456 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0457-harness-spawn-enobufs` | `6eb27f6731e172e38ea78b6bf073d4b30dcb2837` | spec 0457 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0458-harness-finish-claude-worktrees` | `ce4cf4526c8bde8f90dafbc926e4eb6e18fc21c2` | spec 0458 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0459-principal-sin-inferir` | `5c65270ab655fdfcfb044d442409fed8b167c941` | spec 0459 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0460-harness-worktrees-bare-locked` | `e2c5f43d7a2fde3bb8ee9aebcc04b93aba3a52a8` | spec 0460 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0461-aliados-cadena-tenant` | `3818905bdae1efb04cc05c81bdcbadf361b3cd30` | spec 0461 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0462-portal-facturas-tenant` | `cf03dad73cc57151d2aff9a01ad164b8b15c7e65` | spec 0462 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0463-portal-facturas-rls` | `63fadfc918b480a0e835ea150cc2428f6a69a25a` | spec 0463 en `main`; el stub es una plantilla superada |
+| `codex/sdd-reserve-0464-harness-gate-simbolos-por-relacion` | `0c523c21f0e5091ea653dd7258f64741f3aa9042` | spec 0464 en `main`; el stub es una plantilla superada |
+
+- **Remotas:** 78 ramas borradas con `git push origin --delete`: las del anexo de ramas ancestro salvo
+  `feat/sdd-0255-aliados-white-label`. Re-verificación inmediata antes de borrar, rama por rama: PR MERGED con
+  ese nombre, head ancestro de `origin/main`, sin PR abierta y sin worktree. Excluidas: 0. SHAs en el anexo
+  de recuperación.
+- **Conservadas y por qué:**
+  - `feat/sdd-0255-aliados-white-label` (remota): ancestro de `main`, pero sin PR; el runbook exige PR MERGED.
+  - `codex/pr28-e2e-harness-validation-20260906` (local): su handoff y el índice no tienen equivalente en
+    `main` ni ref de PR que los respalde.
+  - `codex/portal-colors-reception-integration-20260906` (local y remota), `codex/governance-final-100`,
+    `codex/audit-hardening-20260801` y `feat/sdd-0286-api-alcance-por-modulo` (remotas): tienen documentos o
+    archivos sin equivalente en `main` y sin otro respaldo remoto. Descartarlas es decisión de Sam.
+  - `stash@{0}` del checkout principal: su `AGENTS.md` no existe en la historia de `main`.
+  - `DTD-worktrees/_pr-bodies-backup/pr80-body-antes-ronda2.md`: fuera del repo y ajeno a esta sesión, sin
+    evidencia de equivalencia.
+  - Reservas 0465 y 0466 y los cinco worktrees de esta ola: sus PRs todavía no están todas integradas.
+
+### Guion de smokes
+
+`.agents/handoffs/director-ola-post-bloque-c-20260914-smokes.md`: bloques A (Cobranzas → 0415), B (reportes de
+pago → 0422 y 0423, y después #114), C (roles → 0414), D (verificación de #116) y E (estado de 0453), con el
+mensaje modelo para autorizar por nombre.
 
 ## COMPLETADO
 
@@ -437,3 +536,88 @@ de `main` (`--find-object`) o sin equivalente. Mide contenido, no commits.
 | `codex/verify-e2e-watchdog` | #89 merged 2026-09-11 | sí |
 | `feat/sdd-0255-aliados-white-label` | sin PR (ancestro igual) | sí |
 | `portalcliente` | #23 merged 2026-09-10 | sí |
+
+## Anexo de recuperación · SHAs de las 78 ramas remotas borradas el 2026-09-14
+
+Todas son ancestros de `main`: se recrean con `git push origin <sha>:refs/heads/<rama>`.
+
+```text
+f2c470914dc882f1b36e20f02e63506aa178aa21  claude/quizzical-dijkstra-809aae
+902620f84f609241016cdc52ad4362f6f3e5067b  claude/stoic-thompson-6ef73b
+0ac9d8a3c6b63447e9703551bb789850e0d7322e  claude/youthful-driscoll-120aae
+23618a6ad29192b0b3b980990c777cf8f459b0d8  codex/0017-aplicada-prod
+9ae7f34c1fe2c50f470e0b9c1d15d30919364c9c  codex/0445-functional-remediation
+f24d09d35c5c5282b4a344ba057449ec1338db7d  codex/0447-aplicada-prod
+8aa025943faaf32583975d0adddf5794fa0e8f48  codex/0448-baseline-post-aplicacion
+f0677e8b794aed598b3a76973ac855f2da922410  codex/0448-replay-0223-history
+870858b8707ae656e85f1e471408b74ca93f5a81  codex/0450-codigo-contra-migraciones-eximidas
+f6d72046d84d34033c03c2996ef99cd78578dcdd  codex/a5-1-direccion-bodega-cn-visible
+e191386632279b616d5031fb2e9da74d52ea265e  codex/a5-2-recepcion-movil-errores
+661726520b39b82b77303c836d9ca75f3a76dadd  codex/a5-4-referencias-colgantes-0435
+7ea3ecf2146d89fb06a903d98229718bc23f65c2  codex/a53-hallazgos-ingenieria
+50fc1242db78844fc0b72f28e4d34c18dcff9642  codex/aliado-tenant-coherence
+a16282bafcc562cd6c1f2b72c1a15d1ae5adfe9d  codex/analytics-privacy
+34471f1ec19faf04ea3de0cec582b50e12deba77  codex/brand-semantic-colors
+203f06c877519cf522ae2b84223fc957481e44b2  codex/c-0409-aplicada-prod
+82e3e8ce52a4d87f70963d31238d23d7a6599a24  codex/c-0418-aplicada-prod
+01a3efda84d80244b99ae5709590ab1add078a35  codex/c-analisis-bloque-c
+a6910e38efa6ae6a3a805a857fa6a077378ebc22  codex/c-fix-pending-symbols-utf16
+684f3e3d1912003476798d9c172d5916f3acc3d1  codex/c-l01-portal-marca
+a5435b1da8d31e540310ac0a5d28d75b4a921746  codex/c-l02-portal-visibilidad
+3b4c5ea1421bc39d1e2d8bf6434a441225eaae4b  codex/c-l03-portal-asesor
+61fbcc30ef859d6f533e9e358b123c574fbaba5b  codex/c-l04-portal-referidos
+f8af05666687404b3e43ac6b5c2a76c99219df79  codex/c-l05-portal-perfil-privado
+6602b9baca1ac923a51ee39d71807453027aa084  codex/c-l06-portal-documentos
+d2cf1cc298a07fa65071f0d62b950a7b00bd6c82  codex/c-l08-mailing-rbac
+f2ddae2086fca0a3cc10027bdb57d6628227426d  codex/c-l09-bank-reconciliation-rbac
+fb093040e87ed96b6128ba020e81fb6ebd49adb1  codex/c-l11-portal-prealertas-servicios
+fd27810fc864287c5b28198fa0e8fc68be80dc66  codex/c-l12-portal-academia-tenant
+b67f54f4e29c838d44393295bed1045012fc7ecf  codex/c-l13-portal-reclamos
+0ac82dd91ff5386bd2c184a38aa16d76d9d11a05  codex/c-l15-portal-club
+7e1077adc3541b62325aef03033b576e981800c9  codex/c-l16-portal-direcciones
+2fadc0df62d558a5cf1b7cd30fe1a6f5456e222c  codex/c-l17-verificar-throttle
+32087718a490a97b6b2b2faca4ac1cb854943d04  codex/c-l18-portal-principal
+38c27056a464e28743fc2cd2abe76167ed4f2e54  codex/c-l19-portal-mensajes
+bbf328d2a8ba8f1580fe309f33e9084c635187aa  codex/c-l20-portal-cajas-bodega
+3c915cd5c08a9be51478b41c12e5dc774e4bc427  codex/c-l21-portal-realtime-mensajes
+79298160fb8dcd9c8a141fac5ce5e704aa7b2b1d  codex/c-l22-portal-addons
+37c5c00b82ea1d723713459f505c713d3394ad63  codex/c-nota-specs-importadas
+d0ba937ee605e4092312f6ce368e058d7260ab43  codex/c-registro-0425-0427
+75644395519e26894d88f8a6817df3174b2c1dde  codex/c-registro-lote-20260911
+db7815bf998968630aa0584df1881bf774cf24cf  codex/c2-bloque-d-document-entity-rbac
+c615227a79df0dc87de4a409152a518376c73944  codex/c2-prerequisito-0416-portal-shipments
+9d504468604987c960f0b7e695a1b9ab91ff6295  codex/cambios-portales
+2c5afe79ebd8f176179a8f68a31bd4932a81ed7e  codex/ci-quality-extract-20260905
+b985250487bd31f3cffca8e02792f24a39a63eb7  codex/d1-bucle-modulos-m-erp
+d8101c8acf7bf7c3df27bb563a27fd14c9eb2244  codex/d1-d3-evidencia-arnes
+cd10e6f673e5bef090d2180ceec42b7d5203cece  codex/d2-webkit-auth-cors
+c4f440a40ace645f28213b972ae253a84e301b84  codex/d4-hidratacion-diagnostico
+6485df4db148e0c047b065f40bb9c91044a37a26  codex/declarar-0447-pendiente
+4de236f30f771aa6f32a6c9f7712e3e06c1835fb  codex/deudas-cola-20260910
+0db0c9581caa175e549f1c89ef0ccef8dce9a8fe  codex/e1-archivos-generados-serializan
+f01b3f1d6ff9a799d598dc820ac536fef6370a71  codex/e2e-harness-general-20260905
+84ae8f3032e7b90f1cbe5c84466c92cd9edbb48a  codex/e3-gate-no-pude-comprobar
+2c01fbdf98168b6231c6348b30d7b80040c7a569  codex/engineering-director-worker
+b031a527e3f3f443c77f5ff451ca235a7a841e31  codex/fix-choque-0435-specs
+4cdeb07b1c991170871be8101479a3c24e87eeb4  codex/handoff-0457-integrada
+f2aa85b96636de1676ee7db27819b62d4f47a41a  codex/mailing-test-template-admin-guard
+e44338dfed9c1f09e78a79c1a94595d9c5f54992  codex/medicion-tokens-a53-a56
+0a4b73a8408395e39d0bfc8eeaf1e275b995d9da  codex/merge-driver-baseline-removal
+7769e4b469e04eb075e2f133db902f6f7f2f8bd4  codex/merge-driver-symbol-declarations
+3df095ea759ff7d165fa119054f5d62db787200e  codex/pending-symbols-do-blocks
+49bce19abb4a07136d846e7afbae2aed7fcac35c  codex/portal-claridad-botones-mensajes
+c1a3a1f65d06c8a25b9f41819b4cb96cbe2c27df  codex/portal-profile-privacy-remediation
+384218c2a95d8f07f5b839b73f2a48c9f1b5c753  codex/pr21-bloque-a-specs-0316-0400
+391010b2d50e3419a82b7fb5a6f9a50e0186f7c3  codex/pr28-transport-v3-20260907
+8643a903b62340acbee5cb15eea89c43c5ff7faf  codex/principal-sin-inferir
+01f07e0b76b61a86b57c803e038441c262bec120  codex/purge-public-verify-throttle
+5ee520ad5858adaa380d871d1cfdd8602c98886c  codex/push-endpoint-hardening-20260904
+79b52bc3b3d9b65af5e891f2ed22e2d01460cadd  codex/recover-applied-migrations-0399-0445
+7586c8a9e81aebb5e725763291c619fd2324d307  codex/rescate-dtd-0441-proveedor-20260910
+189f498650d15fbcad9b2c9b59d1fb432b01302d  codex/revertir-recepcion-cn
+1acf55f727be1e1de2676c5d11dc279c2b6c1e9a  codex/sanitizer-formato-actual-de-claves
+7259d24dcda278432028e31f991cbc292f969d6d  codex/sdd0380-publication-review-20260907
+cf2342697266e71d329ebbb516ba7ce7a8e47fde  codex/skills-agentation-retirar
+db9daa46ccbb3b3f0fcf899836259c0b8112e308  codex/verify-e2e-watchdog
+1cf2819c4e3bd690e0e564fa177461baa7c1f5d3  portalcliente
+```
