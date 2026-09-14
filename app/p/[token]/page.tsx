@@ -11,8 +11,11 @@ import { ProviderShareClient } from "./ProviderShareClient";
 export const runtime = "nodejs";
 
 // Links privados de compartir → fuera del índice.
+// SDD-0468 · Esta pestaña la ve el PROVEEDOR, no el cliente: chino primero.
+// («Para tu proveedor» le hablaba al cliente desde la pantalla del proveedor.)
+// Mismo título que el H1 de ProviderShareClient: «给供应商的资料».
 export const metadata: Metadata = {
-  title: "Para tu proveedor · DTD Cargo",
+  title: "给供应商的资料 · Información para el proveedor · DTD Cargo",
   robots: { index: false, follow: false },
 };
 
