@@ -4,9 +4,11 @@
  * Funciones puras que reciben un SupabaseClient. RLS filtra por tenant_id.
  *
  * La cola de CxC (`receivablesQueue`) se DERIVA de las facturas con saldo
- * (no es una tabla nueva): facturas con `total_amount - paid_amount > 0` y
- * status ≠ anulada, enriquecidas con aging (días vencido) + stage derivado a
- * partir de las gestiones (`collection_activities`).
+ * (no es una tabla nueva): facturas con `total_amount - paid_amount > 0`,
+ * status ≠ anulada y sin `deleted_at` (SDD-0465), enriquecidas con aging
+ * (días vencido) + stage derivado a partir de las gestiones
+ * (`collection_activities`). Lo que no entra a la cola no se cobra ni recibe
+ * recordatorio (SDD-0306): el filtro de borradas decide a quién se le escribe.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -496,12 +498,18 @@ export async function receivablesQueue(
   // Paginado: es la cola de COBRANZA. Una factura vencida que no aparece no
   // se cobra — y la lista se ordena por vencimiento, así que lo que se pierde
   // por el tope es justo la cola más nueva.
+  //
+  // Sin borradas (SDD-0465): la RLS ya no las oculta (0230) y esta cola
+  // alimenta la pantalla, el export y los recordatorios por correo. Una
+  // factura eliminada que entrara acá se cobraría y se le escribiría al
+  // cliente por una deuda que el Studio ya no muestra.
   const { rows: invRows, complete: invOk } = await fetchAllPaged<
     Record<string, unknown>
   >((d, h) =>
     supabase
       .from("invoices")
       .select(INVOICE_COLUMNS)
+      .is("deleted_at", null)
       .neq("status", "anulada")
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("id", { ascending: true })

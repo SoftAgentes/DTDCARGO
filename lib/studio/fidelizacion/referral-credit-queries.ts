@@ -103,7 +103,9 @@ export function isPurchaseAfterCredit(
 /**
  * Facturas del REFERIDOR (por MARKBOX) a las que se puede aplicar un crédito de
  * `minTotalUsd`. Reglas:
- *  - factura billable (ver CREDIT_APPLICABLE_INVOICE_STATUSES).
+ *  - factura billable (ver CREDIT_APPLICABLE_INVOICE_STATUSES) y NO borrada
+ *    (`deleted_at`, SDD-0465): un crédito aplicado a una factura eliminada
+ *    bajaría una CxC que ningún lector muestra.
  *  - **COMPRA NUEVA**: emitida en o después del día en que se acreditó el crédito
  *    (`accreditedAt`). Regla del founder: no es un abono contra deuda vieja.
  *  - moneda USD/USDT (el crédito es $80 USD; VES/CNY → fx, fuera de V1).
@@ -132,6 +134,7 @@ export async function applicableInvoicesForReferrer(
     .from("invoices")
     .select("id, invoice_code, client_markbox, currency, total_amount, paid_amount, status, issued_at")
     .eq("client_markbox", referrerMarkbox)
+    .is("deleted_at", null)
     .in("status", CREDIT_APPLICABLE_INVOICE_STATUSES)
     .in("currency", ["USD", "USDT"])
     // `notBefore` ya es YYYY-MM-DD → Postgres lo coerce a `date` contra issued_at

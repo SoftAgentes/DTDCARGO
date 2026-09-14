@@ -34,9 +34,16 @@ const SERVER_CAP = 1000;
 function stub(rowsByTable: Record<string, Record<string, unknown>[]>): SupabaseClient {
   return {
     from(table: string) {
-      const rows = rowsByTable[table] ?? [];
+      // `is(col, null)` se APLICA sobre las filas, como PostgREST (SDD-0465):
+      // si un lector deja de pedir `deleted_at is null`, la fila borrada del
+      // fixture entra al resultado y la aserción lo delata.
+      let rows = rowsByTable[table] ?? [];
       const chain: Record<string, unknown> = {
         select() {
+          return chain;
+        },
+        is(col: string, val: unknown) {
+          if (val === null) rows = rows.filter((r) => r[col] == null);
           return chain;
         },
         order() {
@@ -110,6 +117,23 @@ describe("revenueByShipment", () => {
     const { byId, byCode } = await revenueByShipment(stub({ invoices: [] }));
     expect(byId.size).toBe(0);
     expect(byCode.size).toBe(0);
+  });
+
+  it("SDD-0465 · una factura BORRADA no es ingreso del embarque", async () => {
+    const invoices = [
+      // viva → cuenta
+      { shipment_id: "S1", shipment_code: "DTDU-1", currency: "USD", total_amount: 5000, fx_rate: null, status: "emitida", issued_at: "2026-02-01", created_at: "2026-02-01", deleted_at: null },
+      // emitida y del mismo embarque, pero con deleted_at → NO cuenta
+      { shipment_id: "S1", shipment_code: "DTDU-1", currency: "USD", total_amount: 7000, fx_rate: null, status: "emitida", issued_at: "2026-02-02", created_at: "2026-02-02", deleted_at: "2026-03-01T00:00:00Z" },
+      // borrada y única de su embarque → el embarque queda sin ingreso
+      { shipment_id: "S9", shipment_code: "DTDU-9", currency: "USD", total_amount: 900, fx_rate: null, status: "pagada", issued_at: "2026-02-01", created_at: "2026-02-01", deleted_at: "2026-03-01T00:00:00Z" },
+    ];
+    const { byId, byCode } = await revenueByShipment(stub({ invoices }));
+
+    expect(byId.get("S1")).toBe(5000);
+    expect(byCode.get("DTDU-1")).toBe(5000);
+    expect(byId.has("S9")).toBe(false);
+    expect(byCode.has("DTDU-9")).toBe(false);
   });
 });
 
