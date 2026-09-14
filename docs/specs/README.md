@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 448 specs)
+### Índice de specs (generado · 451 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -393,6 +393,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0361 | Aislar proveedores, prealertas y sus documentos por principal… | done | interno |
 | 0362 | Aislar el aprendizaje del Portal por principal y tenant | done | interno |
 | 0363 | Aislar reclamos y evidencias del Portal por principal y tenant | done | interno |
+| 0364 | Aislar reportes de pago del Portal por principal y tenant | done | interno |
+| 0365 | Operaciones de reportes de pago con resultado veraz y evidenc… | in-progress | interno |
+| 0366 | Renombrar Shipping Mark conservando reportes sobre facturas a… | in-progress | interno |
 | 0367 | Webhook Kommo: respetar desactivación sin romper recuperación… | in-progress | interno |
 | 0368 | Aislar el principal de Club por vínculo, cliente y persona | in-progress | interno |
 | 0369 | Mantener un único proyecto declarado en la preparación E2E | in-progress | interno |
@@ -487,5 +490,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0462 | Las facturas del Portal quedan ligadas al tenant del principal | done | interno |
 | 0463 | Por RLS, el Portal sólo lee facturas del tenant de su vínculo | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0364, 0365, 0366, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

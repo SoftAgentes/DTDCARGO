@@ -1,0 +1,50 @@
+/* SDD-0365: puente local al canónico, sin importar el tema global de Studio.
+   Escala y radios del Norte; colores y fuentes del tema Portal actual. */
+.scope {
+  display: contents;
+  --bg-surface: var(--color-white);
+  --ink: var(--color-ink);
+  --ink-soft: var(--color-grey-700);
+  --border: var(--color-grey-300);
+  --danger: var(--color-status-danger);
+  --danger-bg: color-mix(in srgb, var(--color-status-danger) 8%, var(--color-white));
+  --f-sans: var(--font-archivo);
+  --f-display: var(--font-archivo-black);
+  --r-lg: 10px;
+  --r-sm: 5px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-8: 32px;
+  --scrim: color-mix(in srgb, var(--hero-from, var(--color-ink)) 45%, transparent);
+  --scrim-blur: none;
+}
+.scope :global(.studio-btn) {
+  min-height: 44px;
+  padding: var(--s-2) var(--s-4);
+  border: 1px solid var(--color-ink);
+  border-radius: var(--r-lg);
+  font: 600 var(--text-sm)/1.4 var(--f-sans);
+  cursor: pointer;
+}
+.scope :global(.studio-btn-ghost) { background: var(--color-white); color: var(--color-ink); }
+.scope :global(.studio-btn-primary) { background: var(--color-wine); color: var(--color-on-accent); }
+.scope :global(.studio-btn-danger) { background: var(--color-white); color: var(--danger); border-color: var(--danger); }
+.scope :global(.studio-btn:hover:not(:disabled)) { text-decoration: underline; }
+.scope :global(.studio-btn:active:not(:disabled)) { transform: translateY(1px); }
+.scope :global(.studio-btn:disabled) { opacity: 0.6; cursor: wait; }
+.scope :global(.studio-input) {
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--color-ink);
+  border-radius: var(--r-lg);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font: inherit;
+}
+.scope :global(.studio-input::placeholder) { color: var(--ink-soft); }
+.scope :global(.studio-label) { color: var(--ink); font: 600 var(--text-sm)/1.4 var(--f-sans); }
+.scope :global(.studio-btn:focus-visible),
+.scope :global(.studio-input:focus-visible) { outline: 3px solid var(--color-ink); outline-offset: 2px; }
+.scope :global([role="dialog"]) { max-height: calc(100dvh - var(--s-8)); overflow-y: auto; }

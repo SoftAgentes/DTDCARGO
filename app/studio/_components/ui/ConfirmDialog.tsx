@@ -273,6 +273,9 @@ function OpenConfirmDialog({
           color: "var(--ink)",
           width: "100%",
           maxWidth: 440,
+          maxHeight: "calc(100dvh - 32px)",
+          overflowY: "auto",
+          overflowWrap: "anywhere",
           borderRadius: "var(--r-lg)",
           border: "1px solid var(--border)",
           boxShadow: "0 24px 64px rgba(0,0,0,0.18)",
@@ -354,7 +357,7 @@ function OpenConfirmDialog({
               border: "1px solid var(--danger)",
               borderRadius: "var(--r-sm)",
               background: "var(--danger-bg)",
-              color: "var(--danger)",
+              color: "var(--danger-text, var(--danger))",
               font: "500 12.5px/1.45 var(--f-sans)",
             }}
           >
@@ -362,7 +365,7 @@ function OpenConfirmDialog({
           </div>
         )}
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
           <button
             ref={cancelRef}
             type="button"
@@ -387,11 +390,13 @@ function OpenConfirmDialog({
             onPointerCancel={() => clearHold("Confirmación cancelada.")}
             onPointerLeave={() => clearHold("Confirmación cancelada.")}
             onKeyDown={(event) => {
+              if (!holdToConfirm || alternativeChecked) return;
               if (event.key !== " " || event.repeat) return;
               event.preventDefault();
               beginHold();
             }}
             onKeyUp={(event) => {
+              if (!holdToConfirm || alternativeChecked) return;
               if (event.key !== " ") return;
               event.preventDefault();
               clearHold("Confirmación cancelada.");
