@@ -9,7 +9,7 @@ SDD: `docs/specs/0466-portal-helpers-principal-determinista/spec.md`, reservada 
 
 Permisos del encargo:
 - **Autorizado:** commits locales selectivos (`fix(studio): SDD-0466 — …`), publicar la rama a sí misma y abrir la PR en borrador contra `main`.
-- **Prohibido:** merge, deploy, aplicar migraciones, leer filas de negocio o PII, tocar el ruleset, borrar ramas o worktrees, escribir en el checkout principal, tocar 0230, 0401 y 0416-0452, el Portal, el Studio y `supabase/migrations-baseline.json` salvo exigencia del gate de símbolos.
+- **Prohibido:** merge, deploy, aplicar migraciones, leer filas de negocio o PII, tocar el ruleset, borrar ramas o worktrees, escribir en el checkout principal, tocar 0230, 0401 y 0416-0452, el Portal y el Studio. `supabase/migrations-baseline.json` quedó excluido en la ronda 1 salvo exigencia del gate de símbolos; en la ronda 2 el Director lo incluyó explícitamente para una única entrada nueva en `pendingBelowCutoff`.
 
 Aceptación del encargo, en cuatro puntos:
 1. Test SQL que reproduzca el cruce (vínculo `client_users` de otro tenant o cliente borrado) contra `client_delivery_addresses_validate_client()`, rojo sobre main y verde con la corrección.
@@ -18,6 +18,7 @@ Aceptación del encargo, en cuatro puntos:
 4. Cero cambios en `app` y `lib`; consumidores a cambiar, como FUERA DE ALCANCE.
 
 Dependencias: ninguna. Otros tres Workers en paralelo no tocan `supabase/`.
+Ronda 2 (2026-09-14, revisión del Director sobre `01518252`): SQL de la 0453, spec y handoff aceptados en lo técnico. Única omisión: la espera de la 0453 en `supabase/migrations-baseline.json`, sin la cual `migrations-applied` sale rojo con credenciales al fusionar. El Director amplió la allowlist únicamente a ese archivo para agregar UNA entrada en `pendingBelowCutoff` con clave exacta `0453_portal_helpers_principal_determinista`, sin subir el cutoff 238 ni tocar las otras cuatro esperas, y pidió actualizar sólo este handoff (PENDIENTES y COMMITS). Nada más cambia.
 
 ## OBJETIVO ORIGINAL
 
@@ -40,7 +41,8 @@ Que las funciones SQL de resolución del Portal no crucen tenants ni elijan un v
   - Sin DML, grants, policies, tablas, índices ni triggers; `create or replace` conserva oid, dueño y ACL. Idempotente.
 - **`supabase/tests/0453_portal_helpers_principal_determinista.test.sql`** (`1fdfe9fb`), 113 aserciones, rollback total. Migraciones reales 0006, 0080, 0081, 0198, 0230, 0347, 0425, 0411, 0258, 0261, 0267, 0294 y 0427 sobre stubs mínimos; `get_user_tenant_id()` y `current_studio_role()` extraídas del archivo 0200 por regexp. Cubre RED sobre main (dos membresías → un tenant y 5 filas de ese tenant; vínculo con cliente borrado → Shipping Mark y 1 envío; vínculo incoherente → 2 envíos `DUP`, uno por tenant; dos vínculos con la unique retirada → uno cualquiera; trigger sin RLS aceptando al vínculo de otro tenant, al de cliente borrado, al equipo de otro tenant y al titular de otro cliente, también por un comando DEFINER real), estático, huellas históricas contra los archivos reales, 13 casos de drift rechazados en el preflight y el guardián del postflight con huella sintética, catálogo y filas intactos, idempotencia, y el comportamiento con 0453 (detalle en la spec, tabla de evidencia).
 - **Spec 0466** completa (`aa083acb`): contexto con evidencia, alcance, la regla y por qué `NULL`, el trigger caso por caso, la migración, locks y tiempos medidos, frontera e impacto en la app, evidencia, datos personales, allowlist, aceptación y producción. Índice regenerado con 453 specs.
-- Cero cambios en `app/` y `lib/`. `supabase/migrations-baseline.json` sin tocar: el gate de símbolos pendientes da 0 ROJO · 0 AMARILLO porque la 0453 no crea símbolos.
+- Cero cambios en `app/` y `lib/`. El gate de símbolos pendientes da 0 ROJO · 0 AMARILLO porque la 0453 no crea símbolos; no hace falta declaración.
+- **Ronda 2 — espera de la 0453 en `supabase/migrations-baseline.json` (`2fea6ef6`).** Una entrada nueva `0453_portal_helpers_principal_determinista` en `pendingBelowCutoff`, agregada por script sobre el JSON parseado y reserializada con `JSON.stringify(…, null, 2)` (la forma exacta del archivo), al final del objeto, con el patrón de las vecinas 0414, 0415, 0422 y 0423 y los siete puntos del Director en un solo string (4543 caracteres): qué redefine y la regla nueva; lo que exige el preflight y que aborta sin cambiar nada; locks y tiempos medidos (sólo ACCESS SHARE sobre `clients`, `client_users` y `user_tenants`; 26,6 ms; `lock_timeout` 5 s y `statement_timeout` 30 s de sesión, que rigen también en autocommit); impacto en producción (frontera preventiva con un solo tenant y la unique de `client_users`; con dos membresías activas el Studio queda vacío sin mensaje por `getStudioAccess`, dicho explícito); lectura previa de `pg_get_functiondef` de las tres funciones y el trigger y los dos conteos agregados con su SQL, ambos con autorización de Sam; smoke posterior y retiro de la espera en rama propia; orden sin dependencia de despliegue ni de baja actividad; y el cierre literal exigido. `cutoff` sigue en 238, las otras cuatro esperas y `$doc` no cambian; el diff son 2 líneas insertadas y 1 retirada (la coma de la entrada anterior).
 
 ## IMPACTO ESPERADO AL APLICAR (locks y comportamiento)
 
@@ -65,10 +67,24 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 | `corepack pnpm sdd:check` | PASÓ: sin números repetidos (choques históricos ya aplicados, no se renumeran). |
 | `node scripts/check-pending-migration-symbols.mjs` | PASÓ: 0 ROJO · 0 AMARILLO, sin declaración. |
 | `corepack pnpm docs:index` / `docs:check` | PASÓ: 453 specs sincronizadas. |
-| `git diff --cached --check` y allowlist | PASÓ en cada commit. Frente a `origin/main` `b07ad98b` cambian exactamente la migración, el contrato, la spec, el índice y este handoff. |
+| `git diff --cached --check` y allowlist | PASÓ en cada commit. Frente a `origin/main` `b07ad98b` cambian exactamente la migración, el contrato, la spec, el índice y este handoff (ronda 1), más `supabase/migrations-baseline.json` desde la ronda 2. |
 | `E2E_PORT=3102 corepack pnpm verify` | **FALLÓ, exit 1**, sobre `aa083acb`, de 01:50:19 a 02:19:11 (−04:00), sin cuelgue (`verify.log`, `verify-plain.log`, `verify.meta`). De 17 pasos, 15 PASARON: harness; lint (0 errores y 8 warnings preexistentes en archivos no tocados); rsc-boundary (1601 módulos); typecheck; edge-functions; test (7226 pruebas en 555 archivos); docs:check (453 specs); numbering; feature-constants (5); components:check; governance:check; pending-migration-symbols (0 ROJO · 0 AMARILLO); sql-tests (194 contratos, incluidos el 0453 y los de 0411, 0412, 0413, 0425 y 0427); schema-rebuild (432 migraciones desde cero con la 0453, 18 sólo-ledger verificadas y aislamiento multi-tenant sobre 219 tablas y 2 tenants); y build. `migrations-applied` quedó en SKIP sin `NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`: NO EJECUTADO. `e2e` FALLÓ por entorno en sus dos pasadas; en el reintento 151 pasados, 2 flaky, 18 omitidos y 15 fallidos: `auth.spec.ts:21/91/98/105` y `global-search.spec.ts:22` en chromium, mobile-chrome y mobile-safari, porque el WebServer revienta en `proxy.ts:67` sin `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` (1164 trazas). Es el patrón conocido que anticipó el encargo y el diff no toca rutas ni auth. Veredicto literal: `verify: 1 fallo(s) → e2e CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied.` No se presenta como verde. Después de verify sólo cambió documentación: `status` de la spec, este handoff y el índice; se revalidaron `docs:index`/`docs:check`, `sdd:check` y `git diff --check`. |
 | E2E autenticado, `migrations-applied` (ledger real), producción | NO DISPONIBLE / NO EJECUTADO: sin credenciales y fuera de la autorización. |
 | `/ui-check` | NO EJECUTADO: no hay cambio visual. |
+
+### Ronda 2 (sobre `01518252`; sólo la espera y este handoff)
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| `guard` / `claim` / `guard --owner` | PASÓ: el claim se readquirió al retomar (se había liberado al cerrar la ronda 1) y el guard corrió antes de cada commit. Árbol limpio y `origin/main` sin avances (`b07ad98b`). |
+| Serialización del baseline | PASÓ: el archivo era idéntico a `JSON.stringify(…, null, 2)` más salto final antes y después; sin CRLF. |
+| `node -e "require('./supabase/migrations-baseline.json')"` | PASÓ: `cutoff` 238; esperas `0415, 0414, 0422, 0423, 0453`, en ese orden. |
+| `node scripts/check-migrations-applied.mjs` | SKIP sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` (exit 3), sin error de parseo: NO EJECUTADO contra el ledger, como se esperaba. |
+| `node scripts/check-pending-migration-symbols.mjs` | PASÓ: 0 ROJO · 0 AMARILLO. |
+| `corepack pnpm exec vitest run scripts/check-migrations-applied.test.mjs` | PASÓ: 22/22. |
+| `corepack pnpm harness:test` | PASÓ: 98 pruebas, 0 fallos (incluye `merge-generated-records`, el driver del baseline). |
+| `git diff --check` / `git diff --cached --check` | PASÓ. El commit `2fea6ef6` contiene sólo `supabase/migrations-baseline.json` (2 insertadas, 1 retirada). |
+| `corepack pnpm verify` | NO EJECUTADO: desde `aa083acb` (donde `verify.meta` prueba la corrida completa) sólo cambian documentación (`01518252`, este handoff) y el baseline, que `verify` cubre con `migrations-applied` (SKIP sin credenciales, mismo resultado), `pending-migration-symbols` y `harness`, repetidos acá con el mismo veredicto. Código, SQL, pruebas y spec quedan byte a byte iguales: `git diff --stat aa083acb..HEAD` lista sólo el handoff, la spec (`status`), el índice y el baseline. |
 
 ## REVISIÓN FOCAL DE DATOS Y GOBERNANZA
 
@@ -81,18 +97,23 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 - `53414c08` — chore(sdd): reserva SDD-0466 (cherry-pick de `e8531e07`, del Director).
 - `1fdfe9fb` — fix(studio): SDD-0466 — migración 0453 y su contrato SQL.
 - `aa083acb` — docs(sdd): SDD-0466 — spec e índice (el head sobre el que corrió `verify`).
-- Commit que contiene este documento: spec en `done` y cierre del handoff (hash final en la PR).
+- `01518252` — docs(handoff): SDD-0466 — cierre de la ronda 1 y spec en `done` (el head que revisó el Director).
+- `2fea6ef6` — chore(db): SDD-0466 — declarar la espera de 0453 en `pendingBelowCutoff` (ronda 2).
+- Commit que contiene este documento: nota de la ronda 2 (hash final en la PR).
 
 ## PR / BRANCH
 
 - **PR:** [#115 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/115), «fix(studio): SDD-0466 — helpers del Portal por principal, deterministas y sin cruce de tenant», base `main`. Head revisado por `verify`: `aa083acb`; el commit de este documento se publica después en un push normal.
 - **Rama:** `codex/portal-helpers-principal-determinista`, publicada a sí misma con `git push -u origin codex/portal-helpers-principal-determinista:codex/portal-helpers-principal-determinista`, sin force. Base `main` `b07ad98b`.
+  - Ronda 1: `1fdfe9fb`, `aa083acb` y `01518252`.
+  - Ronda 2: `2fea6ef6` y el commit que contiene este documento, en un único push normal.
 - Worktree el indicado arriba. Sin merge, sin salir de borrador y sin aplicar migraciones.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **CI y revisión:** CI alojado sobre el head publicado y revisión del Director. Sacar la PR de borrador y fusionar le corresponde al Director.
-- **Espera en `supabase/migrations-baseline.json`:** no se agregó, porque el encargo la excluía salvo exigencia del gate de símbolos, que no la exige. Con credenciales, `migrations-applied` va a salir rojo por la 0453 hasta que se aplique o el Director agregue la espera `0453_portal_helpers_principal_determinista` en `pendingBelowCutoff` con el texto de impacto (sin locks de tabla, cierre de acceso a membresías múltiples y vínculos inválidos, lectura previa del catálogo). Texto sugerido en la sección de producción de la spec.
+- **CI y revisión:** CI alojado sobre el head publicado de la ronda 2 y revisión final del Director. Sacar la PR de borrador y fusionar le corresponde al Director.
+- **Espera en `supabase/migrations-baseline.json`:** declarada en la ronda 2 (`2fea6ef6`). Con credenciales, `migrations-applied` exime a la 0453 con motivo escrito hasta que se aplique.
+- **Spec 0466 y la espera:** la spec (`Alcance` y `Allowlist exacta`) sigue diciendo que el baseline queda fuera y que la 0453 no necesita espera por el gate de símbolos; con la ronda 2 la PR sí toca ese archivo. No se corrigió porque el Director pidió no cambiar nada más; queda para una ronda sólo de texto si el Director la quiere alineada, como se hizo con la 0461 (ronda 3).
 - **Antes de aplicar la 0453**, en otra tarea con OK nominal de Sam y el runbook: leer `pg_get_functiondef` de las tres funciones y el trigger (sin filas); si un cuerpo difiere del repo, el preflight aborta y hay que revisar. Conteos agregados recomendados: membresías activas por usuario mayores que uno, y vínculos activos con cliente borrado o tenant distinto al de su cliente.
 - **Después de aplicar:** smoke de una sesión del Studio (clientes) y una del Portal (Mi perfil › Direcciones y envíos); `migrations-applied` en verde.
 
@@ -107,12 +128,11 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 ## HANDOFF AL DIRECTOR
 
 - **Orden seguro:**
-  1. revisar la PR sobre el head publicado y su CI;
-  2. decidir la espera de la 0453 en `pendingBelowCutoff` (fuera de mi allowlist) antes de fusionar, para que `migrations-applied` no quede rojo sin motivo escrito;
-  3. fusionar sobre el SHA revisado, repitiendo antes el merge de main si avanzó;
-  4. aplicar la 0453 en otra tarea: OK nominal de Sam, de a una, name exacto `0453_portal_helpers_principal_determinista`, con la lectura previa del catálogo y los conteos agregados; no necesita ventana de baja actividad (sin locks de tabla) ni despliegue previo;
-  5. smoke y retiro de la espera tras la verificación autorizada.
+  1. revisar la PR sobre el head publicado de la ronda 2 y su CI;
+  2. fusionar sobre el SHA revisado, repitiendo antes el merge de main si avanzó; con la espera declarada, `migrations-applied` exime a la 0453 con motivo escrito;
+  3. aplicar la 0453 en otra tarea: OK nominal de Sam, de a una, name exacto `0453_portal_helpers_principal_determinista`, con la lectura previa del catálogo y los dos conteos agregados que la espera imprime; no necesita ventana de baja actividad (sin locks de tabla) ni despliegue previo;
+  4. smoke del Studio y del Portal, y retiro de la espera en una rama propia tras la verificación autorizada.
 - **Aditiva respecto de producción:** no reescribe filas, no toca policies ni ACL; sólo redefine tres cuerpos con `create or replace`. Con una membresía y un vínculo coherente el comportamiento es el de hoy.
-- **Gate de símbolos:** 0 ROJO · 0 AMARILLO sin declaración. **Conflictos posibles al fusionar** por el driver `dtd-generated-records`: `docs/specs/README.md`, si main suma specs; en GitHub no corre el driver.
+- **Gate de símbolos:** 0 ROJO · 0 AMARILLO sin declaración. **Conflictos posibles al fusionar** por el driver `dtd-generated-records`: `docs/specs/README.md` y ahora también `supabase/migrations-baseline.json`, si main suma specs o esperas; en GitHub no corre el driver, así que si main avanza hay que repetir el merge en la rama y revisar que `pendingBelowCutoff` conserve el orden de main con la 0453 al final.
 - **Contenedores propios, todos retirados:** `dtd_w2_dev`. Los `dtd_sqltest_*` y `dtd_rebuild_*` los retiran sus scripts. No se tocó ningún contenedor ni proceso ajeno.
 - **Ownership:** se libera al cierre con `node scripts/harness-worktree.mjs release --owner worker-w2-portal-helpers-20260914`, después de la última escritura. Se conservan el worktree y la rama.
