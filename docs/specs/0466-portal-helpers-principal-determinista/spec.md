@@ -59,6 +59,11 @@ confidencialidad: interno
   policies, tablas, índices ni triggers nuevos.
 - Contrato SQL desechable `supabase/tests/0453_portal_helpers_principal_determinista.test.sql`.
 - Esta spec, el índice generado y el handoff de la tarea.
+- `supabase/migrations-baseline.json`, únicamente para declarar la espera
+  `0453_portal_helpers_principal_determinista` en `pendingBelowCutoff` (sin subir el `cutoff`
+  238 ni tocar las otras esperas), porque el gate `migrations-applied` lo exige hasta que la
+  migración se aplique. El gate de símbolos pendientes sigue sin exigir declaración: la 0453 no
+  crea símbolos y da 0 ROJO · 0 AMARILLO.
 - Fuera de alcance:
   - `app/` y `lib/`: cero cambios; los consumidores que convendría ajustar se reportan en el
     handoff como FUERA DE ALCANCE;
@@ -68,8 +73,6 @@ confidencialidad: interno
   - las policies que comparan sólo el Shipping Mark (`shipments portal self read` de 0080 y
     afines): con la helper corregida dejan de servir a vínculos inválidos, pero un vínculo válido
     sigue leyendo por Shipping Mark sin tenant hasta que cada una se reemplace como hizo 0452;
-  - `supabase/migrations-baseline.json`: la 0453 no crea símbolos y el gate de símbolos
-    pendientes da 0 ROJO · 0 AMARILLO sin declaración;
   - aplicar en producción.
 
 ## Diseño
@@ -263,6 +266,8 @@ No es asesoría legal.
 - `supabase/tests/0453_portal_helpers_principal_determinista.test.sql`
 - `docs/specs/0466-portal-helpers-principal-determinista/spec.md`
 - `docs/specs/README.md`: generado por `node scripts/build-docs-index.mjs`.
+- `supabase/migrations-baseline.json` (únicamente la espera `0453_portal_helpers_principal_determinista`
+  en `pendingBelowCutoff`, sin subir el `cutoff` 238 ni tocar las otras esperas).
 - `.agents/handoffs/portal-helpers-principal-determinista.md`
 
 ## Aceptación
