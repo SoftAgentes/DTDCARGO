@@ -5,7 +5,7 @@
 - Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 - Worktree de coordinación: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/director-ola-post-bloque-c-20260914`.
 - Rama: `codex/director-ola-post-bloque-c-20260914`, creada desde `origin/main` `b07ad98bda4da35086d8207640321a7995fc8f24`.
-- Estado de tarea: en-progreso (coordinación); el producto se ejecuta en cuatro Workers aislados.
+- Estado de tarea: lista-para-revision (coordinación): los cuatro Workers cerraron y sus PRs están revisadas; falta la autorización de Sam para integrar.
 - SDD: no aplica a esta rama. Reservas nuevas de esta sesión: SDD-0465 y SDD-0466.
 - Permisos del encargo (Sam, 2026-09-14, texto literal: «dale con W1 a W4 en paralelo»): ejecutar los
   cuatro Workers del briefing de esta fecha con los prompts tal como se presentaron, que incluyen
@@ -135,7 +135,8 @@ hallazgos menores de L07 sin encargo (ingresos por asesor que tragan el error, c
 - PASÓ: verificación independiente de la PR #113 (blobs idénticos y `--find-object` sobre `main`, subconjunto de la spec 0235, textos desfasados en `main`).
 - PASÓ: revisión de la PR #114 (identidad de blobs con #21, columnas tenant_id en el esquema, grep de escrituras).
 - PASÓ: revisión de la PR #115 (SQL completo, precedente de esperas en #103 y #108, columnas y redefiniciones históricas).
-- NO VERIFICADO: ID de deployment en Vercel; resultado de W1 hasta que cierre; check de #115 sobre `d6006f7b` en curso.
+- PASÓ: revisión de la PR #116 (diff de los lectores y de `softDeleteInvoice`, gate de SDD-0357, spec 0465).
+- NO VERIFICADO: ID de deployment en Vercel; checks de #115 (`d6006f7b`) y #116 (`831799a3`) en curso al cerrar esta actualización.
 
 ## COMMITS
 
@@ -149,8 +150,9 @@ publicación pendiente de permiso.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Recibir el cierre de cada Worker, revisar su PR completa (diff, alcance, SDD, tests, omisiones)
-  sobre el head final y registrar aquí el SHA revisado y el veredicto.
+- Los cuatro cierres recibidos y revisados (PRs #113, #114, #115 y #116, SHAs en cada sección). Al integrar, cada
+  rama que quede detrás de `main` vuelve al Worker para ponerse al día (índice de specs y baseline se regeneran
+  con sus scripts) y el Director revalida el delta antes del merge.
 - W2 usó 0453 (registrado); espera declarada en el baseline y spec alineada (rondas 2 y 3 revisadas).
 - Pedir a Sam, en bloque, las autorizaciones que siguen abiertas: smokes y OK nominal por
   migración, limpieza remota y local, publicación de esta rama de coordinación y decisiones.
@@ -162,8 +164,9 @@ publicación pendiente de permiso.
 
 ## HANDOFF AL DIRECTOR
 
-Sesión Director activa con claim sobre este worktree. Siguiente acción: revisar los cuatro cierres
-a medida que lleguen y preparar el bloque de autorizaciones para Sam.
+Sesión Director activa con claim sobre este worktree. Siguiente acción: bloque de autorizaciones para Sam
+(merges en orden #113, #115, #116 y, tras el smoke de L14 y 0422/0423, #114; smokes y OK nominal por migración,
+incluida 0453 con sus dos lecturas previas; limpieza; publicación de esta rama; decisiones de dirección).
 
 ## Revisión de PRs de esta ola
 
@@ -291,6 +294,51 @@ a medida que lleguen y preparar el bloque de autorizaciones para Sam.
   Portal que comparan solo el Shipping Mark (patrón 0080); `getStudioAccess` sin mensaje ante dos
   membresías; `unique (auth_user_id)` sin comentario que declare sus dependientes;
   `_norte/backend/README.md` vive en `docs/design/studio/_norte/backend/README.md`, no en la raíz.
+
+### W1 · PR #116 · `codex/facturas-borradas-lectores-financieros` · SHA revisado `831799a353a14a2ab5c60c346b6cdcec379e115c` (producto en `fed55e04` y `5787a62f`)
+
+- Alcance: 16 archivos. Dentro de la allowlist asignada: los cinco lectores (`lib/studio/invoice-queries.ts`,
+  `lib/studio/payment-queries.ts`, `lib/studio/dashboard/dashboard-kpi-queries.ts`,
+  `lib/studio/costing/queries.ts`, `lib/studio/fidelizacion/referral-credit-queries.ts`; dos rutas difieren
+  de las citadas en el encargo pero son las mismas funciones), `app/studio/(app)/facturacion/actions.ts`,
+  seis archivos de tests (30 casos nuevos, ninguna aserción existente cambiada), la spec 0465 (`done`,
+  `updated` 2026-09-14), el índice de specs y el handoff. **Fuera de la allowlist asignada, con
+  justificación en la spec:** `scripts/__tests__/invoice-read-boundary.test.mjs`, el gate de SDD-0357 que
+  congela los callers de `invoices`: +1 en `facturacion/actions.ts` (10 → 11) y total 45 → 46 por la
+  lectura previa de `softDeleteInvoice`. **Aprobado por el Director**: la lectura va detrás de
+  `moduleEditDenial("invoices")` con el cliente de sesión bajo RLS, y la alternativa sin lectura previa
+  perdería el mensaje por estado del criterio 4. La spec 0465 lista el archivo en su tabla de alcance.
+- Lectores: cada `from("invoices")` de los cinco archivos lleva ahora `.is("deleted_at", null)`
+  (verificado por conteo en la rama); comentarios explican que la RLS de equipo no oculta borradas desde
+  0230 y por qué cada lector las excluye. `receivablesQueue` cambia a quién se le escribe el recordatorio:
+  solo facturas vivas (SDD-0306/0353/0358); RPC `collections_mail_context` y 0410/0415 intactas.
+- `softDeleteInvoice`: lee `id, status, invoice_code, deleted_at`; rechaza «ya eliminada»; rechaza todo
+  estado distinto de `borrador` con mensaje que remite a anular con motivo (`anulada` se conserva como
+  registro); el UPDATE repite `status = borrador` y `deleted_at is null` como guarda de carrera y responde
+  si no matchea; revalida lista y detalle. **Regla de producto nueva: solo los borradores se eliminan;
+  emitidas, parciales, pagadas y vencidas se anulan.** Justificada en la spec con MP-01 (P2/R2 borrador,
+  P3/R3 emitido), asiento de venta (SDD-0040), recibos (SDD-0041), créditos de referido (SDD-0137), libro
+  de ventas (SDD-0073) y `void_invoice_with_audit_reason` (0294). Sam debe cubrir esta regla al autorizar.
+- Validación del Worker sobre `b5f05179`: `E2E_PORT=3101 corepack pnpm verify` con 15 pasos PASÓ (harness,
+  lint, rsc-boundary, typecheck, edge-functions, test 558 archivos / 7256, docs, numbering, feature-constants,
+  components, governance, símbolos pendientes, sql-tests, schema-rebuild, build); `migrations-applied`
+  NO DISPONIBLE sin credenciales (no hay migración); e2e FALLÓ solo por los 15 ambientales conocidos
+  (`auth.spec.ts` × 12, `global-search.spec.ts` × 3), sin watchdog. Vitest focal 77 tests PASÓ.
+- Claim `worker-w1-facturas-borradas-20260914` liberado; `finish` sin claim, árbol limpio.
+- Checks de la PR al revisar: «Calidad local sin secretos» en curso sobre `831799a3`; Vercel preview
+  pendiente.
+- **Veredicto Director: APROBADA para integración**, sujeta a autorización de merge de Sam que cubra la
+  regla de producto (solo borradores se eliminan) y el despliegue (toca código de Studio), y al check
+  verde sobre `831799a3`. Sin migración. Conflicto esperado con #115 en `docs/specs/README.md`: se
+  regenera con `docs:index` al poner la rama al día, no a mano.
+- FUERA DE ALCANCE que deja W1, sin encargo: `InvoiceDrawer.tsx` solo actúa sobre `result.ok` y no muestra
+  un rechazo del servidor (solo alcanzable por carrera); no existe papelera ni restauración de facturas,
+  que MP-01 §2 exige para P2; otros lookups de `invoices` por id sin filtro de `deleted_at`
+  (`collections-actions.ts`, `cobranzas/actions.ts`, recibo, `fidelizacion/actions.ts`,
+  `referral-credit-posting.ts`, `kommo-contact-status.ts`, `costing/queries.ts`, `renditions/queries.ts`),
+  ninguno agrega ni escribe correo por sí solo; un guard en `registerCollectionFor`, `identifyPayment` y
+  `applyReferralCredit` cerraría la frontera; la base sigue exponiendo borradas a `accounting`/`admin`
+  por PostgREST directo desde 0230, por diseño.
 
 ### Método de blobs aplicado a las demás ramas del dictamen (Director, 2026-09-14)
 
