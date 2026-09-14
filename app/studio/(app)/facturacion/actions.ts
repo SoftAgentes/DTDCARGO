@@ -11,7 +11,7 @@
  * - emitInvoice: borrador → emitida + issued_at/due_date
  * - registerPayment: paid_amount += amount; recalcula status (parcial/pagada)
  * - voidInvoice: → anulada (no si pagada)
- * - softDeleteInvoice: deleted_at = now()
+ * - softDeleteInvoice: deleted_at = now(), SOLO si status=borrador (SDD-0465)
  * - lookupShipmentForInvoice: prefill del drawer desde un código de embarque
  *
  * Las mutaciones de factura se auditan dentro de su transacción PostgreSQL
@@ -42,8 +42,10 @@ import {
 import {
   calcInvoiceTotals,
   isInvoiceIvaMode,
+  isInvoiceStatus,
   normalizeLines,
   resolveInvoiceIva,
+  statusLabel,
   validateInvoiceInput,
   type InvoiceActionState,
   type InvoiceCurrency,
@@ -712,6 +714,29 @@ export async function voidInvoice(
   return { ok: true };
 }
 
+/**
+ * SDD-0465 · Por qué el borrado lógico no procede fuera de `borrador`.
+ *
+ * Es la matriz de permanencia MP-01 aplicada a facturación: «Borrador: P2/R2.
+ * Emitido o asentado: P3/R3», y «`deleted_at` no demuestra por sí solo que P2
+ * esté bien aplicado». Una factura emitida ya produjo el asiento de venta
+ * (SDD-0040), puede tener recibos (SDD-0041) y créditos de referido aplicados
+ * (SDD-0137) y entra al libro de ventas (SDD-0073); ocultarla con `deleted_at`
+ * dejaría el mayor y los recibos apuntando a una factura que ningún lector
+ * muestra. Para eso existe `voidInvoice`: conserva el original, exige motivo y
+ * revierte lo que haya que revertir. Una `anulada` tampoco se elimina: es el
+ * resultado P3 y su rastro tiene que seguir visible.
+ */
+function softDeleteDenial(status: string): string {
+  if (status === "anulada") {
+    return "Esta factura ya está anulada y se conserva como registro; no se elimina.";
+  }
+  const label = isInvoiceStatus(status)
+    ? statusLabel(status).toLowerCase()
+    : status;
+  return `Solo las facturas en borrador pueden eliminarse. Esta está ${label}: si no corresponde, anúlala con un motivo y queda registrada.`;
+}
+
 export async function softDeleteInvoice(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
@@ -719,14 +744,43 @@ export async function softDeleteInvoice(
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
 
-  const { error } = await supabase
+  const { data: current, error: readErr } = await supabase
+    .from("invoices")
+    .select("id, status, invoice_code, deleted_at")
+    .eq("id", id)
+    .maybeSingle<{
+      id: string;
+      status: string;
+      invoice_code: string;
+      deleted_at: string | null;
+    }>();
+  if (readErr || !current) return { error: "Factura no encontrada." };
+  if (current.deleted_at) return { error: "Esta factura ya está eliminada." };
+  if (current.status !== "borrador") {
+    return { error: softDeleteDenial(current.status) };
+  }
+
+  // El UPDATE repite las condiciones: si la factura se emitió entre la lectura
+  // y la escritura, no matchea ninguna fila y no se borra una emitida.
+  const { data: deleted, error } = await supabase
     .from("invoices")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("status", "borrador")
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle<{ id: string }>();
 
   if (error) return { error: error.message };
+  if (!deleted) {
+    return {
+      error:
+        "La factura cambió de estado mientras se eliminaba; recarga y revisa antes de intentarlo otra vez.",
+    };
+  }
 
   revalidatePath("/studio/facturacion");
+  revalidatePath(`/studio/facturacion/${current.invoice_code}`);
   return { ok: true };
 }
 
