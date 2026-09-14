@@ -5,7 +5,7 @@
 - Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 - Worktree de coordinación: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/director-ola-post-bloque-c-20260914`.
 - Rama: `codex/director-ola-post-bloque-c-20260914`, creada desde `origin/main` `b07ad98bda4da35086d8207640321a7995fc8f24`.
-- Estado de tarea: lista-para-revision (coordinación): #113, #116 y #115 integradas; #114 espera el smoke de L14; migraciones pendientes con gate humano (0415, 0422, 0423, 0414) o con OK nominal por renovar (0453).
+- Estado de tarea: lista-para-revision (coordinación): #113, #116 y #115 integradas; 0453 aplicada el 2026-09-14 con OK nominal; #114 espera el smoke de L14; 0415, 0422, 0423 y 0414 siguen con gate humano.
 - SDD: no aplica a esta rama. Reservas nuevas de esta sesión: SDD-0465 y SDD-0466.
 - Permisos del encargo (Sam, 2026-09-14, texto literal: «dale con W1 a W4 en paralelo»): ejecutar los
   cuatro Workers del briefing de esta fecha con los prompts tal como se presentaron, que incluyen
@@ -178,6 +178,13 @@ aceptar en el preflight la forma Cloud de 0198 (precedente de 0423), probarla en
 y los conteos en la spec y en la espera. La foto de advisors de seguridad tomada antes quedó fuera de Git y no se
 usó: se repite antes de aplicar.
 
+**Actualización del 2026-09-14, mañana.** Con los datos de arriba a la vista, Sam autorizó por nombre:
+«autorizo aplicar 0453_portal_helpers_principal_determinista». Se repitió la lectura previa, idéntica; se
+aplicó con el nombre exacto (ledger `20260914145345`, md5 `bceb07887ca0e4ddbd0c7a638ea645b4` y 25.194 bytes,
+iguales al blob de `main` `4b01ac58`); el postflight de catálogo y los advisors de seguridad salieron sin cambios
+inesperados. Registro en `.agents/handoffs/0453-aplicacion-prod-20260914.md`, rama `codex/0453-aplicacion-prod-20260914`
+(commit `4616cc67`), PR en borrador https://github.com/hailuwaycom-sketch/DTDCARGO/pull/118. Pendientes: smoke de Studio y Portal, y el merge de esa PR.
+
 ### Limpieza
 
 | Rama local borrada con `-D` | SHA | Evidencia de cero pérdida |
@@ -277,8 +284,8 @@ a Sam. Sin merge de esta PR.
 - Smokes de Sam con el guion y, con OK nominal por nombre: `0415_mail_logs_read_rbac`; `0422_payment_report_command_boundary`
   y luego `0423_payment_report_historical_identity`; `0414_invoices_read_rbac`. Cada una de a una, con preflight,
   postflight, advisors antes y después, y el retiro de su espera en una rama propia.
-- OK nominal de `0453_portal_helpers_principal_determinista` con los datos nuevos a la vista. Antes de aplicar, repetir la
-  lectura previa (cuerpos, cero policies que nombren la helper y los tres conteos); después, retirar la espera.
+- 0453 aplicada el 2026-09-14 con OK nominal: falta el smoke de Studio y Portal y el merge de la PR de registro
+  https://github.com/hailuwaycom-sketch/DTDCARGO/pull/118, que retira su espera.
 - Fusionar #114 después de 0422 y 0423, con OK de Sam y la rama puesta al día con `main`: queda BEHIND por la regla
   `strict`, y `git merge-tree` contra `4b01ac58` no da conflictos.
 - Limpieza siguiente, sin autorizar todavía: worktrees y ramas de #113, #115 y #116, reservas locales 0465 y 0466 (sus
