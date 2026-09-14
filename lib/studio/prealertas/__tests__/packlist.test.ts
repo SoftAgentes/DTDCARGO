@@ -101,3 +101,51 @@ describe("fillPacklist (template real)", () => {
     expect(cellHas("I3", "DTD-1234-2-3")).toBe(true);
   });
 });
+
+/**
+ * SDD-0468 · Excel reformulado para el proveedor chino. Se prueba el binario
+ * publicado (no el script) porque es lo que descarga el proveedor: si alguien
+ * edita el script y no regenera, esto lo delata.
+ */
+describe("template reformulado (SDD-0468)", () => {
+  const files = unzipSync(
+    new Uint8Array(
+      readFileSync(
+        join(process.cwd(), "public", "templates", "dtd-packing-list-invoice.xlsx"),
+      ),
+    ),
+  );
+  const sheet = strFromU8(files["xl/worksheets/sheet1.xml"]);
+  const shared = files["xl/sharedStrings.xml"]
+    ? strFromU8(files["xl/sharedStrings.xml"])
+    : "";
+  const formulaOf = (ref: string) =>
+    sheet
+      .match(new RegExp(`<c r="${ref}"[^>]*><f>([^<]*)</f>`))?.[1]
+      ?.replaceAll("&quot;", '"');
+
+  it("calcula solas las columnas de color, con la regla del formulario web", () => {
+    // packlist-form · computeTotals: qty = cajas×uds/caja, total = qty×precio,
+    // peso = cajas×kg/caja, CBM = cajas×CBM/caja. Fila vacía → celda vacía.
+    for (const r of [12, 27]) {
+      expect(formulaOf(`I${r}`)).toBe(`IF(OR(G${r}="",H${r}=""),"",G${r}*H${r})`);
+      expect(formulaOf(`K${r}`)).toBe(`IF(OR(I${r}="",J${r}=""),"",I${r}*J${r})`);
+      expect(formulaOf(`M${r}`)).toBe(`IF(OR(G${r}="",L${r}=""),"",G${r}*L${r})`);
+      expect(formulaOf(`O${r}`)).toBe(`IF(OR(G${r}="",N${r}=""),"",G${r}*N${r})`);
+    }
+    expect(formulaOf("I28")).toBe("SUM(I12:I27)");
+    expect(strFromU8(files["xl/workbook.xml"])).toMatch(/fullCalcOnLoad="1"/);
+  });
+
+  it("no invita a escribir encima del Shipping Mark ni trae eslogan comercial", () => {
+    expect(shared + sheet).not.toContain("DTD-____");
+    expect(shared).not.toContain("puerta a puerta");
+  });
+
+  it("dice en chino cómo se llena y deja 5 reglas cortas, chino primero", () => {
+    expect(shared).toContain("只填白色格子，带底色的列自动计算。");
+    for (const n of [1, 2, 3, 4, 5]) expect(shared).toContain(`${n}. `);
+    expect(shared).not.toContain("6. ");
+    expect(shared).toMatch(/1\. 每个箱子都要写上方的唛头/);
+  });
+});
