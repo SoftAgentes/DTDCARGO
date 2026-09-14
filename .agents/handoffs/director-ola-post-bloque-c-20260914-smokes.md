@@ -77,7 +77,7 @@ visibles al desplegar». Después de aplicar la 0414 repites 1 a 3 con un rol no
 - PR #116, Facturación: las facturas borradas ya no aparecen en listas, KPIs, costeo, créditos de
   referido ni en la cola de Cobranzas. Eliminar solo funciona con borradores; una emitida, parcial,
   pagada o vencida pide anularse con motivo. Si tienes un borrador de prueba, elimínalo y confirma
-  que desaparece. Confirmo en el resumen de la mañana si la PR quedó integrada.
+  que desaparece. Integrada el 2026-09-14 a las 07:20 UTC (merge `7cd50f4a`).
 
 ## E · 0453, helpers del Portal — todavía no
 

@@ -143,11 +143,15 @@ y quedan fuera los ítems con gate humano:
 | PR | Head revisado | Merge commit | Hora (UTC) | Vercel en el merge |
 |---|---|---|---|---|
 | #113 | `bc40762581de19cc518a89242237635877eda8cc` | `832c0370a2369b9a85a92b4236836977e4871183` | 2026-09-14T06:58:26Z | success, vía estado de GitHub; ID de deployment no verificado |
+| #116 | `a10efa93ac88ed0970b95c55098108818e339813` (puesta al día de `831799a3`) | `7cd50f4a451e10117f94f857cf4a7176b4a007a4` | 2026-09-14T07:20:02Z | se registra al confirmarse |
 
 - #115: puesta al día con `main` `832c0370` por la API de GitHub (`update-branch` con
   `expected_head_sha` `d6006f7b`; head nuevo `d224613d`). **Retenida**: vuelve a W2 en ronda 4.
 - #116: puesta al día igual (`expected_head_sha` `831799a3`; head nuevo `a10efa93`). #113 no toca el
-  índice de specs, así que no hizo falta regenerarlo. Merge cuando el check requerido quede verde.
+  índice de specs, así que no hizo falta regenerarlo. Antes del merge se verificó que el merge de puesta al día
+  solo trae los dos archivos de #113 y que el delta propio de la PR frente a su base es idéntico por patch-id
+  al revisado sobre `831799a3`. Check requerido «Calidad local sin secretos» SUCCESS sobre `a10efa93`.
+  Integra la regla de producto autorizada con el merge: solo los borradores se eliminan; el resto se anula.
 
 ### 0453 — lecturas previas en producción (autorizadas, sin filas) y decisión
 
