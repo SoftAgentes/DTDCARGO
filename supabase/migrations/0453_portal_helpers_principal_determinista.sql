@@ -10,8 +10,11 @@
 --   · `get_portal_client_markbox()` (0080:49-55) devuelve el Shipping Mark del
 --     cliente del vínculo activo sin mirar si el cliente vive ni si vínculo y
 --     cliente son del mismo tenant. El Shipping Mark es único POR tenant
---     (0006:23): un vínculo incoherente o con cliente borrado sigue leyendo
---     por cada policy que compara sólo el Shipping Mark. Además `limit 1` sin
+--     (0006:23): un vínculo incoherente o con cliente borrado leía por cada
+--     policy que comparaba sólo ese valor. Las migraciones de frontera del
+--     Portal por principal y tenant reemplazaron esas policies: en el catálogo
+--     de main reconstruido ninguna policy ni función nombra ya la helper, pero
+--     la RPC sigue entregándole ese Shipping Mark a la app. Además `limit 1` sin
 --     orden: hoy `unique (auth_user_id)` (0080:30) impide dos vínculos por
 --     usuario, y ningún comentario de las funciones lo declara; si esa garantía
 --     se retira, la elección se vuelve arbitraria en silencio.
@@ -43,21 +46,32 @@
 -- PREFLIGHT QUE FALLA CERRADO
 --   · tablas con RLS y columnas que las funciones nombran;
 --   · las tres funciones existen con su forma (retorno, lenguaje, SECURITY
---     DEFINER, volatilidad y ACL: authenticated ejecuta las dos helpers, anon
---     no, y nadie más que el dueño ejecuta la función del trigger);
+--     DEFINER, volatilidad y ACL: authenticated ejecuta las dos helpers y no la
+--     función del trigger, y anon no ejecuta ninguna; el resto de la ACL, como
+--     service_role en producción, no se exige y la huella la conserva);
 --   · el cuerpo de cada una es el histórico (0200 / 0080 / 0198) o el final
---     (idempotente); cualquier otro aborta para revisar antes de aplicar;
+--     (idempotente). Para la función del trigger acepta además la forma Cloud
+--     de 0198: el mismo cuerpo sin su comentario interno, medido en producción
+--     el 2026-09-14 (md5 7db6f812a549df579f2d7d0d6cd72298), como 0423 acepta
+--     el cuerpo de 0195 del repo o de Cloud. Cualquier otro cuerpo aborta para
+--     revisar antes de aplicar;
 --   · el trigger `client_delivery_addresses_validate_trg` está vivo.
 --   El preflight guarda una huella del catálogo dependiente (policies y
 --   funciones que nombran las helpers, ACL de las tres, el trigger) y el
 --   postflight exige que no haya cambiado. Los mensajes llevan la regla
 --   incumplida, nunca ids ni Shipping Marks.
 --
--- LOCKS
--- `create or replace function` sólo toma RowExclusiveLock sobre catálogos
--- (pg_proc, pg_description); no bloquea `clients`, `client_users`,
--- `user_tenants` ni `client_delivery_addresses`. Las sesiones en curso
--- adoptan la definición nueva al invalidarse su caché. `lock_timeout` y
+-- LOCKS (medidos en PostgreSQL 17.11 sobre el schema completo reconstruido, con
+-- la forma de producción)
+-- Sólo ACCESS SHARE sobre tablas del producto, hasta el COMMIT: el smoke del
+-- postflight lee `clients`, `client_users` y `user_tenants`, y el deparse de las
+-- policies en la huella (pg_get_expr) toma ese modo sobre las tablas que nombran
+-- sus subconsultas; en el catálogo de main son 19 tablas y 28 índices. Ninguno
+-- hace esperar lecturas ni escrituras; sólo choca con un DDL concurrente (ACCESS
+-- EXCLUSIVE) sobre esas tablas: con uno retenido sobre `clients`, la migración
+-- cortó a los 5,0 s por `lock_timeout` y no cambió nada. En catálogos,
+-- RowExclusiveLock sobre pg_description por los comentarios. Las sesiones en
+-- curso adoptan la definición nueva al invalidarse su caché. `lock_timeout` y
 -- `statement_timeout` de sesión como en 0422; se restauran al final.
 --
 -- NO aplicar a Producción desde esta rama. Requiere el OK nominal de Sam y el
@@ -74,6 +88,9 @@ declare
   c_tenant_0453 constant text := 'select(pg_catalog.array_agg(ut.tenant_id))[1]frompublic.user_tenantsasutwhereut.user_id=(selectauth.uid())andut.disabled_atisnullhavingpg_catalog.count(*)=1;';
   c_markbox_0080 constant text := 'selectc.markboxfrompublic.client_userscujoinpublic.clientsconc.id=cu.client_idwherecu.auth_user_id=auth.uid()andcu.status=''active''limit1';
   c_markbox_0453 constant text := 'select(pg_catalog.array_agg(c.markbox))[1]frompublic.client_usersascujoinpublic.clientsasconc.id=cu.client_idandc.tenant_id=cu.tenant_idandc.deleted_atisnullwherecu.auth_user_id=(selectauth.uid())andcu.status=''active''havingpg_catalog.count(*)=1;';
+  -- Forma Cloud de 0198: el mismo cuerpo sin su comentario interno de tres líneas,
+  -- medida en producción el 2026-09-14 (md5(prosrc) 7db6f812a549df579f2d7d0d6cd72298).
+  c_validate_0198_cloud constant text := 'declarev_tenantuuid;v_markboxtext;beginselecttenant_id,markboxintov_tenant,v_markboxfrompublic.clientswhereid=new.client_idanddeleted_atisnull;ifv_tenantisnullthenraiseexception''direcciónsobreclienteinexistenteoborrado(client%)'',new.client_idusingerrcode=''check_violation'';endif;new.tenant_id:=v_tenant;new.client_markbox:=v_markbox;returnnew;end;';
   c_validate_0198 constant text := 'declarev_tenantuuid;v_markboxtext;beginselecttenant_id,markboxintov_tenant,v_markboxfrompublic.clientswhereid=new.client_idanddeleted_atisnull;ifv_tenantisnullthenraiseexception''direcciónsobreclienteinexistenteoborrado(client%)'',new.client_idusingerrcode=''check_violation'';endif;--UnclientedelportalsolopuedetocarSUmarkbox(logarantizalaRLScon--get_portal_client_markbox());acásellamostenant+markboxdesdelafuente,--asíelbodynopuedeapuntarlafilaaotrotenant/markbox.new.tenant_id:=v_tenant;new.client_markbox:=v_markbox;returnnew;end;';
   c_validate_0453 constant text := 'declarev_tenantuuid;v_markboxtext;v_actoruuid:=auth.uid();beginselectc.tenant_id,c.markboxintov_tenant,v_markboxfrompublic.clientsascwherec.id=new.client_idandc.deleted_atisnull;ifv_tenantisnullthenraiseexception''direcciónsobreclienteinexistenteoborrado''usingerrcode=''check_violation'';endif;--Conprincipal(sesiónocomandoSECURITYDEFINER):miembroactivodel--tenantdelcliente,otitulardelPortaldeESEclienteporunvínculo--activodelmismotenant.Sinprincipal(lotes,service_role)seconserva--elselladode0198.ifv_actorisnotnullandnotexists(select1frompublic.user_tenantsasutwhereut.user_id=v_actorandut.tenant_id=v_tenantandut.disabled_atisnull)andnotexists(select1frompublic.client_usersascuwherecu.auth_user_id=v_actorandcu.status=''active''andcu.client_id=new.client_idandcu.tenant_id=v_tenant)thenraiseexception''elprincipalnopuedeescribirdireccionesdeesecliente''usingerrcode=''insufficient_privilege'';endif;new.tenant_id:=v_tenant;new.client_markbox:=v_markbox;returnnew;end;';
   v_table text;
@@ -157,8 +174,8 @@ begin
   end if;
   select pg_catalog.regexp_replace(prosrc, '\s', '', 'g') into v_body
     from pg_catalog.pg_proc where oid = pg_catalog.to_regprocedure('public.client_delivery_addresses_validate_client()');
-  if v_body <> c_validate_0198 and v_body <> c_validate_0453 then
-    raise exception '0453 abortada: el cuerpo de client_delivery_addresses_validate_client() no es el de 0198 ni el final; revisar antes de aplicar';
+  if v_body <> c_validate_0198 and v_body <> c_validate_0198_cloud and v_body <> c_validate_0453 then
+    raise exception '0453 abortada: el cuerpo de client_delivery_addresses_validate_client() no es el de 0198 (repo o Cloud) ni el final; revisar antes de aplicar';
   end if;
 
   if not exists (

@@ -15,8 +15,9 @@
 --      tenant y la policy «clients by tenant» muestra filas de ese tenant; un
 --      vínculo con cliente borrado o incoherente (vínculo en T1, cliente en T2)
 --      obtiene Shipping Mark y lee envíos de OTRO tenant por «shipments portal
---      self read»; con la unique de 0080 retirada y dos vínculos activos, el
---      Shipping Mark es uno cualquiera; y cuando la RLS no aplica (dueño de la
+--      self read» de 0080, la policy que usaba la helper (en main la reemplazó
+--      0416 y ya ninguna policy la nombra); con la unique de 0080 retirada y dos
+--      vínculos activos, el Shipping Mark es uno cualquiera; y cuando la RLS no aplica (dueño de la
 --      tabla o comando SECURITY DEFINER) el trigger 0198 acepta direcciones de
 --      un principal que no es miembro ni titular del cliente.
 --   2. Estático: timeouts de sesión antes del preflight, preflight antes del
@@ -24,6 +25,11 @@
 --      triggers, locks ni ALTER; exactamente tres create or replace function.
 --   3. Huellas: las formas históricas que acepta el preflight coinciden con las
 --      definiciones reales de 0200, 0080 y 0198.
+--   3b. Forma de producción (lectura de catálogo autorizada del 2026-09-14): con
+--      el cuerpo de 0198 SIN su comentario interno (la forma Cloud),
+--      search_path=public y las ACL exactas de producción, el preflight la
+--      acepta y la 0453 deja las tres formas finales con esas mismas ACL. Una
+--      variante casi Cloud (sin el filtro de cliente vivo) sigue abortando.
 --   4. Drift: trigger ausente o deshabilitado, cuerpo desconocido, sin SECURITY
 --      DEFINER, ACL abierta a anon o cerrada a authenticated, tabla sin RLS,
 --      columna renombrada o auth.uid() ausente: P0001 con mensaje «0453…», sin
@@ -284,6 +290,58 @@ select pg_temp.assert_true(pg_temp.norm('public.get_portal_client_markbox()') = 
 select pg_temp.assert_true(pg_temp.norm('public.client_delivery_addresses_validate_client()') = pg_temp.constant_0453('c_validate_0198'),
   'La huella histórica de client_delivery_addresses_validate_client() es la definición real de 0198');
 
+-- Variantes de 0198 construidas desde el archivo real: la forma Cloud que corre
+-- en producción (sin el comentario interno de tres líneas) y una casi Cloud que
+-- además pierde el filtro de cliente vivo, y que el preflight debe rechazar.
+create temporary table validate_variants (label text primary key, stmt text not null);
+do $variants$
+declare
+  v_stmt text := (regexp_match(pg_read_file('/sb/migrations/0198_client_delivery_addresses.sql'),
+    'create or replace function public\.client_delivery_addresses_validate_client\(\).*?\n\$\$;'))[1];
+  v_cloud text;
+  v_near text;
+begin
+  v_cloud := regexp_replace(v_stmt,
+    '\n  -- Un cliente del portal[^\n]*\n  -- get_portal_client_markbox\(\)[^\n]*\n  -- así el body[^\n]*', '');
+  v_near := replace(v_cloud, E'\n    and deleted_at is null;', ';');
+  if v_stmt is null or v_cloud = v_stmt or v_near = v_cloud then
+    raise exception 'TEST 0453: no se pudieron construir las variantes de 0198';
+  end if;
+  insert into pg_temp.validate_variants values ('cloud', v_cloud), ('casi-cloud', v_near);
+end;
+$variants$;
+-- La lectura de producción del 2026-09-14, sin filas, copiada como literal y no
+-- tomada de la migración: el contrato no confía en el código que prueba. El
+-- md5(prosrc) de producción (7db6f812a549df579f2d7d0d6cd72298) no se reproduce en
+-- local porque el texto también difiere en espacios; se compara la forma normalizada.
+create function pg_temp.production_validate_body() returns text language sql immutable as $body$
+  select $prod$declarev_tenantuuid;v_markboxtext;beginselecttenant_id,markboxintov_tenant,v_markboxfrompublic.clientswhereid=new.client_idanddeleted_atisnull;ifv_tenantisnullthenraiseexception'direcciónsobreclienteinexistenteoborrado(client%)',new.client_idusingerrcode='check_violation';endif;new.tenant_id:=v_tenant;new.client_markbox:=v_markbox;returnnew;end;$prod$
+$body$;
+create function pg_temp.production_shape_2026_09_14() returns boolean language sql stable as $shape$
+  select
+    pg_temp.norm('public.get_user_tenant_id()')
+      = $prod$selecttenant_idfrompublic.user_tenantswhereuser_id=(selectauth.uid())anddisabled_atisnulllimit1;$prod$
+    and pg_temp.norm('public.get_portal_client_markbox()')
+      = $prod$selectc.markboxfrompublic.client_userscujoinpublic.clientsconc.id=cu.client_idwherecu.auth_user_id=auth.uid()andcu.status='active'limit1$prod$
+    and pg_temp.norm('public.client_delivery_addresses_validate_client()') = pg_temp.production_validate_body()
+    and (select p.proacl::text from pg_proc p where p.oid = 'public.get_user_tenant_id()'::regprocedure)
+      = '{postgres=X/postgres,authenticated=X/postgres}'
+    and (select p.proacl::text from pg_proc p where p.oid = 'public.get_portal_client_markbox()'::regprocedure)
+      = '{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}'
+    and (select p.proacl::text from pg_proc p where p.oid = 'public.client_delivery_addresses_validate_client()'::regprocedure)
+      = '{postgres=X/postgres,service_role=X/postgres}'
+    and (select bool_and(p.proconfig = array['search_path=public']::text[] and p.prosecdef
+           and p.proowner = 'postgres'::regrole)
+         from pg_proc p where p.oid in ('public.get_user_tenant_id()'::regprocedure,
+           'public.get_portal_client_markbox()'::regprocedure,
+           'public.client_delivery_addresses_validate_client()'::regprocedure))
+    and exists (select from pg_trigger t where t.tgrelid = 'public.client_delivery_addresses'::regclass
+      and t.tgname = 'client_delivery_addresses_validate_trg' and t.tgtype = 23 and t.tgenabled = 'O'
+      and t.tgfoid = 'public.client_delivery_addresses_validate_client()'::regprocedure)
+    and exists (select from pg_trigger t where t.tgrelid = 'public.client_delivery_addresses'::regclass
+      and t.tgname = 'client_delivery_addresses_touch')
+$shape$;
+
 -- ─── Catálogo y filas antes de la migración ─────────────────────────────────
 create function pg_temp.catalog_snapshot() returns jsonb language sql stable as $catalog$
 select jsonb_build_object(
@@ -400,6 +458,49 @@ select pg_temp.assert_true((select rows from before_migration) = pg_temp.rows_sn
   'La sonda RED no dejó filas');
 
 \if :apply_fix
+-- ─── 3b · Forma de producción medida el 2026-09-14 ──────────────────────────
+-- Producción corre 0198 sin su comentario interno y tiene ACL propias. Todo va
+-- en un savepoint: el resto del contrato sigue sobre las definiciones del repo.
+savepoint production_shape;
+do $cloud_install$
+begin
+  execute (select stmt from pg_temp.validate_variants where label = 'cloud');
+end;
+$cloud_install$;
+revoke all on function public.get_user_tenant_id() from public, anon, authenticated, service_role;
+grant execute on function public.get_user_tenant_id() to authenticated;
+revoke all on function public.get_portal_client_markbox() from public, anon, authenticated, service_role;
+grant execute on function public.get_portal_client_markbox() to service_role;
+grant execute on function public.get_portal_client_markbox() to authenticated;
+revoke all on function public.client_delivery_addresses_validate_client() from public, anon, authenticated, service_role;
+grant execute on function public.client_delivery_addresses_validate_client() to service_role;
+select pg_temp.assert_true(pg_temp.production_shape_2026_09_14(),
+  'El fixture reproduce la lectura de producción del 2026-09-14: cuerpos, search_path, dueño, ACL y triggers');
+\ir ../migrations/0453_portal_helpers_principal_determinista.sql
+select pg_temp.assert_true(
+  pg_temp.norm('public.get_user_tenant_id()') = pg_temp.constant_0453('c_tenant_0453')
+  and pg_temp.norm('public.get_portal_client_markbox()') = pg_temp.constant_0453('c_markbox_0453')
+  and pg_temp.norm('public.client_delivery_addresses_validate_client()') = pg_temp.constant_0453('c_validate_0453'),
+  'Sobre la forma de producción el preflight acepta y la 0453 deja las tres formas finales');
+select pg_temp.assert_true(
+  (select p.proacl::text from pg_proc p where p.oid = 'public.get_user_tenant_id()'::regprocedure)
+    = '{postgres=X/postgres,authenticated=X/postgres}'
+  and (select p.proacl::text from pg_proc p where p.oid = 'public.get_portal_client_markbox()'::regprocedure)
+    = '{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}'
+  and (select p.proacl::text from pg_proc p where p.oid = 'public.client_delivery_addresses_validate_client()'::regprocedure)
+    = '{postgres=X/postgres,service_role=X/postgres}'
+  and exists (select from pg_trigger t where t.tgrelid = 'public.client_delivery_addresses'::regclass
+    and t.tgname = 'client_delivery_addresses_validate_trg' and t.tgtype = 23 and t.tgenabled = 'O'),
+  'Sobre la forma de producción la 0453 conserva las ACL exactas y el trigger');
+select pg_temp.assert_true(
+  pg_temp.constant_0453('c_validate_0198_cloud') = pg_temp.production_validate_body()
+  and pg_temp.constant_0453('c_validate_0198_cloud') <> pg_temp.constant_0453('c_validate_0198'),
+  'La constante Cloud del preflight es la lectura de producción, carácter por carácter, y distinta de 0198 del repo');
+rollback to savepoint production_shape;
+release savepoint production_shape;
+select pg_temp.assert_true((select catalog from before_migration) = pg_temp.catalog_snapshot(),
+  'El caso de producción se revierte entero y el resto del contrato corre sobre el repo');
+
 \ir ../migrations/0453_portal_helpers_principal_determinista.sql
 select pg_temp.assert_true(current_setting('lock_timeout') = '0' and current_setting('statement_timeout') = '0',
   'La migración restaura lock_timeout y statement_timeout de sesión');
@@ -490,6 +591,33 @@ begin
   end loop;
 end;
 $drift$;
+
+-- Un cuerpo casi Cloud (0198 sin el comentario y sin el filtro de cliente vivo)
+-- no es ninguna de las formas aceptadas: aborta en el preflight y no toca nada.
+do $near_cloud$
+declare failed boolean := false; message text; state text; after_drift jsonb;
+  original jsonb := pg_temp.catalog_snapshot();
+  migration text := pg_read_file('/sb/migrations/0453_portal_helpers_principal_determinista.sql');
+begin
+  begin
+    execute (select stmt from pg_temp.validate_variants where label = 'casi-cloud');
+    after_drift := pg_temp.catalog_snapshot();
+    begin execute migration;
+    exception when others then
+      get stacked diagnostics message = message_text, state = returned_sqlstate;
+      failed := state = 'P0001'
+        and message like '0453 abortada: el cuerpo de client_delivery_addresses_validate_client()%';
+    end;
+    if not failed or after_drift <> pg_temp.catalog_snapshot() then
+      raise exception 'TEST 0453: el preflight aceptó un cuerpo casi Cloud de 0198 o alteró el catálogo';
+    end if;
+    raise exception using errcode = 'PT453', message = 'rollback drift sintético';
+  exception when sqlstate 'PT453' then null;
+  end;
+  perform pg_temp.assert_true(failed and original = pg_temp.catalog_snapshot(),
+    'Preflight rechaza un cuerpo casi Cloud de 0198 (sin el filtro de cliente vivo) y preserva el catálogo');
+end;
+$near_cloud$;
 
 -- El guardián del postflight, ejecutado solo con una huella que no coincide.
 do $postflight_guard$
