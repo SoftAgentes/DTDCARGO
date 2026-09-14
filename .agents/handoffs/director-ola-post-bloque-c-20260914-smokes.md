@@ -79,20 +79,27 @@ visibles al desplegar». Después de aplicar la 0414 repites 1 a 3 con un rol no
   pagada o vencida pide anularse con motivo. Si tienes un borrador de prueba, elimínalo y confirma
   que desaparece. Integrada el 2026-09-14 a las 07:20 UTC (merge `7cd50f4a`).
 
-## E · 0453, helpers del Portal — todavía no
+## E · 0453, helpers del Portal — lista, con tu OK nominal
 
-La lectura previa en producción mostró que su preflight abortaría: el cuerpo de la función del trigger
-de direcciones de entrega no tiene allí el comentario que trae el archivo de `0198`. El Worker de
-SDD-0466 lo está corrigiendo. También apareció un vínculo activo del Portal cuyo cliente está borrado:
-la app ya lo manda a `/entrar`, y con 0453 tampoco resolvería Shipping Mark en la base. Cuando la PR
-#115 esté corregida e integrada te pido el OK nominal con esos dos datos a la vista.
+La PR #115 quedó integrada (merge `4b01ac58`) con el preflight corregido. No se aplicó: te pido el OK con estos datos
+a la vista, todos medidos el 2026-09-14 sin leer filas.
+
+- En producción, el cuerpo de la función del trigger de direcciones de entrega no tiene el comentario del archivo de
+  `0198`; la migración ahora acepta esa forma y cualquier otra sigue abortando.
+- Hay un vínculo activo del Portal cuyo cliente está borrado. La app ya lo manda a `/entrar`; con 0453 la helper le
+  devuelve vacío, y ninguna policy la usa ya, así que no cambia ninguna lectura visible.
+- Solo toma locks de lectura, entre 63 y 89 ms medidos en local; no necesita ventana ni despliegue.
+- Nadie tiene hoy más de una membresía activa, así que el Studio no cambia para nadie.
+
+Antes de aplicarla repito la lectura previa y la foto de advisors.
 
 ## Cómo me respondes
 
 Un solo mensaje cuando termines, con los bloques que salieron bien y los nombres exactos. Por ejemplo:
 
 > Smokes A, B y C OK. Autorizo aplicar 0415_mail_logs_read_rbac, 0422_payment_report_command_boundary,
-> 0423_payment_report_historical_identity y 0414_invoices_read_rbac, y fusionar la PR #114 después de 0423.
+> 0423_payment_report_historical_identity, 0414_invoices_read_rbac y 0453_portal_helpers_principal_determinista, y fusionar
+> la PR #114 después de 0423.
 
 Si un bloque falla, déjalo fuera del mensaje y dime qué viste. Aplico de a una, con preflight y
 postflight, y te aviso cuándo repetir las pantallas.

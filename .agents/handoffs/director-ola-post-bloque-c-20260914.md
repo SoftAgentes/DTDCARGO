@@ -5,7 +5,7 @@
 - Repositorio: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO`.
 - Worktree de coordinación: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/director-ola-post-bloque-c-20260914`.
 - Rama: `codex/director-ola-post-bloque-c-20260914`, creada desde `origin/main` `b07ad98bda4da35086d8207640321a7995fc8f24`.
-- Estado de tarea: lista-para-revision (coordinación): los cuatro Workers cerraron y sus PRs están revisadas; falta la autorización de Sam para integrar.
+- Estado de tarea: lista-para-revision (coordinación): #113, #116 y #115 integradas; #114 espera el smoke de L14; migraciones pendientes con gate humano (0415, 0422, 0423, 0414) o con OK nominal por renovar (0453).
 - SDD: no aplica a esta rama. Reservas nuevas de esta sesión: SDD-0465 y SDD-0466.
 - Permisos del encargo (Sam, 2026-09-14, texto literal: «dale con W1 a W4 en paralelo»): ejecutar los
   cuatro Workers del briefing de esta fecha con los prompts tal como se presentaron, que incluyen
@@ -144,9 +144,10 @@ y quedan fuera los ítems con gate humano:
 |---|---|---|---|---|
 | #113 | `bc40762581de19cc518a89242237635877eda8cc` | `832c0370a2369b9a85a92b4236836977e4871183` | 2026-09-14T06:58:26Z | success, vía estado de GitHub; ID de deployment no verificado. «Calidad continua» success sobre el merge |
 | #116 | `a10efa93ac88ed0970b95c55098108818e339813` (puesta al día de `831799a3`) | `7cd50f4a451e10117f94f857cf4a7176b4a007a4` | 2026-09-14T07:20:02Z | success, vía estado de GitHub; ID de deployment no verificado. «Calidad continua» success sobre el merge |
+| #115 | `d025c2aefa48bb2830581703f133922f7f2577dd` (ronda 4 y merge de `main` `7cd50f4a`) | `4b01ac58a10993dca8dbe75c9da50ea1dad5a930` | 2026-09-14T08:06:50Z | success, vía estado de GitHub; ID de deployment no verificado. «Calidad continua» success sobre el merge |
 
 - #115: puesta al día con `main` `832c0370` por la API de GitHub (`update-branch` con
-  `expected_head_sha` `d6006f7b`; head nuevo `d224613d`). **Retenida**: vuelve a W2 en ronda 4. Ronda 4 recibida y aprobada sobre `d025c2ae` (detalle en la revisión de W2); merge cuando su check quede verde.
+  `expected_head_sha` `d6006f7b`; head nuevo `d224613d`). **Retenida**: vuelve a W2 en ronda 4. Ronda 4 recibida y aprobada sobre `d025c2ae` (detalle en la revisión de W2); integrada con check verde sobre `d025c2ae`, merge `4b01ac58`.
 - #116: puesta al día igual (`expected_head_sha` `831799a3`; head nuevo `a10efa93`). #113 no toca el
   índice de specs, así que no hizo falta regenerarlo. Antes del merge se verificó que el merge de puesta al día
   solo trae los dos archivos de #113 y que el delta propio de la PR frente a su base es idéntico por patch-id
@@ -223,53 +224,84 @@ mensaje modelo para autorizar por nombre.
 ## COMPLETADO
 
 - Briefing de las seis secciones con evidencia y matriz, entregado a Sam.
-- Reservas SDD-0465 y SDD-0466 creadas con plumbing, sin tocar el árbol de `main`.
-- Cinco worktrees creados desde `b07ad98b`: cuatro de Workers y este de coordinación.
-- Cuatro Workers lanzados en paralelo con prompts completos y aislamiento fijo.
+- Ola de cuatro Workers en paralelo, con reservas SDD-0465 y SDD-0466 y un worktree por Worker. Cuatro PRs revisadas
+  sobre su head final: #113 (W4), #114 (W3), #115 (W2, cuatro rondas) y #116 (W1).
+- Ejecución nocturna con la autorización en bloque de Sam: #113, #116 y #115 integradas sobre heads revisados, con el
+  check requerido verde y la rama al día con `main`; despliegues y «Calidad continua» verdes en cada merge.
+- 0453: lecturas previas en producción hechas; aplicación retenida por la deriva del cuerpo de 0198 y por el vínculo
+  activo con cliente borrado; preflight corregido en la ronda 4 e integrado con #115.
+- Limpieza con evidencia de cero pérdida: 16 ramas locales y 78 remotas; lo demás conservado con su motivo.
+- Guion de smokes para Sam en `.agents/handoffs/director-ola-post-bloque-c-20260914-smokes.md`.
 
 ## VALIDACIÓN
 
-- PASÓ: `git fetch origin` (dos veces), `node scripts/director-status.mjs`, `git ls-remote --heads origin`.
-- PASÓ: `corepack pnpm sdd:next`, `corepack pnpm sdd:check`, `corepack pnpm docs:check`.
-- PASÓ: `corepack pnpm lint` en `b07ad98b`: 0 errores, 8 warnings.
-- PASÓ: `list_migrations` del proyecto de producción, solo metadatos; ninguna fila de negocio leída.
-- PASÓ: guard y claim de este worktree.
-- NO EJECUTADO: `corepack pnpm verify` sobre esta rama, que solo contiene documentación de dirección.
-- PASÓ: verificación independiente de la PR #113 (blobs idénticos y `--find-object` sobre `main`, subconjunto de la spec 0235, textos desfasados en `main`).
-- PASÓ: revisión de la PR #114 (identidad de blobs con #21, columnas tenant_id en el esquema, grep de escrituras).
-- PASÓ: revisión de la PR #115 (SQL completo, precedente de esperas en #103 y #108, columnas y redefiniciones históricas).
-- PASÓ: revisión de la PR #116 (diff de los lectores y de `softDeleteInvoice`, gate de SDD-0357, spec 0465).
-- NO VERIFICADO: ID de deployment en Vercel; checks de #115 (`d6006f7b`) y #116 (`831799a3`) en curso al cerrar esta actualización.
+- PASÓ: `git fetch origin` y `node scripts/director-status.mjs` al inicio; `git ls-remote --heads origin`.
+- PASÓ: `corepack pnpm sdd:next`, `corepack pnpm sdd:check` y `corepack pnpm docs:check` en `b07ad98b`.
+- PASÓ: `corepack pnpm lint` en `b07ad98b`: 0 errores, 8 warnings heredados.
+- PASÓ: revisión de las cuatro PRs con verificación independiente (blobs y `--find-object` en #113, identidad con #21 en
+  #114, SQL línea a línea y constantes contra producción en #115, lectores, gate de SDD-0357 y patch-id de la puesta al día
+  en #116).
+- PASÓ: precondiciones por script inmediatamente antes de cada merge (estado, head, base, check por nombre, estado de
+  merge y ancestría de `origin/main`), y `gh pr merge --merge --match-head-commit` sin `--admin` ni borrado de rama.
+- PASÓ: Vercel y «Calidad continua» verdes sobre `832c0370` y `7cd50f4a`; sobre `4b01ac58`: success, vía estado de GitHub; ID de deployment no verificado. «Calidad continua» success sobre el merge.
+- PASÓ: lecturas previas de 0453 en producción (catálogo y tres conteos agregados), sin filas de negocio.
+- PASÓ: re-verificación rama por rama antes de cada borrado local y remoto.
+- NO EJECUTADO: aplicación de 0453 (retenida); smokes y 0415, 0422, 0423 y 0414 (gate humano); `corepack pnpm verify`
+  sobre esta rama, que solo contiene documentación de dirección.
+- NO VERIFICADO: ID de deployment en Vercel (el MCP responde 403; se usa el estado de GitHub).
 
 ## COMMITS
 
-- `fcab70f0` — handoff inicial de la ola (asignaciones, reservas, matriz, anexo de ramas).
-- Commit que contiene esta actualización (revisión de la PR #113 y método de blobs); SHA en la PR cuando se publique.
+- `fcab70f0` — docs(handoff): Director — ola de cuatro Workers tras el cierre del bloque C (2026-09-14)
+- `30a0ae87` — docs(handoff): Director — revisión de la PR #113 (W4) y método de blobs sobre las ramas del dictamen
+- `a5551ed0` — docs(handoff): Director — revisión de la PR #114 (W3), aprobada con integración previa del smoke de L14
+- `84fdc414` — docs(handoff): Director — revisión de la PR #115 (W2), aprobada en lo técnico con corrección de la espera de 0453
+- `8012c21d` — docs(handoff): Director — checks verdes de #113 y #114, ronda 2 de #115 verificada y ronda 3 pedida
+- `2981ee70` — docs(handoff): Director — PR #115 aprobada para integración tras las rondas 2 y 3 de W2
+- `ea86846a` — docs(handoff): Director — revisión de la PR #116 (W1) y cierre de la ola: cuatro PRs revisadas
+- `8d89b097` — docs(handoff): Director — ejecución nocturna: autorización en bloque, merge de #113, 0453 retenida, limpieza y guion de smokes
+- `a4728955` — docs(handoff): Director — títulos de limpieza y gate humano coherentes con la ejecución nocturna
+- `077f3a36` — docs(handoff): Director — PR #116 integrada sobre a10efa93 (merge 7cd50f4a)
+- `185ce42a` — docs(handoff): Director — despliegue y calidad de main verdes sobre los merges de #113 y #116
+- `2802d572` — docs(handoff): Director — ronda 4 de W2 revisada: PR #115 aprobada sobre d025c2ae, 0453 sigue retenida
+- Commit que contiene esta versión del documento.
 
 ## PR / BRANCH
 
-Rama `codex/director-ola-post-bloque-c-20260914` sobre base `main` `b07ad98b`, local, sin PR:
-publicación pendiente de permiso.
+Rama `codex/director-ola-post-bloque-c-20260914` sobre `main` `b07ad98b`, en el worktree de coordinación.
+Se publica con PR en borrador al cerrar la noche (punto 4 de la autorización en bloque); el enlace queda en el resumen
+a Sam. Sin merge de esta PR.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Los cuatro cierres recibidos y revisados (PRs #113, #114, #115 y #116, SHAs en cada sección). Al integrar, cada
-  rama que quede detrás de `main` vuelve al Worker para ponerse al día (índice de specs y baseline se regeneran
-  con sus scripts) y el Director revalida el delta antes del merge.
-- W2 usó 0453 (registrado); espera declarada en el baseline y spec alineada (rondas 2 y 3 revisadas).
-- Pedir a Sam, en bloque, las autorizaciones que siguen abiertas: smokes y OK nominal por
-  migración, limpieza remota y local, publicación de esta rama de coordinación y decisiones.
+- Smokes de Sam con el guion y, con OK nominal por nombre: `0415_mail_logs_read_rbac`; `0422_payment_report_command_boundary`
+  y luego `0423_payment_report_historical_identity`; `0414_invoices_read_rbac`. Cada una de a una, con preflight,
+  postflight, advisors antes y después, y el retiro de su espera en una rama propia.
+- OK nominal de `0453_portal_helpers_principal_determinista` con los datos nuevos a la vista. Antes de aplicar, repetir la
+  lectura previa (cuerpos, cero policies que nombren la helper y los tres conteos); después, retirar la espera.
+- Fusionar #114 después de 0422 y 0423, con OK de Sam y la rama puesta al día con `main`: queda BEHIND por la regla
+  `strict`, y `git merge-tree` contra `4b01ac58` no da conflictos.
+- Limpieza siguiente, sin autorizar todavía: worktrees y ramas de #113, #115 y #116, reservas locales 0465 y 0466 (sus
+  specs ya están en `main`), y lo conservado en «Ejecución nocturna» si Sam decide descartarlo.
+- Merge de esta PR de coordinación, con OK de Sam.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- `.env.local` del checkout principal es un directorio, no un archivo; no se revisó su contenido.
-- Las deudas de dirección ya listadas arriba; ninguna se convierte en pendiente propio.
+- `softDeleteClientAction` (`app/studio/(app)/clientes/actions.ts:412-431`) borra el cliente sin revocar su vínculo del
+  Portal; origen probable del vínculo activo con cliente borrado. Revocarlo en producción es una escritura aparte.
+- Lecturas del Portal que siguen solo por Shipping Mark (`listMyShipments`, `getMyShipment`, academia, proveedores).
+- Lookups de facturas por id sin filtro de borradas; `InvoiceDrawer` no muestra un rechazo del servidor; no hay papelera
+  ni restauración de facturas.
+- Helpers con `limit 1` sin orden (`current_studio_role()`, `get_portal_client_id()`, `get_portal_client_tenant()`,
+  `get_portal_person_id()`); `getStudioAccess` sin mensaje ante dos membresías.
+- Textos de `main` que dicen que 0326 a 0329 no están en producción (spec 0235, mapa de borrado y registro de tratamiento).
+- Contención de varios `verify` a la vez en esta máquina; `.env.local` del checkout principal es un directorio.
 
 ## HANDOFF AL DIRECTOR
 
-Sesión Director activa con claim sobre este worktree. Siguiente acción: bloque de autorizaciones para Sam
-(merges en orden #113, #115, #116 y, tras el smoke de L14 y 0422/0423, #114; smokes y OK nominal por migración,
-incluida 0453 con sus dos lecturas previas; limpieza; publicación de esta rama; decisiones de dirección).
+Siguiente acción cuando Sam vuelva: recibir el resultado de los smokes y las autorizaciones por nombre, aplicar de a una
+con el runbook, fusionar #114 cuando corresponda y pedir el OK de 0453 con sus datos. Sin sesiones consumidoras activas:
+los cuatro Workers cerraron con su claim liberado. Ownership de esta rama liberado al publicarla.
 
 ## Revisión de PRs de esta ola
 
