@@ -1,7 +1,7 @@
 ---
 sdd: "0464"
 title: "Gate de símbolos pendientes por relación y deudas de arnés del bloque C"
-status: in-progress
+status: done
 author: "Codex"
 created: 2026-09-13
 updated: 2026-09-13
@@ -163,7 +163,7 @@ el checker de skills solo consulta git local. No hay migración.
       falla.
 - [x] SDD-0440 contrastada criterio por criterio con `main`; decisión y faltante
       exacto registrados en el handoff, sin editar otras specs.
-- [ ] `pnpm verify` completo sobre el head de código con veredicto por paso.
+- [x] `pnpm verify` completo sobre el head de código con veredicto por paso.
 
 ## Fuera de alcance
 
@@ -197,11 +197,28 @@ el checker de skills solo consulta git local. No hay migración.
   (0 presentes en disco) y 4 propias versionadas; suite
   `skills-manifest.node.mjs` 9/9 tras corregir un regex propio.
 - **PASÓ** ESLint focal sobre los archivos tocados.
-- `pnpm harness:test` completo, `docs:check`, `sdd:check`, `governance:check`,
-  `git diff --check` y `pnpm verify` completo: resultados en el handoff.
+- **PASÓ** `pnpm harness:test` completo: 14 archivos descubiertos, 98/98 (una
+  corrida intermedia falló por la aserción literal de
+  `verify-watchdog.node.mjs`, corregida). **PASARON** `docs:check` (449 specs
+  tras fusionar main), `sdd:check`, `governance:check` y `git diff --check`.
+- `pnpm verify` sobre el head de código `2ac1b7f2`: **FALLÓ** el resultado
+  global (exit 1) por el e2e ambiental conocido; 16 de 17 pasos medidos.
+  **PASARON** harness (98), lint, rsc-boundary, typecheck, edge-functions,
+  test (548 archivos, 6855 pruebas), docs:check, numbering, feature-constants,
+  components:check, governance:check, pending-migration-symbols (`0 ROJO · 0
+  AMARILLO`), sql-tests, schema-rebuild y build. **NO DISPONIBLE**
+  migrations-applied (sin credenciales). **FALLÓ** e2e: dos intentos, sin
+  corte del watchdog; 153 pasadas, 15 fallidas y 18 omitidas, los 15 fallos son
+  los cinco escenarios de login/redirección dependientes de Supabase en los
+  tres proyectos (más el flaky `auth.spec.ts:74` solo en el primer intento).
+  Detalle en el handoff.
 
 ## Estado
 
 Implementación y pruebas por deuda en commits separados sobre
-`codex/harness-gate-simbolos-por-relacion` (base `origin/main` `76797beb`).
-El cierre documental posterior no cambia el código medido.
+`codex/harness-gate-simbolos-por-relacion` (base `origin/main` `76797beb`);
+`origin/main` `a9a12eed` (PR #110) y `70ee6f45` (PR #106) fusionados en la rama,
+el segundo con el driver semántico de main y el índice regenerado. `done` con
+los criterios de arriba; PR, integración y release se registran aparte. SDD-0440
+permanece `in-progress` por su corrida hospedada. El cierre documental posterior
+al verify no cambia el código medido.
