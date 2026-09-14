@@ -10,6 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { computeTotals } from "../packlist-form";
 import { unzipSync, strFromU8 } from "fflate";
 import { setInlineCell, fillPacklist } from "../packlist";
 
@@ -124,11 +125,9 @@ describe("template reformulado (SDD-0468)", () => {
       .match(new RegExp(`<c r="${ref}"[^>]*><f>([^<]*)</f>`))?.[1]
       ?.replaceAll("&quot;", '"');
 
-  it("calcula solas las columnas de color, con la regla del formulario web", () => {
-    // packlist-form · computeTotals: qty = cajas×uds/caja, total = qty×precio,
-    // peso = cajas×kg/caja, CBM = cajas×CBM/caja. Fila vacía → celda vacía.
+  it("calcula solas las columnas de color; 件数 vacío = otro producto de la misma caja", () => {
     for (const r of [12, 27]) {
-      expect(formulaOf(`I${r}`)).toBe(`IF(OR(G${r}="",H${r}=""),"",G${r}*H${r})`);
+      expect(formulaOf(`I${r}`)).toBe(`IF(H${r}="","",IF(G${r}="",H${r},G${r}*H${r}))`);
       expect(formulaOf(`K${r}`)).toBe(`IF(OR(I${r}="",J${r}=""),"",I${r}*J${r})`);
       expect(formulaOf(`M${r}`)).toBe(`IF(OR(G${r}="",L${r}=""),"",G${r}*L${r})`);
       expect(formulaOf(`O${r}`)).toBe(`IF(OR(G${r}="",N${r}=""),"",G${r}*N${r})`);
@@ -137,15 +136,93 @@ describe("template reformulado (SDD-0468)", () => {
     expect(strFromU8(files["xl/workbook.xml"])).toMatch(/fullCalcOnLoad="1"/);
   });
 
+  it("con una caja mixta (Caja Padre), los totales del Excel coinciden con computeTotals", () => {
+    // Disposición infeliz a propósito: una caja normal de 2 cartones y una caja
+    // mixta con 3 productos (1 líder + 2 filas `same` con 件数 vacío). La hoja
+    // se evalúa con las fórmulas PUBLICADAS, no con una copia de la regla.
+    const hoja = evaluarHoja(formulaOf, {
+      G12: 2, H12: 10, J12: 1.5, L12: 8, N12: 0.05,
+      G13: 1, H13: 20, J13: 2, L13: 12, N13: 0.08,
+      H14: 5, J14: 3,
+      H15: 7, J15: 1,
+    });
+    const { totals } = computeTotals([
+      { zh: "A", ctns: 2, perctn: 10, unit: 1.5, wkg: 8, cbm: 0.05 },
+      { zh: "B", ctns: 1, perctn: 20, unit: 2, wkg: 12, cbm: 0.08 },
+      { zh: "C", same: true, qtyDirect: 5, unit: 3 },
+      { zh: "D", same: true, qtyDirect: 7, unit: 1 },
+    ]);
+
+    expect(totals.qty).toBe(52); // ancla: el fixture sí ejerce la caja mixta
+    expect(hoja.G28).toBeCloseTo(totals.ctns, 6);
+    expect(hoja.I28).toBeCloseTo(totals.qty, 6);
+    expect(hoja.K28).toBeCloseTo(totals.amount, 6);
+    expect(hoja.M28).toBeCloseTo(totals.weight, 6);
+    expect(hoja.O28).toBeCloseTo(totals.cbm, 6);
+    // Las filas hijas no aportan peso ni volumen.
+    expect(hoja.M14).toBe("");
+    expect(hoja.O15).toBe("");
+  });
+
   it("no invita a escribir encima del Shipping Mark ni trae eslogan comercial", () => {
     expect(shared + sheet).not.toContain("DTD-____");
     expect(shared).not.toContain("puerta a puerta");
   });
 
-  it("dice en chino cómo se llena y deja 5 reglas cortas, chino primero", () => {
-    expect(shared).toContain("只填白色格子，带底色的列自动计算。");
-    for (const n of [1, 2, 3, 4, 5]) expect(shared).toContain(`${n}. `);
-    expect(shared).not.toContain("6. ");
+  it("no protege la hoja: la caja mixta no depende de escribir encima de una fórmula", () => {
+    expect(sheet).not.toMatch(/<sheetProtection/);
+  });
+
+  it("dice en chino cómo se llena y deja 6 reglas cortas, chino primero", () => {
+    expect(shared).toContain("只填白色格子，带底色的列自动计算（一箱多种货见第 2 条）。");
+    for (const n of [1, 2, 3, 4, 5, 6]) expect(shared).toContain(`${n}. `);
+    expect(shared).not.toContain("7. ");
     expect(shared).toMatch(/1\. 每个箱子都要写上方的唛头/);
+    expect(shared).toMatch(/2\. 一箱装多种货：第一行填件数/);
   });
 });
+
+type Valor = number | "";
+
+/**
+ * Evalúa las fórmulas del template (solo IF, OR, comparación con "", producto
+ * y SUM de rango: la gramática que usa el script) sobre una hoja en memoria.
+ * Recorre las filas 12-27 en el orden de dependencia (I antes que K) y luego
+ * los totales de la fila 28.
+ */
+function evaluarHoja(
+  formulaOf: (ref: string) => string | undefined,
+  entradas: Record<string, number>,
+): Record<string, Valor> {
+  const celdas: Record<string, Valor> = { ...entradas };
+  const leer = (ref: string): Valor => celdas[ref] ?? "";
+  const si = (cond: unknown, a: Valor, b: Valor) => (cond ? a : b);
+  const alguno = (...xs: unknown[]) => xs.some(Boolean);
+  const sumar = (col: string, desde: number, hasta: number) => {
+    let s = 0;
+    for (let r = desde; r <= hasta; r++) {
+      const v = leer(`${col}${r}`);
+      if (typeof v === "number") s += v;
+    }
+    return s;
+  };
+  const evaluar = (ref: string) => {
+    const f = formulaOf(ref);
+    if (!f) throw new Error(`sin fórmula en ${ref}`);
+    const js = f
+      .replace(/SUM\(([A-O])(\d+):[A-O](\d+)\)/g, '__sum("$1",$2,$3)')
+      .replace(/IF\(/g, "__if(")
+      .replace(/OR\(/g, "__or(")
+      .replace(/([A-O]\d+)=""/g, '__g("$1")===""')
+      .replace(/(?<!")\b([A-O]\d+)\b/g, '__g("$1")');
+    celdas[ref] = new Function("__if", "__or", "__sum", "__g", `return (${js});`)(
+      si,
+      alguno,
+      sumar,
+      leer,
+    ) as Valor;
+  };
+  for (let r = 12; r <= 27; r++) for (const col of ["I", "K", "M", "O"]) evaluar(`${col}${r}`);
+  for (const col of ["G", "I", "K", "M", "O"]) evaluar(`${col}28`);
+  return celdas;
+}

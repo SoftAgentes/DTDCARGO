@@ -34,7 +34,8 @@ const FAILED_TEXT = {
  * alternativas: copiarlo con el mensaje en chino (WeChat, donde está el
  * proveedor) o mandarlo por WhatsApp con ese mismo mensaje.
  *
- * El origin se resuelve en el cliente (evita mismatch de hidratación).
+ * El origin se resuelve en el cliente con `useSyncExternalStore` y snapshot SSR
+ * vacío (contrato SDD-0206: evita mismatch de hidratación).
  */
 export function ShareProviderButton({ token }: { token: string }) {
   const origin = useSyncExternalStore(
@@ -60,8 +61,10 @@ export function ShareProviderButton({ token }: { token: string }) {
         2000,
       );
     } catch {
-      // Sin portapapeles: el enlace queda seleccionado para copiarlo a mano.
+      // Sin portapapeles: el enlace queda enfocado Y seleccionado. Sin focus()
+      // la selección vive en un campo sin foco y Ctrl+C copia desde el botón.
       // Aun sin el mensaje, el enlace sirve: la página del proveedor está en chino.
+      inputRef.current?.focus();
       inputRef.current?.select();
       setFeedback(kind === "link" ? "failed-link" : "failed-message");
     }
@@ -83,7 +86,7 @@ export function ShareProviderButton({ token }: { token: string }) {
           value={url}
           placeholder="Preparando enlace…"
           onFocus={(e) => e.currentTarget.select()}
-          className={`h-12 min-w-0 flex-1 truncate rounded-[10px] border border-grey-200 bg-grey-100 px-4 text-[13px] text-ink ${FOCUS_RING}`}
+          className={`h-12 min-w-0 flex-1 truncate rounded-[8px] border border-grey-200 bg-grey-100 px-4 text-[13px] text-ink ${FOCUS_RING}`}
           style={{ fontFamily: MONO }}
         />
         <button

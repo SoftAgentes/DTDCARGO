@@ -11,13 +11,17 @@
  * pageSetup → 1 página A4 horizontal.
  *
  * SDD-0468 · Reformulado para que un proveedor chino lo entienda sin ayuda:
- *  - Las columnas con fondo de color (Total uds, Total, Peso, CBM) se calculan
- *    SOLAS por fila (antes eran celdas vacías que había que multiplicar a mano),
- *    con la misma regla del formulario web (packlist-form · computeTotals):
- *    qty = cajas×uds/caja, total = qty×precio, peso = cajas×kg/caja,
- *    CBM = cajas×CBM/caja. Una línea arriba de la tabla lo dice en chino.
- *  - Notas: de 7 a 5, chino primero, una regla por línea. Se quitaron las que
- *    repetían el propio documento («llena este documento», «formulario o Excel»).
+ *  - Las columnas con fondo de color (总数量, 总金额, 总重量, 总体积) se calculan
+ *    SOLAS por fila, con la regla del formulario web (packlist-form · rowCalc y
+ *    computeTotals), incluida la Caja Padre de SDD-0097: una fila con 件数 vacío
+ *    es otro producto de la MISMA caja que la fila de arriba. Aporta su cantidad
+ *    (每箱装量) y su importe, pero no cajas, peso ni volumen, que van en la primera
+ *    fila de la caja. Así una caja mixta no obliga a escribir encima de una fórmula.
+ *  - Sin protección de hoja, a propósito: si el proveedor escribe un valor encima
+ *    de una fórmula, Excel lo conserva. El Excel no se importa (la subida solo lo
+ *    guarda); la vía autoritativa es el formulario web.
+ *  - Notas: de 7 a 6, chino primero, una regla por línea (se agrega la de caja
+ *    mixta). Se quitaron las que repetían el propio documento.
  *  - Sin la tarjeta «Shipping Mark» con `DTD-____`: duplicaba el 唛头 que ya viene
  *    pre-llenado en C6 y los guiones invitaban a escribir encima.
  *  - Encabezado sin el eslogan comercial: solo dirección del almacén.
@@ -67,10 +71,16 @@ function fill(argb) {
 /**
  * Fórmula por fila de una columna computada. Devuelve "" mientras falte un
  * operando: una fila vacía no muestra ceros y SUM ignora el texto vacío.
+ *
+ * Caja Padre (SDD-0097 · packlist-form rowCalc): con 件数 (G) vacío la fila es
+ * `same` → 总数量 = 每箱装量 (H), y 总重量 / 总体积 quedan vacíos porque dependen
+ * de G. Con G lleno es una fila líder: 总数量 = G×H.
  */
 export function rowFormula(target, r) {
+  if (target === "I") {
+    return `IF(H${r}="","",IF(G${r}="",H${r},G${r}*H${r}))`;
+  }
   const operands = {
-    I: ["G", "H"], // 总数量 = 件数 × 每箱装量
     K: ["I", "J"], // 总金额 = 总数量 × 单价
     M: ["G", "L"], // 总重量 = 件数 × 每箱重
     O: ["G", "N"], // 总体积 = 件数 × 每箱体积
@@ -261,7 +271,9 @@ async function main() {
   [5, 6, 7, 8].forEach((r) => (ws.getRow(r).height = 19));
 
   // ── Fila 10: título de la tabla + cómo se llena (SDD-0468) ─────
-  ws.mergeCells("A10:G10");
+  // El título ocupa A:C y la instrucción D:O: una celda combinada no desborda,
+  // así que la instrucción necesita el ancho de 12 columnas.
+  ws.mergeCells("A10:C10");
   const secT = ws.getCell("A10");
   secT.value = { richText: [
     { text: "货物明细", font: { name: F_SANS, bold: true, size: 11, color: { argb: NAVY } } },
@@ -269,11 +281,11 @@ async function main() {
   ] };
   secT.alignment = { vertical: "middle" };
 
-  ws.mergeCells("H10:O10");
-  const howTo = ws.getCell("H10");
+  ws.mergeCells("D10:O10");
+  const howTo = ws.getCell("D10");
   howTo.value = { richText: [
-    { text: "只填白色格子，带底色的列自动计算。", font: { name: F_SANS, bold: true, size: 9, color: { argb: INK_SOFT } } },
-    { text: "  Llena las celdas blancas; las de color se calculan solas.", font: { name: F_SANS, size: 8, color: { argb: GREY_500 } } },
+    { text: "只填白色格子，带底色的列自动计算（一箱多种货见第 2 条）。", font: { name: F_SANS, bold: true, size: 9, color: { argb: INK_SOFT } } },
+    { text: "  Llena las celdas blancas; las de color se calculan solas (caja mixta: regla 2).", font: { name: F_SANS, size: 8, color: { argb: GREY_500 } } },
   ] };
   howTo.alignment = { vertical: "middle", horizontal: "right" };
   ws.getRow(9).height = 8;
@@ -356,6 +368,7 @@ async function main() {
   totLab.fill = fill(GREY_100);
   totLab.border = allBorders;
   // Cajas (G), Total uds (I), Total (K), Peso (M), CBM (O) — fórmulas en vivo.
+  // G suma solo las filas líderes: en una caja mixta las demás dejan G vacío.
   const sumRange = (col) => `SUM(${col}${FIRST_DATA}:${col}${totalRow - 1})`;
   const totCells = {
     G: sumRange("G"),
@@ -407,7 +420,7 @@ async function main() {
   };
   ws.getRow(curRow).height = 18;
 
-  // ── Notas · SDD-0468: 5 reglas, chino primero, una por línea ──
+  // ── Notas · SDD-0468: 6 reglas, chino primero, una por línea ──
   // (tuteo venezolano en el español; método nuevo, sin grupo WeChat).
   const notesRow = curRow + 2; // 31
   ws.mergeCells(`A${notesRow}:O${notesRow}`);
@@ -419,14 +432,16 @@ async function main() {
   notesHead.alignment = { vertical: "middle" };
   ws.getRow(notesRow).height = 16;
 
+  // `tall`: la regla no cabe en una línea del ancho A:O → dos líneas.
   const notes = [
-    ["1. 每个箱子都要写上方的唛头，没有唛头会延误出口。", "Escribe el Shipping Mark de arriba en cada caja; sin él se retrasa la exportación."],
-    ["2. 品牌货请填写真实品牌；没有品牌填“无”。", "Si es de marca, declara la marca real; si no, escribe “无”."],
-    ["3. 禁止危险品和违禁品入仓。", "No se aceptan mercancías peligrosas ni restringidas."],
-    ["4. 卸货由供应商安排并付费；仓库代卸按体积或重量收费。", "La descarga la paga el proveedor; si la hace el almacén, se cobra por volumen o peso."],
-    ["5. 有疑问请联系：吴小姐 18606891419 · 微信 DTDLogistic", "Dudas: Srta. Wu."],
+    { zh: "1. 每个箱子都要写上方的唛头，没有唛头会延误出口。", es: "Escribe el Shipping Mark de arriba en cada caja; sin él se retrasa la exportación." },
+    { zh: "2. 一箱装多种货：第一行填件数、每箱重和每箱体积；同箱其他货的件数留空，每箱装量填该货数量。", es: "Caja mixta: la primera fila lleva cajas, peso y volumen; en las demás filas de esa caja deja 件数 vacío y pon en 每箱装量 la cantidad de ese producto.", tall: true },
+    { zh: "3. 品牌货请填写真实品牌；没有品牌填“无”。", es: "Si es de marca, declara la marca real; si no, escribe “无”." },
+    { zh: "4. 禁止危险品和违禁品入仓。", es: "No se aceptan mercancías peligrosas ni restringidas." },
+    { zh: "5. 卸货由供应商安排并付费；仓库代卸按体积或重量收费。", es: "La descarga la paga el proveedor; si la hace el almacén, se cobra por volumen o peso." },
+    { zh: "6. 有疑问请联系：吴小姐 18606891419 · 微信 DTDLogistic", es: "Dudas: Srta. Wu." },
   ];
-  notes.forEach(([zh, es], i) => {
+  notes.forEach(({ zh, es, tall }, i) => {
     const r = notesRow + 1 + i;
     ws.mergeCells(`A${r}:O${r}`);
     const cell = ws.getCell(`A${r}`);
@@ -434,12 +449,12 @@ async function main() {
       { text: zh, font: { name: F_SANS, size: 9, color: { argb: INK_SOFT } } },
       { text: `  ${es}`, font: { name: F_SANS, size: 8, color: { argb: GREY_500 } } },
     ] };
-    cell.alignment = { vertical: "middle", horizontal: "left", wrapText: false };
-    ws.getRow(r).height = 14;
+    cell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+    ws.getRow(r).height = tall ? 26 : 14;
   });
 
   // ── Firmas ─────────────────────────────────────────────────────
-  const signRow = notesRow + notes.length + 3; // 39
+  const signRow = notesRow + notes.length + 3; // 40
   ws.mergeCells(`A${signRow}:E${signRow}`);
   const s1 = ws.getCell(`A${signRow}`);
   s1.value = { richText: [

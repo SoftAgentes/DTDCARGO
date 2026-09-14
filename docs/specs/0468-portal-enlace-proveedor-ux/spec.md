@@ -7,7 +7,7 @@ created: 2026-09-14
 updated: 2026-09-14
 supersedes: null
 superseded_by: null
-related: ["0057", "0096", "0097", "0173", "0443"]
+related: ["0057", "0096", "0097", "0173", "0206", "0443"]
 confidencialidad: interno
 ---
 
@@ -22,13 +22,14 @@ Encargo de Sam del 2026-09-14, en una sesión Worker separada:
 - Una tarea, una rama (`codex/portal-enlace-proveedor-ux`) y un worktree propio. Se entrega por PR contra `main`, sin merge ni despliegue.
 - Restricciones literales: sin colores ni elementos llamativos; copiar el enlace sin pasos adicionales; texto comprensible para proveedores chinos con bajo nivel de inglés; no alterar la lógica del formulario Factura + Packing List.
 - Los insumos «mockup o captura del diseño actual» y «contenido del Excel actual» quedaron como `[FILL]` en el encargo. El diagnóstico se hizo sobre el código y el template publicados en `main` (`2b1d7d84`).
+- El Director confirmó el número 0468 y revisó la PR #119 en `8c0a03a4`. Sus correcciones (cajas mixtas del Excel, foco cuando falla el portapapeles y precisiones de este documento) entran en un único commit posterior.
 
 ## 1. Diagnóstico del diseño actual
 
 | # | Dónde | Qué pasa | Por qué confunde |
 |---|---|---|---|
 | 1.1 | `app/portal/_components/ShareProviderButton.tsx` | Dos botones grandes con el mismo peso («Copiar link del proveedor» en vino y «Enviar por WhatsApp» con borde), y debajo la URL completa en mono, partida en varias líneas. | Tres elementos compiten por la atención y ninguno manda. «Link del proveedor» se puede leer como «el link que me dio el proveedor». |
-| 1.2 | Mismo archivo, texto de WhatsApp | Una sola oración en chino con cuatro acciones (llenar装箱单及发票, en línea o Excel, imprimir etiquetas, pegar una por caja) y otra igual en español. La URL queda pegada al final. | El proveedor tiene que desarmar la oración para saber qué hacer y en qué orden. |
+| 1.2 | Mismo archivo, texto de WhatsApp | Una sola oración en chino con cuatro acciones (llenar 装箱单及发票, en línea o Excel, imprimir etiquetas, pegar una por caja) y otra igual en español. La URL queda pegada al final. | El proveedor tiene que desarmar la oración para saber qué hacer y en qué orden. |
 | 1.3 | Mismo archivo, `copy()` | «Copiar» copia solo la URL. | El proveedor está en WeChat (en China continental WhatsApp no funciona sin VPN). Recibe un enlace suelto, sin una palabra en chino que diga para qué es. |
 | 1.4 | `app/portal/(app)/compras/nueva/PurchaseStepConfirm.tsx` | Paso 3 del asistente: una lista «Tus pasos» (2 pasos y un sub-listado a/b), otra lista «Tu proveedor · sus confirmaciones» (3 pasos), vista previa plegable y dos CTA. | Siete líneas de instrucciones que dicen lo mismo desde dos puntos de vista. Los números en vino compiten con el botón principal. |
 | 1.5 | `compras/nueva/NewPurchaseForm.tsx`, `compras/[code]/etiquetas/page.tsx` | Tres contenedores con tres explicaciones distintas, y todas dicen «trae la dirección de la bodega y las etiquetas». | La tarea principal del proveedor, llenar la factura y el packing list, no aparece. |
@@ -91,14 +92,19 @@ Copiar con mensaje en chino
 | Listo | URL completa (recortada con «…») | «Copiar enlace» | — |
 | Copiado | igual | «Enlace copiado ✓» por 2 s | anuncio `aria-live`: «Enlace copiado» |
 | Mensaje copiado | igual | igual | «Mensaje copiado ✓» en la acción secundaria |
-| Portapapeles bloqueado (enlace) | la URL queda **seleccionada** | vuelve a «Copiar enlace» | visible: «No se pudo copiar. El enlace quedó seleccionado: cópialo con Ctrl+C o mantén presionado.» |
-| Portapapeles bloqueado (mensaje) | la URL queda **seleccionada** | igual | visible: «No se pudo copiar el mensaje. El enlace quedó seleccionado: cópialo con Ctrl+C o mantén presionado; la página ya está en chino.» — no finge que el mensaje se copió |
+| Portapapeles bloqueado (enlace) | la URL queda **enfocada y seleccionada** | vuelve a «Copiar enlace» | visible: «No se pudo copiar. El enlace quedó seleccionado: cópialo con Ctrl+C o mantén presionado.» |
+| Portapapeles bloqueado (mensaje) | la URL queda **enfocada y seleccionada** | igual | visible: «No se pudo copiar el mensaje. El enlace quedó seleccionado: cópialo con Ctrl+C o mantén presionado; la página ya está en chino.» — no finge que el mensaje se copió |
 
-Detalles de interacción: el campo y el botón miden 48 px de alto; las dos acciones de texto tienen 44 px de área táctil (`min-h-11`) sin agrandar la letra; el campo y las acciones de texto usan el mismo anillo de foco de 3 px que `.btn`.
+Detalles de interacción:
+
+- El campo y el botón miden 48 px de alto y comparten el radio de 8 px de `.btn`.
+- Las dos acciones de texto tienen 44 px de área táctil (`min-h-11`) sin agrandar la letra.
+- El campo y las acciones de texto usan el mismo anillo de foco de 3 px que `.btn`.
+- Si el portapapeles falla, el foco pasa al campo antes de seleccionar. Sin eso, el foco se queda en el botón y Ctrl+C no copia el enlace.
 
 ### 2.4 Paso 3 del asistente de compra
 
-**Antes**
+**Antes** (así lo fija el Norte de SDD-0173, `docs/design/studio/_norte/portal/app.jsx:3550`)
 
 ```
 [▤] Que tu proveedor lo confirme
@@ -158,20 +164,35 @@ Los números quedan neutros (gris con borde), ya no en vino: el único acento de
 │ 订单 · Compra          [C7 pre-llenado] │ 地址 / 城市 · Dirección / Ciudad            │
 │ 微信 · WeChat          [C8 pre-llenado] │ 日期 · Fecha                               │
 ├───────────────────────────────────────┴────────────────────────────────────────────┤
-│ 货物明细 · Detalle de mercancía   只填白色格子，带底色的列自动计算。 Llena las blancas… │
+│ 货物明细 · Detalle   只填白色格子，带底色的列自动计算（一箱多种货见第 2 条）。 Llena…    │
 │ 品牌│货号│中文品名│英文品名│材质/HS│箱号│件数│每箱装量│▒总数量▒│单价│▒总金额▒│每箱重│▒总重量▒│每箱体积│▒总体积▒│
 │ …16 filas; ▒ = fórmula por fila, fondo vino muy claro, también en el encabezado…    │
 │ 总计 · Totales                        Σ cajas     Σ uds       Σ total   Σ kg    Σ CBM │
 │ 货币 · Moneda  [USD ▾]                                                                │
 │ 入仓注意事项 · Reglas para enviar al almacén                                          │
 │ 1. 每个箱子都要写上方的唛头，没有唛头会延误出口。  Escribe el Shipping Mark de arriba… │
-│ 2. 品牌货请填写真实品牌；没有品牌填“无”。  Si es de marca, declara la marca real…     │
-│ 3. 禁止危险品和违禁品入仓。  No se aceptan mercancías peligrosas ni restringidas.     │
-│ 4. 卸货由供应商安排并付费；仓库代卸按体积或重量收费。  La descarga la paga…          │
-│ 5. 有疑问请联系：吴小姐 18606891419 · 微信 DTDLogistic  Dudas: Srta. Wu.              │
+│ 2. 一箱装多种货：第一行填件数、每箱重和每箱体积；同箱其他货的件数留空，每箱装量填该货数量。 │
+│    Caja mixta: la primera fila lleva cajas, peso y volumen; en las demás…            │
+│ 3. 品牌货请填写真实品牌；没有品牌填“无”。  Si es de marca, declara la marca real…     │
+│ 4. 禁止危险品和违禁品入仓。  No se aceptan mercancías peligrosas ni restringidas.     │
+│ 5. 卸货由供应商安排并付费；仓库代卸按体积或重量收费。  La descarga la paga…          │
+│ 6. 有疑问请联系：吴小姐 18606891419 · 微信 DTDLogistic  Dudas: Srta. Wu.              │
 │ 供应商签字 / 盖章 ______________            日期 ______________                       │
 └────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+Ejemplo de caja mixta (3 productos en un cartón, más una caja normal de 2 cartones):
+
+```
+fila │ 件数 G │ 每箱装量 H │ 单价 J │ 每箱重 L │ 每箱体积 N │ ▒总数量 I▒ │ ▒总金额 K▒ │ ▒总重量 M▒ │ ▒总体积 O▒
+ 12  │   2    │    10     │  1.5  │    8    │   0.05    │     20     │    30.00   │   16.00    │   0.100
+ 13  │   1    │    20     │  2    │   12    │   0.08    │     20     │    40.00   │   12.00    │   0.080
+ 14  │ (vacío)│     5     │  3    │         │           │      5     │    15.00   │  (vacío)   │  (vacío)
+ 15  │ (vacío)│     7     │  1    │         │           │      7     │     7.00   │  (vacío)   │  (vacío)
+ 28  │   3    │           │       │         │           │     52     │    92.00   │   28.00    │   0.180
+```
+
+Son los mismos totales que da `computeTotals` con las filas 14 y 15 marcadas `same` (hay una prueba que lo verifica).
 
 ## 3. Textos sugeridos (español y chino simplificado)
 
@@ -191,8 +212,11 @@ El portal lo usa el cliente venezolano, así que en pantalla va **solo en españ
 | Fallo al copiar el enlace | No se pudo copiar. El enlace quedó seleccionado: cópialo con Ctrl+C o mantén presionado. | 复制失败。链接已选中，请按 Ctrl+C 或长按复制。 | componente |
 | Fallo al copiar el mensaje | No se pudo copiar el mensaje. El enlace quedó seleccionado: cópialo con Ctrl+C o mantén presionado; la página ya está en chino. | 消息复制失败。链接已选中，请按 Ctrl+C 或长按复制；页面本身有中文。 | componente |
 | Lista del asistente | Lo que hará tu proveedor | 供应商需要做的事 | paso 3 |
-| Pestaña de `/p/…` | Información para el proveedor | 供应商资料 | `app/p/[token]/page.tsx` |
-| Excel, cómo se llena | Llena las celdas blancas; las de color se calculan solas. | 只填白色格子，带底色的列自动计算。 | Excel, fila 10 |
+| Pestaña de `/p/…` | Información para el proveedor | 给供应商的资料 | `app/p/[token]/page.tsx` (mismo título que el H1 de la página) |
+| Excel, cómo se llena | Llena las celdas blancas; las de color se calculan solas (caja mixta: regla 2). | 只填白色格子，带底色的列自动计算（一箱多种货见第 2 条）。 | Excel, fila 10 |
+| Excel, caja mixta | Caja mixta: la primera fila lleva cajas, peso y volumen; en las demás filas de esa caja deja 件数 vacío y pon en 每箱装量 la cantidad de ese producto. | 一箱装多种货：第一行填件数、每箱重和每箱体积；同箱其他货的件数留空，每箱装量填该货数量。 | Excel, regla 2 |
+
+La pestaña iba a titularse «供应商资料», pero puede leerse como «datos del proveedor». Se usa «给供应商的资料» («información para el proveedor»), que ya es el H1 de la página. Ninguno de los dos fue certificado por un hablante nativo.
 
 **Glosario fijo.** Se usa siempre la misma palabra, la que ya usa un exportador de Yiwu, y nunca un sinónimo:
 
@@ -234,16 +258,24 @@ Hola. Abre el enlace de DTD Cargo y completa 3 pasos:
 
 | Cambio | Antes | Después | Por qué |
 |---|---|---|---|
-| Columnas automáticas | Fondo de color, celdas vacías | Fórmula por fila con la regla de `computeTotals`: 总数量 = 件数×每箱装量 · 总金额 = 总数量×单价 · 总重量 = 件数×每箱重 · 总体积 = 件数×每箱体积. Vacía mientras falte un dato. | El color ya significa lo que parece. Se elimina la multiplicación manual, que era la causa principal de errores. |
+| Columnas automáticas | Fondo de color, celdas vacías | Fórmula por fila equivalente a `rowCalc`/`computeTotals` (`packlist-form.ts:165-193` y `:221-248`), **incluida la Caja Padre de SDD-0097**. 总数量 (I) = vacío si falta 每箱装量 (H); H si 件数 (G) está vacío (otro producto de la misma caja, equivale a `same` con `qtyDirect`); G×H si no. 总金额 (K) = I×J. 总重量 (M) = G×L y 总体积 (O) = G×N quedan vacíos sin G, así que una fila de la misma caja no aporta peso ni volumen. | El color ya significa lo que parece. Se elimina la multiplicación manual. Una caja con varios productos se llena sin escribir encima de una fórmula y sin contar cajas de más. |
+| Totales (fila 28) | `SUM` de G, I, K, M, O | Igual. Como las filas de la misma caja dejan G vacío, 件数 suma solo las filas líderes, igual que `computeTotals` (`if (!r.same) ctns += r.ctns`). | Los totales del Excel coinciden con los del formulario web. |
 | Encabezado de esas columnas | Gris, como las demás | Mismo fondo vino claro que su columna | Se entiende que la columna entera no se escribe. |
-| Cómo se llena | No se decía | Fila 10: «只填白色格子，带底色的列自动计算。» | Una sola instrucción, en chino, justo encima de la tabla. |
+| Cómo se llena | No se decía | Fila 10: «只填白色格子，带底色的列自动计算（一箱多种货见第 2 条）。» | Una sola instrucción, en chino, justo encima de la tabla, con la excepción de la caja mixta señalada. |
 | Recalculado | — | `fullCalcOnLoad` activo | Excel y WPS calculan al abrir. |
-| Notas | 7, largas, español primero | 5, cortas, chino primero | Se quitan las que repetían el propio documento («llena este documento», «formulario o Excel»). |
+| Notas | 7, largas, español primero | 6, cortas, chino primero. La nueva es la regla 2, de caja mixta. | Se quitan las que repetían el propio documento («llena este documento», «formulario o Excel»). |
 | Tarjeta Shipping Mark | `MARK DTD-____`, `ITEM NO ____`… | Eliminada | Duplicaba C6 y los guiones invitaban a escribir encima. |
 | Encabezado | «Importación puerta a puerta 中国 → 委内瑞拉» | «仓库地址 … · Dirección del almacén» | El eslogan comercial no le sirve al proveedor. |
 | Rótulos | «N.º / 编号 · Folio», «Email proveedor», «Tel. proveedor» | «编号 · N.º», «Email», «Teléfono» | Chino primero y sin palabras de más. |
 
-**No cambia:** las celdas de pre-llenado `C5`, `C6`, `C7`, `C8` e `I3` (`lib/studio/prealertas/packlist.ts · fillPacklist`), las 16 filas de mercancía, las fórmulas de totales, la validación de moneda, las firmas y la impresión en una página. El Excel subido no se parsea por posición: se guarda como documento. Por eso la reformulación no toca ninguna lógica de recepción.
+**Protección de hoja:** no hay, a propósito. El template anterior tampoco la tenía, y la regla de caja mixta no depende de escribir encima de una fórmula, así que no la necesita.
+
+**Límites conocidos:**
+
+- **Fórmula pisada.** Si el proveedor escribe un número encima de una celda de color, Excel conserva su valor y esa fila deja de calcularse sola. El Excel no se importa (`app/p/[token]/upload/route.ts` solo lo guarda), y la vía autoritativa es el formulario web, que recalcula en el servidor.
+- **件数 olvidado.** Una fila normal a la que le falte 件数 se lee como producto de la caja de arriba: suma su cantidad, pero no cajas, peso ni volumen. Se nota en pantalla porque 总重量 y 总体积 quedan vacíos en esa fila.
+
+**No cambia:** las celdas de pre-llenado `C5`, `C6`, `C7`, `C8` e `I3` (`lib/studio/prealertas/packlist.ts · fillPacklist`), las 16 filas de mercancía, las fórmulas de totales, la validación de moneda, las firmas y la impresión en una página. El Excel subido no se importa, así que la reformulación no toca ninguna lógica de recepción.
 
 ## 6. Justificación: claridad y usabilidad
 
@@ -253,8 +285,8 @@ Hola. Abre el enlace de DTD Cargo y completa 3 pasos:
 4. **Menos texto que leer.** El paso 3 baja de 7 líneas de instrucciones en dos listas a 3 en una. Las explicaciones de los tres contenedores quedan en una o dos frases y nombran la tarea principal (factura + packing list).
 5. **Mismo vocabulario en todas partes.** «Enlace» en vez de «link»; 装箱单 / 发票 / 标签 / 唛头 / 仓库 son los términos de comercio exterior del proveedor.
 6. **Sin acentos nuevos.** Solo tokens `var(--*)`. Las acciones secundarias son texto `ink` subrayado y los números de la lista pasan a neutro. No hay colores nuevos, iconos decorativos ni animaciones.
-7. **Accesible y robusto.** El campo tiene `label` (sr-only), las confirmaciones se anuncian con `aria-live`, el foco es visible (el mismo anillo de 3 px de `.btn`), el botón mide 48 px y las acciones de texto tienen 44 px de área táctil. Si el navegador bloquea el portapapeles, el enlace queda seleccionado y se dice qué hacer; antes el fallo era silencioso.
-8. **El Excel hace el trabajo.** Las fórmulas eliminan la aritmética manual, y el color deja de mentir.
+7. **Accesible y robusto.** El campo tiene `label` (sr-only), las confirmaciones se anuncian con `aria-live` y el foco es visible (el mismo anillo de 3 px de `.btn`). El botón mide 48 px y las acciones de texto tienen 44 px de área táctil. Si el navegador bloquea el portapapeles, el enlace queda enfocado y seleccionado y se dice qué hacer; antes el fallo era silencioso.
+8. **El Excel hace el trabajo.** Las fórmulas eliminan la aritmética manual, respetan la caja mixta igual que el formulario web, y el color deja de mentir.
 
 ## 7. Alcance y cumplimiento
 
@@ -266,7 +298,8 @@ Hola. Abre el enlace de DTD Cargo y completa 3 pasos:
 - `app/portal/(app)/compras/[code]/etiquetas/page.tsx` (solo textos)
 - `app/p/[token]/page.tsx` (solo `metadata.title`)
 - `scripts/build-packlist-template.mjs` · `public/templates/dtd-packing-list-invoice.xlsx` · `lib/studio/prealertas/__tests__/packlist.test.ts`
-- `docs/specs/0468-portal-enlace-proveedor-ux/spec.md` · índice generado · handoff
+- `docs/specs/0468-portal-enlace-proveedor-ux/spec.md` · `docs/specs/README.md` (índice generado) · `docs/architecture/module-sdd-map.md`
+- `.agents/handoffs/portal-enlace-proveedor-ux.md`
 
 | Regla | Clasificación | Evidencia |
 |---|---|---|
@@ -274,29 +307,39 @@ Hola. Abre el enlace de DTD Cargo y completa 3 pasos:
 | Copiar el enlace sin pasos adicionales | cumplimiento | Prueba «copia solo la URL, en un clic» (`ShareProviderButton.test.tsx`). |
 | Comprensible con bajo inglés | cumplimiento | Prueba «el bloque en chino no pide leer inglés» (`provider-link-message.test.ts`). |
 | No alterar la lógica del formulario | cumplimiento | Sin cambios en `app/p/[token]/PackingListFormSection.tsx`, `packlist/route.ts`, `packlist-form.ts` ni en el payload; pruebas de `app/p/[token]` en verde. |
+| Excel coherente con Caja Padre (SDD-0097) | cumplimiento | Prueba «con una caja mixta, los totales del Excel coinciden con `computeTotals`», que evalúa las fórmulas publicadas. |
+| Contrato `useSyncExternalStore` (SDD-0206) | cumplimiento | Snapshot SSR vacío conservado; `action-result-contract.test.ts` en verde. |
 | Privacidad SDD-0443 (sin identidad del cliente) | cumplimiento | El mensaje solo recibe la URL; prueba dedicada. |
+| Norte del paso 3 (SDD-0173) | **excepción** | `docs/design/studio/_norte/portal/app.jsx:3550` fija «Que tu proveedor lo confirme» con dos listas numeradas en vino («Tus pasos» + «sus confirmaciones»). Este SDD las reduce a una acción y 3 pasos neutros porque esa disposición es justo la saturación diagnosticada en §1.4. El prototipo no se edita a mano (gobernanza); la realineación queda para un NORTE-SYNC. |
 | `revisar-datos-ve` | no aplica | No se capturan, mueven ni borran datos personales. |
 | Gobernanza Studio (`AGENT-BRIEF`) | no aplica | Portal y página pública del proveedor, no Studio. |
 | DB / migraciones / producción | no aplica | Sin SQL. |
 
 **Fuera de alcance (fase siguiente, si Sam lo pide):**
 
-- La página `/p/[token]`: encabezado, orden de secciones y las reglas de almacén dentro del formulario. Es la otra mitad de «que el proveedor entienda», pero toca el flujo del formulario.
-- Marca blanca (aliados) en el mensaje: hoy dice «DTD Cargo» fijo, igual que el texto anterior.
-- Traducir el portal del cliente al chino.
+- **NORTE-SYNC del paso 3:** realinear `docs/design/studio/_norte/portal/app.jsx` (≈3537-3600) con la disposición de §2.4.
+- **Specs anteriores que quedan desactualizadas** respecto del Excel y del componente:
+  - `docs/specs/0096-packing-list-online-proveedor/spec.md:44`: notas del Excel en su versión anterior.
+  - `docs/specs/0096-packing-list-online-proveedor/spec.md:81`: template con tarjeta Shipping Mark, sin fórmulas por fila y C7 descrita como cliente.
+  - `docs/specs/0057-portal-compras-prealertas/spec.md:287`: `ShareProviderButton` como «Compartir con tu proveedor» con dos botones.
+- **La página `/p/[token]`:** encabezado, orden de secciones y reglas de almacén dentro del formulario. Es la otra mitad de «que el proveedor entienda», pero toca el flujo del formulario.
+- **Marca blanca (aliados):** el mensaje y el Excel dicen «DTD Cargo» fijo, igual que el texto anterior.
+- **Traducción del portal del cliente al chino.**
+- **`NumberedStep`:** círculos de 22 px, fuera de la escala de 4 px (preexistente).
 
 ## 8. Criterios de aceptación
 
 - [x] El componente muestra una sola acción principal; las alternativas son texto.
 - [x] «Copiar enlace» copia solo la URL, en un clic.
+- [x] Si el portapapeles falla, el enlace queda enfocado y seleccionado, y el aviso dice qué hacer.
 - [x] El mensaje al proveedor va en chino primero, en 3 pasos numerados, con el enlace en su propia línea y sin identidad del cliente.
 - [x] Los tres contenedores usan la misma explicación corta y nombran la factura y el packing list.
-- [x] El paso 3 del asistente queda con una acción y una lista de 3 pasos.
-- [x] El Excel calcula solo las columnas de color, tiene 5 notas en chino primero y conserva las 5 celdas de pre-llenado.
+- [x] El paso 3 del asistente queda con una acción y una lista de 3 pasos (excepción al Norte registrada en §7).
+- [x] El Excel calcula solo las columnas de color, respeta la caja mixta con los mismos totales que `computeTotals`, tiene 6 notas en chino primero y conserva las 5 celdas de pre-llenado.
 - [x] Se incluyen textos en español y chino simplificado (§3, §4, §5).
 - [x] La lógica del formulario del proveedor no cambia.
-- [ ] Revisión visual en el portal con sesión real (tema oscuro y claro, 375 px y escritorio) y apertura del Excel en Excel o WPS. Queda para Sam: el worktree no tiene credenciales de Supabase y no se copian secretos.
+- [ ] Revisión visual en el portal con sesión real (tema oscuro y claro, 375 px y escritorio) y apertura del Excel en Excel o WPS, incluida una caja mixta. Queda para Sam: el worktree no tiene credenciales de Supabase y no se copian secretos.
 
 ## 9. Verificación
 
-Registro de pruebas en el handoff `.agents/handoffs/portal-enlace-proveedor-ux.md`: pruebas unitarias y de componente, control rojo contra el componente original, inspección del XML del `.xlsx` y `pnpm verify`.
+Registro de pruebas por SHA en el handoff `.agents/handoffs/portal-enlace-proveedor-ux.md`: pruebas unitarias y de componente, controles rojos contra las versiones anteriores, inspección del XML del `.xlsx` y `pnpm verify`.

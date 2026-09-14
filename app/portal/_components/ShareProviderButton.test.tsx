@@ -73,6 +73,9 @@ describe("ShareProviderButton", () => {
     fireEvent.click(screen.getByRole("button", { name: "Copiar enlace" }));
 
     expect(await screen.findByText(/No se pudo copiar\. El enlace/)).toBeVisible();
+    // Enfocado, no solo seleccionado: si el foco se queda en el botón, el
+    // «cópialo con Ctrl+C» del aviso copia nada en escritorio.
+    expect(document.activeElement).toBe(input);
     expect(input.selectionStart).toBe(0);
     expect(input.selectionEnd).toBe(url().length);
   });
@@ -86,6 +89,7 @@ describe("ShareProviderButton", () => {
 
     expect(await screen.findByText(/No se pudo copiar el mensaje/)).toBeVisible();
     expect(screen.queryByRole("button", { name: /Mensaje copiado/ })).toBeNull();
+    expect(document.activeElement).toBe(input);
     expect(input.selectionEnd).toBe(url().length);
   });
 
