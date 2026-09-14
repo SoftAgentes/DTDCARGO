@@ -19,6 +19,7 @@ Aceptación del encargo, en cuatro puntos:
 
 Dependencias: ninguna. Otros tres Workers en paralelo no tocan `supabase/`.
 Ronda 2 (2026-09-14, revisión del Director sobre `01518252`): SQL de la 0453, spec y handoff aceptados en lo técnico. Única omisión: la espera de la 0453 en `supabase/migrations-baseline.json`, sin la cual `migrations-applied` sale rojo con credenciales al fusionar. El Director amplió la allowlist únicamente a ese archivo para agregar UNA entrada en `pendingBelowCutoff` con clave exacta `0453_portal_helpers_principal_determinista`, sin subir el cutoff 238 ni tocar las otras cuatro esperas, y pidió actualizar sólo este handoff (PENDIENTES y COMMITS). Nada más cambia.
+Ronda 3 (2026-09-14, revisión del Director sobre `15ea0316`): sólo texto, con allowlist limitada a la spec 0466 y este handoff. «Alcance» de la spec decía que `supabase/migrations-baseline.json` quedaba fuera y «Allowlist exacta» no lo listaba, aunque la ronda 2 agregó allí la espera de la 0453. Como la allowlist exacta es normativa, la spec pasa a incluir el archivo únicamente para esa espera en `pendingBelowCutoff` (sin subir el cutoff 238 ni tocar las otras esperas), porque `migrations-applied` lo exige hasta aplicar; el gate de símbolos sigue sin exigir declaración. Sin cambios de `status`, criterios, `updated` ni otras secciones.
 
 ## OBJETIVO ORIGINAL
 
@@ -86,6 +87,17 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 | `git diff --check` / `git diff --cached --check` | PASÓ. El commit `2fea6ef6` contiene sólo `supabase/migrations-baseline.json` (2 insertadas, 1 retirada). |
 | `corepack pnpm verify` | NO EJECUTADO: desde `aa083acb` (donde `verify.meta` prueba la corrida completa) sólo cambian documentación (`01518252`, este handoff) y el baseline, que `verify` cubre con `migrations-applied` (SKIP sin credenciales, mismo resultado), `pending-migration-symbols` y `harness`, repetidos acá con el mismo veredicto. Código, SQL, pruebas y spec quedan byte a byte iguales: `git diff --stat aa083acb..HEAD` lista sólo el handoff, la spec (`status`), el índice y el baseline. |
 
+### Ronda 3 (sólo texto: la spec y este handoff)
+
+| Comprobación | Estado y evidencia |
+|---|---|
+| `guard` / `claim` / `guard --owner` | PASÓ: el claim se readquirió al empezar y el guard corrió antes de cada commit. Árbol limpio y `origin/main` sin avances (`b07ad98b`). |
+| `corepack pnpm docs:check` | PASÓ: 453 specs sincronizadas; `status` (`done`), título y `updated` (2026-09-14) sin cambios. |
+| `corepack pnpm sdd:check` | PASÓ: sin números repetidos. |
+| `git diff --check` / `--cached --check` | PASÓ. El commit `2a0238b8` contiene sólo la spec: 7 líneas insertadas y 2 retiradas, en tres hunks (el bullet nuevo de «Alcance», el sub-bullet retirado de «Fuera de alcance» y la línea nueva de «Allowlist exacta»). |
+| «Allowlist exacta» contra `git diff --name-only origin/main...HEAD` | PASÓ: las 6 rutas coinciden una a una (migración, contrato, spec, índice, baseline y este handoff). |
+| `corepack pnpm verify` | NO EJECUTADO, con el motivo de la ronda 2: desde `aa083acb` sólo cambian prosa de la spec y del handoff y la espera del baseline; código, SQL, pruebas e índice quedan idénticos. |
+
 ## REVISIÓN FOCAL DE DATOS Y GOBERNANZA
 
 - **Datos (`revisar-datos-ve`):** ENCONTRADO en main y corregido localmente: un vínculo incoherente o con cliente borrado obtenía Shipping Mark y leía envíos de otro tenant, y sin RLS podía crear direcciones de un cliente ajeno. La 0453 no agrega campos ni tratamientos; sus mensajes no llevan ids ni Shipping Marks (el de cliente borrado deja de incluir el uuid). NO VERIFICABLE si ocurrió en producción: requiere el conteo agregado que la spec describe, con autorización.
@@ -99,21 +111,24 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 - `aa083acb` — docs(sdd): SDD-0466 — spec e índice (el head sobre el que corrió `verify`).
 - `01518252` — docs(handoff): SDD-0466 — cierre de la ronda 1 y spec en `done` (el head que revisó el Director).
 - `2fea6ef6` — chore(db): SDD-0466 — declarar la espera de 0453 en `pendingBelowCutoff` (ronda 2).
-- Commit que contiene este documento: nota de la ronda 2 (hash final en la PR).
+- `15ea0316` — docs(handoff): SDD-0466 — ronda 2: espera de la 0453 declarada (el head que revisó el Director).
+- `2a0238b8` — docs(sdd): SDD-0466 — ronda 3: alcance y allowlist incluyen la espera de 0453 en el baseline.
+- Commit que contiene este documento: nota de la ronda 3 (hash final en la PR).
 
 ## PR / BRANCH
 
 - **PR:** [#115 en borrador](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/115), «fix(studio): SDD-0466 — helpers del Portal por principal, deterministas y sin cruce de tenant», base `main`. Head revisado por `verify`: `aa083acb`; el commit de este documento se publica después en un push normal.
 - **Rama:** `codex/portal-helpers-principal-determinista`, publicada a sí misma con `git push -u origin codex/portal-helpers-principal-determinista:codex/portal-helpers-principal-determinista`, sin force. Base `main` `b07ad98b`.
   - Ronda 1: `1fdfe9fb`, `aa083acb` y `01518252`.
-  - Ronda 2: `2fea6ef6` y el commit que contiene este documento, en un único push normal.
+  - Ronda 2: `2fea6ef6` y `15ea0316`, en un único push normal.
+  - Ronda 3: `2a0238b8` y el commit que contiene este documento, en un único push normal y sin verify (ver la tabla de la ronda 3).
 - Worktree el indicado arriba. Sin merge, sin salir de borrador y sin aplicar migraciones.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **CI y revisión:** CI alojado sobre el head publicado de la ronda 2 y revisión final del Director. Sacar la PR de borrador y fusionar le corresponde al Director.
+- **CI y revisión:** CI alojado sobre el head publicado de la ronda 3 y revisión final del Director. Sacar la PR de borrador y fusionar le corresponde al Director.
 - **Espera en `supabase/migrations-baseline.json`:** declarada en la ronda 2 (`2fea6ef6`). Con credenciales, `migrations-applied` exime a la 0453 con motivo escrito hasta que se aplique.
-- **Spec 0466 y la espera:** la spec (`Alcance` y `Allowlist exacta`) sigue diciendo que el baseline queda fuera y que la 0453 no necesita espera por el gate de símbolos; con la ronda 2 la PR sí toca ese archivo. No se corrigió porque el Director pidió no cambiar nada más; queda para una ronda sólo de texto si el Director la quiere alineada, como se hizo con la 0461 (ronda 3).
+- **Spec 0466 y la espera:** alineada en la ronda 3 (`2a0238b8`): «Alcance» y «Allowlist exacta» incluyen el baseline únicamente para esa espera, y la allowlist coincide una a una con `git diff --name-only origin/main...HEAD`.
 - **Antes de aplicar la 0453**, en otra tarea con OK nominal de Sam y el runbook: leer `pg_get_functiondef` de las tres funciones y el trigger (sin filas); si un cuerpo difiere del repo, el preflight aborta y hay que revisar. Conteos agregados recomendados: membresías activas por usuario mayores que uno, y vínculos activos con cliente borrado o tenant distinto al de su cliente.
 - **Después de aplicar:** smoke de una sesión del Studio (clientes) y una del Portal (Mi perfil › Direcciones y envíos); `migrations-applied` en verde.
 
@@ -128,7 +143,7 @@ Sin credenciales copiadas ni `.env`. Entorno: Node 24.20.0, pnpm 12.3.4, Docker 
 ## HANDOFF AL DIRECTOR
 
 - **Orden seguro:**
-  1. revisar la PR sobre el head publicado de la ronda 2 y su CI;
+  1. revisar la PR sobre el head publicado de la ronda 3 y su CI;
   2. fusionar sobre el SHA revisado, repitiendo antes el merge de main si avanzó; con la espera declarada, `migrations-applied` exime a la 0453 con motivo escrito;
   3. aplicar la 0453 en otra tarea: OK nominal de Sam, de a una, name exacto `0453_portal_helpers_principal_determinista`, con la lectura previa del catálogo y los dos conteos agregados que la espera imprime; no necesita ventana de baja actividad (sin locks de tabla) ni despliegue previo;
   4. smoke del Studio y del Portal, y retiro de la espera en una rama propia tras la verificación autorizada.
