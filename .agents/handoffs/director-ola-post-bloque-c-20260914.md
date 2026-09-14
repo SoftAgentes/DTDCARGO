@@ -146,7 +146,7 @@ y quedan fuera los ítems con gate humano:
 | #116 | `a10efa93ac88ed0970b95c55098108818e339813` (puesta al día de `831799a3`) | `7cd50f4a451e10117f94f857cf4a7176b4a007a4` | 2026-09-14T07:20:02Z | success, vía estado de GitHub; ID de deployment no verificado. «Calidad continua» success sobre el merge |
 
 - #115: puesta al día con `main` `832c0370` por la API de GitHub (`update-branch` con
-  `expected_head_sha` `d6006f7b`; head nuevo `d224613d`). **Retenida**: vuelve a W2 en ronda 4.
+  `expected_head_sha` `d6006f7b`; head nuevo `d224613d`). **Retenida**: vuelve a W2 en ronda 4. Ronda 4 recibida y aprobada sobre `d025c2ae` (detalle en la revisión de W2); merge cuando su check quede verde.
 - #116: puesta al día igual (`expected_head_sha` `831799a3`; head nuevo `a10efa93`). #113 no toca el
   índice de specs, así que no hizo falta regenerarlo. Antes del merge se verificó que el merge de puesta al día
   solo trae los dos archivos de #113 y que el delta propio de la PR frente a su base es idéntico por patch-id
@@ -392,6 +392,30 @@ incluida 0453 con sus dos lecturas previas; limpieza; publicación de esta rama;
   Aplicar 0453 a producción es una autorización aparte (OK nominal por nombre y runbook), precedida
   de la lectura sin filas de `pg_get_functiondef` de las tres funciones y de los dos conteos
   agregados, ambos con autorización de Sam.
+- Ronda 4 (2026-09-14, ejecución nocturna), revisada por el Director sobre `d025c2aefa48bb2830581703f133922f7f2577dd`:
+  - Motivo: la lectura previa en producción mostró que el cuerpo de `client_delivery_addresses_validate_client()` no
+    tiene el comentario interno del archivo 0198, así que el preflight de la ronda 3 abortaba.
+  - Migración: solo cambia el preflight. Entra la constante `c_validate_0198_cloud`, con su md5 en comentario, y la
+    condición y el mensaje pasan a «0198 (repo o Cloud) ni el final». Verificado por script: la constante es carácter
+    por carácter la lectura de producción; `c_tenant_0200` y `c_markbox_0080` también coinciden con lo leído; los
+    cuerpos finales y el postflight son idénticos a los revisados en `d6006f7b`.
+  - Contrato: 119 aserciones; caso con la forma Cloud comparada contra el literal de la lectura, y una variante casi
+    Cloud sin el filtro de cliente vivo que sigue abortando. 34 mutantes muertos según el Worker.
+  - Baseline: frente a `main` `7cd50f4a` solo agrega la espera de 0453 (la línea de 0423 gana la coma final);
+    `cutoff` 238 y `$doc` idénticos por contenido.
+  - Índice: merge de `origin/main` `7cd50f4a` con el driver de main y regeneración; 454 specs, filas 0465 y 0466.
+    `origin/main` es ancestro del head. La PR toca las mismas seis rutas de la allowlist.
+  - Correcciones de evidencia del Worker, aceptadas: locks medidos sobre el esquema completo (ACCESS SHARE sobre 19
+    tablas y 28 índices por el `pg_get_expr` de la huella, 63 a 89 ms); ninguna policy ni función de `main` nombra
+    ya `get_portal_client_markbox()`, así que 0453 no cambia lecturas por RLS; y producción da EXECUTE a
+    `service_role` sobre la función del trigger, que el preflight no prohíbe.
+  - Validación del Worker: `VERIFY_SKIP_E2E=1 E2E_PORT=3102 corepack pnpm verify` sobre `1f1245d2` exit 0, con
+    migrations-applied NO EJECUTADO sin credenciales y e2e NO EJECUTADO a pedido del Director.
+  - **Veredicto: APROBADA para integración** con check verde sobre `d025c2ae`. La aplicación de 0453 sigue
+    retenida: se pide a Sam el OK nominal con la deriva, el vínculo con cliente borrado y los locks corregidos a la vista.
+- Hallazgo nuevo de W2, FUERA DE ALCANCE: `softDeleteClientAction` (`app/studio/(app)/clientes/actions.ts:412-431`) borra
+  el cliente sin revocar su vínculo del Portal; es el origen probable del vínculo activo con cliente borrado. Revocar
+  ese vínculo en producción es una escritura con autorización propia.
 - FUERA DE ALCANCE que deja W2: `current_studio_role()`, `get_portal_client_id()`,
   `get_portal_client_tenant()` y `get_portal_person_id()` comparten el `limit 1`; policies del
   Portal que comparan solo el Shipping Mark (patrón 0080); `getStudioAccess` sin mensaje ante dos
