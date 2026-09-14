@@ -9,6 +9,7 @@ import test from "node:test";
 import { envParaSalidaCanalizada } from "../verify-e2e.mjs";
 import { EXIT_SKIPPED, createReporter, runStep } from "../verify-runner.mjs";
 import { buildVerifyVerdict } from "../verify-step-policy.mjs";
+import { discoverHarnessTests } from "./run-harness.mjs";
 import {
   WATCHDOG_ENV,
   describeKill,
@@ -501,7 +502,13 @@ test("verify cablea el watchdog al paso e2e y corre estas pruebas en su harness"
   const source = await readFile(new URL("../verify.mjs", import.meta.url), "utf8");
   assert.match(source, /resolveWatchdogLimits\(process\.env\)/);
   assert.match(source, /await runStep\(step, /);
-  assert.match(source, /"scripts\/tests\/verify-watchdog\.node\.mjs"/);
+  // El paso harness ya no lleva lista manual (SDD-0464): corre lo que descubre
+  // harness:test, y ese descubrimiento incluye estas pruebas.
+  assert.match(source, /argv: \["--test", \.\.\.harnessTests\]/);
+  assert.ok(
+    discoverHarnessTests().some((file) => file.endsWith("verify-watchdog.node.mjs")),
+    "harness:test descubre verify-watchdog.node.mjs",
+  );
   const e2e = source.match(/\{\s*name: "e2e",[\s\S]*?\n {2}\},\n/);
   assert.ok(e2e, "no se encontró el paso e2e en STEPS");
   assert.match(e2e[0], /watchdog: e2eWatchdog,/);

@@ -6,6 +6,14 @@
  * try/catch. Una dependencia ausente solo asciende de ROJO a AMARILLO mediante
  * una declaración explícita cuyos sitios y evidencia se validan contra el árbol.
  *
+ * Una columna pendiente se asocia a su relación (SDD-0464, ADR-0003): una
+ * mención del nombre de la columna en un módulo alcanzable cuenta como sitio
+ * salvo que ese módulo, o un vecino directo suyo en el grafo de imports, nombre
+ * otra relación que sí tiene una columna con ese nombre según el DDL de las
+ * migraciones y ninguno nombre la relación pendiente (ni una función que la
+ * devuelva). Sin esa evidencia positiva la referencia se exige: el gate falla
+ * cerrado. Funciones, tablas y vistas siguen asociándose por nombre.
+ *
  * Uso: node scripts/check-pending-migration-symbols.mjs
  * Exit: 0 = sin rojos (puede haber amarillos declarados) · 1 = rojo · 2 = error del contrato/check
  */
@@ -271,6 +279,43 @@ const ALTER_TABLE = new RegExp(
   "gi",
 );
 const ADD_COLUMN = new RegExp(String.raw`\badd\s+column\s+${IF_NOT_EXISTS}(?<column>${IDENTIFIER})${NAME_END}`, "gi");
+/**
+ * Dentro del cuerpo de un `alter table` (que termina en `;`) el nombre de la
+ * columna puede ser lo último: `drop column x;` o `rename a to b;`. Ahí no
+ * aplica la guarda de fin de fragmento de NAME_END, pensada para literales de
+ * EXECUTE cortados con `||`.
+ */
+const NAME_END_IN_BODY = String.raw`(?![A-Za-z0-9_$"%]|\s*\.)`;
+const DROP_COLUMN = new RegExp(
+  String.raw`\bdrop\s+column\s+(?:if\s+exists\s+)?(?!if\s+exists\b)(?<column>${IDENTIFIER})${NAME_END_IN_BODY}`,
+  "gi",
+);
+const RENAME_COLUMN = new RegExp(
+  String.raw`\brename\s+(?:column\s+)?(?!constraint\b|to\b)(?<from>${IDENTIFIER})${NAME_END}\s+to\s+(?<to>${IDENTIFIER})${NAME_END_IN_BODY}`,
+  "gi",
+);
+/** `create table` seguido de su lista de columnas; el cuerpo se recorre aparte. */
+const CREATE_TABLE_BODY = new RegExp(
+  String.raw`\bcreate\s+table\s+${IF_NOT_EXISTS}${QUALIFIED_IDENTIFIER}${NAME_END}\s*\(`,
+  "gi",
+);
+const CREATE_VIEW = new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?view\s+${QUALIFIED_IDENTIFIER}${NAME_END}`, "gi");
+const DROP_TABLE = new RegExp(
+  String.raw`\bdrop\s+table\s+(?:if\s+exists\s+)?(?!if\s+exists\b)${QUALIFIED_IDENTIFIER}${NAME_END}`,
+  "gi",
+);
+const CREATE_FUNCTION_HEAD = new RegExp(
+  String.raw`\bcreate\s+(?:or\s+replace\s+)?function\s+${QUALIFIED_IDENTIFIER}${NAME_END}\s*\(`,
+  "gi",
+);
+/** `returns [setof] relación`; `returns table(…)` define columnas propias y no nombra una relación. */
+const FUNCTION_RETURNS = new RegExp(
+  String.raw`^\s*returns\s+(?:setof\s+)?(?!table\s*\()${QUALIFIED_IDENTIFIER}${NAME_END}`,
+  "i",
+);
+const ITEM_HEAD = new RegExp(String.raw`^\s*(?<name>${IDENTIFIER})`);
+/** Elementos de un cuerpo `create table (…)` que no son definiciones de columna. */
+const TABLE_CONSTRAINT_KEYWORDS = new Set(["constraint", "primary", "unique", "foreign", "check", "exclude", "like"]);
 
 function symbolFromMatch(kind, groups, migration) {
   const schema = normalizeIdentifier(groups.schema ?? "public");
@@ -309,6 +354,146 @@ export function extractCreatedSymbols(sql, migration = "fixture") {
   }
 
   return [...symbols.values()].sort((a, b) => a.key.localeCompare(b.key));
+}
+
+/** Índice del paréntesis que cierra el abierto justo antes de `start`; -1 si no cierra. */
+function closingParenthesis(code, start) {
+  let depth = 1;
+  for (let i = start; i < code.length; i += 1) {
+    if (code[i] === "(") depth += 1;
+    else if (code[i] === ")") {
+      depth -= 1;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/** Divide por comas de primer nivel: `numeric(12,2)` o `references t(id)` no cortan. */
+function splitTopLevel(body) {
+  const items = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < body.length; i += 1) {
+    if (body[i] === "(") depth += 1;
+    else if (body[i] === ")") depth -= 1;
+    else if (body[i] === "," && depth === 0) {
+      items.push(body.slice(start, i));
+      start = i + 1;
+    }
+  }
+  items.push(body.slice(start));
+  return items;
+}
+
+/** Nombres de columna de un cuerpo `create table (…)`: el primer token de cada elemento que no es restricción. */
+function columnsOfTableBody(body) {
+  const columns = [];
+  for (const item of splitTopLevel(body)) {
+    const head = item.match(ITEM_HEAD);
+    if (!head) continue;
+    const raw = head.groups.name;
+    if (!raw.startsWith('"') && TABLE_CONSTRAINT_KEYWORDS.has(raw.toLowerCase())) continue;
+    columns.push(normalizeIdentifier(raw));
+  }
+  return columns;
+}
+
+/**
+ * Aplica sobre `relations` (clave `esquema.relación` → Set de columnas) el DDL
+ * ejecutado por una migración, en orden textual: cuerpos de `create table`,
+ * `add column`, `drop column`, `rename column`, `drop table` y el registro de
+ * vistas sin columnas. Es evidencia positiva: una columna que no se pudo leer
+ * simplemente no consta, y el gate cae del lado estricto (SDD-0464).
+ */
+export function applyRelationColumns(sql, relations = new Map()) {
+  const ensure = (schema, name) => {
+    const key = relationQualifiedName(schema, name);
+    if (!relations.has(key)) relations.set(key, new Set());
+    return relations.get(key);
+  };
+
+  for (const code of executedSqlViews(sql)) {
+    const events = [];
+    for (const match of code.matchAll(CREATE_TABLE_BODY)) {
+      const bodyStart = match.index + match[0].length;
+      const bodyEnd = closingParenthesis(code, bodyStart);
+      const body = bodyEnd === -1 ? "" : code.slice(bodyStart, bodyEnd);
+      events.push({
+        index: match.index,
+        apply: () => {
+          const columns = ensure(normalizeIdentifier(match.groups.schema ?? "public"), normalizeIdentifier(match.groups.name));
+          for (const column of columnsOfTableBody(body)) columns.add(column);
+        },
+      });
+    }
+    for (const match of code.matchAll(CREATE_VIEW)) {
+      events.push({
+        index: match.index,
+        apply: () => ensure(normalizeIdentifier(match.groups.schema ?? "public"), normalizeIdentifier(match.groups.name)),
+      });
+    }
+    for (const match of code.matchAll(DROP_TABLE)) {
+      events.push({
+        index: match.index,
+        apply: () => relations.delete(
+          relationQualifiedName(normalizeIdentifier(match.groups.schema ?? "public"), normalizeIdentifier(match.groups.name)),
+        ),
+      });
+    }
+    for (const statement of code.matchAll(ALTER_TABLE)) {
+      const schema = normalizeIdentifier(statement.groups.schema ?? "public");
+      const relation = normalizeIdentifier(statement.groups.name);
+      const body = statement.groups.body;
+      events.push({
+        index: statement.index,
+        apply: () => {
+          const columns = ensure(schema, relation);
+          for (const column of body.matchAll(ADD_COLUMN)) columns.add(normalizeIdentifier(column.groups.column));
+          for (const column of body.matchAll(DROP_COLUMN)) columns.delete(normalizeIdentifier(column.groups.column));
+          for (const column of body.matchAll(RENAME_COLUMN)) {
+            columns.delete(normalizeIdentifier(column.groups.from));
+            columns.add(normalizeIdentifier(column.groups.to));
+          }
+        },
+      });
+    }
+    events.sort((a, b) => a.index - b.index);
+    for (const event of events) event.apply();
+  }
+
+  return relations;
+}
+
+/** Columnas por relación después de aplicar, en orden de nombre, todas las migraciones dadas. */
+export function relationColumnsAfter(migrations) {
+  const relations = new Map();
+  for (const migration of [...migrations].sort((a, b) => a.name.localeCompare(b.name))) {
+    applyRelationColumns(migration.sql, relations);
+  }
+  return relations;
+}
+
+/**
+ * Funciones que devuelven filas de una relación (`returns [setof] esquema.relación`),
+ * como Map `esquema.función` → `esquema.relación`. Solo interesa lo que coincide
+ * con una relación conocida; el consumidor filtra.
+ */
+export function extractFunctionRelations(sql, relations = new Map()) {
+  for (const code of executedSqlViews(sql)) {
+    for (const match of code.matchAll(CREATE_FUNCTION_HEAD)) {
+      const argumentsStart = match.index + match[0].length;
+      const argumentsEnd = closingParenthesis(code, argumentsStart);
+      if (argumentsEnd === -1) continue;
+      const returns = code.slice(argumentsEnd + 1).match(FUNCTION_RETURNS);
+      if (!returns) continue;
+      relations.set(
+        relationQualifiedName(normalizeIdentifier(match.groups.schema ?? "public"), normalizeIdentifier(match.groups.name)),
+        relationQualifiedName(normalizeIdentifier(returns.groups.schema ?? "public"), normalizeIdentifier(returns.groups.name)),
+      );
+    }
+  }
+  return relations;
 }
 
 /**
@@ -451,25 +636,109 @@ export function findAppEntrypoints(modulePaths) {
   });
 }
 
-/** Devuelve el cierre transitivo de imports desde archivos de entrada de app/. */
-export function findReachableModules(sourceFiles, entrypoints) {
+/**
+ * Cierre transitivo de imports desde archivos de entrada de app/, con sus
+ * aristas: `imports` (módulo → lo que importa) e `importers` (módulo → quién lo
+ * importa), ambas solo entre módulos alcanzables.
+ */
+export function findReachableGraph(sourceFiles, entrypoints) {
   const sources = asSourceMap(sourceFiles);
   const modules = new Set(sources.keys());
   const roots = entrypoints?.map(normalizeRepoPath) ?? findAppEntrypoints(modules);
   const reachable = new Set();
+  const imports = new Map();
+  const importers = new Map();
   const pending = [...roots].filter((file) => modules.has(file));
 
   while (pending.length > 0) {
     const current = pending.pop();
     if (reachable.has(current)) continue;
     reachable.add(current);
+    const edges = new Set();
     for (const specifier of extractImportSpecifiers(sources.get(current))) {
       const resolved = resolveImportSpecifier(current, specifier, modules);
-      if (resolved && !reachable.has(resolved)) pending.push(resolved);
+      if (!resolved) continue;
+      edges.add(resolved);
+      if (!importers.has(resolved)) importers.set(resolved, new Set());
+      importers.get(resolved).add(current);
+      if (!reachable.has(resolved)) pending.push(resolved);
     }
+    imports.set(current, edges);
   }
 
-  return reachable;
+  return { reachable, imports, importers };
+}
+
+/** Devuelve el cierre transitivo de imports desde archivos de entrada de app/. */
+export function findReachableModules(sourceFiles, entrypoints) {
+  return findReachableGraph(sourceFiles, entrypoints).reachable;
+}
+
+const IDENTIFIER_TOKENS = /[a-z_$][a-z0-9_$]*/g;
+
+/** Tokens identificador de un módulo, en minúsculas y sin comentarios. */
+export function identifierTokens(source) {
+  return new Set(maskJavaScriptComments(source).toLowerCase().match(IDENTIFIER_TOKENS) ?? []);
+}
+
+function unqualifiedName(key) {
+  return key.slice(key.indexOf(".") + 1);
+}
+
+/**
+ * Asociación columna → relación (SDD-0464, ADR-0003). El ámbito de un módulo
+ * son sus tokens y los de sus vecinos directos alcanzables (lo que importa y
+ * quien lo importa). Una referencia al nombre de una columna pendiente:
+ *
+ * - cuenta si el ámbito nombra la relación pendiente o una función que la
+ *   devuelve (`returns [setof] relación`);
+ * - se descarta como homónima solo si, sin nombrar la relación pendiente, el
+ *   ámbito nombra otra relación que tiene una columna con ese nombre según el
+ *   DDL de las migraciones;
+ * - cuenta en cualquier otro caso: sin evidencia de otra dueña, falla cerrado.
+ */
+export function createColumnAssociation({ migrations, sourceFiles, imports, importers }) {
+  const sources = asSourceMap(sourceFiles);
+  const relations = relationColumnsAfter(migrations);
+  const functionRelations = new Map();
+  for (const migration of migrations) extractFunctionRelations(migration.sql, functionRelations);
+
+  const ownersByColumn = new Map();
+  for (const [key, columns] of relations) {
+    for (const column of columns) {
+      if (!ownersByColumn.has(column)) ownersByColumn.set(column, []);
+      ownersByColumn.get(column).push({ key, relation: unqualifiedName(key) });
+    }
+  }
+  const aliasesByRelation = new Map();
+  for (const [functionKey, relationKey] of functionRelations) {
+    if (!relations.has(relationKey)) continue;
+    if (!aliasesByRelation.has(relationKey)) aliasesByRelation.set(relationKey, []);
+    aliasesByRelation.get(relationKey).push(unqualifiedName(functionKey));
+  }
+
+  const tokenCache = new Map();
+  const tokensOf = (file) => {
+    if (!tokenCache.has(file)) tokenCache.set(file, identifierTokens(sources.get(file) ?? ""));
+    return tokenCache.get(file);
+  };
+  const scopeOf = (file) => [file, ...(imports.get(file) ?? []), ...(importers.get(file) ?? [])];
+  const scopeHas = (file, token) => scopeOf(file).some((module) => tokensOf(module).has(token));
+
+  return {
+    relations,
+    functionRelations,
+    classify(symbol, file) {
+      const relationKey = relationQualifiedName(symbol.schema, symbol.relation);
+      const aliases = [symbol.relation, ...(aliasesByRelation.get(relationKey) ?? [])];
+      if (aliases.some((token) => scopeHas(file, token))) return { counted: true, reason: "relación nombrada" };
+      const evidence = (ownersByColumn.get(symbol.name) ?? []).find(
+        (owner) => owner.key !== relationKey && scopeHas(file, owner.relation),
+      );
+      if (evidence) return { counted: false, reason: "homónima", relation: evidence.relation };
+      return { counted: true, reason: "sin evidencia de otra relación" };
+    },
+  };
 }
 
 function escapeRegExp(value) {
@@ -613,14 +882,22 @@ export function analyzeRepositoryData({
   entrypoints,
 }) {
   const pendingOnlySymbols = findPendingOnlySymbols(migrations, pendingMigrationNames);
-  const reachable = findReachableModules(sourceFiles, entrypoints);
+  const { reachable, imports, importers } = findReachableGraph(sourceFiles, entrypoints);
+  // El modelo de columnas por relación solo hace falta si hay columnas pendientes.
+  const association = pendingOnlySymbols.some((symbol) => symbol.kind === "column")
+    ? createColumnAssociation({ migrations, sourceFiles, imports, importers })
+    : null;
   const analyses = pendingOnlySymbols.map((symbol) => {
     const references = findSymbolReferences(sourceFiles, symbol);
-    return {
-      symbol,
-      references,
-      reachableReferences: references.filter((reference) => reachable.has(reference.file)),
-    };
+    const reachableReferences = [];
+    const homonymReferences = [];
+    for (const reference of references) {
+      if (!reachable.has(reference.file)) continue;
+      const verdict = symbol.kind === "column" ? association.classify(symbol, reference.file) : { counted: true };
+      if (verdict.counted) reachableReferences.push(reference);
+      else homonymReferences.push({ ...reference, relation: verdict.relation });
+    }
+    return { symbol, references, reachableReferences, homonymReferences };
   });
   const declarationResult = validateDeclarations(declarations, analyses, sourceFiles, reachable);
   const red = analyses.filter((analysis) =>
@@ -718,10 +995,26 @@ function printResult(result) {
     }
   }
 
+  // Referencias homónimas: el nombre coincide, pero el módulo (o un vecino)
+  // trabaja con otra relación que sí tiene esa columna. No se exigen; se listan
+  // para que la revisión pueda verificar la asociación (SDD-0464).
+  const homonyms = result.analyses.filter((analysis) => analysis.homonymReferences.length > 0);
+  const homonymCount = homonyms.reduce((total, analysis) => total + analysis.homonymReferences.length, 0);
+  for (const analysis of homonyms) {
+    console.log(
+      `${C.dim}[HOMÓNIMOS] pending-migration-symbols: ${analysis.symbol.displayName} `
+      + `(${analysis.symbol.migrations.join(", ")}) — ${analysis.homonymReferences.length} sitio(s) de otra relación, no exigidos:${C.nc}`,
+    );
+    for (const reference of analysis.homonymReferences) {
+      console.log(`${C.dim}   ${reference.site} → ${reference.relation}.${analysis.symbol.name}${C.nc}`);
+    }
+  }
+  const homonymSuffix = homonymCount > 0 ? ` · ${homonymCount} homónimo(s) descartado(s)` : "";
+
   if (result.red.length > 0) {
     console.log(
       `${C.red}[ROJO]${C.nc} pending-migration-symbols: ${result.red.length} símbolo(s) `
-      + "ausente(s) con código alcanzable y sin declaración:",
+      + `ausente(s) con código alcanzable y sin declaración${homonymSuffix}:`,
     );
     for (const analysis of result.red) {
       console.log(
@@ -737,7 +1030,7 @@ function printResult(result) {
 
   console.log(
     `${C.green}[OK]${C.nc} pending-migration-symbols: 0 ROJO · `
-    + `${result.yellow.length} AMARILLO declarado(s)`,
+    + `${result.yellow.length} AMARILLO declarado(s)${homonymSuffix}`,
   );
   return 0;
 }

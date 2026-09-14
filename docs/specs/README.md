@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 451 specs)
+### Índice de specs (generado · 452 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -489,6 +489,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0461 | La cadena de aliados no cruza tenants | done | interno |
 | 0462 | Las facturas del Portal quedan ligadas al tenant del principal | done | interno |
 | 0463 | Por RLS, el Portal sólo lee facturas del tenant de su vínculo | done | interno |
+| 0464 | Gate de símbolos pendientes por relación y deudas de arnés de… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
