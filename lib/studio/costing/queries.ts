@@ -137,6 +137,8 @@ function inPeriod(refDate: string | null, period?: Period): boolean {
  *
  * - EXCLUYE `borrador` y `anulada` vía whitelist BILLABLE_STATUSES (lección
  *   0052: nunca `.neq('anulada')` solo).
+ * - EXCLUYE las borradas (`deleted_at`, SDD-0465): la RLS no las oculta (0230)
+ *   y una factura eliminada no es ingreso del embarque.
  * - Normaliza cada factura a USD vía `invoiceUsdAmount` (VES/fx_rate; CNY → 0).
  * - Acumula en dos mapas: por `shipment_id` (preferido) y por `shipment_code`
  *   (fallback cuando el FK es null). Una sola query (sin N+1).
@@ -154,6 +156,7 @@ export async function revenueByShipment(
         .select(
           "id, shipment_id, shipment_code, currency, total_amount, fx_rate, status, issued_at, created_at",
         )
+        .is("deleted_at", null)
         .order("id", { ascending: true })
         .range(d, h),
   );

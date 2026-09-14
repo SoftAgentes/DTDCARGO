@@ -32,11 +32,20 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[] | Record<str
   return {
     from(table: string) {
       const value = rowsByTable[table];
+      // `is(col, null)` se APLICA sobre las filas, como PostgREST (SDD-0465):
+      // si el picker deja de pedir `deleted_at is null`, la factura borrada
+      // del fixture vuelve a ofrecerse y la aserción lo delata.
+      let visibles: Record<string, unknown>[] = Array.isArray(value) ? value : [];
       const chain: Record<string, unknown> = {
         select() {
           return chain;
         },
         eq() {
+          return chain;
+        },
+        is(col: string, val: unknown) {
+          lastFilters.push({ op: "is", col, val });
+          if (val === null) visibles = visibles.filter((r) => r[col] == null);
           return chain;
         },
         in(col: string, val: unknown) {
@@ -62,8 +71,7 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[] | Record<str
           return Promise.resolve({ data, error: null });
         },
         then(resolve: (v: { data: unknown; error: null }) => unknown) {
-          const data = Array.isArray(value) ? value : [];
-          return Promise.resolve({ data, error: null }).then(resolve);
+          return Promise.resolve({ data: visibles, error: null }).then(resolve);
         },
       };
       return chain;
@@ -122,6 +130,21 @@ describe("applicableInvoicesForReferrer", () => {
     const client = stub({ invoices: rows });
     const res = await applicableInvoicesForReferrer(client, "DTD-5452", 500, ACCREDITED);
     expect(res).toEqual([]);
+  });
+
+  it("SDD-0465 · una factura BORRADA no se ofrece aunque tenga saldo, y el filtro va a la base", async () => {
+    const client = stub({
+      invoices: [
+        // elegible en todo, salvo que está borrada → fuera
+        { id: "b1", invoice_code: "F-BORRADA", client_markbox: "DTD-5452", currency: "USD", total_amount: 500, paid_amount: 0, status: "emitida", issued_at: "2026-02-01", deleted_at: "2026-03-01T00:00:00Z" },
+        // viva → adentro
+        { id: "v1", invoice_code: "F-VIVA", client_markbox: "DTD-5452", currency: "USD", total_amount: 500, paid_amount: 0, status: "emitida", issued_at: "2026-02-01", deleted_at: null },
+      ],
+    });
+    const res = await applicableInvoicesForReferrer(client, "DTD-5452", 80, ACCREDITED);
+
+    expect(res.map((i) => i.invoice_code)).toEqual(["F-VIVA"]);
+    expect(lastFilters).toContainEqual({ op: "is", col: "deleted_at", val: null });
   });
 });
 

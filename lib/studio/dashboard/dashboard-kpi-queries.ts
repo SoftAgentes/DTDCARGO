@@ -44,11 +44,13 @@ export async function financeInvoiceKpis(
   supabase: SupabaseClient,
 ): Promise<FinanceInvoiceKpis> {
   // Paginado: KPI financiero del tablero — suma montos y cuenta estados.
+  // Sin las borradas (SDD-0465): mismo universo que `invoiceKpis`.
   const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
     (d, h) =>
       supabase
         .from("invoices")
         .select("status, due_date, issued_at, total_amount, paid_amount, created_at")
+        .is("deleted_at", null)
         .order("id", { ascending: true })
         .range(d, h),
   );
