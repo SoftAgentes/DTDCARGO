@@ -2,8 +2,8 @@
  * Tests de queries de Fidelización & Referidos (SDD-0051 · Slice A).
  *
  * Cubre Acceptance §5 Slice A:
- *  - clientAnnualBilling agrega `invoices` trailing-12m USD-normalizadas,
- *    excluyendo borrador/anulada y facturas fuera de la ventana de 12 meses.
+ *  - clientAnnualBilling consume sólo el agregado minimizado de la RPC,
+ *    lo pagina completo y no lee `invoices` directamente.
  *  - clientsWithTier asigna el tier derivado y ordena por facturación.
  *  - tierCounts distribuye por nivel (los 4 buckets siempre presentes).
  *  - listReferrals registra los filtros aplicados (status / q).
@@ -41,8 +41,27 @@ const SERVER_CAP = 1000;
 function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
   client: SupabaseClient;
   calls: Record<string, Recorded>;
+  rpcCalls: { fn: string; args: Record<string, unknown> }[];
 } {
   const calls: Record<string, Recorded> = {};
+  const rpcCalls: { fn: string; args: Record<string, unknown> }[] = [];
+
+  const pagedChain = (rows: Record<string, unknown>[]) => {
+    const chain: Record<string, unknown> = {
+      order() {
+        return chain;
+      },
+      range(desde: number, hasta: number) {
+        const pedido = hasta - desde + 1;
+        const trozo = rows.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+        return Promise.resolve({ data: trozo, error: null });
+      },
+      then(resolve: (v: { data: unknown; error: null }) => unknown) {
+        return Promise.resolve({ data: rows, error: null }).then(resolve);
+      },
+    };
+    return chain;
+  };
 
   const client = {
     from(table: string) {
@@ -83,59 +102,57 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
       };
       return chain;
     },
+    rpc(fn: string, args: Record<string, unknown>) {
+      rpcCalls.push({ fn, args });
+      return pagedChain(rowsByTable[fn] ?? []);
+    },
   } as unknown as SupabaseClient;
 
-  return { client, calls };
+  return { client, calls, rpcCalls };
 }
 
 const NOW = new Date("2026-06-03T00:00:00Z");
-// Dentro de la ventana de 12 meses (entre 2025-06-04 y 2026-06-03).
-const IN = "2026-01-15";
-// Fuera de la ventana (más de 12 meses atrás).
-const OLD = "2024-12-01";
 
 describe("clientAnnualBilling", () => {
-  it("agrega trailing-12m USD-normalizado, excluye borrador/anulada y fuera de ventana", async () => {
-    const invoices = [
-      // DTD-1: emitida USD 1000 (cuenta)
-      { client_markbox: "DTD-1", currency: "USD", total_amount: 1000, fx_rate: null, status: "emitida", issued_at: IN, created_at: IN },
-      // DTD-1: pagada USDT 500 (cuenta, 1:1) → DTD-1 total 1500
-      { client_markbox: "DTD-1", currency: "USDT", total_amount: 500, fx_rate: null, status: "pagada", issued_at: IN, created_at: IN },
-      // DTD-1: borrador (NO cuenta)
-      { client_markbox: "DTD-1", currency: "USD", total_amount: 9999, fx_rate: null, status: "borrador", issued_at: IN, created_at: IN },
-      // DTD-2: VES 36500 / fx 36.5 = 1000 (cuenta)
-      { client_markbox: "DTD-2", currency: "VES", total_amount: 36500, fx_rate: 36.5, status: "vencida", issued_at: IN, created_at: IN },
-      // DTD-2: VES sin fx → 0 (omitida)
-      { client_markbox: "DTD-2", currency: "VES", total_amount: 1000, fx_rate: null, status: "emitida", issued_at: IN, created_at: IN },
-      // DTD-2: CNY → 0 (omitida)
-      { client_markbox: "DTD-2", currency: "CNY", total_amount: 7000, fx_rate: null, status: "emitida", issued_at: IN, created_at: IN },
-      // DTD-3: anulada (NO cuenta)
-      { client_markbox: "DTD-3", currency: "USD", total_amount: 5000, fx_rate: null, status: "anulada", issued_at: IN, created_at: IN },
-      // DTD-3: emitida pero FUERA de ventana (NO cuenta)
-      { client_markbox: "DTD-3", currency: "USD", total_amount: 4000, fx_rate: null, status: "emitida", issued_at: OLD, created_at: OLD },
-      // DTD-4: usa created_at como fallback (issued_at null) dentro de ventana
-      { client_markbox: "DTD-4", currency: "USD", total_amount: 200, fx_rate: null, status: "parcial", issued_at: null, created_at: IN },
+  it("lee sólo el agregado por RPC y transmite la fecha de referencia", async () => {
+    const aggregates = [
+      { client_markbox: "DTD-1", billed_usd: 1500 },
+      { client_markbox: "DTD-2", billed_usd: 1000 },
+      { client_markbox: "DTD-4", billed_usd: 200 },
     ];
-    const { client } = stub({ invoices });
+    const { client, calls, rpcCalls } = stub({
+      studio_client_annual_billing: aggregates,
+    });
     const map = await clientAnnualBilling(client, NOW);
 
     expect(map.get("DTD-1")).toBe(1500);
     expect(map.get("DTD-2")).toBe(1000);
-    expect(map.has("DTD-3")).toBe(false); // anulada + fuera de ventana → nada
     expect(map.get("DTD-4")).toBe(200);
+    expect(calls.invoices).toBeUndefined();
+    expect(rpcCalls).toEqual([
+      {
+        fn: "studio_client_annual_billing",
+        args: { p_as_of: "2026-06-03" },
+      },
+      {
+        fn: "studio_client_annual_billing",
+        args: { p_as_of: "2026-06-03" },
+      },
+    ]);
   });
 
-  it("coacciona total_amount/fx_rate provenientes como string", async () => {
-    const invoices = [
-      { client_markbox: "DTD-9", currency: "VES", total_amount: "73000", fx_rate: "36.5", status: "emitida", issued_at: IN, created_at: IN },
-    ];
-    const { client } = stub({ invoices });
+  it("coacciona el numeric agregado que PostgREST entrega como string", async () => {
+    const { client } = stub({
+      studio_client_annual_billing: [
+        { client_markbox: "DTD-9", billed_usd: "2000" },
+      ],
+    });
     const map = await clientAnnualBilling(client, NOW);
-    expect(map.get("DTD-9")).toBe(2000); // 73000 / 36.5
+    expect(map.get("DTD-9")).toBe(2000);
   });
 
-  it("sin facturas → map vacío", async () => {
-    const { client } = stub({ invoices: [] });
+  it("sin agregados → map vacío", async () => {
+    const { client } = stub({ studio_client_annual_billing: [] });
     const map = await clientAnnualBilling(client, NOW);
     expect(map.size).toBe(0);
   });
@@ -143,17 +160,16 @@ describe("clientAnnualBilling", () => {
 
 describe("clientsWithTier", () => {
   it("asigna tier derivado y ordena desc por facturación", async () => {
-    const invoices = [
-      { client_markbox: "DTD-A", currency: "USD", total_amount: 320000, fx_rate: null, status: "pagada", issued_at: IN, created_at: IN },
-      { client_markbox: "DTD-B", currency: "USD", total_amount: 60000, fx_rate: null, status: "emitida", issued_at: IN, created_at: IN },
-      // DTD-C sin facturas → Bronze, billed 0
+    const billing = [
+      { client_markbox: "DTD-A", billed_usd: 320000 },
+      { client_markbox: "DTD-B", billed_usd: 60000 },
     ];
     const clients = [
       { id: "1", markbox: "DTD-A", name: "Alfa" },
       { id: "2", markbox: "DTD-B", name: "Beta" },
       { id: "3", markbox: "DTD-C", name: "Gamma" },
     ];
-    const { client } = stub({ invoices, clients });
+    const { client } = stub({ studio_client_annual_billing: billing, clients });
     const res = await clientsWithTier(client, NOW);
 
     expect(res.map((c) => c.markbox)).toEqual(["DTD-A", "DTD-B", "DTD-C"]);
@@ -166,10 +182,10 @@ describe("clientsWithTier", () => {
 
 describe("tierCounts", () => {
   it("distribuye por nivel con los 4 buckets presentes", async () => {
-    const invoices = [
-      { client_markbox: "DTD-A", currency: "USD", total_amount: 320000, fx_rate: null, status: "pagada", issued_at: IN, created_at: IN },
-      { client_markbox: "DTD-B", currency: "USD", total_amount: 60000, fx_rate: null, status: "emitida", issued_at: IN, created_at: IN },
-      { client_markbox: "DTD-C", currency: "USD", total_amount: 200000, fx_rate: null, status: "emitida", issued_at: IN, created_at: IN },
+    const billing = [
+      { client_markbox: "DTD-A", billed_usd: 320000 },
+      { client_markbox: "DTD-B", billed_usd: 60000 },
+      { client_markbox: "DTD-C", billed_usd: 200000 },
     ];
     const clients = [
       { id: "1", markbox: "DTD-A", name: "Alfa" }, // platinum
@@ -177,7 +193,7 @@ describe("tierCounts", () => {
       { id: "3", markbox: "DTD-C", name: "Gamma" }, // gold
       { id: "4", markbox: "DTD-D", name: "Delta" }, // bronze (sin facturas)
     ];
-    const { client } = stub({ invoices, clients });
+    const { client } = stub({ studio_client_annual_billing: billing, clients });
     const counts = await tierCounts(client, NOW);
 
     const byId = Object.fromEntries(counts.map((c) => [c.tier.id, c.count]));
