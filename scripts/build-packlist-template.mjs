@@ -7,15 +7,30 @@
  * navy #0F1E3D / cream #FBFAF7), formato idéntico al prototipo del Norte
  * (docs/design/studio/_norte/packlist/*.html): header DTD Cargo, título bilingüe
  * 装箱单+商业发票 / Packing List + Factura, grilla de proveedor, tabla de mercancía
- * bilingüe, fila de totales, notas (en TUTEO venezolano, método nuevo — sin grupo
- * WeChat obligatorio: marca cada caja con el Shipping Mark + declara la marca real),
- * tarjeta Shipping Mark, firmas, celda de moneda. pageSetup → 1 página A4 horizontal.
+ * bilingüe, fila de totales, notas, firmas, celda de moneda.
+ * pageSetup → 1 página A4 horizontal.
+ *
+ * SDD-0468 · Reformulado para que un proveedor chino lo entienda sin ayuda:
+ *  - Las columnas con fondo de color (总数量, 总金额, 总重量, 总体积) se calculan
+ *    SOLAS por fila, con la regla del formulario web (packlist-form · rowCalc y
+ *    computeTotals), incluida la Caja Padre de SDD-0097: una fila con 件数 vacío
+ *    es otro producto de la MISMA caja que la fila de arriba. Aporta su cantidad
+ *    (每箱装量) y su importe, pero no cajas, peso ni volumen, que van en la primera
+ *    fila de la caja. Así una caja mixta no obliga a escribir encima de una fórmula.
+ *  - Sin protección de hoja, a propósito: si el proveedor escribe un valor encima
+ *    de una fórmula, Excel lo conserva. El Excel no se importa (la subida solo lo
+ *    guarda); la vía autoritativa es el formulario web.
+ *  - Notas: de 7 a 6, chino primero, una regla por línea (se agrega la de caja
+ *    mixta). Se quitaron las que repetían el propio documento.
+ *  - Sin la tarjeta «Shipping Mark» con `DTD-____`: duplicaba el 唛头 que ya viene
+ *    pre-llenado en C6 y los guiones invitaban a escribir encima.
+ *  - Encabezado sin el eslogan comercial: solo dirección del almacén.
  *
  * Las 5 celdas que pre-llena el GET (lib/studio/prealertas/packlist.ts ·
- * fillPacklist) viven en posiciones FIJAS y conocidas:
- *   C6  = 唛头 (Shipping Mark)  → MARKBOX del cliente
- *   C7  = 客户 (Cliente)        → nombre del cliente
+ * fillPacklist) viven en posiciones FIJAS y conocidas — este rediseño NO las mueve:
  *   C5  = 公司名称 (Proveedor)  → nombre del proveedor
+ *   C6  = 唛头 (Shipping Mark)  → MARKBOX del cliente
+ *   C7  = 订单 (Compra)         → código de la compra
  *   C8  = 微信 (WeChat)         → WeChat del proveedor
  *   I3  = N.º / 编号 (Folio)    → código de la compra
  * Se siembran con un placeholder (espacio) para que la celda EXISTA en el XML y el
@@ -53,10 +68,33 @@ function fill(argb) {
   return { type: "pattern", pattern: "solid", fgColor: { argb } };
 }
 
+/**
+ * Fórmula por fila de una columna computada. Devuelve "" mientras falte un
+ * operando: una fila vacía no muestra ceros y SUM ignora el texto vacío.
+ *
+ * Caja Padre (SDD-0097 · packlist-form rowCalc): con 件数 (G) vacío la fila es
+ * `same` → 总数量 = 每箱装量 (H), y 总重量 / 总体积 quedan vacíos porque dependen
+ * de G. Con G lleno es una fila líder: 总数量 = G×H.
+ */
+export function rowFormula(target, r) {
+  if (target === "I") {
+    return `IF(H${r}="","",IF(G${r}="",H${r},G${r}*H${r}))`;
+  }
+  const operands = {
+    K: ["I", "J"], // 总金额 = 总数量 × 单价
+    M: ["G", "L"], // 总重量 = 件数 × 每箱重
+    O: ["G", "N"], // 总体积 = 件数 × 每箱体积
+  }[target];
+  const [a, b] = operands.map((col) => `${col}${r}`);
+  return `IF(OR(${a}="",${b}=""),"",${a}*${b})`;
+}
+
 async function main() {
   const wb = new ExcelJS.Workbook();
   wb.creator = "DTD Cargo";
   wb.created = new Date("2026-06-19T00:00:00Z");
+  // Excel/WPS recalculan al abrir: las fórmulas no traen resultado cacheado.
+  wb.calcProperties.fullCalcOnLoad = true;
 
   const ws = wb.addWorksheet("Packing List", {
     properties: { defaultRowHeight: 15 },
@@ -65,7 +103,7 @@ async function main() {
       paperSize: 9, // A4
       fitToPage: true,
       fitToWidth: 1,
-      fitToHeight: 1, // garantiza 1 página de alto aun con las 7 notas
+      fitToHeight: 1, // garantiza 1 página de alto aun con las notas
       horizontalCentered: true,
       margins: {
         left: 0.3,
@@ -114,10 +152,16 @@ async function main() {
   };
   phonesCell.alignment = { vertical: "middle", horizontal: "left" };
 
+  // SDD-0468 · Solo la dirección: el eslogan comercial no le sirve al proveedor.
   ws.mergeCells("A4:E4");
   const subCell = ws.getCell("A4");
-  subCell.value = "仓库地址: 义乌市义乌港二期直通仓2栋2号货7-货11 · Importación puerta a puerta 中国 → 委内瑞拉";
-  subCell.font = { name: F_SANS, size: 8, color: { argb: GREY_500 } };
+  subCell.value = {
+    richText: [
+      { text: "仓库地址 ", font: { name: F_SANS, bold: true, size: 8, color: { argb: INK_SOFT } } },
+      { text: "义乌市义乌港二期直通仓2栋2号货7-货11", font: { name: F_SANS, size: 8, color: { argb: INK_SOFT } } },
+      { text: " · Dirección del almacén", font: { name: F_SANS, size: 8, color: { argb: GREY_500 } } },
+    ],
+  };
   subCell.alignment = { vertical: "middle" };
 
   // Logo (si está disponible) — esquina superior derecha, sin AI-slop.
@@ -138,13 +182,13 @@ async function main() {
 
   ws.mergeCells("F2:O2");
   const titEs = ws.getCell("F2");
-  titEs.value = "Packing List + Factura · proveedor → DTD Cargo";
+  titEs.value = "Packing List + Factura";
   titEs.font = { name: F_SANS, bold: true, size: 12, color: { argb: NAVY } };
   titEs.alignment = { vertical: "middle", horizontal: "right" };
 
   ws.mergeCells("F3:H3");
   const folioLab = ws.getCell("F3");
-  folioLab.value = "N.º / 编号 · Folio";
+  folioLab.value = "编号 · N.º";
   folioLab.font = { name: F_SANS, size: 9, color: { argb: GREY_500 } };
   folioLab.alignment = { vertical: "middle", horizontal: "right" };
   // I3 = folio (PREFILL: código de la compra).
@@ -174,10 +218,10 @@ async function main() {
     { row: 7, zh: "订单", es: "Compra", prefill: true, mono: true },
     { row: 8, zh: "微信", es: "WeChat", prefill: true, mono: false },
   ];
-  // Columna derecha de la grilla — datos del cliente/proveedor (sin prefill).
+  // Columna derecha de la grilla — datos del proveedor (sin prefill).
   const infoRight = [
-    { row: 5, zh: "邮箱", es: "Email proveedor" },
-    { row: 6, zh: "供应商电话", es: "Tel. proveedor" },
+    { row: 5, zh: "邮箱", es: "Email" },
+    { row: 6, zh: "电话", es: "Teléfono" },
     { row: 7, zh: "地址 / 城市", es: "Dirección / Ciudad" },
     { row: 8, zh: "日期", es: "Fecha" },
   ];
@@ -226,14 +270,24 @@ async function main() {
   }
   [5, 6, 7, 8].forEach((r) => (ws.getRow(r).height = 19));
 
-  // ── Fila 10: título de la tabla ────────────────────────────────
-  ws.mergeCells("A10:O10");
+  // ── Fila 10: título de la tabla + cómo se llena (SDD-0468) ─────
+  // El título ocupa A:C y la instrucción D:O: una celda combinada no desborda,
+  // así que la instrucción necesita el ancho de 12 columnas.
+  ws.mergeCells("A10:C10");
   const secT = ws.getCell("A10");
   secT.value = { richText: [
     { text: "货物明细", font: { name: F_SANS, bold: true, size: 11, color: { argb: NAVY } } },
     { text: "  ·  Detalle de mercancía", font: { name: F_SANS, bold: true, size: 10, color: { argb: WINE } } },
   ] };
   secT.alignment = { vertical: "middle" };
+
+  ws.mergeCells("D10:O10");
+  const howTo = ws.getCell("D10");
+  howTo.value = { richText: [
+    { text: "只填白色格子，带底色的列自动计算（一箱多种货见第 2 条）。", font: { name: F_SANS, bold: true, size: 9, color: { argb: INK_SOFT } } },
+    { text: "  Llena las celdas blancas; las de color se calculan solas (caja mixta: regla 2).", font: { name: F_SANS, size: 8, color: { argb: GREY_500 } } },
+  ] };
+  howTo.alignment = { vertical: "middle", horizontal: "right" };
   ws.getRow(9).height = 8;
   ws.getRow(10).height = 18;
 
@@ -255,6 +309,10 @@ async function main() {
     ["每箱体积", "CBM/caja"],
     ["总体积", "CBM"],
   ];
+  // Columnas computadas (Total uds=I, Total=K, Peso=M, CBM=O) → wine-bg.
+  const CALC_COLS = { 9: "I", 11: "K", 13: "M", 15: "O" };
+  const CALC_FORMAT = { I: "#,##0", K: "#,##0.00", M: "#,##0.00", O: "0.000" };
+
   const headRow = ws.getRow(11);
   headers.forEach(([zh, es], i) => {
     const cell = headRow.getCell(i + 1);
@@ -263,23 +321,23 @@ async function main() {
       { text: es, font: { name: F_SANS, bold: true, size: 7.5, color: { argb: GREY_500 } } },
     ] };
     cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
-    cell.fill = fill(GREY_100);
+    // El encabezado de una columna automática lleva su mismo fondo: se lee
+    // como "esta columna entera no se escribe".
+    cell.fill = fill(CALC_COLS[i + 1] ? WINE_BG : GREY_100);
     cell.border = allBorders;
   });
   headRow.height = 28;
 
-  // Columnas computadas (Total uds=I, Total=K, Peso=M, CBM=O) → wine-bg.
-  const CALC_COLS = [9, 11, 13, 15];
-  // ── Filas 12-27: 16 filas de mercancía vacías ──────────────────
+  // ── Filas 12-27: 16 filas de mercancía ─────────────────────────
   const FIRST_DATA = 12;
   const DATA_ROWS = 16;
   for (let r = FIRST_DATA; r < FIRST_DATA + DATA_ROWS; r++) {
     const row = ws.getRow(r);
     for (let c = 1; c <= 15; c++) {
       const cell = row.getCell(c);
-      const isCalc = CALC_COLS.includes(c);
+      const calc = CALC_COLS[c];
       const isNum = c >= 6; // de Nº caja en adelante
-      cell.value = null;
+      cell.value = calc ? { formula: rowFormula(calc, r) } : null;
       cell.border = allBorders;
       cell.font = {
         name: isNum ? F_MONO : F_SANS,
@@ -290,7 +348,10 @@ async function main() {
         vertical: "middle",
         horizontal: isNum ? "right" : "left",
       };
-      if (isCalc) cell.fill = fill(WINE_BG);
+      if (calc) {
+        cell.fill = fill(WINE_BG);
+        cell.numFmt = CALC_FORMAT[calc];
+      }
     }
     row.height = 16;
   }
@@ -307,6 +368,7 @@ async function main() {
   totLab.fill = fill(GREY_100);
   totLab.border = allBorders;
   // Cajas (G), Total uds (I), Total (K), Peso (M), CBM (O) — fórmulas en vivo.
+  // G suma solo las filas líderes: en una caja mixta las demás dejan G vacío.
   const sumRange = (col) => `SUM(${col}${FIRST_DATA}:${col}${totalRow - 1})`;
   const totCells = {
     G: sumRange("G"),
@@ -330,6 +392,7 @@ async function main() {
     cell.alignment = { vertical: "middle", horizontal: "right" };
     if (totCells[letter]) {
       cell.value = { formula: totCells[letter], result: 0 };
+      if (CALC_FORMAT[letter]) cell.numFmt = CALC_FORMAT[letter];
     }
   }
   ws.getRow(totalRow).height = 18;
@@ -357,78 +420,41 @@ async function main() {
   };
   ws.getRow(curRow).height = 18;
 
-  // ── Notas (en TUTEO venezolano · método nuevo, sin grupo WeChat) ──
+  // ── Notas · SDD-0468: 6 reglas, chino primero, una por línea ──
+  // (tuteo venezolano en el español; método nuevo, sin grupo WeChat).
   const notesRow = curRow + 2; // 31
-  ws.mergeCells(`A${notesRow}:I${notesRow}`);
+  ws.mergeCells(`A${notesRow}:O${notesRow}`);
   const notesHead = ws.getCell(`A${notesRow}`);
   notesHead.value = { richText: [
     { text: "入仓注意事项", font: { name: F_SANS, bold: true, size: 10, color: { argb: NAVY } } },
-    { text: " · Reglas para enviar a la bodega", font: { name: F_SANS, bold: true, size: 9.5, color: { argb: WINE } } },
+    { text: " · Reglas para enviar al almacén", font: { name: F_SANS, bold: true, size: 9.5, color: { argb: WINE } } },
   ] };
   notesHead.alignment = { vertical: "middle" };
   ws.getRow(notesRow).height = 16;
 
+  // `tall`: la regla no cabe en una línea del ancho A:O → dos líneas.
   const notes = [
-    "1. Marca cada caja con el Shipping Mark del cliente (唛头). Sin él, esto generará retraso en la exportación.  请在每个箱子上写客户唛头；缺唛头会延误出口。",
-    "2. Llena este documento antes de enviar y mándalo con la carga, o súbelo en tu link de DTD.  发货前填写本单并随货发送，或在链接上传。",
-    "3. Completa el formulario o sube el Excel. Otros originales solo si DTD los solicita.  在线填写或上传 Excel，任选一种。仅在 DTD 要求时提供其他原始单据。",
-    "4. Si la mercancía es de marca, declara la marca real; si no, escribe \"无 / ninguna\". Ocultar la marca es riesgo en aduana del proveedor.  品牌货请如实填写品牌，否则填\"无\"。",
-    "5. La descarga la organiza y paga el proveedor; si la hace nuestra bodega, se cobra por volumen/peso.  卸货由供应商安排并承担；如由我方卸货，按体积/重量收费。",
-    "6. Prohibido enviar mercancía peligrosa o restringida.  禁止危险品、违禁品入仓。",
-    `7. Contacto en China: 吴小姐 (Srta. Wu) · 18606891419 · WeChat DTDLogistic.  中国联系人：吴小姐 · 18606891419 · 微信 DTDLogistic。`,
+    { zh: "1. 每个箱子都要写上方的唛头，没有唛头会延误出口。", es: "Escribe el Shipping Mark de arriba en cada caja; sin él se retrasa la exportación." },
+    { zh: "2. 一箱装多种货：第一行填件数、每箱重和每箱体积；同箱其他货的件数留空，每箱装量填该货数量。", es: "Caja mixta: la primera fila lleva cajas, peso y volumen; en las demás filas de esa caja deja 件数 vacío y pon en 每箱装量 la cantidad de ese producto.", tall: true },
+    { zh: "3. 品牌货请填写真实品牌；没有品牌填“无”。", es: "Si es de marca, declara la marca real; si no, escribe “无”." },
+    { zh: "4. 禁止危险品和违禁品入仓。", es: "No se aceptan mercancías peligrosas ni restringidas." },
+    { zh: "5. 卸货由供应商安排并付费；仓库代卸按体积或重量收费。", es: "La descarga la paga el proveedor; si la hace el almacén, se cobra por volumen o peso." },
+    { zh: "6. 有疑问请联系：吴小姐 18606891419 · 微信 DTDLogistic", es: "Dudas: Srta. Wu." },
   ];
-  notes.forEach((t, i) => {
+  notes.forEach(({ zh, es, tall }, i) => {
     const r = notesRow + 1 + i;
-    ws.mergeCells(`A${r}:I${r}`);
+    ws.mergeCells(`A${r}:O${r}`);
     const cell = ws.getCell(`A${r}`);
-    cell.value = t;
-    cell.font = { name: F_SANS, size: 8.5, color: { argb: INK_SOFT } };
-    cell.alignment = { vertical: "middle", horizontal: "left", wrapText: false };
-    ws.getRow(r).height = 13;
-  });
-
-  // ── Tarjeta Shipping Mark (derecha de las notas) ───────────────
-  ws.mergeCells(`K${notesRow}:O${notesRow}`);
-  const smHead = ws.getCell(`K${notesRow}`);
-  smHead.value = { richText: [
-    { text: "唛头内容", font: { name: F_SANS, bold: true, size: 10, color: { argb: WINE } } },
-    { text: " · Shipping Mark", font: { name: F_SANS, bold: true, size: 9.5, color: { argb: NAVY } } },
-  ] };
-  smHead.alignment = { vertical: "middle" };
-  smHead.border = { top: { style: "medium", color: { argb: NAVY } }, left: { style: "medium", color: { argb: NAVY } }, right: { style: "medium", color: { argb: NAVY } } };
-
-  const smRows = [
-    ["MARK", "DTD-____"],
-    ["ITEM NO", "____"],
-    ["PCS / CTN", "____"],
-    ["CARTON NO", "____"],
-  ];
-  smRows.forEach(([k, v], i) => {
-    const r = notesRow + 1 + i;
-    ws.mergeCells(`K${r}:L${r}`);
-    const kc = ws.getCell(`K${r}`);
-    kc.value = k;
-    kc.font = { name: F_MONO, size: 9.5, color: { argb: GREY_500 } };
-    kc.alignment = { vertical: "middle" };
-    kc.border = { left: { style: "medium", color: { argb: NAVY } } };
-    ws.mergeCells(`M${r}:O${r}`);
-    const vc = ws.getCell(`M${r}`);
-    vc.value = v;
-    vc.font = { name: F_MONO, bold: true, size: 9.5, color: { argb: NAVY } };
-    vc.alignment = { vertical: "middle", horizontal: "right" };
-    vc.border = { right: { style: "medium", color: { argb: NAVY } } };
-  });
-  // Cierre inferior de la tarjeta.
-  ["K", "L", "M", "N", "O"].forEach((col) => {
-    ws.getCell(`${col}${notesRow + 4}`).border = {
-      bottom: { style: "medium", color: { argb: NAVY } },
-      left: col === "K" ? { style: "medium", color: { argb: NAVY } } : undefined,
-      right: col === "O" ? { style: "medium", color: { argb: NAVY } } : undefined,
-    };
+    cell.value = { richText: [
+      { text: zh, font: { name: F_SANS, size: 9, color: { argb: INK_SOFT } } },
+      { text: `  ${es}`, font: { name: F_SANS, size: 8, color: { argb: GREY_500 } } },
+    ] };
+    cell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+    ws.getRow(r).height = tall ? 26 : 14;
   });
 
   // ── Firmas ─────────────────────────────────────────────────────
-  const signRow = notesRow + 8; // ~39
+  const signRow = notesRow + notes.length + 3; // 40
   ws.mergeCells(`A${signRow}:E${signRow}`);
   const s1 = ws.getCell(`A${signRow}`);
   s1.value = { richText: [
@@ -459,7 +485,10 @@ async function main() {
   );
 }
 
-main().catch((e) => {
-  console.error("[build-packlist-template] error:", e);
-  process.exit(1);
-});
+// Importable sin efectos (`rowFormula` se puede reusar); solo genera al ejecutarse.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch((e) => {
+    console.error("[build-packlist-template] error:", e);
+    process.exit(1);
+  });
+}

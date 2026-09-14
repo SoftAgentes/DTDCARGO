@@ -8,11 +8,14 @@
  * tenga que descargar ni reenviar nada — le pasa el link y el proveedor baja lo
  * que necesita.
  *
+ * SDD-0468 · Menos es más: antes había dos listas numeradas (5 pasos y un
+ * sub-listado a/b) que repetían lo mismo desde dos puntos de vista. Queda UNA
+ * acción (el enlace) y UNA lista corta de lo que hará el proveedor.
+ *
  * Reusa lo que ya existe: `ShareProviderButton` (+ `/p/[token]`, SDD-0096) y la
  * página de etiquetas `/portal/compras/[code]/etiquetas`.
  *
- * Sólo tokens `var(--*)`. Tema oscuro por default: sobre relleno wine va
- * `--color-on-accent`, nunca `text-white`.
+ * Sólo tokens `var(--*)`. Tema oscuro por default.
  */
 
 import { useState } from "react";
@@ -23,14 +26,19 @@ import { PurchaseWizardSteps } from "./PurchaseWizardSteps";
 import { PurchaseSummaryPanel } from "./PurchaseSummaryPanel";
 import type { OrderRecap } from "./PurchaseSummaryPanel";
 
-/** Un paso numerado de la lista de instrucciones. */
+/** Lo que hace el proveedor al abrir el enlace, en el orden de la página. */
+const PROVIDER_STEPS = [
+  "Llena la factura y el packing list, y sube fotos del producto.",
+  "Pega una etiqueta en cada caja.",
+  "Envía la mercancía a nuestro almacén en China.",
+] as const;
+
+/** Un paso numerado de la lista de instrucciones (neutro: no compite con el CTA). */
 function NumberedStep({
   n,
-  tone,
   children,
 }: {
   n: number;
-  tone: "wine" | "neutral";
   children: React.ReactNode;
 }) {
   return (
@@ -41,14 +49,9 @@ function NumberedStep({
           width: 22,
           height: 22,
           fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-          background:
-            tone === "wine" ? "var(--color-wine)" : "var(--color-grey-100)",
-          // Sobre relleno wine SIEMPRE --color-on-accent: el token "white" del
-          // portal vale navy en oscuro y el número se perdería.
-          color:
-            tone === "wine" ? "var(--color-on-accent)" : "var(--color-ink)",
-          border:
-            tone === "wine" ? "none" : "1px solid var(--color-grey-200)",
+          background: "var(--color-grey-100)",
+          color: "var(--color-ink)",
+          border: "1px solid var(--color-grey-200)",
         }}
       >
         {n}
@@ -103,65 +106,35 @@ export function PurchaseStepConfirm({
               <DocIcon size={15} />
             </span>
             <h2 className="text-[15px] font-bold text-ink m-0">
-              Que tu proveedor lo confirme
+              Envíale el enlace a tu proveedor
             </h2>
           </div>
           <p className="mt-2 text-[12.5px] text-grey-700 leading-[1.55]">
-            Así tu proveedor te envía la mercancía{" "}
+            Pégalo en el chat con tu proveedor. Así tu mercancía llega{" "}
             <strong className="text-ink">bien identificada, sin retrasos</strong>.
           </p>
 
-          <div className="mt-5 text-[10px] font-bold tracking-[0.08em] uppercase" style={{ color: "var(--color-wine-text)" }}>
-            Tus pasos · seguimiento con tu proveedor
+          <div className="mt-4">
+            {shareToken ? (
+              <ShareProviderButton token={shareToken} />
+            ) : (
+              <p className="text-[12px] text-grey-700 leading-[1.5] m-0">
+                El enlace se está generando. Lo encuentras en el detalle de tu
+                compra, en{" "}
+                <Link href="/portal/compras" className="text-wine-text font-semibold">
+                  Mis compras
+                </Link>
+                .
+              </p>
+            )}
           </div>
-          <ol className="mt-2.5 flex flex-col gap-3.5 list-none p-0 m-0">
-            <NumberedStep n={1} tone="wine">
-              <p className="text-[12.5px] text-ink leading-[1.5] m-0">
-                Cópiale el link y envíaselo por chat a tu proveedor.
-              </p>
-              {shareToken ? (
-                <div className="mt-2">
-                  <ShareProviderButton token={shareToken} />
-                </div>
-              ) : (
-                <p className="mt-2 text-[11.5px] text-grey-700 leading-[1.5] m-0">
-                  El link se está generando. Lo encuentras en el detalle de tu
-                  compra, en{" "}
-                  <Link href="/portal/compras" className="text-wine-text font-semibold">
-                    Mis compras
-                  </Link>
-                  .
-                </p>
-              )}
-            </NumberedStep>
-            <NumberedStep n={2} tone="wine">
-              <p className="text-[12.5px] text-ink leading-[1.5] m-0">
-                Hazle seguimiento para asegurarte de que cumpla con lo
-                siguiente:
-              </p>
-              <div className="mt-1.5 flex flex-col gap-1">
-                <span className="text-[12px] text-grey-700 leading-[1.5]">
-                  <strong className="text-ink">a.</strong> Que llene el
-                  formulario del link.
-                </span>
-                <span className="text-[12px] text-grey-700 leading-[1.5]">
-                  <strong className="text-ink">b.</strong> Que le ponga a cada
-                  caja la etiqueta con tu código.
-                </span>
-              </div>
-            </NumberedStep>
-          </ol>
 
           <div className="mt-6 text-[10px] font-bold tracking-[0.08em] uppercase text-grey-500">
-            Tu proveedor · sus confirmaciones
+            Lo que hará tu proveedor
           </div>
           <ol className="mt-2.5 flex flex-col gap-3 list-none p-0 m-0">
-            {[
-              "Abre el link y llena los datos.",
-              "Sube su factura final, su packing list final y las fotos del producto terminado.",
-              "Nos envía el producto.",
-            ].map((t, i) => (
-              <NumberedStep key={t} n={i + 1} tone="neutral">
+            {PROVIDER_STEPS.map((t, i) => (
+              <NumberedStep key={t} n={i + 1}>
                 <p className="text-[12.5px] text-ink leading-[1.5] m-0">{t}</p>
               </NumberedStep>
             ))}
