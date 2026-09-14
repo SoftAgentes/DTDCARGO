@@ -103,7 +103,12 @@ Foco por deuda (sobre el árbol antes de fusionar main, `9ee4227c`; las comproba
 
 ### `pnpm verify` sobre `2ac1b7f2b0ab64d24a9ea8542d44c38b08b962a2`
 
-Lanzado a las 20:09 (hora local) tras esperar con un vigilante en segundo plano (`wait-for-quiet-machine.mjs`: procesos `verify.mjs`/Playwright/`next dev`/`next build` y puertos 3100–3799) a que terminaran dos verify ajenos consecutivos (PIDs 49528 y 30368, e2e en 3191 y 3312); comprobación de calma repetida en el mismo comando de lanzamiento (0 procesos, 0 puertos). Terminó a las 20:30. Log `verify-final.log`.
+Lanzado a las 20:09 (hora local) tras esperar con un vigilante en segundo plano (`wait-for-quiet-machine.mjs`: procesos `verify.mjs`/Playwright/`next dev`/`next build` y puertos 3100–3799) a que terminaran dos verify ajenos consecutivos (PIDs 49528 y 30368, e2e en 3191 y 3312); comprobación de calma repetida en el mismo comando de lanzamiento (0 procesos, 0 puertos). Terminó a las 20:30.
+
+Recibos, con ruta exacta:
+
+- Log completo: `C:\Users\AKXGEN~1\AppData\Local\Temp\claude\C--Users-AKX-generator-Desktop-Developer-DTDCARGO\a4705ad7-612e-488b-9826-2cd036e3da72\scratchpad\harness-gate-simbolos\verify-final.log` (segunda línea: `HEAD=2ac1b7f2b0ab64d24a9ea8542d44c38b08b962a2 2026-09-13T20:09:07-04:00`; última: `verify exit=1 2026-09-13T20:30:13-04:00`).
+- Meta: `C:\Users\AKXGEN~1\AppData\Local\Temp\claude\C--Users-AKX-generator-Desktop-Developer-DTDCARGO\a4705ad7-612e-488b-9826-2cd036e3da72\scratchpad\harness-gate-simbolos\verify-final.meta`, con `head_verificado`, inicio, fin, exit, comando, calma previa, veredicto por paso y escenarios e2e fallidos. Se escribió en la ronda 2 a partir del log, con `write-verify-meta.mjs` de la misma carpeta; la corrida no se repitió.
 
 | Paso | Resultado |
 |---|---|
@@ -139,7 +144,17 @@ E2E autenticado y ledger productivo: NO DISPONIBLES en este worktree; no autoriz
 - `9ee4227c` — spec SDD-0464 e índice.
 - `e6c6912b` — merge de `origin/main` `a9a12eed` en la rama (sin conflictos; índice sin cambios).
 - `2ac1b7f2` — merge de `origin/main` `70ee6f45` (PR #106) con el driver de main; índice regenerado sin cambios. Head de código verificado.
-- Commit que contiene este documento: cierre documental; hash final en la PR.
+- `fed65d4e` — cierre documental de la ronda 1: spec a `done`, índice y este handoff.
+- Commit que contiene esta ronda 2: solo spec y handoff; hash final en la PR.
+
+## RONDA 2 — revisión del Director (2026-09-14)
+
+Aceptadas las cuatro deudas, incluida la desviación con evidencia en `skills-lock.json` y dejar SDD-0440 en `in-progress`. Correcciones de texto pedidas y hechas, allowlist de esta ronda limitada a la spec y este handoff:
+
+- **Allowlist exacta de la spec.** Se contrastó con `git diff --name-only origin/main...HEAD` (`origin/main` = `main` local = `70ee6f45`): 14 rutas en el diff y 14 entradas en la lista, coincidencia uno a uno; `package.json` ya figuraba y ahora lleva el alcance «solo el script `skills:check`». La comparación automática solo difería por el token `skills:check` dentro de esa misma línea.
+- **Meta del verify.** No existía un archivo `verify-*.meta`: el HEAD y las marcas de tiempo estaban en la segunda y la última línea de `verify-final.log`. Se generó `verify-final.meta` desde el log (rutas exactas arriba), sin repetir la corrida.
+- **Validación proporcional:** `node scripts/build-docs-index.mjs --check`, `corepack pnpm sdd:check` y `git diff --check` PASARON; `pnpm verify` NO EJECUTADO en esta ronda: desde `2ac1b7f2` solo cambió documentación, demostrado con `git diff --stat 2ac1b7f2..HEAD` (spec, índice y handoff), citado en la respuesta al Director.
+- Claim reclamado para la ronda, un único push normal de la rama a sí misma, PR #111 sigue en borrador, claim liberado al terminar.
 
 ## PR / BRANCH
 

@@ -134,7 +134,7 @@ el checker de skills solo consulta git local. No hay migración.
 - `scripts/tests/verify-watchdog.node.mjs` (una aserción: ya no hay lista manual)
 - `scripts/check-skills-manifest.mjs`
 - `scripts/tests/skills-manifest.node.mjs`
-- `package.json` (script `skills:check`)
+- `package.json` (solo el script `skills:check`)
 - `.agents/handoffs/harness-gate-simbolos-por-relacion.md`
 
 ## Criterios de aceptación
