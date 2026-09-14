@@ -1,7 +1,7 @@
 ---
 sdd: "0466"
 title: "Helpers del Portal por principal, deterministas y sin cruce de tenant"
-status: in-progress
+status: done
 author: "Claude"
 created: 2026-09-14
 updated: 2026-09-14
