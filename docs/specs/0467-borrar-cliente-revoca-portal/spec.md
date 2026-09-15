@@ -463,8 +463,26 @@ auditoría»: SGE-00, MP-01, BTN-01, AUD-01 y AUD-02.
 
 ## Producción
 
-`0454_borrar_cliente_revoca_portal` **no está aplicada**. Este estado no acredita aplicación; lo
-acredita el ledger.
+`0454_borrar_cliente_revoca_portal` **quedó aplicada a producción el 2026-09-15** por el Director, con OK
+nominal de Sam («autorizo aplicar 0454_borrar_cliente_revoca_portal»), después del merge de la PR #120
+(`4d8dee12`). Registro completo en `.agents/handoffs/0454-aplicacion-prod-20260915.md`.
+
+- **Ledger:** `20260915155857`, name exacto, 1 sentencia, md5 `02623202e197dd9ff1e6de90b0340876` y
+  30.505 bytes, iguales al blob de `main` `4d8dee12`.
+- **Lectura previa, repetida justo antes e idéntica:** PostgreSQL 17.6; `postgres` con BYPASSRLS y
+  dueño de las tres tablas, sin FORCE; el CHECK de status, los fragmentos de `merge_clients` y
+  `portal_bind_session` y `portal_invitation` activo, tal como exige el preflight; ningún trigger ni
+  función de 0454.
+- **Postflight de catálogo:** las dos funciones SECURITY DEFINER, volátiles, con `search_path` vacío,
+  dueño `postgres` y sin EXECUTE para `anon`, `authenticated` ni `service_role`; los tres triggers
+  habilitados con la definición esperada; triggers ajenos, policies (4), ACL y RLS de las tres tablas
+  y las RPC del Portal y de fusión, sin cambios.
+- **Advisors de seguridad:** idénticos antes y después, excluido `observed_at`.
+- **Backfill:** el conector no devuelve el NOTICE y no se leyeron conteos, porque Sam no los pidió. El
+  postflight de la propia migración exige cero vínculos o códigos vigentes sobre clientes borrados:
+  si hubiera quedado alguno, la aplicación se habría revertido entera.
+
+Lo que sigue es la guía con la que se aplicó.
 
 - Aplicarla exige el OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`: de a una,
   con el name exacto. No depende de ningún despliegue.
