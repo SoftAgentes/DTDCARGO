@@ -457,7 +457,11 @@ end $f$$d$,
     'alter table public.portal_access_links disable row level security',
     'alter table public.client_users drop constraint client_users_status_check',
     $d$update public.audit_entity_types set status = 'deprecated', deprecated_at = now() where entity_type = 'portal_invitation'$d$,
-    'create trigger clients_revoke_portal_on_soft_delete after update on public.clients for each row execute function public.fixture_0454_noop()'
+    'create trigger clients_revoke_portal_on_soft_delete after update on public.clients for each row execute function public.fixture_0454_noop()',
+    -- RLS: con FORCE en una tabla, o aplicada por un rol que no es dueño ni tiene
+    -- BYPASSRLS, la revocación y el backfill actualizarían 0 filas sin error.
+    'alter table public.portal_access_links force row level security',
+    'create role fixture_0454_applier nologin; set role fixture_0454_applier'
   ] loop
     failed := false;
     begin
@@ -559,6 +563,46 @@ select pg_temp.assert_true(
     = 'CREATE TRIGGER portal_access_links_require_live_client BEFORE INSERT OR UPDATE OF revoked_at, client_id ON public.portal_access_links FOR EACH ROW WHEN ((new.revoked_at IS NULL)) EXECUTE FUNCTION portal_access_require_live_client()',
   'Los tres triggers quedan con su evento, momento, columnas y condición');
 
+-- ─── 3c · Drift de reaplicación: un trigger con el nombre de la migración ────
+-- y la misma función y tipo, pero otra condición, otras columnas o
+-- deshabilitado, no pasa por la forma final: el preflight compara la
+-- definición completa (pg_get_triggerdef normalizado), no sólo tgtype/tgfoid.
+do $trigger_drift$
+declare drift text; failed boolean; message text; state text; after_drift jsonb;
+  migration text := pg_read_file('/sb/migrations/0454_borrar_cliente_revoca_portal.sql');
+begin
+  foreach drift in array array[
+    'drop trigger clients_revoke_portal_on_soft_delete on public.clients; create trigger clients_revoke_portal_on_soft_delete after update on public.clients for each row when (new.deleted_at is not null) execute function public.clients_revoke_portal_access()',
+    'drop trigger client_users_require_live_client on public.client_users; create trigger client_users_require_live_client before insert or update of status on public.client_users for each row when (new.status in (''invited'', ''active'')) execute function public.portal_access_require_live_client()',
+    'drop trigger portal_access_links_require_live_client on public.portal_access_links; create trigger portal_access_links_require_live_client before insert or update of revoked_at, client_id on public.portal_access_links for each row when (new.revoked_at is null and new.used_at is null) execute function public.portal_access_require_live_client()',
+    'alter table public.clients disable trigger clients_revoke_portal_on_soft_delete'
+  ] loop
+    failed := false;
+    begin
+      execute drift;
+      after_drift := pg_temp.catalog_snapshot();
+      begin execute migration;
+      exception when others then
+        get stacked diagnostics message = message_text, state = returned_sqlstate;
+        if state <> 'P0001' or message not like '0454 abortada: ya existe un trigger con el nombre de esta migración y otra forma%' then
+          raise exception 'TEST 0454: drift de trigger no falló en preflight: % / % (%)', state, message, left(drift, 90);
+        end if;
+        failed := true;
+      end;
+      if not failed or after_drift <> pg_temp.catalog_snapshot() then
+        raise exception 'TEST 0454: preflight aceptó un trigger con otra forma o alteró catálogo: %', left(drift, 90);
+      end if;
+      raise exception using errcode = 'PT454', message = 'rollback drift de trigger';
+    exception when sqlstate 'PT454' then null;
+    end;
+    perform pg_temp.assert_true(true, 'Reaplicar sobre un trigger con otra forma aborta en el preflight: ' || left(drift, 70));
+  end loop;
+end;
+$trigger_drift$;
+select pg_temp.assert_true((select catalog from after_first) = pg_temp.catalog_snapshot()
+  and (select rows from after_first) = pg_temp.rows_snapshot(),
+  'Los drift de trigger se revierten enteros');
+
 -- ─── 2 · Estático ───────────────────────────────────────────────────────────
 do $static$
 declare
@@ -589,6 +633,17 @@ begin
   perform pg_temp.assert_true(
     (select count(*) from regexp_matches(f, '\n\s*create trigger ', 'g')) = 3,
     'Exactamente tres triggers creados');
+  -- FOR SHARE en la rama INSERT (o cambio de client_id) de la guarda, sobre el
+  -- prosrc aplicado, sin comentarios ni espacios. Sin él, una invitación o un
+  -- código nuevo concurrente con el borrado queda vigente (carreras 1 y 4 del
+  -- SDD-0467); un contrato de una sola sesión no lo observa por comportamiento.
+  perform pg_temp.assert_true(
+    strpos(
+      (select regexp_replace(regexp_replace(p.prosrc, '--[^\n]*', '', 'g'), '\s', '', 'g')
+         from pg_proc p where p.oid = 'public.portal_access_require_live_client()'::regprocedure),
+      'iftg_op=''INSERT''ornew.client_idisdistinctfromold.client_idthenperform1frompublic.clientsascwherec.id=new.client_idandc.deleted_atisnullforshareofc;v_alive:=found;else'
+    ) > 0,
+    'La guarda toma FOR SHARE OF c sobre el cliente en la rama INSERT o cambio de client_id');
   perform pg_temp.assert_true(f like E'%\ndo $preflight$%\nend;\n$preflight$;\n%'
     and f like E'%\ndo $triggers$%\nend;\n$triggers$;\n%'
     and f like E'%\ndo $backfill$%\nend;\n$backfill$;\n%'
@@ -629,6 +684,46 @@ begin
     if message not like '0454: quedaron 1 vínculo(s) y 0 código(s) corto(s) utilizables%' then raise; end if;
   end;
   perform pg_temp.assert_true(true, 'El postflight rechaza un vínculo vigente sobre un cliente borrado, con conteos agregados');
+
+  -- Un trigger con el nombre, la función y el tipo correctos pero otra condición.
+  begin
+    execute v_pre;
+    drop trigger clients_revoke_portal_on_soft_delete on public.clients;
+    create trigger clients_revoke_portal_on_soft_delete after update on public.clients
+      for each row when (new.deleted_at is not null) execute function public.clients_revoke_portal_access();
+    execute v_post;
+    raise exception 'TEST 0454: el postflight aceptó un trigger con otra condición';
+  exception when sqlstate 'P0001' then
+    get stacked diagnostics message = message_text;
+    if message not like '0454: los tres triggers no quedaron vivos con su forma%' then raise; end if;
+  end;
+  perform pg_temp.assert_true(true, 'El postflight rechaza un trigger con la misma función y tipo pero otra condición');
+
+  -- El dueño de las funciones no evita la RLS (ni dueño de las tablas ni BYPASSRLS).
+  begin
+    execute v_pre;
+    create role fixture_0454_nobypass nologin;
+    grant create on schema public to fixture_0454_nobypass;
+    alter function public.clients_revoke_portal_access() owner to fixture_0454_nobypass;
+    execute v_post;
+    raise exception 'TEST 0454: el postflight aceptó un dueño de funciones que no evita la RLS';
+  exception when sqlstate 'P0001' then
+    get stacked diagnostics message = message_text;
+    if message not like '0454: el dueño de las funciones no evita la RLS%' then raise; end if;
+  end;
+  perform pg_temp.assert_true(true, 'El postflight rechaza funciones cuyo dueño no evita la RLS de las tres tablas');
+
+  -- FORCE ROW LEVEL SECURITY después del preflight: el postflight también lo rechaza.
+  begin
+    execute v_pre;
+    alter table public.client_users force row level security;
+    execute v_post;
+    raise exception 'TEST 0454: el postflight aceptó FORCE ROW LEVEL SECURITY';
+  exception when sqlstate 'P0001' then
+    get stacked diagnostics message = message_text;
+    if message not like '0454: %' or message like 'TEST 0454%' then raise; end if;
+  end;
+  perform pg_temp.assert_true(true, 'El postflight rechaza FORCE ROW LEVEL SECURITY en una de las tablas');
   perform set_config('dtd.huella_0454', '', false);
 end;
 $postflight_probe$;

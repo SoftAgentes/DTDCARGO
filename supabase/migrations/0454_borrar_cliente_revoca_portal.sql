@@ -62,7 +62,14 @@
 --     filas `active`;
 --   · si existe `audit_d5_client_users`, el tipo `portal_invitation` está activo
 --     (si no, cada revocación fallaría y bloquearía los borrados);
---   · triggers con los nombres de esta migración: ausentes o con su forma final;
+--   · RLS: el rol que aplica queda como dueño de las dos funciones SECURITY
+--     DEFINER; tiene que ser dueño de las tres tablas o tener BYPASSRLS (o ser
+--     superusuario), y ninguna puede tener FORCE ROW LEVEL SECURITY. Si no, la
+--     revocación y el backfill actualizarían 0 filas sin error;
+--   · triggers con los nombres de esta migración: ausentes o con su forma final
+--     COMPLETA (habilitados, su función y pg_get_triggerdef normalizado idéntico:
+--     evento, momento, columnas y WHEN). El postflight exige lo mismo, y además
+--     que el dueño de las funciones evite la RLS de las tres tablas;
 --   · huella del catálogo dependiente (triggers ajenos, policies y ACL de las
 --     tres tablas, y las RPC del Portal y de fusión), que el postflight exige
 --     intacta.
@@ -88,6 +95,7 @@ declare
   v_move int;
   v_revoke int;
   v_retire int;
+  v_trg record;
   v_huella text;
 begin
   if pg_catalog.to_regrole('authenticated') is null
@@ -160,6 +168,31 @@ begin
     raise exception '0454 abortada: portal_bind_session() no tiene la forma de 0080; revisar antes de aplicar';
   end if;
 
+  -- RLS: la revocación y el backfill corren como el dueño de las dos funciones
+  -- SECURITY DEFINER, que queda siendo el rol que aplica. Ese rol tiene que
+  -- saltarse la RLS de las tres tablas (dueño sin FORCE, BYPASSRLS o superusuario);
+  -- si no, actualizarían 0 filas sin error y los conteos del postflight también
+  -- pasarían por la RLS. FORCE aborta siempre, aunque el rol tenga BYPASSRLS.
+  foreach v_table in array array['public.clients', 'public.client_users', 'public.portal_access_links'] loop
+    if exists (
+      select 1 from pg_catalog.pg_class
+      where oid = pg_catalog.to_regclass(v_table) and relforcerowsecurity
+    ) then
+      raise exception '0454 abortada: % tiene FORCE ROW LEVEL SECURITY; la revocación y el backfill actualizarían 0 filas sin error', v_table;
+    end if;
+    if not exists (
+         select 1 from pg_catalog.pg_roles as r
+         where r.rolname = current_user and (r.rolsuper or r.rolbypassrls)
+       )
+       and not exists (
+         select 1 from pg_catalog.pg_class as c
+         where c.oid = pg_catalog.to_regclass(v_table)
+           and pg_catalog.pg_has_role(current_user, c.relowner, 'USAGE')
+       ) then
+      raise exception '0454 abortada: el rol que aplica no es dueño de % ni tiene BYPASSRLS; la revocación y el backfill actualizarían 0 filas sin error', v_table;
+    end if;
+  end loop;
+
   -- Auditoría D5: si el trigger existe, el tipo de entidad tiene que aceptar eventos.
   if exists (
        select 1 from pg_catalog.pg_trigger t
@@ -174,28 +207,34 @@ begin
     raise exception '0454 abortada: audit_d5_client_users está vivo pero el tipo portal_invitation no está activo';
   end if;
 
-  -- Triggers de esta migración: ausentes, o con su forma final (reaplicación).
+  -- Triggers de esta migración: ausentes, o con su forma final COMPLETA
+  -- (reaplicación): habilitados, con su función y con la definición exacta de
+  -- pg_get_triggerdef (evento, momento, columnas y WHEN), normalizada en espacios
+  -- y sin el esquema de la función, que depende del search_path de la sesión.
   -- coalesce: antes de la primera aplicación to_regprocedure() de las funciones
   -- nuevas es NULL, y un NULL dentro del not (...) dejaría pasar un trigger ajeno.
-  if exists (
-    select 1 from pg_catalog.pg_trigger t
-    where not t.tgisinternal
-      and ((t.tgrelid = 'public.clients'::pg_catalog.regclass and t.tgname = 'clients_revoke_portal_on_soft_delete')
-        or (t.tgrelid = 'public.client_users'::pg_catalog.regclass and t.tgname = 'client_users_require_live_client')
-        or (t.tgrelid = 'public.portal_access_links'::pg_catalog.regclass and t.tgname = 'portal_access_links_require_live_client'))
-      and not coalesce(
-        t.tgenabled = 'O'
-        and (
-          (t.tgname = 'clients_revoke_portal_on_soft_delete'
-            and t.tgfoid = pg_catalog.to_regprocedure('public.clients_revoke_portal_access()')
-            and t.tgtype = 17 and t.tgattr::text = '')
-          or (t.tgname in ('client_users_require_live_client', 'portal_access_links_require_live_client')
-            and t.tgfoid = pg_catalog.to_regprocedure('public.portal_access_require_live_client()')
-            and t.tgtype = 23)
-        ), false)
-  ) then
-    raise exception '0454 abortada: ya existe un trigger con el nombre de esta migración y otra forma; revisar antes de aplicar';
-  end if;
+  for v_trg in select * from (values
+    ('public.clients', 'clients_revoke_portal_on_soft_delete', 'public.clients_revoke_portal_access()',
+     'CREATE TRIGGER clients_revoke_portal_on_soft_delete AFTER UPDATE ON public.clients FOR EACH ROW WHEN (((old.deleted_at IS NULL) AND (new.deleted_at IS NOT NULL))) EXECUTE FUNCTION clients_revoke_portal_access()'),
+    ('public.client_users', 'client_users_require_live_client', 'public.portal_access_require_live_client()',
+     'CREATE TRIGGER client_users_require_live_client BEFORE INSERT OR UPDATE OF status, client_id ON public.client_users FOR EACH ROW WHEN ((new.status = ANY (ARRAY[''invited''::text, ''active''::text]))) EXECUTE FUNCTION portal_access_require_live_client()'),
+    ('public.portal_access_links', 'portal_access_links_require_live_client', 'public.portal_access_require_live_client()',
+     'CREATE TRIGGER portal_access_links_require_live_client BEFORE INSERT OR UPDATE OF revoked_at, client_id ON public.portal_access_links FOR EACH ROW WHEN ((new.revoked_at IS NULL)) EXECUTE FUNCTION portal_access_require_live_client()')
+  ) as x(relation, tgname, fn, def) loop
+    if exists (
+      select 1 from pg_catalog.pg_trigger as t
+      where t.tgrelid = pg_catalog.to_regclass(v_trg.relation)
+        and t.tgname = v_trg.tgname and not t.tgisinternal
+        and not coalesce(
+          t.tgenabled = 'O'
+          and t.tgfoid = pg_catalog.to_regprocedure(v_trg.fn)
+          and pg_catalog.replace(pg_catalog.regexp_replace(pg_catalog.pg_get_triggerdef(t.oid), '\s+', ' ', 'g'),
+                'EXECUTE FUNCTION public.', 'EXECUTE FUNCTION ') = v_trg.def,
+          false)
+    ) then
+      raise exception '0454 abortada: ya existe un trigger con el nombre de esta migración y otra forma; revisar antes de aplicar';
+    end if;
+  end loop;
 
   -- Huella del catálogo dependiente, que el postflight exige intacta.
   select pg_catalog.md5(pg_catalog.string_agg(x, '|' order by x)) into v_huella
@@ -404,6 +443,7 @@ $backfill$;
 do $postflight$
 declare
   v_fn record;
+  v_exp record;
   v_huella text;
   v_users bigint;
   v_links bigint;
@@ -428,23 +468,51 @@ begin
     end if;
   end loop;
 
-  if (
-    select pg_catalog.count(*) from pg_catalog.pg_trigger t
-    where not t.tgisinternal and t.tgenabled = 'O'
-      and (
-        (t.tgrelid = 'public.clients'::pg_catalog.regclass and t.tgname = 'clients_revoke_portal_on_soft_delete'
-          and t.tgfoid = pg_catalog.to_regprocedure('public.clients_revoke_portal_access()')
-          and t.tgtype = 17 and t.tgattr::text = '')
-        or (t.tgrelid = 'public.client_users'::pg_catalog.regclass and t.tgname = 'client_users_require_live_client'
-          and t.tgfoid = pg_catalog.to_regprocedure('public.portal_access_require_live_client()')
-          and t.tgtype = 23)
-        or (t.tgrelid = 'public.portal_access_links'::pg_catalog.regclass and t.tgname = 'portal_access_links_require_live_client'
-          and t.tgfoid = pg_catalog.to_regprocedure('public.portal_access_require_live_client()')
-          and t.tgtype = 23)
-      )
-  ) <> 3 then
-    raise exception '0454: los tres triggers no quedaron vivos con su forma';
+  -- El dueño de las dos funciones (con el que corren la revocación y las guardas)
+  -- evita la RLS de las tres tablas: superusuario, BYPASSRLS o dueño sin FORCE.
+  if exists (
+       select 1 from pg_catalog.pg_class as c
+       where c.oid in ('public.clients'::pg_catalog.regclass, 'public.client_users'::pg_catalog.regclass,
+                       'public.portal_access_links'::pg_catalog.regclass)
+         and c.relforcerowsecurity
+     )
+     or exists (
+       select 1
+         from pg_catalog.pg_proc as p
+         join pg_catalog.pg_roles as r on r.oid = p.proowner
+         cross join pg_catalog.pg_class as c
+        where p.oid in (pg_catalog.to_regprocedure('public.clients_revoke_portal_access()'),
+                        pg_catalog.to_regprocedure('public.portal_access_require_live_client()'))
+          and c.oid in ('public.clients'::pg_catalog.regclass, 'public.client_users'::pg_catalog.regclass,
+                        'public.portal_access_links'::pg_catalog.regclass)
+          and not (r.rolsuper or r.rolbypassrls)
+          and not pg_catalog.pg_has_role(p.proowner, c.relowner, 'USAGE')
+     ) then
+    raise exception '0454: el dueño de las funciones no evita la RLS de clients, client_users o portal_access_links; la revocación actualizaría 0 filas sin error';
   end if;
+
+  -- Los tres triggers: habilitados, con su función y con la definición completa
+  -- (pg_get_triggerdef normalizado en espacios y sin el esquema de la función).
+  for v_exp in select * from (values
+    ('public.clients', 'clients_revoke_portal_on_soft_delete', 'public.clients_revoke_portal_access()',
+     'CREATE TRIGGER clients_revoke_portal_on_soft_delete AFTER UPDATE ON public.clients FOR EACH ROW WHEN (((old.deleted_at IS NULL) AND (new.deleted_at IS NOT NULL))) EXECUTE FUNCTION clients_revoke_portal_access()'),
+    ('public.client_users', 'client_users_require_live_client', 'public.portal_access_require_live_client()',
+     'CREATE TRIGGER client_users_require_live_client BEFORE INSERT OR UPDATE OF status, client_id ON public.client_users FOR EACH ROW WHEN ((new.status = ANY (ARRAY[''invited''::text, ''active''::text]))) EXECUTE FUNCTION portal_access_require_live_client()'),
+    ('public.portal_access_links', 'portal_access_links_require_live_client', 'public.portal_access_require_live_client()',
+     'CREATE TRIGGER portal_access_links_require_live_client BEFORE INSERT OR UPDATE OF revoked_at, client_id ON public.portal_access_links FOR EACH ROW WHEN ((new.revoked_at IS NULL)) EXECUTE FUNCTION portal_access_require_live_client()')
+  ) as x(relation, tgname, fn, def) loop
+    if not exists (
+      select 1 from pg_catalog.pg_trigger as t
+      where t.tgrelid = pg_catalog.to_regclass(v_exp.relation)
+        and t.tgname = v_exp.tgname and not t.tgisinternal
+        and t.tgenabled = 'O'
+        and t.tgfoid = pg_catalog.to_regprocedure(v_exp.fn)
+        and pg_catalog.replace(pg_catalog.regexp_replace(pg_catalog.pg_get_triggerdef(t.oid), '\s+', ' ', 'g'),
+              'EXECUTE FUNCTION public.', 'EXECUTE FUNCTION ') = v_exp.def
+    ) then
+      raise exception '0454: los tres triggers no quedaron vivos con su forma';
+    end if;
+  end loop;
 
   select pg_catalog.md5(pg_catalog.string_agg(x, '|' order by x)) into v_huella
   from (
