@@ -4,7 +4,7 @@
 - Owner: worker-verify-e2e-sin-supabase-20260915 (Claude Code, Worker)
 - Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/verify-e2e-sin-supabase
 - Rama: codex/verify-e2e-sin-supabase
-- Base: origin/main c70956bf8b58b70e7e49676f29264d11796d7f81 + reserva c66b0381 (cherry-pick 99851f79)
+- Base: origin/main c70956bf8b58b70e7e49676f29264d11796d7f81 + reserva c66b0381 (cherry-pick 99851f79); en la ronda 2, merge de origin/main 42f80beadf5adf9e5a5eff5f393e8689e8122f29 (merge 13299d09)
 - SDD: docs/specs/0470-verify-e2e-sin-supabase/spec.md, estado `done` (los 6 criterios cumplidos; merge y release van aparte)
 - Estado de tarea: lista-para-revision
 - Permisos: commits locales selectivos; push de la rama propia y PR draft contra
@@ -120,8 +120,15 @@ el índice regenerado y este handoff: nada que verify ejecute como código.
   verify, `partial` en el veredicto, pruebas del harness y README del e2e.
 - `5e935504` — spec 0470 con el diagnóstico, índice regenerado, README citado
   por títulos y handoff intermedio.
-- Commit que contiene este documento: cierre de la spec (`done`), resultado de
-  verify, índice regenerado y handoff final. Su hash va en la PR.
+- `fac168c2` — cierre de la spec (`done`), resultado de verify, índice
+  regenerado y handoff de la ronda 1. Fue el head revisado.
+- Ronda 2:
+  - `78bd1505` — recolección probada, modo test, raíz única, inventario
+    robusto, README y diseño de la spec.
+  - `13299d09` — merge de `origin/main` `42f80bea` (PR #122, SDD-0469), con el
+    índice resuelto por el driver.
+  - Commit que contiene este documento: sección de ronda 2 en la spec y en
+    este handoff. Su hash va en la respuesta al Director y en la PR.
 
 ## PR / BRANCH
 
@@ -195,6 +202,94 @@ el índice regenerado y este handoff: nada que verify ejecute como código.
 - **Ownership:** claim liberado al terminar
   (`release --owner worker-verify-e2e-sin-supabase-20260915`). No se borró
   rama ni worktree.
+
+## RONDA 2 (2026-09-15)
+
+**Pedido del Director:** la revisión de la PR #123 sobre `fac168c2` salió
+aprobada con observaciones. Un punto MEDIA obligatorio y cuatro BAJA a criterio.
+Después pidió traer `origin/main` (`42f80bea`, PR #122) por el índice, con un
+único push y la PR en draft.
+
+**Completado:**
+1. **MEDIA.** Recolección extraída a `evaluarPasos`, `recolectarResultado` y
+   `recolectarParcial`, exportadas desde `scripts/verify.mjs`.
+   - Pruebas con pasos falsos para los tres casos:
+     - omitido: no se consulta la cobertura parcial;
+     - fallido: exit 1 y `CIERRE ADEMÁS INCOMPLETO`;
+     - ok: `CIERRE INCOMPLETO`.
+   - Caso con los 17 pasos reales, migrations-applied medido y las 15
+     omisiones: el veredicto no es TODO VERDE. Su control sin omisiones da
+     TODO VERDE.
+   - Prueba del paso e2e real de STEPS leyendo su reporte.
+   - Los dos mutantes de la revisión sobrevivían sobre `fac168c2` y sus
+     equivalentes ahora mueren.
+2. **BAJA, hecho.** verify usa `RAIZ_REPO` (`detectarSupabasePublico()` sin
+   raíz); la prueba rechaza una raíz propia.
+3. **BAJA, hecho.** Modo `NODE_ENV=test`, medido en `next/dist/bin/next`
+   (conserva el NODE_ENV heredado) y en @next/env (archivos de test, sin
+   `.env.local`). El motivo nombra la lista mirada.
+4. **BAJA, documentado.** Un aviso fuera de verify requiere `globalSetup` o un
+   reporter en `playwright.config.ts`, fuera de `e2e/` y `scripts/`. Queda en
+   `e2e/README.md` y en Riesgos de la spec.
+5. **BAJA, hecho.** El inventario:
+   - es recursivo por `e2e/` y acepta la llamada sin punto y coma;
+   - ignora comentarios, strings, templates y regex;
+   - falla cerrado ante `beforeEach`, mitad de cuerpo, otro helper, alias o
+     falta de import;
+   - tiene su propia prueba con archivos de muestra.
+
+**Archivos:** no hay archivos nuevos; la allowlist de la spec no cambia. Se
+tocaron:
+- `scripts/verify.mjs`;
+- `scripts/tests/verify-e2e-sin-supabase.node.mjs`;
+- `e2e/_helpers/supabase-publico.cjs` y `.d.cts`;
+- `e2e/README.md`;
+- la spec y este handoff.
+
+**Merge:** `git merge --no-ff origin/main` dio `13299d09`. El driver
+`dtd-generated-records` resolvió `docs/specs/README.md` sin conflicto.
+`corepack pnpm docs:index` lo dejó sin cambios: 458 specs, filas 0469 y 0470,
+12 huecos, sin 0469. Main no tocó ningún otro archivo de esta rama.
+
+**Validación de la ronda 2:**
+
+| Comprobación | SHA | Resultado |
+|---|---|---|
+| `guard` / `claim` | worktree propio | PASÓ: claim reclamado; guard OK antes de cada commit |
+| Mutantes literales de la revisión | `fac168c2` | Sobreviven 2/2 con 16/16 en verde: se reprodujo el hueco |
+| Focales: `verify-e2e-sin-supabase`, `verify-critical-coverage` y `verify-watchdog` | árbol = `78bd1505` | PASÓ, 36/36 |
+| `tsc --noEmit` | árbol = `78bd1505` | PASÓ |
+| ESLint de lo tocado | árbol = `78bd1505` | PASÓ; el `.cjs` queda ignorado por la configuración (`e2e/**`) |
+| Mutantes de la ronda 2 (8) | árbol = `78bd1505` | PASÓ: control 22/22, 8/8 muertos |
+| Mutantes de la ronda 1 (10) | árbol = `78bd1505` | PASÓ: control 15/15, 10/10 muertos |
+| `corepack pnpm harness:test` | `13299d09` | PASÓ, 113/113 en 15 archivos |
+| Mutantes de la ronda 2 (8) | `13299d09` | PASÓ: control 22/22, 8/8 muertos |
+| Mutantes de la ronda 1 (10) | `13299d09` | PASÓ: control 15/15, 10/10 muertos |
+| `docs:index` / `build-docs-index --check` | `13299d09` | PASÓ: 458 specs, 0469 y 0470, sin hueco; sin diff |
+| `sdd:check` (`check-numbering`) | `13299d09` | PASÓ, sin números repetidos |
+| `git diff --check` | `13299d09` | PASÓ |
+| e2e / `pnpm verify` completo | — | NO EJECUTADO, por no aplicar: los puntos 3 y 4 no cambian lo que corre verify. La validación vigente del e2e es la de `5e935504` |
+| `tsc` después del merge | `13299d09` | NO EJECUTADO en local: main sólo agregó código de SDD-0469, ya validado en su PR. Lo cubre la CI del head publicado |
+| CI «Calidad local sin secretos» | head publicado | Se consulta después del push; va en la respuesta al Director |
+
+Mutantes de la ronda 2:
+- R1: sin push de partial.
+- R2: condición siempre falsa.
+- R3: también se consulta a un paso omitido.
+- R4: el veredicto no recibe partial.
+- R5: main no usa `evaluarPasos`.
+- R6: STEPS sin `partialCoverage`.
+- R7: verify vuelve a `process.cwd()`.
+- R8: se ignora el modo test.
+
+**Pendientes de la ronda:** ninguno. Queda la CI del head nuevo.
+
+**Fuera de alcance detectado (nuevo):** ninguno aparte de lo ya listado.
+
+**Handoff al Director:**
+- Revisar `78bd1505` y el merge `13299d09`.
+- La PR sigue en draft.
+- Claim liberado al terminar.
 
 ## Bitácora
 

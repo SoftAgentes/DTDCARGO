@@ -315,6 +315,59 @@ producción.
     NEXT_PUBLIC_SUPABASE_ANON_KEY)]. No hubo fallos en lo medido (16/17, con
     cobertura parcial: e2e); exit 0 NO equivale a cierre verde completo.`
 
+## Ronda 2 (2026-09-15): observaciones de la revisión de la PR #123
+
+La revisión sobre `fac168c2` salió aprobada con observaciones.
+
+**1. MEDIA: el cableado de la omisión en `main()` no tenía prueba.**
+- **Medido:** sobre `fac168c2`, los dos mutantes de la revisión sobrevivieron
+  con 16/16 pruebas en verde:
+  - borrar `partial.push(…)`;
+  - `if (false && step.partialCoverage)`.
+- **Corrección:** `evaluarPasos`, `recolectarResultado` y `recolectarParcial`,
+  exportadas desde `verify.mjs`. Se prueban con pasos falsos (omitido, fallido
+  y ok) y con un caso de los 17 pasos reales, migrations-applied medido y las
+  15 omisiones contadas con el código real. Ese caso da `CIERRE INCOMPLETO`, no
+  TODO VERDE. Su control, sin omisiones, sí da TODO VERDE.
+- **Resultado:** los equivalentes de los dos mutantes y otros seis mueren.
+
+**2. BAJA: raíces distintas.** `verify` detecta con la raíz por defecto
+(`RAIZ_REPO`), igual que los specs. La prueba rechaza cualquier `raiz` propia.
+
+**3. BAJA: modo test de Next.** Se replica `NODE_ENV=test`: `.env.test.local`,
+`.env.test` y `.env`, sin `.env.local`. Ver Diseño 1.
+
+**4. BAJA: sin aviso fuera de verify.** No se implementó, porque requiere
+`playwright.config.ts`. Queda documentado en `e2e/README.md` y en Riesgos.
+
+**5. BAJA: inventario frágil.** Ahora es recursivo, ignora comentarios y
+strings y falla cerrado. Ver Diseño 3.
+
+**Validación por SHA:**
+- `78bd1505`: código de la ronda.
+- `13299d09`: merge de `origin/main` `42f80bea` (PR #122, SDD-0469). El driver
+  `dtd-generated-records` resolvió `docs/specs/README.md` sin conflicto, y
+  `docs:index` lo dejó igual: 458 specs, filas 0469 y 0470, sin hueco 0469.
+
+| Comprobación | SHA | Resultado |
+|---|---|---|
+| Mutantes de la revisión, literales | `fac168c2` | Sobreviven 2/2 (16/16 en verde): el hueco existía |
+| Pruebas focales (sin-supabase, critical-coverage, watchdog) | árbol = `78bd1505` | PASÓ, 36/36 |
+| `tsc --noEmit` y ESLint de lo tocado | árbol = `78bd1505` | PASÓ |
+| `corepack pnpm harness:test` | `13299d09` | PASÓ, 113/113 en 15 archivos |
+| Mutantes de la ronda 2 (8) | árbol = `78bd1505` y `13299d09` | PASÓ: control 22/22 y 8/8 muertos, en ambos |
+| Mutantes de la ronda 1 (10; M9 reapuntado al nuevo push) | árbol = `78bd1505` y `13299d09` | PASÓ: control 15/15 y 10/10 muertos, en ambos |
+| `docs:index` / `docs:check` / `sdd:check` | `13299d09` | PASÓ: 458 specs, 12 huecos, sin números repetidos |
+| `git diff --check` | `13299d09` | PASÓ |
+
+**e2e y verify completos: no se repitieron.**
+- El punto 3 sólo cambia la lista de archivos cuando `NODE_ENV=test`, y ni
+  verify ni Playwright lo definen.
+- El punto 4 no cambió código.
+- La recolección cambió de lugar, pero no de comportamiento: la cubren las
+  pruebas con pasos falsos y con el paso e2e real.
+- Validación vigente del e2e: la de `5e935504` (arriba).
+
 ## Gobernanza
 
 | Política | Clasificación | Evidencia |
