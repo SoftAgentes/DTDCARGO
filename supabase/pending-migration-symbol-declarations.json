@@ -7,25 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "sdd-0469-borrado-cliente-auditado",
-      "primarySymbol": "soft_delete_client_with_audit_reason",
-      "migration": "0455_borrado_cliente_auditado",
-      "symbols": [
-        {
-          "name": "soft_delete_client_with_audit_reason",
-          "kind": "function",
-          "callSites": ["app/studio/(app)/clientes/actions.ts:477"]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "app/studio/(app)/clientes/actions.ts:483",
-          "contains": "return { error: SOFT_DELETE_CLIENT_ERROR };",
-          "degradation": "Sin 0455 la RPC no existe y PostgREST responde con error: la acción no borra, no revalida y devuelve «No se pudo confirmar el borrado. Recarga la lista…». No hay borrado a medias; borrar clientes queda no disponible hasta aplicar 0455. Orden previsto: migrate-first (0455 antes del despliegue), con el que la ventana no existe."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
