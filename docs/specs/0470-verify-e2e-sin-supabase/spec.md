@@ -1,7 +1,7 @@
 ---
 sdd: "0470"
 title: "El e2e de verify sin Supabase público: omite con motivo lo que no puede medir y lo declara cobertura parcial crítica"
-status: in-progress
+status: done
 author: "Claude Code (Worker) para Sam"
 created: 2026-09-15
 updated: 2026-09-15
@@ -266,7 +266,33 @@ producción.
   `docs:check` PASÓ y `sdd:check` PASÓ (sólo choques históricos exentos).
 - **Typecheck, lint y diff:** typecheck 0, lint de los scripts tocados 0 y
   `git diff --check` 0.
-- ⟪PENDIENTE: verify completo⟫
+- **`corepack pnpm verify` completo** sobre `5e935504`, de 13:56:14 a
+  14:09:58 (−04:00). Mismo HEAD y árbol limpio al inicio y al final, sin
+  variables de Supabase. Salió con **exit 0 y CIERRE INCOMPLETO**: corrieron
+  de verdad 16 de 17 pasos, con cobertura parcial en e2e.
+  - **PASÓ:**
+    - harness, lint, rsc-boundary (1602 módulos), typecheck y edge-functions;
+    - test: 562 archivos y 7279 pruebas;
+    - docs:check (457 specs), numbering, feature-constants, components:check
+      y governance:check;
+    - pending-migration-symbols: 0 ROJO · 0 AMARILLO;
+    - sql-tests: 195 contratos;
+    - schema-rebuild: 433 migraciones desde cero y 18 sólo-ledger, aislamiento
+      en 219 tablas;
+    - build.
+  - **e2e, `[OK]` con cobertura parcial:**
+    - 152 passed, 33 skipped y 1 flaky ajeno (`calculadora-semantic-colors:53`,
+      aprobado en su reintento) en 3,2 min;
+    - sin reintento del gate ni watchdog;
+    - aviso de cobertura parcial con los 5 casos × 3 proyectos;
+    - no coincidió con el e2e de otro worktree.
+  - **NO DISPONIBLE:** `migrations-applied`, que salió `[SKIP]` por falta de
+    credenciales; el ledger no se midió.
+  - **Veredicto literal:** `verify: CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR:
+    migrations-applied. CRÍTICOS CON COBERTURA PARCIAL: e2e [15 prueba(s)
+    omitidas sin Supabase público (falta NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY)]. No hubo fallos en lo medido (16/17, con
+    cobertura parcial: e2e); exit 0 NO equivale a cierre verde completo.`
 
 ## Gobernanza
 
