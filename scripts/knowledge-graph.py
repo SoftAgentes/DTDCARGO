@@ -146,7 +146,7 @@ def inspect(root, prompt):
              "files": {}, "graphSourcePaths": [], "issues": issues}
     if version != VERSION:
         issues.append({"code": "graphify_version", "severity": "error", "expected": VERSION, "actual": version})
-        state["structural"] = {"status": "UNAVAILABLE", "pending": [], "missing": [], "deleted": [], "excluded": []}
+        state["structural"] = {"status": "UNAVAILABLE", "pending": [], "missing": [], "deleted": [], "excluded": [], "skippedDataJson": []}
         state["semantic"] = {"status": "UNAVAILABLE", "pending": [], "verified": [], "pendingReasons": {}}
         state["warnings"] = []
         return state, {}, {}
@@ -267,11 +267,32 @@ def inspect(root, prompt):
     structural_names = [name for name, row in state["files"].items() if row["type"] in {"code", "document"}]
     # A manifest hash with no code node can be a failed extraction stamped by an
     # old Graphify run. Never certify it merely because its timestamp matches.
-    missing = [name for name in structural_names if state["files"][name]["type"] == "code" and name not in ast_sources]
-    pending = sorted({name for name in structural_names if not state["files"][name]["astCurrent"]} | set(missing))
+    # Graphify 0.9.61 extracts config/manifest JSON, but deliberately skips
+    # data-shaped JSON. Ask its pinned extractor which case applies rather than
+    # treating every node-less JSON as a failed AST or excluding all JSON.
+    from graphify.extractors.json_config import extract_json
+    skipped_data_json = []
+    missing = []
+    for name in structural_names:
+        if state["files"][name]["type"] != "code" or name in ast_sources:
+            continue
+        if name.lower().endswith(".json"):
+            result = extract_json(root / name)
+            if (not result.get("error") and not result.get("nodes") and
+                    str(result.get("skipped", "")).startswith("data json")):
+                skipped_data_json.append(name)
+                continue
+        missing.append(name)
+    skipped = set(skipped_data_json)
+    pending = sorted({name for name in structural_names if name not in skipped and
+                      not state["files"][name]["astCurrent"]} | set(missing))
+    if skipped_data_json:
+        issues.append({"code": "data_json_ast_skipped", "severity": "warning",
+                       "sources": sorted(skipped_data_json)})
     errors = any(issue["severity"] == "error" for issue in issues)
     state["structural"] = {"status": "INVALID" if errors else "PENDING" if pending or absent else "CURRENT",
-                           "pending": pending, "missing": missing, "deleted": deleted, "excluded": excluded}
+                           "pending": pending, "missing": missing, "deleted": deleted, "excluded": excluded,
+                           "skippedDataJson": sorted(skipped_data_json)}
     try:
         receipt = read_json(out / RECEIPT, {})
         if not isinstance(receipt, dict):

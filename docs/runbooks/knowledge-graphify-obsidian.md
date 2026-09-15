@@ -74,6 +74,13 @@ Cada worktree mantiene grafo, caché y recibo locales. Los hashes cubren bytes c
 prompt de extracción, versión y procedencia. El manifest nativo de Graphify usa hashes de bytes completos;
 su caché semántica normaliza frontmatter. Por eso un hash de caché por sí solo no certifica una revisión de propiedades YAML.
 
+Graphify 0.9.61 extrae AST de JSON de configuración y manifiestos, pero su extractor omite
+intencionalmente JSON de datos. `knowledge:status` enumera estos últimos en
+`structural.skippedDataJson` y como advertencia `data_json_ast_skipped`: permanecen en el hash
+del corpus y nunca se presentan como AST extraído. Si un JSON de configuración no produce nodos,
+sigue en `structural.missing` y `pending`, incluso con manifest nativo estampado. Una omisión de
+datos no elimina otros pendientes, errores de procedencia ni la necesidad del recibo semántico.
+
 ### Recibo de extracción
 
 El adaptador `scripts/knowledge-graph.py inspect --root <raíz>` inspecciona Graphify sin modificar el repositorio.
@@ -174,5 +181,6 @@ un fixture o preview no sustituye esa prueba.
 - [Paquete 0.9.61](https://pypi.org/project/graphifyy/0.9.61/).
 - [CLI de la versión](https://github.com/Graphify-Labs/graphify/blob/fe66389083369c3159aa391117185c8f58b4d07c/graphify/cli.py).
 - [Exportador nativo: una nota por nodo](https://github.com/Graphify-Labs/graphify/blob/fe66389083369c3159aa391117185c8f58b4d07c/graphify/export.py).
+- [Extractor de JSON de configuración y omisión de JSON de datos](https://github.com/Graphify-Labs/graphify/blob/fe66389083369c3159aa391117185c8f58b4d07c/graphify/extractors/json_config.py).
 - [Obsidian: almacenamiento](https://obsidian.md/help/data-storage) y [enlaces](https://obsidian.md/help/links).
 - [Archify 2.16.0: release inmutable](https://github.com/tt-a1i/archify/releases/tag/v2.16.0) y [skill de esa versión](https://github.com/tt-a1i/archify/blob/v2.16.0/archify/SKILL.md).

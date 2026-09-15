@@ -85,6 +85,49 @@ test("native semantic stamp alone is not full-byte extraction evidence; inspect 
   } finally { f.close(); }
 });
 
+test("data JSON omitted by pinned Graphify is reported as skipped without claiming AST coverage", { skip }, () => {
+  const f = fixture();
+  try {
+    fs.writeFileSync(path.join(f.root, "knowledge-map.json"), JSON.stringify({ pilot: { nodes: ["director", "obsidian"] } }));
+    f.git("add", "knowledge-map.json");
+    f.git("commit", "-m", "add data JSON");
+    const state = f.run();
+    assert.equal(state.files["knowledge-map.json"].type, "code");
+    assert.equal(state.files["knowledge-map.json"].astCurrent, false);
+    assert.deepEqual(state.structural.skippedDataJson, ["knowledge-map.json"]);
+    assert.ok(!state.structural.missing.includes("knowledge-map.json"));
+    assert.ok(!state.structural.pending.includes("knowledge-map.json"));
+    assert.ok(state.warnings.some(issue => issue.code === "data_json_ast_skipped" && issue.sources.includes("knowledge-map.json")));
+    assert.equal(state.structural.status, "CURRENT");
+    const original = state.corpusHash;
+    fs.writeFileSync(path.join(f.root, "knowledge-map.json"), JSON.stringify({ pilot: { nodes: ["director", "graphify", "obsidian"] } }));
+    const changed = f.run();
+    assert.notEqual(changed.corpusHash, original);
+    assert.deepEqual(changed.structural.skippedDataJson, ["knowledge-map.json"]);
+  } finally { f.close(); }
+});
+
+test("config JSON without AST nodes remains pending even when manifest says it was stamped", { skip }, () => {
+  const f = fixture();
+  try {
+    const name = "package.json";
+    const raw = JSON.stringify({ name: "knowledge-fixture", version: "1.0.0", dependencies: { graphifyy: "0.9.61" } });
+    fs.writeFileSync(path.join(f.root, name), raw);
+    f.git("add", name);
+    f.git("commit", "-m", "add config JSON");
+    const manifest = JSON.parse(fs.readFileSync(path.join(f.root, "graphify-out/manifest.json"), "utf8"));
+    manifest[name] = { ast_hash: hash(raw, "md5"), semantic_hash: "" };
+    fs.writeFileSync(path.join(f.root, "graphify-out/manifest.json"), JSON.stringify(manifest));
+    const state = f.run();
+    assert.equal(state.files[name].type, "code");
+    assert.equal(state.files[name].astCurrent, true);
+    assert.ok(state.structural.missing.includes(name));
+    assert.ok(state.structural.pending.includes(name));
+    assert.ok(!state.structural.skippedDataJson.includes(name));
+    assert.equal(state.structural.status, "PENDING");
+  } finally { f.close(); }
+});
+
 test("evidence remains valid across code refresh and metadata-only docs changes requeue", { skip }, () => {
   const f = fixture();
   try {

@@ -142,6 +142,26 @@ Revisar la PR borrador #125 y sus checks. Resolver la cobertura y procedencia de
   inválido y no se demostró la decisión real visible tras merge. Una vista previa local no sustituye
   ni la integración ni la lectura efectiva de Obsidian.
 
+### Corrección de cobertura JSON y vista previa del corpus
+
+- La cifra anterior de 22 JSON pendientes era un error del adaptador: el extractor fijado de Graphify
+  0.9.61 omite de manera intencional JSON de datos y extrae JSON de configuración. Ahora
+  `structural.skippedDataJson` enumera las 22 omisiones como advertencia y las mantiene en el hash del
+  corpus, sin afirmar AST; un JSON de configuración con manifest estampado y sin nodos permanece
+  pendiente. Las pruebas focales del adaptador y exportador PASARON 13/13, incluidos JSON de ambas
+  clases, cambios del hash de datos, propiedades YAML, aislamiento y publicación sintética.
+- Suite completa del harness con CIM disponible PASÓ 165/165, cero skips, después de la corrección;
+  docs:check PASÓ 459 specs, skills:check PASÓ y numbering PASÓ con colisiones históricas informadas.
+- La vista previa completa fue publicada **solo** bajo `graphify-out/obsidian-preview` de este
+  worktree. `checkVault` confirmó manifest íntegro, cero conflictos, 1.084 archivos propios,
+  1.069 documentos, ocho temas, 942 relaciones documentales y 39 advertencias de enlaces
+  registrados. Incluye índice Markdown, mapa JSON y la vista Archify JSON/evidencia/SVG/HTML.
+  Esta comprobación es de archivos; la interfaz local de Obsidian no se inspeccionó en este cierre.
+- En la inspección tras corregir el adaptador y antes de reconstruir las tres fuentes modificadas:
+  estructura INVALID, tres pendientes de esta tarea, 22 JSON omitidos como tales, cero AST faltantes,
+  1.070 documentos semánticos pendientes y `graph_external_sources` del portal fuera de raíz.
+  Repetir `graphify update .`, construir Archify y publicar preview contra el commit final.
+
 ### PENDIENTES DE ESTA TAREA AL DIRECTOR
 
 1. Publicar el HEAD final a la PR borrador #125 y revisar CI contra ese SHA; resolver cualquier regresión
