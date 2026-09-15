@@ -6,9 +6,9 @@
 - Worktree: C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/knowledge-graphify-obsidian-20260915.
 - Rama: codex/knowledge-graphify-obsidian-20260915.
 - Base inicial: c70956bf8b58b70e7e49676f29264d11796d7f81 (main/origin-main verificados al reservar).
-- Base de revisión actual: 42f80beadf5adf9e5a5eff5f393e8689e8122f29 (PR #122, integrada por otra tarea). Incorporada solo a esta rama mediante 7b254682; merge sin conflictos e índice sincronizado con 458 specs.
+- Base de revisión actual: 0d22c8247b08b28380a12de3bab83cc82eac1aa9 (PR #124 y #123, integradas por otras tareas). Incorporada solo a esta rama mediante ffb719f9; merge sin conflictos e índice sincronizado con 459 specs.
 - SDD: docs/specs/0471-knowledge-graphify-obsidian/spec.md; in-progress por aceptación posterior a integración.
-- Autorización: implementación, pruebas, commits locales y piloto. Publicación de rama/PR, merge y producción no autorizados.
+- Autorización: implementación, pruebas, commits locales, piloto y publicación de Obsidian cuando cumpla sus comprobaciones. Publicación de rama/PR, merge y producción no autorizados.
 - Ownership: un solo owner; subagentes con scripts de proyección/publicación y adapter/tests disjuntos; terminaron sus escrituras.
 
 ## OBJETIVO ORIGINAL
@@ -82,3 +82,15 @@ Sin PR ni respaldo remoto de esta rama. Base main; rama/worktree indicados arrib
 
 Revisar SDD-0471, runbook y comandos; usar preview para evaluación. Mantener la frontera de PR y la cobertura pendiente visible. Director recomendará destino/razón para ideas nuevas y conservará hechos autorizados en su fuente canónica.
 Al cerrar se libera el claim codex-knowledge-20260915; el worktree y la rama se conservan. Para retomar escritura, volver a reclamarlo. No instalar hooks ni automatizaciones de fondo.
+
+## REVISIÓN DE PASOS 1–5 — 2026-09-15
+
+- Paso 1, piloto: `knowledge:check --preview` PASÓ en la muestra aislada (`fee8ff34`): ocho temas, ocho documentos y doce relaciones. Sus ocho hashes coinciden con las fuentes y la procedencia local; diez relaciones son `EXTRACTED` y dos `INFERRED`. El JSON conserva fuentes y destinos válidos. Persisten doce advertencias de enlaces fuera del corpus acotado, seis extremos AST crudos omitidos al construir el grafo final y benchmark estándar FALLÓ; no se demuestra ahorro de tokens.
+- Paso 2, rama: `main` remoto comprobado en `0d22c824`; merge local `ffb719f9` en la rama de esta tarea, sin conflicto. `docs:check` PASÓ con 459 specs; skills, numbering y `git diff --check` PASARON. Suite completa del harness en el merge: 159/159 PASÓ, cero fallos y cero omisiones, 20 archivos; incluye 46 pruebas de conocimiento y las pruebas de la PR #123. No se ejecutó `pnpm verify` de producto ni DB/E2E reales.
+- Paso 3, PR: consulta autenticada de GitHub devolvió `[]` para esta rama; no hay PR. El diff local frente a `origin/main` contiene 23 archivos de la tarea. SDD-0471 sigue `in-progress` por aceptación posterior a integración. Esta rama no se publicó ni integró; el checkout principal y producción no se tocaron.
+- Paso 4, grafo completo: `knowledge:status --preview` en `ffb719f9` informó Graphify 0.9.61, estructura `INVALID` con 50 cambios pendientes, semántica `INVALID` con 1.069 documentos pendientes y la procedencia fuera de raíz `../app/portal/(auth)/login/page.js`. La vista previa de ocho documentos pasa, pero no certifica el corpus completo. El estado temporal cambia al modificar nuevas fuentes y debe medirse otra vez antes de publicar.
+- Paso 5, bóveda habitual: Sam autorizó su publicación, pero el `main` comprobado no contiene `scripts/knowledge-sync.mjs` ni `knowledge-policy.json`; `DTD Cargo/Generado/.knowledge-manifest.json` no existe. El contrato exige exportador integrado en `main` y cobertura estructural/semántica vigente sin errores. Por esos bloqueos no se ejecutó `knowledge:publish` sobre la bóveda ni se modificaron notas personales. La autorización de Obsidian permanece para cuando se cumplan los gates, sin extenderse a PR, merge o producción.
+
+### HANDOFF ACTUAL AL DIRECTOR
+
+Revisar y, con autorización separada, publicar la rama como PR. Resolver la cobertura y procedencia de Graphify antes de aprobar la publicación compartida. Integración/producción requieren sus controles y permisos propios; luego publicar desde `main` limpio, ejecutar `knowledge:check` y verificar una decisión autorizada real en Obsidian. Esta revisión deja el trabajo en su rama local y conserva la bóveda compartida.
