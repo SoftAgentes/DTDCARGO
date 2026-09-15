@@ -311,9 +311,13 @@ cambia desde la migración `0454_borrar_cliente_revoca_portal` es el **acceso**:
 |---|---|
 | `client_users` | En la misma transacción queda `revoked`, con `revoked_at`, y se vacían `auth_user_id` y `token`. Se conservan `email`, `invited_at`, `bound_at` y `last_login_at`: 🔴 **SIN FUNDAMENTO** para esa retención, igual que el resto de §3.A |
 | `portal_access_links` | Todos los códigos cortos del cliente quedan con `revoked_at`, usados o no. La fila conserva el código y sus fechas |
-| `entity_audit_log` | El cambio de status deja un evento `portal_access_status_changed` con el operador que borró y el motivo. 🔵 **CONSERVA** según SDD-0186 |
+| `entity_audit_log` | El cambio de status deja un evento `portal_access_status_changed` con el operador que borró y el motivo. Desde `0455_borrado_cliente_auditado` ([SDD-0469](../../specs/0469-borrado-cliente-auditado/spec.md)) el borrado deja además, sobre el cliente, `client_deleted` (o `client_merged` si es la ficha que retira `merge_clients`) con el operador, el tenant, `deleted_at` y `merged_into_client_id` antes y después, y el motivo. Ninguno copia nombre, Shipping Mark, correo ni teléfono. El motivo es texto libre opcional del operador; el Studio pide escribirlo sin datos personales, pero la base no lo comprueba. 🔵 **CONSERVA** según SDD-0186 |
 
 - Si la revocación falla, el borrado no ocurre: van en la misma transacción.
+- Si el evento `client_deleted` no se puede escribir, tampoco hay borrado ni
+  revocación (0455).
+- Restaurar a mano, que no tiene camino en el Studio, no deja un evento de
+  restauración.
 - Restaurar la ficha **no** devuelve el acceso. Hace falta una invitación nueva.
 - La base rechaza dejar un vínculo `invited`/`active` o un código sin revocar
   sobre un cliente borrado o inexistente.
@@ -326,6 +330,13 @@ Estado al 2026-09-14: **ENCONTRADO** en producción, corregido en el repositorio
 y **NO VERIFICABLE** en producción hasta aplicar 0454 con OK nominal. El conteo
 agregado de ese día, sin ids ni datos, daba **1** vínculo activo con cliente
 borrado; el backfill de 0454 lo revoca al aplicarse.
+
+Estado al 2026-09-15: 0454 quedó aplicada en producción (ver la sección
+Producción de SDD-0467). Que un borrado no deje constancia de quién lo hizo ni
+por qué está **ENCONTRADO** en producción y corregido en el repositorio por 0455.
+Es **NO VERIFICABLE** en producción hasta aplicar 0455 con OK nominal. 0455 no
+tiene backfill: los borrados anteriores siguen sin evento, porque su actor y su
+motivo no se pueden reconstruir.
 
 ---
 
