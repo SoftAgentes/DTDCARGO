@@ -456,7 +456,25 @@ auditoría» y «componente»: SGE-00, MP-01, BTN-01, AUD-01, AUD-02 y CMP-01.
 
 ## Producción
 
-Nada aplicado. Esta rama no toca producción.
+`0455_borrado_cliente_auditado` **quedó aplicada a producción el 2026-09-15** por el Director, con OK
+nominal de Sam («autorizo aplicar 0455_borrado_cliente_auditado»), en orden migrate-first: aplicada a
+las 18:34:59 UTC y PR #122 fusionada a las 18:35:53 UTC (`42f80bea`). Registro completo en
+`.agents/handoffs/0455-aplicacion-prod-20260915.md`.
+
+- **Ledger:** `20260915183459`, name exacto, 1 sentencia, md5 `a4b7398aac442b5279fc2b35930011fc` y
+  23.394 bytes, iguales al blob revisado en `4ea05e47`, que es el mismo de `main`.
+- **Lectura previa, repetida justo antes e idéntica:** PostgreSQL 17.6; `postgres` con BYPASSRLS y
+  dueño de `clients`, sin FORCE; `append_audit_event` con la firma exacta, SECURITY DEFINER, `search_path`
+  vacío y ejecutable por el rol que aplica; tipo `client` activo; el trigger de 0454 con su definición;
+  `merge_clients` con un solo UPDATE de retiro; nada de 0455 presente.
+- **Postflight de catálogo:** `clients_audit_soft_delete()` SECURITY DEFINER, volátil, con `search_path`
+  vacío y ACL solo del dueño; la RPC SECURITY INVOKER, `boolean`, con `search_path` vacío y EXECUTE solo
+  para `authenticated`; el trigger habilitado con su definición; sin cambios en los otros 7 triggers,
+  las policies y la ACL de `clients`, `append_audit_event`, `merge_clients` ni las funciones de 0454.
+- **Advisors de seguridad:** idénticos antes y después, excluido `observed_at`.
+- **Espera y declaración de símbolos:** retiradas en la PR del registro de la aplicación.
+
+Lo que sigue es la guía con la que se aplicó.
 
 - Aplicar `0455_borrado_cliente_auditado` exige el OK nominal de Sam y
   `docs/runbooks/aplicar-migraciones-prod.md`: de a una y con el name exacto.
