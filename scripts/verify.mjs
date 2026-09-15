@@ -256,9 +256,13 @@ function devServerDesfasado(startedAt) {
  */
 let e2eSupabase = null;
 
-/** Aviso del preflight cuando falta Supabase público, o "" si está. */
+/**
+ * Aviso del preflight cuando falta Supabase público, o "" si está. La raíz es
+ * la de siempre de la detección (`RAIZ_REPO`), la misma que usan los specs: el
+ * gate y Playwright nunca pueden mirar `.env*` distintos.
+ */
 function avisoSinSupabase() {
-  e2eSupabase = detectarSupabasePublico({ raiz: process.cwd() });
+  e2eSupabase = detectarSupabasePublico();
   const motivo = motivoSinSupabase(e2eSupabase);
   if (!motivo) return "";
   return (
@@ -277,7 +281,7 @@ function e2eCoberturaParcial() {
   try {
     reporte = JSON.parse(fs.readFileSync(E2E_JSON, "utf8"));
   } catch {}
-  const deteccion = e2eSupabase ?? detectarSupabasePublico({ raiz: process.cwd() });
+  const deteccion = e2eSupabase ?? detectarSupabasePublico();
   return coberturaParcialE2E({ deteccion, reporte });
 }
 
@@ -510,35 +514,65 @@ function limpiarReporteE2E() {
  * expone `STEPS` sin lanzar el gate; solo el entry `node scripts/verify.mjs`
  * lo ejecuta. El comportamiento del entry no cambia.
  */
-export async function main() {
-  const failures = [];
-  /**
-   * Pasos que NO corrieron. Se lleva aparte de `failures` a proposito: no son un
-   * fallo del cambio, pero tampoco son un verde — y el resumen tiene que decirlo.
-   */
-  const skipped = [];
-  /**
-   * Pasos que corrieron pero dejaron sin medir una parte declarada (SDD-0470):
-   * hoy, el e2e sin Supabase público. No son verde completo; el veredicto los
-   * clasifica según su política.
-   */
-  const partial = [];
+/**
+ * SDD-0470 · ¿Dejó `step` cobertura parcial? Devuelve `{ name, reason }` para el
+ * veredicto, o `null`, y escribe el aviso con la lista de casos.
+ *
+ * - Un paso OMITIDO no tiene cobertura parcial: ya cuenta entero como omisión,
+ *   y ni siquiera se le pregunta.
+ * - Un paso que FALLÓ sí puede tenerla: un e2e con un fallo real y además 15
+ *   pruebas omitidas lleva el fallo y la omisión.
+ * - Un paso OK con omisiones declaradas es parcial, nunca verde completo.
+ */
+export function recolectarParcial(step, resultado, reporter = out) {
+  if (resultado.skipped || !step.partialCoverage) return null;
+  const parcial = step.partialCoverage();
+  if (!parcial) return null;
+  reporter.warn(`${step.name}: COBERTURA PARCIAL — ${parcial.reason}`);
+  for (const caso of parcial.casos) reporter.line(`   omitida: ${caso}`);
+  return { name: step.name, reason: parcial.reason };
+}
 
+/**
+ * Lleva a `acumulado` (`{ skipped, failures, partial }`) lo que el veredicto
+ * necesita de un paso ya corrido.
+ */
+export function recolectarResultado(acumulado, step, resultado, reporter = out) {
+  if (resultado.skipped) acumulado.skipped.push(resultado.skipped);
+  if (resultado.failure) acumulado.failures.push(resultado.failure);
+  const parcial = recolectarParcial(step, resultado, reporter);
+  if (parcial) acumulado.partial.push(parcial);
+}
+
+/**
+ * Corre `steps` en orden, recoge omisiones, fallos y coberturas parciales y
+ * devuelve el veredicto. Separado de `main()` (SDD-0470, ronda 2) para probar
+ * la recolección con pasos falsos: `correr` reemplaza a `runStep` en las
+ * pruebas. `main()` sólo agrega el resumen impreso y el exit.
+ *
+ * - `skipped`: pasos que NO corrieron. Van aparte de `failures` a propósito: no
+ *   son un fallo del cambio, pero tampoco son un verde, y el resumen tiene que
+ *   decirlo.
+ * - `partial`: pasos que corrieron pero dejaron sin medir una parte declarada
+ *   (hoy, el e2e sin Supabase público). El veredicto los clasifica según su
+ *   política.
+ */
+export async function evaluarPasos(steps, { out: reporter = out, correr = null } = {}) {
+  const acumulado = { skipped: [], failures: [], partial: [] };
   // Preflight, intentos, absolvedor, watchdog y clasificación de cada paso viven
   // en scripts/verify-runner.mjs, donde se prueban con pasos falsos (SDD-0454).
-  for (const step of STEPS) {
-    const resultado = await runStep(step, { out, beforeAttempt: limpiarReporteE2E });
-    if (resultado.skipped) skipped.push(resultado.skipped);
-    if (resultado.failure) failures.push(resultado.failure);
-    if (!resultado.skipped && step.partialCoverage) {
-      const parcial = step.partialCoverage();
-      if (parcial) {
-        warn(`${step.name}: COBERTURA PARCIAL — ${parcial.reason}`);
-        for (const caso of parcial.casos) out.line(`   omitida: ${caso}`);
-        partial.push({ name: step.name, reason: parcial.reason });
-      }
-    }
+  for (const step of steps) {
+    const resultado = correr
+      ? await correr(step)
+      : await runStep(step, { out: reporter, beforeAttempt: limpiarReporteE2E });
+    recolectarResultado(acumulado, step, resultado, reporter);
   }
+  const verdict = buildVerifyVerdict({ stepNames: steps.map((step) => step.name), ...acumulado });
+  return { ...acumulado, verdict };
+}
+
+export async function main() {
+  const { skipped, partial, verdict } = await evaluarPasos(STEPS, { out });
 
   console.log(`\n${C.dim}── resumen ───────────────────────────────────${C.nc}`);
   // Cuantos de los pasos declarados se MIDIERON de verdad. Este es el numero que
@@ -553,13 +587,6 @@ export async function main() {
 
   for (const om of skipped) warn(`omitido: ${om.name} — ${om.reason}`);
   for (const p of partial) warn(`parcial: ${p.name} — ${p.reason}`);
-
-  const verdict = buildVerifyVerdict({
-    stepNames: STEPS.map((step) => step.name),
-    skipped,
-    failures,
-    partial,
-  });
 
   // Una sola línea final. Si faltó medir algo crítico lo nombra acá, aunque además
   // haya fallos, para que el cierre no dependa de encontrar el [SKIP] anterior.

@@ -42,6 +42,20 @@ const ARCHIVOS_ENV_DEV = Object.freeze([
 ]);
 
 /**
+ * Con `NODE_ENV=test`, @next/env usa el modo `test` aunque sea `next dev`:
+ * `next/dist/bin/next` conserva un NODE_ENV estándar heredado
+ * (`process.env.NODE_ENV || defaultEnv`), y `loadEnvConfig` arma la lista
+ * `.env.test.local`, `.env.test` y `.env`. En ese modo `.env.local` queda
+ * EXCLUIDO a propósito.
+ */
+const ARCHIVOS_ENV_TEST = Object.freeze([".env.test.local", ".env.test", ".env"]);
+
+/** La lista de `.env*` que cargará el `next dev` que herede `env`. */
+function archivosEnvNextDev(env = process.env) {
+  return env.NODE_ENV === "test" ? ARCHIVOS_ENV_TEST : ARCHIVOS_ENV_DEV;
+}
+
+/**
  * Prefijo del motivo de omisión. `scripts/verify-e2e.mjs` lo busca en el
  * reporte JSON de Playwright para contar las pruebas omitidas: un cambio acá
  * sin cambiar allá dejaría la omisión sin reportar, y hay una prueba del
@@ -103,12 +117,14 @@ function leerArchivoEnv(ruta) {
  * - `faltan`: las claves ausentes o vacías;
  * - `vacias`: clave → fuente que la definió vacía;
  * - `fuentes`: clave presente → «entorno» o nombre del archivo;
- * - `ignorados`: `.env*` presentes que Next no carga.
+ * - `ignorados`: `.env*` presentes que Next no carga;
+ * - `archivos`: la lista que se miró, según `NODE_ENV` (`archivosEnvNextDev`).
  *
  * Nunca devuelve valores: sólo nombres y fuentes.
  */
 function detectarSupabasePublico({ env = process.env, raiz = RAIZ_REPO } = {}) {
-  const archivos = ARCHIVOS_ENV_DEV.map((nombre) => ({
+  const lista = archivosEnvNextDev(env);
+  const archivos = lista.map((nombre) => ({
     nombre,
     ...leerArchivoEnv(path.join(raiz, nombre)),
   }));
@@ -138,7 +154,7 @@ function detectarSupabasePublico({ env = process.env, raiz = RAIZ_REPO } = {}) {
   const ignorados = archivos
     .filter((a) => a.estado === "no-es-archivo" || a.estado === "ilegible")
     .map(({ nombre, estado }) => ({ nombre, estado }));
-  return { configurado: faltan.length === 0, faltan, vacias, fuentes, ignorados };
+  return { configurado: faltan.length === 0, faltan, vacias, fuentes, ignorados, archivos: [...lista] };
 }
 
 /** El motivo visible de la omisión, o `null` si Supabase público está configurado. */
@@ -153,7 +169,7 @@ function motivoSinSupabase(deteccion) {
         .join(", ")}`
     : "";
   return (
-    `${MARCA_SIN_SUPABASE}: falta ${faltan} en el entorno y en ${ARCHIVOS_ENV_DEV.join(", ")}${ignorados}. ` +
+    `${MARCA_SIN_SUPABASE}: falta ${faltan} en el entorno y en ${(deteccion.archivos ?? ARCHIVOS_ENV_DEV).join(", ")}${ignorados}. ` +
     "proxy.ts no puede crear el cliente Supabase y esta prueba no mediría el cambio (SDD-0470)."
   );
 }
@@ -186,6 +202,8 @@ function omisionSinSupabase({ env = process.env, raiz = RAIZ_REPO, baseURL } = {
 // de un módulo ESM (cjs-module-lexer).
 exports.SUPABASE_PUBLIC_VARS = SUPABASE_PUBLIC_VARS;
 exports.ARCHIVOS_ENV_DEV = ARCHIVOS_ENV_DEV;
+exports.ARCHIVOS_ENV_TEST = ARCHIVOS_ENV_TEST;
+exports.archivosEnvNextDev = archivosEnvNextDev;
 exports.MARCA_SIN_SUPABASE = MARCA_SIN_SUPABASE;
 exports.RAIZ_REPO = RAIZ_REPO;
 exports.parsearEnv = parsearEnv;

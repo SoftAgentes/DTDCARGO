@@ -65,9 +65,12 @@ principal `.env.local` es un directorio.
 
 - **Detección única:** `e2e/_helpers/supabase-publico.cjs`. Mira el entorno del
   proceso y los `.env*` que carga `next dev`, con su misma precedencia
-  (`.env.development.local`, `.env.local`, `.env.development`, `.env`). Un
-  `.env.local` que no es archivo se ignora, igual que en Next. Sólo aplica si
-  `baseURL` es local: contra un Preview no se omite nada.
+  (`.env.development.local`, `.env.local`, `.env.development`, `.env`). Con
+  `NODE_ENV=test` replica el modo test de Next: `.env.test.local`, `.env.test`
+  y `.env`, sin `.env.local`. Un `.env*` que no es archivo se ignora, igual que
+  en Next. Sólo aplica si `baseURL` es local: contra un Preview no se omite
+  nada. `verify` y los specs usan la misma raíz, la del repositorio
+  (`RAIZ_REPO`).
 - **Declaración explícita:** cada prueba que necesita Supabase llama a
   `requiereSupabase()` (de `e2e/_helpers/supabase.ts`) en la primera línea de
   su cuerpo. Sin las variables, la prueba queda **omitida** con un motivo que
@@ -83,7 +86,15 @@ principal `.env.local` es un directorio.
     en la base).
 
   El inventario vive también en `scripts/tests/verify-e2e-sin-supabase.node.mjs`,
-  por título: quitar o agregar una llamada sin actualizarlo rompe `harness:test`.
+  por ruta y título: quitar o agregar una llamada sin actualizarlo rompe
+  `harness:test`.
+  - Recorre todo `e2e/`, subdirectorios incluidos, e ignora las menciones en
+    comentarios, strings, templates y regex. Acepta la llamada con o sin punto y
+    coma.
+  - Falla cerrado: una llamada en `beforeEach`, a mitad de un cuerpo, dentro de
+    otro helper, importada con alias o sin el import del helper es un error.
+    Una declaración válida es sólo `test("título", async (…) => {
+    requiereSupabase(); …`.
 - **Siguen corriendo sin Supabase**, porque lo que afirman no depende de él:
   - `auth.spec.ts`: las dos de «Acceso» (`/acceso` queda fuera del matcher y la
     página atrapa el error del cliente admin) y «Operario VE» (`/m/ve/login`,
@@ -98,6 +109,16 @@ principal `.env.local` es un directorio.
   `CIERRE INCOMPLETO — CRÍTICOS CON COBERTURA PARCIAL: e2e [...]`. Es la misma
   semántica que una omisión crítica: exit 0 si no hubo otros fallos, y nunca
   `TODO VERDE`.
+- **Fuera de verify** (`pnpm test:e2e` directo), el aviso `COBERTURA PARCIAL`
+  no existe. Sin las variables, Playwright sale con exit 0 y cuenta esas
+  pruebas en `N skipped`, pero el reporter `list` no imprime el motivo.
+  - El motivo `SIN SUPABASE PÚBLICO: …` sí queda en los reporters `json` y
+    `html`, como anotación `skip`.
+  - Un aviso propio fuera de verify necesita tocar `playwright.config.ts`
+    (`globalSetup` o un reporter), que está fuera de `e2e/` y `scripts/`. Por
+    eso no se implementó en SDD-0470 (ver la spec).
+  - Antes de dar por buena una corrida directa, revisa cuántas quedaron en
+    `skipped`.
 - **Para medirlas:** hace falta un Supabase autorizado (branch efímero o
   Supabase local) con sus variables públicas. Nunca copies credenciales de
   producción a un worktree para ponerlo verde.

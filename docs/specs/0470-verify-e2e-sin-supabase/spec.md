@@ -77,6 +77,14 @@ main**: sólo llegó la spec, con el bloque A de PR #21.
    - **Precedencia, la de Next:** una clave definida en el entorno gana aunque
      esté vacía; si no, gana el primer archivo que la define; una ruta que no
      es archivo se ignora (`!isFile()`).
+   - **Modo test (ronda 2):** con `NODE_ENV=test`, `next dev` conserva ese
+     NODE_ENV heredado (`next/dist/bin/next`: `process.env.NODE_ENV ||
+     defaultEnv`), y @next/env carga `.env.test.local`, `.env.test` y `.env`,
+     sin `.env.local`. La detección replica ese modo (`archivosEnvNextDev`), y
+     el motivo nombra la lista que realmente miró.
+   - **Una sola raíz (ronda 2):** `verify` usa la raíz por defecto
+     (`RAIZ_REPO`, la del repositorio), la misma que los specs, en vez de
+     `process.cwd()`.
    - **Salida:** sólo nombres y fuentes, nunca valores.
    - **Por qué CommonJS:** el loader de Playwright 1.60 compila un `.mjs`
      importado desde un spec como CJS y Node lo rechaza («exports is not
@@ -101,9 +109,22 @@ main**: sólo llegó la spec, con el bloque A de PR #21.
        afirma el cuerpo de su propio `fetch`; pasó 3/3.
      - El flaky de `auth.spec.ts:74` en chromium fue `net::ERR_ABORTED` en
        `/acceso`, no el error del proxy.
-   - **Inventario en la prueba del harness,** por título: una llamada nueva o
-     retirada sin actualizarlo rompe `harness:test`.
+   - **Inventario en la prueba del harness,** por ruta y título: una llamada
+     nueva o retirada sin actualizarlo rompe `harness:test`.
+     - Desde la ronda 2 recorre todo `e2e/`, subdirectorios incluidos, e ignora
+       comentarios, strings, templates y regex. Acepta la llamada con o sin
+       punto y coma.
+     - Falla cerrado: una llamada en `beforeEach`, a mitad de cuerpo, en otro
+       helper, con alias o sin el import del helper es un error.
+     - Límite: sólo reconoce `test("título", async (…) => {` con título
+       literal. Cualquier otra forma se rechaza; no se acepta en silencio.
 4. **En el gate:**
+   - **La recolección se prueba con pasos falsos (ronda 2).** `evaluarPasos`
+     corre los pasos y devuelve omisiones, fallos, parciales y veredicto;
+     `main()` sólo imprime el resumen y sale. Las piezas exportadas son
+     `recolectarParcial` y `recolectarResultado`, con esta regla:
+     - a un paso omitido no se le consulta la cobertura parcial;
+     - uno fallido o uno ok sí la llevan.
    - `e2ePreflight` avisa qué falta.
    - Después del paso, `e2eCoberturaParcial` lee el reporte JSON y cuenta los
      tests `skipped` con una anotación `skip` que empieza por la marca, en el
@@ -357,6 +378,14 @@ la autorización de merge tiene que cubrir ese deploy.
   de más, y se reporta como parcial; nunca se omite en silencio.
 - **Detección sólo por presencia.** No se resuelve la expansión `$VAR` de
   dotenv ni se valida la URL.
+- **Fuera de verify no hay aviso.** Con `pnpm test:e2e` directo y sin
+  variables, Playwright sale con exit 0 y cuenta las 15 en `skipped`.
+  - El reporter `list` no muestra el motivo; los reporters `json` y `html` sí
+    lo conservan como anotación `skip`.
+  - Un aviso propio fuera de verify requiere `globalSetup` o un reporter en
+    `playwright.config.ts`, fuera de `e2e/` y `scripts/`. No se implementó
+    (ronda 2, decisión del Director): queda documentado en `e2e/README.md` y
+    propuesto aquí.
 - **Los Tier 3 sin seed** siguen sin contarse como cobertura parcial. Esa
   omisión es anterior a esta spec (SDD-0440 la registra como pendiente de una
   corrida alojada).
