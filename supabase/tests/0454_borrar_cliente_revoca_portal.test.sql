@@ -473,6 +473,13 @@ end $f$$d$,
         if state <> 'P0001' or (message not like '0454 requiere%' and message not like '0454 abortada%') then
           raise exception 'TEST 0454: drift no falló en preflight: % / % (%)', state, message, left(drift, 80);
         end if;
+        -- Los dos casos de RLS exigen su mensaje claro, no otro aborto posterior.
+        if (drift like '%force row level security%'
+              and message not like '0454 abortada: public.portal_access_links tiene FORCE ROW LEVEL SECURITY%')
+           or (drift like '%fixture_0454_applier%'
+              and message not like '0454 abortada: el rol que aplica no es dueño de public.clients ni tiene BYPASSRLS%') then
+          raise exception 'TEST 0454: el drift de RLS abortó sin su mensaje claro: % (%)', message, left(drift, 80);
+        end if;
         if message ~* '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
            or message ~ 'ACTIVE|INVITED|ORPHAN|SURV|DUP|OTHER|FAIL|GHOST' then
           raise exception 'TEST 0454: el mensaje del preflight expone ids o Shipping Marks: %', message;
