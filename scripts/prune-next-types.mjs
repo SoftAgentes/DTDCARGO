@@ -7,7 +7,7 @@
  * malo. La causa era un archivo que Next escribió meses atrás:
  *
  *   .next/types/validator.ts:737
- *     import("../../app/portal/(auth)/login/page.js")
+ *     la referencia ../../app/portal/(auth)/login/page.js mediante import()
  *
  * Esa página la borró SDD-0276 al unificar la puerta en `/entrar`. Next genera
  * estos tipos en cada `dev`/`build` pero **nunca los recolecta** cuando una ruta
