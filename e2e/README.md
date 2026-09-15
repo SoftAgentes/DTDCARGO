@@ -54,12 +54,60 @@ Aparte de eso, `mobile-safari` se limita a un worker en Windows porque el cierre
 de WebKit deja el proceso colgado; el límite es por proyecto y no afecta a
 `chromium` ni a `mobile-chrome`.
 
+## Sin Supabase público (SDD-0470)
+
+`proxy.ts` crea el cliente Supabase con `NEXT_PUBLIC_SUPABASE_URL` y
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` en cada ruta de su `matcher` (`/studio`, `/back`,
+`/portal`, `/m/erp`, `/m/emp`, `/entrar`, `/registro`). Sin esas variables lanza
+«Your project's URL and Key are required» y la ruta responde con la página de
+error del dev server. Un worktree nuevo no trae `.env.local`, y en el checkout
+principal `.env.local` es un directorio.
+
+- **Detección única:** `e2e/_helpers/supabase-publico.cjs`. Mira el entorno del
+  proceso y los `.env*` que carga `next dev`, con su misma precedencia
+  (`.env.development.local`, `.env.local`, `.env.development`, `.env`). Un
+  `.env.local` que no es archivo se ignora, igual que en Next. Sólo aplica si
+  `baseURL` es local: contra un Preview no se omite nada.
+- **Declaración explícita:** cada prueba que necesita Supabase llama a
+  `requiereSupabase()` (de `e2e/_helpers/supabase.ts`) en la primera línea de
+  su cuerpo. Sin las variables, la prueba queda **omitida** con un motivo que
+  empieza por `SIN SUPABASE PÚBLICO`. No falla, no se reintenta y no pasa en
+  falso.
+- **Quiénes la llaman, con evidencia:** la corrida base sin variables del
+  2026-09-15 (SDD-0470) muestra estos cinco casos fallando en chromium,
+  mobile-chrome y mobile-safari, en el intento y en el reintento:
+  - `auth.spec.ts:21` (Studio), `:91` (Back), `:98` y `:105` (Portal);
+  - `global-search.spec.ts:22`.
+
+  El inventario vive también en `scripts/tests/verify-e2e-sin-supabase.node.mjs`:
+  quitar o agregar una llamada sin actualizarlo rompe `harness:test`.
+- **Siguen corriendo sin Supabase**, porque lo que afirman no depende de él:
+  - `auth.spec.ts:42` y `:74` (`/acceso`, fuera del matcher; la página atrapa el
+    error del cliente admin);
+  - `auth.spec.ts:130` (`/m/ve/login`, fuera del matcher);
+  - `smoke.spec.ts:150` (afirma la URL de destino del redirect, que llega a
+    `/entrar` igual);
+  - `attachments-gastos-pilot-network.spec.ts:4` (abre `/studio/login` sólo como
+    origen y afirma el cuerpo del `fetch` que lanza).
+- **En `pnpm verify`:** el preflight avisa qué falta. Después del paso sale
+  `[AVISO] e2e: COBERTURA PARCIAL — N prueba(s) omitidas sin Supabase público
+  (…)` con la lista `archivo:línea «título» [proyectos]`. El veredicto dice
+  `CIERRE INCOMPLETO — CRÍTICOS CON COBERTURA PARCIAL: e2e [...]`. Es la misma
+  semántica que una omisión crítica: exit 0 si no hubo otros fallos, y nunca
+  `TODO VERDE`.
+- **Para medirlas:** hace falta un Supabase autorizado (branch efímero o
+  Supabase local) con sus variables públicas. Nunca copies credenciales de
+  producción a un worktree para ponerlo verde.
+
+Los Tier 3 que se omiten por falta de seed (`STUDIO_E2E_*`) conservan su
+propio `test.skip` y su motivo. Esta sección no cambia cómo se reportan.
+
 ## Estado de cobertura
 
 | Spec | Tier | Estado | Requiere |
 |---|---|---|---|
 | `smoke.spec.ts` | 0 | ✅ | nada (rutas públicas, 200 + contenido) |
-| `auth.spec.ts` | 1 | ✅ | nada (render + negativos de los 4 logins) |
+| `auth.spec.ts` | 1 | ✅ | Supabase público en 4 de 7 casos (render + negativos de los 4 logins); ver «Sin Supabase público» |
 | `comments-lifecycle.spec.ts` | 1 | ✅ | Preview + branch efímero + `seed:e2e` |
 | `journey-core.spec.ts` | 1 | ⬜ pendiente | branch + seed-e2e |
 | `portal-cliente.spec.ts` | 2 | ⬜ | branch + seed-e2e |

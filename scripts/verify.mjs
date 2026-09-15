@@ -19,6 +19,12 @@
  * no hace falta buscar ese árbol a mano ni cortarlo con `taskkill`. Ver
  * scripts/verify-watchdog.mjs.
  *
+ * Sin Supabase público (SDD-0470): sin NEXT_PUBLIC_SUPABASE_URL y
+ * NEXT_PUBLIC_SUPABASE_ANON_KEY, ni en el entorno ni en los `.env*` que carga
+ * Next, los specs que lo necesitan se omiten con motivo y el resto corre. Esas
+ * pruebas llaman a `requiereSupabase()`. El paso queda con COBERTURA PARCIAL,
+ * que para un paso crítico es un cierre INCOMPLETO, nunca TODO VERDE.
+ *
  * Invoca cada binario con `node <entry>` DIRECTO (no vía `pnpm <script>`) a propósito:
  * en este entorno `pnpm run` dispara un preflight `install` que falla con
  * ERR_PNPM_IGNORED_BUILDS (esbuild). Llamar al entry JS lo esquiva.
@@ -37,7 +43,10 @@ import { discoverHarnessTests } from "./tests/run-harness.mjs";
 import {
   absuelveCorrida,
   candidatosDePuerto,
+  coberturaParcialE2E,
+  detectarSupabasePublico,
   envParaSalidaCanalizada,
+  motivoSinSupabase,
   primerPuertoLibre,
   PUERTO_BASE,
   PUERTO_RANGO,
@@ -240,6 +249,38 @@ function devServerDesfasado(startedAt) {
   return `el dev server arrancó ${mins} min ANTES del commit bajo prueba — puede estar sirviendo código viejo`;
 }
 
+/**
+ * Detección de Supabase público que tomó el preflight de ESTA corrida
+ * (SDD-0470). `e2eCoberturaParcial` la usa después del paso junto con el
+ * reporte, para decir cuántas pruebas quedaron omitidas.
+ */
+let e2eSupabase = null;
+
+/** Aviso del preflight cuando falta Supabase público, o "" si está. */
+function avisoSinSupabase() {
+  e2eSupabase = detectarSupabasePublico({ raiz: process.cwd() });
+  const motivo = motivoSinSupabase(e2eSupabase);
+  if (!motivo) return "";
+  return (
+    `\n   ⚠️  ${motivo}` +
+    "\n   ⚠️  Las pruebas con requiereSupabase() se omiten con ese motivo; el paso quedará con COBERTURA PARCIAL."
+  );
+}
+
+/**
+ * SDD-0470 · Después del paso: ¿quedó cobertura parcial por falta de Supabase?
+ * Lee el reporte JSON de esta corrida. Si no hay reporte legible, igual se
+ * declara cuando falta Supabase.
+ */
+function e2eCoberturaParcial() {
+  let reporte = null;
+  try {
+    reporte = JSON.parse(fs.readFileSync(E2E_JSON, "utf8"));
+  } catch {}
+  const deteccion = e2eSupabase ?? detectarSupabasePublico({ raiz: process.cwd() });
+  return coberturaParcialE2E({ deteccion, reporte });
+}
+
 // Preflight del paso e2e: decide si correrlo, omitirlo o reusar un server.
 function e2ePreflight() {
   if (process.env.VERIFY_SKIP_E2E === "1")
@@ -250,6 +291,7 @@ function e2ePreflight() {
       reason:
         "navegadores Playwright ausentes → `pnpm exec playwright install chromium` (e2e omitido, no bloquea el gate)",
     };
+  const sinSupabase = avisoSinSupabase();
   // Si ya hay un dev server de ESTE worktree, reusarlo y desactivar el
   // webServer de Playwright de forma explícita: evita el choque del lock por-dir
   // al intentar levantar un segundo `next dev` en la misma carpeta.
@@ -268,7 +310,8 @@ function e2ePreflight() {
         `reusando el dev server del worktree en ${running.appUrl} ` +
         `(PID ${running.pid} · puerto ${running.port} · arrancado ${hora})` +
         (desfase ? `
-   ⚠️  ${desfase}` : ""),
+   ⚠️  ${desfase}` : "") +
+        sinSupabase,
     };
   }
   // Sin dev acá → Playwright levanta el suyo. El puerto se resuelve ACÁ y no al
@@ -285,7 +328,10 @@ function e2ePreflight() {
         `(e2e omitido; fuerza uno con E2E_PORT=<puerto>)`,
     };
   }
-  return { env: { E2E_PORT: String(puerto) }, note: `dev server propio en el puerto ${puerto}` };
+  return {
+    env: { E2E_PORT: String(puerto) },
+    note: `dev server propio en el puerto ${puerto}${sinSupabase}`,
+  };
 }
 
 /**
@@ -409,6 +455,8 @@ export const STEPS = [
   // de este worktree si está corriendo (ver e2ePreflight); si no, levanta el
   // suyo en un puerto PROPIO por worktree (e2ePort, derivado del hash del cwd)
   // → dos ventanas nunca colisionan. Los specs Tier-3 que piden seed se auto-omiten sin creds.
+  // Sin Supabase público, los que lo necesitan se omiten con motivo y el paso
+  // declara COBERTURA PARCIAL (SDD-0470, e2eCoberturaParcial).
   {
     name: "e2e",
     // `list` es lo que se ve; `json` va a un archivo y sólo lo lee `e2eAbsolver`
@@ -429,6 +477,7 @@ export const STEPS = [
     watchdog: e2eWatchdog,
     preflight: e2ePreflight,
     absolver: e2eAbsolver,
+    partialCoverage: e2eCoberturaParcial,
   },
   // Build de PRODUCCIÓN (SDD-0280). Va al final por lo mismo que el e2e: es el
   // paso más lento (~110 s) y no tiene sentido construir si el lint ya rompió.
@@ -468,6 +517,12 @@ export async function main() {
    * fallo del cambio, pero tampoco son un verde — y el resumen tiene que decirlo.
    */
   const skipped = [];
+  /**
+   * Pasos que corrieron pero dejaron sin medir una parte declarada (SDD-0470):
+   * hoy, el e2e sin Supabase público. No son verde completo; el veredicto los
+   * clasifica según su política.
+   */
+  const partial = [];
 
   // Preflight, intentos, absolvedor, watchdog y clasificación de cada paso viven
   // en scripts/verify-runner.mjs, donde se prueban con pasos falsos (SDD-0454).
@@ -475,22 +530,35 @@ export async function main() {
     const resultado = await runStep(step, { out, beforeAttempt: limpiarReporteE2E });
     if (resultado.skipped) skipped.push(resultado.skipped);
     if (resultado.failure) failures.push(resultado.failure);
+    if (!resultado.skipped && step.partialCoverage) {
+      const parcial = step.partialCoverage();
+      if (parcial) {
+        warn(`${step.name}: COBERTURA PARCIAL — ${parcial.reason}`);
+        for (const caso of parcial.casos) out.line(`   omitida: ${caso}`);
+        partial.push({ name: step.name, reason: parcial.reason });
+      }
+    }
   }
 
   console.log(`\n${C.dim}── resumen ───────────────────────────────────${C.nc}`);
   // Cuantos de los pasos declarados se MIDIERON de verdad. Este es el numero que
   // hay que citar al cerrar: "13 de 13" no es lo mismo que "11 de 13".
   const corrieron = STEPS.length - skipped.length;
+  const parciales = partial.length > 0
+    ? ` (con cobertura parcial: ${partial.map((p) => p.name).join(", ")})`
+    : "";
   console.log(
-    `${C.dim}   ${corrieron} de ${STEPS.length} pasos corrieron de verdad${C.nc}`,
+    `${C.dim}   ${corrieron} de ${STEPS.length} pasos corrieron de verdad${parciales}${C.nc}`,
   );
 
   for (const om of skipped) warn(`omitido: ${om.name} — ${om.reason}`);
+  for (const p of partial) warn(`parcial: ${p.name} — ${p.reason}`);
 
   const verdict = buildVerifyVerdict({
     stepNames: STEPS.map((step) => step.name),
     skipped,
     failures,
+    partial,
   });
 
   // Una sola línea final. Si faltó medir algo crítico lo nombra acá, aunque además

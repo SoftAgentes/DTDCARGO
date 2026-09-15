@@ -18,6 +18,12 @@
  * motivo, nunca una omisión: corrió y no terminó. Sale 1 como cualquier fallo
  * y el motivo viaja hasta la línea final.
  *
+ * Un paso con COBERTURA PARCIAL (SDD-0470) corrió, pero dejó sin medir una
+ * parte declarada con motivo. Hoy es el e2e sin Supabase público: los specs que
+ * lo necesitan se omiten. Se clasifica igual que una omisión: si el paso es
+ * crítico, el cierre queda INCOMPLETO. El exit sigue la regla de las
+ * omisiones: 0 sin fallos y 1 con fallos. Nunca se presenta como TODO VERDE.
+ *
  * La política vive separada del runner para que cada paso nuevo tenga que
  * declarar su impacto y para probar el veredicto sin ejecutar el gate entero.
  */
@@ -151,11 +157,12 @@ function normalizeFailures(failures) {
 const failureLabel = (failure) =>
   failure.reason ? `${failure.name} [${failure.reason}]` : failure.name;
 
-function assertKnownResults(stepNames, skipped, failures) {
+function assertKnownResults(stepNames, skipped, failures, partial) {
   const known = new Set(stepNames);
   const resultNames = [
     ...skipped.map((step) => step.name),
     ...failures.map((failure) => failure.name),
+    ...partial.map((step) => step?.name),
   ];
   const unknown = [...new Set(resultNames.filter((name) => !known.has(name)))];
   const repeatedSkipped = duplicates(skipped.map((step) => step.name));
@@ -169,6 +176,22 @@ function assertKnownResults(stepNames, skipped, failures) {
   if (blankReasons.length > 0) {
     throw new Error(`fallos con motivo vacío: ${blankReasons.join(", ")}`);
   }
+  const partialNames = partial.map((step) => step.name);
+  const repeatedPartial = duplicates(partialNames);
+  const skippedNames = new Set(skipped.map((step) => step.name));
+  const skippedAndPartial = partialNames.filter((name) => skippedNames.has(name));
+  const blankPartial = partial
+    .filter((step) => typeof step.reason !== "string" || !step.reason.trim())
+    .map((step) => step.name);
+  if (repeatedPartial.length > 0) {
+    throw new Error(`pasos con cobertura parcial duplicados: ${repeatedPartial.join(", ")}`);
+  }
+  if (skippedAndPartial.length > 0) {
+    throw new Error(`pasos a la vez omitidos y con cobertura parcial: ${skippedAndPartial.join(", ")}`);
+  }
+  if (blankPartial.length > 0) {
+    throw new Error(`coberturas parciales sin motivo: ${blankPartial.join(", ")}`);
+  }
 }
 
 function omittedSuffix(noncriticalMissing) {
@@ -177,60 +200,94 @@ function omittedSuffix(noncriticalMissing) {
     : "";
 }
 
-/** Devuelve la única línea final y el exit correspondiente a la evidencia. */
-export function buildVerifyVerdict({ stepNames, skipped, failures }) {
+const partialLabel = (step) => `${step.name} [${step.reason}]`;
+
+function partialSuffix(noncriticalPartial) {
+  return noncriticalPartial.length > 0
+    ? ` También con cobertura parcial, no críticos: ${noncriticalPartial.map(partialLabel).join(", ")}.`
+    : "";
+}
+
+/** «CRÍTICOS SIN MEDIR: …. CRÍTICOS CON COBERTURA PARCIAL: …», o vacío. */
+function criticalGaps(criticalMissing, criticalPartial) {
+  const parts = [];
+  if (criticalMissing.length > 0) parts.push(`CRÍTICOS SIN MEDIR: ${criticalMissing.join(", ")}.`);
+  if (criticalPartial.length > 0) {
+    parts.push(`CRÍTICOS CON COBERTURA PARCIAL: ${criticalPartial.map(partialLabel).join(", ")}.`);
+  }
+  return parts.join(" ");
+}
+
+/**
+ * Devuelve la única línea final y el exit correspondiente a la evidencia.
+ * `partial` (SDD-0470) lista `{ name, reason }` de pasos que corrieron con
+ * cobertura parcial declarada. Sin parciales, los mensajes son los de siempre.
+ */
+export function buildVerifyVerdict({ stepNames, skipped, failures, partial = [] }) {
   const failed = normalizeFailures(failures);
-  assertKnownResults(stepNames, skipped, failed);
+  assertKnownResults(stepNames, skipped, failed, partial);
   const criticalMissing = skipped
     .map((step) => step.name)
     .filter((name) => STEP_POLICY[name].critical);
   const noncriticalMissing = skipped
     .map((step) => step.name)
     .filter((name) => !STEP_POLICY[name].critical);
+  const criticalPartialSteps = partial.filter((step) => STEP_POLICY[step.name].critical);
+  const noncriticalPartialSteps = partial.filter((step) => !STEP_POLICY[step.name].critical);
+  const criticalPartial = criticalPartialSteps.map((step) => step.name);
+  const noncriticalPartial = noncriticalPartialSteps.map((step) => step.name);
   const measured = stepNames.length - skipped.length;
+  const gaps = criticalGaps(criticalMissing, criticalPartialSteps);
+  const evidence = { criticalMissing, noncriticalMissing, criticalPartial, noncriticalPartial };
 
   if (failed.length > 0) {
-    const criticalSuffix = criticalMissing.length > 0
-      ? ` CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR: ${criticalMissing.join(", ")}.`
-      : "";
     return {
       kind: "failed",
       tone: "fail",
       exitCode: 1,
-      criticalMissing,
-      noncriticalMissing,
+      ...evidence,
       message:
         `verify: ${failed.length} fallo(s) → ${failed.map(failureLabel).join(", ")}` +
-        criticalSuffix +
-        omittedSuffix(noncriticalMissing),
+        (gaps ? ` CIERRE ADEMÁS INCOMPLETO — ${gaps}` : "") +
+        omittedSuffix(noncriticalMissing) +
+        partialSuffix(noncriticalPartialSteps),
     };
   }
 
-  if (criticalMissing.length > 0) {
+  if (gaps) {
+    const partialNote = partial.length > 0
+      ? `, con cobertura parcial: ${partial.map((step) => step.name).join(", ")}`
+      : "";
     return {
       kind: "critical-unmeasured",
       tone: "warn",
       exitCode: 0,
-      criticalMissing,
-      noncriticalMissing,
+      ...evidence,
       message:
-        `verify: CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: ${criticalMissing.join(", ")}.` +
+        `verify: CIERRE INCOMPLETO — ${gaps}` +
         omittedSuffix(noncriticalMissing) +
-        ` No hubo fallos en lo medido (${measured}/${stepNames.length}); ` +
+        partialSuffix(noncriticalPartialSteps) +
+        ` No hubo fallos en lo medido (${measured}/${stepNames.length}${partialNote}); ` +
         "exit 0 NO equivale a cierre verde completo.",
     };
   }
 
-  if (noncriticalMissing.length > 0) {
+  if (noncriticalMissing.length > 0 || noncriticalPartialSteps.length > 0) {
+    const segments = [];
+    if (noncriticalMissing.length > 0) {
+      segments.push(`no críticos sin medir: ${noncriticalMissing.join(", ")}`);
+    }
+    if (noncriticalPartialSteps.length > 0) {
+      segments.push(`no críticos con cobertura parcial: ${noncriticalPartialSteps.map(partialLabel).join(", ")}`);
+    }
     return {
       kind: "noncritical-unmeasured",
       tone: "warn",
       exitCode: 0,
-      criticalMissing,
-      noncriticalMissing,
+      ...evidence,
       message:
-        `verify: SIN FALLOS, COBERTURA PARCIAL — no críticos sin medir: ` +
-        `${noncriticalMissing.join(", ")} (${measured}/${stepNames.length} pasos medidos).`,
+        `verify: SIN FALLOS, COBERTURA PARCIAL — ${segments.join("; ")} ` +
+        `(${measured}/${stepNames.length} pasos medidos).`,
     };
   }
 
@@ -238,8 +295,7 @@ export function buildVerifyVerdict({ stepNames, skipped, failures }) {
     kind: "complete",
     tone: "ok",
     exitCode: 0,
-    criticalMissing,
-    noncriticalMissing,
+    ...evidence,
     message: `verify: TODO VERDE ✓ (${measured}/${stepNames.length} pasos medidos)`,
   };
 }
