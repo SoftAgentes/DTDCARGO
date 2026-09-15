@@ -74,20 +74,23 @@ principal `.env.local` es un directorio.
   empieza por `SIN SUPABASE PÚBLICO`. No falla, no se reintenta y no pasa en
   falso.
 - **Quiénes la llaman, con evidencia:** la corrida base sin variables del
-  2026-09-15 (SDD-0470) muestra estos cinco casos fallando en chromium,
-  mobile-chrome y mobile-safari, en el intento y en el reintento:
-  - `auth.spec.ts:21` (Studio), `:91` (Back), `:98` y `:105` (Portal);
-  - `global-search.spec.ts:22`.
+  2026-09-15 (SDD-0470, sobre `c70956bf`) muestra estos cinco casos fallando en
+  chromium, mobile-chrome y mobile-safari, en el intento y en el reintento:
+  - `auth.spec.ts`: «Studio: form email+password…», «Back: form email+password
+    presente», «Portal: magic link…» y «Portal: /entrar ofrece las dos
+    puertas…» (líneas 21, 91, 98 y 105 en la base);
+  - `global-search.spec.ts`: «sin sesión, /studio rebota al login» (línea 22
+    en la base).
 
-  El inventario vive también en `scripts/tests/verify-e2e-sin-supabase.node.mjs`:
-  quitar o agregar una llamada sin actualizarlo rompe `harness:test`.
+  El inventario vive también en `scripts/tests/verify-e2e-sin-supabase.node.mjs`,
+  por título: quitar o agregar una llamada sin actualizarlo rompe `harness:test`.
 - **Siguen corriendo sin Supabase**, porque lo que afirman no depende de él:
-  - `auth.spec.ts:42` y `:74` (`/acceso`, fuera del matcher; la página atrapa el
-    error del cliente admin);
-  - `auth.spec.ts:130` (`/m/ve/login`, fuera del matcher);
-  - `smoke.spec.ts:150` (afirma la URL de destino del redirect, que llega a
-    `/entrar` igual);
-  - `attachments-gastos-pilot-network.spec.ts:4` (abre `/studio/login` sólo como
+  - `auth.spec.ts`: las dos de «Acceso» (`/acceso` queda fuera del matcher y la
+    página atrapa el error del cliente admin) y «Operario VE» (`/m/ve/login`,
+    fuera del matcher);
+  - `smoke.spec.ts` «el rastreo público /track redirige a la puerta» (afirma la
+    URL de destino del redirect, que llega a `/entrar` igual);
+  - `attachments-gastos-pilot-network.spec.ts` (abre `/studio/login` sólo como
     origen y afirma el cuerpo del `fetch` que lanza).
 - **En `pnpm verify`:** el preflight avisa qué falta. Después del paso sale
   `[AVISO] e2e: COBERTURA PARCIAL — N prueba(s) omitidas sin Supabase público
