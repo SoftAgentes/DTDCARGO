@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "graphifyVersion": "0.9.61",
+  "vaultDirectory": "DTD Cargo",
+  "generatedDirectory": "Generado",
+  "topics": [
+    {
+      "id": "proyecto",
+      "label": "Proyecto",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "BRAND.md",
+        "README.md"
+      ]
+    },
+    {
+      "id": "arquitectura",
+      "label": "Arquitectura",
+      "prefix": "docs/architecture/"
+    },
+    {
+      "id": "especificaciones",
+      "label": "Especificaciones",
+      "prefix": "docs/specs/"
+    },
+    {
+      "id": "runbooks",
+      "label": "Runbooks",
+      "prefix": "docs/runbooks/"
+    },
+    {
+      "id": "ingenieria",
+      "label": "Ingeniería",
+      "prefix": "docs/engineering/"
+    },
+    {
+      "id": "gobernanza",
+      "label": "Gobernanza",
+      "prefix": "docs/governance/"
+    },
+    {
+      "id": "marketing",
+      "label": "Marketing",
+      "prefix": "docs/marketing/"
+    },
+    {
+      "id": "handoffs",
+      "label": "Handoffs",
+      "prefix": ".agents/handoffs/"
+    }
+  ],
+  "excludedPrefixes": [
+    "docs/archive/",
+    "docs/legal/",
+    "docs/operaciones/",
+    "docs/design/",
+    "DTD Cargo/",
+    "graphify-out/",
+    "wiki-personal/"
+  ],
+  "extensions": [
+    ".md",
+    ".mdx"
+  ]
+}

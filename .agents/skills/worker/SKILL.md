@@ -31,3 +31,9 @@ No preguntes «¿sigo?» ni interrumpas por tests rutinarios o hipótesis de baj
 - Si cambia main y se necesita actualización, fetch y merge de origin/main en **tu rama**, preservando commits; resuelve y repite validación afectada. Una base distinta se coordina con Director. No rebase de otros ni force push.
 - Usa exactamente el cierre del runbook: OBJETIVO ORIGINAL, COMPLETADO, VALIDACIÓN, COMMITS, PR / BRANCH, PENDIENTES DE ESTA TAREA, FUERA DE ALCANCE DETECTADO, HANDOFF AL DIRECTOR. No declares completo lo parcial. Estado SDD `done` solo si se cumplieron todos sus criterios; PR/merge/release se registran por separado.
 - Antes de terminar guarda handoff durable y libera tu claim solo cuando acabó la escritura: `node scripts/harness-worktree.mjs release --owner <id-de-sesion>`. No elimines worktree ni rama. Si retomas, reclama otra vez.
+
+## Cierre documental
+
+Sigue el [runbook de conocimiento](../../../docs/runbooks/knowledge-graphify-obsidian.md). En el handoff propio registra impacto documental (o no aplica con motivo), documentos canónicos actualizados, evidencia, resultados estructurales/semánticos y pendientes de integración/exportación. Conserva propuestas separadas de decisiones autorizadas.
+
+Ejecuta `pnpm knowledge:status` al cerrar y actualiza los derivados afectados en tu worktree. `pnpm knowledge:publish --preview` produce una vista local revisable; no escribe la bóveda compartida. Director publica desde main comprobado después de integrar con autorización. No cambies las notas personales ni declares actualizada una capa pendiente.

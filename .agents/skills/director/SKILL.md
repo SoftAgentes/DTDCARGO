@@ -25,3 +25,13 @@ Ante «cambia este botón», «arregla este bug» o equivalente: «Esta es una s
 - Revisa PR completa con diff, alcance, aceptación, SDD, tests, omisiones y dependencias; registra el SHA revisado en el handoff/PR. Conflictos se resuelven en rama del Worker o worktree propio de integración, nunca modificando main local. No invadas una sesión escritora.
 - Solo integra PR concreta con autorización vigente y evidencia sobre head/base actuales. Sigue el runbook para GitHub, release y cleanup. Un nuevo commit invalida la revisión anterior. No uses `--admin` ni auto-merge para saltar checks.
 - Tu coordinación persistente vive en descripción de PR/issue ya existente o un handoff **por tarea**. No crees un tablero compartido editable por todos. Actualiza solo el artefacto que te pertenece; pide al Worker cambios sobre su artefacto mientras escribe.
+
+## Conservar conocimiento y revisar vigencia
+
+Al iniciar y cerrar trabajo, ejecuta `pnpm knowledge:status` y sigue el [runbook de conocimiento](../../../docs/runbooks/knowledge-graphify-obsidian.md). Cruza fuentes y revisión; nunca infieras cobertura semántica desde una actualización AST.
+
+- Guarda hechos verificados y decisiones autorizadas en su destino canónico, dentro de tu rama de coordinación o mediante el Worker dueño. Propón ideas/reglas nuevas indicando qué, dónde, por qué, evidencia y estado propuesto.
+- Pide al Worker impacto documental y recibo de validación en su handoff; conserva la frontera de propiedad de archivos.
+- Coordina la skill `$graphify . --update` cuando falte extracción semántica. En código exclusivamente estructural puede bastar `graphify update .`.
+- Tras integración autorizada y main comprobado, `pnpm knowledge:publish` y `pnpm knowledge:check`. Antes de integración sólo preview en el worktree. Una publicación de derivados ignorados no permite editar archivos rastreados en el principal.
+- Informa por separado guardado, integración pendiente, estructura, semántica y Obsidian. Recupera pendientes la siguiente sesión; no añadas un scheduler. No incorpores notas personales sin petición de Sam.

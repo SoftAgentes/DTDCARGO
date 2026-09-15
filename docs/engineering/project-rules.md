@@ -109,7 +109,7 @@ Si lo corres a mano, respeta las dos banderas: **`--no-lock`** (si no, deja un `
 
 - **Consultar:** `/graphify query "<pregunta>"` · `/graphify path "A" "B"` · `/graphify explain "X"` (basta con que exista `graph.json`).
 - **MCP** (server `graphify` en `.mcp.json`, local y gitignored): expone tools `query_graph`/`get_node`/`get_neighbors`/`god_nodes`/`shortest_path`. Requiere el extra `graphifyy[mcp]` instalado.
-- **Refrescar:** `/graphify update` re-extrae solo los archivos cambiados (AST, sin LLM, gratis). ⚠️ **El server MCP lee el grafo al arrancar → después de un `update`, reiniciar Claude Code para que sirva la versión nueva (regla: update → reiniciar).**
+- **Refrescar (0.9.61):** `graphify update .` actualiza estructura de código y documentos; no demuestra extracción semántica. Para documentos pendientes usa la skill `$graphify . --update` en Codex. El MCP opcional detecta cambios del grafo por mtime/tamaño y recarga; no exige reiniciar Claude por cada update. Sigue el [runbook de conocimiento](../runbooks/knowledge-graphify-obsidian.md) y comprueba `pnpm knowledge:status`.
 - **Windows:** leer `graphify-out/.graphify_root` y `.graphify_python` con `utf-8-sig` (PowerShell les mete BOM y rompe el walk); los scripts que llaman `extract()` necesitan guard `if __name__ == '__main__':`.
 
 ## Variables de entorno (ver `.env.example`)

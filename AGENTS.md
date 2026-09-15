@@ -19,6 +19,12 @@ Habla con Sam en español venezolano neutro, tuteo, sin voseo; explica resultado
 - `pnpm verify` es cierre canónico de producto e incluye build. Registra PASÓ, FALLÓ, NO EJECUTADO o NO DISPONIBLE por comprobación; exit 0 con SKIPs no significa cobertura completa. No debilites tests. Para cambios solo de harness usa pruebas de sus scripts, docs y validación de skills; explica pruebas de producto no aplicables. El ledger de producción es validación de release, no motivo para aplicar DB antes de aprobar una PR.
 - Handoff durable por tarea en `.agents/handoffs/`; separa pendientes de esta tarea de **FUERA DE ALCANCE DETECTADO**. Git/PR/SDD son las fuentes de estado; la conversación y `.harness/progress/` no son el registro maestro.
 
+## Conocimiento y actualización
+
+- Al iniciar/cerrar Director, comprobar `pnpm knowledge:status`. Guardar evidencia verificada y decisiones ya autorizadas en su documento canónico o handoff propio; proponer conocimiento nuevo con destino y justificación antes de convertirlo en regla. Las inferencias conservan su etiqueta.
+- Worker registra impacto documental, evidencia y pendientes de actualización en su handoff. Separar guardado en la tarea, integración, estructura Graphify, cobertura semántica y revisión visible en Obsidian. AGENTS conserva reglas estables, no el estado temporal.
+- Seguir el [runbook de conocimiento](docs/runbooks/knowledge-graphify-obsidian.md): Graphify 0.9.61; notas personales fuera de archivos generados; publicación compartida sólo desde main integrado comprobado. Las operaciones sobre derivados ignorados no autorizan cambios rastreados en main.
+
 ## Fronteras críticas del proyecto
 
 - Público ↔ ERP: HTTP a `NEXT_PUBLIC_HAILUWAY_API`; público no importa `@/lib/studio`, `@/lib/db` ni `@supabase/*`. Puente compartido: `lib/shared/`. Studio y móvil sí usan Supabase; Back no importa Studio. Onboarding `app/invitar/` usa DB por diseño. Conserva los límites ESLint.

@@ -18,6 +18,9 @@
 !docs/runbooks/**
 !docs/architecture/**
 !docs/marketing/**
+!docs/engineering/**
+!docs/governance/**
+!.agents/handoffs/**
 
 # ── Media / binarios: SIEMPRE fuera (van tras los re-includes para ganar) ──
 *.png
@@ -52,3 +55,11 @@ docs/design/**
 .obsidian/
 *.canvas
 *.base
+
+# Evitar reingresar notas personales y derivados (SDD-0471)
+/DTD Cargo/
+graphify-out/
+wiki-personal/
+
+# Configuración del publicador: la huella de política la cubre, no genera nodos AST.
+/scripts/knowledge-policy.json

@@ -42,7 +42,10 @@
     "marketing:reader": "node scripts/build-marketing-reader.mjs",
     "verify": "node scripts/verify.mjs",
     "harness:status": "node scripts/director-status.mjs",
-    "harness:test": "node scripts/tests/run-harness.mjs"
+    "harness:test": "node scripts/tests/run-harness.mjs",
+    "knowledge:status": "node scripts/knowledge-sync.mjs status",
+    "knowledge:publish": "node scripts/knowledge-sync.mjs publish",
+    "knowledge:check": "node scripts/knowledge-sync.mjs check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
