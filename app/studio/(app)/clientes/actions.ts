@@ -409,6 +409,24 @@ export async function geocodeClientAddressAction(
   return geocodeAddress(address, { countryCode: "ve" });
 }
 
+/**
+ * Mensaje del borrado fallido. La revocación y el borrado van juntos o no van,
+ * pero un error aquí no prueba que la base los rechazó: un fallo de red después
+ * del COMMIT también llega como error. Por eso no afirma que no se borró nada;
+ * manda a recargar, y la lista dice la verdad.
+ * Sin `export`: un archivo "use server" sólo puede exportar funciones async.
+ */
+const SOFT_DELETE_CLIENT_ERROR =
+  "No se pudo confirmar el borrado. Recarga la lista: si el cliente sigue ahí, conserva su acceso al Portal y puedes intentarlo de nuevo.";
+
+/**
+ * Borrado lógico de un cliente (SDD-0010) que revoca su acceso al Portal
+ * (SDD-0467). El UPDATE de `deleted_at` dispara, en la misma transacción, el
+ * trigger `clients_revoke_portal_on_soft_delete` (migr 0454): revoca su vínculo
+ * en `client_users` y todos sus códigos cortos. Si la revocación falla, falla el
+ * UPDATE y el cliente queda como estaba; por eso el error no promete un borrado
+ * a medias.
+ */
 export async function softDeleteClientAction(
   markbox: string,
 ): Promise<{ ok?: boolean; error?: string }> {
@@ -423,7 +441,8 @@ export async function softDeleteClientAction(
     .eq("markbox", markbox);
 
   if (error) {
-    return { error: `No se pudo eliminar el cliente: ${error.message}` };
+    console.error("[softDeleteClientAction]", error.message);
+    return { error: SOFT_DELETE_CLIENT_ERROR };
   }
 
   revalidatePath("/studio/clientes");

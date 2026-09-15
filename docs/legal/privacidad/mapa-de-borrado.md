@@ -297,6 +297,36 @@ de 30 días ni la exclusión del equipo China estén implementadas. La aplicaci�
 de 0447 en Cloud permanece **NO VERIFICABLE** hasta autorización nominal y
 comprobación posterior.
 
+## 10 · Borrado lógico de un cliente y acceso al Portal
+
+[SDD-0467](../../specs/0467-borrar-cliente-revoca-portal/spec.md), decisión de
+Sam del 2026-09-14: *«borrar un cliente: debe revocar el acceso. Así debe ser.»*
+
+**El borrado lógico no es un borrado de datos.** Poner `clients.deleted_at`
+(Studio › Clientes › Eliminar, o la ficha retirada por `merge_clients`) oculta
+la ficha; la fila y todo lo que cuelga de ella siguen en la base. Lo que sí
+cambia desde la migración `0454_borrar_cliente_revoca_portal` es el **acceso**:
+
+| Destino | Qué pasa en el borrado lógico |
+|---|---|
+| `client_users` | En la misma transacción queda `revoked`, con `revoked_at`, y se vacían `auth_user_id` y `token`. Se conservan `email`, `invited_at`, `bound_at` y `last_login_at`: 🔴 **SIN FUNDAMENTO** para esa retención, igual que el resto de §3.A |
+| `portal_access_links` | Todos los códigos cortos del cliente quedan con `revoked_at`, usados o no. La fila conserva el código y sus fechas |
+| `entity_audit_log` | El cambio de status deja un evento `portal_access_status_changed` con el operador que borró y el motivo. 🔵 **CONSERVA** según SDD-0186 |
+
+- Si la revocación falla, el borrado no ocurre: van en la misma transacción.
+- Restaurar la ficha **no** devuelve el acceso. Hace falta una invitación nueva.
+- La base rechaza dejar un vínculo `invited`/`active` o un código sin revocar
+  sobre un cliente borrado o inexistente.
+- `portal_access_links` es posterior a la foto del 2026-07-31. Según
+  `supabase/migrations/0360_portal_access_links.sql:29`, también cuelga de
+  `clients` con `on delete cascade`, así que un borrado físico lo alcanzaría
+  como a las tablas de §3.A. No se verificó contra producción.
+
+Estado al 2026-09-14: **ENCONTRADO** en producción, corregido en el repositorio
+y **NO VERIFICABLE** en producción hasta aplicar 0454 con OK nominal. El conteo
+agregado de ese día, sin ids ni datos, daba **1** vínculo activo con cliente
+borrado; el backfill de 0454 lo revoca al aplicarse.
+
 ---
 
 *Documento vivo. Se actualiza cuando llegue la respuesta de la abogada y cada vez

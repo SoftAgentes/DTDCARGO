@@ -43,6 +43,12 @@ interface Props {
 
 const initialState: ClientActionState = {};
 
+/**
+ * Confirmación del borrado (SDD-0467): borrar revoca en el mismo acto el acceso
+ * del cliente al Portal y sus códigos cortos (migr 0454).
+ */
+export const DELETE_CLIENT_CONFIRM = "¿Seguro? El cliente pierde su acceso al Portal.";
+
 export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
   // SDD-0255: sólo se ofrecen aliados ACTIVOS — `next_markbox_aliado` rechaza a
   // los suspendidos y cerrados, así que ofrecerlos sería prometer algo que la
@@ -779,7 +785,7 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
                       color: "var(--ink-soft)",
                     }}
                   >
-                    ¿Seguro?
+                    {DELETE_CLIENT_CONFIRM}
                   </span>
                   <button
                     type="button"
