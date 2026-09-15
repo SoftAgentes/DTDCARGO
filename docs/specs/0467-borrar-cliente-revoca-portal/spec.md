@@ -4,7 +4,7 @@ title: "Borrar un cliente revoca su acceso al Portal"
 status: in-progress
 author: "Claude"
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-15
 supersedes: null
 superseded_by: null
 related: ["0010", "0042", "0246", "0253", "0466"]
@@ -153,12 +153,26 @@ trigger D5 existe.
    - roles `authenticated`, `anon` y `service_role`;
    - RLS y columnas de `clients`, `client_users` y `portal_access_links`, y el CHECK de status de
      0080 exacto;
+   - **RLS del dueño (ronda 2).** Las dos funciones SECURITY DEFINER quedan con dueño
+     `current_user`, y la revocación, las guardas y el backfill corren como ese rol. Tiene que
+     saltarse la RLS de las tres tablas: superusuario, `BYPASSRLS` o dueño (por membresía, como
+     evalúa PostgreSQL). Ninguna de las tres puede tener `FORCE ROW LEVEL SECURITY`; FORCE aborta
+     aunque el rol tenga BYPASSRLS, por conservadurismo. Si no se cumple, aborta con «0454
+     abortada: public.… tiene FORCE ROW LEVEL SECURITY…» o «…el rol que aplica no es dueño de
+     public.… ni tiene BYPASSRLS…». Sin este chequeo, la revocación y el backfill actualizarían 0
+     filas sin error, y los conteos del postflight también pasarían por la RLS. Va antes del
+     chequeo D5, que ya necesita leer `audit_entity_types`;
    - `merge_clients(uuid,uuid)` SECURITY DEFINER que revoca y muda antes de retirar;
    - `portal_bind_session()` con la forma de 0080 (activa sólo `invited`, reconoce sólo
      `active`);
    - `portal_invitation` activo si `audit_d5_client_users` está vivo;
-   - triggers con los nombres de la migración ausentes o con su forma final. El `coalesce` evita
-     que, antes de la primera aplicación, un NULL de `to_regprocedure()` deje pasar uno ajeno.
+   - triggers con los nombres de la migración ausentes o con su forma final **completa** (ronda 2):
+     habilitados, con su función y con `pg_get_triggerdef` normalizado en espacios idéntico a la
+     constante (evento, momento, columnas y WHEN). Se quita el esquema de la función porque su
+     calificación depende del `search_path` de la sesión. En la ronda 1 sólo se comparaban
+     `tgtype`, `tgfoid` y `tgattr`: un trigger con el mismo nombre y otro WHEN u otras columnas
+     pasaba. El `coalesce` evita que, antes de la primera aplicación, un NULL de
+     `to_regprocedure()` deje pasar uno ajeno.
 
    Además guarda en un GUC de sesión una huella md5 del catálogo dependiente: triggers ajenos,
    policies, RLS y ACL de las tres tablas, y oid, cuerpo, ACL, `proconfig` y `SECURITY DEFINER`
@@ -167,9 +181,14 @@ trigger D5 existe.
    calificados, comentario y `revoke all … from public, anon, authenticated, service_role`.
 4. `do $triggers$`: crea cada trigger sólo si no existe, así la reaplicación conserva los oid.
 5. `do $backfill$`, idempotente.
-6. `do $postflight$`. Exige la forma final de las dos funciones (sin EXECUTE para roles de la
-   API), los tres triggers vivos con su tipo y función, la huella idéntica y **cero** vínculos o
-   códigos vigentes sobre clientes borrados, en conteos agregados.
+6. `do $postflight$`. Exige:
+   - la forma final de las dos funciones, sin EXECUTE para roles de la API;
+   - **(ronda 2)** que su dueño (`proowner`) evite la RLS de las tres tablas: superusuario,
+     BYPASSRLS o dueño, y ninguna con FORCE;
+   - los tres triggers habilitados, con su función y con la definición completa normalizada
+     **(ronda 2)**;
+   - la huella idéntica;
+   - **cero** vínculos o códigos vigentes sobre clientes borrados, en conteos agregados.
 7. `reset statement_timeout` y `reset lock_timeout`.
 
 Reaplicada no crea ni cambia nada: mismo catálogo, mismas filas y ningún evento nuevo.
@@ -199,10 +218,14 @@ Reaplicada no crea ni cambia nada: mismo catálogo, mismas filas y ningún event
 
 ### Frontera e impacto en la aplicación
 
-- `softDeleteClientAction` hace el mismo UPDATE. Si la base lo rechaza, incluida una revocación
-  que falla, registra el mensaje crudo en el log del servidor y devuelve «No se pudo eliminar el
-  cliente ni revocar su acceso al Portal. No se borró nada; intenta de nuevo.». No revalida. El
-  drawer muestra ese error y no se cierra.
+- `softDeleteClientAction` hace el mismo UPDATE. Si recibe un error, registra el mensaje crudo en
+  el log del servidor y devuelve «No se pudo confirmar el borrado. Recarga la lista: si el cliente
+  sigue ahí, conserva su acceso al Portal y puedes intentarlo de nuevo.». No revalida. El drawer
+  muestra ese error y no se cierra.
+  - El mensaje no afirma que no se borró nada, a propósito (ronda 2). Si la base rechaza el
+    UPDATE, incluida una revocación que falla, borrado y revocación no ocurren. Pero un fallo de
+    red después del COMMIT también llega como error, y ahí el borrado sí ocurrió.
+  - En los dos casos la lista recargada dice la verdad, porque borrado y revocación son atómicos.
 - La confirmación inline del drawer dice «¿Seguro? El cliente pierde su acceso al Portal.».
   Mismos botones, mismo flujo y sin cambio visual sustancial: `/ui-check` no aplica.
 - La acción anterior, todavía desplegada, funciona igual con la 0454 aplicada: el trigger no
@@ -227,7 +250,11 @@ producción.
   `current_studio_role()` de 0200, `assert_tenant_match` de 0012, `assert_studio_role` de 0351 y
   la función D5 de 0293, más su trigger.
 
-**73 aserciones.**
+**84 aserciones** (73 en la ronda 1). La ronda 2 del 2026-09-15 agrega:
+- los drift de RLS, que exigen su mensaje claro;
+- los drift de reaplicación con un trigger de otra forma;
+- las sondas del postflight para trigger, dueño y FORCE;
+- el FOR SHARE exigido sobre `prosrc` (filas 2b, 3, 3c y 3b).
 
 | Punto | Qué defiende |
 |---|---|
@@ -235,6 +262,10 @@ producción.
 | 2. Estático | Timeouts antes del preflight; orden preflight → funciones → triggers → backfill → postflight → reset; dos funciones SECURITY DEFINER con `search_path` vacío, comentadas y con `revoke all` de los cuatro roles; tres `create trigger`; sin GRANT, INSERT, DELETE, policies, tablas, índices, locks, ALTER ni DROP; bloques cerrados |
 | 3. Drift (10 casos) | `merge_clients` que retira antes de mudar, sin SECURITY DEFINER o ausente; `portal_bind_session` con otra forma; `client_users.revoked_at` o `clients.deleted_at` renombradas; `portal_access_links` sin RLS; CHECK de status ausente; `portal_invitation` deprecado con D5 vivo; trigger ajeno con el nombre de la migración: `P0001` en el preflight, sin uuid ni Shipping Marks, y catálogo intacto. Las formas de `merge_clients` de 0341 y 0358 pasan el preflight |
 | 3b. Postflight | Rechaza una huella distinta («0454: cambió el catálogo dependiente…») y un vínculo vigente sobre un cliente borrado colado con la guarda deshabilitada («0454: quedaron 1 vínculo(s) y 0 código(s)…») |
+| 2b. Estático, ronda 2 | Sobre el `prosrc` aplicado de `portal_access_require_live_client()`, sin comentarios ni espacios: la rama `if tg_op='INSERT' or new.client_id is distinct from old.client_id` hace `perform 1 … for share of c; v_alive := found;`. Es la propiedad de concurrencia que un contrato de una sesión no observa por comportamiento |
+| 3, ronda 2. Drift de RLS (antes de aplicar) | Con `FORCE ROW LEVEL SECURITY` en `portal_access_links`: aborta con «0454 abortada: public.portal_access_links tiene FORCE ROW LEVEL SECURITY…». Aplicada por un rol sin BYPASSRLS que no es dueño: aborta con «0454 abortada: el rol que aplica no es dueño de public.clients ni tiene BYPASSRLS…». En los dos casos el catálogo queda intacto y se exige el mensaje exacto, no otro aborto posterior |
+| 3c. Drift de reaplicación (después de aplicar) | Un trigger con el nombre de la migración, la misma función y el mismo tipo pero otro WHEN (`clients`), otras columnas (`client_users`, sin `client_id`), otro WHEN (`portal_access_links`) o deshabilitado: reaplicar aborta en el preflight con «0454 abortada: ya existe un trigger… con otra forma», y catálogo y filas quedan intactos |
+| 3b, ronda 2. Postflight | Además de la huella y el invariante, rechaza un trigger con la misma función y tipo pero otra condición («0454: los tres triggers no quedaron vivos con su forma»), una función cuyo dueño no evita la RLS («0454: el dueño de las funciones no evita la RLS…») y FORCE en `client_users` |
 | 4. Aplicada | Timeouts restaurados; ni huella ni motivo en la sesión; policies, RLS, ACL, funciones y triggers existentes idénticos; los tres triggers con su evento, momento, columnas y condición; reaplicar deja catálogo y filas idénticos |
 | 5. Backfill | Activo, invitado y revocado a medias de clientes ya borrados, revocados del todo; sus códigos abiertos y vencidos, revocados; exactamente dos eventos D5 de sistema con el motivo de la migración, ninguno por el revocado a medias; los clientes vivos conservan acceso y códigos |
 | 6. Comportamiento | Borrado del Studio por RLS: vínculo activo e invitación revocados del todo, códigos abiertos y usados revocados, evento D5 con el operador y el motivo, y motivo fuera de la transacción. Con el mismo Shipping Mark en otro tenant, el cliente de B conserva acceso y código. `portal_bind_session()` no activa ni reconoce. El sellado de `consumeAccessLink` no encuentra fila y `releaseAccessLink` no reabre. Restaurar no reactiva; la sesión del antiguo titular no se vincula; una invitación nueva sí. Guardas: 8 casos `23514` (INSERT activo, invitado y de cliente inexistente; reinvitación; mudanza a cliente borrado; código nuevo, reapertura y mudanza) y 5 cambios permitidos. Las RPC de invitación y de código corto siguen rechazando. Fallo atómico: si la revocación falla, cliente, vínculo y código quedan como estaban. `merge_clients` con acceso mudado: sigue activo en el superviviente con la misma identidad; la ficha retirada queda sin códigos. `merge_clients` con acceso en el superviviente: duplicado revocado del todo con un solo evento D5 y la persona se vincula a otra ficha. Tenants: B borra lo suyo, no toca A y no alcanza a borrar un cliente de A. Invariante final en cero |
@@ -270,6 +301,38 @@ producción.
   encontró un NULL en el preflight: antes de la primera aplicación
   `to_regprocedure('public.clients_revoke_portal_access()')` es NULL y el `not (…)` dejaba pasar
   la fila. Se corrigió con `coalesce(…, false)`.
+
+### Ronda 2 (2026-09-15): control rojo y mutantes en la suite versionada
+
+Endurecimiento pedido en la revisión de la PR #120, antes de aplicar. Todo sobre `ea21ad14`,
+PostgreSQL 17 en Docker 29.7.2:
+
+- **Contrato nuevo contra la 0454 publicada en `5af835a5`** (sha256 `3f3abc08…` frente a
+  `6f58da4e…`): falla en el primer caso nuevo, «preflight aceptó drift o alteró catálogo: alter
+  table public.portal_access_links force row level security».
+- **Control rojo por caso**, con mutantes de la migración nueva. Todos mueren en la suite
+  versionada, sin carreras:
+  1. **Forma completa de triggers.** «preflight triggers sin definición completa (sólo tipo y
+     función)» y «preflight triggers sin tgenabled» mueren en el drift de reaplicación (3c).
+     «postflight triggers sin definición completa» muere en la sonda «el postflight aceptó un
+     trigger con otra condición».
+  2. **RLS del dueño.**
+     - «preflight sin chequeo de FORCE» muere porque el preflight acepta y aborta el postflight,
+       y el contrato exige el aborto en el preflight.
+     - «preflight sin chequeo de dueño o BYPASSRLS» muere por un 42501 posterior del preflight al
+       leer `audit_entity_types`.
+     - Los mensajes específicos se prueban aparte: «preflight FORCE con mensaje genérico» y
+       «preflight dueño con mensaje genérico» mueren en «el drift de RLS abortó sin su mensaje
+       claro».
+     - «postflight sin chequeo de dueño y FORCE» muere en su sonda.
+  3. **FOR SHARE.** «guarda INSERT sin FOR SHARE», que en la ronda 1 sólo morían las carreras,
+     muere en la aserción estática 2b.
+- **Serie completa:** 43 mutantes (35 de la ronda 1 y 8 nuevos). **43 de 43 muertos** en la suite
+  versionada, con los dos controles del original en verde. `-v apply_fix=false` sigue fallando en
+  «Backfill: el vínculo activo, el invitado y el revocado a medias…».
+- **Cambio en la muerte de un mutante de la ronda 1.** «guarda INSERT acepta cliente borrado» ahora
+  muere antes, en la aserción de FOR SHARE, porque altera el texto de esa rama. Los casos de
+  comportamiento de la guarda lo matan igual.
 
 ### Concurrencia (dos sesiones, `deadlock_timeout` 200 ms)
 
@@ -388,6 +451,11 @@ auditoría»: SGE-00, MP-01, BTN-01, AUD-01 y AUD-02.
       EXECUTE para la API, backfill idempotente con conteos agregados, espera en el baseline y
       contrato SQL que cubre `invited` y `active`, los dos caminos de `merge_clients`, códigos,
       idempotencia y dos tenants. Control rojo, mutantes y carreras.
+      Ronda 2:
+      - preflight y postflight exigen la forma completa de los triggers y un dueño que evite la
+        RLS de las tres tablas, sin FORCE;
+      - el FOR SHARE de la guarda está versionado en el contrato;
+      - 43 de 43 mutantes mueren en la suite versionada.
 - [x] 6. La confirmación del drawer avisa que el cliente pierde su acceso al Portal, con tuteo y
       sin voseo.
 - [x] 7. Mapa de borrado actualizado (§10); allowlist exacta y revisión `revisar-datos-ve` en esta
@@ -401,15 +469,33 @@ acredita el ledger.
 - Aplicarla exige el OK nominal de Sam y `docs/runbooks/aplicar-migraciones-prod.md`: de a una,
   con el name exacto. No depende de ningún despliegue.
 - **Lectura previa recomendada, sólo catálogo y sin filas:**
+  - dueño (`relowner`) y `relforcerowsecurity` de `clients`, `client_users` y
+    `portal_access_links`, y `rolsuper` / `rolbypassrls` del rol que va a aplicar. Ese rol queda
+    como dueño de las dos funciones SECURITY DEFINER: si no es dueño de las tres tablas ni tiene
+    BYPASSRLS, o alguna tiene FORCE, la revocación y el backfill actualizarían 0 filas sin error,
+    y el preflight aborta;
   - el cuerpo normalizado de `merge_clients` y de `portal_bind_session`;
   - el CHECK de status de `client_users`;
-  - los triggers de `clients`, `client_users` y `portal_access_links`;
+  - los triggers de `clients`, `client_users` y `portal_access_links` (si ya existiera uno con el
+    nombre de la migración, su `pg_get_triggerdef` completo);
   - el estado de `portal_invitation` en `audit_entity_types`.
 
   Si cualquiera difiere de lo que exige el preflight, la migración aborta sin cambiar nada y hay
   que revisar.
+- **Conteos esperables del NOTICE.** El conteo agregado del 2026-09-14 daba 1 vínculo activo con
+  cliente borrado. Pueden aparecer además «revocados incompletos» y códigos cortos mayores que
+  cero: `merge_clients` dejaba al duplicado `revoked` sin `revoked_at` y con `auth_user_id` y
+  `token` (0361:124-126), y los códigos de las fichas retiradas nunca se revocaban. Es esperable y
+  el backfill los completa.
+- **Ventana entre el merge y la aplicación.** Desde que se despliega el merge, el aviso del drawer
+  promete la revocación, pero hasta aplicar 0454 sólo la app cierra la puerta al cliente borrado:
+  el vínculo y los códigos siguen vigentes en la base. Aplicarla poco después del merge.
 - Aplicar en baja actividad del Studio y del Portal por el `ShareRowExclusiveLock` de hasta 5 s.
   Si corta por `lock_timeout`, reintentar.
+- **Deadlock posible.** La migración toma los locks en el orden `clients` → `client_users` →
+  `portal_access_links`. Una transacción concurrente que escriba `client_users` o
+  `portal_access_links` y después `clients` puede formar un interbloqueo con ella: PostgreSQL
+  aborta una de las dos (`40P01`) y se reintenta entera la que cayó.
 - **Postflight en producción recomendado, sólo catálogo y agregados:**
   - las dos funciones con `search_path` vacío y sin EXECUTE para `anon`, `authenticated` y
     `service_role`;
