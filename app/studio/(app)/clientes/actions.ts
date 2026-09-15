@@ -15,6 +15,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
 import {
   validateClientInput,
   type ClientActionState,
@@ -419,31 +420,69 @@ export async function geocodeClientAddressAction(
 const SOFT_DELETE_CLIENT_ERROR =
   "No se pudo confirmar el borrado. Recarga la lista: si el cliente sigue ahí, conserva su acceso al Portal y puedes intentarlo de nuevo.";
 
+/** La base no alcanzó ninguna fila: nunca se informa como éxito (SDD-0469). */
+const SOFT_DELETE_CLIENT_NOT_FOUND =
+  "No se eliminó ningún cliente: ya estaba eliminado, no existe o no tienes acceso a él. Recarga la lista.";
+
+const SOFT_DELETE_CLIENT_INVALID_ID =
+  "No se pudo identificar al cliente. Recarga la lista e inténtalo de nuevo.";
+
+const SOFT_DELETE_REASON_TOO_SHORT =
+  "El motivo es opcional, pero si lo escribes debe tener al menos 4 caracteres.";
+
+const CLIENT_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
- * Borrado lógico de un cliente (SDD-0010) que revoca su acceso al Portal
- * (SDD-0467). El UPDATE de `deleted_at` dispara, en la misma transacción, el
- * trigger `clients_revoke_portal_on_soft_delete` (migr 0454): revoca su vínculo
- * en `client_users` y todos sus códigos cortos. Si la revocación falla, falla el
- * UPDATE y el cliente queda como estaba; por eso el error no promete un borrado
- * a medias.
+ * Borrado lógico de un cliente (SDD-0010), auditado (SDD-0469), que revoca su
+ * acceso al Portal (SDD-0467).
+ *
+ * La RPC `soft_delete_client_with_audit_reason` (migr 0455) borra por id y por
+ * RLS, y fija el motivo opcional sólo para su transacción. En esa misma
+ * transacción el trigger de 0455 escribe el evento `client_deleted` y el de 0454
+ * revoca el acceso. Si el evento o la revocación fallan, falla todo y el cliente
+ * queda como estaba; por eso el error no promete un borrado a medias.
+ *
+ * La RPC devuelve `false` cuando no alcanzó ninguna fila (ya borrado, de otro
+ * tenant o inexistente). Eso es un error para el operador, nunca `ok`.
  */
 export async function softDeleteClientAction(
-  markbox: string,
+  clientId: string,
+  reason = "",
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
 
   const denial = await moduleEditDenial(supabase, "clients");
   if (denial) return { error: denial };
 
-  const { error } = await supabase
-    .from("clients")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("markbox", markbox);
+  if (!CLIENT_ID_PATTERN.test(String(clientId ?? ""))) {
+    return { error: SOFT_DELETE_CLIENT_INVALID_ID };
+  }
+
+  // Motivo opcional: vacío viaja como NULL y el evento lleva el motivo por
+  // defecto; escrito, cumple los límites de AUD-01 (4 a 1000 caracteres).
+  const trimmedReason = String(reason ?? "").trim();
+  let auditReason: string | null = null;
+  if (trimmedReason !== "") {
+    const checked = validateAuditReason(trimmedReason);
+    if (!checked.ok) {
+      return {
+        error: trimmedReason.length < 4 ? SOFT_DELETE_REASON_TOO_SHORT : checked.error,
+      };
+    }
+    auditReason = checked.reason;
+  }
+
+  const { data, error } = await supabase.rpc(
+    "soft_delete_client_with_audit_reason",
+    { p_client_id: clientId, p_reason: auditReason },
+  );
 
   if (error) {
     console.error("[softDeleteClientAction]", error.message);
     return { error: SOFT_DELETE_CLIENT_ERROR };
   }
+  if (data !== true) return { error: SOFT_DELETE_CLIENT_NOT_FOUND };
 
   revalidatePath("/studio/clientes");
   return { ok: true };

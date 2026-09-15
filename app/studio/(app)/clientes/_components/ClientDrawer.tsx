@@ -5,7 +5,7 @@
  *
  * Drawer lateral derecho 560px. Mode "create" o "edit" según props.
  * useActionState con createClientAction / updateClientAction.
- * Soft delete button en footer (solo mode edit) con confirmación inline.
+ * Soft delete button en footer (solo mode edit) con ConfirmDialog R2 (SDD-0469).
  * En mode create: MARKBOX se autogenera al submit (no input).
  * En mode edit: MARKBOX visible read-only.
  */
@@ -29,6 +29,7 @@ import {
 } from "../actions";
 import { Icon } from "@/app/studio/_components/icons";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { prefixChain, type AliadoOption } from "@/lib/studio/aliados/aliado-types";
@@ -44,10 +45,21 @@ interface Props {
 const initialState: ClientActionState = {};
 
 /**
- * Confirmación del borrado (SDD-0467): borrar revoca en el mismo acto el acceso
- * del cliente al Portal y sus códigos cortos (migr 0454).
+ * Confirmación R2 del borrado (MP-01 · SDD-0469): nombra al cliente y su
+ * consecuencia. Borrar revoca en el mismo acto su acceso al Portal y sus códigos
+ * cortos (migr 0454) y deja el evento de auditoría (migr 0455). No existe un
+ * camino de restauración en el Studio, así que el texto no la promete.
  */
-export const DELETE_CLIENT_CONFIRM = "¿Seguro? El cliente pierde su acceso al Portal.";
+export const DELETE_CLIENT_TITLE = "Eliminar cliente";
+export const DELETE_CLIENT_CONFIRM_LABEL = "Eliminar cliente";
+export const DELETE_CLIENT_REASON_LABEL = "Motivo (opcional, sin datos personales)";
+/** Excepción de red: la acción pudo haber confirmado antes de fallar. */
+export const DELETE_CLIENT_UNCONFIRMED =
+  "No se pudo confirmar el borrado. Recarga la lista: si el cliente sigue ahí, puedes intentarlo de nuevo.";
+
+export function deleteClientConfirmMessage(client: Pick<Client, "name" | "markbox">): string {
+  return `Vas a eliminar a ${client.name} (Shipping Mark ${client.markbox}). Sale de las listas del Studio y pierde su acceso al Portal: se revocan su vínculo y sus códigos de acceso. Desde el Studio no se puede restaurar.`;
+}
 
 export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
   // SDD-0255: sólo se ofrecen aliados ACTIVOS — `next_markbox_aliado` rechaza a
@@ -147,6 +159,7 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
   };
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | undefined>(undefined);
   const router = useRouter();
   const toast = useToast();
   // Error local del SplitActionButton (modo create) · el useActionState
@@ -777,58 +790,18 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
         >
           <div>
             {mode === "edit" && client && (
-              confirmDelete ? (
-                <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                  <span
-                    style={{
-                      font: "500 12px/1 var(--f-sans)",
-                      color: "var(--ink-soft)",
-                    }}
-                  >
-                    {DELETE_CLIENT_CONFIRM}
-                  </span>
-                  <button
-                    type="button"
-                    className="studio-btn studio-btn-danger studio-btn-sm"
-                    disabled={isDeleting}
-                    onClick={() => {
-                      startDelete(async () => {
-                        try {
-                          const result = await softDeleteClientAction(client.markbox);
-                          if (result.ok) {
-                            onClose();
-                          } else {
-                            toast.error(result.error ?? "No se pudo eliminar el cliente.");
-                            setConfirmDelete(false);
-                          }
-                        } catch {
-                          toast.error("No se pudo eliminar el cliente. Intenta de nuevo.");
-                          setConfirmDelete(false);
-                        }
-                      });
-                    }}
-                  >
-                    {isDeleting ? "Eliminando…" : "Sí, eliminar"}
-                  </button>
-                  <button
-                    type="button"
-                    className="studio-btn studio-btn-ghost studio-btn-sm"
-                    onClick={() => setConfirmDelete(false)}
-                    disabled={isDeleting}
-                  >
-                    No
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  className="studio-btn studio-btn-ghost studio-btn-sm"
-                  style={{ color: "var(--danger)" }}
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  Eliminar
-                </button>
-              )
+              <button
+                type="button"
+                className="studio-btn studio-btn-ghost studio-btn-sm"
+                style={{ color: "var(--danger)" }}
+                disabled={isDeleting}
+                onClick={() => {
+                  setDeleteError(undefined);
+                  setConfirmDelete(true);
+                }}
+              >
+                Eliminar
+              </button>
             )}
           </div>
 
@@ -894,6 +867,50 @@ export function ClientDrawer({ mode, client, onClose, aliados = [] }: Props) {
             )}
           </div>
         </footer>
+        {mode === "edit" && client && (
+          <ConfirmDialog
+            open={confirmDelete}
+            danger
+            reason
+            reasonLabel={DELETE_CLIENT_REASON_LABEL}
+            reasonPlaceholder="Ej.: ficha duplicada o de prueba"
+            pending={isDeleting}
+            title={DELETE_CLIENT_TITLE}
+            message={deleteClientConfirmMessage(client)}
+            confirmLabel={DELETE_CLIENT_CONFIRM_LABEL}
+            error={deleteError}
+            onCancel={() => {
+              setConfirmDelete(false);
+              setDeleteError(undefined);
+            }}
+            onConfirm={(motivo) => {
+              // Limpiar antes de reintentar: el diálogo reabre su candado cuando
+              // cambia `error`, también si la acción repite el mismo mensaje.
+              setDeleteError(undefined);
+              startDelete(async () => {
+                try {
+                  const result = await softDeleteClientAction(client.id, motivo);
+                  if (result.ok) {
+                    setConfirmDelete(false);
+                    toast.show({
+                      eventKey: "client:deleted",
+                      tone: "success",
+                      message: `Cliente ${client.markbox} eliminado. Ya no aparece en las listas.`,
+                      priority: "normal",
+                      scope: "module",
+                      dedupeKey: `client:deleted:${client.id}`,
+                    });
+                    onClose();
+                  } else {
+                    setDeleteError(result.error ?? DELETE_CLIENT_UNCONFIRMED);
+                  }
+                } catch {
+                  setDeleteError(DELETE_CLIENT_UNCONFIRMED);
+                }
+              });
+            }}
+          />
+        )}
     </DrawerShell>
   );
 }
