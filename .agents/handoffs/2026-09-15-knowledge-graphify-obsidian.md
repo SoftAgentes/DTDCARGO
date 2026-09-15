@@ -102,3 +102,54 @@ Revisar la PR borrador #125 y sus checks. Resolver la cobertura y procedencia de
 - `node scripts/knowledge-sync.mjs status --preview` sobre `cbf35987` devolvió `ok=false`: Graphify 0.9.61, estructura `INVALID`, semántica `INVALID`, `graph_external_sources` y Obsidian `PENDING`. El comando terminó correctamente como informe de estado; no se interpreta su exit 0 como cobertura completa.
 - Documentos canónicos afectados por la implementación: AGENTS, skills Director/Worker, runbooks, SDD-0471 y su índice, y reglas de ingeniería; comandos, política, exportador y tests quedan en esta rama. El estado documental y el grafo completo requieren actualización después de integrar. Los ocho documentos del piloto solo respaldan su preview local.
 - La bóveda compartida no se publicó: el exportador no existe aún en main, la cobertura estructural/semántica completa está pendiente y falta el recorrido de una decisión autorizada real. No se hicieron merge, despliegue manual ni cambios en notas personales.
+
+## AMPLIACIÓN DE LA MISMA TAREA: ARCHIFY Y CIERRE DIRECTOR — 2026-09-15
+
+- Owner escritor retomado: codex-knowledge-archify-20260915, en el mismo worktree y rama de la PR #125.
+  No se abrió otra PR ni se modificó el checkout principal. El claim se liberará al cerrar la escritura.
+- Contrato Director/Worker, runbook, SDD-0471, arquitectura y reglas de ingeniería ampliados: al cerrar un
+  Worker se conservan documentos/handoff, estructura Graphify, recibos semánticos, mapa Archify y preview;
+  Director publica la bóveda habitual solo tras integración autorizada y main/grafo/visual comprobados.
+  Obsidian detecta archivos locales, pero no ejecuta el pipeline ni hace push/publicación web.
+- Archify 2.16.0 oficial instalado solo en graphify-out ignorado. ZIP SHA-256
+  4c59fa6557a2385beaaef8c7219cc414573acc9f0c30a932d5053b0b20689a46;
+  árbol SHA-256 a1c035262b493ff4506d4bdd6b703ce0dfe08c99e4ad540a399ab236ef450148.
+  Ninguna skill global se instaló. El JSON autoral versionado tiene 10 componentes y 11 conexiones,
+  con 11 fuentes locales comprobadas por aserción, línea y hash completo. DTDCARGO es PRIVATE;
+  no se reclaman badges remotos SRC.
+- JSON visual congelado: SHA-256 a60b44658c182a4c623a7a95d788f02d3772bf0b4bc6a79a1429d41c70565fd3.
+  Archify showcase PASÓ 9/9, cero errores/advertencias; HTML
+  c05d1946272de99427cf9efef92b02b12c11a34aa13d9fe4437b08946d56f276.
+  visual-check PASÓ contención y lectura automatizada en 1440×900, 1600×1000, 1920×1080 y
+  2048×1320, temas claro/oscuro. Capturas revisadas: el mapa cabe y las conexiones son legibles;
+  el texto de contexto es pequeño (~7,3 px a 1440), por lo que se recomienda zoom y enlaces MD/JSON.
+  SVG independiente renderizado en Chrome con tema claro; no se confirmó todavía interfaz Obsidian.
+- Commit de implementación 050214f25686fe14c9fb3c943ae89bff7129b8a3, 21 archivos selectivos.
+  La corrección de CI agrega GRAPHIFY_PYTHON a .env.example. El check previo de la PR #125
+  Calidad local sin secretos FALLÓ por esa variable faltante; el nuevo HEAD iniciará un check nuevo al push.
+- Graphify 0.9.61 ejecutó graphify update . tras el commit: exit 0, 33.931 nodos, 63.384 aristas,
+  2.266 comunidades. Dos TSX legales mostraron parseo parcial. Inspección posterior:
+  estructura INVALID (22 pendientes), semántica INVALID (1.070 pendientes), issue
+  graph_external_sources con ../app/portal/(auth)/login/page.js. Esta reconstrucción no certifica
+  toda la semántica; faltan recibos del asistente mediante la skill Graphify.
+- VALIDACIÓN: suite harness inicial en sandbox FALLÓ 162/163 solo porque CIM de Windows no estaba
+  disponible allí. El caso focal watchdog PASÓ 14/14 fuera del sandbox; suite completa con ese
+  acceso PASÓ 163/163, 21 archivos, cero skips. Docs:check PASÓ (459 specs), skills:check PASÓ,
+  numbering PASÓ con colisiones históricas informadas; JSON visual y fuentes PASÓ 4/4.
+  Vitest focal de .env.example NO DISPONIBLE localmente (node_modules incompleto); lo medirá CI.
+  Build/DB/E2E de producto NO EJECUTADO: esta ampliación cambia herramientas y documentación.
+- Bóveda compartida: PENDIENTE. Main aún no contiene esta implementación, el grafo completo es
+  inválido y no se demostró la decisión real visible tras merge. Una vista previa local no sustituye
+  ni la integración ni la lectura efectiva de Obsidian.
+
+### PENDIENTES DE ESTA TAREA AL DIRECTOR
+
+1. Publicar el HEAD final a la PR borrador #125 y revisar CI contra ese SHA; resolver cualquier regresión
+   propia antes de solicitar integración. Merge y producción requieren autorizaciones distintas.
+2. Tras integración, resolver fuentes externas y cubrir el corpus estructural/semántico elegido con
+   evidencia real. En main comprobado construir Archify para su revisión, publicar/check de Generado
+   y abrir una nota/documento para confirmar lectura en Obsidian.
+3. Demostrar una decisión autorizada real desde su documento canónico hasta la bóveda; después
+   evaluar legibilidad/fidelidad/mantenimiento del mapa y cerrar el criterio restante del SDD-0471.
+4. Conservar worktree y rama hasta evidencia de integración o descarte autorizado; liberar solo
+   el claim de esta sesión al finalizar la escritura.
