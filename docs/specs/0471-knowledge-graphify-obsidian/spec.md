@@ -1,6 +1,6 @@
 ---
 sdd: "0471"
-title: "Conocimiento verificable con Director, Graphify y Obsidian"
+title: "Conocimiento verificable con Director, Graphify, Archify y Obsidian"
 status: in-progress
 author: "Codex"
 created: 2026-09-15
@@ -16,7 +16,7 @@ confidencialidad: interno
 ## Problema y objetivo
 
 Director necesita conservar evidencia y decisiones autorizadas, proponer conocimiento nuevo y verificar la
-vigencia de Graphify 0.9.61 y Obsidian. El exportador nativo produce una nota por nodo y no copia los cuerpos
+vigencia de Graphify 0.9.61, Archify 2.16.0 y Obsidian. El exportador nativo produce una nota por nodo y no copia los cuerpos
 documentales; una actualización AST no demuestra extracción semántica de documentos.
 
 ## Contrato aprobado
@@ -28,6 +28,8 @@ documentales; una actualización AST no demuestra extracción semántica de docu
 - Bóveda compartida sólo desde main integrado, limpio y comprobado; ningún worktree publica su trabajo pendiente allí.
 - Publicación con propietario de archivos, conflicto por edición/borrado manual, staging, lock, recuperación y tombstones.
 - Notas personales excluidas; inferencias no ascienden a decisiones; no procesos de fondo ni actualización global de Graphify.
+- Archify se fija a su release estable; una vista autoral de diez componentes conserva JSON, fuentes comprobadas
+  y HTML/SVG validados. Una fuente visual o artefacto desactualizado bloquea publicación integrada; preview informa pendientes.
 
 ## Aceptación
 
@@ -39,6 +41,8 @@ documentales; una actualización AST no demuestra extracción semántica de docu
 6. Otro worktree no puede publicar a la bóveda principal.
 7. Tests focales y harness/documentación/skills/numbering con evidencia explícita.
 8. Después de integración autorizada, demostrar el recorrido de una decisión real hasta Obsidian.
+9. Conservar un mapa Archify de ocho a doce componentes, JSON y evidencia local, validar nueve comprobaciones
+   showcase, verificar legibilidad de escritorio y detectar fuentes/artefactos obsoletos.
 
 ## Implementación y prueba
 

@@ -103,6 +103,14 @@ Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e pu
 
 Si lo corres a mano, respeta las dos banderas: **`--no-lock`** (si no, deja un `deno.lock` en la raíz del repo) y **`--node-modules-dir=none`** (si no, Deno ve el `package.json`, se cree un proyecto Node y baja el árbol entero de dependencias a `node_modules/.deno` de *cada* worktree — 42 s la primera vez). Hueco conocido que **no** cubre: `_shared/__tests__/*.test.ts`, cuyos imports van sin extensión (ilegal en Deno) y no los alcanza ninguna entrada.
 
+## Vista visual del conocimiento
+
+Archify 2.16.0 está fijado para el piloto de diez componentes de Director, Graphify
+y Obsidian. Su JSON es una explicación autoral revisable basada en código y documentos;
+no convierte inferencias del grafo en hechos. knowledge:visual valida el runtime oficial,
+las fuentes y el HTML/SVG, y knowledge:status informa la vigencia antes de publicar
+la bóveda compartida. Sigue el runbook de conocimiento y el mapa de arquitectura.
+
 ## Mapa del repo (graphify) — exploración para agentes
 
 `graphify-out/graph.json` = grafo de conocimiento del repo (AST: god nodes, comunidades por dominio, edges de llamadas/imports). Sirve para "¿qué llama a X?", "¿qué se rompe si toco Y?", trazar flujos — sin re-escanear todo.

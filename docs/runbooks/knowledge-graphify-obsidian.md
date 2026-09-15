@@ -1,11 +1,12 @@
-# Conocimiento con Director, Graphify y Obsidian
+# Conocimiento con Director, Graphify, Archify y Obsidian
 
 Dueño: Director de ingeniería · Estado: vigente al integrarse · Actualizado: 2026-09-15 · SDD: 0471.
 
 ## Autoridad y conservación
 
 Git conserva documentos canónicos, decisiones autorizadas y handoffs por tarea.
-Graphify es un derivado para explorar relaciones. Obsidian ofrece lectura y notas personales.
+Graphify es un derivado para explorar relaciones. Archify presenta un mapa pequeño y revisable.
+Obsidian ofrece lectura y notas personales.
 Sigue [la organización documental](../README.md); actualiza un documento existente antes de crear un duplicado.
 
 | Hallazgo | Acción | Destino |
@@ -34,6 +35,27 @@ Worker escribe en su rama y Director coordina o documenta en su propia rama; no 
 
 No hay ejecución en segundo plano. Si una sesión termina con pendientes, se detectan al iniciar la siguiente.
 Un archivo AGENTS no es un scheduler. No instalar hooks ni modificar instalaciones globales para este flujo.
+
+## Cierre de una tarea y revisión de la bóveda
+
+El cierre de Worker ocurre en su worktree: guarda evidencia y documentos autorizados, comprueba el estado
+estructural/semántico de Graphify, actualiza la vista Archify si sus fuentes cambiaron, ejecuta la vista previa
+de Obsidian y registra los pendientes en su handoff. Una vista previa es local y conserva la revisión WORKTREE;
+no escribe la bóveda habitual. Si un documento cambió y falta extracción semántica, el asistente debe usar
+la skill Graphify de Codex: una ejecución estructural sola no cumple ese paso.
+
+Director revisa la tarea, su PR y el handoff. Después de integración autorizada y de comprobar main,
+actualiza Graphify según los cambios, comprueba su estructura y semántica, ejecuta knowledge:visual,
+knowledge:publish y knowledge:check. El manifest de la bóveda compara revisión, fuentes, versión, grafo,
+artefacto visual y hashes de cada Markdown/JSON/HTML/SVG administrado. El resultado CURRENT demuestra
+que los archivos locales corresponden a esa revisión; abrirlos en Obsidian confirma adicionalmente la lectura
+en su interfaz. Si hay cambios pendientes, cada capa se informa por separado y se recupera en la siguiente
+sesión Director. No hay sincronización automática al cerrar una conversación ni publicación web implícita.
+
+Obsidian detecta cambios de archivos de la bóveda sin lanzar este flujo. Obsidian Publish y Obsidian Sync
+son productos aparte y no forman parte de esta tarea. Una nota Markdown nueva en Git se hace visible
+en Generado solo después de su selección, actualización Graphify, integración en main y publicación
+comprobada; las notas personales permanecen donde ya están.
 
 ## Versiones y comprobación
 
@@ -66,6 +88,37 @@ El recibo no demuestra que toda inferencia sea correcta: permite auditar qué ex
 Sin evidencia, puede registrar estructura y conservar verificaciones semánticas previas; no certificar documentación nueva.
 Releer `inspect` o `knowledge:status`: éxito al guardar un recibo no implica cobertura completa.
 Los recibos permanecen en graphify-out, fuera de Git.
+
+## Archify 2.16.0: visual acotado y comprobable
+
+El mapa piloto es una explicación autoral de diez componentes del flujo de conocimiento. Su JSON
+versionado vive en docs/architecture/knowledge-lifecycle.archify.json. Las afirmaciones de cada componente
+y conexión están en scripts/knowledge-visual-evidence.json; knowledge:visual comprueba que existan en
+archivos locales, calcula hashes completos y registra sus líneas en el JSON de evidencia generado.
+El JSON de ocho temas y sus relaciones proviene de Graphify; el JSON visual de diez componentes tiene
+otro propósito y nunca se presenta como una extracción AST ni como decisión aprobada por el grafo.
+Los badges de fuentes verificados por GitHub de Archify requieren un repositorio público: esta PR no lo es,
+por eso usamos evidencia local explícita en lugar de afirmar verificación remota.
+
+Se fija la release oficial v2.16.0, con SHA-256 del ZIP y del árbol extraído en scripts/archify.lock.json.
+No se descarga la rama de desarrollo ni se instala una skill global. Preparación local en cada checkout
+que construya la vista (el directorio está ignorado por Git y Graphify):
+
+    New-Item -ItemType Directory -Path graphify-out/archify-package -Force
+    gh release download v2.16.0 --repo tt-a1i/archify --pattern archify.zip --dir graphify-out/archify-package
+    Expand-Archive -LiteralPath graphify-out/archify-package/archify.zip -DestinationPath graphify-out/archify-package
+
+    pnpm knowledge:visual
+    pnpm knowledge:visual:check
+
+El builder rechaza ZIP, extracción, fuentes o calidad discrepantes. Archify validate y deliver deben pasar
+las nueve comprobaciones showcase sin errores ni advertencias; el recibo incluye versión, revisión,
+fuentes, grafo, especificación y artefactos. El HTML es interactivo en un navegador; el SVG queda incrustado
+en la nota del índice de Obsidian y su HTML se enlaza para abrirlo fuera de la nota. Ambos se administran
+como archivos propios de Generado/Mapa y comparten las protecciones de publicación.
+Cuando la especificación o cualquiera de sus fuentes cambia, ARCHIFY_PENDING impide la publicación integrada
+hasta una nueva validación. La preview puede registrar ese pendiente y conservar la documentación navegable.
+La vista visual no resuelve por sí misma la cobertura semántica pendiente de Graphify.
 
 ## Vista previa y publicación
 
@@ -122,3 +175,4 @@ un fixture o preview no sustituye esa prueba.
 - [CLI de la versión](https://github.com/Graphify-Labs/graphify/blob/fe66389083369c3159aa391117185c8f58b4d07c/graphify/cli.py).
 - [Exportador nativo: una nota por nodo](https://github.com/Graphify-Labs/graphify/blob/fe66389083369c3159aa391117185c8f58b4d07c/graphify/export.py).
 - [Obsidian: almacenamiento](https://obsidian.md/help/data-storage) y [enlaces](https://obsidian.md/help/links).
+- [Archify 2.16.0: release inmutable](https://github.com/tt-a1i/archify/releases/tag/v2.16.0) y [skill de esa versión](https://github.com/tt-a1i/archify/blob/v2.16.0/archify/SKILL.md).

@@ -1,6 +1,10 @@
 {
   "schemaVersion": 1,
   "graphifyVersion": "0.9.61",
+  "visual": {
+    "version": "2.16.0",
+    "specPath": "docs/architecture/knowledge-lifecycle.archify.json"
+  },
   "vaultDirectory": "DTD Cargo",
   "generatedDirectory": "Generado",
   "topics": [

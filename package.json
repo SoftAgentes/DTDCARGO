@@ -45,7 +45,9 @@
     "harness:test": "node scripts/tests/run-harness.mjs",
     "knowledge:status": "node scripts/knowledge-sync.mjs status",
     "knowledge:publish": "node scripts/knowledge-sync.mjs publish",
-    "knowledge:check": "node scripts/knowledge-sync.mjs check"
+    "knowledge:check": "node scripts/knowledge-sync.mjs check",
+    "knowledge:visual": "node scripts/knowledge-visual.mjs build",
+    "knowledge:visual:check": "node scripts/knowledge-visual.mjs check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

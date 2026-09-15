@@ -31,7 +31,8 @@ function fixture(t) {
   fs.mkdirSync(path.join(root, 'scripts'), { recursive: true });
   fs.writeFileSync(promptFile, 'SYNTHETIC FIXTURE: read document including YAML properties.\n');
   fs.copyFileSync(policySource, path.join(root, 'scripts/knowledge-policy.json'));
-  const implementation = ['knowledge-sync.mjs', 'knowledge-graph.py', 'lib/knowledge-state.mjs', 'lib/knowledge-projection.mjs', 'lib/knowledge-vault.mjs'];
+  const implementation = ['knowledge-sync.mjs', 'knowledge-graph.py', 'knowledge-visual.mjs',
+    'lib/knowledge-state.mjs', 'lib/knowledge-projection.mjs', 'lib/knowledge-vault.mjs', 'lib/knowledge-visual.mjs'];
   for (const relative of implementation) {
     const destination = path.join(root, 'scripts', relative);
     fs.mkdirSync(path.dirname(destination), { recursive: true });

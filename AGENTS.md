@@ -23,6 +23,7 @@ Habla con Sam en español venezolano neutro, tuteo, sin voseo; explica resultado
 
 - Al iniciar/cerrar Director, comprobar `pnpm knowledge:status`. Guardar evidencia verificada y decisiones ya autorizadas en su documento canónico o handoff propio; proponer conocimiento nuevo con destino y justificación antes de convertirlo en regla. Las inferencias conservan su etiqueta.
 - Worker registra impacto documental, evidencia y pendientes de actualización en su handoff. Separar guardado en la tarea, integración, estructura Graphify, cobertura semántica y revisión visible en Obsidian. AGENTS conserva reglas estables, no el estado temporal.
+- Archify 2.16.0 presenta un mapa pequeño basado en fuentes locales, con JSON y evidencia. Director revisa Graphify, Archify y la publicación de archivos Obsidian al cierre de cada tarea; la bóveda habitual sigue la última main integrada comprobada. Detalles y checks en el runbook de conocimiento.
 - Seguir el [runbook de conocimiento](docs/runbooks/knowledge-graphify-obsidian.md): Graphify 0.9.61; notas personales fuera de archivos generados; publicación compartida sólo desde main integrado comprobado. Las operaciones sobre derivados ignorados no autorizan cambios rastreados en main.
 
 ## Fronteras críticas del proyecto

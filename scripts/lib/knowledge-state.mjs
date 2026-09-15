@@ -35,9 +35,11 @@ export function loadPolicy(root) {
   const file = path.join(root, 'scripts', 'knowledge-policy.json');
   const raw = fs.readFileSync(file);
   const policy = JSON.parse(raw);
-  if (policy.schemaVersion !== 1 || policy.graphifyVersion !== '0.9.61' || policy.vaultDirectory !== 'DTD Cargo' ||
+  if (policy.schemaVersion !== 1 || policy.graphifyVersion !== '0.9.61' || policy.visual?.version !== '2.16.0' ||
+      policy.visual.specPath !== 'docs/architecture/knowledge-lifecycle.archify.json' || policy.vaultDirectory !== 'DTD Cargo' ||
       policy.generatedDirectory !== 'Generado' || policy.topics?.length !== 8) throw new Error('Política de conocimiento incompatible');
-  const implementation = ['knowledge-sync.mjs', 'knowledge-graph.py', 'lib/knowledge-state.mjs', 'lib/knowledge-projection.mjs', 'lib/knowledge-vault.mjs']
+  const implementation = ['knowledge-sync.mjs', 'knowledge-graph.py', 'knowledge-visual.mjs',
+    'lib/knowledge-state.mjs', 'lib/knowledge-projection.mjs', 'lib/knowledge-vault.mjs', 'lib/knowledge-visual.mjs']
     .map((file) => fs.readFileSync(path.join(scriptRoot, file)));
   return {policy, policyHash: sha256(Buffer.concat([raw, ...implementation]))};
 }
