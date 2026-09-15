@@ -54,12 +54,84 @@ Aparte de eso, `mobile-safari` se limita a un worker en Windows porque el cierre
 de WebKit deja el proceso colgado; el límite es por proyecto y no afecta a
 `chromium` ni a `mobile-chrome`.
 
+## Sin Supabase público (SDD-0470)
+
+`proxy.ts` crea el cliente Supabase con `NEXT_PUBLIC_SUPABASE_URL` y
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` en cada ruta de su `matcher` (`/studio`, `/back`,
+`/portal`, `/m/erp`, `/m/emp`, `/entrar`, `/registro`). Sin esas variables lanza
+«Your project's URL and Key are required» y la ruta responde con la página de
+error del dev server. Un worktree nuevo no trae `.env.local`, y en el checkout
+principal `.env.local` es un directorio.
+
+- **Detección única:** `e2e/_helpers/supabase-publico.cjs`. Mira el entorno del
+  proceso y los `.env*` que carga `next dev`, con su misma precedencia
+  (`.env.development.local`, `.env.local`, `.env.development`, `.env`). Con
+  `NODE_ENV=test` replica el modo test de Next: `.env.test.local`, `.env.test`
+  y `.env`, sin `.env.local`. Un `.env*` que no es archivo se ignora, igual que
+  en Next. Sólo aplica si `baseURL` es local: contra un Preview no se omite
+  nada. `verify` y los specs usan la misma raíz, la del repositorio
+  (`RAIZ_REPO`).
+- **Declaración explícita:** cada prueba que necesita Supabase llama a
+  `requiereSupabase()` (de `e2e/_helpers/supabase.ts`) en la primera línea de
+  su cuerpo. Sin las variables, la prueba queda **omitida** con un motivo que
+  empieza por `SIN SUPABASE PÚBLICO`. No falla, no se reintenta y no pasa en
+  falso.
+- **Quiénes la llaman, con evidencia:** la corrida base sin variables del
+  2026-09-15 (SDD-0470, sobre `c70956bf`) muestra estos cinco casos fallando en
+  chromium, mobile-chrome y mobile-safari, en el intento y en el reintento:
+  - `auth.spec.ts`: «Studio: form email+password…», «Back: form email+password
+    presente», «Portal: magic link…» y «Portal: /entrar ofrece las dos
+    puertas…» (líneas 21, 91, 98 y 105 en la base);
+  - `global-search.spec.ts`: «sin sesión, /studio rebota al login» (línea 22
+    en la base).
+
+  El inventario vive también en `scripts/tests/verify-e2e-sin-supabase.node.mjs`,
+  por ruta y título: quitar o agregar una llamada sin actualizarlo rompe
+  `harness:test`.
+  - Recorre todo `e2e/`, subdirectorios incluidos, e ignora las menciones en
+    comentarios, strings, templates y regex. Acepta la llamada con o sin punto y
+    coma.
+  - Falla cerrado: una llamada en `beforeEach`, a mitad de un cuerpo, dentro de
+    otro helper, importada con alias o sin el import del helper es un error.
+    Una declaración válida es sólo `test("título", async (…) => {
+    requiereSupabase(); …`.
+- **Siguen corriendo sin Supabase**, porque lo que afirman no depende de él:
+  - `auth.spec.ts`: las dos de «Acceso» (`/acceso` queda fuera del matcher y la
+    página atrapa el error del cliente admin) y «Operario VE» (`/m/ve/login`,
+    fuera del matcher);
+  - `smoke.spec.ts` «el rastreo público /track redirige a la puerta» (afirma la
+    URL de destino del redirect, que llega a `/entrar` igual);
+  - `attachments-gastos-pilot-network.spec.ts` (abre `/studio/login` sólo como
+    origen y afirma el cuerpo del `fetch` que lanza).
+- **En `pnpm verify`:** el preflight avisa qué falta. Después del paso sale
+  `[AVISO] e2e: COBERTURA PARCIAL — N prueba(s) omitidas sin Supabase público
+  (…)` con la lista `archivo:línea «título» [proyectos]`. El veredicto dice
+  `CIERRE INCOMPLETO — CRÍTICOS CON COBERTURA PARCIAL: e2e [...]`. Es la misma
+  semántica que una omisión crítica: exit 0 si no hubo otros fallos, y nunca
+  `TODO VERDE`.
+- **Fuera de verify** (`pnpm test:e2e` directo), el aviso `COBERTURA PARCIAL`
+  no existe. Sin las variables, Playwright sale con exit 0 y cuenta esas
+  pruebas en `N skipped`, pero el reporter `list` no imprime el motivo.
+  - El motivo `SIN SUPABASE PÚBLICO: …` sí queda en los reporters `json` y
+    `html`, como anotación `skip`.
+  - Un aviso propio fuera de verify necesita tocar `playwright.config.ts`
+    (`globalSetup` o un reporter), que está fuera de `e2e/` y `scripts/`. Por
+    eso no se implementó en SDD-0470 (ver la spec).
+  - Antes de dar por buena una corrida directa, revisa cuántas quedaron en
+    `skipped`.
+- **Para medirlas:** hace falta un Supabase autorizado (branch efímero o
+  Supabase local) con sus variables públicas. Nunca copies credenciales de
+  producción a un worktree para ponerlo verde.
+
+Los Tier 3 que se omiten por falta de seed (`STUDIO_E2E_*`) conservan su
+propio `test.skip` y su motivo. Esta sección no cambia cómo se reportan.
+
 ## Estado de cobertura
 
 | Spec | Tier | Estado | Requiere |
 |---|---|---|---|
 | `smoke.spec.ts` | 0 | ✅ | nada (rutas públicas, 200 + contenido) |
-| `auth.spec.ts` | 1 | ✅ | nada (render + negativos de los 4 logins) |
+| `auth.spec.ts` | 1 | ✅ | Supabase público en 4 de 7 casos (render + negativos de los 4 logins); ver «Sin Supabase público» |
 | `comments-lifecycle.spec.ts` | 1 | ✅ | Preview + branch efímero + `seed:e2e` |
 | `journey-core.spec.ts` | 1 | ⬜ pendiente | branch + seed-e2e |
 | `portal-cliente.spec.ts` | 2 | ⬜ | branch + seed-e2e |
