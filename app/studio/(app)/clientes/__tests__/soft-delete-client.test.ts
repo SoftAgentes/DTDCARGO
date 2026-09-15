@@ -66,8 +66,10 @@ describe("softDeleteClientAction (SDD-0467)", () => {
 
     expect(res.ok).toBeUndefined();
     expect(res.error).toBe(
-      "No se pudo eliminar el cliente ni revocar su acceso al Portal. No se borró nada; intenta de nuevo.",
+      "No se pudo confirmar el borrado. Recarga la lista: si el cliente sigue ahí, conserva su acceso al Portal y puedes intentarlo de nuevo.",
     );
+    // Un error puede llegar después del COMMIT (red): el mensaje no afirma que no se borró nada.
+    expect(res.error).not.toMatch(/no se borró nada/i);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith(
       "[softDeleteClientAction]",

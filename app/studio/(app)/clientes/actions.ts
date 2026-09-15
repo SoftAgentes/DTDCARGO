@@ -410,11 +410,14 @@ export async function geocodeClientAddressAction(
 }
 
 /**
- * Mensaje del borrado fallido: la revocación y el borrado van juntos o no van.
+ * Mensaje del borrado fallido. La revocación y el borrado van juntos o no van,
+ * pero un error aquí no prueba que la base los rechazó: un fallo de red después
+ * del COMMIT también llega como error. Por eso no afirma que no se borró nada;
+ * manda a recargar, y la lista dice la verdad.
  * Sin `export`: un archivo "use server" sólo puede exportar funciones async.
  */
 const SOFT_DELETE_CLIENT_ERROR =
-  "No se pudo eliminar el cliente ni revocar su acceso al Portal. No se borró nada; intenta de nuevo.";
+  "No se pudo confirmar el borrado. Recarga la lista: si el cliente sigue ahí, conserva su acceso al Portal y puedes intentarlo de nuevo.";
 
 /**
  * Borrado lógico de un cliente (SDD-0010) que revoca su acceso al Portal

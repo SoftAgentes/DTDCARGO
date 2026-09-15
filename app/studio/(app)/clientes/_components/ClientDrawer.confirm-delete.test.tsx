@@ -97,7 +97,7 @@ describe("ClientDrawer · confirmación del borrado (SDD-0467)", () => {
 
   it("si el borrado falla, muestra el error y no cierra", async () => {
     const error =
-      "No se pudo eliminar el cliente ni revocar su acceso al Portal. No se borró nada; intenta de nuevo.";
+      "No se pudo confirmar el borrado. Recarga la lista: si el cliente sigue ahí, conserva su acceso al Portal y puedes intentarlo de nuevo.";
     mocks.softDeleteClientAction.mockResolvedValue({ error });
     renderDrawer();
 
