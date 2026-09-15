@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { repositoryState, loadPolicy, inspectGraph, collectDocuments, publicationProblems, snapshotKey, sha256 } from './lib/knowledge-state.mjs';
 import { buildProjection } from './lib/knowledge-projection.mjs';
 import { publishVault, checkVault, recoverVault } from './lib/knowledge-vault.mjs';
+
+const executorRoot = fs.realpathSync.native(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'));
 
 export function parseArgs(args) {
   const options = {command:args.shift() || 'status',root:process.cwd(),preview:false};
@@ -31,6 +33,7 @@ export async function run(options) {
   const vaultPath = options.preview ? path.join(repo.root,'graphify-out','obsidian-preview') : path.join(repo.mainRoot, policy.vaultDirectory);
   let vault = await checkVault(vaultPath);
   const problems = publicationProblems(repo, graph, policy);
+  if (!options.preview && repo.root !== executorRoot) problems.unshift('EXECUTOR_MAIN_REQUIRED: ejecutar el exportador integrado desde el checkout principal');
   const current = vault.ok && vault.manifest?.metadata?.corpusHash === graph.corpusHash &&
     vault.manifest.metadata.graphHash === graph.graphHash && vault.manifest.metadata.policyHash === policyHash &&
     vault.manifest.metadata.revision === repo.revision && vault.manifest.metadata.mode === (options.preview ? 'preview':'integrated') &&
@@ -57,7 +60,7 @@ export async function run(options) {
     policyHash,graphHash:graph.graphHash,previousManifest:vault.manifest,sourcePaths:repo.sourcePaths});
   // A preview carries visible limits; it never targets the shared vault.
   if (options.preview) {
-    projection.files['Indice.md'] = '> **Vista previa local.** Estructura: ' + graph.structural.status + '; semántica: ' + graph.semantic.status + '. No representa la bóveda compartida integrada.\n\n' + projection.files['Indice.md'];
+    projection.files['Indice.md'] = '> **Vista previa local.** Estructura: ' + graph.structural.status + '; semántica: ' + graph.semantic.status + '. No representa la bóveda compartida integrada. Los enlaces de GitHub a esta revisión requieren que esté publicada; verifica la procedencia local mediante rutas y hashes.\n\n' + projection.files['Indice.md'];
     projection.files['LEEME-PREVIEW.md'] = '# Vista previa de una tarea\n\nRevisión: ' + repo.revision +
     '\n\nEsta salida no representa main integrado.\n\nEstructura: ' + graph.structural.status + '\n\nSemántica: ' + graph.semantic.status +
     '\n\nPendientes: ' + problems.join('; ') + '\n';

@@ -71,10 +71,11 @@ Los recibos permanecen en graphify-out, fuera de Git.
 
 Antes de integrar: `pnpm knowledge:publish --preview`.
 Destino fijo: `graphify-out/obsidian-preview` del worktree, con aviso de revisión/pendientes.
-Esta vista permite revisar legibilidad y vínculos; no afirma que la tarea esté integrada.
+Esta vista permite revisar legibilidad y vínculos; no afirma que la tarea esté integrada. Los enlaces GitHub de una revisión local requieren que esa revisión se publique; mientras tanto, la procedencia se comprueba con rutas y hashes locales.
 `pnpm knowledge:status --preview` y `pnpm knowledge:check --preview` informan sus límites.
 
 La bóveda compartida es la carpeta existente `DTD Cargo` del checkout principal. No se mueve ni se crea otra bóveda encima.
+La publicación integrada exige ejecutar el propio exportador de ese checkout principal. Apuntar con --root a main desde scripts de otra rama devuelve EXECUTOR_MAIN_REQUIRED; la revisión de las fuentes también debe corresponder al código del exportador integrado.
 Solo se administran archivos registrados bajo `Generado`:
 documentos Markdown completos, índice con ocho temas, mapas y JSON con procedencia.
 Los temas son Proyecto, Arquitectura, Especificaciones, Runbooks, Ingeniería, Gobernanza, Marketing y Handoffs.
@@ -85,6 +86,7 @@ Las notas personales quedan fuera de Generado. Los archivos generados son de lec
 sin cambiar permisos del sistema. Una edición, eliminación o renombrado manual detiene la publicación.
 Director informa el conflicto; se conserva la edición y se decide cómo reconciliarla antes de reintentar.
 La publicación usa bloqueo, preparación temporal, hashes y recuperación; no borrar el lock de otro escritor por antigüedad.
+Antes de reemplazar una nota se captura su archivo actual, se comprueba esa captura y se instala el nuevo archivo mediante un enlace físico exclusivo. Si aparece otro archivo en el destino, se conserva y se informa RECOVERY_CONFLICT; la recuperación usa la misma protección. El volumen debe admitir enlaces físicos: si no los admite, se detiene sin recurrir a un reemplazo que pueda sobrescribir notas. Las capturas que presenten cambios permanecen en la carpeta .knowledge-stage indicada por el error para su revisión; no borrarlas automáticamente.
 
 Los enlaces internos se reescriben a destinos proyectados. Referencias a código, adjuntos o documentos
 fuera del corpus conservan un enlace identificado a la revisión GitHub. No se copian adjuntos automáticamente.

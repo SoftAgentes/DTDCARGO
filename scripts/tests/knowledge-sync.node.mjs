@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { spawnSync, execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { run } from '../knowledge-sync.mjs';
 
 // Integration fixtures exercise the real adapter, Git and filesystem. Their graph
@@ -31,6 +31,12 @@ function fixture(t) {
   fs.mkdirSync(path.join(root, 'scripts'), { recursive: true });
   fs.writeFileSync(promptFile, 'SYNTHETIC FIXTURE: read document including YAML properties.\n');
   fs.copyFileSync(policySource, path.join(root, 'scripts/knowledge-policy.json'));
+  const implementation = ['knowledge-sync.mjs', 'knowledge-graph.py', 'lib/knowledge-state.mjs', 'lib/knowledge-projection.mjs', 'lib/knowledge-vault.mjs'];
+  for (const relative of implementation) {
+    const destination = path.join(root, 'scripts', relative);
+    fs.mkdirSync(path.dirname(destination), { recursive: true });
+    fs.copyFileSync(fileURLToPath(new URL('../' + relative, import.meta.url)), destination);
+  }
   fs.writeFileSync(path.join(root, '.gitignore'), 'graphify-out/\n/DTD Cargo/\n');
   fs.writeFileSync(path.join(root, '.graphifyignore'), 'scripts/\n/DTD Cargo/\ngraphify-out/\n');
   fs.writeFileSync(path.join(root, 'source.py'), 'def fixture_example():\n    return 1\n');
@@ -38,7 +44,7 @@ function fixture(t) {
   const gitAt = (directory, ...args) => execFileSync('git', ['-C', directory, ...args], { encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const git = (...args) => gitAt(root, ...args);
   git('init', '-b', 'main'); git('config', 'user.name', 'Knowledge Fixture'); git('config', 'user.email', 'fixture@example.invalid');
-  git('add', 'README.md', 'source.py', '.gitignore', '.graphifyignore', 'scripts/knowledge-policy.json');
+  git('add', 'README.md', 'source.py', '.gitignore', '.graphifyignore', 'scripts/knowledge-policy.json', ...implementation.map((relative) => 'scripts/' + relative));
   git('commit', '-m', 'test fixture: canonical knowledge sources');
   git('remote', 'add', 'origin', 'https://github.com/example/knowledge-fixture');
   git('update-ref', 'refs/remotes/origin/main', 'HEAD'); // Local fixture ref; no fetch/push.
@@ -72,7 +78,10 @@ function fixture(t) {
     assert.equal(result.semantic.status, 'CURRENT');
     return result;
   }
-  const call = (command, extra = {}) => run({ command, root, python, promptFile, preview: false, ...extra });
+  const call = async (command, extra = {}) => {
+    const integrated = await import(pathToFileURL(path.join(root, 'scripts/knowledge-sync.mjs')).href);
+    return integrated.run({ command, root, python, promptFile, preview: false, ...extra });
+  };
   const vault = path.join(root, 'DTD Cargo');
   const generated = (...parts) => path.join(vault, 'Generado', ...parts);
   t.after(() => {
@@ -108,6 +117,14 @@ test('synthetic end-to-end: pending semantics blocks publication; verified fixtu
   assert.equal(fs.statSync(f.generated('Indice.md')).mtimeMs, before);
   assert.equal(fs.readFileSync(path.join(f.vault, 'Personal.md'), 'utf8'), '# My private fixture notes\n');
   assert.equal(f.git('status', '--porcelain'), '', 'Generated outputs remain outside tracked Git state');
+});
+
+test('an exporter from another checkout cannot publish into integrated main via --root', { skip }, async (t) => {
+  const f = fixture(t); f.certify();
+  await assert.rejects(run({ command: 'publish', root: f.root, python, promptFile: f.promptFile, preview: false }), /EXECUTOR_MAIN_REQUIRED/);
+  assert.equal(fs.existsSync(f.vault), false, 'Rejected foreign executor must not create the shared vault');
+  const integrated = await f.call('publish');
+  assert.equal(integrated.ok, true);
 });
 
 test('synthetic YAML-only edit remains pending despite a native full stamp and unchanged body', { skip }, async (t) => {
