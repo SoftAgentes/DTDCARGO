@@ -96,7 +96,8 @@ si el cliente SQL usa autocommit. `lock_timeout=5s` limita espera del lock de
 clients y se restaura al finalizar. No se consultan filas de negocio.
 
 El preflight exige RLS/roles/columnas, privilegios requeridos, cuerpos canónicos
-normalizados de las ocho funciones dependientes, sus SECURITY/search_path,
+normalizados sólo CRLF→LF de las ocho funciones dependientes, sus
+SECURITY/search_path, volatilidad i/s/v canónica y ausencia de STRICT/LEAKPROOF,
 constraints de overrides y los cuatro triggers de 0454/0455 con condición y ACL.
 Rechaza authenticated como dueño/heredero del dueño de clients y permisos de
 escritura directa API sobre la tabla de overrides.
@@ -146,16 +147,25 @@ el 2026-09-16; la asignación coordinada pertenece a esta tarea.
 9. Estructura/semántica/Archify/preview registradas por separado; no publicar bóveda
    compartida desde esta rama.
 
-Estado de evidencia: implementación en curso. Los recibos exactos y pendientes
-se conservan en `.agents/handoffs/0472-clients-rbac-escritura-gobernada.md`.
+Implementación entregada en [PR draft #127](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/127).
+PostgreSQL 17.11: control rojo reproducido, 162 aserciones verdes finales y
+rollback total. Regresiones 0440/0454/0455, 197 contratos SQL y reconstrucción
+435 migraciones + 18 sólo-ledger PASARON. Focal clientes/RBAC: 143 tests.
+Verify ejecutó 16/17 pasos: 7.301 tests, build y controles medidos PASARON;
+ledger productivo SKIP y E2E con 149 passed, 4 flaky y 33 skipped. El gate declara
+CIERRE INCOMPLETO; no se convierte exit 0 en verde completo. Tras revisión se
+añadió validación de atributos funcionales y se repitieron sus gates SQL afectados.
+La SDD permanece in-progress hasta revisión de los pendientes críticos.
+Recibos exactos, advisory, estados de conocimiento y pendientes:
+`.agents/handoffs/0472-clients-rbac-escritura-gobernada.md`.
 
 ## Gobernanza y privacidad
 
 | Política | Clasificación del delta |
 |---|---|
-| SGE-00.05 | Cumplimiento acotado sujeto a matriz SQL positiva/negativa PASÓ |
+| SGE-00.05 | Cumplimiento acotado: matriz SQL positiva/negativa PASÓ en PostgreSQL local |
 | MP-01 | Impedir P0 ordinario; no conformidad previa P2 sin restauración permanece |
-| AUD-01 | Conservación del contrato 0454/0455 sujeta a regresiones PASÓ |
+| AUD-01 | Cumplimiento acotado: conservación 0454/0455 con regresiones PASÓ |
 | AUD-02 | No aplica: sin cambio de consulta, exportación ni retención de auditoría |
 | BTN-01 | No aplica al delta visual; diálogo existente preservado |
 

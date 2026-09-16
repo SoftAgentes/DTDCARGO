@@ -404,8 +404,11 @@ select pg_temp.reject_drift('WITH CHECK previo abierto','alter policy "clients b
 select pg_temp.reject_drift('trigger 0454 desactivado','alter table public.clients disable trigger clients_revoke_portal_on_soft_delete');
 select pg_temp.reject_drift('trigger 0455 desactivado','alter table public.clients disable trigger clients_audit_soft_delete');
 select pg_temp.reject_drift('RPC soft-delete definer','alter function public.soft_delete_client_with_audit_reason(uuid,text) security definer');
+select pg_temp.reject_drift('RPC soft-delete STABLE','alter function public.soft_delete_client_with_audit_reason(uuid,text) stable');
+select pg_temp.reject_drift('RPC soft-delete STRICT','alter function public.soft_delete_client_with_audit_reason(uuid,text) strict');
 select pg_temp.reject_drift('RPC soft-delete público','grant execute on function public.soft_delete_client_with_audit_reason(uuid,text) to public');
 select pg_temp.reject_drift('helper invoker','alter function public.document_entity_authorized(text,uuid,text) security invoker');
+select pg_temp.reject_drift('helper autorizado IMMUTABLE','alter function public.document_entity_authorized(text,uuid,text) immutable');
 select pg_temp.reject_drift('helper path inseguro','alter function public.document_entity_authorized(text,uuid,text) set search_path=public');
 -- No eliminar whitespace dentro de literales al verificar la huella: cambiar
 -- clients a cl ients desconecta los overrides aunque la estructura sea idéntica.

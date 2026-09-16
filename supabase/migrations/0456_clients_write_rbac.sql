@@ -50,19 +50,21 @@ begin
   -- Huellas MD5 de prosrc con CRLF -> LF: no quitar espacios dentro de literales
   -- (alterar 'clients' podría evitar overrides). Cuerpos versionados, no filas.
   for v_expected in select * from (values
-    ('public.document_entity_module_contract(text)', '9c78c98fb29c311926f93a1c28ce1c32', false), -- 0444
-    ('public.document_entity_authorized(text,uuid,text)', '4eb9fd08721e8f754087dddc5cb88953', true), -- 0444
-    ('public.get_user_tenant_id()', '5ff0c51c26a49419c34abc78f1d95c37', true), -- 0453
-    ('public.clients_revoke_portal_access()', '050880a2e2d30d6aed40aa9de02a554e', true), -- 0454
-    ('public.portal_access_require_live_client()', 'b8e102e15e6b8ba899c6a2721ef92b16', true), -- 0454
-    ('public.soft_delete_client_with_audit_reason(uuid,text)', '5cbe0d58604436bb59fcd0d3f096d352', false), -- 0455
-    ('public.clients_audit_soft_delete()', '5dfc92310d83ee35fae68780f9a8199b', true), -- 0455
-    ('public.merge_clients(uuid,uuid)', '1a65fc744a15d060e4a441c8c8270bad', true) -- 0361
-  ) e(signature, body_hash, definer) loop
+    ('public.document_entity_module_contract(text)', '9c78c98fb29c311926f93a1c28ce1c32', false, 'i'), -- 0444
+    ('public.document_entity_authorized(text,uuid,text)', '4eb9fd08721e8f754087dddc5cb88953', true, 's'), -- 0444
+    ('public.get_user_tenant_id()', '5ff0c51c26a49419c34abc78f1d95c37', true, 's'), -- 0453
+    ('public.clients_revoke_portal_access()', '050880a2e2d30d6aed40aa9de02a554e', true, 'v'), -- 0454
+    ('public.portal_access_require_live_client()', 'b8e102e15e6b8ba899c6a2721ef92b16', true, 'v'), -- 0454
+    ('public.soft_delete_client_with_audit_reason(uuid,text)', '5cbe0d58604436bb59fcd0d3f096d352', false, 'v'), -- 0455
+    ('public.clients_audit_soft_delete()', '5dfc92310d83ee35fae68780f9a8199b', true, 'v'), -- 0455
+    ('public.merge_clients(uuid,uuid)', '1a65fc744a15d060e4a441c8c8270bad', true, 'v') -- 0361
+  ) e(signature, body_hash, definer, volatility) loop
     if not exists (select from pg_catalog.pg_proc p
       where p.oid = pg_catalog.to_regprocedure(v_expected.signature)
         and pg_catalog.md5(pg_catalog.replace(p.prosrc, E'\r\n', E'\n')) = v_expected.body_hash
         and p.prosecdef = v_expected.definer
+        and p.provolatile::text = v_expected.volatility
+        and not p.proisstrict and not p.proleakproof
         and p.proconfig = case when v_expected.signature = 'public.merge_clients(uuid,uuid)'
           then array['search_path=public']::text[] else array['search_path=""']::text[] end) then
       raise exception '0456: dependencia ausente o con drift: %', v_expected.signature;

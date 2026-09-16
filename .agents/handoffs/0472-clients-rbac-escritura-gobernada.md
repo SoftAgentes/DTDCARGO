@@ -1,6 +1,6 @@
 # Handoff Worker — 0472 clients RBAC de escritura
 
-Fecha: 2026-09-16. Estado: en-progreso.
+Fecha: 2026-09-16. Estado: lista-para-revision en PR draft; gate incompleto explícito.
 
 Owner/sesión: `01a0aa97-b55c-7c02-8a23-ebb282c4b7be`.
 Worktree: `C:/Users/AKX generator/.codex/worktrees/9bc3/DTDCARGO`.
@@ -42,24 +42,29 @@ revisión advisory de privacidad y cierre de conocimiento honesto.
   triggers/ACL/auditoría 0454/0455. Pre/postflight metadata-only, huellas de
   cuerpos íntegros (sólo CRLF→LF), constraints, ownership y privilegio efectivo.
 - Prueba PostgreSQL 17.11: control rojo reproduce las tres escrituras indebidas;
-  cierre verde final 159 aserciones con rollback total. Regresiones 0440/54/55
+  cierre verde final 162 aserciones con rollback total. Regresiones 0440/54/55
   verdes; 197 contratos SQL y reconstrucción del schema verdes en verify.
 - Revisión independiente de RBAC/test y advisory de privacidad documentados.
 
 ## VALIDACIÓN
 
-HEAD observado durante las pruebas: `cc131d4bfcd30508da29c0cea197710fa130e41f`
-con exclusivamente la allowlist 0472 sin commit. La migración final tiene SHA-256
-`f1e17707cde017dff11b3942c652b0fced1cc0ffb07e163d5abdb5a8a42504a4`;
-el test final `701a4bb4df7eb89d0a778a874b116e7742b0c72cfa061d0004c60a07230cf2e6`.
-El commit de implementación contiene esos bytes; los recibos locales completos
+HEAD inicial de pruebas/verify: `cc131d4bfcd30508da29c0cea197710fa130e41f`
+con exclusivamente la allowlist 0472 sin commit, luego guardada en `8f56f951`.
+Revisión de ese commit detectó P2: faltaba verificar volatilidad del helper/RPC.
+Se corrigió con volatilidad esperada i/s/v, no STRICT y no LEAKPROOF. Las pruebas
+finales SQL focal/suite/schema pasaron sobre HEAD `8f56f951` más ese delta
+selectivo, que queda en el commit de cierre que contiene este documento.
+La migración final tiene SHA-256
+`b9eb45348e8a96e677784ab6890b80ac2469a5bb694eb88160e20695020d879a`;
+el test final `50710e5e7a328428495e5bb369b6fe33f3be5180e1c6f0b23b29d42568103960`.
+Los recibos locales completos
 se conservan en `graphify-out/0472-validation/` (ignorados, sin secretos).
 
 | Comando / alcance | Estado | Evidencia |
 |---|---|---|
 | `pnpm install --frozen-lockfile` | PASÓ | 813 paquetes, lockfile intacto; Node 24.20.0/pnpm 11.19.0 |
 | `docker exec dtd_0472_9bc3_pg17 psql -h 127.0.0.1 -X -U postgres -v ON_ERROR_STOP=1 -v apply_fix=false -f /sb/tests/0456_clients_write_rbac.test.sql` | PASÓ control rojo | Exit 3 esperado en GREEN DELETE; NOTICE reproduce INSERT support, UPDATE warehouse y DELETE de 7 roles |
-| Mismo comando sin `-v apply_fix=false` | PASÓ | 159 aserciones; fixture rollback=t, PostgreSQL 17.11 |
+| Mismo comando sin `-v apply_fix=false` | PASÓ | 162 aserciones finales; fixture rollback=t, PostgreSQL 17.11 |
 | `psql ... -f /sb/tests/0440_client_document_entity_rbac.test.sql` | PASÓ | Helper documental original, rollback=t |
 | `psql ... -f /sb/tests/0454_borrar_cliente_revoca_portal.test.sql` | PASÓ | 84 aserciones |
 | `psql ... -f /sb/tests/0455_borrado_cliente_auditado.test.sql` | PASÓ | 85 aserciones |
@@ -68,10 +73,13 @@ se conservan en `graphify-out/0472-validation/` (ignorados, sin secretos).
 | `pnpm sdd:check` | PASÓ | 453 migraciones, sin colisiones nuevas; conserva históricos declarados |
 | `node scripts/check-pending-migration-symbols.mjs` | PASÓ | 0 rojo / 0 amarillo |
 | `pnpm verify`: harness/lint/RSC/types/Edge/test/docs/numbering/constantes/componentes/gobernanza | PASÓ | 178 harness, 7.301 tests / 562 archivos, 4 Edge; lint 0 errores y 11 warnings previos |
-| `pnpm verify`: sql-tests | PASÓ | 197 contratos, rollback total, incluida 0456 con hashes finales |
+| `pnpm verify`: sql-tests | PASÓ | 197 contratos, rollback total, versión anterior al P2 de atributos |
 | `pnpm verify`: schema-rebuild | PASÓ | 435 migraciones + 18 sólo-ledger; 219 tablas, tenants sintéticos |
+| `node scripts/run-sql-tests.mjs` después del P2 | PASÓ | 197 contratos sobre migración/test finales; rollback total |
+| `node scripts/check-schema-rebuild.mjs` después del P2 | PASÓ | 435 migraciones + 18 sólo-ledger; aislamiento sobre 219 tablas y dos tenants sintéticos |
 | `pnpm verify`: migrations-applied | NO DISPONIBLE / SKIP | Sin URL/service key; producción excluida del encargo |
-| `pnpm verify`: e2e/build | EN CURSO | Resultado final pendiente al preparar este commit |
+| `pnpm verify`: e2e | PASÓ con COBERTURA PARCIAL | 149 passed, 4 flaky, 33 skipped; detalle debajo |
+| `pnpm verify`: build | PASÓ | Next 16.2.11 + postbuild; tsconfig restaurado por runner |
 | `git diff --check`, guard/claim | PASÓ | Worktree propio y allowlist |
 | Producción / navegador con sesión real / release | NO EJECUTADO | Excluidos; no se copian secretos para obtener verde |
 
@@ -79,7 +87,34 @@ Incidencias de prueba corregidas: el primer verde falló con 42601 (CASE sin
 paréntesis en IF); el segundo con 42725 (concatenación text/char del catálogo).
 Se corrigieron ambos y se repitió 0456, sin bajar aserciones. Una revisión
 posterior añadió defensa contra cambios de espacios dentro de literales y su
-probe; el verde final de 159 aserciones incluye esa defensa.
+probe. El verde final de 162 aserciones incluye además STABLE/IMMUTABLE/STRICT.
+
+**Veredicto completo de `pnpm verify`: exit 0, CIERRE INCOMPLETO, 16/17 pasos;
+migrations-applied crítico sin medir y e2e crítico con cobertura parcial.**
+No hubo fallos definitivos en lo medido. Tras la corrección del P2 se repitieron
+los gates afectados `node scripts/run-sql-tests.mjs` y
+`node scripts/check-schema-rebuild.mjs`; no se atribuye el verify anterior al
+delta de metadatos posterior. Los recibos finales están junto al focal final.
+
+Cada caso E2E omitido se omitió en chromium, mobile-chrome y mobile-safari:
+
+| Caso (3 ejecuciones cada uno) | Motivo / estado |
+|---|---|
+| auth.spec.ts:27 login Studio | NO DISPONIBLE: Supabase público ausente |
+| auth.spec.ts:98 login Back | NO DISPONIBLE: Supabase público ausente |
+| auth.spec.ts:106 magic link Portal | NO DISPONIBLE: Supabase público ausente |
+| auth.spec.ts:114 dos puertas Portal | NO DISPONIBLE: Supabase público ausente |
+| global-search.spec.ts:25 redirección sin sesión | NO DISPONIBLE: Supabase público ausente |
+| comments-lifecycle.spec.ts:108 ciclo de comentarios | NO DISPONIBLE: Preview aislado/BASE_URL/E2E_SUPABASE_*/STUDIO_E2E_PASSWORD ausentes |
+| gastos-expense-void.spec.ts:76 decisión Studio | NO DISPONIBLE: STUDIO_E2E_EMAIL/PASSWORD y EXPENSE_CODE de fixture |
+| gastos-expense-void.spec.ts:99 decisión móvil | Mismo motivo, sin seed/credenciales |
+| global-search.spec.ts:56 apertura buscador | NO DISPONIBLE: STUDIO_E2E_EMAIL/PASSWORD, branch+seed |
+| global-search.spec.ts:72 facetas por rol | Mismo motivo, sin seed/credenciales |
+| nomina-settlement-void.spec.ts:14 finiquito | NO DISPONIBLE: usuario admin/seed efímero PAYROLL_SETTLEMENT_CODE |
+
+Flaky fuera de este delta SQL: calculadora-semantic-colors.spec.ts:53 en chromium
+y mobile-chrome, calculadora-sin-peso.spec.ts:24 y :63 en mobile-chrome.
+Pasaron con los reintentos propios de Playwright; no se modificaron esos tests.
 
 Runtime: Docker 29.7.2, imagen postgres:17
 `sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675`.
@@ -93,15 +128,25 @@ datos, volúmenes ni configuración. Recibo `docker-recovery-20260916.json`.
 
 ## COMMITS
 
-Commit de implementación: el que contiene este documento (hash final en PR).
+- `cc131d4b`: reserva SDD heredada de Director.
+- `8f56f951`: implementación, matriz SQL, SDD y advisory.
+- Commit que contiene este cierre: corrección P2 de atributos funcionales,
+  pruebas negativas y recibos/handoff. SHA final registrado en PR.
 
 ## PR / BRANCH
 
-PR pendiente; rama propia indicada arriba, base main.
+[PR draft #127](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/127).
+Rama propia indicada arriba; base main `3f81ca83232e54218f486eac1943beab422c89a8`.
+Allowlist verificada en PR: exactamente cinco archivos. El push dispara el
+Preview automático del proveedor; no se hizo deploy manual ni release productivo.
 
 ## PENDIENTES DE ESTA TAREA
 
-Final de verify, publicación autorizada y cierre de derivados sobre commit estable.
+- Revisión Director del SHA final y del gate incompleto; smokes en entorno
+  autorizado con datos sintéticos/credenciales apropiadas antes de aprobar.
+- Integración y aplicación 0456, si se autorizan después, son acciones distintas.
+- Semántica piloto/global y lectura visible de Obsidian quedan sin certificar;
+  recibos locales no sustituyen publicación integrada ni revisión visual.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -114,15 +159,27 @@ Final de verify, publicación autorizada y cierre de derivados sobre commit esta
 
 ## HANDOFF AL DIRECTOR
 
-En curso; claim retenido mientras haya escritura. Integración/release separados.
+Revisar PR #127 y el SHA/base final, conservando el orden después de los smokes
+de Sam. El P2 de la revisión independiente queda corregido y probado; no hay
+otros hallazgos accionables confirmados en ese review. SDD queda in-progress
+por validación crítica parcial; no declarar cierre verde completo ni producción.
+Root libera el claim al acabar el push/check final; el recibo de cierre en la
+PR registra esa liberación. No eliminar rama/worktree ni backups de sockets.
 Conocimiento: fuentes canónicas actualizadas SDD/índice/handoff; sin cambios a las
 16 fuentes piloto. Se construyó grafo local desde cero con Graphify 0.9.61
 (34.062 nodos/63.561 aristas/2.286 comunidades). No se importó evidencia de main.
 Semántica NO EJECUTADA: 0/16 piloto y 0/1.075 global; son pendientes explícitos.
 Archify 2.16.0 preparado desde release oficial, build PASÓ 9/9 sin warnings.
-Su check y preview detectaron cambios concurrentes de fuentes y rechazaron el
-snapshot (`ARCHIFY_STALE_CORPUS`/`SOURCE_CHANGED`); se repiten después del commit
-estable. Publicación compartida y revisión visual en Obsidian NO EJECUTADAS.
+Su check y preview iniciales detectaron cambios concurrentes de fuentes y
+rechazaron el snapshot (`ARCHIFY_STALE_CORPUS`/`SOURCE_CHANGED`). El cierre
+reproducible sobre el commit final ejecuta `graphify update .`,
+`node scripts/knowledge-visual.mjs build`, `node scripts/knowledge-visual.mjs check`,
+`node scripts/knowledge-sync.mjs publish --preview`, `check --preview` y `status`.
+Resultados finales por capa/SHA se conservan en `graphify-out/0472-knowledge-final.json`
+y en la PR; esa evidencia se produce después de este commit para no autorreferir
+la revisión ni invalidar el corpus al escribirla. Un check parcial por semántica
+0/16 se informa como tal, no como fallo de integridad ni piloto certificado.
+Publicación compartida y revisión visual en Obsidian NO EJECUTADAS.
 Warnings previos: 74 self-loops, 11 import targets virtuales, 22 JSON de datos
 omitidos AST y extracción parcial en dos archivos Legal. No implican semántica
 verificada ni nueva deuda de producto 0472. Recibos en graphify-out.
