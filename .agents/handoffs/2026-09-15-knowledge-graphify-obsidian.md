@@ -301,3 +301,36 @@ Revisar la PR borrador #125 y sus checks. Resolver la cobertura y procedencia de
 - Falta ejecutar sobre el HEAD limpio: actualización Graphify, recibos semánticos de las fuentes
   canónicas modificadas, `cluster-only`, Archify, publicación/check de preview e idempotencia. La bóveda
   habitual `DTD Cargo/Generado` permanece sin cambios hasta integración comprobada en main.
+
+## CIERRE LOCAL DEL PILOTO SEMÁNTICO 16/16 — 2026-09-16
+
+- El commit de implementación `93ce57a4` fija las 16 fuentes canónicas en
+  `scripts/knowledge-policy.json` y separa cobertura piloto de cobertura global en estado, gate,
+  manifest, índice y `Mapa/mapa.json`. La suite completa del harness **PASÓ 176/176**, cero
+  fallos y cero omisiones; también PASARON `docs:check` (459 specs), skills, numbering con
+  colisiones históricas informadas, sintaxis Node y `git diff --check`. Build/DB/E2E de producto
+  NO EJECUTADO porque el cambio afecta herramientas y documentación, no producto.
+- Graphify 0.9.61 actualizó el HEAD limpio y quedó estructuralmente **CURRENT**, con 34.092 nodos,
+  63.578 aristas, 2.267 comunidades y cero errores del grafo. La extracción del asistente revisó
+  cuerpo completo y frontmatter de las tres fuentes modificadas; el fragmento final contiene
+  35 nodos, 47 aristas y dos hiperrelaciones. `cluster-only` canonicalizó correctamente dos
+  relaciones INFERRED recíprocas duplicadas entre runbook y SDD; se retiraron solo esas
+  duplicidades del fragmento y el recibo sobrevivió a una nueva agrupación.
+- Cobertura comprobada: piloto **CURRENT 16/16**; global **PENDING 16/1.073**, con 1.057 fuentes
+  pendientes fuera del piloto. El pendiente global aparece como `SEMANTIC_GLOBAL_PENDING` y
+  no bloquea este alcance; cualquier pérdida, cambio completo o solo YAML, renombrado, retiro
+  o fallo semántico de una fuente piloto vuelve a bloquear con `SEMANTIC_PILOT_PENDING`.
+- Archify 2.16.0 quedó **CURRENT** y pasó 9/9 comprobaciones sobre once fuentes. La preview local
+  de Obsidian contiene 1.072 documentos, ocho temas y 962 relaciones documentales: 957
+  `EXTRACTED`, cinco `INFERRED` y cero `AMBIGUOUS`. El manifest y el JSON muestran los dos
+  contadores; las 16 notas objetivo figuran `PILOT/VERIFIED`. Hay 39 referencias ausentes o
+  externas registradas y cero conflictos.
+- La segunda ejecución de `knowledge:publish --preview` fue idempotente:
+  `published=false`, `unchanged=true`. `knowledge:check --preview` devolvió exit 1
+  únicamente por `MAIN_REQUIRED`, clasificación esperada en este worktree; estructura,
+  piloto y Archify permanecieron CURRENT y Obsidian PREVIEW. La bóveda compartida
+  `DTD Cargo/Generado` no fue modificada.
+- La autorización vigente permite publicar esta rama y actualizar la PR borrador #125. No
+  autoriza merge ni publicación a la bóveda compartida. Después de integrar en `main`, Director
+  debe regenerar y validar desde esa revisión, publicar `Generado` y comprobar una nota dentro
+  de Obsidian antes de declarar la adopción del piloto.
