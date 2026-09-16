@@ -28,7 +28,7 @@ Worker escribe en su rama y Director coordina o documenta en su propia rama; no 
 1. Director ejecuta su inventario Git/PR habitual y `pnpm knowledge:status`.
 2. Guarda resultados confirmados o propone novedades según la tabla. Worker declara impacto documental y su evidencia en el handoff.
 3. Ante código modificado, `graphify update .` refresca la estructura. También puede extraer títulos/enlaces documentales, pero no refresca su interpretación semántica.
-4. Ante documentos modificados o cobertura semántica pendiente, el asistente usa `$graphify . --update` en Codex. Es una instrucción a la skill; no un comando de PowerShell. La extracción semántica la hace el asistente sobre las fuentes autorizadas.
+4. Ante una fuente del piloto modificada o cobertura semántica piloto pendiente, el asistente usa `$graphify . --update` en Codex. Es una instrucción a la skill; no un comando de PowerShell. La extracción semántica la hace el asistente sobre las fuentes autorizadas. Fuentes fuera del piloto siguen visibles como pendientes hasta ampliar el alcance de forma revisada.
 5. Valida y registra evidencia del grafo según el contrato de abajo. Un chunk fallido queda pendiente.
 6. Tras integración autorizada, desde el checkout principal actualizado y limpio: `pnpm knowledge:publish` y `pnpm knowledge:check`.
 7. Cierra distinguiendo: guardado en la tarea, integración pendiente, estructura del grafo, cobertura semántica y revisión visible en Obsidian.
@@ -45,7 +45,7 @@ no escribe la bóveda habitual. Si un documento cambió y falta extracción sem�
 la skill Graphify de Codex: una ejecución estructural sola no cumple ese paso.
 
 Director revisa la tarea, su PR y el handoff. Después de integración autorizada y de comprobar main,
-actualiza Graphify según los cambios, comprueba su estructura y semántica, ejecuta knowledge:visual,
+actualiza Graphify según los cambios, comprueba su estructura, la cobertura semántica piloto y la global, ejecuta knowledge:visual,
 knowledge:publish y knowledge:check. El manifest de la bóveda compara revisión, fuentes, versión, grafo,
 artefacto visual y hashes de cada Markdown/JSON/HTML/SVG administrado. El resultado CURRENT demuestra
 que los archivos locales corresponden a esa revisión; abrirlos en Obsidian confirma adicionalmente la lectura
@@ -65,8 +65,11 @@ Se fija `graphifyy==0.9.61`. El Python se resuelve desde `--python <ruta absolut
 `GRAPHIFY_PYTHON`, el archivo local `graphify-out/.graphify_python` o el runtime uv conocido.
 Se lee una ruta, nunca se evalúa como código. Una versión diferente bloquea publicación y requiere revisión.
 
-`knowledge:status` es lectura y devuelve JSON: revisión Git, estado estructural, semántico, motivos pendientes y estado de la bóveda.
-`knowledge:check` devuelve exit 1 si falta cobertura, hay conflicto o la publicación no coincide con las fuentes.
+`knowledge:status` es lectura y devuelve JSON: revisión Git, estado estructural, cobertura semántica piloto y global,
+motivos pendientes, advertencias y estado de la bóveda. Un piloto CURRENT no convierte la global en CURRENT.
+`knowledge:check` devuelve exit 1 si falta cobertura del piloto, hay conflicto, estructura/Archify están pendientes,
+no corresponde a main o la publicación no coincide con las fuentes. Pendientes semánticos exclusivamente fuera del
+piloto quedan como `SEMANTIC_GLOBAL_PENDING` visible y no bloquean por sí solos el piloto integrado.
 `knowledge:publish` exige principal en main, HEAD igual a main y origin/main, sin cambios rastreados ni fuentes sin integrar.
 El Director actualiza y verifica refs según su runbook; origin/main es una referencia local, no una consulta remota en cada comando.
 
@@ -109,6 +112,34 @@ El recibo no demuestra que toda inferencia sea correcta: permite auditar qué ex
 Sin evidencia, puede registrar estructura y conservar verificaciones semánticas previas; no certificar documentación nueva.
 Releer `inspect` o `knowledge:status`: éxito al guardar un recibo no implica cobertura completa.
 Los recibos permanecen en graphify-out, fuera de Git.
+
+### Alcance semántico canónico del piloto
+
+La política `scripts/knowledge-policy.json` fija el alcance `canonical-16-2026-09-16`. Son exactamente:
+
+1. `.agents/handoffs/2026-09-15-knowledge-graphify-obsidian.md`
+2. `.agents/skills/director/SKILL.md`
+3. `.agents/skills/worker/SKILL.md`
+4. `AGENTS.md`
+5. `README.md`
+6. `docs/README.md`
+7. `docs/architecture/README.md`
+8. `docs/architecture/knowledge-lifecycle.md`
+9. `docs/architecture/module-sdd-map.md`
+10. `docs/engineering/project-rules.md`
+11. `docs/governance/AGENT-BRIEF.md`
+12. `docs/governance/README.md`
+13. `docs/marketing/README.md`
+14. `docs/runbooks/codex-engineering.md`
+15. `docs/runbooks/knowledge-graphify-obsidian.md`
+16. `docs/specs/0471-knowledge-graphify-obsidian/spec.md`
+
+El status calcula ambas coberturas desde hashes y recibos actuales. La cobertura piloto es CURRENT solo con 16/16;
+una fuente sin seguimiento, ausente del corpus, renombrada, retirada o con evidencia semántica desactualizada la deja
+PENDING y bloquea publicación integrada. La cobertura global conserva sus 1.057 pendientes iniciales de 1.073 como
+advertencia explícita. No se certifica semántica global completa, ni se usan hashes nativos para suplir lectura real.
+El índice, `Mapa/mapa.json` y `.knowledge-manifest.json` exponen los dos contadores; cada documento del JSON indica
+si pertenece al piloto y si su semántica está VERIFIED o PENDING.
 
 ### Importar una extracción parcial hecha por el asistente
 
@@ -179,6 +210,9 @@ Esta vista permite revisar legibilidad y vínculos; no afirma que la tarea esté
 
 La bóveda compartida es la carpeta existente `DTD Cargo` del checkout principal. No se mueve ni se crea otra bóveda encima.
 La publicación integrada exige ejecutar el propio exportador de ese checkout principal. Apuntar con --root a main desde scripts de otra rama devuelve EXECUTOR_MAIN_REQUIRED; la revisión de las fuentes también debe corresponder al código del exportador integrado.
+El gate integrado acepta pendientes semánticos exclusivamente fuera de las 16 fuentes como advertencia. Bloquea si
+el piloto no está 16/16, la estructura o Archify no están vigentes, existe un issue de grafo, hay fuentes sin integrar,
+main no coincide con `origin/main`, el árbol está sucio o la bóveda no supera integridad/conflictos.
 Solo se administran archivos registrados bajo `Generado`:
 documentos Markdown completos, índice con ocho temas, mapas y JSON con procedencia.
 Los temas son Proyecto, Arquitectura, Especificaciones, Runbooks, Ingeniería, Gobernanza, Marketing y Handoffs.
@@ -211,13 +245,16 @@ El servidor MCP opcional de Graphify 0.9.61 recarga el grafo por mtime/tamaño; 
 
 ## Validación y aceptación
 
-Pruebas del harness: cambio de cuerpo/YAML, código, renombrado, eliminación/exclusión,
-idempotencia, fallo semántico, conflicto humano, carrera de escritores, recuperación y aislamiento entre worktrees.
+Pruebas del harness: piloto 16/16 y 15/16, pendiente fuera de alcance, cambio de cuerpo/YAML, código, renombrado,
+eliminación/exclusión, idempotencia, fallo semántico, conflicto humano, carrera de escritores, recuperación y aislamiento entre worktrees.
 Verificar enlaces, hashes, etiquetas de evidencia y ocho temas del JSON.
 Ejecutar `pnpm harness:test`, `pnpm docs:check`, `pnpm skills:check`, `pnpm sdd:check` y `git diff --check`.
 Build/DB/E2E de producto no aplican a esta herramienta de documentación.
 La aceptación después de integración requiere una decisión autorizada real visible desde Obsidian;
 un fixture o preview no sustituye esa prueba.
+Después de ese recorrido se evalúan legibilidad, fidelidad y costo de mantenimiento antes de ampliar el piloto.
+Ampliar el alcance exige revisar las nuevas fuentes completas, conservar recibos y actualizar política, SDD y pruebas;
+los 1.057 pendientes no ascienden en bloque por una ejecución estructural.
 
 ## Referencias verificadas para 0.9.61
 

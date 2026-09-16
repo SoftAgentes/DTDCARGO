@@ -31,6 +31,10 @@ function fixture(t) {
   fs.mkdirSync(path.join(root, 'scripts'), { recursive: true });
   fs.writeFileSync(promptFile, 'SYNTHETIC FIXTURE: read document including YAML properties.\n');
   fs.copyFileSync(policySource, path.join(root, 'scripts/knowledge-policy.json'));
+  const fixturePolicyPath = path.join(root, 'scripts/knowledge-policy.json');
+  const fixturePolicy = JSON.parse(fs.readFileSync(fixturePolicyPath, 'utf8'));
+  fixturePolicy.semanticPilot = { id: 'fixture-readme', label: 'README fixture', documents: ['README.md'] };
+  fs.writeFileSync(fixturePolicyPath, JSON.stringify(fixturePolicy, null, 2) + '\n');
   const implementation = ['knowledge-sync.mjs', 'knowledge-graph.py', 'knowledge-visual.mjs',
     'lib/knowledge-state.mjs', 'lib/knowledge-projection.mjs', 'lib/knowledge-vault.mjs', 'lib/knowledge-visual.mjs'];
   for (const relative of implementation) {
@@ -42,22 +46,25 @@ function fixture(t) {
   fs.writeFileSync(path.join(root, '.graphifyignore'), 'scripts/\n/DTD Cargo/\ngraphify-out/\n');
   fs.writeFileSync(path.join(root, 'source.py'), 'def fixture_example():\n    return 1\n');
   fs.writeFileSync(path.join(root, 'README.md'), '---\nstatus: approved\n---\n# Synthetic integration fixture\n\nOne verified fixture decision.\n\n[Missing fixture reference](missing-fixture.md)\n');
+  fs.mkdirSync(path.join(root, 'docs/architecture'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'docs/architecture/outside.md'), '# Outside pilot\n\nVisible global pending source.\n');
   const gitAt = (directory, ...args) => execFileSync('git', ['-C', directory, ...args], { encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const git = (...args) => gitAt(root, ...args);
   git('init', '-b', 'main'); git('config', 'user.name', 'Knowledge Fixture'); git('config', 'user.email', 'fixture@example.invalid');
-  git('add', 'README.md', 'source.py', '.gitignore', '.graphifyignore', 'scripts/knowledge-policy.json', ...implementation.map((relative) => 'scripts/' + relative));
+  git('add', 'README.md', 'docs/architecture/outside.md', 'source.py', '.gitignore', '.graphifyignore', 'scripts/knowledge-policy.json', ...implementation.map((relative) => 'scripts/' + relative));
   git('commit', '-m', 'test fixture: canonical knowledge sources');
   git('remote', 'add', 'origin', 'https://github.com/example/knowledge-fixture');
   git('update-ref', 'refs/remotes/origin/main', 'HEAD'); // Local fixture ref; no fetch/push.
   const graph = { directed: false, nodes: [
     { id: 'fixture_source_example', label: 'fixture example', source_file: 'source.py', _origin: 'ast', file_type: 'code' },
     { id: 'fixture_readme_heading', label: 'Synthetic integration fixture', source_file: 'README.md', _origin: 'ast', file_type: 'document' },
+    { id: 'fixture_outside_heading', label: 'Outside pilot', source_file: 'docs/architecture/outside.md', _origin: 'ast', file_type: 'document' },
     { id: 'fixture_readme_decision', label: 'One verified fixture decision', source_file: 'README.md', source_location: 'L7', _origin: 'semantic', file_type: 'document' },
   ], links: [{ source: 'fixture_readme_decision', target: 'fixture_source_example', confidence: 'EXTRACTED', relation: 'documents_fixture', source_file: 'README.md', source_location: 'L7', _origin: 'semantic' }] };
   function stamp(directory = root) {
     const out = path.join(directory, 'graphify-out'); fs.mkdirSync(out, { recursive: true });
     const manifest = {};
-    for (const name of ['README.md', 'source.py']) {
+    for (const name of ['README.md', 'docs/architecture/outside.md', 'source.py']) {
       const md5 = hash(fs.readFileSync(path.join(directory, name)), 'md5');
       manifest[name] = { ast_hash: md5, semantic_hash: name.endsWith('.md') ? md5 : '' };
     }
@@ -76,7 +83,8 @@ function fixture(t) {
     const location = path.join(base, 'synthetic-semantic-evidence.json');
     fs.writeFileSync(location, JSON.stringify(evidence));
     const result = inspect(directory, 'record', ['--semantic-evidence', location]);
-    assert.equal(result.semantic.status, 'CURRENT');
+    assert.equal(result.semantic.status, 'PENDING');
+    assert.deepEqual(result.semantic.verified, ['README.md']);
     return result;
   }
   const call = async (command, extra = {}) => {
@@ -94,20 +102,32 @@ function fixture(t) {
   return { base, root, promptFile, git, gitAt, graph, stamp, inspect, certify, call, vault, generated };
 }
 
-test('synthetic end-to-end: pending semantics blocks publication; verified fixture publishes and stays idempotent', { skip }, async (t) => {
+test('synthetic end-to-end: 0/1 blocks; 1/1 publishes while global pending stays visible and idempotent', { skip }, async (t) => {
   const f = fixture(t);
   const pending = await f.call('status');
   assert.equal(pending.structural.status, 'CURRENT'); assert.equal(pending.semantic.status, 'PENDING');
-  assert.ok(pending.publicationProblems.includes('SEMANTIC_PENDING'));
-  await assert.rejects(f.call('publish'), /SEMANTIC_PENDING/);
+  assert.equal(pending.semanticCoverage.pilot.status, 'PENDING');
+  assert.ok(pending.publicationProblems.some((problem) => problem.startsWith('SEMANTIC_PILOT_PENDING')));
+  await assert.rejects(f.call('publish'), /SEMANTIC_PILOT_PENDING/);
   assert.equal(fs.existsSync(f.vault), false, 'Rejected publication must not create the shared vault');
   f.certify();
   fs.mkdirSync(f.vault); fs.writeFileSync(path.join(f.vault, 'Personal.md'), '# My private fixture notes\n');
   const published = await f.call('publish');
   assert.equal(published.ok, true); assert.equal(published.published, true); assert.equal(published.obsidian.status, 'CURRENT');
-  assert.equal(published.documents, 1);
+  assert.equal(published.semantic.status, 'PENDING');
+  assert.deepEqual({status:published.semanticCoverage.pilot.status,verified:published.semanticCoverage.pilot.verifiedCount,total:published.semanticCoverage.pilot.targetCount},{status:'CURRENT',verified:1,total:1});
+  assert.deepEqual({status:published.semanticCoverage.global.status,verified:published.semanticCoverage.global.verifiedCount,total:published.semanticCoverage.global.totalCount,pending:published.semanticCoverage.global.pendingCount},{status:'PENDING',verified:1,total:2,pending:1});
+  assert.match(published.publicationWarnings[0],/^SEMANTIC_GLOBAL_PENDING: 1\/2/);
+  assert.equal(published.documents, 2);
   const map = JSON.parse(fs.readFileSync(f.generated('Mapa', 'mapa.json'), 'utf8'));
-  assert.equal(map.topics.length, 8); assert.equal(map.documents.length, 1);
+  assert.equal(map.topics.length, 8); assert.equal(map.documents.length, 2);
+  assert.equal(map.semanticCoverage.pilot.status, 'CURRENT'); assert.equal(map.semanticCoverage.global.status, 'PENDING');
+  assert.deepEqual(map.documents.find((document) => document.path === 'README.md').semantic,{scope:'PILOT',status:'VERIFIED'});
+  assert.deepEqual(map.documents.find((document) => document.path === 'docs/architecture/outside.md').semantic,{scope:'OUTSIDE_PILOT',status:'PENDING'});
+  const index = fs.readFileSync(f.generated('Indice.md'), 'utf8');
+  assert.match(index,/Piloto semántico CURRENT/); assert.match(index,/Cobertura global: \*\*PENDING\*\*, 1\/2/);
+  const manifest = JSON.parse(fs.readFileSync(f.generated('.knowledge-manifest.json'), 'utf8'));
+  assert.equal(manifest.metadata.semanticCoverage.pilot.status, 'CURRENT'); assert.equal(manifest.metadata.semanticCoverage.global.status, 'PENDING');
   const checked = await f.call('check');
   assert.equal(checked.ok, true); assert.equal(checked.obsidian.status, 'CURRENT');
   assert.ok(checked.obsidian.warnings.some((warning) => warning.type === 'missing-link-target'));
@@ -140,7 +160,8 @@ test('synthetic YAML-only edit remains pending despite a native full stamp and u
   assert.equal(native.structural.status, 'CURRENT'); assert.equal(native.semantic.status, 'PENDING');
   const status = await f.call('check');
   assert.equal(status.ok, false); assert.equal(status.semantic.status, 'PENDING');
-  await assert.rejects(f.call('publish'), /SEMANTIC_PENDING/);
+  assert.equal(status.semanticCoverage.pilot.status, 'PENDING');
+  await assert.rejects(f.call('publish'), /SEMANTIC_PILOT_PENDING/);
   assert.equal(fs.readFileSync(f.generated('Documentacion', 'README.md'), 'utf8'), before);
 });
 
@@ -152,7 +173,8 @@ test('synthetic linked worktree cannot publish into the shared main vault even w
   f.stamp(worktree); f.certify(worktree);
   assert.equal(f.gitAt(worktree, 'status', '--porcelain'), '');
   const workerStatus = await f.call('status', { root: worktree });
-  assert.equal(workerStatus.structural.status, 'CURRENT'); assert.equal(workerStatus.semantic.status, 'CURRENT');
+  assert.equal(workerStatus.structural.status, 'CURRENT'); assert.equal(workerStatus.semantic.status, 'PENDING');
+  assert.equal(workerStatus.semanticCoverage.pilot.status, 'CURRENT');
   assert.ok(workerStatus.publicationProblems.some((problem) => problem.startsWith('MAIN_REQUIRED')));
   await assert.rejects(f.call('publish', { root: worktree }), /MAIN_REQUIRED/);
   assert.equal(fs.readFileSync(f.generated('.knowledge-manifest.json'), 'utf8'), before);
@@ -167,7 +189,7 @@ test('synthetic manifest prompt and tool version regressions are detected and co
     manifest.metadata[field] = stale; fs.writeFileSync(location, JSON.stringify(manifest));
     const status = await f.call('check');
     assert.equal(status.ok, false); assert.equal(status.obsidian.status, 'PENDING');
-    assert.equal(status.semantic.status, 'CURRENT');
+    assert.equal(status.semantic.status, 'PENDING'); assert.equal(status.semanticCoverage.pilot.status, 'CURRENT');
     const corrected = await f.call('publish');
     assert.equal(corrected.ok, true); assert.equal(corrected.changed, true);
     assert.notEqual(JSON.parse(fs.readFileSync(location, 'utf8')).metadata[field], stale);
@@ -175,5 +197,6 @@ test('synthetic manifest prompt and tool version regressions are detected and co
   fs.appendFileSync(f.promptFile, 'SYNTHETIC FIXTURE: new extraction requirement.\n');
   const promptChanged = await f.call('check');
   assert.equal(promptChanged.ok, false); assert.equal(promptChanged.semantic.status, 'PENDING');
-  await assert.rejects(f.call('publish'), /SEMANTIC_PENDING/);
+  assert.equal(promptChanged.semanticCoverage.pilot.status, 'PENDING');
+  await assert.rejects(f.call('publish'), /SEMANTIC_PILOT_PENDING/);
 });

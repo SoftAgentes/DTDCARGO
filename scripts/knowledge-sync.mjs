@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import { repositoryState, loadPolicy, inspectGraph, collectDocuments, publicationProblems, snapshotKey, sha256 } from './lib/knowledge-state.mjs';
+import { repositoryState, loadPolicy, inspectGraph, collectDocuments, semanticCoverage, publicationProblems, publicationWarnings, snapshotKey, sha256 } from './lib/knowledge-state.mjs';
 import { buildProjection } from './lib/knowledge-projection.mjs';
 import { publishVault, checkVault, recoverVault } from './lib/knowledge-vault.mjs';
 import { inspectVisual } from './lib/knowledge-visual.mjs';
@@ -33,7 +33,9 @@ export async function run(options) {
   }
   const vaultPath = options.preview ? path.join(repo.root,'graphify-out','obsidian-preview') : path.join(repo.mainRoot, policy.vaultDirectory);
   let vault = await checkVault(vaultPath);
-  const problems = publicationProblems(repo, graph, policy);
+  const coverage = semanticCoverage(repo, graph, policy);
+  const problems = publicationProblems(repo, graph, policy, coverage);
+  const knowledgeWarnings = publicationWarnings(repo, graph, policy, coverage);
   const visual = inspectVisual(repo, graph, policyHash);
   if (visual.status === 'PENDING') problems.push('ARCHIFY_PENDING: ' + visual.reason);
   if (!options.preview && repo.root !== executorRoot) problems.unshift('EXECUTOR_MAIN_REQUIRED: ejecutar el exportador integrado desde el checkout principal');
@@ -44,10 +46,13 @@ export async function run(options) {
     vault.manifest.metadata.revision === repo.revision && vault.manifest.metadata.mode === (options.preview ? 'preview':'integrated') &&
     vault.manifest.metadata.promptHash === graph.promptHash && vault.manifest.metadata.graphifyVersion === graph.version &&
     vault.manifest.metadata.structuralStatus === graph.structural.status && vault.manifest.metadata.semanticStatus === graph.semantic.status &&
+    JSON.stringify(vault.manifest.metadata.semanticCoverage) === JSON.stringify(coverage) &&
+    JSON.stringify(vault.manifest.metadata.publicationWarnings) === JSON.stringify(knowledgeWarnings) &&
     JSON.stringify(vault.manifest.metadata.visual) === JSON.stringify(visualMetadata);
   const status = {ok:problems.length === 0 && current,root:repo.root,revision:repo.revision,branch:repo.branch,
     mainRevision:repo.mainRevision,remoteTrackingRevision:repo.remoteRevision,graphifyVersion:graph.version,
-    structural:graph.structural,semantic:graph.semantic,graphIssues:graph.issues,graphWarnings:graph.warnings || [],publicationProblems:problems,
+    structural:graph.structural,semantic:graph.semantic,semanticCoverage:coverage,graphIssues:graph.issues,graphWarnings:graph.warnings || [],
+    publicationProblems:problems,publicationWarnings:knowledgeWarnings,
     archify:visual,
     obsidian:{status:vault.conflicts?.length ? 'CONFLICT' : current ? (options.preview ? 'PREVIEW' : 'CURRENT'):'PENDING',path:vaultPath,
       revision:vault.manifest?.metadata?.revision || null,conflicts:vault.conflicts || [],warnings:vault.manifest?.metadata?.projectionWarnings || []},mode:options.preview ? 'preview':'integrated'};
@@ -64,7 +69,8 @@ export async function run(options) {
   if (!documents.length) throw new Error('No hay documentos autorizados para proyectar');
   if (!/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+$/.test(repo.repositoryUrl)) throw new Error('origin debe identificar un repositorio GitHub sin credenciales');
   const projection = buildProjection({documents,graph:parsedGraph,revision:options.preview ? 'WORKTREE:' + repo.revision : repo.revision,repositoryUrl:repo.repositoryUrl,
-    policyHash,graphHash:graph.graphHash,previousManifest:vault.manifest,sourcePaths:repo.sourcePaths});
+    policyHash,graphHash:graph.graphHash,previousManifest:vault.manifest,sourcePaths:repo.sourcePaths,
+    semanticCoverage:coverage,semanticVerified:graph.semantic?.verified || []});
   if (visual.status === 'CURRENT') {
     const verified = inspectVisual(repo, graph, policyHash, {readFiles:true});
     if (verified.status !== 'CURRENT') throw new Error('ARCHIFY_CHANGED: repetir la publicación');
@@ -75,14 +81,20 @@ export async function run(options) {
   }
   // A preview carries visible limits; it never targets the shared vault.
   if (options.preview) {
-    projection.files['Indice.md'] = '> **Vista previa local.** Estructura: ' + graph.structural.status + '; semántica: ' + graph.semantic.status + '. No representa la bóveda compartida integrada. Los enlaces de GitHub a esta revisión requieren que esté publicada; verifica la procedencia local mediante rutas y hashes.\n\n' + projection.files['Indice.md'];
+    projection.files['Indice.md'] = '> **Vista previa local.** Estructura: ' + graph.structural.status + '; piloto semántico: ' + coverage.pilot.status +
+      ' (' + coverage.pilot.verifiedCount + '/' + coverage.pilot.targetCount + '); cobertura global: ' + coverage.global.status +
+      ' (' + coverage.global.verifiedCount + '/' + coverage.global.totalCount + '). No representa la bóveda compartida integrada. Los enlaces de GitHub a esta revisión requieren que esté publicada; verifica la procedencia local mediante rutas y hashes.\n\n' + projection.files['Indice.md'];
     projection.files['LEEME-PREVIEW.md'] = '# Vista previa de una tarea\n\nRevisión: ' + repo.revision +
-    '\n\nEsta salida no representa main integrado.\n\nEstructura: ' + graph.structural.status + '\n\nSemántica: ' + graph.semantic.status +
-    '\n\nPendientes: ' + problems.join('; ') + '\n';
+    '\n\nEsta salida no representa main integrado.\n\nEstructura: ' + graph.structural.status +
+    '\n\nPiloto semántico: ' + coverage.pilot.status + ' (' + coverage.pilot.verifiedCount + '/' + coverage.pilot.targetCount + ')' +
+    '\n\nCobertura semántica global: ' + coverage.global.status + ' (' + coverage.global.verifiedCount + '/' + coverage.global.totalCount +
+    '; ' + coverage.global.pendingCount + ' pendientes)' +
+    '\n\nBloqueos: ' + (problems.join('; ') || 'ninguno') + '\n\nAdvertencias: ' + (knowledgeWarnings.join('; ') || 'ninguna') + '\n';
   }
   const metadata = {schemaVersion:1,revision:repo.revision,corpusHash:graph.corpusHash,policyHash,graphHash:graph.graphHash,
     graphifyVersion:graph.version,promptHash:graph.promptHash,mode:options.preview?'preview':'integrated',
     documentPaths:projection.documentPaths,structuralStatus:graph.structural.status,semanticStatus:graph.semantic.status,
+    semanticCoverage:coverage,publicationWarnings:knowledgeWarnings,
     visual:visualMetadata,projectionWarnings:projection.warnings};
   const initialKey = snapshotKey(repo,graph,policyHash);
   const result = await publishVault({vaultPath,files:projection.files,metadata,expectedManifest:vault.manifest,beforeCommit: async () => {

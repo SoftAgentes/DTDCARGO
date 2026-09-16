@@ -38,6 +38,12 @@ export function loadPolicy(root) {
   if (policy.schemaVersion !== 1 || policy.graphifyVersion !== '0.9.61' || policy.visual?.version !== '2.16.0' ||
       policy.visual.specPath !== 'docs/architecture/knowledge-lifecycle.archify.json' || policy.vaultDirectory !== 'DTD Cargo' ||
       policy.generatedDirectory !== 'Generado' || policy.topics?.length !== 8) throw new Error('Política de conocimiento incompatible');
+  const pilotDocuments = policy.semanticPilot?.documents;
+  if (!/^[a-z0-9-]+$/.test(policy.semanticPilot?.id ?? '') || typeof policy.semanticPilot?.label !== 'string' ||
+      !policy.semanticPilot.label || !Array.isArray(pilotDocuments) || !pilotDocuments.length ||
+      new Set(pilotDocuments).size !== pilotDocuments.length ||
+      pilotDocuments.join('\0') !== [...pilotDocuments].sort().join('\0') ||
+      pilotDocuments.some((relative) => !documentTopic(relative, policy))) throw new Error('Alcance semántico piloto incompatible');
   const implementation = ['knowledge-sync.mjs', 'knowledge-graph.py', 'knowledge-visual.mjs',
     'lib/knowledge-state.mjs', 'lib/knowledge-projection.mjs', 'lib/knowledge-vault.mjs', 'lib/knowledge-visual.mjs']
     .map((file) => fs.readFileSync(path.join(scriptRoot, file)));
@@ -82,17 +88,61 @@ export function collectDocuments(root, files, policy) {
   }
   return documents;
 }
-export function publicationProblems(repo, graph, policy) {
+export function semanticCoverage(repo, graph, policy) {
+  const targetPaths = policy.semanticPilot.documents;
+  const targetSet = new Set(targetPaths);
+  const tracked = new Set(repo.sourcePaths || []);
+  const graphFiles = graph.files || {};
+  const verifiedPaths = [...new Set(graph.semantic?.verified || [])].sort((a, b) => a.localeCompare(b, 'en'));
+  const pendingPaths = [...new Set(graph.semantic?.pending || [])].sort((a, b) => a.localeCompare(b, 'en'));
+  const verified = new Set(verifiedPaths);
+  const documents = targetPaths.map((relative) => {
+    const evidence = graphFiles[relative];
+    let status = 'VERIFIED'; let reason = null;
+    if (!tracked.has(relative)) { status = 'PENDING'; reason = 'not_tracked_at_revision'; }
+    else if (!evidence) { status = 'PENDING'; reason = 'not_in_graph_corpus'; }
+    else if (!verified.has(relative)) {
+      status = 'PENDING';
+      reason = graph.semantic?.pendingReasons?.[relative] || 'semantic_evidence_not_current';
+    }
+    return { path: relative, status, sha256: evidence?.sha256 || null, ...(reason ? { reason } : {}) };
+  });
+  const pilotVerified = documents.filter((document) => document.status === 'VERIFIED').length;
+  const globalDocuments = new Set([...verifiedPaths, ...pendingPaths]);
+  let globalStatus = graph.semantic?.status || 'UNAVAILABLE';
+  if (globalStatus === 'CURRENT' && pendingPaths.length) globalStatus = 'PENDING';
+  return {
+    global: { status: globalStatus, totalCount: globalDocuments.size, verifiedCount: verifiedPaths.length,
+      pendingCount: pendingPaths.length, outsidePilotPendingCount: pendingPaths.filter((relative) => !targetSet.has(relative)).length },
+    pilot: { id: policy.semanticPilot.id, label: policy.semanticPilot.label,
+      status: pilotVerified === targetPaths.length ? 'CURRENT' : 'PENDING',
+      targetCount: targetPaths.length, verifiedCount: pilotVerified,
+      pendingCount: targetPaths.length - pilotVerified, documents },
+  };
+}
+export function publicationProblems(repo, graph, policy, coverage = semanticCoverage(repo, graph, policy)) {
   const problems = [];
   if (!repo.isMain) problems.push('MAIN_REQUIRED: la bóveda compartida exige checkout principal main = origin/main');
   if (repo.dirty.length) problems.push('DIRTY_SOURCE: cambios rastreados pendientes');
   if (graph.version !== policy.graphifyVersion) problems.push('VERSION_MISMATCH: se requiere Graphify ' + policy.graphifyVersion);
   if (graph.structural?.status !== 'CURRENT') problems.push('STRUCTURAL_PENDING');
-  if (graph.semantic?.status !== 'CURRENT') problems.push('SEMANTIC_PENDING');
+  if (coverage.pilot.status !== 'CURRENT') {
+    const pending = coverage.pilot.documents.filter((document) => document.status !== 'VERIFIED');
+    problems.push(`SEMANTIC_PILOT_PENDING: ${coverage.pilot.verifiedCount}/${coverage.pilot.targetCount}; ` +
+      pending.map((document) => `${document.path} (${document.reason})`).join(', '));
+  }
   if (graph.issues?.length) problems.push('GRAPH_ISSUES: ' + graph.issues.map((issue) => typeof issue === 'string' ? issue : issue.code + (issue.source ? ': ' + issue.source : '')).join('; '));
   const tracked = new Set(repo.sourcePaths);
   if (Object.keys(graph.files || {}).some((p) => !tracked.has(p))) problems.push('UNTRACKED_SOURCE: el corpus incluye archivos sin integrar');
   return problems;
+}
+export function publicationWarnings(repo, graph, policy, coverage = semanticCoverage(repo, graph, policy)) {
+  const warnings = [];
+  if (coverage.global.status !== 'CURRENT') warnings.push(
+    `SEMANTIC_GLOBAL_PENDING: ${coverage.global.verifiedCount}/${coverage.global.totalCount} verificadas; ` +
+    `${coverage.global.pendingCount} pendientes (${coverage.global.outsidePilotPendingCount} fuera del piloto)`
+  );
+  return warnings;
 }
 export function snapshotKey(repo, graph, policyHash) {
   return sha256(JSON.stringify({revision:repo.revision,branch:repo.branch,dirty:repo.dirty,mainRevision:repo.mainRevision,

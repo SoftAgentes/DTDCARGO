@@ -278,3 +278,26 @@ Revisar la PR borrador #125 y sus checks. Resolver la cobertura y procedencia de
   ese SHA. Git/PR son las fuentes para comprobar el push y los checks finales. Merge,
   publicación compartida y limpieza del worktree continúan sujetos a sus gates y
   autorización propia.
+
+## DECISIÓN AUTORIZADA: PILOTO SEMÁNTICO CANÓNICO — 2026-09-15
+
+- Sam autorizó limitar la adopción inicial a las **16 fuentes canónicas ya revisadas** y conservar
+  las otras **1.057 de 1.073** como pendientes globales visibles. La política versionada fija la
+  lista exacta bajo `semanticPilot`; SDD-0471 y el runbook explican el criterio y su reevaluación.
+  Esta decisión no certifica el corpus completo ni autoriza merge o publicación en la bóveda compartida.
+- El estado separa `semanticCoverage.pilot` de `semanticCoverage.global`. Un piloto 16/16 permite
+  el gate semántico integrado aunque la global siga PENDING; 15/16, cambio solo YAML, fuente objetivo
+  ausente/renombrada/retirada o recibo obsoleto bloquean con `SEMANTIC_PILOT_PENDING`. Los pendientes
+  fuera del alcance se muestran como `SEMANTIC_GLOBAL_PENDING` y nunca se presentan como cobertura total.
+- Índice, `Mapa/mapa.json` y manifest incorporan ambos contadores. Cada documento del JSON conserva
+  `PILOT` u `OUTSIDE_PILOT` y `VERIFIED` o `PENDING`; las notas objetivo muestran su estado sin ocultar
+  las etiquetas EXTRACTED, INFERRED y AMBIGUOUS de las relaciones.
+- Validación previa al commit: harness completo **PASÓ 176/176**, cero fallos y cero omisiones;
+  integración de sync **PASÓ 5/5**; state **PASÓ 8/8**; visual **PASÓ 4/4**. También PASARON
+  `docs:check` con 459 specs, manifest de skills, numbering con choques históricos informados,
+  sintaxis Node y `git diff --check`. Build/DB/E2E de producto NO EJECUTADO porque el cambio es de
+  herramientas y documentación. Las pruebas existentes de edición manual, integridad, recuperación,
+  idempotencia y escritores concurrentes permanecieron verdes dentro del harness.
+- Falta ejecutar sobre el HEAD limpio: actualización Graphify, recibos semánticos de las fuentes
+  canónicas modificadas, `cluster-only`, Archify, publicación/check de preview e idempotencia. La bóveda
+  habitual `DTD Cargo/Generado` permanece sin cambios hasta integración comprobada en main.

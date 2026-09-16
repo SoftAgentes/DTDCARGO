@@ -169,9 +169,14 @@ function rewriteLinks(content, document, documents, sourcePaths, revision, repos
 }
 
 /** Build deterministic, file-level views. This function never changes a vault. */
-export function buildProjection({ documents, graph, revision, repositoryUrl, policyHash, graphHash, previousManifest, sourcePaths = [] }) {
+export function buildProjection({ documents, graph, revision, repositoryUrl, policyHash, graphHash, previousManifest, sourcePaths = [], semanticCoverage = null, semanticVerified = [] }) {
   if (!Array.isArray(documents) || !graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.links ?? graph.edges)) throw new Error('Expected documents and graph nodes/links arrays');
   if (!/^(?:WORKTREE:)?[a-f0-9]{7,64}$/i.test(revision ?? '')) throw new Error('Expected an immutable Git revision');
+  const pilotStates = new Map((semanticCoverage?.pilot?.documents ?? []).map((document) => [document.path, document]));
+  const verifiedSemantics = new Set(semanticVerified);
+  const semanticFor = (source) => pilotStates.has(source)
+    ? { scope: 'PILOT', status: pilotStates.get(source).status }
+    : { scope: 'OUTSIDE_PILOT', status: verifiedSemantics.has(source) ? 'VERIFIED' : 'PENDING' };
   const warnings = []; const files = {}; const docs = new Map(); const casePaths = new Set(); const outputPaths = new Set();
   for (const document of [...documents].sort((a, b) => compare(a.path, b.path))) {
     const p = sourcePath(document.path); const folded = p.toLowerCase();
@@ -182,14 +187,15 @@ export function buildProjection({ documents, graph, revision, repositoryUrl, pol
     const output = notePathForSource(p);
     if (outputPaths.has(output.toLowerCase())) throw new Error(`Duplicate/case-colliding Obsidian note: ${output}`);
     outputPaths.add(output.toLowerCase());
-    docs.set(p, { ...document, path: p, sha256: digest(document.content), output, topic: topicFor({ ...document, path: p }) });
+    docs.set(p, { ...document, path: p, sha256: digest(document.content), output, topic: topicFor({ ...document, path: p }), semantic: semanticFor(p) });
   }
   const knownPaths = [...new Set([...sourcePaths.map(sourcePath), ...docs.keys()])];
   const documentPaths = {};
   for (const document of docs.values()) {
     documentPaths[document.path] = { path: document.output, sha256: document.sha256 };
     const canonical = canonicalUrl(repositoryUrl, revision, document.path);
-    const notice = `> Vista generada de ${canonical ? `[${markdownLabel(document.path)}](${canonical})` : markdownLabel(document.path)}. Revisión: \`${revision}\`. Edita el original o guarda tus notas fuera de Generado.\n\n`;
+    const semanticLabel = document.semantic.scope === 'PILOT' ? 'piloto canónico' : 'fuera del piloto';
+    const notice = `> Vista generada de ${canonical ? `[${markdownLabel(document.path)}](${canonical})` : markdownLabel(document.path)}. Revisión: \`${revision}\`. Semántica: **${document.semantic.status}** (${semanticLabel}). Edita el original o guarda tus notas fuera de Generado.\n\n`;
     const frontmatter = document.content.match(/^(?:\uFEFF)?---\r?\n[\s\S]*?\r?\n(?:---|\.\.\.)[ \t]*(?:\r?\n|$)/);
     const prefix = frontmatter?.[0] ?? '';
     const body = rewriteLinks(document.content.slice(prefix.length), document, docs, knownPaths, revision, repositoryUrl, warnings);
@@ -237,8 +243,9 @@ export function buildProjection({ documents, graph, revision, repositoryUrl, pol
   }
   const map = {
     schemaVersion: 1, revision, policyHash, graphHash, directed: Boolean(graph.directed),
+    semanticCoverage,
     topics: TOPICS.map((topic) => ({ id: `topic:${topic.id}`, label: topic.label })),
-    documents: [...docs.values()].map((d) => ({ id: `document:${d.path}`, path: d.path, note: d.output, topic: `topic:${d.topic}`, sha256: d.sha256 })),
+    documents: [...docs.values()].map((d) => ({ id: `document:${d.path}`, path: d.path, note: d.output, topic: `topic:${d.topic}`, sha256: d.sha256, semantic: d.semantic })),
     classifications: [...docs.values()].map((d) => ({ source: `topic:${d.topic}`, target: `document:${d.path}`, relation: 'contains', confidence: 'CLASSIFICATION', rule: 'canonical-directory' })),
     relations: [...relations.values()].sort((a, b) => compare(a.id, b.id)),
   };
@@ -251,12 +258,15 @@ export function buildProjection({ documents, graph, revision, repositoryUrl, pol
     if (a === b) continue;
     const key = [a, b].sort(compare).join(':'); themePairs.set(key, (themePairs.get(key) ?? 0) + 1);
   }
-  files['Indice.md'] = `# Conocimiento de DTD Cargo\n\nRevisión fuente: \`${revision}\`. Las notas de Documentacion son copias de lectura. Tus notas personales permanecen fuera de Generado.\n\n## Mapa de ocho temas\n\n\`\`\`mermaid\ngraph TD\n${TOPICS.map((t) => `  ${t.id}["${t.label} · ${counts.get(t.id)} ${counts.get(t.id) === 1 ? 'documento' : 'documentos'}"]`).join('\n')}\n${[...themePairs].sort(([a], [b]) => compare(a, b)).map(([pair, count]) => { const [a, b] = pair.split(':'); return `  ${a} ---|"${count} ${count === 1 ? 'relación documental' : 'relaciones documentales'}"| ${b}`; }).join('\n')}\n\`\`\`\n\nLas líneas resumen relaciones del grafo; consulta su evidencia y grado de confianza en el JSON. La clasificación en temas procede de las carpetas canónicas.\n\n${TOPICS.map((t) => `- [${t.label}](Mapa/${t.id}.md): ${counts.get(t.id)} ${counts.get(t.id) === 1 ? 'documento' : 'documentos'}.`).join('\n')}\n\n[Mapa reproducible y evidencia](Mapa/mapa.json)\n`;
+  const coverageSummary = semanticCoverage
+    ? `> **Piloto semántico ${semanticCoverage.pilot.status}.** ${semanticCoverage.pilot.label}: ${semanticCoverage.pilot.verifiedCount}/${semanticCoverage.pilot.targetCount} fuentes verificadas. Cobertura global: **${semanticCoverage.global.status}**, ${semanticCoverage.global.verifiedCount}/${semanticCoverage.global.totalCount} verificadas y ${semanticCoverage.global.pendingCount} pendientes (${semanticCoverage.global.outsidePilotPendingCount} fuera del piloto). Esta vista certifica el alcance piloto; no declara completa la semántica del repositorio.\n\n`
+    : '';
+  files['Indice.md'] = `# Conocimiento de DTD Cargo\n\n${coverageSummary}Revisión fuente: \`${revision}\`. Las notas de Documentacion son copias de lectura. Tus notas personales permanecen fuera de Generado.\n\n## Mapa de ocho temas\n\n\`\`\`mermaid\ngraph TD\n${TOPICS.map((t) => `  ${t.id}["${t.label} · ${counts.get(t.id)} ${counts.get(t.id) === 1 ? 'documento' : 'documentos'}"]`).join('\n')}\n${[...themePairs].sort(([a], [b]) => compare(a, b)).map(([pair, count]) => { const [a, b] = pair.split(':'); return `  ${a} ---|"${count} ${count === 1 ? 'relación documental' : 'relaciones documentales'}"| ${b}`; }).join('\n')}\n\`\`\`\n\nLas líneas resumen relaciones del grafo; consulta su evidencia y grado de confianza en el JSON. La clasificación en temas procede de las carpetas canónicas.\n\n${TOPICS.map((t) => `- [${t.label}](Mapa/${t.id}.md): ${counts.get(t.id)} ${counts.get(t.id) === 1 ? 'documento' : 'documentos'}.`).join('\n')}\n\n[Mapa reproducible y evidencia](Mapa/mapa.json)\n`;
   for (const topic of TOPICS) {
     const members = [...docs.values()].filter((d) => d.topic === topic.id);
     const relevant = map.relations.filter((r) => docs.get(r.source.slice(9)).topic === topic.id || docs.get(r.target.slice(9)).topic === topic.id);
     const link = (source) => `[${markdownLabel(source)}](<${encodePath(path.posix.relative('Mapa', docs.get(source).output))}>)`;
-    files[`Mapa/${topic.id}.md`] = `# ${topic.label}\n\n[Índice de conocimiento](../Indice.md) · Revisión \`${revision}\`\n\n## Documentos\n\n${members.length ? members.map((d) => `- ${link(d.path)}`).join('\n') : 'No hay documentos incluidos en este tema.'}\n\n## Relaciones entre documentos\n\n${relevant.length ? relevant.map((r) => `- ${link(r.source.slice(9))} → ${link(r.target.slice(9))}: ${markdownLabel(r.relation)} · ${r.confidence ?? 'SIN CLASIFICAR'} · ${r.evidence.length} evidencia(s), ID \`${r.id}\`.`).join('\n') : 'El grafo no aporta relaciones entre documentos de este tema.'}\n\n[Evidencias completas](mapa.json)\n`;
+    files[`Mapa/${topic.id}.md`] = `# ${topic.label}\n\n[Índice de conocimiento](../Indice.md) · Revisión \`${revision}\`\n\n## Documentos\n\n${members.length ? members.map((d) => `- ${link(d.path)}${d.semantic.scope === 'PILOT' ? ` · PILOTO ${d.semantic.status}` : ''}`).join('\n') : 'No hay documentos incluidos en este tema.'}\n\n## Relaciones entre documentos\n\n${relevant.length ? relevant.map((r) => `- ${link(r.source.slice(9))} → ${link(r.target.slice(9))}: ${markdownLabel(r.relation)} · ${r.confidence ?? 'SIN CLASIFICAR'} · ${r.evidence.length} evidencia(s), ID \`${r.id}\`.`).join('\n') : 'El grafo no aporta relaciones entre documentos de este tema.'}\n\n[Evidencias completas](mapa.json)\n`;
   }
   return { files: Object.fromEntries(Object.entries(files).sort(([a], [b]) => compare(a, b))), warnings, documentPaths };
 }
