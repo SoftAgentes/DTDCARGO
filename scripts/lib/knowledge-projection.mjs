@@ -25,7 +25,11 @@ function sourcePath(value) {
 // Source identities stay unchanged; this function alone defines visible note paths.
 function notePathForSource(value) {
   const source = sourcePath(value);
-  let visible = source.startsWith('.agents/handoffs/') ? `Agentes/${source.slice('.agents/'.length)}` : source;
+  // Only the two policy-approved skills receive a visible mapping. Other
+  // hidden .agents content still requires an explicit selection and mapping.
+  const approvedSkills = new Set(['.agents/skills/director/SKILL.md', '.agents/skills/worker/SKILL.md']);
+  let visible = source.startsWith('.agents/handoffs/') || approvedSkills.has(source)
+    ? `Agentes/${source.slice('.agents/'.length)}` : source;
   if (visible.split('/').some((segment) => segment.startsWith('.'))) throw new Error(`Hidden source has no approved Obsidian mapping: ${source}`);
   if (/\.mdx$/i.test(visible)) visible += '.md';
   return `Documentacion/${visible}`;

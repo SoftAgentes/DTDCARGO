@@ -330,6 +330,25 @@ test('handoffs use visible Obsidian folders while source identities and links re
   assert.equal(retired.documentPaths[source].path, notePath);
 });
 
+test('only approved Director and Worker skills have visible notes and canonical links', () => {
+  const director = '.agents/skills/director/SKILL.md';
+  const worker = '.agents/skills/worker/SKILL.md';
+  const projected = buildProjection({ ...options, documents: [
+    document('AGENTS.md', '# Rules\n\n[Director](.agents/skills/director/SKILL.md)\n'),
+    document('docs/README.md', '# Master index\n'),
+    document(director, '---\nname: director\n---\n# Director\n\n[Worker](../worker/SKILL.md)\n'),
+    document(worker, '# Worker\n'),
+  ], graph: emptyGraph });
+  const visible = 'Documentacion/Agentes/skills/director/SKILL.md';
+  assert.ok(projected.files[visible].startsWith('---\nname: director\n---\n'));
+  assert.equal(projected.documentPaths[director].path, visible);
+  assert.ok(projected.files[visible].includes(`/blob/${revision}/${director}`));
+  assert.ok(projected.files['Documentacion/AGENTS.md'].includes('[Director](<Agentes/skills/director/SKILL.md>)'));
+  assert.ok(projected.files[visible].includes('[Worker](<../worker/SKILL.md>)'));
+  assert.ok(projected.files['Documentacion/docs/README.md']);
+  assert.throws(() => buildProjection({ ...options, documents: [document('.agents/skills/other/SKILL.md', '# Other')], graph: emptyGraph }), /Hidden source/);
+});
+
 test('MDX is rendered as a distinct Markdown note and retirement preserves that path', () => {
   const projected = buildProjection({ ...options, documents: [document('docs/architecture/page.md', '# MD\n\n[MDX](page.mdx)\n'), document('docs/architecture/page.mdx', '# MDX\n\n<Component prop="kept" />\n')], graph: emptyGraph });
   assert.ok(projected.files['Documentacion/docs/architecture/page.md']);
