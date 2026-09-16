@@ -173,3 +173,56 @@ Revisar la PR borrador #125 y sus checks. Resolver la cobertura y procedencia de
    evaluar legibilidad/fidelidad/mantenimiento del mapa y cerrar el criterio restante del SDD-0471.
 4. Conservar worktree y rama hasta evidencia de integración o descarte autorizado; liberar solo
    el claim de esta sesión al finalizar la escritura.
+
+## AVANCE DEL MISMO WORKTREE: REPARACIÓN Y COBERTURA SEMÁNTICA PARCIAL — 2026-09-15
+
+- Writer retomado por `codex-knowledge-coverage-20260915` en la rama de PR #125. Se encontró la
+  ruta externa `../app/portal/(auth)/login/page.js` en un ejemplo histórico de importación
+  dentro de un comentario de `scripts/prune-next-types.mjs`, no en una ruta activa. Se convirtió
+  a prosa, se comprobó con el extractor fijado y se retiró **solo** el nodo huérfano exacto
+  mediante `scripts/knowledge-graph-repair.py`; el grafo previo tuvo respaldo local. El
+  posterior `graphify update .` no volvió a emitir esa procedencia externa.
+- Los destinos AST de importación que Graphify llama `source_file` (`react`, `node:child_process`,
+  etc.) son referencias virtuales y se informan como `graph_virtual_import_targets`, no como
+  documentos borrados. Un archivo previamente inventariado y retirado sigue en
+  `structural.deleted`/`PENDING`. La ruta antigua de Portal generada por el texto de un fixture
+  se retiró al separar esa cadena en el test. Inspección tras la reconstrucción: estructura
+  `CURRENT`, cero archivos pendientes/borrados y cero errores de procedencia. Permanecen 11
+  advertencias de importaciones virtuales, 22 JSON de datos sin AST por política del extractor
+  y dos TSX legales con parseo parcial informado por Graphify; no se presentan como cobertura
+  AST completa de esos casos.
+- `.graphifyignore` añadió **exactamente** `docs/README.md` y las dos skills Director/Worker:
+  faltaban en el detector aunque son fuentes canónicas de este piloto. El asistente revisó
+  sus contenidos completos y el YAML de ambas skills y SDD-0471; el fragmento local ignorado
+  pasó validación: 12 fuentes, 52 nodos, 45 aristas (44 EXTRACTED, una INFERRED) y una
+  hiperrelación. `scripts/knowledge-semantic-apply.py` registró caché nativa para esas 12,
+  respaldo/recibo y SHA-256 de cada fuente. `graphify cluster-only . --no-label` reconstruyó
+  los derivados con 34.035 nodos y 63.501 relaciones. La cobertura semántica real queda
+  **12 verificadas / 1.061 pendientes de 1.073**; no se usó un backend LLM ni se estampó
+  contenido que el asistente no extrajo.
+- Archify 2.16.0 volvió a producir el diagrama autoral local: nueve comprobaciones pasaron,
+  diez componentes y once conexiones basados en once fuentes completas. Preview de Obsidian
+  solo en `graphify-out/obsidian-preview/Generado`: 1.084 archivos propios, 1.069 copias
+  documentales, ocho temas, 945 relaciones en mapa.json y 39 enlaces ausentes o fuera de la
+  selección registrados. Índice piloto legible por temas y rutas; sus 19 líneas de relaciones
+  agregadas pueden verse densas en una ventana pequeña, así que cada tema tiene su nota y
+  el visual Archify queda separado con HTML/JSON/evidencia. No se abrió la interfaz de
+  Obsidian en esta fase; la comprobación es de archivos, hashes y manifest, no de UI.
+- PASÓ suite harness sobre los nuevos importador/reparador: 170/170, cero skips, antes de
+  la clasificación de importaciones y la selección documental; pruebas focales posteriores
+  14/14. Repetir la suite completa y los checks documentales contra el HEAD final antes
+  del push. Build/DB/E2E de producto no aplican a esta ampliación de herramientas/docs.
+- La bóveda habitual `DTD Cargo/Generado` sigue sin tocarse. El exportador aún no está
+  integrado en main y la cobertura semántica completa permanece pendiente. Sam autorizó
+  actualizar la rama/PR borrador, no mergear. El trabajo posterior a esta nota debe
+  refrescar la fuente runbook y este handoff en Graphify, reconstruir Archify/preview,
+  confirmar idempotencia, hacer push no forzado al mismo PR y revisar CI en el SHA nuevo.
+- La primera agrupación `cluster-only` agregó `norm_label` y convirtió la representación JSON
+  de valores enteros `1` en decimales `1.0`; el recibo original perdió temporalmente sus 12
+  verificaciones, aunque diez fuentes estaban intactas. La huella ahora ignora solo metadatos
+  de agrupación y normaliza puntuación/peso numéricamente; un cambio semántico real sigue
+  invalidando. PASÓ prueba focal para ambas situaciones y suite completa del harness después
+  de esta corrección: **172/172, cero fallos, cero omisiones**, 23 archivos. PASARON índice
+  documental 459 specs, manifest de skills, numeración con choques históricos declarados y
+  `git diff --check`. El recibo del lote anterior debe volver a emitirse sobre el graph/HEAD
+  actual para las diez fuentes intactas; runbook y este handoff se reextraerán tras el commit.

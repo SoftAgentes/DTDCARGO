@@ -173,6 +173,30 @@ test("evidence remains valid across code refresh and metadata-only docs changes 
   } finally { f.close(); }
 });
 
+test("Graphify clustering metadata does not invalidate reviewed semantic outputs", { skip }, () => {
+  const f = fixture();
+  try {
+    f.graph.links[0].confidence_score = 1;
+    f.graph.links[0].weight = 1;
+    f.writeGraph();
+    assert.equal(f.run("record", ["--semantic-evidence", f.evidence()]).semantic.status, "CURRENT");
+    const before = fs.readFileSync(path.join(f.root, "graphify-out/knowledge-receipt.json"));
+    f.graph.nodes[2].norm_label = "verified decision";
+    f.graph.nodes[2].community = 12;
+    f.graph.nodes[2].community_name = "Example";
+    f.writeGraph();
+    const graphPath = path.join(f.root, "graphify-out/graph.json");
+    fs.writeFileSync(graphPath, fs.readFileSync(graphPath, "utf8")
+      .replace('"confidence_score":1', '"confidence_score":1.0')
+      .replace('"weight":1', '"weight":1.0'));
+    assert.equal(f.run().semantic.status, "CURRENT");
+    assert.deepEqual(fs.readFileSync(path.join(f.root, "graphify-out/knowledge-receipt.json")), before);
+    f.graph.nodes[2].label = "Changed decision";
+    f.writeGraph();
+    assert.equal(f.run().semantic.status, "PENDING");
+  } finally { f.close(); }
+});
+
 test("failed chunks and AST IDs cannot certify semantic coverage", { skip }, () => {
   const f = fixture();
   try {

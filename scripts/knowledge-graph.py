@@ -112,10 +112,23 @@ class NodeIndex(dict):
 
 
 def node_fingerprint(nodes, ids):
-    ignored = {"community", "community_name", "degree", "betweenness", "pagerank"}
-    output = [{key: value for key, value in nodes[node_id].items() if key not in ignored} for node_id in sorted(ids)]
+    # Graphify's cluster-only pass adds norm_label alongside community fields.
+    # The original label is still fingerprinted, so real semantic edits remain
+    # invalidating while topology/render metadata cannot erase valid receipts.
+    ignored = {"community", "community_name", "norm_label", "degree", "betweenness", "pagerank"}
+    def stable(row):
+        result = {key: value for key, value in row.items() if key not in ignored}
+        # Native Graphify writes 1.0 for assistant JSON's integer 1. An
+        # equivalent score/weight must fingerprint identically after clustering.
+        for key in ("confidence_score", "weight"):
+            value = result.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                result[key] = float(value)
+        return result
+
+    output = [stable(nodes[node_id]) for node_id in sorted(ids)]
     source_paths = {local_path(nodes[node_id].get("source_file"), nodes.root) for node_id in ids}
-    relations = [{key: value for key, value in relation.items() if key not in ignored}
+    relations = [stable(relation)
                  for source in sorted(source_paths) for relation in nodes.relations.get(source, [])]
     return digest(encoded({"nodes": output, "relations": sorted(relations, key=lambda value: encoded(value))}))
 

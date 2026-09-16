@@ -81,6 +81,20 @@ del corpus y nunca se presentan como AST extraído. Si un JSON de configuración
 sigue en `structural.missing` y `pending`, incluso con manifest nativo estampado. Una omisión de
 datos no elimina otros pendientes, errores de procedencia ni la necesidad del recibo semántico.
 
+Los nodos AST que representan destinos de importación pueden llevar como `source_file` el
+nombre del paquete (`react` o `node:child_process`) o una ruta de un fixture. Si no
+corresponden a un archivo detectado, `knowledge:status` los enumera como
+`graph_virtual_import_targets` con advertencia; no son documentos retirados.
+La eliminación de un archivo que sí estuvo en el manifest sigue en
+`structural.deleted` y bloquea el estado CURRENT. Una procedencia realmente fuera
+de la raíz sigue siendo un error. Si Graphify conserva un nodo huérfano creado
+por un ejemplo histórico de importación en `scripts/prune-next-types.mjs`,
+`scripts/knowledge-graph-repair.py --check` comprueba la versión fijada,
+el hash AST de esa fuente, su extractor nativo y que el nodo exacto no tenga
+relaciones; la ejecución sin `--check` respalda el grafo y retira solo ese nodo.
+Ejecuta después `graphify cluster-only . --no-label` y vuelve a inspeccionar;
+no uses la reparación para descartar otras rutas externas sin investigarlas.
+
 ### Recibo de extracción
 
 El adaptador `scripts/knowledge-graph.py inspect --root <raíz>` inspecciona Graphify sin modificar el repositorio.
@@ -95,6 +109,35 @@ El recibo no demuestra que toda inferencia sea correcta: permite auditar qué ex
 Sin evidencia, puede registrar estructura y conservar verificaciones semánticas previas; no certificar documentación nueva.
 Releer `inspect` o `knowledge:status`: éxito al guardar un recibo no implica cobertura completa.
 Los recibos permanecen en graphify-out, fuera de Git.
+
+### Importar una extracción parcial hecha por el asistente
+
+Para un lote de documentos incluidos por `.graphifyignore`, conserva el fragmento
+JSON que emitió el asistente (`nodes`, `edges`, `hyperedges`, cada elemento con
+`source_file` y ubicación). Revisa las afirmaciones, sus etiquetas de confianza,
+los cuerpos completos y el YAML inicial. Prepara fuera de Git un JSON de revisión
+con `schemaVersion: 1`, `head` del commit, `fragmentSha256` de los bytes exactos y
+`files` por ruta relativa; cada entrada contiene `sha256` del archivo completo y
+`frontmatterReviewed: true` **solo después de revisarlo**. Un documento fallido
+o excluido no entra en ese lote ni recibe un hash semántico nuevo.
+
+Con el Python de Graphify 0.9.61, después de `graphify update .`:
+
+    python scripts/knowledge-semantic-apply.py --fragment graphify-out/lote.json --review graphify-out/lote.review.json --check
+    python scripts/knowledge-semantic-apply.py --fragment graphify-out/lote.json --review graphify-out/lote.review.json
+    graphify cluster-only . --no-label
+    node scripts/knowledge-sync.mjs status --preview
+
+El importador rechaza cambios del HEAD o de los bytes, fuentes fuera del corpus,
+IDs repetidos, extremos ausentes, puntuaciones incompatibles con la confianza,
+colisiones con AST y documentos con cambios sin commit. Registra caché nativa y
+recibo únicamente por los archivos exitosos, deja los demás como pendientes y
+mantiene un respaldo local del graph/manifest/recibo anterior. Un fragmento
+posterior de una fuente reemplaza sus nodos y relaciones semánticas anteriores
+solo si no deja extremos ajenos colgantes. La vista `cluster-only` conserva la
+extracción y actualiza reportes/HTML; verifica de nuevo el número de archivos
+en `semantic.verified` y `semantic.pending` porque una salida exitosa del CLI no
+demuestra cobertura total.
 
 ## Archify 2.16.0: visual acotado y comprobable
 
