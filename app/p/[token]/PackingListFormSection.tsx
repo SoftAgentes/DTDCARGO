@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CheckIcon, CloseIcon, DownloadIcon } from "@/components/Icon";
 import { StatusIcon } from "@/components/StatusIcon";
 import { useRouter } from "next/navigation";
+import { PackingListDocumentPreview } from "./PackingListDocumentPreview";
+import { PackingListGuidedForm, providerText, type ProviderLocale, type GuidedFields } from "./PackingListGuidedForm";
 import { printMarkbox } from "@/lib/shared/markbox-chain";
 import { printDocument } from "@/lib/shared/print-document";
 import { CONTACT } from "@/lib/design-tokens";
@@ -49,7 +51,7 @@ function renderDateCN(iso: string): string {
 
 // ── Reglas de ingreso a bodega (método nuevo, SIN grupo WeChat) · trilingüe.
 // rule.contact → renderiza la línea de contacto (吴小姐 · tel · WeChat). ──
-const WAREHOUSE_RULES: {
+export const WAREHOUSE_RULES: {
   zh: string;
   es: string;
   en: string;
@@ -133,7 +135,7 @@ type SubmitState =
   | { kind: "idle" }
   | { kind: "sending" }
   | { kind: "ok"; folio: string | null; versionNo: number; labelsNeedReview?: boolean }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string; reason?: "validation" | "throttled" | "unconfirmed" | "network" };
 
 type FieldErrors = Partial<Record<"contacto" | "rows" | "tooMany", string>>;
 
@@ -174,17 +176,31 @@ export function PackingListFormSection({
   supplierWechat,
   markbox,
   code,
+  locale = "zh",
+  request = fetch,
+  attachments,
+  delivery,
+  onPrintLabels = () => printDocument("labels"),
+  excelHref = `/p/${token}/packlist`,
 }: {
   token: string;
   supplierName?: string | null;
   supplierWechat?: string | null;
   markbox?: string | null;
   code?: string;
+  locale?: ProviderLocale;
+  request?: typeof fetch;
+  attachments?: ReactNode;
+  delivery?: ReactNode;
+  onPrintLabels?: () => void;
+  excelHref?: string;
 }) {
   const router = useRouter();
+  const [documentOpen, setDocumentOpen] = useState(false);
   const cn = CONTACT.cn;
 
   const [lang, setLang] = useState<Lang>("es");
+  const uiText = useCallback((zh: string, es: string, en: string) => providerText(locale, zh, es, en), [locale]);
 
   // Header / folio + SUPPLIER.
   const [folio, setFolio] = useState("");
@@ -202,8 +218,6 @@ export function PackingListFormSection({
   const [note, setNote] = useState("");
   const [rows, setRows] = useState<PackingListRowInput[]>(() => [
     emptyRow(),
-    emptyRow(),
-    emptyRow(),
   ]);
 
   const [submit, setSubmit] = useState<SubmitState>({ kind: "idle" });
@@ -219,6 +233,8 @@ export function PackingListFormSection({
   const [saveStatus, setSaveStatus] = useState<{
     text: string;
     tone: "steady" | "pulse";
+    kind?: "saved" | "error" | "restored";
+    timestamp?: number;
   }>({ text: "", tone: "steady" });
   /**
    * SDD-0308 · El documento a pantalla completa.
@@ -371,15 +387,15 @@ export function PackingListFormSection({
     try {
       localStorage.setItem(packlistDraftKey(token), JSON.stringify(draft));
       setSaveStatus({
-        text: `${tr(lang, "Borrador en este navegador", "Draft in this browser")} · 已保存 ${fmtTs(Date.now())}`,
-        tone: "steady",
+        text: `${uiText("草稿已保存在此设备", "Borrador guardado en este dispositivo", "Draft saved on this device")} · ${fmtTs(Date.now())}`,
+        tone: "steady", kind: "saved", timestamp: Date.now(),
       });
       return true;
     } catch {
-      setSaveStatus({ text: tr(lang, "No se pudo guardar el borrador en este navegador. Mantén esta página abierta.", "Could not save the draft in this browser. Keep this page open."), tone: "steady" });
+      setSaveStatus({ text: uiText("无法在此设备保存草稿。请保持页面打开。", "No se pudo guardar el borrador en este navegador. Mantén esta página abierta.", "Could not save the draft in this browser. Keep this page open."), tone: "steady", kind: "error" });
       return false;
     }
-  }, [token, draft, lang]);
+  }, [token, draft, uiText]);
 
   useEffect(() => {
     if (!hydrated.current) return;
@@ -420,8 +436,8 @@ export function PackingListFormSection({
     if (!persist()) return;
     snapshot(tr(lang, "manual", "manual"));
     setSaveStatus({
-      text: `${tr(lang, "Borrador guardado en este navegador", "Draft saved in this browser")} · 已保存 ${fmtTs(Date.now())}`,
-      tone: "pulse",
+      text: `${uiText("草稿已保存在此设备", "Borrador guardado en este dispositivo", "Draft saved on this device")} · ${fmtTs(Date.now())}`,
+      tone: "pulse", kind: "saved", timestamp: Date.now(),
     });
   }
 
@@ -434,8 +450,8 @@ export function PackingListFormSection({
       applyDraft(parsed);
       setShowHistory(false);
       setSaveStatus({
-        text: `${tr(lang, "Versión restaurada", "Version restored")} · 已恢复`,
-        tone: "pulse",
+        text: uiText("已恢复草稿版本", "Versión del borrador restaurada", "Draft version restored"),
+        tone: "pulse", kind: "restored",
       });
     } catch {
       /* entrada corrupta → no hacemos nada */
@@ -523,7 +539,7 @@ export function PackingListFormSection({
     setFieldErrors({});
     setSubmit({ kind: "sending" });
     try {
-      const res = await fetch(`/p/${token}/packlist`, {
+      const res = await request(`/p/${token}/packlist`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -560,7 +576,8 @@ export function PackingListFormSection({
       }
 
       if (res.ok && data.ok) {
-        router.refresh();
+        // The fixture injects its own transport; no production router refresh there.
+        if (request === fetch) router.refresh();
         setSubmit({
           kind: "ok",
           folio: data.folio ?? null,
@@ -571,34 +588,71 @@ export function PackingListFormSection({
       }
 
       if (res.status === 400 && data.fieldErrors) {
-        setFieldErrors(data.fieldErrors);
+        setFieldErrors({
+          ...(data.fieldErrors.contacto ? { contacto: uiText("请填写微信、电话或邮箱。", "Deja un contacto: WeChat, teléfono o email.", "Leave a contact: WeChat, phone or email.") } : {}),
+          ...(data.fieldErrors.rows ? { rows: uiText("请至少填写一个产品名称。", "Agrega al menos un producto con su nombre.", "Add at least one product with its name.") } : {}),
+          ...(data.fieldErrors.tooMany ? { tooMany: uiText("最多可以填写 500 个产品。", "Puedes incluir hasta 500 productos.", "You can include up to 500 products.") } : {}),
+        });
         setSubmit({
           kind: "error",
-          message:
-            data.error ??
-            "Revisa los datos del packing list. / 请检查装箱单的资料。",
+          reason: "validation",
+          message: uiText("请检查标出的资料，再次提交。", "Revisa los datos señalados y vuelve a enviar.", "Review the highlighted details and send again."),
         });
         return;
       }
 
       setSubmit({
         kind: "error",
-        message:
-          data.error ??
-          "No pudimos enviar tu packing list. Intenta de nuevo. / 提交失败，请稍后再试。",
+        reason: res.status === 429 ? "throttled" : "unconfirmed",
+        message: res.status === 429 ? uiText("提交次数过多，请稍后重试。", "Se hicieron demasiados envíos. Intenta más tarde.", "Too many submissions. Try again later.") : uiText("未能确认文件提交成功。资料仍在此处，请稍后重试或联系 DTD。", "No pudimos confirmar el envío. Conservamos tus datos; intenta más tarde o contacta a DTD.", "We could not confirm submission. Your entries are preserved; try later or contact DTD."),
       });
     } catch {
       setSubmit({
         kind: "error",
-        message:
-          "No pudimos conectar. Revisa tu conexión e intenta de nuevo. / 网络连接失败，请重试。",
+        reason: "network",
+        message: uiText("连接中断，无法确认文件是否收到。资料仍在此处，请先与 DTD 确认再提交。", "Se interrumpió la conexión y no pudimos confirmar la recepción. Conservamos tus datos; confirma con DTD antes de reenviar.", "The connection was interrupted and receipt could not be confirmed. Your entries are preserved; check with DTD before resending."),
       });
     }
   }
 
+  const displayErrors = useMemo<FieldErrors>(() => ({
+    ...(fieldErrors.contacto ? { contacto: uiText("请填写微信、电话或邮箱。", "Deja un contacto: WeChat, teléfono o email.", "Leave a contact: WeChat, phone or email.") } : {}),
+    ...(fieldErrors.rows ? { rows: uiText("请至少填写一个产品名称。", "Agrega al menos un producto con su nombre.", "Add at least one product with its name.") } : {}),
+    ...(fieldErrors.tooMany ? { tooMany: uiText("最多可以填写 500 个产品。", "Puedes incluir hasta 500 productos.", "You can include up to 500 products.") } : {}),
+  }), [fieldErrors, uiText]);
+  const displaySubmit = submit.kind !== "error" ? submit : { ...submit, message:
+    submit.reason === "validation" ? uiText("请检查标出的资料，再次提交。", "Revisa los datos señalados y vuelve a enviar.", "Review the highlighted details and send again.") :
+    submit.reason === "throttled" ? uiText("提交次数过多，请稍后重试。", "Se hicieron demasiados envíos. Intenta más tarde.", "Too many submissions. Try again later.") :
+    submit.reason === "network" ? uiText("连接中断，无法确认文件是否收到。资料仍在此处，请先与 DTD 确认再提交。", "Se interrumpió la conexión y no pudimos confirmar la recepción. Conservamos tus datos; confirma con DTD antes de reenviar.", "The connection was interrupted and receipt could not be confirmed. Your entries are preserved; check with DTD before resending.") :
+    uiText("未能确认文件提交成功。资料仍在此处，请稍后重试或联系 DTD。", "No pudimos confirmar el envío. Conservamos tus datos; intenta más tarde o contacta a DTD.", "We could not confirm submission. Your entries are preserved; try later or contact DTD."),
+  };
   const sending = submit.kind === "sending";
+  const fieldSetters = { company: setCompany, email: setEmail, wechat: setWechat, address: setAddress, city: setCity, folio: setFolio, docDate: setDocDate, currency: setCurrency, note: setNote, lang: setLang };
+  function updateField<K extends keyof GuidedFields>(key: K, value: GuidedFields[K]) {
+    (fieldSetters[key] as (value: GuidedFields[K]) => void)(value);
+  }
+  function removeGroup(index: number) {
+    setRows(previous => {
+      let end = index + 1;
+      while (end < previous.length && previous[end].same) end++;
+      const next = [...previous.slice(0, index), ...previous.slice(end)];
+      return next.length ? next : [emptyRow()];
+    });
+    setExpanded(new Set());
+  }
 
-  return (
+  return (<>
+    <PackingListGuidedForm locale={locale} code={code} mark={printMarkbox(mark)}
+      fields={{ company, email, wechat, address, city, folio, docDate, currency, note, lang }}
+      onField={updateField} rows={rows} setRow={setRow} addGroup={() => addRows(1)}
+      addProduct={addChild} removeProduct={removeRow} removeGroup={removeGroup}
+      submit={displaySubmit} onSubmit={handleSubmit} onEdit={() => setSubmit({ kind: "idle" })}
+      errors={displayErrors} saveFailed={saveStatus.kind === "error"} saveStatus={saveStatus.kind === "error" ? uiText("无法在此设备保存草稿。请保持页面打开。", "No se pudo guardar el borrador en este navegador. Mantén esta página abierta.", "Could not save the draft in this browser. Keep this page open.") : saveStatus.kind === "saved" ? `${uiText("草稿已保存在此设备", "Borrador guardado en este dispositivo", "Draft saved on this device")} · ${fmtTs(saveStatus.timestamp!)} ` : saveStatus.kind === "restored" ? uiText("已恢复草稿版本", "Versión del borrador restaurada", "Draft version restored") : ""} onSave={saveVersion}
+      history={history} onRestore={restore} attachments={attachments} delivery={delivery}
+      onPrintLabels={onPrintLabels} onPreview={() => setDocumentOpen(true)} excelHref={excelHref} />
+    {documentOpen && <PackingListDocumentPreview fields={{ company, email, wechat, address, city, folio, docDate, currency, note, lang }} rows={rows} mark={printMarkbox(mark)} code={code} locale={locale} onClose={() => setDocumentOpen(false)} />}
+    {/* Complete document stays mounted solely for printing, never a second accessible editor. */}
+    <div className="pl-print-only" hidden aria-hidden="true">
     <section
       ref={docRef}
       className={`pl-doc mt-3 bg-white border border-grey-200 rounded-[16px] p-6 sm:p-7${
@@ -1774,6 +1828,9 @@ export function PackingListFormSection({
         }
       `}</style>
     </section>
+    </div>
+    <style>{`@media print { .pl-print-only { display: block !important; } }`}</style>
+    </>
   );
 }
 

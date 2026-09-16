@@ -4,7 +4,7 @@ title: "Portal: rediseño del enlace del proveedor (Factura + Packing List)"
 status: in-progress
 author: "Claude con Sam"
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-16
 supersedes: null
 superseded_by: null
 related: ["0057", "0096", "0097", "0173", "0206", "0443"]
@@ -343,3 +343,47 @@ Hola. Abre el enlace de DTD Cargo y completa 3 pasos:
 ## 9. Verificación
 
 Registro de pruebas por SHA en el handoff `.agents/handoffs/portal-enlace-proveedor-ux.md`: pruebas unitarias y de componente, controles rojos contra las versiones anteriores, inspección del XML del `.xlsx` y `pnpm verify`.
+
+
+## 10. Segunda etapa autorizada · 2026-09-16
+
+La primera entrega (secciones 1–9) y su evidencia permanecen como registro histórico. Sam autorizó ahora rediseñar ambos extremos del flujo, incluidas las secciones de /p/[token] excluidas en la primera etapa. La PR119 ya está en la base main 30a9f890; esta etapa no es un merge pendiente de aquella PR.
+
+### Experiencia e implementación
+
+- Compartir conserva copiar URL en un clic, copiar mensaje chino, WhatsApp y recuperación si falla clipboard. Título uniforme: «Solicita la factura y el packing list a tu proveedor» en los tres puntos del portal.
+- Captura en cuatro pasos: datos del proveedor; cajas y productos; fotos y archivos; revisar y enviar. Chino simplificado por defecto, selector es/en independiente del idioma latino del documento. No se traducen automáticamente los nombres ingresados.
+- Un grupo de cajas inicial; líderes conservan ctns/perctn/wkg/cbm, productos en las mismas cajas conservan same/qtyDirect como cantidad total del producto en ese grupo. Agregar/quitar producto no duplica peso/volumen. Eliminar grupo pide confirmación y elimina sus hijos, sin reasignarlos al grupo anterior.
+- Estado, claves de borrador por token, sanitización de PII heredada, autosave 600ms/8s, cap12 del historial, payload y computeTotals permanecen en el propietario del editor. Cambiar pasos, idioma y modalidad Excel no remonta el propietario ni el componente de archivos.
+- La captura nueva vive en PackingListGuidedForm; vista de documento de solo lectura en PackingListDocumentPreview; superficie original completa queda montada y oculta a pantalla/tecnología asistiva para imprimir todas las filas, incluidos hijos y documento tras enviar. No hay dos editores accesibles.
+- Referencia de compra y Shipping Mark protegidos. Dirección/instrucciones de entrega en un único desplegable de pantalla. Etiquetas con códigos existentes y aviso informativo antes de imprimir, incluso con formulario vacío.
+- Excel alternativo permite descargar y subir archivo sin llenar online. La carga no importa valores del Excel ni envía el formulario. Estados borrador local, recepción de archivo y documento enviado permanecen separados.
+- Carga parcial usa cantidad confirmada, mantiene selección y advierte sobre duplicados antes de reenviar; recibo faltante o ambiguo es recepción no confirmada. No atribuye nombres ni tipos de archivos a lo recibido, pues endpoint solo informa cantidad.
+- Éxito muestra folio, versión y aviso de reconciliar etiquetas si corresponde. Corregir conserva datos; restaurar historial tras éxito vuelve a edición y quita recibo anterior. Mutaciones del documento deshabilitadas durante POST. El servidor sigue validando y versionando de forma autoritativa.
+- No cambian endpoints, tablas, migraciones, contrato de negocio, privacidad del token ni variables globales de marca. La previsualización local inyecta transporte simulado en los componentes reales, fuera del árbol de rutas Next y con servidor loopback que bloquea backend. Ninguna conexión productiva requerida.
+
+### Allowlist adicional de etapa 2
+
+- app/p/[token]/page.tsx (metadata), PackingListFormSection.tsx, ProviderShareClient.tsx, SupplierUploadSection.tsx, PackingListGuidedForm.tsx, PackingListDocumentPreview.tsx, supplier-flow.test.tsx, SupplierUploadSection.test.tsx.
+- app/portal/_components/ShareProviderButton.tsx y su prueba; solo bloque compartir/copy en PurchaseStepConfirm.tsx, NewPurchaseForm.tsx y compras/[code]/etiquetas/page.tsx.
+- docs/specs/0468-portal-enlace-proveedor-ux/qa/* (fixture local seguro), esta spec e índice generado docs/specs/README.md.
+- .agents/handoffs/portal-proveedor-guiado-20260916.md.
+
+### Criterios y evidencia de etapa 2
+
+- [x] Captura responsive por tarjetas, cuatro pasos y resumen de totales.
+- [x] Chino/es/en para interfaz y segundo idioma de documento separado.
+- [x] Payload/cálculo de cajas mixtas y borradores anteriores conservados; regresiones automatizadas.
+- [x] Formulario/Excel alternativos, errores localizados y carga parcial honesta.
+- [x] Vista read-only, impresión separada, folio/versión y corrección.
+- [x] Fixture navegable cliente → proveedor → confirmación con datos ficticios; escritorio y frames de 375/390, claro/oscuro, escenarios controlados.
+- [ ] Aprobación visual de Sam antes de integración; la inspección del Director se documenta en handoff.
+- [ ] Validación de chino por persona de operación y prueba real en WeChat; NO EJECUTADO, no se afirma compatibilidad.
+- [ ] Recorrido con enlace y sesión reales; NO EJECUTADO por falta de autorización de datos/operaciones productivas.
+- [ ] Integración y producción; no autorizadas en esta etapa. Sin push/PR/merge/deploy.
+
+El runbook exige ui-check, pnpm verify y handoff con comprobaciones PASÓ/FALLÓ/NO EJECUTADO/NO DISPONIBLE. El resultado de verify y omisiones se conservan por SHA en el handoff; éxito con SKIPs no acredita cobertura completa.
+
+### Compatibilidad y límites de revisión
+
+El plan aprobado constituye DESIGN-CHECK de la nueva composición; no se edita manualmente el Norte. Marca mantiene tokens y Archivo/Noto Sans SC en /p, sin modificar fuentes globales. La vista documental nueva resume el contenido para revisar; el impreso canónico mantiene columnas y reglas completas anteriores. Preview local no equivale a prueba de permisos en producción, ni prueba de WeChat, impresión física o PDF paginado final. Estado SDD continúa in-progress hasta completar aceptación humana/integración según autorización.
