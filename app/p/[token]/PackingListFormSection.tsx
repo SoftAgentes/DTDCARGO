@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { CheckIcon, CloseIcon, DownloadIcon } from "@/components/Icon";
-import { StatusIcon } from "@/components/StatusIcon";
 import { useRouter } from "next/navigation";
+import { PackingListDocumentPreview } from "./PackingListDocumentPreview";
+import { PackingListGuidedForm, providerText, type ProviderLocale, type GuidedFields, type GuidedFieldOrigin } from "./PackingListGuidedForm";
 import { printMarkbox } from "@/lib/shared/markbox-chain";
 import { printDocument } from "@/lib/shared/print-document";
 import { CONTACT } from "@/lib/design-tokens";
@@ -49,7 +50,7 @@ function renderDateCN(iso: string): string {
 
 // ── Reglas de ingreso a bodega (método nuevo, SIN grupo WeChat) · trilingüe.
 // rule.contact → renderiza la línea de contacto (吴小姐 · tel · WeChat). ──
-const WAREHOUSE_RULES: {
+export const WAREHOUSE_RULES: {
   zh: string;
   es: string;
   en: string;
@@ -133,7 +134,7 @@ type SubmitState =
   | { kind: "idle" }
   | { kind: "sending" }
   | { kind: "ok"; folio: string | null; versionNo: number; labelsNeedReview?: boolean }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string; reason?: "validation" | "throttled" | "unconfirmed" | "network" };
 
 type FieldErrors = Partial<Record<"contacto" | "rows" | "tooMany", string>>;
 
@@ -174,17 +175,33 @@ export function PackingListFormSection({
   supplierWechat,
   markbox,
   code,
+  locale = "zh",
+  request = fetch,
+  attachments,
+  attachmentsSummary,
+  delivery,
+  onPrintLabels = () => printDocument("labels"),
+  excelHref = `/p/${token}/packlist`,
 }: {
   token: string;
   supplierName?: string | null;
   supplierWechat?: string | null;
   markbox?: string | null;
   code?: string;
+  locale?: ProviderLocale;
+  request?: typeof fetch;
+  attachments?: ReactNode;
+  attachmentsSummary?: ReactNode;
+  delivery?: ReactNode;
+  onPrintLabels?: () => void;
+  excelHref?: string;
 }) {
   const router = useRouter();
+  const [documentOpen, setDocumentOpen] = useState(false);
   const cn = CONTACT.cn;
 
   const [lang, setLang] = useState<Lang>("es");
+  const uiText = useCallback((zh: string, es: string, en: string) => providerText(locale, zh, es, en), [locale]);
 
   // Header / folio + SUPPLIER.
   const [folio, setFolio] = useState("");
@@ -193,6 +210,9 @@ export function PackingListFormSection({
   const [wechat, setWechat] = useState(supplierWechat ?? "");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [rowsRevision, setRowsRevision] = useState(0);
+  const [fieldOrigins, setFieldOrigins] = useState<Partial<Record<keyof GuidedFields, GuidedFieldOrigin>>>(() => ({ company: supplierName ? "prefilled" : undefined, wechat: supplierWechat ? "prefilled" : undefined }));
 
   // CLIENT — el 唛头 (mark) viene prefilled de la orden.
   const mark = markbox ?? "";
@@ -201,8 +221,6 @@ export function PackingListFormSection({
   const [currency, setCurrency] = useState<PackingListCurrency>("USD");
   const [note, setNote] = useState("");
   const [rows, setRows] = useState<PackingListRowInput[]>(() => [
-    emptyRow(),
-    emptyRow(),
     emptyRow(),
   ]);
 
@@ -219,6 +237,8 @@ export function PackingListFormSection({
   const [saveStatus, setSaveStatus] = useState<{
     text: string;
     tone: "steady" | "pulse";
+    kind?: "saved" | "error" | "restored";
+    timestamp?: number;
   }>({ text: "", tone: "steady" });
   /**
    * SDD-0308 · El documento a pantalla completa.
@@ -280,13 +300,16 @@ export function PackingListFormSection({
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
 
-  const [showHistory, setShowHistory] = useState(false);
+  const [standardRemove, setStandardRemove] = useState<number | null>(null);
+  const standardReturnFocus = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (standardRemove !== null) docRef.current?.querySelector<HTMLButtonElement>("[data-standard-confirm]")?.focus();
+  }, [standardRemove]);
   const [history, setHistory] = useState<HistEntry[]>([]);
   const [copiedWh, setCopiedWh] = useState(false);
   // Bandera: ya restauramos (o decidimos no restaurar) el borrador. Antes de
   // esto NO autoguardamos para no pisar lo guardado con los defaults iniciales.
   const hydrated = useRef(false);
-  const dateInputRef = useRef<HTMLInputElement>(null);
 
   // Snapshot serializable del estado actual (para localStorage + historial).
   const draft = useMemo<Draft>(
@@ -321,6 +344,9 @@ export function PackingListFormSection({
   );
 
   const applyDraft = useCallback((d: Partial<Draft>) => {
+    setRowsRevision(value => value + 1);
+    setDraftRestored(true);
+    setFieldOrigins(previous => ({ ...previous, ...(typeof d.company === "string" ? { company: "draft" as const } : {}), ...(typeof d.wechat === "string" ? { wechat: "draft" as const } : {}) }));
     if (typeof d.folio === "string") setFolio(d.folio);
     if (typeof d.company === "string") setCompany(d.company);
     if (typeof d.email === "string") setEmail(d.email);
@@ -371,15 +397,15 @@ export function PackingListFormSection({
     try {
       localStorage.setItem(packlistDraftKey(token), JSON.stringify(draft));
       setSaveStatus({
-        text: `${tr(lang, "Borrador en este navegador", "Draft in this browser")} · 已保存 ${fmtTs(Date.now())}`,
-        tone: "steady",
+        text: `${uiText("草稿已保存在此设备", "Borrador guardado en este dispositivo", "Draft saved on this device")} · ${fmtTs(Date.now())}`,
+        tone: "steady", kind: "saved", timestamp: Date.now(),
       });
       return true;
     } catch {
-      setSaveStatus({ text: tr(lang, "No se pudo guardar el borrador en este navegador. Mantén esta página abierta.", "Could not save the draft in this browser. Keep this page open."), tone: "steady" });
+      setSaveStatus({ text: uiText("无法在此设备保存草稿。请保持页面打开。", "No se pudo guardar el borrador en este navegador. Mantén esta página abierta.", "Could not save the draft in this browser. Keep this page open."), tone: "steady", kind: "error" });
       return false;
     }
-  }, [token, draft, lang]);
+  }, [token, draft, uiText]);
 
   useEffect(() => {
     if (!hydrated.current) return;
@@ -420,8 +446,8 @@ export function PackingListFormSection({
     if (!persist()) return;
     snapshot(tr(lang, "manual", "manual"));
     setSaveStatus({
-      text: `${tr(lang, "Borrador guardado en este navegador", "Draft saved in this browser")} · 已保存 ${fmtTs(Date.now())}`,
-      tone: "pulse",
+      text: `${uiText("草稿已保存在此设备", "Borrador guardado en este dispositivo", "Draft saved on this device")} · ${fmtTs(Date.now())}`,
+      tone: "pulse", kind: "saved", timestamp: Date.now(),
     });
   }
 
@@ -432,24 +458,14 @@ export function PackingListFormSection({
       // tiene vuelta atrás (otra entrada en el historial).
       snapshot(tr(lang, "antes de restaurar", "before restore") + " / 恢复前");
       applyDraft(parsed);
-      setShowHistory(false);
       setSaveStatus({
-        text: `${tr(lang, "Versión restaurada", "Version restored")} · 已恢复`,
-        tone: "pulse",
+        text: uiText("已恢复草稿版本", "Versión del borrador restaurada", "Draft version restored"),
+        tone: "pulse", kind: "restored",
       });
     } catch {
       /* entrada corrupta → no hacemos nada */
     }
   }
-
-  // Al confirmar el envío llevamos el foco/scroll al panel de éxito.
-  const okRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (submit.kind === "ok" && okRef.current) {
-      okRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-      okRef.current.focus();
-    }
-  }, [submit.kind]);
 
   // Totales — fuente única `computeTotals` (descarta filas vacías y re-suma).
   const { totals } = useMemo(() => computeTotals(rows), [rows]);
@@ -523,7 +539,7 @@ export function PackingListFormSection({
     setFieldErrors({});
     setSubmit({ kind: "sending" });
     try {
-      const res = await fetch(`/p/${token}/packlist`, {
+      const res = await request(`/p/${token}/packlist`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -560,7 +576,8 @@ export function PackingListFormSection({
       }
 
       if (res.ok && data.ok) {
-        router.refresh();
+        // The fixture injects its own transport; no production router refresh there.
+        if (request === fetch) router.refresh();
         setSubmit({
           kind: "ok",
           folio: data.folio ?? null,
@@ -571,34 +588,62 @@ export function PackingListFormSection({
       }
 
       if (res.status === 400 && data.fieldErrors) {
-        setFieldErrors(data.fieldErrors);
+        setFieldErrors({
+          ...(data.fieldErrors.contacto ? { contacto: uiText("请填写微信、电话或邮箱。", "Deja un contacto: WeChat, teléfono o email.", "Leave a contact: WeChat, phone or email.") } : {}),
+          ...(data.fieldErrors.rows ? { rows: uiText("请至少填写一个产品名称。", "Agrega al menos un producto con su nombre.", "Add at least one product with its name.") } : {}),
+          ...(data.fieldErrors.tooMany ? { tooMany: uiText("最多可以填写 500 个产品。", "Puedes incluir hasta 500 productos.", "You can include up to 500 products.") } : {}),
+        });
         setSubmit({
           kind: "error",
-          message:
-            data.error ??
-            "Revisa los datos del packing list. / 请检查装箱单的资料。",
+          reason: "validation",
+          message: uiText("请检查标出的资料，再次提交。", "Revisa los datos señalados y vuelve a enviar.", "Review the highlighted details and send again."),
         });
         return;
       }
 
       setSubmit({
         kind: "error",
-        message:
-          data.error ??
-          "No pudimos enviar tu packing list. Intenta de nuevo. / 提交失败，请稍后再试。",
+        reason: res.status === 429 ? "throttled" : "unconfirmed",
+        message: res.status === 429 ? uiText("提交次数过多，请稍后重试。", "Se hicieron demasiados envíos. Intenta más tarde.", "Too many submissions. Try again later.") : uiText("未能确认文件提交成功。资料仍在此处，请稍后重试或联系 DTD。", "No pudimos confirmar el envío. Conservamos tus datos; intenta más tarde o contacta a DTD.", "We could not confirm submission. Your entries are preserved; try later or contact DTD."),
       });
     } catch {
       setSubmit({
         kind: "error",
-        message:
-          "No pudimos conectar. Revisa tu conexión e intenta de nuevo. / 网络连接失败，请重试。",
+        reason: "network",
+        message: uiText("连接中断，无法确认文件是否收到。资料仍在此处，请先与 DTD 确认再提交。", "Se interrumpió la conexión y no pudimos confirmar la recepción. Conservamos tus datos; confirma con DTD antes de reenviar.", "The connection was interrupted and receipt could not be confirmed. Your entries are preserved; check with DTD before resending."),
       });
     }
   }
 
+  const displayErrors = useMemo<FieldErrors>(() => ({
+    ...(fieldErrors.contacto ? { contacto: uiText("请填写微信、电话或邮箱。", "Deja un contacto: WeChat, teléfono o email.", "Leave a contact: WeChat, phone or email.") } : {}),
+    ...(fieldErrors.rows ? { rows: uiText("请至少填写一个产品名称。", "Agrega al menos un producto con su nombre.", "Add at least one product with its name.") } : {}),
+    ...(fieldErrors.tooMany ? { tooMany: uiText("最多可以填写 500 个产品。", "Puedes incluir hasta 500 productos.", "You can include up to 500 products.") } : {}),
+  }), [fieldErrors, uiText]);
+  const displaySubmit = submit.kind !== "error" ? submit : { ...submit, message:
+    submit.reason === "validation" ? uiText("请检查标出的资料，再次提交。", "Revisa los datos señalados y vuelve a enviar.", "Review the highlighted details and send again.") :
+    submit.reason === "throttled" ? uiText("提交次数过多，请稍后重试。", "Se hicieron demasiados envíos. Intenta más tarde.", "Too many submissions. Try again later.") :
+    submit.reason === "network" ? uiText("连接中断，无法确认文件是否收到。资料仍在此处，请先与 DTD 确认再提交。", "Se interrumpió la conexión y no pudimos confirmar la recepción. Conservamos tus datos; confirma con DTD antes de reenviar.", "The connection was interrupted and receipt could not be confirmed. Your entries are preserved; check with DTD before resending.") :
+    uiText("未能确认文件提交成功。资料仍在此处，请稍后重试或联系 DTD。", "No pudimos confirmar el envío. Conservamos tus datos; intenta más tarde o contacta a DTD.", "We could not confirm submission. Your entries are preserved; try later or contact DTD."),
+  };
   const sending = submit.kind === "sending";
+  const fieldSetters = { company: setCompany, email: setEmail, wechat: setWechat, address: setAddress, city: setCity, folio: setFolio, docDate: setDocDate, currency: setCurrency, note: setNote, lang: setLang };
+  function updateField<K extends keyof GuidedFields>(key: K, value: GuidedFields[K]) {
+    if (key === "company" || key === "wechat") setFieldOrigins(previous => ({ ...previous, [key]: "edited" }));
+    (fieldSetters[key] as (value: GuidedFields[K]) => void)(value);
+  }
+  function removeGroup(index: number) {
+    setRows(previous => {
+      let end = index + 1;
+      while (end < previous.length && previous[end].same) end++;
+      const next = [...previous.slice(0, index), ...previous.slice(end)];
+      return next.length ? next : [emptyRow()];
+    });
+    setExpanded(new Set());
+  }
 
-  return (
+  const standardDocument = (
+    <fieldset disabled={sending} className="min-w-0">
     <section
       ref={docRef}
       className={`pl-doc mt-3 bg-white border border-grey-200 rounded-[16px] p-6 sm:p-7${
@@ -606,185 +651,16 @@ export function PackingListFormSection({
       }`}
       style={{ fontFamily: BRAND_CJK }}
     >
-      {/* ── Barra de herramientas (no imprime) ── */}
-      <div className="no-print flex flex-wrap items-center gap-2">
-        <div className="mr-auto">
-          <div className="text-[15px] font-bold text-ink" lang="zh-CN">
-            装箱单 + 发票{" "}
-            <span lang="es" className="text-grey-500 font-semibold">
-              · {tr(lang, "Packing List + Factura", "Packing List + Invoice")}
-            </span>
-          </div>
-          <div
-            role="status"
-            aria-live="polite"
-            className={`mt-0.5 text-[12px] ${
-              saveStatus.tone === "pulse" ? "text-wine" : "text-grey-700"
-            }`}
-            style={{ fontFamily: MONO_CJK }}
-          >
-            {saveStatus.text}
-          </div>
-        </div>
-
-        {/* Idioma de la columna latina (el ZH SIEMPRE se muestra) → radiogroup. */}
-        <div
-          className="lang-seg"
-          role="radiogroup"
-          aria-label="Idioma de la columna latina · 中文常显"
-        >
-          <button
-            type="button"
-            className={lang === "es" ? "on" : ""}
-            onClick={() => setLang("es")}
-            role="radio"
-            aria-checked={lang === "es"}
-          >
-            ES
-          </button>
-          <button
-            type="button"
-            className={lang === "en" ? "on" : ""}
-            onClick={() => setLang("en")}
-            role="radio"
-            aria-checked={lang === "en"}
-          >
-            EN
-          </button>
-        </div>
-
-        <select
-          aria-label="Moneda / 货币"
-          value={currency}
-          onChange={(e) => setCurrency(e.target.value as PackingListCurrency)}
-          className="h-9 px-2.5 rounded-[8px] bg-white border border-grey-200 outline-none text-[12.5px] font-semibold text-ink focus:border-wine"
-          style={{ fontFamily: MONO_CJK }}
-        >
-          {PACKING_LIST_CURRENCIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-
-        <button type="button" onClick={saveVersion} className="tbtn">
-          <SaveGlyph /> {tr(lang, "Guardar borrador", "Save draft")} / 保存
-        </button>
-        <button
-          type="button"
-          onClick={() => setShowHistory((v) => !v)}
-          className="tbtn"
-          aria-expanded={showHistory}
-        >
-          {tr(lang, "Historial", "History")} / 历史
-        </button>
-        <a href={`/p/${token}/packlist`} download className="tbtn">
-          <DownloadIcon size={14} /> {tr(lang, "Usar Excel", "Use Excel")} / 下载 Excel
-        </a>
-        {/* SDD-0308 · `aria-pressed` y no `aria-expanded`: esto no despliega un
-            panel, cambia el estado del documento. Y el rótulo cambia con el
-            estado — un botón que dice siempre lo mismo no dice qué va a pasar. */}
-        <button
-          type="button"
-          onClick={alternarMaximizado}
-          className="tbtn"
-          aria-pressed={maximizado}
-        >
-          <ExpandGlyph cerrando={maximizado} />{" "}
-          {maximizado
-            ? `${tr(lang, "Salir", "Exit")} / 退出全屏`
-            : `${tr(lang, "Pantalla completa", "Full screen")} / 全屏`}
-        </button>
-        <button type="button" onClick={() => printDocument("packing-list")} className="tbtn">
-          <PrintGlyph /> {tr(lang, "Imprimir documento / PDF", "Print document / PDF")} · 打印文件
-        </button>
+      {standardRemove !== null && <div className="no-print mb-4 rounded-lg border border-grey-300 p-4" role="region" aria-label={uiText("删除箱组", "Eliminar grupo", "Remove group")}>
+        <p>{uiText("删除基础产品将删除整个箱组及其所有产品。", "Al quitar el producto base se elimina todo el grupo y sus productos.", "Removing the base product removes the entire group and its products.")}</p>
+        <button type="button" data-standard-confirm className="btn btn-ghost" onClick={() => { removeGroup(standardRemove); setRowsRevision(v => v + 1); setStandardRemove(null); window.requestAnimationFrame(() => docRef.current?.querySelector<HTMLInputElement>(".c-product input")?.focus()); }}>{uiText("确认删除", "Eliminar grupo completo", "Remove entire group")}</button>
+        <button type="button" className="btn btn-ghost" onClick={() => { setStandardRemove(null); standardReturnFocus.current?.focus(); }}>{uiText("取消", "Cancelar", "Cancel")}</button>
+      </div>}
+      <div className="no-print mb-4"><button type="button" className="btn btn-ghost" aria-pressed={maximizado} onClick={alternarMaximizado}>{maximizado ? uiText("退出全屏", "Salir de pantalla completa", "Exit full screen") : uiText("全屏", "Pantalla completa", "Full screen")}</button></div>
+      <div className="no-print mb-4 grid gap-3 sm:grid-cols-2">
+        <label className="grid gap-2 text-sm font-semibold"><span>{uiText("币种", "Moneda", "Currency")}</span><select className="min-h-12 rounded-lg border border-grey-300 bg-white px-3 text-base text-ink" value={currency} onChange={e => setCurrency(e.target.value as PackingListCurrency)}>{PACKING_LIST_CURRENCIES.map(value => <option key={value}>{value}</option>)}</select></label>
+        <label className="grid gap-2 text-sm font-semibold"><span>{uiText("打印文件的第二语言", "Segundo idioma del documento impreso", "Second language of printed document")}</span><select className="min-h-12 rounded-lg border border-grey-300 bg-white px-3 text-base text-ink" value={lang} onChange={e => setLang(e.target.value as Lang)}><option value="es">中文 + Español</option><option value="en">中文 + English</option></select></label>
       </div>
-
-      <p className="no-print mt-4 text-sm text-grey-700">
-        在输入框内填写，合计自动计算。草稿仅保存在此浏览器；点击“提交”发送。
-        <span className="block">{tr(lang, "Escribe en los campos con borde. Los totales se calculan solos. Guardar borrador no envía el documento: usa Enviar documento a DTD al terminar.", "Fill the bordered fields. Totals are calculated automatically. Saving a draft does not submit it: use Send document to DTD when ready.")}</span>
-      </p>
-      {/* Panel de historial (no imprime) */}
-      {showHistory && (
-        <div className="no-print mt-3 rounded-[12px] border border-grey-200 bg-grey-100 p-3">
-          <div className="text-[12px] font-bold text-ink">
-            {tr(lang, "Versiones guardadas", "Saved versions")} · 历史版本 ({history.length})
-          </div>
-          {history.length === 0 ? (
-            <p className="mt-2 text-[12px] text-grey-500">
-              {tr(lang, "Sin versiones aún", "No versions yet")} · 暂无
-            </p>
-          ) : (
-            <ul className="mt-2 flex flex-col gap-1">
-              {history.map((h, i) => (
-                <li
-                  key={`${h.t}-${i}`}
-                  className="flex items-center justify-between gap-3 rounded-[8px] px-2 py-1.5 text-[12px] text-grey-700"
-                >
-                  <span style={{ fontFamily: MONO_CJK }}>
-                    {fmtTs(h.t)}
-                    {h.label ? ` · ${h.label}` : ""}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => restore(h)}
-                    className="pl-hist-restore text-[11px] font-bold text-wine rounded-[6px] border border-grey-200 bg-white px-2.5 py-1 hover:bg-grey-100"
-                  >
-                    {tr(lang, "Restaurar", "Restore")}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {submit.kind === "ok" && (
-        <div
-          ref={okRef}
-          tabIndex={-1}
-          role="status"
-          aria-live="polite"
-          className="no-print mt-5 rounded-[12px] border border-grey-200 bg-grey-100 p-5 outline-none"
-        >
-          <div className="flex items-center gap-2 text-[14px] font-bold text-ink">
-            <CheckIcon size={16} />
-            <span lang="zh-CN">
-              已提交 ·{" "}
-              <span lang="es" className="font-semibold">
-                {tr(lang, "Enviado", "Sent")}
-              </span>
-            </span>
-          </div>
-          {submit.labelsNeedReview && <p className="mt-3 text-grey-700">箱数与标签不同，请联系仓库核对。 · La cantidad del documento no coincide con las etiquetas actuales. Contacta al almacén para reconciliar las cajas; puedes abrir e imprimir las etiquetas disponibles.</p>}
-          {submit.folio && (
-            <div
-              className="mt-2 text-[13px] text-grey-700"
-              style={{ fontFamily: MONO_CJK }}
-            >
-              Folio: {submit.folio}
-              {submit.versionNo > 1 ? ` · v${submit.versionNo}` : ""}
-            </div>
-          )}
-          <p className="mt-2 text-[12.5px] text-grey-700 leading-[1.55]" lang="zh-CN">
-            可多次修改并重新提交
-            <span lang="es" className="block text-grey-500 mt-1">
-              {tr(
-                lang,
-                "Puedes corregir y reenviar las veces que necesites.",
-                "You can fix it and resend as many times as you need.",
-              )}
-            </span>
-          </p>
-          <button
-            type="button"
-            onClick={() => setSubmit({ kind: "idle" })}
-            className="btn btn-ghost mt-4"
-          >
-            修改 · {tr(lang, "Corregir / reenviar", "Edit / resend")}
-          </button>
-        </div>
-      )}
       <div className={submit.kind === "ok" ? "pl-submitted-body" : undefined}>
           {/* ── Encabezado del documento: identidad CN + teléfonos + folio ── */}
           <header className="pl-head mt-5">
@@ -836,7 +712,7 @@ export function PackingListFormSection({
                 labelZh="公司/个人名称"
                 labelLat={tr(lang, "Empresa / Persona", "Company / Person")}
                 value={company}
-                onChange={setCompany}
+                onChange={value => updateField("company", value)}
                 placeholder={tr(lang, "公司名称 / Empresa", "公司名称 / Company")}
                 autoComplete="organization"
               />
@@ -853,7 +729,7 @@ export function PackingListFormSection({
                 labelZh="电话/微信"
                 labelLat="Tel / WeChat"
                 value={wechat}
-                onChange={setWechat}
+                onChange={value => updateField("wechat", value)}
                 placeholder="+86 138... / WeChat"
                 autoComplete="off"
               />
@@ -900,28 +776,11 @@ export function PackingListFormSection({
                   <span className="pl-date-cn" lang="zh-CN">
                     {renderDateCN(docDate)}
                   </span>
-                  <button
-                    type="button"
-                    className="pl-datebtn"
-                    onClick={() => {
-                      const el = dateInputRef.current;
-                      if (!el) return;
-                      try {
-                        el.showPicker();
-                      } catch {
-                        el.focus();
-                      }
-                    }}
-                    aria-label={tr(lang, "Elegir fecha", "Pick date")}
-                  >
-                    <CalendarGlyph />
-                  </button>
                   <input
-                    ref={dateInputRef}
                     type="date"
                     value={docDate}
                     onChange={(e) => setDocDate(e.target.value)}
-                    className="pl-date-hidden"
+                    className="pl-date-input no-print"
                     aria-label={tr(lang, "Fecha", "Date")}
                   />
                 </div>
@@ -935,15 +794,15 @@ export function PackingListFormSection({
             <span lang="es">{tr(lang, "Detalle de mercancía", "Goods detail")}</span>
           </div>
           <p className="no-print mt-2 text-sm text-grey-700">不知道 HS 编码时，请说明材质并联系仓库确认，不要猜测。 · Si desconoces el código HS, describe el material y pide confirmación al almacén; no inventes el código.</p>
-          <div className="mt-1.5 overflow-x-auto rounded-[12px] border border-grey-200">
-            <table className="relative w-full border-collapse" style={{ minWidth: 1000 }}>
+          <div role="region" aria-label={uiText("产品表，可左右滚动", "Tabla de productos; desplázate horizontalmente para ver todas las columnas", "Product table; scroll horizontally to see all columns")} tabIndex={0} className="mt-1.5 max-w-full overflow-x-auto rounded-[12px] border border-grey-200 focus-visible:outline-2 focus-visible:outline-wine-text">
+            <table aria-label={uiText("标准格式产品", "Productos del formato estándar", "Standard format products")} className="relative w-full border-collapse" style={{ minWidth: 1000 }}>
               <thead>
                 <tr>
                   <Th className="c-idx">#</Th>
-                  <Th className="c-mk" zh="品牌" lat={tr(lang, "Marca", "Brand")} />
-                  <Th zh="货号" lat={tr(lang, "Código", "Code")} />
-                  <Th zh="中文品名" lat={tr(lang, "Nombre 中文", "Name 中文")} />
-                  <Th zh="英文品名" lat={tr(lang, "Nombre ES", "Name EN")} />
+                  <Th className="c-product" zh="产品" lat={tr(lang, "Producto", "Product")} />
+                  <Th zh="货号" lat={tr(lang, "Código de producto", "Product code")} />
+                  <Th zh="品牌" lat={tr(lang, "Marca", "Brand")} />
+                  <Th zh="其他语言品名" lat={tr(lang, "Otro idioma", "Other language")} />
                   <Th zh="材质 / HS" lat="Material / HS" />
                   <Th zh="箱号" lat={tr(lang, "Nº caja", "Carton no.")} />
                   <Th zh="件数" lat={tr(lang, "Cajas", "Cartons")} />
@@ -966,11 +825,8 @@ export function PackingListFormSection({
                   const hidden = isChild && !expanded.has(lead);
                   const kids = isChild ? 0 : childCountOf(rows, i);
                   const c = calcRow(r); // computados de ESTA fila (display)
-                  // Líder: qty/amount = sumatorio del grupo (líder + hijos `same`).
-                  const gsum = isChild ? null : groupSum(rows, i);
-                  // Filas vacías muestran em-dash en las celdas calc (display); un
-                  // líder con hijos que aportan cantidad NO se considera vacío.
-                  const blank = rowIsBlank(r) && (gsum ? gsum.q === 0 : true);
+                  // Each invoice line shows only its product; the footer sums the full group.
+                  const blank = rowIsBlank(r);
                   const dash = "—";
                   const offTitle = "Va en la fila líder de la caja / 填在本箱首行";
                   return (
@@ -1009,35 +865,17 @@ export function PackingListFormSection({
                           </>
                         )}
                       </td>
-                      <Td className="c-mk">
-                        <CellInput
-                          ariaLabel={`Marca, fila ${i + 1}`}
-                          value={r.brand ?? ""}
-                          onChange={(v) => setRow(i, "brand", v)}
-                        />
+                      <Td className="c-product">
+                        <CellInput zh={locale === "zh"} ariaLabel={uiText("产品", "Producto", "Product") + ", " + (i + 1)}
+                          value={(locale === "zh" ? r.zh : r.es) ?? ""} onChange={v => setRow(i, locale === "zh" ? "zh" : "es", v)} />
+                        <span lang="zh-CN" className="pl-print-product-name">{r.zh}</span>
                       </Td>
-                      <Td>
-                        <CellInput
-                          mono
-                          ariaLabel={`Código, fila ${i + 1}`}
-                          value={r.code ?? ""}
-                          onChange={(v) => setRow(i, "code", v)}
-                        />
-                      </Td>
-                      <Td>
-                        <CellInput
-                          zh
-                          ariaLabel={`Nombre 中文, fila ${i + 1}`}
-                          value={r.zh ?? ""}
-                          onChange={(v) => setRow(i, "zh", v)}
-                        />
-                      </Td>
-                      <Td>
-                        <CellInput
-                          ariaLabel={`Nombre ES, fila ${i + 1}`}
-                          value={r.es ?? ""}
-                          onChange={(v) => setRow(i, "es", v)}
-                        />
+                      <Td><CellInput mono ariaLabel={uiText("货号", "Código de producto", "Product code") + ", " + (i + 1)} value={r.code ?? ""} onChange={v => setRow(i, "code", v)} /></Td>
+                      <Td><CellInput ariaLabel={uiText("品牌", "Marca", "Brand") + ", " + (i + 1)} value={r.brand ?? ""} onChange={v => setRow(i, "brand", v)} /></Td>
+                      <Td className="c-other-name">
+                        <CellInput zh={locale !== "zh"} ariaLabel={uiText("西文品名", "Nombre en chino", "Chinese name") + ", " + (i + 1)}
+                          value={(locale === "zh" ? r.es : r.zh) ?? ""} onChange={v => setRow(i, locale === "zh" ? "es" : "zh", v)} />
+                        <span lang={lang} className="pl-print-product-name">{r.es}</span>
                       </Td>
                       <Td>
                         <CellInput
@@ -1076,7 +914,7 @@ export function PackingListFormSection({
                           />
                         )}
                       </Td>
-                      {/* Total uds: hijo = input qtyDirect editable; líder = sumatorio del grupo. */}
+                      {/* Total uds: same edits qtyDirect; the base shows only its own product quantity. */}
                       {isChild ? (
                         <Td>
                           <CellInput
@@ -1089,7 +927,7 @@ export function PackingListFormSection({
                       ) : (
                         <CalcTd
                           label={tr(lang, "Total uds", "Total PCS")}
-                          value={blank ? dash : fmtInt(gsum?.q ?? 0)}
+                          value={blank ? dash : fmtInt(c.qty)}
                         />
                       )}
                       <Td>
@@ -1100,7 +938,7 @@ export function PackingListFormSection({
                           onChange={(v) => setRow(i, "unit", v)}
                         />
                       </Td>
-                      {/* Total: hijo = su propio importe; líder = sumatorio del grupo. */}
+                      {/* Product amount must never include the other invoice lines in the group. */}
                       <CalcTd
                         label={`Total ${currency}`}
                         value={
@@ -1108,7 +946,7 @@ export function PackingListFormSection({
                             ? fmtMoney(c.amount)
                             : blank
                               ? dash
-                              : fmtMoney(gsum?.a ?? 0)
+                              : fmtMoney(c.amount)
                         }
                       />
                       <Td>
@@ -1147,7 +985,8 @@ export function PackingListFormSection({
                       <td className="c-act">
                         <button
                           type="button"
-                          onClick={() => addChild(i)}
+                          disabled={rows.length >= 500}
+                          onClick={() => { addChild(i); setRowsRevision(v => v + 1); }}
                           className="rowadd no-print"
                           aria-label={`Agregar ítem en la caja de la fila ${i + 1} / 同箱加货`}
                           title="Agregar ítem en esta caja / 同箱加货"
@@ -1156,7 +995,7 @@ export function PackingListFormSection({
                         </button>
                         <button
                           type="button"
-                          onClick={() => removeRow(i)}
+                          onClick={event => { if (isChild) { removeRow(i); setRowsRevision(v => v + 1); } else { standardReturnFocus.current = event.currentTarget; setStandardRemove(i); } }}
                           className="rowdel no-print"
                           aria-label={`Quitar fila ${i + 1} / 删除行`}
                           title="Quitar fila / 删除行"
@@ -1242,10 +1081,10 @@ export function PackingListFormSection({
 
           {/* Agregar / quitar filas */}
           <div className="no-print mt-3 flex flex-wrap gap-2">
-            <button type="button" onClick={() => addRows(1)} className="addbtn">
+            <button type="button" disabled={rows.length >= 500} onClick={() => { addRows(1); setRowsRevision(v => v + 1); }} className="addbtn">
               + 1 {tr(lang, "fila", "row")} / 加一行
             </button>
-            <button type="button" onClick={() => addRows(5)} className="addbtn">
+            <button type="button" disabled={rows.length > 495} onClick={() => { addRows(5); setRowsRevision(v => v + 1); }} className="addbtn">
               + 5 {tr(lang, "filas", "rows")} / 加五行
             </button>
           </div>
@@ -1257,6 +1096,7 @@ export function PackingListFormSection({
               <span lang="es"> · {tr(lang, "Nota (opcional)", "Note (optional)")}</span>
             </label>
             <textarea
+              aria-label={uiText("备注（选填）", "Observaciones (opcional)", "Notes (optional)")}
               value={note}
               onChange={(e) => setNote(e.target.value)}
               rows={2}
@@ -1265,54 +1105,6 @@ export function PackingListFormSection({
               className="px-3 py-2 rounded-[8px] bg-white border border-grey-200 outline-none text-[13px] text-ink leading-[1.5] focus:border-wine resize-y"
             />
           </div>
-
-          {/* Errores + envío (anunciados a lectores de pantalla) */}
-          <div role="status" aria-live="polite" className="no-print">
-            {(fieldErrors.rows || fieldErrors.contacto || fieldErrors.tooMany) && (
-              <ul className="mt-4 list-disc border-l-2 border-status-danger pl-5 text-[12.5px] leading-[1.55] text-ink">
-                {fieldErrors.rows && (
-                  <li>
-                    <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
-                    {fieldErrors.rows}
-                  </li>
-                )}
-                {fieldErrors.contacto && (
-                  <li>
-                    <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
-                    {fieldErrors.contacto}
-                  </li>
-                )}
-                {fieldErrors.tooMany && (
-                  <li>
-                    <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
-                    {fieldErrors.tooMany}
-                  </li>
-                )}
-              </ul>
-            )}
-            {submit.kind === "error" &&
-              !fieldErrors.rows &&
-              !fieldErrors.contacto &&
-              !fieldErrors.tooMany && (
-                <p className="mt-4 border-l-2 border-status-danger pl-3 text-[12.5px] leading-[1.55] text-ink">
-                  <StatusIcon tone="danger" size={14} style={{ color: "var(--color-status-danger)", display: "inline-block", verticalAlign: "text-bottom", marginInlineEnd: "var(--spacing)" }} />
-                  {submit.message}
-                </p>
-              )}
-          </div>
-
-          {/* Honeypot: viaja en el body del POST (`empresa_web: ""`), no en el DOM. */}
-
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={sending}
-            className="btn btn-primary no-print mt-5 inline-flex items-center gap-2 disabled:opacity-60"
-          >
-            {sending
-              ? "提交中… · " + tr(lang, "Enviando…", "Sending…")
-              : "提交 · " + tr(lang, "Enviar documento a DTD", "Send document to DTD")}
-          </button>
 
           {/* ── Reglas de ingreso a bodega (trilingüe, parte del documento) ── */}
           <section className="pl-rules mt-6">
@@ -1534,7 +1326,7 @@ export function PackingListFormSection({
           color: var(--color-ink); padding: 2px; display: inline-flex; margin-left: auto;
         }
         .pl-datebtn svg { width: 17px; height: 17px; }
-        .pl-date-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+        .pl-date-input { width: 100%; min-width: 0; }
 
         /* ── Goods table ── */
         .pl-sect-t {
@@ -1770,10 +1562,44 @@ export function PackingListFormSection({
           .pl-doc td.calc, .pl-doc input[readonly] { background: var(--color-grey-100); color: var(--color-grey-700); }
           .pl-doc button:hover, .pl-doc a.tbtn:hover { background: var(--color-grey-100); color: var(--color-ink); }
           .pl-doc :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
-          .pl-doc button:disabled { cursor: wait; }
+          .pl-doc button:disabled { cursor: not-allowed; }
+          .pl-doc .pl-print-product-name { display: none; }
+          .pl-doc .pl-date-cn { display: none; }
+          .pl-doc :is(input, textarea, select) { min-height: 48px; font-size: 16px; }
+          .pl-doc :is(button, .addbtn, .grpTog) { min-height: 44px; min-width: 44px; }
+          .pl-doc .pl-cell { min-width: 100px; }
+          .pl-doc .c-product .pl-cell { min-width: 170px; }
+          .pl-doc .pl-headmeta { overflow-wrap: anywhere; }
+          .pl-doc .pl-il { color: var(--color-grey-700); font-size: 12px; }
+          .pl-doc .pl-ighead { font-size: 12px; line-height: 1.4; }
+          .pl-doc :is(.pl-ighead, .pl-sect-t, .pl-rules-head) { color: var(--color-ink); }
+        }
+        @media screen and (max-width: 640px) {
+          .pl-doc { padding: 16px; min-width: 0; }
+          .pl-doc .pl-info2 { grid-template-columns: minmax(0,1fr); }
+          .pl-doc .pl-irow-addr { flex-wrap: wrap; }
+          .pl-doc .pl-irow-addr input { flex: 1 1 60%; }
+        }
+        @media print {
+          .pl-doc .c-product .pl-cell, .pl-doc .c-other-name .pl-cell { display: none !important; }
+          .pl-doc .pl-print-product-name { display: block !important; }
         }
       `}</style>
     </section>
+    </fieldset>
+  );
+  return (<>
+    <PackingListGuidedForm locale={locale} code={code} mark={printMarkbox(mark)} fieldOrigins={fieldOrigins} draftRestored={draftRestored}
+      fields={{ company, email, wechat, address, city, folio, docDate, currency, note, lang }}
+      onField={updateField} rowsRevision={rowsRevision} rows={rows} setRow={setRow} addGroup={() => addRows(1)}
+      addProduct={addChild} removeProduct={removeRow} removeGroup={removeGroup}
+      submit={displaySubmit} onSubmit={handleSubmit} onEdit={() => setSubmit({ kind: "idle" })}
+      errors={displayErrors} saveIsManual={saveStatus.tone === "pulse"} saveFailed={saveStatus.kind === "error"} saveStatus={saveStatus.kind === "error" ? uiText("无法在此设备保存草稿。请保持页面打开。", "No se pudo guardar el borrador en este navegador. Mantén esta página abierta.", "Could not save the draft in this browser. Keep this page open.") : saveStatus.kind === "saved" ? `${uiText("草稿已保存在此设备", "Borrador guardado en este dispositivo", "Draft saved on this device")} · ${fmtTs(saveStatus.timestamp!)} ` : saveStatus.kind === "restored" ? uiText("已恢复草稿版本", "Versión del borrador restaurada", "Draft version restored") : ""} onSave={saveVersion}
+      history={history} onRestore={restore} attachments={attachments} attachmentsSummary={attachmentsSummary} delivery={delivery}
+      onPrintLabels={onPrintLabels} onPreview={() => setDocumentOpen(true)} excelHref={excelHref} standardDocument={standardDocument} onCaptureChange={() => setStandardRemove(null)} />
+    {documentOpen && <PackingListDocumentPreview fields={{ company, email, wechat, address, city, folio, docDate, currency, note, lang }} rows={rows} mark={printMarkbox(mark)} code={code} locale={locale} onClose={() => setDocumentOpen(false)} />}
+
+    </>
   );
 }
 
@@ -1840,21 +1666,6 @@ function leadOf(rows: PackingListRowInput[], i: number): number {
   let k = i;
   while (k > 0 && rows[k] && rows[k].same === true) k--;
   return k;
-}
-
-/** Suma del grupo (líder + sus hijos `same` consecutivos): qty + amount. */
-function groupSum(rows: PackingListRowInput[], lead: number): { q: number; a: number } {
-  const c0 = calcRow(rows[lead]);
-  let q = c0.qty;
-  let a = c0.amount;
-  let j = lead + 1;
-  while (j < rows.length && rows[j]?.same === true) {
-    const c = calcRow(rows[j]);
-    q += c.qty;
-    a += c.amount;
-    j++;
-  }
-  return { q, a };
 }
 
 /** Nº de hijos `same` consecutivos que cuelgan del líder en `i` (0 si no es líder). */
@@ -2066,46 +1877,5 @@ function CellInput({
       inputMode={num ? "decimal" : undefined}
       lang={zh ? "zh-CN" : undefined}
     />
-  );
-}
-
-// Glifos inline propios del editor (no están en components/Icon).
-function SaveGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-      <path d="M17 21v-8H7v8M7 3v5h8" />
-    </svg>
-  );
-}
-function PrintGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <path d="M7 10l5 5 5-5M12 15V3" />
-    </svg>
-  );
-}
-/**
- * SDD-0308 · Flechas hacia afuera para expandir, hacia adentro para salir. El
- * ícono acompaña al rótulo, que es el que comunica — nunca va solo.
- */
-function ExpandGlyph({ cerrando }: { cerrando: boolean }) {
-  return (
-    <svg viewBox="0 0 24 24" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      {cerrando ? (
-        <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" />
-      ) : (
-        <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-      )}
-    </svg>
-  );
-}
-function CalendarGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" width={17} height={17} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="3" y="4" width="18" height="18" rx="2" />
-      <path d="M16 2v4M8 2v4M3 10h18" />
-    </svg>
   );
 }

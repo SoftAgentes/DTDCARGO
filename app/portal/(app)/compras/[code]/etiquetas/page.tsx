@@ -143,16 +143,7 @@ export default async function PortalLabelsPage({
 
       {prealerta.share_token && (
         <div className="mt-8 print:hidden card-shadow bg-white border border-grey-200 rounded-[16px] p-6">
-          <div className="text-[15px] font-bold text-ink">
-            Enlace para tu proveedor
-          </div>
-          <p className="mt-1.5 text-[13px] text-grey-700 leading-[1.5] max-w-[60ch]">
-            Pégalo en el chat con tu proveedor. Ahí llena la factura y el
-            packing list, e imprime estas etiquetas.
-          </p>
-          <div className="mt-4">
-            <ShareProviderButton token={prealerta.share_token} />
-          </div>
+          <ShareProviderButton token={prealerta.share_token} />
         </div>
       )}
 
