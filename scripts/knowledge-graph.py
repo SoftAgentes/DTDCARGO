@@ -199,6 +199,7 @@ def inspect(root, prompt):
     nodes = NodeIndex(root)
     sources = set()
     ast_sources = set()
+    source_node_ids = {}
     missing_sources = []
     for node in graph.get("nodes", []):
         if not isinstance(node, dict) or not isinstance(node.get("id"), str) or not node["id"]:
@@ -211,6 +212,7 @@ def inspect(root, prompt):
             name = local_path(node["source_file"], root)
             if name:
                 sources.add(name)
+                source_node_ids.setdefault(name, set()).add(node["id"])
                 if node.get("_origin") == "ast":
                     ast_sources.add(name)
             else:
@@ -221,15 +223,20 @@ def inspect(root, prompt):
         issues.append({"code": "invalid_edges", "severity": "error"})
     loops = 0
     dangling = 0
+    import_target_ids = set()
+    relation_sources = set()
     for edge in edges:
         if not isinstance(edge, dict) or not isinstance(edge.get("source"), str) or not isinstance(edge.get("target"), str) or edge.get("source") not in nodes or edge.get("target") not in nodes:
             dangling += 1
             continue
         loops += edge["source"] == edge["target"]
+        if edge.get("_origin") == "ast" and edge.get("relation") in {"import", "dynamic_import"}:
+            import_target_ids.add(edge["target"])
         if edge.get("source_file"):
             name = local_path(edge["source_file"], root)
             if name:
                 sources.add(name)
+                relation_sources.add(name)
                 if edge.get("_origin") == "semantic" or (edge.get("_origin") is None and any(nodes[item].get("_origin") == "semantic" for item in (edge["source"], edge["target"]))):
                     nodes.relations.setdefault(name, []).append(edge)
             else:
@@ -258,10 +265,21 @@ def inspect(root, prompt):
         issues.append({"code": "graph_external_sources", "severity": "error", "sources": sorted(set(missing_sources))})
     if not nodes:
         issues.append({"code": "graph_empty", "severity": "error"})
-    state["graphSourcePaths"] = sorted(sources)
+    # An AST import target can have a source_file that is the *specifier* rather
+    # than an indexed repository file (react, node:..., or a test fixture).
+    # Preserve the reference as an explicit warning; do not call it a deleted
+    # document. A real deleted/excluded source still has a manifest row, a
+    # non-import node, or a relation anchored in that source.
+    virtual_imports = sorted(name for name in sources - set(manifest) - set(state["files"])
+                             if not (root / name).exists() and name not in relation_sources
+                             and source_node_ids.get(name) and source_node_ids[name] <= import_target_ids
+                             and all(nodes[item].get("_origin") == "ast" for item in source_node_ids[name]))
+    if virtual_imports:
+        issues.append({"code": "graph_virtual_import_targets", "severity": "warning", "sources": virtual_imports})
+    state["graphSourcePaths"] = sorted(sources - set(virtual_imports))
     state["counts"] = {"files": len(state["files"]), "nodes": len(nodes), "edges": len(edges),
                        "skippedSensitive": len(detected.get("skipped_sensitive", []))}
-    absent = sorted((set(manifest) | sources) - set(state["files"]))
+    absent = sorted(((set(manifest) | sources) - set(virtual_imports)) - set(state["files"]))
     deleted = [name for name in absent if not (root / name).exists()]
     excluded = [name for name in absent if (root / name).exists()]
     structural_names = [name for name, row in state["files"].items() if row["type"] in {"code", "document"}]

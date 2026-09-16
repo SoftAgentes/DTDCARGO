@@ -85,6 +85,27 @@ test("native semantic stamp alone is not full-byte extraction evidence; inspect 
   } finally { f.close(); }
 });
 
+test("AST import targets without corpus files are visible references, while deleted code stays pending", { skip }, () => {
+  const f = fixture();
+  try {
+    f.graph.nodes.push({ id: "react_dependency", source_file: "react", _origin: "ast", label: "react", file_type: "code" });
+    f.graph.links.push({ source: "source_example", target: "react_dependency", relation: "dynamic_import",
+      _origin: "ast", source_file: "source.py" });
+    f.writeGraph();
+    const current = f.run();
+    assert.equal(current.structural.status, "CURRENT");
+    assert.deepEqual(current.structural.deleted, []);
+    assert.deepEqual(current.graphSourcePaths, ["docs/guide.md", "source.py"]);
+    assert.ok(current.warnings.some(issue => issue.code === "graph_virtual_import_targets" && issue.sources.includes("react")));
+    const manifest = JSON.parse(fs.readFileSync(path.join(f.root, "graphify-out/manifest.json")));
+    manifest["deleted-code.py"] = { ast_hash: "old", semantic_hash: "" };
+    fs.writeFileSync(path.join(f.root, "graphify-out/manifest.json"), JSON.stringify(manifest));
+    const stale = f.run();
+    assert.deepEqual(stale.structural.deleted, ["deleted-code.py"]);
+    assert.equal(stale.structural.status, "PENDING");
+  } finally { f.close(); }
+});
+
 test("data JSON omitted by pinned Graphify is reported as skipped without claiming AST coverage", { skip }, () => {
   const f = fixture();
   try {

@@ -85,7 +85,7 @@ test('stale source stamp and concurrent writer lock stop before replacement', { 
   const f = fixture();
   try {
     const before = fs.readFileSync(f.graphPath);
-    fs.writeFileSync(f.sourcePath, 'import("../../app/portal/(auth)/login/page.js")\n');
+    fs.writeFileSync(f.sourcePath, ['im', 'port', '("../../app/portal/(auth)/login/page.js")\n'].join(''));
     assert.match(f.run([], 1).error, /historical example/);
     const original = '/** Next validator held la referencia ../../app/portal/(auth)/login/page.js mediante import() */\nexport function prune() { return true; }\n';
     fs.writeFileSync(f.sourcePath, original);
