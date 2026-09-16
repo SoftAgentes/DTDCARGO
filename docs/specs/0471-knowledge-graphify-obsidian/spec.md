@@ -4,7 +4,7 @@ title: "Conocimiento verificable con Director, Graphify, Archify y Obsidian"
 status: in-progress
 author: "Codex"
 created: 2026-09-15
-updated: 2026-09-15
+updated: 2026-09-16
 supersedes: null
 superseded_by: null
 related: ["0464"]
@@ -62,6 +62,8 @@ desde main, el recorrido de una decisión autorizada y la revisión de legibilid
    showcase, verificar legibilidad de escritorio y detectar fuentes/artefactos obsoletos.
 10. Índice, mapa JSON y manifest muestran a la vez cobertura piloto y global; la global no aparece CURRENT mientras
     existan fuentes pendientes fuera del alcance.
+11. Una preview PENDING declara que todavía no certifica el piloto; intercambiar qué documentos globales están
+    VERIFIED/PENDING invalida el manifest aunque los contadores permanezcan iguales.
 
 ## Implementación y prueba
 

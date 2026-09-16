@@ -16,6 +16,7 @@ const graph={version:'0.9.61',structural:{status:'CURRENT'},semantic:{status:'PE
 
 test('production policy fixes the current semantic pilot to the 16 reviewed canonical sources',()=>{
  assert.equal(pilotDocuments.length,16);
+ assert.equal(policy.semanticPilot.label,'16 fuentes canónicas del piloto');
  assert.deepEqual(pilotDocuments,[
   '.agents/handoffs/2026-09-15-knowledge-graphify-obsidian.md','.agents/skills/director/SKILL.md','.agents/skills/worker/SKILL.md',
   'AGENTS.md','README.md','docs/README.md','docs/architecture/README.md','docs/architecture/knowledge-lifecycle.md',
@@ -30,8 +31,24 @@ test('16/16 pilot permits publication while global coverage stays visibly pendin
  const coverage=semanticCoverage(repo,graph,policy);
  assert.deepEqual({status:coverage.pilot.status,verified:coverage.pilot.verifiedCount,total:coverage.pilot.targetCount},{status:'CURRENT',verified:16,total:16});
  assert.deepEqual({status:coverage.global.status,verified:coverage.global.verifiedCount,total:coverage.global.totalCount,pending:coverage.global.pendingCount},{status:'PENDING',verified:16,total:17,pending:1});
+ assert.match(coverage.global.stateHash,/^[a-f0-9]{64}$/);
  assert.deepEqual(publicationProblems(repo,graph,policy,coverage),[]);
  assert.match(publicationWarnings(repo,graph,policy,coverage)[0],/^SEMANTIC_GLOBAL_PENDING: 16\/17/);
+});
+
+test('outside-pilot status swaps preserve counters but change the stable global state hash',()=>{
+ const outsideA='docs/specs/outside-a/spec.md', outsideB='docs/specs/outside-b/spec.md';
+ const swapRepo={...repo,sourcePaths:[...pilotDocuments,outsideA,outsideB]};
+ const files=Object.fromEntries([...pilotDocuments,outsideA,outsideB].map((relative)=>[relative,{sha256:sha256(relative)}]));
+ const firstGraph={...graph,files,semantic:{status:'PENDING',verified:[...pilotDocuments,outsideA],pending:[outsideB],pendingReasons:{[outsideB]:'native_semantic_missing_or_changed'}}};
+ const secondGraph={...graph,files,semantic:{status:'PENDING',verified:[...pilotDocuments,outsideB],pending:[outsideA],pendingReasons:{[outsideA]:'native_semantic_missing_or_changed'}}};
+ const first=semanticCoverage(swapRepo,firstGraph,policy), second=semanticCoverage(swapRepo,secondGraph,policy);
+ assert.deepEqual(
+  {status:first.global.status,total:first.global.totalCount,verified:first.global.verifiedCount,pending:first.global.pendingCount},
+  {status:second.global.status,total:second.global.totalCount,verified:second.global.verifiedCount,pending:second.global.pendingCount}
+ );
+ assert.match(first.global.stateHash,/^[a-f0-9]{64}$/);
+ assert.notEqual(first.global.stateHash,second.global.stateHash);
 });
 
 test('15/16, missing and renamed pilot sources block the scoped semantic gate',()=>{

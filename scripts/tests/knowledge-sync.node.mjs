@@ -47,24 +47,28 @@ function fixture(t) {
   fs.writeFileSync(path.join(root, 'source.py'), 'def fixture_example():\n    return 1\n');
   fs.writeFileSync(path.join(root, 'README.md'), '---\nstatus: approved\n---\n# Synthetic integration fixture\n\nOne verified fixture decision.\n\n[Missing fixture reference](missing-fixture.md)\n');
   fs.mkdirSync(path.join(root, 'docs/architecture'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'docs/architecture/outside.md'), '# Outside pilot\n\nVisible global pending source.\n');
+  fs.writeFileSync(path.join(root, 'docs/architecture/outside.md'), '# Outside pilot A\n\nVisible global pending source A.\n');
+  fs.writeFileSync(path.join(root, 'docs/architecture/outside-b.md'), '# Outside pilot B\n\nVisible global pending source B.\n');
   const gitAt = (directory, ...args) => execFileSync('git', ['-C', directory, ...args], { encoding: 'utf8', windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const git = (...args) => gitAt(root, ...args);
   git('init', '-b', 'main'); git('config', 'user.name', 'Knowledge Fixture'); git('config', 'user.email', 'fixture@example.invalid');
-  git('add', 'README.md', 'docs/architecture/outside.md', 'source.py', '.gitignore', '.graphifyignore', 'scripts/knowledge-policy.json', ...implementation.map((relative) => 'scripts/' + relative));
+  git('add', 'README.md', 'docs/architecture/outside.md', 'docs/architecture/outside-b.md', 'source.py', '.gitignore', '.graphifyignore', 'scripts/knowledge-policy.json', ...implementation.map((relative) => 'scripts/' + relative));
   git('commit', '-m', 'test fixture: canonical knowledge sources');
   git('remote', 'add', 'origin', 'https://github.com/example/knowledge-fixture');
   git('update-ref', 'refs/remotes/origin/main', 'HEAD'); // Local fixture ref; no fetch/push.
   const graph = { directed: false, nodes: [
     { id: 'fixture_source_example', label: 'fixture example', source_file: 'source.py', _origin: 'ast', file_type: 'code' },
     { id: 'fixture_readme_heading', label: 'Synthetic integration fixture', source_file: 'README.md', _origin: 'ast', file_type: 'document' },
-    { id: 'fixture_outside_heading', label: 'Outside pilot', source_file: 'docs/architecture/outside.md', _origin: 'ast', file_type: 'document' },
+    { id: 'fixture_outside_heading', label: 'Outside pilot A', source_file: 'docs/architecture/outside.md', _origin: 'ast', file_type: 'document' },
+    { id: 'fixture_outside_b_heading', label: 'Outside pilot B', source_file: 'docs/architecture/outside-b.md', _origin: 'ast', file_type: 'document' },
     { id: 'fixture_readme_decision', label: 'One verified fixture decision', source_file: 'README.md', source_location: 'L7', _origin: 'semantic', file_type: 'document' },
+    { id: 'fixture_outside_decision', label: 'Visible global pending source A', source_file: 'docs/architecture/outside.md', source_location: 'L3', _origin: 'semantic', file_type: 'document' },
+    { id: 'fixture_outside_b_decision', label: 'Visible global pending source B', source_file: 'docs/architecture/outside-b.md', source_location: 'L3', _origin: 'semantic', file_type: 'document' },
   ], links: [{ source: 'fixture_readme_decision', target: 'fixture_source_example', confidence: 'EXTRACTED', relation: 'documents_fixture', source_file: 'README.md', source_location: 'L7', _origin: 'semantic' }] };
   function stamp(directory = root) {
     const out = path.join(directory, 'graphify-out'); fs.mkdirSync(out, { recursive: true });
     const manifest = {};
-    for (const name of ['README.md', 'docs/architecture/outside.md', 'source.py']) {
+    for (const name of ['README.md', 'docs/architecture/outside.md', 'docs/architecture/outside-b.md', 'source.py']) {
       const md5 = hash(fs.readFileSync(path.join(directory, name)), 'md5');
       manifest[name] = { ast_hash: md5, semantic_hash: name.endsWith('.md') ? md5 : '' };
     }
@@ -76,15 +80,23 @@ function fixture(t) {
     assert.equal(result.status, 0, result.stderr || result.stdout);
     return JSON.parse(result.stdout);
   }
-  function certify(directory = root) {
+  function certify(directory = root, verifiedDocuments = ['README.md']) {
     const state = inspect(directory);
     const evidence = Object.fromEntries(['schemaVersion', 'version', 'root', 'head', 'graphHash', 'corpusHash', 'configHash', 'promptHash'].map((key) => [key, state[key]]));
-    evidence.files = { 'README.md': { status: 'success', sha256: state.files['README.md'].sha256, nodeIds: ['fixture_readme_decision'], frontmatterReviewed: true } };
+    const nodeIds = {
+      'README.md': ['fixture_readme_decision'],
+      'docs/architecture/outside.md': ['fixture_outside_decision'],
+      'docs/architecture/outside-b.md': ['fixture_outside_b_decision'],
+    };
+    const selected = new Set(verifiedDocuments);
+    evidence.files = Object.fromEntries(Object.entries(nodeIds).map(([name, ids]) => [name, selected.has(name)
+      ? { status: 'success', sha256: state.files[name].sha256, nodeIds: ids, frontmatterReviewed: true }
+      : { status: 'failed' }]));
     const location = path.join(base, 'synthetic-semantic-evidence.json');
     fs.writeFileSync(location, JSON.stringify(evidence));
     const result = inspect(directory, 'record', ['--semantic-evidence', location]);
     assert.equal(result.semantic.status, 'PENDING');
-    assert.deepEqual(result.semantic.verified, ['README.md']);
+    assert.deepEqual(result.semantic.verified, [...verifiedDocuments].sort());
     return result;
   }
   const call = async (command, extra = {}) => {
@@ -108,6 +120,12 @@ test('synthetic end-to-end: 0/1 blocks; 1/1 publishes while global pending stays
   assert.equal(pending.structural.status, 'CURRENT'); assert.equal(pending.semantic.status, 'PENDING');
   assert.equal(pending.semanticCoverage.pilot.status, 'PENDING');
   assert.ok(pending.publicationProblems.some((problem) => problem.startsWith('SEMANTIC_PILOT_PENDING')));
+  const pendingPreview = await f.call('publish', { preview: true });
+  assert.equal(pendingPreview.semanticCoverage.pilot.status, 'PENDING');
+  assert.equal(pendingPreview.obsidian.status, 'PREVIEW');
+  const pendingIndex = fs.readFileSync(path.join(f.root, 'graphify-out', 'obsidian-preview', 'Generado', 'Indice.md'), 'utf8');
+  assert.doesNotMatch(pendingIndex, /Esta vista certifica el alcance piloto/);
+  assert.match(pendingIndex, /Esta vista todavía no certifica el alcance piloto/);
   await assert.rejects(f.call('publish'), /SEMANTIC_PILOT_PENDING/);
   assert.equal(fs.existsSync(f.vault), false, 'Rejected publication must not create the shared vault');
   f.certify();
@@ -116,16 +134,17 @@ test('synthetic end-to-end: 0/1 blocks; 1/1 publishes while global pending stays
   assert.equal(published.ok, true); assert.equal(published.published, true); assert.equal(published.obsidian.status, 'CURRENT');
   assert.equal(published.semantic.status, 'PENDING');
   assert.deepEqual({status:published.semanticCoverage.pilot.status,verified:published.semanticCoverage.pilot.verifiedCount,total:published.semanticCoverage.pilot.targetCount},{status:'CURRENT',verified:1,total:1});
-  assert.deepEqual({status:published.semanticCoverage.global.status,verified:published.semanticCoverage.global.verifiedCount,total:published.semanticCoverage.global.totalCount,pending:published.semanticCoverage.global.pendingCount},{status:'PENDING',verified:1,total:2,pending:1});
-  assert.match(published.publicationWarnings[0],/^SEMANTIC_GLOBAL_PENDING: 1\/2/);
-  assert.equal(published.documents, 2);
+  assert.deepEqual({status:published.semanticCoverage.global.status,verified:published.semanticCoverage.global.verifiedCount,total:published.semanticCoverage.global.totalCount,pending:published.semanticCoverage.global.pendingCount},{status:'PENDING',verified:1,total:3,pending:2});
+  assert.match(published.publicationWarnings[0],/^SEMANTIC_GLOBAL_PENDING: 1\/3/);
+  assert.equal(published.documents, 3);
   const map = JSON.parse(fs.readFileSync(f.generated('Mapa', 'mapa.json'), 'utf8'));
-  assert.equal(map.topics.length, 8); assert.equal(map.documents.length, 2);
+  assert.equal(map.topics.length, 8); assert.equal(map.documents.length, 3);
   assert.equal(map.semanticCoverage.pilot.status, 'CURRENT'); assert.equal(map.semanticCoverage.global.status, 'PENDING');
   assert.deepEqual(map.documents.find((document) => document.path === 'README.md').semantic,{scope:'PILOT',status:'VERIFIED'});
   assert.deepEqual(map.documents.find((document) => document.path === 'docs/architecture/outside.md').semantic,{scope:'OUTSIDE_PILOT',status:'PENDING'});
   const index = fs.readFileSync(f.generated('Indice.md'), 'utf8');
-  assert.match(index,/Piloto semántico CURRENT/); assert.match(index,/Cobertura global: \*\*PENDING\*\*, 1\/2/);
+  assert.match(index,/Piloto semántico CURRENT/); assert.match(index,/Cobertura global: \*\*PENDING\*\*, 1\/3/);
+  assert.match(index,/Esta vista certifica el alcance piloto/);
   const manifest = JSON.parse(fs.readFileSync(f.generated('.knowledge-manifest.json'), 'utf8'));
   assert.equal(manifest.metadata.semanticCoverage.pilot.status, 'CURRENT'); assert.equal(manifest.metadata.semanticCoverage.global.status, 'PENDING');
   const checked = await f.call('check');
@@ -138,6 +157,33 @@ test('synthetic end-to-end: 0/1 blocks; 1/1 publishes while global pending stays
   assert.equal(fs.statSync(f.generated('Indice.md')).mtimeMs, before);
   assert.equal(fs.readFileSync(path.join(f.vault, 'Personal.md'), 'utf8'), '# My private fixture notes\n');
   assert.equal(f.git('status', '--porcelain'), '', 'Generated outputs remain outside tracked Git state');
+});
+
+test('outside-pilot identity swaps with equal counters invalidate the manifest until republished', { skip }, async (t) => {
+  const f = fixture(t);
+  f.certify(f.root, ['README.md', 'docs/architecture/outside.md']);
+  const first = await f.call('publish');
+  const firstCoverage = first.semanticCoverage.global;
+  assert.equal(first.ok, true);
+  assert.deepEqual({ verified: firstCoverage.verifiedCount, pending: firstCoverage.pendingCount }, { verified: 2, pending: 1 });
+
+  f.certify(f.root, ['README.md', 'docs/architecture/outside-b.md']);
+  const pending = await f.call('check');
+  const secondCoverage = pending.semanticCoverage.global;
+  assert.deepEqual(
+    { verified: secondCoverage.verifiedCount, pending: secondCoverage.pendingCount },
+    { verified: firstCoverage.verifiedCount, pending: firstCoverage.pendingCount }
+  );
+  assert.notEqual(secondCoverage.stateHash, firstCoverage.stateHash);
+  assert.equal(pending.obsidian.status, 'PENDING');
+  assert.equal(pending.ok, false);
+
+  const republished = await f.call('publish');
+  assert.equal(republished.changed, true);
+  assert.equal(republished.semanticCoverage.global.stateHash, secondCoverage.stateHash);
+  const checked = await f.call('check');
+  assert.equal(checked.ok, true);
+  assert.equal(checked.obsidian.status, 'CURRENT');
 });
 
 test('an exporter from another checkout cannot publish into integrated main via --root', { skip }, async (t) => {

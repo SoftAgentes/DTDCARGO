@@ -29,7 +29,10 @@ Ante «cambia este botón», «arregla este bug» o equivalente: «Esta es una s
 ## Conservar conocimiento y revisar vigencia
 
 Al revisar el cierre de cada Worker, coteja su handoff con la rama y la cobertura Graphify: si solo hay
-cambios estructurales, coordina su refresco AST; si cambió un documento, exige recibo semántico de la skill.
+cambios estructurales, coordina su refresco AST. Antes de publicar el piloto, exige recibo semántico
+vigente para cada fuente de `semanticPilot` que haya cambiado. Registra cambios documentales fuera de
+ese alcance como pendientes globales visibles; extrae su semántica cuando la tarea necesite interpretarlos
+o cuando el alcance se amplíe. No finjas cobertura ni bloquees el piloto solo por esos pendientes.
 Comprueba también la vigencia del JSON visual Archify y la preview Obsidian de ese worktree. Una tarea
 cerrada en su rama sigue PENDIENTE DE INTEGRACIÓN. Tras integrar una PR con autorización, en main actualizado
 ejecuta la validación Archify, publica las notas/JSON/mapa en la bóveda habitual y verifica el manifest y

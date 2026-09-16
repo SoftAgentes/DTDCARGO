@@ -334,3 +334,27 @@ Revisar la PR borrador #125 y sus checks. Resolver la cobertura y procedencia de
   autoriza merge ni publicación a la bóveda compartida. Después de integrar en `main`, Director
   debe regenerar y validar desde esa revisión, publicar `Generado` y comprobar una nota dentro
   de Obsidian antes de declarar la adopción del piloto.
+
+## AJUSTES DE REVISIÓN DEL CONTRATO DEL PILOTO — 2026-09-16
+
+- Director, Worker y el runbook aplican una sola regla: una fuente de `semanticPilot` modificada
+  necesita recibo semántico vigente para que el piloto quede CURRENT. Los documentos fuera del
+  alcance permanecen como pendientes globales visibles y se extraen cuando la tarea necesita
+  interpretarlos o cuando se amplía el alcance; por sí solos no bloquean el piloto ni se presentan
+  como cobertura completa.
+- La política denomina el alcance de forma neutral como **16 fuentes canónicas del piloto**. El
+  índice solo afirma que certifica ese alcance cuando el piloto está CURRENT; una preview PENDING
+  declara explícitamente que todavía no lo certifica. SDD-0471 registra la fecha y este criterio.
+- `semanticCoverage.global.stateHash` resume las listas ordenadas de fuentes VERIFIED/PENDING.
+  Así, intercambiar el estado de dos documentos fuera del piloto invalida el manifest aunque los
+  contadores, `graphHash` y `corpusHash` coincidan; `Mapa/mapa.json` conserva el detalle por fuente.
+- Validación de estos ajustes: pruebas focales de estado/sync **PASARON 15/15**; suite knowledge
+  **PASÓ 65/65**; harness completo **PASÓ 178/178**, sin fallos ni omisiones. También PASARON
+  `docs:check` (459 specs), manifest de skills, numbering con las colisiones históricas declaradas,
+  sintaxis Node y `git diff --check`. Build/DB/E2E de producto NO EJECUTADO porque el cambio afecta
+  herramientas y documentación.
+- El cierre sobre el commit de esta revisión debe actualizar Graphify y reextraer cuerpo completo
+  y frontmatter de las cinco fuentes piloto modificadas: este handoff, las skills Director/Worker,
+  el runbook y SDD-0471. Después debe agrupar, reconstruir Archify y la preview, comprobar
+  idempotencia, confirmar piloto 16/16 y global 16/1.073, y revisar CI del SHA publicado. La bóveda
+  compartida permanece fuera de este ciclo; merge y publicación integrada siguen sin autorización.

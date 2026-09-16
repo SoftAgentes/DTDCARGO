@@ -41,8 +41,10 @@ Un archivo AGENTS no es un scheduler. No instalar hooks ni modificar instalacion
 El cierre de Worker ocurre en su worktree: guarda evidencia y documentos autorizados, comprueba el estado
 estructural/semántico de Graphify, actualiza la vista Archify si sus fuentes cambiaron, ejecuta la vista previa
 de Obsidian y registra los pendientes en su handoff. Una vista previa es local y conserva la revisión WORKTREE;
-no escribe la bóveda habitual. Si un documento cambió y falta extracción semántica, el asistente debe usar
-la skill Graphify de Codex: una ejecución estructural sola no cumple ese paso.
+no escribe la bóveda habitual. Si cambió una fuente de `semanticPilot`, su recibo semántico es obligatorio
+para que el piloto quede CURRENT. Un documento modificado fuera de ese alcance permanece como PENDING global
+visible: el asistente usa la skill Graphify cuando la tarea necesite interpretarlo o cuando se amplíe el alcance;
+ese pendiente por sí solo no bloquea la publicación del piloto y nunca se presenta como cobertura completa.
 
 Director revisa la tarea, su PR y el handoff. Después de integración autorizada y de comprobar main,
 actualiza Graphify según los cambios, comprueba su estructura, la cobertura semántica piloto y la global, ejecuta knowledge:visual,
@@ -139,7 +141,9 @@ una fuente sin seguimiento, ausente del corpus, renombrada, retirada o con evide
 PENDING y bloquea publicación integrada. La cobertura global conserva sus 1.057 pendientes iniciales de 1.073 como
 advertencia explícita. No se certifica semántica global completa, ni se usan hashes nativos para suplir lectura real.
 El índice, `Mapa/mapa.json` y `.knowledge-manifest.json` exponen los dos contadores; cada documento del JSON indica
-si pertenece al piloto y si su semántica está VERIFIED o PENDING.
+si pertenece al piloto y si su semántica está VERIFIED o PENDING. Una huella de las listas globales ordenadas
+VERIFIED/PENDING invalida el manifest si cambia la identidad de esos documentos aunque los contadores coincidan.
+Una preview PENDING declara que todavía no certifica el piloto; solo CURRENT usa la afirmación de certificación.
 
 ### Importar una extracción parcial hecha por el asistente
 

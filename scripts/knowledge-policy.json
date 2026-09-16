@@ -3,7 +3,7 @@
   "graphifyVersion": "0.9.61",
   "semanticPilot": {
     "id": "canonical-16-2026-09-16",
-    "label": "16 fuentes canónicas verificadas",
+    "label": "16 fuentes canónicas del piloto",
     "documents": [
       ".agents/handoffs/2026-09-15-knowledge-graphify-obsidian.md",
       ".agents/skills/director/SKILL.md",

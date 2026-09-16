@@ -113,7 +113,8 @@ export function semanticCoverage(repo, graph, policy) {
   if (globalStatus === 'CURRENT' && pendingPaths.length) globalStatus = 'PENDING';
   return {
     global: { status: globalStatus, totalCount: globalDocuments.size, verifiedCount: verifiedPaths.length,
-      pendingCount: pendingPaths.length, outsidePilotPendingCount: pendingPaths.filter((relative) => !targetSet.has(relative)).length },
+      pendingCount: pendingPaths.length, outsidePilotPendingCount: pendingPaths.filter((relative) => !targetSet.has(relative)).length,
+      stateHash: sha256(JSON.stringify({ verified: verifiedPaths, pending: pendingPaths })) },
     pilot: { id: policy.semanticPilot.id, label: policy.semanticPilot.label,
       status: pilotVerified === targetPaths.length ? 'CURRENT' : 'PENDING',
       targetCount: targetPaths.length, verifiedCount: pilotVerified,
