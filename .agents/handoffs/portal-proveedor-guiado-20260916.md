@@ -34,7 +34,7 @@ Fuentes de log ignoradas: test-results/provider-*.log.
 | Build dentro de verify | PASÓ | Build de producción completo, sin credenciales. |
 | Regresión final focal | PASÓ | provider-focal-final.log: 7 archivos, 82 pruebas; captura, payload, mixed boxes, historial/restaurar, storage, errores/idiomas, precio0.004, carga parcial/residual/recibos inválidos, copiar URL, cálculos/drafts/Excel/print. |
 | ESLint global final | PASÓ con advertencias previas | provider-lint-final.log:0errores,11warnings fuera del cambio. |
-| Typecheck final y build tras último ajuste | En curso al registrar este commit | Logs provider-typecheck-final.log/provider-build-final.log; resolución final en cierre al Director. |
+| Typecheck, RSC, docs y build finales | PASÓ | Sesiones 95158 y 1643 terminaron con exit 0. provider-typecheck-final.log sin errores; provider-rsc-final.log: 1604 módulos sin cruces; docs:check 460 specs; provider-build-final.log: build de producción OK y tsconfig restaurado. |
 | migrations-applied | NO EJECUTADO | Sin NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY; no se consulta producción. |
 | sql-tests/schema-rebuild | NO EJECUTADO | VERIFY_SKIP_SQL=1, slice frontend sin SQL; no acredita DB. |
 | E2E global | NO EJECUTADO | VERIFY_SKIP_E2E=1; no acredita suite ni token productivo. |
@@ -49,7 +49,7 @@ UI-CHECK: composición nueva basada en plan aprobado; tokens/fuentes existentes;
 
 ## COMMITS
 
-Commit de producto que contiene este documento. Hash final se comunica al Director, sin autorreferencia recursiva.
+Producto: c584ff1347254f3a0df9e2e8e81fef9df8a9b169 — feat(DTD-0468): guiar factura y packing list del proveedor. Este documento recibe un segundo commit exclusivamente para registrar el cierre verificado; su hash se comunica al Director sin autorreferencia recursiva.
 
 ## PR / BRANCH
 
@@ -57,7 +57,7 @@ Sin PR ni push: no autorizados. Rama y worktree indicados arriba. Preview activa
 
 ## PENDIENTES DE ESTA TAREA
 
-- Finalizar reporte tsc/build en curso y aprobación visual de Sam sobre preview.
+- Aprobación visual de Sam sobre la preview. Las comprobaciones finales ya terminaron; sólo permanece activo el servidor local de preview.
 - Revisión del chino por operación, prueba real WeChat y PDF/impresión física.
 - Recorrido real condicionado a autorización y acceso adecuado. El fixture es evidencia local/simulada.
 - Publicación de rama/PR, integración y despliegue requieren autorizaciones específicas. No realizados.
@@ -67,7 +67,7 @@ Sin PR ni push: no autorizados. Rama y worktree indicados arriba. Preview activa
 
 Spec0468 fase2 actualizada y fase1 intacta. Fixture reproducible documentado; índice docs comprobado. Graphify0.9.61: extracción local4142fuentes,34121nodos/63674relaciones/2274comunidades. Integridad sin endpointsfaltantes;0missing/deleted/excluded en status. Primera pasada quedó PENDING por9fuentes concurrentes. Semántica local0/16 piloto,0/1077global sin recibos: no copiados de main ni certificación LLM.
 
-Archify2.16.0 buildPASÓ9/9,11fuentes verificadas, calidad0errores/0warnings; check ARCHIFY_STALE_CORPUS tras cambios. PreviewObsidian protegida SOURCE_CHANGED, no publicó mezcla de fuentes. Revisión visibleObsidian NO EJECUTADA. Evidencia ignorada en graphify-out/knowledge-run-receipts/ y graphify-out/knowledge-visual/. Refresco final sólo después de estabilizar SHA/corpus; resultado posterior vive en esos recibos y cierre al Director. No se toca bóveda compartida. Capas pendientes son explícitas, no cobertura global.
+Archify2.16.0 buildPASÓ9/9,11fuentes verificadas, calidad0errores/0warnings; check ARCHIFY_STALE_CORPUS tras cambios. PreviewObsidian protegida SOURCE_CHANGED, no publicó mezcla de fuentes. Revisión visibleObsidian NO EJECUTADA. Evidencia ignorada en graphify-out/knowledge-run-receipts/ y graphify-out/knowledge-visual/. Refresco posterior de derivados locales pendiente tras estabilizar SHA/corpus; no bloquea esta primera entrega navegable y no se afirma CURRENT. No se toca bóveda compartida. Capas pendientes son explícitas, no cobertura global.
 
 ## FUERA DE ALCANCE DETECTADO
 
