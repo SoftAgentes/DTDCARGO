@@ -254,3 +254,27 @@ Revisar la PR borrador #125 y sus checks. Resolver la cobertura y procedencia de
   producto build/DB/E2E NO EJECUTADO porque esta tarea toca herramientas/documentación.
   La PR borrador #125 permanece como frontera de integración; CI del nuevo push se revisa
   sobre el SHA remoto efectivo, sin inferirlo del CI previo.
+
+### Selección canónica completa para la consulta en Obsidian
+
+- La comparación con el corpus Graphify detectó tres fuentes autorizadas sin copia de
+  lectura: `docs/README.md` y las skills Director/Worker. La política las selecciona por
+  nombre exacto bajo Proyecto; solo esas dos skills reciben rutas visibles
+  `Documentacion/Agentes/skills/{director,worker}/SKILL.md`. Otras rutas ocultas se
+  siguen rechazando. Las tres copias conservan el cuerpo Markdown y el YAML original,
+  enlaces relativos entre notas incluidas y procedencia de la fuente canónica.
+- Preview en `4671e7da` comprobada por archivos y manifest: **1.072 documentos, ocho
+  temas (Proyecto: siete), 957 relaciones, 1.087 archivos propios**, 39 referencias
+  no resueltas registradas y cero conflictos. `knowledge:check --preview` muestra
+  estructura `CURRENT`, Archify `CURRENT`, doce fuentes semánticas verificadas y 1.061
+  pendientes, con exit 1 por `MAIN_REQUIRED` y `SEMANTIC_PENDING`.
+- Validación después del mapeo: **harness 173/173, cero fallos y cero skips**; suite
+  focal de selección/rutas visibles 27/27, índice documental 459 specs, skills manifest,
+  numbering y whitespace PASARON. Los choques históricos aplicados que informa
+  numbering no se renumeraron. El worktree y la bóveda compartida se mantienen separados;
+  no se afirmó lectura en la interfaz Obsidian ni sincronización web.
+- La siguiente escritura local reextrae solamente este handoff tras confirmarlo, agrupa
+  Graphify, rehace Archify y la preview para el HEAD de la PR y prueba idempotencia en
+  ese SHA. Git/PR son las fuentes para comprobar el push y los checks finales. Merge,
+  publicación compartida y limpieza del worktree continúan sujetos a sus gates y
+  autorización propia.
