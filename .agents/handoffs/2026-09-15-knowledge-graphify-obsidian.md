@@ -224,5 +224,33 @@ Revisar la PR borrador #125 y sus checks. Resolver la cobertura y procedencia de
   invalidando. PASÓ prueba focal para ambas situaciones y suite completa del harness después
   de esta corrección: **172/172, cero fallos, cero omisiones**, 23 archivos. PASARON índice
   documental 459 specs, manifest de skills, numeración con choques históricos declarados y
-  `git diff --check`. El recibo del lote anterior debe volver a emitirse sobre el graph/HEAD
-  actual para las diez fuentes intactas; runbook y este handoff se reextraerán tras el commit.
+  `git diff --check`. Al iniciar la siguiente reconstrucción se reemitió el recibo de diez
+  fuentes intactas; las dos fuentes editadas se reextrajeron y reemplazaron por separado.
+
+### Resultado comprobado de esta ampliación
+
+- Graphify 0.9.61 sobre `b35de50c`: estructura `CURRENT`, cero archivos pendientes/borrados,
+  cero errores de procedencia, 11 referencias AST virtuales y 22 JSON de datos omitidos como
+  advertencias. Tras reemitir diez verificaciones y reemplazar runbook/handoff (22 nodos,
+  21 relaciones, 14 IDs conservados y ocho nuevos), el recibo sobrevivió a `cluster-only`:
+  **12 fuentes semánticas verificadas y 1.061 pendientes de 1.073**. El grafo tiene 34.044
+  nodos, 63.512 aristas y 2.261 comunidades. Los dos TSX legales siguen parcialmente
+  parseados según el CLI; no se atribuye cobertura perfecta de esos archivos.
+- Archify 2.16.0 `CURRENT`: diez componentes, once conexiones, once fuentes completas,
+  showcase 9/9, SVG/HTML/JSON y recibo de evidencia correspondientes a esta revisión.
+  Obsidian **PREVIEW** en el worktree: 1.069 documentos navegables, ocho temas, índice,
+  `mapa.json`, visual y 39 destinos de enlace faltantes o fuera de la selección.
+  `knowledge:publish --preview` generó la revisión y la repetición exacta devolvió
+  `published=false`, `unchanged=true`; manifest íntegro y cero conflictos. En una ventana
+  pequeña, las 19 conexiones agregadas del Mermaid del índice pueden verse densas;
+  las ocho notas por tema y el visual de diez componentes ofrecen navegación más cómoda.
+- `knowledge:check --preview` devolvió **exit 1** por `MAIN_REQUIRED` y
+  `SEMANTIC_PENDING`, como debe hacer el gate integrado; aun así el estado de la preview
+  fue `PREVIEW` con Archify `CURRENT` y cero conflictos. No se comprobó esta proyección
+  dentro de la interfaz de Obsidian ni se escribió la bóveda compartida; abrir una nota
+  en Obsidian y demostrar una decisión autorizada tras integración continúan pendientes.
+- Validación de herramientas/docs: harness 172/172, cero skips; docs:check 459 specs,
+  skills manifest y numbering PASARON, con choques históricos ya aplicados declarados;
+  producto build/DB/E2E NO EJECUTADO porque esta tarea toca herramientas/documentación.
+  La PR borrador #125 permanece como frontera de integración; CI del nuevo push se revisa
+  sobre el SHA remoto efectivo, sin inferirlo del CI previo.
