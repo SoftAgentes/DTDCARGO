@@ -15,7 +15,10 @@
         "AGENTS.md",
         "CLAUDE.md",
         "BRAND.md",
-        "README.md"
+        "README.md",
+        "docs/README.md",
+        ".agents/skills/director/SKILL.md",
+        ".agents/skills/worker/SKILL.md"
       ]
     },
     {
