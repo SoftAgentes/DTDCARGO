@@ -212,6 +212,7 @@ export function PackingListFormSection({
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [draftRestored, setDraftRestored] = useState(false);
+  const [rowsRevision, setRowsRevision] = useState(0);
   const [fieldOrigins, setFieldOrigins] = useState<Partial<Record<keyof GuidedFields, GuidedFieldOrigin>>>(() => ({ company: supplierName ? "prefilled" : undefined, wechat: supplierWechat ? "prefilled" : undefined }));
 
   // CLIENT — el 唛头 (mark) viene prefilled de la orden.
@@ -341,6 +342,7 @@ export function PackingListFormSection({
   );
 
   const applyDraft = useCallback((d: Partial<Draft>) => {
+    setRowsRevision(value => value + 1);
     setDraftRestored(true);
     setFieldOrigins(previous => ({ ...previous, ...(typeof d.company === "string" ? { company: "draft" as const } : {}), ...(typeof d.wechat === "string" ? { wechat: "draft" as const } : {}) }));
     if (typeof d.folio === "string") setFolio(d.folio);
@@ -651,7 +653,7 @@ export function PackingListFormSection({
   return (<>
     <PackingListGuidedForm locale={locale} code={code} mark={printMarkbox(mark)} fieldOrigins={fieldOrigins} draftRestored={draftRestored}
       fields={{ company, email, wechat, address, city, folio, docDate, currency, note, lang }}
-      onField={updateField} rows={rows} setRow={setRow} addGroup={() => addRows(1)}
+      onField={updateField} rowsRevision={rowsRevision} rows={rows} setRow={setRow} addGroup={() => addRows(1)}
       addProduct={addChild} removeProduct={removeRow} removeGroup={removeGroup}
       submit={displaySubmit} onSubmit={handleSubmit} onEdit={() => setSubmit({ kind: "idle" })}
       errors={displayErrors} saveIsManual={saveStatus.tone === "pulse"} saveFailed={saveStatus.kind === "error"} saveStatus={saveStatus.kind === "error" ? uiText("无法在此设备保存草稿。请保持页面打开。", "No se pudo guardar el borrador en este navegador. Mantén esta página abierta.", "Could not save the draft in this browser. Keep this page open.") : saveStatus.kind === "saved" ? `${uiText("草稿已保存在此设备", "Borrador guardado en este dispositivo", "Draft saved on this device")} · ${fmtTs(saveStatus.timestamp!)} ` : saveStatus.kind === "restored" ? uiText("已恢复草稿版本", "Versión del borrador restaurada", "Draft version restored") : ""} onSave={saveVersion}

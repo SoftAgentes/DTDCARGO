@@ -38,3 +38,9 @@ El distintivo DEMO es persistente. «Controles de revisión» despliega pantalla
 Para revisar cambio de idioma con archivos, seleccionar archivos en paso3, avanzar al4 y alternar es/zh/en: deben mantenerse el paso y el resumen; al volver al3 se conserva la selección original. Una recarga del navegador sí pierde File objects, como en la página real. No ejecutar build ni editar fuentes/configuración mientras se verifica continuidad: Vite puede recargar por HMR o cambios de tsconfig y perder la sesión en memoria.
 
 Tras restablecer, dejar que se autoguarde sin editar y recargar debe mantener «Datos de ejemplo». La comparación usa la fecha local y el estado inicial completo; retira solo el draft ficticio actual si sigue intacto. Un cambio real —incluso precio0, fecha, moneda, segundo idioma o estructura de cajas— se conserva como borrador restaurado.
+
+## Fase 3: líneas de factura
+
+En Controles de revisión hay un caso guiado de tres productos, sin sembrar ni reemplazar silenciosamente borradores. Base Vasos5cajas×10uds.×USD2,3kg/caja y0,5m³/caja; Tapas same8×USD4; Cucharas same12×USD0,50. Guardar cada producto lo convierte en línea; total5cajas/70uds./15kg/2,5m³/USD138. Editar Tapas a10 da72uds./USD146; quitar Tapas deja62uds./USD106. Agregar otro grupo2cajas×3uds.×USD5,4kg/caja,0,2m³/caja agrega2cajas/6uds./8kg/0,4m³/USD30. Eliminar grupo completo nunca reasigna productos.
+
+Verificar editor único con foco y Enter; no se traduce el nombre al cambiar idioma. Editor incompleto sobrevive pasos/Excel, autosave y recarga (los drafts heredados con nombre se muestran como líneas editables). Guardar producto no envía ni cambia contrato; el envío permanece en paso4. Verificar lista sin scroll horizontal y precio unitario0,004 sin pérdida de precisión.

@@ -183,7 +183,8 @@ describe("supplier guided workflow", () => {
     await start(request);
     await waitFor(() => expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveValue("Proveedor guardado"));
     step(2);
-    expect(screen.getByRole("textbox", { name: /Unidades de este producto en todo el grupo · 2/ })).toHaveValue("8");
+    fireEvent.click(button("Editar Tapas"));
+    expect(screen.getByRole("textbox", { name: /Unidades del grupo · 2/ })).toHaveValue("8");
     fireEvent.click(button("Usar Excel"));
     expect(screen.getByRole("link", { name: "Descargar Excel" })).toHaveAttribute("href", "/p/test-only/packlist");
     fireEvent.click(button("Volver al formulario"));

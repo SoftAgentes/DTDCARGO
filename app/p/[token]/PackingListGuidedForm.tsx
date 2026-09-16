@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { formatProviderMoney, formatProviderNumber } from "./provider-format";
+import { PackingListProductsStep } from "./PackingListProductsStep";
 import { CheckIcon } from "@/components/Icon";
 import { StatusIcon } from "@/components/StatusIcon";
 import { PACKING_LIST_CURRENCIES, computeTotals, type PackingListCurrency, type PackingListRowInput } from "@/lib/studio/prealertas/packlist-form";
@@ -21,7 +23,7 @@ type Props = {
   locale: ProviderLocale; code?: string; mark: string; fields: GuidedFields;
   fieldOrigins: Partial<Record<keyof GuidedFields, GuidedFieldOrigin>>; draftRestored: boolean;
   onField: <K extends keyof GuidedFields>(key: K, value: GuidedFields[K]) => void;
-  rows: PackingListRowInput[];
+  rows: PackingListRowInput[]; rowsRevision: number;
   setRow: (index: number, field: keyof PackingListRowInput, value: string) => void;
   addGroup: () => void; addProduct: (index: number) => void; removeProduct: (index: number) => void;
   removeGroup: (index: number) => void;
@@ -31,17 +33,17 @@ type Props = {
   attachments: ReactNode; attachmentsSummary: ReactNode; delivery: ReactNode; onPrintLabels: () => void; onPreview: () => void; excelHref: string;
 };
 const fieldClass = "min-h-12 w-full rounded-lg border border-grey-300 bg-white px-3 py-2 text-base text-ink outline-none focus-visible:ring-2 focus-visible:ring-wine-text disabled:opacity-60";
-const number = (value: number, decimals = 3) => value.toLocaleString("en-US", { maximumFractionDigits: decimals });
 
 /** Capture UI only: business state, local history and wire payload stay in the owner. */
 export function PackingListGuidedForm(p: Props) {
+  const number = (value: number, decimals = 3) => formatProviderNumber(value, p.locale, decimals);
+  const money = (value: number) => formatProviderMoney(value, p.fields.currency, p.locale);
   const t = (zh: string, es: string, en: string) => providerText(p.locale, zh, es, en);
   const [step, setStep] = useState(0);
   const id = useId();
   const [reviewSentFiles, setReviewSentFiles] = useState(false);
   const [mode, setMode] = useState<"online" | "excel">("online");
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [remove, setRemove] = useState<number | null>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const success = useRef<HTMLDivElement>(null);
   const lastError = useRef(p.errors);
@@ -49,11 +51,6 @@ export function PackingListGuidedForm(p: Props) {
   const sent = p.submit.kind === "ok";
   const { totals, rows: calculated } = computeTotals(p.rows);
   const steps = [t("供应商资料", "Datos del proveedor", "Supplier details"), t("箱子与产品", "Cajas y productos", "Cartons and products"), t("照片与附件", "Fotos y archivos", "Photos and files"), t("核对并提交", "Revisar y enviar", "Review and send")];
-  const groups: { lead: number; indices: number[] }[] = [];
-  p.rows.forEach((row, index) => {
-    if (!row.same || !groups.length) groups.push({ lead: index, indices: [index] });
-    else groups[groups.length - 1].indices.push(index);
-  });
   function go(next: number) { setStep(next); window.requestAnimationFrame(() => { title.current?.focus({ preventScroll: true }); title.current?.scrollIntoView?.({ block: "start" }); }); }
   useEffect(() => {
     if (p.errors !== lastError.current && Object.keys(p.errors).length) {
@@ -80,15 +77,12 @@ export function PackingListGuidedForm(p: Props) {
       {help && <p id={id + "-" + key + "-origin"} className="text-xs leading-relaxed text-grey-700">{help}</p>}
     </div>;
   };
-  const rowField = (index: number, key: keyof PackingListRowInput, label: string, numeric = false) => <label className="grid min-w-0 gap-1.5 text-sm font-semibold text-ink">
-    <span>{label}</span><input aria-label={`${label} · ${index + 1}`} className={fieldClass} inputMode={numeric ? "decimal" : undefined} placeholder={key === "zh" || key === "es" ? t("例如：陶瓷杯", "Ej. tazas de cerámica", "e.g. ceramic cups") : undefined} value={String(p.rows[index][key] ?? "")} onChange={event => p.setRow(index, key, event.target.value)} />
-  </label>;
   const summary = <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
     <dt className="text-grey-700">{t("箱数", "Cajas", "Cartons")}</dt><dd className="text-right font-semibold tabular-nums">{number(totals.ctns)}</dd>
     <dt className="text-grey-700">{t("总数量", "Unidades", "Units")}</dt><dd className="text-right font-semibold tabular-nums">{number(totals.qty)}</dd>
     <dt className="text-grey-700">{t("总重量", "Peso", "Weight")}</dt><dd className="text-right font-semibold tabular-nums">{number(totals.weight)} kg</dd>
     <dt className="text-grey-700">{t("总体积", "Volumen", "Volume")}</dt><dd className="text-right font-semibold tabular-nums">{number(totals.cbm, 4)} m³</dd>
-    <dt className="border-t border-grey-200 pt-3 font-bold">{t("总金额", "Importe", "Amount")}</dt><dd className="border-t border-grey-200 pt-3 text-right font-bold tabular-nums">{p.fields.currency} {totals.amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</dd>
+    <dt className="border-t border-grey-200 pt-3 font-bold">{t("总金额", "Importe", "Amount")}</dt><dd className="border-t border-grey-200 pt-3 text-right font-bold tabular-nums">{money(totals.amount)}</dd>
   </dl>;
   return <section className="no-print text-ink" lang={p.locale === "zh" ? "zh-CN" : p.locale} aria-label={t("装箱单与发票", "Factura y packing list", "Invoice and packing list")}>
     <div className="mb-3 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
@@ -140,34 +134,17 @@ export function PackingListGuidedForm(p: Props) {
             </div>
             <details className="mt-4 border-t border-grey-200 pt-3"><summary className="min-h-11 cursor-pointer font-semibold">{t("地址、日期和文件信息", "Dirección, fecha y datos del documento", "Address, date and document details")}</summary><div className="mt-3 grid gap-4 sm:grid-cols-2">{field("address", t("供应商地址", "Dirección del proveedor", "Supplier address"), "text", true)}{field("city", t("城市", "Ciudad", "City"), "text", true)}{field("docDate", t("日期", "Fecha", "Date"), "date")}{field("folio", t("供应商文件编号", "Referencia propia del documento", "Your document reference"), "text", true)}<label className="grid gap-2 text-sm font-semibold"><span>{t("打印文件的第二语言", "Segundo idioma del documento impreso", "Second language of printed document")}</span><select className={fieldClass} value={p.fields.lang} onChange={event => p.onField("lang", event.target.value as "es" | "en")}><option value="es">中文 + Español</option><option value="en">中文 + English</option></select></label></div></details>
           </>}
-          {step === 1 && <>
-            <p className="mb-4 text-grey-700">{t("每组填写包装相同的箱子。一个箱子有多种产品？把产品加在同一组。", "Agrupa las cajas que tienen el mismo contenido. Si comparten varios productos, agrégalos dentro del mismo grupo.", "Group cartons with the same contents. Add any products sharing those cartons within the same group.")}</p>
-            {(p.errors.rows || p.errors.tooMany) && <p role="alert" className="mb-4 flex gap-2 text-grey-700"><StatusIcon tone="danger" size={20}/>{p.errors.rows || p.errors.tooMany}</p>}
-            <div className="grid gap-4">{groups.map((group, groupIndex) => <section key={group.lead} className="min-w-0 rounded-xl border border-grey-300" aria-label={`${t("箱组", "Grupo de cajas", "Carton group")} ${groupIndex + 1}`}>
-              <div className="rounded-t-xl bg-grey-100 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-bold">{t("箱组", "Grupo de cajas", "Carton group")} {groupIndex + 1}</h3><button type="button" className="min-h-11 rounded px-2 text-sm underline underline-offset-4 hover:bg-white" onClick={() => setRemove(group.lead)}>{t("删除组", "Eliminar grupo", "Remove group")}</button></div>
-              {remove === group.lead && <div className="my-3 rounded-lg border border-grey-300 bg-white p-3"><p>{t("删除此组及其中所有产品？", "¿Eliminar este grupo y todos sus productos?", "Remove this group and all its products?")}</p><div className="mt-2 flex flex-wrap gap-3"><button className="btn btn-ghost" type="button" onClick={() => { p.removeGroup(group.lead); setRemove(null); }}>{t("确认删除", "Eliminar grupo completo", "Remove entire group")}</button><button className="btn btn-ghost" type="button" onClick={() => setRemove(null)}>{t("取消", "Cancelar", "Cancel")}</button></div></div>}
-              <div className="mt-3 grid gap-4 sm:grid-cols-3">{rowField(group.lead, "ctns", t("箱数", "Cantidad de cajas", "Number of cartons"), true)}{rowField(group.lead, "wkg", t("每箱重量 (kg)", "Peso por caja (kg)", "Weight per carton (kg)"), true)}{rowField(group.lead, "cbm", t("每箱体积 (m³)", "Volumen por caja (m³)", "Volume per carton (m³)"), true)}</div></div>
-              <div className="divide-y divide-grey-200">{group.indices.map((index, productIndex) => <div key={index} className="p-4">
-                <div className="mb-3 flex items-center justify-between gap-2"><h4 className="text-sm font-bold">{t("产品", "Producto", "Product")} {productIndex + 1}</h4>{productIndex > 0 && <button type="button" className="min-h-11 rounded px-2 text-sm underline underline-offset-4 hover:bg-grey-100" onClick={() => p.removeProduct(index)}>{t("移除产品", "Quitar producto", "Remove product")}</button>}</div>
-                <div className="grid gap-4 sm:grid-cols-2">{rowField(index, p.locale === "zh" ? "zh" : "es", t("中文品名", "Nombre del producto", "Product name"))}{rowField(index, p.rows[index].same ? "qtyDirect" : "perctn", p.rows[index].same ? t("此产品在整组中的总数量", "Unidades de este producto en todo el grupo", "Total units of this product in the group") : t("每箱装量", "Unidades por caja", "Units per carton"), true)}{rowField(index, "unit", `${t("单价", "Precio por unidad", "Unit price")} (${p.fields.currency})`, true)}</div>
-                {p.rows[index].same && <p className="mt-3 text-sm text-grey-700">{t("这是整组总数量，不会再乘箱数。重量和体积只在组里计算一次。", "Esta cantidad es el total del grupo: no se multiplica por cajas. Peso y volumen se cuentan una sola vez.", "This is the total for the group; it is not multiplied by cartons. Weight and volume are counted once.")}</p>}
-                <details className="mt-4"><summary className="min-h-11 cursor-pointer text-sm font-semibold">{t("品牌、货号及其他资料", "Marca, código y más detalles", "Brand, code and more details")}</summary><div className="mt-3 grid gap-4 sm:grid-cols-2">{rowField(index, "brand", t("品牌（无品牌填“无”）", "Marca (sin marca: ninguna)", "Brand (unbranded: none)"))}{rowField(index, "code", t("货号", "Código del producto", "Product code"))}{rowField(index, p.locale === "zh" ? "es" : "zh", t("西文品名（选填）", "Nombre en chino (opcional)", "Chinese name (optional)"))}{rowField(index, "hs", t("材质 / HS（选填）", "Material / HS (opcional)", "Material / HS (optional)"))}{rowField(index, "carton", t("箱号备注（选填）", "Referencia de cajas (opcional)", "Carton reference (optional)"))}</div><p className="mt-3 text-sm font-normal text-grey-700">{t("不知道 HS 编码时，请说明材质并联系仓库确认，不要猜测。", "Si desconoces el código HS, describe el material y pide confirmación al almacén; no inventes el código.", "If you do not know the HS code, describe the material and ask the warehouse to confirm it; do not guess.")}</p></details>
-              </div>)}</div>
-              <div className="border-t border-grey-200 px-4 py-2"><button type="button" className="min-h-11 rounded px-2 text-sm font-semibold underline underline-offset-4 hover:bg-grey-100 disabled:opacity-60" onClick={() => p.addProduct(group.indices[group.indices.length - 1])} disabled={p.rows.length >= 500}>{t("在这些箱子中添加产品", "Agregar otro producto en estas cajas", "Add another product in these cartons")}</button></div>
-            </section>)}</div>
-            <button className="mt-3 min-h-11 rounded px-2 text-sm font-semibold underline underline-offset-4 hover:bg-grey-100 disabled:opacity-60" type="button" onClick={p.addGroup} disabled={p.rows.length >= 500}>{t("添加另一组箱子", "Agregar otro grupo de cajas", "Add another group of cartons")}</button>
-          </>}
-
           {step === 3 && <div className="grid gap-6">
             <p className="text-grey-700">{t("请核对资料。确认后，文件会发送给 DTD。", "Revisa los datos. Al confirmar, el documento se enviará a DTD.", "Review the details. Confirming sends the document to DTD.")}</p>
             <section><div className="flex items-center justify-between gap-3"><h3 className="font-bold">{steps[0]}</h3><button type="button" className="btn btn-ghost" onClick={() => go(0)}>{t("修改资料", "Editar datos", "Edit details")}</button></div><p>{p.fields.company || "—"}</p><p className="break-words text-grey-700">{[p.fields.wechat, p.fields.email].filter(Boolean).join(" · ") || t("尚未填写联系方式", "Falta un contacto", "Contact missing")}</p></section>
-            <section className="border-t border-grey-200 pt-4"><div className="flex items-center justify-between gap-3"><h3 className="font-bold">{steps[1]}</h3><button type="button" className="btn btn-ghost" onClick={() => go(1)}>{t("修改产品", "Editar productos", "Edit products")}</button></div>{calculated.length ? <ul className="divide-y divide-grey-200">{calculated.map((row, index) => <li key={index} className="flex flex-wrap justify-between gap-2 py-3"><span className="min-w-0 break-words">{row.zh || row.es || row.brand || "—"}{row.same ? ` · ${t("同箱产品", "Mismas cajas", "Same cartons")}` : ""}</span><span className="tabular-nums">{number(row.qty)} {t("件", "uds.", "units")} · {p.fields.currency} {number(row.amount, 2)}</span></li>)}</ul> : <p>{t("尚未添加产品。", "Todavía no hay productos.", "No products yet.")}</p>}</section>
+            <section className="border-t border-grey-200 pt-4"><div className="flex items-center justify-between gap-3"><h3 className="font-bold">{steps[1]}</h3><button type="button" className="btn btn-ghost" onClick={() => go(1)}>{t("修改产品", "Editar productos", "Edit products")}</button></div>{calculated.length ? <ul className="divide-y divide-grey-200">{calculated.map((row, index) => <li key={index} className="flex flex-wrap justify-between gap-2 py-3"><span className="min-w-0 break-words">{row.zh || row.es || row.brand || "—"}{row.same ? ` · ${t("同箱产品", "Mismas cajas", "Same cartons")}` : ""}</span><span className="tabular-nums">{number(row.qty)} {t("件", "uds.", "units")} · {money(row.amount)}</span></li>)}</ul> : <p>{t("尚未添加产品。", "Todavía no hay productos.", "No products yet.")}</p>}</section>
             <section className="border-t border-grey-200 pt-3" aria-label={steps[2]}><div className="flex items-center justify-between gap-3"><h3 className="font-bold">{steps[2]}</h3><button type="button" className="min-h-11 rounded px-2 text-sm font-semibold underline underline-offset-4" onClick={() => go(2)}>{t("查看", "Revisar", "Review")}</button></div>{p.attachmentsSummary}</section>
             <label className="grid gap-2 text-sm font-semibold"><span>{t("备注（选填）", "Observaciones (opcional)", "Notes (optional)")}</span><textarea rows={3} className={fieldClass} value={p.fields.note} onChange={event => p.onField("note", event.target.value)} /></label>
             <button type="button" className="btn btn-ghost justify-self-start" onClick={() => printDocument("packing-list")}>{t("打印文件 / PDF", "Imprimir documento / PDF", "Print document / PDF")}</button>
           </div>}
           </fieldset>
           </>}
+        <fieldset hidden={sent || mode !== "online" || step !== 1} disabled={sending} className="min-w-0"><PackingListProductsStep key={p.rowsRevision} locale={p.locale} currency={p.fields.currency} rows={p.rows} setRow={p.setRow} addGroup={p.addGroup} addProduct={p.addProduct} removeProduct={p.removeProduct} removeGroup={p.removeGroup} error={p.errors.rows || p.errors.tooMany}/></fieldset>
         {!sent && mode === "excel" && <section><h2 className="text-2xl font-bold">{t("下载、填写并上传 Excel", "Descarga, completa y sube el Excel", "Download, complete and upload Excel")}</h2><p className="mt-3 text-grey-700">{t("填写白色单元格，合计自动计算。上传后 DTD 会收到文件；它不会自动导入在线表格。无需再在线填写。", "Llena las celdas blancas; los totales se calculan solos. DTD recibirá el archivo: no se importa automáticamente al formulario. No necesitas llenar el formulario también.", "Fill the white cells; totals calculate automatically. DTD receives the file; it is not imported into the online form. You do not need to fill the form too.")}</p><a href={p.excelHref} download className="btn btn-primary mt-5">{t("下载 Excel", "Descargar Excel", "Download Excel")}</a></section>}
         {/* Keep uploads mounted: step navigation must preserve File objects and receipt state. */}
         <div hidden={!sent && mode === "online" && step !== 2} className={!sent && mode === "excel" ? "mt-4 border-t border-grey-200 pt-4" : "mt-3"}>{p.attachments}</div>
@@ -176,7 +153,7 @@ export function PackingListGuidedForm(p: Props) {
       </div>
       <aside className="min-w-0 rounded-xl border border-grey-200 bg-white p-4 lg:sticky lg:top-6">
         <section className="hidden lg:block"><h2 className="mb-3 font-bold">{t("本次货物", "Resumen de la mercancía", "Shipment summary")}</h2>{summary}</section>
-        <details className="lg:hidden"><summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-sm font-semibold"><span className="min-w-0">{number(totals.ctns)} {t("箱", "cajas", "cartons")} · {number(totals.qty)} {t("件", "uds.", "units")} · {p.fields.currency} {number(totals.amount, 2)}</span><span aria-hidden="true">⌄</span></summary><div className="pt-3">{summary}</div></details>
+        <details className="lg:hidden"><summary className="flex min-h-11 cursor-pointer items-center justify-between gap-2 text-sm font-semibold"><span className="min-w-0">{number(totals.ctns)} {t("箱", "cajas", "cartons")} · {number(totals.qty)} {t("件", "uds.", "units")} · {money(totals.amount)}</span><span aria-hidden="true">⌄</span></summary><div className="pt-3">{summary}</div></details>
         {mode === "excel" && <p className="mt-3 text-sm text-grey-700">{t("这些是在线表格中的数据，不包括 Excel 文件。", "Estos son los datos del formulario; no incluyen el archivo Excel.", "These are the form totals; they do not include the Excel file.")}</p>}
         <section className="mt-3 border-t border-grey-200 pt-3"><p className="text-sm text-grey-700">Shipping Mark · 唛头</p><p className="mt-1 break-all font-mono text-xl font-bold">{p.mark}</p><div className="mt-3 flex flex-wrap items-start justify-between gap-2"><div><p className="text-sm text-grey-700">{t("订单参考号", "Referencia de compra", "Purchase reference")}</p><p className="mt-1 break-all font-mono font-semibold">{p.code}</p></div><button className="min-h-11 rounded px-2 text-sm font-semibold underline underline-offset-4" type="button" onClick={p.onPrintLabels}>{t("打印标签", "Imprimir etiquetas", "Print labels")}</button></div><p className="mt-2 text-sm text-grey-700">{t("请勿更改唛头。每箱贴一张标签。", "Conserva este Shipping Mark. Pega una etiqueta en cada caja.", "Keep this Shipping Mark. Attach one label to every carton.")}</p></section>
       </aside>
