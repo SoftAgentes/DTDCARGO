@@ -69,7 +69,7 @@ describe("supplier invoice product lines", () => {
     fireEvent.click(button("Usar Excel")); fireEvent.click(button("Volver al formulario"));
     expect(screen.getByRole("textbox", { name: "Nombre del producto · 1" })).toHaveValue("Vasos");
     language("zh"); expect(screen.getByRole("textbox", { name: "中文品名 · 1" })).toHaveValue("");
-    fireEvent.click(screen.getByText("品牌、货号及其他资料")); expect(screen.getByRole("textbox", { name: "西文品名（选填） · 1" })).toHaveValue("Vasos");
+    fireEvent.click(screen.getByText("品牌及其他资料")); expect(screen.getByRole("textbox", { name: "西文品名（选填） · 1" })).toHaveValue("Vasos");
     language("es"); fireEvent.click(button("Guardar borrador")); const rows = savedRows();
     cleanup(); await start(); await waitFor(() => expect(button("Editar Vasos")).toBeInTheDocument());
     fireEvent.click(button("Editar Vasos")); expect(screen.getByRole("textbox", { name: "Unidades por caja · 1" })).toHaveValue("10");
@@ -82,7 +82,7 @@ describe("supplier invoice product lines", () => {
     await waitFor(() => expect(name).toHaveFocus());
     field("Nombre del producto · 1", "Solo nombre"); fireEvent.keyDown(name, { key: "Enter" });
     expect(button("Editar Solo nombre")).toBeInTheDocument();
-    fireEvent.click(button("Agregar otro producto")); fireEvent.click(screen.getByText("Marca, código y más detalles"));
+    fireEvent.click(button("Agregar otro producto")); fireEvent.click(screen.getByText("Marca y más detalles"));
     field("Nombre en chino (opcional) · 2", "杯子"); save(); expect(button("Editar 杯子")).toBeInTheDocument();
   });
   it("keeps all secondary values and unit-price precision in accepted lines and the final payload", async () => {
@@ -91,7 +91,7 @@ describe("supplier invoice product lines", () => {
     localStorage.setItem(packlistDraftKey(props.token), JSON.stringify({ rows, wechat: "demo-contact" }));
     await start(request); await waitFor(() => expect(button("Editar Vasos")).toBeInTheDocument());
     expect(within(group()).getAllByText("USD 0,004").length).toBeGreaterThan(0);
-    fireEvent.click(button("Editar Vasos")); fireEvent.click(screen.getByText("Marca, código y más detalles"));
+    fireEvent.click(button("Editar Vasos")); fireEvent.click(screen.getByText("Marca y más detalles"));
     expect(screen.getByRole("textbox", { name: "Material / HS (opcional) · 1" })).toHaveValue("Cerámica"); save();
     step(4); fireEvent.click(button("Enviar documento a DTD")); await screen.findByRole("heading", { name: "Documento enviado" });
     expect(JSON.parse(request.mock.calls[0][1].body).rows).toEqual(rows);
@@ -115,13 +115,16 @@ describe("supplier invoice product lines", () => {
     await waitFor(() => expect(button("Eliminar grupo")).toHaveFocus());
     expect(editor()).toBeVisible();
   });
-  it("adds another group, isolates its measurements, and resets editor presentation when history is restored", async () => {
+  it("adds another group and isolates its measurements and totals", async () => {
     await start(); base(); save(); fireEvent.click(button("Agregar otro grupo de cajas"));
     field("Cajas · 2", "2"); field("kg/caja · 2", "4"); field("m³/caja · 2", "0,2"); field("Nombre del producto · 2", "Platos"); field("Unidades por caja · 2", "3"); field("Precio unitario (USD) · 2", "5"); save();
     expect(group(2).querySelector("footer")).toHaveTextContent("2 cajas· 6 uds.· 8 kg· 0,4 m³· USD 30,00");
     fireEvent.click(button("Guardar borrador"));
     expect(computeTotals(savedRows()).totals).toEqual({ ctns: 7, qty: 56, amount: 130, weight: 23, cbm: 2.9 });
-    cleanup(); localStorage.setItem(packlistHistoryKey(props.token), JSON.stringify([{ t: 1, label: "mixto", data: JSON.stringify({ rows: mixed }) }]));
+  });
+  it("resets the active product editor when a mixed-carton history version is restored", async () => {
+    localStorage.setItem(packlistDraftKey(props.token), JSON.stringify({ rows: [mixed[0], { es: "Platos", ctns: "2", perctn: "3", unit: "5", wkg: "4", cbm: "0,2" }] }));
+    localStorage.setItem(packlistHistoryKey(props.token), JSON.stringify([{ t: 1, label: "mixto", data: JSON.stringify({ rows: mixed }) }]));
     await start(); await waitFor(() => expect(button("Editar Platos")).toBeInTheDocument()); fireEvent.click(button("Editar Platos"));
     fireEvent.click(button("Historial")); fireEvent.click(button("Restaurar")); step(2);
     expect(button("Editar Tapas")).toBeInTheDocument(); expect(screen.queryByRole("region", { name: "Editor del producto" })).not.toBeInTheDocument();

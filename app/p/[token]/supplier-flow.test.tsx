@@ -40,7 +40,7 @@ describe("supplier guided workflow", () => {
     fireEvent.change(screen.getByRole("textbox", { name: /Product name · 1/ }), { target: { value: "Cups" } });
     language("zh");
     expect(screen.getByRole("textbox", { name: /中文品名 · 1/ })).toHaveValue("");
-    fireEvent.click(screen.getByText("品牌、货号及其他资料"));
+    fireEvent.click(screen.getByText("品牌及其他资料"));
     expect(screen.getByRole("textbox", { name: /西文品名（选填） · 1/ })).toHaveValue("Cups");
   });
   it("uses translated placeholders without putting examples in review or the wire payload", async () => {
