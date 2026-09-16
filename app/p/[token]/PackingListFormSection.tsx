@@ -5,7 +5,7 @@ import { CheckIcon, CloseIcon, DownloadIcon } from "@/components/Icon";
 import { StatusIcon } from "@/components/StatusIcon";
 import { useRouter } from "next/navigation";
 import { PackingListDocumentPreview } from "./PackingListDocumentPreview";
-import { PackingListGuidedForm, providerText, type ProviderLocale, type GuidedFields } from "./PackingListGuidedForm";
+import { PackingListGuidedForm, providerText, type ProviderLocale, type GuidedFields, type GuidedFieldOrigin } from "./PackingListGuidedForm";
 import { printMarkbox } from "@/lib/shared/markbox-chain";
 import { printDocument } from "@/lib/shared/print-document";
 import { CONTACT } from "@/lib/design-tokens";
@@ -179,6 +179,7 @@ export function PackingListFormSection({
   locale = "zh",
   request = fetch,
   attachments,
+  attachmentsSummary,
   delivery,
   onPrintLabels = () => printDocument("labels"),
   excelHref = `/p/${token}/packlist`,
@@ -191,6 +192,7 @@ export function PackingListFormSection({
   locale?: ProviderLocale;
   request?: typeof fetch;
   attachments?: ReactNode;
+  attachmentsSummary?: ReactNode;
   delivery?: ReactNode;
   onPrintLabels?: () => void;
   excelHref?: string;
@@ -209,6 +211,8 @@ export function PackingListFormSection({
   const [wechat, setWechat] = useState(supplierWechat ?? "");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [fieldOrigins, setFieldOrigins] = useState<Partial<Record<keyof GuidedFields, GuidedFieldOrigin>>>(() => ({ company: supplierName ? "prefilled" : undefined, wechat: supplierWechat ? "prefilled" : undefined }));
 
   // CLIENT — el 唛头 (mark) viene prefilled de la orden.
   const mark = markbox ?? "";
@@ -337,6 +341,8 @@ export function PackingListFormSection({
   );
 
   const applyDraft = useCallback((d: Partial<Draft>) => {
+    setDraftRestored(true);
+    setFieldOrigins(previous => ({ ...previous, ...(typeof d.company === "string" ? { company: "draft" as const } : {}), ...(typeof d.wechat === "string" ? { wechat: "draft" as const } : {}) }));
     if (typeof d.folio === "string") setFolio(d.folio);
     if (typeof d.company === "string") setCompany(d.company);
     if (typeof d.email === "string") setEmail(d.email);
@@ -629,6 +635,7 @@ export function PackingListFormSection({
   const sending = submit.kind === "sending";
   const fieldSetters = { company: setCompany, email: setEmail, wechat: setWechat, address: setAddress, city: setCity, folio: setFolio, docDate: setDocDate, currency: setCurrency, note: setNote, lang: setLang };
   function updateField<K extends keyof GuidedFields>(key: K, value: GuidedFields[K]) {
+    if (key === "company" || key === "wechat") setFieldOrigins(previous => ({ ...previous, [key]: "edited" }));
     (fieldSetters[key] as (value: GuidedFields[K]) => void)(value);
   }
   function removeGroup(index: number) {
@@ -642,13 +649,13 @@ export function PackingListFormSection({
   }
 
   return (<>
-    <PackingListGuidedForm locale={locale} code={code} mark={printMarkbox(mark)}
+    <PackingListGuidedForm locale={locale} code={code} mark={printMarkbox(mark)} fieldOrigins={fieldOrigins} draftRestored={draftRestored}
       fields={{ company, email, wechat, address, city, folio, docDate, currency, note, lang }}
       onField={updateField} rows={rows} setRow={setRow} addGroup={() => addRows(1)}
       addProduct={addChild} removeProduct={removeRow} removeGroup={removeGroup}
       submit={displaySubmit} onSubmit={handleSubmit} onEdit={() => setSubmit({ kind: "idle" })}
-      errors={displayErrors} saveFailed={saveStatus.kind === "error"} saveStatus={saveStatus.kind === "error" ? uiText("无法在此设备保存草稿。请保持页面打开。", "No se pudo guardar el borrador en este navegador. Mantén esta página abierta.", "Could not save the draft in this browser. Keep this page open.") : saveStatus.kind === "saved" ? `${uiText("草稿已保存在此设备", "Borrador guardado en este dispositivo", "Draft saved on this device")} · ${fmtTs(saveStatus.timestamp!)} ` : saveStatus.kind === "restored" ? uiText("已恢复草稿版本", "Versión del borrador restaurada", "Draft version restored") : ""} onSave={saveVersion}
-      history={history} onRestore={restore} attachments={attachments} delivery={delivery}
+      errors={displayErrors} saveIsManual={saveStatus.tone === "pulse"} saveFailed={saveStatus.kind === "error"} saveStatus={saveStatus.kind === "error" ? uiText("无法在此设备保存草稿。请保持页面打开。", "No se pudo guardar el borrador en este navegador. Mantén esta página abierta.", "Could not save the draft in this browser. Keep this page open.") : saveStatus.kind === "saved" ? `${uiText("草稿已保存在此设备", "Borrador guardado en este dispositivo", "Draft saved on this device")} · ${fmtTs(saveStatus.timestamp!)} ` : saveStatus.kind === "restored" ? uiText("已恢复草稿版本", "Versión del borrador restaurada", "Draft version restored") : ""} onSave={saveVersion}
+      history={history} onRestore={restore} attachments={attachments} attachmentsSummary={attachmentsSummary} delivery={delivery}
       onPrintLabels={onPrintLabels} onPreview={() => setDocumentOpen(true)} excelHref={excelHref} />
     {documentOpen && <PackingListDocumentPreview fields={{ company, email, wechat, address, city, folio, docDate, currency, note, lang }} rows={rows} mark={printMarkbox(mark)} code={code} locale={locale} onClose={() => setDocumentOpen(false)} />}
     {/* Complete document stays mounted solely for printing, never a second accessible editor. */}

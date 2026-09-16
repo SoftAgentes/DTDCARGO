@@ -8,7 +8,7 @@ import { StatusIcon } from "@/components/StatusIcon";
 import { CONTACT } from "@/lib/design-tokens";
 import type { BoxLabel } from "@/lib/studio/prealertas/types";
 import { PackingListFormSection, WAREHOUSE_RULES } from "./PackingListFormSection";
-import { SupplierUploadSection } from "./SupplierUploadSection";
+import { SupplierUploadSection, SupplierUploadSummary, type SupplierUploadStatus } from "./SupplierUploadSection";
 import { providerText, type ProviderLocale } from "./PackingListGuidedForm";
 import type { BrandContext } from "@/lib/shared/brand-context";
 import { printMarkbox } from "@/lib/shared/markbox-chain";
@@ -20,6 +20,7 @@ export function ProviderShareClient({ token, code, markbox, supplierName, suppli
   /** Local review fixture injects a transport; real page keeps existing endpoints. */
   request?: typeof fetch; excelHref?: string;
 }) {
+  const [uploads, setUploads] = useState<SupplierUploadStatus>({ kind: "idle", uploaded: 0, selected: 0 });
   const [locale, setLocale] = useState<ProviderLocale>("zh");
   const [copied, setCopied] = useState<"idle" | "ok" | "error">("idle");
   const [showPrintNotice, setShowPrintNotice] = useState(false);
@@ -66,14 +67,14 @@ export function ProviderShareClient({ token, code, markbox, supplierName, suppli
         .label-card { break-inside: avoid; box-shadow: none !important; }
       }
     `}</style>
-    <div className="provider-page mx-auto w-full max-w-7xl px-4 py-4 sm:px-8 sm:py-10" lang={locale === "zh" ? "zh-CN" : locale}>
-      <header className="no-print mb-4 border-b border-grey-200 pb-4 sm:mb-8 sm:pb-6">
+    <div className="provider-page mx-auto w-full max-w-7xl px-4 py-4 sm:px-8 sm:py-6" lang={locale === "zh" ? "zh-CN" : locale}>
+      <header className="no-print mb-4 border-b border-grey-200 pb-4 sm:mb-5 sm:pb-4">
         <div className="flex flex-wrap items-center justify-between gap-4"><p className="text-lg font-bold">{brand.name}</p><label className="flex items-center gap-2 text-sm font-semibold"><span className="sr-only">语言 / Idioma / Language</span><select aria-label="语言 / Idioma / Language" value={locale} onChange={event => setLocale(event.target.value as ProviderLocale)} className="min-h-11 rounded-lg border border-grey-300 bg-white px-3 text-ink"><option value="zh">简体中文</option><option value="es">Español</option><option value="en">English</option></select></label></div>
-        <h1 className="mt-4 text-2xl font-bold leading-tight sm:mt-8 sm:text-4xl">{t("装箱单与商业发票", "Factura y packing list", "Invoice and packing list")}</h1>
+        <h1 className="mt-4 text-2xl font-bold leading-tight sm:mt-5 sm:text-4xl">{t("装箱单与商业发票", "Factura y packing list", "Invoice and packing list")}</h1>
         <p className="mt-3 max-w-prose text-base leading-relaxed text-grey-700">{t("填写货物资料，核对后提交。无需注册账号。", "Completa los datos de tu mercancía, revísalos y envíalos. No necesitas crear una cuenta.", "Enter your shipment details, review and send them. No account needed.")}</p>
       </header>
       {showPrintNotice && <section role="region" aria-label={t("打印前核对", "Antes de imprimir", "Before printing")} className="no-print mb-6 rounded-xl border border-grey-200 bg-white p-6"><h2 className="flex items-center gap-2 text-lg font-bold"><StatusIcon tone="info" size={20}/>{t("请确认箱数和标签", "Revisa las cajas y sus etiquetas", "Check cartons and labels")}</h2><p className="mt-3 text-grey-700">{t("修改箱数或装箱内容后，请核对并重新打印受影响的标签。可以先打印现有标签。", "Si cambias las cajas o su contenido, revisa y vuelve a imprimir las etiquetas afectadas. Puedes imprimir las disponibles ahora.", "After changing cartons or contents, review and reprint affected labels. You can print the available labels now.")}</p><div className="mt-4 flex flex-wrap gap-3"><button autoFocus type="button" className="btn btn-primary" onClick={() => { setPrintNoticed(true); setShowPrintNotice(false); printDocument("labels"); }}>{t("继续打印", "Continuar e imprimir", "Continue and print")}</button><button type="button" className="btn btn-ghost" onClick={() => setShowPrintNotice(false)}>{t("返回核对", "Volver a revisar", "Back to review")}</button></div></section>}
-      <div id="packing-list"><PackingListFormSection token={token} supplierName={supplierName} supplierWechat={supplierWechat} markbox={markbox} code={code} locale={locale} request={request} onPrintLabels={printLabels} excelHref={excelHref} attachments={<SupplierUploadSection token={token} locale={locale} request={request}/>} delivery={delivery}/></div>
+      <div id="packing-list"><PackingListFormSection token={token} supplierName={supplierName} supplierWechat={supplierWechat} markbox={markbox} code={code} locale={locale} request={request} onPrintLabels={printLabels} excelHref={excelHref} attachments={<SupplierUploadSection token={token} locale={locale} request={request} showHeading={false} onUploadState={setUploads}/>} attachmentsSummary={<SupplierUploadSummary locale={locale} status={uploads}/>} delivery={delivery}/></div>
       <div className="labels-print-area" hidden aria-hidden="true">{labels.map(label => <ShippingBoxLabel key={label.boxN} label={label} markbox={markbox} brandName={brand.name} presentation={presentation}/>)}</div>
     </div>
   </div>;

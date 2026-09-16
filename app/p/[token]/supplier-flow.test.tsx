@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ProviderShareClient } from "./ProviderShareClient";
 import { resolveBrand } from "@/lib/shared/brand-context";
 import { computeTotals } from "@/lib/studio/prealertas/packlist-form";
@@ -42,6 +42,97 @@ describe("supplier guided workflow", () => {
     expect(screen.getByRole("textbox", { name: /中文品名 · 1/ })).toHaveValue("");
     fireEvent.click(screen.getByText("品牌、货号及其他资料"));
     expect(screen.getByRole("textbox", { name: /西文品名（选填） · 1/ })).toHaveValue("Cups");
+  });
+  it("uses translated placeholders without putting examples in review or the wire payload", async () => {
+    const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "Revisa", fieldErrors: { contacto: "Falta contacto" } }), { status: 400 }));
+    render(<ProviderShareClient {...props} supplierName="" supplierWechat="" request={request}/>);
+    expect(screen.getByRole("textbox", { name: "公司 / 姓名" })).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "公司 / 姓名" })).toHaveAttribute("placeholder", "例如：深圳 ABC 贸易公司");
+    language("en"); expect(screen.getByRole("textbox", { name: "WeChat / Phone" })).toHaveAttribute("placeholder", "e.g. wechat_id or +86…");
+    language("es"); expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveAttribute("placeholder", "Ej. Shenzhen ABC Trading");
+    expect(screen.queryByText("Prellenado; puedes corregirlo")).not.toBeInTheDocument();
+    step(4);
+    const editor = screen.getByRole("region", { name: "Factura y packing list" });
+    expect(within(editor).queryByText(/Shenzhen ABC|demo-wechat|wechat_id/)).not.toBeInTheDocument();
+    fireEvent.click(button("Enviar documento a DTD")); await waitFor(() => expect(request).toHaveBeenCalledOnce());
+    const payload = JSON.parse(request.mock.calls[0][1].body);
+    expect(payload.supplierCompany).toBe(""); expect(payload.supplierWechat).toBe("");
+    expect(JSON.stringify(payload)).not.toMatch(/Shenzhen ABC|demo-wechat|wechat_id|fieldOrigins|draftRestored/);
+  });
+  it("identifies real prefilled contacts accessibly and keeps them in review", async () => {
+    await start();
+    const company = screen.getByRole("textbox", { name: "Empresa / Persona" });
+    expect(company).toHaveValue("Proveedor");
+    expect(company).toHaveAccessibleDescription("Prellenado; puedes corregirlo");
+    expect(screen.getByRole("textbox", { name: "WeChat / Teléfono" })).toHaveAccessibleDescription("Prellenado; puedes corregirlo");
+    fireEvent.change(company, { target: { value: "Proveedor corregido" } });
+    expect(company).toHaveAccessibleDescription("Editado en este borrador");
+    step(4); expect(screen.getByText("Proveedor corregido")).toBeVisible();
+  });
+  it("keeps essential draft status outside tools and distinguishes restored values from prefill", async () => {
+    localStorage.setItem(packlistDraftKey(props.token), draft());
+    await start();
+    const company = screen.getByRole("textbox", { name: "Empresa / Persona" });
+    await waitFor(() => expect(company).toHaveValue("Proveedor guardado"));
+    expect(company).toHaveAccessibleDescription("Restaurado del borrador de este dispositivo");
+    const state = screen.getByText("Borrador local restaurado · aún no enviado");
+    expect(state).toBeVisible(); expect(state.closest("details")).toBeNull();
+    await waitFor(() => expect(within(screen.getByRole("region", { name: "Factura y packing list" })).getByText(/Borrador guardado en este dispositivo/).closest("details")).toBeNull());
+  });
+  it("does not call a newly edited and autosaved session restored", async () => {
+    render(<ProviderShareClient {...props} supplierName="" supplierWechat=""/>); language("es");
+    const company = screen.getByRole("textbox", { name: "Empresa / Persona" });
+    await waitFor(() => expect(company).toHaveValue(""));
+    fireEvent.change(company, { target: { value: "Sesión nueva" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "WeChat / Teléfono" }), { target: { value: "nuevo-contacto" } });
+    await waitFor(() => expect(JSON.parse(localStorage.getItem(packlistDraftKey(props.token)) || "{}").company).toBe("Sesión nueva"));
+    expect(screen.getByText("Borrador local · aún no enviado")).toBeVisible();
+    expect(screen.queryByText("Borrador local restaurado · aún no enviado")).not.toBeInTheDocument();
+    language("en"); step(2); step(1);
+    expect(screen.getByText("Local draft · not sent yet")).toBeVisible();
+    expect(screen.getByRole("textbox", { name: "Company / Person" })).toHaveAccessibleDescription("Edited in this draft");
+  });
+  it("does not label empty restored contact fields as filled data", async () => {
+    localStorage.setItem(packlistDraftKey(props.token), draft({ company: "", wechat: "" }));
+    await start();
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveValue(""));
+    expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).not.toHaveAccessibleDescription();
+    expect(screen.getByRole("textbox", { name: "WeChat / Teléfono" })).not.toHaveAccessibleDescription();
+    expect(screen.getByText("Borrador local restaurado · aún no enviado")).toBeVisible();
+  });
+  it("keeps debounced and interval autosave silent while announcing a manual save", async () => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"] });
+    try {
+      render(<ProviderShareClient {...props}/>);
+      await act(async () => {});
+      language("es");
+      const notice = screen.getByRole("status", { name: "Avisos del borrador" });
+      expect(notice).toBeEmptyDOMElement();
+      fireEvent.change(screen.getByRole("textbox", { name: "Empresa / Persona" }), { target: { value: "Empresa editada" } });
+      await act(async () => { await vi.advanceTimersByTimeAsync(600); });
+      const visibleState = within(screen.getByRole("region", { name: "Factura y packing list" })).getByText(/Borrador guardado en este dispositivo/);
+      expect(visibleState.closest('[role="status"], [aria-live]')).toBeNull();
+      expect(notice).toBeEmptyDOMElement();
+      await act(async () => { await vi.advanceTimersByTimeAsync(8000); });
+      expect(notice).toBeEmptyDOMElement();
+      fireEvent.click(button("Guardar borrador"));
+      expect(notice).toHaveTextContent("Borrador guardado en este dispositivo");
+      await act(async () => { await vi.advanceTimersByTimeAsync(8000); });
+      expect(notice).toBeEmptyDOMElement();
+    } finally { cleanup(); vi.useRealTimers(); }
+  });
+  it("exposes four numbered step targets with full names and the current step", async () => {
+    await start();
+    const navigation = screen.getByRole("navigation", { name: "Pasos del documento" });
+    const targets = within(navigation).getAllByRole("button");
+    expect(targets).toHaveLength(4);
+    expect(targets[0]).toHaveAccessibleName("1 Datos del proveedor");
+    expect(targets[0]).toHaveAttribute("aria-current", "step");
+    fireEvent.click(targets[2]);
+    expect(targets[2]).toHaveAccessibleName("3 Fotos y archivos");
+    expect(targets[2]).toHaveAttribute("aria-current", "step");
+    expect(targets[0]).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("heading", { name: "Fotos y archivos · Opcional" })).toBeVisible();
   });
   it("allows printing empty labels after an informational reminder without submitting", async () => {
     const request = vi.fn(); await start(request);
@@ -153,11 +244,38 @@ describe("supplier guided workflow", () => {
     expect(button("Restaurar")).toBeDisabled(); expect(button("Historial")).toBeDisabled(); expect(button("Guardar borrador")).toBeDisabled();
     expect(button("Editar productos")).toBeDisabled();
   });
-  it("preserves selected attachments across steps and Excel without uploading implicitly", async () => {
-    const request = vi.fn(); await start(request); step(3);
-    fireEvent.change(screen.getByLabelText("Elegir archivos"), { target: { files: [new File(["photo"], "product.png", { type: "image/png" })] } });
-    step(1); step(3); expect(screen.getByText("product.png")).toBeInTheDocument();
-    fireEvent.click(button("Usar Excel")); expect(screen.getByText("product.png")).toBeInTheDocument(); expect(request).not.toHaveBeenCalled();
+  it("shows a compact attachment review while preserving the actual Files through steps and Excel", async () => {
+    const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, uploaded: 1 })));
+    await start(request); step(3);
+    expect(screen.getAllByRole("heading", { name: "Fotos y archivos · Opcional" })).toHaveLength(1);
+    const file = new File(["photo"], "product.png", { type: "image/png" });
+    const chooser = screen.getByLabelText("Elegir archivos");
+    fireEvent.change(chooser, { target: { files: [file] } });
+    step(4);
+    expect(screen.queryByRole("button", { name: "Elegir archivos" })).not.toBeInTheDocument();
+    expect(screen.getByText("product.png")).not.toBeVisible();
+    language("zh");
+    expect(button("4 核对并提交")).toHaveAttribute("aria-current", "step");
+    expect(within(screen.getByRole("region", { name: "照片与附件" })).getByText("已选择 1 个文件，尚未上传")).toBeVisible();
+    expect(screen.getByText("本地草稿 · 尚未提交")).toBeVisible();
+    language("en");
+    expect(button("4 Review and send")).toHaveAttribute("aria-current", "step");
+    expect(within(screen.getByRole("region", { name: "Photos and files" })).getByText("1 file selected, not uploaded")).toBeVisible();
+    language("es");
+    const review = screen.getByRole("region", { name: "Fotos y archivos" });
+    expect(within(review).getByText("1 archivo seleccionado, sin subir")).toBeVisible();
+    fireEvent.click(within(review).getByRole("button", { name: "Revisar" }));
+    expect(screen.getByText("product.png")).toBeVisible();
+    expect(screen.getByLabelText("Elegir archivos")).toBe(chooser);
+    fireEvent.click(button("Usar Excel")); expect(screen.getByText("product.png")).toBeVisible();
+    fireEvent.click(button("Volver al formulario"));
+    expect(request).not.toHaveBeenCalled();
+    fireEvent.click(button("Subir archivos"));
+    await screen.findByText("1 archivo recibido");
+    expect((request.mock.calls[0][1].body as FormData).getAll("files")).toEqual([file]);
+    step(4);
+    expect(within(screen.getByRole("region", { name: "Fotos y archivos" })).getByText("1 archivo recibido")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Elegir archivos" })).not.toBeInTheDocument();
   });
   it("localizes throttling in Chinese and never presents an unconfirmed send as success", async () => {
     const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "Demasiados intentos" }), { status: 429 }));

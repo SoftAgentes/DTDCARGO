@@ -10,17 +10,17 @@ const MAX_BYTES = 15 * 1024 * 1024;
 const FOCUS_RING = "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink";
 
 export type SupplierUploadLocale = "zh" | "es" | "en";
+export type SupplierUploadError = "failed" | "network" | "limit" | "size" | "unconfirmed" | "throttled";
 export type SupplierUploadStatus = {
-  kind: "idle" | "sending" | "received" | "partial" | "error";
   /** Cantidad confirmada para el último intento; nunca se infiere de la selección. */
   uploaded: number;
   selected: number;
-};
-type UploadState = SupplierUploadStatus & { error?: "failed" | "network" | "limit" | "size" | "unconfirmed" | "throttled" };
+} & ({ kind: "idle" | "sending" | "received" | "partial" } | { kind: "error"; error: SupplierUploadError });
+type UploadState = SupplierUploadStatus;
 
 const COPY = {
   zh: {
-    title: "照片和文件", optional: "选填", description: "可添加产品照片。如果使用 Excel，请在此上传填好的文件，无需再次填写在线表单。其他原始单据仅在 DTD 要求时上传。",
+    title: "照片和文件", optional: "选填", description: "添加产品照片或 DTD 要求的文件。也可上传填好的 Excel，无需再次在线填写。",
     choose: "选择文件", empty: "尚未选择文件。可以跳过此步骤。", limits: "每次最多 12 个文件，每个不超过 15 MB。支持图片、Excel、CSV、PDF 和 Word。",
     remove: "移除", clear: "全部移除", upload: "上传文件", retry: "重新上传所选文件", sending: "正在上传…",
     selected: (n: number) => `已选择 ${n} 个文件，尚未上传`,
@@ -34,7 +34,7 @@ const COPY = {
     unconfirmed: "无法确认已收到多少个文件。当前选择已保留，请先与 DTD 确认，再尝试重新上传。", throttled: "上传次数过多，请稍后重试。",
   },
   es: {
-    title: "Fotos y archivos", optional: "Opcional", description: "Puedes agregar fotos del producto. Si usaste Excel, sube el archivo completado aquí sin volver a llenar el formulario online. Otros documentos originales solo si DTD te los solicita.",
+    title: "Fotos y archivos", optional: "Opcional", description: "Agrega fotos o documentos solicitados por DTD. También puedes subir tu Excel completo sin llenar el formulario online.",
     choose: "Elegir archivos", empty: "Todavía no has seleccionado archivos. Puedes continuar sin adjuntos.", limits: "Máximo 12 archivos por carga y 15 MB por archivo. Imágenes, Excel, CSV, PDF o Word.",
     remove: "Quitar", clear: "Quitar todo", upload: "Subir archivos", retry: "Reenviar selección", sending: "Subiendo archivos…",
     selected: (n: number) => `${n} archivo${n === 1 ? "" : "s"} seleccionado${n === 1 ? "" : "s"}, sin subir`,
@@ -48,7 +48,7 @@ const COPY = {
     unconfirmed: "No pudimos confirmar cuántos archivos fueron recibidos. Conservamos tu selección; confirma con DTD antes de reenviar.", throttled: "Se hicieron demasiadas cargas. Intenta de nuevo más tarde.",
   },
   en: {
-    title: "Photos and files", optional: "Optional", description: "You can add product photos. If you used Excel, upload the completed file here without filling in the online form again. Upload other original documents only when DTD requests them.",
+    title: "Photos and files", optional: "Optional", description: "Add photos or files requested by DTD. You can also upload your completed Excel without filling in the online form.",
     choose: "Choose files", empty: "No files selected yet. You can continue without attachments.", limits: "Up to 12 files per upload, 15 MB each. Images, Excel, CSV, PDF or Word.",
     remove: "Remove", clear: "Remove all", upload: "Upload files", retry: "Upload selection again", sending: "Uploading files…",
     selected: (n: number) => `${n} file${n === 1 ? "" : "s"} selected, not uploaded`,
@@ -79,12 +79,14 @@ export function SupplierUploadSection({
   locale = "zh",
   request = fetch,
   onUploadState,
+  showHeading = true,
 }: {
   token: string;
   locale?: SupplierUploadLocale;
   /** Transporte inyectable para la vista local con datos ficticios. */
   request?: typeof fetch;
   onUploadState?: (status: SupplierUploadStatus) => void;
+  showHeading?: boolean;
 }) {
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -96,7 +98,7 @@ export function SupplierUploadSection({
 
   function updateState(next: UploadState) {
     setState(next);
-    onUploadState?.({ kind: next.kind, uploaded: next.uploaded, selected: next.selected });
+    onUploadState?.(next);
   }
 
   function selectFiles(next: File[]) {
@@ -152,18 +154,19 @@ export function SupplierUploadSection({
     <section
       className="no-print space-y-4 text-ink"
       lang={locale === "zh" ? "zh-CN" : locale}
-      aria-labelledby={`${id}-title`}
+      aria-labelledby={showHeading ? `${id}-title` : undefined}
+      aria-label={showHeading ? undefined : COPY[locale].title}
       aria-busy={sending}
       style={locale === "zh" ? { fontFamily: "var(--f-cn-ui)" } : undefined}
     >
       <div>
-        <div className="flex flex-wrap items-center gap-3">
+        {showHeading && <div className="flex flex-wrap items-center gap-3">
           <h3 id={`${id}-title`} className="m-0 text-lg font-bold">{text.title}</h3>
           <span className="rounded-full border border-grey-200 px-3 py-1 text-sm text-grey-700">{text.optional}</span>
-        </div>
-        <p className="mt-2 mb-0 max-w-prose text-base leading-relaxed text-grey-700">{text.description}</p>
+        </div>}
+        <p className="mb-0 max-w-prose text-base leading-relaxed text-grey-700">{text.description}</p>
       </div>
-      <div className="rounded-lg border border-grey-200 bg-grey-100 p-4 sm:p-6">
+      <div className="rounded-lg border border-grey-200 bg-grey-100 p-4">
         <p id={`${id}-limits`} className="mt-0 mb-4 text-sm leading-relaxed text-grey-700">{text.limits}</p>
         <input
           id={`${id}-files`}
@@ -222,7 +225,7 @@ export function SupplierUploadSection({
             />
             <div className="min-w-0 text-base leading-relaxed">
               <p className="m-0 font-semibold">
-                {state.kind === "received" ? text.received(state.uploaded) : state.kind === "partial" ? text.partial(state.uploaded, state.selected) : text[state.error ?? "failed"]}
+                {state.kind === "received" ? text.received(state.uploaded) : state.kind === "partial" ? text.partial(state.uploaded, state.selected) : state.kind === "error" ? text[state.error] : null}
               </p>
               {state.kind !== "error" && <p className="mt-2 mb-0 text-grey-700">{state.kind === "partial" ? text.partialHelp : text.distinction}</p>}
             </div>
@@ -236,4 +239,14 @@ export function SupplierUploadSection({
       )}
     </section>
   );
+}
+/** Receipt-only presentation; File objects stay in the mounted upload component. */
+export function SupplierUploadSummary({ locale, status }: { locale: SupplierUploadLocale; status: SupplierUploadStatus }) {
+  const text = COPY[locale];
+  const summary = status.kind === "received" ? text.received(status.uploaded)
+    : status.kind === "partial" ? text.partial(status.uploaded, status.selected)
+    : status.kind === "sending" ? text.sending
+    : status.kind === "error" ? text[status.error]
+    : status.selected ? text.selected(status.selected) : text.empty;
+  return <p role="status" className="text-sm leading-relaxed text-grey-700">{summary}</p>;
 }

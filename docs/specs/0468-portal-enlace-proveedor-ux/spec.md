@@ -387,3 +387,17 @@ El runbook exige ui-check, pnpm verify y handoff con comprobaciones PASÓ/FALLÓ
 ### Compatibilidad y límites de revisión
 
 El plan aprobado constituye DESIGN-CHECK de la nueva composición; no se edita manualmente el Norte. Marca mantiene tokens y Archivo/Noto Sans SC en /p, sin modificar fuentes globales. La vista documental nueva resume el contenido para revisar; el impreso canónico mantiene columnas y reglas completas anteriores. Preview local no equivale a prueba de permisos en producción, ni prueba de WeChat, impresión física o PDF paginado final. Estado SDD continúa in-progress hasta completar aceptación humana/integración según autorización.
+
+### Pase UX aprobado de etapa 2 · 2026-09-16
+
+Se diferencia el origen sin bajar contraste: datos reales precargados llevan ayuda accesible, los campos vacíos muestran ejemplos como placeholder localizado y los valores de un borrador recuperado se identifican como tales. Las ayudas de campo aparecen solo cuando hay valor. Esa metadata es de presentación y no se incorpora al payload ni al borrador serializado.
+
+El estado local y de guardado/error permanece fuera del desplegable de herramientas; después de un envío confirmado deja de anunciar pendiente. En móvil, los cuatro pasos ocupan una fila con objetivos de al menos 44px, números visibles y nombre completo accesible/aria-current; desde sm se conservan etiquetas. Se compactan encabezado, línea Excel, espacios y acciones sin reducir campos de 48px. Sidebar une totales y Shipping Mark; móvil despliega peso/volumen desde una cabecera resumida.
+
+Paso 3 tiene un solo título «Fotos y archivos · Opcional», descripción y límites. Paso 4 muestra únicamente resumen del estado y acceso a revisar. El cargador permanece en la misma posición del árbol de componentes al navegar, alternar Excel, cambiar idioma o consultar tras envío; la selección conserva sus File originales.
+
+La fixture presenta «DEMO · datos ficticios» persistente, distingue inicio de ejemplo de borrador local restaurado y ofrece restablecer únicamente las claves del token ficticio. Los valores semilla antiguos de empresa/WeChat se retiran solo por coincidencia exacta en esa demo, con aviso, conservando datos introducidos. Los contactos de ejemplo dejan de ser valores. Borrador inválido no se abre silenciosamente y almacenamiento bloqueado no se anuncia como recuperación exitosa.
+
+Pruebas del pase: origen, placeholders y payload sin ejemplos, autoguardado nuevo frente a restauración, pasos accesibles, selección/recibo al navegar e idioma, reset acotado de demo y regresiones existentes. La evidencia por comando y la inspección visual independiente quedan en el handoff de esta tarea. Continúan pendientes las aceptaciones humanas, WeChat y producción ya delimitadas.
+
+La revisión UX final añadió tres protecciones: autoguardado visual silencioso (live polite solo para eventos manuales y alert para fallos); el resumen de adjuntos conserva causa discriminada del error y no llama inciertos a límites/rechazos conocidos; la demo compara el borrador con su baseline real antes de llamarlo restaurado. Un autosave vacío equivalente al inicio se retira solo de la clave actual ficticia, conservando historial y otros tokens. Los cambios reales de fecha, moneda, idioma, campos o cajas se mantienen.

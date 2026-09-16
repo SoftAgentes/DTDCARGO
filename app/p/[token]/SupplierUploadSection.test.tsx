@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { SupplierUploadSection } from "./SupplierUploadSection";
+import { SupplierUploadSection, SupplierUploadSummary, type SupplierUploadStatus } from "./SupplierUploadSection";
 
 afterEach(cleanup);
 const TOKEN = "fixture-token";
@@ -105,7 +105,7 @@ describe("SupplierUploadSection", () => {
     expect(screen.getByText(/confirma con DTD antes de reenviar/)).toBeVisible();
     expect(screen.queryByText(/No pudimos subir tus archivos/)).not.toBeInTheDocument();
     expect(screen.getByText("producto.jpg")).toBeVisible();
-    expect(onUploadState).toHaveBeenLastCalledWith({ kind: "error", uploaded: 0, selected: 1 });
+    expect(onUploadState).toHaveBeenLastCalledWith({ kind: "error", error: "unconfirmed", uploaded: 0, selected: 1 });
   });
 
   it("mantiene selección y avisa sobre recepción incierta ante pérdida de red", async () => {
@@ -149,4 +149,44 @@ describe("SupplierUploadSection", () => {
     await waitFor(() => expect(screen.getByText(/Se hicieron demasiadas cargas/)).toBeVisible());
     expect(screen.getByText("producto.jpg")).toBeVisible();
   });
+  it.each([
+    { status: 503, cause: "failed", expected: "No pudimos subir tus archivos. Revisa su formato y tamaño e intenta de nuevo." },
+    { status: 429, cause: "throttled", expected: "Se hicieron demasiadas cargas. Intenta de nuevo más tarde." },
+  ])("preserva la causa HTTP $status en el resumen sin inventar recepción incierta", async ({ status, cause, expected }) => {
+    const onUploadState = vi.fn();
+    const request = vi.fn<typeof fetch>().mockResolvedValue(new Response("rejected", { status }));
+    const view = render(<SupplierUploadSection token={TOKEN} locale="es" request={request} onUploadState={onUploadState}/>);
+    pick([photo()]); fireEvent.click(screen.getByRole("button", { name: "Subir archivos" }));
+    await screen.findByText(expected);
+    const receipt = onUploadState.mock.calls.at(-1)![0] as SupplierUploadStatus;
+    expect(receipt).toEqual({ kind: "error", error: cause, uploaded: 0, selected: 1 });
+    view.unmount(); render(<SupplierUploadSummary locale="es" status={receipt}/>);
+    expect(screen.getByRole("status")).toHaveTextContent(expected);
+    expect(screen.queryByText(/sin confirmar|inciert/)).not.toBeInTheDocument();
+  });
+  it("mantiene el límite local en el resumen y nunca lo convierte en recepción incierta", () => {
+    const onUploadState = vi.fn(); const request = vi.fn();
+    const view = render(<SupplierUploadSection token={TOKEN} locale="es" request={request} onUploadState={onUploadState}/>);
+    pick(Array.from({ length: 13 }, (_, i) => new File(["x"], i + ".pdf")));
+    fireEvent.click(screen.getByRole("button", { name: "Subir archivos" }));
+    const receipt = onUploadState.mock.calls.at(-1)![0] as SupplierUploadStatus;
+    expect(receipt).toEqual({ kind: "error", error: "limit", uploaded: 0, selected: 13 });
+    expect(request).not.toHaveBeenCalled();
+    view.unmount(); render(<SupplierUploadSummary locale="es" status={receipt}/>);
+    expect(screen.getByRole("status")).toHaveTextContent("Puedes subir hasta 12 archivos por carga");
+    expect(screen.queryByText(/sin confirmar|inciert/)).not.toBeInTheDocument();
+  });
+  it.each(["network", "unconfirmed"] as const)("mantiene el aviso de recepción incierta para %s", async cause => {
+    const onUploadState = vi.fn();
+    const request = cause === "network" ? vi.fn<typeof fetch>().mockRejectedValue(new Error("offline")) : vi.fn<typeof fetch>().mockResolvedValue(receipt());
+    const view = render(<SupplierUploadSection token={TOKEN} locale="es" request={request} onUploadState={onUploadState}/>);
+    pick([photo()]); fireEvent.click(screen.getByRole("button", { name: "Subir archivos" }));
+    await screen.findByText(cause === "network" ? /La conexión se interrumpió/ : /No pudimos confirmar cuántos archivos/);
+    const state = onUploadState.mock.calls.at(-1)![0] as SupplierUploadStatus;
+    expect(state.kind === "error" && state.error).toBe(cause);
+    view.unmount(); render(<SupplierUploadSummary locale="es" status={state}/>);
+    expect(screen.getByRole("status")).toHaveTextContent(/confirmar|confirmación/);
+    expect(screen.getByRole("status")).toHaveTextContent(/antes de reenviar/);
+  });
+
 });
