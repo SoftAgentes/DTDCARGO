@@ -127,3 +127,23 @@ Todos quedan diferidos para la próxima sesión, en este orden sugerido.
 - Espera en el baseline de migraciones: 0415, 0414, 0422 y 0423; `cutoff` 238. No hay migraciones en
   vuelo con plazo de 24 h.
 - El claim `director-cierre-20260915` se libera al publicar.
+
+## Actualización del 2026-09-17 (al cerrar de nuevo la sesión)
+
+`main` se movió mientras esta PR seguía en borrador. Verificado en `origin/main` `747637e6`:
+
+- Se fusionaron, desde otras sesiones: #125 (conocimiento, Graphify y Obsidian; agrega la sección
+  «Conocimiento y actualización» a `AGENTS.md`), #127 y #128 (reserva y spec de SDD-0472) y #129
+  (SDD-0468, pantalla del proveedor).
+- **El hueco de permisos en `clients` ya tiene spec:** `docs/specs/0472-clients-rbac-escritura-gobernada/spec.md`,
+  en `in-progress`. El punto 3 de «Pendientes» queda cubierto en cuanto a la reserva; falta ejecutarlo.
+- PRs abiertas ajenas a este cierre: #130 (SDD-0473, cotizador) y #114 (SDD-0390 y 0397, con gate humano).
+- Worktrees nuevos de otras sesiones: `importacion-documental-0473`, `portal-proveedor-guiado-20260916`,
+  la reserva de 0472 en `.codex/worktrees` y uno de Claude en `.claude/worktrees`. No se tocaron.
+- Sin cambios en el resto del estado: las specs 0467 y 0469 siguen `in-progress` a la espera del smoke,
+  y el baseline conserva `cutoff` 238 con las esperas 0415, 0414, 0422 y 0423.
+- `corepack pnpm knowledge:status` (que ahora exige `AGENTS.md` al abrir y cerrar Director):
+  `ok: false`, estructural y semántico `UNAVAILABLE`, por «Graphify Python no localizado; usa
+  `--python <ruta absoluta>` o `GRAPHIFY_PYTHON`». Es el mismo síntoma del rojo de «Unitarios» que
+  tenía la #125 antes de fusionarse. Queda como pendiente de entorno para la próxima sesión.
+- Esta rama sigue en borrador, sin fusionar y sin traer `main`; su worktree está limpio y sin claim.
