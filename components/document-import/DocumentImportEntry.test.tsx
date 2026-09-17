@@ -8,17 +8,36 @@
  */
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+const mocks = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
+
 import { DocumentImportEntry } from "./DocumentImportEntry";
 import { DocumentRequestError, type DocumentClient } from "./document-client";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  mocks.push.mockClear();
+});
 
 function cliente(capabilities: unknown, falla?: Error) {
-  const get = vi.fn(async () => {
+  const get = vi.fn(async (action: string) => {
+    if (action === "job") {
+      // Sin esto el archivo queda "en cola" para siempre y nada se habilita.
+      return { job: { status: "ready", result: null, errorCode: null } } as never;
+    }
     if (falla) throw falla;
     return capabilities as never;
   });
-  const post = vi.fn(async () => ({}) as never);
+  const post = vi.fn(async (action: string) => {
+    if (action === "open") {
+      return { workspace: { id: "00000000-0000-4000-8000-000000000001", revision: 0, draft: null, confirmedRevision: null, expiresAt: null } } as never;
+    }
+    if (action === "upload") {
+      return { jobId: "job-1", status: "uploading", uploadUrl: "https://upload.test/x", contentType: "application/pdf" } as never;
+    }
+    if (action === "uploaded") return { jobId: "job-1", status: "queued" } as never;
+    return {} as never;
+  });
   const client: DocumentClient = {
     get,
     post,
@@ -62,6 +81,45 @@ describe("DocumentImportEntry (SDD-0473)", () => {
     const { client } = cliente({ available: true, formats: ["xlsx", "csv", "pdf"], maxBytes: 15728640 });
     render(<DocumentImportEntry purchaseCode="DTD-0000-1-1" client={client} />);
     expect(await screen.findByRole("heading", { name: titulo })).toBeVisible();
+  });
+
+  it("no ofrece revisar un documento que todavía no existe", async () => {
+    const { client } = cliente({ available: true, formats: [], maxBytes: 15728640 });
+    render(
+      <DocumentImportEntry
+        purchaseCode="DTD-0000-1-1"
+        reviewHref="/portal/compras/DTD-0000-1-1/documento"
+        client={client}
+      />,
+    );
+    await screen.findByRole("heading", { name: titulo });
+    expect(screen.getByRole("button", { name: "Revisar documento" })).toBeDisabled();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it("«Revisar documento» lleva a la compra, no a una pantalla anónima", async () => {
+    const { client } = cliente({ available: true, formats: [], maxBytes: 15728640 });
+    render(
+      <DocumentImportEntry
+        purchaseCode="DTD-0000-1-1"
+        reviewHref="/portal/compras/DTD-0000-1-1/documento"
+        client={client}
+      />,
+    );
+    await screen.findByRole("heading", { name: titulo });
+
+    const { fireEvent } = await import("@testing-library/react");
+    const archivo = new File(["x"], "proforma.pdf", { type: "application/pdf" });
+    Object.defineProperty(archivo, "size", { value: 1024 });
+    fireEvent.change(screen.getByLabelText("Elige tus archivos o suéltalos aquí"), {
+      target: { files: [archivo] },
+    });
+
+    const revisar = await screen.findByRole("button", { name: "Revisar documento" });
+    // El sondeo del trabajo corre cada 2,5 s: hay que darle su tiempo real.
+    await waitFor(() => expect(revisar).toBeEnabled(), { timeout: 6000 });
+    fireEvent.click(revisar);
+    expect(mocks.push).toHaveBeenCalledWith("/portal/compras/DTD-0000-1-1/documento");
   });
 
   it("abre el documento contra la compra, no como anónimo que expira en 24 h", async () => {

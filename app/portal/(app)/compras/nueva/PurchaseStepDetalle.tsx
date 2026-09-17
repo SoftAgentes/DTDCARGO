@@ -157,7 +157,10 @@ export function PurchaseStepDetalle({
         la función no esté lista esta pantalla queda exactamente como estaba.
       */}
       <div className="mb-5">
-        <DocumentImportEntry purchaseCode={code} />
+        <DocumentImportEntry
+          purchaseCode={code}
+          reviewHref={`/portal/compras/${encodeURIComponent(code)}/documento`}
+        />
       </div>
 
       <form

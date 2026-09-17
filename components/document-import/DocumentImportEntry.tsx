@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   createDocumentClient,
   type DocumentClient,
@@ -30,6 +31,7 @@ export function DocumentImportEntry({
   locale = "es",
   onManual,
   onReview,
+  reviewHref,
   client,
 }: {
   /** Compra a la que se adjunta el documento. Sin ella el workspace sería anónimo. */
@@ -37,6 +39,8 @@ export function DocumentImportEntry({
   locale?: DocumentLocale;
   onManual?: () => void;
   onReview?: (workspace: DocumentWorkspace) => void;
+  /** A dónde lleva «Revisar documento». Sin esto y sin `onReview`, el botón no aparece. */
+  reviewHref?: string;
   /** Inyección explícita sólo para pruebas y fixtures. */
   client?: DocumentClient;
 }) {
@@ -46,6 +50,7 @@ export function DocumentImportEntry({
   // Inicializador perezoso en vez de un ref: crea el transporte UNA sola vez sin
   // leer `.current` durante el render, que es lo que React desaconseja.
   const [transport] = useState<DocumentClient>(() => client ?? createDocumentClient());
+  const router = useRouter();
 
   useEffect(() => {
     let vivo = true;
@@ -71,7 +76,13 @@ export function DocumentImportEntry({
       openParams={{ purchaseCode }}
       onWorkspace={(next) => setWorkspace(next)}
       onManual={onManual}
-      onReview={onReview && workspace ? () => onReview(workspace) : undefined}
+      onReview={
+        onReview && workspace
+          ? () => onReview(workspace)
+          : reviewHref
+            ? () => router.push(reviewHref)
+            : undefined
+      }
       locale={locale}
       client={transport}
     />

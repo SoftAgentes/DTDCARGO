@@ -87,6 +87,9 @@ Anthropic solo propone JSON validado. Sin key/model no hay simulación: error re
 - `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/README.md`
 - `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/vite.config.ts`
 
+- `app/portal/(app)/compras/[code]/documento/page.tsx`
+- `app/portal/(app)/compras/[code]/documento/DocumentReviewClient.tsx`
+- `components/document-import/DocumentEditor.test.tsx`
 - `app/portal/(app)/compras/nueva/PurchaseStepDetalle.test.tsx`
 - `components/document-import/DocumentImportEntry.tsx`
 - `components/document-import/DocumentImportEntry.test.tsx`
@@ -97,8 +100,10 @@ Anthropic solo propone JSON validado. Sin key/model no hay simulación: error re
 UI/conexiones delegadas a Worker de 0468 en este mismo worktree después de integrar su commit estable;
 backend/SQL/legacy/export/spec/handoff permanecen bajo el owner principal. Allowlist disjunta.
 
-Ampliación 2026-09-16 (sesión Claude, al adoptar el worktree): los seis últimos archivos se suman a
-la allowlist. `DocumentImportEntry` es el envoltorio que decide si la importación se ofrece: mientras
+Ampliación 2026-09-16 (sesión Claude, al adoptar el worktree): los nueve últimos archivos se suman a
+la allowlist. La ruta `compras/[code]/documento/` es la pantalla donde el cliente revisa lo extraído
+antes de compartir el enlace; `DocumentEditor.test.tsx` ya estaba en la lista original y sólo faltaba
+escribirlo. `DocumentImportEntry` es el envoltorio que decide si la importación se ofrece: mientras
 `DOCUMENT_IMPORT_ENABLED` no sea "true" no renderiza nada, así que cablearlo no cambia el flujo manual. `corpus.test.ts` corre contra documentos reales apuntados por `DOCUMENT_IMPORT_CORPUS`
 y se salta sin esa variable: los documentos nunca entran a Git. El test cubre `formatPackingQuantity`, que existe porque `total_qty` puede ser nulo
 cuando las unidades son heterogéneas; `.env.example` documenta `DOCUMENT_IMPORT_*`, sin las cuales
