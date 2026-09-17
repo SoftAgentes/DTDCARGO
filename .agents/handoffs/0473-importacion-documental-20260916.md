@@ -49,7 +49,9 @@ consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposi
 | `tsc --noEmit -p tsconfig.json` | **PASÓ** — exit 0, salida vacía, sin tubería |
 | `eslint` sobre lo nuevo y lo corregido | **PASÓ** — exit 0 |
 | `vitest` document-import completo | **PASÓ** — 256 pruebas, 7 `it.fails` que documentan defectos, 1 skip |
-| `vitest` SUITE COMPLETA del repo | **PASÓ** — 578 archivos, 7.664 pruebas, 7 expected fail, 1 skip |
+| `vitest` SUITE COMPLETA del repo | **PASÓ archivo por archivo**; en la suite completa esta máquina da 3 rojos intermitentes por saturación de CPU — ver abajo |
+| `/ui-check` | **PASÓ** con 3 ajustes menores, los tres aplicados |
+| Harness de QA visual, comprobado en navegador | **PASÓ** — «Pendiente kg» y no cero; 5 cajas con dos productos; 375 px sin desbordamiento (scrollWidth 358 = clientWidth 358) |
 | `vitest` corpus real (3 XLSX de proveedor) | **PASÓ** — 4 pruebas, con `DOCUMENT_IMPORT_CORPUS` |
 | `vitest` panel de carga | **PASÓ** — 9 pruebas, 2 verificadas por mutación |
 | `vitest` suite completa | **PASÓ** — 570 archivos, 7.463 pruebas |
@@ -80,6 +82,10 @@ consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposi
 - `2038dadb` — merge de `origin/main` con SDD-0468 ya integrada.
 - `410efb9c` — la carga de documentos abre el paso 2 del portal, y `DOCUMENT_IMPORT_CORPUS`
   documentada en `.env.example` (lo cazó el gate de variables del repo).
+- `02e25f72` — pantalla donde el cliente revisa su documento, y el arreglo del checkbox
+  de incidencias que las borraba sin vuelta atrás.
+- `1bc8330e` — el enlace del proveedor llega precargado, el harness de QA visual y el
+  runbook de importación sin IA.
 
 Stub heredado `069d9e417c06b749cb0749a780187a9c358e3edd`.
 
@@ -101,14 +107,30 @@ implementados. Se comprobó uno por uno, no por lo que declara el tracker:
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `DocumentCalculator`, y terminar de cablear: falta `/p/[token]` y el detalle de la compra.
-   El paso 2 del portal ya está montado. La pantalla de revisión a la que debería llevar
-   «Revisar documento» todavía no existe. Recién con todo eso se enciende el flag.
-2. Harness de QA visual 0473 y `/ui-check`.
+1. `DocumentCalculator` y su conexión con `TarifasTabs`. El recorrido del cliente y el del
+   proveedor ya están completos; falta sólo la calculadora pública.
+2. Publicar la rama y abrir su PR.
 3. `pnpm verify` reportando cada SKIP.
 4. Probar los PDF reales: exige credenciales y presupuesto de IA.
 5. El contrato de compra chino (`PO-…`) deriva a IA por no tener fila de encabezados
    detectable. Es derivación legítima; evaluar si conviene un mapeo por posición.
+
+## LOS 3 ROJOS INTERMITENTES NO SON DE ESTA TAREA
+
+La suite completa da 3 fallos que cambian de corrida en corrida, todos por
+**timeout de 20 s**, no por lógica. Comprobado, no supuesto:
+
+- Cada archivo, corrido solo, pasa entero.
+- El commit `dc0c7401` —el que el CI aprobó en verde con 566 archivos y 7.388
+  pruebas— **también falla en esta máquina**, con la misma prueba
+  (`PackingListProductsStep`).
+- Uno de los rojos es `ClientDrawer.confirm-delete` (SDD-0469), ajeno a este trabajo.
+
+Causa: 22 núcleos ⇒ vitest lanza ~21 workers, y encima corrían el servidor de QA y
+el navegador. El CI de GitHub tiene mucha menos concurrencia y pasa.
+
+**FUERA DE ALCANCE DETECTADO:** `PackingListProductsStep.test.tsx` es frágil bajo
+carga de CPU. Falla igual en `main`. No se toca desde esta tarea.
 
 ## DEFECTOS ABIERTOS, documentados con `it.fails`
 
