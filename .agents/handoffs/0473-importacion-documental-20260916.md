@@ -41,6 +41,70 @@ Backend terminado por la sesión Codex y preservado íntegro en `cce43a9b`:
 Corregido por esta sesión en `bff39cac`: `formatPackingQuantity` en la capa pura y sus tres
 consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposible.
 
+## MIGRACIÓN 0457 — APLICADA A PRODUCCIÓN (2026-09-17)
+
+**OK nominal de Sam nombrando la migración**, como exige el runbook: «Sí: aplicá
+`0457_document_import_workspaces`». Aplicada sola, con `name` exacto igual al basename, por el
+conector Supabase contra `xpfuzqombmjmxvprjgmi`. Respuesta `{"success": true}`.
+
+### Preflight (leído de producción ANTES de aplicar, no del repo)
+
+| Sonda | Antes |
+|---|---|
+| Las 7 tablas | ninguna existía |
+| Las 4 funciones | 0 |
+| Bucket `document-imports` | no existía |
+| `document_import_content_idx` | no existía |
+| Rastro de 0457 en el ledger | 0 |
+| `packing_list_submissions.total_qty` | `is_nullable = NO` |
+| Filas en `packing_list_submissions` | **6**, ninguna con `total_qty` nulo |
+
+**La dependencia que podía morder en runtime y no al aplicar:** `save_document_workspace` llama a
+`submit_packing_list` con 21 parámetros NOMBRADOS. plpgsql no valida el cuerpo al crear la función,
+así que un nombre distinto habría reventado recién cuando un proveedor real confirmara. Se leyó la
+firma real de producción: **los 21 coinciden uno a uno**, el retorno es `packing_list_submissions`
+(compatible con el `%rowtype` del declare) y es `security definer` (llamarla desde una
+`security invoker` es correcto). Cuerpo md5 `c96fe398b5a33804b62a9fba8d58ffe2`.
+
+También verificados contra producción: el tipo `packing_list_currency`, las 7 columnas de
+`warehouse_boxes`, las 8 de `packing_list_submissions`, y `tenants`/`clients`/`prealertas` con las
+columnas que la migración usa.
+
+### Postflight (catálogo, sin leer filas de negocio)
+
+| Sonda | Después |
+|---|---|
+| Tablas | **7/7** |
+| Funciones | **4/4** |
+| Bucket privado, 15 MB | **sí** (`public=false`) |
+| `total_qty` | `is_nullable = YES` |
+| Índice único de contenido | **existe** |
+| En el ledger con basename exacto | **sí** |
+| RLS en las 7 | **7/7 habilitada** |
+| **Policies en las 7** | **0 — a propósito**; el acceso va por funciones |
+| `GRANT` a `anon` en las 7 | **ninguno** |
+| `GRANT` a `authenticated` en las 7 | **ninguno** |
+
+Nota de lectura: una sonda con `like 'document\_%'` devuelve 11 tablas con RLS y 6 policies. **No
+son las nuestras**: pertenecen a `document_backup_outbox`, `document_restore_outbox`,
+`document_scan_outbox` y `document_upload_intents`, que ya existían. Contadas contra la lista
+explícita de las 7, las policies son **0**.
+
+**Advisors de seguridad:** 4 en todo el proyecto (1 INFO + 3 WARN). **Uno solo toca la 0457**:
+`rls_enabled_no_policy`, nivel INFO — que es exactamente el diseño declarado. **Cero ERROR o WARN
+nuevos.**
+
+### Lo que NO se hizo, y por qué
+
+- **`migrations-baseline.json` no se tocó.** La 0457 nunca estuvo en `pendingBelowCutoff` y se
+  aplicó con su basename exacto, que es la regla hacia adelante: el check la valida sin ruido.
+  Subir el `cutoff` sólo la sacaría de la vigilancia a cambio de nada.
+- **El archivo `.sql` no se editó**, aunque su primera línea dice «NOT applied to production». Una
+  migración aplicada es inmutable; el registro de que se aplicó vive acá, no dentro del archivo.
+- `scripts/check-migrations-applied.mjs` en este worktree da **SKIP** por falta de `.env.local` —
+  el pitfall que el propio runbook documenta. La verificación se hizo contra el ledger y el
+  catálogo directamente, que es evidencia más fuerte que el gate.
+
 ## EL COTIZADOR (2026-09-17)
 
 Sam acotó el alcance: «no vamos a cambiar la calculadora pública, solo vamos a hacer algo que se
