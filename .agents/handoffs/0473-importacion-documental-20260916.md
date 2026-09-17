@@ -212,15 +212,51 @@ implementados. Se comprobó uno por uno, no por lo que declara el tracker:
 | Rutas legacy no eluden la revisión confirmada | `app/p/[token]/packlist/route.ts:168` → 409 `shared_document_required` |
 | URL firmada no sobrevive a la limpieza anónima | `service.ts:123` rechaza la reserva con menos de `125*60000` ms (2 h 05) de vida útil |
 
-## PENDIENTES DE ESTA TAREA
+## PENDIENTES DE ESTA TAREA — al cierre del 2026-09-17
 
-1. `DocumentCalculator` y su conexión con `TarifasTabs`. El recorrido del cliente y el del
-   proveedor ya están completos; falta sólo la calculadora pública.
-2. Publicar la rama y abrir su PR.
-3. `pnpm verify` reportando cada SKIP.
-4. Probar los PDF reales: exige credenciales y presupuesto de IA.
-5. El contrato de compra chino (`PO-…`) deriva a IA por no tener fila de encabezados
-   detectable. Es derivación legítima; evaluar si conviene un mapeo por posición.
+Los cinco pendientes anteriores están **cerrados**: `DocumentCalculator` existe (pero contra
+`app/cotizador/`, no contra `TarifasTabs` — ver el cambio de alcance), la rama está publicada con
+PR #130, `verify` corrió con su veredicto registrado arriba, y el contrato de compra chino **ya no
+deriva a IA**: no le faltaba un mapeo por posición, le faltaba que el lector entendiera encabezados
+bilingües. Los PDF reales siguen sin probar.
+
+### Fase 1 — Mergear (AUTORIZADO, NO EJECUTADO)
+
+Sam autorizó explícitamente «mergeá con la bandera apagada». **No se hizo**: al cerrar la sesión
+quedaban 2 checks de CI corriendo (2 verdes, 0 rojos) y no se mergea a producción sin verlos.
+
+Mergear es inerte, verificado línea por línea: `/cotizador` hace `notFound()` antes de renderizar,
+la API corta en `access.ts:21` antes de abrir la base, el cron devuelve `{enabled:false}` antes de
+`createAdminClient()`, y `DocumentImportEntry` no dibuja nada.
+
+### Fase 2 — Encender SÓLO en Preview
+
+`DOCUMENT_IMPORT_ENABLED=true` y `DOCUMENT_IMPORT_RATE_SECRET` (≥32 caracteres), marcando
+**únicamente la casilla Preview**, y redesplegar (Vercel no aplica variables a deploys ya hechos).
+Después, Sam suelta sus documentos reales en la URL. **Es lo único que falta de verdad:** nadie ha
+corrido el recorrido completo contra la base real ni una vez.
+
+### Fase 3 — Encender en producción
+
+Las mismas variables en `Production`, **quitar el `robots: {index:false}`** de
+`app/cotizador/page.tsx` y **agregar `/cotizador` a `app/sitemap.ts`**. El contrato del sitemap
+obliga a elegir una de las dos listas, así que lanzar no puede ser un descuido. Falta también
+enlazarla en Nav/Footer.
+
+### Sin verificar
+
+- Los otros dos XLSX de Sam (`PI-ICE CREAME MACHINE`, `PI-BAG`) contra el lector nuevo.
+- Los 2 PDF reales: exigen `ANTHROPIC_API_KEY` y presupuesto.
+- `/ui-check` sobre `/cotizador`, 375/390 px, claro/oscuro, impresión.
+- Chino comprobado con un hablante.
+
+### Deuda conocida
+
+- El token anónimo del cotizador **vive sólo en memoria**: un refresh pierde el acceso al documento,
+  que sigue 24 h en el servidor. Meterlo en `sessionStorage` es decisión de privacidad.
+- El nombre se solapa con `/studio/cotizador`, el del asesor.
+- El centinela «Sin asignar» se distingue de una etiqueta **por comillas**: convención del archivo,
+  no propiedad del modelo. `groupLabel` y `unquoteLabel` se mueven juntas.
 
 ## LOS 3 ROJOS INTERMITENTES NO SON DE ESTA TAREA
 
