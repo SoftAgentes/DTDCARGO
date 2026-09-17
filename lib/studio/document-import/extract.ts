@@ -5,7 +5,7 @@ import { emptyDocumentDraft, parseDocumentDraft, type CartonGroup, type Document
 import { DocumentImportError, extractWithAnthropic, type ExtractionOptions } from "./anthropic";
 export { DocumentImportError, type ExtractionOptions } from "./anthropic";
 
-const MAX_BYTES = 15 * 1024 * 1024, MAX_ROWS = 2000, MAX_CELLS = 30000;
+const MAX_BYTES = 15 * 1024 * 1024, MAX_ROWS = 2000, MAX_COLUMNS = 100, MAX_CELLS = 30000;
 type Cell = { ref: string; value: string | number | null; formulaUnavailable?: boolean; formula?: boolean };
 type Sheet = { name: string; rows: Cell[][] };
 const key = (s: string) => s.normalize("NFKC").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[\s._\-/()·:：³º°\n]/g, "");
@@ -70,11 +70,23 @@ async function readXlsx(bytes: Uint8Array): Promise<Sheet[]> {
   if (workbook.worksheets.length > 20) throw new DocumentImportError("sheet_limits", "El Excel admite hasta 20 hojas para esta lectura.");
   let cellCount = 0;
   return workbook.worksheets.map((ws) => {
-    if (ws.rowCount > MAX_ROWS || ws.columnCount > 100) throw new DocumentImportError("sheet_limits", "El Excel excede 2000 filas o 100 columnas por hoja.");
+    // `rowCount`/`columnCount` cuentan lo que tiene FORMATO, no lo que tiene datos.
+    // Un PI real guardado desde plantilla declara 16.382 columnas con estilo y
+    // contenido sólo hasta la G: medir por ahí rechazaba documentos de 74 celdas.
+    // El límite se aplica a la extensión con contenido; MAX_CELLS sigue siendo la
+    // defensa contra abuso, y acota el recorrido para no barrer columnas vacías.
+    const lastRow = Math.min(ws.rowCount, Math.max(ws.actualRowCount, 1), MAX_ROWS + 1);
+    let lastColumn = 1;
+    ws.eachRow({ includeEmpty: false }, (row) => {
+      row.eachCell({ includeEmpty: false }, (cell, column) => {
+        if (column > lastColumn) lastColumn = column;
+      });
+    });
+    if (lastRow > MAX_ROWS || lastColumn > MAX_COLUMNS) throw new DocumentImportError("sheet_limits", `El Excel excede ${MAX_ROWS} filas o ${MAX_COLUMNS} columnas con datos por hoja.`);
     const rows: Cell[][] = [];
-    for (let rowIndex = 1; rowIndex <= ws.rowCount; rowIndex++) {
+    for (let rowIndex = 1; rowIndex <= lastRow; rowIndex++) {
       const row: Cell[] = [];
-      for (let column = 1; column <= ws.columnCount; column++) {
+      for (let column = 1; column <= lastColumn; column++) {
         const cell = ws.getCell(rowIndex, column);
         if (cell.isMerged && cell.master.address !== cell.address) { row.push({ ref: cell.address, value: null }); continue; }
         const read = cellValue(cell.value);
@@ -114,7 +126,11 @@ const columnName = (index: number): string => index < 26 ? String.fromCharCode(6
 
 type Field = "name" | "nameZh" | "code" | "brand" | "material" | "quantity" | "perCarton" | "unitPrice" | "currency" | "unit" | "cartons" | "cartonLabel" | "grossTotal" | "grossEach" | "cbmTotal" | "cbmEach" | "amount" | "lengthCm" | "widthCm" | "heightCm";
 const aliases: Record<Field, string[]> = {
-  name: ["product", "productname", "description", "itemdescription", "goodsdescription", "nombre", "producto", "descripcion", "英文品名", "品名", "货物名称"],
+  // `item` y `descripciones` salen de proformas reales de Yiwu, donde la columna
+  // ITEM trae el nombre del producto y DESCRIPCIONES el detalle. Como el emparejado
+  // se queda con la PRIMERA columna que reconoce, ITEM gana por estar a la izquierda
+  // y la descripción larga no pisa el nombre.
+  name: ["product", "productname", "description", "descriptions", "itemdescription", "goodsdescription", "item", "nombre", "producto", "descripcion", "descripciones", "英文品名", "品名", "货物名称"],
   nameZh: ["chinesename", "namechinese", "中文品名", "中文名称"], code: ["code", "productcode", "itemno", "itemcode", "sku", "codigo", "货号", "型号"],
   brand: ["brand", "marca", "品牌"], material: ["material", "hs", "hscode", "材质", "材质hs"],
   quantity: ["qty", "quantity", "totalqty", "totalquantity", "totalpcs", "cantidad", "cantidadtotal", "totaluds", "总数量", "数量"],
@@ -127,6 +143,8 @@ const aliases: Record<Field, string[]> = {
   amount: ["amount", "totalamount", "importe", "totalimporte", "总金额", "金额"],
   lengthCm: ["lengthcm", "largocm", "长cm"], widthCm: ["widthcm", "anchocm", "宽cm"], heightCm: ["heightcm", "altocm", "高cm"],
 };
+/** Cargos que NO son valor de mercancía, en las tres lenguas de nuestros documentos. */
+const CHARGE_LABEL = /^(commission|comision|comisión|佣金|freight|shipping|flete|运费|insurance|seguro|保险费|discount|descuento|折扣)/i;
 const headerMap = new Map(Object.entries(aliases).flatMap(([field, values]) => values.map((v) => [key(v), field as Field] as const)));
 
 function readNumber(cell: Cell | undefined, d: DocumentDraft, path: string): number | null {
@@ -232,6 +250,15 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
     const name = s(cell("name")), nameZh = s(cell("nameZh")), code = s(cell("code"));
     const first = row.find((c) => s(c))?.value;
     if (typeof first === "string" && /^(total(?:es)?|grand\s*total|合计|总计|总共)(?:[\s:：·]|$)/i.test(first.trim())) {
+      // Las proformas de Yiwu encadenan varias filas que empiezan con "TOTAL PRICE":
+      // una es la comisión y otra el importe real, y la etiqueta que las distingue
+      // está en otra celda de la misma fila. Quedarse con la primera guardaba la
+      // COMISIÓN como importe del documento — un dato falso, peor que ninguno.
+      // Se salta la fila y se pide revisión, sin adivinar cuál de las dos vale.
+      if (row.some((c) => CHARGE_LABEL.test(s(c)))) {
+        issue(d, "non_product_charge", "declaredTotals.amount", "El documento declara una comisión, flete u otro cargo junto al total. Revisa el valor de mercancía por separado.");
+        continue;
+      }
       for (const [target, field] of [["cartons", "cartons"], ["grossWeightKg", "grossTotal"], ["cbm", "cbmTotal"], ["amount", "amount"]] as const) {
         // Formula totals in our template are recomputed from explicit input cells, not stale caches.
         const targetCell = cell(field);

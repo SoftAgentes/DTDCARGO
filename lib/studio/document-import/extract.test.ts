@@ -19,6 +19,41 @@ async function workbook(rows: unknown[][]): Promise<Uint8Array> {
 beforeEach(() => { assisted.mockReset(); assisted.mockResolvedValue(emptyDocumentDraft()); });
 
 describe("native document extraction", () => {
+  /**
+   * Regresiones de proformas REALES de Yiwu. Las fixtures sintéticas nunca las
+   * disparaban porque las escribe ExcelJS fila por fila, sin el formato de
+   * plantilla que traen los documentos que manda un proveedor de verdad.
+   */
+  it("lee una proforma cuyo formato declara miles de columnas vacías", async () => {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Sheet1");
+    ws.addRow(["FOTO", "ITEM", "DESCRIPCIONES", "", "QUANTITY", "PRICE", "TOTAL AMOUNT"]);
+    ws.addRow(["", "Drawstring bag", "Single strap", "", 984, 4.46, 4388.64]);
+    // El proveedor guarda desde plantilla: 16.382 columnas con ESTILO y ninguna
+    // con datos. Medir por `columnCount` rechazaba un documento de 14 celdas.
+    for (let c = 8; c <= 16382; c++) ws.getColumn(c).width = 9;
+    const d = await extractDocument(new Uint8Array(await wb.xlsx.writeBuffer()), { ...opts, fileName: "pi.xlsx" });
+    expect(d.products).toHaveLength(1);
+    expect(d.products[0]).toMatchObject({ name: "Drawstring bag", quantity: 984, unitPrice: 4.46 });
+    expect(assisted).not.toHaveBeenCalled();
+  });
+  it("no toma la comisión como importe declarado del documento", async () => {
+    // Las proformas de Yiwu ponen COMMISSION arriba de TOTAL AMMOUNT, ambas con
+    // su número a la derecha. Quedarse con la primera etiqueta que se parece a un
+    // total mete un importe FALSO, que es peor que no tener ninguno.
+    const d = await csv(
+      [
+        "ITEM,QUANTITY,PRICE,TOTAL AMOUNT",
+        "Drawstring bag,984,4.46,4388.64",
+        ",,,9879.36",
+        "TOTAL PRICE,,COMMISSION,493.968",
+        "TOTAL PRICE,,TOTAL AMMOUNT,10373.328",
+      ].join(String.fromCharCode(10)),
+    );
+    expect(d.declaredTotals.amount).not.toBe(493.968);
+    expect(d.declaredTotals.amount === null || d.declaredTotals.amount === 10373.328).toBe(true);
+  });
+
   it("parses quoted CSV with embedded newlines, commas and escaped quotes", () => {
     expect(parseCsv('Name,Qty\r\n"Shirt, \"\"blue\"\"\nlarge",10\r\n')).toEqual([["Name", "Qty"], ['Shirt, "blue"\nlarge', "10"]]);
     expect(parseCsv("Name;Qty\nA;2")).toEqual([["Name", "Qty"], ["A", "2"]]);
