@@ -213,6 +213,26 @@ completo debería correrlos antes de integrar, pero lo que este cambio toca
   segmento `api` y sólo recorre `page.tsx`. Comprobado corriéndolo: 3 tests en
   verde. (La guía sigue fuera del sitemap, como estaba antes de este cambio.)
 
+## Revisión del Director (sesión `dtdcargo-18`)
+
+**PR #132 aprobada**, con este dictamen:
+
+- Merge contra el main actual: limpio (comprobado con `git merge-tree`).
+- **Frontera público↔ERP respetada** — el endpoint importa `lib/public/rates-queries`,
+  no ERP; el precedente de `app/api/registro/check` que se citó en el comentario
+  es correcto.
+- **Privacidad sin objeciones** — el allowlist cerrado de `registro-origen.ts` es
+  lo que hay que hacer: sin él, un `?origen=` arbitrario escribiría en una
+  columna del ERP.
+- Las dos respuestas a sus avisos (el de `/cotizador` y el del sitemap),
+  comprobadas y correctas.
+- **Los tres NO DISPONIBLE de verify no son bloqueantes**: no cubren nada de esta
+  tarea, que no lleva migración ni SQL.
+
+Pidió además **actualizar la rama sobre `88023508`** (integró la #131 mientras
+se cerraba esto): el ruleset exige la rama al día sobre el commit que se fusiona.
+Sin conflicto — la #131 tocó un solo handoff ajeno.
+
 ## Decisión de negocio que conviene no perder
 
 **Los 1.000 kg por m³ incluidos son una excepción temporal, no la regla**
@@ -236,11 +256,22 @@ valor vigente, es el que se quiere prometer. Documentado en el spec §3.
   de `/api/public/estimacion` dice que el visitante **no registrado no genera
   filas en el ERP** (founder 2026-07), así que conectarlo es una decisión de
   producto, no una tarea técnica pendiente.
-- **`lib/calculadora.ts:66` (`tarifaBaseCBM: 800`) está desalineado del $850
-  vivo**, a propósito según la cabecera de la migr 0336. Y **el 2026-10-05 la
-  tarifa de la DB cae sola a $800** si nadie la renueva desde `/studio/tarifas`:
-  el `pg_cron` de la 0336 puso vigencia hasta el 2026-10-04. La guía ahora la lee
-  en vivo, así que se actualizará sola — pero la caída sigue ahí.
+- 🔴 **`lib/calculadora.ts:66` (`tarifaBaseCBM: 800`) es un PENDIENTE VENCIDO,
+  no una decisión.** En el primer informe de esta tarea se dijo que estaba
+  desalineado «a propósito»; **eso era una lectura incompleta** de la migr 0336.
+  Su cabecera dice, entero: *«sigue en 800 a propósito (hoy es el valor
+  correcto). **El 4-sep hay que subirlo a 850 en un deploy**, o una caída de
+  Supabase [cotiza por debajo]»*. Hoy es el 17-sep: lleva **13 días** sin
+  ejecutarse. Si Supabase se cae, el sitio cotiza **6,25% por debajo, en
+  silencio**. Confirmado contra producción por el Director (sesión
+  `dtdcargo-18`), que lo tiene con Sam. **Es otra tarea**, con su propio
+  worktree — no entra acá.
+- **El 2026-10-05 la tarifa de la DB cae sola a $800** si nadie la renueva desde
+  `/studio/tarifas`: el `pg_cron` de la 0336 puso vigencia hasta el 2026-10-04,
+  y el endpoint del PR lo devuelve de primera mano
+  (`"valid_until":"2026-10-04"`). La guía lee en vivo, así que se actualizará
+  sola — pero la caída sigue ahí, y con el respaldo del código en 800 el efecto
+  pasaría inadvertido.
 - **La guía no está en `app/sitemap.ts`** (ni en `llms.txt`). Se alcanza desde
   `/academia`, el FAQ y dos tarjetas del portal.
 - **La dirección de Yiwu sigue hardcodeada** en la guía en vez de venir de

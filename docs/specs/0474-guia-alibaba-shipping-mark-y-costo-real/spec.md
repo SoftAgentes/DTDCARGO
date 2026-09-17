@@ -282,8 +282,12 @@ texto lo habría visto: hacía falta abrir la página.
   landed y scorecard se capturan y mueren en `localStorage`. El precedente de
   `/api/public/estimacion` dice que el visitante no registrado **no** genera
   filas en el ERP (founder 2026-07), así que conectarlo es otra decisión.
-- **`tarifaBaseCBM: 800` en `lib/calculadora.ts:66`** está desalineado del $850
-  vivo **a propósito** según la migr 0336. No se toca: tiene dueño.
+- 🔴 **`tarifaBaseCBM: 800` en `lib/calculadora.ts:66` es un pendiente vencido.**
+  La cabecera de la migr 0336 dice que sigue en 800 «a propósito (hoy es el valor
+  correcto)» **y que el 4-sep hay que subirlo a 850 en un deploy**. No se hizo:
+  lleva 13 días. Si Supabase se cae, el sitio cotiza 6,25% por debajo sin avisar.
+  Verificado contra producción por el Director. **Es otra tarea** — no se toca
+  desde acá, pero no es una decisión tomada, es un olvido.
 - **La guía no está en `app/sitemap.ts`.**
 - **La dirección de Yiwu sigue hardcodeada** en la guía en vez de venir de
   `CONTACT.cn`. Es inherente a ser un HTML estático sin build; ahora al menos
