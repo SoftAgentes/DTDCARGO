@@ -47,7 +47,7 @@ consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposi
 | Guard/identidad de worktree y claim | **PASÓ** |
 | `tsc --noEmit -p tsconfig.json` | **PASÓ** — exit 0, salida vacía, sin tubería |
 | `eslint` sobre lo nuevo y lo corregido | **PASÓ** — exit 0 |
-| `vitest` document-import | **PASÓ** — 63 pruebas del núcleo + 22 de extracción |
+| `vitest` document-import completo | **PASÓ** — 256 pruebas, 7 `it.fails` que documentan defectos, 1 skip |
 | `vitest` corpus real (3 XLSX de proveedor) | **PASÓ** — 4 pruebas, con `DOCUMENT_IMPORT_CORPUS` |
 | `vitest` panel de carga | **PASÓ** — 9 pruebas, 2 verificadas por mutación |
 | `vitest` suite completa | **PASÓ** — 570 archivos, 7.463 pruebas |
@@ -72,6 +72,8 @@ consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposi
 - `8714f1d1` — `DOCUMENT_IMPORT_*` en `.env.example` y registro de la adopción.
 - `6140d606` — `DocumentImportPanel`: la carga de archivos como primer paso.
 - `e7937ccb` — tres defectos que sólo aparecieron con proformas reales, y `corpus.test.ts`.
+- `e29d800a`, `d2860361` — handoff al día.
+- `32c27dd8` — las 6 suites de backend (2.902 líneas), cada una verificada por mutación.
 
 Stub heredado `069d9e417c06b749cb0749a780187a9c358e3edd`.
 
@@ -93,13 +95,27 @@ implementados. Se comprobó uno por uno, no por lo que declara el tracker:
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Las 6 suites de la allowlist que faltan: `service`, `jobs`, `access`, `http`, `export`, `estimate`.
-2. `DocumentCalculator`, y cablear los 7 puntos de UI. Recién ahí encender el flag.
-3. Harness de QA visual 0473 y `/ui-check`.
-4. `pnpm verify` reportando cada SKIP.
-5. Probar los PDF reales: exige credenciales y presupuesto de IA.
-6. El contrato de compra chino (`PO-…`) deriva a IA por no tener fila de encabezados
+1. `DocumentCalculator`, y cablear los 7 puntos de UI. Recién ahí encender el flag.
+2. Harness de QA visual 0473 y `/ui-check`.
+3. `pnpm verify` reportando cada SKIP.
+4. Probar los PDF reales: exige credenciales y presupuesto de IA.
+5. El contrato de compra chino (`PO-…`) deriva a IA por no tener fila de encabezados
    detectable. Es derivación legítima; evaluar si conviene un mapeo por posición.
+
+## DEFECTOS ABIERTOS, documentados con `it.fails`
+
+Las 6 suites nuevas encontraron 8 defectos. Uno se arregló (`combinedLogistics` sumaba
+`totals.cartons ?? 0` y reportaba cajas que ningún documento declaró). Los otros 7 quedan con
+una prueba `it.fails` que **se pondrá roja el día que alguien los arregle**, así nadie los
+cierra sin enterarse:
+
+| Dónde | Qué pasa | Gravedad |
+|---|---|---|
+| `access.ts:42` | Un `expires_at` ilegible no niega: `Date.parse` da NaN y la comparación es falsa. Fail-open teórico; hoy la columna es `timestamptz` y PostgREST siempre la serializa en ISO | baja |
+| `access.ts:74` | Sin IP resoluble, `resolveRequestIp` devuelve `"unknown"` y todos comparten un solo cupo. Degrada a negar, no a permitir | baja |
+| `service.ts:74` | Ante un 23505 se llama a sí misma sin tope de profundidad | media |
+| `jobs.ts` | Un archivo cuya lectura falló no se puede reintentar | media |
+| `export.ts` (×4) | Redondeo del importe «Sin asignar», cajas de un grupo llamado «Sin asignar», número de caja en blanco, y el pie cuando el borrador sobreasigna un producto | baja |
 
 ## CORPUS REAL — lo que reveló
 
