@@ -30,7 +30,7 @@ type Tarifa = { per_cbm: number | null; min_charge: number | null; valid_until: 
  * después se corre el script UNA vez con `window.eval`. Reinyectarlo en un DOM
  * ya arrancado duplicaría cada `const` del archivo.
  */
-async function montar(tarifa: Tarifa | "error") {
+async function montar(tarifa: Tarifa | "error", hastaPaso = 4) {
   const dom = new JSDOM(HTML, {
     url: "https://dtdcargo.com/guias/comprar-en-alibaba.html?mark=DTD-1042",
     runScripts: "outside-only",
@@ -84,8 +84,9 @@ async function montar(tarifa: Tarifa | "error") {
   // ese retardo NO depende de prefers-reduced-motion. Avanzar con esperas fijas
   // solapaba los clicks con los timeouts pendientes y la guía rebotaba entre
   // etapas, así que se espera a que el DOM confirme el cambio.
+  const marca = () => new RegExp("Paso " + hastaPaso + "\\b").test($(".eyebrow")?.textContent ?? "");
   (doc.querySelector('.perfil-card[data-perfil="pro"]') as HTMLElement | null)?.click();
-  for (let intento = 0; intento < 20 && !$("#lcTarifa"); intento++) {
+  for (let intento = 0; intento < 20 && !marca(); intento++) {
     const antes = $(".eyebrow")?.textContent;
     doc.querySelectorAll<HTMLElement>(".check:not(.on)").forEach((c) => c.click());
     ($("#btnNext") as HTMLElement | null)?.click();
@@ -94,9 +95,9 @@ async function montar(tarifa: Tarifa | "error") {
       if ($(".eyebrow")?.textContent !== antes) break;
     }
   }
-  if (!$("#lcTarifa")) {
+  if (!marca()) {
     throw new Error(
-      "no se llegó a la calculadora; quedó en: " + ($(".eyebrow")?.textContent ?? "(?)"),
+      `no se llegó al Paso ${hastaPaso}; quedó en: ` + ($(".eyebrow")?.textContent ?? "(?)"),
     );
   }
 
@@ -204,6 +205,51 @@ describe("guía de Alibaba · calculadora de costo real (SDD-0474)", () => {
       const r = calcular(ctx.doc, { fob: "3", unidades: "500", cbm: "2", flete: "" });
       // Sin flete declarado el total es sólo la mercancía: cero flete inventado.
       expect(r.unidad).toBe("$3,00");
+    });
+  });
+
+  describe("Paso 7 · la dirección que se le pasa al proveedor", () => {
+    let ctx: Awaited<ReturnType<typeof montar>>;
+
+    beforeAll(async () => {
+      ctx = await montar({ per_cbm: 850, min_charge: 50, valid_until: null }, 7);
+    });
+    afterAll(() => ctx?.dom.window.close());
+
+    it("es una sola pieza con un solo botón, no diez campos", () => {
+      expect(ctx.doc.querySelector(".dir-full")).not.toBeNull();
+      expect(ctx.doc.querySelectorAll(".dir-full .dir-row")).toHaveLength(0);
+      expect(ctx.doc.querySelectorAll(".dir-full .dir-copy")).toHaveLength(1);
+    });
+
+    it("⭐ «Copiar todo» CON mark lleva las tres líneas, no sólo el destinatario", async () => {
+      // El handler reconstruía "林冠 "+mark para todo botón con
+      // data-field="destinatario". En el Paso 1 eso es correcto —copia sólo ese
+      // campo del formulario— pero acá dejaba al proveedor sin dirección ni
+      // teléfono. No se vio a mano porque se probó el caso SIN mark, donde el
+      // guardarraíl corta antes de copiar.
+      const copiado: string[] = [];
+      Object.defineProperty(ctx.win.navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: (t: string) => {
+            copiado.push(t);
+            return Promise.resolve();
+          },
+        },
+      });
+
+      (ctx.doc.querySelector(".dir-copy-all") as HTMLElement).click();
+      await new Promise((r) => setTimeout(r, 20));
+
+      expect(copiado).toHaveLength(1);
+      const texto = copiado[0];
+      expect(texto).toContain("林冠 DTD-1042"); // el mark vivo, no el placeholder
+      expect(texto).not.toContain("DTD-XXXX");
+      expect(texto).toContain("浙江省金华市义乌市义乌港二期直通仓2栋2号"); // con Jinhua
+      expect(texto).toContain("322000");
+      expect(texto).toContain("+86 18606891419");
+      expect(texto.split("\n")).toHaveLength(3);
     });
   });
 

@@ -807,7 +807,7 @@ function markBloqueHTML(){
   if (MK) {
     const saludo = URL_NAME ? "<b>Hola, "+esc(URL_NAME)+".</b> " : "";
     return '<div class="dir-mark"><label>Tu Shipping Mark</label><div class="row">'+
-      '<input id="dirMark" type="text" maxlength="50" value="'+esc(MK)+'" readonly tabindex="-1" aria-readonly="true">'+
+      '<input id="dirMark" type="text" maxlength="50" value="'+esc(MK)+'" readonly aria-readonly="true">'+
       '<div class="h">'+saludo+'Ya está cargado — cópialo junto a «林冠» en la dirección de Alibaba.</div>'+
     '</div></div>';
   }
@@ -828,7 +828,10 @@ function markBloqueHTML(){
 function direccionCompactaHTML(){
   const MK = markActual();
   const destino = MK ? "林冠 "+MK : "林冠 DTD-XXXX";
-  const todo = "收货人 / Destinatario: "+destino+"\n"+
+  // El texto a copiar se arma con el PLACEHOLDER a propósito: el handler
+  // sustituye DTD-XXXX por el mark vivo, así el botón sigue correcto aunque el
+  // mark cambie sin volver a pintar la tarjeta.
+  const todo = "收货人 / Destinatario: 林冠 DTD-XXXX\n"+
     "地址 / Dirección: "+DIR_AUTOFILL+"\n"+
     "电话 / Teléfono: +86 "+TEL_CN;
   return '<div class="dir-card dir-full">'+markBloqueHTML()+
@@ -994,7 +997,13 @@ function wire(){
         const p=stageEl.querySelector(".mk-prim"); if(p) p.focus();
         const o=btn.textContent; btn.textContent="Regístrate primero ↑"; setTimeout(()=>btn.textContent=o,2200); return;
       }
-      val=val.indexOf("林冠 DTD-XXXX")>=0 ? val.split("林冠 DTD-XXXX").join("林冠 "+m) : "林冠 "+m;
+      // Dos botones distintos: el del Paso 1 copia SÓLO el campo «Nombre y
+      // apellido» del formulario de Alibaba; el del Paso 7 copia las tres
+      // líneas que se le pasan al proveedor. Reconstruir "林冠 "+mark para
+      // los dos dejaba al Paso 7 sin dirección ni teléfono.
+      val = btn.classList.contains("dir-copy-all")
+        ? val.split("DTD-XXXX").join(m)
+        : "林冠 "+m;
     }
     navigator.clipboard.writeText(val).then(()=>{ const o=btn.textContent; btn.textContent="✓ Copiado"; setTimeout(()=>btn.textContent=o,1600); }).catch(()=>{});
   }));
