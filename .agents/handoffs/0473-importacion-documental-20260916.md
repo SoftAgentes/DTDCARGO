@@ -161,7 +161,8 @@ Decisiones tomadas por la sesión, para que Sam las revise:
 | PDF reales (2 proformas) | **NO EJECUTADO** — exige `ANTHROPIC_API_KEY` y modelo |
 | `vitest` packlist-form | **PASÓ** — 27 pruebas (6 nuevas del helper) |
 | Migración 0457 contra Postgres efímero (PGlite) | **PASÓ** — 8 casos |
-| `pnpm verify` completo | **NO EJECUTADO** |
+| `pnpm verify` completo (2026-09-17) | **14 de 17 pasos corrieron, 0 fallos.** `build` de producción incluido. **3 NO MEDIDOS**: `migrations-applied` (sin `.env.local` en el worktree), `sql-tests` y `schema-rebuild` (sin Docker). `e2e` **PARCIAL**: 153 verdes, 15 omitidas sin Supabase público. El propio gate lo dice: «exit 0 NO equivale a cierre verde completo» |
+| Suite completa del repo (2026-09-17) | **PASÓ** — 7.718 pruebas, 582/584 archivos. El único rojo fue el contrato del sitemap, arreglado: `/cotizador` quedaba fuera del sitemap **y** de la lista de `noindex`, «el estado que nadie eligió» |
 | Migración aplicada / lectura de producción | **NO EJECUTADO** (fuera de autorización) |
 | Llamadas reales a la IA con documentos del cliente | **NO EJECUTADO** |
 | UI, `/ui-check`, 375/390 px, claro/oscuro, impresión | **NO EJECUTADO** — no existe UI montada |
