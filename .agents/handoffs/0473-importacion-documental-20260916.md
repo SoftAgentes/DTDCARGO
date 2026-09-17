@@ -41,6 +41,40 @@ Backend terminado por la sesión Codex y preservado íntegro en `cce43a9b`:
 Corregido por esta sesión en `bff39cac`: `formatPackingQuantity` en la capa pura y sus tres
 consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposible.
 
+## EL COTIZADOR (2026-09-17)
+
+Sam acotó el alcance: «no vamos a cambiar la calculadora pública, solo vamos a hacer algo que se
+llama **cotizador**… cotizador arrojando un archivo PI y packing list».
+
+Eso **saca de la allowlist a `TarifasTabs.tsx` y `CalculadoraForm.tsx`**, que seguían listados.
+`/tarifas` queda intacta. Entra `app/cotizador/`: tres pasos —cargar, revisar, cotizar— sobre un
+workspace **anónimo** (sin `openParams`) que expira en 24 h, detrás de `DOCUMENT_IMPORT_ENABLED`
+con `dynamic = "force-dynamic"` para que apagar la bandera no exija redeploy.
+
+No se funden en una porque `/tarifas` se define por **no guardar nada** y el cotizador necesita
+que el documento sobreviva hasta el enlace del proveedor. El precio sale del mismo motor en las
+dos: `DocumentCalculator` no calcula, manda `estimate` al servidor, que corre `calcularEnvioLCL`.
+
+Decisiones tomadas por la sesión, para que Sam las revise:
+
+- **Ir al paso 3 guarda primero** si hay correcciones. El servidor cotiza sobre lo guardado;
+  saltarse el guardado mostraría el precio de la carga vieja.
+- **Mercancía sólo con UNA moneda.** Con dos va `null`: convertir sería inventar una tasa y
+  elegir una escondería la otra. Y nunca se suma al flete — la suma sería un «costo de importar»
+  sin aranceles.
+- **Caducidad desde el servidor** (`expiresAt`). Si no viene, no se promete ningún plazo.
+- **Salidas fijas en los tres pasos:** `/tarifas` y WhatsApp, como anclas de verdad. Siguen ahí
+  aunque todo funcione.
+
+### Pendientes del cotizador
+
+- **El token anónimo vive sólo en memoria.** Si el visitante recarga, pierde el acceso al
+  documento (que sigue en el servidor 24 h). Meterlo en `sessionStorage` es decisión de
+  privacidad, no sólo de código.
+- **Nadie enlaza `/cotizador`.** No está en `app/sitemap.ts` ni en Nav/Footer. Apagada la bandera
+  eso es correcto; **al encenderla alguien tiene que enlazarla**.
+- **Nombre solapado** con `/studio/cotizador`, el cotizador interno del asesor.
+
 ## VALIDACIÓN
 
 | Comprobación | Resultado |
@@ -55,6 +89,11 @@ consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposi
 | `vitest` corpus real (3 XLSX de proveedor) | **PASÓ** — 4 pruebas, con `DOCUMENT_IMPORT_CORPUS` |
 | `vitest` panel de carga | **PASÓ** — 9 pruebas, 2 verificadas por mutación |
 | `vitest` suite completa | **PASÓ** — 570 archivos, 7.463 pruebas |
+| `vitest` módulo completo tras la tanda del 17-09 | **PASÓ** — 341 pruebas, 1 skip por diseño, **0 `it.fails`** |
+| `tsc --noEmit` tras la tanda | **PASÓ** — exit 0 leído sin tubería |
+| `eslint components app` tras la tanda | **PASÓ** — 0 errores, 12 warnings preexistentes |
+| Mutación de los arreglos del recibo | **PASÓ** — los 2 mutantes mueren con el defecto exacto, archivo restaurado byte a byte |
+| `/cotizador` en navegador real, 375/390 px, claro/oscuro | **NO EJECUTADO** — sólo jsdom, tsc y eslint |
 | PDF reales (2 proformas) | **NO EJECUTADO** — exige `ANTHROPIC_API_KEY` y modelo |
 | `vitest` packlist-form | **PASÓ** — 27 pruebas (6 nuevas del helper) |
 | Migración 0457 contra Postgres efímero (PGlite) | **PASÓ** — 8 casos |
@@ -86,6 +125,9 @@ consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposi
   de incidencias que las borraba sin vuelta atrás.
 - `1bc8330e` — el enlace del proveedor llega precargado, el harness de QA visual y el
   runbook de importación sin IA.
+- `954c84b9` — `DocumentCalculator`: del documento leído al precio de traerlo.
+- `7c105d54` — el cotizador público, los 7 `it.fails` cerrados y el recibo que se hacía
+  pasar por workspace.
 
 Stub heredado `069d9e417c06b749cb0749a780187a9c358e3edd`.
 
@@ -132,20 +174,54 @@ el navegador. El CI de GitHub tiene mucha menos concurrencia y pasa.
 **FUERA DE ALCANCE DETECTADO:** `PackingListProductsStep.test.tsx` es frágil bajo
 carga de CPU. Falla igual en `main`. No se toca desde esta tarea.
 
-## DEFECTOS ABIERTOS, documentados con `it.fails`
+## DEFECTOS: 8 encontrados, **8 cerrados** (2026-09-17)
 
-Las 6 suites nuevas encontraron 8 defectos. Uno se arregló (`combinedLogistics` sumaba
-`totals.cartons ?? 0` y reportaba cajas que ningún documento declaró). Los otros 7 quedan con
-una prueba `it.fails` que **se pondrá roja el día que alguien los arregle**, así nadie los
-cierra sin enterarse:
+Las 6 suites nuevas encontraron 8 defectos. El primero se cerró al escribirlas
+(`combinedLogistics` sumaba `totals.cartons ?? 0` y reportaba cajas que ningún documento
+declaró). Los otros 7 quedaron con `it.fails` — una prueba que se pone roja el día que alguien
+los arregla, para que nadie los cierre sin enterarse. **Se cerraron los 7 en la tanda del
+2026-09-17**, cada uno con cambio de producción detrás y cada prueba verificada por mutación:
 
-| Dónde | Qué pasa | Gravedad |
+| Dónde | Qué pasaba | Cómo se cerró |
 |---|---|---|
-| `access.ts:42` | Un `expires_at` ilegible no niega: `Date.parse` da NaN y la comparación es falsa. Fail-open teórico; hoy la columna es `timestamptz` y PostgREST siempre la serializa en ISO | baja |
-| `access.ts:74` | Sin IP resoluble, `resolveRequestIp` devuelve `"unknown"` y todos comparten un solo cupo. Degrada a negar, no a permitir | baja |
-| `service.ts:74` | Ante un 23505 se llama a sí misma sin tope de profundidad | media |
-| `jobs.ts` | Un archivo cuya lectura falló no se puede reintentar | media |
-| `export.ts` (×4) | Redondeo del importe «Sin asignar», cajas de un grupo llamado «Sin asignar», número de caja en blanco, y el pie cuando el borrador sobreasigna un producto | baja |
+| `access.ts:42` | Un `expires_at` ilegible no negaba: `Date.parse` da NaN y la comparación es falsa | Helper `noVigente(unknown)`: sólo `null` significa «no vence». `undefined` tampoco acredita vigencia. 6 formas ilegibles cubiertas |
+| `access.ts:74` | Sin IP resoluble todos compartían un solo cupo: bastaba mandar 9 saltos de XFF para quemarle la cuota a los demás | Dos niveles: cupo propio por cadena (el proxy raro honesto) + techo común de la clase (el que rota su cadena a propósito). Las IP resolubles no cambian |
+| `service.ts:74` | Ante un 23505 se llamaba a sí misma sin tope | `MAX_WORKSPACE_RACE_ATTEMPTS=3`, y la profundidad queda privada: ningún payload puede fijarla. Alcanzado el tope, `503 workspace_unavailable` |
+| `jobs.ts` | Un archivo cuya lectura falló no se podía reintentar | El arreglo obvio no servía: filtrar los `failed` del SELECT chocaba contra el índice único de la 0457 y devolvía `409` en vez de dejar reintentar. Hay que **cancelar** el intento muerto (único estado que el índice ignora) y borrar su copia del bucket, conservando su `error_code` |
+| `export.ts` (×4) | Redondeo del importe «Sin asignar», cajas de un grupo llamado «Sin asignar», id interno publicado como número de caja, pie que no cuadraba con sus filas | Una sola `productRow()` escribe las dos filas que antes estaban duplicadas, y el pie acumula **lo que realmente escribe** en vez de recalcular |
+
+**Causa de fondo que sigue abierta — FUERA DE ALCANCE:** `extract.ts:192` compara grupos **por
+etiqueta** (`s(row[0]) === "Sin asignar"`), no por identidad. Un grupo real bautizado «Sin
+asignar» por el proveedor se lee como el cajón de sobrantes y pierde cajas, peso y CBM. Se tapó
+del lado que escribe (`groupLabel()` entrecomilla la etiqueta que choca con el centinela), pero
+la relectura por etiqueta sigue ahí.
+
+**FUERA DE ALCANCE DETECTADO — `jobs.ts:38`:** la consulta de deduplicación descarta su `error`.
+Si esa lectura falla (RLS, timeout), `duplicate` queda en null y el job se encola igual: fail-open
+que paga la IA dos veces por el mismo contenido. Es previo a esta tanda.
+
+## EL RECIBO QUE SE HACÍA PASAR POR WORKSPACE (2026-09-17)
+
+`save` y `apply` **no devuelven el workspace**: devuelven un recibo —`save_document_workspace` en
+la 0457 hace `return receipt`—, con `revision`, `confirmed`, `folio`, `versionNo` y
+`submissionId`. Sin `id` y sin `draft`.
+
+Dos llamadores lo tipaban `DocumentWorkspace` y lo adoptaban entero. TypeScript creyó la
+anotación. Las pruebas no lo vieron porque **el doble de `apply` devolvía un workspace completo**:
+una fixture más amable que el servidor real. Dos fallas que sólo se ven usando la pantalla:
+
+- `DocumentImportPanel` — aplicar una extracción subía un objeto sin `draft`; el editor de arriba
+  se quedaba vacío justo después de aplicar. Ahora relee (`GET action=workspace`), porque el
+  borrador fusionado sólo existe en el servidor.
+- `DocumentReviewClient` — tras **un** guardado el `id` se perdía; el siguiente salía con
+  `workspaceId: undefined` → 404 hasta recargar. Ahora fusiona sólo la revisión sobre el
+  workspace que ya tiene.
+
+Los dos dobles responden ahora como el servidor. Revertir cualquiera de los dos arreglos deja
+`expected undefined to be '0000…0001'`, que es el defecto mismo.
+
+Lo encontró el agente que escribió el cotizador, porque su doble respondía como el servidor de
+verdad en vez de como convenía a la prueba.
 
 ## CORPUS REAL — lo que reveló
 
