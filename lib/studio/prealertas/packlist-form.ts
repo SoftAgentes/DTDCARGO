@@ -253,6 +253,29 @@ export function computeTotals(rows: PackingListRowInput[] | undefined): {
 }
 
 /**
+ * SDD-0473 · Texto de la cantidad total cuando las unidades no son homogéneas.
+ *
+ * `totals.qty` viene en `null` justamente cuando sumar sería inventar un dato:
+ * 100 piezas + 30 metros no tienen un total escalar, y un cero ficticio se leería
+ * como "no despachó nada". En ese caso se enumeran las unidades por separado
+ * ("100 pcs · 30 m"); si tampoco hay desglose, se muestra el guion de vacío.
+ *
+ * El formateador lo pone cada llamador porque el Portal y el Studio usan locales
+ * y decimales distintos.
+ */
+export function formatPackingQuantity(
+  totals: Pick<PackingListTotals, "qty" | "quantitiesByUnit">,
+  format: (value: number) => string,
+): string {
+  if (totals.qty !== null) return format(totals.qty);
+  const partes = Object.entries(totals.quantitiesByUnit ?? {})
+    .filter(([, value]) => Number.isFinite(value))
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([unit, value]) => `${format(value)} ${unit}`);
+  return partes.length > 0 ? partes.join(" · ") : "—";
+}
+
+/**
  * Validación + saneo del payload del form. Mínimos (poca fricción para el
  * proveedor chino): ≥1 fila con nombre y ≥1 canal de contacto del proveedor
  * (email / WeChat / teléfono — el founder necesita poder contactarlo). currency

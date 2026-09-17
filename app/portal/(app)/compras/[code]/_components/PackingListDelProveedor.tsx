@@ -1,4 +1,5 @@
 import type { PackingListRow } from "@/lib/studio/prealertas/packlist-form";
+import { formatPackingQuantity } from "@/lib/studio/prealertas/packlist-form";
 import type {
   CotejoDeCajas,
   PackingListDeCompra,
@@ -166,7 +167,7 @@ export function PackingListDelProveedor({
       {/* ── Totales ── */}
       <dl className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <Total label="Cajas" value={num(t.ctns)} />
-        <Total label="Unidades" value={num(t.qty)} />
+        <Total label="Unidades" value={formatPackingQuantity(t, (v) => num(v))} />
         <Total label="Peso" value={`${num(t.weight, 1)} kg`} />
         <Total label="Volumen" value={`${num(t.cbm, 3)} CBM`} />
         <Total label="Valor" value={money(t.amount, packing.moneda)} destacado />
@@ -256,7 +257,7 @@ export function PackingListDelProveedor({
                   </td>
                   <TdNum strong>{num(t.ctns)}</TdNum>
                   <TdNum>—</TdNum>
-                  <TdNum strong>{num(t.qty)}</TdNum>
+                  <TdNum strong>{formatPackingQuantity(t, (v) => num(v))}</TdNum>
                   <TdNum>—</TdNum>
                   <TdNum strong>{money(t.amount, packing.moneda)}</TdNum>
                   <TdNum strong>{num(t.weight, 1)}</TdNum>
