@@ -1,0 +1,133 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { ProviderShareClient } from "./ProviderShareClient";
+import { resolveBrand } from "@/lib/shared/brand-context";
+import { computeTotals } from "@/lib/studio/prealertas/packlist-form";
+import { packlistDraftKey } from "@/lib/studio/prealertas/packlist-draft";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
+const props = { token: "standard-test", code: "DTD-DEMO-1", markbox: "DTD-DEMO", supplierName: "", supplierWechat: "", brand: resolveBrand(null), labels: [] };
+const rows = [{ es: "Vasos", zh: "杯子", code: "CUP-01", ctns: "5", perctn: "10", unit: "2", wkg: "3", cbm: "0.5" }, { es: "Tapas", zh: "盖子", code: "LID-02", same: true, qtyDirect: "8", unit: "4" }];
+const button = (name: string | RegExp) => screen.getByRole("button", { name });
+const click = (name: string | RegExp) => fireEvent.click(button(name));
+const locale = (value: string) => fireEvent.change(screen.getByRole("combobox", {name:"语言 / Idioma / Language"}), {target:{value}});
+const change = (name: string, value: string) => fireEvent.change(screen.getByRole("textbox", {name}), {target:{value}});
+function start(request = vi.fn()) {
+  localStorage.setItem(packlistDraftKey(props.token), JSON.stringify({rows, wechat:"contacto-real", company:"Empresa real", lang:"es", currency:"USD"}));
+  render(<ProviderShareClient {...props} request={request}/>); locale("es"); return request;
+}
+beforeEach(() => {
+  localStorage.clear(); Element.prototype.scrollIntoView = vi.fn();
+  vi.spyOn(window,"print").mockImplementation(() => {});
+});
+afterEach(() => { cleanup(); vi.restoreAllMocks(); delete document.documentElement.dataset.printSurface; });
+
+describe("shared standard and guided capture", () => {
+  it("starts guided and exposes Product then Code before Brand in the canonical standard table", async () => {
+    start(); await waitFor(() => expect(screen.getByRole("textbox",{name:"Empresa / Persona"})).toHaveValue("Empresa real"));
+    expect(button("Llenado guiado")).toHaveAttribute("aria-pressed","true");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    click("Formato estándar");
+    expect(button("Formato estándar")).toHaveAttribute("aria-pressed","true");
+    await waitFor(() => expect(screen.getByRole("heading",{name:"Formato estándar"})).toHaveFocus());
+    const table = screen.getByRole("table",{name:"Productos del formato estándar"});
+    expect(within(table).getAllByRole("columnheader").slice(1,4).map(el=>el.textContent)).toEqual(["产品Producto","货号Código de producto","品牌Marca"]);
+    expect(screen.getAllByRole("textbox",{name:"Empresa / Persona"})).toHaveLength(1);
+    const date = screen.getByLabelText("Fecha");
+    expect(date).toBeVisible(); expect(date).not.toHaveClass("pl-date-hidden");
+    fireEvent.change(date,{target:{value:"2026-09-20"}});
+    expect(screen.getByRole("textbox",{name:"Producto, 1"})).toHaveValue("Vasos");
+    expect(screen.getByRole("textbox",{name:"Código de producto, 1"})).toHaveValue("CUP-01");
+    change("Código de producto, 1","CUP-NEW"); change("Producto, 1","Vasos nuevos");
+    click("Llenado guiado");
+    expect(document.querySelector('.pl-date-input')).toHaveValue("2026-09-20");
+    click(/^2 /);
+    expect(button("Editar Vasos nuevos")).toBeInTheDocument();
+    expect(within(screen.getByRole("region",{name:"Grupo de cajas 1"})).getByText("CUP-NEW")).toBeVisible();
+    click("Editar Vasos nuevos");
+    const inputs=within(screen.getByRole("region",{name:"Editor del producto"})).getAllByRole("textbox");
+    expect(inputs.slice(0,2).map(el=>el.getAttribute("aria-label"))).toEqual(["Nombre del producto · 1","Código del producto · 1"]);
+    change("Código del producto · 1","CUP-FINAL"); click("Guardar producto"); click("Formato estándar");
+    expect(screen.getByRole("textbox",{name:"Código de producto, 1"})).toHaveValue("CUP-FINAL");
+  });
+  it("shows individual product quantities and amounts for mixed cartons, without repeating a group subtotal in the base line", async () => {
+    start(); await waitFor(() => expect(screen.getByRole("textbox",{name:"Empresa / Persona"})).toHaveValue("Empresa real"));
+    click("Formato estándar");
+    const table=screen.getByRole("table",{name:"Productos del formato estándar"});
+    const body=table.querySelector("tbody")!;
+    const base=body.rows[0];
+    expect(base.cells[9].querySelector('[aria-hidden="true"]')).toHaveTextContent(/^50$/);
+    expect(base.cells[11].querySelector('[aria-hidden="true"]')).toHaveTextContent(/^100\.00$/);
+    click(/Abrir ítems de la caja 1/);
+    const child=body.rows[1];
+    expect(within(child).getByRole("textbox",{name:"Cantidad, fila 2"})).toHaveValue("8");
+    expect(child.cells[11].querySelector('[aria-hidden="true"]')).toHaveTextContent(/^32\.00$/);
+    expect(base.cells[9].querySelector('[aria-hidden="true"]')).toHaveTextContent(/^50$/);
+    expect(base.cells[11].querySelector('[aria-hidden="true"]')).toHaveTextContent(/^100\.00$/);
+    expect(table.querySelector("tfoot")?.textContent).toContain("132.00");
+    click(/Cerrar ítems de la caja 1/);
+    expect(base.cells[11].querySelector('[aria-hidden="true"]')).toHaveTextContent(/^100\.00$/);
+  });
+  it("preserves a single uploader, exact File objects and partial receipts across capture modes, Excel and locale", async () => {
+    const request=vi.fn().mockResolvedValue(new Response(JSON.stringify({ok:true,uploaded:1})));
+    start(request); click(/^3 /);
+    const chooser=document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const files=[new File(["a"],"foto.png",{type:"image/png"}),new File(["b"],"lista.xlsx")];
+    fireEvent.change(chooser,{target:{files}}); click("Formato estándar"); click("Fotos y archivos");
+    await waitFor(() => expect(screen.getByRole("heading",{name:/Fotos y archivos/})).toHaveFocus());
+    expect(document.querySelectorAll('input[type="file"]')).toHaveLength(1);
+    expect(chooser.files?.[0]).toBe(files[0]); click("Subir archivos");
+    await screen.findByText("Carga parcial: 1 de 2 archivos recibidos");
+    click("Usar Excel"); click("Volver al formulario"); locale("zh"); locale("es"); click("Llenado guiado"); click(/^4 /);
+    expect(document.querySelector('input[type="file"]')).toBe(chooser);
+    expect(chooser.files?.[1]).toBe(files[1]);
+    expect(screen.getAllByText("Carga parcial: 1 de 2 archivos recibidos").some(el=>el.closest("[hidden]")===null)).toBe(true);
+  });
+  it("submits the same mixed-carton payload once from standard and locks both capture modes during POST", async () => {
+    let resolve!: (value: Response)=>void;
+    const request=vi.fn<typeof fetch>(()=>new Promise<Response>(done=>{resolve=done;}));
+    start(request); await waitFor(() => expect(screen.getByRole("textbox",{name:"Empresa / Persona"})).toHaveValue("Empresa real"));
+    click("Formato estándar"); click("Enviar documento a DTD");
+    expect(button("Llenado guiado")).toBeDisabled(); expect(button("Formato estándar")).toBeDisabled();
+    expect(screen.getByRole("textbox",{name:"Producto, 1"})).toBeDisabled();
+    expect(request).toHaveBeenCalledOnce();
+    const payload=JSON.parse(request.mock.calls[0][1]!.body as string);
+    expect(payload.rows).toEqual(rows); expect(payload.supplierCompany).toBe("Empresa real");
+    expect(computeTotals(payload.rows).totals).toEqual({ctns:5,qty:58,amount:132,weight:15,cbm:2.5});
+    expect(JSON.stringify(payload)).not.toMatch(/standard|captureMode|editor|demo-wechat/);
+    resolve(new Response(JSON.stringify({ok:true,folio:"TEST-1",versionNo:2})));
+    await screen.findByRole("heading",{name:"Documento enviado"});
+    expect(screen.getByText(/TEST-1/)).toHaveTextContent("Versión 2");
+    click("Corregir y reenviar");
+    expect(screen.getByRole("textbox",{name:"Producto, 1"})).toHaveValue("Vasos");
+  });
+  it("deletes the base as a whole group without orphaning children and returns to an operable guided editor", async () => {
+    start(); await waitFor(() => expect(screen.getByRole("textbox",{name:"Empresa / Persona"})).toHaveValue("Empresa real"));
+    click("Formato estándar"); click(/Quitar fila 1/);
+    await waitFor(() => expect(button("Eliminar grupo completo")).toHaveFocus());
+    click("Cancelar"); expect(button(/Quitar fila 1/)).toHaveFocus();
+    click(/Quitar fila 1/); click("Eliminar grupo completo"); click("Llenado guiado"); click(/^2 /);
+    expect(screen.getByRole("textbox",{name:"Nombre del producto · 1"})).toHaveValue("");
+    expect(screen.getAllByRole("region",{name:/Grupo de cajas/})).toHaveLength(1);
+  });
+  it("keeps the complete bilingual print DOM mounted in either capture mode independently of UI language", async () => {
+    start(); await waitFor(() => expect(screen.getByRole("textbox",{name:"Empresa / Persona"})).toHaveValue("Empresa real"));
+    const sheet=document.querySelector(".pl-doc");
+    expect(sheet?.closest(".no-print")).toBeNull();
+    expect(sheet?.querySelectorAll("tbody tr")).toHaveLength(2);
+    expect(sheet?.querySelectorAll(".pl-print-product-name")[0]).toHaveTextContent("杯子");
+    click("Formato estándar"); locale("en");
+    expect(document.querySelector(".pl-doc")).toBe(sheet);
+    expect(sheet?.querySelectorAll(".pl-print-product-name")[1]).toHaveTextContent("Vasos");
+    click("Print document / PDF"); expect(document.documentElement.dataset.printSurface).toBe("packing-list");
+    click("Guided entry"); expect(document.querySelector(".pl-doc")).toBe(sheet);
+    expect(sheet?.querySelectorAll("tbody tr")).toHaveLength(2);
+  });
+  it("focuses the localized error in standard after a rejected send without losing entered values", async () => {
+    const request=vi.fn().mockResolvedValue(new Response(JSON.stringify({error:"server"}),{status:503}));
+    start(request); await waitFor(() => expect(screen.getByRole("textbox",{name:"Empresa / Persona"})).toHaveValue("Empresa real"));
+    click("Formato estándar"); click("Enviar documento a DTD");
+    const alert=await screen.findByRole("alert"); await waitFor(()=>expect(alert).toHaveFocus());
+    expect(alert).toHaveTextContent("No pudimos confirmar el envío");
+    expect(screen.getByRole("textbox",{name:"Código de producto, 1"})).toHaveValue("CUP-01");
+  });
+});

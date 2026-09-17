@@ -4,7 +4,7 @@ title: "Portal: rediseño del enlace del proveedor (Factura + Packing List)"
 status: in-progress
 author: "Claude con Sam"
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-16
 supersedes: null
 superseded_by: null
 related: ["0057", "0096", "0097", "0173", "0206", "0443"]
@@ -343,3 +343,85 @@ Hola. Abre el enlace de DTD Cargo y completa 3 pasos:
 ## 9. Verificación
 
 Registro de pruebas por SHA en el handoff `.agents/handoffs/portal-enlace-proveedor-ux.md`: pruebas unitarias y de componente, controles rojos contra las versiones anteriores, inspección del XML del `.xlsx` y `pnpm verify`.
+
+
+## 10. Segunda etapa autorizada · 2026-09-16
+
+La primera entrega (secciones 1–9) y su evidencia permanecen como registro histórico. Sam autorizó ahora rediseñar ambos extremos del flujo, incluidas las secciones de /p/[token] excluidas en la primera etapa. La PR119 ya está en la base main 30a9f890; esta etapa no es un merge pendiente de aquella PR.
+
+### Experiencia e implementación
+
+- Compartir conserva copiar URL en un clic, copiar mensaje chino, WhatsApp y recuperación si falla clipboard. Título uniforme: «Solicita la factura y el packing list a tu proveedor» en los tres puntos del portal.
+- Captura en cuatro pasos: datos del proveedor; cajas y productos; fotos y archivos; revisar y enviar. Chino simplificado por defecto, selector es/en independiente del idioma latino del documento. No se traducen automáticamente los nombres ingresados.
+- Un grupo de cajas inicial; líderes conservan ctns/perctn/wkg/cbm, productos en las mismas cajas conservan same/qtyDirect como cantidad total del producto en ese grupo. Agregar/quitar producto no duplica peso/volumen. Eliminar grupo pide confirmación y elimina sus hijos, sin reasignarlos al grupo anterior.
+- Estado, claves de borrador por token, sanitización de PII heredada, autosave 600ms/8s, cap12 del historial, payload y computeTotals permanecen en el propietario del editor. Cambiar pasos, idioma y modalidad Excel no remonta el propietario ni el componente de archivos.
+- La captura nueva vive en PackingListGuidedForm; vista de documento de solo lectura en PackingListDocumentPreview; superficie original completa queda montada y oculta a pantalla/tecnología asistiva para imprimir todas las filas, incluidos hijos y documento tras enviar. No hay dos editores accesibles.
+- Referencia de compra y Shipping Mark protegidos. Dirección/instrucciones de entrega en un único desplegable de pantalla. Etiquetas con códigos existentes y aviso informativo antes de imprimir, incluso con formulario vacío.
+- Excel alternativo permite descargar y subir archivo sin llenar online. La carga no importa valores del Excel ni envía el formulario. Estados borrador local, recepción de archivo y documento enviado permanecen separados.
+- Carga parcial usa cantidad confirmada, mantiene selección y advierte sobre duplicados antes de reenviar; recibo faltante o ambiguo es recepción no confirmada. No atribuye nombres ni tipos de archivos a lo recibido, pues endpoint solo informa cantidad.
+- Éxito muestra folio, versión y aviso de reconciliar etiquetas si corresponde. Corregir conserva datos; restaurar historial tras éxito vuelve a edición y quita recibo anterior. Mutaciones del documento deshabilitadas durante POST. El servidor sigue validando y versionando de forma autoritativa.
+- No cambian endpoints, tablas, migraciones, contrato de negocio, privacidad del token ni variables globales de marca. La previsualización local inyecta transporte simulado en los componentes reales, fuera del árbol de rutas Next y con servidor loopback que bloquea backend. Ninguna conexión productiva requerida.
+
+### Allowlist adicional de etapa 2
+
+- app/p/[token]/page.tsx (metadata), PackingListFormSection.tsx, ProviderShareClient.tsx, SupplierUploadSection.tsx, PackingListGuidedForm.tsx, PackingListDocumentPreview.tsx, supplier-flow.test.tsx, SupplierUploadSection.test.tsx.
+- app/p/[token]/PackingListProductsStep.tsx y su prueba, provider-format.ts, standard-format.test.tsx.
+- app/portal/_components/ShareProviderButton.tsx y su prueba; NewPurchaseForm.tsx y compras/[code]/etiquetas/page.tsx solo en el bloque compartir/copy.
+- app/portal/(app)/compras/nueva/PurchaseStepConfirm.tsx: además del bloque compartir/copy, se retiran `NumberedStep`, la lista «Lo que hará tu proveedor» y la maqueta «Así se ve lo que recibe tu proveedor», reemplazadas por una lista de texto. Es el alcance de la fila 1.4 de esta spec y queda bajo la excepción al Norte de SDD-0173 ya registrada.
+- docs/specs/0468-portal-enlace-proveedor-ux/qa/* (fixture local seguro), esta spec e índice generado docs/specs/README.md.
+- .agents/handoffs/portal-proveedor-guiado-20260916.md.
+
+Cierre de allowlist 2026-09-16 (revisión previa a integrar): los cuatro archivos de la fase 3/4
+(`PackingListProductsStep.tsx` y su prueba, `provider-format.ts`, `standard-format.test.tsx`) estaban
+descritos en las fases pero nunca listados, y el alcance real sobre `PurchaseStepConfirm.tsx` excedía
+lo que decía «solo bloque compartir/copy». Ambos quedan registrados arriba. Es corrección documental:
+no cambia código ni amplía permisos nuevos.
+
+### Criterios y evidencia de etapa 2
+
+- [x] Captura responsive por tarjetas, cuatro pasos y resumen de totales.
+- [x] Chino/es/en para interfaz y segundo idioma de documento separado.
+- [x] Payload/cálculo de cajas mixtas y borradores anteriores conservados; regresiones automatizadas.
+- [x] Formulario/Excel alternativos, errores localizados y carga parcial honesta.
+- [x] Vista read-only, impresión separada, folio/versión y corrección.
+- [x] Fixture navegable cliente → proveedor → confirmación con datos ficticios; escritorio y frames de 375/390, claro/oscuro, escenarios controlados.
+- [x] Aprobación de Sam antes de integración: autorizó el merge el 2026-09-16, y por separado el despliegue que ese merge dispara. Decidió además que el chino primero es la mejora buscada. La inspección del Director se documenta en handoff.
+- [ ] Validación de chino por persona de operación y prueba real en WeChat; NO EJECUTADO, no se afirma compatibilidad.
+- [ ] Recorrido con enlace y sesión reales; NO EJECUTADO por falta de autorización de datos/operaciones productivas.
+- [x] Integración y producción: autorizadas por Sam el 2026-09-16. En este repo son el mismo acto — cada commit de `main` genera un deployment `Production` de vercel[bot] (14/14 verificados) y el `ignoreCommand` no saltea este build.
+
+El runbook exige ui-check, pnpm verify y handoff con comprobaciones PASÓ/FALLÓ/NO EJECUTADO/NO DISPONIBLE. El resultado de verify y omisiones se conservan por SHA en el handoff; éxito con SKIPs no acredita cobertura completa.
+
+### Compatibilidad y límites de revisión
+
+El plan aprobado constituye DESIGN-CHECK de la nueva composición; no se edita manualmente el Norte. Marca mantiene tokens y Archivo/Noto Sans SC en /p, sin modificar fuentes globales. La vista documental nueva resume el contenido para revisar; el impreso canónico mantiene columnas y reglas completas anteriores. Preview local no equivale a prueba de permisos en producción, ni prueba de WeChat, impresión física o PDF paginado final. Estado SDD continúa in-progress hasta completar aceptación humana/integración según autorización.
+
+### Pase UX aprobado de etapa 2 · 2026-09-16
+
+Se diferencia el origen sin bajar contraste: datos reales precargados llevan ayuda accesible, los campos vacíos muestran ejemplos como placeholder localizado y los valores de un borrador recuperado se identifican como tales. Las ayudas de campo aparecen solo cuando hay valor. Esa metadata es de presentación y no se incorpora al payload ni al borrador serializado.
+
+El estado local y de guardado/error permanece fuera del desplegable de herramientas; después de un envío confirmado deja de anunciar pendiente. En móvil, los cuatro pasos ocupan una fila con objetivos de al menos 44px, números visibles y nombre completo accesible/aria-current; desde sm se conservan etiquetas. Se compactan encabezado, línea Excel, espacios y acciones sin reducir campos de 48px. Sidebar une totales y Shipping Mark; móvil despliega peso/volumen desde una cabecera resumida.
+
+Paso 3 tiene un solo título «Fotos y archivos · Opcional», descripción y límites. Paso 4 muestra únicamente resumen del estado y acceso a revisar. El cargador permanece en la misma posición del árbol de componentes al navegar, alternar Excel, cambiar idioma o consultar tras envío; la selección conserva sus File originales.
+
+La fixture presenta «DEMO · datos ficticios» persistente, distingue inicio de ejemplo de borrador local restaurado y ofrece restablecer únicamente las claves del token ficticio. Los valores semilla antiguos de empresa/WeChat se retiran solo por coincidencia exacta en esa demo, con aviso, conservando datos introducidos. Los contactos de ejemplo dejan de ser valores. Borrador inválido no se abre silenciosamente y almacenamiento bloqueado no se anuncia como recuperación exitosa.
+
+Pruebas del pase: origen, placeholders y payload sin ejemplos, autoguardado nuevo frente a restauración, pasos accesibles, selección/recibo al navegar e idioma, reset acotado de demo y regresiones existentes. La evidencia por comando y la inspección visual independiente quedan en el handoff de esta tarea. Continúan pendientes las aceptaciones humanas, WeChat y producción ya delimitadas.
+
+La revisión UX final añadió tres protecciones: autoguardado visual silencioso (live polite solo para eventos manuales y alert para fallos); el resumen de adjuntos conserva causa discriminada del error y no llama inciertos a límites/rechazos conocidos; la demo compara el borrador con su baseline real antes de llamarlo restaurado. Un autosave vacío equivalente al inicio se retira solo de la clave actual ficticia, conservando historial y otros tokens. Los cambios reales de fecha, moneda, idioma, campos o cajas se mantienen.
+
+### Fase 3 autorizada · Productos como líneas de factura · 2026-09-16
+
+Solo paso2: un editor activo con acción explícita Guardar producto, lista compacta por grupo en escritorio y dos niveles en móvil. Cajas/kg/CBM pertenecen al grupo; líder conserva unidades por caja y adicionales same conservan qtyDirect total. El pie reutiliza computeTotals. Estado de edición es presentación local, no se serializa ni cambia endpoints/payload/drafts/impresión. Se conserva al navegar, cambiar idioma y Excel; restaurar borrador reinicia solo la presentación de productos. Eliminar líder confirma eliminación del grupo completo. Inputs48px, acciones44px, nombre accesible/foco y guardado por teclado. Marca/tokens existentes; sin cambios manuales al Norte. Aceptación: varios productos, cajas mixtas, edición, eliminación, borradores, payload, impresión y continuidad de adjuntos; focales, lint/tsc, build y pnpm verify con omisiones explícitas.
+
+### Fase 4 autorizada · Código visible y formato estándar · 2026-09-16
+
+Se añade selector persistente Llenado guiado (inicial) / Formato estándar. Ambos comparten exactamente estado, filas, borrador local, historial, cálculos y envío; cambiar de vista no importa ni traduce datos. El estándar reutiliza el documento editable canónico de PackingListFormSection, basado en docs/design/studio/_norte/packlist/Packing List + Factura · DTD-Cargo.html; no crea una segunda instancia del owner ni una imagen. Se centralizan herramientas y recibo. El árbol documental permanece montado para impresión aun desde guiado o después del envío, fuera de ancestros no-print.
+
+Producto y Código de producto abren el editor guiado, y cada línea guardada muestra su código. En el estándar, tras el índice de fila, el orden es Producto, Código de producto, Marca, otro idioma y demás campos. La interfaz puede mostrar primero el nombre del idioma elegido; la impresión conserva los valores chino y latino sin traducirlos.
+
+Fotos y archivos tiene acceso directo desde la hoja y una única instancia del uploader, conservada entre guiado, estándar, Excel e idiomas. La hoja mantiene su tabla completa con desplazamiento contenido y navegación por teclado en pantallas pequeñas; el guiado conserva tarjetas sin tabla horizontal. Inputs de48px y acciones44px; tabla no ensancha el viewport. Quitar base confirma eliminar el grupo completo; cambio de modo descarta una confirmación pendiente. Cambios estructurales desde estándar reindexan la presentación guiada, sin metadata en payload. Envío bloquea selector/campos y conserva recibo/corrección, errores localizados con foco y restauración explícita.
+
+Alcance: presentación y pruebas de /p, fixture QA, spec/handoff. Sin endpoints, esquema, migraciones, cálculo core, privacidad, contratos de borrador ni operaciones reales. Validación y límites concretos quedan en handoff. Esta fase no sustituye aceptación humana del chino, WeChat, impresión física/PDF ni autorización de integración.
+
+La revisión visual de fase4 detectó y corrigió la ambigüedad de los totales de la hoja heredada: cada producto muestra su cantidad/importe individual, incluido el líder; el pie conserva el total de todos los productos. Ejemplo5cajas×10uds×USD2 + hijo8×USD4: líneas50/USD100 y8/USD32, pie58/USD132 tanto expandido como contraído. Se añade regresión de las celdas. Fecha estándar permanece accesible como input48px sin alterar dato ni fecha china impresa. SDD0473 es dependencia posterior independiente para importación; no se mezcla su alcance con esta fase.

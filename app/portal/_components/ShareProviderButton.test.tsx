@@ -28,6 +28,12 @@ afterEach(cleanup);
 describe("ShareProviderButton", () => {
   const url = () => `${window.location.origin}/p/${TOKEN}`;
 
+  it("presenta la misma instrucción y los idiomas disponibles en cada punto de compartir", () => {
+    render(<ShareProviderButton token={TOKEN} />);
+    expect(screen.getByRole("heading", { name: "Solicita la factura y el packing list a tu proveedor" })).toBeVisible();
+    expect(screen.getByText(/Comienza en chino y permite elegir español o inglés/)).toBeVisible();
+  });
+
   it("muestra el enlace y «Copiar enlace» copia solo la URL, en un clic", async () => {
     render(<ShareProviderButton token={TOKEN} />);
 
@@ -46,9 +52,9 @@ describe("ShareProviderButton", () => {
     expect(principales[0]).toHaveTextContent("Copiar enlace");
   });
 
-  it("«Copiar con mensaje en chino» copia el mensaje bilingüe con la URL", async () => {
+  it("«Copiar mensaje en chino» copia el mensaje bilingüe con la URL", async () => {
     render(<ShareProviderButton token={TOKEN} />);
-    fireEvent.click(screen.getByRole("button", { name: "Copiar con mensaje en chino" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copiar mensaje en chino" }));
 
     await waitFor(() =>
       expect(writeText).toHaveBeenCalledWith(buildProviderLinkMessage(url())),
@@ -85,7 +91,7 @@ describe("ShareProviderButton", () => {
     render(<ShareProviderButton token={TOKEN} />);
     const input = screen.getByLabelText<HTMLInputElement>("Enlace para tu proveedor");
 
-    fireEvent.click(screen.getByRole("button", { name: "Copiar con mensaje en chino" }));
+    fireEvent.click(screen.getByRole("button", { name: "Copiar mensaje en chino" }));
 
     expect(await screen.findByText(/No se pudo copiar el mensaje/)).toBeVisible();
     expect(screen.queryByRole("button", { name: /Mensaje copiado/ })).toBeNull();
@@ -95,7 +101,7 @@ describe("ShareProviderButton", () => {
 
   it("las acciones de texto tienen área táctil de 44px (min-h-11)", () => {
     render(<ShareProviderButton token={TOKEN} />);
-    expect(screen.getByRole("button", { name: "Copiar con mensaje en chino" })).toHaveClass("min-h-11");
+    expect(screen.getByRole("button", { name: "Copiar mensaje en chino" })).toHaveClass("min-h-11");
     expect(screen.getByRole("link", { name: /Enviar por WhatsApp/ })).toHaveClass("min-h-11");
   });
 });
