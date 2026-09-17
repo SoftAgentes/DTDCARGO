@@ -274,12 +274,12 @@ valor vigente, es el que se quiere prometer. Documentado en el spec §3.
   silencio**. Confirmado contra producción por el Director (sesión
   `dtdcargo-18`), que lo tiene con Sam. **Es otra tarea**, con su propio
   worktree — no entra acá.
-- **El 2026-10-05 la tarifa de la DB cae sola a $800** si nadie la renueva desde
-  `/studio/tarifas`: el `pg_cron` de la 0336 puso vigencia hasta el 2026-10-04,
-  y el endpoint del PR lo devuelve de primera mano
-  (`"valid_until":"2026-10-04"`). La guía lee en vivo, así que se actualizará
-  sola — pero la caída sigue ahí, y con el respaldo del código en 800 el efecto
-  pasaría inadvertido.
+- ~~El 2026-10-05 la tarifa de la DB cae sola a $800~~ **Resuelto el 2026-09-17,
+  y de dos formas.** La fila tenía cargado `valid_until = 2026-10-04` cuando la
+  tarifa vale hasta el **2026-11-29**: se corrigió en producción. Y el respaldo
+  del código pasó de $800 a $850 (SDD-0475), así que aunque la RPC dejara de
+  responder, el precio ya no caería. Cuando esto se escribió, las dos cosas
+  estaban abiertas.
 - **La guía no está en `app/sitemap.ts`** (ni en `llms.txt`). Se alcanza desde
   `/academia`, el FAQ y dos tarjetas del portal.
 - **La dirección de Yiwu sigue hardcodeada** en la guía en vez de venir de

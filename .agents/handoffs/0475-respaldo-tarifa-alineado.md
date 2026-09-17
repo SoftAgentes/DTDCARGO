@@ -55,7 +55,7 @@ modo de fallo, y ningún test del repo lo ve sin acceso a la DB.
 
 | Comprobación | Resultado |
 |---|---|
-| Valor del ERP, verificado contra producción | `{ per_cbm: 850, min_charge: 50, valid_until: "2026-10-04" }` — leído vía el endpoint público de SDD-0474 en el preview del PR #132 |
+| Valor del ERP, verificado contra producción | `per_cbm: 850, min_charge: 50`. El `valid_until` se leyó primero como `2026-10-04` y hoy es `2026-11-29`, tras la corrección de la fila |
 | Cabecera de la migr 0336, líneas 20-23 | confirma la orden de subir la constante el 4-sep |
 | `vitest` — calculadora + respaldo + mínimo en cajas | *(ver al cierre)* |
 | `pnpm verify` | *(ver al cierre)* |
@@ -151,10 +151,10 @@ la vigencia — **backend**, fuera de este alcance.
 - **`public/interno/guia-peso.html` y `docs/marketing/`** tienen la tarifa vieja.
   Ya tienen pendiente abierto y fechado en `docs/marketing/README.md:224-228`,
   con dueño documental propio. No se tocan desde acá.
-- 📅 **Hay una fecha en el calendario: el 2026-10-04 vence la vigencia de los
-  $850.** Si nadie renueva desde `/studio/tarifas`, el 5-oct la RPC devuelve null
-  y el sitio pasa a cotizar con el respaldo. Esta vez coincidirá; la próxima
-  depende otra vez de que alguien mire.
+- 📅 **La vigencia de los $850 llega hasta el 2026-11-29** (corregida en
+  producción el 2026-09-17). Al vencer, la RPC devuelve null y el sitio pasa a
+  cotizar con el respaldo. Esta vez coincidirá; la próxima depende otra vez de
+  que alguien mire — salvo que SDD-0476 (lectura sin vigencia) llegue antes.
 - **`pesoIncluidoKg` queda en 1.000** porque es el valor vigente del ERP y este
   respaldo tiene que espejarlo. Pero Sam definió el 2026-09-17 que **los 1.000
   son una excepción temporal** y la regla de la casa son 500 kg/m³ (ver

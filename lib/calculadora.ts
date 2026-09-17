@@ -72,10 +72,13 @@ export const CONFIG = {
    * **5,88% por debajo** (50/850). El 6,25% es 50/800 — cuánto hay que SUBIR,
    * que no es lo mismo y en una decisión de precios no son intercambiables.
    *
-   * ⚠️ OJO CON LA VIGENCIA: la fila de $850 vence el **2026-10-04**. Si nadie la
-   * renueva desde /studio/tarifas, a partir del 5-oct la RPC devuelve null y el
-   * sitio cotizará con este 850 — que entonces será lo correcto sólo si la
-   * tarifa sigue siendo 850. Si se decide volver a 800, hay que bajar los dos.
+   * ⚠️ OJO CON LA VIGENCIA: la fila de $850 vale hasta el **2026-11-29**. Al
+   * vencer, la RPC devuelve null y el sitio cotiza con este 850 — correcto sólo
+   * mientras la tarifa siga siendo 850. Si se decide otro precio, hay que mover
+   * los dos: la fila en /studio/tarifas y esta constante.
+   *
+   * (Esa fecha estuvo cargada como 2026-10-04, casi dos meses antes de lo que
+   * correspondía; se corrigió en producción el 2026-09-17 — SDD-0475.)
    *
    * La alerta de vencimiento SÍ existe y está activa (SDD-0164, migr 0257 +
    * `app/api/cron/rate-expiry-alert`, programado en vercel.json): avisa por
