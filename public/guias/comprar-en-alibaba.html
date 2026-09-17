@@ -20,12 +20,12 @@
 
   >>> DATOS REALES: ya están cableados, no quedan marcadores que reemplazar.
       WHATSAPP  -> CRM DTD (CONTACT.ve.whatsappRaw de lib/design-tokens.ts)
-      DIRECCION -> bodega Yiwu (CONTACT.cn). La tarjeta copiar-por-campo de
+      DIR_AUTOFILL -> bodega Yiwu (CONTACT.cn). La tarjeta copiar-por-campo de
                    direccionHTML() sigue el modelo MEDIDO en SDD-0264 contra
                    el formulario real de Alibaba: Ciudad = 金华市 (Jinhua),
-                   Distrito = 义乌市 (Yiwu), destinatario = 林冠 + MARKBOX.
+                   Distrito = 义乌市 (Yiwu), destinatario = 林冠 + Shipping Mark.
                    Si cambia CONTACT.cn, se cambia también acá.
-      MARKBOX   -> del portal por ?mark= (y ?name=); sin param, el visitante
+      Shipping Mark   -> del portal por ?mark= (y ?name=); sin param, el visitante
                    lo escribe y se comparte entre las tarjetas del Paso 1 y 7.
 
   >>> SERVICIOS: los bloques {tipo:"servicio"} salen del catálogo real
@@ -138,6 +138,8 @@
   .bloque h3 .pro{font:700 10px var(--f-ui);letter-spacing:.06em;background:var(--abismo);color:#fff;border-radius:6px;padding:2px 7px;margin-left:4px;align-self:center}
   .bloque p{margin:0;color:var(--tinta);font-size:15.5px}
   .bloque p b{color:var(--abismo)}
+  .bloque p a{color:var(--marea);font-weight:700;text-decoration:underline}
+  .bloque p a:hover{color:var(--abismo)}
 
   .callout{border-radius:14px;padding:13px 15px;margin-top:4px;font-size:15px}
   .callout.tip{background:var(--oro-suave);border:1px solid #f3d489;color:#5e4708}
@@ -173,6 +175,27 @@
   .dir-mark input:focus{border-color:var(--marea)}
   .dir-mark .h{font-size:12.5px;line-height:1.5;color:var(--bruma);max-width:42ch}
   .dir-mark .h a{color:var(--marea);font-weight:700;text-decoration:underline}
+  /* Sin Shipping Mark no hay input que rellenar: hay un placeholder inerte y
+     dos puertas. El código lo entrega el registro, no el visitante. */
+  .dir-mark .mk-vacio{display:inline-flex;align-items:center;height:42px;padding:0 13px;border:1.5px dashed var(--linea);
+    border-radius:8px;background:var(--papel);font:700 14px var(--f-mono);letter-spacing:.04em;color:var(--bruma)}
+  .dir-mark .h .mk-puertas{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+  /* Especificidad a propósito: .dir-mark .h a (el enlace del hint) es 0-3-0 y
+     le ganaba a una regla de dos clases, dejando el texto wine sobre un fondo
+     wine — el botón se veía como un rectángulo vacío. */
+  .dir-mark .h .mk-puertas a{display:inline-flex;align-items:center;height:34px;padding:0 13px;border-radius:8px;
+    font:700 12.5px var(--f-ui);text-decoration:none;border:1.5px solid var(--marea);transition:background .15s,color .15s}
+  .dir-mark .h .mk-puertas a.mk-prim{background:var(--marea);color:var(--papel)}
+  .dir-mark .h .mk-puertas a.mk-prim:hover{background:var(--abismo);border-color:var(--abismo);color:var(--papel)}
+  .dir-mark .h .mk-puertas a.mk-sec{background:var(--papel);color:var(--marea)}
+  .dir-mark .h .mk-puertas a.mk-sec:hover{background:var(--espuma);color:var(--abismo)}
+  .dir-mark input[readonly]{background:var(--espuma);cursor:default}
+  /* Paso 7: la dirección de una pieza, para pegársela al proveedor en el chat. */
+  .dir-full-body{padding:14px 16px;display:flex;flex-direction:column;gap:11px}
+  .dir-full-body .dff .k{font:700 10.5px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--bruma)}
+  .dir-full-body .dff .v{margin-top:3px;font:700 15px var(--f-mono);color:var(--abismo);line-height:1.5;word-break:break-word}
+  .dir-full-body .dff .v.cjk{font-family:var(--f-cjk)}
+  .dir-copy-all{align-self:flex-start;margin-top:3px;height:40px;padding:0 20px;font-size:13.5px}
   .dir-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;border-bottom:1px solid var(--linea)}
   .dir-row:last-of-type{border-bottom:none}
   .dir-row .k{font:700 10.5px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--bruma)}
@@ -190,6 +213,19 @@
     padding:15px 16px;margin-top:12px;box-shadow:var(--sombra-suave)}
   .svc .eyebrow-svc{display:block;font:800 10.5px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--marea);margin-bottom:5px}
   .svc h4{margin:0 0 6px;font:700 16.5px var(--f-ui);color:var(--abismo)}
+  /* Plegado: el servicio se ve, pero no se echa encima de quien está aprendiendo. */
+  .svc>summary{list-style:none;cursor:pointer;padding:2px 26px 2px 0;position:relative;border-radius:8px}
+  .svc>summary::-webkit-details-marker{display:none}
+  .svc>summary::marker{content:""}
+  .svc>summary .svc-t{display:block;font:700 16.5px var(--f-ui);color:var(--abismo);line-height:1.3}
+  .svc>summary:hover .svc-t{color:var(--marea)}
+  .svc>summary:focus-visible{outline:2px solid var(--marea);outline-offset:3px}
+  .svc .svc-chev{position:absolute;right:2px;top:50%;width:9px;height:9px;margin-top:-6px;
+    border-right:2.2px solid var(--marea);border-bottom:2.2px solid var(--marea);
+    transform:rotate(45deg);transition:transform .18s ease}
+  .svc[open] .svc-chev{transform:rotate(-135deg);margin-top:-3px}
+  .svc .svc-body{margin-top:11px}
+  @media (prefers-reduced-motion:reduce){ .svc .svc-chev{transition:none} }
   .svc p{margin:0;font-size:15px;color:var(--tinta)}
   .svc p b{color:var(--abismo)}
   .svc .svc-items{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
@@ -242,6 +278,9 @@
   .tool-grid label{font-size:12px;font-weight:700;color:var(--abismo);display:block;margin-bottom:4px}
   .tool-grid input{width:100%;border:1.5px solid var(--linea);border-radius:10px;padding:10px;font:inherit;font-size:14px;background:#fff}
   .tool-grid input:focus{outline:none;border-color:var(--marea)}
+  .tool .tool-tarifa{margin:10px 0 0;font-size:12.5px;line-height:1.5;color:var(--bruma)}
+  .tool .tool-tarifa b{color:var(--abismo)}
+  .tool .brk small{font-weight:400;color:var(--bruma)}
   .tool .calc{margin-top:12px;background:var(--abismo);color:#fff;border:none;border-radius:11px;padding:11px 18px;font:700 14px var(--f-ui);cursor:pointer}
   .tool .calc:hover{filter:brightness(1.15)}
   .tool-out{margin-top:12px;display:none}
@@ -373,11 +412,20 @@
 <script>
 /* ============================ CONFIG ============================ */
 const WHATSAPP  = "584121668021";   // CRM WhatsApp DTD (+58 412 166 8021) en formato wa.me
-const DIRECCION = "浙江省义乌市义乌港二期直通仓2栋2号 货7-货11 · Yiwu, Zhejiang 322000";  // bodega Yiwu (CONTACT.cn)
-const CODIGO    = "";               // visitante anonimo: el MARKBOX se entrega al registrarse
-const dir = (DIRECCION && DIRECCION.indexOf("{{")<0) ? DIRECCION : "[ direccion de tu almacen en Yiwu ]";
+const CODIGO    = "";               // visitante anonimo: el Shipping Mark se entrega al registrarse
+// Dirección de una pieza para el atajo de Alibaba y para pasársela al proveedor
+// por chat (espejo de CONTACT.cn.addressAutofillCjk en lib/design-tokens.ts).
+const DIR_AUTOFILL = "浙江省金华市义乌市义乌港二期直通仓2栋2号 货7-货11, 322000";
+const TEL_CN       = "18606891419";
+const REG_HREF     = "https://dtdcargo.com/registro?origen=guia-alibaba";
+// Tarifa por CBM del ERP, vía /api/public/cbm-rate (SDD-0474). Arranca en null
+// y la calculadora pide el flete a mano hasta que llegue; si nunca llega, se
+// queda así. NO cablear el número: la migración 0336 lo mueve con pg_cron
+// (800 -> 850 el 4-sep, y vuelve a 800 el 5-oct si nadie lo renueva).
+let TARIFA = null;
+const PORTAL_HREF  = "https://dtdcargo.com/portal/academia";
 
-// Contexto del portal: si el cliente está logueado, su MARKBOX llega por ?mark= (y ?name=).
+// Contexto del portal: si el cliente está logueado, su Shipping Mark llega por ?mark= (y ?name=).
 // Sin param = guía pública/standalone (modo manual DTD-XXXX). El portal arma el iframe con el mark real.
 const PARAMS = new URLSearchParams(location.search);
 function esc(x){ return String(x==null?"":x).replace(/[&<>"]/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]; }); }
@@ -393,11 +441,11 @@ const lead = { perfil:null, nombre:"", whatsapp:"", producto:"", etapaMax:0, mar
   contactDone:false, contactSkipped:false, scorecard:null, landed:null, cbm:null, ts:new Date().toISOString() };
 if(URL_MARK) lead.markbox = URL_MARK;
 
-/** El MARKBOX que se pinta hoy: el del portal (?mark=) manda; si no, el que el visitante
+/** El Shipping Mark que se pinta hoy: el del portal (?mark=) manda; si no, el que el visitante
  *  escribió en cualquiera de las dos tarjetas de dirección (Paso 1 y Paso 7 comparten). */
 function markActual(){ return URL_MARK || (lead.markbox||"").trim().toUpperCase(); }
 
-/** Sustituye el token {MARK} por el MARKBOX vivo. Se aplica en RENDER, no al definir
+/** Sustituye el token {MARK} por el Shipping Mark vivo. Se aplica en RENDER, no al definir
  *  ETAPAS: si no, el texto se congela con el DTD-XXXX del arranque y nunca refleja
  *  lo que el visitante escribió en la tarjeta de dirección. */
 function conMark(txt){ return String(txt||"").split("{MARK}").join(markActual() || "DTD-XXXX"); }
@@ -422,7 +470,7 @@ const ETAPAS = [
       {tipo:"quienes"},
       {tipo:"perfil"},
       {ic:"", h:"Qué hacemos por ti", p:"Recibimos tu mercancía en nuestro almacén en China, la revisamos, la <b>consolidamos</b> con otros pedidos para que pagues menos flete, y la llevamos hasta tu puerta en Venezuela."},
-      {ic:"", h:"Tu dirección de almacén en China", p:"<b>"+dir+"</b> — la vas a usar más adelante: tus proveedores envían aquí."},
+      {ic:"", h:"Tu dirección de almacén en China", p:"Tus proveedores envían a <b>nuestro almacén en Yiwu</b>. La dirección completa, lista para copiar campo por campo, te la doy en el <b>Paso 1</b>."},
       {tipo:"tip", k:"Lo más importante", txt:"El 90% de los problemas vienen de saltarse pasos o de pagar por fuera de la plataforma. Sigue esta guía y los evitas casi todos."}
     ],
     checklist:["Entiendo que DTD Cargo recibe mi mercancía en China y la lleva a mi puerta en Venezuela","Elegí mi perfil arriba","Estoy listo/a para crear mi cuenta en Alibaba"]
@@ -457,8 +505,7 @@ const ETAPAS = [
         p:"Si no quieres hacer esta búsqueda tú, somos tu <b>departamento de compras en China</b>. Te ubicamos el producto y el proveedor, negociamos y gestionamos la compra. La <b>verificación del proveedor va incluida</b> y te acompañamos hasta que la compra se completa.",
         tabla:{columnas:["Monto de tu compra","Comisión"],
           filas:[["hasta $2.000","10%"],["~$5.000","8%"],["~$10.000","6%"],["~$20.000","5%"],["~$50.000","4%"],["$100.000+","3%"]]},
-        nota:"Mínimo $50 por orden. La comisión baja mientras más grande sea tu compra. <b>No incluye</b> el costo de la mercancía ni los fletes. Si ya tienes proveedor y solo quieres que compremos por ti, la comisión es la mitad — eso lo ves en el Paso 4.<br>Tiempos: mínimo 1 semana para confirmarte el producto y hasta 15 días para sondear varios proveedores y validar las especificaciones.",
-        wa:"Hola DTD Cargo, quiero cotizar Compra asistida / sourcing. Mi producto es:",
+        nota:"Compra mínima $1.000 por orden. La comisión baja mientras más grande sea tu compra. <b>No incluye</b> el costo de la mercancía ni los fletes. Si ya tienes proveedor y solo quieres que compremos por ti, la comisión es la mitad — eso lo ves en el Paso 4.<br>Tiempos: mínimo 1 semana para confirmarte el producto y hasta 15 días para sondear varios proveedores y validar las especificaciones.",
         ver:"/servicios", verLabel:"Ver todos los servicios"}
     ],
     checklist:["Tengo escrito mi producto con especificaciones y cantidad","Busqué con términos en inglés","Guardé 5–10 candidatos para comparar"]
@@ -485,7 +532,6 @@ const ETAPAS = [
           {code:"SCA", t:"Cumplimiento social", d:"Condiciones laborales y prácticas éticas (estándares tipo SEDEX/SMETA)."}
         ],
         nota:"Un asesor te pasa el precio y un ejemplo del reporte — la inspección se cotiza según tu producto y la fábrica, así que no la publicamos.",
-        wa:"Hola DTD Cargo, tengo dudas con un proveedor de Alibaba y quiero verificarlo. El proveedor es:",
         ver:"/servicios/inspeccion", verLabel:"Ver la línea de inspección"},
       {tipo:"tip", k:"Tu ventaja con DTD", txt:"Verificar antes es siempre más barato que reclamar después. Si dudas, escríbenos ANTES de pagar el depósito — estamos en terreno."}
     ],
@@ -498,13 +544,14 @@ const ETAPAS = [
     bloques:[
       {ic:"", h:"Tu primer mensaje", p:"Copia esta plantilla y rellena con tu producto:"},
       {tipo:"plantilla",
-        txt:"Hello, I am interested in [PRODUCT].\nCould you please send me:\n1) Price per unit and MOQ\n2) Lead time (production days)\n3) Carton size (L x W x H) and weight\n4) Available certifications\n5) Do you accept Trade Assurance?\nThank you!",
-        gloss:"En español: precio por unidad y MOQ, tiempo de producción, medidas y peso de la caja (para tu CBM), certificaciones, y si aceptan Trade Assurance."},
+        txt:"Hello, I am interested in [PRODUCT].\nCould you please send me:\n1) Price per unit and MOQ\n2) Lead time (production days)\n3) Carton size (L x W x H) and weight\n4) Available certifications\n5) Do you accept Trade Assurance?\nAlso: my shipping mark is {MARK} — please mark it on every carton.\nThank you!",
+        gloss:"En español: precio por unidad y MOQ, tiempo de producción, medidas y peso de la caja (para tu CBM), certificaciones, si aceptan Trade Assurance, y que marquen tu Shipping Mark (<b>{MARK}</b>) en cada bulto."},
       {ic:"", h:"Pregunta clave: MOQ", p:"<b>MOQ</b> = cantidad mínima de compra. Asegúrate de poder cumplirla; muchas veces se negocia."},
       {tipo:"incoterms", perfil:"pro"},
-      {ic:"", h:"Pide el precio FOB o EXW", p:"<b>FOB</b> = puesto en el puerto de China. <b>EXW</b> = en fábrica. Como nosotros manejamos el flete, casi siempre te conviene uno de esos dos. Te ayudamos a elegir."},
+      {ic:"", h:"Pide el precio puesto en NUESTRA bodega de Yiwu", p:"Es lo que más te conviene, y en la plaza se pide así: <b>«FOB Yiwu»</b> — el precio con la mercancía entregada en nuestro puesto, con el flete interno de China por cuenta del proveedor. De ahí en adelante nos encargamos nosotros.<br>Si el proveedor no lo maneja así, pídele <b>EXW</b> (en fábrica) o <b>FOB</b> (puesto en el puerto) y te decimos cuál sale mejor. Lo que <b>no</b> te conviene es pedir DDP a tu puerta: ahí el proveedor te cobra un flete que ya es nuestro."},
       {ic:"", h:"Pide la Proforma Invoice (PI)", p:"Factura formal con producto, cantidad, precio y términos. Sin una PI clara, no se avanza."},
       {ic:"", h:"Términos de pago y flujo de caja", perfil:"pro", p:"Lo típico es <b>30% de depósito y 70%</b> contra embarque. Para tu empresa, calza el saldo con tu flujo de caja y déjalo por escrito en la orden."},
+      {tipo:"tip", perfil:"both", k:"La regla del volumen y el peso", txt:"El flete puerta a puerta se cobra por <b>volumen (CBM)</b>, y cada metro cúbico <b>incluye hasta 1.000 kg</b>. Si tu carga pesa más que eso por cada m³ —hierro, líquidos, repuestos— se suma un recargo por los kilos de más. Por eso al proveedor le pides siempre <b>las medidas de la caja Y el peso</b>: con esos dos datos sabemos tu costo real."},
       {tipo:"tool-landed"},
       {ic:"", h:"Documentación que debes exigir", perfil:"pro", p:"Para tu empresa y la aduana necesitas: <b>Proforma Invoice (PI)</b>, <b>Commercial Invoice</b> (factura comercial), <b>Packing List</b> y, al embarcar, el <b>Bill of Lading (BL)</b>. Guarda todo ordenado por orden."},
       {tipo:"servicio",
@@ -512,8 +559,7 @@ const ETAPAS = [
         p:"Es la otra modalidad de la Compra asistida: <b>tú ya elegiste el proveedor y tienes los precios</b>, pero te preocupa que te estafen. Lo verificamos y entramos como <b>tu comprador de confianza</b> — negociamos, gestionamos la compra y te acompañamos hasta que se completa. La verificación del proveedor va incluida.",
         tabla:{columnas:["Monto de tu compra","Comisión"],
           filas:[["hasta $2.000","5%"],["~$5.000","4%"],["~$10.000","3%"],["~$20.000","2,5%"],["~$50.000","2%"],["$100.000+","1,5%"]]},
-        nota:"Mínimo $50 por orden. Es la mitad de la tabla del Paso 2, porque el proveedor lo pusiste tú.<br><b>Pagarle al proveedor por ti es aparte</b>: si quieres que lo hagamos, primero nos pagas a nosotros. El costo de la mercancía y los fletes van por tu cuenta.",
-        wa:"Hola DTD Cargo, ya tengo proveedor en Alibaba y quiero que ustedes compren por mí. El proveedor es:",
+        nota:"Compra mínima $1.000 por orden. Es la mitad de la tabla del Paso 2, porque el proveedor lo pusiste tú.<br><b>Pagarle al proveedor por ti es aparte</b>: si quieres que lo hagamos, primero nos pagas a nosotros. El costo de la mercancía y los fletes van por tu cuenta.",
         ver:"/servicios", verLabel:"Ver todos los servicios"},
       {tipo:"tip", k:"Tip", txt:"Negocia con respeto y guarda toda la conversación dentro de Alibaba: es tu respaldo."}
     ],
@@ -526,12 +572,11 @@ const ETAPAS = [
     bloques:[
       {ic:"", h:"Pide muestras", p:"Antes de un pedido grande, pide 1–3 muestras. Pagas por ellas, pero es la inversión más barata que harás."},
       {ic:"", h:"Revisa contra tu lista", p:"Compara la muestra con las especificaciones del Paso 2: material, tamaño, terminación y funcionamiento."},
-      {ic:"", h:"Control de calidad con DTD", p:"Si mandar la muestra a Venezuela es caro o lento, envíala a nuestro almacén en Yiwu: la revisamos y te mandamos fotos y video. También hacemos <b>QC del pedido completo</b> cuando llega."},
+      {ic:"", h:"Control de calidad con DTD", p:"Si mandar la muestra a Venezuela es caro o lento, envíala a <b>nuestro almacén en Yiwu</b>: la revisamos y te mandamos fotos y video. Es el mismo servicio —<b>Revisión al recibir</b>— que después hace el <b>QC de tu pedido completo</b> cuando llega: abrimos las cajas, revisamos contra tu ficha técnica y contamos la mercancía contra tu factura. Se pide <b>en tu pre-alerta</b>, antes de que llegue. <a href='https://dtdcargo.com/servicios#svc/inspeccion-al-recibir' target='_blank' rel='noopener'>Ver Revisión al recibir</a>.<br>Ojo con la diferencia: esto pasa cuando la mercancía <b>ya salió</b> del proveedor. Para detectar el problema <b>antes</b> de que te la despachen, eso es <a href='https://dtdcargo.com/servicios/inspeccion' target='_blank' rel='noopener'>inspección en fábrica</a> — el bloque de abajo."},
       {tipo:"servicio",
         h:"Envío de muestras y documentos (courier express)",
         p:"Si necesitas la muestra en la mano, la mandamos desde Yiwu por <b>DHL, UPS o FedEx</b>: muestras pre-producción, documentos y lotes pequeños críticos.",
         nota:"Ojo: esto es courier de muestras y documentos, <b>no es flete aéreo de carga</b>. La carga grande viaja por vía marítima (LCL o contenedor completo).",
-        wa:"Hola DTD Cargo, necesito enviar una muestra desde China. Es:",
         ver:"/servicios", verLabel:"Ver todos los servicios"},
       {ic:"", h:"Acuerdo de no conformidad", perfil:"pro", p:"Define por escrito qué pasa con piezas defectuosas (reposición o reembolso) y el % de tolerancia aceptable. Esto te protege en compras de volumen."},
       {tipo:"servicio", perfil:"pro",
@@ -545,7 +590,6 @@ const ETAPAS = [
           {code:"LAB",   t:"Pruebas de laboratorio", d:"Ensayos RoHS, CE, FDA y otros, según el mercado de destino de tu producto."}
         ],
         nota:"Te entregamos el informe con fotos y resultados, traducido al español si hace falta, para que decidas con información clara.",
-        wa:"Hola DTD Cargo, quiero cotizar una inspección durante la producción. Mi producto es:",
         ver:"/servicios/inspeccion", verLabel:"Ver la línea de inspección"}
     ],
     checklist:["Aprobé una muestra o coordiné la revisión con DTD","La muestra cumple mis especificaciones","Acordé qué pasa con piezas defectuosas"]
@@ -561,12 +605,10 @@ const ETAPAS = [
       {tipo:"servicio",
         h:"Asesoría en pagos a proveedores chinos",
         p:"Pagar desde Venezuela a un proveedor chino es de las partes más incómodas. Te facilitamos transacciones seguras en <b>Yuan</b> — Alipay, WeChat Pay, transferencia o efectivo en China — para que pagues con respaldo y sin inventos.",
-        wa:"Hola DTD Cargo, necesito asesoría para pagarle a un proveedor en China.",
         ver:"/servicios", verLabel:"Ver todos los servicios"},
       {tipo:"servicio", perfil:"pro",
         h:"Antes de un pago grande: verificación de crédito (CRA)",
         p:"Si vas a comprometer un monto alto, se chequea la <b>salud financiera del proveedor</b> antes de transferir. Un proveedor puede ser real, tener fábrica y aun así estar quebrado — eso no lo dice el perfil de Alibaba.",
-        wa:"Hola DTD Cargo, quiero una verificación de crédito de un proveedor antes de pagarle. El proveedor es:",
         ver:"/servicios/inspeccion", verLabel:"Ver la línea de inspección"},
       {tipo:"tip", k:"Tu ventaja con DTD", txt:"Si tienes dudas de cómo o a quién pagar, escríbenos ANTES de transferir. Preferimos aclararte 5 minutos que verte perder dinero."}
     ],
@@ -578,20 +620,19 @@ const ETAPAS = [
     intro:"Casi listo. Aquí tu pedido pasa a nuestras manos. De aquí en adelante, relájate: nos encargamos.",
     bloques:[
       {ic:"", h:"Pon NUESTRA dirección como destino", p:"Es la misma que guardaste en el <b>Paso 1</b>: si ya la tienes en «Mis direcciones» de Alibaba, solo la eliges al pagar. Te la dejo aquí otra vez para que no tengas que devolverte, y para que se la pases al proveedor si te la pide por chat."},
-      {tipo:"direccion"},
-      {ic:"", h:"Usa tu MARKBOX (Shipping Mark)", p:"Es tu código para que tu caja no se confunda con otra. Lo recibes gratis al registrarte en <b>dtdcargo.com/registro</b> (formato <b>{MARK}</b>). Pídele al proveedor que marque <b>solo tu MARKBOX</b> en cada bulto — sin tus datos personales."},
+      {tipo:"direccion-completa"},
+      {ic:"", h:"Usa tu Shipping Mark", p:"Es tu código para que tu caja no se confunda con otra. Lo recibes gratis al registrarte en <a href='https://dtdcargo.com/registro?origen=guia-alibaba' target='_blank' rel='noopener'>dtdcargo.com/registro</a> (formato <b>{MARK}</b>). Pídele al proveedor que marque <b>solo tu Shipping Mark</b> en cada bulto — sin tus datos personales."},
       {ic:"", h:"Avísanos qué viene", p:"Cuéntanos cuántas cajas, qué producto y el peso/volumen aproximado. Así lo recibimos bien y empezamos la consolidación."},
       {ic:"", h:"Documentos para la aduana", perfil:"pro", p:"Asegúrate de tener <b>Commercial Invoice</b>, <b>Packing List</b> y el <b>Bill of Lading (BL)</b>. Nosotros te guiamos para que la declaración en Venezuela salga limpia."},
       {tipo:"servicio",
         h:"Qué podemos hacer con tu carga cuando llega a la bodega",
-        p:"<b>Por defecto no abrimos las cajas</b> — las recibimos, las identificamos con tu MARKBOX y las consolidamos. Si quieres que hagamos algo más, se pide antes de que llegue tu mercancía. Todos estos salen con <b>reporte con fotos</b>:",
+        p:"<b>Por defecto no abrimos las cajas</b> — las recibimos, las identificamos con tu Shipping Mark y las consolidamos. Si quieres que hagamos algo más, se pide antes de que llegue tu mercancía. Todos estos salen con <b>reporte con fotos</b>:",
         items:[
           {code:"1", t:"Revisión al recibir", d:"Abrimos las cajas, revisamos la mercancía y verificamos que la cantidad coincida con tu factura."},
           {code:"2", t:"Etiquetado por pieza", d:"Etiquetamos y marcamos tus piezas según lo que necesites o la normativa de destino. Se cobra por pieza."},
           {code:"3", t:"Cajas defectuosas y reempaque", d:"Si una caja llega dañada, la reempacamos para que tu mercancía viaje protegida."}
         ],
         nota:"La revisión al recibir es distinta de la inspección en fábrica: aquí la mercancía ya salió del proveedor. Si quieres detectar un problema <b>antes</b> de que te la despachen, eso es inspección pre-embarque (abajo).",
-        wa:"Hola DTD Cargo, mi mercancía va en camino a la bodega de Yiwu y quiero pedir servicios de recepción (revisión / etiquetado / reempaque).",
         ver:"/servicios", verLabel:"Ver todos los servicios"},
       {tipo:"servicio", perfil:"pro",
         h:"Antes de que embarque: revisión pre-embarque y carga del contenedor",
@@ -601,11 +642,10 @@ const ETAPAS = [
           {code:"CLS", t:"Supervisión de carga", d:"Acompañamos la carga del contenedor para confirmar cantidades, estado y estiba correcta."},
           {code:"FBA", t:"Preparación para Amazon", d:"Etiquetado FNSKU y requisitos del marketplace, si tu carga va a FBA."}
         ],
-        wa:"Hola DTD Cargo, quiero cotizar una inspección pre-embarque. Mi pedido es:",
         ver:"/servicios/inspeccion", verLabel:"Ver la línea de inspección"},
       {tipo:"tip", k:"Tip", txt:"Pide al proveedor fotos del empaque con tu Shipping Mark antes de despachar. Doble confirmación."}
     ],
-    checklist:["El proveedor tiene la dirección de nuestro almacén","Mi MARKBOX ({MARK}) está en cada bulto","Le avisé a DTD qué mercancía viene"]
+    checklist:["El proveedor tiene la dirección de nuestro almacén","Mi Shipping Mark ({MARK}) está en cada bulto","Le avisé a DTD qué mercancía viene"]
   },
 
   { final:true, nodo:"¡Llegó!", eyebrow:"Meta", insignia:{e:"🏆", n:"Importador DTD"},
@@ -623,7 +663,6 @@ const ETAPAS = [
           {code:"+", t:"Visado de negocios chino", d:"Si vas a viajar a Yiwu o a una feria, te gestionamos el visado."},
           {code:"+", t:"Registro de marca en China (CNIPA)", d:"Si tu producto va a llevar tu marca, se registra allá antes de que otro lo haga."}
         ],
-        wa:"Hola DTD Cargo, terminé la guía de Alibaba y quiero hablar de mi importación.",
         ver:"/servicios", verLabel:"Ver todos los servicios"},
       {tipo:"tip", k:"El siguiente nivel", txt:"Quienes reabastecen cada 30–45 días tienen precio especial por cadencia. Si vas a vender en serio, hablemos de eso."}
     ]
@@ -640,6 +679,8 @@ const $ = s=>document.querySelector(s);
 const stageEl=$("#stage"), railEl=$("#rail");
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const fmt = n => n.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
+/* CBM: tres decimales, que es como se cotiza el volumen. */
+const fmt3 = n => n.toLocaleString("es-VE",{minimumFractionDigits:0,maximumFractionDigits:3});
 
 function visible(b){ if(!b.perfil||b.perfil==="both") return true; if(!lead.perfil) return true; return b.perfil===lead.perfil; }
 
@@ -678,7 +719,10 @@ function renderModo(){
 function bloqueHTML(b){
   if(!visible(b)) return "";
   if(b.tipo==="tip"||b.tipo==="alerta") return '<div class="callout '+b.tipo+'"><span class="k">'+b.k+'</span>'+b.txt+'</div>';
-  if(b.tipo==="plantilla") return '<div class="plantilla"><button class="btn-copy" data-copy="'+encodeURIComponent(b.txt)+'">Copiar</button><pre>'+b.txt+'</pre><span class="gloss">'+b.gloss+'</span></div>';
+  if(b.tipo==="plantilla"){
+    const txt=conMark(b.txt);
+    return '<div class="plantilla"><button class="btn-copy" data-copy="'+encodeURIComponent(txt)+'">Copiar</button><pre>'+txt+'</pre><span class="gloss">'+conMark(b.gloss)+'</span></div>';
+  }
   if(b.tipo==="quienes"){
     // Reusa el isologo YA embebido en la topbar en vez de duplicar ~51 KB de base64.
     // Si por lo que sea no estuviera, cae al wordmark en texto (nunca a un placeholder).
@@ -694,6 +738,7 @@ function bloqueHTML(b){
   if(b.tipo==="tool-landed") return landedHTML();
   if(b.tipo==="tool-scorecard") return scorecardHTML();
   if(b.tipo==="direccion") return direccionHTML();
+  if(b.tipo==="direccion-completa") return direccionCompactaHTML();
   if(b.tipo==="servicio") return servicioHTML(b);
   const proTag = b.perfil==="pro" ? '<span class="pro">PRO</span>' : "";
   return '<div class="bloque"><h3><span class="ic"></span>'+b.h+proTag+'</h3><p>'+conMark(b.p)+'</p></div>';
@@ -705,10 +750,6 @@ function bloqueHTML(b){
    si cambia el catálogo, se cambia también este bloque. Los que están en estado
    'proximamente' (Transporte terrestre, Cursos) NO se anuncian como disponibles.       */
 function servicioHTML(b){
-  const wa = (WHATSAPP && WHATSAPP.indexOf("{{")<0) ? WHATSAPP : "";
-  const msg = (b.wa || "Hola DTD Cargo, quiero información sobre este servicio.") + " (Vengo de la guía de Alibaba.)";
-  const waHref = "https://wa.me/" + wa + "?text=" + encodeURIComponent(msg);
-
   let items = "";
   if (b.items && b.items.length) {
     items = '<ul class="svc-items">';
@@ -732,17 +773,17 @@ function servicioHTML(b){
   }
 
   const nota = b.nota ? '<div class="svc-nota">'+b.nota+'</div>' : "";
-  const ver  = b.ver ? '<a class="a-sec" href="https://dtdcargo.com'+b.ver+'" target="_blank" rel="noopener">'+(b.verLabel||"Ver el detalle")+' →</a>' : "";
+  const ver  = b.ver ? '<a class="a-prim" href="https://dtdcargo.com'+b.ver+'" target="_blank" rel="noopener">'+(b.verLabel||"Ver el detalle")+' →</a>' : "";
 
-  return '<div class="svc">'+
-    '<span class="eyebrow-svc">Servicio DTD</span>'+
-    '<h4>'+b.h+'</h4>'+
-    '<p>'+b.p+'</p>'+
-    items + tabla + nota +
-    '<div class="svc-cta">'+
-      '<a class="a-prim" href="'+waHref+'" target="_blank" rel="noopener">Pedirlo por WhatsApp</a>'+
-      ver+
-    '</div></div>';
+  // <details> nativo: cerrado por defecto, cero JS, accesible de fábrica. El
+  // título propio va en el resumen para que se sepa de qué es sin abrirlo.
+  return '<details class="svc">'+
+    '<summary><span class="eyebrow-svc">Servicio DTD</span><span class="svc-t">'+b.h+'</span><span class="svc-chev" aria-hidden="true"></span></summary>'+
+    '<div class="svc-body">'+
+      '<p>'+b.p+'</p>'+
+      items + tabla + nota +
+      (ver ? '<div class="svc-cta">'+ver+'</div>' : '')+
+    '</div></details>';
 }
 
 function perfilHTML(){
@@ -761,13 +802,53 @@ function incotermsHTML(){
     '<tr><td><b>CIF</b></td><td>Puerto de destino + seguro</td><td>A veces</td></tr>'+
     '<tr><td><b>DDP</b></td><td>Tu puerta (todo incluido)</td><td>Eso es nuestro Puerta a puerta</td></tr></table></div>';
 }
+function markBloqueHTML(){
+  const MK = markActual();
+  if (MK) {
+    const saludo = URL_NAME ? "<b>Hola, "+esc(URL_NAME)+".</b> " : "";
+    return '<div class="dir-mark"><label>Tu Shipping Mark</label><div class="row">'+
+      '<input id="dirMark" type="text" maxlength="50" value="'+esc(MK)+'" readonly tabindex="-1" aria-readonly="true">'+
+      '<div class="h">'+saludo+'Ya está cargado — cópialo junto a «林冠» en la dirección de Alibaba.</div>'+
+    '</div></div>';
+  }
+  return '<div class="dir-mark"><label>Tu Shipping Mark</label><div class="row">'+
+    '<span class="mk-vacio">DTD-XXXX</span>'+
+    '<div class="h">Es tu código, y sale del registro: es gratis y toma 5 minutos. Sin él, tu caja llega a Yiwu sin poder identificarse.'+
+      '<span class="mk-puertas">'+
+        '<a class="mk-prim" href="'+REG_HREF+'" target="_blank" rel="noopener">Regístrate y obtén el tuyo →</a>'+
+        '<a class="mk-sec" href="'+PORTAL_HREF+'" target="_blank" rel="noopener">Ya soy cliente</a>'+
+      '</span>'+
+    '</div>'+
+  '</div></div>';
+}
+
+/* Paso 7 · el cliente ya cargó la dirección en Alibaba; acá sólo necesita
+ * pasársela al proveedor por chat. Un solo bloque y un solo botón — el
+ * copiar-campo-por-campo es del Paso 1, donde se llena el formulario. */
+function direccionCompactaHTML(){
+  const MK = markActual();
+  const destino = MK ? "林冠 "+MK : "林冠 DTD-XXXX";
+  const todo = "收货人 / Destinatario: "+destino+"\n"+
+    "地址 / Dirección: "+DIR_AUTOFILL+"\n"+
+    "电话 / Teléfono: +86 "+TEL_CN;
+  return '<div class="dir-card dir-full">'+markBloqueHTML()+
+    '<div class="dir-full-body">'+
+      '<div class="dff"><div class="k">收货人 · Destinatario</div><div class="v cjk" id="dirDest">'+destino+'</div></div>'+
+      '<div class="dff"><div class="k">地址 · Dirección completa</div><div class="v cjk">'+DIR_AUTOFILL+'</div></div>'+
+      '<div class="dff"><div class="k">电话 · Teléfono</div><div class="v">+86 '+TEL_CN+'</div></div>'+
+      '<button class="dir-copy dir-copy-all" data-field="destinatario" data-val="'+esc(todo)+'">Copiar todo</button>'+
+    '</div>'+
+    '<div class="dir-nota"><b>Para el rótulo de la caja:</b> pídele al proveedor que marque <b>solo tu Shipping Mark</b> en cada bulto — sin tu nombre, dirección ni teléfono personal (causan confusión o decomiso).</div>'+
+  '</div>';
+}
+
 function direccionHTML(){
   const MK = markActual();          // ?mark= del portal, o lo que el visitante escribió antes
   const MK_SHOW = MK || "DTD-XXXX";
   const F=[
     {k:"国家/地区",l:"País / región",v:"China"},
-    {k:"收货人",l:"Nombre y apellido",v:"林冠 "+MK_SHOW,dest:true,zh:true,hint:"Alibaba exige chino aquí. 林冠 (Lin Guan) es el encargado de la bodega; tu MARKBOX va detrás — sin él no podemos saber que la caja es tuya."},
-    {k:"电话",l:"Teléfono (+86)",v:"18606891419"},
+    {k:"收货人",l:"Nombre y apellido",v:"林冠 "+MK_SHOW,dest:true,zh:true,hint:"Alibaba exige chino aquí. 林冠 (Lin Guan) es el encargado de la bodega; tu Shipping Mark va detrás — sin él no podemos saber que la caja es tuya."},
+    {k:"电话",l:"Teléfono (+86)",v:TEL_CN},
     {k:"地址",l:"Dirección o apartado postal",v:"义乌港二期直通仓2栋2号",zh:true,hint:"Pégala en chino tal cual, sin traducir — es para el transporte dentro de China."},
     {k:"详细地址",l:"Apartamento, suite, unidad, edificio, piso",v:"货7-货11",zh:true,hint:"Dice «opcional», pero es el número de nuestro puesto. Ponlo."},
     {k:"省",l:"Estado / provincia",v:"浙江省",zh:true,hint:"Zhejiang"},
@@ -786,23 +867,9 @@ function direccionHTML(){
     rows+='<div class="dir-row"><div style="min-width:0"><div class="k">'+kc+'</div><div class="'+vcls+'"'+id+'>'+f.v+'</div>'+hint+'</div>'+
       '<button class="dir-copy" data-field="'+field+'" data-val="'+f.v+'">Copiar</button></div>';
   });
-  let hint;
-  if (HAS_MARK) {
-    hint = (URL_NAME ? "<b>Hola, "+esc(URL_NAME)+".</b> " : "") +
-      "Tu MARKBOX <b>"+MK_SHOW+"</b> ya está cargado — cópialo junto a «林冠» en la dirección de Alibaba.";
-  } else if (MK) {
-    hint = "Ya guardaste <b>"+esc(MK)+"</b> — se mantiene en las dos tarjetas de esta guía. Puedes cambiarlo aquí mismo.";
-  } else {
-    hint = 'Escríbelo y el campo Nombre y apellido se arma solo. <a href="https://dtdcargo.com/registro" target="_blank" rel="noopener">¿No tienes uno? Regístrate →</a>';
-  }
-
-  return '<div class="dir-card">'+
-    '<div class="dir-mark"><label>Tu MARKBOX'+(HAS_MARK?"":" (opcional)")+'</label><div class="row">'+
-      '<input id="dirMark" type="text" maxlength="50" placeholder="DTD-XXXX" value="'+esc(MK)+'" autocapitalize="characters" autocomplete="off"'+(HAS_MARK?' readonly':'')+'>'+
-      '<div class="h">'+hint+'</div>'+
-    '</div></div>'+rows+
-    '<div class="dir-nota"><b>Atajo:</b> en «Agregar dirección» de Alibaba despliega <b>«Rellenar automáticamente la dirección»</b> (está detrás de «Ver más»), pega <span class="cjk">浙江省金华市义乌市义乌港二期直通仓2栋2号 货7-货11, 322000</span> y dale a «Rellenar formulario»: se llenan provincia, ciudad, distrito, código postal y las dos líneas de una vez. Después vuelve al campo <b>Nombre y apellido</b> y escribe <span class="cjk">林冠</span> + tu MARKBOX a mano: el rellenado automático lo borra sin avisar.</div>'+
-    '<div class="dir-nota"><b>Importante:</b> en el formulario de Alibaba el nombre lleva «林冠 + tu MARKBOX», pero en el <b>rótulo físico de la caja</b> va SOLO tu MARKBOX — sin tu nombre, dirección ni teléfono personal (causan confusión o decomiso).</div>'+
+  return '<div class="dir-card">'+markBloqueHTML()+rows+
+    '<div class="dir-nota"><b>Atajo:</b> en «Agregar dirección» de Alibaba despliega <b>«Rellenar automáticamente la dirección»</b> (está detrás de «Ver más»), pega <span class="cjk">'+DIR_AUTOFILL+'</span> y dale a «Rellenar formulario»: se llenan provincia, ciudad, distrito, código postal y las dos líneas de una vez. Después vuelve al campo <b>Nombre y apellido</b> y escribe <span class="cjk">林冠</span> + tu Shipping Mark a mano: el rellenado automático lo borra sin avisar.</div>'+
+    '<div class="dir-nota"><b>Importante:</b> en el formulario de Alibaba el nombre lleva «林冠 + tu Shipping Mark», pero en el <b>rótulo físico de la caja</b> va SOLO tu Shipping Mark — sin tu nombre, dirección ni teléfono personal (causan confusión o decomiso).</div>'+
   '</div>';
 }
 
@@ -818,17 +885,32 @@ function cbmHTML(){
     '<div class="tool-out" id="cbmOut"></div></div>';
 }
 function landedHTML(){
+  // El CBM ya calculado en el Paso 2 entra solo: las dos herramientas dejan de
+  // estar desconectadas.
+  const cbmPrev = (lead.cbm && lead.cbm.total) ? lead.cbm.total : "";
+  // Sin tarifa del ERP no se inventa un flete: se le pide.
+  const campoFlete = TARIFA
+    ? ''
+    : '<div><label>Flete total estimado (USD)</label><input type="number" id="lcF" placeholder="0"></div>';
   return '<div class="tool" data-tool="landed"><div class="tool-h">Calculadora de costo real (landed cost)</div>'+
-    '<p class="tool-d">El precio FOB no es tu costo final. Calcula cuánto te cuesta de verdad cada unidad puesta en Venezuela:</p>'+
+    '<p class="tool-d">El precio FOB no es tu costo final. Calcula cuánto te cuesta de verdad <b>cada unidad puesta en Venezuela</b>, con el flete puerta a puerta incluido:</p>'+
     '<div class="tool-grid">'+
-      '<div><label>Precio FOB unidad (USD)</label><input type="number" id="lcP" placeholder="0"></div>'+
-      '<div><label>Cantidad (unidades)</label><input type="number" id="lcQ" placeholder="0"></div>'+
-      '<div><label>Flete total estimado (USD)</label><input type="number" id="lcF" placeholder="0"></div>'+
-      '<div><label>Arancel %</label><input type="number" id="lcA" placeholder="10"></div>'+
-      '<div><label>IVA %</label><input type="number" id="lcI" value="16"></div>'+
-      '<div><label>Otros / last mile (USD)</label><input type="number" id="lcO" placeholder="0"></div>'+
-    '</div><button class="calc" data-calc="landed">Calcular costo real</button>'+
+      '<div><label>Precio FOB unidad (USD)</label><input type="number" id="lcP" placeholder="0" min="0" step="0.01"></div>'+
+      '<div><label>Cantidad (unidades)</label><input type="number" id="lcQ" placeholder="0" min="0" step="1"></div>'+
+      '<div><label>CBM del pedido (m³)</label><input type="number" id="lcCbm" placeholder="0" min="0" step="0.001" value="'+cbmPrev+'"></div>'+
+      campoFlete+
+    '</div>'+
+    '<p class="tool-tarifa" id="lcTarifa">'+tarifaNotaHTML()+'</p>'+
+    '<button class="calc" data-calc="landed">Calcular costo real</button>'+
     '<div class="tool-out" id="lcOut"></div></div>';
+}
+
+/** La línea que dice de dónde sale el flete. Se repinta si la tarifa llega
+ *  después de que el cliente ya esté mirando la herramienta. */
+function tarifaNotaHTML(){
+  if(!TARIFA) return 'No pudimos traer la tarifa del día: pon el flete que te cotizamos y el resto se calcula igual.';
+  const piso = TARIFA.min_charge ? ' (mínimo $'+fmt(TARIFA.min_charge)+' por envío)' : '';
+  return 'Flete estimado con nuestra tarifa vigente: <b>$'+fmt(TARIFA.per_cbm)+' por m³</b> puerta a puerta'+piso+'.';
 }
 function scorecardHTML(){
   const crit=["Tiene Trade Assurance","Es Verified / Gold Supplier","3+ años en la plataforma","Es fabricante (no solo “comercio”)","Tiene certificaciones (CE/FDA/SGS)","Response rate alto (≥95%)","Reseñas positivas verificables"];
@@ -855,10 +937,10 @@ function renderEtapa(){
       '<div class="row"><div><label>WhatsApp</label><input id="fWa" type="tel" placeholder="+58 412 0000000" autocomplete="tel" value="'+(lead.whatsapp||"")+'"></div>'+
       '<div><label>¿Qué producto importas o quieres importar?</label><input id="fProd" type="text" placeholder="Ej: ropa, repuestos, electrónica..." value="'+(lead.producto||"")+'"></div></div>'+
       '<label>¿Algo más que debamos saber? (opcional)</label><textarea id="fNota" rows="2" placeholder="Cantidad estimada, frecuencia, ciudad de entrega..."></textarea>'+
-      '<div class="nav" style="margin-top:16px"><button class="btn btn-oro" id="btnCotizar">Quiero cotizar mi envío</button></div>'+
-      '<p class="priv">Tus datos solo se usan para contactarte por tu envío. No spam.</p></div>'+
-      '<div class="gracias" id="gracias"><div style="font-size:42px;color:var(--exito);font-family:var(--f-display)">✓</div><h2 style="color:var(--abismo);margin:6px 0">Te abrimos WhatsApp</h2>'+
-      '<p style="color:var(--tinta)">Si no se abrió solo, toca el botón:</p><div class="nav" style="justify-content:center"><a class="btn btn-prim" id="waLink" target="_blank" rel="noopener">Abrir WhatsApp</a></div></div>';
+      '<div class="nav" style="margin-top:16px"><button class="btn btn-oro" id="btnCotizar">Crear mi cuenta y obtener mi Shipping Mark →</button></div>'+
+      '<p class="priv">Lo que escribes acá se queda en tu navegador y pasa al registro si decides continuar. El Shipping Mark es gratis.</p></div>'+
+      '<div class="gracias" id="gracias"><div style="font-size:42px;color:var(--exito);font-family:var(--f-display)">✓</div><h2 style="color:var(--abismo);margin:6px 0">Te llevamos al registro</h2>'+
+      '<p style="color:var(--tinta)">Ahí te damos tu Shipping Mark. Si no se abrió solo, toca el botón:</p><div class="nav" style="justify-content:center"><a class="btn btn-prim" id="waLink" target="_blank" rel="noopener">Ir al registro</a></div></div>';
   } else {
     const checks=et.checklist;
     html+='<div class="checklist"><div class="ch-head"><span class="t">✓ Tu checklist</span><span class="cnt" id="chCnt">0 de '+checks.length+'</span></div>';
@@ -891,7 +973,7 @@ function wire(){
   if($("#btnNext")) $("#btnNext").addEventListener("click",completarEtapa);
   // herramientas
   stageEl.querySelectorAll("[data-calc]").forEach(b=> b.addEventListener("click",()=>calcTool(b.dataset.calc)));
-  // direccion: MARKBOX en vivo + copiar por campo (espejo del FAQ)
+  // direccion: Shipping Mark en vivo + copiar por campo (espejo del FAQ)
   const dirM = stageEl.querySelector("#dirMark");
   if(dirM){ dirM.addEventListener("input", ()=>{
     const m=(dirM.value||"").trim().toUpperCase();
@@ -908,8 +990,11 @@ function wire(){
     let val=btn.dataset.val;
     if(btn.dataset.field==="destinatario"){
       const i=stageEl.querySelector("#dirMark"); const m=(((i&&i.value)||markActual())).trim().toUpperCase();
-      if(!m){ if(i) i.focus(); const o=btn.textContent; btn.textContent="Falta tu mark ↑"; setTimeout(()=>btn.textContent=o,1800); return; }
-      val="林冠 "+m;
+      if(!m){
+        const p=stageEl.querySelector(".mk-prim"); if(p) p.focus();
+        const o=btn.textContent; btn.textContent="Regístrate primero ↑"; setTimeout(()=>btn.textContent=o,2200); return;
+      }
+      val=val.indexOf("林冠 DTD-XXXX")>=0 ? val.split("林冠 DTD-XXXX").join("林冠 "+m) : "林冠 "+m;
     }
     navigator.clipboard.writeText(val).then(()=>{ const o=btn.textContent; btn.textContent="✓ Copiado"; setTimeout(()=>btn.textContent=o,1600); }).catch(()=>{});
   }));
@@ -946,17 +1031,24 @@ function calcTool(t){
     $("#cbmOut").classList.add("show");
   }
   if(t==="landed"){
-    const P=+$("#lcP").value||0,Q=+$("#lcQ").value||0,F=+$("#lcF").value||0,A=+$("#lcA").value||0,I=+$("#lcI").value||0,O=+$("#lcO").value||0;
-    const merc=P*Q, baseAr=merc+F, arancel=baseAr*(A/100), iva=(baseAr+arancel)*(I/100), total=merc+F+arancel+iva+O, unit=Q?total/Q:0;
-    lead.landed={P,Q,F,A,I,O,total:+total.toFixed(2),unit:+unit.toFixed(2)}; syncLead("landed");
+    const P=+$("#lcP").value||0, Q=+$("#lcQ").value||0, C=+($("#lcCbm")||{}).value||0;
+    // Con tarifa del ERP el flete sale del CBM; sin ella, del campo manual.
+    let F, fuente;
+    if(TARIFA){
+      const bruto=C*TARIFA.per_cbm;
+      F=(TARIFA.min_charge && bruto<TARIFA.min_charge) ? TARIFA.min_charge : bruto;
+      fuente=C ? (fmt3(C)+' m³ × $'+fmt(TARIFA.per_cbm)+'/m³') : 'falta tu CBM';
+    } else {
+      F=+(($("#lcF")||{}).value)||0; fuente='el que pusiste';
+    }
+    const merc=P*Q, total=merc+F, unit=Q?total/Q:0;
+    lead.landed={P,Q,cbm:C,F:+F.toFixed(2),total:+total.toFixed(2),unit:+unit.toFixed(2),
+      tarifa:TARIFA?TARIFA.per_cbm:null}; syncLead("landed");
     $("#lcOut").innerHTML='<div class="brk"><span>Mercancía (FOB × cantidad)</span><b>$'+fmt(merc)+'</b></div>'+
-      '<div class="brk"><span>Flete</span><b>$'+fmt(F)+'</b></div>'+
-      '<div class="brk"><span>Arancel ('+A+'%)</span><b>$'+fmt(arancel)+'</b></div>'+
-      '<div class="brk"><span>IVA ('+I+'%)</span><b>$'+fmt(iva)+'</b></div>'+
-      '<div class="brk"><span>Otros / last mile</span><b>$'+fmt(O)+'</b></div>'+
+      '<div class="brk"><span>Flete puerta a puerta <small>('+fuente+')</small></span><b>$'+fmt(F)+'</b></div>'+
       '<div class="brk"><span><b>Total puesto en Venezuela</b></span><b>$'+fmt(total)+'</b></div>'+
-      '<div class="big-res"><div class="n">$'+fmt(unit)+'</div><div class="l">Costo real por unidad</div></div>'+
-      '<p class="disc">Estimación. Los aranceles en Venezuela varían según el producto (código arancelario). Nosotros te damos el flete real y te ayudamos con la clasificación.</p>';
+      '<div class="big-res"><div class="n">$'+fmt(unit)+'</div><div class="l">Costo real por unidad, puesta en Venezuela</div></div>'+
+      '<p class="disc"><b>Es un aproximado, y estas tres cosas lo mueven:</b> el <b>peso</b> (cada m³ incluye hasta 1.000 kg; por encima de eso hay recargo por kilo), el <b>embalaje</b> (si necesita madera o paleta) y las <b>baterías</b>, que encarecen el flete. Cajas de tamaños distintos también cambian el CBM real al consolidar. El número en firme te lo cierra un asesor — este cálculo es para que sepas si el negocio da <i>antes</i> de pedirlo.</p>';
     $("#lcOut").classList.add("show");
   }
 }
@@ -1019,11 +1111,12 @@ function renderFinal(){
 function enviarLead(){
   const nombre=($("#fNombre").value||"").trim(), wa=($("#fWa").value||"").trim(), prod=($("#fProd").value||"").trim(), nota=($("#fNota").value||"").trim();
   if(!nombre||!prod){ alert("Pon al menos tu nombre y el producto que quieres importar."); return; }
-  lead.nombre=nombre; lead.whatsapp=wa; lead.producto=prod; lead.contactDone=true; syncLead("lead_final");
-  const perfilTxt = lead.perfil==="pro" ? "Agente de compras (empresa)" : (lead.perfil==="emp"?"Emprendedor (carga suelta)":"");
-  const msg="Hola DTD Cargo, soy "+nombre+". Quiero cotizar un envío.\nPerfil: "+perfilTxt+"\nProducto: "+prod+(nota?("\nDetalles: "+nota):"")+"\n(Vengo de la guía interactiva de Alibaba.)";
-  const num=(WHATSAPP&&WHATSAPP.indexOf("{{")<0)?WHATSAPP:"";
-  const link="https://wa.me/"+num+"?text="+encodeURIComponent(msg);
+  lead.nombre=nombre; lead.whatsapp=wa; lead.producto=prod; lead.nota=nota; lead.contactDone=true;
+  syncLead("lead_final");
+  // persist() ya corrió dentro de syncLead: el registro lee estos datos del
+  // localStorage (mismo origen), así que la URL va limpia — sin nombre ni
+  // teléfono, que no tienen por qué quedar en logs ni en el historial.
+  const link=REG_HREF;
   $("#waLink").href=link; $("#formWrap").style.display="none"; $("#gracias").classList.add("show"); confeti();
   try{ window.open(link,"_blank","noopener"); }catch(e){}
 }
@@ -1033,8 +1126,25 @@ function enviarLead(){
 
 /* ---------- Arranque ---------- */
 $("#modoSw").addEventListener("click",()=> irA(0)); // "cambiar" -> vuelve al selector de perfil
-if(HAS_MARK){ const g=$("#greet"); if(g){ g.hidden=false; g.innerHTML=(URL_NAME?"Hola <b>"+esc(URL_NAME)+"</b> · ":"")+"tu MARKBOX es <b>"+MARK+"</b> — va en la dirección que cargas en el Paso 1, para que tu caja llegue identificada."; } }
+if(HAS_MARK){ const g=$("#greet"); if(g){ g.hidden=false; g.innerHTML=(URL_NAME?"Hola <b>"+esc(URL_NAME)+"</b> · ":"")+"tu Shipping Mark es <b>"+MARK+"</b> — va en la dirección que cargas en el Paso 1, para que tu caja llegue identificada."; } }
 restore(); renderRail(); renderPasaporte(); renderModo(); renderEtapa();
+
+/* ---------- Tarifa vigente (SDD-0474) ----------
+   Se pide después del primer render para no retrasar la pintura. Si responde
+   con la herramienta ya en pantalla, se repinta solo esa línea. */
+fetch("/api/public/cbm-rate", {headers:{Accept:"application/json"}})
+  .then(r=> r.ok ? r.json() : null)
+  .then(d=>{
+    if(!d || typeof d.per_cbm !== "number" || !(d.per_cbm>0)) return;
+    TARIFA = {per_cbm:d.per_cbm, min_charge:(typeof d.min_charge==="number"?d.min_charge:null)};
+    const n=$("#lcTarifa");
+    if(n){ n.innerHTML=tarifaNotaHTML(); }
+    // El campo de flete manual sobra si la tarifa llegó: se vuelve a pintar
+    // la herramienta completa, pero sólo si está visible y sin resultado aún.
+    const out=$("#lcOut");
+    if($("#lcF") && out && !out.classList.contains("show")) renderEtapa();
+  })
+  .catch(()=>{});
 </script>
 </body>
 </html>
