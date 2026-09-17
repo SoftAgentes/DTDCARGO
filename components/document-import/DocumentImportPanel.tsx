@@ -147,6 +147,7 @@ export function documentErrorLabel(code: string, locale: DocumentLocale): string
 
 export function DocumentImportPanel({
   workspace,
+  openParams,
   onWorkspace,
   onManual,
   onReview,
@@ -156,6 +157,12 @@ export function DocumentImportPanel({
 }: {
   /** Workspace ya abierto. Si falta, el panel lo abre con la primera carga. */
   workspace: DocumentWorkspace | null;
+  /**
+   * Con qué compra se abre el workspace: `purchaseCode` o `purchaseId` desde el
+   * portal. Sin esto el servidor abre uno ANÓNIMO, que expira en 24 h y no queda
+   * ligado a la compra — el documento se perdería.
+   */
+  openParams?: Record<string, unknown>;
   /** Cada cambio de revisión sube al dueño del estado; el panel no lo posee. */
   onWorkspace: (workspace: DocumentWorkspace) => void;
   /** "Prefiero llenarlo a mano": la alternativa manual nunca se cierra. */
@@ -175,9 +182,9 @@ export function DocumentImportPanel({
   const [panelError, setPanelError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const api = useRef<DocumentClient | null>(null);
-  if (api.current === null) api.current = client ?? createDocumentClient();
-  const transport = api.current;
+  // Inicializador perezoso en vez de un ref: crea el transporte UNA sola vez sin
+  // leer `.current` durante el render, que es lo que React desaconseja.
+  const [transport] = useState<DocumentClient>(() => client ?? createDocumentClient());
 
   const patch = useCallback(
     (requestKey: string, next: Partial<FileEntry>) =>
@@ -201,7 +208,7 @@ export function DocumentImportPanel({
     const opened = await transport.post<{
       workspace: DocumentWorkspace;
       anonymousToken?: string;
-    }>("open", {});
+    }>("open", { ...openParams });
     if (opened.anonymousToken) transport.setAnonymousToken(opened.anonymousToken);
     onWorkspace(opened.workspace);
     return opened.workspace;
