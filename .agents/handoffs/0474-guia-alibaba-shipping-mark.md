@@ -39,6 +39,7 @@
 | `pnpm sdd:check` | **PASÓ** (sin números repetidos) |
 | `pnpm docs:index` | **PASÓ** (461 specs) |
 | Revisión visual en navegador | **PASÓ** — encontró dos bugs, ver abajo |
+| **Preview desplegado del PR** | **PASÓ** — tarifa real $850, unidad $6,40, origen normalizado. Cierra lo que el worktree no medía |
 | `/ui-check` | **PASÓ** — 6 hallazgos, los 6 aplicados y medidos |
 | Contraste de lo nuevo (calculado sobre los tokens) | **PASÓ** — botón 10.58:1 · hover 16.49:1 · textos 5.11–5.33:1 · foco 15.8:1 y 10.13:1 |
 | Compactado, medido en el navegador | **PASÓ** — 125px / 81px / móvil 44px sin desbordar a 375px |
@@ -115,8 +116,30 @@ caído). Necesitó `@types/jsdom` como devDependency (el repo ya usaba `jsdom`).
 | **«MARKBOX» en la página** | cero |
 
 > El worktree **no tiene** `.env.local` (AGENTS: no se copian secretos a
-> worktrees), así que el navegador probó el **camino de fallo** del endpoint. El
-> camino con tarifa está cubierto por el test en jsdom con `fetch` simulado.
+> worktrees), así que ahí sólo se pudo probar el **camino de fallo** del
+> endpoint. El camino con tarifa se comprobó después contra el despliegue de
+> preview del PR — ver abajo.
+
+## Lo comprobado contra el preview desplegado del PR #132
+
+El preview de Vercel **sí** tiene credenciales, así que cierra los huecos que el
+worktree dejaba abiertos. URL:
+`dtdcargo-git-claude-alibaba-guide-registration-759d03-hailu-wey.vercel.app`
+
+| Caso | Resultado |
+|---|---|
+| `GET /api/public/cbm-rate` | `{"per_cbm":850,"min_charge":50,"valid_until":"2026-10-04"}` — **datos reales del ERP** |
+| **La calculadora con tarifa viva** | «Flete estimado con nuestra tarifa vigente: **$850,00 por m³** puerta a puerta (mínimo $50,00 por envío)», sin campo de flete manual |
+| **El caso de referencia** | FOB $3 × 500 unidades × 2 m³ → mercancía $1.500 + flete (2 m³ × $850/m³) $1.700 = **$3.200**, unidad **$6,40**. Idéntico a lo que fija el test en jsdom |
+| `/registro?origen=guia-alibaba` | carga; el hidden `origen` vale **`guia-alibaba`**; la URL no lleva datos personales |
+| `/registro?origen='; drop table clients; --` | el hidden vale **`portal`** — el allowlist aguanta en el despliegue real |
+
+> **No se completó ningún alta.** El preview **comparte Supabase con
+> producción**: enviar el formulario habría creado un cliente real. Todo lo de
+> arriba es lectura.
+
+> La `valid_until: 2026-10-04` confirma de primera mano lo que avisa la migr
+> 0336: **la tarifa cae sola a $800 el 2026-10-05** si nadie la renueva.
 
 ## Pendientes de esta tarea
 
@@ -130,11 +153,14 @@ caído). Necesitó `@types/jsdom` como devDependency (el repo ya usaba `jsdom`).
    script, no a mano), `package.json` (textual, trivial) y `pnpm-lock.yaml`
    (regenerar). Y `tsconfig.json` quedó modificado por el propio verify
    (añade `.next-verify/types`): revertirlo, no es del cambio.
-3. **El alta, extremo a extremo con DB local** — **NO DISPONIBLE acá**: exige
-   Docker y credenciales, que este worktree no tiene (el propio verify lo marca
-   en `sql-tests` y `schema-rebuild`). El camino de la action está cubierto por
-   7 tests con control rojo, y el prellenado por otros 7; lo que falta es ver la
-   fila real con `registration_channel = 'guia-alibaba'`. **Nunca contra
+3. **El alta, extremo a extremo** — reducido a una sola cosa: **ver la fila con
+   `registration_channel = 'guia-alibaba'`**. Todo lo anterior de la cadena ya
+   está comprobado: el hidden llega con el valor correcto en el despliegue real,
+   el allowlist rechaza lo inventado, y la escritura la cubren 7 tests con
+   control rojo. Falta el último tramo porque **no se puede hacer acá sin
+   consecuencias**: el worktree no tiene Docker ni credenciales, y el preview
+   **comparte Supabase con producción**, así que completar el formulario crearía
+   un cliente real. Queda para un entorno con DB local. **Nunca contra
    producción.**
 4. ~~Prellenado desde la guía, a mano~~ → **cerrado con tests**
    (`register-prellenado-guia.test.tsx`). A mano no se podía: `/registro`
