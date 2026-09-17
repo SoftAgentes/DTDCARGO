@@ -1,6 +1,7 @@
 # Handoff 0473 — Importación documental
 
-- Fecha: 2026-09-16. Estado: en-progreso.
+- Fecha: 2026-09-16, actualizado 2026-09-17. Estado: integrado en `main` con la bandera apagada;
+  pendiente de encender (Fases 2 y 3).
 - Owner/sesión: `worker-importacion-0473-claude-20260916` (Claude Code).
 - **Adopción:** la sesión previa `worker-importacion-0473-20260916` (Codex) se cortó al agotar su
   límite el 2026-09-16 ~15:58, dejando todo sin commitear. Claim liberado con su propio owner y
@@ -8,7 +9,9 @@
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/importacion-documental-0473`.
 - Rama: `codex/importacion-documental-0473`. Base main `30a9f890`, stub `069d9e417c06b749cb0749a780187a9c358e3edd`.
 - SDD: [0473](../../docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md).
-- Migración reservada: `0457_document_import_workspaces.sql` (**no aplicada**).
+- Migración `0457_document_import_workspaces.sql`: **aplicada a producción** el 2026-09-17 (ver la
+  sección propia más abajo). La primera línea del `.sql` sigue diciendo «NOT applied» a propósito:
+  una migración aplicada es inmutable y el registro vive acá.
 - Permisos: producto, dependencias, DB efímera, commits. Push propio y PR draft pendientes de pedir.
   No main, no producción, no aplicar migración.
 - Dependencia: **SDD-0468 ya está en `main` y en producción**. PR #129 mergeada como `747637e6`
@@ -198,7 +201,9 @@ Stub heredado `069d9e417c06b749cb0749a780187a9c358e3edd`.
 
 ## PR / BRANCH
 
-Rama `codex/importacion-documental-0473`, **no publicada**. PR pendiente; publicar requiere pedirlo.
+Rama `codex/importacion-documental-0473`, publicada. **PR #130 `MERGED`** el 2026-09-17 a las
+19:48:44Z como `98a7aca5`, con merge commit. La rama y su worktree **se conservan**: no hay
+autorización de limpieza y el runbook exige evidencia antes de borrar nada.
 
 ## CONTROLES DEL DIRECTOR — verificados contra el código
 
@@ -220,14 +225,38 @@ PR #130, `verify` corrió con su veredicto registrado arriba, y el contrato de c
 deriva a IA**: no le faltaba un mapeo por posición, le faltaba que el lector entendiera encabezados
 bilingües. Los PDF reales siguen sin probar.
 
-### Fase 1 — Mergear (AUTORIZADO, NO EJECUTADO)
+### Fase 1 — Mergear: **HECHA** (2026-09-17, 19:48:44Z)
 
-Sam autorizó explícitamente «mergeá con la bandera apagada». **No se hizo**: al cerrar la sesión
-quedaban 2 checks de CI corriendo (2 verdes, 0 rojos) y no se mergea a producción sin verlos.
+Sam autorizó explícitamente «mergeá con la bandera apagada». La sesión anterior no lo ejecutó
+porque quedaban checks corriendo. Esta sesión esperó el check y mergeó.
 
-Mergear es inerte, verificado línea por línea: `/cotizador` hace `notFound()` antes de renderizar,
-la API corta en `access.ts:21` antes de abrir la base, el cron devuelve `{enabled:false}` antes de
-`createAdminClient()`, y `DocumentImportEntry` no dibuja nada.
+**El verde es sobre el commit que se fusionó, no heredado.** El ruleset de `main` exige un solo
+check obligatorio, `Calidad local sin secretos`, y las dos corridas `success` que ya existían eran
+de `2ee07366` y `ede821d0` — commits viejos. La corrida sobre `e68911b2` fue la primera, tardó
+**17m02s** y salió `pass`. Se comprobaron los tres SHA antes de apretar: cabeza del PR, cabeza de
+la corrida verde y `HEAD` del worktree, los tres `e68911b2`.
+
+Lo demás que podía bloquear, verificado y descartado: `mergeable: MERGEABLE`, **0** hilos de
+revisión sin resolver (el ruleset los exige resueltos), `required_approving_review_count: 0`, y la
+rama ya contenía `origin/main` (`747637e6`). Las dos corridas `cancelled` de 19:11 y 19:20 son el
+`cancel-in-progress` normal al empujar encima; la concurrencia es por rama
+(`quality-${workflow}-${github.ref}`), así que el PR del Director no la pisaba.
+
+- Merge commit: **`98a7aca5`**, con merge commit (la convención del repo), PR #130 `MERGED`.
+- Despliegue de producción sobre `98a7aca5`: **`success`** (leído del commit status de GitHub; el
+  MCP de Vercel da 403 en este proyecto).
+
+**Apagado en producción, comprobado contra producción y no por lectura del código:**
+
+| Sonda | Resultado |
+|---|---|
+| `GET /api/document-import?action=capabilities` | **200** con `{"available":false,…}` |
+| `/cotizador` | **404** |
+| `/` y `/tarifas` | **200** |
+
+El orden importa: que `/cotizador` dé 404 no prueba nada por sí solo —una ruta que no se desplegó
+da lo mismo—. Lo que lo convierte en evidencia es que el endpoint hermano, **que nace con esta
+misma PR**, responde 200: el código está arriba y aun así la bandera lee `false`.
 
 ### Fase 2 — Encender SÓLO en Preview
 
@@ -235,6 +264,36 @@ la API corta en `access.ts:21` antes de abrir la base, el cron devuelve `{enable
 **únicamente la casilla Preview**, y redesplegar (Vercel no aplica variables a deploys ya hechos).
 Después, Sam suelta sus documentos reales en la URL. **Es lo único que falta de verdad:** nadie ha
 corrido el recorrido completo contra la base real ni una vez.
+
+El umbral de 32 no es una recomendación: `access.ts:98` hace `if (!salt || salt.length < 32)` y
+tumba **toda** la API con 503. `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+da 64 caracteres y sobra.
+
+**«Sólo en Preview» aísla la pantalla, no los datos.** Según lo que registra el propio repo,
+`NEXT_PUBLIC_SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` —las dos que `createAdminClient()` exige—
+están puestas con el mismo valor en `Production, Preview`, y no hay un Supabase aparte para Preview
+(el «Supabase efímero» del BASELINE-2026-07-28 fue de SDD-0168, algo de una vez, no un montaje
+permanente). Como la 0457 ya está aplicada en producción, las tablas existen: lo que se pruebe
+desde Preview escribe filas reales en `document_workspaces` y `document_import_jobs`, y sube los
+archivos al bucket privado `document-imports` **de producción**. Es coherente con lo que esta misma
+fase declara —«contra la base real»— y es la razón por la que la migración fue a producción, pero
+conviene que sea una decisión dicha y no un hallazgo.
+**No verificado desde acá:** el MCP de Vercel da 403 en este proyecto, así que el scope de esas dos
+variables es inferencia del repo. Se confirma en 10 segundos mirando el panel.
+
+**Los crons de Vercel sólo se activan en producción** (confirmado en su documentación), así que
+`/api/cron/document-import-drain` no corre en Preview. **No bloquea la prueba:** el camino feliz
+procesa el job inline con `after()` en `http.ts:90` y el cron es la red de seguridad. Lo que se
+pierde en Preview son dos cosas, y la segunda deja residuo:
+
+- **Reintento** de un job que falló: queda donde quedó.
+- **`cleanupImports`**: los workspaces vencidos a las 24 h no se borran ni se limpian sus archivos
+  del bucket. Probando desde Preview contra la base de producción, ese residuo se acumula **en
+  producción** y nadie lo drena hasta que la bandera se encienda en `Production`.
+
+Detalles operativos: sólo XLSX/CSV no gasta nada ni necesita `ANTHROPIC_API_KEY` (los PDF sí, más
+`DOCUMENT_IMPORT_MODEL`); se entra por URL directa porque nadie enlaza `/cotizador`; y no hay que
+recargar la página a mitad de la prueba, porque el token anónimo vive sólo en memoria.
 
 ### Fase 3 — Encender en producción
 
