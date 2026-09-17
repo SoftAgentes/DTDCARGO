@@ -5,6 +5,7 @@ import { socialMeta } from "@/lib/seo-og";
 import { createClient } from "@/lib/db/server";
 import { getPortalClient } from "@/lib/portal/portal-queries";
 import { listRegisterCities } from "@/lib/portal/register-cities";
+import { normalizarOrigen } from "@/lib/public/registro-origen";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -64,6 +65,10 @@ export default async function RegistroPage({
   // código compartido → REF-XXXX). Se linkea al crear la cuenta.
   const refRaw = Array.isArray(raw.ref) ? raw.ref[0] : raw.ref;
   const refCode = (refRaw ?? "").trim().slice(0, 40) || undefined;
+  // SDD-0474: por qué puerta entró (Academia, guía de Alibaba, …). Se valida
+  // contra un allowlist porque acaba en clients.registration_channel, que NO
+  // tiene CHECK; lo que no reconocemos cae a 'portal'.
+  const origen = normalizarOrigen(raw.origen);
 
   // Catálogo de ciudades del paso 2 (migr 0348). Si falla, viene [] y el form
   // degrada a texto libre — nunca bloquea el alta.
@@ -73,7 +78,7 @@ export default async function RegistroPage({
     <>
       <Nav />
       <main className={`${jetbrainsMonoUi.variable} bg-paper min-h-screen`}>
-        <RegisterForm est={est} refCode={refCode} cities={cities} />
+        <RegisterForm est={est} refCode={refCode} origen={origen} cities={cities} />
       </main>
       <Footer />
       <WhatsAppFAB />

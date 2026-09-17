@@ -83,6 +83,37 @@ type FormData0 = {
   emailOptin: boolean;
 };
 
+/**
+ * Lo que la guía de Alibaba dejó en el navegador (SDD-0474).
+ *
+ * Clave y forma las fija `public/guias/comprar-en-alibaba.html`
+ * (`LS_KEY = "dtd_guia_alibaba_v1"`). Se leen sólo nombre y WhatsApp: el
+ * documento y la ciudad no se piden allá.
+ *
+ * Todo entre try/catch y con guardas de tipo: en ventana privada o con las
+ * cookies bloqueadas el acceso tira, y un registro no puede caerse por eso.
+ * Si no hay nada, el formulario arranca vacío como siempre.
+ */
+function leerGuiaAlibaba(): { name?: string; whatsapp?: string } {
+  try {
+    if (typeof window === "undefined") return {};
+    const raw = window.localStorage.getItem("dtd_guia_alibaba_v1");
+    if (!raw) return {};
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return {};
+    const lead = (parsed as { lead?: unknown }).lead;
+    if (!lead || typeof lead !== "object") return {};
+    const { nombre, whatsapp } = lead as { nombre?: unknown; whatsapp?: unknown };
+    return {
+      name: typeof nombre === "string" && nombre.trim() ? nombre.trim().slice(0, 120) : undefined,
+      whatsapp:
+        typeof whatsapp === "string" && whatsapp.trim() ? whatsapp.trim().slice(0, 40) : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 const EMPTY: FormData0 = {
   kind: "persona",
   name: "",
@@ -115,11 +146,14 @@ const EMPTY: FormData0 = {
 export function RegisterForm({
   est,
   refCode,
+  origen,
   cities = [],
 }: {
   est?: string;
   /** Código de referido del `?ref=` (invitación por correo o código compartido). */
   refCode?: string;
+  /** Puerta por la que entró (SDD-0474) — ya normalizada en la page. */
+  origen?: string;
   /** Catálogo de ciudades del paso 2 (migr 0348). Vacío → texto libre. */
   cities?: RegisterCity[];
 }) {
@@ -139,6 +173,26 @@ export function RegisterForm({
   useEffect(() => {
     if (done) trackLead("registro");
   }, [done]);
+
+  // SDD-0474: quien llega desde la guía de Alibaba ya escribió su nombre y su
+  // WhatsApp allá; no se los volvemos a pedir. En useEffect y no en el estado
+  // inicial porque el servidor no ve el localStorage: leerlo en el primer
+  // render rompería la hidratación. Sólo rellena lo que esté vacío, así que
+  // nunca pisa lo que el cliente haya tecleado.
+  useEffect(() => {
+    if (origen !== "guia-alibaba") return;
+    const previo = leerGuiaAlibaba();
+    if (!previo.name && !previo.whatsapp) return;
+    // El efecto es el lugar correcto: el localStorage es un sistema externo que
+    // el servidor no ve, y leerlo en el initializer de useState dejaría el HTML
+    // del servidor (vacío) distinto del cliente. Corre una vez, no cascadea.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setData((d) => ({
+      ...d,
+      name: d.name || previo.name || "",
+      whatsapp: d.whatsapp || previo.whatsapp || "",
+    }));
+  }, [origen]);
 
   function patch(p: Partial<FormData0>) {
     setData((d) => ({ ...d, ...p }));
@@ -391,6 +445,7 @@ export function RegisterForm({
             <input type="hidden" name="state" value={data.state} />
             <input type="hidden" name="est" value={est ?? ""} />
             <input type="hidden" name="ref" value={refCode ?? ""} />
+            <input type="hidden" name="origen" value={origen ?? ""} />
             {/* email_optin se parsea por PRESENCIA (!= null) en el action → solo
                 se incluye cuando el cliente marca el opt-in (semántica de checkbox). */}
             {data.emailOptin && <input type="hidden" name="email_optin" value="on" />}

@@ -63,6 +63,7 @@ import {
   type RegisterActionState,
   type RegisterInput,
 } from "@/lib/portal/register-types";
+import { normalizarOrigen } from "@/lib/public/registro-origen";
 
 // ── Anti-abuso (SDD-0042 §10): honeypot + throttle por IP en DB ──────────────
 // Honeypot: campo trampa oculto del form (RegisterForm.tsx). Un humano nunca lo
@@ -251,8 +252,11 @@ export async function registerClientAction(
       // Foto DIFERIDA al perfil → null al alta.
       cedula_photo_path: null,
       // SDD-0046: origen + tipo de documento (para la verificación de identidad).
-      // El self-registro siempre es canal 'portal'; doc_kind viene del form.
-      registration_channel: "portal",
+      // doc_kind viene del form. SDD-0474: el canal ya no es siempre 'portal' —
+      // distingue la puerta (Academia, guía de Alibaba). Se normaliza otra vez
+      // acá, no sólo en la page: el formData llega del navegador y esta action
+      // es el último punto antes de escribir en el ERP.
+      registration_channel: normalizarOrigen(formData.get("origen") as string | null),
       doc_kind: input.kind,
       // SDD-0082: opt-in EXPLÍCITO a marketing por email (checkbox del alta). Sólo
       // si lo marcó. NO afecta el email transaccional (welcome/factura).
