@@ -29,6 +29,28 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.restoreAllMocks(); delete document.documentElement.dataset.printSurface; });
 
 describe("supplier guided workflow", () => {
+  /**
+   * El proveedor tiene que poder COTEJAR los códigos antes de pegarlos. En el
+   * navegador de WeChat `window.print()` a menudo no existe, así que dejar las
+   * etiquetas sólo para impresión lo deja sin ninguna vía a los códigos de sus
+   * cajas — y con `aria-hidden` tampoco las alcanza un lector de pantalla.
+   */
+  it("muestra las etiquetas en pantalla y no sólo al imprimir", async () => {
+    render(<ProviderShareClient {...props}/>);
+    language("es");
+    const codigo = await screen.findByText("DTD-B-000001");
+    expect(codigo).toBeVisible();
+    expect(codigo.closest("[aria-hidden='true']")).toBeNull();
+    expect(codigo.closest("[hidden]")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Etiquetas de las cajas" })).toBeVisible();
+    expect(screen.getByText("Pega una etiqueta en cada caja, en una cara visible.")).toBeVisible();
+  });
+  it("no anuncia etiquetas cuando la compra todavía no tiene cajas", () => {
+    render(<ProviderShareClient {...props} labels={[]}/>);
+    language("es");
+    expect(screen.queryByRole("heading", { name: "Etiquetas de las cajas" })).not.toBeInTheDocument();
+  });
+
   it("starts in simplified Chinese with one group and supports language changes without translating data", async () => {
     render(<ProviderShareClient {...props}/>);
     expect(screen.getByRole("heading", { level: 1, name: "装箱单与商业发票" })).toBeInTheDocument();
