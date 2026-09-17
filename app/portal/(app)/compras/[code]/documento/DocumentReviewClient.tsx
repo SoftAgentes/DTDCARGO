@@ -23,6 +23,7 @@ import {
   createDocumentClient,
   DocumentRequestError,
   type DocumentClient,
+  type DocumentReceipt,
   type DocumentWorkspace,
 } from "@/components/document-import/document-client";
 import { ShareProviderButton } from "@/app/portal/_components/ShareProviderButton";
@@ -85,15 +86,22 @@ export function DocumentReviewClient({
     setGuardando(true);
     setAviso(null);
     try {
-      const guardado = await transport.post<DocumentWorkspace>("save", {
+      const recibo = await transport.post<DocumentReceipt>("save", {
         workspaceId: workspace.id,
         draft,
         expectedRevision: workspace.revision,
         commandId: transport.id(),
       });
-      // El servidor devuelve la revisión nueva; adoptarla evita un 409 en el
-      // guardado siguiente.
-      setWorkspace(guardado);
+      // `save` devuelve un RECIBO —revisión, folio, confirmación—, NO el
+      // workspace. Adoptarlo entero borraba el `id`, y el guardado siguiente
+      // salía con `workspaceId: undefined` → 404 hasta recargar la página.
+      // El borrador nuevo ya lo tenemos: es el que acabamos de mandar.
+      setWorkspace({
+        ...workspace,
+        draft,
+        revision: recibo.revision,
+        confirmedRevision: recibo.confirmed ? recibo.revision : workspace.confirmedRevision,
+      });
       setSucio(false);
       setAviso("Guardado. El proveedor verá esta versión al abrir el enlace.");
     } catch (error) {

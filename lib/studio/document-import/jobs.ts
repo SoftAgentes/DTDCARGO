@@ -35,11 +35,23 @@ export async function finishUpload(db:SupabaseClient,w:WorkspaceRow,jobId:string
     await db.storage.from(IMPORT_BUCKET).remove([job.storage_path]);
     throw e;
   }
-  const {data:duplicate}=await db.from("document_import_jobs").select("id,status").eq("workspace_id",w.id).eq("sha256",sha).neq("status","cancelled").neq("id",job.id).maybeSingle();
-  if(duplicate) {
+  const {data:duplicate}=await db.from("document_import_jobs").select("id,status,storage_path").eq("workspace_id",w.id).eq("sha256",sha).neq("status","cancelled").neq("id",job.id).maybeSingle();
+  if(duplicate && duplicate.status!=="failed") {
     await db.from("document_import_jobs").update({status:"cancelled",error_code:"duplicate"}).eq("id",job.id).eq("status","uploading");
     await db.storage.from(IMPORT_BUCKET).remove([job.storage_path]);
     return {jobId:duplicate.id,status:duplicate.status,duplicate:true};
+  }
+  // Una lectura fallida es un callejón sin salida: el índice único (workspace_id,sha256) sobre
+  // las filas no canceladas le niega la huella a cualquier carga posterior del MISMO archivo, así
+  // que el cliente no puede reintentar sin cambiarle un byte. Cancelamos el intento muerto ANTES
+  // de sellar la huella nueva —el único estado que el índice ignora— y sacamos su copia privada.
+  // Conservamos su `error_code`: es la única constancia de por qué no se pudo leer.
+  // Esto NO afloja el tope de reintentos: `attempts` vive en cada job y el intento nuevo lo paga
+  // una carga del cliente, con su cuota. No hay reencolado automático que queme presupuesto.
+  if(duplicate) {
+    const {error:releaseError}=await db.from("document_import_jobs").update({status:"cancelled"}).eq("id",duplicate.id).eq("status","failed");
+    if(releaseError) throw new ImportHttpError(409,"upload_conflict","La carga cambió mientras se procesaba. Actualiza su estado.");
+    await db.storage.from(IMPORT_BUCKET).remove([String(duplicate.storage_path)]);
   }
   const {error:updateError}=await db.from("document_import_jobs").update({sha256:sha,status:"queued",updated_at:new Date().toISOString()}).eq("id",job.id).eq("workspace_id",w.id).eq("status","uploading");
   if(updateError) throw new ImportHttpError(409,"upload_conflict","La carga cambió mientras se procesaba. Actualiza su estado.");

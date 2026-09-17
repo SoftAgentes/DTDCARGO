@@ -259,21 +259,44 @@ describe("capability anónima del workspace", () => {
     ).resolves.toEqual({ kind: "anonymous", id: w.id });
   });
 
-  it.fails("DEFECTO access.ts:42 — un expires_at ilegible debería negar, hoy se trata como sin vencer", async () => {
-    // `Date.parse("el-mes-que-viene")` es NaN y `NaN <= Date.now()` es false: una
-    // fecha que no se puede interpretar NO expira. Regla del módulo: si algo
-    // falta o no se entiende, se niega. Hoy permite.
+  it("un vencimiento que no se puede leer niega: lo ilegible no acredita vigencia", async () => {
+    // `Date.parse("el-mes-que-viene")` es NaN y `NaN <= Date.now()` es false: si
+    // se compara sin comprobar, la fecha que no se entiende NO vence nunca y el
+    // visitante anónimo queda dentro para siempre. Regla del módulo: si algo
+    // falta o no se entiende, se niega.
     const token = "e".repeat(64);
-    const admin = makeDb();
-    const session = makeDb();
+    const ilegibles: Array<string | number | undefined> = [
+      "2024-13-45T99:99:99Z", // forma de fecha, valor imposible
+      "el mes que viene",
+      "",
+      "null",
+      undefined, // la fila ni siquiera trajo la columna: no acredita nada
+      1893456000000, // un epoch en número no es el timestamptz que se acordó
+    ];
+    for (const valor of ilegibles) {
+      const admin = makeDb();
+      const session = makeDb();
+      await expect(
+        authorizeWorkspace(
+          admin.client,
+          session.client,
+          workspace({ anonymous_hash: hashToken(token), expires_at: valor as WorkspaceRow["expires_at"] }),
+          new Headers({ "x-document-token": token }),
+        ),
+        String(valor),
+      ).rejects.toMatchObject(NEGADO);
+      expect(admin.from).not.toHaveBeenCalled();
+    }
+    // Y `null` sigue siendo «no vence»: negar de más rompería el camino legítimo
+    // del cliente, que es justo el que no lleva vencimiento.
     await expect(
       authorizeWorkspace(
-        admin.client,
-        session.client,
-        workspace({ anonymous_hash: hashToken(token), expires_at: "2024-13-45T99:99:99Z" }),
+        makeDb().client,
+        makeDb().client,
+        workspace({ anonymous_hash: hashToken(token), expires_at: null }),
         new Headers({ "x-document-token": token }),
       ),
-    ).rejects.toMatchObject(NEGADO);
+    ).resolves.toMatchObject({ kind: "anonymous" });
   });
 });
 
@@ -596,6 +619,63 @@ describe("cuota por request (reserveRequest)", () => {
     expect(a1).toBe(a2); // si cambiara por request, el límite no limitaría nada
     expect(a1).not.toBe(b); // y si no cambiara por IP, limitaría a todo el mundo junto
     expect(a1).not.toBe(rotado);
+  });
+
+  /** Las reservas que una petición manda a la RPC, en orden. */
+  const reservas = async (headers: Headers, secreto = SECRETO) => {
+    vi.stubEnv("DOCUMENT_IMPORT_RATE_SECRET", secreto);
+    const db = makeDb();
+    db.rpc.mockResolvedValue({ data: true, error: null });
+    await reserveRequest(db.client, headers);
+    return db.rpc.mock.calls.map((c) => c[1]);
+  };
+  /**
+   * Cadena de reenvío anómala (más saltos de los que el resolutor tolera) y sin
+   * `x-real-ip`: el borde no deja IP confiable, así que la petición es de un
+   * visitante IRRESOLUBLE. Es la forma barata de volverse irresoluble a propósito.
+   */
+  const irresoluble = (visitante: string) =>
+    new Headers({
+      "x-forwarded-for": [visitante, ...Array.from({ length: 9 }, (_, i) => `10.0.0.${i}`)].join(", "),
+    });
+
+  it("dos visitantes irresolubles distintos dejan de pisarse el cupo", async () => {
+    // Con un solo cupo para todos los irresolubles, el que está detrás de un
+    // proxy raro —o el que se vuelve irresoluble a propósito— agota el cupo de
+    // TODOS los demás irresolubles. El cupo propio tiene que separarlos.
+    const uno = await reservas(irresoluble("203.0.113.10"));
+    const otro = await reservas(irresoluble("203.0.113.11"));
+    expect(uno[0].p_scope).not.toBe(otro[0].p_scope);
+    // Y el cupo propio es ESTABLE: si cambiara por petición no limitaría nada.
+    const mismo = await reservas(irresoluble("203.0.113.10"));
+    expect(mismo[0].p_scope).toBe(uno[0].p_scope);
+    // La cadena viaja seudonimizada, igual que la IP: nunca en crudo.
+    expect(JSON.stringify(uno)).not.toContain("203.0.113.10");
+    expect(JSON.stringify(uno)).not.toContain("10.0.0.1");
+  });
+
+  it("una cadena nueva por petición no regala cuota infinita: el pozo sin IP tiene techo", async () => {
+    // El visitante escribe su propia cadena, así que separarlos por cadena y
+    // nada más sería darle un cupo virgen cada vez. Encima del cupo propio hay
+    // un techo común a toda la clase sin IP, y ese techo es el tope del daño.
+    const uno = await reservas(irresoluble("203.0.113.12"));
+    const otro = await reservas(irresoluble("203.0.113.13"));
+    const comunes = uno.filter((r) => otro.some((o) => o.p_scope === r.p_scope));
+    const propios = uno.filter((r) => !comunes.includes(r));
+    // Cada uno reserva su cupo propio Y el techo común: exactamente uno de cada.
+    expect([propios.length, comunes.length]).toEqual([1, 1]);
+    // El pozo es de muchos, no el cupo de una persona: su techo es más alto.
+    expect(Number(comunes[0].p_limit)).toBeGreaterThan(Number(propios[0].p_limit));
+  });
+
+  it("sin ninguna pista de red la petición cae en el pozo compartido, no en el cupo de una IP", async () => {
+    // Sin XFF ni `x-real-ip` no hay NADA por lo que separar: inventar un cupo
+    // por petición sería cuota infinita. Entonces cae en el pozo, que por ser
+    // de todos tiene un techo mayor que el de un visitante identificable.
+    const sinPistas = await reservas(new Headers());
+    const conIp = await reservas(new Headers({ "x-forwarded-for": "198.51.100.9" }));
+    expect(sinPistas.every((r) => r.p_scope !== conIp[0].p_scope)).toBe(true);
+    expect(Number(sinPistas.at(-1)!.p_limit)).toBeGreaterThan(Number(conIp[0].p_limit));
   });
 
   it("una cuota que no se puede verificar corta la petición completa", async () => {

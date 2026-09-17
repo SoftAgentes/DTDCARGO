@@ -29,6 +29,7 @@ import {
   DocumentRequestError,
   type DocumentClient,
   type DocumentLocale,
+  type DocumentReceipt,
   type DocumentWorkspace,
 } from "./document-client";
 import s from "./document-import.module.css";
@@ -332,14 +333,23 @@ export function DocumentImportPanel({
     setBusy(true);
     setPanelError(null);
     try {
-      const saved = await transport.post<DocumentWorkspace>("apply", {
+      // `apply` devuelve un RECIBO (revisión, folio), NO el workspace: la
+      // extracción se fusiona del lado del servidor y el borrador resultante
+      // sólo vive allá. Tipar la respuesta como workspace era mentira — subía
+      // un objeto sin `id` ni `draft`, y el editor de arriba se quedaba vacío.
+      await transport.post<DocumentReceipt>("apply", {
         workspaceId: workspace.id,
         jobId: entry.jobId,
         expectedRevision: workspace.revision,
         commandId: transport.id(),
       });
-      onWorkspace(saved);
       patch(entry.requestKey, { status: "applied" });
+      // Aplicado ya está: se marca antes de releer para no perder ese hecho si
+      // la relectura falla. Sin el borrador nuevo no hay nada que subir.
+      const fresco = await transport.get<{ workspace: DocumentWorkspace }>("workspace", {
+        workspaceId: workspace.id,
+      });
+      onWorkspace(fresco.workspace);
     } catch (error) {
       setPanelError(reason(error));
     } finally {

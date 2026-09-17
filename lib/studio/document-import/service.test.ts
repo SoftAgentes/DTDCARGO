@@ -456,13 +456,30 @@ describe("Abrir el documento compartido", () => {
     await expect(openWorkspace(db, db, {}, headers())).rejects.toMatchObject({ status: 503, code: "workspace_unavailable" });
     expect(attempts()).toBe(1);
   });
-  it.fails("DEFECTO CONOCIDO (service.ts:74): reintenta sin tope si la carrera 23505 no se resuelve", async () => {
+  it("una carrera 23505 que no se resuelve corta con un tope, no con la pila", async () => {
     const cap = 200;
     const { db, attempts } = raceDb((n) => ({ error: n < cap ? { code: "23505", message: "duplicate key value violates unique constraint" } : { code: "XX000", message: "corte de la prueba" } }));
     await expect(openWorkspace(db, db, {}, headers())).rejects.toMatchObject({ status: 503, code: "workspace_unavailable" });
-    // Hoy consume las 200 llamadas que le permite el doble; en producción no hay
-    // corte: `openWorkspace` se llama a sí misma sin guarda de profundidad.
+    // Sin guarda de profundidad se gastaría las 200 vueltas que le permite el doble;
+    // en producción no hay corte que lo detenga y la recursión tumba el proceso.
     expect(attempts()).toBeLessThanOrEqual(3);
+  });
+  it("una carrera que sí se resuelve devuelve el documento del ganador, sin crear otro", async () => {
+    // El tope no puede ser «no reintentar»: quien pierde la carrera tiene que poder LEER
+    // la fila del que ganó, o cliente y proveedor terminan editando documentos distintos.
+    const ganador = W({ revision: 1, confirmed_revision: null });
+    let lecturas = 0;
+    const db = fakeDb({
+      tables: {
+        clients: { data: { id: ID.client } },
+        // Primera vuelta: el SELECT todavía no ve la fila. Segunda: ya está escrita.
+        document_workspaces: () => ({ data: lecturas++ === 0 ? null : ganador }),
+        prealertas: { data: null }, packing_list_submissions: { data: null },
+      },
+      rpc: () => ({ error: { code: "23505", message: "duplicate key value violates unique constraint" } }),
+    });
+    await expect(openWorkspace(db, db, {}, headers())).resolves.toEqual({ workspace: ganador });
+    expect(db.rpcCalls).toHaveLength(1);
   });
 });
 

@@ -37,9 +37,24 @@ export async function purchaseForClient(db: SupabaseClient, principal: PortalCli
   return data as {id:string;tenant_id:string;client_markbox:string;code:string;supplier_id:string|null;status:string};
 }
 
+/**
+ * El documento dejó de estar vigente: venció, o su vencimiento no se puede leer.
+ * Sólo un `null` explícito significa «no vence»; cualquier otro valor tiene que
+ * poder interpretarse como fecha. `Date.parse` devuelve NaN ante basura y
+ * `NaN <= Date.now()` es false, así que comparar sin comprobar convertiría lo
+ * ilegible en «sin vencer» — al revés de la regla del módulo: lo que no se
+ * entiende, se niega. Recibe `unknown` a propósito: una fila que ni siquiera
+ * trajo la columna tampoco acredita vigencia.
+ */
+function noVigente(expiresAt: unknown): boolean {
+  if (expiresAt === null) return false;
+  const instante = typeof expiresAt === "string" ? Date.parse(expiresAt) : Number.NaN;
+  return !Number.isFinite(instante) || instante <= Date.now();
+}
+
 /** Never authorize by a supplied tenant/client/markbox. Re-resolve the live principal/capability. */
 export async function authorizeWorkspace(admin: SupabaseClient, session: SupabaseClient, workspace: WorkspaceRow, headers: Headers): Promise<ImportActor> {
-  if (workspace.expires_at && Date.parse(workspace.expires_at) <= Date.now()) return notFound();
+  if (noVigente(workspace.expires_at)) return notFound();
   if (workspace.anonymous_hash) {
     const token = headers.get("x-document-token") ?? "";
     if (!/^[a-f0-9]{64}$/.test(token) || hashToken(token) !== workspace.anonymous_hash) return notFound();
@@ -68,9 +83,29 @@ export async function reserveLimit(db: SupabaseClient, scope: string, units: num
   if (error) throw new ImportHttpError(503,"quota_unavailable","No pudimos verificar la capacidad de lectura. Intenta más tarde.");
   if (data !== true) throw new ImportHttpError(429,"quota_exceeded","Alcanzaste el límite de lectura. Conserva tus archivos e intenta más tarde.");
 }
+/** Peticiones por hora que puede gastar una identidad de red. */
+const REQUEST_LIMIT = 120;
+/**
+ * Techo de la clase «sin IP resoluble». Es un pozo compartido, no el cupo de una
+ * persona, y por eso es más alto: dimensionarlo como el de un solo visitante es
+ * lo que deja que uno solo agote el de todos los demás irresolubles.
+ */
+const UNRESOLVED_LIMIT = REQUEST_LIMIT * 5;
+/** Literal con el que `resolveRequestIp` dice que el borde no dejó IP confiable. */
+const SIN_IP = "unknown";
+
 export async function reserveRequest(db: SupabaseClient, headers: Headers) {
   const salt = process.env.DOCUMENT_IMPORT_RATE_SECRET;
   if (!salt || salt.length < 32) throw new ImportHttpError(503,"not_configured","La lectura de documentos todavía no está disponible.");
-  const key = createHmac("sha256",salt).update(resolveRequestIp(headers)).digest("hex");
-  await reserveLimit(db,`http:${key}`,1,120);
+  const seudonimo = (valor: string) => createHmac("sha256",salt).update(valor).digest("hex");
+  const ip = resolveRequestIp(headers);
+  if (ip.trim().toLowerCase() !== SIN_IP) { await reserveLimit(db,`http:${seudonimo(ip)}`,1,REQUEST_LIMIT); return; }
+  // Sin IP no hay identidad de red que aislar. La cadena de reenvío separa a los
+  // que SÍ traen una distinta —dos proxies raros dejan de pisarse el cupo— pero
+  // la escribe el visitante: una cadena nueva por petición sería cuota infinita.
+  // Por eso, encima del cupo propio, toda la clase paga un techo común, y ese
+  // techo es el tope del daño que puede hacer quien rota su cadena a propósito.
+  const cadena = [headers.get("x-forwarded-for"),headers.get("x-real-ip")].map(v=>v?.trim()??"").filter(Boolean).join("|");
+  if (cadena) await reserveLimit(db,`http:sin-ip:${seudonimo(cadena)}`,1,REQUEST_LIMIT);
+  await reserveLimit(db,"http:sin-ip",1,UNRESOLVED_LIMIT);
 }

@@ -80,6 +80,11 @@ function cliente(guion: Guion = {}) {
           },
         } as never;
       }
+      // Lo que devuelve el servidor de verdad tras aplicar: el workspace con el
+      // borrador ya fusionado. Es la ÚNICA vía para que el editor de arriba vea
+      // lo extraído — `apply` sólo devuelve un recibo.
+      if (action === "workspace")
+        return { workspace: { ...WORKSPACE, revision: 4, draft: guion.jobResult ?? extraido() } } as never;
       throw new Error("acción GET no esperada: " + action);
     }),
     post: vi.fn(async (action: string, body?: Record<string, unknown>) => {
@@ -90,7 +95,11 @@ function cliente(guion: Guion = {}) {
         return { jobId: "job-1", status: "uploading", uploadUrl: "https://upload.test/x", contentType: "application/pdf" } as never;
       }
       if (action === "uploaded") return { jobId: "job-1", status: "queued" } as never;
-      if (action === "apply") return { ...WORKSPACE, revision: 4 } as never;
+      // El servidor devuelve un RECIBO, no el workspace (`save_document_workspace`
+      // en la 0457 hace `return receipt`). El falso anterior devolvía un workspace
+      // completo y por eso tapaba el defecto: el panel subía un objeto sin `id`
+      // ni `draft` y nadie se enteraba.
+      if (action === "apply") return { revision: 4, confirmed: false } as never;
       throw new Error("acción POST no esperada: " + action);
     }),
     upload: vi.fn(async () => undefined),
@@ -168,7 +177,14 @@ describe("DocumentImportPanel (SDD-0473)", () => {
         expect.objectContaining({ jobId: "job-1", expectedRevision: 3 }),
       ),
     );
-    expect(onWorkspace).toHaveBeenCalledWith(expect.objectContaining({ revision: 4 }));
+    // Lo que sube tiene que ser un WORKSPACE USABLE, no el recibo de `apply`.
+    // Sin `id` el guardado siguiente sale con `workspaceId: undefined` → 404;
+    // sin `draft` el editor de arriba se queda vacío justo después de aplicar.
+    await waitFor(() => expect(onWorkspace).toHaveBeenCalled());
+    const subido = onWorkspace.mock.calls.at(-1)![0] as DocumentWorkspace;
+    expect(subido.id).toBe(WORKSPACE.id);
+    expect(subido.revision).toBe(4);
+    expect(subido.draft.products.map((p) => p.name)).toEqual(["Vasos", "Tapas"]);
   });
 
   it("cuenta las cajas una sola vez aunque dos productos compartan el grupo", async () => {

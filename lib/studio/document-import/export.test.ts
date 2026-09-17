@@ -24,9 +24,12 @@ import { extractDocument } from "./extract";
  * 4. IDA Y VUELTA: lo que escribe `exportDocument` lo vuelve a leer
  *    `extractDocument` con los mismos números, con estilos y con huecos.
  *
- * Los `it.fails` marcan defectos reales encontrados escribiendo la suite: el
- * cuerpo enuncia la regla que el módulo TODAVÍA no cumple. Si alguien arregla
- * el módulo, el `it.fails` se pone rojo y hay que convertirlo en `it`.
+ * Hoy NO queda ningún `it.fails`: los cuatro defectos que la suite documentaba
+ * —importe sin redondear en «Sin asignar», grupo bautizado como el centinela,
+ * id interno publicado como número de caja y pie que no cuadra con sus filas—
+ * están arreglados y sus pruebas son normales. Un defecto nuevo se documenta
+ * igual: `it.fails` con la regla que el módulo TODAVÍA no cumple, y se convierte
+ * en `it` el día que alguien lo arregla.
  */
 
 const ctx = { markbox: "DTD-TEST", code: "TEST-001", confirmed: false, revision: 1 };
@@ -327,11 +330,12 @@ describe("Excel de packing list + factura que entregamos al cliente y al proveed
   });
 
   /**
-   * DEFECTO (export.ts:30-31): el importe de las filas «Sin asignar» se escribe
-   * sin redondear, mientras el de las filas de grupo pasa por `toFixed(2)`. El
-   * cliente abre la factura y lee «6,6000000000000005» en una columna de dinero.
+   * REGRESIÓN: el importe de las filas «Sin asignar» se escribía sin redondear
+   * mientras el de las filas de grupo pasaba por `toFixed(2)`, y el cliente leía
+   * «6,6000000000000005» en una columna de dinero. Las dos filas salen ahora de
+   * la misma función, así que el redondeo no puede volver a separarse.
    */
-  it.fails("redondea el importe de «Sin asignar» a dos decimales, como el resto", async () => {
+  it("redondea el importe de «Sin asignar» a dos decimales, como el resto", async () => {
     const draft = draftOf({
       products: [product({ id: "p1", name: "Camiseta", quantity: 6, unitPrice: 1.1, currency: "USD" })],
       groups: [],
@@ -341,11 +345,13 @@ describe("Excel de packing list + factura que entregamos al cliente y al proveed
   });
 
   /**
-   * DEFECTO (export.ts:24 + extract.ts:192): la etiqueta del grupo se escribe
-   * cruda en la misma columna que lleva el centinela «Sin asignar». Un grupo
-   * etiquetado así pierde sus cajas, su peso y su CBM al releer el archivo.
+   * REGRESIÓN: la etiqueta del grupo se escribía cruda en la misma columna que
+   * lleva el centinela «Sin asignar», y la relectura decide por ese texto
+   * (extract.ts:192), no por la identidad del grupo. Un grupo bautizado así
+   * perdía sus cajas, su peso y su CBM. El export entrecomilla la etiqueta que
+   * choca con el centinela; el grupo sobrevive al viaje de ida y vuelta.
    */
-  it.fails("conserva las cajas de un grupo aunque su etiqueta se llame «Sin asignar»", async () => {
+  it("conserva las cajas de un grupo aunque su etiqueta se llame «Sin asignar»", async () => {
     const draft = draftOf({
       products: [product({ id: "p1", name: "Camiseta", quantity: 4, unitPrice: 1, currency: "USD" })],
       groups: [{ id: "g1", label: "Sin asignar", cartons: 5, grossWeightKg: 50, cbm: 1, items: [{ productId: "p1", quantity: 4 }] }],
@@ -356,13 +362,12 @@ describe("Excel de packing list + factura que entregamos al cliente y al proveed
   });
 
   /**
-   * DEFECTO (export.ts:24, `group.label||group.id`): cuando la caja no tiene
-   * número, el Excel publica el id interno del grupo («g1») en la columna
-   * «箱组 / Grupo», y la relectura lo adopta como número de caja. Es un dato
-   * inventado en un documento cuya regla es que lo que falta, falta — y
-   * export.ts:28 ya escribe la etiqueta cruda para los grupos vacíos.
+   * REGRESIÓN: con `group.label||group.id`, una caja sin número publicaba el id
+   * interno del grupo («g1») en la columna «箱组 / Grupo» y la relectura lo
+   * adoptaba como número de caja. Es un dato inventado en un documento cuya
+   * regla es que lo que falta, falta. Sin etiqueta, la celda va vacía.
    */
-  it.fails("deja en blanco el número de una caja que no lo tiene", async () => {
+  it("deja en blanco el número de una caja que no lo tiene", async () => {
     const draft = draftOf({
       products: [product({ id: "p1", name: "Camiseta", quantity: 4, unitPrice: 1, currency: "USD" })],
       groups: [{ id: "g1", label: "", cartons: 2, grossWeightKg: 5, cbm: 0.1, items: [{ productId: "p1", quantity: 4 }] }],
@@ -373,17 +378,20 @@ describe("Excel de packing list + factura que entregamos al cliente y al proveed
   });
 
   /**
-   * DEFECTO (export.ts:30-33): si un grupo tiene asignadas MÁS unidades de las
-   * que declara el producto, la fila sobrante no se escribe y el pie sigue
-   * contando la cantidad del producto. El Excel sale con las filas sumando 12 y
-   * el pie diciendo 10, y el valor de mercancía cobrando por 10.
+   * REGRESIÓN: si un grupo tenía asignadas MÁS unidades de las que declara el
+   * producto, la fila sobrante no se escribía y el pie seguía contando la
+   * cantidad del producto: las filas sumaban 12, el pie decía 10 y el valor de
+   * mercancía cobraba por 10. El pie y el valor salen ahora de las filas
+   * escritas; qué se puede sumar lo sigue decidiendo el contrato compartido.
    */
-  it.fails("el pie coincide con las filas incluso si el borrador sobreasigna un producto", async () => {
+  it("el pie coincide con las filas incluso si el borrador sobreasigna un producto", async () => {
     const draft = draftOf({
       products: [product({ id: "p1", name: "Camiseta", quantity: 10, unitPrice: 1, currency: "USD" })],
       groups: [{ id: "g1", label: "1", cartons: 1, grossWeightKg: 1, cbm: 0.1, items: [{ productId: "p1", quantity: 12 }] }],
     });
     const { ws } = await openExport(draft);
     expect(totalsRow(ws).getCell(6).value).toBe(addUp(dataRows(ws), 6));
+    // Y lo que se cobra es lo que está en las cajas, no la cantidad declarada.
+    expect(merchandise(ws)).toEqual([["USD", addUp(dataRows(ws), 9)]]);
   });
 });

@@ -26,7 +26,16 @@ export async function documentLabelGate(db:SupabaseClient,purchaseId:string,tena
   try{return {managed:true,allowed:data.revision===data.confirmed_revision&&!confirmationIssues(parseDocumentDraft(data.draft)).some(i=>i.blocking&&!i.resolved)};}
   catch{return {managed:true,allowed:false};}
 }
-export async function openWorkspace(admin:SupabaseClient,session:SupabaseClient,body:Record<string,unknown>,headers:Headers) {
+export type OpenedWorkspace={workspace:WorkspaceRow;anonymousToken?:string};
+/** Tope de la carrera al crear el documento compartido: el que pierde vuelve a LEER la fila del
+ *  que ganó. Un reintento alcanza cuando la carrera se resuelve; el resto es margen. Si la fila
+ *  existe pero este SELECT no la alcanza (otro `client_id` sobre la misma compra), el 23505 se
+ *  repite para siempre: sin tope la función se llamaría a sí misma hasta tumbar el proceso. */
+const MAX_WORKSPACE_RACE_ATTEMPTS=3;
+export async function openWorkspace(admin:SupabaseClient,session:SupabaseClient,body:Record<string,unknown>,headers:Headers):Promise<OpenedWorkspace> {
+  return openWorkspaceAttempt(admin,session,body,headers,1);
+}
+async function openWorkspaceAttempt(admin:SupabaseClient,session:SupabaseClient,body:Record<string,unknown>,headers:Headers,attempt:number):Promise<OpenedWorkspace> {
   const token=headers.get("x-supplier-token");
   let tenantId:string|null=null,clientId:string|null=null,purchaseId:string|null=null;
   if(token) {
@@ -71,7 +80,10 @@ export async function openWorkspace(admin:SupabaseClient,session:SupabaseClient,
   const rawToken=clientId ? null : anonymousToken();
   const {data,error}=await admin.rpc("create_document_workspace",{p_tenant_id:tenantId,p_client_id:clientId,p_prealerta_id:purchaseId,p_draft:draft,
     p_anonymous_hash:rawToken?hashToken(rawToken):null,p_expires_at:rawToken?new Date(Date.now()+86400000).toISOString():null,p_submission_id:legacySubmissionId});
-  if(error?.code==="23505" && purchaseId) return openWorkspace(admin,session,body,headers);
+  if(error?.code==="23505" && purchaseId) {
+    if(attempt>=MAX_WORKSPACE_RACE_ATTEMPTS) throw new ImportHttpError(503,"workspace_unavailable","No pudimos abrir el documento compartido. Vuelve a intentarlo en un momento.");
+    return openWorkspaceAttempt(admin,session,body,headers,attempt+1);
+  }
   if(error || !data) throw new ImportHttpError(503,"workspace_unavailable","No pudimos abrir el documento compartido.");
   return {workspace:(Array.isArray(data)?data[0]:data) as WorkspaceRow,...(rawToken?{anonymousToken:rawToken}:{})};
 }

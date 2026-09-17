@@ -308,14 +308,42 @@ describe("Cierre de carga: una huella, un trabajo, un cobro", () => {
     expect(f.descargas).toEqual([]);
   });
 
-  it.fails("DEFECTO: un archivo cuya lectura falló debería poder reintentarse", async () => {
-    // Hoy `neq('status','cancelled')` deja que un trabajo `failed` cuente como
-    // duplicado: el mismo archivo queda sin camino de reintento para siempre.
+  it("un archivo cuya lectura falló se puede reintentar: el intento muerto le deja su lugar", async () => {
+    // Quien deja sin salida al cliente es el índice único (workspace_id,sha256) sobre las
+    // filas NO canceladas: mientras el intento fallido conserve la huella, ninguna carga del
+    // mismo archivo puede sellarla. Acá el doble lo aplica de verdad, porque con sólo sacar
+    // los `failed` del SELECT el UPDATE choca contra el índice y esto queda rojo.
     const fallido = trabajo({ id: "job-1", status: "failed", error_code: "extraction_failed", storage_path: "tenant-1/ws-1/job-1.pdf" });
     const reintento = cargando({ id: "job-2", storage_path: "tenant-1/ws-1/job-2.pdf" });
-    const f = crearDb({ trabajos: [fallido, reintento], archivos: { "tenant-1/ws-1/job-2.pdf": PDF } });
+    const f = crearDb({
+      trabajos: [fallido, reintento],
+      archivos: { "tenant-1/ws-1/job-1.pdf": PDF, "tenant-1/ws-1/job-2.pdf": PDF },
+      errorEn: (l) => (l.op === "update" && l.payload?.sha256 != null && fallido.status !== "cancelled"
+        ? { code: "23505", message: "document_import_content_idx" } : null),
+    });
     expect(await finishUpload(f.db, ws, "job-2")).toEqual({ jobId: "job-2", status: "queued" });
+    expect(reintento.sha256).toBe(huella(PDF));
+    expect(reintento.status).toBe("queued");
+    expect(fallido.status).toBe("cancelled");
+    expect(fallido.error_code).toBe("extraction_failed"); // por qué falló sigue siendo legible
+    // Y su copia privada no se queda en el almacenamiento ocupando lugar.
+    expect(f.borrados).toEqual([[`${IMPORT_BUCKET}/tenant-1/ws-1/job-1.pdf`]]);
+    expect(f.archivos["tenant-1/ws-1/job-1.pdf"]).toBeUndefined();
   });
+
+  it.each([["queued"], ["processing"], ["ready"], ["partial"]])(
+    "un trabajo %s con la misma huella sigue bloqueando: el contenido no se lee ni se cobra dos veces", async (status) => {
+      // El reintento es sólo para el callejón sin salida. Un trabajo vivo —en cola, leyéndose
+      // o ya leído— sigue mandando: abrirle paso a una carga igual pagaría la IA dos veces.
+      const vivo = trabajo({ id: "job-1", status, storage_path: "tenant-1/ws-1/job-1.pdf" });
+      const nuevo = cargando({ id: "job-2", storage_path: "tenant-1/ws-1/job-2.pdf" });
+      const f = crearDb({ trabajos: [vivo, nuevo], archivos: { "tenant-1/ws-1/job-2.pdf": PDF } });
+      expect(await finishUpload(f.db, ws, "job-2")).toEqual({ jobId: "job-1", status, duplicate: true });
+      expect(vivo.status).toBe(status);
+      expect(nuevo.status).toBe("cancelled");
+      expect(nuevo.sha256).toBeNull();
+      expect(f.borrados).toEqual([[`${IMPORT_BUCKET}/tenant-1/ws-1/job-2.pdf`]]);
+    });
 });
 
 describe("Lectura asistida: el arriendo manda sobre el resultado", () => {

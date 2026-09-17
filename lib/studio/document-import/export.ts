@@ -1,6 +1,15 @@
 import "server-only";
 import ExcelJS from "exceljs";
-import { computeDocumentTotals, type DocumentDraft } from "@/lib/shared/document-import";
+import { computeDocumentTotals, type DocumentDraft, type DocumentProduct } from "@/lib/shared/document-import";
+
+/** La columna «箱组 / Grupo» reserva este texto para los productos que no están en ninguna caja. */
+const UNASSIGNED="Sin asignar";
+/** Un grupo bautizado igual que el centinela viaja entrecomillado: crudo, la relectura lo confunde
+ *  con productos sueltos y el grupo pierde sus cajas, su peso y su CBM. Y una caja sin número sale
+ *  vacía: el id interno del grupo no es un dato del documento. */
+const groupLabel=(label:string)=>label.trim()===UNASSIGNED?`«${label.trim()}»`:label;
+/** Columna de dinero: dos decimales. 3 × 1,10 no se publica como 3,3000000000000003. */
+const money=(value:number)=>Number(value.toFixed(2));
 
 /** Values are assigned as strings/numbers, never executable formulas or hyperlinks. */
 export async function exportDocument(draft:DocumentDraft,context:{markbox:string;code:string;confirmed:boolean;revision:number}) {
@@ -17,21 +26,34 @@ export async function exportDocument(draft:DocumentDraft,context:{markbox:string
   ws.addRow([]);
   ws.addRow(["箱组 / Grupo","品名 / Producto","品名中文 / Nombre chino","编码 / Código","件数 / Cajas","数量 / Cantidad TOTAL","单位 / Unidad","单价 / Precio","金额 / Importe","毛重 kg / Peso bruto TOTAL del grupo","体积 m³ / CBM TOTAL del grupo","货币 / Moneda","品牌 / Marca","材质 / Material"]);
   const assigned=new Map<string,number>();
+  // El pie resume LO QUE MUESTRA LA HOJA: cantidad e importe se acumulan de las mismas filas que se
+  // escriben, así un borrador que mete en las cajas más unidades de las que declara el producto no
+  // publica filas sumando 12 bajo un pie que dice 10.
+  let shown=0;const shownAmounts=new Map<string,number>();
+  /** Única fila de producto, para el grupo y para «Sin asignar»: mismo redondeo del importe en las
+   *  dos y un solo sitio donde se cuenta lo publicado. */
+  function productRow(label:string,p:DocumentProduct,quantity:number|null,cartons:number|null,grossWeightKg:number|null,cbm:number|null) {
+    const currency=p.currency??draft.currency,amount=quantity!==null&&p.unitPrice!==null?money(quantity*p.unitPrice):null;
+    if(quantity!==null)shown+=quantity;
+    if(currency!==null&&amount!==null)shownAmounts.set(currency,(shownAmounts.get(currency)??0)+amount);
+    ws.addRow([label,p.name,p.nameZh,p.code,cartons,quantity,p.unit??"pcs",p.unitPrice,amount,grossWeightKg,cbm,currency??"Pendiente",p.brand,p.material]);
+  }
   for(const group of draft.groups) {
+    const label=groupLabel(group.label);
     for(let i=0;i<group.items.length;i++) {
       const item=group.items[i],product=draft.products.find(p=>p.id===item.productId);if(!product)continue;
       assigned.set(product.id,(assigned.get(product.id)??0)+(item.quantity??0));
-      ws.addRow([group.label||group.id,product.name,product.nameZh,product.code,i===0?group.cartons:null,item.quantity,product.unit??"pcs",product.unitPrice,
-        item.quantity!==null&&product.unitPrice!==null?Number((item.quantity*product.unitPrice).toFixed(2)):null,
-        i===0?group.grossWeightKg:null,i===0?group.cbm:null,product.currency??draft.currency??"Pendiente",product.brand,product.material]);
+      productRow(label,product,item.quantity,i===0?group.cartons:null,i===0?group.grossWeightKg:null,i===0?group.cbm:null);
     }
-    if(!group.items.length)ws.addRow([group.label,"Productos pendientes","","",group.cartons,null,"",null,null,group.grossWeightKg,group.cbm]);
+    if(!group.items.length)ws.addRow([label,"Productos pendientes","","",group.cartons,null,"",null,null,group.grossWeightKg,group.cbm]);
   }
   for(const p of draft.products){const remainder=p.quantity===null?null:p.quantity-(assigned.get(p.id)??0);
-    if(!assigned.has(p.id)||(remainder!==null&&remainder>0))ws.addRow(["Sin asignar",p.name,p.nameZh,p.code,null,remainder,p.unit??"pcs",p.unitPrice,remainder!==null&&p.unitPrice!==null?remainder*p.unitPrice:null,null,null,p.currency??draft.currency??"Pendiente",p.brand,p.material]);}
+    if(!assigned.has(p.id)||(remainder!==null&&remainder>0))productRow(UNASSIGNED,p,remainder,null,null,null);}
   const totals=computeDocumentTotals(draft);
-  ws.addRow(["总计 / Totales","","","",totals.cartons,totals.quantity,"","","",totals.grossWeightKg,totals.cbm]);
-  for(const [currency,amount] of Object.entries(totals.amounts))ws.addRow(["货值 / Mercancía",currency,amount]);
+  // Qué se puede sumar lo decide el contrato compartido (unidades heterogéneas o huecos siguen
+  // vacíos, y una moneda con precios incompletos no publica valor); cuánto, las filas de arriba.
+  ws.addRow(["总计 / Totales","","","",totals.cartons,totals.quantity===null?null:Number(shown.toFixed(4)),"","","",totals.grossWeightKg,totals.cbm]);
+  for(const currency of Object.keys(totals.amounts))ws.addRow(["货值 / Mercancía",currency,money(shownAmounts.get(currency)??0)]);
   if(!draft.groups.length)ws.addRow(["Totales declarados; distribución por caja pendiente"]);
   ws.addRow(["Los pesos y volúmenes corresponden al grupo y se cuentan una sola vez."]);
   const navy="FF0F1E3D",wine="FF7F0F1A",cream="FFFBFAF7";

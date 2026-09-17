@@ -98,6 +98,11 @@ Anthropic solo propone JSON validado. Sin key/model no hay simulación: error re
 - `lib/studio/document-import/corpus.test.ts`
 - `lib/studio/prealertas/__tests__/packlist-form.test.ts`
 - `.env.example`
+- `app/cotizador/page.tsx`
+- `app/cotizador/CotizadorClient.tsx`
+- `app/cotizador/cotizador.test.tsx`
+- `app/portal/(app)/compras/[code]/documento/DocumentReviewClient.test.tsx`
+- `eslint.config.mjs`
 
 UI/conexiones delegadas a Worker de 0468 en este mismo worktree después de integrar su commit estable;
 backend/SQL/legacy/export/spec/handoff permanecen bajo el owner principal. Allowlist disjunta.
@@ -118,6 +123,65 @@ y se salta sin esa variable: los documentos nunca entran a Git. El test cubre `f
 cuando las unidades son heterogéneas; `.env.example` documenta `DOCUMENT_IMPORT_*`, sin las cuales
 la API responde 503 a todo. Ninguno cambia comportamiento de Studio: uno es prueba, el otro es
 configuración de ejemplo sin valores reales.
+
+### Ampliación 2026-09-17 · El Cotizador, y por qué NO es la calculadora pública
+
+Sam acotó el alcance en esta sesión, con estas palabras: «no vamos a cambiar la calculadora
+pública, solo vamos a hacer algo que se llama **cotizador**… cotizador arrojando un archivo PI y
+packing list».
+
+Eso **saca de juego a `components/TarifasTabs.tsx` y `components/CalculadoraForm.tsx`**, que seguían
+en la allowlist inicial. Quedan intocables: `/tarifas` salió a producción y su flujo —dos pestañas,
+CTA directo a WhatsApp, sin guardar nada— no se toca. Entran en su lugar las tres rutas de
+`app/cotizador/`.
+
+Son dos pantallas con públicos distintos, y por eso no se funden en una:
+
+| | `/tarifas` (existe) | `/cotizador` (nuevo) |
+|---|---|---|
+| Entrada | El visitante escribe CBM y kg | El visitante suelta su PI y su packing list |
+| Quién lo usa | Quien todavía no compró | Quien ya tiene la proforma en la mano |
+| Qué deja | Nada | Un documento que sobrevive 24 h y puede seguir al proveedor |
+
+Meter la carga de archivos dentro de `/tarifas` habría cargado a todo visitante con un flujo que
+sólo le sirve a quien ya cerró con su proveedor. Y el cotizador necesita persistencia —el documento
+tiene que poder seguir hacia el enlace del proveedor— mientras que `/tarifas` se define por **no**
+guardar nada. Fundirlas obligaría a una de las dos a traicionar lo suyo.
+
+`DocumentCalculator.tsx` no calcula: manda `estimate` al servidor, que corre el mismo
+`calcularEnvioLCL` de `/tarifas`. Es la única forma de que las dos pantallas no lleguen a decir dos
+precios distintos para un mismo envío. El mínimo facturable se muestra como línea propia del
+desglose —escondido, la suma de las otras líneas no llega al total— y el valor de la mercancía se
+presenta al lado del flete pero **nunca sumado**: sumarlos daría un «costo de importar» que no
+incluye aranceles.
+
+`/cotizador` abre workspace **anónimo** (sin `openParams`), que expira en 24 h. Detrás de
+`DOCUMENT_IMPORT_ENABLED`: apagada la bandera, la ruta devuelve 404.
+
+`eslint.config.mjs` entra a la allowlist por una sola línea: `app/cotizador/**` no estaba en el
+glob que arma la regla de frontera pública, así que sobre esa ruta la regla **ni se armaba** — un
+`import` al ERP habría pasado el lint en verde. La ruta ya respetaba la frontera; lo que faltaba
+era el guardia.
+
+### El recibo que se hacía pasar por workspace
+
+`save` y `apply` **no devuelven el workspace**: devuelven un recibo — `save_document_workspace` en
+la 0457 hace `return receipt`, con `revision`, `confirmed`, `folio`, `versionNo` y `submissionId`.
+Sin `id` y sin `draft`.
+
+Dos llamadores lo tipaban como `DocumentWorkspace` y lo adoptaban entero. TypeScript creyó la
+anotación y las pruebas no lo vieron porque el doble de `apply` devolvía un workspace completo —
+una fixture más amable que el servidor real. Costaba dos fallas que sólo se ven usando la pantalla:
+
+- `DocumentImportPanel`: aplicar una extracción subía un objeto sin `draft`, y el editor de arriba
+  se quedaba vacío justo después de aplicar. Ahora el panel relee el workspace (`GET
+  action=workspace`) después de aplicar, porque el borrador fusionado sólo existe en el servidor.
+- `DocumentReviewClient`: tras **un** guardado el `id` se perdía y el guardado siguiente salía con
+  `workspaceId: undefined` → 404 hasta recargar. Ahora fusiona sólo la revisión sobre el workspace
+  que ya tiene; el borrador nuevo es el que acaba de mandar.
+
+Los dobles de prueba se corrigieron para responder como el servidor. Ambos arreglos están fijados
+por mutación: revertirlos deja `expected undefined to be '0000…0001'`, que es el defecto mismo.
 
 ## Aceptación
 
