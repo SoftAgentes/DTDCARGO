@@ -11,7 +11,7 @@
  *     la action cae a "Pendiente…" y `boxes = 1` con los campos vacíos, así que
  *     servirla en blanco pisaría lo que el cliente ya tenía.
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
@@ -44,6 +44,31 @@ const CODE = "DTD-1004-1-1";
 const saltar = () =>
   screen.queryByRole("button", { name: /lo lleno después/i });
 const descripcion = () => screen.getByLabelText(/descripción de la compra/i);
+
+/**
+ * SDD-0473 · Cablear la importación no puede cambiar esta pantalla.
+ *
+ * El panel de carga se monta arriba del formulario, pero mientras
+ * `DOCUMENT_IMPORT_ENABLED` no esté encendido no debe existir para el cliente:
+ * ni encabezado, ni zona de carga, ni un hueco donde antes no había nada.
+ */
+describe("PurchaseStepDetalle · SDD-0473 · la importación apagada no se nota", () => {
+  it("no muestra nada de la carga de documentos cuando la función no está disponible", async () => {
+    // Sin servidor que responda `capabilities`, el envoltorio se calla.
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("sin servicio"));
+    render(
+      <PurchaseStepDetalle code={CODE} onDone={vi.fn()} onProgress={vi.fn()} />,
+    );
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
+    expect(
+      screen.queryByRole("heading", { name: /carga tus documentos/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/elige tus archivos/i)).not.toBeInTheDocument();
+    // Y el formulario manual sigue entero.
+    expect(descripcion()).toBeInTheDocument();
+    expect(saltar()).toBeInTheDocument();
+  });
+});
 
 describe("PurchaseStepDetalle · SDD-0313 · asistente: no se pierde lo escrito", () => {
   it("sin nada escrito, el atajo para saltar existe", () => {

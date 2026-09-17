@@ -87,6 +87,7 @@ Anthropic solo propone JSON validado. Sin key/model no hay simulación: error re
 - `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/README.md`
 - `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/vite.config.ts`
 
+- `app/portal/(app)/compras/nueva/PurchaseStepDetalle.test.tsx`
 - `components/document-import/DocumentImportEntry.tsx`
 - `components/document-import/DocumentImportEntry.test.tsx`
 - `lib/studio/document-import/corpus.test.ts`
@@ -96,7 +97,7 @@ Anthropic solo propone JSON validado. Sin key/model no hay simulación: error re
 UI/conexiones delegadas a Worker de 0468 en este mismo worktree después de integrar su commit estable;
 backend/SQL/legacy/export/spec/handoff permanecen bajo el owner principal. Allowlist disjunta.
 
-Ampliación 2026-09-16 (sesión Claude, al adoptar el worktree): los cinco últimos archivos se suman a
+Ampliación 2026-09-16 (sesión Claude, al adoptar el worktree): los seis últimos archivos se suman a
 la allowlist. `DocumentImportEntry` es el envoltorio que decide si la importación se ofrece: mientras
 `DOCUMENT_IMPORT_ENABLED` no sea "true" no renderiza nada, así que cablearlo no cambia el flujo manual. `corpus.test.ts` corre contra documentos reales apuntados por `DOCUMENT_IMPORT_CORPUS`
 y se salta sin esa variable: los documentos nunca entran a Git. El test cubre `formatPackingQuantity`, que existe porque `total_qty` puede ser nulo
