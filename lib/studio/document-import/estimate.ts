@@ -9,7 +9,10 @@ import { getWorkspace } from "./service";
 type EstimateRates={rate:PublicCbmRate;params:CalcParams;cities:Ciudad[]};
 export function combinedLogistics(workspaces:WorkspaceRow[]) {
   if(!workspaces.length || workspaces.length>50 || new Set(workspaces.map(w=>w.id)).size!==workspaces.length) throw new ImportHttpError(400,"invalid_selection","Selecciona cada compra una sola vez (hasta 50).");
-  let cbm=0,weight=0,cartons=0;
+  // `cartons` arranca en 0 pero se vuelve null en cuanto UNA compra no lo declara:
+  // sumar como cero diría "10 cajas" cuando en realidad son "10 más lo que no sé".
+  // El peso y el CBM no necesitan esto porque abajo se exigen presentes y > 0.
+  let cbm=0,weight=0,cartons:number|null=0;
   for(const w of workspaces) {
     const draft=parseDocumentDraft(w.draft);
     const totals=computeDocumentTotals(draft);
@@ -20,7 +23,7 @@ export function combinedLogistics(workspaces:WorkspaceRow[]) {
       && !(draft.groups.length===0 && ["groups_missing","allocation_mismatch"].includes(i.code))
       && !(i.code==="source_conflict" && /(?:supplier\.|\.unitPrice$|\.currency$|^currency$|declaredTotals.amount$)/.test(i.path)));
     if(blockers.length) throw new ImportHttpError(422,"review_required","Revisa las diferencias y la lectura parcial de los documentos antes de calcular.");
-    cbm+=totals.cbm;weight+=totals.grossWeightKg;cartons+=totals.cartons??0;
+    cbm+=totals.cbm;weight+=totals.grossWeightKg;cartons=cartons===null||totals.cartons===null?null:cartons+totals.cartons;
   }
   return {cbm:Number(cbm.toFixed(6)),grossWeightKg:Number(weight.toFixed(3)),cartons};
 }
