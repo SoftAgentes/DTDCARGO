@@ -95,12 +95,17 @@ export default function AcademiaPage() {
                 </a>
                 {/* SDD-0474: la guía pide el Shipping Mark en la dirección de
                     Alibaba, y ése sale del registro. `origen=academia` deja el
-                    canal en clients.registration_channel. */}
+                    canal en clients.registration_channel.
+                    Un solo botón secundario: con dos ghost idénticos al lado no
+                    se sabía cuál importa, y el que importa es el registro. */}
                 <Link href="/registro?origen=academia" className="btn btn-ghost">
-                  Crear mi cuenta gratis
+                  Crea tu cuenta gratis
                 </Link>
-                <Link href="/shipping-mark" className="btn btn-ghost">
-                  Qué es el Shipping Mark
+                <Link
+                  href="/shipping-mark"
+                  className="self-center font-semibold text-wine-text hover:text-wine-deep underline underline-offset-2"
+                >
+                  ¿Qué es el Shipping Mark?
                 </Link>
               </div>
             </div>

@@ -177,25 +177,37 @@
   .dir-mark .h a{color:var(--marea);font-weight:700;text-decoration:underline}
   /* Sin Shipping Mark no hay input que rellenar: hay un placeholder inerte y
      dos puertas. El código lo entrega el registro, no el visitante. */
-  .dir-mark .mk-vacio{display:inline-flex;align-items:center;height:42px;padding:0 13px;border:1.5px dashed var(--linea);
+  /* El borde va en --bruma (5.33:1 sobre papel), no en --linea (1.72:1): el
+     placeholder parece un campo y es lo único que lo delimita. WCAG 1.4.11
+     pide 3:1 para lo que identifica un componente. */
+  .dir-mark .mk-vacio{display:inline-flex;align-items:center;height:40px;padding:0 12px;border:1.5px dashed var(--bruma);
     border-radius:8px;background:var(--papel);font:700 14px var(--f-mono);letter-spacing:.04em;color:var(--bruma)}
-  .dir-mark .h .mk-puertas{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+  .dir-mark .h .mk-puertas{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
   /* Especificidad a propósito: .dir-mark .h a (el enlace del hint) es 0-3-0 y
      le ganaba a una regla de dos clases, dejando el texto wine sobre un fondo
-     wine — el botón se veía como un rectángulo vacío. */
-  .dir-mark .h .mk-puertas a{display:inline-flex;align-items:center;height:34px;padding:0 13px;border-radius:8px;
+     wine — el botón se veía como un rectángulo vacío.
+     40px de alto, como los demás clicables de la guía: el CTA al registro no
+     puede ser el elemento más chico de la pantalla. */
+  .dir-mark .h .mk-puertas a{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:8px;
     font:700 12.5px var(--f-ui);text-decoration:none;border:1.5px solid var(--marea);transition:background .15s,color .15s}
   .dir-mark .h .mk-puertas a.mk-prim{background:var(--marea);color:var(--papel)}
   .dir-mark .h .mk-puertas a.mk-prim:hover{background:var(--abismo);border-color:var(--abismo);color:var(--papel)}
   .dir-mark .h .mk-puertas a.mk-sec{background:var(--papel);color:var(--marea)}
   .dir-mark .h .mk-puertas a.mk-sec:hover{background:var(--espuma);color:var(--abismo)}
+  /* El foco, declarado: sobre wine el outline por defecto del navegador no
+     tiene contraste garantizado. Mismo patrón que .svc>summary.
+     El offset de 4px es parte del contraste, no decoración: separa el anillo
+     del relleno wine y lo apoya en --espuma (navy/espuma 15.8:1 · wine/espuma
+     10.1:1). Pegado al botón, navy sobre wine sería 1.56:1. */
+  .dir-mark .h .mk-puertas a.mk-prim:focus-visible{outline:2px solid var(--abismo);outline-offset:4px}
+  .dir-mark .h .mk-puertas a.mk-sec:focus-visible{outline:2px solid var(--marea);outline-offset:4px}
   .dir-mark input[readonly]{background:var(--espuma);cursor:default}
   /* Paso 7: la dirección de una pieza, para pegársela al proveedor en el chat. */
-  .dir-full-body{padding:14px 16px;display:flex;flex-direction:column;gap:11px}
+  .dir-full-body{padding:16px;display:flex;flex-direction:column;gap:12px}
   .dir-full-body .dff .k{font:700 10.5px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--bruma)}
-  .dir-full-body .dff .v{margin-top:3px;font:700 15px var(--f-mono);color:var(--abismo);line-height:1.5;word-break:break-word}
+  .dir-full-body .dff .v{margin-top:4px;font:700 15px var(--f-mono);color:var(--abismo);line-height:1.5;word-break:break-word}
   .dir-full-body .dff .v.cjk{font-family:var(--f-cjk)}
-  .dir-copy-all{align-self:flex-start;margin-top:3px;height:40px;padding:0 20px;font-size:13.5px}
+  .dir-copy-all{align-self:flex-start;margin-top:4px;height:40px;padding:0 20px;font-size:13.5px}
   .dir-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;border-bottom:1px solid var(--linea)}
   .dir-row:last-of-type{border-bottom:none}
   .dir-row .k{font:700 10.5px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--bruma)}
@@ -214,17 +226,17 @@
   .svc .eyebrow-svc{display:block;font:800 10.5px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--marea);margin-bottom:5px}
   .svc h4{margin:0 0 6px;font:700 16.5px var(--f-ui);color:var(--abismo)}
   /* Plegado: el servicio se ve, pero no se echa encima de quien está aprendiendo. */
-  .svc>summary{list-style:none;cursor:pointer;padding:2px 26px 2px 0;position:relative;border-radius:8px}
+  .svc>summary{list-style:none;cursor:pointer;padding:4px 24px 4px 0;position:relative;border-radius:8px}
   .svc>summary::-webkit-details-marker{display:none}
   .svc>summary::marker{content:""}
   .svc>summary .svc-t{display:block;font:700 16.5px var(--f-ui);color:var(--abismo);line-height:1.3}
   .svc>summary:hover .svc-t{color:var(--marea)}
-  .svc>summary:focus-visible{outline:2px solid var(--marea);outline-offset:3px}
+  .svc>summary:focus-visible{outline:2px solid var(--marea);outline-offset:4px}
   .svc .svc-chev{position:absolute;right:2px;top:50%;width:9px;height:9px;margin-top:-6px;
     border-right:2.2px solid var(--marea);border-bottom:2.2px solid var(--marea);
     transform:rotate(45deg);transition:transform .18s ease}
   .svc[open] .svc-chev{transform:rotate(-135deg);margin-top:-3px}
-  .svc .svc-body{margin-top:11px}
+  .svc .svc-body{margin-top:12px}
   @media (prefers-reduced-motion:reduce){ .svc .svc-chev{transition:none} }
   .svc p{margin:0;font-size:15px;color:var(--tinta)}
   .svc p b{color:var(--abismo)}
@@ -278,7 +290,7 @@
   .tool-grid label{font-size:12px;font-weight:700;color:var(--abismo);display:block;margin-bottom:4px}
   .tool-grid input{width:100%;border:1.5px solid var(--linea);border-radius:10px;padding:10px;font:inherit;font-size:14px;background:#fff}
   .tool-grid input:focus{outline:none;border-color:var(--marea)}
-  .tool .tool-tarifa{margin:10px 0 0;font-size:12.5px;line-height:1.5;color:var(--bruma)}
+  .tool .tool-tarifa{margin:12px 0 0;font-size:12.5px;line-height:1.5;color:var(--bruma)}
   .tool .tool-tarifa b{color:var(--abismo)}
   .tool .brk small{font-weight:400;color:var(--bruma)}
   .tool .calc{margin-top:12px;background:var(--abismo);color:#fff;border:none;border-radius:11px;padding:11px 18px;font:700 14px var(--f-ui);cursor:pointer}
@@ -291,6 +303,8 @@
   .big-res .n{font-family:var(--f-ui);font-weight:800;font-size:26px;color:#0f5a3c}
   .big-res .l{font-size:12.5px;color:#0f5a3c;text-transform:uppercase;letter-spacing:.06em}
   .disc{font-size:11.5px;color:var(--bruma);margin-top:8px;font-style:italic}
+  .disc a{color:var(--marea);font-weight:700;font-style:normal;text-decoration:underline}
+  .disc a:hover{color:var(--abismo)}
 
   /* Scorecard */
   .sc-crit{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid var(--linea);border-radius:11px;margin-bottom:8px;cursor:pointer;user-select:none;transition:.15s}
@@ -940,7 +954,7 @@ function renderEtapa(){
       '<div class="row"><div><label>WhatsApp</label><input id="fWa" type="tel" placeholder="+58 412 0000000" autocomplete="tel" value="'+(lead.whatsapp||"")+'"></div>'+
       '<div><label>¿Qué producto importas o quieres importar?</label><input id="fProd" type="text" placeholder="Ej: ropa, repuestos, electrónica..." value="'+(lead.producto||"")+'"></div></div>'+
       '<label>¿Algo más que debamos saber? (opcional)</label><textarea id="fNota" rows="2" placeholder="Cantidad estimada, frecuencia, ciudad de entrega..."></textarea>'+
-      '<div class="nav" style="margin-top:16px"><button class="btn btn-oro" id="btnCotizar">Crear mi cuenta y obtener mi Shipping Mark →</button></div>'+
+      '<div class="nav" style="margin-top:16px"><button class="btn btn-oro" id="btnCotizar">Crea tu cuenta y obtén tu Shipping Mark →</button></div>'+
       '<p class="priv">Lo que escribes acá se queda en tu navegador y pasa al registro si decides continuar. El Shipping Mark es gratis.</p></div>'+
       '<div class="gracias" id="gracias"><div style="font-size:42px;color:var(--exito);font-family:var(--f-display)">✓</div><h2 style="color:var(--abismo);margin:6px 0">Te llevamos al registro</h2>'+
       '<p style="color:var(--tinta)">Ahí te damos tu Shipping Mark. Si no se abrió solo, toca el botón:</p><div class="nav" style="justify-content:center"><a class="btn btn-prim" id="waLink" target="_blank" rel="noopener">Ir al registro</a></div></div>';
@@ -1057,7 +1071,7 @@ function calcTool(t){
       '<div class="brk"><span>Flete puerta a puerta <small>('+fuente+')</small></span><b>$'+fmt(F)+'</b></div>'+
       '<div class="brk"><span><b>Total puesto en Venezuela</b></span><b>$'+fmt(total)+'</b></div>'+
       '<div class="big-res"><div class="n">$'+fmt(unit)+'</div><div class="l">Costo real por unidad, puesta en Venezuela</div></div>'+
-      '<p class="disc"><b>Es un aproximado, y estas tres cosas lo mueven:</b> el <b>peso</b> (cada m³ incluye hasta 1.000 kg; por encima de eso hay recargo por kilo), el <b>embalaje</b> (si necesita madera o paleta) y las <b>baterías</b>, que encarecen el flete. Cajas de tamaños distintos también cambian el CBM real al consolidar. El número en firme te lo cierra un asesor — este cálculo es para que sepas si el negocio da <i>antes</i> de pedirlo.</p>';
+      '<p class="disc"><b>Es un aproximado, y estas tres cosas lo mueven:</b> el <b>peso</b> (cada m³ incluye hasta 1.000 kg; por encima de eso hay recargo por kilo), el <b>embalaje</b> (si necesita madera o paleta) y las <b>baterías</b>, que encarecen el flete. Cajas de tamaños distintos también cambian el CBM real al consolidar. Acá va el <b>flete base por volumen</b>, sin esos recargos ni la entrega dentro de Venezuela: es para que sepas si el negocio da <i>antes</i> de pedir la cotización. El cálculo completo está en <a href="https://dtdcargo.com/tarifas" target="_blank" rel="noopener">nuestra calculadora de tarifas</a>, y el número en firme te lo cierra un asesor.</p>';
     $("#lcOut").classList.add("show");
   }
 }
