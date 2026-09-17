@@ -46,7 +46,7 @@ export const CONFIG = {
   /**
    * Tarifa base por metro cúbico en USD (precio limpio sin excedente).
    *
-   * ⚠️ ESTE 800 COINCIDE A PROPÓSITO con la tarifa pública del puerta a puerta
+   * ⚠️ ESTE 850 COINCIDE A PROPÓSITO con la tarifa pública del puerta a puerta
    * que vive en la tabla `rates` del ERP (la fila `is_public`, editable desde
    * /studio/tarifas). No es casualidad y no se toca a la ligera:
    *
@@ -60,10 +60,24 @@ export const CONFIG = {
    * NÚMERO. Si no, se reabre la grieta: al vencer la vigencia el sitio empieza
    * a cotizar por debajo del precio real, en silencio.
    *
+   * 📌 Pasó exactamente eso, y por eso hoy dice 850 (SDD-0475, 2026-09-17):
+   * la migr `0336_rate_ddp_850_septiembre_2026.sql` subió la tarifa pública a
+   * $850 con `pg_cron` el 2026-09-04 y su cabecera avisaba —líneas 20-23— que
+   * ese mismo día había que subir esta constante en un deploy. No se hizo. Trece
+   * días con el ERP cobrando $850 y el respaldo en $800: ante una caída de
+   * Supabase el sitio habría cotizado **6,25% por debajo**, sin error visible.
+   * Lo mismo le había pasado antes a `pesoIncluidoKg` (ver abajo).
+   *
+   * ⚠️ OJO CON LA VIGENCIA: la fila de $850 vence el **2026-10-04**. Si nadie la
+   * renueva desde /studio/tarifas, a partir del 5-oct la RPC devuelve null y el
+   * sitio cotizará con este 850 — que entonces será lo correcto sólo si la
+   * tarifa sigue siendo 850. Si se decide volver a 800, hay que bajar los dos.
+   *
    * El arreglo de fondo (pendiente, SDD-0164): una alerta en el ERP cuando una
-   * tarifa pública esté por vencer.
+   * tarifa pública esté por vencer. Mientras eso no exista, este número depende
+   * de que alguien se acuerde — y ya falló dos veces.
    */
-  tarifaBaseCBM: 800,
+  tarifaBaseCBM: 850,
 
   /**
    * Gracia de peso por CBM incluida en la tarifa base. Sobre esto = excedente.

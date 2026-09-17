@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 462 specs)
+### Índice de specs (generado · 463 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -500,6 +500,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0472 | Clientes: escritura gobernada por RBAC efectivo | in-progress | interno |
 | 0473 | Importación documental, borrador compartido y calculadora pue… | in-progress | interno |
 | 0474 | Guía de Alibaba — Shipping Mark conectado, costo real con tar… | done | interno |
+| 0475 | El respaldo del calculador vuelve a espejar el ERP ($800 → $850) | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
