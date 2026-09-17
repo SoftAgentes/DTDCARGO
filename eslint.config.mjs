@@ -78,6 +78,11 @@ const eslintConfig = defineConfig([
       "app/nosotros/**",
       "app/faq/**",
       "app/enlaces/**",
+      // El cotizador (SDD-0473) es público: recibe PI y packing list de un
+      // visitante sin cuenta y habla con el ERP sólo por HTTP. Sin esta línea
+      // la regla ni siquiera se arma sobre la ruta, y un `import` al ERP
+      // pasaría el lint en verde.
+      "app/cotizador/**",
       "components/**",
     ],
     rules: {

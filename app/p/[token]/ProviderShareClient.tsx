@@ -14,9 +14,11 @@ import type { BrandContext } from "@/lib/shared/brand-context";
 import { printMarkbox } from "@/lib/shared/markbox-chain";
 
 /** Public capability page. Receives only the data already scoped to this purchase. */
-export function ProviderShareClient({ token, code, markbox, supplierName, supplierWechat, labels, brand, presentation, request = fetch, excelHref }: {
+export function ProviderShareClient({ token, code, markbox, supplierName, supplierWechat, labels, brand, presentation, request = fetch, excelHref, prefill }: {
   token: string; code: string; description?: string; markbox: string; supplierName: string | null; supplierWechat: string | null;
   labels: BoxLabel[]; brand: BrandContext; presentation?: LabelPresentation;
+  /** SDD-0473 · Documento que el cliente ya cargó, para no hacerlo transcribir. */
+  prefill?: Parameters<typeof PackingListFormSection>[0]["prefill"];
   /** Local review fixture injects a transport; real page keeps existing endpoints. */
   request?: typeof fetch; excelHref?: string;
 }) {
@@ -74,7 +76,7 @@ export function ProviderShareClient({ token, code, markbox, supplierName, suppli
         <p className="mt-3 max-w-prose text-base leading-relaxed text-grey-700">{t("填写货物资料，核对后提交。无需注册账号。", "Completa los datos de tu mercancía, revísalos y envíalos. No necesitas crear una cuenta.", "Enter your shipment details, review and send them. No account needed.")}</p>
       </header>
       {showPrintNotice && <section role="region" aria-label={t("打印前核对", "Antes de imprimir", "Before printing")} className="no-print mb-6 rounded-xl border border-grey-200 bg-white p-6"><h2 className="flex items-center gap-2 text-lg font-bold"><StatusIcon tone="info" size={20}/>{t("请确认箱数和标签", "Revisa las cajas y sus etiquetas", "Check cartons and labels")}</h2><p className="mt-3 text-grey-700">{t("修改箱数或装箱内容后，请核对并重新打印受影响的标签。可以先打印现有标签。", "Si cambias las cajas o su contenido, revisa y vuelve a imprimir las etiquetas afectadas. Puedes imprimir las disponibles ahora.", "After changing cartons or contents, review and reprint affected labels. You can print the available labels now.")}</p><div className="mt-4 flex flex-wrap gap-3"><button autoFocus type="button" className="btn btn-primary" onClick={() => { setPrintNoticed(true); setShowPrintNotice(false); printDocument("labels"); }}>{t("继续打印", "Continuar e imprimir", "Continue and print")}</button><button type="button" className="btn btn-ghost" onClick={() => setShowPrintNotice(false)}>{t("返回核对", "Volver a revisar", "Back to review")}</button></div></section>}
-      <div id="packing-list"><PackingListFormSection token={token} supplierName={supplierName} supplierWechat={supplierWechat} markbox={markbox} code={code} locale={locale} request={request} onPrintLabels={printLabels} excelHref={excelHref} attachments={<SupplierUploadSection token={token} locale={locale} request={request} showHeading={false} onUploadState={setUploads}/>} attachmentsSummary={<SupplierUploadSummary locale={locale} status={uploads}/>} delivery={delivery}/></div>
+      <div id="packing-list"><PackingListFormSection token={token} prefill={prefill} supplierName={supplierName} supplierWechat={supplierWechat} markbox={markbox} code={code} locale={locale} request={request} onPrintLabels={printLabels} excelHref={excelHref} attachments={<SupplierUploadSection token={token} locale={locale} request={request} showHeading={false} onUploadState={setUploads}/>} attachmentsSummary={<SupplierUploadSummary locale={locale} status={uploads}/>} delivery={delivery}/></div>
       {/* Las etiquetas se ven en pantalla, no sólo al imprimir: el proveedor tiene que
           poder cotejar los códigos antes de pegarlos, y en el navegador de WeChat
           `window.print()` a menudo no existe — dejarlas sólo para impresión lo dejaba

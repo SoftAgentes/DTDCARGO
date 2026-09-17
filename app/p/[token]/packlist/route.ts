@@ -23,6 +23,8 @@ import {
 import { notifyPackingListToAdmin } from "@/lib/studio/packing-list-notify";
 import { resolveRequestIp } from "@/lib/http/request-ip";
 import { apiError } from "@/lib/http/api-error";
+import { parseDocumentDraft } from "@/lib/shared/document-import";
+import { exportDocument } from "@/lib/studio/document-import/export";
 
 export const runtime = "nodejs";
 
@@ -46,6 +48,16 @@ export async function GET(
   const admin = createAdminClient();
   const data = await getProviderShareByToken(admin, token);
   if (!data) return new NextResponse("Not found", { status: 404 });
+
+  const ids = await getPrealertaIdsByToken(admin, token);
+  if (!ids) return new NextResponse("Not found", { status: 404 });
+  const { data: shared, error: sharedError } = await admin.from("document_workspaces")
+    .select("draft,revision,confirmed_revision").eq("prealerta_id",ids.prealertaId).eq("tenant_id",ids.tenantId).maybeSingle();
+  if (sharedError && process.env.DOCUMENT_IMPORT_ENABLED === "true") return new NextResponse("Documento compartido no disponible. Intenta de nuevo.",{status:503});
+  if (shared) {
+    const filled = await exportDocument(parseDocumentDraft(shared.draft),{markbox:data.markbox,code:data.code,confirmed:shared.revision===shared.confirmed_revision,revision:shared.revision});
+    return new NextResponse(filled as BodyInit,{headers:{"Content-Type":XLSX_MIME,"Content-Disposition":`attachment; filename="PackingList-${data.code}.xlsx"`,"Cache-Control":"no-store"}});
+  }
 
   // Template base desde el CDN (mismo origen). Fiable en serverless (no fs).
   const tplUrl = new URL(TEMPLATE_PATH, req.nextUrl.origin);
@@ -149,6 +161,12 @@ export async function POST(
   // Resolver la compra por token (capability). 404 si el token es inválido.
   const ids = await getPrealertaIdsByToken(admin, token);
   if (!ids) return new NextResponse("Not found", { status: 404 });
+
+  const {data:workspace,error:workspaceError}=await admin.from("document_workspaces")
+    .select("id").eq("prealerta_id",ids.prealertaId).eq("tenant_id",ids.tenantId).maybeSingle();
+  if (workspace || (workspaceError && process.env.DOCUMENT_IMPORT_ENABLED === "true")) {
+    return NextResponse.json({error:workspace?"Esta compra tiene un documento compartido. Actualiza el enlace y confirma la versión revisada.":"No pudimos comprobar el documento compartido. Intenta de nuevo.",code:"shared_document_required"},{status:workspace?409:503});
+  }
 
   const rawIp = resolveRequestIp(req.headers);
   const { data, error: rpcErr } = await admin.rpc("submit_packing_list", {

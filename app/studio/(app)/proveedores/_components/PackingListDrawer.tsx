@@ -13,6 +13,7 @@ import type {
   PackingListRow,
   PackingListSubmission,
 } from "@/lib/studio/prealertas/packlist-form";
+import { formatPackingQuantity } from "@/lib/studio/prealertas/packlist-form";
 
 const CURRENCY_SYMBOL: Record<string, string> = {
   USD: "$",
@@ -235,7 +236,9 @@ export function PackingListDrawer({
               Totales
             </span>
             <TotalCell v={n(submission.totals.ctns, 0)} />
-            <TotalCell v={n(submission.totals.qty, 0)} />
+            <TotalCell
+              v={formatPackingQuantity(submission.totals, (value) => n(value, 0))}
+            />
             <span />
             <TotalCell v={money(submission.totals.amount)} strong />
             <TotalCell v={n(submission.totals.weight)} />
