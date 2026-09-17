@@ -121,7 +121,7 @@ Riesgos abiertos anotados en el código: recursión sin guarda en `service.ts:74
 incidencia resuelta en `DocumentEditor` nunca se ve marcado porque `confirmationIssues` ya filtra
 `!resolved`; `document_group_boxes` sin `on delete cascade`; el cron drena 1 job por invocación.
 
-**No encender `DOCUMENT_IMPORT_ENABLED` antes del punto 4**: el 409 dejaría al proveedor sin
+**No encender `DOCUMENT_IMPORT_ENABLED` antes de cablear la UI (pendiente 2)**: el 409 dejaría al proveedor sin
 ninguna vía para enviar su packing list.
 
 ## FUERA DE ALCANCE DETECTADO
