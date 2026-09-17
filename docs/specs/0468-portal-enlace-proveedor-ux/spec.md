@@ -365,9 +365,17 @@ La primera entrega (secciones 1–9) y su evidencia permanecen como registro his
 ### Allowlist adicional de etapa 2
 
 - app/p/[token]/page.tsx (metadata), PackingListFormSection.tsx, ProviderShareClient.tsx, SupplierUploadSection.tsx, PackingListGuidedForm.tsx, PackingListDocumentPreview.tsx, supplier-flow.test.tsx, SupplierUploadSection.test.tsx.
-- app/portal/_components/ShareProviderButton.tsx y su prueba; solo bloque compartir/copy en PurchaseStepConfirm.tsx, NewPurchaseForm.tsx y compras/[code]/etiquetas/page.tsx.
+- app/p/[token]/PackingListProductsStep.tsx y su prueba, provider-format.ts, standard-format.test.tsx.
+- app/portal/_components/ShareProviderButton.tsx y su prueba; NewPurchaseForm.tsx y compras/[code]/etiquetas/page.tsx solo en el bloque compartir/copy.
+- app/portal/(app)/compras/nueva/PurchaseStepConfirm.tsx: además del bloque compartir/copy, se retiran `NumberedStep`, la lista «Lo que hará tu proveedor» y la maqueta «Así se ve lo que recibe tu proveedor», reemplazadas por una lista de texto. Es el alcance de la fila 1.4 de esta spec y queda bajo la excepción al Norte de SDD-0173 ya registrada.
 - docs/specs/0468-portal-enlace-proveedor-ux/qa/* (fixture local seguro), esta spec e índice generado docs/specs/README.md.
 - .agents/handoffs/portal-proveedor-guiado-20260916.md.
+
+Cierre de allowlist 2026-09-16 (revisión previa a integrar): los cuatro archivos de la fase 3/4
+(`PackingListProductsStep.tsx` y su prueba, `provider-format.ts`, `standard-format.test.tsx`) estaban
+descritos en las fases pero nunca listados, y el alcance real sobre `PurchaseStepConfirm.tsx` excedía
+lo que decía «solo bloque compartir/copy». Ambos quedan registrados arriba. Es corrección documental:
+no cambia código ni amplía permisos nuevos.
 
 ### Criterios y evidencia de etapa 2
 
@@ -377,10 +385,10 @@ La primera entrega (secciones 1–9) y su evidencia permanecen como registro his
 - [x] Formulario/Excel alternativos, errores localizados y carga parcial honesta.
 - [x] Vista read-only, impresión separada, folio/versión y corrección.
 - [x] Fixture navegable cliente → proveedor → confirmación con datos ficticios; escritorio y frames de 375/390, claro/oscuro, escenarios controlados.
-- [ ] Aprobación visual de Sam antes de integración; la inspección del Director se documenta en handoff.
+- [x] Aprobación de Sam antes de integración: autorizó el merge el 2026-09-16, y por separado el despliegue que ese merge dispara. Decidió además que el chino primero es la mejora buscada. La inspección del Director se documenta en handoff.
 - [ ] Validación de chino por persona de operación y prueba real en WeChat; NO EJECUTADO, no se afirma compatibilidad.
 - [ ] Recorrido con enlace y sesión reales; NO EJECUTADO por falta de autorización de datos/operaciones productivas.
-- [ ] Integración y producción; no autorizadas en esta etapa. Sin push/PR/merge/deploy.
+- [x] Integración y producción: autorizadas por Sam el 2026-09-16. En este repo son el mismo acto — cada commit de `main` genera un deployment `Production` de vercel[bot] (14/14 verificados) y el `ignoreCommand` no saltea este build.
 
 El runbook exige ui-check, pnpm verify y handoff con comprobaciones PASÓ/FALLÓ/NO EJECUTADO/NO DISPONIBLE. El resultado de verify y omisiones se conservan por SHA en el handoff; éxito con SKIPs no acredita cobertura completa.
 

@@ -75,7 +75,16 @@ export function ProviderShareClient({ token, code, markbox, supplierName, suppli
       </header>
       {showPrintNotice && <section role="region" aria-label={t("打印前核对", "Antes de imprimir", "Before printing")} className="no-print mb-6 rounded-xl border border-grey-200 bg-white p-6"><h2 className="flex items-center gap-2 text-lg font-bold"><StatusIcon tone="info" size={20}/>{t("请确认箱数和标签", "Revisa las cajas y sus etiquetas", "Check cartons and labels")}</h2><p className="mt-3 text-grey-700">{t("修改箱数或装箱内容后，请核对并重新打印受影响的标签。可以先打印现有标签。", "Si cambias las cajas o su contenido, revisa y vuelve a imprimir las etiquetas afectadas. Puedes imprimir las disponibles ahora.", "After changing cartons or contents, review and reprint affected labels. You can print the available labels now.")}</p><div className="mt-4 flex flex-wrap gap-3"><button autoFocus type="button" className="btn btn-primary" onClick={() => { setPrintNoticed(true); setShowPrintNotice(false); printDocument("labels"); }}>{t("继续打印", "Continuar e imprimir", "Continue and print")}</button><button type="button" className="btn btn-ghost" onClick={() => setShowPrintNotice(false)}>{t("返回核对", "Volver a revisar", "Back to review")}</button></div></section>}
       <div id="packing-list"><PackingListFormSection token={token} supplierName={supplierName} supplierWechat={supplierWechat} markbox={markbox} code={code} locale={locale} request={request} onPrintLabels={printLabels} excelHref={excelHref} attachments={<SupplierUploadSection token={token} locale={locale} request={request} showHeading={false} onUploadState={setUploads}/>} attachmentsSummary={<SupplierUploadSummary locale={locale} status={uploads}/>} delivery={delivery}/></div>
-      <div className="labels-print-area" hidden aria-hidden="true">{labels.map(label => <ShippingBoxLabel key={label.boxN} label={label} markbox={markbox} brandName={brand.name} presentation={presentation}/>)}</div>
+      {/* Las etiquetas se ven en pantalla, no sólo al imprimir: el proveedor tiene que
+          poder cotejar los códigos antes de pegarlos, y en el navegador de WeChat
+          `window.print()` a menudo no existe — dejarlas sólo para impresión lo dejaba
+          sin ninguna vía a los códigos de sus cajas. El CSS de impresión las reformatea
+          a dos columnas; el resto de la página se oculta con `visibility`. */}
+      {labels.length > 0 && <section className="no-print mt-6" aria-labelledby="labels-heading">
+        <h2 id="labels-heading" className="text-[15px] font-bold">{t("箱子标签", "Etiquetas de las cajas", "Carton labels")}</h2>
+        <p className="mt-1.5 max-w-[52ch] text-[12.5px] leading-[1.55] text-grey-700">{t("每个箱子贴一张标签，贴在能看到的一面。", "Pega una etiqueta en cada caja, en una cara visible.", "Stick one label on each carton, on a visible side.")}</p>
+      </section>}
+      <div className="labels-print-area mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{labels.map(label => <ShippingBoxLabel key={label.boxN} label={label} markbox={markbox} brandName={brand.name} presentation={presentation}/>)}</div>
     </div>
   </div>;
 }

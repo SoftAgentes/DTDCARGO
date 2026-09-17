@@ -53,7 +53,38 @@ Producto: c584ff1347254f3a0df9e2e8e81fef9df8a9b169 — feat(DTD-0468): guiar fac
 
 ## PR / BRANCH
 
-Sin PR ni push: no autorizados. Rama y worktree indicados arriba. Preview activa en http://127.0.0.1:4316/docs/specs/0468-portal-enlace-proveedor-ux/qa/index.html. Reinicio documentado en qa/README.md. No hay respaldo remoto de esta rama.
+Rama publicada en `origin/codex/portal-proveedor-guiado-20260916` (sin upstream, como deja el harness).
+**PR #129**: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/129 — base `main`.
+Preview local en http://127.0.0.1:4316/docs/specs/0468-portal-enlace-proveedor-ux/qa/index.html; reinicio en qa/README.md.
+
+Esta sección decía «Sin PR ni push: no autorizados» y quedó desactualizada cuando el cierre de fase 4
+autorizó commit selectivo y PR draft. Corregido el 2026-09-16 al preparar la integración.
+
+### Integración (2026-09-16, sesión Claude)
+
+Sam autorizó explícitamente el merge y, por separado, el despliegue que ese merge dispara.
+Verificado antes de integrar: **cada commit de `main` genera un deployment `Production` de
+vercel[bot]** — 14 de 14 commits first-parent recientes — y el `ignoreCommand` de `vercel.json`
+no saltea este build porque la PR toca 17 archivos bajo `app/`. Merge y publicación son el mismo
+acto en este repo; el runbook `codex-engineering.md:189-190` exige que la autorización lo cubra, y
+la cubre.
+
+Revisión independiente del diff: **aprobada, sin bloqueantes**. Invariantes verificados: endpoints y
+payload de `/p/[token]/packlist` intactos, `computeTotals` sin tocar, cero `.sql`, privacidad del
+token conservada, y el caso canónico 5 cajas / 58 uds / USD 132 / 15 kg / 2,5 m³ afirmado en tres
+pruebas distintas sin duplicar cajas, peso ni volumen.
+
+Dos hallazgos se resolvieron antes de integrar:
+
+1. **Regresión corregida.** Las etiquetas habían quedado `hidden aria-hidden="true"`, sólo visibles al
+   imprimir. El proveedor perdía la forma de cotejar los códigos antes de pegarlos, y en el navegador
+   de WeChat —donde `window.print()` suele no existir— se quedaba sin ninguna vía. Se devolvió la
+   grilla visible con su encabezado trilingüe. Dos pruebas nuevas lo fijan, y la primera se verificó
+   por mutación: volver a ocultar las etiquetas la pone en rojo.
+2. **Chino primero, decidido por Sam.** Hoy producción sirve la página bilingüe simultánea (ocho
+   bloques con el español al lado del chino); la PR la deja arrancando en chino con selector. Sam lo
+   confirmó como la mejora buscada: el proveedor es chino. La revisión del chino por una persona que
+   lo lea **sigue NO EJECUTADA** y se conserva como pendiente.
 
 ## PENDIENTES DE ESTA TAREA
 
