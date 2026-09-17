@@ -47,7 +47,11 @@ consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposi
 | Guard/identidad de worktree y claim | **PASÓ** |
 | `tsc --noEmit -p tsconfig.json` | **PASÓ** — exit 0, salida vacía, sin tubería |
 | `eslint` sobre lo nuevo y lo corregido | **PASÓ** — exit 0 |
-| `vitest` document-import (4 archivos) | **PASÓ** — 63 pruebas |
+| `vitest` document-import | **PASÓ** — 63 pruebas del núcleo + 22 de extracción |
+| `vitest` corpus real (3 XLSX de proveedor) | **PASÓ** — 4 pruebas, con `DOCUMENT_IMPORT_CORPUS` |
+| `vitest` panel de carga | **PASÓ** — 9 pruebas, 2 verificadas por mutación |
+| `vitest` suite completa | **PASÓ** — 570 archivos, 7.463 pruebas |
+| PDF reales (2 proformas) | **NO EJECUTADO** — exige `ANTHROPIC_API_KEY` y modelo |
 | `vitest` packlist-form | **PASÓ** — 27 pruebas (6 nuevas del helper) |
 | Migración 0457 contra Postgres efímero (PGlite) | **PASÓ** — 8 casos |
 | `pnpm verify` completo | **NO EJECUTADO** |
@@ -65,6 +69,9 @@ consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposi
 
 - `cce43a9b` — rescate íntegro del trabajo de la sesión Codex (punto de retorno).
 - `bff39cac` — cantidades por unidad; deja `tsc` en verde.
+- `8714f1d1` — `DOCUMENT_IMPORT_*` en `.env.example` y registro de la adopción.
+- `6140d606` — `DocumentImportPanel`: la carga de archivos como primer paso.
+- `e7937ccb` — tres defectos que sólo aparecieron con proformas reales, y `corpus.test.ts`.
 
 Stub heredado `069d9e417c06b749cb0749a780187a9c358e3edd`.
 
@@ -87,10 +94,24 @@ implementados. Se comprobó uno por uno, no por lo que declara el tracker:
 ## PENDIENTES DE ESTA TAREA
 
 1. Las 6 suites de la allowlist que faltan: `service`, `jobs`, `access`, `http`, `export`, `estimate`.
-2. `DocumentImportPanel` (zona de carga como primer paso, chips de formato, cámara en móvil) y
-   `DocumentCalculator`; cablear los 7 puntos de UI; recién ahí encender el flag.
+2. `DocumentCalculator`, y cablear los 7 puntos de UI. Recién ahí encender el flag.
 3. Harness de QA visual 0473 y `/ui-check`.
-4. `pnpm verify` reportando cada SKIP, y el recorrido con documentos reales anonimizados.
+4. `pnpm verify` reportando cada SKIP.
+5. Probar los PDF reales: exige credenciales y presupuesto de IA.
+6. El contrato de compra chino (`PO-…`) deriva a IA por no tener fila de encabezados
+   detectable. Es derivación legítima; evaluar si conviene un mapeo por posición.
+
+## CORPUS REAL — lo que reveló
+
+Sam entregó 5 documentos de proveedores de Yiwu (3 XLSX, 2 PDF). Viven fuera de Git y se
+apuntan con `DOCUMENT_IMPORT_CORPUS`. **Los tres XLSX fallaban con el código heredado.**
+Tres defectos corregidos en `e7937ccb`:
+
+1. El guard de dimensiones medía columnas con **formato** (16.382) en vez de con datos (7),
+   y rechazaba proformas de 74 celdas.
+2. Faltaban `ITEM` y `DESCRIPCIONES` en el mapa de encabezados: las proformas derivaban a IA
+   pudiendo leerse gratis y exactas. Ahora se leen sin IA.
+3. Se guardaba la **comisión** como importe declarado del documento — un dato falso.
 
 Cerrado en esta sesión: `DOCUMENT_IMPORT_*` documentadas en `.env.example`
 (`ENABLED`, `MODEL`, `RATE_SECRET`, `ALLOWED_ORIGINS`), con el aviso de no encender el flag
