@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "description": "The diagram is an authored explanation. These assertions verify its named components and relationships against local full-byte sources; they do not turn inferred graph links into facts.",
+  "components": {
+    "director": [{"path": ".agents/skills/director/SKILL.md", "contains": "Al iniciar y cerrar trabajo"}],
+    "worker": [{"path": ".agents/skills/worker/SKILL.md", "contains": "En el handoff propio registra impacto documental"}],
+    "sources": [{"path": "AGENTS.md", "contains": "Guardar evidencia verificada"}],
+    "code": [{"path": "scripts/lib/knowledge-state.mjs", "contains": "sourcePaths"}],
+    "structure": [{"path": "scripts/knowledge-graph.py", "contains": "structural_names"}],
+    "semantics": [{"path": "scripts/knowledge-graph.py", "contains": "semanticNativeCurrent"}],
+    "projection": [{"path": "scripts/lib/knowledge-projection.mjs", "contains": "Mapa/mapa.json"}],
+    "archify": [{"path": "scripts/archify.lock.json", "contains": "2.16.0"}],
+    "vault": [{"path": "scripts/lib/knowledge-vault.mjs", "contains": "publishVault"}],
+    "obsidian": [{"path": "docs/runbooks/knowledge-graphify-obsidian.md", "contains": "Obsidian detecta archivos locales"}]
+  },
+  "connections": {
+    "assign": [{"path": ".agents/skills/director/SKILL.md", "contains": "Pide al Worker impacto documental"}],
+    "record": [{"path": ".agents/skills/worker/SKILL.md", "contains": "En el handoff propio registra impacto documental"}],
+    "code-ast": [{"path": "docs/runbooks/knowledge-graphify-obsidian.md", "contains": "Ante código modificado"}],
+    "sources-ast": [{"path": "docs/runbooks/knowledge-graphify-obsidian.md", "contains": "títulos/enlaces documentales"}],
+    "sources-semantics": [{"path": "docs/runbooks/knowledge-graphify-obsidian.md", "contains": "Ante una fuente del piloto modificada"}],
+    "ast-map": [{"path": "scripts/lib/knowledge-state.mjs", "contains": "STRUCTURAL_PENDING"}],
+    "sem-map": [{"path": "scripts/lib/knowledge-state.mjs", "contains": "SEMANTIC_PILOT_PENDING"}],
+    "map-vault": [{"path": "scripts/knowledge-sync.mjs", "contains": "publishVault({vaultPath,files:projection.files"}],
+    "map-visual": [{"path": "scripts/knowledge-visual.mjs", "contains": "Archify"}],
+    "visual-vault": [{"path": "scripts/knowledge-sync.mjs", "contains": "verified.files"}],
+    "vault-reader": [{"path": "docs/runbooks/knowledge-graphify-obsidian.md", "contains": "Obsidian detecta archivos locales"}]
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "graphifyVersion": "0.9.61",
+  "semanticPilot": {
+    "id": "canonical-16-2026-09-16",
+    "label": "16 fuentes canónicas del piloto",
+    "documents": [
+      ".agents/handoffs/2026-09-15-knowledge-graphify-obsidian.md",
+      ".agents/skills/director/SKILL.md",
+      ".agents/skills/worker/SKILL.md",
+      "AGENTS.md",
+      "README.md",
+      "docs/README.md",
+      "docs/architecture/README.md",
+      "docs/architecture/knowledge-lifecycle.md",
+      "docs/architecture/module-sdd-map.md",
+      "docs/engineering/project-rules.md",
+      "docs/governance/AGENT-BRIEF.md",
+      "docs/governance/README.md",
+      "docs/marketing/README.md",
+      "docs/runbooks/codex-engineering.md",
+      "docs/runbooks/knowledge-graphify-obsidian.md",
+      "docs/specs/0471-knowledge-graphify-obsidian/spec.md"
+    ]
+  },
+  "visual": {
+    "version": "2.16.0",
+    "specPath": "docs/architecture/knowledge-lifecycle.archify.json"
+  },
+  "vaultDirectory": "DTD Cargo",
+  "generatedDirectory": "Generado",
+  "topics": [
+    {
+      "id": "proyecto",
+      "label": "Proyecto",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "BRAND.md",
+        "README.md",
+        "docs/README.md",
+        ".agents/skills/director/SKILL.md",
+        ".agents/skills/worker/SKILL.md"
+      ]
+    },
+    {
+      "id": "arquitectura",
+      "label": "Arquitectura",
+      "prefix": "docs/architecture/"
+    },
+    {
+      "id": "especificaciones",
+      "label": "Especificaciones",
+      "prefix": "docs/specs/"
+    },
+    {
+      "id": "runbooks",
+      "label": "Runbooks",
+      "prefix": "docs/runbooks/"
+    },
+    {
+      "id": "ingenieria",
+      "label": "Ingeniería",
+      "prefix": "docs/engineering/"
+    },
+    {
+      "id": "gobernanza",
+      "label": "Gobernanza",
+      "prefix": "docs/governance/"
+    },
+    {
+      "id": "marketing",
+      "label": "Marketing",
+      "prefix": "docs/marketing/"
+    },
+    {
+      "id": "handoffs",
+      "label": "Handoffs",
+      "prefix": ".agents/handoffs/"
+    }
+  ],
+  "excludedPrefixes": [
+    "docs/archive/",
+    "docs/legal/",
+    "docs/operaciones/",
+    "docs/design/",
+    "DTD Cargo/",
+    "graphify-out/",
+    "wiki-personal/"
+  ],
+  "extensions": [
+    ".md",
+    ".mdx"
+  ]
+}

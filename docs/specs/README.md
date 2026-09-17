@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 458 specs)
+### Índice de specs (generado · 462 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -496,6 +496,10 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0468 | Portal: rediseño del enlace del proveedor (Factura + Packing … | in-progress | interno |
 | 0469 | Borrar un cliente deja un evento de auditoría atómico y se co… | in-progress | interno |
 | 0470 | El e2e de verify sin Supabase público: omite con motivo lo qu… | done | interno |
+| 0471 | Conocimiento verificable con Director, Graphify, Archify y Ob… | in-progress | interno |
+| 0472 | Clientes: escritura gobernada por RBAC efectivo | in-progress | interno |
+| 0473 | Importación documental, borrador compartido y calculadora pue… | in-progress | interno |
+| 0474 | Guía de Alibaba — Shipping Mark conectado, costo real con tar… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

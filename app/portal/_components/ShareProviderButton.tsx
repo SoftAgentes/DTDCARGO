@@ -13,7 +13,7 @@ const FOCUS_RING =
 
 // Acciones secundarias como texto subrayado: se ven, pero no compiten con el
 // botón principal. `min-h-11` da 44px de área táctil sin agrandar el texto.
-const QUIET_ACTION = `inline-flex min-h-11 items-center gap-1.5 rounded-[4px] text-[12.5px] font-semibold text-ink underline decoration-grey-500 underline-offset-4 hover:decoration-ink ${FOCUS_RING}`;
+const QUIET_ACTION = `inline-flex min-h-11 items-center gap-2 rounded-sm text-sm font-semibold text-ink underline decoration-grey-500 underline-offset-4 hover:decoration-ink ${FOCUS_RING}`;
 
 type Feedback = "link" | "message" | "failed-link" | "failed-message" | null;
 
@@ -73,7 +73,14 @@ export function ShareProviderButton({ token }: { token: string }) {
   const failed = feedback === "failed-link" || feedback === "failed-message";
 
   return (
-    <div>
+    <section aria-labelledby={`${inputId}-title`}>
+      <h2 id={`${inputId}-title`} className="m-0 text-lg font-bold leading-snug text-ink">
+        Solicita la factura y el packing list a tu proveedor
+      </h2>
+      <p id={`${inputId}-description`} className="mt-2 mb-4 max-w-prose text-base leading-relaxed text-grey-700">
+        Comparte este enlace en su chat. Tu proveedor completa los datos de la
+        mercancía, adjunta archivos y encuentra sus etiquetas y dirección de entrega.
+      </p>
       <div className="flex flex-col gap-2 sm:flex-row">
         <label htmlFor={inputId} className="sr-only">
           Enlace para tu proveedor
@@ -84,9 +91,10 @@ export function ShareProviderButton({ token }: { token: string }) {
           type="text"
           readOnly
           value={url}
+          aria-describedby={`${inputId}-description ${inputId}-feedback`}
           placeholder="Preparando enlace…"
           onFocus={(e) => e.currentTarget.select()}
-          className={`h-12 min-w-0 flex-1 truncate rounded-[8px] border border-grey-200 bg-grey-100 px-4 text-[13px] text-ink ${FOCUS_RING}`}
+          className={`h-12 min-w-0 flex-1 truncate rounded-lg border border-grey-200 bg-grey-100 px-4 text-base text-ink ${FOCUS_RING}`}
           style={{ fontFamily: MONO }}
         />
         <button
@@ -105,8 +113,8 @@ export function ShareProviderButton({ token }: { token: string }) {
         </button>
       </div>
 
-      <p className="mt-2 text-[12.5px] leading-[1.5] text-grey-700">
-        Tu proveedor lo abre sin cuenta, en chino y español.
+      <p className="mt-3 text-sm leading-relaxed text-grey-700">
+        Se abre sin crear una cuenta. Comienza en chino y permite elegir español o inglés.
       </p>
 
       <div className="flex flex-wrap items-center gap-x-5">
@@ -121,7 +129,7 @@ export function ShareProviderButton({ token }: { token: string }) {
               Mensaje copiado <CheckIcon size={13} />
             </>
           ) : (
-            "Copiar con mensaje en chino"
+            "Copiar mensaje en chino"
           )}
         </button>
         <a
@@ -136,9 +144,10 @@ export function ShareProviderButton({ token }: { token: string }) {
       </div>
 
       <p
+        id={`${inputId}-feedback`}
         role="status"
         aria-live="polite"
-        className={failed ? "mt-1 text-[12.5px] leading-[1.5] text-ink" : "sr-only"}
+        className={failed ? "mt-2 text-sm leading-relaxed text-ink" : "sr-only"}
       >
         {feedback === "failed-link" || feedback === "failed-message"
           ? FAILED_TEXT[feedback]
@@ -148,6 +157,6 @@ export function ShareProviderButton({ token }: { token: string }) {
               ? "Mensaje copiado"
               : ""}
       </p>
-    </div>
+    </section>
   );
 }

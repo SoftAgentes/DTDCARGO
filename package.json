@@ -32,6 +32,7 @@
     "sdd:next": "node scripts/next-number.mjs",
     "sdd:check": "node scripts/check-numbering.mjs",
     "edge:check": "node scripts/check-edge-functions.mjs",
+    "guia:check": "tsx scripts/check-guia-alibaba.ts",
     "attachments:preflight": "node scripts/attachments-pilot-preflight.mjs",
     "attachments:r2:validate": "node scripts/attachments-r2-live-validation.mjs",
     "attachments:clamav:serve": "node scripts/attachments-clamav-http.mjs",
@@ -42,7 +43,12 @@
     "marketing:reader": "node scripts/build-marketing-reader.mjs",
     "verify": "node scripts/verify.mjs",
     "harness:status": "node scripts/director-status.mjs",
-    "harness:test": "node scripts/tests/run-harness.mjs"
+    "harness:test": "node scripts/tests/run-harness.mjs",
+    "knowledge:status": "node scripts/knowledge-sync.mjs status",
+    "knowledge:publish": "node scripts/knowledge-sync.mjs publish",
+    "knowledge:check": "node scripts/knowledge-sync.mjs check",
+    "knowledge:visual": "node scripts/knowledge-visual.mjs build",
+    "knowledge:visual:check": "node scripts/knowledge-visual.mjs check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
@@ -58,6 +64,7 @@
     "@uppy/tus": "^5.1.1",
     "agentation": "^3.0.2",
     "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
     "fflate": "^0.8.3",
     "file-type": "^22.0.1",
     "next": "16.2.11",
@@ -72,11 +79,13 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -88,7 +97,6 @@
     "ajv-formats": "3.0.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.11",
-    "exceljs": "^4.4.0",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",

@@ -10,6 +10,7 @@
 import { describe, it, expect } from "vitest";
 import {
   computeTotals,
+  formatPackingQuantity,
   validatePackingListInput,
   PACKING_LIST_MAX_ROWS,
   type PackingListRowInput,
@@ -243,5 +244,55 @@ describe("validatePackingListInput", () => {
         rows: [okRow],
       }).input!.docDate,
     ).toBeNull();
+  });
+});
+
+/**
+ * SDD-0473 · Cantidades heterogéneas. Sumar piezas con metros inventa un dato,
+ * así que el total llega en `null` y hay que enumerar cada unidad por separado.
+ */
+describe("formatPackingQuantity (SDD-0473)", () => {
+  const plano = (v: number) => String(v);
+
+  it("con unidades homogéneas usa el total y no enumera nada", () => {
+    expect(formatPackingQuantity({ qty: 58 }, plano)).toBe("58");
+  });
+
+  it("formatea el cero real, no lo confunde con ausencia de dato", () => {
+    expect(formatPackingQuantity({ qty: 0 }, plano)).toBe("0");
+  });
+
+  it("sin total escalar enumera cada unidad en orden estable", () => {
+    expect(
+      formatPackingQuantity(
+        { qty: null, quantitiesByUnit: { pcs: 100, m: 30 } },
+        plano,
+      ),
+    ).toBe("30 m · 100 pcs");
+  });
+
+  it("sin total ni desglose muestra vacío en vez de un cero ficticio", () => {
+    expect(formatPackingQuantity({ qty: null }, plano)).toBe("—");
+    expect(
+      formatPackingQuantity({ qty: null, quantitiesByUnit: {} }, plano),
+    ).toBe("—");
+  });
+
+  it("descarta unidades con valor no finito sin romper el resto", () => {
+    expect(
+      formatPackingQuantity(
+        { qty: null, quantitiesByUnit: { pcs: 12, m: Number.NaN } },
+        plano,
+      ),
+    ).toBe("12 pcs");
+  });
+
+  it("respeta el formateador del llamador", () => {
+    expect(
+      formatPackingQuantity(
+        { qty: null, quantitiesByUnit: { pcs: 1234.5 } },
+        (v) => v.toLocaleString("es-VE", { minimumFractionDigits: 2 }),
+      ),
+    ).toBe("1.234,50 pcs");
   });
 });

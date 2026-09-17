@@ -1,0 +1,11 @@
+{
+  "//": "SDD-0473 · Sólo para `leer.mts`. `server-only` no existe en disco: lo aliasea el bundler de Next, y vitest lo apunta a su stub. Acá se hace lo mismo para que `tsx` pueda cargar el lector real fuera de Next, con la ruta del archivo como argumento y sin variables de entorno.",
+  "extends": "../../../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../../../..",
+    "paths": {
+      "@/*": ["./*"],
+      "server-only": ["./vitest/server-only.stub.ts"]
+    }
+  }
+}

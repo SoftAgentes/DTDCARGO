@@ -5,6 +5,7 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { resolveBrandForPortal } from "@/lib/studio/aliados/brand-resolve";
 import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
+import { documentLabelGate } from "@/lib/studio/document-import/service";
 import {
   getPrealertaByCode,
   listPrealertaDocuments,
@@ -53,7 +54,13 @@ export default async function PortalLabelsPage({
   const prealerta = await getPrealertaByCode(supabase, code, {
     markbox: client.markbox,
   });
-  if (!prealerta) notFound();
+  if (!prealerta || prealerta.tenant_id !== tenantId) notFound();
+  const labelGate = await documentLabelGate(createAdminClient(),prealerta.id,tenantId);
+  if(!labelGate.allowed)return <section className="card-shadow bg-white border border-grey-200 rounded-[16px] p-6">
+    <h1 className="text-xl font-bold">Etiquetas pendientes de confirmación</h1>
+    <p className="mt-3 text-grey-700">El proveedor debe revisar las cajas, el peso bruto y el CBM y confirmar la versión vigente del Packing List + Factura.</p>
+    {prealerta.share_token&&<div className="mt-5"><ShareProviderButton token={prealerta.share_token}/></div>}
+  </section>;
 
   const suppliers = await listSuppliers(supabase, { markbox: client.markbox });
 
@@ -143,16 +150,7 @@ export default async function PortalLabelsPage({
 
       {prealerta.share_token && (
         <div className="mt-8 print:hidden card-shadow bg-white border border-grey-200 rounded-[16px] p-6">
-          <div className="text-[15px] font-bold text-ink">
-            Enlace para tu proveedor
-          </div>
-          <p className="mt-1.5 text-[13px] text-grey-700 leading-[1.5] max-w-[60ch]">
-            Pégalo en el chat con tu proveedor. Ahí llena la factura y el
-            packing list, e imprime estas etiquetas.
-          </p>
-          <div className="mt-4">
-            <ShareProviderButton token={prealerta.share_token} />
-          </div>
+          <ShareProviderButton token={prealerta.share_token} />
         </div>
       )}
 
