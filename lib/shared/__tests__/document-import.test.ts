@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeDocumentTotals, confirmationIssues, emptyDocumentDraft, fromPackingPayload, mergeDocuments, parseDocumentDraft, toPackingPayload, type DocumentDraft, type DocumentKind } from "../document-import";
+import { computeDocumentTotals, confirmationIssues, emptyDocumentDraft, fromPackingPayload, mergeDocuments, parseDocumentDraft, toPackingPayload, type DocumentDraft, type DocumentKind , toPackingDraft } from "../document-import";
 
 function mixed(): DocumentDraft {
   const d = emptyDocumentDraft();
@@ -104,5 +104,72 @@ describe("document merge", () => {
     const merged = mergeDocuments(current, incoming);
     expect(merged.issues.some((i) => i.code === "ambiguous_product")).toBe(true);
     expect(merged.products).toHaveLength(3);
+  });
+});
+
+/**
+ * SDD-0473 · Precargar el enlace del proveedor con lo que el cliente ya cargó.
+ *
+ * Es lo contrario de confirmar: acá el documento está INCOMPLETO a propósito y el
+ * proveedor lo completa. Lo que no se sabe tiene que llegar vacío — un cero en el
+ * peso se leería como "no pesa nada" y el proveedor lo daría por bueno.
+ */
+describe("toPackingDraft (SDD-0473)", () => {
+  const conGrupo = (over = {}) => {
+    const d = emptyDocumentDraft();
+    d.currency = "USD";
+    d.products = [
+      { id: "p1", name: "Vasos", nameZh: "杯子", code: "VAS-01", brand: "", material: "", quantity: 50, unitPrice: 2, currency: "USD", unit: "pcs" },
+      { id: "p2", name: "Tapas", nameZh: "盖子", code: "TAP-02", brand: "", material: "", quantity: 8, unitPrice: 4, currency: "USD", unit: "pcs" },
+    ];
+    d.groups = [{ id: "g1", label: "A", cartons: 5, grossWeightKg: 15, cbm: 2.5, items: [{ productId: "p1", quantity: 50 }, { productId: "p2", quantity: 8 }], ...over }];
+    return d;
+  };
+
+  it("precarga un documento incompleto en vez de negarse, al revés que toPackingPayload", () => {
+    const sinPeso = conGrupo({ grossWeightKg: null, cbm: null });
+    expect(() => toPackingPayload(sinPeso)).toThrow();
+    const draft = toPackingDraft(sinPeso);
+    expect(draft.rows).toHaveLength(2);
+  });
+
+  it("deja vacío lo que el documento no trajo, nunca un cero", () => {
+    const { rows } = toPackingDraft(conGrupo({ grossWeightKg: null, cbm: null }));
+    expect(rows![0].wkg).toBe("");
+    expect(rows![0].cbm).toBe("");
+    expect(rows![0].wkg).not.toBe(0);
+  });
+
+  it("pone cajas, peso y CBM sólo en la fila líder del grupo", () => {
+    const { rows } = toPackingDraft(conGrupo());
+    expect(rows![0]).toMatchObject({ ctns: 5, wkg: 3, cbm: 0.5, same: false });
+    // La hija comparte esas cajas: aportar su peso otra vez duplicaría el envío.
+    expect(rows![1]).toMatchObject({ ctns: 0, wkg: 0, cbm: 0, same: true, qtyDirect: 8 });
+  });
+
+  it("no pierde un producto que la factura trajo sin asignar a ninguna caja", () => {
+    const d = conGrupo();
+    d.products.push({ id: "p3", name: "Sorbetes", nameZh: "", code: "SOR-03", brand: "", material: "", quantity: 100, unitPrice: 1, currency: "USD", unit: "pcs" });
+    const { rows } = toPackingDraft(d);
+    const suelto = rows!.find((r) => r.code === "SOR-03");
+    expect(suelto).toBeDefined();
+    expect(suelto).toMatchObject({ qtyDirect: 100, ctns: "", wkg: "", cbm: "", same: false });
+  });
+
+  it("conserva el contacto del proveedor para que no lo reescriba", () => {
+    const d = conGrupo();
+    d.supplier.company = "义乌供应商";
+    d.supplier.wechat = "wechat-id";
+    const draft = toPackingDraft(d);
+    expect(draft.supplierCompany).toBe("义乌供应商");
+    expect(draft.supplierWechat).toBe("wechat-id");
+    expect(draft.currency).toBe("USD");
+  });
+
+  it("no divide por cero cuando el grupo no declara cuántas cajas son", () => {
+    const { rows } = toPackingDraft(conGrupo({ cartons: null }));
+    expect(rows![0].perctn).toBe("");
+    expect(rows![0].wkg).toBe("");
+    expect(Number.isNaN(Number(rows![0].wkg))).toBe(false);
   });
 });

@@ -173,6 +173,7 @@ export function PackingListFormSection({
   token,
   supplierName,
   supplierWechat,
+  prefill,
   markbox,
   code,
   locale = "zh",
@@ -186,6 +187,12 @@ export function PackingListFormSection({
   token: string;
   supplierName?: string | null;
   supplierWechat?: string | null;
+  /**
+   * SDD-0473 · Documento que el CLIENTE ya cargó, para que el proveedor no
+   * transcriba lo que ya está. Se aplica sólo si este dispositivo no tiene un
+   * borrador propio: el trabajo en curso del proveedor nunca se pisa.
+   */
+  prefill?: Partial<Draft> | null;
   markbox?: string | null;
   code?: string;
   locale?: ProviderLocale;
@@ -366,12 +373,14 @@ export function PackingListFormSection({
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
+      let restaurado = false;
       try {
         const raw = localStorage.getItem(packlistDraftKey(token));
         if (raw) {
           const clean = sanitizePacklistDraft(raw);
           localStorage.setItem(packlistDraftKey(token), clean);
           applyDraft(JSON.parse(clean) as Partial<Draft>);
+          restaurado = true;
         }
         const h = localStorage.getItem(packlistHistoryKey(token));
         if (h) {
@@ -384,6 +393,9 @@ export function PackingListFormSection({
       } catch {
         /* localStorage no disponible / corrupto → seguimos con el prefill */
       }
+      // El documento del cliente llena el formulario SÓLO si el proveedor no
+      // tiene trabajo propio en este dispositivo. Su borrador manda siempre.
+      if (!restaurado && prefill) applyDraft(prefill);
       hydrated.current = true;
     });
     return () => {

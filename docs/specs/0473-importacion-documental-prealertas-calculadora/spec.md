@@ -87,6 +87,8 @@ Anthropic solo propone JSON validado. Sin key/model no hay simulación: error re
 - `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/README.md`
 - `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/vite.config.ts`
 
+- `app/p/[token]/PackingListFormSection.tsx`
+- `app/p/[token]/supplier-flow.test.tsx`
 - `app/portal/(app)/compras/[code]/documento/page.tsx`
 - `app/portal/(app)/compras/[code]/documento/DocumentReviewClient.tsx`
 - `components/document-import/DocumentEditor.test.tsx`
@@ -100,8 +102,15 @@ Anthropic solo propone JSON validado. Sin key/model no hay simulación: error re
 UI/conexiones delegadas a Worker de 0468 en este mismo worktree después de integrar su commit estable;
 backend/SQL/legacy/export/spec/handoff permanecen bajo el owner principal. Allowlist disjunta.
 
-Ampliación 2026-09-16 (sesión Claude, al adoptar el worktree): los nueve últimos archivos se suman a
-la allowlist. La ruta `compras/[code]/documento/` es la pantalla donde el cliente revisa lo extraído
+Ampliación 2026-09-16 (sesión Claude, al adoptar el worktree): los once últimos archivos se suman a
+la allowlist.
+
+`PackingListFormSection.tsx` recibe una prop `prefill` y nada más: el enlace del proveedor llega
+cargado con el documento del cliente. Es el alcance mínimo para que el proveedor no transcriba lo
+que ya está. **Se descartó reemplazar ese formulario por `DocumentEditor`**: acaba de salir a
+producción con SDD-0468 con borradores locales, historial, impresión y adjuntos, y cambiarlo
+tiraría ese trabajo. La precarga se aplica sólo si el dispositivo no tiene borrador propio — el
+trabajo en curso del proveedor manda siempre. La ruta `compras/[code]/documento/` es la pantalla donde el cliente revisa lo extraído
 antes de compartir el enlace; `DocumentEditor.test.tsx` ya estaba en la lista original y sólo faltaba
 escribirlo. `DocumentImportEntry` es el envoltorio que decide si la importación se ofrece: mientras
 `DOCUMENT_IMPORT_ENABLED` no sea "true" no renderiza nada, así que cablearlo no cambia el flujo manual. `corpus.test.ts` corre contra documentos reales apuntados por `DOCUMENT_IMPORT_CORPUS`

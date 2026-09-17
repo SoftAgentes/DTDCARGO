@@ -35,11 +35,12 @@
 .print { display:none; }
 .file { border-bottom:1px solid var(--color-grey-200); padding:calc(var(--di-space)*3) 0; overflow-wrap:anywhere; }
 .drop { display:grid; gap:calc(var(--di-space)*3); justify-items:center; text-align:center; padding:calc(var(--di-space)*6) calc(var(--di-space)*4); border:2px dashed var(--color-grey-300); border-radius:var(--radius-card); background:var(--color-paper); }
+.drop:hover { border-color:var(--color-grey-700); }
 .drop[data-over=true] { border-color:var(--color-wine-text); background:var(--color-grey-100); }
 .drop input[type=file] { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
 .dropTitle { font-weight:700; font-size:1rem; }
 .chips { display:flex; flex-wrap:wrap; gap:calc(var(--di-space)*2); justify-content:center; }
-.chip { padding:2px calc(var(--di-space)*2); border:1px solid var(--color-grey-300); border-radius:calc(var(--di-space)*1); font-family:var(--f-mono),ui-monospace,monospace; font-size:.75rem; letter-spacing:.04em; color:var(--color-grey-700); }
+.chip { padding:2px calc(var(--di-space)*2); border:1px solid var(--color-grey-700); border-radius:calc(var(--di-space)*1); font-family:var(--font-jetbrains-mono),var(--f-mono),ui-monospace,monospace; font-size:.75rem; letter-spacing:.04em; color:var(--color-grey-700); }
 .badge { display:inline-block; padding:2px calc(var(--di-space)*2); border-radius:calc(var(--di-space)*1); font-size:.75rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; border:1px solid currentColor; }
 .fileRow { display:flex; align-items:baseline; flex-wrap:wrap; gap:calc(var(--di-space)*2); justify-content:space-between; }
 .fileName { font-weight:600; min-width:0; overflow-wrap:anywhere; }

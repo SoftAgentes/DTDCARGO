@@ -239,6 +239,64 @@ export function mergeDocuments(current: DocumentDraft, extracted: DocumentDraft)
 /** Structural legacy adapter. The shared module deliberately does not import Studio. */
 export type DocumentPackingRow = { brand?: string; code?: string; zh?: string; es?: string; hs?: string; carton?: string; ctns?: number | string; perctn?: number | string; unit?: number | string; wkg?: number | string; cbm?: number | string; same?: boolean; qtyDirect?: number | string; uom?:string };
 export type DocumentPackingPayload = { supplierCompany?: string; supplierContact?: string; supplierEmail?: string; supplierWechat?: string; supplierPhone?: string; supplierAddress?: string; supplierCity?: string; currency?: string; docDate?: string; supplierNote?: string; rows?: DocumentPackingRow[] };
+/**
+ * Versión tolerante de `toPackingPayload`, para PRECARGAR el formulario del
+ * proveedor con lo que el cliente ya cargó.
+ *
+ * `toPackingPayload` exige el documento completo porque produce la versión que se
+ * confirma. Precargar es lo contrario: sirve justamente cuando falta algo, y el
+ * proveedor es quien lo completa. Así que acá nada se exige y **lo desconocido
+ * viaja vacío, nunca como cero** — un 0 en el peso se leería como "pesa nada".
+ *
+ * Las cajas, el peso y el CBM van sólo en la fila LÍDER de cada grupo, que es la
+ * convención de Caja Padre del formulario (SDD-0097): las filas `same` comparten
+ * las cajas de la líder y sólo aportan su cantidad.
+ */
+export function toPackingDraft(draft: DocumentDraft): DocumentPackingPayload {
+  const d = parseDocumentDraft(draft);
+  const rows: DocumentPackingRow[] = [];
+  const perCarton = (total: number | null, cartons: number | null) =>
+    total === null || cartons === null || cartons <= 0 ? "" : total / cartons;
+  for (const g of d.groups) {
+    for (const [index, item] of g.items.entries()) {
+      const p = d.products.find((product) => product.id === item.productId);
+      if (!p) continue;
+      const lider = index === 0;
+      rows.push({
+        brand: p.brand, code: p.code, zh: p.nameZh, es: p.name, hs: p.material, carton: g.label,
+        ctns: lider ? (g.cartons ?? "") : 0,
+        perctn: lider ? perCarton(item.quantity, g.cartons) : 0,
+        unit: p.unitPrice ?? "",
+        wkg: lider ? perCarton(g.grossWeightKg, g.cartons) : 0,
+        cbm: lider ? perCarton(g.cbm, g.cartons) : 0,
+        same: !lider,
+        qtyDirect: lider ? 0 : (item.quantity ?? ""),
+        uom: normalizeProductUnit(p.unit ?? "pcs"),
+      });
+    }
+  }
+  // Un producto que la factura trajo sin asignar a ninguna caja NO se pierde: va
+  // como fila propia sin logística, para que el proveedor diga en qué caja viaja.
+  const asignados = new Set(d.groups.flatMap((g) => g.items.map((i) => i.productId)));
+  for (const p of d.products) {
+    if (asignados.has(p.id)) continue;
+    rows.push({
+      brand: p.brand, code: p.code, zh: p.nameZh, es: p.name, hs: p.material, carton: "",
+      ctns: "", perctn: "", unit: p.unitPrice ?? "", wkg: "", cbm: "",
+      qtyDirect: p.quantity ?? "", same: false,
+      uom: normalizeProductUnit(p.unit ?? "pcs"),
+    });
+  }
+  return {
+    supplierCompany: d.supplier.company, supplierContact: d.supplier.contact, supplierEmail: d.supplier.email,
+    supplierWechat: d.supplier.wechat, supplierPhone: d.supplier.phone, supplierAddress: d.supplier.address,
+    supplierCity: d.supplier.city,
+    currency: d.products[0]?.currency ?? d.currency ?? undefined,
+    docDate: d.docDate ?? undefined,
+    rows: rows.slice(0, 500),
+  };
+}
+
 export function toPackingPayload(draft: DocumentDraft): DocumentPackingPayload {
   const d = parseDocumentDraft(draft);
   const blockers = confirmationIssues(d).filter((i) => i.blocking);
