@@ -28,9 +28,10 @@
 | `pnpm guia:check` | **PASÓ** |
 | `vitest` — guía + origen + endpoint | **PASÓ** (18 tests) |
 | `vitest` — canal del alta | **PASÓ** (7 tests) |
-| `vitest` — calculadora en jsdom | **PASÓ** (11 tests) |
+| `vitest` — calculadora y Paso 7 en jsdom | **PASÓ** (13 tests) |
 | Control rojo · canal del alta | **PASÓ** — mutante → 3 rojos |
 | Control rojo · calculadora (×2) | **PASÓ** — mutantes → 1 y 2 rojos |
+| Control rojo · copiar todo | **PASÓ** — mutante → 1 rojo |
 | `pnpm sdd:check` | **PASÓ** (sin números repetidos) |
 | `pnpm docs:index` | **PASÓ** (461 specs) |
 | Revisión visual en navegador | **PASÓ** — encontró un bug, ver abajo |
@@ -53,13 +54,25 @@ especificidad a `.dir-mark .h .mk-puertas a.mk-prim`. Comprobado en el navegador
 `color: rgb(255,255,255)` sobre `rgb(127,15,26)`. **Ningún test de texto lo
 habría visto** — hacía falta mirar.
 
-**3 · Los controles rojos confirman que los tests detectan.**
+**3 · La auto-revisión del diff encontró un bug que las pruebas a mano no
+vieron.** El «Copiar todo» del Paso 7 copiaba **sólo el destinatario**, sin
+dirección ni teléfono, cuando SÍ había Shipping Mark: el handler reconstruía
+`"林冠 "+mark` para todo botón con `data-field="destinatario"`, que es lo
+correcto en el Paso 1 (ahí copia un campo suelto del formulario) pero no en la
+tarjeta compacta. **No se vio al probarlo en el navegador porque se probó el caso
+sin mark**, donde el guardarraíl corta antes de copiar — y el caso con mark es
+el normal. Arreglado, con test de las tres líneas y su mutante. Commit
+`ebf91e47`.
+
+**4 · Los controles rojos confirman que los tests detectan.**
 - Canal del alta: con la action confiando en el formData
   (`String(formData.get("origen"))`), **3 casos rojos** — origen inventado,
   `'admin'` declarado desde la web, y valor larguísimo.
 - Calculadora: ignorando el mínimo cobrable → **1 rojo** ($12,55 vs $15,00);
   calculando el flete sobre las unidades en vez del CBM → **2 rojos** ($853,00
   vs $6,40).
+- Copiar todo: reintroduciendo el bug → **1 rojo** (`'林冠 DTD-1042'` no
+  contiene la dirección).
 
 ### Sobre el test de la calculadora
 
