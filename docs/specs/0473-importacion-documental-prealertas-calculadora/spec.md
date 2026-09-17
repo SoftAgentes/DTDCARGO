@@ -87,8 +87,17 @@ Anthropic solo propone JSON validado. Sin key/model no hay simulación: error re
 - `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/README.md`
 - `docs/specs/0473-importacion-documental-prealertas-calculadora/qa/vite.config.ts`
 
+- `lib/studio/prealertas/__tests__/packlist-form.test.ts`
+- `.env.example`
+
 UI/conexiones delegadas a Worker de 0468 en este mismo worktree después de integrar su commit estable;
 backend/SQL/legacy/export/spec/handoff permanecen bajo el owner principal. Allowlist disjunta.
+
+Ampliación 2026-09-16 (sesión Claude, al adoptar el worktree): los dos últimos archivos se suman a
+la allowlist. El test cubre `formatPackingQuantity`, que existe porque `total_qty` puede ser nulo
+cuando las unidades son heterogéneas; `.env.example` documenta `DOCUMENT_IMPORT_*`, sin las cuales
+la API responde 503 a todo. Ninguno cambia comportamiento de Studio: uno es prueba, el otro es
+configuración de ejemplo sin valores reales.
 
 ## Aceptación
 
