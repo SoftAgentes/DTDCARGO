@@ -2,7 +2,8 @@
 
 - **Fecha:** 2026-09-17
 - **Rama:** `claude/alibaba-guide-registration-services-d3f97c`
-- **Base:** `747637e6` (merge del PR #129, SDD-0468)
+- **Base:** `98a7aca5` (merge del PR #130, SDD-0473) — rebasado el 2026-09-17
+- **SHA:** `0a64e00d`
 - **Spec:** [`docs/specs/0474-guia-alibaba-shipping-mark-y-costo-real/spec.md`](../../docs/specs/0474-guia-alibaba-shipping-mark-y-costo-real/spec.md)
 - **Encargo:** founder, 2026-09-17, con capturas de la guía en producción.
 
@@ -42,7 +43,10 @@
 | Contraste de lo nuevo (calculado sobre los tokens) | **PASÓ** — botón 10.58:1 · hover 16.49:1 · textos 5.11–5.33:1 · foco 15.8:1 y 10.13:1 |
 | Compactado, medido en el navegador | **PASÓ** — 125px / 81px / móvil 44px sin desbordar a 375px |
 | `app/__tests__/sitemap-cobertura-contract.test.ts` | **PASÓ** (3 tests) — el contrato excluye `api` y sólo mira `page.tsx`: el endpoint no aplica |
-| `pnpm verify` | **NO EJECUTADO** — ver pendientes |
+| `pnpm verify` | **PASÓ con cierre INCOMPLETO** — exit 0, 14 de 17 pasos corrieron. Ver desglose |
+| `vitest` — prellenado del registro | **PASÓ** (7 tests) |
+| Control rojo · prellenado (×2) | **PASÓ** — sin guard de origen → 1 rojo; sin try/catch → 2 rojos |
+| Rebase sobre `98a7aca5` | **PASÓ** — lock regenerado, índice en 462 specs, `sdd:check` verde |
 
 ### Los tres hallazgos que valieron la pena
 
@@ -126,16 +130,50 @@ caído). Necesitó `@types/jsdom` como devDependency (el repo ya usaba `jsdom`).
    script, no a mano), `package.json` (textual, trivial) y `pnpm-lock.yaml`
    (regenerar). Y `tsconfig.json` quedó modificado por el propio verify
    (añade `.next-verify/types`): revertirlo, no es del cambio.
-3. **El alta, extremo a extremo con DB local.** El camino de la action está
-   cubierto por 7 tests con control rojo; falta completar un registro real contra
-   Supabase local y ver la fila con `registration_channel = 'guia-alibaba'`.
-   Nunca contra producción.
-4. **Prellenado desde la guía, a mano**, incluida la ventana privada
-   (localStorage bloqueado → el registro debe cargar vacío, sin error en
-   consola). El lector está entre `try/catch` y la clave/forma se verificaron
-   contra el `persist()` de la guía, pero el recorrido completo no se probó.
+3. **El alta, extremo a extremo con DB local** — **NO DISPONIBLE acá**: exige
+   Docker y credenciales, que este worktree no tiene (el propio verify lo marca
+   en `sql-tests` y `schema-rebuild`). El camino de la action está cubierto por
+   7 tests con control rojo, y el prellenado por otros 7; lo que falta es ver la
+   fila real con `registration_channel = 'guia-alibaba'`. **Nunca contra
+   producción.**
+4. ~~Prellenado desde la guía, a mano~~ → **cerrado con tests**
+   (`register-prellenado-guia.test.tsx`). A mano no se podía: `/registro`
+   devuelve 404 sin credenciales de Supabase, comprobado en el navegador. Los
+   tests cubren el caso feliz, el origen ajeno, el localStorage corrupto y la
+   **ventana privada** (el acceso que lanza), con dos mutantes que los ponen
+   rojos.
 5. Nada más. (`.claude/launch.json` se creó para levantar el dev server desde la
    sesión, pero `.gitignore:88` ya lo excluye: no entra al repo.)
+
+### Una nota sobre cómo se midió
+
+Una corrida de `pnpm verify` **se contaminó desde esta misma sesión**: se usó su
+dev server (puerto 3579) para la revisión visual y los e2e de la calculadora
+empezaron a caer en masa. Se paró y se relanzó sin tocar nada. Si alguien ve e2e
+rojos de forma difusa, conviene descartar antes que nadie esté usando ese
+servidor.
+
+### `pnpm verify` — desglose (exit 0 **no** es cierre verde completo)
+
+El propio verify lo declara: *«CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR»*.
+
+| Paso | Resultado |
+|---|---|
+| harness · lint · rsc-boundary · typecheck · edge-functions | **PASÓ** |
+| **test** | **PASÓ** — 7.767 tests, 1 skip (588 archivos) |
+| **build** | **PASÓ** — compiló en 30,8 s, 161 páginas estáticas |
+| docs:check · numbering · feature-constants · components:check · governance:check | **PASÓ** |
+| pending-migration-symbols | **PASÓ** |
+| **e2e** | **PASÓ con cobertura PARCIAL** — 153 pruebas verdes; **15 omitidas** sin Supabase público (auth, global-search) |
+| **migrations-applied** | **NO DISPONIBLE** — sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` |
+| **sql-tests** | **NO DISPONIBLE** — Docker no disponible |
+| **schema-rebuild** | **NO DISPONIBLE** — Docker no disponible |
+
+Los tres NO DISPONIBLE y las 15 omitidas son **del entorno del worktree**, no del
+cambio: no hay `.env.local` (AGENTS lo prohíbe) ni Docker. Y **ninguno cubre algo
+de esta tarea**: SDD-0474 **no lleva migración ni SQL**. Quien tenga el entorno
+completo debería correrlos antes de integrar, pero lo que este cambio toca
+—guía, endpoint, registro, academia— está medido y en verde.
 
 ## Lo que avisó el Director (sesión `dtdcargo-18`), comprobado
 
