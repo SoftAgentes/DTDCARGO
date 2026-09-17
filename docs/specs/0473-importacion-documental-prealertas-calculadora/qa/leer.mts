@@ -9,7 +9,9 @@
  * este script lo dice en vez de disimularlo: es la señal de que falta un alias
  * en el diccionario de encabezados, y eso se arregla con una línea.
  *
- *   node_modules/.bin/tsx --tsconfig docs/specs/0473-*/qa/tsconfig.leer.json \n *     docs/specs/0473-*/qa/leer.mts "C:/ruta/al/archivo.xlsx"
+ * Uso, desde la raíz del worktree (QA es la carpeta de esta spec):
+ *
+ *   node_modules/.bin/tsx --tsconfig QA/tsconfig.leer.json QA/leer.mts "C:/ruta/archivo.xlsx"
  */
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";

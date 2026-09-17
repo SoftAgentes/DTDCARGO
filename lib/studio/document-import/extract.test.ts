@@ -70,6 +70,54 @@ describe("native document extraction", () => {
    * va primero —layout igual de real— y sin la guarda se lleva el campo `code`: el
    * documento saldría con el EAN donde va la referencia del proveedor.
    */
+  /**
+   * En Yiwu unos proveedores cotizan en RMB y otros en dólares, y muchos lo dicen
+   * SÓLO en el encabezado del precio («RMB 单价»), no en una columna de moneda. Sin
+   * leerlo, el precio está en pantalla pero el valor de la mercancía no se puede
+   * publicar: `computeDocumentTotals` no suma importes sin moneda.
+   *
+   * La trampa: `美元` (dólar) TERMINA en `元` (yuan). Probar RMB primero convertiría
+   * en yuanes todo documento en dólares — el mismo número, la moneda equivocada, y
+   * nada roto a la vista.
+   */
+  it.each([
+    ["RMB 单价", "RMB"],
+    ["USD 单价", "USD"],
+    ["单价 美元", "USD"],
+    ["UNIT PRICE (USD)", "USD"],
+    ["单价 人民币", "RMB"],
+  ])("lee la moneda declarada en el encabezado del precio: %s → %s", async (encabezado, esperada) => {
+    const bytes = await workbook([
+      ["ITEM.NO 货号", "DESCRIPTIONS 品名描述", "T.QTY 总数量", encabezado],
+      ["MQ-4", "Barber chair", 4, 1850],
+    ]);
+    const d = await extractDocument(bytes, { ...opts, fileName: "po.xlsx" });
+
+    expect(assisted).not.toHaveBeenCalled();
+    expect(d.currency).toBe(esperada);
+    expect(d.products[0]?.currency).toBe(esperada);
+    // Con moneda, el importe SÍ se publica: sin ella quedaría vacío.
+    expect(computeDocumentTotals(d).amounts).toEqual({ [esperada]: 7400 });
+  });
+  it("no elige por el cliente cuando las columnas de precio declaran monedas distintas", async () => {
+    const bytes = await workbook([
+      ["ITEM.NO 货号", "DESCRIPTIONS 品名描述", "T.QTY 总数量", "RMB 单价", "TOTAL USD 总价"],
+      ["MQ-4", "Barber chair", 4, 1850, 1040],
+    ]);
+    const d = await extractDocument(bytes, { ...opts, fileName: "po.xlsx" });
+
+    expect(d.currency).toBeNull();
+    expect(d.issues.map((i) => i.code)).toContain("currency_ambiguous");
+  });
+  it("un `$` suelto no alcanza: puede ser USD, HKD o SGD", async () => {
+    const bytes = await workbook([
+      ["ITEM.NO 货号", "DESCRIPTIONS 品名描述", "T.QTY 总数量", "$ 单价"],
+      ["MQ-4", "Barber chair", 4, 1850],
+    ]);
+    const d = await extractDocument(bytes, { ...opts, fileName: "po.xlsx" });
+
+    expect(d.currency).toBeNull();
+  });
   it("nunca toma el código de barras como código del artículo, venga en la columna que venga", async () => {
     const bytes = await workbook([
       ["BAR CODE 条码", "ITEM.NO 货号", "DESCRIPTIONS 品名描述", "T.QTY 总数量", "RMB 单价"],

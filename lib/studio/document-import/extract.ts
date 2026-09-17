@@ -186,10 +186,16 @@ function resolveHeader(raw: string): Field | undefined {
   if (exacto) return exacto;
   if (NOT_A_FIELD.some((marca) => entero.includes(marca))) return undefined;
   const normal = raw.normalize("NFKC");
-  const trozos = [
-    ...normal.split(/[\s,;|]+/),
-    ...(normal.match(/[㐀-鿿豈-﫿]+|[A-Za-z][A-Za-z.]*/g) ?? []),
-  ];
+  const palabras = normal.split(/[\s,;|]+/).filter(Boolean);
+  // Grupos de palabras del MÁS LARGO al más corto, antes que las palabras sueltas.
+  // «UNIT PRICE (USD)» tiene que dar precio unitario por «UNIT PRICE»; probando
+  // palabra por palabra, «UNIT» gana y la columna de precio se lee como la de
+  // unidad de medida — peor que ignorarla, porque el error queda invisible.
+  const trozos: string[] = [];
+  for (let largo = palabras.length; largo >= 1; largo--)
+    for (let i = 0; i + largo <= palabras.length; i++) trozos.push(palabras.slice(i, i + largo).join(" "));
+  // Y por último las rachas de un mismo alfabeto, para «T.QTY总数量» sin espacio.
+  trozos.push(...(normal.match(/[㐀-鿿豈-﫿]+|[A-Za-z][A-Za-z.]*/g) ?? []));
   for (const trozo of trozos) {
     const campo = headerMap.get(key(trozo));
     if (campo) return campo;
@@ -211,6 +217,30 @@ function readNumber(cell: Cell | undefined, d: DocumentDraft, path: string): num
   else if (/^\d+,\d{1,2}$/.test(value) || /^0,\d+$/.test(value)) value = value.replace(",", ".");
   if (!/^\d+(\.\d+)?$/.test(value) || Number(value) > 1e12) { issue(d, "number_ambiguous", path, "Un número tiene un formato ambiguo o no se puede leer. Revísalo sin evaluar expresiones."); return null; }
   return Number(value);
+}
+/**
+ * La moneda que el proveedor DECLARA en el encabezado del precio: «RMB 单价»,
+ * «UNIT PRICE USD», «USD 单价». Hace falta de verdad — en Yiwu unos cotizan en
+ * RMB y otros en dólares, y sin moneda el valor de la mercancía no se publica
+ * aunque el número esté ahí.
+ *
+ * No es una inferencia: la celda dice en qué moneda está esa columna. Por eso
+ * sólo entran códigos INEQUÍVOCOS. Un `$` suelto NO entra: en un documento
+ * chino puede ser USD, HKD o SGD, y elegir por el cliente sería inventarle el
+ * precio.
+ *
+ * El orden importa: `美元` (dólar) TERMINA en `元` (yuan). Si se probara RMB
+ * primero, todo documento en dólares se leería en yuanes.
+ */
+const CURRENCY_IN_HEADER: [RegExp, string][] = [
+  [/usd|us\s*\$|美元|美金/i, "USD"],
+  [/\beur\b|欧元|€/i, "EUR"],
+  [/\brmb\b|\bcny\b|人民币|元/i, "RMB"],
+];
+function currencyFromHeader(text: string): string | null {
+  const normal = text.normalize("NFKC");
+  for (const [patron, moneda] of CURRENCY_IN_HEADER) if (patron.test(normal)) return moneda;
+  return null;
 }
 function readCurrency(cell: Cell | undefined, d: DocumentDraft, path: string): string | null {
   const value = s(cell).toUpperCase();
@@ -292,6 +322,21 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
       if (["supplier", "suppliername", "seller", "proveedor", "供应商", "供货方", "卖方"].includes(label)) { d.supplier.company = s(row[i + 1]); locate(source, "supplier.company", sheet.name, row[i + 1]); }
       if (["currency", "moneda", "货币", "币种"].includes(label)) { d.currency = readCurrency(row[i + 1], d, "currency"); locate(source, "currency", sheet.name, row[i + 1]); }
     }
+  }
+  /**
+   * Último recurso, y el que salva a las proformas de Yiwu: la moneda declarada
+   * en el encabezado de la columna de precio. Sólo se mira si el documento no la
+   * dijo antes en su propia fila —esa manda siempre— y sólo si las dos columnas
+   * de dinero coinciden: si una dice RMB y otra USD, no elegimos por el cliente.
+   */
+  if (!d.currency && headerIndex >= 0) {
+    const declaradas = ([fields.unitPrice, fields.amount] as (number | undefined)[])
+      .filter((index): index is number => index !== undefined)
+      .map((index) => ({ cell: sheet.rows[headerIndex]?.[index], moneda: currencyFromHeader(s(sheet.rows[headerIndex]?.[index])) }))
+      .filter((leida) => leida.moneda !== null);
+    const distintas = new Set(declaradas.map((leida) => leida.moneda));
+    if (distintas.size === 1) { d.currency = declaradas[0]!.moneda; locate(source, "currency", sheet.name, declaradas[0]!.cell); }
+    else if (distintas.size > 1) issue(d, "currency_ambiguous", "currency", "Las columnas de precio declaran monedas distintas. Confirma cuál corresponde al documento.");
   }
   let previousGroup: CartonGroup | undefined;
   const unallocated: { cartons: number | null; grossWeightKg: number | null; cbm: number | null; cells: Partial<Record<"cartons" | "grossTotal" | "cbmTotal", Cell>> }[] = [];
