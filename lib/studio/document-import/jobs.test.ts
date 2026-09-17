@@ -261,6 +261,29 @@ describe("Cierre de carga: una huella, un trabajo, un cobro", () => {
     expect(f.borrados).toEqual([[`${IMPORT_BUCKET}/tenant-1/ws-1/job-2.pdf`]]);
   });
 
+  /**
+   * La consulta de deduplicación descartaba su `error`. Si esa lectura fallaba —RLS,
+   * timeout—, `duplicate` quedaba en null y el archivo se encolaba igual: el mismo
+   * contenido se leía dos veces y se pagaba dos veces.
+   *
+   * Es un fail-open en el único punto del módulo donde un fallo cuesta dinero, así
+   * que tiene que cerrarse: sin saber si el archivo ya estaba, no se encola.
+   */
+  it("si no puede comprobar si el archivo ya estaba, NO encola: pagaría la IA dos veces", async () => {
+    const nuevo = cargando({ id: "job-2", storage_path: "tenant-1/ws-1/job-2.pdf" });
+    const f = crearDb({
+      trabajos: [nuevo],
+      archivos: { "tenant-1/ws-1/job-2.pdf": PDF },
+      // Sólo la consulta de deduplicación: es la única que filtra por sha256.
+      errorEn: (l) =>
+        l.op === "select" && l.filtros.some(([, col]) => col === "sha256") ? { message: "rls" } : null,
+    });
+
+    await expect(finishUpload(f.db, ws, "job-2")).rejects.toMatchObject({ status: 503 });
+    expect(nuevo.status).toBe("uploading"); // no quedó encolado
+    expect(nuevo.sha256).toBeNull(); // ni se selló la huella
+  });
+
   it("no deduplica contra el documento de otro espacio de trabajo", async () => {
     // Si la búsqueda por huella no estuviera acotada al espacio, este cliente
     // recibiría el id del trabajo de otro: fuga de información entre clientes.

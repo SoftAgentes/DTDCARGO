@@ -145,6 +145,18 @@ const aliases: Record<Field, string[]> = {
 };
 /** Cargos que NO son valor de mercancía, en las tres lenguas de nuestros documentos. */
 const CHARGE_LABEL = /^(commission|comision|comisión|佣金|freight|shipping|flete|运费|insurance|seguro|保险费|discount|descuento|折扣)/i;
+/**
+ * `Sin asignar` en la primera columna es un CENTINELA: marca la fila de sobrantes,
+ * los productos que no viven en ningún grupo de cajas. No es una etiqueta de grupo.
+ *
+ * El choque es real: un proveedor puede bautizar así un grupo suyo. `exportDocument`
+ * lo esquiva entrecomillando la etiqueta que choca (`groupLabel`), y acá se deshace
+ * ese entrecomillado. Las dos mitades tienen que existir: sin esta, el round-trip
+ * devuelve el grupo con los guillemets pegados y la etiqueta deja de ser la que el
+ * proveedor escribió.
+ */
+const UNASSIGNED = "Sin asignar";
+const unquoteLabel = (label: string) => (label === "«" + UNASSIGNED + "»" ? UNASSIGNED : label);
 const headerMap = new Map(Object.entries(aliases).flatMap(([field, values]) => values.map((v) => [key(v), field as Field] as const)));
 
 function readNumber(cell: Cell | undefined, d: DocumentDraft, path: string): number | null {
@@ -189,11 +201,11 @@ function parseDtdExport(sheet: Sheet, options: ExtractionOptions): DocumentDraft
     }
     if (!s(row[1]) && !s(row[2]) && !s(row[3]) && !s(row[4])) continue;
     const cartons = readNumber(row[4], d, "groups.cartons");
-    const unassigned = s(row[0]) === "Sin asignar";
+    const unassigned = s(row[0]) === UNASSIGNED;
     if (unassigned) group = undefined;
     else if (cartons !== null || !group) {
       const id = options.sourceId + "-g" + (d.groups.length + 1);
-      group = { id, label: s(row[0]), cartons, grossWeightKg: readNumber(row[9], d, "groups." + id + ".grossWeightKg"), cbm: readNumber(row[10], d, "groups." + id + ".cbm"), items: [] };
+      group = { id, label: unquoteLabel(s(row[0])), cartons, grossWeightKg: readNumber(row[9], d, "groups." + id + ".grossWeightKg"), cbm: readNumber(row[10], d, "groups." + id + ".cbm"), items: [] };
       d.groups.push(group);
       for (const [field, col] of [["cartons", 4], ["grossWeightKg", 9], ["cbm", 10]] as const) locate(source, "groups." + id + "." + field, sheet.name, row[col]);
     }

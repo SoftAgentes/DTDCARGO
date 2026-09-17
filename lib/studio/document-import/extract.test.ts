@@ -167,6 +167,28 @@ describe("native document extraction", () => {
     expect(read.products[0]).toMatchObject({ quantity: 35, brand: "Synthetic brand", material: "Cotton" });
     expect(read.issues).toEqual([]);
   });
+  /**
+   * El lector reconoce el cajón de sobrantes por su ETIQUETA («Sin asignar»), no por
+   * identidad. Un proveedor que bautiza así un grupo REAL chocaba con el centinela y
+   * perdía sus cajas enteras.
+   *
+   * La exportación ya lo esquiva entrecomillando la etiqueta que choca, pero eso sólo
+   * cierra media vuelta: sin desentrecomillar al leer, el round-trip devuelve el grupo
+   * con guillemets pegados y la etiqueta deja de ser la que el proveedor escribió.
+   */
+  it("round-trips a group the supplier actually named «Sin asignar», label and cartons intact", async () => {
+    const draft = emptyDocumentDraft(); draft.currency = "USD"; draft.supplier.company = "Yiwu"; draft.supplier.wechat = "wx";
+    draft.products = [{ id: "p1", name: "Cups", nameZh: "杯子", code: "C1", brand: "", material: "", quantity: 50, unitPrice: 2, currency: "USD", unit: "pcs" }];
+    draft.groups = [{ id: "g1", label: "Sin asignar", cartons: 5, grossWeightKg: 15, cbm: 2.5, items: [{ productId: "p1", quantity: 50 }] }];
+
+    const bytes = await exportDocument(draft, { markbox: "DTD-TEST", code: "TEST-002", confirmed: false, revision: 1 });
+    const read = await extractDocument(bytes, { ...opts, fileName: "export.xlsx" });
+
+    expect(assisted).not.toHaveBeenCalled();
+    expect(read.groups).toHaveLength(1);
+    expect(read.groups[0]).toMatchObject({ label: "Sin asignar", cartons: 5, grossWeightKg: 15, cbm: 2.5 });
+    expect(computeDocumentTotals(read)).toEqual(computeDocumentTotals(draft));
+  });
   it("rejects old XLS, invalid PDF, invalid ZIP and oversized files", async () => {
     await expect(extractDocument(new Uint8Array([1]), { ...opts, fileName: "old.xls" })).rejects.toMatchObject({ code: "legacy_xls" });
     await expect(extractDocument(new Uint8Array([1]), { ...opts, fileName: "bad.pdf" })).rejects.toMatchObject({ code: "invalid_pdf" });

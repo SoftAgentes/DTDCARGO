@@ -35,7 +35,12 @@ export async function finishUpload(db:SupabaseClient,w:WorkspaceRow,jobId:string
     await db.storage.from(IMPORT_BUCKET).remove([job.storage_path]);
     throw e;
   }
-  const {data:duplicate}=await db.from("document_import_jobs").select("id,status,storage_path").eq("workspace_id",w.id).eq("sha256",sha).neq("status","cancelled").neq("id",job.id).maybeSingle();
+  // El `error` de esta lectura NO se descarta: es el único punto del módulo donde
+  // un fallo cuesta DINERO. Si la consulta se cae (RLS, timeout) y seguimos, el
+  // mismo contenido se encola otra vez y la lectura asistida se paga dos veces.
+  // Sin saber si el archivo ya estaba, no se encola.
+  const {data:duplicate,error:dedupError}=await db.from("document_import_jobs").select("id,status,storage_path").eq("workspace_id",w.id).eq("sha256",sha).neq("status","cancelled").neq("id",job.id).maybeSingle();
+  if(dedupError) throw new ImportHttpError(503,"dedup_unavailable","No pudimos comprobar si este archivo ya se había cargado. Tu archivo sigue guardado; intenta de nuevo en un momento.");
   if(duplicate && duplicate.status!=="failed") {
     await db.from("document_import_jobs").update({status:"cancelled",error_code:"duplicate"}).eq("id",job.id).eq("status","uploading");
     await db.storage.from(IMPORT_BUCKET).remove([job.storage_path]);
