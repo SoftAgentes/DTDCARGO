@@ -19,6 +19,7 @@ import {
 } from "../../../../lib/shared/document-import";
 import { DocumentEditor } from "../../../../components/document-import/DocumentEditor";
 import { DocumentImportPanel } from "../../../../components/document-import/DocumentImportPanel";
+import { CotizadorClient } from "../../../../app/cotizador/CotizadorClient";
 import type {
   DocumentClient,
   DocumentLocale,
@@ -74,23 +75,63 @@ function caso(kind: Caso): DocumentDraft {
   return d;
 }
 
-/** Transporte simulado: nada sale de esta máquina. */
+/**
+ * Un estimado con el mínimo facturable APLICADO, que es el caso que hay que mirar:
+ * 2,5 m³ × 168 = 420 de flete base, más 80 de entrega nacional. Si el desglose no
+ * suma el total en pantalla, el cliente siente que le cobraron de más.
+ */
+function estimadoDemo() {
+  return {
+    kind: "transport_estimate",
+    currency: "USD",
+    totals: { cbm: 2.5, grossWeightKg: 15, cartons: 5 },
+    result: {
+      cbm: 2.5, densidadKgM3: 6, sinPeso: false, pesoMaxSinRecargoKg: 0,
+      precioBase: 420, recargoExcedente: 0, recargoCiudad: 80, recargoEmbalaje: 0,
+      recargoBateria: 0, descuentoSede: 0, ajusteMinimo: 0, total: 500,
+      ciudad: { id: "ccs", label: "Caracas" }, embalaje: "estandar",
+    },
+    input: {},
+    rates: { rate: { per_cbm: 168, min_charge: 250, valid_until: null }, params: {} },
+    documentRevisions: [{ workspaceId: WORKSPACE.id, revision: 3, confirmed: false }],
+    generatedAt: "2026-09-17T12:00:00.000Z",
+    notice: "Estimado de transporte sujeto a confirmación de datos y tarifa por DTD. El valor de la mercancía se presenta por separado.",
+  };
+}
+
+/**
+ * Transporte simulado: nada sale de esta máquina.
+ *
+ * Responde como el servidor de VERDAD, no como conviene a la demo: `apply` y
+ * `save` devuelven un RECIBO (`{revision, confirmed}`), no el workspace. Un doble
+ * más amable escondía un defecto real —la pantalla se quedaba sin documento al
+ * aplicar— hasta que uno honesto lo destapó.
+ */
 function cliente(escenario: "ok" | "parcial" | "falla"): DocumentClient {
   const espera = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 300));
+  let aplicado = false;
+  const leido = () => caso(escenario === "parcial" ? "sin-peso" : "completo");
   return {
     get: async (action) => {
       if (action === "capabilities") return espera({ available: true, formats: ["xlsx", "csv", "pdf"], maxBytes: 15 * 1024 * 1024 } as never);
       if (action === "job") {
         if (escenario === "falla") return espera({ job: { status: "failed", result: null, errorCode: "legacy_xls" } } as never);
-        return espera({ job: { status: escenario === "parcial" ? "partial" : "ready", result: caso(escenario === "parcial" ? "sin-peso" : "completo"), errorCode: null } } as never);
+        return espera({ job: { status: escenario === "parcial" ? "partial" : "ready", result: leido(), errorCode: null } } as never);
       }
+      // El borrador fusionado sólo existe del lado del servidor: por eso se relee.
+      if (action === "workspace")
+        return espera({ workspace: { ...WORKSPACE, revision: aplicado ? 3 : 2, draft: aplicado ? leido() : emptyDocumentDraft() } } as never);
+      if (action === "destinations")
+        return espera({ cities: [{ id: "ccs", label: "Caracas" }, { id: "vlc", label: "Valencia" }, { id: "mcbo", label: "Maracaibo" }] } as never);
       return espera({} as never);
     },
     post: async (action) => {
-      if (action === "open") return espera({ workspace: WORKSPACE } as never);
+      if (action === "open") return espera({ workspace: WORKSPACE, anonymousToken: "demo" } as never);
       if (action === "upload") return espera({ jobId: "job-demo", status: "uploading", uploadUrl: "about:blank", contentType: "application/pdf" } as never);
       if (action === "uploaded") return espera({ jobId: "job-demo", status: "queued" } as never);
-      if (action === "apply") return espera({ ...WORKSPACE, revision: 3 } as never);
+      if (action === "apply") { aplicado = true; return espera({ revision: 3, confirmed: false } as never); }
+      if (action === "save") return espera({ revision: 4, confirmed: false } as never);
+      if (action === "estimate") return espera(estimadoDemo() as never);
       return espera({} as never);
     },
     upload: async () => undefined,
@@ -104,7 +145,7 @@ function Fixture() {
   const [kind, setKind] = useState<Caso>("sin-peso");
   const [locale, setLocale] = useState<DocumentLocale>("es");
   const [escenario, setEscenario] = useState<"ok" | "parcial" | "falla">("ok");
-  const [pantalla, setPantalla] = useState<"editor" | "carga">("editor");
+  const [pantalla, setPantalla] = useState<"cotizador" | "editor" | "carga">("cotizador");
   const [ancho, setAncho] = useState<"escritorio" | "375" | "390">("escritorio");
   const [draft, setDraft] = useState<DocumentDraft>(() => caso("sin-peso"));
 
@@ -114,7 +155,10 @@ function Fixture() {
   };
 
   const contenido =
-    pantalla === "carga" ? (
+    pantalla === "cotizador" ? (
+      // El recorrido COMPLETO del visitante sin cuenta: cargar, revisar, precio.
+      <CotizadorClient key={escenario} client={cliente(escenario)} pollMs={400} />
+    ) : pantalla === "carga" ? (
       <DocumentImportPanel
         key={escenario}
         workspace={WORKSPACE}
@@ -143,6 +187,7 @@ function Fixture() {
         <label style={{ fontSize: 13 }}>
           Pantalla{" "}
           <select value={pantalla} onChange={(e) => setPantalla(e.target.value as typeof pantalla)}>
+            <option value="cotizador">Cotizador completo (3 pasos)</option>
             <option value="editor">Revisar documento</option>
             <option value="carga">Cargar archivos</option>
           </select>
@@ -159,7 +204,7 @@ function Fixture() {
             </select>
           </label>
         )}
-        {pantalla === "carga" && (
+        {pantalla !== "editor" && (
           <label style={{ fontSize: 13 }}>
             Lectura{" "}
             <select value={escenario} onChange={(e) => setEscenario(e.target.value as typeof escenario)}>
