@@ -173,7 +173,11 @@ describe("guía de Alibaba · calculadora de costo real (SDD-0474)", () => {
     it("le dice qué mueve el número en vez de dar un precio como firme", () => {
       const r = calcular(ctx.doc, { fob: "3", unidades: "500", cbm: "2" });
       expect(r.texto).toMatch(/aproximado/i);
-      expect(r.texto).toContain("1.000 kg");
+      // 500 kg/m³ es la regla de la casa. El motor cobra hoy con 1.000
+      // (pesoIncluidoKg), pero eso es una excepción temporal: la guía promete
+      // la regla, no la excepción, para no quedar debiendo si se retira.
+      expect(r.texto).toContain("500 kg");
+      expect(r.texto).not.toContain("1.000 kg");
     });
 
     it("sin CBM avisa que falta, en lugar de cobrar cero de flete", () => {

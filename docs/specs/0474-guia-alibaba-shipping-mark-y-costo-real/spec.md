@@ -113,13 +113,25 @@ Cierra la deuda de SDD-0264.
   Sin tarifa del ERP reaparece el campo de flete manual.
 - **Fórmula:** `flete = max(CBM × per_cbm, min_charge)`;
   `total = FOB×unidades + flete`; `unidad = total / unidades`.
-- **La regla estándar, contada por fin:** un `tip` antes de la calculadora
-  explica que **cada m³ incluye hasta 1.000 kg** y que por encima de esa
-  densidad hay recargo por kilo — está en
-  [`lib/calculadora.ts`](../../../lib/calculadora.ts) (`pesoIncluidoKg: 1000`,
-  `recargoExcedenteKg: 2`) y nunca se le había dicho al cliente. El disclaimer
-  del resultado nombra lo que mueve el número: peso, embalaje especial,
-  baterías (×1,3) y cajas de tamaños distintos al consolidar.
+- **La regla del peso, contada por fin — y en 500 kg/m³, no en 1.000.** Un `tip`
+  antes de la calculadora dice que se cuenten **500 kg por metro cúbico** y que
+  por encima puede haber recargo.
+  > **Discrepancia deliberada con el motor.** `lib/calculadora.ts` cobra hoy con
+  > `pesoIncluidoKg: 1000`, pero **eso es una excepción temporal** (founder,
+  > 2026-09-17): la regla de la casa son 500. La guía promete la regla, no la
+  > excepción, para no quedar debiendo el día que se retire. La diferencia va en
+  > la dirección segura: la guía queda **conservadora** frente a lo que cobra
+  > `/tarifas` —un cliente con 800 kg/m³ leerá acá que podría haber recargo y en
+  > la cotización real no lo habrá—, nunca al revés. Por eso el 500 va cableado y
+  > **no** sale del endpoint de configuración: no es el valor vigente, es el que
+  > queremos prometer.
+
+  El disclaimer del resultado nombra lo que mueve el número: peso, embalaje
+  especial, baterías (×1,3) y cajas de tamaños distintos al consolidar, y aclara
+  que lo que calcula es el **flete base** —sin recargos ni entrega nacional—,
+  enlazando `/tarifas` para el cálculo completo. Las dos superficies salen de la
+  misma RPC `public_cbm_rate`, pero `calcularEnvioLCL` suma lo que la guía no:
+  decirlo evita que parezcan contradecirse.
 
 ### 4 · Servicios plegados y sin venta
 

@@ -12,12 +12,15 @@
 |---|---|---|
 | 1 | «MARKBOX» → «Shipping Mark» (18 apariciones). Identificadores internos intactos | `public/guias/comprar-en-alibaba.html` |
 | 2 | El Shipping Mark no se puede inventar: campo bloqueado con mark real, dos puertas sin él. La plantilla del proveedor lo lleva. El link de registro del Paso 7 ya es un `<a>` | ídem |
-| 3 | Calculadora sin arancel / IVA / last mile; flete desde el CBM con la tarifa viva del ERP; la regla de los 1.000 kg por m³ explicada | ídem + `app/api/public/cbm-rate/route.ts` |
+| 3 | Calculadora sin arancel / IVA / last mile; flete desde el CBM con la tarifa viva del ERP; la regla del peso explicada **en 500 kg/m³** (ver más abajo) | ídem + `app/api/public/cbm-rate/route.ts` |
 | 4 | Los 10 bloques de servicio plegados (`<details>`) y sin «Pedirlo por WhatsApp» | ídem |
 | 5 | Compra mínima **$1.000** (las dos tablas); dirección una vez por propósito; «FOB Yiwu»; QC con enlaces reales | ídem |
 | 6 | El alta guarda por qué puerta entró (`clients.registration_channel`) | `lib/public/registro-origen.ts`, `app/registro/*`, `app/academia/page.tsx` |
 | 7 | El cierre de la guía lleva al registro, con los datos recogidos del `localStorage` (no de la URL) | guía + `app/registro/RegisterForm.tsx` |
 | 8 | **Red nueva:** `pnpm guia:check` valida sintaxis e invariantes de la guía; entra en `verify` por test | `scripts/check-guia-alibaba.ts`, `__tests__/guia-alibaba-html.test.ts` |
+| 9 | Los **6 hallazgos del `/ui-check`**: jerarquía de CTA en la Academia, foco de las puertas, target táctil a 40px, borde a 5.33:1, una sola voz en los CTA y la escala de 4px | guía + `app/academia/page.tsx` |
+| 10 | El bloque del Shipping Mark **compacto**: 257px → 125px (anónimo) y 81px (con mark); en móvil el primario a ancho completo y 44px | `public/guias/comprar-en-alibaba.html` |
+| 11 | **Fuera la captura «Guarda tu progreso»** del Paso 2: pedía datos a cambio de nada y competía con el registro | ídem |
 
 ## Evidencia
 
@@ -34,8 +37,12 @@
 | Control rojo · copiar todo | **PASÓ** — mutante → 1 rojo |
 | `pnpm sdd:check` | **PASÓ** (sin números repetidos) |
 | `pnpm docs:index` | **PASÓ** (461 specs) |
-| Revisión visual en navegador | **PASÓ** — encontró un bug, ver abajo |
-| `pnpm verify` | ver al cierre de la sesión |
+| Revisión visual en navegador | **PASÓ** — encontró dos bugs, ver abajo |
+| `/ui-check` | **PASÓ** — 6 hallazgos, los 6 aplicados y medidos |
+| Contraste de lo nuevo (calculado sobre los tokens) | **PASÓ** — botón 10.58:1 · hover 16.49:1 · textos 5.11–5.33:1 · foco 15.8:1 y 10.13:1 |
+| Compactado, medido en el navegador | **PASÓ** — 125px / 81px / móvil 44px sin desbordar a 375px |
+| `app/__tests__/sitemap-cobertura-contract.test.ts` | **PASÓ** (3 tests) — el contrato excluye `api` y sólo mira `page.tsx`: el endpoint no aplica |
+| `pnpm verify` | **NO EJECUTADO** — ver pendientes |
 
 ### Los tres hallazgos que valieron la pena
 
@@ -109,18 +116,48 @@ caído). Necesitó `@types/jsdom` como devDependency (el repo ya usaba `jsdom`).
 
 ## Pendientes de esta tarea
 
-1. **`/ui-check` sobre el diff visual.** Los `<details>`, la tarjeta del Shipping
-   Mark y el cierre nuevo son cambio de UI sustancial. No se corrió.
-2. **El alta, extremo a extremo con DB local.** El camino de la action está
+1. **`pnpm verify` sin ejecutar.** Se lanzó tres veces: la primera con un test
+   aún roto (rojo esperado), la segunda quedó obsoleta por un fix posterior, y la
+   tercera **la contaminé yo** — usé su propio dev server (puerto 3579) para la
+   revisión visual y los e2e de la calculadora empezaron a caer en masa. Se paró.
+   Hay que relanzarlo **sin tocar nada** mientras corre.
+2. **Rebasar sobre `main`**, que se movió a `98a7aca5` (PR #130, SDD-0473).
+   Conflictos avisados por el Director: `docs/specs/README.md` (regenerar con el
+   script, no a mano), `package.json` (textual, trivial) y `pnpm-lock.yaml`
+   (regenerar). Y `tsconfig.json` quedó modificado por el propio verify
+   (añade `.next-verify/types`): revertirlo, no es del cambio.
+3. **El alta, extremo a extremo con DB local.** El camino de la action está
    cubierto por 7 tests con control rojo; falta completar un registro real contra
    Supabase local y ver la fila con `registration_channel = 'guia-alibaba'`.
    Nunca contra producción.
-3. **Prellenado desde la guía, a mano**, incluida la ventana privada
+4. **Prellenado desde la guía, a mano**, incluida la ventana privada
    (localStorage bloqueado → el registro debe cargar vacío, sin error en
    consola). El lector está entre `try/catch` y la clave/forma se verificaron
    contra el `persist()` de la guía, pero el recorrido completo no se probó.
-4. Nada más. (`.claude/launch.json` se creó para levantar el dev server desde la
+5. Nada más. (`.claude/launch.json` se creó para levantar el dev server desde la
    sesión, pero `.gitignore:88` ya lo excluye: no entra al repo.)
+
+## Lo que avisó el Director (sesión `dtdcargo-18`), comprobado
+
+- **`/cotizador` de la 0473 y esta guía no se contradicen en la tarifa base**:
+  las dos salen de la RPC `public_cbm_rate`. Pero `calcularEnvioLCL` suma
+  recargos (peso, embalaje, baterías) y la entrega nacional, y la guía no. Se
+  cerró diciéndolo en el disclaimer —es el **flete base**— y enlazando
+  `/tarifas` para el cálculo completo. Además `/cotizador` está hoy tras
+  `DOCUMENT_IMPORT_ENABLED` apagada, así que devuelve 404.
+- **El contrato de cobertura del sitemap no aplica al endpoint**: excluye el
+  segmento `api` y sólo recorre `page.tsx`. Comprobado corriéndolo: 3 tests en
+  verde. (La guía sigue fuera del sitemap, como estaba antes de este cambio.)
+
+## Decisión de negocio que conviene no perder
+
+**Los 1.000 kg por m³ incluidos son una excepción temporal, no la regla**
+(founder, 2026-09-17). La regla de la casa son **500 kg/m³**, y es la que la
+guía le promete al cliente, aunque  cobre hoy con 1.000
+(). La discrepancia es deliberada y va en la dirección segura:
+el material público queda conservador frente a lo que se factura, nunca al
+revés. Por eso el 500 va cableado en la guía y no sale del config — no es el
+valor vigente, es el que se quiere prometer. Documentado en el spec §3.
 
 ## FUERA DE ALCANCE DETECTADO
 
