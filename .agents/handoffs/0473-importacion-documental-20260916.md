@@ -11,7 +11,8 @@
 - Migración reservada: `0457_document_import_workspaces.sql` (**no aplicada**).
 - Permisos: producto, dependencias, DB efímera, commits. Push propio y PR draft pendientes de pedir.
   No main, no producción, no aplicar migración.
-- Dependencia: SDD-0468 ya mergeada en esta rama (`93b87608`); su PR #129 sigue en draft.
+- Dependencia: **SDD-0468 ya está en `main` y en producción**. PR #129 mergeada como `747637e6`
+  el 2026-09-17, con despliegue `Production` en estado `success`. Esta rama la integró en `2038dadb`.
 
 ## OBJETIVO ORIGINAL
 
@@ -48,6 +49,7 @@ consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposi
 | `tsc --noEmit -p tsconfig.json` | **PASÓ** — exit 0, salida vacía, sin tubería |
 | `eslint` sobre lo nuevo y lo corregido | **PASÓ** — exit 0 |
 | `vitest` document-import completo | **PASÓ** — 256 pruebas, 7 `it.fails` que documentan defectos, 1 skip |
+| `vitest` SUITE COMPLETA del repo | **PASÓ** — 578 archivos, 7.664 pruebas, 7 expected fail, 1 skip |
 | `vitest` corpus real (3 XLSX de proveedor) | **PASÓ** — 4 pruebas, con `DOCUMENT_IMPORT_CORPUS` |
 | `vitest` panel de carga | **PASÓ** — 9 pruebas, 2 verificadas por mutación |
 | `vitest` suite completa | **PASÓ** — 570 archivos, 7.463 pruebas |
@@ -74,6 +76,10 @@ consumidores, que muestran «30 m · 100 pcs» en vez de un total escalar imposi
 - `e7937ccb` — tres defectos que sólo aparecieron con proformas reales, y `corpus.test.ts`.
 - `e29d800a`, `d2860361` — handoff al día.
 - `32c27dd8` — las 6 suites de backend (2.902 líneas), cada una verificada por mutación.
+- `dd7078bf` — `DocumentImportEntry`, el envoltorio que apaga todo cuando el flag está apagado.
+- `2038dadb` — merge de `origin/main` con SDD-0468 ya integrada.
+- `410efb9c` — la carga de documentos abre el paso 2 del portal, y `DOCUMENT_IMPORT_CORPUS`
+  documentada en `.env.example` (lo cazó el gate de variables del repo).
 
 Stub heredado `069d9e417c06b749cb0749a780187a9c358e3edd`.
 
@@ -95,7 +101,9 @@ implementados. Se comprobó uno por uno, no por lo que declara el tracker:
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `DocumentCalculator`, y cablear los 7 puntos de UI. Recién ahí encender el flag.
+1. `DocumentCalculator`, y terminar de cablear: falta `/p/[token]` y el detalle de la compra.
+   El paso 2 del portal ya está montado. La pantalla de revisión a la que debería llevar
+   «Revisar documento» todavía no existe. Recién con todo eso se enciende el flag.
 2. Harness de QA visual 0473 y `/ui-check`.
 3. `pnpm verify` reportando cada SKIP.
 4. Probar los PDF reales: exige credenciales y presupuesto de IA.
