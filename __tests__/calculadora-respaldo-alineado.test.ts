@@ -8,6 +8,19 @@
  * cotiza con estas constantes. Si no coinciden con el ERP, el precio cambia **en
  * silencio**: sin error, sin log, sin que nadie se entere.
  *
+ * Hubo además un susto que conviene dejar contado, porque explica por qué esto
+ * importa: la fila pública tenía cargado `valid_until = 2026-10-04` cuando la
+ * tarifa valía hasta el **2026-11-29**. Como la RPC filtra por vigencia, el 5 de
+ * octubre habría dejado de responder con la tarifa plenamente vigente, y el
+ * sitio habría cotizado con estas constantes durante casi dos meses. Se corrigió
+ * en producción el 2026-09-17 (autorizado por el founder), así que **esa grieta
+ * concreta ya no existe**: verificado contra `dtdcargo.com/api/public/cbm-rate`,
+ * que devuelve `valid_until: "2026-11-29"`.
+ *
+ * Lo que sigue en pie es el caso general: si Supabase se cae, el sitio cotiza
+ * con estos números. Que el precio salga bien depende de que este archivo esté
+ * al día.
+ *
  * NO ES HIPOTÉTICO. Pasó dos veces:
  *   · `pesoIncluidoKg`: el ERP tenía 1.000 kg desde el 2026-07-06 y el código
  *     seguía en 500. Ante una caída, se habría cobrado excedente al doble de
@@ -45,7 +58,7 @@ import { CONFIG, CONSOLIDADO_CBM_RATE } from "@/lib/calculadora";
 describe("respaldo del calculador · espejo del ERP (SDD-0475)", () => {
   it("la tarifa base por CBM está en $850, como la fila pública del ERP", () => {
     // Verificado contra producción el 2026-09-17: la RPC public_cbm_rate
-    // devuelve { per_cbm: 850, min_charge: 50, valid_until: "2026-10-04" }.
+    // devuelve { per_cbm: 850, min_charge: 50, valid_until: "2026-11-29" }.
     expect(CONFIG.tarifaBaseCBM).toBe(850);
   });
 
@@ -98,84 +111,32 @@ describe("respaldo del calculador · espejo del ERP (SDD-0475)", () => {
 });
 
 /**
- * Vigencia de la tarifa pública — el recordatorio que no depende de que nadie se
- * acuerde (founder 2026-09-17: «850 última tarifa vigente, siempre revisar
- * vigencia»).
+ * NO HAY TEST DE VIGENCIA, y es una decisión (founder 2026-09-17).
  *
- * POR QUÉ HACE FALTA, aunque la alerta del ERP ya exista: el cron de
- * `app/api/cron/rate-expiry-alert/route.ts` (SDD-0164, migr 0257) avisa por
- * Telegram y email cuando una tarifa pública está por vencer o venció. Eso cubre
- * **la tarifa**. No cubre **el respaldo**: el 2026-09-04 la tarifa subió a $850
- * y esta constante se quedó en $800 trece días sin que nada lo dijera, porque no
- * hubo vencimiento — hubo un cambio. Son dos avisos distintos.
+ * Se llegó a escribir uno que ponía el CI en rojo cuando la fecha de la tarifa
+ * pasaba. El founder cerró el tema con otro criterio, que cambia el diseño:
  *
- * Y hay un efecto nuevo que conviene nombrar: ahora que el respaldo coincide con
- * la tarifa, **el vencimiento deja de tener síntoma**. Antes, al vencer la
- * vigencia el sitio caía de $850 a $800 y el precio se movía a la vista. Con los
- * dos en 850 no se moverá nada: el día que venza, el sitio seguirá cotizando
- * igual y nadie lo notará. Alinear el respaldo arregla el precio y esconde el
- * vencimiento — por eso este test.
+ *   «Aunque la tarifa se venza o esté vencida, se mantiene el precio anterior.
+ *    Lo que vamos a leer aquí es la base de datos. Ya el tema de si se actualiza
+ *    o no se actualiza es un tema del back-end, no tuyo.»
  *
- * EL COSTO, dicho de frente: a partir del 2026-10-05 este test pone el CI en
- * rojo y bloquea PRs ajenas hasta que alguien renueve la tarifa o mueva la
- * fecha. Es deliberado y lo autorizó el founder. Si algún día estorba más de lo
- * que sirve, la conversación es si el respaldo hardcodeado debe existir, no si
- * este test debe callarse.
+ * O sea: el vencimiento no debe ser un evento que rompa nada. El precio se
+ * muestra desde la DB y se mantiene. Un test que bloquea el CI por una fecha iba
+ * en contra de eso, así que no está.
+ *
+ * 🔴 PERO HOY EL SISTEMA NO HACE ESO, y conviene no confundir una cosa con la
+ * otra. La RPC `public_cbm_rate()` filtra por
+ * `valid_until is null or valid_until >= current_date` (migr 0101, y la 0255
+ * igual): al vencer **devuelve null**, y entonces el sitio no cae «al precio
+ * anterior de la base» sino a `CONFIG.tarifaBaseCBM`, una constante del código.
+ *
+ * Que hoy el resultado sea el correcto es consecuencia de SDD-0475: como el
+ * respaldo vale lo mismo que la tarifa, el precio no se mueve al vencer. Es la
+ * coincidencia la que salva el caso, no el diseño — y la próxima vez que cambie
+ * la tarifa vuelve a abrirse, salvo que alguien se acuerde de mover la constante.
+ *
+ * Para que «se mantiene el precio anterior» sea cierto por diseño hace falta que
+ * la lectura NO dependa de la vigencia: que la RPC devuelva la última tarifa
+ * pública aunque esté vencida, o que haya una segunda que lo haga. Eso es
+ * backend y tiene dueño propio — queda escrito en el spec de SDD-0475.
  */
-describe("vigencia de la tarifa pública (SDD-0475)", () => {
-  /**
-   * Hasta cuándo vale la fila pública de `rates` que este respaldo espeja.
-   *
-   * 🔴 PENDIENTE DE CONFIRMAR — POR ESO EL TEST ESTÁ EN `skip`.
-   *
-   * Hay dos fechas y no coinciden:
-   *   · **Producción dice `2026-10-04`** — leído de `rates` el 2026-09-17:
-   *     `public_calc_modo=ddp per_cbm=850 valid_from=2026-09-04
-   *     valid_until=2026-10-04`. Es lo que sembró la migr 0336.
-   *   · **El founder dice `2026-09-29`** — «TARIFA HASTA EL 29 SEPT 2026 ES DE
-   *     850» (2026-09-17).
-   *
-   * Cinco días en los que producción seguiría cobrando $850 con una tarifa que,
-   * según el founder, ya no rige. Y no está dicho qué precio rige desde el 30.
-   *
-   * Anclar una fecha mientras la otra la contradice sería fijar en el CI un dato
-   * que no sabemos si es el bueno. Cuando se resuelva: poner la fecha, quitar el
-   * `.skip` y listo — el resto del test ya está escrito.
-   */
-  const VIGENCIA_HASTA = "2026-10-04";
-
-  it.skip("la tarifa pública que este respaldo espeja sigue vigente", () => {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const vencida = hoy > VIGENCIA_HASTA;
-
-    if (vencida) {
-      throw new Error(
-        [
-          `La tarifa pública venció el ${VIGENCIA_HASTA} (hoy es ${hoy}).`,
-          "",
-          "Esto NO se arregla cambiando la fecha de este test. Hacé esto:",
-          "",
-          `  1. Entrá a /studio/tarifas y mirá la fila pública (is_public, modo 'ddp').`,
-          "  2. Si sigue vigente con otra fecha → actualizá VIGENCIA_HASTA acá.",
-          "  3. Si venció → renovala. Mientras no lo hagas, la RPC public_cbm_rate",
-          `     devuelve null y el sitio cotiza con CONFIG.tarifaBaseCBM ($${CONFIG.tarifaBaseCBM}),`,
-          "     sin avisarle a nadie.",
-          `  4. Si la tarifa cambió de precio → movés CONFIG.tarifaBaseCBM y los`,
-          "     valores derivados de __tests__/calculadora.test.ts, que están escritos",
-          "     con la aritmética a la vista.",
-          "",
-          "El respaldo desalineado ya costó 13 días cotizando por debajo (SDD-0475).",
-        ].join("\n"),
-      );
-    }
-
-    expect(vencida).toBe(false);
-  });
-
-  it("la fecha de vigencia tiene forma de fecha ISO", () => {
-    // Un typo acá deja el test verde para siempre: "2026-13-45" > cualquier
-    // fecha real es una comparación de strings que nunca dispara.
-    expect(VIGENCIA_HASTA).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(Number.isNaN(Date.parse(VIGENCIA_HASTA))).toBe(false);
-  });
-});

@@ -56,7 +56,7 @@ levantó el segundo aviso y lo verificó contra producción.
 
 ## Alcance
 
-Una constante y su comentario, más un test que ancle los tres valores espejo. **No**
+Una constante y su comentario, más un test que ancle los **cuatro** valores espejo. **No**
 se toca la tarifa del ERP, ni la RPC, ni la lógica de cálculo, ni la vigencia.
 
 ## Diseño
@@ -65,16 +65,17 @@ se toca la tarifa del ERP, ni la RPC, ni la lógica de cálculo, ni la vigencia.
 
 `CONFIG.tarifaBaseCBM: 800` → **`850`**. Verificado contra producción el
 2026-09-17: `public_cbm_rate` devuelve
-`{ per_cbm: 850, min_charge: 50, valid_until: "2026-10-04" }`.
+`{ per_cbm: 850, min_charge: 50, valid_until: "2026-11-29" }` (tras la corrección
+de la fila; ver más abajo).
 
 El comentario pasa a contar lo que pasó —con fechas y con el precedente de
 `pesoIncluidoKg`— en vez de describir sólo el mecanismo. Un comentario que
 explica el mecanismo no evitó el fallo dos veces; uno que cuenta que **ya falló**
 tiene más posibilidades.
 
-Se suma el aviso de la vigencia: la fila de $850 **vence el 2026-10-04**. A
-partir del 5-oct la RPC devuelve null y el sitio cotizará con este 850, que será
-correcto sólo si la tarifa sigue siendo 850.
+Se suma el aviso de la vigencia: al vencer la fila, la RPC devuelve null y el
+sitio cotiza con esta constante — que será correcta sólo mientras la tarifa siga
+siendo $850.
 
 ### La red
 
@@ -106,16 +107,50 @@ código con eso, no cambiar el número esperado a ciegas.
 
 ## Lo que esto NO arregla
 
-El respaldo sigue dependiendo de que alguien se acuerde. El arreglo de fondo
-—**una alerta en el ERP cuando una tarifa pública esté por vencer**— es
-**SDD-0164** y sigue pendiente; el propio comentario de `calculadora.ts` ya lo
-citaba antes de este cambio. Mientras eso no exista, el modo de fallo está vivo:
-este PR corrige la instancia, no la causa.
+**La alerta de vencimiento SÍ existe y está activa** — `app/api/cron/rate-expiry-alert`
+(SDD-0164, migr 0257), programada en `vercel.json`, avisa por Telegram y email
+cuando una tarifa pública está por vencer o venció. El comentario de `CONFIG` la
+llamaba «pendiente»; queda corregido.
 
-**Y hay una fecha en el calendario:** el 2026-10-04 vence la vigencia. Si nadie
-renueva desde `/studio/tarifas`, el 5-oct el sitio pasa a cotizar con el respaldo
-sin avisar. Esta vez coincidirá; la próxima depende otra vez de que alguien
-mire.
+Pero **cubre el vencimiento, no el cambio de precio**. El 4 de septiembre no
+venció nada: cambió el precio, y de eso no avisa nadie. Ésa es la grieta que
+queda abierta, y ningún test del repo puede cerrarla sin acceso a la DB: haría
+falta comparar el respaldo contra el ERP en cada corrida.
+
+### Por qué NO hay test de vigencia
+
+Se llegó a escribir uno. El founder lo descartó con otro criterio (2026-09-17):
+
+> «Aunque la tarifa se venza o esté vencida, se mantiene el precio anterior. Lo
+> que vamos a leer aquí es la base de datos. Ya el tema de si se actualiza o no
+> se actualiza es un tema del back-end, no tuyo.»
+
+El vencimiento no debe ser un evento que rompa nada, así que un test que bloquea
+el CI por una fecha va en contra. Queda la decisión escrita en el propio archivo,
+con su cita, para que nadie lo reescriba sin saber que ya se descartó.
+
+**Pero su frase describe algo que hoy el sistema no hace.** La RPC filtra por
+`valid_until is null or valid_until >= current_date`: al vencer devuelve null, y
+el sitio no cae «al precio anterior de la base» sino a `CONFIG.tarifaBaseCBM`.
+Que hoy el resultado sea correcto lo produce este mismo PR —respaldo y tarifa
+valen igual—, no el diseño. Para que sea cierto por diseño, la lectura no puede
+depender de la vigencia: eso es **backend**, y queda fuera de este alcance.
+
+### El susto del 5 de octubre, y por qué ya no es el argumento
+
+La fila tenía cargado `valid_until = 2026-10-04` cuando la tarifa valía hasta el
+**2026-11-29**: cortaba casi dos meses antes de tiempo. El 5 de octubre la RPC
+habría dejado de responder con la tarifa vigente y el sitio habría cotizado con
+el respaldo — $800 sin este PR, es decir **5,88% por debajo durante dos meses**.
+
+**Esa grieta se cerró en el dato el 2026-09-17**: el Director corrigió
+`valid_until` a `2026-11-29` en producción, con autorización del founder,
+preflight y postflight. Verificado de forma independiente contra
+`dtdcargo.com/api/public/cbm-rate`, que devuelve `valid_until: "2026-11-29"`.
+
+Así que **este PR ya no es la red que evita cobrar de menos en octubre**. Lo que
+justifica el cambio es lo de siempre y sigue en pie: **si Supabase se cae hoy, el
+sitio cotiza 5,88% por debajo**, y el respaldo tiene que espejar al ERP.
 
 ## Nota sobre `pesoIncluidoKg`
 

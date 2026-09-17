@@ -15,12 +15,20 @@
  * ⚠️ Al vencer la vigencia esta RPC devuelve null y el sitio cae a
  * `CONFIG.tarifaBaseCBM`. Desde SDD-0475 ese respaldo también vale $850, así que
  * el precio **ya no cambiará al vencer** — antes caía a $800 y el salto se veía.
- * El vencimiento dejó de tener síntoma: lo vigilan el cron de
- * `app/api/cron/rate-expiry-alert` (Telegram + email) y el test de vigencia de
- * `__tests__/calculadora-respaldo-alineado.test.ts`.
+ * El vencimiento dejó de tener síntoma, así que lo vigila el cron de
+ * `app/api/cron/rate-expiry-alert` (Telegram + email).
+ *
+ * Decisión del founder (2026-09-17) sobre este punto: «aunque la tarifa se venza
+ * o esté vencida, se mantiene el precio anterior; lo que leemos acá es la base
+ * de datos». Hoy eso se cumple **por coincidencia** —el respaldo vale lo mismo
+ * que la tarifa— y no por diseño: al vencer, esta RPC devuelve null y la fuente
+ * pasa a ser una constante del código, no la última fila de la base. Cerrarlo de
+ * verdad es backend (que la lectura no dependa de la vigencia).
  *
  * `app/api/**` está fuera de la frontera ESLint público↔ERP, así que puede
  * importar `lib/public/*` (mismo argumento que `app/api/registro/check`).
+ *
+ * Hoy devuelve `{ per_cbm: 850, min_charge: 50, valid_until: "2026-11-29" }`.
  *
  * Respuesta: `{ per_cbm, min_charge, valid_until }`, o `{ per_cbm: null }` si no
  * hay tarifa pública vigente. NUNCA 500: la guía tiene su propio fallback y un

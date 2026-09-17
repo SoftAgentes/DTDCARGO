@@ -60,21 +60,47 @@ modo de fallo, y ningún test del repo lo ve sin acceso a la DB.
 | `vitest` — calculadora + respaldo + mínimo en cajas | *(ver al cierre)* |
 | `pnpm verify` | *(ver al cierre)* |
 
-## La fecha en disputa (bloquea el test de vigencia)
+## La fecha, y el susto que se cerró
 
-Hay dos fechas para la misma tarifa y no coinciden:
+Había dos fechas para la misma tarifa y la de la base estaba **mal cargada**:
 
-| Fuente | Dice |
+| Fuente | Decía |
 |---|---|
-| **Producción** (`rates`, leído el 2026-09-17) | `valid_until = 2026-10-04` |
-| **El founder** (2026-09-17) | «TARIFA HASTA EL 29 SEPT 2026 ES DE 850» |
+| Producción (`rates`, leído el 2026-09-17) | `valid_until = 2026-10-04` |
+| El founder | la tarifa vale hasta el **2026-11-29** |
 
-Cinco días en los que producción seguiría cobrando $850 con una tarifa que,
-según el founder, ya no rige — y no está dicho qué precio rige desde el 30.
+La fila cortaba casi **dos meses antes de tiempo**. Como la RPC filtra por
+vigencia, el 5 de octubre habría dejado de responder con la tarifa plenamente
+vigente y el sitio habría cotizado con el respaldo: sin este PR, $800 — **5,88%
+por debajo durante dos meses**.
 
-Por eso el test de vigencia va con `.skip`: anclar una fecha mientras la otra la
-contradice sería fijar en el CI un dato que no sabemos si es el bueno. **Cuando
-se resuelva: poner la fecha, quitar el `.skip`.** El resto ya está escrito.
+**Se corrigió en el dato el 2026-09-17.** El Director actualizó `valid_until` a
+`2026-11-29` en producción, con autorización del founder, preflight y postflight
+(una sola fila, un solo campo). Comprobado de forma independiente contra
+`dtdcargo.com/api/public/cbm-rate`: devuelve `valid_until: "2026-11-29"`.
+
+> **El argumento de este PR se movió, y conviene no venderlo mal:** ya no es la
+> red que evita cobrar de menos en octubre, porque esa grieta está cerrada. Lo
+> que lo justifica es lo de siempre — **si Supabase se cae hoy, el sitio cotiza
+> 5,88% por debajo** — y que el respaldo tiene que espejar al ERP.
+
+## Por qué NO hay test de vigencia
+
+Se escribió uno y el founder lo descartó (2026-09-17):
+
+> «Aunque la tarifa se venza o esté vencida, se mantiene el precio anterior. Lo
+> que vamos a leer aquí es la base de datos. Ya el tema de si se actualiza o no
+> se actualiza es un tema del back-end, no tuyo.»
+
+El vencimiento no debe romper nada, así que un test que bloquea el CI por una
+fecha va en contra. La decisión queda escrita en el propio archivo de test, con
+su cita, para que nadie lo reescriba sin saber que ya se descartó.
+
+🔴 **Pero esa frase describe algo que hoy el sistema no hace.** Al vencer, la RPC
+devuelve null y el sitio no cae «al precio anterior de la base» sino a
+`CONFIG.tarifaBaseCBM`. Que hoy salga bien lo produce este PR (respaldo y tarifa
+valen igual), no el diseño. Cerrarlo de verdad exige que la lectura no dependa de
+la vigencia — **backend**, fuera de este alcance.
 
 ## Lo que la revisión del Director corrigió o aportó
 
