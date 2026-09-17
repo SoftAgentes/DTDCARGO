@@ -137,10 +137,13 @@ const aliases: Record<Field, string[]> = {
   perCarton: ["pcsctn", "qtyctn", "pcspercarton", "qtypercarton", "udscaja", "unidadesporcaja", "每箱装量", "装箱数", "每箱数量"],
   unitPrice: ["unitprice", "price", "punit", "preciounitario", "单价"], currency: ["currency", "moneda", "币种", "货币"], unit: ["unit", "uom", "unidad", "单位"],
   cartons: ["cartons", "ctns", "ctn", "noofcartons", "cajas", "bultos", "件数", "箱数"], cartonLabel: ["cartonno", "cartonnos", "cartonnumber", "nrocaja", "ncaja", "箱号"],
-  grossTotal: ["grossweightkg", "totalgrossweightkg", "gwkg", "pesobrutokg", "pesobrutototalkg", "毛重kg", "总毛重kg"],
+  // `tgw` / `总重量` / `总毛重` son inequívocos: la T y el 总 dicen TOTAL. `G.W.` a secas
+  // NO se agrega a propósito — en las proformas de Yiwu convive con `T.G.W.` y ahí es el
+  // peso POR CAJA, así que mapearlo a total metería el número de otra columna.
+  grossTotal: ["grossweightkg", "totalgrossweightkg", "gwkg", "pesobrutokg", "pesobrutototalkg", "毛重kg", "总毛重kg", "tgwkgs", "tgwkg", "tgw", "总重量", "总毛重"],
   grossEach: ["gwctnkg", "grossweightpercartonkg", "kgcaja", "pesobrutoporcajakg", "每箱毛重kg", "每箱重kg"],
   cbmTotal: ["cbm", "totalcbm", "volumem3", "volumentotalm3", "体积m3", "总体积", "总体积m3"], cbmEach: ["cbmctn", "cbmcarton", "cbmcaja", "cbmpercarton", "每箱体积", "每箱体积m3"],
-  amount: ["amount", "totalamount", "importe", "totalimporte", "总金额", "金额"],
+  amount: ["amount", "totalamount", "importe", "totalimporte", "总金额", "金额", "总价"],
   lengthCm: ["lengthcm", "largocm", "长cm"], widthCm: ["widthcm", "anchocm", "宽cm"], heightCm: ["heightcm", "altocm", "高cm"],
 };
 /** Cargos que NO son valor de mercancía, en las tres lenguas de nuestros documentos. */
@@ -158,6 +161,41 @@ const CHARGE_LABEL = /^(commission|comision|comisión|佣金|freight|shipping|fl
 const UNASSIGNED = "Sin asignar";
 const unquoteLabel = (label: string) => (label === "«" + UNASSIGNED + "»" ? UNASSIGNED : label);
 const headerMap = new Map(Object.entries(aliases).flatMap(([field, values]) => values.map((v) => [key(v), field as Field] as const)));
+/**
+ * Códigos de barras: NO son el código del artículo. «BAR CODE» contiene «CODE», así
+ * que al partir la celda caería en `code` y el documento llevaría el EAN donde debería
+ * ir la referencia del proveedor. Se descarta antes de mirar los trozos.
+ */
+const NOT_A_FIELD = [key("barcode"), key("条码"), key("codigodebarras")];
+/**
+ * Un encabezado puede traer DOS idiomas en la misma celda —«DESCRIPTIONS 品名描述»,
+ * «T.CBM 总体积», «CTN 箱数»—, que es lo normal en las proformas de Yiwu. La comparación
+ * exacta nunca los reconocía, así que el documento entero derivaba a lectura asistida
+ * pudiendo leerse gratis.
+ *
+ * Se prueba primero la celda COMPLETA: el comportamiento anterior queda intacto y
+ * ningún documento que hoy se lee cambia de interpretación. Sólo si eso no cae se
+ * parte, y el ORDEN importa: las palabras van antes que las rachas de alfabeto para
+ * que «CBM/CTN 体积» dé volumen POR CAJA por su parte latina, en vez de confundirse
+ * con el volumen total, que en ese mismo documento es otra columna.
+ */
+function resolveHeader(raw: string): Field | undefined {
+  const entero = key(raw);
+  if (!entero) return undefined;
+  const exacto = headerMap.get(entero);
+  if (exacto) return exacto;
+  if (NOT_A_FIELD.some((marca) => entero.includes(marca))) return undefined;
+  const normal = raw.normalize("NFKC");
+  const trozos = [
+    ...normal.split(/[\s,;|]+/),
+    ...(normal.match(/[㐀-鿿豈-﫿]+|[A-Za-z][A-Za-z.]*/g) ?? []),
+  ];
+  for (const trozo of trozos) {
+    const campo = headerMap.get(key(trozo));
+    if (campo) return campo;
+  }
+  return undefined;
+}
 
 function readNumber(cell: Cell | undefined, d: DocumentDraft, path: string): number | null {
   if (!cell) return null;
@@ -245,7 +283,7 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
   } else {
     for (let i = 0; i < Math.min(sheet.rows.length, 50); i++) {
       const found: Partial<Record<Field, number>> = {};
-      for (const [index, cell] of sheet.rows[i].entries()) { const f = headerMap.get(key(s(cell))); if (f && found[f] === undefined) found[f] = index; }
+      for (const [index, cell] of sheet.rows[i].entries()) { const f = resolveHeader(s(cell)); if (f && found[f] === undefined) found[f] = index; }
       if ((found.name !== undefined || found.nameZh !== undefined || found.code !== undefined) && (found.quantity !== undefined || found.perCarton !== undefined || found.unitPrice !== undefined)) { headerIndex = i; fields = found; break; }
     }
     if (headerIndex < 0) return null;
@@ -279,7 +317,7 @@ function parseSheet(sheet: Sheet, options: ExtractionOptions): DocumentDraft | n
       }
       const remaining = sheet.rows.slice(headerIndex + rowOffset + 2);
       if (remaining.some((later) => {
-        const headers = later.map((c) => headerMap.get(key(s(c)))).filter(Boolean);
+        const headers = later.map((c) => resolveHeader(s(c))).filter(Boolean);
         if (headers.length >= 3) return true;
         const laterCell = (field: Field) => fields[field] === undefined ? undefined : later[fields[field]!];
         return (s(laterCell("name")) || s(laterCell("nameZh")) || s(laterCell("code"))) && ["quantity", "perCarton", "unitPrice"].some((field) => /^\d/.test(s(laterCell(field as Field))));

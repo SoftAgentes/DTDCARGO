@@ -37,6 +37,50 @@ describe("native document extraction", () => {
     expect(d.products[0]).toMatchObject({ name: "Drawstring bag", quantity: 984, unitPrice: 4.46 });
     expect(assisted).not.toHaveBeenCalled();
   });
+  /**
+   * La orden de compra que usan de verdad en Yiwu trae los DOS idiomas en la misma
+   * celda del encabezado. La comparación exacta no reconocía ninguna columna, así
+   * que el documento entero derivaba a lectura asistida pudiendo leerse gratis.
+   *
+   * Los encabezados son los de un PO real (`PO-2025-109`); los datos, inventados.
+   * Lo que se fija no es «que lea», sino que lea la columna CORRECTA: el archivo
+   * trae volumen por caja Y volumen total, y confundirlos publica el número de
+   * otra columna sin que nada se vea roto.
+   */
+  it("lee encabezados bilingües y distingue el total del por-caja", async () => {
+    const bytes = await workbook([
+      ["Remark", "FOTO 图片", "ITEM.NO 货号", "BAR CODE 条码", "DESCRIPTIONS 品名描述", "中文描述",
+        "CTN 箱数", "QTY/CTN 每箱数量", "T.QTY 总数量", "CBM/CTN 体积", "T.CBM 总体积",
+        "T.G.W.（KGS） 总重量", "RMB 单价"],
+      ["", "", "MQ-4", "4112345678910", "Barber chair", "理发椅", 4, 1, 4, 0.52, 2.08, 96, 1850],
+    ]);
+    const d = await extractDocument(bytes, { ...opts, fileName: "po.xlsx" });
+
+    expect(assisted).not.toHaveBeenCalled();
+    expect(d.products).toHaveLength(1);
+    // El código del artículo, no el código de barras: «BAR CODE» contiene «CODE».
+    expect(d.products[0]).toMatchObject({ name: "Barber chair", code: "MQ-4", quantity: 4, unitPrice: 1850 });
+    expect(d.groups).toHaveLength(1);
+    // 2,08 es el TOTAL. 0,52 es por caja: publicarlo acá cotizaría un cuarto del envío.
+    expect(d.groups[0]).toMatchObject({ cartons: 4, cbm: 2.08, grossWeightKg: 96 });
+  });
+  /**
+   * El caso anterior no prueba la guarda: ahí `ITEM.NO` viene ANTES que `BAR CODE` y
+   * gana por orden, así que quitar la guarda no rompía nada. Acá el código de barras
+   * va primero —layout igual de real— y sin la guarda se lleva el campo `code`: el
+   * documento saldría con el EAN donde va la referencia del proveedor.
+   */
+  it("nunca toma el código de barras como código del artículo, venga en la columna que venga", async () => {
+    const bytes = await workbook([
+      ["BAR CODE 条码", "ITEM.NO 货号", "DESCRIPTIONS 品名描述", "T.QTY 总数量", "RMB 单价"],
+      ["4112345678910", "MQ-4", "Barber chair", 4, 1850],
+    ]);
+    const d = await extractDocument(bytes, { ...opts, fileName: "po.xlsx" });
+
+    expect(assisted).not.toHaveBeenCalled();
+    expect(d.products[0]?.code).toBe("MQ-4");
+    expect(d.products[0]?.code).not.toBe("4112345678910");
+  });
   it("no toma la comisión como importe declarado del documento", async () => {
     // Las proformas de Yiwu ponen COMMISSION arriba de TOTAL AMMOUNT, ambas con
     // su número a la derecha. Quedarse con la primera etiqueta que se parece a un
