@@ -255,15 +255,27 @@ los arregla, para que nadie los cierre sin enterarse. **Se cerraron los 7 en la 
 | `jobs.ts` | Un archivo cuya lectura falló no se podía reintentar | El arreglo obvio no servía: filtrar los `failed` del SELECT chocaba contra el índice único de la 0457 y devolvía `409` en vez de dejar reintentar. Hay que **cancelar** el intento muerto (único estado que el índice ignora) y borrar su copia del bucket, conservando su `error_code` |
 | `export.ts` (×4) | Redondeo del importe «Sin asignar», cajas de un grupo llamado «Sin asignar», id interno publicado como número de caja, pie que no cuadraba con sus filas | Una sola `productRow()` escribe las dos filas que antes estaban duplicadas, y el pie acumula **lo que realmente escribe** en vez de recalcular |
 
-**Causa de fondo que sigue abierta — FUERA DE ALCANCE:** `extract.ts:192` compara grupos **por
-etiqueta** (`s(row[0]) === "Sin asignar"`), no por identidad. Un grupo real bautizado «Sin
-asignar» por el proveedor se lee como el cajón de sobrantes y pierde cajas, peso y CBM. Se tapó
-del lado que escribe (`groupLabel()` entrecomilla la etiqueta que choca con el centinela), pero
-la relectura por etiqueta sigue ahí.
+### Los dos que quedaban anotados — CERRADOS el 2026-09-17
 
-**FUERA DE ALCANCE DETECTADO — `jobs.ts:38`:** la consulta de deduplicación descarta su `error`.
-Si esa lectura falla (RLS, timeout), `duplicate` queda en null y el job se encola igual: fail-open
-que paga la IA dos veces por el mismo contenido. Es previo a esta tanda.
+**`extract.ts` · el centinela por etiqueta.** La lectura reconoce el cajón de sobrantes por su
+etiqueta (`s(row[0]) === "Sin asignar"`), no por identidad. La exportación ya esquivaba el choque
+entrecomillando la etiqueta que colisiona (`groupLabel`), y eso salvó las cajas — pero cerraba
+**media vuelta**: sin desentrecomillar al leer, el grupo volvía etiquetado `«Sin asignar»` y
+dejaba de llamarse como el proveedor lo llamó. Ahora existe la otra mitad (`unquoteLabel`), y hay
+una prueba de round-trip con un grupo bautizado así por el proveedor.
+
+Queda dicho para quien venga: el formato distingue centinela de etiqueta **por comillas**, no por
+identidad de grupo. Es una convención del archivo, no una propiedad del modelo. Las dos mitades
+—`groupLabel` al escribir, `unquoteLabel` al leer— tienen que moverse juntas.
+
+**`jobs.ts` · el fail-open que costaba dinero.** La consulta de deduplicación descartaba su
+`error`. Si esa lectura se caía (RLS, timeout), `duplicate` quedaba en null, el archivo se
+encolaba igual y la lectura asistida se pagaba **dos veces** por el mismo contenido. Es el único
+punto del módulo donde un fallo cuesta plata, así que ahora falla cerrado: `503 dedup_unavailable`,
+el archivo se conserva y el cliente reintenta.
+
+Las dos pruebas se escribieron **rojas primero**. Mutantes: los 2 mueren con el modo de falla
+exacto — la etiqueta con guillemets, y `promise resolved {status: queued} instead of rejecting`.
 
 ## EL RECIBO QUE SE HACÍA PASAR POR WORKSPACE (2026-09-17)
 
