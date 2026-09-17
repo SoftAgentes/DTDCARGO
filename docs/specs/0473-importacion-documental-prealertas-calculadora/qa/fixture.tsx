@@ -1,9 +1,19 @@
 /**
  * SDD-0473 · Vista local para revisar la importación documental con los ojos.
  *
- * Todo lo de acá es FICTICIO y el transporte está simulado: ninguna petición sale
- * de la máquina y el backend está bloqueado por el servidor del fixture. No
- * acredita producción, datos reales ni autorización.
+ * QUÉ ES REAL Y QUÉ NO — importa, porque confundirlo hace perder una tarde:
+ *
+ *  · **La LECTURA del archivo es REAL.** Con «LEER MI ARCHIVO» el Excel que sueltas
+ *    se manda al servidor del harness, que corre `extractDocument`, el mismo código
+ *    que corre en producción. Lo que sale en pantalla es lo que el lector entendió
+ *    de TU documento. Si acá falta un dato, en producción también va a faltar.
+ *  · **El PRECIO es de ejemplo.** El estimado no llama a la calculadora ni a la
+ *    tarifa vigente: es un número fijo para mirar el desglose y la maquetación.
+ *  · **No hay base de datos.** Nada se guarda, nada sale de esta máquina, el backend
+ *    está bloqueado. No acredita producción ni autorización.
+ *
+ * Los tres escenarios «Ejemplo:» son documentos inventados, para mirar los casos
+ * difíciles sin tener un archivo así a mano.
  *
  * Lo que interesa mirar no es el camino feliz —ese se ve solo— sino los casos que
  * una captura bonita esconde: un documento al que le falta el peso, uno que llegó
@@ -36,6 +46,8 @@ const WORKSPACE: DocumentWorkspace = {
 };
 
 type Caso = "completo" | "sin-peso" | "sin-asignar" | "monedas" | "vacio";
+/** «real» lee TU archivo con el lector de produccion. Los demas son ejemplos fijos. */
+type Escenario = "real" | "ok" | "parcial" | "falla";
 
 /** Dos productos en las MISMAS 5 cajas: 58 uds, USD 132, 15 kg, 2,5 m³. */
 function base(): DocumentDraft {
@@ -107,14 +119,23 @@ function estimadoDemo() {
  * más amable escondía un defecto real —la pantalla se quedaba sin documento al
  * aplicar— hasta que uno honesto lo destapó.
  */
-function cliente(escenario: "ok" | "parcial" | "falla"): DocumentClient {
+function cliente(escenario: Escenario): DocumentClient {
   const espera = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 300));
   let aplicado = false;
-  const leido = () => caso(escenario === "parcial" ? "sin-peso" : "completo");
+  /** Lo que el lector REAL sacó del archivo que soltaste. Null hasta que se suelta uno. */
+  let real: { draft: DocumentDraft | null; error: string | null } = { draft: null, error: null };
+  const leido = () =>
+    escenario === "real" ? (real.draft ?? emptyDocumentDraft()) : caso(escenario === "parcial" ? "sin-peso" : "completo");
   return {
     get: async (action) => {
       if (action === "capabilities") return espera({ available: true, formats: ["xlsx", "csv", "pdf"], maxBytes: 15 * 1024 * 1024 } as never);
       if (action === "job") {
+        if (escenario === "real")
+          return espera(
+            (real.error
+              ? { job: { status: "failed", result: null, errorCode: real.error } }
+              : { job: { status: "ready", result: real.draft, errorCode: null } }) as never,
+          );
         if (escenario === "falla") return espera({ job: { status: "failed", result: null, errorCode: "legacy_xls" } } as never);
         return espera({ job: { status: escenario === "parcial" ? "partial" : "ready", result: leido(), errorCode: null } } as never);
       }
@@ -134,7 +155,27 @@ function cliente(escenario: "ok" | "parcial" | "falla"): DocumentClient {
       if (action === "estimate") return espera(estimadoDemo() as never);
       return espera({} as never);
     },
-    upload: async () => undefined,
+    /**
+     * Acá deja de ser una maqueta: el archivo se manda al servidor del harness, que
+     * corre `extractDocument` de verdad. Lo que vuelve es lo que el lector entendió
+     * de TU Excel, no un ejemplo.
+     */
+    upload: async (_url, file) => {
+      if (escenario !== "real") return;
+      real = { draft: null, error: null };
+      try {
+        const res = await fetch("/qa/leer", {
+          method: "POST",
+          headers: { "x-file-name": encodeURIComponent(file.name) },
+          body: await file.arrayBuffer(),
+        });
+        const data = await res.json();
+        if (data.ok) real = { draft: data.draft as DocumentDraft, error: null };
+        else real = { draft: null, error: data.cayoAIA ? "necesita_lectura_asistida" : (data.message ?? "no_se_pudo_leer") };
+      } catch {
+        real = { draft: null, error: "el servidor del harness no respondió" };
+      }
+    },
     download: async () => new Blob(),
     setAnonymousToken: () => {},
     id: () => "11111111-1111-4111-8111-" + String(Math.floor(Math.random() * 1e12)).padStart(12, "0"),
@@ -144,7 +185,7 @@ function cliente(escenario: "ok" | "parcial" | "falla"): DocumentClient {
 function Fixture() {
   const [kind, setKind] = useState<Caso>("sin-peso");
   const [locale, setLocale] = useState<DocumentLocale>("es");
-  const [escenario, setEscenario] = useState<"ok" | "parcial" | "falla">("ok");
+  const [escenario, setEscenario] = useState<Escenario>("real");
   const [pantalla, setPantalla] = useState<"cotizador" | "editor" | "carga">("cotizador");
   const [ancho, setAncho] = useState<"escritorio" | "375" | "390">("escritorio");
   const [draft, setDraft] = useState<DocumentDraft>(() => caso("sin-peso"));
@@ -183,7 +224,13 @@ function Fixture() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--color-paper)" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 10, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", padding: 12, background: "var(--color-white)", borderBottom: "1px solid var(--color-grey-200)" }}>
-        <strong style={{ fontSize: 13 }}>DEMO · datos ficticios · transporte simulado</strong>
+        {/* El rótulo dice la verdad según el escenario: con «real» la lectura NO es
+            una maqueta, y decir lo contrario hace que nadie confíe en lo que ve. */}
+        <strong style={{ fontSize: 13 }}>
+          {escenario === "real"
+            ? "LECTURA REAL de tu archivo · precio de ejemplo · sin base de datos"
+            : "DEMO · documento inventado · precio de ejemplo"}
+        </strong>
         <label style={{ fontSize: 13 }}>
           Pantalla{" "}
           <select value={pantalla} onChange={(e) => setPantalla(e.target.value as typeof pantalla)}>
@@ -208,9 +255,10 @@ function Fixture() {
           <label style={{ fontSize: 13 }}>
             Lectura{" "}
             <select value={escenario} onChange={(e) => setEscenario(e.target.value as typeof escenario)}>
-              <option value="ok">Se leyó todo</option>
-              <option value="parcial">Se leyó a medias</option>
-              <option value="falla">No se pudo leer</option>
+              <option value="real">LEER MI ARCHIVO de verdad</option>
+              <option value="ok">Ejemplo: se leyó todo</option>
+              <option value="parcial">Ejemplo: se leyó a medias</option>
+              <option value="falla">Ejemplo: no se pudo leer</option>
             </select>
           </label>
         )}
