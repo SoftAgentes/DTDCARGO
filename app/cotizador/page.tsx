@@ -28,6 +28,18 @@ export const metadata: Metadata = {
   title: "Cotizador con tus documentos (proforma y packing list)",
   description: DESC,
   alternates: { canonical: "/cotizador" },
+  /**
+   * `noindex` **mientras la bandera esté apagada**, que es hoy: con
+   * `DOCUMENT_IMPORT_ENABLED` distinto de "true" esta ruta devuelve 404, y
+   * ofrecerle a Google una URL que no existe es peor que no ofrecerle nada.
+   *
+   * El día que se encienda hay que hacer DOS cosas, no una: quitar este
+   * `robots` y agregar `/cotizador` a `app/sitemap.ts`. El contrato de
+   * `sitemap-cobertura-contract.test.ts` obliga a elegir una de las dos listas
+   * —quedar fuera de ambas es el estado que nadie eligió—, así que lanzar no
+   * puede ser un descuido: tiene que ser un cambio deliberado.
+   */
+  robots: { index: false, follow: false },
   ...socialMeta({
     title: "Cotiza con tu proforma y tu packing list · DTD Cargo",
     description: DESC,
