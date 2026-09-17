@@ -39,6 +39,8 @@ export type PackingListRowInput = Partial<
   same?: boolean;
   /** Cantidad directa cuando `same` (no se computa de cajas×uds). */
   qtyDirect?: string | number;
+  /** SDD-0473: explicit unit of measure; absent historical rows mean pieces. */
+  uom?: string;
 };
 
 /** Fila saneada server-side: textos + números + computados por fila. */
@@ -61,11 +63,13 @@ export type PackingListRow = {
   amount: number;
   weight: number;
   vol: number;
+  uom?: string;
 };
 
 export type PackingListTotals = {
   ctns: number;
-  qty: number;
+  qty: number | null;
+  quantitiesByUnit?: Record<string, number>;
   amount: number;
   weight: number;
   cbm: number;
@@ -124,7 +128,7 @@ export type PackingListInput = {
   docDate: string | null;
   supplierNote: string | null;
   rows: PackingListRow[];
-  totals: PackingListTotals;
+  totals: PackingListTotals & { qty: number };
 };
 
 export type PackingListFieldErrors = Partial<
@@ -189,6 +193,7 @@ function rowCalc(r: PackingListRowInput): PackingListRow {
     amount: round(qty * unit, 2),
     weight: same ? 0 : round(ctns * wkg, 3),
     vol: same ? 0 : round(ctns * cbm, 4),
+    ...(typeof r.uom === "string" ? { uom: text(r.uom).slice(0,40) } : {}),
   };
 }
 
@@ -220,7 +225,7 @@ function rowHasName(r: PackingListRow): boolean {
  */
 export function computeTotals(rows: PackingListRowInput[] | undefined): {
   rows: PackingListRow[];
-  totals: PackingListTotals;
+  totals: PackingListTotals & { qty: number };
 } {
   const calc = (rows ?? []).map(rowCalc).filter(rowHasContent);
   let ctns = 0,
