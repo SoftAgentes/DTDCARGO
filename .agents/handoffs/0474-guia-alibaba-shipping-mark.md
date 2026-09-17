@@ -245,11 +245,19 @@ valor vigente, es el que se quiere prometer. Documentado en el spec §3.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **`supabase/migrations/0393_academia_widget_alibaba_curso.sql` sigue sin
-  aplicar a producción** (viene señalado desde 2026-08-25). Cualquier lección
-  con `widget='alibaba_curso'` revienta el CHECK `academy_lessons_widget_chk`.
-  Exige OK del founder nombrándola y el
-  [runbook de producción](../../docs/runbooks/aplicar-migraciones-prod.md).
+- ~~`0393_academia_widget_alibaba_curso.sql` sigue sin aplicar a producción~~
+  **FALSO, y era mío.** La 0393 está **aplicada desde el 2026-08-26** (ledger
+  `20260826040007`; el CHECK real ya admite `alibaba_curso`). Lo comprobó el
+  Director contra producción el 2026-09-17 con dos sondas.
+  La guía se puede embeber en una lección de Academia **ya mismo**.
+
+  Lo tomé de `docs/runbooks/academia-guia-alibaba-interactiva.md`, que lo decía
+  así desde agosto, y lo repetí como hecho sin poder comprobarlo. La causa de
+  fondo: **`migrations-applied` da SKIP sin credenciales**, o sea en todos los
+  worktrees, así que una afirmación de este tipo puede vivir semanas sin que
+  nada la contradiga. Regla para lo que viene: declarar que una migración NO
+  está aplicada exige comprobarlo contra producción o escribirlo como
+  **NO VERIFICADO**. Corregido también en el runbook, que era la fuente.
 - **`syncLead()` de la guía es un `console.log`** (línea del comentario
   `// === ENVIAR A SUPABASE/KOMMO ===`). Perfil, nombre, WhatsApp, producto, CBM,
   landed y scorecard se capturan y mueren en `localStorage`. Ojo: el precedente

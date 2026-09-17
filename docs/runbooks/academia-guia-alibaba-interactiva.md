@@ -8,7 +8,7 @@
 >
 > | Paso | Dónde quedó |
 > |---|---|
-> | 1 · Migración | [`supabase/migrations/0393_academia_widget_alibaba_curso.sql`](../../supabase/migrations/0393_academia_widget_alibaba_curso.sql) — ⏳ **sin aplicar a prod** |
+> | 1 · Migración | [`supabase/migrations/0393_academia_widget_alibaba_curso.sql`](../../supabase/migrations/0393_academia_widget_alibaba_curso.sql) — ✅ **APLICADA en producción el 2026-08-26** (ledger `20260826040007`; el CHECK real ya admite `alibaba_curso`). Decía «sin aplicar» y esa línea viajó de handoff en handoff durante tres semanas sin que nadie la comprobara — corregido el 2026-09-17 con dos sondas a producción. |
 > | 2 · Tipos | `lib/studio/academia/types.ts` (`LessonWidget`, `LESSON_WIDGETS`, `lessonWidgetLabel`) + `scripts/seed-academia.ts` |
 > | 3 · Componente | [`components/AlibabaCursoGuide.tsx`](../../components/AlibabaCursoGuide.tsx) — el href sale de `lib/guia-alibaba.ts`, con 7 tests |
 > | 4 · Render | `app/portal/(app)/academia/[courseId]/[lessonId]/page.tsx` + badge "Herramienta" en el detalle |

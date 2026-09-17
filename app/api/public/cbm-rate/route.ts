@@ -7,11 +7,17 @@
  * la tarifa server-side vía RPC anon (`lib/public/rates-queries.ts`), vía que un
  * archivo estático no tiene — necesita HTTP. Este handler es ese puente.
  *
- * Por qué no cablear el número en la guía: la migración
- * `0336_rate_ddp_850_septiembre_2026.sql` programó con pg_cron el relevo
- * $800 → $850 vigente 2026-09-04 → 2026-10-04, y su cabecera avisa que el
- * 2026-10-05 **cae sola a $800** si nadie renueva desde `/studio/tarifas`. Una
- * cifra copiada al HTML empezaría a mentir sin que nadie lo note.
+ * Por qué no cablear el número en la guía: la tarifa se mueve desde
+ * `/studio/tarifas`, y la migración `0336_rate_ddp_850_septiembre_2026.sql` ya
+ * la subió con pg_cron de $800 a $850. Una cifra copiada al HTML empezaría a
+ * mentir sin que nadie lo note.
+ *
+ * ⚠️ Al vencer la vigencia esta RPC devuelve null y el sitio cae a
+ * `CONFIG.tarifaBaseCBM`. Desde SDD-0475 ese respaldo también vale $850, así que
+ * el precio **ya no cambiará al vencer** — antes caía a $800 y el salto se veía.
+ * El vencimiento dejó de tener síntoma: lo vigilan el cron de
+ * `app/api/cron/rate-expiry-alert` (Telegram + email) y el test de vigencia de
+ * `__tests__/calculadora-respaldo-alineado.test.ts`.
  *
  * `app/api/**` está fuera de la frontera ESLint público↔ERP, así que puede
  * importar `lib/public/*` (mismo argumento que `app/api/registro/check`).

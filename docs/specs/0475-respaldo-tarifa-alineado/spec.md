@@ -11,7 +11,7 @@ related: ["0474", "0164", "0336"]
 confidencialidad: interno
 ---
 
-# DTD-0475 — El respaldo del calculador cotizaba 6,25% por debajo
+# DTD-0475 — El respaldo del calculador cotizaba 5,88% por debajo
 
 > `CONFIG.tarifaBaseCBM` llevaba 13 días en $800 mientras el ERP cobraba $850.
 > No es una decisión: la migración que subió la tarifa avisaba que había que
@@ -37,7 +37,8 @@ pública a **$850** con `pg_cron` el **2026-09-04**, y su cabecera lo dejó escr
 > [cotiza por debajo].
 
 No se hizo. Entre el 2026-09-04 y el 2026-09-17 el ERP cobró $850 y el respaldo
-decía $800: **6,25% por debajo** ante cualquier caída, en silencio.
+decía $800: **5,88% por debajo** ante cualquier caída, en silencio (50/850 — el
+6,25% es 50/800, o sea cuánto hay que SUBIR, que no es lo mismo).
 
 **No es la primera vez.** El mismo patrón le había pasado a `pesoIncluidoKg`: el
 ERP tenía 1.000 kg desde el 2026-07-06 y el código seguía en 500, así que una
@@ -81,12 +82,24 @@ correcto sólo si la tarifa sigue siendo 850.
 ancla `tarifaBaseCBM`, `pesoIncluidoKg` y `minimoFacturable`.
 
 No puede comparar contra la DB —el CI corre sin credenciales, y por eso el paso
-`migrations-applied` de `verify` sale SKIP—, así que hace lo único útil desde
-ahí: **convierte un cambio silencioso en uno deliberado**. Hasta ahora los tests
-usaban `CONFIG.tarifaBaseCBM` como referencia (`expect(cot.precioBase).toBe(1 *
-CONFIG.tarifaBaseCBM)`), de modo que mover el número **no rompía nada** — que es
-exactamente cómo se coló la desalineación las dos veces. Con este archivo,
-cambiarlo obliga a pasar por acá y decir por qué.
+`migrations-applied` de `verify` sale SKIP—, así que ancla los números con su
+procedencia al lado.
+
+**Corrección de lo que se reportó primero.** Se dijo que los tests usaban
+`CONFIG.tarifaBaseCBM` como referencia y que por eso mover el número «no rompía
+nada». **Es falso**: subir la constante puso **20 aserciones en rojo** en
+`calculadora.test.ts` y `calculadora-minimo-en-cajas.test.ts`, que están escritas
+con literales y su aritmética a la vista (`// 0.3 × 850`). Esa red existía.
+
+Entonces la pregunta real es otra: **¿cómo se coló la desalineación, si había
+tests?** Porque los tests protegen contra un cambio accidental del código, no
+contra que el ERP cambie y el código se quede quieto. Nadie tocó la constante —
+ése es el modo de fallo, y ningún test del repo lo ve sin acceso a la DB.
+
+Lo que este archivo aporta, entonces, no es «la red que faltaba» sino **dejar
+escrito cuál es el valor del ERP y de dónde salió**, para que una revisión futura
+tenga contra qué contrastar. Los 20 valores derivados se actualizaron literal por
+literal, con la aritmética recalculada en cada comentario.
 
 El cuerpo del test dice qué hacer si sale rojo: comprobar el ERP y alinear el
 código con eso, no cambiar el número esperado a ciegas.

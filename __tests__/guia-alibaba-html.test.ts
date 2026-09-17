@@ -37,8 +37,10 @@ describe("guía de Alibaba (HTML estático)", () => {
   });
 
   it("no cablea la tarifa por CBM", () => {
-    // La migr 0336 la mueve con pg_cron (800→850 el 4-sep, y vuelve a 800 el
-    // 5-oct si nadie la renueva). Un número copiado acá empieza a mentir solo.
+    // La migr 0336 la movió con pg_cron (800→850 el 4-sep) y se sigue moviendo
+    // desde /studio/tarifas. Un número copiado acá empieza a mentir solo.
+    // (Ya no «vuelve a 800» al vencer: desde SDD-0475 el respaldo también es
+    // 850, así que al vencer la vigencia el precio no cambia.)
     expect(html).not.toMatch(/per_cbm\s*[:=]\s*\d/);
     expect(html).toContain("let TARIFA = null");
   });

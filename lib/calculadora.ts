@@ -68,14 +68,23 @@ export const CONFIG = {
    * Supabase el sitio habría cotizado **6,25% por debajo**, sin error visible.
    * Lo mismo le había pasado antes a `pesoIncluidoKg` (ver abajo).
    *
+   * La cifra, bien dicha: con $850 vigente y $800 de respaldo el sitio cotiza
+   * **5,88% por debajo** (50/850). El 6,25% es 50/800 — cuánto hay que SUBIR,
+   * que no es lo mismo y en una decisión de precios no son intercambiables.
+   *
    * ⚠️ OJO CON LA VIGENCIA: la fila de $850 vence el **2026-10-04**. Si nadie la
    * renueva desde /studio/tarifas, a partir del 5-oct la RPC devuelve null y el
    * sitio cotizará con este 850 — que entonces será lo correcto sólo si la
    * tarifa sigue siendo 850. Si se decide volver a 800, hay que bajar los dos.
    *
-   * El arreglo de fondo (pendiente, SDD-0164): una alerta en el ERP cuando una
-   * tarifa pública esté por vencer. Mientras eso no exista, este número depende
-   * de que alguien se acuerde — y ya falló dos veces.
+   * La alerta de vencimiento SÍ existe y está activa (SDD-0164, migr 0257 +
+   * `app/api/cron/rate-expiry-alert`, programado en vercel.json): avisa por
+   * Telegram y email cuando una tarifa pública está por vencer o venció. Lo que
+   * NO cubre es este respaldo — el 4-sep no hubo vencimiento, hubo un cambio de
+   * precio, y de eso no avisa nadie. Esa es la grieta que quedó.
+   *
+   * La red de CI está en `__tests__/calculadora-respaldo-alineado.test.ts`:
+   * ancla este valor y vigila la fecha de vigencia.
    */
   tarifaBaseCBM: 850,
 
@@ -476,7 +485,7 @@ export type EnvioInput = {
   cargaEspecial?: boolean;
   /**
    * Override de la tarifa base por CBM (USD).
-   * Si no se provee, se usa `CONFIG.tarifaBaseCBM` (default $800).
+   * Si no se provee, se usa `CONFIG.tarifaBaseCBM` (hoy $850).
    * Útil cuando el cliente tiene una cotización negociada distinta a la pública.
    */
   tarifaCBMOverride?: number;
