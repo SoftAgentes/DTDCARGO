@@ -100,6 +100,7 @@ type Guion = {
   expiresAt?: string | null;
   abrirFalla?: DocumentRequestError;
   estimarFalla?: DocumentRequestError;
+  guardarFalla?: DocumentRequestError;
 };
 
 function cliente(guion: Guion = {}) {
@@ -144,7 +145,10 @@ function cliente(guion: Guion = {}) {
         aplicado = true;
         return { revision: 1, confirmed: false } as never;
       }
-      if (action === "save") return { revision: 2, confirmed: false } as never;
+      if (action === "save") {
+        if (guion.guardarFalla) throw guion.guardarFalla;
+        return { revision: 2, confirmed: false } as never;
+      }
       if (action === "estimate") {
         if (guion.estimarFalla) throw guion.estimarFalla;
         return estimado() as never;
@@ -324,5 +328,24 @@ describe("Cotizador público (SDD-0473)", () => {
     expect(screen.queryByText(/USD/)).not.toBeInTheDocument();
     const asesor = screen.getByRole("link", { name: /asesor por WhatsApp/i });
     expect(asesor.getAttribute("href")).toContain("wa.me");
+  });
+
+  it("un guardado que falla se VE, esté el visitante en el paso que esté", async () => {
+    // El camino real: corriges algo, vuelves al paso 1 a cargar otro archivo, y
+    // desde ahí pides el precio. `cotizar` guarda primero, el guardado falla, y
+    // el aviso se escribía dentro del bloque del paso 2 — que no se renderiza.
+    // El visitante veía que no pasaba nada y no sabía por qué.
+    const { client } = cliente({ guardarFalla: new DocumentRequestError(503, "save_failed", "sin guardar") });
+    await hastaRevisar(client);
+
+    fireEvent.click(screen.getByRole("button", { name: "Agregar producto" }));
+    fireEvent.click(screen.getByRole("button", { name: "1 Documentos" }));
+    await screen.findByLabelText("Elige tus archivos o suéltalos aquí");
+
+    fireEvent.click(screen.getByRole("button", { name: "3 Precio" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/No pudimos guardar tus correcciones/);
+    // Y sin guardar no hay precio: el servidor cotiza sobre lo guardado.
+    expect(screen.queryByText("USD 500,00")).not.toBeInTheDocument();
   });
 });

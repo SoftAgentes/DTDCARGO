@@ -226,6 +226,18 @@ export function CotizadorClient({
         </p>
       )}
 
+      {/* Va acá arriba y NO dentro de un paso: `adoptar` escribe su aviso cuando
+          falla la relectura tras aplicar, y eso pasa con el visitante todavía en
+          el paso 1. Metido dentro del paso 2 el mensaje existía y no se dibujaba
+          nunca: aplicabas, no pasaba nada visible, y la explicación estaba en un
+          bloque que no se renderizaba. Un error escrito y no mostrado es peor que
+          no escribirlo. */}
+      {aviso && (
+        <p className={[s.notice, s.error].join(" ")} role="alert">
+          {aviso}
+        </p>
+      )}
+
       {ws?.expiresAt && (
         <p className={s.notice}>
           Estás cotizando sin cuenta: tu documento se guarda temporalmente y se borra solo el{" "}
@@ -270,12 +282,6 @@ export function CotizadorClient({
             disabled={guardando}
             revision={ws?.revision}
           />
-
-          {aviso && (
-            <p className={[s.notice, s.error].join(" ")} role="alert">
-              {aviso}
-            </p>
-          )}
 
           <div className={s.actions}>
             <button
