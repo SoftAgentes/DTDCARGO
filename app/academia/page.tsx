@@ -81,7 +81,8 @@ export default function AcademiaPage() {
                 Nueve etapas, de crear tu cuenta a tener la mercancía en nuestra bodega de Yiwu. Se
                 adapta a si compras al mayor o para tu negocio, trae calculadora de volumen (CBM) y de
                 costo real puesto en Venezuela, y te arma la dirección de nuestra bodega con un botón
-                de copiar en cada campo. No necesitas registrarte para usarla.
+                de copiar en cada campo. Puedes leerla sin cuenta; para que tu caja llegue
+                identificada necesitas tu Shipping Mark, que es gratis.
               </p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <a
@@ -92,8 +93,14 @@ export default function AcademiaPage() {
                 >
                   Abrir la guía gratis
                 </a>
+                {/* SDD-0474: la guía pide el Shipping Mark en la dirección de
+                    Alibaba, y ése sale del registro. `origen=academia` deja el
+                    canal en clients.registration_channel. */}
+                <Link href="/registro?origen=academia" className="btn btn-ghost">
+                  Crear mi cuenta gratis
+                </Link>
                 <Link href="/shipping-mark" className="btn btn-ghost">
-                  Ver mi Shipping Mark
+                  Qué es el Shipping Mark
                 </Link>
               </div>
             </div>
