@@ -168,32 +168,39 @@
   .greet b{color:var(--marea)}
   /* Direccion Alibaba (copiar por campo) -- espejo del FAQ */
   .dir-card{border:1px solid var(--linea);border-radius:16px;overflow:hidden;background:var(--papel);margin-top:6px;box-shadow:var(--sombra-suave)}
-  .dir-mark{padding:14px 16px;border-bottom:1px solid var(--linea);background:var(--espuma)}
-  .dir-mark label{display:block;font:700 11px var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--bruma);margin-bottom:8px}
-  .dir-mark .row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
-  .dir-mark input{height:42px;width:180px;padding:0 13px;border:1.5px solid var(--linea);border-radius:8px;background:var(--papel);font:700 14px var(--f-mono);letter-spacing:.04em;color:var(--abismo);outline:none}
+  .dir-mark{padding:12px 16px;border-bottom:1px solid var(--linea);background:var(--espuma)}
+  /* El código va AL LADO de su etiqueta, no debajo: es un dato corto y apilarlo
+     costaba una línea entera. */
+  .dir-mark .mk-top{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px}
+  .dir-mark label{font:700 11px var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--bruma);margin:0}
+  .dir-mark .row{display:block}
+  .dir-mark input{height:32px;width:124px;padding:0 10px;border:1.5px solid var(--linea);border-radius:7px;background:var(--papel);font:700 13px var(--f-mono);letter-spacing:.04em;color:var(--abismo);outline:none}
   .dir-mark input:focus{border-color:var(--marea)}
-  .dir-mark .h{font-size:12.5px;line-height:1.5;color:var(--bruma);max-width:42ch}
+  /* 60ch en vez de 42: la misma frase en menos renglones. */
+  .dir-mark .h{margin-top:6px;font-size:12.5px;line-height:1.45;color:var(--bruma);max-width:60ch}
   .dir-mark .h a{color:var(--marea);font-weight:700;text-decoration:underline}
   /* Sin Shipping Mark no hay input que rellenar: hay un placeholder inerte y
      dos puertas. El código lo entrega el registro, no el visitante. */
   /* El borde va en --bruma (5.33:1 sobre papel), no en --linea (1.72:1): el
      placeholder parece un campo y es lo único que lo delimita. WCAG 1.4.11
      pide 3:1 para lo que identifica un componente. */
-  .dir-mark .mk-vacio{display:inline-flex;align-items:center;height:40px;padding:0 12px;border:1.5px dashed var(--bruma);
-    border-radius:8px;background:var(--papel);font:700 14px var(--f-mono);letter-spacing:.04em;color:var(--bruma)}
-  .dir-mark .h .mk-puertas{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .dir-mark .mk-vacio{display:inline-flex;align-items:center;height:32px;padding:0 10px;border:1.5px dashed var(--bruma);
+    border-radius:7px;background:var(--papel);font:700 13px var(--f-mono);letter-spacing:.04em;color:var(--bruma)}
+  .dir-mark .h .mk-puertas{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:8px}
   /* Especificidad a propósito: .dir-mark .h a (el enlace del hint) es 0-3-0 y
      le ganaba a una regla de dos clases, dejando el texto wine sobre un fondo
      wine — el botón se veía como un rectángulo vacío.
      40px de alto, como los demás clicables de la guía: el CTA al registro no
      puede ser el elemento más chico de la pantalla. */
-  .dir-mark .h .mk-puertas a{display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:8px;
-    font:700 12.5px var(--f-ui);text-decoration:none;border:1.5px solid var(--marea);transition:background .15s,color .15s}
-  .dir-mark .h .mk-puertas a.mk-prim{background:var(--marea);color:var(--papel)}
+  .dir-mark .h .mk-puertas a.mk-prim{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:8px;
+    font:700 12.5px var(--f-ui);text-decoration:none;border:1.5px solid var(--marea);
+    background:var(--marea);color:var(--papel);transition:background .15s,color .15s}
   .dir-mark .h .mk-puertas a.mk-prim:hover{background:var(--abismo);border-color:var(--abismo);color:var(--papel)}
-  .dir-mark .h .mk-puertas a.mk-sec{background:var(--papel);color:var(--marea)}
-  .dir-mark .h .mk-puertas a.mk-sec:hover{background:var(--espuma);color:var(--abismo)}
+  /* El secundario es la salida, no la acción: enlace, no botón. Dos botones
+     iguales al lado no dicen cuál es el camino. */
+  .dir-mark .h .mk-puertas a.mk-sec{font:700 12.5px var(--f-ui);color:var(--marea);text-decoration:underline;
+    text-underline-offset:3px;padding:4px 0}
+  .dir-mark .h .mk-puertas a.mk-sec:hover{color:var(--abismo)}
   /* El foco, declarado: sobre wine el outline por defecto del navegador no
      tiene contraste garantizado. Mismo patrón que .svc>summary.
      El offset de 4px es parte del contraste, no decoración: separa el anillo
@@ -201,6 +208,11 @@
      10.1:1). Pegado al botón, navy sobre wine sería 1.56:1. */
   .dir-mark .h .mk-puertas a.mk-prim:focus-visible{outline:2px solid var(--abismo);outline-offset:4px}
   .dir-mark .h .mk-puertas a.mk-sec:focus-visible{outline:2px solid var(--marea);outline-offset:4px}
+  @media (max-width:520px){
+    .dir-mark .h .mk-puertas{flex-direction:column;align-items:stretch;gap:10px}
+    .dir-mark .h .mk-puertas a.mk-prim{width:100%;justify-content:center;height:44px}
+    .dir-mark .h .mk-puertas a.mk-sec{text-align:center}
+  }
   .dir-mark input[readonly]{background:var(--espuma);cursor:default}
   /* Paso 7: la dirección de una pieza, para pegársela al proveedor en el chat. */
   .dir-full-body{padding:16px;display:flex;flex-direction:column;gap:12px}
@@ -272,15 +284,6 @@
   .perfil-card span{font-size:13px;color:var(--bruma)}
 
   /* Captura */
-  .capture{background:var(--abismo);color:#fff;border-radius:18px;padding:18px;margin-bottom:18px;position:relative;overflow:hidden}
-  .capture h3{font-family:var(--f-ui);font-size:18px;margin:0 0 4px}
-  .capture p{margin:0 0 12px;color:var(--cream);font-size:14px}
-  .capture .row{display:flex;gap:10px;flex-wrap:wrap}
-  .capture input{flex:1;min-width:150px;border:1.5px solid rgba(255,255,255,.2);border-radius:11px;padding:11px 13px;font:inherit;font-size:15px;background:rgba(255,255,255,.08);color:#fff}
-  .capture input::placeholder{color:#9fb6cc}
-  .capture input:focus{outline:none;border-color:var(--oro);background:rgba(255,255,255,.14)}
-  .capture .acts{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
-  .capture .skip{background:none;border:none;color:#9fb6cc;font:600 13px var(--f-ui);cursor:pointer;text-decoration:underline}
 
   /* Herramientas */
   .tool{border:1.5px solid var(--marea);border-radius:16px;padding:16px;margin-top:6px;background:#fbfeff}
@@ -452,7 +455,7 @@ const cod = (CODIGO && CODIGO.indexOf("{{")<0 && CODIGO) ? CODIGO : "XXXX";
 
 /* ============================ LEAD (tuyo) ============================ */
 const lead = { perfil:null, nombre:"", whatsapp:"", producto:"", etapaMax:0, markbox:"",
-  contactDone:false, contactSkipped:false, scorecard:null, landed:null, cbm:null, ts:new Date().toISOString() };
+  contactDone:false, scorecard:null, landed:null, cbm:null, ts:new Date().toISOString() };
 if(URL_MARK) lead.markbox = URL_MARK;
 
 /** El Shipping Mark que se pinta hoy: el del portal (?mark=) manda; si no, el que el visitante
@@ -820,20 +823,21 @@ function markBloqueHTML(){
   const MK = markActual();
   if (MK) {
     const saludo = URL_NAME ? "<b>Hola, "+esc(URL_NAME)+".</b> " : "";
-    return '<div class="dir-mark"><label>Tu Shipping Mark</label><div class="row">'+
-      '<input id="dirMark" type="text" maxlength="50" value="'+esc(MK)+'" readonly aria-readonly="true">'+
-      '<div class="h">'+saludo+'Ya está cargado — cópialo junto a «林冠» en la dirección de Alibaba.</div>'+
-    '</div></div>';
+    return '<div class="dir-mark">'+
+      '<div class="mk-top"><label for="dirMark">Tu Shipping Mark</label>'+
+        '<input id="dirMark" type="text" maxlength="50" value="'+esc(MK)+'" readonly aria-readonly="true"></div>'+
+      '<div class="h">'+saludo+'Cópialo junto a «林冠» en la dirección de Alibaba.</div>'+
+    '</div>';
   }
-  return '<div class="dir-mark"><label>Tu Shipping Mark</label><div class="row">'+
-    '<span class="mk-vacio">DTD-XXXX</span>'+
-    '<div class="h">Es tu código, y sale del registro: es gratis y toma 5 minutos. Sin él, tu caja llega a Yiwu sin poder identificarse.'+
+  return '<div class="dir-mark">'+
+    '<div class="mk-top"><label>Tu Shipping Mark</label><span class="mk-vacio">DTD-XXXX</span></div>'+
+    '<div class="h">Sin él, tu caja llega a Yiwu sin poder identificarse.'+
       '<span class="mk-puertas">'+
-        '<a class="mk-prim" href="'+REG_HREF+'" target="_blank" rel="noopener">Regístrate y obtén el tuyo →</a>'+
+        '<a class="mk-prim" href="'+REG_HREF+'" target="_blank" rel="noopener">Obtén el tuyo gratis →</a>'+
         '<a class="mk-sec" href="'+PORTAL_HREF+'" target="_blank" rel="noopener">Ya soy cliente</a>'+
       '</span>'+
     '</div>'+
-  '</div></div>';
+  '</div>';
 }
 
 /* Paso 7 · el cliente ya cargó la dirección en Alibaba; acá sólo necesita
@@ -941,8 +945,6 @@ function scorecardHTML(){
 function renderEtapa(){
   const i=estado.actual, et=ETAPAS[i];
   let html='<span class="sello" id="sello">Aprobado ✓</span>';
-  // captura progresiva al llegar a la etapa 2
-  if(i===2 && !lead.contactDone && !lead.contactSkipped) html+=captureHTML();
   html+='<span class="eyebrow">'+et.eyebrow+' · <span style="opacity:.7">'+et.insignia.n+'</span></span>';
   html+='<h1 class="titulo">'+et.titulo+'</h1><p class="intro">'+et.intro+'</p>';
   et.bloques.forEach(b=> html+=bloqueHTML(b));
@@ -1022,25 +1024,11 @@ function wire(){
     navigator.clipboard.writeText(val).then(()=>{ const o=btn.textContent; btn.textContent="✓ Copiado"; setTimeout(()=>btn.textContent=o,1600); }).catch(()=>{});
   }));
   stageEl.querySelectorAll(".sc-crit").forEach(c=> c.addEventListener("click",()=>{ c.classList.toggle("on"); c.querySelector(".b").textContent=c.classList.contains("on")?"✓":""; scoreUpdate(); }));
-  // captura
-  if($("#capSave")) $("#capSave").addEventListener("click",guardarContacto);
-  if($("#capSkip")) $("#capSkip").addEventListener("click",()=>{ lead.contactSkipped=true; syncLead("contacto_skip"); renderEtapa(); });
   actualizarBotonNext();
 }
 
 function elegirPerfil(p){ lead.perfil=p; syncLead("perfil"); renderModo(); renderEtapa(); }
 
-function captureHTML(){
-  return '<div class="capture"><h3>Guarda tu progreso</h3><p>Déjanos cómo contactarte y te guardamos por dónde vas. Sin compromiso.</p>'+
-    '<div class="row"><input id="capNombre" type="text" placeholder="Tu nombre" value="'+(lead.nombre||"")+'"><input id="capWa" type="tel" placeholder="WhatsApp (+58...)" value="'+(lead.whatsapp||"")+'"></div>'+
-    '<div class="acts"><button class="btn btn-oro" id="capSave">Guardar y seguir</button><button class="skip" id="capSkip">Ahora no</button></div></div>';
-}
-function guardarContacto(){
-  const n=($("#capNombre").value||"").trim(), w=($("#capWa").value||"").trim();
-  if(!n){ alert("Pon al menos tu nombre."); return; }
-  lead.nombre=n; lead.whatsapp=w; lead.contactDone=true; syncLead("contacto_guardado");
-  toast("✓","Progreso guardado","Seguimos donde vas"); renderEtapa();
-}
 
 /* ---------- Herramientas: cálculo ---------- */
 function calcTool(t){
