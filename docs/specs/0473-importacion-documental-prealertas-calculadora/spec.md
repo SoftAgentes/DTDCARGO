@@ -4,7 +4,7 @@ title: "Importación documental, borrador compartido y calculadora puerta a puer
 status: in-progress
 author: "Codex"
 created: 2026-09-16
-updated: 2026-09-16
+updated: 2026-09-18
 supersedes: null
 superseded_by: null
 related: ["0468"]
@@ -182,6 +182,69 @@ una fixture más amable que el servidor real. Costaba dos fallas que sólo se ve
 
 Los dobles de prueba se corrigieron para responder como el servidor. Ambos arreglos están fijados
 por mutación: revertirlos deja `expected undefined to be '0000…0001'`, que es el defecto mismo.
+
+### Ampliación 2026-09-18 · Encender el cotizador: cadencia y alcance de la bandera
+
+Encargo de Sam: «Encender el cotizador desde la proforma (bandera DOCUMENT_IMPORT_ENABLED de
+0473): antes hay que revisar de nuevo la cadencia del cron». Worker
+`worker-encender-cotizador-0473-claude-20260918`, rama `codex/encender-cotizador-0473`, base
+`78410913`. Handoff: `.agents/handoffs/0473-encender-cotizador-20260918.md`.
+
+**La cadencia vuelve a cada minuto.** El 2026-09-17 bajó a `*/5` (PR #133) porque con la bandera
+apagada el cron no hace nada. Encendida, el cron es lo único que reintenta un archivo que falló por
+algo pasajero y lo único que rescata uno cuyo proceso murió, y el escalón de reintento
+(`attempts × 60 s`) está calibrado para un tick por minuto. Con `*/5` un archivo que falla las tres
+veces tiene al visitante hasta ~13 min mirando «En cola» antes del error final, contra ~5 con `*`.
+El caudal no era el problema (el tope diario es de 100 lecturas); la espera sí. El escalón queda
+nombrado (`RETRY_STEP_MS` en `jobs.ts`) y `cron-cadence.test.ts` lo ata a `vercel.json`, junto con
+la regla de que el lease de 3 min cubra el `maxDuration` de las dos rutas que procesan.
+
+**La bandera se parte en dos.** `DOCUMENT_IMPORT_ENABLED` no enciende sólo el cotizador: también
+la carga en el paso 2 de la compra del portal. Una compra con documento compartido hace que el POST
+de `/p/[token]/packlist` responda 409 (control del Director, se conserva), y ningún componente del
+proveedor usa hoy la ruta del documento (`x-supplier-token`): el formulario muestra «No pudimos
+confirmar el envío» y el proveedor queda sin vía. Por eso:
+
+- `DOCUMENT_IMPORT_ENABLED=true` sola: el cotizador anónimo, su sitemap, su enlace en el footer y el
+  cron. Nada ligado a una compra.
+- `DOCUMENT_IMPORT_PORTAL_ENABLED=true` además: documentos de compra (paso 2 del portal, pantalla
+  `documento`, enlace del proveedor, estimados combinados o guardados). **No se enciende** hasta
+  que exista la confirmación del proveedor desde el documento.
+
+La negación es del servidor, no de la UI: `authorizeWorkspace` niega todo actor no anónimo,
+`openWorkspace` no crea documentos de proveedor/compra/sesión, `purchases` y el estimado combinado
+o guardado se niegan antes de leer nada, la pantalla `documento` es 404, y la ruta del proveedor
+sólo falla cerrada ante una lectura caída cuando el portal está encendido. `capabilities` publica
+`portal` y `DocumentImportEntry` exige las dos llaves.
+
+**El borrado no depende de la bandera.** El cron cortaba antes de `cleanupImports` con la bandera
+apagada: encender y después apagar dejaba sin borrar, sin plazo, lo subido en las últimas 24 h. Ahora
+limpia siempre y sólo la lectura depende de la bandera.
+
+**Compuerta de privacidad (no es código).** La revisión acotada con `revisar-datos-ve` encontró que
+la pantalla no avisa antes de subir, que `/privacidad` no menciona el cotizador, la lectura con IA
+ni a Anthropic como destinatario, y que la transferencia fuera de Venezuela no tiene base
+documentada. Son decisiones de Sam (y su abogado) antes de encender en producción; el detalle vive en
+el handoff de esta ampliación.
+
+**Descubrimiento.** `/cotizador` deja de declararse excluida de buscadores (apagada ya es 404) y
+entra al sitemap y al footer («Cotiza con tu proforma», en «Enlaces rápidos») sólo con la bandera
+encendida. El orden del Nav es decisión del founder (2026-07-31): no se tocó.
+
+Allowlist de esta ampliación, además de los archivos ya listados que se modifican (`access.ts`,
+`service.ts`, `jobs.ts`, `http.ts`, `estimate.ts` y sus pruebas, `DocumentImportEntry` y su
+prueba, `vercel.json`, `.env.example`, `app/cotizador/page.tsx`, `app/p/[token]/packlist/route.ts`,
+`app/portal/(app)/compras/[code]/documento/page.tsx`, `PurchaseStepDetalle.tsx`):
+
+- `app/sitemap.ts`
+- `components/Footer.tsx`
+- `components/Footer.cotizador.test.tsx`
+- `app/__tests__/sitemap-cotizador.test.ts`
+- `app/p/[token]/packlist/route.test.ts`
+- `app/portal/(app)/compras/[code]/documento/page.test.tsx`
+- `lib/studio/document-import/cron-cadence.test.ts`
+- `app/api/cron/document-import-drain/route.test.ts`
+- `.agents/handoffs/0473-encender-cotizador-20260918.md`
 
 ## Aceptación
 
