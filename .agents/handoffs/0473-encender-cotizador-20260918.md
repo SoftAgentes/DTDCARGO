@@ -377,6 +377,29 @@ Máquina libre: 32 de 35 muestras sin procesos de prueba ajenos (3 con 1 o 2, br
 
 `e2e` y `build` no se repitieron sobre `85e3c4af`: el arreglo toca sólo un archivo de prueba.
 
+### Merge final con `main` `91d20e3f` (`ae9cac7b`), antes del push único
+
+Entraron en `main` #137, #144, #146 y #140. `git merge-tree` exit 0 (fusión automática de
+`vercel.json` y `.env.example`); merge con el driver `dtd-generated-records`; `docs:index` sin
+diferencias (467 specs); `docs:check` verde.
+
+`vercel.json` comprobado después del merge: JSON válido, **19 crons, ninguno duplicado**.
+`document-import-drain` en `* * * * *`, `document-import-cleanup` en `17 * * * *` y el
+`portal-revoked-retention` de la #140 en `30 4 * * *`. La indicación de dejar el drenaje en `*/5`
+**no se aplicó**: `*/5` es lo que había en `main` con la bandera apagada, y volver a cada minuto es la
+decisión de esta rama (sección de la cadencia), fijada por `cron-cadence.test.ts`.
+
+| Comprobación sobre `ae9cac7b` | Veredicto | Evidencia |
+|---|---|---|
+| `tsc --noEmit` | **PASÓ** | exit 0 |
+| Suite unitaria completa (`pnpm test`), sin suites ajenas | **FALLÓ (exit 1)** | 1 falla de 7.898: `PackingListProductsStep`, la intermitente conocida. **Aislada: 9/9** |
+| `pnpm harness:test` | **PASÓ** | 191/191 |
+| Dependencias | sin cambios | ni `package.json` ni el lockfile cambiaron desde `6e71565a` |
+
+`e2e` y `build` no se repitieron sobre el merge: se midieron en verde sobre `07f14e14` y lo que entró
+de `main` no toca las rutas de esta rama. El check obligatorio de la PR corre sobre la cabeza
+publicada.
+
 ## COMMITS
 
 - `f988f83f` — fix(import): el cron borra lo vencido aunque la bandera esté apagada.
@@ -394,7 +417,9 @@ Máquina libre: 32 de 35 muestras sin procesos de prueba ajenos (3 con 1 o 2, br
 - `f7eafe9a` — feat(cotizador): en el menú principal, sólo con la bandera.
 - `07f14e14` — docs(SDD-0473): el cotizador en el menú principal, con lo medido.
 - `85e3c4af` — test(web): seo-remates lee la lista del menú donde ahora vive.
-- Commit que contiene esta versión del documento: el handoff actualizado.
+- `a931aad9` — docs(handoff): el menú principal y el verify con la máquina libre.
+- `ae9cac7b` — merge de `origin/main` (`91d20e3f`).
+- Commit que contiene esta versión del documento: el handoff del merge final, publicado en el push único.
 
 Todos con `git add` selectivo; sin reset, sin force push, sin tocar otras ramas ni worktrees.
 
@@ -419,8 +444,8 @@ Todos con `git add` selectivo; sin reset, sin force push, sin tocar otras ramas 
 
 1. **Compuerta de privacidad** (Sam y su abogado): `/privacidad`, aviso antes de subir, Anthropic.
    Sin eso no se enciende en producción.
-2. **Push único** con `main` al día, cuando dtdcargo-18 pase el SHA final (`merge-tree` primero; si algo
-   toca esta zona, parar y avisar).
+2. **Push único** hecho con `main` `91d20e3f` fusionado (ver PR / BRANCH); falta que dtdcargo-18
+   integre cuando cierre el check.
 3. **Encender** según «CÓMO SE ENCIENDE»: variables (Sam, en Vercel), merge (Director), sondas.
 4. `verify` sin cierre verde: el paso `test` falla por intermitentes preexistentes aun con la máquina
    libre (ver arriba); cada una pasa aislada. El check obligatorio de la PR es la otra evidencia.
