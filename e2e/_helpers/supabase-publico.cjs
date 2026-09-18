@@ -198,6 +198,99 @@ function omisionSinSupabase({ env = process.env, raiz = RAIZ_REPO, baseURL } = {
   return motivoSinSupabase(detectarSupabasePublico({ env, raiz }));
 }
 
+// ── SDD-0479 · Supabase sintético deny-only ──────────────────────────────────
+
+/**
+ * Anon key del Supabase sintético. Es visible a propósito: no es un secreto,
+ * no pertenece a ningún proyecto y el servidor deny-only la ignora.
+ */
+const ANON_KEY_SINTETICA = "e2e-supabase-sintetico-deny-only-no-es-un-secreto";
+
+/** Única ruta del servidor deny-only que responde 200; Playwright la espera. */
+const RUTA_SALUD_SINTETICO = "/__health";
+
+/** Distancia entre el puerto de la app y el del deny-only cuando nadie lo fija. */
+const DESFASE_PUERTO_SINTETICO = 10_000;
+
+/**
+ * Puerto del servidor deny-only. `E2E_SUPABASE_SINTETICO_PORT` gana (verify lo
+ * fija después de comprobar que está libre); si no, el de la app ± 10000. Un
+ * valor inválido, o igual al de la app, es un error: no se adivina otro.
+ */
+function puertoSupabaseSintetico({ env = process.env, puertoApp } = {}) {
+  const fijado = String(env.E2E_SUPABASE_SINTETICO_PORT ?? "").trim();
+  const puerto = fijado
+    ? Number(fijado)
+    : puertoApp + DESFASE_PUERTO_SINTETICO <= 65_535
+      ? puertoApp + DESFASE_PUERTO_SINTETICO
+      : puertoApp - DESFASE_PUERTO_SINTETICO;
+  if (!Number.isInteger(puerto) || puerto < 1_024 || puerto > 65_535) {
+    throw new Error("E2E_SUPABASE_SINTETICO_PORT debe ser un entero entre 1024 y 65535.");
+  }
+  if (puerto === puertoApp) {
+    throw new Error("E2E_SUPABASE_SINTETICO_PORT debe ser distinto del puerto de la app.");
+  }
+  return puerto;
+}
+
+/**
+ * ¿Qué Supabase público verá el `next dev` del e2e? Una sola decisión para
+ * `playwright.config.ts`, para `requiereSupabase()` (vía la metadata de la
+ * config) y para `scripts/verify.mjs`.
+ *
+ * `modo`:
+ * - `remoto`: el destino no es local; su configuración es del servidor
+ *   desplegado. No se toca nada (igual que en SDD-0470).
+ * - `configurado`: el entorno o un `.env*` que carga Next ya define las dos
+ *   variables. Se usa lo real y nunca se pisa.
+ * - `parcial`: define una sola. Nunca se mezcla un valor real con uno
+ *   sintético: las pruebas se omiten con el motivo de SDD-0470.
+ * - `ausente`: faltan las dos, pero el `next dev` no lo levanta Playwright
+ *   (un servidor reusado, cuya configuración no se controla) o es un branch
+ *   efímero, que tiene su propio Supabase. Omisión con motivo, como en 0470.
+ * - `sintetico`: faltan las dos, el destino es local, Playwright levanta su
+ *   propio `next dev` y no es un branch efímero. Ese `next dev` recibe la URL
+ *   de un servidor deny-only local y `ANON_KEY_SINTETICA`, y las pruebas que
+ *   lo necesitan corren en vez de omitirse.
+ *
+ * Nunca devuelve valores reales: la detección sólo lleva nombres y fuentes, y
+ * en modo `sintetico` los únicos valores son los sintéticos.
+ */
+function planSupabaseE2E({ env = process.env, raiz = RAIZ_REPO, baseURL, levantaServidor, puertoApp } = {}) {
+  const deteccion = detectarSupabasePublico({ env, raiz });
+  if (!destinoEsLocal(baseURL)) return { modo: "remoto", deteccion };
+  if (deteccion.configurado) return { modo: "configurado", deteccion };
+  if (deteccion.faltan.length < SUPABASE_PUBLIC_VARS.length) return { modo: "parcial", deteccion };
+  if (!levantaServidor || String(env.E2E_ENVIRONMENT_KIND ?? "").trim() === "ephemeral") {
+    return { modo: "ausente", deteccion };
+  }
+  const puerto = puertoSupabaseSintetico({ env, puertoApp });
+  const url = `http://127.0.0.1:${puerto}`;
+  return {
+    modo: "sintetico",
+    deteccion,
+    puerto,
+    url,
+    entorno: { NEXT_PUBLIC_SUPABASE_URL: url, NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON_KEY_SINTETICA },
+  };
+}
+
+/**
+ * La detección que ve el `next dev` una vez aplicado el plan: en modo
+ * `sintetico` las dos variables existen (fuente «sintético»); en los demás, la
+ * detección tal cual. Es la que el gate usa para decidir la cobertura parcial.
+ */
+function deteccionEfectiva(plan) {
+  if (plan.modo !== "sintetico") return plan.deteccion;
+  return {
+    ...plan.deteccion,
+    configurado: true,
+    faltan: [],
+    vacias: {},
+    fuentes: Object.fromEntries(SUPABASE_PUBLIC_VARS.map((clave) => [clave, "sintético"])),
+  };
+}
+
 // Una asignación por nombre: así Node expone cada export con nombre al `import`
 // de un módulo ESM (cjs-module-lexer).
 exports.SUPABASE_PUBLIC_VARS = SUPABASE_PUBLIC_VARS;
@@ -212,3 +305,8 @@ exports.detectarSupabasePublico = detectarSupabasePublico;
 exports.motivoSinSupabase = motivoSinSupabase;
 exports.destinoEsLocal = destinoEsLocal;
 exports.omisionSinSupabase = omisionSinSupabase;
+exports.ANON_KEY_SINTETICA = ANON_KEY_SINTETICA;
+exports.RUTA_SALUD_SINTETICO = RUTA_SALUD_SINTETICO;
+exports.puertoSupabaseSintetico = puertoSupabaseSintetico;
+exports.planSupabaseE2E = planSupabaseE2E;
+exports.deteccionEfectiva = deteccionEfectiva;
