@@ -1,10 +1,13 @@
 # Handoff 0476 — La tarifa pública se lee de la base, vencida o no
 
-- Fecha: 2026-09-17. Estado: implementado y validado hasta donde este worktree permite medir.
+- Fecha: 2026-09-17. Estado: implementado, validado hasta donde este worktree permite medir, y con
+  el **paso final hecho** (main con la 0475 traído, índice en 464, cabecera condicional de
+  `route.ts`). La PR #134 queda lista para que el Director la integre.
   **La migración NO se aplicó a producción** y no se va a aplicar desde acá.
 - Owner/sesión: `worker-tarifa-lectura-sin-vigencia-0476-opus5-20260917` (Claude Opus 5, Worker).
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/tarifa-lectura-sin-vigencia`.
-- Rama: `codex/tarifa-lectura-sin-vigencia`. Base `origin/main` = `4054e0a4`.
+- Rama: `codex/tarifa-lectura-sin-vigencia`. Base original `origin/main` = `4054e0a4`; main traído
+  después en el merge `a14ffebb` (de `a57ed119`, PR #135 de la 0475).
 - SDD: [0476](../../docs/specs/0476-tarifa-lectura-sin-vigencia/spec.md), asignada por el Director.
   Migración `0458_tarifa_lectura_sin_vigencia.sql`, también asignada. **No se corrió `sdd:next`.**
 - Aislamiento comprobado ANTES de editar: `git rev-parse --abbrev-ref HEAD` →
@@ -130,7 +133,20 @@ nunca vencía.
 | `pnpm knowledge:visual` (Archify 2.16.0) | **NO DISPONIBLE** — `ARCHIFY_RUNTIME_MISSING`: falta `archify.zip` v2.16.0 extraído en `graphify-out/archify-package` de este worktree. Es entorno, no el cambio |
 | Vista previa de Obsidian | **NO EJECUTADO** — `obsidian: PENDING` en `knowledge:status`; la publicación es del Director desde main integrado |
 | **CI de la PR #134** sobre `180933d4` (check obligatorio `Calidad local sin secretos`, run 35290596205) | **PASÓ** — los 19 pasos en verde, incluidos `Unitarios`, `Documentacion SDD`, `Numeracion SDD y migraciones`, `Codigo contra migraciones pendientes`, `Build de produccion sin secretos` y `Confirmar arbol reproducible` |
-| Reescritura condicional del comentario de `rates-queries.ts` (commit local, sin empujar) | **PASÓ** — `eslint` exit 0 y el JS emitido sigue **idéntico** al de la base (md5 `8342c770…`). Los gates completos corren en el push único |
+| Reescritura condicional del comentario de `rates-queries.ts` (commit `bd2af76c`) | **PASÓ** — `eslint` exit 0 y el JS emitido sigue **idéntico** al de la base (md5 `8342c770…`) |
+| **Paso final** · merge de `origin/main` (`a57ed119`) | **PASÓ** — sin conflictos. El único archivo que tocamos los dos era `docs/specs/README.md`, y lo resolvió el driver semántico (`✓ merge semántico`). La 0475 **no** tocó `rates-queries.ts` ni agregó migraciones. Merge `a14ffebb`, sin rebase |
+| Paso final · índice de specs | **PASÓ** — **464** specs, 0475 fuera de los huecos. `node scripts/build-docs-index.mjs` sobre el árbol fusionado lo confirma **sin diferencias** con lo que dejó el driver |
+| Paso final · JS emitido contra main `a57ed119` | **PASÓ** — `route.ts` md5 `86e53df3975b93c611645c4cbd84e022` (796 bytes) y `rates-queries.ts` md5 `8342c7706686fffe6158444edcb7506c` (6957 bytes): **byte a byte iguales** en main y en la rama. **Controles positivos**: cambiar `s-maxage=300` por `301` en uno y el `per_cbm == null` en el otro sí cambia el JS. Sólo cambió prosa |
+| Paso final · diff total contra main | **PASÓ** — exactamente 8 archivos: la migración, la prueba, la espera, la spec, el índice, el handoff y los comentarios de `route.ts` y `rates-queries.ts` |
+| Paso final · `pnpm lint` completo | **PASÓ** — exit 0, 0 errores, 15 warnings. **Ninguno en archivos de esta PR**: son de `KommoBoardView`, `KommoClient`, `DocumentCalculator`, dos tests de compras del portal y `scripts/lib/knowledge-vault.mjs`, ya presentes en main |
+| Paso final · `pnpm typecheck` | **PASÓ** — exit 0 |
+| Paso final · tests dirigidos | **PASÓ** — 129 casos en 7 archivos: `public-cbm-rate.migration` (0458), `cbm-rate/route`, `combinar-destinos`, `estimate`, y los tres que tocó la 0475: `calculadora-respaldo-alineado`, `calculadora` y `guia-alibaba-html` |
+| Paso final · `pnpm test` (suite completa) | **FALLÓ (exit 1) por 2 timeouts de saturación, no por aserciones** — 7789 pasaron, 1 omitido, 2 cayeron con `Test timed out in 20000ms`: `app/p/[token]/PackingListProductsStep.test.tsx › adds another group and isolates its measurements and totals` (**el flake conocido** que anticipaba el encargo) y `app/p/[token]/supplier-flow.test.tsx › supports correction and append-only resubmission without clearing the form` (**mismo directorio y mismo síntoma, pero éste no estaba anticipado**). Evidencia de que es saturación: **aislados, los 2 archivos pasan enteros, 32 de 32**, y esos dos casos tardan 7,4 s y 3,0 s contra el techo de 20 s. Ni esta PR ni la 0475 tocan `app/p/` (`git diff 4054e0a4..HEAD -- app/p/` vacío). **No se tocaron ni se marcaron skip.** En la primera corrida de `verify` la suite completa había pasado entera |
+| Paso final · tests de `app/p/[token]` aislados | **PASÓ** — 2 archivos, 32 casos |
+| Paso final · `docs:check`, `numbering`, `pending-migration-symbols` | **PASÓ** — índice sincronizado con 464 specs; 464 specs · 455 migraciones sin números repetidos; 0 ROJO · 0 AMARILLO |
+| Paso final · `e2e` | **NO EJECUTADO** — no se tocó nada visible en el navegador: sólo comentarios, con el JS emitido idéntico. Las 5 aserciones e2e que cambió la 0475 (9.600 → 10.200) no se tocaron. El CI obligatorio no corre Playwright |
+| Paso final · `build` | **NO EJECUTADO en local** — lo corre el CI. Con el JS idéntico no hay qué construir distinto, y las salidas del Norte (`public/norte.html`, `docs/design/studio/_norte/_norte.html`) están en `.gitignore`, así que no pueden ensuciar «Confirmar arbol reproducible» |
+| CI del push final | **Se reporta por mensaje al Director.** Este handoff se cierra **antes** del push para que el check quede verde sobre el commit que se fusiona: no se puede escribir acá el resultado de su propia corrida sin otro push |
 | Aplicación de la migración a producción | **NO EJECUTADO** — prohibido por el encargo. Ni `apply_migration`, ni el conector, ni ninguna otra vía |
 | Lectura de filas de negocio en producción | **NO EJECUTADO** — los datos de producción que cita el spec son los que el Director verificó y me pasó; no abrí conexión a producción |
 
@@ -152,13 +168,24 @@ cada `verify`. Es el mismo criterio que siguió la 0457 (SDD-0473), que tampoco 
 | `lib/public/public-cbm-rate.migration.test.ts` | **nuevo** — 11 casos sobre PGlite corriendo el `.sql` real |
 | `docs/specs/0476-tarifa-lectura-sin-vigencia/spec.md` | **nuevo** — la spec |
 | `supabase/migrations-baseline.json` | la espera `0458_…` en `pendingBelowCutoff`. Nada más: `cutoff` 238 intacto, las otras esperas intactas |
-| `lib/public/rates-queries.ts` | **sólo comentarios**: el docblock decía «o todo vencido → null», que deja de ser cierto con la 0458. Explica los dos estados (antes y después de aplicar) |
-| `docs/specs/README.md` | **regenerado con `node scripts/build-docs-index.mjs`**, no editado a mano |
+| `lib/public/rates-queries.ts` | **sólo comentarios**: el docblock decía «o todo vencido → null», que deja de ser cierto con la 0458. Ahora es un condicional verificable: qué pasa sin la 0458, qué pasa con ella y cómo saber en cuál estado se está |
+| `app/api/public/cbm-rate/route.ts` | **sólo la cabecera, en el paso final**, encima del texto de la 0475. Ver abajo |
+| `docs/specs/README.md` | **regenerado con `node scripts/build-docs-index.mjs`**, no editado a mano. En el merge lo resolvió el driver semántico y el script lo confirmó sin diferencias |
 
-**`app/api/public/cbm-rate/route.ts` NO se tocó**: quedó byte a byte igual que en `4054e0a4`
-(`git diff 4054e0a4 -- <archivo>` vacío). Llegué a editar su cabecera y lo **revertí** cuando el
-Director avisó que la SDD-0475 reescribe ese mismo bloque con la afirmación contraria. El código de
-`route.ts` no necesita cambiar: la 0458 no altera la firma de la RPC ni la forma de la respuesta.
+**`route.ts`, en dos tiempos.** Primero llegué a editar su cabecera y lo **revertí** cuando el
+Director avisó que la SDD-0475 reescribía ese mismo bloque con la afirmación contraria (quedó byte a
+byte igual que en `4054e0a4`). En el paso final, ya con la 0475 en main, reescribí la cabecera
+encima de su texto. **El código no cambió**: JS emitido idéntico al de main `a57ed119`.
+
+De la cabecera de la 0475 **se reemplazaron** tres afirmaciones que eran ciertas sin la 0458 y
+falsas con ella: «al vencer la vigencia esta RPC devuelve null», «hoy eso se cumple por
+coincidencia… cerrarlo de verdad es backend» y «`{ per_cbm: null }` si no hay tarifa pública
+vigente». **Se conservó** lo que es cierto en los dos estados: por qué no cablear el número en la
+guía, el respaldo en $850 de la 0475 (ahora dentro de la rama «sin la 0458», con la precisión
+«mientras la tarifa del ERP siga en $850»), el cron de vencimiento y la frontera ESLint. **Un cambio
+más, del mismo tipo:** «Hoy devuelve `{ per_cbm: 850, … }`» pasó a «Al 2026-09-17 devolvía …»,
+porque un «hoy» sin fecha deja de ser cierto con el calendario. Se agregó el párrafo de por qué no
+hay señal de «vencida» (la caché la congelaría).
 
 ## SEGUNDA ASIGNACIÓN DEL DIRECTOR (2026-09-17, después de abrir la #134)
 
@@ -172,12 +199,16 @@ Director me asignó formalmente, **en esta misma PR**, el pendiente que no tení
 4. Corregir la cabecera de `app/api/public/cbm-rate/route.ts` encima del texto de 0475.
 5. Empujar todo junto: **una sola corrida** del check.
 
-**Estado: 1, 2, 3, 4 y 5 BLOQUEADOS por la 0475.** Re-comprobado después de la aprobación del
-Director: `origin/main` sigue en `504408a4`, sin la spec 0475, y `claude/respaldo-tarifa-850` sigue
-sin PR. Según el Director, la 0475 tiene `verify` corriendo en otra ventana (`dtdcargo-f3`). **No se
-actúa por cuenta propia aunque la 0475 aparezca en main: el disparador es el aviso del Director.**
-Lo que no dependía de ella ya está hecho y
-commiteado **en local, sin empujar** (a propósito, para no gastar la corrida única):
+**Estado final: HECHO.** El Director avisó que la 0475 entró en main (PR #135, merge `a57ed119`) y
+se ejecutó el plan tal cual: merge sin rebase (`a14ffebb`), índice en **464** con la 0475 fuera de
+los huecos, cabecera condicional de `route.ts` encima del texto de la 0475, JS emitido comparado
+contra main con controles, lint/typecheck/tests/`docs:check`/`numbering`, y **un solo push** con
+este handoff ya cerrado. El resultado del CI de ese push va por mensaje. El claim se suelta después
+del push.
+
+Mientras se esperaba el aviso (historia): `origin/main` estuvo en `504408a4` sin la 0475, y la
+regla fue **no actuar por cuenta propia aunque la 0475 apareciera en main**. Lo que no dependía de
+ella se hizo y quedó commiteado en local, sin empujar, para no gastar la corrida única:
 
 - `lib/public/rates-queries.ts`: mi propio comentario tenía el defecto que el Director señaló para
   `route.ts`, pero al revés — decía «está ESCRITA PERO NO APLICADA» y «Hoy, con el cuerpo de la 0255
@@ -186,17 +217,17 @@ commiteado **en local, sin empujar** (a propósito, para no gastar la corrida ú
 - La spec: sección nueva «Integrar no es aplicar» y el Seguimiento reasignado a esta PR.
 - Este handoff.
 
-**El claim NO se liberó**: la escritura de esta tarea no terminó. Owner
-`worker-tarifa-lectura-sin-vigencia-0476-opus5-20260917`.
+Owner del claim durante toda la escritura: `worker-tarifa-lectura-sin-vigencia-0476-opus5-20260917`.
 
 ### ¿La PR funciona sin la 0458 aplicada? SÍ, y es inerte hasta que se aplique
 
-Comprobado contra el diff, archivo por archivo:
+Comprobado contra el diff, archivo por archivo, y **re-comprobado en el paso final contra main
+`a57ed119`**:
 
 | Archivo | ¿Cambia el comportamiento al fusionar? | Evidencia |
 | --- | --- | --- |
-| `lib/public/rates-queries.ts` | **No** | `ts.transpileModule` con `removeComments` sobre `4054e0a4` y sobre esta rama: **JS byte a byte igual**, md5 `8342c7706686fffe6158444edcb7506c`, 6957 bytes. **Control positivo**: cambiar `if (!row \|\| row.per_cbm == null)` por `if (!row)` sí cambia el JS emitido, así que la comparación mide algo |
-| `app/api/public/cbm-rate/route.ts` | **No** | Sin cambios (`git diff 4054e0a4` vacío) |
+| `lib/public/rates-queries.ts` | **No** | `ts.transpileModule` con `removeComments` sobre la base y sobre esta rama: **JS byte a byte igual**, md5 `8342c7706686fffe6158444edcb7506c`, 6957 bytes, tanto contra `4054e0a4` como contra `a57ed119`. **Control positivo**: cambiar `if (!row \|\| row.per_cbm == null)` por `if (!row)` sí cambia el JS emitido, así que la comparación mide algo |
+| `app/api/public/cbm-rate/route.ts` | **No** | Sólo cambió la cabecera: JS **byte a byte igual** al de `a57ed119`, md5 `86e53df3975b93c611645c4cbd84e022`, 796 bytes. **Control positivo**: cambiar `s-maxage=300` por `301` sí cambia el JS emitido |
 | `lib/public/public-cbm-rate.migration.test.ts` | **No** | Es una prueba: `grep` no encuentra ningún módulo que la importe |
 | `supabase/migrations-baseline.json` | **No** | Lo leen sólo scripts de gate (`check-migrations-applied`, `check-pending-migration-symbols`, `merge-generated-records`). Las dos menciones en `lib/` son comentarios |
 | `supabase/migrations/0458_…sql` | **No al fusionar** | Nada la aplica sola: no hay `supabase/config.toml`, ningún workflow corre `db push`, `vercel.json` no tiene `buildCommand` y el runbook dice «Nunca es automático» |
@@ -218,32 +249,13 @@ que dice en qué estado se está, y esa señal se actualiza sola en el acto de a
 exige retirar la entrada de `pendingBelowCutoff` sólo tras aplicar, y el gate con credenciales se
 pone rojo si se retira sin aplicar).
 
-Texto propuesto (se ajusta al de 0475 cuando esté en main; **no copié nada de esa rama**):
+**Texto final:** `app/api/public/cbm-rate/route.ts`, cabecera (líneas 15-49). Sigue el texto que
+se había propuesto acá, ajustado al de la 0475 como se describe en «Archivos tocados». No se copió
+nada de la rama de la 0475 antes de que estuviera en main.
 
-```
- * Respuesta: `{ per_cbm, min_charge, valid_until }`, o `{ per_cbm: null }` si la
- * RPC no devolvió tarifa. NUNCA 500: la guía tiene su propio fallback y un
- * error acá no puede tumbarle la calculadora.
- *
- * Qué pasa cuando la tarifa VENCE depende de si la migración 0458 (SDD-0476) ya
- * se aplicó en producción. Mientras `0458_tarifa_lectura_sin_vigencia` figure en
- * `supabase/migrations-baseline.json › pendingBelowCutoff`, NO se aplicó:
- *
- *  · Sin la 0458: la RPC deja de devolver la fila vencida, este handler responde
- *    `{ per_cbm: null }` y las páginas Next caen a `CONFIG.tarifaBaseCBM`.
- *  · Con la 0458: la vigencia deja de ser filtro de lectura y la RPC sigue
- *    sirviendo el último precio de la base aunque `valid_until` ya haya pasado.
- *    `{ per_cbm: null }` queda para no tener tarifa de verdad: Supabase caído,
- *    borrador, `is_public` sin marcar o `valid_from` a futuro.
- *
- * Quien quiera distinguir vigente de vencida lo deriva de `valid_until`. El
- * handler no agrega señal propia: la calcularía al construir la respuesta y el
- * `s-maxage=300` la dejaría congelada, mientras que la fecha no caduca.
-```
-
-El párrafo «Por qué no cablear el número en la guía» todavía dice que el 2026-10-05 la tarifa «cae
-sola a $800»; en producción la vigencia ya va hasta el 2026-11-29. Se corrige en el mismo paso,
-según cómo lo deje 0475.
+El párrafo «Por qué no cablear el número en la guía», que antes decía que el 2026-10-05 la tarifa
+«cae sola a $800», **ya lo había corregido la 0475** («ya la subió con pg_cron de $800 a $850»).
+Se conservó tal cual.
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -252,19 +264,17 @@ según cómo lo deje 0475.
    leer `prosrc` de `public.public_cbm_rate(text)` en producción y confirmar que es el cuerpo de
    0255. Si difiere, **no aplicar y escalar**. Hasta que se aplique, el sitio se sigue comportando
    como hoy.
-2. **Cuando la 0475 esté en main (aviso del Director):** `git fetch` + `git merge origin/main` en
-   esta rama; `node scripts/build-docs-index.mjs` (deben quedar **464** specs y 0475 fuera de la
-   lista de huecos; hoy el índice de esta rama dice 463 y declara hueca la 0475 porque se regeneró
-   sin ella); reemplazar la cabecera de `route.ts` con el texto de arriba ajustado al de 0475;
-   re-correr `lint`, `typecheck`, los tests de `cbm-rate` y `docs:check`; **un solo push**.
-3. **Soltar el claim** recién después de ese push.
-4. **Al traer main, mirar si la 0475 también tocó `lib/public/rates-queries.ts`.** Mi cambio ahí
-   es sólo prosa, pero si 0475 reescribió el mismo docblock el conflicto es semántico, igual que el
-   de `route.ts`: se resuelve conservando el condicional verificable. El Director auditó y sólo
-   señaló `route.ts`; lo dejo anotado por si acaso.
-5. **El comentario de `CONFIG.tarifaBaseCBM` en `lib/calculadora.ts`** explica la grieta del
-   vencimiento como permanente. Queda obsoleto en esa parte cuando la 0458 esté aplicada. Es archivo
-   de 0475: **no lo toqué** y no propongo tocarlo hasta que la migración esté en producción.
+2. **Después del push único:** reportar al Director el resultado del CI por mensaje y soltar el
+   claim. Es lo último que escribe esta sesión.
+3. **Integrar la #134** — del Director. La PR es inerte sin la 0458, así que puede entrar antes de
+   que Sam la autorice.
+4. **La spec queda `in-progress` a propósito** y pasa a `done` cuando la 0458 esté aplicada y
+   verificada en producción: el objetivo es que **el sitio** muestre la última tarifa, y eso sólo
+   ocurre allí.
+
+Resuelto en el paso final (antes figuraba acá): la 0475 **no** tocó `lib/public/rates-queries.ts`
+(comprobado con `git diff 4054e0a4..a57ed119 --name-only`: el único archivo que tocamos los dos era
+el índice), así que no hubo conflicto semántico en ese docblock.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -282,13 +292,34 @@ según cómo lo deje 0475.
    histórica de otra tarea y editarla desde acá mezclaría alcances. Vale la pena que el Director
    decida si se corrige, porque un lector que confíe en esa cabecera saca la conclusión contraria.
 3. **`CONFIG.tarifaBaseCBM` y la tarifa del ERP siguen acopladas por acuerdo humano.** Aun con la
-   0458 aplicada, si Supabase se cae con la constante desalineada el sitio cotiza mal. Eso lo está
-   atacando la 0475; lo anoto para que no se lea esta tarea como si cerrara ese frente.
+   0458 aplicada, si Supabase se cae con la constante desalineada el sitio cotiza mal. La 0475
+   (integrada, PR #135) la realineó a $850 y la ancló con un test, pero su propio comentario lo
+   dice: la próxima vez que cambie la tarifa se reabre, salvo que alguien mueva la constante. Lo
+   anoto para que no se lea esta tarea como si cerrara ese frente.
+4. **Dos comentarios de la 0475 tienen el mismo defecto que se corrigió en `route.ts`.** Son
+   ciertos hoy y dejan de serlo el día que se aplique la 0458:
+   - `lib/calculadora.ts:53-60` y `:76` — el comentario de `CONFIG.tarifaBaseCBM` afirma sin
+     condición que al vencer la RPC «no devuelve NADA» y el sitio cae a la constante.
+   - `__tests__/calculadora-respaldo-alineado.test.ts:127-141` — «🔴 PERO HOY EL SISTEMA NO HACE
+     ESO … al vencer **devuelve null**».
+   **No los toqué**: no estaban en la asignación del paso final y el encargo original prohibía
+   tocar `lib/calculadora.ts` y los tests de anclaje. Propuesta: el mismo condicional verificable
+   (la entrada `0458_…` en `pendingBelowCutoff` como señal). Es sólo prosa, así que puede ir en
+   una PR corta propia o en la que acompañe la aplicación de la 0458: decisión del Director. Si
+   se deja para la aplicación, conviene que el runbook o la espera de la 0458 lo nombren, para que
+   no vuelva a ser un pendiente sin dueño.
+5. **El flake de saturación de `app/p/[token]/` no es un solo test.** El encargo anticipaba
+   `PackingListProductsStep.test.tsx`; en la suite completa del paso final cayó además
+   `supplier-flow.test.tsx › supports correction and append-only resubmission without clearing the
+   form`, con el mismo síntoma (`Test timed out in 20000ms`). Aislado pasa en 3,0 s. No lo toqué ni
+   lo marqué skip. Si se mide la tasa de caídas de esa familia, conviene contar los dos.
 
 ## IMPACTO DOCUMENTAL
 
 - **Canónicos actualizados:** `docs/specs/0476-…/spec.md` (nuevo) y `docs/specs/README.md`
-  (regenerado por script).
+  (regenerado por script, 464 specs). Documentación en código: las cabeceras de
+  `lib/public/rates-queries.ts` y `app/api/public/cbm-rate/route.ts`, ambas en condicional
+  verificable.
 - **No aplica:** `BRAND.md`, `docs/design/**` y `/ui-check` — no hay cambio visual. `docs/marketing/**`
   — no hay cambio de marketing. `docs/governance/**` — no hay cambio de comportamiento de Studio:
   la 0458 sólo toca una RPC del sitio público y no altera permisos, roles ni RLS.
@@ -306,9 +337,10 @@ según cómo lo deje 0475.
 
 1. **Revisar la decisión de diseño antes que el código.** Si no compartís el argumento de que el
    índice único vuelve inejecutable la alternativa (b), el resto de la revisión cambia.
-2. **Orden de integración con 0475.** 0475 entra primero. La regeneración del índice y la cabecera
-   de `route.ts` las hago yo en esta PR cuando me avises que 0475 está en main (ver «Segunda
-   asignación»). Hasta entonces la #134 tiene commits locales **sin empujar**: el SHA revisable
-   publicado sigue siendo `180933d4`.
+2. **Orden de integración con 0475: cumplido.** La 0475 entró primero (PR #135). El paso final ya
+   está en esta PR: main traído, índice en 464, cabecera condicional de `route.ts`. El SHA a
+   revisar es el del commit que contiene este handoff, publicado en un solo push.
 3. **Nada de esto autoriza aplicar la 0458.** Es una decisión aparte, de Sam, con su runbook. Y
    la PR es inerte sin ella: se puede integrar antes.
+4. **Decidir qué hacer con los dos comentarios de la 0475** que tienen el mismo defecto (ver
+   «Fuera de alcance detectado», punto 4).
