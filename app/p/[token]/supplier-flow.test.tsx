@@ -12,24 +12,31 @@ const mixed = [
 ];
 const language = (value: string) => fireEvent.change(screen.getByRole("combobox", { name: "语言 / Idioma / Language" }), { target: { value } });
 const button = (name: string | RegExp) => screen.getByRole("button", { name });
-// SDD-0486: las consultas se acotan a su región, y `start()` devuelve el campo de
-// empresa para reutilizarlo mientras siga montado. La página monta también una copia
+// SDD-0486: las consultas se acotan a su región. La página monta también una copia
 // imprimible oculta (`.pl-print-only`), que con el borrador mixto supera los 300 nodos.
 // getByRole nunca la devuelve, pero antes de descartarla calcula el nombre accesible de
 // cada candidato, y jsdom rehace la cascada CSS de cada nodo después de cada render. En
-// toda la página, cada búsqueda de «Empresa / Persona» costaba de 0,5 a 1,7 s. Dentro de
-// su región, una consulta cuesta decenas de ms. La página tiene un único <nav>, el de los
-// pasos, así que acotarlo no depende del idioma. Las aserciones negativas y las búsquedas
-// después de desmontar el campo siguen sobre toda la página.
+// toda la página, buscar «Empresa / Persona» costaba de 0,5 a más de 2 s. Acotada,
+// una consulta cuesta decenas o pocos cientos de ms. `start()` devuelve el campo de
+// empresa para reutilizarlo mientras siga montado.
+// - La página tiene un único <nav>, el de los pasos, así que acotar los pasos no
+//   depende del idioma.
+// - Los campos del paso 1 se buscan en la tarjeta de su título (h2), que deja afuera
+//   la copia imprimible.
+// - Las aserciones negativas y las que comprueban etiquetas en otros idiomas siguen
+//   sobre toda la página.
 const stepTarget = (name: string | RegExp) => within(screen.getByRole("navigation")).getByRole("button", { name });
 const step = (n: number) => fireEvent.click(stepTarget(new RegExp(`^${n} `)));
 const group = (index = 1) => screen.getByRole("region", { name: `Grupo de cajas ${index}` });
 const inGroup = (name: string | RegExp, index = 1) => within(group(index)).getByRole("button", { name });
+const supplierCard = () => screen.getByRole("heading", { level: 2, name: "Datos del proveedor" }).parentElement!;
+const contact = (name: string) => within(supplierCard()).getByRole("textbox", { name });
+const findContact = (name: string) => waitFor(() => contact(name));
 function draft(extra = {}) { return JSON.stringify({ company: "Proveedor guardado", wechat: "saved-contact", currency: "RMB", rows: mixed, lang: "en", docDate: "2026-09-16", note: "Revisar muestra", ...extra }); }
 async function start(request?: typeof fetch) {
   render(<ProviderShareClient {...props} request={request}/>);
   language("es");
-  return screen.findByRole("textbox", { name: "Empresa / Persona" });
+  return findContact("Empresa / Persona");
 }
 beforeEach(() => {
   localStorage.clear();
@@ -83,7 +90,7 @@ describe("supplier guided workflow", () => {
     expect(screen.getByRole("textbox", { name: "公司 / 姓名" })).toHaveValue("");
     expect(screen.getByRole("textbox", { name: "公司 / 姓名" })).toHaveAttribute("placeholder", "例如：深圳 ABC 贸易公司");
     language("en"); expect(screen.getByRole("textbox", { name: "WeChat / Phone" })).toHaveAttribute("placeholder", "e.g. wechat_id or +86…");
-    language("es"); expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveAttribute("placeholder", "Ej. Shenzhen ABC Trading");
+    language("es"); expect(contact("Empresa / Persona")).toHaveAttribute("placeholder", "Ej. Shenzhen ABC Trading");
     expect(screen.queryByText("Prellenado; puedes corregirlo")).not.toBeInTheDocument();
     step(4);
     const editor = screen.getByRole("region", { name: "Factura y packing list" });
@@ -97,7 +104,7 @@ describe("supplier guided workflow", () => {
     const company = await start();
     expect(company).toHaveValue("Proveedor");
     expect(company).toHaveAccessibleDescription("Prellenado; puedes corregirlo");
-    expect(screen.getByRole("textbox", { name: "WeChat / Teléfono" })).toHaveAccessibleDescription("Prellenado; puedes corregirlo");
+    expect(contact("WeChat / Teléfono")).toHaveAccessibleDescription("Prellenado; puedes corregirlo");
     fireEvent.change(company, { target: { value: "Proveedor corregido" } });
     expect(company).toHaveAccessibleDescription("Editado en este borrador");
     step(4); expect(screen.getByText("Proveedor corregido")).toBeVisible();
@@ -113,10 +120,10 @@ describe("supplier guided workflow", () => {
   });
   it("does not call a newly edited and autosaved session restored", async () => {
     render(<ProviderShareClient {...props} supplierName="" supplierWechat=""/>); language("es");
-    const company = screen.getByRole("textbox", { name: "Empresa / Persona" });
+    const company = contact("Empresa / Persona");
     await waitFor(() => expect(company).toHaveValue(""));
     fireEvent.change(company, { target: { value: "Sesión nueva" } });
-    fireEvent.change(screen.getByRole("textbox", { name: "WeChat / Teléfono" }), { target: { value: "nuevo-contacto" } });
+    fireEvent.change(contact("WeChat / Teléfono"), { target: { value: "nuevo-contacto" } });
     await waitFor(() => expect(JSON.parse(localStorage.getItem(packlistDraftKey(props.token)) || "{}").company).toBe("Sesión nueva"));
     expect(screen.getByText("Borrador local · aún no enviado")).toBeVisible();
     expect(screen.queryByText("Borrador local restaurado · aún no enviado")).not.toBeInTheDocument();
@@ -129,7 +136,7 @@ describe("supplier guided workflow", () => {
     const company = await start();
     await waitFor(() => expect(company).toHaveValue(""));
     expect(company).not.toHaveAccessibleDescription();
-    expect(screen.getByRole("textbox", { name: "WeChat / Teléfono" })).not.toHaveAccessibleDescription();
+    expect(contact("WeChat / Teléfono")).not.toHaveAccessibleDescription();
     expect(screen.getByText("Borrador local restaurado · aún no enviado")).toBeVisible();
   });
   it("keeps debounced and interval autosave silent while announcing a manual save", async () => {
@@ -140,7 +147,7 @@ describe("supplier guided workflow", () => {
       language("es");
       const notice = screen.getByRole("status", { name: "Avisos del borrador" });
       expect(notice).toBeEmptyDOMElement();
-      fireEvent.change(screen.getByRole("textbox", { name: "Empresa / Persona" }), { target: { value: "Empresa editada" } });
+      fireEvent.change(contact("Empresa / Persona"), { target: { value: "Empresa editada" } });
       await act(async () => { await vi.advanceTimersByTimeAsync(600); });
       const visibleState = within(screen.getByRole("region", { name: "Factura y packing list" })).getByText(/Borrador guardado en este dispositivo/);
       expect(visibleState.closest('[role="status"], [aria-live]')).toBeNull();
@@ -247,7 +254,7 @@ describe("supplier guided workflow", () => {
     const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: "Error español", fieldErrors: { contacto: "ES", rows: "ES" } }), { status: 400 }));
     await start(request); step(4); fireEvent.click(button("Enviar documento a DTD"));
     await within(screen.getByRole("region", { name: "Factura y packing list" })).findByText("Deja un contacto: WeChat, teléfono o email.");
-    expect(await screen.findByRole("textbox", { name: "Empresa / Persona" })).toHaveValue("Proveedor");
+    expect(await findContact("Empresa / Persona")).toHaveValue("Proveedor");
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("heading", { name: "Datos del proveedor" })));
   });
   it("supports correction and append-only resubmission without clearing the form", async () => {
@@ -257,7 +264,7 @@ describe("supplier guided workflow", () => {
     step(4); fireEvent.click(button("Enviar documento a DTD")); await screen.findByRole("heading", { name: "Documento enviado" });
     expect(screen.getByText(/Las cajas no coinciden/)).toBeInTheDocument();
     fireEvent.click(button("Corregir y reenviar"));
-    expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveValue("Proveedor guardado");
+    expect(contact("Empresa / Persona")).toHaveValue("Proveedor guardado");
     step(4); fireEvent.click(button("Enviar documento a DTD")); await screen.findByText(/PL-1.*Versión.*2/);
     expect(request).toHaveBeenCalledTimes(2);
   });
@@ -267,7 +274,7 @@ describe("supplier guided workflow", () => {
     await start(request); step(4); fireEvent.click(button("Enviar documento a DTD")); await screen.findByRole("heading", { name: "Documento enviado" });
     fireEvent.click(button("Historial")); fireEvent.click(button("Restaurar"));
     expect(screen.queryByRole("heading", { name: "Documento enviado" })).not.toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveValue("Proveedor guardado");
+    expect(contact("Empresa / Persona")).toHaveValue("Proveedor guardado");
     expect(request).toHaveBeenCalledTimes(1);
   });
   it("blocks history restoration and row mutation while a submission is in flight", async () => {
