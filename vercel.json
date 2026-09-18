@@ -31,6 +31,10 @@
       "schedule": "0 4 * * *"
     },
     {
+      "path": "/api/cron/portal-revoked-retention",
+      "schedule": "30 4 * * *"
+    },
+    {
       "path": "/api/cron/purge-receipt-orphans",
       "schedule": "0 3 * * 1"
     },

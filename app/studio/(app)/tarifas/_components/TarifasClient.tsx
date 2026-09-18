@@ -14,13 +14,14 @@ import { useEffect, useEffectEvent, useState, useTransition } from "react";
 import {
   RATE_SERVICE_OPTIONS,
   formatRate,
+  programadaBadge,
   rateExpiryBadge,
   rateStatusLabel,
   rateStatusTone,
   type Rate,
 } from "@/lib/studio/rate-types";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
-import type { RateFilters } from "@/lib/studio/rate-queries";
+import type { RateFilters, RateSchedules } from "@/lib/studio/rate-queries";
 import {
   fmtDescuento,
   type PriceBookOption,
@@ -38,11 +39,14 @@ import { publishRateAction, archiveRateAction } from "../actions";
 
 type DrawerState = null | { mode: "create" } | { mode: "edit"; rate: Rate };
 
+const SIN_PROGRAMACION: RateSchedules = { disponible: false, programadas: [] };
+
 export function TarifasClient({
   rates,
   filters,
   books,
   activeBook,
+  schedules = SIN_PROGRAMACION,
 }: {
   rates: Rate[];
   filters: RateFilters;
@@ -50,7 +54,12 @@ export function TarifasClient({
   books: PriceBookOption[];
   /** La que se está viendo. null cuando todavía no hay listas. */
   activeBook: PriceBookOption | null;
+  /** La ranura programada (SDD-0478). `disponible: false` = migr 0459 sin aplicar. */
+  schedules?: RateSchedules;
 }) {
+  const programadas = new Map(
+    schedules.programadas.map((p) => [p.id, p.valid_from] as const),
+  );
   const [importOpen, setImportOpen] = useState(false);
   const router = useRouter();
   const params = useSearchParams();
@@ -283,7 +292,11 @@ export function TarifasClient({
           }
         />
       ) : (
-        <RatesTable rates={rates} onEdit={(rate) => setDrawer({ mode: "edit", rate })} />
+        <RatesTable
+          rates={rates}
+          programadas={programadas}
+          onEdit={(rate) => setDrawer({ mode: "edit", rate })}
+        />
       )}
 
       {/* Drawer crear/editar */}
@@ -294,6 +307,8 @@ export function TarifasClient({
           priceBookEsCasa={activeBook?.isHouse ?? true}
           mode={drawer.mode}
           rate={drawer.mode === "edit" ? drawer.rate : undefined}
+          programacionDisponible={schedules.disponible}
+          programada={drawer.mode === "edit" && programadas.has(drawer.rate.id)}
           onClose={() => setDrawer(null)}
         />
       )}
@@ -317,9 +332,12 @@ const RATES_GRID = "170px 1fr 1fr 130px 90px 110px 230px";
 
 function RatesTable({
   rates,
+  programadas,
   onEdit,
 }: {
   rates: Rate[];
+  /** id → día en que entra, de las tarifas programadas (SDD-0478). */
+  programadas: Map<string, string | null>;
   onEdit: (rate: Rate) => void;
 }) {
   const toast = useToast();
@@ -404,6 +422,15 @@ function RatesTable({
                 Pública · calc
               </Badge>
             )}
+            {programadas.has(rate.id) &&
+              (() => {
+                const b = programadaBadge(programadas.get(rate.id) ?? null);
+                return (
+                  <Badge tone={b.tone} size="sm">
+                    {b.label}
+                  </Badge>
+                );
+              })()}
           </span>
           <span style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
             {rate.origin}

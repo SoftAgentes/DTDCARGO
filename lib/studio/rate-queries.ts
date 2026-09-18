@@ -105,6 +105,36 @@ export async function getRateById(
   return (data as Rate | null) ?? null;
 }
 
+/**
+ * La ranura PROGRAMADA de la calculadora (SDD-0478, migr 0459).
+ *
+ * Consulta APARTE a propósito, por la misma razón que el aviso de arriba sobre
+ * RATE_COLUMNS: `publica_programada` nace con la 0459. Si este select viviera
+ * en RATE_COLUMNS, desplegar el código antes que la migración rompería
+ * /studio/tarifas entera. Así, si la columna no existe (o la consulta falla por
+ * cualquier motivo), la pantalla carga igual y sólo esconde la opción de
+ * programar: `disponible: false`.
+ */
+export type RateSchedules = {
+  disponible: boolean;
+  /** Tarifas programadas vivas: id y el día en que entran. */
+  programadas: { id: string; valid_from: string | null }[];
+};
+
+export async function listRateSchedules(
+  supabase: SupabaseClient,
+): Promise<RateSchedules> {
+  const { data, error } = await supabase
+    .from("rates")
+    .select("id, valid_from")
+    .eq("publica_programada", true);
+  if (error) return { disponible: false, programadas: [] };
+  return {
+    disponible: true,
+    programadas: (data as RateSchedules["programadas"] | null) ?? [],
+  };
+}
+
 export type RateExpiryCandidate = Pick<
   Rate,
   | "id"
