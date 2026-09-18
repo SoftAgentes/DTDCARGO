@@ -129,6 +129,11 @@ pagas al llegar + reabastecimiento programado).
 > el objetivo comercial son mayoristas, no envíos de una caja. Detalle en
 > [`competencia-precios.md`](competencia-precios.md).
 
+> 📅 **Nota 2026-09-18 — la tarifa de DTD subió a $850/m³** el 2026-09-04 (SDD-0475; se lee en
+> `/api/public/cbm-rate`). Contra la foto de AsiaVen del 2026-08-01 (920), la ventaja en tarifa base
+> baja de 13 % a **7,6 %**. La foto de los competidores no se re-verificó. Detalle en
+> [`competencia-precios.md`](competencia-precios.md) §5.
+
 ## 4. El canal primario (decisión y por qué)
 
 **⭐ Primario: calor propio — la base existente + referidos pedidos activamente.**
