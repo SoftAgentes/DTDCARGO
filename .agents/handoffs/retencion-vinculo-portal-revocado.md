@@ -163,9 +163,11 @@ cierre verde.
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Confirmación de Sam de la excepción MP-D3.** MP-D3 pide dos decisiones humanas por lote. Acá las
-  reemplazan la decisión de clase del 2026-09-15 más el interruptor que activa Sam.
-- Publicar la rama y abrir la PR en borrador, con autorización.
+- ~~Confirmación de la excepción MP-D3~~: **aprobada por Sam el 2026-09-18**, textual: «Acepto la
+  excepción (Recomendado)». Queda registrada en la tabla de gobernanza de la spec.
+- ~~Publicar la rama y abrir la PR en borrador~~: **autorizado por Sam el 2026-09-18**, textual:
+  «Autorizo publicar las tres», con las tres ramas nombradas en la pregunta y sin merge ni
+  producción. La PR va en borrador.
 - **Release, cada paso con su autorización:**
   1. aplicar 0460 con OK nominal y el runbook, migrate-first, y con confirmación de dtdcargo-18;
   2. merge;

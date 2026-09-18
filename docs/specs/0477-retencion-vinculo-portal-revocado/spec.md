@@ -329,7 +329,7 @@ Segunda opinión sugerida: que otro modelo revise la migración y el mapa.
 |---|---|---|
 | MP-01 MP-D1 · PII sin propósito vigente se elimina o anonimiza | cumplimiento | La decisión de Sam fija el plazo y la RPC lo aplica |
 | MP-01 MP-D3 · la purga la hace sólo un job autorizado; los holds bloquean de forma cerrada | cumplimiento | RPC sólo para `service_role`, holds de 0301 y contrato con 5 casos de hold |
-| MP-01 MP-D3 · «cada lote requiere dos decisiones humanas» | **excepción, pendiente de confirmar por Sam** | La decisión de clase del 2026-09-15 más el interruptor que activa Sam reemplazan la doble decisión por lote. La corrida es diaria y automática |
+| MP-01 MP-D3 · «cada lote requiere dos decisiones humanas» | **excepción aprobada por Sam el 2026-09-18** | La decisión de clase del 2026-09-15 más el interruptor que activa Sam reemplazan la doble decisión por lote; la corrida es diaria y automática. Aprobación textual (AskUserQuestion): «Acepto la excepción (Recomendado)» — «La decisión de clase del 15-sep más el interruptor PORTAL_REVOKED_RETENTION_ENABLED reemplazan la doble decisión por lote. La spec queda con la excepción aprobada.» |
 | MP-01 §9 · «hasta completar esos gates: no purgar» | excepción acotada | Se anonimiza una fila que sigue existiendo, no se purga. Alcance: un tipo de dato con decisión nominal del dueño de MP-01 |
 | AUD-01 §1-§3 · mutación sensible y evento atómicos | cumplimiento | Un evento por fila en la misma transacción. Con el tipo inactivo, la corrida falla entera (contrato) |
 | AUD-01 §5 · PII minimizada en el evento | cumplimiento | Booleanos y nombres de campo, sin valores |
