@@ -12,12 +12,41 @@ import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
   MARCA_SIN_SUPABASE,
+  deteccionEfectiva,
   detectarSupabasePublico,
   motivoSinSupabase,
+  planSupabaseE2E,
 } from "../e2e/_helpers/supabase-publico.cjs";
 
 // La detección vive en e2e/_helpers para que los specs y el gate usen la misma.
-export { MARCA_SIN_SUPABASE, detectarSupabasePublico, motivoSinSupabase };
+export { MARCA_SIN_SUPABASE, deteccionEfectiva, detectarSupabasePublico, motivoSinSupabase, planSupabaseE2E };
+
+/**
+ * SDD-0479 · El destino que resolverá `resolvePlaywrightRuntime`
+ * (`playwright.config.ts`) con el entorno del paso: el mismo `BASE_URL` y la
+ * misma decisión de levantar el `next dev`. `verify` la usa para tomar la
+ * misma decisión de Supabase que Playwright; una prueba de Vitest compara las
+ * dos funciones.
+ */
+export function destinoE2E(env, puerto) {
+  const baseURL = env.BASE_URL ?? `http://localhost:${puerto}`;
+  const levantaServidor =
+    env.E2E_START_WEB_SERVER === "1" ||
+    (env.E2E_START_WEB_SERVER === undefined && !env.BASE_URL);
+  return { baseURL, levantaServidor, puertoApp: Number(puerto) };
+}
+
+/**
+ * SDD-0479 · Candidatos para el Supabase sintético: primero el de la app +
+ * 10000 (el mismo default que usa Playwright), después una sucesión propia por
+ * worktree en 13100–13799, con los mismos saltos que el puerto de la app. El
+ * gate prueba que estén libres antes de fijar uno.
+ */
+export function candidatosSupabaseSintetico(puertoApp, cwd, cuantos = 20) {
+  const primero = puertoApp + 10_000 <= 65_535 ? [puertoApp + 10_000] : [];
+  const propios = candidatosDePuerto(`${cwd}#supabase-sintetico`, cuantos).map((p) => p + 10_000);
+  return [...new Set([...primero, ...propios])].filter((p) => p !== puertoApp);
+}
 
 export const PUERTO_BASE = 3100;
 export const PUERTO_RANGO = 700; // 3100–3799

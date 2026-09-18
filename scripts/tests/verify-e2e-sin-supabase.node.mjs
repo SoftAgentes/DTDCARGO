@@ -491,10 +491,13 @@ test("el paso e2e real de STEPS lee el reporte de su corrida y declara la cobert
 test("verify cablea la recolección y usa la misma raíz de detección que los specs", async () => {
   const source = await readFile(new URL("../verify.mjs", import.meta.url), "utf8");
   assert.match(source, /const \{ skipped, partial, verdict \} = await evaluarPasos\(STEPS, \{ out \}\);/);
-  assert.match(source, /e2eSupabase = detectarSupabasePublico\(\);/);
+  // SDD-0479: la detección del paso es la efectiva del plan (con el Supabase
+  // sintético, las dos variables existen para el next dev).
+  assert.match(source, /e2eSupabase = deteccionEfectiva\(plan\);/);
   assert.match(source, /e2eSupabase \?\? detectarSupabasePublico\(\);/);
   // Sin raíz propia: el default es RAIZ_REPO, igual que en e2e/_helpers/supabase.ts.
   assert.doesNotMatch(source, /detectarSupabasePublico\(\{[^}]*raiz/);
+  assert.doesNotMatch(source, /planSupabaseE2E\(\{[^}]*raiz/);
   const e2e = source.match(/\{\s*name: "e2e",[\s\S]*?\n {2}\},\n/);
   assert.ok(e2e, "no se encontró el paso e2e en STEPS");
   assert.match(e2e[0], /partialCoverage: e2eCoberturaParcial,/);
