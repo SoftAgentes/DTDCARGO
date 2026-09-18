@@ -139,13 +139,22 @@ export const CONFIG = {
 
   /**
    * Multiplicador del flete cuando la carga lleva baterías (riesgo/manejo).
-   * 1.3 = +30% sobre el flete (antes del descuento de sede).
+   * 1.5 = +50% sobre el flete (antes del descuento de sede).
    *
-   * ⚠️ Espeja `calculator_settings.recargo_bateria_mult` de producción (1.3).
-   * Estuvo en 1.5 acá mientras el ERP ya cobraba 1.3 — mismo riesgo silencioso
-   * que `pesoIncluidoKg`. Corregido el 2026-08-05 (founder).
+   * ⚠️ Espeja `calculator_settings.recargo_bateria_mult` de producción (1.5,
+   * leído de la RPC pública `public_calculator_config` el 2026-09-18). Si no
+   * coinciden, una caída de Supabase cotiza baterías a otro precio en silencio.
+   *
+   * La historia, para que nadie lo revierta por reflejo (SDD-0480):
+   *   · Hasta el 2026-08-05 acá decía 1.5 mientras el ERP cobraba 1.3; ese día
+   *     el commit `535aa0ec` lo bajó a 1.3 para espejar el ERP.
+   *   · Después el founder subió el ERP a 1.5, a propósito. Confirmado el
+   *     2026-09-18: «Sí, ×1,5 es correcto — Lo subí a propósito.»
+   *   · El 2026-09-18 vuelve a 1.5 para espejarlo. Con 1.3, ante una caída se
+   *     cotizaba 13,3% por debajo (1,3/1,5).
+   * El ancla está en `__tests__/calculadora-respaldo-alineado.test.ts`.
    */
-  recargoBateriaMult: 1.3,
+  recargoBateriaMult: 1.5,
 
   /**
    * ⚠️ LEGACY — ya no fija ningún precio (SDD-0237, founder 1-ago-2026).
