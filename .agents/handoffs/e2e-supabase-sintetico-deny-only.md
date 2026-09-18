@@ -147,6 +147,10 @@ con Playwright 1.60.0.
 - **No se construyó el grafo en el worktree**, que es una extracción completa del repositorio. El
   Director lo actualiza desde `main` integrado, según el runbook. Ninguna capa se declara actualizada.
 
+## Antes de publicar (2026-09-18)
+
+- Se trajo `origin/main` `b43a39a5` (#138, sólo `docs/marketing/` y `public/interno/guia-peso.html`) en el merge `0d9b5125`, sin conflictos. `docs:check` y `check-pending-migration-symbols` PASÓ después del merge. Ese cambio no toca código ni pruebas de esta rama; las validaciones de arriba siguen vigentes.
+
 ## HANDOFF AL DIRECTOR
 
 - Contratos compartidos: `playwright.config.ts`, `scripts/verify.mjs` y los helpers de `e2e/`. Revisar
