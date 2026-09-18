@@ -12,12 +12,24 @@ const mixed = [
 ];
 const language = (value: string) => fireEvent.change(screen.getByRole("combobox", { name: "语言 / Idioma / Language" }), { target: { value } });
 const button = (name: string | RegExp) => screen.getByRole("button", { name });
-const step = (n: number) => fireEvent.click(button(new RegExp(`^${n} `)));
+// SDD-0486: las consultas se acotan a su región, y `start()` devuelve el campo de
+// empresa para reutilizarlo mientras siga montado. La página monta también una copia
+// imprimible oculta (`.pl-print-only`), que con el borrador mixto supera los 300 nodos.
+// getByRole nunca la devuelve, pero antes de descartarla calcula el nombre accesible de
+// cada candidato, y jsdom rehace la cascada CSS de cada nodo después de cada render. En
+// toda la página, cada búsqueda de «Empresa / Persona» costaba de 0,5 a 1,7 s. Dentro de
+// su región, una consulta cuesta decenas de ms. La página tiene un único <nav>, el de los
+// pasos, así que acotarlo no depende del idioma. Las aserciones negativas y las búsquedas
+// después de desmontar el campo siguen sobre toda la página.
+const stepTarget = (name: string | RegExp) => within(screen.getByRole("navigation")).getByRole("button", { name });
+const step = (n: number) => fireEvent.click(stepTarget(new RegExp(`^${n} `)));
+const group = (index = 1) => screen.getByRole("region", { name: `Grupo de cajas ${index}` });
+const inGroup = (name: string | RegExp, index = 1) => within(group(index)).getByRole("button", { name });
 function draft(extra = {}) { return JSON.stringify({ company: "Proveedor guardado", wechat: "saved-contact", currency: "RMB", rows: mixed, lang: "en", docDate: "2026-09-16", note: "Revisar muestra", ...extra }); }
 async function start(request?: typeof fetch) {
   render(<ProviderShareClient {...props} request={request}/>);
   language("es");
-  await waitFor(() => expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toBeInTheDocument());
+  return screen.findByRole("textbox", { name: "Empresa / Persona" });
 }
 beforeEach(() => {
   localStorage.clear();
@@ -82,8 +94,7 @@ describe("supplier guided workflow", () => {
     expect(JSON.stringify(payload)).not.toMatch(/Shenzhen ABC|demo-wechat|wechat_id|fieldOrigins|draftRestored/);
   });
   it("identifies real prefilled contacts accessibly and keeps them in review", async () => {
-    await start();
-    const company = screen.getByRole("textbox", { name: "Empresa / Persona" });
+    const company = await start();
     expect(company).toHaveValue("Proveedor");
     expect(company).toHaveAccessibleDescription("Prellenado; puedes corregirlo");
     expect(screen.getByRole("textbox", { name: "WeChat / Teléfono" })).toHaveAccessibleDescription("Prellenado; puedes corregirlo");
@@ -93,8 +104,7 @@ describe("supplier guided workflow", () => {
   });
   it("keeps essential draft status outside tools and distinguishes restored values from prefill", async () => {
     localStorage.setItem(packlistDraftKey(props.token), draft());
-    await start();
-    const company = screen.getByRole("textbox", { name: "Empresa / Persona" });
+    const company = await start();
     await waitFor(() => expect(company).toHaveValue("Proveedor guardado"));
     expect(company).toHaveAccessibleDescription("Restaurado del borrador de este dispositivo");
     const state = screen.getByText("Borrador local restaurado · aún no enviado");
@@ -116,9 +126,9 @@ describe("supplier guided workflow", () => {
   });
   it("does not label empty restored contact fields as filled data", async () => {
     localStorage.setItem(packlistDraftKey(props.token), draft({ company: "", wechat: "" }));
-    await start();
-    await waitFor(() => expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveValue(""));
-    expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).not.toHaveAccessibleDescription();
+    const company = await start();
+    await waitFor(() => expect(company).toHaveValue(""));
+    expect(company).not.toHaveAccessibleDescription();
     expect(screen.getByRole("textbox", { name: "WeChat / Teléfono" })).not.toHaveAccessibleDescription();
     expect(screen.getByText("Borrador local restaurado · aún no enviado")).toBeVisible();
   });
@@ -176,7 +186,7 @@ describe("supplier guided workflow", () => {
   });
   it("preserves fractional unit prices in the read-only document", async () => {
     localStorage.setItem(packlistDraftKey(props.token), draft({ rows: [{ zh: "零件", unit: "0.004", ctns: 100, perctn: 100 }] }));
-    await start(); await waitFor(() => expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveValue("Proveedor guardado"));
+    const company = await start(); await waitFor(() => expect(company).toHaveValue("Proveedor guardado"));
     fireEvent.click(button("Ver documento"));
     expect(within(screen.getByRole("dialog")).getByRole("cell", { name: "0.004" })).toBeInTheDocument();
     expect(within(screen.getByRole("dialog")).getAllByRole("cell", { name: "40.00" })).toHaveLength(2);
@@ -202,11 +212,11 @@ describe("supplier guided workflow", () => {
   it("preserves legacy mixed-carton totals, fields and payload through steps, languages and Excel", async () => {
     localStorage.setItem(packlistDraftKey(props.token), draft());
     const request = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, folio: "PL-1", versionNo: 2 })));
-    await start(request);
-    await waitFor(() => expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveValue("Proveedor guardado"));
+    const company = await start(request);
+    await waitFor(() => expect(company).toHaveValue("Proveedor guardado"));
     step(2);
-    fireEvent.click(button("Editar Tapas"));
-    expect(screen.getByRole("textbox", { name: /Unidades del grupo · 2/ })).toHaveValue("8");
+    fireEvent.click(inGroup("Editar Tapas"));
+    expect(within(screen.getByRole("region", { name: "Editor del producto" })).getByRole("textbox", { name: /Unidades del grupo · 2/ })).toHaveValue("8");
     fireEvent.click(button("Usar Excel"));
     expect(screen.getByRole("link", { name: "Descargar Excel" })).toHaveAttribute("href", "/p/test-only/packlist");
     fireEvent.click(button("Volver al formulario"));
@@ -223,14 +233,14 @@ describe("supplier guided workflow", () => {
   });
   it("deletes a whole group without reassigning its children to the preceding group", async () => {
     localStorage.setItem(packlistDraftKey(props.token), draft({ rows: [{ zh: "Previous", ctns: 1, perctn: 1 }, ...mixed] }));
-    await start(); await waitFor(() => expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveValue("Proveedor guardado"));
+    const company = await start(); await waitFor(() => expect(company).toHaveValue("Proveedor guardado"));
     step(2);
-    fireEvent.click(screen.getAllByRole("button", { name: "Eliminar grupo" })[1]);
-    fireEvent.click(button("Eliminar grupo completo"));
+    fireEvent.click(inGroup("Eliminar grupo", 2));
+    fireEvent.click(inGroup("Eliminar grupo completo", 2));
     expect(screen.getAllByRole("region", { name: /Grupo de cajas/ })).toHaveLength(1);
     fireEvent.click(button("Guardar borrador"));
     expect(JSON.parse(localStorage.getItem(packlistDraftKey(props.token))!).rows).toEqual([{ zh: "Previous", ctns: 1, perctn: 1 }]);
-    fireEvent.click(button("Eliminar grupo")); fireEvent.click(button("Eliminar grupo completo"));
+    fireEvent.click(inGroup("Eliminar grupo")); fireEvent.click(inGroup("Eliminar grupo completo"));
     expect(screen.getAllByRole("region", { name: /Grupo de cajas/ })).toHaveLength(1);
   });
   it("routes localized server field errors to the relevant step and preserves entries", async () => {
@@ -243,7 +253,7 @@ describe("supplier guided workflow", () => {
   it("supports correction and append-only resubmission without clearing the form", async () => {
     localStorage.setItem(packlistDraftKey(props.token), draft());
     const request = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, folio: "PL-1", versionNo: 1, labelsNeedReview: true }))).mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, folio: "PL-1", versionNo: 2 })));
-    await start(request); await waitFor(() => expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toHaveValue("Proveedor guardado"));
+    const company = await start(request); await waitFor(() => expect(company).toHaveValue("Proveedor guardado"));
     step(4); fireEvent.click(button("Enviar documento a DTD")); await screen.findByRole("heading", { name: "Documento enviado" });
     expect(screen.getByText(/Las cajas no coinciden/)).toBeInTheDocument();
     fireEvent.click(button("Corregir y reenviar"));
@@ -278,11 +288,11 @@ describe("supplier guided workflow", () => {
     expect(screen.queryByRole("button", { name: "Elegir archivos" })).not.toBeInTheDocument();
     expect(screen.getByText("product.png")).not.toBeVisible();
     language("zh");
-    expect(button("4 核对并提交")).toHaveAttribute("aria-current", "step");
+    expect(stepTarget("4 核对并提交")).toHaveAttribute("aria-current", "step");
     expect(within(screen.getByRole("region", { name: "照片与附件" })).getByText("已选择 1 个文件，尚未上传")).toBeVisible();
     expect(screen.getByText("本地草稿 · 尚未提交")).toBeVisible();
     language("en");
-    expect(button("4 Review and send")).toHaveAttribute("aria-current", "step");
+    expect(stepTarget("4 Review and send")).toHaveAttribute("aria-current", "step");
     expect(within(screen.getByRole("region", { name: "Photos and files" })).getByText("1 file selected, not uploaded")).toBeVisible();
     language("es");
     const review = screen.getByRole("region", { name: "Fotos y archivos" });
