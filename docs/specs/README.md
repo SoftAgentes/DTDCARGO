@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 468 specs)
+### Índice de specs (generado · 470 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -505,7 +505,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0477 | Un vínculo del Portal revocado conserva su correo y sus fecha… | in-progress | interno |
 | 0478 | Programar la próxima tarifa pública sin dejar el sitio sin ta… | done | interno |
 | 0479 | Supabase sintético deny-only para el e2e local: las pruebas q… | in-progress | interno |
+| 0480 | El recargo de baterías del respaldo vuelve a espejar el ERP (… | done | interno |
+| 0481 | Portal cliente — cambiar la foto de cédula/RIF dentro del cup… | in-progress | interna |
 | 0486 | Las pruebas intermitentes de la suite dejan de dar rojos falsos | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0480, 0481, 0482, 0483, 0484, 0485 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0482, 0483, 0484, 0485 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
