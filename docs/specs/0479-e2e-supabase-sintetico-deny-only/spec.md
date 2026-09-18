@@ -243,9 +243,13 @@ cubrir ese deploy.
       pedido y sólo en `127.0.0.1`.
 - [x] 4. `verify` toma la misma decisión que Playwright, comprueba el puerto y
       no declara parcial un e2e que midió todo.
-- [ ] 5. Evidencia e2e: sin variables, las 5 pruebas corren y pasan en los tres
+- [x] 5. Evidencia e2e: sin variables, las 5 pruebas corren y pasan en los tres
       proyectos, con 0 omisiones marcadas, y `verify` no declara parcial el e2e.
-      Se registra en el handoff.
+      - Corrida focal sobre `efef3d93`: 24 passed y 6 skipped (sólo Tier 3), con
+        0 omisiones marcadas y 0 errores de `proxy.ts`.
+      - `verify` completo sobre `efef3d93`: e2e 164 passed y 18 skipped, sin
+        cobertura parcial.
+      - El detalle está en el handoff.
 - [x] 6. Pruebas con control rojo por mutantes.
 
 ## Riesgos y límites
