@@ -196,7 +196,8 @@ de integrar la #140. Conector `claude.ai Supabase`, proyecto `xpfuzqombmjmxvprjg
   3. La RPC es SECURITY DEFINER, volátil y con `search_path` vacío, con dueño `postgres`. ACL
      `{postgres=X,service_role=X}`: `service_role` sí, y `authenticated`, `anon` y PUBLIC no. Es la
      única firma.
-  4. Login del Portal: **pendiente de Sam** («Lo miro más tarde»).
+  4. Login del Portal: **PASÓ**. Sam entró con una cuenta de cliente después de aplicar, textual: «ya
+     entré al portal, el login funciona bien».
 - **Sin cambios:** triggers, policy, ACL de `client_users` y md5 del writer.
 - **Advisors de seguridad:** idénticos antes y después (230 hallazgos, md5 `8ef43bf4…`). Ninguno nombra la
   RPC.
@@ -209,7 +210,7 @@ de integrar la #140. Conector `claude.ai Supabase`, proyecto `xpfuzqombmjmxvprjg
 
 ## PENDIENTES DE ESTA TAREA
 
-- **Aplicar 0460: HECHO** (ver arriba). Queda el smoke del login del Portal, que hace Sam.
+- **Aplicar 0460: HECHO** (ver arriba), con el smoke del login del Portal PASÓ.
 - **Traer main e integrar:** cuando dtdcargo-18 pase el SHA, después de la #137 y la #144, traer main con
   el driver y hacer un único push. Después dtdcargo-18 integra la #140, y ese merge despliega.
 - **Leer el primer dry-run del cron después del deploy.** Con esos conteos, Sam decide si activa

@@ -424,8 +424,9 @@ tiene que cubrirlo, y el orden es migrate-first.
   normalizado `8ef43bf4…`), y ninguno nombra la RPC.
 
 **Pendiente**
-- **Smoke de Sam:** el login del Portal con una cuenta de cliente. Respondió
-  «Lo miro más tarde».
+- ~~Smoke de Sam: el login del Portal con una cuenta de cliente~~. **Hecho el
+  2026-09-18, después de aplicar**, textual: «ya entré al portal, el login
+  funciona bien».
 - **Después del deploy de esta PR:** leer el primer dry-run del cron. Con sus
   conteos a la vista, Sam decide si activa `PORTAL_REVOKED_RETENTION_ENABLED`.
   Hasta entonces no se borra nada.
