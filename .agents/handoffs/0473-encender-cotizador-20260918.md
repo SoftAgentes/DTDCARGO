@@ -44,7 +44,29 @@ vez por escalón y que el lease de la 0457 (3 min) cubra el `maxDuration` de las
 procesan (cron y API).
 
 Costo: con la bandera encendida son ~43.200 invocaciones/mes (cada una: limpieza + un claim).
-Mismo orden que `push-drain` y `client-notifications-drain`, que ya corren cada minuto.
+Mismo orden que `push-drain` y `client-notifications-drain`, que ya corren cada minuto. Con la
+bandera **apagada**, el drenaje es **inerte**: corta antes de `createAdminClient()`, sin conexión a
+la base (idéntico al de `main`, la garantía con que se integró la #130).
+
+### La retención, aparte (corrección pedida por el Director, 2026-09-18)
+
+Un primer arreglo (`f988f83f`) movió `cleanupImports` antes del corte de la bandera para que
+apagar no dejara archivos sin borrar. dtdcargo-18 lo objetó con razón: con `* * * * *` eran
+**1.440 conexiones diarias a producción con la bandera apagada**, y la cadencia de un minuto sólo se
+justifica por los reintentos, que sólo existen encendida. Opciones evaluadas:
+
+1. **Un cron de retención aparte, cada hora — elegida.** `/api/cron/document-import-cleanup`
+   (`17 * * * *`, lejos de los crons que corren en punto) limpia con cualquier bandera. El drenaje
+   vuelve a ser byte a byte el de `main`. Apagado: 24 conexiones al día.
+2. Un solo cron que limpie apagado sólo en el minuto 0: una invocación que Vercel atrase al minuto 1
+   se salta la hora entera. Descartada.
+3. Dejar la limpieza cada minuto y justificarla: nada la justifica para un vencimiento de 24 h.
+
+El documento deja de ser accesible exactamente al vencer (`authorizeWorkspace`); el borrado físico
+llega como mucho una hora después. Encendida, el drenaje sigue limpiando en cada tick y la pasada
+horaria es idempotente. `cron-cadence.test.ts` exige que la retención exista, corra al menos cada
+hora y no lea la bandera; `document-import-drain/route.test.ts` exige que apagado no se cree ni el
+cliente de la base.
 
 ## LO QUE APARECIÓ AL REVISAR: la bandera enciende más que el cotizador
 
@@ -146,9 +168,9 @@ curso (pedido del supervisor; el runbook exige una a la vez).
    - **No** `DOCUMENT_IMPORT_PORTAL_ENABLED`.
    Redesplegar la preview y subir en `/cotizador` una XLSX y una proforma PDF reales.
    **Ojo, ya documentado en 0473:** Preview escribe en la **base y el bucket de producción**
-   (inferencia del repo: el MCP de Vercel da 403 y no se miró el panel), y en Preview no corre el cron. Lo que se suba ahí queda hasta que la bandera se encienda en
-   producción: con esta rama el cron de producción limpia lo vencido **siempre**, así que ese
-   residuo se borra en el primer minuto después de mergear, encendida o no.
+   (inferencia del repo: el MCP de Vercel da 403 y no se miró el panel), y en Preview no corre el
+   cron. Lo que se suba ahí se borra con el cron de retención de producción, que corre cada hora
+   con la bandera encendida o apagada, en cuanto esta rama esté en `main`.
 4. **Producción:** las mismas variables con alcance **Production** (un `RATE_SECRET` distinto al de
    Preview). **No** `DOCUMENT_IMPORT_PORTAL_ENABLED`. Opcionales con sus defaults:
    `DOCUMENT_IMPORT_DAILY_JOBS` (100), `DOCUMENT_IMPORT_DAILY_TOKEN_BUDGET` (2.000.000).
@@ -162,9 +184,11 @@ curso (pedido del supervisor; el runbook exige una a la vez).
      proforma».
    - `/portal/compras/<código>/documento` → 404, y el paso 2 de una compra nueva **sin** la carga de
      documentos.
-   - Logs del cron `/api/cron/document-import-drain`: 200 con `cleanup` cada minuto.
+   - Logs de `/api/cron/document-import-drain`: 200 con `cleanup` cada minuto; y de
+     `/api/cron/document-import-cleanup`: 200 con `cleanup` una vez por hora.
 7. **Apagar:** Vercel Instant Rollback al deploy anterior, o quitar la variable y redesplegar
-   (cambiar una variable no afecta un deploy ya hecho). El borrado de lo vencido sigue corriendo.
+   (cambiar una variable no afecta un deploy ya hecho). El drenaje vuelve a ser inerte y el cron de
+   retención sigue borrando lo vencido cada hora.
 
 ## COMPLETADO
 
@@ -178,9 +202,10 @@ curso (pedido del supervisor; el runbook exige una a la vez).
    (`app/p/[token]/packlist/route.ts`: una lectura caída sólo falla cerrada con el portal) y
    `DocumentImportEntry` (pide las dos llaves). El 409 ante un documento que ya existe **se
    conserva** con cualquier bandera. `.env.example` documenta `DOCUMENT_IMPORT_PORTAL_ENABLED`.
-3. **El borrado deja de depender de la bandera:** el cron limpia lo vencido siempre; sólo la lectura
-   depende de `DOCUMENT_IMPORT_ENABLED`. Sin esto, apagar después de encender dejaba sin borrar lo
-   subido en las últimas 24 h.
+3. **El borrado deja de depender de la bandera, sin romper la inercia del drenaje:** cron de
+   retención propio (`/api/cron/document-import-cleanup`, cada hora, sin leer la bandera) y el
+   drenaje idéntico al de `main`. Sin esto, apagar después de encender dejaba sin borrar lo subido
+   en las últimas 24 h, igual que el residuo del Preview.
 4. **Descubrimiento del cotizador:** `/cotizador` deja de declararse excluida (apagada ya es 404);
    `app/sitemap.ts` y el footer («Cotiza con tu proforma», en «Enlaces rápidos») la muestran sólo con
    la bandera encendida. Se corrigió el comentario que decía que `force-dynamic` ahorraba el
@@ -195,8 +220,9 @@ real, PDF reales, `/ui-check` y 375/390 px del cotizador, chino y WeChat reales.
 
 ## VALIDACIÓN
 
-SHA medido: `ccf9c1a6` (cabeza de la rama antes de este handoff), base `78410913` = `origin/main`
-al momento de medir.
+SHAs medidos: `ccf9c1a6` (verify completo y primera tanda) y `6f2d3193` (tras separar la retención:
+pruebas de los crons, mutantes C1–C4, tsc, eslint, docs:check y la segunda corrida limpia de e2e).
+Base `78410913` = `origin/main` en los dos momentos.
 
 | Comprobación | Veredicto | Evidencia |
 |---|---|---|
@@ -204,7 +230,11 @@ al momento de medir.
 | Módulo document-import + cotizador + portal compras (vitest) | **PASÓ** | 18 archivos, 339 pruebas, 1 skip por diseño |
 | Pruebas nuevas (cadencia, cron, footer, sitemap, ruta del proveedor, pantalla documento) | **PASÓ** | todas verdes corridas por archivo |
 | Contrato de cobertura del sitemap | **PASÓ** | 3/3, tras reescribir un comentario que contenía la palabra que el contrato busca |
-| Control rojo: 14 mutantes, uno por puerta | **PASÓ** | los 14 mueren; cada archivo restaurado y comprobado por sha256 |
+| Control rojo: 14 mutantes, uno por puerta (`ccf9c1a6`) | **PASÓ** | los 14 mueren; cada archivo restaurado y comprobado por sha256 |
+| Control rojo de la retención (`6f2d3193`) | **PASÓ** | C1 drenaje que abre la base antes del corte, C2 retención que lee la bandera, C3 retención cada 2 h, C4 retención ausente: los 4 mueren, restaurados por sha256 |
+| Pruebas de los dos crons + contrato de cadencias (`6f2d3193`) | **PASÓ** | 3 archivos, 9 pruebas; `route.ts` del drenaje sin diff contra `78410913` |
+| `tsc`, `eslint`, `docs:check` (`6f2d3193`) | **PASÓ** | exit 0 los tres |
+| `build` sobre `6f2d3193` | **NO EJECUTADO** | medido en verde sobre `ccf9c1a6`; el cambio posterior es una ruta nueva validada por tsc, eslint y pruebas. No se relanzó para no saturar la máquina mientras otra sesión corría su `verify` |
 | `tsc --noEmit` | **PASÓ** | exit 0 sin tubería |
 | `eslint` sobre lo tocado | **PASÓ** | 0 errores; 4 warnings preexistentes de `DocumentCalculator.tsx` (no tocado) |
 | `git diff --check` | **PASÓ** | sin salida |
@@ -214,9 +244,10 @@ al momento de medir.
 | └ `sql-tests`, `schema-rebuild` | **PASÓ** | esta vez Docker estaba disponible |
 | └ `build` | **PASÓ** | `[OK] build`, build de producción |
 | └ `test` | **FALLÓ** | 1 falla, 7.815 pasan y 1 se omite (7.817): `PackingListProductsStep.test.tsx` → «adds another group…», la inestable conocida (FUERA DE ALCANCE de la PR #133). **Aislada sobre `ccf9c1a6`: 9/9 en verde** |
-| └ `e2e` | **FALLÓ, cobertura PARCIAL** | 1.ª vuelta: `Timed out waiting 120000ms from config.webServer`. Reintento: 144 pasan, 7 inestables que pasan al reintento, 33 omitidas y 2 fallan (`calculadora-hidratacion.spec.ts:61`, `attachments-gastos-pilot-network.spec.ts:4`). **Aisladas sobre `ccf9c1a6`: 3/3 en verde**. 15 omitidas sin Supabase público |
+| └ `e2e` | **FALLÓ, cobertura PARCIAL** | 1.ª vuelta: `Timed out waiting 120000ms from config.webServer`. Reintento: 144 pasan, 7 inestables que pasan al reintento, 33 omitidas y 2 fallan (ver la tabla de corridas abajo). 15 omitidas sin Supabase público |
 | └ `migrations-applied` | **NO EJECUTADO** | `[SKIP]` sin `.env.local`; no se copiaron credenciales. Esta tarea no trae migraciones |
 | Causa de los rojos de `verify` | **PASÓ (comprobada)** | durante la corrida la CPU estaba al **100 %** y otra sesión (`DTD-worktrees/tarifa-programada-a-futuro`) corría su vitest con ~20 workers. Con la máquina en 20 % las 4 pruebas rojas pasaron |
+| e2e de los 2 caídos, repetidos en condiciones limpias | **PASÓ** | dos corridas, abajo |
 | Estado encendido en un Next real (`next dev`, `DOCUMENT_IMPORT_ENABLED=true`) | **PASÓ** | `capabilities` → `{"available":true,"portal":false,…}`; `/cotizador` 200 con `robots: index, follow`; enlace del footer en `/cotizador` y en `/tarifas`; `sitemap.xml` con `/cotizador` |
 | `/portal/compras/<código>/documento` en ese mismo servidor | **NO DISPONIBLE** | 500 del `proxy.ts` (middleware), que exige Supabase en `/portal` antes de llegar a la página. La puerta de la página está cubierta por `page.test.tsx` y su mutante |
 | `/ui-check` | **NO EJECUTADO** | el único cambio visible es un enlace del footer con el componente existente `FooterLink`. No es UI sustancial |
@@ -226,6 +257,25 @@ al momento de medir.
 | Archify | **NO DISPONIBLE** | `ARCHIFY_RUNTIME_MISSING`: hay que descargar `archify.zip` y no está autorizado |
 | Vista previa de Obsidian | **PASÓ (local)** | `knowledge-sync publish --preview` → `graphify-out/obsidian-preview`, 1.090 documentos; no toca la bóveda compartida |
 
+### Los 2 e2e que cayeron en `verify`, y sus corridas
+
+- `e2e/calculadora-hidratacion.spec.ts:61` — «hidratación · tocar la calculadora antes de que React
+  llegue › el toggle tocado antes del JS igual abre el consolidado».
+- `e2e/attachments-gastos-pilot-network.spec.ts:4` — «SDD-0224 · contrato Network › el plano de
+  control recibe JSON, nunca bytes del archivo».
+
+Se corrió el archivo completo de cada uno (incluye también `calculadora-hidratacion.spec.ts:42`, que
+había caído como inestable), en Chromium y con puerto propio:
+
+| Corrida | SHA | Condiciones | Resultado |
+|---|---|---|---|
+| Dentro de `verify` | `ccf9c1a6` | CPU al 100 %; otra sesión con vitest de ~20 workers | 2 fallan (tras el reintento del arnés) |
+| Limpia 1 | `ccf9c1a6` | CPU al 20 %, ninguna otra suite de pruebas corriendo | **3/3 en verde** (45 s) |
+| Limpia 2 | `6f2d3193` | carga muestreada cada 3 s durante la corrida: 52, 35, 38, 48, 54, 66, 56, 65, 26, 34, 3, 43, 4 %. Había un `pnpm verify` de otra sesión todavía en su fase liviana | **3/3 en verde** (1,1 min) |
+
+Ninguno de los dos archivos toca lo que cambia esta rama (footer, sitemap, cotizador, crons,
+importación documental).
+
 ## COMMITS
 
 - `f988f83f` — fix(import): el cron borra lo vencido aunque la bandera esté apagada.
@@ -233,7 +283,10 @@ al momento de medir.
 - `c2853a30` — chore(studio): el cron vuelve a cada minuto, atado al escalón de reintento.
 - `2cdbcc87` — feat(cotizador): indexable, y en el sitemap y el footer sólo con la bandera.
 - `ccf9c1a6` — docs(SDD-0473): la ampliación de la spec.
-- Commit que contiene este documento: el handoff.
+- `5f1002c8` — docs(handoff): primera versión de este documento.
+- `fd097dc5` — fix(import): la retención en su propio cron, y el drenaje otra vez inerte apagado.
+- `6f2d3193` — docs(SDD-0473): la retención aparte, con las tres opciones evaluadas.
+- Commit que contiene esta versión del documento: el handoff actualizado.
 
 Todos con `git add` selectivo; sin reset, sin force push, sin tocar otras ramas ni worktrees.
 
@@ -279,10 +332,11 @@ Todos con `git add` selectivo; sin reset, sin force push, sin tocar otras ramas 
   bandera, `route.test.ts`) y que ninguna puerta del portal queda abierta con sólo la primera llave
   (14 mutantes, uno por puerta).
 - **Cambios compartidos:** `Footer.tsx` (todas las páginas públicas), `app/sitemap.ts`, `vercel.json`
-  y la ruta pública del proveedor. Nada de esquema ni migraciones.
+  (un cron nuevo: 18 en total) y la ruta pública del proveedor. Nada de esquema ni migraciones.
 - **Orden:** variables en Production primero, merge después. El merge es el interruptor y despliega a
-  producción. Un merge sin las variables deja el cron a cada minuto con la bandera apagada: ya no es
-  inerte, porque ahora limpia siempre (unas 4 consultas por minuto sobre tablas casi vacías).
+  producción. Un merge sin las variables deja el drenaje inerte (no abre la base) y el cron de
+  retención limpiando una vez por hora: 24 conexiones al día.
+- **Tu objeción de la cadencia:** resuelta con la opción 1 (sección «La retención, aparte»).
 - **Antes de cualquier paso en producción:** confirmar con dtdcargo-18 que no hay otra aplicación en
   curso.
 - **Ownership:** claim liberado al cerrar esta escritura (ver abajo). Worktree y rama se conservan.
