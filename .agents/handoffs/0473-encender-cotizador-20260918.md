@@ -8,9 +8,16 @@
   `78410913`. Guard OK y claim adquirido antes de editar.
 - SDD: [0473](../../docs/specs/0473-importacion-documental-prealertas-calculadora/spec.md),
   `in-progress`, con la ampliación del 2026-09-18 y su allowlist. No se reservó número nuevo.
-- Permisos del encargo (`$worker`, Sam): implementar, probar, commits locales. **El encargo no
-  nombra publicación**: rama y PR quedan preparadas, sin push. Nada de producción: ni variables de
-  Vercel, ni datos, ni migraciones. Supervisión: dtdcargo-53; integración y producción: dtdcargo-18.
+- Permisos del encargo (`$worker`, Sam): implementar, probar, commits locales. Nada de producción:
+  ni variables de Vercel, ni datos, ni migraciones. Supervisión: dtdcargo-53; integración y
+  producción: dtdcargo-18.
+- **Publicación (2026-09-18):** Sam la autorizó por el chat de dtdcargo-53, y esta sesión se la
+  confirmó en su propio chat. Texto transmitido por dtdcargo-53, literal: «autorizo Autorizar que se
+  suban las cinco ramas y se abran sus PR, sin merge. Son: […] codex/encender-cotizador-0473: el
+  cotizador. […]». Confirmación de Sam en este chat, literal: «sí, confirmo: súbela y abre la PR en
+  draft». Alcance: push de la rama a sí misma y PR **draft** contra `main`. **Sin merge, sin
+  variables y sin producción.** Esta sesión se comprometió a no subir con `verify` en rojo sin
+  volver a avisarle a Sam.
 
 ## OBJETIVO ORIGINAL
 
@@ -276,6 +283,24 @@ había caído como inestable), en Chromium y con puerto propio:
 Ninguno de los dos archivos toca lo que cambia esta rama (footer, sitemap, cotizador, crons,
 importación documental).
 
+### `verify` sobre la rama con `main` fusionado (`2575ac5e`)
+
+Antes del merge: `git merge-tree --write-tree HEAD origin/main` dio exit 0, sin conflictos y sin
+archivos en común. `main` era `b43a39a5` (#138), no el `56fa2ae0` que se había indicado primero.
+Merge `2575ac5e`; `docs:check` verde; `drain/route.ts` sin diff contra `main`.
+
+| Paso | Veredicto | Evidencia |
+|---|---|---|
+| `pnpm verify` completo | **FALLÓ (exit 1)** | leído del propio proceso; único paso rojo: `test` |
+| └ harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols | **PASÓ** | `[OK]` |
+| └ `e2e` | **PASÓ, cobertura PARCIAL** | 153 pasan, 0 fallan, 33 omitidas (15 sin Supabase público) |
+| └ `build` | **PASÓ** | `[OK] build` |
+| └ `test` | **FALLÓ** | 1.ª vuelta: 1 falla (`PackingListProductsStep`, la inestable conocida). En el reintento del arnés, 3 fallas: `PackingListProductsStep` (timeout de 20 s), `scripts/__tests__/invoice-read-boundary.test.mjs` (timeout de 60 s en un contrato que recorre el árbol de archivos) y `app/p/[token]/supplier-flow.test.tsx` (espera agotada por un texto). Ninguna fue una aserción sobre lo que cambia esta rama |
+| └ `sql-tests`, `schema-rebuild` | **NO EJECUTADO** | `[SKIP]`: «Docker Desktop is unable to start». Pasaron en el `verify` sobre `ccf9c1a6`; nada posterior toca SQL |
+| └ `migrations-applied` | **NO EJECUTADO** | sin `.env.local`, a propósito |
+| Carga durante el `verify` | medida | muestras cada 30 s: CPU hasta 100 % en la fase de vitest, con **9 a 23 procesos de prueba de otra sesión** corriendo a la vez |
+| Las 3 pruebas rojas, aisladas sobre `2575ac5e` | **PASÓ** | 3 archivos, 35 pruebas, 55 s |
+
 ## COMMITS
 
 - `f988f83f` — fix(import): el cron borra lo vencido aunque la bandera esté apagada.
@@ -286,23 +311,27 @@ importación documental).
 - `5f1002c8` — docs(handoff): primera versión de este documento.
 - `fd097dc5` — fix(import): la retención en su propio cron, y el drenaje otra vez inerte apagado.
 - `6f2d3193` — docs(SDD-0473): la retención aparte, con las tres opciones evaluadas.
-- Commit que contiene esta versión del documento: el handoff actualizado.
+- `21f89ef1` — docs(handoff): la retención aparte y las dos corridas limpias de e2e.
+- `2575ac5e` — merge de `origin/main` (`b43a39a5`) en la rama.
+- Commit que contiene esta versión del documento: el handoff con la publicación.
 
 Todos con `git add` selectivo; sin reset, sin force push, sin tocar otras ramas ni worktrees.
 
 ## PR / BRANCH
 
 - Rama local `codex/encender-cotizador-0473`, base `78410913` (= `origin/main` al medir).
-- **Sin push y sin PR:** el encargo no nombró la publicación. Cuando se autorice:
-  `git push -u origin codex/encender-cotizador-0473:codex/encender-cotizador-0473` y PR contra
-  `main`, en draft mientras siga abierta la compuerta de privacidad.
-- El supervisor pidió avisarle a él y a dtdcargo-18 **antes** de publicar.
+- Publicación autorizada (ver encabezado). Comando: `git push -u origin
+  codex/encender-cotizador-0473:codex/encender-cotizador-0473` y PR **draft** contra `main`, draft
+  mientras siga abierta la compuerta de privacidad. La URL y el SHA publicado se registran en la PR
+  y se reportan a dtdcargo-53; el orden de merge lo decide dtdcargo-18.
+- `verify` sobre la cabeza fusionada salió en rojo sólo por `test` bajo carga: la decisión de
+  publicar igual se le devolvió a Sam antes del push.
 
 ## PENDIENTES DE ESTA TAREA
 
 1. **Compuerta de privacidad** (Sam y su abogado): `/privacidad`, aviso antes de subir, Anthropic.
    Sin eso no se enciende en producción.
-2. **Autorización para publicar** la rama y abrir la PR.
+2. **Publicar:** autorizado; pendiente de que Sam decida si se sube con `verify` en rojo por carga.
 3. **Encender** según «CÓMO SE ENCIENDE»: variables (Sam, en Vercel), merge (Director), sondas.
 4. `verify` sin cierre verde en esta máquina por saturación: si el Director quiere el gate en verde
    antes de integrar, correrlo sin otra suite en paralelo, o apoyarse en el check obligatorio de la
