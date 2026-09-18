@@ -1,8 +1,14 @@
 ---
-id: 0484
-slug: reporte-pago-factura-pagada
-status: reserved
+sdd: "0484"
+title: "RESERVADO — Los comandos de reportes de pago frente a una factura ya pagada"
+status: draft
+author: "Director dtdcargo-18"
+created: 2026-09-18
+updated: 2026-09-18
+supersedes: null
+superseded_by: null
 related: ["0365", "0421"]
+confidencialidad: interna
 ---
 
 # SDD-0484 — Los comandos de reportes de pago frente a una factura ya pagada
