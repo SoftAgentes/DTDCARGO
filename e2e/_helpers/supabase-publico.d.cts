@@ -36,3 +36,28 @@ export declare function omisionSinSupabase(opciones?: {
   raiz?: string;
   baseURL?: string;
 }): string | null;
+
+// SDD-0479 · Supabase sintético deny-only.
+export type ModoSupabaseE2E = "remoto" | "configurado" | "parcial" | "ausente" | "sintetico";
+
+export type PlanSupabaseE2E =
+  | { modo: Exclude<ModoSupabaseE2E, "sintetico">; deteccion: DeteccionSupabasePublico }
+  | {
+      modo: "sintetico";
+      deteccion: DeteccionSupabasePublico;
+      puerto: number;
+      url: string;
+      entorno: { NEXT_PUBLIC_SUPABASE_URL: string; NEXT_PUBLIC_SUPABASE_ANON_KEY: string };
+    };
+
+export declare const ANON_KEY_SINTETICA: string;
+export declare const RUTA_SALUD_SINTETICO: string;
+export declare function puertoSupabaseSintetico(opciones?: { env?: Entorno; puertoApp?: number }): number;
+export declare function planSupabaseE2E(opciones?: {
+  env?: Entorno;
+  raiz?: string;
+  baseURL?: string;
+  levantaServidor?: boolean;
+  puertoApp?: number;
+}): PlanSupabaseE2E;
+export declare function deteccionEfectiva(plan: PlanSupabaseE2E): DeteccionSupabasePublico;
