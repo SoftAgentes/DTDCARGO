@@ -162,7 +162,7 @@ curso (pedido del supervisor; el runbook exige una a la vez).
 
 1. **Compuerta de privacidad** (sección anterior). Sin ella, encender en producción es capturar
    documentos reales sin aviso.
-2. **Publicar esta rama y abrir la PR** (hace falta autorización: el encargo no la nombró).
+2. **Publicar esta rama y abrir la PR:** hecho, PR #143 en draft (ver PR / BRANCH).
 3. **Prueba en Preview (recomendada, sigue pendiente de la Fase 2 de 0473):** en Vercel, variables
    con alcance **Preview** y, mejor, **sólo para la rama** `codex/encender-cotizador-0473` (si no,
    se encienden en todas las previews):
@@ -188,7 +188,7 @@ curso (pedido del supervisor; el runbook exige una a la vez).
 6. **Sondas después del deploy**, sin leer filas de negocio:
    - `GET /api/document-import?action=capabilities` → `{"available":true,"portal":false,…}`
    - `/cotizador` → 200; `/sitemap.xml` contiene `/cotizador`; el footer muestra «Cotiza con tu
-     proforma».
+     proforma» y el menú principal «Cotizador» después de «Tarifas».
    - `/portal/compras/<código>/documento` → 404, y el paso 2 de una compra nueva **sin** la carga de
      documentos.
    - Logs de `/api/cron/document-import-drain`: 200 con `cleanup` cada minuto; y de
@@ -216,7 +216,18 @@ curso (pedido del supervisor; el runbook exige una a la vez).
 4. **Descubrimiento del cotizador:** `/cotizador` deja de declararse excluida (apagada ya es 404);
    `app/sitemap.ts` y el footer («Cotiza con tu proforma», en «Enlaces rápidos») la muestran sólo con
    la bandera encendida. Se corrigió el comentario que decía que `force-dynamic` ahorraba el
-   redeploy. **El Nav no se tocó:** su orden es decisión del founder (comentario en `Nav.tsx`).
+   redeploy.
+7. **Cotizador en el menú principal** (Sam, en este chat, 2026-09-18: «agrega el cotizador al menú
+   principal»): «Cotizador» después de «Tarifas», en la barra y en el menú móvil, sólo con la
+   bandera. `components/Nav.tsx` pasa a ser un envoltorio de servidor que lee la bandera y renderiza
+   `components/NavClient.tsx` (el componente de siempre, movido con `git mv`); los 30 importadores
+   de `Nav` son componentes de servidor, comprobado archivo por archivo. La fila de escritorio no
+   entraba a 1024 px y se ajustó el espaciado sólo en ese tramo y sólo con el cotizador (sección
+   «Menú principal», abajo).
+8. **Borradores de privacidad para el abogado** (pedido de Sam): página privada
+   https://claude.ai/artifact/XZYfyu5M1MWJzPonyRV9ep y un Word con control de cambios contra el texto
+   vigente de `/privacidad`. Viven **fuera del repo**: son insumo para la decisión legal, no texto
+   aprobado.
 5. **SDD-0473** ampliada (2026-09-18) con su allowlist; índice sincronizado.
 6. **Revisión de datos personales acotada** al flujo anónimo (sección PRIVACIDAD).
 
@@ -257,7 +268,7 @@ Base `78410913` = `origin/main` en los dos momentos.
 | e2e de los 2 caídos, repetidos en condiciones limpias | **PASÓ** | dos corridas, abajo |
 | Estado encendido en un Next real (`next dev`, `DOCUMENT_IMPORT_ENABLED=true`) | **PASÓ** | `capabilities` → `{"available":true,"portal":false,…}`; `/cotizador` 200 con `robots: index, follow`; enlace del footer en `/cotizador` y en `/tarifas`; `sitemap.xml` con `/cotizador` |
 | `/portal/compras/<código>/documento` en ese mismo servidor | **NO DISPONIBLE** | 500 del `proxy.ts` (middleware), que exige Supabase en `/portal` antes de llegar a la página. La puerta de la página está cubierta por `page.test.tsx` y su mutante |
-| `/ui-check` | **NO EJECUTADO** | el único cambio visible es un enlace del footer con el componente existente `FooterLink`. No es UI sustancial |
+| `/ui-check` (menú y footer) | **PASÓ** | «OK para commit»; 3 hallazgos de prioridad baja y sin corrección necesaria (pills pegadas al pasar el mouse entre 1024 y 1279 con el cotizador; 6 px fuera de la escala de 4, ya usado en la barra; dos nombres para el mismo destino, con precedente) |
 | Variables en Vercel, deploy, producción | **NO EJECUTADO** | fuera de autorización: los pasos están en «CÓMO SE ENCIENDE» |
 | Graphify estructural | **PENDIENTE** | `graphify update .` corrió (34.856 nodos); `structural: PENDING` |
 | Graphify semántico | **NO APLICA a esta tarea** | ninguna de las 16 fuentes del piloto cambió; global 0/1.091, preexistente |
@@ -301,6 +312,71 @@ Merge `2575ac5e`; `docs:check` verde; `drain/route.ts` sin diff contra `main`.
 | Carga durante el `verify` | medida | muestras cada 30 s: CPU hasta 100 % en la fase de vitest, con **9 a 23 procesos de prueba de otra sesión** corriendo a la vez |
 | Las 3 pruebas rojas, aisladas sobre `2575ac5e` | **PASÓ** | 3 archivos, 35 pruebas, 55 s |
 
+### `verify` sobre la rama con `main` `a48d304f` (`2172e596`), con la máquina libre
+
+Merge con el driver `dtd-generated-records` instalado, previo `merge-tree` exit 0; `docs:index`
+regenerado sin cambios (465 specs). El lanzador esperó a que terminara un `verify` ajeno y arrancó
+con **cero suites ajenas**; en las 41 muestras cada 30 s durante la corrida no hubo ningún proceso
+de prueba de otra sesión.
+
+| Paso | Veredicto | Evidencia |
+|---|---|---|
+| `pnpm verify` completo | **FALLÓ (exit 1)** | único paso rojo: `test`. 14 de 17 pasos corrieron |
+| └ `e2e` | **PASÓ, cobertura PARCIAL** | **167 pasan, 0 fallan**, 18 omitidas, 1 inestable que pasó al reintento (`calculadora-semantic-colors:53`: el combobox recibió «Valencia (sede)mara» por «mara») |
+| └ `build` | **PASÓ** | `[OK] build` |
+| └ `test` | **FALLÓ** | 1.ª vuelta: `invoice-read-boundary` (timeout 60 s) y `PackingListProductsStep`. Reintento: `PackingListProductsStep` y `ClientDrawer.confirm-delete` (no encontró «Eliminar cliente»; SDD-0469, ya anotada como intermitente). **Aisladas sobre `2172e596`: 21/21 verdes** |
+| └ `sql-tests`, `schema-rebuild` | **NO EJECUTADO** | Docker Desktop no levanta |
+| └ `migrations-applied` | **NO EJECUTADO** | sin `.env.local` |
+
+**Corrección de lo que se venía diciendo:** con la máquina libre el paso `test` falló igual, así que
+estas intermitentes **no** las causa sólo la carga de otras sesiones: fallan bajo el paralelismo de
+la propia suite completa.
+
+**Las omitidas de e2e bajaron de 33 a 18.** Las 15 que esperaban «Supabase público»
+(`requiereSupabase`, SDD-0470) ahora corren contra el Supabase sintético deny-only de la #141. Las
+18 que quedan son 6 pruebas × 3 proyectos, cada una con su guardia: `global-search` (2, Tier 3,
+`STUDIO_E2E_EMAIL/PASSWORD` y seed), `gastos-expense-void` (2, más `STUDIO_E2E_EXPENSE_CODE`),
+`nomina-settlement-void` (1, más `STUDIO_E2E_PAYROLL_SETTLEMENT_CODE`) y `comments-lifecycle` (1,
+`E2E_SUPABASE_*` con service role). Necesitan sesión y datos sembrados reales: un Supabase deny-only
+no puede servirlas por diseño.
+
+### Menú principal (`f7eafe9a`)
+
+Medido en el navegador integrado con `next dev`, primero con la bandera encendida:
+
+| Ancho | Espaciado de siempre | Con el ajuste (hueco 0, relleno 6 px entre lg y xl) |
+|---|---|---|
+| 1024 | **desborda**: `scrollWidth` 1021 contra 1009 | sin scroll; no invade el margen; 17 px entre el logo y el primer enlace |
+| 1024, sólo bajando el hueco a 2 px | sin scroll, pero **24 px comidos del margen derecho** y el logo pegado | — |
+| 1100 / 1279 / 1280 | 1280 cabía (botón en 1214 de 1265) | sin scroll, margen intacto (87 / 252 / 83 px al logo) |
+| 320 / 360 / 375 | sin scroll | sin scroll; menú móvil: Tarifas, Cotizador, Servicios, Pre-alertas, Actualidad |
+
+Con la bandera **apagada** (el estado real de producción): `/cotizador` 404, la barra con las clases
+de siempre (`gap-x-1.5`, `px-2`), los 4 enlaces de siempre y ningún enlace a `/cotizador` en la
+página. Sin errores de hidratación en la consola (sólo los «Faltan NEXT_PUBLIC_SUPABASE_URL» del
+entorno local, preexistentes).
+
+`components/Nav.cotizador.test.tsx` fija el orden, el menú móvil, las clases con la bandera apagada
+y el ajuste con ella encendida. Mutantes, los 5 mueren: `Nav` siempre con cotizador, relleno
+apretado siempre, hueco 0 siempre, cotizador fuera de la lista, cotizador al final.
+
+#### `verify` sobre `07f14e14` (menú incluido) y la prueba que rompió
+
+Máquina libre: 32 de 35 muestras sin procesos de prueba ajenos (3 con 1 o 2, breves).
+
+| Paso | Veredicto | Evidencia |
+|---|---|---|
+| `pnpm verify` completo | **FALLÓ (exit 1)** | único paso rojo: `test` |
+| └ `rsc-boundary`, `typecheck`, `lint` | **PASÓ** | el envoltorio de servidor no cruza valores a cliente |
+| └ `e2e` | **PASÓ, cobertura PARCIAL** | **166 pasan, 0 fallan**, 18 omitidas, 2 inestables que pasaron al reintento (`calculadora-semantic-colors:53` light y dark en mobile-chrome). `sin-scroll-horizontal` en verde (con la bandera apagada, como corre el e2e) |
+| └ `build` | **PASÓ** | `[OK] build` |
+| └ `test` | **FALLÓ** | `PackingListProductsStep` (intermitente conocida) y **`__tests__/seo-remates.test.ts`, rota por este cambio**: leía `components/Nav.tsx` como texto para confirmar que el menú apunta a `/tarifas`, y la lista pasó a `NavClient.tsx` |
+| Arreglo `85e3c4af` | **PASÓ** | la prueba lee `NavClient.tsx`; la aserción no cambia. Control rojo: con el menú sin `/tarifas` vuelve a fallar |
+| Suite unitaria completa sobre `85e3c4af` (`pnpm test`), sin suites ajenas | **PASÓ** | **exit 0**: 599 archivos, 7.833 pruebas, 1 omitida. Esta vez pasaron también las intermitentes |
+| `sql-tests`, `schema-rebuild`, `migrations-applied` | **NO EJECUTADO** | Docker no levanta; sin `.env.local` |
+
+`e2e` y `build` no se repitieron sobre `85e3c4af`: el arreglo toca sólo un archivo de prueba.
+
 ## COMMITS
 
 - `f988f83f` — fix(import): el cron borra lo vencido aunque la bandera esté apagada.
@@ -313,13 +389,19 @@ Merge `2575ac5e`; `docs:check` verde; `drain/route.ts` sin diff contra `main`.
 - `6f2d3193` — docs(SDD-0473): la retención aparte, con las tres opciones evaluadas.
 - `21f89ef1` — docs(handoff): la retención aparte y las dos corridas limpias de e2e.
 - `2575ac5e` — merge de `origin/main` (`b43a39a5`) en la rama.
-- Commit que contiene esta versión del documento: el handoff con la publicación.
+- `d9105d6e` y `6e71565a` — docs(handoff): autorización de publicación y decisión de Sam.
+- `2172e596` — merge de `origin/main` (`a48d304f`).
+- `f7eafe9a` — feat(cotizador): en el menú principal, sólo con la bandera.
+- `07f14e14` — docs(SDD-0473): el cotizador en el menú principal, con lo medido.
+- `85e3c4af` — test(web): seo-remates lee la lista del menú donde ahora vive.
+- Commit que contiene esta versión del documento: el handoff actualizado.
 
 Todos con `git add` selectivo; sin reset, sin force push, sin tocar otras ramas ni worktrees.
 
 ## PR / BRANCH
 
-- Rama local `codex/encender-cotizador-0473`, base `78410913` (= `origin/main` al medir).
+- Rama `codex/encender-cotizador-0473`. **PR #143** (draft): https://github.com/hailuwaycom-sketch/DTDCARGO/pull/143. SHA publicado por primera vez: `6e71565a`.
+- **Merge autorizado por Sam** en el chat de dtdcargo-18, literal: «autorizo integrar la #143». Lo ejecuta dtdcargo-18; esta sesión pone la rama al día, la valida y hace **un solo push** cuando el Director pase el SHA final de `main` (después de #144 y #146).
 - Publicación autorizada (ver encabezado). Comando: `git push -u origin
   codex/encender-cotizador-0473:codex/encender-cotizador-0473` y PR **draft** contra `main`, draft
   mientras siga abierta la compuerta de privacidad. La URL y el SHA publicado se registran en la PR
@@ -337,12 +419,11 @@ Todos con `git add` selectivo; sin reset, sin force push, sin tocar otras ramas 
 
 1. **Compuerta de privacidad** (Sam y su abogado): `/privacidad`, aviso antes de subir, Anthropic.
    Sin eso no se enciende en producción.
-2. **Publicada** en draft (ver PR / BRANCH). Pendiente: actualizar con `main` (`a48d304f` o posterior)
-   y repetir `verify`, incluido `e2e`, cuando el Director ordene el merge.
+2. **Push único** con `main` al día, cuando dtdcargo-18 pase el SHA final (`merge-tree` primero; si algo
+   toca esta zona, parar y avisar).
 3. **Encender** según «CÓMO SE ENCIENDE»: variables (Sam, en Vercel), merge (Director), sondas.
-4. `verify` sin cierre verde en esta máquina por saturación: si el Director quiere el gate en verde
-   antes de integrar, correrlo sin otra suite en paralelo, o apoyarse en el check obligatorio de la
-   PR (`Calidad local sin secretos`).
+4. `verify` sin cierre verde: el paso `test` falla por intermitentes preexistentes aun con la máquina
+   libre (ver arriba); cada una pasa aislada. El check obligatorio de la PR es la otra evidencia.
 5. Capa de conocimiento: Archify sin runtime y estructural en PENDING (ver tabla).
 
 ## FUERA DE ALCANCE DETECTADO
@@ -355,11 +436,12 @@ Todos con `git add` selectivo; sin reset, sin force push, sin tocar otras ramas 
    las 24 h que invita a «seguir desde el portal» (`CotizadorClient.tsx`). Va con la compuerta de
    privacidad y con `/ui-check`.
 3. **El visitante no puede borrar su documento antes de las 24 h** (no hay acción para eso).
-4. **Enlace al cotizador en el Nav:** decisión del founder sobre su orden (2026-07-31).
-5. **Inestables bajo carga**, preexistentes: `PackingListProductsStep.test.tsx` y, en e2e,
-   `calculadora-hidratacion`, `attachments-gastos-pilot-network`, `auth` y `calc-event`. Con dos
-   sesiones corriendo suites a la vez, `verify` no sale verde en esta máquina.
-6. **Avisos preexistentes de conocimiento**: `missing-link-target` (specs 0148, 0288, 0366, entre
+4. **Pruebas intermitentes preexistentes**, que fallan aun con la máquina libre bajo el paralelismo de
+   la suite completa: `PackingListProductsStep`, `invoice-read-boundary`, `ClientDrawer.confirm-delete`,
+   `supplier-flow`; en e2e, `calculadora-semantic-colors`, y bajo carga ajena también
+   `calculadora-hidratacion`, `attachments-gastos-pilot-network`, `auth` y `calc-event`. Mientras
+   existan, `verify` no sale verde en esta máquina. Merecen su propia tarea.
+5. **Avisos preexistentes de conocimiento**: `missing-link-target` (specs 0148, 0288, 0366, entre
    otras) y `SEMANTIC_GLOBAL_PENDING 0/1091`.
 
 ## HANDOFF AL DIRECTOR
@@ -367,8 +449,8 @@ Todos con `git add` selectivo; sin reset, sin force push, sin tocar otras ramas 
 - **Qué revisar:** que partir la bandera respeta el control del 409 (se conserva con cualquier
   bandera, `route.test.ts`) y que ninguna puerta del portal queda abierta con sólo la primera llave
   (14 mutantes, uno por puerta).
-- **Cambios compartidos:** `Footer.tsx` (todas las páginas públicas), `app/sitemap.ts`, `vercel.json`
-  (un cron nuevo: 18 en total) y la ruta pública del proveedor. Nada de esquema ni migraciones.
+- **Cambios compartidos:** `Nav.tsx` → `NavClient.tsx` y `Footer.tsx` (todas las páginas públicas),
+  `app/sitemap.ts`, `vercel.json` (un cron nuevo: 18 en total) y la ruta pública del proveedor. Nada de esquema ni migraciones.
 - **Orden:** variables en Production primero, merge después. El merge es el interruptor y despliega a
   producción. Un merge sin las variables deja el drenaje inerte (no abre la base) y el cron de
   retención limpiando una vez por hora: 24 conexiones al día.
