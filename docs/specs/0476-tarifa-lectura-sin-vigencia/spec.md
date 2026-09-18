@@ -1,10 +1,10 @@
 ---
 sdd: "0476"
 title: "La tarifa pública se lee de la base, vencida o no"
-status: in-progress
+status: done
 author: "founder + Claude Opus 5"
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-18
 supersedes: null
 superseded_by: null
 related: ["0101", "0164", "0255", "0474", "0475"]
@@ -87,6 +87,8 @@ forma de la respuesta.
 **No se aplica a producción.** La migración se escribe y se deja en el repo,
 declarada como espera en `supabase/migrations-baseline.json`. Aplicarla la
 decide el founder con `docs/runbooks/aplicar-migraciones-prod.md`.
+*(Así fue: el founder la pidió nombrándola y se aplicó el 2026-09-18 — ver
+[Aplicación a producción](#aplicación-a-producción).)*
 
 ## Diseño
 
@@ -271,11 +273,50 @@ Son ciertos entre el merge y la aplicación, y lo siguen siendo después.
 Los dos son ciertos hoy y dejan de serlo el día que se aplique la 0458. El arreglo
 es el mismo condicional; queda a decisión del Director si entra en otra PR o en la
 que acompañe la aplicación.
+*(Entraron en la PR que acompaña la aplicación, rama
+`codex/0458-aplicacion-prod-20260918`: sólo comentarios, sin tocar valores ni
+aserciones; el JS emitido sin comentarios es idéntico al de main. Las cabeceras
+de `route.ts` y `rates-queries.ts` **no** se tocan: su condicional verificable
+sigue siendo cierto con la 0458 aplicada, y al salir la 0458 de
+`pendingBelowCutoff` indica sola que ya rige la rama «Con la 0458».)*
 
-**Estado de esta spec:** queda `in-progress` a propósito. Los criterios de
-aceptación están verificados sobre Postgres embebido, pero el objetivo —que **el
-sitio** muestre la última tarifa aunque esté vencida— sólo se cumple en
-producción. Pasa a `done` cuando la 0458 esté aplicada y verificada allí.
+**Estado de esta spec:** estuvo `in-progress` a propósito hasta que la 0458 se
+aplicara y verificara en producción, porque el objetivo —que **el sitio** muestre
+la última tarifa aunque esté vencida— sólo se cumple allí. Pasa a `done` el
+2026-09-18 con la aplicación de abajo.
+
+## Aplicación a producción
+
+Aplicada el **2026-09-18** a Supabase producción (`xpfuzqombmjmxvprjgmi`,
+PostgreSQL 17.6), sola y con su nombre exacto, con el pedido del founder que la
+nombra: «Aplicar la migración 0458». Evidencia completa en
+`.agents/handoffs/0458-aplicacion-prod-20260918.md`.
+
+| Qué | Resultado |
+| --- | --- |
+| Preflight: cuerpo vivo de `public_cbm_rate(text)` | Idéntico al de 0255 (md5 `739db3bc…`, 507 bytes); una sola sobrecarga; 0458 ausente del ledger (462 filas) |
+| Aplicación | `apply_migration` → `{"success":true}` |
+| Ledger | `20260918040814 · 0458_tarifa_lectura_sin_vigencia`, 463 filas; una sentencia, md5 `43709f50…` y 8.498 bytes = blob `09217dba` de main |
+| Cuerpo vivo después | El de 0458 (md5 `cc52f357…`, 718 bytes): sin filtro de `valid_until`, conserva `valid_from` y `per_cbm is not null` |
+| Firma, atributos y ACL | Sin cambios: `p_modo text default 'ddp'`, SECURITY DEFINER, STABLE, `search_path=public`, owner `postgres`, EXECUTE para anon, authenticated y service_role |
+| RPC como `anon`, antes y después | DDP `850.00 / 50.00 / 2026-11-29`; consolidado `580.00`: sin cambio visible, como se preveía |
+| Simulación del 30-nov (misma lógica, fecha fija) | Cuerpo 0255 → sin fila (el sitio caería a la constante); cuerpo 0458 → `850.00 / 50.00` |
+| Advisors de seguridad | Idénticos antes y después (huella sin `observed_at`) |
+
+Verificado además por otras dos sesiones, cada una por su lado:
+
+- **Coordinación de aplicaciones (sesión `dtdcargo-18`)**, sólo catálogo: ledger
+  `20260918040814 · 0458_tarifa_lectura_sin_vigencia`; `public_cbm_rate` ya no
+  filtra por `valid_until >= current_date`; DDP `850 / 2026-11-29`, consolidado
+  `580 / null`.
+- **Supervisión (sesión `dtdcargo-53`)**, por la API pública:
+  `dtdcargo.com/api/public/cbm-rate` → 200
+  `{"per_cbm":850,"min_charge":50,"valid_until":"2026-11-29"}`.
+
+La cabecera del `.sql` sigue diciendo «NO APLICADA A PRODUCCIÓN» y **no se
+corrige**: es el texto exacto que guarda el ledger, y cambiarlo rompería la
+comparación de identidad archivo ↔ ledger. Lo mismo quedó en 0255, 0256, 0257 y
+0457. El estado vivo lo dan el ledger y la salida de `pendingBelowCutoff`.
 
 ## Adjuntos
 
