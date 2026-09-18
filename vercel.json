@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/cron/document-import-drain",
-      "schedule": "* * * * *"
+      "schedule": "*/5 * * * *"
     },
     {
       "path": "/api/cron/ceo-brief",
