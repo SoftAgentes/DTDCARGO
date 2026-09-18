@@ -12,8 +12,10 @@
  * (service_role) scopeada EXPLÍCITO a ese id (la RLS del portal es read-only
  * para `clients`; el cliente nunca toca el bucket privado directo). Limpieza de
  * la foto nueva sólo ante rechazo confirmado; una respuesta perdida exige
- * reconciliar el puntero autorizado antes de decidir. Una foto reemplazada se
- * conserva en el ledger restringido (SDD-0439), no se borra silenciosamente.
+ * reconciliar el puntero autorizado antes de decidir. Reemplazar una foto ya
+ * cargada consume uno de los 3 cambios (SDD-0439 · SDD-0481). La foto
+ * sustituida no se borra: queda como versión en el ledger restringido
+ * (MP-01 §9, «no purgar» hasta que exista la purga gobernada).
  */
 
 import { revalidatePath } from "next/cache";
@@ -36,11 +38,18 @@ import {
   type EditableField,
 } from "@/lib/portal/change-request-types";
 import { notifyChangeRequestToAdmin } from "@/lib/studio/change-request-notify";
+import { getPortalProfileEditQuota } from "@/lib/portal/profile-edit-quota";
 
 export type CedulaPhotoActionState = { ok?: boolean; error?: string };
 
+// Sólo se ve si la app llega a producción antes que la migración 0461: la RPC
+// todavía trae el gate de 0447 y rechaza el reemplazo.
 const IDENTITY_PHOTO_REPLACEMENT_DISABLED =
-  "Para reemplazar tu documento, solicita ayuda al equipo de soporte. La carga directa desde el portal está temporalmente deshabilitada.";
+  "El cambio de foto todavía no está activo. Escríbenos por soporte y te ayudamos a corregirla.";
+const PROFILE_EDIT_LIMIT_REACHED =
+  "Ya usaste tus 3 cambios de perfil. Si necesitas corregir algo importante, escríbenos por soporte.";
+const PROFILE_EDIT_QUOTA_UNAVAILABLE =
+  "No pudimos consultar tus cambios disponibles. Prueba de nuevo en un rato o escríbenos por soporte.";
 
 export async function uploadCedulaPhotoAction(
   _prev: CedulaPhotoActionState,
@@ -67,10 +76,9 @@ export async function uploadCedulaPhotoAction(
   }
 
   // 3. Estado actual (scopeado al id verificado por sesión): tenant + markbox
-  //    para construir el path privado. Los reemplazos quedan fail-closed hasta
-  //    que estén activos la retención, el hold y el control regional de acceso.
-  //    Esta comprobación ocurre ANTES de subir para no crear otro objeto
-  //    sensible que luego dependa de un rollback.
+  //    para construir el path privado. Un reemplazo consume cupo: si no queda,
+  //    se corta ANTES de subir para no crear otro objeto sensible que luego
+  //    dependa de un rollback. La RPC vuelve a imponer el límite con lock.
   const { data: row, error: rowErr } = await admin
     .from("clients")
     .select("tenant_id, markbox, cedula_photo_path, deleted_at")
@@ -85,7 +93,13 @@ export async function uploadCedulaPhotoAction(
     return { error: "No pudimos cargar tu cuenta. Prueba de nuevo." };
   }
   if (String(row.cedula_photo_path ?? "").trim()) {
-    return { error: IDENTITY_PHOTO_REPLACEMENT_DISABLED };
+    let remaining: number;
+    try {
+      remaining = (await getPortalProfileEditQuota(supabase)).remaining;
+    } catch {
+      return { error: PROFILE_EDIT_QUOTA_UNAVAILABLE };
+    }
+    if (remaining <= 0) return { error: PROFILE_EDIT_LIMIT_REACHED };
   }
   // 4. Subir la foto nueva al bucket privado (path nuevo por subida).
   const up = await uploadClientPhoto(admin, row.tenant_id, row.markbox, v.file);
@@ -189,10 +203,7 @@ export async function uploadCedulaPhotoAction(
       return { error: IDENTITY_PHOTO_REPLACEMENT_DISABLED };
     }
     if (updErr.message === "profile_edit_limit_reached") {
-      return {
-        error:
-          "Ya usaste tus 3 cambios de perfil. Si necesitas corregir algo importante, escríbenos por soporte.",
-      };
+      return { error: PROFILE_EDIT_LIMIT_REACHED };
     }
     return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
   }
@@ -346,10 +357,7 @@ export async function submitDataChangeRequestAction(
       };
     }
     if (insErr.message?.includes("profile_edit_limit_reached")) {
-      return {
-        error:
-          "Ya usaste tus 3 cambios de perfil. Si necesitas corregir algo importante, escríbenos por soporte.",
-      };
+      return { error: PROFILE_EDIT_LIMIT_REACHED };
     }
     console.error("[submitDataChangeRequestAction] insert error:", insErr);
     return { error: "No pudimos guardar tu solicitud. Prueba de nuevo." };
