@@ -1,6 +1,11 @@
 import { cpus } from "node:os";
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices, type PlaywrightTestConfig } from "@playwright/test";
 import { applyE2ETier3FixtureAliases } from "./scripts/e2e/sdd-0168-fixture";
+import {
+  RUTA_SALUD_SINTETICO,
+  planSupabaseE2E,
+  type PlanSupabaseE2E,
+} from "./e2e/_helpers/supabase-publico.cjs";
 
 /**
  * Playwright config para tests E2E.
@@ -95,11 +100,74 @@ export function preparePlaywrightRuntime(
   return resolvePlaywrightRuntime(env);
 }
 
-const {
-  port: PORT,
-  baseURL: BASE_URL,
-  startWebServer: START_WEB_SERVER,
-} = preparePlaywrightRuntime();
+type PlaywrightRuntime = ReturnType<typeof resolvePlaywrightRuntime>;
+
+/**
+ * SDD-0479 · Qué Supabase público verá el `next dev` de esta corrida. La
+ * decisión vive en `e2e/_helpers/supabase-publico.cjs` (`planSupabaseE2E`) y la
+ * comparten los specs y `scripts/verify.mjs`; acá sólo se le pasa el destino.
+ */
+export function resolveSupabaseE2E(
+  env: PlaywrightRuntimeEnvironment,
+  runtime: PlaywrightRuntime,
+): PlanSupabaseE2E {
+  return planSupabaseE2E({
+    env,
+    baseURL: runtime.baseURL,
+    levantaServidor: runtime.startWebServer,
+    puertoApp: runtime.port,
+  });
+}
+
+/** El entorno del proceso sin claves indefinidas, como lo espera `webServer.env`. */
+function definedEnv(env: PlaywrightRuntimeEnvironment): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined),
+  );
+}
+
+/**
+ * Los servidores que levanta Playwright. Sin el Supabase sintético es el mismo
+ * `next dev` de siempre. Con él (SDD-0479), primero el deny-only y después
+ * `next dev` con su URL y la anon key sintética en el entorno: el proceso del
+ * runner no cambia, y un `.env*` real nunca se pisa porque en ese modo no
+ * existe (`planSupabaseE2E`).
+ */
+export function buildWebServers(
+  runtime: PlaywrightRuntime,
+  supabase: PlanSupabaseE2E,
+  env: PlaywrightRuntimeEnvironment = process.env,
+): PlaywrightTestConfig["webServer"] {
+  if (!runtime.startWebServer) return undefined;
+  const next = {
+    // Invocar el entry JS con `node` directo (no `next` a secas): en este
+    // entorno pnpm no linkea los .bin (ERR_PNPM_IGNORED_BUILDS) y `next` no
+    // queda en el PATH del shell del webServer → "next no se reconoce".
+    // Mismo patrón que scripts/verify.mjs.
+    // `node_modules` puede ser un junction compartido entre worktrees.
+    // Turbopack rechaza ese destino fuera de la raíz del checkout; Webpack
+    // conserva el aislamiento del servidor y permite ejecutar el gate.
+    command: `node node_modules/next/dist/bin/next dev --webpack --port ${runtime.port}`,
+    url: runtime.baseURL,
+    reuseExistingServer: !env.CI,
+    timeout: 120_000,
+  };
+  if (supabase.modo !== "sintetico") return next;
+  return [
+    {
+      command: `node scripts/e2e/supabase-deny-server.mjs ${supabase.puerto}`,
+      url: `${supabase.url}${RUTA_SALUD_SINTETICO}`,
+      // Sin reuso: un puerto ocupado es un error visible, no un servidor ajeno.
+      reuseExistingServer: false,
+      timeout: 30_000,
+    },
+    { ...next, env: { ...definedEnv(env), ...supabase.entorno } },
+  ];
+}
+
+const RUNTIME = preparePlaywrightRuntime();
+const BASE_URL = RUNTIME.baseURL;
+const SUPABASE_E2E = resolveSupabaseE2E(process.env, RUNTIME);
 const WORKERS = resolvePlaywrightWorkers();
 
 export default defineConfig({
@@ -146,21 +214,11 @@ export default defineConfig({
       workers: resolveWebkitProjectWorkers(),
     },
   ],
+  // SDD-0479 · Los workers leen el modo de acá (`requiereSupabase()`): con el
+  // Supabase sintético las pruebas corren en vez de omitirse. Sólo el modo:
+  // la metadata viaja al reporte y nunca lleva valores.
+  metadata: { supabaseE2E: { modo: SUPABASE_E2E.modo } },
   // El destino y el arranque son decisiones distintas. Sin override se conserva
   // la compatibilidad histórica: BASE_URL describe un server externo/existente.
-  webServer: START_WEB_SERVER
-    ? {
-        // Invocar el entry JS con `node` directo (no `next` a secas): en este
-        // entorno pnpm no linkea los .bin (ERR_PNPM_IGNORED_BUILDS) y `next` no
-        // queda en el PATH del shell del webServer → "next no se reconoce".
-        // Mismo patrón que scripts/verify.mjs.
-        // `node_modules` puede ser un junction compartido entre worktrees.
-        // Turbopack rechaza ese destino fuera de la raíz del checkout; Webpack
-        // conserva el aislamiento del servidor y permite ejecutar el gate.
-        command: `node node_modules/next/dist/bin/next dev --webpack --port ${PORT}`,
-        url: BASE_URL,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-      }
-    : undefined,
+  webServer: buildWebServers(RUNTIME, SUPABASE_E2E),
 });
