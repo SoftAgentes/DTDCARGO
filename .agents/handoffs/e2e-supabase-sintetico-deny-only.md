@@ -113,7 +113,9 @@ con Playwright 1.60.0.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Publicar la rama y abrir la PR en borrador, con autorización de Sam.
+- ~~Publicar la rama y abrir la PR en borrador~~: **autorizado por Sam el 2026-09-18**, textual:
+  «Autorizo publicar las tres», con las tres ramas nombradas en la pregunta y sin merge ni
+  producción.
 - Los seis criterios de la spec están cumplidos: el 5 se marcó con la evidencia de arriba. El
   `status` sigue `in-progress` hasta la revisión del Director, que decide si pasa a `done`.
 
