@@ -16,7 +16,9 @@ const editor = () => screen.getByRole("region", { name: "Editor del producto" })
 // pero antes de descartarla calcula el nombre accesible de cada candidato, y jsdom
 // rehace la cascada CSS de cada nodo después de cada render. En toda la página, una
 // consulta costaba de 150 a 400 ms, y más de 1 s con dos grupos. Dentro de su región
-// cuesta decenas de ms. Las aserciones negativas siguen sobre toda la página.
+// cuesta decenas de ms. Los campos del paso 1 se buscan en la tarjeta de su título
+// (h2), que deja afuera esa copia. Las aserciones negativas siguen sobre toda la página.
+const supplierCard = () => screen.getByRole("heading", { level: 2, name: "Datos del proveedor" }).parentElement!;
 const step = (n: number) => fireEvent.click(within(screen.getByRole("navigation", { name: "Pasos del documento" })).getByRole("button", { name: new RegExp(`^${n} `) }));
 const inGroup = (name: string | RegExp, index = 1) => within(group(index)).getByRole("button", { name });
 const field = (name: string | RegExp, value: string, index = 1) => fireEvent.change(within(group(index)).getByRole("textbox", { name }), { target: { value } });
@@ -25,7 +27,7 @@ const save = () => fireEvent.click(within(editor()).getByRole("button", { name: 
 const mixed = [{ zh: "杯子", es: "Vasos", ctns: "5", perctn: "10", unit: "2", wkg: "3", cbm: "0.5" }, { zh: "盖子", es: "Tapas", same: true, qtyDirect: "8", unit: "4", hs: "Plástico", carton: "C1-C5" }];
 async function start(request = vi.fn()) {
   render(<ProviderShareClient {...props} request={request}/>);
-  language("es"); await waitFor(() => expect(screen.getByRole("textbox", { name: "Empresa / Persona" })).toBeInTheDocument());
+  language("es"); await waitFor(() => expect(within(supplierCard()).getByRole("textbox", { name: "Empresa / Persona" })).toBeInTheDocument());
   step(2); return request;
 }
 function base() {
