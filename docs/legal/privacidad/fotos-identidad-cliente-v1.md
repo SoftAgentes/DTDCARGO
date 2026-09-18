@@ -112,6 +112,14 @@ se debe describir públicamente como tratamiento localizado solo en Venezuela.
 | NO VERIFICABLE | La contención 0447 no está activa en Cloud hasta que exista autorización nominal, aplicación individual y verificación posterior. |
 | NO VERIFICABLE | Contratos, base aplicable por categoría, holds reales y eliminación en backups/proveedores requieren evidencia humana y del proveedor. |
 
+### Actualización 2026-09-18 · SDD-0481
+
+| Estado | Evidencia |
+|---|---|
+| CORRECTO | 0446 y 0447 están aplicadas en Cloud (ledgers `20260910165737` y `20260910164232`); el gate estaba activo y el cuerpo de `portal_set_identity_photo` coincide con el repo (`md5(prosrc)` `057aea5c2260562e99c757533aad55a6`). El control 3 de la sección 7 queda cumplido. |
+| ENCONTRADO | Por decisión de Sam, [SDD-0481](../../specs/0481-portal-cliente-reemplazo-foto-identidad/spec.md) habilita el reemplazo dentro del cupo de 3 cambios: la migración `0461_identity_photo_replacement_enable` retira el gate de 0447. Al aplicarse, cada reemplazo conserva la foto sustituida como versión (MP-01 §9 y MP-D6), hasta 3 por cliente y sin plazo mientras no exista la purga del control 4. |
+| NO VERIFICABLE | 0461 no está aplicada en Cloud hasta autorización nominal, aplicación individual y verificación posterior. |
+
 ## 7. Controles que activan esta directiva
 
 1. Restringir lectura, firma y borrado de `client-docs` a personal VE con
@@ -127,9 +135,13 @@ se debe describir públicamente como tratamiento localizado solo en Venezuela.
 6. Corregir la Política de Privacidad pública solo después de validación legal y
    de comprobar que estos controles están activos.
 
-Hasta cerrar 1, 2, 4 y 5, la migración 0447 mantiene el reemplazo self-service
-deshabilitado. Esta contención evita ampliar el inventario de históricos, pero
-no equivale a purga, legal hold, borrado integral ni control regional.
+Hasta cerrar 1, 2, 4 y 5, la migración 0447 mantenía el reemplazo self-service
+deshabilitado. Esta contención evitaba ampliar el inventario de históricos, pero
+no equivalía a purga, legal hold, borrado integral ni control regional.
+Desde SDD-0481 (pendiente de aplicar 0461) la contención deja de ser un bloqueo
+y pasa a ser un límite: el cupo acota a 3 las versiones sustituidas por cliente.
+Los controles 1, 2, 4 y 5 siguen abiertos; esta directiva sigue sin entrar en
+vigor.
 
 ---
 

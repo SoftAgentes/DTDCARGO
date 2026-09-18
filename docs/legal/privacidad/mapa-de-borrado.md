@@ -297,6 +297,14 @@ de 30 días ni la exclusión del equipo China estén implementadas. La aplicaci�
 de 0447 en Cloud permanece **NO VERIFICABLE** hasta autorización nominal y
 comprobación posterior.
 
+Actualización 2026-09-18: 0447 quedó aplicada en Cloud (ledger
+`20260910164232`). [SDD-0481](../../specs/0481-portal-cliente-reemplazo-foto-identidad/spec.md)
+habilita el reemplazo dentro del cupo de 3 cambios con la migración `0461`
+(pendiente de aplicar). La foto sustituida se conserva como versión: hasta 3
+por cliente en `client-docs`, con su ruta sólo en `client_profile_edits`.
+Una solicitud de borrado tiene que alcanzar esas versiones además de la vigente.
+La purga a 30 días sigue **ENCONTRADO**, no implementada.
+
 ## 10 · Borrado lógico de un cliente y acceso al Portal
 
 [SDD-0467](../../specs/0467-borrar-cliente-revoca-portal/spec.md), decisión de
