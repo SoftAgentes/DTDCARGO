@@ -309,7 +309,7 @@ cambia desde la migración `0454_borrar_cliente_revoca_portal` es el **acceso**:
 
 | Destino | Qué pasa en el borrado lógico |
 |---|---|
-| `client_users` | En la misma transacción queda `revoked`, con `revoked_at`, y se vacían `auth_user_id` y `token`. Se conservan `email`, `invited_at`, `bound_at` y `last_login_at`: 🔴 **SIN FUNDAMENTO** para esa retención, igual que el resto de §3.A |
+| `client_users` | En la misma transacción queda `revoked`, con `revoked_at`, y se vacían `auth_user_id` y `token`. Durante **30 días desde la revocación** conserva `email`, `invited_at`, `bound_at`, `last_login_at`, `revoked_at`, `last_email_invite_at` y `last_whatsapp_invite_at` (decisión de Sam del 2026-09-15, [SDD-0477](../../specs/0477-retencion-vinculo-portal-revocado/spec.md)). Después, el cron `portal-revoked-retention` los borra con `erase_revoked_portal_access_data` (migración 0460) y deja un evento `portal_access_data_erased` por fila, sin valores. La fila sigue `revoked`, con tenant, cliente, quién invitó, contadores y `created_at`. Un hold de 0301 detiene el borrado. Vale para toda revocación: la del borrado del cliente, la manual y la de `merge_clients` |
 | `portal_access_links` | Todos los códigos cortos del cliente quedan con `revoked_at`, usados o no. La fila conserva el código y sus fechas |
 | `entity_audit_log` | El cambio de status deja un evento `portal_access_status_changed` con el operador que borró y el motivo. Desde `0455_borrado_cliente_auditado` ([SDD-0469](../../specs/0469-borrado-cliente-auditado/spec.md)) el borrado deja además, sobre el cliente, `client_deleted` (o `client_merged` si es la ficha que retira `merge_clients`) con el operador, el tenant, `deleted_at` y `merged_into_client_id` antes y después, y el motivo. Ninguno copia nombre, Shipping Mark, correo ni teléfono. El motivo es texto libre opcional del operador; el Studio pide escribirlo sin datos personales, pero la base no lo comprueba. 🔵 **CONSERVA** según SDD-0186 |
 
@@ -337,6 +337,26 @@ por qué está **ENCONTRADO** en producción y corregido en el repositorio por 0
 Es **NO VERIFICABLE** en producción hasta aplicar 0455 con OK nominal. 0455 no
 tiene backfill: los borrados anteriores siguen sin evento, porque su actor y su
 motivo no se pueden reconstruir.
+
+Estado al 2026-09-18: la retención sin plazo del vínculo revocado está
+**ENCONTRADA** en producción y corregida en el repositorio por 0460 (SDD-0477).
+En producción sigue **NO VERIFICABLE** hasta que se cumplan tres pasos:
+
+1. aplicar 0460 con OK nominal;
+2. leer el primer dry-run del cron;
+3. que Sam active `PORTAL_REVOKED_RETENTION_ENABLED`.
+
+Mientras el interruptor siga apagado, el cron sólo cuenta. Tres destinos
+conservan datos del vínculo después del plazo, y la revisión de SDD-0477 los
+deja declarados:
+
+- **Los eventos de auditoría** de invitación y de cambio de status: fechan la
+  invitación y la revocación, sin el correo. 🔵 CONSERVA.
+- **La cuenta de Supabase Auth** del antiguo titular (`auth.users`: correo y
+  último ingreso). Ningún código la borra. 🔴 **SIN FUNDAMENTO**: necesita una
+  decisión propia.
+- **`created_at` de la fila**, que coincide con la primera invitación. Sam
+  eligió el 2026-09-18 que la fila quede como «Revocado».
 
 ---
 
