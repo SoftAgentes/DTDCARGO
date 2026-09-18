@@ -38,7 +38,9 @@ test.describe("SDD-0259 · telemetría de la calculadora", () => {
     expect(ev.cbm).toBe(12);
     expect(ev.weightKg).toBe(4800);
     expect(ev.modo).toBe("ddp");
-    expect(ev.totalUsd).toBe(9600);
+    // 12 m³ × $850. Sin Supabase el e2e cotiza con `CONFIG.tarifaBaseCBM`, así
+    // que este número se mueve con esa constante (SDD-0475).
+    expect(ev.totalUsd).toBe(10200);
 
     // Lo que NO puede viajar. Si alguien agrega un campo personal al payload,
     // este test cae antes de que llegue a producción.
