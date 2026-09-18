@@ -1,8 +1,14 @@
 ---
-id: 0483
-slug: studio-historial-cambios-cliente
-status: reserved
+sdd: "0483"
+title: "RESERVADO — El Studio muestra el historial de cambios que hizo el cliente"
+status: draft
+author: "Director dtdcargo-18"
+created: 2026-09-18
+updated: 2026-09-18
+supersedes: null
+superseded_by: null
 related: ["0481", "0482"]
+confidencialidad: interna
 ---
 
 # SDD-0483 — El Studio muestra el historial de cambios que hizo el cliente
