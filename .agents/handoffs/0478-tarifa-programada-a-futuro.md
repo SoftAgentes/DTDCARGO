@@ -80,7 +80,10 @@ del handoff de SDD-0476), con su propia SDD. La tarifa DDP vigente ($850) vale h
 | `git diff --check` | **PASÓ** |
 | CI alojado del primer head (`9c89d0d6`) | **PASÓ** — «Calidad local sin secretos» `success` sobre el head exacto (run 35315068666), Vercel en pass |
 | Cierre: merge de `origin/main` (`b43a39a5`, PR #138) → `3b48a3c6` y salida de la 0459 de las esperas | **PASÓ** — sin conflictos (la #138 solo toca `docs/marketing/` y `public/interno/guia-peso.html`). Después: `docs:check` (465), `sdd:check`, `governance:check`, `pending-migration-symbols` (**0 ROJO · 0 AMARILLO**) y `diff --check`, todos en verde. Diff neto contra `main` de `migrations-baseline.json` y `pending-migration-symbol-declarations.json`: 0 líneas |
-| CI alojado del push de cierre | Se reporta al Director por mensaje |
+| CI alojado del push de cierre (`da298e0d`) | **PASÓ** — «Calidad local sin secretos» `success` sobre el head exacto (run 35366956575) |
+| Puesta al día final: merge de `origin/main` (`a48d304f`: #139, #142, #141) → `3ee64208`, con el driver del repo | **PASÓ** — sin conflictos. `pendingBelowCutoff` queda con **0422 y 0423** solas y sin degradaciones declaradas. Índice regenerado con el script: 466 specs (entra la 0479 de la #141), igual a lo que dejó el merge. `docs:check`, `sdd:check`, `governance:check`, símbolos (0 ROJO · 0 AMARILLO), `typecheck` y `diff --check`: en verde |
+| Pruebas afectadas después del merge, **una por una** | **PASÓ** — `actions.programada` 6, `RateDrawer` 6, `rate-types` 13, `tarifa-programada` 17, 0459 sobre PGlite 19, 0458 sobre PGlite 11: **72 casos**. Van de a una porque, con varias rutas juntas, el filtro de vitest solo tomó 3 archivos: los paréntesis de `(app)` rompen el patrón. Una primera corrida de `RateDrawer` dio «no tests», transitorio con la máquina cargada; repetida, 6 de 6 |
+| CI alojado del push final | Se reporta al Director por mensaje |
 | Aplicación de la 0459 a producción | **EJECUTADO** con OK nominal de Sam: preflight, `apply_migration` y postflight **PASARON** (ver «APLICACIÓN DE LA 0459») |
 | Lectura de filas de negocio en producción | **NO EJECUTADO**. Sí se leyó metadata: `list_migrations` (ledger: 0255 aplicada `20260720194914`, 0458 aplicada `20260918040814`) y la API pública `/api/public/cbm-rate` |
 
@@ -98,7 +101,9 @@ del handoff de SDD-0476), con su propia SDD. La tarifa DDP vigente ($850) vale h
 | `9c89d0d6` | `docs(handoff)`: cierre antes del primer push de la PR (head revisado por el CI) |
 | `7332573b` | `docs(handoff)`: anexo con la carrera del `for update` reproducida |
 | `3b48a3c6` | merge de `origin/main` (`b43a39a5`, PR #138), sin rebase |
-| el commit que contiene este documento | `chore(db)`: 0459 aplicada; sale de las esperas y de las degradaciones; spec en `done`; este registro |
+| `da298e0d` | `chore(db)`: 0459 aplicada; sale de las esperas y de las degradaciones; spec en `done` |
+| `3ee64208` | merge de `origin/main` (`a48d304f`: #139, #142, #141), con el driver del repo |
+| el commit que contiene este documento | `docs(handoff)`: la puesta al día final, antes del push |
 
 ## PR / BRANCH
 
