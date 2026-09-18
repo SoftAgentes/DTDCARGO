@@ -201,6 +201,12 @@ declare
   v_relevadas  integer;
   v_promovidas jsonb := '[]'::jsonb;
 begin
+  -- `for update` bloquea la programada: si dos corridas se cruzan (el job y
+  -- una llamada manual), la segunda espera y, al releer la fila, ya no la
+  -- encuentra programada. El guard ya impide borradores y borradas en la
+  -- ranura; los filtros de `status` y `deleted_at` son la red por si alguien
+  -- carga datos saltando el trigger: promover un borrador dejaría el sitio sin
+  -- tarifa, porque la RPC no los sirve.
   for v_row in
     select r.id, r.tenant_id, r.public_calc_modo, r.per_cbm, r.valid_from
       from public.rates r
@@ -213,15 +219,15 @@ begin
   loop
     -- Primero se despublica la vigente: el índice singleton no admite dos.
     -- Sólo la que tiene precio: las públicas con per_cbm null no ocupan la
-    -- ranura del índice ni las sirve la RPC, así que no se tocan.
+    -- ranura del índice ni las sirve la RPC, así que no se tocan. La
+    -- programada nunca cae acá: el check le prohíbe ser pública.
     update public.rates p
        set is_public = false
      where p.tenant_id = v_row.tenant_id
        and p.public_calc_modo = v_row.public_calc_modo
        and p.is_public
        and p.deleted_at is null
-       and p.per_cbm is not null
-       and p.id <> v_row.id;
+       and p.per_cbm is not null;
     get diagnostics v_relevadas = row_count;
 
     -- En la misma sentencia deja de ser programada: el check no admite las
