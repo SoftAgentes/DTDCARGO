@@ -1,7 +1,7 @@
 # Handoff 0478 · seguimiento 3 — La carrera del `for update` de la 0459, automatizada
 
-- Fecha: 2026-09-18. Estado de la tarea: **lista para revisión**. Queda publicar la rama y abrir la
-  PR, en el turno de integración que da el Director.
+- Fecha: 2026-09-18. Estado de la tarea: **lista para revisión**. Se publica con este head, en el
+  turno de integración que dio el Director: un solo push y la PR lista para revisión.
 - Owner/sesión: `worker-carrera-for-update-0459-20260918` (Claude Opus 5, Worker, sesión «Automatizar
   la prueba de carrera del for update de 0459» [7a0aa1]). Director: `dtdcargo-18`.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/carrera-for-update-0459`, creado
@@ -55,7 +55,8 @@ del handoff 0478). Tiene que fallar con el mutante sin `for update` (control roj
 - **Guarda de clúster desechable**: si ya existen `anon`, `authenticated` o `service_role`, aborta
   sin tocar nada. No borra roles que no creó.
 - **Seguimiento 3 de la spec 0478** marcado como cumplido, con fecha. Es una línea, como pidió el
-  Director.
+  Director. Después, a pedido suyo, la allowlist exacta de la 0478 suma dos filas: el test y este
+  handoff.
 
 ### Pedidos del Director y cómo quedaron
 
@@ -68,6 +69,7 @@ del handoff 0478). Tiene que fallar con el mutante sin `for update` (control roj
 | Que ningún Vitest recorra `supabase/tests/*.test.sql` con un glob | **Confirmado.** El único que los recorre es `scripts/run-sql-tests.mjs`. Los Vitest de PGlite leen archivos por nombre (`identity-photo-replacement.migration.test.ts` lee la 0461). `check-schema-rebuild.mjs` solo lee `_supabase-platform-stubs.sql`. `vitest.config.ts` no incluye `.sql` |
 | Evidencia: el runner con el archivo en ✓ y los demás intactos; el control rojo; cuánto tarda | En Validación |
 | Una sola corrida pesada a la vez (regla nueva del Director) | Rige desde que terminó el `verify` de esta rama. Después solo se corrieron pruebas focales |
+| Turno de integración: dos filas en la allowlist, merge de `origin/main` (`1b64bdae`) sin rebase, chequeos livianos, un solo push y PR lista para revisión | Allowlist en `d47bc3d0`, merge en `2473d0be` y chequeos en Validación. El push y la PR van con el head que contiene este documento |
 
 ## VALIDACIÓN
 
@@ -92,6 +94,9 @@ del handoff 0478). Tiene que fallar con el mutante sin `for update` (control roj
 | › e2e | **PASÓ** — 167 ✓, 18 omitidas y 1 flaky ajena (`calculadora-semantic-colors`, verde en el reintento), contra el Supabase sintético deny-only (SDD-0479). El resumen no la declara parcial |
 | › build | **PASÓ** — build de producción OK; el paso restauró `tsconfig.json` |
 | Carga | El paso `test` de este `verify` levantó entre 20 y 24 workers de vitest y saturó la máquina, según vio otro Worker. Desde entonces rige la regla del Director de una sola corrida pesada a la vez |
+| Merge de `origin/main` (`1b64bdae`, PR #147) → `2473d0be` | **PASÓ** — sin conflictos y sin tocar `supabase/`. El diff neto contra `main` son los tres archivos de esta tarea |
+| Después del merge: `docs:check` / `sdd:check` / `governance:check` / `pending-migration-symbols` / `git diff --check` | **PASÓ** — 468 specs, sin números repetidos, cápsula vigente, 0 ROJO · 0 AMARILLO |
+| Después del merge: este archivo solo, por el runner real (andamiaje verde) | **PASÓ** — ✓. El runner tardó 225 s con la máquina ocupada por otros turnos; antes, 7,1 s |
 | CI alojado | **NO EJECUTADO todavía**: la rama no está publicada. El resultado del head publicado se reporta por mensaje |
 
 ## COMMITS
@@ -100,20 +105,24 @@ del handoff 0478). Tiene que fallar con el mutante sin `for update` (control roj
 | --- | --- |
 | `a916797a` | `test(db)`: el contrato de concurrencia |
 | `03b34f08` | `docs(SDD-0478)`: seguimiento 3 cumplido |
-| el commit que contiene este documento | `docs(handoff)`: este handoff |
+| `c62a419f` | `docs(handoff)`: la primera versión de este handoff, la del reporte previo a la PR |
+| `d47bc3d0` | `docs(SDD-0478)`: la allowlist nombra el test y este handoff |
+| `2473d0be` | merge de `origin/main` (`1b64bdae`, PR #147), sin rebase |
+| el commit que contiene este documento | `docs(handoff)`: el turno de integración |
 
 ## PR / BRANCH
 
-- Rama `codex/carrera-for-update-0459`, base `main`, worktree de arriba. Todavía no está publicada:
-  la PR se abre con el head que contiene este documento, en el turno de integración que da el
-  Director. Su número y el CI van por mensaje, para no mover el head revisado.
+- Rama `codex/carrera-for-update-0459`, base `main`, worktree de arriba. Se publica con el head que
+  contiene este documento, en un solo push, y la PR se abre lista para revisión (no draft). Su número,
+  el SHA y el CI van por mensaje, para no mover el head revisado.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Publicar la rama y abrir la PR contra `main`, en el turno que da el Director.
-2. Reportar por mensaje el número de la PR y el resultado de «Calidad local sin secretos» sobre el
-   head publicado.
-3. Integrar: lo hace el Director.
+1. El push y la PR, justo después de este commit (turno ya dado por el Director).
+2. Reportar por mensaje el número de la PR, el SHA y el resultado de «Calidad local sin secretos»
+   sobre el head publicado.
+3. Integrar: lo hace el Director. La PR de baterías (`dtdcargo-d5`) entra primero; si esta queda
+   detrás de `main`, el Director la actualiza desde GitHub y no hace falta otro push.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -126,9 +135,7 @@ del handoff 0478). Tiene que fallar con el mutante sin `for update` (control roj
    patrón.
 3. **`verify` no corre `scripts/check-public-verify-concurrency.mjs` (SDD-0375).** Es la prueba de
    concurrencia de la reserva atómica, con barreras por `pg_stat_activity`, y hoy solo corre a mano.
-4. **La allowlist exacta de la spec 0478 no nombra el test nuevo ni este handoff.** No la toqué
-   porque el Director pidió una línea en Seguimiento. Si la quiere exacta, son dos filas.
-5. **El runner resume con «rollback total».** Este archivo no revierte su base propia: la borra y
+4. **El runner resume con «rollback total».** Este archivo no revierte su base propia: la borra y
    comprueba que no quedó nada. Para los archivos siguientes el efecto es el mismo, pero la frase ya
    no describe a todos. No se tocó el runner.
 
@@ -207,8 +214,9 @@ y el runner dio ✓ con exit 0.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** revisar la PR cuando se abra e integrarla en el turno que corresponda
-  (después de baterías y de los textos 0447/0458).
+- **Siguiente acción:** revisar la PR e integrarla después de la de baterías. Los textos 0447/0458
+  ya están en `main` y en esta rama (merge `2473d0be`). Los hallazgos 1 a 3 de «Fuera de alcance
+  detectado» los anotó el Director como candidatos a la tarea siguiente, con este mismo patrón.
 - **Cambios compartidos:** un archivo nuevo en `supabase/tests/`, que el runner descubre solo, y una
   línea en la spec 0478. Riesgo medido para la suite: ninguno. El archivo deja el clúster como
   estaba y lo afirma, y la suite completa pasó 200 de 200 con los siguientes en verde.
