@@ -96,6 +96,12 @@ Si este número vuelve a quedar distinto del ERP, la regla es la de la SDD-0475:
 | `calculadora.test.ts` · 1 m³, 400 kg, Caracas, con baterías (usa `CONFIG`) | recargo 255 · total 1105 | recargo **425** (850 × 0,5) · total **1275** (850 × 1,5) |
 | `calculadora.test.ts` · 10 m³, 3.000 kg, params explícitos «igual que prod» | recargo 1740 · total 7540 | recargo **2900** (5800 × 0,5) · total **8700** (5800 × 1,5) |
 | `calculadora-respaldo-alineado.test.ts` | — | `expect(CONFIG.recargoBateriaMult).toBe(1.5)` |
+| `scripts/__tests__/sdd-0168-fixture.test.ts` · traducción de `DEFAULT_PARAMS` a `calculator_settings` (lo que el seed de e2e escribe) | `recargo_bateria_mult: 1.3` | **1.5** |
+
+El último lo encontró `pnpm verify`, no la búsqueda inicial, que no había cubierto
+`scripts/`. En ese mismo archivo, las filas «previas» del test de registro auditable
+llevan 1.3 y **no se tocan**: son una entrada inventada que el test devuelve tal
+cual, sin relación con `CONFIG`.
 
 El test «DEFAULT_PARAMS reproduce exactamente el comportamiento de CONFIG» compara
 los dos caminos entre sí, sin literal, y sigue valiendo tal cual. El de
