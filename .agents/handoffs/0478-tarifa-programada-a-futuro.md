@@ -1,7 +1,9 @@
 # Handoff 0478 — Programar la próxima tarifa pública sin dejar el sitio sin tarifa
 
-- Fecha: 2026-09-18. Estado de la tarea: **lista para revisión** (PR draft). SDD `in-progress`: pasa
-  a `done` cuando la 0459 esté aplicada y ocurra el primer relevo real.
+- Fecha: 2026-09-18. Estado de la tarea: **lista para integrar** (PR #137, draft). **La 0459 está
+  APLICADA en producción** (ledger `20260918155832`) con el OK nominal de Sam (ver «APLICACIÓN DE
+  LA 0459»). SDD `done`, con un seguimiento pendiente: el test automático de concurrencia del
+  `for update`.
 - Owner/sesión: `worker-tarifa-programada-0478-dtdcargo-2e-20260918` (Claude Opus 5, Worker,
   sesión `dtdcargo-2e`, «Tareas pendientes del worker»). Asignó el Director `dtdcargo-18`;
   supervisa `dtdcargo-53`.
@@ -13,7 +15,9 @@
 - Aislamiento comprobado antes de editar: rama y toplevel correctos, `guard` → `Guard OK`, claim
   adquirido con el owner de arriba.
 - Permisos del encargo: commits en esta rama, push de la rama propia y PR **draft** contra `main`,
-  reportando al Director antes de abrirla. **No merge. No producción. No aplicar la 0459.**
+  reportando al Director antes de abrirla. **No merge.** La aplicación de la 0459 la autorizó
+  después Sam, nombrándola, en el chat de esta sesión («autorizo aplicar la
+  0459_tarifa_programada_a_futuro»). El Director confirmó ventana exclusiva y que la aplicara yo.
   No tocar `lib/calculadora.ts` ni `__tests__/calculadora-respaldo-alineado.test.ts` (los tiene
   `dtdcargo-c9`).
 
@@ -74,8 +78,10 @@ del handoff de SDD-0476), con su propia SDD. La tarifa DDP vigente ($850) vale h
 | Después del merge: `docs:check` / `sdd:check` / `pending-migration-symbols` / `typecheck` | **PASÓ** — 465 specs, sin números repetidos, 0 ROJO · 1 AMARILLO, exit 0 |
 | Después del merge: pruebas afectadas (0459 sobre PGlite, Studio de tarifas, `rate-types`, la 0458 sobre PGlite, el anclaje del respaldo que tocó la #136) | **PASÓ** — 8 archivos, 100 casos |
 | `git diff --check` | **PASÓ** |
-| CI alojado de la PR | Se reporta al Director por mensaje (la rama se congela al publicar) |
-| Aplicación de la 0459 a producción | **NO EJECUTADO** — prohibido por el encargo |
+| CI alojado del primer head (`9c89d0d6`) | **PASÓ** — «Calidad local sin secretos» `success` sobre el head exacto (run 35315068666), Vercel en pass |
+| Cierre: merge de `origin/main` (`b43a39a5`, PR #138) → `3b48a3c6` y salida de la 0459 de las esperas | **PASÓ** — sin conflictos (la #138 solo toca `docs/marketing/` y `public/interno/guia-peso.html`). Después: `docs:check` (465), `sdd:check`, `governance:check`, `pending-migration-symbols` (**0 ROJO · 0 AMARILLO**) y `diff --check`, todos en verde. Diff neto contra `main` de `migrations-baseline.json` y `pending-migration-symbol-declarations.json`: 0 líneas |
+| CI alojado del push de cierre | Se reporta al Director por mensaje |
+| Aplicación de la 0459 a producción | **EJECUTADO** con OK nominal de Sam: preflight, `apply_migration` y postflight **PASARON** (ver «APLICACIÓN DE LA 0459») |
 | Lectura de filas de negocio en producción | **NO EJECUTADO**. Sí se leyó metadata: `list_migrations` (ledger: 0255 aplicada `20260720194914`, 0458 aplicada `20260918040814`) y la API pública `/api/public/cbm-rate` |
 
 ## COMMITS
@@ -89,25 +95,52 @@ del handoff de SDD-0476), con su propia SDD. La tarifa DDP vigente ($850) vale h
 | `cb9b30bc` | `docs(SDD-0478)`: la spec y el índice (465) |
 | `46673236` | `fix(studio)`: el badge cabe en su columna (hallazgo de `/ui-check`) |
 | `1f061f9d` | merge de `origin/main` (`56fa2ae0`), sin rebase |
-| el commit que contiene este documento | `docs(handoff)`: este handoff |
+| `9c89d0d6` | `docs(handoff)`: cierre antes del primer push de la PR (head revisado por el CI) |
+| `7332573b` | `docs(handoff)`: anexo con la carrera del `for update` reproducida |
+| `3b48a3c6` | merge de `origin/main` (`b43a39a5`, PR #138), sin rebase |
+| el commit que contiene este documento | `chore(db)`: 0459 aplicada; sale de las esperas y de las degradaciones; spec en `done`; este registro |
 
 ## PR / BRANCH
 
-- Rama `codex/tarifa-programada-a-futuro`, base `main`, worktree de arriba. La rama se publicó
-  temprano (sólo `101173c1`) para que el número 0459 fuera visible fuera de este clon.
-- PR draft: se abre después de reportar al Director.
+- PR [#137](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/137), draft, base `main`, rama
+  `codex/tarifa-programada-a-futuro`, worktree de arriba. El primer head (`9c89d0d6`) pasó el check
+  obligatorio (run 35315068666). Este cierre llega en **un solo push**, después de aplicar la 0459,
+  con `main` al día: así lo pidió el Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. **Aplicar la 0459** — Sam, nombrándola, con `docs/runbooks/aplicar-migraciones-prod.md`, y
-   confirmando antes con el Director que no haya otra aplicación en curso. Preflight: el propio
-   archivo aborta si faltan sus dependencias.
-2. Verificar en producción: ledger, columna, check, índice, trigger, función sólo para
-   `service_role` y el job en `cron.job`.
-3. **Integrar la PR después de aplicar** (migrate-first) y retirar la espera del baseline y la
-   degradación declarada.
-4. Cargar la tarifa que rija después del 2026-11-29 como programada antes de esa fecha; la spec
-   pasa a `done` con el primer relevo real verificado en `/api/public/cbm-rate`.
+1. **Integrar la PR** — Director, cuando cierre el check del push de cierre.
+2. **Test automático de concurrencia del `for update`** — seguimiento a nombre de este Worker,
+   que formaliza el Director. Base: el ANEXO. Hoy está probado a mano; ningún test del repo lo
+   cubre.
+3. Cargar la tarifa que rija después del 2026-11-29 como programada antes de esa fecha, y verificar
+   el primer relevo real en `/api/public/cbm-rate`. Lo hace Sam desde el Studio, una vez integrada
+   la PR.
+
+## APLICACIÓN DE LA 0459 (2026-09-18)
+
+- **Autorización:** Sam, en el chat de esta sesión, textual: «autorizo aplicar la
+  0459_tarifa_programada_a_futuro». El Director (`dtdcargo-18`) confirmó que no había otra
+  aplicación en curso (el ledger terminaba en `20260918051801 · 0414_invoices_read_rbac`), que la
+  aplicara yo y que la ventana era exclusiva.
+- **Archivo aplicado:** `supabase/migrations/0459_tarifa_programada_a_futuro.sql`, blob
+  `3508282bda5d38c63aead6dad85bf9a5e85dd3db` (igual en `9c6a3d1c`, `9c89d0d6` y `7332573b`), md5
+  `ed65e8474baef35aaf93664647751231`, 13.483 bytes, sin CRLF.
+
+| Paso | Resultado |
+| --- | --- |
+| Preflight (catálogo y ledger; ninguna fila de negocio) | **PASÓ** — 0459 ausente del ledger. Presentes: `rates`, `price_books`, `rates_one_public_cbm_per_tenant_modo`, `public_cbm_rate(text)`, `cron.schedule(text,text,text)`, `pg_cron` 1.6.4. No existía ningún objeto nuevo (columna, check, índice, las dos funciones, el trigger, el job). En `rates`: triggers `rates_guard_price_book_t` y `rates_touch` activos, unas 8 filas, 0 bloqueos. Servidor en UTC; día de Caracas 2026-09-18 |
+| Foto previa | `public_cbm_rate('ddp')` = 850 / 50 / 2026-11-29; `consolidado` = 580; `/api/public/cbm-rate` igual. Advisors: 4 de seguridad y 6 de rendimiento |
+| `apply_migration(name = "0459_tarifa_programada_a_futuro")` | **PASÓ** — `{"success":true}` |
+| Identidad ledger ↔ blob | **PASÓ** — `20260918155832`, 1 sentencia; `md5(array_to_string(statements,''))` `ed65e8474baef35aaf93664647751231`, `octet_length` 13.483: iguales al blob |
+| Catálogo | **PASÓ** — columna `boolean default false not null`; check, índice parcial y trigger (`BEFORE INSERT OR UPDATE OF publica_programada, price_book_id, tenant_id, status, deleted_at`) con la definición exacta; singleton de 0255 intacto; triggers de `rates`: `rates_guard_price_book_t`, `rates_guard_publica_programada_t`, `rates_touch`, todos activos. Las dos funciones: `security definer`, `search_path=""`, owner `postgres`. EXECUTE del relevo: `service_role` sí; `anon` y `authenticated`, no. El guard no lo ejecutan ni `anon` ni `authenticated`. Comentarios presentes |
+| Job de `pg_cron` | **PASÓ** — `tarifas-programadas-relevo`, único con ese nombre, `5 * * * *`, `select public.promover_tarifas_programadas();`, activo |
+| Primera corrida real del job | **PASÓ** — `cron.job_run_details`: run 3760, `succeeded`, 16:05:00.035 → 16:05:00.043 UTC (8 ms), comando `select public.promover_tarifas_programadas();`. `pg_cron` solo guarda `return_message = "1 row"`, no el JSON, así que el «promovidas []» se comprueba por el estado: 0 filas programadas antes y después, y `public_cbm_rate` sigue en 850 / 50 / 2026-11-29 y 580. La función no se llamó a mano en producción |
+| Filas con `publica_programada = true` | **PASÓ** — 0 |
+| Lo que ve el cliente | **PASÓ, sin cambios** — `public_cbm_rate('ddp')` = 850 / 50 / 2026-11-29, `consolidado` = 580. md5 del cuerpo de la RPC de 0458: `cc52f3571e354c6bc77c10d0ec287fd3`, el mismo que registró su postflight. `https://dtdcargo.com/tarifas` responde 200 y cotiza `per_cbm` 850; `/api/public/cbm-rate` igual |
+| Advisors después | **PASÓ** — seguridad y rendimiento idénticos a la foto previa, comparados sin marcas de tiempo |
+| Espera y degradación | La 0459 sale de `pendingBelowCutoff` y su degradación de `pending-migration-symbol-declarations.json`, juntas: si sale solo una, el gate falla. Gate después: 0 ROJO · 0 AMARILLO |
+| Cabecera del `.sql` | Sigue diciendo «NO APLICADA» y **no se edita**: la aplicación se verifica por md5 del blob contra el ledger, y tocar un comentario rompería esa identidad (mismo criterio que la 0255 y la 0473) |
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -303,8 +336,9 @@ done
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** revisar la PR draft; la decisión de diseño primero (B contra A, en la
-  spec). Después, pedirle a Sam la 0459 nombrándola; integrar **después** de aplicarla.
+- **Siguiente acción:** la 0459 ya está aplicada y verificada; falta integrar la #137 cuando cierre
+  el check del push de cierre. Al desplegarse, `/studio/tarifas` empieza a ofrecer «Programada»:
+  la consulta aislada ya encuentra la columna.
 - **Cambios compartidos:** `supabase/migrations-baseline.json` (la espera 0459; la de la 0458 ya
   la retiró la #136, y el merge `1f061f9d` lo resolvió con el driver semántico),
   `supabase/pending-migration-symbol-declarations.json` y `docs/specs/README.md`.

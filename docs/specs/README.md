@@ -502,7 +502,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0474 | Guía de Alibaba — Shipping Mark conectado, costo real con tar… | done | interno |
 | 0475 | El respaldo del calculador vuelve a espejar el ERP ($800 → $850) | done | interno |
 | 0476 | La tarifa pública se lee de la base, vencida o no | done | interno |
-| 0478 | Programar la próxima tarifa pública sin dejar el sitio sin ta… | in-progress | interno |
+| 0478 | Programar la próxima tarifa pública sin dejar el sitio sin ta… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0477 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

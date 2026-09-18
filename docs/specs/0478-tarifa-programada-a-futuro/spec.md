@@ -1,7 +1,7 @@
 ---
 sdd: "0478"
 title: "Programar la próxima tarifa pública sin dejar el sitio sin tarifa"
-status: in-progress
+status: done
 author: "founder + Claude Opus 5"
 created: 2026-09-18
 updated: 2026-09-18
@@ -80,6 +80,11 @@ exigiendo despublicar.
   consultas de `lib/studio/rate-*`.
 - La degradación declarada en `supabase/pending-migration-symbol-declarations.json`.
 - Pruebas, esta spec, el índice generado y el handoff.
+- **Aplicar la 0459 a producción**, con autorización aparte. Sam la dio nombrándola
+  («autorizo aplicar la 0459_tarifa_programada_a_futuro», 2026-09-18) y se aplicó
+  con `docs/runbooks/aplicar-migraciones-prod.md` (ver Evidencia). Al quedar
+  aplicada, en esta misma rama salen su espera y su degradación: el diff neto
+  contra `main` de esos dos archivos queda en cero.
 
 **No entra:**
 
@@ -90,8 +95,6 @@ exigiendo despublicar.
 - El sitio público: no cambia ni una línea. La RPC ya sirve lo que la base diga.
 - Auditar las tarifas (ver Gobernanza › AUD-01) y avisar por Telegram cuando un
   relevo no corre (ver Seguimiento).
-- **Aplicar la 0459 a producción.** Lo decide Sam, nombrándola, con
-  `docs/runbooks/aplicar-migraciones-prod.md`.
 
 ### Allowlist exacta
 
@@ -260,9 +263,14 @@ ventana no exista.
       cruzan; sin pública vigente, la programada entra igual.
 - [x] El Studio permite programar, marca la programada y su atraso, y traduce los
       rechazos. Sin la 0459 no se cae ni ofrece programar.
-- [ ] La 0459 aplicada en producción con autorización nominal de Sam y verificada
+- [x] La 0459 aplicada en producción con autorización nominal de Sam y verificada
       (ledger, columna, índice, trigger, función y job `tarifas-programadas-relevo`).
-- [ ] La PR integrada después de aplicar la 0459 (migrate-first).
+      Aplicada el 2026-09-18: ledger `20260918155832`, identidad md5 igual al blob
+      revisado. Primera corrida real del job: 2026-09-18 16:05 UTC, `succeeded`, sin
+      nada que promover (0 programadas antes y después; la tarifa pública no cambió).
+
+La integración de la PR y el primer relevo real se registran aparte (ver
+Seguimiento). No son criterios de esta spec.
 
 ## Gobernanza
 
@@ -287,13 +295,28 @@ negocio de producción. Detalle y SHA en el handoff.
   defecto de Supabase. 19 casos, incluido un **control rojo** sin la 0459 (la
   próxima pública choca con el singleton y despublicar la vigente deja la RPC sin
   fila).
-- **Mutantes del `.sql`**: 23, 21 muertos. Sobreviven el `grant` a `service_role`
-  (equivalente: los defaults de Supabase ya se lo dan; se conserva explícito como
-  en la 0336) y el `for update` (concurrencia entre dos corridas: no se puede
-  medir con la única conexión de PGlite).
+- **Mutantes del `.sql`**: 23, 21 muertos con PGlite. Sobrevive el `grant` a
+  `service_role`, que es equivalente (los defaults de Supabase ya se lo dan; se
+  conserva explícito como en la 0336). También sobrevive el `for update`, que es
+  **lo único que impide que el relevo pise una cancelación del founder**. PGlite
+  tiene una sola conexión y no lo puede medir. **Ningún test del repo lo cubre.**
+- **Reproducción manual de esa carrera** (2026-09-18, `postgres:17` desechable, dos
+  sesiones): el founder desprograma la tarifa mientras corre el relevo. Con el
+  `.sql` real, el relevo espera el bloqueo y respeta la cancelación: el sitio
+  sigue en $850. Con el mutante sin `for update`, publica la cancelada: $900.
+  Los scripts y la tabla están en el anexo del handoff 0478.
 - **Studio**: `tarifa-programada.test.ts`, `actions.programada.test.ts` y los casos
   nuevos de `RateDrawer.test.tsx`. **Mutantes**: 13, 13 muertos.
-- **Gate** `pending-migration-symbols`: 0 ROJO · 1 AMARILLO declarado.
+- **Gate** `pending-migration-symbols`: 0 ROJO · 1 AMARILLO declarado mientras la
+  0459 estuvo pendiente; con la 0459 aplicada, 0 ROJO · 0 AMARILLO.
+- **Aplicación en producción (2026-09-18)**, con OK nominal de Sam y ventana
+  exclusiva confirmada por el Director. El preflight de catálogo mostró las
+  dependencias presentes y ningún objeto nuevo existente. `apply_migration`
+  devolvió `success`. El ledger quedó en `20260918155832`, con 1 sentencia de
+  13.483 bytes, md5 `ed65e847…` igual al blob. El postflight de catálogo coincide
+  con el archivo, sin ninguna fila programada. La lectura del cliente no cambió
+  (`public_cbm_rate('ddp')` = 850/50/2026-11-29, consolidado 580, `/tarifas`
+  cotiza 850) y los advisors quedaron idénticos a la foto previa.
 
 ## Riesgos
 
@@ -316,14 +339,17 @@ negocio de producción. Detalle y SHA en el handoff.
 
 ## Seguimiento
 
-1. **Aplicar la 0459** — Sam, nombrándola, con el runbook. Antes, confirmar con
-   el Director que no haya otra aplicación en curso.
-2. Verificar en producción: ledger `0459_tarifa_programada_a_futuro`, la columna,
-   el check, el índice, el trigger, `promover_tarifas_programadas()` sólo para
-   `service_role` y el job `tarifas-programadas-relevo` en `cron.job`.
-3. Integrar la PR (migrate-first) y, en esa misma rama o en una de cierre, retirar
-   la espera de `migrations-baseline.json` y la degradación de
-   `pending-migration-symbol-declarations.json`.
-4. Cargar la tarifa que rija después del 2026-11-29 como **programada** antes de
-   esa fecha. Esta spec pasa a `done` cuando el primer relevo real ocurra y se
-   verifique en `/api/public/cbm-rate`.
+1. ✅ **0459 aplicada** (2026-09-18, ledger `20260918155832`) y verificada. En la
+   misma rama salen la espera de `migrations-baseline.json` y la degradación de
+   `pending-migration-symbol-declarations.json`. La cabecera del `.sql` sigue
+   diciendo «NO APLICADA» y **no se edita**: rompería la identidad md5 contra el
+   ledger, igual que en la 0255 y la 0473.
+2. ⬜ **Integrar la PR** — Director.
+3. ⬜ **PENDIENTE: test automático de concurrencia del `for update`.** Es la única
+   defensa contra que el relevo pise una cancelación del founder, y hoy solo está
+   probada a mano. Hace falta una prueba de dos sesiones contra Postgres real que
+   mate al mutante sin `for update`. Queda a nombre del Worker de esta spec y se
+   formaliza como tarea aparte. Base: los scripts del anexo del handoff 0478. Que
+   esta spec diga `done` no cierra este hueco.
+4. ⬜ Cargar la tarifa que rija después del 2026-11-29 como **programada** antes de
+   esa fecha, y verificar el primer relevo real en `/api/public/cbm-rate`.
