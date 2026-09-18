@@ -1,4 +1,5 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -38,8 +39,32 @@ function filesUnder(root) {
   });
 }
 
+// SDD-0486: lectura en paralelo con tope. Leer los ~1.600 archivos uno por uno
+// sumaba la latencia de cada apertura (en Windows, el escaneo del antivirus). Con 32
+// lecturas a la vez, la lectura baja de ~2 s a ~0,6 s con la máquina quieta.
+async function readAll(paths, limit = 32) {
+  const sources = new Array(paths.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: limit }, async () => {
+    while (next < paths.length) {
+      const i = next++;
+      sources[i] = await readFile(paths[i], "utf8");
+    }
+  }));
+  return sources;
+}
+
+// SDD-0486: un literal cuyo valor es "invoices" aparece tal cual en el fuente, salvo
+// que use escapes (`"invo\x69ces"`, continuación de línea), y entonces lleva una barra
+// invertida. Un archivo sin ninguna de las dos cosas no puede sumar llamadas, así que
+// no hace falta parsearlo. El conteo no cambia. Solo se parsean ~360 de ~1.600 archivos.
+function mayCallInvoices(source) {
+  return source.includes("invoices") || source.includes("\\");
+}
+
 function invoiceCalls(source) {
-  const ast = ts.createSourceFile("source.tsx", source, ts.ScriptTarget.Latest, true);
+  // Sin punteros al padre: el recorrido usa forEachChild y no los necesita.
+  const ast = ts.createSourceFile("source.tsx", source, ts.ScriptTarget.Latest, false);
   let count = 0;
   function visit(node) {
     if (ts.isCallExpression(node)) {
@@ -59,17 +84,21 @@ function invoiceCalls(source) {
 }
 
 describe("SDD-0357 · frontera de lectura de facturas", () => {
-  // L07, ronda 3: tope propio de 60 s. La prueba lee y parsea unos 1.600
-  // módulos y, bajo la carga de `pnpm verify`, tardó 22,4 s y 20,8 s contra el
-  // tope global de 20 s. Es sincrónica: el tope no la corta a mitad, sólo la
-  // marca en rojo si al terminar lo pasó. El inventario exigido no cambia.
-  it("congela el inventario de callers de producción sin contar comentarios o fixtures", () => {
+  // L07, ronda 3: tope propio de 60 s. La prueba lee unos 1.600 módulos y, bajo la
+  // carga de `pnpm verify`, tardó 22,4 s y 20,8 s contra el tope global de 20 s. En
+  // la suite completa local llegó a 92 s (SDD-0486). La lectura en paralelo y el
+  // prefiltro la bajan de ~5,6 s a ~1,5 s con la máquina quieta. El inventario
+  // exigido no cambia.
+  it("congela el inventario de callers de producción sin contar comentarios o fixtures", async () => {
+    const paths = ["app", "lib", "supabase/functions"]
+      .flatMap((root) => filesUnder(resolve(root)))
+      .filter((path) => /\.[cm]?[jt]sx?$/.test(path) && !/(__tests__|\.test\.|\.spec\.)/.test(path));
+    const sources = await readAll(paths);
     const actual = {};
-    for (const path of ["app", "lib", "supabase/functions"].flatMap((root) => filesUnder(resolve(root)))) {
-      if (!/\.[cm]?[jt]sx?$/.test(path) || /(__tests__|\.test\.|\.spec\.)/.test(path)) continue;
-      const count = invoiceCalls(readFileSync(path, "utf8"));
+    paths.forEach((path, i) => {
+      const count = mayCallInvoices(sources[i]) ? invoiceCalls(sources[i]) : 0;
       if (count) actual[relative(process.cwd(), path).replaceAll("\\", "/")] = count;
-    }
+    });
     expect(actual).toEqual(BASELINE);
     expect(Object.keys(actual)).toHaveLength(18);
     expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(46);
@@ -80,6 +109,16 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
       const example = 'db.from("invoices")';
       db.from("clients"); db.from("invoices"); db["from"]('invoices');
     `)).toBe(2);
+  });
+
+  it("el prefiltro deja pasar todo archivo que pueda llamar a invoices, también con escapes", () => {
+    // Ninguno contiene la palabra tal cual: sólo la barra invertida los delata.
+    for (const source of ['db.from("invo\\x69ces")', 'db["fr\\u006fm"]("\\u0069nvoices")', 'db.from("invo\\\nices")']) {
+      expect(source).not.toContain("invoices");
+      expect(invoiceCalls(source)).toBe(1);
+      expect(mayCallInvoices(source)).toBe(true);
+    }
+    expect(mayCallInvoices('db.from("clients"); db.from(`payments`)')).toBe(false);
   });
 
   it("mantiene los cuatro widgets financieros detrás del candado invoices", () => {
