@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 import { getPrealertaByCode } from "@/lib/studio/prealertas/queries";
+import { portalEnabled } from "@/lib/studio/document-import/access";
 import { DocumentReviewClient } from "./DocumentReviewClient";
 
 export const metadata: Metadata = { title: "Documento de la compra" };
@@ -23,6 +24,9 @@ export default async function PortalDocumentPage({
 }: {
   params: Promise<{ code: string }>;
 }) {
+  // Documento de compra: exige el interruptor del portal, no sólo el del
+  // cotizador. Sin él esta pantalla no existe (y la API tampoco la atendería).
+  if (!portalEnabled()) notFound();
   const { code: rawCode } = await params;
   const code = decodeURIComponent(rawCode);
 

@@ -153,7 +153,8 @@ export function PurchaseStepDetalle({
         su propio transporte y sus propios botones, y anidarlo haría que enviara
         el formulario de la compra al tocarlos.
 
-        Con `DOCUMENT_IMPORT_ENABLED` apagado no renderiza nada, así que mientras
+        Sin `DOCUMENT_IMPORT_ENABLED` Y `DOCUMENT_IMPORT_PORTAL_ENABLED` en "true"
+        no renderiza nada (la primera sola es el cotizador público), así que mientras
         la función no esté lista esta pantalla queda exactamente como estaba.
       */}
       <div className="mb-5">

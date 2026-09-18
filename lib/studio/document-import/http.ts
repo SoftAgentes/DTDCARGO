@@ -3,7 +3,7 @@ import { after, NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { parseDocumentDraft } from "@/lib/shared/document-import";
-import { enabled, ImportHttpError, authorizeWorkspace, reserveRequest, requirePortal, UUID } from "./access";
+import { enabled, ImportHttpError, authorizeWorkspace, portalEnabled, reserveRequest, requirePortal, requirePortalScope, UUID } from "./access";
 import { getWorkspace,openWorkspace,projectWorkspace,reserveUpload,applyImport,saveWorkspace } from "./service";
 import { finishUpload,processImportJob } from "./jobs";
 import { getEstimateRates,estimateForRequest } from "./estimate";
@@ -31,13 +31,14 @@ export async function documentImportRequest(req:NextRequest) {
     if(req.headers.has("origin")&&!allowedOrigin(req))throw new ImportHttpError(403,"origin_denied","Origen no permitido.");
     if(req.method==="POST"&&!allowedOrigin(req))throw new ImportHttpError(403,"origin_required","Abre esta operación desde el portal de DTD.");
     const action=req.nextUrl.searchParams.get("action");
-    if(req.method==="GET"&&action==="capabilities")return NextResponse.json({available:process.env.DOCUMENT_IMPORT_ENABLED==="true",formats:["xlsx","csv","pdf"],maxBytes:15*1024*1024},{headers});
+    if(req.method==="GET"&&action==="capabilities")return NextResponse.json({available:process.env.DOCUMENT_IMPORT_ENABLED==="true",portal:portalEnabled(),formats:["xlsx","csv","pdf"],maxBytes:15*1024*1024},{headers});
     enabled();
     const admin=createAdminClient(),session=await createClient();
     await reserveRequest(admin,req.headers);
     if(req.method==="GET") {
       if(action==="destinations"){const rates=await getEstimateRates();return NextResponse.json({cities:rates.cities.map(c=>({id:c.id,label:c.label}))},{headers});}
       if(action==="purchases") {
+        requirePortalScope();
         const principal=await requirePortal(session);
         const {data:purchases,error:pe}=await session.from("prealertas").select("id,code").eq("tenant_id",principal.tenantId).eq("client_markbox",principal.client.markbox).is("deleted_at",null).neq("status","cancelada").order("created_at",{ascending:false}).limit(100);
         if(pe)throw new ImportHttpError(503,"purchases_unavailable","No pudimos cargar tus compras.");

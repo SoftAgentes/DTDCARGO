@@ -103,6 +103,10 @@ const session = {} as SupabaseClient;
 const admin = {} as SupabaseClient;
 
 beforeEach(() => {
+  // Combinar compras y guardar el estimado son del portal: estas pruebas lo
+  // describen ENCENDIDO. El cotizador solo tiene su propio caso abajo.
+  vi.stubEnv("DOCUMENT_IMPORT_ENABLED", "true");
+  vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "true");
   for (const mock of Object.values(mocks)) mock.mockReset();
   mocks.cbmRate.mockResolvedValue({ per_cbm: 100, min_charge: 380, valid_until: null });
   mocks.calcConfig.mockResolvedValue(PARAMS);
@@ -112,6 +116,8 @@ beforeEach(() => {
   mocks.requirePortal.mockResolvedValue(PRINCIPAL);
   mocks.authorizeWorkspace.mockResolvedValue({ kind: "client", id: PRINCIPAL.userId, principal: PRINCIPAL });
 });
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe("Estimado de transporte: varias compras, un solo envío", () => {
   it("cobra el mínimo facturable y el piso del transportista una vez por envío, no una vez por compra", () => {
@@ -292,6 +298,20 @@ describe("Tarifa vigente", () => {
 });
 
 describe("Quién puede pedir un estimado combinado", () => {
+  it("sin el portal sólo se cotiza el documento del cotizador: combinar o guardar se niega antes de leer nada", async () => {
+    vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "false");
+    const rows = [workspace(packed({ cbm: 1, weight: 200, cartons: 2 })), workspace(packed({ cbm: 1, weight: 200, cartons: 2 }))];
+    serve(rows);
+    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: rows.map((r) => r.id), cityId: "maracaibo" }), 503, "portal_not_enabled");
+    await expectFailAsync(() => estimateForRequest(admin, session, new Headers(), { workspaceIds: [rows[0].id], cityId: "maracaibo", save: true }), 503, "portal_not_enabled");
+    expect(mocks.requirePortal).not.toHaveBeenCalled();
+    expect(mocks.getWorkspace).not.toHaveBeenCalled();
+
+    mocks.authorizeWorkspace.mockResolvedValue({ kind: "anonymous", id: rows[0].id });
+    expect(await estimateForRequest(admin, session, new Headers(), { workspaceIds: [rows[0].id], cityId: "maracaibo" })).toMatchObject({ kind: "transport_estimate" });
+  });
+
+
   it("varias compras sólo desde el portal: sin sesión ni siquiera se leen los documentos", async () => {
     const rows = [workspace(packed({ cbm: 1, weight: 200, cartons: 2 })), workspace(packed({ cbm: 1, weight: 200, cartons: 2 }))];
     serve(rows);
