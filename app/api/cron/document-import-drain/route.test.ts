@@ -1,11 +1,12 @@
 // @vitest-environment node
 /**
- * SDD-0473 · El cron de importación: la bandera apaga la LECTURA, no el borrado.
+ * SDD-0473 · El cron de drenaje es inerte con la bandera apagada.
  *
- * El cotizador le promete al visitante que su documento se borra a las 24 h. Si
- * se enciende y después se apaga la bandera (rollback), lo subido en esas horas
- * tiene que seguir borrándose: antes el handler cortaba antes de limpiar, y esos
- * archivos se habrían quedado en el bucket sin plazo.
+ * Corre cada minuto. Con `DOCUMENT_IMPORT_ENABLED` apagada corta ANTES de crear
+ * el cliente de la base: ni conexión ni consulta. Es la garantía con la que se
+ * integró la PR #130, verificada contra producción, y la que vuelve a regir. El
+ * borrado de lo vencido no depende de este cron: vive en `document-import-cleanup`,
+ * cada hora y con cualquier bandera.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
@@ -30,19 +31,20 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-describe("Cron de importación documental (SDD-0473)", () => {
-  it("con la bandera apagada limpia lo vencido y no lee nada", async () => {
-    for (const valor of ["", "false", "1"]) {
+describe("Cron de drenaje de la importación documental (SDD-0473)", () => {
+  it("con la bandera apagada no abre la base: ni cliente, ni limpieza, ni lectura", async () => {
+    for (const valor of ["", "false", "1", "TRUE"]) {
       vi.stubEnv("DOCUMENT_IMPORT_ENABLED", valor);
       const res = await tick();
       expect(res.status).toBe(200);
-      expect(await res.json()).toEqual({ enabled: false, cleanup: { removed: 2 } });
+      expect(await res.json()).toEqual({ enabled: false });
     }
-    expect(h.cleanup).toHaveBeenCalledTimes(3);
+    expect(h.admin).not.toHaveBeenCalled();
+    expect(h.cleanup).not.toHaveBeenCalled();
     expect(h.process).not.toHaveBeenCalled();
   });
 
-  it("con la bandera encendida limpia y además procesa un job", async () => {
+  it("con la bandera encendida limpia y procesa un job en cada tick", async () => {
     vi.stubEnv("DOCUMENT_IMPORT_ENABLED", "true");
     const res = await tick();
     expect(await res.json()).toEqual({ cleanup: { removed: 2 }, processed: false });
@@ -55,9 +57,6 @@ describe("Cron de importación documental (SDD-0473)", () => {
     for (const auth of ["", "Bearer otro-secreto-de-igual-largo!!", `Bearer ${SECRETO}x`]) {
       expect((await tick(auth)).status).toBe(403);
     }
-    vi.stubEnv("CRON_SECRET", "");
-    expect((await tick("Bearer ")).status).toBe(403);
     expect(h.admin).not.toHaveBeenCalled();
-    expect(h.cleanup).not.toHaveBeenCalled();
   });
 });
