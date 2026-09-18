@@ -178,6 +178,12 @@ cierre verde.
 
 ## FUERA DE ALCANCE DETECTADO
 
+- **Seguimiento de SDD-0479, observación de dtdcargo-18 al aprobar la #141 (no bloqueante).** Con el
+  Supabase sintético, el resumen final de `verify` ya no dice «CRÍTICOS CON COBERTURA PARCIAL: e2e».
+  Quien lea sólo el resumen puede entender que el e2e corrió contra un Supabase real. Conviene que el
+  resumen diga algo como «e2e contra Supabase sintético deny-only: flujos con datos reales NO
+  cubiertos». Es tarea aparte, no de esta PR.
+
 - **La cuenta de Supabase Auth del antiguo titular del Portal no se borra nunca:** `auth.users` guarda
   el correo y el último ingreso. Necesita su propia decisión y su propia SDD.
 - **Pruebas inestables bajo carga, ajenas a esta rama:**
