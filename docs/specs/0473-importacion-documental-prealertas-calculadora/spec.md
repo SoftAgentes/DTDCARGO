@@ -217,9 +217,26 @@ o guardado se niegan antes de leer nada, la pantalla `documento` es 404, y la ru
 sólo falla cerrada ante una lectura caída cuando el portal está encendido. `capabilities` publica
 `portal` y `DocumentImportEntry` exige las dos llaves.
 
-**El borrado no depende de la bandera.** El cron cortaba antes de `cleanupImports` con la bandera
-apagada: encender y después apagar dejaba sin borrar, sin plazo, lo subido en las últimas 24 h. Ahora
-limpia siempre y sólo la lectura depende de la bandera.
+**El borrado no depende de la bandera, y el drenaje sigue inerte apagado.** El cron de drenaje
+corta antes de `createAdminClient()` con la bandera apagada: es la garantía con la que se integró la
+PR #130, verificada contra producción. Pero eso dejaba sin borrar, sin plazo, lo subido en las
+últimas 24 h si se encendía y después se apagaba, y el residuo del Preview (que escribe en la base
+de producción y no corre crons). Un primer arreglo movió `cleanupImports` antes del corte; el
+Director lo objetó con razón: con `* * * * *` eran 1.440 conexiones diarias a producción con la
+bandera apagada, y la cadencia de un minuto se justifica sólo por los reintentos, que sólo existen
+encendida. Se evaluaron tres salidas:
+
+1. **Un cron de retención aparte, cada hora (elegida).** `/api/cron/document-import-cleanup`
+   (`17 * * * *`) limpia con cualquier bandera; el drenaje vuelve a ser idéntico al de `main`.
+2. Un solo cron que limpie apagado sólo en el minuto 0: depende de que Vercel invoque puntual; una
+   invocación atrasada al minuto 1 se salta la hora completa. Descartada.
+3. Dejar la limpieza cada minuto y justificarla: nada la justifica para un vencimiento de 24 h.
+
+Apagado: 24 conexiones al día en vez de 1.440, y 1.440 invocaciones inertes del drenaje (sin base).
+Encendido: el drenaje limpia en cada tick como antes y la pasada horaria es idempotente. El
+documento deja de ser accesible exactamente al vencer (`authorizeWorkspace`), y el borrado físico
+llega, como mucho, una hora después. `cron-cadence.test.ts` exige que la retención exista, corra al
+menos cada hora y no lea la bandera.
 
 **Compuerta de privacidad (no es código).** La revisión acotada con `revisar-datos-ve` encontró que
 la pantalla no avisa antes de subir, que `/privacidad` no menciona el cotizador, la lectura con IA
@@ -244,6 +261,8 @@ prueba, `vercel.json`, `.env.example`, `app/cotizador/page.tsx`, `app/p/[token]/
 - `app/portal/(app)/compras/[code]/documento/page.test.tsx`
 - `lib/studio/document-import/cron-cadence.test.ts`
 - `app/api/cron/document-import-drain/route.test.ts`
+- `app/api/cron/document-import-cleanup/route.ts`
+- `app/api/cron/document-import-cleanup/route.test.ts`
 - `.agents/handoffs/0473-encender-cotizador-20260918.md`
 
 ## Aceptación
