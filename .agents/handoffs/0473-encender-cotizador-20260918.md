@@ -325,13 +325,20 @@ Todos con `git add` selectivo; sin reset, sin force push, sin tocar otras ramas 
   mientras siga abierta la compuerta de privacidad. La URL y el SHA publicado se registran en la PR
   y se reportan a dtdcargo-53; el orden de merge lo decide dtdcargo-18.
 - `verify` sobre la cabeza fusionada salió en rojo sólo por `test` bajo carga: la decisión de
-  publicar igual se le devolvió a Sam antes del push.
+  publicar igual se le devolvió a Sam antes del push. **Respuesta de Sam en este chat, literal:
+  «Subir ahora en draft (Recommended)».**
+- Al momento de publicar, `main` ya estaba en `a48d304f` (#139, #141, #142). `git merge-tree` con la
+  rama: exit 0, sin conflictos. **No se fusionó**: se publica lo verificado (`2575ac5e` + este
+  handoff) y la actualización a la base nueva, con su `verify`, queda para cuando dtdcargo-18 ordene
+  el merge. La #141 cambia el e2e (Supabase sintético), así que esa actualización tiene que volver
+  a correr `e2e`.
 
 ## PENDIENTES DE ESTA TAREA
 
 1. **Compuerta de privacidad** (Sam y su abogado): `/privacidad`, aviso antes de subir, Anthropic.
    Sin eso no se enciende en producción.
-2. **Publicar:** autorizado; pendiente de que Sam decida si se sube con `verify` en rojo por carga.
+2. **Publicada** en draft (ver PR / BRANCH). Pendiente: actualizar con `main` (`a48d304f` o posterior)
+   y repetir `verify`, incluido `e2e`, cuando el Director ordene el merge.
 3. **Encender** según «CÓMO SE ENCIENDE»: variables (Sam, en Vercel), merge (Director), sondas.
 4. `verify` sin cierre verde en esta máquina por saturación: si el Director quiere el gate en verde
    antes de integrar, correrlo sin otra suite en paralelo, o apoyarse en el check obligatorio de la
