@@ -36,7 +36,7 @@ cliente cambió, con el último valor como vigente. La coordinación lo separó 
 
 ## Contrato funcional
 
-1. En «Datos de cuenta», «Actualizar mis datos» abre un formulario con nombre,
+1. En «Datos de cuenta», «Editar mis datos» abre un formulario con nombre,
    cédula/RIF y teléfono prellenados. «Guardar cambios» pide confirmación: el
    guardado usa 1 de los N cambios disponibles y se aplica al instante.
 2. **Un guardado = un cambio**, aunque toque varios campos. Sólo cuentan los
@@ -78,8 +78,8 @@ cliente cambió, con el último valor como vigente. La coordinación lo separó 
 ## Historial (escritura)
 
 Cada guardado inserta en `client_change_requests` una fila `source='client'`,
-`status='approved'`, con `prev_*` y `proposed_*` **sólo de los campos que
-cambiaron**, `submitted_by = auth.uid()`, `submitted_at = reviewed_at = now()`,
+`status='approved'`, con `prev_*` = los tres valores vigentes antes del cambio y
+`proposed_*` **sólo de los campos que cambiaron**, `submitted_by = auth.uid()`, `submitted_at = reviewed_at = now()`,
 `reviewed_by = null` y `review_note = 'Cambio directo del cliente desde el
 Portal (SDD-0482).'`. El trigger de 0445 la cuenta como `applied` con lock por
 cliente y audita `client_profile_edit_applied` sin valores. Es el mismo registro
@@ -118,7 +118,7 @@ etiqueta de esas filas: de «Aprobada» a «Editado por el cliente».
 
 | Lector | Comportamiento con el cambio |
 |---|---|
-| Facturas y PDF | Congelan `client_rif`/`client_doc_kind`/`client_name` al emitir (0392): las emitidas no cambian. |
+| Facturas y PDF | Congelan `client_rif`/`client_doc_kind` al emitir (0392): las emitidas no cambian. El `client_name` de la factura lo escribe el asesor, no sale de la ficha. **Hueco preexistente:** la RPC de 0128 (`sales_order_claim_and_invoice`) emite sin congelar el documento, y esas facturas caen al documento vigente en el Libro de Ventas. Queda para SDD-0487, que toca la facturación. |
 | **Libro de Ventas** | Hoy lee `clients.rif` en vivo y reescribiría los períodos abiertos. **Se corrige**: usa `invoices.client_rif` congelado y sólo cae a `clients.rif` si la factura es anterior a 0392. Los libros cerrados ya estaban congelados (0165). |
 | Documentos de aduana | Emitidos con el dato de su momento; no se regeneran. |
 | Kommo | El documento sólo se envía en el alta (`kommo-push-client`). El teléfono es la segunda llave del router: el vínculo por `kommo_contact_id` no cambia, y el bloqueo de teléfonos de otro cliente evita que alguien adopte el número ajeno. Riesgo residual: un teléfono de un contacto de Kommo que no es cliente (ver Datos personales). |
@@ -159,16 +159,19 @@ Esta revisión técnica no constituye asesoría legal.
 - `docs/specs/README.md` (generado)
 - `docs/specs/0481-portal-cliente-reemplazo-foto-identidad/spec.md` (cierre `done`)
 - `.agents/handoffs/2026-09-18-portal-cliente-reemplazo-foto-identidad.md` (cierre)
+- `docs/specs/0439-portal-cliente-edicion-de-perfil/spec.md` y `docs/legal/privacidad/fotos-identidad-cliente-v1.md` (textos de 0446/0447 ya aplicadas; commit aparte a pedido de la coordinación)
 - `.agents/handoffs/2026-09-18-portal-cliente-edita-datos-directo.md`
 - `supabase/migrations/0462_portal_profile_direct_edit.sql`
 - `supabase/tests/0462_portal_profile_direct_edit.test.sql`
 - `supabase/migrations-baseline.json`
+- `supabase/pending-migration-symbol-declarations.json`
 - `lib/portal/__tests__/profile-direct-edit.migration.test.ts`
 - `lib/portal/profile-direct-edit.ts`
 - `lib/portal/__tests__/profile-direct-edit.test.ts`
 - `lib/studio/change-request-notify.ts`
 - `lib/studio/fiscal/queries.ts`
-- `lib/studio/__tests__/fiscal-sales-book-frozen-doc.test.ts`
+- `lib/studio/fiscal/__tests__/queries.test.ts`
+- `lib/studio/__tests__/profile-edit-blocked-notify.test.ts`
 - `app/portal/(app)/perfil/actions.ts`
 - `app/portal/(app)/perfil/DataChangeEditor.tsx`
 - `app/portal/(app)/perfil/ProfileEditControls.test.tsx`
