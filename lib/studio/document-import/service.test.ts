@@ -106,6 +106,9 @@ function fakeDb(spec: DbSpec = {}) {
 const uploadDb = (spec: DbSpec = {}) => fakeDb({ rpc: () => ({ data: true }), ...spec });
 const lastDraft = (db: ReturnType<typeof fakeDb>) => db.rpcCalls.at(-1)!.args.p_draft as DocumentDraft;
 
+// Proveedor y compra describen el portal ENCENDIDO (las dos llaves). Lo que pasa
+// con sólo la del cotizador tiene su bloque propio.
+beforeEach(() => { vi.stubEnv("DOCUMENT_IMPORT_ENABLED", "true"); vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "true"); });
 afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); mocks.idsByToken.mockReset(); mocks.portalPrincipal.mockReset(); });
 
 describe("Lo que el proveedor puede ver del documento compartido", () => {
@@ -480,6 +483,41 @@ describe("Abrir el documento compartido", () => {
     });
     await expect(openWorkspace(db, db, {}, headers())).resolves.toEqual({ workspace: ganador });
     expect(db.rpcCalls).toHaveLength(1);
+  });
+});
+
+describe("Abrir con sólo la llave del cotizador", () => {
+  beforeEach(() => { vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "false"); });
+
+  it("un documento de compra no nace: ni por enlace del proveedor, ni por compra, ni por sesión", async () => {
+    mocks.idsByToken.mockResolvedValue({ prealertaId: ID.prealerta, tenantId: ID.tenant, markbox: "SYN-001", code: "SYN-0001" });
+    mocks.portalPrincipal.mockResolvedValue({ userId: "user-sintetico", tenantId: ID.tenant, client: { id: ID.client, markbox: "SYN-001" } });
+    const pedidos: [Record<string, unknown>, Headers][] = [
+      [{}, new Headers({ "x-supplier-token": ID.share })],
+      [{ purchaseCode: "SYN-0001" }, new Headers()],
+      [{ purchaseId: ID.prealerta }, new Headers()],
+      [{ authenticated: true }, new Headers()],
+    ];
+    for (const [body, headers] of pedidos) {
+      const db = fakeDb({ tables: { clients: { data: { id: ID.client } }, prealertas: { data: { id: ID.prealerta } }, document_workspaces: { data: null } }, rpc: () => ({ data: W() }) });
+      await expect(openWorkspace(db, db, body, headers), JSON.stringify(body)).rejects.toMatchObject({ status: 503, code: "portal_not_enabled" });
+      expect(db.queries).toHaveLength(0);
+      expect(db.rpcCalls).toHaveLength(0);
+    }
+    expect(mocks.idsByToken).not.toHaveBeenCalled();
+    expect(mocks.portalPrincipal).not.toHaveBeenCalled();
+  });
+
+  it("el cotizador sí abre su documento anónimo, que vence a las 24 h", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-18T12:00:00.000Z"));
+    const anonimo = W({ tenant_id: null, client_id: null, prealerta_id: null, anonymous_hash: "h", expires_at: "2026-09-19T12:00:00.000Z" });
+    const db = fakeDb({ rpc: () => ({ data: anonimo }) });
+    const abierto = await openWorkspace(db, db, {}, new Headers());
+    expect(abierto.workspace).toEqual(anonimo);
+    expect(abierto.anonymousToken).toMatch(/^[a-f0-9]{64}$/);
+    expect(db.rpcCalls).toHaveLength(1);
+    expect(db.rpcCalls[0].args).toMatchObject({ p_tenant_id: null, p_client_id: null, p_prealerta_id: null, p_expires_at: "2026-09-19T12:00:00.000Z" });
   });
 });
 

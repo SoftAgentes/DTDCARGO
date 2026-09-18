@@ -4,7 +4,11 @@
   "crons": [
     {
       "path": "/api/cron/document-import-drain",
-      "schedule": "*/5 * * * *"
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/document-import-cleanup",
+      "schedule": "17 * * * *"
     },
     {
       "path": "/api/cron/ceo-brief",
@@ -25,6 +29,10 @@
     {
       "path": "/api/cron/purge-throttle",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/portal-revoked-retention",
+      "schedule": "30 4 * * *"
     },
     {
       "path": "/api/cron/purge-receipt-orphans",

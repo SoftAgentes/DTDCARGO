@@ -12,6 +12,11 @@ import { omisionSinSupabase } from "./supabase-publico.cjs";
  * por `MARCA_SIN_SUPABASE`, y `pnpm verify` la cuenta y declara el e2e con
  * COBERTURA PARCIAL. Nunca pasa en falso ni se reintenta por la ausencia.
  *
+ * SDD-0479 · Si Playwright levantó su `next dev` contra el Supabase sintético
+ * deny-only (`metadata.supabaseE2E.modo === "sintetico"` en
+ * `playwright.config.ts`), ese servidor sí tiene URL y anon key: la prueba
+ * corre. El proceso del worker no las ve en su entorno, por eso se lee el modo.
+ *
  * Con las variables presentes, o contra un destino que no es local (un
  * Preview), no hace nada y la prueba corre igual que antes.
  *
@@ -19,6 +24,14 @@ import { omisionSinSupabase } from "./supabase-publico.cjs";
  * Supabase público».
  */
 export function requiereSupabase(): void {
+  if (modoSupabaseE2E() === "sintetico") return;
   const motivo = omisionSinSupabase({ baseURL: test.info().project.use.baseURL });
   test.skip(motivo !== null, motivo ?? undefined);
+}
+
+/** El modo que decidió `playwright.config.ts` para esta corrida, o `null`. */
+function modoSupabaseE2E(): string | null {
+  const supabaseE2E = (test.info().config.metadata as { supabaseE2E?: { modo?: unknown } } | undefined)
+    ?.supabaseE2E;
+  return typeof supabaseE2E?.modo === "string" ? supabaseE2E.modo : null;
 }

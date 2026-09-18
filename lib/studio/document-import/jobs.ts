@@ -69,6 +69,15 @@ function configuredLimit(key:string,fallback:number,max:number) {
   return n;
 }
 
+/**
+ * Escalón de la espera entre reintentos: el intento N vuelve a la cola con
+ * `available_at = ahora + N·RETRY_STEP_MS`. Sólo el cron lo reclama después, así
+ * que el escalón está calibrado contra la cadencia de `vercel.json`: con un tick
+ * más lento que esto los escalones colapsan en «el próximo tick» y el visitante,
+ * que mira la pantalla, espera minutos de más. `cron-cadence.test.ts` los ata.
+ */
+export const RETRY_STEP_MS=60_000;
+
 /** Each attempt reserves a worst-case token allowance before contacting an AI provider. */
 export async function processImportJob(db:SupabaseClient,jobId?:string) {
   const {data,error}=await db.rpc("claim_document_import_job",{p_job_id:jobId??null});
@@ -98,7 +107,7 @@ export async function processImportJob(db:SupabaseClient,jobId?:string) {
     // Do not persist raw exception text: upstream errors may contain document text or tokens.
     const code=typeof detail.code==="string" && /^[a-z_]{1,60}$/.test(detail.code)?detail.code:"extraction_failed";
     const {error:fe}=await db.from("document_import_jobs").update({status:retry?"queued":"failed",error_code:code,lease_until:null,
-      available_at:new Date(Date.now()+job.attempts*60000).toISOString(),updated_at:new Date().toISOString()})
+      available_at:new Date(Date.now()+job.attempts*RETRY_STEP_MS).toISOString(),updated_at:new Date().toISOString()})
       .eq("id",job.id).eq("lease_token",job.lease_token).eq("status","processing");
     if(fe) throw new ImportHttpError(503,"queue_unavailable","No pudimos actualizar el estado de lectura.");
     return {processed:true,status:retry?"queued":"failed",code};

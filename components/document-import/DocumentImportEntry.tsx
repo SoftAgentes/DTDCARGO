@@ -4,8 +4,9 @@
  * SDD-0473 · El envoltorio que decide si la importación se ofrece o no.
  *
  * Existe para que cablear el panel sea seguro. Mientras `DOCUMENT_IMPORT_ENABLED`
- * no esté en "true", este componente no renderiza NADA y el formulario manual
- * queda exactamente como estaba: cero cambio visible, cero riesgo.
+ * y `DOCUMENT_IMPORT_PORTAL_ENABLED` no estén las dos en "true", este componente
+ * no renderiza NADA y el formulario manual queda exactamente como estaba: cero
+ * cambio visible, cero riesgo. La primera sola enciende el cotizador público.
  *
  * Pregunta por `capabilities`, que es la única acción de la API que responde sin
  * el flag encendido. Si la consulta falla, se calla — un error de red no puede
@@ -24,7 +25,8 @@ import {
 } from "./document-client";
 import { DocumentImportPanel } from "./DocumentImportPanel";
 
-type Capabilities = { available: boolean; formats: string[]; maxBytes: number };
+/** `portal` es el segundo interruptor: sin él, sólo existe el cotizador anónimo. */
+type Capabilities = { available: boolean; portal?: boolean; formats: string[]; maxBytes: number };
 
 export function DocumentImportEntry({
   purchaseCode,
@@ -57,7 +59,9 @@ export function DocumentImportEntry({
     transport
       .get<Capabilities>("capabilities")
       .then((caps) => {
-        if (vivo) setAvailable(caps.available === true);
+        // Esto vive dentro de una COMPRA: pide las dos llaves. Con sólo la
+        // primera está encendido el cotizador, no la carga en el portal.
+        if (vivo) setAvailable(caps.available === true && caps.portal === true);
       })
       // Silencio deliberado: si no se pudo preguntar, no se ofrece.
       .catch(() => {

@@ -25,6 +25,7 @@ import { resolveRequestIp } from "@/lib/http/request-ip";
 import { apiError } from "@/lib/http/api-error";
 import { parseDocumentDraft } from "@/lib/shared/document-import";
 import { exportDocument } from "@/lib/studio/document-import/export";
+import { portalEnabled } from "@/lib/studio/document-import/access";
 
 export const runtime = "nodejs";
 
@@ -53,7 +54,9 @@ export async function GET(
   if (!ids) return new NextResponse("Not found", { status: 404 });
   const { data: shared, error: sharedError } = await admin.from("document_workspaces")
     .select("draft,revision,confirmed_revision").eq("prealerta_id",ids.prealertaId).eq("tenant_id",ids.tenantId).maybeSingle();
-  if (sharedError && process.env.DOCUMENT_IMPORT_ENABLED === "true") return new NextResponse("Documento compartido no disponible. Intenta de nuevo.",{status:503});
+  // Sólo el portal crea documentos ligados a una compra: con su interruptor
+  // apagado no puede haber uno que esperar, y una lectura caída no frena al proveedor.
+  if (sharedError && portalEnabled()) return new NextResponse("Documento compartido no disponible. Intenta de nuevo.",{status:503});
   if (shared) {
     const filled = await exportDocument(parseDocumentDraft(shared.draft),{markbox:data.markbox,code:data.code,confirmed:shared.revision===shared.confirmed_revision,revision:shared.revision});
     return new NextResponse(filled as BodyInit,{headers:{"Content-Type":XLSX_MIME,"Content-Disposition":`attachment; filename="PackingList-${data.code}.xlsx"`,"Cache-Control":"no-store"}});
@@ -164,7 +167,7 @@ export async function POST(
 
   const {data:workspace,error:workspaceError}=await admin.from("document_workspaces")
     .select("id").eq("prealerta_id",ids.prealertaId).eq("tenant_id",ids.tenantId).maybeSingle();
-  if (workspace || (workspaceError && process.env.DOCUMENT_IMPORT_ENABLED === "true")) {
+  if (workspace || (workspaceError && portalEnabled())) {
     return NextResponse.json({error:workspace?"Esta compra tiene un documento compartido. Actualiza el enlace y confirma la versión revisada.":"No pudimos comprobar el documento compartido. Intenta de nuevo.",code:"shared_document_required"},{status:workspace?409:503});
   }
 

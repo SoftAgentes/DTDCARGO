@@ -14,6 +14,7 @@
 | [`inventario-terceros.md`](inventario-terceros.md) | Los 10 proveedores que reciben datos personales y los 3 que no | Humano, con cada proveedor nuevo |
 | [`fotos-identidad-cliente-v1.md`](fotos-identidad-cliente-v1.md) | Política propuesta de retención, eliminación solicitada y frontera VE-China para fotos vigentes e históricas | Founder + Legal + Ingeniería; no entra en vigor hasta aplicar sus controles |
 | [`revision-0445-2026-09-04.md`](revision-0445-2026-09-04.md) | Revisión técnica de la contención funcional y de privacidad posterior a 0445 | Ingeniería; 0447 pendiente de autorización/aplicación Cloud |
+| [`revision-0473-cotizador-2026-09-18.md`](revision-0473-cotizador-2026-09-18.md) | Revisión del cotizador con documentos (SDD-0473) antes de encenderlo: 8 hallazgos, 8 correctos y 6 no verificables. Incluye que `/privacidad` dice que los datos se tratan en Venezuela cuando la base está en EE. UU. Insumo para la abogada | Ingeniería; la redacción de `/privacidad` la decide la abogada. El cotizador sigue apagado hasta cerrar H1 y H6 |
 | [`aws-adjuntos-expediente-contractual.md`](aws-adjuntos-expediente-contractual.md) | Identidad esperada, DPA, subprocesadores y huellas oficiales AWS; la aceptación real vive fuera de Git | Operaciones + legal |
 | [`pipl-aws-adjuntos.md`](pipl-aws-adjuntos.md) | Evaluación de impacto, mecanismo transfronterizo y texto de consentimiento separado para adjuntos | Legal China + founder |
 | [`runbook-brecha.md`](runbook-brecha.md) | Qué hacer las primeras horas. **Se llena antes de necesitarlo** | Humano |

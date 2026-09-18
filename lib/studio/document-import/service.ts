@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { emptyDocumentDraft, fromPackingPayload, parseDocumentDraft, mergeDocuments, toPackingPayload, confirmationIssues, type DocumentKind } from "@/lib/shared/document-import";
 import { validatePackingListInput } from "@/lib/studio/prealertas/packlist-form";
 import { getPrealertaIdsByToken } from "@/lib/studio/prealertas/queries";
-import { ImportHttpError, UUID, anonymousToken, hashToken, notFound, purchaseForClient, requirePortal, reserveLimit, type ImportActor, type WorkspaceRow } from "./access";
+import { ImportHttpError, UUID, anonymousToken, hashToken, notFound, purchaseForClient, requirePortal, requirePortalScope, reserveLimit, type ImportActor, type WorkspaceRow } from "./access";
 
 export const IMPORT_BUCKET = "document-imports";
 export const MAX_IMPORT_BYTES = 15*1024*1024;
@@ -37,6 +37,9 @@ export async function openWorkspace(admin:SupabaseClient,session:SupabaseClient,
 }
 async function openWorkspaceAttempt(admin:SupabaseClient,session:SupabaseClient,body:Record<string,unknown>,headers:Headers,attempt:number):Promise<OpenedWorkspace> {
   const token=headers.get("x-supplier-token");
+  // Sólo el cotizador anónimo abre sin el interruptor del portal: un documento
+  // de compra (proveedor, compra o sesión) no nace, ni siquiera vacío.
+  if(token || body.purchaseId || body.purchaseCode || body.authenticated===true) requirePortalScope();
   let tenantId:string|null=null,clientId:string|null=null,purchaseId:string|null=null;
   if(token) {
     if(!UUID.test(token)) return notFound();

@@ -12,7 +12,7 @@
 **Marca pública:** DTD Cargo
 **Contacto para titulares:** info@dtdcargo.com (asunto "Privacidad")
 **Representante en China (PIPL art. 53):** ⬜ pendiente de decidir
-**Versión:** 1.4 · **Última actualización:** 2026-09-11
+**Versión:** 1.5 · **Última actualización:** 2026-09-18
 
 ---
 
@@ -27,7 +27,8 @@
 | `clients.address` | Dirección de entrega | no | no | Última milla | Contrato | ⬜ | Equipo VE · **Nominatim** ⚠️ |
 | `clients.facade_photo_url` | **Foto de la fachada de la vivienda** | 🟠 | no | Encontrar la casa en la entrega | ⬜ **no declarada en la política** | ⬜ | Camionero |
 | `clients.notes` | Texto libre | ⚠️ puede volverse sensible | no | ⬜ no evidente en el código | ⬜ | ⬜ | Equipo VE |
-| `client_users.email` | Login del Portal | no | sí | Acceso al Portal | Contrato | ⬜ | Supabase Auth |
+| `client_users.email` | Login del Portal | no | sí | Acceso al Portal | Contrato | Mientras el vínculo esté invitado o activo. Revocado: 30 días desde la revocación y después se borra (Sam, 2026-09-15; SDD-0477, migr 0460, efectivo al aplicarla y activar el cron) | Supabase Auth · equipo del tenant |
+| `client_users.invited_at`, `bound_at`, `last_login_at`, `revoked_at`, `last_email_invite_at`, `last_whatsapp_invite_at` | Fechas de la relación con el Portal | no | — | Adopción y acceso al Portal | Contrato | Igual que `client_users.email` | Equipo del tenant |
 | `persons.national_id` | Cédula / RIF / pasaporte | no | sí | Identidad unificada | Contrato | ⬜ | Equipo VE |
 
 ## 2 · Datos capturados en la entrega ⚠️
@@ -57,7 +58,7 @@
 
 | Bucket | Qué guarda | Sensible | Conservación | Comportamiento observado |
 |---|---|:-:|---|:-:|
-| `client-docs` | Foto del documento de identidad del cliente | 🔴 | Propuesta: vigente mientras sea necesaria; histórica máx. 30 días desde reemplazo | `0445` conserva históricos; `0447` contiene nuevos reemplazos mientras purga, gate VE y borrado integral siguen sin implementar. Cloud: NO VERIFICABLE. Ver [`fotos-identidad-cliente-v1.md`](fotos-identidad-cliente-v1.md) |
+| `client-docs` | Foto del documento de identidad del cliente | 🔴 | Propuesta: vigente mientras sea necesaria; histórica máx. 30 días desde reemplazo | `0445` conserva históricos; `0447` (aplicada) contenía nuevos reemplazos; SDD-0481/`0461` (aplicada el 2026-09-18) los habilita dentro del cupo de 3 y conserva hasta 3 versiones sustituidas por cliente. Purga a 30 días, gate VE y borrado integral siguen sin implementar. Ver [`fotos-identidad-cliente-v1.md`](fotos-identidad-cliente-v1.md) |
 | `client-facades` | Foto de la vivienda | 🟠 | ⬜ | reemplazos físicos; borrado integral NO VERIFICABLE |
 | `receipt-photos` | Recepción CN + **POD y firmas** | 🔴 | ⬜ | Gastos móvil elimina objetos; otros flujos difieren |
 | `payment-proofs` | Comprobantes con datos bancarios | 🟠 | ⬜ | borrado integral NO VERIFICABLE |

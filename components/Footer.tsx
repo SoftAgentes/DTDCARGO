@@ -98,6 +98,12 @@ export function Footer() {
             {/* Rastreo: el /track público se eliminó (vive dentro del portal). */}
             <FooterLink href="/entrar">Rastrea tu envío</FooterLink>
             <FooterLink href="/tarifas">Calculadora de envío</FooterLink>
+            {/* SDD-0473 · Sólo con la bandera encendida: apagada, /cotizador es
+                404. El Footer es componente de servidor (ningún cliente lo
+                importa), así que la variable se lee acá sin exponerla. */}
+            {process.env.DOCUMENT_IMPORT_ENABLED === "true" && (
+              <FooterLink href="/cotizador">Cotiza con tu proforma</FooterLink>
+            )}
             <FooterLink href="/contacto">Contáctenos</FooterLink>
             <FooterLink href="/enlaces">Enlaces</FooterLink>
           </FooterCol>

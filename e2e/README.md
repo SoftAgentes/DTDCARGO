@@ -54,7 +54,29 @@ Aparte de eso, `mobile-safari` se limita a un worker en Windows porque el cierre
 de WebKit deja el proceso colgado; el límite es por proyecto y no afecta a
 `chromium` ni a `mobile-chrome`.
 
-## Sin Supabase público (SDD-0470)
+## Sin Supabase público (SDD-0470 y SDD-0479)
+
+> **Desde SDD-0479 (2026-09-18), el caso habitual ya no omite nada.** Cuando
+> faltan las DOS variables, el destino es local y Playwright levanta su propio
+> `next dev`, `playwright.config.ts` primero levanta un **Supabase sintético
+> deny-only** (`scripts/e2e/supabase-deny-server.mjs`, en `127.0.0.1`). Después
+> le pasa a ese `next dev` su URL y una anon key visible que no es secreta.
+>
+> - `proxy.ts` crea su cliente y las pruebas con `requiereSupabase()` **corren**.
+>   Sin sesión, `getUser()` no sale a la red, y el deny-only responde 503 a
+>   cualquier otra llamada.
+> - La decisión es una sola, `planSupabaseE2E` en
+>   `e2e/_helpers/supabase-publico.cjs`, y la comparten la config, los specs (por
+>   `metadata.supabaseE2E.modo`) y `pnpm verify`. Verify comprueba antes que el
+>   puerto del deny-only esté libre.
+> - **La omisión con motivo de SDD-0470 sigue** en estos casos, que conservan la
+>   cobertura parcial:
+>   - falta una sola variable (nunca se mezcla lo real con lo sintético);
+>   - Playwright reusa un `next dev` ya levantado;
+>   - el destino es un branch efímero.
+> - Con las variables reales, en el entorno o en un `.env*`, no cambia nada.
+>
+> El resto de esta sección describe esos casos y el mecanismo de 0470.
 
 `proxy.ts` crea el cliente Supabase con `NEXT_PUBLIC_SUPABASE_URL` y
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` en cada ruta de su `matcher` (`/studio`, `/back`,
@@ -119,9 +141,10 @@ principal `.env.local` es un directorio.
     eso no se implementó en SDD-0470 (ver la spec).
   - Antes de dar por buena una corrida directa, revisa cuántas quedaron en
     `skipped`.
-- **Para medirlas:** hace falta un Supabase autorizado (branch efímero o
-  Supabase local) con sus variables públicas. Nunca copies credenciales de
-  producción a un worktree para ponerlo verde.
+- **Para medirlas:** con el Supabase sintético (SDD-0479) corren solas. Si no
+  aplica, hace falta un Supabase autorizado (branch efímero o Supabase local)
+  con sus variables públicas. Nunca copies credenciales de producción a un
+  worktree para ponerlo verde.
 
 Los Tier 3 que se omiten por falta de seed (`STUDIO_E2E_*`) conservan su
 propio `test.skip` y su motivo. Esta sección no cambia cómo se reportan.
