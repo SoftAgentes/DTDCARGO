@@ -4,18 +4,19 @@
  * `CONFIG.tarifaBaseCBM` y `CONFIG.pesoIncluidoKg` son **espejos** de lo que vive
  * en el ERP (`rates.per_cbm` de la fila pública y
  * `calculator_settings.peso_incluido_kg`). Cuando la RPC no responde —Supabase
- * caído, o la vigencia de la tarifa vencida, que es lo normal cada mes— el sitio
- * cotiza con estas constantes. Si no coinciden con el ERP, el precio cambia **en
+ * caído, env ausente, fila en borrador o `valid_from` a futuro— el sitio cotiza
+ * con estas constantes. (Hasta la migr 0458, aplicada el 2026-09-18, también
+ * cuando la tarifa vencía.) Si no coinciden con el ERP, el precio cambia **en
  * silencio**: sin error, sin log, sin que nadie se entere.
  *
  * Hubo además un susto que conviene dejar contado, porque explica por qué esto
  * importa: la fila pública tenía cargado `valid_until = 2026-10-04` cuando la
- * tarifa valía hasta el **2026-11-29**. Como la RPC filtra por vigencia, el 5 de
- * octubre habría dejado de responder con la tarifa plenamente vigente, y el
- * sitio habría cotizado con estas constantes durante casi dos meses. Se corrigió
- * en producción el 2026-09-17 (autorizado por el founder), así que **esa grieta
- * concreta ya no existe**: verificado contra `dtdcargo.com/api/public/cbm-rate`,
- * que devuelve `valid_until: "2026-11-29"`.
+ * tarifa valía hasta el **2026-11-29**. Como la RPC filtraba entonces por
+ * vigencia, el 5 de octubre habría dejado de responder con la tarifa plenamente
+ * vigente, y el sitio habría cotizado con estas constantes durante casi dos
+ * meses. Se corrigió en producción el 2026-09-17 (autorizado por el founder),
+ * así que **esa grieta concreta ya no existe**: verificado contra
+ * `dtdcargo.com/api/public/cbm-rate`, que devuelve `valid_until: "2026-11-29"`.
  *
  * Lo que sigue en pie es el caso general: si Supabase se cae, el sitio cotiza
  * con estos números. Que el precio salga bien depende de que este archivo esté
@@ -91,9 +92,9 @@ describe("respaldo del calculador · espejo del ERP (SDD-0475)", () => {
     // `per_cbm=580`, igual que esta constante.
     //
     // Dos diferencias con la tarifa DDP, y conviene no confundirlas:
-    //   · Su fila tiene `valid_from`/`valid_until` en NULL, y la RPC filtra con
-    //     `valid_until is null or valid_until >= current_date` — o sea que NO
-    //     vence. Acá no hay bomba de vencimiento, sólo el espejo.
+    //   · Su fila tiene `valid_from`/`valid_until` en NULL — o sea que NO
+    //     vence (y desde la migr 0458 la RPC ya no filtra por vencimiento en
+    //     ninguna modalidad). Acá no hay bomba de vencimiento, sólo el espejo.
     //   · Hoy ningún código lee esa fila: `lib/public/rates-queries.ts` nunca
     //     pasa `p_modo`, así que la RPC siempre devuelve la DDP y esta constante
     //     es la única fuente. El día que se cablee (el propio comentario de
@@ -124,19 +125,18 @@ describe("respaldo del calculador · espejo del ERP (SDD-0475)", () => {
  * muestra desde la DB y se mantiene. Un test que bloquea el CI por una fecha iba
  * en contra de eso, así que no está.
  *
- * 🔴 PERO HOY EL SISTEMA NO HACE ESO, y conviene no confundir una cosa con la
- * otra. La RPC `public_cbm_rate()` filtra por
- * `valid_until is null or valid_until >= current_date` (migr 0101, y la 0255
- * igual): al vencer **devuelve null**, y entonces el sitio no cae «al precio
- * anterior de la base» sino a `CONFIG.tarifaBaseCBM`, una constante del código.
+ * ✅ DESDE EL 2026-09-18 EL SISTEMA HACE ESO POR DISEÑO. La migr
+ * `0458_tarifa_lectura_sin_vigencia.sql` (SDD-0476), aplicada a producción ese
+ * día, quitó de `public_cbm_rate()` el filtro
+ * `valid_until is null or valid_until >= current_date`: una tarifa vencida se
+ * sigue sirviendo desde la base, que es el «precio anterior» del criterio.
  *
- * Que hoy el resultado sea el correcto es consecuencia de SDD-0475: como el
- * respaldo vale lo mismo que la tarifa, el precio no se mueve al vencer. Es la
- * coincidencia la que salva el caso, no el diseño — y la próxima vez que cambie
- * la tarifa vuelve a abrirse, salvo que alguien se acuerde de mover la constante.
+ * Hasta entonces no era así, y conviene no olvidar por qué: con ese filtro (migr
+ * 0101, y la 0255 igual) la RPC **devolvía null** al vencer y el sitio caía a
+ * `CONFIG.tarifaBaseCBM`, una constante del código. Que el resultado fuera el
+ * correcto era consecuencia de SDD-0475 —el respaldo valía lo mismo que la
+ * tarifa—: lo salvaba la coincidencia, no el diseño.
  *
- * Para que «se mantiene el precio anterior» sea cierto por diseño hace falta que
- * la lectura NO dependa de la vigencia: que la RPC devuelva la última tarifa
- * pública aunque esté vencida, o que haya una segunda que lo haga. Eso es
- * backend y tiene dueño propio — queda escrito en el spec de SDD-0475.
+ * Lo que queda para estas constantes es la caída de verdad (Supabase caído,
+ * borrador, `valid_from` a futuro). Por eso siguen teniendo que espejar al ERP.
  */
