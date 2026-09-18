@@ -50,13 +50,13 @@ describe("calcularEnvioLCL", () => {
 
     expect(cot.cbm).toBe(1);
     expect(cot.densidadKgM3).toBe(400);
-    expect(cot.precioBase).toBe(800);
+    expect(cot.precioBase).toBe(850);
     expect(cot.recargoExcedente).toBe(0);
     expect(cot.recargoCiudad).toBe(0); // Valencia es casco
     expect(cot.recargoEmbalaje).toBe(0);
     expect(cot.recargoBateria).toBe(0);
     expect(cot.descuentoSede).toBe(0); // sin descuento (regla actualizada)
-    expect(cot.total).toBe(800); // sin rebaja
+    expect(cot.total).toBe(850); // sin rebaja
     expect(cot.alerta).toBeUndefined();
   });
 
@@ -73,10 +73,10 @@ describe("calcularEnvioLCL", () => {
 
     expect(cot.cbm).toBe(1);
     expect(cot.densidadKgM3).toBe(1200);
-    expect(cot.precioBase).toBe(800);
+    expect(cot.precioBase).toBe(850);
     expect(cot.recargoExcedente).toBe(400); // (1200 − 1000) × $2
     expect(cot.recargoCiudad).toBe(0); // Caracas es casco
-    expect(cot.total).toBe(1200); // 800 + 400
+    expect(cot.total).toBe(1250); // 850 + 400
     expect(cot.alerta).toBeUndefined();
   });
 
@@ -91,9 +91,9 @@ describe("calcularEnvioLCL", () => {
     });
 
     expect(cot.alerta).toBeUndefined();
-    expect(cot.precioBase).toBe(240); // 0.3 × 800
+    expect(cot.precioBase).toBe(255); // 0.3 × 850
     expect(cot.recargoExcedente).toBe(1400); // (1000 − 0.3×1000) × $2 = 1400
-    expect(cot.total).toBe(1640); // 240 + 1400
+    expect(cot.total).toBe(1655); // 255 + 1400
   });
 
   // 1 CBM @ 1.800 kg: el recargo sigue CONTINUO — ya no deriva al asesor
@@ -108,7 +108,7 @@ describe("calcularEnvioLCL", () => {
 
     expect(cot.alerta).toBeUndefined();
     expect(cot.recargoExcedente).toBe(1600); // (1800 − 1000) × $2
-    expect(cot.total).toBe(2400); // 800 + 1600
+    expect(cot.total).toBe(2450); // 850 + 1600
   });
 
   // Entrega nacional = CBM × precio del tramo (SDD-0237). Ya no hay km en la
@@ -122,7 +122,7 @@ describe("calcularEnvioLCL", () => {
     });
 
     expect(cot.recargoCiudad).toBe(123.6);
-    expect(cot.total).toBe(923.6); // 800 + 123,60
+    expect(cot.total).toBe(973.6); // 850 + 123,60
   });
 
   // El caso que motivó todo el cambio: la fórmula por km sobrecobraba +706%.
@@ -182,7 +182,7 @@ describe("calcularEnvioLCL", () => {
     });
 
     expect(cot.recargoEmbalaje).toBe(50);
-    expect(cot.total).toBe(850); // 800 + 50
+    expect(cot.total).toBe(900); // 850 + 50
   });
 
   // CBM total fraccionario
@@ -195,7 +195,7 @@ describe("calcularEnvioLCL", () => {
     });
 
     expect(cot.cbm).toBe(0.5);
-    expect(cot.precioBase).toBe(400); // 0.5 × 800
+    expect(cot.precioBase).toBe(425); // 0.5 × 850
   });
 
   // La opción agrupada "Casco central (Valencia · Maracay · Caracas)" MURIÓ
@@ -235,9 +235,9 @@ describe("calcularEnvioLCL", () => {
       bateria: true,
     });
 
-    // flete antes de batería = 800; con batería = 1040
-    expect(cot.recargoBateria).toBe(240);
-    expect(cot.total).toBe(1040);
+    // flete antes de batería = 850; con batería = 1105
+    expect(cot.recargoBateria).toBe(255);
+    expect(cot.total).toBe(1105);
   });
 
   // Carga especial / peligrosa → no cotiza, deriva al asesor
@@ -441,15 +441,15 @@ describe("calcularEnvioLCL", () => {
 
   it("aplica minChargeOverride como piso cuando el total queda por debajo", () => {
     const cot = calcularEnvioLCL({
-      cbmTotal: 0.1, // base = 0.1 × 800 = 80
+      cbmTotal: 0.1, // base = 0.1 × 850 = 85
       pesoKg: 20,
       embalaje: "estandar",
       ciudadId: "caracas",
       minChargeOverride: 380, // mínimo LCL real
     });
-    expect(cot.precioBase).toBe(80);
+    expect(cot.precioBase).toBe(85);
     expect(cot.total).toBe(380); // sube al piso real
-    expect(cot.ajusteMinimo).toBe(300); // 380 − 80, para que el desglose cuadre
+    expect(cot.ajusteMinimo).toBe(295); // 380 − 85, para que el desglose cuadre
     // El desglose reconcilia: Σ ítems + ajusteMinimo = total.
     const suma =
       cot.precioBase +
@@ -474,13 +474,13 @@ describe("calcularEnvioLCL", () => {
 
   it("minChargeOverride no muerde cuando el total ya lo supera", () => {
     const cot = calcularEnvioLCL({
-      cbmTotal: 1, // base = 800
+      cbmTotal: 1, // base = 850
       pesoKg: 400,
       embalaje: "estandar",
       ciudadId: "caracas",
       minChargeOverride: 380,
     });
-    expect(cot.total).toBe(800); // sin tocar
+    expect(cot.total).toBe(850); // sin tocar
     expect(cot.ajusteMinimo).toBe(0); // el piso no muerde → sin ajuste
   });
 
@@ -528,7 +528,7 @@ describe("calcularEnvioLCL con params configurables", () => {
       withParams({ pesoIncluidoKg: 300 }), // density 400 > 300 → cobra
     );
     expect(cot.recargoExcedente).toBe(200); // (400 − 300) × $2
-    expect(cot.total).toBe(1000); // 800 + 200
+    expect(cot.total).toBe(1050); // 850 + 200
   });
 
   it("USA params.recargoExcedenteKg ($/kg del excedente, configurable en el ERP)", () => {
@@ -538,7 +538,7 @@ describe("calcularEnvioLCL con params configurables", () => {
       withParams({ recargoExcedenteKg: 3 }), // (1600 − 1000) × $3
     );
     expect(cot.recargoExcedente).toBe(1800);
-    expect(cot.total).toBe(2600);
+    expect(cot.total).toBe(2650);
   });
 
   it("USA params.pesoMaxEnvioKg como tope para derivar al asesor", () => {
@@ -566,7 +566,7 @@ describe("calcularEnvioLCL con params configurables", () => {
     // El recargo es sobre pesoIncluidoKg (1.000): (1300 − 1000) × $2 = 600.
     expect(cot.recargoExcedente).toBe(600);
     expect(cot.alerta).toBeUndefined(); // el cálculo nunca setea alerta de densidad
-    expect(cot.total).toBe(1400);
+    expect(cot.total).toBe(1450);
   });
 
   it("usa params.descuentoValencia", () => {
@@ -575,7 +575,7 @@ describe("calcularEnvioLCL con params configurables", () => {
       withParams({ descuentoValencia: 80 }),
     );
     expect(cot.descuentoSede).toBe(-80);
-    expect(cot.total).toBe(720); // 800 − 80
+    expect(cot.total).toBe(770); // 850 − 80
   });
 
   it("usa params.recargoEmbalajeEspecial", () => {
@@ -584,7 +584,7 @@ describe("calcularEnvioLCL con params configurables", () => {
       withParams({ recargoEmbalajeEspecial: 75 }),
     );
     expect(cot.recargoEmbalaje).toBe(75);
-    expect(cot.total).toBe(875);
+    expect(cot.total).toBe(925);
   });
 
   it("usa params.recargoBateriaMult", () => {
@@ -598,8 +598,8 @@ describe("calcularEnvioLCL con params configurables", () => {
       },
       withParams({ recargoBateriaMult: 2 }),
     );
-    expect(cot.recargoBateria).toBe(800); // 800 × 2 − 800
-    expect(cot.total).toBe(1600);
+    expect(cot.recargoBateria).toBe(850); // 850 × 2 − 850
+    expect(cot.total).toBe(1700);
   });
 
   // thresholdCascoKm y tarifaKmFueraCasco quedaron LEGACY (SDD-0237): siguen en
@@ -788,7 +788,7 @@ describe("cbmFromDimensions", () => {
   });
 
   it("el CBM derivado alimenta el mismo motor (con recargo por densidad)", () => {
-    // 40×30×60×10 = 0,72 CBM → base = 0,72 × 800 = 576. Peso alto → recargo.
+    // 40×30×60×10 = 0,72 CBM → base = 0,72 × 850 = 612. Peso alto → recargo.
     const cbm = cbmFromDimensions(40, 30, 60, 10);
     const cot = calcularEnvioLCL({
       cbmTotal: cbm,
@@ -797,9 +797,9 @@ describe("cbmFromDimensions", () => {
       ciudadId: "caracas",
     });
     expect(cot.cbm).toBe(0.72);
-    expect(cot.precioBase).toBe(576);
+    expect(cot.precioBase).toBe(612);
     expect(cot.recargoExcedente).toBe(8560); // (5000 − 0.72×1000) × $2 = 8560
-    expect(cot.total).toBe(9136); // 576 + 8560
+    expect(cot.total).toBe(9172); // 612 + 8560
   });
 });
 

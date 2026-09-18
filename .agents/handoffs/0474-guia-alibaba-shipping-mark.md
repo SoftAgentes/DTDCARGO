@@ -245,11 +245,19 @@ valor vigente, es el que se quiere prometer. Documentado en el spec §3.
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **`supabase/migrations/0393_academia_widget_alibaba_curso.sql` sigue sin
-  aplicar a producción** (viene señalado desde 2026-08-25). Cualquier lección
-  con `widget='alibaba_curso'` revienta el CHECK `academy_lessons_widget_chk`.
-  Exige OK del founder nombrándola y el
-  [runbook de producción](../../docs/runbooks/aplicar-migraciones-prod.md).
+- ~~`0393_academia_widget_alibaba_curso.sql` sigue sin aplicar a producción~~
+  **FALSO, y era mío.** La 0393 está **aplicada desde el 2026-08-26** (ledger
+  `20260826040007`; el CHECK real ya admite `alibaba_curso`). Lo comprobó el
+  Director contra producción el 2026-09-17 con dos sondas.
+  La guía se puede embeber en una lección de Academia **ya mismo**.
+
+  Lo tomé de `docs/runbooks/academia-guia-alibaba-interactiva.md`, que lo decía
+  así desde agosto, y lo repetí como hecho sin poder comprobarlo. La causa de
+  fondo: **`migrations-applied` da SKIP sin credenciales**, o sea en todos los
+  worktrees, así que una afirmación de este tipo puede vivir semanas sin que
+  nada la contradiga. Regla para lo que viene: declarar que una migración NO
+  está aplicada exige comprobarlo contra producción o escribirlo como
+  **NO VERIFICADO**. Corregido también en el runbook, que era la fuente.
 - **`syncLead()` de la guía es un `console.log`** (línea del comentario
   `// === ENVIAR A SUPABASE/KOMMO ===`). Perfil, nombre, WhatsApp, producto, CBM,
   landed y scorecard se capturan y mueren en `localStorage`. Ojo: el precedente
@@ -266,12 +274,12 @@ valor vigente, es el que se quiere prometer. Documentado en el spec §3.
   silencio**. Confirmado contra producción por el Director (sesión
   `dtdcargo-18`), que lo tiene con Sam. **Es otra tarea**, con su propio
   worktree — no entra acá.
-- **El 2026-10-05 la tarifa de la DB cae sola a $800** si nadie la renueva desde
-  `/studio/tarifas`: el `pg_cron` de la 0336 puso vigencia hasta el 2026-10-04,
-  y el endpoint del PR lo devuelve de primera mano
-  (`"valid_until":"2026-10-04"`). La guía lee en vivo, así que se actualizará
-  sola — pero la caída sigue ahí, y con el respaldo del código en 800 el efecto
-  pasaría inadvertido.
+- ~~El 2026-10-05 la tarifa de la DB cae sola a $800~~ **Resuelto el 2026-09-17,
+  y de dos formas.** La fila tenía cargado `valid_until = 2026-10-04` cuando la
+  tarifa vale hasta el **2026-11-29**: se corrigió en producción. Y el respaldo
+  del código pasó de $800 a $850 (SDD-0475), así que aunque la RPC dejara de
+  responder, el precio ya no caería. Cuando esto se escribió, las dos cosas
+  estaban abiertas.
 - **La guía no está en `app/sitemap.ts`** (ni en `llms.txt`). Se alcanza desde
   `/academia`, el FAQ y dos tarjetas del portal.
 - **La dirección de Yiwu sigue hardcodeada** en la guía en vez de venir de

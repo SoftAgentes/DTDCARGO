@@ -7,14 +7,28 @@
  * la tarifa server-side vía RPC anon (`lib/public/rates-queries.ts`), vía que un
  * archivo estático no tiene — necesita HTTP. Este handler es ese puente.
  *
- * Por qué no cablear el número en la guía: la migración
- * `0336_rate_ddp_850_septiembre_2026.sql` programó con pg_cron el relevo
- * $800 → $850 vigente 2026-09-04 → 2026-10-04, y su cabecera avisa que el
- * 2026-10-05 **cae sola a $800** si nadie renueva desde `/studio/tarifas`. Una
- * cifra copiada al HTML empezaría a mentir sin que nadie lo note.
+ * Por qué no cablear el número en la guía: la tarifa se mueve desde
+ * `/studio/tarifas`, y la migración `0336_rate_ddp_850_septiembre_2026.sql` ya
+ * la subió con pg_cron de $800 a $850. Una cifra copiada al HTML empezaría a
+ * mentir sin que nadie lo note.
+ *
+ * ⚠️ Al vencer la vigencia esta RPC devuelve null y el sitio cae a
+ * `CONFIG.tarifaBaseCBM`. Desde SDD-0475 ese respaldo también vale $850, así que
+ * el precio **ya no cambiará al vencer** — antes caía a $800 y el salto se veía.
+ * El vencimiento dejó de tener síntoma, así que lo vigila el cron de
+ * `app/api/cron/rate-expiry-alert` (Telegram + email).
+ *
+ * Decisión del founder (2026-09-17) sobre este punto: «aunque la tarifa se venza
+ * o esté vencida, se mantiene el precio anterior; lo que leemos acá es la base
+ * de datos». Hoy eso se cumple **por coincidencia** —el respaldo vale lo mismo
+ * que la tarifa— y no por diseño: al vencer, esta RPC devuelve null y la fuente
+ * pasa a ser una constante del código, no la última fila de la base. Cerrarlo de
+ * verdad es backend (que la lectura no dependa de la vigencia).
  *
  * `app/api/**` está fuera de la frontera ESLint público↔ERP, así que puede
  * importar `lib/public/*` (mismo argumento que `app/api/registro/check`).
+ *
+ * Hoy devuelve `{ per_cbm: 850, min_charge: 50, valid_until: "2026-11-29" }`.
  *
  * Respuesta: `{ per_cbm, min_charge, valid_until }`, o `{ per_cbm: null }` si no
  * hay tarifa pública vigente. NUNCA 500: la guía tiene su propio fallback y un

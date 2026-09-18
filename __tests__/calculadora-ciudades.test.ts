@@ -31,7 +31,7 @@ describe("calcularEnvioLCL con ciudades inyectadas", () => {
     // La DB dice $200/m³; el respaldo diría $123,60. Manda la DB — que es lo
     // que permite editar precios desde el ERP sin deploy.
     expect(cot.recargoCiudad).toBe(200);
-    expect(cot.total).toBe(1000);
+    expect(cot.total).toBe(1050);
   });
 
   it("ciudad inyectada SIN precio → deriva al asesor, no inventa un número", () => {
@@ -54,7 +54,7 @@ describe("calcularEnvioLCL con ciudades inyectadas", () => {
       dbCities,
     );
     expect(cot.recargoCiudad).toBe(0);
-    expect(cot.total).toBe(800);
+    expect(cot.total).toBe(850);
   });
 
   it("ciudad que NO está en la lista inyectada → alerta ciudad_invalida", () => {
