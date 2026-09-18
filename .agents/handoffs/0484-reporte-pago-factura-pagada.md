@@ -1,15 +1,19 @@
 # Handoff 0484 — Reportes de pago frente a una factura ya pagada
 
-- Fecha: 2026-09-18. Estado de la tarea: **lista para revisión**, sin publicar. La
-  0464 **NO está aplicada**: requiere el OK nominal de Sam y la aplica el Director.
-  La SDD queda `in-progress` hasta que se aplique.
+- Fecha: 2026-09-18. Estado de la tarea: **lista para revisión**. Se publica
+  como **PR draft** contra `main` por pedido de Sam («trae main y abre la PR en
+  draft»). La 0464 **NO está aplicada**: requiere el OK nominal de Sam y la
+  aplica el Director. La SDD queda `in-progress` hasta que se aplique.
 - Owner / sesión: `claude-worker-reporte-pago-factura-pagada` (Claude Opus 5,
   Worker, sesión «Revisar confirmación de pagos en facturas ya pagadas»).
   Director: `dtdcargo-18`.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/reporte-pago-factura-pagada`.
 - Rama: `codex/reporte-pago-factura-pagada`, desde `origin/main` = `1d80c18a`.
-  Main ya avanzó a `cc15e48c` (#145); traerlo toca en el turno de integración
-  que asigne el Director.
+  `origin/main` se trajo dos veces, sin conflictos:
+  - `8deac83a`: `cc15e48c` (#145, SDD-0481); el driver de registros resolvió
+    `docs/specs/README.md`;
+  - `594f8b2e`: `1b64bdae` (#147, comentarios y docs), en el turno de
+    publicación que dio el Director.
 - SDD: [0484](../../docs/specs/0484-reporte-pago-factura-pagada/spec.md). La
   reservó el Director en `codex/sdd-reserve-0484-reporte-pago-factura-pagada`
   (441f4834 + f220cea0, traídos por cherry-pick). Migración asignada: `0464`,
@@ -101,7 +105,10 @@ Director.
 | `eslint` de los 4 archivos TS/MJS tocados | **PASÓ** |
 | `vitest run scripts/check-migrations-applied.test.mjs scripts/check-pending-migration-symbols.test.mjs` | **PASÓ**: 42/42. Con `node --test` da un falso rojo porque son archivos de Vitest |
 | `pnpm governance:check` / `git diff --check` | **PASÓ** |
-| `pnpm verify` | **NO EJECUTADO**: el Director pidió no correr suites completas con la CPU saturada |
+| Después del merge `8deac83a` (`cc15e48c`): `docs:index` (sin cambios, 469 specs), `docs:check`, `sdd:check`, símbolos y `governance:check` | **PASÓ** |
+| Después del merge `8deac83a`: `pnpm typecheck` y `vitest` focal (PGlite 0464, transporte y consumidores TS, gates de migraciones) | **PASÓ**: 338/338 |
+| Después del merge `594f8b2e` (`1b64bdae`): `docs:index` (sin cambios), `docs:check`, `sdd:check`, símbolos y el `vitest` focal TS | **PASÓ**: 281/281. #147 sólo trae comentarios y docs, sin solaparse con esta rama |
+| `pnpm verify` | Se corre en el turno de máquina que asignó el Director; el resultado queda en el commit siguiente |
 | `migrations-applied` | **NO EJECUTADO**: da SKIP en worktrees sin credenciales, y la 0464 está declarada como espera |
 
 ## COMMITS
@@ -115,7 +122,10 @@ Sobre `1d80c18a`, en este orden:
   `migrations-baseline.json`.
 - `fda76c80` `feat(studio)`: los dos códigos nuevos en `REJECTIONS` y sus pruebas.
 - `9a907f51` `docs(SDD-0484)`: la spec y el índice regenerado.
-- El commit que contiene este documento: `docs(handoff)`.
+- `8d65642e` `docs(handoff)`: primera versión de este documento.
+- `8deac83a`: merge de `origin/main` (`cc15e48c`), sin conflictos.
+- El commit que contiene esta versión: `docs(handoff)`, con el merge y la
+  publicación.
 
 Identidad del archivo a aplicar: `0464_reporte_pago_factura_pagada.sql`, md5
 `44fabe4d2643844fbe489e2ba88fa4fb`, 22209 bytes, LF. Cuerpo de la función:
@@ -123,13 +133,15 @@ md5(prosrc) `c3aab7fcb10e3bf5de0fa40cc562a45d`.
 
 ## PR / BRANCH
 
-Sin PR. Rama `codex/reporte-pago-factura-pagada`, base `main`. Sin push hasta que
-el Director dé el turno.
+Rama `codex/reporte-pago-factura-pagada`, publicada con un push de la propia rama
+y **PR draft** contra `main`. Pidió abrirla Sam en el chat de esta sesión. La URL
+queda en la PR y en el reporte al Director. Para no congelar la rama, el
+resultado del CI va por mensaje y no en otro commit.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Que el Director revise y dé el turno de integración: traer `origin/main`
-  (`cc15e48c` o posterior) y repetir las pruebas afectadas.
+- Que el Director revise y decida el orden de integración, que es quien serializa
+  los merges. Si `main` avanza, traerlo otra vez y repetir lo afectado.
 - `pnpm verify` completo cuando la CPU lo permita.
 - Release, fuera del Worker: desplegar la app primero; después, con OK nominal de
   Sam, aplicar la 0464 leyendo antes en producción `md5(prosrc)` de
@@ -170,9 +182,9 @@ el Director dé el turno.
 - La 0464 no bloquea L14 en ningún orden. El orden que propongo es: despliegue de
   la app con el mapa de errores y, después, la 0464.
 - Sesiones consumidoras: ninguna fuera de esta.
-- Ownership: el claim `claude-worker-reporte-pago-factura-pagada` sigue
-  **retenido**. Falta escribir en el turno de integración: traer main y
-  publicar la rama. Se libera al terminar esa escritura.
+- Ownership: el claim `claude-worker-reporte-pago-factura-pagada` se libera
+  después del push, cuando termina la escritura. Si hay que corregir algo por
+  CI o por la revisión, se vuelve a reclamar.
 
 ## Impacto documental y conocimiento
 
