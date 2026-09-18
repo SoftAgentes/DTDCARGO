@@ -1,8 +1,14 @@
 ---
-id: 0486
-slug: estabilizar-pruebas-intermitentes
-status: reserved
+sdd: "0486"
+title: "RESERVADO — Las pruebas intermitentes de la suite dejan de dar rojos falsos"
+status: draft
+author: "Director dtdcargo-18"
+created: 2026-09-18
+updated: 2026-09-18
+supersedes: null
+superseded_by: null
 related: ["0479"]
+confidencialidad: interna
 ---
 
 # SDD-0486 — Las pruebas intermitentes de la suite dejan de dar rojos falsos
