@@ -13,7 +13,15 @@
 - Autorización: encargo de Sam. Cubre commits locales, publicar esta rama y abrir su PR contra
   `main` después de reportarle al Director. No cubre merge ni escritura en producción. En
   producción solo se permite leer metadata (`list_migrations`), sin filas de negocio.
-- Estado de tarea: en-progreso.
+- Turno y publicación, texto literal del Director (`dtdcargo-18`), 2026-09-18:
+
+  > TU TURNO. Vas antes que baterías, porque ya estás listo. […] Si todo da PASÓ, haz un solo
+  > push y **abre la PR contra main** sin esperar otra respuesta mía. Te autorizo desde ahora.
+  > Después mándame el número de la PR y el SHA.
+
+  Esto cubre el push de esta rama a sí misma y abrir la PR. No cubre el merge, que hace el
+  Director.
+- Estado de tarea: lista-para-revision.
 
 ## OBJETIVO ORIGINAL
 
@@ -81,19 +89,45 @@ No se tocaron:
 
 | Migración | Versión del ledger | Aplicada | Fuente |
 | --- | --- | --- | --- |
-| `0447_identity_photo_replacement_privacy_gate` | `20260910164232` | 2026-09-10 | Leída por el Director (`dtdcargo-18`) en producción el 2026-09-18, solo metadata. Coincide con `mapa-de-borrado.md` y `fotos-identidad-cliente-v1.md` de main `cc15e48c` |
-| `0458_tarifa_lectura_sin_vigencia` | `20260918040814` | 2026-09-18 | Leída por el Director, igual que la anterior. Coincide con `.agents/handoffs/0458-aplicacion-prod-20260918.md` y con SDD-0476 § Aplicación |
-| `0461_identity_photo_replacement_enable` | `20260918174236` | 2026-09-18 | Leída por el Director, igual que las anteriores. Coincide con `fotos-identidad-cliente-v1.md` y `mapa-de-borrado.md` de main `cc15e48c` |
+| `0447_identity_photo_replacement_privacy_gate` | `20260910164232` | 2026-09-10 | Leída en producción el 2026-09-18, solo metadata, primero por el Director (`dtdcargo-18`) y después con `list_migrations` desde esta sesión. Coincide con `mapa-de-borrado.md` y `fotos-identidad-cliente-v1.md` de main `cc15e48c` |
+| `0458_tarifa_lectura_sin_vigencia` | `20260918040814` | 2026-09-18 | Mismas dos lecturas. Coincide con `.agents/handoffs/0458-aplicacion-prod-20260918.md` y con SDD-0476 § Aplicación |
+| `0461_identity_photo_replacement_enable` | `20260918174236` | 2026-09-18 | Mismas dos lecturas. Coincide con `fotos-identidad-cliente-v1.md` y `mapa-de-borrado.md` de main `cc15e48c` |
 
-- `list_migrations` desde esta sesión: **NO DISPONIBLE**. El conector de Supabase figuraba
-  `pending` y sus herramientas no llegaron a cargarse. El Director hizo la lectura para que la
-  tarea no dependiera del conector.
-- `supabase/migrations-baseline.json › pendingBelowCutoff` en la base solo tiene `0422` y
-  `0423`: ni 0447 ni 0458 figuran.
+- `list_migrations` desde esta sesión, proyecto `xpfuzqombmjmxvprjgmi`, 2026-09-18 poco antes de
+  las 18:47 de Caracas (22:47 UTC), solo metadata. Confirma las tres filas con la misma versión
+  y el mismo nombre:
+  `20260910164232 · 0447_identity_photo_replacement_privacy_gate`,
+  `20260918040814 · 0458_tarifa_lectura_sin_vigencia` y
+  `20260918174236 · 0461_identity_photo_replacement_enable`. De paso confirma
+  `20260910165737 · 0446_portal_profile_functional_remediation`, que se cita en FUERA DE ALCANCE.
+  - Al principio de la sesión el conector figuraba `pending` y sus herramientas no estaban
+    cargadas. Por eso el Director hizo primero la lectura y los textos se escribieron con ella.
+  - Las herramientas cargaron más tarde, al llegar el turno, y esta confirmación propia se hizo
+    antes del merge y del push.
+  - Las fechas son las mismas en UTC y en hora de Caracas.
+- `supabase/migrations-baseline.json › pendingBelowCutoff`, tanto en la base como en main
+  `cc15e48c`, solo tiene `0422` y `0423`: ni 0447, ni 0458, ni 0461 figuran.
 
 ## VALIDACIÓN
 
-Corridas en el worktree, sobre `f238c0e5`, antes de traer main. La base es `1d80c18a`.
+### Sobre el merge `f7b65252`, que es lo que se publica
+
+Sus padres son `9ddc9c98` y main `cc15e48c`. Main se trajo con su propio driver, y el driver no
+llegó a actuar porque la rama no toca los registros generados. El commit que contiene este
+documento solo modifica este archivo.
+
+| Comprobación | Alcance | Resultado |
+| --- | --- | --- |
+| Diff neto contra main | `git diff --stat origin/main HEAD` | Exactamente los 5 archivos de la tarea: este handoff, `route.ts`, el README de privacidad, la spec 0476 y `rates-queries.ts` |
+| Dependencias | `package.json` y `pnpm-lock.yaml` entre la base y main | Sin cambios, así que el `node_modules` del worktree sigue siendo válido |
+| `git diff --check origin/main HEAD` | diff neto contra main | **PASÓ** |
+| `corepack pnpm docs:index` y después `docs:check` | índice de specs regenerado con el script | **PASÓ**: 468 specs y 13 huecos. Regenerar no cambió nada |
+| `corepack pnpm typecheck` | repo completo, exit tomado del proceso | **PASÓ**: exit 0 |
+| JS emitido sin comentarios, igual a main | `route.ts` y `rates-queries.ts` contra `origin/main` `cc15e48c` | **PASÓ**: idéntico en los dos; el control positivo sí cambia el JS |
+| Las 4 pruebas focales, de a una con `--pool=threads --maxWorkers=1` | las mismas de abajo | **PASÓ**: route 6, combinar-destinos 7, public-cbm-rate.migration 11 y calculadora-respaldo-alineado 6, con 1 archivo en cada corrida |
+| `list_migrations` propio | metadata del ledger | **PASÓ**: 0447, 0458 y 0461 con las versiones citadas (ver FECHAS Y LEDGERS) |
+
+### Antes del merge, sobre `f238c0e5` (base `1d80c18a`)
 
 | Comprobación | Alcance | Resultado |
 | --- | --- | --- |
@@ -106,11 +140,11 @@ Corridas en el worktree, sobre `f238c0e5`, antes de traer main. La base es `1d80
 | `vitest run lib/public/public-cbm-rate.migration.test.ts` | la RPC de la 0458 en PGlite, es decir, lo que describen los comentarios | **PASÓ**: 1 archivo, 11 tests |
 | `vitest run __tests__/calculadora-respaldo-alineado.test.ts` | el respaldo `CONFIG.tarifaBaseCBM` que citan los comentarios | **PASÓ**: 1 archivo, 6 tests |
 | `pnpm verify` | — | **NO EJECUTADO**. El cambio solo toca comentarios y prosa, y el JS sin comentarios es idéntico al de la base. Se corrieron las comprobaciones que pidieron el encargo y el Director. En esta máquina el paso `test` de verify falla por timeouts ajenos incluso sin carga (ver memoria del proyecto), así que no aportaría evidencia sobre este cambio |
-| `list_migrations` desde esta sesión | metadata del ledger | **NO DISPONIBLE**: el conector de Supabase quedó `pending`. Las versiones las leyó el Director en producción (ver FECHAS Y LEDGERS) |
+| `list_migrations` desde esta sesión | metadata del ledger | **NO DISPONIBLE en ese momento**: el conector de Supabase estaba `pending`. Los textos se escribieron con la lectura del Director, y después se confirmó con una lectura propia (tabla de arriba) |
 | `knowledge:status` | worktree nuevo | **EJECUTADO**, `ok: false`. Estructural `INVALID` porque falta `graphify-out/graph.json` en el worktree nuevo. Semántico `INVALID` con 0/1103; piloto `PENDING` con 0/16; Archify `PENDING` (`ARCHIFY_RUNTIME_MISSING`); Obsidian `PENDING`, 0 conflictos |
 | Recibo semántico | — | **NO APLICA**: ninguno de los 4 archivos está en `semanticPilot` (`canonical-16-2026-09-16`). README y spec quedan como pendiente global visible |
 | Archify (`knowledge:visual` y `knowledge:visual:check`) | — | **NO APLICA**: ninguno de los 4 archivos es fuente del mapa (comprobado contra `scripts/knowledge-visual-evidence.json` y `docs/architecture/knowledge-lifecycle.archify.json`). Además el runtime 2.16.0 no está en el worktree |
-| `graphify update .` (estructural) | — | **NO EJECUTADO**: CPU de la máquina al 100 % en 5 de 5 muestras, con suites de otras sesiones corriendo. Construir el grafo desde cero (5 min 51 s en el worktree de la 0458) habría agregado contención. En el código el cambio es solo de comentarios |
+| `graphify update .` (estructural) | — | **NO EJECUTADO**: la CPU de la máquina estaba al 100 % en 5 de 5 muestras, con suites de otras sesiones corriendo. Construir el grafo desde cero habría agregado contención; en el worktree de la 0458 tardó 5 min 51 s. El Director confirmó la saturación al dar el turno: «La CPU está saturada por otras sesiones: no corras la suite completa». En el código, el cambio es solo de comentarios |
 | `knowledge:publish --preview` | — | **NO DISPONIBLE**: `ok: false`, «No hay grafo comprobable para publicar». Depende del grafo de la fila anterior |
 | CI alojado «Calidad local sin secretos» | — | **PENDIENTE**: corre al publicar. El resultado va al Director por mensaje; no se empuja a la rama |
 
@@ -119,21 +153,26 @@ Corridas en el worktree, sobre `f238c0e5`, antes de traer main. La base es `1d80
 - `9eb97ca4`, `docs(privacidad)`: la fila de `revision-0445` ya no da la 0447 por pendiente.
 - `f238c0e5`, `docs(SDD-0476)`: `route.ts` y `rates-queries.ts` describen la 0458 aplicada, y
   SDD-0476 § Seguimiento registra por qué.
-- El commit que contiene este documento: `docs(handoff)`.
+- `9ddc9c98`, `docs(handoff)`: primera versión de este documento.
+- `f7b65252`: merge de `origin/main` `cc15e48c`. Entra la #145 (SDD-0481/0461) y el merge sale
+  sin conflictos.
+- El commit que contiene este documento: `docs(handoff)`, con el cierre y la validación sobre
+  el merge. Su hash y el número de la PR se le mandan al Director por mensaje: registrarlos
+  aquí obligaría a otro push.
 
 ## PR / BRANCH
 
-Rama `codex/textos-0447-0458-aplicadas`, base `main`, worktree de arriba. Sin publicar todavía:
-el Director fija el turno, después de `dtdcargo-d5`.
+- Rama `codex/textos-0447-0458-aplicadas` y worktree de arriba.
+- Se publica con un solo push (`git push -u origin codex/textos-0447-0458-aplicadas`) y la PR se
+  abre contra `main` enseguida, con la autorización del turno.
+- Después del push la rama queda congelada hasta que el Director integre.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Cuando el Director dé el turno: traer `origin/main` a esta rama (merge, sin rebase), repetir
-   `git diff --check`, `docs:check`, `typecheck` y las 4 pruebas, y actualizar este documento.
-2. Mandarle al Director el SHA final antes de abrir la PR.
-3. Publicar la rama (`git push -u origin codex/textos-0447-0458-aplicadas`) y abrir la PR contra
-   `main`. Después, la rama queda congelada.
-4. Mandarle al Director, por mensaje, el resultado del CI alojado.
+1. Mandarle al Director, por mensaje, el resultado del CI alojado sobre el head publicado, sin
+   empujar a la rama.
+
+Ninguno más para la aceptación: los cuatro textos están corregidos y validados sobre el merge.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -142,14 +181,17 @@ tocados:
 
 1. **`docs/specs/0439-portal-cliente-edicion-de-perfil/spec.md:112`** dice
    «`0446_portal_profile_functional_remediation.sql` (pendiente)» y «hasta decidir su
-   aplicación». La 0446 se aplicó el 2026-09-10 (ledger `20260910165737`, según
-   `fotos-identidad-cliente-v1.md` de main). La conservación de `SDD-0435` en el comentario SQL
+   aplicación». La 0446 se aplicó el 2026-09-10: ledger `20260910165737`, confirmado con
+   `list_migrations` desde esta sesión. La conservación de `SDD-0435` en el comentario SQL
    sigue siendo correcta, porque la cabecera aplicada no se reescribe. Lo que quedó viejo es el
    «(pendiente)».
 2. **`docs/legal/privacidad/fotos-identidad-cliente-v1.md`, § 7, control 3**, dice «La migración
    funcional 0446 lo implementa por separado; falta su merge, aplicación nominal y verificación
    Cloud». La tabla «Actualización 2026-09-18 · SDD-0481» del mismo documento ya da el control 3
    por cumplido, pero el texto del control no se actualizó.
+
+Destino, fijado por el Director el 2026-09-18: los dos se los pasa a `dtdcargo-63`, que va a
+editar esos archivos en la SDD-0482. No entran en esta PR.
 
 Revisados y descartados, porque están fechados y seguidos de su actualización:
 
@@ -160,9 +202,9 @@ Revisados y descartados, porque están fechados y seguidos de su actualización:
 
 ## HANDOFF AL DIRECTOR
 
-- Siguiente acción: dar el turno. Con eso el Worker trae main, repite las comprobaciones, manda
-  el SHA y abre la PR.
-- Revisión: son 4 archivos, solo prosa y comentarios. Conviene mirar:
+- Siguiente acción: revisar la PR, esperar el check obligatorio sobre el head publicado e
+  integrar según la cola. El Worker no toca la rama después del push.
+- Revisión: son 4 archivos más este handoff, solo prosa y comentarios. Conviene mirar:
   - la redacción de la fila del README, que cita la 0447 y la 0461;
   - la atribución en SDD-0476 § Seguimiento;
   - que los `.sql` aplicados no aparezcan en el diff.
@@ -172,4 +214,6 @@ Revisados y descartados, porque están fechados y seguidos de su actualización:
 - Conocimiento, después de integrar: `graphify update .` desde main y el pendiente semántico
   global de README y spec, que quedan fuera del piloto.
 - Sesiones consumidoras del worktree: ninguna, aparte de esta.
-- Ownership: claim `342b4f` activo mientras quede escritura; se libera al cerrar.
+- Ownership: el claim `342b4f` se libera después del push, porque la escritura terminó.
+- Cleanup: el worktree y la rama se conservan hasta que el Director limpie. Hace falta que la PR
+  esté integrada y que el cleanup tenga autorización.
