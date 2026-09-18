@@ -136,6 +136,17 @@ gracia de peso antes de recargar.
 una tarifa de $800, muerde hasta 0,0625 m³: hacen falta **3 cajas mínimas** para pagar tarifa limpia,
 contra ~2 en AsiaVen y ~1,5 en Import2Ven.
 
+> 📅 **Nota 2026-09-18 — la tarifa de DTD subió a $850/m³** el 2026-09-04 (SDD-0475; se lee en
+> `/api/public/cbm-rate`). La tabla de arriba es la foto del 2026-08-01 y los competidores **no se
+> re-verificaron**. Con $850, contra esa misma foto:
+> - la tarifa base queda **7,6 %** por debajo de AsiaVen (920) y **6,1 %** por debajo de Import2Ven
+>   ($905), no 13 % y 12 %;
+> - el piso de $50 deja de morder en **0,0588 m³** ($50 ÷ $850), no en 0,0625: con **2 cajas**
+>   mínimas ya se paga tarifa limpia (2 × 0,03 m³ = $51), igual que en AsiaVen. Es lo que muestra hoy
+>   la calculadora: «Nuestro mínimo son 2 cajas de 40×30×25 cm».
+>
+> Las demás filas de DTD (densidad, recargo, baterías, embalaje) no se revisaron en esta nota.
+
 ### ✅ Decisión del founder (2026-08-01): el piso se queda en $50
 
 **Es deliberado, no una brecha.** El cliente chico no es nuestro objetivo — el norte interno son
