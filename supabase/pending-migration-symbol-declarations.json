@@ -7,5 +7,53 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0478-tarifa-programada",
+      "primarySymbol": "rates.publica_programada",
+      "migration": "0459_tarifa_programada_a_futuro",
+      "symbols": [
+        {
+          "name": "rates.publica_programada",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/tarifas/actions.ts:65",
+            "app/studio/(app)/tarifas/actions.ts:97",
+            "app/studio/(app)/tarifas/actions.ts:98",
+            "app/studio/(app)/tarifas/actions.ts:100",
+            "app/studio/(app)/tarifas/_components/RateDrawer.tsx:457",
+            "app/studio/(app)/tarifas/_components/RateDrawer.tsx:494",
+            "app/studio/(app)/tarifas/_components/RateDrawer.tsx:507",
+            "app/studio/(app)/tarifas/_components/RateDrawer.tsx:508",
+            "app/studio/(app)/tarifas/_components/RateDrawer.tsx:543",
+            "app/studio/(app)/tarifas/_components/RateDrawer.tsx:544",
+            "lib/studio/rate-queries.ts:130",
+            "lib/studio/rate-types.ts:79",
+            "lib/studio/rate-types.ts:350",
+            "lib/studio/rate-types.ts:352",
+            "lib/studio/rate-types.ts:355",
+            "lib/studio/rate-types.ts:382",
+            "lib/studio/rate-types.ts:384"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/rate-queries.ts:131",
+          "contains": "if (error) return { disponible: false, programadas: [] };",
+          "degradation": "La ranura se lee en una consulta APARTE de RATE_COLUMNS. Sin 0459 la columna no existe, PostgREST responde con error y listRateSchedules devuelve disponible: false: /studio/tarifas carga igual, con la lista, la pública y sus avisos de siempre, y sólo esconde la opción de programar."
+        },
+        {
+          "site": "app/studio/(app)/tarifas/_components/RateDrawer.tsx:92",
+          "contains": "programacionDisponible && (mode === \"edit\" || priceBookEsCasa);",
+          "degradation": "Con disponible: false el drawer no dibuja la casilla «Programada» ni la marca oculta publica_programada_control. Ningún form puede pedir programar."
+        },
+        {
+          "site": "app/studio/(app)/tarifas/actions.ts:54",
+          "contains": "return formData.get(\"publica_programada_control\") === \"1\";",
+          "degradation": "Sin la marca de control, createRate y updateRate no nombran publica_programada en el insert ni en el update (programadaField devuelve {}): crear y editar tarifas funciona exactamente como antes. Lo prueba app/studio/(app)/tarifas/actions.programada.test.ts. Orden previsto: migrate-first (0459 antes del despliegue), con el que la ventana no existe."
+        }
+      ]
+    }
+  ]
 }
