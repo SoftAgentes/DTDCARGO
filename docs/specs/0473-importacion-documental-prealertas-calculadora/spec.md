@@ -246,7 +246,16 @@ el handoff de esta ampliación.
 
 **Descubrimiento.** `/cotizador` deja de declararse excluida de buscadores (apagada ya es 404) y
 entra al sitemap y al footer («Cotiza con tu proforma», en «Enlaces rápidos») sólo con la bandera
-encendida. El orden del Nav es decisión del founder (2026-07-31): no se tocó.
+encendida. **Menú principal (founder 2026-09-18: «agrega el cotizador al menú principal»):**
+«Cotizador» va después de «Tarifas», en la barra y en el menú móvil, también sólo con la bandera.
+`Nav` es componente de cliente y no puede leer la variable, así que `components/Nav.tsx` pasa a ser
+un envoltorio de servidor que la lee y renderiza `components/NavClient.tsx` (el componente de
+siempre, movido con su historia); los 30 importadores son componentes de servidor, comprobado uno
+por uno. La fila de escritorio no entraba a 1024 px (medido: `scrollWidth` 1021 contra 1009; con
+sólo bajar el hueco seguía invadiendo 24 px del margen derecho), así que entre `lg` y `xl`, y sólo
+con el cotizador, el hueco pasa a 0 y el relleno a 6 px: a 1024 sobran 18 px y quedan 17 px entre el
+logo y el primer enlace. Sin scroll horizontal a 320, 360, 375, 1024, 1100, 1279 y 1280. Con la
+bandera apagada las clases y los enlaces son exactamente los de antes (prueba + mutantes).
 
 Allowlist de esta ampliación, además de los archivos ya listados que se modifican (`access.ts`,
 `service.ts`, `jobs.ts`, `http.ts`, `estimate.ts` y sus pruebas, `DocumentImportEntry` y su
@@ -263,6 +272,9 @@ prueba, `vercel.json`, `.env.example`, `app/cotizador/page.tsx`, `app/p/[token]/
 - `app/api/cron/document-import-drain/route.test.ts`
 - `app/api/cron/document-import-cleanup/route.ts`
 - `app/api/cron/document-import-cleanup/route.test.ts`
+- `components/Nav.tsx`
+- `components/NavClient.tsx`
+- `components/Nav.cotizador.test.tsx`
 - `.agents/handoffs/0473-encender-cotizador-20260918.md`
 
 ## Aceptación
