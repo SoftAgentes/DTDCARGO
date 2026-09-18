@@ -181,19 +181,24 @@ describe("ClientDrawer · confirmación R2 del borrado (SDD-0469)", () => {
     renderDrawer();
 
     const dialog = await openDialog();
-    const confirm = () => within(dialog).getByRole("button", { name: DELETE_CLIENT_CONFIRM_LABEL });
+    // SDD-0486: el error y el fin de la transición llegan en commits distintos de
+    // React. Entre uno y otro la alerta ya está, pero el botón sigue en
+    // «Procesando…» y deshabilitado. Con `getByRole`, el reintento dependía de
+    // qué corría primero, si el Scheduler (setImmediate) o el setTimeout(0) con
+    // que RTL cierra cada findBy, y bajo carga fallaba. Se espera el botón.
+    const confirm = () => within(dialog).findByRole("button", { name: DELETE_CLIENT_CONFIRM_LABEL });
 
-    await userEvent.click(confirm());
+    await userEvent.click(await confirm());
     expect((await within(dialog).findByRole("alert")).textContent).toBe(NOT_FOUND);
     expect(mocks.onClose).not.toHaveBeenCalled();
     expect(mocks.toastShow).not.toHaveBeenCalled();
 
-    await userEvent.click(confirm());
+    await userEvent.click(await confirm());
     await waitFor(() => expect(mocks.softDeleteClientAction).toHaveBeenCalledTimes(2));
     expect((await within(dialog).findByRole("alert")).textContent).toBe(NOT_FOUND);
     expect(mocks.onClose).not.toHaveBeenCalled();
 
-    await userEvent.click(confirm());
+    await userEvent.click(await confirm());
     await waitFor(() => expect(mocks.onClose).toHaveBeenCalledTimes(1));
     expect(mocks.softDeleteClientAction).toHaveBeenCalledTimes(3);
   });
