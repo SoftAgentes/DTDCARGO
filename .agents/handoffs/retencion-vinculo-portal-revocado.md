@@ -161,7 +161,59 @@ cierre verde.
 
 - Rama `codex/retencion-vinculo-portal-revocado`, sin publicar. Requiere la autorización de Sam.
 
+## Aplicación de 0460 en producción (2026-09-18)
+
+`0460_retencion_vinculo_portal_revocado` **quedó APLICADA** a las 17:04:51 UTC, migrate-first y antes
+de integrar la #140. Conector `claude.ai Supabase`, proyecto `xpfuzqombmjmxvprjgmi`.
+
+- **Autorizaciones de Sam** (AskUserQuestion, textual):
+  - «Autorizo aplicar 0460 antes (Recomendado)» — «Autorizo aplicar 0460_retencion_vinculo_portal_revocado
+    con el runbook y confirmación del Director, justo antes de fusionar la #140. El cron sigue apagado
+    (solo cuenta).»;
+  - para hacerlo de día, después de escribir «aplicar ahora no importa»: «Sí, aplícala ya»;
+  - «Autorizo el conteo por status»: el conteo agregado de `client_users`, sin valores.
+- **Director `dtdcargo-18`:** primero recomendó esperar a la noche por la hora pico. Después confirmó la
+  ventana libre: la 0459 ya estaba cerrada y no había otras aplicaciones.
+- **Justo antes, 17:03:35Z:**
+  - 0 locks ajenos sobre `client_users`;
+  - 0 transacciones `idle in transaction` de más de 30 s y 0 activas de más de 1 min;
+  - ledger con 466 filas, la última `20260918155832` (0459).
+- **Preflight de catálogo:** se cumplieron todas sus condiciones.
+  - `client_users` tiene RLS sin FORCE, sus 14 columnas y el CHECK de status exacto.
+  - `email` e `invited_at` eran NOT NULL, sin el CHECK nuevo ni la RPC.
+  - El writer es SECURITY DEFINER y quien aplica puede ejecutarlo.
+  - `portal_invitation` está activo y los holds de 0301 están completos.
+  - `postgres` tiene BYPASSRLS.
+- **Aplicación:** `apply_migration`, name exacto, con el blob de `5c1e2999` sin modificar. Salió
+  `{"success": true}` al primer intento, sin reintentos por `lock_timeout`.
+- **Ledger:** 467 filas; `20260918170451`, 1 sentencia, md5 `d86cf096e91c58546dc7c90b032d0bc2` y 27.067
+  bytes, idénticos al blob.
+- **Postflight (los 4 puntos del Director):**
+  1. Ninguna fila cambió: por status, active 225, invited 14 y revoked 2, antes y después. 0 eventos
+     `portal_access_data_erased`.
+  2. El CHECK `client_users_erased_only_when_revoked` existe y está validado. `email` e `invited_at`
+     quedaron anulables y el CHECK de status sigue intacto.
+  3. La RPC es SECURITY DEFINER, volátil y con `search_path` vacío, con dueño `postgres`. ACL
+     `{postgres=X,service_role=X}`: `service_role` sí, y `authenticated`, `anon` y PUBLIC no. Es la
+     única firma.
+  4. Login del Portal: **pendiente de Sam** («Lo miro más tarde»).
+- **Sin cambios:** triggers, policy, ACL de `client_users` y md5 del writer.
+- **Advisors de seguridad:** idénticos antes y después (230 hallazgos, md5 `8ef43bf4…`). Ninguno nombra la
+  RPC.
+- **Registros en esta rama:**
+  - sale la espera `0460_retencion_vinculo_portal_revocado` del baseline;
+  - sale la degradación `sdd-0477-retencion-vinculo-portal-revocado`, y las declaraciones vuelven a ser
+    iguales a las de `main`;
+  - pending-migration-symbols queda en 0 ROJO · 0 AMARILLO;
+  - la spec registra la aplicación en «Producción».
+
 ## PENDIENTES DE ESTA TAREA
+
+- **Aplicar 0460: HECHO** (ver arriba). Queda el smoke del login del Portal, que hace Sam.
+- **Traer main e integrar:** cuando dtdcargo-18 pase el SHA, después de la #137 y la #144, traer main con
+  el driver y hacer un único push. Después dtdcargo-18 integra la #140, y ese merge despliega.
+- **Leer el primer dry-run del cron después del deploy.** Con esos conteos, Sam decide si activa
+  `PORTAL_REVOKED_RETENTION_ENABLED` en Vercel.
 
 - ~~Confirmación de la excepción MP-D3~~: **aprobada por Sam el 2026-09-18**, textual: «Acepto la
   excepción (Recomendado)». Queda registrada en la tabla de gobernanza de la spec.

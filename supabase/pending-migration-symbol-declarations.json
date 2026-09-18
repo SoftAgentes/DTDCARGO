@@ -7,27 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "sdd-0477-retencion-vinculo-portal-revocado",
-      "primarySymbol": "erase_revoked_portal_access_data",
-      "migration": "0460_retencion_vinculo_portal_revocado",
-      "symbols": [
-        {
-          "name": "erase_revoked_portal_access_data",
-          "kind": "function",
-          "callSites": [
-            "app/api/cron/portal-revoked-retention/route.ts:77"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "app/api/cron/portal-revoked-retention/route.ts:83",
-          "contains": "\"No se pudo aplicar la retención de vínculos revocados.\",",
-          "degradation": "Sin 0460 la RPC no existe y PostgREST responde con error: el cron devuelve 500 genérico y no borra nada, así que la retención de 30 días no corre hasta aplicar 0460. Ningún otro código la llama y el Studio no depende de ella. Orden previsto: migrate-first (0460 antes del despliegue), con el que la ventana no existe."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }

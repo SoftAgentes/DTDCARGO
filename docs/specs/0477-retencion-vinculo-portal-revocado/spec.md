@@ -376,6 +376,8 @@ tiene que cubrirlo, y el orden es migrate-first.
       reaplicación sin cambios. Contrato con control rojo y mutantes.
 - [ ] 9. Aplicada en producción con OK nominal de Sam, y el primer dry-run leído
       antes de activar el interruptor. Es de release, no de esta rama.
+      - La aplicación ya está hecha: el 2026-09-18, ver «Producción».
+      - Falta leer el primer dry-run después del deploy.
 
 ## Riesgos y límites
 
@@ -393,14 +395,37 @@ tiene que cubrirlo, y el orden es migrate-first.
 
 ## Producción
 
-Pendiente. La 0460 no está aplicada. Requiere:
-- OK nominal de Sam;
-- que el Director confirme que no hay otra aplicación en curso;
-- el runbook `docs/runbooks/aplicar-migraciones-prod.md`.
+**`0460_retencion_vinculo_portal_revocado` quedó aplicada a producción el
+2026-09-18 a las 17:04:51 UTC**, antes de integrar esta PR (migrate-first).
 
-Recomendado:
-- **Antes:** lectura de catálogo sin filas: columnas y CHECK de `client_users`,
-  `append_audit_event`, tipo `portal_invitation` y holds de 0301.
-- **Después:** postflight de catálogo, identidad del ledger contra el blob y
-  advisors. Luego el primer dry-run del cron y, con sus conteos a la vista, la
-  decisión de Sam sobre el interruptor.
+**Autorización y ventana**
+- **Sam, textual, por AskUserQuestion:** «Autorizo aplicar 0460 antes
+  (Recomendado)». Después eligió aplicarla de día: «Sí, aplícala ya».
+- **Conteo:** autorizó el conteo agregado por status, textual: «Autorizo el
+  conteo por status».
+- **Ventana:** la confirmó el Director `dtdcargo-18`. Justo antes: 0 locks
+  ajenos sobre `client_users`, 0 transacciones `idle in transaction` de más de
+  30 s y 0 transacciones activas de más de 1 min.
+
+**Evidencia**
+- **Ledger** `20260918170451`, name exacto y 1 sentencia. El md5
+  `d86cf096e91c58546dc7c90b032d0bc2` y los 27.067 bytes son iguales al blob de
+  esta rama (`5c1e2999`). Se aplicó al primer intento.
+- **Preflight de catálogo:** se cumplieron todas sus condiciones.
+- **Postflight:**
+  - ninguna fila cambió: por status, active 225, invited 14 y revoked 2, antes
+    y después, y 0 eventos `portal_access_data_erased`;
+  - el CHECK existe y está validado; `email` e `invited_at` quedaron anulables;
+  - la RPC es SECURITY DEFINER, volátil y con `search_path` vacío. Su ACL es
+    `{postgres=X,service_role=X}`: ni `anon`, ni `authenticated`, ni PUBLIC la
+    ejecutan;
+  - triggers, policy, ACL de `client_users` y writer, sin cambios.
+- **Advisors de seguridad:** idénticos antes y después (230 hallazgos, md5
+  normalizado `8ef43bf4…`), y ninguno nombra la RPC.
+
+**Pendiente**
+- **Smoke de Sam:** el login del Portal con una cuenta de cliente. Respondió
+  «Lo miro más tarde».
+- **Después del deploy de esta PR:** leer el primer dry-run del cron. Con sus
+  conteos a la vista, Sam decide si activa `PORTAL_REVOKED_RETENTION_ENABLED`.
+  Hasta entonces no se borra nada.
