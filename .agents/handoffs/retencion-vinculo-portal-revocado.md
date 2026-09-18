@@ -208,6 +208,24 @@ de integrar la #140. Conector `claude.ai Supabase`, proyecto `xpfuzqombmjmxvprjg
   - pending-migration-symbols queda en 0 ROJO · 0 AMARILLO;
   - la spec registra la aplicación en «Producción».
 
+## Puesta al día con main antes del push final
+
+- **`origin/main` `0e58762c`** (con #137, #139, #141, #142 y #144) traído en el merge `e746d137`, sin
+  conflictos. El driver dejó el baseline igual al de `main`: sólo las esperas `0422` y `0423`, sin la
+  0460. Las declaraciones también quedaron iguales a las de `main`.
+- **Comprobaciones sobre `e746d137`, todas PASÓ:**
+  - `docs:check` (467 specs) y `check-numbering`;
+  - `check-pending-migration-symbols`: 0 ROJO · 0 AMARILLO;
+  - `git diff --check`;
+  - Vitest de `portal-revoked-retention`, 17/17;
+  - `tsc --noEmit`, exit 0.
+- **NO DISPONIBLE · contrato SQL de 0460 sobre `e746d137`:** Docker Desktop no arranca («Docker Desktop is
+  unable to start»). No se reinició, porque otras sesiones pueden estar usándolo.
+  - Evidencia que lo sustituye: la migración y su contrato no cambiaron desde `75e69d76`, donde el paso
+    `sql-tests` de `verify` PASÓ. La única migración nueva que trajo main es la 0459, de tarifas, que no
+    toca `client_users`.
+  - Además, la 0460 ya está aplicada y verificada en producción.
+
 ## PENDIENTES DE ESTA TAREA
 
 - **Aplicar 0460: HECHO** (ver arriba), con el smoke del login del Portal PASÓ.
