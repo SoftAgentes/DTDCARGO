@@ -8,7 +8,13 @@
  * Soft delete button en footer (solo mode edit) con doble confirmación inline.
  */
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useState,
+  useTransition,
+  type ChangeEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import { StatusIcon } from "@/components/StatusIcon";
 import {
@@ -48,6 +54,24 @@ interface Props {
   priceBookId?: string | null;
   priceBookName?: string | null;
   priceBookEsCasa?: boolean;
+  /**
+   * SDD-0478: la ranura programada existe (migr 0459 aplicada). Sin ella la
+   * opción no se muestra y el guardado no nombra la columna.
+   */
+  programacionDisponible?: boolean;
+  /** La tarifa que se edita es hoy la programada. */
+  programada?: boolean;
+}
+
+/**
+ * Pública y programada se excluyen: marcar una desmarca la otra en el acto,
+ * en vez de dejar que el founder descubra el choque al guardar. El servidor
+ * lo vuelve a validar (validateRateInput) y la base también (check de 0459).
+ */
+function desmarcarOtra(e: ChangeEvent<HTMLInputElement>, otra: string) {
+  if (!e.currentTarget.checked) return;
+  const el = e.currentTarget.form?.elements.namedItem(otra);
+  if (el instanceof HTMLInputElement) el.checked = false;
 }
 
 const initialState: RateActionState = {};
@@ -59,7 +83,13 @@ export function RateDrawer({
   priceBookId,
   priceBookName,
   priceBookEsCasa = true,
+  programacionDisponible = false,
+  programada = false,
 }: Props) {
+  // En una lista de aliado no se ofrece: la base lo rechazaría (sólo la casa
+  // alimenta el sitio). Al editar no se conoce la lista y decide la base.
+  const ofrecerProgramacion =
+    programacionDisponible && (mode === "edit" || priceBookEsCasa);
   const action =
     mode === "edit" && rate
       ? updateRate.bind(null, rate.id)
@@ -422,6 +452,11 @@ export function RateDrawer({
                 type="checkbox"
                 className="studio-checkbox"
                 defaultChecked={rate?.is_public ?? false}
+                onChange={
+                  ofrecerProgramacion
+                    ? (e) => desmarcarOtra(e, "publica_programada")
+                    : undefined
+                }
                 style={{
                   marginTop: 2,
                   width: 16,
@@ -449,6 +484,66 @@ export function RateDrawer({
                 </span>
               </span>
             </label>
+          )}
+
+          {/* SDD-0478 · la próxima pública, cargada antes de su día */}
+          {mode$ === "per_cbm" && ofrecerProgramacion && (
+            <div>
+              <input type="hidden" name="publica_programada_control" value="1" />
+              <label
+                htmlFor="publica_programada"
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                  padding: "12px 14px",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-sm)",
+                  background: "var(--bg-elevated)",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  id="publica_programada"
+                  name="publica_programada"
+                  type="checkbox"
+                  className="studio-checkbox"
+                  defaultChecked={programada}
+                  onChange={(e) => desmarcarOtra(e, "is_public")}
+                  aria-describedby="publica_programada_ayuda"
+                  style={{
+                    marginTop: 2,
+                    width: 16,
+                    height: 16,
+                    accentColor: "var(--wine)",
+                    cursor: "pointer",
+                  }}
+                />
+                <span
+                  style={{ display: "flex", flexDirection: "column", gap: 2 }}
+                >
+                  <span
+                    style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}
+                  >
+                    Programada: reemplaza a la pública en su fecha
+                  </span>
+                  <span
+                    id="publica_programada_ayuda"
+                    style={{
+                      font: "400 12px/1.4 var(--f-sans)",
+                      color: "var(--ink-soft)",
+                    }}
+                  >
+                    Entra sola el día de «Válida desde», a las 00:05 de
+                    Venezuela, y reemplaza a la pública actual. Hasta ese día
+                    el sitio sigue cotizando con la actual.
+                  </span>
+                </span>
+              </label>
+              {state.fieldErrors?.publica_programada && (
+                <FieldError msg={state.fieldErrors.publica_programada} />
+              )}
+            </div>
           )}
 
           {/* Notas */}

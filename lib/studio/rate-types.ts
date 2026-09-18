@@ -71,8 +71,92 @@ export type RateInput = {
   valid_from: string | null;
   valid_until: string | null;
   is_public: boolean;
+  /**
+   * SDD-0478: reemplaza a la pública del calculador el día de `valid_from`.
+   * Ausente = el form no mostró la opción (migr 0459 sin aplicar) y el guardado
+   * no debe nombrar la columna.
+   */
+  publica_programada?: boolean;
   notes: string | null;
 };
+
+/**
+ * Día de hoy en Caracas, `YYYY-MM-DD`. Es el mismo día con el que decide
+ * `promover_tarifas_programadas()` (migr 0459): si el Studio usara UTC, entre
+ * las 20:00 y la medianoche de Venezuela diría «mañana» cuando el job todavía
+ * dice «hoy».
+ */
+export function hoyCaracas(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Caracas",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+/**
+ * Badge de una tarifa PROGRAMADA (SDD-0478) en /studio/tarifas.
+ * · Antes de su día: «Programada · DD/MM», el día en que entra.
+ * · El día de arranque: «Programada · hoy» — el relevo corre cada hora desde
+ *   las 00:05 de Caracas, así que por un rato puede seguir marcada.
+ * · Después de su día y todavía marcada: el relevo NO corrió. El sitio sigue
+ *   con la pública anterior; es una alarma, no un estado normal.
+ *
+ * Cortos a propósito: van en la columna «Servicio» de 170px. MEDIDOS en
+ * Nunito Sans 700 a 10,5px (Badge sm): «Programada · sin fecha» 146px, el más
+ * largo; «Programada · entra el 30/11» medía 173px y desbordaba.
+ */
+export function programadaBadge(
+  validFrom: string | null,
+  hoy: string = hoyCaracas(),
+): { label: string; tone: "info" | "danger" } {
+  if (!validFrom) return { label: "Programada · sin fecha", tone: "danger" };
+  if (validFrom < hoy) return { label: "Programada · no entró", tone: "danger" };
+  if (validFrom === hoy) return { label: "Programada · hoy", tone: "info" };
+  const [, m, d] = validFrom.split("-");
+  return { label: `Programada · ${d}/${m}`, tone: "info" };
+}
+
+/**
+ * Traduce los rechazos de la ranura programada (migr 0459) a qué hacer. null =
+ * el error no es de la ranura y lo maneja el mapeo de siempre. Va ANTES que el
+ * del aliado: el guard de la programada también dice «lista de la casa».
+ */
+export function programadaErrorMessage(
+  error: { code?: string; message?: string } | null,
+): string | null {
+  if (!error) return null;
+  const msg = error.message ?? "";
+  if (error.code === "23505" && msg.includes("rates_one_programada")) {
+    return "Ya hay otra tarifa programada para reemplazar a la pública del calculador. Edita esa o quítale la programación.";
+  }
+  if (error.code !== "23514") return null;
+  if (msg.includes("rates_publica_programada_check")) {
+    return "Una tarifa programada necesita precio por CBM y fecha «Válida desde», y no puede ser la pública a la vez.";
+  }
+  if (msg.includes("borrador")) {
+    return "Una tarifa en borrador no puede programarse: publícala primero.";
+  }
+  if (msg.includes("puede programarse")) {
+    return "Solo una tarifa de la lista de la casa puede programarse para la calculadora del sitio.";
+  }
+  return null;
+}
+
+/**
+ * Aviso de SEGUNDA pública (el índice singleton de 0255). Con la ranura
+ * programada disponible, además dice cómo dejar lista la próxima sin quitar la
+ * vigente — que es justo lo que antes obligaba a despublicarla.
+ */
+export function publicRateConflictMessage(conProgramacion: boolean): string {
+  const base = "Ya hay otra tarifa marcada como pública del calculador. Desmárcala primero.";
+  if (!conProgramacion) return base;
+  return (
+    "Ya hay otra tarifa marcada como pública del calculador. Si esta es la que sigue, " +
+    "márcala como «Programada»: entra sola el día de «Válida desde» y el sitio no se queda sin tarifa."
+  );
+}
 
 /**
  * Opciones del select de servicio en el form de Tarifas.
@@ -211,7 +295,10 @@ export type RateActionState = {
  * Validación manual del input (patrón del proyecto — sin zod).
  * Retorna {input} si pasa o {fieldErrors} si falla.
  */
-export function validateRateInput(input: Partial<RateInput>): {
+export function validateRateInput(
+  input: Partial<RateInput>,
+  hoy: string = hoyCaracas(),
+): {
   input?: RateInput;
   fieldErrors?: RateActionState["fieldErrors"];
 } {
@@ -261,6 +348,25 @@ export function validateRateInput(input: Partial<RateInput>): {
     }
   }
 
+  // SDD-0478 · la programada tiene que poder servirse el día que entra. Son
+  // las mismas reglas que el check `rates_publica_programada_check` (migr
+  // 0459), dichas antes de llegar a la base y con qué hacer.
+  if (input.publica_programada) {
+    if (input.is_public) {
+      errors.publica_programada =
+        "Elige una: pública desde ya o programada para su fecha. No puede ser las dos.";
+    } else if (!hasPerCbm) {
+      errors.publica_programada =
+        "Solo una tarifa por CBM puede programarse como la pública del calculador.";
+    }
+    if (!input.valid_from) {
+      errors.valid_from ??= "Indica desde qué día rige: ese día reemplaza a la pública.";
+    } else if (validFromOk && input.valid_from <= hoy) {
+      errors.valid_from ??=
+        "Programar es para una fecha futura. Para cambiar el precio hoy, edita la tarifa pública.";
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return { fieldErrors: errors };
   }
@@ -277,6 +383,9 @@ export function validateRateInput(input: Partial<RateInput>): {
       valid_from: input.valid_from ?? null,
       valid_until: input.valid_until ?? null,
       is_public: input.is_public ?? false,
+      ...(input.publica_programada === undefined
+        ? {}
+        : { publica_programada: input.publica_programada }),
       notes: input.notes?.trim() || null,
     },
   };

@@ -20,6 +20,23 @@ export const anonymousToken = () => randomBytes(32).toString("hex");
 export function enabled() {
   if (process.env.DOCUMENT_IMPORT_ENABLED !== "true") throw new ImportHttpError(503,"not_configured","La lectura de documentos todavía no está disponible. Puedes completar los datos manualmente.");
 }
+/**
+ * Segundo interruptor: los documentos LIGADOS A UNA COMPRA (portal del cliente,
+ * enlace del proveedor, estimados guardados). `DOCUMENT_IMPORT_ENABLED` sólo
+ * enciende el cotizador anónimo; esto exige además `DOCUMENT_IMPORT_PORTAL_ENABLED`.
+ *
+ * Por qué van separados: en cuanto una compra tiene documento compartido, el
+ * POST de `/p/[token]/packlist` responde 409 y el proveedor tiene que confirmar
+ * desde el documento — y esa pantalla del proveedor todavía no existe. Encender
+ * el portal hoy dejaría al proveedor sin ninguna vía para mandar su packing list.
+ * El cotizador no toca compras, así que puede salir sin arrastrar ese riesgo.
+ */
+export function portalEnabled() {
+  return process.env.DOCUMENT_IMPORT_ENABLED === "true" && process.env.DOCUMENT_IMPORT_PORTAL_ENABLED === "true";
+}
+export function requirePortalScope() {
+  if (!portalEnabled()) throw new ImportHttpError(503,"portal_not_enabled","Cargar documentos en tus compras todavía no está disponible. Puedes completar los datos manualmente.");
+}
 export function notFound(): never { throw new ImportHttpError(404,"not_found","Documento no disponible."); }
 
 export async function requirePortal(db: SupabaseClient): Promise<PortalClientPrincipal> {
@@ -60,6 +77,8 @@ export async function authorizeWorkspace(admin: SupabaseClient, session: Supabas
     if (!/^[a-f0-9]{64}$/.test(token) || hashToken(token) !== workspace.anonymous_hash) return notFound();
     return {kind:"anonymous",id:workspace.id};
   }
+  // Todo lo que no es anónimo es documento de compra: cliente o proveedor.
+  requirePortalScope();
   const shareToken = headers.get("x-supplier-token");
   if (shareToken) {
     if (!UUID.test(shareToken)) return notFound();

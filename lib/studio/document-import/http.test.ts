@@ -144,6 +144,8 @@ beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_HAILUWAY_API", API);
   vi.stubEnv("DOCUMENT_IMPORT_ALLOWED_ORIGINS", `no-es-una-url, ${PORTAL}`);
   vi.stubEnv("DOCUMENT_IMPORT_ENABLED", "true");
+  // Cliente y proveedor viven detrás de la segunda llave: acá, encendida.
+  vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "true");
   vi.stubEnv("DOCUMENT_IMPORT_RATE_SECRET", "s".repeat(48));
   h.getWorkspace.mockResolvedValue(workspace());
   logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -203,11 +205,32 @@ describe("Puerta HTTP de importación documental", () => {
     vi.stubEnv("DOCUMENT_IMPORT_RATE_SECRET", "");
     const res = await call({ origin: PORTAL, query: { action: "capabilities" } });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ available: false, formats: ["xlsx", "csv", "pdf"], maxBytes: 15 * 1024 * 1024 });
+    expect(await res.json()).toEqual({ available: false, portal: false, formats: ["xlsx", "csv", "pdf"], maxBytes: 15 * 1024 * 1024 });
     expect(res.headers.get("cache-control")).toBe("private, no-store");
     expect(h.state.calls).toEqual([]);
     vi.stubEnv("DOCUMENT_IMPORT_ENABLED", "true");
-    expect(await (await call({ origin: PORTAL, query: { action: "capabilities" } })).json()).toMatchObject({ available: true });
+    expect(await (await call({ origin: PORTAL, query: { action: "capabilities" } })).json()).toMatchObject({ available: true, portal: true });
+  });
+
+  it("con sólo la llave del cotizador, capabilities lo dice y lo que es de una compra se niega sin tocar sus tablas", async () => {
+    vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "false");
+    expect(await (await call({ origin: PORTAL, query: { action: "capabilities" } })).json()).toMatchObject({ available: true, portal: false });
+
+    asClient();
+    h.state.calls = [];
+    const denied = [
+      await call({ origin: PORTAL, query: { action: "purchases" } }),
+      await call({ origin: PORTAL, query: { action: "workspace", workspaceId: WORKSPACE_ID } }),
+      await post({ action: "save", workspaceId: WORKSPACE_ID, expectedRevision: 3, commandId: WORKSPACE_ID, draft: draft() }, { headers: asSupplier() }),
+    ];
+    for (const res of denied) {
+      expect(res.status).toBe(503);
+      expect(await res.json()).toMatchObject({ code: "portal_not_enabled" });
+    }
+    expect(h.state.calls.filter((c) => !c.endsWith("rpc:reserve_document_import_limit"))).toEqual([]);
+    expect(h.principal).not.toHaveBeenCalled();
+    expect(h.tokenIds).not.toHaveBeenCalled();
+    expect(h.saveWorkspace).not.toHaveBeenCalled();
   });
 
   it("con el flag apagado, toda operación real se niega y capabilities no es un portillo", async () => {

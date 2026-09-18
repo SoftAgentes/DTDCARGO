@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { calcularEnvioLCL, type CalcParams, type Ciudad, type EnvioInput } from "@/lib/calculadora";
 import { getPublicCbmRate,getPublicCalculatorConfig,getPublicCalculatorCities,getPublicCarrierTariffs,combinarDestinos,type PublicCbmRate } from "@/lib/public/rates-queries";
 import { computeDocumentTotals,confirmationIssues,parseDocumentDraft } from "@/lib/shared/document-import";
-import { authorizeWorkspace,requirePortal,ImportHttpError,type WorkspaceRow } from "./access";
+import { authorizeWorkspace,requirePortal,requirePortalScope,ImportHttpError,type WorkspaceRow } from "./access";
 import { getWorkspace } from "./service";
 
 type EstimateRates={rate:PublicCbmRate;params:CalcParams;cities:Ciudad[]};
@@ -48,6 +48,9 @@ export async function estimateForRequest(admin:SupabaseClient,session:SupabaseCl
   if(!Array.isArray(body.workspaceIds) || body.workspaceIds.length>50) throw new ImportHttpError(400,"invalid_selection","Selecciona los documentos para calcular.");
   const ids=body.workspaceIds.map(String);
   if(new Set(ids).size!==ids.length) throw new ImportHttpError(400,"duplicate_selection","Cada compra se incluye una sola vez.");
+  // Varias compras o guardar el estimado son cosas del portal: sin su interruptor,
+  // sólo se cotiza el documento anónimo del cotizador. Se niega ANTES de calcular.
+  if(ids.length>1 || body.save===true) requirePortalScope();
   if(ids.length>1) await requirePortal(session);
   const workspaces:WorkspaceRow[]=[];
   for(const id of ids){const w=await getWorkspace(admin,id);const actor=await authorizeWorkspace(admin,session,w,headers);

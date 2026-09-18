@@ -94,7 +94,9 @@ describe("calc CBM/LCL en /tarifas + FCL en /fcl + Footer sin /estimacion", () =
   });
 
   it("el nav público apunta a la calc CBM/LCL; el FAB del portal a FCL (founder 2026-07-22)", () => {
-    expect(read("components/Nav.tsx")).toContain('{ href: "/tarifas", label: "Tarifas" }');
+    // SDD-0473: la lista de enlaces vive en NavClient.tsx; Nav.tsx es el envoltorio de
+    // servidor que decide si el menú lleva el cotizador.
+    expect(read("components/NavClient.tsx")).toContain('{ href: "/tarifas", label: "Tarifas" }');
     const fab = read("app/portal/_components/PortalCalcFab.tsx");
     expect(fab).toContain("/fcl/embed?theme=");
     expect(fab).not.toContain('src={`/tarifas/embed');
