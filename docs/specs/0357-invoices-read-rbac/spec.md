@@ -4,7 +4,7 @@ title: Cerrar lectura cruda de facturas por rol y principal Portal
 status: done
 author: Codex
 created: 2026-09-02
-updated: 2026-09-02
+updated: 2026-09-18
 supersedes: null
 superseded_by: null
 related:
@@ -18,6 +18,26 @@ confidencialidad: interno
 ---
 
 # SDD-0357 — Lectura de facturas con autorización completa
+
+> **Nota de aplicación — 2026-09-18.** `0414_invoices_read_rbac` **quedó aplicada a producción**
+> el 2026-09-18 a las 05:18:01 UTC. La aplicó el Worker `dtdcargo-09`, con autorización nominal de
+> Sam y confirmación del Director `dtdcargo-18`, después de la 0415. Registro completo en
+> `.agents/handoffs/0414-0415-aplicacion-prod-20260918.md`.
+>
+> - **Autorización de Sam** (AskUserQuestion, textual): «A y C OK, autorizo ambas» — «Autorizo
+>   aplicar 0415_mail_logs_read_rbac y 0414_invoices_read_rbac, de a una, con el runbook y cuando el
+>   Director lo confirme.». Tras la 0415 repitió A1 y respondió «A1 OK, aplica la 0414».
+> - **Ledger:** `20260918051801`, name exacto, 1 sentencia, md5
+>   `aeccccf65130ef47602b0b6f4a3c8f4e` y 4.804 bytes, iguales al blob de `main`.
+> - **Postflight de catálogo:**
+>   - `invoices_team_select` ya no existe;
+>   - `invoices_accounting_select` es SELECT para accounting y admin del tenant;
+>   - «invoices portal self read» quedó con la misma expresión de 0452 (md5 idéntico);
+>   - insert y update sin cambios, y ACL sin DELETE;
+>   - las tres fachadas 0411–0413 sin cambios.
+> - **Advisors de seguridad:** idénticos antes y después.
+> - **Smoke posterior de Sam** con un rol no financiero, C1 a C3: «C1 a C3 OK».
+> - La espera sale de `supabase/migrations-baseline.json` en la rama del registro.
 
 > **Nota de importación — 2026-09-12; actualizada el 2026-09-13.** Esta spec se importa desde la PR
 > #21 (`ea9952a4`; commit `702de3f4`) con su contenido original, `status: done` incluido: ese estado
