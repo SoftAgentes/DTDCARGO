@@ -80,7 +80,8 @@ siendo $850.
 ### La red
 
 [`__tests__/calculadora-respaldo-alineado.test.ts`](../../../__tests__/calculadora-respaldo-alineado.test.ts)
-ancla `tarifaBaseCBM`, `pesoIncluidoKg` y `minimoFacturable`.
+ancla los cuatro: `tarifaBaseCBM`, `pesoIncluidoKg`, `minimoFacturable` y
+`CONSOLIDADO_CBM_RATE`.
 
 No puede comparar contra la DB —el CI corre sin credenciales, y por eso el paso
 `migrations-applied` de `verify` sale SKIP—, así que ancla los números con su
@@ -92,6 +93,12 @@ nada». **Es falso**: subir la constante puso **20 aserciones en rojo** en
 `calculadora.test.ts` y `calculadora-minimo-en-cajas.test.ts`, que están escritas
 con literales y su aritmética a la vista (`// 0.3 × 850`). Esa red existía.
 
+En e2e había **5 aserciones más** del mismo tipo (`9,600` = 12 m³ × $800, en
+`calc-event`, `calculadora-hidratacion` y `calculadora-sin-peso`): sin Supabase
+el e2e cotiza con el respaldo, así que se mueven con la constante. El CI no las
+ve —`quality.yml` no corre Playwright— y las encontró `pnpm verify` al cerrar:
+12 fallos (4 pruebas × 3 navegadores).
+
 Entonces la pregunta real es otra: **¿cómo se coló la desalineación, si había
 tests?** Porque los tests protegen contra un cambio accidental del código, no
 contra que el ERP cambie y el código se quede quieto. Nadie tocó la constante —
@@ -99,8 +106,8 @@ contra que el ERP cambie y el código se quede quieto. Nadie tocó la constante 
 
 Lo que este archivo aporta, entonces, no es «la red que faltaba» sino **dejar
 escrito cuál es el valor del ERP y de dónde salió**, para que una revisión futura
-tenga contra qué contrastar. Los 20 valores derivados se actualizaron literal por
-literal, con la aritmética recalculada en cada comentario.
+tenga contra qué contrastar. Los 20 valores derivados de vitest y los 5 de e2e se
+actualizaron literal por literal, con la aritmética recalculada en cada comentario.
 
 El cuerpo del test dice qué hacer si sale rojo: comprobar el ERP y alinear el
 código con eso, no cambiar el número esperado a ciegas.
