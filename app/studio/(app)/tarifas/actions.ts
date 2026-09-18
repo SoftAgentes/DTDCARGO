@@ -15,6 +15,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
+  programadaErrorMessage,
+  publicRateConflictMessage,
   validateRateInput,
   type RateActionState,
   type RateInput,
@@ -42,6 +44,16 @@ function parseStringOrNull(v: FormDataEntryValue | null): string | null {
   return s === "" ? null : s;
 }
 
+/**
+ * ¿El drawer mostró la opción «Programada» (SDD-0478)? Sólo la muestra cuando
+ * la consulta de la ranura funcionó, o sea con la migr 0459 aplicada. Sin esta
+ * marca el guardado NO nombra `publica_programada`: la columna podría no
+ * existir todavía y PostgREST rechazaría el insert entero.
+ */
+function programacionEnForm(formData: FormData): boolean {
+  return formData.get("publica_programada_control") === "1";
+}
+
 function inputFromFormData(formData: FormData): Partial<RateInput> {
   const serviceRaw = String(formData.get("service") ?? "");
   const service = isShipmentService(serviceRaw)
@@ -49,6 +61,9 @@ function inputFromFormData(formData: FormData): Partial<RateInput> {
     : undefined;
 
   return {
+    ...(programacionEnForm(formData)
+      ? { publica_programada: formData.get("publica_programada") === "on" }
+      : {}),
     service,
     origin: parseStringOrNull(formData.get("origin")) ?? undefined,
     destination: parseStringOrNull(formData.get("destination")) ?? undefined,
@@ -70,8 +85,20 @@ function inputFromFormData(formData: FormData): Partial<RateInput> {
 }
 
 /** Mensaje amigable cuando se intenta marcar una 2ª tarifa como pública. */
-const PUBLIC_RATE_CONFLICT_MSG =
-  "Ya hay otra tarifa marcada como pública del calculador. Desmarcá esa primero.";
+const PUBLIC_RATE_CONFLICT_MSG = publicRateConflictMessage(false);
+
+/**
+ * La columna sólo viaja si el drawer mostró la opción (ver programacionEnForm).
+ * Con la opción visible siempre viaja, también en false: así desmarcarla
+ * suelta la programación.
+ */
+function programadaField(
+  input: RateInput,
+): { publica_programada: boolean } | Record<string, never> {
+  return input.publica_programada === undefined
+    ? {}
+    : { publica_programada: input.publica_programada };
+}
 
 /** ¿El error es la violación del índice único parcial de tarifa pública? */
 function isPublicRateConflict(
@@ -140,6 +167,7 @@ export async function createRate(
       valid_from: input!.valid_from,
       valid_until: input!.valid_until,
       is_public: input!.is_public,
+      ...programadaField(input!),
       notes: input!.notes,
       // La lista en la que nace (SDD-0269). Si no viene, el trigger
       // `rates_guard_price_book_t` la manda a la de la casa — que es lo que
@@ -150,8 +178,10 @@ export async function createRate(
     .single<{ id: string }>();
 
   if (error || !inserted) {
+    const programadaMsg = programadaErrorMessage(error);
+    if (programadaMsg) return { error: programadaMsg };
     if (isPublicRateConflict(error)) {
-      return { error: PUBLIC_RATE_CONFLICT_MSG };
+      return { error: publicRateConflictMessage(programacionEnForm(formData)) };
     }
     if (esTarifaDeAliadoPublicada(error)) {
       return { error: ALIADO_PUBLIC_MSG };
@@ -194,13 +224,16 @@ export async function updateRate(
       valid_from: input!.valid_from,
       valid_until: input!.valid_until,
       is_public: input!.is_public,
+      ...programadaField(input!),
       notes: input!.notes,
     })
     .eq("id", id);
 
   if (error) {
+    const programadaMsg = programadaErrorMessage(error);
+    if (programadaMsg) return { error: programadaMsg };
     if (isPublicRateConflict(error)) {
-      return { error: PUBLIC_RATE_CONFLICT_MSG };
+      return { error: publicRateConflictMessage(programacionEnForm(formData)) };
     }
     if (esTarifaDeAliadoPublicada(error)) {
       return { error: ALIADO_PUBLIC_MSG };
