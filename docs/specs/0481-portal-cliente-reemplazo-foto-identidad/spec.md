@@ -66,8 +66,11 @@ contrato funcional). Este SDD la retira por decisión de Sam.
 
 Se evaluó y **no** se adoptó borrar la anterior al confirmar el reemplazo:
 minimiza PII, pero es un hard-delete sin clasificación P0, contradice MP-D6 y
-no tiene hold. Queda como alternativa sólo si Sam la autoriza expresamente como
-excepción a MP-01; la implementación está preparada fuera de esta rama.
+no tiene hold.
+
+**Decisión de Sam (2026-09-18):** conservarla. Respuesta literal a la pregunta
+«Al reemplazar la foto de cédula/RIF, ¿qué pasa con la foto anterior?»:
+«Conservarla (Recomendado)».
 
 ## Persistencia
 
@@ -81,11 +84,19 @@ Migración `0461_identity_photo_replacement_enable.sql`:
 - documenta `client_profile_edits.previous_storage_path` como versión conservada;
 - no toca filas, grants, RLS ni la RPC.
 
-Orden con el despliegue: indistinto. App vieja + 0461 → la action vieja sigue
-cortando el reemplazo antes de subir. App nueva sin 0461 → la RPC rechaza con
-`identity_photo_replacement_temporarily_disabled`, la action retira sólo el
-objeto nuevo y muestra «El cambio de foto todavía no está activo…». El
-reemplazo real exige app nueva + 0461 aplicada.
+Orden con el despliegue: **migración primero**. Los datos quedan seguros en
+cualquier orden, pero no la experiencia del cliente:
+
+- App vieja + 0461: la action vieja sigue cortando el reemplazo antes de subir,
+  así que no cambia nada visible.
+- App nueva sin 0461: el Portal ofrece «Cambiar foto», pero la RPC rechaza con
+  `identity_photo_replacement_temporarily_disabled`. La action retira sólo el
+  objeto nuevo y muestra «El cambio de foto todavía no está activo…».
+
+Decisión de Sam (2026-09-18), a propuesta de dtdcargo-18: «Migración primero
+(Recomendado)». Es su OK nominal para
+`0461_identity_photo_replacement_enable`, aplicada por la sesión coordinadora en
+su ventana, antes de integrar esta PR.
 
 ## Datos personales · revisión VE/CN (método `revisar-datos-ve`)
 
@@ -148,9 +159,10 @@ Esta revisión técnica no constituye asesoría legal.
 
 ## Release
 
-1. Merge de la PR (despliega el código a producción).
-2. OK nominal de Sam para `0461_identity_photo_replacement_enable` y aplicación
-   individual según `docs/runbooks/aplicar-migraciones-prod.md`.
+1. Aplicar `0461_identity_photo_replacement_enable` de forma individual, según
+   `docs/runbooks/aplicar-migraciones-prod.md`. OK nominal de Sam del
+   2026-09-18; ventana y aplicación a cargo de la sesión coordinadora.
+2. Integrar la PR en su turno de la cola (despliega el código a producción).
 3. Smoke con una cuenta Portal que Sam autorice: cambiar la foto, ver que el
    contador baja uno y que en el Studio la verificación vuelve a pendiente con
    la foto nueva.

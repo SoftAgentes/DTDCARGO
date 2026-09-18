@@ -8,7 +8,7 @@
 | Rama / base | `codex/portal-cliente-editar-documento-identidad` desde `origin/main` `b43a39a5` |
 | SDD | [0481](../../docs/specs/0481-portal-cliente-reemplazo-foto-identidad/spec.md) · `in-progress` (reserva local `efc16ccc`, rama `codex/sdd-reserve-0481-portal-cliente-reemplazo-foto-identidad`, sin publicar) |
 | Migración | `0461_identity_photo_replacement_enable` (siguiente libre según `pnpm sdd:next`, 150 refs + worktrees) |
-| Estado de tarea | lista-para-revision (PR draft contra `main`) |
+| Estado de tarea | lista-para-revision (PR #145 marcada lista; se integra después de aplicar 0461) |
 | Permisos del encargo | `$WORKER` con el objetivo: commits locales. Después, Sam en el chat (2026-09-18): «publica la rama y abre la PR». **No** autoriza merge, deploy ni aplicar 0461. |
 
 ## Objetivo
@@ -27,7 +27,23 @@ hasta tres cambios».*
   `057aea5c2260562e99c757533aad55a6`, **idéntico** al cuerpo 0446 del repo
   (medido en PGlite); EXECUTE sólo `authenticated`. El preflight de 0461 pasaría.
 
-## Decisión de retención (para Sam)
+## Decisiones de Sam (2026-09-18)
+
+Respuestas literales a AskUserQuestion en esta sesión, después de que
+dtdcargo-18 frenara el merge directo:
+
+- Orden: «Migración primero (Recomendado)». Es el OK nominal para
+  `0461_identity_photo_replacement_enable`; la aplica dtdcargo-18 en su ventana,
+  detrás de la 0460, y después integra la #145 en su turno de la cola.
+- Foto anterior: «Conservarla (Recomendado)».
+
+Antes de eso, Sam había pedido «márcala lista y haz el merge». La PR se marcó
+como lista; el único intento de merge falló por usar un SHA corto en
+`--match-head-commit` y no tuvo efecto. No se reintentó: dtdcargo-18 pidió
+frenar porque el botón fallaría hasta aplicar 0461 y el merge rompería su cola
+(#137 → #144 → #146).
+
+## Retención elegida
 
 La foto sustituida **se conserva** como versión (objeto en `client-docs`, ruta
 sólo en el ledger sin grants), como diseñó 0445. Motivo: MP-01 (aprobada) §9
@@ -39,8 +55,7 @@ Alternativa evaluada y **no** aplicada: borrar la anterior al confirmar el
 reemplazo. Minimiza PII (la foto equivocada puede ser de un tercero), pero es
 una excepción a MP-01. La implementé y probé (13 mutantes muertos) antes de
 revertirla; el parche quedó fuera del repo, en el scratchpad de la sesión
-(`variante-borrar-al-reemplazar.patch`). Sólo se aplica si Sam autoriza la
-excepción.
+(`variante-borrar-al-reemplazar.patch`). Sam eligió conservar: no se aplica.
 
 ## Completado
 
@@ -92,17 +107,18 @@ excepción.
 ## PR / branch
 
 Rama `codex/portal-cliente-editar-documento-identidad` publicada con
-`git push -u origin <rama>:<rama>` y PR **draft** contra `main` (URL en
-GitHub). Es draft porque sql-tests y schema-rebuild no se midieron con Docker
-(el contrato nuevo sí corrió en PGlite) y falta la prueba visual.
+`git push -u origin <rama>:<rama>`; PR https://github.com/hailuwaycom-sketch/DTDCARGO/pull/145
+contra `main`. Se abrió en draft porque sql-tests y schema-rebuild no se midieron con
+Docker (el contrato nuevo sí corrió en PGlite) y falta la prueba visual. Por orden de Sam
+se marcó lista. El CI de `5f1359a7` quedó verde: «Calidad local sin secretos» en 17m27s,
+más Vercel y Vercel Preview Comments.
 
 ## Pendientes de esta tarea
 
-1. Revisión del Director; pasar la PR a lista cuando acepte la evidencia
-   PGlite en lugar de sql-tests/schema-rebuild con Docker, o tras correrlos.
-2. Merge (despliega a producción por Vercel) y **OK nominal para aplicar
-   `0461_identity_photo_replacement_enable`** por el runbook; retirar su espera
-   del baseline tras aplicar y verificar.
+1. dtdcargo-18 aplica `0461_identity_photo_replacement_enable` en su ventana
+   (OK nominal de Sam ya dado) y retira su espera del baseline tras verificar.
+2. dtdcargo-18 integra la #145 en su turno de la cola (despliega a
+   producción por Vercel).
 3. Smoke con cuenta Portal autorizada: cambiar la foto, contador baja uno,
    verificación vuelve a pendiente en el Studio con la foto nueva.
 4. SDD pasa a `done` sólo después de 2 y 3.
