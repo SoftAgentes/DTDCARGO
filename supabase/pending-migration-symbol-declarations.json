@@ -29,11 +29,11 @@
             "app/studio/(app)/tarifas/_components/RateDrawer.tsx:544",
             "lib/studio/rate-queries.ts:130",
             "lib/studio/rate-types.ts:79",
-            "lib/studio/rate-types.ts:350",
-            "lib/studio/rate-types.ts:352",
-            "lib/studio/rate-types.ts:355",
-            "lib/studio/rate-types.ts:382",
-            "lib/studio/rate-types.ts:384"
+            "lib/studio/rate-types.ts:354",
+            "lib/studio/rate-types.ts:356",
+            "lib/studio/rate-types.ts:359",
+            "lib/studio/rate-types.ts:386",
+            "lib/studio/rate-types.ts:388"
           ]
         }
       ],

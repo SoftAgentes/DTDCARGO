@@ -103,12 +103,20 @@ describe("validateRateInput · programada", () => {
 describe("programadaBadge", () => {
   it("antes de su día dice cuándo entra", () => {
     expect(programadaBadge("2026-11-30", HOY)).toEqual({
-      label: "Programada · entra el 30/11",
+      label: "Programada · 30/11",
       tone: "info",
     });
   });
   it("el día de arranque no alarma", () => {
-    expect(programadaBadge(HOY, HOY)).toEqual({ label: "Programada · entra hoy", tone: "info" });
+    expect(programadaBadge(HOY, HOY)).toEqual({ label: "Programada · hoy", tone: "info" });
+  });
+  it("ningún texto excede el más largo medido para la columna de 170px", () => {
+    // «Programada · sin fecha» mide 146px en Nunito Sans 700 a 10,5px: es el
+    // techo medido. Un texto más largo que ése necesita medirse otra vez.
+    const techo = "Programada · sin fecha".length;
+    for (const v of [null, "2026-11-19", HOY, "2026-11-30", "2026-12-31"]) {
+      expect(programadaBadge(v, HOY).label.length).toBeLessThanOrEqual(techo);
+    }
   });
   it("si su día pasó y sigue marcada, el relevo no corrió: alarma", () => {
     expect(programadaBadge("2026-11-19", HOY)).toEqual({

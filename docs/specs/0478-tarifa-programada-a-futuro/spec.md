@@ -216,10 +216,13 @@ hueco: el día de Caracas nunca va por delante del de UTC.
 - **Validación** (`validateRateInput`, repetida en el servidor): una programada no
   puede ser pública a la vez, tiene que ser por CBM y su «Válida desde» tiene que
   ser **futura** («Para cambiar el precio hoy, edita la tarifa pública.»).
-- **Lista** (`TarifasClient.tsx`). La programada lleva «Programada · entra el
-  30/11»; el día de arranque, «Programada · entra hoy»; si su día pasó y sigue
-  marcada, «Programada · no entró» en rojo: el relevo no corrió y el sitio sigue
-  con la anterior.
+- **Lista** (`TarifasClient.tsx`). La programada lleva «Programada · 30/11» (el
+  día en que entra); el día de arranque, «Programada · hoy»; si su día pasó y
+  sigue marcada, «Programada · no entró» en rojo: el relevo no corrió y el sitio
+  sigue con la anterior. Los textos van en la columna «Servicio» de 170px y se
+  **midieron** en Nunito Sans 700 a 10,5px: el más largo, «Programada · sin
+  fecha», ocupa 146px. La primera versión («Programada · entra el 30/11», 173px)
+  desbordaba y la corrigió `/ui-check`.
 - **Mensajes.** El aviso de segunda pública sigue y, con la ranura disponible,
   dice cómo cargar la próxima sin quitar la vigente. Los rechazos de la 0459
   (índice, check, borrador, aliado) se traducen a qué hacer. El aviso viejo pasa

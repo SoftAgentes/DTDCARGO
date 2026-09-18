@@ -97,11 +97,15 @@ export function hoyCaracas(now: Date = new Date()): string {
 
 /**
  * Badge de una tarifa PROGRAMADA (SDD-0478) en /studio/tarifas.
- * · Antes de su día: «Entra el DD/MM».
- * · El día de arranque: «Entra hoy» — el relevo corre cada hora desde las
- *   00:05 de Caracas, así que por un rato puede seguir marcada.
+ * · Antes de su día: «Programada · DD/MM», el día en que entra.
+ * · El día de arranque: «Programada · hoy» — el relevo corre cada hora desde
+ *   las 00:05 de Caracas, así que por un rato puede seguir marcada.
  * · Después de su día y todavía marcada: el relevo NO corrió. El sitio sigue
  *   con la pública anterior; es una alarma, no un estado normal.
+ *
+ * Cortos a propósito: van en la columna «Servicio» de 170px. MEDIDOS en
+ * Nunito Sans 700 a 10,5px (Badge sm): «Programada · sin fecha» 146px, el más
+ * largo; «Programada · entra el 30/11» medía 173px y desbordaba.
  */
 export function programadaBadge(
   validFrom: string | null,
@@ -109,9 +113,9 @@ export function programadaBadge(
 ): { label: string; tone: "info" | "danger" } {
   if (!validFrom) return { label: "Programada · sin fecha", tone: "danger" };
   if (validFrom < hoy) return { label: "Programada · no entró", tone: "danger" };
-  if (validFrom === hoy) return { label: "Programada · entra hoy", tone: "info" };
+  if (validFrom === hoy) return { label: "Programada · hoy", tone: "info" };
   const [, m, d] = validFrom.split("-");
-  return { label: `Programada · entra el ${d}/${m}`, tone: "info" };
+  return { label: `Programada · ${d}/${m}`, tone: "info" };
 }
 
 /**
