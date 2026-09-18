@@ -37,9 +37,11 @@ test.describe("SDD-0257 · precio sin el peso", () => {
     await escribir(cbm, "12");
     await expect(peso).toHaveValue("");
 
-    // 12 m³ × $800 = $9.600. Se afirma el número: si el precio deja de salir,
-    // este test cae — que es justo el bug que motivó la spec.
-    await expect(panel).toContainText("9,600");
+    // 12 m³ × $850 = $10.200. Se afirma el número: si el precio deja de salir,
+    // este test cae — que es justo el bug que motivó la spec. Sin Supabase el
+    // e2e cotiza con `CONFIG.tarifaBaseCBM`: el número se mueve con esa
+    // constante (SDD-0475).
+    await expect(panel).toContainText("10,200");
     await expect(panel).toContainText(/Desde/);
     await expect(panel).toContainText(/Falta el peso/i);
 
@@ -73,7 +75,7 @@ test.describe("SDD-0257 · precio sin el peso", () => {
 
     // 4.800 kg en 12 m³ no llega al techo → mismo total, pero ya es precio
     // cerrado: se van el "Desde", la píldora y la fila fantasma.
-    await expect(panel).toContainText("9,600");
+    await expect(panel).toContainText("10,200");
     await expect(panel).not.toContainText(/Falta el peso/i);
     await expect(panel).not.toContainText(/falta el peso de tu carga/i);
 

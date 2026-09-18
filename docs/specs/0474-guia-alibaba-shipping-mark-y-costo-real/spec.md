@@ -274,10 +274,11 @@ texto lo habría visto: hacía falta abrir la página.
 
 ## Fuera de alcance
 
-- **`supabase/migrations/0393_academia_widget_alibaba_curso.sql` sigue sin
-  aplicar a producción.** Una lección con `widget='alibaba_curso'` revienta el
-  CHECK `academy_lessons_widget_chk`. Necesita el OK del founder nombrándola y
-  el [runbook de producción](../../runbooks/aplicar-migraciones-prod.md).
+- ~~`0393_academia_widget_alibaba_curso.sql` sigue sin aplicar a producción.~~
+  **FALSO** — está aplicada desde el 2026-08-26 (ledger `20260826040007`),
+  comprobado contra producción el 2026-09-17. Se tomó del runbook de la Academia
+  sin verificarlo; corregido allí y en el handoff. La guía se puede embeber en
+  una lección **ya mismo**.
 - **`syncLead()` sigue siendo un `console.log`.** Perfil, nombre, WhatsApp, CBM,
   landed y scorecard se capturan y mueren en `localStorage`. El precedente de
   `/api/public/estimacion` dice que el visitante no registrado **no** genera

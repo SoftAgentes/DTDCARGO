@@ -46,7 +46,7 @@ export const CONFIG = {
   /**
    * Tarifa base por metro cúbico en USD (precio limpio sin excedente).
    *
-   * ⚠️ ESTE 800 COINCIDE A PROPÓSITO con la tarifa pública del puerta a puerta
+   * ⚠️ ESTE 850 COINCIDE A PROPÓSITO con la tarifa pública del puerta a puerta
    * que vive en la tabla `rates` del ERP (la fila `is_public`, editable desde
    * /studio/tarifas). No es casualidad y no se toca a la ligera:
    *
@@ -60,10 +60,36 @@ export const CONFIG = {
    * NÚMERO. Si no, se reabre la grieta: al vencer la vigencia el sitio empieza
    * a cotizar por debajo del precio real, en silencio.
    *
-   * El arreglo de fondo (pendiente, SDD-0164): una alerta en el ERP cuando una
-   * tarifa pública esté por vencer.
+   * 📌 Pasó exactamente eso, y por eso hoy dice 850 (SDD-0475, 2026-09-17):
+   * la migr `0336_rate_ddp_850_septiembre_2026.sql` subió la tarifa pública a
+   * $850 con `pg_cron` el 2026-09-04 y su cabecera avisaba —líneas 20-23— que
+   * ese mismo día había que subir esta constante en un deploy. No se hizo. Trece
+   * días con el ERP cobrando $850 y el respaldo en $800: ante una caída de
+   * Supabase el sitio habría cotizado **6,25% por debajo**, sin error visible.
+   * Lo mismo le había pasado antes a `pesoIncluidoKg` (ver abajo).
+   *
+   * La cifra, bien dicha: con $850 vigente y $800 de respaldo el sitio cotiza
+   * **5,88% por debajo** (50/850). El 6,25% es 50/800 — cuánto hay que SUBIR,
+   * que no es lo mismo y en una decisión de precios no son intercambiables.
+   *
+   * ⚠️ OJO CON LA VIGENCIA: la fila de $850 vale hasta el **2026-11-29**. Al
+   * vencer, la RPC devuelve null y el sitio cotiza con este 850 — correcto sólo
+   * mientras la tarifa siga siendo 850. Si se decide otro precio, hay que mover
+   * los dos: la fila en /studio/tarifas y esta constante.
+   *
+   * (Esa fecha estuvo cargada como 2026-10-04, casi dos meses antes de lo que
+   * correspondía; se corrigió en producción el 2026-09-17 — SDD-0475.)
+   *
+   * La alerta de vencimiento SÍ existe y está activa (SDD-0164, migr 0257 +
+   * `app/api/cron/rate-expiry-alert`, programado en vercel.json): avisa por
+   * Telegram y email cuando una tarifa pública está por vencer o venció. Lo que
+   * NO cubre es este respaldo — el 4-sep no hubo vencimiento, hubo un cambio de
+   * precio, y de eso no avisa nadie. Esa es la grieta que quedó.
+   *
+   * La red de CI está en `__tests__/calculadora-respaldo-alineado.test.ts`:
+   * ancla este valor y vigila la fecha de vigencia.
    */
-  tarifaBaseCBM: 800,
+  tarifaBaseCBM: 850,
 
   /**
    * Gracia de peso por CBM incluida en la tarifa base. Sobre esto = excedente.
@@ -462,7 +488,7 @@ export type EnvioInput = {
   cargaEspecial?: boolean;
   /**
    * Override de la tarifa base por CBM (USD).
-   * Si no se provee, se usa `CONFIG.tarifaBaseCBM` (default $800).
+   * Si no se provee, se usa `CONFIG.tarifaBaseCBM` (hoy $850).
    * Útil cuando el cliente tiene una cotización negociada distinta a la pública.
    */
   tarifaCBMOverride?: number;

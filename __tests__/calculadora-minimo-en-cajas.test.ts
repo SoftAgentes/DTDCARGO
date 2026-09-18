@@ -47,10 +47,10 @@ describe("cajasParaCbm", () => {
 });
 
 describe("describirVolumenEnCajas", () => {
-  it("traduce el mínimo real de hoy: 3 cajas", () => {
-    // 50 / 800 = 0,0625 m³ → 3 cajas
+  it("traduce el mínimo real de hoy: 2 cajas", () => {
+    // 50 / 850 = 0,0588 m³ → 2 cajas
     const crossover = CONFIG.minimoFacturable / CONFIG.tarifaBaseCBM;
-    expect(describirVolumenEnCajas(crossover)).toBe("3 cajas de 40×30×25 cm");
+    expect(describirVolumenEnCajas(crossover)).toBe("2 cajas de 40×30×25 cm");
   });
 
   it("el pie cúbico viene APAGADO por default", () => {
@@ -67,13 +67,13 @@ describe("describirVolumenEnCajas", () => {
     // Es lo que hace que valga la pena derivarlo. Con la tarifa al doble, el
     // mismo piso se alcanza con la mitad de volumen.
     const conTarifaDoble = CONFIG.minimoFacturable / (CONFIG.tarifaBaseCBM * 2);
-    expect(cajasParaCbm(conTarifaDoble)).toBe(2);
-    expect(describirVolumenEnCajas(conTarifaDoble)).toContain("2 cajas");
+    expect(cajasParaCbm(conTarifaDoble)).toBe(1);
+    expect(describirVolumenEnCajas(conTarifaDoble)).toContain("1 caja");
   });
 
   it("SIGUE al cálculo: si sube el piso, suben las cajas", () => {
     const conPisoAlto = 380 / CONFIG.tarifaBaseCBM; // el min_charge comercial real
-    expect(describirVolumenEnCajas(conPisoAlto)).toBe("16 cajas de 40×30×25 cm");
+    expect(describirVolumenEnCajas(conPisoAlto)).toBe("15 cajas de 40×30×25 cm");
   });
 
   it("singulariza: una caja, un pie cúbico", () => {
