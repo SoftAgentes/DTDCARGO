@@ -78,7 +78,9 @@ la RPC devuelve null, y esta spec dice lo contrario.
 
 El código de `route.ts` **no necesita cambiar**: la 0458 no altera la firma de la
 RPC ni la forma de la respuesta. Lo único que quedará desactualizado es la prosa
-de su cabecera, y se corrige **después** de integrar 0475 (ver Seguimiento).
+de su cabecera, y se corrige **en esta misma PR, después de traer main con 0475
+dentro** (ver Seguimiento). Asignado por el Director el 2026-09-17: era un
+pendiente que conocían dos sesiones y no tenía dueño.
 
 **No se aplica a producción.** La migración se escribe y se deja en el repo,
 declarada como espera en `supabase/migrations-baseline.json`. Aplicarla la
@@ -211,20 +213,48 @@ hay en esta máquina, **y el CI (`.github/workflows/quality.yml`) tampoco la
 corre**. El test de PGlite sí corre en `pnpm test` y por lo tanto en cada push.
 Es el mismo criterio que siguió la 0457 (SDD-0473), que tampoco tiene `.test.sql`.
 
-## Seguimiento (después de integrar, no en esta rama)
+## Integrar no es aplicar
+
+**Fusionar esta PR no cambia el comportamiento del sitio.** Todo el cambio de
+comportamiento vive en la migración, y la migración sólo actúa cuando se aplica a
+mano con el runbook. Comprobado contra el diff (2026-09-17):
+
+- `lib/public/rates-queries.ts`: compilado con `removeComments`, el JS de la base
+  (`4054e0a4`) y el de esta rama son **byte a byte iguales** (md5 `8342c770…`,
+  6957 bytes). Control positivo: una mutación de código sí cambia el JS emitido.
+- `app/api/public/cbm-rate/route.ts`: hasta ahora, sin cambios.
+- `lib/public/public-cbm-rate.migration.test.ts`: prueba; ningún módulo la importa.
+- `supabase/migrations-baseline.json`: lo leen sólo scripts de gate; las dos
+  menciones en `lib/` son comentarios.
+- Nada aplica migraciones al fusionar: no hay `supabase/config.toml`, ningún
+  workflow corre `db push`, Vercel sólo construye Next, y el runbook lo dice
+  explícito («Nunca es automático»).
+
+Por eso los comentarios que describen la vigencia están escritos en **condicional
+verificable**: dicen qué pasa sin la 0458 y qué pasa con ella, y cómo saber en cuál
+de los dos estados se está (`0458_…` sigue en `pendingBelowCutoff` ⟺ no se aplicó).
+Son ciertos entre el merge y la aplicación, y lo siguen siendo después.
+
+## Seguimiento
+
+**En esta misma PR**, después de traer main con la 0475 dentro:
 
 1. **`app/api/public/cbm-rate/route.ts`** — su cabecera dice «o `{ per_cbm: null }`
    si no hay tarifa pública **vigente**», y la SDD-0475 le agrega ahí el aviso de
-   que al vencer la vigencia el sitio cae a `CONFIG.tarifaBaseCBM`. Con la 0458
-   **aplicada** las dos frases dejan de ser ciertas. Se corrige en una tarea
-   posterior, **una vez integrada 0475**, para no pelear por el mismo bloque.
-2. **`lib/calculadora.ts`** — el comentario de `CONFIG.tarifaBaseCBM` explica hoy
-   la grieta del vencimiento como si fuera permanente. Mismo caso: es archivo de
-   0475, se actualiza después y sólo cuando la 0458 esté aplicada en producción.
-3. **`docs/specs/README.md`** — el índice se regenera con
-   `node scripts/build-docs-index.mjs` sobre un árbol que ya tenga **las dos**
-   specs (0475 y 0476). Regenerado desde una rama sola, declara hueca la spec de
-   la otra.
+   que al vencer la vigencia el sitio cae a `CONFIG.tarifaBaseCBM`. Esa frase es
+   cierta **sin** la 0458 y falsa **con** ella. Se reemplaza por el mismo
+   condicional verificable de `lib/public/rates-queries.ts`, escrito encima del
+   texto de 0475 para no pelear por el bloque.
+2. **`docs/specs/README.md`** — se regenera con `node scripts/build-docs-index.mjs`
+   sobre el árbol fusionado. Tienen que quedar **464** specs y 0475 fuera de los
+   huecos. Regenerado desde una rama sola, declara hueca la spec de la otra.
+3. Se empuja todo junto: **una sola corrida** del check.
+
+**Fuera de esta PR:**
+
+4. **`lib/calculadora.ts`** — el comentario de `CONFIG.tarifaBaseCBM` explica la
+   grieta del vencimiento como si fuera permanente. Es archivo de 0475; con la
+   0458 **aplicada** esa parte queda obsoleta. No se toca desde acá.
 
 ## Adjuntos
 

@@ -10,23 +10,27 @@
  * calculador cae al default hardcodeado de `lib/calculadora.ts` (cero
  * regresión).
  *
- * ⚠️ QUÉ CUENTA COMO «NO SERVIBLE» — cambia con la migración 0458 (SDD-0476),
- * que está ESCRITA PERO NO APLICADA a producción:
+ * ⚠️ QUÉ CUENTA COMO «NO SERVIBLE» depende de si la migración 0458 (SDD-0476)
+ * ya se aplicó en producción. Mientras `0458_tarifa_lectura_sin_vigencia`
+ * figure en `supabase/migrations-baseline.json › pendingBelowCutoff`, NO se
+ * aplicó (el gate `migrations-applied`, corrido con credenciales, se pone rojo
+ * si alguien retira esa entrada sin aplicarla):
  *
- *  · Hoy, con el cuerpo de la 0255 corriendo en prod, una tarifa VENCIDA deja
- *    de devolverse y el sitio cotiza con `CONFIG.tarifaBaseCBM` sin avisar. Que
- *    el cliente no vea el salto depende de que esa constante y la tarifa del
- *    ERP valgan lo mismo — es coincidencia, no mecanismo.
- *  · Después de aplicar la 0458 la vigencia deja de ser filtro de LECTURA: una
- *    tarifa vencida se sigue sirviendo, porque es el último precio que el
- *    founder puso. Renovarla es trabajo del ERP (badge de /studio/tarifas +
- *    cron `rate-expiry-alert`), y el respaldo del código queda para lo que de
- *    verdad es una caída: Supabase inalcanzable, borrador, o `is_public` sin
- *    marcar.
+ *  · Sin la 0458 (cuerpo de la 0255): una tarifa VENCIDA deja de devolverse y
+ *    el sitio cotiza con `CONFIG.tarifaBaseCBM` sin avisar. Que el cliente no
+ *    vea el salto depende de que esa constante y la tarifa del ERP valgan lo
+ *    mismo — es coincidencia, no mecanismo.
+ *  · Con la 0458: la vigencia deja de ser filtro de LECTURA. Una tarifa vencida
+ *    se sigue sirviendo, porque es el último precio que el founder puso.
+ *    Renovarla es trabajo del ERP (badge de /studio/tarifas + cron
+ *    `rate-expiry-alert`), y el respaldo del código queda para lo que de verdad
+ *    es no tener tarifa: Supabase inalcanzable, borrador, `is_public` sin marcar
+ *    o `valid_from` a futuro.
  *
  * `valid_until` viaja en los dos casos: quien necesite distinguir vigente de
  * vencida lo deriva de ahí (`valid_until != null && valid_until < hoy`). La
- * firma de la RPC no cambia con la 0458.
+ * firma de la RPC es la misma con y sin la 0458, así que este módulo no cambia
+ * al aplicarla.
  */
 
 import { getAnonClient } from "./supabase-anon";
