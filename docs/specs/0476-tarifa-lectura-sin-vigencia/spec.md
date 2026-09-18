@@ -69,18 +69,20 @@ filtro más importante del WHERE**: sin él, el sitio serviría una tarifa vací
 consumidor que quedaban mintiendo.
 
 **No entra:** el índice único, ninguna fila de datos, la firma de la RPC,
-`lib/calculadora.ts`, `CONFIG.tarifaBaseCBM` ni sus tests de anclaje, **ni el
-bloque de comentarios de `app/api/public/cbm-rate/route.ts`**. Todo eso lo está
-reescribiendo la SDD-0475 (rama `claude/respaldo-tarifa-850`, viva y sin
-fusionar), que entra primero. Tocar el mismo bloque desde acá produciría un
-conflicto **semántico**, no mecánico: 0475 escribe ahí que al vencer la vigencia
-la RPC devuelve null, y esta spec dice lo contrario.
+`lib/calculadora.ts`, `CONFIG.tarifaBaseCBM` ni sus tests de anclaje. Son de la
+SDD-0475 (rama `claude/respaldo-tarifa-850`, integrada en main por la PR #135,
+`a57ed119`).
 
-El código de `route.ts` **no necesita cambiar**: la 0458 no altera la firma de la
-RPC ni la forma de la respuesta. Lo único que quedará desactualizado es la prosa
-de su cabecera, y se corrige **en esta misma PR, después de traer main con 0475
-dentro** (ver Seguimiento). Asignado por el Director el 2026-09-17: era un
+**`app/api/public/cbm-rate/route.ts` entra sólo al final, y sólo su cabecera.**
+Mientras la 0475 estaba viva y sin fusionar, tocar ese bloque desde acá producía
+un conflicto **semántico**, no mecánico: la 0475 escribía ahí que al vencer la
+vigencia la RPC devuelve null, y esta spec dice lo contrario. Por eso se esperó a
+que la 0475 entrara en main, se trajo main y recién ahí se reescribió la cabecera
+encima de su texto (ver Seguimiento). Lo asignó el Director el 2026-09-17: era un
 pendiente que conocían dos sesiones y no tenía dueño.
+
+El código de `route.ts` **no cambia**: la 0458 no altera la firma de la RPC ni la
+forma de la respuesta.
 
 **No se aplica a producción.** La migración se escribe y se deja en el repo,
 declarada como espera en `supabase/migrations-baseline.json`. Aplicarla la
@@ -217,12 +219,16 @@ Es el mismo criterio que siguió la 0457 (SDD-0473), que tampoco tiene `.test.sq
 
 **Fusionar esta PR no cambia el comportamiento del sitio.** Todo el cambio de
 comportamiento vive en la migración, y la migración sólo actúa cuando se aplica a
-mano con el runbook. Comprobado contra el diff (2026-09-17):
+mano con el runbook. Comprobado contra el diff final, con main `a57ed119` (0475
+dentro) como base (2026-09-17):
 
-- `lib/public/rates-queries.ts`: compilado con `removeComments`, el JS de la base
-  (`4054e0a4`) y el de esta rama son **byte a byte iguales** (md5 `8342c770…`,
-  6957 bytes). Control positivo: una mutación de código sí cambia el JS emitido.
-- `app/api/public/cbm-rate/route.ts`: hasta ahora, sin cambios.
+- `lib/public/rates-queries.ts`: compilado con `removeComments`, el JS de main y
+  el de esta rama son **byte a byte iguales** (md5 `8342c770…`, 6957 bytes).
+- `app/api/public/cbm-rate/route.ts`: ídem, JS **byte a byte igual** al de main
+  (md5 `86e53df3…`, 796 bytes). Cambió sólo la cabecera.
+- En los dos, **control positivo**: una mutación de código (el `per_cbm == null`
+  en uno, el `s-maxage` en el otro) sí cambia el JS emitido, así que la
+  comparación mide algo.
 - `lib/public/public-cbm-rate.migration.test.ts`: prueba; ningún módulo la importa.
 - `supabase/migrations-baseline.json`: lo leen sólo scripts de gate; las dos
   menciones en `lib/` son comentarios.
@@ -237,24 +243,39 @@ Son ciertos entre el merge y la aplicación, y lo siguen siendo después.
 
 ## Seguimiento
 
-**En esta misma PR**, después de traer main con la 0475 dentro:
+**Hecho en esta misma PR**, después de traer main con la 0475 dentro (merge de
+`a57ed119`, 2026-09-17):
 
-1. **`app/api/public/cbm-rate/route.ts`** — su cabecera dice «o `{ per_cbm: null }`
-   si no hay tarifa pública **vigente**», y la SDD-0475 le agrega ahí el aviso de
-   que al vencer la vigencia el sitio cae a `CONFIG.tarifaBaseCBM`. Esa frase es
-   cierta **sin** la 0458 y falsa **con** ella. Se reemplaza por el mismo
-   condicional verificable de `lib/public/rates-queries.ts`, escrito encima del
-   texto de 0475 para no pelear por el bloque.
-2. **`docs/specs/README.md`** — se regenera con `node scripts/build-docs-index.mjs`
-   sobre el árbol fusionado. Tienen que quedar **464** specs y 0475 fuera de los
-   huecos. Regenerado desde una rama sola, declara hueca la spec de la otra.
-3. Se empuja todo junto: **una sola corrida** del check.
+1. **`app/api/public/cbm-rate/route.ts`** — la cabecera que dejó la 0475 afirmaba
+   sin condición que «al vencer la vigencia esta RPC devuelve null», que la
+   decisión del founder «hoy se cumple por coincidencia» y que la respuesta nula
+   es «si no hay tarifa pública vigente». Las tres son ciertas **sin** la 0458 y
+   falsas **con** ella. Se reemplazaron por el mismo condicional verificable de
+   `lib/public/rates-queries.ts`. Se conservó lo que sigue siendo cierto en los
+   dos estados: por qué no cablear el número en la guía, el respaldo en $850 de
+   la 0475 (dentro de la rama «sin la 0458») y el cron de vencimiento. El «Hoy
+   devuelve …» pasó a «Al 2026-09-17 devolvía …», por el mismo motivo.
+2. **`docs/specs/README.md`** — **464** specs y 0475 fuera de los huecos. Lo dejó
+   así el driver semántico de merge y `node scripts/build-docs-index.mjs` lo
+   confirmó sin diferencias.
+3. Se empujó todo junto: **una sola corrida** del check.
 
-**Fuera de esta PR:**
+**Fuera de esta PR** — mismo defecto, archivos de la 0475, no asignados:
 
-4. **`lib/calculadora.ts`** — el comentario de `CONFIG.tarifaBaseCBM` explica la
-   grieta del vencimiento como si fuera permanente. Es archivo de 0475; con la
-   0458 **aplicada** esa parte queda obsoleta. No se toca desde acá.
+4. **`lib/calculadora.ts:53-60` y `:76`** — el comentario de `CONFIG.tarifaBaseCBM`
+   afirma sin condición que al vencer la RPC «no devuelve NADA» y el sitio cae a
+   la constante.
+5. **`__tests__/calculadora-respaldo-alineado.test.ts:127-141`** — «🔴 PERO HOY EL
+   SISTEMA NO HACE ESO … al vencer devuelve null».
+
+Los dos son ciertos hoy y dejan de serlo el día que se aplique la 0458. El arreglo
+es el mismo condicional; queda a decisión del Director si entra en otra PR o en la
+que acompañe la aplicación.
+
+**Estado de esta spec:** queda `in-progress` a propósito. Los criterios de
+aceptación están verificados sobre Postgres embebido, pero el objetivo —que **el
+sitio** muestre la última tarifa aunque esté vencida— sólo se cumple en
+producción. Pasa a `done` cuando la 0458 esté aplicada y verificada allí.
 
 ## Adjuntos
 
