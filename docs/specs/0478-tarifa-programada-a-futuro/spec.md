@@ -115,6 +115,8 @@ exigiendo despublicar.
 | `app/studio/(app)/tarifas/_components/RateDrawer.test.tsx` | los casos de la casilla nueva |
 | `docs/specs/0478-tarifa-programada-a-futuro/spec.md`, `docs/specs/README.md` | esta spec y el índice regenerado |
 | `.agents/handoffs/0478-tarifa-programada-a-futuro.md` | el handoff |
+| `supabase/tests/0459_relevo_carrera_for_update.test.sql` | nuevo — la carrera del `for update` con dos sesiones reales (Seguimiento 3) |
+| `.agents/handoffs/0478-carrera-for-update-0459.md` | el handoff del Seguimiento 3 |
 
 ## Diseño
 
