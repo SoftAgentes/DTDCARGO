@@ -209,6 +209,10 @@ cierre verde.
   descarga no autorizada) y Obsidian `PENDING`.
 - El Director actualiza las capas desde `main` integrado. Ninguna se declara actualizada.
 
+## Antes de publicar (2026-09-18)
+
+- Se trajo `origin/main` `b43a39a5` (#138, sólo `docs/marketing/` y `public/interno/guia-peso.html`) en el merge `dd17d14e`, sin conflictos. `docs:check` y `check-pending-migration-symbols` PASÓ después del merge. Ese cambio no toca código ni pruebas de esta rama; las validaciones de arriba siguen vigentes.
+
 ## HANDOFF AL DIRECTOR
 
 - Siguiente acción: revisar la PR cuando Sam autorice publicarla.
