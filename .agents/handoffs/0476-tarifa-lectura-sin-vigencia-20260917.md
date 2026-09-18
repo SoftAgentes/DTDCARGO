@@ -172,7 +172,11 @@ Director me asignó formalmente, **en esta misma PR**, el pendiente que no tení
 4. Corregir la cabecera de `app/api/public/cbm-rate/route.ts` encima del texto de 0475.
 5. Empujar todo junto: **una sola corrida** del check.
 
-**Estado: 1, 2, 3, 4 y 5 BLOQUEADOS por la 0475.** Lo que no dependía de ella ya está hecho y
+**Estado: 1, 2, 3, 4 y 5 BLOQUEADOS por la 0475.** Re-comprobado después de la aprobación del
+Director: `origin/main` sigue en `504408a4`, sin la spec 0475, y `claude/respaldo-tarifa-850` sigue
+sin PR. Según el Director, la 0475 tiene `verify` corriendo en otra ventana (`dtdcargo-f3`). **No se
+actúa por cuenta propia aunque la 0475 aparezca en main: el disparador es el aviso del Director.**
+Lo que no dependía de ella ya está hecho y
 commiteado **en local, sin empujar** (a propósito, para no gastar la corrida única):
 
 - `lib/public/rates-queries.ts`: mi propio comentario tenía el defecto que el Director señaló para
@@ -203,7 +207,11 @@ como hoy hasta el día en que alguien aplique la 0458 con el runbook.
 
 ### El comentario de `route.ts`: redactado para que sea cierto en los dos momentos
 
-Recomiendo **cambiarlo en esta PR con un condicional verificable**, no «recién al aplicar». Cambiarlo
+**DECISIÓN DEL DIRECTOR (2026-09-17): APROBADO.** Se cambia en esta misma PR, como condicional
+verificable, en el paso final posterior a la 0475. El Director retiró su indicación anterior de
+dejarlo «para después». Lo que sigue es el razonamiento que se aprobó.
+
+Recomendé **cambiarlo en esta PR con un condicional verificable**, no «recién al aplicar». Cambiarlo
 al aplicar es exactamente el patrón que el Director describió: un pendiente atado a un evento futuro
 y sin dueño en el código. El condicional no necesita seguimiento para ser cierto: nombra la señal
 que dice en qué estado se está, y esa señal se actualiza sola en el acto de aplicar (el runbook
@@ -265,7 +273,8 @@ según cómo lo deje 0475.
    fila pública y cae al respaldo del código. Es el mismo tipo de agujero que cierra esta tarea,
    pero por el otro extremo, y **la 0458 no lo toca**. Hoy se esquiva con `pg_cron` (lo que hace la
    0336). Arreglarlo de raíz exige repensar el índice o el flujo de relevo de `/studio/tarifas` →
-   tarea propia, con su SDD.
+   tarea propia, con su SDD. **Escalado:** el Director se lo lleva a Sam (2026-09-17), como la misma
+   familia de problema en otro momento del ciclo. Sin SDD ni dueño asignado todavía.
 2. **La cabecera de la migración 0255 miente sobre su estado.** Dice «⚠️ NO APLICADA A PRODUCCIÓN.
    Declarada como espera en `pendingBelowCutoff`», pero ya **no** figura en ese archivo y el índice
    `rates_one_public_cbm_per_tenant_modo` que crea **existe en producción** (verificado por el
