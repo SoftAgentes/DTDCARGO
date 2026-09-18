@@ -51,7 +51,7 @@ del handoff de SDD-0476), con su propia SDD. La tarifa DDP vigente ($850) vale h
 | Comprobación | Resultado |
 | --- | --- |
 | `lib/studio/tarifa-programada.migration.test.ts` (0459 real sobre PGlite, con el índice de 0255, el guard de 0382, la RPC de 0458 y los privilegios por defecto de Supabase) | **PASÓ** — 19 casos, incluido el **control rojo** sin la 0459 |
-| Mutantes del `.sql` (23) | **21 muertos.** Sobreviven: el `grant` a `service_role` (equivalente: los defaults de Supabase ya se lo dan; explícito como en 0336) y el `for update` (concurrencia entre dos corridas, no medible con la única conexión de PGlite). `.sql` restaurado: md5 igual antes y después |
+| Mutantes del `.sql` (23) | **21 muertos con PGlite.** Sobreviven: el `grant` a `service_role` (equivalente: los defaults de Supabase ya se lo dan; explícito como en 0336) y el `for update`. Este último **no se puede medir** con la única conexión de PGlite, y es **lo único** que impide que el relevo pise una cancelación del founder. Muere en la reproducción manual con dos sesiones sobre `postgres:17` (ver el ANEXO), pero **ningún test del repo lo cubre**: automatizarlo es la tarea de seguimiento. `.sql` restaurado: md5 igual antes y después |
 | Mutantes del Studio (13) | **13 muertos**, archivos restaurados |
 | Pruebas nuevas y afectadas del Studio (`tarifa-programada.test.ts`, `actions.programada.test.ts`, `RateDrawer.test.tsx`, `rate-types.test.ts`, `rate-import.test.ts`) | **PASÓ** |
 | `pnpm verify` — lanzado sobre `cb9b30bc`; el ajuste de `/ui-check` (`46673236`) se escribió durante el paso `harness`, **antes** de `lint`, así que los pasos siguientes midieron el árbol final | ver filas siguientes |
@@ -146,6 +146,138 @@ Hallazgo nº 2 del handoff de SDD-0476: la cabecera de `0255_rates_public_calc_m
 - **Resultado:** no aplica. No hay nada que corregir en el baseline. La cabecera sigue diciendo
   lo contrario de la verdad: quien lea la 0255 tiene que contrastarla con el ledger o con este
   registro.
+
+## ANEXO — La carrera del `for update`, reproducida a mano (2026-09-18)
+
+Agregado después de abrir la PR, a pedido del Director: el mutante «sin `for update`» sobrevivía
+porque PGlite tiene una sola conexión. Esta es la reproducción con dos sesiones y el material para la
+**tarea de seguimiento** (automatizarla), que queda a nombre del Worker de esta PR. **No es un test del
+repo**: no la corre `pnpm test` ni `verify`.
+
+**Por qué importa.** El segundo `UPDATE` del relevo
+(`set is_public = true, publica_programada = false where id = v_row.id`) no vuelve a mirar
+`publica_programada`. Sin el bloqueo, si el founder desprograma la tarifa (o le cambia la fecha)
+mientras corre el job, el `UPDATE` solo revalida el `id` y la publica igual. **El `for update` es
+lo único que lo impide.**
+
+**Escenario.** `postgres:17` desechable, con las mismas piezas reales que la prueba de PGlite:
+índice de 0255, guard de 0382, RPC de 0458 y el archivo 0459. Hay una pública de $850 y una
+programada de $900 para hoy (día de Caracas). La sesión F (founder) abre una transacción, desprograma
+la de $900 y tarda 4 s en confirmar. 1,5 s después, la sesión J corre
+`promover_tarifas_programadas()`.
+
+| Variante | Qué devuelve el relevo | Estado final | El sitio cotiza |
+| --- | --- | --- | --- |
+| **`.sql` de esta PR** (con `for update`) | `[]` después de esperar el bloqueo (3.321 ms) | $850 pública · $900 ni pública ni programada | **$850**: respetó la cancelación |
+| **Mutante sin `for update`** (control rojo) | promovió la de $900 (`relevadas: 1`, 3.345 ms) | $850 despublicada · **$900 pública** | **$900**: publicó la tarifa cancelada |
+
+**Cómo correrlo** (Git Bash, con Docker):
+
+```
+node carrera-0459-setup.cjs <worktree> <dir>/carrera-0459-original.sql <dir>/carrera-0459-mutante.sql
+bash carrera-0459.sh <dir>
+```
+
+El primer script genera el SQL de las dos variantes a partir de los archivos reales de
+`supabase/migrations/` del worktree. El segundo levanta un contenedor efímero (`--rm`), prepara una
+base por variante, corre la carrera e imprime el resultado; al terminar borra el contenedor.
+
+### `carrera-0459-setup.cjs`
+
+```js
+// Genera el SQL de preparación para la prueba de carrera de dos sesiones de la 0459.
+// Uso: node carrera-0459-setup.cjs <worktree> <salida-original.sql> <salida-mutante.sql>
+const fs = require('node:fs');
+const [root, outOrig, outMut] = process.argv.slice(2);
+const mig = (n) => fs.readFileSync(`${root}/supabase/migrations/${n}`, 'utf8');
+function fn(sql, name) {
+  const start = sql.indexOf('create or replace function public.' + name);
+  if (start < 0) throw new Error('falta ' + name);
+  const end = sql.indexOf('$;', sql.indexOf('as $', start));
+  return sql.slice(start, end + 3);
+}
+const file0459 = mig('0459_tarifa_programada_a_futuro.sql');
+const conLock = '     order by r.tenant_id, r.public_calc_modo\n     for update';
+if (!file0459.includes(conLock)) throw new Error('no encuentro el for update');
+const mutante = file0459.replace(conLock, '     order by r.tenant_id, r.public_calc_modo');
+
+const base = `
+do $roles$ begin
+  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon; end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated; end if;
+  if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role; end if;
+end $roles$;
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+create table public.tenants (id uuid primary key default gen_random_uuid(), slug text unique not null);
+create table public.price_books (id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id), is_house boolean not null default false, deleted_at timestamptz);
+create table public.rates (id uuid primary key default gen_random_uuid(),
+  tenant_id uuid not null references public.tenants(id), price_book_id uuid references public.price_books(id),
+  per_cbm numeric(10,2), flat_rate numeric(10,2), min_charge numeric(10,2), valid_from date, valid_until date,
+  is_public boolean not null default false, status text not null default 'published',
+  public_calc_modo text not null default 'ddp', updated_at timestamptz not null default now(), deleted_at timestamptz,
+  check (per_cbm is not null or flat_rate is not null));
+insert into public.tenants (slug) values ('dtd');
+insert into public.price_books (tenant_id, is_house) select id, true from public.tenants;
+create schema cron;
+create table cron.job (jobid bigserial primary key, jobname text unique, schedule text, command text);
+create function cron.schedule(job_name text, schedule text, command text) returns bigint language sql as $cron$
+  insert into cron.job (jobname, schedule, command) values (job_name, schedule, command)
+  on conflict (jobname) do update set schedule = excluded.schedule, command = excluded.command returning jobid $cron$;
+create unique index rates_one_public_cbm_per_tenant_modo on public.rates (tenant_id, public_calc_modo)
+  where is_public and deleted_at is null and per_cbm is not null;
+${fn(mig('0382_price_books.sql'), 'rates_guard_price_book')}
+create trigger rates_guard_price_book_t before insert or update of price_book_id, is_public, tenant_id
+  on public.rates for each row execute function public.rates_guard_price_book();
+${fn(mig('0458_tarifa_lectura_sin_vigencia.sql'), 'public_cbm_rate')}
+`;
+const datos = `
+reset lock_timeout; reset statement_timeout;
+insert into public.rates (tenant_id, price_book_id, per_cbm, min_charge, is_public, public_calc_modo, valid_from)
+  select t.id, pb.id, 850, 50, true, 'ddp', (now() at time zone 'America/Caracas')::date - 14
+  from public.tenants t join public.price_books pb on pb.tenant_id = t.id;
+insert into public.rates (tenant_id, price_book_id, per_cbm, min_charge, publica_programada, public_calc_modo, valid_from)
+  select t.id, pb.id, 900, 50, true, 'ddp', (now() at time zone 'America/Caracas')::date
+  from public.tenants t join public.price_books pb on pb.tenant_id = t.id;
+`;
+fs.writeFileSync(outOrig, base + file0459 + datos);
+fs.writeFileSync(outMut, base + mutante + datos);
+console.log('ok', outOrig, outMut);
+```
+
+### `carrera-0459.sh`
+
+```bash
+#!/usr/bin/env bash
+# Prueba de carrera de dos sesiones de la 0459 en un postgres:17 desechable.
+# Escenario: el founder cancela la programada (sesión F, transacción abierta) mientras corre el relevo (sesión J).
+set -u
+S="$1"            # scratchpad (ruta Windows con /)
+C=carrera-0459-$
+docker run -d --rm --name "$C" -e POSTGRES_PASSWORD=x postgres:17 >/dev/null
+trap 'docker rm -f "$C" >/dev/null 2>&1' EXIT
+for i in $(seq 1 60); do docker exec "$C" pg_isready -U postgres >/dev/null 2>&1 && break; sleep 1; done
+sleep 2
+q() { docker exec -i "$C" psql -U postgres -d "$1" -v ON_ERROR_STOP=1 -At "${@:2}"; }
+
+for variante in original mutante; do
+  db="carrera_$variante"
+  docker exec "$C" createdb -U postgres "$db"
+  q "$db" -q < "$S/carrera-0459-$variante.sql" >/dev/null || { echo "$variante: FALLÓ la preparación"; continue; }
+
+  echo "== $variante: el founder cancela mientras corre el relevo"
+  # F toma la fila de la programada y la desprograma, pero tarda 4 s en confirmar.
+  ( q "$db" -c "begin; update public.rates set publica_programada = false where per_cbm = 900; select pg_sleep(4); commit;" >/dev/null ) &
+  sleep 1.5
+  t0=$(date +%s%3N)
+  q "$db" -c "select public.promover_tarifas_programadas() ->> 'promovidas';" | sed 's/^/   relevo devuelve: /'
+  t1=$(date +%s%3N)
+  wait
+  echo "   el relevo tardó $((t1 - t0)) ms"
+  q "$db" -c "select '   ' || per_cbm || ' · pública=' || is_public || ' · programada=' || publica_programada from public.rates order by per_cbm;"
+  q "$db" -c "select '   el sitio cotiza: ' || coalesce((select per_cbm::text from public.public_cbm_rate('ddp')), 'NADA');"
+done
+```
 
 ## IMPACTO DOCUMENTAL
 
