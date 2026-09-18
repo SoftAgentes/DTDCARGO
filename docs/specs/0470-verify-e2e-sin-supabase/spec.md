@@ -4,7 +4,7 @@ title: "El e2e de verify sin Supabase público: omite con motivo lo que no puede
 status: done
 author: "Claude Code (Worker) para Sam"
 created: 2026-09-15
-updated: 2026-09-15
+updated: 2026-09-18
 supersedes: null
 superseded_by: null
 related: ["0454", "0320", "0329", "0440"]
@@ -18,6 +18,18 @@ confidencialidad: interno
 > 15 casos, se reintentaba entero y a veces se colgaba. Ahora esas pruebas se
 > omiten con un motivo visible, el resto corre igual y el gate declara el e2e
 > con cobertura parcial crítica: cierre incompleto, nunca TODO VERDE.
+
+> **Decisiones de Sam sobre las propuestas de esta spec — 2026-09-18**
+> (AskUserQuestion, textual):
+>
+> - **Propuesta 1 y omisión de `attachments-gastos-pilot-network`:** «Spec nueva;
+>   attachments igual». El Supabase sintético deny-only lo implementa
+>   [SDD-0479](../0479-e2e-supabase-sintetico-deny-only/spec.md). Con él, en el
+>   caso habitual, estas omisiones ya no ocurren. `attachments-gastos-pilot-network`
+>   sigue corriendo sin cambios.
+> - **Propuesta 2, WebKit en Windows:** «Medir y no cambiar». No se toca. Si en
+>   los recibos de `verify` vuelve a salir «did not exit», se abre la spec del
+>   remedio.
 
 ## Contexto
 
