@@ -19,7 +19,7 @@
  * 6. La IP cruda nunca llega a lo que se persiste: la cuota por request se
  *    indexa con un HMAC con secreto propio.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash, createHmac } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PortalClientPrincipal } from "@/lib/portal/portal-queries";
@@ -34,6 +34,7 @@ import {
   authorizeWorkspace,
   enabled,
   hashToken,
+  portalEnabled,
   purchaseForClient,
   requirePortal,
   reserveLimit,
@@ -147,11 +148,62 @@ async function negado(promesa: Promise<unknown>): Promise<ImportHttpError> {
   throw new Error("se esperaba que negara y resolvió");
 }
 
+// Las pruebas de cliente y proveedor describen el portal ENCENDIDO: las dos
+// llaves en "true". Lo que pasa con sólo la primera se fija en su propio bloque.
+beforeEach(() => {
+  vi.stubEnv("DOCUMENT_IMPORT_ENABLED", "true");
+  vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "true");
+});
+
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.useRealTimers();
   mocks.principal.mockReset();
   mocks.idsByToken.mockReset();
+});
+
+describe("alcance: el cotizador sin el portal", () => {
+  const TOKEN_ANONIMO = "ab".repeat(32);
+
+  it("las dos llaves, y exactamente \"true\" las dos", () => {
+    expect(portalEnabled()).toBe(true);
+    for (const [maestra, portal] of [["true", ""], ["true", "false"], ["true", "1"], ["true", "TRUE"], ["", "true"], ["false", "true"]]) {
+      vi.stubEnv("DOCUMENT_IMPORT_ENABLED", maestra);
+      vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", portal);
+      expect(portalEnabled(), `maestra=${maestra} portal=${portal}`).toBe(false);
+    }
+  });
+
+  it("sin el portal, el documento de una compra se niega antes de mirar sesión o base", async () => {
+    vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "false");
+    mocks.principal.mockResolvedValue(principal);
+    const { client, queries } = makeDb({ prealertas: { data: { id: COMPRA }, error: null } });
+    const e = await negado(authorizeWorkspace(client, client, workspace({ prealerta_id: COMPRA }), new Headers()));
+    expect(e).toMatchObject({ status: 503, code: "portal_not_enabled" });
+    expect(mocks.principal).not.toHaveBeenCalled();
+    expect(queries).toEqual([]);
+  });
+
+  it("sin el portal, el enlace del proveedor tampoco abre el documento compartido", async () => {
+    vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "");
+    mocks.idsByToken.mockResolvedValue({ prealertaId: COMPRA, tenantId: TENANT, markbox: MARKBOX });
+    const { client, queries } = makeDb({ clients: { data: { id: CLIENT }, error: null } });
+    const e = await negado(
+      authorizeWorkspace(client, client, workspace({ prealerta_id: COMPRA }), new Headers({ "x-supplier-token": TOKEN_PROVEEDOR })),
+    );
+    expect(e).toMatchObject({ status: 503, code: "portal_not_enabled" });
+    expect(mocks.idsByToken).not.toHaveBeenCalled();
+    expect(queries).toEqual([]);
+  });
+
+  it("sin el portal, el cotizador anónimo sigue abriendo con su token", async () => {
+    vi.stubEnv("DOCUMENT_IMPORT_PORTAL_ENABLED", "false");
+    const { client } = makeDb();
+    const anonimo = workspace({ tenant_id: null, client_id: null, anonymous_hash: hashToken(TOKEN_ANONIMO), expires_at: new Date(Date.now() + 3600_000).toISOString() });
+    await expect(authorizeWorkspace(client, client, anonimo, new Headers({ "x-document-token": TOKEN_ANONIMO }))).resolves.toMatchObject({ kind: "anonymous" });
+    // Y sin su token no abre: apagar el portal no afloja la capability anónima.
+    expect(await negado(authorizeWorkspace(client, client, anonimo, new Headers()))).toMatchObject(NEGADO);
+  });
 });
 
 describe("capability anónima del workspace", () => {

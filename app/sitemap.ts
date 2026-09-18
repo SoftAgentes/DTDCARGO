@@ -30,6 +30,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/tarifas`, priority: 0.9, changeFrequency: "monthly" },
     { url: `${base}/fcl`, priority: 0.9, changeFrequency: "monthly" },
     { url: `${base}/calculadora-terrestre`, priority: 0.8, changeFrequency: "monthly" },
+    // SDD-0473 · Misma familia de herramientas, pero detrás de una bandera: con
+    // `DOCUMENT_IMPORT_ENABLED` apagada la ruta es 404, y un sitemap que la
+    // lista le pide a Google rastrear una página que no existe.
+    ...(process.env.DOCUMENT_IMPORT_ENABLED === "true"
+      ? [{ url: `${base}/cotizador`, priority: 0.8, changeFrequency: "monthly" as const }]
+      : []),
     { url: `${base}/enlaces`,     priority: 0.5, changeFrequency: "monthly" },
     { url: `${base}/glosario`,    priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/faq`,         priority: 0.8, changeFrequency: "monthly" },

@@ -69,7 +69,7 @@ describe("DocumentImportEntry (SDD-0473)", () => {
 
   it("no ofrece la carga por un `available` que no sea exactamente true", async () => {
     for (const valor of ["true", 1, {}, null, undefined]) {
-      const { client, get } = cliente({ available: valor, formats: [], maxBytes: 0 });
+      const { client, get } = cliente({ available: valor, portal: true, formats: [], maxBytes: 0 });
       const { container, unmount } = render(<DocumentImportEntry purchaseCode="DTD-0000-1-1" client={client} />);
       await waitFor(() => expect(get).toHaveBeenCalled());
       expect(container, `available=${JSON.stringify(valor)} no debería ofrecerla`).toBeEmptyDOMElement();
@@ -77,14 +77,28 @@ describe("DocumentImportEntry (SDD-0473)", () => {
     }
   });
 
+  it("con sólo la primera llave (el cotizador) la compra no ofrece cargar documentos", async () => {
+    // DOCUMENT_IMPORT_ENABLED sola enciende el cotizador anónimo. Una compra con
+    // documento compartido le cierra al proveedor el formulario de siempre (409),
+    // y la pantalla donde confirmaría desde el documento todavía no existe.
+    for (const portal of [false, undefined, "true", 1]) {
+      const { client, get, post } = cliente({ available: true, portal, formats: ["xlsx"], maxBytes: 15728640 });
+      const { container, unmount } = render(<DocumentImportEntry purchaseCode="DTD-0000-1-1" client={client} />);
+      await waitFor(() => expect(get).toHaveBeenCalledWith("capabilities"));
+      expect(container, `portal=${JSON.stringify(portal)} no debería ofrecerla`).toBeEmptyDOMElement();
+      expect(post).not.toHaveBeenCalled();
+      unmount();
+    }
+  });
+
   it("muestra el panel cuando está habilitada", async () => {
-    const { client } = cliente({ available: true, formats: ["xlsx", "csv", "pdf"], maxBytes: 15728640 });
+    const { client } = cliente({ available: true, portal: true, formats: ["xlsx", "csv", "pdf"], maxBytes: 15728640 });
     render(<DocumentImportEntry purchaseCode="DTD-0000-1-1" client={client} />);
     expect(await screen.findByRole("heading", { name: titulo })).toBeVisible();
   });
 
   it("no ofrece revisar un documento que todavía no existe", async () => {
-    const { client } = cliente({ available: true, formats: [], maxBytes: 15728640 });
+    const { client } = cliente({ available: true, portal: true, formats: [], maxBytes: 15728640 });
     render(
       <DocumentImportEntry
         purchaseCode="DTD-0000-1-1"
@@ -98,7 +112,7 @@ describe("DocumentImportEntry (SDD-0473)", () => {
   });
 
   it("«Revisar documento» lleva a la compra, no a una pantalla anónima", async () => {
-    const { client } = cliente({ available: true, formats: [], maxBytes: 15728640 });
+    const { client } = cliente({ available: true, portal: true, formats: [], maxBytes: 15728640 });
     render(
       <DocumentImportEntry
         purchaseCode="DTD-0000-1-1"
@@ -123,7 +137,7 @@ describe("DocumentImportEntry (SDD-0473)", () => {
   });
 
   it("abre el documento contra la compra, no como anónimo que expira en 24 h", async () => {
-    const { client, post } = cliente({ available: true, formats: [], maxBytes: 15728640 });
+    const { client, post } = cliente({ available: true, portal: true, formats: [], maxBytes: 15728640 });
     render(<DocumentImportEntry purchaseCode="DTD-0000-1-1" client={client} />);
     await screen.findByRole("heading", { name: titulo });
 

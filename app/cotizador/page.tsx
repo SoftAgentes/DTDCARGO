@@ -17,8 +17,10 @@ import { CotizadorClient } from "./CotizadorClient";
  * así que no pueden decir dos precios distintos para un mismo envío.
  *
  * La bandera `DOCUMENT_IMPORT_ENABLED` es el interruptor de seguridad: apagada,
- * esta ruta no existe. Se lee por petición (`force-dynamic`) y no en el build,
- * porque si no habría que redeployar para apagarla.
+ * esta ruta no existe. Se lee por petición (`force-dynamic`), pero eso NO ahorra
+ * el redeploy: Vercel aplica un cambio de variable sólo a los deploys nuevos.
+ * Apagar es quitar la variable y redesplegar, o volver con Instant Rollback a un
+ * deploy hecho con la bandera apagada.
  */
 
 const DESC =
@@ -28,18 +30,20 @@ export const metadata: Metadata = {
   title: "Cotizador con tus documentos (proforma y packing list)",
   description: DESC,
   alternates: { canonical: "/cotizador" },
-  /**
-   * `noindex` **mientras la bandera esté apagada**, que es hoy: con
-   * `DOCUMENT_IMPORT_ENABLED` distinto de "true" esta ruta devuelve 404, y
-   * ofrecerle a Google una URL que no existe es peor que no ofrecerle nada.
+  /*
+   * Sin `robots` a propósito: la página es indexable. Mientras la bandera esté
+   * apagada no hace falta excluirla a mano de los buscadores — la ruta responde
+   * 404, y Next marca esa respuesta para que no se indexe.
    *
-   * El día que se encienda hay que hacer DOS cosas, no una: quitar este
-   * `robots` y agregar `/cotizador` a `app/sitemap.ts`. El contrato de
-   * `sitemap-cobertura-contract.test.ts` obliga a elegir una de las dos listas
-   * —quedar fuera de ambas es el estado que nadie eligió—, así que lanzar no
-   * puede ser un descuido: tiene que ser un cambio deliberado.
+   * Lo que no puede pasar es ofrecerle a Google una URL que no existe, y eso lo
+   * resuelve `app/sitemap.ts`: lista `/cotizador` sólo con la bandera encendida,
+   * igual que el enlace del footer. Encender o apagar es la variable y un
+   * redeploy; el código ya está en las dos posiciones.
+   *
+   * Ojo: `sitemap-cobertura-contract.test.ts` busca en este archivo la palabra
+   * en inglés que excluye de los buscadores. Nombrarla en un comentario haría
+   * pasar la página por excluida.
    */
-  robots: { index: false, follow: false },
   ...socialMeta({
     title: "Cotiza con tu proforma y tu packing list · DTD Cargo",
     description: DESC,
