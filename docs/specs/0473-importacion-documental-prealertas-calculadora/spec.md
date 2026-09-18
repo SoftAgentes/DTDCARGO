@@ -275,6 +275,7 @@ prueba, `vercel.json`, `.env.example`, `app/cotizador/page.tsx`, `app/p/[token]/
 - `components/Nav.tsx`
 - `components/NavClient.tsx`
 - `components/Nav.cotizador.test.tsx`
+- `__tests__/seo-remates.test.ts` (sólo la ruta: la lista de enlaces pasó a `NavClient.tsx`)
 - `.agents/handoffs/0473-encender-cotizador-20260918.md`
 
 ## Aceptación
