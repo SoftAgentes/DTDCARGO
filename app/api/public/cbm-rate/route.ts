@@ -12,24 +12,17 @@
  * la subió con pg_cron de $800 a $850. Una cifra copiada al HTML empezaría a
  * mentir sin que nadie lo note.
  *
- * ⚠️ QUÉ PASA CUANDO LA TARIFA VENCE depende de si la migración 0458 (SDD-0476)
- * ya se aplicó en producción. Mientras `0458_tarifa_lectura_sin_vigencia` figure
- * en `supabase/migrations-baseline.json › pendingBelowCutoff`, NO se aplicó:
- *
- *  · Sin la 0458: la RPC deja de devolver la fila vencida, este handler responde
- *    `{ per_cbm: null }` y las páginas Next caen a `CONFIG.tarifaBaseCBM`. Desde
- *    SDD-0475 ese respaldo también vale $850, así que mientras la tarifa del ERP
- *    siga en $850 el precio no cambia al vencer (antes caía a $800 y el salto se
- *    veía). Pero la fuente pasa a ser una constante del código, no la base.
- *  · Con la 0458: la vigencia deja de ser filtro de lectura. La RPC sigue
- *    sirviendo el último precio de la base aunque `valid_until` ya haya pasado,
- *    y `{ per_cbm: null }` queda para cuando de verdad no hay tarifa: Supabase
- *    caído, borrador, `is_public` sin marcar o `valid_from` a futuro.
+ * QUÉ PASA CUANDO LA TARIFA VENCE: el sitio sigue cotizando el mismo precio.
+ * Desde la migración 0458 (SDD-0476, aplicada a producción el 2026-09-18,
+ * ledger `20260918040814`) la vigencia no es filtro de lectura: la RPC sirve el
+ * último precio de la base aunque `valid_until` ya haya pasado. La respuesta
+ * `{ per_cbm: null }` queda para cuando de verdad no hay tarifa: Supabase caído,
+ * borrador, `is_public` sin marcar o `valid_from` a futuro. Sólo en esos casos
+ * las páginas Next caen a `CONFIG.tarifaBaseCBM`, una constante del código.
  *
  * Decisión del founder (2026-09-17): «aunque la tarifa se venza o esté vencida,
- * se mantiene el precio anterior; lo que leemos acá es la base de datos». Sin la
- * 0458 se cumple por coincidencia —el respaldo vale lo mismo que la tarifa—; con
- * la 0458, por diseño. Con o sin ella, el vencimiento lo vigilan el cron
+ * se mantiene el precio anterior; lo que leemos acá es la base de datos». La
+ * 0458 la cumple por diseño. El vencimiento lo vigilan el cron
  * `app/api/cron/rate-expiry-alert` (Telegram + email) y el badge de
  * `/studio/tarifas`.
  *
