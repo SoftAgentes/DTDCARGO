@@ -25,6 +25,11 @@
  * pruebas llaman a `requiereSupabase()`. El paso queda con COBERTURA PARCIAL,
  * que para un paso crítico es un cierre INCOMPLETO, nunca TODO VERDE.
  *
+ * Supabase sintético (SDD-0479): cuando faltan las DOS variables y Playwright
+ * levanta su propio `next dev` local, ese servidor corre contra un Supabase
+ * deny-only en 127.0.0.1 y esas pruebas corren en vez de omitirse. Si falta
+ * una sola, o se reusa un `next dev` ya levantado, sigue la omisión de 0470.
+ *
  * Invoca cada binario con `node <entry>` DIRECTO (no vía `pnpm <script>`) a propósito:
  * en este entorno `pnpm run` dispara un preflight `install` que falla con
  * ERR_PNPM_IGNORED_BUILDS (esbuild). Llamar al entry JS lo esquiva.
@@ -43,10 +48,14 @@ import { discoverHarnessTests } from "./tests/run-harness.mjs";
 import {
   absuelveCorrida,
   candidatosDePuerto,
+  candidatosSupabaseSintetico,
   coberturaParcialE2E,
+  deteccionEfectiva,
+  destinoE2E,
   detectarSupabasePublico,
   envParaSalidaCanalizada,
   motivoSinSupabase,
+  planSupabaseE2E,
   primerPuertoLibre,
   PUERTO_BASE,
   PUERTO_RANGO,
@@ -251,24 +260,56 @@ function devServerDesfasado(startedAt) {
 
 /**
  * Detección de Supabase público que tomó el preflight de ESTA corrida
- * (SDD-0470). `e2eCoberturaParcial` la usa después del paso junto con el
- * reporte, para decir cuántas pruebas quedaron omitidas.
+ * (SDD-0470), ya con el plan aplicado (SDD-0479): con el Supabase sintético,
+ * las dos variables existen para el `next dev`. `e2eCoberturaParcial` la usa
+ * después del paso junto con el reporte, para decir cuántas pruebas quedaron
+ * omitidas.
  */
 let e2eSupabase = null;
 
 /**
- * Aviso del preflight cuando falta Supabase público, o "" si está. La raíz es
- * la de siempre de la detección (`RAIZ_REPO`), la misma que usan los specs: el
- * gate y Playwright nunca pueden mirar `.env*` distintos.
+ * Plan de Supabase del paso e2e y su aviso (SDD-0479). La decisión es la de
+ * `playwright.config.ts` (`planSupabaseE2E`), con el mismo entorno que recibe
+ * Playwright y la raíz de siempre (`RAIZ_REPO`), la misma que usan los specs:
+ * el gate y Playwright nunca pueden mirar `.env*` distintos.
+ *
+ * En modo sintético el gate fija `E2E_SUPABASE_SINTETICO_PORT` en un puerto que
+ * comprobó libre y lo devuelve en `env` para el paso. Sin puerto libre lo dice,
+ * y Playwright intentará el suyo por defecto: si está ocupado, falla a la vista.
  */
-function avisoSinSupabase() {
-  e2eSupabase = detectarSupabasePublico();
+function planSupabaseDelPaso(pasoEnv, puerto) {
+  let env = { ...process.env, ...pasoEnv };
+  let plan = planSupabaseE2E({ env, ...destinoE2E(env, puerto) });
+  const extra = {};
+  let sinPuerto = "";
+  if (plan.modo === "sintetico" && !String(process.env.E2E_SUPABASE_SINTETICO_PORT ?? "").trim()) {
+    const libre = primerPuertoLibre(candidatosSupabaseSintetico(Number(puerto), process.cwd()));
+    if (libre) {
+      extra.E2E_SUPABASE_SINTETICO_PORT = String(libre);
+      env = { ...env, ...extra };
+      plan = planSupabaseE2E({ env, ...destinoE2E(env, puerto) });
+    } else {
+      sinPuerto = `\n   ⚠️  Sin puerto libre comprobado para el Supabase sintético: Playwright usará ${plan.puerto} y fallará si está ocupado.`;
+    }
+  }
+  e2eSupabase = deteccionEfectiva(plan);
+  if (plan.modo === "sintetico") {
+    return {
+      env: extra,
+      aviso:
+        `\n   ℹ️  Sin Supabase público: el next dev del e2e corre contra un Supabase sintético deny-only en ${plan.url} (SDD-0479).` +
+        "\n   ℹ️  Las pruebas con requiereSupabase() corren; ninguna lee ni escribe datos reales." +
+        sinPuerto,
+    };
+  }
   const motivo = motivoSinSupabase(e2eSupabase);
-  if (!motivo) return "";
-  return (
-    `\n   ⚠️  ${motivo}` +
-    "\n   ⚠️  Las pruebas con requiereSupabase() se omiten con ese motivo; el paso quedará con COBERTURA PARCIAL."
-  );
+  if (!motivo) return { env: extra, aviso: "" };
+  return {
+    env: extra,
+    aviso:
+      `\n   ⚠️  ${motivo}` +
+      "\n   ⚠️  Las pruebas con requiereSupabase() se omiten con ese motivo; el paso quedará con COBERTURA PARCIAL.",
+  };
 }
 
 /**
@@ -295,7 +336,6 @@ function e2ePreflight() {
       reason:
         "navegadores Playwright ausentes → `pnpm exec playwright install chromium` (e2e omitido, no bloquea el gate)",
     };
-  const sinSupabase = avisoSinSupabase();
   // Si ya hay un dev server de ESTE worktree, reusarlo y desactivar el
   // webServer de Playwright de forma explícita: evita el choque del lock por-dir
   // al intentar levantar un segundo `next dev` en la misma carpeta.
@@ -305,17 +345,21 @@ function e2ePreflight() {
       ? running.startedAt.toLocaleString("es-VE")
       : "hora desconocida";
     const desfase = devServerDesfasado(running.startedAt);
+    const pasoEnv = {
+      BASE_URL: running.appUrl,
+      E2E_START_WEB_SERVER: "0",
+    };
+    // Servidor reusado: su configuración no la controla el gate, así que no hay
+    // Supabase sintético (SDD-0479) y rige la omisión con motivo de 0470.
+    const supabase = planSupabaseDelPaso(pasoEnv, running.port);
     return {
-      env: {
-        BASE_URL: running.appUrl,
-        E2E_START_WEB_SERVER: "0",
-      },
+      env: { ...pasoEnv, ...supabase.env },
       note:
         `reusando el dev server del worktree en ${running.appUrl} ` +
         `(PID ${running.pid} · puerto ${running.port} · arrancado ${hora})` +
         (desfase ? `
    ⚠️  ${desfase}` : "") +
-        sinSupabase,
+        supabase.aviso,
     };
   }
   // Sin dev acá → Playwright levanta el suyo. El puerto se resuelve ACÁ y no al
@@ -332,9 +376,11 @@ function e2ePreflight() {
         `(e2e omitido; fuerza uno con E2E_PORT=<puerto>)`,
     };
   }
+  const pasoEnv = { E2E_PORT: String(puerto) };
+  const supabase = planSupabaseDelPaso(pasoEnv, puerto);
   return {
-    env: { E2E_PORT: String(puerto) },
-    note: `dev server propio en el puerto ${puerto}${sinSupabase}`,
+    env: { ...pasoEnv, ...supabase.env },
+    note: `dev server propio en el puerto ${puerto}${supabase.aviso}`,
   };
 }
 
