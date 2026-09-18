@@ -506,7 +506,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0478 | Programar la próxima tarifa pública sin dejar el sitio sin ta… | done | interno |
 | 0479 | Supabase sintético deny-only para el e2e local: las pruebas q… | in-progress | interno |
 | 0481 | Portal cliente — cambiar la foto de cédula/RIF dentro del cup… | done | interna |
-| 0482 | (sin título) | reserved | interno |
+| 0482 | Portal cliente — editar nombre, cédula/RIF y teléfono al inst… | in-progress | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0480 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
