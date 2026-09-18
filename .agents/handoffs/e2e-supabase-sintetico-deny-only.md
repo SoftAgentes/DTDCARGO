@@ -128,6 +128,23 @@ con Playwright 1.60.0.
   error» contra el deny-only en vez de «Faltan NEXT_PUBLIC_SUPABASE_URL…». Caen en el mismo respaldo
   y sus pruebas pasan, pero el log del WebServer del e2e es igual de ruidoso.
 
+## Cierre documental
+
+- **Impacto documental:**
+  - `docs/specs/0479-…/spec.md`, nueva;
+  - `docs/specs/0470-…/spec.md`, con la nota de decisiones;
+  - `e2e/README.md`;
+  - `docs/specs/README.md`, regenerado;
+  - este handoff.
+- **`node scripts/knowledge-sync.mjs status`** sobre `0d53d866`: `ok: false`.
+  - **Estructural y semántico: `INVALID`.** El worktree no tiene grafo local: 4196 pendientes y 3103
+    faltantes, casi todos anteriores a esta tarea.
+  - **Archify: `PENDING`** (`ARCHIFY_RUNTIME_MISSING`). Instalarlo exige descargar `archify.zip`
+    v2.16.0, y eso no se hizo sin autorización.
+  - **Obsidian: `PENDING`.**
+- **No se construyó el grafo en el worktree**, que es una extracción completa del repositorio. El
+  Director lo actualiza desde `main` integrado, según el runbook. Ninguna capa se declara actualizada.
+
 ## HANDOFF AL DIRECTOR
 
 - Contratos compartidos: `playwright.config.ts`, `scripts/verify.mjs` y los helpers de `e2e/`. Revisar
