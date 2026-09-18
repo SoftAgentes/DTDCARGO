@@ -159,9 +159,18 @@ Esta revisión técnica no constituye asesoría legal.
 
 ## Release
 
-1. Aplicar `0461_identity_photo_replacement_enable` de forma individual, según
-   `docs/runbooks/aplicar-migraciones-prod.md`. OK nominal de Sam del
-   2026-09-18; ventana y aplicación a cargo de la sesión coordinadora.
+1. ✅ `0461_identity_photo_replacement_enable` aplicada el 2026-09-18 por dtdcargo-18 con OK nominal de Sam: ledger `20260918174236` · `0461_identity_photo_replacement_enable`, 1 sentencia, md5 `1ff8d84a5e1b3c24c235ce53b9ece1f4` y 4893 bytes idénticos al blob `2c1fab83`.
+   - Preflight repetido por quien aplicó: gate de 0447 enganchado,
+     `portal_set_identity_photo` con `md5(prosrc)` `057aea5c2260562e99c757533aad55a6`
+     (cuerpo 0446), sin locks sobre `client_profile_edits`.
+   - Postflight: trigger y función de 0447 retirados; la RPC conserva el md5 y
+     su EXECUTE (`authenticated` sí, `anon` y `service_role` no);
+     `client_profile_edits` sin grants; comentario de `previous_storage_path`
+     con prefijo `SDD-0481:`; mismo número de filas antes y después.
+   - Advisors de seguridad con la misma huella antes y después (md5 normalizado
+     sin `observed_at`); ninguno nombra lo retirado.
+   - Verificación independiente de la sesión Worker (sólo ledger y catálogo):
+     mismos valores. La espera salió de `migrations-baseline.json` en esta PR.
 2. Integrar la PR en su turno de la cola (despliega el código a producción).
 3. Smoke con una cuenta Portal que Sam autorice: cambiar la foto, ver que el
    contador baja uno y que en el Studio la verificación vuelve a pendiente con

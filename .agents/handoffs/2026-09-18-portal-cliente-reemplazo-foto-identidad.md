@@ -95,6 +95,8 @@ revertirla; el parche quedó fuera del repo, en el scratchpad de la sesión
 | Merge de `origin/main` `a48d304f` → `502ea1b2` | Limpio. Sólo trae infraestructura e2e/verify (SDD-0479), handoffs y specs 0357/0358/0470/0479. Tras el merge PASÓ: docs:check (466 specs), sdd:check, pending-migration-symbols, typecheck y Vitest focal 85/85 (perfil + migración PGlite + cupo). |
 | Prueba visual en navegador | NO EJECUTADO: el Portal exige sesión y Supabase; no hay entorno con credenciales en el worktree. Queda para el smoke post-release. |
 | Preflight contra catálogo de producción | PASÓ (sólo metadatos; ver arriba) |
+| Aplicación de 0461 (dtdcargo-18) | PASÓ: aplicada el 2026-09-18 por dtdcargo-18 con OK nominal de Sam: ledger `20260918174236` · `0461_identity_photo_replacement_enable`, 1 sentencia, md5 `1ff8d84a5e1b3c24c235ce53b9ece1f4` y 4893 bytes idénticos al blob `2c1fab83`. Postflight: 0447 retirada, RPC con el mismo md5 y EXECUTE sólo `authenticated`, ledger sin grants, comentario `SDD-0481:`, mismo número de filas; advisors con la misma huella. Verificado también por esta sesión leyendo ledger y catálogo. |
+| Merge de `origin/main` `1d80c18a` (turno en la cola de dtdcargo-18) | Con el driver de main; `docs:index` regenerado sin diferencias. Espera 0461 retirada del baseline; quedan 0422 y 0423. La cabecera del `.sql` no se tocó (identidad md5 contra el ledger). |
 
 ## Commits
 
@@ -115,8 +117,8 @@ más Vercel y Vercel Preview Comments.
 
 ## Pendientes de esta tarea
 
-1. dtdcargo-18 aplica `0461_identity_photo_replacement_enable` en su ventana
-   (OK nominal de Sam ya dado) y retira su espera del baseline tras verificar.
+1. ✅ 0461 aplicada y verificada (ver Validación). Su espera salió del baseline
+   en esta rama, por indicación de dtdcargo-18.
 2. dtdcargo-18 integra la #145 en su turno de la cola (despliega a
    producción por Vercel).
 3. Smoke con cuenta Portal autorizada: cambiar la foto, contador baja uno,
