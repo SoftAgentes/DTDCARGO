@@ -256,15 +256,25 @@ la app y en 0421/0464, y un pago parcial la deja en `parcial`.
    `governance:check` y la frontera de lecturas: verdes.
    `check-pending-migration-symbols` queda en ROJO por diseño mientras la 0467
    espera.
+9. Con la 0464 en el esquema, un cobro y una confirmación de reporte que entre
+   los dos superan el saldo se serializan en la factura. El segundo, sea cobro
+   o confirmación, recibe `PAYMENT_EXCEEDS_BALANCE` (escenarios 12 y 13).
 
 ## Release
 
 1. Revisión del Director y OK nominal de Sam para la 0467, con la identidad del
    archivo (md5, bytes, LF) que figura en el handoff.
-2. Antes de aplicar, leer en producción `md5(prosrc)` de `next_receipt_code(uuid)`
-   y de `void_payment_receipt_with_audit_reason(uuid,text)`. El preflight exige
-   los cuerpos de 0079 y 0294 (exactos con CRLF→LF, o sin espacios) y aborta sin
-   cambiar nada si difieren.
+2. Antes de aplicar, leer en producción `md5(prosrc)` de `next_receipt_code(uuid)`,
+   `void_payment_receipt_with_audit_reason(uuid,text)` y `get_user_tenant_id()`.
+   El preflight exige los cuerpos de 0079, 0294 y 0453 (exactos con CRLF→LF, o
+   sin espacios) y aborta sin cambiar nada si difieren.
+
+   Lectura de catálogo del 2026-09-19 a las 01:03 UTC:
+   `void_payment_receipt_with_audit_reason` y `get_user_tenant_id` coinciden
+   exacto. El cuerpo de `next_receipt_code` difiere del repo sólo en espacios:
+   coincide el md5 sin espacios (`10f0a5df…`), no el exacto. Faltan cero
+   columnas y los 4 CHECK están validados. Las funciones de la 0467 no existen,
+   y la 0464 ya está aplicada.
 3. Aplicar la 0467 sola, con `name` = `0467_cobro_factura_atomico`.
 4. Commit que retira la espera de `pendingBelowCutoff`. La cabecera del `.sql` no
    se toca: una migración aplicada no se edita.
@@ -289,8 +299,41 @@ revertir la app.
 
 ## Evidencia
 
-La tabla de la carrera real y la identidad final del archivo se registran en el
-handoff `.agents/handoffs/0488-carrera-cobro-factura.md`, con fecha y SHA.
+### Carrera real (`scripts/qa/cobro-factura-race.mjs --mutantes`)
+
+Corrida del 2026-09-19 a las 00:52 UTC, sobre `592cba6f`, en `postgres:17`, con
+440 migraciones reconstruidas en 21 s. Resultado: **PASS**. Cada cifra es
+pagado/total de la factura. «rec» es la suma de recibos vigentes y «rep» la de
+reportes confirmados.
+
+| # | Escenario (S1 → S2) | ANTES (app vieja) | DESPUÉS (0467) |
+|---|---|---|---|
+| 1 | cobro 300 → cobro 200 | 300/1000, rec 500: **se perdió 200** | 500/1000; S2 esperó |
+| 2 | cobro 600 → cobro 600 | 600/1000, rec 1200: **pérdida y sobrecobro** | 600/1000; S2 `PAYMENT_EXCEEDS_BALANCE` |
+| 3 | cobro 300 → confirmación 200 | 300/1000, rep 200 **perdido** | 500/1000 |
+| 4 | confirmación 200 → cobro 300 | 300/1000, rep 200 **perdido** | 500/1000 |
+| 5 | anulación de 400 → cobro 300 | 0/1000, rec 300 **perdido** | 300/1000 |
+| 6 | anulación de 400 → confirmación 200 | 0/1000, rep 200 **perdido** | 200/1000 |
+| 7 | identificación 800 → la misma a otra factura | 800 en las dos: **doble acreditación** | la segunda `PAYMENT_RECEIPT_APPLIED` |
+| 8 | cobro → cobro en otra factura del tenant | S1 muere por `payment_receipts_tenant_id_receipt_code_key` | R-2026-0007 y R-2026-0008 |
+| 9 | cobro 300 → identificación 800 | 300/2000, rec 1100: **se perdió 800** | 1100/2000 |
+| 10 | identificación 800 → anulación | 800/1000 con el recibo anulado | 0/1000 |
+| 11 | cobro 300 → anulación de 400 | 700/1000, rec 300 | 300/1000 |
+
+En los 11 escenarios DESPUÉS, S2 esperó un lock. Cada mutante con uno de los
+cinco `FOR UPDATE` quitado **cae en su escenario**, 7 de 7:
+
+- sin el de la factura al cobrar: escenarios 1, 2 y 4;
+- sin el del recibo al identificar: 7;
+- sin el de la factura al identificar: 9;
+- sin el del recibo al anular: 10;
+- sin el de la factura al anular: 11.
+
+Los escenarios 12 y 13, de coherencia con la 0464, se agregaron después del
+merge con main. Su corrida queda en el handoff.
+
+La identidad del archivo, las huellas de preflight y postflight y los locks
+medidos están en el handoff `.agents/handoffs/0488-carrera-cobro-factura.md`.
 
 ## Fuera de alcance detectado
 
