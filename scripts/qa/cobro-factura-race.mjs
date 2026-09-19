@@ -20,6 +20,9 @@
 // DESPUÉS (con 0467): las mismas carreras con las RPC. El invariante
 //   paid_amount = recibos vigentes de la factura + reportes confirmados
 // se cumple en toda factura, S2 esperó un lock y sale el rechazo esperado.
+// Los escenarios 12 y 13 prueban que la regla de saldo del cobro y la de la
+// confirmación de reportes (0464, SDD-0484) son la misma y se serializan:
+// necesitan la 0464 en el esquema reconstruido.
 //
 //   node scripts/qa/cobro-factura-race.mjs              → ANTES + DESPUÉS.
 //   node scripts/qa/cobro-factura-race.mjs --mutantes   → además, cinco mutantes
@@ -250,11 +253,30 @@ const SCENARIOS = [
     s2: (p, x) => op(p).anulacion(x.rec, { v: "s2" }),
     invoices: (x) => [x.inv],
   },
+  // Coherencia con la 0464 (SDD-0484): las dos reglas de saldo son la misma y
+  // se serializan en la factura. Gana el que confirma primero; el otro recibe
+  // PAYMENT_EXCEEDS_BALANCE, venga del cobro o de la confirmación.
+  {
+    id: 12, name: "cobro → confirmación que ya no cabe en el saldo (0464)",
+    setup: (x) => invoiceSql(x.inv) + reportSql(x.rep, x.inv, 200),
+    s1: (p, x, k) => op(p).cobro(x.inv, 900, { pause: k, v: "s1" }),
+    s2: (p, x) => reporte(x.rep),
+    invoices: (x) => [x.inv],
+    rejected: "PAYMENT_EXCEEDS_BALANCE",
+  },
+  {
+    id: 13, name: "confirmación → cobro que ya no cabe en el saldo (0464)",
+    setup: (x) => invoiceSql(x.inv) + reportSql(x.rep, x.inv, 200),
+    s1: (p, x, k) => reporte(x.rep, { pause: k }),
+    s2: (p, x) => op(p).cobro(x.inv, 900, { v: "s2" }),
+    invoices: (x) => [x.inv],
+    rejected: "PAYMENT_EXCEEDS_BALANCE",
+  },
 ];
 
 // Cada mutante quita un FOR UPDATE de 0467 y tiene que caer en estos escenarios.
 const MUTANTS = [
-  { id: "M1", fn: "register_collection_receipt", nth: 1, kills: [1, 2, 4] },
+  { id: "M1", fn: "register_collection_receipt", nth: 1, kills: [1, 2, 4, 13] },
   { id: "M2", fn: "identify_collection_receipt", nth: 1, kills: [7] },
   { id: "M3", fn: "identify_collection_receipt", nth: 2, kills: [9] },
   { id: "M4", fn: "void_collection_receipt", nth: 1, kills: [10] },
