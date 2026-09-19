@@ -119,11 +119,10 @@ más Vercel y Vercel Preview Comments.
 
 1. ✅ 0461 aplicada y verificada (ver Validación). Su espera salió del baseline
    en esta rama, por indicación de dtdcargo-18.
-2. dtdcargo-18 integra la #145 en su turno de la cola (despliega a
-   producción por Vercel).
-3. Smoke con cuenta Portal autorizada: cambiar la foto, contador baja uno,
-   verificación vuelve a pendiente en el Studio con la foto nueva.
-4. SDD pasa a `done` sólo después de 2 y 3.
+2. ✅ #145 integrada (`cc15e48c`, 22:18:05Z) y desplegada (Vercel success 22:20Z).
+3. ✅ Smoke de Sam en producción, 2026-09-18, después del despliegue de `cc15e48c` (Vercel success 22:20Z). Respuestas literales: «la foto ya se cambió bien, funciona» y «sí, bajó el contador y quedó pendiente en el Studio».
+4. ✅ SDD-0481 pasó a `done`. El cierre viaja en la rama del SDD-0482
+   (`codex/portal-cliente-edita-datos-directo`), por indicación de dtdcargo-18.
 
 ## Fuera de alcance detectado
 
