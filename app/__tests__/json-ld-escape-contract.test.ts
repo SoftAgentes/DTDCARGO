@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
@@ -55,17 +56,47 @@ function paginas(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
+/**
+ * SDD-0486, seguimiento: el árbol se recorre UNA vez y cada `.tsx` se lee UNA
+ * vez, en paralelo con tope, en vez de tres veces —una por prueba—. Las tres
+ * miran exactamente los mismos archivos y las mismas líneas que antes.
+ */
+async function leerTodos(rutas: string[], tope = 32): Promise<string[]> {
+  const textos = new Array<string>(rutas.length);
+  let siguiente = 0;
+  await Promise.all(
+    Array.from({ length: tope }, async () => {
+      while (siguiente < rutas.length) {
+        const i = siguiente++;
+        textos[i] = await readFile(rutas[i], "utf8");
+      }
+    }),
+  );
+  return textos;
+}
+
+let cache: Promise<{ rutas: string[]; fuentes: string[] }> | null = null;
+function paginasConFuente() {
+  cache ??= (async () => {
+    const rutas = RAICES.flatMap((raiz) => paginas(raiz));
+    const fuentes = await leerTodos(rutas.map((p) => join(process.cwd(), p)));
+    return { rutas, fuentes };
+  })();
+  return cache;
+}
+
 describe("JSON-LD público · escapado de `<`", () => {
-  it("ningún bloque inyecta JSON.stringify sin escapar", () => {
+  it("ningún bloque inyecta JSON.stringify sin escapar", async () => {
+    const { rutas, fuentes } = await paginasConFuente();
     const sinEscapar: string[] = [];
-    for (const p of RAICES.flatMap((raiz) => paginas(raiz))) {
-      const lineas = readFileSync(join(process.cwd(), p), "utf8").split("\n");
+    rutas.forEach((p, indice) => {
+      const lineas = fuentes[indice].split("\n");
       lineas.forEach((linea, i) => {
         if (!linea.includes("__html: JSON.stringify")) return;
         if (linea.includes("replace(/</g")) return;
         sinEscapar.push(`${p}:${i + 1}`);
       });
-    }
+    });
     expect(sinEscapar).toEqual([]);
   });
 
@@ -75,11 +106,12 @@ describe("JSON-LD público · escapado de `<`", () => {
    * también en un repo donde alguien inyecta JSON-LD por otra vía. Esta es la
    * invariante de verdad: todo bloque `ld+json` sale por el helper.
    */
-  it("todo bloque ld+json se serializa con serializeJsonLd()", () => {
+  it("todo bloque ld+json se serializa con serializeJsonLd()", async () => {
+    const { rutas, fuentes } = await paginasConFuente();
     const sueltos: string[] = [];
-    for (const p of RAICES.flatMap((raiz) => paginas(raiz))) {
-      const src = readFileSync(join(process.cwd(), p), "utf8");
-      if (!src.includes("application/ld+json")) continue;
+    rutas.forEach((p, indice) => {
+      const src = fuentes[indice];
+      if (!src.includes("application/ld+json")) return;
       const lineas = src.split("\n");
       lineas.forEach((linea, i) => {
         if (!linea.includes("dangerouslySetInnerHTML")) return;
@@ -90,7 +122,7 @@ describe("JSON-LD público · escapado de `<`", () => {
         if (bloque.includes("serializeJsonLd(")) return;
         sueltos.push(`${p}:${i + 1}`);
       });
-    }
+    });
     expect(sueltos).toEqual([]);
   });
 
@@ -101,17 +133,18 @@ describe("JSON-LD público · escapado de `<`", () => {
    * atrás sin que nadie lo note. Era el caso de `WebPageJsonLd.tsx` hasta
    * SDD-0303. El escape vive en UN lugar.
    */
-  it("nadie copia el escape a mano en vez de usar el helper", () => {
+  it("nadie copia el escape a mano en vez de usar el helper", async () => {
+    const { rutas, fuentes } = await paginasConFuente();
     const copias: string[] = [];
-    for (const p of RAICES.flatMap((raiz) => paginas(raiz))) {
-      const src = readFileSync(join(process.cwd(), p), "utf8");
-      if (!src.includes("application/ld+json")) continue;
+    rutas.forEach((p, indice) => {
+      const src = fuentes[indice];
+      if (!src.includes("application/ld+json")) return;
       src.split(String.fromCharCode(10)).forEach((linea, k) => {
         if (!linea.includes("replace(/</g")) return;
         if (linea.includes("serializeJsonLd(")) return;
         copias.push(`${p}:${k + 1}`);
       });
-    }
+    });
     expect(copias).toEqual([]);
   });
 

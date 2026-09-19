@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
@@ -29,6 +30,25 @@ function tokenValues(css: string, token: string) {
   return [...css.matchAll(new RegExp(`${escaped}:\\s*([^;]+);`, "g"))].map(
     (match) => match[1].trim(),
   );
+}
+
+/**
+ * SDD-0486, seguimiento: lectura en paralelo con tope, como en
+ * `invoice-read-boundary`. Acá no hay parseo, así que el ahorro es del
+ * paralelismo: los ~700 archivos de `app/` se leían uno por uno.
+ */
+async function leerTodos(rutas: string[], tope = 32): Promise<string[]> {
+  const textos = new Array<string>(rutas.length);
+  let siguiente = 0;
+  await Promise.all(
+    Array.from({ length: tope }, async () => {
+      while (siguiente < rutas.length) {
+        const i = siguiente++;
+        textos[i] = await readFile(rutas[i], "utf8");
+      }
+    }),
+  );
+  return textos;
 }
 
 function appSourceFiles(directory = join(ROOT, "app")): string[] {
@@ -85,7 +105,7 @@ describe("SDD-0175 Gate V1 · fuentes chinas", () => {
     expect(aliases).toEqual(aliases.map(() => "var(--f-cn-ui)"));
   });
 
-  it("mantiene la UI china en Noto Sans SC fuera de consumidores formales", () => {
+  it("mantiene la UI china en Noto Sans SC fuera de consumidores formales", async () => {
     const allowedDefinitions = new Set([
       "app/globals.css",
       "app/layout.tsx",
@@ -94,10 +114,12 @@ describe("SDD-0175 Gate V1 · fuentes chinas", () => {
     const formalDocumentConsumers = new Set([
       "app/p/[token]/PackingListFormSection.tsx",
     ]);
-    const uiSources = appSourceFiles()
-      .map((path) => ({
+    const rutas = appSourceFiles();
+    const textos = await leerTodos(rutas);
+    const uiSources = rutas
+      .map((path, i) => ({
         path: relative(ROOT, path).replaceAll("\\", "/"),
-        source: readFileSync(path, "utf8"),
+        source: textos[i],
       }))
       .filter(
         ({ path }) =>
