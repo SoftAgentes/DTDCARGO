@@ -37,6 +37,10 @@ export function AvatarEditor({
   const [confirmRemove, setConfirmRemove] = useState(false);
   // Última acción que pidió el cliente: decide qué resultado se anuncia.
   const [last, setLast] = useState<"update" | "remove" | null>(null);
+  // Una foto vieja en HEIC (antes de SDD-0487) no se ve fuera de Safari: si la
+  // imagen no carga, se muestran las iniciales en vez del ícono roto.
+  const [broken, setBroken] = useState<string | null>(null);
+  const showPhoto = avatarUrl != null && broken !== avatarUrl;
   const fileRef = useRef<HTMLInputElement>(null);
 
   const busy = preparing || uploading || removing;
@@ -89,10 +93,15 @@ export function AvatarEditor({
             fontFamily: "var(--font-archivo-black)",
           }}
         >
-          {avatarUrl ? (
+          {showPhoto ? (
             // Signed URL efímera del bucket privado — no cachea entre sesiones.
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt={`Foto de perfil de ${name}`} className="h-full w-full object-cover" />
+            <img
+              src={avatarUrl}
+              alt={`Foto de perfil de ${name}`}
+              className="h-full w-full object-cover"
+              onError={() => setBroken(avatarUrl)}
+            />
           ) : (
             <span aria-hidden>{initials(name)}</span>
           )}
@@ -157,7 +166,7 @@ export function AvatarEditor({
           type="button"
           onClick={() => setConfirmRemove(true)}
           disabled={busy}
-          className="min-h-11 px-3 text-[14px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60"
+          className="min-h-11 px-3 text-[14px] font-semibold text-wine-text hover:text-wine-deep disabled:opacity-60 rounded-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
           Quitar foto
         </button>

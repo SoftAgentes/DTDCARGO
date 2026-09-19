@@ -43,7 +43,7 @@ export function BillingIdentityCard({
         {secondary ? (
           <Link
             href="/portal/perfil/empresa"
-            className="inline-flex min-h-11 items-center px-3 text-[14px] font-extrabold text-wine-text hover:text-wine-deep"
+            className="inline-flex min-h-11 items-center px-3 text-[14px] font-extrabold text-wine-text hover:text-wine-deep rounded-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           >
             Editar
           </Link>
@@ -63,7 +63,7 @@ export function BillingIdentityCard({
             <button
               type="button"
               onClick={() => setConfirm(true)}
-              className="mt-2 min-h-11 px-0 text-[14px] font-semibold text-grey-700 hover:text-ink"
+              className="mt-2 min-h-11 px-0 text-[14px] font-semibold text-grey-700 hover:text-ink rounded-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
             >
               {isCompany ? "Quitar empresa" : "Quitar mis datos personales"}
             </button>

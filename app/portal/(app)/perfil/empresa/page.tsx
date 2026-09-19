@@ -34,7 +34,7 @@ export default async function PortalBillingIdentityPage() {
     <div className="mx-auto max-w-[560px]">
       <Link
         href="/portal/perfil#empresa"
-        className="-ml-2 inline-flex min-h-11 items-center gap-1 px-2 text-[15px] font-bold text-ink"
+        className="-ml-2 inline-flex min-h-11 items-center gap-1 px-2 text-[15px] font-bold text-ink rounded-[4px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
         <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor"
           strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>

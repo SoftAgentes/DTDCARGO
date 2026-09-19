@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -138,6 +138,13 @@ describe("Foto de perfil · SDD-0487", () => {
     await waitFor(() => expect(actions.updateAvatar).toHaveBeenCalledTimes(1));
     expect((actions.updateAvatar.mock.calls[0][1] as FormData).get("avatar")).toBe(prepared);
     expect(await screen.findByText("Foto actualizada")).toBeTruthy();
+  });
+
+  it("una foto vieja que el navegador no muestra (HEIC) cae a las iniciales", () => {
+    render(<AvatarEditor name="Carlos Pérez" avatarUrl="https://storage.test/vieja.heic" />);
+    fireEvent.error(screen.getByAltText("Foto de perfil de Carlos Pérez"));
+    expect(screen.queryByAltText("Foto de perfil de Carlos Pérez")).toBeNull();
+    expect(screen.getByText("CP")).toBeTruthy();
   });
 
   it("con foto, «Quitar foto» pide confirmación", async () => {

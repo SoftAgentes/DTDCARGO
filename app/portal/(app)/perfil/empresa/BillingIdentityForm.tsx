@@ -63,7 +63,7 @@ export function BillingIdentityForm({
           placeholder={isCompany ? "Importadora Pérez C.A." : "Carlos Pérez"}
           aria-invalid={err.legalName ? true : undefined}
           aria-describedby={`legal_name-hint${err.legalName ? " legal_name-error" : ""}`}
-          className="h-12 w-full rounded-[10px] border border-grey-500 bg-white px-3.5 text-[16px] font-semibold text-ink"
+          className="h-12 w-full rounded-[10px] border border-grey-500 bg-white px-4 text-[16px] font-semibold text-ink focus:border-wine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         />
       </Field>
 
@@ -85,7 +85,7 @@ export function BillingIdentityForm({
           placeholder={isCompany ? "J-12345678-9" : "V-12345678"}
           aria-invalid={err.doc ? true : undefined}
           aria-describedby={`doc-hint${err.doc ? " doc-error" : ""}`}
-          className="h-12 w-full rounded-[10px] border border-grey-500 bg-white px-3.5 text-[16px] font-semibold text-ink"
+          className="h-12 w-full rounded-[10px] border border-grey-500 bg-white px-4 text-[16px] font-semibold text-ink focus:border-wine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
         />
       </Field>
@@ -107,13 +107,13 @@ export function BillingIdentityForm({
             placeholder="Av. Bolívar Norte, C.C. Camoruco, local 14, Valencia"
             aria-invalid={err.fiscalAddress ? true : undefined}
             aria-describedby={`fiscal_address-hint${err.fiscalAddress ? " fiscal_address-error" : ""}`}
-            className="w-full resize-none rounded-[10px] border border-grey-500 bg-white px-3.5 py-3 text-[16px] font-semibold text-ink"
+            className="w-full resize-none rounded-[10px] border border-grey-500 bg-white px-4 py-3 text-[16px] font-semibold text-ink focus:border-wine focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
           />
         </Field>
       ) : null}
 
       {mode === "add" ? (
-        <label className="flex min-h-11 items-start gap-3 rounded-[12px] border border-grey-200 bg-white p-3.5">
+        <label className="flex min-h-11 items-start gap-3 rounded-[12px] border border-grey-200 bg-white p-4">
           <input
             type="checkbox"
             name="set_default"
@@ -133,7 +133,7 @@ export function BillingIdentityForm({
         </label>
       ) : null}
 
-      <div className="flex items-start gap-2.5 rounded-[12px] bg-grey-100 p-3.5">
+      <div className="flex items-start gap-2 rounded-[12px] bg-grey-100 p-4">
         <span className="mt-0.5 flex-shrink-0 text-ink" aria-hidden>
           <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinejoin="round">
             <path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6l8-3z" />
@@ -176,7 +176,7 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <label htmlFor={id} className="text-[14.5px] font-extrabold text-ink">
         {label}{" "}
         {optional ? (

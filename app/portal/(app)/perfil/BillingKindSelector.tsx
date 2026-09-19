@@ -98,7 +98,7 @@ export function BillingKindSelector({
         Facturar a nombre de
       </h2>
 
-      <fieldset className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-4">
+      <fieldset className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
         <legend className="sr-only">Facturar a nombre de</legend>
         {[principal, other].map((option) => {
           const checked = selected === option.kind;
@@ -106,7 +106,7 @@ export function BillingKindSelector({
           return (
             <label
               key={option.kind}
-              className={`flex items-start gap-3 rounded-[12px] p-3.5 sm:p-4 ${
+              className={`flex items-start gap-3 rounded-[12px] p-4 ${
                 disabled ? "border border-dashed border-grey-500 bg-paper" : "bg-white cursor-pointer"
               }`}
               style={
@@ -127,7 +127,7 @@ export function BillingKindSelector({
                 className="mt-0.5 h-[22px] w-[22px] flex-shrink-0"
                 style={{ accentColor: "var(--color-wine)" }}
               />
-              <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="flex min-w-0 flex-col gap-1">
                 <span className={`text-[15.5px] font-extrabold ${disabled ? "text-grey-500" : "text-ink"}`}>
                   {option.title}
                 </span>
