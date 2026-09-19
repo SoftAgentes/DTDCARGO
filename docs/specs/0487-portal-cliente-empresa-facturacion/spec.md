@@ -1,7 +1,7 @@
 ---
 sdd: "0487"
 title: "Portal cliente — foto visible, empresa propia y «Facturar a nombre de», que el Studio usa al emitir"
-status: in-progress
+status: done
 author: "Claude + founder"
 created: 2026-09-18
 updated: 2026-09-19
@@ -445,12 +445,14 @@ Evidencia de la aplicación (la reportó dtdcargo-18; el Worker no tocó producc
    - sólo escribe el titular en borrador o al emitir (en `main`,
      `facturacion/actions.ts` corta si el estado no es borrador), así que la
      inmutabilidad no lo frena.
-2. Merge a `main`, que despliega a producción.
+2. ~~Merge a `main`, que despliega a producción~~: #159 en `e9e8240e`. Vercel lo desplegó a producción a las 03:32:09Z (estado del commit en GitHub; el alias no se verificó porque el conector de Vercel da 403).
 3. Smoke de Sam:
    - cambiar la foto desde la PC y quitarla;
    - agregar una empresa de prueba y elegir «a nombre de mi empresa»;
    - en el Studio, emitir un borrador de ese cliente y ver el titular en el PDF;
    - intentar el RIF de otra ficha de prueba: mensaje genérico y aviso al asesor.
+
+**Cierre (2026-09-19):** smoke de Sam: «smoke de la 0487 ok, todo salió bien». La SDD pasa a `done`.
 
 ## Fuera de alcance
 
