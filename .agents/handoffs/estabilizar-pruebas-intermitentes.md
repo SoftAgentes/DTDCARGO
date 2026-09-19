@@ -1,9 +1,15 @@
 # Handoff — las pruebas intermitentes de la suite dejan de dar rojos falsos (SDD-0486)
 
-Fecha: 2026-09-18. Task ID: `estabilizar-pruebas-intermitentes`.
+Fecha: 2026-09-18 (UTC 2026-09-19). Task ID: `estabilizar-pruebas-intermitentes`.
 Owner / sesión escritora: `claude-05073579`, Worker Claude Code, sesión «Estabilizar las 4 pruebas intermitentes de la suite» [a0371b]. Director: sesión `dtdcargo-18`. No hubo subagentes.
 
-Estado: en-progreso. Las correcciones y la evidencia focal están listas. Falta la suite completa antes/después, en el turno de máquina que asigna el Director.
+Estado: lista-para-revision.
+
+- Las correcciones, la evidencia, la suite «antes» y `pnpm verify` sobre el head están cerrados.
+- Falta publicar: push y PR, cuando el Director lo autorice. El encargo de Sam autoriza abrir la PR con esa condición.
+- Nada está integrado.
+
+Datos de la rama:
 
 - **Worktree:** `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/estabilizar-pruebas-intermitentes`.
   - Lo creé con `git fetch origin` y `node scripts/harness-worktree.mjs start estabilizar-pruebas-intermitentes`.
@@ -11,10 +17,17 @@ Estado: en-progreso. Las correcciones y la evidencia focal están listas. Falta 
   - `guard --owner` se revalidó antes de cada commit.
   - Instalé dependencias con `corepack pnpm install --frozen-lockfile` y no copié ningún `.env`.
 - **Rama:** `codex/estabilizar-pruebas-intermitentes`, sin upstream, desde `origin/main` `1d80c18a`.
-  - Traje la reserva de SDD del Director con cherry-pick: `f7e32411` quedó como `4fe29aa6` y `ff0a01a9` como `295c67a6`.
-  - main avanzó a `cc15e48c` mientras tanto. Aún no lo integré (ver pendientes).
-- **SDD:** `docs/specs/0486-estabilizar-pruebas-intermitentes/spec.md`, en `in-progress`. El número lo asignó el Director.
-- **Permisos del encargo:** commits locales. Antes de abrir la PR hay que reportar al Director, que revisa e integra. Sin merge a main, sin migraciones y sin tocar producción.
+  - Traje con cherry-pick la reserva de SDD del Director: `f7e32411` quedó como `4fe29aa6` y `ff0a01a9` como `295c67a6`.
+  - main se integró dos veces, siempre con merge y con el driver de main:
+    - `b981d6dc` en `4f41ef2e`;
+    - `26983062` en `d3440dfe`.
+  - En los dos merges, `docs:index` regeneró el índice sin diff, así que el driver acertó.
+- **SDD:** `docs/specs/0486-estabilizar-pruebas-intermitentes/spec.md`, en `done`, porque se cumplen sus cinco criterios. La PR y el merge se registran aparte. El número lo asignó el Director.
+- **Permisos:**
+  - commits locales;
+  - reportar al Director antes de abrir la PR;
+  - push de la rama propia y PR contra `main`, cuando el Director lo autorice (Sam);
+  - sin merge a main, sin migraciones y sin tocar producción.
 
 ## OBJETIVO ORIGINAL
 
@@ -37,7 +50,7 @@ Reglas del encargo:
 
 ## COMPLETADO
 
-Cada prueba tenía una causa distinta. Ningún tope subió, ninguna aserción se relajó y el producto no cambió.
+Cada prueba tenía una causa distinta. Ningún tope subió, ninguna aserción se relajó, el producto no cambió y `vitest.config.ts` no se tocó.
 
 1. **ClientDrawer: una carrera, no lentitud** (`2d7a119f`).
    - **Síntoma.** El volcado de la falla muestra la alerta ya presente y el botón en «Procesando…», deshabilitado.
@@ -57,14 +70,14 @@ Cada prueba tenía una causa distinta. Ningún tope subió, ninguna aserción se
    - **Parseo** sin `setParentNodes`.
    - **Prefiltro exacto** `invoices || \`: un literal cuyo valor cocido es «invoices» aparece tal cual o lleva una barra invertida. Tiene prueba propia con tres escapes que esconden la palabra.
    - **Inventario** idéntico: 18 archivos y 46 llamadas.
-4. **La spec SDD-0486** está escrita, con el diagnóstico y las decisiones, y el índice de specs quedó regenerado. Van en el commit que contiene este documento.
-5. **`vitest.config.ts` no se tocó.** Por decisión del Director, el experimento con `maxWorkers=11` solo corre si alguna de las cuatro sigue fallando en la suite «después».
+4. **La spec SDD-0486** tiene el diagnóstico, las decisiones, la evidencia con contención real y el fuera de alcance. El índice de specs quedó regenerado.
+5. **`vitest.config.ts` no se tocó.** Por la regla del Director, el experimento con `maxWorkers=11` solo corría si alguna de las cuatro fallaba en el verify. El paso `test` del verify pasó sin fallos al primer intento.
 
 ## EVIDENCIA
 
 ### Diagnóstico
 
-- **Máquina.** Intel Core Ultra 7 155H: 6 núcleos P con HT, 8 E y 2 LP-E, 22 hilos. 31 GB de RAM, con unos 6 GB libres. vitest 4.1.7 levanta `availableParallelism() - 1` = 21 workers. En el CI (`ubuntu-24.04`, 4 vCPU) son 3.
+- **Máquina.** Intel Core Ultra 7 155H: 6 núcleos P con HT, 8 E y 2 LP-E, 22 hilos. 31 GB de RAM, con 6 a 12 GB libres según la hora. vitest 4.1.7 levanta `availableParallelism() - 1` = 21 workers. En el CI (`ubuntu-24.04`, 4 vCPU) son 3.
 - **Perfil de CPU de supplier-flow** (setup temporal con `node:inspector`, 84,5 s muestreados):
   - `queryAllByRole`: 74,6 % inclusivo;
   - `computeAccessibleName`: 72,5 %;
@@ -152,21 +165,30 @@ Con la contención real, las versiones de antes fallaron en 3 de 8 corridas, igu
 | Corrida | Condiciones | Resultado |
 |---|---|---|
 | `base1` (antes, `1d80c18a`) | Contaminada: otra suite completa de `respaldo-bateria-15` corrió en paralelo, con 8-26 procesos de prueba ajenos. CPU media 91 %, memoria libre mínima 0,6 GB. | FALLÓ, 4 de 604 archivos: invoice-read-boundary (92,4 s, tope 60 s), norte-bake (27,6 s, tope 20 s), PackingList «adds another group» (23,2 s, tope 20 s) y ClientDrawer (la carrera, 1,1 s). Duración: 622 s. |
-| antes, con la máquina quieta: las 4 pruebas de main (idénticas en `b981d6dc` y `3f810366`) sobre HEAD `4cdcbcfd` | Turno del Director, de 00:45:05Z a 00:50:39Z. CPU media 82 % (la propia suite), máxima 92 %; memoria libre mínima 8,7 GB. Ajeno y liviano: un vitest de un archivo de `portal-cliente-edita-datos-directo` (`profile-direct-edit.migration.test.ts`, `--pool=threads`) de 00:46:45Z a 00:48:00Z, y un eslint de un archivo de `carrera-cobro-factura` a las 00:49:59Z. | **FALLÓ**, 1 de 605 archivos: PackingList «adds another group», 21,2 s contra un tope de 20 s. Pasaron, cerca de su tope: invoice-read-boundary en 48,4 s (80 % de 60 s) y la prueba más lenta de supplier-flow en 17,1 s (85 % de 20 s; el archivo, 138 s). ClientDrawer pasó: la carrera es intermitente. Duración: 330 s. Árbol restaurado sin diff contra HEAD. |
-| después, con la máquina quieta | Turno de máquina del Director | PENDIENTE |
+| **antes**, con la máquina quieta: las 4 pruebas de main (idénticas en `b981d6dc` y `3f810366`) sobre HEAD `4cdcbcfd` | Turno del Director, de 00:45:05Z a 00:50:39Z. CPU media 82 % (la propia suite), máxima 92 %; memoria libre mínima 8,7 GB. Ajeno y liviano: un vitest de un archivo de `portal-cliente-edita-datos-directo` (`profile-direct-edit.migration.test.ts`, `--pool=threads`) de 00:46:45Z a 00:48:00Z, y un eslint de un archivo de `carrera-cobro-factura` a las 00:49:59Z. | **FALLÓ**, 1 de 605 archivos: PackingList «adds another group», 21,2 s contra un tope de 20 s. Pasaron, cerca de su tope: invoice-read-boundary en 48,4 s (80 % de 60 s) y la prueba más lenta de supplier-flow en 17,1 s (85 % de 20 s; el archivo, 138 s). ClientDrawer pasó: la carrera es intermitente. Duración: 330 s. Árbol restaurado sin diff contra HEAD. |
+| **después** = paso `test` de `pnpm verify` sobre `d3440dfe` | Turno del Director, de 01:01:32Z a 01:06:41Z, **sin ningún proceso ajeno**. Lo ajeno de todo el verify (focal y liviano) cayó fuera de este paso: `anon-privilegios-residuales` de 00:56:15Z a 00:57:44Z, `carrera-cobro-factura` de 00:57:44Z a 00:58:44Z y `portal-cliente-edita-datos-directo` de 01:15:44Z a 01:16:14Z. El monitor contó como ajenos los procesos de verify con ruta relativa (vitest, playwright, next dev, tsc, eslint); por su cadena de padres, son pasos de mi propio `verify.mjs`. | **PASÓ al primer intento, sin reintento**: 605 archivos y 1 omitido; 7.938 pruebas, 1 omitida y 0 fallos. Duración: 293 s. Límite: sin la terminal, vitest solo imprime el resumen, así que esta corrida no tiene tiempos por prueba. Los tiempos después de estas pruebas salen de los A/B focales. |
 
 ## VALIDACIÓN
 
 | Comprobación | Alcance / SHA | Resultado |
 |---|---|---|
-| Las 4 pruebas aisladas | `7f8aca61` | PASÓ: 9/9, 23/23, 9/9 y 4/4 |
+| Las 4 pruebas aisladas | `7f8aca61`, y después del merge `4f41ef2e` | PASÓ: 9/9, 23/23, 9/9 y 4/4 |
+| invoice-read-boundary después del merge con `26983062` | `d3440dfe` | PASÓ: 4/4 |
 | Reproducción determinista de ClientDrawer | árbol de trabajo sobre `2d7a119f` | PASÓ: la original falla y la corregida pasa |
 | Mutantes (3) | árbol de trabajo | PASÓ: los 3 quedan atrapados |
-| A/B focal intercalado | `94d95ab6`, `7f8aca61` | PASÓ, ver tablas |
-| `docs:check` | árbol de trabajo con la spec | PASÓ: índice sincronizado, 468 specs |
-| `sdd:check` | `295c67a6` | PASÓ: sin números repetidos |
-| Suite completa antes/después, con la máquina quieta | — | PENDIENTE (turno de máquina) |
-| `pnpm verify` | — | PENDIENTE |
+| A/B focal intercalado, incluida la contención real | `94d95ab6`, `7f8aca61` | PASÓ: antes falló 3 de 8 y después pasó 8 de 8 |
+| Suite completa «antes», con la máquina quieta | pruebas de main sobre `4cdcbcfd` | FALLÓ, como se esperaba: reproduce el problema |
+| `pnpm verify`, 20,4 min, exit 0 | `d3440dfe` | CIERRE INCOMPLETO según su propio veredicto: 16 de 17 pasos PASARON y 1 NO EJECUTADO (abajo) |
+| · harness, lint, rsc-boundary, typecheck, edge-functions (4 funciones) | `d3440dfe` | PASÓ |
+| · test | `d3440dfe` | PASÓ: 605 archivos, 7.938 pruebas, 0 fallos, al primer intento |
+| · docs:check (471 specs), numbering, feature-constants, components:check, governance:check | `d3440dfe` | PASÓ |
+| · pending-migration-symbols (0 rojo · 0 amarillo), sql-tests, schema-rebuild | `d3440dfe` | PASÓ |
+| · e2e | `d3440dfe` | PASÓ: 166 pasaron y 18 omitidas, en 5,5 min |
+| · build (Next.js 16.2.11) | `d3440dfe` | PASÓ |
+| · migrations-applied | `d3440dfe` | NO EJECUTADO: el worktree no tiene `NEXT_PUBLIC_SUPABASE_URL` ni `SUPABASE_SERVICE_ROLE_KEY`, y no copio credenciales a worktrees. Esta tarea no agrega migraciones, así que no aplica a su contenido. Aun así, el cierre de verify queda INCOMPLETO en ese crítico. |
+| ESLint de los 4 archivos | `7f8aca61` | PASÓ |
+| `docs:check` / `sdd:check` después de cada merge | `4f41ef2e`, `d3440dfe` | PASÓ |
+| CI alojado («Calidad local sin secretos») | — | NO DISPONIBLE hasta publicar la PR. Va por mensaje al Director. |
 
 ## COMMITS
 
@@ -176,19 +198,22 @@ Con la contención real, las versiones de antes fallaron en 3 de 8 corridas, igu
 - `94d95ab6`: `test(studio): SDD-0486 — el inventario de invoices lee en paralelo y parsea solo lo que puede sumar`.
 - `0137ca8b`: `test(web): SDD-0486 — los campos del paso 1 se buscan en la tarjeta del paso`.
 - `7f8aca61`: `test(web): SDD-0486 — PackingListProductsStep espera el campo de empresa en la tarjeta del paso`.
-- El commit que contiene este documento: la spec y el índice.
+- `bf15908f`: spec, índice y primera versión de este handoff.
+- `4f41ef2e`: merge de main `b981d6dc`.
+- `645ad47e`: la spec registra el A/B con contención real.
+- `4cdcbcfd`: `register-error-summary` queda fuera de alcance, con su medición.
+- `bca849e9`: el handoff registra la suite «antes».
+- `d3440dfe`: merge de main `26983062`.
+- El commit que contiene este documento: el cierre, con el verify y la spec en `done`.
 
 ## PR / BRANCH
 
-Sin PR todavía. Rama local `codex/estabilizar-pruebas-intermitentes`, base `main`. Se reporta al Director antes de abrirla.
+Sin PR todavía. Rama local `codex/estabilizar-pruebas-intermitentes`, base `main`. El push de la rama propia y la PR se hacen cuando el Director lo autorice. El resultado del CI alojado se le manda por mensaje, sin volver a empujar.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Suite completa antes/después con la máquina quieta, en el turno que asigne el Director, con monitor de carga.
-2. Si en «después» sigue fallando alguna de las cuatro: el experimento con `maxWorkers=11`, que dependería del entorno para no alargar el CI. Si no falla, `vitest.config.ts` no se toca y así queda en la spec.
-3. Traer `origin/main` (`cc15e48c` o posterior) con merge en la rama y regenerar el índice de specs con su script.
-4. `pnpm verify` completo sobre el head final, con cada paso clasificado.
-5. Cierre documental: `knowledge:status`, Graphify estructural y Archify. Luego reportar al Director y abrir la PR si autoriza.
+1. Publicar la rama y abrir la PR contra `main`, cuando el Director lo autorice.
+2. Mandarle al Director el resultado del CI alojado: «Calidad local sin secretos», comprobado por nombre.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -198,6 +223,7 @@ Sin PR todavía. Rama local `codex/estabilizar-pruebas-intermitentes`, base `mai
   - Perfil de CPU (4,0 s muestreados): el 40 % inclusivo es React re-renderizando `RegisterForm.tsx` (1.820 líneas) en cada tecla que despacha user-event (`keyboardAction` → `commitInput` → `flushSyncWork`), y ~19 % es espera ociosa. `getByRole` con `name` casi no aparece.
   - La prueba escribe 64 caracteres con `userEvent.setup()`. Con `delay: 0`, user-event espera un `setTimeout` entre teclas, unas 70 veces por prueba. Bajo contención, cada espera depende de cuándo el sistema vuelve a darle CPU al hilo. Por eso la inflación pasa de 10×, cuando en PackingList fue de 2,6×.
   - Probé `userEvent.setup({ delay: null })` en una copia temporal, con la carga fluctuando: 3,4 / 1,9 / 2,4 s contra 7,3 / 4,3 / 4,3 s de la original en una ronda, y 6,2 / 2,7 / 3,4 s contra 4,5 / 3,7 / 4,0 s en la otra. **No es concluyente.** Queda como hipótesis para una tarea aparte, que tiene que medirla con la máquina quieta y mostrar que la prueba sigue afirmando lo mismo.
+  - En la suite «antes» pasó en 6,3 s su prueba más lenta.
 - **Las pruebas que recorren el repo con topes propios.** En `base1`:
   - `env-example-contract`, 90,4 s;
   - `copy-sin-casco-central`, 33,2 s;
@@ -205,20 +231,31 @@ Sin PR todavía. Rama local `codex/estabilizar-pruebas-intermitentes`, base `mai
   - `json-ld-escape-contract`, 30,3 s.
 
   Pasaron, pero son de las que más CPU y E/S ponen sobre la suite. Leer en paralelo, como en invoice-read-boundary, podría ayudarlas.
-- **El entorno `jsdom` global.** En `base1`, montar jsdom sumó 6.863 s sobre los 604 archivos, contra 1.205 s de pruebas. Todo archivo lo monta, aunque sea Node puro (`scripts/__tests__/*.mjs`, buena parte de `lib/`). Pasar esos archivos a `node` bajaría mucho la CPU de la suite. Es un cambio amplio, para una spec aparte.
+- **El entorno `jsdom` global.** Todo archivo lo monta, aunque sea Node puro (`scripts/__tests__/*.mjs`, buena parte de `lib/`). Pasar esos archivos a `node` bajaría mucho la CPU de la suite. Es un cambio amplio, para una spec aparte.
+
+  | Corrida | Montar jsdom (sumado) | Pruebas (sumado) |
+  |---|---:|---:|
+  | `base1` | 6.863 s | 1.205 s |
+  | «antes» | 3.880 s | 700 s |
+  | «después» | 3.312 s | 839 s |
+
 - **El antivirus escanea cada lectura de fuente en los worktrees.** Es configuración de seguridad del equipo: la decide Sam, no esta tarea.
+- **`migrations-applied` da SKIP en todo worktree sin credenciales.** Por eso ningún `verify` de Worker cierra completo. Es una condición conocida del harness, fuera de esta tarea.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** el turno de máquina para la suite antes/después (pendiente 1). Después, integrar main, correr `verify` y reportar antes de la PR.
+- **Siguiente acción:** autorizar la publicación. Hago push de la rama y abro la PR contra `main`. Todo lo escribible está en este commit; lo único que llega después es el CI, por mensaje.
 - **Revisión sugerida:**
   - que las consultas acotadas afirman lo mismo que antes;
   - que las negativas siguen sobre toda la página;
-  - que el prefiltro de invoices es exacto, con su prueba y su mutante.
+  - que el prefiltro de invoices es exacto, con su prueba y su mutante;
+  - que la carrera de ClientDrawer está bien descrita.
 - **Sin cambios compartidos:** ni producto, ni `vitest.config.ts`, ni migraciones, ni base de datos.
-- **Ownership:** sigue tomado por `claude-05073579` hasta cerrar los pendientes.
+- **Ownership:** el claim de `claude-05073579` sigue tomado hasta publicar. Se libera después de enviar el resultado del CI.
 
 ## Impacto documental y conocimiento
 
-- Documento canónico nuevo: la spec SDD-0486. El índice `docs/specs/README.md` se regeneró con `pnpm docs:index`.
-- `knowledge:status`, Graphify y Archify quedan pendientes para el cierre (pendiente 5).
+- **Documento canónico nuevo:** la spec SDD-0486. El índice `docs/specs/README.md` se regeneró con `pnpm docs:index` después de cada merge. Van 471 specs.
+- **`knowledge:status`** en este worktree nuevo: estructural INVALID (4.233 pendientes, 3.124 faltantes) y semántica INVALID (1.109 pendientes). Es lo esperable: los derivados de Graphify no se versionan y nunca se construyeron aquí. **Ninguna fuente de `semanticPilot` cambió**, así que no hace falta recibo semántico. La spec y el handoff nuevos quedan como pendientes globales visibles.
+- **Graphify estructural (`graphify update .`) y vista previa de Obsidian:** NO EJECUTADOS. En un worktree nuevo, construir Graphify desde cero ocupa un turno de máquina compartida, y el runbook ya pone esa actualización en manos del Director, desde main integrado. Queda como pendiente de integración.
+- **Archify:** NO EJECUTADO. Sus fuentes (`docs/architecture/knowledge-lifecycle.archify.json` y su evidencia) no cambiaron. Además, construirlo requiere descargar un ZIP de GitHub, y esa descarga no está autorizada.

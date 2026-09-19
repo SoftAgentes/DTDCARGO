@@ -1,10 +1,10 @@
 ---
 sdd: "0486"
 title: "Las pruebas intermitentes de la suite dejan de dar rojos falsos"
-status: in-progress
+status: done
 author: "Claude Code (Worker) para Sam"
 created: 2026-09-18
-updated: 2026-09-18
+updated: 2026-09-19
 supersedes: null
 superseded_by: null
 related: ["0479", "0357", "0469"]
@@ -136,9 +136,10 @@ con la carga de cada corrida, está en el handoff.
   aserciones negativas (`queryBy… .not.toBeInTheDocument()`) siguen sobre toda la
   página, porque acotarlas sí las debilitaría.
 - **Sin cambio de producto ni migraciones.**
-- **`vitest.config.ts`:** pendiente de la medición de la suite completa con la
-  máquina quieta. Si se cambia el número de workers, el cambio depende del entorno
-  para no alargar el CI.
+- **`vitest.config.ts` no se toca.** La regla del Director era probar
+  `maxWorkers=11`, dependiente del entorno, solo si alguna de las cuatro seguía
+  fallando en la suite «después». No falló ninguna (ver «Resultado»). El CI queda
+  igual.
 
 ## Alcance
 
@@ -183,6 +184,39 @@ con la carga de cada corrida, está en el handoff.
    suite completa local. Se registran la carga y los procesos ajenos de cada
    corrida.
 5. **CI.** Si se toca `vitest.config.ts`, el CI no se alarga.
+
+## Resultado
+
+Las dos corridas se hicieron con la máquina quieta, en el turno que asignó el
+Director el 2026-09-19 (UTC), con monitor de carga cada 2 s.
+
+| Suite completa | Carga | Resultado |
+|---|---|---|
+| **Antes:** las 4 pruebas de main sobre la rama | De 00:45Z a 00:51Z. CPU media 82 %, que es la propia suite. Lo ajeno fueron dos corridas focales livianas. | **FALLÓ:** PackingList «adds another group» tardó 21,2 s contra 20 s. invoice-read-boundary llegó a 48,4 s de 60 y supplier-flow a 17,1 s de 20. |
+| **Después:** paso `test` de `pnpm verify` sobre `d3440dfe` | De 01:01:32Z a 01:06:41Z, sin ningún proceso ajeno. | **PASÓ al primer intento:** 605 archivos, 7.938 pruebas, 0 fallos, en 293 s. |
+
+`pnpm verify` terminó con exit 0 en 20,4 min.
+
+- 16 de 17 pasos pasaron: lint, typecheck, test, e2e (166 pruebas), build y los
+  checks de docs, SQL y gobernanza.
+- `migrations-applied` quedó NO EJECUTADO: el worktree no tiene credenciales de
+  Supabase. Esta tarea no agrega migraciones.
+
+Por ese paso, el cierre de verify es INCOMPLETO según su propio veredicto.
+
+**Estado de los criterios:**
+
+| Criterio | Estado |
+|---|---|
+| 1 | Cumplido |
+| 2 | Cumplido |
+| 3 | Cumplido |
+| 4 | Cumplido: suite «después» sin rojos, con la carga registrada |
+| 5 | No aplica: `vitest.config.ts` no cambió |
+
+**Límite.** Fuera de una terminal, vitest solo imprime el resumen. Por eso la suite
+«después» no tiene tiempos por prueba. Los tiempos de después salen de los A/B
+focales (sección anterior y handoff).
 
 ## Fuera de alcance
 
