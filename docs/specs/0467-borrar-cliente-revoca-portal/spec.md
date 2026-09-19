@@ -347,7 +347,21 @@ Sin interbloqueos. Invariante final: 0 con el original y 1 con el mutante.
 
 ### Concurrencia en la suite SQL (seguimiento del 2026-09-19)
 
-Seguimiento sin número nuevo, asignado por el Director (`dtdcargo-18`). La 0454 no se toca.
+Seguimiento sin número nuevo, asignado por el Director (la sesión «Director notificación a
+workers», que reemplazó a `dtdcargo-18`). La 0454 no se toca.
+
+**La 0454 en producción** (verificado por el Director el 2026-09-19, leyendo sólo el catálogo,
+sin filas):
+
+- **Ledger:** `20260915155857`, aplicada el 2026-09-15 a las 15:58:57 UTC.
+- **Identidad exacta:** md5 `02623202e197dd9ff1e6de90b0340876` y 30 505 bytes, iguales al
+  archivo de `main`. A diferencia de la 0449, la cabecera no se tocó después de aplicar.
+- **Cuerpos:** el `md5(prosrc)` de producción es el mismo que deja el fixture de la carrera,
+  las dos funciones son DEFINER y ninguna otra migración las redefine:
+  - `clients_revoke_portal_access`: `050880a2…`, 984 bytes;
+  - `portal_access_require_live_client`: `b8e102e1…`, 728 bytes.
+
+  La carrera prueba exactamente lo que corre en producción.
 
 **Corrección de la evidencia anterior.** Las cuatro carreras de arriba se corrieron a mano,
 con dos sesiones y esperas de 2 s sin confirmar. Su script no está en el repo: no figura en la
