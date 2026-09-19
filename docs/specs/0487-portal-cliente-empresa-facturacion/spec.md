@@ -310,7 +310,47 @@ Lo que esta SDD resuelve:
 
 ## Allowlist exacta
 
-Se completa al implementar.
+Cambios de comportamiento del **Studio** (`docs/governance/AGENT-BRIEF.md`):
+- `app/studio/(app)/facturacion/actions.ts`: deja de sellar en TypeScript, recibe `bill_to_kind` sólo con el selector en pantalla y suma `lookupInvoiceBillingOptions`.
+- `app/studio/(app)/facturacion/_components/InvoiceDrawer.tsx` y `InvoiceTitularPicker.tsx` (nuevo): el titular del borrador.
+- `app/studio/(app)/facturacion/[code]/pdf/route.ts` y `lib/studio/pdf/factura-pdf.tsx`: el domicilio fiscal sellado en el PDF.
+- `app/studio/(app)/clientes/[markbox]/page.tsx` y `_components/ClientBillingCard.tsx` (nuevo): la empresa y la preferencia en la ficha, en lectura.
+- `lib/studio/invoice-billing.ts` (nuevo) y `lib/studio/invoice-client-doc.ts`: sale `documentoDelCliente` y entra `domicilioFiscalSellado`.
+- `lib/studio/change-request-notify.ts`: el aviso de bloqueo suma `company_rif` y `personal_doc`.
+
+**Portal:**
+- `app/portal/(app)/perfil/`: `page.tsx`, `AvatarEditor.tsx`, `avatar-actions.ts`, `billing-actions.ts`, `BillingIdentityCard.tsx`, `BillingKindSelector.tsx`, `empresa/page.tsx` y `empresa/BillingIdentityForm.tsx`.
+- `app/portal/(app)/facturas/[code]/pdf/route.ts`.
+- `lib/portal/`: `avatar-image.ts`, `jpeg-metadata.ts`, `billing-identity.ts`, `billing-profile-context.ts` y `client-photo.ts`.
+
+**Cron:** `app/api/cron/purge-throttle/route.ts`.
+
+**Público:** `app/privacidad/page.tsx`, en un commit aparte y con el texto pendiente del OK de Sam.
+
+**Base:** `supabase/migrations/0466_client_billing_identity.sql`, `supabase/tests/0466_client_billing_identity.test.sql`, `supabase/migrations-baseline.json` (la espera) y `supabase/pending-migration-symbol-declarations.json` (dos grupos).
+
+**Docs:** esta spec, `docs/specs/README.md` y `docs/legal/privacidad/` (`revision-0487-…`, `registro-tratamiento.md`, `mapa-de-borrado.md`, `README.md`).
+
+**Pruebas:**
+- `lib/portal/__tests__/{avatar-image,jpeg-metadata,billing-identity,billing-identity.migration}.test.ts`;
+- `app/portal/(app)/perfil/{AvatarAction,BillingAction}.test.ts` y `BillingControls.test.tsx`, más el mock nuevo en `page.private-context.test.tsx`;
+- `lib/studio/__tests__/invoice-billing.test.ts` y `app/api/cron/purge-throttle/__tests__/route.test.ts`.
+
+## Verificación (worktree, 2026-09-19)
+
+| Comprobación | Resultado |
+|---|---|
+| Contrato SQL de 0466 en PGlite: cadena real 0421 → 0464 → 0392 → 0445 → 0462 → 0466 | PASÓ: 45 aserciones |
+| Control rojo sin 0466 · preflight sin la entidad client de 0293 | PASÓ: fallan como deben |
+| Mutantes SQL: inmutabilidad, RIF congelado, sello en UPDATE, elección del borrador, unicidad cruzada, conflicto con clients.rif, límite 5/24 h, rol de lectura y auditoría sin documento | 9/9 muertos |
+| Escritores sobre facturas selladas: `resolve_payment_report` (0421+0464), `void_invoice_with_audit_reason` (0294), recibos (0122), parcial → emitida (0467), vencimiento, `due_date` y renombre de Shipping Mark | PASÓ |
+| Locks en PostgreSQL 17 (Docker) | Medidos en la cabecera: DDL de 20-31 ms; peor caso de 5 s con una lectura larga abierta |
+| Vitest del Portal (perfil, `lib/portal`), Studio (facturación, clientes, fiscal), cron y copia legal | PASÓ |
+| Mutantes TypeScript con control verde previo | 10/10 muertos |
+| typecheck · ESLint focal · rsc-boundary · pending-migration-symbols (0 rojos, 2 amarillos declarados) · docs:check · sdd:check | PASÓ |
+| `/ui-check` | OK con ajustes menores; aplicados en `fix(portal): SDD-0487 — ajustes de /ui-check` |
+| `pnpm verify` completo | Pendiente del turno del Director |
+| Prueba visual en el teléfono y en escritorio | NO DISPONIBLE: requiere sesión del Portal y la 0466 aplicada; va en el smoke de Sam |
 
 ## Verificación exigida
 
