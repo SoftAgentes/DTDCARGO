@@ -133,6 +133,9 @@ policies, el guard de columnas, el validador 0195 ni la RPC heredada
 - `supabase/migrations-baseline.json`: espera de `0464` en `pendingBelowCutoff`.
 - Esta spec y `docs/specs/README.md` (índice generado).
 - `.agents/handoffs/0484-reporte-pago-factura-pagada.md`.
+- `supabase/tests/0464_saldo_confirmacion_carrera.test.sql` (nuevo): la carrera
+  del saldo en la suite SQL (seguimiento 2026-09-18).
+- `.agents/handoffs/0484-carrera-saldo-0464.md`: el handoff de ese seguimiento.
 
 ## Diseño
 
@@ -299,6 +302,11 @@ negocio de producción. El detalle, con los SHA, está en el handoff.
   fallan exactamente las cuatro pruebas nuevas.
 - `scripts/qa/payment-report-confirm-race.mjs` corre la carrera con dos sesiones
   en `postgres:17`, con la 0464, sin ella y con el mutante sin `FOR UPDATE`.
+- **2026-09-18:** el script corre sólo a mano. Desde hoy la carrera corre además en
+  el paso `sql-tests` de `verify` (no en CI), con
+  `supabase/tests/0464_saldo_confirmacion_carrera.test.sql`: sin la 0464 como
+  control en la misma corrida, y con ella. El mutante sin el `FOR UPDATE` de la
+  factura se prueba fuera del repo (ver su handoff). El script se conserva.
 - Locks de la 0464, medidos: ACCESS EXCLUSIVE sobre el objeto
   `run_report_command`, que sólo choca con otra DDL sobre la función porque
   llamarla no toma ese lock; SHARE UPDATE EXCLUSIVE sobre `payment_reports` por
