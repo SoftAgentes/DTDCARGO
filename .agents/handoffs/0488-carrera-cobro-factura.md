@@ -1,9 +1,10 @@
 # Handoff 0488 — Registro atómico de cobros en facturas
 
 - Fecha: 2026-09-18, Caracas (2026-09-19 UTC). Estado de la tarea: **lista para
-  revisión**, sin publicar. El reporte va al Director antes de publicar la rama
-  y abrir la PR. La 0467 **no está aplicada**, y la SDD sigue en `in-progress`
-  hasta que se aplique y se integre.
+  revisión**. Se publica con el push único que sigue a este commit y una PR
+  lista para revisión, después del reporte de cierre y del visto bueno del
+  Director. La 0467 **no está aplicada**, y la SDD sigue en `in-progress` hasta
+  que se aplique y se integre.
 - Owner / sesión: `worker-carrera-cobro-factura-opus5-20260918` (Claude Opus 5,
   Worker, sesión «Hacer atómico el registro de cobros en facturas»).
   Director: `dtdcargo-18`.
@@ -12,7 +13,11 @@
   2026-09-19 a las 00:57 UTC se trajo `origin/main` = `26983062` (#150, SDD-0484
   con la 0464) en el merge `d9855875`, sin conflictos. A las 01:27 UTC se trajo
   `a90c242b` (#152, SDD-0477: sólo una prueba SQL de la 0460 y docs, sin
-  solaparse) en el merge `6aabc096`, también sin conflictos. El driver
+  solaparse) en el merge `6aabc096`, también sin conflictos. Después del verify,
+  a las 01:55 UTC, se trajo `d881f75f` en el merge `a5580255`, sin conflictos ni
+  solapes. Trae la #153 (0462 del Portal, `lib/portal`, `lib/studio/fiscal` y
+  `change-request-notify`) y la #155 (carreras 0421/0427 en `supabase/tests`).
+  El driver
   `dtd-generated-records` dejó 0464 y 0467 en `pendingBelowCutoff`.
 - Aislamiento: `harness-worktree start carrera-cobro-factura`, `guard` → `Guard OK`
   y claim adquirido antes de editar.
@@ -286,6 +291,7 @@ La CPU estuvo saturada por otras sesiones: sólo pruebas focales, con un worker.
 | · las dos intermitentes, aisladas (`vitest run <archivo> --pool=forks --maxWorkers=1`) | `bd9fb640` | **PASÓ**: 9/9 y 9/9 |
 | · `pending-migration-symbols` | `bd9fb640` | **ROJO por diseño**: los 3 símbolos de la 0467 |
 | · `migrations-applied` | `bd9fb640` | **NO EJECUTADO**: SKIP sin `.env.local`. La 0467 además está declarada como espera |
+| Después del merge `a5580255` (`d881f75f`): `docs:index` (472 specs, en sincronía), `docs:check`, `sdd:check`, `governance:check`, `pnpm typecheck`, `vitest` de la frontera de lecturas + PGlite 0467 + collections (32/32) y `check-pending-migration-symbols` | `a5580255` | **PASÓ**, salvo el gate de símbolos, que da **ROJO por diseño** sólo con los 3 símbolos de la 0467. El merge no toca archivos de esta rama ni agrega lecturas de `invoices` |
 
 ## COMMITS
 
@@ -305,23 +311,30 @@ Sobre `1b64bdae`, en este orden:
 - `08bae316` `docs(SDD-0488)`: la segunda corrida en la spec.
 - `e2afd77b` `docs(handoff)`: el cierre antes de publicar.
 - `6aabc096`: merge de `origin/main` (`a90c242b`).
-- El commit que contiene este documento: `docs(handoff)`, con el segundo merge.
+- `bd9fb640` `docs(handoff)`: el segundo merge. Es la base del verify.
+- `652e273a` `wip(handoff)`: el resultado del verify, guardado como punto de
+  control antes del tercer merge. Lo completa el commit final.
+- `a5580255`: merge de `origin/main` (`d881f75f`).
+- El commit que contiene este documento: `docs(handoff)`, el cierre con el verify
+  y la publicación.
 
 ## PR / BRANCH
 
-Rama `codex/carrera-cobro-factura`, local y **sin publicar**. Se reporta al
-Director antes de abrir la PR. La PR sale con el rojo por diseño de
-`check-pending-migration-symbols` hasta que se aplique la 0467.
+La rama `codex/carrera-cobro-factura` se publica con un **único push** de la
+propia rama, `git push -u origin codex/carrera-cobro-factura:codex/carrera-cobro-factura`,
+y una PR contra `main` **lista para revisión**, no draft, como pidió el
+Director. La primera línea de la descripción avisa del ROJO POR DISEÑO del gate
+de símbolos. El número y la URL van en la PR y en el reporte al Director: no se
+agregan acá, para no hacer otro push.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Reporte al Director y, con su visto bueno, publicar la rama y abrir la PR. La
-  primera línea de la descripción avisa del ROJO por diseño.
-- `pnpm verify` completo y `run-sql-tests`: van en el turno de máquina que
-  asigne el Director, antes o después del push según su orden.
-- Release, que es del Director: OK nominal de Sam → aplicar la 0467 → commit que
-  la saca de la espera → CI verde → integración → smoke de Sam.
-- Cuando se aplique la 0467, la SDD pasa a `done` en ese mismo commit final.
+- Revisión del Director sobre la PR.
+- Release, que es del Director: OK nominal de Sam con la identidad de arriba →
+  aplicar la 0467 → commit que retira la espera, sin tocar la cabecera del `.sql`
+  → CI verde → integración → smoke de Sam: cobrar, identificar y anular.
+- En ese commit posterior a la aplicación, la SDD pasa a `done`. Si ese commit
+  toca esta rama, se vuelve a reclamar el worktree.
 
 ## FUERA DE ALCANCE DETECTADO
 
