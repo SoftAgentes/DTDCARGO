@@ -115,6 +115,8 @@ exigiendo despublicar.
 | `app/studio/(app)/tarifas/_components/RateDrawer.test.tsx` | los casos de la casilla nueva |
 | `docs/specs/0478-tarifa-programada-a-futuro/spec.md`, `docs/specs/README.md` | esta spec y el índice regenerado |
 | `.agents/handoffs/0478-tarifa-programada-a-futuro.md` | el handoff |
+| `supabase/tests/0459_relevo_carrera_for_update.test.sql` | nuevo — la carrera del `for update` con dos sesiones reales (Seguimiento 3) |
+| `.agents/handoffs/0478-carrera-for-update-0459.md` | el handoff del Seguimiento 3 |
 
 ## Diseño
 
@@ -345,11 +347,11 @@ negocio de producción. Detalle y SHA en el handoff.
    diciendo «NO APLICADA» y **no se edita**: rompería la identidad md5 contra el
    ledger, igual que en la 0255 y la 0473.
 2. ⬜ **Integrar la PR** — Director.
-3. ⬜ **PENDIENTE: test automático de concurrencia del `for update`.** Es la única
-   defensa contra que el relevo pise una cancelación del founder, y hoy solo está
-   probada a mano. Hace falta una prueba de dos sesiones contra Postgres real que
-   mate al mutante sin `for update`. Queda a nombre del Worker de esta spec y se
-   formaliza como tarea aparte. Base: los scripts del anexo del handoff 0478. Que
-   esta spec diga `done` no cierra este hueco.
+3. ✅ **Test automático de concurrencia del `for update`** (2026-09-18):
+   `supabase/tests/0459_relevo_carrera_for_update.test.sql`, en el paso `sql-tests`
+   de `verify` (el CI no corre Docker). Con dos sesiones reales, el relevo respeta
+   desprogramar, posponer y archivar; sin el `for update` publica la tarifa
+   cancelada y el test falla. Reemplaza el «ningún test del repo lo cubre» de
+   Evidencia. Handoff: `0478-carrera-for-update-0459`.
 4. ⬜ Cargar la tarifa que rija después del 2026-11-29 como **programada** antes de
    esa fecha, y verificar el primer relevo real en `/api/public/cbm-rate`.
