@@ -10,9 +10,12 @@
 --   · por tenant y por año, sin truncar pasado 9999;
 --   · sin tocar la que trae su código.
 -- CONTROL ROJO: con `-v apply_fix=false` la 0469 no se aplica y la primera
--- aserción falla, porque la columna es NOT NULL y nadie la llena. La
--- concurrencia (dos altas a la vez) la prueban sesiones reales en
--- 0469_recepcion_codigo_wr_carrera.test.sql.
+-- aserción falla, porque la columna es NOT NULL y nadie la llena. Acá sólo se
+-- comprueba que el alta deja tomado el lock consultivo 491 de su tenant; que
+-- eso serializa dos altas a la vez lo prueban sesiones reales en
+-- 0469_recepcion_codigo_wr_carrera.test.sql. En CI, que no tiene Docker, este
+-- mismo contrato corre en PGlite:
+-- app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts.
 \if :{?apply_fix}
 \else
 \set apply_fix true
@@ -143,6 +146,14 @@ begin
     'la primera alta del Studio no salió WR-' || v_anio || '-0001');
   perform pg_temp.afirmar(pg_temp.alta_studio('admin-A', 'tenant-A', false) = 'WR-' || v_anio || '-0002',
     'la segunda alta del Studio no siguió la serie');
+  -- El alta deja tomado el lock consultivo de su tenant (491, hashtext del
+  -- tenant) hasta el COMMIT: uno global, o ninguno, no serializa por tenant.
+  perform pg_temp.afirmar(exists (
+      select 1 from pg_locks l
+       where l.locktype = 'advisory' and l.pid = pg_backend_pid() and l.granted
+         and l.classid = 491 and l.objsubid = 2
+         and l.objid = hashtext(pg_temp.fid('tenant-A')::text)::oid),
+    'el alta del Studio toma el lock consultivo 491 de su tenant hasta el COMMIT');
 
   -- 2. La prealerta (0449) numera con su propia regla sobre la misma serie.
   r := public.receive_prealerta_boxes_as_operario(pg_temp.fid('operario-A'), 'DTD-B-046901', array['DTD-B-046901']);
@@ -199,9 +210,8 @@ begin
          and t.tgname = 'warehouse_receipts_cn_assign_code' and t.tgenabled = 'O'
          and (t.tgtype & 7) = 7 and (t.tgtype & 24) = 0),
     'el trigger no es BEFORE INSERT FOR EACH ROW');
-
-  raise notice 'TEST 0469 OK: % aserciones', currval('pg_temp.aserciones');
 end;
 $contrato$;
 
+select 'TEST 0469 GREEN: ' || currval('pg_temp.aserciones') || ' aserciones' as resultado;
 rollback;
