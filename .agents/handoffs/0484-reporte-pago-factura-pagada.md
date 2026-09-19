@@ -108,7 +108,8 @@ Director.
 | Después del merge `8deac83a` (`cc15e48c`): `docs:index` (sin cambios, 469 specs), `docs:check`, `sdd:check`, símbolos y `governance:check` | **PASÓ** |
 | Después del merge `8deac83a`: `pnpm typecheck` y `vitest` focal (PGlite 0464, transporte y consumidores TS, gates de migraciones) | **PASÓ**: 338/338 |
 | Después del merge `594f8b2e` (`1b64bdae`): `docs:index` (sin cambios), `docs:check`, `sdd:check`, símbolos y el `vitest` focal TS | **PASÓ**: 281/281. #147 sólo trae comentarios y docs, sin solaparse con esta rama |
-| `pnpm verify` | Se corre en el turno de máquina que asignó el Director; el resultado queda en el commit siguiente |
+| `pnpm verify` completo sobre `3167e240` (main `1b64bdae` incluido), en el turno de máquina que asignó el Director | **FALLÓ sólo `test`, por intermitencias.** 16 de 17 pasos corrieron. **PASÓ:** harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO · 0 AMARILLO), **sql-tests** (200 contratos, con 0464 en `psql` real y 0421-0423), **schema-rebuild** (459 migraciones desde cero en `postgres:17`, con 0464 después de 0422 y 0423), e2e (168 pasaron; aviso conocido del worker de WebKit) y build. **SKIP:** `migrations-applied`, sin credenciales en el worktree. **`test`:** tiempos agotados de 20 s en `app/p/[token]/PackingListProductsStep.test.tsx` (1 prueba en la primera corrida, 2 en el reintento) y en `app/registro/__tests__/register-error-summary.test.tsx` (2 pruebas, sólo en la primera). El resto dio 7933 y 7934 en verde |
+| Las dos pruebas del paso `test`, aisladas sobre `3167e240` (`--pool=threads`) | **PASÓ**: 12/12. Son timeouts por carga: PackingListProductsStep es una intermitencia conocida que otro Worker está arreglando, y register-error-summary sigue el mismo patrón de render jsdom. Ninguna toca esta rama |
 | `migrations-applied` | **NO EJECUTADO**: da SKIP en worktrees sin credenciales, y la 0464 está declarada como espera |
 
 ## COMMITS
@@ -124,8 +125,9 @@ Sobre `1d80c18a`, en este orden:
 - `9a907f51` `docs(SDD-0484)`: la spec y el índice regenerado.
 - `8d65642e` `docs(handoff)`: primera versión de este documento.
 - `8deac83a`: merge de `origin/main` (`cc15e48c`), sin conflictos.
-- El commit que contiene esta versión: `docs(handoff)`, con el merge y la
-  publicación.
+- `3167e240` `docs(handoff)`: los dos merges y las comprobaciones focales.
+- El commit que contiene esta versión: `docs(handoff)`, con el resultado de
+  `pnpm verify`. Es el último antes del push único.
 
 Identidad del archivo a aplicar: `0464_reporte_pago_factura_pagada.sql`, md5
 `44fabe4d2643844fbe489e2ba88fa4fb`, 22209 bytes, LF. Cuerpo de la función:
@@ -142,7 +144,7 @@ resultado del CI va por mensaje y no en otro commit.
 
 - Que el Director revise y decida el orden de integración, que es quien serializa
   los merges. Si `main` avanza, traerlo otra vez y repetir lo afectado.
-- `pnpm verify` completo cuando la CPU lo permita.
+- El CI de la PR se informa por mensaje, no con otro commit.
 - Release, fuera del Worker: desplegar la app primero; después, con OK nominal de
   Sam, aplicar la 0464 leyendo antes en producción `md5(prosrc)` de
   `run_report_command`.
