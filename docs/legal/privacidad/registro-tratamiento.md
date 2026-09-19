@@ -30,6 +30,8 @@
 | `client_users.email` | Login del Portal | no | sí | Acceso al Portal | Contrato | Mientras el vínculo esté invitado o activo. Revocado: 30 días desde la revocación y después se borra (Sam, 2026-09-15; SDD-0477, migr 0460, efectivo al aplicarla y activar el cron) | Supabase Auth · equipo del tenant |
 | `client_users.invited_at`, `bound_at`, `last_login_at`, `revoked_at`, `last_email_invite_at`, `last_whatsapp_invite_at` | Fechas de la relación con el Portal | no | — | Adopción y acceso al Portal | Contrato | Igual que `client_users.email` | Equipo del tenant |
 | `persons.national_id` | Cédula / RIF / pasaporte | no | sí | Identidad unificada | Contrato | ⬜ | Equipo VE |
+| `client_change_requests.prev_*`, `proposed_*` | Historial de nombre, cédula/RIF y teléfono: valor anterior y nuevo de cada cambio (solicitudes SDD-0151 y ediciones directas del Portal, SDD-0482) | no | — | Trazabilidad de la identidad del cliente | Contrato | ⬜ sin plazo definido | Equipo VE (Studio, «Historial de solicitudes») |
+| `client_profile_blocked_attempts` | Intento bloqueado de usar un documento o teléfono de otra ficha: campo, ficha en conflicto y fecha, **sin el valor intentado** (SDD-0482) | no | — | Anti-enumeración (5 en 24 h) y aviso al asesor | Interés legítimo en seguridad | ⬜ sin plazo definido | Servidor (service_role) · asesor por Telegram, sólo Shipping Marks |
 
 ## 2 · Datos capturados en la entrega ⚠️
 

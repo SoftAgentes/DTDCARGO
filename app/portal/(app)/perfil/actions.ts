@@ -2,10 +2,11 @@
 
 /**
  * "Mi perfil" unificado (SDD-0145 · reemplaza al "Completa tu perfil" del
- * registro express). La única mutación self-service de IDENTIDAD es la foto de
- * cédula/RIF (verificación): el cliente la sube desde la fila de documento
- * pendiente. La dirección canónica vive en `client_delivery_addresses`
- * (SDD-0138 · address-actions.ts) y el resto de los datos los media el asesor.
+ * registro express). El cliente edita por sí mismo la foto de cédula/RIF
+ * (SDD-0481) y su nombre, documento y teléfono (SDD-0482), todo dentro del cupo
+ * compartido de 3 cambios. La dirección canónica vive en
+ * `client_delivery_addresses` (SDD-0138 · address-actions.ts); email y
+ * Shipping Mark siguen fuera del Portal.
  *
  * Misma defensa en profundidad que el resto del portal: identidad por SESIÓN
  * (`get_portal_client_id`, helper aislada) → escritura con ADMIN client
@@ -26,19 +27,15 @@ import {
   validatePhotoFile,
   uploadClientPhoto,
 } from "@/lib/portal/client-photo";
-import {
-  normalizeDocByKind,
-  type ClientDocKind,
-} from "@/lib/studio/client-types";
-import { normalizePhone } from "@/lib/studio/estimado-linking";
-import { getOpenChangeRequest } from "@/lib/portal/change-request-queries";
-import {
-  buildChangeRequestDiff,
-  mapChangeRequestRow,
-  type EditableField,
-} from "@/lib/portal/change-request-types";
-import { notifyChangeRequestToAdmin } from "@/lib/studio/change-request-notify";
+import { type ClientDocKind } from "@/lib/studio/client-types";
+import { type EditableField } from "@/lib/portal/change-request-types";
+import { notifyBlockedProfileEditToAdmin } from "@/lib/studio/change-request-notify";
 import { getPortalProfileEditQuota } from "@/lib/portal/profile-edit-quota";
+import {
+  DIRECT_EDIT_MESSAGES,
+  isDirectEditOutcome,
+  validateDirectEdit,
+} from "@/lib/portal/profile-direct-edit";
 
 export type CedulaPhotoActionState = { ok?: boolean; error?: string };
 
@@ -213,7 +210,7 @@ export async function uploadCedulaPhotoAction(
   return { ok: true };
 }
 
-// ── Solicitud de cambio de datos (SDD-0151) ──────────────────────────────────
+// ── Edición directa de datos (SDD-0482) ──────────────────────────────────────
 
 export type ChangeRequestActionState = {
   ok?: boolean;
@@ -221,15 +218,22 @@ export type ChangeRequestActionState = {
   fieldErrors?: Partial<Record<EditableField, string>>;
 };
 
+const RPC_FIELD_ERRORS: Record<string, [EditableField, string]> = {
+  invalid_profile_name: ["name", "Escribe tu nombre completo."],
+  invalid_profile_document: ["doc", "Revisa el formato de tu documento."],
+  invalid_profile_phone: ["phone", "Teléfono inválido."],
+};
+
 /**
- * El cliente PROPONE un cambio a sus datos de identidad (nombre, cédula/RIF,
- * teléfono). No escribe `clients`: crea una solicitud PENDING que el asesor
- * aprueba en el Studio. Mismo blindaje que el resto del portal: identidad por
- * SESIÓN (`get_portal_client_id`) → escritura con ADMIN client (service_role)
- * scopeada a ese id. Solo persiste los campos que CAMBIAN (diff), snapshotea los
- * valores previos, y rechaza si ya hay una solicitud abierta (una a la vez).
+ * El cliente EDITA sus datos (nombre, cédula/RIF, teléfono) y el cambio se
+ * aplica al instante (decisión de Sam, SDD-0482): sin solicitud ni aprobación,
+ * dentro del cupo compartido de 3 cambios. La RPC `portal_update_my_profile`
+ * (0462) resuelve el cliente por SESIÓN, bloquea la ficha, decide qué cambió,
+ * bloquea duplicados sin revelarlos, cobra el cupo y deja el historial. Esta
+ * action sólo normaliza, traduce el resultado y, si hubo bloqueo, avisa al
+ * asesor. No toca la verificación de identidad (decisión de Sam).
  */
-export async function submitDataChangeRequestAction(
+export async function updateMyProfileAction(
   _prev: ChangeRequestActionState,
   formData: FormData,
 ): Promise<ChangeRequestActionState> {
@@ -240,28 +244,23 @@ export async function submitDataChangeRequestAction(
     return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
   const clientId = portalClientId as string;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   let admin;
   try {
     admin = createAdminClient();
   } catch {
-    return { error: "No está disponible ahora. Prueba de nuevo en un rato." };
+    return { error: DIRECT_EDIT_MESSAGES.unavailable };
   }
 
-  // Estado actual (scopeado al id verificado por sesión).
+  // Sólo lo necesario para validar el tipo de documento y armar el aviso.
   const { data: row, error: rowErr } = await admin
     .from("clients")
-    .select("tenant_id, markbox, name, rif, phone, doc_kind, advisor_id")
+    .select("tenant_id, markbox, name, doc_kind, advisor_id")
     .eq("id", clientId)
     .maybeSingle<{
       tenant_id: string;
       markbox: string;
       name: string | null;
-      rif: string | null;
-      phone: string | null;
       doc_kind: string | null;
       advisor_id: string | null;
     }>();
@@ -269,118 +268,103 @@ export async function submitDataChangeRequestAction(
     return { error: "No pudimos cargar tu cuenta. Prueba de nuevo." };
   }
 
-  // Una sola solicitud abierta (refleja el índice único parcial; UX antes del 23505).
-  const open = await getOpenChangeRequest(admin, clientId);
-  if (open) {
-    return {
-      error:
-        "Ya tienes una solicitud en revisión. Espera a que tu asesor la revise.",
-    };
-  }
-
   const kind: ClientDocKind = row.doc_kind === "empresa" ? "empresa" : "persona";
-  const fieldErrors: Partial<Record<EditableField, string>> = {};
+  const validation = validateDirectEdit(kind, {
+    name: String(formData.get("name") ?? ""),
+    doc: String(formData.get("doc") ?? ""),
+    phone: String(formData.get("phone") ?? ""),
+  });
+  if (!validation.ok) {
+    return { error: "Revisa los datos marcados.", fieldErrors: validation.fieldErrors };
+  }
+  const { values } = validation;
+  if (values.name == null && values.doc == null && values.phone == null) {
+    return { error: DIRECT_EDIT_MESSAGES.noChanges };
+  }
 
-  // ── Parseo + validación por campo. proposed_* = solo lo que CAMBIA. ──
-  const nameRaw = String(formData.get("name") ?? "").trim();
-  const docRaw = String(formData.get("doc") ?? "").trim();
-  const phoneRaw = String(formData.get("phone") ?? "").trim();
+  let data: unknown;
+  let rpcError: { code?: string; message?: string } | null;
+  try {
+    const result = await supabase.rpc("portal_update_my_profile", {
+      p_name: values.name,
+      p_doc: values.doc,
+      p_phone: values.phone,
+    });
+    data = result.data;
+    rpcError = result.error;
+  } catch {
+    rpcError = {};
+  }
 
-  let proposedName: string | null = null;
-  let proposedRif: string | null = null;
-  let proposedPhone: string | null = null;
-
-  if (nameRaw) {
-    if (nameRaw.length < 2 || nameRaw.length > 120) {
-      fieldErrors.name = "Escribe tu nombre completo.";
-    } else if (nameRaw !== (row.name ?? "").trim()) {
-      proposedName = nameRaw;
+  if (rpcError) {
+    const message = rpcError.message ?? "";
+    if (message === "profile_edit_limit_reached") {
+      return { error: DIRECT_EDIT_MESSAGES.limitReached };
     }
-  }
-
-  if (docRaw) {
-    const norm = normalizeDocByKind(kind, docRaw);
-    if (!norm) {
-      fieldErrors.doc =
-        kind === "empresa"
-          ? "RIF inválido. Formato J-12345678-9."
-          : "Cédula o pasaporte inválido. Formato V-12345678 o P-A1234567.";
-    } else if (norm !== (row.rif ?? "").trim()) {
-      proposedRif = norm;
+    if (message === "portal_session_required") {
+      return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
     }
-  }
-
-  if (phoneRaw) {
-    const digits = normalizePhone(phoneRaw);
-    if (digits.length < 7 || digits.length > 15) {
-      fieldErrors.phone = "Teléfono inválido.";
-    } else if (digits !== normalizePhone(row.phone)) {
-      proposedPhone = phoneRaw;
-    }
-  }
-
-  if (Object.keys(fieldErrors).length > 0) {
-    return { error: "Revisa los datos marcados.", fieldErrors };
-  }
-
-  if (proposedName == null && proposedRif == null && proposedPhone == null) {
-    return { error: "No cambiaste ningún dato." };
-  }
-
-  // Insert PENDING con snapshot de los valores previos (para el diff + auditoría).
-  const { data: inserted, error: insErr } = await admin
-    .from("client_change_requests")
-    .insert({
-      tenant_id: row.tenant_id,
-      client_id: clientId,
-      proposed_name: proposedName,
-      proposed_rif: proposedRif,
-      proposed_phone: proposedPhone,
-      prev_name: row.name,
-      prev_rif: row.rif,
-      prev_phone: row.phone,
-      status: "pending",
-      source: "client",
-      submitted_by: user?.id ?? null,
-    })
-    .select(
-      "id, tenant_id, client_id, proposed_name, proposed_rif, proposed_phone, prev_name, prev_rif, prev_phone, status, submitted_at, reviewed_at, reviewed_by, review_note",
-    )
-    .single();
-
-  if (insErr) {
-    // 23505 = índice único parcial: otra solicitud abierta ganó la carrera.
-    if ((insErr as { code?: string }).code === "23505") {
+    const fieldError = RPC_FIELD_ERRORS[message];
+    if (fieldError) {
       return {
-        error:
-          "Ya tienes una solicitud en revisión. Espera a que tu asesor la revise.",
+        error: "Revisa los datos marcados.",
+        fieldErrors: { [fieldError[0]]: fieldError[1] },
       };
     }
-    if (insErr.message?.includes("profile_edit_limit_reached")) {
-      return { error: PROFILE_EDIT_LIMIT_REACHED };
-    }
-    console.error("[submitDataChangeRequestAction] insert error:", insErr);
-    return { error: "No pudimos guardar tu solicitud. Prueba de nuevo." };
+    console.error("[updateMyProfileAction] rpc error", { code: rpcError.code });
+    return { error: DIRECT_EDIT_MESSAGES.failed };
   }
 
-  // Aviso al equipo (best-effort, nunca tira).
-  const request = mapChangeRequestRow(
-    inserted as Parameters<typeof mapChangeRequestRow>[0],
-  );
-  await notifyChangeRequestToAdmin(admin, {
-    tenantId: row.tenant_id,
-    markbox: row.markbox,
-    clientName: row.name ?? row.markbox,
-    advisorId: row.advisor_id,
-    diff: buildChangeRequestDiff(request, kind === "empresa"),
-  });
+  const first = Array.isArray(data) ? data[0] : data;
+  const outcome = (first as { outcome?: unknown } | null)?.outcome;
+  if (!isDirectEditOutcome(outcome)) {
+    console.error("[updateMyProfileAction] resultado inesperado de la RPC");
+    return { error: DIRECT_EDIT_MESSAGES.failed };
+  }
 
-  revalidatePath("/portal/perfil");
-  return { ok: true };
+  if (outcome === "applied") {
+    revalidatePath("/portal");
+    revalidatePath("/portal/perfil");
+    return { ok: true };
+  }
+  if (outcome === "no_changes") return { error: DIRECT_EDIT_MESSAGES.noChanges };
+  if (outcome === "rate_limited") return { error: DIRECT_EDIT_MESSAGES.rateLimited };
+
+  // blocked · el asesor se entera con los Shipping Marks, nunca con el valor.
+  try {
+    const { data: attempt } = await admin
+      .from("client_profile_blocked_attempts")
+      .select("field, conflicting_client_id")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ field: string; conflicting_client_id: string | null }>();
+    let conflictingMarkbox: string | null = null;
+    if (attempt?.conflicting_client_id) {
+      const { data: other } = await admin
+        .from("clients")
+        .select("markbox")
+        .eq("id", attempt.conflicting_client_id)
+        .maybeSingle<{ markbox: string | null }>();
+      conflictingMarkbox = other?.markbox ?? null;
+    }
+    await notifyBlockedProfileEditToAdmin(admin, {
+      tenantId: row.tenant_id,
+      markbox: row.markbox,
+      clientName: row.name ?? row.markbox,
+      advisorId: row.advisor_id,
+      field: attempt?.field === "phone" ? "phone" : "document",
+      conflictingMarkbox,
+    });
+  } catch {
+    console.error("[updateMyProfileAction] aviso de bloqueo falló");
+  }
+  return { error: DIRECT_EDIT_MESSAGES.blocked };
 }
 
 /**
- * El cliente CANCELA su solicitud pendiente (se equivocó / ya no quiere el
+ * Flujo anterior a SDD-0482 · el cliente CANCELA una solicitud pendiente que
+ * haya quedado de antes (se equivocó / ya no quiere el
  * cambio). Borra SOLO la PENDING scopeada a su sesión: al no estar revisada no
  * tiene valor de auditoría, y el DELETE libera el índice único parcial → puede
  * proponer de nuevo. Si el asesor ya la resolvió (carrera), el `.eq(status,
