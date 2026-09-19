@@ -1,18 +1,19 @@
 # Handoff 0256 · seguimiento: dos drenajes del outbox de Kommo a la vez (0365), con sesiones reales
 
-- Fecha: 2026-09-19. Estado de la tarea: **lista en local**. Faltan la suite SQL completa, que
-  corre en el turno del Director, el push único y la PR, que esperan su aviso.
+- Fecha: 2026-09-19. Estado de la tarea: **lista para revisión**.
+  Falta que el Director revise e integre la PR.
 - Owner/sesión: `worker-carrera-outbox-0365-20260919` (Claude Opus 5, Worker, sesión «Automatizar
   la prueba de carrera del for update de 0459»). Director: la sesión «Director notificación a
   workers», que asignó la tarea porque Sam le pidió avanzar en continuo mientras no está.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/carrera-outbox-0365`, creado con
   `harness-worktree start`.
-- Rama: `codex/carrera-outbox-0365`, desde `origin/main` = `d624ea45`, sin upstream hasta el push.
+- Rama: `codex/carrera-outbox-0365`, desde `origin/main` = `d624ea45`. Con el aviso del Director se
+  trajo `main` `6c2413d1` (#167, la carrera del cupo) con el driver, antes del push único.
 - SDD: [0256](../../docs/specs/0256-crm-outbox-operable/spec.md), la que introdujo la 0365, como
   seguimiento y sin número nuevo, por decisión del Director.
 - Aislamiento comprobado antes de editar: toplevel y rama correctos, `guard` → `Guard OK`, claim
   adquirido con el owner de arriba. Antes de cada commit se revalida con `guard --owner`.
-- Permisos del encargo: commits en esta rama. El push y la PR esperan el turno del Director.
+- Permisos del encargo: commits en esta rama; el push único y la PR, con el aviso del Director.
   **No merge. No producción.** La 0365 está aplicada y no se toca.
 
 ## OBJETIVO ORIGINAL
@@ -84,9 +85,11 @@ premisa no se sostiene, se mide y se anota.
 | Huella tras un fallo (bases, roles, extensiones y sesiones del clúster) | **PASÓ en tres modos**: guarda, corte a mitad (la barrera vencida en los 6 casos) y rojo (M1). La guarda, con `service_role` ya creado, aborta sin tocar nada y **conserva** el rol. Las corridas esperaron a que terminara el contenedor del Worker de Tesorería |
 | `md5(prosrc)` del claim en el fixture contra producción (lectura de catálogo del Director) | **PASÓ**: coincide exacto, `d7bf6554352007502887fa2b796d687c`, 494 bytes, DEFINER |
 | `docs:check` / `sdd:check` / `governance:check` / `git diff --check` | **PASÓ**: 475 specs, sin números repetidos, cápsula vigente |
-| Suite SQL completa por el runner real | **NO EJECUTADO**: espera el turno de máquina del Director |
+| Suite SQL completa por el runner real, en el turno de máquina del Director, sobre `4a0d04ed` | **PASÓ**: 216 de 216 ✓, 0 ✗, 79 s, sin contenedores antes ni después. El archivo nuevo pasa junto a los contratos y las otras carreras de `main` |
 | `verify` completo | **NO EJECUTADO**: el cambio es un `.test.sql` y documentación |
-| CI alojado | **NO EJECUTADO**: la rama no está publicada |
+| Merge de `main` `6c2413d1` (#167), con el driver | **PASÓ**: sin conflictos. Después del merge pasaron `docs:check`, `sdd:check`, `governance:check` y `git diff --check` |
+| El archivo junto a la carrera del cupo que entró con la #167 y a los contratos 0365 y 0377, por el runner real, después del merge | **PASÓ**: 8 de 8 ✓ en 5,9 s, contando también los contratos 0445, 0446, 0461 y 0462, sin contenedores al terminar |
+| CI alojado | **Por mensaje al Director**: la rama se publica después de este commit |
 
 **Qué escenario mata a cada mutante** (fase real de la carrera). Los contratos de una sola sesión
 (0365 y 0377) no detectan ninguno:
@@ -101,19 +104,19 @@ premisa no se sostiene, se mide y se anota.
 | Commit | Propósito |
 | --- | --- |
 | `06674bcb` | `test(db): SDD-0256`: dos drenajes del outbox de Kommo a la vez, con sesiones reales |
-| el commit que contiene este documento | `docs(SDD-0256)`: la sección fechada en la spec y este handoff |
+| `4a0d04ed` | `docs(SDD-0256)`: la sección fechada en la spec y este handoff |
+| `5419a942` | merge de `main` `6c2413d1` con el driver, sin conflictos |
+| el commit que contiene esta versión | `docs(handoff)`: la suite completa y el merge final en este handoff, antes del push único |
 
 ## PR / BRANCH
 
-- Rama `codex/carrera-outbox-0365`, base `main`, worktree de arriba. No está publicada. El push
-  único y la PR esperan el aviso del Director.
+- Rama `codex/carrera-outbox-0365`, base `main`, worktree de arriba. Se publica con un solo push
+  después de este commit. El número de la PR y el SHA van por mensaje al Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Suite SQL completa por el runner real, en el turno de máquina del Director.
-2. Con su aviso: traer `main` si avanzó, repetir lo liviano y el archivo, hacer un solo push y abrir
-   la PR, con el número y el SHA por mensaje.
-3. Revisión e integración del Director.
+1. Push y PR contra `main`, con el número y el SHA por mensaje.
+2. Revisión e integración del Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -205,8 +208,7 @@ process.exitCode = run.status;
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** tu turno de máquina para la suite SQL completa y, después, tu aviso para
-  el push único y la PR.
+- **Siguiente acción:** revisar la PR e integrarla.
 - **Cambios compartidos:** un archivo nuevo en `supabase/tests/`, que el runner descubre solo, y la
   spec 0256. Ningún archivo de producto.
 - **Dependencias:** `dblink` en la imagen del runner (`postgres:17`) y el contrato
