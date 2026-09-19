@@ -454,6 +454,69 @@ Evidencia de la aplicación (la reportó dtdcargo-18; el Worker no tocó producc
 
 **Cierre (2026-09-19):** smoke de Sam: «smoke de la 0487 ok, todo salió bien». La SDD pasa a `done`.
 
+## Unicidad del documento bajo concurrencia · 2026-09-19
+
+Seguimiento sin número nuevo, asignado por el Director (`dtdcargo-18`). La 0466 y la
+0462 no se tocan. El Director verificó al aplicarla que la 0466 de `main` es idéntica
+a la de producción: blob `33caa919`, ledger `20260919030533` y los siete
+`md5(prosrc)`.
+
+**La afirmación de la spec se sostiene.** Según la sección «Unicidad cruzada con
+`clients.rif`», los dos lados toman el mismo lock consultivo por (tenant, documento
+normalizado). Lo prueba `supabase/tests/0466_documento_cliente_carrera.test.sql`, en el
+paso `sql-tests` de `verify` (no en CI). Usa sesiones reales por dblink, el fixture del
+contrato 0466 y una barrera por `pg_blocking_pids` que también exige el tipo de lock.
+Cada escenario corre primero sin el lock que defiende (control) y después con la 0466:
+
+| # | Escenario | Sin el lock (control) | Con la 0466 | Espera en |
+|---|---|---|---|---|
+| 1 | La empresa del Portal y el RIF de otra ficha en el Studio | trigger sin el lock: el documento queda repetido entre las dos tablas | el trigger rechaza con `client_doc_taken_by_billing_identity` | `advisory` |
+| 2 | El RIF de una ficha en el Studio y la empresa del Portal | RPC sin el lock: queda repetido | `blocked`, con la otra ficha anotada en el intento | `advisory` |
+| 3 | Dos clientes agregan la misma empresa | RPC sin el lock: el índice de las identidades la bloquea igual, pero el intento queda sin la ficha en conflicto | `blocked`, con la ficha en conflicto | `advisory` |
+| 4 | La empresa del Portal y el RIF de otra ficha desde su perfil (0462) | trigger sin el lock: queda repetido y se gasta un cambio del cupo | `blocked`, con el cupo intacto | `advisory` |
+| 5 | Dos fichas toman el mismo RIF desde su perfil | trigger sin el lock: el índice de `clients` la bloquea igual | `blocked` | `advisory` |
+| 6 | El cliente quita su empresa y elige facturar a la empresa | sin el FOR UPDATE de la elección: `applied` y un evento de auditoría de un cambio que no ocurrió | `missing_identity` | `transactionid` |
+| 7 | El cliente guarda su empresa dos veces a la vez | sin el FOR UPDATE de la ficha: `applied` y dos eventos de auditoría | `no_changes` | `transactionid` |
+| 8 | El cliente cambia su RIF dos veces a la vez desde su perfil | sin el FOR UPDATE de la 0462: el mismo cambio consume dos del cupo | `no_changes`, con 2 cambios de 3 disponibles | `transactionid` |
+| 9 | El cliente quita su empresa y la vuelve a guardar igual | sin el FOR UPDATE de la empresa: `no_changes` y la empresa queda borrada | la vuelve a crear (`applied`) | `transactionid` |
+
+**Mutantes, con el runner real y fuera del repo.** Cada lock, quitado de a uno, hace
+fallar sus escenarios. El contrato de una sola sesión de la 0466 no detecta ninguno.
+
+- sin el lock consultivo del trigger de `clients`: 1, 2, 4 y 5;
+- sin el lock consultivo de la RPC del Portal: 1, 2, 3 y 4;
+- sin el FOR UPDATE de la ficha en `portal_upsert_my_billing_identity`: 7;
+- sin el FOR UPDATE de la empresa en `portal_upsert_my_billing_identity`: 9;
+- sin el FOR UPDATE de `portal_set_my_billing_kind`: 6;
+- sin el FOR UPDATE de `portal_update_my_profile` (0462): 8.
+
+El lock tiene que estar en los dos lados: quitarlo de cualquiera de los dos deja pasar
+el duplicado en los dos órdenes, el 1 y el 2.
+
+**Dos precisiones.**
+
+- El `lock table public.clients, public.client_profile_edits in share row exclusive mode`
+  de la 0446 (línea 175) no protege en tiempo de ejecución. Está en el bloque `DO` de
+  reparación que corrió una sola vez al aplicar esa migración.
+- Cuando dos fichas toman el mismo documento, las protege el índice
+  `clients_tenant_doc_unique` (0095), con el manejo de `unique_violation` de la 0462. Lo
+  muestra el control del escenario 5: sin el lock también queda `blocked`.
+
+**Hallazgo, fuera de este seguimiento (no es de concurrencia).** Restaurar una ficha
+borrada que tenía empresa puede dejar su documento repetido, si otra ficha lo tomó
+mientras tanto. El trigger de `clients` revisa el RIF principal de la ficha restaurada,
+no el de su empresa. Lo reproduje en una sola sesión con el fixture del contrato 0466.
+Hoy ningún camino de la app restaura clientes: el Studio dice «Desde el Studio no se
+puede restaurar». Queda reportado al Director; es un cambio de producto.
+
+El detalle y el script de los mutantes están en el handoff
+`.agents/handoffs/0487-carrera-documento-0466.md`.
+
+Rutas agregadas a la allowlist por este seguimiento:
+
+- supabase/tests/0466_documento_cliente_carrera.test.sql
+- .agents/handoffs/0487-carrera-documento-0466.md
+
 ## Fuera de alcance
 
 - El historial ampliado en el Studio (SDD-0483).
