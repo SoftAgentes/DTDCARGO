@@ -50,7 +50,12 @@ recepción con `next_receipt_code`, que desde la 0079 da la serie `R-` de los co
 - **Espera** de la 0469 en `supabase/migrations-baseline.json`, con el orden migrate-first y lo que
   el operador tiene que leer antes de aplicar.
 - **Pruebas:**
-  - el contrato SQL (14 aserciones, con control rojo);
+  - el contrato SQL (15 aserciones, con control rojo). Una de ellas comprueba que el alta deja tomado
+    el lock consultivo 491 de su tenant, como la 0467 con su 488;
+  - el mismo contrato en vitest con PGlite (`recepcion-codigo-wr.migration.test.ts`), que es su
+    cobertura en CI: verde, control rojo y los 7 mutantes. Lo sumé después de parar el primer
+    `verify` a los 2 minutos, con el visto bueno del Director: las migraciones recientes (0461,
+    0462, 0464-0468) lo tienen, y sin él el contrato de la 0469 no corría en CI;
   - la carrera con dblink (5 escenarios, 17 aserciones);
   - vitest de la acción (4 casos).
 - **Spec 0491:** el defecto medido, las decisiones con su evidencia, la allowlist exacta, la
@@ -61,13 +66,14 @@ recepción con `next_receipt_code`, que desde la 0079 da la serie `R-` de los co
 | Comprobación | Resultado |
 | --- | --- |
 | El defecto, con el cuerpo real de `next_receipt_code` de la 0079 en PGlite | **Reproducido**: alta 1 `R-2026-0042`; alta 2 la misma, 23505 |
-| Contrato `0469_recepcion_codigo_wr.test.sql`, solo | **PASÓ**: 14 aserciones, 301 ms, sin residuo |
-| Control rojo del contrato (`-v apply_fix=false`) | **FALLÓ, como tenía que fallar**: NOT NULL en `receipt_code` |
+| Contrato `0469_recepcion_codigo_wr.test.sql`, solo | **PASÓ**: 14 aserciones, 301 ms, sin residuo. Con la aserción del lock 491 son 15; el contrato final pasa por el runner real en la fila de los bytes finales |
+| Control rojo del contrato (`-v apply_fix=false`) | **FALLÓ, como tenía que fallar**: NOT NULL en `receipt_code`. Sobre el contrato final lo repite el envoltorio PGlite, con el mensaje exacto |
+| Envoltorio PGlite `recepcion-codigo-wr.migration.test.ts` | **PASÓ**: 9 de 9 en 9,6 s. Son el verde (`TEST 0469 GREEN: 15 aserciones`), el control rojo (el NOT NULL, con el mensaje exacto) y los 7 mutantes, cada uno con el mensaje de su aserción |
 | Carrera `0469_recepcion_codigo_wr_carrera.test.sql`, sola | **PASÓ**: 17 aserciones, 445 ms, sin residuo. Fase por fase (copia con un `raise notice`): los controles 1 y 2 esperan en el unique y fallan con 23505; las fases reales esperan en `advisory` (1 y 2) o en `relation` (3 y 4, la 0449) y salen consecutivas; en 5 no esperan |
 | Mutantes de la 0469, fuera del repo y por el runner real | **Los 7 caen**: ver la tabla de abajo. El mismo andamiaje sin mutación: 2 de 2 ✓ |
-| Lo mismo sobre los bytes finales de la 0469 (los timeouts pasaron de `set local` a `set` de sesión, como 0464-0467, porque `set local` no rige en autocommit) | **Verde 2 de 2 ✓** en 8,6 s con el contenedor; **los 7 mutantes caen** en las mismas aserciones |
+| Lo mismo sobre los bytes finales de la 0469 (los timeouts pasaron de `set local` a `set` de sesión, como 0464-0467, porque `set local` no rige en autocommit) y con el contrato final (la aserción del lock 491 y la fila `GREEN`) | **Verde 2 de 2 ✓** en 8,5 s con el contenedor. **Los 7 mutantes caen**, como en la tabla de abajo |
 | vitest de la acción | **PASÓ**: 4 de 4 |
-| Control rojo de vitest (la acción de HEAD) | **FALLÓ, como tenía que fallar**: 4 ✗ |
+| Control rojo de vitest (la acción anterior) | **FALLÓ, como tenía que fallar**: 4 ✗. Repetido después del commit contra `main` `dd764c66`: 4 ✗, y T1 3 ✗, con el fuente restituido md5 a md5. El script ahora rechaza un ref que ya trae el arreglo, como `HEAD` |
 | Mutante T1 (lee sólo `id` del INSERT) | **Cae**: 3 ✗. Primero sobrevivió porque el doble devolvía todas las columnas; ahora respeta el `select`, como PostgREST |
 | `docs:check` / `sdd:check` / `governance:check` / `git diff --check` | **PASÓ**: índice sincronizado con 476 specs, sin números repetidos, 28 políticas y cápsula vigente |
 | Gate de símbolos pendientes (`check-pending-migration-symbols`) | **PASÓ**: 0 ROJO · 0 AMARILLO. Es lo esperado: la dependencia de la app con la 0469 es de comportamiento, no de un símbolo que TypeScript nombre, y por eso la espera lo dice |
@@ -78,16 +84,17 @@ recepción con `next_receipt_code`, que desde la 0079 da la serie `R-` de los co
 
 | Mutante | Lo que cambia | Cae |
 | --- | --- | --- |
-| S1 | sin el lock consultivo | carrera 1 y 2 |
+| S1 | sin el lock consultivo | contrato (el lock 491 del tenant), y carrera 1 y 2 |
 | S2 | SECURITY INVOKER (con el postflight neutralizado) | contrato: reusa el número de una borrada |
-| S3 | lock global en vez de por tenant | carrera 5 |
+| S3 | lock global en vez de por tenant | contrato (el lock 491 del tenant), y carrera 5 |
 | S4 | pisa el código que llega hecho | contrato: también le pisa el código a la borrada del fixture, y cae ahí |
 | S5 | `lpad(…, 4)`, que trunca | contrato: pasado 9999 |
 | S6 | numera la huérfana en la serie WR- | contrato y carrera 2 |
 | S7 | un código en blanco no se numera | contrato |
 
 El control de la carrera quita el lock por patrón. Así no depende de cómo lo escriba un mutante:
-con S3 sólo cae el escenario 5.
+con S3 sólo cae el escenario 5. En PGlite, que tiene una sola conexión, S1 y S3 caen por la
+aserción del lock. Que ese lock serialice lo prueba sólo la carrera.
 
 ## COMMITS
 
@@ -138,15 +145,16 @@ Los mutantes no viven en el repo.
 
 - `rojo-0469.cjs` arma, en una carpeta nueva, una copia de `supabase/migrations` y de los dos
   `.test.sql` de la 0469, con la 0469 mutada, y la pasa por el runner real.
-- `control-rojo-0491.cjs` pone en el worktree la acción de HEAD (o la variante T1), corre vitest y
-  restituye el fuente con comprobación de md5.
+- `control-rojo-0491.cjs` pone en el worktree la acción de un commit anterior al arreglo (`dd764c66`,
+  `main` antes de esta PR) o la variante T1, corre vitest y restituye el fuente con comprobación de
+  md5. Rechaza un ref que ya trae el arreglo, como `HEAD` después del commit.
 
 ```bash
 node rojo-0469.cjs "<worktree>" "<carpeta-nueva-fuera-del-repo>" <S1|S2|S3|S4|S5|S6|S7|verde>
 ```
 
 ```bash
-node control-rojo-0491.cjs "<worktree>" <HEAD|T1>
+node control-rojo-0491.cjs "<worktree>" <dd764c66|T1>
 ```
 
 ```js
@@ -219,9 +227,11 @@ process.exitCode = run.status;
 // Control rojo y mutante de TypeScript de la SDD-0491 sobre la prueba de vitest.
 // Pone el fuente indicado en el worktree, corre la prueba y restituye el fuente
 // nuevo en un finally, con comprobación de md5.
-//   node control-rojo-0491.cjs <worktree> <HEAD|T1>
-//   HEAD  la versión de actions.ts de HEAD (antes del cambio): el control rojo
-//   T1    el cambio, pero leyendo sólo "id" del INSERT (sin el código asignado)
+//   node control-rojo-0491.cjs <worktree> <ref|T1>
+//   <ref>  la versión de actions.ts en ese commit, anterior al cambio (p. ej.
+//          dd764c66, main antes de la PR): el control rojo. No sirve HEAD una
+//          vez commiteado el arreglo: ahí ya está la versión nueva.
+//   T1     el cambio, pero leyendo sólo "id" del INSERT (sin el código asignado)
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
@@ -232,18 +242,21 @@ const F = "app/studio/(app)/cn/actions.ts";
 const PRUEBA = "app/studio/(app)/cn/__tests__/create-receipt-code.test.ts";
 const md5 = (b) => crypto.createHash("md5").update(b).digest("hex");
 const nuevo = fs.readFileSync(path.join(W, F));
+if (!W || !V) throw new Error("uso: node control-rojo-0491.cjs <worktree> <ref|T1>");
 let variante;
-if (V === "HEAD") {
-  const r = spawnSync("git", ["show", `HEAD:${F}`], { cwd: W, maxBuffer: 16 * 1024 * 1024 });
-  if (r.status !== 0) throw new Error(String(r.stderr));
-  variante = r.stdout;
-} else if (V === "T1") {
+if (V === "T1") {
   const s = nuevo.toString("utf8");
   const a = '    .select("id, receipt_code")\n    .single<{ id: string; receipt_code: string }>();';
   if (s.split(a).length !== 2) throw new Error("T1: ancla no única");
   variante = Buffer.from(s.replace(a, () => '    .select("id")\n    .single<{ id: string; receipt_code: string }>();'));
 } else {
-  throw new Error("variante desconocida: " + V);
+  const r = spawnSync("git", ["show", `${V}:${F}`], { cwd: W, maxBuffer: 16 * 1024 * 1024 });
+  if (r.status !== 0) throw new Error(String(r.stderr));
+  variante = r.stdout;
+  // El control rojo tiene que ser el código anterior: si ese ref ya trae el arreglo, no prueba nada.
+  if (variante.includes('.select("id, receipt_code")') || !variante.includes("next_receipt_code")) {
+    throw new Error(`${V}: esa versión de actions.ts ya trae el arreglo; usa un commit anterior (p. ej. dd764c66)`);
+  }
 }
 try {
   fs.writeFileSync(path.join(W, F), variante);

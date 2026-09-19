@@ -112,6 +112,7 @@ cuenta, sin lock.
 - `app/studio/(app)/cn/actions.ts` (sólo `createReceiptAction` y la cabecera
   del módulo)
 - `app/studio/(app)/cn/__tests__/create-receipt-code.test.ts` (nuevo)
+- `app/studio/(app)/cn/__tests__/recepcion-codigo-wr.migration.test.ts` (nuevo)
 - `docs/specs/0491-recepcion-codigo-wr/spec.md` y `docs/specs/README.md`
   (regenerado)
 - `.agents/handoffs/0491-recepcion-codigo-wr.md`
@@ -126,7 +127,13 @@ cuenta, sin lock.
    - que respeta el código que llega y numera el que viene en blanco;
    - que la serie es por tenant y por año;
    - que no trunca pasado 9999;
+   - que el alta deja tomado el lock consultivo 491 de su tenant;
    - la forma y la ACL de la función y del trigger.
+
+   **El mismo contrato corre en vitest con PGlite**
+   (`recepcion-codigo-wr.migration.test.ts`), que es su cobertura en CI porque
+   el CI no tiene Docker. Van el verde, el control rojo y los mutantes de la
+   0469, cada uno en su aserción.
 2. **La carrera con sesiones reales:**
    - dos altas del Studio a la vez (y dos huérfanas) salen con números
      consecutivos, y `b` espera en el lock consultivo. El control, sin el lock,
