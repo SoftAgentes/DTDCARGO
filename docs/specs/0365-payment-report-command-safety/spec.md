@@ -217,7 +217,9 @@ Numeración consultada nuevamente sobre todas las refs: 0421 libre. Este
 incremento añade `0421_payment_report_commands.sql` y su contrato homónimo en
 `supabase/tests/`, más `scripts/test-payment-report-commands.mjs` para carreras
 reales entre conexiones y advisors locales opcionales; además modifica esta spec, el índice generado, el checklist
-y los dos handoffs ya enumerados. No cambia todavía UI ni consumidores.
+y los dos handoffs ya enumerados. No cambia todavía UI ni consumidores. El seguimiento del 2026-09-18 añade
+`supabase/tests/0421_comandos_pago_carrera.test.sql`, que ocupa en `main` el lugar de ese script, y su handoff
+`.agents/handoffs/carrera-0421-0427.md`.
 
 API tipada (resultado JSON mínimo; sólo `authenticated`, nunca `anon`):
 
@@ -425,6 +427,11 @@ condicionada a ese GREEN posteriormente obtenido.
   y2 tenants sintéticos. Exit0, sin modificar Cloud.
 - Cinco carreras reales con `--restriction --advisors`: cupo5, replay,
   doble confirmación, revocación Portal y revocación financiera, todas verdes.
+- **2026-09-18:** esas carreras no entraron a `main` con la importación. Ahora
+  las corre `supabase/tests/0421_comandos_pago_carrera.test.sql` en el paso
+  `sql-tests` de `verify` (no en CI), sobre la 0421 más la 0464: cupo 5,
+  replay, conflicto de solicitud, revocación Portal y revocación financiera. La
+  doble confirmación queda en `scripts/qa/payment-report-confirm-race.mjs` (0464).
 - Advisors CLI2.108.0 con URL127.0.0.1 del contenedor propio: un WARN del helper
   legacy/stub touch_updated_at; ningún objeto nuevo señalado. No es un informe
   de Cloud ni una ausencia universal de hallazgos.
