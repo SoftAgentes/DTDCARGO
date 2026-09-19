@@ -276,9 +276,16 @@ La CPU estuvo saturada por otras sesiones: sólo pruebas focales, con un worker.
 | `pnpm docs:index` / `docs:check` / `sdd:check` / `governance:check` | `d9855875` | **PASÓ** (471 specs) |
 | `node scripts/check-pending-migration-symbols.mjs` | `d9855875` | **ROJO por diseño**: los 3 símbolos de la 0467 en `collections-actions.ts:184, :425, :487`. Es el candado migrate-first |
 | Después del merge `6aabc096` (`a90c242b`): `docs:index` (sin cambios), `docs:check`, `sdd:check`, `governance:check` | `6aabc096` | **PASÓ**. La #152 no toca TS ni migraciones: no hace falta repetir typecheck ni unitarias |
-| `node scripts/run-sql-tests.mjs` (contrato 0467 con psql real) | — | **NO EJECUTADO**: es Docker y va en el verify del turno de integración |
-| `pnpm verify` | — | **NO EJECUTADO**: requiere turno de máquina; lo pide el Director |
-| `migrations-applied` | — | **NO EJECUTADO**: da SKIP sin credenciales, y la 0467 está declarada como espera |
+| `corepack pnpm verify`, en el turno de máquina del Director, de 01:26:44 a 01:50:23 UTC | `bd9fb640` | exit 1, con **2 fallos esperables y 16 de 17 pasos medidos**. Detalle en las filas siguientes |
+| · harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check | `bd9fb640` | **PASÓ** |
+| · `sql-tests` (psql real en postgres:17) | `bd9fb640` | **PASÓ**, con `0467_cobro_factura_atomico.test.sql` ✓ junto a 0459, 0460 y 0464 |
+| · `schema-rebuild` | `bd9fb640` | **PASÓ**: 442 migraciones desde cero, incluida la 0467, y el aislamiento multi-tenant (219 tablas) verificado |
+| · e2e | `bd9fb640` | **PASÓ**: 168 en 5,5 min |
+| · build | `bd9fb640` | **PASÓ**. El árbol quedó limpio después |
+| · `test` (Vitest completo) | `bd9fb640` | **FALLÓ** por dos intermitentes conocidas, ajenas a esta tarea, que arregla la #154. En la 1ª corrida, `app/p/[token]/PackingListProductsStep.test.tsx` por timeout de 20 s. En el reintento automático, esa misma y `app/studio/(app)/clientes/_components/ClientDrawer.confirm-delete.test.tsx`. Resto: 7951 de 7954 pasan, 1 skip |
+| · las dos intermitentes, aisladas (`vitest run <archivo> --pool=forks --maxWorkers=1`) | `bd9fb640` | **PASÓ**: 9/9 y 9/9 |
+| · `pending-migration-symbols` | `bd9fb640` | **ROJO por diseño**: los 3 símbolos de la 0467 |
+| · `migrations-applied` | `bd9fb640` | **NO EJECUTADO**: SKIP sin `.env.local`. La 0467 además está declarada como espera |
 
 ## COMMITS
 
