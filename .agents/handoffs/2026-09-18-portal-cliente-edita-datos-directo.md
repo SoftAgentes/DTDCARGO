@@ -73,6 +73,7 @@ Todo va dentro del cupo compartido de 3 cambios. En la primera respuesta descart
 | Focales tras el merge de main (`--pool=threads`, CPU al 100 %) | PASÓ: 70 archivos y 1053 tests |
 | Locks de 0462 medidos (2026-09-19) | PostgreSQL 17 en Docker, con el preludio del contrato: `SHARE ROW EXCLUSIVE` sobre `tenants`, `clients` y `auth.users`. El DDL tarda 14 ms. Una lectura de `clients` no espera (1 ms) y un UPDATE espera hasta el COMMIT. Con otra escritura abierta, la migración espera 5,0 s, aborta y no deja nada creado. En PGlite: 42,7 ms y el mismo conjunto de locks. |
 | Tras corregir la cabecera y el baseline | PASÓ: contrato PGlite de 0462 (10/10), `docs:check` y pending-migration-symbols |
+| Tras el merge de main `26983062` (#150, 0464) | PASÓ: focales con `--pool=threads` (72 archivos y 1089 tests, con los contratos de 0462 y 0464), typecheck, `docs:check` (471 specs), pending-migration-symbols (0 rojos y 1 amarillo), numbering y governance:check. El blob de 0462 no cambió (`f6f719f2`). |
 | sql-tests con Docker | PASÓ dentro de verify. Docker volvió a arrancar el 2026-09-19. |
 | Prueba visual | NO EJECUTADO: requiere sesión Portal y la 0462 aplicada |
 
@@ -88,7 +89,8 @@ Todo va dentro del cupo compartido de 3 cambios. En la primera respuesta descart
 - `d84a5d0d`: historial del Studio.
 - `dfa39828`: docs, declaración de símbolos y handoff (dtdcargo-63).
 - `43c1f627`: merge de `origin/main` `3f810366`.
-- Commit que contiene esta versión: locks de 0462 medidos y corregidos en la cabecera, el baseline y la spec, más este handoff (dtdcargo-74).
+- `c6d9e6cb`: locks de 0462 medidos y corregidos en la cabecera, el baseline y la spec, más el handoff (dtdcargo-74). Publicado en la PR #153.
+- Merge de `origin/main` `26983062` (la #150 dejaba la PR en DIRTY por el índice y el baseline), con el driver de main y sin conflictos. Commit de este registro encima.
 
 ## Pendientes de esta tarea
 
