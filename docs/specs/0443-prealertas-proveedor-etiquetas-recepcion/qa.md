@@ -74,6 +74,12 @@ cron que cierre links ni se destruye historial.
 - Dos llamadas SQL simultáneas produjeron **una recepción y tres cajas recibidas**.
   Reproducible con `node scripts/qa/prealertas-reception-concurrency.mjs dtd_sdd0443_test`
   y el contenedor local con `supabase/` montado en `/sb`.
+  **Corrección 2026-09-19:** ese script lanza las dos llamadas con `Promise.all`, sin
+  barrera. La segunda puede correr cuando la primera ya confirmó, así que su verde no
+  demuestra que compitieran. La concurrencia la prueba ahora
+  `supabase/tests/0449_recepcion_prealerta_carrera.test.sql`, con barrera por
+  `pg_blocking_pids`, en el paso `sql-tests` de `verify` (ver la spec, «Concurrencia en
+  la suite SQL»). El script se conserva.
 - Gobernanza, registro de componentes y documentación validaron.
 - Revisión visual con una ruta temporal de datos ficticios (retirada de la entrega):
   escritorio, aviso de impresión y móvil de 390 px. El contenedor del proveedor

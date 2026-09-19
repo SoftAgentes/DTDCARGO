@@ -4,7 +4,7 @@ title: "Prealertas: proveedor, etiquetas y recepción por lote"
 status: in-progress
 author: "Codex con Sam"
 created: 2026-09-05
-updated: 2026-09-06
+updated: 2026-09-19
 supersedes: null
 superseded_by: null
 related: ["0057", "0096", "0097", "0153", "0154", "0308", "0442"]
@@ -120,3 +120,50 @@ interna fija. No se acepta returnTo arbitrario ni contextos múltiples. found:fa
 muestra su error recuperable; excepciones inesperadas usan copy genérico, sin detalle
 interno. Reintentar vuelve a consultar y nunca confirma recepción automáticamente.
 Criterios QR cubiertos con pruebas focalizadas; aceptación global aún en revisión.
+
+## Concurrencia en la suite SQL · 2026-09-19
+
+Seguimiento sin número nuevo, asignado por el Director (`dtdcargo-18`). La 0449 no se
+toca. Según su cabecera, está aplicada en producción desde el 2026-09-10 (ledger
+`20260910170544`); no lo verifiqué contra producción. La frase de «Criterios de
+aceptación» que la da por pendiente quedó desactualizada.
+
+**Corrección de la evidencia anterior.** El `qa.md` afirmaba, con
+`scripts/qa/prealertas-reception-concurrency.mjs`, que dos llamadas simultáneas dejan
+una recepción y tres cajas. El script lanza las dos llamadas con `Promise.all`, sin
+barrera, así que su verde no demuestra que compitieran. Además no corría en `verify`. El
+script se conserva.
+
+**`supabase/tests/0449_recepcion_prealerta_carrera.test.sql`** corre en el paso
+`sql-tests` de `verify` (no en CI). Usa sesiones reales por dblink contra una base
+propia, el fixture del contrato 0449 y una barrera por `pg_blocking_pids` que también
+exige el tipo de lock en que espera la segunda sesión. Cada escenario corre primero con
+una variante sin el lock que defiende, que tiene que reproducir el defecto, y después con
+la 0449:
+
+| # | Escenario | Sin el lock (control) | Con la 0449 |
+|---|---|---|---|
+| 1 | Las mismas cajas, dos operarios a la vez (el del script) | Sin los tres locks: la segunda choca con el código WR- repetido | La segunda espera en el lock de la tabla y recibe «Las cajas cambiaron o ya fueron recibidas»; una recepción con tres cajas |
+| 2 | Dos compras del mismo tenant a la vez | Sin el lock de la tabla: la segunda muere por el código WR- repetido | La segunda espera en el lock de la tabla; las dos reciben, con códigos consecutivos |
+| 3 | La compra se cancela durante la recepción | Sin el FOR UPDATE de la compra: se recibe una compra cancelada y su estado termina en `recibida` | La recepción espera la fila y recibe «no está activa»; la compra sigue cancelada |
+| 4 | Una caja se anula durante la recepción | Sin el FOR UPDATE de las cajas: aborta tarde, con «Recepción concurrente» | La recepción espera la fila y rechaza enseguida con «Las cajas cambiaron» |
+| 5 | Dos administradores guardan las etiquetas con la misma versión | Sin el lock consultivo: la clave primaria rechaza con 23505. Sin la versión esperada: el segundo pisa al primero en silencio | El segundo espera en el lock consultivo y recibe «Otra sesión cambió las etiquetas» |
+| 6 | Llega una lista de empaque durante la recepción | Sin el FOR UPDATE del trigger: el lote se redimensiona después de empezar la recepción | El trigger espera la fila de la compra y ya no cambia el lote |
+
+**Mutantes de la 0449, con el runner real y fuera del repo.** Cada lock, quitado de a
+uno, hace fallar sus escenarios:
+
+- sin el lock de `warehouse_receipts_cn`: 1 y 2;
+- sin el FOR UPDATE de la compra en la recepción: 3 y 6;
+- sin el FOR UPDATE de las cajas: 4;
+- sin el lock consultivo de las etiquetas: 5;
+- sin la versión esperada: 5;
+- sin el FOR UPDATE del trigger de conciliación: 6.
+
+El contrato de una sola sesión solo detecta el de la versión esperada. El detalle y el
+script de los mutantes están en el handoff `.agents/handoffs/0443-carrera-recepcion-0449.md`.
+
+Rutas agregadas a la allowlist por este seguimiento:
+
+- supabase/tests/0449_recepcion_prealerta_carrera.test.sql
+- .agents/handoffs/0443-carrera-recepcion-0449.md
