@@ -102,3 +102,4 @@ Está en la spec (§Verificación). En resumen:
 - La foto de perfil sólo se ve en `/portal/perfil`, no en el encabezado del Portal.
 - El empresa-registrado no tiene dónde cargar el domicilio fiscal de su empresa principal: sólo la identidad secundaria lo lleva.
 - Si el equipo de Yiwu lee hoy `clients.rif` en el Studio: NO VERIFICABLE, requiere revisar RBAC y RLS en producción.
+- **Seguimiento aceptado por dtdcargo-18:** interoperabilidad real de la 0466 y la 0467 aplicadas en cadena, con `register`, `identify` y `void_collection_receipt` sobre facturas selladas. El contrato de la 0466 cubre las mismas escrituras (líneas 239-240, 319-320 y 389 de la 0467) y el mutante de inmutabilidad. Las RPC reales no corren ahí porque el preflight de la 0467 exige el cuerpo de producción de `get_user_tenant_id`. `schema-rebuild` ya prueba el orden de aplicación. Lo asigna el Director al Worker de las carreras.

@@ -193,7 +193,15 @@ Se diseña primero para el teléfono. Mockup:
    Son los recibos (0122), la confirmación de reportes (0195/0359), los comandos
    de reporte (0421 y 0464), la anulación (`void_invoice_with_audit_reason`,
    0294), el vencimiento, el renombre de Shipping Mark (0367 y 0371, sobre
-   `client_markbox`) y las RPC de Cobranzas de la 0467 cuando llegue a `main`.
+   `client_markbox`) y Cobranzas (0467). Para la 0467 el contrato ejecuta las
+   mismas escrituras que hacen sus RPC, según las líneas que confirmó el Worker
+   de la SDD-0488 (`0467_cobro_factura_atomico.sql:239-240`, `:319-320` y
+   `:389`): UPDATE de `paid_amount`, `status` y `last_payment_at`, y `parcial`
+   → `emitida` al anular. La factura sellada no se vuelve a sellar y el titular
+   no cambia; el mutante que quita la inmutabilidad lo detecta. Las RPC reales no
+   corren en este contrato: el preflight de la 0467 exige el cuerpo de
+   producción de `get_user_tenant_id` y el fixture de 0421 trae un stub. La
+   interoperabilidad real va como seguimiento (Fuera de alcance).
 5. **PDF y Libro de Ventas:** imprimen lo congelado. El PDF suma la línea del
    domicilio fiscal si existe.
 
@@ -343,7 +351,7 @@ Cambios de comportamiento del **Studio** (`docs/governance/AGENT-BRIEF.md`):
 | Contrato SQL de 0466 en PGlite: cadena real 0421 → 0464 → 0392 → 0445 → 0462 → 0466 | PASÓ: 45 aserciones |
 | Control rojo sin 0466 · preflight sin la entidad client de 0293 | PASÓ: fallan como deben |
 | Mutantes SQL: inmutabilidad, RIF congelado, sello en UPDATE, elección del borrador, unicidad cruzada, conflicto con clients.rif, límite 5/24 h, rol de lectura y auditoría sin documento | 9/9 muertos |
-| Escritores sobre facturas selladas: `resolve_payment_report` (0421+0464), `void_invoice_with_audit_reason` (0294), recibos (0122), parcial → emitida (0467), vencimiento, `due_date` y renombre de Shipping Mark | PASÓ |
+| Escritores sobre facturas selladas: `resolve_payment_report` (0421+0464), `void_invoice_with_audit_reason` (0294), recibos (0122), parcial → emitida con las mismas escrituras de las RPC de la 0467 (líneas 239-240, 319-320 y 389), vencimiento, `due_date` y renombre de Shipping Mark | PASÓ |
 | Locks en PostgreSQL 17 (Docker) | Medidos en la cabecera: DDL de 20-31 ms; peor caso de 5 s con una lectura larga abierta |
 | Vitest del Portal (perfil, `lib/portal`), Studio (facturación, clientes, fiscal), cron y copia legal | PASÓ |
 | Mutantes TypeScript con control verde previo | 10/10 muertos |
@@ -392,3 +400,7 @@ Cambios de comportamiento del **Studio** (`docs/governance/AGENT-BRIEF.md`):
 - El borrado de cliente que no alcanza Storage (0455).
 - La verificación del RIF contra SENIAT.
 - Dos cuentas que facturan a la misma empresa.
+- **Seguimiento:** interoperabilidad real de la 0466 y la 0467 aplicadas en
+  cadena, con las tres RPC de Cobranzas sobre facturas selladas. `schema-rebuild`
+  ya prueba que las dos se aplican en orden; falta el comportamiento. El Director
+  lo asigna al Worker de las carreras.
