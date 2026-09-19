@@ -35,7 +35,12 @@ vi.mock("@/lib/studio/accounting/referral-credit-posting", () => ({
 }));
 
 /** Escrituras observadas, para afirmar sobre la compensación. */
-type Write = { table: string; values: Record<string, unknown> };
+/** `filters`: los `.eq` de la misma cadena (los guards del UPDATE). */
+type Write = {
+  table: string;
+  values: Record<string, unknown>;
+  filters: Record<string, unknown>;
+};
 let writes: Write[] = [];
 
 /**
@@ -73,12 +78,14 @@ function makeClient() {
   return {
     rpc: async () => ({ data: "tenant-1", error: null }),
     from(table: string) {
+      const filters: Record<string, unknown> = {};
       const chain: Record<string, unknown> = {
         _values: null as Record<string, unknown> | null,
         select() {
           return chain;
         },
-        eq() {
+        eq(col: string, val: unknown) {
+          filters[col] = val;
           return chain;
         },
         is() {
@@ -86,7 +93,7 @@ function makeClient() {
         },
         update(values: Record<string, unknown>) {
           chain._values = values;
-          writes.push({ table, values });
+          writes.push({ table, values, filters });
           return chain;
         },
         maybeSingle() {
@@ -180,7 +187,8 @@ describe("applyReferralCredit · consistencia GL ↔ subledger", () => {
     invoiceUpdate = "conflict"; // el guard .eq(paid_amount) matcheó 0 filas
     const res = await applyReferralCredit("ref-1", "inv-1");
 
-    expect(res.error).toMatch(/cambió de saldo/i);
+    expect(res.error).toMatch(/cambió de saldo o de estado/i);
+    expect(res.error).toMatch(/vuelve a intentarlo/);
     expect(voidSpy).toHaveBeenCalledWith("tenant-1", "entry-1");
     expect(revertWrites()).toHaveLength(1);
   });
@@ -192,6 +200,20 @@ describe("applyReferralCredit · consistencia GL ↔ subledger", () => {
     const invWrite = writes.find((w) => w.table === "invoices");
     expect(invWrite).toBeDefined();
     expect(invWrite?.values.last_payment_at).toBeTruthy();
+    expect(invWrite?.filters).toMatchObject({ id: "inv-1", paid_amount: 40 });
+  });
+
+  it("SDD-0490: el UPDATE de la factura también exige el estado leído (una anulación en medio no la revive)", async () => {
+    // Anular no toca paid_amount: sin este guard, una factura anulada entre la
+    // lectura y el UPDATE pasaba el guard del pagado y quedaba 'parcial'.
+    await applyReferralCredit("ref-1", "inv-1");
+    const invWrite = writes.find((w) => w.table === "invoices");
+    expect(invWrite?.filters).toMatchObject({ status: "emitida" });
+
+    writes = [];
+    invoiceRow = { ...INVOICE, status: "vencida" };
+    await applyReferralCredit("ref-1", "inv-1");
+    expect(writes.find((w) => w.table === "invoices")?.filters).toMatchObject({ status: "vencida" });
   });
 });
 
