@@ -1,7 +1,8 @@
 # Handoff 0484 · seguimiento — La carrera del saldo de la 0464, con sesiones reales
 
-- Fecha: 2026-09-18 (Caracas; 2026-09-19 UTC). Estado de la tarea: **lista para revisión**.
-  Falta que el Director revise e integre la PR.
+- Fecha: 2026-09-18 (Caracas; 2026-09-19 UTC). Estado de la tarea: **integrada**.
+  La #160 entró a `main` en `2949e446` el 2026-09-19 a las 03:47 UTC. Este cierre se escribe
+  en la PR de la carrera del cobro de la 0467, por indicación del Director.
 - Owner/sesión: `worker-carrera-saldo-0464-20260919` (Claude Opus 5, Worker, sesión «Automatizar la
   prueba de carrera del for update de 0459» [7a0aa1], que siguió con esta tarea a pedido de Sam).
   Director: `dtdcargo-18`.
@@ -61,7 +62,7 @@ factura.
 | Suite SQL completa por el runner real, en el turno de máquina del Director, sobre `25c30119` | **PASÓ**: 207 de 207 ✓, 0 ✗, 103 s. Pasan juntos los cinco archivos de carrera de la rama: 0421, 0427, 0459, 0460 y 0464. La 0426 todavía no está en `main` |
 | Merge de `main` `7741f587` (#156 y #157) | **PASÓ**: sin conflictos. Después del merge pasaron el archivo solo (7 aserciones, sin residuo en el clúster), `docs:check` (473), `sdd:check`, `governance:check` y `git diff --check` |
 | Suite SQL completa después del merge | **NO EJECUTADA**: la máquina está en turno de la sesión 74, y el Director pidió repetir solo lo liviano. El contrato nuevo de `main`, `0467_cobro_factura_atomico.test.sql`, no corrió junto a este archivo |
-| CI alojado | **Por mensaje al Director**: la rama se publica después de este commit |
+| CI alojado | **PASÓ**: verde sobre `c092ec8f`, en 15 min 31 s. Es la rama puesta al día con `main` por el Director desde GitHub |
 
 ## COMMITS
 
@@ -75,13 +76,14 @@ factura.
 
 ## PR / BRANCH
 
-- Rama `codex/carrera-saldo-0464`, base `main`, worktree de arriba. Se publica con un solo push
-  después de este commit. El número de la PR y el SHA van por mensaje al Director.
+- Rama `codex/carrera-saldo-0464`, base `main`, worktree de arriba.
+- PR [#160](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/160): se abrió con `d817885b`. El
+  Director la puso al día desde GitHub (`c092ec8f`) y la integró en `2949e446`.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Push y PR contra `main`, con el número y el SHA por mensaje.
-2. Revisión e integración del Director.
+Ninguno. El worktree y la rama están limpios y ya entraron a `main`. Están en la lista de limpieza
+del Director; borrarlos requiere la autorización de Sam.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -173,7 +175,7 @@ process.exitCode = run.status;
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** revisar la PR e integrarla.
+- **Siguiente acción:** ninguna, porque la PR está integrada.
 - **Cambios compartidos:** un archivo nuevo en `supabase/tests/`, que el runner descubre solo, y la
   spec 0484. Ningún archivo de producto.
 - **Dependencias:** `dblink` en la imagen del runner (`postgres:17`) y el contrato
@@ -181,5 +183,5 @@ process.exitCode = run.status;
   en vez de hacer SKIP.
 - **Conocimiento:** Graphify, Archify y la bóveda quedan para la publicación del Director desde
   `main`.
-- **Sesiones consumidoras:** ninguna. El claim se libera al terminar la escritura; worktree y rama
-  se conservan.
+- **Sesiones consumidoras:** ninguna. El claim está liberado; el worktree y la rama se conservan
+  hasta la limpieza autorizada.
