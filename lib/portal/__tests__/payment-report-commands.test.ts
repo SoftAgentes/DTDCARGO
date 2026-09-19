@@ -39,6 +39,9 @@ const KNOWN_SQL_ERRORS = [
   { code: "23514", message: "PAYMENT_PENDING_LIMIT" },
   { code: "22023", message: "PAYMENT_PROOF" },
   { code: "23514", message: "PAYMENT_AUDIT" },
+  // SDD-0484 · 0464: confirmar sobre factura pagada o por encima del saldo.
+  { code: "23514", message: "PAYMENT_INVOICE_PAID" },
+  { code: "23514", message: "PAYMENT_EXCEEDS_BALANCE" },
 ] as const;
 
 const createCommand = () => ({
@@ -330,6 +333,19 @@ describe("runPaymentReportCommand · errores seguros sin fallback", () => {
   it("un recibo aparente no neutraliza el error de la misma respuesta", async () => {
     const { session } = sessionIo({ data: wireReceipt(), error: { code: "23514", message: "PAYMENT_STATE" } });
     expectSafeFailure(await runPaymentReportCommand(session, createCommand()), false);
+  });
+
+  // SDD-0484: finanzas ve qué pasó, que nada cambió y qué hacer con el reporte.
+  it.each([
+    { message: "PAYMENT_INVOICE_PAID", expected: /la factura ya está pagada\. El saldo y el reporte quedan igual; recházalo con su motivo\. Código: PAGO-FACTURA-PAGADA\.$/ },
+    { message: "PAYMENT_EXCEEDS_BALANCE", expected: /supera el saldo pendiente\. El saldo y el reporte quedan igual; recházalo con su motivo y pide al cliente el monto correcto\. Código: PAGO-EXCEDE-SALDO\.$/ },
+  ])("confirmar con $message es un rechazo conocido que dice qué hacer", async ({ message, expected }) => {
+    const { session, rpc, forbidden } = sessionIo({ data: null, error: { code: "23514", message, details: PRIVATE_DETAIL } });
+    const result = await runPaymentReportCommand(session, resolveCommand("confirm"));
+    expectSafeFailure(result, false);
+    expect((result as { error: string }).error).toMatch(expected);
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(forbidden).not.toHaveBeenCalled();
   });
 });
 
