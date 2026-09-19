@@ -134,6 +134,9 @@ policies, el guard de columnas, el validador 0195 ni la RPC heredada
 - `supabase/migrations-baseline.json`: espera de `0464` en `pendingBelowCutoff`.
 - Esta spec y `docs/specs/README.md` (índice generado).
 - `.agents/handoffs/0484-reporte-pago-factura-pagada.md`.
+- `supabase/tests/0464_saldo_confirmacion_carrera.test.sql` (nuevo): la carrera
+  del saldo en la suite SQL (seguimiento 2026-09-18).
+- `.agents/handoffs/0484-carrera-saldo-0464.md`: el handoff de ese seguimiento.
 
 ## Diseño
 
@@ -299,9 +302,12 @@ ledger y del catálogo, sin filas de negocio.
   `supabase/tests/0464_reporte_pago_factura_pagada.test.sql` (45 aserciones,
   con control rojo y cinco mutantes), en `psql` real y en PGlite
   (`lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts`), y la
-  carrera de `scripts/qa/payment-report-confirm-race.mjs` en `postgres:17`. La
-  regla del excedente (`PAYMENT_EXCEEDS_BALANCE`) tampoco está en la prueba de
-  Sam y la cubren los mismos contratos.
+  carrera en `postgres:17`: `scripts/qa/payment-report-confirm-race.mjs`, a
+  mano, y desde el 2026-09-18 también
+  `supabase/tests/0464_saldo_confirmacion_carrera.test.sql`, en el paso
+  `sql-tests` de `verify`. La regla del excedente (`PAYMENT_EXCEEDS_BALANCE`)
+  tampoco está en la prueba de Sam. La cubren el contrato 0464 y su prueba en
+  PGlite; las dos carreras no la ejercen.
 - Cuando Sam confirme el bloque 3.2, se marca el último criterio y la spec
   puede pasar a `done`. El hueco de la RPC heredada sigue abierto hasta la 0422
   (ver «Hueco que sigue abierto hasta la 0422»).
@@ -362,6 +368,11 @@ negocio de producción. El detalle, con los SHA, está en el handoff.
   fallan exactamente las cuatro pruebas nuevas.
 - `scripts/qa/payment-report-confirm-race.mjs` corre la carrera con dos sesiones
   en `postgres:17`, con la 0464, sin ella y con el mutante sin `FOR UPDATE`.
+- **2026-09-18:** el script corre sólo a mano. Desde hoy la carrera corre además en
+  el paso `sql-tests` de `verify` (no en CI), con
+  `supabase/tests/0464_saldo_confirmacion_carrera.test.sql`: sin la 0464 como
+  control en la misma corrida, y con ella. El mutante sin el `FOR UPDATE` de la
+  factura se prueba fuera del repo (ver su handoff). El script se conserva.
 - Locks de la 0464, medidos: ACCESS EXCLUSIVE sobre el objeto
   `run_report_command`, que sólo choca con otra DDL sobre la función porque
   llamarla no toma ese lock; SHARE UPDATE EXCLUSIVE sobre `payment_reports` por
