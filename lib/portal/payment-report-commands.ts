@@ -35,7 +35,8 @@ const REASON_ERROR = "No se envió la operación. Escribe un motivo de 4 a 500 c
 const ACCESS_ERROR = "No pudimos acceder al reporte con tu sesión. Actualiza la página o vuelve a entrar. Código: PAGO-ACCESO.";
 const UNCERTAIN_ERROR = "No pudimos confirmar el resultado. Conserva este intento y reintenta sin cambiar sus datos, o revisa el reporte antes de iniciar otro. Código: PAGO-RESULTADO-INCIERTO.";
 
-// Sólo pares funcionales exactos de0421. Nunca devolver message/details/hint.
+// Sólo pares funcionales exactos de 0421 y 0464. Nunca devolver message/details/hint.
+// Los dos de 0464 (SDD-0484) no llegan hasta aplicar esa migración: el mapa va antes.
 const REJECTIONS: Record<string, { code: string; error: string }> = {
   PAYMENT_FORBIDDEN: { code: "42501", error: ACCESS_ERROR },
   PAYMENT_NOT_FOUND: { code: "P0002", error: ACCESS_ERROR },
@@ -47,6 +48,8 @@ const REJECTIONS: Record<string, { code: string; error: string }> = {
   PAYMENT_PENDING_LIMIT: { code: "23514", error: "No se registró el reporte: hay cinco pendientes en esta factura. Espera su revisión. Código: PAGO-LIMITE." },
   PAYMENT_PROOF: { code: "22023", error: "No se registró el reporte: no pudimos validar su comprobante. Conserva el archivo y reintenta este mismo envío. Código: PAGO-COMPROBANTE." },
   PAYMENT_AUDIT: { code: "23514", error: "La operación no se aplicó porque no pudimos guardar su constancia. Reintenta este mismo intento más tarde. Código: PAGO-CONSTANCIA." },
+  PAYMENT_INVOICE_PAID: { code: "23514", error: "La confirmación no se aplicó: la factura ya está pagada. El saldo y el reporte quedan igual; recházalo con su motivo. Código: PAGO-FACTURA-PAGADA." },
+  PAYMENT_EXCEEDS_BALANCE: { code: "23514", error: "La confirmación no se aplicó: el monto del reporte supera el saldo pendiente. El saldo y el reporte quedan igual; recházalo con su motivo y pide al cliente el monto correcto. Código: PAGO-EXCEDE-SALDO." },
 };
 
 function failure(error: string, uncertain = false): PaymentReportCommandResult {
