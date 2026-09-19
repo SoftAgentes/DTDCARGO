@@ -5,10 +5,10 @@
 | Fecha | 2026-09-19 |
 | Owner / sesión | Worker Claude `dtdcargo-74` · claim `claude-dtdcargo74-0487` |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\portal-cliente-empresa-facturacion` |
-| Rama / base | `codex/portal-cliente-empresa-facturacion`, desde `origin/main` `0a48b956` (con la #153) + cherry-pick de la reserva `12d192d4` |
-| SDD | [0487](../../docs/specs/0487-portal-cliente-empresa-facturacion/spec.md) · `in-progress` |
+| Rama / base | `codex/portal-cliente-empresa-facturacion`, desde `origin/main` `0a48b956` (con la #153) + cherry-pick de la reserva `12d192d4`. Integrada por la #159 en `e9e8240e`. El cierre va en `codex/0487-cierre`, desde `e9e8240e`, en el mismo worktree |
+| SDD | [0487](../../docs/specs/0487-portal-cliente-empresa-facturacion/spec.md) · `done` |
 | Migración | `0466_client_billing_identity` (reservada por dtdcargo-18). **Aplicada** a producción el 2026-09-19 a las 03:05:33Z, ledger `20260919030533`, identidad = blob `33caa919` |
-| Estado de tarea | en-progreso |
+| Estado de tarea | cerrada (2026-09-19) |
 | Permisos | Sam autorizó commits y publicar la rama. Antes de abrir la PR hay que reportar a dtdcargo-18. **No** merge, deploy ni aplicar 0466. Nada de producción salvo lectura de catálogo. |
 
 ## Objetivo
@@ -93,16 +93,22 @@ Está en la spec (§Verificación). En resumen:
 ## Pendientes de esta tarea
 
 1. ~~`pnpm verify` completo~~: hecho; los resultados están en Validación.
-2. Reportar a dtdcargo-18 antes de abrir la PR, y después abrirla.
+2. ~~Reportar a dtdcargo-18 antes de abrir la PR, y después abrirla~~: hecho. La #159 la integró dtdcargo-18 en `e9e8240e` a las 03:30:38Z del 2026-09-19. Vercel la desplegó a las 03:32:09Z, según el estado del commit en GitHub; el alias no se verificó porque el conector de Vercel da 403.
 3. ~~OK de Sam sobre el texto nuevo de `/privacidad`~~: aprobado el 2026-09-19, «Apruebo el texto de privacidad».
 4. ~~OK nominal de Sam y aplicación de `0466`~~: hecho. Ledger `20260919030533`, aplicada a las 03:05:33Z del 2026-09-19, identidad = blob `33caa919`. La espera y las dos declaraciones salieron en el push final.
-5. Smoke de Sam tras integrar:
+5. ~~Smoke de Sam tras integrar~~: «smoke de la 0487 ok, todo salió bien». Cubría:
    - agregar una empresa de prueba y elegir «a nombre de mi empresa»;
    - emitir un borrador de ese cliente en el Studio y ver el titular y el domicilio en el PDF;
    - intentar el RIF de otra ficha de prueba;
    - cambiar y quitar la foto desde la PC.
-6. SDD-0487 a `done` sólo tras 4 y 5.
-7. SDD-0482 a `done` cuando Sam confirme su smoke (pedido el 2026-09-19): se registra en esta PR.
+6. ~~SDD-0487 a `done` sólo tras 4 y 5~~: hecho; #159 integrada en `e9e8240e`.
+7. ~~SDD-0482 a `done` cuando Sam confirme su smoke~~: hecho en `60fe509d`, que entró con la #159. Sam: «smoke de la 0482 ok, todo salió bien».
+
+## Cierre
+
+- SDD-0487 queda en `done`, con el smoke de Sam registrado en la spec (§Release).
+- Esta tarea no deja pendientes. Los seguimientos están en Fuera de alcance, para que el Director los asigne.
+- El claim `claude-dtdcargo74-0487` se libera después de abrir la PR de cierre. El worktree y las ramas quedan para la limpieza del Director: `codex/portal-cliente-empresa-facturacion` ya está integrada y `codex/0487-cierre` espera su PR.
 
 ## Fuera de alcance detectado
 

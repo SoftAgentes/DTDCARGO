@@ -96,6 +96,8 @@ operario_pin_attempts; no incluye public_verify_throttle. La retención de esta
 - docs/audits/2026-09-03-public-verify-local.md: continuidad histórica; principal.
 - docs/audits/2026-09-02-codex-arranque-checklist.md: principal.
 - .agents/handoffs/2026-09-02-saneamiento-integral-close.md: principal.
+- supabase/tests/0426_reserva_verificacion_carrera.test.sql: concurrencia real en la suite SQL (seguimiento 2026-09-18).
+- .agents/handoffs/0375-carrera-reserva-0426.md: handoff de ese seguimiento.
 
 ## Pruebas y aceptación local
 
@@ -113,6 +115,17 @@ rebuild423 y build158; falló por timeouts de worktrees. SDD-0376 corrigió ese
 arnés y la suite completa posterior pasó 6.936/6.936 con configuración original.
 E2E150/18 tuvo dos timeouts globales; migrations-applied SKIP. Evidencia
 agregada, no un segundo verify integral ni verificación de Cloud.
+
+**Corrección de estado (2026-09-18):** la evidencia de concurrencia de este
+gate no estaba en `main`. El cableado de `scripts/verify.mjs` y
+`__tests__/public-verify-concurrency-gate.test.ts` quedaron en `47b1dd0b`, sin
+importar. En `main`, `scripts/check-public-verify-concurrency.mjs` existe pero
+no corre en `verify`, y por defecto usa `postgres:17-alpine`, que el runner no
+descarga: en esta máquina hace SKIP. Desde hoy cubre sus escenarios
+`supabase/tests/0426_reserva_verificacion_carrera.test.sql`, en el paso
+`sql-tests` de `verify` (no en CI): último cupo con commit y con rollback, otra
+IP independiente, reloj posterior al lock, `lock_timeout` y sólo READ COMMITTED.
+El script se conserva; retirarlo es una decisión aparte.
 
 ## Gobernanza y privacidad del delta
 
