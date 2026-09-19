@@ -159,6 +159,30 @@ test('synthetic end-to-end: 0/1 blocks; 1/1 publishes while global pending stays
   assert.equal(f.git('status', '--porcelain'), '', 'Generated outputs remain outside tracked Git state');
 });
 
+test('Graphify id-collision orphans keep status CURRENT and publishable; a deleted source still blocks', { skip }, async (t) => {
+  const f = fixture(t);
+  // The two stubs graphify update leaves on main 88713e47: salted by the id collision, without edges.
+  f.graph.nodes.push(
+    { id: 'react_react', label: 'react', source_file: 'react', _origin: 'ast', file_type: 'code', confidence: 'EXTRACTED' },
+    { id: 'testing_library_react_react', label: '@testing-library/react', source_file: '@testing-library/react', _origin: 'ast', file_type: 'code', confidence: 'EXTRACTED' });
+  f.stamp();
+  const status = await f.call('status');
+  assert.equal(status.structural.status, 'CURRENT');
+  assert.deepEqual(status.structural.deleted, []);
+  assert.ok(!status.publicationProblems.includes('STRUCTURAL_PENDING'));
+  assert.deepEqual(status.graphWarnings.find((warning) => warning.code === 'graph_orphan_import_stubs').sources, ['@testing-library/react', 'react']);
+  f.certify(); // Recording a receipt requires a CURRENT structural graph.
+  const published = await f.call('publish');
+  assert.equal(published.ok, true); assert.equal(published.published, true);
+  f.git('rm', '-q', 'docs/architecture/outside-b.md'); f.git('commit', '-m', 'fixture: a source really leaves the corpus');
+  f.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  const removed = await f.call('status');
+  assert.equal(removed.structural.status, 'PENDING');
+  assert.deepEqual(removed.structural.deleted, ['docs/architecture/outside-b.md']);
+  assert.ok(removed.publicationProblems.includes('STRUCTURAL_PENDING'));
+  await assert.rejects(f.call('publish'), /STRUCTURAL_PENDING/);
+});
+
 test('outside-pilot identity swaps with equal counters invalidate the manifest until republished', { skip }, async (t) => {
   const f = fixture(t);
   f.certify(f.root, ['README.md', 'docs/architecture/outside.md']);

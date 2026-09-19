@@ -1,6 +1,6 @@
 # Conocimiento con Director, Graphify, Archify y Obsidian
 
-Dueño: Director de ingeniería · Estado: vigente al integrarse · Actualizado: 2026-09-15 · SDD: 0471.
+Dueño: Director de ingeniería · Estado: vigente al integrarse · Actualizado: 2026-09-19 · SDD: 0471.
 
 ## Autoridad y conservación
 
@@ -90,6 +90,29 @@ Los nodos AST que representan destinos de importación pueden llevar como `sourc
 nombre del paquete (`react` o `node:child_process`) o una ruta de un fixture. Si no
 corresponden a un archivo detectado, `knowledge:status` los enumera como
 `graph_virtual_import_targets` con advertencia; no son documentos retirados.
+
+Graphify 0.9.61 nombra el stub de un `import("paquete")` dinámico con el último segmento del
+especificador. El rescate usa una expresión regular, así que también cuenta un `typeof import("react")`
+de TypeScript. `import("react")` e `import("@testing-library/react")` chocan en `react`: la
+desambiguación de Graphify renombra los dos IDs con su especificador (`react_react`,
+`testing_library_react_react`), pero las aristas `dynamic_import` de quienes importan siguen
+apuntando al ID sin renombrar y el build las descarta. `knowledge:status` enumera esos nodos en
+`graph_orphan_import_stubs` (fuentes y nodos) como advertencia, no en `structural.deleted`.
+Solo entra la huella exacta: especificador de paquete npm fuera del manifest, del corpus y del
+disco, sin relaciones ancladas en él; un único nodo AST con `label` y `source_file` iguales al
+especificador, tipo `code`, confianza `EXTRACTED`, sin ubicación, sin aristas ni hiperaristas, y
+el ID renombrado por la colisión. La advertencia no recupera esas importaciones: el grafo no las
+representa. Cada `graphify update .` vuelve a crear los nodos, por eso no se reparan. Un nodo
+huérfano con otra forma sigue en `structural.deleted` y se investiga.
+
+`graphify update .` siempre escanea `graphify-out/memory/`, donde Graphify guarda respuestas de
+`graphify query`, aunque `.graphifyignore` excluya `graphify-out/`. Son derivados y la política no
+los reingresa al grafo. `knowledge:status` informa cada ruta de esa carpeta que aparezca en el
+manifest o en el grafo con el error `graph_memory_notes`: la estructura queda INVALID y la
+publicación se bloquea. Si hay archivos en `graphify-out/memory/`, muévelos sin borrarlos a
+`graphify-out/memoria-archivada-AAAAMMDD/` y corre `graphify update .`; la nota sale del manifest
+y del grafo. Otra ruta excluida sigue en `structural.excluded`.
+
 La eliminación de un archivo que sí estuvo en el manifest sigue en
 `structural.deleted` y bloquea el estado CURRENT. Una procedencia realmente fuera
 de la raíz sigue siendo un error. Si Graphify conserva un nodo huérfano creado
@@ -250,7 +273,7 @@ El servidor MCP opcional de Graphify 0.9.61 recarga el grafo por mtime/tamaño; 
 ## Validación y aceptación
 
 Pruebas del harness: piloto 16/16 y 15/16, pendiente fuera de alcance, cambio de cuerpo/YAML, código, renombrado,
-eliminación/exclusión, idempotencia, fallo semántico, conflicto humano, carrera de escritores, recuperación y aislamiento entre worktrees.
+eliminación/exclusión, stubs de importación huérfanos por colisión de IDs, notas de `graphify-out/memory`, idempotencia, fallo semántico, conflicto humano, carrera de escritores, recuperación y aislamiento entre worktrees.
 Verificar enlaces, hashes, etiquetas de evidencia y ocho temas del JSON.
 Ejecutar `pnpm harness:test`, `pnpm docs:check`, `pnpm skills:check`, `pnpm sdd:check` y `git diff --check`.
 Build/DB/E2E de producto no aplican a esta herramienta de documentación.

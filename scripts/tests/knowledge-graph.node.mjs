@@ -106,6 +106,184 @@ test("AST import targets without corpus files are visible references, while dele
   } finally { f.close(); }
 });
 
+// Graphify 0.9.61 names the stub of a bare import() after the specifier's last segment, so
+// import("react") and import("@testing-library/react") collide on "react". Measured on main
+// 88713e47: both stubs come back salted and without edges; the importers' edges are dropped.
+const orphanStub = (source, id, extra = {}) => ({ id, label: source, source_file: source, _origin: "ast",
+  file_type: "code", confidence: "EXTRACTED", ...extra });
+
+test("bare import() stubs orphaned by a Graphify id collision are warnings; a deleted source stays deleted", { skip }, () => {
+  const f = fixture();
+  try {
+    f.graph.nodes.push(orphanStub("react", "react_react", { community: 2112, community_name: "react", norm_label: "react" }),
+      orphanStub("@testing-library/react", "testing_library_react_react", { community: 2408,
+        community_name: "@testing-library/react", norm_label: "@testing-library/react" }));
+    f.writeGraph();
+    const current = f.run();
+    assert.equal(current.structural.status, "CURRENT");
+    assert.deepEqual(current.structural.deleted, []);
+    assert.deepEqual(current.graphSourcePaths, ["docs/guide.md", "source.py"]);
+    assert.deepEqual(current.warnings.find(issue => issue.code === "graph_orphan_import_stubs"),
+      { code: "graph_orphan_import_stubs", severity: "warning", sources: ["@testing-library/react", "react"],
+        nodes: ["react_react", "testing_library_react_react"] });
+    // A deleted file whose node outlives its manifest row is still a deleted source.
+    f.graph.nodes.push({ id: "gone", label: "gone.ts", source_file: "gone.ts", source_location: "L1", _origin: "ast", file_type: "code" });
+    f.writeGraph();
+    const deleted = f.run();
+    assert.deepEqual(deleted.structural.deleted, ["gone.ts"]);
+    assert.equal(deleted.structural.status, "PENDING");
+  } finally { f.close(); }
+});
+
+test("only the exact collision fingerprint is spared; every near miss stays deleted", { skip }, () => {
+  const f = fixture();
+  try {
+    // Second salting round: two salted ids still collided, so Graphify appended a sha1 prefix.
+    f.graph.nodes.push(orphanStub("react", "react_react"), orphanStub("@scope/a-b", "scope_a_b_a_b_1a2b3c"));
+    const nearMisses = {
+      lodash: [orphanStub("lodash", "lodash")], // unsalted: no collision explains the lost edge
+      zod: [orphanStub("zod", "zod_zod", { source_location: "L1" })],
+      vitest: [orphanStub("vitest", "vitest_vitest")], // a calls edge below
+      yup: [orphanStub("yup", "yup_yup")], // a hyperedge below
+      clsx: [orphanStub("clsx", "clsx_clsx", { _origin: "semantic" })],
+      dayjs: [orphanStub("dayjs", "dayjs_dayjs", { label: "DayJS" })],
+      "react-dom": [orphanStub("react-dom", "react_dom_react_dom", { source_file: "./react-dom" })],
+      sharp: [orphanStub("sharp", "sharp_sharp", { confidence: undefined })], // file nodes carry none
+      marked: [orphanStub("marked", "marked_marked", { file_type: "document" })],
+      "@/lib/react": [orphanStub("@/lib/react", "lib_react_react")], // project alias, not a package
+      uuid: [orphanStub("uuid", "uuid_uuid"), orphanStub("uuid", "uuid_uuid_0a1b2c")],
+      chalk: [orphanStub("chalk", "chalk_chalk")], // anchors a relation below: it was a real source
+    };
+    f.graph.nodes.push(...Object.values(nearMisses).flat(), orphanStub("tooling", "tooling_tooling"));
+    fs.mkdirSync(path.join(f.root, "tooling")); // a path outside the corpus is excluded, never spared
+    f.graph.links.push({ source: "source_example", target: "vitest_vitest", relation: "calls", _origin: "ast",
+      confidence: "EXTRACTED", source_file: "source.py" }, { source: "source_example", target: "docs_guide_knowledge",
+      relation: "references", _origin: "ast", confidence: "EXTRACTED", source_file: "chalk" });
+    f.graph.hyperedges = [{ id: "yup_group", nodes: ["yup_yup", "source_example", "docs_guide_knowledge"], source_file: "docs/guide.md" }];
+    f.writeGraph();
+    const state = f.run();
+    assert.deepEqual(state.issues, []);
+    assert.deepEqual(state.structural.deleted, Object.keys(nearMisses).sort());
+    assert.deepEqual(state.structural.excluded, ["tooling"]);
+    assert.equal(state.structural.status, "PENDING");
+    assert.deepEqual(state.warnings.find(issue => issue.code === "graph_orphan_import_stubs").sources, ["@scope/a-b", "react"]);
+  } finally { f.close(); }
+});
+
+// The pinned CLI extracts a repository holding only what each test commits: no synthetic
+// graph or manifest survives, so the inspector reads what Graphify itself wrote.
+function nativeFixture() {
+  const f = fixture();
+  fs.rmSync(path.join(f.root, "docs"), { recursive: true });
+  fs.rmSync(path.join(f.root, "source.py"));
+  fs.rmSync(path.join(f.root, "graphify-out"), { recursive: true });
+  f.git("add", "-A");
+  f.git("commit", "-m", "native fixture");
+  function update() {
+    const result = spawnSync(python, ["-m", "graphify", "update", "."], { cwd: f.root, encoding: "utf8",
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" } });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    return JSON.parse(fs.readFileSync(path.join(f.root, "graphify-out/graph.json"), "utf8"));
+  }
+  function commit(name, content) {
+    fs.writeFileSync(path.join(f.root, name), content);
+    f.git("add", name);
+    f.git("commit", "-m", "add " + name);
+  }
+  return { ...f, update, commit };
+}
+
+test("pinned Graphify output: the import edges are lost on collision and the orphan stubs are warned", { skip }, () => {
+  const f = nativeFixture();
+  try {
+    const importer = (name, specifier) => f.commit(name, `export async function load() {\n  return await import("${specifier}");\n}\n`);
+    importer("a.test.ts", "react");
+    const alone = f.update();
+    assert.ok(alone.links.some(edge => edge.relation === "dynamic_import" && edge.target === "react"));
+    const reference = f.run();
+    assert.equal(reference.structural.status, "CURRENT");
+    assert.ok(reference.warnings.some(issue => issue.code === "graph_virtual_import_targets" && issue.sources.includes("react")));
+    importer("b.test.ts", "@testing-library/react");
+    const collided = f.update();
+    assert.equal(collided.links.filter(edge => edge.relation === "dynamic_import").length, 0);
+    assert.deepEqual(collided.nodes.filter(node => !node.source_file.endsWith(".test.ts")).map(node => node.id).sort(),
+      ["react_react", "testing_library_react_react"]);
+    const state = f.run();
+    assert.equal(state.structural.status, "CURRENT");
+    assert.deepEqual(state.structural.deleted, []);
+    assert.deepEqual(state.warnings.find(issue => issue.code === "graph_orphan_import_stubs").sources,
+      ["@testing-library/react", "react"]);
+  } finally { f.close(); }
+});
+
+// A graphify query answer saved under graphify-out/memory, as found in the main checkout.
+const memoryNote = "graphify-out/memory/query_20260916_142303_example.md";
+const memoryIssue = { code: "graph_memory_notes", severity: "error", sources: [memoryNote] };
+
+test("graphify-out/memory notes in the graph block by name; a real exclusion stays excluded", { skip }, () => {
+  const f = fixture();
+  try {
+    // One note in manifest and graph, one only stamped in the manifest, one only left in the graph.
+    const stampedOnly = "graphify-out/memory/query_20260917_stamped.md";
+    const graphOnly = "graphify-out/memory/query_20260918_graph.md";
+    const notesIssue = { code: "graph_memory_notes", severity: "error", sources: [memoryNote, stampedOnly, graphOnly] };
+    fs.mkdirSync(path.join(f.root, "graphify-out/memory"));
+    fs.writeFileSync(path.join(f.root, memoryNote), "# Q: example\n\n## Answer\n\nDerived.\n");
+    fs.writeFileSync(path.join(f.root, stampedOnly), "# Q: stamped\n");
+    const manifest = JSON.parse(fs.readFileSync(path.join(f.root, "graphify-out/manifest.json"), "utf8"));
+    for (const note of [memoryNote, stampedOnly]) {
+      manifest[note] = { ast_hash: hash(fs.readFileSync(path.join(f.root, note)), "md5"), semantic_hash: "" };
+    }
+    fs.writeFileSync(path.join(f.root, "graphify-out/manifest.json"), JSON.stringify(manifest));
+    f.graph.nodes.push({ id: "graphify_out_memory_query_example", label: "query_20260916_142303_example.md", source_file: memoryNote,
+      source_location: "L1", _origin: "ast", file_type: "document" }, { id: "graphify_out_memory_query_example_answer",
+      label: "Answer", source_file: memoryNote, source_location: "L3", _origin: "ast", file_type: "document" },
+    { id: "graphify_out_memory_query_20260918_graph", label: "query_20260918_graph.md", source_file: graphOnly,
+      source_location: "L1", _origin: "ast", file_type: "document" });
+    f.graph.links.push({ source: "graphify_out_memory_query_example", target: "graphify_out_memory_query_example_answer",
+      relation: "contains", _origin: "ast", confidence: "EXTRACTED", source_file: memoryNote });
+    // Another derived path is no memory note: it stays an ordinary exclusion, like the ignored guide.
+    fs.mkdirSync(path.join(f.root, "graphify-out/obsidian-preview"));
+    fs.writeFileSync(path.join(f.root, "graphify-out/obsidian-preview/Indice.md"), "# Preview\n");
+    f.graph.nodes.push({ id: "graphify_out_obsidian_preview_indice", label: "Indice.md", source_file: "graphify-out/obsidian-preview/Indice.md",
+      source_location: "L1", _origin: "ast", file_type: "document" });
+    fs.writeFileSync(path.join(f.root, ".graphifyignore"), "docs/guide.md\n");
+    f.writeGraph();
+    const state = f.run();
+    assert.equal(state.structural.status, "INVALID");
+    assert.deepEqual(state.issues, [notesIssue]);
+    assert.deepEqual(state.structural.excluded, ["docs/guide.md", "graphify-out/obsidian-preview/Indice.md"]);
+    assert.deepEqual(state.structural.deleted, []);
+    assert.match(f.run("record", [], 1).error, /structural graph/);
+    // Archived but not yet updated: the graph still carries the note, so it still blocks by name.
+    fs.mkdirSync(path.join(f.root, "graphify-out/memoria-archivada-20260919"));
+    fs.renameSync(path.join(f.root, memoryNote), path.join(f.root, "graphify-out/memoria-archivada-20260919", path.basename(memoryNote)));
+    const archived = f.run();
+    assert.deepEqual(archived.issues, [notesIssue]);
+    assert.deepEqual(archived.structural.deleted, []);
+  } finally { f.close(); }
+});
+
+test("pinned Graphify files memory notes back into the graph; archiving them and updating clears the block", { skip }, () => {
+  const f = nativeFixture();
+  try {
+    f.commit("a.ts", "export const a = 1;\n");
+    fs.mkdirSync(path.join(f.root, "graphify-out/memory"), { recursive: true });
+    fs.writeFileSync(path.join(f.root, memoryNote), "# Q: example\n\n## Answer\n\nDerived.\n");
+    assert.ok(f.update().nodes.some(node => node.source_file === memoryNote));
+    const blocked = f.run();
+    assert.equal(blocked.structural.status, "INVALID");
+    assert.deepEqual(blocked.issues, [memoryIssue]);
+    const archive = path.join(f.root, "graphify-out/memoria-archivada-20260919");
+    fs.mkdirSync(archive);
+    fs.renameSync(path.join(f.root, memoryNote), path.join(archive, path.basename(memoryNote)));
+    assert.ok(!f.update().nodes.some(node => String(node.source_file).startsWith("graphify-out/")));
+    const cleared = f.run();
+    assert.equal(cleared.structural.status, "CURRENT");
+    assert.deepEqual(cleared.issues, []);
+  } finally { f.close(); }
+});
+
 test("data JSON omitted by pinned Graphify is reported as skipped without claiming AST coverage", { skip }, () => {
   const f = fixture();
   try {
