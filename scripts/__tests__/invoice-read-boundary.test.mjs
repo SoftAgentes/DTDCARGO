@@ -14,7 +14,10 @@ const BASELINE = {
   // SDD-0465: +1 por la lectura previa de `softDeleteInvoice` (id, status,
   // invoice_code, deleted_at), detrás de moduleEditDenial("invoices") y con el
   // cliente de sesión bajo RLS; decide el mensaje antes del UPDATE condicionado.
-  "app/studio/(app)/facturacion/actions.ts": 11,
+  // SDD-0487: +1 en `lookupInvoiceBillingOptions`, que lee sólo `bill_to_kind`
+  // del borrador que se edita, con el cliente de sesión bajo RLS
+  // (`invoices_accounting_select`: accounting/admin del tenant).
+  "app/studio/(app)/facturacion/actions.ts": 12,
   "app/studio/(app)/fidelizacion/actions.ts": 2,
   "lib/portal/portal-legal-queries.ts": 3,
   "lib/portal/portal-queries.ts": 2,
@@ -27,6 +30,11 @@ const BASELINE = {
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
   "lib/studio/fidelizacion/referral-credit-queries.ts": 1,
   "lib/studio/fiscal/queries.ts": 1,
+  // SDD-0487: `domicilioFiscalSellado` lee sólo `client_fiscal_address` de una
+  // factura ya autorizada por su caller, con el cliente de sesión bajo RLS: el
+  // PDF del Studio (canAccessModule(role, "invoices") + getInvoiceByCode) y el
+  // del Portal (getMyInvoiceForPrincipal + «invoices portal self read»).
+  "lib/studio/invoice-client-doc.ts": 1,
   "lib/studio/invoice-queries.ts": 3,
   "lib/studio/kommo-contact-status.ts": 1,
   "lib/studio/payment-queries.ts": 1,
@@ -74,8 +82,8 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
       if (count) actual[relative(process.cwd(), path).replaceAll("\\", "/")] = count;
     }
     expect(actual).toEqual(BASELINE);
-    expect(Object.keys(actual)).toHaveLength(18);
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(42);
+    expect(Object.keys(actual)).toHaveLength(19);
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(44);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

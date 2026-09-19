@@ -75,6 +75,15 @@ async function routeToAdvisorOrTeam(
   });
 }
 
+export type BlockedProfileField = "document" | "phone" | "company_rif" | "personal_doc";
+
+const BLOCKED_FIELD_LABEL: Record<BlockedProfileField, string> = {
+  document: "un documento",
+  phone: "un teléfono",
+  company_rif: "el RIF de una empresa",
+  personal_doc: "una cédula para facturar a su nombre",
+};
+
 /**
  * SDD-0482 · Aviso interno cuando el Portal bloquea un cambio directo porque
  * el documento o el teléfono ya pertenecen a otra ficha (decisión de Sam:
@@ -88,12 +97,13 @@ export async function notifyBlockedProfileEditToAdmin(
     markbox: string;
     clientName: string;
     advisorId: string | null;
-    field: "document" | "phone";
+    /** SDD-0487 suma el RIF de la empresa y la cédula de la identidad secundaria. */
+    field: BlockedProfileField;
     conflictingMarkbox: string | null;
   },
 ): Promise<void> {
   try {
-    const what = args.field === "document" ? "un documento" : "un teléfono";
+    const what = BLOCKED_FIELD_LABEL[args.field];
     const other = args.conflictingMarkbox
       ? `que ya tiene la ficha ${args.conflictingMarkbox}`
       : "que ya tiene otra ficha";
