@@ -202,7 +202,7 @@ describe("fixture determinista de calculadora", () => {
       recargo_excedente_kg: 2,
       descuento_valencia: 0,
       recargo_embalaje_especial: 50,
-      recargo_bateria_mult: 1.3,
+      recargo_bateria_mult: 1.5,
       threshold_casco_km: 200,
       tarifa_km_fuera_casco: 1,
       cbm_max_contenedor: 68,
