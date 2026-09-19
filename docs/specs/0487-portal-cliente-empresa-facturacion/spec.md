@@ -349,7 +349,7 @@ Cambios de comportamiento del **Studio** (`docs/governance/AGENT-BRIEF.md`):
 | Mutantes TypeScript con control verde previo | 10/10 muertos |
 | typecheck · ESLint focal · rsc-boundary · pending-migration-symbols (0 rojos, 2 amarillos declarados) · docs:check · sdd:check | PASÓ |
 | `/ui-check` | OK con ajustes menores; aplicados en `fix(portal): SDD-0487 — ajustes de /ui-check` |
-| `pnpm verify` completo | Pendiente del turno del Director |
+| `pnpm verify` completo | Sobre `732eb65b` (2026-09-19, turno de dtdcargo-18), exit 1. PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, sql-tests (207 en postgres:17, incluido el contrato de 0466), schema-rebuild, e2e (168 pasaron, 18 omitidas) y build. FALLÓ `test`: invoice-read-boundary era real (el inventario de lecturas de facturas, corregido en `e4f4f6b1`), y PackingListProductsStep y ClientDrawer.confirm-delete son intermitentes conocidas. Aisladas, con la CPU al 1 %: PASÓ 9/9, 9/9 y 3/3. NO EJECUTADO: migrations-applied (SKIP, el worktree no tiene credenciales). |
 | Prueba visual en el teléfono y en escritorio | NO DISPONIBLE: requiere sesión del Portal y la 0466 aplicada; va en el smoke de Sam |
 
 ## Verificación exigida

@@ -77,11 +77,11 @@ Está en la spec (§Verificación). En resumen:
 - typecheck, ESLint, rsc-boundary, símbolos (0 rojos, 2 amarillos), docs, sdd, components y governance: PASÓ;
 - `/ui-check` con ajustes aplicados.
 - Merge de `origin/main` `c8f7f8b6` (entran la #151 con la 0465 y la #155) con el driver de main, sin conflictos y con el índice regenerado igual. Después del merge: PASÓ 194 tests en 17 archivos (contrato de 0466, perfil, facturación, cron), typecheck, símbolos (0 rojos, 2 amarillos), docs y numbering.
-- Pendiente: `pnpm verify` completo, con turno del Director.
+- `pnpm verify`: Sobre `732eb65b` (2026-09-19, turno de dtdcargo-18), exit 1. PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, sql-tests (207 en postgres:17, incluido el contrato de 0466), schema-rebuild, e2e (168 pasaron, 18 omitidas) y build. FALLÓ `test`: invoice-read-boundary era real (el inventario de lecturas de facturas, corregido en `e4f4f6b1`), y PackingListProductsStep y ClientDrawer.confirm-delete son intermitentes conocidas. Aisladas, con la CPU al 1 %: PASÓ 9/9, 9/9 y 3/3. NO EJECUTADO: migrations-applied (SKIP, el worktree no tiene credenciales).
 
 ## Pendientes de esta tarea
 
-1. `pnpm verify` completo, con turno de dtdcargo-18.
+1. ~~`pnpm verify` completo~~: hecho; los resultados están en Validación.
 2. Reportar a dtdcargo-18 antes de abrir la PR, y después abrirla.
 3. ~~OK de Sam sobre el texto nuevo de `/privacidad`~~: aprobado el 2026-09-19, «Apruebo el texto de privacidad».
 4. OK nominal de Sam para `0466_client_billing_identity`. Migrate-first estricto: la aplica dtdcargo-18 en baja actividad, antes de integrar.
