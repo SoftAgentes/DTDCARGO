@@ -7,8 +7,7 @@
   residuales de public»). Director: `dtdcargo-18`, que asignó SDD y migración y leyó el catálogo.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/anon-privilegios-residuales`.
 - Rama: `codex/anon-privilegios-residuales`, creada con `harness-worktree start` desde `origin/main` =
-  `1d80c18a`. Main avanzó después a `cc15e48c` (PR #145) y luego a `1b64bdae`. Por indicación del
-  Director, main se trae cuando él dé el turno de integración.
+  `1d80c18a`. Main se trajo después, a pedido de Sam: merge de `3f810366` en `0e6885d6`.
 - SDD: [0485](../../docs/specs/0485-anon-privilegios-residuales/spec.md). La reserva es
   `codex/sdd-reserve-0485-anon-privilegios-residuales` (`3a94aa20`), incorporada por cherry-pick
   como `99bf135d`. El stub traía front-matter inválido (`status: reserved`, sin `sdd`, `title` ni
@@ -93,6 +92,12 @@ Corrida sobre el árbol de trabajo de esta rama (base `1d80c18a`), 2026-09-18.
 | › e2e | **PASÓ con aviso**: 163 pasaron, 5 flaky, 18 omitidas y ninguna falló. El proceso salió ≠0 por el worker de WebKit que no cierra en Windows (aviso del propio gate) |
 | › build | **PASÓ** |
 | **Veredicto de `verify`** | **exit 1.** Su único fallo es el `test` de arriba, por el flake. Tiene además `migrations-applied` sin medir. Un exit 0 tampoco habría sido cierre completo, y el exit 1 no es un fallo de esta rama |
+| **Merge de `origin/main`** (`3f810366`: PR #145, #147, #148 y #149) → `0e6885d6`, pedido por Sam y avisado al Director | **PASÓ**, sin conflictos. El driver de main resolvió `docs/specs/README.md`; después de regenerar con `build-docs-index.mjs` el árbol quedó limpio (470 specs). Main trajo una sola migración, la 0461 (retira el trigger de 0447, sin grants ni tablas), y dos contratos |
+| Después del merge: `docs:check` / `sdd:check` / `pending-migration-symbols` | **PASÓ** (470 specs, sin números repetidos, 0 ROJO · 0 AMARILLO; siguen las esperas de 0422, 0423 y 0465) |
+| Después del merge: contrato 0465 suelto en `postgres:17` y en `supabase/postgres` sin superusuario | **PASÓ** |
+| Después del merge: `__tests__/anon-privilegios-residuales.migration.test.ts`, archivo único, sobre `0e6885d6` | **PASÓ**: 26 de 26, con la cadena de L14 corrida contra los contratos 0422/0423 de main |
+| Compatibilidad con 0462 y 0464 (en sus ramas, sin integrar; la 0465 se aplica después de la 0462) | **REVISADO en lectura.** La 0462 crea `client_profile_blocked_attempts` con dueño `postgres`, `revoke all` y SELECT sólo para `service_role`; la 0464 sólo cambia el dueño de una función. Ninguna concede nada a `anon` ni saca tablas de `postgres`: el preflight de la 0465 sigue pasando después de ellas |
+| `verify` completo después del merge | **NO EJECUTADO**, por indicación del Director: el merge sólo trajo archivos ajenos, y rige un turno a la vez para corridas pesadas. El CI de la PR corre sobre el head publicado |
 
 ## COMMITS
 
@@ -100,24 +105,31 @@ Corrida sobre el árbol de trabajo de esta rama (base `1d80c18a`), 2026-09-18.
 - `61f5570f` docs(SDD-0485): spec, `assets/catalogo.sql` e índice regenerado.
 - `d3eb1b96` fix(db): migración 0465 y su espera en `migrations-baseline.json`.
 - `415502e2` test(db): contrato SQL y prueba PGlite con la cadena de L14.
-- El commit que contiene este documento (handoff).
+- `e5d6c07a` docs(handoff): primer cierre del Worker.
+- `0e6885d6` merge de `origin/main` (`3f810366`).
+- El commit que contiene este documento: cierre actualizado después del merge.
 
 ## PR / BRANCH
 
-- Rama `codex/anon-privilegios-residuales` → base `main`, worktree de arriba. La PR se abre como
-  draft después del reporte al Director, por pedido explícito de Sam en esta sesión («sigue, corre
-  verify y abre la PR»). La URL queda en el reporte al Director y en la propia PR.
+- PR draft [#151](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/151): rama
+  `codex/anon-privilegios-residuales` → base `main`, desde el worktree de arriba. Se abrió después
+  del reporte al Director, por pedido explícito de Sam («sigue, corre verify y abre la PR»).
+- Antes del merge, GitHub la marcaba `CONFLICTING` sólo por el índice generado (GitHub no tiene el
+  driver semántico), y el CI de calidad no arrancaba. La #150 entra antes que esta: cuando entre,
+  hay que traer main otra vez con el driver y repetir el push. `update-branch` no sirve.
 
 ## PENDIENTES DE ESTA TAREA
 
 1. **Aplicación a producción**, fuera del alcance de esta sesión. La hace el Director con OK
    nominal de Sam que nombre `0465_anon_privilegios_residuales`, sola y con `name` exacto. Pasos:
    V0 (releer el inventario), V1 (guardar la lista para la vuelta atrás) y V2 (verificar), en la
-   sección «Aplicación» de la spec. Después: sacar la espera de `pendingBelowCutoff` y pasar
-   SDD-0485 a `done`.
-2. **Traer main** (`cc15e48c` o posterior) cuando el Director dé el turno de integración. Hay que
-   regenerar el índice de specs con `docs:index`: hoy lista 0480–0484 como huecos porque esta rama
-   no tiene esas specs.
+   sección «Aplicación» de la spec. El Director la ordenó después de la 0462, sin urgencia, y la
+   aprobó para pedir el OK cuando el CI de la PR esté en verde. Después: sacar la espera de
+   `pendingBelowCutoff` y pasar SDD-0485 a `done`.
+2. **Traer main otra vez cuando entre la #150**, que va antes en el turno de integración. Las dos
+   agregan una fila al índice generado: con el driver de main, regenerar con
+   `build-docs-index.mjs`, repetir `docs:check`, `sdd:check` y el contrato suelto, y hacer un solo
+   push.
 
 ## FUERA DE ALCANCE DETECTADO
 
