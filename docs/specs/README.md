@@ -507,7 +507,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0479 | Supabase sintético deny-only para el e2e local: las pruebas q… | in-progress | interno |
 | 0480 | El recargo de baterías del respaldo vuelve a espejar el ERP (… | done | interno |
 | 0481 | Portal cliente — cambiar la foto de cédula/RIF dentro del cup… | done | interna |
-| 0482 | Portal cliente — editar nombre, cédula/RIF y teléfono al inst… | in-progress | interna |
+| 0482 | Portal cliente — editar nombre, cédula/RIF y teléfono al inst… | done | interna |
 | 0484 | Los comandos de reportes de pago frente a una factura ya pagada | in-progress | interno |
 | 0485 | anon y authenticated pierden los privilegios residuales sobre… | done | interno |
 | 0487 | Portal cliente — foto visible, empresa propia y «Facturar a n… | in-progress | interna |

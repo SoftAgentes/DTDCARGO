@@ -1,10 +1,10 @@
 ---
 sdd: "0482"
 title: "Portal cliente — editar nombre, cédula/RIF y teléfono al instante, dentro del cupo de 3 cambios"
-status: in-progress
+status: done
 author: "Claude + founder"
 created: 2026-09-18
-updated: 2026-09-18
+updated: 2026-09-19
 supersedes: null
 superseded_by: null
 related: ["0151", "0439", "0481", "0483", "0095", "0392"]
@@ -239,6 +239,12 @@ Sam hace el smoke:
 2. Intentar el documento de otro cliente de prueba y ver el mensaje genérico,
    el aviso al asesor y el cupo intacto.
 3. Ver en el Studio la fila «Editado por el cliente» con el antes y el después.
+
+**Cierre (2026-09-19).**
+- ✅ PR #153 integrada por dtdcargo-18: merge `0a48b956` (01:29:01Z), desplegado a producción (Vercel success a las 01:31Z).
+- ✅ Smoke de Sam en producción, después del despliegue. Respuesta literal: «smoke de la 0482 ok, todo salió bien».
+
+Todos los criterios del contrato funcional se cumplieron → `done`. El cierre viaja en la rama de la SDD-0487, igual que la 0481 viajó en la de la 0482.
 
 ## Fuera de alcance
 
