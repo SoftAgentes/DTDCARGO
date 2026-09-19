@@ -32,14 +32,14 @@
           "name": "portal_delete_my_billing_identity",
           "kind": "function",
           "callSites": [
-            "app/portal/(app)/perfil/billing-actions.ts:183"
+            "app/portal/(app)/perfil/billing-actions.ts:180"
           ]
         },
         {
           "name": "portal_set_my_billing_kind",
           "kind": "function",
           "callSites": [
-            "app/portal/(app)/perfil/billing-actions.ts:208"
+            "app/portal/(app)/perfil/billing-actions.ts:205"
           ]
         }
       ],
@@ -55,14 +55,70 @@
           "degradation": "Guardar la identidad sin 0466: la lectura previa del perfil falla y la action responde «No está disponible ahora» sin llamar a ninguna otra RPC. Release migrate-first: dtdcargo-18 aplica 0466 antes de integrar, así que esta rama no debería verse en producción."
         },
         {
-          "site": "app/portal/(app)/perfil/billing-actions.ts:189",
+          "site": "app/portal/(app)/perfil/billing-actions.ts:186",
           "contains": "if (rpcError) return { error: translateRpcError(rpcError.message ?? \"\") };",
           "degradation": "Quitar la identidad sin 0466: la RPC no existe y la action muestra «No pudimos guardar tus datos» sin revalidar. No hay botón que la dispare porque el bloque está oculto. Release migrate-first: dtdcargo-18 aplica 0466 antes de integrar, así que esta rama no debería verse en producción."
         },
         {
-          "site": "app/portal/(app)/perfil/billing-actions.ts:214",
+          "site": "app/portal/(app)/perfil/billing-actions.ts:211",
           "contains": "if (rpcError) return { error: translateRpcError(rpcError.message ?? \"\") };",
           "degradation": "Elegir titular sin 0466: la RPC no existe y la action muestra «No pudimos guardar tus datos»; el selector vuelve a la opción del servidor. El selector está oculto sin 0466. Release migrate-first: dtdcargo-18 aplica 0466 antes de integrar, así que esta rama no debería verse en producción."
+        }
+      ]
+    },
+    {
+      "id": "sdd-0487-studio-titular-factura",
+      "primarySymbol": "client_billing_identities",
+      "migration": "0466_client_billing_identity",
+      "symbols": [
+        {
+          "name": "client_billing_identities",
+          "kind": "table",
+          "callSites": [
+            "app/studio/(app)/clientes/[markbox]/page.tsx:152",
+            "app/studio/(app)/facturacion/actions.ts:930"
+          ]
+        },
+        {
+          "name": "invoices.bill_to_kind",
+          "kind": "column",
+          "callSites": [
+            "app/studio/(app)/facturacion/actions.ts:948",
+            "app/studio/(app)/facturacion/actions.ts:950",
+            "app/studio/(app)/facturacion/actions.ts:951",
+            "app/studio/(app)/facturacion/_components/InvoiceTitularPicker.tsx:72",
+            "lib/studio/invoice-billing.ts:95",
+            "lib/studio/invoice-billing.ts:104",
+            "lib/studio/invoice-billing.ts:106",
+            "lib/studio/invoice-billing.ts:114",
+            "lib/studio/invoice-billing.ts:116"
+          ]
+        },
+        {
+          "name": "invoices.client_fiscal_address",
+          "kind": "column",
+          "callSites": [
+            "lib/studio/invoice-client-doc.ts:76",
+            "lib/studio/invoice-client-doc.ts:78",
+            "lib/studio/invoice-client-doc.ts:80"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/studio/(app)/facturacion/actions.ts:940",
+          "contains": "if (idErr) return null;",
+          "degradation": "Sin 0466 la tabla client_billing_identities no existe: la consulta de titulares devuelve null, el borrador no muestra «Titular de la factura» y ni lee ni manda bill_to_kind (billToInsertPatch/billToUpdatePatch no nombran la columna sin el selector). El alta y la edición de borradores siguen como antes. Release migrate-first: dtdcargo-18 aplica 0466 antes de integrar, así que esta rama no debería verse en producción."
+        },
+        {
+          "site": "app/studio/(app)/clientes/[markbox]/page.tsx:156",
+          "contains": "billingIdentity = error ? null : data ?? null;",
+          "degradation": "Ficha del cliente sin 0466: la lectura falla y la tarjeta «Facturación» no se muestra. Release migrate-first: dtdcargo-18 aplica 0466 antes de integrar, así que esta rama no debería verse en producción."
+        },
+        {
+          "site": "lib/studio/invoice-client-doc.ts:79",
+          "contains": "if (error) return null;",
+          "degradation": "PDF sin 0466: la columna client_fiscal_address no existe, la lectura tolerante devuelve null y la factura se imprime como antes, sin la línea del domicilio. Release migrate-first: dtdcargo-18 aplica 0466 antes de integrar, así que esta rama no debería verse en producción."
         }
       ]
     }
