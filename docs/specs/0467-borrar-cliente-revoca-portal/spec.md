@@ -4,7 +4,7 @@ title: "Borrar un cliente revoca su acceso al Portal"
 status: in-progress
 author: "Claude"
 created: 2026-09-14
-updated: 2026-09-15
+updated: 2026-09-19
 supersedes: null
 superseded_by: null
 related: ["0010", "0042", "0246", "0253", "0466"]
@@ -344,6 +344,70 @@ PostgreSQL 17 en Docker 29.7.2:
 | 4. Código corto nuevo mientras otra sesión borra | espera y responde `23514`; 0 códigos sin revocar | inserta; 1 código sin revocar |
 
 Sin interbloqueos. Invariante final: 0 con el original y 1 con el mutante.
+
+### Concurrencia en la suite SQL (seguimiento del 2026-09-19)
+
+Seguimiento sin número nuevo, asignado por el Director (la sesión «Director notificación a
+workers», que reemplazó a `dtdcargo-18`). La 0454 no se toca.
+
+**La 0454 en producción** (verificado por el Director el 2026-09-19, leyendo sólo el catálogo,
+sin filas):
+
+- **Ledger:** `20260915155857`, aplicada el 2026-09-15 a las 15:58:57 UTC.
+- **Identidad exacta:** md5 `02623202e197dd9ff1e6de90b0340876` y 30 505 bytes, iguales al
+  archivo de `main`. A diferencia de la 0449, la cabecera no se tocó después de aplicar.
+- **Cuerpos:** el `md5(prosrc)` de producción es el mismo que deja el fixture de la carrera,
+  las dos funciones son DEFINER y ninguna otra migración las redefine:
+  - `clients_revoke_portal_access`: `050880a2…`, 984 bytes;
+  - `portal_access_require_live_client`: `b8e102e1…`, 728 bytes.
+
+  La carrera prueba exactamente lo que corre en producción.
+
+**Corrección de la evidencia anterior.** Las cuatro carreras de arriba se corrieron a mano,
+con dos sesiones y esperas de 2 s sin confirmar. Su script no está en el repo: no figura en la
+allowlist y no aparece en `main`. Tampoco corrían en `verify`.
+
+**`supabase/tests/0454_borrado_cliente_carrera.test.sql`** corre en el paso `sql-tests` de
+`verify` (no en CI). Usa sesiones reales por dblink, el fixture del contrato 0454 y una
+barrera por `pg_blocking_pids`, sin esperas. Del lado del Studio van el borrado por RLS (como
+`softDeleteClientAction`) y las RPC reales `portal_invite_client` y
+`portal_create_access_link`. Cada escenario corre primero con la función que lo defiende
+reemplazada por una variante sin su mecanismo (control) y después con la 0454:
+
+| # | Escenario | Sin el mecanismo (control) | Con la 0454 |
+|---|---|---|---|
+| 1 | Se borra el cliente y llega una invitación nueva | guarda sin FOR SHARE: la invitación queda vigente sobre el cliente borrado | la invitación espera y recibe `23514` |
+| 2 | Llega una invitación nueva y se borra el cliente | guarda sin FOR SHARE: el borrado no espera y la invitación queda vigente | el borrado espera la invitación y la revoca |
+| 3 | Se borra el cliente y llega un código corto nuevo | guarda sin FOR SHARE: el código queda sin revocar | el código espera y recibe `23514` |
+| 4 | Se borra el cliente y otro vínculo se muda a él (el UPDATE de una fusión) | guarda sin FOR SHARE: el vínculo activo queda sobre el cliente borrado | la mudanza espera y recibe `23514` |
+| 5 | Se borra el cliente y llega una reinvitación de su vínculo revocado | revocación que se salta los revocados: la reinvitación no espera y queda vigente | la reinvitación espera la fila y la guarda la rechaza |
+| 6 | Llega una reinvitación y se borra el cliente | ídem: el borrado no espera y la reinvitación queda vigente | el borrado espera la fila y, al re-evaluar, la revoca |
+
+En los seis casos, la segunda sesión espera en `transactionid`. Las carreras 1, 4, 3 y 2 de
+arriba corresponden a los escenarios 1, 3, 5 y 6. El 2 y el 4 son nuevos.
+
+**Mutantes, con el runner real y fuera del repo.** Cada mecanismo, quitado de a uno, hace fallar
+sus escenarios:
+
+- la guarda sin su FOR SHARE: 1, 2, 3 y 4;
+- la revocación que se salta los vínculos ya revocados: 5 y 6.
+
+El contrato de una sola sesión también detecta los dos. El primero lo detecta por su aserción
+estática 2b, que busca el FOR SHARE en el texto. El segundo, por la fusión de clientes, que deja
+un duplicado revocado con identidad. La carrera muestra la consecuencia concurrente.
+
+**Precisión.** El `for update of cu` de la 0454 (su línea 411) está en el backfill, que corrió una
+sola vez al aplicar: no protege en tiempo de ejecución. En ejecución, la protección concurrente
+son la guarda con FOR SHARE y la revocación que actualiza todas las filas del cliente, sin
+filtrar por estado.
+
+El detalle y el script de los mutantes están en el handoff
+`.agents/handoffs/0467-carrera-borrado-0454.md`.
+
+Rutas agregadas a la allowlist por este seguimiento:
+
+- supabase/tests/0454_borrado_cliente_carrera.test.sql
+- .agents/handoffs/0467-carrera-borrado-0454.md
 
 ### Aplicación y gates
 
