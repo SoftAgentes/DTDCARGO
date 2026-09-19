@@ -1,7 +1,7 @@
 ---
 sdd: "0481"
 title: "Portal cliente — cambiar la foto de cédula/RIF dentro del cupo de 3 cambios"
-status: in-progress
+status: done
 author: "Claude + founder"
 created: 2026-09-18
 updated: 2026-09-18
@@ -171,10 +171,11 @@ Esta revisión técnica no constituye asesoría legal.
      sin `observed_at`); ninguno nombra lo retirado.
    - Verificación independiente de la sesión Worker (sólo ledger y catálogo):
      mismos valores. La espera salió de `migrations-baseline.json` en esta PR.
-2. Integrar la PR en su turno de la cola (despliega el código a producción).
-3. Smoke con una cuenta Portal que Sam autorice: cambiar la foto, ver que el
-   contador baja uno y que en el Studio la verificación vuelve a pendiente con
-   la foto nueva.
+2. ✅ PR #145 integrada por dtdcargo-18: merge `cc15e48c` (2026-09-18 22:18:05Z),
+   desplegado a producción (status Vercel success a las 22:20Z).
+3. ✅ Smoke de Sam en producción, 2026-09-18, después del despliegue de `cc15e48c` (Vercel success 22:20Z). Respuestas literales: «la foto ya se cambió bien, funciona» y «sí, bajó el contador y quedó pendiente en el Studio».
+
+Cierre: todos los criterios del contrato funcional se cumplieron → `done`.
 
 ## Fuera de alcance
 

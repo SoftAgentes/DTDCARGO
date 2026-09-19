@@ -118,7 +118,7 @@ se debe describir públicamente como tratamiento localizado solo en Venezuela.
 |---|---|
 | CORRECTO | 0446 y 0447 están aplicadas en Cloud (ledgers `20260910165737` y `20260910164232`); el gate estaba activo y el cuerpo de `portal_set_identity_photo` coincide con el repo (`md5(prosrc)` `057aea5c2260562e99c757533aad55a6`). El control 3 de la sección 7 queda cumplido. |
 | ENCONTRADO | Por decisión de Sam, [SDD-0481](../../specs/0481-portal-cliente-reemplazo-foto-identidad/spec.md) habilita el reemplazo dentro del cupo de 3 cambios: la migración `0461_identity_photo_replacement_enable` retira el gate de 0447. Al aplicarse, cada reemplazo conserva la foto sustituida como versión (MP-01 §9 y MP-D6), hasta 3 por cliente y sin plazo mientras no exista la purga del control 4. |
-| CORRECTO | 0461 aplicada en Cloud el 2026-09-18 (ledger `20260918174236`, md5 y bytes idénticos al repo); postflight sin el gate de 0447 y sin grants nuevos. El reemplazo queda disponible para el cliente cuando se despliegue el Portal de SDD-0481. |
+| CORRECTO | 0461 aplicada en Cloud el 2026-09-18 (ledger `20260918174236`, md5 y bytes idénticos al repo); postflight sin el gate de 0447 y sin grants nuevos. El Portal de SDD-0481 se desplegó el 2026-09-18 (merge `cc15e48c`) y Sam comprobó en producción el reemplazo, el cupo y la verificación en pendiente. |
 
 ## 7. Controles que activan esta directiva
 
@@ -126,8 +126,8 @@ se debe describir públicamente como tratamiento localizado solo en Venezuela.
    capacidad explícita; el chequeo debe existir en servidor y base de datos.
 2. Sacar las versiones históricas de la policy ordinaria de listado/lectura.
 3. Al reemplazar, invalidar la verificación anterior y exigir revisión de la
-   nueva foto. La migración funcional 0446 lo implementa por separado; falta su
-   merge, aplicación nominal y verificación Cloud.
+   nueva foto. Cumplido: la migración funcional 0446 lo implementa y se aplicó
+   en Cloud el 2026-09-10 (ledger `20260910165737`).
 4. Implementar purga fail-closed a 30 días, con `dry-run`, holds, manifiesto sin
    PII y recibo auditable.
 5. Implementar el inventario end-to-end de solicitudes y verificarlo con una
