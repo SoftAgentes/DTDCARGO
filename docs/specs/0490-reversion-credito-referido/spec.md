@@ -223,8 +223,17 @@ En el turno de máquina del Director, 2026-09-19.
   avisos.
 - **`docs:check` (476), `sdd:check`, `governance:check` y `git diff --check`:**
   PASÓ.
-- **`pnpm verify` completo:** en el turno del Director, sobre el merge con
-  `main`. El resultado va en el handoff.
+- **`pnpm verify` completo** sobre el merge con `main` `8235b70b`, en el turno
+  del Director: 16 de 17 pasos corrieron y ninguno falló.
+  - vitest: 8105 ✓;
+  - sql-tests: 218 contratos, con la carrera nueva;
+  - schema-rebuild y build: PASÓ;
+  - e2e: 167 ✓ y 1 flaky ajeno (el selector de la calculadora pública, que pasó
+    al reintento);
+  - migrations-applied: NO DISPONIBLE, porque el worktree no tiene credenciales.
+    Esta SDD no trae migración.
+
+  El detalle por paso está en el handoff.
 
 ## Fuera de alcance detectado
 

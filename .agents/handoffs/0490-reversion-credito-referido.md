@@ -1,13 +1,14 @@
 # Handoff 0490 · el crédito de referido no pisa el pagado ni el estado de la factura
 
-- Fecha: 2026-09-19. Estado de la tarea: **probada en local**. Faltan el `verify` completo, en
-  el turno del Director, el push único y la PR.
+- Fecha: 2026-09-19. Estado de la tarea: **lista para revisión**.
+  Falta que el Director revise e integre la PR; al integrarse se despliega.
 - Owner/sesión: `worker-reversion-credito-0490-20260919` (Claude Opus 5, Worker, sesión
   «Automatizar la prueba de carrera del for update de 0459»). Director: la sesión «Director
   notificación a workers», que asignó la tarea porque Sam pidió trabajo continuo.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/reversion-credito-referido-0490`,
   creado con `harness-worktree start` desde `main` `6c2413d1`.
-- Rama: `codex/reversion-credito-referido-0490`, sin upstream hasta el push.
+- Rama: `codex/reversion-credito-referido-0490`. Con el turno del Director se trajo `main` `8235b70b`
+  (#168) con el driver, antes del `verify` y del push único.
 - SDD: [0490](../../docs/specs/0490-reversion-credito-referido/spec.md). Reservada en local con
   `corepack pnpm sdd:next --reserve reversion-credito-referido`: lock `refs/dtd/reservations/0490` y
   rama `codex/sdd-reserve-0490-reversion-credito-referido` (`7f4124ef`), incorporada con cherry-pick.
@@ -75,8 +76,9 @@ contra las funciones reales de la 0467.
 | Mutantes de vitest (M1–M8), en el lugar y con restitución comprobada por md5 | **Los 8 caen**, cada uno en su prueba (tabla de la spec). Fuentes restituidos md5 a md5 |
 | La carrera SQL sola, con los flags de Docker del runner | **PASÓ**: 14 aserciones, 579 ms, sin residuo. Fase por fase (copia con un `raise notice`), las 6 salen por la razón correcta y esperan en `transactionid` |
 | `pnpm typecheck` y eslint de los 4 archivos | **PASÓ**: typecheck en 59 s; eslint sin avisos |
-| `verify` completo (incluye sql-tests, schema-rebuild, e2e y build) | **PENDIENTE**: turno del Director, sobre el merge con `main` |
-| CI alojado | **NO EJECUTADO**: la rama no está publicada |
+| Merge de `main` `8235b70b` (#168), con el driver | **PASÓ**: sin conflictos; `docs:check` en verde después |
+| `verify` completo sobre `1d434836` (el merge), en el turno del Director | **PASÓ en lo medido: 16 de 17 pasos**, 19 min (20:03–20:22Z), sin contenedores antes ni después. PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions (4), test (vitest: 8105 ✓ y 1 omitido, en 620 archivos), docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 rojo, 0 amarillo), sql-tests (218 contratos, con la carrera nueva), schema-rebuild y build. **e2e: PASÓ con aviso**: 167 ✓, 18 omitidos y 1 flaky, que pasó al reintento: `e2e/calculadora-semantic-colors.spec.ts:53`, el selector combinado de la calculadora pública, ajeno a este cambio. El proceso salió ≠0 por el worker de WebKit que no cierra en Windows. **migrations-applied: NO DISPONIBLE** (sin credenciales en el worktree; esta SDD no trae migración) |
+| CI alojado | **Por mensaje al Director**: la rama se publica después de este commit |
 
 ## COMMITS
 
@@ -85,17 +87,19 @@ contra las funciones reales de la 0467.
 | `9e46cf3f` | `chore(sdd)`: la reserva de SDD-0490 (cherry-pick del stub) |
 | `159525ab` | `fix(fidelizacion)`: la reversión y la aplicación del crédito, con sus pruebas unitarias |
 | `fe72b5fd` | `test(db)`: la carrera contra las funciones de la 0467 |
-| el commit que contiene este documento | `docs(SDD-0490)`: la spec con la evidencia, el índice y este handoff |
+| `16b96eae` | `docs(SDD-0490)`: la spec con la evidencia, el índice y este handoff |
+| `1d434836` | merge de `main` `8235b70b` con el driver, sin conflictos |
+| el commit que contiene esta versión | `docs(handoff)`: el `verify` completo y el merge final en este handoff |
 
 ## PR / BRANCH
 
-- Rama `codex/reversion-credito-referido-0490`, base `main`, worktree de arriba. No está publicada.
+- Rama `codex/reversion-credito-referido-0490`, base `main`, worktree de arriba. Se publica con un
+  solo push después de este commit. El número de la PR y el SHA van por mensaje al Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Traer `main` `8235b70b` con el driver y correr el `verify` completo, en el turno del Director.
-2. El push único y la PR, con el número y el SHA por mensaje.
-3. Revisión e integración del Director. Al integrarse se despliega, porque no hay migración.
+1. Push y PR contra `main`, con el número y el SHA por mensaje.
+2. Revisión e integración del Director. Al integrarse se despliega, porque no hay migración.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -120,7 +124,7 @@ contra las funciones reales de la 0467.
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** el `verify` completo, en curso con tu turno.
+- **Siguiente acción:** revisar la PR e integrarla con CI verde.
 - **Cambios compartidos:** dos archivos de producto (la reversión y la aplicación del crédito), sus
   pruebas, un `.test.sql` nuevo y la spec. Sin migración.
 - **Sesiones consumidoras:** ninguna. El claim se libera al abrir la PR; el worktree y la rama se
