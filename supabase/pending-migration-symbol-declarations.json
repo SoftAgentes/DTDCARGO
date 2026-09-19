@@ -7,5 +7,64 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0487-portal-identidad-facturacion",
+      "primarySymbol": "portal_get_my_billing_profile",
+      "migration": "0466_client_billing_identity",
+      "symbols": [
+        {
+          "name": "portal_get_my_billing_profile",
+          "kind": "function",
+          "callSites": [
+            "lib/portal/billing-profile-context.ts:20",
+            "app/portal/(app)/perfil/billing-actions.ts:126"
+          ]
+        },
+        {
+          "name": "portal_upsert_my_billing_identity",
+          "kind": "function",
+          "callSites": [
+            "app/portal/(app)/perfil/billing-actions.ts:152"
+          ]
+        },
+        {
+          "name": "portal_delete_my_billing_identity",
+          "kind": "function",
+          "callSites": [
+            "app/portal/(app)/perfil/billing-actions.ts:183"
+          ]
+        },
+        {
+          "name": "portal_set_my_billing_kind",
+          "kind": "function",
+          "callSites": [
+            "app/portal/(app)/perfil/billing-actions.ts:208"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/portal/billing-profile-context.ts:21",
+          "contains": "if (error) return { available: false, profile: null };",
+          "degradation": "Sin 0466 la RPC no existe (PGRST202): el perfil no muestra «Mi empresa» ni «Facturar a nombre de» y conserva el aviso para registrar la empresa por el asesor; /portal/perfil/empresa redirige al perfil. No escribe nada. Release migrate-first: dtdcargo-18 aplica 0466 antes de integrar, así que esta rama no debería verse en producción."
+        },
+        {
+          "site": "app/portal/(app)/perfil/billing-actions.ts:127",
+          "contains": "if (error) return { error: BILLING_MESSAGES.unavailable };",
+          "degradation": "Guardar la identidad sin 0466: la lectura previa del perfil falla y la action responde «No está disponible ahora» sin llamar a ninguna otra RPC. Release migrate-first: dtdcargo-18 aplica 0466 antes de integrar, así que esta rama no debería verse en producción."
+        },
+        {
+          "site": "app/portal/(app)/perfil/billing-actions.ts:189",
+          "contains": "if (rpcError) return { error: translateRpcError(rpcError.message ?? \"\") };",
+          "degradation": "Quitar la identidad sin 0466: la RPC no existe y la action muestra «No pudimos guardar tus datos» sin revalidar. No hay botón que la dispare porque el bloque está oculto. Release migrate-first: dtdcargo-18 aplica 0466 antes de integrar, así que esta rama no debería verse en producción."
+        },
+        {
+          "site": "app/portal/(app)/perfil/billing-actions.ts:214",
+          "contains": "if (rpcError) return { error: translateRpcError(rpcError.message ?? \"\") };",
+          "degradation": "Elegir titular sin 0466: la RPC no existe y la action muestra «No pudimos guardar tus datos»; el selector vuelve a la opción del servidor. El selector está oculto sin 0466. Release migrate-first: dtdcargo-18 aplica 0466 antes de integrar, así que esta rama no debería verse en producción."
+        }
+      ]
+    }
+  ]
 }
