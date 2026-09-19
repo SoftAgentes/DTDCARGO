@@ -502,6 +502,9 @@ export async function applyReferralCredit(
   //    subledger (lost update). Con el guard, si alguien lo movió el UPDATE
   //    matchea 0 filas y lo tratamos como conflicto en vez de corromper.
   //    (paid_amount es NOT NULL DEFAULT 0 → no hay caso NULL que rompa el .eq.)
+  //    GUARD DE ESTADO (SDD-0490, .eq status): si la factura se anuló entre la
+  //    lectura y este UPDATE, escribir 'parcial'/'pagada' la revive. Anular no
+  //    toca paid_amount, así que el guard del pagado solo no alcanza.
   const newPaid = round2(paidAmount + amount);
   const fullyPaid = newPaid >= (Number(inv.total_amount) || 0) - 1e-6;
   const { data: paidRow, error: paidErr } = await supabase
@@ -513,6 +516,7 @@ export async function applyReferralCredit(
     })
     .eq("id", invoiceId)
     .eq("paid_amount", paidAmount)
+    .eq("status", inv.status)
     .select("id")
     .maybeSingle<{ id: string }>();
 
@@ -537,7 +541,7 @@ export async function applyReferralCredit(
     return {
       error: paidErr
         ? `No se pudo abonar el crédito en la factura: ${paidErr.message}. Se revirtió todo; no se aplicó nada.`
-        : "La factura cambió de saldo mientras se aplicaba el crédito (¿entró un pago?). Se revirtió todo; volvé a intentar.",
+        : "La factura cambió de saldo o de estado mientras se aplicaba el crédito (¿entró un pago o se anuló?). Se revirtió todo; vuelve a intentarlo.",
     };
   }
 
