@@ -7,7 +7,7 @@
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\portal-cliente-empresa-facturacion` |
 | Rama / base | `codex/portal-cliente-empresa-facturacion`, desde `origin/main` `0a48b956` (con la #153) + cherry-pick de la reserva `12d192d4` |
 | SDD | [0487](../../docs/specs/0487-portal-cliente-empresa-facturacion/spec.md) · `in-progress` |
-| Migración | `0466_client_billing_identity` (reservada por dtdcargo-18) |
+| Migración | `0466_client_billing_identity` (reservada por dtdcargo-18). **Aplicada** a producción el 2026-09-19 a las 03:05:33Z, ledger `20260919030533`, identidad = blob `33caa919` |
 | Estado de tarea | en-progreso |
 | Permisos | Sam autorizó commits y publicar la rama. Antes de abrir la PR hay que reportar a dtdcargo-18. **No** merge, deploy ni aplicar 0466. Nada de producción salvo lectura de catálogo. |
 
@@ -78,13 +78,24 @@ Está en la spec (§Verificación). En resumen:
 - `/ui-check` con ajustes aplicados.
 - Merge de `origin/main` `c8f7f8b6` (entran la #151 con la 0465 y la #155) con el driver de main, sin conflictos y con el índice regenerado igual. Después del merge: PASÓ 194 tests en 17 archivos (contrato de 0466, perfil, facturación, cron), typecheck, símbolos (0 rojos, 2 amarillos), docs y numbering.
 - `pnpm verify`: Sobre `732eb65b` (2026-09-19, turno de dtdcargo-18), exit 1. PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, sql-tests (207 en postgres:17, incluido el contrato de 0466), schema-rebuild, e2e (168 pasaron, 18 omitidas) y build. FALLÓ `test`: invoice-read-boundary era real (el inventario de lecturas de facturas, corregido en `e4f4f6b1`), y PackingListProductsStep y ClientDrawer.confirm-delete son intermitentes conocidas. Aisladas, con la CPU al 1 %: PASÓ 9/9, 9/9 y 3/3. NO EJECUTADO: migrations-applied (SKIP, el worktree no tiene credenciales).
+- Merge de `origin/main` `038cf894` (entra la #157 con la 0467), en `d4f225e7`. Un conflicto en `invoice-read-boundary`: quedan las dos líneas de base, 19 claves y 44 lecturas en total. Después del merge: PASÓ 244 tests focales.
+- **Push final**, después de aplicar la 0466:
+  - merge de `origin/main` `7741f587` (entra la #156) con el driver de main, sin conflictos y con el índice igual;
+  - la espera de la 0466 y sus dos declaraciones salen: `migrations-baseline.json` y `pending-migration-symbol-declarations.json` quedan idénticos a `main`;
+  - la 0466 sigue byte a byte igual al blob `33caa919` (md5 `5d2416b1…`, 30024 bytes).
+  - PASÓ:
+    - el contrato de la 0466 en PGlite: 12/12 casos (45 aserciones, control rojo, preflight y 9 mutantes);
+    - 1146 tests focales en 83 archivos: Portal, perfil, facturas, facturación y clientes del Studio, cron, `/privacidad` e `invoice-read-boundary`;
+    - `pending-migration-symbols`: 0 rojos y 0 amarillos, con 20/20 tests del script;
+    - docs:check, numbering y governance:check.
+  - NO EJECUTADO: typecheck y lint, porque el push final no toca código; los corre el CI.
 
 ## Pendientes de esta tarea
 
 1. ~~`pnpm verify` completo~~: hecho; los resultados están en Validación.
 2. Reportar a dtdcargo-18 antes de abrir la PR, y después abrirla.
 3. ~~OK de Sam sobre el texto nuevo de `/privacidad`~~: aprobado el 2026-09-19, «Apruebo el texto de privacidad».
-4. OK nominal de Sam para `0466_client_billing_identity`. Migrate-first estricto: la aplica dtdcargo-18 en baja actividad, antes de integrar.
+4. ~~OK nominal de Sam y aplicación de `0466`~~: hecho. Ledger `20260919030533`, aplicada a las 03:05:33Z del 2026-09-19, identidad = blob `33caa919`. La espera y las dos declaraciones salieron en el push final.
 5. Smoke de Sam tras integrar:
    - agregar una empresa de prueba y elegir «a nombre de mi empresa»;
    - emitir un borrador de ese cliente en el Studio y ver el titular y el domicilio en el PDF;
@@ -103,3 +114,5 @@ Está en la spec (§Verificación). En resumen:
 - El empresa-registrado no tiene dónde cargar el domicilio fiscal de su empresa principal: sólo la identidad secundaria lo lleva.
 - Si el equipo de Yiwu lee hoy `clients.rif` en el Studio: NO VERIFICABLE, requiere revisar RBAC y RLS en producción.
 - **Seguimiento aceptado por dtdcargo-18:** interoperabilidad real de la 0466 y la 0467 aplicadas en cadena, con `register`, `identify` y `void_collection_receipt` sobre facturas selladas. El contrato de la 0466 cubre las mismas escrituras (líneas 239-240, 319-320 y 389 de la 0467) y el mutante de inmutabilidad. Las RPC reales no corren ahí porque el preflight de la 0467 exige el cuerpo de producción de `get_user_tenant_id`. `schema-rebuild` ya prueba el orden de aplicación. Lo asigna el Director al Worker de las carreras.
+- **Advisor de rendimiento nuevo tras aplicar la 0466** (INFO, lo reportó dtdcargo-18): `unindexed_foreign_keys` en `client_billing_identities_updated_by_fkey`. La tabla tiene como mucho una fila por cliente; el índice iría en una migración nueva.
+- **Observación del postflight:** `billing_doc_norm(text)` conserva el EXECUTE de PUBLIC por default. Es pura y no lee datos; el `revoke`, si se quiere, va en una migración nueva porque la 0466 ya está aplicada.

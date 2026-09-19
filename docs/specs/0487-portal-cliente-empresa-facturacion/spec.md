@@ -381,8 +381,70 @@ Cambios de comportamiento del **Studio** (`docs/governance/AGENT-BRIEF.md`):
 
 ## Release
 
-1. OK nominal de Sam para `0466`. El Director la aplica en baja actividad, antes
-   de integrar la PR. El orden no es opcional (ver Persistencia).
+**`0466` aplicada a producción** por la sesión coordinadora (dtdcargo-18), con el OK nominal de Sam. Ledger `20260919030533 0466_client_billing_identity`, aplicada a las 03:05:33Z del 2026-09-19. La identidad coincide con el blob `33caa919` (md5 `5d2416b1095de7ab0695e98c87abe9c4`, 30024 bytes). Sale de `pendingBelowCutoff` y de las declaraciones de símbolos. La cabecera del `.sql` no se toca: el ledger guarda su texto exacto.
+
+Evidencia de la aplicación (la reportó dtdcargo-18; el Worker no tocó producción):
+
+- **OK nominal de Sam:** «Autorizo 0466_client_billing_identity (Recomendado)». Se aplicó por el
+  conector con `apply_migration` y el nombre exacto `0466_client_billing_identity`. Antes de aplicar,
+  la transcripción se comparó con `cmp` contra el blob `33caa919`.
+- **Ledger:** una sentencia; `md5(array_to_string(statements,''))` = `5d2416b1095de7ab0695e98c87abe9c4`,
+  30024 bytes, idéntico al blob.
+- **Preflight en producción** (sólo catálogo, antes de aplicar):
+  - pasaron todas las condiciones del `DO`;
+  - el CHECK de la 0462 estaba en `document`/`phone`;
+  - las dos entidades de auditoría estaban activas;
+  - los objetos nuevos no existían;
+  - a las 03:04:16Z había 0 sesiones activas, 0 transacciones abiertas y 0 locks en `invoices`,
+    `clients`, `client_profile_blocked_attempts` y `tenants`.
+- **Postflight de catálogo:**
+  - **`client_billing_identities`:**
+    - RLS encendida y sin forzar; owner `postgres`.
+    - ACL: `authenticated` y `service_role` sólo con SELECT; `anon` sin privilegios; nadie tiene
+      INSERT, UPDATE ni DELETE.
+    - Policy `client_billing_identities_studio_select`: SELECT para `authenticated`, con
+      `tenant = get_user_tenant_id()` y rol accounting, admin o commercial.
+    - Índices: `pkey`, `one_per_client` y `tenant_doc_unique (tenant_id, billing_doc_norm(doc))`.
+      Tiene 9 constraints.
+  - **Triggers:** `clients_doc_not_billing_identity_elsewhere` (BEFORE INSERT OR UPDATE OF rif,
+    deleted_at ON clients) e `invoices_seal_billing_titular` (BEFORE INSERT OR UPDATE ON invoices).
+    Los dos con `tgenabled = O`.
+  - **`invoices`:**
+    - `bill_to_kind` y `client_fiscal_address` son `text`, nullable, sin default y con comentario;
+    - el CHECK `invoices_bill_to_kind_valido` quedó validado.
+  - **`md5(prosrc)`:** los 7 coinciden con el archivo:
+    - `billing_doc_norm` `4f62f68b…` (IMMUTABLE, INVOKER);
+    - `clients_doc_not_billing_identity_elsewhere` `590409c6…`;
+    - `invoices_seal_billing_titular` `fa7ef245…`;
+    - `portal_get_my_billing_profile` `4b6b5cda…` (STABLE);
+    - `portal_upsert_my_billing_identity` `99b7ad71…`;
+    - `portal_delete_my_billing_identity` `aadf7350…`;
+    - `portal_set_my_billing_kind` `8df08e2e…`.
+  - **Seguridad de las funciones:**
+    - todas con `search_path=""` y owner `postgres`; las otras 6 son DEFINER;
+    - las 4 RPC tienen EXECUTE sólo para `authenticated`;
+    - los 2 triggers no tienen EXECUTE para `anon`, `authenticated` ni `service_role`;
+    - `billing_doc_norm` conserva el EXECUTE de PUBLIC por default. Es una observación que no
+      bloquea: la función es pura y no lee datos (ver Fuera de alcance).
+  - **`client_profile_blocked_attempts`:**
+    - el CHECK queda en `document`/`phone`/`company_rif`/`personal_doc`;
+    - `service_role` tiene DELETE; `anon` y `authenticated` no.
+- **Advisors:**
+  - **Seguridad:** `authenticated_security_definer_function_executable` pasa de 179 a 183, y los 4
+    nuevos son exactamente las 4 RPC del Portal. Nada más aparece ni desaparece: `anon` sigue en 22 y
+    `rls_enabled_no_policy` en 30.
+  - **Rendimiento:** hay 1 nuevo atribuible a la 0466, `unindexed_foreign_keys` en
+    `client_billing_identities_updated_by_fkey` (INFO). Va como seguimiento en Fuera de alcance.
+
+1. ~~OK nominal de Sam para `0466` y aplicación en baja actividad, antes de
+   integrar la PR~~: hecho el 2026-09-19 (arriba). El orden no era opcional (ver
+   Persistencia). Hasta el merge, producción corre la 0466 con el código
+   anterior:
+   - ese código sella en TypeScript y no manda `bill_to_kind`, así que el trigger
+     vuelve a sellar encima con la preferencia del cliente;
+   - sólo escribe el titular en borrador o al emitir (en `main`,
+     `facturacion/actions.ts` corta si el estado no es borrador), así que la
+     inmutabilidad no lo frena.
 2. Merge a `main`, que despliega a producción.
 3. Smoke de Sam:
    - cambiar la foto desde la PC y quitarla;
@@ -404,3 +466,11 @@ Cambios de comportamiento del **Studio** (`docs/governance/AGENT-BRIEF.md`):
   cadena, con las tres RPC de Cobranzas sobre facturas selladas. `schema-rebuild`
   ya prueba que las dos se aplican en orden; falta el comportamiento. El Director
   lo asigna al Worker de las carreras.
+- **Seguimiento (advisor de rendimiento, INFO):** la FK
+  `client_billing_identities_updated_by_fkey` no tiene índice. Hoy la tabla
+  tiene como mucho una fila por cliente y `updated_by` sólo se usa al borrar un
+  usuario de `auth.users`. Lleva su propia migración si el Director la prioriza.
+- **Observación del postflight:** `billing_doc_norm(text)` conserva el EXECUTE
+  de PUBLIC que Postgres da por default. Es pura (IMMUTABLE, INVOKER) y no lee
+  datos, así que no expone nada. Si se quiere el mismo criterio que las RPC, el
+  `revoke` va en una migración nueva: la 0466 ya está aplicada y no se edita.

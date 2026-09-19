@@ -381,4 +381,4 @@ que aparezca una tabla, un bucket o un proveedor nuevo. No es asesoría legal.*
   - el cliente la quita con «Quitar empresa» o «Quitar mis datos personales» (`portal_delete_my_billing_identity`), que borra la fila y lo audita sin el documento;
   - la FK `on delete cascade` la borra si se borra físicamente el cliente.
 - **Facturas emitidas:** conservan el titular sellado (nombre, documento, tipo y domicilio fiscal). Es obligación fiscal, no se reescribe, y el plazo lo fija la abogada (§3 B).
-- **Intentos bloqueados** (`client_profile_blocked_attempts`): se purgan a los 90 días con el cron `purge-throttle`, cuando se aplique la 0466.
+- **Intentos bloqueados** (`client_profile_blocked_attempts`): se purgan a los 90 días con el cron `purge-throttle`. El DELETE lo da la 0466, aplicada a producción el 2026-09-19; la purga corre desde que se despliega el cron de SDD-0487.
