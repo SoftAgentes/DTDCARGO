@@ -109,10 +109,10 @@ inventan. 0445 no se renumera ni se reescribe porque ya fue aplicada; este SDD
 fue renumerado desde 0435 a 0439 para resolver la colisión con otra rama.
 
 Nota de trazabilidad: los comentarios SQL de `0445_portal_profile_edit_limit.sql`
-(aplicada) y `0446_portal_profile_functional_remediation.sql` (pendiente)
-conservan deliberadamente `SDD-0435`. La primera es historia aplicada que no se
-reescribe; en la segunda se preserva el contenido ya revisado hasta decidir su
-aplicación, para no invalidar esa revisión. Esta excepción histórica no cambia
+(aplicada) y `0446_portal_profile_functional_remediation.sql` (aplicada el
+2026-09-10, ledger `20260910165737`) conservan deliberadamente `SDD-0435`.
+Las dos son historia aplicada y no se reescriben: cambiar su texto rompería la
+identidad por md5 contra el ledger. Esta excepción histórica no cambia
 la numeración vigente de este SDD, que es 0439.
 
 ## Datos personales · revisión VE/CN
@@ -224,8 +224,11 @@ por Director. Sin push, build/verify masivo ni Cloud.
 - Backfill: 4 solicitudes de 4 clientes; cero clientes quedaron sobre el límite.
 - RLS activa, sin grants directos al ledger; las dos RPC quedan ejecutables solo
   por `authenticated`, con `SECURITY DEFINER` y `search_path` vacío.
-- `0447_identity_photo_replacement_privacy_gate` no está aplicada a Cloud: este
-  documento no presenta la contención como activa en Producción.
+- `0447_identity_photo_replacement_privacy_gate` se aplicó a Cloud el
+  2026-09-10 (ledger `20260910164232`) y la retiró
+  `0461_identity_photo_replacement_enable` el 2026-09-18 (ledger
+  `20260918174236`, SDD-0481): el reemplazo de foto está habilitado dentro del
+  cupo.
 - UAT autenticado permanece pendiente: el código del Portal no se despliega
   hasta `cerrar` y falta identificar la cuenta empresarial y las mutaciones
   aprobadas.

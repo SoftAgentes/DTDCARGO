@@ -44,6 +44,7 @@ import { getStudioRole } from "@/lib/studio/rbac-guard";
 import { canEditModule } from "@/lib/studio/rbac";
 import { DeliveryAddressesCard } from "../_components/DeliveryAddressesCard";
 import { IdentityVerificationCard } from "../_components/IdentityVerificationCard";
+import { ClientBillingCard, type ClientBillingIdentityRow } from "../_components/ClientBillingCard";
 import { listClientDeliveryAddresses } from "@/lib/studio/client-address-queries";
 import type { ClientDeliveryAddress } from "@/lib/studio/client-address-types";
 import {
@@ -140,6 +141,21 @@ export default async function ClienteDetallePage({
     markboxHistory = await listMarkboxHistory(supabase, client.id);
   } catch {
     markboxHistory = [];
+  }
+
+  // SDD-0487: empresa o datos personales que el cliente cargó para facturar.
+  // RLS de 0466: sólo accounting, admin y commercial la leen. Sin 0466 o sin
+  // permiso, no hay tarjeta.
+  let billingIdentity: ClientBillingIdentityRow | null = null;
+  try {
+    const { data, error } = await supabase
+      .from("client_billing_identities")
+      .select("kind, legal_name, doc, fiscal_address, is_billing_default")
+      .eq("client_id", client.id)
+      .maybeSingle<ClientBillingIdentityRow>();
+    billingIdentity = error ? null : data ?? null;
+  } catch {
+    billingIdentity = null;
   }
 
   // Documentos del DMS genérico (SDD-0049) adjuntos a este cliente — KYC, RIF,
@@ -542,6 +558,10 @@ export default async function ClienteDetallePage({
               autoEnabled={autoVerifyEnabled}
             />
           )}
+
+          {billingIdentity ? (
+            <ClientBillingCard principalKind={client.doc_kind} identity={billingIdentity} />
+          ) : null}
 
           {/* Documentos del cliente (SDD-0049 · KYC/RIF/contratos) */}
           <section

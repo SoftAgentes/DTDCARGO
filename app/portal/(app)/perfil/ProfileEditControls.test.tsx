@@ -3,9 +3,15 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ProfileEditQuota } from "@/lib/portal/profile-edit-quota";
 
+const actions = vi.hoisted(() => ({
+  update: vi.fn<(...args: unknown[]) => Promise<Record<string, unknown>>>(
+    async () => ({}),
+  ),
+}));
+
 vi.mock("./actions", () => ({
   uploadCedulaPhotoAction: vi.fn(async () => ({})),
-  submitDataChangeRequestAction: vi.fn(async () => ({})),
+  updateMyProfileAction: (...args: unknown[]) => actions.update(...args),
   cancelDataChangeRequestAction: vi.fn(async () => ({})),
 }));
 
@@ -25,7 +31,7 @@ function quota(remaining: number, available = true): ProfileEditQuota {
 }
 
 describe("controles de edición del perfil · SDD-0439", () => {
-  it("bloquea nuevas correcciones de datos cuando se agotaron los 3 cambios", () => {
+  it("bloquea la edición de datos cuando se agotaron los 3 cambios", () => {
     render(
       <DataChangeEditor
         isEmpresa={false}
@@ -36,13 +42,14 @@ describe("controles de edición del perfil · SDD-0439", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: /actualizar mis datos/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /editar mis datos/i })).toBeNull();
     expect(screen.getByText(/ya usaste tus 3 cambios/i)).toBeTruthy();
     expect(screen.getByRole("link", { name: /hablar con soporte/i })).toBeTruthy();
   });
 
-  it("mantiene el editor disponible mientras quede cupo", async () => {
+  it("edita directo con confirmación antes de gastar un cambio · SDD-0482", async () => {
     const user = userEvent.setup();
+    actions.update.mockResolvedValueOnce({ ok: true });
     render(
       <DataChangeEditor
         isEmpresa={false}
@@ -53,9 +60,89 @@ describe("controles de edición del perfil · SDD-0439", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /actualizar mis datos/i }));
-    expect(screen.getByRole("button", { name: /enviar solicitud/i })).toBeTruthy();
     expect(screen.getByText(/1 de 3 cambios disponibles/i)).toBeTruthy();
+    expect(screen.getByText(/se aplica al\s+instante/i)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /editar mis datos/i }));
+
+    const phone = screen.getByLabelText(/teléfono/i) as HTMLInputElement;
+    expect(phone.value).toBe("04121234567");
+    await user.clear(phone);
+    await user.type(phone, "04141234567");
+
+    // Primer paso: sólo informa el costo; todavía no guarda.
+    await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
+    expect(actions.update).not.toHaveBeenCalled();
+    expect(screen.getByText(/usa 1 de tus 1 cambio disponible y se aplica al instante/i)).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: /sí, guardar/i }));
+    expect(actions.update).toHaveBeenCalledTimes(1);
+    const form = actions.update.mock.calls[0][1] as FormData;
+    expect(form.get("phone")).toBe("04141234567");
+    expect(form.get("doc")).toBe("V-12345678");
+    expect(await screen.findByText("Datos actualizados.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /sí, guardar/i })).toBeNull();
+  });
+
+  it("un error del servidor conserva lo escrito y vuelve al primer paso", async () => {
+    const user = userEvent.setup();
+    actions.update.mockResolvedValueOnce({
+      error: "Revisa los datos marcados.",
+      fieldErrors: { doc: "Cédula o pasaporte inválido." },
+    });
+    render(
+      <DataChangeEditor
+        isEmpresa={false}
+        current={{ name: "Ana Pérez", doc: "V-12345678", phone: "04121234567" }}
+        openRequest={null}
+        lastRejected={null}
+        quota={quota(2)}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /editar mis datos/i }));
+    const doc = screen.getByLabelText(/cédula \/ rif/i) as HTMLInputElement;
+    await user.clear(doc);
+    await user.type(doc, "X-1");
+    await user.click(screen.getByRole("button", { name: /guardar cambios/i }));
+    await user.click(screen.getByRole("button", { name: /sí, guardar/i }));
+
+    expect(await screen.findByText("Cédula o pasaporte inválido.")).toBeTruthy();
+    expect((screen.getByLabelText(/cédula \/ rif/i) as HTMLInputElement).value).toBe("X-1");
+    expect(screen.getByRole("button", { name: /guardar cambios/i })).toBeTruthy();
+  });
+
+  it("una solicitud vieja en revisión se puede reemplazar editando ahora", async () => {
+    const user = userEvent.setup();
+    render(
+      <DataChangeEditor
+        isEmpresa={false}
+        current={{ name: "Ana Pérez", doc: "V-12345678", phone: "04121234567" }}
+        openRequest={{
+          id: "req",
+          tenantId: "t",
+          clientId: "c",
+          proposedName: "Ana María Pérez",
+          proposedRif: null,
+          proposedPhone: null,
+          prevName: "Ana Pérez",
+          prevRif: null,
+          prevPhone: null,
+          status: "pending",
+          source: "client",
+          submittedAt: "2026-09-01T10:00:00Z",
+          reviewedAt: null,
+          reviewedBy: null,
+          reviewNote: null,
+        }}
+        lastRejected={null}
+        quota={quota(2)}
+      />,
+    );
+
+    expect(screen.getByText(/cambio en revisión/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /cancelar esta solicitud/i })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /editar ahora/i }));
+    expect(screen.getByText(/tu solicitud en revisión se reemplaza/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /guardar cambios/i })).toBeTruthy();
   });
 
   it("permite reemplazar una foto existente cuando queda cupo, previa confirmación · SDD-0481", async () => {

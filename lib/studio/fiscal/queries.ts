@@ -174,15 +174,17 @@ export async function getFiscalSettingsSafe(
 
 // ── Libro de Ventas ────────────────────────────────────────────
 
-// invoices NO tiene `rif` (0077): se enlaza al cliente por `client_markbox`
-// (texto, sin FK) → el RIF/nombre se resuelven aparte contra `clients`. `currency`
-// se selecciona para detectar mezcla de monedas (el libro no normaliza en V1).
-// Estados emitidos solamente (ver SALE_STATUSES) — `borrador` queda fuera.
+// invoices NO tiene `rif` (0077); sí `client_rif`, el documento CONGELADO al
+// emitir (0392). SDD-0482: el libro usa ese valor, porque el cliente ahora puede
+// cambiar su documento desde el Portal y leer `clients.rif` en vivo reescribiría
+// los períodos abiertos. Sólo las facturas anteriores a 0392 (sin congelado)
+// caen al documento vigente de `clients`, enlazado por `client_markbox`.
+// `currency` se selecciona para detectar mezcla de monedas (el libro no
+// normaliza en V1). Estados emitidos solamente (ver SALE_STATUSES).
 // Exportado para que los tests aserten el set seleccionado contra las columnas
-// reales de invoices (0077) — evita que reaparezca el falso-verde de seleccionar
-// una columna inexistente (`rif`, que NO vive en invoices sino en clients).
+// reales de invoices — evita el falso-verde de seleccionar `rif`.
 export const INVOICE_COLUMNS =
-  "invoice_code, client_markbox, client_name, currency, iva_mode, base_amount, iva_amount, iva_rate, total_amount, issued_at, created_at, status";
+  "invoice_code, client_markbox, client_name, client_rif, currency, iva_mode, base_amount, iva_amount, iva_rate, total_amount, issued_at, created_at, status";
 
 // Estados que SÍ entran al libro fiscal: solo facturas EMITIDAS (en cualquier
 // fase de cobro). `borrador` (no emitida) y `anulada` quedan fuera — un libro
@@ -196,9 +198,10 @@ export const SALE_STATUSES = ["emitida", "parcial", "pagada", "vencida"] as cons
  * rango mensual (mismo criterio que Reportes; `issued_at` puede ser null en
  * borradores, ya excluidos). RLS filtra el tenant. Ordena por fecha asc.
  *
- * El RIF/nombre del cliente se resuelve con UNA query extra a `clients` (por los
- * `client_markbox` del período → Map<markbox,{rif,name}>), sin N+1. Si la
- * factura no matchea un cliente vivo, RIF/nombre → "—" (cero fabricado).
+ * El RIF sale del congelado de la factura (`client_rif`, 0392); si falta
+ * (facturas previas a 0392), de UNA query extra a `clients` por los
+ * `client_markbox` del período, sin N+1. Si tampoco hay cliente vivo,
+ * RIF/nombre → "—" (cero fabricado).
  *
  * Devuelve también las monedas presentes para que la UI advierta cuando hay más
  * de una (los totales V1 no normalizan con fx_rate).
@@ -247,8 +250,8 @@ export async function salesBook(
     const client = markbox ? clientByMarkbox.get(markbox) : undefined;
     const inv: RawInvoice = {
       invoice_code: String(r.invoice_code ?? ""),
-      // RIF SIEMPRE del cliente (clients.rif); nunca de invoices (no existe).
-      rif: client?.rif ?? null,
+      // RIF congelado al emitir (0392); sólo facturas previas caen a clients.rif.
+      rif: (r.client_rif as string | null) || client?.rif || null,
       // Nombre: snapshot de la factura primero (refleja el momento); si falta,
       // el del cliente; si tampoco, "—".
       client_name: (r.client_name as string | null) ?? client?.name ?? null,
