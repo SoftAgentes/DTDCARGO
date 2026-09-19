@@ -1,14 +1,15 @@
 # Handoff 0487 · seguimiento: la unicidad del documento del cliente bajo concurrencia (0466 con la 0462)
 
-- Fecha: 2026-09-19. Estado de la tarea: **lista en local**. La suite SQL completa pasó en el turno
-  del Director. El push único y la PR esperan su aviso por el bloqueo de Vercel.
+- Fecha: 2026-09-19. Estado de la tarea: **lista para revisión**.
+  Falta que el Director revise e integre la PR.
 - Owner/sesión: `worker-carrera-documento-0466-20260919` (Claude Opus 5, Worker, sesión «Automatizar
   la prueba de carrera del for update de 0459» [7a0aa1], que siguió con esta tarea a pedido de Sam).
   Director: `dtdcargo-18`.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/carrera-documento-0466`, creado
   con `harness-worktree start`.
-- Rama: `codex/carrera-documento-0466`, desde `origin/main` = `88713e47`, sin upstream hasta el push.
-  Es una rama separada de la de la 0449: una tarea, una rama.
+- Rama: `codex/carrera-documento-0466`, desde `origin/main` = `88713e47`. Es una rama separada de la
+  de la 0449: una tarea, una rama. Con el turno del Director se trajo `main` `1fdb5b0c` (la #163,
+  la 0449) con el driver, antes del push único.
 - SDD: [0487](../../docs/specs/0487-portal-cliente-empresa-facturacion/spec.md), como seguimiento y
   sin número nuevo, por decisión del Director.
 - Aislamiento comprobado antes de editar: toplevel y rama correctos, `guard` → `Guard OK`, claim
@@ -77,7 +78,9 @@ documento normalizado)»). Un hueco real se reporta con evidencia y no se arregl
 | Restaurar una ficha borrada que tenía empresa (una sola sesión, fixture del contrato 0466, fuera del repo) | **HUECO REPRODUCIDO**: ver «FUERA DE ALCANCE DETECTADO» |
 | `docs:check` / `sdd:check` / `governance:check` / `git diff --check` | **PASÓ**: 475 specs, sin números repetidos, cápsula vigente |
 | Suite SQL completa por el runner real, en el turno de máquina del Director, sobre `cb7de492` | **PASÓ**: 213 de 213 ✓, 0 ✗, 79 s, sin contenedores al terminar. El archivo nuevo pasa junto al contrato 0466 y las otras carreras de `main` |
-| CI alojado | **NO EJECUTADO**: la rama no está publicada, por el aviso de costos del Director |
+| Merge de `main` `1fdb5b0c` (#163), con el driver | **PASÓ**: sin conflictos. Después del merge pasaron `docs:check` (475), `sdd:check`, `governance:check` y `git diff --check` |
+| El archivo junto a la carrera de la 0449 que entró con la #163 y a los contratos 0421, 0449 y 0466, por el runner real | **PASÓ**: 5 de 5 ✓, 6 s |
+| CI alojado | **Por mensaje al Director**: la rama se publica después de este commit |
 
 **Qué escenario mata a cada mutante** (fase real de la carrera):
 
@@ -104,18 +107,19 @@ El contrato 0466 de una sola sesión no detecta ninguno de los seis.
 | --- | --- |
 | `5ff2e077` | `test(db): SDD-0487`: la unicidad del documento bajo concurrencia, con sesiones reales |
 | `cb7de492` | `docs(SDD-0487)`: la sección fechada en la spec |
-| el commit que contiene este documento | `docs(SDD-0487)`: el hueco en «Fuera de alcance» de la spec, y este handoff |
+| `6b5fc10e` | `docs(SDD-0487)`: el hueco en «Fuera de alcance» de la spec, y este handoff |
+| `74e23877` | merge de `origin/main` `1fdb5b0c` con el driver, sin conflictos |
+| el commit que contiene esta versión | `docs(handoff)`: el merge final en este handoff |
 
 ## PR / BRANCH
 
-- Rama `codex/carrera-documento-0466`, base `main`, worktree de arriba. No está publicada. El push
-  único y la PR esperan el aviso del Director.
+- Rama `codex/carrera-documento-0466`, base `main`, worktree de arriba. Se publica con un solo push
+  después de este commit. El número de la PR y el SHA van por mensaje al Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Esperar el aviso del Director: cuando vuelva Vercel y Sam decida sobre Vercel Agent.
-2. Con el aviso: traer `main` si avanzó, repetir lo liviano y el archivo, hacer un solo push y abrir la
-   PR, con el número y el SHA por mensaje.
+1. Push y PR contra `main`, con el número y el SHA por mensaje.
+2. Revisión e integración del Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -241,8 +245,8 @@ process.exitCode = run.status;
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** tu aviso para el push único y la PR. El hueco de la restauración (fuera de
-  alcance 1) se lo pasas a Sam.
+- **Siguiente acción:** revisar la PR e integrarla. El hueco de la restauración (fuera de alcance 1)
+  se lo pasas a Sam.
 - **Cambios compartidos:** un archivo nuevo en `supabase/tests/`, que el runner descubre solo, y la
   spec 0487. Ningún archivo de producto.
 - **Dependencias:**
