@@ -353,6 +353,9 @@ Segunda opinión sugerida: que otro modelo revise la migración y el mapa.
 - `docs/specs/0477-retencion-vinculo-portal-revocado/spec.md`
 - `docs/specs/README.md` (regenerado con `docs:index`)
 - `.agents/handoffs/retencion-vinculo-portal-revocado.md`
+- `supabase/tests/0460_retencion_carrera_skip_locked.test.sql` (nuevo): la
+  concurrencia del SKIP LOCKED con sesiones reales
+- `.agents/handoffs/0477-carrera-skip-locked-0460.md`: el handoff de esa prueba
 
 Integrar a `main` **dispara el deploy de Vercel**. La autorización de merge
 tiene que cubrirlo, y el orden es migrate-first.
@@ -383,7 +386,10 @@ tiene que cubrirlo, y el orden es migrate-first.
 
 - **SKIP LOCKED sin prueba de comportamiento.** El contrato corre en una sola
   sesión. El mutante que lo quita sólo muere por la aserción sobre el texto de
-  la RPC.
+  la RPC. **Cubierto el 2026-09-18:** `supabase/tests/0460_retencion_carrera_skip_locked.test.sql`,
+  en el paso `sql-tests` de `verify` (no en CI), prueba con sesiones reales que
+  una corrida no espera a otra ni a una reinvitación en curso, y que sin el
+  bloqueo se repiten eventos. Handoff: `0477-carrera-skip-locked-0460`.
 - **`created_at` y los eventos de auditoría conservan fechas** de la relación,
   sin el correo. Ver «Revisión de datos personales».
 - **La cuenta de Auth del antiguo titular no se toca.** Ver el hallazgo 1.
