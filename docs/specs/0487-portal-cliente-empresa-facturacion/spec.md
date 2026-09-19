@@ -325,7 +325,7 @@ Cambios de comportamiento del **Studio** (`docs/governance/AGENT-BRIEF.md`):
 
 **Cron:** `app/api/cron/purge-throttle/route.ts`.
 
-**Público:** `app/privacidad/page.tsx`, en un commit aparte y con el texto pendiente del OK de Sam.
+**Público:** `app/privacidad/page.tsx`, en un commit aparte (`8c5c6c6a`). Sam aprobó el texto el 2026-09-19: «Apruebo el texto de privacidad».
 
 **Base:** `supabase/migrations/0466_client_billing_identity.sql`, `supabase/tests/0466_client_billing_identity.test.sql`, `supabase/migrations-baseline.json` (la espera) y `supabase/pending-migration-symbol-declarations.json` (dos grupos).
 

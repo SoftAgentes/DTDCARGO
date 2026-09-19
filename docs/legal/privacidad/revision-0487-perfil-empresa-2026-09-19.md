@@ -88,7 +88,7 @@ medida en que el equipo de Yiwu vea estos datos desde China (punto 8).
 - **H1:** `lib/portal/avatar-image.ts` recodifica la foto a JPEG en el navegador, y `lib/portal/jpeg-metadata.ts` quita APP1 (EXIF/XMP), APP13 y COM en el servidor (`app/portal/(app)/perfil/avatar-actions.ts`).
 - **H2:** `removeAvatarAction` borra el objeto y después el puntero.
 - **H3:** filas nuevas en `registro-tratamiento.md` y en `mapa-de-borrado.md`.
-- **H4:** una línea nueva en `/privacidad`, pendiente del OK de Sam sobre el texto.
+- **H4:** la fila del Portal y un fin nuevo en `/privacidad`, con la fecha de vigencia movida. Sam aprobó el texto el 2026-09-19.
 - **H7:** el cron `purge-throttle` borra a los 90 días; el DELETE lo da la 0466.
 - **Requisitos:**
   - la empresa no se sincroniza con Kommo;

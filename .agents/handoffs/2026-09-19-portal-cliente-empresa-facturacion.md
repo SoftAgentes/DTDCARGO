@@ -66,7 +66,7 @@ Están en la spec, con sus respuestas literales del 2026-09-19. En resumen:
 - **Privacidad:**
   - revisión revisar-datos-ve;
   - registro de tratamiento y mapa de borrado;
-  - `/privacidad` en un commit aparte, pendiente del OK de Sam sobre el texto.
+  - `/privacidad` en un commit aparte (`8c5c6c6a`), con el texto aprobado por Sam el 2026-09-19: «Apruebo el texto de privacidad».
 
 ## Validación
 
@@ -82,7 +82,7 @@ Está en la spec (§Verificación). En resumen:
 
 1. `pnpm verify` completo, con turno de dtdcargo-18.
 2. Reportar a dtdcargo-18 antes de abrir la PR, y después abrirla.
-3. OK de Sam sobre el texto nuevo de `/privacidad` (commit `8c5c6c6a`, se puede retirar sin tocar lo demás).
+3. ~~OK de Sam sobre el texto nuevo de `/privacidad`~~: aprobado el 2026-09-19, «Apruebo el texto de privacidad».
 4. OK nominal de Sam para `0466_client_billing_identity`. Migrate-first estricto: la aplica dtdcargo-18 en baja actividad, antes de integrar.
 5. Smoke de Sam tras integrar:
    - agregar una empresa de prueba y elegir «a nombre de mi empresa»;
