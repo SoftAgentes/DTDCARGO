@@ -1,13 +1,14 @@
 # Handoff 0467 · seguimiento: el borrado de un cliente contra el acceso al Portal (0454), con sesiones reales
 
-- Fecha: 2026-09-19. Estado de la tarea: **lista en local**. La suite SQL completa pasó en el turno
-  del Director. El push único y la PR esperan su aviso.
+- Fecha: 2026-09-19. Estado de la tarea: **lista para revisión**.
+  Falta que el Director revise e integre la PR.
 - Owner/sesión: `worker-carrera-borrado-0454-20260919` (Claude Opus 5, Worker, sesión «Automatizar
   la prueba de carrera del for update de 0459», que siguió con esta tarea a pedido de Sam).
   Director: la sesión «Director notificación a workers», que reemplazó a `dtdcargo-18`.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/carrera-borrado-0454`, creado
   con `harness-worktree start`.
-- Rama: `codex/carrera-borrado-0454`, desde `origin/main` = `88713e47`, sin upstream hasta el push.
+- Rama: `codex/carrera-borrado-0454`, desde `origin/main` = `88713e47`. Con el turno del Director se
+  trajo `main` `aab5a43b` (las carreras 0449 y 0466, #163 y #164) con el driver, antes del push único.
 - SDD: [0467](../../docs/specs/0467-borrar-cliente-revoca-portal/spec.md), la que introdujo la 0454,
   como seguimiento y sin número nuevo, por decisión del Director.
 - Aislamiento comprobado antes de editar: toplevel y rama correctos, `guard` → `Guard OK`, claim
@@ -73,7 +74,9 @@ repo. Un hueco real se reporta con evidencia y no se arregla.
 | `docs:check` / `sdd:check` / `governance:check` / `git diff --check` | **PASÓ**: 475 specs, sin números repetidos, cápsula vigente |
 | Suite SQL completa por el runner real, en el turno de máquina del Director, sobre `f85364ec` | **PASÓ**: 213 de 213 ✓, 0 ✗, 85 s, sin contenedores al terminar. El archivo nuevo pasa junto al contrato 0454 y las otras carreras de `main` |
 | `md5(prosrc)` de las dos funciones en el fixture de la carrera contra producción (lectura de catálogo del Director) | **PASÓ**: coinciden exacto. `clients_revoke_portal_access` `050880a2…` (984 bytes) y `portal_access_require_live_client` `b8e102e1…` (728 bytes), las dos DEFINER |
-| CI alojado | **NO EJECUTADO**: la rama no está publicada |
+| Merge de `main` `aab5a43b` (#163 y #164), con el driver | **PASÓ**: sin conflictos. Después del merge pasaron `docs:check` (475), `sdd:check`, `governance:check` y `git diff --check` |
+| El archivo junto a las carreras 0449 y 0466 que entraron a `main` y a los contratos 0421, 0449, 0454 y 0466, por el runner real | **PASÓ**: 7 de 7 ✓, 14 s |
+| CI alojado | **Por mensaje al Director**: la rama se publica después de este commit |
 
 **Qué escenario mata a cada mutante** (fase real de la carrera):
 
@@ -91,18 +94,19 @@ el texto (M1) o un efecto secuencial (M2).
 | --- | --- |
 | `c10a54ba` | `test(db): SDD-0467`: el borrado de un cliente contra el acceso al Portal, con sesiones reales |
 | `f85364ec` | `docs(SDD-0467)`: la sección fechada en la spec |
-| el commit que contiene este documento | `docs(SDD-0467)`: quién asignó el seguimiento y la verificación de producción en la spec, y este handoff |
+| `a51a5304` | `docs(SDD-0467)`: quién asignó el seguimiento y la verificación de producción en la spec, y este handoff |
+| `da3001a0` | merge de `origin/main` `aab5a43b` con el driver, sin conflictos |
+| el commit que contiene esta versión | `docs(handoff)`: el merge final en este handoff |
 
 ## PR / BRANCH
 
-- Rama `codex/carrera-borrado-0454`, base `main`, worktree de arriba. No está publicada. El push
-  único y la PR esperan el aviso del Director.
+- Rama `codex/carrera-borrado-0454`, base `main`, worktree de arriba. Se publica con un solo push
+  después de este commit. El número de la PR y el SHA van por mensaje al Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Esperar el aviso del Director para publicar.
-2. Con su aviso: traer `main` si avanzó, repetir lo liviano y el archivo, hacer un solo push y abrir la
-   PR, con el número y el SHA por mensaje.
+1. Push y PR contra `main`, con el número y el SHA por mensaje.
+2. Revisión e integración del Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -198,7 +202,7 @@ process.exitCode = run.status;
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** tu aviso para el push único y la PR.
+- **Siguiente acción:** revisar la PR e integrarla.
 - **Cambios compartidos:** un archivo nuevo en `supabase/tests/`, que el runner descubre solo, y la
   spec 0467. Ningún archivo de producto.
 - **Dependencias:** `dblink` en la imagen del runner (`postgres:17`) y el contrato
