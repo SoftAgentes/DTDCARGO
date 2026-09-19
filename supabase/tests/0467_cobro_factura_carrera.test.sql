@@ -669,10 +669,13 @@ create function pg_temp.reproduce(p_n integer, p_r jsonb) returns boolean langua
     else (p_r ->> 'pausa')::boolean and pg_temp.roto(p_r) end
 $$;
 
--- DESPUÉS: S2 esperó a S1, S1 no falló, S2 recibió el rechazo esperado (o
--- ninguno), el invariante se cumple y, en el 8, hay dos códigos R- distintos.
+-- DESPUÉS: S2 esperó a S1 (en el 8, en el lock consultivo del tenant; en los
+-- demás, en la fila), S1 no falló, S2 recibió el rechazo esperado (o ninguno),
+-- el invariante se cumple y, en el 8, hay dos códigos R- distintos.
 create function pg_temp.correcto(p_n integer, p_r jsonb) returns boolean language sql immutable as $$
-  select (p_r ->> 'espero')::boolean and p_r ->> 'error_1' is null and not pg_temp.roto(p_r)
+  select (p_r ->> 'espero')::boolean
+    and p_r ->> 'lock' = case when p_n = 8 then 'advisory' else 'transactionid' end
+    and p_r ->> 'error_1' is null and not pg_temp.roto(p_r)
     and case when pg_temp.rechazo(p_n) is not null
           then coalesce(p_r ->> 'error_2' like '%' || pg_temp.rechazo(p_n) || '%', false)
           else p_r ->> 'error_2' is null end
