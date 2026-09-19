@@ -124,9 +124,27 @@ Criterios QR cubiertos con pruebas focalizadas; aceptación global aún en revis
 ## Concurrencia en la suite SQL · 2026-09-19
 
 Seguimiento sin número nuevo, asignado por el Director (`dtdcargo-18`). La 0449 no se
-toca. Según su cabecera, está aplicada en producción desde el 2026-09-10 (ledger
-`20260910170544`); no lo verifiqué contra producción. La frase de «Criterios de
-aceptación» que la da por pendiente quedó desactualizada.
+toca. La frase de «Criterios de aceptación» que la da por pendiente quedó
+desactualizada.
+
+**La 0449 en producción** (verificado por `dtdcargo-18` el 2026-09-19, leyendo sólo el
+catálogo, sin filas):
+
+- **Ledger:** `20260910170544 · 0449_prealerta_exact_box_reception`, aplicada el
+  2026-09-10 a las 17:05:44 UTC.
+- **El archivo no es idéntico byte a byte.** El ledger tiene md5 `fd78ded2…` y
+  11 195 bytes. El archivo en `main` tiene `8f3c228d…` y 11 385 bytes, porque dos commits
+  del 2026-09-10 (`ff08ef99` y `4de236f3`) editaron la cabecera después de aplicar.
+  Tampoco coincide el original (`e2ec0adc`: `fb992504…`, 11 179 bytes). Fuera de los
+  comentarios, el SQL de `e2ec0adc` y el de `main` son iguales. La cabecera no se corrige.
+- **Los cuerpos sí coinciden exacto.** El `md5(prosrc)` de producción es el mismo que
+  deja el fixture de la carrera; las tres funciones son DEFINER y ninguna otra migración
+  las redefine:
+  - `receive_prealerta_boxes_as_operario`: `bf85211e…`, 6350 bytes;
+  - `save_shipping_label_presentation`: `f6550630…`, 1332 bytes;
+  - `reconcile_labels_after_packing_list`: `66889600…`, 804 bytes.
+
+  La carrera prueba exactamente lo que corre en producción.
 
 **Corrección de la evidencia anterior.** El `qa.md` afirmaba, con
 `scripts/qa/prealertas-reception-concurrency.mjs`, que dos llamadas simultáneas dejan
