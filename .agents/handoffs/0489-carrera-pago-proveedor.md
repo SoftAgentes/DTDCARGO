@@ -157,6 +157,18 @@ de verdad»; «No hubo fallos en lo medido (16/17)», y el exit fue 0.
 | e2e | **PASÓ**: 186 pruebas, con 167 verdes, 18 omitidas y 1 intermitente. La intermitente es `e2e/calculadora-semantic-colors.spec.ts:53` («Selector combinado… en light»): falló una vez en `toHaveValue("mara")` y pasó al reintento. Es de la calculadora pública, ajena a Tesorería |
 | build | **PASÓ** |
 
+**Merge final con main `8235b70b` (#168), en `c389ade5`, antes del push único.**
+Main sólo trajo la carrera del outbox 0365 (SDD-0256): un test SQL, su spec y
+su handoff, sin tocar archivos de esta rama. Después del merge, en verde:
+
+- docs:check, sdd:check, governance:check y el gate de símbolos
+  (`0 ROJO · 1 AMARILLO`);
+- las pruebas focales: 78 de 78 en `lib/studio/treasury/__tests__/` y el runner
+  de PGlite;
+- en un mismo `postgres:17` y en el orden de `sql-tests`: la carrera 0365 (15
+  aserciones), la carrera 0467 (54), el contrato 0468 (84) y la carrera 0468
+  (38). Las carreras que comparten contenedor no se interfieren.
+
 **Carrera, escenario por escenario.** Sale de una copia fuera del repo que
 agrega un NOTICE por escenario. Cada cifra es pagado/total; «órd.» es la suma
 de las órdenes vigentes.
