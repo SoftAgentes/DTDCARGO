@@ -13,7 +13,10 @@
   - `8deac83a`: `cc15e48c` (#145, SDD-0481); el driver de registros resolvió
     `docs/specs/README.md`;
   - `594f8b2e`: `1b64bdae` (#147, comentarios y docs), en el turno de
-    publicación que dio el Director.
+    publicación que dio el Director;
+  - `03ec6513`: `3f810366` (#148 y #149), en el turno de integración. Hacía
+    falta porque GitHub marcaba la PR CONFLICTING por el índice generado: sin
+    el driver ve el conflicto, pero con el driver resuelve limpio.
 - SDD: [0484](../../docs/specs/0484-reporte-pago-factura-pagada/spec.md). La
   reservó el Director en `codex/sdd-reserve-0484-reporte-pago-factura-pagada`
   (441f4834 + f220cea0, traídos por cherry-pick). Migración asignada: `0464`,
@@ -109,6 +112,7 @@ Director.
 | Después del merge `8deac83a`: `pnpm typecheck` y `vitest` focal (PGlite 0464, transporte y consumidores TS, gates de migraciones) | **PASÓ**: 338/338 |
 | Después del merge `594f8b2e` (`1b64bdae`): `docs:index` (sin cambios), `docs:check`, `sdd:check`, símbolos y el `vitest` focal TS | **PASÓ**: 281/281. #147 sólo trae comentarios y docs, sin solaparse con esta rama |
 | `pnpm verify` completo sobre `3167e240` (main `1b64bdae` incluido), en el turno de máquina que asignó el Director | **FALLÓ sólo `test`, por intermitencias.** 16 de 17 pasos corrieron. **PASÓ:** harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (0 ROJO · 0 AMARILLO), **sql-tests** (200 contratos, con 0464 en `psql` real y 0421-0423), **schema-rebuild** (459 migraciones desde cero en `postgres:17`, con 0464 después de 0422 y 0423), e2e (168 pasaron; aviso conocido del worker de WebKit) y build. **SKIP:** `migrations-applied`, sin credenciales en el worktree. **`test`:** tiempos agotados de 20 s en `app/p/[token]/PackingListProductsStep.test.tsx` (1 prueba en la primera corrida, 2 en el reintento) y en `app/registro/__tests__/register-error-summary.test.tsx` (2 pruebas, sólo en la primera). El resto dio 7933 y 7934 en verde |
+| Después del merge `03ec6513` (`3f810366`): `node scripts/build-docs-index.mjs` (igual al del driver, 470 specs), `docs:check`, `sdd:check`, símbolos (0 ROJO · 0 AMARILLO) y el `vitest` focal (PGlite 0464 más transporte, consumidores y acciones TS, `--pool=threads`) | **PASÓ**: 296/296 |
 | Las dos pruebas del paso `test`, aisladas sobre `3167e240` (`--pool=threads`) | **PASÓ**: 12/12. Son timeouts por carga: PackingListProductsStep es una intermitencia conocida que otro Worker está arreglando, y register-error-summary sigue el mismo patrón de render jsdom. Ninguna toca esta rama |
 | `migrations-applied` | **NO EJECUTADO**: da SKIP en worktrees sin credenciales, y la 0464 está declarada como espera |
 
@@ -126,8 +130,11 @@ Sobre `1d80c18a`, en este orden:
 - `8d65642e` `docs(handoff)`: primera versión de este documento.
 - `8deac83a`: merge de `origin/main` (`cc15e48c`), sin conflictos.
 - `3167e240` `docs(handoff)`: los dos merges y las comprobaciones focales.
-- El commit que contiene esta versión: `docs(handoff)`, con el resultado de
-  `pnpm verify`. Es el último antes del push único.
+- `29e45386` `docs(handoff)`: el resultado de `pnpm verify`. Fue el head del
+  primer push, con el que se abrió la PR #150.
+- `03ec6513`: merge de `3f810366`, en el turno de integración.
+- El commit que contiene esta versión: `docs(handoff)`. Es el head del segundo
+  push, el que pidió el Director.
 
 Identidad del archivo a aplicar: `0464_reporte_pago_factura_pagada.sql`, md5
 `44fabe4d2643844fbe489e2ba88fa4fb`, 22209 bytes, LF. Cuerpo de la función:
@@ -135,10 +142,16 @@ md5(prosrc) `c3aab7fcb10e3bf5de0fa40cc562a45d`.
 
 ## PR / BRANCH
 
-Rama `codex/reporte-pago-factura-pagada`, publicada con un push de la propia rama
-y **PR draft** contra `main`. Pidió abrirla Sam en el chat de esta sesión. La URL
-queda en la PR y en el reporte al Director. Para no congelar la rama, el
-resultado del CI va por mensaje y no en otro commit.
+Rama `codex/reporte-pago-factura-pagada`. PR draft
+[#150](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/150) contra `main`, que
+pidió Sam en el chat de esta sesión.
+
+- Primer push: `29e45386`.
+- Segundo push, en el turno de integración del Director: trae `3f810366` para
+  que GitHub deje de ver el conflicto del índice y lance el workflow de calidad.
+
+La PR sigue en draft mientras corre el CI; la pasa a lista el Director al
+integrarla. El resultado del CI va por mensaje y no en otro commit.
 
 ## PENDIENTES DE ESTA TAREA
 
