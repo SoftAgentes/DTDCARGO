@@ -1,7 +1,7 @@
 # Handoff 0492 · escribir cobros y cuentas por pagar queda para accounting y admin
 
-- Fecha: 2026-09-19. Estado de la tarea: **probada en local**. Faltan el `verify` completo, en el
-  turno del Director, el push único y la PR en draft. **Migrate-first:** la 0470 no se aplica ni la
+- Fecha: 2026-09-19. Estado de la tarea: **`verify` completo verde** (16 de 17; `migrations-applied`
+  NO DISPONIBLE). Falta el push único y la PR en draft. **Migrate-first:** la 0470 no se aplica ni la
   PR se integra sin el OK nominal de Sam, y va **después de la 0468** (PR #169).
 - Owner/sesión: `worker-rls-recibos-proveedores-0492-20260919` (Claude Opus 5, Worker, sesión
   «Automatizar la prueba de carrera del for update de 0459»). Director: la sesión «Director
@@ -66,7 +66,7 @@ y la 0468 siguen funcionando encima, y una PR migrate-first en draft.
 | Compatibilidad con la 0468 (#169), orden 0468 → 0470 | **PASÓ**: `COMPAT 0468+0470 GREEN: 7 aserciones`. Pagar y anular con sus RPC siguen funcionando para accounting; el comercial sigue rebotando |
 | Compatibilidad, orden inverso (0470 → 0468) | **Aborta la 0468, como estaba previsto**: «0468 abortado: void_supplier_payment_with_audit_reason tiene otro cuerpo (md5 b1d007101562c1b727fcf921a746f635, sin espacios 52727f731062ed77ce19749830f60d09)». No cambia nada |
 | Gate de símbolos pendientes | **PASÓ**: 0 ROJO · 0 AMARILLO. La 0470 no agrega símbolos que TypeScript nombre |
-| `verify` completo | **PENDIENTE**: turno del Director |
+| `verify` completo sobre `f7bbd27c`, turno del Director, 21:53-22:06 UTC | **16 de 17 PASARON y ninguno FALLÓ.** harness, lint (0 errores; 15 avisos en archivos ajenos), rsc-boundary, typecheck, edge-functions, test (8117 ✓ y 1 omitido en 621 archivos), docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, sql-tests (219 contratos, con el de la 0470), schema-rebuild, e2e (166 ✓; 2 flaky ajenos, el selector de la calculadora pública, que pasó al reintento) y build. **`migrations-applied`: NO DISPONIBLE**, sin credenciales en el worktree |
 | CI alojado | **NO EJECUTADO**: GitHub Actions está bloqueado por facturación desde las 21:18Z |
 
 **Qué aserción mata a cada mutante de la 0470** (la columna de la derecha es sin el postflight):
@@ -89,6 +89,11 @@ y la 0468 siguen funcionando encima, y una PR migrate-first en draft.
 | --- | --- |
 | `4c8c054b` | `chore(sdd)`: la reserva de SDD-0492 (cherry-pick del stub) |
 | `432d3f1d` | `chore(db)`: la reserva de la migración 0470 |
+| `7f8ef0c6` | `feat(db)`: la 0470 y su espera migrate-first |
+| `20403327` | `test(db)`: el contrato con la matriz de roles y su envoltorio PGlite |
+| `510f3181` | `docs(SDD-0492)`: spec, índice y handoff |
+| `f7bbd27c` | `docs(SDD-0492)`: por qué el molde de la 0407 y no el de la 0422 |
+| este commit | `docs(SDD-0492)`: la evidencia del `verify`, antes del push único |
 
 ## PR / BRANCH
 
@@ -98,8 +103,8 @@ y la 0468 siguen funcionando encima, y una PR migrate-first en draft.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. El `verify` completo, en el turno del Director, y el merge de `main` si se movió.
-2. El push único y la PR en draft, con el número y el SHA por mensaje al Director.
+1. El push único y la PR en draft, con el número y el SHA por mensaje al Director, y liberar el
+   claim. El worktree y la rama se conservan.
 3. **El release, en este orden:** OK nominal de Sam nombrando la 0470 → aplicar la 0468 si Sam la
    aprueba → aplicar la 0470 → pasar la PR a ready e integrarla → retirar la espera.
 4. El CI no va a correr hasta que Sam arregle la facturación de GitHub Actions.
@@ -415,7 +420,8 @@ console.log("carpeta lista:", D);
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** el turno de máquina para el `verify` completo.
+- **Siguiente acción:** el OK de Sam para aplicar, con la 0468 antes si él la aprueba. La PR queda
+  en draft y sin CI hasta que se destrabe la facturación de GitHub Actions.
 - **Cambios compartidos:** una migración nueva (0470) con su espera, un `.test.sql` que el runner
   descubre solo, su envoltorio PGlite y la spec. Sin TypeScript de producto.
 - **Dependencias:** migrate-first, y después de la 0468 (#169). La app no cambia, así que no hay

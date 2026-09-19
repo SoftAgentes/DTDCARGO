@@ -195,8 +195,22 @@ ningún rol legítimo:
 
 ## Evidencia
 
-PENDIENTE: el `verify` completo, en el turno del Director. Lo demás va en el
-handoff.
+- **`pnpm verify` completo** sobre `f7bbd27c` (base `main` `dd764c66`), en el
+  turno del Director, el 2026-09-19, de 21:53 a 22:06 UTC: **16 de 17 pasos
+  PASARON y ninguno falló.**
+  - test: 8117 ✓ y 1 omitido, en 621 archivos, con los 12 casos del envoltorio
+    PGlite;
+  - sql-tests: 219 contratos en `postgres:17`, con el de la 0470;
+  - schema-rebuild y build;
+  - e2e: 166 ✓. Los 2 flaky son ajenos: el selector combinado de la calculadora
+    pública, que pasó al reintento;
+  - typecheck; lint con 0 errores y 15 avisos en archivos ajenos;
+  - docs, numbering y gobernanza; el gate de símbolos: `0 ROJO · 0 AMARILLO`.
+- **`migrations-applied`: NO DISPONIBLE**, porque el worktree no tiene
+  credenciales. La 0470 no está aplicada a propósito: es la espera.
+- El resto va en el handoff: el contrato con la matriz de roles, su envoltorio
+  PGlite, los mutantes (con y sin el postflight de la propia migración) y la
+  compatibilidad con la 0468 en los dos órdenes.
 
 ## Fuera de alcance detectado
 
