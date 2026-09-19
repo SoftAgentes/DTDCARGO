@@ -302,9 +302,12 @@ ledger y del catálogo, sin filas de negocio.
   `supabase/tests/0464_reporte_pago_factura_pagada.test.sql` (45 aserciones,
   con control rojo y cinco mutantes), en `psql` real y en PGlite
   (`lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts`), y la
-  carrera de `scripts/qa/payment-report-confirm-race.mjs` en `postgres:17`. La
-  regla del excedente (`PAYMENT_EXCEEDS_BALANCE`) tampoco está en la prueba de
-  Sam y la cubren los mismos contratos.
+  carrera en `postgres:17`: `scripts/qa/payment-report-confirm-race.mjs`, a
+  mano, y desde el 2026-09-18 también
+  `supabase/tests/0464_saldo_confirmacion_carrera.test.sql`, en el paso
+  `sql-tests` de `verify`. La regla del excedente (`PAYMENT_EXCEEDS_BALANCE`)
+  tampoco está en la prueba de Sam. La cubren el contrato 0464 y su prueba en
+  PGlite; las dos carreras no la ejercen.
 - Cuando Sam confirme el bloque 3.2, se marca el último criterio y la spec
   puede pasar a `done`. El hueco de la RPC heredada sigue abierto hasta la 0422
   (ver «Hueco que sigue abierto hasta la 0422»).
