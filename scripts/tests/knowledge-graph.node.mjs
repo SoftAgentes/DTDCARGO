@@ -170,34 +170,41 @@ test("only the exact collision fingerprint is spared; every near miss stays dele
   } finally { f.close(); }
 });
 
-test("pinned Graphify output: the import edges are lost on collision and the orphan stubs are warned", { skip }, () => {
+// The pinned CLI extracts a repository holding only what each test commits: no synthetic
+// graph or manifest survives, so the inspector reads what Graphify itself wrote.
+function nativeFixture() {
   const f = fixture();
+  fs.rmSync(path.join(f.root, "docs"), { recursive: true });
+  fs.rmSync(path.join(f.root, "source.py"));
+  fs.rmSync(path.join(f.root, "graphify-out"), { recursive: true });
+  f.git("add", "-A");
+  f.git("commit", "-m", "native fixture");
+  function update() {
+    const result = spawnSync(python, ["-m", "graphify", "update", "."], { cwd: f.root, encoding: "utf8",
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" } });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    return JSON.parse(fs.readFileSync(path.join(f.root, "graphify-out/graph.json"), "utf8"));
+  }
+  function commit(name, content) {
+    fs.writeFileSync(path.join(f.root, name), content);
+    f.git("add", name);
+    f.git("commit", "-m", "add " + name);
+  }
+  return { ...f, update, commit };
+}
+
+test("pinned Graphify output: the import edges are lost on collision and the orphan stubs are warned", { skip }, () => {
+  const f = nativeFixture();
   try {
-    const update = () => {
-      const result = spawnSync(python, ["-m", "graphify", "update", "."], { cwd: f.root, encoding: "utf8",
-        env: { ...process.env, PYTHONDONTWRITEBYTECODE: "1" } });
-      assert.equal(result.status, 0, result.stdout + result.stderr);
-      return JSON.parse(fs.readFileSync(path.join(f.root, "graphify-out/graph.json"), "utf8"));
-    };
-    const importer = (name, specifier) => {
-      fs.writeFileSync(path.join(f.root, name), `export async function load() {\n  return await import("${specifier}");\n}\n`);
-      f.git("add", name);
-      f.git("commit", "-m", "import " + specifier);
-    };
-    // Only the importers, extracted from scratch: no synthetic graph or manifest survives.
-    fs.rmSync(path.join(f.root, "docs"), { recursive: true });
-    fs.rmSync(path.join(f.root, "source.py"));
-    fs.rmSync(path.join(f.root, "graphify-out"), { recursive: true });
-    f.git("add", "-A");
-    f.git("commit", "-m", "only importers");
+    const importer = (name, specifier) => f.commit(name, `export async function load() {\n  return await import("${specifier}");\n}\n`);
     importer("a.test.ts", "react");
-    const alone = update();
+    const alone = f.update();
     assert.ok(alone.links.some(edge => edge.relation === "dynamic_import" && edge.target === "react"));
     const reference = f.run();
     assert.equal(reference.structural.status, "CURRENT");
     assert.ok(reference.warnings.some(issue => issue.code === "graph_virtual_import_targets" && issue.sources.includes("react")));
     importer("b.test.ts", "@testing-library/react");
-    const collided = update();
+    const collided = f.update();
     assert.equal(collided.links.filter(edge => edge.relation === "dynamic_import").length, 0);
     assert.deepEqual(collided.nodes.filter(node => !node.source_file.endsWith(".test.ts")).map(node => node.id).sort(),
       ["react_react", "testing_library_react_react"]);
@@ -206,6 +213,74 @@ test("pinned Graphify output: the import edges are lost on collision and the orp
     assert.deepEqual(state.structural.deleted, []);
     assert.deepEqual(state.warnings.find(issue => issue.code === "graph_orphan_import_stubs").sources,
       ["@testing-library/react", "react"]);
+  } finally { f.close(); }
+});
+
+// A graphify query answer saved under graphify-out/memory, as found in the main checkout.
+const memoryNote = "graphify-out/memory/query_20260916_142303_example.md";
+const memoryIssue = { code: "graph_memory_notes", severity: "error", sources: [memoryNote] };
+
+test("graphify-out/memory notes in the graph block by name; a real exclusion stays excluded", { skip }, () => {
+  const f = fixture();
+  try {
+    // One note in manifest and graph, one only stamped in the manifest, one only left in the graph.
+    const stampedOnly = "graphify-out/memory/query_20260917_stamped.md";
+    const graphOnly = "graphify-out/memory/query_20260918_graph.md";
+    const notesIssue = { code: "graph_memory_notes", severity: "error", sources: [memoryNote, stampedOnly, graphOnly] };
+    fs.mkdirSync(path.join(f.root, "graphify-out/memory"));
+    fs.writeFileSync(path.join(f.root, memoryNote), "# Q: example\n\n## Answer\n\nDerived.\n");
+    fs.writeFileSync(path.join(f.root, stampedOnly), "# Q: stamped\n");
+    const manifest = JSON.parse(fs.readFileSync(path.join(f.root, "graphify-out/manifest.json"), "utf8"));
+    for (const note of [memoryNote, stampedOnly]) {
+      manifest[note] = { ast_hash: hash(fs.readFileSync(path.join(f.root, note)), "md5"), semantic_hash: "" };
+    }
+    fs.writeFileSync(path.join(f.root, "graphify-out/manifest.json"), JSON.stringify(manifest));
+    f.graph.nodes.push({ id: "graphify_out_memory_query_example", label: "query_20260916_142303_example.md", source_file: memoryNote,
+      source_location: "L1", _origin: "ast", file_type: "document" }, { id: "graphify_out_memory_query_example_answer",
+      label: "Answer", source_file: memoryNote, source_location: "L3", _origin: "ast", file_type: "document" },
+    { id: "graphify_out_memory_query_20260918_graph", label: "query_20260918_graph.md", source_file: graphOnly,
+      source_location: "L1", _origin: "ast", file_type: "document" });
+    f.graph.links.push({ source: "graphify_out_memory_query_example", target: "graphify_out_memory_query_example_answer",
+      relation: "contains", _origin: "ast", confidence: "EXTRACTED", source_file: memoryNote });
+    // Another derived path is no memory note: it stays an ordinary exclusion, like the ignored guide.
+    fs.mkdirSync(path.join(f.root, "graphify-out/obsidian-preview"));
+    fs.writeFileSync(path.join(f.root, "graphify-out/obsidian-preview/Indice.md"), "# Preview\n");
+    f.graph.nodes.push({ id: "graphify_out_obsidian_preview_indice", label: "Indice.md", source_file: "graphify-out/obsidian-preview/Indice.md",
+      source_location: "L1", _origin: "ast", file_type: "document" });
+    fs.writeFileSync(path.join(f.root, ".graphifyignore"), "docs/guide.md\n");
+    f.writeGraph();
+    const state = f.run();
+    assert.equal(state.structural.status, "INVALID");
+    assert.deepEqual(state.issues, [notesIssue]);
+    assert.deepEqual(state.structural.excluded, ["docs/guide.md", "graphify-out/obsidian-preview/Indice.md"]);
+    assert.deepEqual(state.structural.deleted, []);
+    assert.match(f.run("record", [], 1).error, /structural graph/);
+    // Archived but not yet updated: the graph still carries the note, so it still blocks by name.
+    fs.mkdirSync(path.join(f.root, "graphify-out/memoria-archivada-20260919"));
+    fs.renameSync(path.join(f.root, memoryNote), path.join(f.root, "graphify-out/memoria-archivada-20260919", path.basename(memoryNote)));
+    const archived = f.run();
+    assert.deepEqual(archived.issues, [notesIssue]);
+    assert.deepEqual(archived.structural.deleted, []);
+  } finally { f.close(); }
+});
+
+test("pinned Graphify files memory notes back into the graph; archiving them and updating clears the block", { skip }, () => {
+  const f = nativeFixture();
+  try {
+    f.commit("a.ts", "export const a = 1;\n");
+    fs.mkdirSync(path.join(f.root, "graphify-out/memory"), { recursive: true });
+    fs.writeFileSync(path.join(f.root, memoryNote), "# Q: example\n\n## Answer\n\nDerived.\n");
+    assert.ok(f.update().nodes.some(node => node.source_file === memoryNote));
+    const blocked = f.run();
+    assert.equal(blocked.structural.status, "INVALID");
+    assert.deepEqual(blocked.issues, [memoryIssue]);
+    const archive = path.join(f.root, "graphify-out/memoria-archivada-20260919");
+    fs.mkdirSync(archive);
+    fs.renameSync(path.join(f.root, memoryNote), path.join(archive, path.basename(memoryNote)));
+    assert.ok(!f.update().nodes.some(node => String(node.source_file).startsWith("graphify-out/")));
+    const cleared = f.run();
+    assert.equal(cleared.structural.status, "CURRENT");
+    assert.deepEqual(cleared.issues, []);
   } finally { f.close(); }
 });
 

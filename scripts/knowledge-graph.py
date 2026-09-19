@@ -26,6 +26,9 @@ SEMANTIC_TYPES = {"document", "paper", "image"}
 # A bare package specifier as Graphify's JS rescue keeps it: npm name grammar,
 # an optional subpath and the node: builtin prefix. "@/..." is a project alias.
 PACKAGE_SPECIFIER = re.compile(r"(?:node:)?(?:@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*(?:/[A-Za-z0-9._~+-]+)*")
+# Graphify 0.9.61 always scans this directory on update: query answers filed back
+# into the graph (detect.py), whatever .graphifyignore says.
+MEMORY_NOTES = "graphify-out/memory/"
 
 
 def digest(raw):
@@ -328,7 +331,14 @@ def inspect(root, prompt):
     state["graphSourcePaths"] = sorted(sources - external)
     state["counts"] = {"files": len(state["files"]), "nodes": len(nodes), "edges": len(edges),
                        "skippedSensitive": len(detected.get("skipped_sensitive", []))}
-    absent = sorted(((set(manifest) | sources) - external) - set(state["files"]))
+    # The detector above never sees MEMORY_NOTES (its GRAPHIFY_OUT is temporary),
+    # so a note the native update ingested used to surface as an opaque excluded
+    # or deleted source. Derived notes must not re-enter the graph: name them in
+    # their own blocking issue until they are archived and Graphify is updated.
+    memory_notes = sorted(name for name in set(manifest) | sources if name.startswith(MEMORY_NOTES))
+    if memory_notes:
+        issues.append({"code": "graph_memory_notes", "severity": "error", "sources": memory_notes})
+    absent = sorted(((set(manifest) | sources) - external - set(memory_notes)) - set(state["files"]))
     deleted = [name for name in absent if not (root / name).exists()]
     excluded = [name for name in absent if (root / name).exists()]
     structural_names = [name for name, row in state["files"].items() if row["type"] in {"code", "document"}]

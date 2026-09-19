@@ -105,6 +105,14 @@ el ID renombrado por la colisión. La advertencia no recupera esas importaciones
 representa. Cada `graphify update .` vuelve a crear los nodos, por eso no se reparan. Un nodo
 huérfano con otra forma sigue en `structural.deleted` y se investiga.
 
+`graphify update .` siempre escanea `graphify-out/memory/`, donde Graphify guarda respuestas de
+`graphify query`, aunque `.graphifyignore` excluya `graphify-out/`. Son derivados y la política no
+los reingresa al grafo. `knowledge:status` informa cada ruta de esa carpeta que aparezca en el
+manifest o en el grafo con el error `graph_memory_notes`: la estructura queda INVALID y la
+publicación se bloquea. Si hay archivos en `graphify-out/memory/`, muévelos sin borrarlos a
+`graphify-out/memoria-archivada-AAAAMMDD/` y corre `graphify update .`; la nota sale del manifest
+y del grafo. Otra ruta excluida sigue en `structural.excluded`.
+
 La eliminación de un archivo que sí estuvo en el manifest sigue en
 `structural.deleted` y bloquea el estado CURRENT. Una procedencia realmente fuera
 de la raíz sigue siendo un error. Si Graphify conserva un nodo huérfano creado
@@ -265,7 +273,7 @@ El servidor MCP opcional de Graphify 0.9.61 recarga el grafo por mtime/tamaño; 
 ## Validación y aceptación
 
 Pruebas del harness: piloto 16/16 y 15/16, pendiente fuera de alcance, cambio de cuerpo/YAML, código, renombrado,
-eliminación/exclusión, stubs de importación huérfanos por colisión de IDs, idempotencia, fallo semántico, conflicto humano, carrera de escritores, recuperación y aislamiento entre worktrees.
+eliminación/exclusión, stubs de importación huérfanos por colisión de IDs, notas de `graphify-out/memory`, idempotencia, fallo semántico, conflicto humano, carrera de escritores, recuperación y aislamiento entre worktrees.
 Verificar enlaces, hashes, etiquetas de evidencia y ocho temas del JSON.
 Ejecutar `pnpm harness:test`, `pnpm docs:check`, `pnpm skills:check`, `pnpm sdd:check` y `git diff --check`.
 Build/DB/E2E de producto no aplican a esta herramienta de documentación.
