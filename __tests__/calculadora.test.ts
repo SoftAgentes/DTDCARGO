@@ -31,7 +31,7 @@ import {
  * - Tope de volumen: > 68 CBM → deriva al asesor (FCL).
  * - Destinos: Valencia (descuento), Maracay/Caracas (casco), fuera del casco (km × $)
  * - Embalaje: estándar (0) vs especial (+$50)
- * - Baterías: ×1.3 sobre el flete
+ * - Baterías: ×1.5 sobre el flete
  * - Carga especial/peligrosa → no cotiza, deriva al asesor
  * - Validación: carga inválida (CBM/peso <= 0), ciudad inválida
  */
@@ -225,8 +225,8 @@ describe("calcularEnvioLCL", () => {
     }
   });
 
-  // Baterías: multiplican el flete ×1.3
-  it("aplica el multiplicador de baterías (×1.3) sobre el flete", () => {
+  // Baterías: multiplican el flete ×1.5
+  it("aplica el multiplicador de baterías (×1.5) sobre el flete", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
       pesoKg: 400,
@@ -235,9 +235,9 @@ describe("calcularEnvioLCL", () => {
       bateria: true,
     });
 
-    // flete antes de batería = 850; con batería = 1105
-    expect(cot.recargoBateria).toBe(255);
-    expect(cot.total).toBe(1105);
+    // flete antes de batería = 850; con batería = 1275 (850 × 1,5)
+    expect(cot.recargoBateria).toBe(425); // 850 × 0,5
+    expect(cot.total).toBe(1275);
   });
 
   // Carga especial / peligrosa → no cotiza, deriva al asesor
@@ -849,16 +849,16 @@ describe("LCL Consolidado · tarifa 580/CBM + mismos recargos", () => {
   });
 
   it("aplica el multiplicador de baterías sobre el flete (params del ERP)", () => {
-    // El multiplicador es configurable (default 1.3, igual que prod). El test
+    // El multiplicador es configurable (default 1.5, igual que prod). El test
     // usa params explícitos para no depender del valor vigente en la DB.
-    const params: CalcParams = { ...DEFAULT_PARAMS, recargoBateriaMult: 1.3 };
+    const params: CalcParams = { ...DEFAULT_PARAMS, recargoBateriaMult: 1.5 };
     const cot = calcularEnvioLCL(
       { ...base, cbmTotal: 10, pesoKg: 3000, bateria: true },
       params,
       ciudades,
     );
-    expect(cot.recargoBateria).toBe(1740); // 5800 × 0,3
-    expect(cot.total).toBe(7540); // 5800 × 1,3
+    expect(cot.recargoBateria).toBe(2900); // 5800 × 0,5
+    expect(cot.total).toBe(8700); // 5800 × 1,5
   });
 
   it("cobra el excedente de densidad con la misma regla ($/kg sobre la gracia)", () => {
