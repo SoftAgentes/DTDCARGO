@@ -1,8 +1,8 @@
 # Handoff 0491 · la recepción de bodega China creada en el Studio vuelve a numerarse WR-
 
-- Fecha: 2026-09-19. Estado de la tarea: **probada en local**. Faltan el `verify` completo, en el
-  turno del Director, el push único y la PR. **Migrate-first:** la 0469 no se aplica ni la PR se
-  integra sin el OK nominal de Sam.
+- Fecha: 2026-09-19. Estado de la tarea: **`verify` completo verde** (16 de 17; `migrations-applied`
+  NO DISPONIBLE). Falta el push único y la PR en draft, con el aviso del Director.
+  **Migrate-first:** la 0469 no se aplica ni la PR se integra sin el OK nominal de Sam.
 - Owner/sesión: `worker-recepcion-wr-0491-20260919` (Claude Opus 5, Worker, sesión «Automatizar la
   prueba de carrera del for update de 0459»). Director: la sesión «Director notificación a
   workers», que asignó la tarea porque Sam pidió trabajo continuo.
@@ -75,9 +75,10 @@ recepción con `next_receipt_code`, que desde la 0079 da la serie `R-` de los co
 | vitest de la acción | **PASÓ**: 4 de 4 |
 | Control rojo de vitest (la acción anterior) | **FALLÓ, como tenía que fallar**: 4 ✗. Repetido después del commit contra `main` `dd764c66`: 4 ✗, y T1 3 ✗, con el fuente restituido md5 a md5. El script ahora rechaza un ref que ya trae el arreglo, como `HEAD` |
 | Mutante T1 (lee sólo `id` del INSERT) | **Cae**: 3 ✗. Primero sobrevivió porque el doble devolvía todas las columnas; ahora respeta el `select`, como PostgREST |
-| `docs:check` / `sdd:check` / `governance:check` / `git diff --check` | **PASÓ**: índice sincronizado con 476 specs, sin números repetidos, 28 políticas y cápsula vigente |
+| `docs:check` / `sdd:check` / `governance:check` / `git diff --check` | **PASÓ**: índice sincronizado con 476 specs (477 después del merge de `dd764c66`, que el driver resolvió sin diferencias al regenerar), sin números repetidos, 28 políticas y cápsula vigente |
 | Gate de símbolos pendientes (`check-pending-migration-symbols`) | **PASÓ**: 0 ROJO · 0 AMARILLO. Es lo esperado: la dependencia de la app con la 0469 es de comportamiento, no de un símbolo que TypeScript nombre, y por eso la espera lo dice |
-| `verify` completo (typecheck, lint, test, sql-tests, schema-rebuild, e2e, build…) | **PENDIENTE**: turno del Director |
+| Primer `verify`, sobre `ae09db95` | **NO EJECUTADO** entero: lo paré a los 2 minutos, en lint y antes del build, para sumar el envoltorio PGlite. Terminé sus procesos y el árbol quedó limpio |
+| `verify` completo sobre `8f41a5e3` (merge con `main` `dd764c66`), turno del Director, 21:02-21:16 UTC | **16 de 17 PASARON y ninguno FALLÓ.** harness, lint (0 errores; 15 avisos en archivos ajenos), rsc-boundary, typecheck, edge-functions, test (8118 ✓ y 1 omitido en 622 archivos), docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols (`0 ROJO · 0 AMARILLO`), sql-tests (220 contratos, con los dos de la 0469), schema-rebuild, e2e (166 ✓; 2 flaky ajenos, el selector combinado de la calculadora pública, que pasó al reintento) y build. **`migrations-applied`: NO DISPONIBLE**, porque el worktree no tiene credenciales. Además, la 0469 no está aplicada a propósito |
 | CI alojado | **NO EJECUTADO**: la rama no está publicada |
 
 **Qué aserción mata a cada mutante de la 0469:**
@@ -102,17 +103,33 @@ aserción del lock. Que ese lock serialice lo prueba sólo la carrera.
 | --- | --- |
 | `eb830da1` | `chore(sdd)`: la reserva de SDD-0491 (cherry-pick del stub) |
 | `91d705db` | `chore(db)`: la reserva de la migración 0469 |
+| `0090efe9` | `feat(db)`: la 0469, su contrato, su carrera y la espera migrate-first |
+| `a47cd08c` | `fix(cn)`: `createReceiptAction` deja que la base numere, y su vitest |
+| `6b72f91a` | `docs(SDD-0491)`: spec, índice y handoff |
+| `ae09db95` | merge de `main` `dd764c66` (#170), con el driver |
+| `022c9f2c` | `test(db)`: la aserción del lock 491 y el envoltorio PGlite del contrato |
+| `8f41a5e3` | `docs(SDD-0491)`: la prueba PGlite en la allowlist y la aceptación |
+| este commit | `docs(SDD-0491)`: la evidencia del `verify` completo, antes del push único |
 
 ## PR / BRANCH
 
-- Rama `codex/recepcion-codigo-wr-0491`, base `main`, worktree de arriba. No está publicada.
+- Rama `codex/recepcion-codigo-wr-0491`, base `main`, worktree de arriba. Se publica con el push
+  único, con el aviso del Director.
+- **La PR sale en DRAFT.** La primera línea del cuerpo es «NO FUSIONAR hasta aplicar 0469», con el
+  orden de release. La pasa a ready el Director, después del OK de Sam y de aplicar la migración.
+  El número y el SHA van por mensaje al Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Traer `main` `dd764c66` (#170) con el driver y correr el `verify` completo, en el turno del
-   Director.
-2. El push único y la PR (migrate-first, con la espera), con el número y el SHA por mensaje.
-3. El OK nominal de Sam para aplicar la 0469. Después se integra la PR y se retira la espera.
+1. El push único y la PR en draft. Después, liberar el claim; el worktree y la rama se conservan.
+2. **El release, en este orden:**
+   1. el OK nominal de Sam nombrando la 0469;
+   2. el Director la aplica con el runbook de producción y verifica el postflight;
+   3. la PR pasa a ready y se integra;
+   4. se retira la espera de `pendingBelowCutoff`.
+3. **Cruce con la #169**, también migrate-first, que toca `migrations-baseline.json` y el índice.
+   La que se integre segunda trae `main` con el driver antes de su push final. El orden lo decide
+   el Director cuando vuelva Sam.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -129,7 +146,7 @@ aserción del lock. Que ese lock serialice lo prueba sólo la carrera.
 
 - **Canónico:** la spec 0491 y el índice regenerado.
 - **Documentación en código:**
-  - las cabeceras de la migración y de los dos `.test.sql`;
+  - las cabeceras de la migración, de los dos `.test.sql` y del envoltorio PGlite;
   - el comentario de `createReceiptAction` y la cabecera del módulo;
   - la espera en el baseline.
 - **No aplica:**
@@ -277,9 +294,14 @@ try {
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** el turno de máquina para el `verify` completo.
-- **Cambios compartidos:** una migración nueva (0469) con su espera, dos `.test.sql` que el runner
-  descubre solo, `createReceiptAction` y su prueba, y la spec.
+- **Siguiente acción:** el push único y la PR en draft, con tu aviso. Después, el OK de Sam para
+  aplicar la 0469.
+- **Cambios compartidos:**
+  - una migración nueva (0469) con su espera;
+  - dos `.test.sql` que el runner descubre solo;
+  - el envoltorio PGlite del contrato, que corre en CI;
+  - `createReceiptAction` y su prueba;
+  - la spec.
 - **Dependencias:** migrate-first. Sin la 0469, el alta del Studio falla por NOT NULL.
 - **Sesiones consumidoras:** ninguna. El claim se libera al abrir la PR; el worktree y la rama se
   conservan.

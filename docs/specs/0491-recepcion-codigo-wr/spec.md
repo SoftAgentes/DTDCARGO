@@ -179,8 +179,24 @@ cuenta, sin lock.
 
 ## Evidencia
 
-PENDIENTE: el `verify` completo, en el turno del Director. Lo demás va en el
-handoff.
+- **`pnpm verify` completo** sobre `8f41a5e3` (el merge con `main`
+  `dd764c66`), en el turno del Director, el 2026-09-19, de 21:02 a 21:16 UTC:
+  **16 de 17 pasos PASARON y ninguno falló.**
+  - test: 8118 ✓ y 1 omitido, en 622 archivos, con los 13 casos nuevos de
+    esta SDD;
+  - sql-tests: 220 contratos en `postgres:17`, con el contrato y la carrera de
+    la 0469;
+  - schema-rebuild y build;
+  - e2e: 166 ✓. Los 2 flaky son ajenos: el selector combinado de la
+    calculadora pública, que pasó al reintento;
+  - typecheck;
+  - lint: 0 errores, y 15 avisos en archivos ajenos;
+  - docs, numbering y gobernanza;
+  - el gate de símbolos: `0 ROJO · 0 AMARILLO`.
+- **`migrations-applied`: NO DISPONIBLE**, porque el worktree no tiene
+  credenciales. Además, la 0469 no está aplicada a propósito: es la espera.
+- El resto va en el handoff: el defecto medido, el contrato, su envoltorio
+  PGlite, la carrera, los mutantes, vitest y los controles rojos.
 
 ## Fuera de alcance detectado
 
