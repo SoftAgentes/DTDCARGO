@@ -1,14 +1,15 @@
 # Handoff 0488 · seguimiento: la carrera del cobro de la 0467 y la interoperabilidad con la 0466
 
-- Fecha: 2026-09-18 (Caracas; 2026-09-19 UTC). Estado de la tarea: **lista para la PR**. Espera
-  el turno de integración del Director, detrás de la #154, la #158 y el cierre de la 0487.
+- Fecha: 2026-09-18 (Caracas; 2026-09-19 UTC). Estado de la tarea: **lista para revisión**.
+  Falta que el Director revise e integre la PR.
 - Owner/sesión: `worker-carrera-cobro-0467-20260919` (Claude Opus 5, Worker, sesión «Automatizar la
   prueba de carrera del for update de 0459» [7a0aa1], que siguió con esta tarea a pedido de Sam).
   Director: `dtdcargo-18`.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/carrera-cobro-0467`, creado con
   `harness-worktree start`.
 - Rama: `codex/carrera-cobro-0467`, desde `origin/main` = `7741f587`. Después se trajo `main`
-  `e9e8240e` con el driver `dtd-generated-records`, con la #159 y la 0466.
+  `e9e8240e` con el driver `dtd-generated-records`, con la #159 y la 0466. Al final se trajo
+  `a1f1834d`, con la #160, la #154, la #158 y la #161 (el cierre de la 0487).
 - SDD: [0488](../../docs/specs/0488-carrera-cobro-factura/spec.md), como seguimiento y sin número
   nuevo, por decisión del Director. El segundo entregable es el seguimiento que la
   [SDD-0487](../../docs/specs/0487-portal-cliente-empresa-facturacion/spec.md) dejó para el Worker de
@@ -106,7 +107,10 @@
 | Huella tras un fallo (bases, roles, extensiones y sesiones del clúster), en los dos archivos | **PASÓ en tres modos**: guarda, corte a mitad (la barrera vencida en los 26 escenarios; una RPC que choca a mitad de la secuencia) y rojo (M1). La guarda, con `service_role` ya creado, aborta sin tocar nada y **conserva** el rol |
 | `docs:check` / `sdd:check` / `governance:check` / `git diff --check` | **PASÓ**: 474 specs, sin números repetidos, cápsula vigente |
 | Suite SQL completa por el runner real, en el turno de máquina del Director, sobre `95be5370` | **PASÓ**: 210 de 210 ✓, 0 ✗, 81 s. Pasan juntos los dos archivos nuevos, los contratos de los que sale su fixture (0421, 0466 y 0467) y las otras carreras de la rama (0421, 0427, 0459 y 0460) |
-| CI alojado | **NO EJECUTADO todavía**: la rama no está publicada |
+| Merge de `main` `a1f1834d` (#160, #154, #158 y #161), con el driver | **PASÓ**: sin conflictos. Después del merge pasaron `docs:check` (475), `sdd:check`, `governance:check` y `git diff --check` |
+| Los dos archivos nuevos junto a las carreras que entraron después de la suite (0426 y 0464) y a sus contratos, por el runner real | **PASÓ**: 8 de 8 ✓, 18 s |
+| Suite SQL completa después del último merge | **NO EJECUTADA**: el Director pidió repetir solo lo liviano. Lo nuevo de `main` en `supabase/tests` son las carreras 0426 y 0464, y corrieron junto a estos archivos en la fila de arriba |
+| CI alojado | **Por mensaje al Director**: la rama se publica después de este commit |
 
 **Qué escenario mata a cada mutante de la 0467** (fase DESPUÉS de la carrera):
 
@@ -132,16 +136,21 @@ cuenta los `FOR UPDATE` en el texto. La carrera muestra la consecuencia de cada 
 | `9454be63` | `test(db): SDD-0488`: las RPC de Cobranzas sobre facturas selladas por la 0466 |
 | `fc2ac901` | `test(db): SDD-0488`: la carrera exige el lock en que espera S2 |
 | `95be5370` | `docs(SDD-0488)`: evidencia y allowlist en la 0488; la línea en la 0487 |
-| el commit que contiene este documento | `docs(handoff)`: este handoff |
+| `68cf35a3` | `docs(handoff)`: este handoff, con la suite completa y los scripts de los mutantes |
+| `e9a79097` | merge de `origin/main` `a1f1834d` con el driver, sin conflictos |
+| el commit que contiene esta versión | `docs(handoff)`: el merge final en este handoff y el cierre del de la 0484 (#160) |
 
 ## PR / BRANCH
 
-- Rama `codex/carrera-cobro-0467`, base `main`, worktree de arriba. Todavía no está publicada.
+- Rama `codex/carrera-cobro-0467`, base `main`, worktree de arriba. Se publica con un solo push
+  después de este commit. El número de la PR y el SHA van por mensaje al Director.
+- En la misma PR, por indicación del Director, se cierra el handoff de la 0484
+  (`.agents/handoffs/0484-carrera-saldo-0464.md`) con la #160 y su merge `2949e446`.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Traer el `main` que indique el Director. El cierre de la 0487 toca su spec, así que después se repiten lo liviano y los dos archivos nuevos.
-2. Push y PR contra `main`, con el número y el SHA por mensaje.
+1. Push y PR contra `main`, con el número y el SHA por mensaje.
+2. Revisión e integración del Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -318,9 +327,10 @@ process.exitCode = run.status;
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** el SHA de `main` para el último merge; después, la PR.
-- **Cambios compartidos:** dos archivos nuevos en `supabase/tests/`, que el runner descubre solo, y
-  las specs 0488 y 0487. Ningún archivo de producto.
+- **Siguiente acción:** revisar la PR e integrarla. Es la última de la cola; después viene la
+  publicación del conocimiento desde `main`.
+- **Cambios compartidos:** dos archivos nuevos en `supabase/tests/`, que el runner descubre solo;
+  las specs 0488 y 0487, y el cierre del handoff de la 0484. Ningún archivo de producto.
 - **Dependencias:**
   - `dblink` en la imagen del runner (`postgres:17`). Sin él, los dos archivos fallan en vez de
     hacer SKIP;
