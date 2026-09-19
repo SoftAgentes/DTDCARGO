@@ -4,7 +4,7 @@ title: "El registro de cobros en facturas pasa a ser atómico"
 status: done
 author: "Sam + Claude Opus 5 (Worker)"
 created: 2026-09-18
-updated: 2026-09-18
+updated: 2026-09-19
 supersedes: null
 superseded_by: null
 related: ["0041", "0068", "0290", "0294", "0407", "0421", "0484"]
@@ -240,6 +240,13 @@ la app y en 0421/0464, y un pago parcial la deja en `parcial`.
 - `scripts/qa/cobro-factura-race.seed.sql`
 - `docs/specs/0488-carrera-cobro-factura/spec.md` y `docs/specs/README.md` (regenerado)
 - `.agents/handoffs/0488-carrera-cobro-factura.md`
+- `supabase/tests/0467_cobro_factura_carrera.test.sql` (nuevo): la carrera en la
+  suite SQL (seguimiento 2026-09-19).
+- `supabase/tests/0467_cobro_factura_sellada.test.sql` (nuevo): la
+  interoperabilidad con la 0466 (seguimiento 2026-09-19, pedido por la SDD-0487).
+- `docs/specs/0487-portal-cliente-empresa-facturacion/spec.md`: sólo la línea que
+  dice dónde quedó esa interoperabilidad.
+- `.agents/handoffs/0488-carrera-cobro-0467.md`: el handoff de esos seguimientos.
 
 ## Aceptación
 
@@ -381,6 +388,54 @@ El mutante sin el `FOR UPDATE` del cobro también cae en el 13: queda en
 
 La identidad del archivo, las huellas de preflight y postflight y los locks
 medidos están en el handoff `.agents/handoffs/0488-carrera-cobro-factura.md`.
+
+### En la suite SQL (seguimiento del 2026-09-19)
+
+El script corre sólo a mano. Desde este seguimiento, la carrera y la
+interoperabilidad con la 0466 corren además en el paso `sql-tests` de `verify`
+(no en CI). El script se conserva. El detalle y los scripts de los mutantes
+están en el handoff `.agents/handoffs/0488-carrera-cobro-0467.md`.
+
+- **`supabase/tests/0467_cobro_factura_carrera.test.sql`:** los 13 escenarios,
+  con dos sesiones reales por dblink.
+  - Primero corre ANTES, sin la 0467: la app vieja, petición por petición. Cada
+    escenario tiene que reproducir la pérdida; en el 8, S1 muere por el código
+    R- repetido. Si un control no reproduce, el archivo falla.
+  - Después corre DESPUÉS, con la 0467 aplicada en la misma corrida. S2 espera
+    a S1 en los 13: en el 8 lo hace en el lock consultivo del tenant, y en los
+    demás en la fila. Salen los rechazos esperados y el invariante se cumple.
+  - El fixture es la unión de los de los contratos 0467 y 0421, con la 0421 y la
+    0464 aplicadas. Trae el cuerpo de producción de `get_user_tenant_id`, el
+    que exige el preflight de la 0467.
+- **Mutantes, con el runner real y fuera del repo.** Son los cinco del script,
+  y cada uno cae en sus escenarios:
+  - sin el `FOR UPDATE` de la factura al cobrar: 1, 2, 4, 5 y 13. El script
+    probaba ese mutante sólo en 1, 2, 4 y 13. En el 5, el cobro lee el pagado
+    de antes de la anulación y escribe 700 con 300 en recibos;
+  - sin el del recibo al identificar: 7;
+  - sin el de la factura al identificar: 9;
+  - sin el del recibo al anular: 10;
+  - sin el de la factura al anular: 11.
+
+  El contrato `0467_cobro_factura_atomico.test.sql` también los detecta, porque
+  su centinela cuenta los `FOR UPDATE`. La carrera, en cambio, muestra la
+  consecuencia de cada uno.
+- **Interoperabilidad con la 0466 (SDD-0487):**
+  `supabase/tests/0467_cobro_factura_sellada.test.sql`. Las tres RPC reales
+  corren sobre facturas que la 0466 selló al emitir, en dos bases: con la 0466 y
+  sin ella. La secuencia cobra, identifica, llega a `pagada` y anula hasta volver
+  a `emitida`.
+  - Las transiciones son las mismas con la 0466 y sin ella.
+  - Con la 0466, el titular (`client_name`, `client_rif`, `client_doc_kind`,
+    `client_fiscal_address` y `bill_to_kind`) no cambia en ningún paso, aunque
+    después de emitir cambien la empresa y el nombre del cliente.
+  - No aparece ningún `invoice_bill_to_overridden` nuevo, y los recibos llevan
+    el nombre sellado.
+  - Dos mutantes de la 0466 lo hacen fallar:
+    - uno vuelve a sellar al pasar de `parcial` a `emitida`. El contrato 0466
+      también lo detecta, con sus UPDATE simulados;
+    - el otro también congela el estado, y las RPC chocan con
+      `invoice_titular_frozen`.
 
 ## Fuera de alcance detectado
 

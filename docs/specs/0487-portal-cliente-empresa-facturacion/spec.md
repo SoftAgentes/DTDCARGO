@@ -465,7 +465,9 @@ Evidencia de la aplicación (la reportó dtdcargo-18; el Worker no tocó producc
 - **Seguimiento:** interoperabilidad real de la 0466 y la 0467 aplicadas en
   cadena, con las tres RPC de Cobranzas sobre facturas selladas. `schema-rebuild`
   ya prueba que las dos se aplican en orden; falta el comportamiento. El Director
-  lo asigna al Worker de las carreras.
+  lo asigna al Worker de las carreras. **2026-09-19:** quedó en
+  `supabase/tests/0467_cobro_factura_sellada.test.sql`, en el paso `sql-tests`
+  de `verify` (no en CI). Se registra en la SDD-0488, en «Evidencia».
 - **Seguimiento (advisor de rendimiento, INFO):** la FK
   `client_billing_identities_updated_by_fkey` no tiene índice. Hoy la tabla
   tiene como mucho una fila por cliente y `updated_by` sólo se usa al borrar un
