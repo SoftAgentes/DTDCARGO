@@ -1,10 +1,10 @@
 ---
 sdd: "0485"
 title: "anon y authenticated pierden los privilegios residuales sobre las tablas de public"
-status: in-progress
+status: done
 author: "founder + Claude Opus 5"
 created: 2026-09-18
-updated: 2026-09-18
+updated: 2026-09-19
 supersedes: null
 superseded_by: null
 related: ["0365", "0366"]
@@ -13,11 +13,12 @@ confidencialidad: interno
 
 # DTD-0485 — anon y authenticated pierden los privilegios residuales sobre las tablas de public
 
-> `anon` conserva MAINTAIN, REFERENCES y TRIGGER sobre 180 relaciones de
+> `anon` conservaba MAINTAIN, REFERENCES y TRIGGER sobre 180 relaciones de
 > `public`, y `authenticated` sobre 196. Ningún camino de la API los usa. La
 > migración `0465` los retira sin tocar lo que sí se usa: el SELECT público de
 > 5 tablas, el DML de `authenticated`, los privilegios por columna y las
-> funciones.
+> funciones. **Aplicada en producción el 2026-09-19** (ver «Aplicación en
+> producción»).
 
 ## Contexto
 
@@ -232,11 +233,42 @@ La 0465 no depende del orden de L14: puede aplicarse antes o después de 0422 y
       rojo.
 - [x] Default privileges revisados: `postgres` limpio y afirmado;
       `supabase_admin` documentado como límite residual.
-- [ ] Aplicada en producción con OK nominal de Sam, por el Director, según
+- [x] Aplicada en producción con OK nominal de Sam, por el Director, según
       `docs/runbooks/aplicar-migraciones-prod.md`, con la verificación V2 de
-      abajo. Hasta entonces esta SDD queda `in-progress`.
+      abajo (2026-09-19; detalle en «Aplicación en producción»).
+
+## Aplicación en producción (2026-09-19)
+
+- **OK nominal de Sam:** 2026-09-19 a las 00:29 UTC, por AskUserQuestion al
+  Director, nombrando «0465_anon_privilegios_residuales».
+- **Aplicación:** la hizo el Director, sola y con `name` exacto, a las
+  00:56:40 UTC (20:56 en Caracas), sin sesiones activas. El postflight interno
+  de la migración pasó.
+- **Identidad en el ledger:** `20260919005640 · 0465_anon_privilegios_residuales`,
+  1 sentencia. `md5(array_to_string(statements, ''))` =
+  `e87d496914c1344185718e758b3b4e5b` y 15 600 bytes, iguales al blob
+  `863358f4` del repo (sólo LF). La cabecera del `.sql` no se toca.
+- **V0 (antes, leído por el Director):** M/R/T de `anon` en 180 relaciones y
+  de `authenticated` en 196; SELECT de `anon` en 5; DML de `authenticated`:
+  SELECT 228, INSERT 174, UPDATE 166, DELETE 118.
+- **V1:** la vuelta atrás (dos GRANT: `anon` sobre 180 relaciones y
+  `authenticated` sobre 196) quedó fuera del repo, en el scratchpad del
+  Director.
+- **V2 (después):** residuo M/R/T **0** para los dos roles; `anon` lee
+  exactamente las 5 tablas; DML de `authenticated` sin cambios; los 7 UPDATE
+  por columna, intactos. Lo leyó el Director, y el Worker repitió el ledger y
+  V2 por su cuenta, con el mismo resultado (sólo catálogo, sin filas).
+- **Advisors de seguridad:** la misma huella antes y después (md5 normalizado
+  `c80be095…`, leído por el Director).
+- **Sitio público:** `/noticias` (200, con sus 5 artículos), `/`, `/registro`
+  y `/tarifas` responden 200 (comprobado por el Director).
+- La espera salió de `pendingBelowCutoff`. No hace falta prueba de Sam: V2 y
+  las páginas públicas cubren lo que la 0465 podía afectar.
 
 ## Aplicación (para el Director)
+
+> Registro del procedimiento que se siguió el 2026-09-19. Queda como
+> referencia para una migración parecida.
 
 Requiere OK nominal de Sam que nombre `0465_anon_privilegios_residuales`. Se
 aplica sola, con `name` exacto. Fusionar la PR no la autoriza.

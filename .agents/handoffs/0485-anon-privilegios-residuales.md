@@ -1,8 +1,8 @@
 # Handoff 0485 — anon y authenticated pierden los privilegios residuales sobre las tablas de public
 
-- Fecha: 2026-09-18 (cierre 2026-09-19, 00:2x UTC). Estado de la tarea: **lista para revisión**;
-  PR draft contra `main` después del reporte al Director. SDD `in-progress`: pasa a `done` sólo
-  cuando la 0465 esté aplicada y verificada en producción.
+- Fecha: 2026-09-18 (cierre 2026-09-19). Estado de la tarea: **lista para integrar** (PR #151,
+  draft). **La 0465 está APLICADA en producción** (ledger `20260919005640`), con OK nominal de
+  Sam, por el Director; ver «APLICACIÓN DE LA 0465». SDD `done`.
 - Owner/sesión: `claude-75393e` (Claude Opus 5, Worker, sesión «Quitar a anon los privilegios
   residuales de public»). Director: `dtdcargo-18`, que asignó SDD y migración y leyó el catálogo.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/anon-privilegios-residuales`.
@@ -46,7 +46,7 @@ o en Postgres local.
   `ve_locality_catalog` se leen como `anon` (`/noticias` con `getAnonClient()`; `/registro` antes
   del login). Las tres `back_*` no tienen consumidor `anon`. Por condición del Director, la 0465
   conserva el SELECT en las 5.
-- **Migración `0465`**, sin aplicar. Un solo bloque DO con preflight de 8 chequeos, foto de ACL
+- **Migración `0465`**, aplicada en producción el 2026-09-19 (ver abajo). Un solo bloque DO con preflight de 8 chequeos, foto de ACL
   por OID (tabla y columna), `revoke maintain, references, trigger on all tables in schema public
   from anon, authenticated` y postflight. Tiene `set lock_timeout = '5s'` y
   `set statement_timeout = '30s'`. Si falla, no deja nada a medias, con o sin transacción externa.
@@ -58,7 +58,8 @@ o en Postgres local.
   Incluye un mini intérprete de psql (`\set`, `\if`, `\ir`) y monta en `/sb/` los archivos que los
   contratos leen con `pg_read_file`.
 - **Espera declarada** en `supabase/migrations-baseline.json` (`pendingBelowCutoff`), con motivo,
-  preflight, orden, locks, vuelta atrás y quién la destraba.
+  preflight, orden, locks, vuelta atrás y quién la destraba. Salió de ahí al aplicarse: el
+  baseline de la rama quedó igual al de main.
 - **Spec 0485** completa e índice regenerado con `docs:index`.
 
 ## VALIDACIÓN
@@ -112,7 +113,9 @@ Corrida sobre el árbol de trabajo de esta rama (base `1d80c18a`), 2026-09-18.
 - `0e6885d6` merge de `origin/main` (`3f810366`).
 - `7bc92e30` docs(handoff): chequeos después del primer merge.
 - `b94bb96a` merge de `origin/main` (`26983062`, con la #150).
-- El commit que contiene este documento: registro del segundo merge.
+- `e49fc7a5` docs(handoff): registro del segundo merge.
+- El commit que contiene este documento: 0465 aplicada a producción. Sale de `pendingBelowCutoff`,
+  la spec pasa a `done` y se registra la aplicación.
 
 ## PR / BRANCH
 
@@ -123,18 +126,36 @@ Corrida sobre el árbol de trabajo de esta rama (base `1d80c18a`), 2026-09-18.
   driver semántico), y el CI de calidad no arrancaba. La #150 entra antes que esta: cuando entre,
   hay que traer main otra vez con el driver y repetir el push. `update-branch` no sirve.
 
+## APLICACIÓN DE LA 0465
+
+- **OK nominal de Sam:** 2026-09-19 a las 00:29 UTC, por AskUserQuestion al Director
+  («0465_anon_privilegios_residuales»). La aplicó el Director, sola y con `name` exacto, a las
+  00:56:40 UTC (20:56 en Caracas), sin sesiones activas. El postflight interno pasó.
+- **Ledger:** `20260919005640 · 0465_anon_privilegios_residuales`, 1 sentencia. md5 de
+  `statements` = `e87d496914c1344185718e758b3b4e5b` y 15 600 bytes, iguales al blob `863358f4`
+  (sólo LF). La cabecera del `.sql` no se toca.
+- **V0 (antes, leído por el Director):** M/R/T de `anon` en 180 relaciones y de `authenticated` en
+  196; SELECT de `anon` en 5; DML de `authenticated`: SELECT 228, INSERT 174, UPDATE 166,
+  DELETE 118.
+- **V1:** la vuelta atrás (dos GRANT: `anon` sobre 180 relaciones y `authenticated` sobre 196)
+  quedó fuera del repo, en el scratchpad del Director.
+- **V2 (después):** residuo M/R/T **0** para los dos roles; `anon` lee exactamente las 5 tablas;
+  DML de `authenticated` sin cambios; los 7 UPDATE por columna, intactos.
+- **Comprobación del Worker**, hecha por su cuenta el 2026-09-19 con el conector de Supabase, sólo
+  ledger y catálogo, sin filas: la misma fila del ledger (versión, 1 sentencia, md5 y bytes) y el
+  mismo V2 (0 · 0 · 5, con back_glosario, back_noticias, back_servicios, news_posts y
+  ve_locality_catalog; 228/174/166/118).
+- **Advisors de seguridad:** la misma huella antes y después (md5 normalizado `c80be095…`, leído
+  por el Director).
+- **Sitio público:** `/noticias` (200, con sus 5 artículos), `/`, `/registro` y `/tarifas`
+  responden 200 (comprobado por el Director). No hace falta prueba de Sam.
+
 ## PENDIENTES DE ESTA TAREA
 
-1. **Aplicación a producción**, fuera del alcance de esta sesión. La hace el Director con OK
-   nominal de Sam que nombre `0465_anon_privilegios_residuales`, sola y con `name` exacto. Pasos:
-   V0 (releer el inventario), V1 (guardar la lista para la vuelta atrás) y V2 (verificar), en la
-   sección «Aplicación» de la spec. El Director la ordenó después de la 0462, sin urgencia, y la
-   aprobó para pedir el OK cuando el CI de la PR esté en verde. Después: sacar la espera de
-   `pendingBelowCutoff` y pasar SDD-0485 a `done`.
-2. **Si otra PR entra antes que esta**, traer main otra vez igual que con la #150: con el driver
-   de main, regenerar con `build-docs-index.mjs`, repetir `docs:check`, `sdd:check`, el contrato
-   suelto y la prueba PGlite, y hacer un solo push. `update-branch` de GitHub no sirve, porque no
-   usa el driver.
+Ninguno. Queda la integración de la PR #151, que hace el Director. Si antes entra otra PR, hay que
+traer main igual que con la #150: con el driver de main, regenerar con `build-docs-index.mjs`,
+repetir `docs:check`, `sdd:check`, el contrato suelto y la prueba PGlite, y hacer un solo push.
+`update-branch` de GitHub no sirve, porque no usa el driver.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -167,10 +188,10 @@ Corrida sobre el árbol de trabajo de esta rama (base `1d80c18a`), 2026-09-18.
 
 ## HANDOFF AL DIRECTOR
 
-- Siguiente acción: revisar la PR; integrar con main cuando corresponda. La aplicación de 0465
-  queda para después, con OK nominal de Sam.
-- Cambios compartidos: `supabase/migrations-baseline.json` (una clave nueva en
-  `pendingBelowCutoff`) y `docs/specs/README.md` (índice generado). No toca código de producto.
+- Siguiente acción: con el CI en verde, integrar la PR #151. La 0465 ya está aplicada y
+  verificada.
+- Cambios compartidos: `docs/specs/README.md` (índice generado). `supabase/migrations-baseline.json`
+  quedó igual al de main: la espera de 0465 salió al aplicarse. No toca código de producto.
 - L14: la 0465 es independiente del orden de 0422/0423 y sus preflights siguen pasando
   (PGlite y psql real).
 - Regla del Director recibida durante el `verify`: una sola corrida pesada a la vez (verify

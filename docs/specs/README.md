@@ -508,7 +508,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0480 | El recargo de baterías del respaldo vuelve a espejar el ERP (… | done | interno |
 | 0481 | Portal cliente — cambiar la foto de cédula/RIF dentro del cup… | in-progress | interna |
 | 0484 | Los comandos de reportes de pago frente a una factura ya pagada | in-progress | interno |
-| 0485 | anon y authenticated pierden los privilegios residuales sobre… | in-progress | interno |
+| 0485 | anon y authenticated pierden los privilegios residuales sobre… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0482, 0483 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
