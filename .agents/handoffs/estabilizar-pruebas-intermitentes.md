@@ -5,8 +5,10 @@ Owner / sesión escritora: `claude-05073579`, Worker Claude Code, sesión «Esta
 
 Estado: lista-para-revision.
 
-- Las correcciones, la evidencia, la suite «antes» y `pnpm verify` sobre el head están cerrados.
-- Falta publicar: push y PR, cuando el Director lo autorice. El encargo de Sam autoriza abrir la PR con esa condición.
+- Las correcciones, la evidencia, la suite «antes» y `pnpm verify` están cerrados.
+- El Director autorizó publicar. Sam había encargado abrir la PR con esa autorización.
+- Se publica con un solo push de este commit, y la PR contra `main` se abre lista para revisión.
+- El número de la PR, el SHA y el resultado del CI alojado van al Director por mensaje.
 - Nada está integrado.
 
 Datos de la rama:
@@ -18,10 +20,12 @@ Datos de la rama:
   - Instalé dependencias con `corepack pnpm install --frozen-lockfile` y no copié ningún `.env`.
 - **Rama:** `codex/estabilizar-pruebas-intermitentes`, sin upstream, desde `origin/main` `1d80c18a`.
   - Traje con cherry-pick la reserva de SDD del Director: `f7e32411` quedó como `4fe29aa6` y `ff0a01a9` como `295c67a6`.
-  - main se integró dos veces, siempre con merge y con el driver de main:
+  - main se integró tres veces, siempre con merge y con el driver de main:
     - `b981d6dc` en `4f41ef2e`;
-    - `26983062` en `d3440dfe`.
-  - En los dos merges, `docs:index` regeneró el índice sin diff, así que el driver acertó.
+    - `26983062` en `d3440dfe`;
+    - `a90c242b` en `a1886e41`, antes del push, por pedido del Director.
+  - En los tres merges, `docs:index` regeneró el índice sin diff, así que el driver acertó.
+  - El diff de la rama contra la base común son 7 archivos: 4 pruebas, la spec, el índice y este handoff.
 - **SDD:** `docs/specs/0486-estabilizar-pruebas-intermitentes/spec.md`, en `done`, porque se cumplen sus cinco criterios. La PR y el merge se registran aparte. El número lo asignó el Director.
 - **Permisos:**
   - commits locales;
@@ -160,6 +164,15 @@ Durante estas rondas arrancaron dos suites completas de otras sesiones: de 22 a 
 
 Con la contención real, las versiones de antes fallaron en 3 de 8 corridas, igual que en el problema. Las de después pasaron 8 de 8. La prueba más lenta de después fue de 9,6 s, contra un tope de 20 s.
 
+### Aisladas con la máquina quieta: primera medición contra head final
+
+| Prueba | Antes (`1d80c18a`, primera medición, carga 29-43 %) | Después (`a1886e41`, 01:20Z, carga 5 %, sin vitest ajenos) |
+|---|---|---|
+| PackingListProductsStep | 9/9 · 29,1 s de pruebas · máximo 8,8 s | 9/9 · 10,0 s · máximo 2,0 s |
+| supplier-flow | 23/23 · 77,9 s · máximo 9,7 s | 23/23 · 20,0 s · máximo 3,4 s |
+| ClientDrawer.confirm-delete | 9/9 · 1,9 s | 9/9 · 4,4 s (su arreglo no es de costo) |
+| invoice-read-boundary | 3/3 · 30,4 s en frío (6,4 s en tibio) | 4/4 · 1,5 s |
+
 ### Suite completa
 
 | Corrida | Condiciones | Resultado |
@@ -186,6 +199,7 @@ Con la contención real, las versiones de antes fallaron en 3 de 8 corridas, igu
 | · e2e | `d3440dfe` | PASÓ: 166 pasaron y 18 omitidas, en 5,5 min |
 | · build (Next.js 16.2.11) | `d3440dfe` | PASÓ |
 | · migrations-applied | `d3440dfe` | NO EJECUTADO: el worktree no tiene `NEXT_PUBLIC_SUPABASE_URL` ni `SUPABASE_SERVICE_ROLE_KEY`, y no copio credenciales a worktrees. Esta tarea no agrega migraciones, así que no aplica a su contenido. Aun así, el cierre de verify queda INCOMPLETO en ese crítico. |
+| Merge de main `a90c242b`: `docs:check` (471 specs), `sdd:check` y las 4 pruebas en foco con `--pool=threads` | `a1886e41` | PASÓ: 9/9, 23/23, 9/9 y 4/4. El Director pidió no repetir el verify: el merge es trivial y no toca estos archivos. |
 | ESLint de los 4 archivos | `7f8aca61` | PASÓ |
 | `docs:check` / `sdd:check` después de cada merge | `4f41ef2e`, `d3440dfe` | PASÓ |
 | CI alojado («Calidad local sin secretos») | — | NO DISPONIBLE hasta publicar la PR. Va por mensaje al Director. |
@@ -204,16 +218,17 @@ Con la contención real, las versiones de antes fallaron en 3 de 8 corridas, igu
 - `4cdcbcfd`: `register-error-summary` queda fuera de alcance, con su medición.
 - `bca849e9`: el handoff registra la suite «antes».
 - `d3440dfe`: merge de main `26983062`.
-- El commit que contiene este documento: el cierre, con el verify y la spec en `done`.
+- `ad682960`: el cierre, con el verify y la spec en `done`.
+- `a1886e41`: merge de main `a90c242b`.
+- El commit que contiene este documento: el merge final y la validación focal, antes del push.
 
 ## PR / BRANCH
 
-Sin PR todavía. Rama local `codex/estabilizar-pruebas-intermitentes`, base `main`. El push de la rama propia y la PR se hacen cuando el Director lo autorice. El resultado del CI alojado se le manda por mensaje, sin volver a empujar.
+Rama `codex/estabilizar-pruebas-intermitentes`, que se publica en `origin` con este push. La PR va contra `main`, lista para revisión. El número, el SHA publicado y el resultado del CI alojado van al Director por mensaje, sin volver a empujar: la rama queda congelada hasta que él integre.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Publicar la rama y abrir la PR contra `main`, cuando el Director lo autorice.
-2. Mandarle al Director el resultado del CI alojado: «Calidad local sin secretos», comprobado por nombre.
+1. Mandarle al Director el resultado del CI alojado: «Calidad local sin secretos», comprobado por nombre.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -244,14 +259,14 @@ Sin PR todavía. Rama local `codex/estabilizar-pruebas-intermitentes`, base `mai
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** autorizar la publicación. Hago push de la rama y abro la PR contra `main`. Todo lo escribible está en este commit; lo único que llega después es el CI, por mensaje.
+- **Siguiente acción:** revisar la PR e integrarla cuando el CI esté verde. Todo lo escribible está en este commit; lo único que llega después es el CI, por mensaje.
 - **Revisión sugerida:**
   - que las consultas acotadas afirman lo mismo que antes;
   - que las negativas siguen sobre toda la página;
   - que el prefiltro de invoices es exacto, con su prueba y su mutante;
   - que la carrera de ClientDrawer está bien descrita.
 - **Sin cambios compartidos:** ni producto, ni `vitest.config.ts`, ni migraciones, ni base de datos.
-- **Ownership:** el claim de `claude-05073579` sigue tomado hasta publicar. Se libera después de enviar el resultado del CI.
+- **Ownership:** el claim de `claude-05073579` se libera después de publicar y de enviar el resultado del CI. Si la revisión pide cambios, se vuelve a reclamar.
 
 ## Impacto documental y conocimiento
 
