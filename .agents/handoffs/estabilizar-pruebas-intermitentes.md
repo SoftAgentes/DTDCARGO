@@ -20,11 +20,13 @@ Datos de la rama:
   - Instalé dependencias con `corepack pnpm install --frozen-lockfile` y no copié ningún `.env`.
 - **Rama:** `codex/estabilizar-pruebas-intermitentes`, sin upstream, desde `origin/main` `1d80c18a`.
   - Traje con cherry-pick la reserva de SDD del Director: `f7e32411` quedó como `4fe29aa6` y `ff0a01a9` como `295c67a6`.
-  - main se integró tres veces, siempre con merge y con el driver de main:
+  - main se integró cuatro veces, siempre con merge y con el driver de main:
     - `b981d6dc` en `4f41ef2e`;
     - `26983062` en `d3440dfe`;
-    - `a90c242b` en `a1886e41`, antes del push, por pedido del Director.
-  - En los tres merges, `docs:index` regeneró el índice sin diff, así que el driver acertó.
+    - `a90c242b` en `a1886e41`, antes del primer push, por pedido del Director;
+    - `e9e8240e`, con la #159, en `a83473ce`, en el turno de integración que dio el Director.
+  - En los cuatro merges, `docs:index` regeneró el índice sin diff, así que el driver acertó.
+  - Después del último merge, el índice lista 475 specs.
   - El diff de la rama contra la base común son 7 archivos: 4 pruebas, la spec, el índice y este handoff.
 - **SDD:** `docs/specs/0486-estabilizar-pruebas-intermitentes/spec.md`, en `done`, porque se cumplen sus cinco criterios. La PR y el merge se registran aparte. El número lo asignó el Director.
 - **Permisos:**
@@ -200,6 +202,7 @@ Con la contención real, las versiones de antes fallaron en 3 de 8 corridas, igu
 | · build (Next.js 16.2.11) | `d3440dfe` | PASÓ |
 | · migrations-applied | `d3440dfe` | NO EJECUTADO: el worktree no tiene `NEXT_PUBLIC_SUPABASE_URL` ni `SUPABASE_SERVICE_ROLE_KEY`, y no copio credenciales a worktrees. Esta tarea no agrega migraciones, así que no aplica a su contenido. Aun así, el cierre de verify queda INCOMPLETO en ese crítico. |
 | Merge de main `a90c242b`: `docs:check` (471 specs), `sdd:check` y las 4 pruebas en foco con `--pool=threads` | `a1886e41` | PASÓ: 9/9, 23/23, 9/9 y 4/4. El Director pidió no repetir el verify: el merge es trivial y no toca estos archivos. |
+| Merge de main `e9e8240e` (turno de integración): `docs:check` (475 specs), `sdd:check` e invoice-read-boundary más las 3 pruebas tocadas, sueltas con `--pool=threads` y la máquina a 22 % | `a83473ce` | PASÓ: 4/4, 9/9, 23/23 y 9/9. El inventario que main exige ahora es de 19 archivos y 44 llamadas, cambiado por la #157 y la #159; el BASELINE y las aserciones quedaron como en main, porque esta rama no los toca. Sobre el código nuevo (1.651 archivos), el prefiltro y el parseo completo dan las mismas 44 llamadas. |
 | ESLint de los 4 archivos | `7f8aca61` | PASÓ |
 | `docs:check` / `sdd:check` después de cada merge | `4f41ef2e`, `d3440dfe` | PASÓ |
 | CI alojado («Calidad local sin secretos») | — | NO DISPONIBLE hasta publicar la PR. Va por mensaje al Director. |
@@ -220,7 +223,9 @@ Con la contención real, las versiones de antes fallaron en 3 de 8 corridas, igu
 - `d3440dfe`: merge de main `26983062`.
 - `ad682960`: el cierre, con el verify y la spec en `done`.
 - `a1886e41`: merge de main `a90c242b`.
-- El commit que contiene este documento: el merge final y la validación focal, antes del push.
+- `b70706af`: el handoff del primer push. CI verde: «Calidad local sin secretos» en 17 min 23 s, run 35412460649.
+- `a83473ce`: merge de main `e9e8240e`, en el turno de integración.
+- El commit que contiene este documento: el registro de ese merge y de su validación, en el mismo push.
 
 ## PR / BRANCH
 

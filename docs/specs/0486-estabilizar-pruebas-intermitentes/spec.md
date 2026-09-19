@@ -214,6 +214,13 @@ Por ese paso, el cierre de verify es INCOMPLETO según su propio veredicto.
 | 4 | Cumplido: suite «después» sin rojos, con la carga registrada |
 | 5 | No aplica: `vitest.config.ts` no cambió |
 
+**Inventario de invoices con main actualizado.** El inventario de 18 archivos y
+46 llamadas es el de la base de esta rama. La #157 y la #159 lo cambiaron en main,
+que ahora exige 19 archivos y 44 llamadas. Al traer main `e9e8240e`, el
+BASELINE y esas aserciones quedaron como en main: esta rama no los toca. Sobre ese
+código (1.651 archivos), el prefiltro da el mismo resultado que el parseo
+completo: 44 llamadas.
+
 **Límite.** Fuera de una terminal, vitest solo imprime el resumen. Por eso la suite
 «después» no tiene tiempos por prueba. Los tiempos de después salen de los A/B
 focales (sección anterior y handoff).
