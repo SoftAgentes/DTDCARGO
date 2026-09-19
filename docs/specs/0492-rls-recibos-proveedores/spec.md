@@ -85,6 +85,19 @@ ningún rol legítimo:
   está aplicada: `<tabla>_team_select` para leer, `<tabla>_accounting_insert` y
   `<tabla>_accounting_update` para escribir, y `revoke delete`. Misma familia de
   tablas de dinero, mismo criterio de rol que las RPC de la 0467 y la 0468.
+
+  **Por qué ese molde y no el de la 0422**, que el encargo daba como criterio
+  (el Director lo revisó y lo aprobó así el 2026-09-19):
+  - el criterio de rol es el mismo en las dos: membresía activa del tenant con
+    `accounting` o `admin`. Cambia la forma, no la regla;
+  - la 0422 es una frontera de **sólo lectura**: mueve toda la escritura de
+    `payment_reports` a comandos auditados (0421) y deja la tabla sin DML. Acá
+    la escritura se queda en la tabla, que es justo lo que hizo la 0407;
+  - la 0407 es la hermana **ya aplicada** de estas tablas de dinero: `invoices`
+    y `payment_receipts` se escriben en el mismo flujo de Cobranzas. Una sola
+    forma en el dominio se revisa mejor que dos;
+  - la 0422 correlaciona la membresía con el `tenant_id` de la fila; acá la
+    igualdad de tenant ya lo hace, como se explica abajo.
 - **La lectura no se toca.** Sigue siendo tenant-wide, la deuda deliberada que
   ya anotó la 0407: hay módulos que consumen agregados. El contrato lo fija con
   una aserción por rol.
