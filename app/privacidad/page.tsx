@@ -17,8 +17,10 @@ const DESC =
 // Al cambiar QUÉ se recoge hay que mover esta fecha: la política se publica con
 // su fecha de vigencia y lo publicado obliga por haberse publicado. El 2026-08-05
 // el registro pasó a pedir ciudad y estado de entrega (migr 0348) y el texto
-// todavía decía que la dirección se agregaba después, en el Portal.
-const UPDATED = "5 de agosto de 2026";
+// todavía decía que la dirección se agregaba después, en el Portal. El
+// 2026-09-19 (SDD-0487) el Portal empezó a recoger la empresa para facturar y
+// la foto de perfil pasó a guardarse sin metadatos.
+const UPDATED = "19 de septiembre de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -51,7 +53,7 @@ const CAPTURA: [string, string][] = [
   ],
   [
     "Portal del Cliente",
-    "Información de tus envíos, direcciones de entrega, foto de tu documento de identidad (cédula/RIF), comprobantes de pago (que pueden incluir datos bancarios), otros documentos que subes, pagos reportados y comunicaciones con nuestro equipo.",
+    "Información de tus envíos, direcciones de entrega, foto de tu documento de identidad (cédula/RIF), tu foto de perfil si la subes (la guardamos sin la ubicación ni los demás datos ocultos de la imagen), los datos de tu empresa si la agregas para facturar (razón social, RIF y, si lo cargas, domicilio fiscal), comprobantes de pago (que pueden incluir datos bancarios), otros documentos que subes, pagos reportados y comunicaciones con nuestro equipo.",
   ],
   [
     "Seguimiento de envío",
@@ -168,6 +170,12 @@ export default function PrivacidadPage() {
                   <strong>Comunicarnos contigo:</strong> responder consultas,
                   enviarte tu estimado, avisarte del estado de tu carga y enviarte
                   comprobantes o facturas.
+                </li>
+                <li>
+                  <strong>Facturarte a tu nombre o al de tu empresa:</strong> si
+                  agregas una empresa en tu perfil, usamos su razón social, su RIF
+                  y, si lo cargas, su domicilio fiscal para emitir las facturas que
+                  elijas a su nombre. Esos datos quedan en cada factura emitida.
                 </li>
                 <li>
                   <strong>Gestionar tu cuenta</strong> en el Portal del Cliente.
