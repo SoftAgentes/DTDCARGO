@@ -98,6 +98,9 @@ Corrida sobre el árbol de trabajo de esta rama (base `1d80c18a`), 2026-09-18.
 | Después del merge: `__tests__/anon-privilegios-residuales.migration.test.ts`, archivo único, sobre `0e6885d6` | **PASÓ**: 26 de 26, con la cadena de L14 corrida contra los contratos 0422/0423 de main |
 | Compatibilidad con 0462 y 0464 (en sus ramas, sin integrar; la 0465 se aplica después de la 0462) | **REVISADO en lectura.** La 0462 crea `client_profile_blocked_attempts` con dueño `postgres`, `revoke all` y SELECT sólo para `service_role`; la 0464 sólo cambia el dueño de una función. Ninguna concede nada a `anon` ni saca tablas de `postgres`: el preflight de la 0465 sigue pasando después de ellas |
 | `verify` completo después del merge | **NO EJECUTADO**, por indicación del Director: el merge sólo trajo archivos ajenos, y rige un turno a la vez para corridas pesadas. El CI de la PR corre sobre el head publicado |
+| CI de la PR sobre `7bc92e30` (primer merge) | **PASÓ**: «Calidad local sin secretos», run 35409763272, success en 19 min 52 s, todos los pasos en verde. Vercel: pass |
+| **Segundo merge de `origin/main`** (`26983062`, PR #150) → `b94bb96a`, pedido por Sam después de que entrara la #150 | **PASÓ**, sin conflictos. El driver dejó en el baseline las cuatro esperas (0422, 0423, 0464 y 0465); el índice regenerado quedó limpio (471 specs). La 0464 sólo cambia el dueño y el EXECUTE de `payment_private.run_report_command`: no toca privilegios de tablas ni el inventario de la 0465 |
+| Después del segundo merge: `docs:check` / `sdd:check` / `pending-migration-symbols` / contrato 0465 suelto en `postgres:17` y `supabase/postgres` / prueba PGlite (26 casos) | **PASÓ** todo sobre `b94bb96a` |
 
 ## COMMITS
 
@@ -107,7 +110,9 @@ Corrida sobre el árbol de trabajo de esta rama (base `1d80c18a`), 2026-09-18.
 - `415502e2` test(db): contrato SQL y prueba PGlite con la cadena de L14.
 - `e5d6c07a` docs(handoff): primer cierre del Worker.
 - `0e6885d6` merge de `origin/main` (`3f810366`).
-- El commit que contiene este documento: cierre actualizado después del merge.
+- `7bc92e30` docs(handoff): chequeos después del primer merge.
+- `b94bb96a` merge de `origin/main` (`26983062`, con la #150).
+- El commit que contiene este documento: registro del segundo merge.
 
 ## PR / BRANCH
 
@@ -126,10 +131,10 @@ Corrida sobre el árbol de trabajo de esta rama (base `1d80c18a`), 2026-09-18.
    sección «Aplicación» de la spec. El Director la ordenó después de la 0462, sin urgencia, y la
    aprobó para pedir el OK cuando el CI de la PR esté en verde. Después: sacar la espera de
    `pendingBelowCutoff` y pasar SDD-0485 a `done`.
-2. **Traer main otra vez cuando entre la #150**, que va antes en el turno de integración. Las dos
-   agregan una fila al índice generado: con el driver de main, regenerar con
-   `build-docs-index.mjs`, repetir `docs:check`, `sdd:check` y el contrato suelto, y hacer un solo
-   push.
+2. **Si otra PR entra antes que esta**, traer main otra vez igual que con la #150: con el driver
+   de main, regenerar con `build-docs-index.mjs`, repetir `docs:check`, `sdd:check`, el contrato
+   suelto y la prueba PGlite, y hacer un solo push. `update-branch` de GitHub no sirve, porque no
+   usa el driver.
 
 ## FUERA DE ALCANCE DETECTADO
 
