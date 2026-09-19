@@ -427,11 +427,12 @@ condicionada a ese GREEN posteriormente obtenido.
   y2 tenants sintéticos. Exit0, sin modificar Cloud.
 - Cinco carreras reales con `--restriction --advisors`: cupo5, replay,
   doble confirmación, revocación Portal y revocación financiera, todas verdes.
-- **2026-09-18:** esas carreras no entraron a `main` con la importación. Ahora
-  las corre `supabase/tests/0421_comandos_pago_carrera.test.sql` en el paso
-  `sql-tests` de `verify` (no en CI), sobre la 0421 más la 0464: cupo 5,
-  replay, conflicto de solicitud, revocación Portal y revocación financiera. La
-  doble confirmación queda en `scripts/qa/payment-report-confirm-race.mjs` (0464).
+- **Corrección de estado (2026-09-18):** la evidencia previa de esas carreras
+  no estaba en `main`: su script no se importó, y el handoff c-l14 las marca
+  NO EJECUTADO. Desde hoy las cubre `supabase/tests/0421_comandos_pago_carrera.test.sql`,
+  en el paso `sql-tests` de `verify` (no en CI), sobre la 0421 más la 0464:
+  cupo 5, replay, conflicto de solicitud, revocación Portal y revocación
+  financiera. La doble confirmación queda en `scripts/qa/payment-report-confirm-race.mjs` (0464).
 - Advisors CLI2.108.0 con URL127.0.0.1 del contenedor propio: un WARN del helper
   legacy/stub touch_updated_at; ningún objeto nuevo señalado. No es un informe
   de Cloud ni una ausencia universal de hallazgos.
