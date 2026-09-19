@@ -76,6 +76,7 @@ Está en la spec (§Verificación). En resumen:
 - Vitest del Portal, del Studio, del cron y de la copia legal en verde;
 - typecheck, ESLint, rsc-boundary, símbolos (0 rojos, 2 amarillos), docs, sdd, components y governance: PASÓ;
 - `/ui-check` con ajustes aplicados.
+- Merge de `origin/main` `c8f7f8b6` (entran la #151 con la 0465 y la #155) con el driver de main, sin conflictos y con el índice regenerado igual. Después del merge: PASÓ 194 tests en 17 archivos (contrato de 0466, perfil, facturación, cron), typecheck, símbolos (0 rojos, 2 amarillos), docs y numbering.
 - Pendiente: `pnpm verify` completo, con turno del Director.
 
 ## Pendientes de esta tarea
