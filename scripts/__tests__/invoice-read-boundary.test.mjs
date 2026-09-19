@@ -1,4 +1,5 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
@@ -14,16 +15,27 @@ const BASELINE = {
   // SDD-0465: +1 por la lectura previa de `softDeleteInvoice` (id, status,
   // invoice_code, deleted_at), detrás de moduleEditDenial("invoices") y con el
   // cliente de sesión bajo RLS; decide el mensaje antes del UPDATE condicionado.
-  "app/studio/(app)/facturacion/actions.ts": 11,
+  // SDD-0487: +1 en `lookupInvoiceBillingOptions`, que lee sólo `bill_to_kind`
+  // del borrador que se edita, con el cliente de sesión bajo RLS
+  // (`invoices_accounting_select`: accounting/admin del tenant).
+  "app/studio/(app)/facturacion/actions.ts": 12,
   "app/studio/(app)/fidelizacion/actions.ts": 2,
   "lib/portal/portal-legal-queries.ts": 3,
   "lib/portal/portal-queries.ts": 2,
   "lib/studio/accounting/referral-credit-posting.ts": 2,
-  "lib/studio/collections-actions.ts": 6,
+  // SDD-0488: −4. Las escrituras de la factura al cobrar, identificar y anular
+  // pasaron a las RPC de 0467, y la anulación ya no lee la factura. Quedan las
+  // dos lecturas previas del cobro y de la identificación (sólo mensajes).
+  "lib/studio/collections-actions.ts": 2,
   "lib/studio/costing/queries.ts": 2,
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
   "lib/studio/fidelizacion/referral-credit-queries.ts": 1,
   "lib/studio/fiscal/queries.ts": 1,
+  // SDD-0487: `domicilioFiscalSellado` lee sólo `client_fiscal_address` de una
+  // factura ya autorizada por su caller, con el cliente de sesión bajo RLS: el
+  // PDF del Studio (canAccessModule(role, "invoices") + getInvoiceByCode) y el
+  // del Portal (getMyInvoiceForPrincipal + «invoices portal self read»).
+  "lib/studio/invoice-client-doc.ts": 1,
   "lib/studio/invoice-queries.ts": 3,
   "lib/studio/kommo-contact-status.ts": 1,
   "lib/studio/payment-queries.ts": 1,
@@ -38,8 +50,32 @@ function filesUnder(root) {
   });
 }
 
+// SDD-0486: lectura en paralelo con tope. Leer los ~1.600 archivos uno por uno
+// sumaba la latencia de cada apertura (en Windows, el escaneo del antivirus). Con 32
+// lecturas a la vez, la lectura baja de ~2 s a ~0,6 s con la máquina quieta.
+async function readAll(paths, limit = 32) {
+  const sources = new Array(paths.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: limit }, async () => {
+    while (next < paths.length) {
+      const i = next++;
+      sources[i] = await readFile(paths[i], "utf8");
+    }
+  }));
+  return sources;
+}
+
+// SDD-0486: un literal cuyo valor es "invoices" aparece tal cual en el fuente, salvo
+// que use escapes (`"invo\x69ces"`, continuación de línea), y entonces lleva una barra
+// invertida. Un archivo sin ninguna de las dos cosas no puede sumar llamadas, así que
+// no hace falta parsearlo. El conteo no cambia. Solo se parsean ~360 de ~1.600 archivos.
+function mayCallInvoices(source) {
+  return source.includes("invoices") || source.includes("\\");
+}
+
 function invoiceCalls(source) {
-  const ast = ts.createSourceFile("source.tsx", source, ts.ScriptTarget.Latest, true);
+  // Sin punteros al padre: el recorrido usa forEachChild y no los necesita.
+  const ast = ts.createSourceFile("source.tsx", source, ts.ScriptTarget.Latest, false);
   let count = 0;
   function visit(node) {
     if (ts.isCallExpression(node)) {
@@ -59,20 +95,24 @@ function invoiceCalls(source) {
 }
 
 describe("SDD-0357 · frontera de lectura de facturas", () => {
-  // L07, ronda 3: tope propio de 60 s. La prueba lee y parsea unos 1.600
-  // módulos y, bajo la carga de `pnpm verify`, tardó 22,4 s y 20,8 s contra el
-  // tope global de 20 s. Es sincrónica: el tope no la corta a mitad, sólo la
-  // marca en rojo si al terminar lo pasó. El inventario exigido no cambia.
-  it("congela el inventario de callers de producción sin contar comentarios o fixtures", () => {
+  // L07, ronda 3: tope propio de 60 s. La prueba lee unos 1.600 módulos y, bajo la
+  // carga de `pnpm verify`, tardó 22,4 s y 20,8 s contra el tope global de 20 s. En
+  // la suite completa local llegó a 92 s (SDD-0486). La lectura en paralelo y el
+  // prefiltro la bajan de ~5,6 s a ~1,5 s con la máquina quieta. El inventario
+  // exigido no cambia.
+  it("congela el inventario de callers de producción sin contar comentarios o fixtures", async () => {
+    const paths = ["app", "lib", "supabase/functions"]
+      .flatMap((root) => filesUnder(resolve(root)))
+      .filter((path) => /\.[cm]?[jt]sx?$/.test(path) && !/(__tests__|\.test\.|\.spec\.)/.test(path));
+    const sources = await readAll(paths);
     const actual = {};
-    for (const path of ["app", "lib", "supabase/functions"].flatMap((root) => filesUnder(resolve(root)))) {
-      if (!/\.[cm]?[jt]sx?$/.test(path) || /(__tests__|\.test\.|\.spec\.)/.test(path)) continue;
-      const count = invoiceCalls(readFileSync(path, "utf8"));
+    paths.forEach((path, i) => {
+      const count = mayCallInvoices(sources[i]) ? invoiceCalls(sources[i]) : 0;
       if (count) actual[relative(process.cwd(), path).replaceAll("\\", "/")] = count;
-    }
+    });
     expect(actual).toEqual(BASELINE);
-    expect(Object.keys(actual)).toHaveLength(18);
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(46);
+    expect(Object.keys(actual)).toHaveLength(19);
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(44);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {
@@ -80,6 +120,16 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
       const example = 'db.from("invoices")';
       db.from("clients"); db.from("invoices"); db["from"]('invoices');
     `)).toBe(2);
+  });
+
+  it("el prefiltro deja pasar todo archivo que pueda llamar a invoices, también con escapes", () => {
+    // Ninguno contiene la palabra tal cual: sólo la barra invertida los delata.
+    for (const source of ['db.from("invo\\x69ces")', 'db["fr\\u006fm"]("\\u0069nvoices")', 'db.from("invo\\\nices")']) {
+      expect(source).not.toContain("invoices");
+      expect(invoiceCalls(source)).toBe(1);
+      expect(mayCallInvoices(source)).toBe(true);
+    }
+    expect(mayCallInvoices('db.from("clients"); db.from(`payments`)')).toBe(false);
   });
 
   it("mantiene los cuatro widgets financieros detrás del candado invoices", () => {

@@ -9,9 +9,14 @@
  * corregir el documento de un cliente cambiaría en retroactivo el papel de
  * todas sus facturas viejas — incluidas las que ya se entregaron.
  *
- * Por eso el documento se copia acá y se sella **al emitir**, que es cuando la
- * factura deja de ser borrador y pasa a ser comprobante. Un borrador todavía se
- * edita; no tiene sentido congelarle nada.
+ * Por eso el documento se sella **al emitir**, que es cuando la factura deja de
+ * ser borrador y pasa a ser comprobante. Un borrador todavía se edita; no tiene
+ * sentido congelarle nada.
+ *
+ * SDD-0487: el sello pasó a la base (trigger `invoices_seal_billing_titular`,
+ * migración 0466). Cubre todos los caminos de emisión —antes la RPC 0128 emitía
+ * sin sello— y sella el titular que eligió el cliente o el operador: nombre,
+ * documento, tipo y domicilio fiscal. Este módulo quedó con lo que imprime.
  *
  * ## Por qué dos campos y no uno
  *
@@ -27,18 +32,6 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ClientDocKind } from "@/lib/studio/client-types";
-
-/** Lo que se copia a `invoices` al emitir. */
-export type DocumentoCongelado = {
-  client_rif: string | null;
-  client_doc_kind: string | null;
-};
-
-export const SIN_DOCUMENTO: DocumentoCongelado = {
-  client_rif: null,
-  client_doc_kind: null,
-};
 
 /**
  * La etiqueta que va delante del número en el papel.
@@ -69,27 +62,23 @@ export function lineaDocumentoCliente(
 }
 
 /**
- * Lee de `clients` el documento a congelar. Best-effort: si el cliente no
- * existe o no tiene documento, la factura se emite igual sin él.
- *
- * Se busca por `markbox` porque es lo que la factura guarda — y es único por
- * tenant (RLS acota la consulta al tenant del usuario).
+ * Domicilio fiscal SELLADO en la factura (SDD-0487). Se lee aparte y tolerante:
+ * sin la migración 0466 la columna no existe y el PDF sale igual que antes, sin
+ * la línea. Lo sellado no se recalcula nunca desde el cliente.
  */
-export async function documentoDelCliente(
+export async function domicilioFiscalSellado(
   supabase: SupabaseClient,
-  markbox: string | null | undefined,
-): Promise<DocumentoCongelado> {
-  const mb = (markbox ?? "").trim();
-  if (!mb) return SIN_DOCUMENTO;
-
-  const { data } = await supabase
-    .from("clients")
-    .select("rif, doc_kind")
-    .eq("markbox", mb)
-    .is("deleted_at", null)
-    .maybeSingle<{ rif: string | null; doc_kind: ClientDocKind | null }>();
-
-  const rif = (data?.rif ?? "").trim();
-  if (!rif) return SIN_DOCUMENTO;
-  return { client_rif: rif, client_doc_kind: data?.doc_kind ?? null };
+  invoiceId: string,
+): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from("invoices")
+      .select("client_fiscal_address")
+      .eq("id", invoiceId)
+      .maybeSingle<{ client_fiscal_address: string | null }>();
+    if (error) return null;
+    return (data?.client_fiscal_address ?? "").trim() || null;
+  } catch {
+    return null;
+  }
 }

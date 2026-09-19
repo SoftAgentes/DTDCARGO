@@ -32,6 +32,7 @@ import {
 import { getCompanyDataForTenant } from "@/lib/studio/company-queries";
 import { FacturaDocument } from "@/lib/studio/pdf/factura-pdf";
 import { noEncontrado, nombreSeguro, respuestaPdf } from "@/lib/studio/pdf/pdf-response";
+import { domicilioFiscalSellado } from "@/lib/studio/invoice-client-doc";
 
 export const dynamic = "force-dynamic";
 
@@ -68,12 +69,17 @@ export async function GET(
     principal.tenantId,
   ).catch(() => null);
 
+  // SDD-0487: domicilio fiscal sellado, leído por RLS del propio cliente. Sin
+  // 0466 no hay columna y la factura sale sin esa línea, como antes.
+  const fiscalAddress = await domicilioFiscalSellado(supabase, inv.id);
+
   const doc = createElement(FacturaDocument, {
     invoice: {
       code: inv.code,
       clientName: inv.clientName,
       clientRif: inv.clientRif,
       clientDocKind: inv.clientDocKind,
+      clientFiscalAddress: fiscalAddress,
       clientMarkbox: principal.client.markbox,
       shipmentCode: inv.shipmentCode,
       currency: inv.currency,

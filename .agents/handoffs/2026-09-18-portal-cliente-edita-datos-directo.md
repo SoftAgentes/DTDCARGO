@@ -8,7 +8,7 @@
 | Rama / base | `codex/portal-cliente-edita-datos-directo`, desde `origin/main` `cc15e48c` + cherry-pick de la reserva `2c937d4f`. Merge de `origin/main` `3f810366` en `43c1f627`. |
 | SDD | [0482](../../docs/specs/0482-portal-cliente-edita-numero-identidad/spec.md) · `in-progress` |
 | Migración | `0462_portal_profile_direct_edit` (asignada por dtdcargo-18) |
-| Estado de tarea | PR #153 abierta. `0462` aplicada a producción el 2026-09-19. Falta integrar la PR y el smoke de Sam. |
+| Estado de tarea | Cerrada en `done` el 2026-09-19: `0462` aplicada, PR #153 integrada (`0a48b956`) y desplegada, y smoke de Sam OK. |
 | Permisos | Sam autorizó publicar la rama y abrir la PR contra `main` (2026-09-19). **No** merge, deploy ni aplicar 0462. |
 
 ## Traspaso (2026-09-19)
@@ -105,11 +105,11 @@ Todo va dentro del cupo compartido de 3 cambios. En la primera respuesta descart
    - Identidad: md5 `9dc2934f…` y 16415 bytes, iguales al blob `f6f719f2`.
    - Postflight y advisors como se esperaba.
    - Sale de `pendingBelowCutoff` y de las declaraciones de símbolos.
-3. Integración de la PR por dtdcargo-18.
-4. Smoke de Sam:
+3. ~~Integración de la PR~~: hecho, merge `0a48b956` a las 01:29:01Z y despliegue en success a las 01:31Z.
+4. ~~Smoke de Sam~~: hecho el 2026-09-19. Respuesta literal: «smoke de la 0482 ok, todo salió bien». Los casos eran:
    - cambiar el teléfono: se aplica al instante, baja el cupo y aparece la fila «Editado por el cliente» en el Studio;
    - intentar el documento de otro cliente de prueba: mensaje genérico, aviso al asesor y cupo intacto.
-5. SDD 0482 a `done` sólo tras 2 a 4.
+5. ~~SDD 0482 a `done`~~: hecho en la rama de la SDD-0487.
 
 ## Fuera de alcance detectado
 
