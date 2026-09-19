@@ -1,9 +1,14 @@
 # Handoff 0484 — Reportes de pago frente a una factura ya pagada
 
-- Fecha: 2026-09-18. Estado de la tarea: **lista para revisión**. Se publica
-  como **PR draft** contra `main` por pedido de Sam («trae main y abre la PR en
-  draft»). La 0464 **NO está aplicada**: requiere el OK nominal de Sam y la
-  aplica el Director. La SDD queda `in-progress` hasta que se aplique.
+- Fecha: 2026-09-18; la aplicación se registró el 2026-09-19. Estado de la
+  tarea: **integrada** (PR #150, merge `26983062`). **La 0464 está APLICADA en
+  producción** (ledger `20260919010007`), con OK nominal de Sam; la aplicó el
+  Director. Ver «APLICACIÓN DE LA 0464». La SDD sigue `in-progress` hasta que
+  Sam la verifique en producción con el bloque 3.2 de la prueba de reportes de
+  pago.
+- Seguimiento: la sesión Worker original cerró antes del registro, así que lo
+  hizo otra tarea. Rama `codex/0464-aplicacion-prod`, owner `claude-1048f9`,
+  handoff [0464-aplicacion-prod](0464-aplicacion-prod.md).
 - Owner / sesión: `claude-worker-reporte-pago-factura-pagada` (Claude Opus 5,
   Worker, sesión «Revisar confirmación de pagos en facturas ya pagadas»).
   Director: `dtdcargo-18`.
@@ -53,7 +58,8 @@ rojo.
   - factura pagada → «Rechazar (Recomendado)»;
   - excedente sobre el saldo → «Rechazar el excedente (Recomendado)»;
   - motivo de cancelación → «Mostrarlo en el reporte».
-- **Migración 0464** (`0464_reporte_pago_factura_pagada.sql`, sin aplicar):
+- **Migración 0464** (`0464_reporte_pago_factura_pagada.sql`, aplicada en
+  producción el 2026-09-19; ver «APLICACIÓN DE LA 0464»):
   - `create or replace` sólo de `payment_private.run_report_command`, con el
     cuerpo de 0421 copiado textual y tres cambios: la regla de pagada
     (`PAYMENT_INVOICE_PAID`), la del saldo (`PAYMENT_EXCEEDS_BALANCE`) y el
@@ -81,7 +87,8 @@ rojo.
   `postgres:17` desechable y es determinista (advisory lock más
   `pg_stat_activity`, sin sleeps).
 - **Espera** de 0464 en `supabase/migrations-baseline.json › pendingBelowCutoff`,
-  con lo que el operador debe leer antes de aplicar.
+  con lo que el operador debe leer antes de aplicar. Salió de ahí al aplicarse,
+  en la rama `codex/0464-aplicacion-prod`.
 
 ## VALIDACIÓN
 
@@ -133,8 +140,12 @@ Sobre `1d80c18a`, en este orden:
 - `29e45386` `docs(handoff)`: el resultado de `pnpm verify`. Fue el head del
   primer push, con el que se abrió la PR #150.
 - `03ec6513`: merge de `3f810366`, en el turno de integración.
-- El commit que contiene esta versión: `docs(handoff)`. Es el head del segundo
-  push, el que pidió el Director.
+- `1cc16e9c` `docs(handoff)`: head del segundo push, el que pidió el Director,
+  y head de la PR #150 al fusionarse.
+
+Registro de la aplicación, en la rama `codex/0464-aplicacion-prod` sobre `main`
+`a90c242b`: el commit que contiene esta versión, `chore(db): SDD-0484 — 0464
+aplicada a producción`.
 
 Identidad del archivo a aplicar: `0464_reporte_pago_factura_pagada.sql`, md5
 `44fabe4d2643844fbe489e2ba88fa4fb`, 22209 bytes, LF. Cuerpo de la función:
@@ -150,17 +161,56 @@ pidió Sam en el chat de esta sesión.
 - Segundo push, en el turno de integración del Director: trae `3f810366` para
   que GitHub deje de ver el conflicto del índice y lance el workflow de calidad.
 
-La PR sigue en draft mientras corre el CI; la pasa a lista el Director al
-integrarla. El resultado del CI va por mensaje y no en otro commit.
+La PR #150 se fusionó el 2026-09-19 a las 00:51:43Z (merge `26983062`, head
+`1cc16e9c`). En GitHub, el estado `Vercel` de `26983062` es `success` desde las
+00:54:23Z.
+
+El registro de la aplicación va en la rama `codex/0464-aplicacion-prod`, con su
+propia PR contra `main` (ver [0464-aplicacion-prod](0464-aplicacion-prod.md)).
+
+## APLICACIÓN DE LA 0464
+
+Salvo donde se indica otra cosa, lo leyó el Director (`dtdcargo-18`), sólo del
+ledger y del catálogo, sin filas de negocio.
+
+- **OK nominal de Sam:** por AskUserQuestion del Director, el 2026-09-19 a las
+  00:29Z («0464_reporte_pago_factura_pagada»). Sam lo confirmó también en la
+  sesión Worker: «Autorizo aplicar la 0464_reporte_pago_factura_pagada».
+- **Orden:** primero la app (merge `26983062` y despliegue en `success` a las
+  00:54:23Z, comprobado en GitHub por la tarea de seguimiento) y después la 0464.
+- **Preflight:** `md5(prosrc)` de `payment_private.run_report_command`, releído
+  justo antes, `7814b3911f1e273a52bf870d8db08155` (el cuerpo de 0421). 0
+  sesiones activas.
+- **Aplicación:** el Director aplicó la 0464 sola, con `name` exacto, a las
+  01:00:07Z (21:00 del 18 en Caracas).
+- **Ledger:** `20260919010007 · 0464_reporte_pago_factura_pagada`, 1 sentencia.
+  `statements` tiene md5 `44fabe4d2643844fbe489e2ba88fa4fb` y 22 209 bytes,
+  igual que el blob `0b2d0065` de `main` (sólo LF; el seguimiento lo comprobó en
+  Git). La cabecera del `.sql` no se toca.
+- **Postflight:** el interno de la migración pasó. `md5(prosrc)` nuevo
+  `c3aab7fcb10e3bf5de0fa40cc562a45d`; DEFINER, owner `postgres`,
+  `search_path=""`; EXECUTE sólo para `authenticated` (ni `anon` ni
+  `service_role`). El comentario de `resolution_reason` quedó actualizado.
+- **Advisors de seguridad:** la misma huella antes y después (md5 normalizado
+  `c80be09588e4dd2dd588379f246765f5`).
+- La tarea de seguimiento no tenía conector de Supabase y no repitió la lectura
+  de producción.
+- La espera salió de `pendingBelowCutoff`; siguen en espera la 0422 y la 0423.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Que el Director revise y decida el orden de integración, que es quien serializa
-  los merges. Si `main` avanza, traerlo otra vez y repetir lo afectado.
-- El CI de la PR se informa por mensaje, no con otro commit.
-- Release, fuera del Worker: desplegar la app primero; después, con OK nominal de
-  Sam, aplicar la 0464 leyendo antes en producción `md5(prosrc)` de
-  `run_report_command`.
+- **Verificación de Sam en producción:** el bloque 3.2 de la prueba de reportes
+  de pago (`smokes-app-l14-0454-0472-guion.md`, bloque 3, paso 2). Con un
+  reporte cancelado después de la 0464, el motivo tiene que seguir visible al
+  recargar. La guía todavía dice que desaparece y que es un hallazgo conocido:
+  eso era antes de la 0464, y ahora sería una falla. Con el OK de Sam se marca
+  el último criterio y la SDD puede pasar a `done`.
+- **El rechazo sobre una factura pagada no se prueba en producción:** la factura
+  de prueba se anula al final y una factura pagada ya no se anula. Lo cubren los
+  contratos: el `.test.sql` de la 0464 en `psql` real y en PGlite, con control
+  rojo y mutantes, y la carrera en `postgres:17`. Tampoco se prueba allí el
+  excedente, que cubren los mismos contratos.
+- La integración (PR #150) y el release (despliegue y 0464) ya están hechos.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -200,6 +250,11 @@ integrarla. El resultado del CI va por mensaje y no en otro commit.
 - Ownership: el claim `claude-worker-reporte-pago-factura-pagada` se libera
   después del push, cuando termina la escritura. Si hay que corregir algo por
   CI o por la revisión, se vuelve a reclamar.
+- **Actualización del 2026-09-19:** la PR #150 está integrada y la 0464,
+  aplicada. Lo siguiente es pedirle a Sam el bloque 3.2, avisándole que ahora el
+  motivo tiene que seguir visible al recargar. Con su OK, una PR chica de docs
+  marca el último criterio y pasa la SDD a `done`. El registro de la aplicación
+  lo hizo `claude-1048f9` en `codex/0464-aplicacion-prod`.
 
 ## Impacto documental y conocimiento
 
