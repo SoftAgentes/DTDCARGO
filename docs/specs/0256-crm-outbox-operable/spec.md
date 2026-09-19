@@ -4,7 +4,7 @@ title: "El CRM se opera desde el ERP: la cola de escritura y los verbos que muev
 status: done
 author: "Sam (founder) + Claude"
 created: 2026-08-13
-updated: 2026-08-14
+updated: 2026-09-19
 supersedes: null
 superseded_by: null
 related: ["0043", "0078", "0083", "0084", "0086", "0087", "0157", "0244"]
@@ -114,6 +114,90 @@ usan las dos vistas y no puede divergir.
   `service_role`, y la guarda tirando con el nombre de la clave.
 - **Pendiente de ojos humanos:** el control del Tablero no se vio en pantalla —
   el Studio pide sesión.
+
+### Concurrencia del claim en la suite SQL (seguimiento del 2026-09-19)
+
+Seguimiento sin número nuevo, asignado por el Director (la sesión «Director
+notificación a workers»). La 0365 no se toca.
+
+**Cómo se drena la cola.** La edge function `kommo-writeback` primero suelta las
+reservas vencidas (`reap_kommo_writeback_stale`) y después reserva su lote con
+`claim_kommo_writeback_batch` (`DRAIN_BATCH` = 100). Cada llamada es una RPC con
+su propia transacción. La disparan el cron y el nudge de las acciones del CRM
+(`app/studio/(app)/crm/actions.ts:349`), y los dos pueden coincidir.
+
+**En producción** (verificado por el Director el 2026-09-19, leyendo sólo el
+catálogo y el código desplegado, sin filas):
+
+- **Cuerpo:** `claim_kommo_writeback_batch(uuid, integer)` tiene `md5(prosrc)`
+  `d7bf6554…` (494 bytes). Es DEFINER con `search_path = public` y coincide con
+  la 0365 de `main`, su única definición, y con el fixture de la carrera.
+- **Ledger:** `20260813095152`, una sentencia, md5 `80935bdb…` y 4.577 bytes. El
+  archivo de `main` tiene `7211eed9…` y 8.004 bytes: el texto aplicado no es el
+  archivo byte a byte, igual que en la 0361, la 0445, la 0446 y la 0447. El cuerpo
+  de la función sí coincide.
+- **Edge function `kommo-writeback`, versión 8, activa:** suelta las reservas
+  vencidas (10 minutos) y reserva con `p_limit` = 100, cada RPC en su propia
+  llamada. Coincide con `main` en las líneas 44, 117 y 131.
+- **Cron:** `kommo-writeback-drain-dtd`, `*/15 * * * *`, activo.
+
+**Dos comentarios que no decían lo mismo:**
+
+- la 0365 (líneas 67-69): SKIP LOCKED hace que el segundo drenaje saltee las
+  filas del primero «en lugar de esperarlas (y terminar procesándolas también)»;
+- su contrato (la cabecera de `0365_kommo_outbox_claim.test.sql`): SKIP LOCKED
+  «sólo agrega que el segundo no se quede esperando; la exclusión la da la
+  transición de estado».
+
+**`supabase/tests/0365_outbox_kommo_carrera.test.sql`** corre en el paso
+`sql-tests` de `verify` (no en CI). Usa:
+
+- sesiones reales por dblink, que reservan como `service_role`, igual que la edge
+  function;
+- una barrera por `pg_blocking_pids`, que distingue si el segundo drenaje espera
+  al primero o termina sin esperarlo;
+- el fixture del contrato 0365, con la 0365 entera encima.
+
+Cada escenario corre primero con el claim reemplazado por una variante (control)
+y después con la 0365. Hay 4 filas pendientes por escenario:
+
+| # | Escenario | Control | Con la 0365 |
+|---|---|---|---|
+| 1 | Dos drenajes a la vez con el lote de la edge function (100) | el claim sin lock: el segundo espera y vuelve a tomar las 4, con `attempts` = 2 (cada una se enviaría dos veces) | el segundo no espera y no toma ninguna; el primero tomó las 4 |
+| 2 | Dos drenajes a la vez con un lote de 2 | el claim sin lock: el segundo espera y vuelve a tomar las 2 del primero; las otras 2 quedan pendientes | el segundo no espera y toma las otras 2 |
+| 3 | Lo mismo que 2 | el claim con FOR UPDATE a secas: el segundo espera a que el primero confirme y después toma las otras 2, sin repetir ninguna | el segundo no espera |
+
+**Corrección, con lo que se midió** (la 0365 no se toca):
+
+- **Sin lock, la transición de estado no excluye.** El UPDATE del segundo
+  drenaje espera la fila del primero y, al re-evaluar, sólo vuelve a comprobar
+  `o.id = e.id`, así que la toma otra vez. Lo que excluye es el lock del SELECT,
+  que al re-evaluar vuelve a comprobar `status = 'pending'`. La frase del
+  contrato, «la exclusión la da la transición de estado», vale en una sola
+  sesión, no con dos a la vez.
+- **Con FOR UPDATE a secas no hay duplicados.** El segundo espera y después toma
+  las libres. La frase de la 0365, «y terminar procesándolas también», no se
+  sostiene.
+- **Lo que agrega SKIP LOCKED es que el segundo drenaje no espera al primero.**
+  Inferencia, no medida: en producción cada reserva es una RPC que confirma
+  enseguida, así que con FOR UPDATE a secas la espera duraría lo que tarda el
+  primer claim.
+
+**Mutantes, con el runner real y fuera del repo.** Los contratos 0365 y 0377, de
+una sola sesión, no detectan ninguno:
+
+| Mutante | Lo que se quita | Escenarios que caen |
+|---|---|---|
+| M1 | el lock del SELECT del claim | 1, 2 y 3, con filas reservadas dos veces |
+| M2 | el SKIP LOCKED (queda FOR UPDATE a secas) | 1, 2 y 3, porque el segundo espera; ninguna fila se repite |
+
+El detalle y el script de los mutantes están en el handoff
+`.agents/handoffs/0256-carrera-outbox-0365.md`.
+
+Archivos de este seguimiento:
+
+- supabase/tests/0365_outbox_kommo_carrera.test.sql
+- .agents/handoffs/0256-carrera-outbox-0365.md
 
 ## 6. Reasignar asesor: RESUELTO — se hace desde los dos lados
 
