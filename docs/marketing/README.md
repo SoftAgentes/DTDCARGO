@@ -229,8 +229,13 @@ Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy *
     [`manual-vendedores-peso.md`](manual-vendedores-peso.md), [`calculadora-explicada.html`](calculadora-explicada.html)
     y `public/interno/guia-peso.html`. Cada ejemplo sin baterías se corrió en el motor de la
     calculadora con los valores públicos del 2026-09-18 ($850/m³, mínimo $50, 1.000 kg/m³, $2/kg).
-    El explicativo corrige además el mínimo en cajas: con $850 son **2**, no 3. El recargo de
-    baterías queda en ×1,3 **en revisión**: el ERP muestra ×1,5 y falta saber si fue decisión de Sam.
+    El explicativo corrige además el mínimo en cajas: con $850 son **2**, no 3.
+  - [x] ~~El recargo de baterías quedó en ×1,3 **en revisión**: el ERP mostraba ×1,5 y faltaba saber
+    si fue decisión de Sam.~~ ✅ **RESUELTO 2026-09-18** ([SDD-0480](../specs/0480-respaldo-bateria-espeja-erp/spec.md)):
+    Sam lo confirmó — «Sí, ×1,5 es correcto — Lo subí a propósito.» `calculadora-explicada.html`
+    pasa a **×1,5 (+50%)** y su ejemplo con baterías, corrido en el motor, a $1.700 × 1,5 =
+    **$2.550** (+$850). El respaldo del código (`CONFIG.recargoBateriaMult`) también quedó en 1,5,
+    anclado en su test.
   - **Nota fechada, sin retocar la foto** de los competidores del 2026-08-01:
     [`competencia-precios.md`](competencia-precios.md) §5 y [`adquisicion.md`](adquisicion.md).
     La ventaja en tarifa base baja de 13 % a 7,6 % contra AsiaVen.

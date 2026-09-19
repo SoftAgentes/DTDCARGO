@@ -57,6 +57,10 @@ cupo vuelve a quedar disponible.
 4. Reemplazar una foto existente permanece deshabilitado en UI y base de datos
    hasta demostrar purga, hold y control regional. El cliente conserva un
    enlace a soporte para tramitar la corrección.
+   **Reemplazado por [SDD-0481](../0481-portal-cliente-reemplazo-foto-identidad/spec.md)
+   (decisión de Sam, 2026-09-18):** el cliente puede cambiar la foto dentro del
+   cupo compartido; la migración 0461 retira el gate de 0447 y la versión
+   sustituida se conserva (MP-01 §9).
 5. Cuando no queda cupo, servidor y UI bloquean nuevas solicitudes de datos con
    un mensaje que conduce a soporte.
 6. La primera foto, si falta, se puede cargar incluso con cupo agotado porque no

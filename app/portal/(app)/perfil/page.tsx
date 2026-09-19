@@ -302,6 +302,7 @@ export default async function PortalProfilePage() {
                 label={esEmpresa ? "Documento RIF" : "Cédula de identidad / RIF"}
                 hasExistingPhoto={hasCedulaPhoto}
                 viewUrl={cedulaUrl}
+                quota={profileEditQuota}
               />
             </div>
 
