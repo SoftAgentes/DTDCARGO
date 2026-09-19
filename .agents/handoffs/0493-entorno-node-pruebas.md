@@ -1,7 +1,8 @@
 # Handoff 0493 · las pruebas que no tocan el DOM corren en el entorno node
 
-- Fecha: 2026-09-19. Estado de la tarea: **medida y probada en local**; falta el `verify` completo,
-  el push único y la PR, que va **en ready**: no depende de ninguna migración.
+- Fecha: 2026-09-19. Estado de la tarea: **medida, probada y con el `verify` completo en verde**
+  (16 de 17; `migrations-applied` NO DISPONIBLE). Falta el push único y la PR, que va **en ready**:
+  no depende de ninguna migración.
 - Owner/sesión: `worker-entorno-node-0493-20260919` (Claude Opus 5, Worker, sesión «Automatizar la
   prueba de carrera del for update de 0459»). Director: la sesión «Director notificación a workers»,
   que asignó la tarea, reservó la máquina para medir y ratificó el mecanismo.
@@ -48,7 +49,7 @@ comportamiento de ninguna prueba.
 | Segunda medición «después» | **PASÓ**: mismos conteos · pared 129,2 s · **environment 806,3 s** |
 | Sonda del mecanismo | **PASÓ**: un archivo con la misma primera línea ve `window` y `document` sin definir. Se borró; no va en la PR |
 | Archivos por entorno al final | **377 node** (43 previos + 334 nuevos) y **244 jsdom**: lib 279/109, app 40/111, scripts 34/4, otros 24/4, components 0/16 |
-| `verify` completo | **PENDIENTE**: en este mismo turno |
+| `verify` completo sobre `abbbbb84`, 22:24-22:41 UTC | **16 de 17 PASARON y ninguno FALLÓ.** El paso `test` dio la tercera medición: pared 121,2 s y environment 749,3 s, con las mismas 8.105 ✓. e2e quedó **OK con aviso**: 166 ✓ y 2 flaky ajenos, con el proceso en ≠0 por el worker de WebKit que no cierra en Windows, que el propio `verify` distingue de una regresión. `migrations-applied`: NO DISPONIBLE, sin credenciales; esta spec no trae migración |
 | CI alojado | **NO EJECUTADO**: GitHub Actions bloqueado por facturación desde las 21:18Z |
 
 **Lo que se ganó:** montar el entorno baja de 2.186,8 s a 739-806 s sumados (63-66 % menos) y la
@@ -60,6 +61,9 @@ sola aserción.
 | Commit | Propósito |
 | --- | --- |
 | `5c03d882` | `chore(sdd)`: la reserva de SDD-0493 (cherry-pick del stub) |
+| `6c73986c` | `test(harness)`: la primera línea en los 334 archivos (334 inserciones, 0 borrados) |
+| `abbbbb84` | `docs(SDD-0493)`: spec, índice y handoff |
+| este commit | `docs(SDD-0493)`: la evidencia del `verify`, antes del push único |
 
 ## PR / BRANCH
 
@@ -69,8 +73,10 @@ sola aserción.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. El `verify` completo y el push único, con el número y el SHA por mensaje al Director.
-2. Liberar el claim. El worktree y la rama se conservan.
+1. El push único y la PR en ready, con el número y el SHA por mensaje al Director, y liberar el
+   claim. El worktree y la rama se conservan.
+2. Cuando vuelva la CI, mirar cuánto baja el paso «Unitarios» de verdad: el número de esta spec es
+   de esta máquina.
 
 ## FUERA DE ALCANCE DETECTADO
 

@@ -116,6 +116,7 @@ corrió nada.
 | antes | 196,7 s | **2.186,8 s** | 708,0 s | 321,7 s | 306,2 s | 67,7 s |
 | después 1 | 120,9 s | **739,3 s** | 730,0 s | 294,7 s | 225,7 s | 63,8 s |
 | después 2 | 129,2 s | **806,3 s** | 737,2 s | 333,3 s | 244,2 s | 79,0 s |
+| el paso `test` del `verify` | 121,2 s | **749,3 s** | 741,5 s | 271,7 s | 233,2 s | 73,7 s |
 
 Las columnas son las que imprime vitest al cerrar: sumadas sobre todos los
 archivos, no de pared. `environment` es lo que cuesta montar jsdom o node.
@@ -145,7 +146,17 @@ Archivos por entorno al terminar: **377 en `node`** (43 que ya lo estaban más
 - **La anotación hace lo que dice.** Una sonda desechable con esa misma primera
   línea comprobó que `window` y `document` no existen; se borró enseguida y no
   va en la PR.
-- `pnpm verify` completo: PENDIENTE, en este mismo turno.
+- **`pnpm verify` completo** sobre `abbbbb84`, en el mismo turno, el 2026-09-19
+  de 22:24 a 22:41 UTC: **16 de 17 pasos PASARON y ninguno falló.**
+  - test: las mismas 8.105 ✓ y 1 omitida, con la tercera medición de la tabla;
+  - sql-tests (218 contratos), schema-rebuild, build, typecheck;
+  - lint: 0 errores y 15 avisos, todos en archivos ajenos;
+  - e2e: 166 ✓ y 2 flaky ajenos (el selector combinado de la calculadora
+    pública). El paso quedó **OK con aviso**: el proceso salió ≠0 por el worker
+    de WebKit que no cierra en Windows, que el propio `verify` distingue de una
+    regresión;
+  - `migrations-applied`: **NO DISPONIBLE**, sin credenciales en el worktree.
+    Esta spec no trae migración.
 
 ## Fuera de alcance detectado
 
