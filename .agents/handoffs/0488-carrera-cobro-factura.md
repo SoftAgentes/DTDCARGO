@@ -10,7 +10,9 @@
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/carrera-cobro-factura`.
 - Rama: `codex/carrera-cobro-factura`, desde `origin/main` = `1b64bdae`. El
   2026-09-19 a las 00:57 UTC se trajo `origin/main` = `26983062` (#150, SDD-0484
-  con la 0464) en el merge `d9855875`, sin conflictos. El driver
+  con la 0464) en el merge `d9855875`, sin conflictos. A las 01:27 UTC se trajo
+  `a90c242b` (#152, SDD-0477: sólo una prueba SQL de la 0460 y docs, sin
+  solaparse) en el merge `6aabc096`, también sin conflictos. El driver
   `dtd-generated-records` dejó 0464 y 0467 en `pendingBelowCutoff`.
 - Aislamiento: `harness-worktree start carrera-cobro-factura`, `guard` → `Guard OK`
   y claim adquirido antes de editar.
@@ -273,6 +275,7 @@ La CPU estuvo saturada por otras sesiones: sólo pruebas focales, con un worker.
 | eslint de los 7 archivos TS/MJS tocados | `7dee18e7` | **PASÓ** |
 | `pnpm docs:index` / `docs:check` / `sdd:check` / `governance:check` | `d9855875` | **PASÓ** (471 specs) |
 | `node scripts/check-pending-migration-symbols.mjs` | `d9855875` | **ROJO por diseño**: los 3 símbolos de la 0467 en `collections-actions.ts:184, :425, :487`. Es el candado migrate-first |
+| Después del merge `6aabc096` (`a90c242b`): `docs:index` (sin cambios), `docs:check`, `sdd:check`, `governance:check` | `6aabc096` | **PASÓ**. La #152 no toca TS ni migraciones: no hace falta repetir typecheck ni unitarias |
 | `node scripts/run-sql-tests.mjs` (contrato 0467 con psql real) | — | **NO EJECUTADO**: es Docker y va en el verify del turno de integración |
 | `pnpm verify` | — | **NO EJECUTADO**: requiere turno de máquina; lo pide el Director |
 | `migrations-applied` | — | **NO EJECUTADO**: da SKIP sin credenciales, y la 0467 está declarada como espera |
@@ -292,8 +295,10 @@ Sobre `1b64bdae`, en este orden:
 - `15689de6` `docs(SDD-0488)`: la espera nombra `get_user_tenant_id` y el
   catálogo de producción leído; la spec suma la primera corrida.
 - `e5f49186` `test(studio)`: los escenarios 12 y 13, de coherencia con la 0464.
-- El commit que contiene este documento: `docs(handoff)`, con la segunda corrida
-  en la spec y el cierre.
+- `08bae316` `docs(SDD-0488)`: la segunda corrida en la spec.
+- `e2afd77b` `docs(handoff)`: el cierre antes de publicar.
+- `6aabc096`: merge de `origin/main` (`a90c242b`).
+- El commit que contiene este documento: `docs(handoff)`, con el segundo merge.
 
 ## PR / BRANCH
 
