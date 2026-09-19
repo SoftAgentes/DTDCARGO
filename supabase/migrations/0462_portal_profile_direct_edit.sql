@@ -29,7 +29,17 @@
 -- 24 h se rechaza CUALQUIER cambio de documento o teléfono (libre o no).
 --
 -- ── Locks ───────────────────────────────────────────────────
--- Sólo DDL de objetos nuevos: no bloquea `clients` ni `client_change_requests`.
+-- Las tres FK de `client_profile_blocked_attempts` toman SHARE ROW EXCLUSIVE
+-- sobre `public.tenants`, `public.clients` y `auth.users` hasta el COMMIT: se
+-- pueden leer, pero sus altas y ediciones esperan. `client_change_requests` no
+-- se bloquea. Medido el 2026-09-19 con el preludio del contrato 0462:
+--   · PostgreSQL 17 en Docker: el DDL tarda 14 ms; una lectura de `clients`
+--     no espera (1 ms) y un UPDATE espera hasta el COMMIT.
+--   · Con otra escritura abierta sobre `clients`, la migración espera el
+--     `lock_timeout` (5,0 s), aborta entera y no deja nada creado. Mientras
+--     espera, las escrituras nuevas sobre `clients` hacen cola detrás de ella.
+--   · PGlite (PostgreSQL 17): 42,7 ms la transacción entera; reaplicar aborta
+--     en el preflight sin tomar esos locks.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 set local lock_timeout = '5s';

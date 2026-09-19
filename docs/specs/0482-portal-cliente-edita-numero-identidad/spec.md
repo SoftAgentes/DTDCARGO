@@ -113,6 +113,16 @@ etiqueta de esas filas: de «Aprobada» a «Editado por el cliente».
      cliente.
 - Preflight: exige el trigger de 0445, el índice `clients_tenant_doc_unique`,
   la columna generada `phone_last10` y la ausencia de los objetos nuevos.
+- **Locks.** Lo medí el 2026-09-19, después de que la coordinación corrigiera un
+  «sólo DDL» que no era exacto.
+  - Las tres FK de la tabla nueva toman `SHARE ROW EXCLUSIVE` sobre `tenants`,
+    `clients` y `auth.users` hasta el COMMIT. Se pueden leer, pero las altas y
+    las ediciones esperan.
+  - En PostgreSQL 17 (Docker) el DDL tarda 14 ms.
+  - Si hay otra escritura abierta sobre `clients`, la migración espera el
+    `lock_timeout` de 5 s y aborta entera, sin crear nada. Mientras espera, las
+    escrituras nuevas sobre `clients` hacen cola detrás de ella.
+  - Por eso se aplica en baja actividad del Studio y del Portal.
 
 ## Lectores del dato
 

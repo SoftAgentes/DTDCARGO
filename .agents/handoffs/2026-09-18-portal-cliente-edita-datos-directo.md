@@ -2,14 +2,28 @@
 
 | Campo | Valor |
 |---|---|
-| Fecha | 2026-09-18 |
-| Owner / sesión | Worker Claude (`dtdcargo-63`) · claim `claude-89300310-0482` |
+| Fecha | 2026-09-18 · retomada el 2026-09-19 |
+| Owner / sesión | Worker Claude `dtdcargo-74` · claim `claude-dtdcargo74-0482`. Hasta el 2026-09-18 era `dtdcargo-63` con el claim `claude-89300310-0482`. |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTD-worktrees\portal-cliente-edita-datos-directo` |
-| Rama / base | `codex/portal-cliente-edita-datos-directo` desde `origin/main` `cc15e48c` (con la #145 integrada) + cherry-pick de la reserva `2c937d4f` |
+| Rama / base | `codex/portal-cliente-edita-datos-directo`, desde `origin/main` `cc15e48c` + cherry-pick de la reserva `2c937d4f`. Merge de `origin/main` `3f810366` en `43c1f627`. |
 | SDD | [0482](../../docs/specs/0482-portal-cliente-edita-numero-identidad/spec.md) · `in-progress` |
 | Migración | `0462_portal_profile_direct_edit` (asignada por dtdcargo-18) |
-| Estado de tarea | en-progreso → lista para revisión local; sin push |
-| Permisos | Commits locales. Publicar la rama y la PR requiere avisar antes a dtdcargo-18 (turno en la cola) y autorización de Sam. **No** merge, deploy ni aplicar 0462. |
+| Estado de tarea | Lista para la PR. Rama publicada. |
+| Permisos | Sam autorizó publicar la rama y abrir la PR contra `main` (2026-09-19). **No** merge, deploy ni aplicar 0462. |
+
+## Traspaso (2026-09-19)
+
+- Sam autorizó liberar el claim de `dtdcargo-63` y reclamarlo, con evidencia de que esa sesión ya no existe.
+- Evidencia:
+  - ListAgents no muestra `dtdcargo-63`;
+  - el único proceso con la ruta del worktree era el de esta sesión.
+- Pasos: `release --owner claude-89300310-0482`, luego `claim --owner claude-dtdcargo74-0482`, y guard OK.
+- Push de respaldo de `dfa39828`, tal cual y sin PR.
+- Por pedido de dtdcargo-18, merge de `origin/main` `3f810366`:
+  - con el driver de main;
+  - sin conflictos;
+  - `docs:index` regenerado, con el árbol limpio.
+- dtdcargo-18 revisó la 0462 y pidió corregir los locks: la cabecera decía «sólo DDL» y no era exacto. Se midió y se corrigió en la cabecera, en la espera del baseline y en la spec.
 
 ## Objetivo y decisiones de Sam (literales)
 
@@ -54,8 +68,12 @@ Todo va dentro del cupo compartido de 3 cambios. En la primera respuesta descart
 | Gates: docs, sdd, rsc-boundary, feature-constants, components, governance | PASÓ |
 | `pending-migration-symbols` | PASÓ: 0 rojos y 1 amarillo declarado (`sdd-0482-portal-edicion-directa`) para `portal_update_my_profile` y `client_profile_blocked_attempts`. Sin 0462 la action no anuncia éxito ni escribe nada. |
 | `docs:check` | PASÓ |
-| `pnpm verify` | NO EJECUTADO todavía: dtdcargo-18 pidió correr sólo pruebas focales mientras la CPU siga saturada por otras suites. Se corre cuando dé luz verde, antes de publicar. |
-| sql-tests con Docker | NO DISPONIBLE (Docker Desktop no arranca); cubierto por PGlite |
+| `pnpm verify` sobre `43c1f627` (2026-09-19, turno de dtdcargo-18) | Exit 1. PASÓ: harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, pending-migration-symbols, sql-tests (201 en postgres:17), schema-rebuild, e2e (167 pasaron, 18 omitidas, 1 intermitente: `attachments-gastos-pilot` en chromium, verde en el reintento) y build. FALLÓ `test` en sus dos pasadas, siempre por tiempo agotado: la 1ª en `PackingListProductsStep` (20 s) e `invoice-read-boundary` (60 s); el reintento en `PackingListProductsStep` y `ClientDrawer.confirm-delete`. NO EJECUTADO: `migrations-applied` (SKIP, el worktree no tiene credenciales). |
+| Las tres de `test`, aisladas con `--pool=threads` y la CPU al 34 % | PASÓ: 9/9, 3/3 y 9/9 |
+| Focales tras el merge de main (`--pool=threads`, CPU al 100 %) | PASÓ: 70 archivos y 1053 tests |
+| Locks de 0462 medidos (2026-09-19) | PostgreSQL 17 en Docker, con el preludio del contrato: `SHARE ROW EXCLUSIVE` sobre `tenants`, `clients` y `auth.users`. El DDL tarda 14 ms. Una lectura de `clients` no espera (1 ms) y un UPDATE espera hasta el COMMIT. Con otra escritura abierta, la migración espera 5,0 s, aborta y no deja nada creado. En PGlite: 42,7 ms y el mismo conjunto de locks. |
+| Tras corregir la cabecera y el baseline | PASÓ: contrato PGlite de 0462 (10/10), `docs:check` y pending-migration-symbols |
+| sql-tests con Docker | PASÓ dentro de verify. Docker volvió a arrancar el 2026-09-19. |
 | Prueba visual | NO EJECUTADO: requiere sesión Portal y la 0462 aplicada |
 
 ## Commits
@@ -68,11 +86,13 @@ Todo va dentro del cupo compartido de 3 cambios. En la primera respuesta descart
 - `e05978fb`: Libro de Ventas.
 - `fe5f390f`: Portal (action, editor, validación, aviso).
 - `d84a5d0d`: historial del Studio.
-- Commit que contiene este documento: docs, declaración de símbolos y handoff.
+- `dfa39828`: docs, declaración de símbolos y handoff (dtdcargo-63).
+- `43c1f627`: merge de `origin/main` `3f810366`.
+- Commit que contiene esta versión: locks de 0462 medidos y corregidos en la cabecera, el baseline y la spec, más este handoff (dtdcargo-74).
 
 ## Pendientes de esta tarea
 
-1. Avisar a dtdcargo-18 antes de publicar; él fija el turno para traer main.
+1. ~~Avisar a dtdcargo-18 antes de publicar~~: hecho. Él fijó los turnos de merge de main y de verify (2026-09-19).
 2. OK nominal de Sam para `0462_portal_profile_direct_edit`. Migrate-first: la aplica dtdcargo-18 antes de integrar.
 3. Integración de la PR por dtdcargo-18.
 4. Smoke de Sam:
@@ -98,4 +118,4 @@ El impacto documental queda en la spec 0482, el registro de tratamiento y las no
 
 ## Handoff al Director
 
-Orden acordado: 0482 → 0483 → 0487. Esta rama toca `perfil/actions.ts`, `DataChangeEditor`, `fiscal/queries.ts` y `change-request-notify.ts`, archivos que también tocará la 0487. Ownership: claim `claude-89300310-0482` activo hasta correr `verify` y publicar.
+Orden acordado: 0482 → 0483 → 0487. Esta rama toca `perfil/actions.ts`, `DataChangeEditor`, `fiscal/queries.ts` y `change-request-notify.ts`, archivos que también tocará la 0487. Ownership: claim `claude-dtdcargo74-0482`, que libero al abrir la PR. La 0483 sólo tiene su reserva (`codex/sdd-reserve-0483-studio-historial-cambios-cliente`), sin worktree: la 0487 no espera por ella salvo que lo indiques.
