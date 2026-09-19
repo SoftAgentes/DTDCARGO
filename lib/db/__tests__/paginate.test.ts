@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Contrato de `fetchAllPaged`. Lo importante no es que pagine: es que **no
  * corte cuando el servidor recorta la página**, que es el bug original.

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del copy del modal de aceptación (SDD-0067 · decisión #2).
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0156 · Slice D — getHiddenPortalStatuses: qué hitos oculta el stepper del
  * portal según la config, con precedencia override-cliente → default-tenant.

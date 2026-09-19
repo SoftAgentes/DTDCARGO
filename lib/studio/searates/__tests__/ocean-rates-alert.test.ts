@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Contrato del aviso de salud del refresco de fletes (SDD-0291).
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from "vitest";
 import { combinarDestinos } from "@/lib/public/rates-queries";
 import { calcularEnvioLCL, CIUDADES, type Ciudad } from "@/lib/calculadora";

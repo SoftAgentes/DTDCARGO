@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los reportes de Bitácora (SDD-0146 · Fase 7).
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del write-back ERP→Kommo lado encola (SDD-0083 · SDD-0062 A+B).
  *

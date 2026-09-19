@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0281 · On-time delivery y tránsito promedio.
  *

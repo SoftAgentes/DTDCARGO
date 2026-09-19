@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Contrato de `check-feature-constants.mjs`.
  *

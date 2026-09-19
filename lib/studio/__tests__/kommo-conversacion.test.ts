@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0288 rebanada 1 · contratos del semáforo de conversación.
  *

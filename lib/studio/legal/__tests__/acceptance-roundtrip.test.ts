@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Round-trip de Slice C ↔ Slice B (SDD-0054 · el test más importante).
  *

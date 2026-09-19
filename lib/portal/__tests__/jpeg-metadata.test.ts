@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { stripJpegMetadata } from "@/lib/portal/jpeg-metadata";
 

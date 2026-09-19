@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los helpers del informe del Radar (SDD-0050 Slice C).
  *

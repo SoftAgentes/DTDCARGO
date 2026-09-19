@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0305 · Las variables del correo «Factura emitida».
  *

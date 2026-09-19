@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los helpers de verificación de identidad en `client-types` (SDD-0046 · B2).
  *

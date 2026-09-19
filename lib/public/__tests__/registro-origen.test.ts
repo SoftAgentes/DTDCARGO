@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del allowlist de origen del alta (SDD-0474).
  *

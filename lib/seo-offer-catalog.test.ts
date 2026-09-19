@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from "vitest";
 import { buildOfferCatalog, isOfferable } from "./seo-offer-catalog";
 import { SERVICIOS_DETALLE } from "./servicios-detalle";

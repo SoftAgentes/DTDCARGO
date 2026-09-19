@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del enlace corto de acceso (SDD-0253).
  *
