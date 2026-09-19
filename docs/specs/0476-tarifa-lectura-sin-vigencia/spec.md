@@ -279,6 +279,14 @@ aserciones; el JS emitido sin comentarios es idéntico al de main. Las cabeceras
 de `route.ts` y `rates-queries.ts` **no** se tocan: su condicional verificable
 sigue siendo cierto con la 0458 aplicada, y al salir la 0458 de
 `pendingBelowCutoff` indica sola que ya rige la rama «Con la 0458».)*
+*(Actualización 2026-09-18, después de la aplicación: el Director (`dtdcargo-18`),
+en una tarea que lanzó Sam, decidió reescribir esas dos cabeceras sin el
+condicional, en la rama `codex/textos-0447-0458-aplicadas`. El condicional seguía
+siendo cierto; no era un error. Pero con la 0458 aplicada (ledger
+`20260918040814`) la rama «sin la 0458» ya no describe nada vigente, y una
+revisión del 2026-09-18 lo tomó por texto desactualizado. Esa confusión es la
+razón del cambio: las dos cabeceras describen ahora sólo el comportamiento
+vigente.)*
 
 **Estado de esta spec:** estuvo `in-progress` a propósito hasta que la 0458 se
 aplicara y verificara en producción, porque el objetivo —que **el sitio** muestre

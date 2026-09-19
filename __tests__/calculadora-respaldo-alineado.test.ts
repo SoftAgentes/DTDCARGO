@@ -1,9 +1,10 @@
 /**
  * SDD-0475 · el respaldo del calculador no se mueve solo.
  *
- * `CONFIG.tarifaBaseCBM` y `CONFIG.pesoIncluidoKg` son **espejos** de lo que vive
- * en el ERP (`rates.per_cbm` de la fila pública y
- * `calculator_settings.peso_incluido_kg`). Cuando la RPC no responde —Supabase
+ * `CONFIG.tarifaBaseCBM`, `CONFIG.pesoIncluidoKg` y `CONFIG.recargoBateriaMult`
+ * son **espejos** de lo que vive en el ERP (`rates.per_cbm` de la fila pública,
+ * `calculator_settings.peso_incluido_kg` y `.recargo_bateria_mult`; el quinto,
+ * SDD-0480). Cuando la RPC no responde —Supabase
  * caído, env ausente, fila en borrador o `valid_from` a futuro— el sitio cotiza
  * con estas constantes. (Hasta la migr 0458, aplicada el 2026-09-18, también
  * cuando la tarifa vencía.) Si no coinciden con el ERP, el precio cambia **en
@@ -22,7 +23,7 @@
  * con estos números. Que el precio salga bien depende de que este archivo esté
  * al día.
  *
- * NO ES HIPOTÉTICO. Pasó dos veces:
+ * NO ES HIPOTÉTICO. Pasó tres veces:
  *   · `pesoIncluidoKg`: el ERP tenía 1.000 kg desde el 2026-07-06 y el código
  *     seguía en 500. Ante una caída, se habría cobrado excedente al doble de
  *     clientes. Corregido el 2026-08-05.
@@ -30,6 +31,9 @@
  *     y avisaba en su cabecera que ese día había que subir la constante. No se
  *     hizo. Trece días cotizando 5,88% por debajo ante cualquier caída — lo que
  *     arregla SDD-0475.
+ *   · `recargoBateriaMult`: el founder subió el ERP de ×1,3 a ×1,5 después del
+ *     2026-08-05 y el código siguió en 1,3. Ante una caída, las cargas con
+ *     baterías se cotizaban 13,3% por debajo. Lo arregla SDD-0480 (2026-09-18).
  *
  * QUÉ HACE ESTE TEST: **decir cuál es el valor del ERP y por qué**. No puede
  * comparar contra la DB (el CI corre sin credenciales, y por eso el paso
@@ -75,6 +79,18 @@ describe("respaldo del calculador · espejo del ERP (SDD-0475)", () => {
 
   it("el piso mínimo está en $50, como min_charge del ERP", () => {
     expect(CONFIG.minimoFacturable).toBe(50);
+  });
+
+  it("el multiplicador de baterías está en ×1,5, como calculator_settings", () => {
+    // SDD-0480. Verificado contra producción el 2026-09-18: la RPC
+    // public_calculator_config devuelve recargo_bateria_mult = 1.500.
+    //
+    // Ojo con la historia, porque ya cambió de sentido una vez: el 2026-08-05
+    // el commit 535aa0ec lo bajó de 1,5 a 1,3 porque el ERP cobraba 1,3. Después
+    // el founder subió el ERP a 1,5 a propósito (confirmado el 2026-09-18: «Sí,
+    // ×1,5 es correcto — Lo subí a propósito.»). Si esto sale rojo, mirá el ERP
+    // antes de mover el número.
+    expect(CONFIG.recargoBateriaMult).toBe(1.5);
   });
 
   it("los tres son números positivos y finitos", () => {
