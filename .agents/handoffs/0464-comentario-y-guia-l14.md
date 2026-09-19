@@ -1,7 +1,8 @@
 # Handoff · el comentario vencido de la 0464 y el paso 3.2 de la guía L14
 
-- Fecha: 2026-09-19. Estado de la tarea: **aplicada en local**; falta el `verify` completo, el push
-  único y la PR, que va **en ready**: no hay migración ni decisión de Sam.
+- Fecha: 2026-09-19. Estado de la tarea: **`verify` completo verde** (16 de 17; `migrations-applied`
+  NO DISPONIBLE). Falta el push único y la PR, que va **en ready**: no hay migración ni decisión de
+  Sam.
 - Owner/sesión: `worker-docs-0464-l14-20260919` (Claude Opus 5, Worker, sesión «Automatizar la
   prueba de carrera del for update de 0459»). Director: la sesión «Director notificación a workers»,
   que asignó los dos pendientes y pasó los datos de producción.
@@ -44,14 +45,15 @@
 | El texto del paso 3.2 | **Es el publicado**, no una reconstrucción: lo leí de la página «Pruebas de pagos y clientes» que publicó el Director, y coincide con lo que él mismo me pasó por mensaje |
 | Otros pasos del guion vencidos por la 0464 | **Ninguno**: el único lugar que describía el motivo desapareciendo era ese paso. El otro handoff de los smokes no menciona la 0464 |
 | Nada más pinchado al viejo texto del comentario | **Comprobado**: la única otra aparición es la cita dentro de `0464-aplicacion-prod.md`, que es evidencia fechada y no se toca |
-| `verify` completo | **PENDIENTE**: en el turno del Director |
+| `verify` completo sobre `11bd2f3a`, 23:23-23:37 UTC | **16 de 17 PASARON y ninguno FALLÓ.** test (8.105 ✓ y 1 omitida), sql-tests, schema-rebuild, e2e (167 ✓, 1 flaky ajeno), build, typecheck y lint. `migrations-applied`: NO DISPONIBLE, sin credenciales en el worktree |
 | CI alojado | **NO EJECUTADO**: GitHub Actions bloqueado por facturación desde las 21:18Z |
 
 ## COMMITS
 
 | Commit | Propósito |
 | --- | --- |
-| este | `docs(SDD-0484)`: el comentario de la 0464 en pasado y el paso 3.2 del guion |
+| `11bd2f3a` | `docs(SDD-0484)`: el comentario de la 0464 en pasado y el paso 3.2 del guion |
+| este | `docs(SDD-0484)`: la evidencia del `verify`, antes del push único |
 
 ## PR / BRANCH
 
@@ -60,8 +62,7 @@
 
 ## PENDIENTES DE ESTA TAREA
 
-1. El `verify` completo, el push único y la PR en ready, con el número y el SHA al Director.
-2. Liberar el claim.
+1. El push único y la PR en ready, con el número y el SHA al Director, y liberar el claim.
 
 ## FUERA DE ALCANCE DETECTADO
 
