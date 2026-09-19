@@ -110,6 +110,23 @@ y micro-benchmarks. Los números completos están en el handoff
   en esa corrida, contra 1.205 s de pruebas. Todos los archivos lo montan, aunque
   sean pruebas de Node puro. El detalle está en «Fuera de alcance».
 
+## Evidencia con contención real
+
+El A/B focal final intercaló la versión de `1d80c18a` (igual a main en estas
+pruebas) con la de la rama (`7f8aca61`), aislando cada archivo. Mientras corría,
+arrancaron dos suites completas de otras sesiones: de 22 a 45 procesos vitest
+ajenos, con la CPU al 100 %. Es la disposición del problema original.
+
+| Prueba | Antes | Después |
+|---|---|---|
+| PackingListProductsStep, ronda 2 (100 %, 25 y 45 procesos ajenos) | **8/9**, máximo 21,6 s contra 20 s | 9/9, máximo 7,4 s |
+| supplier-flow, rondas 1 y 2 (100 %, 22-45 ajenos) | 23/23, máximo 17,0 s y 16,6 s | 23/23, máximo 8,7 s y 9,6 s |
+| ClientDrawer.confirm-delete, ronda 1 (100 %, 44 ajenos) | **8/9**, la carrera | 9/9 |
+| invoice-read-boundary, ronda 1 (100 %, 44-45 ajenos) | **2/3**, 156,4 s contra 60 s | 4/4, 4,8 s |
+
+Antes falló en 3 de 8 corridas y después pasó 8 de 8. El detalle de las rondas,
+con la carga de cada corrida, está en el handoff.
+
 ## Decisiones
 
 - **Ningún tope sube.** Ninguna consulta pasa a `hidden: true` ni se toca
