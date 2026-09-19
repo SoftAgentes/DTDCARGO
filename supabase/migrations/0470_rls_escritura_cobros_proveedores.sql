@@ -1,0 +1,2 @@
+-- 0470 · SDD-0492 — reserva del número: escrituras de payment_receipts y supplier_* sólo para roles financieros.
+-- Contenido en preparación en la rama codex/rls-recibos-proveedores-0492. NO APLICADA.
