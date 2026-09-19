@@ -13,6 +13,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -22,6 +23,12 @@ VERSION = "0.9.61"
 SCHEMA = 1
 RECEIPT = "knowledge-receipt.json"
 SEMANTIC_TYPES = {"document", "paper", "image"}
+# A bare package specifier as Graphify's JS rescue keeps it: npm name grammar,
+# an optional subpath and the node: builtin prefix. "@/..." is a project alias.
+PACKAGE_SPECIFIER = re.compile(r"(?:node:)?(?:@[a-z0-9~-][a-z0-9._~-]*/)?[a-z0-9~-][a-z0-9._~-]*(?:/[A-Za-z0-9._~+-]+)*")
+# Graphify 0.9.61 always scans this directory on update: query answers filed back
+# into the graph (detect.py), whatever .graphifyignore says.
+MEMORY_NOTES = "graphify-out/memory/"
 
 
 def digest(raw):
@@ -146,6 +153,26 @@ def valid_semantic_row(row, name, state, nodes):
     return row.get("outputHash") == node_fingerprint(nodes, ids)
 
 
+def orphan_import_stub(name, ids, nodes, linked):
+    # Graphify 0.9.61 mints one stub per bare import() specifier: label and
+    # source_file are the specifier, the id is its LAST segment only, confidence
+    # EXTRACTED and no location (extract._resolve_rescued_specifier). "react" and
+    # "@testing-library/react" both mint "react"; _disambiguate_colliding_node_ids
+    # salts each one to make_id(specifier, "react") (plus a sha1 suffix when two
+    # salts still collide), while the importers' dynamic_import edges keep the
+    # unsalted id and are dropped. What survives is this exact node with no
+    # relation: a lost import edge, not a deleted source. Anything else stays deleted.
+    from graphify.ids import make_id
+    if len(ids) != 1 or not PACKAGE_SPECIFIER.fullmatch(name):
+        return False
+    node = nodes[next(iter(ids))]
+    salted = make_id(name, make_id(name.rsplit("/", 1)[-1]))
+    return (node["id"] not in linked and node.get("label") == node.get("source_file") == name
+            and node.get("file_type") == "code" and node.get("confidence") == "EXTRACTED"
+            and not node.get("source_location")
+            and re.fullmatch(re.escape(salted) + r"(?:_[0-9a-f]{6})?", node["id"]) is not None)
+
+
 def inspect(root, prompt):
     out = root / "graphify-out"
     issues = []
@@ -238,7 +265,10 @@ def inspect(root, prompt):
     dangling = 0
     import_target_ids = set()
     relation_sources = set()
+    linked = set()  # every node an edge or a hyperedge mentions
     for edge in edges:
+        if isinstance(edge, dict):
+            linked.update(item for item in (edge.get("source"), edge.get("target")) if isinstance(item, str))
         if not isinstance(edge, dict) or not isinstance(edge.get("source"), str) or not isinstance(edge.get("target"), str) or edge.get("source") not in nodes or edge.get("target") not in nodes:
             dangling += 1
             continue
@@ -260,6 +290,8 @@ def inspect(root, prompt):
         issues.append({"code": "invalid_hyperedges", "severity": "error"})
     for hyperedge in hyperedges:
         members = hyperedge.get("nodes") if isinstance(hyperedge, dict) else None
+        if isinstance(members, list):
+            linked.update(item for item in members if isinstance(item, str))
         if not isinstance(members, list) or not members or any(not isinstance(item, str) or item not in nodes for item in members):
             issues.append({"code": "dangling_hyperedge", "severity": "error"})
             continue
@@ -283,16 +315,30 @@ def inspect(root, prompt):
     # Preserve the reference as an explicit warning; do not call it a deleted
     # document. A real deleted/excluded source still has a manifest row, a
     # non-import node, or a relation anchored in that source.
-    virtual_imports = sorted(name for name in sources - set(manifest) - set(state["files"])
-                             if not (root / name).exists() and name not in relation_sources
-                             and source_node_ids.get(name) and source_node_ids[name] <= import_target_ids
-                             and all(nodes[item].get("_origin") == "ast" for item in source_node_ids[name]))
+    unindexed = {name for name in sources - set(manifest) - set(state["files"])
+                 if not (root / name).exists() and name not in relation_sources and source_node_ids.get(name)
+                 and all(nodes[item].get("_origin") == "ast" for item in source_node_ids[name])}
+    virtual_imports = sorted(name for name in unindexed if source_node_ids[name] <= import_target_ids)
     if virtual_imports:
         issues.append({"code": "graph_virtual_import_targets", "severity": "warning", "sources": virtual_imports})
-    state["graphSourcePaths"] = sorted(sources - set(virtual_imports))
+    # The same kind of stub can lose every edge to an id collision (see
+    # orphan_import_stub): warn with its nodes, since those imports are gone.
+    orphan_stubs = sorted(name for name in unindexed if orphan_import_stub(name, source_node_ids[name], nodes, linked))
+    if orphan_stubs:
+        issues.append({"code": "graph_orphan_import_stubs", "severity": "warning", "sources": orphan_stubs,
+                       "nodes": sorted(item for name in orphan_stubs for item in source_node_ids[name])})
+    external = set(virtual_imports) | set(orphan_stubs)
+    state["graphSourcePaths"] = sorted(sources - external)
     state["counts"] = {"files": len(state["files"]), "nodes": len(nodes), "edges": len(edges),
                        "skippedSensitive": len(detected.get("skipped_sensitive", []))}
-    absent = sorted(((set(manifest) | sources) - set(virtual_imports)) - set(state["files"]))
+    # The detector above never sees MEMORY_NOTES (its GRAPHIFY_OUT is temporary),
+    # so a note the native update ingested used to surface as an opaque excluded
+    # or deleted source. Derived notes must not re-enter the graph: name them in
+    # their own blocking issue until they are archived and Graphify is updated.
+    memory_notes = sorted(name for name in set(manifest) | sources if name.startswith(MEMORY_NOTES))
+    if memory_notes:
+        issues.append({"code": "graph_memory_notes", "severity": "error", "sources": memory_notes})
+    absent = sorted(((set(manifest) | sources) - external - set(memory_notes)) - set(state["files"]))
     deleted = [name for name in absent if not (root / name).exists()]
     excluded = [name for name in absent if (root / name).exists()]
     structural_names = [name for name, row in state["files"].items() if row["type"] in {"code", "document"}]
