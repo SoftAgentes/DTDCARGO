@@ -258,6 +258,14 @@ describe("validatePaymentInput", () => {
     expect(r.fieldErrors).toBeUndefined();
   });
 
+  // SDD-0488: regla estricta de Sam, la misma de la 0464. Antes pasaba un
+  // centavo de más (amount > saldo + 0.01).
+  it("rechaza un centavo por encima del saldo", () => {
+    expect(validatePaymentInput({ ...valid, amount: 1000.01 }, 1000).fieldErrors?.amount).toBeDefined();
+    expect(validatePaymentInput({ ...valid, amount: 300.01 }, 300).fieldErrors?.amount).toBeDefined();
+    expect(validatePaymentInput({ ...valid, amount: 300 }, 300).fieldErrors).toBeUndefined();
+  });
+
   it("rechaza cuenta de caja faltante", () => {
     const r = validatePaymentInput({ ...valid, cashAccountId: "" }, 1000);
     expect(r.fieldErrors?.cashAccountId).toBeDefined();

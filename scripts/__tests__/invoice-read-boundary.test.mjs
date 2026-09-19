@@ -19,7 +19,10 @@ const BASELINE = {
   "lib/portal/portal-legal-queries.ts": 3,
   "lib/portal/portal-queries.ts": 2,
   "lib/studio/accounting/referral-credit-posting.ts": 2,
-  "lib/studio/collections-actions.ts": 6,
+  // SDD-0488: −4. Las escrituras de la factura al cobrar, identificar y anular
+  // pasaron a las RPC de 0467, y la anulación ya no lee la factura. Quedan las
+  // dos lecturas previas del cobro y de la identificación (sólo mensajes).
+  "lib/studio/collections-actions.ts": 2,
   "lib/studio/costing/queries.ts": 2,
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
   "lib/studio/fidelizacion/referral-credit-queries.ts": 1,
@@ -72,7 +75,7 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     }
     expect(actual).toEqual(BASELINE);
     expect(Object.keys(actual)).toHaveLength(18);
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(46);
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(42);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {
