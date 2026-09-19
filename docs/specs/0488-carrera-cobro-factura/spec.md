@@ -89,6 +89,10 @@ El invariante que se mide en cada factura es
 `paid_amount = recibos vigentes + reportes confirmados`, más
 `paid_amount ≤ total_amount`.
 
+Son 13 escenarios. Los 11 primeros cruzan cobro, identificación, anulación y
+confirmación de reporte. El 12 y el 13 prueban la coherencia con la 0464: un
+cobro y una confirmación que entre los dos superan el saldo, en los dos órdenes.
+
 La tabla de resultados, antes y después de la 0467, está en
 [Evidencia](#evidencia).
 
@@ -329,8 +333,18 @@ cinco `FOR UPDATE` quitado **cae en su escenario**, 7 de 7:
 - sin el del recibo al anular: 10;
 - sin el de la factura al anular: 11.
 
-Los escenarios 12 y 13, de coherencia con la 0464, se agregaron después del
-merge con main. Su corrida queda en el handoff.
+**Coherencia con la 0464.** Segunda corrida, del 2026-09-19 a las 01:19 UTC,
+sobre `15689de6`: el merge con main `26983062`, que trae la 0464 en el esquema.
+Reconstruyó 441 migraciones en 20 s y dio **PASS**: antes 13/13 reproducidos,
+después 13/13 correctos y mutantes 8/8 muertos.
+
+| # | Escenario (S1 → S2) | ANTES (app vieja + 0464) | DESPUÉS (0467 + 0464) |
+|---|---|---|---|
+| 12 | cobro 900 → confirmación 200 | 900/1000 con rec 900 + rep 200: **se perdió el reporte y hubo sobrecobro** | la confirmación espera y sale `PAYMENT_EXCEEDS_BALANCE`; 900/1000 |
+| 13 | confirmación 200 → cobro 900 | 900/1000 con rec 900 + rep 200: ídem | el cobro espera y sale `PAYMENT_EXCEEDS_BALANCE`; 200/1000 |
+
+El mutante sin el `FOR UPDATE` del cobro también cae en el 13: queda en
+900/1000 con rec 900 + rep 200.
 
 La identidad del archivo, las huellas de preflight y postflight y los locks
 medidos están en el handoff `.agents/handoffs/0488-carrera-cobro-factura.md`.
