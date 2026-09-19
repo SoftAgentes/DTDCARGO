@@ -413,7 +413,10 @@ export function validatePaymentInput(
   const amount = round2(Number(input.amount) || 0);
   if (!Number.isFinite(amount) || amount <= 0) {
     errors.amount = "El monto del cobro debe ser mayor a cero.";
-  } else if (amount > round2(balance) + 0.01) {
+  } else if (amount > round2(balance)) {
+    // Regla estricta de SDD-0488 (decisión de Sam, igual que la 0464): sin la
+    // tolerancia de 0,01 que había. La RPC 0467 la vuelve a aplicar con la
+    // factura bloqueada.
     errors.amount = `El cobro no puede superar el saldo ($${round2(balance).toFixed(2)}).`;
   }
 
