@@ -1,19 +1,20 @@
 # Handoff 0439 · seguimiento: el cupo de 3 cambios del perfil (0445 con 0446 y 0462), con sesiones reales
 
-- Fecha: 2026-09-19. Estado de la tarea: **lista en local**. Faltan la suite SQL completa, que
-  corre en el turno del Director, el push único y la PR, que esperan su aviso.
+- Fecha: 2026-09-19. Estado de la tarea: **lista para revisión**.
+  Falta que el Director revise e integre la PR.
 - Owner/sesión: `worker-carrera-cupo-0445-20260919` (Claude Opus 5, Worker, sesión «Automatizar la
   prueba de carrera del for update de 0459», que siguió con esta tarea a pedido de Sam).
   Director: la sesión «Director notificación a workers».
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/carrera-cupo-0445`, creado con
   `harness-worktree start`.
-- Rama: `codex/carrera-cupo-0445`, desde `origin/main` = `3bd3aae5`, sin upstream hasta el push.
+- Rama: `codex/carrera-cupo-0445`, desde `origin/main` = `3bd3aae5`. Con el turno del Director se
+  trajo `main` `d624ea45` (#166, nodos huérfanos de Graphify) con el driver, antes del push único.
 - SDD: [0439](../../docs/specs/0439-portal-cliente-edicion-de-perfil/spec.md), la que introdujo el
   cupo. Es la antigua SDD-0435: se renumeró, y las migraciones 0445 y 0446 conservan «SDD-0435» en
   sus comentarios. Va como seguimiento y sin número nuevo, por decisión del Director.
 - Aislamiento comprobado antes de editar: toplevel y rama correctos, `guard` → `Guard OK`, claim
   adquirido con el owner de arriba. Antes de cada commit se revalidó con `guard --owner`.
-- Permisos del encargo: commits en esta rama. El push y la PR esperan el turno del Director.
+- Permisos del encargo: commits en esta rama; el push único y la PR, con el aviso del Director.
   **No merge. No producción.** La 0445, la 0446, la 0461 y la 0462 están aplicadas y no se tocan.
 
 ## OBJETIVO ORIGINAL
@@ -106,9 +107,11 @@ reporta con evidencia y no se arregla.
 | Huella tras un fallo (bases, roles, extensiones y sesiones del clúster) | **PASÓ en tres modos**: guarda, corte a mitad (la barrera vencida en los 13 casos) y rojo (M3). La guarda, con `service_role` ya creado, aborta sin tocar nada y **conserva** el rol |
 | `md5(prosrc)` de las cinco funciones del fixture contra producción (lectura de catálogo del Director) | **PASÓ**: coinciden exacto, las cinco son DEFINER. `portal_profile_edit_request_lifecycle` `5316eac7…`, `portal_set_identity_photo` `057aea5c…`, `portal_update_my_profile` `724dc0cf…`, `portal_profile_edit_follow_request_reassignment` `10b6e764…`, `portal_profile_edits_follow_client_merge` `8948fa55…`. Las diferencias de tamaño contra los bytes del Director son las tildes |
 | `docs:check` / `sdd:check` / `governance:check` / `git diff --check` | **PASÓ**: 475 specs, sin números repetidos, cápsula vigente |
-| Suite SQL completa por el runner real | **NO EJECUTADO**: espera el turno de máquina del Director |
+| Suite SQL completa por el runner real, en el turno de máquina del Director, sobre `deaad26a` | **PASÓ**: 216 de 216 ✓, 0 ✗, 83 s, sin contenedores antes ni después. El archivo nuevo pasa junto a los contratos y las otras carreras de `main` |
 | `verify` completo | **NO EJECUTADO**: el cambio es un `.test.sql` y documentación |
-| CI alojado | **NO EJECUTADO**: la rama no está publicada |
+| Merge de `main` `d624ea45` (#166), con el driver | **PASÓ**: sin conflictos; #166 no toca `supabase/` ni `docs/specs/`. Después del merge pasaron `docs:check` (475), `sdd:check`, `governance:check` y `git diff --check` |
+| El archivo junto a los contratos 0445, 0446, 0461 y 0462, por el runner real, después del merge | **PASÓ**: 5 de 5 ✓, 4,4 s, sin contenedores al terminar |
+| CI alojado | **Por mensaje al Director**: la rama se publica después de este commit |
 
 **Qué escenario mata a cada mutante** (fase real de la carrera). Los contratos de una sola sesión
 (0445, 0446, 0461 y 0462) no detectan ninguno:
@@ -133,19 +136,19 @@ que el fixture se arma igual y el rojo cae por la carrera.
 | Commit | Propósito |
 | --- | --- |
 | `0f5d7ea0` | `test(db): SDD-0439`: el cupo de 3 cambios del perfil bajo concurrencia, con sesiones reales |
-| el commit que contiene este documento | `docs(SDD-0439)`: la sección fechada en la spec y este handoff |
+| `deaad26a` | `docs(SDD-0439)`: la sección fechada en la spec y este handoff |
+| `0b8371a3` | merge de `main` `d624ea45` con el driver, sin conflictos |
+| el commit que contiene esta versión | `docs(handoff)`: la suite completa y el merge final en este handoff |
 
 ## PR / BRANCH
 
-- Rama `codex/carrera-cupo-0445`, base `main`, worktree de arriba. No está publicada. El push
-  único y la PR esperan el aviso del Director.
+- Rama `codex/carrera-cupo-0445`, base `main`, worktree de arriba. Se publica con un solo push
+  después de este commit. El número de la PR y el SHA van por mensaje al Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Suite SQL completa por el runner real, en el turno de máquina del Director.
-2. Con su aviso: traer `main` si avanzó, repetir lo liviano y el archivo, hacer un solo push y abrir
-   la PR, con el número y el SHA por mensaje.
-3. Revisión e integración del Director.
+1. Push y PR contra `main`, con el número y el SHA por mensaje.
+2. Revisión e integración del Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -277,8 +280,7 @@ process.exitCode = run.status;
 
 ## HANDOFF AL DIRECTOR
 
-- **Siguiente acción:** tu turno de máquina para la suite SQL completa y, después, tu aviso para
-  el push único y la PR.
+- **Siguiente acción:** revisar la PR e integrarla.
 - **Cambios compartidos:** un archivo nuevo en `supabase/tests/`, que el runner descubre solo, y la
   spec 0439. Ningún archivo de producto.
 - **Dependencias:** `dblink` en la imagen del runner (`postgres:17`) y los contratos
