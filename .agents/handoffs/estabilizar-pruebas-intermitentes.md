@@ -152,7 +152,7 @@ Con la contención real, las versiones de antes fallaron en 3 de 8 corridas, igu
 | Corrida | Condiciones | Resultado |
 |---|---|---|
 | `base1` (antes, `1d80c18a`) | Contaminada: otra suite completa de `respaldo-bateria-15` corrió en paralelo, con 8-26 procesos de prueba ajenos. CPU media 91 %, memoria libre mínima 0,6 GB. | FALLÓ, 4 de 604 archivos: invoice-read-boundary (92,4 s, tope 60 s), norte-bake (27,6 s, tope 20 s), PackingList «adds another group» (23,2 s, tope 20 s) y ClientDrawer (la carrera, 1,1 s). Duración: 622 s. |
-| antes, con la máquina quieta | Turno de máquina del Director | PENDIENTE |
+| antes, con la máquina quieta: las 4 pruebas de main (idénticas en `b981d6dc` y `3f810366`) sobre HEAD `4cdcbcfd` | Turno del Director, de 00:45:05Z a 00:50:39Z. CPU media 82 % (la propia suite), máxima 92 %; memoria libre mínima 8,7 GB. Ajeno y liviano: un vitest de un archivo de `portal-cliente-edita-datos-directo` (`profile-direct-edit.migration.test.ts`, `--pool=threads`) de 00:46:45Z a 00:48:00Z, y un eslint de un archivo de `carrera-cobro-factura` a las 00:49:59Z. | **FALLÓ**, 1 de 605 archivos: PackingList «adds another group», 21,2 s contra un tope de 20 s. Pasaron, cerca de su tope: invoice-read-boundary en 48,4 s (80 % de 60 s) y la prueba más lenta de supplier-flow en 17,1 s (85 % de 20 s; el archivo, 138 s). ClientDrawer pasó: la carrera es intermitente. Duración: 330 s. Árbol restaurado sin diff contra HEAD. |
 | después, con la máquina quieta | Turno de máquina del Director | PENDIENTE |
 
 ## VALIDACIÓN
