@@ -1,0 +1,2 @@
+-- 0469 · SDD-0491 — reserva del número: generador WR- propio para las recepciones de bodega China.
+-- Contenido en preparación en la rama codex/recepcion-codigo-wr-0491. NO APLICADA.
