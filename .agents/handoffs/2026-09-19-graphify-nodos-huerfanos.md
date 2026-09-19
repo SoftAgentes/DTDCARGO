@@ -69,8 +69,8 @@ Evidencia:
 
 - Extracción del Graphify fijado, archivo por archivo: los tres emiten el stub con ID `react` y la arista
   hacia `react`.
-- Fixture mínimo de dos archivos con el CLI fijado. Solo con `import("react")`: stub `react` con su arista, y
-  el inspector de `main` da CURRENT. Al agregar `import("@testing-library/react")`: `react_react` y
+- Fixture mínimo de dos archivos con el CLI fijado. Solo con `import("react")`: stub `react` con su arista
+  `dynamic_import`, un destino virtual común. Al agregar `import("@testing-library/react")`: `react_react` y
   `testing_library_react_react` quedan sin aristas, 0 aristas `dynamic_import`, y el inspector de `main` da
   PENDING con los dos en `deleted`.
 - Fixture de control: si un archivo deja de importar el paquete, `graphify update` retira el stub y no
@@ -167,7 +167,7 @@ Al inspeccionar `main` apareció otra causa, independiente de la primera:
 | `knowledge-graph.node.mjs` focal | árbol de `d542b7c7` | **PASÓ**: 15/15, 0 omitidas |
 | `knowledge-sync.node.mjs` focal | árbol de `057446f6` | **PASÓ**: 7/7, 0 omitidas |
 | Los 8 `knowledge-*.node.mjs` | árbol de `d542b7c7` | **PASÓ**: 71/71, 0 omitidas, 54 s |
-| Control rojo, con las 7 pruebas nuevas de `knowledge-graph` | `knowledge-graph.py` de `88713e47` | **FALLÓ, como tenía que fallar**: las 5 nuevas; pasan las 2 previas del patrón |
+| Control rojo con las 7 pruebas del patrón de `knowledge-graph` (5 nuevas y 2 previas) | `knowledge-graph.py` de `88713e47` | **FALLÓ, como tenía que fallar**: las 5 nuevas; pasan las 2 previas |
 | Control rojo de la memoria | `knowledge-graph.py` de `057446f6` | **FALLÓ, como tenía que fallar**: las 2 de memoria |
 | Control rojo de la aceptación en `knowledge-sync` | `knowledge-graph.py` de `main` | **FALLÓ, como tenía que fallar**: `structural.status` PENDING |
 | Mutantes: 25 variantes, una por condición de las dos huellas y de las precondiciones | `d542b7c7` | **PASÓ**: 25 de 25 muertos, 0 sobrevivientes |
@@ -177,8 +177,9 @@ Al inspeccionar `main` apareció otra causa, independiente de la primera:
 | `knowledge-semantic-apply.py --check` con el fragmento del runbook | `3902fcfb` | **PASÓ**: VALIDATED, 19 nodos, 25 aristas |
 | Aplicación local del fragmento, `cluster-only` y `status --preview` | `3902fcfb` | **PASÓ**: APPLIED; runbook VERIFIED tras `cluster-only`; structural CURRENT |
 | `pnpm harness:test` completo (`node scripts/tests/run-harness.mjs`), en el turno del Director | `20d1ba50` | **PASÓ**: 24 archivos, 197/197, 0 omitidas, exit 0, 1 min 3 s (18:18:21–18:19:25 UTC) |
-| `knowledge:visual` y `knowledge:visual:check` con el paquete fijado del lock | — | PENDIENTE DE REGISTRAR |
-| `knowledge:publish --preview` | — | PENDIENTE DE REGISTRAR |
+| `graphify update .` tras el commit del handoff | `0ef8cff4` | **PASÓ**: structural CURRENT |
+| `knowledge:visual` y `knowledge:visual:check` con el paquete fijado del lock | `0ef8cff4` | **PASÓ**: Archify 2.16.0 CURRENT, 9/9 comprobaciones. Especificación `6ac8e65e…`, artefacto `c05d1946…`, evidencia `91559709…`. El `archify.zip` se copió del `graphify-out` de `main`, y su sha256 `4c59fa65…` coincide con `scripts/archify.lock.json`. No se descargó nada |
+| `knowledge:publish --preview` dos veces | `0ef8cff4` | **PASÓ**: Obsidian PREVIEW en `graphify-out/obsidian-preview`, 1.129 documentos y 40 advertencias de enlaces. La repetición sale `unchanged`. Piloto 1/16 y global 1/1.130: los otros 15 recibos del piloto están atados a la raíz de `main`. Problemas informados: `MAIN_REQUIRED` y `SEMANTIC_PILOT_PENDING`, propios de un worktree |
 | Build, DB y E2E de producto | — | **NO EJECUTADO**: no aplican a esta herramienta de documentación (runbook, «Validación y aceptación») |
 
 ## COMMITS
@@ -189,7 +190,8 @@ Al inspeccionar `main` apareció otra causa, independiente de la primera:
 | `d542b7c7` | `fix(knowledge)`: las notas de `graphify-out/memory` bloquean con su propio error |
 | `3902fcfb` | merge de `origin/main` `aab5a43b` (#163 y #164), sin conflictos |
 | `20d1ba50` | merge de `origin/main` `3bd3aae5` (#165), sin conflictos |
-| commit que contiene este documento | handoff |
+| `0ef8cff4` | handoff: diagnóstico, evidencia y resultado del harness completo |
+| commit que contiene este documento | handoff: Archify, preview y procedencia de los derivados |
 
 ## PR / BRANCH
 
@@ -198,8 +200,16 @@ Al inspeccionar `main` apareció otra causa, independiente de la primera:
 
 ## PENDIENTES DE ESTA TAREA
 
-- Registrar el resultado de Archify y de la preview.
 - Reportar al Director y, con su OK, hacer el push único y abrir la PR.
+
+Procedencia de los derivados de este worktree (todos en `graphify-out/`, fuera de Git):
+
+- La extracción nueva quedó en `graphify-out/worktree-fresh-20260919/`.
+- Después se copiaron en solo lectura el `graph.json` y el `manifest.json` de `main` (graph `32b409e6…`).
+  Sobre esa copia se corrió `graphify update .` para validar el fragmento contra la capa semántica real.
+- El commit que contiene esta versión solo cambia este documento. Como el handoff es fuente del corpus,
+  después de ese commit hace falta otro `graphify update .` para volver a structural CURRENT. En `main` lo
+  cubre la publicación del Director.
 
 ## FUERA DE ALCANCE DETECTADO
 
