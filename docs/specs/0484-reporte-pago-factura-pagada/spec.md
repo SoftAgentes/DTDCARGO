@@ -4,7 +4,7 @@ title: "Los comandos de reportes de pago frente a una factura ya pagada"
 status: in-progress
 author: "Sam + Claude Opus 5 (Worker)"
 created: 2026-09-18
-updated: 2026-09-18
+updated: 2026-09-19
 supersedes: null
 superseded_by: null
 related: ["0134", "0365", "0366", "0421", "0422", "0423"]
@@ -18,7 +18,8 @@ confidencialidad: interno
 > Con la migración `0464`, esa confirmación se rechaza con un mensaje que dice qué
 > hacer. El motivo de una cancelación, que sólo quedaba en la bitácora de
 > auditoría, se guarda también en el reporte, donde Studio y el portal ya lo
-> muestran.
+> muestran. **La 0464 está aplicada en producción desde el 2026-09-19** (ver
+> «Aplicación en producción»). Falta que Sam lo verifique en producción.
 
 ## Contexto
 
@@ -209,6 +210,9 @@ completa sólo cuando se aplique la 0422**.
    esperado es `7814b3911f1e273a52bf870d8db08155` o
    `c5ab13c20d8ec372e4399ca08833964c`.
 
+El 2026-09-19 se siguió este orden: la app quedó desplegada a las 00:54Z y la
+0464 se aplicó a las 01:00:07Z (ver «Aplicación en producción»).
+
 Si la 0464 se aplica antes del despliegue, la app anterior muestra el rechazo
 como «resultado incierto». Es seguro, porque no hay mutación, pero confunde.
 
@@ -241,7 +245,66 @@ los cambia. La prueba PGlite lo comprueba en los tres órdenes.
 - [x] Hay control rojo sin la 0464 y mutantes de cada regla, y el contrato
       detecta cada uno.
 - [ ] 0464 aplicada en producción con OK nominal de Sam (release; lo hace el
-      Director).
+      Director). **Aplicada el 2026-09-19** (ver «Aplicación en producción»).
+      Falta la verificación de Sam en producción: el bloque 3.2 de la prueba
+      de reportes de pago. Al recargar, el motivo de la cancelación tiene que
+      seguir visible.
+
+## Aplicación en producción (2026-09-19)
+
+Salvo donde se indica otra cosa, lo leyó el Director (`dtdcargo-18`), sólo del
+ledger y del catálogo, sin filas de negocio.
+
+- **OK nominal de Sam:** por AskUserQuestion del Director, el 2026-09-19 a las
+  00:29Z, nombrando «0464_reporte_pago_factura_pagada». Sam lo confirmó también
+  en la sesión Worker: «Autorizo aplicar la 0464_reporte_pago_factura_pagada».
+- **Primero la app:** la PR #150 se fusionó a las 00:51:43Z (`26983062`). En
+  GitHub, el estado `Vercel` de ese commit es `success` («Deployment has
+  completed») desde las 00:54:23Z. Esto lo comprobó la sesión que registra la
+  aplicación.
+- **Preflight:** releído justo antes de aplicar, `md5(prosrc)` de
+  `payment_private.run_report_command` era `7814b3911f1e273a52bf870d8db08155`,
+  el cuerpo de 0421. 0 sesiones activas.
+- **Aplicación:** el Director aplicó la 0464 sola, con `name` exacto, a las
+  01:00:07Z (21:00 del 18 en Caracas).
+- **Ledger:** `20260919010007 · 0464_reporte_pago_factura_pagada`, 1 sentencia.
+  `statements` tiene md5 `44fabe4d2643844fbe489e2ba88fa4fb` y 22 209 bytes,
+  igual que el blob `0b2d0065` de `main`, que sólo tiene LF. La sesión que
+  registra la aplicación comprobó en Git el md5, los bytes y los finales de
+  línea de ese blob. La cabecera del `.sql` no se toca: el ledger guarda su
+  texto exacto.
+- **Postflight:** el postflight interno de la migración pasó. El nuevo
+  `md5(prosrc)` es `c3aab7fcb10e3bf5de0fa40cc562a45d`, el esperado. La función
+  es DEFINER, con owner `postgres` y `search_path=""`, y sólo `authenticated`
+  tiene EXECUTE (ni `anon` ni `service_role`). El comentario de la columna
+  `resolution_reason` quedó actualizado.
+- **Advisors de seguridad:** la misma huella antes y después (md5 normalizado
+  `c80be09588e4dd2dd588379f246765f5`).
+- La sesión que registra la aplicación no tenía conector de Supabase y no
+  repitió la lectura de producción.
+- La espera salió de `supabase/migrations-baseline.json › pendingBelowCutoff`.
+  Siguen en espera la 0422 y la 0423.
+
+### Verificación en producción, pendiente de Sam
+
+- **Bloque 3.2** de la prueba de reportes de pago
+  (`.agents/handoffs/smokes-app-l14-0454-0472-guion.md`, bloque 3, paso 2):
+  cancelar un reporte con motivo en el Portal y recargar. Antes de la 0464 el
+  «Motivo: …» desaparecía al recargar; ahora tiene que seguir visible. Sirve un
+  reporte cancelado **después** de la 0464: los anteriores conservan el motivo
+  sólo en la auditoría, porque no hubo backfill.
+- **El rechazo sobre una factura pagada no se prueba en producción.** La
+  factura de prueba se anula al final de la prueba (bloque 4), y una factura
+  pagada ya no se puede anular. Esa regla la cubren los contratos:
+  `supabase/tests/0464_reporte_pago_factura_pagada.test.sql` (45 aserciones,
+  con control rojo y cinco mutantes), en `psql` real y en PGlite
+  (`lib/portal/__tests__/payment-report-paid-invoice.migration.test.ts`), y la
+  carrera de `scripts/qa/payment-report-confirm-race.mjs` en `postgres:17`. La
+  regla del excedente (`PAYMENT_EXCEEDS_BALANCE`) tampoco está en la prueba de
+  Sam y la cubren los mismos contratos.
+- Cuando Sam confirme el bloque 3.2, se marca el último criterio y la spec
+  puede pasar a `done`. El hueco de la RPC heredada sigue abierto hasta la 0422
+  (ver «Hueco que sigue abierto hasta la 0422»).
 
 ## Gobernanza
 
@@ -308,7 +371,7 @@ negocio de producción. El detalle, con los SHA, está en el handoff.
 ## Riesgos
 
 - Aplicar la 0464 antes de desplegar la app hace que Studio muestre el rechazo
-  como «resultado incierto».
+  como «resultado incierto». No ocurrió: la app se desplegó antes.
 - Los reportes cancelados antes de la 0464 conservan el motivo sólo en la
   auditoría. Rellenarlo exige leer y escribir filas de negocio de producción.
 - Hasta aplicar la 0422, la RPC heredada confirma sin estas reglas.
