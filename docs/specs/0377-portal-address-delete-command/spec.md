@@ -96,9 +96,10 @@ de deadlocks. No se aumenta ningún timeout para ocultar fallos.
       y rollback de auditoría. Políticas y permisos previos preservados.
 - [x] Concurrencia real: revalidación tras revocación/transferencia, dos borrados,
       commit/rollback y timeout acotado; no eventos duplicados.
-      2026-09-18: el script de esa evidencia no entró a `main`. Ahora la corre
-      `supabase/tests/0427_borrado_direccion_carrera.test.sql`, con los ocho
-      escenarios, en el paso `sql-tests` de `verify` (no en CI).
+      Corrección de estado (2026-09-18): la evidencia previa no estaba en
+      `main`, porque `scripts/check-portal-address-concurrency.mjs` no se
+      importó. Desde hoy la cubre `supabase/tests/0427_borrado_direccion_carrera.test.sql`,
+      con los ocho escenarios, en el paso `sql-tests` de `verify` (no en CI).
 - [x] Unitarios, tipos, lint, docs, componentes y gobernanza.
 - [x] Browser local con datos sintéticos, sin consultar filas reales.
 - [x] Evidencia y pendientes explícitos; Cloud permanece no aplicado.
