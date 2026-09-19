@@ -1,7 +1,7 @@
 ---
 sdd: "0488"
 title: "El registro de cobros en facturas pasa a ser atómico"
-status: in-progress
+status: done
 author: "Sam + Claude Opus 5 (Worker)"
 created: 2026-09-18
 updated: 2026-09-18
@@ -166,8 +166,9 @@ que sigue fuera y best-effort, como en SDD-0041 y SDD-0068.
 - la frontera de lectura de facturas (`scripts/__tests__/invoice-read-boundary.test.mjs`),
   que baja de 6 a 2 en `collections-actions.ts` y de 46 a 42 en total.
 
-**Espera.** La 0467 se declara en `supabase/migrations-baseline.json ›
-pendingBelowCutoff`, con las instrucciones para el operador.
+**Espera.** La 0467 estuvo declarada en `supabase/migrations-baseline.json ›
+pendingBelowCutoff`, con las instrucciones para el operador, hasta que se
+aplicó. La retira el commit posterior a la aplicación (ver [Release](#release)).
 
 ### Reglas
 
@@ -258,8 +259,8 @@ la app y en 0421/0464, y un pago parcial la deja en `parcial`.
 7. `validatePaymentInput` rechaza un centavo sobre el saldo.
 8. `pnpm typecheck`, eslint de lo tocado, `docs:check`, `sdd:check`,
    `governance:check` y la frontera de lecturas: verdes.
-   `check-pending-migration-symbols` queda en ROJO por diseño mientras la 0467
-   espera.
+   `check-pending-migration-symbols` estuvo en ROJO por diseño mientras la 0467
+   esperaba, y pasa a verde al retirar la espera después de aplicarla.
 9. Con la 0464 en el esquema, un cobro y una confirmación de reporte que entre
    los dos superan el saldo se serializan en la factura. El segundo, sea cobro
    o confirmación, recibe `PAYMENT_EXCEEDS_BALANCE` (escenarios 12 y 13).
@@ -284,6 +285,38 @@ la app y en 0421/0464, y un pago parcial la deja en `parcial`.
    se toca: una migración aplicada no se edita.
 5. CI verde, integración y smoke de Sam: cobrar, identificar un pago sin
    referencia y anular un recibo.
+
+### Aplicación en producción (2026-09-18, 22:19 en Caracas)
+
+La aplicó el Director (`dtdcargo-18`) con el OK nominal de Sam, pedido por
+AskUserQuestion hacia las 02:15 UTC del 2026-09-19. La respuesta, literal:
+«Autorizo 0467_cobro_factura_atomico». El Director leyó la evidencia sólo en el
+ledger y el catálogo:
+
+- **Preflight releído antes de aplicar.** `get_user_tenant_id` coincide exacto
+  (`5ff0c51c…`) y `void_payment_receipt_with_audit_reason` también
+  (`84882604…`). `next_receipt_code` coincide exacto con el cuerpo de producción
+  (`81cf4a64…`); sin espacios da `10f0a5df…`, que es lo que espera el preflight.
+  Las tres funciones nuevas no existían, y `paid_amount`, `total_amount` y
+  `amount` son NOT NULL.
+- **Ledger.** `20260919021949 · 0467_cobro_factura_atomico`. El md5 de
+  `statements` es `e40de959683625eed6368ad5ea05d791` y ocupa 23443 bytes:
+  idéntico al blob `dc93a397`.
+- **Postflight.** `md5(prosrc)`:
+  - `register_collection_receipt` `914de5ae…`;
+  - `identify_collection_receipt` `c573efe5…`;
+  - `void_collection_receipt` `5e4607a5…`.
+
+  Son iguales a los medidos en PGlite. Las tres son INVOKER y volatile, con
+  owner `postgres`, `search_path=""` y EXECUTE sólo para `authenticated`. El
+  postflight interno de la migración pasó.
+- **Advisors de seguridad.** La misma huella antes y después (`876f16fe…`): las
+  funciones INVOKER no agregan hallazgos.
+
+Pasos cumplidos: 1 a 3. El paso 4 es el commit que marca esta spec `done`.
+**Pendiente del release:** el paso 5, con CI verde, integración (despliega a
+producción) y el **smoke de Sam**: cobrar, identificar un pago sin referencia y
+anular un recibo.
 
 **Rollback.** Antes de desplegar la app, basta con `drop function` de las tres
 funciones; ninguna otra cosa cambió. Con la app desplegada, primero hay que

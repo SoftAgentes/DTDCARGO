@@ -1,10 +1,11 @@
 # Handoff 0488 — Registro atómico de cobros en facturas
 
 - Fecha: 2026-09-18, Caracas (2026-09-19 UTC). Estado de la tarea: **lista para
-  revisión**. Se publica con el push único que sigue a este commit y una PR
-  lista para revisión, después del reporte de cierre y del visto bueno del
-  Director. La 0467 **no está aplicada**, y la SDD sigue en `in-progress` hasta
-  que se aplique y se integre.
+  revisión**, publicada en la PR
+  [#157](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/157). La 0467
+  **está aplicada en producción** (ledger `20260919021949`, 22:19 en Caracas),
+  y la SDD pasa a `done` en el commit que retira la espera. Queda el smoke de Sam
+  después de integrar.
 - Owner / sesión: `worker-carrera-cobro-factura-opus5-20260918` (Claude Opus 5,
   Worker, sesión «Hacer atómico el registro de cobros en facturas»).
   Director: `dtdcargo-18`.
@@ -17,11 +18,12 @@
   a las 01:55 UTC, se trajo `d881f75f` en el merge `a5580255`, sin conflictos ni
   solapes. Trae la #153 (0462 del Portal, `lib/portal`, `lib/studio/fiscal` y
   `change-request-notify`) y la #155 (carreras 0421/0427 en `supabase/tests`).
-  El driver
-  `dtd-generated-records` dejó 0464 y 0467 en `pendingBelowCutoff`.
+  El driver `dtd-generated-records` dejó 0464 y 0467 en `pendingBelowCutoff`.
+  Después de aplicar la 0467 se trajo `c8f7f8b6` (#151, SDD-0485: la 0465 ya
+  aplicada, sin solapes) en el commit posterior a la aplicación.
 - Aislamiento: `harness-worktree start carrera-cobro-factura`, `guard` → `Guard OK`
   y claim adquirido antes de editar.
-- SDD: [0488](../../docs/specs/0488-carrera-cobro-factura/spec.md), `in-progress`.
+- SDD: [0488](../../docs/specs/0488-carrera-cobro-factura/spec.md), `done` desde el commit posterior a la aplicación.
   La reservó el Director en `codex/sdd-reserve-0488-carrera-cobro-factura`
   (`764a6049`, traído por cherry-pick como `49b896a6`). Migración asignada:
   **0467** (la 0466 es de la SDD-0487).
@@ -102,7 +104,7 @@ coherentes con la 0464.
   - el código R- repetido (`next_receipt_code` hace max+1 sin lock);
   - la factura anulada que revive al anular su recibo;
   - la doble identificación de un mismo pago sin referencia.
-- **Migración 0467** (`0467_cobro_factura_atomico.sql`, sin aplicar):
+- **Migración 0467** (`0467_cobro_factura_atomico.sql`, **aplicada en producción el 2026-09-19 02:19:49 UTC**, ledger `20260919021949`):
   - agrega `register_collection_receipt`, `identify_collection_receipt` y
     `void_collection_receipt`;
   - las tres son SECURITY INVOKER, con `search_path` vacío, owner `postgres` y
@@ -315,8 +317,11 @@ Sobre `1b64bdae`, en este orden:
 - `652e273a` `wip(handoff)`: el resultado del verify, guardado como punto de
   control antes del tercer merge. Lo completa el commit final.
 - `a5580255`: merge de `origin/main` (`d881f75f`).
-- El commit que contiene este documento: `docs(handoff)`, el cierre con el verify
-  y la publicación.
+- `7a428386` `docs(handoff)`: el cierre con el verify. Es el head con el que se
+  abrió la PR #157, en un solo push.
+- El commit que contiene este documento: `chore(db)`, 0467 aplicada. Retira la
+  espera, pasa la spec a `done` y actualiza el índice. Después va el merge de
+  `origin/main` (`c8f7f8b6`), y los dos salen en un solo push.
 
 ## PR / BRANCH
 
@@ -327,14 +332,42 @@ Director. La primera línea de la descripción avisa del ROJO POR DISEÑO del ga
 de símbolos. El número y la URL van en la PR y en el reporte al Director: no se
 agregan acá, para no hacer otro push.
 
+### Aplicación en producción (2026-09-19 02:19:49 UTC; 22:19 en Caracas)
+
+La aplicó el Director (`dtdcargo-18`) con el OK nominal de Sam, pedido por
+AskUserQuestion hacia las 02:15 UTC. La respuesta, literal: «Autorizo
+0467_cobro_factura_atomico». Evidencia que leyó el Director, sólo ledger y
+catálogo:
+
+- **Preflight releído.** `get_user_tenant_id` `5ff0c51c…` exacto,
+  `void_payment_receipt_with_audit_reason` `84882604…` exacto y
+  `next_receipt_code` `81cf4a64…` exacto (sin espacios `10f0a5df…`, el
+  esperado). Las tres funciones nuevas no existían, y `paid_amount`,
+  `total_amount` y `amount` son NOT NULL.
+- **Ledger.** `20260919021949 · 0467_cobro_factura_atomico`. El md5 de
+  `statements` es `e40de959683625eed6368ad5ea05d791` y ocupa 23443 bytes: igual
+  al blob `dc93a397`.
+- **Postflight.** `md5(prosrc)` de register `914de5ae…`, identify `c573efe5…` y
+  void `5e4607a5…`, iguales a los de PGlite. Las tres son INVOKER y volatile,
+  con owner `postgres`, `search_path=""` y EXECUTE sólo `authenticated`. El
+  postflight interno pasó.
+- **Advisors de seguridad.** La misma huella antes y después (`876f16fe…`).
+
+**Commit posterior a la aplicación** (el que contiene esta versión):
+
+- saca la 0467 de `pendingBelowCutoff`, con lo que
+  `check-pending-migration-symbols` da 0 ROJO y 0 AMARILLO;
+- la spec pasa a `done` y registra la aplicación;
+- la cabecera del `.sql` **no** se toca;
+- trae main `c8f7f8b6` con el driver;
+- sale en un solo push.
+
 ## PENDIENTES DE ESTA TAREA
 
-- Revisión del Director sobre la PR.
-- Release, que es del Director: OK nominal de Sam con la identidad de arriba →
-  aplicar la 0467 → commit que retira la espera, sin tocar la cabecera del `.sql`
-  → CI verde → integración → smoke de Sam: cobrar, identificar y anular.
-- En ese commit posterior a la aplicación, la SDD pasa a `done`. Si ese commit
-  toca esta rama, se vuelve a reclamar el worktree.
+- Revisión final del Director y CI verde. Cuando entre la #156, que saca la
+  0464, el Director actualiza esta PR desde GitHub; **el Worker no empuja más**.
+- Integración, que despliega a producción, y **smoke de Sam**: cobrar,
+  identificar un pago sin referencia y anular un recibo.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -371,18 +404,13 @@ agregan acá, para no hacer otro push.
   `docs/specs/README.md` (generado).
 - La 0467 no depende de la 0464 y se aplica después de ella. Nada de la 0467
   toca `payment_reports` ni `run_report_command`.
-- **Para el OK nominal de Sam:**
-  - archivo `0467_cobro_factura_atomico.sql`: md5 `e40de959683625eed6368ad5ea05d791`,
-    23443 bytes, LF;
-  - `name` = `0467_cobro_factura_atomico`;
-  - la espera en `pendingBelowCutoff › 0467_cobro_factura_atomico` dice
-    MIGRATE-FIRST: se aplica antes de integrar la PR, y es aditiva e invisible
-    para la app desplegada;
-  - antes de aplicar, leer las huellas de las tres dependencias;
-  - después, un commit retira la espera sin tocar la cabecera del `.sql`, y
-    siguen CI verde, integración y smoke de cobrar, identificar y anular.
-- **Primera línea de la PR:** avisa que el gate de símbolos nace en ROJO por
-  diseño, porque la 0467 está declarada como espera.
+- **OK nominal de Sam y aplicación: hechos.** Sam dijo «Autorizo
+  0467_cobro_factura_atomico» y el Director aplicó la migración el 2026-09-19 a las
+  02:19:49 UTC. El ledger, el md5 y los bytes coinciden con el blob, y el
+  postflight también (ver «Aplicación en producción»).
+- **Primera línea de la PR:** avisaba que el gate de símbolos nacía en ROJO por
+  diseño. Con la espera retirada, el gate pasa a verde y la descripción se
+  actualiza sin push.
 - Sesiones consumidoras: ninguna fuera de esta. La 0466 (`dtdcargo-74`) va a
   recorrer las RPC en su contrato cuando la 0467 esté en main.
 - Ownership: el claim `worker-carrera-cobro-factura-opus5-20260918` se libera
