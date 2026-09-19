@@ -74,6 +74,11 @@ vi.mock("@/lib/portal/profile-edit-quota", async (importOriginal) => ({
 vi.mock("./actions", () => ({
   uploadCedulaPhotoAction: vi.fn(async () => ({})),
 }));
+// SDD-0487: el perfil de facturación tiene su propia RPC y sus pruebas; aquí
+// sólo cuenta que el contexto privado salga de la 0405.
+vi.mock("@/lib/portal/billing-profile-context", () => ({
+  getPortalBillingContext: async () => ({ available: false, profile: null }),
+}));
 vi.mock("./AvatarEditor", async () => {
   const { createElement } = await import("react");
   return {

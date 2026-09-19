@@ -11,6 +11,12 @@
  * IP en claro y solo se cuenta dentro de una ventana de 30 min: se purga aparte,
  * con una retención propia y más corta (SDD-0455).
  *
+ * `client_profile_blocked_attempts` (SDD-0482/0487) guarda cada intento del
+ * Portal bloqueado por un documento o teléfono de otra ficha, sin el valor. El
+ * límite anti-enumeración mira 24 h; pasado eso sólo sirve de rastro para el
+ * asesor. Sam decidió conservarlo 90 días (2026-09-19). Requiere el DELETE que
+ * da la migración 0466 a service_role.
+ *
  * Auth: CRON_SECRET en `Authorization: Bearer <secret>` — mismo patrón que
  * push-drain / ceo-brief. El secret SOLO por header (nunca query-param: terminan
  * en logs/referrers). Idempotente: si no hay filas viejas, borra 0 y devuelve ok.
@@ -35,6 +41,9 @@ const RETENTION_HOURS = 48;
  */
 const PUBLIC_VERIFY_RETENTION_MINUTES = 60;
 
+/** Intentos bloqueados del perfil del Portal: 90 días (decisión de Sam, SDD-0487). */
+export const BLOCKED_ATTEMPTS_RETENTION_DAYS = 90;
+
 function authorize(req: NextRequest): { ok: boolean; reason?: string } {
   const secret = process.env.CRON_SECRET;
   if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
@@ -56,6 +65,9 @@ export async function GET(req: NextRequest) {
   ).toISOString();
   const verifyCutoff = new Date(
     now - PUBLIC_VERIFY_RETENTION_MINUTES * 60 * 1000,
+  ).toISOString();
+  const blockedCutoff = new Date(
+    now - BLOCKED_ATTEMPTS_RETENTION_DAYS * 24 * 60 * 60 * 1000,
   ).toISOString();
 
   // .lt(...) es un filtro obligatorio: PostgREST rechaza un DELETE sin filtro.
@@ -89,19 +101,35 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // SDD-0487: al final también, por la misma razón.
+  const { error: blockedError, count: blockedCount } = await admin
+    .from("client_profile_blocked_attempts")
+    .delete({ count: "exact" })
+    .lt("created_at", blockedCutoff);
+  if (blockedError) {
+    return apiError(
+      "No se pudo purgar los intentos bloqueados del perfil.",
+      blockedError,
+      500,
+      "purge-blocked-attempts",
+    );
+  }
+
   return NextResponse.json({
     ok: true,
-    deleted: (count ?? 0) + (pinCount ?? 0) + (verifyCount ?? 0),
+    deleted: (count ?? 0) + (pinCount ?? 0) + (verifyCount ?? 0) + (blockedCount ?? 0),
     deletedByTable: {
       portal_registro_throttle: count ?? 0,
       operario_pin_attempts: pinCount ?? 0,
       public_verify_throttle: verifyCount ?? 0,
+      client_profile_blocked_attempts: blockedCount ?? 0,
     },
     cutoff,
     cutoffByTable: {
       portal_registro_throttle: cutoff,
       operario_pin_attempts: cutoff,
       public_verify_throttle: verifyCutoff,
+      client_profile_blocked_attempts: blockedCutoff,
     },
   });
 }

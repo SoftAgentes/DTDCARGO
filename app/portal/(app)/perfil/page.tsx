@@ -25,6 +25,9 @@ import { CopyCodeButton } from "./CopyCodeButton";
 import { CedulaPhotoRow } from "./CedulaPhotoRow";
 import { ProfilePendingBanner } from "./ProfilePendingBanner";
 import { DataChangeEditor } from "./DataChangeEditor";
+import { getPortalBillingContext } from "@/lib/portal/billing-profile-context";
+import { BillingIdentityCard } from "./BillingIdentityCard";
+import { BillingKindSelector } from "./BillingKindSelector";
 
 export const metadata: Metadata = { title: "Mi perfil" };
 
@@ -43,7 +46,12 @@ export const metadata: Metadata = { title: "Mi perfil" };
  * /portal/cuenta redirige acá (permanentRedirect). El layout `(app)` ya
  * garantizó la sesión; `client` null es defensa extra.
  */
-export default async function PortalProfilePage() {
+export default async function PortalProfilePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ guardado?: string }>;
+} = {}) {
+  const guardado = (await searchParams)?.guardado;
   const supabase = await createClient();
   const principal = await getPortalClientPrincipal(supabase);
   if (!principal) return null;
@@ -63,10 +71,12 @@ export default async function PortalProfilePage() {
   // calculadora pública): `calculator_cities` no trae precio, así que sin este
   // cruce cada dirección del cliente decía "la cotiza tu asesor" aunque su
   // ciudad tuviera tarifa confirmada. Cliente y asesor ven el mismo número.
-  const [calcCities, calcTariffs, completeness] = await Promise.all([
+  // SDD-0487: empresa y «Facturar a nombre de». Sin 0466 el bloque no se muestra.
+  const [calcCities, calcTariffs, completeness, billing] = await Promise.all([
     getPublicCalculatorCities(),
     getPublicCarrierTariffs(),
     getProfileCompleteness(supabase),
+    getPortalBillingContext(supabase),
   ]);
   const calcDestinos = combinarDestinos(calcCities, calcTariffs);
 
@@ -131,13 +141,11 @@ export default async function PortalProfilePage() {
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-6 lg:gap-8 items-start">
         {/* ── Columna izquierda · identidad + TU CÓDIGO ── */}
         <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6">
-          <AvatarEditor name={client.name} avatarUrl={avatarUrl} />
-
-          <span
-            className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-paper border border-grey-200 px-3 py-1.5 text-[11px] font-bold tracking-[0.04em] text-wine-text"
-          >
-            {esEmpresa ? "Cuenta de empresa" : "Cuenta personal"}
-          </span>
+          <AvatarEditor name={client.name} avatarUrl={avatarUrl}>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-paper border border-grey-200 px-3 py-1.5 text-[12px] font-bold tracking-[0.04em] text-wine-text">
+              {esEmpresa ? "Cuenta de empresa" : "Cuenta personal"}
+            </span>
+          </AvatarEditor>
 
           {/* TU CÓDIGO — gradiente hero con tokens temáticos (--hero-*): en
               dark `white`/`ink` viran a navy; estos tokens son fijos. Fallbacks:
@@ -306,8 +314,9 @@ export default async function PortalProfilePage() {
               />
             </div>
 
-            {/* Registrar empresa (solo persona) — mediado por el asesor. */}
-            {!esEmpresa && (
+            {/* Respaldo sin 0466: registrar empresa por el asesor (SDD-0487 lo
+                reemplaza por «Mi empresa»). Migrate-first: en producción no se ve. */}
+            {!esEmpresa && !billing.available && (
               <div
                 className="mt-6 rounded-[12px] bg-paper border border-grey-200 border-l-[3px] p-5"
                 style={{ borderLeftColor: "var(--color-wine)" }}
@@ -331,6 +340,40 @@ export default async function PortalProfilePage() {
               </div>
             )}
           </section>
+
+          {/* SDD-0487 · Mi empresa (o tus datos personales) y «Facturar a nombre de». */}
+          {billing.available && billing.profile ? (
+            <>
+              {guardado === "empresa" || guardado === "persona" ? (
+                <p
+                  role="status"
+                  className="flex items-start gap-2.5 rounded-[12px] border border-grey-200 bg-white p-3.5 text-[14px] leading-[1.5] text-ink"
+                >
+                  <span className="mt-0.5 flex-shrink-0" style={{ color: "var(--color-status-success)" }} aria-hidden>
+                    <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M8 12.5l2.5 2.5L16 9.5" />
+                    </svg>
+                  </span>
+                  <span>
+                    <strong>{guardado === "empresa" ? "Empresa guardada." : "Datos guardados."}</strong>{" "}
+                    Revisa abajo a nombre de quién salen tus próximas facturas.
+                  </span>
+                </p>
+              ) : null}
+              <BillingIdentityCard
+                principalKind={billing.profile.principalKind}
+                secondary={billing.profile.secondary}
+              />
+              <BillingKindSelector
+                principalKind={billing.profile.principalKind}
+                principalName={billing.profile.principalName}
+                principalDoc={billing.profile.principalDoc}
+                secondary={billing.profile.secondary}
+                billingKind={billing.profile.billingKind}
+              />
+            </>
+          ) : null}
 
           {/* Direcciones de entrega (SDD-0138 B+C · REUSO completo) */}
           <section

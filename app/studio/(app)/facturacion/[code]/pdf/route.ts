@@ -25,6 +25,7 @@ import { getInvoiceByCode } from "@/lib/studio/invoice-queries";
 import { getCompanyData } from "@/lib/studio/company-queries";
 import { FacturaDocument } from "@/lib/studio/pdf/factura-pdf";
 import { noEncontrado, nombreSeguro, respuestaPdf } from "@/lib/studio/pdf/pdf-response";
+import { domicilioFiscalSellado } from "@/lib/studio/invoice-client-doc";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +53,8 @@ export async function GET(
   // Los datos de la empresa son decorado del pie: si el tenant no los cargó, la
   // factura sale igual. Un fallo acá no puede tumbar el documento.
   const company = await getCompanyData(supabase).catch(() => null);
+  // SDD-0487: domicilio fiscal sellado; sin 0466 no hay columna y sale sin él.
+  const fiscalAddress = await domicilioFiscalSellado(supabase, inv.id);
 
   const doc = createElement(FacturaDocument, {
     invoice: {
@@ -59,6 +62,7 @@ export async function GET(
       clientName: inv.client_name,
       clientRif: inv.client_rif,
       clientDocKind: inv.client_doc_kind,
+      clientFiscalAddress: fiscalAddress,
       clientMarkbox: inv.client_markbox,
       shipmentCode: inv.shipment_code,
       currency: inv.currency,
