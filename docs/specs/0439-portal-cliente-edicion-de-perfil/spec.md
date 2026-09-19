@@ -4,7 +4,7 @@ title: "Portal cliente — edición controlada y contención de fotos de identid
 status: in-progress
 author: "Codex + founder"
 created: 2026-09-04
-updated: 2026-09-06
+updated: 2026-09-19
 supersedes: null
 superseded_by: null
 related: ["0138", "0145", "0151", "0186", "0191", "0268"]
@@ -232,3 +232,126 @@ por Director. Sin push, build/verify masivo ni Cloud.
 - UAT autenticado permanece pendiente: el código del Portal no se despliega
   hasta `cerrar` y falta identificar la cuenta empresarial y las mutaciones
   aprobadas.
+
+### Concurrencia del cupo en la suite SQL (seguimiento del 2026-09-19)
+
+Seguimiento sin número nuevo, asignado por el Director (la sesión «Director
+notificación a workers»). Las migraciones 0445, 0446, 0461 y 0462 no se tocan.
+
+**En producción** (verificado por el Director el 2026-09-19, leyendo sólo el
+catálogo, sin filas):
+
+- **Cuerpos:** el `md5(prosrc)` de producción es el de la última definición en
+  `main` y el mismo que deja el fixture de la carrera. Las cinco funciones son
+  DEFINER:
+  - `portal_profile_edit_request_lifecycle` (0445): `5316eac7…`;
+  - `portal_set_identity_photo` (0446): `057aea5c…`;
+  - `portal_update_my_profile` (0462): `724dc0cf…`;
+  - `portal_profile_edit_follow_request_reassignment` (0446): `10b6e764…`;
+  - `portal_profile_edits_follow_client_merge` (0446): `8948fa55…`.
+
+  `merge_clients` es la de la 0361 (`1a65fc74…`). El fixture usa la fusión
+  recortada del contrato 0446, que toma las mismas dos fichas FOR UPDATE al
+  empezar.
+- **Triggers:** `client_change_requests_profile_edit_lifecycle`,
+  `client_change_requests_profile_edit_reassignment` y
+  `clients_profile_edits_follow_merge` existen y están habilitados.
+- **Ledger:** la 0461 (`20260918174236`) y la 0462 (`20260919011316`) son
+  idénticas a `main`. En la 0361, la 0445, la 0446 y la 0447, el md5 y los bytes
+  del ledger no coinciden con el archivo. No es porque el archivo se haya editado
+  después de aplicar:
+  - el de la 0445 tiene exactamente el SHA-256 que registra «Resultado Cloud»
+    (`5A256A83…`);
+  - el último commit de las otras tres es anterior a su ledger.
+
+  Lo más probable, aunque no está verificado, es que el texto aplicado no fue el
+  archivo tal cual. Lo que ejercita la carrera, es decir, los cuerpos y los
+  triggers, coincide con producción.
+
+**Lo que afirma esta spec y cómo corre en la app.** La sección «Persistencia y
+seguridad» dice que el trigger de la 0445 «serializa por fila de `clients`, de
+modo que dos solicitudes simultáneas no pueden superar el límite». En la app, el
+cupo se consume por dos caminos, y los dos toman FOR UPDATE de la ficha antes de
+contar:
+
+- la edición directa `portal_update_my_profile` (0462:214), que inserta la
+  solicitud aprobada que el trigger cuenta;
+- el cambio de foto `portal_set_identity_photo` (0446:256), que cuenta y asienta
+  por su cuenta.
+
+El Portal ya no crea solicitudes pendientes: sólo cancela las anteriores a
+SDD-0482. El Studio registra sus cambios con `source = 'admin'`, que el trigger
+no cuenta.
+
+**`supabase/tests/0445_cupo_perfil_carrera.test.sql`** corre en el paso
+`sql-tests` de `verify` (no en CI). Usa:
+
+- sesiones reales por dblink;
+- una barrera por `pg_blocking_pids`, sin esperas;
+- el fixture de los contratos 0462 y 0446, con la cadena real 0445 → 0446 →
+  0447 → 0461 → 0462;
+- del lado del Portal, las dos RPC reales, con la sesión del cliente.
+
+Cada escenario corre primero con la función que lo defiende sin su FOR UPDATE
+(control) y después con las migraciones. Salvo en la fusión, el cliente arranca
+con 1 cambio disponible:
+
+| # | Escenario | Sin el FOR UPDATE (control) | Con las migraciones |
+|---|---|---|---|
+| 1 | Dos altas directas de la solicitud aprobada, desde un llamador sin lock propio: el contrato del trigger | trigger sin 0445:138: la segunda no espera, pasan las dos y quedan 4 | la segunda espera y recibe `profile_edit_limit_reached` |
+| 2 | Dos ediciones directas a la vez, con cambios distintos | la 0462 y el trigger sin sus locks: pasan las dos y quedan 4 | la segunda espera y recibe el límite |
+| 3 | Una edición directa y, encima, un cambio de foto | foto sin 0446:256: cuenta antes de esperar, pasa y quedan 4 | la foto espera y recibe el límite |
+| 4 | Dos cambios de foto a la vez | ídem: pasan los dos y quedan 4 | el segundo espera y recibe el límite |
+| 5 | Una fusión retira la ficha y su cliente edita sus datos a la vez | 0462 sin 0462:214: el cambio cae en la ficha retirada y se cuenta ahí, fuera del cupo del superviviente | la edición espera y recibe `profile_client_not_found` |
+| 6 | Lo mismo con un cambio de foto | foto sin 0446:256: ídem | el cambio espera y recibe `profile_client_not_found` |
+| 7 | Una fusión y un cambio del superviviente a la vez | sin control (ver abajo) | el cambio espera la fusión, cuenta la historia unida y recibe el límite |
+
+En las siete corridas reales, la segunda sesión espera en `transactionid`.
+
+**Mutantes, con el runner real y fuera del repo.** Los contratos 0445, 0446,
+0461 y 0462, de una sola sesión, no detectan ninguno:
+
+| Mutante | Lo que se quita | Escenarios que caen |
+|---|---|---|
+| M1 | el FOR UPDATE del trigger (0445:138) | 1 |
+| M2 | el FOR UPDATE de la edición directa (0462:214) | 5 |
+| M1+M2 | los dos | 1, 2 y 5 |
+| M3 | el FOR UPDATE de la foto (0446:256) | 3, 4 y 6 |
+| M4 | el FOR UPDATE del trigger de reasignación (0446:75) | ninguno |
+| M5 | el FOR UPDATE del trigger de fusión (0446:133) | ninguno |
+| M4+M5 | los dos | ninguno |
+| M4+M5, con la fusión del fixture sin su FOR UPDATE inicial | todo lock explícito de la fusión | ninguno |
+
+**Lo que muestran:**
+
+- **El lock del trigger (0445:138) y el de la edición directa (0462:214) se
+  cubren entre sí.** Con cualquiera de los dos, dos ediciones a la vez no pasan
+  del límite: M1 y M2 no tumban el escenario 2, M1+M2 sí. En la app, el lock del
+  trigger decide sólo si aparece un llamador que inserte la solicitud sin tomar
+  antes la ficha (escenario 1).
+- **El lock del trigger no cubre la fusión, porque no filtra fichas retiradas.**
+  Lo que impide consumir sobre la ficha retirada son los FOR UPDATE con
+  `deleted_at is null` de la 0462 y de la foto (escenarios 5 y 6).
+- **El lock de la foto (0446:256) es el único de su camino.**
+- **Los locks de los triggers de la fusión (0446:75 y :133) son de ejecución,
+  pero no cambian nada observable.** En la app sólo los alcanza `merge_clients`,
+  que ya toma FOR UPDATE de las dos fichas al empezar (0361:84-89). Y una fusión
+  no aplica el máximo (0446:49-51): cualquier orden entre una fusión y un consumo
+  del superviviente equivale a uno en serie. Por eso el escenario 7 no tiene
+  control posible. Además, sin ningún lock explícito en la fusión, el consumo
+  que llega durante ella espera igual. Mover las filas a la superviviente toma
+  KEY SHARE sobre ella por las FK, y retirar la otra ficha la actualiza. Los FOR
+  UPDATE de los dos caminos chocan con esos locks. Son defensa en profundidad.
+- **El `lock table` de la 0446:175 es del backfill,** que corrió una sola vez al
+  aplicar.
+
+**Limpieza en tres modos de fallo** (guarda, corte en la barrera y rojo M3): el
+clúster queda como estaba.
+
+El detalle y los scripts están en el handoff
+`.agents/handoffs/0439-carrera-cupo-0445.md`.
+
+Rutas agregadas a la allowlist por este seguimiento:
+
+- supabase/tests/0445_cupo_perfil_carrera.test.sql
+- .agents/handoffs/0439-carrera-cupo-0445.md
