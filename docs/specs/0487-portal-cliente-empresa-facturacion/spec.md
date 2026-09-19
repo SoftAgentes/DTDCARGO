@@ -537,6 +537,12 @@ Rutas agregadas a la allowlist por este seguimiento:
   `client_billing_identities_updated_by_fkey` no tiene índice. Hoy la tabla
   tiene como mucho una fila por cliente y `updated_by` sólo se usa al borrar un
   usuario de `auth.users`. Lleva su propia migración si el Director la prioriza.
+- **Hueco latente (2026-09-19): restaurar una ficha borrada que tenía empresa.** Si
+  otra ficha tomó ese documento mientras tanto, queda repetido entre `clients` y
+  `client_billing_identities`: el trigger revisa el RIF principal de la ficha
+  restaurada, no su empresa. Está reproducido en una sola sesión (ver «Unicidad del
+  documento bajo concurrencia»). Hoy sólo se abre restaurando a mano por SQL, porque el
+  Studio no restaura clientes. Decide Sam; no se arregló.
 - **Observación del postflight:** `billing_doc_norm(text)` conserva el EXECUTE
   de PUBLIC que Postgres da por default. Es pura (IMMUTABLE, INVOKER) y no lee
   datos, así que no expone nada. Si se quiere el mismo criterio que las RPC, el
