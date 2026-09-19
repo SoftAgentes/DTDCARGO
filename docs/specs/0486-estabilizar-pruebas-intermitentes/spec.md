@@ -190,6 +190,16 @@ Se registra en el handoff como FUERA DE ALCANCE DETECTADO:
 
 - `norte-bake.test.mjs`, que también falló en la línea base con contención
   (27,6 s contra 20 s). Su subproceso tarda 1,4-2,4 s solo.
+- `app/registro/__tests__/register-error-summary.test.tsx`: 2 pruebas pasaron de
+  20 s en un verify ajeno. La causa es otra:
+  - aislada tarda 1,6-2,1 s por prueba;
+  - su CPU se va en re-renderizar `RegisterForm` en cada una de las 64 teclas
+    que escribe user-event;
+  - con `delay: 0`, user-event espera un `setTimeout` entre teclas (~70 por
+    prueba).
+
+  No la afecta la copia imprimible ni el costo de `getByRole`. El detalle está en
+  el handoff.
 - Las pruebas que recorren el repo y ya tienen topes propios:
   `env-example-contract` (90 s en la línea base), `copy-sin-casco-central`,
   `vis-02-font-tokens` y `json-ld-escape-contract`.

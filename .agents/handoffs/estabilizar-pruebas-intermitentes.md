@@ -193,6 +193,11 @@ Sin PR todavía. Rama local `codex/estabilizar-pruebas-intermitentes`, base `mai
 ## FUERA DE ALCANCE DETECTADO
 
 - **`scripts/__tests__/norte-bake.test.mjs`.** Falló en `base1`: 27,6 s contra el tope global de 20 s. Lanza `node scripts/norte.mjs` como subproceso. Solo, el script tarda 1,4-2,4 s. En la suite saturada, el subproceso compite con los workers. Es contención, no costo propio, y no se arregla aquí (instrucción del Director).
+- **`app/registro/__tests__/register-error-summary.test.tsx`.** Me la pasó el Director: en el verify del Worker de pagos (`3167e240`), 2 de sus 3 pruebas pasaron del tope de 20 s en la primera corrida. **Otra causa, no la de estas cuatro.**
+  - Aislada: 1,6-2,1 s por prueba y 5,4-5,5 s el archivo, con 1-59 % de carga.
+  - Perfil de CPU (4,0 s muestreados): el 40 % inclusivo es React re-renderizando `RegisterForm.tsx` (1.820 líneas) en cada tecla que despacha user-event (`keyboardAction` → `commitInput` → `flushSyncWork`), y ~19 % es espera ociosa. `getByRole` con `name` casi no aparece.
+  - La prueba escribe 64 caracteres con `userEvent.setup()`. Con `delay: 0`, user-event espera un `setTimeout` entre teclas, unas 70 veces por prueba. Bajo contención, cada espera depende de cuándo el sistema vuelve a darle CPU al hilo. Por eso la inflación pasa de 10×, cuando en PackingList fue de 2,6×.
+  - Probé `userEvent.setup({ delay: null })` en una copia temporal, con la carga fluctuando: 3,4 / 1,9 / 2,4 s contra 7,3 / 4,3 / 4,3 s de la original en una ronda, y 6,2 / 2,7 / 3,4 s contra 4,5 / 3,7 / 4,0 s en la otra. **No es concluyente.** Queda como hipótesis para una tarea aparte, que tiene que medirla con la máquina quieta y mostrar que la prueba sigue afirmando lo mismo.
 - **Las pruebas que recorren el repo con topes propios.** En `base1`:
   - `env-example-contract`, 90,4 s;
   - `copy-sin-casco-central`, 33,2 s;
