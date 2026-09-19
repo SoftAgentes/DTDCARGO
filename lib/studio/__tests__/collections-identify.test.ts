@@ -1,19 +1,25 @@
 /**
- * Tests de las acciones compartidas de Cobranzas para SDD-0068 (stub Supabase,
- * sin red ni DB; el posting contable y el admin client van mockeados):
+ * Tests de las acciones compartidas de Cobranzas para SDD-0068 y SDD-0488 (stub
+ * Supabase, sin red ni DB; el posting contable y el admin client van mockeados):
  *
- *  - `identifyPaymentFor` (decisión #6): conserva `received_at` ORIGINAL (el
- *    update del recibo NO lo toca y la reclasificación se asienta con esa
- *    fecha), setea invoice_id + snapshots + 'aplicado' + identified_at,
- *    hereda fund_class, sube paid_amount como un cobro normal, y rechaza
- *    recibos ya aplicados / moneda distinta / saldo insuficiente.
+ *  - `identifyPaymentFor` (decisión #6): rechaza recibos ya aplicados / moneda
+ *    distinta / saldo insuficiente antes de tocar nada; identifica con la RPC
+ *    `identify_collection_receipt` (0467), que escribe recibo y saldo juntos, y
+ *    la reclasificación se asienta con la fecha ORIGINAL de recepción.
  *  - `registerUnidentifiedPaymentFor` (decisión #2): el payload insertado
  *    cumple el CHECK sin-ref ⇔ invoice null (invoice_id null + snapshots null
  *    + 'recibido_sin_ref' + fund_class 'third_party') y el asiento va con la
  *    fecha de recepción.
- *  - `registerCollectionFor` (decisión #4): tercero completo persiste el
- *    pagador y hereda fund_class de la factura; tercero incompleto ⇒
- *    fieldErrors y NO inserta.
+ *  - `registerCollectionFor` (decisión #4): el pagador viaja a la RPC
+ *    `register_collection_receipt`; tercero incompleto ⇒ fieldErrors y NO
+ *    llama a nada.
+ *  - `voidReceiptFor`: una sola RPC `void_collection_receipt` con el motivo.
+ *
+ * SDD-0488: ninguna de las tres escribe la factura ni el recibo por su cuenta
+ * (`updates`/`inserts` vacíos). Lo que la base hace dentro de la RPC —snapshots,
+ * received_at intacto, fund_class heredada, saldo, estado— lo prueban el
+ * contrato `supabase/tests/0467_cobro_factura_atomico.test.sql` y, con dos
+ * sesiones reales, `scripts/qa/cobro-factura-race.mjs`.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -43,29 +49,36 @@ import {
   identifyPaymentFor,
   registerCollectionFor,
   registerUnidentifiedPaymentFor,
+  voidReceiptFor,
 } from "../collections-actions";
 
 type Row = Record<string, unknown>;
 type Captured = { table: string; payload: Row; filters: Row };
+type RpcCall = { fn: string; args: Row };
 
 /**
  * Stub chainable mínimo: select/eq/maybeSingle/single para lecturas,
  * update(...).eq(...) terminal (captura el payload), insert(...).select().single()
- * (captura el payload, devuelve id sintético), rpc y auth.getUser.
+ * (captura el payload, devuelve id sintético), rpc (captura la llamada y
+ * responde como las RPC de 0467, o con `rpcError`) y auth.getUser.
  */
 function makeStub(opts: {
   receipts?: Row[];
   invoices?: Row[];
   userTenants?: Row[];
   nextReceiptCode?: string;
+  rpcError?: string;
 }) {
   const updates: Captured[] = [];
   const inserts: { table: string; payload: Row }[] = [];
+  const rpcCalls: RpcCall[] = [];
   const tables: Record<string, Row[]> = {
     payment_receipts: opts.receipts ?? [],
     invoices: opts.invoices ?? [],
     user_tenants: opts.userTenants ?? [{ tenant_id: "t1" }],
   };
+  const byId = (table: string, id: unknown) =>
+    (tables[table] ?? []).find((r) => r.id === id) ?? null;
 
   function from(table: string) {
     const filters: Row = {};
@@ -110,13 +123,53 @@ function makeStub(opts: {
     return chain;
   }
 
+  // Respuesta de cada RPC con la forma del jsonb de 0467.
+  function rpcResult(fn: string, args: Row): Row | string {
+    if (fn === "next_receipt_code") return opts.nextReceiptCode ?? "R-2026-0042";
+    if (fn === "register_collection_receipt") {
+      const inv = byId("invoices", args.p_invoice_id)!;
+      const paid = Number(inv.paid_amount) + Number(args.p_amount);
+      return {
+        receipt_id: "payment_receipts-new", receipt_code: opts.nextReceiptCode ?? "R-2026-0042",
+        tenant_id: inv.tenant_id, invoice_id: inv.id, invoice_code: inv.invoice_code,
+        currency: inv.currency, fx_rate: inv.fx_rate, amount: args.p_amount, paid_amount: paid,
+        total_amount: inv.total_amount, status: paid >= Number(inv.total_amount) ? "pagada" : "parcial",
+        fully_paid: paid >= Number(inv.total_amount),
+      };
+    }
+    if (fn === "identify_collection_receipt") {
+      const rec = byId("payment_receipts", args.p_receipt_id)!;
+      const inv = byId("invoices", args.p_invoice_id)!;
+      const paid = Number(inv.paid_amount) + Number(rec.amount);
+      return {
+        receipt_id: rec.id, receipt_code: rec.receipt_code, tenant_id: rec.tenant_id,
+        invoice_id: inv.id, invoice_code: inv.invoice_code, amount: rec.amount, currency: rec.currency,
+        fx_rate: rec.fx_rate, received_at: rec.received_at, paid_amount: paid,
+        total_amount: inv.total_amount, status: paid >= Number(inv.total_amount) ? "pagada" : "parcial",
+        fully_paid: paid >= Number(inv.total_amount),
+      };
+    }
+    if (fn === "void_collection_receipt") {
+      const rec = byId("payment_receipts", args.p_receipt_id)!;
+      return {
+        receipt_id: rec.id, receipt_code: rec.receipt_code, tenant_id: rec.tenant_id,
+        invoice_id: rec.invoice_id, paid_amount: null, status: null,
+      };
+    }
+    throw new Error("RPC inesperada: " + fn);
+  }
+
   const client = {
     from,
-    rpc: async () => ({ data: opts.nextReceiptCode ?? "R-2026-0042", error: null }),
+    rpc: async (fn: string, args: Row) => {
+      rpcCalls.push({ fn, args });
+      if (opts.rpcError) return { data: null, error: { message: opts.rpcError, code: "23514" } };
+      return { data: rpcResult(fn, args), error: null };
+    },
     auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },
   } as unknown as SupabaseClient;
 
-  return { client, updates, inserts };
+  return { client, updates, inserts, rpcCalls };
 }
 
 const SIN_REF_RECEIPT: Row = {
@@ -155,8 +208,8 @@ beforeEach(() => {
 
 // ── identifyPaymentFor (decisión #6 · retroactividad) ─────────
 describe("identifyPaymentFor", () => {
-  it("identifica: setea factura + snapshots + aplicado + identified_at, SIN tocar received_at", async () => {
-    const { client, updates } = makeStub({
+  it("identifica con UNA RPC: recibo y factura, sin escribir nada por su cuenta", async () => {
+    const { client, updates, inserts, rpcCalls } = makeStub({
       receipts: [SIN_REF_RECEIPT],
       invoices: [INVOICE],
     });
@@ -167,28 +220,12 @@ describe("identifyPaymentFor", () => {
     expect(r.invoiceCode).toBe("F-2026-0031");
     expect(r.fullyPaid).toBe(false); // 800 de 2000
 
-    const receiptUpdate = updates.find((u) => u.table === "payment_receipts")!;
-    expect(receiptUpdate.payload.invoice_id).toBe("i1");
-    expect(receiptUpdate.payload.client_markbox).toBe("DTD-5452");
-    expect(receiptUpdate.payload.client_name).toBe("Comercial Pérez, C.A.");
-    expect(receiptUpdate.payload.application_status).toBe("aplicado");
-    expect(receiptUpdate.payload.identified_at).toBeTruthy();
-    expect(receiptUpdate.payload.fund_class).toBe("third_party"); // hereda
-    // La retroactividad: received_at NO se toca (queda la fecha original).
-    expect("received_at" in receiptUpdate.payload).toBe(false);
-  });
-
-  it("sube paid_amount + status de la factura como un cobro normal", async () => {
-    const { client, updates } = makeStub({
-      receipts: [SIN_REF_RECEIPT],
-      invoices: [INVOICE],
-    });
-    await identifyPaymentFor(client, "r1", "i1");
-
-    const invUpdate = updates.find((u) => u.table === "invoices")!;
-    expect(invUpdate.payload.paid_amount).toBe(800);
-    expect(invUpdate.payload.status).toBe("parcial");
-    expect(invUpdate.payload.last_payment_at).toBeTruthy();
+    expect(rpcCalls).toEqual([
+      { fn: "identify_collection_receipt", args: { p_receipt_id: "r1", p_invoice_id: "i1" } },
+    ]);
+    // SDD-0488: el recibo y el saldo los escribe la RPC en una transacción.
+    expect(updates).toHaveLength(0);
+    expect(inserts).toHaveLength(0);
   });
 
   it("la reclasificación se asienta con fecha = received_at ORIGINAL", async () => {
@@ -206,57 +243,79 @@ describe("identifyPaymentFor", () => {
     expect(arg.tenantId).toBe("t1");
   });
 
-  it("salda la factura cuando el monto cubre el saldo (fullyPaid + pagada)", async () => {
-    const { client, updates } = makeStub({
+  it("salda la factura cuando el monto cubre el saldo (fullyPaid de la RPC)", async () => {
+    const { client } = makeStub({
       receipts: [{ ...SIN_REF_RECEIPT, amount: 2000 }],
       invoices: [INVOICE],
     });
     const r = await identifyPaymentFor(client, "r1", "i1");
     expect(r.fullyPaid).toBe(true);
-    const invUpdate = updates.find((u) => u.table === "invoices")!;
-    expect(invUpdate.payload.status).toBe("pagada");
   });
 
   it("rechaza un recibo que NO está recibido_sin_ref", async () => {
-    const { client, updates } = makeStub({
+    const { client, updates, rpcCalls } = makeStub({
       receipts: [{ ...SIN_REF_RECEIPT, application_status: "aplicado", invoice_id: "i9" }],
       invoices: [INVOICE],
     });
     const r = await identifyPaymentFor(client, "r1", "i1");
     expect(r.error).toBeDefined();
     expect(updates).toHaveLength(0);
+    expect(rpcCalls).toHaveLength(0);
     expect(postReclassMock).not.toHaveBeenCalled();
   });
 
   it("rechaza moneda distinta entre pago y factura", async () => {
-    const { client, updates } = makeStub({
+    const { client, rpcCalls } = makeStub({
       receipts: [{ ...SIN_REF_RECEIPT, currency: "VES", fx_rate: 36 }],
       invoices: [INVOICE],
     });
     const r = await identifyPaymentFor(client, "r1", "i1");
     expect(r.error).toMatch(/moneda/i);
-    expect(updates).toHaveLength(0);
+    expect(rpcCalls).toHaveLength(0);
   });
 
   it("rechaza factura con saldo insuficiente (saldo < monto)", async () => {
-    const { client, updates } = makeStub({
+    const { client, rpcCalls } = makeStub({
       receipts: [{ ...SIN_REF_RECEIPT, amount: 800 }],
       invoices: [{ ...INVOICE, total_amount: 1000, paid_amount: 500 }], // saldo 500
     });
     const r = await identifyPaymentFor(client, "r1", "i1");
     expect(r.error).toMatch(/saldo/i);
-    expect(updates).toHaveLength(0);
+    expect(rpcCalls).toHaveLength(0);
+  });
+
+  // SDD-0488: regla estricta de Sam (igual que la 0464). Antes pasaba 0,01 de más.
+  it("rechaza un centavo por encima del saldo", async () => {
+    const { client, rpcCalls } = makeStub({
+      receipts: [{ ...SIN_REF_RECEIPT, amount: 500.01 }],
+      invoices: [{ ...INVOICE, total_amount: 1000, paid_amount: 500 }],
+    });
+    const r = await identifyPaymentFor(client, "r1", "i1");
+    expect(r.error).toMatch(/saldo/i);
+    expect(rpcCalls).toHaveLength(0);
   });
 
   it("rechaza facturas no cobrables (borrador/anulada/pagada)", async () => {
     for (const status of ["borrador", "anulada", "pagada"]) {
-      const { client } = makeStub({
+      const { client, rpcCalls } = makeStub({
         receipts: [SIN_REF_RECEIPT],
         invoices: [{ ...INVOICE, status }],
       });
       const r = await identifyPaymentFor(client, "r1", "i1");
       expect(r.error).toBeDefined();
+      expect(rpcCalls).toHaveLength(0);
     }
+  });
+
+  it("traduce el rechazo de la RPC (otro la aplicó antes) y no reclasifica", async () => {
+    const { client } = makeStub({
+      receipts: [SIN_REF_RECEIPT],
+      invoices: [INVOICE],
+      rpcError: "PAYMENT_RECEIPT_APPLIED",
+    });
+    const r = await identifyPaymentFor(client, "r1", "i1");
+    expect(r.error).toBe("Este pago ya fue identificado y aplicado.");
+    expect(postReclassMock).not.toHaveBeenCalled();
   });
 });
 
@@ -313,8 +372,8 @@ describe("registerUnidentifiedPaymentFor", () => {
   });
 });
 
-// ── registerCollectionFor · pagador + fund_class heredada ─────
-describe("registerCollectionFor · SDD-0068", () => {
+// ── registerCollectionFor · pagador + RPC atómica ─────────────
+describe("registerCollectionFor · SDD-0068 + SDD-0488", () => {
   const payload = {
     amount: 500,
     cashAccountId: "acc-bank",
@@ -324,8 +383,8 @@ describe("registerCollectionFor · SDD-0068", () => {
     notes: null,
   };
 
-  it("persiste el pagador tercero + hereda fund_class de la factura", async () => {
-    const { client, inserts } = makeStub({
+  it("manda el pagador tercero a la RPC y no escribe nada por su cuenta", async () => {
+    const { client, inserts, updates, rpcCalls } = makeStub({
       invoices: [{ ...INVOICE, fund_class: "local_revenue" }],
     });
     const r = await registerCollectionFor(client, "i1", {
@@ -336,21 +395,31 @@ describe("registerCollectionFor · SDD-0068", () => {
       licitDeclared: true,
     });
     expect(r.ok).toBe(true);
+    expect(r.receiptCode).toBe("R-2026-0042");
 
-    const ins = inserts.find((i) => i.table === "payment_receipts")!;
-    expect(ins.payload.payer_kind).toBe("tercero");
-    expect(ins.payload.payer_name).toBe("María Pérez");
-    expect(ins.payload.payer_relation).toBe("familiar");
-    expect(ins.payload.licit_declared).toBe(true);
-    expect(ins.payload.application_status).toBe("aplicado");
-    expect(ins.payload.fund_class).toBe("local_revenue"); // hereda de la factura
-    // Cobro normal: SIEMPRE atado a la factura (lado opuesto del CHECK).
-    expect(ins.payload.invoice_id).toBe("i1");
-    expect(ins.payload.client_markbox).toBe("DTD-5452");
+    expect(rpcCalls).toEqual([{
+      fn: "register_collection_receipt",
+      args: {
+        p_invoice_id: "i1",
+        p_amount: 500,
+        p_cash_account_id: "acc-bank",
+        p_method: "transferencia",
+        p_received_at: "2026-06-01",
+        p_reference: null,
+        p_notes: null,
+        p_payer_kind: "tercero",
+        p_payer_name: "María Pérez",
+        p_payer_relation: "familiar",
+        p_licit_declared: true,
+      },
+    }]);
+    // SDD-0488: el recibo y el saldo los escribe la RPC en una transacción.
+    expect(inserts).toHaveLength(0);
+    expect(updates.filter((u) => u.table === "invoices")).toHaveLength(0);
   });
 
-  it("tercero incompleto ⇒ fieldErrors y NO inserta (criterio de aceptación)", async () => {
-    const { client, inserts } = makeStub({ invoices: [INVOICE] });
+  it("tercero incompleto ⇒ fieldErrors y NO llama a la RPC (criterio de aceptación)", async () => {
+    const { client, inserts, rpcCalls } = makeStub({ invoices: [INVOICE] });
     const r = await registerCollectionFor(client, "i1", {
       ...payload,
       payerKind: "tercero", // sin nombre/relación/licitud
@@ -359,16 +428,108 @@ describe("registerCollectionFor · SDD-0068", () => {
     expect(r.fieldErrors?.payerRelation).toBeDefined();
     expect(r.fieldErrors?.licitDeclared).toBeDefined();
     expect(inserts).toHaveLength(0);
+    expect(rpcCalls).toHaveLength(0);
   });
 
-  it("cobro del propio cliente: payer default + fund_class third_party de la factura", async () => {
-    const { client, inserts } = makeStub({ invoices: [INVOICE] });
+  it("cobro del propio cliente: payer default en la RPC", async () => {
+    const { client, rpcCalls } = makeStub({ invoices: [INVOICE] });
     const r = await registerCollectionFor(client, "i1", payload);
     expect(r.ok).toBe(true);
-    const ins = inserts.find((i) => i.table === "payment_receipts")!;
-    expect(ins.payload.payer_kind).toBe("cliente");
-    expect(ins.payload.payer_name).toBeNull();
-    expect(ins.payload.licit_declared).toBe(false);
-    expect(ins.payload.fund_class).toBe("third_party");
+    const args = rpcCalls[0].args;
+    expect(args.p_payer_kind).toBe("cliente");
+    expect(args.p_payer_name).toBeNull();
+    expect(args.p_payer_relation).toBeNull();
+    expect(args.p_licit_declared).toBe(false);
+  });
+
+  it("asienta con el recibo que devolvió la RPC y guarda el journal_entry_id", async () => {
+    const { client, updates } = makeStub({ invoices: [INVOICE] });
+    const r = await registerCollectionFor(client, "i1", payload);
+    expect(r.fullyPaid).toBe(false); // 500 de 2000
+
+    expect(postReceiptMock).toHaveBeenCalledTimes(1);
+    const arg = postReceiptMock.mock.calls[0][0] as Record<string, unknown>;
+    expect(arg.receiptId).toBe("payment_receipts-new");
+    expect(arg.receiptCode).toBe("R-2026-0042");
+    expect(arg.tenantId).toBe("t1");
+    expect(arg.amount).toBe(500);
+    expect(arg.entryDate).toBe("2026-06-01");
+    expect(updates).toEqual([{
+      table: "payment_receipts",
+      payload: { journal_entry_id: "je-cobro" },
+      filters: { id: "payment_receipts-new" },
+    }]);
+  });
+
+  it("cobro por el saldo completo ⇒ fullyPaid", async () => {
+    const { client } = makeStub({ invoices: [INVOICE] });
+    const r = await registerCollectionFor(client, "i1", { ...payload, amount: 2000 });
+    expect(r.fullyPaid).toBe(true);
+  });
+
+  // SDD-0488: regla estricta. Un centavo sobre el saldo ya no pasa.
+  it("un centavo sobre el saldo ⇒ fieldError y NO llama a la RPC", async () => {
+    const { client, rpcCalls } = makeStub({ invoices: [{ ...INVOICE, paid_amount: 1500 }] });
+    const r = await registerCollectionFor(client, "i1", { ...payload, amount: 500.01 });
+    expect(r.fieldErrors?.amount).toBeDefined();
+    expect(rpcCalls).toHaveLength(0);
+  });
+
+  it("carrera perdida (otro cobro cambió el saldo) ⇒ mensaje, sin asiento ni texto crudo", async () => {
+    for (const [code, message] of [
+      ["PAYMENT_EXCEEDS_BALANCE", /supera el saldo vigente/],
+      ["PAYMENT_INVOICE_PAID", /ya está pagada/],
+      ["PAYMENT_STATE", /emitidas o parciales/],
+      ["PAYMENT_FORBIDDEN", /rol/],
+      ["error interno cualquiera", /^No se pudo registrar el cobro\.$/],
+    ] as const) {
+      postReceiptMock.mockClear();
+      const { client } = makeStub({ invoices: [INVOICE], rpcError: code });
+      const r = await registerCollectionFor(client, "i1", payload);
+      expect(r.ok).toBeUndefined();
+      expect(r.error).toMatch(message);
+      expect(r.error).not.toContain(code === "error interno cualquiera" ? code : "PAYMENT_");
+      expect(postReceiptMock).not.toHaveBeenCalled();
+    }
+  });
+});
+
+// ── voidReceiptFor · anulación atómica (SDD-0488) ─────────────
+describe("voidReceiptFor · SDD-0488", () => {
+  const APPLIED: Row = {
+    ...SIN_REF_RECEIPT,
+    invoice_id: "i1",
+    application_status: "aplicado",
+  };
+
+  it("anula con UNA RPC (motivo validado) y después anula los asientos del recibo", async () => {
+    const { client, updates, rpcCalls } = makeStub({ receipts: [APPLIED], invoices: [INVOICE] });
+    const r = await voidReceiptFor(client, "r1", "  Pago devuelto al cliente  ");
+    expect(r).toEqual({ ok: true });
+    expect(rpcCalls).toEqual([{
+      fn: "void_collection_receipt",
+      args: { p_receipt_id: "r1", p_reason: "Pago devuelto al cliente" },
+    }]);
+    expect(updates).toHaveLength(0);
+    expect(voidEntriesMock).toHaveBeenCalledWith("r1");
+  });
+
+  it("motivo inválido ⇒ error sin llamar a la RPC", async () => {
+    const { client, rpcCalls } = makeStub({ receipts: [APPLIED], invoices: [INVOICE] });
+    const r = await voidReceiptFor(client, "r1", "no");
+    expect(r.error).toBeDefined();
+    expect(rpcCalls).toHaveLength(0);
+    expect(voidEntriesMock).not.toHaveBeenCalled();
+  });
+
+  it("recibo ya anulado ⇒ mensaje, sin tocar asientos", async () => {
+    const { client } = makeStub({
+      receipts: [APPLIED],
+      invoices: [INVOICE],
+      rpcError: "PAYMENT_RECEIPT_VOIDED",
+    });
+    const r = await voidReceiptFor(client, "r1", "Pago devuelto al cliente");
+    expect(r.error).toBe("Este recibo ya está anulado.");
+    expect(voidEntriesMock).not.toHaveBeenCalled();
   });
 });
