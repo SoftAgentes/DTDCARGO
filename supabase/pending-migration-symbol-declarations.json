@@ -7,39 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "sdd-0482-portal-edicion-directa",
-      "primarySymbol": "portal_update_my_profile",
-      "migration": "0462_portal_profile_direct_edit",
-      "symbols": [
-        {
-          "name": "portal_update_my_profile",
-          "kind": "function",
-          "callSites": [
-            "app/portal/(app)/perfil/actions.ts:288"
-          ]
-        },
-        {
-          "name": "client_profile_blocked_attempts",
-          "kind": "table",
-          "callSites": [
-            "app/portal/(app)/perfil/actions.ts:336"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "app/portal/(app)/perfil/actions.ts:315",
-          "contains": "return { error: DIRECT_EDIT_MESSAGES.failed };",
-          "degradation": "Sin 0462 la RPC no existe (PGRST202): la action no anuncia éxito, no revalida y muestra «No pudimos guardar tus datos». No escribe nada. Release migrate-first: dtdcargo-18 aplica 0462 antes de integrar, así que esta rama no debería verse en producción."
-        },
-        {
-          "site": "app/portal/(app)/perfil/actions.ts:360",
-          "contains": "aviso de bloqueo falló",
-          "degradation": "La tabla de intentos sólo se lee cuando la RPC devolvió blocked, y las dos nacen en 0462. Si faltara, el aviso al asesor cae en el catch y el cliente igual ve el mensaje genérico."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }

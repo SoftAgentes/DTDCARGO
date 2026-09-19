@@ -212,6 +212,24 @@ Esta revisión técnica no constituye asesoría legal.
 
 ## Release
 
+**`0462` aplicada a producción el 2026-09-19** por la sesión coordinadora
+(dtdcargo-18). Sam dio el OK nominal en AskUserQuestion el 2026-09-19 a las
+00:29Z: «0462_portal_profile_direct_edit».
+- **Ledger:** `20260919011316 0462_portal_profile_direct_edit`, 1 sentencia,
+  aplicada a las 01:13:16Z (21:13 en Caracas, baja actividad).
+- **Identidad:** md5 de `statements` `9dc2934f4f2577f9647b9c60c6287b0f` y 16415
+  bytes, idénticos al blob `f6f719f2`. El preflight anticipado dio sus
+  condiciones en verde.
+- **Postflight** (ledger y catálogo, sin filas de negocio):
+  - `client_profile_blocked_attempts` con RLS, 0 policies, ACL sólo
+    `service_role:SELECT` y 0 filas;
+  - las tres funciones son DEFINER, con owner `postgres` y `search_path=""`;
+  - EXECUTE sólo de `portal_update_my_profile` para `authenticated`.
+- **Advisors:** cambian sólo por diseño. `rls_enabled_no_policy` suma la tabla
+  nueva y `authenticated_security_definer_function_executable` suma la RPC.
+- Sale de `pendingBelowCutoff` y de las declaraciones de símbolos pendientes.
+  La cabecera del `.sql` no se toca: el ledger guarda su texto exacto.
+
 Migrate-first: `0462` se aplica con OK nominal de Sam **aparte**, por la sesión
 coordinadora, antes de integrar la PR. Con el código viejo, la migración es
 invisible (el Portal sigue creando solicitudes). Después se integra la PR y

@@ -8,7 +8,7 @@
 | Rama / base | `codex/portal-cliente-edita-datos-directo`, desde `origin/main` `cc15e48c` + cherry-pick de la reserva `2c937d4f`. Merge de `origin/main` `3f810366` en `43c1f627`. |
 | SDD | [0482](../../docs/specs/0482-portal-cliente-edita-numero-identidad/spec.md) · `in-progress` |
 | Migración | `0462_portal_profile_direct_edit` (asignada por dtdcargo-18) |
-| Estado de tarea | Lista para la PR. Rama publicada. |
+| Estado de tarea | PR #153 abierta. `0462` aplicada a producción el 2026-09-19. Falta integrar la PR y el smoke de Sam. |
 | Permisos | Sam autorizó publicar la rama y abrir la PR contra `main` (2026-09-19). **No** merge, deploy ni aplicar 0462. |
 
 ## Traspaso (2026-09-19)
@@ -90,12 +90,21 @@ Todo va dentro del cupo compartido de 3 cambios. En la primera respuesta descart
 - `dfa39828`: docs, declaración de símbolos y handoff (dtdcargo-63).
 - `43c1f627`: merge de `origin/main` `3f810366`.
 - `c6d9e6cb`: locks de 0462 medidos y corregidos en la cabecera, el baseline y la spec, más el handoff (dtdcargo-74). Publicado en la PR #153.
-- Merge de `origin/main` `26983062` (la #150 dejaba la PR en DIRTY por el índice y el baseline), con el driver de main y sin conflictos. Commit de este registro encima.
+- Merge de `origin/main` `26983062` (la #150 dejaba la PR en DIRTY por el índice y el baseline), con el driver de main y sin conflictos. Lo registra el commit `fc81c0a4`.
+- Push final tras aplicar la `0462`:
+  - merge de `origin/main` `a90c242b` (la #152), con el driver de main y sin conflictos;
+  - la `0462` sale de las esperas;
+  - la aplicación queda registrada en la spec y en este handoff.
 
 ## Pendientes de esta tarea
 
 1. ~~Avisar a dtdcargo-18 antes de publicar~~: hecho. Él fijó los turnos de merge de main y de verify (2026-09-19).
-2. OK nominal de Sam para `0462_portal_profile_direct_edit`. Migrate-first: la aplica dtdcargo-18 antes de integrar.
+2. ~~OK nominal de Sam y aplicación de la `0462`~~: hecho el 2026-09-19.
+   - OK de Sam: AskUserQuestion, 00:29Z, «0462_portal_profile_direct_edit».
+   - Aplicada por dtdcargo-18: ledger `20260919011316`, 1 sentencia.
+   - Identidad: md5 `9dc2934f…` y 16415 bytes, iguales al blob `f6f719f2`.
+   - Postflight y advisors como se esperaba.
+   - Sale de `pendingBelowCutoff` y de las declaraciones de símbolos.
 3. Integración de la PR por dtdcargo-18.
 4. Smoke de Sam:
    - cambiar el teléfono: se aplica al instante, baja el cupo y aparece la fila «Editado por el cliente» en el Studio;
