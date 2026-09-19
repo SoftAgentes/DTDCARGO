@@ -388,6 +388,26 @@ En ninguna corrida quedó un control ANTES sin reproducir.
   los objetos de las dos funciones nuevas.
 - **Gate de símbolos:** `0 ROJO · 1 AMARILLO declarado(s)`.
 
+### `pnpm verify` completo
+
+Corrió en el turno de máquina del Director, sobre `6adbb662` (con main
+`6c2413d1` incluida), de las 19:39 a las 19:54 UTC del 2026-09-19. Midió 16 de
+17 pasos y ninguno falló.
+
+- **PASÓ:**
+  - harness, lint, rsc-boundary, typecheck y edge-functions;
+  - `test`: 8120 pruebas en 622 archivos;
+  - `docs:check`, numbering, feature-constants, `components:check` y
+    `governance:check`;
+  - `pending-migration-symbols`, con `0 ROJO · 1 AMARILLO`;
+  - `sql-tests`: 218 contratos, entre ellos los dos de la 0468;
+  - `schema-rebuild`: 446 migraciones desde cero, la 0468 incluida;
+  - e2e: 167 verdes y 18 omitidas. Hubo 1 intermitente de la calculadora
+    pública, ajena a Tesorería, que pasó al reintento;
+  - build.
+- **NO EJECUTADO:** `migrations-applied`, porque el worktree no tiene
+  credenciales. El ledger se leyó directo en producción (ver Release).
+
 La identidad del archivo y los comandos están en el handoff
 `.agents/handoffs/0489-carrera-pago-proveedor.md`.
 

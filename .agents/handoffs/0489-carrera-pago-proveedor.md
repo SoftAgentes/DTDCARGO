@@ -1,8 +1,9 @@
 # Handoff 0489 — Pagos a proveedores atómicos en Tesorería
 
-- Fecha: 2026-09-19. Estado de la tarea: **en progreso**. La implementación y
-  las pruebas de archivos sueltos están listas. Falta el verify completo, que
-  necesita turno del Director, además del reporte, el push y la PR.
+- Fecha: 2026-09-19. Estado de la tarea: **en progreso**. Están listos la
+  implementación, las pruebas y el verify completo, este último en el turno del
+  Director, sobre `6adbb662`. Faltan el push único, la PR sin merge, la
+  decisión de Sam sobre la regla de saldo y su OK nominal para la 0468.
 - Owner / sesión: `worker-carrera-pago-proveedor-opus5-20260919` (Claude Opus 5,
   Worker, sesión «Hacer atómico el registro de cobros en facturas», que retoma
   por asignación del Director «Director notificación a workers»).
@@ -135,7 +136,26 @@ conector de Supabase, proyecto `xpfuzqombmjmxvprjgmi`:
 | `docs:check`, `sdd:check`, `governance:check` | **PASÓ** | `corepack pnpm docs:index` y las tres |
 | `rsc-boundary`, `feature-constants`, `components:check`, `edge-functions` | **PASÓ** | `node scripts/<check>.mjs` |
 | `migrations-applied` | **NO EJECUTADO** (SKIP: el worktree no tiene `.env.local`) | el ledger se comprobó directo en producción, arriba |
-| `pnpm verify` completo (lint total, vitest completo, `sql-tests`, `schema-rebuild`, e2e, build) | **NO EJECUTADO**: pido turno al Director | — |
+| `pnpm verify` completo | ver la sección siguiente | `corepack pnpm verify`, turno del Director |
+
+## `pnpm verify` completo
+
+Corrió en el turno de máquina del Director, sobre `6adbb662`: el merge de
+origin/main `6c2413d1` con los commits de esta tarea. Fue de las 19:39:23 a las
+19:54:02 UTC, sin timeout. El resumen de verify dice: «16 de 17 pasos corrieron
+de verdad»; «No hubo fallos en lo medido (16/17)», y el exit fue 0.
+
+| Paso | Resultado |
+|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions | **PASÓ** |
+| test | **PASÓ**: 622 archivos y 8120 pruebas; 1 archivo y 1 prueba omitidos |
+| docs:check, numbering, feature-constants, components:check, governance:check | **PASÓ** |
+| migrations-applied | **NO EJECUTADO** (SKIP: el worktree no tiene credenciales). El ledger se leyó directo en producción; ver «Identidad de la 0468» |
+| pending-migration-symbols | **PASÓ** con `0 ROJO · 1 AMARILLO declarado(s)`, la 0468, como se esperaba |
+| sql-tests | **PASÓ**: 218 contratos en postgres:17, entre ellos `0468_pago_proveedor_atomico.test.sql` y `0468_pago_proveedor_carrera.test.sql` |
+| schema-rebuild | **PASÓ**: 464 migraciones, 446 aplicadas desde cero con la 0468 entre ellas, y 18 sólo-ledger; aislamiento multi-tenant verificado |
+| e2e | **PASÓ**: 186 pruebas, con 167 verdes, 18 omitidas y 1 intermitente. La intermitente es `e2e/calculadora-semantic-colors.spec.ts:53` («Selector combinado… en light»): falló una vez en `toHaveValue("mara")` y pasó al reintento. Es de la calculadora pública, ajena a Tesorería |
+| build | **PASÓ** |
 
 **Carrera, escenario por escenario.** Sale de una copia fuera del repo que
 agrega un NOTICE por escenario. Cada cifra es pagado/total; «órd.» es la suma
@@ -168,9 +188,10 @@ Ningún control ANTES quedó sin reproducir.
 
 ## Pendientes de esta tarea
 
-1. Turno del Director para `pnpm verify` completo; registrar cada paso.
-2. Volver a buscar colisiones de SDD 0489 y migración 0468 en las ramas remotas
-   antes de la PR.
+1. ~~Turno del Director para `pnpm verify` completo~~: hecho, arriba.
+2. ~~Buscar colisiones de SDD 0489 y migración 0468 en las ramas remotas~~:
+   ninguna, ni antes del verify ni justo antes del push; las PR abiertas #168 y
+   #114 son de otras SDD.
 3. Reporte al Director, push único y PR. Sin merge.
 4. Decisión de Sam sobre la regla de saldo de Tesorería, antes de aplicar.
 5. Después de la PR, con autorización propia: OK nominal de Sam para la 0468 y
