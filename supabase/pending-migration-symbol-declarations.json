@@ -7,5 +7,39 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0489-pago-proveedor-atomico",
+      "primarySymbol": "register_supplier_payment_order",
+      "migration": "0468_pago_proveedor_atomico",
+      "symbols": [
+        {
+          "name": "register_supplier_payment_order",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/treasury/treasury-actions.ts:318"
+          ]
+        },
+        {
+          "name": "void_supplier_payment_order",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/treasury/treasury-actions.ts:378"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/treasury/treasury-actions.ts:329",
+          "contains": "return { error: paymentOrderRejection(rpcErr, \"No se pudo registrar el pago.\") };",
+          "degradation": "Registrar un pago sin 0468: la RPC no existe (PGRST202) y la action responde «No se pudo registrar el pago.» sin escribir nada: antes sólo leyó la CxP, y la orden, el pagado y el asiento no se tocan. Release migrate-first: el Director aplica 0468 con el OK nominal de Sam antes de integrar, así que esta rama no debería verse en producción."
+        },
+        {
+          "site": "lib/studio/treasury/treasury-actions.ts:384",
+          "contains": "return { error: paymentOrderRejection(rpcErr, \"No se pudo anular la orden de pago.\") };",
+          "degradation": "Anular una orden sin 0468: la RPC no existe y la action responde «No se pudo anular la orden de pago.» sin anular la orden, bajar el pagado ni tocar el asiento. Release migrate-first: el Director aplica 0468 con el OK nominal de Sam antes de integrar, así que esta rama no debería verse en producción."
+        }
+      ]
+    }
+  ]
 }

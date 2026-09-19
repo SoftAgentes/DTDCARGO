@@ -461,7 +461,11 @@ export function validatePaymentInput(
   const amount = round2(Number(input.amount) || 0);
   if (!Number.isFinite(amount) || amount <= 0) {
     errors.amount = "El monto del pago debe ser mayor a cero.";
-  } else if (amount > round2(balance) + 0.01) {
+  } else if (amount > round2(balance)) {
+    // SDD-0489: la regla estricta de Cobranzas (decisión de Sam en SDD-0488,
+    // igual que la 0464), sin la tolerancia de 0,01 que había. La RPC 0468 la
+    // vuelve a aplicar con la CxP bloqueada. Pendiente de que Sam la ratifique
+    // para Tesorería (ver la spec 0489).
     errors.amount = `El pago no puede superar el saldo ($${round2(balance).toFixed(2)}).`;
   }
 
