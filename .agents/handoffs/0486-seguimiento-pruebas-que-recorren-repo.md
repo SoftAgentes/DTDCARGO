@@ -51,11 +51,12 @@ Sin cambiar el inventario ni las aserciones.
 | Antes, aisladas y con la máquina quieta | 1,2-2,1 s cada una (y 31,7 s la primera corrida de `env-example`, en frío). **No es la disposición del problema**: por eso se midió en la suite |
 | Antes, dentro de la suite completa (`--reporter=json`) | json-ld 27,61 s · env-example 16,85 s · register 9,58 s · vis-02 8,19 s · copy-sin-casco 4,83 s |
 | Después, misma corrida | **json-ld 0,87 s · env-example 3,09 s · register 4,52 s · vis-02 0,73 s · copy-sin-casco 0,51 s** |
-| Totales de la suite | 700,0 → 657,0 s de suma de duraciones; `tests` 708,02 → 528,02 s (−25 %); **pared 196,69 → 197,05 s, sin cambio** |
+| Totales de la suite | 700,0 → 657,0 s de suma de duraciones (mismo reporter, misma disposición). **Pared sin cambio**: 196,69 s antes, 197,05 s después y 172,46 s en el `verify` |
+| Los agregados de la suite **no sirven** para medir esto | El `tests` sumado dio 708,0 s antes, y 528,0 s y 692,9 s en dos corridas con el MISMO código después. Varía demasiado entre corridas: la primera versión de este handoff le sacó un −25 % y se corrigió antes de la PR. Lo comparable es la tabla por archivo |
 | `register-error-summary` aislada, 3 corridas de cada lado | pruebas 5,04-5,12 s → **1,34-1,39 s**; pared 6,33-6,40 s → **2,58-2,64 s** |
 | Mutación documentada (borrar `fieldErrors.length > 0` de `StepConfirmar`) con `delay: null` | **Las 3 pruebas en rojo**, y el fuente restituido con md5 idéntico: la prueba sigue afirmando lo mismo |
 | Conteos de la suite | 8.106 → **8.107** pruebas, sin fallos. La de más es la del prefiltro |
-| `verify` completo | **PENDIENTE**: en este mismo turno |
+| `verify` completo sobre `e52d5f8d`, 23:02-23:16 UTC | **16 de 17 PASARON y ninguno FALLÓ.** test (8.106 ✓ y 1 omitida), sql-tests, schema-rebuild, e2e (166 ✓, 2 flaky ajenos), build, typecheck y lint (0 errores, 15 avisos ajenos). `migrations-applied`: NO DISPONIBLE, sin credenciales; no hay migración |
 | CI alojado | **NO EJECUTADO**: GitHub Actions bloqueado por facturación desde las 21:18Z |
 
 **Ruido honesto:** `invoice-read-boundary`, que nadie tocó, pasó de 2,85 s a 5,19 s en esa misma

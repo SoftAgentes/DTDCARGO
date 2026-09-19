@@ -302,12 +302,18 @@ de pruebas a 1,34-1,39 s (tres corridas de cada lado), y de 6,33-6,40 s de pared
   que el archivo espera mientras 21 workers se pelean la máquina: cuando los
   demás terminan antes, el reparto cambia. Es ruido de planificación, no una
   regresión suya.
-- **La pared de la suite no se mueve:** 196,69 s antes y 197,05 s después. Lo que
-  baja es el trabajo sumado —`tests` de 708,02 s a 528,02 s, un 25 % menos— y el
-  tiempo de cada una de las cinco. La pared está dominada por el montaje de
-  jsdom (2.186-2.205 s sumados), que es el otro punto del «Fuera de alcance» de
-  arriba y lo arregla la SDD-0493. Los dos cambios son complementarios: uno baja
-  el entorno, el otro el trabajo.
+- **La pared de la suite no se mueve, y los totales sumados no sirven para
+  medir esto.** La pared dio 196,69 s antes, 197,05 s después y 172,46 s en el
+  paso `test` del `verify`. El `tests` sumado dio 708,0 s antes, y 528,0 s y
+  692,9 s en dos corridas **con el mismo código después**: ese agregado varía
+  tanto entre corridas que no aguanta un porcentaje, así que acá no se afirma
+  ninguno. Lo que sí es comparable es la tabla de arriba, que sale de dos
+  corridas del mismo reporter en la misma disposición; la suma de duraciones de
+  esas dos fue 700,0 s y 657,0 s.
+- La pared está dominada por el montaje de jsdom (1.841-2.205 s sumados, también
+  con mucha variación), que es el otro punto del «Fuera de alcance» de arriba y
+  lo arregla la SDD-0493. Los dos cambios son complementarios: uno baja el
+  entorno y el otro el trabajo de cinco archivos.
 
 ### Que la prueba sigue afirmando lo mismo
 
