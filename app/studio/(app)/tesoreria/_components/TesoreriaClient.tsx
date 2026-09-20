@@ -15,6 +15,8 @@ import { useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { getPayableForBill } from "../actions";
 import {
   isChinaRemittance,
   paymentMethodLabel,
@@ -70,16 +72,73 @@ export function TesoreriaClient({
   expenseAccounts: AccountOption[];
   cashAccounts: AccountOption[];
 }) {
+  const toast = useToast();
   const [tab, setTab] = useState<Tab>("payables");
   const [selectedBillId, setSelectedBillId] = useState<string | null>(null);
   const [showNewBill, setShowNewBill] = useState(false);
   const [editSupplier, setEditSupplier] = useState<Supplier | null>(null);
   const [showNewSupplier, setShowNewSupplier] = useState(false);
+  /**
+   * CxP abierta desde el tab «Pagos» que NO está en la cola (SDD-0494): la
+   * saldó su propia orden de pago. Se trae por action porque la cola, que es
+   * de pagos pendientes, no la carga.
+   */
+  const [consultPayable, setConsultPayable] = useState<Payable | null>(null);
+  const [openingBillId, setOpeningBillId] = useState<string | null>(null);
 
+  /**
+   * La cola MANDA sobre la consulta. Al anular una orden desde una CxP saldada,
+   * el drawer hace `router.refresh()`: la CxP recupera saldo y vuelve a
+   * `payables`, pero `consultPayable` es estado del cliente y sigue con el
+   * snapshot viejo (saldo 0, «pagada»). Resolver por id contra la cola fresca
+   * es lo que evita que la pantalla siga mostrando el saldo de antes.
+   */
+  const openBillId = selectedBillId ?? consultPayable?.bill.id ?? null;
   const selectedPayable =
-    selectedBillId != null
-      ? payables.find((p) => p.bill.id === selectedBillId) ?? null
-      : null;
+    (openBillId != null
+      ? payables.find((p) => p.bill.id === openBillId) ?? null
+      : null) ??
+    (consultPayable?.bill.id === openBillId ? consultPayable : null);
+
+  const closeDrawer = () => {
+    setSelectedBillId(null);
+    setConsultPayable(null);
+  };
+
+  /**
+   * Abre la CxP de una orden de pago. Si está en la cola se usa esa fila; si no
+   * (la orden la saldó), se lee en consulta. Sin este camino, una orden que
+   * saldaba su CxP no se podía anular: el botón vive solo en ese drawer.
+   */
+  const openBillFromPayment = async (billId: string) => {
+    if (openingBillId) return;
+    if (payables.some((p) => p.bill.id === billId)) {
+      setConsultPayable(null);
+      setSelectedBillId(billId);
+      return;
+    }
+    setOpeningBillId(billId);
+    try {
+      const { payable, error } = await getPayableForBill(billId);
+      if (!payable) {
+        // El motivo real si la action lo da (p. ej. el gate de rol); si no, el
+        // genérico, que cubre «no existe» y «la RLS la oculta».
+        toast.error(error ?? "No se pudo abrir la cuenta por pagar de esta orden.");
+        return;
+      }
+      setSelectedBillId(null);
+      setConsultPayable(payable);
+    } catch {
+      // `payableForBill` re-lanza el error de PostgREST y acá nadie consume la
+      // promesa del onClick: sin este catch, un timeout o un 500 se va como
+      // unhandled rejection y la fila vuelve de «Abriendo…» a «Ver CxP» SIN
+      // decir nada. Como el «Anular» de la orden vive solo en ese drawer, el
+      // usuario se queda sin camino y sin explicación.
+      toast.error("No se pudo abrir la cuenta por pagar de esta orden.");
+    } finally {
+      setOpeningBillId(null);
+    }
+  };
 
   const supplierById = new Map(suppliers.map((s) => [s.id, s]));
 
@@ -213,7 +272,13 @@ export function TesoreriaClient({
         />
       )}
 
-      {tab === "payments" && <PaymentsTab payments={payments} />}
+      {tab === "payments" && (
+        <PaymentsTab
+          payments={payments}
+          onSelectBill={openBillFromPayment}
+          openingBillId={openingBillId}
+        />
+      )}
 
       {tab === "suppliers" && (
         <SuppliersTab
@@ -229,7 +294,7 @@ export function TesoreriaClient({
           payable={selectedPayable}
           supplier={supplierById.get(selectedPayable.bill.supplier_id) ?? null}
           cashAccounts={cashAccounts}
-          onClose={() => setSelectedBillId(null)}
+          onClose={closeDrawer}
         />
       )}
 
@@ -495,7 +560,16 @@ function PayablesTab({
 
 const PAYMENT_GRID = "130px 100px 1.4fr 120px 130px 120px 70px";
 
-function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
+function PaymentsTab({
+  payments,
+  onSelectBill,
+  openingBillId,
+}: {
+  payments: SupplierPayment[];
+  /** Abre la CxP de la orden. Es el único camino para anular una orden que saldó su CxP (SDD-0494). */
+  onSelectBill: (billId: string) => void;
+  openingBillId: string | null;
+}) {
   const remesas = payments.filter((p) =>
     isChinaRemittance(p.method, p.currency),
   );
@@ -565,6 +639,24 @@ function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
           {payments.map((p, i) => (
             <div
               key={p.id}
+              role="button"
+              tabIndex={0}
+              aria-busy={openingBillId === p.bill_id || undefined}
+              // Sin el label, el nombre accesible sería el texto de las siete
+              // celdas encadenado; con él, la fila se anuncia por lo que hace.
+              aria-label={`Abrir la CxP de la orden ${p.payment_code}`}
+              title={`Abrir la CxP de la orden ${p.payment_code}`}
+              // La misma clase que la fila del tab «Cuentas por pagar»: trae
+              // hover y focus-visible. El fondo NO va inline, o ganaría por
+              // especificidad sobre ese :hover.
+              className="studio-tracking-row"
+              onClick={() => onSelectBill(p.bill_id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onSelectBill(p.bill_id);
+                }
+              }}
               style={{
                 display: "grid",
                 gridTemplateColumns: PAYMENT_GRID,
@@ -572,6 +664,8 @@ function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
                 padding: "14px 20px",
                 borderTop: i > 0 ? "1px solid var(--border)" : 0,
                 alignItems: "center",
+                cursor: "pointer",
+                opacity: openingBillId === p.bill_id ? 0.6 : 1,
               }}
             >
               <span
@@ -635,13 +729,15 @@ function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
                   </span>
                 )}
               </span>
+              {/* Afordancia del clic: la fila abre la CxP, y es el único
+                  camino para anular esta orden si saldó su CxP (SDD-0494). */}
               <span
                 style={{
-                  font: "500 10.5px/1 var(--f-mono)",
-                  color: "var(--ink-soft)",
+                  font: "600 10.5px/1 var(--f-sans)",
+                  color: "var(--wine-text)",
                 }}
               >
-                {p.bill_id ? "vinculada" : "—"}
+                {openingBillId === p.bill_id ? "Abriendo…" : "Ver CxP"}
               </span>
               <span style={{ textAlign: "right" }}>
                 {p.journal_entry_id ? (

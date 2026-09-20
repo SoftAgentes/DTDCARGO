@@ -539,8 +539,8 @@ function CobroForm({
               margin: "var(--s-1) 0 0",
             }}
           >
-            No hay cuentas de caja/banco en el plan de cuentas. Sembrá el plan en
-            Contabilidad para registrar cobros con asiento.
+            No hay cuentas de caja/banco en el plan de cuentas. Siembra el plan
+            en Contabilidad para registrar cobros con asiento.
           </p>
         ) : (
           <select

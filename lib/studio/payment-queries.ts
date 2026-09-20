@@ -121,7 +121,14 @@ function coerceInvoice(row: Record<string, unknown>): Invoice {
 
 // ── Recibos ───────────────────────────────────────────────────
 
-/** Lista los recibos (vivos) de una factura, más recientes primero. */
+/**
+ * Lista los recibos vivos de una factura, más recientes primero.
+ *
+ * Sin anulados (SDD-0494): anular un recibo es ponerle `deleted_at` —no hay
+ * columna de estado— y la RLS no los oculta (0230 sacó el filtro del USING;
+ * la 0470 mantuvo ese criterio). Sin este `.is`, el historial del drawer y el
+ * detalle de la factura muestran con su monto un cobro que ya se revirtió.
+ */
 export async function listReceipts(
   supabase: SupabaseClient,
   opts: { invoiceId?: string } = {},
@@ -129,6 +136,7 @@ export async function listReceipts(
   let query = supabase
     .from("payment_receipts")
     .select(RECEIPT_COLUMNS)
+    .is("deleted_at", null)
     .order("received_at", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(500);
@@ -147,6 +155,8 @@ export async function listReceipts(
  * SEGURIDAD: solo la invoca el buscador cuando el rol tiene módulo de dinero
  * (`collections`). Un rol operativo jamás llega acá — el gate está en el
  * server action del buscador, no en la RLS (que filtra por tenant, no por rol).
+ *
+ * Sin anulados (SDD-0494): un recibo revertido no es un resultado del ⌘K.
  */
 export async function searchReceipts(
   supabase: SupabaseClient,
@@ -155,6 +165,7 @@ export async function searchReceipts(
   let query = supabase
     .from("payment_receipts")
     .select(RECEIPT_COLUMNS)
+    .is("deleted_at", null)
     .order("received_at", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(opts.limit ?? 5);
@@ -200,8 +211,12 @@ export async function listActivities(
 
 /**
  * Recibo por su receipt_code (R-YYYY-NNNN). Para la vista imprimible
- * (SDD-0068). RLS acota al tenant y excluye anulados; `tenantId` se filtra
- * explícito además (cinturón y tirantes, criterio 0067). null si no existe.
+ * (SDD-0068). `tenantId` se filtra explícito además de la RLS (cinturón y
+ * tirantes, criterio 0067). null si no existe.
+ *
+ * Sin anulados (SDD-0494): la RLS NO los excluye —la 0230 sacó ese filtro del
+ * USING y la 0470 mantuvo el criterio—, así que el `.is` es lo único que evita
+ * que `/studio/cobranzas/recibo/<code>` imprima un comprobante ya revertido.
  */
 export async function getReceiptByCode(
   supabase: SupabaseClient,
@@ -216,6 +231,7 @@ export async function getReceiptByCode(
     .select(RECEIPT_COLUMNS)
     .eq("tenant_id", tenantId)
     .eq("receipt_code", code)
+    .is("deleted_at", null)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
@@ -224,7 +240,12 @@ export async function getReceiptByCode(
 
 // ── Pagos sin identificar + separación de fondos (SDD-0068) ────
 
-/** Los pagos `recibido_sin_ref` (cláusula 7.3), más recientes primero. */
+/**
+ * Los pagos `recibido_sin_ref` vivos (cláusula 7.3), más recientes primero.
+ *
+ * Sin anulados (SDD-0494): anular no toca `application_status`, así que un
+ * sin-ref revertido se quedaba en la bandeja amarilla ofreciendo identificarlo.
+ */
 export async function listUnidentifiedReceipts(
   supabase: SupabaseClient,
 ): Promise<PaymentReceipt[]> {
@@ -232,6 +253,7 @@ export async function listUnidentifiedReceipts(
     .from("payment_receipts")
     .select(RECEIPT_COLUMNS)
     .eq("application_status", "recibido_sin_ref")
+    .is("deleted_at", null)
     .order("received_at", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(500);
@@ -302,7 +324,11 @@ export function computeFundsSeparation(
 
 /**
  * Separación de fondos del período [from, to] (inclusive, por `received_at`).
- * Lee los recibos vivos del tenant (RLS) y suma con `computeFundsSeparation`.
+ * Lee los recibos vivos del tenant y suma con `computeFundsSeparation`.
+ *
+ * Sin anulados (SDD-0494): la RLS no los filtra, y acá se REPARTE plata entre
+ * lo de la Operadora y lo propio. Un cobro revertido inflaba el tercero y, si
+ * era sin-ref, también la alerta de la cuenta puente.
  */
 export async function fundsSeparationSummary(
   supabase: SupabaseClient,
@@ -315,6 +341,7 @@ export async function fundsSeparationSummary(
       supabase
         .from("payment_receipts")
         .select("id, amount, currency, fx_rate, fund_class, application_status")
+        .is("deleted_at", null)
         .gte("received_at", range.from)
         .lte("received_at", range.to)
         .order("id", { ascending: true })

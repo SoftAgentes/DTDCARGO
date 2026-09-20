@@ -205,6 +205,27 @@ Es el mismo hueco que Tesorería ya tenía, y **hay otra sesión trabajándolo**
 órdenes anuladas en Cobranzas y Tesorería». Por eso el guion lo marca como «no es falla» en los dos
 bloques, en vez de pedirle a Sam que lo reporte.
 
+> **Corrección del 2026-09-20, desde SDD-0494** (la sesión que menciona el párrafo de arriba):
+>
+> **La causa NO es la 0470.** El predicado ya venía perdido de
+> `0230_fix_rls_soft_delete_blocked.sql`, un `do $$` que recorre `pg_policies` y le quita
+> `AND (deleted_at IS NULL)` al `using` de toda policy `FOR ALL` con esa forma — y que **no nombra
+> ninguna tabla**, así que buscar «migraciones que tocan `payment_receipts`» la omite por
+> construcción. La 0470 se limitó a conservar ese criterio al partir la policy por comando; su
+> propia cabecera describe la policy previa como «(0079:145, 0088:266-282, **con la 0230**): FOR
+> ALL para authenticated, **que sólo pide el tenant**». El caso gemelo está probado: `invoices`
+> tiene la policy idéntica (`0077:114-118`) y SDD-0465 existe porque la 0230 le quitó ese mismo
+> filtro. `0079_cobranzas.sql` sigue diciendo lo que **creó**, no lo que quedó vivo, porque una
+> migración aplicada nunca se edita.
+>
+> Consecuencia: **no es una regresión del 19-sep ni de SDD-0492**, y no hay nada que revertir. Es un
+> agujero viejo del que SDD-0465 cerró la mitad de facturas.
+>
+> **Ya está cerrado** por SDD-0494, en la capa de consulta. El guion
+> `smokes-app-l14-0454-0472-guion.md` quedó actualizado en la misma PR: los bloques 5 y 6 ya no
+> dicen «no es falla», porque ahora el comportamiento correcto es que el documento anulado
+> desaparezca.
+
 ### PR #114 — la nota vieja se corrigió
 
 El guion decía «va cuatro días atrás» y que había que traerse `main` y volver a validarla. Medido
@@ -274,6 +295,26 @@ exit 0: 9 de 9 y 22 de 22.
 ## FUERA DE ALCANCE DETECTADO
 
 Nada de esto se tocó. Todo está verificado `archivo:línea`.
+
+> **Estado al 2026-09-20, desde SDD-0494** (que tomó estos hallazgos como encargo):
+>
+> - **Punto 1 · CERRADO.** Los siete lectores de Cobranzas y Tesorería piden ahora
+>   `deleted_at is null`. Ojo con la atribución del punto: el hueco de recibos **no lo abrió la
+>   0470** sino la 0230 — ver la corrección en «Hallazgo de la revisión», arriba.
+> - **Punto 2 · CERRADO en Tesorería, ABIERTO en Cobranzas.** La fila del tab «Pagos» abre ahora la
+>   CxP saldada y deja anular su orden. En Cobranzas no hay superficie equivalente que hacer
+>   clicable, así que abrirla es una decisión de producto: Sam decidió el 2026-09-20 dejarlo para
+>   después. Y hay un caso peor que este punto no registra: un recibo `recibido_sin_ref` **no se
+>   puede anular nunca**, porque la bandeja amarilla sólo ofrece «Identificar» y «Ver recibo».
+> - **Punto 3 · ABIERTO.** El «Motivo (opcional)» que es obligatorio no se tocó.
+> - **Punto 4 · CERRADO**, y había más de los tres listados: un segundo «Sembrá» en
+>   `BillDrawer.tsx:453` y otro en `InvoiceDetailClient.tsx:526`.
+> - **Punto 5 · CERRADO.** Los dos textos quedaron ciertos: el de la página de recibo sin tocarlo
+>   —el arreglo lo hizo verdadero— y el docstring reescrito.
+> - **Hallazgo nuevo, ABIERTO**: las policies de UPDATE de la 0470 tampoco piden `deleted_at`, así
+>   que un `accounting`/`admin` puede por PostgREST **devolver `deleted_at` a `null`** y resucitar
+>   un documento anulado sin que se recalcule el `paid_amount` de su factura. Analizado en
+>   SDD-0494 § «Hueco de ESCRITURA»; Sam decidió dejarlo documentado, con su propio SDD.
 
 1. **Recibos y órdenes anuladas siguen visibles y sumando.** Detalle arriba. **Ya hay una sesión
    trabajándolo** («Ocultar cobros y órdenes anuladas en Cobranzas y Tesorería»), así que esto es
