@@ -297,10 +297,12 @@ confundas con Studio › Proveedores, que es otro módulo.**
    - **Esto tampoco es falla, y es importante que lo sepas:** desde la pantalla ya no hay forma de
      volver a abrir esa CxP ni de anular esa orden. Si te equivocas con el monto que salda una CxP,
      no lo puedes deshacer solo; hay que pedirlo por base de datos.
-9. [ ] **Los totales.** Mira «Pagado en el mes» y, en el tab «Pagos», «Pagado (histórico)».
-   - Esperado: **suman 25,00** por esta prueba (5,00 de la orden anulada + 20,00 de la vigente),
-     aunque al proveedor solo se le pagaron 20,00. La orden anulada sigue apareciendo en el tab
-     «Pagos», sin marca.
+9. [ ] **Los totales.** Mira «Pagado en el mes» y compáralo con el valor que anotaste en el paso 1.
+   - Esperado: **subió 25,00**, no 20,00 (5,00 de la orden anulada + 20,00 de la vigente), aunque al
+     proveedor solo se le pagaron 20,00. Ese total incluye los pagos reales del mes, así que lo que
+     importa es la diferencia, no el número.
+   - En el tab «Pagos» pasa lo mismo con «Pagado (histórico)», y la orden anulada sigue en la lista
+     sin ninguna marca.
    - **No es falla:** es el mismo hueco del paso 7 y va en la misma tarea aparte. En cambio «Por
      pagar» y «Vencido» **sí** deben quedar correctos, porque salen del saldo de la CxP.
 10. [ ] Opcional, **la carrera**: en la segunda pestaña del paso 4, sin recargar, «Registrar pago»
