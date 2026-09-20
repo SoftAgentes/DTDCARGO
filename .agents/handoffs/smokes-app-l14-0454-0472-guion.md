@@ -98,10 +98,11 @@ escribe directo sobre los reportes, así que la 0422 no debería romper nada de 
    - Esperado: «Reporte registrado.». Con «Volver a la factura», en «Tus reportes de pago» aparece un
      reporte «Pago reportado».
 2. [ ] En ese reporte: «Cancelar reporte», Motivo «prueba de cancelación», y pulsa **«Cancelar
-   reporte»**. El botón gris «Cancelar» cierra el diálogo sin hacer nada.
-   - Esperado: el reporte pasa a «Cancelado». Al recargar, sigue «Cancelado».
-   - El «Motivo: …» se ve al cancelar y desaparece al recargar. Es un hallazgo conocido (anotado en
-     el handoff), no una falla de esta prueba.
+   reporte»**. El botón gris «Cancelar» sólo cierra el diálogo.
+   - Esperado: pasa a «Cancelado» y sigue así al recargar. **Nuevo:** el «Motivo: prueba de
+     cancelación» también sigue visible después de recargar.
+   - Antes el motivo desaparecía al recargar. Lo arregló la 0464, aplicada el 19-sep a las 01:00
+     UTC. Si vuelve a desaparecer, anótalo en «Si algo falló».
 3. [ ] Segundo reporte, igual que el paso 1, con la nota «prueba 2». Esta vez pulsa «Reportar pago»
    **dos veces seguidas, rápido**. Esperado: aparece **un solo** reporte nuevo y el equipo recibe un
    solo aviso.
