@@ -657,10 +657,29 @@ export async function registerPayment(
   return { ok: true, receiptCode: result.receiptCode, fullyPaid: result.fullyPaid };
 }
 
+/**
+ * SDD-0495 · Aviso cuando la reversión del crédito de referido no se pudo hacer.
+ *
+ * La anulación SIGUE siendo exitosa (la reversión es best-effort y no la
+ * bloquea: SDD-0137 §3.6), pero deja de ser un éxito limpio. Sin texto crudo del
+ * error: quien anula factura no depura PostgREST, y el detalle técnico ya va al
+ * log del servidor.
+ *
+ * Dice las tres cosas que hacen falta: qué pasó, a quién le duele, y qué hacer —
+ * incluido que NO se arregla desde ahí, porque `voidInvoice` no se repite sobre
+ * una factura ya anulada y no hay ningún otro camino en la UI para reintentar.
+ */
+export const VOID_REFERRAL_REVERT_WARNING =
+  "La factura quedó anulada, pero el crédito de referido que tenía aplicado no " +
+  "se pudo liberar: sigue marcado como usado, así que el referidor no lo va a " +
+  "poder aprovechar en otra compra. No se arregla desde aquí. El caso queda " +
+  "avisado en esta factura y en Fidelización: coordínalo con quien lleva el " +
+  "programa de referidos.";
+
 export async function voidInvoice(
   id: string,
   reasonRaw: string,
-): Promise<{ ok?: boolean; error?: string }> {
+): Promise<{ ok?: boolean; error?: string; warning?: string }> {
   const reasonResult = validateAuditReason(reasonRaw);
   if (!reasonResult.ok) return { error: reasonResult.error };
 
@@ -706,18 +725,28 @@ export async function voidInvoice(
     current.tenant_id,
     current.id,
   );
+  let warning: string | undefined;
   if (!revert.ok) {
     console.error(
       `[fidelizacion] no se pudieron revertir créditos de referido de la factura ${current.invoice_code}:`,
       revert.error,
     );
+    // SDD-0495: el log era lo ÚNICO que pasaba. Quien anulaba veía un éxito
+    // limpio mientras el crédito quedaba colgado de una factura anulada. Ahora
+    // el aviso sube con el ok, y las dos pantallas lo muestran (la de la factura
+    // y la de Fidelización) porque sus roles no se solapan.
+    warning = VOID_REFERRAL_REVERT_WARNING;
+    // La factura anulada pasa a mostrar el aviso durable, y Fidelización lista
+    // el crédito varado: las dos vistas dependen del estado que acaba de
+    // quedar inconsistente, así que las dos se revalidan.
+    revalidatePath("/studio/fidelizacion");
   } else if (revert.reverted > 0) {
     revalidatePath("/studio/fidelizacion");
   }
 
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);
-  return { ok: true };
+  return warning ? { ok: true, warning } : { ok: true };
 }
 
 /**

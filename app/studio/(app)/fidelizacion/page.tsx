@@ -21,6 +21,7 @@ import {
   topReferrers,
 } from "@/lib/studio/fidelizacion/queries";
 import { getReferralSettings } from "@/lib/studio/fidelizacion/referral-settings-queries";
+import { strandedReferralCredits } from "@/lib/studio/fidelizacion/referral-credit-queries";
 import { FidelizacionClient } from "./_components/FidelizacionClient";
 
 export const metadata = { title: "Fidelización & Referidos" };
@@ -30,7 +31,7 @@ export default async function FidelizacionPage() {
 
   const supabase = await createClient();
 
-  const [clients, counts, referrals, stats, top, referralSettings] =
+  const [clients, counts, referrals, stats, top, referralSettings, stranded] =
     await Promise.all([
       clientsWithTier(supabase),
       tierCounts(supabase),
@@ -38,6 +39,12 @@ export default async function FidelizacionPage() {
       programStats(supabase),
       topReferrers(supabase, 5),
       getReferralSettings(supabase),
+      // SDD-0495 · Créditos que quedaron 'aplicado' sobre una factura anulada
+      // porque la reversión de `voidInvoice` no pudo hacerse. Gate: el
+      // `requireModuleView("fidelizacion")` de arriba (commercial/support +
+      // admin). La query NO devuelve código de factura: ese es dato del módulo
+      // de dinero, y acá hay roles que no lo tienen.
+      strandedReferralCredits(supabase),
     ]);
 
   // Aplicar un crédito MUEVE PLATA (SDD-0137): solo lo puede hacer quien edita
@@ -58,6 +65,8 @@ export default async function FidelizacionPage() {
       canApplyCredit={canApplyCredit}
       referralSettings={referralSettings}
       canConfigure={canConfigure}
+      strandedCredits={stranded.credits}
+      strandedComplete={stranded.complete}
     />
   );
 }

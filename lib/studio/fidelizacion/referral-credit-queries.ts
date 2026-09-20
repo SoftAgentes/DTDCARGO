@@ -11,11 +11,16 @@
  *    puede aplicar el crédito (billable, USD/USDT, saldo ≥ crédito, POSTERIORES al
  *    crédito). El picker de la UI (solo rol dinero) las usa; VES/CNY → V2.
  *  - `isPurchaseAfterCredit` / `toCalendarDay`: la regla "solo compra nueva".
+ *  - `strandedReferralCredits` / `strandedCreditsForInvoice` (SDD-0495): los
+ *    créditos que quedaron 'aplicado' colgando de una factura ANULADA porque la
+ *    reversión de `voidInvoice` no pudo hacerse. Son las dos mitades del mismo
+ *    hecho, separadas a propósito por el rol que las lee (ver abajo).
  *
  * Supabase devuelve `numeric` como string → se coerce a number en cada lectura.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import type { InvoiceCurrency, InvoiceStatus } from "@/lib/studio/invoice-types";
 
 /**
@@ -170,4 +175,183 @@ export async function applicableInvoicesForReferrer(
     // ofrece algo que la action vaya a rechazar (el callejón sin salida de la UI).
     .filter((inv) => isPurchaseAfterCredit(inv.issued_at, accreditedAt))
     .filter((inv) => inv.balance >= min);
+}
+
+// ── Créditos varados: 'aplicado' sobre una factura ANULADA (SDD-0495) ─────────
+
+/**
+ * Por qué esto se CONSULTA y no se guarda en ninguna parte.
+ *
+ * Al anular una factura, `voidInvoice` manda a revertir los créditos de referido
+ * que tenía aplicados (SDD-0137 §3.6, reforzada por la SDD-0490). La reversión
+ * es best-effort a propósito: si falla, la anulación NO se deshace. Hasta la
+ * SDD-0495 su único rastro era un `console.error`, así que el crédito quedaba
+ * 'aplicado' apuntando a una factura anulada — para el sistema, consumido; para
+ * el referidor, perdido; para el Studio, invisible.
+ *
+ * El estado inconsistente es CONSULTABLE tal cual: «un referido 'aplicado',
+ * vivo, cuyo `applied_invoice_id` apunta a una factura 'anulada'». Por eso la
+ * SDD-0495 no lleva migración. Una bandera persistida sería una segunda verdad
+ * que se puede desincronizar de la primera (y que habría que escribir
+ * justo cuando algo ya está fallando); derivarla no puede mentir y además
+ * alcanza a los casos anteriores a este cambio.
+ *
+ * Son DOS funciones y no una porque los roles que las miran NO se solapan
+ * (matriz de `rbac.ts`): `invoices` es accounting (+admin) y `fidelizacion` es
+ * commercial/support (+admin). Quien anula la factura no puede abrir
+ * Fidelización; quien lleva el programa de referidos no puede abrir la factura.
+ * Cada mitad proyecta SÓLO lo que el rol que la lee ya maneja: la de
+ * Fidelización no devuelve el código de la factura (dato del módulo de dinero) y
+ * la de facturación no devuelve al referidor ni al referido. El handle común es
+ * el `referral_code`, que es lo que los dos lados necesitan para nombrar el
+ * mismo caso al hablarse.
+ *
+ * Las dos lecturas caen sobre índices que ya existen: `(tenant_id, status)
+ * where deleted_at is null` (migr 0098) y `(applied_invoice_id)` (migr 0237).
+ */
+
+/** Un crédito varado, como lo ve FIDELIZACIÓN. Sin datos de la factura. */
+export type StrandedReferralCredit = {
+  referralId: string;
+  referralCode: string;
+  referrerMarkbox: string;
+  referredName: string;
+  rewardUsd: number;
+};
+
+export type StrandedReferralCredits = {
+  credits: StrandedReferralCredit[];
+  /**
+   * `false` = alguna de las dos lecturas se quedó corta (ver `fetchAllPaged`):
+   * los que están son reales, pero puede haber más. La pantalla lo dice en vez
+   * de presentar el conteo como si fuera el total.
+   */
+  complete: boolean;
+};
+
+/**
+ * Todos los créditos varados del tenant (RLS filtra). Para el aviso durable de
+ * Fidelización.
+ *
+ * Dos lecturas en vez de un embebido de PostgREST: el filtro sobre un recurso
+ * embebido exige `!inner` y un hint de relación, y ese hint deja de resolver en
+ * silencio si mañana aparece una segunda FK de `referrals` a `invoices` — el
+ * aviso se apagaría solo y nadie lo notaría, que es exactamente el modo de falla
+ * que esta spec vino a cerrar.
+ *
+ * `opts` es el mismo de `fetchAllPaged` y va a las dos lecturas. En producción
+ * no se pasa; existe para poder ejercitar el camino truncado (`complete: false`)
+ * sin fabricar las 60.000 filas que harían falta con los topes por defecto — un
+ * camino que si no se prueba es justo el que devuelve un conteo con cara de
+ * total.
+ */
+export async function strandedReferralCredits(
+  supabase: SupabaseClient,
+  opts: { pageSize?: number; maxPages?: number } = {},
+): Promise<StrandedReferralCredits> {
+  const { rows, complete } = await fetchAllPaged<Record<string, unknown>>(
+    (from, to) =>
+      supabase
+        .from("referrals")
+        .select(
+          "id, referral_code, referrer_markbox, referred_name, reward_usd, applied_invoice_id",
+        )
+        .eq("status", "aplicado")
+        .is("deleted_at", null)
+        .not("applied_invoice_id", "is", null)
+        .order("id", { ascending: true })
+        .range(from, to),
+    opts,
+  );
+
+  // Agrupar por factura: una misma factura anulada puede tener más de un
+  // crédito varado, y los ids se consultan una sola vez.
+  const byInvoice = new Map<string, Record<string, unknown>[]>();
+  for (const r of rows) {
+    const invoiceId = String(r.applied_invoice_id ?? "");
+    if (!invoiceId) continue;
+    const list = byInvoice.get(invoiceId);
+    if (list) list.push(r);
+    else byInvoice.set(invoiceId, [r]);
+  }
+  if (byInvoice.size === 0) return { credits: [], complete };
+
+  const { rows: voided, complete: voidedComplete } = await fetchAllByIds<{
+    id: string;
+  }>(
+    [...byInvoice.keys()],
+    (lote, from, to) =>
+      supabase
+        .from("invoices")
+        .select("id")
+        .in("id", lote)
+        .eq("status", "anulada")
+        .order("id", { ascending: true })
+        .range(from, to),
+    opts,
+  );
+
+  const credits: StrandedReferralCredit[] = [];
+  for (const inv of voided) {
+    for (const r of byInvoice.get(String(inv.id)) ?? []) {
+      credits.push({
+        referralId: String(r.id ?? ""),
+        referralCode: String(r.referral_code ?? ""),
+        referrerMarkbox: String(r.referrer_markbox ?? ""),
+        referredName: String(r.referred_name ?? ""),
+        rewardUsd: Number(r.reward_usd) || 0,
+      });
+    }
+  }
+  // Orden estable por código: el aviso no cambia de forma entre dos cargas.
+  credits.sort((a, b) => a.referralCode.localeCompare(b.referralCode));
+  // `voidedComplete` es, con los topes por defecto, siempre `true`: un lote de
+  // `fetchAllByIds` trae como mucho 500 ids y 500 filas caben de sobra en una
+  // página de 1.000, así que la segunda lectura no puede quedarse corta. Ningún
+  // fixture lo puede distinguir —`opts` va a las dos lecturas y la de facturas
+  // nunca tiene más filas que la de referidos—, así que el mutante que lo borra
+  // SOBREVIVE y está documentado como tal en el handoff. Se conserva igual
+  // porque `fetchAllByIds` devuelve el campo y tirarlo al piso es exactamente el
+  // error que `lib/db/paginate.ts` describe: si mañana sube `idsPerBatch` o la
+  // query cambia de forma, el `&&` ya está puesto.
+  return { credits, complete: complete && voidedComplete };
+}
+
+/** Un crédito varado, como lo ve FACTURACIÓN. Sin datos del referido. */
+export type StrandedCreditOnInvoice = {
+  referralId: string;
+  referralCode: string;
+  rewardUsd: number;
+};
+
+/**
+ * Créditos que siguen 'aplicado' sobre ESTA factura.
+ *
+ * Llamarla sólo con una factura ANULADA: sobre una factura viva el mismo
+ * resultado es el estado NORMAL (el crédito está aplicado porque se aplicó), no
+ * una anomalía. La condición de anulada la pone el llamador porque ya tiene el
+ * estado leído; repetir acá la lectura de `invoices` sería un round-trip de más
+ * para volver a saber lo mismo.
+ */
+export async function strandedCreditsForInvoice(
+  supabase: SupabaseClient,
+  invoiceId: string,
+): Promise<StrandedCreditOnInvoice[]> {
+  if (!invoiceId) return [];
+  const { data, error } = await supabase
+    .from("referrals")
+    .select("id, referral_code, reward_usd")
+    .eq("applied_invoice_id", invoiceId)
+    .eq("status", "aplicado")
+    .is("deleted_at", null)
+    .order("referral_code", { ascending: true })
+    .limit(50);
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(
+    (r): StrandedCreditOnInvoice => ({
+      referralId: String(r.id ?? ""),
+      referralCode: String(r.referral_code ?? ""),
+      rewardUsd: Number(r.reward_usd) || 0,
+    }),
+  );
 }

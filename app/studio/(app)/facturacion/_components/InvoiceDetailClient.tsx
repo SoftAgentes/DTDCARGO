@@ -76,6 +76,11 @@ export function InvoiceDetailClient({
   // que el embarque DDP no tiene aceptación T&C vigente, guardamos el warning y
   // mostramos un banner con un segundo botón "Emitir igual" (override).
   const [legalAck, setLegalAck] = useState<string | null>(null);
+  // SDD-0495 — la anulación salió bien pero la reversión del crédito de
+  // referido no. NO es un error (la factura quedó anulada), así que no va al
+  // banner rojo ni cancela el toast: es un aviso que se queda en pantalla
+  // mientras quien anuló sigue ahí. Lo durable lo pinta el server component.
+  const [voidWarning, setVoidWarning] = useState<string | null>(null);
 
   const balance = computeBalance(invoice);
 
@@ -241,6 +246,53 @@ export function InvoiceDetailClient({
         </p>
       )}
 
+      {voidWarning && (
+        <div
+          role="alert"
+          style={{
+            margin: "0 0 var(--s-3)",
+            padding: "var(--s-3) var(--s-4)",
+            background: "var(--warning-bg)",
+            border: "1px solid var(--warning)",
+            borderRadius: "var(--r-md)",
+            display: "flex",
+            gap: "var(--s-3)",
+            alignItems: "flex-start",
+          }}
+        >
+          <span
+            style={{
+              color: "var(--warning)",
+              display: "flex",
+              flexShrink: 0,
+              marginTop: 1,
+            }}
+          >
+            {Icon.warn(16)}
+          </span>
+          <div>
+            <div
+              style={{
+                font: "700 12.5px/1.3 var(--f-sans)",
+                color: "var(--ink)",
+                marginBottom: "var(--s-1)",
+              }}
+            >
+              El crédito de referido quedó sin liberar
+            </div>
+            <p
+              style={{
+                font: "500 12px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
+                margin: 0,
+              }}
+            >
+              {voidWarning}
+            </p>
+          </div>
+        </div>
+      )}
+
       {legalAck && (
         <div
           role="alert"
@@ -348,6 +400,10 @@ export function InvoiceDetailClient({
             setVoidPending(false);
             return;
           }
+          // SDD-0495: la anulación fue exitosa igual, pero si vino aviso hay que
+          // mostrarlo — antes se perdía en el log del servidor y quien anulaba
+          // se iba con un éxito limpio.
+          setVoidWarning(result.warning ?? null);
           toast.info(`Factura ${invoice.invoice_code} anulada`);
           setConfirmVoid(false);
           setVoidPending(false);
