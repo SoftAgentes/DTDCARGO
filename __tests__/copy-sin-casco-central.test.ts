@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, vi } from "vitest";
 import { readdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";

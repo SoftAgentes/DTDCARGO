@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del cliente SeaRates (SDD-0092 Fase 1 · benchmark interno de fletes).
  * API real = GraphQL: POST a `SEARATES_API_BASE` (= https://rates.searates.com/graphql)

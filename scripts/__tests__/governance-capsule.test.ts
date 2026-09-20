@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 // @ts-expect-error El generador es ESM ejecutable (.mjs); Vitest valida su API runtime.
 import { buildCapsule, loadPolicySources, validatePolicySources } from "../build-governance-capsule.mjs";

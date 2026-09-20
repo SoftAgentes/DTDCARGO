@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0300 · Las dos decisiones del paso `e2e` del gate.
  *

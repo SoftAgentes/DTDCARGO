@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0096 · Tests de la lógica PURA del packing list online del proveedor.
  *

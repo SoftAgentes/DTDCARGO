@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del normalizador del Container Tracking API de SeaRates (SDD-0101 · Slice B).
  * Usa el shape REAL de la doc oficial (docs.searates.com/reference/tracking) — sin red.

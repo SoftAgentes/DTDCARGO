@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de las queries del crédito de referido aplicado (SDD-0137).
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de queries del módulo Fiscal/SENIAT (SDD-0073).
  *

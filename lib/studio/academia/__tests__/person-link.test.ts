@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests SDD-0107: ancla de la inscripción a la persona por cédula.
  *

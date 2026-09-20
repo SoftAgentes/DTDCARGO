@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del menú de servicios de recepción (SDD-0098 · add-ons sobre la prealerta).
  * Cubre: los 7 defaults, merge "DB pisa, código respalda", filtro de inactivos,

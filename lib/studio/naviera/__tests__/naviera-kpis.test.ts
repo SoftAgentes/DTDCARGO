@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de navieraKpis (SDD-0047, Slice B) con un stub de SupabaseClient.
  *

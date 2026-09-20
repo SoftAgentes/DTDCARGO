@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0281 · El podador de tipos de ruta generados.
  *

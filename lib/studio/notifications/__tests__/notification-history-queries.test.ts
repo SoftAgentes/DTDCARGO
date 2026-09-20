@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0156 · Slice C — listShipmentNotificationHistory: historial read-only de
  * avisos ENVIADOS de un envío para el portal.

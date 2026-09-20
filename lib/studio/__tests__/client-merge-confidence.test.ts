@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0246 · cuánta confianza da un par candidato a duplicado.
  *

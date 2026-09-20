@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del guard de capacidad ADVISORY (SDD-0047, Slice B).
  *

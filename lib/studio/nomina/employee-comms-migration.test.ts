@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Guard anti-regresión de las migraciones de SDD-0113 B/C/D (lane ROBUSTO).
  * No corre SQL: lee el archivo y asegura que los INVARIANTES DE SEGURIDAD

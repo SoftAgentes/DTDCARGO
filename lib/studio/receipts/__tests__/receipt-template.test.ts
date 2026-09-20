@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del builder del recibo de cobranza (SDD-0068 · decisión #6).
  *

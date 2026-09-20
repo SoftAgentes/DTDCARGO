@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del módulo Facturación (SDD-0021) — capa pura `invoice-types`.
  *

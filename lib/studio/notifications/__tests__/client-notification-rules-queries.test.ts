@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0156 · validación de reglas de notificación (validateRuleInput).
  */

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los line-builders puros de posting (SDD-0059 · Slice A).
  * Cubre §6: asiento balanceado DR=CR por cada evento del dominio.

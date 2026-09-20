@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del guard de cuota del tracking (SDD-0101 · Slice B.2 · lógica PURA).
  */

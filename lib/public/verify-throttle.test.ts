@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0375: contrato RPC sin red. La concurrencia real vive en
  * scripts/check-public-verify-concurrency.mjs; --legacy reproduce el defecto.

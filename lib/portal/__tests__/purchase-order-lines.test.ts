@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0173 · Tests del armado de "Así queda tu orden a DTD — en vivo".
  *

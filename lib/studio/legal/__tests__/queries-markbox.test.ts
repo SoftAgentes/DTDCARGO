@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del gate por MARKBOX (SDD-0054 · Slice B). Cubre
  * `hasValidAcceptanceForMarkbox`, que espeja TODA la seguridad round-2 de

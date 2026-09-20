@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0061 Fase B1 — Tests de la lógica pura del estimado web.
  *

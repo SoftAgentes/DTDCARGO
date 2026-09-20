@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de las acciones compartidas de Cobranzas para SDD-0068 y SDD-0488 (stub
  * Supabase, sin red ni DB; el posting contable y el admin client van mockeados):

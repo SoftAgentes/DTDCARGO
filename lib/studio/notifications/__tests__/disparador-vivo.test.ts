@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0311 · Un aviso al cliente necesita un disparador que ALGUIEN llame.
  *

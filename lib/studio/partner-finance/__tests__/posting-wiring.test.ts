@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del WIRING del posting contable del Financiero China (SDD-0110).
  *
