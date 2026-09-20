@@ -170,10 +170,14 @@ Nueve, en `git log main..claude/adoring-neumann-bdc596`:
 | `ee492cfe` | `docs(studio)` — el comentario de `identifyPaymentFor` decía lo contrario |
 | `c937a25a` | `docs(SDD-0494)` — evidencia exacta y tabla de validación |
 
+| `6efaee16` | `docs(handoff)` — SHA de la validación y lista de commits |
+| `8fb401bd` | `docs(SDD-0494)` — el filtro se cayó en la 0230, no en la 0470 |
+
 **SHA de la validación: `c937a25a7dc607245a1dc1aa658ebe4aa55c201e`.** Ahí se
 corrieron tsc, lint, los 465 casos y los checks documentales de la tabla de
-arriba. El único commit posterior es el que escribe esta misma tabla, que no
-toca código. **Fijá ese SHA (o el HEAD final) antes de integrar.**
+arriba. **El último commit que toca código es `ee492cfe`** (un comentario), o
+sea que la validación cubre el código final; lo que vino después es solo
+documentación. **Fijá el HEAD final antes de integrar.**
 
 El claim `claude-keen-swirles-62b904` **sigue tomado** a propósito: la tarea no
 está cerrada (falta el turno de `verify`, y sus resultados se escriben acá). Si
