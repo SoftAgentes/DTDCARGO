@@ -126,6 +126,13 @@ export function TesoreriaClient({
       }
       setSelectedBillId(null);
       setConsultPayable(payable);
+    } catch {
+      // `payableForBill` re-lanza el error de PostgREST y acá nadie consume la
+      // promesa del onClick: sin este catch, un timeout o un 500 se va como
+      // unhandled rejection y la fila vuelve de «Abriendo…» a «Ver CxP» SIN
+      // decir nada. Como el «Anular» de la orden vive solo en ese drawer, el
+      // usuario se queda sin camino y sin explicación.
+      toast.error("No se pudo abrir la cuenta por pagar de esta orden.");
     } finally {
       setOpeningBillId(null);
     }

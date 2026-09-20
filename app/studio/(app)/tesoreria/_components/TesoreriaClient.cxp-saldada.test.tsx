@@ -50,8 +50,6 @@ vi.mock("../actions", () => ({
   updateSupplier: vi.fn(),
 }));
 
-const TODAY = "2026-06-25";
-
 function payable(over: {
   id: string;
   code: string;
@@ -210,6 +208,40 @@ describe("TesoreriaClient · la CxP saldada se abre desde «Pagos» (SDD-0494)",
     expect(
       within(drawer).queryByRole("button", { name: /Anular CxP/ }),
     ).toBeNull();
+  });
+
+  /**
+   * `payableForBill` re-lanza el error de PostgREST y la promesa del onClick no
+   * la consume nadie: sin catch, un timeout se va como unhandled rejection y la
+   * fila vuelve a «Ver CxP» sin decir nada. El usuario se queda sin camino para
+   * anular la orden y sin saber por qué.
+   */
+  it("si la lectura FALLA, avisa en vez de quedarse muda", async () => {
+    const user = userEvent.setup();
+    mocks.getPayableForBill.mockRejectedValue(new Error("PostgREST 500"));
+    renderTesoreria([CXP_EN_COLA]);
+
+    await abrirDesdePagos(user);
+
+    expect(mocks.toastError).toHaveBeenCalledWith(
+      "No se pudo abrir la cuenta por pagar de esta orden.",
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
+    // Y la fila queda usable otra vez, no atascada en «Abriendo…».
+    expect(screen.getByText("Ver CxP")).toBeTruthy();
+  });
+
+  it("si la CxP no existe o la RLS la oculta, también avisa", async () => {
+    const user = userEvent.setup();
+    mocks.getPayableForBill.mockResolvedValue({ payable: null });
+    renderTesoreria([CXP_EN_COLA]);
+
+    await abrirDesdePagos(user);
+
+    expect(mocks.toastError).toHaveBeenCalledWith(
+      "No se pudo abrir la cuenta por pagar de esta orden.",
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("si la CxP YA está en la cola, no pide la consulta al servidor", async () => {
