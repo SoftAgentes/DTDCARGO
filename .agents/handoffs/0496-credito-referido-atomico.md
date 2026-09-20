@@ -190,15 +190,32 @@ de la suite completa, o sea que tampoco le dejan residuo a los que corren despu�
    sucesor es el 5. El motivo: una prueba que pasa por la razón equivocada es un verde que
    alguien va a interpretar mal. Si algún día se quiere el archivo sin fases históricas,
    es una limpieza aparte y con criterio del Director.
-5. **El monto que se revierte se lee AL REVERTIR, no se congela al aplicar.**
-   `revert_referral_credits` baja `round(coalesce(r.reward_usd, 0), 2)` leído en ese
-   momento — igual que hacía el TypeScript, así que no es una regresión. Si alguien editara
-   `reward_usd` de un crédito ya `aplicado`, la reversión bajaría un monto distinto del que
-   se abonó. **Hoy no es alcanzable desde la app**: el único escritor de `reward_usd` sobre
-   una fila viva es el trigger de la 0197, que sólo matchea `registrado` y
-   `primer-embarque`; ningún camino de producto lo toca en `aplicado` (comprobado por
-   `grep` sobre `.ts`/`.tsx`). Pero nada en la base lo impide. Congelarlo pide una columna
-   nueva (`applied_amount`) y su migración.
+5. **El monto que se revierte se lee AL REVERTIR, no se congela al aplicar.** ← *el Director
+   se lo lleva a Sam como decisión (2026-09-20); no se toma en esta tarea porque congelarlo
+   pide columna nueva y migración, y ampliar sobre la marcha una tarea con migrate-first es
+   cómo se cuelan los errores.*
+
+   `revert_referral_credits` baja `round(coalesce(r.reward_usd, 0), 2)` leído **en ese
+   momento** — igual que hacía el TypeScript, así que no es una regresión. Si alguien
+   editara `reward_usd` de un crédito ya `aplicado`, la reversión bajaría **una cifra
+   distinta de la abonada**.
+
+   **Hoy no es alcanzable desde la app.** El único escritor de `reward_usd` sobre una fila
+   viva es el trigger `accredit_referral_on_first_invoice` de la 0197, y sólo matchea
+   `status in ('registrado', 'primer-embarque')` (`0197_referral_auto_accredit.sql:86-89`);
+   ningún camino de producto lo toca en `aplicado`. Comprobado con:
+
+   ```bash
+   git grep -nE 'reward_usd' -- '*.ts' '*.tsx'
+   ```
+
+   que sólo devuelve lecturas, fixtures de prueba y el alta en `invitado` con `reward_usd: 0`
+   (`lib/portal/referral-invite.ts:128`, `lib/portal/referral-link.ts:145`).
+
+   **Pero la base no lo impide.** Es la misma forma que el resto de lo que apareció hoy: un
+   invariante sostenido sólo por la capa de aplicación. Congelarlo pide una columna nueva
+   (`applied_amount`, escrita por `apply_referral_credit` y leída por
+   `revert_referral_credits`) y su propia migración.
 6. **El link del asiento se escribe sin guard de estado.** El paso 5 de
    `applyReferralCredit` hace `.update({ applied_entry_id }).eq("id", referralId)` sin
    `.eq("status", "aplicado")`. Si entre el COMMIT de la RPC y ese UPDATE alguien revierte
