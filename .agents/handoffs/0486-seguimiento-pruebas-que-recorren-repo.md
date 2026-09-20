@@ -1,7 +1,8 @@
 # Handoff · seguimiento de la SDD-0486: las cuatro que recorren el repo, y el registro
 
-- Fecha: 2026-09-19. Estado de la tarea: **medida y aplicada en local**; falta el `verify` completo,
-  el push único y la PR, que va **en ready**: no hay migración ni decisión de Sam.
+- Fecha: 2026-09-19. Estado de la tarea: **`verify` verde y `main` al día** (`e5226054`). Falta el
+  push único y que el Director integre la PR, que va **en ready**: no hay migración ni decisión de
+  Sam.
 - Owner/sesión: `worker-pruebas-repo-0486-20260919` (Claude Opus 5, Worker, sesión «Automatizar la
   prueba de carrera del for update de 0459»). Director: la sesión «Director notificación a workers»,
   que asignó el seguimiento y reservó la máquina para medir.
@@ -57,7 +58,9 @@ Sin cambiar el inventario ni las aserciones.
 | Mutación documentada (borrar `fieldErrors.length > 0` de `StepConfirmar`) con `delay: null` | **Las 3 pruebas en rojo**, y el fuente restituido con md5 idéntico: la prueba sigue afirmando lo mismo |
 | Conteos de la suite | 8.106 → **8.107** pruebas, sin fallos. La de más es la del prefiltro |
 | `verify` completo sobre `e52d5f8d`, 23:02-23:16 UTC | **16 de 17 PASARON y ninguno FALLÓ.** test (8.106 ✓ y 1 omitida), sql-tests, schema-rebuild, e2e (166 ✓, 2 flaky ajenos), build, typecheck y lint (0 errores, 15 avisos ajenos). `migrations-applied`: NO DISPONIBLE, sin credenciales; no hay migración |
-| CI alojado | **NO EJECUTADO**: GitHub Actions bloqueado por facturación desde las 21:18Z |
+| Merge de `main` `8322ee7f` (#173) con el driver, y su `verify` sobre `6bfd815a`, 00:32-01:07 UTC | **16 de 17 PASARON y ninguno FALLÓ.** test 8.106 ✓ y 1 omitida; e2e **OK con aviso** (166 ✓, 2 flaky ajenos; el proceso sale ≠0 por el worker de WebKit que no cierra en Windows, que el propio `verify` distingue de una regresión) |
+| Merge de `main` `e5226054` (#175) encima, sin repetir el `verify` | **Justificado, no asumido**: ese merge sólo trae los tres archivos de la #175 (`payment-report-commands.ts` y dos handoffs), y `git diff --name-only 8322ee7f e5226054` confirma que **no toca ninguno de los cinco archivos de prueba de esta rama**. El índice de specs se regeneró y quedó sin cambios |
+| CI alojado, sobre `a002d192` | **PASÓ**: «Calidad local sin secretos» en verde, 19m4s. Estuvo trabado desde las 21:18Z por el límite de gasto de Actions, que Sam subió; los checks se relanzaron a las 23:59Z y arrancaron de verdad. El CI de este merge lo corre GitHub cuando llegue el push |
 
 **Ruido honesto:** `invoice-read-boundary`, que nadie tocó, pasó de 2,85 s a 5,19 s en esa misma
 corrida. Ese número incluye lo que el archivo espera mientras 21 workers se pelean la máquina;
@@ -67,18 +70,30 @@ cuando los demás terminan antes, el reparto cambia. No es una regresión suya.
 
 | Commit | Propósito |
 | --- | --- |
-| este | `test(harness)`: las cinco pruebas, con el patrón de `invoice-read-boundary` |
-| el siguiente | `docs(SDD-0486)`: la sección fechada del seguimiento y este handoff |
+| `6f24b52d` | `test(harness)`: las cinco pruebas, con el patrón de `invoice-read-boundary` |
+| `e52d5f8d` | `docs(SDD-0486)`: la sección fechada del seguimiento y este handoff |
+| `a002d192` | `docs(SDD-0486)`: la evidencia del `verify` y el retiro del agregado que no se sostiene |
+| `6bfd815a` | merge de `main` `8322ee7f` (#173) con el driver, resolviendo dos archivos a mano |
+| `65870188` | merge de `main` `e5226054` (#175), limpio |
+| este | `docs(SDD-0486)`: la evidencia de los dos merges, antes del push único |
+
+**Cómo se resolvió el cruce con la #173.** Se predijo antes de intentarlo, con
+`git merge-tree --write-tree` y sin tocar ninguna rama: conflicto en exactamente dos archivos
+—`app/__tests__/json-ld-escape-contract.test.ts` y `scripts/__tests__/env-example-contract.test.ts`—
+y los otros dos auto-mergean. La causa era de líneas contiguas, no de contenido: la #173 pone
+`// @vitest-environment node` como línea 1 y esta rama cambia los imports justo debajo. Se
+conservaron las dos cosas, sin elegir entre versiones. La #175 se predijo limpia y lo fue.
 
 ## PR / BRANCH
 
-- Rama `codex/pruebas-que-recorren-repo-0486`, base `main`. **La PR va en ready**: no depende de
-  ninguna migración. Va a quedar sin CI hasta que se destrabe la facturación de GitHub Actions.
+- Rama `codex/pruebas-que-recorren-repo-0486`, **PR [#174](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/174)**,
+  base `main`, en ready. Su primera corrida de CI pasó en verde; el push de los dos merges dispara
+  otra, que es la que mira el ruleset para integrar.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. El `verify` completo, el push único y la PR en ready, con el número y el SHA al Director.
-2. Liberar el claim y devolverle la máquina.
+1. El push único de los dos merges, con el SHA al Director, y liberar el claim.
+2. Que el Director integre la #174 con el CI verde sobre ese SHA.
 
 ## FUERA DE ALCANCE DETECTADO
 
