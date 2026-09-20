@@ -2,7 +2,7 @@
  * Server actions del detalle de envio.
  *
  * - updateShipment: PATCH de campos editables (no toca code, service, status)
- * - deleteShipment: soft delete (deleted_at = now) + redirect a lista
+ * - deleteShipment: soft delete (deleted_at = now) + redirect a lista si borró
  * - cancelShipment: cancelar con razon obligatoria → status='cancelled' + event
  * - transitionShipment: cambio de estado por boton → update status + event
  * - addShipmentEvent: agregar evento manual (status + nota + occurred_at)
@@ -164,18 +164,31 @@ export async function updateShipment(
 /**
  * Soft delete del envio. El trigger cascade_soft_delete_events propaga a events.
  * Redirige al listado al terminar.
+ *
+ * Gate de EDICIÓN (SDD-0497): era la ÚNICA de las siete acciones de este archivo
+ * sin `moduleEditDenial`, y la más destructiva. El `requireModuleView("tracking")`
+ * del layout protege la PÁGINA, no esta action —que es un endpoint invocable
+ * directo (SDD-0085 §Seguridad)— y la policy viva de `shipments` sólo compara
+ * tenant, sin predicado de rol: sin este candado, cualquier miembro autenticado
+ * del tenant borraba envíos ajenos a su módulo.
+ *
+ * Y el fallo ya no es mudo. Antes el `console.error` se tragaba el error del
+ * UPDATE y redirigía igual: el operador escribía el código exacto del envío,
+ * veía la lista y creía que se había borrado. Ahora devuelve el motivo y el
+ * modal lo muestra; sólo redirige cuando el borrado ocurrió de verdad.
  */
-export async function deleteShipment(id: string): Promise<void> {
+export async function deleteShipment(id: string): Promise<ActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("shipments")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id);
 
   if (error) {
-    // En soft-delete fallido devolvemos al detalle con el error en query string.
-    // Por simplicidad redirigimos a la lista — si rompe, el operador lo nota.
-    console.error("[deleteShipment] error", error);
+    return { error: "No pudimos eliminar el envío. Intenta de nuevo." };
   }
 
   revalidatePath("/studio/tracking");

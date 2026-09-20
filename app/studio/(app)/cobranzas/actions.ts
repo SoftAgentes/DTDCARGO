@@ -11,6 +11,7 @@
  * - logActivity: registra una gestión de cobranza (contacto/promesa/nota/
  *   recordatorio).
  * - voidReceipt: anula un recibo (revierte saldo + anula sus asientos).
+ * - getReceivableHistory: lee recibos + gestiones de una factura (gate de VISTA).
  *
  * Sin Zod: validación con `validate*Input()` propio. Las acciones sensibles
  * (cobro, anular recibo) escriben en entity_audit_log via la lógica compartida
@@ -22,7 +23,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { receivablesQueue } from "@/lib/studio/payment-queries";
 import { contextoDeEnvio } from "@/lib/studio/collections/recordatorios-queries";
@@ -204,12 +205,27 @@ export async function voidReceipt(
 /**
  * Lee los recibos + gestiones de una factura (para el historial del drawer).
  * Devuelve datos serializables (el drawer es client).
+ *
+ * Gate de VISTA (SDD-0497): gemelo exacto del `getBillHistory` de Tesorería que
+ * cerró SDD-0494. Era la única de las ocho acciones de este archivo sin gate,
+ * mientras las otras siete llaman `moduleEditDenial(supabase, "collections")`.
+ * El `requireModuleView("collections")` del layout protege la PÁGINA, no esta
+ * action —endpoint invocable directo, SDD-0085 §Seguridad—, y la RLS no compensa:
+ * `payment_receipts_team_select` (0470:186-191) y `"collection_activities by
+ * tenant"` (0079:151-155) sólo comparan `tenant_id`, sin predicado de rol. Sin
+ * este candado, cualquier miembro del tenant leía monto, fecha, método y banco
+ * de los cobros de un módulo de DINERO que la matriz reserva a `accounting`.
+ *
+ * Es el de VISTA, no el de edición: no muta nada, pero expone dinero.
  */
 export async function getReceivableHistory(invoiceId: string): Promise<{
   receipts: import("@/lib/studio/payment-types").PaymentReceipt[];
   activities: import("@/lib/studio/payment-types").CollectionActivity[];
+  error?: string;
 }> {
   const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "collections");
+  if (denial) return { receipts: [], activities: [], error: denial };
   const { listReceipts, listActivities } = await import(
     "@/lib/studio/payment-queries"
   );
