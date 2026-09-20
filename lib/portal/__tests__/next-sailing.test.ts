@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del próximo zarpe / cut-off del portal (SDD-0133).
  *

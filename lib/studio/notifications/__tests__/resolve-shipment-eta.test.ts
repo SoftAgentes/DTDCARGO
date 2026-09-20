@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0156 · Slice D — resolveShipmentEta / resolveShipmentEtd y el parser de
  * fechas heterogéneas (ISO de SeaRates vs `date` de Postgres).

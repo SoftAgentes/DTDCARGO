@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Contrato del enlace a la guía interactiva de Alibaba (SDD-0099).
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la resolución del snapshot naviero (SDD-0101 · Slice A).
  *

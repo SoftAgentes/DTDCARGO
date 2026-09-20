@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * El verbo "mover de etapa" tiene que estar en LAS DOS vistas.
  *

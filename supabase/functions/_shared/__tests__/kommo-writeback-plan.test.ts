@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0256 · Fases 4 y 5 — contratos del drenaje de la outbox.
  *

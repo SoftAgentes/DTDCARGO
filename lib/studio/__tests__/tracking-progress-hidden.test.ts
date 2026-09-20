@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0156 · Slice D — buildTimeline con hiddenStatuses: ocultar un hito del
  * stepper del portal sin descolocar los pasos cumplidos/pendientes.

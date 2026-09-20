@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la decisión de `next-number.mjs`: qué número está tomado y cuál sigue.
  *

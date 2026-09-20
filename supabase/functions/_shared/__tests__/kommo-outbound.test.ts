@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0074 · tests de los builders puros del push del alta a Kommo.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Anti-drift: toda ruta de `/api/studio/*` verifica la sesión.
  *

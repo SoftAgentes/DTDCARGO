@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0080 · Cierre de período contable — tests del helper puro isPeriodClosed.
  */

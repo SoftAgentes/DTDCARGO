@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0231 · tarifario terrestre — conversión, validación y avisos.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0468 · El mensaje que el cliente le manda a su proveedor chino.
  *

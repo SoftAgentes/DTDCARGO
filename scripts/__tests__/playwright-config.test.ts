@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { cpus } from "node:os";
 import { describe, expect, it } from "vitest";
 import playwrightConfig, {

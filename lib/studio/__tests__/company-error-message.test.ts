@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0299 · El error de "Datos de la empresa" tiene que nombrar su causa.
  *

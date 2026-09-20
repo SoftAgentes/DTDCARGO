@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la configuración fiscal (SDD-0073 §8 · config-types).
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de queries de la Capa Legal (SDD-0054 · Slice A). Cubre Acceptance §5:
  *  - currentClientDocs filtra status=vigente + audience=cliente y parsea body.

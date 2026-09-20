@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0475 · el respaldo del calculador no se mueve solo.
  *

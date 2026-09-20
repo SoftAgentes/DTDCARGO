@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de statements-queries (SDD-0059 · Slice B1) con un stub chainable de
  * SupabaseClient enrutado por nombre de tabla (mismo patrón que queries.test.ts

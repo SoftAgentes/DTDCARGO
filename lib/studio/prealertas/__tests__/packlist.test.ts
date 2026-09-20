@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del pre-llenado del packing list (SDD-0057 ext · Fase 3, mapa de celdas
  * actualizado al template branded de SDD-0096).

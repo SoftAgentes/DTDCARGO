@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de /api/public/cbm-rate (SDD-0474).
  *

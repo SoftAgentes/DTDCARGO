@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { parseClamavResponse, tokenMatches } from "../attachments-clamav-http.mjs";
 
