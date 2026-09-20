@@ -48,8 +48,13 @@ export function ConvertLeadDrawer({
     const t = setTimeout(
       async () => {
         try {
-          const rows = await searchKommoContactsAction(q);
-          if (reqId.current === id) setResults(rows);
+          const res = await searchKommoContactsAction(q);
+          if (reqId.current === id) {
+            setResults(res.contacts);
+            // SDD-0497: si el gate de VISTA deniega, decirlo. «Sin resultados»
+            // es indistinguible de una búsqueda que no encontró nada.
+            if (res.error) setError(res.error);
+          }
         } catch {
           if (reqId.current === id) setResults([]);
         } finally {

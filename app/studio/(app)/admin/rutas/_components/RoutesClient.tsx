@@ -767,6 +767,26 @@ function CitiesTab({
         </div>
       )}
 
+      {/* SDD-0497: el seed ya devuelve motivo (denegación de permiso o fallo de
+          la RPC) y hasta acá nadie lo mostraba — el botón quedaba mudo. */}
+      {seedState?.error && (
+        <div
+          role="alert"
+          style={{
+            padding: 12,
+            background: "var(--danger-bg)",
+            /* `--danger-text`, no `--danger`: en oscuro el crudo da 4,19:1
+               sobre este fondo y no pasa AA (SDD-0275, tokens.css:284-293). */
+            color: "var(--danger-text)",
+            borderRadius: "var(--r-md)",
+            marginBottom: 14,
+            font: "600 13px/1.3 var(--f-sans)",
+          }}
+        >
+          {seedState.error}
+        </div>
+      )}
+
       {/* Header rico */}
       <div
         style={{

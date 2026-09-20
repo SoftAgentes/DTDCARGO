@@ -7,12 +7,17 @@
  *  - searchKommoContactsAction: busca contactos del espejo para el picker.
  * Resuelven el tenant del usuario logueado y delegan en la lógica pura
  * (lib/studio/kommo-convert); RLS scopea las lecturas por tenant.
+ *
+ * SDD-0497: el tenant NO es el permiso a verificar. Cada acción de este archivo
+ * lleva además su gate de RBAC —`moduleEditDenial` si muta, `moduleViewDenial`
+ * si sólo expone— porque una server action es un endpoint invocable directo y
+ * las policies de `kommo_contacts` y `clients` no tienen predicado de rol.
  */
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   convertLead,
@@ -45,11 +50,22 @@ import {
   parseRecoveryFilters,
 } from "@/lib/studio/kommo-recovery";
 
+/**
+ * Convierte un lead de Kommo en cliente del ERP (idempotente).
+ *
+ * Gate de EDICIÓN (SDD-0497). No venía en el encargo: apareció al leer sus dos
+ * vecinas y es el mismo defecto, MUTANTE y en este mismo archivo — crea una fila
+ * en `clients` con el Shipping Mark asignado y encola el write-back a Kommo.
+ * Dejarla abierta al lado de `searchKommoContactsAction` recién gateada es la
+ * incoherencia que invita a copiar la mala, así que se cierra junto.
+ */
 export async function convertLeadToClientAction(
   leadId: number,
   prefill?: ContactPrefill,
 ): Promise<ConvertLeadResult> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "kommo");
+  if (denial) return { error: denial };
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -73,23 +89,74 @@ export async function convertLeadToClientAction(
   return res;
 }
 
+/**
+ * Busca contactos del espejo de Kommo para el picker del drawer de conversión.
+ *
+ * Gate de VISTA (SDD-0497). El comentario que estaba acá decía que «la RLS de
+ * kommo_contacts filtra por tenant → no hace falta resolverlo acá», y es cierto:
+ * `"kommo_contacts tenant read"` (0082:174) compara `tenant_id`. Pero el tenant
+ * no era el permiso a verificar. Esa policy es FOR SELECT `to authenticated` sin
+ * predicado de rol, y esta action es un endpoint invocable directo: el
+ * `requireModuleView("kommo")` de la page (crm/page.tsx:60) no la cubre. La
+ * matriz reserva `kommo` a `commercial` (+admin) y excluye a `support` a
+ * propósito (rbac.ts), así que sin este candado cualquier miembro del tenant
+ * leía nombre, teléfono y correo del espejo del CRM.
+ *
+ * Devuelve `{ contacts, error }` en vez de un array pelado para que el drawer
+ * muestre el motivo en lugar de «sin resultados», que es indistinguible de una
+ * búsqueda vacía.
+ */
 export async function searchKommoContactsAction(
   q: string,
-): Promise<KommoContactPick[]> {
+): Promise<{ contacts: KommoContactPick[]; error?: string }> {
   const supabase = await createClient();
-  // RLS de kommo_contacts filtra por tenant → no hace falta resolverlo acá.
-  return searchKommoContacts(supabase, q);
+  const denial = await moduleViewDenial(supabase, "kommo");
+  if (denial) return { contacts: [], error: denial };
+  return { contacts: await searchKommoContacts(supabase, q) };
 }
 
 /**
  * SDD-0157 — CSV de SMS de la campaña de recuperación, sobre el universo
- * COMPLETO filtrado (no solo la página visible en la UI). Lectura pura del
- * espejo + clients (RLS por tenant), sin mutación → sin gate de edición.
+ * COMPLETO filtrado (no solo la página visible en la UI).
+ *
+ * Gate de VISTA (SDD-0497). El comentario que estaba acá justificaba la ausencia
+ * de candado con «lectura pura del espejo + clients (RLS por tenant), sin
+ * mutación → sin gate de edición», que es exactamente el razonamiento que falló
+ * en Tesorería (SDD-0494): una lectura es tan invocable como una mutación, y el
+ * gate que le faltaba no era el de edición sino el de VISTA.
+ *
+ * Acá el razonamiento pesa más que en el resto de esta spec, porque lo que sale
+ * no es una pantalla: es un archivo. `buildRecoverySmsCsv`
+ * (lib/studio/kommo-recovery.ts:239-253) emite nombre, teléfono en formato
+ * internacional, segmento, días sin actividad y Shipping Mark de hasta
+ * RECOVERY_UNIVERSE_CAP = 5000 contactos, y `downloadTextFile` lo baja al disco
+ * del navegador. Pasado por `.claude/skills/revisar-datos-ve/SKILL.md`:
+ *
+ *   · Punto 2 (minimización y proporcionalidad · SC 332/2001, finalidad y
+ *     calidad): el universo completo sólo se justifica para quien corre la
+ *     campaña de recuperación. La matriz ya dice quién es — `kommo:
+ *     ["commercial"]` + admin — así que el gate del módulo ES el criterio de
+ *     minimización, no uno nuevo inventado acá.
+ *   · Punto 8 (terceros): el CSV está hecho para entregarse a un proveedor de
+ *     SMS. Sacar la agenda telefónica del tenant sin control de rol es el
+ *     supuesto del art. 20 de la Ley Especial contra los Delitos Informáticos
+ *     (obtención indebida de data personal), agravado por el art. 22 si hay
+ *     revelación. Es responsabilidad PENAL de personas, no multa a la empresa.
+ *   · Punto 12 (titulares que no son tus usuarios): el segmento `interesado`
+ *     son contactos del espejo de Kommo que nunca se registraron en el ERP ni
+ *     aceptaron ninguna política. Sus teléfonos viajan en el mismo archivo.
+ *
+ * Lo que este gate NO resuelve queda declarado en la spec: `kommo_contacts` y
+ * `clients` siguen siendo legibles tenant-wide por PostgREST, y si el acto de
+ * exportar en masa merece una capability propia (SDD-0139) en vez de heredar el
+ * permiso de ver la pantalla, es una decisión de Sam.
  */
 export async function exportRecoverySmsCsvAction(
   rawFilters: Record<string, string | undefined>,
 ): Promise<{ csv?: string; count?: number; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "kommo");
+  if (denial) return { error: denial };
   try {
     const universe = await getRecoveryUniverse(supabase);
     const rows = filterRecoveryRows(universe.rows, parseRecoveryFilters(rawFilters));
