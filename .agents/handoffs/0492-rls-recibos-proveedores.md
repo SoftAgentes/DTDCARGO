@@ -1,8 +1,8 @@
 # Handoff 0492 · escribir cobros y cuentas por pagar queda para accounting y admin
 
-- Fecha: 2026-09-19. Estado de la tarea: **`verify` completo verde** (16 de 17; `migrations-applied`
-  NO DISPONIBLE). Falta el push único y la PR en draft. **Migrate-first:** la 0470 no se aplica ni la
-  PR se integra sin el OK nominal de Sam, y va **después de la 0468** (PR #169).
+- Fecha: 2026-09-19, cerrado el 2026-09-20. Estado de la tarea: **la 0470 está APLICADA en
+  producción** (2026-09-20 02:13 UTC, ledger `20260920021300`), con el OK nominal de Sam nombrando
+  el archivo. La espera se retiró del baseline y la PR #172 queda lista para integrar.
 - Owner/sesión: `worker-rls-recibos-proveedores-0492-20260919` (Claude Opus 5, Worker, sesión
   «Automatizar la prueba de carrera del for update de 0459»). Director: la sesión «Director
   notificación a workers», que asignó la tarea y decidió los dos puntos de diseño de abajo.
@@ -101,13 +101,29 @@ y la 0468 siguen funcionando encima, y una PR migrate-first en draft.
 - **La PR sale en DRAFT**, con «NO FUSIONAR hasta aplicar 0470» en la primera línea del cuerpo y el
   orden de release. La pasa a ready el Director, después del OK de Sam y de aplicar la migración.
 
+## LA APLICACIÓN (2026-09-20)
+
+La aplicó el Director con el runbook, con el OK nominal de Sam nombrando el archivo. Esta sesión no
+escribió en producción: sólo verificó antes que la condición de la espera fuera sólo ese OK, sin
+smoke, y que la 0468 —su nota de orden— ya estuviera aplicada.
+
+| Qué | Resultado |
+| --- | --- |
+| Ledger | `20260920021300` · md5 `12d0325909f684e497b0b2c406a97895` · 26.081 bytes, idéntico al archivo (`cmp` antes de aplicar) |
+| Preflight | Las 4 policies con la huella `f118dd90…`, los privilegios de hoy, las 6 dependencias por md5 y 0 actividad |
+| Postflight | 12 policies, tres por tabla: SELECT sin rol, INSERT con rol en `with_check`, UPDATE con rol en `qual` y `with_check`. `authenticated` sin DELETE en las cuatro; `service_role` conserva las suyas; `anon`, nada |
+| Envolturas | Con el assert, INVOKER, owner postgres, `search_path` vacío y su ACL. Cuerpos nuevos: `0ae1dc0d…`, `793aa69b…` y `b1d00710…` |
+| La huella que esta tarea predijo | `b1d007101562c1b727fcf921a746f635`, la misma que se había medido para el orden inverso. La predicción se cumplió al byte |
+| Efectos colaterales | Las RPC de la 0467 y la 0468 intactas. Advisors: 0 nuevos, 0 desaparecidos |
+
 ## PENDIENTES DE ESTA TAREA
 
-1. El push único y la PR en draft, con el número y el SHA por mensaje al Director, y liberar el
-   claim. El worktree y la rama se conservan.
-3. **El release, en este orden:** OK nominal de Sam nombrando la 0470 → aplicar la 0468 si Sam la
-   aprueba → aplicar la 0470 → pasar la PR a ready e integrarla → retirar la espera.
-4. El CI no va a correr hasta que Sam arregle la facturación de GitHub Actions.
+1. Que el Director pase la #172 a ready y la integre con el CI verde sobre este push. Después,
+   liberar el claim; el worktree y la rama se conservan.
+
+**Lo ya cumplido del release**, en el orden que fijó esta spec: OK nominal de Sam (2026-09-20) →
+0468 aplicada a las 00:05 UTC → **0470 aplicada a las 02:13 UTC** → espera retirada del baseline en
+este push → falta sólo integrar.
 
 ## FUERA DE ALCANCE DETECTADO
 

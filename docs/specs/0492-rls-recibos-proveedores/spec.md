@@ -178,6 +178,35 @@ ningún rol legítimo:
 
 ## Release
 
+### APLICADA el 2026-09-20
+
+La 0470 **está aplicada en producción** desde el 2026-09-20 a las 02:13 UTC, con
+el OK nominal de Sam nombrando el archivo («OK para aplicar
+`0470_rls_escritura_cobros_proveedores.sql` y `0469_recepcion_codigo_wr.sql`»).
+La aplicó el Director con el runbook; esta sesión no escribió en producción.
+
+- **Ledger** `20260920021300`, md5 `12d0325909f684e497b0b2c406a97895`, 26.081
+  bytes, idéntico al archivo de esta rama (comparado con `cmp` antes de aplicar).
+- **Preflight:** las cuatro policies con la huella `f118dd90…`, los privilegios
+  de hoy y las seis dependencias con su md5. Cero actividad en curso.
+- **Postflight:** 12 policies, tres por tabla. El SELECT sin rol; el INSERT con
+  el rol en su `with_check`; el UPDATE con el rol en `qual` y en `with_check`.
+  `authenticated` con select, insert y update, y **sin delete** en las cuatro;
+  `service_role` conserva las cuatro; `anon`, nada.
+- **Las tres envolturas** quedaron con el assert, INVOKER, owner postgres,
+  `search_path` vacío y su ACL anterior. Sus cuerpos nuevos:
+  `void_payment_receipt` `0ae1dc0d2f1c55d0e251ae1920773f4e`,
+  `void_supplier_bill` `793aa69ba392f355b4b24f6448559274` y
+  `void_supplier_payment` `b1d007101562c1b727fcf921a746f635` — este último es
+  exactamente la huella alternativa que esta spec había calculado para el orden
+  inverso, medida antes de aplicar.
+- **Las RPC de la 0467 y de la 0468 quedaron intactas.** Advisors: 0 nuevos y 0
+  desaparecidos.
+- La 0468 se aplicó antes, a las 00:05 UTC, así que la condición de orden se
+  cumplió. La espera se retiró de `pendingBelowCutoff` en esta misma PR.
+
+### Cómo se decidió el orden
+
 - **Orden: MIGRATE-FIRST, y después de la 0468.** Primero el OK nominal de Sam
   nombrando la 0470, después se aplica con el runbook de producción, y sólo
   entonces se integra la PR, que va en DRAFT con «NO FUSIONAR hasta aplicar
