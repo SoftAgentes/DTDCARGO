@@ -5,8 +5,8 @@ Owner / sesión escritora: `claude-modest-chaplygin-c2cdee` (Worker Claude Code)
 Sin subagentes. Director activo: la sesión que reparte los turnos de `verify`
 (cuatro encargos en paralelo; a mí me tocó el turno 2 de 4).
 
-Estado: **implementación completa y verde en pruebas focales; falta `verify`
-completo (esperando turno) y falta abrir la PR.** No fusionado. Sin migración.
+Estado: **implementación completa; `verify` completo corrido y sin fallos en lo
+medido; falta abrir la PR.** No fusionado. Sin migración.
 
 - **Worktree:** `C:/Users/AKX generator/Desktop/Developer/DTDCARGO/.claude/worktrees/modest-chaplygin-c2cdee`.
   Ya existía y es un linked worktree válido: `harness-worktree.mjs guard` PASÓ,
@@ -180,27 +180,79 @@ El Director pidió esto de más, y no dio lo mismo en las cinco:
   tenant del usuario» por falta de membresía, ahora responde la denegación por
   permiso. No se le informa a un desconocido si existe o no una membresía.
 
+## CIERRE: `corepack pnpm verify`
+
+Corrido con el turno 2 de 4 que dio el Director, sobre `1490d8ce`, el
+2026-09-20 de **23:18:24Z a 23:34:46Z (16 min 22 s)**. Referencia de la sesión
+1 en la misma máquina ese día: 17 min 56 s → sin contención.
+
+Lanzado en segundo plano a propósito: la herramienta de shell corta a los 10
+minutos y un `timeout` que mata el build a medias sale con exit 143 y deja
+`tsconfig.json` apuntando a `.next-verify`.
+
+**Exit 0, pero el cierre es INCOMPLETO**, y el propio script lo dice: «CRÍTICOS
+SIN MEDIR: migrations-applied … exit 0 NO equivale a cierre verde completo».
+16 de 17 pasos corrieron de verdad, sin fallos en lo medido.
+
+| # | Paso | Veredicto |
+|---|---|---|
+| 1 | harness | PASÓ |
+| 2 | lint | PASÓ — 15 problemas, **0 errores**, 15 warnings |
+| 3 | rsc-boundary | PASÓ |
+| 4 | typecheck | PASÓ |
+| 5 | edge-functions | PASÓ — 4 funciones compilan |
+| 6 | test | PASÓ — **633 archivos, 8225 pruebas, 1 skip** |
+| 7 | docs:check | PASÓ |
+| 8 | numbering | PASÓ |
+| 9 | feature-constants | PASÓ — 5 banderas |
+| 10 | components:check | PASÓ |
+| 11 | governance:check | PASÓ |
+| 12 | migrations-applied | **NO EJECUTADO** — SKIP sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. Estructural de todo worktree (no se copian secretos), no dice nada de este cambio |
+| 13 | pending-migration-symbols | PASÓ — **0 ROJO · 0 AMARILLO** |
+| 14 | sql-tests | PASÓ |
+| 15 | schema-rebuild | PASÓ |
+| 16 | e2e | PASÓ — 167 pasaron, 1 flaky, 18 skipped |
+| 17 | build | PASÓ — `tsconfig.json` restaurado |
+| — | `spec-migration-refs` | **NO APLICA** — no hay migración |
+
+**El paso `test` no es un verde falso**: imprimió el conteo y ejecutó 8225
+pruebas. Se comprobó a propósito, porque un reporter mal elegido sale 0 sin
+correr nada.
+
+**Los 15 warnings de lint son preexistentes** y los había listado el Director
+antes de la corrida, archivo por archivo: `NewPurchaseWizard.test.tsx`,
+`PurchaseStepDetalle.test.tsx`, `KommoBoardView.tsx:124`, `KommoClient.tsx:553`,
+`DocumentCalculator.tsx` ×4 y `scripts/lib/knowledge-vault.mjs`. Coinciden
+exactamente. Ninguno de esta tarea.
+
+**El único flaky no es de este cambio.** `e2e/calculadora-semantic-colors.spec.ts:58`,
+en `/tarifas/embed`: `pressSequentially("mara", { delay: 10 })` seguido de
+`toHaveValue("mara")` — carrera de tecleo; falló una vez y pasó en el reintento.
+El diff son 17 archivos y **ninguno lo renderiza esa página**. Lo único que roza
+`/tarifas` es el `revalidatePath("/tarifas")` que `carrier-actions.ts` ya tenía
+antes y que no cambia lo que ve un visitante anónimo.
+
+No apareció el aviso del worker de WebKit a los 300 s en esta corrida.
+
+Antes del verify, y ya en verde: `tsc --noEmit` del repo completo, `eslint`
+sobre los archivos tocados, vitest focal de los 6 archivos nuevos (98 casos) y
+de los 26 que tocan `rbac-guard` (349 casos), `docs:check` tras `docs:index`
+(482 specs) y `sdd:check`.
+
 ## PENDIENTE DE ESTA TAREA
 
-1. **`corepack pnpm verify` completo — NO EJECUTADO.** Tengo el turno 2 de 4 y
-   el Director todavía no me lo dio. Ya le avisé que estoy listo. Si el paso
-   `test` sale rojo, el encargo pide mandarle a Sam el veredicto literal antes
-   de tocar nada.
-2. **Abrir la PR.** No fusionar: integra el Director.
-3. Poner la spec en `done` cuando cierre.
-
-Corrido y verde hasta ahora (pruebas focales, que no necesitan turno):
-
-| Comprobación | Resultado |
-|---|---|
-| `tsc --noEmit` (repo completo) | **PASÓ**, sin salida |
-| `eslint` sobre los 14 archivos tocados | **PASÓ**, sin salida |
-| vitest focal: los 6 archivos nuevos + `rbac-actions-guard` | **PASÓ** — 98 casos |
-| vitest focal: los 26 archivos que tocan `rbac-guard` | **PASÓ** — 349 casos |
-| `docs:check` | **PASÓ** tras `docs:index` (482 specs) |
-| `sdd:check` | **PASÓ** — sin números repetidos |
-| `verify` completo | **NO EJECUTADO** — esperando turno |
-| `spec-migration-refs` | **NO APLICA** — no hay migración |
+1. **Abrir la PR.** Autorizada por el encargo («abre la PR y yo integro»).
+   Pendiente de que el Director diga si se abre ya o después de integrar la
+   sesión 1: el ruleset exige el check verde sobre el commit que se fusiona, así
+   que abrir antes de traer main obliga a una segunda corrida de CI.
+2. **Traer `main` con merge** (no rebase) cuando integre la sesión 1,
+   resolviendo `docs/specs/README.md` con el driver `dtd-generated-records` y
+   regenerando con el script. El driver ya está configurado en este worktree
+   (`merge.dtd-generated-records.driver` y `.gitattributes:32`). Al cierre del
+   verify `origin/main` seguía en `07831a5d`, o sea la propia base de esta rama:
+   no había nada que mergear todavía.
+3. **No fusionar.** Integra el Director.
+4. Poner la spec en `done` al cerrar.
 
 ## FUERA DE ALCANCE DETECTADO
 
