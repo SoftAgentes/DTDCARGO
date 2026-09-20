@@ -18,6 +18,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { IDS_POR_LOTE, PAGE_SIZE } from "@/lib/db/paginate";
 import {
   strandedCreditsForInvoice,
   strandedReferralCredits,
@@ -263,6 +264,23 @@ describe("strandedReferralCredits · lo que NO cruza al cliente", () => {
 });
 
 describe("strandedReferralCredits · lectura truncada", () => {
+  it("la segunda lectura no puede truncar: un lote de ids cabe en una página", () => {
+    /**
+     * `strandedReferralCredits` **no mira** el `complete` de `fetchAllByIds`, y
+     * eso sólo es correcto mientras un lote no pueda llenar una página: como
+     * mucho `IDS_POR_LOTE` ids ⇒ como mucho esa cantidad de filas, contra
+     * `PAGE_SIZE` por página. Consumirlo sería una condición que ningún caso
+     * puede hacer valer —código muerto disfrazado de guarda—; afirmarlo acá sí
+     * puede fallar, y falla apuntando al sitio correcto.
+     *
+     * Las dos constantes viven en otro módulo (`lib/db/paginate.ts`), así que la
+     * premisa no es de esta query: es prestada. Si alguien sube `IDS_POR_LOTE`
+     * por encima de `PAGE_SIZE`, esta prueba se pone roja y hay que volver a
+     * propagar el `complete` de la segunda lectura.
+     */
+    expect(IDS_POR_LOTE).toBeLessThanOrEqual(PAGE_SIZE);
+  });
+
   it("avisa complete:false en vez de presentar un conteo parcial como total", async () => {
     // Con maxPages=1 y pageSize=1 la primera página nunca vuelve vacía:
     // `fetchAllPaged` se queda sin páginas y lo dice. Los que trae son reales,

@@ -100,13 +100,13 @@ Todo en este worktree, 2026-09-20.
 | `corepack pnpm docs:index` + `docs:check` | **PASÓ** (482 specs, índice sincronizado) |
 | `corepack pnpm sdd:check` | **PASÓ** (sin números repetidos) |
 | `corepack pnpm governance:check` | **PASÓ** (28 políticas, cápsula vigente) |
-| Pruebas nuevas (vitest) | **PASÓ**: 54 de 54 ✓ (18 de `voidInvoice`, 16 de las queries, 20 del copy) |
-| Vecindario (19 archivos: fidelizacion, accounting, facturacion) | **PASÓ**: 235 de 235 ✓, con `--pool=threads` |
+| Pruebas nuevas (vitest) | **PASÓ**: 55 de 55 ✓ (18 de `voidInvoice`, 17 de las queries, 20 del copy) |
+| Vecindario (19 archivos: fidelizacion, accounting, facturacion) | **PASÓ**: 236 de 236 ✓, con `--pool=threads` |
 | `corepack pnpm verify` | **NO EJECUTADO** — turno 3 de 4, a la espera del aviso del Director |
 | `/ui-check` | corrido; dos hallazgos propios aplicados antes del commit (abajo) |
 | Producción Supabase | **NO APLICA** — la tarea no escribe ni lee filas de negocio |
 
-### Mutantes: 17 de 18 caen
+### Mutantes: 19 de 19 caen · sin sobrevivientes
 
 Con los fuentes restituidos después de cada corrida. Script en el scratchpad de la sesión.
 
@@ -117,11 +117,11 @@ Con los fuentes restituidos después de cada corrida. Script en el scratchpad de
 | M3 | el filtro `status = 'aplicado'` | MUERTO |
 | M4 | el filtro `deleted_at is null` | MUERTO |
 | M5 | la exigencia de que la factura esté `anulada` | MUERTO |
-| M6 | `&& voidedComplete` | **VIVO** |
-| M7 | la agrupación deja de devolver dos créditos de una misma factura | MUERTO |
-| M8 | la proyección de Fidelización filtra el id de factura | MUERTO |
-| M9 | `strandedCreditsForInvoice` deja de filtrar los ya liberados | MUERTO |
-| M10 | el `select` de `strandedCreditsForInvoice` se ensancha | MUERTO |
+| M6 | la agrupación deja de devolver dos créditos de una misma factura | MUERTO |
+| M7 | la proyección de Fidelización filtra el id de factura | MUERTO |
+| M8 | `strandedCreditsForInvoice` deja de filtrar los ya liberados | MUERTO |
+| M9 | el `select` de `strandedCreditsForInvoice` se ensancha | MUERTO |
+| M10 | se pierde el `complete` de la primera lectura | MUERTO |
 | M11 | `voidInvoice` ignora `reverted` y manda siempre el aviso total | MUERTO |
 | M12 | el selector apaga la distinción parcial/total | MUERTO |
 | M13 | el corte se corre a `reverted > 1` (con 1 liberado, miente) | MUERTO |
@@ -130,14 +130,24 @@ Con los fuentes restituidos después de cada corrida. Script en el scratchpad de
 | M16 | el copy filtra el nombre de una tabla | MUERTO |
 | M17 | el copy deja de decir que no se arregla desde la pantalla | MUERTO |
 | M18 | un voseo (`revisá`) que la aserción positiva NO vería | MUERTO |
+| M19 | (módulo ajeno, restituido) `IDS_POR_LOTE` sube por encima de `PAGE_SIZE` | MUERTO |
 
-**M6 sobrevive y está diagnosticado: sobra el código, no falta la prueba.** `fetchAllByIds` parte
-los ids en lotes de 500 y pagina de a 1.000 filas, así que un lote no puede devolver más de 500
-filas y la segunda lectura **no puede** quedarse corta. Ningún fixture lo distingue: `opts` va a las
-dos lecturas y la de facturas nunca tiene más filas que la de referidos, de modo que si truncara la
-segunda ya truncó la primera. Se **conserva** igual porque `fetchAllByIds` devuelve el campo y
-tirarlo al piso es exactamente el error que `lib/db/paginate.ts` describe en su cabecera. Queda
-anotado en el código y en la spec para que no se re-derive.
+**El `&& voidedComplete` que antes sobrevivía ERA código muerto, y lo quité.** Tenías razón en la
+disyuntiva. El diagnóstico, con la línea: en
+`lib/studio/fidelizacion/referral-credit-queries.ts`, el `return { credits, complete: complete &&
+voidedComplete }` al final de `strandedReferralCredits`. `fetchAllByIds` parte los ids en lotes de
+`IDS_POR_LOTE` (500) y pagina de a `PAGE_SIZE` (1.000): un lote **nunca llena una página**, así que
+la segunda lectura no puede quedarse corta. Tampoco lo distingue un fixture —`opts` va a las dos
+lecturas y la de facturas nunca tiene más filas que la de referidos, de modo que si truncara la
+segunda ya truncó la primera—, o sea que no era «falta una prueba»: era una condición que ningún
+caso puede hacer valer.
+
+Lo que sí era real es que esa premisa **vive en otro módulo**, así que en vez de conservar la guarda
+la dejé **afirmada**: `expect(IDS_POR_LOTE).toBeLessThanOrEqual(PAGE_SIZE)` en
+`lib/studio/fidelizacion/__tests__/stranded-referral-credits.test.ts`. M19 sube `IDS_POR_LOTE` en
+`lib/db/paginate.ts` y la prueba se pone roja apuntando al sitio donde habría que volver a propagar
+el `complete`. El módulo ajeno se restituye, y el script comprueba el árbol al final: sólo quedan
+mis archivos. **Una invariante que falla vale más que un `&&` que no.**
 
 **Y una que me pasó a mí y vale como advertencia.** El control de voseo del copy estaba **muerto en
 silencio** en su primera versión, por dos motivos a la vez: el patrón escrito en NFD contra texto
@@ -172,7 +182,12 @@ patrón local ya existente.
 ## COMMITS
 
 - `dfc7b6fd` — `feat(studio): SDD-0495 — una reversión de crédito que falla deja de ser invisible`
-  (10 archivos, +1437 −4). Exactamente la allowlist de la spec; nada de `git add -A`.
+  (10 archivos, +1437 −4).
+- `48deefb6` — `fix(studio): SDD-0495 — el aviso distingue la reversión parcial, y el copy sale de
+  "use server"` (7 archivos, +660 −31). Las dos correcciones de arriba, más el handoff.
+
+Los dos, exactamente la allowlist de la spec; nada de `git add -A`. Queda pendiente un commit más
+con la evidencia del `verify`.
 
 ## PR / BRANCH
 
@@ -226,10 +241,14 @@ aviso.
 
 **Trampa que me costó y conviene que sepas:** un módulo `"use server"` **sólo puede exportar
 funciones async**. Tenía el texto como `export const` dentro de `actions.ts` y eso rompe
-`next build` — no lo ven ni `typecheck` ni `eslint`, sólo el build de `verify`. Medido: los 40 y
-pico de `actions.ts` del Studio exportan únicamente tipos e interfaces, que se borran al compilar;
-no hay un solo `export const`. Si vas a agregar constantes al lado de una action, van en un módulo
-aparte.
+`next build` — **no lo ven ni `typecheck` ni `eslint`**, sólo el build que corre dentro de `verify`,
+o sea que se descubre con la máquina tomada y a los ~50 minutos.
+
+Medido sobre el repo entero, para que se pueda citar: hay **116** `actions.ts` con `"use server"`, y
+**los 116** exportan únicamente `async function`, `type` o `interface` —los dos últimos se borran al
+compilar—. **Cero** `export const`, `let`, `var`, `function` no-async o `class` en todo el conjunto.
+No es una casualidad del estilo de la casa: es la regla del runtime. Si vas a agregar constantes al
+lado de una action, van en un módulo aparte.
 
 **Lo que NO hay que tocar, pase lo que pase con el contrato.** Las dos superficies durables y sus
 queries (`strandedReferralCredits` y `strandedCreditsForInvoice`) **no dependen del retorno de la

@@ -96,9 +96,13 @@ estaba disponible justo donde se descartaba.
 6. **Un módulo `"use server"` sólo puede exportar funciones async.** El texto
    del aviso lo necesitan los dos lados (la action que lo devuelve y el banner
    que lo pinta), así que no puede ser un `export const` dentro de `actions.ts`:
-   rompe el build de Next. Medido sobre el repo: los 40 y pico de `actions.ts`
-   del Studio exportan **sólo tipos e interfaces**, que se borran al compilar.
-   Ningún `export const` en ninguno. Por eso el copy vive en un módulo neutro.
+   rompe el build de Next, y **no lo ven `typecheck` ni `eslint`**: sale sólo en
+   el `build` que corre dentro de `verify`. Medido sobre el repo entero: hay
+   **116** `actions.ts` con `"use server"`, y **los 116** exportan únicamente
+   `async function`, `type` o `interface` —las dos últimas se borran al
+   compilar—. **Cero** `export const`, `let`, `var`, `function` no-async o
+   `class` en todo el conjunto. Por eso el copy vive en un módulo neutro, que
+   además deja que el banner lo importe sin importar la action.
 
 ## Decisiones
 
@@ -141,7 +145,7 @@ estaba disponible justo donde se descartaba.
    créditos que haya. Es otra razón por la que el durable es la mitad que
    importa.
 
-6. **No se agrega ninguna server action.** Las dos superficies son lecturas de
+7. **No se agrega ninguna server action.** Las dos superficies son lecturas de
    páginas que ya existen, así que el candado que les toca es el
    `requireModuleView` que esas páginas ya tienen. Se verificó que exista en
    ambas (ver Gobernanza). Una action nueva habría necesitado su propio
@@ -156,26 +160,26 @@ estaba disponible justo donde se descartaba.
    `voidReferralRevertWarning(revert.reverted)`. En el fallo se revalida además
    `/studio/fidelizacion`, porque su pantalla pasa a tener algo que mostrar.
 
-1bis. **El copy vive aparte**
+2. **El copy vive aparte**
    (`lib/studio/fidelizacion/referral-revert-notice.ts`, nuevo): los dos textos,
    los dos títulos y los dos selectores. Por la premisa 6 no puede estar en el
    módulo `"use server"`, y así el banner lo importa sin importar la action.
 
-2. **Aviso inmediato** (`InvoiceDetailClient.tsx`). Estado `voidWarning` y banner
+3. **Aviso inmediato** (`InvoiceDetailClient.tsx`). Estado `voidWarning` y banner
    `--warning` con `role="alert"`, calcado del banner `legalAck` que ya vive en
    ese archivo (SDD-0054). No pasa por `setError`: la anulación no falló.
 
-3. **Aviso durable en la factura anulada** (`facturacion/[code]/page.tsx`).
+4. **Aviso durable en la factura anulada** (`facturacion/[code]/page.tsx`).
    Server component: si la factura está `anulada`, lista sus créditos varados.
    Se deriva en cada carga, así que no se desvanece y no depende de que alguien
    estuviera mirando.
 
-4. **Aviso durable en Fidelización** (`fidelizacion/page.tsx` +
+5. **Aviso durable en Fidelización** (`fidelizacion/page.tsx` +
    `FidelizacionClient.tsx`). Banner **arriba de los tabs**, no dentro de
    «Referidos»: el aviso tiene que encontrarse sin buscarlo, y quien abre
    Fidelización para otra cosa es exactamente quien hoy no se entera.
 
-5. **Dos queries nuevas** (`lib/studio/fidelizacion/referral-credit-queries.ts`):
+6. **Dos queries nuevas** (`lib/studio/fidelizacion/referral-credit-queries.ts`):
    `strandedReferralCredits` (tenant, para Fidelización) y
    `strandedCreditsForInvoice` (una factura, para Facturación).
 
@@ -224,29 +228,31 @@ caso: no se agregó ninguna entrada.
    factura; se revalidan las tres rutas, Fidelización incluida.
 2. **`voidInvoice` con la reversión OK**: `{ ok: true }` pelado, sin `warning`.
    Sin créditos que revertir, tampoco revalida Fidelización.
-2bis. **`voidInvoice` con la reversión a medias** (`ok: false`, `reverted > 0`):
+3. **`voidInvoice` con la reversión a medias** (`ok: false`, `reverted > 0`):
    el aviso es el PARCIAL y **no** el total; dice que parte se liberó y que el
    resto se lista en la factura; sigue siendo anulación exitosa; tampoco filtra
    el error crudo. Y el copy en sí: el selector cambia en `reverted > 0` (no en
    `> 1`), el título sigue al cuerpo, y los cuatro textos pasan el control de
    voseo —normalizado a NFC, para que el patrón pueda fallar de verdad— y el de
    jerga técnica.
-3. **Lo que se rechaza antes** (sin permiso, motivo corto, factura pagada, RPC
+4. **Lo que se rechaza antes** (sin permiso, motivo corto, factura pagada, RPC
    en error, RPC sin cambios) no llega a pedir la reversión.
-4. **`strandedReferralCredits`** lista el `aplicado` sobre una factura
+5. **`strandedReferralCredits`** lista el `aplicado` sobre una factura
    `anulada`, y deja afuera: el que está sobre una factura viva, el ya liberado
    sobre la misma factura anulada, el borrado, y el que no tiene factura. Dos
    créditos sobre la misma factura salen los dos. Coacciona `reward_usd` string.
-5. **La proyección de Fidelización no lleva factura**: ni el código ni el id
+6. **La proyección de Fidelización no lleva factura**: ni el código ni el id
    cruzan; de `invoices` sólo se pide `id`.
-6. **`strandedCreditsForInvoice`** no lee ni devuelve referidor ni referido, e
+7. **`strandedCreditsForInvoice`** no lee ni devuelve referidor ni referido, e
    ignora liberados y borrados.
-7. **Lectura truncada**: devuelve `complete: false` en vez de presentar un
-   conteo parcial como total, y la pantalla dice «Al menos N».
-8. **Mutantes**: cada filtro, la agrupación y la proyección, quitados de a uno,
+8. **Lectura truncada**: devuelve `complete: false` en vez de presentar un
+   conteo parcial como total, y la pantalla dice «Al menos N». La segunda
+   lectura no puede truncar, y esa premisa —que vive en otro módulo— se afirma
+   en vez de guardarse con una condición inalcanzable.
+9. **Mutantes**: cada filtro, la agrupación y la proyección, quitados de a uno,
    hacen fallar su prueba. Incluido el mutante que reintroduce el defecto
    original (`return { ok: true }`).
-9. `pnpm verify` como cierre canónico.
+10. `pnpm verify` como cierre canónico.
 
 ## Gobernanza
 
@@ -273,11 +279,12 @@ Corridas en el worktree `keen-swirles-62b904`, 2026-09-20.
 - **`pnpm lint`** — PASÓ (exit 0): 0 errores, 15 warnings, todos preexistentes
   en archivos fuera de la allowlist (`components/document-import/*`,
   `scripts/lib/knowledge-vault.mjs`).
-- **Pruebas nuevas (vitest)** — 54 de 54 ✓: 18 de `voidInvoice`, 16 de las
+- **Pruebas nuevas (vitest)** — 55 de 55 ✓: 18 de `voidInvoice`, 17 de las
   queries, 20 del copy. Vecindario completo (19 archivos de fidelización,
-  contabilidad y facturación): 235 de 235 ✓.
-- **Mutantes** — 17 de 18 caen, cada uno en su prueba, con los fuentes
-  restituidos después de cada corrida:
+  contabilidad y facturación): 236 de 236 ✓.
+- **Mutantes — 19 de 19 caen. Sin sobrevivientes.** Cada uno en su prueba, con
+  los fuentes restituidos después de cada corrida y el árbol comprobado limpio
+  al final:
 
   | Mutante | Lo que se quita | Resultado |
   |---|---|---|
@@ -286,11 +293,11 @@ Corridas en el worktree `keen-swirles-62b904`, 2026-09-20.
   | M3 | el filtro `status = 'aplicado'` (tenant) | MUERTO |
   | M4 | el filtro `deleted_at is null` | MUERTO |
   | M5 | la exigencia de que la factura esté `anulada` | MUERTO |
-  | M6 | `&& voidedComplete` | **VIVO** — ver abajo |
-  | M7 | la agrupación deja de devolver dos créditos de una misma factura | MUERTO |
-  | M8 | la proyección de Fidelización filtra el id de factura | MUERTO |
-  | M9 | `strandedCreditsForInvoice` deja de filtrar los ya liberados | MUERTO |
-  | M10 | el `select` de `strandedCreditsForInvoice` se ensancha | MUERTO |
+  | M6 | la agrupación deja de devolver dos créditos de una misma factura | MUERTO |
+  | M7 | la proyección de Fidelización filtra el id de factura | MUERTO |
+  | M8 | `strandedCreditsForInvoice` deja de filtrar los ya liberados | MUERTO |
+  | M9 | el `select` de `strandedCreditsForInvoice` se ensancha | MUERTO |
+  | M10 | se pierde el `complete` de la primera lectura | MUERTO |
   | M11 | `voidInvoice` ignora `reverted` y manda siempre el aviso total | MUERTO |
   | M12 | el selector apaga la distinción parcial/total | MUERTO |
   | M13 | el corte se corre a `reverted > 1` (con 1 liberado, miente) | MUERTO |
@@ -299,6 +306,22 @@ Corridas en el worktree `keen-swirles-62b904`, 2026-09-20.
   | M16 | el copy filtra el nombre de una tabla | MUERTO |
   | M17 | el copy deja de decir que no se arregla desde la pantalla | MUERTO |
   | M18 | un voseo (`revisá`) que la aserción positiva NO vería | MUERTO |
+  | M19 | (módulo ajeno, restituido) `IDS_POR_LOTE` sube por encima de `PAGE_SIZE` | MUERTO |
+
+- **El `&& voidedComplete` que antes sobrevivía era código muerto, y se quitó.**
+  En la primera versión se conservaba «por si acaso» y ningún caso podía hacerlo
+  valer: `fetchAllByIds` parte los ids en lotes de `IDS_POR_LOTE` (500) y pagina
+  de a `PAGE_SIZE` (1.000), así que un lote **nunca llena una página** y la
+  segunda lectura no puede quedarse corta. Tampoco lo distinguía un fixture:
+  `opts` va a las dos lecturas y la de facturas nunca tiene más filas que la de
+  referidos, de modo que si truncara la segunda ya truncó la primera.
+
+  Lo que sí era real es que esa premisa **vive en otro módulo**. Así que en vez
+  de una guarda que nadie puede ejercitar, la premisa quedó **afirmada**:
+  `expect(IDS_POR_LOTE).toBeLessThanOrEqual(PAGE_SIZE)`. M19 la mutila en
+  `lib/db/paginate.ts` y la prueba se pone roja, apuntando al sitio donde habría
+  que volver a propagar el `complete`. Una invariante que falla vale más que un
+  `&&` que no.
 
 - **El control de voseo está probado vivo.** El patrón tenía dos formas de
   quedar muerto en silencio —sin fallar: dejando de encontrar—: escrito en NFD
@@ -308,16 +331,6 @@ Corridas en el worktree `keen-swirles-62b904`, 2026-09-20.
   frase de control, y M18 mete un voseo que la aserción positiva
   (`toContain("coordínalo")`) no vería: si el patrón vuelve a morir, M18
   sobrevive y se nota.
-
-- **M6 sobrevive, y es el código el que sobra, no la prueba la que falta.**
-  `fetchAllByIds` parte los ids en lotes de 500 y pagina cada lote de a 1.000
-  filas: un lote de ≤500 ids no puede devolver más de 500 filas, así que la
-  segunda lectura **no puede** quedarse corta. Y ningún fixture lo distingue:
-  `opts` va a las dos lecturas y la de facturas nunca tiene más filas que la de
-  referidos, de modo que si truncara la segunda ya truncó la primera. Se
-  **conserva** igualmente porque `fetchAllByIds` devuelve el campo y tirarlo al
-  piso es el error que `lib/db/paginate.ts` describe en su cabecera; queda
-  anotado en el código y acá para que el próximo lector no lo re-derive.
 
 - **`pnpm verify`** — ver el handoff: se corre en el turno de máquina del
   Director (una sola corrida pesada a la vez).

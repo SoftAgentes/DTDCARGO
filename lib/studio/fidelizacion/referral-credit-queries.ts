@@ -276,7 +276,18 @@ export async function strandedReferralCredits(
   }
   if (byInvoice.size === 0) return { credits: [], complete };
 
-  const { rows: voided, complete: voidedComplete } = await fetchAllByIds<{
+  // `fetchAllByIds` también devuelve `complete`, y acá NO se mira: no es un
+  // descuido, es que no puede ser `false`. Un lote son a lo sumo `IDS_POR_LOTE`
+  // (500) ids y una página son `PAGE_SIZE` (1.000) filas, así que un lote nunca
+  // llena una página y la segunda lectura no se queda corta. Consumirlo sería
+  // una condición que ningún caso puede hacer valer —ni siquiera un test—, o
+  // sea código muerto disfrazado de guarda.
+  //
+  // Lo que sí depende de otro módulo es ese par de constantes, así que la
+  // premisa está AFIRMADA en `__tests__/stranded-referral-credits.test.ts`: si
+  // alguien sube `IDS_POR_LOTE` por encima de `PAGE_SIZE`, esa prueba se pone
+  // roja y apunta acá. Una invariante que falla vale más que un `&&` que no.
+  const { rows: voided } = await fetchAllByIds<{
     id: string;
   }>(
     [...byInvoice.keys()],
@@ -305,16 +316,9 @@ export async function strandedReferralCredits(
   }
   // Orden estable por código: el aviso no cambia de forma entre dos cargas.
   credits.sort((a, b) => a.referralCode.localeCompare(b.referralCode));
-  // `voidedComplete` es, con los topes por defecto, siempre `true`: un lote de
-  // `fetchAllByIds` trae como mucho 500 ids y 500 filas caben de sobra en una
-  // página de 1.000, así que la segunda lectura no puede quedarse corta. Ningún
-  // fixture lo puede distinguir —`opts` va a las dos lecturas y la de facturas
-  // nunca tiene más filas que la de referidos—, así que el mutante que lo borra
-  // SOBREVIVE y está documentado como tal en el handoff. Se conserva igual
-  // porque `fetchAllByIds` devuelve el campo y tirarlo al piso es exactamente el
-  // error que `lib/db/paginate.ts` describe: si mañana sube `idsPerBatch` o la
-  // query cambia de forma, el `&&` ya está puesto.
-  return { credits, complete: complete && voidedComplete };
+  // `complete` es el de la PRIMERA lectura, que es la única que puede truncar
+  // (ver arriba por qué la segunda no).
+  return { credits, complete };
 }
 
 /** Un crédito varado, como lo ve FACTURACIÓN. Sin datos del referido. */
