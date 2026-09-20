@@ -513,7 +513,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0486 | Las pruebas intermitentes de la suite dejan de dar rojos falsos | done | interno |
 | 0487 | Portal cliente — foto visible, empresa propia y «Facturar a n… | done | interna |
 | 0488 | El registro de cobros en facturas pasa a ser atómico | done | interno |
-| 0489 | Los pagos a proveedores en Tesorería pasan a ser atómicos | in-progress | interno |
+| 0489 | Los pagos a proveedores en Tesorería pasan a ser atómicos | done | interno |
 | 0490 | El crédito de referido no pisa el pagado ni el estado de la f… | in-progress | interno |
 | 0493 | Las pruebas que no tocan el DOM corren en el entorno node | in-progress | interno |
 

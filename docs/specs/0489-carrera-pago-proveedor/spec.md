@@ -1,7 +1,7 @@
 ---
 sdd: "0489"
 title: "Los pagos a proveedores en Tesorería pasan a ser atómicos"
-status: in-progress
+status: done
 author: "Sam + Claude Opus 5 (Worker)"
 created: 2026-09-19
 updated: 2026-09-19
@@ -118,21 +118,24 @@ guardado. La tabla de resultados está en [Evidencia](#evidencia).
   - rol accounting o admin en las dos RPC: es el candado del módulo Tesorería
     (`lib/studio/rbac.ts:119`), que hoy sólo aplica la server action.
 
-### Pendiente de Sam: la regla de saldo en Tesorería
+### De Sam (2026-09-20, al autorizar la 0468): la regla de saldo en Tesorería
 
 Implementé la regla estricta de Cobranzas, porque el Director pidió «los mismos
-criterios de saldo». Pero Sam la decidió para Cobranzas y no para Tesorería, así
-que extenderla es una decisión suya. **Tiene que tomarla antes de aplicar la
-0468**, porque la regla queda dentro de la función.
+criterios de saldo». Pero Sam la había decidido para Cobranzas y no para
+Tesorería, así que extenderla era una decisión suya, y tenía que tomarla antes de
+aplicar la 0468, porque la regla queda dentro de la función.
 
-Pregunta propuesta: «Hoy Tesorería acepta un pago a proveedor hasta 0,01 por
+**Sam la ratificó al autorizar la migración. Su respuesta, literal: «autorizo
+0468, usa la regla estricta».** El código no cambió.
+
+La pregunta que se le hizo: «Hoy Tesorería acepta un pago a proveedor hasta 0,01 por
 encima del saldo de la CxP (`validatePaymentInput`, `lib/studio/treasury/types.ts:464`).
 En Cobranzas elegiste la regla estricta (SDD-0488). ¿Qué regla aplico a los
 pagos a proveedores?»
 
 | Opción | Qué implica |
 |---|---|
-| **«Estricta, como Cobranzas (Recomendado)»**, la implementada | Nada por encima de `total − pagado`. Se usan los mismos códigos que en Cobranzas y en la 0464: `PAYMENT_EXCEEDS_BALANCE` y `PAYMENT_BILL_PAID`. La pantalla ya valida así (`BillDrawer.tsx:396`, `amt <= balance + 1e-6`), de modo que el 0,01 sólo se alcanzaba con un request armado fuera de la UI. Ninguna CxP queda con pagado mayor que el total. |
+| **«Estricta, como Cobranzas (Recomendado)»**, la implementada y la elegida | Nada por encima de `total − pagado`. Se usan los mismos códigos que en Cobranzas y en la 0464: `PAYMENT_EXCEEDS_BALANCE` y `PAYMENT_BILL_PAID`. La pantalla ya valida así (`BillDrawer.tsx:396`, `amt <= balance + 1e-6`), de modo que el 0,01 sólo se alcanzaba con un request armado fuera de la UI. Ninguna CxP queda con pagado mayor que el total. |
 | «Tolerancia de 0,01 sólo en Tesorería» | La RPC y `validatePaymentInput` aceptan `total − pagado + 0,01`. Una CxP puede quedar `pagada` con saldo −0,01. Antes de aplicar habría que cambiar la comparación en `register_supplier_payment_order` y en `validatePaymentInput`, e invertir el mutante «con la tolerancia de 0,01» del runner de PGlite y la prueba del centavo. |
 
 No hay monedas cruzadas que justifiquen la tolerancia: la orden hereda la
@@ -182,11 +185,11 @@ el asiento, que sigue fuera y best-effort, como en SDD-0044.
   actions con un stub de Supabase.
 - `lib/studio/treasury/__tests__/treasury.test.ts`: la prueba del centavo.
 
-**Espera.** La 0468 queda en `supabase/migrations-baseline.json ›
+**Espera.** La 0468 estuvo en `supabase/migrations-baseline.json ›
 pendingBelowCutoff`, con las instrucciones para el operador, y sus dos llamadas
 declaradas en `supabase/pending-migration-symbol-declarations.json`
-(`sdd-0489-pago-proveedor-atomico`). Las dos entradas se retiran en el commit
-posterior a la aplicación (ver [Release](#release)).
+(`sdd-0489-pago-proveedor-atomico`), hasta que se aplicó. Las dos entradas las
+retira el commit posterior a la aplicación (ver [Release](#release)).
 
 ### Reglas
 
@@ -290,16 +293,17 @@ suma. La 0294 anula únicamente con `paid_amount = 0`.
    pruebas nuevas fallan contra el código anterior (control rojo).
 7. `validatePaymentInput` rechaza un centavo sobre el saldo.
 8. Quedan verdes `pnpm typecheck`, eslint de lo tocado, `docs:check`, `sdd:check`
-   y `governance:check`. `check-pending-migration-symbols` da
-   `0 ROJO · 1 AMARILLO` mientras la 0468 espera, y pasa a `0 AMARILLO` al
-   retirar la espera y la declaración.
-9. Sam decide la regla de saldo de Tesorería antes de aplicar la 0468.
+   y `governance:check`. `check-pending-migration-symbols` dio
+   `0 ROJO · 1 AMARILLO` mientras la 0468 esperaba, y quedó en
+   `0 ROJO · 0 AMARILLO` al retirar la espera y la declaración.
+9. Sam decide la regla de saldo de Tesorería antes de aplicar la 0468: eligió la
+   estricta al autorizarla.
 
 ## Release
 
 1. Sam decide la regla de saldo (ver
-   [Pendiente de Sam](#pendiente-de-sam-la-regla-de-saldo-en-tesorería)). Si
-   elige la tolerancia, se ajusta la 0468 antes de pedir el OK.
+   [la decisión](#de-sam-2026-09-20-al-autorizar-la-0468-la-regla-de-saldo-en-tesorería)).
+   Si hubiera elegido la tolerancia, se ajustaba la 0468 antes de pedir el OK.
 2. Revisión del Director y OK nominal de Sam para la 0468, con la identidad del
    archivo que figura en el handoff.
 3. Antes de aplicar, leer en producción, sólo catálogo, `md5(prosrc)` de tres
@@ -323,6 +327,35 @@ suma. La 0294 anula únicamente con `paid_amount = 0`.
    edita.
 6. CI verde, integración y smoke de Sam en Tesorería: registrar un pago parcial
    y otro que salde una CxP, y anular una orden de pago.
+
+### Aplicación en producción (2026-09-19, 20:05 en Caracas)
+
+La aplicó el Director con el OK nominal de Sam, que en la misma respuesta eligió
+la regla: «autorizo 0468, usa la regla estricta». El Director transcribió el
+archivo y lo comparó byte a byte con `cmp` antes de aplicarlo.
+
+- **Preflight releído antes de aplicar.** Las tres dependencias con su md5
+  exacto, las funciones nuevas inexistentes, 0 transacciones abiertas y 0 locks
+  sobre `supplier_bills`, `supplier_payments` y `suppliers`.
+- **Ledger.** `20260920000508 · 0468_pago_proveedor_atomico`, 1 sentencia, md5
+  `83e8bc9873cbaf8c19329e895f4cbc06` y 18871 bytes: idéntico al archivo.
+- **Postflight**, releído del catálogo de producción por el Worker:
+  - `register_supplier_payment_order`: `md5(prosrc)` `65d6c9a18b58a0dabafd6de0b03af325`,
+    3078 caracteres (3083 bytes);
+  - `void_supplier_payment_order`: `79f53ed98b142d87495feccadc7da9cf`, 2385
+    caracteres (2390 bytes).
+
+  Son los mismos md5 medidos en PGlite y en `postgres:17`. Las dos son INVOKER y
+  volátiles, con owner `postgres`, `search_path` vacío, comentario y EXECUTE sólo
+  para `authenticated`: ni `anon` ni `service_role`. Las dependencias y las
+  tablas quedaron sin cambios.
+- **Advisors de seguridad.** 0 nuevos y 0 desaparecidos.
+
+Pasos cumplidos: 1 a 5, con este commit, que retira la espera y la declaración
+de símbolos y deja el gate en `0 ROJO · 0 AMARILLO`. La cabecera del `.sql` no se
+toca. **Pendiente del release:** el paso 6, con CI verde, integración (despliega
+a producción) y el **smoke de Sam** en Tesorería: registrar un pago parcial y
+otro que salde una CxP, y anular una orden de pago.
 
 **Rollback.** Antes de desplegar la app, basta con `drop function` de las dos
 funciones; ninguna otra cosa cambió. Con la app desplegada, primero hay que

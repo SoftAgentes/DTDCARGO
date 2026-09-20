@@ -1,9 +1,11 @@
 # Handoff 0489 — Pagos a proveedores atómicos en Tesorería
 
-- Fecha: 2026-09-19. Estado de la tarea: **en progreso**. Están listos la
-  implementación, las pruebas y el verify completo, este último en el turno del
-  Director, sobre `6adbb662`. Faltan el push único, la PR sin merge, la
-  decisión de Sam sobre la regla de saldo y su OK nominal para la 0468.
+- Fecha: 2026-09-19, Caracas (2026-09-20 UTC). Estado de la tarea: **cerrada**.
+  Implementación, pruebas y verify completo hechos; la PR #169 abierta; Sam
+  eligió la regla estricta y autorizó la 0468, que el Director **aplicó a
+  producción** (ledger `20260920000508`). Este cierre retira la espera y la
+  declaración de símbolos. Quedan, fuera de esta tarea, la integración de la PR
+  y el smoke de Sam en Tesorería.
 - Owner / sesión: `worker-carrera-pago-proveedor-opus5-20260919` (Claude Opus 5,
   Worker, sesión «Hacer atómico el registro de cobros en facturas», que retoma
   por asignación del Director «Director notificación a workers»).
@@ -80,12 +82,13 @@ recomendada. No hay rediseño de UI.
 - **Del Director:** diseño de la 0467, migrate-first, PR con la espera y los
   símbolos declarados (AMARILLO), sin aplicar. No integra hasta el OK nominal de
   Sam para la 0468.
-- **Pendiente de Sam: regla de saldo en Tesorería.** Implementé la estricta de
-  Cobranzas (recomendada), que es la que ya aplica la pantalla
-  (`BillDrawer.tsx:396`). La otra opción es conservar la tolerancia de 0,01
-  sólo en Tesorería. **Se decide antes de aplicar la 0468**, porque la regla
-  queda en la función. La pregunta y las consecuencias de cada opción están en
-  la spec, en «Pendiente de Sam».
+- **De Sam: regla de saldo en Tesorería.** Implementé la estricta de Cobranzas
+  (la recomendada), que es la que ya aplica la pantalla (`BillDrawer.tsx:396`);
+  la otra opción era conservar la tolerancia de 0,01 sólo en Tesorería. Como la
+  regla queda dentro de la función, se decidía antes de aplicar. **Sam eligió la
+  estricta al autorizar la migración: «autorizo 0468, usa la regla estricta».**
+  El código no cambió. La pregunta y las consecuencias de cada opción quedaron
+  en la spec.
 - **Una CxP anulada** conserva su estado al anular una orden y sólo baja el
   pagado, como en la 0467. La app vieja no la tocaba. Sólo pasa con datos que
   dejó la carrera vieja: la 0294 anula únicamente con `paid_amount = 0`.
@@ -117,6 +120,32 @@ conector de Supabase, proyecto `xpfuzqombmjmxvprjgmi`:
   `20260919021949 0467_cobro_factura_atomico`,
   `20260919011316 0462_portal_profile_direct_edit` y
   `20260919010007 0464_reporte_pago_factura_pagada`. La 0468 no está.
+
+## Aplicación en producción (2026-09-19, 20:05 en Caracas)
+
+La aplicó el Director con el OK nominal de Sam, que en la misma respuesta eligió
+la regla de saldo: **«autorizo 0468, usa la regla estricta»**. Transcribió el
+archivo y lo comparó byte a byte con `cmp` antes de aplicarlo.
+
+- **Preflight releído:** las tres dependencias con su md5 exacto, las funciones
+  nuevas inexistentes, 0 transacciones abiertas y 0 locks sobre `supplier_bills`,
+  `supplier_payments` y `suppliers`.
+- **Ledger:** `20260920000508 · 0468_pago_proveedor_atomico`, 1 sentencia, md5
+  `83e8bc9873cbaf8c19329e895f4cbc06` y 18871 bytes, idéntico al archivo.
+- **Postflight**, releído del catálogo por el Worker con el conector, sólo
+  lectura:
+  - `register_supplier_payment_order`: `md5(prosrc)` `65d6c9a18b58a0dabafd6de0b03af325`,
+    3078 caracteres (3083 bytes);
+  - `void_supplier_payment_order`: `79f53ed98b142d87495feccadc7da9cf`, 2385
+    caracteres (2390 bytes);
+  - las dos INVOKER y volátiles, owner `postgres`, `search_path` vacío, con
+    comentario y EXECUTE sólo para `authenticated`; `anon` y `service_role` sin
+    permiso. Son los mismos md5 medidos en PGlite y en `postgres:17`.
+- **Advisors de seguridad:** 0 nuevos y 0 desaparecidos.
+- El ledger quedó encabezado por la 0468, después de la 0466 y la 0467.
+
+La cabecera del `.sql` NO se toca: una migración aplicada no se edita. El estado
+vive en el ledger y en el baseline.
 
 ## Evidencia (archivos sueltos, sobre los archivos finales)
 
@@ -204,11 +233,14 @@ Ningún control ANTES quedó sin reproducir.
 2. ~~Buscar colisiones de SDD 0489 y migración 0468 en las ramas remotas~~:
    ninguna, ni antes del verify ni justo antes del push; las PR abiertas #168 y
    #114 son de otras SDD.
-3. Reporte al Director, push único y PR. Sin merge.
-4. Decisión de Sam sobre la regla de saldo de Tesorería, antes de aplicar.
-5. Después de la PR, con autorización propia: OK nominal de Sam para la 0468 y
-   aplicación por el Director según el runbook. Luego, el commit que retira la
-   espera y la declaración, la integración y el smoke de Sam en Tesorería:
+3. ~~Reporte al Director, push y PR~~: PR #169, sin merge.
+4. ~~Decisión de Sam sobre la regla de saldo~~: eligió la estricta al autorizar
+   la 0468.
+5. ~~OK nominal y aplicación~~: hechos; ver «Aplicación en producción».
+6. ~~Commit que retira la espera y la declaración~~: este cierre. El gate quedó
+   en `0 ROJO · 0 AMARILLO`.
+7. **Queda fuera de esta tarea**, en manos del Director: la integración de la
+   PR #169, que despliega a producción, y el **smoke de Sam** en Tesorería:
    registrar un pago parcial y otro que salde una CxP, y anular una orden de
    pago.
 
