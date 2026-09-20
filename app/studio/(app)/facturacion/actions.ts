@@ -702,7 +702,11 @@ export async function voidInvoice(
   // SDD-0137 §3.6: si esta factura tenía créditos de referido aplicados, se
   // revierten (crédito vuelve a 'acreditado' + asiento anulado) — el crédito no
   // se "quema" por una factura anulada. Best-effort: no bloquea la anulación.
+  // SDD-0496: la reversión va por la RPC revert_referral_credits (0471), con la
+  // factura FOR UPDATE, y corre con el cliente del usuario (ya pasó el gate de
+  // dinero de "invoices", que es el mismo accounting/admin que la RPC exige).
   const revert = await revertReferralCreditsForInvoice(
+    supabase,
     current.tenant_id,
     current.id,
   );

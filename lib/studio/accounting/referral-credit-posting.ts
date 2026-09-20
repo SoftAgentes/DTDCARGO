@@ -47,6 +47,18 @@ import {
   REFERRAL_CREDIT_DEBIT_MEMO,
 } from "./referral-credit-modes";
 
+/**
+ * Lo único que este módulo necesita del cliente del USUARIO: llamar a una RPC.
+ * Estructural a propósito: no arrastra `next/headers` a través de
+ * `@/lib/db/server` y deja probar la reversión sin montar un cliente entero.
+ */
+export type SupabaseLikeClient = {
+  rpc: (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
+};
+
 export type ReferralCreditPostingInput = {
   tenantId: string;
   /** referrals.id del crédito que se aplica. */
@@ -293,196 +305,122 @@ export async function voidReferralCreditEntry(
   }
 }
 
+
 /**
- * Cuántas veces la reversión relee la factura y reintenta bajarle el pagado
- * cuando otro escritor la movió entre la lectura y el UPDATE (SDD-0490). La
- * baja es relativa (pagado actual − crédito) y no valida nada contra lo leído,
- * así que releer y reintentar es seguro. Además, después de anular no queda
- * camino en la UI para reintentar a mano. Decidido por el Director el
- * 2026-09-19, revisable por Sam: 1 = sin reintento, que es el precedente
- * literal de la aplicación del crédito.
+ * Lo que `revert_referral_credits` (migración 0471) devuelve por cada crédito
+ * que sacó de 'aplicado'. `applied_entry_id` puede ser null: si el proceso que
+ * aplicó murió antes de linkear el asiento, el link nunca se escribió aunque el
+ * asiento exista con `referral_id` (el hueco B de SDD-0137).
  */
-export const REVERT_PAID_MAX_ATTEMPTS = 3;
+export type RevertedReferralCredit = {
+  referral_id: string;
+  referral_code: string | null;
+  amount: number;
+  applied_entry_id: string | null;
+};
 
 /**
- * Estado de una factura después de BAJARLE el pagado. Es la regla de
- * void_collection_receipt (migración 0467): una factura anulada o en borrador
- * conserva su estado; otra queda emitida sin pagos o parcial con pagos. Así una
- * factura no queda «pagada» con saldo pendiente. PURA.
+ * Mensaje único del fallo de la reversión. El gate de símbolos pendientes lo usa
+ * como evidencia: sin la 0471 aplicada, PostgREST responde que la función no
+ * existe y la reversión devuelve `ok: false` con este texto por delante, sin
+ * tocar ni la factura ni el crédito.
  */
-export function invoiceStatusAfterPaidDecrease(status: string, newPaid: number): string {
-  if (status === "anulada" || status === "borrador") return status;
-  return newPaid <= 0 ? "emitida" : "parcial";
-}
-
-type AdminClient = ReturnType<typeof createAdminClient>;
+export const REVERT_REFERRAL_CREDITS_ERROR = "No se pudieron revertir los créditos de referido";
 
 /**
- * Baja `paid_amount` de la factura en `amount` con guard optimista sobre el
- * pagado y el estado leídos (SDD-0490). Si otro escritor los movió entre la
- * lectura y el UPDATE —por ejemplo, void_collection_receipt al anular un recibo
- * de la factura anulada—, el UPDATE matchea 0 filas; entonces relee y
- * reintenta, hasta REVERT_PAID_MAX_ATTEMPTS veces. Nunca escribe un pagado
- * calculado sobre una lectura vieja.
- */
-async function lowerInvoicePaidForRevert(
-  admin: AdminClient,
-  invoiceId: string,
-  amount: number,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  for (let attempt = 1; attempt <= REVERT_PAID_MAX_ATTEMPTS; attempt += 1) {
-    const { data: inv, error: readErr } = await admin
-      .from("invoices")
-      .select("paid_amount, status")
-      .eq("id", invoiceId)
-      .maybeSingle<{ paid_amount: number; status: string }>();
-    if (readErr) return { ok: false, error: readErr.message };
-    if (!inv) return { ok: true }; // sin factura no hay abono que deshacer
-
-    const paid = Number(inv.paid_amount) || 0;
-    const newPaid = Math.max(0, round2(paid - amount));
-    const newStatus = invoiceStatusAfterPaidDecrease(inv.status, newPaid);
-    const { data: row, error: updErr } = await admin
-      .from("invoices")
-      .update(
-        newStatus === inv.status
-          ? { paid_amount: newPaid }
-          : { paid_amount: newPaid, status: newStatus },
-      )
-      .eq("id", invoiceId)
-      .eq("paid_amount", paid)
-      .eq("status", inv.status)
-      .select("id")
-      .maybeSingle<{ id: string }>();
-    if (updErr) return { ok: false, error: updErr.message };
-    if (row) return { ok: true };
-    // 0 filas: otro escritor movió el pagado o el estado. Se relee.
-  }
-  return {
-    ok: false,
-    error: `la factura cambió de saldo o de estado ${REVERT_PAID_MAX_ATTEMPTS} veces seguidas mientras se revertía el crédito`,
-  };
-}
-
-/**
- * REVIERTE los créditos de referido aplicados a una factura (§3.6: la factura
- * se anuló). Por cada crédito 'aplicado' con applied_invoice_id = esta factura,
- * en este orden (SDD-0490, el mismo molde que applyReferralCredit):
- *  1. reclama la reversión: 'aplicado' → 'acreditado', limpiando el rastro
- *     (applied_invoice_id/entry_id/at → null). El guard por estado hace que dos
- *     reversiones no bajen dos veces el mismo crédito;
- *  2. baja el abono no-monetario de la factura (Fix C) con guard optimista,
- *     releyendo ante un conflicto;
- *  3. anula su asiento de marketing/descuento (Fix B).
- * Si el paso 2 no se puede hacer, compensa el 1 (el crédito vuelve a
- * 'aplicado' con su rastro) y no toca los asientos: la factura, el mayor y el
- * crédito quedan como estaban, y el fallo se informa. Idempotente (revertir dos
- * veces = no-op), no throwea, admin client.
+ * REVIERTE los créditos de referido aplicados a una factura (§3.6: la factura se
+ * anuló), o uno solo si se nombra `referralId` — que es como `applyReferralCredit`
+ * compensa cuando el asiento no se pudo crear.
+ *
+ * SDD-0496: el trabajo de dinero lo hace `revert_referral_credits` (0471) en UNA
+ * transacción, con la factura tomada FOR UPDATE: el crédito vuelve a 'acreditado'
+ * con el rastro limpio y el abono baja de `invoices.paid_amount` con la regla de
+ * estado de `void_collection_receipt` (0467) juntos, o no pasa nada. Antes eran
+ * peticiones separadas con guard optimista y relectura (SDD-0490), y quedaban
+ * dos ventanas en las que se bajaba un abono que nunca había llegado a la
+ * factura.
+ *
+ * Corre con el cliente del USUARIO, no con el admin client: la RPC es SECURITY
+ * INVOKER y exige rol accounting/admin en el tenant, igual que las de la 0467.
+ * `voidInvoice` y `applyReferralCredit` ya están detrás del mismo gate de dinero.
+ *
+ * Lo único que queda afuera son los ASIENTOS, best-effort y con el admin client,
+ * como en la 0467: se barren por `journal_entries.referral_id` (no sólo por
+ * `applied_entry_id`) para que un asiento sin linkear igual se anule. Si la
+ * plata se revirtió pero un asiento no se pudo anular, se informa igual: el
+ * mayor necesita una mirada aunque la factura ya esté bien.
+ *
+ * No throwea. `reverted` cuenta los créditos que la RPC devolvió a 'acreditado'.
  */
 export async function revertReferralCreditsForInvoice(
+  supabase: SupabaseLikeClient,
   tenantId: string,
   invoiceId: string,
-): Promise<{ ok: boolean; reverted: number; error?: string }> {
+  referralId?: string | null,
+): Promise<{ ok: boolean; reverted: number; error?: string; credits?: RevertedReferralCredit[] }> {
   try {
-    if (!invoiceId) return { ok: true, reverted: 0 };
-    const admin = createAdminClient();
+    if (!invoiceId) return { ok: true, reverted: 0, credits: [] };
 
-    const { data: rows, error: readErr } = await admin
-      .from("referrals")
-      .select("id, applied_entry_id, applied_at, reward_usd")
-      .eq("tenant_id", tenantId)
-      .eq("applied_invoice_id", invoiceId)
-      .eq("status", "aplicado")
-      .is("deleted_at", null);
-    if (readErr) return { ok: false, reverted: 0, error: readErr.message };
+    const { data, error } = await supabase.rpc("revert_referral_credits", {
+      p_invoice_id: invoiceId,
+      p_referral_id: referralId ?? null,
+    });
+    if (error) {
+      return {
+        ok: false,
+        reverted: 0,
+        error: `${REVERT_REFERRAL_CREDITS_ERROR}: ${error.message}`,
+      };
+    }
 
     const credits =
-      (rows as
-        | { id: string; applied_entry_id: string | null; applied_at: string | null; reward_usd: number }[]
-        | null) ?? [];
-    let reverted = 0;
+      ((data as { reverted?: RevertedReferralCredit[] } | null)?.reverted ?? []).map((c) => ({
+        ...c,
+        amount: round2(Number(c.amount) || 0),
+      }));
+    if (credits.length === 0) return { ok: true, reverted: 0, credits };
+
+    // Los asientos, fuera de la transacción de dinero. Idempotente por el
+    // `.eq("status", "asentado")` de voidReferralCreditEntry.
+    const admin = createAdminClient();
     const failures: string[] = [];
     for (const c of credits) {
-      // 1) Reclamar la reversión, como el claim de la aplicación: si otra
-      //    reversión ya lo devolvió, el UPDATE matchea 0 filas y no se baja nada
-      //    dos veces.
-      const { data: released, error: releaseErr } = await admin
-        .from("referrals")
-        .update({
-          status: "acreditado",
-          applied_invoice_id: null,
-          applied_entry_id: null,
-          applied_at: null,
-        })
-        .eq("id", c.id)
-        .eq("status", "aplicado")
-        .select("id")
-        .maybeSingle<{ id: string }>();
-      if (releaseErr) {
-        failures.push(`crédito ${c.id}: ${releaseErr.message}`);
-        continue;
-      }
-      if (!released) continue;
-
-      // 2) Fix C: al aplicar se subió invoices.paid_amount en el monto del
-      //    crédito (para que el saldo reflejara el $80 y el GL==subledger); al
-      //    revertir se baja de vuelta, con guard (SDD-0490).
-      const creditAmt = round2(Number(c.reward_usd) || 0);
-      if (creditAmt > 0) {
-        const lowered = await lowerInvoicePaidForRevert(admin, invoiceId, creditAmt);
-        if (!lowered.ok) {
-          // Compensación: el crédito vuelve a 'aplicado' con su rastro. Los
-          // asientos siguen vivos, así que el mayor y la factura no divergen.
-          const { data: back } = await admin
-            .from("referrals")
-            .update({
-              status: "aplicado",
-              applied_invoice_id: invoiceId,
-              applied_entry_id: c.applied_entry_id,
-              applied_at: c.applied_at,
-            })
-            .eq("id", c.id)
-            .eq("status", "acreditado")
-            .select("id")
-            .maybeSingle<{ id: string }>();
-          failures.push(
-            `crédito ${c.id}: ${lowered.error}${back ? "" : "; tampoco se pudo devolver a 'aplicado'"}`,
-          );
-          continue;
-        }
-      }
-
-      // 3) Anular el/los asiento(s) del crédito. Fix B: barrer por referral_id (no
-      //    solo por applied_entry_id) → si el proceso murió antes de linkear el
-      //    asiento, applied_entry_id es NULL pero el asiento vive con referral_id
-      //    seteado; igual lo anulamos (nada de asientos huérfanos). Idempotente
-      //    (.eq status='asentado').
-      const { data: entries } = await admin
+      const { data: entries, error: readErr } = await admin
         .from("journal_entries")
         .select("id")
         .eq("tenant_id", tenantId)
-        .eq("referral_id", c.id)
+        .eq("referral_id", c.referral_id)
         .eq("source", "referral_credit")
         .eq("status", "asentado")
         .is("deleted_at", null);
-      for (const e of (entries as { id: string }[] | null) ?? []) {
-        await voidReferralCreditEntry(tenantId, e.id);
+      if (readErr) {
+        failures.push(`crédito ${c.referral_id}: ${readErr.message}`);
+        continue;
       }
-      // Cinturón y tirantes: si quedó un applied_entry_id que no barrió el
-      // filtro de arriba (referral_id null en asientos viejos pre-fix), anularlo.
-      if (c.applied_entry_id) {
-        await voidReferralCreditEntry(tenantId, c.applied_entry_id);
+      const ids = ((entries as { id: string }[] | null) ?? []).map((e) => e.id);
+      // Cinturón y tirantes: un applied_entry_id que el filtro no barrió
+      // (asientos viejos con referral_id null) se anula igual.
+      if (c.applied_entry_id && !ids.includes(c.applied_entry_id)) ids.push(c.applied_entry_id);
+      for (const id of ids) {
+        const voided = await voidReferralCreditEntry(tenantId, id);
+        if (!voided.ok) failures.push(`asiento ${id}: ${voided.error}`);
       }
-      reverted += 1;
     }
+
     return failures.length > 0
-      ? { ok: false, reverted, error: failures.join("; ") }
-      : { ok: true, reverted };
+      ? {
+          ok: false,
+          reverted: credits.length,
+          credits,
+          error:
+            `El crédito volvió al cliente y la factura quedó bien, pero no se pudo anular su asiento: ${failures.join("; ")}`,
+        }
+      : { ok: true, reverted: credits.length, credits };
   } catch (e) {
     return {
       ok: false,
       reverted: 0,
-      error: e instanceof Error ? e.message : String(e),
+      error: `${REVERT_REFERRAL_CREDITS_ERROR}: ${e instanceof Error ? e.message : String(e)}`,
     };
   }
 }
