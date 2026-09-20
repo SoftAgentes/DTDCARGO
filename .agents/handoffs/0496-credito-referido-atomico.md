@@ -115,9 +115,30 @@ contra el código vivo.
 
 ### Gates corridos (focales, sin turno de máquina)
 
-`tsc --noEmit` limpio · `eslint` sobre los seis archivos tocados, limpio ·
-`build-docs-index --check` sincronizado (482 specs) · `check-numbering` sin repetidos ·
-`check-pending-migration-symbols` 0 ROJO · 1 AMARILLO.
+| Paso | Resultado |
+|---|---|
+| `tsc --noEmit` | **PASÓ** (limpio) |
+| `eslint` sobre los archivos tocados | **PASÓ** |
+| `build-docs-index --check` | **PASÓ** — 482 specs sincronizadas |
+| `check-numbering` | **PASÓ** — sin números repetidos |
+| `check-pending-migration-symbols` | **PASÓ** — 0 ROJO · 1 AMARILLO declarado |
+| `check-rsc-boundary` | **PASÓ** |
+| `check-feature-constants` | **PASÓ** |
+| `validate-component-registry` | **PASÓ** |
+| `check-edge-functions` | **PASÓ** |
+| `build-governance-capsule --check` | **PASÓ** — 28 políticas, cápsula vigente |
+| **`run-sql-tests` (suite completa)** | **PASÓ** — **224 contratos**, un solo contenedor `postgres:17`, rollback total |
+| `check-migrations-applied` | **NO EJECUTADO (SKIP)** — sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. **Ningún** worktree tiene `.env.local`, tampoco el checkout principal: es el estado normal del repo, no algo de esta rama. No consultó el ledger de producción, así que **no prueba** que nada esté aplicado |
+
+La suite SQL se corrió aparte y antes del turno, por indicación del Director (2026-09-20):
+`run-sql-tests` con **un solo** contenedor no pide turno, a diferencia de `verify` completo,
+`vitest` completo o varias suites Docker a la vez. Sirvió para llegar al turno con el paso
+más largo y más frágil ya verificado aislado. Los dos archivos de esta tarea pasan dentro
+de la suite completa, o sea que tampoco le dejan residuo a los que corren después.
+
+**Falta por correr, y sólo con el turno:** `harness`, `test` (vitest completo),
+`schema-rebuild`, `e2e` y `build`. El `build` es el único que caza la trampa de
+`"use server"` (ver arriba).
 
 ## PENDIENTE DE ESTA TAREA
 
