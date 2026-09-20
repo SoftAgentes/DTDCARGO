@@ -360,7 +360,11 @@ export async function identifyPaymentFor(
   receiptId: string,
   invoiceId: string,
 ): Promise<IdentifyPaymentResult> {
-  // 1. Leer el recibo (RLS lo acota al tenant y excluye anulados).
+  // 1. Leer el recibo. La RLS lo acota al tenant pero NO excluye anulados: la
+  // 0230 sacó ese filtro del USING y la 0470 conservó el criterio (SDD-0494).
+  // Acá no se agrega `.is("deleted_at", null)` a propósito — hace falta LEER el
+  // anulado para poder rechazarlo con su mensaje, que es lo que hace la guarda
+  // de abajo. Si se filtrara, un recibo anulado daría «no encontrado».
   const { data: receipt, error: rErr } = await supabase
     .from("payment_receipts")
     .select(
