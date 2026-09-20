@@ -55,8 +55,9 @@ cuenta, sin lock.
   (`collections-actions.ts`, 0467). Además, el preflight de la 0467 la fija por
   md5.
 - **No tocar datos existentes ni leer filas de producción.** La auditoría y la
-  corrección de las recepciones con código `R-` quedan propuestas para Sam
-  (ver «Release»).
+  corrección de las recepciones con código `R-` quedaban propuestas para Sam.
+  La auditoría se corrió el 2026-09-20 y **no hay ninguna**: ver «La auditoría
+  de los códigos R-».
 - Migrate-first: la PR se abre con la espera declarada y no se aplica ni se
   integra sin el OK nominal de Sam.
 
@@ -194,12 +195,55 @@ La aplicó el Director con el runbook; esta sesión no escribió en producción.
 - **Aplicar exige el OK de Sam nombrando la 0469**, con el runbook de
   producción. Con la app de hoy el trigger no cambia nada, porque siempre manda
   el código.
-- **Paso propuesto para Sam, NO ejecutado: auditar y corregir las recepciones
-  con código R-.** Sería una consulta de sólo lectura en producción (por ejemplo
-  `receipt_code like 'R-%'` sobre `warehouse_receipts_cn`) para saber cuántas
-  son y desde cuándo. Si decide corregirlas, se haría con una migración aparte
-  que les asigne `WR-` con la misma regla, sin tocar las etiquetas ya impresas
-  sin avisar. Nada de esto se hizo ni se leyó.
+- **La auditoría de las recepciones con código R-: EJECUTADA el 2026-09-20, y
+  no hay ninguna.** Era el paso que esta spec dejaba propuesto para Sam. El
+  resultado lo cierra sin necesidad de corregir nada ni de una migración
+  aparte; el detalle está más abajo, en «Evidencia».
+
+## La auditoría de los códigos R- (2026-09-20)
+
+**Resultado: cero.** En producción no hay ninguna recepción de bodega China con
+un código de la serie `R-`, así que no hay filas que corregir y la decisión que
+esta spec le dejaba a Sam queda sin objeto.
+
+| Qué se contó en `warehouse_receipts_cn` | Cuántas |
+|---|---:|
+| Recepciones con código `R-` | **0** |
+| …de ellas, vigentes (sin `deleted_at`) | 0 |
+| Colisiones de código con `payment_receipts` | 0 |
+| Recepciones totales de la tabla | 7 |
+| …con `WR-` | 6 |
+| …con `SIN-CODIGO-` | 1 |
+| …con cualquier otro formato | 0 |
+| Primera y última recepción | 2026-05-24 y 2026-07-17 |
+
+**Qué dice esto del defecto.** Era real en el código —se reprodujo en PGlite con
+el cuerpo de `next_receipt_code` de la 0079— pero **nunca llegó a producir un
+dato malo en producción**: en ese período nadie creó una recepción manual desde
+el Studio. Las siete que existen entraron por la prealerta (0449) o por el
+operario (0045), que numeraban bien. La 0469 queda como prevención para las que
+vengan, no como arreglo de un daño consumado.
+
+### Procedencia y método
+
+- **Quién:** esta sesión de Worker (Claude Opus 5), el 2026-09-20, con el
+  conector de Supabase. No la corrió el Director.
+- **Con qué autorización:** el pedido directo de Sam en su ventana, ese mismo
+  día, citado literal: «corre la auditoría de las recepciones con código R-».
+  La sesión Director no la validó ni podía hacerlo —un mensaje entre sesiones no
+  es una aprobación de Sam—, así que **esta evidencia es de esta sesión y
+  responde ante él**.
+- **Alcance del dato leído:** sólo conteos y fechas. **Sin nombres de clientes,
+  sin Shipping Marks y sin montos**: ninguna fila de negocio ni PII salió de la
+  base.
+- **Por qué el cero es confiable:** la consulta corrió como `postgres`, con
+  `rolbypassrls = true`, sobre una tabla que tiene la RLS activa. Es decir, vio
+  la tabla entera y no una vista filtrada por policies, que es exactamente la
+  forma en que un «no hay nada» podría ser falso. El mismo `select` devolvió el
+  rol, el `rolbypassrls` y el `relrowsecurity` junto a los conteos, para que la
+  comprobación viaje con el resultado.
+- **Nada se escribió.** Si alguna vez apareciera una fila con `R-`, corregirla
+  sigue siendo una migración aparte y con un OK nominal nuevo.
 
 ## Evidencia
 
