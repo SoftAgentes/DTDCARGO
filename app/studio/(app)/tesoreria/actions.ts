@@ -7,6 +7,7 @@
  * - registerPayment: registra el pago (orden OP- + saldo + asiento del pago).
  * - voidPayment: anula una orden de pago (revierte saldo + anula su asiento).
  * - getBillHistory: lee los pagos de una CxP (para el historial del drawer).
+ * - getPayableForBill: abre una CxP en consulta desde el tab «Pagos» (0494).
  *
  * Sin Zod: validación con `validate*Input()` propio. Las mutaciones financieras
  * se auditan atómicamente mediante los triggers de dominio D2 (SDD-0174).
@@ -24,6 +25,7 @@ import {
   voidPaymentFor,
 } from "@/lib/studio/treasury/treasury-actions";
 import { isExpenseAccount } from "@/lib/studio/treasury/bill-queries";
+import type { Payable } from "@/lib/studio/treasury/bill-queries";
 import {
   validateSupplierInput,
   type BillInput,
@@ -259,4 +261,20 @@ export async function getBillHistory(
   const { listPayments } = await import("@/lib/studio/treasury/bill-queries");
   const payments = await listPayments(supabase, { billId });
   return { payments };
+}
+
+/**
+ * Lee UNA CxP como `Payable` para abrir su drawer desde el tab «Pagos»
+ * (SDD-0494), incluso si quedó saldada y por eso salió de la cola.
+ *
+ * Es una LECTURA, así que no lleva `moduleEditDenial` — igual que
+ * `getBillHistory`: la vista del módulo la gatea el layout y la RLS acota al
+ * tenant. No expone nada que el tab «Pagos» no muestre ya de esa CxP.
+ */
+export async function getPayableForBill(
+  billId: string,
+): Promise<{ payable: Payable | null }> {
+  const supabase = await createClient();
+  const { payableForBill } = await import("@/lib/studio/treasury/bill-queries");
+  return { payable: await payableForBill(supabase, billId) };
 }
