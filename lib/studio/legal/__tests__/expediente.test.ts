@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del Expediente de defensa legal (SDD-0070 · SDD-E).
  *

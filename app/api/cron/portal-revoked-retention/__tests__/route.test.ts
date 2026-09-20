@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del cron de retención de vínculos revocados (/api/cron/portal-revoked-retention).
  *

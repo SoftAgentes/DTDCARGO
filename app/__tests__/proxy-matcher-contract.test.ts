@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0302 · Toda pantalla que resuelva la sesión server-side tiene que estar
  * en el matcher del proxy.

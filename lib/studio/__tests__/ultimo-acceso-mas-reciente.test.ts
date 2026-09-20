@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * La señal de "último acceso" toma la más reciente de las dos fuentes
  * (SDD-0275).

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { NEWSLETTER_HONEYPOT_FIELD } from "../constants";
 import {

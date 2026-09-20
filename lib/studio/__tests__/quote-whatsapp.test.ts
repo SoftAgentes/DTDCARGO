@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la salida por WhatsApp del estimado (F1-T11) — helpers puros de
  * quote-types: normalizeWhatsappPhone, buildQuoteWhatsappText, quoteWhatsappHref.

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Smoke test del "horneado" del Norte para la web (SDD-0050 Slice B).
  *

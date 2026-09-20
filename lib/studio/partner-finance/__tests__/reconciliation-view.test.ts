@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los helpers de presentación de la cola de reconciliación
  * (SDD-0059 · Slice B2). PUROS — sin DB, sin React. Validan la agrupación por

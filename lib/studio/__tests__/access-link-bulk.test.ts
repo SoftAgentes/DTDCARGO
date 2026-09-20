@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * El orquestador del lote de enlaces de acceso (SDD-0274 · Slice 4).
  *

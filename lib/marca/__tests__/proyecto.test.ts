@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { claveProyecto, sePublica, tipoBase, tipoDeContenido } from "../proyecto";
 

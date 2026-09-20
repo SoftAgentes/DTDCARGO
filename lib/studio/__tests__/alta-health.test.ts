@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * alta-health · el aviso de "tiene Shipping Mark y la puerta no abre".
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del parser CSV de estado de cuenta (SDD-0115 · Slice C4) — capa pura.
  *

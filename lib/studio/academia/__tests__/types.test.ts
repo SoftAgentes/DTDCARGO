@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del motor puro de la Academia DTD (SDD-0093, Slice B).
  *

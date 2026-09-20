@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la REVERSIÓN del crédito de referido (SDD-0137, huecos B y C).
  *

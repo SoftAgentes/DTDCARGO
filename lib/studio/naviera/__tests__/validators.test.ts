@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los validadores manuales (SDD-0047, Slice A).
  *

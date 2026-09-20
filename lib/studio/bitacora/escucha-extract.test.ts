@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { extractEscucha } from "./escucha-extract";
 import { ESCUCHA_SUGERENCIA_TIPOS } from "./bitacora-types";

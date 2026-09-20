@@ -1,5 +1,7 @@
+// @vitest-environment node
 import { describe, it, expect, vi } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { SERVICIOS_DETALLE, SERVICIOS_GRUPOS } from "@/lib/servicios-detalle";
 import { FAQS } from "@/lib/faqs";
@@ -39,6 +41,36 @@ vi.setConfig({ testTimeout: 120_000 });
  * comentarios del código sí explican el cambio y deben poder nombrar el
  * término viejo sin poner el test en rojo.
  */
+
+/**
+ * SDD-0486, seguimiento: lectura en paralelo con tope, como en
+ * `invoice-read-boundary`. Leer los ~1.500 archivos uno por uno sumaba la
+ * latencia de cada apertura; en Windows, además, el escaneo del antivirus.
+ */
+async function leerTodos(rutas: string[], tope = 32): Promise<string[]> {
+  const textos = new Array<string>(rutas.length);
+  let siguiente = 0;
+  await Promise.all(
+    Array.from({ length: tope }, async () => {
+      while (siguiente < rutas.length) {
+        const i = siguiente++;
+        textos[i] = await readFile(rutas[i], "utf8");
+      }
+    }),
+  );
+  return textos;
+}
+
+/**
+ * Prefiltro: la aserción final es `/casco\s+central/i` sobre el fuente SIN
+ * comentarios, que es un recorte del fuente. Si la palabra «casco» no está en
+ * el fuente entero, tampoco puede estar en un recorte suyo, así que ese archivo
+ * no puede ser ofensor y no hace falta quitarle los comentarios. Deja pasar de
+ * más (un «casco» suelto), nunca de menos.
+ */
+function puedeDecirlo(fuente: string): boolean {
+  return /casco/i.test(fuente);
+}
 
 /** Junta todos los strings de una estructura, con la ruta donde vive cada uno. */
 function stringsDe(valor: unknown, ruta = ""): { ruta: string; texto: string }[] {
@@ -88,7 +120,7 @@ describe("el copy público no dice 'casco central'", () => {
    * primero: explicar por qué el término murió es legítimo y no puede poner el
    * test en rojo.
    */
-  it("ningún literal del código público lo dice", () => {
+  it("ningún literal del código público lo dice", async () => {
     const RAIZ = join(__dirname, "..");
     const CARPETAS = ["components", "lib", "app"];
     // `venezuela-catalog.ts` queda fuera y NO es una excepción de conveniencia:
@@ -99,34 +131,64 @@ describe("el copy público no dice 'casco central'", () => {
     const IGNORAR =
       /node_modules|__tests__|\.test\.|\.spec\.|[\\/]studio[\\/]|[\\/]back[\\/]|venezuela-catalog\.ts/;
 
+    // SDD-0486, seguimiento: `withFileTypes` en vez de un `statSync` por
+    // entrada. Preguntarle al sistema de archivos una vez por carpeta, en vez
+    // de una por archivo, es lo que más pesa en Windows con el antivirus.
     function archivos(dir: string): string[] {
       let out: string[] = [];
-      for (const e of readdirSync(dir)) {
-        const p = join(dir, e);
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const p = join(dir, e.name);
         if (IGNORAR.test(p)) continue;
-        if (statSync(p).isDirectory()) out = out.concat(archivos(p));
+        if (e.isDirectory()) out = out.concat(archivos(p));
         else if (/\.tsx?$/.test(p)) out.push(p);
       }
       return out;
     }
 
+    const rutas = CARPETAS.flatMap((carpeta) => archivos(join(RAIZ, carpeta)));
+    const fuentes = await leerTodos(rutas);
     const ofensores: string[] = [];
-    for (const carpeta of CARPETAS) {
-      for (const f of archivos(join(RAIZ, carpeta))) {
-        const sinComentarios = readFileSync(f, "utf8")
-          .replace(/\/\*[\s\S]*?\*\//g, "")
-          .replace(/^\s*\/\/.*$/gm, "")
-          .replace(/\/\/.*$/gm, "");
-        if (/casco\s+central/i.test(sinComentarios)) {
-          ofensores.push(f.slice(RAIZ.length + 1).replace(/\\/g, "/"));
-        }
+    rutas.forEach((f, i) => {
+      // El prefiltro de abajo evita quitarle los comentarios a los ~1.500
+      // archivos que ni mencionan la palabra. Deja pasar de más, nunca de
+      // menos: lo prueba «el prefiltro no se come ningún caso».
+      if (!puedeDecirlo(fuentes[i])) return;
+      const sinComentarios = fuentes[i]
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "")
+        .replace(/\/\/.*$/gm, "");
+      if (/casco\s+central/i.test(sinComentarios)) {
+        ofensores.push(f.slice(RAIZ.length + 1).replace(/\\/g, "/"));
       }
-    }
+    });
 
     expect(
       ofensores,
       `Literales con el término muerto (fuera de comentarios):\n${ofensores.join("\n")}`,
     ).toEqual([]);
+  });
+
+  /**
+   * SDD-0486, seguimiento. El prefiltro sólo puede equivocarse hacia un lado:
+   * si deja fuera un archivo que hoy cuenta como ofensor, el contrato se vuelve
+   * verde mintiendo. Estos casos son los que podrían escapársele.
+   */
+  it("el prefiltro no se come ningún caso", () => {
+    for (const fuente of [
+      "const x = 'Casco Central';",
+      "const x = 'casco  central';", // dos espacios: el regex final usa \\s+
+      "const x = 'CASCO\\n   CENTRAL';",
+      "// comentario\nconst x = 'casco central';",
+      "const x = 'casco'; const y = 'central';", // de más: pasa el prefiltro y no es ofensor
+    ]) {
+      expect(puedeDecirlo(fuente)).toBe(true);
+    }
+    // Sin la palabra entera no hay forma de que el regex final matchee.
+    expect(puedeDecirlo("const x = 'centro histórico';")).toBe(false);
+    // Partida en dos literales tampoco la ve el regex final, con prefiltro o
+    // sin él: los dos dicen que no es ofensor, que es lo que importa acá.
+    expect(puedeDecirlo("const x = 'cas' + 'co central';")).toBe(false);
+    expect(/casco\s+central/i.test("const x = 'cas' + 'co central';")).toBe(false);
   });
 
   it("tampoco promete un cobro por distancia", () => {

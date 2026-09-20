@@ -1,3 +1,4 @@
+// @vitest-environment node
 // SDD-0244 · resolvedor del enrutado "cliente que vuelve".
 //
 // Además de los casos del resolvedor, este archivo tiene tests de CONTRATO: el

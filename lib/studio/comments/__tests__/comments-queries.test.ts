@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de comments-queries (SDD-0045) con un stub de SupabaseClient.
  *

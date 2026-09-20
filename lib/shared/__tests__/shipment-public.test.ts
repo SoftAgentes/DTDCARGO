@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0164 — la FUENTE ÚNICA del nombre de cada servicio.
  *

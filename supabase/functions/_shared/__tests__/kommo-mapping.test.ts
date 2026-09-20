@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0043 Alcance B · tests del mapeo Kommo → fila espejo.
  *

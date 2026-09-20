@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los estados nuevos del flujo operario↔oficina (SDD-0157, Slice A).
  *

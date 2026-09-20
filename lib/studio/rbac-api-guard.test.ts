@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Contrato exhaustivo de RBAC para los GET de `app/api/studio` (SDD-0286).
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * El semáforo de conversación tiene que estar en LAS DOS vistas.
  *

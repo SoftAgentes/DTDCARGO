@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { parsePushSubscription, PUSH_SOCKET_TIMEOUT_MS } from "../push-subscription";
 import { INVALID_PUSH_ENDPOINTS, SYNTHETIC_PUSH_KEYS, validPushSubscription } from "./push-subscription-fixture";

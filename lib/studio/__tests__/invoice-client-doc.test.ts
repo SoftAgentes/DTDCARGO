@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0298 · El documento fiscal del cliente en la factura.
  *
