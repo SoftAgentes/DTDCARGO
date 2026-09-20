@@ -450,8 +450,8 @@ function PayForm({
               margin: "var(--s-1) 0 0",
             }}
           >
-            No hay cuentas de caja/banco en el plan de cuentas. Sembrá el plan en
-            Contabilidad para registrar pagos con asiento.
+            No hay cuentas de caja/banco en el plan de cuentas. Siembra el plan
+            en Contabilidad para registrar pagos con asiento.
           </p>
         ) : (
           <select
@@ -796,7 +796,7 @@ export function NewBillDrawer({
                 margin: "var(--s-1) 0 0",
               }}
             >
-              No hay cuentas de costo/gasto en el plan. Sembrá el plan en
+              No hay cuentas de costo/gasto en el plan. Siembra el plan en
               Contabilidad.
             </p>
           ) : (
