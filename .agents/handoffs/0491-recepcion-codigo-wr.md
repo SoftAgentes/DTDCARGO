@@ -1,8 +1,8 @@
 # Handoff 0491 · la recepción de bodega China creada en el Studio vuelve a numerarse WR-
 
-- Fecha: 2026-09-19. Estado de la tarea: **`verify` completo verde** (16 de 17; `migrations-applied`
-  NO DISPONIBLE). Falta el push único y la PR en draft, con el aviso del Director.
-  **Migrate-first:** la 0469 no se aplica ni la PR se integra sin el OK nominal de Sam.
+- Fecha: 2026-09-19, cerrado el 2026-09-20. Estado de la tarea: **la 0469 está APLICADA en
+  producción** (2026-09-20 02:15 UTC, ledger `20260920021513`), con el OK nominal de Sam nombrando
+  el archivo. La espera se retiró del baseline y la PR #171 queda lista para integrar.
 - Owner/sesión: `worker-recepcion-wr-0491-20260919` (Claude Opus 5, Worker, sesión «Automatizar la
   prueba de carrera del for update de 0459»). Director: la sesión «Director notificación a
   workers», que asignó la tarea porque Sam pidió trabajo continuo.
@@ -119,17 +119,28 @@ aserción del lock. Que ese lock serialice lo prueba sólo la carrera.
   orden de release. La pasa a ready el Director, después del OK de Sam y de aplicar la migración.
   El número y el SHA van por mensaje al Director.
 
+## LA APLICACIÓN (2026-09-20)
+
+La aplicó el Director con el runbook, con el OK nominal de Sam nombrando el archivo. Esta sesión no
+escribió en producción: sólo verificó antes que la condición de la espera fuera sólo ese OK y que no
+pidiera smoke.
+
+| Qué | Resultado |
+| --- | --- |
+| Ledger | `20260920021513` · md5 `fecfb30d51e00ff74abc09f863a6e72f` · 9.884 bytes, idéntico al archivo (`cmp` antes de aplicar) |
+| Preflight | Tabla, las 4 columnas, el unique `(tenant_id, receipt_code)`, sin trigger ni función previos, 0 actividad |
+| Postflight | Trigger `warehouse_receipts_cn_assign_code` BEFORE INSERT FOR EACH ROW y habilitado (`tgtype` 7); función DEFINER, owner postgres, `search_path` vacío y **ACL sólo postgres**: ni anon, ni authenticated, ni service_role |
+| Lo que NO se tocó | `next_receipt_code` intacta (`81cf4a64…`): la serie `R-` de los cobros sigue igual, que era la condición del Director. Advisors sin cambios |
+
 ## PENDIENTES DE ESTA TAREA
 
-1. El push único y la PR en draft. Después, liberar el claim; el worktree y la rama se conservan.
-2. **El release, en este orden:**
-   1. el OK nominal de Sam nombrando la 0469;
-   2. el Director la aplica con el runbook de producción y verifica el postflight;
-   3. la PR pasa a ready y se integra;
-   4. se retira la espera de `pendingBelowCutoff`.
-3. **Cruce con la #169**, también migrate-first, que toca `migrations-baseline.json` y el índice.
-   La que se integre segunda trae `main` con el driver antes de su push final. El orden lo decide
-   el Director cuando vuelva Sam.
+1. Que el Director pase la #171 a ready y la integre con el CI verde sobre este push. Después,
+   liberar el claim; el worktree y la rama se conservan.
+
+**El release, cumplido:** OK nominal de Sam (2026-09-20) → el Director aplicó la 0469 a las 02:15
+UTC y verificó el postflight → espera retirada del baseline en este push → falta sólo integrar. El
+cruce con la #169 se resolvió solo: esa entró antes y su espera salió del baseline, así que el
+driver fusionó sin conflicto.
 
 ## FUERA DE ALCANCE DETECTADO
 

@@ -162,6 +162,30 @@ cuenta, sin lock.
 
 ## Release
 
+### APLICADA el 2026-09-20
+
+La 0469 **está aplicada en producción** desde el 2026-09-20 a las 02:15 UTC, con
+el OK nominal de Sam nombrando el archivo («OK para aplicar
+`0470_rls_escritura_cobros_proveedores.sql` y `0469_recepcion_codigo_wr.sql`»).
+La aplicó el Director con el runbook; esta sesión no escribió en producción.
+
+- **Ledger** `20260920021513`, md5 `fecfb30d51e00ff74abc09f863a6e72f`, 9.884
+  bytes, idéntico al archivo de esta rama (comparado con `cmp` antes de aplicar).
+- **Preflight:** la tabla con sus cuatro columnas, el `unique (tenant_id,
+  receipt_code)` de la 0008, y ni el trigger ni la función previos. Cero
+  actividad en curso.
+- **Postflight:** el trigger `warehouse_receipts_cn_assign_code`, BEFORE INSERT
+  FOR EACH ROW y habilitado (`tgtype` 7). La función DEFINER, owner postgres,
+  `search_path` vacío y **sin EXECUTE para ningún rol de la API**: ni `anon`, ni
+  `authenticated`, ni `service_role`.
+- **`next_receipt_code` quedó intacta** (`81cf4a64…`): la serie `R-` de los
+  cobros no se tocó, que era la condición del Director. Advisors sin cambios.
+- Al estar aplicada, **la app de esta PR ya puede integrarse**: el trigger
+  numera la recepción que llega sin `receipt_code`. La espera se retiró de
+  `pendingBelowCutoff` en esta misma PR.
+
+### Cómo se decidió el orden
+
 - **Orden: MIGRATE-FIRST.** Se aplica la 0469 y después se integra la PR. Esta
   app inserta sin código: sin el trigger, la columna NOT NULL rechaza el alta. El
   gate de símbolos pendientes no lo detecta, porque la dependencia es de
