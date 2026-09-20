@@ -20,7 +20,9 @@
   merge, ni escritura en producción. **No se escribió ni aplicó ninguna migración.** No se
   leyeron filas de negocio ni PII de producción: toda la evidencia es código, migraciones del
   repo y pruebas locales.
-- Base actualizada: merge de `origin/main` `010dc344` (pedido del Director), sin conflictos.
+- Base actualizada dos veces, a pedido del Director y sin conflictos: `origin/main` `010dc344` y
+  después `d290b7ac`. Las dos trajeron solo documentación, así que la validación sigue cubriendo
+  el código final.
 - Estado de tarea: **lista-para-revision**, con `pnpm verify` **NO EJECUTADO** (falta el turno).
 
 ## OBJETIVO ORIGINAL
@@ -280,18 +282,22 @@ Ninguna de las dos autoriza aplicar migraciones, mergear ni desplegar.
    0342, 0362, 0363, 0394). `sdd:check` las marca «choque histórico ya aplicado en prod, NO se
    renumera». Se reporta como estado conocido, no como algo a tocar.
 
-## RESPUESTA AL MENSAJE DEL DIRECTOR (2026-09-20)
+## INTERCAMBIO CON EL DIRECTOR (2026-09-20) — cerrado, alineados
 
-El Director mandó una corrección diciendo que la causa es la 0470 y no la 0230, y
-sumó dos cosas al alcance. Lo tomé punto por punto:
+El Director mandó dos correcciones seguidas diciendo que la causa era la 0470 y
+no la 0230, y sumó cosas al alcance. Verifiqué y le respondí con la evidencia;
+**en su tercer mensaje llegó por su cuenta a la 0230, con las mismas tres
+pruebas, y retiró la corrección.** Queda cerrado y alineado.
+
+Lo tomé punto por punto:
 
 | Lo que planteó | Veredicto |
 |---|---|
-| «La causa es la 0470, no la 0230» | **No.** Ver la sección siguiente: tres evidencias documentales, una de ellas la cabecera de la propia 0470 |
+| «La causa es la 0470, no la 0230» | **No**, y él mismo lo retiró después. Ver la sección siguiente: tres evidencias documentales, la decisiva es la cabecera de la propia 0470 |
 | «Un accounting/admin puede hacer UPDATE sobre un recibo anulado por PostgREST» | **Confirmado**, y es más grave de lo que dijo: se puede devolver `deleted_at` a `null`. Analizado en la spec § «Hueco de ESCRITURA». Migración **no escrita y no aplicada** |
 | «La página imprimible de un recibo anulado abre» | **Ya arreglado** por el `.is("deleted_at", null)` de `getReceiptByCode`, y su texto «(los anulados no se muestran)» quedó cierto |
-| «La spec 0492 no documenta la pérdida del predicado» | **Cierto** (grep sin resultados). Corregida, con la salvedad de que la 0470 no perdió el predicado: lo heredó perdido |
-| «Trabaja sobre main 010dc344 o posterior» | **Hecho**: merge de `origin/main` `010dc344`, sin conflictos |
+| «La spec 0492 no documenta la pérdida del predicado» | Él lo retiró al converger, porque **no hubo tal pérdida** en la 0470. La nota de seguimiento **se conserva** igual, con el matiz explícito de que la 0470 lo heredó perdido: lo que aporta es que quien lea la 0492 sepa que, con ese slice aplicado, un `accounting`/`admin` puede resucitar un anulado por PostgREST |
+| «Trabaja sobre main 010dc344 / d290b7ac» | **Hecho**: los dos merges, sin conflictos |
 
 Sobre el método que lo llevó al error, porque va a volver a pasar: buscó las
 migraciones que tocan `payment_receipts`. **La 0230 no nombra ninguna tabla** —
