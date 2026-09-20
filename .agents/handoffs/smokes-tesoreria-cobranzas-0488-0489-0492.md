@@ -258,9 +258,16 @@ Los dos scripts de conocimiento son los únicos que leen `.agents/handoffs/`
 `--test-reporter=tap` **con el handoff nuevo ya en disco**, y se leyó el conteo de casos, no sólo el
 exit 0: 9 de 9 y 22 de 22.
 
+## ESTADO DE PUBLICACIÓN
+
+- Commit `151fc20d`, rama `claude/trusting-hodgkin-40181c` publicada en el mismo SHA.
+- **PR [#176](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/176)** contra `main`, abierta.
+  `MERGEABLE`; el check obligatorio es «Calidad local sin secretos».
+
 ## PENDIENTES DE ESTA TAREA
 
-- Publicar la rama y abrir la PR contra `main`. **No fusionar**: integra el Director.
+- **No fusionar desde esta sesión**: integra el Director, con el check verde sobre el commit que
+  entra.
 - El Director decide si este handoff entra al grafo de conocimiento y si toca revisar Graphify y la
   publicación en Obsidian al cierre.
 
