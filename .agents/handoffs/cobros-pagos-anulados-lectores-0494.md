@@ -155,7 +155,30 @@ vez de 1.500, el KPI de pagado 6.400 en vez de 400 y «Por pagar» 6.000 en vez 
 
 ## COMMITS
 
-Ver `git log main..claude/adoring-neumann-bdc596`.
+Nueve, en `git log main..claude/adoring-neumann-bdc596`:
+
+| SHA | Qué |
+|---|---|
+| `3bb3f160` | `feat(studio)` — un cobro anulado sale de los lectores de Cobranzas |
+| `5b6629e8` | `feat(studio)` — Tesorería sin órdenes anuladas, y la CxP saldada se abre |
+| `62cdc9e6` | `test(studio)` — regresión por lector |
+| `bfc773b8` | `fix(studio)` — voseo a tuteo |
+| `580458f5` | `docs(SDD-0494)` — spec, índice y handoff |
+| `a278ea99` | `docs(SDD-0494)` — status `in-progress`, no `done` |
+| `9e761cd8` | `fix(studio)` — la cola manda sobre la consulta, y la fila usa el sistema |
+| `1b9ced40` | `fix(studio)` — si la lectura de la CxP falla, avisar en vez de callar |
+| `ee492cfe` | `docs(studio)` — el comentario de `identifyPaymentFor` decía lo contrario |
+| `c937a25a` | `docs(SDD-0494)` — evidencia exacta y tabla de validación |
+
+**SHA de la validación: `c937a25a7dc607245a1dc1aa658ebe4aa55c201e`.** Ahí se
+corrieron tsc, lint, los 465 casos y los checks documentales de la tabla de
+arriba. El único commit posterior es el que escribe esta misma tabla, que no
+toca código. **Fijá ese SHA (o el HEAD final) antes de integrar.**
+
+El claim `claude-keen-swirles-62b904` **sigue tomado** a propósito: la tarea no
+está cerrada (falta el turno de `verify`, y sus resultados se escriben acá). Si
+el Director la reasigna, lo libero con
+`node scripts/harness-worktree.mjs release --owner claude-keen-swirles-62b904`.
 
 ## PR / BRANCH
 
