@@ -1,7 +1,7 @@
 ---
 sdd: "0494"
 title: "Cobros y órdenes de pago anulados fuera de los lectores de Cobranzas y Tesorería"
-status: done
+status: in-progress
 author: "Claude"
 created: 2026-09-20
 updated: 2026-09-20
@@ -144,6 +144,12 @@ invitaba a la deriva.
   tests, que son para quien programa, no producto.
 
 ## Aceptación
+
+> **`status: in-progress` a propósito.** Los ocho criterios están implementados
+> y los que se pueden probar sin pantalla tienen cobertura automática, pero el
+> criterio 5 (el camino de clic del tab «Pagos») solo lo demuestra el smoke, y
+> `pnpm verify` está **NO EJECUTADO** a la espera del turno del Director. Pasa a
+> `done` cuando ambas cosas den PASÓ.
 
 1. Un recibo con `deleted_at` no aparece en el historial del drawer, ni en el
    detalle de la factura, ni en la bandeja «Sin identificar», ni en el ⌘K, y su
