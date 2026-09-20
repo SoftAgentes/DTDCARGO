@@ -299,6 +299,12 @@ describe("validatePaymentInput", () => {
   it("acepta amount == saldo (pago total)", () => {
     expect(validatePaymentInput({ ...valid, amount: 1000 }, 1000).fieldErrors).toBeUndefined();
   });
+  // SDD-0489: la regla estricta de Cobranzas (SDD-0488). Antes pasaba 0,01 de más.
+  it("rechaza un centavo por encima del saldo", () => {
+    expect(validatePaymentInput({ ...valid, amount: 1000.01 }, 1000).fieldErrors?.amount).toBeDefined();
+    expect(validatePaymentInput({ ...valid, amount: 400.01 }, 400).fieldErrors?.amount).toBeDefined();
+    expect(validatePaymentInput({ ...valid, amount: 400.01 }, 400.01).fieldErrors).toBeUndefined();
+  });
   it("rechaza cuenta de caja faltante", () => {
     expect(validatePaymentInput({ ...valid, cashAccountId: "" }, 1000).fieldErrors?.cashAccountId).toBeDefined();
   });

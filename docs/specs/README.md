@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 477 specs)
+### Índice de specs (generado · 478 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -513,8 +513,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0486 | Las pruebas intermitentes de la suite dejan de dar rojos falsos | done | interno |
 | 0487 | Portal cliente — foto visible, empresa propia y «Facturar a n… | done | interna |
 | 0488 | El registro de cobros en facturas pasa a ser atómico | done | interno |
+| 0489 | Los pagos a proveedores en Tesorería pasan a ser atómicos | done | interno |
 | 0490 | El crédito de referido no pisa el pagado ni el estado de la f… | in-progress | interno |
 | 0493 | Las pruebas que no tocan el DOM corren en el entorno node | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0489, 0491, 0492 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0491, 0492 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
