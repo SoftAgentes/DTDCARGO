@@ -86,11 +86,19 @@ export function TesoreriaClient({
   const [consultPayable, setConsultPayable] = useState<Payable | null>(null);
   const [openingBillId, setOpeningBillId] = useState<string | null>(null);
 
-  const queuePayable =
-    selectedBillId != null
-      ? payables.find((p) => p.bill.id === selectedBillId) ?? null
-      : null;
-  const selectedPayable = queuePayable ?? consultPayable;
+  /**
+   * La cola MANDA sobre la consulta. Al anular una orden desde una CxP saldada,
+   * el drawer hace `router.refresh()`: la CxP recupera saldo y vuelve a
+   * `payables`, pero `consultPayable` es estado del cliente y sigue con el
+   * snapshot viejo (saldo 0, «pagada»). Resolver por id contra la cola fresca
+   * es lo que evita que la pantalla siga mostrando el saldo de antes.
+   */
+  const openBillId = selectedBillId ?? consultPayable?.bill.id ?? null;
+  const selectedPayable =
+    (openBillId != null
+      ? payables.find((p) => p.bill.id === openBillId) ?? null
+      : null) ??
+    (consultPayable?.bill.id === openBillId ? consultPayable : null);
 
   const closeDrawer = () => {
     setSelectedBillId(null);
@@ -625,7 +633,14 @@ function PaymentsTab({
               role="button"
               tabIndex={0}
               aria-busy={openingBillId === p.bill_id || undefined}
+              // Sin el label, el nombre accesible sería el texto de las siete
+              // celdas encadenado; con él, la fila se anuncia por lo que hace.
+              aria-label={`Abrir la CxP de la orden ${p.payment_code}`}
               title={`Abrir la CxP de la orden ${p.payment_code}`}
+              // La misma clase que la fila del tab «Cuentas por pagar»: trae
+              // hover y focus-visible. El fondo NO va inline, o ganaría por
+              // especificidad sobre ese :hover.
+              className="studio-tracking-row"
               onClick={() => onSelectBill(p.bill_id)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
