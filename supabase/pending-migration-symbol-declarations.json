@@ -7,5 +7,39 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0496-credito-referido-atomico",
+      "primarySymbol": "apply_referral_credit",
+      "migration": "0471_credito_referido_atomico",
+      "symbols": [
+        {
+          "name": "apply_referral_credit",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/fidelizacion/actions.ts:482"
+          ]
+        },
+        {
+          "name": "revert_referral_credits",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/accounting/referral-credit-posting.ts:364"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/studio/(app)/fidelizacion/actions.ts:486",
+          "contains": "if (applyErr) return { error: applyReferralCreditError(applyErr.message, amount) };",
+          "degradation": "Sin 0471 la RPC no existe y PostgREST responde con error: applyReferralCredit NO aplica nada, no asienta, no revalida y devuelve «No se pudo aplicar el crédito: …» con el texto de PostgREST. No hay aplicación a medias, porque el claim del crédito y el abono a la factura viven los dos adentro de la función. Aplicar créditos de referido queda NO DISPONIBLE hasta aplicar 0471; lo demás de Fidelización sigue funcionando. Orden previsto: MIGRATE-FIRST (0471 antes de fusionar y desplegar), con el que esta ventana no existe."
+        },
+        {
+          "site": "lib/studio/accounting/referral-credit-posting.ts:372",
+          "contains": "error: `${REVERT_REFERRAL_CREDITS_ERROR}: ${error.message}`,",
+          "degradation": "Sin 0471 la RPC no existe y la reversión devuelve ok:false con reverted:0 y el mensaje «No se pudieron revertir los créditos de referido: …», sin tocar la factura, el crédito ni los asientos. Su único llamador de producción es voidInvoice, que la corre después de anular y en modo best-effort: LA FACTURA SE ANULA IGUAL y el fallo queda registrado. Consecuencia concreta mientras 0471 no esté aplicada: toda anulación de una factura con crédito de referido aplicado deja ese crédito pegado a la factura anulada, en estado 'aplicado', y su abono no monetario sigue contado en paid_amount. No se corrige solo: hay que volver a revertir después de aplicar la migración. Por eso el orden es MIGRATE-FIRST y la migración va ANTES de fusionar la PR, no después."
+        }
+      ]
+    }
+  ]
 }
