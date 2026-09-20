@@ -341,9 +341,18 @@ la tocan sin nombrarla.
 Importa para priorizar: no hay que revertir nada de SDD-0492, y el agujero es
 viejo — SDD-0465 cerró la mitad de facturas y dejó abierta esta.
 
-**NO VERIFICADO contra producción**: el razonamiento es sobre archivos del repo
-y el baseline. Si querés certeza, es un `select` sobre `pg_policies`, metadata
-sin filas de negocio, y necesita tu autorización.
+**VERIFICADO CONTRA PRODUCCIÓN el 2026-09-20**, por el Director y **a su
+nombre** (esta sesión no leyó producción). Lectura de catálogo, sin filas de
+negocio: de 89 policies `FOR ALL` «<tabla> by tenant», **85 no tienen
+`deleted_at` en el USING** y las 4 que sí son exactamente las que la barrida no
+podía tocar — `agent_tool_grants`, el no-op que la cabecera de la 0230
+anticipa, y tres tablas creadas después de la 0230. No queda ninguna
+preexistente con el predicado. Consulta: `pg_policy` + `pg_class`, `polcmd='*'`,
+`polname like '% by tenant'`, con `pg_get_expr(polqual, polrelid)`.
+
+En la misma lectura confirmó el vector de escritura: `payment_receipts_team_select`
+con solo `tenant_id`, y `payment_receipts_accounting_update` con tenant y rol en
+`using` y `with check`, sin `deleted_at` en ninguno.
 
 ## HANDOFF AL DIRECTOR
 

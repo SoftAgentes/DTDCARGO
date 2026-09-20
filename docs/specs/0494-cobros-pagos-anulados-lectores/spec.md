@@ -83,9 +83,20 @@ Consecuencia práctica: **no hay nada que revertir de SDD-0492**. Es un agujero
 viejo, del que SDD-0465 cerró la mitad de facturas y dejó abierta la de cobros y
 órdenes de pago.
 
-> **NO VERIFICADO contra producción**: las tres evidencias son documentales.
-> La prueba directa sería leer `pg_policies` en producción, que es metadata sin
-> filas de negocio pero requiere autorización que esta tarea no tiene.
+> **VERIFICADO CONTRA PRODUCCIÓN el 2026-09-20**, por el Director (lectura de
+> catálogo, sin filas de negocio; esta tarea no tiene esa autorización). En
+> `pg_policy` hay **89 policies `FOR ALL` llamadas «<tabla> by tenant»: 85 sin
+> `deleted_at` en el USING y sólo 4 con él**. Las 4 son exactamente las que la
+> barrida no podía tocar: `agent_tool_grants` —el no-op que la propia cabecera
+> de la 0230 nombra, porque su `deleted_at` es el de `agents` y no uno propio— y
+> tres tablas creadas **después** de la 0230 (`supplier_claims` 0236,
+> `warehouse_boxes` 0240, `consolidation_plans` 0298). La barrida corrió y dejó
+> sin predicado a todas las preexistentes, `payment_receipts` incluida.
+>
+> Consulta: `select` sobre `pg_policy` y `pg_class` filtrando `polcmd = '*'` y
+> `polname like '% by tenant'`, con `pg_get_expr(polqual, polrelid)`.
+> Autorización del Director, 2026-09-20, **a su nombre**; esta sesión no leyó
+> producción.
 
 Para facturas, ese contrato se cumplió en SDD-0465. Para **cobros y órdenes de
 pago, no**: ningún lector de Cobranzas ni de Tesorería pedía `deleted_at is null`
@@ -255,6 +266,12 @@ Lo señaló el Director y lo confirmé: `payment_receipts_accounting_update`
 tenant y rol, **y nada más**. No hay trigger que lo compense: el único sobre
 `payment_receipts` es `audit_d2_payment_receipts` (0290:396), que registra, no
 frena.
+
+> **Confirmado contra producción el 2026-09-20**, en la misma lectura de
+> catálogo del Director: `payment_receipts_team_select` tiene
+> `using (tenant_id = ...)` y nada más, y `payment_receipts_accounting_update`
+> tiene tenant y rol en el `using` **y** en el `with check`, sin `deleted_at` en
+> ninguno de los dos. No es teórico.
 
 O sea que hoy un usuario con rol `accounting` o `admin`, llamando a PostgREST
 directamente (no por la app), puede hacer **UPDATE sobre un recibo o una orden
