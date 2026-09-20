@@ -328,6 +328,24 @@ export type RevertedReferralCredit = {
 export const REVERT_REFERRAL_CREDITS_ERROR = "No se pudieron revertir los créditos de referido";
 
 /**
+ * QUÉ falló cuando `ok` es false. Existe porque `reverted` no alcanza para
+ * distinguirlo y sobrecargarlo haría mentir al aviso del Studio:
+ *
+ *  - `"revert"`: la RPC falló y NO se movió nada — ni la factura, ni el crédito,
+ *    ni los asientos. `reverted` es 0. Es el caso de la 0471 sin aplicar.
+ *  - `"entries"`: el dinero SÍ volvió (la factura quedó bien y el crédito está
+ *    disponible otra vez) y lo que no se pudo fue anular su asiento. `reverted`
+ *    cuenta los créditos devueltos. Avisar «no se revirtió» acá sería falso.
+ *
+ * Antes de la SDD-0496 no había forma de separarlos: la reversión recorría los
+ * créditos de a uno, `reverted` contaba los que salían bien y un `ok:false` con
+ * `reverted > 0` significaba «unos sí y otros no». Con la 0471 ese caso ya no
+ * existe —los créditos de una factura se revierten en UNA transacción, todos o
+ * ninguno—, así que el campo queda libre para decir lo que de verdad pasó.
+ */
+export type ReferralCreditRevertFailure = "revert" | "entries";
+
+/**
  * REVIERTE los créditos de referido aplicados a una factura (§3.6: la factura se
  * anuló), o uno solo si se nombra `referralId` — que es como `applyReferralCredit`
  * compensa cuando el asiento no se pudo crear.
@@ -347,8 +365,9 @@ export const REVERT_REFERRAL_CREDITS_ERROR = "No se pudieron revertir los crédi
  * Lo único que queda afuera son los ASIENTOS, best-effort y con el admin client,
  * como en la 0467: se barren por `journal_entries.referral_id` (no sólo por
  * `applied_entry_id`) para que un asiento sin linkear igual se anule. Si la
- * plata se revirtió pero un asiento no se pudo anular, se informa igual: el
- * mayor necesita una mirada aunque la factura ya esté bien.
+ * plata se revirtió pero un asiento no se pudo anular, se informa igual —con
+ * `failure: "entries"`— porque el mayor necesita una mirada aunque la factura ya
+ * esté bien. Un fallo de la RPC lleva `failure: "revert"` y no movió nada.
  *
  * No throwea. `reverted` cuenta los créditos que la RPC devolvió a 'acreditado'.
  */
@@ -357,7 +376,13 @@ export async function revertReferralCreditsForInvoice(
   tenantId: string,
   invoiceId: string,
   referralId?: string | null,
-): Promise<{ ok: boolean; reverted: number; error?: string; credits?: RevertedReferralCredit[] }> {
+): Promise<{
+  ok: boolean;
+  reverted: number;
+  error?: string;
+  credits?: RevertedReferralCredit[];
+  failure?: ReferralCreditRevertFailure;
+}> {
   try {
     if (!invoiceId) return { ok: true, reverted: 0, credits: [] };
 
@@ -369,6 +394,7 @@ export async function revertReferralCreditsForInvoice(
       return {
         ok: false,
         reverted: 0,
+        failure: "revert",
         error: `${REVERT_REFERRAL_CREDITS_ERROR}: ${error.message}`,
       };
     }
@@ -412,6 +438,7 @@ export async function revertReferralCreditsForInvoice(
           ok: false,
           reverted: credits.length,
           credits,
+          failure: "entries",
           error:
             `El crédito volvió al cliente y la factura quedó bien, pero no se pudo anular su asiento: ${failures.join("; ")}`,
         }
@@ -420,6 +447,7 @@ export async function revertReferralCreditsForInvoice(
     return {
       ok: false,
       reverted: 0,
+      failure: "revert",
       error: `${REVERT_REFERRAL_CREDITS_ERROR}: ${e instanceof Error ? e.message : String(e)}`,
     };
   }

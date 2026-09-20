@@ -83,9 +83,20 @@ contra el código vivo.
   `applyReferralCreditError` de códigos a castellano; uno desconocido se muestra tal cual.
   Si el asiento falla, se compensa con la reversión atómica de ese crédito.
 - `revertReferralCreditsForInvoice`: conserva el nombre y `{ ok, reverted, error? }`; suma
-  el cliente del usuario adelante y un `referralId` opcional. Distingue `ok:false` con
-  `reverted:0` (no se revirtió nada) de `ok:false` con `reverted:>0` (la plata volvió, falló
-  el asiento). Exporta `REVERT_REFERRAL_CREDITS_ERROR`.
+  el cliente del usuario adelante, un `referralId` opcional y un campo **`failure`**
+  (`"revert"` = no se movió nada | `"entries"` = la plata volvió y falló el asiento).
+  El campo existe porque `reverted` no alcanza: **hoy**, sin la migración, un `ok:false`
+  con `reverted > 0` significa «unos créditos sí y otros no» —alcanzable ya con dos
+  créditos en la misma factura— y con la 0471 ese caso desaparece. Sobrecargar el número
+  lo habría hecho cambiar de sentido según la versión. Lo señaló el Director el
+  2026-09-20. Exporta `REVERT_REFERRAL_CREDITS_ERROR` para que el aviso ancle sin copiar
+  texto.
+- **Trampa evitada** (aviso del Director): un módulo `"use server"` sólo exporta funciones
+  async, y eso **no lo cazan `typecheck` ni `eslint`**, sólo el `build` dentro de `verify`.
+  Comprobado: `REVERT_REFERRAL_CREDITS_ERROR` y los tipos viven en
+  `lib/studio/accounting/referral-credit-posting.ts`, que **no** lleva `"use server"`; en
+  los dos `actions.ts` tocados no quedó ningún `export const` (el traductor
+  `applyReferralCreditError` es una función de módulo, sin exportar).
 - `voidInvoice`: sólo pasa el cliente. `console.error` y `revalidatePath`, intactos.
 - Se retiran `REVERT_PAID_MAX_ATTEMPTS`, `invoiceStatusAfterPaidDecrease` y
   `lowerInvoicePaidForRevert`: la regla de estado y la serialización viven en la 0471.

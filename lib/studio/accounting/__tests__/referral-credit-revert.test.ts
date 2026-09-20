@@ -19,7 +19,12 @@
  *  - un fallo de la RPC (por ejemplo, la 0471 sin aplicar) se informa con el
  *    mensaje único y no revierte nada;
  *  - si la plata se revirtió pero un asiento no se pudo anular, se informa
- *    igual, diciendo que la factura quedó bien.
+ *    igual, diciendo que la factura quedó bien;
+ *  - y los dos fallos se distinguen por `failure`, no por `reverted`: antes de
+ *    la SDD-0496, un `ok:false` con `reverted > 0` significaba «unos créditos sí
+ *    y otros no», porque la reversión los recorría de a uno. Con la 0471 eso ya
+ *    no puede pasar —es una transacción, todos o ninguno—, así que el campo dice
+ *    qué falló de verdad.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -218,6 +223,7 @@ describe("revertReferralCreditsForInvoice · los fallos se informan", () => {
     expect(res.reverted).toBe(0);
     expect(res.error).toContain(REVERT_REFERRAL_CREDITS_ERROR);
     expect(res.error).toContain("revert_referral_credits");
+    expect(res.failure).toBe("revert");
     // Ningún asiento se tocó: la plata no se movió.
     expect(entry("e1").status).toBe("asentado");
   });
@@ -232,6 +238,8 @@ describe("revertReferralCreditsForInvoice · los fallos se informan", () => {
     expect(res.reverted).toBe(1);
     expect(res.error).toContain("El crédito volvió al cliente y la factura quedó bien");
     expect(res.error).toContain("permission denied");
+    // `reverted` no alcanza para distinguirlo: el campo propio sí.
+    expect(res.failure).toBe("entries");
   });
 
   it("si no se pueden leer los asientos, lo informa con el crédito que los tenía", async () => {
@@ -244,6 +252,7 @@ describe("revertReferralCreditsForInvoice · los fallos se informan", () => {
     expect(res.reverted).toBe(1);
     expect(res.error).toContain("crédito r1");
     expect(res.error).toContain("statement timeout");
+    expect(res.failure).toBe("entries");
   });
 
   it("una excepción del cliente se devuelve, no se propaga", async () => {
@@ -255,7 +264,7 @@ describe("revertReferralCreditsForInvoice · los fallos se informan", () => {
 
     const res = await revertReferralCreditsForInvoice(roto, "t1", "inv1");
 
-    expect(res).toMatchObject({ ok: false, reverted: 0 });
+    expect(res).toMatchObject({ ok: false, reverted: 0, failure: "revert" });
     expect(res.error).toBe(`${REVERT_REFERRAL_CREDITS_ERROR}: fetch failed`);
   });
 });

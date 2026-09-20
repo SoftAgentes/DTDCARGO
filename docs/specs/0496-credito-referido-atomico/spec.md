@@ -121,6 +121,35 @@ transacción) → asiento → link**. El asiento pasa de ir antes del dinero a i
 después, porque el dinero ya no puede quedar a medias. Si el asiento falla, la
 compensación es una sola llamada en vez de tres UPDATEs sueltos.
 
+### El fallo se dice con un campo propio, no sobrecargando `reverted`
+
+Lo señaló el Director el 2026-09-20, corrigiendo una lectura mía. **Hoy**, antes
+de esta SDD, `revertReferralCreditsForInvoice` recorre los créditos de a uno y
+suma a `reverted` los que salen bien, así que `ok:false` con `reverted > 0`
+significa **«unos créditos sí y otros no»** — y ese caso es alcanzable ya, sin
+migración, con dos créditos de referido en la misma factura. (Además, el paso que
+anula el asiento no mira su error, así que un fallo ahí no baja el `ok`.)
+
+Con la 0471 ese significado desaparece: los créditos de una factura se revierten
+en **una** transacción, todos o ninguno. Pero aparece otro caso —«la plata volvió
+y no se pudo anular el asiento»— que **no** se puede expresar con `reverted` sin
+que el número cambie de sentido según la versión. Así que va en un campo propio:
+
+```ts
+failure?: "revert" | "entries"
+```
+
+- `"revert"`: la RPC falló y no se movió nada (ni factura, ni crédito, ni
+  asientos). `reverted` es 0. Es el caso de la 0471 sin aplicar, y el mensaje
+  empieza por `REVERT_REFERRAL_CREDITS_ERROR`, exportado como constante para que
+  el aviso ancle sin copiar texto.
+- `"entries"`: el dinero volvió —la factura quedó bien y el crédito está
+  disponible otra vez— y lo que no se pudo fue anular su asiento. Avisarle a
+  contabilidad «no se revirtió» acá la mandaría a arreglar algo que ya está bien.
+
+`ok` y `reverted` no cambian de forma, así que el aviso de la tarea hermana sigue
+funcionando sin tocarlo; `failure` sólo le da con qué afinar el texto.
+
 ### La reversión pasa a correr con el cliente del USUARIO
 
 Corría con el admin client (`service_role`). Las RPC son `SECURITY INVOKER` y
@@ -165,12 +194,8 @@ invitaba a que divergieran.
 - `revertReferralCreditsForInvoice`
   (`lib/studio/accounting/referral-credit-posting.ts`): conserva el nombre y la
   forma `{ ok, reverted, error? }` —para que el aviso en el Studio que viene en
-  otra tarea siga anclando donde ancla— y suma el cliente del usuario adelante y
-  un `referralId` opcional. Distingue dos fallos que antes se confundían:
-  - `ok:false` con `reverted:0` → no se revirtió nada; el mensaje empieza por
-    `REVERT_REFERRAL_CREDITS_ERROR`, exportado como constante;
-  - `ok:false` con `reverted:>0` → la plata volvió y lo que falló fue anular el
-    asiento. Decir «no se revirtió» ahí sería falso.
+  otra tarea siga anclando donde ancla— y suma el cliente del usuario adelante,
+  un `referralId` opcional y un campo `failure` (ver abajo).
 - `voidInvoice` (`app/studio/(app)/facturacion/actions.ts`): sólo pasa el
   cliente. El `console.error` y el `revalidatePath` no se tocan.
 
