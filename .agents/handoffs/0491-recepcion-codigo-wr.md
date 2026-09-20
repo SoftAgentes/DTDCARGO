@@ -187,6 +187,30 @@ antes; se deja dicho así en vez de simular el orden inverso.
 **Lectura:** el defecto era real en el código y está medido en esta misma tarea, pero nunca llegó a
 producir un dato malo. La 0469 queda como prevención, no como reparación.
 
+### Cómo se validó este cambio de documentación
+
+Son dos archivos de texto: esta sección y la de la spec. El cierre que les corresponde, por AGENTS,
+son las comprobaciones de docs, **no** `pnpm verify`, y las pruebas de producto se registran como
+NO APLICA con su motivo. **Lo corrí igual dos veces antes de darme cuenta del encuadre**, y el
+Director me lo marcó; queda el registro completo, sin redondear.
+
+| Comprobación | Resultado |
+| --- | --- |
+| `docs:check` | **PASÓ**: índice sincronizado con 480 specs |
+| `sdd:check` | **PASÓ**: sin números repetidos |
+| `governance:check` | **PASÓ**: 28 políticas y cápsula vigente |
+| `spec-migration-refs` (la prueba que audita las citas de specs) | **PASÓ**: 5 de 5. Es la que importa acá, porque este cambio toca el cuerpo de una spec |
+| Gate de símbolos pendientes | **PASÓ**: 0 ROJO · 0 AMARILLO |
+| `git diff --check` | **PASÓ** |
+| Pruebas de producto (vitest, e2e, sql-tests, schema-rebuild, build) | **NO APLICA**: el diff no toca código, configuración ni migraciones. Se corrieron igual, y esto es lo que dieron |
+| `verify` 04:35Z | **FALLÓ**: `test` y `build`. El `build`, porque `next/font` no pudo bajar las fuentes de Google —red caída, comprobada después con 200 en 0,22 s—. El `test`, por cuatro timeouts de componentes (20, 22, 40 y 5 s) mientras el Director borraba 20 worktrees en paralelo: la firma de contención de la SDD-0486 |
+| `verify` 05:13Z | **`build` PASÓ.** **`test` FALLÓ**, y el veredicto literal es que salió ≠ 0 por «unhandled errors»: vitest no pudo arrancar sus forks («Failed to start forks worker … Timeout waiting for worker to respond») en cuatro archivos, y en dos más al reintentar. **Ninguna prueba falló: 8.148 ✓ y 1 omitida en el reintento.** La corrida tardó 38 minutos contra los ~15 habituales |
+| Estado de la máquina en ese momento | CPU al 98 % y 8 GB libres de 31,4, medidos sin nada propio corriendo; el Director midió después **3,2 GB libres**, con 17 procesos `claude` y 28 `node`. Con esa RAM, un fork que no responde a tiempo es lo esperable |
+
+**Lo que NO se hizo, a propósito:** no se relajó ninguna prueba, no se tocó código para volverla
+verde y no se registra el `verify` como pasado, porque no pasó. Lo que falló fue el arranque de los
+procesos de vitest, no una aserción, y eso está dicho con sus palabras.
+
 ## IMPACTO DOCUMENTAL
 
 - **Canónico:** la spec 0491 y el índice regenerado.
