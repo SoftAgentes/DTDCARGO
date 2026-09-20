@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la taxonomía de negocio de news (SDD-0088 · F1).
  *

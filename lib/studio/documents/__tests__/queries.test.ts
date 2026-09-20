@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de las queries del Hub de Documentos (SDD-0049 Slice A) con un stub de
  * SupabaseClient. Cubre Acceptance §5 Slice A (parte queries):

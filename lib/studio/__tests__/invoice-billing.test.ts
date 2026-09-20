@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0487 · Titular de la factura en el Studio.
  *

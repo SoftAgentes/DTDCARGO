@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de queries de partner-finance (SDD-0059 · Slice A) con un stub
  * chainable de SupabaseClient que enruta por nombre de tabla.

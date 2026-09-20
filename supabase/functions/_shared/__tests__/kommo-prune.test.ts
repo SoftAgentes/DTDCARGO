@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la poda del espejo (embudos y etapas que Kommo ya no tiene).
  *

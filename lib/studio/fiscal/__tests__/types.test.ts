@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los helpers puros de Libros de IVA (SDD-0073 §8 · types).
  *

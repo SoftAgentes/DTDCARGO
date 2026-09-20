@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { buildWhatsAppLink, buildGoogleMapsLink } from "@/lib/design-tokens";
 

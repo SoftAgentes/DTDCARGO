@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del helper PURO containerStats (SDD-0047, Slice A).
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Motor de Crecimiento · F2-T04 — vista staff de la cola de avisos.
  * FUND-S3-02: conteo por estado + avisos recientes del tenant.

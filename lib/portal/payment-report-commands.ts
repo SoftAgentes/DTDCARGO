@@ -36,7 +36,8 @@ const ACCESS_ERROR = "No pudimos acceder al reporte con tu sesión. Actualiza la
 const UNCERTAIN_ERROR = "No pudimos confirmar el resultado. Conserva este intento y reintenta sin cambiar sus datos, o revisa el reporte antes de iniciar otro. Código: PAGO-RESULTADO-INCIERTO.";
 
 // Sólo pares funcionales exactos de 0421 y 0464. Nunca devolver message/details/hint.
-// Los dos de 0464 (SDD-0484) no llegan hasta aplicar esa migración: el mapa va antes.
+// Los dos de 0464 (SDD-0484) llegan desde que esa migración se aplicó a producción,
+// el 2026-09-19 a las 01:00:07 UTC (ledger 20260919010007). El mapa se escribió antes.
 const REJECTIONS: Record<string, { code: string; error: string }> = {
   PAYMENT_FORBIDDEN: { code: "42501", error: ACCESS_ERROR },
   PAYMENT_NOT_FOUND: { code: "P0002", error: ACCESS_ERROR },

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del ruteo de alertas de Telegram (SDD-0271).
  *

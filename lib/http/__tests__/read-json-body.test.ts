@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del helper readJsonBody (tope de tamaño de body para endpoints públicos).
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Contract test del rebrand a "CRM" (founder 2026-08-11).
  *

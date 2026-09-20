@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de portal-invite-email (SDD-0042). El correo de invitación lleva un enlace
  * DIRECTO (un clic → adentro, `generatePortalAccessLink`); si no se puede generar,

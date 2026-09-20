@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * scheduleIdToDowngrade · ¿un rebote debe degradar el aviso al cliente?
  *

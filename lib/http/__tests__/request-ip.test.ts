@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del helper compartido de IP del request (SDD-0054 · Slice C /
  * SDD-0042 §10). `resolveRequestIp` es puro (recibe Headers) → testeable sin

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del cron GC de huérfanos (/api/cron/purge-receipt-orphans).
  *

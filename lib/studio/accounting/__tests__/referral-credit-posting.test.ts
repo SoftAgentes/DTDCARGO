@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del asiento del CRÉDITO DE REFERIDO aplicado (SDD-0137).
  *

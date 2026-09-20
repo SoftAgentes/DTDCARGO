@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del detector de salud contable (SDD-0110, fix auditor V6/V5).
  * `getPartnerFinanceHealth` cuenta los movimientos sin asiento (cargo /

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de asientos (SDD-0040) — capa pura `journal-types`.
  *
