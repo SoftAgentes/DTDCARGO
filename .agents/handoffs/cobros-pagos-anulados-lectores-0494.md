@@ -1,7 +1,8 @@
 # Cobros y órdenes de pago anulados fuera de los lectores — SDD-0494 — 2026-09-20
 
 - Owner/sesión: Worker `keen-swirles-62b904`, Claude Opus 5.
-- Director: pendiente de asignar. Revisa, fija el turno de `verify` e integra; el Worker no mergea.
+- Director: sesión «Director notificación a workers». Dio el turno de máquina y autorizó publicar
+  el 2026-09-20; revisa e integra. El Worker no mergea.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO/.claude/worktrees/keen-swirles-62b904`.
 - Rama: `claude/adoring-neumann-bdc596`, desde `main` = `f56e524556656daf6e154177620bde5253ff5389`.
 - **Aislamiento**: el encargo pedía `harness-worktree start <slug>`, pero la sesión ya arrancó
@@ -24,7 +25,8 @@
 - Base actualizada dos veces, a pedido del Director y sin conflictos: `origin/main` `010dc344` y
   después `d290b7ac`. Las dos trajeron solo documentación, así que la validación sigue cubriendo
   el código final.
-- Estado de tarea: **lista-para-revision**, con `pnpm verify` **NO EJECUTADO** (falta el turno).
+- Estado de tarea: **lista-para-revision**. Turno de máquina dado por el Director el 2026-09-20;
+  `pnpm verify` corrido sobre el árbol final — resultado en § VALIDACIÓN.
 
 ## OBJETIVO ORIGINAL
 
@@ -261,7 +263,19 @@ Ninguna de las dos autoriza aplicar migraciones, mergear ni desplegar.
      clicable. En Cobranzas no hay superficie equivalente, así que abrir ese camino es una
      **decisión de producto** de Sam (¿un tab de recibos? ¿«Anular» en el detalle de factura?
      ¿en la bandeja amarilla?), no una reparación mecánica.
-2. **Hueco de ESCRITURA de la RLS**, decidido por Sam como «dejarlo
+2. **La LECTURA de los módulos de dinero es tenant-wide en la base.** El
+   candado que le puse a `getPayableForBill` y `getBillHistory` **reduce la
+   superficie pero no es el límite**: cualquier miembro autenticado del tenant,
+   con el rol que sea, lee proveedores, CxP, órdenes de pago y recibos
+   **directo por PostgREST**, sin pasar por ninguna action, y se enumeran solos
+   porque `supplier_bills` también es tenant-wide. Medido en producción el
+   2026-09-20 por el Director, a su nombre: las policies `*_team_select` no
+   tienen predicado de rol y `authenticated` tiene SELECT sobre las cuatro
+   tablas. **No lo introdujo esta tarea ni la 0470** — SDD-0492 lo dice
+   («el SELECT sigue tenant-wide») y la 0407 lo anotó como deuda deliberada.
+   El Director se lo lleva a Sam como decisión suya; **no es alcance mío** y la
+   spec ya dice con todas las letras que no queda cerrado.
+3. **Hueco de ESCRITURA de la RLS**, decidido por Sam como «dejarlo
    documentado»: `payment_receipts_accounting_update` (`0470:199-209`) y
    `supplier_payments_accounting_update` (`0470:292-302`) piden tenant y rol y
    nada más, y el único trigger de la tabla audita pero no frena
@@ -272,19 +286,19 @@ Ninguna de las dos autoriza aplicar migraciones, mergear ni desplegar.
    Análisis completo —dónde va el predicado y por qué, y el efecto colateral
    sobre el revertido de rendiciones— en SDD-0494 § «Hueco de ESCRITURA».
    **Migración no escrita y no aplicada.** No es regresión de la 0470.
-3. **`getBill` es código muerto.** `bill-queries.ts:130`, sin ningún consumidor en el repo (grep
+4. **`getBill` es código muerto.** `bill-queries.ts:130`, sin ningún consumidor en el repo (grep
    `getBill(` sobre `.ts`/`.tsx`: solo su propia definición). Tampoco filtra `deleted_at`.
    Borrarlo o usarlo es otra tarea.
-4. **`p.bill_id ? "vinculada" : "—"`** era una rama inalcanzable: `supplier_payments.bill_id` es
+5. **`p.bill_id ? "vinculada" : "—"`** era una rama inalcanzable: `supplier_payments.bill_id` es
    `uuid not null` (0088:105) y `coercePayment` hace `String(row.bill_id)`, que nunca da falsy.
    Esta tarea reemplazó ese texto por la afordancia del clic, así que el punto queda resuelto de
    hecho; se anota por si aparece el mismo patrón en otra tabla.
-5. **Voseo en otros módulos**, no tocado por no ser de esta tarea:
+6. **Voseo en otros módulos**, no tocado por no ser de esta tarea:
    `costing/_components/CostingClient.tsx:303` («Identificá») y
    `conversaciones/conversations-types.ts:358` («Abrí tu caso») — este último es una plantilla de
    mensaje **al cliente**, así que su tono puede ser deliberado: preguntar antes de cambiarlo.
    También hay voseo en mensajes de aserción de varios tests, que son para quien programa.
-6. **`ADVISORY` de `sdd:next`**: colisiones históricas de números entre fuentes (specs 0068,
+7. **`ADVISORY` de `sdd:next`**: colisiones históricas de números entre fuentes (specs 0068,
    0172, 0435; migraciones 0020, 0057, 0058, 0124, 0243, 0247, 0261, 0268, 0277, 0297, 0336,
    0342, 0362, 0363, 0394). `sdd:check` las marca «choque histórico ya aplicado en prod, NO se
    renumera». Se reporta como estado conocido, no como algo a tocar.

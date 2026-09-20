@@ -224,6 +224,29 @@ una action gateada al lado de su gemela abierta, en el mismo archivo, es una
 incoherencia que invita a copiar la mala. Va declarado acá y no como hallazgo
 suelto.
 
+#### Pero el candado NO es el límite, y hay que decirlo
+
+**Gatear las dos actions reduce la superficie; no cierra la exposición.** El
+límite de lectura de los módulos de dinero es **de capa de aplicación, no de
+base**: cualquier miembro autenticado del tenant, con el rol que sea, puede leer
+proveedores, cuentas por pagar, órdenes de pago y recibos **directamente por
+PostgREST**, sin pasar por ninguna action. Y no hace falta adivinar ids, porque
+`supplier_bills` también es tenant-wide: se enumeran solos.
+
+> **Medido en producción el 2026-09-20 por el Director** (lectura de catálogo,
+> a su nombre): `supplier_bills_team_select` y `supplier_payments_team_select`
+> tienen `using (tenant_id = get_user_tenant_id())` **sin predicado de rol**, y
+> `authenticated` tiene **SELECT** sobre `suppliers`, `supplier_bills`,
+> `supplier_payments` y `payment_receipts`.
+
+Esto **no lo introdujo esta tarea ni la 0470**. SDD-0492 lo dice explícitamente
+—«el SELECT sigue tenant-wide»— porque su alcance era la escritura, y la 0407
+ya lo había anotado como deuda deliberada para `invoices`. Se escribe acá para
+que nadie lea esta spec y concluya que el límite de lectura quedó cerrado:
+**no quedó**. Cerrarlo pide RPC minimizadas o policies de SELECT con rol, y es
+una decisión de Sam que el Director le lleva por su lado — fuera del alcance de
+esta tarea.
+
 ## Aceptación
 
 > **`status: in-progress` a propósito.** Los ocho criterios están implementados
@@ -245,7 +268,9 @@ suelto.
    con Enter y con la barra espaciadora; el panel de una CxP saldada ofrece
    «Anular» sobre la orden y **no** ofrece «Registrar pago» ni «Anular CxP».
 6. Un rol sin el módulo Tesorería que invoque `getPayableForBill` o
-   `getBillHistory` directo recibe la denegación, no los datos.
+   `getBillHistory` directo recibe la denegación, no los datos. **Esto vale para
+   esas dos actions, no para la tabla**: la lectura por PostgREST sigue siendo
+   tenant-wide y esta spec no la cierra (ver «Pero el candado NO es el límite»).
 7. `payableForBill` deriva el mismo `stage`/`daysOverdue` que la cola para una
    CxP con saldo, y devuelve `null` para una CxP borrada o un id vacío.
 8. No queda voseo en los textos de producto de Cobranzas, Tesorería y el detalle
