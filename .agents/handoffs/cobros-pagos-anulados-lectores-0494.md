@@ -17,9 +17,10 @@
   [docs/specs/0494-cobros-pagos-anulados-lectores/spec.md](../../docs/specs/0494-cobros-pagos-anulados-lectores/spec.md).
 - Autorización: encargo del Director/Sam en el turno de apertura. Cubre investigar, implementar,
   probar y commitear local. **No** incluye texto literal que autorice push ni abrir PR, ni
-  merge, ni escritura en producción. **No se aplicó ninguna migración** (no hace falta ninguna).
-  No se leyeron filas de negocio ni PII de producción: toda la evidencia es código, migraciones
-  del repo y pruebas locales.
+  merge, ni escritura en producción. **No se escribió ni aplicó ninguna migración.** No se
+  leyeron filas de negocio ni PII de producción: toda la evidencia es código, migraciones del
+  repo y pruebas locales.
+- Base actualizada: merge de `origin/main` `010dc344` (pedido del Director), sin conflictos.
 - Estado de tarea: **lista-para-revision**, con `pnpm verify` **NO EJECUTADO** (falta el turno).
 
 ## OBJETIVO ORIGINAL
@@ -87,11 +88,19 @@ Los cuatro se confirmaron en código antes de tocar nada:
   ningún camino de la app pone `deleted_at` en una CxP (anular una CxP es `status = 'anulada'`,
   0294). Justificado en la spec § Alcance.
 
-### Migración: NO hace falta, y NO se declaró ninguna espera
+### Migración: ninguna escrita, ninguna aplicada, ninguna declarada
 
-Se evaluó explícitamente. La marca ya existe, los índices parciales ya la contemplan
-(`sp_tenant_bill_idx ... where deleted_at is null`, 0088) y las RPC ya la respetan.
-`supabase/migrations-baseline.json` **no se tocó** y **no se agregó nada a `pendingBelowCutoff`**.
+Dos preguntas distintas, y conviene no confundirlas:
+
+- **Para el arreglo de LECTURA de esta tarea, no hace falta migración.** La marca ya existe,
+  los índices parciales la contemplan (`sp_tenant_bill_idx ... where deleted_at is null`, 0088)
+  y las RPC la respetan. Se evaluó explícitamente.
+- **Para el hueco de ESCRITURA que encontró el Director, sí haría falta** — pero Sam decidió
+  «dejarlo documentado», así que no se escribió. Análisis completo en la spec § «Hueco de
+  ESCRITURA»; va aparte con su propio SDD.
+
+`supabase/migrations-baseline.json` **no se tocó** y **no se agregó nada a
+`pendingBelowCutoff`**.
 
 ## VALIDACIÓN
 
@@ -210,6 +219,20 @@ el Director la reasigna, lo libero con
    corrieron** (son corridas pesadas y el turno no está dado). El impacto documental de esta
    tarea es la spec 0494 y este handoff. Queda para el cierre con el Director.
 
+## DECISIONES DE SAM EN ESTA TAREA (2026-09-20)
+
+Le llevé las dos preguntas que no me correspondía resolver. Respondió eligiendo,
+sobre la lista que le nombré:
+
+1. **Hueco de escritura de la RLS** → «Dejarlo documentado». O sea: analizado en
+   las specs 0494 y 0492, **sin escribir migración**, y la decisión de cerrarlo
+   va aparte con su propio SDD. Esta PR queda acotada a lecturas.
+2. **Espejo del hallazgo 3 en Cobranzas** → «Dejarlo para después». Queda en
+   FUERA DE ALCANCE DETECTADO con su evidencia, para decidir la superficie con
+   calma.
+
+Ninguna de las dos autoriza aplicar migraciones, mergear ni desplegar.
+
 ## FUERA DE ALCANCE DETECTADO
 
 1. **El espejo del H3 en Cobranzas existe y es PEOR. Es lo más importante de esta lista.**
@@ -229,19 +252,30 @@ el Director la reasigna, lo libero con
      clicable. En Cobranzas no hay superficie equivalente, así que abrir ese camino es una
      **decisión de producto** de Sam (¿un tab de recibos? ¿«Anular» en el detalle de factura?
      ¿en la bandeja amarilla?), no una reparación mecánica.
-2. **`getBill` es código muerto.** `bill-queries.ts:130`, sin ningún consumidor en el repo (grep
+2. **Hueco de ESCRITURA de la RLS**, decidido por Sam como «dejarlo
+   documentado»: `payment_receipts_accounting_update` (`0470:199-209`) y
+   `supplier_payments_accounting_update` (`0470:292-302`) piden tenant y rol y
+   nada más, y el único trigger de la tabla audita pero no frena
+   (`0290:396`). Un `accounting`/`admin` puede por PostgREST hacer UPDATE sobre
+   un documento anulado, **incluido devolver `deleted_at` a `null`** y
+   resucitarlo sin que se recalcule el `paid_amount` de su factura. La app está
+   a salvo (las RPC de 0467/0468 lo rechazan); falta la defensa en profundidad.
+   Análisis completo —dónde va el predicado y por qué, y el efecto colateral
+   sobre el revertido de rendiciones— en SDD-0494 § «Hueco de ESCRITURA».
+   **Migración no escrita y no aplicada.** No es regresión de la 0470.
+3. **`getBill` es código muerto.** `bill-queries.ts:130`, sin ningún consumidor en el repo (grep
    `getBill(` sobre `.ts`/`.tsx`: solo su propia definición). Tampoco filtra `deleted_at`.
    Borrarlo o usarlo es otra tarea.
-3. **`p.bill_id ? "vinculada" : "—"`** era una rama inalcanzable: `supplier_payments.bill_id` es
+4. **`p.bill_id ? "vinculada" : "—"`** era una rama inalcanzable: `supplier_payments.bill_id` es
    `uuid not null` (0088:105) y `coercePayment` hace `String(row.bill_id)`, que nunca da falsy.
    Esta tarea reemplazó ese texto por la afordancia del clic, así que el punto queda resuelto de
    hecho; se anota por si aparece el mismo patrón en otra tabla.
-4. **Voseo en otros módulos**, no tocado por no ser de esta tarea:
+5. **Voseo en otros módulos**, no tocado por no ser de esta tarea:
    `costing/_components/CostingClient.tsx:303` («Identificá») y
    `conversaciones/conversations-types.ts:358` («Abrí tu caso») — este último es una plantilla de
    mensaje **al cliente**, así que su tono puede ser deliberado: preguntar antes de cambiarlo.
    También hay voseo en mensajes de aserción de varios tests, que son para quien programa.
-5. **`ADVISORY` de `sdd:next`**: colisiones históricas de números entre fuentes (specs 0068,
+6. **`ADVISORY` de `sdd:next`**: colisiones históricas de números entre fuentes (specs 0068,
    0172, 0435; migraciones 0020, 0057, 0058, 0124, 0243, 0247, 0261, 0268, 0277, 0297, 0336,
    0342, 0362, 0363, 0394). `sdd:check` las marca «choque histórico ya aplicado en prod, NO se
    renumera». Se reporta como estado conocido, no como algo a tocar.
@@ -308,9 +342,9 @@ Lo que necesito de vos, en orden:
 3. **Decisión sobre el worktree**: se trabajó en el contenedor `.claude/worktrees` en vez de
    crear uno nuevo con `harness-worktree start` (razón arriba). Si querés el contenedor Codex,
    lo muevo antes de publicar.
-4. **Escalar a Sam el punto 1 de FUERA DE ALCANCE.** Un cobro que salda su factura y un pago
-   sin identificar son, hoy, **irreversibles desde la UI**. Es el mismo agujero que esta tarea
-   cerró en Tesorería, y ahí sí necesita una decisión de producto.
+4. **Nada que escalar: Sam ya decidió los dos puntos abiertos** (sección «DECISIONES DE SAM»).
+   El espejo de Cobranzas y el hueco de escritura de la RLS quedan documentados, cada uno para
+   su propia tarea. No hace falta que se los vuelvas a llevar.
 
 No requiere OK nominal de Sam para migraciones ni para producción: esta tarea **no genera SQL ni
 toca la base**.
