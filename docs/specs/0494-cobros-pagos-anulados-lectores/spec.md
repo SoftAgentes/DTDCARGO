@@ -114,9 +114,11 @@ Allowlist exacta:
 | `lib/studio/payment-queries.ts` | `listReceipts`, `searchReceipts`, `getReceiptByCode`, `listUnidentifiedReceipts` y `fundsSeparationSummary` piden `deleted_at is null`; se corrigen los comentarios que decían «vivos» / «RLS … excluye anulados» |
 | `lib/studio/treasury/bill-queries.ts` | `listPayments` y `listBills` piden `deleted_at is null`; se extrae `buildPayable` (pura) y se agrega `payableForBill` |
 | `app/studio/(app)/tesoreria/actions.ts` | `getPayableForBill`: lectura para abrir una CxP saldada desde el tab «Pagos» |
-| `app/studio/(app)/tesoreria/_components/TesoreriaClient.tsx` | la fila del tab «Pagos» abre la CxP de su orden (clic + teclado), con estado de carga y la columna «CxP origen» como afordancia |
+| `app/studio/(app)/tesoreria/_components/TesoreriaClient.tsx` | la fila del tab «Pagos» abre la CxP de su orden (clic + teclado, con `studio-tracking-row` para hover/foco y `aria-label`), con estado de carga, aviso ante fallo de lectura y la columna «CxP origen» como afordancia |
+| `lib/studio/collections-actions.ts` | el comentario de `identifyPaymentFor` decía que la RLS «excluye anulados» — el mismo error que esta tarea corrige en `getReceiptByCode`. Se corrige y se explica por qué ESA lectura sí debe traer el anulado (para rechazarlo con su mensaje). Solo comentario; el código no cambia |
 | `app/studio/(app)/cobranzas/_components/CobranzaDrawer.tsx` · `app/studio/(app)/tesoreria/_components/BillDrawer.tsx` (×2) · `app/studio/(app)/facturacion/_components/InvoiceDetailClient.tsx` | voseo → tuteo: «Sembrá» → «Siembra» |
 | `lib/studio/__tests__/documentos-anulados-cobros-pagos.test.ts` | regresión por lector, con doble que aplica el filtro y casos de control |
+| `app/studio/(app)/tesoreria/_components/TesoreriaClient.cxp-saldada.test.tsx` | el camino de clic del criterio 5, el drawer fresco tras anular y el aviso ante fallo de lectura |
 | Esta spec, `docs/specs/README.md` y `.agents/handoffs/cobros-pagos-anulados-lectores-0494.md` | documentación |
 
 `listBills` **no estaba en el encargo**: lo destapó el fixture de regresión de
@@ -185,10 +187,22 @@ Cada bloque lleva su caso «control del doble», que corre el MISMO fixture con
 pasa por casualidad: sin filtro, la separación de fondos da 17.500 en vez de
 1.500, el KPI de pagado 6.400 en vez de 400 y «Por pagar» 6.000 en vez de 1.000.
 
-**Mutante comprobado**: quitando los nueve `.is("deleted_at", null)` de los dos
-archivos, **11 de los 20 casos fallan** (los 9 verdes son los controles, que
-afirman justamente el comportamiento sin filtro, y los de `stage`/id vacío). Los
-archivos se restauraron desde copia y se reverificaron.
+**Mutante comprobado**: quitando los **ocho** `.is("deleted_at", null)` que
+agrega esta tarea —los dos archivos tienen nueve, pero el noveno
+(`payment-queries.ts:539`, sobre `invoices` en `receivablesQueue`) es
+preexistente de SDD-0465 y **se conserva**—, **11 de los 20 casos fallan**. Los
+9 verdes son los controles, que afirman justamente el comportamiento sin
+filtro, y los de `stage`/id vacío. En la misma corrida,
+`lib/studio/__tests__/receivables-queue.test.ts` queda **verde**: prueba de que
+el mutante no tocó el filtro ajeno. Los archivos se restauraron desde copia y se
+reverificaron.
+
+`app/studio/(app)/tesoreria/_components/TesoreriaClient.cxp-saldada.test.tsx`,
+6 casos, cubre el criterio 5 —el único sin cobertura automática— con el camino
+completo: tab «Pagos» → clic → drawer con «Anular» y sin «Registrar pago» ni
+«Anular CxP». Dos mutantes comprobados: resolver el drawer por `selectedBillId`
+en vez de por id contra la cola fresca mata el caso del saldo fresco, y quitar
+el `catch` de `openBillFromPayment` mata el caso de la lectura fallida.
 
 ## Riesgos y límites
 

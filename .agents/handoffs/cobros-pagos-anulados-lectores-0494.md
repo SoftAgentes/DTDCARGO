@@ -66,12 +66,18 @@ Los cuatro se confirmaron en código antes de tocar nada:
   que arregla de una vez el tab «Pagos», el historial del drawer y el KPI de pagado, porque los
   tres salen del mismo lector.
 - **H3** · `payableForBill` (nueva, `bill-queries.ts`) + `getPayableForBill` (server action) +
-  la fila del tab «Pagos» abre la CxP de su orden, con clic, teclado, estado de carga y la
+  la fila del tab «Pagos» abre la CxP de su orden, con clic, teclado, hover/foco por
+  `studio-tracking-row`, `aria-label`, estado de carga, aviso si la lectura falla y la
   columna «CxP origen» convertida en afordancia («Ver CxP»). Se extrajo `buildPayable` pura para
   que la cola y la consulta no deriven el `stage` distinto. **No se relajó la cola**: sigue
   mostrando solo CxP con saldo, que es lo correcto para una cola de pagos.
+  Al anular, la cola **manda** sobre la consulta: la CxP vuelve a `payables` con su saldo
+  recuperado y el drawer se resuelve por id contra esa fila fresca, en vez de quedarse con el
+  snapshot del cliente diciendo saldo 0 sobre una CxP que ya debe plata otra vez.
 - **H4** · voseo → tuteo en `CobranzaDrawer.tsx`, `BillDrawer.tsx` (×2) e
-  `InvoiceDetailClient.tsx`. El texto «(los anulados no se muestran)» de
+  `InvoiceDetailClient.tsx`. Se corrigió además el comentario de
+  `collections-actions.ts:361`, que afirmaba lo mismo que los otros tres: que la RLS «excluye
+  anulados». El texto «(los anulados no se muestran)» de
   `cobranzas/recibo/[code]/page.tsx:110` **se conserva sin cambios porque el arreglo lo hizo
   verdadero**: era falso y ahora describe el comportamiento.
 - **Hallazgo lateral reparado**: `listBills` tampoco pedía `deleted_at is null`, así que una CxP
@@ -89,18 +95,57 @@ Se evaluó explícitamente. La marca ya existe, los índices parciales ya la con
 
 ## VALIDACIÓN
 
+> Tabla **reejecutada sobre el árbol final** (ver SHA en COMMITS). La versión
+> anterior de este handoff describía una corrida sobre `580458f5`, que quedó
+> obsoleta cuando entraron el arreglo del estado obsoleto y las pruebas de
+> componente. Lo señaló la revisión independiente.
+
 | Comprobación | Resultado |
 |---|---|
-| `tsc --noEmit` | **PASÓ** (exit 0; `PIPESTATUS[0]` leído aparte, no el de `head`) |
-| `pnpm lint` | **PASÓ** — 0 errores. 15 warnings, **ninguno en archivos de esta tarea** (son de `DocumentCalculator.tsx` y `knowledge-vault.mjs`, preexistentes) |
-| Pruebas nuevas (20 casos) | **PASÓ** — `lib/studio/__tests__/documentos-anulados-cobros-pagos.test.ts` |
-| **Mutante** (quitar los 9 `.is("deleted_at", null)`) | **PASÓ** — 11 de 20 casos fallan. Los 9 verdes son los «control del doble» (que afirman el comportamiento SIN filtro) y los de `stage`/id vacío. Archivos restaurados desde copia y reverificados |
-| Suites vecinas (7 archivos, 152 casos) | **PASÓ** — `receivables-queue`, `treasury/__tests__`, `collections-identify`, `global-search` |
-| `rbac-actions-guard` + `rbac-view-guard` (112 casos) | **PASÓ** |
+| `tsc --noEmit` | **PASÓ** (exit 0; `PIPESTATUS[0]` leído aparte, no el de `head` — un `tsc \| head` devuelve el exit de `head`) |
+| `pnpm lint` | **PASÓ** — 0 errores. 15 warnings, **ninguna en archivos de esta tarea** (son de `DocumentCalculator.tsx` y `knowledge-vault.mjs`, preexistentes; comprobado por nombre de archivo) |
+| Pruebas de consulta (20 casos) | **PASÓ** — `lib/studio/__tests__/documentos-anulados-cobros-pagos.test.ts` |
+| Pruebas de componente (6 casos) | **PASÓ** — `app/studio/(app)/tesoreria/_components/TesoreriaClient.cxp-saldada.test.tsx`, que cubre el criterio 5 |
+| **Mutante A** — quitar los **8** `.is("deleted_at", null)` que agrega la tarea | **PASÓ** — 11 de los 20 casos fallan. Los 9 verdes son los «control del doble» (que afirman el comportamiento SIN filtro) y los de `stage`/id vacío. En la misma corrida `receivables-queue.test.ts` queda verde: prueba de que el mutante no tocó el noveno `.is` del archivo, el de SDD-0465 sobre `invoices` |
+| **Mutante B** — resolver el drawer por `selectedBillId` en vez de por id contra la cola fresca | **PASÓ** — muere exactamente el caso del saldo fresco |
+| **Mutante C** — quitar el `catch` de `openBillFromPayment` | **PASÓ** — muere exactamente el caso de la lectura fallida |
+| Barrido de suites vecinas (11 archivos, 298 casos) | **PASÓ** — `receivables-queue`, `treasury/__tests__`, `collections-identify`, `global-search`, `direccion/__tests__`, `rbac-actions-guard`, `rbac-view-guard` |
 | `pnpm docs:check` | **PASÓ** — índice sincronizado, 481 specs |
 | `pnpm sdd:check` | **PASÓ** — sin números repetidos |
+| `/ui-check` sobre el diff | **PASÓ con 2 ajustes aplicados** — faltaban hover y foco visible en la fila nueva (se puso `studio-tracking-row`, la clase que ya usa el tab hermano) y `aria-label` explícito |
+| Revisión independiente del diff | **PASÓ con 4 correcciones aplicadas** — ver «Qué corrigió la revisión» |
 | `pnpm verify` | **NO EJECUTADO** — falta el turno del Director (regla: una corrida pesada a la vez) |
 | Pruebas de DB efímera / Docker | **NO APLICA** — esta tarea no agrega ni cambia SQL |
+
+Todos los mutantes se aplicaron sobre copia, se corrieron y se restauraron; los
+archivos se reverificaron después de restaurar.
+
+### Qué corrigió la revisión independiente
+
+Corrí un revisor de solo lectura sobre el diff. Confirmó que **ningún filtro
+nuevo rompe un consumidor** (barrió los llamadores de los siete lectores, más
+rendiciones y contabilidad) y que **no falta ningún lector**. Encontró cuatro
+cosas, las cuatro corregidas:
+
+1. **Bug real que se me había pasado**: `openBillFromPayment` tenía `try/finally`
+   **sin `catch`**, y `payableForBill` re-lanza el error de PostgREST. Un
+   timeout o un 500 se iba como unhandled rejection y la fila volvía de
+   «Abriendo…» a «Ver CxP» **sin decir nada** — dejando al usuario sin camino y
+   sin explicación, que es justo lo que la tarea vino a cerrar. Arreglado con
+   `catch` + toast, y con prueba propia (mutante C).
+2. **Cifra inexacta en la evidencia**: decía «los nueve `.is`» cuando la tarea
+   agrega **ocho**; el noveno de esos archivos es preexistente de SDD-0465. El
+   mutante original los había quitado los nueve. Rehecho con precisión.
+3. **Tabla de validación obsoleta**: describía una corrida sobre un SHA
+   anterior. Reejecutada, es esta.
+4. **Comentario falso preexistente** en `collections-actions.ts:361`, del mismo
+   tema: decía que la RLS «excluye anulados». Corregido, con la explicación de
+   por qué ESA lectura sí debe traer el anulado (para rechazarlo con su
+   mensaje). Solo comentario; el código no cambia.
+
+No adopté un quinto señalamiento, menor: `payableForBill` no repite
+`.eq("tenant_id", …)` («cinturón y tirantes», criterio 0067). La RLS cubre, y la
+asimetría es consistente con `getBill` y `listPayments` del mismo archivo.
 
 El fixture de regresión es **infeliz a propósito**: la fila anulada es siempre la más reciente
 (encabeza los `order by ... desc`) y la de monto más grande (domina cualquier suma). El doble
@@ -122,7 +167,8 @@ Ver `git log main..claude/adoring-neumann-bdc596`.
 
 1. **`pnpm verify`** — pedirle el turno al Director y correrlo. Es el único cierre canónico que
    falta.
-2. **Smoke en pantalla**, que ninguna prueba unitaria sustituye:
+2. **Smoke en pantalla.** Las pruebas de componente ya cubren el camino de clic contra un DOM
+   simulado, pero no sustituyen ver la pantalla real con datos reales:
    - `/studio/tesoreria` → tab «Pagos» → clic en una fila cuya CxP esté saldada → debe abrir el
      drawer de la CxP con su historial y el botón «Anular» de la orden; «Registrar pago» y
      «Anular CxP» deben estar ocultos (saldo 0 y pagado > 0).
