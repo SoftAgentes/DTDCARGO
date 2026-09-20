@@ -18,6 +18,7 @@ import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { voidReferralRevertTitle } from "@/lib/studio/fidelizacion/referral-revert-notice";
 import {
   canEmit,
   canRegisterPayment,
@@ -278,7 +279,7 @@ export function InvoiceDetailClient({
                 marginBottom: "var(--s-1)",
               }}
             >
-              El crédito de referido quedó sin liberar
+              {voidReferralRevertTitle(voidWarning)}
             </div>
             <p
               style={{

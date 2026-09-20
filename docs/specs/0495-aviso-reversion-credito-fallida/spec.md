@@ -81,6 +81,25 @@ estaba disponible justo donde se descartaba.
    Esto es lo que decide la pregunta «¿dónde se muestra?». Una sola pantalla deja
    ciego a un rol, y el rol que queda ciego cambia según cuál se elija.
 
+5. **«La reversión falló» no es un solo caso: hay uno parcial, y ya existe.**
+   `revertReferralCreditsForInvoice` recorre los créditos de la factura de a
+   uno: suma a `reverted` los que salen bien y junta el resto en `failures`, y
+   sólo al final decide `ok`. Con **dos créditos en la misma factura**, uno
+   liberado y otro no, devuelve `ok: false` con `reverted > 0`. No hay que
+   esperar a que la reversión se mude a SQL: es alcanzable hoy.
+
+   Decir «el crédito no se pudo liberar» en ese caso es **falso**, y manda a
+   alguien a arreglar algo que en parte ya está bien. La premisa la aportó el
+   Director el 2026-09-20, traída de la sesión que está moviendo la reversión a
+   SQL; se verificó contra el código actual antes de tomarla.
+
+6. **Un módulo `"use server"` sólo puede exportar funciones async.** El texto
+   del aviso lo necesitan los dos lados (la action que lo devuelve y el banner
+   que lo pinta), así que no puede ser un `export const` dentro de `actions.ts`:
+   rompe el build de Next. Medido sobre el repo: los 40 y pico de `actions.ts`
+   del Studio exportan **sólo tipos e interfaces**, que se borran al compilar.
+   Ningún `export const` en ninguno. Por eso el copy vive en un módulo neutro.
+
 ## Decisiones
 
 1. **La anulación sigue siendo exitosa.** La reversión no la bloquea. Eso es
@@ -111,6 +130,17 @@ estaba disponible justo donde se descartaba.
 5. **El aviso no lleva el texto crudo del error.** Quien anula facturas no
    depura PostgREST. El detalle técnico sigue yendo al `console.error`.
 
+6. **Hay DOS avisos, y los elige `reverted`, no `error`.** Por la premisa 5:
+   `reverted === 0` ⇒ «el crédito no se pudo liberar»; `reverted > 0` ⇒ «parte
+   se liberó, pero no todos», que además remite al listado durable de la misma
+   factura, donde están exactamente cuáles quedaron. El título del banner sigue
+   al cuerpo, anclado en la constante y no en comparar el texto.
+
+   **Los avisos durables no necesitan la distinción**: derivan del estado y
+   listan sólo los que quedaron varados, así que no pueden mentir por más
+   créditos que haya. Es otra razón por la que el durable es la mitad que
+   importa.
+
 6. **No se agrega ninguna server action.** Las dos superficies son lecturas de
    páginas que ya existen, así que el candado que les toca es el
    `requireModuleView` que esas páginas ya tienen. Se verificó que exista en
@@ -122,10 +152,14 @@ estaba disponible justo donde se descartaba.
 ### Qué cambia
 
 1. **`voidInvoice` informa** (`app/studio/(app)/facturacion/actions.ts`). El
-   tipo de retorno suma `warning?: string`; la constante exportada
-   `VOID_REFERRAL_REVERT_WARNING` es el texto único. En el fallo se revalida
-   además `/studio/fidelizacion`, porque su pantalla pasa a tener algo que
-   mostrar.
+   tipo de retorno suma `warning?: string`, elegido con
+   `voidReferralRevertWarning(revert.reverted)`. En el fallo se revalida además
+   `/studio/fidelizacion`, porque su pantalla pasa a tener algo que mostrar.
+
+1bis. **El copy vive aparte**
+   (`lib/studio/fidelizacion/referral-revert-notice.ts`, nuevo): los dos textos,
+   los dos títulos y los dos selectores. Por la premisa 6 no puede estar en el
+   módulo `"use server"`, y así el banner lo importa sin importar la action.
 
 2. **Aviso inmediato** (`InvoiceDetailClient.tsx`). Estado `voidWarning` y banner
    `--warning` con `role="alert"`, calcado del banner `legalAck` que ya vive en
@@ -163,7 +197,9 @@ caso: no se agregó ninguna entrada.
 ### Allowlist exacta
 
 - `app/studio/(app)/facturacion/actions.ts` (sólo `voidInvoice`, su tipo de
-  retorno y la constante del aviso)
+  retorno y el import del copy)
+- `lib/studio/fidelizacion/referral-revert-notice.ts` (nuevo)
+- `lib/studio/fidelizacion/__tests__/referral-revert-notice.test.ts` (nuevo)
 - `app/studio/(app)/facturacion/_components/InvoiceDetailClient.tsx` (sólo el
   estado `voidWarning`, su banner y el `onConfirm` de anular)
 - `app/studio/(app)/facturacion/[code]/page.tsx` (sólo la lectura condicionada a
@@ -188,6 +224,13 @@ caso: no se agregó ninguna entrada.
    factura; se revalidan las tres rutas, Fidelización incluida.
 2. **`voidInvoice` con la reversión OK**: `{ ok: true }` pelado, sin `warning`.
    Sin créditos que revertir, tampoco revalida Fidelización.
+2bis. **`voidInvoice` con la reversión a medias** (`ok: false`, `reverted > 0`):
+   el aviso es el PARCIAL y **no** el total; dice que parte se liberó y que el
+   resto se lista en la factura; sigue siendo anulación exitosa; tampoco filtra
+   el error crudo. Y el copy en sí: el selector cambia en `reverted > 0` (no en
+   `> 1`), el título sigue al cuerpo, y los cuatro textos pasan el control de
+   voseo —normalizado a NFC, para que el patrón pueda fallar de verdad— y el de
+   jerga técnica.
 3. **Lo que se rechaza antes** (sin permiso, motivo corto, factura pagada, RPC
    en error, RPC sin cambios) no llega a pedir la reversión.
 4. **`strandedReferralCredits`** lista el `aplicado` sobre una factura
@@ -230,9 +273,10 @@ Corridas en el worktree `keen-swirles-62b904`, 2026-09-20.
 - **`pnpm lint`** — PASÓ (exit 0): 0 errores, 15 warnings, todos preexistentes
   en archivos fuera de la allowlist (`components/document-import/*`,
   `scripts/lib/knowledge-vault.mjs`).
-- **Pruebas nuevas (vitest)** — 30 de 30 ✓: 14 de `voidInvoice`, 16 de las
-  queries.
-- **Mutantes** — 9 de 10 caen, cada uno en su prueba, con los fuentes
+- **Pruebas nuevas (vitest)** — 54 de 54 ✓: 18 de `voidInvoice`, 16 de las
+  queries, 20 del copy. Vecindario completo (19 archivos de fidelización,
+  contabilidad y facturación): 235 de 235 ✓.
+- **Mutantes** — 17 de 18 caen, cada uno en su prueba, con los fuentes
   restituidos después de cada corrida:
 
   | Mutante | Lo que se quita | Resultado |
@@ -247,6 +291,23 @@ Corridas en el worktree `keen-swirles-62b904`, 2026-09-20.
   | M8 | la proyección de Fidelización filtra el id de factura | MUERTO |
   | M9 | `strandedCreditsForInvoice` deja de filtrar los ya liberados | MUERTO |
   | M10 | el `select` de `strandedCreditsForInvoice` se ensancha | MUERTO |
+  | M11 | `voidInvoice` ignora `reverted` y manda siempre el aviso total | MUERTO |
+  | M12 | el selector apaga la distinción parcial/total | MUERTO |
+  | M13 | el corte se corre a `reverted > 1` (con 1 liberado, miente) | MUERTO |
+  | M14 | el título deja de seguir al cuerpo | MUERTO |
+  | M15 | el copy se escribe en voseo (`coordinálo`) | MUERTO |
+  | M16 | el copy filtra el nombre de una tabla | MUERTO |
+  | M17 | el copy deja de decir que no se arregla desde la pantalla | MUERTO |
+  | M18 | un voseo (`revisá`) que la aserción positiva NO vería | MUERTO |
+
+- **El control de voseo está probado vivo.** El patrón tenía dos formas de
+  quedar muerto en silencio —sin fallar: dejando de encontrar—: escrito en NFD
+  contra texto normalizado a NFC, y con `\b` después de vocal acentuada, que
+  nunca matchea porque `\b` es frontera ASCII y `á` no es carácter de palabra.
+  Las dos estaban en la primera versión. Ahora el patrón se prueba contra una
+  frase de control, y M18 mete un voseo que la aserción positiva
+  (`toContain("coordínalo")`) no vería: si el patrón vuelve a morir, M18
+  sobrevive y se nota.
 
 - **M6 sobrevive, y es el código el que sobra, no la prueba la que falta.**
   `fetchAllByIds` parte los ids en lotes de 500 y pagina cada lote de a 1.000
@@ -271,7 +332,11 @@ Corridas en el worktree `keen-swirles-62b904`, 2026-09-20.
    necesita gate de `accounting`, su propia SDD y decisión de Sam.
 2. **La no conformidad de fondo**: llevar aplicación y reversión a funciones SQL
    con la factura `FOR UPDATE` (punto 1 del «Fuera de alcance» de la 0490).
-   Exige migración.
+   Exige migración. **Ya está asignada a otra sesión**, que conserva el nombre y
+   la forma `{ ok, reverted, error? }` y sólo cambia la firma a
+   `(supabase, tenantId, invoiceId, referralId?)` porque su RPC es INVOKER. El
+   punto de instrumentación de esta SDD no se mueve, y el aviso parcial ya está
+   diseñado para el contrato que viene. Detalle en el handoff.
 3. **Promover un `AdvisoryBanner` canónico** al registro de componentes. Hoy el
    patrón de banner de aviso está copiado en varios módulos; una promoción CMP no
    la aprueba un script.

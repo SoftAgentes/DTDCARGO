@@ -31,6 +31,7 @@ import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { revertReferralCreditsForInvoice } from "@/lib/studio/accounting/referral-credit-posting";
+import { voidReferralRevertWarning } from "@/lib/studio/fidelizacion/referral-revert-notice";
 import { registerCollectionFor } from "@/lib/studio/collections-actions";
 import { LEGAL_GATE_HARD_BLOCK } from "@/lib/studio/legal/gate-config";
 import { hasValidAcceptanceForMarkbox } from "@/lib/studio/legal/queries";
@@ -657,25 +658,6 @@ export async function registerPayment(
   return { ok: true, receiptCode: result.receiptCode, fullyPaid: result.fullyPaid };
 }
 
-/**
- * SDD-0495 · Aviso cuando la reversión del crédito de referido no se pudo hacer.
- *
- * La anulación SIGUE siendo exitosa (la reversión es best-effort y no la
- * bloquea: SDD-0137 §3.6), pero deja de ser un éxito limpio. Sin texto crudo del
- * error: quien anula factura no depura PostgREST, y el detalle técnico ya va al
- * log del servidor.
- *
- * Dice las tres cosas que hacen falta: qué pasó, a quién le duele, y qué hacer —
- * incluido que NO se arregla desde ahí, porque `voidInvoice` no se repite sobre
- * una factura ya anulada y no hay ningún otro camino en la UI para reintentar.
- */
-export const VOID_REFERRAL_REVERT_WARNING =
-  "La factura quedó anulada, pero el crédito de referido que tenía aplicado no " +
-  "se pudo liberar: sigue marcado como usado, así que el referidor no lo va a " +
-  "poder aprovechar en otra compra. No se arregla desde aquí. El caso queda " +
-  "avisado en esta factura y en Fidelización: coordínalo con quien lleva el " +
-  "programa de referidos.";
-
 export async function voidInvoice(
   id: string,
   reasonRaw: string,
@@ -735,7 +717,12 @@ export async function voidInvoice(
     // limpio mientras el crédito quedaba colgado de una factura anulada. Ahora
     // el aviso sube con el ok, y las dos pantallas lo muestran (la de la factura
     // y la de Fidelización) porque sus roles no se solapan.
-    warning = VOID_REFERRAL_REVERT_WARNING;
+    //
+    // El aviso depende de `reverted`, no sólo de `ok`: la reversión recorre los
+    // créditos de a uno, así que con más de uno en la misma factura puede
+    // liberar unos y fallar en otros. Decir «no se pudo liberar» ahí sería falso
+    // y mandaría a revisar algo que en parte ya está bien.
+    warning = voidReferralRevertWarning(revert.reverted);
     // La factura anulada pasa a mostrar el aviso durable, y Fidelización lista
     // el crédito varado: las dos vistas dependen del estado que acaba de
     // quedar inconsistente, así que las dos se revalidan.

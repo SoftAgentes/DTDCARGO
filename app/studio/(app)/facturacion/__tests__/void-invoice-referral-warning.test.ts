@@ -84,7 +84,11 @@ vi.mock("@/lib/db/server", () => ({
   createClient: async () => makeClient(),
 }));
 
-const { voidInvoice, VOID_REFERRAL_REVERT_WARNING } = await import("../actions");
+const { voidInvoice } = await import("../actions");
+const {
+  VOID_REFERRAL_REVERT_WARNING,
+  VOID_REFERRAL_REVERT_PARTIAL_WARNING,
+} = await import("@/lib/studio/fidelizacion/referral-revert-notice");
 
 const EMITIDA: Fila = {
   id: "inv-1",
@@ -171,6 +175,53 @@ describe("voidInvoice · la reversión del crédito falló", () => {
     expect(revalidateSpy).toHaveBeenCalledWith(
       "/studio/facturacion/F-2026-0007",
     );
+  });
+});
+
+describe("voidInvoice · la reversión falló A MEDIAS", () => {
+  /**
+   * `revertReferralCreditsForInvoice` recorre los créditos de la factura de a
+   * uno: suma a `reverted` los que salen bien y junta el resto en `failures`.
+   * Con dos créditos en la misma factura, uno liberado y otro no, devuelve
+   * `ok: false` con `reverted > 0`. **Esto es alcanzable hoy**, sin esperar a
+   * que la reversión se mude a SQL.
+   */
+  beforeEach(() => {
+    revertResult = {
+      ok: false,
+      reverted: 1,
+      error: "crédito b: la factura cambió de saldo o de estado 3 veces",
+    };
+  });
+
+  it("no dice que no se pudo liberar: eso sería falso para el que SÍ se liberó", async () => {
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(res.warning).toBe(VOID_REFERRAL_REVERT_PARTIAL_WARNING);
+    expect(res.warning).not.toBe(VOID_REFERRAL_REVERT_WARNING);
+  });
+
+  it("el aviso parcial dice que se liberó una parte y que el resto quedó", async () => {
+    const res = await voidInvoice("inv-1", MOTIVO);
+    const aviso = String(res.warning);
+
+    expect(aviso).toMatch(/parte de los créditos de referido se liberó/i);
+    expect(aviso).toMatch(/no todos/i);
+    expect(aviso).toMatch(/se listan cuáles/i);
+  });
+
+  it("sigue siendo una anulación exitosa y revalida Fidelización", async () => {
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(res.ok).toBe(true);
+    expect(res.error).toBeUndefined();
+    expect(revalidateSpy).toHaveBeenCalledWith("/studio/fidelizacion");
+  });
+
+  it("tampoco filtra el texto crudo del error", async () => {
+    const res = await voidInvoice("inv-1", MOTIVO);
+
+    expect(String(res.warning)).not.toContain(String(revertResult.error));
   });
 });
 
