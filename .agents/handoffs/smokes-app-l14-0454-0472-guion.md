@@ -283,28 +283,33 @@ confundas con Studio › Proveedores, que es otro módulo.**
    - Escribe «Orden de prueba del smoke» y pulsa «Confirmar anulación».
    - Esperado: aviso «Orden OP-2026-NNNN anulada · se revirtió el saldo». La CxP vuelve a «Pendiente» y
      el saldo vuelve a 20,00.
-7. [ ] **Reintento sobre la orden anulada (esto NO es falla).** La orden anulada **sigue en la lista
-   y su botón «Anular» sigue visible**, sin ninguna marca de anulada. Púlsalo otra vez, con el
-   motivo «Segundo intento».
-   - Esperado: el error **«Esta orden ya está anulada.»** dentro del diálogo. El saldo no cambia.
-   - Que la orden anulada siga listada y siga sumando en los totales es un hueco conocido, **ya
-     encolado como tarea aparte**. No lo anotes como falla: lo que se prueba acá es que el segundo
-     intento no descuenta dos veces.
-8. [ ] **Pago que salda la CxP.** «Registrar pago» otra vez, con el monto completo **20.00**. Debajo
-   debe decir «Pago total · salda la CxP.». Pulsa «Confirmar pago».
+7. [ ] **La orden anulada desaparece (cambió con SDD-0494).** Mira el historial de pagos del panel
+   y el tab «Pagos».
+   - Esperado: la orden que acabas de anular **ya no está**, ni en el historial del panel ni en el
+     tab «Pagos». No queda botón «Anular» que pulsar, porque no queda fila.
+   - Hasta esta tarea la orden anulada seguía listada con su «Anular» visible. Si la ves, **eso sí
+     es falla ahora** — es justo lo que se arregló.
+   - El guard del servidor sigue existiendo para las carreras (dos pestañas anulando a la vez):
+     responde «Esta orden ya está anulada.» y no descuenta dos veces. Ya no se llega a él pulsando.
+8. [ ] **Pago que salda la CxP, y cómo volver a abrirla (cambió con SDD-0494).** «Registrar pago»
+   otra vez, con el monto completo **20.00**. Debajo debe decir «Pago total · salda la CxP.». Pulsa
+   «Confirmar pago».
    - Esperado: aviso «Pago total registrado en CXP-2026-NNNN · orden OP-2026-MMMM», y **el panel se cierra
-     solo y la CxP desaparece de la cola**: una CxP sin saldo sale de la lista.
-   - **Esto tampoco es falla, y es importante que lo sepas:** desde la pantalla ya no hay forma de
-     volver a abrir esa CxP ni de anular esa orden. Si te equivocas con el monto que salda una CxP,
-     no lo puedes deshacer solo; hay que pedirlo por base de datos.
+     solo y la CxP desaparece de la cola**: una CxP sin saldo sale de la lista. Eso sigue igual.
+   - **Lo que cambió:** ahora sí puedes volver a ella. Ve al tab «Pagos», busca la fila de esa orden
+     —la última columna dice **«Ver CxP»**— y púlsala (o llega con el tabulador y dale Enter).
+   - Esperado: se abre el panel de la CxP saldada, con su historial. **No** debe ofrecer «Registrar
+     pago» (no tiene saldo) ni «Anular CxP» (tiene pagos); **sí** debe ofrecer «Anular» sobre la
+     orden. Ése es el camino que antes no existía.
+   - Anúlala desde ahí, motivo «Pago devuelto». Esperado: la CxP **vuelve a la cola** con saldo
+     20,00, y el panel pasa a mostrar ese saldo, no 0,00.
 9. [ ] **Los totales.** Mira «Pagado en el mes» y compáralo con el valor que anotaste en el paso 1.
-   - Esperado: **subió 25,00**, no 20,00 (5,00 de la orden anulada + 20,00 de la vigente), aunque al
-     proveedor solo se le pagaron 20,00. Ese total incluye los pagos reales del mes, así que lo que
-     importa es la diferencia, no el número.
-   - En el tab «Pagos» pasa lo mismo con «Pagado (histórico)», y la orden anulada sigue en la lista
-     sin ninguna marca.
-   - **No es falla:** es el mismo hueco del paso 7 y va en la misma tarea aparte. En cambio «Por
-     pagar» y «Vencido» **sí** deben quedar correctos, porque salen del saldo de la CxP.
+   - Esperado: la diferencia corresponde **solo a las órdenes vivas**. La orden que anulaste en el
+     paso 6 **no** suma. Ese total incluye los pagos reales del mes, así que lo que importa es la
+     diferencia, no el número.
+   - En el tab «Pagos», «Pagado (histórico)» tampoco cuenta las anuladas.
+   - Hasta esta tarea ambos totales las contaban. **Si al anular una orden el total no baja, es
+     falla.** «Por pagar» y «Vencido» deben seguir correctos, como antes.
 10. [ ] Opcional, **la carrera**: en la segunda pestaña del paso 4, sin recargar, «Registrar pago»
     sobre la misma CxP por **20.00** y «Confirmar pago».
     - Esperado: el error **«La CxP ya está pagada: otro pago la saldó. Actualiza la página.»**
@@ -363,16 +368,23 @@ imprimible `/studio/cobranzas/recibo/<código>`.
    - Esperado: aviso «Recibo R-2026-NNNN anulado · se revirtió el saldo». La factura vuelve a
      **«Emitida»** y el saldo vuelve a 30,00.
    - Vuelve a «Emitida» aunque la factura esté vencida: es así por diseño.
-6. [ ] **Reintento sobre el recibo anulado (esto NO es falla).** Hasta el 19-sep, un recibo anulado
-   desaparecía de la lista. Desde que se aplicó la 0470, ese día a las 22:13, **se queda en
-   «Recibos · 1» con su botón «Anular» visible** y sin ninguna marca de anulado, y su página «Ver
-   recibo» abre en vez de decir «No existe ese recibo.».
-   - Pulsa «Anular» otra vez, con el motivo «Segundo intento».
-   - Esperado: el error **«Este recibo ya está anulado.»**. El saldo no cambia.
-   - **Es el mismo hueco que el del bloque 5 y ya está encolado como tarea aparte.** No lo anotes
-     como falla; lo que importa acá es que el segundo intento no devuelva el saldo dos veces.
-   - Mira también la tarjeta «Separación de fondos · mandato»: el recibo anulado **sigue sumando**
-     ahí. Va en la misma tarea. Las cuatro tarjetas de arriba, en cambio, sí deben estar correctas.
+6. [ ] **El recibo anulado desaparece (cambió con SDD-0494).** Antes de esta tarea el recibo anulado
+   se quedaba en «Recibos · 1» con su «Anular» visible y sin marca de anulado, y su página «Ver
+   recibo» abría igual. Ahora no. Comprueba las cuatro cosas:
+   - **Historial del panel**: debe decir «Sin cobros registrados todavía.» — el recibo anulado ya
+     no está.
+   - **Detalle de la factura** (`/studio/facturacion/<código>`): el bloque «Recibos de cobranza»
+     tampoco lo muestra.
+   - **Su página imprimible**: entra a `/studio/cobranzas/recibo/<código del recibo anulado>`.
+     Esperado: **«No existe ese recibo.»**. Esto es lo más importante del bloque: antes abría e
+     imprimía, y un recibo anulado impreso se le podía entregar a un cliente.
+   - **Buscador ⌘K**: buscar ese código no debe devolverlo.
+   - Si alguna de las cuatro te muestra el recibo anulado, **es falla**.
+   - El guard del servidor («Este recibo ya está anulado.») sigue existiendo para las carreras —dos
+     pestañas anulando a la vez— y no devuelve el saldo dos veces. Ya no se llega a él pulsando.
+   - Mira también la tarjeta «Separación de fondos · mandato»: el recibo anulado **ya no suma** ahí,
+     ni en «Sin identificar» si era un pago sin referencia. Las cuatro tarjetas de arriba deben
+     seguir correctas, como antes.
 7. [ ] **Pago sin referencia.** Arriba, pulsa «Pago sin identificar».
    - «Monto recibido» **10.00**, «Moneda» **USD**, «Cuenta de caja / banco» cualquiera, «Canal»
      Transferencia, «Fecha de recepción» hoy, «Notas (opcional)» «prueba sin referencia».

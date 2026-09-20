@@ -15,11 +15,12 @@
   Rama de reserva local `codex/sdd-reserve-0494-cobros-pagos-anulados-lectores`
   (commit `57707914`), **sin push**. Spec completa en
   [docs/specs/0494-cobros-pagos-anulados-lectores/spec.md](../../docs/specs/0494-cobros-pagos-anulados-lectores/spec.md).
-- Autorización: encargo del Director/Sam en el turno de apertura. Cubre investigar, implementar,
-  probar y commitear local. **No** incluye texto literal que autorice push ni abrir PR, ni
-  merge, ni escritura en producción. **No se escribió ni aplicó ninguna migración.** No se
-  leyeron filas de negocio ni PII de producción: toda la evidencia es código, migraciones del
-  repo y pruebas locales.
+- Autorización. **Publicar sí está autorizado, por dos vías**: el encargo de Sam lo dice literal
+  —«No fusiones a `main`: abrí la PR y el Director integra»— y el Director lo confirmó el
+  2026-09-20 («Autorizado: publica la rama y abre la PR»). Cubre push de esta rama a sí misma y
+  abrir la PR contra `main`. **No** cubre merge, deploy ni escritura en producción, que quedan
+  con el Director. **No se escribió ni aplicó ninguna migración.** No se leyeron filas de negocio
+  ni PII de producción: toda la evidencia es código, migraciones del repo y pruebas locales.
 - Base actualizada dos veces, a pedido del Director y sin conflictos: `origin/main` `010dc344` y
   después `d290b7ac`. Las dos trajeron solo documentación, así que la validación sigue cubriendo
   el código final.
@@ -197,9 +198,15 @@ el Director la reasigna, lo libero con
 
 ## PR / BRANCH
 
-- Rama `claude/adoring-neumann-bdc596`, **sin publicar**.
-- **PR no abierta**: el encargo no trae texto que autorice publicar. Con el OK del Director hago
-  un solo push de esta rama a sí misma y abro la PR contra `main`.
+- Rama `claude/adoring-neumann-bdc596`, PR contra `main`. Publicación autorizada (ver arriba).
+- **El guion de smokes va en esta misma PR**, y no es opcional: `main` `d290b7ac` trae
+  `smokes-app-l14-0454-0472-guion.md` con los bloques 5 y 6 diciéndole a Sam que el comportamiento
+  viejo «NO es falla» y que no lo reporte. Si la PR entrara sin eso, Sam corre el smoke, ve el
+  comportamiento nuevo —que es el correcto— y lo reporta como discrepancia contra su propio guion.
+  Lo detectó el Director. Actualizados los bloques 5 (pasos 7, 8 y 9) y 6 (paso 6), y anotado con
+  nota fechada el análisis que los respalda (`smokes-tesoreria-cobranzas-0488-0489-0492.md`), que
+  además atribuía el hueco a la 0470.
+- El merge lo hace el Director, no el Worker.
 
 ## PENDIENTES DE ESTA TAREA
 
