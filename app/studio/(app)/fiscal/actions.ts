@@ -15,9 +15,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
-import { canEditModule } from "@/lib/studio/rbac";
-import type { StudioUserRole } from "@/lib/studio/user-types";
+import { moduleEditDenial, moduleEditGate } from "@/lib/studio/rbac-guard";
 import {
   isFiscalModuleEnabled,
   validateFiscalSettingsInput,
@@ -109,33 +107,21 @@ export async function saveFiscalSettingsAction(
   formData: FormData,
 ): Promise<FiscalSettingsActionState> {
   const supabase = await createClient();
-  const denial = await moduleEditDenial(supabase, "fiscal");
-  if (denial) return { error: denial };
-
+  // SDD-0498: una sola resolución del rol da el permiso de módulo Y el tenant.
+  // Antes se llamaba a `moduleEditDenial` y después se releía `user_tenants`
+  // sin `disabled_at` para sacar el tenant; el gate de arriba ya cortaba al
+  // suspendido, pero esa relectura era la segunda forma de resolver el rol.
+  const gate = await moduleEditGate(supabase, "fiscal");
+  if (!gate.ok) return { error: gate.denied };
+  if (gate.role !== "admin") return { error: ADMIN_ONLY_MSG };
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateFiscalSettingsInput(partial);
   if (fieldErrors) return { fieldErrors };
 
-  // Resolver usuario + tenant + rol. Filtramos user_tenants por user_id: tras
-  // la migración 0040 ese listado expone a TODOS los miembros del tenant, así
-  // que un maybeSingle() sin filtro rompería con >1 usuario.
-  const { data: auth } = await supabase.auth.getUser();
-  const userId = auth.user?.id;
-  if (!userId) return { error: "Sesión no válida." };
-
-  const { data: link, error: linkErr } = await supabase
-    .from("user_tenants")
-    .select("tenant_id, role")
-    .eq("user_id", userId)
-    .maybeSingle<{ tenant_id: string; role: string }>();
-  if (linkErr || !link?.tenant_id) {
-    return { error: "No se pudo resolver el tenant del usuario." };
-  }
-  if (link.role !== "admin") return { error: ADMIN_ONLY_MSG };
-
+  const userId = gate.userId;
   const row = {
-    tenant_id: link.tenant_id,
+    tenant_id: gate.tenantId,
     fiscal_module_enabled: input!.fiscal_module_enabled,
     is_special_taxpayer: input!.is_special_taxpayer,
     iva_rate_general: input!.iva_rate_general,
@@ -188,28 +174,21 @@ const MODULE_OFF_MSG =
 
 /**
  * Resuelve usuario→tenant→rol con el cliente del usuario (RLS). Devuelve el
- * gate listo: si `denied`, la action corta con ese mensaje. Filtra user_tenants
- * por user_id (post-0040 ese listado expone a todos los miembros → maybeSingle
- * sin filtro rompería con >1 usuario).
+ * gate listo: si `denied`, la action corta con ese mensaje.
+ *
+ * SDD-0498: la resolución es la de `rbac-guard` y no una lectura propia de
+ * `user_tenants`. La de antes filtraba por `user_id` pero NO por
+ * `disabled_at`, así que `postFiscalBookAction` —la única action del archivo
+ * que no llama antes a `moduleEditDenial`— dejaba asentar libros fiscales a un
+ * contador suspendido. La RPC `fiscal_post_book` (migr 0165) sí mira
+ * `disabled_at` y cortaba en la DB; lo que faltaba era el candado de acá.
  */
 async function resolveFiscalGate(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<{ tenantId: string; userId: string } | { denied: string }> {
-  const { data: auth } = await supabase.auth.getUser();
-  const userId = auth.user?.id;
-  if (!userId) return { denied: "Sesión no válida." };
-
-  const { data: link, error: linkErr } = await supabase
-    .from("user_tenants")
-    .select("tenant_id, role")
-    .eq("user_id", userId)
-    .maybeSingle<{ tenant_id: string; role: StudioUserRole }>();
-  if (linkErr || !link?.tenant_id) {
-    return { denied: "No se pudo resolver el tenant del usuario." };
-  }
-  if (!canEditModule(link.role, "fiscal")) return { denied: FISCAL_DENY_MSG };
-
-  return { tenantId: link.tenant_id, userId };
+  const gate = await moduleEditGate(supabase, "fiscal", { denied: FISCAL_DENY_MSG });
+  if (!gate.ok) return { denied: gate.denied };
+  return { tenantId: gate.tenantId, userId: gate.userId };
 }
 
 /**
