@@ -169,7 +169,24 @@ contra el código vivo.
    sucesor es el 5. El motivo: una prueba que pasa por la razón equivocada es un verde que
    alguien va a interpretar mal. Si algún día se quiere el archivo sin fases históricas,
    es una limpieza aparte y con criterio del Director.
-5. **`applicableInvoicesForReferrer` (el picker) no revalida bajo lock**, y ahora la RPC sí.
+5. **El monto que se revierte se lee AL REVERTIR, no se congela al aplicar.**
+   `revert_referral_credits` baja `round(coalesce(r.reward_usd, 0), 2)` leído en ese
+   momento — igual que hacía el TypeScript, así que no es una regresión. Si alguien editara
+   `reward_usd` de un crédito ya `aplicado`, la reversión bajaría un monto distinto del que
+   se abonó. **Hoy no es alcanzable desde la app**: el único escritor de `reward_usd` sobre
+   una fila viva es el trigger de la 0197, que sólo matchea `registrado` y
+   `primer-embarque`; ningún camino de producto lo toca en `aplicado` (comprobado por
+   `grep` sobre `.ts`/`.tsx`). Pero nada en la base lo impide. Congelarlo pide una columna
+   nueva (`applied_amount`) y su migración.
+6. **El link del asiento se escribe sin guard de estado.** El paso 5 de
+   `applyReferralCredit` hace `.update({ applied_entry_id }).eq("id", referralId)` sin
+   `.eq("status", "aplicado")`. Si entre el COMMIT de la RPC y ese UPDATE alguien revierte
+   el crédito, el UPDATE viola el CHECK `referrals_credit_applied_coherent` (23514) y el
+   código no mira ese error. **No es una regresión** —la línea viene tal cual de la
+   SDD-0137— y el daño es nulo: el link no se escribe, que es exactamente lo que la
+   reversión ya tolera (barre por `referral_id`, el hueco B). Cerrarlo es una línea más su
+   prueba; lo dejo fuera por disciplina de alcance, no por dudarlo.
+7. **`applicableInvoicesForReferrer` (el picker) no revalida bajo lock**, y ahora la RPC sí.
    No es un defecto —el picker sólo sugiere—, pero sus criterios y los de la 0471 son dos
    copias de la misma regla en lenguajes distintos: si una cambia sin la otra, el picker
    ofrecería facturas que la función rechaza. Hoy coinciden; no hay prueba que lo fije.
