@@ -45,10 +45,12 @@
 --   4. Una aplicación del crédito está en vuelo cuando se anula la factura: ya
 --      leyó pagado 300 y estado parcial. ANTES (guard sólo de pagado): su UPDATE
 --      pasa y la factura anulada revive como parcial. DESPUÉS (guard de estado):
---      0 filas, y la factura sigue anulada. Las dos fases del 4 son las de la
---      GENERACIÓN SDD-0490 —ese UPDATE ya no existe en la app, lo reemplazó la
---      0471— y se conservan como el registro de por qué aquel guard hacía falta;
---      el escenario 5 es el mismo camino contra el código vivo.
+--      0 filas, y la factura sigue anulada. ⚠️ ETIQUETA: las dos fases del 4 son
+--      de la GENERACIÓN SDD-0490. Ese UPDATE ya NO existe en la app —lo
+--      reemplazó apply_referral_credit (0471)—, así que el escenario pasa por lo
+--      que fue cierto y NO cuenta como cobertura del código actual. Su SUCESOR
+--      es el escenario 5, que corre ese mismo camino contra las RPC. Se conserva
+--      como el registro de por qué aquel guard hizo falta.
 --   5. VENTANA 1 del riesgo residual (SDD-0496): la anulación cae ENTRE el claim
 --      de la aplicación y su UPDATE final. ANTES (las sentencias de la SDD-0490):
 --      el claim confirma solo, el crédito queda `aplicado` y la factura sigue en
@@ -600,6 +602,16 @@ begin
     -- Después de anular corre la reversión, que toma la factura y lee bajo el lock.
     perform pg_temp.como_contabilidad(pg_temp.reversion_rpc(v_f));
   when 4 then
+    -- ┌─ GENERACIÓN SDD-0490 · NO describe el camino vivo ────────────────────┐
+    -- │ Las dos fases corren el UPDATE final de applyReferralCredit con su    │
+    -- │ guard optimista. La SDD-0496 RETIRÓ ese UPDATE: la aplicación es hoy  │
+    -- │ una sola transacción (apply_referral_credit, migr 0471). O sea que    │
+    -- │ este escenario pasa por lo que fue cierto, no por lo que el código    │
+    -- │ hace ahora: NO cuenta como cobertura del código actual.               │
+    -- │ SUCESOR: el escenario 5, que es este mismo camino contra las RPC.     │
+    -- │ Se conserva como el registro de por qué aquel guard hizo falta. Si    │
+    -- │ alguien lo edita creyendo que mide la app de hoy, se equivoca.        │
+    -- └───────────────────────────────────────────────────────────────────────┘
     v_leido := pg_temp.leer(v_f);                                   -- la aplicación leyó 300, parcial
     v_r := pg_temp.carrera('authenticated', pg_temp.anulacion_sql(v_f),
       'authenticated', pg_temp.aplicacion(v_f, v_leido, p_fase = 'despues'));
@@ -707,7 +719,8 @@ create function pg_temp.nombre(p_n integer) returns text language sql immutable 
     'se anula un recibo mientras la reversión baja el crédito',
     'un cobro llega mientras se anula la factura',
     'se anula la factura mientras un cobro está en curso',
-    'una aplicación del crédito en vuelo cuando se anula la factura',
+    'una aplicación del crédito en vuelo cuando se anula la factura'
+      || ' [generación 0490, no es el camino vivo; sucesor: escenario 5]',
     'VENTANA 1: la anulación cae entre el claim de la aplicación y su UPDATE final',
     'VENTANA 2: el proceso de aplicación muere entre el claim y el UPDATE final'])[p_n]
 $$;

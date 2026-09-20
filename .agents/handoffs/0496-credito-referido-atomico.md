@@ -123,8 +123,11 @@ contra el código vivo.
 
 1. **Traer la tarea 3 («Avisar en el Studio cuando falla la reversión del crédito») desde
    `main` y adaptar yo la llamada.** Lo fijó el Director: yo adapto, no ella. Al cierre de
-   este handoff su PR **no está abierta** y `origin/main` sigue en `07831a5d`. Lo que tiene
-   que saber quien lo retome:
+   este handoff su PR **no está abierta** y `origin/main` sigue en `07831a5d`.
+   **Con MERGE, no rebase** — es la convención del repo, y el Director la repitió el
+   2026-09-20. Si el merge toca `docs/specs/README.md`, va **con el driver y regenerando
+   con `node scripts/build-docs-index.mjs`, nunca a mano** (ver la memoria del índice de
+   specs). Lo que tiene que saber quien lo retome:
    - el punto de anclaje sigue siendo `if (!revert.ok)` en `voidInvoice`
      (`app/studio/(app)/facturacion/actions.ts:713`), con la misma forma de resultado;
    - la firma cambia a `(supabase, tenantId, invoiceId, referralId?)`: el conflicto es de
@@ -157,10 +160,15 @@ contra el código vivo.
    crédito de referido que no corre bajo la RLS del usuario. No lo toqué: cambiarlo exige
    revisar los grants y las policies de `journal_entries` y `journal_lines`, y afecta a
    `expense-posting` y `claim-posting`, que comparten el molde.
-4. **El escenario 4 de la carrera quedó como registro histórico.** Sus dos fases modelan el
-   UPDATE de la generación 0490, que esta SDD retira; el 5 lo reemplaza contra el código
-   vivo. Si alguien quiere el archivo sin fases históricas, es una limpieza aparte y con
-   criterio del Director.
+4. **El escenario 4 de la carrera quedó como registro histórico, ETIQUETADO.** Sus dos
+   fases modelan el UPDATE de la generación 0490, que esta SDD retira; el 5 lo reemplaza
+   contra el código vivo. Por decisión del Director (2026-09-20) **no se borra y no se
+   deja callado**: lleva la etiqueta en tres sitios —la cabecera del archivo, un bloque
+   sobre el propio `when 4 then` y el nombre que se imprime cuando falla— diciendo que es
+   de la generación 0490, que **no cuenta como cobertura del código actual** y que su
+   sucesor es el 5. El motivo: una prueba que pasa por la razón equivocada es un verde que
+   alguien va a interpretar mal. Si algún día se quiere el archivo sin fases históricas,
+   es una limpieza aparte y con criterio del Director.
 5. **`applicableInvoicesForReferrer` (el picker) no revalida bajo lock**, y ahora la RPC sí.
    No es un defecto —el picker sólo sugiere—, pero sus criterios y los de la 0471 son dos
    copias de la misma regla en lenguajes distintos: si una cambia sin la otra, el picker
