@@ -119,9 +119,11 @@ export function TesoreriaClient({
     }
     setOpeningBillId(billId);
     try {
-      const { payable } = await getPayableForBill(billId);
+      const { payable, error } = await getPayableForBill(billId);
       if (!payable) {
-        toast.error("No se pudo abrir la cuenta por pagar de esta orden.");
+        // El motivo real si la action lo da (p. ej. el gate de rol); si no, el
+        // genérico, que cubre «no existe» y «la RLS la oculta».
+        toast.error(error ?? "No se pudo abrir la cuenta por pagar de esta orden.");
         return;
       }
       setSelectedBillId(null);

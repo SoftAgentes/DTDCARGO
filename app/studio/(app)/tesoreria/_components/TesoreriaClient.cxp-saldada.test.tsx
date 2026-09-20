@@ -216,6 +216,60 @@ describe("TesoreriaClient · la CxP saldada se abre desde «Pagos» (SDD-0494)",
    * fila vuelve a «Ver CxP» sin decir nada. El usuario se queda sin camino para
    * anular la orden y sin saber por qué.
    */
+  /**
+   * La fila es un `div` con `role="button"`: el teclado NO le llega gratis como
+   * a un `<button>`, hay que servirlo a mano. Y el guion de smokes le promete a
+   * Sam que se puede llegar con el tabulador y dar Enter, así que va probado.
+   */
+  it("se abre con Enter, no solo con el clic", async () => {
+    const user = userEvent.setup();
+    renderTesoreria([CXP_EN_COLA]);
+
+    await user.click(screen.getByRole("button", { name: "Pagos" }));
+    const fila = screen.getByRole("button", {
+      name: /Abrir la CxP de la orden OP-2026-0001/,
+    });
+    fila.focus();
+    await user.keyboard("{Enter}");
+
+    expect(mocks.getPayableForBill).toHaveBeenCalledWith("b-saldada");
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+  });
+
+  it("y con la barra espaciadora, sin hacer scroll de la página", async () => {
+    const user = userEvent.setup();
+    renderTesoreria([CXP_EN_COLA]);
+
+    await user.click(screen.getByRole("button", { name: "Pagos" }));
+    const fila = screen.getByRole("button", {
+      name: /Abrir la CxP de la orden OP-2026-0001/,
+    });
+    fila.focus();
+    await user.keyboard("[Space]");
+
+    expect(mocks.getPayableForBill).toHaveBeenCalledWith("b-saldada");
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+  });
+
+  /**
+   * El gate de vista del módulo: el layout protege la PÁGINA, no la action, que
+   * es un endpoint invocable directo. Un rol sin Tesorería recibe el motivo y
+   * NO el panel — y el motivo se muestra tal cual, no el genérico.
+   */
+  it("si el rol no puede ver Tesorería, muestra ese motivo y no abre el panel", async () => {
+    const user = userEvent.setup();
+    mocks.getPayableForBill.mockResolvedValue({
+      payable: null,
+      error: "No tienes permiso para ver esto.",
+    });
+    renderTesoreria([CXP_EN_COLA]);
+
+    await abrirDesdePagos(user);
+
+    expect(mocks.toastError).toHaveBeenCalledWith("No tienes permiso para ver esto.");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("si la lectura FALLA, avisa en vez de quedarse muda", async () => {
     const user = userEvent.setup();
     mocks.getPayableForBill.mockRejectedValue(new Error("PostgREST 500"));

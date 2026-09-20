@@ -168,7 +168,7 @@ Allowlist exacta:
 |---|---|
 | `lib/studio/payment-queries.ts` | `listReceipts`, `searchReceipts`, `getReceiptByCode`, `listUnidentifiedReceipts` y `fundsSeparationSummary` piden `deleted_at is null`; se corrigen los comentarios que decían «vivos» / «RLS … excluye anulados» |
 | `lib/studio/treasury/bill-queries.ts` | `listPayments` y `listBills` piden `deleted_at is null`; se extrae `buildPayable` (pura) y se agrega `payableForBill` |
-| `app/studio/(app)/tesoreria/actions.ts` | `getPayableForBill`: lectura para abrir una CxP saldada desde el tab «Pagos» |
+| `app/studio/(app)/tesoreria/actions.ts` | `getPayableForBill`: lectura para abrir una CxP saldada desde el tab «Pagos», **con `moduleViewDenial("treasury")`**. El mismo candado se le pone a `getBillHistory`, que no lo tenía (ver «El gate de la superficie nueva») |
 | `app/studio/(app)/tesoreria/_components/TesoreriaClient.tsx` | la fila del tab «Pagos» abre la CxP de su orden (clic + teclado, con `studio-tracking-row` para hover/foco y `aria-label`), con estado de carga, aviso ante fallo de lectura y la columna «CxP origen» como afordancia |
 | `lib/studio/collections-actions.ts` | el comentario de `identifyPaymentFor` decía que la RLS «excluye anulados» — el mismo error que esta tarea corrige en `getReceiptByCode`. Se corrige y se explica por qué ESA lectura sí debe traer el anulado (para rechazarlo con su mensaje). Solo comentario; el código no cambia |
 | `app/studio/(app)/cobranzas/_components/CobranzaDrawer.tsx` · `app/studio/(app)/tesoreria/_components/BillDrawer.tsx` (×2) · `app/studio/(app)/facturacion/_components/InvoiceDetailClient.tsx` | voseo → tuteo: «Sembrá» → «Siembra» |
@@ -200,6 +200,30 @@ invitaba a la deriva.
   `conversaciones/conversations-types.ts:358`) y en mensajes de aserción de
   tests, que son para quien programa, no producto.
 
+### El gate de la superficie nueva
+
+Abrir una CxP saldada desde el tab «Pagos» **no es un filtro más: es superficie
+de UI que antes no existía**, y el Director pidió mirarla con el estándar de una
+funcionalidad. Al hacerlo apareció un hueco real:
+
+El layout de Tesorería exige `requireModuleView("treasury")` y su comentario es
+explícito — «Mueve plata → solo accounting (+admin). NUNCA
+operations/commercial». Pero eso **protege la página, no la action**: una server
+action es un endpoint invocable directo, que es justo lo que dice el docstring
+de `moduleEditDenial` (SDD-0085 §Seguridad). Y la RLS no cubre el hueco, porque
+`supplier_bills_team_select` y `supplier_payments_team_select` (0470) son
+tenant-wide: cualquier rol del tenant puede hacer SELECT.
+
+O sea que `getPayableForBill` habría sido **una puerta nueva sin candado**: un
+rol `operations` o `commercial` podía leer proveedor, total, pagado y saldo de
+cualquier CxP. Lleva `moduleViewDenial("treasury")` —el de VISTA, no el de
+edición, porque no muta nada pero expone dinero—.
+
+`getBillHistory` tenía **el mismo hueco, preexistente**, y se cierra junto: dejar
+una action gateada al lado de su gemela abierta, en el mismo archivo, es una
+incoherencia que invita a copiar la mala. Va declarado acá y no como hallazgo
+suelto.
+
 ## Aceptación
 
 > **`status: in-progress` a propósito.** Los ocho criterios están implementados
@@ -217,12 +241,16 @@ invitaba a la deriva.
    historial del drawer de su CxP, ni suma en el KPI de pagado.
 4. Una CxP borrada no entra a la cola ni al KPI «Por pagar».
 5. Desde el tab «Pagos», la fila de una orden abre el drawer de su CxP **aunque
-   esa CxP esté saldada**, y ahí se puede anular la orden.
-6. `payableForBill` deriva el mismo `stage`/`daysOverdue` que la cola para una
+   esa CxP esté saldada**, y ahí se puede anular la orden. Se abre con clic,
+   con Enter y con la barra espaciadora; el panel de una CxP saldada ofrece
+   «Anular» sobre la orden y **no** ofrece «Registrar pago» ni «Anular CxP».
+6. Un rol sin el módulo Tesorería que invoque `getPayableForBill` o
+   `getBillHistory` directo recibe la denegación, no los datos.
+7. `payableForBill` deriva el mismo `stage`/`daysOverdue` que la cola para una
    CxP con saldo, y devuelve `null` para una CxP borrada o un id vacío.
-7. No queda voseo en los textos de producto de Cobranzas, Tesorería y el detalle
+8. No queda voseo en los textos de producto de Cobranzas, Tesorería y el detalle
    de factura.
-8. El texto «(los anulados no se muestran)» de
+9. El texto «(los anulados no se muestran)» de
    `cobranzas/recibo/[code]/page.tsx:110` queda **cierto** (era falso antes; se
    conserva sin cambios porque el arreglo lo hizo verdadero).
 
