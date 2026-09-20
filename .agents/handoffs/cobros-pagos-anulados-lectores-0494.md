@@ -128,7 +128,8 @@ Dos preguntas distintas, y conviene no confundirlas:
 | `pnpm sdd:check` | **PASÓ** — sin números repetidos |
 | `/ui-check` sobre el diff | **PASÓ con 2 ajustes aplicados** — faltaban hover y foco visible en la fila nueva (se puso `studio-tracking-row`, la clase que ya usa el tab hermano) y `aria-label` explícito |
 | Revisión independiente del diff | **PASÓ con 4 correcciones aplicadas** — ver «Qué corrigió la revisión» |
-| `pnpm verify` | **NO EJECUTADO** — falta el turno del Director (regla: una corrida pesada a la vez) |
+| `pnpm verify` | **EJECUTADO sobre `9060bbdc`, exit 0, 16 de 17 pasos medidos.** `test` **PASÓ**: 8182 casos, 627 archivos, 1 saltado. En verde también harness, lint, rsc-boundary, typecheck, edge-functions, docs:check, numbering, feature-constants, components:check, governance:check, `pending-migration-symbols` (0 ROJO · 0 AMARILLO) y build. **NO es cierre verde completo**, y lo dice el propio verify: `migrations-applied` quedó **NO MEDIDO** (SKIP por falta de `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` — pasa en todo worktree). Veredicto literal: «CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied. No hubo fallos en lo medido (16/17); exit 0 NO equivale a cierre verde completo.» |
+| Primera corrida de `verify` | **FALLÓ**, y era defecto propio: `spec-migration-refs` cazó que la spec citaba `0077_facturacion.sql`, archivo que no existe (el real es `0077_invoices.sql`). Contenido y números de línea correctos; el nombre lo tipeé de memoria tras leer el archivo por glob. Corregido en spec, handoff y memoria, y relanzado el verify **completo** sobre el árbol nuevo |
 | Pruebas de DB efímera / Docker | **NO APLICA** — esta tarea no agrega ni cambia SQL |
 
 Todos los mutantes se aplicaron sobre copia, se corrieron y se restauraron; los
