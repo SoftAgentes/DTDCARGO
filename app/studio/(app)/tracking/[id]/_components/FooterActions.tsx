@@ -16,7 +16,7 @@
 import { useState, useTransition, useRef } from "react";
 import { cancelShipment, deleteShipment } from "../actions";
 import { isTerminalStatus } from "@/lib/studio/shipment-actions";
-import type { ShipmentStatus } from "@/lib/studio/shipment-types";
+import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 const MODAL_BACKDROP: React.CSSProperties = {
