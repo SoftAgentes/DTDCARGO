@@ -150,8 +150,42 @@ driver fusionó sin conflicto.
 2. **`lpad(…, 4)` trunca pasado 9999** en la 0012, la 0045, la 0449 y la 0079. El comentario de la
    0079 dice lo contrario.
 3. **`cn_code_generation_failed`** (`lib/i18n`) queda sin uso.
-4. **Las recepciones que ya salieron con código `R-`:** la auditoría y la corrección son decisión de
-   Sam. El paso está propuesto en la spec; no se leyó nada de producción.
+4. ~~**Las recepciones que ya salieron con código `R-`.**~~ **CERRADO el 2026-09-20: no hay
+   ninguna.** La auditoría se corrió con el pedido directo de Sam, citado literal abajo. No hay
+   filas que corregir, así que la migración de corrección que esta tarea dejaba planteada no hace
+   falta.
+
+## LA AUDITORÍA DE LOS CÓDIGOS R- (2026-09-20)
+
+**Resultado: 0 recepciones con código `R-`.** Cero vigentes, cero borradas y cero colisiones con
+`payment_receipts`. La tabla entera tiene 7 recepciones: 6 con `WR-`, 1 con `SIN-CODIGO-` y ninguna
+con otro formato; la primera del 2026-05-24 y la última del 2026-07-17.
+
+**Autorización, literal**, de la ventana de Sam el 2026-09-20:
+
+> corre la auditoría de las recepciones con código R-
+
+Sobre esa autorización, para que el registro se defienda solo: la corrió **esta sesión de Worker**,
+no el Director. La sesión Director dijo expresamente que no podía validarla —un mensaje entre
+sesiones no es una aprobación de Sam— y pidió que quedara firmada acá. Es evidencia de esta sesión y
+responde ante Sam. El texto se escribió en este handoff **después** de ejecutar la consulta, no
+antes; se deja dicho así en vez de simular el orden inverso.
+
+**Método, que es lo que le da valor al cero:**
+
+- una sola consulta agregada sobre `warehouse_receipts_cn`, con el cruce contra `payment_receipts`
+  por `(tenant_id, receipt_code)`;
+- **sólo conteos y fechas**: sin nombres de clientes, sin Shipping Marks y sin montos. Ninguna fila
+  de negocio ni PII salió de la base;
+- corrió como `postgres`, con `rolbypassrls = true`, sobre una tabla con `relrowsecurity = true`:
+  vio la tabla entera y no una vista filtrada por policies, que es como un «no hay nada» podría ser
+  falso. El mismo `select` devolvió el rol, el `rolbypassrls` y el `relrowsecurity` junto a los
+  conteos;
+- **no se escribió nada**. Si alguna vez apareciera una fila con `R-`, corregirla sigue siendo una
+  migración aparte y con OK nominal nuevo.
+
+**Lectura:** el defecto era real en el código y está medido en esta misma tarea, pero nunca llegó a
+producir un dato malo. La 0469 queda como prevención, no como reparación.
 
 ## IMPACTO DOCUMENTAL
 
