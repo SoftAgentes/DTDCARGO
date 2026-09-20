@@ -36,11 +36,33 @@ Tracking y el seed de ciudades.
 | Comprobación | Estado |
 |---|---|
 | `pnpm exec tsc --noEmit` | **PASÓ** — exit 0, sin salida |
-| Pruebas nuevas (6 archivos, 84 casos) | **PASÓ** |
+| `eslint` sobre los archivos del diff | **PASÓ** — exit 0, sin salida |
+| Pruebas de gates (6 archivos, 84 casos) | **PASÓ** |
+| Pruebas de pantalla · criterio 7 (1 archivo, 9 casos) | **PASÓ** — tres corridas seguidas |
 | Suites de los módulos tocados + RBAC (11 archivos, 226 casos) | **PASÓ** |
-| Mutantes (10) | **PASÓ** — los 10 mueren, ajenas verdes en los 10 |
-| `pnpm verify` | **NO EJECUTADO** — con turno 1 de 4 del Director, pendiente de avisarle antes de lanzarlo |
+| Mutantes de gate (10) | **PASÓ** — los 10 mueren, ajenas verdes en los 10 |
+| Mutantes de pantalla (4) | **PASÓ** — los 4 mueren, cada uno mata sólo su caso |
+| `pnpm verify` | **PASÓ CON CIERRE INCOMPLETO** — exit 0, **16 de 17**; el único sin medir es `migrations-applied` |
 | Lectura de catálogo de producción | **NO DISPONIBLE** — esta tarea no tiene esa autorización; ver «Lo que NO verifiqué» |
+
+### El veredicto de `verify`, literal
+
+Corrida 22:58:26 → 23:16:22 UTC (17 min 56 s) sobre `b821c479`, con el turno 1
+de 4 concedido por el Director. Última línea del script:
+
+> `[AVISO] verify: CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied. No hubo fallos en lo medido (16/17); exit 0 NO equivale a cierre verde completo.`
+
+- `migrations-applied`: **NO EJECUTADO**, `[SKIP] sin NEXT_PUBLIC_SUPABASE_URL /
+  SUPABASE_SERVICE_ROLE_KEY`. Es estructural —da SKIP en todo worktree— y este
+  cambio no lleva migración. El que sí mide algo relevante,
+  `pending-migration-symbols`, dio **0 ROJO · 0 AMARILLO**.
+- `lint`: 15 warnings, **0 errores**, todos en archivos ajenos al diff
+  (`KommoBoardView.tsx:124`, `KommoClient.tsx:553`, `DocumentCalculator.tsx` ×4,
+  dos tests del portal y `scripts/lib/knowledge-vault.mjs`).
+- `e2e`: `[OK] (con aviso)` — 168 pasaron, 18 omitidos, ninguno falló. El exit ≠0
+  es el worker de WebKit que no cierra en Windows, que el propio script reconoce.
+- `test`: 8266 pasaron, 1 omitida, 633 archivos.
+- Al terminar: árbol limpio y `tsconfig.json` **sin** residuo de `.next-verify`.
 
 ## Correcciones al encargo
 
@@ -137,11 +159,12 @@ tarea de gates.
   aborta si hay drift, así que su aplicación es una aserción ejecutada.
   Donde cito lectura de catálogo es la del Director del 2026-09-20 registrada en
   SDD-0494, **a su nombre**.
-- **El camino por pantalla.** Los gates están probados por invocación directa,
-  que es el vector real. Que las cuatro pantallas muestren el motivo tiene
-  cobertura en el código pero **no smoke**: nadie abrió el drawer con un rol sin
-  permiso. Si el Director lo quiere, el guion pide un usuario `warehouse` y los
-  cuatro puntos del criterio 7.
+- **El smoke con un usuario real.** Las cuatro pantallas tienen cobertura de
+  render (`pantallas-muestran-la-denegacion.test.tsx`: la action devuelve la
+  denegación y el texto llega al DOM), pero **nadie abrió el drawer con un rol
+  `warehouse` de verdad en Preview**. Si el Director quiere smoke, el guion son
+  los cuatro puntos del criterio 7 con ese usuario. Lo que sí está probado —y es
+  el vector real— es la invocación directa de las nueve acciones.
 
 ## Cómo reproducir los mutantes
 
@@ -162,6 +185,25 @@ Dos cosas que hay que conservar si alguien lo rehace:
   preexistentes: un mutante que tumbe la prueba de otro gate sería un gate mal
   aislado.
 
+Hay un segundo script, `mutantes-pantallas.cjs`, para los cuatro del criterio 7.
+Mismo método; el `seedState?.error` se neutraliza con `{false && ...}` en vez de
+borrar el bloque, para no mover el resto del JSX.
+
+## Una trampa del fixture que conviene no repetir
+
+El caso «cuando borra de verdad no inventa ningún error» modelaba el camino feliz
+con `new Promise(() => {})` —una que no resuelve jamás, porque `redirect()` lanza
+y la action no devuelve—. **El precio lo pagaba otro bloque**: la transición de
+React quedaba abierta y los dos casos de «Admin · Rutas», 150 líneas más abajo,
+fallaban porque su `useActionState` no llegaba a pintar. En aislamiento los tres
+pasaban; juntos, dos rojos lejos de su causa.
+
+Tardé cuatro corridas en ubicarlo porque busqué la causa donde estaba el
+síntoma. Lo que lo resolvió fue bisecar por bloques (`-t` con dos `describe` a la
+vez) hasta ver que Tracking + Rutas fallaba y Cobranzas + Rutas no. Ahora la
+promesa se cierra en un `finally`, y la suite corrió tres veces seguidas en verde
+— un rojo intermitente y uno real no se distinguen por el color.
+
 ## Nota sobre el diff de `FooterActions.tsx`
 
 Era el **único blob con CRLF** bajo `app/studio/(app)/tracking` y contradecía
@@ -173,10 +215,13 @@ spec queda en 6 líneas para ese archivo.
 
 ## Pendientes de esta tarea
 
-1. **Avisarle al Director antes de lanzar `pnpm verify`** (turno 1 de 4 ya
-   asignado) y pasarle el veredicto literal.
-2. Con `verify` en PASÓ, la spec pasa de `in-progress` a `done`.
-3. Abrir la PR. **No fusionar**: integra el Director.
+Ninguno del alcance. `verify` corrió con su turno y el veredicto se le pasó al
+Director; la spec quedó en `done`; la PR queda abierta para que **el Director
+integre** — esta sesión no fusiona a `main`.
+
+Lo único que queda a criterio suyo es el **smoke con un usuario `warehouse` real
+en Preview** (ver «Lo que NO verifiqué»), que no es requisito de cierre porque el
+vector real —la invocación directa— sí está cubierto.
 
 ## Coordinación
 

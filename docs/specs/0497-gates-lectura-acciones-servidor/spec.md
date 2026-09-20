@@ -1,7 +1,7 @@
 ---
 sdd: "0497"
 title: "Gates de RBAC en ocho server actions del Studio que no los tenían"
-status: in-progress
+status: done
 author: "Claude"
 created: 2026-09-20
 updated: 2026-09-20
@@ -323,6 +323,7 @@ Allowlist exacta:
 | `app/studio/(app)/admin/rutas/actions.ts` | `seedTenantCitiesFromVeCatalogAction`: `moduleEditDenial("admin-rutas")` |
 | `app/studio/(app)/admin/rutas/_components/RoutesClient.tsx` | banner de error del seed (`--danger-text`, no `--danger`: en oscuro el crudo no pasa AA) |
 | Seis archivos `__tests__/*-gate.test.ts` | un archivo por módulo, 84 casos — ver «Evidencia» |
+| `app/studio/(app)/__tests__/pantallas-muestran-la-denegacion.test.tsx` | criterio 7: las cuatro pantallas renderizan el motivo, 9 casos |
 | Esta spec, `docs/specs/README.md` y `.agents/handoffs/gates-lectura-acciones-servidor-0497.md` | documentación |
 
 **Fuera de alcance**, con motivo:
@@ -356,10 +357,12 @@ puede leer.
 
 ## Aceptación
 
-> **`status: in-progress` a propósito.** Los nueve gates están implementados,
-> con cobertura automática y mutantes comprobados, pero `pnpm verify` está **NO
-> EJECUTADO** a la espera del turno de máquina del Director. Pasa a `done` cuando
-> dé PASÓ.
+> **`status: done`.** Los nueve gates están implementados, los ocho criterios
+> tienen cobertura automática y catorce mutantes comprobados, y `pnpm verify`
+> corrió con el turno del Director: **exit 0, sin fallos en lo medido, 16 de 17**
+> — el único sin medir es `migrations-applied`, que da SKIP en todo worktree por
+> falta de `.env.local` y no aplica a un cambio sin migración. Detalle paso por
+> paso en «Evidencia».
 
 1. Un rol sin el módulo que invoque cualquiera de las nueve acciones **directo,
    sin pasar por la pantalla**, recibe la denegación y **no** los datos: ni un
@@ -378,7 +381,10 @@ puede leer.
    muestra.
 7. Las cuatro pantallas tocadas muestran el motivo: el drawer de cobranza, el
    drawer de conversión del CRM, el modal de borrado de Tracking y el seed de
-   ciudades. Ninguna deja al operador con una lista vacía sin explicación.
+   ciudades. Ninguna deja al operador con una lista vacía sin explicación. Y a la
+   inversa: una factura **sin cobros** y una búsqueda **sin resultados** no
+   pintan alerta, porque el vacío legítimo tiene que seguir distinguiéndose de
+   la denegación.
 8. Los mensajes de denegación de VISTA y de EDICIÓN no son el mismo texto, y el
    de un fallo técnico tampoco.
 
@@ -445,17 +451,90 @@ Dos detalles del método que vale la pena conservar:
   ese contrato **no** habría detectado el hueco, por la misma razón por la que no
   lo detectó el anti-drift: mira el archivo, no la acción.
 
+### El criterio 7 tiene su propia suite, y hacía falta
+
+`app/studio/(app)/__tests__/pantallas-muestran-la-denegacion.test.tsx`, **9
+casos**, renderiza los cuatro componentes de verdad con la action devolviendo la
+denegación, y mira si el texto llega al DOM.
+
+Las otras seis suites prueban que las acciones **devuelven** el motivo. Eso no
+basta, y la distinción es **la misma forma de fallo que esta spec vino a
+cerrar**: un motivo que la acción devuelve y la pantalla tira a la basura deja al
+usuario con el genérico —o con una lista vacía— que era el síntoma original.
+
+Cada pantalla lleva además su caso **inverso**, que es el que le da valor al
+positivo: una factura sin cobros y una búsqueda sin resultados **no** pintan
+alerta. Sin ese par, «siempre muestro el banner» pasaría igual.
+
+**Cuatro mutantes más, los cuatro mueren**, y cada uno mata exactamente su caso:
+
+```
+A-tracking-no-pinta-el-motivo   2F/7P → los dos casos del modal de borrado
+B-cobranzas-no-pinta-el-motivo  1F/8P → el del drawer de la factura
+C-crm-no-pinta-el-motivo        1F/8P → el del drawer de conversión
+D-rutas-boton-mudo              1F/8P → el del seed de ciudades
+```
+
+> **Una lección del propio fixture, que casi se cuela.** El caso «cuando borra de
+> verdad no inventa ningún error» modelaba el camino feliz con
+> `new Promise(() => {})` —una que no resuelve jamás, porque `redirect()` lanza y
+> la action no devuelve—. El precio lo pagaba **otro bloque**: la transición de
+> React quedaba abierta y los dos casos de «Admin · Rutas», 150 líneas más abajo,
+> fallaban porque su `useActionState` no llegaba a pintar. En aislamiento los
+> tres pasaban; juntos, dos rojos lejos de su causa. Ahora la promesa se cierra
+> en un `finally`. Un fixture que deja trabajo colgando no es un fixture, es una
+> fuga — y el rojo aparece donde no está el problema.
+
+La suite corrió **tres veces seguidas en verde** después del arreglo, porque un
+rojo intermitente y uno real no se distinguen por el color.
+
 ### Lo que ya estaba verde y sigue verde
 
 `pnpm exec tsc --noEmit`: **exit 0, sin salida** (capturado a archivo; `tsc | head`
 devolvería el exit de `head`, no el de tsc).
 
-226 casos en 11 archivos: los seis nuevos, los tres preexistentes del CRM,
+226 casos en 11 archivos: los seis de gates, los tres preexistentes del CRM,
 `lib/studio/rbac.test.ts` y `lib/studio/rbac-actions-guard.test.ts` — este último
 es el anti-drift, que sigue pasando porque esta spec sólo **agrega** gates y no
 toca su allowlist.
 
-`pnpm verify` — **NO EJECUTADO**, a la espera del turno de máquina del Director.
+### `pnpm verify`
+
+Corrida del 2026-09-20, 22:58:26 → 23:16:22 UTC (17 min 56 s) sobre `b821c479`,
+con el turno de máquina concedido por el Director. **Exit 0 — y eso NO equivale a
+cierre verde completo.** La última línea del propio script, literal:
+
+> `[AVISO] verify: CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied. No hubo fallos en lo medido (16/17); exit 0 NO equivale a cierre verde completo.`
+
+| Paso | Veredicto |
+|---|---|
+| harness · rsc-boundary · typecheck · edge-functions | PASÓ |
+| lint | PASÓ — 15 problemas, **0 errores** |
+| test | PASÓ — 8266 pasaron, 1 omitida; 633 archivos |
+| docs:check · numbering · feature-constants · components:check · governance:check | PASÓ |
+| **migrations-applied** | **NO EJECUTADO** — `[SKIP] sin NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY` |
+| pending-migration-symbols | PASÓ — **0 ROJO · 0 AMARILLO** |
+| sql-tests · schema-rebuild · build | PASÓ |
+| e2e | PASÓ con aviso — 168 pasaron, 18 omitidos, **ninguno falló** |
+
+Tres lecturas que no se dan por supuestas:
+
+- **El SKIP de `migrations-applied` es estructural**, no de esta tarea: da SKIP
+  en todo worktree porque no se copian secretos a los worktrees. Y este cambio
+  **no lleva migración**. El paso que sí mide algo relevante acá es
+  `pending-migration-symbols`, con 0 ROJO · 0 AMARILLO.
+- **Los 15 warnings de lint son ajenos.** Están en `NewPurchaseWizard.test.tsx`,
+  `PurchaseStepDetalle.test.tsx`, `KommoBoardView.tsx:124`, `KommoClient.tsx:553`,
+  `DocumentCalculator.tsx` (×4) y `scripts/lib/knowledge-vault.mjs`. Se corrió
+  `eslint` sobre los archivos del diff **por separado** —exit 0, sin salida— para
+  poder afirmarlo en vez de suponerlo.
+- **El `[OK] e2e (con aviso)` es un exit ≠0 que el script reconoce**:
+  `worker-16 process did not exit within 300000ms after stop, force-killed it`, el
+  worker de WebKit que no cierra en Windows. No es regresión y no se re-corrió.
+
+Al terminar, el árbol quedó limpio y `tsconfig.json` **sin** residuo de
+`.next-verify` — las dos cosas se miraron, porque es justo lo que deja un verify
+cortado.
 
 ## Riesgos y límites
 
