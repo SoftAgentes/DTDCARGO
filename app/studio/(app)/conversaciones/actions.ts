@@ -73,6 +73,19 @@ async function resolveAgent(
 
 // ─────────────────────────────────────────────────────────────
 // sendReplyAction
+//
+// Gate de EDICIÓN (SDD-0497): era la única de las cinco acciones de este archivo
+// sin `moduleEditDenial`, y la que más lejos llega — inserta un mensaje SALIENTE
+// al cliente, firmado con el nombre del agente (o «Agente DTD»), y le dispara un
+// push al portal. El `requireModuleView("conversaciones")` de la page protege la
+// PÁGINA, no esta action; y la policy viva `"conversation_messages by tenant"`
+// (0106:141-145) es FOR ALL con `with check (tenant_id = get_user_tenant_id())`,
+// sin predicado de rol, así que el INSERT no lo frenaba nadie.
+//
+// Lo que cambia en concreto: `support` está en la matriz de `conversaciones`
+// pero es read-only V1 (`canEditModule` lo rechaza siempre), así que hasta acá
+// escribía al cliente contra el diseño explícito de su rol. `accounting`,
+// `warehouse` y `marketing`, que ni ven el módulo, tampoco pasan ya.
 // ─────────────────────────────────────────────────────────────
 
 export async function sendReplyAction(
@@ -87,6 +100,9 @@ export async function sendReplyAction(
   if (fieldErrors) return { fieldErrors };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "conversaciones");
+  if (denial) return { error: denial };
+
   const tenantId = await resolveTenantId(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 481 specs)
+### Índice de specs (generado · 482 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -519,6 +519,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0492 | Escribir cobros y cuentas por pagar queda para accounting y a… | in-progress | interno |
 | 0493 | Las pruebas que no tocan el DOM corren en el entorno node | in-progress | interno |
 | 0494 | Cobros y órdenes de pago anulados fuera de los lectores de Co… | in-progress | interno |
+| 0497 | Gates de RBAC en ocho server actions del Studio que no los te… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0495, 0496 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
