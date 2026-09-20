@@ -242,6 +242,31 @@ el Director la reasigna, lo libero con
    0342, 0362, 0363, 0394). `sdd:check` las marca «choque histórico ya aplicado en prod, NO se
    renumera». Se reporta como estado conocido, no como algo a tocar.
 
+## CORRECCIÓN DE REGISTRO: no es una regresión de la 0470
+
+Circula —y había una memoria mía que lo decía— que a los recibos anulados los
+destapó la **0470** el 2026-09-19, o sea que sería una regresión fresca de
+SDD-0492. **Lo comprobé y es falso.**
+
+`0079_cobranzas.sql:145-149` creó `"payment_receipts by tenant"` FOR ALL con
+`deleted_at is null` en el `using` y sin él en el `with check`. Esa es
+exactamente la forma que el `do $$` de la **0230** busca en `pg_policies` para
+reescribir, sin nombrar tablas. Y la 0230 está aplicada: `cutoff: 238` en
+`migrations-baseline.json`, y no figura en `pendingBelowCutoff`. El filtro se
+cayó ahí; la 0470 solo conservó el estado que ya existía.
+
+**Por qué engaña**: el archivo 0079 sigue diciendo lo que creó, porque una
+migración aplicada nunca se edita. El estado real de una policy es su
+`create policy` **más toda migración posterior que la toque**, incluidas las que
+la tocan sin nombrarla.
+
+Importa para priorizar: no hay que revertir nada de SDD-0492, y el agujero es
+viejo — SDD-0465 cerró la mitad de facturas y dejó abierta esta.
+
+**NO VERIFICADO contra producción**: el razonamiento es sobre archivos del repo
+y el baseline. Si querés certeza, es un `select` sobre `pg_policies`, metadata
+sin filas de negocio, y necesita tu autorización.
+
 ## HANDOFF AL DIRECTOR
 
 Lo que necesito de vos, en orden:

@@ -43,6 +43,34 @@ La RLS **no** oculta esas filas, y es deliberado:
   `payment_receipts` en policies por comando y conservó ese criterio:
   `payment_receipts_team_select` solo compara `tenant_id`.
 
+### Desde cuándo: la 0230, no la 0470
+
+Circula la versión de que esto lo destapó la **0470** el 2026-09-19, porque
+`0079_cobranzas.sql:145-149` —que creó `"payment_receipts by tenant"`— todavía
+dice `using (tenant_id = ... and deleted_at is null)`. **No es así, y la
+confusión vale la pena documentarla.**
+
+Esa policy es FOR ALL, su `qual` menciona `deleted_at` y su `with check` no. Es
+**exactamente** la forma que el `do $$` de la 0230 busca en `pg_policies` para
+reescribir, sin nombrar ninguna tabla. Y la 0230 está aplicada:
+`supabase/migrations-baseline.json` tiene `cutoff: 238` y no la lista en
+`pendingBelowCutoff`. O sea que el filtro se cayó en la **0230**; la 0470 solo
+conservó el estado que ya había.
+
+El archivo 0079 sigue diciendo lo que **creó**, no lo que quedó vivo, porque una
+migración aplicada nunca se edita (su identidad se prueba por md5 contra el
+ledger). Para saber qué dice hoy una policy hay que leer su `create policy`
+**más todas las migraciones posteriores que la tocan**, incluidas las que la
+tocan sin nombrarla.
+
+Consecuencia: **esto no es una regresión de SDD-0492**. Es un agujero viejo, del
+que SDD-0465 cerró la mitad de facturas y dejó abierta la de cobros y órdenes.
+
+> **NO VERIFICADO contra producción**: el razonamiento es sobre los archivos del
+> repo y el baseline. Leer `pg_policies` en producción requiere autorización y
+> esta tarea no la tiene. Si el Director quiere certeza, es un `select` de
+> metadata, sin filas de negocio.
+
 Para facturas, ese contrato se cumplió en SDD-0465. Para **cobros y órdenes de
 pago, no**: ningún lector de Cobranzas ni de Tesorería pedía `deleted_at is null`
 (medido con `grep 'deleted_at' lib/studio/payment-queries.ts` —un solo `.is`, el
