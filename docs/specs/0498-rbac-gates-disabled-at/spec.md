@@ -189,12 +189,18 @@ viva sobre `actions.ts` de otros módulos y no conviene solaparse):
 | `app/studio/(app)/tarifas/actions.ts:297` | `resolveTenantAdmin` (copia literal del anterior) → publicar/archivar tarifas | `disabled_at` |
 | `lib/http/studio-session.ts:50` | `requireStudioSession`, usado por 4 route handlers (`bugs/[id]`, exports comercial y operativo, `shipments`) | `user_id` **y** `disabled_at` |
 | `lib/studio/renditions/actions-helpers.ts:58` | `resolveAdminTenant` → emitir/anular rendiciones (dinero + `SUPERADMIN_ONLY`) | `user_id` **y** `disabled_at` |
-| `app/studio/(app)/crm/actions.ts:123`, `:213`, `:272` | admin-only del mapa de etapas de Kommo | `user_id` **y** `disabled_at` |
 | `app/api/studio/searates/probe/route.ts:41` | admin-only | `user_id` **y** `disabled_at` |
 | `app/api/studio/legal/evidence/[code]/route.ts:56` | admin-only (`legal` es `SUPERADMIN_ONLY`) | `user_id` **y** `disabled_at` |
 
-De ninguna de esas siete se verificó si la RLS de la tabla destino repite el
+De ninguna de esas seis se verificó si la RLS de la tabla destino repite el
 candado; el inventario dice dónde está el gate artesanal, no cuánto expone.
+
+**`crm/actions.ts` salió de la lista**: estaba acá con sus tres gates sin
+`user_id` ni `disabled_at`, se le pasó el hallazgo a la sesión que trabajaba ese
+archivo y SDD-0497 lo cerró en la PR #180. Quedó con `moduleEditDenial(…,
+"kommo")` al tope de cada action y la lectura posterior pidiendo sólo
+`tenant_id`, así que ya no es un gate artesanal: es resolución de tenant detrás
+de un candado fail-closed.
 
 No son gate de permiso y quedan fuera a propósito: `bugs/actions.ts:267` (usa el
 rol para etiquetar autor), `dashboard/actions.ts:44` (config propia del usuario,

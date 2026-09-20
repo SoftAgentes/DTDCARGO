@@ -12,8 +12,16 @@ medido; falta abrir la PR.** No fusionado. Sin migración.
   Ya existía y es un linked worktree válido: `harness-worktree.mjs guard` PASÓ,
   así que no creé otro. `claim --owner claude-modest-chaplygin-c2cdee` tomado, y
   `guard --owner` revalidado antes de los commits.
-- **Rama:** `claude/modest-chaplygin-c2cdee`, desde `main` `07831a5d`. Sin
-  publicar todavía.
+- **Rama:** `claude/modest-chaplygin-c2cdee`, nacida en `main` `07831a5d`.
+  Después del verify se integró `origin/main` `97a23386` (PR #180 · SDD-0497)
+  **con merge, sin rebase**, como manda la convención del repo. El único archivo
+  en común era el índice generado `docs/specs/README.md`, que resolvió el driver
+  `dtd-generated-records`; lo regeneré con `docs:index` y **no quedó diff**, o
+  sea que el driver acertó: 483 specs, con las filas 0497 y 0498. Un merge
+  textual habría dejado el conteo mal sin avisar.
+  Tras el merge, `tsc --noEmit` limpio y **335 pruebas verdes** corriendo juntas
+  las 6 suites de esta tarea y las 7 nuevas de SDD-0497 — lo que importaba, dado
+  que esta tarea cambia la forma de `StudioAccess` y esas pruebas la consumen.
 - **SDD:** `docs/specs/0498-rbac-gates-disabled-at/spec.md`, en `in-progress`.
   Reservada con `corepack pnpm sdd:next --reserve rbac-gates-disabled-at` → ref
   local `codex/sdd-reserve-0498-rbac-gates-disabled-at` (`523d60ca`), sin push.
@@ -259,9 +267,11 @@ de los 26 que tocan `rbac-guard` (349 casos), `docs:check` tras `docs:index`
 ### Seis puertas más con el mismo defecto (barrido propio, no del encargo)
 
 Salieron de recorrer las 167 lecturas de `user_tenants` del repo y quedarme con
-las 51 que además leen `role`. **No arreglé ninguna**: ampliar el encargo
-habría doblado la PR y `tarifas/actions.ts` y `crm/actions.ts` son terreno de la
-sesión 1. De ninguna verifiqué si la RLS de destino repite el candado.
+las 51 que además leen `role`. **No arreglé ninguna**: ampliar una tarea de
+seguridad sobre la marcha habría doblado la PR, y `tarifas/actions.ts` era
+terreno de la sesión 1. El Director las juntó en un encargo propio con el
+arreglo del contrato anti-drift, porque ese contrato bien hecho las saca a la
+luz igual. De ninguna verifiqué si la RLS de destino repite el candado.
 
 | Archivo:línea | Qué gatea | Omite |
 |---|---|---|
@@ -269,8 +279,12 @@ sesión 1. De ninguna verifiqué si la RLS de destino repite el candado.
 | `app/studio/(app)/tarifas/actions.ts:297` | publicar/archivar tarifas — **copia literal** del `resolveTenantAdmin` que arreglé | `disabled_at` |
 | `lib/http/studio-session.ts:50` | `requireStudioSession`, usado por 4 route handlers (`bugs/[id]`, exports comercial y operativo, `shipments`) | `user_id` **y** `disabled_at` |
 | `lib/studio/renditions/actions-helpers.ts:58` | emitir/anular rendiciones (dinero + `SUPERADMIN_ONLY`) | `user_id` **y** `disabled_at` |
-| `app/studio/(app)/crm/actions.ts:123`, `:213`, `:272` | mapa de etapas de Kommo — **es de la sesión 1**, ya le avisé | `user_id` **y** `disabled_at` |
 | `app/api/studio/searates/probe/route.ts:41` · `app/api/studio/legal/evidence/[code]/route.ts:56` | admin-only (`legal` es `SUPERADMIN_ONLY`) | `user_id` **y** `disabled_at` |
+
+**`crm/actions.ts` ya no está en la lista.** Le pasé el hallazgo a la sesión 1 y
+SDD-0497 lo cerró en la PR #180: `moduleEditDenial(supabase, "kommo")` al tope
+de cada action, y la lectura posterior pidiendo sólo `tenant_id`. Dejó de ser un
+gate artesanal — es resolución de tenant detrás de un candado fail-closed.
 
 No son gate de permiso y los descarté a propósito: `bugs/actions.ts:267` (rol
 para etiquetar autor), `dashboard/actions.ts:44` (config propia, filtra con
@@ -278,7 +292,8 @@ para etiquetar autor), `dashboard/actions.ts:44` (config propia, filtra con
 
 ### Dos justificaciones obsoletas en la ALLOWLIST del anti-drift
 
-No las toqué para no pisar a la sesión 1, que va a editar ese mismo archivo:
+No las toqué: cambiar la justificación escrita de un archivo que no arreglo es
+trabajo del encargo que reescriba el contrato, no de éste.
 
 - **`admin/feature-flags/actions.ts`** dice «toggleFeatureFlag valida
   `role==='admin'` inline». **Ya no**: usa `platformAdminDenial` desde
