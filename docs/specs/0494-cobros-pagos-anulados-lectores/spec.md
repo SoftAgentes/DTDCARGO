@@ -45,17 +45,33 @@ La RLS **no** oculta esas filas, y es deliberado:
 
 ### Desde cuándo: la 0230, no la 0470
 
-Circula la versión de que esto lo destapó la **0470** el 2026-09-19, porque
-`0079_cobranzas.sql:145-149` —que creó `"payment_receipts by tenant"`— todavía
-dice `using (tenant_id = ... and deleted_at is null)`. **No es así, y la
-confusión vale la pena documentarla.**
+Circula la versión de que esto lo destapó la **0470** el 2026-09-19 —o sea que
+sería una regresión de SDD-0492—, porque `0079_cobranzas.sql:145-149`, que creó
+`"payment_receipts by tenant"`, todavía dice
+`using (tenant_id = ... and deleted_at is null)`. **No es así**, y vale la pena
+dejar escrito por qué, porque el método que lleva a esa conclusión es razonable
+y falla igual.
 
-Esa policy es FOR ALL, su `qual` menciona `deleted_at` y su `with check` no. Es
-**exactamente** la forma que el `do $$` de la 0230 busca en `pg_policies` para
-reescribir, sin nombrar ninguna tabla. Y la 0230 está aplicada:
-`supabase/migrations-baseline.json` tiene `cutoff: 238` y no la lista en
-`pendingBelowCutoff`. O sea que el filtro se cayó en la **0230**; la 0470 solo
-conservó el estado que ya había.
+Ese método es buscar las migraciones que tocan `payment_receipts`. **La 0230 no
+nombra ninguna tabla**: es un `do $$` que recorre `pg_policies` y reescribe toda
+policy con `cmd = 'ALL'`, `qual ilike '%deleted_at%'` y `with_check` sin
+`deleted_at`. Un grep por nombre de tabla la omite por construcción.
+
+Tres evidencias independientes, todas sobre archivos del repo:
+
+1. **La forma calza.** La policy de la 0079 es FOR ALL, su `qual` menciona
+   `deleted_at` y su `with check` no: exactamente lo que la 0230 busca. Y la
+   0230 está aplicada (`cutoff: 238` en `migrations-baseline.json`, y no figura
+   en `pendingBelowCutoff`).
+2. **El caso gemelo ya está probado.** `0077_facturacion.sql:114-118` crea
+   `"invoices by tenant"` con el texto **idéntico**. SDD-0465 existe justamente
+   porque la 0230 le quitó ese filtro a `invoices` y hubo que compensarlo en la
+   capa de consulta. Si la barrida funcionó sobre esa forma, funcionó sobre esta.
+3. **La 0470 lo dice de su propia mano.** Su cabecera describe el estado
+   PREVIO a sí misma: «Cada tabla tiene una sola policy, "<tabla> by tenant"
+   (0079:145, 0088:266-282, **con la 0230**): FOR ALL para authenticated, **que
+   sólo pide el tenant**». Su autor observó la policy viva y la vio sin
+   `deleted_at`.
 
 El archivo 0079 sigue diciendo lo que **creó**, no lo que quedó vivo, porque una
 migración aplicada nunca se edita (su identidad se prueba por md5 contra el
@@ -63,13 +79,13 @@ ledger). Para saber qué dice hoy una policy hay que leer su `create policy`
 **más todas las migraciones posteriores que la tocan**, incluidas las que la
 tocan sin nombrarla.
 
-Consecuencia: **esto no es una regresión de SDD-0492**. Es un agujero viejo, del
-que SDD-0465 cerró la mitad de facturas y dejó abierta la de cobros y órdenes.
+Consecuencia práctica: **no hay nada que revertir de SDD-0492**. Es un agujero
+viejo, del que SDD-0465 cerró la mitad de facturas y dejó abierta la de cobros y
+órdenes de pago.
 
-> **NO VERIFICADO contra producción**: el razonamiento es sobre los archivos del
-> repo y el baseline. Leer `pg_policies` en producción requiere autorización y
-> esta tarea no la tiene. Si el Director quiere certeza, es un `select` de
-> metadata, sin filas de negocio.
+> **NO VERIFICADO contra producción**: las tres evidencias son documentales.
+> La prueba directa sería leer `pg_policies` en producción, que es metadata sin
+> filas de negocio pero requiere autorización que esta tarea no tiene.
 
 Para facturas, ese contrato se cumplió en SDD-0465. Para **cobros y órdenes de
 pago, no**: ningún lector de Cobranzas ni de Tesorería pedía `deleted_at is null`
@@ -231,6 +247,54 @@ completo: tab «Pagos» → clic → drawer con «Anular» y sin «Registrar pag
 «Anular CxP». Dos mutantes comprobados: resolver el drawer por `selectedBillId`
 en vez de por id contra la cola fresca mata el caso del saldo fresco, y quitar
 el `catch` de `openBillFromPayment` mata el caso de la lectura fallida.
+
+## Hueco de ESCRITURA que esta spec NO cierra
+
+Lo señaló el Director y lo confirmé: `payment_receipts_accounting_update`
+(`0470:199-209`) y `supplier_payments_accounting_update` (`0470:292-302`) piden
+tenant y rol, **y nada más**. No hay trigger que lo compense: el único sobre
+`payment_receipts` es `audit_d2_payment_receipts` (0290:396), que registra, no
+frena.
+
+O sea que hoy un usuario con rol `accounting` o `admin`, llamando a PostgREST
+directamente (no por la app), puede hacer **UPDATE sobre un recibo o una orden
+ya anulados**. El vector más filoso no es editar el monto: es
+**poner `deleted_at` de vuelta en `null`** y resucitar el documento, sin que
+nadie recalcule el `paid_amount` de su factura. Corrupción contable silenciosa.
+
+El camino de la app está a salvo: pasa por las RPC de la 0467/0468, que
+responden «Este recibo ya está anulado» / «Esta orden ya está anulada». Lo que
+falta es la defensa en profundidad de la RLS.
+
+**Esto NO es una regresión de la 0470**, por lo mismo de la sección anterior: la
+policy FOR ALL previa ya tenía el `using` reducido a tenant desde la 0230, así
+que tampoco lo impedía.
+
+### Qué haría falta, si se decide cerrarlo
+
+Análisis hecho, **migración no escrita y no aplicada** — es un cambio de RLS en
+producción y necesita el OK nominal de Sam:
+
+- El predicado va en el **`using`, NO en el `with check`**. Es la lección de la
+  0230: en una policy `FOR UPDATE` dedicada, Postgres evalúa `using` contra la
+  fila vieja y `with check` contra la nueva, así que `deleted_at is null` en el
+  `using` **permite** la anulación (la fila vieja está viva) y **bloquea** tocar
+  una ya anulada. Ponerlo en el `with check` rompería la anulación misma.
+- El camino de anulación sobrevive: `void_collection_receipt` (0467) no declara
+  `security definer`, o sea que es INVOKER y pasa por la RLS — pero su UPDATE es
+  sobre una fila todavía viva.
+- **Efecto colateral que hay que decidir**, no ignorar: el revertido de
+  rendiciones (`renditions/actions-helpers.ts:287-291`) hace
+  `update payment_receipts set application_status = 'aplicado'` sobre los
+  recibos de la rendición. Un recibo anulado después de entrar a una rendición
+  conserva su `application_status`, así que hoy lo alcanza; con el predicado
+  dejaría de alcanzarlo, en silencio (la RLS filtra filas, no da error). Yo
+  diría que eso es **más correcto** —un recibo anulado no debería volver a
+  «aplicado»— y el código ya trata ese update como best-effort, pero es un
+  cambio de comportamiento y lo decide Sam, no yo.
+- `supplier_bills` queda fuera: su marca de anulación es `status = 'anulada'`,
+  no `deleted_at`, así que el predicado sería otro y nada escribe hoy su
+  `deleted_at`.
 
 ## Riesgos y límites
 

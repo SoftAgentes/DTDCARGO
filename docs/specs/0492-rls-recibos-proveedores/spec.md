@@ -245,6 +245,27 @@ escribió en producción.
   PGlite, los mutantes (con y sin el postflight de la propia migración) y la
   compatibilidad con la 0468 en los dos órdenes.
 
+## Nota de seguimiento (SDD-0494, 2026-09-20)
+
+Esta spec dice que el SELECT «sigue tenant-wide», que es cierto sobre **quién**
+lee, pero no dice nada sobre **qué filas**. Se anota acá porque de eso salió una
+confusión que costó tiempo:
+
+- Ninguna de las policies que deja la 0470 —ni `payment_receipts_team_select` ni
+  las de UPDATE— pide `deleted_at is null`. **La 0470 no lo perdió**: la policy
+  FOR ALL anterior ya lo había perdido en la **0230**, que barre `pg_policies`
+  sin nombrar tablas. La propia cabecera de la 0470 describe esa policy previa
+  como «que sólo pide el tenant». Ver
+  [SDD-0494](../0494-cobros-pagos-anulados-lectores/spec.md) § «Desde cuándo».
+- Consecuencia que SÍ hay que conocer al leer esta spec: con este slice
+  aplicado, un rol `accounting` o `admin` puede hacer UPDATE por PostgREST sobre
+  un recibo o una orden **ya anulados**, incluido devolver `deleted_at` a
+  `null`. La app no lo permite (las RPC de 0467/0468 lo rechazan), pero la RLS
+  tampoco lo impide. Queda abierto y analizado en SDD-0494 § «Hueco de
+  ESCRITURA»; cerrarlo pide migración nueva y OK nominal de Sam.
+
+Nada de esto pide revertir la 0470, que está aplicada y no se edita.
+
 ## Fuera de alcance detectado
 
 1. **La lectura sigue tenant-wide** en las cuatro tablas, como en `invoices`.

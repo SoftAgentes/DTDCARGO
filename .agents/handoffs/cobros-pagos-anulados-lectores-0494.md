@@ -246,18 +246,45 @@ el Director la reasigna, lo libero con
    0342, 0362, 0363, 0394). `sdd:check` las marca «choque histórico ya aplicado en prod, NO se
    renumera». Se reporta como estado conocido, no como algo a tocar.
 
+## RESPUESTA AL MENSAJE DEL DIRECTOR (2026-09-20)
+
+El Director mandó una corrección diciendo que la causa es la 0470 y no la 0230, y
+sumó dos cosas al alcance. Lo tomé punto por punto:
+
+| Lo que planteó | Veredicto |
+|---|---|
+| «La causa es la 0470, no la 0230» | **No.** Ver la sección siguiente: tres evidencias documentales, una de ellas la cabecera de la propia 0470 |
+| «Un accounting/admin puede hacer UPDATE sobre un recibo anulado por PostgREST» | **Confirmado**, y es más grave de lo que dijo: se puede devolver `deleted_at` a `null`. Analizado en la spec § «Hueco de ESCRITURA». Migración **no escrita y no aplicada** |
+| «La página imprimible de un recibo anulado abre» | **Ya arreglado** por el `.is("deleted_at", null)` de `getReceiptByCode`, y su texto «(los anulados no se muestran)» quedó cierto |
+| «La spec 0492 no documenta la pérdida del predicado» | **Cierto** (grep sin resultados). Corregida, con la salvedad de que la 0470 no perdió el predicado: lo heredó perdido |
+| «Trabaja sobre main 010dc344 o posterior» | **Hecho**: merge de `origin/main` `010dc344`, sin conflictos |
+
+Sobre el método que lo llevó al error, porque va a volver a pasar: buscó las
+migraciones que tocan `payment_receipts`. **La 0230 no nombra ninguna tabla** —
+es un `do $$` sobre `pg_policies`— así que un grep por nombre de tabla la omite
+por construcción.
+
 ## CORRECCIÓN DE REGISTRO: no es una regresión de la 0470
 
 Circula —y había una memoria mía que lo decía— que a los recibos anulados los
 destapó la **0470** el 2026-09-19, o sea que sería una regresión fresca de
 SDD-0492. **Lo comprobé y es falso.**
 
-`0079_cobranzas.sql:145-149` creó `"payment_receipts by tenant"` FOR ALL con
-`deleted_at is null` en el `using` y sin él en el `with check`. Esa es
-exactamente la forma que el `do $$` de la **0230** busca en `pg_policies` para
-reescribir, sin nombrar tablas. Y la 0230 está aplicada: `cutoff: 238` en
-`migrations-baseline.json`, y no figura en `pendingBelowCutoff`. El filtro se
-cayó ahí; la 0470 solo conservó el estado que ya existía.
+Tres evidencias, todas sobre archivos del repo:
+
+1. **La forma calza.** `0079_cobranzas.sql:145-149` creó
+   `"payment_receipts by tenant"` FOR ALL con `deleted_at is null` en el `using`
+   y sin él en el `with check` — exactamente lo que el `do $$` de la **0230**
+   busca en `pg_policies`, sin nombrar tablas. Y la 0230 está aplicada
+   (`cutoff: 238`, fuera de `pendingBelowCutoff`).
+2. **El gemelo ya está probado.** `0077_facturacion.sql:114-118` crea
+   `"invoices by tenant"` con texto **idéntico**, y SDD-0465 existe porque la
+   0230 le quitó ese filtro. Si la barrida funcionó sobre esa forma, funcionó
+   sobre esta.
+3. **La 0470 lo dice de su propia mano.** Su cabecera describe la policy previa
+   a sí misma: «(0079:145, 0088:266-282, **con la 0230**): FOR ALL para
+   authenticated, **que sólo pide el tenant**». Su autor la miró viva y la vio
+   sin `deleted_at`.
 
 **Por qué engaña**: el archivo 0079 sigue diciendo lo que creó, porque una
 migración aplicada nunca se edita. El estado real de una policy es su
