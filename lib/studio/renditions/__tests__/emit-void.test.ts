@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de emisión/anulación de la Rendición (stub Supabase, sin red ni DB).
  * Cubren los criterios de aceptación §5:

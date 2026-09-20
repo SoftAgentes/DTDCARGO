@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0300 — la regla de "qué estimado se puede borrar", que es lo único que
  * separa un borrado legítimo de dejar un embarque apuntando a un hueco.

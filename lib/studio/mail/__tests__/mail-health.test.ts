@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * mail-health · clasificación de correos que no llegaron.
  *

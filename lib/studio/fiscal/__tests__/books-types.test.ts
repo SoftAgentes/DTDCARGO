@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los helpers puros de Libros ASENTADOS (SDD-0104 · Slice A · books-types).
  *

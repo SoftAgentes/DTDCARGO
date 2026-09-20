@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del cron de purga del throttle (/api/cron/purge-throttle).
  *

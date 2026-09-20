@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de tipos + validación + payload canónico de la Capa Legal
  * (SDD-0054 · Slice A + SDD-0067 · evidencia v2). Cubre Acceptance §5:

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los tipos/helpers del Hub de Documentos (SDD-0049 Slice A).
  *

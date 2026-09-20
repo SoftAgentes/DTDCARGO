@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { openToken, sealToken, type SealOptions } from "../signed-token";
 

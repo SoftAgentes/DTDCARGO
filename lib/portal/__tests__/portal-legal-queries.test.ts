@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la lógica de descubrimiento de Slice C (SDD-0054):
  * `listPendingAcceptanceInvoices` + `getPendingAcceptanceInvoice`.

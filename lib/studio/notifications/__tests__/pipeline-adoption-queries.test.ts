@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Motor de Crecimiento · F2-T04 — adopción del pipeline de captura CN.
  * FUND-S3-01: % recepciones escaneadas (prealerta_id) vs tipeadas.

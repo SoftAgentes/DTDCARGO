@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del puente Kommo lead → cliente (SDD-0058).
  *

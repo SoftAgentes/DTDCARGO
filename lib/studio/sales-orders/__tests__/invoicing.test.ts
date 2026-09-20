@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del motor de auto-facturación de la OV (SDD-0072 · Fase 2 · capa pura).
  *

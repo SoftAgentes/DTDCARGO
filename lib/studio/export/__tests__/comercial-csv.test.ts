@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0281 · Los CSV del carril comercial.
  *

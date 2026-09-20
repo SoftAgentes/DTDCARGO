@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Contrato de trazabilidad spec → migración.
  *

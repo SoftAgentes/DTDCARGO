@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de welcome-email (SDD-0059): el correo de bienvenida ahora ENVÍA de
  * verdad delegando en `sendEmail` (Resend), no solo encola; y el link apunta a

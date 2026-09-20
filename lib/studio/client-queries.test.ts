@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0265 · el `limite` del listado viene de la URL, así que se normaliza antes
  * de tocar la query. Estos tests fijan ese contrato: nada del querystring pasa

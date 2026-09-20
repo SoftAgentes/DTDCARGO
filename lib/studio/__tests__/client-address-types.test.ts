@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del validador de direcciones de entrega (SDD-0138 Slice B).
  * Sólo lógica pura (FormData → input/errores); la RLS y el trigger se prueban en DB.

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { auditExportManifest, expireAuditExports, neutralizeCsvCell, serializeAuditExport } from "../export-service";
 

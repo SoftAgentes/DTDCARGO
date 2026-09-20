@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la decisión del gate `numbering` (scripts/check-numbering.mjs).
  *

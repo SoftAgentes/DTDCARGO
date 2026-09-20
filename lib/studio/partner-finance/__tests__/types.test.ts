@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los helpers puros + validadores de partner-finance
  * (SDD-0059 · Slice A). Cubre §6 Slice A: validators, derivación de saldo neto

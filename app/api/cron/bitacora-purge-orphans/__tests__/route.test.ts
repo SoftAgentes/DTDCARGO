@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del cron GC de audios huérfanos (/api/cron/bitacora-purge-orphans).
  *

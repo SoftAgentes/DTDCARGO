@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del plan de cuentas (SDD-0040) — capa pura `account-types`.
  *

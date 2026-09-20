@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0013 · Tests del reduce PURO pickLatestPerShipment (tracking real
  * del ERP móvil). Dada una lista de eventos ORDENADA por occurred_at desc,

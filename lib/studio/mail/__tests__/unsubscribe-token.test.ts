@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del token firmado de unsubscribe (SDD-0082 · SDD-0062 Slice D).
  */

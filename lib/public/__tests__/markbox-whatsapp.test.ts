@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del mensaje "Guárdalo en mi WhatsApp" (SDD-0254).
  *

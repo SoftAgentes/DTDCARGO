@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0307 · Los helpers puros del detalle de compra del portal.
  *
