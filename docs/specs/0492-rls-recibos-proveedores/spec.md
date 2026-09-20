@@ -181,9 +181,13 @@ ningún rol legítimo:
 ### APLICADA el 2026-09-20
 
 La 0470 **está aplicada en producción** desde el 2026-09-20 a las 02:13 UTC, con
-el OK nominal de Sam nombrando el archivo («OK para aplicar
-`0470_rls_escritura_cobros_proveedores.sql` y `0469_recepcion_codigo_wr.sql`»).
-La aplicó el Director con el runbook; esta sesión no escribió en producción.
+el OK nominal de Sam, que nombró este archivo y el de la SDD-0491 en el mismo
+mensaje. **El texto literal de esa autorización vive en el handoff**, no acá, y
+es a propósito: mientras el archivo de la 0491 esté en otra rama, citar su
+nombre completo desde una spec `in-progress` pone en rojo a
+`scripts/__tests__/spec-migration-refs.test.ts`, que exige que toda migración
+citada exista en el repo. La aplicó el Director con el runbook; esta sesión no
+escribió en producción.
 
 - **Ledger** `20260920021300`, md5 `12d0325909f684e497b0b2c406a97895`, 26.081
   bytes, idéntico al archivo de esta rama (comparado con `cmp` antes de aplicar).

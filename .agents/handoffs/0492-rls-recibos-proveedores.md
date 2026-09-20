@@ -103,9 +103,17 @@ y la 0468 siguen funcionando encima, y una PR migrate-first en draft.
 
 ## LA APLICACIÓN (2026-09-20)
 
-La aplicó el Director con el runbook, con el OK nominal de Sam nombrando el archivo. Esta sesión no
-escribió en producción: sólo verificó antes que la condición de la espera fuera sólo ese OK, sin
-smoke, y que la 0468 —su nota de orden— ya estuviera aplicada.
+La aplicó el Director con el runbook. Esta sesión no escribió en producción: sólo verificó antes que
+la condición de la espera fuera sólo ese OK, sin smoke, y que la 0468 —su nota de orden— ya
+estuviera aplicada.
+
+**El OK nominal de Sam, literal**, de su ventana el 2026-09-20:
+
+> OK para aplicar 0470_rls_escritura_cobros_proveedores.sql y 0469_recepcion_codigo_wr.sql
+
+Nombra los dos archivos, así que cubre esas dos migraciones y nada más. El texto vive acá y no en la
+spec porque `spec-migration-refs` exige que toda migración citada en una spec construida exista en
+el repo, y el archivo de la 0469 llega en otra PR: citarlo desde esta spec la ponía en rojo.
 
 | Qué | Resultado |
 | --- | --- |
