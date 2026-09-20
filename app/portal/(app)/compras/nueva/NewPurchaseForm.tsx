@@ -243,8 +243,7 @@ function PurchaseDone({
           Tu compra quedó registrada.
         </div>
         <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.5] max-w-[42ch]">
-          Compártele el link a tu proveedor: trae la dirección de la bodega y las
-          etiquetas, las baja él directo. No tienes que descargar ni reenviar nada.
+          Conserva el código de tu compra para consultar su estado y sus etiquetas.
         </p>
       </div>
 
@@ -265,9 +264,6 @@ function PurchaseDone({
 
       {shareToken ? (
         <div className="w-full text-left">
-          <div className="text-[12px] font-bold text-ink mb-2">
-            Compartir con tu proveedor
-          </div>
           <ShareProviderButton token={shareToken} />
         </div>
       ) : null}

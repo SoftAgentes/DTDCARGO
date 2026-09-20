@@ -11,7 +11,7 @@
  * - emitInvoice: borrador → emitida + issued_at/due_date
  * - registerPayment: paid_amount += amount; recalcula status (parcial/pagada)
  * - voidInvoice: → anulada (no si pagada)
- * - softDeleteInvoice: deleted_at = now()
+ * - softDeleteInvoice: deleted_at = now(), SOLO si status=borrador (SDD-0465)
  * - lookupShipmentForInvoice: prefill del drawer desde un código de embarque
  *
  * Las mutaciones de factura se auditan dentro de su transacción PostgreSQL
@@ -42,8 +42,10 @@ import {
 import {
   calcInvoiceTotals,
   isInvoiceIvaMode,
+  isInvoiceStatus,
   normalizeLines,
   resolveInvoiceIva,
+  statusLabel,
   validateInvoiceInput,
   type InvoiceActionState,
   type InvoiceCurrency,
@@ -55,9 +57,14 @@ import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { varsDeFacturaEmitida } from "@/lib/studio/invoice-mail-vars";
 import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
 import {
-  documentoDelCliente,
-  SIN_DOCUMENTO,
-} from "@/lib/studio/invoice-client-doc";
+  billToInsertPatch,
+  billToUpdatePatch,
+  buildInvoiceBillingOptions,
+  isBillingKind,
+  parseBillToKind,
+  type BillingKind,
+  type InvoiceBillingOptions,
+} from "@/lib/studio/invoice-billing";
 
 const VALID_CURRENCIES: InvoiceCurrency[] = ["USD", "VES", "USDT", "CNY"];
 
@@ -304,6 +311,7 @@ export async function createInvoice(
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateInvoiceInput(partial);
   if (fieldErrors) return { fieldErrors };
+  const billTo = parseBillToKind(formData);
 
   const { tenantId, error: tErr } = await resolveTenant(supabase);
   if (tErr || !tenantId) return { error: tErr };
@@ -370,12 +378,10 @@ export async function createInvoice(
       due_date: input!.due_date ?? (emitNow ? addDaysISO(today, 30) : null),
       // SDD-0068: clasificación de fondos del mandato (los recibos la heredan).
       fund_class: await deriveInvoiceFundClass(supabase, input!.shipment_id),
-      // SDD-0298: el documento fiscal del cliente se sella al EMITIR, no al
-      // crear. Un borrador todavía se edita; congelarle algo no tendría
-      // sentido. Si se crea-y-emite, se sella acá mismo.
-      ...(emitNow
-        ? await documentoDelCliente(supabase, input!.client_markbox)
-        : SIN_DOCUMENTO),
+      // SDD-0298/0487: el titular (nombre, documento, tipo y domicilio) lo sella
+      // la base al emitir (trigger 0466). Aquí sólo viaja la elección del
+      // operador, y sólo si el selector de titular estaba en pantalla.
+      ...billToInsertPatch(billTo),
     })
     .select("id")
     .single();
@@ -423,6 +429,7 @@ export async function updateInvoice(
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateInvoiceInput(partial);
   if (fieldErrors) return { fieldErrors };
+  const billTo = parseBillToKind(formData);
 
   const iva = await resolveIva(supabase, current.tenant_id, input!.iva_mode);
   const totals = calcInvoiceTotals({
@@ -448,6 +455,9 @@ export async function updateInvoice(
       lines: input!.lines,
       notes: input!.notes,
       due_date: input!.due_date,
+      // SDD-0487: la elección de titular del borrador (null = la preferencia
+      // del cliente). Sólo si el selector estaba en pantalla.
+      ...billToUpdatePatch(billTo),
     })
     .eq("id", id);
 
@@ -542,10 +552,8 @@ export async function emitInvoice(
       // cambiar mientras era borrador). Solo escribe la columna — el asiento
       // de emisión y la máquina de estados quedan intactos.
       fund_class: await deriveInvoiceFundClass(supabase, current.shipment_id),
-      // SDD-0298: acá se sella el documento fiscal del cliente. Es el momento
-      // exacto en que la factura deja de ser borrador y pasa a comprobante —
-      // desde ahora el papel ya no cambia aunque el cliente corrija su RIF.
-      ...(await documentoDelCliente(supabase, current.client_markbox)),
+      // SDD-0298/0487: el titular lo sella la base en este UPDATE (trigger
+      // 0466): borrador → emitida. Desde ahora el papel ya no cambia.
     })
     .eq("id", id);
 
@@ -712,6 +720,29 @@ export async function voidInvoice(
   return { ok: true };
 }
 
+/**
+ * SDD-0465 · Por qué el borrado lógico no procede fuera de `borrador`.
+ *
+ * Es la matriz de permanencia MP-01 aplicada a facturación: «Borrador: P2/R2.
+ * Emitido o asentado: P3/R3», y «`deleted_at` no demuestra por sí solo que P2
+ * esté bien aplicado». Una factura emitida ya produjo el asiento de venta
+ * (SDD-0040), puede tener recibos (SDD-0041) y créditos de referido aplicados
+ * (SDD-0137) y entra al libro de ventas (SDD-0073); ocultarla con `deleted_at`
+ * dejaría el mayor y los recibos apuntando a una factura que ningún lector
+ * muestra. Para eso existe `voidInvoice`: conserva el original, exige motivo y
+ * revierte lo que haya que revertir. Una `anulada` tampoco se elimina: es el
+ * resultado P3 y su rastro tiene que seguir visible.
+ */
+function softDeleteDenial(status: string): string {
+  if (status === "anulada") {
+    return "Esta factura ya está anulada y se conserva como registro; no se elimina.";
+  }
+  const label = isInvoiceStatus(status)
+    ? statusLabel(status).toLowerCase()
+    : status;
+  return `Solo las facturas en borrador pueden eliminarse. Esta está ${label}: si no corresponde, anúlala con un motivo y queda registrada.`;
+}
+
 export async function softDeleteInvoice(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
@@ -719,14 +750,43 @@ export async function softDeleteInvoice(
   const denial = await moduleEditDenial(supabase, "invoices");
   if (denial) return { error: denial };
 
-  const { error } = await supabase
+  const { data: current, error: readErr } = await supabase
+    .from("invoices")
+    .select("id, status, invoice_code, deleted_at")
+    .eq("id", id)
+    .maybeSingle<{
+      id: string;
+      status: string;
+      invoice_code: string;
+      deleted_at: string | null;
+    }>();
+  if (readErr || !current) return { error: "Factura no encontrada." };
+  if (current.deleted_at) return { error: "Esta factura ya está eliminada." };
+  if (current.status !== "borrador") {
+    return { error: softDeleteDenial(current.status) };
+  }
+
+  // El UPDATE repite las condiciones: si la factura se emitió entre la lectura
+  // y la escritura, no matchea ninguna fila y no se borra una emitida.
+  const { data: deleted, error } = await supabase
     .from("invoices")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("status", "borrador")
+    .is("deleted_at", null)
+    .select("id")
+    .maybeSingle<{ id: string }>();
 
   if (error) return { error: error.message };
+  if (!deleted) {
+    return {
+      error:
+        "La factura cambió de estado mientras se eliminaba; recarga y revisa antes de intentarlo otra vez.",
+    };
+  }
 
   revalidatePath("/studio/facturacion");
+  revalidatePath(`/studio/facturacion/${current.invoice_code}`);
   return { ok: true };
 }
 
@@ -842,4 +902,54 @@ export async function lookupShipmentForInvoice(code: string): Promise<{
       client_markbox: string | null;
     },
   };
+}
+
+/**
+ * SDD-0487 · Titulares posibles de la factura de un Shipping Mark, para el
+ * selector del borrador. Lee por RLS: el cliente del tenant y su identidad de
+ * facturación (0466 da SELECT a accounting, admin y commercial). Sin 0466 la
+ * tabla no existe y devuelve null: el borrador no muestra el selector y se
+ * guarda como antes.
+ */
+export async function lookupInvoiceBillingOptions(
+  markbox: string,
+  invoiceId?: string | null,
+): Promise<(InvoiceBillingOptions & { current: BillingKind | null }) | null> {
+  const mb = markbox?.trim();
+  if (!mb) return null;
+  const supabase = await createClient();
+  const { data: client, error } = await supabase
+    .from("clients")
+    .select("id, name, rif, doc_kind")
+    .eq("markbox", mb)
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string; name: string | null; rif: string | null; doc_kind: string | null }>();
+  if (error || !client) return null;
+
+  const { data: identity, error: idErr } = await supabase
+    .from("client_billing_identities")
+    .select("kind, legal_name, doc, fiscal_address, is_billing_default")
+    .eq("client_id", client.id)
+    .maybeSingle<{
+      kind: string;
+      legal_name: string;
+      doc: string;
+      fiscal_address: string | null;
+      is_billing_default: boolean;
+    }>();
+  if (idErr) return null;
+
+  // En un borrador existente, la elección que ya tiene: el selector arranca en
+  // ella y guardar no la borra sin querer.
+  let current: BillingKind | null = null;
+  if (invoiceId) {
+    const { data: inv } = await supabase
+      .from("invoices")
+      .select("bill_to_kind")
+      .eq("id", invoiceId)
+      .maybeSingle<{ bill_to_kind: string | null }>();
+    const stored = inv?.bill_to_kind;
+    current = isBillingKind(stored) ? stored : null;
+  }
+  return { ...buildInvoiceBillingOptions(client, identity ?? null), current };
 }

@@ -3,6 +3,14 @@
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':(exclude)docs/**' ':(exclude,glob)*.md' && git diff --quiet HEAD^ HEAD -- docs/marketing",
   "crons": [
     {
+      "path": "/api/cron/document-import-drain",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/document-import-cleanup",
+      "schedule": "17 * * * *"
+    },
+    {
       "path": "/api/cron/ceo-brief",
       "schedule": "0 11 * * *"
     },
@@ -21,6 +29,10 @@
     {
       "path": "/api/cron/purge-throttle",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/portal-revoked-retention",
+      "schedule": "30 4 * * *"
     },
     {
       "path": "/api/cron/purge-receipt-orphans",

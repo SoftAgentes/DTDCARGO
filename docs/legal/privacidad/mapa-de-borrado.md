@@ -297,7 +297,88 @@ de 30 días ni la exclusión del equipo China estén implementadas. La aplicaci�
 de 0447 en Cloud permanece **NO VERIFICABLE** hasta autorización nominal y
 comprobación posterior.
 
+Actualización 2026-09-18: 0447 quedó aplicada en Cloud (ledger
+`20260910164232`). [SDD-0481](../../specs/0481-portal-cliente-reemplazo-foto-identidad/spec.md)
+habilita el reemplazo dentro del cupo de 3 cambios con la migración `0461`
+(aplicada el 2026-09-18, ledger `20260918174236`). La foto sustituida se conserva como versión: hasta 3
+por cliente en `client-docs`, con su ruta sólo en `client_profile_edits`.
+Una solicitud de borrado tiene que alcanzar esas versiones además de la vigente.
+La purga a 30 días sigue **ENCONTRADO**, no implementada.
+
+## 10 · Borrado lógico de un cliente y acceso al Portal
+
+[SDD-0467](../../specs/0467-borrar-cliente-revoca-portal/spec.md), decisión de
+Sam del 2026-09-14: *«borrar un cliente: debe revocar el acceso. Así debe ser.»*
+
+**El borrado lógico no es un borrado de datos.** Poner `clients.deleted_at`
+(Studio › Clientes › Eliminar, o la ficha retirada por `merge_clients`) oculta
+la ficha; la fila y todo lo que cuelga de ella siguen en la base. Lo que sí
+cambia desde la migración `0454_borrar_cliente_revoca_portal` es el **acceso**:
+
+| Destino | Qué pasa en el borrado lógico |
+|---|---|
+| `client_users` | En la misma transacción queda `revoked`, con `revoked_at`, y se vacían `auth_user_id` y `token`. Durante **30 días desde la revocación** conserva `email`, `invited_at`, `bound_at`, `last_login_at`, `revoked_at`, `last_email_invite_at` y `last_whatsapp_invite_at` (decisión de Sam del 2026-09-15, [SDD-0477](../../specs/0477-retencion-vinculo-portal-revocado/spec.md)). Después, el cron `portal-revoked-retention` los borra con `erase_revoked_portal_access_data` (migración 0460) y deja un evento `portal_access_data_erased` por fila, sin valores. La fila sigue `revoked`, con tenant, cliente, quién invitó, contadores y `created_at`. Un hold de 0301 detiene el borrado. Vale para toda revocación: la del borrado del cliente, la manual y la de `merge_clients` |
+| `portal_access_links` | Todos los códigos cortos del cliente quedan con `revoked_at`, usados o no. La fila conserva el código y sus fechas |
+| `entity_audit_log` | El cambio de status deja un evento `portal_access_status_changed` con el operador que borró y el motivo. Desde `0455_borrado_cliente_auditado` ([SDD-0469](../../specs/0469-borrado-cliente-auditado/spec.md)) el borrado deja además, sobre el cliente, `client_deleted` (o `client_merged` si es la ficha que retira `merge_clients`) con el operador, el tenant, `deleted_at` y `merged_into_client_id` antes y después, y el motivo. Ninguno copia nombre, Shipping Mark, correo ni teléfono. El motivo es texto libre opcional del operador; el Studio pide escribirlo sin datos personales, pero la base no lo comprueba. 🔵 **CONSERVA** según SDD-0186 |
+
+- Si la revocación falla, el borrado no ocurre: van en la misma transacción.
+- Si el evento `client_deleted` no se puede escribir, tampoco hay borrado ni
+  revocación (0455).
+- Restaurar a mano, que no tiene camino en el Studio, no deja un evento de
+  restauración.
+- Restaurar la ficha **no** devuelve el acceso. Hace falta una invitación nueva.
+- La base rechaza dejar un vínculo `invited`/`active` o un código sin revocar
+  sobre un cliente borrado o inexistente.
+- `portal_access_links` es posterior a la foto del 2026-07-31. Según
+  `supabase/migrations/0360_portal_access_links.sql:29`, también cuelga de
+  `clients` con `on delete cascade`, así que un borrado físico lo alcanzaría
+  como a las tablas de §3.A. No se verificó contra producción.
+
+Estado al 2026-09-14: **ENCONTRADO** en producción, corregido en el repositorio
+y **NO VERIFICABLE** en producción hasta aplicar 0454 con OK nominal. El conteo
+agregado de ese día, sin ids ni datos, daba **1** vínculo activo con cliente
+borrado; el backfill de 0454 lo revoca al aplicarse.
+
+Estado al 2026-09-15: 0454 quedó aplicada en producción (ver la sección
+Producción de SDD-0467). Que un borrado no deje constancia de quién lo hizo ni
+por qué está **ENCONTRADO** en producción y corregido en el repositorio por 0455.
+Es **NO VERIFICABLE** en producción hasta aplicar 0455 con OK nominal. 0455 no
+tiene backfill: los borrados anteriores siguen sin evento, porque su actor y su
+motivo no se pueden reconstruir.
+
+Estado al 2026-09-18: la retención sin plazo del vínculo revocado está
+**ENCONTRADA** en producción y corregida en el repositorio por 0460 (SDD-0477).
+En producción sigue **NO VERIFICABLE** hasta que se cumplan tres pasos:
+
+1. aplicar 0460 con OK nominal;
+2. leer el primer dry-run del cron;
+3. que Sam active `PORTAL_REVOKED_RETENTION_ENABLED`.
+
+Mientras el interruptor siga apagado, el cron sólo cuenta. Tres destinos
+conservan datos del vínculo después del plazo, y la revisión de SDD-0477 los
+deja declarados:
+
+- **Los eventos de auditoría** de invitación y de cambio de status: fechan la
+  invitación y la revocación, sin el correo. 🔵 CONSERVA.
+- **La cuenta de Supabase Auth** del antiguo titular (`auth.users`: correo y
+  último ingreso). Ningún código la borra. 🔴 **SIN FUNDAMENTO**: necesita una
+  decisión propia.
+- **`created_at` de la fila**, que coincide con la primera invitación. Sam
+  eligió el 2026-09-18 que la fila quede como «Revocado».
+
 ---
 
 *Documento vivo. Se actualiza cuando llegue la respuesta de la abogada y cada vez
 que aparezca una tabla, un bucket o un proveedor nuevo. No es asesoría legal.*
+
+## 11 · Foto de perfil e identidad de facturación (SDD-0487)
+
+- **Foto de perfil** (`clients.avatar_path` y su objeto en `client-docs/…/avatar/`):
+  - el cliente la quita desde el Portal con «Quitar foto» (`removeAvatarAction`), que borra primero el objeto y después el puntero;
+  - al reemplazarla se borra la anterior;
+  - el borrado lógico de un cliente (0455) todavía no alcanza Storage: la foto de perfil queda igual que la de identidad (§9).
+- **Identidad de facturación** (`client_billing_identities`):
+  - el cliente la quita con «Quitar empresa» o «Quitar mis datos personales» (`portal_delete_my_billing_identity`), que borra la fila y lo audita sin el documento;
+  - la FK `on delete cascade` la borra si se borra físicamente el cliente.
+- **Facturas emitidas:** conservan el titular sellado (nombre, documento, tipo y domicilio fiscal). Es obligación fiscal, no se reescribe, y el plazo lo fija la abogada (§3 B).
+- **Intentos bloqueados** (`client_profile_blocked_attempts`): se purgan a los 90 días con el cron `purge-throttle`. El DELETE lo da la 0466, aplicada a producción el 2026-09-19; la purga corre desde que se despliega el cron de SDD-0487.

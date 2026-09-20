@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0256 · Fase 5 (B4) — el estado comercial que lee el agente de IA de Kommo.
  *

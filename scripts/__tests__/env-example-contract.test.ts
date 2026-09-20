@@ -1,4 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
+// @vitest-environment node
+import { readdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
@@ -54,16 +56,37 @@ function fuentes(dir: string, acc: string[] = []): string[] {
   return acc;
 }
 
+/**
+ * SDD-0486, seguimiento: lectura en paralelo con tope, como en
+ * `invoice-read-boundary`. Acá no hay nada que parsear —sólo un regex— así que
+ * el archivo es I/O puro y todo el ahorro viene del paralelismo: leer los ~1.600
+ * módulos uno por uno sumaba la latencia de cada apertura, que en Windows
+ * incluye el escaneo del antivirus.
+ */
+async function leerTodos(rutas: string[], tope = 32): Promise<string[]> {
+  const textos = new Array<string>(rutas.length);
+  let siguiente = 0;
+  await Promise.all(
+    Array.from({ length: tope }, async () => {
+      while (siguiente < rutas.length) {
+        const i = siguiente++;
+        textos[i] = await readFile(rutas[i], "utf8");
+      }
+    }),
+  );
+  return textos;
+}
+
 describe(".env.example documenta lo que el código lee", () => {
-  it("no hay variables de configuración sin documentar", () => {
+  it("no hay variables de configuración sin documentar", async () => {
     const usadas = new Set<string>();
-    for (const f of RAICES.flatMap((r) => fuentes(r))) {
-      const src = readFileSync(join(process.cwd(), f), "utf8");
+    const rutas = RAICES.flatMap((r) => fuentes(r)).map((f) => join(process.cwd(), f));
+    for (const src of await leerTodos(rutas)) {
       for (const m of src.matchAll(/process\.env\.([A-Z][A-Z_0-9]+)/g)) {
         usadas.add(m[1]);
       }
     }
-    const ejemplo = readFileSync(join(process.cwd(), ".env.example"), "utf8");
+    const ejemplo = await readFile(join(process.cwd(), ".env.example"), "utf8");
     // Límite de palabra, no `includes`: con subcadena, FOO se daría por
     // documentada porque existe FOO_BAR. Lo cazó una prueba de mutación.
     const documentada = (v: string) => new RegExp(`\\b${v}\\b`).test(ejemplo);

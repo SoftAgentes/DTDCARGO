@@ -2,6 +2,12 @@
  * Helpers de query reutilizables para el módulo Facturación (SDD-0021).
  *
  * RLS filtra por tenant_id automáticamente.
+ *
+ * SDD-0465 · Las facturas con `deleted_at` NO se leen desde acá. La RLS de
+ * equipo dejó de filtrarlas a propósito (0230: el `deleted_at is null` en el
+ * USING de una policy FOR ALL bloqueaba el propio soft delete), así que el
+ * filtro vive en cada lector. No existe vista de papelera para facturas: una
+ * borrada no se lista, no se abre por código y no suma a ningún KPI.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -72,6 +78,7 @@ export async function listInvoices(
   let query = supabase
     .from("invoices")
     .select(INVOICE_COLUMNS)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -131,6 +138,7 @@ export async function getInvoiceByCode(
     .from("invoices")
     .select(INVOICE_COLUMNS)
     .eq("invoice_code", code)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) {
@@ -161,6 +169,7 @@ export async function invoiceKpis(
 ): Promise<InvoiceKpis> {
   // Paginado: los KPI de facturación (por cobrar, vencido) salen de sumar
   // estas filas. Es la fuente que reusan el tablero y el flujo de caja.
+  // Sin las borradas (SDD-0465): una factura eliminada no es saldo por cobrar.
   const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
     (d, h) =>
       supabase
@@ -168,6 +177,7 @@ export async function invoiceKpis(
         .select(
           "status, due_date, issued_at, total_amount, paid_amount, created_at",
         )
+        .is("deleted_at", null)
         .order("id", { ascending: true })
         .range(d, h),
   );

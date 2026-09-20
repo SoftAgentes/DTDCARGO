@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * canResend · qué correo se puede reenviar y cuál no.
  *

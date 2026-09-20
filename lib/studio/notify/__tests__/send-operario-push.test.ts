@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * sendPushToOperario · qué mata una subscription y qué no.
  *

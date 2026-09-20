@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const stubs = vi.hoisted(() => ({
   currentPath: null as string | null,
+  quota: { remaining: 3 } as { remaining: number } | Error,
   session: null as SupabaseClient | null,
   admin: null as SupabaseClient | null,
   rpc: vi.fn(),
@@ -71,12 +72,29 @@ beforeEach(() => {
   stubs.session = null;
   stubs.admin = null;
   stubs.currentPath = null;
-  stubs.rpc.mockImplementation(async (name: string) => {
+  stubs.quota = { remaining: 3 };
+  stubs.rpc.mockImplementation(async (name: string, args?: unknown) => {
     if (name === "get_portal_client_id") {
       return { data: "client-1", error: null };
     }
+    if (name === "get_my_portal_profile_edit_quota") {
+      if (stubs.quota instanceof Error) {
+        return { data: null, error: { message: stubs.quota.message } };
+      }
+      const remaining = stubs.quota.remaining;
+      return {
+        data: [{
+          limit_count: 3,
+          applied_count: 3 - remaining,
+          reserved_count: 0,
+          remaining_count: remaining,
+        }],
+        error: null,
+      };
+    }
     if (name === "portal_set_identity_photo") {
-      return { data: null, error: null };
+      stubs.currentPath = (args as { p_new_path: string }).p_new_path;
+      return { data: [{ counted: true, remaining_count: 0 }], error: null };
     }
     throw new Error(`rpc inesperada: ${name}`);
   });
@@ -87,13 +105,19 @@ beforeEach(() => {
   stubs.remove.mockResolvedValue({ error: null });
 });
 
-describe("uploadCedulaPhotoAction · contención de privacidad", () => {
-  it("rechaza un reemplazo antes de subir otro archivo sensible", async () => {
-    stubs.currentPath = "tenant-1/DTD-5452/identity/current.jpg";
+describe("uploadCedulaPhotoAction · reemplazo dentro del cupo · SDD-0481", () => {
+  const current = "tenant-1/DTD-5452/identity/current.jpg";
+
+  it.each([
+    ["agotado", { remaining: 0 }, /ya usaste tus 3 cambios/i],
+    ["ilegible", new Error("quota_down"), /no pudimos consultar tus cambios/i],
+  ] as const)("cupo %s: corta antes de subir otro archivo sensible", async (_caso, quota, texto) => {
+    stubs.currentPath = current;
+    stubs.quota = quota;
 
     const result = await uploadCedulaPhotoAction({}, new FormData());
 
-    expect(result.error).toMatch(/reemplazar tu documento/i);
+    expect(result.error).toMatch(texto);
     expect(stubs.upload).not.toHaveBeenCalled();
     expect(stubs.remove).not.toHaveBeenCalled();
     expect(stubs.rpc).not.toHaveBeenCalledWith(
@@ -101,6 +125,33 @@ describe("uploadCedulaPhotoAction · contención de privacidad", () => {
       expect.anything(),
     );
   });
+
+  it("con cupo sube, mueve el puntero por la RPC y conserva la foto anterior", async () => {
+    stubs.currentPath = current;
+    stubs.quota = { remaining: 1 };
+
+    const result = await uploadCedulaPhotoAction({}, new FormData());
+
+    expect(result).toEqual({ ok: true });
+    expect(stubs.upload).toHaveBeenCalledTimes(1);
+    expect(stubs.rpc).toHaveBeenCalledWith("portal_set_identity_photo", {
+      p_new_path: "tenant-1/DTD-5452/identity/new.jpg",
+    });
+    // MP-01 §9: la sustituida queda como versión; nada se borra.
+    expect(stubs.remove).not.toHaveBeenCalled();
+    expect(stubs.revalidatePath).toHaveBeenCalledWith("/portal/perfil");
+  });
+
+  it("la primera foto no consulta el cupo", async () => {
+    const result = await uploadCedulaPhotoAction({}, new FormData());
+
+    expect(result).toEqual({ ok: true });
+    expect(stubs.rpc).not.toHaveBeenCalledWith("get_my_portal_profile_edit_quota");
+    expect(stubs.upload).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("uploadCedulaPhotoAction · rollback de la carga nueva", () => {
 
   it("comprueba el resultado del rollback y pide soporte si Storage no retira el objeto", async () => {
     stubs.rpc.mockImplementation(async (name: string) => {
@@ -135,7 +186,7 @@ describe("respuesta incierta · SDK Supabase real con transporte offline", () =>
   const prefix = "synthetic-tenant/SYNTHETIC-MARK/";
   const rejection = { code: "P0001", message: "identity_photo_replacement_temporarily_disabled" };
   type Options = {
-    commit?: boolean; lost?: boolean; existing?: boolean;
+    commit?: boolean; lost?: boolean; existing?: boolean; remaining?: number;
     rejected?: { code: string; message: string };
     status?: number;
     read?: "error" | "throw" | "missing" | "other" | "tenant" | "mark" | "deleted";
@@ -147,7 +198,8 @@ describe("respuesta incierta · SDK Supabase real con transporte offline", () =>
     const state = {
       pointer: options.existing ? `${prefix}existing.png` : null as string | null,
       uploaded: "", objects: new Set<string>(), removes: [] as string[][],
-      reads: [] as URL[], identities: 0, setters: 0,
+      reads: [] as URL[], identities: 0, setters: 0, quotaReads: 0,
+      existing: options.existing ? `${prefix}existing.png` : null as string | null,
     };
     if (state.pointer) state.objects.add(state.pointer);
     const json = (data: unknown, status = 200) => new Response(JSON.stringify(data), {
@@ -160,6 +212,14 @@ describe("respuesta incierta · SDK Supabase real con transporte offline", () =>
         state.identities++;
         if (state.identities > 1 && options.identity === "error") throw new TypeError("synthetic identity failure");
         return json(state.identities > 1 && options.identity === "other" ? "other-client" : clientId);
+      }
+      if (url.pathname.endsWith("/rpc/get_my_portal_profile_edit_quota")) {
+        state.quotaReads++;
+        const remaining = options.remaining ?? 3;
+        return json([{
+          limit_count: 3, applied_count: 3 - remaining,
+          reserved_count: 0, remaining_count: remaining,
+        }]);
       }
       if (url.pathname === "/rest/v1/clients") {
         state.reads.push(url);
@@ -291,6 +351,43 @@ describe("respuesta incierta · SDK Supabase real con transporte offline", () =>
     const { state, run } = await setup(options);
     expect((await run()).ok).toBeUndefined();
     expect(state.removes).toEqual([]);
+  });
+  it("reemplazo con cupo: la nueva queda vigente y la anterior se conserva", async () => {
+    const { state, run } = await setup({ existing: true });
+    expect(await run()).toEqual({ ok: true });
+    expect(state.quotaReads).toBe(1);
+    expect(state.setters).toBe(1);
+    expect(state.pointer).toBe(state.uploaded);
+    expect(state.removes).toEqual([]);
+    expect(state.objects.has(state.uploaded)).toBe(true);
+    expect(state.objects.has(state.existing!)).toBe(true);
+  });
+  it("reemplazo sin cupo no sube nada ni llama a la RPC", async () => {
+    const { state, run } = await setup({ existing: true, remaining: 0 });
+    const result = await run();
+    expect(result.error).toMatch(/3 cambios/i);
+    expect(state.uploaded).toBe("");
+    expect(state.setters).toBe(0);
+    expect(state.removes).toEqual([]);
+    expect([...state.objects]).toEqual([state.existing]);
+  });
+  it("reemplazo comprometido con respuesta perdida: confirma sin borrar ninguna", async () => {
+    const { state, run } = await setup({ existing: true, commit: true, lost: true });
+    expect(await run()).toEqual({ ok: true });
+    expect(state.pointer).toBe(state.uploaded);
+    expect(state.removes).toEqual([]);
+    expect(state.objects.has(state.existing!)).toBe(true);
+  });
+  it.each([
+    [rejection, /todavía no está activo/i],
+    [{ code: "P0001", message: "profile_edit_limit_reached" }, /3 cambios/i],
+  ] as const)("reemplazo rechazado %j: retira sólo la nueva y conserva la vigente", async (rejected, texto) => {
+    const { state, run } = await setup({ existing: true, rejected });
+    const result = await run();
+    expect(result.error).toMatch(texto);
+    expect(state.pointer).toBe(state.existing);
+    expect(state.removes).toEqual([[state.uploaded]]);
+    expect([...state.objects]).toEqual([state.existing]);
   });
   it("no limpia si lectura de rechazo explícito falla", async () => {
     const { state, run } = await setup({ rejected: rejection, read: "error" });

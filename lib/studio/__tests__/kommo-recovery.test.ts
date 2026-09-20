@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0157 — Tests de la lógica pura de la campaña de recuperación Kommo:
  * clasificación contacto×cliente (teléfono/email), dedupe por teléfono,

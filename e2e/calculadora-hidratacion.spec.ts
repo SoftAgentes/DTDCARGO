@@ -54,8 +54,8 @@ test.describe("hidratación · tocar la calculadora antes de que React llegue", 
     const panel = page.locator("#panel-ddp");
     await escribir(panel.locator('input[placeholder="12"]'), "12");
 
-    // 12 m³ × $800. Si el tecleo se perdió, acá sigue el estado vacío.
-    await expect(panel).toContainText("9,600");
+    // 12 m³ × $850. Si el tecleo se perdió, acá sigue el estado vacío.
+    await expect(panel).toContainText("10,200");
   });
 
   test("el toggle tocado antes del JS igual abre el consolidado", async ({

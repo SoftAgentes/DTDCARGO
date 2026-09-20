@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del export de evidencia (SDD-0067 · decisión #5):
  * `getAcceptanceEvidence` (expediente de UNA aceptación por acuse) y

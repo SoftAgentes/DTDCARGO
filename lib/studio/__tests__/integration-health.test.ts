@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Contrato del modo barato de `checkAllIntegrations` (SDD-0247).
  *

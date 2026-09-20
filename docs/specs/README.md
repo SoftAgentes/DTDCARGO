@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 452 specs)
+### Índice de specs (generado · 481 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -490,6 +490,35 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0462 | Las facturas del Portal quedan ligadas al tenant del principal | done | interno |
 | 0463 | Por RLS, el Portal sólo lee facturas del tenant de su vínculo | done | interno |
 | 0464 | Gate de símbolos pendientes por relación y deudas de arnés de… | done | interno |
+| 0465 | Facturas borradas fuera de los lectores financieros | done | interno |
+| 0466 | Helpers del Portal por principal, deterministas y sin cruce d… | done | interno |
+| 0467 | Borrar un cliente revoca su acceso al Portal | in-progress | interno |
+| 0468 | Portal: rediseño del enlace del proveedor (Factura + Packing … | in-progress | interno |
+| 0469 | Borrar un cliente deja un evento de auditoría atómico y se co… | in-progress | interno |
+| 0470 | El e2e de verify sin Supabase público: omite con motivo lo qu… | done | interno |
+| 0471 | Conocimiento verificable con Director, Graphify, Archify y Ob… | in-progress | interno |
+| 0472 | Clientes: escritura gobernada por RBAC efectivo | in-progress | interno |
+| 0473 | Importación documental, borrador compartido y calculadora pue… | in-progress | interno |
+| 0474 | Guía de Alibaba — Shipping Mark conectado, costo real con tar… | done | interno |
+| 0475 | El respaldo del calculador vuelve a espejar el ERP ($800 → $850) | done | interno |
+| 0476 | La tarifa pública se lee de la base, vencida o no | done | interno |
+| 0477 | Un vínculo del Portal revocado conserva su correo y sus fecha… | in-progress | interno |
+| 0478 | Programar la próxima tarifa pública sin dejar el sitio sin ta… | done | interno |
+| 0479 | Supabase sintético deny-only para el e2e local: las pruebas q… | in-progress | interno |
+| 0480 | El recargo de baterías del respaldo vuelve a espejar el ERP (… | done | interno |
+| 0481 | Portal cliente — cambiar la foto de cédula/RIF dentro del cup… | done | interna |
+| 0482 | Portal cliente — editar nombre, cédula/RIF y teléfono al inst… | done | interna |
+| 0484 | Los comandos de reportes de pago frente a una factura ya pagada | in-progress | interno |
+| 0485 | anon y authenticated pierden los privilegios residuales sobre… | done | interno |
+| 0486 | Las pruebas intermitentes de la suite dejan de dar rojos falsos | done | interno |
+| 0487 | Portal cliente — foto visible, empresa propia y «Facturar a n… | done | interna |
+| 0488 | El registro de cobros en facturas pasa a ser atómico | done | interno |
+| 0489 | Los pagos a proveedores en Tesorería pasan a ser atómicos | done | interno |
+| 0490 | El crédito de referido no pisa el pagado ni el estado de la f… | in-progress | interno |
+| 0491 | La recepción de bodega China creada en el Studio vuelve a num… | in-progress | interno |
+| 0492 | Escribir cobros y cuentas por pagar queda para accounting y a… | in-progress | interno |
+| 0493 | Las pruebas que no tocan el DOM corren en el entorno node | in-progress | interno |
+| 0494 | Cobros y órdenes de pago anulados fuera de los lectores de Co… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

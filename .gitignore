@@ -187,3 +187,10 @@ outputs/
 # skills-lock.json queda en git para poder reinstalarlos con `npx skills install`.
 .agents/skills/higgsfield-*/
 .agents/skills/find-skills/
+
+# Bóveda Obsidian local: notas personales y proyección regenerable (SDD-0471)
+/DTD Cargo/
+
+# Caché del adaptador Python de conocimiento
+__pycache__/
+*.pyc

@@ -1,9 +1,9 @@
 /**
  * Server actions del módulo Almacén CN (SDD-0016).
  *
- * - createReceiptAction: autogenera receipt_code (o orphan_code) + insert
- *   receipt + insert items + insert event 'received' en una operación
- *   pseudo-atómica (rollback manual si falla items).
+ * - createReceiptAction: insert receipt (el receipt_code WR- o SIN-CODIGO- lo
+ *   asigna la base al insertar, SDD-0491) + insert items + insert event
+ *   'received' en una operación pseudo-atómica (rollback manual si falla items).
  * - changeReceiptStatusAction: update status + insert event 'status_change'.
  * - softDeleteReceiptAction: deleted_at = now() (no expuesto en UI V1).
  *
@@ -150,27 +150,16 @@ export async function createReceiptAction(
     return { errorCode: "tenant_unresolved" };
   }
 
-  // Generar receipt_code (normal o huérfana)
-  const rpcName = input!.is_orphan ? "next_orphan_code" : "next_receipt_code";
-  const { data: codeData, error: codeErr } = await supabase.rpc(rpcName, {
-    p_tenant_id: link.tenant_id,
-  });
-  if (codeErr || !codeData) {
-    // Pasamos también `error` legacy con el detalle de Postgres porque a
-    // veces ayuda para debug en runtime logs.
-    return {
-      errorCode: "cn_code_generation_failed",
-      error: codeErr?.message,
-    };
-  }
-  const receipt_code = String(codeData);
-
-  // Insertar receipt
+  // Insertar receipt SIN receipt_code: lo asigna la base al insertar (SDD-0491,
+  // trigger de la migración 0469): WR-YYYY-NNNN, o SIN-CODIGO-NNNN si es
+  // huérfana, en la misma transacción del INSERT y con un lock por tenant, así
+  // dos altas a la vez no reciben el mismo número. Antes se pedía aparte a
+  // next_receipt_code, que desde la 0079 da la serie R- de los cobros, y la
+  // huérfana a next_orphan_code, que el Studio no puede ejecutar desde la 0211.
   const { data: receipt, error: insertErr } = await supabase
     .from("warehouse_receipts_cn")
     .insert({
       tenant_id: link.tenant_id,
-      receipt_code,
       warehouse_id: input!.warehouse_id,
       client_markbox: input!.client_markbox,
       client_name: input!.client_name,
@@ -187,14 +176,15 @@ export async function createReceiptAction(
       notes: input!.notes,
       status: "pendiente_consolidacion",
     })
-    .select("id")
-    .single<{ id: string }>();
+    .select("id, receipt_code")
+    .single<{ id: string; receipt_code: string }>();
 
   if (insertErr || !receipt) {
     return {
       error: `No se pudo crear la recepción: ${insertErr?.message ?? "sin detalle"}`,
     };
   }
+  const receipt_code = receipt.receipt_code;
 
   // Insertar items (rollback manual si falla)
   const itemsToInsert = input!.items.map((it, idx) => ({

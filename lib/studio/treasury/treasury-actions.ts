@@ -13,16 +13,27 @@
  *   4. asiento de causación (DR gasto / CR 2.1.1), best-effort → journal_entry_id
  *   5. audit (supplier_bill · bill_created)
  *
+ * SDD-0489: el pago y el saldo de la CxP se escriben en UNA transacción, con
+ * la CxP tomada FOR UPDATE, por las RPC de la migración 0468
+ * (`register_supplier_payment_order`, `void_supplier_payment_order`), igual que
+ * Cobranzas con la 0467 (SDD-0488). Antes se leía la CxP sin lock y se escribía
+ * `paid_amount` absoluto en otro request: dos pagos simultáneos, o un pago y una
+ * anulación, perdían una suma. Las lecturas previas que quedan acá sólo dan el
+ * mensaje al usuario; la RPC vuelve a validar todo. Regla de saldo estricta,
+ * la de Cobranzas: nada por encima de total − pagado.
+ *
  * `registerPaymentFor`:
  *   1. valida (amount>0, ≤saldo, cuenta de caja)
- *   2. genera payment_code (rpc next_payment_order_code)
- *   3. inserta la supplier_payment
- *   4. sube paid_amount de la CxP + recalcula status (parcial/pagada)
- *   5. asiento del pago (DR 2.1.1 / CR caja), best-effort → journal_entry_id
- *   6. audit (supplier_payment · payment_registered)
+ *   2. rpc register_supplier_payment_order: genera el payment_code, inserta la
+ *      supplier_payment, sube paid_amount y recalcula status (parcial/pagada),
+ *      todo junto
+ *   3. asiento del pago (DR 2.1.1 / CR caja), best-effort → journal_entry_id
+ *   4. audit (supplier_payment · payment_registered), en el trigger D2
  *
- * `voidPaymentFor`: anula la orden (deleted_at) + baja paid_amount + recalcula
- *   status + anula su asiento. No borra (auditable).
+ * `voidPaymentFor`: rpc void_supplier_payment_order anula la orden (deleted_at,
+ *   con el motivo D2) + baja paid_amount + recalcula status en una transacción
+ *   (una CxP anulada conserva su estado) + anula su asiento. No borra
+ *   (auditable).
  *
  * `voidBillFor`: anula la CxP sin pagos (status='anulada' + anula su asiento).
  */
@@ -46,8 +57,40 @@ import {
   type SupplierPaymentInput,
 } from "./types";
 
-function round2(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
+/** Lo que devuelven las RPC de pagos de 0468 (jsonb). */
+type PaymentOrderRpcResult = {
+  payment_id: string;
+  payment_code: string;
+  tenant_id: string;
+  bill_id: string;
+  bill_code?: string;
+  currency?: string;
+  fx_rate?: number | null;
+  amount?: number;
+  paid_amount: number | null;
+  total_amount?: number;
+  status: string | null;
+  fully_paid?: boolean;
+};
+
+/**
+ * Rechazos de las RPC de 0468 → mensaje del Studio. Mismos criterios de saldo
+ * que Cobranzas (0467). Nunca se muestra el error crudo de Postgres.
+ */
+const PAYMENT_ORDER_REJECTIONS: Record<string, string> = {
+  PAYMENT_FORBIDDEN: "Tu rol no puede registrar ni anular pagos a proveedores.",
+  PAYMENT_INPUT: "Revisa el monto y la cuenta del pago.",
+  PAYMENT_BILL_NOT_FOUND: "CxP no encontrada.",
+  PAYMENT_ORDER_NOT_FOUND: "Orden de pago no encontrada.",
+  PAYMENT_STATE: "Solo se pueden registrar pagos en CxP pendientes o parciales.",
+  PAYMENT_BILL_PAID: "La CxP ya está pagada: otro pago la saldó. Actualiza la página.",
+  PAYMENT_EXCEEDS_BALANCE:
+    "El monto supera el saldo vigente de la CxP: otro pago lo cambió. Actualiza la página.",
+  PAYMENT_ORDER_VOIDED: "Esta orden ya está anulada.",
+};
+
+function paymentOrderRejection(error: { message?: string } | null, fallback: string): string {
+  return PAYMENT_ORDER_REJECTIONS[error?.message?.trim() ?? ""] ?? fallback;
 }
 
 async function resolveTenantId(supabase: SupabaseClient): Promise<string | null> {
@@ -221,15 +264,12 @@ type BillRow = {
   id: string;
   tenant_id: string;
   bill_code: string;
-  supplier_id: string;
-  supplier_name: string;
   status: string;
   total_amount: number;
   paid_amount: number;
 };
 
-const BILL_PAY_COLUMNS =
-  "id, tenant_id, bill_code, supplier_id, supplier_name, status, total_amount, paid_amount";
+const BILL_PAY_COLUMNS = "id, tenant_id, bill_code, status, total_amount, paid_amount";
 
 export type RegisterPaymentResult = {
   ok?: boolean;
@@ -249,6 +289,8 @@ export async function registerPaymentFor(
   billId: string,
   raw: Partial<SupplierPaymentInput>,
 ): Promise<RegisterPaymentResult> {
+  // 1. Leer la CxP (RLS la acota al tenant). Sólo para el mensaje y el saldo
+  // del formulario: la RPC vuelve a validar con la CxP bloqueada.
   const { data: bill, error: readErr } = await supabase
     .from("supplier_bills")
     .select(BILL_PAY_COLUMNS)
@@ -270,82 +312,41 @@ export async function registerPaymentFor(
   const { input, fieldErrors } = validatePaymentInput(raw, balance);
   if (fieldErrors) return { fieldErrors };
 
-  // El pago hereda la moneda de la CxP (una orden por CxP en el MVP). El
-  // fx_rate del pago se deriva de la CxP cuando aplique (se guarda en la orden
-  // para el asiento en USD funcional).
-  const { data: billCur } = await supabase
-    .from("supplier_bills")
-    .select("currency, fx_rate")
-    .eq("id", bill.id)
-    .maybeSingle<{ currency: string; fx_rate: number | null }>();
-  const currency = billCur?.currency ?? "USD";
-  const fxRate = billCur?.fx_rate ?? null;
-
-  // Generar payment_code atómico.
-  const { data: codeData, error: codeErr } = await supabase.rpc(
-    "next_payment_order_code",
-    { p_tenant_id: bill.tenant_id },
-  );
-  if (codeErr || !codeData) {
-    return { error: "No se pudo generar el código de la orden de pago." };
+  // 2. Pago atómico (0468): CxP FOR UPDATE, saldo estricto, payment_code
+  // serializado por tenant y la orden (hereda moneda y fx_rate de la CxP, una
+  // orden por CxP en el MVP) + paid_amount + status, en la misma transacción.
+  const { data, error: rpcErr } = await supabase.rpc("register_supplier_payment_order", {
+    p_bill_id: bill.id,
+    p_amount: input!.amount,
+    p_cash_account_id: input!.cashAccountId,
+    p_method: input!.method as PaymentMethod,
+    p_paid_at: input!.paidAt,
+    p_reference: input!.reference,
+    p_notes: input!.notes,
+  });
+  const payment = data as PaymentOrderRpcResult | null;
+  if (rpcErr || !payment?.payment_id) {
+    return { error: paymentOrderRejection(rpcErr, "No se pudo registrar el pago.") };
   }
-  const paymentCode = String(codeData);
+  const paymentCode = payment.payment_code;
 
-  const { data: insertedPayment, error: insErr } = await supabase
-    .from("supplier_payments")
-    .insert({
-      tenant_id: bill.tenant_id,
-      payment_code: paymentCode,
-      bill_id: bill.id,
-      supplier_id: bill.supplier_id,
-      supplier_name: bill.supplier_name,
-      amount: input!.amount,
-      currency,
-      fx_rate: fxRate,
-      method: input!.method as PaymentMethod,
-      cash_account_id: input!.cashAccountId,
-      reference: input!.reference,
-      paid_at: input!.paidAt,
-      notes: input!.notes,
-    })
-    .select("id")
-    .single();
-  if (insErr || !insertedPayment) {
-    return { error: `No se pudo registrar el pago: ${insErr?.message}` };
-  }
-
-  // Subir paid_amount + recalcular status.
-  const newPaid = round2(Number(bill.paid_amount) + input!.amount);
-  const fullyPaid = newPaid >= Number(bill.total_amount) - 1e-6;
-  const newStatus = fullyPaid ? "pagada" : "parcial";
-
-  const { error: updErr } = await supabase
-    .from("supplier_bills")
-    .update({ paid_amount: newPaid, status: newStatus })
-    .eq("id", bill.id);
-  if (updErr) {
-    return {
-      error: `Pago registrado pero no se actualizó el saldo: ${updErr.message}`,
-    };
-  }
-
-  // Asiento del pago (best-effort) — DR 2.1.1 / CR caja. Guarda el id.
+  // 3. Asiento del pago (best-effort) — DR 2.1.1 / CR caja. Guarda el id.
   try {
     const posting = await postSupplierPaymentJournalEntry({
-      tenantId: bill.tenant_id,
-      paymentId: insertedPayment.id,
+      tenantId: payment.tenant_id,
+      paymentId: payment.payment_id,
       paymentCode,
       cashAccountId: input!.cashAccountId,
       amount: input!.amount,
-      currency,
-      fxRate,
+      currency: payment.currency ?? "USD",
+      fxRate: payment.fx_rate ?? null,
       entryDate: input!.paidAt,
     });
     if (posting.ok && posting.entryId) {
       await supabase
         .from("supplier_payments")
         .update({ journal_entry_id: posting.entryId })
-        .eq("id", insertedPayment.id);
+        .eq("id", payment.payment_id);
     } else if (!posting.ok) {
       console.error(
         `[contabilidad] asiento del pago ${paymentCode} no creado:`,
@@ -359,7 +360,7 @@ export async function registerPaymentFor(
     );
   }
 
-  return { ok: true, paymentCode, fullyPaid };
+  return { ok: true, paymentCode, fullyPaid: payment.fully_paid === true };
 }
 
 // ── Anular orden de pago ───────────────────────────────────────
@@ -372,62 +373,23 @@ export async function voidPaymentFor(
   const reasonResult = validateAuditReason(reasonRaw);
   if (!reasonResult.ok) return { error: reasonResult.error };
 
-  const { data: payment, error: readErr } = await supabase
-    .from("supplier_payments")
-    .select("id, tenant_id, payment_code, bill_id, amount, journal_entry_id, deleted_at")
-    .eq("id", paymentId)
-    .maybeSingle<{
-      id: string;
-      tenant_id: string;
-      payment_code: string;
-      bill_id: string;
-      amount: number;
-      journal_entry_id: string | null;
-      deleted_at: string | null;
-    }>();
-  if (readErr || !payment) return { error: "Orden de pago no encontrada." };
-  if (payment.deleted_at) return { error: "Esta orden ya está anulada." };
-
-  // 1. Marcar la orden como anulada.
-  const { data: changed, error: voidErr } = await supabase.rpc(
-    "void_supplier_payment_with_audit_reason",
-    {
-      p_id: payment.id,
-      p_reason: reasonResult.reason,
-    },
-  );
-  if (voidErr) return { error: voidErr.message };
-  if (!changed) return { error: "La orden de pago ya no admite anulación." };
-
-  // 2. Bajar paid_amount + recalcular status de la CxP.
-  const { data: bill } = await supabase
-    .from("supplier_bills")
-    .select("id, total_amount, paid_amount, status")
-    .eq("id", payment.bill_id)
-    .maybeSingle<{
-      id: string;
-      total_amount: number;
-      paid_amount: number;
-      status: string;
-    }>();
-  if (bill && bill.status !== "anulada") {
-    const newPaid = Math.max(
-      0,
-      round2(Number(bill.paid_amount) - Number(payment.amount)),
-    );
-    const newStatus = newPaid <= 0 ? "pendiente" : "parcial";
-    await supabase
-      .from("supplier_bills")
-      .update({ paid_amount: newPaid, status: newStatus })
-      .eq("id", bill.id);
+  // 1. Anulación atómica (0468): orden y CxP FOR UPDATE, marca con motivo D2 y
+  // paid_amount + status, juntos. Si la CxP no se puede ajustar, no anula.
+  const { data, error: rpcErr } = await supabase.rpc("void_supplier_payment_order", {
+    p_payment_id: paymentId,
+    p_reason: reasonResult.reason,
+  });
+  const voided = data as (PaymentOrderRpcResult & { journal_entry_id?: string | null }) | null;
+  if (rpcErr || !voided?.payment_id) {
+    return { error: paymentOrderRejection(rpcErr, "No se pudo anular la orden de pago.") };
   }
 
-  // 3. Anular el asiento del pago (si lo tiene). Best-effort.
-  if (payment.journal_entry_id) {
-    const r = await voidSupplierPaymentJournalEntry(payment.journal_entry_id);
+  // 2. Anular el asiento del pago (si lo tiene). Best-effort.
+  if (voided.journal_entry_id) {
+    const r = await voidSupplierPaymentJournalEntry(voided.journal_entry_id);
     if (!r.ok) {
       console.error(
-        `[contabilidad] no se pudo anular el asiento del pago ${payment.payment_code}:`,
+        `[contabilidad] no se pudo anular el asiento del pago ${voided.payment_code}:`,
         r.error,
       );
     }

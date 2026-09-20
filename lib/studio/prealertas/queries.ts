@@ -657,6 +657,7 @@ function coercePackingRow(r: Record<string, unknown>): PackingListRow {
     amount: num(r.amount),
     weight: num(r.weight),
     vol: num(r.vol),
+    ...(typeof r.uom === "string" ? {uom:r.uom} : {}),
   };
 }
 
@@ -684,7 +685,8 @@ function coercePackingSubmission(
     rows: rawRows.map(coercePackingRow),
     totals: {
       ctns: num(r.total_ctns),
-      qty: num(r.total_qty),
+      qty: r.total_qty === null ? null : num(r.total_qty),
+      ...(rawRows.some(row=>typeof row.uom==="string")?{quantitiesByUnit:rawRows.reduce<Record<string,number>>((acc,row)=>{const unit=typeof row.uom==="string"?row.uom:"pcs";acc[unit]=(acc[unit]??0)+num(row.qty);return acc;},{})}:{}),
       amount: num(r.total_amount),
       weight: num(r.total_weight),
       cbm: num(r.total_cbm),

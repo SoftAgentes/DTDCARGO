@@ -7,6 +7,7 @@
  * - registerPayment: registra el pago (orden OP- + saldo + asiento del pago).
  * - voidPayment: anula una orden de pago (revierte saldo + anula su asiento).
  * - getBillHistory: lee los pagos de una CxP (para el historial del drawer).
+ * - getPayableForBill: abre una CxP en consulta desde el tab «Pagos» (0494).
  *
  * Sin Zod: validación con `validate*Input()` propio. Las mutaciones financieras
  * se auditan atómicamente mediante los triggers de dominio D2 (SDD-0174).
@@ -16,7 +17,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import {
   createBillFor,
   registerPaymentFor,
@@ -24,6 +25,7 @@ import {
   voidPaymentFor,
 } from "@/lib/studio/treasury/treasury-actions";
 import { isExpenseAccount } from "@/lib/studio/treasury/bill-queries";
+import type { Payable } from "@/lib/studio/treasury/bill-queries";
 import {
   validateSupplierInput,
   type BillInput,
@@ -251,12 +253,42 @@ export async function voidPayment(
   return { ok: true };
 }
 
-/** Lee los pagos de una CxP (para el historial del drawer). Serializable. */
+/**
+ * Lee los pagos de una CxP (para el historial del drawer). Serializable.
+ *
+ * Gate de VISTA (SDD-0494): el layout de Tesorería exige `requireModuleView`,
+ * pero eso protege la PÁGINA, no esta action — que es un endpoint invocable
+ * directo, igual que las mutaciones (SDD-0085 §Seguridad). Y la RLS no ayuda
+ * acá: `supplier_payments_team_select` (0470) es tenant-wide, así que sin este
+ * candado un rol `operations` o `commercial` leía órdenes de pago con sus
+ * montos, contra lo que el propio layout declara («NUNCA operations/commercial»).
+ * Hueco preexistente; se cierra junto con el de `getPayableForBill`.
+ */
 export async function getBillHistory(
   billId: string,
-): Promise<{ payments: SupplierPayment[] }> {
+): Promise<{ payments: SupplierPayment[]; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "treasury");
+  if (denial) return { payments: [], error: denial };
   const { listPayments } = await import("@/lib/studio/treasury/bill-queries");
   const payments = await listPayments(supabase, { billId });
   return { payments };
+}
+
+/**
+ * Lee UNA CxP como `Payable` para abrir su drawer desde el tab «Pagos»
+ * (SDD-0494), incluso si quedó saldada y por eso salió de la cola.
+ *
+ * Lleva el gate de VISTA, no el de edición: no muta nada, pero expone datos de
+ * dinero (proveedor, total, pagado, saldo) que el módulo reserva a `accounting`
+ * y `admin`. El mismo razonamiento que `getBillHistory`, arriba.
+ */
+export async function getPayableForBill(
+  billId: string,
+): Promise<{ payable: Payable | null; error?: string }> {
+  const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "treasury");
+  if (denial) return { payable: null, error: denial };
+  const { payableForBill } = await import("@/lib/studio/treasury/bill-queries");
+  return { payable: await payableForBill(supabase, billId) };
 }

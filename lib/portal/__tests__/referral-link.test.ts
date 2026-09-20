@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de `linkReferralOnRegister` (SDD-0051 Fase 2): al registrarse con `?ref=`,
  * linkea al nuevo cliente con su referido (invitado→registrado) o crea la fila

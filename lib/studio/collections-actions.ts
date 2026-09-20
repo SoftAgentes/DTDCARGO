@@ -9,15 +9,24 @@
  * SupabaseClient autenticado del caller (RLS). La auditoría D2 vive en
  * PostgreSQL y comparte transacción con cada mutación financiera.
  *
+ * SDD-0488: el recibo y el saldo de la factura se escriben en UNA transacción,
+ * con la factura tomada FOR UPDATE, por las RPC de la migración 0467
+ * (`register_collection_receipt`, `identify_collection_receipt`,
+ * `void_collection_receipt`). Antes se leía la factura sin lock y se escribía
+ * `paid_amount` absoluto en otro request: dos cobros simultáneos, o un cobro y
+ * una confirmación de reporte de pago, perdían una suma. Las lecturas previas
+ * que quedan acá sólo dan el mensaje al usuario; la RPC vuelve a validar todo.
+ * Regla de saldo estricta (decisión de Sam, igual que la 0464): nada por encima
+ * de total − pagado.
+ *
  * `registerCollectionFor`:
  *   1. valida (amount>0, ≤saldo, cuenta requerida, pagador — tercero exige
  *      nombre + relación + declaración de licitud, decisión #7)
- *   2. genera receipt_code (rpc next_receipt_code)
- *   3. inserta el payment_receipt (con pagador + fund_class heredada de la
- *      factura + application_status='aplicado')
- *   4. sube paid_amount de la factura + recalcula status (parcial/pagada)
- *   5. asiento del cobro (DR caja / CR 1.1.2), best-effort → guarda journal_entry_id
- *   6. audit (payment_receipt · payment_registered)
+ *   2. rpc register_collection_receipt: genera el receipt_code, inserta el
+ *      payment_receipt (pagador + fund_class heredada + 'aplicado'), sube
+ *      paid_amount y recalcula status (parcial/pagada), todo junto
+ *   3. asiento del cobro (DR caja / CR 1.1.2), best-effort → guarda journal_entry_id
+ *   4. audit (payment_receipt · payment_registered), en el trigger D2
  *
  * `registerUnidentifiedPaymentFor` (SDD-0068 #2 · cláusula 7.3):
  *   pago SIN referencia → recibo sin factura (`application_status='recibido_sin_ref'`,
@@ -34,8 +43,9 @@
  *
  * `voidReceiptFor`:
  *   anula el recibo (deleted_at) + baja paid_amount (si tiene factura) +
- *   recalcula status + anula TODOS sus asientos (el inicial y, si fue
- *   identificado, la reclasificación). No borra (auditable).
+ *   recalcula status en una transacción (una factura anulada no revive) +
+ *   anula TODOS sus asientos (el inicial y, si fue identificado, la
+ *   reclasificación). No borra (auditable).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -50,7 +60,6 @@ import { computeBalance, type InvoiceCurrency } from "@/lib/studio/invoice-types
 import {
   validatePaymentInput,
   validateUnidentifiedPaymentInput,
-  type FundClass,
   type PaymentInput,
   type PaymentMethod,
   type UnidentifiedPaymentInput,
@@ -77,9 +86,48 @@ type InvoiceRow = {
 const INVOICE_PAY_COLUMNS =
   "id, tenant_id, invoice_code, client_markbox, client_name, status, currency, fx_rate, total_amount, paid_amount, fund_class";
 
-/** Coerce defensivo de la clase de fondos (default conservador del mandato). */
-function coerceFundClass(v: unknown): FundClass {
-  return v === "local_revenue" ? "local_revenue" : "third_party";
+/** Lo que devuelven las RPC de cobro de 0467 (jsonb). */
+type CollectionRpcResult = {
+  receipt_id: string;
+  receipt_code: string;
+  tenant_id: string;
+  invoice_id: string | null;
+  invoice_code?: string;
+  amount?: number;
+  currency?: InvoiceCurrency;
+  fx_rate?: number | null;
+  received_at?: string;
+  paid_amount: number | null;
+  status: string | null;
+  fully_paid?: boolean;
+};
+
+/**
+ * Rechazos de las RPC de 0467 → mensaje del Studio. Los de saldo son los
+ * códigos de la 0464 (SDD-0484). Nunca se muestra el error crudo de Postgres.
+ */
+const COLLECTION_REJECTIONS: Record<string, string> = {
+  PAYMENT_FORBIDDEN: "Tu rol no puede registrar ni anular cobros.",
+  PAYMENT_INPUT: "Revisa el monto y la cuenta del cobro.",
+  PAYMENT_INVOICE_NOT_FOUND: "Factura no encontrada.",
+  PAYMENT_RECEIPT_NOT_FOUND: "Recibo no encontrado.",
+  PAYMENT_STATE: "Solo se pueden registrar cobros en facturas emitidas o parciales.",
+  PAYMENT_INVOICE_PAID:
+    "La factura ya está pagada: otro cobro o reporte la saldó. Actualiza la página.",
+  PAYMENT_EXCEEDS_BALANCE:
+    "El monto supera el saldo vigente de la factura: otro cobro o reporte lo cambió. Actualiza la página.",
+  PAYMENT_CURRENCY: "La moneda del pago no coincide con la de la factura.",
+  PAYMENT_RECEIPT_APPLIED: "Este pago ya fue identificado y aplicado.",
+  PAYMENT_RECEIPT_VOIDED: "Este recibo ya está anulado.",
+};
+
+function collectionRejection(
+  error: { message?: string } | null,
+  fallback: string,
+  overrides: Record<string, string> = {},
+): string {
+  const code = error?.message?.trim() ?? "";
+  return overrides[code] ?? COLLECTION_REJECTIONS[code] ?? fallback;
 }
 
 export type RegisterCollectionResult = {
@@ -101,7 +149,8 @@ export async function registerCollectionFor(
   invoiceId: string,
   raw: Partial<PaymentInput>,
 ): Promise<RegisterCollectionResult> {
-  // 1. Leer la factura (RLS la acota al tenant).
+  // 1. Leer la factura (RLS la acota al tenant). Sólo para el mensaje y el
+  // saldo del formulario: la RPC vuelve a validar con la factura bloqueada.
   const { data: inv, error: readErr } = await supabase
     .from("invoices")
     .select(INVOICE_PAY_COLUMNS)
@@ -128,84 +177,46 @@ export async function registerCollectionFor(
   const { input, fieldErrors } = validatePaymentInput(raw, balance);
   if (fieldErrors) return { fieldErrors };
 
-  // 3. Generar receipt_code atómico.
-  const { data: codeData, error: codeErr } = await supabase.rpc(
-    "next_receipt_code",
-    { p_tenant_id: inv.tenant_id },
-  );
-  if (codeErr || !codeData) {
-    return { error: "No se pudo generar el código del recibo." };
+  // 3. Cobro atómico (0467): factura FOR UPDATE, saldo estricto, receipt_code
+  // serializado por tenant, recibo (pagador decisión #7 + fund_class HEREDADA
+  // de la factura, decisión #5 — el sin-ref es el único camino que no hereda)
+  // y paid_amount + status, todo en la misma transacción.
+  const { data, error: rpcErr } = await supabase.rpc("register_collection_receipt", {
+    p_invoice_id: inv.id,
+    p_amount: input!.amount,
+    p_cash_account_id: input!.cashAccountId,
+    p_method: input!.method as PaymentMethod,
+    p_received_at: input!.receivedAt,
+    p_reference: input!.reference,
+    p_notes: input!.notes,
+    p_payer_kind: input!.payerKind,
+    p_payer_name: input!.payerName,
+    p_payer_relation: input!.payerRelation,
+    p_licit_declared: input!.licitDeclared,
+  });
+  const receipt = data as CollectionRpcResult | null;
+  if (rpcErr || !receipt?.receipt_id) {
+    return { error: collectionRejection(rpcErr, "No se pudo registrar el cobro.") };
   }
-  const receiptCode = String(codeData);
+  const receiptCode = receipt.receipt_code;
 
-  // 4. Insertar el recibo. Pagador (decisión #7) + estado de aplicación +
-  // fund_class HEREDADA de la factura (decisión #5 — el sin-ref es el único
-  // camino que no hereda, ver registerUnidentifiedPaymentFor).
-  const { data: insertedReceipt, error: insErr } = await supabase
-    .from("payment_receipts")
-    .insert({
-      tenant_id: inv.tenant_id,
-      receipt_code: receiptCode,
-      invoice_id: inv.id,
-      client_markbox: inv.client_markbox,
-      client_name: inv.client_name,
-      amount: input!.amount,
-      currency: inv.currency,
-      fx_rate: inv.fx_rate,
-      method: input!.method as PaymentMethod,
-      cash_account_id: input!.cashAccountId,
-      reference: input!.reference,
-      received_at: input!.receivedAt,
-      notes: input!.notes,
-      payer_kind: input!.payerKind,
-      payer_name: input!.payerName,
-      payer_relation: input!.payerRelation,
-      licit_declared: input!.licitDeclared,
-      application_status: "aplicado",
-      fund_class: coerceFundClass(inv.fund_class),
-    })
-    .select("id")
-    .single();
-  if (insErr || !insertedReceipt) {
-    return { error: `No se pudo registrar el cobro: ${insErr?.message}` };
-  }
-
-  // 5. Subir paid_amount + recalcular status.
-  const newPaid = round2(Number(inv.paid_amount) + input!.amount);
-  const fullyPaid = newPaid >= Number(inv.total_amount) - 1e-6;
-  const newStatus = fullyPaid ? "pagada" : "parcial";
-
-  const { error: updErr } = await supabase
-    .from("invoices")
-    .update({
-      paid_amount: newPaid,
-      status: newStatus,
-      last_payment_at: new Date().toISOString(),
-    })
-    .eq("id", inv.id);
-  if (updErr) {
-    // El recibo ya se creó; el caller verá el error pero el cobro quedó
-    // registrado. Mejor reportar que dejar la factura sin actualizar a ciegas.
-    return { error: `Cobro registrado pero no se actualizó el saldo: ${updErr.message}` };
-  }
-
-  // 6. Asiento del cobro (best-effort) — DR caja / CR 1.1.2. Guarda el id.
+  // 4. Asiento del cobro (best-effort) — DR caja / CR 1.1.2. Guarda el id.
   try {
     const posting = await postReceiptJournalEntry({
-      tenantId: inv.tenant_id,
-      receiptId: insertedReceipt.id,
+      tenantId: receipt.tenant_id,
+      receiptId: receipt.receipt_id,
       receiptCode,
       cashAccountId: input!.cashAccountId,
       amount: input!.amount,
-      currency: inv.currency,
-      fxRate: inv.fx_rate,
+      currency: receipt.currency ?? inv.currency,
+      fxRate: receipt.fx_rate ?? null,
       entryDate: input!.receivedAt,
     });
     if (posting.ok && posting.entryId) {
       await supabase
         .from("payment_receipts")
         .update({ journal_entry_id: posting.entryId })
-        .eq("id", insertedReceipt.id);
+        .eq("id", receipt.receipt_id);
     } else if (!posting.ok) {
       console.error(
         `[contabilidad] asiento del cobro ${receiptCode} no creado:`,
@@ -219,7 +230,7 @@ export async function registerCollectionFor(
     );
   }
 
-  return { ok: true, receiptCode, fullyPaid };
+  return { ok: true, receiptCode, fullyPaid: receipt.fully_paid === true };
 }
 
 // ── Pago sin referencia (SDD-0068 #2 · cláusula 7.3) ──────────
@@ -336,12 +347,12 @@ export type IdentifyPaymentResult = {
  * Identifica un pago sin referencia contra una factura:
  *  1. valida que el recibo esté `recibido_sin_ref` y la factura sea cobrable
  *     (emitida/parcial/vencida), de la MISMA moneda y con saldo ≥ monto.
- *  2. setea invoice_id + snapshots + application_status='aplicado' +
+ *  2. rpc identify_collection_receipt (0467), con recibo y factura FOR UPDATE:
+ *     setea invoice_id + snapshots + application_status='aplicado' +
  *     identified_at=now() — `received_at` NO se toca (la imputación es a la
- *     fecha ORIGINAL de recepción de fondos: eso ES la retroactividad en V1) —
- *     y hereda `fund_class` de la factura.
- *  3. sube paid_amount + recalcula status de la factura (igual que un cobro).
- *  4. asiento de RECLASIFICACIÓN DR 2.1.8 / CR 1.1.2 con fecha = received_at
+ *     fecha ORIGINAL de recepción de fondos: eso ES la retroactividad en V1) —,
+ *     hereda `fund_class` de la factura y sube paid_amount + status, junto.
+ *  3. asiento de RECLASIFICACIÓN DR 2.1.8 / CR 1.1.2 con fecha = received_at
  *     (best-effort).
  */
 export async function identifyPaymentFor(
@@ -349,7 +360,11 @@ export async function identifyPaymentFor(
   receiptId: string,
   invoiceId: string,
 ): Promise<IdentifyPaymentResult> {
-  // 1. Leer el recibo (RLS lo acota al tenant y excluye anulados).
+  // 1. Leer el recibo. La RLS lo acota al tenant pero NO excluye anulados: la
+  // 0230 sacó ese filtro del USING y la 0470 conservó el criterio (SDD-0494).
+  // Acá no se agrega `.is("deleted_at", null)` a propósito — hace falta LEER el
+  // anulado para poder rechazarlo con su mensaje, que es lo que hace la guarda
+  // de abajo. Si se filtrara, un recibo anulado daría «no encontrado».
   const { data: receipt, error: rErr } = await supabase
     .from("payment_receipts")
     .select(
@@ -396,54 +411,35 @@ export async function identifyPaymentFor(
     };
   }
 
+  // Regla estricta (decisión de Sam, igual que la 0464): nada sobre el saldo.
   const amount = round2(Number(receipt.amount));
   const balance = computeBalance({
     total_amount: Number(inv.total_amount),
     paid_amount: Number(inv.paid_amount),
   });
-  if (amount > balance + 0.01) {
+  if (amount > balance) {
     return {
       error: `El pago ($${amount.toFixed(2)}) supera el saldo de la factura ($${balance.toFixed(2)}).`,
     };
   }
 
-  // 3. Identificar el recibo: factura + snapshots + aplicado + identified_at.
-  // received_at NO se toca (retroactividad, decisión #6). fund_class hereda.
-  const fundClass = coerceFundClass(inv.fund_class);
-  const { error: updReceiptErr } = await supabase
-    .from("payment_receipts")
-    .update({
-      invoice_id: inv.id,
-      client_markbox: inv.client_markbox,
-      client_name: inv.client_name,
-      application_status: "aplicado",
-      identified_at: new Date().toISOString(),
-      fund_class: fundClass,
-    })
-    .eq("id", receipt.id);
-  if (updReceiptErr) {
-    return { error: `No se pudo identificar el pago: ${updReceiptErr.message}` };
-  }
-
-  // 4. Subir paid_amount + recalcular status (igual que un cobro normal).
-  const newPaid = round2(Number(inv.paid_amount) + amount);
-  const fullyPaid = newPaid >= Number(inv.total_amount) - 1e-6;
-  const newStatus = fullyPaid ? "pagada" : "parcial";
-  const { error: updInvErr } = await supabase
-    .from("invoices")
-    .update({
-      paid_amount: newPaid,
-      status: newStatus,
-      last_payment_at: new Date().toISOString(),
-    })
-    .eq("id", inv.id);
-  if (updInvErr) {
+  // 3. Identificación atómica (0467): recibo y factura FOR UPDATE; recibo
+  // (factura + snapshots + aplicado + identified_at, received_at intacto,
+  // fund_class heredada) y paid_amount + status en la misma transacción.
+  const { data, error: rpcErr } = await supabase.rpc("identify_collection_receipt", {
+    p_receipt_id: receipt.id,
+    p_invoice_id: inv.id,
+  });
+  const identified = data as CollectionRpcResult | null;
+  if (rpcErr || !identified?.receipt_id) {
     return {
-      error: `Pago identificado pero no se actualizó el saldo: ${updInvErr.message}`,
+      error: collectionRejection(rpcErr, "No se pudo identificar el pago.", {
+        PAYMENT_STATE: "Solo se puede identificar contra facturas emitidas o parciales.",
+      }),
     };
   }
 
-  // 5. Reclasificación DR puente / CR 1.1.2 con fecha = received_at ORIGINAL.
+  // 4. Reclasificación DR puente / CR 1.1.2 con fecha = received_at ORIGINAL.
   try {
     const posting = await postReceiptReclassEntry({
       tenantId: receipt.tenant_id,
@@ -471,15 +467,16 @@ export async function identifyPaymentFor(
     ok: true,
     receiptCode: receipt.receipt_code,
     invoiceCode: inv.invoice_code,
-    fullyPaid,
+    fullyPaid: identified.fully_paid === true,
   };
 }
 
 /**
- * Anula un recibo: lo marca como anulado (deleted_at), baja el paid_amount de
- * su factura (si tiene — un sin-ref no apunta a ninguna), recalcula status, y
- * anula TODOS sus asientos (el inicial + la reclasificación si fue
- * identificado, SDD-0068). No borra (auditable).
+ * Anula un recibo: lo marca como anulado (deleted_at, con el motivo D2), baja
+ * el paid_amount de su factura (si tiene — un sin-ref no apunta a ninguna) y
+ * recalcula status en una transacción (rpc void_collection_receipt, 0467; una
+ * factura anulada conserva su estado), y anula TODOS sus asientos (el inicial +
+ * la reclasificación si fue identificado, SDD-0068). No borra (auditable).
  */
 export async function voidReceiptFor(
   supabase: SupabaseClient,
@@ -489,66 +486,25 @@ export async function voidReceiptFor(
   const reasonResult = validateAuditReason(reasonRaw);
   if (!reasonResult.ok) return { error: reasonResult.error };
 
-  const { data: receipt, error: readErr } = await supabase
-    .from("payment_receipts")
-    .select(
-      "id, tenant_id, receipt_code, invoice_id, amount, journal_entry_id, deleted_at",
-    )
-    .eq("id", receiptId)
-    .maybeSingle<{
-      id: string;
-      tenant_id: string;
-      receipt_code: string;
-      invoice_id: string | null;
-      amount: number;
-      journal_entry_id: string | null;
-      deleted_at: string | null;
-    }>();
-  if (readErr || !receipt) return { error: "Recibo no encontrado." };
-  if (receipt.deleted_at) return { error: "Este recibo ya está anulado." };
-
-  // 1. Marcar el recibo como anulado.
-  const { data: changed, error: voidErr } = await supabase.rpc(
-    "void_payment_receipt_with_audit_reason",
-    {
-      p_id: receipt.id,
-      p_reason: reasonResult.reason,
-    },
-  );
-  if (voidErr) return { error: voidErr.message };
-  if (!changed) return { error: "El recibo ya no admite anulación." };
-
-  // 2. Bajar paid_amount + recalcular status de la factura (solo si el recibo
-  // apunta a una — los sin-ref no tocan ningún saldo).
-  if (receipt.invoice_id) {
-    const { data: inv } = await supabase
-      .from("invoices")
-      .select("id, total_amount, paid_amount, status")
-      .eq("id", receipt.invoice_id)
-      .maybeSingle<{
-        id: string;
-        total_amount: number;
-        paid_amount: number;
-        status: string;
-      }>();
-    if (inv) {
-      const newPaid = Math.max(0, round2(Number(inv.paid_amount) - Number(receipt.amount)));
-      const newStatus = newPaid <= 0 ? "emitida" : "parcial";
-      await supabase
-        .from("invoices")
-        .update({ paid_amount: newPaid, status: newStatus })
-        .eq("id", inv.id);
-    }
+  // 1. Anulación atómica: recibo y factura FOR UPDATE, marca con motivo y
+  // paid_amount + status, juntos. Si la factura no se puede ajustar, no anula.
+  const { data, error: rpcErr } = await supabase.rpc("void_collection_receipt", {
+    p_receipt_id: receiptId,
+    p_reason: reasonResult.reason,
+  });
+  const voided = data as CollectionRpcResult | null;
+  if (rpcErr || !voided?.receipt_id) {
+    return { error: collectionRejection(rpcErr, "No se pudo anular el recibo.") };
   }
 
-  // 3. Anular TODOS los asientos del recibo (inicial + reclasificación si fue
+  // 2. Anular TODOS los asientos del recibo (inicial + reclasificación si fue
   // identificado). Best-effort. Cubre también el caso journal_entry_id null
   // con asientos atados por journal_entries.receipt_id.
   {
-    const r = await voidEntriesForReceipt(receipt.id);
+    const r = await voidEntriesForReceipt(voided.receipt_id);
     if (!r.ok) {
       console.error(
-        `[contabilidad] no se pudieron anular los asientos del recibo ${receipt.receipt_code}:`,
+        `[contabilidad] no se pudieron anular los asientos del recibo ${voided.receipt_code}:`,
         r.error,
       );
     }

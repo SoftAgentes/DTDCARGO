@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del cerebro clasificador (SDD-0089 · F-A).
  *

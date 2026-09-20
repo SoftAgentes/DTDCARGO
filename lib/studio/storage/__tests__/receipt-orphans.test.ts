@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * GC receipt-photos · tests del núcleo PURO pickOrphans.
  * Es la pieza de seguridad: NUNCA debe seleccionar un objeto referenciado

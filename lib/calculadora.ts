@@ -46,24 +46,56 @@ export const CONFIG = {
   /**
    * Tarifa base por metro cúbico en USD (precio limpio sin excedente).
    *
-   * ⚠️ ESTE 800 COINCIDE A PROPÓSITO con la tarifa pública del puerta a puerta
+   * ⚠️ ESTE 850 COINCIDE A PROPÓSITO con la tarifa pública del puerta a puerta
    * que vive en la tabla `rates` del ERP (la fila `is_public`, editable desde
    * /studio/tarifas). No es casualidad y no se toca a la ligera:
    *
-   * La RPC `public_cbm_rate()` filtra por `valid_until >= current_date`. El día
-   * que la tarifa pública se venza, la RPC no devuelve NADA y el calculador del
-   * sitio cae a esta constante — sin avisarle a nadie. Mientras los dos números
-   * sean iguales, ese vencimiento es invisible para el cliente: el sitio sigue
-   * cotizando el mismo precio.
+   * Desde la migr `0458_tarifa_lectura_sin_vigencia.sql` (SDD-0476, aplicada a
+   * producción el 2026-09-18) la RPC `public_cbm_rate()` ya NO filtra por
+   * vigencia: una tarifa vencida se sigue sirviendo desde la base. Esta
+   * constante queda para cuando de verdad no hay tarifa que leer —Supabase
+   * inalcanzable, env ausente, fila en borrador, `is_public` sin marcar o
+   * `valid_from` a futuro— y ahí el calculador del sitio cae a ella sin avisarle
+   * a nadie. Mientras los dos números sean iguales, esa caída es invisible para
+   * el cliente: el sitio sigue cotizando el mismo precio. (Hasta la 0458 también
+   * caía acá el día que la tarifa vencía.)
    *
    * Si algún día suben la tarifa en el Studio, HAY QUE SUBIR TAMBIÉN ESTE
-   * NÚMERO. Si no, se reabre la grieta: al vencer la vigencia el sitio empieza
-   * a cotizar por debajo del precio real, en silencio.
+   * NÚMERO. Si no, se reabre la grieta: ante una caída el sitio empieza a
+   * cotizar por debajo del precio real, en silencio.
    *
-   * El arreglo de fondo (pendiente, SDD-0164): una alerta en el ERP cuando una
-   * tarifa pública esté por vencer.
+   * 📌 Pasó exactamente eso, y por eso hoy dice 850 (SDD-0475, 2026-09-17):
+   * la migr `0336_rate_ddp_850_septiembre_2026.sql` subió la tarifa pública a
+   * $850 con `pg_cron` el 2026-09-04 y su cabecera avisaba —líneas 20-23— que
+   * ese mismo día había que subir esta constante en un deploy. No se hizo. Trece
+   * días con el ERP cobrando $850 y el respaldo en $800: ante una caída de
+   * Supabase el sitio habría cotizado **6,25% por debajo**, sin error visible.
+   * Lo mismo le había pasado antes a `pesoIncluidoKg` (ver abajo).
+   *
+   * La cifra, bien dicha: con $850 vigente y $800 de respaldo el sitio cotiza
+   * **5,88% por debajo** (50/850). El 6,25% es 50/800 — cuánto hay que SUBIR,
+   * que no es lo mismo y en una decisión de precios no son intercambiables.
+   *
+   * ⚠️ OJO CON LA VIGENCIA: la fila de $850 vale hasta el **2026-11-29**. Desde
+   * la 0458, al vencer el sitio sigue cotizando esos 850 leídos de la base, no
+   * este número; renovar la vigencia es trabajo del ERP (badge de
+   * /studio/tarifas y el cron de abajo). Si se decide otro precio, igual hay que
+   * mover los dos: la fila en /studio/tarifas y esta constante.
+   *
+   * (Esa fecha estuvo cargada como 2026-10-04, casi dos meses antes de lo que
+   * correspondía; se corrigió en producción el 2026-09-17 — SDD-0475.)
+   *
+   * La alerta de vencimiento SÍ existe y está activa (SDD-0164, migr 0257 +
+   * `app/api/cron/rate-expiry-alert`, programado en vercel.json): avisa por
+   * Telegram y email cuando una tarifa pública está por vencer o venció. Lo que
+   * NO cubre es este respaldo — el 4-sep no hubo vencimiento, hubo un cambio de
+   * precio, y de eso no avisa nadie. Esa es la grieta que quedó.
+   *
+   * La red de CI está en `__tests__/calculadora-respaldo-alineado.test.ts`:
+   * ancla este valor. No vigila la fecha de vigencia, por decisión del founder
+   * (2026-09-17): el vencimiento no debe romper nada.
    */
-  tarifaBaseCBM: 800,
+  tarifaBaseCBM: 850,
 
   /**
    * Gracia de peso por CBM incluida en la tarifa base. Sobre esto = excedente.
@@ -107,13 +139,22 @@ export const CONFIG = {
 
   /**
    * Multiplicador del flete cuando la carga lleva baterías (riesgo/manejo).
-   * 1.3 = +30% sobre el flete (antes del descuento de sede).
+   * 1.5 = +50% sobre el flete (antes del descuento de sede).
    *
-   * ⚠️ Espeja `calculator_settings.recargo_bateria_mult` de producción (1.3).
-   * Estuvo en 1.5 acá mientras el ERP ya cobraba 1.3 — mismo riesgo silencioso
-   * que `pesoIncluidoKg`. Corregido el 2026-08-05 (founder).
+   * ⚠️ Espeja `calculator_settings.recargo_bateria_mult` de producción (1.5,
+   * leído de la RPC pública `public_calculator_config` el 2026-09-18). Si no
+   * coinciden, una caída de Supabase cotiza baterías a otro precio en silencio.
+   *
+   * La historia, para que nadie lo revierta por reflejo (SDD-0480):
+   *   · Hasta el 2026-08-05 acá decía 1.5 mientras el ERP cobraba 1.3; ese día
+   *     el commit `535aa0ec` lo bajó a 1.3 para espejar el ERP.
+   *   · Después el founder subió el ERP a 1.5, a propósito. Confirmado el
+   *     2026-09-18: «Sí, ×1,5 es correcto — Lo subí a propósito.»
+   *   · El 2026-09-18 vuelve a 1.5 para espejarlo. Con 1.3, ante una caída se
+   *     cotizaba 13,3% por debajo (1,3/1,5).
+   * El ancla está en `__tests__/calculadora-respaldo-alineado.test.ts`.
    */
-  recargoBateriaMult: 1.3,
+  recargoBateriaMult: 1.5,
 
   /**
    * ⚠️ LEGACY — ya no fija ningún precio (SDD-0237, founder 1-ago-2026).
@@ -462,7 +503,7 @@ export type EnvioInput = {
   cargaEspecial?: boolean;
   /**
    * Override de la tarifa base por CBM (USD).
-   * Si no se provee, se usa `CONFIG.tarifaBaseCBM` (default $800).
+   * Si no se provee, se usa `CONFIG.tarifaBaseCBM` (hoy $850).
    * Útil cuando el cliente tiene una cotización negociada distinta a la pública.
    */
   tarifaCBMOverride?: number;

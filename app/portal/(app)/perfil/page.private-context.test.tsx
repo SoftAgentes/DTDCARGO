@@ -54,7 +54,8 @@ vi.mock("@/lib/public/rates-queries", () => ({
 vi.mock("@/lib/portal/change-request-queries", () => ({
   getPortalChangeRequestSnapshot: async () => ({ open: null, lastResolved: null }),
 }));
-vi.mock("@/lib/portal/profile-edit-quota", () => ({
+vi.mock("@/lib/portal/profile-edit-quota", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/portal/profile-edit-quota")>()),
   getPortalProfileEditQuota: async () => ({
     limit: 3,
     applied: 0,
@@ -72,6 +73,11 @@ vi.mock("@/lib/portal/profile-edit-quota", () => ({
 }));
 vi.mock("./actions", () => ({
   uploadCedulaPhotoAction: vi.fn(async () => ({})),
+}));
+// SDD-0487: el perfil de facturación tiene su propia RPC y sus pruebas; aquí
+// sólo cuenta que el contexto privado salga de la 0405.
+vi.mock("@/lib/portal/billing-profile-context", () => ({
+  getPortalBillingContext: async () => ({ available: false, profile: null }),
 }));
 vi.mock("./AvatarEditor", async () => {
   const { createElement } = await import("react");
@@ -133,7 +139,9 @@ describe("perfil Portal · contexto privado por principal (SDD-0341)", () => {
     expect(screen.getByRole("link", { name: /^ver$/i }).getAttribute("href")).toBe(
       "https://storage.test/tenant-a/DTD-1001/cedula.webp?ttl=60",
     );
-    expect(screen.queryByRole("button", { name: /subir foto|cambiar foto/i })).toBeNull();
+    // SDD-0481: la foto existe → nunca "Subir foto"; con cupo sí se ofrece cambiarla.
+    expect(screen.queryByRole("button", { name: /subir foto/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /cambiar foto/i })).toBeTruthy();
     expect(from).toHaveBeenCalledWith("client-docs");
     expect(createSignedUrl.mock.calls).toEqual([
       ["tenant-a/DTD-1001/avatar/perfil.webp", 3600],
@@ -161,7 +169,9 @@ describe("perfil Portal · contexto privado por principal (SDD-0341)", () => {
     expect(screen.getByTestId("avatar").textContent).toBe("sin-foto");
     expect(screen.queryByRole("link", { name: /^ver$/i })).toBeNull();
     expect(screen.getByText(/vista temporal no disponible/i)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /subir foto|cambiar foto/i })).toBeNull();
+    // SDD-0481: la foto existe → nunca "Subir foto"; con cupo sí se ofrece cambiarla.
+    expect(screen.queryByRole("button", { name: /subir foto/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /cambiar foto/i })).toBeTruthy();
     expect(mocks.createAdminClient).not.toHaveBeenCalled();
     expect(createSignedUrl).not.toHaveBeenCalled();
   });

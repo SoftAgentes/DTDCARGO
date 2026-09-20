@@ -70,6 +70,8 @@ export type FacturaPdfInput = {
   clientRif?: string | null;
   /** `empresa` (RIF) o `persona` (cédula) — decide la etiqueta. */
   clientDocKind?: string | null;
+  /** Domicilio fiscal del titular, sellado al emitir (SDD-0487). null = no se imprime. */
+  clientFiscalAddress?: string | null;
   /** Shipping Mark del cliente (`DTD-NNNN`). El portal no lo trae → null. */
   clientMarkbox: string | null;
   shipmentCode: string | null;
@@ -369,6 +371,9 @@ export function FacturaDocument({
             <Text style={styles.bloqueTitulo}>Cliente</Text>
             <Text style={styles.datoFuerte}>{invoice.clientName}</Text>
             {docCliente ? <Text style={styles.dato}>{docCliente}</Text> : null}
+            {invoice.clientFiscalAddress ? (
+              <Text style={styles.dato}>Domicilio fiscal: {invoice.clientFiscalAddress}</Text>
+            ) : null}
             {invoice.clientMarkbox ? (
               <Text style={styles.dato}>Shipping Mark: {invoice.clientMarkbox}</Text>
             ) : null}

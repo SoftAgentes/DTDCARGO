@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del motor de liquidación / finiquito (SDD-0109). PUROS: cubren lo
  * MECÁNICO (mapa causa→renglones, fracciones, duplicación Art. 92, deducción

@@ -18,6 +18,7 @@
 import { createClient } from "@/lib/db/server";
 import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
+  listRateSchedules,
   listRates,
   parseRateFiltersFromSearchParams,
 } from "@/lib/studio/rate-queries";
@@ -52,10 +53,15 @@ export default async function TarifasPage({
   const casa = books.find((b) => b.isHouse) ?? null;
   const activa = books.find((b) => b.id === filters.priceBookId) ?? casa;
 
-  const rates = await listRates(supabase, {
-    ...filters,
-    priceBookId: activa?.id,
-  });
+  // SDD-0478: la ranura programada va en su propia consulta, que no puede
+  // tumbar la pantalla (ver listRateSchedules).
+  const [rates, schedules] = await Promise.all([
+    listRates(supabase, {
+      ...filters,
+      priceBookId: activa?.id,
+    }),
+    listRateSchedules(supabase),
+  ]);
 
   return (
     <TarifasClient
@@ -63,6 +69,7 @@ export default async function TarifasPage({
       filters={filters}
       books={books}
       activeBook={activa}
+      schedules={schedules}
     />
   );
 }

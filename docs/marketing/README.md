@@ -220,8 +220,22 @@ Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy *
   de Supabase el sitio cobraba otro precio en silencio, y con el peso incluido a la mitad le habría
   cobrado excedente al doble de clientes. ⭐ **Lección: el `CONFIG` del código NO es la fuente de
   verdad de las tarifas — lo es la RPC `public_calculator_config`.**
-- [ ] ⚠️ **La tarifa pública sube a $850/CBM el 4-sep-2026** (migración `0336`, decisión founder
-  2026-08-05). Los documentos que citan **$800** lo hacen como ejemplo de un mensaje mal escrito,
-  no como tarifa vigente, pero conviene revisarlos después de esa fecha:
-  [`conversacion-crm.md`](conversacion-crm.md), `equipo-crm/07-como-conversar.md` y
-  [`manual-asesor/01-diagnostico.md`](manual-asesor/01-diagnostico.md).
+- [x] ~~**La tarifa pública sube a $850/CBM el 4-sep-2026** (migración `0336`, decisión founder
+  2026-08-05): revisar los documentos que citan **$800**.~~ ✅ **HECHO 2026-09-18**, uno por uno:
+  - **No se tocan** los ejemplos del «precio desnudo»: [`conversacion-crm.md`](conversacion-crm.md),
+    `equipo-crm/07-como-conversar.md` y [`manual-asesor/01-diagnostico.md`](manual-asesor/01-diagnostico.md).
+    Enseñan que el error es no preguntar, no el número; cambiarlo les quitaba el sentido.
+  - **Se recalcularon con fecha** los que se presentan como vigentes:
+    [`manual-vendedores-peso.md`](manual-vendedores-peso.md), [`calculadora-explicada.html`](calculadora-explicada.html)
+    y `public/interno/guia-peso.html`. Cada ejemplo sin baterías se corrió en el motor de la
+    calculadora con los valores públicos del 2026-09-18 ($850/m³, mínimo $50, 1.000 kg/m³, $2/kg).
+    El explicativo corrige además el mínimo en cajas: con $850 son **2**, no 3.
+  - [x] ~~El recargo de baterías quedó en ×1,3 **en revisión**: el ERP mostraba ×1,5 y faltaba saber
+    si fue decisión de Sam.~~ ✅ **RESUELTO 2026-09-18** ([SDD-0480](../specs/0480-respaldo-bateria-espeja-erp/spec.md)):
+    Sam lo confirmó — «Sí, ×1,5 es correcto — Lo subí a propósito.» `calculadora-explicada.html`
+    pasa a **×1,5 (+50%)** y su ejemplo con baterías, corrido en el motor, a $1.700 × 1,5 =
+    **$2.550** (+$850). El respaldo del código (`CONFIG.recargoBateriaMult`) también quedó en 1,5,
+    anclado en su test.
+  - **Nota fechada, sin retocar la foto** de los competidores del 2026-08-01:
+    [`competencia-precios.md`](competencia-precios.md) §5 y [`adquisicion.md`](adquisicion.md).
+    La ventaja en tarifa base baja de 13 % a 7,6 % contra AsiaVen.

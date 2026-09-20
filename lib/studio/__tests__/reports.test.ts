@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de reportes contables (SDD-0040) — `profitAndLoss` / `balanceSheet`.
  *

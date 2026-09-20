@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de las utilidades puras de email (SDD-0082 · SDD-0062 Slice D).
  */

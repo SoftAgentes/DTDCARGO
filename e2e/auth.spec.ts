@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { requiereSupabase } from "./_helpers/supabase";
 
 /**
  * Tier 1 · e2e de autenticación — casos de RENDER y NEGATIVOS.
@@ -15,10 +16,16 @@ import { test, expect } from "@playwright/test";
  *
  * El camino POSITIVO (login OK → redirect al app) vive en los specs de
  * journey, que sí requieren el branch efímero + seed-e2e (ver e2e/README.md).
+ *
+ * SDD-0470: Studio, Back y las dos del Portal pasan por el matcher de
+ * `proxy.ts`, que necesita Supabase público (URL + anon key) aunque no haya
+ * seed. Sin esas variables se omiten con motivo (`requiereSupabase()`) en vez
+ * de fallar; `/acceso` y el PIN del operario quedan fuera del matcher y corren.
  */
 
 test.describe("Tier 1 · logins (render + negativos)", () => {
   test("Studio: form email+password, submit vacío no autentica", async ({ page }) => {
+    requiereSupabase();
     await page.goto("/studio/login");
     await expect(page.locator("form")).toBeVisible();
     await expect(page.locator('input[name="email"]')).toBeVisible();
@@ -89,6 +96,7 @@ test.describe("Tier 1 · logins (render + negativos)", () => {
   });
 
   test("Back: form email+password presente", async ({ page }) => {
+    requiereSupabase();
     await page.goto("/back/login");
     await expect(page.locator("form")).toBeVisible();
     await expect(page.locator('input[name="email"]')).toBeVisible();
@@ -96,6 +104,7 @@ test.describe("Tier 1 · logins (render + negativos)", () => {
   });
 
   test("Portal: magic link (email, sin password)", async ({ page }) => {
+    requiereSupabase();
     await page.goto("/entrar");
     await expect(page.locator('input[name="email"]').first()).toBeVisible();
     // Portal usa OTP/magic link: NO debe haber campo password.
@@ -105,6 +114,7 @@ test.describe("Tier 1 · logins (render + negativos)", () => {
   test("Portal: /entrar ofrece las dos puertas, y crear cuenta es un botón", async ({
     page,
   }) => {
+    requiereSupabase();
     // SDD-0276. Acá se mide en un navegador de verdad lo que el unit test mide
     // en jsdom: que la fila de crear cuenta EXISTA y tenga tamaño de botón. Era
     // un enlace de 12,5 px, y con la anti-enumeración del login eso dejaba sin

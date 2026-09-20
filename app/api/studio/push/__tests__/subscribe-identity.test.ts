@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0146 Fase 5 · /api/studio/push/subscribe — identidad SOLO de la sesión.
  *

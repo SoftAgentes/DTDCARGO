@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de queries del módulo Fiscal/SENIAT (SDD-0073).
  *
@@ -59,6 +60,8 @@ const REAL_INVOICE_COLUMNS = new Set([
   "created_at",
   "updated_at",
   "deleted_at",
+  "client_rif", // 0392: documento del cliente congelado al emitir
+  "client_doc_kind", // 0392
 ]);
 
 type Recorded = {
@@ -304,6 +307,49 @@ describe("salesBook", () => {
     expect(rows[0].rate).toBe(16);
     // 1 sola query a clients (sin N+1), con el markbox del período.
     expect(calls.clients.in).toContainEqual(["markbox", ["DTD-1001"]]);
+  });
+
+  it("usa el RIF congelado en la factura aunque el cliente lo haya cambiado · SDD-0482", async () => {
+    const { client } = stub({
+      invoices: [
+        {
+          invoice_code: "F-2026-0002",
+          client_markbox: "DTD-1001",
+          client_name: "Cliente A",
+          client_rif: "V-12345678",
+          currency: "USD",
+          base_amount: "100",
+          iva_amount: "0",
+          iva_rate: "0",
+          total_amount: "100",
+          issued_at: "2026-06-10",
+          created_at: "2026-06-10T12:00:00Z",
+          status: "emitida",
+        },
+        {
+          invoice_code: "F-2026-0003",
+          client_markbox: "DTD-1001",
+          client_name: "Cliente A",
+          client_rif: null,
+          currency: "USD",
+          base_amount: "100",
+          iva_amount: "0",
+          iva_rate: "0",
+          total_amount: "100",
+          issued_at: "2026-06-11",
+          created_at: "2026-06-11T12:00:00Z",
+          status: "emitida",
+        },
+      ],
+      // El cliente cambió su documento después de la primera factura.
+      clients: [{ markbox: "DTD-1001", name: "Cliente A", rif: "V-87654321" }],
+    });
+    const { rows } = await salesBook(client, "2026-06", SETTINGS_SIN_IVA);
+    expect(rows.map((r) => [r.invoiceCode, r.rif])).toEqual([
+      ["F-2026-0002", "V-12345678"],
+      // Anterior a 0392 (sin congelado): cae al documento vigente.
+      ["F-2026-0003", "V-87654321"],
+    ]);
   });
 
   it("factura sin cliente que matchee → RIF '—' (null), sin fabricar", async () => {

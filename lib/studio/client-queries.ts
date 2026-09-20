@@ -230,11 +230,15 @@ export async function listShipmentsByMarkbox(
   return data ?? [];
 }
 
-/** Estado del acceso al Portal del Cliente (SDD-0042) de un cliente. */
+/**
+ * Estado del acceso al Portal del Cliente (SDD-0042) de un cliente.
+ * `email` e `invitedAt` sólo son null en un vínculo revocado cuyo plazo de 30
+ * días venció: la retención de SDD-0477 los borra y la fila sigue `revoked`.
+ */
 export type ClientPortalAccess = {
   status: "invited" | "active" | "revoked";
-  email: string;
-  invitedAt: string;
+  email: string | null;
+  invitedAt: string | null;
   boundAt: string | null;
   lastLoginAt: string | null;
 };
@@ -256,8 +260,8 @@ export async function getClientPortalAccess(
   if (error || !data) return null;
   return {
     status: data.status as ClientPortalAccess["status"],
-    email: data.email as string,
-    invitedAt: data.invited_at as string,
+    email: (data.email as string | null) ?? null,
+    invitedAt: (data.invited_at as string | null) ?? null,
     boundAt: (data.bound_at as string | null) ?? null,
     lastLoginAt: (data.last_login_at as string | null) ?? null,
   };

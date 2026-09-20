@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la comparación de nombres / razón social (SDD-0046 · Slice A).
  *

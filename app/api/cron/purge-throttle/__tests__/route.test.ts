@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del cron de purga del throttle (/api/cron/purge-throttle).
  *
@@ -16,6 +17,7 @@ const DELETED: Record<string, number> = {
   portal_registro_throttle: 7,
   operario_pin_attempts: 3,
   public_verify_throttle: 5,
+  client_profile_blocked_attempts: 2,
 };
 
 const ops = {
@@ -95,12 +97,13 @@ describe("GET /api/cron/purge-throttle", () => {
       deletedByTable: Record<string, number>;
     };
     expect(json.ok).toBe(true);
-    expect(json.deleted).toBe(15);
+    expect(json.deleted).toBe(17);
     expect(json.deletedByTable).toEqual(DELETED);
     expect(ops.calls.map((c) => c.table)).toEqual([
       "portal_registro_throttle",
       "operario_pin_attempts",
       "public_verify_throttle",
+      "client_profile_blocked_attempts",
     ]);
     // Sin `count: "exact"`, PostgREST no devuelve el conteo y `deleted` mentiría en 0.
     expect(ops.calls.every((c) => c.count === "exact")).toBe(true);
@@ -130,6 +133,7 @@ describe("retención de public_verify_throttle (SDD-0455)", () => {
       portal_registro_throttle: "2026-09-09T04:00:00.000Z",
       operario_pin_attempts: "2026-09-09T04:00:00.000Z",
       public_verify_throttle: "2026-09-11T03:00:00.000Z",
+      client_profile_blocked_attempts: "2026-06-13T04:00:00.000Z",
     };
     expect(Object.fromEntries(ops.calls.map((c) => [c.table, c.value]))).toEqual(expected);
     expect(json.cutoffByTable).toEqual(expected);
@@ -162,6 +166,38 @@ describe("retención de public_verify_throttle (SDD-0455)", () => {
         "[purge-verify-throttle] No se pudo purgar el throttle de verificación.",
         "boom",
       );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+});
+
+describe("retención de los intentos bloqueados del perfil (SDD-0487)", () => {
+  it("corta a 90 días, la decisión de Sam", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-19T12:00:00.000Z"));
+    try {
+      await GET(req({ authorization: "Bearer s3cret" }) as never);
+      expect(cutoffOf("client_profile_blocked_attempts")).toBe("2026-06-21T12:00:00.000Z");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("si falla → 500 genérico, después de las otras tres purgas", async () => {
+    ops.failTable = "client_profile_blocked_attempts";
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const res = await GET(req({ authorization: "Bearer s3cret" }) as never);
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as { error: string };
+      expect(json.error).toBe("No se pudo purgar los intentos bloqueados del perfil.");
+      expect(ops.calls.map((c) => c.table)).toEqual([
+        "portal_registro_throttle",
+        "operario_pin_attempts",
+        "public_verify_throttle",
+        "client_profile_blocked_attempts",
+      ]);
     } finally {
       consoleError.mockRestore();
     }

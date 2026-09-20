@@ -1,14 +1,25 @@
 /**
  * Queries públicas de tarifas para la calculadora del sitio (Fase 2).
  *
- * Llama a la RPC `public_cbm_rate` (SECURITY DEFINER, grant anon) que vive
+ * Llama a la RPC `public_cbm_rate` (SECURITY DEFINER, grant anon) que nació
  * en `supabase/migrations/0101_rates_valid_from_is_public.sql`. Devuelve solo
  * la tarifa per_cbm marcada `is_public` del tenant dtd, con retorno MÍNIMO
  * (per_cbm + min_charge + valid_until) — sin filtrar info comercial.
  *
- * Si no hay tarifa pública marcada (o todo vencido / Supabase caído), devuelve
- * null y el calculador cae al default hardcodeado de `lib/calculadora.ts`
- * (cero regresión).
+ * Si no hay tarifa pública servible (o Supabase caído), devuelve null y el
+ * calculador cae al default hardcodeado de `lib/calculadora.ts` (cero
+ * regresión).
+ *
+ * QUÉ CUENTA COMO «NO SERVIBLE»: desde la migración 0458 (SDD-0476, aplicada a
+ * producción el 2026-09-18, ledger `20260918040814`) la vigencia no es filtro
+ * de LECTURA. Una tarifa vencida se sigue sirviendo, porque es el último precio
+ * que el founder puso. Renovarla es trabajo del ERP (badge de /studio/tarifas +
+ * cron `rate-expiry-alert`), y el respaldo del código queda para lo que de
+ * verdad es no tener tarifa: Supabase inalcanzable, borrador, `is_public` sin
+ * marcar o `valid_from` a futuro.
+ *
+ * `valid_until` viaja siempre: quien necesite distinguir vigente de vencida lo
+ * deriva de ahí (`valid_until != null && valid_until < hoy`).
  */
 
 import { getAnonClient } from "./supabase-anon";
@@ -41,7 +52,9 @@ export type PublicCbmRate = {
 
 /**
  * Resuelve la tarifa pública del calculador (la marcada `is_public`).
- * @returns la tarifa, o `null` si no hay ninguna vigente / hubo error.
+ * @returns la tarifa, o `null` si la RPC no devolvió ninguna / hubo error.
+ *   Qué filtra la RPC está en el bloque de arriba: una tarifa vencida SÍ se
+ *   devuelve.
  */
 export async function getPublicCbmRate(): Promise<PublicCbmRate | null> {
   // Nunca debe tirar: es una página pública de marketing. Cualquier falla

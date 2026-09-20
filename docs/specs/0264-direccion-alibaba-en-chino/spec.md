@@ -116,8 +116,10 @@ Proveedores y Dashboard, y una lección de Academia): un solo cambio las cubre.
   edita acá.
 - Los assets de `docs/specs/0099-guia-comprar-alibaba/` son registro histórico de
   aquella entrega; no se reescriben retroactivamente.
-- El término «MARKBOX» sobrevive en `public/guias/comprar-en-alibaba.html`. Es
-  trabajo de SDD-0258 y vive en otro worktree; tocarlo acá cruzaría ramas.
+- ~~El término «MARKBOX» sobrevive en `public/guias/comprar-en-alibaba.html`. Es
+  trabajo de SDD-0258 y vive en otro worktree; tocarlo acá cruzaría ramas.~~
+  **Cerrado por SDD-0474** (2026-09-17): la guía ya dice «Shipping Mark» en sus
+  18 apariciones visibles, y `pnpm guia:check` impide que el término vuelva.
 
 ## Verificación
 

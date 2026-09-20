@@ -43,25 +43,83 @@ export async function notifyChangeRequestToAdmin(
       clientUrl,
     ].join("\n");
 
-    // Ruteo al asesor asignado si tiene Telegram; si no, cae a broadcast.
-    if (args.advisorId) {
-      const { data: prof } = await supabaseAdmin
-        .from("user_profiles")
-        .select("telegram_chat_id")
-        .eq("user_id", args.advisorId)
-        .maybeSingle<{ telegram_chat_id: string | null }>();
-      if (prof?.telegram_chat_id) {
-        await sendTelegramToUser(supabaseAdmin, args.advisorId, text);
-        return;
-      }
-    }
-
-    // UNA vez por CHAT, no una por admin (SDD-0271).
-    await dispatchTelegramAlert(supabaseAdmin, args.tenantId, "equipo", text, {
-      logTag: "change-request-notify",
-    });
+    await routeToAdvisorOrTeam(supabaseAdmin, args, text, "change-request-notify");
   } catch (err) {
     console.error("[change-request-notify] falló:", err);
+  }
+}
+
+/**
+ * Ruteo SDD-0148: al asesor asignado si tiene Telegram; si no, broadcast al
+ * equipo del tenant, UNA vez por chat (SDD-0271).
+ */
+async function routeToAdvisorOrTeam(
+  supabaseAdmin: SupabaseClient,
+  args: { tenantId: string; advisorId: string | null },
+  text: string,
+  logTag: string,
+): Promise<void> {
+  if (args.advisorId) {
+    const { data: prof } = await supabaseAdmin
+      .from("user_profiles")
+      .select("telegram_chat_id")
+      .eq("user_id", args.advisorId)
+      .maybeSingle<{ telegram_chat_id: string | null }>();
+    if (prof?.telegram_chat_id) {
+      await sendTelegramToUser(supabaseAdmin, args.advisorId, text);
+      return;
+    }
+  }
+  await dispatchTelegramAlert(supabaseAdmin, args.tenantId, "equipo", text, {
+    logTag,
+  });
+}
+
+export type BlockedProfileField = "document" | "phone" | "company_rif" | "personal_doc";
+
+const BLOCKED_FIELD_LABEL: Record<BlockedProfileField, string> = {
+  document: "un documento",
+  phone: "un teléfono",
+  company_rif: "el RIF de una empresa",
+  personal_doc: "una cédula para facturar a su nombre",
+};
+
+/**
+ * SDD-0482 · Aviso interno cuando el Portal bloquea un cambio directo porque
+ * el documento o el teléfono ya pertenecen a otra ficha (decisión de Sam:
+ * «Bloquear y avisar al asesor»). Lleva los Shipping Marks de las dos fichas,
+ * NUNCA el valor intentado: el registro 0462 tampoco lo guarda. Best-effort.
+ */
+export async function notifyBlockedProfileEditToAdmin(
+  supabaseAdmin: SupabaseClient,
+  args: {
+    tenantId: string;
+    markbox: string;
+    clientName: string;
+    advisorId: string | null;
+    /** SDD-0487 suma el RIF de la empresa y la cédula de la identidad secundaria. */
+    field: BlockedProfileField;
+    conflictingMarkbox: string | null;
+  },
+): Promise<void> {
+  try {
+    const what = BLOCKED_FIELD_LABEL[args.field];
+    const other = args.conflictingMarkbox
+      ? `que ya tiene la ficha ${args.conflictingMarkbox}`
+      : "que ya tiene otra ficha";
+    const text = [
+      `Cambio de datos bloqueado · ${args.markbox}`,
+      ``,
+      args.clientName,
+      `Intentó guardar ${what} ${other}. No se guardó nada.`,
+      `Puede ser la misma persona con dos cuentas.`,
+      ``,
+      `Revisar:`,
+      `${SITE_URL}/studio/clientes/${args.markbox}`,
+    ].join("\n");
+    await routeToAdvisorOrTeam(supabaseAdmin, args, text, "profile-edit-blocked");
+  } catch (err) {
+    console.error("[profile-edit-blocked-notify] falló:", err);
   }
 }
 

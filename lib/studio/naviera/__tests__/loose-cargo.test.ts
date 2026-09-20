@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de listLooseCargo (SDD-0047, Slice A) con un stub de SupabaseClient.
  *

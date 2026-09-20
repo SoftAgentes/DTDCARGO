@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0288 · contratos de la derivada "sin atender".
  *

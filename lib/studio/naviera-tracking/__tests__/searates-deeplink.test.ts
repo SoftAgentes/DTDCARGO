@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del deep-link de tracking de SeaRates (SDD-0101 · Slice A · lógica PURA).
  * Modo cero-cuota: armar la URL de la web de SeaRates sin gastar llamadas del API.

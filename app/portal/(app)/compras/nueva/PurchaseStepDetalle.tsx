@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { ArrowIcon } from "@/components/Icon";
 import { FieldLabel, FileField } from "../../../_components/PortalFormField";
 import { PurchaseWizardSteps } from "./PurchaseWizardSteps";
+import { DocumentImportEntry } from "@/components/document-import/DocumentImportEntry";
 import { PurchaseSummaryPanel } from "./PurchaseSummaryPanel";
 import type { ChecklistItem, OrderRecap } from "./PurchaseSummaryPanel";
 import type { PrealertaActionState } from "@/lib/studio/prealertas/types";
@@ -146,6 +147,22 @@ export function PurchaseStepDetalle({
       ) : (
         <PurchaseWizardSteps step={2} />
       )}
+
+      {/*
+        SDD-0473 · Primero los archivos. Va FUERA del `<form>` a propósito: tiene
+        su propio transporte y sus propios botones, y anidarlo haría que enviara
+        el formulario de la compra al tocarlos.
+
+        Sin `DOCUMENT_IMPORT_ENABLED` Y `DOCUMENT_IMPORT_PORTAL_ENABLED` en "true"
+        no renderiza nada (la primera sola es el cotizador público), así que mientras
+        la función no esté lista esta pantalla queda exactamente como estaba.
+      */}
+      <div className="mb-5">
+        <DocumentImportEntry
+          purchaseCode={code}
+          reviewHref={`/portal/compras/${encodeURIComponent(code)}/documento`}
+        />
+      </div>
 
       <form
         action={action}

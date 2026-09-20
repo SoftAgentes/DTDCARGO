@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del módulo Portal · Compras (prealertas) + Proveedores (SDD-0057).
  * Cubre validadores (name/description vacíos, boxes 0/negativo, status inválido,

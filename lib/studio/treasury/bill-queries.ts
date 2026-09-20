@@ -92,7 +92,17 @@ function coercePayment(row: Record<string, unknown>): SupplierPayment {
 
 // ── Bills ─────────────────────────────────────────────────────
 
-/** Lista las CxP (vivas) del tenant, opcionalmente de un proveedor. */
+/**
+ * Lista las CxP vivas del tenant, opcionalmente de un proveedor.
+ *
+ * Sin borradas (SDD-0494): anular una CxP es `status = 'anulada'` (la 0294), y
+ * eso ya lo descarta `buildPayablesQueue`; pero `deleted_at` es OTRA marca, que
+ * la RLS dejó de filtrar en la 0230 y que la propia base trata como la de
+ * liveness (`sp_tenant_bill_idx ... where deleted_at is null`, 0088; y el
+ * preflight de `register_supplier_payment_order` la rechaza igual que a una
+ * anulada, 0468). Sin este `.is`, una CxP borrada entra a la cola y suma en el
+ * KPI «Por pagar» — lo destapó el fixture de regresión de esta tarea.
+ */
 export async function listBills(
   supabase: SupabaseClient,
   opts: { supplierId?: string } = {},
@@ -103,6 +113,7 @@ export async function listBills(
     let q = supabase
       .from("supplier_bills")
       .select(BILL_COLUMNS)
+      .is("deleted_at", null)
       .order("due_date", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: false })
       .order("id", { ascending: true });
@@ -130,7 +141,15 @@ export async function getBill(
   return data ? coerceBill(data as Record<string, unknown>) : null;
 }
 
-/** Lista los pagos (vivos) del tenant, opcionalmente de una CxP. */
+/**
+ * Lista las órdenes de pago vivas del tenant, opcionalmente de una CxP.
+ *
+ * Sin anuladas (SDD-0494): anular una orden es ponerle `deleted_at`
+ * (`void_supplier_payment_order`, 0468) —`supplier_payments` no tiene columna
+ * de estado— y la RLS no la oculta (0230 sacó ese filtro del USING). Sin este
+ * `.is`, la orden revertida seguía en el tab «Pagos», en el historial del
+ * drawer de su CxP y sumando en el KPI de pagado, que es el mismo listado.
+ */
 export async function listPayments(
   supabase: SupabaseClient,
   opts: { billId?: string } = {},
@@ -138,6 +157,7 @@ export async function listPayments(
   let query = supabase
     .from("supplier_payments")
     .select(PAYMENT_COLUMNS)
+    .is("deleted_at", null)
     .order("paid_at", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(1000);
@@ -224,6 +244,34 @@ export function derivedStage(args: {
 }
 
 /**
+ * Enriquece UNA CxP con saldo, aging y stage. PURA — testeable sin DB.
+ *
+ * NO filtra: quién entra lo decide el llamador. `buildPayablesQueue` descarta
+ * anuladas y saldadas porque es una COLA de pagos; `payableForBill` no descarta
+ * nada porque es una CONSULTA de un documento concreto (SDD-0494). Sacarlo a
+ * una función es lo que impide que las dos lecturas deriven distinto el stage.
+ */
+export function buildPayable(
+  bill: SupplierBill,
+  today: string = new Date().toISOString().slice(0, 10),
+): Payable {
+  const balance = billBalance(bill);
+  return {
+    bill,
+    balance,
+    balanceUsd: round2(billBalanceToUsd(balance, bill)),
+    daysOverdue: daysOverdue(bill.due_date, today),
+    stage: derivedStage({
+      totalAmount: bill.total_amount,
+      paidAmount: bill.paid_amount,
+      balance,
+      dueDate: bill.due_date,
+      today,
+    }),
+  };
+}
+
+/**
  * Construye la cola de CxP a partir de un set de bills. PURA — testeable sin DB.
  *
  * Solo CxP con saldo > 0 y status ≠ anulada. Ordenadas por días vencido
@@ -239,19 +287,7 @@ export function buildPayablesQueue(
     const balance = billBalance(bill);
     if (balance <= 0) continue;
 
-    out.push({
-      bill,
-      balance,
-      balanceUsd: round2(billBalanceToUsd(balance, bill)),
-      daysOverdue: daysOverdue(bill.due_date, today),
-      stage: derivedStage({
-        totalAmount: bill.total_amount,
-        paidAmount: bill.paid_amount,
-        balance,
-        dueDate: bill.due_date,
-        today,
-      }),
-    });
+    out.push(buildPayable(bill, today));
   }
 
   out.sort((a, b) => {
@@ -270,6 +306,41 @@ export async function payablesQueue(
 ): Promise<Payable[]> {
   const bills = await listBills(supabase);
   return buildPayablesQueue(bills, today);
+}
+
+/**
+ * Una CxP por id como `Payable`, TENGA O NO SALDO (SDD-0494).
+ *
+ * El drawer de la CxP es el único lugar del Studio donde se anula una orden de
+ * pago, y solo se abría desde la cola — que descarta las CxP saldadas. Una
+ * orden que saldaba su CxP quedaba así fuera de alcance: si el pago se devolvía
+ * después, no había camino en la UI para revertirlo. Esta lectura es la puerta
+ * de consulta desde el tab «Pagos».
+ *
+ * No filtra por saldo ni por status a propósito: el drawer ya decide qué
+ * acciones ofrece (registrar pago pide saldo > 0; anular la CxP pide pagado 0),
+ * así que una CxP saldada o anulada se abre en consulta con su historial.
+ *
+ * null si no existe, si la RLS la oculta o si está borrada.
+ */
+export async function payableForBill(
+  supabase: SupabaseClient,
+  billId: string,
+  today: string = new Date().toISOString().slice(0, 10),
+): Promise<Payable | null> {
+  const id = String(billId ?? "").trim();
+  if (!id) return null;
+
+  const { data, error } = await supabase
+    .from("supplier_bills")
+    .select(BILL_COLUMNS)
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  return buildPayable(coerceBill(data as Record<string, unknown>), today);
 }
 
 // ── KPIs ───────────────────────────────────────────────────────

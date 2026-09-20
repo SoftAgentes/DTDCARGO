@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0156 · funciones puras del motor de notificaciones al cliente.
  * Copy (precedencia override→template→default→genérico), offset, catálogo.

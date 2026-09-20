@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del módulo Facturación (SDD-0021) — capa `invoice-queries`.
  *
@@ -15,6 +16,7 @@ import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   filterByTab,
+  getInvoiceByCode,
   invoiceKpis,
   listInvoices,
   tabCounts,
@@ -121,17 +123,30 @@ describe("tabCounts", () => {
  * 1.000 filas sobrevivió meses en este repo.
  */
 function kpiStub(rows: Record<string, unknown>[]): SupabaseClient {
-  const chain: Record<string, unknown> = {
-    select: () => chain,
-    order: () => chain,
-    limit: () => Promise.resolve({ data: rows, error: null }),
-    range: (desde: number, hasta: number) => {
-      const pedido = hasta - desde + 1;
-      const trozo = rows.slice(desde, desde + Math.min(pedido, SERVER_CAP));
-      return Promise.resolve({ data: trozo, error: null });
+  return {
+    from() {
+      // `is(col, null)` se APLICA sobre las filas, como PostgREST (SDD-0465):
+      // si el lector deja de pedir `deleted_at is null`, la factura borrada
+      // del fixture entra al KPI y la aserción lo delata. Un doble que
+      // ignorara el filtro daría verde con código que suma eliminadas.
+      let visibles = rows;
+      const chain: Record<string, unknown> = {
+        select: () => chain,
+        is: (col: string, val: unknown) => {
+          if (val === null) visibles = visibles.filter((r) => r[col] == null);
+          return chain;
+        },
+        order: () => chain,
+        limit: () => Promise.resolve({ data: visibles, error: null }),
+        range: (desde: number, hasta: number) => {
+          const pedido = hasta - desde + 1;
+          const trozo = visibles.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+          return Promise.resolve({ data: trozo, error: null });
+        },
+      };
+      return chain;
     },
-  };
-  return { from: () => chain } as unknown as SupabaseClient;
+  } as unknown as SupabaseClient;
 }
 
 describe("invoiceKpis", () => {
@@ -170,36 +185,56 @@ describe("invoiceKpis", () => {
   });
 });
 
-/** Stub que captura los filtros aplicados y devuelve rows fijas. */
+/** Filtros que el doble vio en la última query (para afirmar sobre ellos). */
+let filtrosVistos: { op: string; col: string; val: unknown }[] = [];
+
+/**
+ * Stub que captura los filtros aplicados y devuelve rows fijas.
+ *
+ * `eq` e `is(col, null)` se APLICAN sobre las filas, como haría PostgREST: así
+ * una factura borrada del fixture sólo desaparece si el lector pidió
+ * `deleted_at is null` (SDD-0465). El resto de la cadena es no-op.
+ */
 function listStub(rows: Record<string, unknown>[]): SupabaseClient {
-  const chain = {
-    order() {
-      return chain;
-    },
-    // Terminal paginado: corta en SERVER_CAP por request igual que
-    // PostgREST. Un doble más generoso que el servidor deja pasar
-    // código que en producción trunca.
-    range(desde: number, hasta: number) {
-      const pedido = hasta - desde + 1;
-      const todas = rows ?? [];
-      const trozo = todas.slice(desde, desde + Math.min(pedido, SERVER_CAP));
-      return Promise.resolve({ data: trozo, error: null });
-    },
-    limit() {
-      return chain;
-    },
-    eq() {
-      return chain;
-    },
-    or() {
-      return chain;
-    },
-    then(resolve: (v: { data: unknown; error: null }) => unknown) {
-      return Promise.resolve({ data: rows, error: null }).then(resolve);
-    },
-  };
   return {
     from() {
+      filtrosVistos = [];
+      let visibles = rows ?? [];
+      const chain = {
+        order() {
+          return chain;
+        },
+        // Terminal paginado: corta en SERVER_CAP por request igual que
+        // PostgREST. Un doble más generoso que el servidor deja pasar
+        // código que en producción trunca.
+        range(desde: number, hasta: number) {
+          const pedido = hasta - desde + 1;
+          const trozo = visibles.slice(desde, desde + Math.min(pedido, SERVER_CAP));
+          return Promise.resolve({ data: trozo, error: null });
+        },
+        limit() {
+          return chain;
+        },
+        eq(col: string, val: unknown) {
+          filtrosVistos.push({ op: "eq", col, val });
+          visibles = visibles.filter((r) => r[col] === val);
+          return chain;
+        },
+        is(col: string, val: unknown) {
+          filtrosVistos.push({ op: "is", col, val });
+          if (val === null) visibles = visibles.filter((r) => r[col] == null);
+          return chain;
+        },
+        or() {
+          return chain;
+        },
+        maybeSingle() {
+          return Promise.resolve({ data: visibles[0] ?? null, error: null });
+        },
+        then(resolve: (v: { data: unknown; error: null }) => unknown) {
+          return Promise.resolve({ data: visibles, error: null }).then(resolve);
+        },
+      };
       return { select: () => chain };
     },
   } as unknown as SupabaseClient;
@@ -231,6 +266,66 @@ describe("listInvoices", () => {
     expect(result[0].total_amount).toBe(1234.5);
     expect(result[0].paid_amount).toBe(200);
     expect(result[0].iva_rate).toBe(16);
+  });
+});
+
+/**
+ * SDD-0465 · Una factura con `deleted_at` no existe para estos lectores.
+ *
+ * La RLS de equipo dejó de ocultarlas (0230), así que el filtro vive en cada
+ * lector. Los dobles APLICAN `is("deleted_at", null)`: si alguien quita ese
+ * filtro del lector, la borrada del fixture vuelve a listarse, a abrirse y a
+ * sumar, y estas pruebas caen.
+ */
+describe("SDD-0465 · facturas borradas fuera de los lectores", () => {
+  const BORRADA = inv({
+    invoice_code: "F-2026-0100",
+    status: "emitida",
+    due_date: past,
+    total_amount: 5000,
+    deleted_at: `${YEAR}-02-01T00:00:00Z`,
+  });
+  const VIVA = inv({
+    invoice_code: "F-2026-0101",
+    status: "emitida",
+    due_date: past,
+    total_amount: 700,
+  });
+
+  it("listInvoices no lista una borrada, ni siquiera en `all`, y pide el filtro a la base", async () => {
+    const rows = [BORRADA, VIVA] as unknown as Record<string, unknown>[];
+    const result = await listInvoices(listStub(rows), { tab: "all" });
+    expect(result.map((i) => i.invoice_code)).toEqual(["F-2026-0101"]);
+    expect(filtrosVistos).toContainEqual({ op: "is", col: "deleted_at", val: null });
+  });
+
+  it("listInvoices tampoco la cuenta como vencida", async () => {
+    const rows = [BORRADA, VIVA] as unknown as Record<string, unknown>[];
+    const result = await listInvoices(listStub(rows), { tab: "overdue" });
+    expect(result.map((i) => i.invoice_code)).toEqual(["F-2026-0101"]);
+  });
+
+  it("getInvoiceByCode devuelve null para el código de una borrada", async () => {
+    const rows = [BORRADA] as unknown as Record<string, unknown>[];
+    expect(await getInvoiceByCode(listStub(rows), "F-2026-0100")).toBeNull();
+    expect(filtrosVistos).toContainEqual({ op: "is", col: "deleted_at", val: null });
+  });
+
+  it("getInvoiceByCode sigue abriendo una viva", async () => {
+    const rows = [VIVA] as unknown as Record<string, unknown>[];
+    const r = await getInvoiceByCode(listStub(rows), "F-2026-0101");
+    expect(r?.invoice_code).toBe("F-2026-0101");
+  });
+
+  it("invoiceKpis no suma una borrada a facturado, por cobrar ni vencido", async () => {
+    const rows = [
+      // emitida, vencida, saldo 5000 — pero BORRADA: no cuenta en nada
+      { status: "emitida", issued_at: `${YEAR}-02-01`, due_date: past, total_amount: 5000, paid_amount: 0, created_at: `${YEAR}-02-01`, deleted_at: `${YEAR}-02-02T00:00:00Z` },
+      // emitida, vencida, saldo 700 — viva: cuenta en los tres
+      { status: "emitida", issued_at: `${YEAR}-02-01`, due_date: past, total_amount: 700, paid_amount: 0, created_at: `${YEAR}-02-01`, deleted_at: null },
+    ];
+    const kpis = await invoiceKpis(kpiStub(rows));
+    expect(kpis).toEqual({ billedYtd: 700, outstanding: 700, overdue: 700 });
   });
 });
 

@@ -1,12 +1,20 @@
+// @vitest-environment node
 import { cpus } from "node:os";
 import { describe, expect, it } from "vitest";
 import playwrightConfig, {
   E2E_LOCAL_WORKERS_CAP,
+  buildWebServers,
   preparePlaywrightRuntime,
   resolvePlaywrightRuntime,
   resolvePlaywrightWorkers,
+  resolveSupabaseE2E,
   resolveWebkitProjectWorkers,
 } from "../../playwright.config";
+import {
+  ANON_KEY_SINTETICA,
+  planSupabaseE2E,
+} from "../../e2e/_helpers/supabase-publico.cjs";
+import { destinoE2E } from "../verify-e2e.mjs";
 
 // Default histórico de Playwright antes de que este SDD fijara la clave:
 // `workers: "50%"` (playwright/lib/common/index.js:587) resuelto por
@@ -170,5 +178,86 @@ describe("resolveWebkitProjectWorkers", () => {
       expect(byName.get(name)?.workers).toBeUndefined();
       expect("workers" in (byName.get(name) ?? {})).toBe(false);
     }
+  });
+});
+
+// SDD-0479 · Supabase sintético deny-only. Valores sintéticos: nunca reales.
+const URL_FALSA = "http://127.0.0.1:54321";
+const CLAVE_FALSA = "clave-anon-sintetica-no-secreta";
+const SIN_ENV = "C:/ruta/que/no/existe/dtd-0479";
+
+describe("buildWebServers (SDD-0479)", () => {
+  const runtime = { port: 3150, baseURL: "http://localhost:3150", startWebServer: true };
+  const legado = {
+    command: "node node_modules/next/dist/bin/next dev --webpack --port 3150",
+    url: "http://localhost:3150",
+    reuseExistingServer: true,
+    timeout: 120_000,
+  };
+
+  it("sin sintético es el mismo next dev de siempre, sin env propio", () => {
+    const plan = planSupabaseE2E({
+      env: { NEXT_PUBLIC_SUPABASE_URL: URL_FALSA, NEXT_PUBLIC_SUPABASE_ANON_KEY: CLAVE_FALSA },
+      raiz: SIN_ENV,
+      baseURL: runtime.baseURL,
+      levantaServidor: true,
+      puertoApp: 3150,
+    });
+    expect(plan.modo).toBe("configurado");
+    expect(buildWebServers(runtime, plan, {})).toEqual(legado);
+    expect(buildWebServers({ ...runtime, startWebServer: false }, plan, {})).toBeUndefined();
+  });
+
+  it("con sintético: primero el deny-only y después next dev con URL y anon key sintéticas", () => {
+    const plan = planSupabaseE2E({ env: {}, raiz: SIN_ENV, baseURL: runtime.baseURL, levantaServidor: true, puertoApp: 3150 });
+    expect(plan.modo).toBe("sintetico");
+    const servidores = buildWebServers(runtime, plan, { PATH: "x", VACIA: undefined });
+    expect(servidores).toEqual([
+      {
+        command: "node scripts/e2e/supabase-deny-server.mjs 13150",
+        url: "http://127.0.0.1:13150/__health",
+        reuseExistingServer: false,
+        timeout: 30_000,
+      },
+      {
+        ...legado,
+        env: {
+          PATH: "x",
+          NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:13150",
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ANON_KEY_SINTETICA,
+        },
+      },
+    ]);
+  });
+
+  it("en CI el next dev no se reusa, con o sin sintético", () => {
+    const plan = planSupabaseE2E({ env: { CI: "1" }, raiz: SIN_ENV, baseURL: runtime.baseURL, levantaServidor: true, puertoApp: 3150 });
+    const servidores = buildWebServers(runtime, plan, { CI: "1" }) as { reuseExistingServer: boolean }[];
+    expect(servidores.map((s) => s.reuseExistingServer)).toEqual([false, false]);
+  });
+
+  it("resolveSupabaseE2E toma el destino del runtime", () => {
+    expect(resolveSupabaseE2E({}, { ...runtime, baseURL: "https://preview.dtdcargo.example" }).modo).toBe("remoto");
+    expect(resolveSupabaseE2E({}, { ...runtime, startWebServer: false }).modo).not.toBe("sintetico");
+  });
+
+  it("la config publica sólo el modo en la metadata, nunca valores", () => {
+    const metadata = playwrightConfig.metadata as { supabaseE2E: { modo: string } };
+    expect(Object.keys(metadata)).toEqual(["supabaseE2E"]);
+    expect(Object.keys(metadata.supabaseE2E)).toEqual(["modo"]);
+    expect(["remoto", "configurado", "parcial", "ausente", "sintetico"]).toContain(metadata.supabaseE2E.modo);
+  });
+
+  it.each([
+    [{}],
+    [{ BASE_URL: "https://preview.dtdcargo.example" }],
+    [{ BASE_URL: "http://localhost:3150", E2E_START_WEB_SERVER: "1" }],
+    [{ BASE_URL: "http://localhost:3150", E2E_START_WEB_SERVER: "0" }],
+    [{ E2E_START_WEB_SERVER: "0" }],
+    [{ E2E_PORT: "3150" }],
+  ])("verify decide el mismo destino que Playwright: %j", (env) => {
+    const pw = resolvePlaywrightRuntime(env);
+    const gate = destinoE2E(env, pw.port);
+    expect({ baseURL: gate.baseURL, startWebServer: gate.levantaServidor, port: gate.puertoApp }).toEqual(pw);
   });
 });

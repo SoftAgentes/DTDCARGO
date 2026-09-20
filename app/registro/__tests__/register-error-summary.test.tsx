@@ -31,7 +31,7 @@ import { RegisterForm } from "../RegisterForm";
 
 /** Recorre los 4 pasos con datos válidos y manda el formulario. */
 async function llegarAConfirmarYEnviar() {
-  const user = userEvent.setup();
+  const user = userEvent.setup({ delay: null });
   await user.type(screen.getByPlaceholderText("Carlos Pérez"), "Carlos Pérez");
   await user.type(screen.getByPlaceholderText("18456321"), "18456321");
   await user.type(screen.getByPlaceholderText("cperez@empresa.com"), "carlos@empresa.com");

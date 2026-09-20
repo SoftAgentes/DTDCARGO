@@ -48,14 +48,21 @@ export function ChangeRequestHistory({
           const diff = buildChangeRequestDiff(req, isEmpresa);
           const approved = req.status === "approved";
           const isAdmin = req.source === "admin";
+          // SDD-0482: el cliente edita directo desde el Portal → fila aprobada
+          // sin revisor. Una solicitud aprobada por el asesor siempre lo trae.
+          const isClientDirect =
+            req.source === "client" && approved && !req.reviewedBy;
           const who = req.reviewedBy ? reviewerNames[req.reviewedBy] : undefined;
-          // Admin = edit directo del equipo (info); cliente = su propuesta resuelta.
-          const badgeTone = isAdmin ? "info" : approved ? "success" : "danger";
+          // Admin/cliente directo = edición (info); si no, su propuesta resuelta.
+          const badgeTone =
+            isAdmin || isClientDirect ? "info" : approved ? "success" : "danger";
           const badgeLabel = isAdmin
             ? "Editado por el equipo"
-            : approved
-              ? "Aprobada"
-              : "Rechazada";
+            : isClientDirect
+              ? "Editado por el cliente"
+              : approved
+                ? "Aprobada"
+                : "Rechazada";
           const when = req.reviewedAt
             ? new Date(req.reviewedAt).toLocaleDateString("es-VE", {
                 day: "numeric",

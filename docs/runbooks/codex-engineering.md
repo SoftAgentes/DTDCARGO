@@ -163,6 +163,12 @@ dependencias de API/DB/UI aunque los paths sean diferentes; construye un orden
 topológico y no integra ciclos sin resolverlos. Recomienda Workers solo para
 tareas suficientemente definidas e independientes, cada uno con prompt completo.
 
+## Conocimiento al iniciar y cerrar
+
+Director y Worker siguen el [runbook Graphify–Obsidian](knowledge-graphify-obsidian.md). `pnpm knowledge:status` informa la vigencia al iniciar/cerrar; el handoff conserva impacto documental, fuentes verificadas y pendientes. Director propone lo nuevo con destino/razón y conserva lo ya autorizado en su documento canónico. El grafo mantiene las etiquetas de evidencia.
+
+Después de integración autorizada: desde main actualizado/comprobado, `pnpm knowledge:publish` y `pnpm knowledge:check`. Las vistas previas de Workers quedan en sus derivados locales. Documentos rastreados conservan la frontera rama/PR; la actualización de derivados ignorados no autoriza desarrollo en main. No se agrega un proceso de fondo ni se incorpora la bóveda personal al detector.
+
 ## PR e integración
 
 TASK → WORKTREE → BRANCH → COMMITS → VALIDACIÓN → PR → DIRECTOR REVIEW →

@@ -29,7 +29,8 @@ protección para que un solo cliente no se coma el peso del contenedor.
 | **Tope por envío** (anti-abuso) | más de **9.000 kg** **Y** carga **densa** (> ≈400 kg/m³) | Deriva al asesor (a medida). Carga pesada pero **voluminosa** NO cae aquí: sigue auto-cotizando. |
 | **Tope contenedor** | más de **68 m³** ó **27.000 kg** | Deriva al asesor (FCL) |
 
-Tarifa base de referencia hoy: **$800 por m³** · mínimo facturable **$380**. (La tarifa es
+Tarifa base de referencia: **$850 por m³** al 2026-09-18 (subió de $800 el 2026-09-04 ·
+SDD-0475; la vigente la da siempre la calculadora) · mínimo facturable **$380**. (La tarifa es
 editable en la calculadora; ajústala dentro de tu margen, nunca bajo el mínimo.)
 
 **El $2/kg es tu protección:** la carga densa (maquinaria, metal) paga lo justo por el peso
@@ -56,15 +57,15 @@ monopoliza nada. *(Está automatizado en la calculadora; tú no calculas densida
 4. **Siempre** cierra con: *"la tarifa final se confirma con el peso y volumen reales al
    recibir tu carga"*.
 
-## Ejemplo trabajado (los casos típicos · tarifa $800/m³)
+## Ejemplo trabajado (los casos típicos · tarifa $850/m³ al 2026-09-18)
 
 | Cliente trae | Densidad | Cálculo | Resultado |
 |---|---|---|---|
-| **3 m³ · 900 kg** | 300 kg/m³ | 3 × $800 | **$2.400** ✅ por volumen |
-| **1 m³ · 2.000 kg** | 2.000 kg/m³ | 800 + (2.000−1.000) × $2 | **$2.800** ✅ auto-cotiza (recargo peso) |
-| **2 m³ · 3.000 kg** | 1.500 kg/m³ | 1.600 + (3.000−2.000) × $2 | **$3.600** ✅ auto-cotiza |
-| **12 m³ · 8.000 kg** | 667 kg/m³ | 12 × $800 | **$9.600** ✅ por volumen (dentro de la gracia, bajo los 9.000 kg) |
-| **30 m³ · 10.000 kg** | 333 kg/m³ | 30 × $800 | **$24.000** ✅ por volumen (pesa +9.000 kg **pero es voluminosa**: no acapara) |
+| **3 m³ · 900 kg** | 300 kg/m³ | 3 × $850 | **$2.550** ✅ por volumen |
+| **1 m³ · 2.000 kg** | 2.000 kg/m³ | 850 + (2.000−1.000) × $2 | **$2.850** ✅ auto-cotiza (recargo peso) |
+| **2 m³ · 3.000 kg** | 1.500 kg/m³ | 1.700 + (3.000−2.000) × $2 | **$3.700** ✅ auto-cotiza |
+| **12 m³ · 8.000 kg** | 667 kg/m³ | 12 × $850 | **$10.200** ✅ por volumen (dentro de la gracia, bajo los 9.000 kg) |
+| **30 m³ · 10.000 kg** | 333 kg/m³ | 30 × $850 | **$25.500** ✅ por volumen (pesa +9.000 kg **pero es voluminosa**: no acapara) |
 | **5 m³ · 10.000 kg** | 2.000 kg/m³ | — | ⚠️ **Consulta asesor** (+9.000 kg **y densa**: acapararía el peso del contenedor) |
 
 ## 🛡️ Cómo NO caer en la estrategia del cliente
@@ -96,11 +97,11 @@ cerrar **precio firme antes de medir**, ceder ante el que **subdeclara**.
 > **La filosofía:** cuando el cliente empuja el precio, no bajes el número — **sube el
 > valor**. El peso generoso, el "pagas al llegar" y el puerta-a-puerta son tus cartas.
 
-## 🎭 Tres ejemplos en vivo (con precios reales · $800/m³)
+## 🎭 Tres ejemplos en vivo (con precios reales · $850/m³ al 2026-09-18)
 
 ### Ejemplo 1 — El que pide rebaja (carga normal)
-> **Cliente:** Tengo 4 m³ y como 1.100 kg para Valencia. Me salió **$3.200** en la
-> calculadora *(4 × $800)*… ¿me haces mejor precio?
+> **Cliente:** Tengo 4 m³ y como 1.100 kg para Valencia. Me salió **$3.400** en la
+> calculadora *(4 × $850)*… ¿me haces mejor precio?
 > **Vendedor:** Con gusto reviso. Tu carga está cómoda de peso, sin recargos. Y lo mejor no
 > es el número: con nosotros **no adelantas nada** — pagas cuando tu carga llega a Valencia,
 > ya nacionalizada y en tu puerta.
@@ -113,23 +114,23 @@ cerrar **precio firme antes de medir**, ceder ante el que **subdeclara**.
 seca, y sumó el valor del financiamiento.*
 
 ### Ejemplo 2 — El de carga densa que la quiere colar
-> **Cliente:** Son 2 m³ nada más, repuestos de metal. A $800 el m³ son **$1.600**, ¿verdad?
+> **Cliente:** Son 2 m³ nada más, repuestos de metal. A $850 el m³ son **$1.700**, ¿verdad?
 > **Vendedor:** Déjame verlo… ¿cuánto pesa esa carga?
 > **Cliente:** Ah, ponle unos 800 kg. *(realmente pesa ~2.400)*
 > **Vendedor:** Perfecto, pero te adelanto algo para que no te sorprendas: el estimado usa lo
 > que me declaras, **pero al llegar a China pesamos y medimos**, y se cobra sobre lo real. Si
 > esos repuestos pesan 2.400, la calculadora le suma un adicional justo por el peso extra —
-> te da un número claro de una (**$2.400** en vez de $1.600). Con metal muy pesado te comparo
+> te da un número claro de una (**$2.500** en vez de $1.700). Con metal muy pesado te comparo
 > un contenedor, por si te conviene.
-> **Cliente:** ¿O sea que los $1.600 no son fijos?
+> **Cliente:** ¿O sea que los $1.700 no son fijos?
 > **Vendedor:** Ese número es referencial. Te lo confirmo con tu carga real y así el precio
 > es justo.
 
 *Lección: activó el escudo "medido, no declarado" ANTES del conflicto, no cerró sobre los
-$1.600 del peso subdeclarado, y le mostró el precio real con el recargo por peso.*
+$1.700 del peso subdeclarado, y le mostró el precio real con el recargo por peso.*
 
 ### Ejemplo 3 — El mayorista grande
-> **Cliente:** Yo muevo como 18 m³ todos los meses. En la web me da **$14.400** *(18 × $800)*.
+> **Cliente:** Yo muevo como 18 m³ todos los meses. En la web me da **$15.300** *(18 × $850)*.
 > ¿Qué me haces?
 > **Vendedor:** Ese volumen ya lo trabajo a medida, no con el precio de la web. Te armo una
 > tarifa preferencial: **$700 el m³ → $12.600 al mes** *(18 × $700)*, **a cambio de que
@@ -140,7 +141,7 @@ $1.600 del peso subdeclarado, y le mostró el precio real con el recargo por pes
 > revisamos juntos. Lo importante: te doy estabilidad de precio y el "pagas al llegar", que a
 > tu escala es mucho capital que no inmovilizas.
 
-*Lección: sacó al cliente grande de la tarifa pública, negoció recurrencia por precio ($1.800
+*Lección: sacó al cliente grande de la tarifa pública, negoció recurrencia por precio ($2.700
 menos al mes), comparó LCL vs FCL, y cerró con el valor del financiamiento a escala.*
 
 ## Qué decir / qué NO decir

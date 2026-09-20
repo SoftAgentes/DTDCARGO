@@ -41,6 +41,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
+import { InvoiceTitularPicker } from "./InvoiceTitularPicker";
 
 interface Props {
   mode: "create" | "edit";
@@ -344,6 +345,9 @@ export function InvoiceDrawer({
               )}
             </div>
           </div>
+
+          {/* SDD-0487: titular de la factura (sólo con 0466 y un cliente real). */}
+          <InvoiceTitularPicker markbox={clientMarkbox} invoiceId={invoice?.id ?? null} />
 
           {/* Embarque opcional */}
           <div>

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { esperarHidratado } from "./_helpers/hidratacion";
+import { requiereSupabase } from "./_helpers/supabase";
 
 /**
  * E2E del buscador global ⌘K (SDD-0135).
@@ -7,7 +8,9 @@ import { esperarHidratado } from "./_helpers/hidratacion";
  * DOS tiers:
  *   - Tier 1 (corre sin seed): la superficie del Studio está protegida — sin
  *     sesión, cualquier ruta del ERP (donde vive la topbar con ⌘K) rebota al
- *     login. Garantiza que el buscador no queda expuesto sin auth.
+ *     login. Garantiza que el buscador no queda expuesto sin auth. El rebote lo
+ *     hace `proxy.ts`, que necesita Supabase público: sin él se omite con
+ *     motivo (`requiereSupabase()`, SDD-0470).
  *   - Tier 3 (requiere branch + seed-e2e · env STUDIO_E2E_EMAIL/PASSWORD):
  *     el journey real permission-aware. Se salta si no hay credenciales, igual
  *     que los demás specs Tier-3 del repo (ver e2e/README.md).
@@ -20,6 +23,7 @@ import { esperarHidratado } from "./_helpers/hidratacion";
 
 test.describe("Tier 1 · buscador global protegido por auth", () => {
   test("sin sesión, /studio rebota al login (⌘K no expuesto)", async ({ page }) => {
+    requiereSupabase();
     await page.goto("/studio/dashboard");
     await expect(page).toHaveURL(/\/studio\/login/);
     await expect(page.locator('input[name="email"]')).toBeVisible();
