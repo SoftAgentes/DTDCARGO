@@ -338,7 +338,7 @@ Tres evidencias, todas sobre archivos del repo:
    y sin él en el `with check` — exactamente lo que el `do $$` de la **0230**
    busca en `pg_policies`, sin nombrar tablas. Y la 0230 está aplicada
    (`cutoff: 238`, fuera de `pendingBelowCutoff`).
-2. **El gemelo ya está probado.** `0077_facturacion.sql:114-118` crea
+2. **El gemelo ya está probado.** `0077_invoices.sql:114-118` crea
    `"invoices by tenant"` con texto **idéntico**, y SDD-0465 existe porque la
    0230 le quitó ese filtro. Si la barrida funcionó sobre esa forma, funcionó
    sobre esta.

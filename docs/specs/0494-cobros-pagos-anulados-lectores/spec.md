@@ -63,7 +63,7 @@ Tres evidencias independientes, todas sobre archivos del repo:
    `deleted_at` y su `with check` no: exactamente lo que la 0230 busca. Y la
    0230 está aplicada (`cutoff: 238` en `migrations-baseline.json`, y no figura
    en `pendingBelowCutoff`).
-2. **El caso gemelo ya está probado.** `0077_facturacion.sql:114-118` crea
+2. **El caso gemelo ya está probado.** `0077_invoices.sql:114-118` crea
    `"invoices by tenant"` con el texto **idéntico**. SDD-0465 existe justamente
    porque la 0230 le quitó ese filtro a `invoices` y hubo que compensarlo en la
    capa de consulta. Si la barrida funcionó sobre esa forma, funcionó sobre esta.
