@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de saldos con rollup (SDD-0040) — `computeBalances` (pura).
  *

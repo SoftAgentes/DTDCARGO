@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * La guía de Alibaba, dentro de `pnpm verify` (SDD-0474).
  *

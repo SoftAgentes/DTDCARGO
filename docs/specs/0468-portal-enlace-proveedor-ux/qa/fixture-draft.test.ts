@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { packlistDraftKey, packlistHistoryKey } from "@/lib/studio/prealertas/packlist-draft";
 import { FIXTURE_TOKEN, prepareFixtureOrigin, resetFixtureDraft } from "./fixture-draft";

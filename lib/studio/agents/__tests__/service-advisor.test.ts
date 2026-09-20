@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from "vitest";
 import { serviceAdvisor } from "../skills/service-advisor";
 import { getSkillDefBySlug, SKILLS_BY_SLUG } from "../skills/tracking-concierge";

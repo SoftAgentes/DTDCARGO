@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, it, expect } from "vitest";
 import { resolveName, resolveActa } from "./match";
 import type { RawActa } from "./extract";

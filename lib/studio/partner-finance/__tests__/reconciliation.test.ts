@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del motor de reconciliación PURO (SDD-0059 · Slice B1).
  * Sin DB, sin Date.now — la "fecha de hoy" / ventanas se pasan por parámetro,

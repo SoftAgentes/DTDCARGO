@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del sellado server-side (SDD-0054 · Slice A + SDD-0067 · evidencia v2).
  * Cubre Acceptance §5 de ambas specs:

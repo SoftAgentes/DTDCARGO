@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de la decisión del gate `migrations-applied` (scripts/check-migrations-applied.mjs).
  *

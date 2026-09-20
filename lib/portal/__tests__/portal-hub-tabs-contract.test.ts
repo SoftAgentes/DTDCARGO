@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Contrato: las cuatro páginas del hub del portal montan sus tabs.
  *

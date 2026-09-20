@@ -247,3 +247,78 @@ Se registra en el handoff como FUERA DE ALCANCE DETECTADO:
 - El entorno `jsdom` global para archivos que no usan el DOM.
 - La exclusión de antivirus de los worktrees. Es configuración de seguridad del
   equipo y la decide Sam.
+
+## Seguimiento del 2026-09-19 · las cuatro que recorren el repo, y el registro
+
+El Director asignó como seguimiento los dos últimos puntos de arriba, sin
+migración y sin decisiones de Sam. El patrón es el de `invoice-read-boundary`,
+que ya está en esta spec.
+
+### Qué se cambió
+
+1. **Lectura en paralelo con tope** (32 a la vez) en las cuatro que recorren el
+   árbol. Leerlas una por una sumaba la latencia de cada apertura, que en
+   Windows incluye el escaneo del antivirus.
+2. **`withFileTypes` en vez de un `statSync` por entrada** en
+   `copy-sin-casco-central`: preguntarle al sistema de archivos una vez por
+   carpeta, y no una por archivo.
+3. **Una sola lectura compartida** en `json-ld-escape-contract`. Sus tres
+   pruebas recorrían el árbol y releían los mismos `.tsx` cada una: tres pasadas
+   donde alcanza con una.
+4. **Prefiltro barato antes del trabajo caro**, donde había trabajo que ahorrar:
+   en `copy-sin-casco-central` no se le quitan los comentarios al archivo que ni
+   menciona «casco». Va con su propia prueba, con el mismo criterio que el de
+   `invoice-read-boundary`: **puede dejar pasar de más, nunca de menos**.
+   En `env-example-contract` **no aplica**: no parsea nada, sólo aplica un
+   regex, así que es I/O puro y todo el ahorro viene del paralelismo.
+5. **`userEvent.setup({ delay: null })`** en `register-error-summary`, que era
+   una hipótesis sin concluir de esta spec. Se midió antes de aplicarla.
+
+**Ninguna aserción cambió.** La única prueba nueva es la del prefiltro.
+
+### Lo medido, con la máquina quieta
+
+El Director reservó la máquina. Las dos corridas son de la suite completa, con
+el mismo comando (`node node_modules/vitest/vitest.mjs run`), sobre `dd764c66`.
+El tiempo es el del propio archivo dentro de la suite, que es la disposición
+donde existe el problema: nueve contratos compitiendo por el mismo disco.
+
+| Prueba | Antes | Después |
+|---|---:|---:|
+| `json-ld-escape-contract` | 27,61 s | **0,87 s** |
+| `env-example-contract` | 16,85 s | **3,09 s** |
+| `register-error-summary` | 9,58 s | **4,52 s** |
+| `vis-02-font-tokens` | 8,19 s | **0,73 s** |
+| `copy-sin-casco-central` | 4,83 s | **0,51 s** |
+| `invoice-read-boundary` (no se tocó) | 2,85 s | 5,19 s |
+
+Aislada y sola, con la máquina quieta, `register-error-summary` pasó de 5,04-5,12 s
+de pruebas a 1,34-1,39 s (tres corridas de cada lado), y de 6,33-6,40 s de pared a
+2,58-2,64 s.
+
+**Dos honestidades sobre esta tabla:**
+
+- **`invoice-read-boundary` sube sin que nadie la toque.** Ese número incluye lo
+  que el archivo espera mientras 21 workers se pelean la máquina: cuando los
+  demás terminan antes, el reparto cambia. Es ruido de planificación, no una
+  regresión suya.
+- **La pared de la suite no se mueve, y los totales sumados no sirven para
+  medir esto.** La pared dio 196,69 s antes, 197,05 s después y 172,46 s en el
+  paso `test` del `verify`. El `tests` sumado dio 708,0 s antes, y 528,0 s y
+  692,9 s en dos corridas **con el mismo código después**: ese agregado varía
+  tanto entre corridas que no aguanta un porcentaje, así que acá no se afirma
+  ninguno. Lo que sí es comparable es la tabla de arriba, que sale de dos
+  corridas del mismo reporter en la misma disposición; la suma de duraciones de
+  esas dos fue 700,0 s y 657,0 s.
+- La pared está dominada por el montaje de jsdom (1.841-2.205 s sumados, también
+  con mucha variación), que es el otro punto del «Fuera de alcance» de arriba y
+  lo arregla la SDD-0493. Los dos cambios son complementarios: uno baja el
+  entorno y el otro el trabajo de cinco archivos.
+
+### Que la prueba sigue afirmando lo mismo
+
+`register-error-summary` documenta en su cabecera una prueba de mutación: borrar
+el bloque `fieldErrors.length > 0` de `StepConfirmar` tiene que ponerla en rojo.
+Con `delay: null` aplicado, esa mutación —1.882 caracteres— deja las **3 pruebas
+en rojo**, y el fuente se restituyó con el md5 comprobado. La prueba no se volvió
+más rápida a costa de mirar menos.

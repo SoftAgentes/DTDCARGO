@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de books-queries (SDD-0104 · Slice A).
  *

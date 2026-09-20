@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de los validadores de onboarding (SDD-0113 Slice A). PUROS: cédula-aware
  * (paridad con el índice SQL), required, allowlist del sueldo (lo fija la empresa

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0158 — Tests del renderizador markdown del lector de docs de Marketing.
  * Cubre lo que usan los docs reales: encabezados, tablas GFM, listas + task

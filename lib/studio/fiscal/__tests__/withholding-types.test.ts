@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests de withholding-types (SDD-0104 · Slice B).
  *

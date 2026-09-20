@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0269 · el precio que le toca a cada cliente.
  *

@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del módulo Órdenes de venta (SDD-0072) — capa pura.
  *

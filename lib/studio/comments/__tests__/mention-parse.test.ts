@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Tests del parser de @menciones (SDD-0045) — la capa pura del módulo.
  *

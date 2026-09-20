@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error El generador es ESM ejecutable (.mjs); Vitest valida su API runtime.

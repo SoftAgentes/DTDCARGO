@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * Anti-drift de RBAC · SUB-RUTAS (complemento de `rbac-view-guard.test.ts`).
  *

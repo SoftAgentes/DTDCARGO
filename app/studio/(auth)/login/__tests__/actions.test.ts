@@ -1,3 +1,4 @@
+// @vitest-environment node
 /**
  * SDD-0251 · el login del Studio exige MEMBRESÍA, no sólo credenciales.
  *
