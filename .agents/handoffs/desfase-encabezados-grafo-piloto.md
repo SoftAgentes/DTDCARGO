@@ -1,6 +1,9 @@
 # Handoff — El sello AST no prueba que el grafo coincida con el documento
 
-**Rama:** `claude/festive-ellis-03485b` · **Base:** `main` `d9adbabf`
+**Rama:** `claude/festive-ellis-03485b` · **Base:** `main` `6e3140b8` (traído el
+2026-09-21 tras medir sobre `d9adbabf`; comprobado que `project-rules.md` y
+`knowledge-graphify-obsidian.md` **no cambiaron** entre los dos, así que las líneas
+citadas y las cifras de desfase siguen vigentes)
 **Worktree:** `.claude/worktrees/modest-chaplygin-c2cdee` (claim `festive-ellis-03485b`)
 **Fecha:** 2026-09-21 · **Encargo:** del Director — `knowledge:status` informaba
 `structural: CURRENT` con 0 pendientes mientras el grafo guardaba los encabezados
@@ -141,7 +144,7 @@ que alcanzaba.
 | `node --test scripts/tests/knowledge-graph.node.mjs` | **PASÓ** — 19/19 |
 | `knowledge-{semantic-apply,sync,state,graph-repair}.node.mjs` | **PASÓ** — 21/21 |
 | Mutantes (7, control incluido) | **PASÓ** — 6 mueren, el control sobrevive |
-| `pnpm docs:check` | **PASÓ** — índice sincronizado, 484 specs |
+| `pnpm docs:check` | **PASÓ** — índice sincronizado, 484 specs antes del merge; 485 después |
 | `inspect` contra la raíz real | **PASÓ** — `PENDING`, `pending: []`, `drifted` = los dos documentos |
 | `pnpm verify` completo | **NO EJECUTADO** — máquina tomada por otra sesión; el diff es harness y documentación, sin producto |
 | `pnpm knowledge:status` | **NO EJECUTADO** — llama a `graphify update`; el Director pidió no lanzarlo hoy |
