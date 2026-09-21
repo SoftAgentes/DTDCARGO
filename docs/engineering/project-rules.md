@@ -195,11 +195,11 @@ comprueba **que el texto del guard aparece en el archivo**.
 
 El 2026-09-20 la misma forma apareció cinco veces en un día. Los cinco casos, con
 lo que cada uno **afirmaba** y lo que **debería** haber afirmado. Las líneas son
-de `main` `97a23386`.
+de `main` `4febc876`.
 
 | # | Dónde | Afirmaba | Debería afirmar |
 |---|---|---|---|
-| 1 | `lib/studio/rbac-actions-guard.test.ts:77` | que el **archivo** contiene la cadena `moduleEditDenial` (`src.includes(...)`) | que **cada acción exportada** llama a un guard antes de tocar datos |
+| 1 | `lib/studio/rbac-actions-guard.test.ts:88` | que el **archivo** contiene alguno de cuatro nombres de guard (`GUARDS.some((g) => src.includes(g))`) | que **cada acción exportada** llama a un guard antes de tocar datos |
 | 2 | `app/studio/(app)/crm/__tests__/stage-control.test.ts:74` | que el fuente de `crm/actions.ts`, leído como **texto**, contiene `moduleEditDenial(supabase, "kommo")` | que un rol sin `kommo` recibe la denegación y **no** se escribe nada |
 | 3 | `app/studio/_components/ui/ConfirmDialog.test.tsx:363` | que dos clics producen **una sola** llamada a `onConfirm` | que el candado **se suelta** después, o sea que un clic legítimo posterior sigue funcionando |
 | 4 | `.agents/handoffs/smokes-app-l14-0454-0472-guion.md:160` (paso 3) | que aparece «**un solo** reporte nuevo» | **cuántas filas quedan en pantalla en total**, y qué combinación sería falla |
@@ -209,9 +209,14 @@ de `main` `97a23386`.
 
 1. Un archivo con siete acciones gateadas y una abierta contiene la cadena. Así
    estuvo verde sobre los ocho huecos de SDD-0497. Además `findActions`
-   (`:59`) sólo recoge archivos llamados **exactamente** `actions.ts`: escanea
+   (`:70`) sólo recoge archivos llamados **exactamente** `actions.ts`: escanea
    54 archivos y deja fuera los **19** `*-actions.ts` del Studio
    (`calendar-actions.ts`, `document-actions.ts`, `merge-actions.ts`…).
+   **SDD-0498 lo mejoró sin cerrarlo**, y por eso sigue en esta lista: pasó de
+   exigir un nombre a aceptar cuatro (`:47`), lo que eliminó el falso negativo
+   de `carrier-actions.ts` —gateado con su propio `tenantAdminGate`—, pero el
+   alcance de la aserción **sigue siendo el archivo**. Una mejora no es un
+   arreglo si no cambia lo que la aserción alcanza.
 2. Esa cadena aparece **cinco** veces en `crm/actions.ts`: quitar una deja las
    otras cuatro y la aserción sigue cierta. Se comprobó con un mutante.
 3. Un candado **trabado para siempre** también produce exactamente una llamada.
@@ -255,23 +260,34 @@ AST** de ~1.600 módulos de `app/`, `lib/` y `supabase/functions` y cuenta las
 llamadas literales `.from("invoices")` por archivo. Después:
 
 - **Congela el inventario exacto** contra un `BASELINE` nombrado: `toEqual`, más
-  19 archivos y 44 llamadas como números explícitos (`:113-115`). Un lector nuevo
+  19 archivos y 45 llamadas como números explícitos (`:135-141`). Un lector nuevo
   de `invoices` rompe la prueba, y para pasarla hay que **justificarlo por escrito
   en el `BASELINE`** — sus comentarios son el registro de por qué cada lectura es
-  legítima.
+  legítima. El total va **aparte del mapa a propósito** (`:137-141`): si alguien
+  «arregla» el mapa moviendo una llamada de un archivo a otro, el mapa vuelve a
+  cuadrar y el total no. Dos aserciones que fallan por caminos distintos valen
+  más que una más estricta.
 - **Se prueba a sí mismo**: distingue una llamada real de la misma cadena dentro
   de un comentario o un string, y cubre los escapes que esquivarían su prefiltro.
   Un detector sin sus propios casos es otra cosa que nadie está midiendo.
-- **Mide también la consecuencia**, no sólo la forma (`:135`): los cuatro widgets
+- **Mide también la consecuencia**, no sólo la forma (`:161`): los cuatro widgets
   financieros siguen detrás del módulo `invoices`, y **ningún override por rol**
   los abre para los cinco roles que no deben verlos.
 
 Que exija justificar cada lector nuevo es lo que lo vuelve útil, y lo que hace
-que su rojo valga. Un rojo suyo se lee como estorbo y es un hallazgo: el
-2026-09-20 frenó un cambio en curso y, al investigarlo, apareció que la pantalla
-que lo motivaba no servía para los roles a los que iba dirigida (reportado por la
-sesión que lo encontró; el detalle vive en su propia spec). **El rojo era el
-mensajero, no el problema.**
+que su rojo valga. **Un rojo suyo se lee como estorbo y es un hallazgo**, y el
+ejemplo está en el propio archivo: la entrada de
+`lib/studio/fidelizacion/referral-credit-queries.ts` en el `BASELINE` (`:32-53`,
+SDD-0495) cuenta que al exigir revisar «el guard y el tenant» de un lector nuevo
+apareció que `invoices_accounting_select` (migr 0414) **niega el SELECT a
+`commercial` y `support`, que son justo los roles de esa pantalla**: con el
+cliente de sesión el aviso devolvía cero filas y no se pintaba nunca. Léelo
+entero: además del hallazgo, deja escritos los candados con que se resolvió, cuál
+es la forma correcta y qué exige (RPC `security definer`, migración y OK nominal).
+
+**El rojo era el mensajero, no el problema.** Y la lección de fondo: la matriz de
+módulos de `rbac.ts` y la RLS de la tabla **no dicen lo mismo**, y sólo un
+contrato que mide comportamiento los enfrenta.
 
 > **Sus dos rojos no son el mismo, y confundirlos es cómo se pierde.** El de
 > **contenido** —el inventario dejó de coincidir con el `BASELINE`— es el
