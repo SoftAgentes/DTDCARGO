@@ -1,9 +1,25 @@
 /**
  * Telegram Bot webhook · maneja /start {code} para linkear chat_id.
  *
- * Configurado al crear el bot: setWebhook → https://dtdcargo.com/api/telegram/webhook?secret=XXX
- * El secret se pasa por query param (Telegram no soporta headers custom)
- * y se compara contra TELEGRAM_WEBHOOK_SECRET.
+ * Configurado al crear el bot: setWebhook con `secret_token`. Telegram manda ese
+ * valor en el header `X-Telegram-Bot-Api-Secret-Token` de CADA update, y acá se
+ * compara contra TELEGRAM_WEBHOOK_SECRET en tiempo constante.
+ *
+ * SDD-0499 · antes el secreto viajaba en el query string
+ * (`…/api/telegram/webhook?secret=XXX`) con este docblock afirmando que
+ * «Telegram no soporta headers custom». Es falso: `setWebhook` acepta
+ * `secret_token` (String, 1-256 caracteres, sólo `A-Z a-z 0-9 _ -`) y la API
+ * documenta que «the request will contain a header
+ * "X-Telegram-Bot-Api-Secret-Token" with the secret token as content»
+ * (core.telegram.org/bots/api#setwebhook, leído el 2026-09-21). Un secreto en la
+ * URL queda en logs de acceso, en `Referer` y en el historial de cualquier proxy
+ * —y `getWebhookInfo` lo devuelve entero a quien tenga el token del bot—, y
+ * quien lo tuviera fabricaba updates arbitrarios: este webhook enlaza un chat a
+ * cualquier `link_code` vivo y escribe en `user_profiles` y
+ * `telegram_destinations` con `createAdminClient()`, que salta la RLS.
+ *
+ * Telegram no firma el cuerpo: el secreto compartido es toda la autenticación
+ * que hay. Por eso importa dónde viaja.
  *
  * Updates esperados:
  *   - /start {linkCode}   → matchea `user_profiles.telegram_link_code` (una
@@ -16,7 +32,11 @@
 
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { sameSecret } from "@/lib/http/secret-compare";
 import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
+
+/** El header en el que Telegram devuelve el `secret_token` de `setWebhook`. */
+const SECRET_HEADER = "x-telegram-bot-api-secret-token";
 
 type TelegramUpdate = {
   update_id: number;
@@ -31,7 +51,7 @@ type TelegramUpdate = {
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
-  // Auth: secret en query string (Telegram setWebhook acepta URL custom)
+  // Fail-closed: sin la variable definida no pasa nadie (503 antes de comparar).
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
   if (!expectedSecret) {
     return NextResponse.json(
@@ -40,8 +60,10 @@ export async function POST(req: Request) {
     );
   }
 
-  const url = new URL(req.url);
-  if (url.searchParams.get("secret") !== expectedSecret) {
+  // Sólo por header. El query param `?secret=` ya NO se acepta: un update
+  // firmado por Telegram siempre trae el header, así que aceptar los dos sería
+  // conservar justo el canal que esta spec vino a cerrar.
+  if (!sameSecret(req.headers.get(SECRET_HEADER), expectedSecret)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

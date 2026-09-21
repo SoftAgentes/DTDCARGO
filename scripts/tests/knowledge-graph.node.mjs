@@ -36,7 +36,10 @@ function fixture() {
   git("commit", "-m", "fixture");
   const graph = { directed: false, nodes: [
     { id: "source_example", source_file: "source.py", _origin: "ast", label: "example", file_type: "code" },
-    { id: "docs_guide_knowledge", source_file: "docs/guide.md", _origin: "ast", label: "Knowledge", file_type: "document" },
+    // L4 is where the pinned markdown extractor puts `# Knowledge` once the
+    // frontmatter is split off. The heading layer has to be faithful: inspect
+    // now re-extracts every stamped document and compares (see the drift tests).
+    { id: "docs_guide_knowledge", source_file: "docs/guide.md", _origin: "ast", label: "Knowledge", source_location: "L4", file_type: "document" },
     { id: "docs_guide_decision", source_file: "docs/guide.md", _origin: "semantic", label: "Verified decision", file_type: "document" },
   ], links: [{ source: "docs_guide_decision", target: "source_example", confidence: "EXTRACTED", source_file: "docs/guide.md" }] };
   function writeGraph() { fs.writeFileSync(path.join(root, "graphify-out/graph.json"), JSON.stringify(graph)); }
@@ -444,5 +447,165 @@ test("semantic relation loss and excluded graph sources stay visible", { skip },
     assert.deepEqual(excluded.structural.excluded, ["docs/guide.md"]);
     assert.equal(excluded.structural.status, "PENDING");
     assert.equal(excluded.semantic.status, "PENDING");
+  } finally { f.close(); }
+});
+
+// ---------------------------------------------------------------------------
+// Heading drift. Graphify 0.9.61 never AST-quick-scans a document that already
+// carries semantic nodes (watch.py `_rebuild_code`, #1915), so its heading layer
+// is carried forward unchanged by every `graphify update` — `--force` included,
+// since that flag only bypasses the node-count guard. save_manifest still stamps
+// ast_hash over the whole detected corpus minus this run's FAILED sources
+// (`_ast_manifest_files`), and a deliberate skip is not a failure. astCurrent
+// therefore proves the corpus hash was stamped, never that the graph matches the
+// document. Measured 2026-09-21 on main d9adbabf: docs/engineering/project-rules.md
+// carried heading nodes 131 lines behind the file, and
+// docs/runbooks/knowledge-graphify-obsidian.md 23 — both stamped current, both
+// semantic-pilot sources.
+//
+// The property: for every document of the corpus, each heading of the file has a
+// node whose source_location is its real line. The cases below are chosen so that
+// a weaker check dies on at least one — counting nodes dies on MOVED and RENAMED,
+// comparing only labels dies on MOVED, comparing only lines dies on RENAMED.
+const DRIFT_DOC = "---\nstatus: approved\n---\n# Knowledge\n\nOne verified decision.\n\n## Detail\n\nMore.\n";
+const DRIFT_NODES = [
+  { id: "docs_guide_knowledge", label: "Knowledge", source_location: "L4" },
+  { id: "docs_guide_detail", label: "Detail", source_location: "L8" },
+];
+
+function driftFixture() {
+  const f = fixture();
+  fs.writeFileSync(path.join(f.root, "docs/guide.md"), DRIFT_DOC);
+  f.git("add", "docs/guide.md");
+  f.git("commit", "-m", "two headings");
+  // Keep the semantic node the base fixture carries: that is what makes this a
+  // semantic-backed document, exactly like a pilot source.
+  f.graph.nodes = [f.graph.nodes[0], f.graph.nodes[2],
+    ...DRIFT_NODES.map((node) => ({ ...node, source_file: "docs/guide.md", _origin: "ast", file_type: "document" }))];
+  f.graph.links = [];
+  f.stamp(); f.writeGraph();
+  return f;
+}
+
+const driftOf = (state) => state.warnings.find((issue) => issue.code === "graph_ast_drift");
+
+test("a faithful heading layer is CURRENT, and every shape of drift is named", { skip }, () => {
+  const f = driftFixture();
+  try {
+    const clean = f.run();
+    assert.equal(clean.structural.status, "CURRENT");
+    assert.deepEqual(clean.structural.drifted, []);
+    assert.equal(driftOf(clean), undefined);
+
+    // 1. MOVED: same node count, same labels, a different line.
+    fs.writeFileSync(path.join(f.root, "docs/guide.md"), DRIFT_DOC.replace("## Detail", "Inserted.\n\n## Detail"));
+    f.stamp(); // Graphify stamps the whole corpus, the skipped document included.
+    const moved = f.run();
+    assert.equal(moved.files["docs/guide.md"].astCurrent, true, "the stamp still calls the document current");
+    assert.equal(moved.structural.status, "PENDING");
+    assert.deepEqual(moved.structural.drifted, ["docs/guide.md"]);
+    // Naming the document is not enough to act on it: the warning has to say
+    // which heading moved and to where, or its red is just a red.
+    assert.deepEqual(driftOf(moved).sources, ["docs/guide.md"]);
+    assert.deepEqual(driftOf(moved).detail["docs/guide.md"],
+      { missing: [{ label: "Detail", line: "L10" }], stale: [{ label: "Detail", line: "L8" }] });
+    // Reported apart from `pending` on purpose: `graphify update` does not fix it.
+    assert.deepEqual(moved.structural.pending, []);
+    assert.match(f.run("record", [], 1).error, /structural graph/);
+
+    // 2. RENAMED: same node count, same line, a different label. "Context" and
+    //    not "Renamed" on purpose — both it and "Detail" sort before "Knowledge",
+    //    so the two heading lists stay in the SAME order and the only difference
+    //    left is the text. A check that compared lines and let the label ride
+    //    along on the sort survived "Renamed" and dies here.
+    fs.writeFileSync(path.join(f.root, "docs/guide.md"), DRIFT_DOC.replace("## Detail", "## Context"));
+    f.stamp();
+    const renamed = f.run();
+    assert.deepEqual(renamed.structural.drifted, ["docs/guide.md"]);
+    assert.deepEqual(driftOf(renamed).detail["docs/guide.md"],
+      { missing: [{ label: "Context", line: "L8" }], stale: [{ label: "Detail", line: "L8" }] });
+
+    // 3. ADDED: the heading is in the file and the graph says nothing about it.
+    fs.writeFileSync(path.join(f.root, "docs/guide.md"), DRIFT_DOC + "\n## Third\n\nText.\n");
+    f.stamp();
+    const added = f.run();
+    assert.deepEqual(added.structural.drifted, ["docs/guide.md"]);
+    assert.deepEqual(driftOf(added).detail["docs/guide.md"],
+      { missing: [{ label: "Third", line: "L12" }], stale: [] });
+
+    // 4. Back to the committed text: the same graph is faithful again. The check
+    //    reports position, not merely "somebody touched this document".
+    fs.writeFileSync(path.join(f.root, "docs/guide.md"), DRIFT_DOC);
+    f.stamp();
+    assert.deepEqual(f.run().structural.drifted, []);
+  } finally { f.close(); }
+});
+
+test("an unstamped document stays pending and is not double-reported as drift", { skip }, () => {
+  const f = driftFixture();
+  try {
+    // Not stamped: `graphify update` has never seen this text, which is the
+    // ordinary remedy and the ordinary report. Drift is the case the stamp hides.
+    fs.writeFileSync(path.join(f.root, "docs/guide.md"), DRIFT_DOC.replace("## Detail", "Inserted.\n\n## Detail"));
+    const state = f.run();
+    assert.equal(state.files["docs/guide.md"].astCurrent, false);
+    assert.deepEqual(state.structural.pending, ["docs/guide.md"]);
+    assert.deepEqual(state.structural.drifted, []);
+    assert.equal(state.structural.status, "PENDING");
+  } finally { f.close(); }
+});
+
+test("the page node Graphify relabels on a basename clash is not read as drift", { skip }, () => {
+  const f = driftFixture();
+  try {
+    // Graphify mints one page node per document at L1 and rewrites its label at
+    // build time to separate equal basenames: `guide.md` becomes `docs/guide.md`
+    // when another `guide.md` exists. It states no heading position, so it is
+    // dropped — and dropped ONCE.
+    f.graph.nodes.push({ id: "docs_guide", label: "docs/guide.md", source_file: "docs/guide.md",
+      source_location: "L1", _origin: "ast", file_type: "document" });
+    f.writeGraph();
+    assert.deepEqual(f.run().structural.drifted, []);
+    // A SECOND L1 node whose label ends in the basename is not a page node: only
+    // one is spared, so a real heading wearing that shape still counts.
+    f.graph.nodes.push({ id: "docs_guide_copy", label: "copy of guide.md", source_file: "docs/guide.md",
+      source_location: "L1", _origin: "ast", file_type: "document" });
+    f.writeGraph();
+    assert.deepEqual(f.run().structural.drifted, ["docs/guide.md"]);
+  } finally { f.close(); }
+});
+
+test("pinned Graphify freezes a semantic-backed document's headings while stamping it current", { skip }, () => {
+  const f = nativeFixture();
+  try {
+    fs.mkdirSync(path.join(f.root, "docs"), { recursive: true });
+    f.commit("docs/guide.md", DRIFT_DOC);
+    const detailAt = (graph) => graph.nodes
+      .filter((node) => String(node.source_file).endsWith("guide.md") && node.label === "Detail")
+      .map((node) => node.source_location);
+    assert.deepEqual(detailAt(f.update()), ["L8"]);
+    assert.deepEqual(f.run().structural.drifted, []);
+
+    // One semantic node is all it takes: from here Graphify treats the document
+    // as semantic-backed and never AST-quick-scans it again.
+    const graphPath = path.join(f.root, "graphify-out/graph.json");
+    const stored = JSON.parse(fs.readFileSync(graphPath, "utf8"));
+    stored.nodes.push({ id: "docs_guide_decision", label: "Verified decision", source_file: "docs/guide.md",
+      source_location: "L4-L6", file_type: "concept", _origin: "semantic" });
+    fs.writeFileSync(graphPath, JSON.stringify(stored));
+
+    f.commit("docs/guide.md", DRIFT_DOC.replace("## Detail", "Inserted.\n\n## Detail"));
+    const second = f.update();
+    // The heading really is at L10 now, and Graphify left its node at L8.
+    assert.equal(fs.readFileSync(path.join(f.root, "docs/guide.md"), "utf8").split("\n").indexOf("## Detail") + 1, 10);
+    assert.deepEqual(detailAt(second), ["L8"]);
+    // ...and stamped the document current anyway. This pair is what makes
+    // `structural: CURRENT` a claim the graph cannot back.
+    const state = f.run();
+    assert.equal(state.files["docs/guide.md"].astCurrent, true);
+    assert.equal(state.structural.status, "PENDING");
+    assert.deepEqual(state.structural.drifted, ["docs/guide.md"]);
+    assert.deepEqual(driftOf(state).detail["docs/guide.md"],
+      { missing: [{ label: "Detail", line: "L10" }], stale: [{ label: "Detail", line: "L8" }] });
   } finally { f.close(); }
 });

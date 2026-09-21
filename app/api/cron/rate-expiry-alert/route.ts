@@ -28,6 +28,7 @@ import {
   markRateExpiryAlertSent,
 } from "@/lib/studio/rate-queries";
 import { notifyRateExpiry } from "@/lib/studio/rate-expiry-notify";
+import { matchesBearerSecret } from "@/lib/http/secret-compare";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Vercel hobby tier max
@@ -89,7 +90,7 @@ function authorize(req: NextRequest): { ok: boolean; reason?: string } {
   }
 
   const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
+  if (matchesBearerSecret(auth, secret)) return { ok: true };
 
   return { ok: false, reason: "Forbidden" };
 }

@@ -9,6 +9,12 @@
  * Reemplaza `old_endpoint` (si vino) por la nueva sub. Sin identidad → 401.
  *
  * Body: { old_endpoint?: string, subscription: { endpoint, keys:{p256dh,auth} } }
+ *
+ * SDD-0499 · los borrados de `old_endpoint` iban por endpoint pelado con el
+ * admin client: quien conociera el endpoint de otro le apagaba las
+ * notificaciones. Ahora se acotan al dueño, como ya hacía el hermano
+ * `m/push/unsubscribe`. El rebind del endpoint NUEVO pide posesión — ver
+ * `lib/studio/notify/push-rebind.ts`.
  */
 
 import { NextResponse } from "next/server";
@@ -16,6 +22,10 @@ import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { parsePushSubscription } from "@/lib/studio/notify/push-subscription";
+import {
+  operarioPushRebindDenial,
+  userPushRebindDenial,
+} from "@/lib/studio/notify/push-rebind";
 
 export async function POST(req: Request) {
   let body: unknown;
@@ -42,11 +52,22 @@ export async function POST(req: Request) {
   // 1) Operario (PIN) — reusa la lógica de operario_push_subscriptions.
   const operario = await getCurrentOperario();
   if (operario) {
+    const denial = await operarioPushRebindDenial(
+      admin,
+      parsed.endpoint,
+      operario.operario_id,
+      parsed.keys.auth,
+    );
+    if (denial) return NextResponse.json({ error: denial }, { status: 409 });
+
     if (oldEndpoint) {
+      // Acotado al operario de la sesión: `old_endpoint` es, por definición, el
+      // endpoint anterior de QUIEN llama.
       await admin
         .from("operario_push_subscriptions")
         .delete()
-        .eq("endpoint", oldEndpoint);
+        .eq("endpoint", oldEndpoint)
+        .eq("operario_id", operario.operario_id);
     }
     const { error } = await admin.from("operario_push_subscriptions").upsert(
       {
@@ -87,13 +108,32 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Sin acceso al Studio." }, { status: 403 });
   }
 
-  // Reemplazar old_endpoint + la fila del endpoint nuevo (rebind).
-  const toDrop = [oldEndpoint, parsed.endpoint].filter(
-    (e): e is string => typeof e === "string",
+  const denial = await userPushRebindDenial(
+    admin,
+    parsed.endpoint,
+    userId,
+    parsed.keys.auth,
   );
-  if (toDrop.length > 0) {
-    await admin.from("user_push_subscriptions").delete().in("endpoint", toDrop);
+  if (denial) return NextResponse.json({ error: denial }, { status: 409 });
+
+  // Dos borrados con alcances DISTINTOS a propósito:
+  //   · `old_endpoint` es el endpoint anterior de quien llama → acotado a su
+  //     user_id, igual que el molde de `portal/push/unsubscribe`.
+  //   · `parsed.endpoint` va sin acotar porque el gate de arriba ya decidió que
+  //     este llamador puede quedárselo (libre, suyo, o posesión demostrada), y
+  //     el insert necesita el hueco: `endpoint` es único global.
+  if (oldEndpoint) {
+    await admin
+      .from("user_push_subscriptions")
+      .delete()
+      .eq("endpoint", oldEndpoint)
+      .eq("user_id", userId);
   }
+  await admin
+    .from("user_push_subscriptions")
+    .delete()
+    .eq("endpoint", parsed.endpoint);
+
   const { error } = await admin.from("user_push_subscriptions").insert({
     tenant_id: link.tenant_id,
     user_id: userId,

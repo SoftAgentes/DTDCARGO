@@ -1,20 +1,18 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { matchesBearerSecret } from "@/lib/http/secret-compare";
 import { AUDIT_EXPORT_FIELDS, expireAuditExports, runNextAuditExport } from "@/lib/studio/audit/export-service";
-
-function sameSecret(actual: string | null, expected: string | undefined): boolean {
-  if (!actual || !expected) return false;
-  const a = Buffer.from(actual);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 export async function POST(request: NextRequest) {
   const authorization = request.headers.get("authorization");
   if (authorization?.startsWith("Bearer ")) {
-    if (!sameSecret(authorization.slice(7), process.env.CRON_SECRET)) {
+    // SDD-0499 · el `sameSecret` local de esta ruta era la implementación
+    // correcta que el resto de `app/api/cron/*` no tenía. Se mudó a
+    // `@/lib/http/secret-compare` para que haya un solo criterio; acá compara
+    // el header entero (`Bearer …`) en vez del token recortado, que es lo mismo
+    // dentro de esta rama.
+    if (!matchesBearerSecret(authorization, process.env.CRON_SECRET)) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
     try {

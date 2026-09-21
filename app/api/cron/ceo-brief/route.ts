@@ -30,6 +30,7 @@ import {
   generateBriefText,
   sendCeoBriefToTenant,
 } from "@/lib/news/ceo-brief";
+import { matchesBearerSecret } from "@/lib/http/secret-compare";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Vercel hobby tier max
@@ -97,7 +98,7 @@ function authorize(req: NextRequest): { ok: boolean; reason?: string } {
   // Solo por header: Vercel Cron pasa "Authorization: Bearer <CRON_SECRET>".
   // El secret nunca se acepta por query-param (terminaría en logs/referrers).
   const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
+  if (matchesBearerSecret(auth, secret)) return { ok: true };
 
   return { ok: false, reason: "Forbidden" };
 }

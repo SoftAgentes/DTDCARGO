@@ -28,6 +28,12 @@ TELEGRAM_WEBHOOK_SECRET=<openssl rand -hex 32>
 NEXT_PUBLIC_TELEGRAM_BOT_USERNAME=DTDStudioBot
 ```
 
+⚠️ **El valor de `TELEGRAM_WEBHOOK_SECRET` tiene charset limitado** (SDD-0499):
+Telegram acepta entre 1 y 256 caracteres y sólo `A-Z`, `a-z`, `0-9`, `_` y `-`.
+`openssl rand -hex 32` cae dentro (son 64 caracteres hex), pero un
+`openssl rand -base64 32` **no** — el `+`, el `/` y el `=` los rechaza
+`setWebhook`.
+
 ### Vercel producción
 
 ```
@@ -42,16 +48,18 @@ Redeploy después de agregar las vars.
 
 ## 3. Setear el webhook
 
-Después del primer deploy con las env vars activas:
+Después del primer deploy con las env vars activas. El secreto va en
+`secret_token`, **nunca en la URL**: Telegram lo devuelve en el header
+`X-Telegram-Bot-Api-Secret-Token` de cada update y eso es lo que compara
+`app/api/telegram/webhook/route.ts`.
 
 ```bash
 TOKEN=123456789:ABC-DEF...
 SECRET=<lo que pusiste en TELEGRAM_WEBHOOK_SECRET>
-URL="https://dtdcargo.com/api/telegram/webhook?secret=$SECRET"
 
 curl -X POST "https://api.telegram.org/bot$TOKEN/setWebhook" \
   -H "Content-Type: application/json" \
-  -d "{\"url\":\"$URL\",\"allowed_updates\":[\"message\"]}"
+  -d "{\"url\":\"https://dtdcargo.com/api/telegram/webhook\",\"secret_token\":\"$SECRET\",\"allowed_updates\":[\"message\"]}"
 ```
 
 Debería responder `{"ok":true,"result":true,"description":"Webhook was set"}`.
@@ -61,6 +69,28 @@ Verificá con:
 ```bash
 curl "https://api.telegram.org/bot$TOKEN/getWebhookInfo"
 ```
+
+El `url` que devuelve ya no lleva el secreto; `getWebhookInfo` no expone el
+`secret_token`.
+
+### Rotación (SDD-0499)
+
+Hasta esta spec el secreto viajaba en el query string, así que **el valor que
+esté vivo hoy hay que darlo por comprometido**: quedó en logs de acceso, en
+`Referer`, en el historial de proxies y en el `url` que devolvía
+`getWebhookInfo` a cualquiera con el token del bot. Rotarlo es una operación de
+Sam, no de un agente.
+
+Orden, para que la ventana ciega sea de segundos:
+
+1. Generá un valor nuevo (`openssl rand -hex 32`) y actualizá
+   `TELEGRAM_WEBHOOK_SECRET` en Vercel producción.
+2. Redeploy.
+3. Corré el `setWebhook` de arriba con el valor nuevo.
+
+Entre el paso 2 y el 3 el endpoint responde 403 a todo update. No se pierden:
+Telegram reintenta las entregas fallidas, así que un `/start` de esa ventana
+entra solo cuando el paso 3 aterriza.
 
 ## 4. Smoke test del link flow
 

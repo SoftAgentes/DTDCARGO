@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { parsePushSubscription } from "@/lib/studio/notify/push-subscription";
+import { operarioPushRebindDenial } from "@/lib/studio/notify/push-rebind";
 
 export async function POST(req: Request) {
   const session = await getCurrentOperario();
@@ -43,6 +44,18 @@ export async function POST(req: Request) {
 
   // Upsert por endpoint (unique). Si ya existe para otro operario (móvil
   // compartido entre operarios), re-asignamos al operario actual.
+  //
+  // SDD-0499 · el móvil compartido se conserva, pero ahora hay que demostrarlo:
+  // el endpoint llega en el cuerpo, así que sin esta comprobación bastaba
+  // conocerlo para dejar a otro operario sin avisos.
+  const denial = await operarioPushRebindDenial(
+    admin,
+    sub.endpoint,
+    session.operario_id,
+    sub.keys.auth,
+  );
+  if (denial) return NextResponse.json({ error: denial }, { status: 409 });
+
   const { error } = await admin.from("operario_push_subscriptions").upsert(
     {
       tenant_id: session.tenant_id,
