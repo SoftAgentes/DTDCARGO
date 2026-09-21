@@ -32,6 +32,20 @@ export interface Write {
   row?: Row;
 }
 
+/**
+ * Operación sobre el Storage — SDD-0500.
+ *
+ * `remove()` sobre un bucket NO es borrado lógico: el objeto se va y no vuelve.
+ * Una prueba que sólo mire `writes` no puede distinguir «denegó» de «denegó la
+ * fila pero igual borró el archivo», que es justo el caso de
+ * `deleteShipmentDocumentAction`. Por eso el doble las registra aparte.
+ */
+export interface StorageOp {
+  bucket: string;
+  op: "upload" | "remove" | "download" | "createSignedUrl";
+  paths: string[];
+}
+
 export interface DoubleOptions {
   /** `null` = sin sesión. */
   userId?: string | null;
@@ -52,6 +66,8 @@ export interface DoubleHandle {
   reads: string[];
   /** RPCs llamadas, en orden. */
   rpcCalls: { name: string; args: Row }[];
+  /** Operaciones de Storage intentadas, en orden (SDD-0500). */
+  storageOps: StorageOp[];
 }
 
 const copy = (row: Row): Row => ({ ...row });
@@ -60,6 +76,7 @@ export function supabaseDouble(options: DoubleOptions = {}): DoubleHandle {
   const writes: Write[] = [];
   const reads: string[] = [];
   const rpcCalls: { name: string; args: Row }[] = [];
+  const storageOps: StorageOp[] = [];
   const seeded: Record<string, Row[]> = {
     user_tenants: (options.memberships ?? []) as unknown as Row[],
     ...(options.tables ?? {}),
@@ -148,7 +165,27 @@ export function supabaseDouble(options: DoubleOptions = {}): DoubleHandle {
       if (typeof handler === "function") return handler(args);
       return handler ?? { data: null, error: null };
     },
+    storage: {
+      from: (bucket: string) => ({
+        upload: async (path: string) => {
+          storageOps.push({ bucket, op: "upload", paths: [path] });
+          return { data: { path }, error: null };
+        },
+        remove: async (paths: string[]) => {
+          storageOps.push({ bucket, op: "remove", paths: [...paths] });
+          return { data: paths.map((p) => ({ name: p })), error: null };
+        },
+        download: async (path: string) => {
+          storageOps.push({ bucket, op: "download", paths: [path] });
+          return { data: null, error: null };
+        },
+        createSignedUrl: async (path: string) => {
+          storageOps.push({ bucket, op: "createSignedUrl", paths: [path] });
+          return { data: { signedUrl: `https://doble.local/${bucket}/${path}` }, error: null };
+        },
+      }),
+    },
   };
 
-  return { client, writes, reads, rpcCalls };
+  return { client, writes, reads, rpcCalls, storageOps };
 }
