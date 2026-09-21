@@ -11,7 +11,17 @@
  *   - moduleViewDenial(supabase, id)   → al tope del GET de un route handler.
  *                                        Devuelve un mensaje para responder
  *                                        JSON 403, o null si puede leer.
+ *   - moduleEditGate(supabase, id)     → igual que moduleEditDenial pero además
+ *                                        devuelve tenantId/userId/role, para la
+ *                                        action que necesita escribir (SDD-0498).
+ *   - tenantAdminGate(supabase)        → gate admin-only con el mismo contexto,
+ *                                        para reglas de producto que no son la
+ *                                        matriz de módulos (SDD-0498).
  *   - getStudioRole(supabase)          → rol del user en su tenant, o null.
+ *
+ * Los dos gates con contexto existen para que NINGUNA action tenga que releer
+ * `user_tenants` por su cuenta: esa relectura a mano es la que se olvidaba de
+ * `disabled_at` y dejaba actuar a un usuario suspendido.
  *
  * Server-only de facto: importa `createClient` (usa next/headers cookies), así
  * que importarlo desde un client component rompe en build — justo lo deseado.
@@ -37,6 +47,16 @@ type StudioClient = Awaited<ReturnType<typeof createClient>>;
 
 export interface StudioAccess {
   role: StudioUserRole | null;
+  /**
+   * Tenant de la membresía ACTIVA (SDD-0498). `null` sin sesión, sin membership
+   * o con el usuario desactivado — viene de la MISMA fila que `role`, así que
+   * una action no necesita releer `user_tenants` para saber dónde escribir.
+   * Esa relectura a mano era el origen de las cinco puertas que se saltaban
+   * `disabled_at`.
+   */
+  tenantId: string | null;
+  /** `auth.uid()` de la sesión, o `null` si no hay. */
+  userId: string | null;
   /** Scope de almacén (SDD-0139). 'all' si la columna aún no existe o no hay asignación. */
   warehouseScope: WarehouseScope;
   /**
@@ -67,7 +87,9 @@ export async function getStudioAccess(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { role: null, warehouseScope: "all", overrides: {} };
+  if (!user) {
+    return { role: null, tenantId: null, userId: null, warehouseScope: "all", overrides: {} };
+  }
 
   const { data } = await supabase
     .from("user_tenants")
@@ -75,7 +97,11 @@ export async function getStudioAccess(
     .eq("user_id", user.id)
     .is("disabled_at", null)
     .limit(1)
-    .maybeSingle<{ role: StudioUserRole | null; warehouse_scope?: string | null }>();
+    .maybeSingle<{
+      role: StudioUserRole | null;
+      tenant_id?: string | null;
+      warehouse_scope?: string | null;
+    }>();
   const scope = data?.warehouse_scope;
   const role = data?.role ?? null;
   // Overrides sólo importan para no-admin — admin ya lo ve/edita todo.
@@ -83,6 +109,8 @@ export async function getStudioAccess(
     role && role !== "admin" ? await getRoleModuleOverrides(supabase) : {};
   return {
     role,
+    tenantId: data?.tenant_id ?? null,
+    userId: user.id,
     warehouseScope: scope === "cn" || scope === "ve" ? scope : "all",
     overrides,
   };
@@ -177,7 +205,20 @@ export async function moduleEditDenial(
   supabase: StudioClient,
   moduleId: string,
 ): Promise<string | null> {
-  const { role, warehouseScope, overrides } = await getStudioAccess(supabase);
+  return editDenial(supabase, await getStudioAccess(supabase), moduleId);
+}
+
+/**
+ * El predicado de EDICIÓN sobre un acceso ya resuelto. Vive aparte para que
+ * `moduleEditDenial` y `moduleEditGate` (SDD-0498) compartan exactamente la
+ * misma decisión sin resolver el rol dos veces — dos resoluciones es justo el
+ * patrón que esta spec vino a borrar.
+ */
+async function editDenial(
+  supabase: StudioClient,
+  { role, warehouseScope, overrides }: StudioAccess,
+  moduleId: string,
+): Promise<string | null> {
   if (!canEditModule(role, moduleId, overrides)) {
     return "No tienes permiso para realizar esta acción.";
   }
@@ -192,6 +233,104 @@ export async function moduleEditDenial(
     return "Esta acción la reserva el superadministrador. Pídesela a quien administra el sistema.";
   }
   return null;
+}
+
+// ─── Gates con contexto de tenant (SDD-0498) ──────────────────────────────
+//
+// `moduleEditDenial` devuelve sólo el mensaje, así que una action que además
+// necesita el `tenant_id` para escribir volvía a leer `user_tenants` a mano —
+// y esas relecturas se olvidaron de `.is("disabled_at", null)`, el fail-closed
+// del endurecimiento 0200. El resultado era una segunda forma de resolver el
+// rol, siempre la desactualizada: a un usuario suspendido le seguían
+// funcionando cinco puertas del Studio.
+//
+// Estos dos gates devuelven permiso Y contexto en UNA resolución
+// (`getStudioAccess`), para que ninguna action tenga motivo para leer la tabla
+// por su cuenta. Discriminan por `ok` y no por el mensaje: un `denied: string`
+// no es tipo unidad, así que TypeScript no podría estrecharlo y el call site
+// terminaría con un `tenantId` posiblemente indefinido dentro de un insert.
+
+/** Pasó el gate: rol resuelto y contexto de la MISMA fila que lo autorizó. */
+export interface StudioGateAllowed {
+  ok: true;
+  tenantId: string;
+  userId: string;
+  role: StudioUserRole;
+}
+
+/** No pasó: mensaje es-VE listo para el patrón `{ error }` del Studio. */
+export interface StudioGateDenied {
+  ok: false;
+  denied: string;
+}
+
+export type StudioGate = StudioGateAllowed | StudioGateDenied;
+
+/** Copias es-VE que cada call site puede sobreescribir sin reimplementar el gate. */
+export interface StudioGateMessages {
+  /** Reemplaza el mensaje de denegación por rol. */
+  denied?: string;
+  /** Se usa cuando el rol alcanza pero la fila no trae tenant (no debería pasar). */
+  noTenant?: string;
+}
+
+const SIN_TENANT = "No se pudo resolver el tenant del usuario.";
+
+/**
+ * Cierra el gate: sólo se devuelve contexto si el rol pasó Y la fila trae
+ * tenant. Un `tenantId` nulo con rol válido es un estado imposible en la
+ * práctica (salen de la misma fila), pero se trata como denegación en vez de
+ * dejar que la action escriba con `tenant_id: undefined`.
+ */
+function gateWith(
+  access: StudioAccess,
+  denial: string | null,
+  messages?: StudioGateMessages,
+): StudioGate {
+  if (denial) return { ok: false, denied: messages?.denied ?? denial };
+  if (!access.tenantId || !access.userId || !access.role) {
+    return { ok: false, denied: messages?.noTenant ?? SIN_TENANT };
+  }
+  return { ok: true, tenantId: access.tenantId, userId: access.userId, role: access.role };
+}
+
+/**
+ * `moduleEditDenial` + el contexto que la action necesita para escribir:
+ *
+ *   const gate = await moduleEditGate(supabase, "fiscal");
+ *   if (!gate.ok) return { error: gate.denied };
+ *   await supabase.from("x").insert({ tenant_id: gate.tenantId, … });
+ *
+ * Misma matriz, mismos overrides, mismo alcance de almacén y mismo segundo
+ * candado de superadministrador que `moduleEditDenial` — una sola resolución.
+ */
+export async function moduleEditGate(
+  supabase: StudioClient,
+  moduleId: string,
+  messages?: StudioGateMessages,
+): Promise<StudioGate> {
+  const access = await getStudioAccess(supabase);
+  return gateWith(access, await editDenial(supabase, access, moduleId), messages);
+}
+
+/**
+ * Gate ADMIN-ONLY con contexto, para las puertas cuya regla de producto no es
+ * la matriz de módulos sino «sólo un administrador»: el cierre contable
+ * (SDD-0080), la configuración fiscal, los transportistas, las notificaciones
+ * al cliente y la publicación de noticias del sitio público.
+ *
+ * Se expresa acá y no con `moduleEditGate("admin")` porque no son el módulo
+ * Admin: prestarles su fila de la matriz ataría una regla de producto a una
+ * tabla que se edita por otros motivos.
+ */
+export async function tenantAdminGate(
+  supabase: StudioClient,
+  messages?: StudioGateMessages,
+): Promise<StudioGate> {
+  const access = await getStudioAccess(supabase);
+  const denial =
+    access.role === "admin" ? null : "No tienes permiso para realizar esta acción.";
+  return gateWith(access, denial, messages);
 }
 
 /**

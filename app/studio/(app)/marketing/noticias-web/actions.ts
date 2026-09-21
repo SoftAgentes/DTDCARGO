@@ -32,6 +32,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { TextBlock } from "@anthropic-ai/sdk/resources/messages";
 import { createClient } from "@/lib/db/server";
+import { tenantAdminGate } from "@/lib/studio/rbac-guard";
 import {
   NEWS_CATEGORIES_V4,
   type NewsCategoria,
@@ -226,20 +227,28 @@ const TONE_INSTRUCTIONS: Record<Tone, string> = {
     "tono polémico y provocador, que genere debate honesto, sin desinformación.",
 };
 
-/** Verifica que el caller esté autenticado y sea admin del tenant. */
+const ADMIN_MSG = "Acceso restringido a admins";
+
+/**
+ * Verifica que el caller esté autenticado y sea admin ACTIVO del tenant.
+ *
+ * SDD-0498: la resolución la hace `rbac-guard`. Las dos versiones anteriores
+ * leían `user_tenants` acá, sin `.eq("user_id", …)` y sin
+ * `.is("disabled_at", null)`. De las cinco puertas del barrido esta era la de
+ * peor consecuencia, por dos motivos que se miden en el repo:
+ *
+ *  - las policies de `news_posts` y `seo_drafts` (migr 0053 y 0055) exigen
+ *    `role = 'admin'` pero NO miran `disabled_at` — a diferencia de
+ *    `accounting_settings` (0133) o `freight_carriers` (0330). Acá el candado
+ *    de la aplicación era el ÚNICO, y un admin suspendido podía publicar en el
+ *    sitio público;
+ *  - las ocho actions de generación llaman a la API de Anthropic sin tocar la
+ *    DB: ninguna RLS las cubre y un suspendido quemaba la API key.
+ */
 async function requireAdmin(): Promise<{ ok: true } | ErrorResult> {
   const supabase = await createClient();
-  const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { ok: false, error: "No autenticado" };
-
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("role")
-    .maybeSingle<{ role: string }>();
-
-  if (!link || link.role !== "admin") {
-    return { ok: false, error: "Acceso restringido a admins" };
-  }
+  const gate = await tenantAdminGate(supabase, { denied: ADMIN_MSG, noTenant: ADMIN_MSG });
+  if (!gate.ok) return { ok: false, error: gate.denied };
   return { ok: true };
 }
 
@@ -248,19 +257,12 @@ async function requireAdminWithTenant(): Promise<
   { ok: true; tenantId: string } | ErrorResult
 > {
   const supabase = await createClient();
-  const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { ok: false, error: "No autenticado" };
-
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("tenant_id, role")
-    .maybeSingle<{ tenant_id: string; role: string }>();
-
-  if (!link?.tenant_id) return { ok: false, error: "Sin tenant asignado" };
-  if (link.role !== "admin") {
-    return { ok: false, error: "Acceso restringido a admins" };
-  }
-  return { ok: true, tenantId: link.tenant_id };
+  const gate = await tenantAdminGate(supabase, {
+    denied: ADMIN_MSG,
+    noTenant: "Sin tenant asignado",
+  });
+  if (!gate.ok) return { ok: false, error: gate.denied };
+  return { ok: true, tenantId: gate.tenantId };
 }
 
 /** Lazy-init del cliente Anthropic. */

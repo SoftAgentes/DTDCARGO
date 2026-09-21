@@ -22,7 +22,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { validateAuditReason } from "@/lib/studio/audit/reason";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, tenantAdminGate } from "@/lib/studio/rbac-guard";
 import {
   validateAccountInput,
   type AccountActionState,
@@ -328,28 +328,21 @@ export async function setClosingDateAction(
     return { error: "Formato de fecha inválido (YYYY-MM-DD)." };
   }
 
-  const { data: auth } = await supabase.auth.getUser();
-  const userId = auth.user?.id;
-  if (!userId) return { error: "Sesión no válida." };
-
-  const { data: link, error: linkErr } = await supabase
-    .from("user_tenants")
-    .select("tenant_id, role")
-    .eq("user_id", userId)
-    .maybeSingle<{ tenant_id: string; role: string }>();
-  if (linkErr || !link?.tenant_id) {
-    return { error: "No se pudo resolver el tenant del usuario." };
-  }
-  if (link.role !== "admin") return { error: CLOSING_ADMIN_MSG };
+  // SDD-0498: el gate lo resuelve `rbac-guard` (una sola resolución del rol,
+  // con el fail-closed por `disabled_at` del endurecimiento 0200). Acá se leía
+  // `user_tenants` a mano sin ese filtro, así que un admin suspendido seguía
+  // pudiendo fijar y levantar el cierre del período.
+  const gate = await tenantAdminGate(supabase, { denied: CLOSING_ADMIN_MSG });
+  if (!gate.ok) return { error: gate.denied };
 
   const nowIso = new Date().toISOString();
   const { error } = await supabase.from("accounting_settings").upsert(
     {
-      tenant_id: link.tenant_id,
+      tenant_id: gate.tenantId,
       closing_date: closing,
-      locked_by: closing ? userId : null,
+      locked_by: closing ? gate.userId : null,
       locked_at: closing ? nowIso : null,
-      updated_by: userId,
+      updated_by: gate.userId,
     },
     { onConflict: "tenant_id" },
   );

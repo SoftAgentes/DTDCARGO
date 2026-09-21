@@ -31,6 +31,7 @@ import { validateAuditReason } from "@/lib/studio/audit/reason";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { revertReferralCreditsForInvoice } from "@/lib/studio/accounting/referral-credit-posting";
+import { voidReferralRevertWarning } from "@/lib/studio/fidelizacion/referral-revert-notice";
 import { registerCollectionFor } from "@/lib/studio/collections-actions";
 import { LEGAL_GATE_HARD_BLOCK } from "@/lib/studio/legal/gate-config";
 import { hasValidAcceptanceForMarkbox } from "@/lib/studio/legal/queries";
@@ -660,7 +661,7 @@ export async function registerPayment(
 export async function voidInvoice(
   id: string,
   reasonRaw: string,
-): Promise<{ ok?: boolean; error?: string }> {
+): Promise<{ ok?: boolean; error?: string; warning?: string }> {
   const reasonResult = validateAuditReason(reasonRaw);
   if (!reasonResult.ok) return { error: reasonResult.error };
 
@@ -706,18 +707,33 @@ export async function voidInvoice(
     current.tenant_id,
     current.id,
   );
+  let warning: string | undefined;
   if (!revert.ok) {
     console.error(
       `[fidelizacion] no se pudieron revertir créditos de referido de la factura ${current.invoice_code}:`,
       revert.error,
     );
+    // SDD-0495: el log era lo ÚNICO que pasaba. Quien anulaba veía un éxito
+    // limpio mientras el crédito quedaba colgado de una factura anulada. Ahora
+    // el aviso sube con el ok, y las dos pantallas lo muestran (la de la factura
+    // y la de Fidelización) porque sus roles no se solapan.
+    //
+    // El aviso depende de `reverted`, no sólo de `ok`: la reversión recorre los
+    // créditos de a uno, así que con más de uno en la misma factura puede
+    // liberar unos y fallar en otros. Decir «no se pudo liberar» ahí sería falso
+    // y mandaría a revisar algo que en parte ya está bien.
+    warning = voidReferralRevertWarning(revert.reverted);
+    // La factura anulada pasa a mostrar el aviso durable, y Fidelización lista
+    // el crédito varado: las dos vistas dependen del estado que acaba de
+    // quedar inconsistente, así que las dos se revalidan.
+    revalidatePath("/studio/fidelizacion");
   } else if (revert.reverted > 0) {
     revalidatePath("/studio/fidelizacion");
   }
 
   revalidatePath("/studio/facturacion");
   revalidatePath(`/studio/facturacion/${current.invoice_code}`);
-  return { ok: true };
+  return warning ? { ok: true, warning } : { ok: true };
 }
 
 /**
