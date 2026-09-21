@@ -722,11 +722,14 @@ export async function voidInvoice(
     // el aviso sube con el ok, y las dos pantallas lo muestran (la de la factura
     // y la de Fidelización) porque sus roles no se solapan.
     //
-    // El aviso depende de `reverted`, no sólo de `ok`: la reversión recorre los
-    // créditos de a uno, así que con más de uno en la misma factura puede
-    // liberar unos y fallar en otros. Decir «no se pudo liberar» ahí sería falso
-    // y mandaría a revisar algo que en parte ya está bien.
-    warning = voidReferralRevertWarning(revert.reverted);
+    // SDD-0496: el aviso se elige por QUÉ falló, no por cuántos se liberaron.
+    // Cuando la 0495 lo escribió, la reversión recorría los créditos de a uno y
+    // `reverted > 0` con `ok: false` quería decir «unos sí y otros no». Ahora es
+    // UNA transacción (revert_referral_credits, migr 0471): todos o ninguno. Lo
+    // que `reverted > 0` significa hoy con `ok: false` es lo CONTRARIO —la plata
+    // volvió entera y lo que quedó colgado es el asiento—, así que elegir por el
+    // conteo diría que hay créditos varados justo cuando no queda ninguno.
+    warning = voidReferralRevertWarning(revert.failure);
     // La factura anulada pasa a mostrar el aviso durable, y Fidelización lista
     // el crédito varado: las dos vistas dependen del estado que acaba de
     // quedar inconsistente, así que las dos se revalidan.

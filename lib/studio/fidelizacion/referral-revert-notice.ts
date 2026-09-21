@@ -5,28 +5,41 @@
  *
  * `app/studio/(app)/facturacion/actions.ts` es un módulo `"use server"`, y de
  * uno de esos **sólo se pueden exportar funciones async**: un `export const`
- * rompe el build de Next (los 40 y pico de `actions.ts` del Studio exportan
- * únicamente tipos e interfaces, que se borran al compilar). Y el texto lo
- * necesitan los dos lados —la action que lo devuelve y el banner que lo pinta—,
- * así que tiene que ser importable desde un client component. Un módulo neutro
- * resuelve las dos cosas.
+ * rompe el build de Next. Medido sobre `main` el 2026-09-20: los **116** módulos
+ * del repo que llevan la directiva exportan únicamente `async function`, `type`
+ * o `interface` —los dos últimos se borran al compilar—, sin una sola
+ * excepción. Y el texto lo necesitan los dos lados —la action que lo devuelve y
+ * el banner que lo pinta—, así que tiene que ser importable desde un client
+ * component. Un módulo neutro resuelve las dos cosas.
  *
- * ## Por qué son DOS textos y no uno
+ * ## Por qué son DOS textos y no uno (SDD-0496: cuáles son los dos)
  *
- * `revertReferralCreditsForInvoice` devuelve `{ ok, reverted, error? }` y
- * recorre los créditos de la factura de a uno: acumula `reverted` por cada uno
- * que sale bien y junta el resto en `failures`. O sea que con más de un crédito
- * en la misma factura, **`ok: false` con `reverted > 0` es alcanzable hoy**, sin
- * esperar a que la reversión se mude a SQL: uno se liberó y otro no.
+ * Cuando esta SDD se escribió, `revertReferralCreditsForInvoice` recorría los
+ * créditos de la factura de a uno, así que `ok: false` con `reverted > 0`
+ * significaba «uno se liberó y otro no» y había un texto para ese caso parcial.
  *
- * Decir «el crédito no se pudo liberar» en ese caso es **falso**, y manda a
- * alguien a arreglar algo que en parte ya está bien. El aviso distingue los dos
- * casos, y quién es quién lo dice el conteo, no el texto del error.
+ * **La SDD-0496 mató ese caso**: la reversión es ahora UNA transacción
+ * (`revert_referral_credits`, migr 0471), todos los créditos o ninguno. El texto
+ * parcial se retiró porque ya no podía ocurrir, y dejarlo habría sido peor que
+ * no tenerlo: `reverted > 0` con `ok: false` pasó a significar otra cosa, y el
+ * aviso parcial habría dicho que hay créditos varados cuando no queda ninguno.
+ *
+ * Los dos casos de hoy los distingue `failure`, no el conteo:
+ *
+ *  - **`"revert"`** — no se liberó nada. El crédito sigue pegado a la factura
+ *    anulada y el referidor no lo puede usar. Es el que duele al cliente.
+ *  - **`"entries"`** — el crédito SÍ volvió y la factura quedó bien; lo que no
+ *    se pudo fue anular su asiento contable. No hay crédito varado: hay un
+ *    asiento vivo que el mayor no debería tener. Le duele a contabilidad, no al
+ *    referidor, y decirle «el crédito quedó sin liberar» sería falso.
  *
  * Los avisos DURABLES no necesitan esta distinción: derivan del estado y listan
  * exactamente los que quedaron varados, así que no pueden mentir por más
- * créditos que haya.
+ * créditos que haya. Ojo con eso en el caso `"entries"`: el crédito no está
+ * varado, así que Fidelización —con razón— no lo va a listar.
  */
+
+import type { ReferralCreditRevertFailure } from "@/lib/studio/accounting/referral-credit-posting";
 
 /** Ninguno se liberó: `ok: false` con `reverted === 0`. */
 export const VOID_REFERRAL_REVERT_WARNING =
@@ -36,32 +49,40 @@ export const VOID_REFERRAL_REVERT_WARNING =
   "avisado en esta factura y en Fidelización: coordínalo con quien lleva el " +
   "programa de referidos.";
 
-/** Algunos sí se liberaron y otros no: `ok: false` con `reverted > 0`. */
-export const VOID_REFERRAL_REVERT_PARTIAL_WARNING =
-  "La factura quedó anulada y parte de los créditos de referido se liberó, pero " +
-  "no todos: los que quedaron siguen marcados como usados. En esta misma " +
-  "factura se listan cuáles son, para que no se revise de más. No se arregla " +
-  "desde aquí: coordínalo con quien lleva el programa de referidos, que también " +
-  "los ve en Fidelización.";
+/**
+ * El crédito volvió al referidor y la factura quedó bien; lo que no se pudo fue
+ * anular su asiento: `ok: false` con `failure === "entries"` (SDD-0496).
+ */
+export const VOID_REFERRAL_REVERT_ENTRY_WARNING =
+  "La factura quedó anulada y el crédito de referido volvió a estar disponible " +
+  "para el referidor, así que por ese lado no falta nada. Lo que no se pudo fue " +
+  "anular el asiento contable de ese crédito: quedó vivo en el mayor, que ahora " +
+  "no cuadra con la factura. No se arregla desde aquí: pásaselo a contabilidad " +
+  "con el código de esta factura.";
 
 /** Título del banner, que tiene que acompañar al cuerpo y no contradecirlo. */
 export const VOID_REFERRAL_REVERT_TITLE = "El crédito de referido quedó sin liberar";
-export const VOID_REFERRAL_REVERT_PARTIAL_TITLE =
-  "Parte de los créditos de referido quedó sin liberar";
+export const VOID_REFERRAL_REVERT_ENTRY_TITLE =
+  "El asiento del crédito quedó sin anular";
 
 /**
- * El aviso que corresponde, elegido por cuántos créditos SÍ se liberaron.
- * Llamarla sólo cuando la reversión devolvió `ok: false`.
+ * El aviso que corresponde, elegido por QUÉ falló. Llamarla sólo cuando la
+ * reversión devolvió `ok: false`.
+ *
+ * SDD-0496: antes elegía por `reverted`, y ese criterio dejó de servir cuando la
+ * reversión pasó a ser una sola transacción. Hoy `reverted > 0` con `ok: false`
+ * significa que la plata SÍ volvió, que es justo lo contrario de lo que el aviso
+ * parcial decía.
  */
-export function voidReferralRevertWarning(reverted: number): string {
-  return reverted > 0
-    ? VOID_REFERRAL_REVERT_PARTIAL_WARNING
+export function voidReferralRevertWarning(failure?: ReferralCreditRevertFailure): string {
+  return failure === "entries"
+    ? VOID_REFERRAL_REVERT_ENTRY_WARNING
     : VOID_REFERRAL_REVERT_WARNING;
 }
 
 /** El título que acompaña a `voidReferralRevertWarning`, anclado en la constante. */
 export function voidReferralRevertTitle(warning: string): string {
-  return warning === VOID_REFERRAL_REVERT_PARTIAL_WARNING
-    ? VOID_REFERRAL_REVERT_PARTIAL_TITLE
+  return warning === VOID_REFERRAL_REVERT_ENTRY_WARNING
+    ? VOID_REFERRAL_REVERT_ENTRY_TITLE
     : VOID_REFERRAL_REVERT_TITLE;
 }
