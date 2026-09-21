@@ -80,7 +80,24 @@ export function voidReferralRevertWarning(failure?: ReferralCreditRevertFailure)
     : VOID_REFERRAL_REVERT_WARNING;
 }
 
-/** El título que acompaña a `voidReferralRevertWarning`, anclado en la constante. */
+/**
+ * El título que acompaña a `voidReferralRevertWarning`, anclado en la constante
+ * —por identidad, no buscando texto adentro—, así que si alguien reescribe el
+ * copy los dos lados se mueven juntos.
+ *
+ * ⚠️ EL `else` ES ATRAPA-TODO, y eso es una decisión, no un descuido. Hoy hay
+ * dos cuerpos y el fallback es correcto: un texto desconocido cae al título del
+ * crédito sin liberar, que es el conservador, y su prueba lo fija.
+ *
+ * Lo que NO hace es distinguir «no reconozco este cuerpo» de «es el del crédito
+ * sin liberar». **Si agregás un tercer aviso y te olvidás de su rama acá, va a
+ * salir con el título del crédito varado sin que nada falle** — y si ese tercer
+ * caso no es sobre un crédito varado, el título contradice al cuerpo, que es
+ * exactamente el defecto que la SDD-0496 vino a cerrar una línea más abajo.
+ * Agregá cuerpo, título y rama en la misma tanda, y su caso en el `describe`
+ * «el título no contradice al cuerpo». (Anotado a pedido del Director,
+ * 2026-09-21; ver también `ReferralCreditRevertFailure`.)
+ */
 export function voidReferralRevertTitle(warning: string): string {
   return warning === VOID_REFERRAL_REVERT_ENTRY_WARNING
     ? VOID_REFERRAL_REVERT_ENTRY_TITLE

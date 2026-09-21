@@ -285,7 +285,13 @@ producción.
    SDD-0137— y el daño es nulo: el link no se escribe, que es exactamente lo que la
    reversión ya tolera (barre por `referral_id`, el hueco B). Cerrarlo es una línea más su
    prueba; lo dejo fuera por disciplina de alcance, no por dudarlo.
-7. **`applicableInvoicesForReferrer` (el picker) no revalida bajo lock**, y ahora la RPC sí.
+7. **El `else` de `voidReferralRevertTitle` es atrapa-todo.** Hoy es correcto y su prueba
+   lo fija, pero no distingue «título desconocido» de «es el del crédito sin liberar»: un
+   tercer valor de `failure` saldría con el título del crédito varado **sin que nada
+   falle**. Lo señaló el Director al revisar (2026-09-21) y decidimos **no cambiarlo ahora**
+   —hoy no hay tercer caso—, sino anotarlo donde se va a leer: en el propio `else` y en la
+   definición de `ReferralCreditRevertFailure`, que es donde alguien agregaría la variante.
+8. **`applicableInvoicesForReferrer` (el picker) no revalida bajo lock**, y ahora la RPC sí.
    No es un defecto —el picker sólo sugiere—, pero sus criterios y los de la 0471 son dos
    copias de la misma regla en lenguajes distintos: si una cambia sin la otra, el picker
    ofrecería facturas que la función rechaza. Hoy coinciden; no hay prueba que lo fije.

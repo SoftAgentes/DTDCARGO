@@ -342,6 +342,15 @@ export const REVERT_REFERRAL_CREDITS_ERROR = "No se pudieron revertir los crédi
  * `reverted > 0` significaba «unos sí y otros no». Con la 0471 ese caso ya no
  * existe —los créditos de una factura se revierten en UNA transacción, todos o
  * ninguno—, así que el campo queda libre para decir lo que de verdad pasó.
+ *
+ * ⚠️ SI AGREGAS UN TERCER VALOR ACÁ, mirá `voidReferralRevertTitle` en
+ * `lib/studio/fidelizacion/referral-revert-notice.ts`: su `else` es
+ * ATRAPA-TODO. Hoy es correcto y su prueba lo fija, pero no distingue «título
+ * desconocido» de «es el del crédito sin liberar», así que un tercer caso
+ * caería al título del crédito varado **sin que nada avise** — y si ese tercer
+ * caso no es sobre un crédito varado, el banner diría lo contrario del cuerpo,
+ * que es justo el defecto que la 0496 vino a cerrar. Agregá su título y su rama
+ * en la misma tanda. (Anotado a pedido del Director, 2026-09-21.)
  */
 export type ReferralCreditRevertFailure = "revert" | "entries";
 
