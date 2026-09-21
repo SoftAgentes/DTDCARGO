@@ -1,14 +1,20 @@
 /**
  * Anti-drift de RBAC (SDD-0085): toda server action de mutación del Studio debe
- * llamar `moduleEditDenial(...)` como backstop server-side, porque las actions
- * son invocables directo como endpoint (el sidebar + requireModuleView solo
- * cubren la UI). Este test escanea `app/studio/(app)/**​/actions.ts` y falla si
- * un archivo no llama `moduleEditDenial` y no está en la ALLOWLIST justificada.
+ * apoyarse en un guard de `rbac-guard.ts` como backstop server-side, porque las
+ * actions son invocables directo como endpoint (el sidebar + requireModuleView
+ * solo cubren la UI). Este test escanea `app/studio/(app)/**​/actions.ts` y falla
+ * si un archivo no llama a ninguno y no está en la ALLOWLIST justificada.
  *
  * Si agregás un módulo nuevo con mutaciones: agregá el guard. Si de verdad NO
  * lo necesita (auth propia / abierto por diseño / barrel a lib), documentá la
  * excepción acá con su razón. Mantené la lista CORTA — cada entrada es una
  * excepción de seguridad que alguien debería poder defender en un review.
+ *
+ * ⚠️ El escáner abre sólo archivos llamados EXACTAMENTE `actions.ts`. Las
+ * actions que viven en `<algo>-actions.ts` (carrier, calculator, calendar,
+ * company, exchange-rates…) no las mira nadie: ahí se coló la variante sin
+ * `disabled_at` que arregló SDD-0498. Ampliar el barrido es tarea aparte —
+ * hoy pondría en rojo a una docena de archivos de una vez.
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -32,22 +38,27 @@ vi.setConfig({ testTimeout: 120_000 });
 
 const STUDIO_APP = join(process.cwd(), "app", "studio", "(app)");
 
-// path relativo (con "/") -> razón de por qué NO lleva moduleEditDenial.
+/**
+ * Guards de `rbac-guard.ts` que valen como backstop. Todos resuelven el rol por
+ * `getStudioAccess`, o sea con el filtro `disabled_at` de la 0200; lo que este
+ * contrato exige es que la action use UNO de ellos y no su propia lectura de
+ * `user_tenants`, que es la que se olvida de actualizar (SDD-0498).
+ */
+const GUARDS = ["moduleEditDenial", "moduleEditGate", "tenantAdminGate", "capabilityDenial"];
+
+// path relativo (con "/") -> razón de por qué NO lleva ningún guard de rbac-guard.
 const ALLOWLIST: Record<string, string> = {
   "actions.ts": "signOut: cierra la sesión del propio usuario, sin privilegio de módulo.",
   "bugs/actions.ts": "Bug Reporter: cualquier miembro del staff reporta bugs (abierto por diseño).",
   "mis-bugs/actions.ts": "Bugs propios del usuario (abierto por diseño).",
   "debug/actions.ts": "recheckAll: re-corre health checks, no muta datos de negocio.",
   "admin/feature-flags/actions.ts": "toggleFeatureFlag valida role==='admin' inline.",
-  "admin/notificaciones/actions.ts":
-    "SDD-0156: requireAdmin() valida role==='admin' inline antes de cada mutación; config admin-only, RLS por tenant en client_notification_rules.",
   "admin/alertas-telegram/actions.ts":
     "SDD-0271: requireAdmin() valida role==='admin' inline en las 4 mutaciones, y es MÁS estricto que moduleEditDenial('admin'), que resuelve por la matriz y admite overrides por rol (SDD-0252). Acá se decide a qué chat de Telegram llegan los avisos internos: un override no debería poder abrirlo. RLS admin-only por tenant en telegram_destinations / telegram_alert_routes (migr 0386).",
   "dashboard/actions.ts":
     "SDD-0114: cada usuario edita SU PROPIA config de dashboard (fila user_dashboard_prefs, RLS por dueño). No muta datos de negocio ni de otros usuarios; además la action filtra los ids con canAccessModule antes de persistir.",
   "ordenes-compra/actions.ts": "Barrel: las actions con guard viven en lib/studio/purchase-orders/actions.ts.",
   "ordenes-venta/actions.ts": "Barrel: las actions con guard viven en lib/studio/sales-orders/actions.ts.",
-  "marketing/noticias-web/actions.ts": "Gateado con requireAdminWithTenant (gate admin propio).",
 };
 
 function findActions(dir: string, acc: string[] = []): string[] {
@@ -72,20 +83,21 @@ describe("RBAC anti-drift · server actions del Studio (SDD-0085)", () => {
 
   for (const file of files) {
     const rel = relative(STUDIO_APP, file).split(sep).join("/");
-    it(`${rel} llama moduleEditDenial o está en la allowlist`, () => {
+    it(`${rel} llama a un guard de rbac-guard o está en la allowlist`, () => {
       const src = readFileSync(file, "utf8");
-      const hasGuard = src.includes("moduleEditDenial");
+      const hasGuard = GUARDS.some((guard) => src.includes(guard));
       const allowed = rel in ALLOWLIST;
 
       if (!hasGuard && !allowed) {
         throw new Error(
-          `${rel} muta sin moduleEditDenial y no está en la ALLOWLIST. ` +
-            `Agregá el guard (SDD-0085) al tope de cada mutación, o documentá la excepción en ALLOWLIST.`,
+          `${rel} muta sin ningún guard de rbac-guard (${GUARDS.join(" / ")}) y no está en ` +
+            `la ALLOWLIST. Agregá el guard (SDD-0085) al tope de cada mutación, o documentá ` +
+            `la excepción en ALLOWLIST.`,
         );
       }
       if (hasGuard && allowed) {
         throw new Error(
-          `${rel} ya tiene moduleEditDenial → quitá su entrada obsoleta de la ALLOWLIST.`,
+          `${rel} ya tiene un guard de rbac-guard → quitá su entrada obsoleta de la ALLOWLIST.`,
         );
       }
     });

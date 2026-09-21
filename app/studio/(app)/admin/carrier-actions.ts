@@ -24,6 +24,7 @@ import {
   type TariffFieldKey,
 } from "@/lib/studio/freight-carriers/types";
 import { setDefaultCarrier } from "@/lib/studio/freight-carriers/queries";
+import { tenantAdminGate } from "@/lib/studio/rbac-guard";
 
 export type CarrierActionState = {
   ok?: boolean;
@@ -39,27 +40,27 @@ export type TariffActionState = {
 
 type SupabaseLike = Awaited<ReturnType<typeof createClient>>;
 
-/** Resuelve tenant + rol. Filtra user_tenants por user_id (post-0040). */
+const ADMIN_MSG = "Solo un administrador puede editar los transportistas.";
+
+/**
+ * Resuelve tenant + rol con el guard central (SDD-0498).
+ *
+ * Antes leía `user_tenants` acá mismo: filtraba por `user_id` pero NO por
+ * `disabled_at`, así que un admin suspendido pasaba este candado y podía
+ * editar transportistas y tarifas de flete — el tarifario que cotiza la web
+ * pública. La RLS de 0330 sí mira `disabled_at` y cortaba en la DB, pero un
+ * gate de aplicación que aprueba a quien la DB rechaza no es defensa en
+ * profundidad: es un candado que miente.
+ *
+ * Gate admin-only y no `moduleEditGate("admin")` porque la regla no es la fila
+ * del módulo Admin en la matriz, es «esto lo toca un administrador».
+ */
 async function resolveTenantAdmin(
   supabase: SupabaseLike,
 ): Promise<{ ok: true; tenantId: string } | { ok: false; error: string }> {
-  const { data: auth } = await supabase.auth.getUser();
-  const userId = auth.user?.id;
-  if (!userId) return { ok: false, error: "Sesión no válida." };
-
-  const { data: link, error } = await supabase
-    .from("user_tenants")
-    .select("tenant_id, role")
-    .eq("user_id", userId)
-    .maybeSingle<{ tenant_id: string; role: string }>();
-
-  if (error || !link?.tenant_id) {
-    return { ok: false, error: "No se pudo resolver el tenant del usuario." };
-  }
-  if (link.role !== "admin") {
-    return { ok: false, error: "Solo un administrador puede editar los transportistas." };
-  }
-  return { ok: true, tenantId: link.tenant_id };
+  const gate = await tenantAdminGate(supabase, { denied: ADMIN_MSG });
+  if (!gate.ok) return { ok: false, error: gate.denied };
+  return { ok: true, tenantId: gate.tenantId };
 }
 
 /** El tarifario cambia lo que cotiza la web: hay que refrescar las dos caras. */

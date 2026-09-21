@@ -15,14 +15,16 @@
  *  - addCreditNoteAction · aplica una nota de crédito sobre un cargo.
  *  - reconcileNow      · re-corre el match de un estado abierto (sin cerrar).
  *
- * La página gatea admin-only; estas acciones igual resuelven tenant vía RLS.
+ * Cada acción lleva su propio gate de RBAC: `moduleEditDenial` las que mutan y
+ * `moduleViewDenial` las dos lecturas del final (SDD-0497). Que la página gatee
+ * admin-only NO alcanza — una server action es un endpoint invocable directo.
  */
 
 "use server";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
 import {
   addCharge,
   applyCreditNote,
@@ -604,6 +606,21 @@ export async function addCreditNoteAction(
 }
 
 // ── Lecturas (para cambio de socio + detalle de estado en la UI) ──
+//
+// 🔴 Las dos lecturas de esta sección llevan `moduleViewDenial` (SDD-0497), no
+// `moduleEditDenial`: no mutan nada, pero exponen dinero. El gate de VISTA es el
+// que corresponde y además arrastra el segundo candado de superadministrador,
+// porque `financiero-china` está en SUPERADMIN_ONLY_MODULES (rbac.ts).
+//
+// Hasta esta spec sólo llamaban a `resolveTenant`. El `requireModuleView` del
+// layout protege la PÁGINA; una server action es un endpoint invocable directo
+// (SDD-0085 §Seguridad), y la policy viva de las tablas del socio —
+// `supplier_charges`, `partner_ledger_entries`, `partner_statements`,
+// `partner_statement_lines` (0114/0115)— sólo compara `tenant_id`, sin predicado
+// de rol. O sea que cualquier miembro autenticado del tenant leía saldo del
+// socio, libro mayor y estados de cuenta de un módulo que la matriz reserva a
+// admin. La cabecera de `0356_superadmin_legal_renditions_gate.sql:16-22` daba
+// por hecho un gate de app que en estas dos funciones no existía.
 /**
  * Saldo neto + libro mayor + cargos de un socio. Para que el cliente recargue
  * la cuenta corriente / cargos al cambiar el socio del selector sin un full
@@ -619,6 +636,8 @@ export async function getSupplierFinance(supplierId: string): Promise<
   | { ok: false; error: string }
 > {
   const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "financiero-china");
+  if (denial) return { ok: false, error: denial };
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { ok: false, error: "No se pudo resolver el tenant." };
   if (!supplierId) return { ok: false, error: "Falta el socio." };
@@ -653,6 +672,8 @@ export async function getStatementDetail(
   | { ok: false; error: string }
 > {
   const supabase = await createClient();
+  const denial = await moduleViewDenial(supabase, "financiero-china");
+  if (denial) return { ok: false, error: denial };
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { ok: false, error: "No se pudo resolver el tenant." };
 

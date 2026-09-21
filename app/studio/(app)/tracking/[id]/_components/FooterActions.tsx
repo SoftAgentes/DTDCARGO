@@ -16,7 +16,7 @@
 import { useState, useTransition, useRef } from "react";
 import { cancelShipment, deleteShipment } from "../actions";
 import { isTerminalStatus } from "@/lib/studio/shipment-actions";
-import type { ShipmentStatus } from "@/lib/studio/shipment-types";
+import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 import { useDialogA11y } from "@/app/studio/_components/ui/drawer/useDialogA11y";
 
 const MODAL_BACKDROP: React.CSSProperties = {
@@ -103,8 +103,12 @@ export function FooterActions({
     }
     setError(null);
     startTransition(async () => {
-      await deleteShipment(shipmentId);
-      // deleteShipment redirige a /studio/tracking
+      // deleteShipment redirige a /studio/tracking cuando el borrado ocurre, así
+      // que esta línea sólo devuelve algo si falló: denegación de permiso o error
+      // del UPDATE. Antes redirigía en los tres casos y el operador se iba
+      // creyendo que había borrado (SDD-0497).
+      const result = await deleteShipment(shipmentId);
+      if (result?.error) setError(result.error);
     });
   };
 

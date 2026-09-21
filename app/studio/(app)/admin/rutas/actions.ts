@@ -337,6 +337,19 @@ export async function softDeleteCityAction(
 
 // ─────────────────────────────────────────────────────────────
 // Seed catálogo VE público → ciudades del tenant
+//
+// Gate de EDICIÓN (SDD-0497): era la única de las ocho acciones de este archivo
+// sin `moduleEditDenial`, y MUTA. La RPC no compensa: la definición viva de
+// `seed_tenant_cities_from_ve_catalog` (0200:304-334, que redefine la de
+// 0024:601) es SECURITY DEFINER —o sea que la RLS de `dispatch_city_catalog` ni
+// se evalúa— y sólo exige membresía ACTIVA en el tenant, sin mirar el rol. El
+// sweep que la tocó fue la 0209, que le revocó EXECUTE a `public` y `anon` pero
+// se lo CONSERVÓ a `authenticated` (0209:112-113), que es precisamente el rol
+// que tiene cualquiera con sesión. El módulo `admin-rutas` lo reserva la matriz
+// a `operations` (+admin).
+//
+// Gravedad baja —catálogo público de ciudades, idempotente, sin PII— pero el
+// candado faltaba y la ausencia es del mismo tipo que las demás.
 // ─────────────────────────────────────────────────────────────
 
 export async function seedTenantCitiesFromVeCatalogAction(
@@ -346,6 +359,9 @@ export async function seedTenantCitiesFromVeCatalogAction(
   void prev;
   void formData;
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "admin-rutas");
+  if (denial) return { error: denial };
+
   const tenantId = await resolveTenantId();
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
