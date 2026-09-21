@@ -228,9 +228,27 @@ es `e2e` sobre este árbol exacto.** No se corrió, y eso queda dicho.
 
 Lo que sí se midió, que es más chico y más verificable:
 
-1. **Un solo e2e postea a una ruta que toqué**:
-   `e2e/attachments-gastos-pilot.spec.ts`. Ninguno postea a `shipments/events`,
-   push, telegram, cron, `debug/health` ni `contact`.
+1. **El conjunto COMPLETO de rutas `/api/` que aparecen en `e2e/` son seis**, y
+   todas son de adjuntos:
+
+   ```
+   "/api/studio/attachments"          `/api/studio/attachments/${id}/finalize`
+   "/api/studio/attachments/reserve"  `/api/studio/attachments/${id}/reauthorize`
+   `/api/studio/attachments/${id}/download`  `…/${id}/restore`
+   ```
+
+   De esas seis, este diff toca dos: `finalize` y `reauthorize`. **Ningún e2e
+   menciona** `shipments/events`, push, telegram, cron, `debug/health` ni
+   `contact`.
+
+   **El método importa acá.** La primera medición grepeó `post(\`/api/`,
+   `post("/api/` y `post('/api/` — o sea que asumía la FORMA de la llamada, y
+   por eso no vio `attachments-gastos-pilot-network.spec.ts` (lo encontró el
+   Director). La conclusión aguantó de casualidad: ese archivo postea a
+   `reserve`, que no está en este diff. Si hubiera posteado a `finalize`, la
+   afirmación «hay exactamente uno» habría llevado el contraejemplo adentro.
+   La lista de arriba sale de extraer **toda** cadena `/api/…` de `e2e/` con
+   comillas dobles, simples o backticks, sin suponer cómo se escribe la llamada.
 2. **Ese e2e no puede verse afectado por este cambio.** Afirma 404 «Piloto
    inactivo.» y en los dos archivos el gate del piloto corre ANTES que el mío:
    `finalize/route.ts` → `requireAttachmentsPilot()` `:21`, `moduleEditDenial`
