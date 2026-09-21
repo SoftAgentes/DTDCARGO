@@ -33,7 +33,12 @@ vi.mock("@/lib/studio/rbac-guard", () => ({
 }));
 
 /** Lo que devuelve la reversión del crédito (el escenario de cada test). */
-let revertResult: { ok: boolean; reverted: number; error?: string } = {
+let revertResult: {
+  ok: boolean;
+  reverted: number;
+  error?: string;
+  failure?: "revert" | "entries";
+} = {
   ok: true,
   reverted: 0,
 };
@@ -87,7 +92,7 @@ vi.mock("@/lib/db/server", () => ({
 const { voidInvoice } = await import("../actions");
 const {
   VOID_REFERRAL_REVERT_WARNING,
-  VOID_REFERRAL_REVERT_PARTIAL_WARNING,
+  VOID_REFERRAL_REVERT_ENTRY_WARNING,
 } = await import("@/lib/studio/fidelizacion/referral-revert-notice");
 
 const EMITIDA: Fila = {
@@ -116,6 +121,7 @@ describe("voidInvoice · la reversión del crédito falló", () => {
     revertResult = {
       ok: false,
       reverted: 0,
+      failure: "revert",
       error:
         "crédito abc: la factura cambió de saldo o de estado 3 veces seguidas",
     };
@@ -178,36 +184,51 @@ describe("voidInvoice · la reversión del crédito falló", () => {
   });
 });
 
-describe("voidInvoice · la reversión falló A MEDIAS", () => {
+describe("voidInvoice · la plata volvió pero el ASIENTO quedó sin anular", () => {
   /**
-   * `revertReferralCreditsForInvoice` recorre los créditos de la factura de a
-   * uno: suma a `reverted` los que salen bien y junta el resto en `failures`.
-   * Con dos créditos en la misma factura, uno liberado y otro no, devuelve
-   * `ok: false` con `reverted > 0`. **Esto es alcanzable hoy**, sin esperar a
-   * que la reversión se mude a SQL.
+   * SDD-0496. Antes este bloque probaba la reversión «a medias»: la función
+   * recorría los créditos de a uno, así que `ok: false` con `reverted > 0`
+   * quería decir «uno se liberó y otro no». La 0471 mató ese caso —los créditos
+   * de una factura se revierten en UNA transacción, todos o ninguno— y ese mismo
+   * par de valores pasó a significar lo CONTRARIO: la plata volvió entera y lo
+   * único que quedó colgado es el asiento contable.
+   *
+   * Por eso el aviso ya no se elige por `reverted` sino por `failure`. Con el
+   * criterio viejo, este caso pintaría «parte de los créditos siguen marcados
+   * como usados» justo cuando no queda ninguno varado.
    */
   beforeEach(() => {
     revertResult = {
       ok: false,
       reverted: 1,
-      error: "crédito b: la factura cambió de saldo o de estado 3 veces",
+      failure: "entries",
+      error: "asiento e1: permission denied for table journal_entries",
     };
   });
 
-  it("no dice que no se pudo liberar: eso sería falso para el que SÍ se liberó", async () => {
+  it("no dice que el crédito quedó sin liberar: eso sería falso, volvió entero", async () => {
     const res = await voidInvoice("inv-1", MOTIVO);
 
-    expect(res.warning).toBe(VOID_REFERRAL_REVERT_PARTIAL_WARNING);
+    expect(res.warning).toBe(VOID_REFERRAL_REVERT_ENTRY_WARNING);
     expect(res.warning).not.toBe(VOID_REFERRAL_REVERT_WARNING);
   });
 
-  it("el aviso parcial dice que se liberó una parte y que el resto quedó", async () => {
+  it("el aviso dice que el crédito volvió y que lo que falta es el asiento", async () => {
     const res = await voidInvoice("inv-1", MOTIVO);
     const aviso = String(res.warning);
 
-    expect(aviso).toMatch(/parte de los créditos de referido se liberó/i);
-    expect(aviso).toMatch(/no todos/i);
-    expect(aviso).toMatch(/se listan cuáles/i);
+    expect(aviso).toMatch(/volvió a estar disponible/i);
+    expect(aviso).toMatch(/asiento contable/i);
+    expect(aviso).toMatch(/contabilidad/i);
+    expect(aviso).not.toMatch(/sigue marcado como usado/i);
+  });
+
+  it("elegir por `reverted` en vez de por `failure` daría el aviso equivocado", async () => {
+    // El centinela del cambio: con reverted > 0, el criterio viejo mandaba al
+    // aviso de créditos varados. Si alguien vuelve a atarlo al conteo, esto cae.
+    expect(revertResult.reverted).toBeGreaterThan(0);
+    const res = await voidInvoice("inv-1", MOTIVO);
+    expect(res.warning).not.toMatch(/créditos de referido se liberó/i);
   });
 
   it("sigue siendo una anulación exitosa y revalida Fidelización", async () => {
@@ -248,7 +269,9 @@ describe("voidInvoice · la reversión salió bien", () => {
   it("la reversión se pide con el tenant y el id de ESTA factura", async () => {
     await voidInvoice("inv-1", MOTIVO);
 
-    expect(revertSpy).toHaveBeenCalledWith("t-1", "inv-1");
+    // SDD-0496: la firma suma el cliente del usuario adelante, porque la RPC
+    // revert_referral_credits es SECURITY INVOKER y mide el rol de quien llama.
+    expect(revertSpy).toHaveBeenCalledWith(expect.anything(), "t-1", "inv-1");
   });
 });
 

@@ -138,6 +138,53 @@ Sin evidencia, puede registrar estructura y conservar verificaciones semánticas
 Releer `inspect` o `knowledge:status`: éxito al guardar un recibo no implica cobertura completa.
 Los recibos permanecen en graphify-out, fuera de Git.
 
+### El sello AST no prueba que el grafo coincida con el documento
+
+Graphify 0.9.61 **nunca vuelve a recorrer estructuralmente un documento que ya
+tiene nodos semánticos** (`watch.py`, `_rebuild_code`, #1915: «A semantic-backed
+doc is never re-quick-scanned»). Su capa de encabezados se arrastra sin cambios en
+cada `graphify update`, `--force` incluido — esa bandera solo saltea el control de
+cantidad de nodos de `to_json`. En cambio `save_manifest` sella `ast_hash` sobre
+**todo** el corpus detectado menos las fuentes cuya extracción *falló*
+(`_ast_manifest_files`), y una omisión deliberada no es una falla: la fila conserva
+el md5 vigente del archivo mientras sus nodos describen otra versión.
+
+Por eso `astCurrent` demuestra que el hash del corpus quedó sellado, nunca que el
+grafo coincida con el documento. Las dos cosas solo se separan en un documento con
+capa semántica: en este repositorio, exactamente las 16 fuentes del piloto.
+
+**Medido el 2026-09-21 sobre main `d9adbabf`**, con `pending` vacío y el piloto
+16/16 CURRENT:
+
+| Documento | Desfase | Encabezados sin ningún nodo |
+|---|---|---|
+| `docs/engineering/project-rules.md` | 131 líneas | 2 |
+| `docs/runbooks/knowledge-graphify-obsidian.md` | 23 líneas | 0 |
+
+Sobrevivió a dos corridas de `graphify update .`, al recibo semántico aplicado con
+`scripts/knowledge-semantic-apply.py` y a `graphify cluster-only . --no-label`. La
+capa **semántica** de esos documentos sí estaba al día: lo viejo es la capa de
+encabezados. Aplicar un recibo nuevo no lo corrige, porque el recibo escribe nodos
+semánticos y las dos capas conviven por diseño (#2333). El efecto se reprodujo
+aislado: dos documentos idénticos, un solo nodo semántico inyectado en uno, la
+misma edición en los dos — al que lo tenía se le congelaron los encabezados y al
+otro no, y **los dos** quedaron sellados como vigentes.
+
+**Qué lo delata.** `scripts/knowledge-graph.py inspect` reextrae cada documento
+sellado con el extractor fijado y compara la etiqueta y la línea de cada encabezado
+contra el grafo. Una diferencia sale en `structural.drifted` y en el aviso
+`graph_ast_drift`, que nombra qué encabezado falta y en qué línea está de verdad;
+la estructura queda PENDING y `record` se niega. `drifted` va **aparte** de
+`pending` porque el remedio no es el mismo: a un documento pendiente lo arregla
+`graphify update`, y a uno desfasado no. El contrato, con la corrida real de
+Graphify y sus mutantes, está en `scripts/tests/knowledge-graph.node.mjs`.
+
+**El límite es del paquete `graphifyy`, no de este repositorio: no lo parchees.**
+El remedio comprobado es quitarle la capa semántica al documento en
+`graphify-out/graph.json`, correr `graphify update .` y volver a inyectarla. Toca
+el grafo de la raíz, así que lo hace el Director desde el checkout principal; desde
+un worktree mide sobre una copia y entrega el fragmento.
+
 ### Alcance semántico canónico del piloto
 
 La política `scripts/knowledge-policy.json` fija el alcance `canonical-16-2026-09-16`. Son exactamente:
