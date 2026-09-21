@@ -56,7 +56,7 @@ import {
 } from "@/lib/studio/fidelizacion/referral-credit-queries";
 import {
   postReferralCreditJournalEntry,
-  voidReferralCreditEntry,
+  revertReferralCreditsForInvoice,
 } from "@/lib/studio/accounting/referral-credit-posting";
 
 type Result = { ok?: boolean; error?: string };
@@ -72,6 +72,43 @@ const APPLICABLE_INVOICE_STATUSES = new Set<string>(
   CREDIT_APPLICABLE_INVOICE_STATUSES,
 );
 const APPLICABLE_INVOICE_CURRENCIES = new Set(["USD", "USDT"]);
+
+/**
+ * Los códigos de dominio de `apply_referral_credit` (migración 0471) en
+ * castellano. La función revalida todo bajo el lock de la factura, así que un
+ * rechazo suyo llega DESPUÉS de que las validaciones de la action pasaron: es
+ * una carrera real (entró un pago, se anuló la factura, otro aplicó el crédito)
+ * y el mensaje lo dice. Un código que no reconozcamos se muestra tal cual en vez
+ * de esconderse.
+ */
+function applyReferralCreditError(message: string, amount: number): string {
+  switch (message) {
+    case "REFERRAL_CREDIT_FORBIDDEN":
+      return "No tienes permiso para aplicar créditos: es una acción de contabilidad o administración.";
+    case "REFERRAL_CREDIT_INPUT":
+      return "Faltan datos para aplicar el crédito.";
+    case "REFERRAL_CREDIT_NOT_FOUND":
+      return "Crédito no encontrado.";
+    case "REFERRAL_CREDIT_INVOICE_NOT_FOUND":
+      return "Factura no encontrada.";
+    case "REFERRAL_CREDIT_STATE":
+      return "El crédito ya fue aplicado (o cambió de estado). Recarga la lista.";
+    case "REFERRAL_CREDIT_AMOUNT":
+      return "El crédito no tiene monto para aplicar.";
+    case "REFERRAL_CREDIT_OTHER_CLIENT":
+      return "La factura no es del cliente que refiere.";
+    case "REFERRAL_CREDIT_INVOICE_STATE":
+      return "La factura ya no admite crédito: cambió de estado mientras lo aplicabas (revisa si se anuló o se pagó).";
+    case "REFERRAL_CREDIT_CURRENCY":
+      return "En V1 el crédito solo se aplica a facturas en USD o USDT.";
+    case "REFERRAL_CREDIT_OLD_INVOICE":
+      return "El crédito solo se aplica a una compra NUEVA (posterior al crédito), no a facturas anteriores ni a deuda vieja.";
+    case "REFERRAL_CREDIT_EXCEEDS_BALANCE":
+      return `El saldo de la factura ya no alcanza para el crédito ($${amount.toFixed(2)}): entró un pago mientras lo aplicabas. Elige otra factura (V1 no parte el crédito).`;
+    default:
+      return `No se pudo aplicar el crédito: ${message}`;
+  }
+}
 
 const VALID_STATUS = new Set<string>(REFERRAL_STEPS);
 
@@ -431,51 +468,50 @@ export async function applyReferralCredit(
     };
   }
 
-  // 3) CLAIM ATÓMICO idempotente: transición 'acreditado' → 'aplicado'. El
-  //    filtro por status en el UPDATE + el row-lock de Postgres garantizan que
-  //    un segundo intento (doble-submit / carrera) no re-aplique: devuelve 0 filas.
-  const appliedAt = new Date().toISOString();
-  const { data: claimed, error: claimErr } = await supabase
-    .from("referrals")
-    .update({
-      status: "aplicado" satisfies ReferralStatus,
-      applied_invoice_id: invoiceId,
-      applied_at: appliedAt,
-    })
-    .eq("id", referralId)
-    .eq("status", "acreditado")
-    .select("id")
-    .maybeSingle<{ id: string }>();
-  if (claimErr) return { error: `No se pudo aplicar el crédito: ${claimErr.message}` };
-  if (!claimed) {
-    return { error: "El crédito ya fue aplicado (o cambió de estado)." };
-  }
+  // 3) APLICACIÓN ATÓMICA (SDD-0496): el claim del crédito ('acreditado' →
+  //    'aplicado' con su rastro) y el ABONO NO MONETARIO a la factura
+  //    (paid_amount + status, Fix C) los escribe `apply_referral_credit`
+  //    (migración 0471) en UNA transacción, con la factura tomada FOR UPDATE.
+  //    Antes eran dos peticiones con guard optimista: entre el claim y el UPDATE
+  //    final cabían una anulación o la muerte del proceso, y el crédito quedaba
+  //    'aplicado' sobre una factura sin el abono. Cuando después se revertía,
+  //    a la factura se le restaban $80 que nunca habían entrado (SDD-0490,
+  //    «Riesgo residual»). La función revalida TODO bajo el lock —estado del
+  //    crédito, cliente, estado y moneda de la factura, compra nueva y saldo—,
+  //    así que las validaciones de arriba son para el mensaje, no la autoridad.
+  const { data: applied, error: applyErr } = await supabase.rpc("apply_referral_credit", {
+    p_referral_id: referralId,
+    p_invoice_id: invoiceId,
+  });
+  if (applyErr) return { error: applyReferralCreditError(applyErr.message, amount) };
+  const result = applied as {
+    invoice_code?: string;
+    amount?: number;
+    applied_at?: string;
+  } | null;
 
-  // 4) Asiento contable según el modo configurado (best-effort). Si NO se pudo
-  //    crear (falta la cuenta del plan, monto cero, etc.) → revierte el claim:
-  //    mover plata sin asiento es peor que no moverla.
+  // 4) Asiento contable (best-effort, admin client), FUERA de la transacción de
+  //    dinero, como en la 0467. Si NO se pudo crear (falta la cuenta del plan,
+  //    monto cero, etc.) se COMPENSA con la reversión atómica: el crédito vuelve
+  //    a 'acreditado' y la factura recupera su saldo. Mover plata sin asiento es
+  //    peor que no moverla (SDD-0137), y ahora deshacerlo es una sola operación.
   const posting = await postReferralCreditJournalEntry({
     tenantId,
     referralId,
     referralCode: ref.referral_code,
     referrerMarkbox: ref.referrer_markbox,
     invoiceId,
-    invoiceCode: inv.invoice_code,
-    amountUsd: amount,
+    invoiceCode: result?.invoice_code ?? inv.invoice_code,
+    amountUsd: round2(Number(result?.amount) || amount),
   });
   if (!posting.ok) {
-    await supabase
-      .from("referrals")
-      .update({
-        status: "acreditado" satisfies ReferralStatus,
-        applied_invoice_id: null,
-        applied_entry_id: null,
-        applied_at: null,
-      })
-      .eq("id", referralId)
-      .eq("status", "aplicado");
+    const back = await revertReferralCreditsForInvoice(supabase, tenantId, invoiceId, referralId);
     return {
-      error: `No se pudo generar el asiento del crédito: ${posting.error ?? posting.skipped ?? "desconocido"}. No se aplicó nada.`,
+      error:
+        `No se pudo generar el asiento del crédito: ${posting.error ?? posting.skipped ?? "desconocido"}.` +
+        (back.reverted > 0
+          ? " Se revirtió todo; no se aplicó nada."
+          : ` Además, no se pudo deshacer la aplicación: ${back.error ?? "motivo desconocido"}. Revisa el crédito y el saldo de la factura.`),
     };
   }
 
@@ -487,62 +523,6 @@ export async function applyReferralCredit(
       .from("referrals")
       .update({ applied_entry_id: posting.entryId })
       .eq("id", referralId);
-  }
-
-  // 6) Fix C — consistencia GL↔subledger: el asiento bajó la CxC del referidor
-  //    en el GL (CR 1.1.2 $80); acá bajamos el SALDO de su factura registrando
-  //    el crédito como un ABONO NO-MONETARIO (sube paid_amount en el monto del
-  //    crédito). Así el beneficio se "entrega" por saldo y el mayor no diverge
-  //    del subledger. No hay payment_receipt (no entró caja): es un abono por
-  //    crédito, con la misma traza temporal (applied_at). Idempotente: el claim
-  //    de arriba garantiza un único paso 'acreditado'→'aplicado' por crédito.
-  //    GUARD OPTIMISTA (.eq paid_amount): `paidAmount` se leyó en el paso 2b y
-  //    entre esa lectura y este UPDATE puede haber entrado un pago real de la
-  //    factura. Escribir `viejo + 80` a ciegas PISA ese pago y lo borra del
-  //    subledger (lost update). Con el guard, si alguien lo movió el UPDATE
-  //    matchea 0 filas y lo tratamos como conflicto en vez de corromper.
-  //    (paid_amount es NOT NULL DEFAULT 0 → no hay caso NULL que rompa el .eq.)
-  //    GUARD DE ESTADO (SDD-0490, .eq status): si la factura se anuló entre la
-  //    lectura y este UPDATE, escribir 'parcial'/'pagada' la revive. Anular no
-  //    toca paid_amount, así que el guard del pagado solo no alcanza.
-  const newPaid = round2(paidAmount + amount);
-  const fullyPaid = newPaid >= (Number(inv.total_amount) || 0) - 1e-6;
-  const { data: paidRow, error: paidErr } = await supabase
-    .from("invoices")
-    .update({
-      paid_amount: newPaid,
-      status: fullyPaid ? "pagada" : "parcial",
-      last_payment_at: appliedAt,
-    })
-    .eq("id", invoiceId)
-    .eq("paid_amount", paidAmount)
-    .eq("status", inv.status)
-    .select("id")
-    .maybeSingle<{ id: string }>();
-
-  //    Este paso NO puede ser best-effort: el asiento ya bajó la CxC $80 en el
-  //    GL. Si el subledger no acompaña, el mayor y la factura divergen y nadie
-  //    se entera (antes devolvía ok:true igual). Ante fallo o conflicto,
-  //    compensamos TODO hacia atrás: anulamos el asiento y devolvemos el crédito
-  //    a 'acreditado' para que se pueda reintentar sobre el saldo real.
-  if (paidErr || !paidRow) {
-    await voidReferralCreditEntry(tenantId, posting.entryId ?? "");
-    await supabase
-      .from("referrals")
-      .update({
-        status: "acreditado" satisfies ReferralStatus,
-        applied_invoice_id: null,
-        applied_entry_id: null,
-        applied_at: null,
-      })
-      .eq("id", referralId)
-      .eq("status", "aplicado");
-
-    return {
-      error: paidErr
-        ? `No se pudo abonar el crédito en la factura: ${paidErr.message}. Se revirtió todo; no se aplicó nada.`
-        : "La factura cambió de saldo o de estado mientras se aplicaba el crédito (¿entró un pago o se anuló?). Se revirtió todo; vuelve a intentarlo.",
-    };
   }
 
   revalidate();
