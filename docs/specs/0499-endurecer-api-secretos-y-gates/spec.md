@@ -233,13 +233,13 @@ estimados en SDD-0380—; la escritura quedó atrás.
 
 ### D2 · `lib/portal/referral-invite.ts` — dedupe y tope por markbox sin tenant
 
-- Dedupe: `:80-87` — `.eq("referrer_markbox", markbox).eq("referred_email", email)`.
-- Tope diario: `:96-101` — `.eq("referrer_markbox", markbox)` + `gte(created_at)`.
+- Dedupe: `:81-87` — `.eq("referrer_markbox", markbox).eq("referred_email", email)`.
+- Tope diario: `:97-101` — `.eq("referrer_markbox", markbox)` + `gte(created_at)`.
 
 Con dos tenants es oráculo de existencia («¿ya invitaron a este correo?») y cupo
 diario compartido entre dos referidores distintos que comparten markbox.
 
-### D3 · `lib/marca/access.ts:100-110` — `resolveBrandTenantId()` devuelve el primero
+### D3 · `lib/marca/access.ts:100-109` — `resolveBrandTenantId()` devuelve el primero
 
 Devuelve siempre el tenant más antiguo por `created_at`, no el del que llama, y
 los tres endpoints de `marca` firman URLs del bucket privado sobre ese tenant.

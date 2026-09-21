@@ -2,10 +2,17 @@
 
 - **Owner**: Worker Claude (sesión `keen-swirles-62b904`)
 - **Worktree**: `.claude/worktrees/keen-swirles-62b904`
-- **Rama**: `claude/heuristic-benz-8851fb` (base `main` `d9adbabf`; `07831a5d` es ancestro)
+- **Rama**: `claude/heuristic-benz-8851fb` (base `main` `d9adbabf`; `07831a5d` es
+  ancestro). `main` traído por **merge** hasta `0807b69d`.
 - **SDD**: 0499 — `docs/specs/0499-endurecer-api-secretos-y-gates/spec.md`
 - **Fecha**: 2026-09-21
-- **Turno de máquina**: turno 5. `pnpm verify` completo **NO ejecutado** — falta el turno del Director.
+- **Turno de máquina**: turno 5. `pnpm verify` completo **ejecutado** sobre
+  `1290ba44` — veredicto paso por paso abajo, **exit 1**.
+
+> **Citas de línea:** las que describen el estado **anterior** al arreglo están
+> ancladas al SHA base `d9adbabf`; las que describen código vivo se revalidaron
+> contra el árbol fusionado. Ver «Revalidación de citas» abajo, incluidas tres
+> que estaban mal desde el principio.
 
 ## ESTADO DE CADA HUECO
 
@@ -22,8 +29,8 @@ porque el próximo lo lee como cerrado.
 | 5 | 21 comparaciones de secreto no constantes | **NO ERA UN HUECO** práctico — unificado igual | Sobre HTTP el jitter de red domina el canal de temporización. Lo que SÍ era sustancial —fail-closed— ya estaba bien en los 21 y se conserva. |
 | 6 | `/api/contact` «deprecado pero montado» | **NO ERA UN HUECO — y la premisa era falsa** | El endpoint **está vivo**: lo llama `AcademiaLeadForm.tsx:45`, montado en `academia/page.tsx:221`. No se apagó. Sólo se corrigió el docblock. |
 | D1 | `estimados/actions.ts:64-69` y `:97-100` — lee y muta `quotes` sin `tenant_id` | **ABIERTO Y CONFIRMADO** | Ver abajo. |
-| D2 | `referral-invite.ts:80-87` y `:96-101` — dedupe y tope por markbox sin tenant | **ABIERTO Y CONFIRMADO** | Ver abajo. |
-| D3 | `marca/access.ts:100-110` — `resolveBrandTenantId()` devuelve el primer tenant | **ABIERTO Y CONFIRMADO** | Ver abajo. |
+| D2 | `referral-invite.ts:81-87` y `:97-101` — dedupe y tope por markbox sin tenant | **ABIERTO Y CONFIRMADO** | Ver abajo. |
+| D3 | `marca/access.ts:100-109` — `resolveBrandTenantId()` devuelve el primer tenant | **ABIERTO Y CONFIRMADO** | Ver abajo. |
 
 ### Lo abierto, con todas las letras
 
@@ -103,14 +110,16 @@ rojo y fechada el 2026-08-19, con este mismo endpoint.
 
 ### Decisiones que pedían justificación
 
-- **El rebind del Studio se CONSERVA** (`studio/push/subscribe/route.ts:75`). El
+- **El rebind del Studio se CONSERVA** (`studio/push/subscribe/route.ts:75` en
+  `d9adbabf`; hoy `:89`). El
   puesto compartido entre turnos de almacén es real; quitarlo dejaría al segundo
   turno sin activar su push. Se le agrega la comprobación que faltaba: el que
   reclama el endpoint presenta el `keys.auth` de esa suscripción. El mismo
   navegador lo presenta siempre; quien sólo conoce el endpoint, no. Mismo
   criterio para el portal y para los dos de `m/`.
 - **Un sitio más del que pedía el encargo**: `app/api/m/push/subscribe/route.ts:46`
-  tenía el mismo `upsert(onConflict:"endpoint")` sin dueño. Está en mi área
+  en `d9adbabf` (hoy `:59`) tenía el mismo `upsert(onConflict:"endpoint")` sin
+  dueño. Está en mi área
   (`app/api/**`) y dejarlo habría hecho incoherente el arreglo: el rebind
   forjable seguía abierto en el hermano de al lado.
 - **El contrato anti-deriva NO se extiende.**
@@ -206,6 +215,55 @@ bb646c6e fix(studio): SDD-0499 — conocer un endpoint de push ya no apaga las n
 a8365ede docs(SDD-0499): spec de los secretos que viajan mal y los gates que faltan
 ```
 
+## REVALIDACIÓN DE CITAS CONTRA EL ÁRBOL FUSIONADO
+
+33 citas de línea comprobadas una por una contra el árbol de después del merge,
+no contra lo que decía el parte de nadie. **28 sobrevivieron; 5 no.** Las cinco,
+con su causa, porque no todas fallaron por lo mismo:
+
+### Tres estaban mal DESDE EL PRINCIPIO (no las movió el merge)
+
+| Cita como estaba | Medida real |
+|---|---|
+| `lib/portal/referral-invite.ts:80-87` | **`:81-87`** |
+| `lib/portal/referral-invite.ts:96-101` | **`:97-101`** |
+| `lib/marca/access.ts:100-110` | **`:100-109`** |
+
+`git diff --stat d9adbabf..origin/main -- lib/portal/referral-invite.ts
+lib/marca/access.ts` sale **vacío**: `main` nunca tocó esos archivos. O sea que
+no vencieron, **nacieron mal**.
+
+**Por qué.** Esos tres números vinieron del encargo y yo los «confirmé» leyendo
+el archivo con `sed -n '70,110p'` y sumando el offset a mano. Confirmé mi propia
+aritmética, no el archivo. Es exactamente el modo de fallo que el repo tiene
+anotado: los números se **copian** de la salida de `grep -n`, no se calculan. La
+medición buena salió de
+`grep -n 'from("referrals")\|gte("created_at", startOfDay)'`, que imprime `81`,
+`97` y `101` sin que yo sume nada.
+
+Esto importa más que un typo: D2 y D3 son **ABIERTO Y CONFIRMADO**, y ahí la
+cita *es* el entregable. Un hueco documentado en la línea equivocada le cuesta
+al próximo lo mismo que no documentarlo, con el agravante de que confía.
+
+### Dos las movió mi propio diff, y eran correctas contra la base
+
+| Cita | Contra `d9adbabf` | Hoy |
+|---|---|---|
+| `app/api/m/push/subscribe/route.ts` (el `upsert` sin dueño) | `:46` ✅ | `:59` |
+| `app/api/studio/push/subscribe/route.ts` (el `delete` del rebind) | `:75` ✅ | `:89` |
+
+No son errores: describen el estado **anterior** al arreglo, y contra el SHA de
+la auditoría eran exactas. Quedan ancladas a `d9adbabf` explícitamente, que es
+la forma que no se vence.
+
+### Las 28 que sobrevivieron
+
+Incluyen las tres que más importan del lado vivo — `lib/db/admin.ts:2`
+(`service_role` bypasea RLS), `lib/studio/rbac.ts:344` y `:62` (el `support`
+read-only que sí ve tracking), `supabase/migrations/0006_clients.sql:23`
+(`unique (tenant_id, markbox)`) — más las seis de D1, las del diagnóstico del
+harness y las de `/api/contact`.
+
 ## PR / BRANCH
 
 - Rama **publicada**: `claude/heuristic-benz-8851fb` → `origin`.
@@ -267,9 +325,9 @@ con ubicación verificada hoy:
   `quotes` con admin filtrando por `quote_code` y `client_markbox`, sin
   `tenant_id`. El markbox es `unique (tenant_id, markbox)`
   (`supabase/migrations/0006_clients.sql:23`), único por tenant y no global.
-- `lib/portal/referral-invite.ts:80-87` y `:96-101` — dedupe y tope diario por
+- `lib/portal/referral-invite.ts:81-87` y `:97-101` — dedupe y tope diario por
   markbox sin tenant.
-- `lib/marca/access.ts:100-110` — `resolveBrandTenantId()` devuelve siempre el
+- `lib/marca/access.ts:100-109` — `resolveBrandTenantId()` devuelve siempre el
   primer tenant por `created_at`.
 
 **Respuesta a la pregunta del Director sobre si la RLS corta igual: no corta.**
