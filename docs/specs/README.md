@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 486 specs)
+### Índice de specs (generado · 487 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -524,6 +524,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0497 | Gates de RBAC en ocho server actions del Studio que no los te… | done | interno |
 | 0498 | Cinco puertas del Studio que se saltaban el fail-closed por d… | in-progress | interno |
 | 0499 | Secretos que viajan mal y gates que faltan en app/api | in-progress | interno |
+| 0500 | El anti-drift de RBAC mide por acción, no por archivo | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
