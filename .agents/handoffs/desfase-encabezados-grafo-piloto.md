@@ -1,9 +1,10 @@
 # Handoff — El sello AST no prueba que el grafo coincida con el documento
 
-**Rama:** `claude/festive-ellis-03485b` · **Base:** `main` `6e3140b8` (traído el
-2026-09-21 tras medir sobre `d9adbabf`; comprobado que `project-rules.md` y
-`knowledge-graphify-obsidian.md` **no cambiaron** entre los dos, así que las líneas
-citadas y las cifras de desfase siguen vigentes)
+**Rama:** `claude/festive-ellis-03485b` · **Base:** `main` `03eb772a` (se midió sobre
+`d9adbabf` y main se movió dos veces: `6e3140b8` y `03eb772a`. Comprobado en cada
+vuelta que `project-rules.md` y `knowledge-graphify-obsidian.md` **no cambiaron**,
+y que los encabezados citados siguen en L189, L255, L320 y L324 — así que las
+cifras de desfase, 131 y 23 líneas, siguen midiendo lo mismo)
 **Worktree:** `.claude/worktrees/modest-chaplygin-c2cdee` (claim `festive-ellis-03485b`)
 **Fecha:** 2026-09-21 · **Encargo:** del Director — `knowledge:status` informaba
 `structural: CURRENT` con 0 pendientes mientras el grafo guardaba los encabezados
