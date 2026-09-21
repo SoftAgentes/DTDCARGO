@@ -56,11 +56,15 @@ function fixture(t) {
   git('commit', '-m', 'test fixture: canonical knowledge sources');
   git('remote', 'add', 'origin', 'https://github.com/example/knowledge-fixture');
   git('update-ref', 'refs/remotes/origin/main', 'HEAD'); // Local fixture ref; no fetch/push.
+  // The heading nodes carry the line the pinned extractor really reports (L4 once
+  // README's frontmatter is split off, L1 for the two that open with a heading):
+  // inspect re-extracts every stamped document and compares, so an invented
+  // position reads as drift.
   const graph = { directed: false, nodes: [
     { id: 'fixture_source_example', label: 'fixture example', source_file: 'source.py', _origin: 'ast', file_type: 'code' },
-    { id: 'fixture_readme_heading', label: 'Synthetic integration fixture', source_file: 'README.md', _origin: 'ast', file_type: 'document' },
-    { id: 'fixture_outside_heading', label: 'Outside pilot A', source_file: 'docs/architecture/outside.md', _origin: 'ast', file_type: 'document' },
-    { id: 'fixture_outside_b_heading', label: 'Outside pilot B', source_file: 'docs/architecture/outside-b.md', _origin: 'ast', file_type: 'document' },
+    { id: 'fixture_readme_heading', label: 'Synthetic integration fixture', source_file: 'README.md', source_location: 'L4', _origin: 'ast', file_type: 'document' },
+    { id: 'fixture_outside_heading', label: 'Outside pilot A', source_file: 'docs/architecture/outside.md', source_location: 'L1', _origin: 'ast', file_type: 'document' },
+    { id: 'fixture_outside_b_heading', label: 'Outside pilot B', source_file: 'docs/architecture/outside-b.md', source_location: 'L1', _origin: 'ast', file_type: 'document' },
     { id: 'fixture_readme_decision', label: 'One verified fixture decision', source_file: 'README.md', source_location: 'L7', _origin: 'semantic', file_type: 'document' },
     { id: 'fixture_outside_decision', label: 'Visible global pending source A', source_file: 'docs/architecture/outside.md', source_location: 'L3', _origin: 'semantic', file_type: 'document' },
     { id: 'fixture_outside_b_decision', label: 'Visible global pending source B', source_file: 'docs/architecture/outside-b.md', source_location: 'L3', _origin: 'semantic', file_type: 'document' },
