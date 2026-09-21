@@ -71,20 +71,29 @@ def install_git_read_scope(root):
     os.environ["GIT_CONFIG_COUNT"] = str(number + 1)
 
 
-def native_detect(root, temporary):
-    # Graphify's detector caches word counts and may create conversion sidecars.
-    # Redirect ALL library outputs into this disposable directory before import.
+def redirect_native_output(temporary):
+    # Graphify's detector and extractors cache word counts and may create
+    # conversion sidecars. Redirect ALL library outputs into this disposable
+    # directory before import. record inspects more than once in this process
+    # and the native package binds this setting at import time, so rebind the
+    # output constants of every already-imported module too, before any
+    # count/conversion helper runs.
     os.environ["GRAPHIFY_OUT"] = str(temporary / "graphify-out")
-    from graphify.detect import detect
-    from graphify import cache
-    # record inspects more than once in this process. The native package binds
-    # this setting at import time, so rebind its output constants to this scan's
-    # temporary directory before any count/conversion helper runs.
     for module_name, module in tuple(sys.modules.items()):
         if module_name == "graphify" or module_name.startswith("graphify."):
             for attribute in ("GRAPHIFY_OUT", "_GRAPHIFY_OUT"):
                 if hasattr(module, attribute):
                     setattr(module, attribute, os.environ["GRAPHIFY_OUT"])
+
+
+def native_detect(root, temporary):
+    # Before the import so the modules bind the temporary directory, and again
+    # after it so anything these two lines pulled in for the first time is
+    # rebound as well.
+    redirect_native_output(temporary)
+    from graphify.detect import detect
+    from graphify import cache
+    redirect_native_output(temporary)
     warnings = io.StringIO()
     try:
         with contextlib.redirect_stdout(warnings), contextlib.redirect_stderr(warnings):
@@ -173,6 +182,104 @@ def orphan_import_stub(name, ids, nodes, linked):
             and re.fullmatch(re.escape(salted) + r"(?:_[0-9a-f]{6})?", node["id"]) is not None)
 
 
+def markdown_extractor(path):
+    """Graphify's own markdown extractor for *path*, or None for anything else.
+
+    Identity against extract_markdown on purpose, not a suffix list: only that
+    function emits the node_kind ("page"/"heading") the drift comparison reads,
+    and .md/.mdx/.qmd/.skill all dispatch to it. A document Graphify AST-extracts
+    with some other reader is left alone rather than compared against a shape it
+    never produced.
+    """
+    from graphify.extract import _get_extractor
+    from graphify.extractors.markdown import extract_markdown
+    extractor = _get_extractor(path)
+    return extract_markdown if extractor is extract_markdown else None
+
+
+def heading_rows(nodes, name):
+    """(label, source_location) of each heading the graph holds for *name*.
+
+    Drops at most one page node: Graphify mints one per document at L1 and
+    rewrites its label at build time to separate equal basenames ("aud-02.md"
+    becomes "policies/aud-02.md"), so it states no heading position and cannot be
+    compared against a fresh extraction. Heading labels and lines are never
+    rewritten, which is why they are the comparison key and ids are not — those
+    are salted on collision (see orphan_import_stub).
+    """
+    base = name.rsplit("/", 1)[-1]
+    rows = []
+    page = False
+    for node in sorted(nodes, key=lambda row: str(row.get("id"))):
+        if not page and node.get("source_location") == "L1" and str(node.get("label", "")).endswith(base):
+            page = True
+            continue
+        rows.append((str(node.get("label")), node.get("source_location")))
+    return sorted(rows)
+
+
+# Graphify 0.9.61 never AST-quick-scans a document that already carries semantic
+# nodes — watch.py `_rebuild_code`, #1915: "A semantic-backed doc is never
+# re-quick-scanned, and any AST layer it already carries coexists and is
+# preserved rather than regenerated". Its heading layer is therefore carried
+# forward unchanged by every `graphify update`, `--force` included (that flag
+# only bypasses the node-count guard in to_json). Meanwhile save_manifest stamps
+# ast_hash over the WHOLE detected corpus minus this run's FAILED sources
+# (`_ast_manifest_files`), and a deliberate skip is not a failure: the row keeps
+# the document's current md5 while its nodes still describe an older file.
+#
+# So astCurrent proves the corpus hash was stamped, never that the graph matches
+# the document, and the two only diverge for a document with a semantic layer —
+# in this repository, exactly the 16 sources of the semantic pilot. Measured
+# 2026-09-21 against main d9adbabf: docs/engineering/project-rules.md and
+# docs/runbooks/knowledge-graphify-obsidian.md both stamped current with heading
+# nodes 131 and 23 lines behind the file. Re-extract and compare; do not trust
+# the stamp.
+def heading_drift(root, names, state, nodes, source_node_ids, issues):
+    drifted = {}
+    with tempfile.TemporaryDirectory(prefix="knowledge-headings-") as directory:
+        redirect_native_output(Path(directory))
+        from graphify import cache
+        try:
+            for name in names:
+                # Only documents the manifest already calls current. A document
+                # that is not stamped is reported as pending by its own rule and
+                # needs the ordinary remedy; drift is the case the stamp hides.
+                # CURRENT therefore still means every document was compared.
+                if state["files"][name]["type"] != "document" or not state["files"][name]["astCurrent"]:
+                    continue
+                path = root / name
+                extractor = markdown_extractor(path)
+                if extractor is None:
+                    continue
+                noise = io.StringIO()
+                try:
+                    # Extractor warnings go to stdout, which carries this
+                    # command's JSON. Capture them rather than corrupt it.
+                    with contextlib.redirect_stdout(noise), contextlib.redirect_stderr(noise):
+                        extracted = extractor(path)
+                except Exception as exc:  # a reader that dies proves nothing either way
+                    issues.append({"code": "document_extract_failed", "severity": "warning",
+                                   "source": name, "message": str(exc)})
+                    continue
+                if not isinstance(extracted, dict) or extracted.get("error"):
+                    issues.append({"code": "document_extract_failed", "severity": "warning", "source": name,
+                                   "message": str(extracted.get("error") if isinstance(extracted, dict) else extracted)})
+                    continue
+                current = sorted((str(node.get("label")), node.get("source_location"))
+                                 for node in extracted.get("nodes", []) if node.get("node_kind") == "heading")
+                stored = heading_rows([nodes[node_id] for node_id in source_node_ids.get(name, ())
+                                       if nodes[node_id].get("_origin") == "ast"], name)
+                if current != stored:
+                    missing = [{"label": label, "line": line} for label, line in current if (label, line) not in stored]
+                    stale = [{"label": label, "line": line} for label, line in stored if (label, line) not in current]
+                    drifted[name] = {"missing": missing, "stale": stale}
+        finally:
+            # No atexit cache flush after TemporaryDirectory cleanup (no resurrection).
+            cache._stat_index_dirty = False
+    return drifted
+
+
 def inspect(root, prompt):
     out = root / "graphify-out"
     issues = []
@@ -186,7 +293,7 @@ def inspect(root, prompt):
              "files": {}, "graphSourcePaths": [], "issues": issues}
     if version != VERSION:
         issues.append({"code": "graphify_version", "severity": "error", "expected": VERSION, "actual": version})
-        state["structural"] = {"status": "UNAVAILABLE", "pending": [], "missing": [], "deleted": [], "excluded": [], "skippedDataJson": []}
+        state["structural"] = {"status": "UNAVAILABLE", "pending": [], "drifted": [], "missing": [], "deleted": [], "excluded": [], "skippedDataJson": []}
         state["semantic"] = {"status": "UNAVAILABLE", "pending": [], "verified": [], "pendingReasons": {}}
         state["warnings"] = []
         return state, {}, {}
@@ -366,10 +473,17 @@ def inspect(root, prompt):
     if skipped_data_json:
         issues.append({"code": "data_json_ast_skipped", "severity": "warning",
                        "sources": sorted(skipped_data_json)})
+    # A stamped document can still hold another version's headings (see
+    # heading_drift). Its remedy is not the same as pending's — `graphify update`
+    # will not re-extract it — so it is reported apart instead of being folded in.
+    drift = heading_drift(root, structural_names, state, nodes, source_node_ids, issues)
+    drifted = sorted(drift)
+    if drifted:
+        issues.append({"code": "graph_ast_drift", "severity": "warning", "sources": drifted, "detail": drift})
     errors = any(issue["severity"] == "error" for issue in issues)
-    state["structural"] = {"status": "INVALID" if errors else "PENDING" if pending or absent else "CURRENT",
-                           "pending": pending, "missing": missing, "deleted": deleted, "excluded": excluded,
-                           "skippedDataJson": sorted(skipped_data_json)}
+    state["structural"] = {"status": "INVALID" if errors else "PENDING" if pending or absent or drifted else "CURRENT",
+                           "pending": pending, "drifted": drifted, "missing": missing, "deleted": deleted,
+                           "excluded": excluded, "skippedDataJson": sorted(skipped_data_json)}
     try:
         receipt = read_json(out / RECEIPT, {})
         if not isinstance(receipt, dict):
@@ -485,6 +599,12 @@ def main():
     parser.add_argument("--prompt-file")
     parser.add_argument("--semantic-evidence")
     args = parser.parse_args()
+    # This command answers in JSON with ensure_ascii=False, and every caller
+    # decodes it as UTF-8. On Windows a redirected stdout is cp1252, which has no
+    # "→": the heading labels drift reports made the whole answer an encode
+    # error. Say the encoding instead of inheriting the console's.
+    with contextlib.suppress(AttributeError, OSError, ValueError, LookupError):
+        sys.stdout.reconfigure(encoding="utf-8")
     root = Path(args.root).resolve()
     prompt = Path(args.prompt_file).resolve() if args.prompt_file else Path.home() / ".codex" / "skills" / "graphify" / "references" / "extraction-spec.md"
     install_git_read_scope(root)
