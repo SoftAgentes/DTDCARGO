@@ -330,6 +330,19 @@ no se tocan.
   reescrito un `do $$` posterior que no la nombra.
 - Las 24 entradas de `DEUDA` **no tienen prueba** ni verificación de su RLS de
   respaldo. Lo que dice cada entrada es lo observado en el código, nada más.
-- `pnpm verify` completo **no se corrió**: la máquina estaba tomada por otra
-  sesión. Corrido y verde: los focales del diff (510 casos), `tsc --noEmit` y
-  `eslint` sobre los archivos tocados.
+- `pnpm verify` completo **se corrió** con turno del Director: **exit 1, 16 de 17
+  pasos, un solo fallo — `build`**. Los 15 restantes pasaron (incluidos `test`,
+  `e2e`, `sql-tests` y `schema-rebuild`) y `migrations-applied` dio **SKIP** por
+  falta de `.env.local`, así que **nada se afirma sobre qué hay aplicado en
+  producción**.
+
+  El rojo de `build` son 18 errores de `next/font/google` y **no se reprodujo**:
+  el paso `scripts/check-build.mjs` del CI sobre este SHA, el deploy de Vercel
+  sobre este SHA y una corrida local del mismo script en frío salieron los tres
+  verdes, y los seis archivos que el error nombra son idénticos a `origin/main`.
+  Queda registrado como **fallo local no reproducido**, no como verde.
+
+  Se retiró en el camino una explicación propia —que Turbopack elegía la raíz
+  equivocada por los «multiple lockfiles» del worktree anidado—: ese aviso sale
+  también en las corridas verdes, así que encajaba con el síntoma sin ser la
+  causa. El detalle está en el handoff.

@@ -126,11 +126,52 @@ Verificadas leyendo el código. **Tres entradas no son puertas abiertas:**
    los gastos del mes con sólo sesión), `nomina` ×2 (dinero + PII), las cuatro de
    `usuarios` que parecen ser del propio usuario pero cuyo alcance **no
    verifiqué** — por eso están en `DEUDA` y no en `EXCEPCIONES`.
-3. **`pnpm verify` completo no se corrió**: la máquina estaba tomada. Pedir turno
-   al Director antes de integrar.
-4. **Traer `main`** antes de la PR (merge con el driver, nunca rebase). Si el
-   diff toca `docs/specs/README.md` —lo toca— se resuelve con
-   `dtd-generated-records` y **regenerando con `pnpm docs:index`**, jamás a mano.
+3. ~~`pnpm verify` completo no se corrió~~ → **CORRIDO** el 2026-09-21 con turno
+   del Director. Veredicto abajo.
+4. ~~Traer `main`~~ → **HECHO dos veces** (merge con el driver, nunca rebase), la
+   segunda sobre `0807b69d`. El índice lo resolvió el driver y `pnpm docs:index`
+   no tuvo nada que corregir; `docs:check` y `sdd:check` en 0.
+
+## VERDICTO DE `pnpm verify` (2026-09-21, sobre `4dda15f7`)
+
+**Exit real 1**, 16 de 17 pasos corrieron. Terminó 18:12:07Z.
+
+**El exit hay que leerlo del archivo donde se captura `$?`.** La notificación del
+harness informó «exit code 0» y era el del `date` con que cerré la cadena. Ver
+[[una-corrida-pesada-a-la-vez]] y el aviso del Director: hoy la última orden de
+una cadena se llevó el crédito del exit cuatro veces.
+
+| Paso | Resultado |
+|---|---|
+| harness · lint · rsc-boundary · typecheck · edge-functions · test · docs:check · numbering · feature-constants · components:check · governance:check · pending-migration-symbols · sql-tests · schema-rebuild · **e2e** | **PASÓ** (15) |
+| migrations-applied | **SKIP** — sin `.env.local`. No se afirma nada sobre producción. |
+| build | **FALLÓ** (exit 1) — 18 errores de Turbopack, todos `next/font/google` |
+
+Dos fallos que el Director anticipó **no aparecieron**: el flake de `harness`
+(`verify-watchdog.node.mjs:248`) y el «pasó con aviso» de `e2e` por el worker de
+WebKit. Con la máquina libre, los dos pasaron limpios — lo que refuerza que son
+de contención.
+
+### El rojo de `build`: local, no reproducido, no bloquea
+
+**Tres builds en frío del mismo árbol salieron verdes:** el paso
+`node scripts/check-build.mjs` del CI sobre este SHA, el deploy de Vercel sobre
+este SHA, y una corrida local del mismo script (exit 0, 22,0 s, 162 páginas).
+Los seis archivos que el error nombra —`lib/fonts.ts`,
+`app/portal/(app)/layout.tsx`, `next.config.ts`, `pnpm-workspace.yaml`,
+`pnpm-lock.yaml`, `package.json`— son **idénticos a `origin/main`**. Apunta a la
+red hacia Google Fonts en un build en frío desde Windows.
+
+**Una explicación que armé y hubo que retirar**, porque el error vale más que el
+acierto: el log avisa «multiple lockfiles» y Turbopack elige el checkout
+principal como raíz (este worktree vive dentro de `.claude/worktrees/`). Encajaba
+con el síntoma y estaba citada. **Es falsa:** ese mismo aviso aparece en las
+corridas de build que salieron VERDES. Una explicación que encaja con el síntoma
+no es una causa hasta que se la enfrenta a un caso donde el síntoma no está.
+
+Y el primer reintento local **no fue un control limpio**: reusó el `.next`
+caliente, mientras que `verify` construye en frío en `.next-verify`. El control
+que valía fue correr `scripts/check-build.mjs` solo.
 
 ## FUERA DE ALCANCE DETECTADO
 
