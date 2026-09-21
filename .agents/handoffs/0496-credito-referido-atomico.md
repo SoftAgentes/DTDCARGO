@@ -1,13 +1,14 @@
 # Handoff 0496 · El crédito de referido se aplica y se revierte en una transacción
 
-- Fecha: 2026-09-20 (Caracas; 2026-09-21 UTC). Estado de la tarea: **implementada y
-  probada; falta traer la tarea 3 desde `main`, el `verify` con turno del Director y
-  abrir la PR**.
+- Fecha: 2026-09-20 (Caracas; 2026-09-21 UTC). Estado de la tarea: **implementada, probada,
+  con `verify` cerrado y `main` traído. Falta abrir la PR.**
 - Owner/sesión: `worker-credito-referido-atomico-20260920` (Claude Opus 5, Worker).
   Director: sesión «Director notificación a workers».
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/credito-referido-atomico`,
   creado con `node scripts/harness-worktree.mjs start credito-referido-atomico`.
-- Rama: `codex/credito-referido-atomico`, desde `origin/main` = `07831a5d`.
+- Rama: `codex/credito-referido-atomico`, desde `origin/main` = `07831a5d`. Después se trajo
+  `main` `d9adbabf` **con merge, no rebase** (commit `fe6d2b74`), con el driver de main para
+  `docs/specs/README.md` y regenerando el índice con el script.
 - SDD: [0496](../../docs/specs/0496-credito-referido-atomico/spec.md), reservada en
   local con `next-number.mjs --reserve` (rama `codex/sdd-reserve-0496-credito-referido-atomico`,
   commit `1a940272`, **sin push**).
@@ -101,6 +102,39 @@ contra el código vivo.
 - Se retiran `REVERT_PAID_MAX_ATTEMPTS`, `invoiceStatusAfterPaidDecrease` y
   `lowerInvoicePaidForRevert`: la regla de estado y la serialización viven en la 0471.
 
+### El cruce con la SDD-0495 (el aviso de reversión fallida)
+
+Tres archivos tocados por las dos ramas. **Git resolvió dos y el tercero no lo podía ver.**
+
+1. **`scripts/__tests__/invoice-read-boundary.test.mjs`** — único conflicto, y del tipo
+   fácil. Main iba de 44 a 45 llamadas (la 0495 sumó `strandedReferralCredits`) y esta rama
+   de 44 a 41. Comprobado que **no se solapan**: la lectura que sumó la 0495 está en
+   `lib/studio/fidelizacion/referral-credit-queries.ts` y las tres que quité son de
+   `fidelizacion/actions.ts` y `accounting/referral-credit-posting.ts` —otro archivo, con
+   nombre parecido—. Resultado **18 archivos / 42 llamadas, RECALCULADO** corriendo el
+   contrato sobre el árbol fusionado, no deducido de la aritmética.
+2. **`docs/specs/README.md`** — lo resolvió el driver de main y se regeneró con el script.
+   485 specs, `docs:check` sincronizado.
+3. **`app/studio/(app)/facturacion/actions.ts` — el que importaba, y git lo fusionó limpio
+   dejándolo MINTIENDO.** La 0495 elegía entre dos textos de aviso con `revert.reverted`,
+   porque la reversión recorría los créditos de a uno y `ok:false` con `reverted > 0`
+   significaba «uno se liberó y otro no». La 0471 mató ese caso —una transacción, todos o
+   ninguno— y ese mismo par de valores pasó a significar **lo contrario**: la plata volvió
+   entera y lo único colgado es el asiento. Con el criterio viejo, el banner habría dicho
+   «parte de los créditos siguen marcados como usados» **justo cuando no queda ninguno
+   varado**.
+
+   **El aviso no se deshizo: sobrevive y gana su caso.** Ahora se elige por `failure`. Se
+   retiró el texto parcial —ya inalcanzable— y entró `VOID_REFERRAL_REVERT_ENTRY_WARNING`,
+   que dice que el crédito volvió y que lo que falta es anular el asiento, y que manda a
+   **contabilidad, no a Fidelización**: ahí no hay crédito varado, así que esa pantalla
+   —con razón— no lo lista, y mandar para allá sería mandar a mirar una pantalla vacía.
+
+   Las pruebas de la 0495 se **adaptaron, no se borraron**: el bloque «falló a medias» pasó
+   a ser «la plata volvió pero el asiento quedó sin anular», con un centinela que cae si
+   alguien vuelve a atar el aviso al conteo. 253 pruebas verdes en los cuatro directorios
+   afectados.
+
 ### Migrate-first
 
 - `supabase/migrations-baseline.json › pendingBelowCutoff["0471_credito_referido_atomico"]`
@@ -183,21 +217,8 @@ producción.
 
 ## PENDIENTE DE ESTA TAREA
 
-1. **Traer la tarea 3 («Avisar en el Studio cuando falla la reversión del crédito») desde
-   `main` y adaptar yo la llamada.** Lo fijó el Director: yo adapto, no ella. Al cierre de
-   este handoff su PR **no está abierta** y `origin/main` sigue en `07831a5d`.
-   **Con MERGE, no rebase** — es la convención del repo, y el Director la repitió el
-   2026-09-20. Si el merge toca `docs/specs/README.md`, va **con el driver y regenerando
-   con `node scripts/build-docs-index.mjs`, nunca a mano** (ver la memoria del índice de
-   specs). Lo que tiene que saber quien lo retome:
-   - el punto de anclaje sigue siendo `if (!revert.ok)` en `voidInvoice`
-     (`app/studio/(app)/facturacion/actions.ts:713`), con la misma forma de resultado;
-   - la firma cambia a `(supabase, tenantId, invoiceId, referralId?)`: el conflicto es de
-     una línea;
-   - el aviso debería distinguir los dos fallos (ver arriba). Decir «no se revirtió» cuando
-     `reverted > 0` sería falso: la plata ya volvió y lo que falta es anular el asiento;
-   - `REVERT_REFERRAL_CREDITS_ERROR` está exportada para que el aviso ancle sin copiar
-     texto.
+1. ~~Traer la tarea 3 y adaptar la llamada~~ **HECHO** (merge `fe6d2b74` + commit
+   `f1ea2790`). Ver «El cruce con la SDD-0495» más abajo.
 2. ~~`corepack pnpm verify`~~ **HECHO** — ver el registro por paso más arriba. Cerró con
    `VERIFY_EXIT=0` y el aviso de CIERRE INCOMPLETO por `migrations-applied`.
 3. **Abrir la PR** contra `main` (autorizado por el encargo) y reportarle al Director.
