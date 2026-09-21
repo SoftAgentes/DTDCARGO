@@ -131,9 +131,38 @@ rojo y fechada el 2026-08-19, con este mismo endpoint.
 | `pnpm sdd:check` | **PASÓ** — sin números repetidos |
 | Vitest focal (28 archivos, 502 pruebas) | **PASÓ** (exit 0) |
 | Mutantes (16 sobre líneas del diff propio) | **Los 16 mueren**, cada uno en su prueba, resto en verde |
-| `pnpm verify` completo | **NO EJECUTADO** — falta el turno de máquina |
 | Migraciones | **NO APLICA** — esta tarea no toca SQL |
 | Producción | **NO APLICA** — no se leyó ni escribió |
+
+### `pnpm verify` completo — corrido sobre `1290ba4437fc0d188f85e8b6c163fac81acedcad`
+
+**Exit 1.** 17 pasos declarados, **16 corrieron de verdad**.
+
+| Paso | Veredicto |
+|---|---|
+| `harness` | **FALLÓ** (exit 1) — 196 de 197; ver el diagnóstico abajo |
+| `lint` | PASÓ |
+| `rsc-boundary` | PASÓ |
+| `typecheck` | PASÓ |
+| `edge-functions` | PASÓ — 4 funciones compilan |
+| `test` | PASÓ |
+| `docs:check` | PASÓ |
+| `numbering` | PASÓ — sin números repetidos |
+| `feature-constants` | PASÓ — 5 banderas coinciden |
+| `components:check` | PASÓ |
+| `governance:check` | PASÓ |
+| `pending-migration-symbols` | PASÓ — 0 ROJO · 0 AMARILLO |
+| `sql-tests` | PASÓ — **NO APLICA** a este diff (no toca migraciones) |
+| `schema-rebuild` | PASÓ — **NO APLICA** a este diff |
+| `e2e` | PASÓ **con aviso** — 168 pruebas pasaron y ninguna falló, pero el proceso salió ≠0; el propio verify lo atribuye al worker de WebKit que no cierra en Windows |
+| `build` | PASÓ |
+| `migrations-applied` | **SKIP · NO MEDIDO** — sin `NEXT_PUBLIC_SUPABASE_URL` ni `SUPABASE_SERVICE_ROLE_KEY` (worktree sin `.env.local`). El verify lo marca como «CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR». **No es verde**, y desde acá no se afirma nada sobre qué migraciones están aplicadas en producción. |
+
+**Una trampa en la que caí y conviene que quede escrita.** Lancé el verify como
+`pnpm verify > log; echo "VERIFY_EXIT=$?" | tee -a log`, y la notificación de la
+tarea informó **exit 0** — que era el del `tee`, no el del verify. El verify
+salió **1**. Si me quedo con el código que me devolvió la herramienta, reporto un
+verde que no existe. El veredicto sale de leer el log, no del exit de la tubería.
 
 Focal corrido: `lib/http`, `app/api/telegram`, `app/api/m/push`,
 `app/api/portal/push`, `app/api/studio/push`, `app/api/studio/attachments`,
@@ -257,7 +286,56 @@ con el nombre y el markbox del llamador: fuga de PII por el canal de avisos, no
 sólo escritura cruzada. Eso sube la gravedad del día que se abra el segundo
 tenant y conviene que quede dicho.
 
-### C · Las líneas del parte del Director se corrieron
+### C · El fallo de `harness`: una carrera latente en la prueba, no en mi diff
+
+`scripts/tests/verify-watchdog.node.mjs:248` — «un árbol que calla se corta
+entero por inactividad, y sólo ese árbol». Falla en `:283` con
+`AssertionError [ERR_ASSERTION]: nivel 2 (PID 38332) sigue vivo`, `true !== false`.
+
+**Es una aserción que falla, no un fork que no arranca por RAM.** La distinción
+está hecha antes de diagnosticar, que es el orden que pide el runbook.
+
+**No es de esta rama, con evidencia y no por descarte:**
+
+1. Mi diff toca 48 archivos y **cero** bajo `scripts/`:
+   `git diff --stat d9adbabf..HEAD -- scripts/` sale vacío. Por carpeta raíz:
+   39 `app`, 5 `lib`, 3 `docs`, 1 `.agents`.
+2. Aislada **pasa 3 de 3**: `node --test --test-reporter=tap` sobre ese archivo
+   da `# pass 14 · # fail 0` y exit 0 las tres veces. (El reporter TAP es
+   deliberado: con el `spec` por defecto el corredor informa mal.)
+3. **La causa está en el harness y es específica.**
+   `scripts/verify-watchdog.mjs:130` ya distingue los procesos «aún en cierre
+   del sistema, ya no corren» — o sea que la implementación **sabe** que en
+   Windows un proceso terminado sigue abierto un rato. Pero `isProcessAlive`
+   (`scripts/verify-watchdog.mjs:219-231`) devuelve `true` para ésos:
+   `process.kill(pid, 0)` no tira mientras el handle vive, y el chequeo de
+   zombie que lo salvaría lee `/proc/<pid>/stat`, que es **sólo Linux** — en
+   Windows ese `readFileSync` tira siempre y cae al `return true`.
+   La aserción por PID de `:283` no da la gracia que la aserción de `:290` del
+   **mismo test** sí da en su regex
+   (`sobrevivientes: 0(; \d+ aún en cierre del sistema, ya no corren)?`).
+
+O sea: bajo la carga de la corrida completa el cierre tarda más, la ventana se
+ensancha y el nivel más profundo todavía lee como vivo. Por eso falla en el
+verify entero y pasa aislada.
+
+**No lo arreglo**: es `scripts/`, harness, fuera de mi alcance y probablemente
+de otro dueño. Queda acá con la evidencia para que el Director decida si va a
+una tarea aparte.
+
+### D · La condición que activaría el contrato extendido sobre mis rutas
+
+Hoy `app/api/**` **no entra** en el alcance del contrato de candados de
+SDD-0500: su escáner arranca en `app/studio/(app)` y recorre sólo desde ahí
+(medido por el Director). Así que mis tres rutas nuevas no las mide nadie.
+
+Eso no es una propiedad permanente, es una condición: **el día que alguien
+escriba la spec del inventario del punto A** —extender el contrato a
+`app/api/studio`— mis tres rutas pasan a estar medidas por un contrato que esta
+tarea nunca corrió. Queda anotado como la condición que lo activa, no como
+riesgo vivo.
+
+### E · Las líneas del parte del Director se corrieron
 
 `app/portal/(app)/estimados/actions.ts:63,96` (lo que me pasó) está a una línea:
 medido hoy son `:64-69` y `:97-100`. El defecto sigue ahí; la cita es la que
