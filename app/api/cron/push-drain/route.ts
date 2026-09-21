@@ -20,6 +20,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { drainOperarioPushOutbox } from "@/lib/studio/notify/operario-push-outbox";
+import { matchesBearerSecret } from "@/lib/http/secret-compare";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -28,7 +29,7 @@ function authorize(req: NextRequest): { ok: boolean; reason?: string } {
   const secret = process.env.CRON_SECRET;
   if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
   const auth = req.headers.get("authorization");
-  if (auth === `Bearer ${secret}`) return { ok: true };
+  if (matchesBearerSecret(auth, secret)) return { ok: true };
   return { ok: false, reason: "Forbidden" };
 }
 

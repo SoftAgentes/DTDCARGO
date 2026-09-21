@@ -26,6 +26,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { matchesBearerSecret } from "@/lib/http/secret-compare";
 import { getEnvStatus } from "@/lib/studio/env-status";
 import { checkAllIntegrations } from "@/lib/studio/integration-health";
 
@@ -33,13 +34,15 @@ import { checkAllIntegrations } from "@/lib/studio/integration-health";
 export const dynamic = "force-dynamic";
 
 function isAuthorized(request: Request): boolean {
-  const expected = process.env.DEBUG_HEALTH_SECRET;
-  if (!expected) return false; // fail-closed: sin secreto configurado, nadie pasa
   // Solo `Authorization: Bearer <secreto>`. Se eliminó el fallback `?key=` porque
   // el secreto en la URL queda en logs de servidor/proxy, historial y Referer.
-  const auth = request.headers.get("authorization");
-  const bearer = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
-  return bearer != null && bearer === expected;
+  //
+  // Fail-closed sin secreto configurado: `matchesBearerSecret` devuelve false
+  // ante un `expected` vacío, así que nadie pasa (SDD-0499).
+  return matchesBearerSecret(
+    request.headers.get("authorization"),
+    process.env.DEBUG_HEALTH_SECRET,
+  );
 }
 
 export async function GET(request: Request) {
