@@ -215,6 +215,40 @@ bb646c6e fix(studio): SDD-0499 — conocer un endpoint de push ya no apaga las n
 a8365ede docs(SDD-0499): spec de los secretos que viajan mal y los gates que faltan
 ```
 
+## EL HUECO DE `e2e` SOBRE EL ÁRBOL FUSIONADO, MEDIDO
+
+El `verify` corrió sobre `1290ba44`; el árbol fusionado es `5303e905` y el delta
+trae **17 archivos de código**. O sea que **ese veredicto no aplica al árbol
+nuevo** y no se arrastra como verde.
+
+De los cuatro pasos que el CI no corre, `sql-tests`, `schema-rebuild` y
+`migrations-applied` no mueven la aguja acá (los dos primeros ya midieron la
+0471 en el verify de #184; el tercero da SKIP en todo worktree). **El hueco real
+es `e2e` sobre este árbol exacto.** No se corrió, y eso queda dicho.
+
+Lo que sí se midió, que es más chico y más verificable:
+
+1. **Un solo e2e postea a una ruta que toqué**:
+   `e2e/attachments-gastos-pilot.spec.ts`. Ninguno postea a `shipments/events`,
+   push, telegram, cron, `debug/health` ni `contact`.
+2. **Ese e2e no puede verse afectado por este cambio.** Afirma 404 «Piloto
+   inactivo.» y en los dos archivos el gate del piloto corre ANTES que el mío:
+   `finalize/route.ts` → `requireAttachmentsPilot()` `:21`, `moduleEditDenial`
+   `:26`; `reauthorize/route.ts` → `:16` y `:21`. Con el piloto apagado el 404
+   corta primero y el gate nuevo no llega a evaluarse: la aserción es idéntica
+   con y sin este diff.
+3. **`comments-lifecycle.spec.ts` navega a `/studio/tracking/<id>`** pero no
+   toca estados ni el endpoint de eventos — ejercita comentarios sobre
+   `entity_type: "shipment"`.
+4. **Este diff y lo que trajo `main` son disjuntos en código**: `comm -12` entre
+   los dos conjuntos de archivos devuelve **un solo** elemento,
+   `docs/specs/README.md` (el índice, resuelto por el driver y comprobado en
+   486). Ni un archivo de código compartido.
+
+**Lo que esto NO dice:** que `e2e` esté cubierto sobre `5303e905`. Dice que
+ningún e2e ejercita un camino que este diff pueda alterar. Son dos afirmaciones
+distintas y sólo la segunda está medida.
+
 ## REVALIDACIÓN DE CITAS CONTRA EL ÁRBOL FUSIONADO
 
 33 citas de línea comprobadas una por una contra el árbol de después del merge,
