@@ -49,7 +49,19 @@ Conocimiento publicado desde `main`: piloto semántico **16/16**, Archify 2.16.0
 documentos, `knowledge:check` exit 0. **Ese estado quedó viejo** con lo que entró después: hay que
 volver a publicar (ver §6).
 
+**GitHub Actions estuvo bloqueado por facturación entre las 18:39Z y las ~21:47Z**, lo que frenó el
+cierre casi tres horas. La firma, por si vuelve: el job muere en **3-4 segundos con CERO pasos
+ejecutados** y la causa está en las **anotaciones** del check, no en el log. Dos lecciones medidas
+ese rato: **`status: queued` NO prueba que el bloqueo se haya levantado** —es el estado momentáneo
+antes de que el control de facturación mate el job— y **el `statusCheckRollup` de la PR arrastra la
+conclusión del intento anterior** mientras el nuevo arranca, así que un vigilante que lo lea reporta
+el rojo viejo como si fuera del intento nuevo. Lo que sí distingue: **contar los pasos del job**.
+Un job que corre de verdad registra pasos aunque falle; uno bloqueado registra cero. Y pagar la
+deuda no restablece por sí solo el *spending limit* de Actions: son dos ajustes distintos.
+
 ## 3. Qué queda abierto
+
+Sólo una PR, y no depende de código.
 
 **#114 · SDD-0390/0397 reportes de pago** (draft, de septiembre). **Depende de Sam, no de código:**
 necesita el smoke del bloque 3 de `.agents/handoffs/smokes-app-l14-0454-0472-guion.md`. Ese smoke
