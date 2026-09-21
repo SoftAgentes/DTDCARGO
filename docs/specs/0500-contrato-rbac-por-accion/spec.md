@@ -58,6 +58,16 @@ llamarse `actions.ts`. Adentro, **dos mutaciones sin ningún gate**:
 | `uploadShipmentDocumentAction:29` | resolvía el tenant releyendo `user_tenants` **sin `user_id` y sin `disabled_at`** — la variante exacta que SDD-0498 vino a borrar del repo |
 | `deleteShipmentDocumentAction:95` | **no resolvía ni la sesión**; marcaba `deleted_at` y después `storage.remove()` del objeto |
 
+**Precisión sobre la relectura de `user_tenants`**, para no inflarla: esa consulta
+**no** prestaba el tenant de otro usuario ni dejaba actuar a un suspendido. La
+policy de `user_tenants` para `authenticated` en producción repite los dos
+filtros —`using ((user_id = (SELECT auth.uid())) AND (disabled_at IS NULL))`,
+catálogo **leído por el Director el 2026-09-21**, no por esta tarea— así que un
+suspendido recibía cero filas y el `maybeSingle()` sólo podía devolver su propia
+membresía. Era **redundancia perdida**. Se saca igual porque era la segunda forma
+de resolver el rol, que es la que se olvida de actualizar; pero lo que de verdad
+faltaba en esta acción era el **gate de módulo**, que no existía en ninguna forma.
+
 **Precisión sobre el borrado**, porque el inventario de origen la tenía al
 revés: la fila **sí** tiene borrado lógico (`deleted_at`). Lo irreversible es el
 `remove()` del bucket en `:115` — el archivo se va y no vuelve. Es el único
@@ -264,6 +274,12 @@ dos listas; el analizador con sus pruebas; el doble de PostgREST con `storage`.
 sesión «Endpoints HTTP»): `app/api/studio/searates/probe/route.ts:41`,
 `app/api/studio/legal/evidence/[code]/route.ts:56` y
 `lib/http/studio-session.ts:50` (lo usan 4 route handlers). **No se tocaron.**
+
+Sobre el último, el Director midió y dictaminó el 2026-09-21:
+`requireStudioSession()` lee `user_tenants` sin `user_id` y sin `disabled_at`,
+pero **la policy viva en producción corta las dos cosas**, así que es redundancia
+perdida y no un hueco. Su dueño natural es la spec que extienda este contrato a
+`app/api/**`, no esta tarea ni la de endpoints de hoy.
 
 **Detectado y NO arreglado:** `lib/studio/renditions/actions-helpers.ts:58`
 (`resolveAdminTenant`, dinero + módulo `SUPERADMIN_ONLY`) quedó sin revisar por

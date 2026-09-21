@@ -41,9 +41,13 @@ export async function uploadShipmentDocumentAction(
 ): Promise<DocActionState> {
   const supabase = await createClient();
   // El gate resuelve sesión, rol y tenant de la MISMA fila (SDD-0498). Antes
-  // acá había una relectura de `user_tenants` sin `user_id` ni `disabled_at`:
-  // le prestaba el tenant del primer miembro que hubiera y dejaba subir a un
-  // usuario suspendido.
+  // acá había una relectura de `user_tenants` sin `user_id` ni `disabled_at`.
+  // Esa consulta NO prestaba el tenant de otro ni dejaba pasar a un suspendido:
+  // la policy de `user_tenants` en producción repite los dos filtros
+  // (`user_id = auth.uid() and disabled_at is null`, catálogo leído por el
+  // Director el 2026-09-21). Era redundancia perdida, no agujero. Se saca igual
+  // porque era la segunda forma de resolver el rol, y esa es la que se olvida
+  // de actualizar; lo que faltaba de verdad acá era el gate de MÓDULO.
   const gate = await moduleEditGate(supabase, "tracking");
   if (!gate.ok) return { error: gate.denied };
 

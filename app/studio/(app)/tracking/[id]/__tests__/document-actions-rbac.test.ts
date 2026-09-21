@@ -165,9 +165,13 @@ describe("uploadShipmentDocumentAction · gate antes de subir (SDD-0500)", () =>
   });
 
   it("el tenant sale del gate, no de una relectura de user_tenants sin filtro", async () => {
-    // La membresía de OTRO usuario no debe habilitar ni prestar su tenant: la
-    // consulta a mano no filtraba por `user_id`, así que el `maybeSingle()`
-    // entregaba la primera fila que hubiera.
+    // La membresía de OTRO usuario no debe habilitar ni prestar su tenant.
+    //
+    // OJO con leer este caso como «el bug que había»: en producción la policy
+    // de `user_tenants` filtra `user_id = auth.uid() and disabled_at is null`,
+    // así que la consulta a mano NUNCA vio la fila de otro. Lo que fija esta
+    // prueba es que la APLICACIÓN no dependa de esa policy para acertar el
+    // tenant — el doble no implementa RLS justamente para poder afirmarlo.
     db = supabaseDouble({
       userId: USER,
       memberships: [

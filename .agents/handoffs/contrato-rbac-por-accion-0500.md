@@ -15,6 +15,16 @@ Las dos mutaciones no tenían gate ninguno y el archivo no lo miraba nadie (no s
 llama `actions.ts`). Pasan a `moduleEditGate(supabase, "tracking")`; el borrado
 además acota por `tenant_id` del gate.
 
+**Corrección a MI propia prosa (2026-09-21, tras el dato del Director):** escribí
+que la relectura de `user_tenants` de la subida «prestaba el tenant del primer
+miembro que hubiera y dejaba subir a un suspendido». **No era así.** La policy
+viva en producción es `using ((user_id = (SELECT auth.uid())) AND (disabled_at IS
+NULL))` —catálogo leído por el **Director**, no por esta tarea—, así que la
+consulta sólo podía devolver la propia membresía activa. Era **redundancia
+perdida**. Lo que de verdad faltaba en esa acción era el **gate de módulo**. Es
+la misma distinción que le hice yo al parte del borrado, aplicada a mí: corregido
+en el comentario del código, en la prueba y en la spec.
+
 **Corrección al parte de origen, verificada:** el borrado **sí** hace soft-delete
 de la fila; lo irreversible es el `storage.remove()` del objeto. Y **no** era un
 agujero abierto: la migr `0439_shipment_document_entity_rbac.sql` ya protege la
@@ -131,9 +141,12 @@ allá, sin revisar por mí:
 
 - `app/api/studio/searates/probe/route.ts:41`
 - `app/api/studio/legal/evidence/[code]/route.ts:56`
-- `lib/http/studio-session.ts:50` — **¿de quién es?** No está en `app/api/**`
-  pero lo usan 4 route handlers y nada de `app/studio/**`. Lo dejé quieto; que lo
-  asigne el Director.
+- `lib/http/studio-session.ts:50` — **resuelto por el Director el 2026-09-21**:
+  `requireStudioSession()` lee `user_tenants` sin `user_id` ni `disabled_at`,
+  pero la policy viva en producción corta las dos cosas (la leyó él). Es
+  **redundancia perdida, no agujero**, y no es de ninguna de las dos tareas de
+  hoy: su dueño es la spec que extienda este contrato a `app/api/**`. Uno de sus
+  cuatro consumidores es `shipments/route.ts`.
 
 ### Decisión de producto, no de gate
 
@@ -141,7 +154,8 @@ SDD-0497 gateó el mapa de etapas de Kommo con `moduleEditDenial("kommo")`, que
 admite `commercial` además de `admin`. El encargo lo describe como **admin-only**
 y sugiere `tenantAdminGate`. Cambiarlo **restringe** (dirección segura) pero le
 saca la pantalla a `commercial`: **es decisión de Sam**, no de una tarea de
-contratos. No lo toqué.
+contratos. No lo toqué. **El Director la lleva a Sam** (confirmado el
+2026-09-21); hasta que haya respuesta, el gate se queda como lo dejó SDD-0497.
 
 ### UI sin `canEdit`
 
