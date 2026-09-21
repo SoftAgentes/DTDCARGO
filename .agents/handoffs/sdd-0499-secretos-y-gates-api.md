@@ -344,6 +344,36 @@ read-only que sí ve tracking), `supabase/migrations/0006_clients.sql:23`
 (`unique (tenant_id, markbox)`) — más las seis de D1, las del diagnóstico del
 harness y las de `/api/contact`.
 
+## ⚠️ EL CHECK ROJO DE #186 NO DICE NADA SOBRE ESTE CÓDIGO
+
+Si abrís la PR #186 y ves «Calidad local sin secretos» en **FAILURE** sobre
+`f71d8d6b`: **es facturación de GitHub Actions, no el código.**
+
+La anotación del check, literal:
+
+> The job was not started because recent account payments have failed or your
+> spending limit needs to be increased. Please check the 'Billing & plans'
+> section in your settings
+
+La firma, que es lo que lo distingue de un rojo real y no hay que creerle a la
+anotación sola: `started=2026-09-21T18:41:42Z`, `completed=18:41:45Z` —
+**3 segundos**— y **`steps=0`**. El job **nunca arrancó**: no corrió lint, ni
+typecheck, ni pruebas. No hay resultado sobre este código, ni bueno ni malo.
+
+No es de esta rama: Actions quedó bloqueado hacia las 18:39Z y la corrida de
+`main` sobre `5f022580` falló igual, con la misma firma. Todo lo que arranque
+desde entonces falla en 3 segundos.
+
+**Qué hace falta**, y no es de un agente: que Sam regularice el pago en
+Billing & plans. Después, `gh run rerun <id>` sobre la corrida bloqueada — no
+hace falta empujar un commit vacío, y **no conviene**: mover el SHA invalida el
+rerun y obliga a rehacer la vuelta.
+
+Un rojo de CI se lee como «tu código falló» por construcción, porque es lo que
+el color significa casi siempre. Acá el instrumento midió bien y dijo la verdad
+sobre **otra cosa** —el estado de la cuenta—, y lo dice en las anotaciones del
+check, no en el log.
+
 ## PR / BRANCH
 
 - Rama **publicada**: `claude/heuristic-benz-8851fb` → `origin`.
