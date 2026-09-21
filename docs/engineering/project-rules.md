@@ -186,6 +186,86 @@ consolidado), **`/tarifas/embed`**, **`/fcl`** y **`/calculadora-terrestre`**.
 - **MARKBOX** = ID de cliente (`DTD-NNNN`), autogenerado por `rpc('next_markbox')`. Nombre VISIBLE al usuario: **"Shipping Mark"** (SDD-0065, display-only); `markbox` sigue siendo el identificador interno (columnas, RPCs, props).
 - **Dónde va el código nuevo**: dominio con ≥3 archivos → carpeta `lib/studio/<feature>/`; 1-2 → par plano `<entidad>-{queries,types}.ts`. Transversal (push/mail/telegram/agents) → `lib/studio/<feature>/`. Compartido público↔ERP → `lib/shared/`. Util genérico sin dominio → `lib/`. API (webhook/cron/externo) → `app/api/.../route.ts` fino (sin lógica de negocio).
 
+## Contratos que miden el comportamiento, no el texto
+
+Un contrato —prueba anti-drift, aserción de guion de smoke, vigilante de CI— puede
+estar **verde sin medir nada**. La diferencia entre uno que protege y uno que
+acompaña no es la suerte ni el esfuerzo: es si comprueba **el comportamiento** o
+comprueba **que el texto del guard aparece en el archivo**.
+
+El 2026-09-20 la misma forma apareció cinco veces en un día. Los cinco casos, con
+lo que cada uno **afirmaba** y lo que **debería** haber afirmado. Las líneas son
+de `main` `97a23386`.
+
+| # | Dónde | Afirmaba | Debería afirmar |
+|---|---|---|---|
+| 1 | `lib/studio/rbac-actions-guard.test.ts:77` | que el **archivo** contiene la cadena `moduleEditDenial` (`src.includes(...)`) | que **cada acción exportada** llama a un guard antes de tocar datos |
+| 2 | `app/studio/(app)/crm/__tests__/stage-control.test.ts:74` | que el fuente de `crm/actions.ts`, leído como **texto**, contiene `moduleEditDenial(supabase, "kommo")` | que un rol sin `kommo` recibe la denegación y **no** se escribe nada |
+| 3 | `app/studio/_components/ui/ConfirmDialog.test.tsx:363` | que dos clics producen **una sola** llamada a `onConfirm` | que el candado **se suelta** después, o sea que un clic legítimo posterior sigue funcionando |
+| 4 | `.agents/handoffs/smokes-app-l14-0454-0472-guion.md:160` (paso 3) | que aparece «**un solo** reporte nuevo» | **cuántas filas quedan en pantalla en total**, y qué combinación sería falla |
+| 5 | un vigilante de CI armado con `gh pr checks <n> ... \|\| echo '[]'` | nada: el fallback convertía cada respuesta en `[]` | una línea por iteración con el estado, y emisión en **todos** los estados terminales |
+
+**Por qué cada uno pasaba igual:**
+
+1. Un archivo con siete acciones gateadas y una abierta contiene la cadena. Así
+   estuvo verde sobre los ocho huecos de SDD-0497. Además `findActions`
+   (`:59`) sólo recoge archivos llamados **exactamente** `actions.ts`: escanea
+   54 archivos y deja fuera los **19** `*-actions.ts` del Studio
+   (`calendar-actions.ts`, `document-actions.ts`, `merge-actions.ts`…).
+2. Esa cadena aparece **cinco** veces en `crm/actions.ts`: quitar una deja las
+   otras cuatro y la aserción sigue cierta. Se comprobó con un mutante.
+3. Un candado **trabado para siempre** también produce exactamente una llamada.
+   El caso de al lado (`:313`) es el que sí los distingue, porque sigue usando el
+   diálogo después.
+4. El paso 2 cancela un reporte y un cancelado **se conserva por diseño**, así
+   que en pantalla quedan dos filas. Sin el total, Sam leyó eso como duplicación
+   y detuvo un smoke sobre un sistema que funcionaba: acá la falta de observable
+   produjo un **rojo falso**, no un verde falso. Es la misma causa.
+5. `gh pr checks` sale con código **distinto de cero** mientras haya checks
+   pendientes — medido el 2026-09-20 sobre una PR con checks en curso: `exit 8`,
+   contra `exit 0` de `gh pr view --json statusCheckRollup`, que es la llamada
+   correcta para un bucle. El monitor dio 55 vueltas sin emitir una línea y
+   terminó «sin producir salida» — indistinguible de «no pasó nada».
+
+> **No des por buena una aserción hasta haberla matado con un mutante.** Si
+> puedes romper el comportamiento y el contrato sigue verde, no es un contrato.
+> Y cuenta los mutantes **del diff**, no los del archivo: una cadena que aparece
+> cinco veces tiene cuatro apariciones ajenas a tu cambio, y mutarlas mide el
+> trabajo de otro.
+>
+> El atajo para reconocerlos: si la aserción se puede satisfacer **sin ejecutar
+> el código** —leyendo el fuente, contando apariciones de un nombre— entonces
+> mide el texto. Si exige correr algo y observar qué salió, mide comportamiento.
+
+### Cómo se ve uno que sí mide
+
+`scripts/__tests__/invoice-read-boundary.test.mjs` (SDD-0357) es el contraejemplo
+y conviene leerlo antes de escribir un contrato nuevo. No busca texto: **parsea el
+AST** de ~1.600 módulos de `app/`, `lib/` y `supabase/functions` y cuenta las
+llamadas literales `.from("invoices")` por archivo. Después:
+
+- **Congela el inventario exacto** contra un `BASELINE` nombrado: `toEqual`, más
+  19 archivos y 44 llamadas como números explícitos (`:113-115`). Un lector nuevo
+  de `invoices` rompe la prueba, y para pasarla hay que **justificarlo por escrito
+  en el `BASELINE`** — sus comentarios son el registro de por qué cada lectura es
+  legítima.
+- **Se prueba a sí mismo**: distingue una llamada real de la misma cadena dentro
+  de un comentario o un string, y cubre los escapes que esquivarían su prefiltro.
+  Un detector sin sus propios casos es otra cosa que nadie está midiendo.
+- **Mide también la consecuencia**, no sólo la forma (`:135`): los cuatro widgets
+  financieros siguen detrás del módulo `invoices`, y **ningún override por rol**
+  los abre para los cinco roles que no deben verlos.
+
+Que exija justificar cada lector nuevo es lo que lo vuelve útil, y lo que hace
+que su rojo valga. Un rojo suyo se lee como estorbo y es un hallazgo: el
+2026-09-20 frenó un cambio en curso y, al investigarlo, apareció que la pantalla
+que lo motivaba no servía para los roles a los que iba dirigida (reportado por la
+sesión que lo encontró; el detalle vive en su propia spec). **El rojo era el
+mensajero, no el problema.**
+
+Arreglar el contrato del caso 1 es tarea propia y ya está encolada; no la diseñes
+de paso desde otra tarea.
+
 ## Proceso UI/UX
 
 Toda pantalla nueva o cambio visual sustancial **pasa por `/ui-check`** antes del commit (regla del founder; check liviano, no bloqueo — spacing, jerarquía, AI slop, hover states). Para auditoría **profunda** (10 dimensiones, contraste WCAG medido, score 0–10) usar **`/ui-pro`**. Lente de "design director" opcional: agente `design-critic`. *(El agente `ui-ux-designer` de la plantilla Forge NO existe — no lo invoques.)*
