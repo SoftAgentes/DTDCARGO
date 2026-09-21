@@ -218,10 +218,12 @@ describe("revertReferralCreditsForInvoice · los fallos se informan", () => {
    * por el error concreto: el contrato es que se informe y no se toque ningún
    * asiento, venga de donde venga.
    *
-   * La contención va primera a propósito: es la más probable y la introdujo esta
-   * misma SDD. El `FOR UPDATE` hace esperar, y el rol `authenticated` —con el
-   * que corren las RPC, que son INVOKER— corta a los 8 s. Antes nadie esperaba
-   * y el defecto corrompía en silencio; ahora falla a la vista.
+   * La contención va primera a propósito, y NO por frecuencia —nadie contó
+   * errores de producción—: la introdujo esta misma SDD y es la que menos se
+   * sospecha, porque quien ve `failure: "revert"` se va derecho a buscar un
+   * permiso. El `FOR UPDATE` hace esperar, y el rol `authenticated` —con el que
+   * corren las RPC, que son INVOKER— corta a los 8 s. Antes nadie esperaba y el
+   * defecto corrompía en silencio; ahora falla a la vista.
    */
   const CAUSAS_VIVAS: [string, string][] = [
     ["contención: la factura tomada más de 8 s", "canceling statement due to statement timeout"],
