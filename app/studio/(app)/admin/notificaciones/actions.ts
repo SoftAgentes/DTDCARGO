@@ -7,6 +7,7 @@
  */
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { tenantAdminGate } from "@/lib/studio/rbac-guard";
 import {
   d1Reason,
   executeD1Operation,
@@ -20,22 +21,25 @@ export interface RuleActionState {
   error?: string;
 }
 
+const ADMIN_MSG = "Solo admins pueden configurar notificaciones.";
+
+/**
+ * Gate admin-only con el guard central (SDD-0498).
+ *
+ * La versión anterior leía `user_tenants` acá con DOS huecos: sin
+ * `.eq("user_id", …)` —así que quien decidía era la primera fila que
+ * devolviera PostgREST, justo de lo que avisa `rbac-guard.ts`— y sin
+ * `.is("disabled_at", null)`, el fail-closed de la 0200: un admin suspendido
+ * seguía configurando los avisos al cliente.
+ */
 async function requireAdmin(): Promise<
   | { error: string }
   | { ok: true; tenantId: string; supabase: Awaited<ReturnType<typeof createClient>> }
 > {
   const supabase = await createClient();
-  const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Inicia sesión primero." };
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("tenant_id, role")
-    .maybeSingle<{ tenant_id: string; role: string }>();
-  if (!link?.tenant_id) return { error: "Sin tenant." };
-  if (link.role !== "admin") {
-    return { error: "Solo admins pueden configurar notificaciones." };
-  }
-  return { ok: true, tenantId: link.tenant_id, supabase };
+  const gate = await tenantAdminGate(supabase, { denied: ADMIN_MSG, noTenant: "Sin tenant." });
+  if (!gate.ok) return { error: gate.denied };
+  return { ok: true, tenantId: gate.tenantId, supabase };
 }
 
 export async function upsertRuleAction(
