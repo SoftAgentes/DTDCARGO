@@ -29,7 +29,29 @@ const BASELINE = {
   "lib/studio/collections-actions.ts": 2,
   "lib/studio/costing/queries.ts": 2,
   "lib/studio/dashboard/dashboard-kpi-queries.ts": 1,
-  "lib/studio/fidelizacion/referral-credit-queries.ts": 1,
+  // SDD-0495: +1 por `strandedReferralCredits`, que mira si las facturas donde
+  // se aplicó un crédito de referido quedaron 'anulada' (el crédito varado que
+  // avisa la pantalla de Fidelización).
+  //
+  // Es el ÚNICO caller de este inventario que lee con el CLIENTE ADMIN, y la
+  // razón es este mismo contrato: al exigir revisar «el guard y el tenant»
+  // apareció que `invoices_accounting_select` (migr 0414) niega el SELECT a
+  // `commercial` y `support`, que son justo los roles de esa pantalla — con el
+  // cliente de sesión el aviso devolvía cero filas y no se pintaba nunca. La
+  // matriz de módulos de `rbac.ts` y la RLS de la tabla NO dicen lo mismo.
+  //
+  // Candados, decididos por el Director el 2026-09-20: `tenant_id` explícito en
+  // la query, resuelto por la base con `get_user_tenant_id` y nunca recibido del
+  // llamador (sin sesión no se consulta nada); los ids salen de `referrals` del
+  // propio tenant, re-filtrados antes de ir al admin; se pide sólo `id`; y al
+  // cliente cruza únicamente el bit derivado, sin código, id, monto ni estado de
+  // factura. Los tres candados tienen prueba y mutante en
+  // `lib/studio/fidelizacion/__tests__/stranded-referral-credits.test.ts`.
+  //
+  // Seguimiento declarado en la SDD-0495: una RPC `security definer` que
+  // responda «de estos ids, cuáles están anuladas en mi tenant» es la forma
+  // correcta y quita el admin de acá. Exige migración y OK nominal de Sam.
+  "lib/studio/fidelizacion/referral-credit-queries.ts": 2,
   "lib/studio/fiscal/queries.ts": 1,
   // SDD-0487: `domicilioFiscalSellado` lee sólo `client_fiscal_address` de una
   // factura ya autorizada por su caller, con el cliente de sesión bajo RLS: el
@@ -112,7 +134,11 @@ describe("SDD-0357 · frontera de lectura de facturas", () => {
     });
     expect(actual).toEqual(BASELINE);
     expect(Object.keys(actual)).toHaveLength(19);
-    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(44);
+    // SDD-0495: 44 → 45 por la lectura de `strandedReferralCredits` (ver su
+    // entrada en BASELINE). El total va aparte del mapa a propósito: si alguien
+    // «arregla» el mapa moviendo una llamada de un archivo a otro, el mapa
+    // vuelve a cuadrar y este número no.
+    expect(Object.values(actual).reduce((sum, count) => sum + count, 0)).toBe(45);
   }, 60_000);
 
   it("reconoce llamadas literales y no confunde ejemplos o comentarios con código", () => {

@@ -37,6 +37,7 @@ import type {
   TierCount,
   TopReferrer,
 } from "@/lib/studio/fidelizacion/queries";
+import type { StrandedReferralCredit } from "@/lib/studio/fidelizacion/referral-credit-queries";
 import type { ReferralSettingsInput } from "@/lib/studio/fidelizacion/referral-settings-types";
 import { fmtUsd } from "@/lib/money";
 import { RegisterReferralDrawer } from "./RegisterReferralDrawer";
@@ -79,6 +80,8 @@ export function FidelizacionClient({
   canApplyCredit,
   referralSettings,
   canConfigure,
+  strandedCredits,
+  strandedComplete,
 }: {
   clients: ClientWithTier[];
   tierCounts: TierCount[];
@@ -91,6 +94,10 @@ export function FidelizacionClient({
   referralSettings: ReferralSettingsInput;
   /** ¿El rol edita el módulo Fidelización? Muestra "Configurar referidos" (SDD-0159). */
   canConfigure: boolean;
+  /** SDD-0495 · Créditos 'aplicado' cuya factura quedó anulada (sin liberar). */
+  strandedCredits: StrandedReferralCredit[];
+  /** `false` = la lectura se quedó corta: hay AL MENOS los que se listan. */
+  strandedComplete: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("dashboard");
   const [showRegister, setShowRegister] = useState(false);
@@ -152,6 +159,11 @@ export function FidelizacionClient({
           </button>
         </div>
       </div>
+
+      <StrandedCreditsBanner
+        credits={strandedCredits}
+        complete={strandedComplete}
+      />
 
       {/* Tabs */}
       <div
@@ -258,6 +270,127 @@ export function FidelizacionClient({
         />
       )}
     </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// Aviso durable: créditos sin liberar (SDD-0495)
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * SDD-0495 · Los créditos que quedaron 'aplicado' sobre una factura anulada.
+ *
+ * Va ARRIBA de los tabs, no dentro de «Referidos»: el aviso tiene que
+ * encontrarse sin buscarlo. Quien abre Fidelización para otra cosa es
+ * exactamente quien hoy no se entera.
+ *
+ * No nombra la factura: este módulo lo ven commercial y support, y el código de
+ * factura es dato del módulo de dinero. El `referral_code` alcanza para
+ * coordinar, y es el mismo handle que ve el lado de facturación.
+ */
+function StrandedCreditsBanner({
+  credits,
+  complete,
+}: {
+  credits: StrandedReferralCredit[];
+  complete: boolean;
+}) {
+  if (credits.length === 0) return null;
+  const uno = credits.length === 1;
+  const total = credits.reduce((s, c) => s + c.rewardUsd, 0);
+  const titulo = uno
+    ? "Un crédito de referido quedó sin liberar"
+    : `${complete ? "" : "Al menos "}${credits.length} créditos de referido quedaron sin liberar`;
+
+  return (
+    <section
+      role="alert"
+      style={{
+        margin: "0 0 var(--s-5)",
+        padding: "var(--s-3) var(--s-4)",
+        background: "var(--warning-bg)",
+        border: "1px solid var(--warning)",
+        borderRadius: "var(--r-md)",
+        display: "flex",
+        gap: "var(--s-3)",
+        alignItems: "flex-start",
+      }}
+    >
+      <span
+        style={{
+          color: "var(--warning)",
+          display: "flex",
+          flexShrink: 0,
+          marginTop: 2,
+        }}
+      >
+        {Icon.warn(16)}
+      </span>
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            font: "700 13px/1.3 var(--f-sans)",
+            color: "var(--ink)",
+            marginBottom: "var(--s-2)",
+          }}
+        >
+          {titulo}
+        </div>
+        <p
+          style={{
+            font: "500 12.5px/1.55 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: "0 0 var(--s-2)",
+            maxWidth: "76ch",
+          }}
+        >
+          {uno
+            ? "Se aplicó a una factura que después se anuló y la liberación no se completó: sigue marcado como usado aunque el referidor nunca lo aprovechó."
+            : "Se aplicaron a facturas que después se anularon y la liberación no se completó: siguen marcados como usados aunque los referidores nunca los aprovecharon."}{" "}
+          No se {uno ? "libera" : "liberan"} desde esta pantalla: repórtalo al
+          equipo de facturación, que ve el mismo caso en la factura anulada, y no
+          lo cuentes como premio entregado.
+        </p>
+        <div
+          style={{
+            display: "flex",
+            gap: "var(--s-2)",
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          {credits.map((c) => (
+            <span
+              key={c.referralId}
+              style={{
+                font: "500 11.5px/1.3 var(--f-sans)",
+                color: "var(--ink)",
+                padding: "5px 9px",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-sm)",
+              }}
+            >
+              <strong style={{ font: "700 11.5px/1 var(--f-mono)" }}>
+                {c.referralCode}
+              </strong>{" "}
+              · {c.referrerMarkbox} refirió a {c.referredName} ·{" "}
+              {fmtUsd(c.rewardUsd)}
+            </span>
+          ))}
+          {!uno && (
+            <span
+              style={{
+                font: "600 11.5px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              Total sin liberar: {fmtUsd(total)}
+            </span>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
