@@ -136,9 +136,50 @@ La suite SQL se corrió aparte y antes del turno, por indicación del Director (
 más largo y más frágil ya verificado aislado. Los dos archivos de esta tarea pasan dentro
 de la suite completa, o sea que tampoco le dejan residuo a los que corren después.
 
-**Falta por correr, y sólo con el turno:** `harness`, `test` (vitest completo),
-`schema-rebuild`, `e2e` y `build`. El `build` es el único que caza la trampa de
-`"use server"` (ver arriba).
+### `pnpm verify` completo — turno 4 de 4, concedido a las 23:57:28Z
+
+Corrido **dos veces**. Log en el scratchpad de la sesión.
+
+**1ª corrida (20:03:45 → 20:26:33, 22 min 48 s): `VERIFY_EXIT=1`.** Un solo paso rojo,
+`pending-migration-symbols`, y era mío: las declaraciones citaban
+`referral-credit-posting.ts:364` y `:372`, pero al agregar el bloque del tipo
+`ReferralCreditRevertFailure` esas líneas se corrieron a **:389** y **:398**. Lo que la
+declaración describe estaba bien; lo que quedó viejo fue la referencia. Lo dejé pasar
+porque **leí el exit del gate a través de una tubería** (`| tail -2`), así que el 0 que vi
+era el de `tail`, no el del script — el mismo error que la memoria
+`vitest4-reporter-basic-verde-falso` ya tenía anotado para `tsc | head`.
+
+**2ª corrida (20:28:15 → 20:41:46, 13 min 31 s): `VERIFY_EXIT=0`**, con el aviso de cierre
+incompleto. **16 de 17 pasos corrieron de verdad; 0 fallos, 0 cobertura parcial.**
+
+| Paso | Resultado |
+|---|---|
+| `harness` | **PASÓ** |
+| `lint` | **PASÓ** — 15 warnings preexistentes, 0 errores (los que listó el Director) |
+| `rsc-boundary` | **PASÓ** |
+| `typecheck` | **PASÓ** |
+| `edge-functions` | **PASÓ** |
+| `test` (vitest completo) | **PASÓ** — 628 archivos, **8.204 pruebas**, 1 saltada, 152,91 s |
+| `docs:check` · `numbering` · `feature-constants` · `components:check` · `governance:check` | **PASÓ** |
+| `migrations-applied` | **NO EJECUTADO (SKIP)** — sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` |
+| `pending-migration-symbols` | **PASÓ** — **0 ROJO · 1 AMARILLO declarado** (la espera de la 0471) |
+| `sql-tests` | **PASÓ** — **224 contratos**, `postgres:17`, rollback total |
+| `schema-rebuild` | **PASÓ** |
+| `e2e` | **PASÓ** — **168 pruebas**, 3,4 min, sin flaky |
+| `build` | **PASÓ** — compiló en 15,7 s (es el único paso que cazaría la trampa de `"use server"`) |
+
+**El veredicto literal, y no es «verde» a secas:**
+
+> `[AVISO] verify: CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied. No hubo`
+> `fallos en lo medido (16/17); exit 0 NO equivale a cierre verde completo.`
+
+Es el estado terminal **esperado** en este worktree, no una anomalía: sin fallos y con un
+crítico sin medir, `buildVerifyVerdict` devuelve `exitCode 0` con tono de aviso
+(`scripts/verify-step-policy.mjs:226`). O sea que el harness sale en cero **a propósito** y
+deja dicho que el cero tiene un hueco. Lo que **no** se comprobó es si la 0471 está aplicada
+en producción: ese paso no consultó el ledger. Cualquier afirmación sobre el estado de la
+migración va etiquetada **NO VERIFICADO** hasta que el Director la compruebe contra
+producción.
 
 ## PENDIENTE DE ESTA TAREA
 
@@ -157,9 +198,8 @@ de la suite completa, o sea que tampoco le dejan residuo a los que corren despu�
      `reverted > 0` sería falso: la plata ya volvió y lo que falta es anular el asiento;
    - `REVERT_REFERRAL_CREDITS_ERROR` está exportada para que el aviso ancle sin copiar
      texto.
-2. **`corepack pnpm verify`** completo — tengo el **turno 4 de 4** y el Director avisa
-   cuándo. Si el paso `test` sale rojo, mandarle el veredicto literal antes de tocar nada,
-   distinguiendo una aserción que falla de un worker de vitest que no arranca por RAM.
+2. ~~`corepack pnpm verify`~~ **HECHO** — ver el registro por paso más arriba. Cerró con
+   `VERIFY_EXIT=0` y el aviso de CIERRE INCOMPLETO por `migrations-applied`.
 3. **Abrir la PR** contra `main` (autorizado por el encargo) y reportarle al Director.
 4. **La migración la pide el Director**, con el runbook y el OK nominal de Sam nombrando el
    archivo. Yo no la aplico.
