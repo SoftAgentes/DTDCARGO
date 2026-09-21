@@ -20,6 +20,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/db/admin";
 import { fetchAllByIds, fetchAllPaged } from "@/lib/db/paginate";
 import type { InvoiceCurrency, InvoiceStatus } from "@/lib/studio/invoice-types";
 
@@ -239,6 +240,33 @@ export type StrandedReferralCredits = {
  * aviso se apagaría solo y nadie lo notaría, que es exactamente el modo de falla
  * que esta spec vino a cerrar.
  *
+ * ## Por qué la segunda lectura va con el cliente admin (SDD-0495)
+ *
+ * `invoices_accounting_select` (migr 0414) restringe el SELECT de `invoices` a
+ * los roles `accounting` y `admin`. Esta pantalla la ven `commercial` y
+ * `support`, así que **con el cliente de sesión la lectura devuelve cero filas y
+ * el aviso no se pinta nunca justo para los roles a los que va dirigido**. No es
+ * una hipótesis: lo destapó el contrato de la SDD-0357 al exigir revisar «el
+ * guard y el tenant» de cada caller nuevo. La matriz de módulos de `rbac.ts` y
+ * la RLS de la tabla NO dicen lo mismo, y mirar sólo la primera fue el error.
+ *
+ * La lectura con admin va con cuatro candados, y los cuatro importan:
+ *
+ *  1. **`tenant_id` explícito en el filtro**, resuelto por la BASE con el
+ *     cliente de sesión (`get_user_tenant_id`), nunca recibido del llamador. Sin
+ *     sesión no hay tenant y no se consulta nada (fail-closed).
+ *  2. **Los ids de entrada salen de `referrals` del propio tenant**, leídos con
+ *     el cliente de sesión bajo RLS y re-filtrados acá. Nunca de la petición.
+ *  3. **Al cliente sólo le cruza el bit derivado**: el tipo devuelto no tiene
+ *     código de factura, ni id, ni monto de factura, ni estado. «Varado, sí o
+ *     no», más los datos del referido que esa pantalla ya muestra.
+ *  4. Se pide **sólo `id`**: ni siquiera el proceso servidor materializa la fila
+ *     de la factura.
+ *
+ * La forma correcta en Postgres sería una RPC `security definer` que responda
+ * «de estos ids, cuáles están anuladas en mi tenant». Exige migración y queda
+ * declarada como seguimiento en la spec; esto es el puente, no el destino.
+ *
  * `opts` es el mismo de `fetchAllPaged` y va a las dos lecturas. En producción
  * no se pasa; existe para poder ejercitar el camino truncado (`complete: false`)
  * sin fabricar las 60.000 filas que harían falta con los topes por defecto — un
@@ -249,13 +277,20 @@ export async function strandedReferralCredits(
   supabase: SupabaseClient,
   opts: { pageSize?: number; maxPages?: number } = {},
 ): Promise<StrandedReferralCredits> {
+  // Candado 1. El tenant lo resuelve la base con el cliente de sesión: es lo
+  // único que después autoriza la lectura con admin. Sin sesión, nada.
+  const { data: tenantRaw } = await supabase.rpc("get_user_tenant_id");
+  const tenantId = typeof tenantRaw === "string" && tenantRaw ? tenantRaw : null;
+  if (!tenantId) return { credits: [], complete: true };
+
   const { rows, complete } = await fetchAllPaged<Record<string, unknown>>(
     (from, to) =>
       supabase
         .from("referrals")
         .select(
-          "id, referral_code, referrer_markbox, referred_name, reward_usd, applied_invoice_id",
+          "id, referral_code, referrer_markbox, referred_name, reward_usd, applied_invoice_id, tenant_id",
         )
+        .eq("tenant_id", tenantId)
         .eq("status", "aplicado")
         .is("deleted_at", null)
         .not("applied_invoice_id", "is", null)
@@ -268,6 +303,9 @@ export async function strandedReferralCredits(
   // crédito varado, y los ids se consultan una sola vez.
   const byInvoice = new Map<string, Record<string, unknown>[]>();
   for (const r of rows) {
+    // Candado 2. La RLS ya acota por tenant, pero los ids que van al cliente
+    // admin —que no tiene RLS— no pueden salir de una fila de otro tenant.
+    if (String(r.tenant_id ?? "") !== tenantId) continue;
     const invoiceId = String(r.applied_invoice_id ?? "");
     if (!invoiceId) continue;
     const list = byInvoice.get(invoiceId);
@@ -287,14 +325,21 @@ export async function strandedReferralCredits(
   // premisa está AFIRMADA en `__tests__/stranded-referral-credits.test.ts`: si
   // alguien sube `IDS_POR_LOTE` por encima de `PAGE_SIZE`, esa prueba se pone
   // roja y apunta acá. Una invariante que falla vale más que un `&&` que no.
+  const admin = createAdminClient();
   const { rows: voided } = await fetchAllByIds<{
     id: string;
   }>(
     [...byInvoice.keys()],
     (lote, from, to) =>
-      supabase
+      admin
         .from("invoices")
+        // Candado 4: sólo el id. La fila de la factura no se materializa.
         .select("id")
+        // Candado 1, en la query: el admin no tiene RLS, así que el tenant va
+        // escrito. Si este `.eq` desaparece, una factura anulada de OTRO tenant
+        // apuntada por un `applied_invoice_id` cruzado marcaría un crédito como
+        // varado. Hay prueba y mutante para exactamente eso.
+        .eq("tenant_id", tenantId)
         .in("id", lote)
         .eq("status", "anulada")
         .order("id", { ascending: true })

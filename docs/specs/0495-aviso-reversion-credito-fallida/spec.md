@@ -70,7 +70,22 @@ estaba disponible justo donde se descartaba.
    base. Por eso la decisión de abajo se toma con la matriz de `rbac.ts` en la
    mano.
 
-4. **Los dos roles que necesitan enterarse NO se solapan.** En
+4. **Pero la RLS de `invoices` SÍ tiene condición de rol, y eso rompía la
+   pantalla de Fidelización.** `invoices_accounting_select` (migr 0414):
+   `using (tenant_id = get_user_tenant_id() and current_studio_role() in
+   ('accounting','admin'))`. Con el cliente de sesión, la lectura de facturas
+   desde Fidelización devuelve **cero filas para `commercial` y `support`** — los
+   dos roles para los que se escribió el aviso—, así que el banner no se pintaba
+   nunca. Sólo funcionaba para `admin`.
+
+   **La matriz de módulos de `rbac.ts` y la RLS de la tabla no dicen lo mismo, y
+   mirar sólo la primera fue el error.** No lo encontró ninguna de las dos tandas
+   de pruebas —ninguna renderiza una pantalla con rol `commercial`—: lo destapó
+   el contrato de la SDD-0357 al exigir revisar «el guard **y el tenant**» de
+   cada caller nuevo de `invoices`. El rojo del inventario era el mensajero, no
+   el defecto.
+
+5. **Los dos roles que necesitan enterarse NO se solapan.** En
    `lib/studio/rbac.ts`: `invoices: ["accounting"]` y `fidelizacion:
    ["commercial", "support"]` (más `admin`, que siempre ve todo). O sea:
 
@@ -81,7 +96,7 @@ estaba disponible justo donde se descartaba.
    Esto es lo que decide la pregunta «¿dónde se muestra?». Una sola pantalla deja
    ciego a un rol, y el rol que queda ciego cambia según cuál se elija.
 
-5. **«La reversión falló» no es un solo caso: hay uno parcial, y ya existe.**
+6. **«La reversión falló» no es un solo caso: hay uno parcial, y ya existe.**
    `revertReferralCreditsForInvoice` recorre los créditos de la factura de a
    uno: suma a `reverted` los que salen bien y junta el resto en `failures`, y
    sólo al final decide `ok`. Con **dos créditos en la misma factura**, uno
@@ -93,7 +108,7 @@ estaba disponible justo donde se descartaba.
    Director el 2026-09-20, traída de la sesión que está moviendo la reversión a
    SQL; se verificó contra el código actual antes de tomarla.
 
-6. **Un módulo `"use server"` sólo puede exportar funciones async.** El texto
+7. **Un módulo `"use server"` sólo puede exportar funciones async.** El texto
    del aviso lo necesitan los dos lados (la action que lo devuelve y el banner
    que lo pinta), así que no puede ser un `export const` dentro de `actions.ts`:
    rompe el build de Next, y **no lo ven `typecheck` ni `eslint`**: sale sólo en
@@ -114,7 +129,7 @@ estaba disponible justo donde se descartaba.
    `{ ok: true, warning }`. No es un `error`: la pantalla no lo pinta rojo ni
    cancela el toast de «Factura anulada».
 
-3. **Se muestra en las DOS pantallas, por la premisa 4.** No es redundancia: es
+3. **Se muestra en las DOS pantallas, por la premisa 5.** No es redundancia: es
    que cada mitad es la única que su rol puede abrir.
 
 4. **Cada mitad proyecta sólo lo que su rol ya maneja.** El handle común es el
@@ -134,7 +149,7 @@ estaba disponible justo donde se descartaba.
 5. **El aviso no lleva el texto crudo del error.** Quien anula facturas no
    depura PostgREST. El detalle técnico sigue yendo al `console.error`.
 
-6. **Hay DOS avisos, y los elige `reverted`, no `error`.** Por la premisa 5:
+6. **Hay DOS avisos, y los elige `reverted`, no `error`.** Por la premisa 6:
    `reverted === 0` ⇒ «el crédito no se pudo liberar»; `reverted > 0` ⇒ «parte
    se liberó, pero no todos», que además remite al listado durable de la misma
    factura, donde están exactamente cuáles quedaron. El título del banner sigue
@@ -151,6 +166,29 @@ estaba disponible justo donde se descartaba.
    ambas (ver Gobernanza). Una action nueva habría necesitado su propio
    `moduleViewDenial`/`moduleEditDenial`; no hay ninguna.
 
+8. **La lectura de `invoices` de Fidelización va con el cliente ADMIN, con
+   cuatro candados.** Por la premisa 4 no hay alternativa sin migración: con
+   el cliente de sesión el aviso no existe para sus roles. Decidido con el
+   Director el 2026-09-20, que puso las condiciones. No es postura nueva en esta
+   feature —`revertReferralCreditsForInvoice` ya usa admin en el mismo dominio—,
+   pero se escribe explícita porque una lectura sin RLS no se deduce leyendo:
+
+   1. **`tenant_id` explícito en la query**, resuelto por la base con el cliente
+      de sesión (`get_user_tenant_id`) y nunca recibido del llamador. **Sin
+      sesión no se consulta nada y no se construye el admin** (fail-closed).
+   2. **Los ids de entrada salen de `referrals` del propio tenant**, leídos bajo
+      RLS con el cliente de sesión y **re-filtrados** antes de ir al admin. Nunca
+      de la petición.
+   3. **Sólo se pide `id`**: la fila de la factura no se materializa ni en el
+      servidor.
+   4. **Al cliente cruza únicamente el bit derivado**: ni código, ni id, ni monto
+      ni estado de factura.
+
+   Los tres candados con efecto tienen prueba y mutante. La mitad de
+   Facturación **no** usa admin: `accounting` sí tiene
+   `invoices_accounting_select`, y `strandedCreditsForInvoice` además sólo lee
+   `referrals`.
+
 ## Alcance
 
 ### Qué cambia
@@ -162,7 +200,7 @@ estaba disponible justo donde se descartaba.
 
 2. **El copy vive aparte**
    (`lib/studio/fidelizacion/referral-revert-notice.ts`, nuevo): los dos textos,
-   los dos títulos y los dos selectores. Por la premisa 6 no puede estar en el
+   los dos títulos y los dos selectores. Por la premisa 7 no puede estar en el
    módulo `"use server"`, y así el banner lo importa sin importar la action.
 
 3. **Aviso inmediato** (`InvoiceDetailClient.tsx`). Estado `voidWarning` y banner
@@ -216,6 +254,8 @@ caso: no se agregó ninguna entrada.
 - `app/studio/(app)/facturacion/__tests__/void-invoice-referral-warning.test.ts`
   (nuevo)
 - `lib/studio/fidelizacion/__tests__/stranded-referral-credits.test.ts` (nuevo)
+- `scripts/__tests__/invoice-read-boundary.test.mjs` (SDD-0357: sólo la entrada
+  del inventario, su comentario y el total agregado)
 - `docs/specs/0495-aviso-reversion-credito-fallida/spec.md` y
   `docs/specs/README.md` (regenerado)
 - `.agents/handoffs/0495-aviso-reversion-credito-fallida.md`
@@ -258,7 +298,8 @@ caso: no se agregó ninguna entrada.
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
-| SGE-00.05 (permisos y tenant en el servidor) | **cumplimiento** | No hay action nueva. Las dos lecturas viven en server components ya gateados: `app/studio/(app)/facturacion/layout.tsx` hace `requireModuleView("invoices")` y cubre `[code]`; `app/studio/(app)/fidelizacion/page.tsx` hace `requireModuleView("fidelizacion")`. RLS por tenant en ambas tablas. |
+| SGE-00.05 (permisos y tenant en el servidor) | **cumplimiento** | No hay action nueva. Las dos lecturas viven en server components ya gateados: `app/studio/(app)/facturacion/layout.tsx` hace `requireModuleView("invoices")` y cubre `[code]`; `app/studio/(app)/fidelizacion/page.tsx` hace `requireModuleView("fidelizacion")`. |
+| SGE-00.05 (lectura sin RLS) | **excepción justificada** | La lectura de `invoices` de Fidelización usa el cliente admin, porque `invoices_accounting_select` la niega a los roles de esa pantalla (premisa 4) y la alternativa correcta exige migración. Va con los cuatro candados de la decisión 8: tenant explícito resuelto por la base, fail-closed sin sesión, ids del propio tenant re-filtrados, `select("id")` y sólo el bit derivado hacia el cliente. Tres mutantes —quitar el `.eq("tenant_id")`, quitar el re-filtro, y dejar de ser fail-closed— hacen fallar su prueba. Queda anotada en el baseline de la SDD-0357, que es donde el próximo va a mirar. |
 | SGE-00.05 (mínimo privilegio en la proyección) | **cumplimiento** | La query de Fidelización no devuelve código ni id de factura, y de `invoices` sólo pide `id`; la de Facturación no devuelve referidor ni referido y sólo pide `id, referral_code, reward_usd`. Las dos proyecciones tienen prueba, incluido el `select`. |
 | SGE-00.06 (prevenir antes de informar) | **excepción justificada** | Acá informar ES el alcance: prevenir de verdad exige llevar aplicación y reversión a una función SQL con la factura `FOR UPDATE` — punto 1 del «Fuera de alcance» de la 0490, que necesita migración y decisión de Sam. La prevención disponible (los reintentos de `REVERT_PAID_MAX_ATTEMPTS`) ya está y no se toca. |
 | ERR-01 (lenguaje del error) | **cumplimiento** | Tuteo venezolano, sin voseo. Dice qué pasó, a quién le duele y qué hacer, incluido que no se arregla desde ahí. Sin texto crudo del error. Probado por aserción, no por lectura. |
@@ -279,10 +320,18 @@ Corridas en el worktree `keen-swirles-62b904`, 2026-09-20.
 - **`pnpm lint`** — PASÓ (exit 0): 0 errores, 15 warnings, todos preexistentes
   en archivos fuera de la allowlist (`components/document-import/*`,
   `scripts/lib/knowledge-vault.mjs`).
-- **Pruebas nuevas (vitest)** — 55 de 55 ✓: 18 de `voidInvoice`, 17 de las
-  queries, 20 del copy. Vecindario completo (19 archivos de fidelización,
-  contabilidad y facturación): 236 de 236 ✓.
-- **Mutantes — 19 de 19 caen. Sin sobrevivientes.** Cada uno en su prueba, con
+- **`pnpm verify` — PRIMERA CORRIDA ROJA, y bien roja.** 20 min 19 s en el turno
+  de máquina del Director (2026-09-20, 23:37:09→23:57:28Z). 16 de 17 pasos
+  corrieron de verdad; `migrations-applied` dio **SKIP** estructural (sin
+  `.env.local`, como en todo worktree) y `pending-migration-symbols` dio
+  **0 ROJO · 0 AMARILLO**, que es el que mide una tarea sin migración. Falló
+  `test`, con `8236 passed | 1 failed`, dos veces seguidas con el mismo diff
+  —aserción, no worker sin RAM—: el inventario de la SDD-0357 detectó el caller
+  nuevo de `invoices`. Eso llevó a la premisa 3bis, que es el hallazgo de verdad.
+- **Pruebas nuevas (vitest)** — 61 de 61 ✓: 18 de `voidInvoice`, 23 de las
+  queries, 20 del copy. Vecindario (20 archivos, con el contrato de la 0357):
+  246 de 246 ✓.
+- **Mutantes — 23 de 23 caen. Sin sobrevivientes.** Cada uno en su prueba, con
   los fuentes restituidos después de cada corrida y el árbol comprobado limpio
   al final:
 
@@ -307,6 +356,28 @@ Corridas en el worktree `keen-swirles-62b904`, 2026-09-20.
   | M17 | el copy deja de decir que no se arregla desde la pantalla | MUERTO |
   | M18 | un voseo (`revisá`) que la aserción positiva NO vería | MUERTO |
   | M19 | (módulo ajeno, restituido) `IDS_POR_LOTE` sube por encima de `PAGE_SIZE` | MUERTO |
+  | M20 | la query admin pierde el `.eq("tenant_id", …)` | MUERTO |
+  | M21 | se cae el re-filtro de tenant sobre las filas de `referrals` | MUERTO |
+  | M22 | deja de ser fail-closed cuando no hay tenant de sesión | MUERTO |
+  | M23 | un filtro antes de `.select()` (cadena que supabase-js no permite) | MUERTO |
+
+- **M21 no murió al primer intento, y la prueba que faltaba era real.** Con las
+  dos capas sanas, el re-filtro del bucle no puede cambiar ningún resultado: la
+  query de `referrals` ya acota por tenant. Para ejercitarlo hay que simular que
+  esa capa falla —una RLS con hueco, o el día que alguien borre ese `.eq`—, y
+  entonces el caso que importa **no** es leer una factura ajena (el
+  `.eq("tenant_id")` de la query admin ya la excluye) sino el inverso: **un
+  referido de otro tenant apuntando a una factura anulada del mío**. Ese id pasa
+  el filtro admin sin problema, así que lo único que evita pintar el nombre del
+  referidor y del referido ajenos es el re-filtro. Ahí sí es defensa en
+  profundidad y no adorno, que es la diferencia con el `&& voidedComplete` que se
+  quitó.
+
+- **M23 documenta un fallo del propio doble.** En supabase-js los filtros viven
+  en el builder que devuelve `.select()`; `from()` sólo expone
+  select/insert/update/delete. El stub aceptaba `.eq()` antes del `.select()`, o
+  sea una cadena que en producción **no compila** — y de hecho no compiló: lo
+  cazó `tsc`, no la suite. El stub ahora exige el mismo orden y M23 lo fija.
 
 - **El `&& voidedComplete` que antes sobrevivía era código muerto, y se quitó.**
   En la primera versión se conservaba «por si acaso» y ningún caso podía hacerlo
@@ -336,6 +407,18 @@ Corridas en el worktree `keen-swirles-62b904`, 2026-09-20.
   Director (una sola corrida pesada a la vez).
 
 ## Fuera de alcance detectado
+
+0. **Sacar el cliente admin de `strandedReferralCredits` con una RPC
+   `security definer`.** Es la forma correcta en Postgres y el destino de la
+   decisión 8, que es un puente, no una solución. Forma concreta: una función que
+   reciba una lista de ids y responda **cuáles de esos están `anulada` en el
+   tenant del que llama**, derivando el tenant dentro de la función
+   (`get_user_tenant_id`) y sin devolver ninguna otra columna. Con eso la lectura
+   vuelve al cliente de sesión, desaparece la excepción de SGE-00.05 y la entrada
+   del inventario de la SDD-0357 deja de ser la única que lee con admin.
+   **Exige migración y OK nominal de Sam**, por eso no se hizo acá. Si alguien
+   lee el admin client dentro de seis meses, que sepa que fue una decisión
+   fechada y no un descuido.
 
 1. **Reintentar la reversión desde la UI.** Hoy no hay camino: `voidInvoice` no
    se repite sobre una factura ya anulada, y `updateReferralStatus` no sirve

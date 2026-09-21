@@ -1,7 +1,8 @@
 # Handoff 0495 · una reversión de crédito que falla deja de ser invisible
 
-- Fecha: 2026-09-20. Estado de la tarea: **implementada y probada; falta el turno de `verify`**.
-  Con el `verify` en verde queda lista para PR. El Director revisa e integra.
+- Fecha: 2026-09-20. Estado de la tarea: **implementada, probada y con el `verify` corrido**.
+  La primera corrida salió ROJA y eso destapó un defecto de diseño real (abajo); corregido con
+  la decisión del Director. Lista para PR. El Director revisa e integra.
 - Owner/sesión: Claude Opus 5 (Worker), sesión de escritorio `keen-swirles-62b904`.
   Director: la sesión «Director notificación a workers», que asignó la tarea porque
   Sam la autorizó el 2026-09-20.
@@ -102,7 +103,7 @@ Todo en este worktree, 2026-09-20.
 | `corepack pnpm governance:check` | **PASÓ** (28 políticas, cápsula vigente) |
 | Pruebas nuevas (vitest) | **PASÓ**: 55 de 55 ✓ (18 de `voidInvoice`, 17 de las queries, 20 del copy) |
 | Vecindario (19 archivos: fidelizacion, accounting, facturacion) | **PASÓ**: 236 de 236 ✓, con `--pool=threads` |
-| `corepack pnpm verify` | **NO EJECUTADO** — turno 3 de 4, a la espera del aviso del Director |
+| `corepack pnpm verify` | **CORRIDO, PRIMERA VEZ ROJO** — 20 min 19 s (23:37:09→23:57:28Z), turno 3 concedido. 16 de 17 pasos corrieron de verdad. `migrations-applied` **SKIP** estructural (sin `.env.local`); `pending-migration-symbols` **0 ROJO · 0 AMARILLO**. Falló `test`: el inventario de la SDD-0357. Ver abajo. |
 | `/ui-check` | corrido; dos hallazgos propios aplicados antes del commit (abajo) |
 | Producción Supabase | **NO APLICA** — la tarea no escribe ni lee filas de negocio |
 
@@ -178,6 +179,52 @@ No se usó el primitivo `Badge` para los chips de código: `Badge` es un estado 
 que poder envolver. El registro generado de componentes no tiene primitiva canónica de banner
 (sólo `action-menu`, `confirm-dialog`, `numeric-input`, `segmented-control`), así que se siguió el
 patrón local ya existente.
+
+## EL ROJO DEL VERIFY, Y LO QUE DESTAPÓ
+
+`scripts/__tests__/invoice-read-boundary.test.mjs` (SDD-0357) congela el inventario de lectores de
+`invoices`. Mi `strandedReferralCredits` agregaba el segundo en su archivo: esperaba 1, recibió 2.
+**Aserción que falla, no worker sin RAM**: corrió dos veces (original y reintento por flaky
+conocido) con el diff idéntico, `8236 passed | 1 failed`.
+
+**Pero el rojo era el mensajero.** El contrato exige revisar «el guard **y el tenant**» de cada
+caller nuevo, y al revisar el tenant apareció que la pantalla de Fidelización **no funcionaba**:
+`invoices_accounting_select` (migr 0414) restringe el SELECT de `invoices` a
+`('accounting','admin')`, y esa pantalla la ven `commercial` y `support`. Con el cliente de sesión
+la lectura devolvía cero filas y el banner no se pintaba nunca, justo para los dos roles para los
+que lo escribí. Sólo andaba para `admin`.
+
+**La matriz de módulos de `rbac.ts` y la RLS de la tabla no dicen lo mismo, y yo miré sólo la
+primera.** Ninguna de las dos tandas de pruebas lo iba a encontrar: ninguna renderiza una pantalla
+con rol `commercial`.
+
+### La corrección: cliente admin con cuatro candados
+
+Decisión del Director (2026-09-20), que descartó dejar sólo la superficie de facturación —sería
+renunciar a lo que justificaba el encargo— y prefirió el puente antes que la migración:
+
+1. **`tenant_id` explícito** en la query admin, resuelto por la base con `get_user_tenant_id` y
+   nunca recibido del llamador. **Sin sesión no se consulta nada ni se construye el admin.**
+2. **Los ids salen de `referrals` del propio tenant**, leídos bajo RLS y **re-filtrados** antes de
+   ir al admin.
+3. **Sólo se pide `id`**: la fila de la factura no se materializa.
+4. **Al cliente cruza sólo el bit derivado**: ni código, ni id, ni monto, ni estado de factura.
+
+Documentado en la spec y en el comentario del baseline de la 0357, que es donde el próximo mira.
+`strandedCreditsForInvoice` **no** cambia: `accounting` sí tiene RLS y esa mitad sólo lee
+`referrals`.
+
+### Dos cosas que aprendí corrigiéndolo
+
+- **M21 (quitar el re-filtro del bucle) no moría**, porque con las dos capas sanas no puede cambiar
+  ningún resultado. Para ejercitarlo hay que simular que la primera falla, y ahí el caso que importa
+  **no** es leer una factura ajena —el `.eq("tenant_id")` admin ya la excluye— sino el inverso: **un
+  referido de OTRO tenant apuntando a una factura anulada del mío**. Ese id pasa el filtro admin, así
+  que lo único que evita pintar nombres ajenos es el re-filtro. Defensa en profundidad de verdad, y
+  por eso se conserva (a diferencia del `&& voidedComplete`, que sí era adorno y se quitó).
+- **El doble de PostgREST era más permisivo que supabase-js.** Aceptaba `.eq()` antes del
+  `.select()`, o sea una cadena que en producción no compila — y no compiló: lo cazó `tsc`, no la
+  suite. El stub ahora exige el mismo orden, con mutante propio (M23).
 
 ## COMMITS
 
@@ -271,11 +318,13 @@ que falle se va a ver con este aviso. No es preparación para un futuro hipotét
 
 ## PENDIENTES DE ESTA TAREA
 
-1. **`corepack pnpm verify`** — turno 3 de 4. A la espera del aviso del Director. Si el paso `test`
-   sale rojo, se le manda el veredicto literal antes de tocar nada, distinguiendo una aserción que
-   falla de un worker de vitest que no arranca por falta de RAM.
-2. **Publicar la rama y abrir la PR**, autorizado por el encargo, después del `verify` verde y
-   avisando al Director antes (él serializa la integración).
+1. **Re-correr `pnpm verify`** tras la corrección. Los pasos que tocó el cambio se corrieron
+   focales y en verde (typecheck, lint, el contrato de la 0357 y las suites del vecindario), pero
+   el cierre canónico completo con el arreglo **NO SE HA VUELTO A CORRER**: la máquina pasó a la
+   sesión 4 y una corrida pesada a la vez. **Sin eso, el verde de esta tarea es parcial y hay que
+   decirlo así.**
+2. **Publicar la rama y abrir la PR**, autorizado por el encargo. El Director pidió traer `main`
+   una sola vez con merge y el driver, después de integrar la PR de la sesión 1.
 3. **Borrar la reserva `codex/sdd-reserve-0495-aviso-reversion-credito-fallida`** una vez que la
    spec esté en `main`. Rechaza `branch -d` porque el stub nunca se fusionó; el `-D` se pide aparte.
 4. **Smoke manual no ejecutado.** El camino que dispara el aviso del momento exige que la reversión
