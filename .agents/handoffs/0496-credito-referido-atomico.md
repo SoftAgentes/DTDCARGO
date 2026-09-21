@@ -350,13 +350,28 @@ de la 0495. Cambiar corrupción silenciosa por fallo visible es el negocio que q
 hacer — pero sólo sirve si está escrito, porque si no, el próximo ve `failure: "revert"` y
 sale a buscar un permiso roto cuando lo que hubo fue contención.
 
-**3. Un vigilante puede mentir por silencio o por ruido.** El de esta sesión quedó mudo 30
-minutos mientras el CI pasaba, porque `gh pr checks` sale con código ≠ 0 mientras hay
-pendientes y estaba tapado con `|| echo '[]'`. Se le agregó un latido… y **el segundo
-tampoco medía**: usaba `jq`, que **no existe como binario en esta máquina** (sólo el que
-`gh` trae embebido en `--jq`). El latido probaba que el bucle vivía, no que midiera. El del
-Director cayó en lo mismo y lo delató el ruido en vez del silencio. En los dos casos lo que
-resolvió fue ir a leer el estado directo.
+**3. Un vigilante miente de tres formas, y la tercera es la peor.** El de esta sesión
+quedó **mudo** 30 minutos mientras el CI pasaba, porque `gh pr checks` sale con código ≠ 0
+mientras hay pendientes y estaba tapado con `|| echo '[]'`. Se le agregó un latido… y **el
+segundo tampoco medía**: usaba `jq`, que **no existe como binario en esta máquina** (sólo
+el que `gh` trae embebido en `--jq`). **Ruidoso**: el latido probaba que el bucle vivía, no
+que midiera. El del Director cayó en lo mismo y lo delató el ruido en vez del silencio.
+
+El tercero apareció en la PR de limpieza, ya con las dos lecciones anteriores aplicadas.
+Reportó `[expirado] agotó sus 55 vueltas sin que el CI se asentara` — que suena a un CI
+lento. **Medido: el run había arrancado a las 17:32:31Z y eran las 17:34:25Z.** Dos
+minutos, no los 27 que implican 55 × 30 s. Y la causa **no era el entorno**: comprobé que
+`sleep` sí duerme acá (`sleep 5` → 5 s) antes de acusarlo. Era mi bucle: los `sleep 30`
+estaban **sólo dentro de las dos ramas de error**, y la rama normal —la única que corre
+cuando todo va bien— caía al `done` sin esperar.
+
+Esa tercera forma es peor que el silencio porque **trae su propia explicación**: una
+expiración se lee como lentitud ajena y desalienta comprobar. La regla que queda: **para
+esperar un run de Actions no escribas el bucle** — `gh run watch <run-id> --exit-status`
+espera dentro de `gh` y da una sola notificación con su código. Si igual escribes uno, la
+espera va **al final del cuerpo**, no dentro de los `continue`, y el mensaje de expiración
+**imprime el tiempo transcurrido**: una expiración que no dice cuánto esperó no se puede
+auditar. En los tres casos lo que resolvió fue ir a leer el estado directo.
 
 ### Lo que NO se tocó, y por qué
 
