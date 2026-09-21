@@ -203,7 +203,7 @@ de `main` `97a23386`.
 | 2 | `app/studio/(app)/crm/__tests__/stage-control.test.ts:74` | que el fuente de `crm/actions.ts`, leído como **texto**, contiene `moduleEditDenial(supabase, "kommo")` | que un rol sin `kommo` recibe la denegación y **no** se escribe nada |
 | 3 | `app/studio/_components/ui/ConfirmDialog.test.tsx:363` | que dos clics producen **una sola** llamada a `onConfirm` | que el candado **se suelta** después, o sea que un clic legítimo posterior sigue funcionando |
 | 4 | `.agents/handoffs/smokes-app-l14-0454-0472-guion.md:160` (paso 3) | que aparece «**un solo** reporte nuevo» | **cuántas filas quedan en pantalla en total**, y qué combinación sería falla |
-| 5 | un vigilante de CI armado con `gh pr checks <n> ... \|\| echo '[]'` | nada: el fallback convertía cada respuesta en `[]` | una línea por iteración con el estado, y emisión en **todos** los estados terminales |
+| 5 | un vigilante de CI armado con `gh pr checks <n> ... \|\| echo '[]'` | nada: el fallback convertía cada respuesta en `[]` | que el **silencio sea detectable** —cambios de estado más un latido, o marca de tiempo si lo lee un `tail`— y emisión en **todos** los estados terminales |
 
 **Por qué cada uno pasaba igual:**
 
@@ -226,6 +226,16 @@ de `main` `97a23386`.
    contra `exit 0` de `gh pr view --json statusCheckRollup`, que es la llamada
    correcta para un bucle. El monitor dio 55 vueltas sin emitir una línea y
    terminó «sin producir salida» — indistinguible de «no pasó nada».
+   **La propiedad a conservar es que el silencio sea detectable**; la forma
+   concreta depende de **quién lee**. Si lee una persona el hilo: cambios de
+   estado más un **latido** espaciado — si el latido para, el vigilante dejó de
+   medir. Si sólo lo consume un `tail -N` sobre el final, una línea por vuelta
+   **con marca de tiempo** vale igual, porque ahí la repetición no cuesta
+   atención y el hueco en los tiempos delata la parada.
+   Elegir mal la forma no es inocuo en ninguna de las dos direcciones: un
+   vigilante mudo se delata por ausencia, pero **uno ruidoso parece estar
+   trabajando** y entrena a saltear sus líneas, y entonces el cambio de estado
+   pasa entre nueve repeticiones sin que nadie lo vea. Mismo final, otra puerta.
 
 > **No des por buena una aserción hasta haberla matado con un mutante.** Si
 > puedes romper el comportamiento y el contrato sigue verde, no es un contrato.
@@ -263,8 +273,33 @@ que lo motivaba no servía para los roles a los que iba dirigida (reportado por 
 sesión que lo encontró; el detalle vive en su propia spec). **El rojo era el
 mensajero, no el problema.**
 
+> **Sus dos rojos no son el mismo, y confundirlos es cómo se pierde.** El de
+> **contenido** —el inventario dejó de coincidir con el `BASELINE`— es el
+> hallazgo: hay un lector nuevo de `invoices` y alguien tiene que justificarlo.
+> El de **tiempo** —agota su tope de 60 s— es contención de la máquina: lee y
+> parsea ~1.600 archivos, y con otra suite al lado llegó a 92 s (SDD-0486 §3).
+>
+> Ante un rojo por tiempo **no se salta la prueba ni se relaja su tope**: se
+> vuelve a correr con la máquina quieta, y si persiste estando libre, entonces sí
+> es la prueba y se perfila. Eso fue SDD-0486 con las cuatro intermitentes de esa
+> ronda: **ninguna resultó ser «la carga»**. Acá la causa era suya —`readFileSync`
+> uno por uno y punteros al padre que el recorrido no usa—, y se arregló leyendo
+> en paralelo y prefiltrando, sin tocar el runner ni debilitar una aserción.
+>
+> Importa porque un contrato valioso **y** ocasionalmente lento es el candidato
+> perfecto a que alguien lo marque inestable y lo saltee — y un `skip` no se ve
+> en verde ni en rojo: **se ve en nada**, que es el modo de falla de toda esta
+> lista. Sería absurdo que el contraejemplo de esta sección acabara saltado por
+> lento.
+
 Arreglar el contrato del caso 1 es tarea propia y ya está encolada; no la diseñes
 de paso desde otra tarea.
+
+Y esta sección se aplica a sí misma. La regla del caso 5 se escribió como «una
+línea por iteración», se usó el mismo día y se corrigió: cumplía su propósito y
+ahogaba la señal. **Una regla que sólo se sostiene mientras nadie la usa no es
+una regla** — igual que un contrato que sólo se sostiene mientras nadie lo mira.
+Si al aplicar algo de acá te estorba, eso es un dato sobre la regla, no sobre ti.
 
 ## Proceso UI/UX
 
