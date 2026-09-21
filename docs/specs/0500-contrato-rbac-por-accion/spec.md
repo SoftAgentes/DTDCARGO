@@ -296,6 +296,22 @@ no se tocan.
 - **Ningún rol gana permisos.** El único cambio de comportamiento son las dos
   actions de documentos, y es en dirección restrictiva: quien antes recibía un
   `{ ok: true }` vacío ahora recibe la denegación.
+- **Tampoco restringe de más, y no hace falta correr nada para saberlo.** Un
+  candado agregado rompe un flujo legítimo si niega a alguien que llegó por la
+  puerta correcta; acá no puede pasar, porque el predicado que se agrega **ya es
+  el que rige toda la pantalla**:
+  - `app/studio/(app)/tracking/layout.tsx:16` gatea el subárbol entero con
+    `requireModuleView("tracking")`, así que quien ve el panel ya pasó el gate de
+    vista de ese módulo;
+  - las otras **ocho** mutaciones del mismo subárbol ya usaban
+    `moduleEditDenial(supabase, "tracking")` — `[id]/actions.ts:52`, `:113`,
+    `:182`, `:215`, `:267`, `:365`, `:436` y `nuevo/actions.ts:88`.
+
+  Las dos de documentos eran las **únicas** sin candado de la pantalla. O sea:
+  quien pueda editar cualquier otra cosa del envío puede seguir subiendo y
+  borrando sus documentos. Los únicos que quedan fuera —`support` y
+  `marketing`— tampoco podían editar nada más ahí, y en el caso de `support` la
+  RLS ya lo rechazaba en silencio mientras la pantalla le decía que sí.
 - **Cambia un mensaje en un borde**: donde la subida decía «No se pudo resolver
   el tenant» por falta de membresía, ahora responde la denegación por permiso.
   No se le informa a un desconocido si existe o no una membresía.
