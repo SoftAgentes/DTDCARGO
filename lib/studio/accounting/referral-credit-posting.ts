@@ -332,7 +332,33 @@ export const REVERT_REFERRAL_CREDITS_ERROR = "No se pudieron revertir los crédi
  * distinguirlo y sobrecargarlo haría mentir al aviso del Studio:
  *
  *  - `"revert"`: la RPC falló y NO se movió nada — ni la factura, ni el crédito,
- *    ni los asientos. `reverted` es 0. Es el caso de la 0471 sin aplicar.
+ *    ni los asientos. `reverted` es 0. Qué lo produce hoy, con la 0471 ya
+ *    aplicada (2026-09-21). **El orden NO es de frecuencia** —nadie contó
+ *    errores de producción— sino de cuál cuesta más reconocer:
+ *      · **`statement_timeout` (57014)** — la factura lleva más de **8 s** tomada
+ *        por otro escritor: un cobro, una anulación u otra aplicación. Es
+ *        CONTENCIÓN, no un permiso roto, y es el precio del `FOR UPDATE` que
+ *        esta SDD introdujo: antes nadie esperaba y se corrompía en silencio.
+ *        Va primera porque **es nueva y es la que nadie va a sospechar**: quien
+ *        vea `failure: "revert"` se va derecho a buscar un permiso.
+ *        Los 8 s son del rol `authenticated`, con el que corren las RPC
+ *        (INVOKER); medido en producción, no supuesto.
+ *        **Busca 57014, NO 55P03.** El `lock_timeout` del clúster es 0, así que
+ *        la espera por el lock no vence nunca: lo que corta es el
+ *        `statement_timeout`, y corta la sentencia entera. Quien busque
+ *        `lock_not_available` en los logs no va a encontrar nada y va a concluir
+ *        que no hubo contención. El `lock_timeout = '5s'` de la cabecera de la
+ *        0471 tampoco rige acá: es de sesión al aplicar, y el `proconfig` de las
+ *        dos funciones lleva sólo `search_path`.
+ *        Y los 8 s cubren la RPC ENTERA, no sólo la espera: con varios créditos
+ *        en la misma factura, el barrido gasta del mismo presupuesto.
+ *      · `REFERRAL_CREDIT_FORBIDDEN` (42501) — quien llama no es
+ *        `accounting`/`admin` del tenant, o `get_user_tenant_id()` no resuelve
+ *        una membresía activa única.
+ *      · `REFERRAL_CREDIT_INPUT` (22023) — llegó sin id de factura.
+ *      · transporte: PostgREST o red.
+ *    Ya NO lo produce que la función no exista (`PGRST202`): eso sólo volvería
+ *    restaurando la base a antes de la 0471.
  *  - `"entries"`: el dinero SÍ volvió (la factura quedó bien y el crédito está
  *    disponible otra vez) y lo que no se pudo fue anular su asiento. `reverted`
  *    cuenta los créditos devueltos. Avisar «no se revirtió» acá sería falso.
