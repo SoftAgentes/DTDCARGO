@@ -16,8 +16,9 @@
  *    asiento huérfano;
  *  - un `applied_entry_id` que el barrido no encontró se anula igual;
  *  - idempotencia: si la RPC no devolvió créditos, no se toca ningún asiento;
- *  - un fallo de la RPC (por ejemplo, la 0471 sin aplicar) se informa con el
- *    mensaje único y no revierte nada;
+ *  - un fallo de la RPC se informa con el mensaje único y no revierte nada,
+ *    cualquiera sea su causa: contención (la factura tomada más de los 8 s de
+ *    `statement_timeout` del rol `authenticated`) o rol sin permiso;
  *  - si la plata se revirtió pero un asiento no se pudo anular, se informa
  *    igual, diciendo que la factura quedó bien;
  *  - y los dos fallos se distinguen por `failure`, no por `reverted`: antes de
@@ -211,22 +212,39 @@ describe("revertReferralCreditsForInvoice · SDD-0496 (la plata la mueve la RPC)
 });
 
 describe("revertReferralCreditsForInvoice · los fallos se informan", () => {
-  it("si la RPC falla no revierte nada y el mensaje lo nombra (0471 sin aplicar)", async () => {
-    rpcResult = {
-      data: null,
-      error: { message: 'Could not find the function public.revert_referral_credits' },
-    };
+  /**
+   * Las causas VIVAS de `failure: "revert"` con la 0471 ya aplicada
+   * (2026-09-21). Se montan por su efecto —la RPC falla y no se movió nada—, no
+   * por el error concreto: el contrato es que se informe y no se toque ningún
+   * asiento, venga de donde venga.
+   *
+   * La contención va primera a propósito: es la más probable y la introdujo esta
+   * misma SDD. El `FOR UPDATE` hace esperar, y el rol `authenticated` —con el
+   * que corren las RPC, que son INVOKER— corta a los 8 s. Antes nadie esperaba
+   * y el defecto corrompía en silencio; ahora falla a la vista.
+   */
+  const CAUSAS_VIVAS: [string, string][] = [
+    ["contención: la factura tomada más de 8 s", "canceling statement due to statement timeout"],
+    ["rol sin permiso de dinero", "REFERRAL_CREDIT_FORBIDDEN"],
+    ["sin id de factura", "REFERRAL_CREDIT_INPUT"],
+    ["transporte caído", "TypeError: fetch failed"],
+  ];
+  for (const [nombre, mensaje] of CAUSAS_VIVAS) {
+    it(`${nombre}: no revierte nada, lo informa y no toca ningún asiento`, async () => {
+      rpcResult = { data: null, error: { message: mensaje } };
 
-    const res = await revertReferralCreditsForInvoice(supabase, "t1", "inv1");
+      const res = await revertReferralCreditsForInvoice(supabase, "t1", "inv1");
 
-    expect(res.ok).toBe(false);
-    expect(res.reverted).toBe(0);
-    expect(res.error).toContain(REVERT_REFERRAL_CREDITS_ERROR);
-    expect(res.error).toContain("revert_referral_credits");
-    expect(res.failure).toBe("revert");
-    // Ningún asiento se tocó: la plata no se movió.
-    expect(entry("e1").status).toBe("asentado");
-  });
+      expect(res.ok).toBe(false);
+      expect(res.reverted).toBe(0);
+      expect(res.failure).toBe("revert");
+      // El mensaje único por delante, y la causa cruda detrás para el log.
+      expect(res.error).toContain(REVERT_REFERRAL_CREDITS_ERROR);
+      expect(res.error).toContain(mensaje);
+      // Ningún asiento se tocó: la plata no se movió.
+      expect(entry("e1").status).toBe("asentado");
+    });
+  }
 
   it("si la plata volvió pero el asiento no se pudo anular, lo dice sin negar la reversión", async () => {
     rpcResult = reverted([{ referral_id: "r1" }]);

@@ -1,7 +1,10 @@
 # Handoff 0496 · El crédito de referido se aplica y se revierte en una transacción
 
-- Fecha: 2026-09-20 (Caracas; 2026-09-21 UTC). Estado de la tarea: **implementada, probada,
-  con `verify` cerrado y `main` traído. Falta abrir la PR.**
+- Fecha: 2026-09-20 → 2026-09-21 (Caracas). Estado de la tarea: **CERRADA de punta a punta.**
+  Migración aplicada y verificada 17:03:38Z · PR [#184](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/184)
+  fusionada 17:18:47Z (merge `6e3140b8040e89dba37b19748fbc97a47eb0bc66`, head
+  `1b0eb4b9af530234c4b4fd9f277030d560b8aafd`) · despliegue **success** 17:21:06Z, sitio sano.
+  Queda la PR de limpieza que retira la espera (rama `codex/retirar-espera-0471`).
 - Owner/sesión: `worker-credito-referido-atomico-20260920` (Claude Opus 5, Worker).
   Director: sesión «Director notificación a workers».
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/credito-referido-atomico`,
@@ -295,3 +298,89 @@ producción.
    No es un defecto —el picker sólo sugiere—, pero sus criterios y los de la 0471 son dos
    copias de la misma regla en lenguajes distintos: si una cambia sin la otra, el picker
    ofrecería facturas que la función rechaza. Hoy coinciden; no hay prueba que lo fije.
+
+
+## CIERRE (2026-09-21)
+
+### El orden migrate-first se cumplió, y en el orden correcto
+
+| Hito | Hora (UTC) |
+|---|---|
+| 0471 aplicada a producción por el Director, con el OK nominal de Sam | **17:03:38** |
+| PR #184 fusionada a `main` | **17:18:47** |
+| Despliegue de Vercel en success, sitio sano (`/` 200, `/studio` y `/portal` 307) | **17:21:06** |
+
+**Quince minutos en los que la base ya tenía las dos funciones y la app todavía no las
+llamaba.** Ésa es exactamente la ventana segura que la espera pedía; al revés habría dejado
+cada anulación de factura con un crédito pegado.
+
+### Quién escribió en producción
+
+**La aplicó el Director**, no este Worker. Sam le dio el OK nominal a los dos por separado
+—con el archivo nombrado en los dos casos—, y precisamente por eso hizo falta que actuara
+uno solo: dos sesiones aplicando la misma migración es la carrera que el encargo evita
+poniendo la aplicación de un lado. Este Worker avisó antes de tocar nada, el Director ya
+estaba en el preflight, y se detuvo. **La metadata del commit no guarda quién aplicó**, por
+eso queda escrito acá.
+
+La verificación sí la hicieron **las dos sesiones por separado**, y coincidieron: identidad
+por md5, postflight del catálogo y cuerpos vivos.
+
+### Lo que hay que llevarse de esta tarea
+
+**1. «Fusionó limpio» y «sigue siendo cierto» son dos preguntas distintas, y sólo la segunda
+la contesta una persona.** El mejor hallazgo de la tarea no lo encontró ningún gate: el
+merge de `main` salió **sin conflicto** en `facturacion/actions.ts` y dejó el aviso de la
+SDD-0495 eligiendo su texto con `revert.reverted` — un valor cuyo significado esta SDD
+**invirtió**. El banner habría dicho «parte de los créditos siguen marcados como usados»
+justo cuando no queda ninguno varado. Git no tenía cómo verlo: las dos ramas cambiaron
+cosas distintas del mismo archivo y encajaron. Lo que cambió fue el **significado** de un
+dato que la otra tarea leía. Lo encontró leer el merge con desconfianza.
+
+**2. El candado se vuelve su propio modo de fallo, y ése es el precio del arreglo.** El
+`FOR UPDATE` hace esperar. El rol `authenticated` —con el que corren las RPC, que son
+INVOKER— corta a los **8 s** (`statement_timeout`, medido en producción, no supuesto). Si
+la factura está tomada más que eso, la reversión falla con **57014** y sale
+`failure: "revert"`. **Buscar 57014, no 55P03:** el `lock_timeout` del clúster es 0, así que
+la espera por el lock no vence nunca; lo que corta es el timeout de sentencia, y corta la
+sentencia entera. Los 8 s cubren la RPC completa, no sólo la espera.
+
+Antes el defecto corrompía **en silencio**; ahora falla **a la vista** y enciende el aviso
+de la 0495. Cambiar corrupción silenciosa por fallo visible es el negocio que queríamos
+hacer — pero sólo sirve si está escrito, porque si no, el próximo ve `failure: "revert"` y
+sale a buscar un permiso roto cuando lo que hubo fue contención.
+
+**3. Un vigilante puede mentir por silencio o por ruido.** El de esta sesión quedó mudo 30
+minutos mientras el CI pasaba, porque `gh pr checks` sale con código ≠ 0 mientras hay
+pendientes y estaba tapado con `|| echo '[]'`. Se le agregó un latido… y **el segundo
+tampoco medía**: usaba `jq`, que **no existe como binario en esta máquina** (sólo el que
+`gh` trae embebido en `--jq`). El latido probaba que el bucle vivía, no que midiera. El del
+Director cayó en lo mismo y lo delató el ruido en vez del silencio. En los dos casos lo que
+resolvió fue ir a leer el estado directo.
+
+### Lo que NO se tocó, y por qué
+
+- **La cabecera del `.sql`, que sigue diciendo «⚠️ NO APLICADA A PRODUCCIÓN».** Se queda tal
+  cual. El ledger guardó el texto exacto que se aplicó y editarlo rompería la identidad por
+  md5 que las dos sesiones probaron. **El estado vive en el ledger y en el baseline, no en
+  el comentario.**
+- **El `cutoff` 238.** La propia declaración lo prohíbe y no hace falta.
+- **Las esperas de la 0422 y la 0423.** Siguen pendientes de verdad.
+- **`docs/runbooks/knowledge-graphify-obsidian.md:3`, que dice `SDD: 0471`.** **No es esta
+  migración**: son dos numeraciones distintas —specs y migraciones— que comparten el espacio
+  de cuatro dígitos. Toda limpieza de migración empieza con un `grep` del número, así que
+  esto va a volver a aparecer. No se toca.
+
+### La limpieza (rama `codex/retirar-espera-0471`)
+
+Sale la entrada `0471_credito_referido_atomico` de `pendingBelowCutoff` y su declaración de
+símbolos: el gate pasa de **0 ROJO · 1 AMARILLO** a **0 ROJO · 0 AMARILLO**. Una espera que
+ya no describe la realidad es peor que ninguna — el gate seguiría marcando amarillo por algo
+que está en producción, y quien lo lea va a creer que falta aplicarla. Es el mecanismo por
+el que este repo perdió la 0228 y la 0169.
+
+Entran además los dos comentarios que citaban «la 0471 sin aplicar» como caso vivo. **No se
+pasaron a pasado —eso sería un dato muerto— sino que se reescribieron para nombrar las
+causas que SÍ quedan vivas** de `failure: "revert"`, que es lo que le sirve al próximo que
+lo vea en producción. El escenario de prueba pasó de montar la causa histórica (`PGRST202`)
+a montar las cuatro vivas.
