@@ -7,6 +7,62 @@
 - **Fecha**: 2026-09-21
 - **Turno de máquina**: turno 5. `pnpm verify` completo **NO ejecutado** — falta el turno del Director.
 
+## ESTADO DE CADA HUECO
+
+Tres estados, sin término medio. **Lo que quedó abierto está dicho con todas las
+letras**: un hueco a medio arreglar y sin etiquetar es peor que uno intacto,
+porque el próximo lo lee como cerrado.
+
+| # | Hueco | Estado | Prueba que lo afirma / qué expone |
+|---|---|---|---|
+| 1 | Secreto de Telegram en la query string | **CERRADO** (con una acción abierta de Sam, ver abajo) | `app/api/telegram/webhook/__tests__/secret-header.test.ts` — incluye el caso que manda el secreto bueno por query string y espera 403 |
+| 2 | `shipments/[id]/events` mutaba estado sin gate | **CERRADO** | `.../events/__tests__/module-gate.test.ts` — `support` recibe 403 y ni `shipments` ni `shipment_events` se tocan |
+| 3 | Push: 6 sitios re-asignaban o borraban la sub de otro | **CERRADO** (los 6) | `app/api/m/push/__tests__/ownership.test.ts`, `app/api/portal/push/__tests__/rebind.test.ts`, `app/api/studio/push/__tests__/rebind-possession.test.ts`, `lib/studio/notify/__tests__/push-rebind.test.ts` |
+| 4 | `finalize` / `reauthorize` sin gate de módulo | **NO ERA UN HUECO** — arreglado igual, por uniformidad | La RPC `reauthorize_document_upload` (`0309_…sql:114-115`) filtra por `tenant_id` **y** `user_id = auth.uid()`: nadie alcanzaba reservas ajenas. Era inconsistencia de capas. |
+| 5 | 21 comparaciones de secreto no constantes | **NO ERA UN HUECO** práctico — unificado igual | Sobre HTTP el jitter de red domina el canal de temporización. Lo que SÍ era sustancial —fail-closed— ya estaba bien en los 21 y se conserva. |
+| 6 | `/api/contact` «deprecado pero montado» | **NO ERA UN HUECO — y la premisa era falsa** | El endpoint **está vivo**: lo llama `AcademiaLeadForm.tsx:45`, montado en `academia/page.tsx:221`. No se apagó. Sólo se corrigió el docblock. |
+| D1 | `estimados/actions.ts:64-69` y `:97-100` — lee y muta `quotes` sin `tenant_id` | **ABIERTO Y CONFIRMADO** | Ver abajo. |
+| D2 | `referral-invite.ts:80-87` y `:96-101` — dedupe y tope por markbox sin tenant | **ABIERTO Y CONFIRMADO** | Ver abajo. |
+| D3 | `marca/access.ts:100-110` — `resolveBrandTenantId()` devuelve el primer tenant | **ABIERTO Y CONFIRMADO** | Ver abajo. |
+
+### Lo abierto, con todas las letras
+
+**D1, D2 y D3 siguen ahí. No los toqué.** Es una decisión del encargo, no un
+descuido: Sam confirmó el 2026-09-21 que **hay un solo tenant en producción**, y
+los tres sólo son explotables con un segundo. Lo que exponen **el día que se
+abra uno**:
+
+- **D1 — `app/portal/(app)/estimados/actions.ts`.** Un cliente del portal que
+  comparta Shipping Mark con un cliente de otro tenant **lee y muta** el
+  estimado ajeno (`quotes`), porque el markbox es `unique (tenant_id, markbox)`
+  (`supabase/migrations/0006_clients.sql:23`), único por tenant y no global.
+  **La RLS no lo corta**: `createAdminClient()` es `service_role` y la bypasea
+  (`lib/db/admin.ts:2`). No hay segundo candado.
+  Y además de la escritura, hay **fuga de PII por el canal de avisos**:
+  `:113` llama `notifyCotizacionRequestToAdmin(admin, q.tenant_id, {markbox,
+  clientName, …})`, que resuelve los admins **del tenant de la fila**
+  (`lib/studio/cotizacion-request-notify.ts:48`) — o sea que les manda a los
+  administradores del OTRO tenant un correo con el nombre y el markbox del
+  llamador.
+- **D2 — `lib/portal/referral-invite.ts`.** Oráculo de existencia («¿ya
+  invitaron a este correo?») y cupo diario de invitaciones compartido entre dos
+  referidores de tenants distintos que comparten markbox.
+- **D3 — `lib/marca/access.ts`.** Los tres endpoints de `marca` firman URLs del
+  bucket privado sobre el tenant más antiguo, no sobre el del que llama: un
+  visitante validado contra un tenant recibiría assets del otro.
+
+Ninguno de los tres tiene prueba: con un solo tenant no se puede escribir el
+caso infeliz sin fabricar un segundo, y eso excede esta spec. **Quien lo retome
+no necesita re-investigar** — la ubicación está medida hoy y el análisis de por
+qué la RLS no ayuda está arriba.
+
+**Acción abierta que NO es de un agente (hueco 1):** rotar
+`TELEGRAM_WEBHOOK_SECRET`. El arreglo hace que el secreto deje de viajar en la
+URL de ahora en adelante, pero **el valor vivo ya viajó** y hay que darlo por
+comprometido. Es de Sam y va después del despliegue. En este handoff, en la
+spec, en el runbook y en el diff se nombra la variable; **en ningún lado hay un
+valor**.
+
 ## OBJETIVO ORIGINAL
 
 Seis hallazgos de dos auditorías de solo lectura sobre `main` `07831a5d` (los 99
@@ -121,11 +177,20 @@ bb646c6e fix(studio): SDD-0499 — conocer un endpoint de push ya no apaga las n
 a8365ede docs(SDD-0499): spec de los secretos que viajan mal y los gates que faltan
 ```
 
+## PR / BRANCH
+
+- Rama **publicada**: `claude/heuristic-benz-8851fb` → `origin`.
+- PR **draft**: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/186 (base `main`).
+- Draft a propósito: `pnpm verify` completo quedó sin correr.
+- **No fusioné nada.** La integración es del Director.
+
 ## PENDIENTES DE ESTA TAREA
 
-1. **`pnpm verify` completo.** Necesita el turno del Director. Si el paso `test`
-   sale rojo, hay que distinguir una aserción que falla de un worker de vitest
-   que no arranca por RAM, y mandarle el veredicto literal.
+1. **`pnpm verify` completo — NO EJECUTADO.** Pedí el turno; el Director cerró
+   el día con tres sesiones más terminando a la vez e indicó **no correrlo**
+   («gates estáticos y focales»). Queda para quien retome, con el mismo cuidado
+   de siempre: si el paso `test` sale rojo, distinguir una aserción que falla de
+   un worker de vitest que no arranca por RAM antes de tocar nada.
 2. **Rotar `TELEGRAM_WEBHOOK_SECRET` — es de Sam, no de un agente, y va DESPUÉS
    del despliegue.** El valor vivo hay que darlo por comprometido: viajó en
    URLs. Procedimiento y orden en
