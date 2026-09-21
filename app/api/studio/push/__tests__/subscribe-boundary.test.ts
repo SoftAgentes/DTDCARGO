@@ -20,7 +20,15 @@ function database() {
         is: () => chain,
         in: (column: string, value: unknown) => { write?.filters.push([column, value]); return chain; },
         limit: () => chain,
-        maybeSingle: async () => ({ data: { tenant_id: table === "client_users" ? state.portalTenant : state.tenant }, error: null }),
+        // SDD-0499 · las tablas de subs ahora se LEEN antes de reclamar un
+        // endpoint (gate de posesión). Acá devuelven "libre": estas pruebas son
+        // de frontera de entrada e identidad, y el escenario del endpoint
+        // ocupado vive en `app/api/m/push/__tests__/ownership.test.ts`.
+        maybeSingle: async () => (
+          table === "user_push_subscriptions" || table === "operario_push_subscriptions"
+            ? { data: null, error: null }
+            : { data: { tenant_id: table === "client_users" ? state.portalTenant : state.tenant }, error: null }
+        ),
         delete: () => {
           write = { table, op: "delete", filters: [] }; state.writes.push(write); return chain;
         },
@@ -158,7 +166,17 @@ describe("Push POST · identidad y compatibilidad", () => {
     expect(response.status).toBe(200);
     expect(state.writes[0].op).toBe("delete");
     expect(JSON.stringify(state.writes[0].filters)).toContain(oldEndpoint);
-    expect(state.writes[1].payload).toEqual(expect.objectContaining(kind === "staff"
+    // SDD-0499 · el borrado de `old_endpoint` va acotado al dueño; la rama staff
+    // suma un segundo delete (el hueco para el endpoint nuevo, ya autorizado por
+    // el gate de posesión). Se fija la secuencia completa en vez de un índice.
+    expect(state.writes[0].filters).toContainEqual(
+      kind === "staff" ? ["user_id", "session-user"] : ["operario_id", "session-operario"],
+    );
+    expect(state.writes.map((write) => write.op)).toEqual(
+      kind === "staff" ? ["delete", "delete", "insert"] : ["delete", "upsert"],
+    );
+    const guardada = state.writes.find((write) => write.op === "insert" || write.op === "upsert");
+    expect(guardada?.payload).toEqual(expect.objectContaining(kind === "staff"
       ? { user_id: "session-user", tenant_id: "tenant-session" }
       : { operario_id: "session-operario", tenant_id: "tenant-operario" }));
   });

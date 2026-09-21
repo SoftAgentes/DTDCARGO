@@ -37,12 +37,19 @@ vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => ({
     from() {
       const chain: Record<string, unknown> = {
+        // SDD-0499 · antes de reclamar el endpoint la ruta lee si ya es de
+        // alguien. Acá está libre: el escenario del endpoint ocupado vive en
+        // `app/api/m/push/__tests__/ownership.test.ts`.
+        select: () => chain,
+        maybeSingle: async () => ({ data: null, error: null }),
         delete: () => chain,
-        eq: async () => ({ error: null }),
+        eq: () => chain,
         insert: async (payload: Record<string, unknown>) => {
           insertedRows.push(payload);
           return { error: null };
         },
+        // `await …delete().eq(…)` termina la cadena sin `maybeSingle`.
+        then: (resolve: (v: unknown) => unknown) => Promise.resolve({ error: null }).then(resolve),
       };
       return chain;
     },
