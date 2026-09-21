@@ -3,7 +3,9 @@
 - **Owner**: Worker Claude (sesión `keen-swirles-62b904`)
 - **Worktree**: `.claude/worktrees/keen-swirles-62b904`
 - **Rama**: `claude/heuristic-benz-8851fb` (base `main` `d9adbabf`; `07831a5d` es
-  ancestro). `main` traído por **merge** hasta `0807b69d`.
+  ancestro). `main` traído por **merge**, dos veces: `0807b69d` y `5f022580`
+  (esta última con la SDD-0500, el contrato de RBAC por acción). Nunca rebase,
+  nunca force push.
 - **SDD**: 0499 — `docs/specs/0499-endurecer-api-secretos-y-gates/spec.md`
 - **Fecha**: 2026-09-21
 - **Turno de máquina**: turno 5. `pnpm verify` completo **ejecutado** sobre
@@ -266,6 +268,32 @@ Lo que sí se midió, que es más chico y más verificable:
 **Lo que esto NO dice:** que `e2e` esté cubierto sobre `5303e905`. Dice que
 ningún e2e ejercita un camino que este diff pueda alterar. Son dos afirmaciones
 distintas y sólo la segunda está medida.
+
+## COMPROBACIONES SOBRE EL ÁRBOL FINAL (tras traer `main` `5f022580`)
+
+| Comprobación | Resultado |
+|---|---|
+| `pnpm typecheck` | PASÓ |
+| `pnpm lint app/api lib/http lib/studio/notify` | PASÓ |
+| `pnpm docs:check` | PASÓ — índice sincronizado con **487** specs |
+| `pnpm sdd:check` | PASÓ |
+| `git diff --check` | PASÓ |
+| Vitest focal — 28 archivos, 502 pruebas | PASÓ |
+| **Contrato de RBAC por acción de la SDD-0500** + anti-deriva de `lib/http` — 7 archivos, 560 pruebas | PASÓ |
+| Revalidación de las 33 citas | **33/33, ninguna venció** |
+
+**El contrato de la 0500 se corrió, no se asumió.** El Director había medido que
+su escáner arranca en `app/studio/(app)` y por construcción no alcanza
+`app/api/**`, así que las tres rutas gateadas acá no le entran en el alcance. Se
+corrió igual contra el árbol fusionado —incluido
+`app/studio/(app)/tracking/[id]/__tests__/document-actions-rbac.test.ts`, que es
+el candado nuevo de esa spec— porque «fusionó limpio» y «sigue siendo cierto»
+son dos preguntas distintas, y la segunda cuesta una corrida.
+
+**El índice lo volvió a resolver el driver:** tras el merge, `pnpm docs:index`
+no tuvo nada que corregir (487 specs) y `git status` salió vacío. Segunda vez
+que se confirma en el día: el driver rehace el conteo, el merge que calcula
+GitHub para el CI no.
 
 ## REVALIDACIÓN DE CITAS CONTRA EL ÁRBOL FUSIONADO
 
