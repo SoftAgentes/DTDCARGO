@@ -1195,8 +1195,19 @@ function ResultPanel({
 }) {
   const esConsolidado = modo === "consolidado";
   const hasAlerta = !!cot.alerta && tieneCarga;
-  const money = (n: number) =>
-    `$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
+  // SDD-0502: el motor reconcilia a centavos. Si una fila tiene centavos, se
+  // muestran los dos; si es entera, conserva el formato compacto de siempre.
+  // Redondear cada fila a dólares enteros hacía que el desglose visible no
+  // sumara el total en cargas mínimas.
+  const money = (n: number) => {
+    const cents = Math.round(Math.abs(n) * 100);
+    const amount = cents / 100;
+    const hasCents = cents % 100 !== 0;
+    return `$${amount.toLocaleString("en-US", {
+      minimumFractionDigits: hasCents ? 2 : 0,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
   // Tarifa efectiva y datos del excedente para los subtextos del desglose.
   // La tarifa se DERIVA de precioBase/cbm (evita re-derivar el override/CONFIG).

@@ -49,14 +49,15 @@ ajusteMinimoBase = max(0, piso - subtotal)
 fleteFacturable = subtotal + ajusteMinimoBase
 recargoBateria = bateria ? fleteFacturable × (multiplicador - 1) : 0
 totalAntesDescuento = fleteFacturable + recargoBateria
-total = max(totalAntesDescuento + descuento, pisoEfectivo)
-pisoEfectivo = bateria ? piso × multiplicador : piso
+total = max(totalAntesDescuento + descuento, piso)
 ```
 
-El último `max` conserva la protección existente cuando un descuento
-configurado intentaría dejar el total por debajo del piso que corresponde. El
-ajuste mínimo devuelto incluye cualquier restauración posterior al descuento,
-de modo que el contrato del desglose siempre sea:
+El último `max` conserva la protección histórica del piso **normal**. No crea un
+segundo piso multiplicado después del descuento: con piso USD 50, batería ×1,5
+y descuento USD 10, el resultado es USD 65 (USD 75 − USD 10), salvo que un
+descuento mayor lo lleve por debajo de USD 50. El ajuste mínimo devuelto incluye
+cualquier restauración hasta ese piso normal. En los caminos afectados por esta
+decisión —mínimo y batería— el contrato verificado del desglose es:
 
 ```text
 precioBase + recargoExcedente + recargoCiudad + recargoEmbalaje
@@ -116,8 +117,9 @@ USD 1.275 y un recargo de USD 425.
 - SDD-0473 reutiliza `calcularEnvioLCL` para documentos. Una prueba de regresión
   demuestra que recibe la corrección sin implementación paralela.
 - Los descuentos mantienen su orden existente —después de batería— y sólo se
-  restaura el piso efectivo si fuese necesario. Cualquier cambio comercial más
-  amplio queda bloqueado hasta una nueva decisión del founder.
+  restaura el piso normal si fuese necesario. Esta SDD no introduce un piso
+  postdescuento multiplicado. Cualquier cambio comercial más amplio queda
+  bloqueado hasta una nueva decisión del founder.
 
 ## Aceptación
 
@@ -126,13 +128,22 @@ USD 1.275 y un recargo de USD 425.
    `piso × 2` usando el mismo campo de configuración.
 3. Sobre el piso, el resultado vigente no cambia.
 4. No existen literales USD 75/USD 100 en la implementación del motor.
-5. Los campos del desglose suman el total a precisión de centavos y la UI no
-   pierde los centavos necesarios para que el cliente pueda comprobarlo.
+5. En los casos de mínimo y batería cubiertos por esta SDD, los campos del
+   desglose suman el total a precisión de centavos y la UI no pierde los
+   centavos necesarios para que el cliente pueda comprobarlo. Una regresión
+   adicional confirma la base fraccionaria sobre el piso sin batería, sin
+   inventar un “Ajuste a mínimo” donde el piso no aplica.
 6. El consumidor de SDD-0473 recibe la misma regla mediante el motor compartido.
 7. Pruebas focalizadas, lint/typecheck/docs aplicables y `pnpm verify` se
    registran con PASÓ/FALLÓ/NO EJECUTADO/NO DISPONIBLE.
 8. La rama se publica y se abre PR contra `main`; el Worker no mergea ni
    despliega.
+
+La regresión de redondeo usa una carga sobre el piso con base cruda
+USD 104,56599 y batería ×1,5: el total histórico es USD 156,85. La
+implementación conserva ese total y distribuye USD 104,57 + USD 52,28 en el
+desglose. Redondear la base antes de multiplicar daría USD 156,86 y queda
+explícitamente prohibido por la prueba.
 
 ## Validación visual
 
