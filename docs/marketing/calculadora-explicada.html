@@ -324,6 +324,16 @@
 
   <p>El sistema <strong>no rechaza</strong> la carga chiquita: le pone un piso al precio. Ese piso, traducido a espacio, son <strong>0,0588 m³: menos de 2 cajas de 40×30×25 cm</strong> ($50 ÷ $850). Por debajo de eso, todo cuesta lo mismo: $50.</p>
 
+  <div class="note warn">
+    <div class="n-label">Si lleva baterías, el multiplicador también aplica al mínimo</div>
+    Primero la carga completa el piso de <strong>$50</strong> y después se aplica el
+    multiplicador configurado en Administración. Con el valor vigente <strong>×1,5</strong>,
+    el mínimo con baterías es <strong>$75</strong> ($50 × 1,5). Si Administración lo cambia
+    a ×2, ese mismo mínimo pasa a <strong>$100</strong> sin cambiar la fórmula.<br><br>
+    En el desglose se ven las dos cosas por separado: el ajuste que completa los $50 y el
+    recargo de batería calculado sobre esos $50.
+  </div>
+
   <div class="card">
     <svg viewBox="0 0 620 270" role="img" aria-label="Gráfico: el precio se queda plano en 50 dólares hasta 0,0588 metros cúbicos y de ahí sube">
       <!-- ejes -->
@@ -383,7 +393,7 @@
     <tbody>
       <tr><td><strong>Entrega en Venezuela</strong></td><td class="num">Por m³, según la ciudad<br><span style="color:#6B6B6B;font-size:13px">ej. Puerto Ordaz $123,60/m³</span></td><td>Siempre, menos en las 8 ciudades donde va incluida (ver abajo)</td></tr>
       <tr><td><strong>Embalaje especial</strong></td><td class="num">+$50</td><td>Madera o paleta. Una sola vez, no por caja</td></tr>
-      <tr><td><strong>Baterías</strong></td><td class="num">×1,5 <span style="color:#6B6B6B">(+50%)</span></td><td>Sobre todo el flete, por el manejo del litio</td></tr>
+      <tr><td><strong>Baterías</strong></td><td class="num">×1,5 <span style="color:#6B6B6B">(+50%)</span></td><td>Sobre todo el flete facturable, incluido el mínimo cuando aplica. El multiplicador sale de Administración</td></tr>
       <tr><td><strong>Carga especial o peligrosa</strong></td><td class="num"><span class="tag">No cotiza</span></td><td>Frágil, con permisos, alto valor → asesor</td></tr>
     </tbody>
   </table>
@@ -429,6 +439,11 @@
         <td class="num"><strong>$50</strong></td>
       </tr>
       <tr>
+        <td><strong>1 caja</strong> · 0,03 m³ · 20 kg · <strong>con baterías</strong></td><td>Caracas</td>
+        <td>$25,50 + ajuste a mínimo $24,50 = $50<br><span style="color:#6B6B6B;font-size:13px">baterías ×1,5 sobre el mínimo: +$25</span></td>
+        <td class="num"><strong>$75</strong></td>
+      </tr>
+      <tr>
         <td>12 m³ · 9.500 kg</td><td>Caracas</td>
         <td>Pesada y apretada</td>
         <td class="num"><span class="tag">Asesor</span></td>
@@ -457,7 +472,7 @@
 
   <div class="qa">
     <div class="q">“¿Cuál es el mínimo que puedo mandar?”</div>
-    <div class="a">No tenemos mínimo de cantidad: te llevamos hasta una caja. Lo que sí hay es un mínimo de $50, que equivale a menos de 2 cajas de 40×30×25. Por debajo de eso el envío igual sale en $50.</div>
+    <div class="a">No tenemos mínimo de cantidad: te llevamos hasta una caja. Lo que sí hay es un mínimo de $50, que equivale a menos de 2 cajas de 40×30×25. Por debajo de eso el envío sale en $50 si no lleva baterías. Si lleva baterías, primero llega a $50 y después aplica el multiplicador vigente; hoy ×1,5 da $75.</div>
   </div>
 
   <div class="qa">
@@ -480,7 +495,7 @@
   </ul>
 
   <footer>
-    <strong>Números vigentes al 18 de septiembre de 2026</strong>, leídos ese día de la calculadora pública (dtdcargo.com/tarifas y su tarifa en /api/public/cbm-rate): tarifa base $850/m³, mínimo $50, 1.000 kg incluidos por m³, $2 por kilo excedente, recargo de baterías ×1,5 y entrega a Puerto Ordaz $123,60/m³. Todos los ejemplos, también el de baterías, se corrieron en el motor de la calculadora con esos valores. El recargo de baterías es ×1,5 por decisión de Sam, confirmada ese mismo día.<br><br>
+    <strong>Tarifas leídas el 18 de septiembre de 2026; precedencia del mínimo revisada el 23 de septiembre de 2026.</strong> La lectura de la calculadora pública (dtdcargo.com/tarifas y su tarifa en /api/public/cbm-rate) dio: tarifa base $850/m³, mínimo $50, 1.000 kg incluidos por m³, $2 por kilo excedente, recargo de baterías ×1,5 y entrega a Puerto Ordaz $123,60/m³. Todos los ejemplos, también el mínimo con baterías, se corrieron en el motor de la calculadora con esos valores. El ×1,5 y la regla de aplicarlo después de completar el piso fueron confirmados por Sam; el cálculo siempre usa el multiplicador vigente de Administración.<br><br>
     Estos valores se cambian desde el ERP, en <strong>Studio › Admin › Calculadora pública</strong>. Si alguien los mueve, esta guía queda vieja: pide la actualizada antes de citar cifras de memoria.
   </footer>
 

@@ -135,6 +135,19 @@ describe("Estimado de transporte: varias compras, un solo envío", () => {
     expect(juntas.result.total).toBeLessThan(porSeparado.reduce((a, b) => a + b, 0));
   });
 
+  it("aplica batería sobre el mínimo del envío compartido usando los params del ERP", () => {
+    const rows = [workspace(packed({ cbm: 0.5, weight: 100, cartons: 2 }))];
+    const estimado = estimateDocuments(rows, { cityId: "maracaibo", battery: true }, rates());
+
+    // Flete previo: $50 de volumen + $200 del piso del tramo = $250.
+    // El mínimo comercial lo completa a $380; batería ×1,5 cobra $190 sobre ese piso.
+    expect(estimado.result.precioBase).toBe(50);
+    expect(estimado.result.recargoCiudad).toBe(200);
+    expect(estimado.result.ajusteMinimo).toBe(130);
+    expect(estimado.result.recargoBateria).toBe(190);
+    expect(estimado.result.total).toBe(570);
+  });
+
   it("aplica el embalaje especial y el multiplicador de baterías sobre el envío, no sobre cada compra", () => {
     const rows = [0, 1, 2].map(() => workspace(packed({ cbm: 2, weight: 300, cartons: 2 })));
     const body = { cityId: "maracaibo", packaging: "especial", battery: true };
