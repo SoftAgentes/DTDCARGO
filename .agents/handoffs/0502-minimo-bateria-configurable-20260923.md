@@ -6,6 +6,10 @@ Fecha: 2026-09-23. Estado de tarea: `lista-para-revision`.
 - **Worktree:** `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/calculadora-minimo-bateria-config`.
 - **Rama:** `codex/calculadora-minimo-bateria-config`.
 - **Base:** `origin/main` en `e9b7c4f43406a00d11068e032f07660e0391e821` después de `git fetch origin`.
+- **PR DRAFT:** [#190](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/190), abierto y mergeable contra esa base.
+- **SHA revisado antes de esta corrección:** `90bd9f89a1298ca85d2454fc656a43ba2edbdee0`.
+- **Retome de revisión:** antes de esta ronda el worktree estaba limpio, la rama local coincidía con la remota y el claim estaba liberado. El Worker volvió a reclamar ownership y pasó `guard --owner` antes de escribir.
+- **CI remoto del SHA previo:** `Calidad local sin secretos`, Vercel y Vercel Preview Comments en verde. El nuevo commit correctivo debe volver a pasar esos checks; su resultado no se anticipa en este documento.
 - **SDD:** `docs/specs/0502-minimo-bateria-configurable/spec.md`, reservada antes de editar producto.
 - **Estado SDD:** `in-progress`. La implementación Worker está lista para revisión, pero la SDD no se marca `done` antes de la integración a `main`; el estado de tarea y el estado SDD son independientes según el runbook.
 - **Permiso:** Sam autorizó implementar, probar, commitear, publicar la rama y abrir el PR. No autorizó merge, despliegue, migraciones ni cambios de configuración en producción.
@@ -21,6 +25,7 @@ Corregir la calculadora pública para que, cuando la cotización cae por debajo 
 - El desglose afectado reconcilia a centavos sin cambiar el total histórico sobre el piso. Ejemplo mínimo visible: USD 8,50 de volumen + USD 41,50 de ajuste + USD 25,00 de batería = USD 75,00.
 - `components/CalculadoraForm.tsx` muestra dos decimales sólo cuando son necesarios. No hubo rediseño, cambio de jerarquía ni cambio en `CalculadoraPage.tsx`.
 - `__tests__/calculadora.test.ts` cubre mínimo sin batería, batería `×1,5`, batería `×2`, descuentos, bases fraccionarias bajo/sobre el piso y preservación del total histórico.
+- `__tests__/calculadora-sin-peso.test.ts` agrega la regresión explícita de compatibilidad con SDD-0257: bajo el piso, con peso omitido y batería `×1,5`, conserva `sinPeso`, el techo `pesoMaxSinRecargoKg`, calcula `piso × recargoBateriaMult` y reconcilia el desglose. La prueba pasó sin revelar una falla nueva del motor; no hubo cambio adicional de comportamiento.
 - `components/CalculadoraForm.minimo-bateria.test.tsx` prueba la reconciliación visible del mínimo con batería.
 - `lib/studio/document-import/estimate.test.ts` confirma que el consumidor documental compartido recibe la regla corregida sin duplicar la fórmula.
 - Se actualizaron `docs/marketing/README.md`, `docs/marketing/calculadora-explicada.html` y la SDD-0502.
@@ -31,6 +36,9 @@ Corregir la calculadora pública para que, cuando la cotización cae por debajo 
 
 - **PASÓ:** pruebas focales — 3 archivos, 103 pruebas.
 - **PASÓ:** matriz relevante — 16 archivos, 216 pruebas.
+- **PASÓ (corrección de revisión):** `__tests__/calculadora-sin-peso.test.ts` — 1 archivo, 24 pruebas; incluye la nueva regresión SDD-0257.
+- **PASÓ (matriz exigida por el Director):** `__tests__/calculadora-sin-peso.test.ts`, `__tests__/calculadora.test.ts`, `lib/studio/document-import/estimate.test.ts` y `components/CalculadoraForm.minimo-bateria.test.tsx` — 4 archivos, 127 pruebas.
+- **PASÓ (corrección de revisión):** ESLint focal sobre esos 4 archivos; typecheck; `pnpm docs:check` con 488 specs; `pnpm sdd:check`; y `git diff --check`.
 - **PASÓ:** ESLint focal sobre los archivos TypeScript/TSX cambiados.
 - **PASÓ:** typecheck.
 - **PASÓ:** `pnpm docs:check` — 488 specs.
@@ -39,8 +47,8 @@ Corregir la calculadora pública para que, cuando la cotización cae por debajo 
 - **FALLÓ (ambiental / Turbopack no disponible para esta prueba):** el servidor local con Turbopack no resolvió `@vercel/turbopack-next/internal/font/google/font`. Se reinició la misma rama con Webpack, sin alterar dependencias ni configuración, y allí pasó la prueba visual.
 - **NO DISPONIBLE en la consola local:** faltaban `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`; la calculadora usó su respaldo `×1,5`. Esto no prueba una lectura real de configuración productiva. La prueba automatizada demuestra que el motor también respeta `×2` cuando ese valor es inyectado.
 - **PASÓ CON CIERRE INCOMPLETO:** `pnpm verify` terminó con exit 0 y 14/17 pasos medidos pasaron. Vitest: 655 archivos, 8.912 pruebas pasaron y 1 quedó omitida. E2E: 167 pasaron, 18 omitidas y 1 flaky pasó al reintento; el watchdog forzó el cierre de un proceso WebKit en Windows después de 300.000 ms. El build de producción pasó.
-- **NO EJECUTADO / NO DISPONIBLE:** `migrations-applied`, por ausencia de credenciales autorizadas.
-- **NO DISPONIBLE:** `sql-tests` y `schema-rebuild`, porque Docker no estaba disponible.
+- **NO EJECUTADO / NO DISPONIBLE:** `migrations-applied`, por ausencia de credenciales autorizadas. Además, no aplica materialmente al diff de este PR: no modifica migraciones, esquema, RPC, DB ni Administración. Se conserva clasificado como gate crítico no medido; no se simula con acceso productivo para obtener verde.
+- **NO DISPONIBLE localmente:** `sql-tests` y `schema-rebuild`, porque Docker no estaba disponible.
 - **Veredicto canónico de `pnpm verify`:** `CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR`. Exit 0 no equivale a cierre verde completo.
 - **PENDIENTE / NO DISPONIBLE:** Graphify estructural quedó `PENDING`: este handoff estaba sin commit durante la medición y persistieron los desfases de encabezados en `docs/engineering/project-rules.md` y `docs/runbooks/knowledge-graphify-obsidian.md`. El runbook exige que el Director quite/reinyecte la capa semántica desde el checkout principal para corregir ese caso; el Worker no alteró manualmente el grafo.
 - **PENDIENTE / NO DISPONIBLE:** cobertura semántica piloto `0/16` en el recibo vigente. Los fragmentos A y C cubren 9/16, pero el lote B no quedó disponible y no se importó evidencia parcial sobre una estructura `PENDING`.
@@ -54,20 +62,28 @@ Corregir la calculadora pública para que, cuando la cotización cae por debajo 
 - `86abfc5d` — incorpora la reserva válida SDD-0502 (`codex/sdd-reserve-0502`, origen `11ed19287734ff7966506ce82a6f552633b5ff19`).
 - `8fe94470` — especifica la decisión comercial y el alcance antes del cambio de producto.
 - `700ec903` — implementa piso → batería configurable, reconciliación visible, pruebas y documentación.
-- **Commit que contiene este documento:** cierre Worker, evidencia de conocimiento y handoff. El SHA final se registra en la PR y en el mensaje al Director, sin crear una recursión de commits.
+- `90bd9f89` — cierre Worker, evidencia de conocimiento y handoff revisado inicialmente por el Director.
+- **Único commit correctivo de revisión:** agrega la regresión SDD-0257 y actualiza este handoff. Su SHA exacto se registra después de crearlo en el body de PR #190 y en el mensaje al Director; no se incrusta dentro de su propio contenido para evitar una autorreferencia imposible.
 
 ## PR / BRANCH
 
 - **Base:** `main` / `e9b7c4f43406a00d11068e032f07660e0391e821` al crear la rama.
 - **Head:** `codex/calculadora-minimo-bateria-config`.
-- **PR:** se abre como **DRAFT** inmediatamente después de publicar el commit que contiene este documento, marcado `review only / cierre local incompleto por gates de infraestructura`. La URL y el SHA remoto exacto se registran en la PR, el artefacto del task y el mensaje al Director.
+- **PR:** [#190](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/190), **DRAFT**, marcado `review only / cierre local incompleto por gates de infraestructura`.
+- **Estado remoto anterior al retome:** head `90bd9f89a1298ca85d2454fc656a43ba2edbdee0`; los tres checks remotos estaban en verde. El head correctivo exacto y sus checks se registran fuera del commit después del push.
 - El Worker no mergea, no despliega y no aplica migraciones.
+
+### Propuesta de excepción limitada para gates críticos
+
+Se propone que el Director/founder decida una excepción limitada exclusivamente al SHA exacto del nuevo head de PR #190 que se publique al cerrar esta corrección. Fundamento verificable: el diff no toca DB, esquema, migraciones, RPC ni Administración; las pruebas focales y de producto pasan; el CI remoto del SHA previo estaba verde y el SHA correctivo debe volver a pasar CI. La propuesta no convierte `pnpm verify` en verde completo ni acredita los tres gates ausentes. Aceptar o rechazar la excepción corresponde expresamente al Director/founder y debe quedar vinculada al SHA final, no a la rama en abstracto.
 
 ## PENDIENTES DE ESTA TAREA
 
-- Publicar el commit final y abrir el PR DRAFT contra `main`.
-- Dejar que CI mida lo que el entorno remoto tenga disponible y que el Director revise el SHA exacto antes de integrar.
-- El Director debe decidir si recupera/reextrae las 7 fuentes del lote B y aplica los fragmentos A/C desde una copia o desde `main`; esta limitación documental no modifica la fórmula ni sus pruebas, pero mantiene bloqueado el gate de conocimiento.
+- Revisión del Director sobre el SHA correctivo exacto de PR #190 y sus checks remotos.
+- Decisión explícita del Director/founder sobre aceptar o rechazar la excepción limitada de los tres gates críticos no medidos.
+- Autorización explícita de merge y del auto-deploy que ese merge desencadenaría; ninguna de las dos está otorgada por este handoff.
+- Verificación separada de `main`, deployment y recorrido productivo después de una eventual integración autorizada.
+- Cierre de conocimiento: decidir si se recuperan/reextraen las 7 fuentes del lote B, aplicar los fragmentos A/C desde una copia o desde `main` integrado y publicar la bóveda sólo desde `main` comprobado.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -80,6 +96,6 @@ Corregir la calculadora pública para que, cuando la cotización cae por debajo 
 
 ## HANDOFF AL DIRECTOR
 
-Revisar el PR DRAFT sobre su SHA remoto exacto, observar CI y decidir la integración. La regla compartida impacta la calculadora pública y el estimador de importación documental mediante `calcularEnvioLCL`; no hay cambio de esquema, RPC ni Administración. Después de integrar, el Director debe comprobar `main`, despliegue y recorrido productivo como evidencias separadas antes de afirmar que está en producción.
+Revisar el PR DRAFT sobre su nuevo SHA remoto exacto, observar CI y decidir explícitamente la excepción limitada de gates antes de cualquier integración. La regla compartida impacta la calculadora pública y el estimador de importación documental mediante `calcularEnvioLCL`; no hay cambio de esquema, RPC ni Administración. Después de una integración autorizada, el Director debe comprobar `main`, despliegue y recorrido productivo como evidencias separadas antes de afirmar que está en producción.
 
-El ownership del worktree se libera únicamente después de publicar la rama, abrir/adjuntar el PR y notificar al Director. No se elimina el worktree ni la rama.
+El ownership del worktree se libera únicamente después del commit selectivo, push, actualización del body de PR #190 y notificación al Director. No se elimina el worktree ni la rama.

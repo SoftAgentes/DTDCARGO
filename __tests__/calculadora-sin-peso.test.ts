@@ -71,6 +71,41 @@ describe("la cotización sale sin peso", () => {
     expect(cot.densidadKgM3).toBe(0);
   });
 
+  it("bajo el piso, batería ×1,5 conserva el contrato sin peso y reconcilia el desglose", () => {
+    const piso = 50;
+    const params = { ...DEFAULT_PARAMS, recargoBateriaMult: 1.5 };
+    const cot = calcularEnvioLCL(
+      {
+        ...base,
+        cbmTotal: 0.01,
+        bateria: true,
+        minChargeOverride: piso,
+      },
+      params,
+    );
+
+    expect(cot.alerta).toBeUndefined();
+    expect(cot.sinPeso).toBe(true);
+    expect(cot.pesoMaxSinRecargoKg).toBe(10);
+    expect(cot.precioBase).toBeLessThan(piso);
+    expect(cot.recargoExcedente).toBe(0);
+    expect(cot.densidadKgM3).toBe(0);
+    expect(cot.total).toBe(piso * params.recargoBateriaMult);
+    expect(cot.recargoBateria).toBe(
+      piso * (params.recargoBateriaMult - 1),
+    );
+
+    const desglose =
+      cot.precioBase +
+      cot.recargoExcedente +
+      cot.recargoCiudad +
+      cot.recargoEmbalaje +
+      cot.recargoBateria +
+      cot.descuentoSede +
+      cot.ajusteMinimo;
+    expect(desglose).toBe(cot.total);
+  });
+
   it("`0`, `null` y `undefined` son el mismo caso: no lo indicó", () => {
     const sinCampo = calcularEnvioLCL({ ...base, cbmTotal: 12 });
     const cero = calcularEnvioLCL({ ...base, cbmTotal: 12, pesoKg: 0 });
