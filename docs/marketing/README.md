@@ -6,6 +6,8 @@
 
 ## Cómo usar este tree
 
+- **Fotos del equipo y operación (SDD-0503, 2026-10-07):** [carrusel de la home](../specs/0503-carrusel-fotos-empresa/spec.md) con ocho derivados WebP revisados. Implementación local en validación; publicación, integración y producción pendientes. [Evidencia y límites](../specs/0503-carrusel-fotos-empresa/qa.md).
+
 - **Colores de avisos (2026-09-05):** [SDD-0441](../specs/0441-colores-semanticos-marca/spec.md) aplica la política de [BRAND.md](../../BRAND.md) a la calculadora: recargo informativo neutro y derivación al asesor con atención dorada. Tarifas y fórmulas no cambian.
 
 
