@@ -1,20 +1,8 @@
-import Image from "next/image";
+import { CompanyPhotoCarousel } from "./CompanyPhotoCarousel";
 import { LazyVideo } from "./LazyVideo";
 import { serializeJsonLd } from "@/lib/public/json-ld";
 
-/**
- * Sección "Operación real · Yiwu" — fusión de la galería del sello + el clip del
- * equipo (antes <OperationGallery /> + <WorkBand />, dos secciones que rimaban).
- * Ahora UN solo bloque de prueba sobre fondo navy (bg-ink): video del equipo
- * cargando el contenedor arriba + fotos del precinto + clips verticales de apoyo.
- *
- * El navy da ritmo al scroll (auditoría ui-ux 2026-06-13: evita el "muro claro"
- * de varias secciones paper seguidas) y hace leer todo como una sola prueba real
- * de "equipo y bodega propios", con la marca DTD visible.
- *
- * SEO: VideoObject JSON-LD del video principal; alts/captions con keywords
- * (DTD Cargo · puerta a puerta · Yiwu-China · Venezuela). Server component.
- */
+/** Equipo y operación: carrusel manual, video y clips con su contexto original. */
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
 const MAIN_VIDEO_BASE =
@@ -41,19 +29,6 @@ const videoJsonLd = {
   },
 };
 
-const PHOTOS = [
-  {
-    src: "/fotos/carga-contenedor-precinto-doortudoor-dtd-cargo-puerta-a-puerta-china-venezuela.jpg",
-    alt: "Carga consolidada en el contenedor con el precinto de DTD Cargo en Yiwu, China — envío puerta a puerta a Venezuela",
-    caption: "Carga precintada por DTD Cargo · Yiwu, China",
-  },
-  {
-    src: "/fotos/precinto-doortudoor-contenedor-dtd-cargo-puerta-a-puerta-china-venezuela.jpg",
-    alt: "Precinto de DTD Cargo en la puerta del contenedor — carga puerta a puerta de China a Venezuela",
-    caption: "El sello de DTD Cargo en cada contenedor",
-  },
-];
-
 const CLIPS = [
   {
     base: "/videos/cinta-embalaje-doortudoor-dtd-cargo-puerta-a-puerta-china-venezuela",
@@ -77,15 +52,13 @@ export function OperationGallery() {
       <div className="wrap">
         <div className="max-w-[60ch]">
           <span className="eyebrow" style={{ color: "rgba(255,255,255,0.5)" }}>
-            Operación real · 义乌 Yiwu
+            Nuestro equipo y operación
           </span>
           <h2 className="h-section mt-4" style={{ color: "white" }}>
-            Así trabajamos tu carga en Yiwu.
+            Conoce el trabajo detrás de tu envío.
           </h2>
           <p className="lead mt-5" style={{ color: "rgba(255,255,255,0.7)" }}>
-            No es stock ni un render: es nuestro equipo en Yiwu recibiendo,
-            marcando y estibando tu mercancía, con la marca DTD visible. Gente
-            nuestra del lado de allá — de la fábrica a tu puerta.
+            Personas, atención y manejo de mercancía en las distintas etapas de nuestro servicio.
           </p>
         </div>
 
@@ -101,25 +74,7 @@ export function OperationGallery() {
           </figcaption>
         </figure>
 
-        {/* Evidencia de apoyo: el sello de DTD Cargo (fotos del precinto) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-10">
-          {PHOTOS.map((p) => (
-            <figure key={p.src} className="m-0">
-              <div className="relative aspect-[4/3] rounded-[18px] overflow-hidden card-shadow-dark border border-white/10 bg-white/[0.04]">
-                <Image
-                  src={p.src}
-                  alt={p.alt}
-                  fill
-                  sizes="(min-width: 768px) 50vw, 100vw"
-                  className="object-cover"
-                />
-              </div>
-              <figcaption className="mt-3 text-[13px] text-white/55">
-                {p.caption}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
+        <CompanyPhotoCarousel />
 
         {/* El sello en movimiento — clips verticales, mudos, en loop */}
         <p className="eyebrow mt-10" style={{ color: "rgba(255,255,255,0.5)" }}>

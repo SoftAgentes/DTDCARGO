@@ -1,7 +1,7 @@
 ---
 sdd: "0503"
 title: "Carrusel de fotos de la empresa en la web pública"
-status: proposed
+status: in-progress
 author: "Codex Director"
 created: 2026-10-07
 updated: 2026-10-07
@@ -111,3 +111,7 @@ Resolver los estilos dentro del componente con utilidades/tokens existentes. No 
 Preparación Director: especificación y asignación en rama aislada. Implementación, validación funcional, PR, integración y producción pendientes.
 
 Worker autorizado a implementar, probar y crear commits locales en esta tarea. Este intercambio todavía no autoriza push/PR, merge ni despliegue; preparar una entrega revisable y conservar esas fronteras. No hay cambios de DB dentro del encargo.
+
+## Implementación Worker · 2026-10-07
+
+Carrusel manual implementado en CompanyPhotoCarousel e integrado exclusivamente en OperationGallery. Marco cuadrado móvil y 16:9 desde sm; object-contain preserva todas las proporciones. Teclado: flechas, Home y End; gestos horizontales con umbral 48 px y predominio sobre desplazamiento vertical. Sin animación ni temporizadores: reduced-motion no requiere rama adicional. Foto inicial SSR; sólo una imagen grande montada y miniaturas next/image diferidas. Pantallas, documentos, ID de contenedor y placas visibles se redactaron en los derivados; originales intactos. Validaciones y límites se registran en [QA](qa.md).

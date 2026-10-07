@@ -2,7 +2,7 @@
 
 ## Estado
 
-LISTA PARA IMPLEMENTACIÓN. La web pública no fue modificada. Documento de coordinación del Director; se transferirá la misma tarea/árbol a un Worker tras liberar el claim de preparación.
+EN PROGRESO · Worker worker-carrusel-01a116a5-3174-7c20-8a71-83cde364b3b3. Sesión 01a116a5-3174-7c20-8a71-83cde364b3b3. Claim adquirido tras comprobar rama, guard y árbol limpio en HEAD 82f087c8. Implementación y validaciones locales; sin publicación.
 
 ## Objetivo autorizado
 
@@ -85,3 +85,11 @@ En el principal, knowledge:status del 2026-10-07 devolvió ok=true, estructura C
 
 Reserva: 31259d718713bc89e8b1b0a5fcfdbaa72df3d45d.
 La definición y el handoff se conservarán en el commit que contiene este documento. No se publican ni integran automáticamente.
+## Ejecución Worker · primer commit
+Owner/sesión: worker-carrusel-01a116a5-3174-7c20-8a71-83cde364b3b3 / 01a116a5-3174-7c20-8a71-83cde364b3b3.
+COMPLETADO: carrusel, ocho WebP revisados y documentación marketing/spec/QA; originales intactos. Interacción probada en tres navegadores; capturas 390/1440.
+VALIDACIÓN: diez e2e pasaron con dos SKIPs de capturas duplicadas; cinco pruebas componente pasaron. Verify general todavía en curso; lint general falló por configuración heredada, lint del alcance pasó. Resultados completos en qa.md.
+COMMITS: este commit contiene implementación y evidencia local disponible; cierre final en documento posterior.
+PENDIENTES DE ESTA TAREA: terminar verify/build y cierre de conocimiento; no declarar SDD done mientras falten criterios.
+FUERA DE ALCANCE DETECTADO: ESLint general sin plugin react-hooks registrado; Graphify reporta extracción parcial de dos archivos legales existentes. Mantener sin cambios.
+HANDOFF AL DIRECTOR: entrega aún en validación. Claim sigue adquirido; sin push/PR/merge/deploy.
