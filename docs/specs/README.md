@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 488 specs)
+### Índice de specs (generado · 489 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -526,6 +526,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0499 | Secretos que viajan mal y gates que faltan en app/api | in-progress | interno |
 | 0500 | El anti-drift de RBAC mide por acción, no por archivo | in-progress | interno |
 | 0502 | Mínimo facturable con batería según el multiplicador configur… | in-progress | interno |
+| 0503 | Carrusel de fotos de la empresa en la web pública | proposed | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
