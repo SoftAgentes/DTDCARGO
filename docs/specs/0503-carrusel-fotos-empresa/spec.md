@@ -108,7 +108,7 @@ Resolver los estilos dentro del componente con utilidades/tokens existentes. No 
 
 ## Estado y autorizaciones
 
-Preparación Director: especificación y asignación en rama aislada. Implementación, validación funcional, PR, integración y producción pendientes.
+Preparación Director conservada. Implementación local en 55a9a1bd y validación funcional/visual PASÓ. Cierre canónico FALLÓ por lint general heredado, con tres omisiones y cobertura e2e parcial; ver QA. SDD permanece in-progress hasta revisión de esos límites. PR, integración y producción pendientes.
 
 Worker autorizado a implementar, probar y crear commits locales en esta tarea. Este intercambio todavía no autoriza push/PR, merge ni despliegue; preparar una entrega revisable y conservar esas fronteras. No hay cambios de DB dentro del encargo.
 
