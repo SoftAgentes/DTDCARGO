@@ -1,5 +1,9 @@
 # QA · SDD-0503 · Carrusel de fotos
-Dueño: Worker carrusel · Fecha: 2026-10-07 · Estado: validación local terminada; cierre general bloqueado.
+Dueño: Worker SDD-0503 · Fecha: 2026-10-07 · Estado actual: carrusel original integrado/publicado por PR191; ajuste de retiro de cinta en validación.
+
+Entrega original: PR191; merge ae198419fea5d94d95fc26721952a7be6f7edee9; deployment dpl_31PymZTALo4DzHMsofaKVPjazmWQ READY confirmado por Director. PR191 conserva evidencia pública y excepción acotada del cierre original. Los resultados siguientes son la fotografía histórica anterior a esa integración, no el estado actual de publicación.
+
+## Evidencia histórica del carrusel original · antes de PR191
 Rama: codex/carrusel-fotos-empresa-20261007. Base: 675aac534b62862a979e97b07351ef79961c5af5.
 Evidencia local ignorada: outputs/carrusel-0503/. No publicada.
 ## Privacidad fotográfica
@@ -70,6 +74,36 @@ SHA de implementación: 55a9a1bdadf08fe3de9f0ddd6a1f9fb8f495b826; el commit de c
 - Preview Obsidian local: revisión y resultado exactos en outputs/carrusel-0503/knowledge-preview.json y knowledge-final.json; destino graphify-out/obsidian-preview. Bóveda habitual NO PUBLICADA. Lectura en interfaz Obsidian: NO EJECUTADO.
 - No se declara cobertura semántica global ni actualización de la bóveda compartida. Los recibos y las capturas son evidencia local ignorada, conservada en este worktree.
 
-## Pendientes y límites
+## Límites históricos y actualización de estado
 
-SDD conserva in-progress: el gate canónico requiere resolución del lint general o una excepción explícita de Director; los pasos no medidos y la cobertura parcial conservan su decisión de revisión/release separada. Revisión visual final de redacciones por Sam/Director. Push/PR, integración y despliegue requieren sus autorizaciones. No hay otros cambios de producto pendientes dentro del carrusel.
+Los pendientes de push/PR/integración/despliegue descritos en el snapshot histórico se resolvieron mediante PR191 y el deployment indicado arriba. Las omisiones originales y su excepción permanecen documentadas. Director identificó el generador auxiliar .cjs bajo outputs como causa del lint original; ese diagnóstico posterior no reescribe el resultado observado de aquella corrida. No se agrega un generador .cjs en este ajuste.
+
+## Ajuste posterior · retiro del clip de cinta doortudoor
+
+Owner: retirar-video-cinta-doortudoor-20261007. Rama: codex/retirar-video-cinta-doortudoor-20261007. Base: ae198419fea5d94d95fc26721952a7be6f7edee9. Evidencia ignorada propia: outputs/retirar-video-cinta-0503/.
+
+Sam pidió retirar la cinta que dice doortudoor y precisó «cointa dice doortudoor no dtd cargo». Se retira únicamente la entrada CLIPS correspondiente y su leyenda; archivos multimedia conservados. Shipping Mark pasa a una sola columna con max-w-[300px] aprobado por Director. Principal/VideoObject y ocho fotos/controles se conservan.
+
+Validación propia y revisión visual parcial completadas; cierre canónico FALLÓ por ejecución de procesos y batería móvil incompleta. Se publica PR draft para obtener CI sobre el head exacto y conservar la decisión de Director. No se incorporan credenciales ni se consulta/escribe producción. El retiro aún no está integrado ni desplegado.
+
+| Comprobación del ajuste | Resultado | Evidencia y límite |
+|---|---|---|
+| Dependencias con lockfile congelado | PASÓ | pnpm install --frozen-lockfile; sin cambio de lockfile ni copia de credenciales. |
+| Componente del carrusel | PASÓ | 5/5 pruebas; component.log. |
+| Navegador Chromium | PASÓ | 4/4 en e2e.log: recorrido completo, controles/foco/teclado, SSR sin JS, swipe/reduced-motion, fotos verticales, dos videos con fuentes/posters preservados y ausencia de cinta. Sin retries. |
+| Chrome móvil | COBERTURA PARCIAL | Prueba manual con recorrido y videos PASÓ. El resto no se ejecutó: worker detenido y spawn EINVAL; entradas de 0 ms no acreditan aserciones fallidas. |
+| WebKit móvil (proyecto mobile-safari) | NO DISPONIBLE | El runner no pudo iniciar sus workers (spawn EINVAL). Sin prueba efectiva de producto ni retries. |
+| Capturas y layout 390/1440 | PASÓ | home/operation/gallery/gallery-portrait PNG revisados. El bloque y frame de Shipping Mark tienen el mismo ancho <=300 px; sin segunda columna reservada ni overflow horizontal. |
+| /ui-check proporcional | PASÓ | Retiro exclusivo y columna única con ancho existente aprobado; sin nuevos colores/fuentes/radios/controles. Principal, carrusel y captions conservados. Sin hallazgos altos/medios propios del cambio. Captura de sección incluye la cabecera sticky por la posición de scroll; la captura propia del carrusel y sus pruebas conservan la evidencia de controles. |
+| pnpm verify | FALLÓ | verify.log: harness 201/201, lint (0 errores/15 warnings), RSC, typecheck y 4 Edge Functions PASÓ. Vitest terminó con exits 1073807364 y 3221226091; después nueve checks y build fallaron con exit señal null. No existe un resultado de compilación canónica aprobado. |
+| E2E GENERAL | NO EJECUTADO | VERIFY_SKIP_E2E=1, excepción acotada explícita de Director; la omisión permanece visible. |
+| Ledger de migraciones / SQL / schema-rebuild | NO DISPONIBLE | No llegaron a medirse en la corrida por fallo de lanzamiento de procesos (señal null); sin credenciales copiadas ni producción consultada/escrita. |
+| Build adicional Webpack | NO EJECUTADO | La corrida canónica no llegó a mostrar fallo next/font de Turbopack; no se inventa ese diagnóstico ni un fallback aprobado. CI alojada pendiente. |
+| docs:check / sdd:check / diff --check independientes | PASÓ | Reejecución proporcional tras el fallo de lanzamiento; índice 489 specs, numeración sin nuevas colisiones, diff limpio. |
+| Conservación y scope | PASÓ | CompanyPhotoCarousel, LazyVideo, fotos, archivos multimedia, app/page, globals y lockfile iguales a la base; constantes del principal y VideoObject intactas. Seis rutas cambiadas, todas permitidas. |
+
+Diagnóstico acotado: el servidor propio arrancó tras timeouts de fuentes Google; Chromium ejecutó sus aserciones y obtuvo las capturas. Más tarde Playwright informó Error: spawn EINVAL en WorkerHost.startRunner; verify informó los exits anteriores y fallos de proceso sin stdout de los checks. Estos logs demuestran una falla de ejecución; no proporcionan un stack de regresión de producto ni una causa raíz confirmada. Se conservan completos sin reescritura. No se alteró la configuración de tests ni se reintentaron tests automáticamente.
+
+Conocimiento: lectura/revisión semántica de marketing completa (249 líneas, sin YAML), conservando 33 nodos/33 relaciones/1 hiperarista del recibo canónico y cambiando solo el nodo/referencia SDD-0503. Fragmento y revisión preparados bajo graphify-out/retirar-cinta-0503-marketing.json y .review.json; aplicación pendiente contra el commit de entrega. Graphify 0.9.61 alcanzó extracción AST 4424/4424 y conservó advertencias de dos fuentes legales ajenas; sin recibo/exportación estructural final no se declara CURRENT. Archify 2.16.0 y preview Obsidian pendientes, sin publicar bóveda compartida. Director coordina cierre integrado.
+
+Pendientes del ajuste: CI/build sobre el head exacto, completar pruebas móviles propias, revisión Director e integración/publicación autorizada, más recibo semántico/derivados locales e integrados que correspondan. La publicación original de PR191 sigue diferenciada de este retiro.

@@ -17,9 +17,11 @@ confidencialidad: interno
 
 Actualizar las fotos de la web dtdcargo.com mediante un carrusel en la sección de fotos de la empresa. Sam suministró ocho archivos y el 2026-10-07 eligió «En la sección de fotos de la empresa (recomendado)» al comparar galería, portada y ambos lugares. La portada se conserva fija.
 
-Este documento define el encargo; no afirma implementación, PR, integración ni despliegue. El orden de las fotos, el copy y la interacción manual son decisiones propuestas por Director dentro del alcance, ajustables durante revisión visual.
+El carrusel original se integró mediante PR191 y está publicado: merge ae198419fea5d94d95fc26721952a7be6f7edee9, deployment dpl_31PymZTALo4DzHMsofaKVPjazmWQ READY confirmado por Director el 2026-10-07. PR191 conserva la evidencia pública y la excepción acotada del cierre canónico original; esa excepción no convierte las omisiones en pruebas aprobadas.
 
-## Evidencia verificada el 2026-10-07
+Después de esa publicación, Sam pidió retirar «la cinta que dice doortudoor» y precisó «cointa dice doortudoor no dtd cargo». Este ajuste reutiliza SDD-0503: retirar de OperationGallery únicamente el clip de cinta y su leyenda, conservar sus archivos, las ocho fotos/controles, el video principal y su VideoObject, y el clip Shipping Mark.
+
+## Evidencia histórica verificada el 2026-10-07 · antes de PR191
 
 - La home pública incluye `OperationGallery` (`app/page.tsx:391`).
 - `components/OperationGallery.tsx:70` contiene la sección `#operacion`, el video principal, dos fotos estáticas (`PHOTOS`) y dos clips (`CLIPS`). Las fotos actuales aparecen en el grid de `components/OperationGallery.tsx:105`.
@@ -31,7 +33,7 @@ Este documento define el encargo; no afirma implementación, PR, integración ni
 
 ## Alcance
 
-Reemplazar únicamente el grid de dos fotos de `#operacion` por un carrusel con las ocho imágenes aportadas. Conservar el video principal, sus datos estructurados `VideoObject` y los dos clips. Conservar la portada, la otra foto de `app/page.tsx`, las demás páginas, tarifas, calculadoras, formularios y analítica.
+La entrega original reemplazó el grid de dos fotos de `#operacion` por el carrusel de ocho imágenes aportadas. El ajuste posterior retira la entrada `/videos/cinta-embalaje-doortudoor-dtd-cargo-puerta-a-puerta-china-venezuela` y la leyenda «Cinta de DTD Cargo en cada bulto». La sección queda con dos videos: principal y Shipping Mark. El único clip vertical usa una columna con el máximo existente de 300 px, aprobado por Director. Conservar archivos multimedia, carrusel, fotos, portada, `app/page.tsx`, `LazyVideo`, globals, demás páginas, tarifas, calculadoras, formularios y analítica.
 
 Copy propuesto para el encabezado de la sección:
 
@@ -39,7 +41,7 @@ Copy propuesto para el encabezado de la sección:
 - Título: «Conoce el trabajo detrás de tu envío.»
 - Párrafo: «Personas, atención y manejo de mercancía en las distintas etapas de nuestro servicio.»
 
-Las leyendas del video y de los clips conservan el contexto propio de Yiwu. Los captions del carrusel describen lo visible; no asignan ciudades, fechas, identidades, propiedad de instalaciones ni promesas comerciales sin fuente.
+Las leyendas del video principal y del clip Shipping Mark conservan su contexto original. Los captions del carrusel describen lo visible; no asignan ciudades, fechas, identidades, propiedad de instalaciones ni promesas comerciales sin fuente.
 
 ## Fotos, orden propuesto y procedencia
 
@@ -79,7 +81,9 @@ Nombres heredados y logos fotografiados forman parte del original; no recrear ni
 - Esta tarea no necesita Supabase, storage remoto, API, migraciones, plugins ni una nueva dependencia de carrusel.
 - Antes de copiar derivados, aplicar la lectura de `.claude/skills/revisar-datos-ve/SKILL.md` al alcance fotográfico. Revisar rostros, documentos, pantallas, etiquetas, placas y EXIF. Nunca agregar contenido identificatorio legible de terceros ni datos contractuales/financieros a Git. Si una foto expone ese contenido, sustituirla o preparar una versión sanitizada por un flujo autorizado y conservar trazabilidad. No identificar personas ni extraer esos datos.
 
-## Allowlist exacta del Worker
+## Allowlist histórica de la entrega original del carrusel
+
+Esta lista describe la implementación integrada por PR191; el ajuste posterior usa exclusivamente la allowlist siguiente.
 
 - `components/OperationGallery.tsx`
 - `components/CompanyPhotoCarousel.tsx` (nuevo, componente client aislado)
@@ -92,25 +96,35 @@ Nombres heredados y logos fotografiados forman parte del original; no recrear ni
 - `docs/marketing/README.md` (enlace/estado del material web, sin reescribir otros frentes)
 - `.agents/handoffs/2026-10-07-carrusel-fotos-empresa.md`
 
+## Allowlist exacta del ajuste de retiro de cinta
+
+- `components/OperationGallery.tsx`
+- `e2e/company-photo-carousel.spec.ts`
+- `docs/specs/0503-carrusel-fotos-empresa/spec.md`
+- `docs/specs/0503-carrusel-fotos-empresa/qa.md`
+- `docs/marketing/README.md`
+- `docs/specs/README.md` (solo generado con docs:index)
+- `.agents/handoffs/2026-10-07-retirar-video-cinta-doortudoor.md`
+
 Resolver los estilos dentro del componente con utilidades/tokens existentes. No modificar app/page.tsx ni globals.css por conveniencia; si aparece una necesidad real fuera de allowlist, documentarla para Director antes de ampliar.
 
 ## Aceptación y validación
 
 - PASÓ/FALLÓ por verificación: ocho fotos correctas, orden/captions, anterior/siguiente, miniaturas, swipe, teclado, foco, contador, ausencia de autoplay, ausencia de saltos de altura y foto inicial sin JS.
 - Capturas de home en 390 px y 1440 px: fotos verticales completas, controles usables, sin scroll horizontal y con texto legible.
-- Comprobar que el video/los clips y sus datos estructurados se conservan; portada y resto de la home sin cambios inesperados.
+- Comprobar en el DOM renderizado que el clip de cinta y sus fuentes/poster están ausentes; conservar las fuentes/posters del principal y Shipping Mark y el VideoObject principal intacto. Las ocho fotos/controles, portada y resto de la home se conservan. El bloque del único clip vertical no reserva una segunda columna vacía en 390/1440 px.
 - Revisión de privacidad de los derivados y prueba de EXIF ausente, sin imprimir metadatos sensibles.
 - Revisión /ui-check antes del commit de UI sustancial, usando la instrucción real del repositorio.
 - Pruebas de comportamiento proporcionales: seleccionar otra foto por controles y teclado, límites/recorrido, contador/caption y navegación móvil. No tests que solo comparen el texto del código fuente.
-- pnpm verify como cierre canónico del producto, incluida build; registrar cada omisión como NO EJECUTADO o NO DISPONIBLE. No leer datos de producción ni aplicar migraciones para pasar checks.
+- pnpm verify como cierre canónico del producto, incluida build; registrar cada omisión como NO EJECUTADO o NO DISPONIBLE. Director autoriza VERIFY_SKIP_E2E=1 exclusivamente para omitir la batería E2E GENERAL de este retiro; ejecutar aparte la batería completa del carrusel en Chromium, Chrome móvil y WebKit móvil, con retries=0, y sus pruebas de componente. No leer datos de producción ni aplicar migraciones para pasar checks. Un fallback Webpack ante la resolución next/font de Turbopack se reporta como evidencia adicional sin cambiar el resultado canónico.
 - pnpm docs:check, pnpm sdd:check y git diff --check; la evidencia identifica rama y SHA.
 - Impacto documental en marketing y handoff. Graphify estructura y cobertura semántica, Archify y preview Obsidian se reportan por separado; publicar a la bóveda habitual corresponde al Director tras integración autorizada.
 
 ## Estado y autorizaciones
 
-Preparación Director conservada. Implementación local en 55a9a1bd y validación funcional/visual PASÓ. Cierre canónico FALLÓ por lint general heredado, con tres omisiones y cobertura e2e parcial; ver QA. SDD permanece in-progress hasta revisión de esos límites. PR, integración y producción pendientes.
+Entrega original integrada/publicada mediante PR191, merge y deployment indicados arriba. Su QA anterior queda identificada como evidencia histórica. El ajuste de retiro está en implementación en codex/retirar-video-cinta-doortudoor-20261007, sobre esa base integrada. SDD permanece in-progress durante la revisión del ajuste y su cierre.
 
-Worker autorizado a implementar, probar y crear commits locales en esta tarea. Este intercambio todavía no autoriza push/PR, merge ni despliegue; preparar una entrega revisable y conservar esas fronteras. No hay cambios de DB dentro del encargo.
+Sam autorizó continuar la publicación («avanza a publicar»). El Worker puede implementar, probar, crear commits y publicar su rama a sí misma y PR base main. El Worker no mergea ni despliega; Director revisa el head/base y CI antes de integración/publicación. No hay cambios de DB dentro del encargo.
 
 ## Implementación Worker · 2026-10-07
 
