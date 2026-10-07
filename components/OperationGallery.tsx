@@ -31,11 +31,6 @@ const videoJsonLd = {
 
 const CLIPS = [
   {
-    base: "/videos/cinta-embalaje-doortudoor-dtd-cargo-puerta-a-puerta-china-venezuela",
-    alt: "Cajas selladas con la cinta de embalaje de DTD Cargo en la bodega de China — carga puerta a puerta a Venezuela",
-    caption: "Cinta de DTD Cargo en cada bulto",
-  },
-  {
     base: "/videos/shipping-mark-dtd-pallets-dtd-cargo-puerta-a-puerta-china-venezuela",
     alt: "Pallets con el Shipping Mark DTD en la bodega de China — carga consolidada puerta a puerta a Venezuela",
     caption: "Tu Shipping Mark en cada pallet",
@@ -76,11 +71,11 @@ export function OperationGallery() {
 
         <CompanyPhotoCarousel />
 
-        {/* El sello en movimiento — clips verticales, mudos, en loop */}
+        {/* El sello en movimiento — clip vertical, mudo, en loop */}
         <p className="eyebrow mt-10" style={{ color: "rgba(255,255,255,0.5)" }}>
           El sello, en movimiento
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4 max-w-[300px] sm:max-w-[520px]">
+        <div className="mt-4 max-w-[300px]">
           {CLIPS.map((v) => (
             <figure key={v.base} className="m-0">
               <LazyVideo
