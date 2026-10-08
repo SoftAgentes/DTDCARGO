@@ -87,15 +87,15 @@ export function CalculatorSection({
         </div>
       )}
 
-      {tab === "ciudades" && (
-        <div
-          role="tabpanel"
-          id="panel-calc-ciudades"
-          aria-labelledby="tab-calc-ciudades"
-        >
-          <CiudadesPanel cities={cities} isAdmin={isAdmin} />
-        </div>
-      )}
+      {/* Conservar el borrador de zonas al consultar otra subpestaña. */}
+      <div
+        role="tabpanel"
+        id="panel-calc-ciudades"
+        aria-labelledby="tab-calc-ciudades"
+        hidden={tab !== "ciudades"}
+      >
+        <CiudadesPanel cities={cities} isAdmin={isAdmin} />
+      </div>
 
       {tab === "transportistas" && (
         <div

@@ -211,7 +211,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
               <span
                 style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}
               >
-                Zona sin costo
+                Entrega incluida en el precio base
               </span>
               <span
                 style={{
@@ -219,9 +219,8 @@ export function CityDrawer({ mode, city, onClose }: Props) {
                   color: "var(--ink-soft)",
                 }}
               >
-                El cliente NO paga la entrega ahí — DTD le paga igual ese tramo
-                al transportista. Son 8: Valencia, Naguanagua, San Diego,
-                Guacara, Maracay, Caracas, Barquisimeto y Acarigua.
+                El cliente no paga recargo de entrega en esta ciudad. DTD paga
+                ese tramo al transportista; su tarifa interna se conserva.
               </span>
             </span>
           </label>
