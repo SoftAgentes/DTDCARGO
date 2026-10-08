@@ -23,6 +23,24 @@
  * la use el statement siguiente.
  *
  * DEGRADA CON GRACIA: sin Docker (o con `VERIFY_SKIP_SQL=1`) → SKIP, nunca rojo.
+ *
+ * IMAGEN (`SQL_TEST_PG_IMAGE`, por defecto `postgres:17`):
+ *
+ *   · `pnpm schema:rebuild:supabase` fija `SQL_TEST_PG_IMAGE=supabase/postgres:17.6.1.136`,
+ *     la misma imagen que corre la base en el servidor propio (SDD-0505, compose de
+ *     `infra/dtd-cargo/`). Sirve para comprobar que las migraciones aplican sobre el
+ *     Postgres que de verdad va a recibirlas (misma versión, mismas extensiones
+ *     compiladas), no solo sobre el `postgres:17` genérico.
+ *   · El script no cambia de conducta según la imagen: sigue escribiendo los
+ *     control-files vacíos de `supabase_vault pg_net pgsodium pg_cron http` y aplicando
+ *     los stubs. Sobre la imagen de Supabase esas extensiones EXISTEN de verdad; si el
+ *     `sharedir` es escribible el stub las tapa (misma conducta que con `postgres:17`),
+ *     y si no lo es, `create extension` instala la real y los stubs tienen que convivir
+ *     con ella. Esa diferencia no se ha medido en este worktree: el resultado de la
+ *     corrida sobre `supabase/postgres:17.6.1.136` se registra en la aceptación 2 de la
+ *     spec 0505 (PASÓ/FALLÓ), con el turno del Director por ser corrida pesada.
+ *   · La variable se pasa con `node -e` en vez de `VAR=valor node ...` porque pnpm en
+ *     Windows ejecuta los scripts con cmd.exe y no entiende esa sintaxis.
  */
 
 import { spawnSync } from "node:child_process";
