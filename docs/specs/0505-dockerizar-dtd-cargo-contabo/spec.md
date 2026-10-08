@@ -1,16 +1,105 @@
 ---
 sdd: "0505"
-title: "RESERVADO — dockerizar-dtd-cargo-contabo"
-status: draft
-author: "Codex"
+title: "Dockerizar DTD Cargo para el servidor propio en Contabo (Fase 0)"
+status: in-progress
+author: "Claude Worker (Sam)"
 created: 2026-10-08
 updated: 2026-10-08
 supersedes: null
 superseded_by: null
-related: []
+related: ["0280"]
 confidencialidad: interno
 ---
 
-# SDD-0505 — RESERVADO
+# SDD-0505 — Dockerizar DTD Cargo para el servidor propio en Contabo (Fase 0)
 
-Reserva del 2026-10-08. Completar en la rama de trabajo e integrar mediante PR.
+> Deja el repo listo para correr DTD Cargo en Docker sobre un servidor propio (Contabo Cloud VPS 8, US East), sin tocar producción: imagen de la app, compose de Supabase self-hosted, cierre de los acoplamientos a Vercel y a Supabase Cloud, plantilla reutilizable para Loop 3D y Renta Aguada, y runbooks de servidor y de backup.
+
+## Objetivo y decisión de Sam
+
+El 2026-10-08 Sam decidió dejar Vercel y Supabase Cloud y alojar sus proyectos en un VPS propio de Contabo (Cloud VPS 8 · US East · IP 217.216.54.70 · $22,70/mes), con un contenedor aislado por proyecto: DTD Cargo primero, luego Loop 3D (dos webs sobre un Supabase propio) y Renta Aguada (sin código todavía). AKX Generadores y La Caravana quedan fuera. Pidió pruebas antes de cada avance y que la migración dockerice DTD Cargo y sirva de molde para los demás.
+
+Esta spec cubre **solo la Fase 0** del plan de transferencia: todo lo que se puede preparar y probar en el repo y en local. Las fases siguientes (configurar el VPS, staging con copia de producción, corte, retiro de Vercel/Cloud) se documentan en el runbook del servidor y se ejecutan con sus propias autorizaciones.
+
+## Contexto medido el 2026-10-08
+
+- Producción Supabase: Postgres **17.6.1.121**, 69 MB de base, 445 MB en Storage (634 objetos, 15 buckets), 297 usuarios de auth, 3 jobs de `pg_cron`; extensiones instaladas: `pgcrypto`, `uuid-ossp`, `pg_cron`, `pg_net`, `pg_stat_statements`, `supabase_vault`, `hypopg`, `index_advisor`.
+- Repo: una sola app Next.js 16.2.11 sin workspaces; sin `Dockerfile`, sin compose, sin `output: 'standalone'` (`next.config.ts`); CI con Node 24 y pnpm 11.19.0 (`.github/workflows/quality.yml`); `serverActions.bodySizeLimit: "12mb"`; `maxDuration` de hasta 300 s en rutas de importación y crons.
+- `vercel.json`: 19 crons con `Authorization: Bearer CRON_SECRET`; `app/api/cron/searates-refresh` existe y no está agendado.
+- Acoplamientos a Vercel: `app/studio/(app)/_actions/deployActions.ts:35` (candado `VERCEL_ENV`: sin esa variable en Docker, el bot de deploy quedaría abierto — M1 de `docs/audits/2026-07-31-seguridad-full-project.md`); `lib/studio/env-status.ts:93-104` (`VERCEL_ENV/URL/GIT_*`); `lib/studio/newsletter/sender.ts:46-62` (`VERCEL_ENV === "preview"`); `lib/studio/mail/unsubscribe-request.ts:61` (`x-vercel-id`); `lib/http/request-ip.ts` (confía en el primer `x-forwarded-for`, válido solo detrás del edge de Vercel; el propio comentario pide un header fijado por el proxy de confianza en self-host).
+- Acoplamientos a Supabase Cloud: `next.config.ts` (CSP `img-src`/`media-src`/`connect-src` y `images.remotePatterns` solo admiten `*.supabase.co`); `supabase/migrations/0084_kommo_cron_sync.sql:32` y `0136_kommo_writeback_outbox.sql:171` (`net.http_post` a `https://xpfuzqombmjmxvprjgmi.supabase.co/functions/v1/...`, URL escrita a mano; `public.kommo_run_sync()` y `public.kommo_run_writeback_drain()` no fueron redefinidas después). `lib/studio/attachments/service.ts:80-90` (`directTusEndpoint`) ya conserva el host cuando no es `*.supabase.co`: no requiere cambio, sí prueba.
+- Supabase self-hosted (compose oficial, `supabase/supabase@4205c41`, 2026-10-08): `supabase/postgres:17.6.1.136`, Envoy v1.39.1 como gateway (`api-gw`, alias `kong`), GoTrue v2.196.0, PostgREST v14.17, Realtime v2.134.10, storage-api v1.74.0, imgproxy v3.31.4, postgres-meta v0.99.0, edge-runtime v1.76.2, Supavisor 2.9.12, Studio 2026.09.07; Logflare/Vector son opt-in. **No existe imagen 18.x** (0 tags; rama `feat/pg-18` sin fusionar) y PG 19 no es GA → se fija 17.6.1.136 y el salto de major queda para otra tarea.
+- Harness: `scripts/run-sql-tests.mjs` y `scripts/check-schema-rebuild.mjs` corren sobre `postgres:17` (configurable con `SQL_TEST_PG_IMAGE`); CI usa PGlite 0.5.8 (embebe PG 18.3). pnpm local 12.3.4 vs CI 11.19.0: no se fija `packageManager` en `package.json` para no cambiar el entorno local; la versión se fija en el Dockerfile.
+
+## Alcance
+
+**Dentro:**
+
+1. **Imagen de la app**: `Dockerfile` multi-stage (Node 24 + corepack pnpm 11.19.0, `next build` con `output: 'standalone'` activado por `DTD_STANDALONE=1`, runner `node:24-bookworm-slim` con `sharp`, usuario no root, `HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3` contra `GET http://127.0.0.1:3000/robots.txt` esperando 200 (`app/robots.ts` existe, no toca la base y evita renderizar la home; la imagen slim no trae `curl`, se hace con `node -e`). **No** se usa `app/api/debug/health`: responde 503 sin `DEBUG_HEALTH_SECRET` y 401 sin bearer, y no existe `app/api/health`; si se prefiere un `/api/health` trivial, se añade a la allowlist antes de crearlo), `.dockerignore`, build args para las `NEXT_PUBLIC_*` que Next inlinea en build.
+2. **Compose de DTD Cargo** en `infra/dtd-cargo/`: `compose.yml` (servicios `web`, `cron`, `auth-templates`; red `edge` externa para Traefik y red `internal: true` para la base; labels de Traefik con timeouts de 300 s y body de 12 MB; límites `deploy.resources`), `compose.supabase.yml` (derivado del oficial con tags fijos, **sin `container_name`** y **sin puertos publicados** salvo el gateway por Traefik; volúmenes bajo `./supabase/volumes/` copiados del upstream y referenciados por SHA), `compose.supabase.s3.yml` (overlay de Storage con backend S3/R2), `.env.example` con todas las variables (app + `GOTRUE_*` + `SMTP_*` + Storage) **sin valores reales**, `cron/` (imagen mínima con `crond` + `curl` y el `crontab` generado), `supabase/templates/` (plantillas de correo de Auth servidas por `auth-templates`), `README.md`.
+3. **Crontab generado y verificado**: `scripts/build-crontab.mjs` genera `infra/dtd-cargo/cron/crontab` desde `vercel.json` + `searates-refresh` semanal; una prueba Vitest comprueba que el archivo comprometido coincide con lo generado y que cada ruta existe en `app/api/cron/`.
+4. **Cierre de acoplamientos a Vercel** (código de producto, con pruebas): módulo nuevo `lib/runtime/app-env.ts` (`resolveAppEnv`, `isLocalRuntime`, `resolveBuildSha`, `resolveDeploymentUrl`) que lee `APP_ENV`/`APP_URL` con `VERCEL_*` como fallback y **falla cerrado** (`NODE_ENV=production` sin `APP_ENV` ⇒ no es local); `deployActions.ts` usa `isLocalRuntime()`; `env-status.ts` y `newsletter/sender.ts` usan el módulo; `unsubscribe-request.ts` acepta `x-request-id` cuando no hay `x-vercel-id`; `request-ip.ts` acepta un header de proxy de confianza por `REQUEST_IP_HEADER` (si está definido y presente, gana; si no, conducta actual).
+5. **Cierre de acoplamientos a Supabase Cloud**: `next.config.ts` deriva el origen de `NEXT_PUBLIC_SUPABASE_URL` (si no es `*.supabase.co`) y lo añade a `img-src`, `media-src`, `connect-src` (https + wss) y a `images.remotePatterns`, conservando `*.supabase.co`; migración nueva `0472_kommo_functions_base_url.sql` que redefine `public.kommo_run_sync()` y `public.kommo_run_writeback_drain()` para leer la base de la URL del secreto de Vault `functions_base_url` con fallback a la URL actual (sin editar `0084`/`0136`), con `supabase/tests/0472_*.test.sql` y su envoltorio PGlite `*.migration.test.ts`, control rojo y mutantes.
+6. **Plantilla para proyectos nuevos** en `infra/templates/proyecto/` (compose web + Supabase recortado, `.env.example`, `Dockerfile.next`, `cron/`, `backup.sh`, `README.md`) y **ops** en `infra/ops/` (Traefik standalone para entornos sin Dokploy, Uptime Kuma, `backup/pg-dump-to-s3.sh` + `restore.sh` con rclone).
+7. **CI**: `.github/workflows/build-image.yml` construye y publica la imagen en GHCR (`ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha>` y `:main`) en push a `main` y `workflow_dispatch`, acciones fijadas por SHA, build args desde variables del repositorio; **no despliega**.
+8. **Docs**: `docs/runbooks/servidor-contabo.md` (Fases 1-4: reinstalación con llave, benchmark del día 1 con umbrales, reputación de IP, hardening, Dokploy/Traefik/Cloudflare, estructura `/srv`, staging, corte y rollback, retiro), `docs/runbooks/backup-restore-servidor.md` (dump diario + rclone a R2/B2, restore de prueba mensual, pgBackRest como pendiente), sección «Self-hosted» en `docs/runbooks/setup-portal-auth.md` (equivalencias `GOTRUE_*`), `.env.example` raíz con `APP_ENV`, `APP_URL`, `REQUEST_IP_HEADER`; índices regenerados (`pnpm docs:index`).
+9. **Harness**: `package.json` con `engines.node >= 24` y scripts `docker:build` y `schema:rebuild:supabase` (`SQL_TEST_PG_IMAGE=supabase/postgres:17.6.1.136`); `scripts/check-schema-rebuild.mjs` documenta esa variante.
+
+**Fuera:** configurar el VPS, exportar o leer producción, cortar DNS, pausar Vercel/Cloud, aplicar la migración 0472 a producción (MIGRATE-FIRST con OK de Sam nombrando el archivo), subir de major de Postgres, Dockerfiles de los repos de Loop 3D (van en sus repos por PR), pgBackRest/WAL continuo (pendiente documentado), `supabase/config.toml` (no aplica al stack Docker: la configuración vive en `.env`).
+
+## Diseño
+
+### Variables de entorno nuevas
+
+| Variable | Dónde | Significado |
+|---|---|---|
+| `APP_ENV` | runtime | `production` · `staging` · `preview` · `local`. Fuente primaria de `resolveAppEnv`. Sin ella: `VERCEL_ENV` si existe; si no, `NODE_ENV=production` ⇒ `production` (fallo cerrado), otro ⇒ `local`. |
+| `APP_URL` | runtime | URL pública del despliegue (equivale a `https://${VERCEL_URL}`). Usada por `resolveDeploymentUrl` y por el newsletter en `preview`. |
+| `REQUEST_IP_HEADER` | runtime | Nombre del header que el proxy de confianza fija con la IP real (`x-real-ip` detrás de Traefik; `cf-connecting-ip` detrás de Cloudflare). Vacío ⇒ conducta actual (primer `x-forwarded-for`). |
+| `DTD_STANDALONE` | build | `1` activa `output: 'standalone'` en `next.config.ts`. Lo fija el Dockerfile; Vercel y `verify` no lo definen. |
+| `NEXT_PUBLIC_BUILD_SHA` | build | Ya existe; el Dockerfile la recibe como build arg. |
+
+### Contratos de código
+
+- `resolveAppEnv(env = process.env): AppEnv`; `isLocalRuntime(env) === (resolveAppEnv(env) === "local")`; `resolveBuildSha(env) = NEXT_PUBLIC_BUILD_SHA ?? VERCEL_GIT_COMMIT_SHA ?? null`; `resolveDeploymentUrl(env) = APP_URL ?? (VERCEL_URL ? "https://" + VERCEL_URL : null)`, sin barra final.
+- `assertLocal()` en `deployActions.ts` rechaza cuando `!isLocalRuntime()`; mensaje actualizado sin mencionar solo Vercel. La prueba existente que borra `VERCEL_ENV` sigue siendo local porque Vitest corre con `NODE_ENV=test`; se añaden casos `APP_ENV=production`, `APP_ENV=staging` y `NODE_ENV=production` sin `APP_ENV` ⇒ rechazo.
+- `resolveNewsletterSiteUrl(env)` conserva sus casos actuales y añade: `APP_ENV=preview` + `APP_URL` ⇒ `APP_URL`.
+- `resolveRequestIp(headers, env = process.env)`: si `env.REQUEST_IP_HEADER` está definido y el header existe con valor no vacío ⇒ primer elemento separado por coma, recortado; si no ⇒ lógica actual. Pruebas: header configurado y presente, configurado y ausente (cae a XFF), vacío (conducta actual), spoof de XFF con header configurado (gana el header).
+- `next.config.ts`: `const supabaseOrigin = originFromEnv(process.env.NEXT_PUBLIC_SUPABASE_URL)`; si existe y su host no termina en `.supabase.co`, se añade `https://<host>` a `img-src`/`media-src`/`connect-src`, `wss://<host>` a `connect-src`, y `{ protocol, hostname, pathname: "/storage/v1/object/public/**" }` a `remotePatterns`. `output: process.env.DTD_STANDALONE === "1" ? "standalone" : undefined`.
+- Migración `0472_kommo_functions_base_url.sql`: cabecera con la convención de `0471` (NO APLICADA A PRODUCCIÓN, orden MIGRATE-FIRST, aditiva: solo `create or replace` de las dos funciones con el cuerpo idéntico salvo `url := v_base || '/kommo-sync'`), `v_base := coalesce((select decrypted_secret from vault.decrypted_secrets where name = 'functions_base_url' limit 1), 'https://xpfuzqombmjmxvprjgmi.supabase.co/functions/v1')`, con `rtrim(v_base, '/')`. Comentario `comment on function` que nombra el secreto. Declarar la espera en `supabase/migrations-baseline.json › pendingBelowCutoff` como hace `0471`.
+- Crontab: una línea por cron de `vercel.json` con el mismo horario y `curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000<path>`; `searates-refresh` los lunes a las 06:00 UTC. El generador es determinista y la prueba falla si `vercel.json` cambia sin regenerar.
+
+### Compose y aislamiento
+
+- Nombre de proyecto `name: dtd-cargo`; redes `dtd_edge` (externa, compartida solo con Traefik) y `dtd_internal` (`internal: true`); solo `web` y `api-gw` tienen labels de Traefik; `db`, `supavisor`, `rest`, `auth`, `realtime`, `storage`, `imgproxy`, `meta`, `functions`, `studio` nunca publican puertos. Studio solo arranca con `--profile studio` (acceso por Tailscale).
+- Edge Functions: `functions` monta `../../supabase/functions` (solo lectura) más `./supabase/volumes/functions/main` (router del upstream).
+- Postgres: `shared_buffers`, `effective_cache_size`, `work_mem`, `max_connections` por `command:` con valores para 24 GB (1 GB / 3 GB / 8 MB / 100) y comentario de cómo subirlos.
+- Límites `deploy.resources.limits.memory` por servicio; suma de DTD ≤ 12 GB.
+
+## Aceptación
+
+1. `docker build -t dtdcargo:local --build-arg ... .` produce una imagen que arranca con `docker compose -f infra/dtd-cargo/compose.yml up web` y responde 200 en `/` (con un `.env` local de prueba). Registrar tamaño de imagen y tiempo de build.
+2. `docker compose -f infra/dtd-cargo/compose.yml -f infra/dtd-cargo/compose.supabase.yml config` valida sin errores con el `.env.example` renombrado; `up -d db` arranca y acepta `psql`; las 467 migraciones (+ 0472) aplican desde cero con `node scripts/check-schema-rebuild.mjs` (PASÓ/FALLÓ registrado) en dos variantes: (a) sobre `postgres:17`, que es el gate vigente de `verify` y **debe** dar PASÓ; (b) sobre `supabase/postgres:17.6.1.136` con `SQL_TEST_PG_IMAGE=supabase/postgres:17.6.1.136`. **Medido el 2026-10-08 (ver § Seguimiento): (a) PASÓ y (b) FALLÓ** con `permission denied for schema auth`, porque la imagen de Supabase entrega el schema `auth` con dueño y ACL propios y las migraciones 0038, 0268, 0410 y 0453 escriben en él como `postgres`. La variante (b) queda como criterio **pendiente de decisión del Director** entre dos cierres, sin inventar un tercero: correr el rebuild «en modo Supabase» (declarar en el script los roles y hooks que la imagen ya trae, en vez de los stubs de `_supabase-platform-stubs.sql`) o una migración de ACL explícita, que entraría a la allowlist con su propia prueba. Hasta esa decisión, la PR no afirma (b) como PASÓ.
+3. Pruebas unitarias nuevas y existentes verdes: `lib/runtime/__tests__/app-env.test.ts`, `deployActions.test.ts` ampliado, `campaign.test.ts` ampliado, `request-ip.test.ts` ampliado, `scripts/__tests__/build-crontab.test.ts`, `lib/studio/attachments` (prueba de `directTusEndpoint` con host propio), prueba de `next.config.ts` (`originFromEnv` extraído a `lib/runtime/supabase-origin.ts` para poder probarlo).
+4. Migración 0472: `supabase/tests/0472_kommo_functions_base_url.test.sql` (con secreto ⇒ URL nueva; sin secreto ⇒ URL de Cloud; control rojo sin la migración) y `lib/studio/__tests__/kommo-functions-base-url.migration.test.ts` en PGlite con al menos 3 mutantes muertos. `pnpm sdd:check` y `node scripts/check-pending-migration-symbols.mjs` verdes.
+5. `pnpm lint`, `pnpm typecheck`, `pnpm docs:check`, `pnpm sdd:check` verdes. `pnpm verify` completo con turno del Director: registrar PASÓ/FALLÓ/NO EJECUTADO/NO DISPONIBLE por paso (sql-tests y schema-rebuild requieren Docker).
+6. `git diff --check` limpio; sin secretos ni valores reales en ningún archivo (`.env.example` solo nombres y placeholders); sin `sbp_*`.
+
+## Riesgos y decisiones
+
+- `output: 'standalone'` condicionado por `DTD_STANDALONE` para no alterar los builds de Vercel ni `scripts/check-build.mjs`.
+- `NEXT_PUBLIC_*` se inlinean en build: la imagen de GHCR se construye por entorno (build args desde variables del repo); un cambio de URL pública exige rebuild, no solo reinicio.
+- `REQUEST_IP_HEADER` mal configurado (header no fijado por el proxy) permite spoofear la IP de evidencia; el runbook exige que Traefik/Cloudflare lo sobrescriban y lo prueba con `curl -H`.
+- La migración 0472 solo cambia el origen de la URL; en producción (Cloud) sin el secreto se comporta igual que hoy.
+- Sin pgBackRest en esta fase: el backup es dump diario + rclone; se documenta como pendiente antes del corte.
+
+## Seguimiento
+
+- **2026-10-08 · fase de verificación de la construcción (revisor de infra, `infra-dtd`), literales registrados por el área docs sin reproducirlos:** `docker compose ... config` **NO EJECUTADO** (archivos de compose ausentes en el worktree); `SQL_TEST_PG_IMAGE=supabase/postgres:17.6.1.136 node scripts/check-schema-rebuild.mjs` **FALLÓ** (`permission denied for schema auth`, 10,8 s; bloquean 0038, 0268, 0410 y 0453); `node scripts/check-schema-rebuild.mjs` sobre `postgres:17` **PASÓ** (449 migraciones + 18 solo-ledger = 467, 41 s); `node scripts/run-sql-tests.mjs` sobre `postgres:17` **PASÓ** 224/224 (~3 min), todavía sin la 0472; imagen `dtdcargo` **NO DISPONIBLE** (sin `Dockerfile`). El criterio de aceptación 2 se reescribió con esa evidencia; la decisión sobre la variante `supabase/postgres` es del Director.
+- **2026-10-08 · HEALTHCHECK:** el alcance 1 decía «`/api/health` si existe o `/`». No existe `app/api/health` y `app/api/debug/health` no sirve (503/401 sin secreto). Se fija `GET /robots.txt` con `timeout 5 s` y `start-period 40 s`.
+
+## Allowlist de archivos
+
+Nuevos: `Dockerfile`, `.dockerignore`, `infra/**`, `scripts/build-crontab.mjs`, `scripts/__tests__/build-crontab.test.ts`, `lib/runtime/app-env.ts`, `lib/runtime/supabase-origin.ts`, `lib/runtime/__tests__/*.test.ts`, `supabase/migrations/0472_kommo_functions_base_url.sql`, `supabase/tests/0472_kommo_functions_base_url.test.sql`, `lib/studio/__tests__/kommo-functions-base-url.migration.test.ts`, `lib/studio/attachments/__tests__/direct-tus-endpoint.test.ts`, `.github/workflows/build-image.yml`, `docs/runbooks/servidor-contabo.md`, `docs/runbooks/backup-restore-servidor.md`, `.agents/handoffs/0505-dockerizar-dtd-cargo-contabo.md`, `supabase/tests/_supabase-platform-stubs.supabase.sql` (stubs reducidos para reconstruir sobre `supabase/postgres`: el stub de `postgres:17` choca con la plataforma real), `scripts/__tests__/infra-env-example.test.ts` (deriva entre el `.env.example` raíz y el de `infra/dtd-cargo/`, y aislamiento del compose).
+
+Modificados: `next.config.ts`, `package.json`, `.env.example`, `app/studio/(app)/_actions/deployActions.ts`, `app/studio/(app)/_actions/__tests__/deployActions.test.ts`, `lib/studio/env-status.ts`, `lib/studio/newsletter/sender.ts`, `lib/studio/newsletter/__tests__/campaign.test.ts`, `lib/studio/mail/unsubscribe-request.ts`, `lib/http/request-ip.ts`, `lib/http/__tests__/request-ip.test.ts`, `supabase/migrations-baseline.json`, `docs/runbooks/setup-portal-auth.md`, `scripts/check-schema-rebuild.mjs` (solo comentario/documentación), índices de docs regenerados, `docs/specs/0505-dockerizar-dtd-cargo-contabo/spec.md`, `tsconfig.json` y `eslint.config.mjs` (excluyen `infra/`: el router de Edge Functions copiado del upstream es código Deno y rompía `pnpm typecheck` con 19 errores), `.gitattributes` (`infra/dtd-cargo/supabase/volumes/** -whitespace`: la copia verbatim trae espacios finales y se conserva idéntica al upstream).

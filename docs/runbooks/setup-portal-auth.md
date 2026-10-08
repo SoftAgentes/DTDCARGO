@@ -50,6 +50,60 @@ cuando el camino nuevo falla y se cae al viejo. No la borres.
 - Auth providers: https://supabase.com/dashboard/project/xpfuzqombmjmxvprjgmi/auth/providers
 - SMTP settings: https://supabase.com/dashboard/project/xpfuzqombmjmxvprjgmi/settings/auth
 
+## Self-hosted (SDD-0505)
+
+En el servidor propio ([servidor-contabo.md](servidor-contabo.md)) no hay
+dashboard: todo lo que abajo se configura «a mano en Supabase» es una variable
+de GoTrue en el `.env` de `infra/dtd-cargo/` (`compose.supabase.yml`). Hay dos
+columnas de nombres porque el compose oficial de Supabase expone unas variables
+cortas y las traduce a las `GOTRUE_*` que lee el contenedor `auth`; el
+`.env.example` de infra usa las cortas. Los valores son los mismos que se
+midieron en el dashboard de Cloud.
+
+| Paso de este runbook (dashboard) | Variable del `.env` (compose) | Variable que lee GoTrue | Valor |
+|---|---|---|---|
+| Paso 1 · Site URL | `SITE_URL` | `GOTRUE_SITE_URL` | `https://dtdcargo.com` |
+| Paso 2 · Redirect URLs | `ADDITIONAL_REDIRECT_URLS` | `GOTRUE_URI_ALLOW_LIST` | `https://dtdcargo.com/portal/callback` (staging: su host; separadas por coma) |
+| Paso 3 · Email provider ON | `ENABLE_EMAIL_SIGNUP` | `GOTRUE_EXTERNAL_EMAIL_ENABLED` | `true` |
+| Paso 3 · Confirm email | `ENABLE_EMAIL_AUTOCONFIRM` | `GOTRUE_MAILER_AUTOCONFIRM` | `false` (igual que en Cloud: el magic-link confirma) |
+| TTL del enlace (`MAILER_OTP_EXP = 3600 s`) | `MAILER_OTP_EXP` | `GOTRUE_MAILER_OTP_EXP` | `3600` |
+| «Minimum interval per user» = 60 s | — | `GOTRUE_SMTP_MAX_FREQUENCY` | `60s` |
+| Paso 4 · SMTP custom (Resend) | `SMTP_HOST` · `SMTP_PORT` · `SMTP_USER` · `SMTP_PASS` · `SMTP_ADMIN_EMAIL` · `SMTP_SENDER_NAME` | `GOTRUE_SMTP_HOST` · `GOTRUE_SMTP_PORT` · `GOTRUE_SMTP_USER` · `GOTRUE_SMTP_PASS` · `GOTRUE_SMTP_ADMIN_EMAIL` · `GOTRUE_SMTP_SENDER_NAME` | `smtp.resend.com` · `465` · `resend` · la API key de Resend · `no-responder@dtdcargo.com` · `DTD Cargo` |
+| Paso 4b · Rate limit de emails | — | `GOTRUE_RATE_LIMIT_EMAIL_SENT` | `50` (por hora) |
+| Plantilla Magic Link (y las otras cinco) | `MAILER_TEMPLATES_MAGIC_LINK` (`_INVITE`, `_CONFIRMATION`, `_RECOVERY`, `_EMAIL_CHANGE`, `_REAUTHENTICATION`) | `GOTRUE_MAILER_TEMPLATES_MAGIC_LINK` (…) | `http://auth-templates/magic-link.html` (…): el servicio `auth-templates` del compose sirve `infra/dtd-cargo/supabase/templates/`, que son los mismos HTML de la sección «Plantillas de email branded» de abajo |
+| Subject de cada plantilla | `MAILER_SUBJECTS_MAGIC_LINK` (…) | `GOTRUE_MAILER_SUBJECTS_MAGIC_LINK` (…) | los subjects de la tabla «Checklist de plantillas» |
+
+Qué necesita cada camino de entrada:
+
+- **Camino normal (SDD-0278, `token_hash`)**: `app/entrar/actions.ts` acuña el
+  enlace con `admin.generateLink` (`lib/studio/portal/magic-link.ts`), lo manda
+  **nuestro** pipeline por Resend y apunta a `/abrir`, donde
+  `app/abrir/actions.ts:43` lo consume con `verifyOtp`. No necesita SMTP de
+  GoTrue, ni la whitelist de redirect, ni la plantilla Magic Link: necesita
+  `SUPABASE_SERVICE_ROLE_KEY` en el `.env` de la app (la `SERVICE_ROLE_KEY`
+  firmada con el `JWT_SECRET` del stack) y la `NEXT_PUBLIC_SUPABASE_URL` del
+  host propio. Deja igual el proveedor Email encendido: es un toggle, no
+  infraestructura, y el plan B lo exige.
+- **Plan B (`signInWithOtp` PKCE, `app/entrar/actions.ts:44-50`)**: es el
+  camino al que se cae si acuñar o enviar falla. Necesita **todo** lo de la
+  tabla: SMTP, `GOTRUE_URI_ALLOW_LIST` con `/portal/callback` y la plantilla
+  Magic Link servida por `auth-templates`. Si falta cualquiera, el plan B no
+  entrega y un fallo del camino normal deja al cliente sin puerta.
+
+Prueba de humo, al levantar el stack y después de cada cambio del `.env` de
+Auth: en el Studio, invita un cliente de prueba (fila en `client_users` con
+status `invited`), pide el enlace desde `/entrar` con ese correo y abre el
+correo en **otro** navegador (o en el teléfono). Debe caer en `/abrir`, apretar
+el botón y entrar al portal: eso prueba el camino `token_hash` y que `verifyOtp`
+llega al GoTrue propio. Para probar el plan B sin romper el normal, pide un
+segundo enlace con `signInWithOtp` desde un script contra staging: el correo
+tiene que salir por el SMTP de GoTrue con la plantilla branded y el enlace a
+`/portal/callback`.
+
+Lo que no cambia: `MAILER_OTP_EXP` sigue en 3600 s y el intervalo mínimo en
+60 s porque son los valores medidos en producción, no porque GoTrue los traiga
+por defecto.
+
 ## Paso 1 · Site URL
 
 Auth → URL Configuration → **Site URL**:
