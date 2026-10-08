@@ -1,0 +1,16 @@
+# infra/templates/proyecto/cron/crontab — ejemplo (SDD-0505).
+#
+# Una línea por ruta de /api/cron/* del proyecto, horarios en UTC. Formato fijo:
+#   <m h dom mon dow> curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000<path>
+#
+# `--max-time 290` queda bajo el maxDuration de 300 s de las rutas largas. El
+# secreto lo expande `sh -c` desde el entorno del contenedor; no lo escribas aquí.
+#
+# En DTD Cargo este archivo se GENERA desde vercel.json con
+# scripts/build-crontab.mjs y una prueba falla si se desalinea. En un proyecto
+# nuevo puedes escribirlo a mano o copiar ese generador.
+
+# Ejemplo: cola de trabajo cada minuto.
+* * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/ejemplo-drain
+# Ejemplo: salud del correo cada 30 minutos.
+*/30 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/ejemplo-health

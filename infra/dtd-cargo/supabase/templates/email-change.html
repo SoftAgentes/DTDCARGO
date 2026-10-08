@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- Plantilla "Change Email Address" de Supabase Auth (GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE).
+     Mismo HTML que docs/runbooks/setup-portal-auth.md. Conservar `{{ .ConfirmationURL }}`. -->
+<html lang="es">
+<head><meta charset="utf-8"><title>Confirma tu nuevo correo · DTD Cargo</title></head>
+<body style="margin:0;background:#FBFAF7">
+<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
+<p style="font-size:16px;margin:0 0 12px"><b>Confirma tu nuevo correo</b></p>
+<p style="margin:0 0 16px">Pediste cambiar el correo de tu cuenta de DTD Cargo. Haz clic en el botón para confirmar esta dirección como tu nuevo correo de acceso.</p>
+<p style="margin:0 0 20px">
+  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#7F0F1A;color:#FFFFFF;text-decoration:none;padding:12px 28px;border-radius:7px;font-weight:700;font-size:15px">Confirmar mi nuevo correo</a>
+</p>
+<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">¿El botón no funciona? <a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline">Ábrelo aquí</a>.</p>
+<p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No fuiste tú? Ignora este correo, tu cuenta sigue segura.</p>
+<hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
+<p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
+</div>
+</body>
+</html>

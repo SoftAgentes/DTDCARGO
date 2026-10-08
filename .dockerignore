@@ -1,0 +1,102 @@
+# Contexto de `docker build` (SDD-0505). Todo lo que NO está acá viaja al daemon
+# y, con `COPY . .`, queda dentro de la etapa `build` (no del runner, pero una
+# capa intermedia también se puede inspeccionar). Reglas: fuera secretos, fuera
+# dependencias de Windows, fuera pruebas y material interno; dentro solo lo que
+# `next build` necesita. Última regla que coincide gana (como en .gitignore).
+
+# ─── Secretos y config local ────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+.mcp.json
+.codex
+.vercel
+
+# ─── Git, CI y harness de agentes ───────────────────────────────────────────
+.git
+.github
+.agents
+.harness
+.claude
+.forge
+.husky
+.gstack
+.vscode
+.obsidian
+.graphifyignore
+.gitattributes
+.gitignore
+.dockerignore
+Dockerfile
+skills-lock.json
+vercel.json
+
+# ─── Dependencias y salidas de build locales ────────────────────────────────
+# node_modules de Windows trae junctions de pnpm que no sirven en Linux; la
+# imagen instala los suyos desde el lockfile.
+node_modules
+.pnpm-store
+.next
+.next-verify
+out
+build
+coverage
+tsconfig.tsbuildinfo
+next-env.d.ts
+graphify-out
+outputs
+dashboard
+public/norte.html
+
+# ─── Pruebas (unitarias, e2e, SQL) y su tooling ─────────────────────────────
+e2e
+__tests__
+**/__tests__
+**/*.test.ts
+**/*.test.tsx
+**/*.test.mjs
+supabase/tests
+supabase/.temp
+vitest
+vitest.config.ts
+vitest.setup.ts
+playwright.config.ts
+playwright-report
+test-results
+.playwright-mcp
+.vitest-cache
+
+# ─── Backend que no compila la app ──────────────────────────────────────────
+# Migraciones, functions y config de Supabase se despliegan por otra vía
+# (compose + CLI); el servidor Next no las lee en runtime.
+supabase
+infra
+scripts
+
+# ─── Documentación y material interno ───────────────────────────────────────
+# Solo viaja lo que `next.config.ts` traza para runtime: `docs/marketing/**/*.md`
+# (lector de Marketing del Studio). Lo demás de docs/ (60 MB con mockups,
+# brand-books y specs) no es código de la app.
+docs
+!docs/marketing
+docs/marketing/**/*
+!docs/marketing/**/*.md
+# `private/marca/herramientas/**` sí se traza (descargas del hub de marca); el
+# resto de private/ no.
+private
+!private/marca
+private/marca/*
+!private/marca/herramientas
+research
+equipo-crm
+faq
+CoWork
+PRIVADO-NO-SUBIR-AL-REPO
+docs-legal
+wiki-personal
+.tmp-foto-analisis
+*.md
+!docs/marketing/**/*.md
+*.canvas
+*.base

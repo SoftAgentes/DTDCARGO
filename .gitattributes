@@ -24,6 +24,16 @@
 supabase/migrations/*.sql -text
 supabase/tests/*.sql -text
 
+# Copia verbatim del compose oficial de Supabase (SDD-0505): los archivos de
+# `infra/dtd-cargo/supabase/volumes/` se traen byte a byte de
+# `supabase/supabase@4205c41` (docker/volumes/) para poder diffearlos contra el
+# upstream por SHA de blob. El router de Edge Functions (`functions/main/index.ts`)
+# trae 4 lineas con espacios al final; limpiarlas rompia esa identidad y
+# `git diff --check` las marcaba como error. `-whitespace` apaga el chequeo de
+# espacios solo en esa carpeta: la copia se conserva tal cual y el resto del
+# repo sigue vigilado. Al refrescar la copia, se vuelve a copiar entera.
+infra/dtd-cargo/supabase/volumes/** -whitespace
+
 # Registros compartidos que varias PR modifican sin solapamiento semantico.
 # No usar el driver `union`: une lineas, corrompe JSON y desordena el indice.
 # Politica por archivo: docs/architecture/decisions/0002-merge-semantico-registros-generados.md

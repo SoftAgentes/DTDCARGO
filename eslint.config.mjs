@@ -34,6 +34,13 @@ const eslintConfig = defineConfig([
     // Edge Functions de Supabase corren en Deno (imports jsr:/ global Deno):
     // no las lintea el config de Next. Se chequean con el bundler de deploy.
     "supabase/functions/**",
+    // Infra del servidor propio (SDD-0505): `infra/dtd-cargo/supabase/volumes/`
+    // es una copia verbatim del compose oficial de Supabase (`supabase/supabase@
+    // 4205c41`) y trae el router de Edge Functions en TypeScript para Deno
+    // (`jsr:` + global `Deno`/`EdgeRuntime`). No es código de la app: ni el
+    // lint de Next ni `tsc` lo validan (mismo motivo que `supabase/functions`;
+    // `tsconfig.json` lo excluye igual). Se refresca copiando del upstream.
+    "infra/**",
     // Grafo de conocimiento de graphify (AST generado + scripts _gen_*.js):
     // output regenerable y gitignored, NO código de la app. `graphify update`
     // deja .js con require() de Node que rompen el lint del gate.

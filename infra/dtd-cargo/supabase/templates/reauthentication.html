@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- Plantilla "Reauthentication" de Supabase Auth (GOTRUE_MAILER_TEMPLATES_REAUTHENTICATION).
+     Usa `{{ .Token }}` (el código de 6 dígitos), no `ConfirmationURL`.
+     Mismo HTML que docs/runbooks/setup-portal-auth.md. -->
+<html lang="es">
+<head><meta charset="utf-8"><title>Tu código de verificación · DTD Cargo</title></head>
+<body style="margin:0;background:#FBFAF7">
+<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
+<p style="font-size:16px;margin:0 0 12px"><b>Tu código de verificación</b></p>
+<p style="margin:0 0 16px">Usa este código para confirmar tu identidad en DTD Cargo. Caduca pronto y se usa una sola vez.</p>
+<p style="margin:0 0 20px;text-align:center">
+  <span style="display:inline-block;background:#FFFFFF;border:1px solid #E8E6E2;color:#0F1E3D;padding:16px 28px;border-radius:7px;font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:700;font-size:28px;letter-spacing:6px">{{ .Token }}</span>
+</p>
+<p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No fuiste tú? Ignora este correo, tu cuenta sigue segura.</p>
+<hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
+<p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
+</div>
+</body>
+</html>

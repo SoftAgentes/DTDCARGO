@@ -1,0 +1,85 @@
+# infra/ops/traefik/compose.yml — Traefik standalone para entornos sin Dokploy (SDD-0505).
+#
+# Un solo Traefik en el host escucha 80/443 y enruta por labels hacia los
+# contenedores públicos de cada proyecto (`web`, `api-gw`). Se une a la red
+# `edge` de cada proyecto; las redes `internal` nunca lo ven. Dokploy trae su
+# propio Traefik: si el servidor lo usa, este compose NO se levanta (dos procesos
+# en :443 no conviven) y los labels de los proyectos funcionan igual.
+#
+# Configuración estática por flags de `command:` (y no por traefik.yml) porque
+# los flags se interpolan desde `.env`; el YAML estático de Traefik no lee
+# variables. Lo dinámico (middlewares, serversTransports) vive en ./dynamic.
+#
+# IP real del cliente: desde Internet sin Cloudflare, Traefik fija `X-Real-Ip`
+# con la IP del peer y borra los X-Forwarded-* que traiga el cliente, así que
+# REQUEST_IP_HEADER=x-real-ip es seguro. Detrás de Cloudflare el peer ES
+# Cloudflare: pon sus rangos en TRUSTED_PROXY_CIDRS, usa cf-connecting-ip en la
+# app y cierra el origen a esos rangos en el firewall (runbook servidor-contabo).
+
+name: ops-traefik
+
+services:
+  traefik:
+    image: traefik:v3.7.14
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command:
+      - --log.level=INFO
+      - --accesslog=true
+      - --accesslog.format=json
+      - --ping=true
+      # Sin dashboard: una API de solo lectura expuesta por error ya es demasiado.
+      - --api.dashboard=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls.certresolver=letsencrypt
+      # Esperas largas: importaciones y crons de hasta 300 s (maxDuration) y
+      # subidas lentas desde Venezuela.
+      - --entrypoints.websecure.transport.respondingtimeouts.readtimeout=300s
+      - --entrypoints.websecure.transport.respondingtimeouts.writetimeout=300s
+      - --entrypoints.websecure.transport.respondingtimeouts.idletimeout=180s
+      - --entrypoints.websecure.forwardedheaders.trustedips=${TRUSTED_PROXY_CIDRS:-127.0.0.1/32}
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?define ACME_EMAIL en .env}
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      # HTTP-01 y no TLS-ALPN: funciona también con Cloudflare delante (proxied).
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - dtd_edge
+    volumes:
+      # Solo lectura. Aun así, quien controle este socket controla el host:
+      # pendiente docker-socket-proxy (ver README de ops).
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./dynamic:/etc/traefik/dynamic:ro
+      # acme.json con permisos 600; créalo vacío antes del primer arranque.
+      - ./letsencrypt:/letsencrypt
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+networks:
+  # Una red edge por proyecto, creada por el operador (`docker network create`).
+  # Agrega aquí cada proyecto nuevo y súmala a `services.traefik.networks`.
+  dtd_edge:
+    external: true
+  # loop3d_edge:
+  #   external: true
