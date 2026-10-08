@@ -10,7 +10,7 @@
  * la RLS lo refuerzan.
  */
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   slugify,
@@ -46,6 +46,8 @@ export function CityDrawer({ mode, city, onClose }: Props) {
   const [label, setLabel] = useState(city?.label ?? "");
   const [slug, setSlug] = useState(city?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(mode === "edit");
+  const [casco, setCasco] = useState(city?.casco ?? false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -56,6 +58,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
   useEffect(() => {
     if (state.ok) {
       toast.success(mode === "create" ? "Ciudad creada" : "Ciudad actualizada");
+      router.refresh();
       // Al crear, resaltar la row nueva en la lista de ciudades (tono warm).
       if (mode === "create" && state.createdId) {
         router.push(
@@ -65,6 +68,10 @@ export function CityDrawer({ mode, city, onClose }: Props) {
       onClose();
     }
   }, [state.ok, state.createdId, mode, onClose, toast, router]);
+
+  useEffect(() => {
+    if (state.error) errorRef.current?.focus();
+  }, [state.error]);
 
   const title = mode === "create" ? "Nueva ciudad" : "Editar ciudad";
 
@@ -77,7 +84,14 @@ export function CityDrawer({ mode, city, onClose }: Props) {
     >
         <form
           id="city-drawer-form"
-          action={formAction}
+          aria-busy={isPending}
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (isPending) return;
+            // El dispatch manual evita que React borre el borrador ante un error.
+            const formData = new FormData(event.currentTarget);
+            startTransition(() => formAction(formData));
+          }}
           style={{
             flex: 1,
             overflow: "auto",
@@ -179,7 +193,7 @@ export function CityDrawer({ mode, city, onClose }: Props) {
             </div>
           </div>
 
-          {/* Casco central */}
+          {/* Inclusión de la entrega · control original de la ciudad. */}
           <label
             htmlFor="casco"
             style={{
@@ -198,7 +212,11 @@ export function CityDrawer({ mode, city, onClose }: Props) {
               name="casco"
               type="checkbox"
               className="studio-checkbox"
-              defaultChecked={city?.casco ?? false}
+              checked={casco}
+              onChange={(event) => setCasco(event.target.checked)}
+              disabled={isPending}
+              aria-labelledby="casco-label"
+              aria-describedby="casco-description"
               style={{
                 marginTop: 2,
                 width: 16,
@@ -209,28 +227,32 @@ export function CityDrawer({ mode, city, onClose }: Props) {
             />
             <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <span
+                id="casco-label"
                 style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}
               >
-                Entrega incluida en el precio base
+                Entrega incluida, sin costo adicional
               </span>
               <span
+                id="casco-description"
                 style={{
                   font: "400 12px/1.4 var(--f-sans)",
                   color: "var(--ink-soft)",
                 }}
               >
-                El cliente no paga recargo de entrega en esta ciudad. DTD paga
-                ese tramo al transportista; su tarifa interna se conserva.
+                Si está marcada, el cliente no paga recargo de entrega en esta
+                ciudad. Si la desmarcas, se aplica la tarifa de entrega vigente.
               </span>
             </span>
           </label>
 
           {(state.error || deleteError) && (
             <p
+              ref={errorRef}
               role="alert"
+              tabIndex={-1}
               style={{
                 font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
+                color: "var(--ink)",
                 margin: 0,
                 padding: "10px 12px",
                 background: "var(--danger-bg)",

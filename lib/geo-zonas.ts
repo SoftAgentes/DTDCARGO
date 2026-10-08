@@ -35,7 +35,7 @@ export type GeoZona = {
   km: number;
   /**
    * Zona sin costo: la entrega nacional va **incluida** ($0 para el cliente).
-   * Espeja el flag `casco` de `lib/data/destinos-nacionales.ts` — son las 8
+   * Espeja el flag `casco` de `lib/data/destinos-nacionales.ts` — son las 7
    * ciudades que decidió el founder, y DTD sí le paga ese tramo al fletero.
    */
   casco: boolean;
@@ -267,8 +267,8 @@ export const GEO_ZONAS: GeoZona[] = [
     ciudad: "Acarigua",
     estado: "Portuguesa",
     km: 175,
-    // Zona sin costo desde el 1-ago-2026 (SDD-0237) — Acarigua sí, Araure no.
-    casco: true,
+    // SDD-0504: Acarigua usa la tarifa de entrega vigente, igual que Araure.
+    casco: false,
     metaTitle: "Importar de China a Acarigua-Araure, Portuguesa | DTD Cargo",
     metaDescription:
       "Importar de China a Acarigua y Araure, Portuguesa: carga consolidada puerta a puerta, pagas al llegar y last-mile a tu puerta.",
@@ -276,7 +276,7 @@ export const GEO_ZONAS: GeoZona[] = [
     anguloLocal:
       "Acarigua y Araure forman el eje comercial de Portuguesa, el granero de Venezuela: entre la agroindustria del arroz y el maíz y el comercio que surte a Guanare y Turén, mucha de la maquinaria, los repuestos y la mercancía llegan de China. Consolidamos tu carga en Yiwu y la movemos en LCL hasta los llanos, sin que tengas que armar un contenedor completo.",
     notaEntrega:
-      "En Acarigua la entrega va incluida: no te cobramos el tramo nacional. En Araure y el resto de Portuguesa se cobra por metro cúbico, y lo estimas en la calculadora.",
+      "En Acarigua, Araure y el resto de Portuguesa la entrega nacional se cobra por metro cúbico. La calculadora te muestra el estimado y tu asesor confirma la tarifa vigente.",
   },
   {
     slug: "valera",

@@ -110,8 +110,8 @@ LO QUE NO CAMBIA: el resto de P1 sigue igual — tránsito 60-90 días, tarifa d
 carga especial, sin seguro. Las otras cuatro fichas ancla (Pre-alerta, Validación, HOLD,
 Consolidado LCL) están intactas, y el brief maestro HANDOFF-CLOUD-DESIGN.md tampoco cambia.
 
-SI LO NECESITAN PARA EL DISEÑO: hoy las ciudades con entrega incluida son ocho —
-Valencia, Naguanagua, San Diego, Guacara, Maracay, Caracas, Barquisimeto y Acarigua.
+SI LO NECESITAN PARA EL DISEÑO: hoy las ciudades con entrega incluida son siete —
+Valencia, Naguanagua, San Diego, Guacara, Maracay, Caracas y Barquisimeto.
 Consúltennos antes de imprimir esa lista en una pieza: es un dato operativo que puede
 cambiar, y por eso la ficha dice "un grupo de ciudades" en vez de enumerarlas.
 

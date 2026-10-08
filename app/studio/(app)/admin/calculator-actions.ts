@@ -184,52 +184,6 @@ function isCitySlugConflict(error: { code?: string } | null): boolean {
   return error?.code === "23505";
 }
 
-/** SDD-0504: guarda sólo la inclusión de entrega, sin sobrescribir la ciudad. */
-export async function saveDeliveryZoneAction(
-  id: string,
-  _prev: CalculatorCityActionState,
-  formData: FormData,
-): Promise<CalculatorCityActionState> {
-  try {
-    const supabase = await createClient();
-    // Contexto y autorización de la misma membresía activa (disabled_at).
-    const gate = await moduleEditGate(supabase, "admin");
-    if (!gate.ok) return { error: gate.denied };
-    if (gate.role !== "admin") return { error: CITY_ADMIN_ONLY_MSG };
-
-    const casco = formData.get("casco");
-    const previous = formData.get("previousCasco");
-    if (!/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id) ||
-        (casco !== "true" && casco !== "false") ||
-        (previous !== "true" && previous !== "false")) {
-      return { error: "Selecciona una ciudad y un estado de entrega válidos." };
-    }
-    // No pisa un cambio concurrente ni revive una ciudad.
-    // Conserva el trigger audit_d5_calculator_cities (migración 0293).
-    const { data, error } = await supabase
-      .from("calculator_cities")
-      .update({ casco: casco === "true" })
-      .eq("id", id)
-      .eq("tenant_id", gate.tenantId)
-      .is("deleted_at", null)
-      .eq("casco", previous === "true")
-      .select("id")
-      .maybeSingle();
-    if (error) {
-      return { error: "No se pudo guardar la zona. Tu selección se conserva; intenta de nuevo." };
-    }
-    if (!data) {
-      return { error: "La ciudad cambió o ya no está disponible. Cancela y recarga la configuración antes de intentar de nuevo." };
-    }
-    revalidatePath("/studio/admin");
-    revalidatePath("/tarifas");
-    revalidatePath("/tarifas/embed");
-    return { ok: true };
-  } catch {
-    return { error: "No se pudo guardar la zona. Tu selección se conserva; intenta de nuevo." };
-  }
-}
-
 export async function createCityAction(
   _prev: CalculatorCityActionState,
   formData: FormData,
@@ -274,37 +228,47 @@ export async function updateCityAction(
   _prev: CalculatorCityActionState,
   formData: FormData,
 ): Promise<CalculatorCityActionState> {
-  const supabase = await createClient();
-  const denial = await moduleEditDenial(supabase, "admin");
-  if (denial) return { error: denial };
+  try {
+    const supabase = await createClient();
+    // La edición original usa permiso y tenant de la misma membresía activa.
+    const gate = await moduleEditGate(supabase, "admin");
+    if (!gate.ok) return { error: gate.denied };
+    if (gate.role !== "admin") return { error: CITY_ADMIN_ONLY_MSG };
 
-  const partial = cityFromFormData(formData);
-  const { input, fieldErrors } = validateCityInput(partial);
-  if (fieldErrors) return { fieldErrors };
+    const partial = cityFromFormData(formData);
+    const { input, fieldErrors } = validateCityInput(partial);
+    if (fieldErrors) return { fieldErrors };
 
-  const who = await resolveTenantAdmin(supabase);
-  if (!who.ok) return { error: who.error };
-  if (!who.isAdmin) return { error: CITY_ADMIN_ONLY_MSG };
+    const { data, error } = await supabase
+      .from("calculator_cities")
+      .update({
+        slug: input!.slug,
+        label: input!.label,
+        km: input!.km,
+        casco: input!.casco,
+        sort_order: input!.sort_order,
+      })
+      .eq("id", id)
+      .eq("tenant_id", gate.tenantId)
+      .is("deleted_at", null)
+      .select("id")
+      .maybeSingle();
 
-  const { error } = await supabase
-    .from("calculator_cities")
-    .update({
-      slug: input!.slug,
-      label: input!.label,
-      km: input!.km,
-      casco: input!.casco,
-      sort_order: input!.sort_order,
-    })
-    .eq("id", id);
+    if (error) {
+      if (isCitySlugConflict(error)) return { error: CITY_SLUG_CONFLICT_MSG };
+      return { error: "No se pudo guardar la ciudad. Tu selección se conserva; intenta de nuevo." };
+    }
+    if (!data) {
+      return { error: "La ciudad ya no está disponible. Tu selección se conserva; cancela y recarga la configuración." };
+    }
 
-  if (error) {
-    if (isCitySlugConflict(error)) return { error: CITY_SLUG_CONFLICT_MSG };
-    return { error: `No se pudo guardar la ciudad: ${error.message}` };
+    revalidatePath("/studio/admin");
+    revalidatePath("/tarifas");
+    revalidatePath("/tarifas/embed");
+    return { ok: true };
+  } catch {
+    return { error: "No se pudo guardar la ciudad. Tu selección se conserva; intenta de nuevo." };
   }
-
-  revalidatePath("/studio/admin");
-  revalidatePath("/tarifas");
-  return { ok: true };
 }
 
 export async function deleteCityAction(

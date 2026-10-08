@@ -25,6 +25,12 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 
 ## Cronología
 
+### 2026-10-08 · Acarigua con tarifa de entrega (SDD-0504)
+
+Por decisión de Sam, Acarigua deja de tener entrega nacional incluida. Se conserva la tarifa vigente/respaldo existente por metro cúbico, y las otras siete ciudades con inclusión no cambian. `lib/geo-zonas.ts` alinea el mensaje de la landing de Acarigua; la calculadora principal y el embed respetan la bandera persistida y combinan el mismo tarifario. La guía del equipo y el prompt de infografías actualizan su lista a siete ciudades. [PR #193](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/193) conserva la evidencia de integración y publicación comprobadas por Director; esta nota describe el cambio autorizado.
+
+La entrada del 1-ago-2026 se conserva como historia de SDD-0237; su inclusión de Acarigua quedó sustituida por esta decisión. No se modifican otros mensajes por ciudad, tarifas, filas de `service_configs` ni canales externos.
+
 ### 2026-08-01 · Barrido de copy en landings indexadas (SDD-0237)
 
 **Qué cambió y por qué importa para SEO:** el modelo de precio de la entrega nacional pasó a **CBM × tramo** y murió el `max(0, km − 200) × $1`. Eso dejó desactualizado el copy de **18 geo-páginas indexadas** (`/importar-de-china/*`) más `/servicios/puerta-a-puerta`, que seguían prometiendo un cobro por distancia que ya no existe.

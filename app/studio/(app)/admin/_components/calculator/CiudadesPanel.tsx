@@ -17,7 +17,6 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
 import { CityDrawer } from "./CityDrawer";
-import { ZonasEntregaPanel } from "./ZonasEntregaPanel";
 
 type DrawerState =
   | null
@@ -44,7 +43,6 @@ export function CiudadesPanel({
 
   return (
     <div style={{ maxWidth: 900 }}>
-      <ZonasEntregaPanel cities={cities} isAdmin={isAdmin} />
       {/* Aviso de contexto */}
       <div
         style={{

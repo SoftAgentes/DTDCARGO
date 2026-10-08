@@ -246,8 +246,7 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   });
 
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    // SDD-0504 agrega saveDeliveryZoneAction, gate moduleEditGate("admin").
-    expect(reportes.length).toBe(428);
+    expect(reportes.length).toBe(427);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

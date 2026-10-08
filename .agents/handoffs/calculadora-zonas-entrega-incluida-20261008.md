@@ -1,97 +1,129 @@
 # Worker — calculadora-zonas-entrega-incluida-20261008
 
-Fecha: 2026-10-08. Owner/sesión: worker-01a11cc5-94ca-70b1-a3b8-74b6fa5edb8a.
+Fecha: 2026-10-08. Owner: worker-0504-simplificacion-20261008. Sesión interna Worker asignada por Director para la misma SDD-0504; adopción explícita al retomar, sin trasladar trabajo.
 Worktree: `C:/Users/AKX generator/.codex/worktrees/calculadora-zonas-entrega-incluida-20261008/DTDCARGO`.
 Rama: `codex/calculadora-zonas-entrega-incluida-20261008`.
-Base: `eadef1130dd1b192f0d6829b3dac9f4515e4541d` (reserva SDD-0504 desde `c3d37a8eeb347e260a2d047ceb882795e06a408f`).
-SDD: `docs/specs/0504-zonas-entrega-incluida/spec.md`. Estado: in-progress por cierre general incompleto. Implementación local lista para revisión con límites; no equivale a autorización de integración/release.
+Base de integración: `c3d37a8eeb347e260a2d047ceb882795e06a408f`; reserva SDD en `eadef1130dd1b192f0d6829b3dac9f4515e4541d`.
+HEAD limpio de entrada a esta continuación: `e12a486766619890873c256744fd60aa0298a5ff`.
+SDD: `docs/specs/0504-zonas-entrega-incluida/spec.md`, done de implementación: criterios propios cumplidos, verify ejecutado/clasificado y falla TS inicial corregida con typecheck/build aprobados. CI del nuevo SHA, integración y release pendientes para Director, con autorización vigente de Sam. Git y PR #193 conservan el SHA final, sin autorreferencia de este documento.
 
 ## OBJETIVO ORIGINAL
 
-Administrar ciudades con entrega incluida desde configuración de calculadora; conservar Caracas, Valencia, Maracay y demás coberturas, excluir Acarigua y preservar tarifas/fórmula.
+Sam pidió administrar la inclusión de la entrega desde la configuración de la calculadora, conservar las demás ciudades y tarifas, y excluir Acarigua. Precisó expresamente: conservar UNA sola opción «Entrega incluida, sin costo adicional» en Editar ciudad y retirar el panel duplicado. La casilla original y updateCityAction ya existían; esta continuación los reutiliza y corrige la precedencia pública que ignoraba false persistido.
+
+Publicación de la misma rama/PR autorizada por Sam. Sam también autorizó integración y producción; Director ejecuta y registra esas operaciones por separado. Worker no mergea ni despliega. No migraciones, escrituras productivas, PII ni secretos copiados.
+
+### Contrato registrado antes de editar producto
+
+Guard, raíz, rama y claim comprobados. Director serializa integración y no escribe estos archivos durante esta continuación. Allowlist exacta, registrada también en SDD antes de las ediciones:
+
+- `docs/specs/0504-zonas-entrega-incluida/spec.md`
+- `docs/specs/README.md` (sólo generador)
+- `.agents/handoffs/calculadora-zonas-entrega-incluida-20261008.md`
+- `app/studio/(app)/admin/_components/calculator/CalculatorSection.tsx`
+- `app/studio/(app)/admin/_components/calculator/CiudadesPanel.tsx`
+- `app/studio/(app)/admin/_components/calculator/CityDrawer.tsx`
+- `app/studio/(app)/admin/_components/calculator/ZonasEntregaPanel.tsx` (retirar duplicado de esta tarea)
+- `app/studio/(app)/admin/_components/calculator/__tests__/ZonasEntregaPanel.test.tsx` (retirar pruebas exclusivas del componente eliminado)
+- `app/studio/(app)/admin/calculator-actions.ts` (recorrido update original; create/delete intactos)
+- `app/studio/(app)/admin/__tests__/delivery-zone-action.test.ts`
+- `app/studio/(app)/admin/_components/calculator/__tests__/CityDrawer.test.tsx`
+- `lib/studio/rbac-actions-guard.test.ts` (inventario 427; scanner, excepciones, guards y deuda intactos)
+- `lib/public/__tests__/combinar-destinos.test.ts` (sólo cobertura adicional necesaria)
+- `app/tarifas/embed/page.tsx`
+- `app/tarifas/embed/page.test.tsx`
+- `lib/geo-zonas.ts` (sólo Acarigua y conteo actual)
+- `app/importar-de-china/[ciudad]/page.tsx` (sólo FAQ de Acarigua visible/JSON-LD)
+- `app/importar-de-china/[ciudad]/page.test.tsx`
+- `docs/marketing/README.md` (entrada SDD-0504)
+- `docs/marketing/seo.md` (nota fechada; historia preservada)
+- `docs/marketing/calculadora-explicada.html` (lista/conteo actual)
+- `docs/marketing/servicios-infografias/PROMPT-CLOUD-DESIGN.md` (lista/conteo actual)
+
+Director aprobó cada ampliación antes de editar. El baseline público detectó que el embed no combinaba tarifas y derivaba al asesor; geo-zonas prometía entrega incluida en Acarigua y cuatro fuentes comerciales actuales mantenían ocho ciudades. Se alinean puntualmente con la exclusión ya autorizada. El FAQ genérico DDP/coordinación dentro de la cotización final se clasifica como ambigüedad, no prueba de una promesa de $0; Director aprobó precisar sólo Acarigua. No otros hallazgos absorbidos.
+
+Se conservan SIN nuevas ediciones lib/public/rates-queries.ts, lib/data/destinos-nacionales.ts, lib/calculadora.ts, __tests__/calculadora.test.ts y la cobertura combinar-destinos previa. No cambios a fórmulas, selector/carrusel u otros módulos.
 
 ## COMPLETADO
 
-Aislamiento adjunto, rama propia y guard/claim comprobados. Allowlist final registrada en SDD antes de producto, ampliaciones justificadas antes de cada archivo adicional.
-
-- Sección «Zonas con entrega incluida» en Administración > Calculadora pública > Ciudades. Estados por ciudad, cambiar/guardar/cancelar, espera bloqueada, error persistente con foco, no-admin sin controles y borrador conservado al cambiar subpestaña.
-- saveDeliveryZoneAction modifica exclusivamente casco. Gate/contexto de membresía activa, admin explícito, filtros tenant/id/deleted_at/estado previo, cero filas detectado y error seguro. Revalida Administración, tarifas y embed.
-- combinarDestinos respeta bandera persistida, también false. Fallback sólo sin catálogo; Acarigua false con tarifa de respaldo existente 123,60 USD/m³ intacta. Caracas, Valencia, Maracay, Barquisimeto, Guacara, Naguanagua y San Diego conservan inclusión de respaldo. No se borran otras ciudades/coberturas.
-- Fórmula SDD-0502 intacta. Inventario RBAC 427 → 428 por nueva acción, sin cambiar scanner, excepciones o deuda.
+- Retirados ZonasEntregaPanel y saveDeliveryZoneAction, sin consumidores huérfanos. Montaje de CalculatorSection e inventario RBAC restaurados al baseline; no scanner/guards/excepciones alterados.
+- CityDrawer original muestra la etiqueta exacta elegida, descripción comercial y casilla nativa cargada desde city.casco. Envío explícito, pending, éxito después de guardar/refrescar, error seguro con foco y borrador conservado. Cancelar no muta.
+- updateCityAction original conserva el CRUD de ciudad y exige admin activo; gate y tenant de la misma membresía, filtros id/tenant/deleted_at, respuesta de fila guardada y cero filas sin falso éxito. Revalida Administración, tarifas y embed. Create/delete y trigger de auditoría existentes intactos.
+- combinarDestinos respeta true/false persistidos. Acarigua false y tarifa de respaldo 123,60 USD/m³ intacta; las otras siete inclusiones y las 178 ciudades se conservan. Fórmula subtotal → mínimo normal → batería → descuento intacta.
+- El embed usa las mismas RPC públicas y combinarDestinos que la página principal. Sin nuevas fuentes/schema.
+- Acarigua deja de prometer entrega incluida en geo-zonas, landing/FAQ/JSON-LD y listas comerciales actuales. Respuestas de las demás ciudades y layout intactos; historia de SEO del 1-ago preservada con nota que la sustituye.
+- Preview http://127.0.0.1:4324 actualizada con CiudadesPanel/CityDrawer/DrawerShell reales, estilos y contextos canónicos, filas/acciones sintéticas. Revisión escritorio/móvil light/dark y error/cancelar/guardar PASÓ.
 
 ## VALIDACIÓN
 
-No acceso a Supabase producción, sin secretos copiados. Dependencias instaladas con lockfile congelado y sin scripts; lockfile intacto.
-
-| Comprobación | Estado y alcance |
+| Comprobación de esta continuación | Estado y alcance |
 |---|---|
-| Tests dirigidos iniciales | 119/120 PASÓ; test encontró reset del checkbox ante error y se corrigió sin relajar test |
-| Tests dirigidos finales | PASÓ 554/554 en 6 archivos, con un worker: acción, UI (6/6 incluyendo conservación entre tabs), combinación/cálculo, tipos e inventario RBAC |
-| Inventario/guards RBAC | PASÓ 433/433 tras registrar la nueva acción; gate real y cliente simulado cubren no-admin, disabled_at, sesión, tenant, borrado y concurrencia |
-| Cálculo/persistencia simulada | PASÓ dirigido: exclusión/reinclusión cambia total 973,60/850; sin tarifa deriva; tarifa persistida, mínimo terrestre, batería y descuento conservados |
-| sdd:check | PASÓ; 490 specs, 467 migraciones; colisiones históricas declaradas no renumeradas |
-| docs:check / governance:check / components:check | PASÓ; índice generado, 28 políticas y 5 fuentes CMP |
-| git diff --check | PASÓ antes de cierre |
-| pnpm verify | FALLÓ e INCOMPLETO: 14/17 pasos ejecutados; lint inicial, suite y E2E fallidos; migrations-applied, sql-tests y schema-rebuild no medidos. Lint inicial encontró ENOENT al mover bundle temporal fuera del barrido; lint limpio PASÓ, 0 errores y 15 warnings preexistentes. Harness PASÓ 201/201, RSC PASÓ, typecheck PASÓ, Edge PASÓ 4/4. Último intento de suite: 16 archivos fallidos / 635 pasaron / 1 omitido; 34 tests fallidos / 8.743 pasaron / 1 omitido, con errores de arranque de workers y timeouts fuera del slice. Inventario RBAC inicial corregido y verificado dirigido |
-| Build de producción local | PASÓ, incluyendo TypeScript, páginas y postbuild Norte; tsconfig restaurado y sin cambios rastreados del build |
-| Ledger de migraciones | NO EJECUTADO, sin credenciales; no se consultó producción |
-| SQL / reconstrucción de esquema | NO DISPONIBLE: Docker ausente; no se ejecutaron |
-| Visual local | PASÓ componente real aislado, filas/acciones sintéticas: escritorio light/dark, móvil sin overflow, guardar/reintentar, no-admin, borrador tras error; cero pageErrors |
-| E2E general | FALLÓ tras reintento automático: 175 pasaron, 3 fallaron (selector light/dark chromium y captura de carrusel), 20 omitidos y un error de cierre de worker ajeno a test. Primer intento: 175 pasaron, 1 falló (selector dark mobile-chrome: esperaba mara y obtuvo Valencia (sede)mara), 2 flaky, 20 omitidos. Supabase sintético deny-only, sin datos reales |
-| Auth admin real / Postgres / producción | NO EJECUTADO; simulación no prueba RLS/trigger ejecutados ni web productiva |
+| Slice final | PASÓ 573/573 en 8 archivos, un worker: acción original, UI real, RSC embed/landing, combinación/cálculo, tipos e inventario RBAC |
+| Tipos | Primera corrida canónica FALLÓ TS2345 en tabla nueva del test de acción; se tipó explícitamente la tabla, sin cambiar casos/assertions. pnpm typecheck posterior PASÓ y acción 15/15 PASÓ |
+| docs:index / docs:check / sdd:check | PASÓ; 490 specs / 467 migraciones, colisiones históricas declaradas |
+| governance:check / components:check | PASÓ; 28 políticas / 5 fuentes CMP |
+| git diff --check | PASÓ |
+| Harness canónico | PASÓ 201/201, 103,289 s |
+| Lint canónico / RSC / Edge | PASÓ: 0 errores/15 warnings; 1.641 módulos sin cruces; 4 funciones compilan |
+| Unitarios generales | PASÓ 660 archivos/8.961 tests, 1 archivo/1 test omitidos, 1.027,18 s. Omisión: lib/studio/document-import/corpus.test.ts, DOCUMENT_IMPORT_CORPUS ausente; no se probó corpus comercial real |
+| E2E general | PASÓ el paso: 177 passed + 1 flaky aprobado al reintentar, 20 skipped, 5,9 min. Flaky: company-photo-carousel.spec.ts:93, captura visual Chromium. Omisiones: 18 recorridos requieren seed/credenciales efímeras y 2 capturas de otros proyectos no aplican porque se ejecutan una vez en Chromium |
+| Build de producción | PASÓ, incluido TypeScript del código corregido, páginas y postbuild Norte. tsconfig.json restaurado por el runner; no cambios rastreados derivados |
+| pnpm verify | FALLÓ / CIERRE INCOMPLETO, exit 1, 14/17 pasos medidos: única falla inicial TS2345 del test, posteriormente corregida y typecheck/build PASÓ; migrations-applied, sql-tests y schema-rebuild omitidos. No se reescribe el veredicto histórico ni se repite la suite por el cierre documental |
+| SQL / schema en esta continuación | NO EJECUTADO: VERIFY_SKIP_SQL=1 por instrucciones del Director, sin nuevo DDL; evidencia independiente reutilizable descrita abajo |
+| Ledger en esta continuación | NO EJECUTADO: sin credenciales en WT. Director comprobó el ledger por separado |
+| Visual aislado | PASÓ: una casilla original, carga/marcado/desmarcado/FormData, pending, error/borrador/foco, reintento, cancelar sin mutar, no-admin sin controles, light/dark y móvil; cero pageErrors |
+| Auth admin real / acción RLS ejecutada / producción por Worker | NO EJECUTADO. Mocks prueban contrato, no una sesión autenticada o mutación real |
 
-Evidencia visual ignorada: graphify-out/qa-0504/desktop-light.png, desktop-dark.png, mobile-dark.png, mobile-readonly.png, error-draft.png y visual-report.json. Es el componente real compilado, no el módulo autenticado completo. Preview http://127.0.0.1:4324 mientras esté activo el servidor de esta tarea. Logs preservados en graphify-out/qa-0504/: targeted.log, lint.log, graphify.log, archify-check.json y verify.log. No representan CI alojado.
+Ejecución de verify usa VITEST_MAX_WORKERS=1 soportado por Vitest instalado, sin cambios globales de configuración; E2E_PORT=3677 y Supabase sintético deny-only en 13677. No se debilitan tests ni se cambian timeouts. SQL/schema se omiten expresamente porque sus fuentes no cambiaron y Director conserva evidencia independiente. Logs ignorados propios en graphify-out/qa-0504/: simplification-targeted.log, simplification-typecheck-corrected.log, simplification-action-corrected.log, simplification-verify.log y simplification-visual.log. Todos los checks medidos restantes del gate PASÓ, incluidos feature-constants y pending-migration-symbols.
+
+Evidencia visual vigente: desktop-light.png, desktop-dark.png, mobile-dark.png, mobile-readonly.png, error-draft.png y visual-report.json en la misma carpeta. Servidor de esta tarea PID 14200 verificado, lee los derivados nuevos sin reinicio; no se mataron procesos ajenos. El preview no equivale al módulo autenticado.
+
+### Evidencia independiente anterior entregada por Director
+
+- HEAD anterior e12a4867: CI alojada run 37834226764, Calidad local sin secretos PASÓ. No atribuir este resultado al futuro SHA.
+- SQL PASÓ 224 contratos; schema PASÓ 449 migraciones + 18 ledger, 219 tablas. No cambios SQL en esta continuación; no se repiten.
+- Ledger productivo sin faltantes salvo 0422/0423 declaradas; metadata RLS vigente y trigger 0293 comprobados por Director. Auditoría histórica calculator_city_updated registra slug/active; no se inventa before/after de casco.
+- Configuración productiva ya correcta: 178 ciudades, Acarigua false y otras siete true. No escrituras de datos necesarias.
+- Baseline main c3d37a8e: tests públicos 7/7, PR anterior 11/11; E2E dirigido 5 passed/1 skip en Chromium/mobile anterior. No prueba del futuro SHA.
+- Producción anterior READY dpl_JBnbc7R49xEE6iCNwbjgsX46fcmn, SHA c3d37, dtdcargo.com/www. Baseline público 18 observaciones: /tarifas Acarigua $850 incluida y Maracaibo $973,60; embed derivaba antes de combinar tarifas. Resultado esperado después del nuevo release: Acarigua/Maracaibo $973,60 en ambas rutas y siete incluidas $850, mismos parámetros. La evidencia de release nueva queda en PR #193 por Director.
+
+### Historia de primera implementación, sustituida
+
+La primera versión añadió un panel duplicado que Sam pidió retirar. Slice anterior PASÓ 554/554; verify anterior FALLÓ/INCOMPLETO (14/17 pasos; suite final 16 archivos fallidos/635 pasaron/1 omitido, 34 tests fallidos/8.743 pasaron/1 omitido, pool/timeouts; E2E final 175 pasaron/3 fallaron/20 omitidos y un error de cierre de worker). Build local anterior PASÓ. Es evidencia del código anterior, no del resultado final. Logs antiguos se conservan sin sobrescribir en graphify-out/qa-0504. No se afirma que todos sus fallos fueran históricos ni que se resolvieran fuera del slice.
 
 ## Gobernanza y UI-CHECK
 
-Cumplimiento BTN/FRM/LOD/ERR/A11Y del slice: controles nativos, submit único, pending, cancelación, labels, foco de error, tokens y componentes Badge/EmptyState canónicos. Sin consumidores deprecated. Revisión React local: componente de formulario a nivel de módulo, estados mínimos, sin cascada HTTP cliente, tipos estrictos y hooks consistentes. No Vercel Agent ni servicio pagado.
+Cumplimiento del slice FRM/BTN/ERR/LOD/A11Y: controles nativos y etiqueta/descripción accesibles, una acción primaria, envío explícito sin autosave, bloqueo de doble envío, error visible con foco, cancelación, componentes y tokens canónicos. Gate y filtros de contexto reales cubiertos por test; evidencia RLS/trigger de metadata conservada con alcance de lectura. NO EJECUTADO: sesión admin real y auditoría de una escritura. No aplica: schema, nuevas tarifas, IA o datos personales. Sin excepción de scanner/guards ni nueva deuda RBAC.
 
-Auditoría conservada por trigger audit_d5_calculator_cities (0293), en la misma mutación: evidencia de código, NO ejecución SQL de esta sesión. El trigger histórico registra calculator_city_updated con slug/active; no registra before/after de casco. No se amplió el contrato del evento.
-
-UI-CHECK local: tokens y fuentes Studio, list/form nativos, una acción primaria en edición, sin ancho fijo nuevo y acciones responsive. Sin excepciones nuevas de marca. La revisión aislada no certifica accesibilidad transversal ni sesión real.
+UI-CHECK local realizado: estilos Studio, fuentes Sora/Nunito, tablet/móvil sin desborde nuevo de la casilla, descripción legible y foco de error. React revisado: hooks consistentes, estado mínimo, acción manual en transición para conservar el borrador, consultas paralelas del embed. No servicio pagado ni auditoría transversal inventada.
 
 ## COMMITS
 
-- c37cd50c0cd784f16668fd3c60760a92eeb883de — feat(studio): SDD-0504 administrar zonas con entrega incluida (15 archivos de implementación, SDD/índice y pruebas).
-- b88951f9e321bf12990ec8a5c224500b15f385b7 — cierre documental local inicial.
-- Publicación: commit que contiene la actualización de este handoff; SHA final en Git/PR y cierre de sesión para evitar autorreferencia.
+Históricos de la rama: c37cd50c0cd784f16668fd3c60760a92eeb883de (primera implementación), b88951f9e321bf12990ec8a5c224500b15f385b7 (cierre inicial), e12a486766619890873c256744fd60aa0298a5ff (HEAD de entrada).
+La simplificación y su handoff se publican en un commit selectivo feat(studio): SDD-0504 — reutilizar entrega incluida en Editar ciudad. Git, PR #193 y la entrega al Director guardan el SHA exacto. No commit adicional sólo para registrar su propio SHA.
 
 ## PR / BRANCH
 
-Sam autorizó continuar y subir los cambios el 2026-10-08. Rama propia publicada a la misma rama de origin; PR #193 abierta en borrador hacia main: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/193. Base comprobada c3d37a8eeb347e260a2d047ceb882795e06a408f, sin cambios respecto a validación local. CI y preview Vercel automáticos iniciados; su resultado se comprueba al finalizar, no se presume aprobado. No merge, despliegue manual ni operación de producción autorizados en esta ampliación.
+PR #193 en borrador hacia main: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/193. Publicación explícita de la misma rama a sí misma autorizada. El título/descripción se reescriben alrededor del cambio final: reutilizar opción original, respetar false, cruzar tarifas en embed y alinear Acarigua. Se conserva draft para revisión de Director. Worker no mergea/deploy; autorizaciones vigentes de Sam para esas operaciones a cargo del Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-Implementación, pruebas dirigidas, revisión visual y build locales completados. Antes de integración/release: resolver o evaluar explícitamente los fallos/omisiones del gate general, ejecutar recorrido de Administración con sesión real en entorno autorizado y confirmar catálogo/tarifa productivos. Producción queda pendiente por frontera de autoridad; no se afirma corregida. Refrescar derivados/recibos del handoff final y revisar Obsidian desde main integrado comprobado corresponde al cierre del Director.
+Implementación, slice, suite general, E2E, build y revisión visual locales terminados; todos los criterios propios de SDD cumplidos y estado done de implementación. El resultado canónico conserva la falla TS inicial corregida y las tres omisiones; Director evalúa ese conjunto junto con SQL/schema/ledger independientes y CI del nuevo SHA. Publicación efectiva y coincidencia local/remoto/PR se comprueban en la entrega, sin convertir pruebas locales en evidencia productiva. Director integra con autorización y confirma deployment/alias/DOM público. Recorrido admin autenticado NO EJECUTADO, con alcance de mocks/metadata explícito; no es evidencia productiva. Actualizar/publicar conocimiento compartido y verificarlo en Obsidian corresponde a Director desde main integrado.
 
 ## FUERA DE ALCANCE DETECTADO
 
-15 warnings de lint en Wizard/Detalle de compra, KommoBoardView, DocumentCalculator y knowledge-vault: no modificados. Suite general reporta fallos/timeouts en Packing List/portal, registro, Nav, etiquetas y fiscal, además de errores de arranque/terminación del pool; el log conserva los casos completos. E2E reporta selector público SDD-0360/0441 (texto inicial concatenado al teclear), captura de carrusel y worker que no cierra. Ningún componente de selector/carrusel modificado por esta tarea. No se atribuye causa definitiva ni se afirma que todos sean fallas históricas. Graphify advierte extracción parcial de dos TSX de Legal; no se absorben esos módulos.
+Quince warnings de lint en módulos ajenos (Wizard/Detalle, KommoBoardView, DocumentCalculator y knowledge-vault) intactos. La captura de carrusel fue flaky en esta corrida y pasó al reintentar; no se modificó el módulo. Fallos de suite/E2E de la primera corrida se preservan con su fecha/SHA y no se absorben: selector SDD-0360/0441, carrusel y errores de pool/cierre. Graphify advierte extracción parcial de dos TSX de Legal. Semántica global pendiente es deuda de conocimiento independiente, no una certificación de este Worker. No se amplía la tarea.
 
 ## HANDOFF AL DIRECTOR
 
-No schema/RPC nuevos ni migración creada. Rama/worktree preservados, con respaldo remoto y PR #193 en borrador. Ownership reclamado al retomar publicación; se libera después de commit/push final y comprobación de HEAD local/remoto/PR. Resultado en graphify-out/qa-0504/publication-closure.log y cierre. No eliminar rama/worktree. Preview visual sólo lectura puede seguir activa en 4324 para revisión; no es una sesión Worker escritora.
+Implementación corregida y pruebas del recorrido original listas. No nuevas migraciones/RPCs ni escritura productiva. Conservar WT/rama y preview 4324; no eliminar. Claim se libera sólo después de terminar escritura, commit/push y derivados. Git/PR/cierre entregan SHA exacto y estado remoto.
 
-### Plan de corrección persistida (sin ejecutar)
-
-1. Director revisa/integra/publica sólo con permisos específicos y SHA validado. Antes de release, con autorización de consulta de configuración sin clientes/PII, confirmar tenant y ciudades vivas. Al quitar el OR histórico, todo false persistido empezará a respetarse: comprobar que las otras inclusiones comerciales coinciden, especialmente Barquisimeto; detener release ante discrepancia, sin ajustes automáticos.
-2. Administración > Calculadora pública > Ciudades > Zonas con entrega incluida: localizar Acarigua, confirmar estado previo y tarifa de VENTA del transportista predeterminado. Desmarcar inclusión y guardar mediante la acción que resuelve tenant del admin activo. Si ya está false, no escribir. No cambiar costo/venta, km, label, orden ni otras filas.
-3. Comprobar persistencia, evento calculator_city_updated y RPC public_calculator_cities con Acarigua false; verificar tarifa pública de transportista. Sin precio confirmado ni respaldo confirmado aplicable, comprobar derivación al asesor.
-4. Recorrido público con igual carga: Caracas/Valencia/Maracay sin recargo (preservando descuento configurado), Acarigua con su tarifa vigente/piso terrestre. Comprobar total final, mínimo con batería, tarifas/embed y otras coberturas; registrar SHA/deployment/evidencia productiva por separado.
-5. Rollback autorizado: restaurar sólo la bandera previa de Acarigua con la acción. Revert de código por PR o redeploy aprobado. No ejecutar SQL/migración para pasar un gate.
-
-Si Director exige migración para corregir datos, coordinar número antes de crearla. 0472 no reservado; esta sesión no lo usa.
+Al publicar, confirmar Acarigua false y otras siete true sin escribir si ya coinciden; comparar las mismas cargas en /tarifas y /tarifas/embed y el mensaje real de Acarigua, conservando otras ciudades/fórmula. Confirmar integración, CI, deployment READY y aliases con SHA exacto, por separado de pruebas locales. Rollback de código mediante PR/redeploy autorizado; no SQL para pasar gates.
 
 ### Impacto documental y conocimiento
 
-SDD-0504 e índice actualizados; este handoff guarda decisión autorizada, alcance, evidencia y pendientes. Graphify 0.9.61: actualización estructural local ejecutada, 37.498 nodos / 68.716 edges / 2.453 comunidades, dos advertencias de Legal. Estado consultado en c37cd50c: estructural PENDING por este handoff que cambió durante la extracción; semántica PENDING (1.170 fuentes), piloto PENDING y global PENDING. Ninguna fuente del piloto modificada. No se certifica cobertura semántica ni se amplía esta tarea para resolver deuda global.
+Fuentes canónicas actualizadas: SDD-0504/índice, handoff propio, README/SEO y guía/prompt comerciales actuales. README Marketing estable SHA256 21edb31d1d00ea2ce1a69d0bab0cf850373d690bd29e77270f4d4a73d7eb99ad. Es la única fuente del piloto de 16 modificada; Director prepara extracción semántica genuina de ese README y refresco de encabezados en main integrado, conservando las otras quince fuentes. Worker no copia grafos/recibos de otra raíz.
 
-Archify 2.16.0: runtime fijado por hashes reutilizado sólo como dependencia; build/check PASÓ, CURRENT en snapshot c37cd50c, 11 fuentes y 9 checks. Conserva graphStructural/graphSemantic PENDING. JSON canónico docs/architecture/knowledge-lifecycle.archify.json intacto: mapa del ciclo de conocimiento, no mapa nuevo de producto. Preview local Obsidian PASÓ tras un rechazo SOURCE_CHANGED mientras se editaba este handoff; reintento estable guardó 1.169 documentos y 41 advertencias en graphify-out/obsidian-preview, modo PREVIEW, snapshot c37cd50c (handoff previo al cierre final). Resultado completo graphify-out/0504-preview.json. Integración/publicación compartida y revisión visible en Obsidian NO EJECUTADAS, reservadas a Director desde main integrado comprobado. El commit final del handoff requiere refrescar recibos/revisión al integrar; CURRENT del mapa no eleva otras capas.
+Refresco Graphify estructural 0.9.61 PASÓ: 37.502 nodos/68.719 relaciones/2.411 comunidades, dos warnings de Legal conservados. Al registrar los resultados, sólo este handoff quedó estructuralmente PENDING; no se oculta la deriva documental ni se entra en recursión para conocer el propio SHA. Archify 2.16.0 build/check PASÓ: mapa CURRENT, 11 fuentes/9 checks, JSON canónico intacto y estructuras/semántica pendientes explícitas. Preview Obsidian PASÓ: modo PREVIEW, 1.169 documentos/41 advertencias históricas de vínculos, snapshot HEAD de entrada más cambios del WT. Piloto 0/16 PENDING y global 0/1.170 PENDING en este WT sin recibos, sin elevar cobertura por la extracción estructural.
 
-### Descripción de PR publicada
-
-Título: feat(studio): SDD-0504 — administrar zonas con entrega incluida
-
-Administración > Calculadora pública > Ciudades permite cambiar la inclusión por ciudad, guardar/cancelar y recuperar errores sin perder el borrador. La bandera persistida prevalece sobre el fallback: excluir una ciudad aplica su tarifa vigente al total. Acarigua deja de estar incluida en el respaldo; se conservan las otras siete inclusiones, tarifas internas y fórmula de mínimos/batería/descuentos.
-
-La acción exige admin activo, filtra tenant/ciudad viva y detecta concurrencia o cero filas. Reutiliza auditoría/RPC existentes. Validación y límites en la tabla de este handoff; corrección persistida y recorrido productivo pendientes de autorización. Rama y PR draft publicadas con autorización; sin migración, merge ni despliegue manual. Cambios de esta continuación exclusivamente documentales de autoridad/publicación; no se repitió la suite local porque el código y la base validada no cambiaron. Los recibos/preview de conocimiento anteriores conservan su fecha y snapshot; refresco del cierre documental publicado sigue pendiente, sin promover cobertura.
+Logs ignorados: simplification-graphify.log, simplification-archify-build.json, simplification-archify-check.json y simplification-obsidian-preview.json. Tras el commit se sincronizan los derivados y la preview para el SHA publicado; sus resultados exactos quedan en PR #193, logs final del WT y entrega al Director, sin otro commit autorreferencial. Publicación compartida y revisión visible en Obsidian NO EJECUTADAS por Worker: corresponden a Director desde main integrado comprobado.
