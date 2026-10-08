@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { TarifasTabs } from "@/components/TarifasTabs";
-import { CIUDADES } from "@/lib/calculadora";
 import {
   getPublicCbmRate,
   getPublicCalculatorConfig,
   getPublicCalculatorCities,
+  getPublicCarrierTariffs,
+  combinarDestinos,
 } from "@/lib/public/rates-queries";
 
 // Versión EMBEBIBLE de la calculadora CBM/LCL (Puerta a Puerta + Consolidado)
@@ -31,12 +32,13 @@ export default async function TarifasEmbedPage({
   const sp = await searchParams;
   const dark = sp.theme === "dark";
 
-  const [serverRate, serverConfig, serverCities] = await Promise.all([
+  const [serverRate, serverConfig, serverCities, serverTariffs] = await Promise.all([
     getPublicCbmRate(),
     getPublicCalculatorConfig(),
     getPublicCalculatorCities(),
+    getPublicCarrierTariffs(),
   ]);
-  const ciudades = serverCities.length > 0 ? serverCities : CIUDADES;
+  const ciudades = combinarDestinos(serverCities, serverTariffs);
 
   return (
     <div

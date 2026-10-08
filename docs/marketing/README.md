@@ -6,6 +6,8 @@
 
 ## Cómo usar este tree
 
+- **Entrega incluida (SDD-0504, 2026-10-08):** [configuración de la calculadora](../specs/0504-zonas-entrega-incluida/spec.md) conserva una sola casilla «Entrega incluida, sin costo adicional» en Editar ciudad. Acarigua usa la tarifa de entrega vigente; Valencia, Naguanagua, San Diego, Guacara, Maracay, Caracas y Barquisimeto conservan inclusión. Adaptador público, embed, landing de Acarigua y material comercial actual siguen la misma regla; [PR #193](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/193) conserva la evidencia de integración y release comprobados por Director. No se cambian tarifas internas ni la fórmula de mínimos/batería/descuentos.
+
 - **Fotos del equipo y operación (SDD-0503, 2026-10-07):** [carrusel de la home](../specs/0503-carrusel-fotos-empresa/spec.md) con ocho derivados WebP revisados. Carrusel integrado y publicado por PR191 (merge ae198419, deployment dpl_31PymZTALo4DzHMsofaKVPjazmWQ READY, 2026-10-07). Ajuste posterior solicitado por Sam en revisión: retirar solo el clip de cinta que dice doortudoor; conservar ocho fotos/controles, video principal/VideoObject y Shipping Mark. El retiro aún no está integrado ni desplegado. [Evidencia y límites](../specs/0503-carrusel-fotos-empresa/qa.md).
 
 - **Colores de avisos (2026-09-05):** [SDD-0441](../specs/0441-colores-semanticos-marca/spec.md) aplica la política de [BRAND.md](../../BRAND.md) a la calculadora: recargo informativo neutro y derivación al asesor con atención dorada. Tarifas y fórmulas no cambian.

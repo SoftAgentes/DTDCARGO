@@ -16,7 +16,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, moduleEditGate } from "@/lib/studio/rbac-guard";
 import {
   CALC_FIELDS,
   validateCalculatorSettingsInput,
@@ -228,37 +228,47 @@ export async function updateCityAction(
   _prev: CalculatorCityActionState,
   formData: FormData,
 ): Promise<CalculatorCityActionState> {
-  const supabase = await createClient();
-  const denial = await moduleEditDenial(supabase, "admin");
-  if (denial) return { error: denial };
+  try {
+    const supabase = await createClient();
+    // La edición original usa permiso y tenant de la misma membresía activa.
+    const gate = await moduleEditGate(supabase, "admin");
+    if (!gate.ok) return { error: gate.denied };
+    if (gate.role !== "admin") return { error: CITY_ADMIN_ONLY_MSG };
 
-  const partial = cityFromFormData(formData);
-  const { input, fieldErrors } = validateCityInput(partial);
-  if (fieldErrors) return { fieldErrors };
+    const partial = cityFromFormData(formData);
+    const { input, fieldErrors } = validateCityInput(partial);
+    if (fieldErrors) return { fieldErrors };
 
-  const who = await resolveTenantAdmin(supabase);
-  if (!who.ok) return { error: who.error };
-  if (!who.isAdmin) return { error: CITY_ADMIN_ONLY_MSG };
+    const { data, error } = await supabase
+      .from("calculator_cities")
+      .update({
+        slug: input!.slug,
+        label: input!.label,
+        km: input!.km,
+        casco: input!.casco,
+        sort_order: input!.sort_order,
+      })
+      .eq("id", id)
+      .eq("tenant_id", gate.tenantId)
+      .is("deleted_at", null)
+      .select("id")
+      .maybeSingle();
 
-  const { error } = await supabase
-    .from("calculator_cities")
-    .update({
-      slug: input!.slug,
-      label: input!.label,
-      km: input!.km,
-      casco: input!.casco,
-      sort_order: input!.sort_order,
-    })
-    .eq("id", id);
+    if (error) {
+      if (isCitySlugConflict(error)) return { error: CITY_SLUG_CONFLICT_MSG };
+      return { error: "No se pudo guardar la ciudad. Tu selección se conserva; intenta de nuevo." };
+    }
+    if (!data) {
+      return { error: "La ciudad ya no está disponible. Tu selección se conserva; cancela y recarga la configuración." };
+    }
 
-  if (error) {
-    if (isCitySlugConflict(error)) return { error: CITY_SLUG_CONFLICT_MSG };
-    return { error: `No se pudo guardar la ciudad: ${error.message}` };
+    revalidatePath("/studio/admin");
+    revalidatePath("/tarifas");
+    revalidatePath("/tarifas/embed");
+    return { ok: true };
+  } catch {
+    return { error: "No se pudo guardar la ciudad. Tu selección se conserva; intenta de nuevo." };
   }
-
-  revalidatePath("/studio/admin");
-  revalidatePath("/tarifas");
-  return { ok: true };
 }
 
 export async function deleteCityAction(
