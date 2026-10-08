@@ -313,15 +313,21 @@ viaja por `scp` directo al VPS, se restaura y se borra del disco local.
 2. `docker compose --env-file .env -f compose.yml -f compose.supabase.yml config`
    debe validar; `up -d db` y `psql` deben entrar.
 3. Reconstrucción desde cero: `SQL_TEST_PG_IMAGE=supabase/postgres:17.6.1.136 node scripts/check-schema-rebuild.mjs`.
-   **Al 2026-10-08 esto FALLÓ** (`permission denied for schema auth`, 10,8 s;
-   bloquean 0038, 0268, 0410 y 0453) porque la imagen de Supabase trae el
-   schema `auth` con dueño y ACL propios, distinto del `postgres:17` liso donde
-   el mismo rebuild PASÓ (449 migraciones + 18 solo-ledger, 41 s). La decisión
-   de cómo cerrarlo (correr en modo Supabase con los roles y hooks que la
-   imagen declara, o una migración de ACL explícita) la toma el Director; hasta
-   entonces, staging se llena con el dump de producción (§2.2), que ya trae el
-   schema aplicado, y el rebuild sobre la imagen de Supabase queda como
-   pendiente registrado en la spec.
+   **Al 2026-10-08 esto FALLÓ**, en dos capas. Con los stubs de `postgres:17`
+   se cae en `_supabase-platform-stubs.sql:43` (`permission denied for schema
+   auth`) antes de la primera migración: la imagen ya trae `auth` y es de
+   `supabase_admin`. Con los stubs reducidos (`_supabase-platform-stubs.supabase.sql`)
+   pasa la 0038 y se detiene en el guardarraíl de la 0268: la imagen da DELETE
+   a `anon`/`authenticated` en `public` por *default privileges*, y el `revoke`
+   que lo corrige en producción solo existe en el ledger (0279/0286-0288).
+   Sobre `postgres:17` liso el mismo rebuild PASÓ (450 + 18 sólo-ledger, 30 s).
+   **Consecuencia de seguridad:** una base reconstruida desde migraciones sobre
+   esta imagen quedaría con DELETE para roles cliente. Por eso staging y
+   producción se llenan **solo** con el dump de producción (§2.2), que trae
+   los grants reales, y después del restore se comprueba que `anon` y
+   `authenticated` no tengan DELETE en `public.tenants` (§2.2). Cerrar el
+   rebuild sobre la imagen (hooks por migración o una migración aditiva con
+   los revokes explícitos) lo decide el Director/Sam.
 
 ### 2.2 Dump de producción y restore (con el OK de la fase)
 
@@ -341,6 +347,7 @@ psql "$STAGING_DB_URL" --single-transaction --variable ON_ERROR_STOP=1 \
 Comprobaciones mínimas después del restore (todas con conteo en el handoff):
 
 - `select count(*) from auth.users` igual al de producción (297 al 2026-10-08).
+- Grants de roles cliente: `select grantee, privilege_type from information_schema.role_table_grants where table_schema = 'public' and table_name = 'tenants' and grantee in ('anon','authenticated')` no debe listar `DELETE` (la imagen lo da por defecto; ver §2.1). Si aparece, el restore no trajo los grants de producción: se para la fase.
 - `select jobname, schedule from cron.job`: los 3 jobs de `pg_cron`; si el dump
   no los trajo, se recrean desde las migraciones que los agendan.
 - `select name from vault.secrets`: crear `functions_base_url` =
