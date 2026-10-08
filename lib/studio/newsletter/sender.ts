@@ -7,6 +7,7 @@ import {
   unsubscribeSecret,
   unsubscribeTokenFingerprint,
 } from "@/lib/studio/mail/unsubscribe-token";
+import { resolveAppEnv, resolveDeploymentUrl } from "@/lib/runtime/app-env";
 import { renderNewsletterEmail } from "./render-email";
 import type { NewsletterCampaign, NewsletterCampaignInput } from "./types";
 
@@ -44,6 +45,8 @@ function campaignInput(campaign: NewsletterCampaign): NewsletterCampaignInput {
 }
 
 type NewsletterSiteEnv = {
+  APP_ENV?: string;
+  APP_URL?: string;
   VERCEL_ENV?: string;
   VERCEL_URL?: string;
   NEXT_PUBLIC_SITE_URL?: string;
@@ -51,6 +54,8 @@ type NewsletterSiteEnv = {
 
 export function resolveNewsletterSiteUrl(env?: NewsletterSiteEnv): string {
   const source = env ?? {
+    APP_ENV: process.env.APP_ENV,
+    APP_URL: process.env.APP_URL,
     VERCEL_ENV: process.env.VERCEL_ENV,
     VERCEL_URL: process.env.VERCEL_URL,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
@@ -58,8 +63,12 @@ export function resolveNewsletterSiteUrl(env?: NewsletterSiteEnv): string {
   // En Preview, el correo debe regresar al deployment que lo generó. Usar el
   // canonical de producción aquí ocultaba errores y ejecutaba la baja en otro
   // entorno. Producción sí conserva NEXT_PUBLIC_SITE_URL como fuente canónica.
-  if (source.VERCEL_ENV === "preview" && source.VERCEL_URL) {
-    return `https://${source.VERCEL_URL.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+  // El entorno y la URL salen de `lib/runtime/app-env.ts` (SDD-0505): en Vercel
+  // siguen siendo `VERCEL_ENV=preview` + `VERCEL_URL`; en un preview Docker,
+  // `APP_ENV=preview` + `APP_URL`. Fuera de preview `APP_URL` no manda.
+  if (resolveAppEnv(source) === "preview") {
+    const deploymentUrl = resolveDeploymentUrl(source);
+    if (deploymentUrl) return deploymentUrl;
   }
   return (source.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com").replace(/\/$/, "");
 }

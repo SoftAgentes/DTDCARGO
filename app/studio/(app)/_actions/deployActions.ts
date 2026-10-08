@@ -3,10 +3,12 @@
 /**
  * Server actions del deploy web bot.
  *
- * IMPORTANTE: estas actions solo funcionan en LOCAL (`pnpm dev`). En Vercel
- * (preview/production) el server no tiene acceso al filesystem del founder
- * ni a su .git · por eso todas chequean `process.env.VERCEL_ENV` y rechazan
- * si está definido.
+ * IMPORTANTE: estas actions solo funcionan en LOCAL (`pnpm dev`). En cualquier
+ * despliegue (Vercel, o Docker en el servidor propio) el server no tiene acceso
+ * al filesystem del founder ni a su .git · por eso todas pasan por
+ * `isLocalRuntime()` (`lib/runtime/app-env.ts`), que falla cerrado: sin señal
+ * explícita, `NODE_ENV=production` NO es local. Leer `VERCEL_ENV` a secas
+ * dejaba este candado abierto en Docker (M1 · auditoría 2026-07-31 · SDD-0505).
  *
  * Patrón de retorno: `{ ok: true, ...data }` o `{ ok: false, error: "..." }`.
  * Sin throws · errores se propagan como propiedades del objeto.
@@ -25,18 +27,21 @@ import {
 import type { DeployType, GitPushResult } from "@/lib/studio/deploy/types";
 import { createClient } from "@/lib/db/server";
 import { getStudioRole } from "@/lib/studio/rbac-guard";
+import { isLocalRuntime } from "@/lib/runtime/app-env";
 
 const REPO_PATH = process.cwd();
 
 /**
  * Gate centralizado: las server actions de deploy solo deben correr en local.
+ * Se evalúa en cada llamada (no al cargar el módulo) para que un cambio de
+ * entorno en caliente no deje una decisión vieja cacheada.
  */
 function assertLocal(): { ok: false; error: string } | null {
-  if (process.env.VERCEL_ENV) {
+  if (!isLocalRuntime()) {
     return {
       ok: false,
       error:
-        "Esta acción solo funciona corriendo en local (`pnpm dev`). En Vercel no tiene acceso a tu filesystem.",
+        "Esta acción solo funciona corriendo en local (`pnpm dev`): en producción, staging o preview el servidor no tiene acceso a tu filesystem ni a tu .git.",
     };
   }
   return null;

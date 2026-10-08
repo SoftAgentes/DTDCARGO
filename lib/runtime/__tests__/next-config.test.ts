@@ -1,0 +1,124 @@
+// @vitest-environment node
+/**
+ * Integración de `originFromEnv` en `next.config.ts` (SDD-0505). Carga la config
+ * REAL con distintos `NEXT_PUBLIC_SUPABASE_URL` y comprueba lo que el navegador
+ * va a ver: el host propio entra en la CSP del sitio (`img-src`, `media-src`,
+ * `connect-src` con https + wss) y en `images.remotePatterns` sin sacar
+ * `*.supabase.co`; con Cloud o sin URL no se añade nada; y `output: "standalone"`
+ * solo aparece con `DTD_STANDALONE=1`. Sin esto, una CSP que bloquea Realtime o
+ * Storage en el servidor propio no la detecta ninguna prueba: el servidor no falla,
+ * falla el navegador.
+ */
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { NextConfig } from "next";
+
+type HeaderEntry = { source: string; headers: { key: string; value: string }[] };
+
+async function loadConfig(env: Record<string, string | undefined>): Promise<NextConfig> {
+  // La config lee `process.env` al cargar el módulo: hay que reimportarla.
+  vi.resetModules();
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", undefined);
+  vi.stubEnv("DTD_STANDALONE", undefined);
+  for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
+  const mod = await import("../../../next.config");
+  return mod.default;
+}
+
+/** CSP del catch-all estricto del sitio (`/:path((?!m/|marca|…).*)`). */
+async function siteCsp(cfg: NextConfig): Promise<string> {
+  const entries = (await cfg.headers!()) as HeaderEntry[];
+  const catchAll = entries.filter((entry) => entry.source.startsWith("/:path((?!"));
+  expect(catchAll).toHaveLength(1);
+  const csp = catchAll[0].headers.filter((header) => header.key === "Content-Security-Policy");
+  expect(csp).toHaveLength(1);
+  return csp[0].value;
+}
+
+function directive(csp: string, name: string): string {
+  const found = csp.split(";").map((d) => d.trim()).find((d) => d.startsWith(`${name} `));
+  if (!found) throw new Error(`La CSP no tiene ${name}`);
+  return found;
+}
+
+function remotePatterns(cfg: NextConfig): Array<{ protocol?: string; hostname: string; port?: string; pathname?: string }> {
+  return (cfg.images?.remotePatterns ?? []).map((pattern) =>
+    pattern instanceof URL
+      ? { protocol: pattern.protocol.replace(/:$/, ""), hostname: pattern.hostname, port: pattern.port, pathname: pattern.pathname }
+      : pattern,
+  );
+}
+
+describe("next.config.ts · Supabase propio (SDD-0505)", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("host propio: entra en img-src, media-src y connect-src (https + wss) sin quitar *.supabase.co", async () => {
+    const cfg = await loadConfig({ NEXT_PUBLIC_SUPABASE_URL: "https://supabase.dtdcargo.com/" });
+    const csp = await siteCsp(cfg);
+    expect(directive(csp, "img-src")).toContain(
+      "https://*.supabase.co https://supabase.dtdcargo.com",
+    );
+    expect(directive(csp, "media-src")).toContain(
+      "https://*.supabase.co https://supabase.dtdcargo.com",
+    );
+    expect(directive(csp, "connect-src")).toContain(
+      "https://*.supabase.co wss://*.supabase.co https://supabase.dtdcargo.com wss://supabase.dtdcargo.com",
+    );
+    // Ninguna directiva recibe la barra final de la URL configurada.
+    expect(csp).not.toContain("supabase.dtdcargo.com/");
+  });
+
+  it("host propio: entra en images.remotePatterns con puerto vacío y la ruta pública de Storage", async () => {
+    const cfg = await loadConfig({ NEXT_PUBLIC_SUPABASE_URL: "https://supabase.dtdcargo.com" });
+    expect(remotePatterns(cfg)).toEqual([
+      { protocol: "https", hostname: "*.supabase.co", pathname: "/storage/v1/object/public/**" },
+      {
+        protocol: "https",
+        hostname: "supabase.dtdcargo.com",
+        port: "",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ]);
+  });
+
+  it("gateway interno con http y puerto: ws:// en connect-src y port explícito en remotePatterns", async () => {
+    const cfg = await loadConfig({ NEXT_PUBLIC_SUPABASE_URL: "http://api-gw:8000" });
+    const csp = await siteCsp(cfg);
+    expect(directive(csp, "connect-src")).toContain("http://api-gw:8000 ws://api-gw:8000");
+    expect(directive(csp, "img-src")).toContain("http://api-gw:8000");
+    expect(remotePatterns(cfg)[1]).toEqual({
+      protocol: "http",
+      hostname: "api-gw",
+      port: "8000",
+      pathname: "/storage/v1/object/public/**",
+    });
+  });
+
+  it.each([
+    ["Supabase Cloud", "https://abcdefghijklmnopqrst.supabase.co"],
+    ["sin URL", undefined],
+    ["URL vacía", ""],
+    ["URL inválida", "no url"],
+    ["esquema que no es http(s)", "ftp://x.test"],
+  ])("%s: la CSP y remotePatterns quedan como siempre (solo *.supabase.co)", async (_label, url) => {
+    const cfg = await loadConfig({ NEXT_PUBLIC_SUPABASE_URL: url });
+    const csp = await siteCsp(cfg);
+    expect(directive(csp, "img-src")).toContain("https://*.supabase.co https://*.google-analytics.com");
+    expect(directive(csp, "media-src")).toBe("media-src 'self' blob: https://*.supabase.co");
+    expect(directive(csp, "connect-src")).toContain(
+      "https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com",
+    );
+    expect(csp).not.toContain("abcdefghijklmnopqrst");
+    expect(csp).not.toContain("x.test");
+    expect(remotePatterns(cfg)).toHaveLength(1);
+    expect(remotePatterns(cfg)[0].hostname).toBe("*.supabase.co");
+  });
+
+  it("output: standalone solo con DTD_STANDALONE=1", async () => {
+    expect((await loadConfig({ DTD_STANDALONE: "1" })).output).toBe("standalone");
+    expect((await loadConfig({ DTD_STANDALONE: "true" })).output).toBeUndefined();
+    expect((await loadConfig({ DTD_STANDALONE: "" })).output).toBeUndefined();
+    expect((await loadConfig({})).output).toBeUndefined();
+  });
+});
