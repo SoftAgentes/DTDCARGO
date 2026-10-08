@@ -27,7 +27,7 @@
  * por METRO CÚBICO y nada más. Murió el % ad valorem, murió el USD/kg y
  * murió el recargo por kilómetro. Ver SDD-0236 y SDD-0237.
  *
- * 178 destinos · 169 cubiertos · 9 sin cobertura · 8 en zona sin costo.
+ * 178 destinos · 169 cubiertos · 9 sin cobertura · 7 con entrega incluida.
  */
 
 /** Los tres tramos de precio. La zona no fija el precio; el tramo sí. */
@@ -78,7 +78,7 @@ export type DestinoNacional = {
 };
 
 export const DESTINOS_NACIONALES: DestinoNacional[] = [
-  { slug: "acarigua", label: "Acarigua", estado: "Portuguesa", tramo: "Foráneo", cubierta: true, casco: true, ventaCbm: 123.6, frecuenciaDias: 3, transito: "24 a 72 horas", cercana: null },
+  { slug: "acarigua", label: "Acarigua", estado: "Portuguesa", tramo: "Foráneo", cubierta: true, casco: false, ventaCbm: 123.6, frecuenciaDias: 3, transito: "24 a 72 horas", cercana: null },
   { slug: "barquisimeto", label: "Barquisimeto", estado: "Lara", tramo: "Centro", cubierta: true, casco: true, ventaCbm: 105.94, frecuenciaDias: 2, transito: "24 a 72 horas", cercana: null },
   { slug: "caracas", label: "Caracas", estado: "Caracas", tramo: "Centro", cubierta: true, casco: true, ventaCbm: 105.94, frecuenciaDias: 3, transito: "24 a 72 horas", cercana: null },
   { slug: "guacara", label: "Guacara", estado: "Carabobo", tramo: "Centro", cubierta: true, casco: true, ventaCbm: 105.94, frecuenciaDias: 2, transito: "24 a 72 horas", cercana: null },

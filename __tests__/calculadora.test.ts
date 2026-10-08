@@ -205,12 +205,12 @@ describe("calcularEnvioLCL", () => {
     expect(CIUDADES.find((c) => c.id === "casco-central")).toBeUndefined();
   });
 
-  // Las 8 de la zona sin costo pagan $0 de entrega. No es un descuento: DTD le
+  // Las zonas incluidas pagan $0 de entrega. No es un descuento: DTD le
   // paga ese tramo al fletero aparte y lo asume como adquisición de clientes.
-  it("la zona sin costo son 8 ciudades y todas entregan en $0", () => {
+  it("SDD-0504 conserva las otras siete ciudades con entrega incluida", () => {
     const sinCosto = CIUDADES.filter((c) => c.casco);
     expect(sinCosto.map((c) => c.id).sort()).toEqual([
-      "acarigua", "barquisimeto", "caracas", "guacara",
+      "barquisimeto", "caracas", "guacara",
       "maracay", "naguanagua", "san-diego", "valencia",
     ]);
 

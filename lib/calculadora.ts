@@ -376,7 +376,7 @@ export type Ciudad = {
   /**
    * Zona sin costo: el cliente paga **$0** de entrega.
    *
-   * Son 8 ciudades (founder, 1-ago-2026). DTD sí le paga ese tramo al fletero;
+   * Configurable por ciudad en Administración (SDD-0504). DTD paga al fletero;
    * es adquisición de clientes, no un descuento — por eso la tarifa real vive
    * igual en `carrier_tariffs` y sólo esta bandera la pone en cero de cara al
    * cliente.
@@ -952,7 +952,7 @@ export function calcularEnvioLCL(
   // El transportista cobra por metro cúbico y punto: sin kilómetros, sin peso,
   // sin valor declarado.
   //
-  // Las 8 ciudades de la ZONA SIN COSTO salen en $0 por el flag `casco`. No es
+  // Las ciudades con entrega incluida salen en $0 por el flag `casco`. No es
   // un descuento: DTD le paga ese tramo al fletero aparte y lo asume como
   // adquisición de clientes. La tarifa real de esas ciudades sigue viva en
   // `carrier_tariffs` para que el ERP no pierda de vista lo que cuesta.
