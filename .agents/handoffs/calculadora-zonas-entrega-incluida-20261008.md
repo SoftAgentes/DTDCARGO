@@ -53,11 +53,12 @@ UI-CHECK local: tokens y fuentes Studio, list/form nativos, una acción primaria
 ## COMMITS
 
 - c37cd50c0cd784f16668fd3c60760a92eeb883de — feat(studio): SDD-0504 administrar zonas con entrega incluida (15 archivos de implementación, SDD/índice y pruebas).
-- Cierre documental: commit que contiene este handoff; SHA en el cierre de sesión para evitar autorreferencia.
+- b88951f9e321bf12990ec8a5c224500b15f385b7 — cierre documental local inicial.
+- Publicación: commit que contiene la actualización de este handoff; SHA final en Git/PR y cierre de sesión para evitar autorreferencia.
 
 ## PR / BRANCH
 
-Sin PR/push autorizados. Sólo commits locales; no merge/deploy/producción.
+Sam autorizó continuar y subir los cambios el 2026-10-08. Rama propia publicada a la misma rama de origin; PR #193 abierta en borrador hacia main: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/193. Base comprobada c3d37a8eeb347e260a2d047ceb882795e06a408f, sin cambios respecto a validación local. CI y preview Vercel automáticos iniciados; su resultado se comprueba al finalizar, no se presume aprobado. No merge, despliegue manual ni operación de producción autorizados en esta ampliación.
 
 ## PENDIENTES DE ESTA TAREA
 
@@ -69,7 +70,7 @@ Implementación, pruebas dirigidas, revisión visual y build locales completados
 
 ## HANDOFF AL DIRECTOR
 
-No schema/RPC nuevos ni migración creada. Rama/worktree preservados, sin respaldo remoto. Escritura termina con commit de este handoff y liberación del claim de este owner; resultado de comandos guardado en graphify-out/qa-0504/closure.log y comunicado en cierre. No eliminar rama/worktree. Preview visual sólo lectura puede seguir activa en 4324 para revisión; no es una sesión Worker escritora.
+No schema/RPC nuevos ni migración creada. Rama/worktree preservados, con respaldo remoto y PR #193 en borrador. Ownership reclamado al retomar publicación; se libera después de commit/push final y comprobación de HEAD local/remoto/PR. Resultado en graphify-out/qa-0504/publication-closure.log y cierre. No eliminar rama/worktree. Preview visual sólo lectura puede seguir activa en 4324 para revisión; no es una sesión Worker escritora.
 
 ### Plan de corrección persistida (sin ejecutar)
 
@@ -87,10 +88,10 @@ SDD-0504 e índice actualizados; este handoff guarda decisión autorizada, alcan
 
 Archify 2.16.0: runtime fijado por hashes reutilizado sólo como dependencia; build/check PASÓ, CURRENT en snapshot c37cd50c, 11 fuentes y 9 checks. Conserva graphStructural/graphSemantic PENDING. JSON canónico docs/architecture/knowledge-lifecycle.archify.json intacto: mapa del ciclo de conocimiento, no mapa nuevo de producto. Preview local Obsidian PASÓ tras un rechazo SOURCE_CHANGED mientras se editaba este handoff; reintento estable guardó 1.169 documentos y 41 advertencias en graphify-out/obsidian-preview, modo PREVIEW, snapshot c37cd50c (handoff previo al cierre final). Resultado completo graphify-out/0504-preview.json. Integración/publicación compartida y revisión visible en Obsidian NO EJECUTADAS, reservadas a Director desde main integrado comprobado. El commit final del handoff requiere refrescar recibos/revisión al integrar; CURRENT del mapa no eleva otras capas.
 
-### Descripción de PR preparada (sin publicar)
+### Descripción de PR publicada
 
 Título: feat(studio): SDD-0504 — administrar zonas con entrega incluida
 
 Administración > Calculadora pública > Ciudades permite cambiar la inclusión por ciudad, guardar/cancelar y recuperar errores sin perder el borrador. La bandera persistida prevalece sobre el fallback: excluir una ciudad aplica su tarifa vigente al total. Acarigua deja de estar incluida en el respaldo; se conservan las otras siete inclusiones, tarifas internas y fórmula de mínimos/batería/descuentos.
 
-La acción exige admin activo, filtra tenant/ciudad viva y detecta concurrencia o cero filas. Reutiliza auditoría/RPC existentes. Validación y límites en la tabla de este handoff; corrección persistida y recorrido productivo pendientes de autorización. Sin migración, push, merge ni deploy en este encargo.
+La acción exige admin activo, filtra tenant/ciudad viva y detecta concurrencia o cero filas. Reutiliza auditoría/RPC existentes. Validación y límites en la tabla de este handoff; corrección persistida y recorrido productivo pendientes de autorización. Rama y PR draft publicadas con autorización; sin migración, merge ni despliegue manual. Cambios de esta continuación exclusivamente documentales de autoridad/publicación; no se repitió la suite local porque el código y la base validada no cambiaron. Los recibos/preview de conocimiento anteriores conservan su fecha y snapshot; refresco del cierre documental publicado sigue pendiente, sin promover cobertura.

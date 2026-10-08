@@ -15,7 +15,7 @@ confidencialidad: interno
 
 ## Objetivo y autoridad
 
-Sam administra la inclusión de la entrega desde Administración > Calculadora pública, sin editar código. Caracas, Valencia y Maracay conservan entrega incluida; Acarigua deja de estar incluida. Las demás ciudades y tarifas se conservan. Trabajo autorizado: aislamiento, implementación, pruebas y commits locales. No publicación, merge, despliegue ni acceso a datos de producción.
+Sam administra la inclusión de la entrega desde Administración > Calculadora pública, sin editar código. Caracas, Valencia y Maracay conservan entrega incluida; Acarigua deja de estar incluida. Las demás ciudades y tarifas se conservan. Encargo inicial: aislamiento, implementación, pruebas y commits locales. El 2026-10-08 Sam amplió la autorización para subir la rama propia y crear PR de revisión; PR #193 en borrador por validación general incompleta. Sin autorización de merge, despliegue manual ni acceso a datos de producción.
 
 ## Contrato
 
