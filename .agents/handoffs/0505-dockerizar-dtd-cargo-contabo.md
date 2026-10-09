@@ -140,7 +140,7 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   2. Traefik no admite `serversTransports` en labels de Docker: `dtd-long@docker` rompía las rutas de web y de Supabase → `slow-300s@file` del proveedor de archivo.
   3. `functions_base_url` debe ser la URL interna (`http://api-gw:8000/functions/v1`).
   4. Los nombres de router de Traefik son fijos: staging y producción no pueden ir a la vez detrás del mismo Traefik (pendiente: parametrizarlos).
-- **Lo que sigue:** el OK nominal de Sam para exportar producción y el traslado con `import-from-cloud.sh`, que corre Sam (pide la cadena de conexión y las claves S3 temporales).
+- **OK nominal de Sam para exportar producción:** «OK exportar producción al staging del ensayo» (2026-10-09, ~22:09 UTC). Alcance: un traslado de Cloud al `dtd-cargo-staging` del VPS con `import-from-cloud.sh`, que corre Sam desde su PowerShell (pide la cadena de conexión y las claves S3 temporales). Solo lectura sobre producción, sin escribir en Cloud; el staging se destruye al cerrar el ensayo (§2.6). Scripts verificados por sha256 contra la PR antes de correr.
 
 ## Cierre de 2b · Worker (2026-10-08, decisión de Sam: «sigue con la migración recomendada»)
 
