@@ -312,22 +312,21 @@ viaja por `scp` directo al VPS, se restaura y se borra del disco local.
    los secretos demo del compose oficial de Supabase, que son públicos.
 2. `docker compose --env-file .env -f compose.yml -f compose.supabase.yml config`
    debe validar; `up -d db` y `psql` deben entrar.
-3. Reconstrucción desde cero: `SQL_TEST_PG_IMAGE=supabase/postgres:17.6.1.136 node scripts/check-schema-rebuild.mjs`.
-   **Al 2026-10-08 esto FALLÓ**, en dos capas. Con los stubs de `postgres:17`
-   se cae en `_supabase-platform-stubs.sql:43` (`permission denied for schema
-   auth`) antes de la primera migración: la imagen ya trae `auth` y es de
-   `supabase_admin`. Con los stubs reducidos (`_supabase-platform-stubs.supabase.sql`)
-   pasa la 0038 y se detiene en el guardarraíl de la 0268: la imagen da DELETE
-   a `anon`/`authenticated` en `public` por *default privileges*, y el `revoke`
-   que lo corrige en producción solo existe en el ledger (0279/0286-0288).
-   Sobre `postgres:17` liso el mismo rebuild PASÓ (450 + 18 sólo-ledger, 30 s).
-   **Consecuencia de seguridad:** una base reconstruida desde migraciones sobre
-   esta imagen quedaría con DELETE para roles cliente. Por eso staging y
-   producción se llenan **solo** con el dump de producción (§2.2), que trae
-   los grants reales, y después del restore se comprueba que `anon` y
-   `authenticated` no tengan DELETE en `public.tenants` (§2.2). Cerrar el
-   rebuild sobre la imagen (hooks por migración o una migración aditiva con
-   los revokes explícitos) lo decide el Director/Sam.
+3. Reconstrucción desde cero, en la laptop y antes de tocar el VPS:
+   `pnpm schema:rebuild:supabase` (modo Supabase de `check-schema-rebuild`).
+   **Al 2026-10-08 PASÓ:** 450 migraciones + 18 sólo-ledger + contrato de
+   aislamiento multi-tenant sobre `supabase/postgres:17.6.1.136`, en 26 s.
+4. **Default privileges, el punto que más cuidado pide.** La imagen trae los
+   defaults abiertos de Supabase: el rol `postgres` concede ALL sobre tablas,
+   secuencias y funciones de `public` a `anon` y `authenticated`. Producción
+   NO (medido en `pg_default_acl` el 2026-10-08: solo `postgres` y
+   `service_role`). Con los defaults de la imagen, cada tabla que cree una
+   migración futura en el servidor nacería abierta para los roles cliente.
+   Antes de restaurar o aplicar nada, igualarlos a producción con el mismo
+   bloque que usa el rebuild (`supabase/tests/_supabase-platform-stubs.supabase.sql`,
+   sección «Default privileges del rol `postgres`»), y verificar:
+   `select defaclobjtype, defaclacl from pg_default_acl where defaclrole = 'postgres'::regrole and defaclnamespace = 'public'::regnamespace`
+   no debe nombrar `anon` ni `authenticated`.
 
 ### 2.2 Dump de producción y restore (con el OK de la fase)
 

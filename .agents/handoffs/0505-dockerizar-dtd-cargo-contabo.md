@@ -17,7 +17,7 @@
 - [x] **Migración 0472 + pruebas SQL/PGlite**, con la espera declarada en `pendingBelowCutoff` (MIGRATE-FIRST). Evidencia abajo.
 - [x] **CI build-image** (`.github/workflows/build-image.yml`). No se ejecutó en GitHub: corre en push a `main` o con `workflow_dispatch`.
 - [x] **Docs:** runbooks, `setup-portal-auth`, `.env.example`, índices.
-- [ ] **Validación:** todo lo focalizado PASÓ (tabla de abajo). **NO EJECUTADO:** `pnpm verify` completo (pide turno del Director: una corrida pesada a la vez). **FALLÓ, pendiente de decisión:** rebuild sobre `supabase/postgres:17.6.1.136` (aceptación 2b).
+- [ ] **Validación:** todo lo focalizado PASÓ, incluido el rebuild sobre `supabase/postgres:17.6.1.136` (aceptación 2b, cerrada). **NO EJECUTADO:** `pnpm verify` completo (pide turno del Director: una corrida pesada a la vez).
 - [ ] **Commits + PR:** commits selectivos hechos (`f82554b1`, `1ec7c377`, `ef955fc2`, `5dfe4a3b` + el de la migración y este handoff). PR: draft, porque falta `verify` completo y la decisión 2b.
 
 ## Evidencia consolidada · Worker (2026-10-08, sobre el árbol completo antes de los commits)
@@ -43,10 +43,25 @@
 | CSP con origen propio | encabezado de la imagen construida con `NEXT_PUBLIC_SUPABASE_URL=https://api.example.test` | PASÓ · `img-src`/`media-src` con `https://api.example.test`; `connect-src` con `https://` y `wss://api.example.test`; `*.supabase.co` se conserva |
 | Rebuild sobre `postgres:17` | `node scripts/check-schema-rebuild.mjs` | PASÓ · 30 s · 450 migraciones aplicadas desde cero + 18 sólo-ledger = 468 (0472 incluida) |
 | Contratos SQL | `node scripts/run-sql-tests.mjs` | PASÓ · 86 s · 225 contratos, `0472_kommo_functions_base_url.test.sql` incluido · rollback total |
-| Rebuild sobre `supabase/postgres:17.6.1.136` | `SQL_TEST_PG_IMAGE=supabase/postgres:17.6.1.136 node scripts/check-schema-rebuild.mjs` | FALLÓ · repetido por el Worker, 6 s · se cae en `_supabase-platform-stubs.sql:43` (`permission denied for schema auth`) **antes de la primera migración**: los stubs de `postgres:17` crean `auth.users`, que en la imagen ya es de `supabase_admin`. Con los stubs reducidos (no cableados) el corte está en el guardarraíl de la 0268 (DELETE de `anon`/`authenticated` por default privileges de la imagen). La atribución anterior a «0038, 0268, 0410 y 0453» era incorrecta |
+| Rebuild sobre `supabase/postgres:17.6.1.136` | `corepack pnpm schema:rebuild:supabase` | PASÓ · 26 s · 450 migraciones + 18 sólo-ledger + aislamiento multi-tenant (219 tablas). Antes FALLABA: primero en los stubs de `postgres:17` (línea 43) y, con los stubs reducidos, en los guardarraíles de 0268 y 0410 por los default privileges abiertos de la imagen. Cierre en § Cierre de 2b |
 | `pnpm verify` completo | — | NO EJECUTADO · requiere turno del Director |
 
-**Recomendación del Worker para 2b:** cablear los stubs reducidos (`_supabase-platform-stubs.supabase.sql`) en el script cuando la imagen es `supabase/postgres` y resolver el guardarraíl de la 0268 con una migración aditiva que haga explícitos los `revoke` que hoy solo viven en el ledger (0279/0286-0288); así la base reconstruida desde migraciones queda igual de cerrada que producción. Mientras tanto, la base del servidor se llena **solo** desde el dump de producción, y `servidor-contabo.md` §2.2 exige comprobar que `anon`/`authenticated` no tengan DELETE en `public.tenants` después del restore.
+**2b cerrado** (ver § Cierre de 2b). La recomendación anterior, migración aditiva, se descartó al implementarla, porque correría después del guardarraíl de la 0268 que aborta.
+
+## Cierre de 2b · Worker (2026-10-08, decisión de Sam: «sigue con la migración recomendada»)
+
+La migración aditiva no servía: correría después de la 0268, cuyo guardarraíl es el que aborta. Lo que cerró 2b, en orden de medición:
+
+| Paso | Hallazgo | Cambio |
+|---|---|---|
+| 1 | La imagen perdía `shared_preload_libraries` (pg_cron/pg_net no cargaban) al recibir `-c fsync=off` sin su `config_file` | Modo Supabase arranca con `postgres -c config_file=/etc/postgresql/postgresql.conf` |
+| 2 | La imagen reinicia Postgres al terminar el initdb; un `select 1` aislado llegaba en el reinicio | Espera de cinco lecturas seguidas de `supabase_admin` |
+| 3 | Con stubs reducidos + revoke antes de 0268: 388 migraciones y la 0410 aborta (escritura de `authenticated` en `mail_logs`; su revoke vive en la 0415) | — |
+| 4 | `pg_default_acl` de producción (catálogo, sin filas): `postgres` en `public` concede tablas `arwdDxtm`, secuencias `rwU` y funciones `X` SOLO a `postgres` y `service_role`; la imagen las da también a `anon`/`authenticated` | Los stubs reducidos fijan esos mismos defaults: 450/450 sin hooks |
+| 5 | El contrato de aislamiento fallaba por «RLS de más»: fijaba la identidad solo en `test.uid` (stub) y el `auth.uid()` real lee `request.jwt.claim.sub` | El contrato fija también `request.jwt.claim.sub` y `request.jwt.claims` |
+| 6 | El chequeo `get_user_tenant_id() <> …` pasaba con identidad nula (`null <> x` es null) | Ahora `is distinct from` |
+
+Resultado: `node scripts/check-schema-rebuild.mjs` (postgres:17) PASÓ en 28 s; `pnpm schema:rebuild:supabase` PASÓ en 26 s; `node scripts/run-sql-tests.mjs` PASÓ 225/225 en 87 s. **Consecuencia operativa** (añadida a `servidor-contabo.md` §2.1 paso 4): en el servidor hay que igualar los default privileges a los de producción antes de aplicar nada, o cada tabla que cree una migración futura nace abierta para los roles cliente.
 
 ## Evidencia · área docs (2026-10-08, pasada de corrección)
 
