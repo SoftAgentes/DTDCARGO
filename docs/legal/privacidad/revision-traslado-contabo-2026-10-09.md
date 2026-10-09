@@ -151,7 +151,7 @@ Sin datos de salud ni de menores en columnas (búsqueda sin resultados en las mi
 | # | Qué falta mirar | Dónde |
 |---|---|---|
 | N1 | Si el disco de la laptop de Sam está cifrado (BitLocker): ahí se generaría el dump | Configuración de Windows |
-| N2 | Contenido del DPA de Contabo (subencargados, notificación de brechas, borrado al terminar, cláusulas para EE. UU.) | Panel de Contabo → DPA, con el abogado |
+| N2 | Contenido del DPA de Contabo (subencargados, notificación de brechas, borrado al terminar, cláusulas para EE. UU.). El DPA ya está **generado** (2026-10-09); falta leerlo | Panel de Contabo → DPA, con el abogado |
 | N3 | Si `supabase db dump` incluye los datos de `vault` y de `cron`. **Respondido el 2026-10-09 (§5.1): no los incluye, ni el ledger `supabase_migrations`** | ~~Ensayo de la Fase 2~~ ensayo con Cloud falso, CLI 2.118.0 |
 | N4 | Si Supabase entrega la clave raíz de pgsodium del proyecto de Cloud | Soporte o dashboard de Supabase |
 | N5 | Si Cloudflare R2 o Backblaze aceptan el pago desde Venezuela y en qué región quedan los datos | Checkout del proveedor |
@@ -189,6 +189,8 @@ Las cuatro condiciones del Worker (2, 3, 4 y 5) quedan implementadas en la PR #1
 - Queda **NO VERIFICADO** el mismo mecanismo en un DR real sobre la base `postgres` de un stack nuevo (`backup-restore-servidor.md` §3, pendiente antes del primer DR).
 
 Las condiciones 1, 6 y 7 siguen siendo de Sam.
+
+**Condición 1 · DPA:** Sam lo **generó en el panel de Contabo el 2026-10-09** («listo, ya generé el DPA en Contabo», ~19:52 UTC). Contabo ya figura en `inventario-terceros.md` como contratado y todavía sin datos. Falta la otra mitad de la condición, revisar el contenido (N2: subencargados, notificación de brechas, borrado al terminar, cláusulas para EE. UU.) con el abogado. El texto del acuerdo es un contrato: no va a Git.
 
 ## 6 · Fuera de alcance (para el abogado)
 

@@ -121,6 +121,8 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
 2. **Permisos:** restaurando como `supabase_admin` (se eligió porque, como `postgres`, cualquier objeto de un rol de plataforma en el dump aborta con «must be able to SET ROLE supabase_admin», como pasó en un ensayo con objetos del Cloud falso creados por `supabase_admin`, y porque `session_replication_role` exige superusuario), los default privileges de la imagen abren `public`; `tenants` quedó con `INSERT/UPDATE/DELETE/TRUNCATE` para `anon` y `authenticated` (corrida de las 19:32, control rojo). Ahora el script iguala los permisos de los roles cliente a los de Cloud y los compara por huella.
 3. Defectos propios atrapados por la prueba: `docker run -i` se comía la entrada estándar antes de pedir la cadena; un trap de `TERM` hacía esperar al `docker run` en curso (se quitó: el EXIT corre igual); con `pipefail`, un `grep` sin coincidencias mataba `restore-test`; `format('%s', false)` daba `f`; Docker 29 ya no llena `.NetworkSettings.IPAddress`.
 
+**Condiciones de Sam:** (1) DPA **generado** en el panel de Contabo el 2026-10-09 (Sam: «listo, ya generé el DPA en Contabo»); falta revisar su contenido (N2) con el abogado. Contabo agregado a `inventario-terceros.md`. (6) frase de paso + 2FA y (7) retención, pendientes.
+
 **Pendientes de esta tarea:**
 
 - Ensayo real de la Fase 2 con producción (necesita el OK de exportar de Sam y las condiciones 1, 6 y 7): valida Storage (rclone contra `storage-api`, que aquí no se levantó) y los conteos verdaderos.
