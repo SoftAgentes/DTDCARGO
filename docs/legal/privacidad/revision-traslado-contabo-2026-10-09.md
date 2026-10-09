@@ -222,6 +222,8 @@ Las condiciones 1, 6 y 7 siguen siendo de Sam.
 - Personas afectadas: las 23 siguen marcadas. Categorías de datos: las 24.
 - «Other data» quedó vacío y sin marcar. Las fotos de documentos de identidad entran en *Image Files*, que está marcada.
 
+**Revisión del abogado (2026-10-09):** Sam informa que está hecha («listo verificacion del abogado list»). Con eso, la condición 1 queda **cumplida según Sam**. El Worker no vio el dictamen: no se registra qué decidió sobre biométricos, el titular del acuerdo o el plazo de aviso de brechas. Si cambia algo del DPA, se recrea en el portal y se vuelve a verificar el PDF.
+
 ## 6 · Fuera de alcance (para el abogado)
 
 - La redacción de la política de privacidad y del aviso a los clientes por el cambio de alojamiento (H4).
