@@ -208,6 +208,12 @@ Las condiciones 1, 6 y 7 siguen siendo de Sam.
 - **Categorías de datos: las 24 marcadas**, más «Other data» con un texto suelto que no describe nada. Ninguna categoría especial marcada. Arreglo: dejar las que DTD trata de verdad (con el inventario de §1 de esta revisión) y reemplazar el texto de «Other data» por una descripción real (p. ej., fotos de documentos de identidad, comprobantes de pago, audio de reuniones). Si las fotos de documentos de identidad cuentan como dato biométrico lo decide el abogado.
 - **Partes:** el DPA está a nombre del titular de la cuenta de Contabo, no de «DTD Cargo». Que el abogado confirme que ese es el responsable correcto de los datos de DTD.
 
+**Corrección del anexo 1 (2026-10-09, Sam lo recreó en el portal; el panel muestra el nuevo como concluido a las 21:45 UTC+1 y reemplaza al anterior, §13.5).** Verificado sobre el PDF nuevo:
+
+- **Personas afectadas: CORRECTO.** Las 23 categorías marcadas, así que el hueco de cobertura queda cerrado. «Other Data Subjects» quedó vacío; los destinatarios de envíos no figuran con su nombre (detalle menor).
+- **Categorías de datos:** las 24 marcadas. «Other data» quedó cortado en «Fotos de indent»: el campo admite unos 15 caracteres.
+- **Categorías especiales: ENCONTRADO (menor).** Quedaron marcadas *Biometric*, *Religious or Philosophical Beliefs*, *Labor Organization Membership* y *Assessment of Personality, Abilities, Performance or Behavior*. DTD no trata creencias, afiliación sindical ni evaluaciones de personalidad: declararlas es inexacto, aunque no abre ningún acceso. Biométricos: lo decide el abogado (fotos de documentos de identidad). Se corrige igual que antes, cuando Sam o el abogado lo decidan.
+
 ## 6 · Fuera de alcance (para el abogado)
 
 - La redacción de la política de privacidad y del aviso a los clientes por el cambio de alojamiento (H4).
