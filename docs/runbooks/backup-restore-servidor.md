@@ -87,12 +87,13 @@ PGPASSWORD="$(grep -E '^POSTGRES_PASSWORD=' /srv/dtd-cargo/.env | cut -d= -f2-)"
 
 Los proyectos hechos con la plantilla lo llaman todo desde su `backup.sh`.
 
-**Retención.** Lo que el script hace hoy: 30 días en el bucket y 7 en el VPS.
-Hasta el 2026-10-09 este runbook prometía además 12 semanales y 12 mensuales que
-ningún script implementaba (revisión del traslado, H7). Es una decisión de Sam
-(con su abogado: cuánto tiempo guardar copias con datos personales); la
-recomendación del Worker es quedarse en 30 días y que la política publicada lo
-diga. Hasta que decida, vale lo que hace el script.
+**Retención: 30 días en el bucket y 7 en el VPS** (decisión de Sam del
+2026-10-09, respuesta «30 días»). Es lo que hace el script. Hasta esa fecha
+este runbook prometía además 12 semanales y 12 mensuales que ningún script
+implementaba (revisión del traslado, H7); ya no. Consecuencia que la política
+publicada debe decir: una persona que pide borrar sus datos desaparece de la
+base viva en el acto y de los respaldos a los 30 días. Cambiar la retención es
+una decisión de Sam, no un ajuste técnico.
 
 ### 2.2 Horario
 

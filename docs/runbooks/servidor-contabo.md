@@ -497,9 +497,20 @@ en memoria (backup-restore-servidor.md §3).
 
 Requiere el OK de Sam con hora de la ventana. Antes de pedirlo:
 
-- Fase 2 cerrada, con un restore de prueba PASÓ
-  ([backup-restore-servidor.md](backup-restore-servidor.md) §3) y el backup
-  diario corriendo desde hace al menos 7 días sobre staging.
+- Fase 2 cerrada y su staging destruido (§2.6).
+- La cadena de respaldo probada: `infra/ops/tests/prueba-traslado-y-respaldos.sh`
+  PASÓ en el VPS y el remoto real (R2 o B2) contratado, con un dump cifrado de
+  prueba subido y restaurado con `restore-test.sh`
+  ([backup-restore-servidor.md](backup-restore-servidor.md) §3). El cron diario
+  se activa sobre producción el día del corte, no antes: el staging no se
+  respalda (§2).
+- **Política de privacidad corregida y clientes avisados** (decisión de Sam del
+  2026-10-09: «antes del corte»). Hoy dice que los datos «se tratan en
+  Venezuela» y no menciona los respaldos. El texto nuevo, revisado por el
+  abogado, dice que los datos se alojan en servidores en EE. UU. de un
+  proveedor de infraestructura, con respaldos cifrados en otro proveedor que
+  conservan copias **30 días** después de una supresión (revisión del traslado,
+  H4 y H7).
 - pgBackRest o WAL continuo: la spec lo deja pendiente. Si no está, el RPO del
   día del corte es de 24 h, y Sam lo acepta por escrito en el mismo OK.
 - TTL del DNS bajado a 300 s 24 h antes (Cloudflare o donde esté el DNS).

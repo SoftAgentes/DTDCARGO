@@ -192,6 +192,13 @@ Las condiciones 1, 6 y 7 siguen siendo de Sam.
 
 **Condición 6 · frase de paso: CORRECTO (2026-10-09, ~21:13 UTC).** Sam le puso frase a `~/.ssh/contabo` (`ssh-keygen -p`) y la cargó en el agente de Windows (servicio `ssh-agent` en automático). Verificado: la llave ya no abre sin frase; el `ssh` de Windows entra al VPS por el agente, y un cliente que lee el archivo directo recibe «Permission denied». **2FA de Contabo: CORRECTO (2026-10-09).** Sam lo activó (TOTP con app del celular) y la tarjeta *Cuenta → Seguridad y acceso → Autenticación en dos factores* dice «activo». Responde N7. **Condición 6 completa.**
 
+**Condición 7 · decisiones de Sam (2026-10-09):**
+
+- **Retención de respaldos: 30 días** (respuesta «30 días»). Es lo que hace el script; el runbook ya no promete semanales ni mensuales (`backup-restore-servidor.md` §2.1). Cierra la contradicción de H7. Sigue abierta la separación de la credencial de borrado (regla de ciclo de vida del bucket), que se resuelve al contratar R2 o B2.
+- **Política de privacidad: se corrige antes del corte** (respuesta «Antes del corte»). Queda como requisito de la Fase 3 en `servidor-contabo.md` §3 (H4). El ensayo de la Fase 2 puede hacerse antes.
+
+**Resultado: las siete condiciones previas a exportar producción están cumplidas** (la 1 según Sam, por la revisión del abogado). Lo que sigue es el OK nominal de Sam para exportar producción al staging del ensayo.
+
 **Condición 1 · DPA:** Sam lo **generó en el panel de Contabo el 2026-10-09** («listo, ya generé el DPA en Contabo»; el documento dice concluido el 9 de octubre de 2026, 19:26 UTC+1, por el portal y sin firma). Contabo ya figura en `inventario-terceros.md`. El texto es un contrato y no va a Git; Sam lo tiene en su carpeta de descargas.
 
 **Lectura del DPA (2026-10-09, a pedido de Sam; 65 páginas en inglés y alemán, prevalece el alemán, §13.3).** Responde N2 así:
