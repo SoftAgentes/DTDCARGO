@@ -109,9 +109,16 @@ para esta carpeta (`-whitespace`) para conservar la identidad con el upstream.
 
 ## Traefik: lo que el compose no puede fijar
 
-Las labels de `web` y `api-gw` declaran el transporte largo (`dtd-long`, 300 s
-de respuesta) y el tope de cuerpo de 12 MB en `web`. Dos cosas son configuración
-ESTÁTICA de Traefik (Dokploy: `/etc/dokploy/traefik/traefik.yml`):
+Las labels de `web` y `api-gw` usan el transporte largo (300 s de respuesta)
+`${TRAEFIK_SERVERS_TRANSPORT:-slow-300s@file}` y declaran el tope de cuerpo de
+12 MB en `web`. El transporte vive en el **proveedor de archivo**
+(`infra/ops/traefik/dynamic/middlewares.yml`): Traefik no admite definir
+serversTransports con labels de Docker. Hasta el 2026-10-09 el compose lo
+declaraba así (`dtd-long@docker`) y la ruta quedaba rota con «servers transport
+not found»; lo destapó el staging del VPS. Con otro Traefik (Dokploy, por
+ejemplo), definir ese transporte en su configuración dinámica o cambiar
+`TRAEFIK_SERVERS_TRANSPORT`. Además, dos cosas son configuración ESTÁTICA de
+Traefik:
 
 - `entryPoints.websecure.transport.respondingTimeouts.readTimeout: 300s`
   (default 60 s): sin esto una subida lenta de 12 MB o un import de 5 minutos

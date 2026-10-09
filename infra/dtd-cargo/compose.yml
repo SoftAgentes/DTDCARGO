@@ -89,10 +89,11 @@ services:
       # `maxDuration = 300`; con el default de Traefik (sin tope de respuesta
       # pero 60 s de lectura en el entrypoint) un import largo moriría a mitad.
       # El `readTimeout` del entrypoint es config estática de Traefik: ver README.
-      traefik.http.services.dtd-web.loadbalancer.serverstransport: dtd-long@docker
-      traefik.http.serverstransports.dtd-long.forwardingtimeouts.dialtimeout: 30s
-      traefik.http.serverstransports.dtd-long.forwardingtimeouts.responseheadertimeout: 300s
-      traefik.http.serverstransports.dtd-long.forwardingtimeouts.idleconntimeout: 300s
+      # El transporte vive en el proveedor de archivo (`slow-300s`,
+      # infra/ops/traefik/dynamic/middlewares.yml): Traefik no admite definir
+      # serversTransports con labels de Docker, y con `dtd-long@docker` la ruta
+      # quedaba rota (medido en el VPS el 2026-10-09).
+      traefik.http.services.dtd-web.loadbalancer.serverstransport: ${TRAEFIK_SERVERS_TRANSPORT:-slow-300s@file}
       # 12 MB = `serverActions.bodySizeLimit` de next.config.ts (foto de cédula/RIF
       # del registro). Traefik corta antes que Next con 413, sin consumir RAM
       # del contenedor web.

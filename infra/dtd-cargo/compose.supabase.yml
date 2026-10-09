@@ -153,17 +153,13 @@ services:
       traefik.http.routers.dtd-supabase.tls: "true"
       traefik.http.routers.dtd-supabase.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
       traefik.http.services.dtd-supabase.loadbalancer.server.port: "8000"
-      # Mismo transporte largo que `web`: las subidas TUS a Storage y las
-      # Edge Functions de Kommo pueden pasar del minuto. Se declara aquí TAMBIÉN
-      # (idéntico al de compose.yml): si solo lo declara `web`, sin `web` corriendo
-      # Traefik no lo encuentra y la ruta de Supabase queda rota (medido en el
-      # staging del VPS el 2026-10-09: «servers transport not found dtd-long@docker»).
-      # Si se cambia un valor, se cambia en los dos archivos: con valores
-      # distintos Traefik descarta la definición.
-      traefik.http.services.dtd-supabase.loadbalancer.serverstransport: dtd-long@docker
-      traefik.http.serverstransports.dtd-long.forwardingtimeouts.dialtimeout: 30s
-      traefik.http.serverstransports.dtd-long.forwardingtimeouts.responseheadertimeout: 300s
-      traefik.http.serverstransports.dtd-long.forwardingtimeouts.idleconntimeout: 300s
+      # Transporte largo (300 s de espera de respuesta): las subidas TUS a Storage
+      # y las Edge Functions de Kommo pueden pasar del minuto. Traefik NO admite
+      # definir serversTransports con labels de Docker (solo en el proveedor de
+      # archivo): con `dtd-long@docker` la ruta quedaba rota, «servers transport
+      # not found» (medido en el staging del VPS el 2026-10-09). Se usa el
+      # `slow-300s` de infra/ops/traefik/dynamic/middlewares.yml.
+      traefik.http.services.dtd-supabase.loadbalancer.serverstransport: ${TRAEFIK_SERVERS_TRANSPORT:-slow-300s@file}
 
   auth:
     image: supabase/gotrue:v2.196.0

@@ -129,6 +129,19 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
 - DR real sobre la base `postgres` de un stack nuevo: el mismo mecanismo de permisos lo afectaría (NO VERIFICADO; `backup-restore-servidor.md` §3).
 - Retención (H7): decisión de Sam; el runbook ya dice que vale la del script (30 días) y no promete semanales/mensuales.
 
+## Fase 2 · staging vacío en el VPS (2026-10-09, sin datos de producción)
+
+- **DNS:** los registros A `staging` y `supabase-staging` → `217.216.54.70` (TTL 300) los cargó el Worker en el hPanel de Hostinger con autorización de Sam en el chat («Tú dale, yo le voy dando a aceptar»). Un primer intento de Sam no se había guardado. Ya los sirven los dos NS autoritativos.
+- **Stack:** `/srv/dtd-cargo-staging` (700), proyecto `dtd-cargo-staging`, `.env` generado en el VPS con `infra/ops/staging/new-env.sh` (19 secretos + 2 JWT; los valores no salieron del VPS), `functions/` armada (router del upstream + funciones del repo). Arriba y `healthy`: db, auth, rest, realtime, storage, imgproxy, functions, api-gw y auth-templates. Sin web ni cron (falta la imagen) y sin studio/meta/pooler (perfiles). 1,4 GB de RAM.
+- **Base:** default privileges de `postgres` en `public` iguales a producción (`r`/`S`/`f` solo para postgres y service_role; 0 con anon/authenticated); `public` sin tablas, `storage` con 10 y `auth` con 23. Login por red como `supabase_admin` y `postgres`: OK.
+- **TLS y acceso:** certificado de Let's Encrypt para `supabase-staging.dtdcargo.com`, válido del 2026-10-09 21:02 GMT al 2027-01-07. Un intento fallido previo: el gateway arrancó como dependencia de functions antes de que el DNS resolviera. Desde la IP de Sam (`187.13.210.51`): `/auth/v1/health` y `/rest/v1/` → 401 (pide apikey), `/storage/v1/status` → 200, `/realtime/v1/api/tenants`, `/pg/` y `/` → 404. Desde el propio VPS (IP no permitida): 403.
+- **Defectos de Fase 0 que destapó el staging, corregidos en la PR** (ninguno lo veía `compose config`):
+  1. `functions` no arrancaba: montaje de archivos dentro de un montaje de solo lectura, y ruta al repo que en el servidor no existe → una carpeta `${DTD_FUNCTIONS_DIR}`.
+  2. Traefik no admite `serversTransports` en labels de Docker: `dtd-long@docker` rompía las rutas de web y de Supabase → `slow-300s@file` del proveedor de archivo.
+  3. `functions_base_url` debe ser la URL interna (`http://api-gw:8000/functions/v1`).
+  4. Los nombres de router de Traefik son fijos: staging y producción no pueden ir a la vez detrás del mismo Traefik (pendiente: parametrizarlos).
+- **Lo que sigue:** el OK nominal de Sam para exportar producción y el traslado con `import-from-cloud.sh`, que corre Sam (pide la cadena de conexión y las claves S3 temporales).
+
 ## Cierre de 2b · Worker (2026-10-08, decisión de Sam: «sigue con la migración recomendada»)
 
 La migración aditiva no servía: correría después de la 0268, cuyo guardarraíl es el que aborta. Lo que cerró 2b, en orden de medición:
