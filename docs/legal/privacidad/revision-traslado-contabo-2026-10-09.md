@@ -151,7 +151,7 @@ Sin datos de salud ni de menores en columnas (búsqueda sin resultados en las mi
 | # | Qué falta mirar | Dónde |
 |---|---|---|
 | N1 | Si el disco de la laptop de Sam está cifrado (BitLocker): ahí se generaría el dump | Configuración de Windows |
-| N2 | Contenido del DPA de Contabo (subencargados, notificación de brechas, borrado al terminar, cláusulas para EE. UU.). El DPA ya está **generado** (2026-10-09); falta leerlo | Panel de Contabo → DPA, con el abogado |
+| N2 | Contenido del DPA de Contabo (subencargados, notificación de brechas, borrado al terminar, cláusulas para EE. UU.). **Leído el 2026-10-09 (§5.1):** los cuatro puntos están cubiertos; el anexo 1 hay que corregirlo (personas afectadas) y la revisión legal sigue siendo del abogado | ~~Panel de Contabo~~ PDF en la carpeta de descargas de Sam |
 | N3 | Si `supabase db dump` incluye los datos de `vault` y de `cron`. **Respondido el 2026-10-09 (§5.1): no los incluye, ni el ledger `supabase_migrations`** | ~~Ensayo de la Fase 2~~ ensayo con Cloud falso, CLI 2.118.0 |
 | N4 | Si Supabase entrega la clave raíz de pgsodium del proyecto de Cloud | Soporte o dashboard de Supabase |
 | N5 | Si Cloudflare R2 o Backblaze aceptan el pago desde Venezuela y en qué región quedan los datos | Checkout del proveedor |
@@ -190,7 +190,23 @@ Las cuatro condiciones del Worker (2, 3, 4 y 5) quedan implementadas en la PR #1
 
 Las condiciones 1, 6 y 7 siguen siendo de Sam.
 
-**Condición 1 · DPA:** Sam lo **generó en el panel de Contabo el 2026-10-09** («listo, ya generé el DPA en Contabo», ~19:52 UTC). Contabo ya figura en `inventario-terceros.md` como contratado y todavía sin datos. Falta la otra mitad de la condición, revisar el contenido (N2: subencargados, notificación de brechas, borrado al terminar, cláusulas para EE. UU.) con el abogado. El texto del acuerdo es un contrato: no va a Git.
+**Condición 1 · DPA:** Sam lo **generó en el panel de Contabo el 2026-10-09** («listo, ya generé el DPA en Contabo»; el documento dice concluido el 9 de octubre de 2026, 19:26 UTC+1, por el portal y sin firma). Contabo ya figura en `inventario-terceros.md`. El texto es un contrato y no va a Git; Sam lo tiene en su carpeta de descargas.
+
+**Lectura del DPA (2026-10-09, a pedido de Sam; 65 páginas en inglés y alemán, prevalece el alemán, §13.3).** Responde N2 así:
+
+| Punto | Estado | Qué dice (sección del DPA) |
+|---|---|---|
+| Subencargados | CORRECTO | Anexo 3: uno solo, **Contabo Inc.** (St. Louis, Missouri), opera el centro de datos de Carlstadt. Cambios: aviso por escrito y 4 semanas para objetar; el silencio cuenta como aprobación; sin acuerdo, derecho especial de rescisión (§6.1-6.3). Contabo responde por las faltas del subencargado como propias (§6.4). |
+| Brechas | CORRECTO, sin plazo fijo | Aviso «sin demora indebida» con contenido mínimo (naturaleza, categorías y número aproximado de personas y registros, consecuencias, medidas), apoyo, análisis de causa y registro de brechas (§8.1-8.4). No fija horas: pregunta para el abogado. |
+| Borrado al terminar | CORRECTO | Al terminar o cuando se pida, borrado completo e irrevocable, **incluidas copias de respaldo** (§10.1); guardan 10 años solo la documentación de cumplimiento (§10.3). Discos defectuosos se destruyen; los de contratos terminados se sobrescriben varias veces (Anexo 2 §1.3.4). Responde en parte N6; los snapshots no se mencionan. |
+| EE. UU. | CORRECTO con límites | Elegir una ubicación fuera de la UE vale como consentimiento a la transferencia (§2.4-2.5). Incluye cláusulas tipo de la UE, módulo 3 (Contabo GmbH → Contabo Inc.), ley y tribunales de Alemania y autoridad de control de Baviera. Si una autoridad de fuera de la UE pide datos, Contabo avisa de inmediato salvo prohibición legal (§3.1). |
+| Acceso de Contabo | ENCONTRADO (esperado) | El DPA dice que el acceso de Contabo a los datos «no se puede excluir» (§1.2). Para un VPS, la seguridad de los datos guardados y transmitidos, el cifrado en tránsito, la separación y **los respaldos** son responsabilidad exclusiva del cliente (Anexo 2 §1.3.2, §1.4.2, §2.1.2, §3.1.3). Es coherente con el plan: TLS, respaldos cifrados con `age` y la base sin puertos publicados. El disco del VPS no está cifrado (sin LUKS), así que lo que Contabo pueda ver en reposo depende de este contrato. |
+
+**ENCONTRADO en el anexo 1 (lo llenó la cuenta al generar el DPA y se corrige en el portal, §2.2 y §12.4):**
+
+- **Personas afectadas: solo «Users» marcado.** DTD trata además datos de clientes, destinatarios de envíos, empleados y operarios, proveedores (incluidos los chinos), prospectos de Kommo y contactos de terceros. El DPA limita el tratamiento a las categorías del anexo 1 (§2.2), así que hoy **no las cubre**. Arreglo: marcar al menos *Customers*, *Employees*, *Suppliers*, *Business Partners*, *Service Providers*, *Interested Parties* y, en «Other Data Subjects», «destinatarios de envíos».
+- **Categorías de datos: las 24 marcadas**, más «Other data» con un texto suelto que no describe nada. Ninguna categoría especial marcada. Arreglo: dejar las que DTD trata de verdad (con el inventario de §1 de esta revisión) y reemplazar el texto de «Other data» por una descripción real (p. ej., fotos de documentos de identidad, comprobantes de pago, audio de reuniones). Si las fotos de documentos de identidad cuentan como dato biométrico lo decide el abogado.
+- **Partes:** el DPA está a nombre del titular de la cuenta de Contabo, no de «DTD Cargo». Que el abogado confirme que ese es el responsable correcto de los datos de DTD.
 
 ## 6 · Fuera de alcance (para el abogado)
 
