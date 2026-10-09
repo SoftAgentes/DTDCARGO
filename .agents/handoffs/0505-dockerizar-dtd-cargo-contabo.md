@@ -80,6 +80,12 @@
 
 **Pendiente de la Fase 1:** Tailscale (necesita la cuenta de Sam), panel (Dokploy) o Traefik solo, igualar los default privileges cuando se levante Supabase (§2.1 paso 4), snapshot «base limpia» desde el panel y firewall del panel de Contabo como segunda capa. **Ojo con Docker:** los puertos que publica un contenedor saltan ufw. Solo Traefik puede publicar (80/443); un panel en el 3000 quedaría expuesto aunque ufw diga que no.
 
+### Traefik y snapshot (2026-10-09, decisión de Sam: «Traefik solo y saca el snapshot»)
+
+- **Traefik** `v3.7.14` desde `infra/ops/traefik` (commit `a6109b01`) en `/srv/edge/traefik`; red `dtd_edge`; `.env` con `ACME_EMAIL=ops@example.com` a propósito: Let's Encrypt rechaza ese dominio, así que ningún certificado sale hasta que Sam elija correo y dominio. Dentro del servidor: `healthy`, `:80` → 301 a https, `:443` → 404 con «TRAEFIK DEFAULT CERT». Solo Traefik publica puertos (80/443).
+- **Desde afuera, 80/443 no responden:** tcpdump en `eth0` capturó 0 paquetes de `187.13.210.51` al puerto 80, así que se cortan antes del VPS. Causa: el **firewall del panel de Contabo** «HailuwayVPS» (activo, último cambio 18 ago 2026) solo acepta TCP 22 y TCP 5900-5999 (`VNC_IA`) y bloquea todo lo demás. **Pendiente del OK de Sam:** agregar reglas para 80 y 443, y decidir si se borra `VNC_IA` (abre 5900-5999 a todo internet; en el servidor reinstalado no hay nada escuchando ahí).
+- **Snapshot** `base-limpia-2026-10-09` creado desde el panel clásico (*VPS control* → *Snapshots*): 09.10.2026 19:37 CEST, borrado automático el 08.11.2026. Antes se hizo `sync` en el servidor. El diálogo del panel nuevo no tomó los valores (el formulario está oculto y no registra lo cargado): usar el panel clásico. El servidor sigue arriba después del snapshot.
+
 ## Cierre de 2b · Worker (2026-10-08, decisión de Sam: «sigue con la migración recomendada»)
 
 La migración aditiva no servía: correría después de la 0268, cuyo guardarraíl es el que aborta. Lo que cerró 2b, en orden de medición:
