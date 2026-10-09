@@ -22,8 +22,13 @@
 #     pg_cron, pg_net ni vault en shared_preload_libraries) y añade la memoria
 #     para 24 GB. Datos en bind mounts bajo ${DTD_DATA_DIR} (runbook: /srv/
 #     dtd-cargo/data), no en el árbol del repo.
-#   · Edge Functions: monta `../../supabase/functions` (las del repo, solo
-#     lectura) + el router `main` y el import map del upstream.
+#   · Edge Functions: monta UNA carpeta, ${DTD_FUNCTIONS_DIR} (por defecto
+#     ./functions), armada al desplegar con el router `main` y el import map
+#     del upstream (./supabase/volumes/functions) más las funciones del repo
+#     (supabase/functions): ver README › Edge Functions. No se montan archivos
+#     dentro de una carpeta ya montada en solo lectura: Docker no puede crear
+#     ahí el punto de montaje y el contenedor no arranca (medido en el VPS el
+#     2026-10-09), y en el servidor no está el repo para `../../supabase/functions`.
 #   · Auth: plantillas de correo desde `auth-templates` y TTL de OTP de la casa.
 #   · Límites de memoria por servicio; con compose.yml suman ≤ 12 GB.
 #
@@ -89,7 +94,7 @@ services:
       EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
     volumes:
       - studio-snippets:/app/snippets
-      - ../../supabase/functions:/app/edge-functions:ro
+      - ${DTD_FUNCTIONS_DIR:-./functions}:/app/edge-functions:ro
     networks:
       - dtd_internal
     deploy:
@@ -149,8 +154,16 @@ services:
       traefik.http.routers.dtd-supabase.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
       traefik.http.services.dtd-supabase.loadbalancer.server.port: "8000"
       # Mismo transporte largo que `web`: las subidas TUS a Storage y las
-      # Edge Functions de Kommo pueden pasar del minuto.
+      # Edge Functions de Kommo pueden pasar del minuto. Se declara aquí TAMBIÉN
+      # (idéntico al de compose.yml): si solo lo declara `web`, sin `web` corriendo
+      # Traefik no lo encuentra y la ruta de Supabase queda rota (medido en el
+      # staging del VPS el 2026-10-09: «servers transport not found dtd-long@docker»).
+      # Si se cambia un valor, se cambia en los dos archivos: con valores
+      # distintos Traefik descarta la definición.
       traefik.http.services.dtd-supabase.loadbalancer.serverstransport: dtd-long@docker
+      traefik.http.serverstransports.dtd-long.forwardingtimeouts.dialtimeout: 30s
+      traefik.http.serverstransports.dtd-long.forwardingtimeouts.responseheadertimeout: 300s
+      traefik.http.serverstransports.dtd-long.forwardingtimeouts.idleconntimeout: 300s
 
   auth:
     image: supabase/gotrue:v2.196.0
@@ -414,12 +427,11 @@ services:
     restart: unless-stopped
     logging: *logging
     volumes:
-      # Las funciones del repo (kommo-sync, kommo-writeback, kommo-push-client,
-      # kommo-webhook y _shared), solo lectura; encima, el router `main` y el
-      # import map del upstream, que el router espera en /home/deno/functions.
-      - ../../supabase/functions:/home/deno/functions:ro
-      - ./supabase/volumes/functions/main:/home/deno/functions/main:ro
-      - ./supabase/volumes/functions/deno.jsonc:/home/deno/functions/deno.jsonc:ro
+      # Una sola carpeta, solo lectura: el router `main` y el import map del
+      # upstream junto a las funciones del repo (kommo-sync, kommo-writeback,
+      # kommo-push-client, kommo-webhook y _shared), como el router las espera
+      # en /home/deno/functions/<nombre>. Se arma al desplegar (README).
+      - ${DTD_FUNCTIONS_DIR:-./functions}:/home/deno/functions:ro
       - deno-cache:/root/.cache/deno
     depends_on:
       api-gw:

@@ -19,8 +19,10 @@
 #   · `dtd_egress`   bridge normal SIN Traefik: solo para los servicios que
 #                    necesitan salir a internet (Auth → SMTP, functions → Kommo,
 #                    Storage/imgproxy → R2). `web` sale por `dtd_edge`.
-#   · Ningún `ports:` y ningún `container_name`: dos proyectos (producción y
-#     staging) conviven en el mismo host sin chocar.
+#   · Ningún `ports:` y ningún `container_name`: los contenedores, redes y
+#     volúmenes de producción y staging no chocan en el mismo host. Los nombres
+#     de router de Traefik (dtd-web, dtd-supabase) sí son fijos: los dos stacks
+#     no pueden estar detrás del mismo Traefik a la vez (compose.staging.yml).
 #
 # El `.env` vive junto a este archivo (en el servidor, /srv/dtd-cargo/.env,
 # 0600). Compose lo carga solo para interpolar `${...}`; `web` lo recibe entero

@@ -314,13 +314,30 @@ tomado en ese tiempo se lleva la copia y vive 30 días fuera de nuestro control)
 
 ### 2.1 Levantar el stack vacío y reconstruir el schema
 
-1. `cp -r infra/dtd-cargo /srv/dtd-cargo-staging`, `.env` desde
-   `.env.example` con **todos** los secretos nuevos (`openssl rand -hex 32`
-   para `POSTGRES_PASSWORD`, `JWT_SECRET`, `SECRET_KEY_BASE`, `VAULT_ENC_KEY`;
-   `ANON_KEY` y `SERVICE_ROLE_KEY` firmados con ese `JWT_SECRET`). Ninguno de
-   los secretos demo del compose oficial de Supabase, que son públicos.
-2. `docker compose --env-file .env -f compose.yml -f compose.supabase.yml config`
-   debe validar; `up -d db` y `psql` deben entrar.
+1. Copiar `infra/dtd-cargo` a `/srv/dtd-cargo-staging` (700) e `infra/ops/*` a
+   `/srv/ops`. Armar `functions/` (router del upstream + `supabase/functions`
+   del repo; README de `infra/dtd-cargo` › Arrancar).
+2. `.env` con `infra/ops/staging/new-env.sh`: genera en el servidor todos los
+   secretos y los JWT `ANON_KEY`/`SERVICE_ROLE_KEY` firmados con el
+   `JWT_SECRET` nuevo, y escribe el archivo en 600 sin imprimir valores.
+   Ninguno de los secretos demo del compose oficial, que son públicos. Para
+   staging, con `--set`: los hosts `staging.dtdcargo.com` y
+   `supabase-staging.dtdcargo.com`, `APP_ENV=staging`, `DTD_DATA_DIR`,
+   `DISABLE_SIGNUP=true` y `STAGING_ALLOWED_IPS` (las IP que pueden entrar);
+   las claves `STORAGE_S3_*` quedan como marca con `--allow-placeholder`
+   (Storage en archivos).
+
+   Siempre con los tres archivos y el nombre de proyecto:
+   `docker compose -p dtd-cargo-staging -f compose.yml -f compose.supabase.yml -f compose.staging.yml`.
+   `compose.staging.yml` pone la lista de IP en las dos rutas de Traefik: el
+   staging lleva datos reales y no queda abierto a internet. **El gateway
+   (`api-gw`) se levanta recién cuando el DNS de los dos hosts resuelva:**
+   Traefik pide el certificado apenas ve la ruta y cada intento fallido cuenta
+   contra el límite de Let's Encrypt (5 por hora). `functions` depende de
+   `api-gw`, así que también espera.
+   **Medido el 2026-10-09:** con `db auth rest realtime storage imgproxy
+   functions auth-templates` arriba y `healthy`, el staging vacío usa 1,4 GB
+   de RAM; `public` sin tablas, `storage` con 10 y `auth` con 23.
 3. Reconstrucción desde cero, en la laptop y antes de tocar el VPS:
    `pnpm schema:rebuild:supabase` (modo Supabase de `check-schema-rebuild`).
    **Al 2026-10-08 PASÓ:** 450 migraciones + 18 sólo-ledger + contrato de
@@ -423,9 +440,11 @@ Después del restore, a mano y con su conteo en el handoff:
   `update_secret` sobre el mismo id si existe, y solo imprime si descifra igual
   (`true`/`false`). Las funciones leen el secreto por nombre. En staging, con la
   sincronización de Kommo apagada (§2.3), basta con un valor de prueba.
-- **`functions_base_url`** = `https://<host-supabase-staging>/functions/v1`
-  con el mismo script y `--name functions_base_url` (migración 0472): si no
-  existe, lo crea.
+- **`functions_base_url`** = `http://api-gw:8000/functions/v1` (red interna,
+  como dice `infra/dtd-cargo/README.md`), con el mismo script y
+  `--name functions_base_url` (migración 0472): si no existe, lo crea. No la
+  URL pública: `pg_net` llama desde la base, y la URL pública del staging pasa
+  por la lista de IP de `compose.staging.yml`, que no incluye al propio VPS.
 - **Ledger.** Si la 0472 no está aplicada en Cloud, se aplica en staging con
   `psql` y se inserta su fila; si ya lo está, viene en el dump.
 

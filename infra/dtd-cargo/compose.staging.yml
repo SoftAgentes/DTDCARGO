@@ -1,0 +1,28 @@
+# DTD Cargo · overlay del STAGING con copia de producción (SDD-0505, Fase 2).
+#
+# El staging del ensayo lleva datos reales (usuarios, embarques, documentos), así
+# que no queda abierto a internet como un sitio público: Traefik solo deja pasar
+# las IP de STAGING_ALLOWED_IPS (lista separada por comas, en CIDR: la de Sam y,
+# si hace falta para los smokes, las del equipo). El resto recibe 403.
+#
+#   docker compose -p dtd-cargo-staging \
+#     -f compose.yml -f compose.supabase.yml -f compose.staging.yml config
+#
+# Límite conocido: los nombres de router de Traefik (dtd-web, dtd-supabase) están
+# fijos en compose.yml y compose.supabase.yml, así que staging y producción NO
+# pueden correr a la vez detrás del mismo Traefik. El runbook destruye el staging
+# antes del corte (servidor-contabo.md §2.6); parametrizar los nombres queda como
+# pendiente de SDD-0505.
+#
+# El middleware se define una sola vez, en api-gw (que siempre corre en staging),
+# y web lo usa por referencia.
+
+services:
+  web:
+    labels:
+      traefik.http.routers.dtd-web.middlewares: dtd-web-body@docker,dtd-staging-allow@docker
+
+  api-gw:
+    labels:
+      traefik.http.routers.dtd-supabase.middlewares: dtd-staging-allow@docker
+      traefik.http.middlewares.dtd-staging-allow.ipallowlist.sourcerange: ${STAGING_ALLOWED_IPS:?STAGING_ALLOWED_IPS falta en .env (CIDR separados por comas)}

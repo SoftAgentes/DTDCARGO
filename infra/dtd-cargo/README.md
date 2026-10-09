@@ -9,6 +9,7 @@ solo guarda plantillas, nunca el `.env` ni los datos.
 compose.yml               app: web (imagen de GHCR), cron, auth-templates · redes
 compose.supabase.yml      overlay Supabase (db, api-gw, auth, rest, realtime, storage, imgproxy, functions; studio/meta y supavisor por perfil)
 compose.supabase.s3.yml   overlay Storage sobre R2/B2 (producción)
+compose.staging.yml       overlay del staging con copia de producción: solo las IP de STAGING_ALLOWED_IPS
 .env.example              TODAS las variables, solo nombres y placeholders
 cron/                     imagen crond+curl y el crontab GENERADO (scripts/build-crontab.mjs)
 supabase/templates/       plantillas de correo de Auth (las sirve auth-templates)
@@ -18,7 +19,9 @@ supabase/volumes/         copia verbatim del upstream (ver "Origen de los volúm
 ## Arrancar
 
 ```bash
-cp .env.example .env && chmod 600 .env       # y reemplazar cada <generar: ...>
+/srv/ops/staging/new-env.sh --example .env.example --out .env --set …   # genera los secretos y los JWT (ver --help)
+# Edge Functions: una carpeta armada con el router del upstream + las funciones del repo
+mkdir -p functions && cp -r supabase/volumes/functions/. functions/ && cp -r <repo>/supabase/functions/. functions/
 docker network create dtd_edge               # una vez por host; Traefik se conecta a ella
 docker compose -f compose.yml -f compose.supabase.yml -f compose.supabase.s3.yml config -q   # valida
 docker compose -f compose.yml -f compose.supabase.yml -f compose.supabase.s3.yml up -d
@@ -70,7 +73,7 @@ Base: `docker/docker-compose.yml`, `docker-compose.s3.yml` y `.env.example` de
 | `db` con `command: postgres -c config_file=... -c log_min_messages=fatal` | lo mismo + `shared_buffers=1GB`, `effective_cache_size=3GB`, `work_mem=8MB`, `max_connections=100` | memoria para la VPS de 24 GB; el `config_file` NO se quita (sin él no cargan pg_cron, pg_net, pgsodium ni vault) |
 | datos en `./volumes/db/data`, `./volumes/storage` | `${DTD_DATA_DIR}/db`, `${DTD_DATA_DIR}/storage` (`/srv/dtd-cargo/data`) | fuera del árbol del repo; es lo que respalda el runbook de backup |
 | `./volumes/snippets` (bind) | volumen nombrado `studio-snippets` | el upstream trae `snippets/.gitkeep`; un bind inexistente lo crearía Docker como root |
-| functions monta `./volumes/functions` | `../../supabase/functions` (solo lectura) + `main/` y `deno.jsonc` del upstream | las funciones reales viven en el repo |
+| functions monta `./volumes/functions` | `${DTD_FUNCTIONS_DIR:-./functions}` (solo lectura), armada al desplegar con `main/` y `deno.jsonc` del upstream + `supabase/functions/*` del repo | las funciones reales viven en el repo; en el servidor no hay repo, y montar archivos dentro de un montaje de solo lectura impide arrancar el contenedor (medido el 2026-10-09) |
 | `FUNCTIONS_VERIFY_JWT` | `false` | las 4 funciones de Kommo se autentican solas (ver `.env.example`) |
 | Auth sin plantillas | `GOTRUE_MAILER_TEMPLATES_*` → `http://auth-templates/*.html`, asuntos de la casa, `MAILER_OTP_EXP=3600`, `GOTRUE_SMTP_MAX_FREQUENCY=60s`, teléfono apagado | mismas plantillas que el dashboard de Cloud |
 | sin límites | `deploy.resources.limits.memory` por servicio: 9,5 GB sin perfiles, 11,25 GB con studio+meta+pooler | spec: suma de DTD ≤ 12 GB |
