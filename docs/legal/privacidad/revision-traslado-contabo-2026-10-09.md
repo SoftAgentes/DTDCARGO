@@ -212,7 +212,13 @@ Las condiciones 1, 6 y 7 siguen siendo de Sam.
 
 - **Personas afectadas: CORRECTO.** Las 23 categorías marcadas, así que el hueco de cobertura queda cerrado. «Other Data Subjects» quedó vacío; los destinatarios de envíos no figuran con su nombre (detalle menor).
 - **Categorías de datos:** las 24 marcadas. «Other data» quedó cortado en «Fotos de indent»: el campo admite unos 15 caracteres.
-- **Categorías especiales: ENCONTRADO (menor).** Quedaron marcadas *Biometric*, *Religious or Philosophical Beliefs*, *Labor Organization Membership* y *Assessment of Personality, Abilities, Performance or Behavior*. DTD no trata creencias, afiliación sindical ni evaluaciones de personalidad: declararlas es inexacto, aunque no abre ningún acceso. Biométricos: lo decide el abogado (fotos de documentos de identidad). Se corrige igual que antes, cuando Sam o el abogado lo decidan.
+- **Categorías especiales: ENCONTRADO (menor).** Quedaron marcadas *Biometric*, *Religious or Philosophical Beliefs*, *Labor Organization Membership* y *Assessment of Personality, Abilities, Performance or Behavior*. DTD no trata creencias, afiliación sindical ni evaluaciones de personalidad: declararlas es inexacto, aunque no abre ningún acceso. Biométricos: lo decide el abogado (fotos de documentos de identidad).
+
+**Segunda corrección (2026-10-09, versión vigente concluida a las 21:50 UTC+1), verificada sobre el PDF:**
+
+- **Categorías especiales: CORRECTO.** Solo queda *Biometric*, a confirmar por el abogado; creencias, afiliación sindical y evaluación de personalidad, desmarcadas.
+- Personas afectadas: las 23 siguen marcadas. Categorías de datos: las 24.
+- «Other data» quedó vacío y sin marcar. Las fotos de documentos de identidad entran en *Image Files*, que está marcada.
 
 ## 6 · Fuera de alcance (para el abogado)
 
