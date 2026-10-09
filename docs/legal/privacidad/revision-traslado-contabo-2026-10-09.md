@@ -190,6 +190,8 @@ Las cuatro condiciones del Worker (2, 3, 4 y 5) quedan implementadas en la PR #1
 
 Las condiciones 1, 6 y 7 siguen siendo de Sam.
 
+**Condición 6 · frase de paso: CORRECTO (2026-10-09, ~21:13 UTC).** Sam le puso frase a `~/.ssh/contabo` (`ssh-keygen -p`) y la cargó en el agente de Windows (servicio `ssh-agent` en automático). Verificado: la llave ya no abre sin frase; el `ssh` de Windows entra al VPS por el agente, y un cliente que lee el archivo directo recibe «Permission denied». Falta la otra mitad de la condición: **2FA en la cuenta de Contabo** (N7).
+
 **Condición 1 · DPA:** Sam lo **generó en el panel de Contabo el 2026-10-09** («listo, ya generé el DPA en Contabo»; el documento dice concluido el 9 de octubre de 2026, 19:26 UTC+1, por el portal y sin firma). Contabo ya figura en `inventario-terceros.md`. El texto es un contrato y no va a Git; Sam lo tiene en su carpeta de descargas.
 
 **Lectura del DPA (2026-10-09, a pedido de Sam; 65 páginas en inglés y alemán, prevalece el alemán, §13.3).** Responde N2 así:
