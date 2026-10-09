@@ -300,8 +300,17 @@ está cerrada.
 ## 2 · Fase 2 — Staging con copia de producción
 
 Requiere el OK explícito de Sam para **exportar producción** (base + Storage),
-con fecha. Es la primera vez que datos reales salen de Supabase Cloud: el dump
-viaja por `scp` directo al VPS, se restaura y se borra del disco local.
+con fecha. Es la primera vez que datos reales salen de Supabase Cloud, así que
+antes del OK se cumplen las siete condiciones de la
+[revisión del traslado](../legal/privacidad/revision-traslado-contabo-2026-10-09.md) §5.
+El dump sale de Cloud **directo al VPS** (nunca pasa por la laptop), vive en
+memoria mientras se restaura y se borra con evidencia (§2.2). El staging es
+**efímero**: se destruye al cerrar el ensayo (§2.6).
+
+Reglas del staging mientras tenga la copia: Storage en archivos (sin el overlay
+S3, para no crear otra copia en un bucket), **sin** cron de backup (el respaldo
+es de producción, no del ensayo) y **sin** snapshots de Contabo (un snapshot
+tomado en ese tiempo se lleva la copia y vive 30 días fuera de nuestro control).
 
 ### 2.1 Levantar el stack vacío y reconstruir el schema
 
@@ -330,39 +339,100 @@ viaja por `scp` directo al VPS, se restaura y se borra del disco local.
 
 ### 2.2 Dump de producción y restore (con el OK de la fase)
 
-Orden oficial de Supabase para mover un proyecto:
+Lo hace `infra/ops/migrate/import-from-cloud.sh`, **en el VPS**, lanzado por
+Sam desde su terminal (`ssh -t`), con el orden oficial de Supabase (`supabase db
+dump` de roles, schema y datos → `psql --single-transaction` como
+`supabase_admin`, con `session_replication_role = replica` para los datos) más
+una pieza que el orden oficial no trae: **`supabase db dump` no incluye el
+esquema `supabase_migrations`** (ni tabla ni filas; medido el 2026-10-09), así
+que el ledger de migraciones va aparte con `pg_dump --schema=supabase_migrations`
+dentro de la misma transacción. Tampoco trae los jobs de `pg_cron` (el script
+los recrea) ni los datos de `vault.secrets` (se escriben después, ver abajo).
+Garantías:
+
+- **Nada pasa por la laptop.** El dump sale de Cloud al VPS y se escribe en
+  `/dev/shm` (memoria); un trap lo borra al salir, también si falla o se corta
+  la sesión, y al final se comprueba que no quedó nada.
+- **Credenciales sin rastro.** La cadena de conexión (Session pooler, puerto
+  5432) y la access key S3 **temporal** de Cloud (Storage › S3 Connection) se
+  piden con `read -s`; viajan a los contenedores por entorno. La única
+  excepción: `supabase db dump` solo acepta `--db-url`, así que mientras dura el
+  dump la cadena se ve en `ps` del VPS (solo root entra). Recomendación: rotar
+  la contraseña de la base de Cloud al cerrar el ensayo.
+- **Minimización.** Sin `--include-logs`, los datos de `mail_logs`,
+  `sync_logs`, `public_track_log`, `no_olvidar_access_log`,
+  `operario_pin_attempts`, `entity_audit_log` y `auth.audit_log_entries` no
+  viajan (las tablas llegan vacías). El ensayo no los necesita.
+- **Destino a prueba de errores.** Solo escribe en un proyecto `*-staging`,
+  vacío (sin tablas en `public`) y con los default privileges de §2.1 paso 4 ya
+  aplicados; si no, rechaza (código 3) sin tocar nada. El restore es una sola
+  transacción: si falla, no queda nada a medias.
+- **Permisos idénticos a Cloud.** El restore crea los objetos como
+  `supabase_admin`, y la imagen le da a ese rol default privileges abiertos en
+  `public` (ALL para `anon` y `authenticated`); `pg_dump` solo emite los `GRANT`
+  que difieren del valor por defecto y no los revoca. Medido el 2026-10-09 con
+  un Cloud falso sembrado como producción: `tenants`, con solo `SELECT` de
+  `authenticated` en el origen, quedaba con `INSERT/UPDATE/DELETE/TRUNCATE` para
+  `anon` y `authenticated`. Por eso, dentro de la misma transacción, el script
+  revoca a los roles cliente (`anon`, `authenticated`, `service_role`, `PUBLIC`)
+  y vuelve a dar exactamente los grants de Cloud en cada tabla, secuencia,
+  función y columna de `public`. La verificación compara la **huella** de todos
+  esos permisos (cantidad + md5) entre Cloud y staging.
+- **Storage desde el VPS.** rclone copia los 16 buckets de Cloud (incluido
+  `bug-replays`, que ninguna migración crea; su fila llega en el dump) por el
+  protocolo S3 de los dos lados, para que `storage-api` del staging escriba el
+  backend. Las claves van por variables `RCLONE_CONFIG_*`, sin `rclone.conf` en
+  disco.
+- **Verificación por conteos y evidencia sin datos personales.** Compara Cloud
+  contra staging: `count(*)` de cada tabla de `public` (las de log, en 0),
+  `auth.users`, `storage.buckets`, `storage.objects` por bucket, `cron.job`
+  (recreados con `cron.schedule_in_database`, inactivos en staging salvo
+  `--cron-active`), el ledger por huella de `applied_migration_names()`,
+  default privileges sin `anon`/`authenticated`, la huella de permisos de
+  `public`, ningún `DELETE` de roles cliente sobre `public.tenants`, y objetos
+  de rclone en los dos lados. Escribe PASÓ/FALLÓ en
+  `/srv/ops/evidencias/import-<proyecto>-<stamp>.txt` (solo nombres y cifras) y
+  sale 7 si algo falló. Al final pide escribir `revocada` después de revocar la
+  access key S3 temporal, y deja la hora en la evidencia.
+
+Preparación en el VPS, una vez (CLI con versión fijada y sha256 verificado):
 
 ```bash
-# Desde la laptop, con la cadena de conexión de producción (nunca el PAT del repo)
-supabase db dump --db-url "$PROD_DB_URL" -f roles.sql  --role-only
-supabase db dump --db-url "$PROD_DB_URL" -f schema.sql
-supabase db dump --db-url "$PROD_DB_URL" -f data.sql   --data-only --use-copy
-# Al VPS, cifrado en tránsito, y restore dentro de la red interna
-psql "$STAGING_DB_URL" --single-transaction --variable ON_ERROR_STOP=1 \
-  --file roles.sql --file schema.sql \
-  --command 'SET session_replication_role = replica' --file data.sql
+cd /tmp && V=2.118.0
+curl -fsSLO https://github.com/supabase/cli/releases/download/v$V/supabase_${V}_linux_amd64.deb
+curl -fsSLO https://github.com/supabase/cli/releases/download/v$V/checksums.txt
+grep " supabase_${V}_linux_amd64.deb\$" checksums.txt | sha256sum -c - && dpkg -i supabase_${V}_linux_amd64.deb
+rm -f supabase_${V}_linux_amd64.deb checksums.txt
 ```
 
-Comprobaciones mínimas después del restore (todas con conteo en el handoff):
+El ensayo, desde la terminal de Sam:
 
-- `select count(*) from auth.users` igual al de producción (297 al 2026-10-08).
-- Grants de roles cliente: `select grantee, privilege_type from information_schema.role_table_grants where table_schema = 'public' and table_name = 'tenants' and grantee in ('anon','authenticated')` no debe listar `DELETE` (la imagen lo da por defecto; ver §2.1). Si aparece, el restore no trajo los grants de producción: se para la fase.
-- `select jobname, schedule from cron.job`: los 3 jobs de `pg_cron`; si el dump
-  no los trajo, se recrean desde las migraciones que los agendan.
-- `select name from vault.secrets`: crear `functions_base_url` =
-  `https://<host-supabase-staging>/functions/v1` (migración 0472).
-- Ledger: `select count(*) from supabase_migrations.schema_migrations` igual
-  al de producción. Si la 0472 ya se aplicó en Cloud, viene en el dump; si no,
-  se aplica en staging con `psql` y se inserta su fila en el ledger.
+```bash
+ssh -t -i ~/.ssh/contabo root@217.216.54.70 \
+  /srv/ops/migrate/import-from-cloud.sh --project dtd-cargo-staging --expect-auth-users 297
+```
 
-Storage: los binarios no viajan en el dump. Se copian por el protocolo S3 de
-los **dos** stacks (`/storage/v1/s3` de Cloud → `/storage/v1/s3` del staging)
-con `rclone sync`, para que `storage-api` del destino sea quien escriba el
-backend y mantenga las filas de `storage.objects` coherentes. Al terminar:
-`select count(*) from storage.objects` (634 en 15 buckets al 2026-10-08) contra
-el conteo de `rclone size`, y una URL firmada de cada bucket abierta desde el
-navegador. Esta sección fija el orden y las comprobaciones; el detalle se
-ensaya en esta fase y lo que se aprenda se escribe aquí.
+Después del restore, a mano y con su conteo en el handoff:
+
+- **Vault.** Los secretos no vienen en el dump (y, si vinieran, estarían
+  cifrados con la raíz de Cloud, que no se exporta): `kommo_cron_key` se genera
+  de nuevo y `kommo_token_dtd_v1` lo vuelve a emitir Sam en Kommo
+  (backup-restore-servidor.md §4). Se escriben con
+  `infra/ops/migrate/vault-set-secret.sh --project dtd-cargo-staging --name kommo_cron_key`:
+  pide el valor con `read -s`, lo pasa por entorno, lo crea si falta o hace
+  `update_secret` sobre el mismo id si existe, y solo imprime si descifra igual
+  (`true`/`false`). Las funciones leen el secreto por nombre. En staging, con la
+  sincronización de Kommo apagada (§2.3), basta con un valor de prueba.
+- **`functions_base_url`** = `https://<host-supabase-staging>/functions/v1`
+  con el mismo script y `--name functions_base_url` (migración 0472): si no
+  existe, lo crea.
+- **Ledger.** Si la 0472 no está aplicada en Cloud, se aplica en staging con
+  `psql` y se inserta su fila; si ya lo está, viene en el dump.
+
+Medido el 2026-10-09 con un «Cloud» falso (otro `supabase/postgres` desechable
+sembrado con tablas, usuarios, `cron`, Vault y ledger): guardas, dump,
+minimización, restore y verificación; detalle en el handoff de SDD-0505. El
+ensayo real con producción es el que valida Storage y los conteos verdaderos.
 
 ### 2.3 Configuración de staging
 
@@ -401,6 +471,27 @@ El guion vivo de smokes está en
 Evidencia: conteos del §2.2, el bloque de smokes con PASÓ/FALLÓ por punto,
 y el resultado del rebuild sobre `supabase/postgres:17.6.1.136` (PASÓ, o la
 decisión del Director que lo deja pendiente con fecha).
+
+### 2.6 Destruir el staging (siempre, al cerrar el ensayo)
+
+El staging con la copia de producción no se queda «por si acaso». Al cerrar
+cada ensayo:
+
+```bash
+/srv/ops/staging/destroy-staging.sh --project dtd-cargo-staging --confirm dtd-cargo-staging \
+  --evidence /srv/ops/evidencias/destroy-dtd-cargo-staging-$(date -u +%Y%m%dT%H%MZ).txt
+```
+
+Borra contenedores, volúmenes y redes del proyecto compose, PGDATA y Storage en
+archivos (`DTD_DATA_DIR`), dumps locales y restos en `/dev/shm`, y comprueba que
+quede cero de cada cosa (sale 6 si quedó algo). Conserva compose y `.env` para
+el segundo ensayo (`--purge-config` borra también el `.env`). Se niega con
+producción, con proyectos que no terminan en `-staging`, si `--confirm` no
+repite el nombre o si `DTD_DATA_DIR` apunta fuera del staging. Si se tomó un
+snapshot de Contabo durante el ensayo, se borra en el panel el mismo día.
+
+El restore de prueba mensual **no** usa staging: va en un contenedor desechable
+en memoria (backup-restore-servidor.md §3).
 
 ## 3 · Fase 3 — Corte y rollback
 

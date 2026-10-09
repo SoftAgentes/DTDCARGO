@@ -152,7 +152,7 @@ Sin datos de salud ni de menores en columnas (búsqueda sin resultados en las mi
 |---|---|---|
 | N1 | Si el disco de la laptop de Sam está cifrado (BitLocker): ahí se generaría el dump | Configuración de Windows |
 | N2 | Contenido del DPA de Contabo (subencargados, notificación de brechas, borrado al terminar, cláusulas para EE. UU.) | Panel de Contabo → DPA, con el abogado |
-| N3 | Si `supabase db dump` incluye los datos de `vault` y de `cron`; el runbook ya admite que `cron` puede no venir (`servidor-contabo.md:350-351`) | Ensayo de la Fase 2 |
+| N3 | Si `supabase db dump` incluye los datos de `vault` y de `cron`. **Respondido el 2026-10-09 (§5.1): no los incluye, ni el ledger `supabase_migrations`** | ~~Ensayo de la Fase 2~~ ensayo con Cloud falso, CLI 2.118.0 |
 | N4 | Si Supabase entrega la clave raíz de pgsodium del proyecto de Cloud | Soporte o dashboard de Supabase |
 | N5 | Si Cloudflare R2 o Backblaze aceptan el pago desde Venezuela y en qué región quedan los datos | Checkout del proveedor |
 | N6 | Qué hace Contabo con los discos dados de baja y con los snapshots (30 días); sin LUKS, contienen la base en claro | DPA / documentación de Contabo |
@@ -170,6 +170,25 @@ Exportar producción (Fase 2) es la primera vez que los datos reales salen de Su
 5. Staging **efímero**: se destruye al cerrar el ensayo, con evidencia (H6).
 6. **(Sam)** Passphrase en la llave `~/.ssh/contabo` y 2FA en la cuenta de Contabo (H8, N7).
 7. **(Sam)** Decisión sobre la retención de respaldos (H7) y sobre si la política se corrige **antes** del ensayo o antes del corte (H4). Recomendación técnica: antes del corte, porque la frase ya es falsa hoy y el ensayo no cambia a quién se le promete qué.
+
+### 5.1 Seguimiento del Worker (2026-10-09, decisión de Sam: «sí, arranca con tus cuatro condiciones»)
+
+Las cuatro condiciones del Worker (2, 3, 4 y 5) quedan implementadas en la PR #194 y probadas en el VPS con datos sintéticos y contenedores desechables: `infra/ops/tests/prueba-traslado-y-respaldos.sh`, **53 PASÓ · 0 FALLÓ**. Detalle y cifras en `.agents/handoffs/0505-dockerizar-dtd-cargo-contabo.md` § Cuatro condiciones.
+
+| Condición | Estado | Evidencia |
+|---|---|---|
+| 2 · Respaldo cifrado (H1) | CORRECTO | `infra/ops/backup/pg-dump-to-s3.sh`: claros solo en `/dev/shm`, `age` obligatorio (rechaza sin destinatarios, con archivo vacío o con una clave privada), al remoto solo `.age`; `restore.sh` compara sha256 y descifra en memoria. Medido: `pg_restore` no lee el `.dump.age`; un `kill` durante la subida corta en 1 s sin dejar claros ni contenedores. |
+| 3 · Raíz de Vault y runbook (H2) | CORRECTO | `config-backup.sh` respalda `.env` + `pgsodium_root.key` cifrados; `restore-test.sh --config` descifra Vault (1 de 1) y, como control, sin la raíz no (0 de 1). `backup-restore-servidor.md` §4 corregido (`VAULT_ENC_KEY` es de Supavisor). Los 2 secretos de Cloud se recrean con `migrate/vault-set-secret.sh`. |
+| 4 · Procedimiento del dump (H5, H11) | CORRECTO en el ensayo con un Cloud falso; el ensayo con producción es el que lo valida | `migrate/import-from-cloud.sh` en el VPS: nada pasa por la laptop, dump en `/dev/shm`, credenciales con `read -s`, tablas de log fuera, verificación por conteos y evidencia sin datos personales, aviso para revocar la clave S3 temporal. Ya no aplica el `scp` desde la laptop que pedía el arreglo original: el dump nunca sale del VPS. |
+| 5 · Staging efímero (H6) | CORRECTO | `staging/destroy-staging.sh` con guardas y comprobación de cero restos; el restore mensual pasa a un contenedor desechable en memoria (`restore-test.sh`, ~25 s). |
+
+**El ensayo encontró tres huecos del procedimiento oficial** (`supabase db dump` + `psql`), todos cerrados en el script y en `servidor-contabo.md` §2.2:
+
+- **N3 respondido:** el dump **no** trae los datos de `vault.secrets` ni los jobs de `cron.job`, y tampoco el esquema `supabase_migrations` (el ledger). El ledger va con `pg_dump` aparte, los jobs se recrean (inactivos en staging) y los secretos se escriben con `vault-set-secret.sh`.
+- **Permisos abiertos por el restore (ENCONTRADO y corregido):** restaurando como `supabase_admin`, la imagen aplica sus default privileges abiertos y `pg_dump` no los revoca: una tabla con solo `SELECT` de `authenticated` en el origen quedó con `INSERT/UPDATE/DELETE/TRUNCATE` para `anon` y `authenticated`. Era exactamente el riesgo de exposición que la guarda del runbook buscaba. Ahora el script iguala los permisos de `public` a los de Cloud y lo comprueba por huella (control rojo sin la igualación: `DELETE` presente; con ella: huella idéntica).
+- Queda **NO VERIFICADO** el mismo mecanismo en un DR real sobre la base `postgres` de un stack nuevo (`backup-restore-servidor.md` §3, pendiente antes del primer DR).
+
+Las condiciones 1, 6 y 7 siguen siendo de Sam.
 
 ## 6 · Fuera de alcance (para el abogado)
 

@@ -93,6 +93,40 @@
 - **Certificado:** emisor `Let's Encrypt, CN=YR1`, sujeto `CN=vps.dtdcargo.com`, válido del 2026-10-09 17:02:47 GMT al 2027-01-07 17:02:46 GMT.
 - **Pruebas desde la laptop de Sam** (con `--resolve`, porque el resolvedor local seguía con el NXDOMAIN en caché): `http://` → 301 a `https://vps.dtdcargo.com/`; `https://` → 200 con `ssl_verify_result=0`; cabeceras `Strict-Transport-Security: max-age=31536000; includeSubDomains`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, sin `X-Powered-By`. **Spoof de IP:** con `X-Real-Ip: 1.2.3.4` y `X-Forwarded-For: 1.2.3.4` el backend recibió `X-Real-Ip: 187.13.210.51` y `X-Forwarded-For: 187.13.210.51` (la IP real), así que `REQUEST_IP_HEADER=x-real-ip` es seguro detrás de este Traefik sin Cloudflare.
 
+## Cuatro condiciones previas a exportar producción (2026-10-09, decisión de Sam: «sí, arranca con tus cuatro condiciones»)
+
+Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revision-traslado-contabo-2026-10-09.md` §5, condiciones 2-5; las 1, 6 y 7 son de Sam). Todo probado en el VPS con **datos sintéticos** y contenedores desechables: nada de producción se leyó ni se exportó.
+
+**Entregables** (`infra/ops/`):
+
+| Condición | Scripts | Qué garantizan |
+|---|---|---|
+| 2 · respaldo cifrado (H1) | `backup/pg-dump-to-s3.sh`, `backup/restore.sh` | Claros solo en `/dev/shm`; `age` obligatorio (rechaza sin destinatarios, archivo vacío o clave privada, también en `--dry-run`); al remoto solo `.age` + `.sha256`; restore compara sha256 (código 5) y descifra en memoria; los roles se aplican sin `PASSWORD`; trap de EXIT que borra `/dev/shm` y los contenedores etiquetados de la corrida; rclone con plazos. |
+| 3 · raíz de Vault (H2) | `backup/config-backup.sh`, `backup/restore-test.sh --config`, `migrate/vault-set-secret.sh` | `.env` + volumen `db-config` (con `pgsodium_root.key`) cifrados, en prefijo propio, solo si cambiaron; huella de la raíz en el log; secretos escritos con `read -s` y por entorno. |
+| 4 · procedimiento del dump (H5, H11) | `migrate/import-from-cloud.sh` | En el VPS, dump en `/dev/shm`, credenciales con `read -s`, tablas de log fuera, ledger y cron aparte, permisos iguales a Cloud, Storage con rclone por `RCLONE_CONFIG_*`, verificación y evidencia sin PII, aviso de revocar la clave S3. |
+| 5 · staging efímero (H6) | `staging/destroy-staging.sh`, `backup/restore-test.sh` | Borrado con guardas y comprobación de cero restos; restore mensual en contenedor desechable con PGDATA en tmpfs. |
+| prueba | `tests/prueba-traslado-y-respaldos.sh` | Integración de todo lo anterior; corre como root en el VPS. |
+
+**Resultado** (VPS `217.216.54.70`, `age 1.1.1`, CLI de Supabase 2.118.0 instalada con sha256 verificado, `supabase/postgres:17.6.1.136`, `rclone/rclone:1.75.1`): corrida de las 19:39 UTC **53 PASÓ · 0 FALLÓ**, repetida a las 19:44 UTC desde la estructura del repo (`/srv/ops/bench/ops-pr194/tests/prueba-traslado-y-respaldos.sh`, los 8 scripts con el mismo sha256 que el worktree) con el mismo **53 PASÓ · 0 FALLÓ** y salida 0; limpieza en 0 restos en `/dev/shm`, 0 contenedores y 0 volúmenes de prueba. Cifras:
+
+- **C1:** dump de prueba 76K cifrado; remoto con solo `.age`/`.sha256`; `pg_restore --list` falla sobre el `.age`; cifrado alterado → 5; clave equivocada y contraseña mala → fallan sin restos; `kill -TERM` durante la subida → 143 en 1 s, rclone bajado, `/dev/shm` vacío.
+- **C2:** huella impresa = sha256 real de `pgsodium_root.key`; segunda corrida sin cambios no sube; `--force` sube; volumen sin raíz → 2.
+- **restore-test:** como `supabase_admin` en base nueva, 0 errores de `pg_restore`; filas iguales; Vault **0 de 1** sin `--config` (control) y **1 de 1** con la raíz respaldada; RTO 21-29 s.
+- **C3 contra un Cloud falso sembrado como producción** (default privileges cerrados; `public` y ledger creados por `postgres`): 15/15 comprobaciones del script; `mail_logs` vacía (minimización); ledger idéntico por huella de `applied_migration_names()`; cron 1 recreado e inactivo; huella de permisos de `public` `33:9f8be157…` igual en los dos lados; `tenants` con solo `authenticated=SELECT`; la evidencia no contiene la contraseña ni el marcador de datos personales; `vault-set-secret` crea, actualiza sobre el mismo id y no imprime el valor.
+- **C4:** rechaza producción, nombres sin `-staging`, `--confirm` distinto y `DTD_DATA_DIR` de producción (3); dry-run no borra; corrida real 0 en todo y no toca otro proyecto compose.
+
+**Lo que encontró el ensayo y quedó corregido** (cada uno con su corrida roja antes):
+
+1. `supabase db dump` **no** trae el esquema `supabase_migrations` (ledger), ni `cron.job`, ni `vault.secrets` → `pg_dump --schema=supabase_migrations` aparte, `cron.schedule_in_database` (inactivos en staging salvo `--cron-active`) y `vault-set-secret.sh`. Responde N3 de la revisión.
+2. **Permisos:** restaurando como `supabase_admin` (se eligió porque, como `postgres`, cualquier objeto de un rol de plataforma en el dump aborta con «must be able to SET ROLE supabase_admin», como pasó en un ensayo con objetos del Cloud falso creados por `supabase_admin`, y porque `session_replication_role` exige superusuario), los default privileges de la imagen abren `public`; `tenants` quedó con `INSERT/UPDATE/DELETE/TRUNCATE` para `anon` y `authenticated` (corrida de las 19:32, control rojo). Ahora el script iguala los permisos de los roles cliente a los de Cloud y los compara por huella.
+3. Defectos propios atrapados por la prueba: `docker run -i` se comía la entrada estándar antes de pedir la cadena; un trap de `TERM` hacía esperar al `docker run` en curso (se quitó: el EXIT corre igual); con `pipefail`, un `grep` sin coincidencias mataba `restore-test`; `format('%s', false)` daba `f`; Docker 29 ya no llena `.NetworkSettings.IPAddress`.
+
+**Pendientes de esta tarea:**
+
+- Ensayo real de la Fase 2 con producción (necesita el OK de exportar de Sam y las condiciones 1, 6 y 7): valida Storage (rclone contra `storage-api`, que aquí no se levantó) y los conteos verdaderos.
+- DR real sobre la base `postgres` de un stack nuevo: el mismo mecanismo de permisos lo afectaría (NO VERIFICADO; `backup-restore-servidor.md` §3).
+- Retención (H7): decisión de Sam; el runbook ya dice que vale la del script (30 días) y no promete semanales/mensuales.
+
 ## Cierre de 2b · Worker (2026-10-08, decisión de Sam: «sigue con la migración recomendada»)
 
 La migración aditiva no servía: correría después de la 0268, cuyo guardarraíl es el que aborta. Lo que cerró 2b, en orden de medición:
@@ -157,7 +191,7 @@ Consecuencia registrada en la spec (aceptación 2 y § Seguimiento): la variante
 
 - ~~Archivos fuera de la allowlist~~ (cerrado por el Worker): `.gitattributes`, `eslint.config.mjs` y `tsconfig.json` ya figuran en la allowlist de la spec con su motivo (excluir el router Deno copiado del upstream y conservar la copia verbatim).
 - ~~Espera de la 0472 sin verificar~~ (cerrado por el Worker): la entrada en `pendingBelowCutoff` sigue la forma de 0422/0423 y la prueba PGlite da 12/12.
-- **Fase 2 · grants después del restore:** la imagen de Supabase da DELETE a `anon`/`authenticated` en `public` por default privileges. El dump de producción trae los grants reales, pero hay que comprobarlo tras el restore (`servidor-contabo.md` §2.2); una reconstrucción desde migraciones sobre esta imagen quedaría abierta.
+- ~~**Fase 2 · grants después del restore**~~ (cerrado por el Worker el 2026-10-09): se confirmó que el restore SÍ los abre (el dump no revoca lo que agregan los default privileges de la imagen); `import-from-cloud.sh` iguala los permisos a Cloud y los compara por huella. Queda el caso del DR, anotado en los pendientes de esta tarea.
 - **`origin/main` avanzó** desde la base de esta rama (`c3d37a8e` → incluye SDD-0504, `68b2a864`). Antes de integrar hay que traer `main` a esta rama y repetir lo afectado.
 - `docs/investigacion/contabo-vps-produccion-ago-2026.md` lleva el banner «⛔ CERRADA — NO SE IMPLEMENTA» (decisión del 2026-08-23) que la decisión de Sam del 2026-10-08 (spec § Objetivo) deja superada. `docs/architecture/migracion-vps-2026-07.md` desaconseja Contabo para la base. Ninguno se tocó: el runbook nuevo los cita como fuente de los umbrales y deja la decisión como está. El Director decide si se les anota la fecha de la nueva decisión.
 - `docs/runbooks/aplicar-migraciones-prod.md` asume el conector MCP de Supabase Cloud (`apply_migration`, ledger por md5). Para el servidor propio hace falta una versión con `psql` y alta manual del ledger; `servidor-contabo.md` §4 la pone como condición de la Fase 4. No es de esta spec.
