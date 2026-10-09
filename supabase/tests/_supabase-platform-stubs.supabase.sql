@@ -28,12 +28,13 @@
 -- bypassrls=true). Los stubs siguen siendo de FIDELIDAD MÍNIMA: auth.jwt() lee
 -- un GUC, nada se cifra, nada llama a nadie.
 --
--- ESTADO (2026-10-08): con estos stubs la reconstrucción pasa de la 0038 y se
--- detiene en la 0268 ("un rol cliente puede borrar tenants"): la imagen define
--- default privileges de `postgres` en `public` que dan DELETE a anon/authenticated,
--- y el `revoke` que lo corrige vive solo como literal del ledger (0279/0286-0288),
--- no en una migración viva. Decisión pendiente del Director/Sam: hooks por
--- migración o una migración aditiva nueva que haga explícitos esos revokes.
+-- ESTADO (2026-10-08): con estos stubs y `pnpm schema:rebuild:supabase` (modo
+-- Supabase de scripts/check-schema-rebuild.mjs) aplican las 450 migraciones, se
+-- verifican las 18 sólo-ledger y pasa el contrato de aislamiento multi-tenant.
+-- La pieza que lo cerró son los default privileges de abajo, iguales a los de
+-- producción: sin ellos la reconstrucción abortaba en el guardarraíl de la 0268
+-- (DELETE de anon/authenticated sobre tenants) y, saltado ese, en el de la 0410
+-- (escritura de authenticated sobre mail_logs). No hizo falta ninguna migración.
 -- ─────────────────────────────────────────────────────────────
 \set ON_ERROR_STOP on
 
@@ -128,6 +129,29 @@ begin
 end $$;
 
 \connect postgres postgres
+
+-- Default privileges del rol `postgres` en `public`: los MISMOS que tiene
+-- producción, leídos de `pg_default_acl` el 2026-10-08 (SDD-0505): tablas
+-- `arwdDxtm`, secuencias `rwU` y funciones `X` SOLO para postgres y service_role;
+-- nada para anon, authenticated ni PUBLIC. La imagen trae los defaults abiertos
+-- de Supabase (ALL a anon y authenticated), con los que cada tabla nace con más
+-- permisos que en producción y los guardarraíles de las migraciones lo detectan:
+-- la 0268 aborta porque un rol cliente puede borrar tenants y la 0410 porque
+-- authenticated puede escribir en mail_logs. Con estos defaults cada objeto recibe
+-- solo lo que las migraciones conceden explícitamente, que es el modelo del repo.
+-- Los defaults de `supabase_admin` (abiertos, igual en producción) no se tocan.
+alter default privileges for role postgres in schema public
+  revoke all on tables from anon, authenticated;
+alter default privileges for role postgres in schema public
+  revoke all on sequences from anon, authenticated;
+alter default privileges for role postgres in schema public
+  revoke all on functions from public, anon, authenticated;
+alter default privileges for role postgres in schema public
+  grant all on tables to service_role;
+alter default privileges for role postgres in schema public
+  grant all on sequences to service_role;
+alter default privileges for role postgres in schema public
+  grant execute on functions to service_role;
 
 -- Ledger de migraciones (lo crea la CLI/plataforma).
 create schema if not exists supabase_migrations;

@@ -31,14 +31,22 @@
  *     `infra/dtd-cargo/`). Sirve para comprobar que las migraciones aplican sobre el
  *     Postgres que de verdad va a recibirlas (misma versión, mismas extensiones
  *     compiladas), no solo sobre el `postgres:17` genérico.
- *   · El script no cambia de conducta según la imagen: sigue escribiendo los
- *     control-files vacíos de `supabase_vault pg_net pgsodium pg_cron http` y aplicando
- *     los stubs. Sobre la imagen de Supabase esas extensiones EXISTEN de verdad; si el
- *     `sharedir` es escribible el stub las tapa (misma conducta que con `postgres:17`),
- *     y si no lo es, `create extension` instala la real y los stubs tienen que convivir
- *     con ella. Esa diferencia no se ha medido en este worktree: el resultado de la
- *     corrida sobre `supabase/postgres:17.6.1.136` se registra en la aceptación 2 de la
- *     spec 0505 (PASÓ/FALLÓ), con el turno del Director por ser corrida pesada.
+ *   · MODO SUPABASE (imagen `supabase/postgres:*`), cuatro diferencias medidas el
+ *     2026-10-08 (SDD-0505), y nada más cambia:
+ *       1. Arranca con `postgres -c config_file=/etc/postgresql/postgresql.conf`: el
+ *          CMD de la imagen es `postgres -D /etc/postgresql`, y pasarle solo `-c fsync=off`
+ *          lo pisa y pierde `shared_preload_libraries` (pg_cron y pg_net no cargan).
+ *       2. Espera a que la base esté ESTABLE (cinco lecturas seguidas de
+ *          `supabase_admin`): la imagen reinicia Postgres al terminar su initdb.
+ *       3. No escribe control-files vacíos: las extensiones existen de verdad y son
+ *          justamente lo que se quiere probar.
+ *       4. Aplica `_supabase-platform-stubs.supabase.sql` (sin `--single-transaction`,
+ *          porque cambia de rol con `\connect`) en lugar de los stubs de `postgres:17`,
+ *          que crean `auth.users` y chocan con la plataforma real. Esos stubs fijan
+ *          además los default privileges de `postgres` en `public` iguales a los de
+ *          producción: con los abiertos de la imagen, las tablas nacen con más
+ *          permisos que en producción y abortan los guardarraíles de 0268 y 0410.
+ *     Las migraciones se aplican igual que en el modo normal: como `postgres`.
  *   · La variable se pasa con `node -e` en vez de `VAR=valor node ...` porque pnpm en
  *     Windows ejecuta los scripts con cmd.exe y no entiende esa sintaxis.
  */
@@ -101,9 +109,14 @@ const LEDGER_ONLY = new Set([
 // encarga de que no puedas colar DDL de negocio con esa excusa.
 
 const MIGRATIONS_DIR = resolve(process.cwd(), "supabase/migrations");
-const STUBS = resolve(process.cwd(), "supabase/tests/_supabase-platform-stubs.sql");
 const SUPABASE_DIR = resolve(process.cwd(), "supabase");
 const IMAGE = process.env.SQL_TEST_PG_IMAGE || "postgres:17";
+// Modo Supabase (cabecera): la imagen real trae la plataforma y pide otros stubs.
+const SUPABASE_MODE = IMAGE.startsWith("supabase/postgres:");
+const STUBS_NAME = SUPABASE_MODE
+  ? "_supabase-platform-stubs.supabase.sql"
+  : "_supabase-platform-stubs.sql";
+const STUBS = resolve(process.cwd(), "supabase/tests", STUBS_NAME);
 
 const container = `dtd_rebuild_${crypto
   .createHash("sha1")
@@ -199,6 +212,8 @@ try {
     "-e", "POSTGRES_PASSWORD=postgres",
     "-v", `${SUPABASE_DIR}:/sb:ro`,
     IMAGE,
+    // Modo Supabase: sin el config_file de la imagen no cargan pg_cron ni pg_net.
+    ...(SUPABASE_MODE ? ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"] : []),
     "-c", "fsync=off",
     "-c", "full_page_writes=off",
   ]);
@@ -207,10 +222,20 @@ try {
   }
 
   let ready = false;
-  for (let i = 0; i < 90; i++) {
+  // Modo Supabase: la imagen reinicia Postgres al terminar su initdb, así que un
+  // `select 1` aislado puede caer justo antes del reinicio. Se exigen cinco
+  // lecturas seguidas del rol `supabase_admin` (lo crea el initdb de la imagen).
+  const READY_SQL = SUPABASE_MODE
+    ? "select 1 from pg_roles where rolname = 'supabase_admin'"
+    : "select 1";
+  const READY_STREAK = SUPABASE_MODE ? 5 : 1;
+  let streak = 0;
+  for (let i = 0; i < 180; i++) {
     // `select 1` y no `pg_isready`: el contenedor reinicia durante el initdb y
     // pg_isready da OK antes de que la base acepte consultas de verdad.
-    if (docker(["exec", container, "psql", "-U", "postgres", "-q", "-c", "select 1"]).status === 0) {
+    const probe = docker(["exec", container, "psql", "-U", "postgres", "-q", "-t", "-A", "-c", READY_SQL]);
+    streak = probe.status === 0 && (probe.stdout || "").trim() === "1" ? streak + 1 : 0;
+    if (streak >= READY_STREAK) {
       ready = true;
       break;
     }
@@ -220,18 +245,22 @@ try {
 
   // Extensiones que sólo existen en la imagen de Supabase: control-file vacío
   // para que `create extension` no reviente (el contenido lo dan los stubs).
-  docker([
+  // En modo Supabase existen de verdad y son lo que se quiere probar: no se tapan.
+  if (!SUPABASE_MODE) docker([
     "exec", container, "sh", "-c",
     'for e in supabase_vault pg_net pgsodium pg_cron http; do d=$(pg_config --sharedir)/extension; ' +
       'printf "default_version = \'1.0\'\\ncomment = \'stub\'\\nrelocatable = true\\n" > $d/$e.control; ' +
       'printf -- "-- stub\\n" > $d/$e--1.0.sql; done',
   ]);
 
+  // Los stubs del modo Supabase cambian de rol con \connect, que no convive con
+  // --single-transaction; corren con ON_ERROR_STOP igual.
   const stubs = docker([
     "exec", container,
-    "psql", "-U", "postgres", "-q", "--single-transaction",
+    "psql", "-U", "postgres", "-q",
+    ...(SUPABASE_MODE ? [] : ["--single-transaction"]),
     "-v", "ON_ERROR_STOP=1",
-    "-f", "/sb/tests/_supabase-platform-stubs.sql",
+    "-f", `/sb/tests/${STUBS_NAME}`,
   ]);
   if (stubs.status !== 0) {
     console.log(`${C.red}[FAIL]${C.nc} los stubs de plataforma no aplican:`);
