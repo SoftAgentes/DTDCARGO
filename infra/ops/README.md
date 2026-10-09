@@ -9,8 +9,12 @@ compose (plantilla en `infra/templates/proyecto/`, DTD Cargo en `infra/dtd-cargo
 |---|---|---|
 | `traefik/` | Proxy 80/443 con Let's Encrypt, para entornos **sin Dokploy** | `traefik:v3.7.14` |
 | `uptime-kuma/` | Monitor de disponibilidad con avisos | `louislam/uptime-kuma:2.5.5` |
-| `backup/pg-dump-to-s3.sh` | Dump diario + roles + copia a R2/B2 con rclone y retención | `supabase/postgres:17.6.1.136`, `rclone/rclone:1.75.1` |
-| `backup/restore.sh` | Restore en base nueva o staging, con guarda contra pisar producción | `supabase/postgres:17.6.1.136` |
+| `backup/pg-dump-to-s3.sh` | Dump diario + roles, **cifrados con age** (claros solo en `/dev/shm`), copia a R2/B2 con rclone y retención | `supabase/postgres:17.6.1.136`, `rclone/rclone:1.75.1`, `age` del host |
+| `backup/config-backup.sh` | `.env` + clave raíz de pgsodium/Vault (volumen `db-config`), cifrados, solo cuando cambian | ídem |
+| `backup/restore.sh` | Restore en base nueva o staging, con guarda contra pisar producción; descifra `.age` en memoria | `supabase/postgres:17.6.1.136` |
+| `backup/restore-test.sh` | Restore de prueba mensual en un contenedor desechable con PGDATA en tmpfs | ídem |
+| `migrate/import-from-cloud.sh` | Copia de Supabase Cloud a un staging (Fase 2): dump en memoria, tablas de log fuera, verificación por conteos | CLI `supabase` 2.118.0, ídem |
+| `staging/destroy-staging.sh` | Borra los datos de un staging al cerrar el ensayo, con evidencia | — |
 
 Todas las imágenes van fijadas por tag exacto (verificado en Docker Hub y GitHub
 Releases el 2026-10-08). Nunca `latest`. Los procedimientos completos (fases del
@@ -68,50 +72,64 @@ sana: exige el Bearer). Avisos por Telegram al mismo chat que usa la app.
 
 ### Qué hace `pg-dump-to-s3.sh`
 
-En orden: `pg_dump -Fc` de la base, `pg_dumpall --roles-only`, `pg_restore --list`
-para comprobar que el archivo se lee, sha256 de ambos, `rclone copy` (nunca `sync`)
-al prefijo `<remoto>:<bucket>/<prefijo>/<proyecto>/`, `rclone delete --min-age Nd`
-**solo** dentro de ese prefijo y limpieza local de dumps viejos. Cada paso corre en
-contenedor: `pg_dump` sale de la misma imagen que corre la base (misma versión) y
-se conecta por la red interna del proyecto (`<proyecto>_internal`).
+En orden: `pg_dump -Fc` de la base y `pg_dumpall --roles-only` en **`/dev/shm`**
+(memoria; el claro nunca toca el disco), `pg_restore --list` para comprobar que
+el archivo se lee, **cifrado con `age`** para las claves públicas de
+`--age-recipients`, borrado de los claros, sha256 de los cifrados, `rclone copy`
+(nunca `sync`) al prefijo `<remoto>:<bucket>/<prefijo>/<proyecto>/`,
+`rclone delete --min-age Nd` **solo** dentro de ese prefijo y limpieza local de
+cifrados viejos. `pg_dump` sale de la misma imagen que corre la base y se conecta
+por la red interna del proyecto. Sin destinatarios válidos no corre (tampoco en
+`--dry-run`); si muere a la mitad, un trap borra `/dev/shm` y los contenedores de
+esa corrida.
 
-Cada proyecto lo llama desde su `backup.sh` (lee `.env`), agendado en el cron del
-host, escalonado para no solapar:
+`config-backup.sh` respalda el `.env` y el volumen `<proyecto>_db-config` (la
+clave raíz de Vault, `pgsodium_root.key`; **no** es `VAULT_ENC_KEY`, que es de
+Supavisor) en `<remoto>/<proyecto>-config/`, cifrados, y solo cuando cambiaron.
+
+Cada proyecto los llama desde su `backup.sh` (lee `.env`), agendado en el cron
+del host, escalonado para no solapar:
 
 ```
 15 3 * * * /srv/dtd-cargo/backup.sh >> /var/log/backup-dtd-cargo.log 2>&1
 45 3 * * * /srv/loop3d/backup.sh   >> /var/log/backup-loop3d.log   2>&1
 ```
 
-Antes del primer cron: `backup/rclone/rclone.conf` con el remoto (`rclone config`
-en el host o a mano; permisos 600; **nunca en Git**) y un `backup.sh --dry-run`
-para ver los comandos exactos sin ejecutar nada.
+Antes del primer cron: `apt-get install -y age`; `backup/age-recipients.txt`
+con **solo** las claves públicas (la privada de Sam nunca viene al servidor);
+`backup/rclone/rclone.conf` con el remoto (permisos 600; **nunca en Git**); y un
+`backup.sh --dry-run` para ver los comandos exactos sin ejecutar nada.
 
 Lo que no cubre: WAL continuo / point-in-time recovery. Un dump diario pierde
 hasta 24 h de datos; pgBackRest queda como pendiente declarado antes del corte.
 
 ### Restore de prueba mensual (obligatorio)
 
-Un backup que nunca se restauró no es un backup. Una vez al mes, en el VPS:
+Un backup que nunca se restauró no es un backup. Una vez al mes, en el VPS, con
+`restore-test.sh`: levanta un `supabase/postgres` desechable con PGDATA en tmpfs y
+red interna sin puertos, restaura con `restore.sh` como `supabase_admin`, compara
+`--expect tabla=filas`, comprueba con `--config` + `--vault-readable` que la raíz
+respaldada abre los secretos de Vault, y destruye todo. La clave privada entra a
+`/dev/shm` solo mientras dura la prueba. Pasos y registro:
+`docs/runbooks/backup-restore-servidor.md` §3 y §8.
 
-1. Baja el dump más reciente y sus roles a `/srv/restores/`:
-   `docker run --rm -v /srv/ops/backup/rclone:/config/rclone:ro -v /srv/restores:/data rclone/rclone:1.75.1 copy r2:<bucket>/<prefijo>/<proyecto>/<archivo>.dump /data/`
-   (igual para `-roles.sql` y `.sha256`), y comprueba `sha256sum -c <archivo>.sha256`.
-2. Restaura en una base NUEVA al lado de la viva (nunca en `postgres`):
-   ```sh
-   PGPASSWORD=… /srv/ops/backup/restore.sh \
-     --file /srv/restores/<archivo>.dump --roles /srv/restores/<archivo>-roles.sql \
-     --project dtd-cargo --target prueba_restore_$(date -u +%Y%m) --verify-table auth.users
-   ```
-   La guarda rechaza (`exit 3`) si el target existe o es la base viva. `exit 4`
-   significa que `pg_restore` emitió advertencias: léelas antes de dar el restore
-   por bueno (las de extensiones ya presentes son normales; las de tablas, no).
-3. Anota en el runbook de backup: fecha, archivo, tamaño, `count(*)` de
-   `auth.users` y de una tabla de negocio, duración y advertencias.
-4. Borra la base de prueba: `docker compose -f /srv/<proyecto>/compose.yml exec db psql -U postgres -c 'drop database prueba_restore_<AAAAMM>'`.
+`restore.sh` solo también sirve para restaurar en una base NUEVA al lado de la
+viva o en un staging (`--project <proyecto>-staging`). Con un `.age` pide
+`--age-identity`, compara el sha256 hermano antes de descifrar (código 5 si no
+coincide) y descifra en `/dev/shm`. Al aplicar los roles quita las cláusulas
+`PASSWORD` del origen: si no, le cambiaría la contraseña al usuario con el que
+se conecta. `exit 4` significa advertencias de `pg_restore`: léelas antes de dar
+el restore por bueno (como `postgres` salen errores de event triggers, que
+exigen superusuario: usa `--user supabase_admin`).
 
-Para restaurar sobre un staging completo, usa `--project <proyecto>-staging`: ahí
-el target puede existir y se pisa con `--clean --if-exists`.
+### Staging de la Fase 2 y traslado desde Cloud
+
+`migrate/import-from-cloud.sh` copia producción de Supabase Cloud a un
+`*-staging` vacío (dump en memoria, tablas de log fuera, verificación por
+conteos, evidencia sin datos personales) y `migrate/vault-set-secret.sh`
+reescribe después los secretos de Vault, que llegan cifrados con la raíz de
+Cloud. `staging/destroy-staging.sh` borra los datos del staging al cerrar el
+ensayo. Procedimiento: `docs/runbooks/servidor-contabo.md` §2.2 y §2.6.
 
 ### Pisar producción (solo con decisión de Sam)
 

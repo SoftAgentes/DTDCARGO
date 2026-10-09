@@ -13,17 +13,28 @@
 #   · Sobre el destino: `pg_restore --clean --if-exists` y, al final, un
 #     `select count(*)` de verificación (por defecto auth.users).
 #
+# Dumps cifrados (`.age`, los que deja pg-dump-to-s3.sh): hace falta
+# `--age-identity <archivo>` con la clave PRIVADA. Antes de descifrar compara el
+# sha256 del cifrado con el `.sha256` hermano (o `--sums`); el claro se escribe
+# en --work-dir (por defecto /dev/shm, memoria) y un trap lo borra al salir.
+# La clave privada no vive en el servidor: tráela a /dev/shm solo para el restore
+# y bórrala después, o usa una identidad protegida con frase (`age -p`), que age
+# pide por la terminal.
+#
 # Uso:
-#   PGPASSWORD=… restore.sh --file <dump.dump> --project <compose destino> --target <base> \
-#       [--roles <roles.sql>] [--network <red>] [--host db] [--user postgres] \
+#   PGPASSWORD=… restore.sh --file <x.dump[.age]> --project <compose destino> --target <base> \
+#       [--roles <x-roles.sql[.age]>] [--age-identity <clave>] [--sums <x.sha256>] \
+#       [--network <red>] [--host db] [--user postgres] [--work-dir /dev/shm] \
 #       [--verify-table auth.users] [--pg-image …] [--jobs 2] \
 #       [--i-know-this-destroys-prod] [--dry-run]
 #
 # Códigos de salida: 0 ok · 2 uso inválido · 3 RECHAZADO por la guarda ·
-# 4 restaurado con advertencias de pg_restore (lee el log antes de confiar).
+# 4 restaurado con advertencias de pg_restore (lee el log antes de confiar) ·
+# 5 el sha256 del cifrado no coincide (no se descifró nada).
 #
-# Restore de prueba mensual: infra/ops/README.md › Backups.
+# Restore de prueba mensual: restore-test.sh (contenedor desechable en memoria).
 set -euo pipefail
+umask 077
 
 FILE=""
 PROJECT=""
@@ -35,13 +46,16 @@ PGUSER_="postgres"
 VERIFY_TABLE="auth.users"
 PG_IMAGE="supabase/postgres:17.6.1.136"
 JOBS="2"
+AGE_IDENTITY="${BACKUP_AGE_IDENTITY_FILE:-}"
+SUMS=""
+WORK_ROOT="/dev/shm"
 FORCE=0
 DRY_RUN=0
 PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
 LIVE_DB="${PROD_DB_NAME:-postgres}"
 
 usage() {
-  sed -n '2,25p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,36p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 log() {
@@ -77,6 +91,9 @@ while [[ $# -gt 0 ]]; do
     --verify-table) setopt VERIFY_TABLE "${2-}"; shift 2 ;;
     --pg-image) setopt PG_IMAGE "${2-}"; shift 2 ;;
     --jobs) setopt JOBS "${2-}"; shift 2 ;;
+    --age-identity) setopt AGE_IDENTITY "${2-}"; shift 2 ;;
+    --sums) setopt SUMS "${2-}"; shift 2 ;;
+    --work-dir) setopt WORK_ROOT "${2-}"; shift 2 ;;
     --i-know-this-destroys-prod) FORCE=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -93,15 +110,45 @@ done
 [[ "${JOBS}" =~ ^[1-9][0-9]*$ ]] || die "--jobs debe ser un entero ≥ 1"
 [[ "${PG_IMAGE}" != *:latest && "${PG_IMAGE}" == *:* ]] || die "--pg-image debe llevar tag fijo (nunca latest): '${PG_IMAGE}'"
 NETWORK="${NETWORK:-${PROJECT}_internal}"
+encrypted=0
+if [[ "${FILE}" == *.age || "${ROLES}" == *.age ]]; then
+  encrypted=1
+  [[ -n "${AGE_IDENTITY}" ]] || die "el dump está cifrado (.age): falta --age-identity <clave privada>"
+fi
 if (( ! DRY_RUN )); then
   [[ -f "${FILE}" ]] || die "no existe ${FILE}"
   [[ -z "${ROLES}" || -f "${ROLES}" ]] || die "no existe ${ROLES}"
   [[ -n "${PGPASSWORD-}" ]] || die "PGPASSWORD no está en el entorno"
   command -v docker >/dev/null || die "docker no está en el PATH"
+  if (( encrypted )); then
+    command -v age >/dev/null || die "age no está instalado en el host (apt-get install age)"
+    [[ -f "${AGE_IDENTITY}" ]] || die "no existe la identidad age ${AGE_IDENTITY}"
+    [[ -d "${WORK_ROOT}" && -w "${WORK_ROOT}" ]] || die "--work-dir ${WORK_ROOT} no existe o no se puede escribir"
+  fi
 fi
 
-docker_pg=(docker run --rm -i --network "${NETWORK}" -e PGPASSWORD "${PG_IMAGE}")
-psql_admin=("${docker_pg[@]}" psql -h "${HOST}" -U "${PGUSER_}" -d postgres -v ON_ERROR_STOP=1 -Atq)
+# Limpieza al salir, también por kill o corte de SSH: los contenedores con la
+# etiqueta de esta corrida y la carpeta de claros en /dev/shm (si se creó).
+run_label="dtd.restore.run=${PROJECT}-$(date -u +%Y%m%dT%H%M%SZ)-$$"
+work=""
+cleanup() {
+  docker ps -q --filter "label=${run_label}" | xargs -r docker rm -f >/dev/null 2>&1 || true
+  if [[ -n "${work}" && -d "${work}" ]]; then
+    rm -rf -- "${work}"
+  fi
+}
+if (( ! DRY_RUN )); then
+  trap cleanup EXIT
+  # Sin trap propio para INT/TERM/HUP a propósito: con trap, bash espera a que
+  # termine el docker run en curso antes de atender la señal; sin él, muere en el
+  # acto y el trap de EXIT igual limpia (probado en el VPS, SDD-0505).
+fi
+
+docker_pg=(docker run --rm -i --label "${run_label}" --network "${NETWORK}" -e PGPASSWORD "${PG_IMAGE}")
+# Consultas con -c: sin `-i`, para no comerse la entrada estándar (la confirmación
+# interactiva de la guarda se lee después de db_exists).
+psql_admin=(docker run --rm --label "${run_label}" --network "${NETWORK}" -e PGPASSWORD "${PG_IMAGE}"
+  psql -h "${HOST}" -U "${PGUSER_}" -d postgres -v ON_ERROR_STOP=1 -Atq)
 
 db_exists() {
   local found
@@ -145,11 +192,6 @@ if (( destructive )); then
 fi
 
 # ── Plan ───────────────────────────────────────────────────────────────────
-file_abs="${FILE}"
-if (( ! DRY_RUN )); then
-  file_abs="$(readlink -f "${FILE}")"
-fi
-
 run() {
   if (( DRY_RUN )); then
     printf '+'; printf ' %q' "$@"; printf '\n'
@@ -160,14 +202,65 @@ run() {
 
 log "restore de $(basename "${FILE}") → ${PROJECT}/${TARGET} (${HOST} en ${NETWORK}) · verificación: select count(*) from ${VERIFY_TABLE}"
 
-# 1. Roles (opcional). `CREATE ROLE` de roles que ya existen da error: esperado,
-#    por eso ON_ERROR_STOP=0 solo aquí.
-if [[ -n "${ROLES}" ]]; then
-  log "1/4 roles desde $(basename "${ROLES}") (errores de 'ya existe' son normales)"
-  if (( DRY_RUN )); then
-    printf '+ %s psql -h %q -U %q -d postgres -v ON_ERROR_STOP=0 -q < %q\n' "docker run … ${PG_IMAGE}" "${HOST}" "${PGUSER_}" "${ROLES}"
+# 0. Descifrado (solo si hay .age). Huellas primero: un cifrado alterado no se abre.
+dump_path="${FILE}"
+roles_path="${ROLES}"
+if (( encrypted )); then
+  if [[ -z "${SUMS}" ]]; then
+    guess="${FILE%.age}"
+    guess="${guess%.dump}.sha256"
+    [[ -f "${guess}" ]] && SUMS="${guess}"
+  fi
+  if [[ -n "${SUMS}" ]]; then
+    log "0/4 sha256 de los cifrados contra $(basename "${SUMS}")"
+    if (( ! DRY_RUN )); then
+      for f in "${FILE}" ${ROLES:+"${ROLES}"}; do
+        [[ "${f}" == *.age ]] || continue
+        expected_sum="$(grep -E "[[:space:]]\*?$(basename "${f}")\$" "${SUMS}" | cut -d' ' -f1 || true)"
+        [[ -n "${expected_sum}" ]] || { echo "restore: $(basename "${f}") no figura en ${SUMS}" >&2; exit 5; }
+        actual_sum="$(sha256sum "${f}" | cut -d' ' -f1)"
+        [[ "${expected_sum}" == "${actual_sum}" ]] || { echo "restore: sha256 NO coincide para $(basename "${f}")" >&2; exit 5; }
+      done
+    fi
   else
-    "${docker_pg[@]}" psql -h "${HOST}" -U "${PGUSER_}" -d postgres -v ON_ERROR_STOP=0 -q < "${ROLES}" || true
+    log "0/4 sin .sha256 al lado ni --sums: se descifra sin comparar huellas"
+  fi
+  if (( ! DRY_RUN )); then
+    if [[ "$(head -c 21 "${AGE_IDENTITY}")" != "age-encryption.org/v1" && "$(readlink -f "${AGE_IDENTITY}")" != "$(readlink -f "${WORK_ROOT}")"/* ]]; then
+      log "ADVERTENCIA: la clave privada ${AGE_IDENTITY} está en disco y sin frase; bórrala al terminar"
+    fi
+    work="$(mktemp -d "${WORK_ROOT%/}/restore-${PROJECT}-XXXXXX")"
+  else
+    work="${WORK_ROOT%/}/restore-${PROJECT}-XXXXXX"
+  fi
+  log "0/4 age -d → ${work} (memoria)"
+  if [[ "${FILE}" == *.age ]]; then
+    dump_path="${work}/$(basename "${FILE%.age}")"
+    run age -d -i "${AGE_IDENTITY}" -o "${dump_path}" "${FILE}"
+  fi
+  if [[ "${ROLES}" == *.age ]]; then
+    roles_path="${work}/$(basename "${ROLES%.age}")"
+    run age -d -i "${AGE_IDENTITY}" -o "${roles_path}" "${ROLES}"
+  fi
+fi
+
+file_abs="${dump_path}"
+if (( ! DRY_RUN )); then
+  file_abs="$(readlink -f "${dump_path}")"
+fi
+
+# 1. Roles (opcional). `CREATE ROLE` de roles que ya existen da error: esperado,
+#    por eso ON_ERROR_STOP=0 solo aquí. Se quitan las cláusulas PASSWORD: traen
+#    los hashes del ORIGEN y le cambiarían la contraseña al usuario con el que
+#    este mismo script se conecta. Las contraseñas de los roles las fija el .env
+#    del destino (en un DR, el .env restaurado del respaldo de configuración).
+if [[ -n "${roles_path}" ]]; then
+  log "1/4 roles desde $(basename "${roles_path}") sin contraseñas (errores de 'ya existe' son normales)"
+  if (( DRY_RUN )); then
+    printf '+ sed -E %q %q | %s psql -h %q -U %q -d postgres -v ON_ERROR_STOP=0 -q\n' "s/ PASSWORD '[^']*'//" "${roles_path}" "docker run … ${PG_IMAGE}" "${HOST}" "${PGUSER_}"
+  else
+    sed -E "s/ PASSWORD '[^']*'//" "${roles_path}" \
+      | "${docker_pg[@]}" psql -h "${HOST}" -U "${PGUSER_}" -d postgres -v ON_ERROR_STOP=0 -q || true
   fi
 else
   log "1/4 sin --roles: se asume que los roles ya existen en el destino"
@@ -190,7 +283,7 @@ if (( DRY_RUN )); then
   printf '+ docker run --rm --network %q -e PGPASSWORD -v %q:/restore.dump:ro %q pg_restore -h %q -U %q -d %q --clean --if-exists --jobs %q /restore.dump\n' \
     "${NETWORK}" "${file_abs}" "${PG_IMAGE}" "${HOST}" "${PGUSER_}" "${TARGET}" "${JOBS}"
 else
-  docker run --rm --network "${NETWORK}" -e PGPASSWORD -v "${file_abs}:/restore.dump:ro" "${PG_IMAGE}" \
+  docker run --rm --label "${run_label}" --network "${NETWORK}" -e PGPASSWORD -v "${file_abs}:/restore.dump:ro" "${PG_IMAGE}" \
     pg_restore -h "${HOST}" -U "${PGUSER_}" -d "${TARGET}" --clean --if-exists --jobs "${JOBS}" /restore.dump \
     || restore_rc=$?
 fi
