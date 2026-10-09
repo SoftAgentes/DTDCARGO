@@ -492,7 +492,7 @@ Orden:
 | Fecha | Fase | Quién | Resultado | Evidencia (handoff) |
 |---|---|---|---|---|
 | 2026-10-08 | 0 | Worker SDD-0505 | Repo preparado; ver spec | `.agents/handoffs/0505-dockerizar-dtd-cargo-contabo.md` |
-| — | 1 | — | pendiente | — |
+| 2026-10-09 | 1 (parcial) | Worker SDD-0505, con Sam en el panel | Reinstalado Ubuntu 24.04.5; SSH solo con llave; ufw 22/80/443; fail2ban; actualizaciones automáticas; swap 4 GB; Docker 29.9 + Compose v5.6; `/srv` creado; **benchmark PASÓ** (21.428 IOPS, fsync p95 7,24 ms). Faltan Tailscale, panel/Traefik, snapshot «base limpia» y repetir el benchmark otro día | `.agents/handoffs/0505-dockerizar-dtd-cargo-contabo.md` § Fase 1 en el VPS |
 | — | 2 | — | pendiente | — |
 | — | 3 | — | pendiente | — |
 | — | 4 | — | pendiente | — |

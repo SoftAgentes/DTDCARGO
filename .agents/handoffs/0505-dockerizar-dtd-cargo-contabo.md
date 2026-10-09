@@ -48,6 +48,38 @@
 
 **2b cerrado** (ver § Cierre de 2b). La recomendación anterior, migración aditiva, se descartó al implementarla, porque correría después del guardarraíl de la 0268 que aborta.
 
+## Fase 1 en el VPS (2026-10-09, autorizada por Sam en el plan aprobado; Sam hizo los pasos con contraseña)
+
+**Servidor:** Contabo Cloud VPS 8 · US East (Carlstadt) · `217.216.54.70` · hostname `vmi3518023` · Ubuntu 24.04.5 LTS · kernel 6.8.0-146 · 8 vCPU AMD EPYC (KVM, 1 hilo por núcleo) · 23 GiB RAM · 300 GB SSD (`sda`, no rotacional) · huella ED25519 `SHA256:LVwj61Yj2fItwhdzdAQB8cOj+OXcteFwwKtPpn/5EWA` (después de la reinstalación).
+
+**Acceso:** la reinstalación avanzada con llave no llegó a aplicarse (Sam terminó instalando desde la pestaña estándar, que solo pide contraseña). La llave `sam-contabo-vps-2026-10` (`~/.ssh/contabo` en la laptop de Sam) se agregó a `/root/.ssh/authorized_keys` con la contraseña root, desde PowerShell. El terminal integrado de la app no sirvió: le falta su script de integración en esta máquina.
+
+**Auditoría antes de endurecer:** 10.068 intentos fallidos de contraseña en 24 h (bots; los que más: `77.239.124.49` con 2.376 y `77.239.124.69` con 1.155). Accesos aceptados desde el arranque: solo desde `187.13.210.51` (la IP de Sam): uno con contraseña a las 19:13 al subir la llave y el resto con la llave. Ninguno en el arranque anterior. Sin usuarios extra, llaves ajenas ni crontabs. El usuario `ubuntu` de la imagen tiene la contraseña bloqueada y ninguna llave (tiene `sudo NOPASSWD`, pero no tiene forma de entrar).
+
+| Paso | Resultado verificado |
+|---|---|
+| Paquetes base | `apt upgrade` + ufw 0.36.2, fail2ban 1.0.2, unattended-upgrades 2.9.1, fio 3.36 |
+| SSH | `/etc/ssh/sshd_config.d/00-dtd-hardening.conf`: `PasswordAuthentication no`, `PermitRootLogin prohibit-password`, `MaxAuthTries 3`. Con una conexión nueva: la llave entra y la contraseña sale `Permission denied (publickey)` |
+| Firewall | ufw activo: entrada denegada salvo 22, 80 y 443 (v4 y v6) |
+| fail2ban | jail `sshd` (5 fallos en 10 min ⇒ 1 h); al arrancar ya bloqueó `195.178.110.232` |
+| Actualizaciones | `unattended-upgrades` activo con `20auto-upgrades` |
+| Swap | `/swapfile` de 4 GB, `vm.swappiness=10` |
+| Docker | 29.9.0 + Compose v5.6.0 desde `download.docker.com`; `daemon.json` con rotación `50m × 3` y `live-restore`; cgroup v2, overlayfs; `hello-world` OK |
+| `/srv` | `edge`, `ops`, `dtd-cargo`, `loop-3d`, `renta-aguada` (750, root) |
+
+**Benchmark del día 1** (2026-10-09 17:19 UTC, dentro de la hora pico europea; script en `/srv/ops/bench` sobre el mismo disco):
+
+| Medida | Resultado | Umbral (runbook §1.2) | |
+|---|---|---|---|
+| Steal de CPU, 30 s en reposo | 0,00 % | < 10 % | PASÓ |
+| fio 4k randrw 70/30, iodepth 32, direct, 60 s | 14.995 lectura + 6.432 escritura = **21.428 IOPS**; lectura p95 3,26 ms | ≥ 20.000 | PASÓ (justo) |
+| fio 8k con fsync por escritura, 60 s | 302 fsync/s · p50 2,47 ms · **p95 7,24 ms** · p99 13,3 ms · máx 147,94 ms | p95 ≤ 10 ms | PASÓ |
+| `pg_test_fsync` (postgres:17, 5 s) | open_datasync 1.982 ops/s (504 µs) · **fdatasync 1.859 ops/s (538 µs)** · fsync 524 ops/s · open_sync 548 ops/s | — | referencia |
+
+**Lectura:** la base de DTD puede vivir en este VPS; no hace falta comprar el VDS. Matices: las IOPS pasan por poco y hay colas de 13-148 ms en fsync, aceptables para el volumen de escritura del ERP (la base mide 69 MB y cabe en `shared_buffers`). **Pendiente:** repetir el benchmark otro día y a otra hora, porque el rendimiento en Contabo varía por nodo y empeora con el tiempo según los reportes de la investigación.
+
+**Pendiente de la Fase 1:** Tailscale (necesita la cuenta de Sam), panel (Dokploy) o Traefik solo, igualar los default privileges cuando se levante Supabase (§2.1 paso 4), snapshot «base limpia» desde el panel y firewall del panel de Contabo como segunda capa. **Ojo con Docker:** los puertos que publica un contenedor saltan ufw. Solo Traefik puede publicar (80/443); un panel en el 3000 quedaría expuesto aunque ufw diga que no.
+
 ## Cierre de 2b · Worker (2026-10-08, decisión de Sam: «sigue con la migración recomendada»)
 
 La migración aditiva no servía: correría después de la 0268, cuyo guardarraíl es el que aborta. Lo que cerró 2b, en orden de medición:
