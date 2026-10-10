@@ -262,16 +262,55 @@ tty_in=/dev/stdin
 if { : < /dev/tty; } 2>/dev/null; then
   tty_in=/dev/tty
 fi
+# Quita espacios, tabuladores y \r de los extremos: copiar desde el Bloc de notas
+# de Windows puede arrastrar el fin de línea CRLF (medido el 2026-10-09: tres
+# intentos rechazados sin decir por qué). Sin subprocesos: el valor no pasa por `ps`.
+trim() {
+  local s="$1"
+  s="${s//$'\r'/}"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "${s}"
+}
+# Describe lo que llegó sin mostrar ningún secreto: largo y forma, nunca el texto.
+describe_input() { # $1 = lo recibido, $2 = url | clave
+  local s="$1" d
+  if [[ -z "${s}" ]]; then
+    printf '%s' "no llegó nada: el pegado no entró (en la terminal de la app prueba Ctrl+Shift+V; en PowerShell del menú Inicio, clic derecho)"
+    return
+  fi
+  d="llegaron ${#s} caracteres"
+  if [[ "${2-}" == url ]]; then
+    [[ "${s}" == postgres://* || "${s}" == postgresql://* ]] || d="${d}; no empieza con postgresql:// (¿se pegó otra cosa?)"
+    [[ "${s}" == *"[YOUR-PASSWORD]"* ]] && d="${d}; todavía dice [YOUR-PASSWORD]: falta poner la contraseña"
+  fi
+  [[ "${s}" =~ [[:space:]] ]] && d="${d}; tiene espacios o saltos de línea en el medio (¿se copiaron dos líneas?)"
+  printf '%s' "${d}"
+}
 read -rs -p "Cadena de conexión de Cloud (Session pooler, postgresql://…:5432/postgres): " PROD_DB_URL < "${tty_in}"; echo
-[[ "${PROD_DB_URL}" =~ ^postgres(ql)?://[^[:space:]]+$ ]] || die "la cadena no parece una URL de Postgres"
+PROD_DB_URL="$(trim "${PROD_DB_URL}")"
+if ! [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://[^[:space:]]+$ ]] || [[ "${PROD_DB_URL}" == *"[YOUR-PASSWORD]"* ]]; then
+  die "la cadena no parece una URL de Postgres: $(describe_input "${PROD_DB_URL}" url)"
+fi
+# Eco sin la contraseña, para que quien la pegó confirme que es la correcta.
+if [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://([^:@/]+)(:[^@]*)?@([^/:?]+)(:([0-9]+))?/([^?]*) ]]; then
+  echo "cadena recibida: ${BASH_REMATCH[2]}@${BASH_REMATCH[4]}:${BASH_REMATCH[6]:-5432}/${BASH_REMATCH[7]} (contraseña oculta, ${#PROD_DB_URL} caracteres)"
+fi
 export PROD_DB_URL
 cloud_ref=""
 if [[ "${PROD_DB_URL}" =~ postgres\.([a-z0-9]{20}) ]]; then cloud_ref="${BASH_REMATCH[1]}";
 elif [[ "${PROD_DB_URL}" =~ db\.([a-z0-9]{20})\.supabase\.co ]]; then cloud_ref="${BASH_REMATCH[1]}"; fi
 if (( ! SKIP_STORAGE )); then
   read -rs -p "Access key ID S3 temporal de Cloud: " CLOUD_S3_KEY < "${tty_in}"; echo
+  CLOUD_S3_KEY="$(trim "${CLOUD_S3_KEY}")"
+  [[ -n "${CLOUD_S3_KEY}" && ! "${CLOUD_S3_KEY}" =~ [[:space:]] ]] \
+    || die "el Access key ID no llegó bien: $(describe_input "${CLOUD_S3_KEY}" clave)"
+  echo "access key ID recibida (${#CLOUD_S3_KEY} caracteres)"
   read -rs -p "Secret access key S3 temporal de Cloud: " CLOUD_S3_SECRET < "${tty_in}"; echo
-  [[ -n "${CLOUD_S3_KEY}" && -n "${CLOUD_S3_SECRET}" ]] || die "faltan las claves S3 (o usa --skip-storage)"
+  CLOUD_S3_SECRET="$(trim "${CLOUD_S3_SECRET}")"
+  [[ -n "${CLOUD_S3_SECRET}" && ! "${CLOUD_S3_SECRET}" =~ [[:space:]] ]] \
+    || die "el Secret access key no llegó bien: $(describe_input "${CLOUD_S3_SECRET}" clave)"
+  echo "secret access key recibido (${#CLOUD_S3_SECRET} caracteres)"
   CLOUD_S3_ENDPOINT="${CLOUD_S3_ENDPOINT:-}"
   if [[ -z "${CLOUD_S3_ENDPOINT}" ]]; then
     [[ -n "${cloud_ref}" ]] || die "no pude deducir el proyecto de Cloud de la cadena: exporta CLOUD_S3_ENDPOINT"
