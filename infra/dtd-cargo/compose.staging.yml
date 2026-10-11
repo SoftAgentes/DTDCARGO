@@ -8,11 +8,11 @@
 #   docker compose -p dtd-cargo-staging \
 #     -f compose.yml -f compose.supabase.yml -f compose.staging.yml config
 #
-# Límite conocido: los nombres de router de Traefik (dtd-web, dtd-supabase) están
-# fijos en compose.yml y compose.supabase.yml, así que staging y producción NO
-# pueden correr a la vez detrás del mismo Traefik. El runbook destruye el staging
-# antes del corte (servidor-contabo.md §2.6); parametrizar los nombres queda como
-# pendiente de SDD-0505.
+# Los nombres de router, servicio y middleware llevan el nombre del proyecto de
+# compose (compose.yml, compose.supabase.yml), así que staging y producción
+# pueden correr a la vez detrás del mismo Traefik. Estas líneas reemplazan la
+# lista de middlewares de cada router: repiten las de la base y suman la
+# allowlist.
 #
 # El middleware se define una sola vez, en api-gw (que siempre corre en staging),
 # y web lo usa por referencia.
@@ -20,9 +20,9 @@
 services:
   web:
     labels:
-      traefik.http.routers.dtd-web.middlewares: dtd-web-body@docker,dtd-staging-allow@docker
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-web-body@docker,${COMPOSE_PROJECT_NAME}-staging-allow@docker"
 
   api-gw:
     labels:
-      traefik.http.routers.dtd-supabase.middlewares: dtd-staging-allow@docker
-      traefik.http.middlewares.dtd-staging-allow.ipallowlist.sourcerange: ${STAGING_ALLOWED_IPS:?STAGING_ALLOWED_IPS falta en .env (CIDR separados por comas)}
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.middlewares=security-headers@file,${COMPOSE_PROJECT_NAME}-staging-allow@docker"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-staging-allow.ipallowlist.sourcerange=${STAGING_ALLOWED_IPS:?STAGING_ALLOWED_IPS falta en .env (CIDR separados por comas)}"

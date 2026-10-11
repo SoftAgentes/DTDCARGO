@@ -20,9 +20,9 @@
 #                    necesitan salir a internet (Auth → SMTP, functions → Kommo,
 #                    Storage/imgproxy → R2). `web` sale por `dtd_edge`.
 #   · Ningún `ports:` y ningún `container_name`: los contenedores, redes y
-#     volúmenes de producción y staging no chocan en el mismo host. Los nombres
-#     de router de Traefik (dtd-web, dtd-supabase) sí son fijos: los dos stacks
-#     no pueden estar detrás del mismo Traefik a la vez (compose.staging.yml).
+#     volúmenes de producción y staging no chocan en el mismo host. Tampoco los
+#     routers de Traefik: llevan el nombre del proyecto (`<proyecto>-web`,
+#     `<proyecto>-supabase`).
 #
 # El `.env` vive junto a este archivo (en el servidor, /srv/dtd-cargo/.env,
 # 0600). Compose lo carga solo para interpolar `${...}`; `web` lo recibe entero
@@ -76,15 +76,21 @@ services:
       resources:
         limits:
           memory: 2g
+    # Router, servicio y middleware llevan el nombre del proyecto de compose (`-p`):
+    # producción (dtd-cargo) y staging (dtd-cargo-staging) pueden ir detrás del
+    # mismo Traefik sin pisarse (con nombres fijos, los dos stacks declararían el
+    # mismo router y el mismo servicio). Va en forma de lista porque compose no
+    # interpola las CLAVES de un mapa: medido en el VPS con compose 5.6.0 el
+    # 2026-10-11.
     labels:
-      traefik.enable: "true"
-      traefik.docker.network: ${DTD_EDGE_NETWORK:-dtd_edge}
-      traefik.http.routers.dtd-web.rule: Host(`${DTD_WEB_HOST:-dtdcargo.com}`) || Host(`www.${DTD_WEB_HOST:-dtdcargo.com}`)
-      traefik.http.routers.dtd-web.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
-      traefik.http.routers.dtd-web.tls: "true"
-      traefik.http.routers.dtd-web.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
-      traefik.http.routers.dtd-web.middlewares: dtd-web-body@docker
-      traefik.http.services.dtd-web.loadbalancer.server.port: "3000"
+      - "traefik.enable=true"
+      - "traefik.docker.network=${DTD_EDGE_NETWORK:-dtd_edge}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.rule=Host(`${DTD_WEB_HOST:-dtdcargo.com}`) || Host(`www.${DTD_WEB_HOST:-dtdcargo.com}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.tls=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-web-body@docker"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-web.loadbalancer.server.port=3000"
       # Timeouts de 300 s: las rutas de importación y los crons declaran
       # `maxDuration = 300`; con el default de Traefik (sin tope de respuesta
       # pero 60 s de lectura en el entrypoint) un import largo moriría a mitad.
@@ -93,11 +99,11 @@ services:
       # infra/ops/traefik/dynamic/middlewares.yml): Traefik no admite definir
       # serversTransports con labels de Docker, y con `dtd-long@docker` la ruta
       # quedaba rota (medido en el VPS el 2026-10-09).
-      traefik.http.services.dtd-web.loadbalancer.serverstransport: ${TRAEFIK_SERVERS_TRANSPORT:-slow-300s@file}
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-web.loadbalancer.serverstransport=${TRAEFIK_SERVERS_TRANSPORT:-slow-300s@file}"
       # 12 MB = `serverActions.bodySizeLimit` de next.config.ts (foto de cédula/RIF
       # del registro). Traefik corta antes que Next con 413, sin consumir RAM
       # del contenedor web.
-      traefik.http.middlewares.dtd-web-body.buffering.maxrequestbodybytes: "12582912"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-web-body.buffering.maxrequestbodybytes=12582912"
 
   cron:
     # Imagen local (alpine fijada + curl + envsubst); ver cron/Dockerfile. El

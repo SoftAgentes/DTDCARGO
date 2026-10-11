@@ -145,21 +145,26 @@ services:
       resources:
         limits:
           memory: 256m
+    # Nombres con el proyecto de compose y en forma de lista: ver el comentario
+    # de `web` en compose.yml. `security-headers@file` (HSTS, nosniff,
+    # referrer-policy; infra/ops/traefik/dynamic/middlewares.yml) porque el
+    # gateway no los pone y Supabase Cloud sí.
     labels:
-      traefik.enable: "true"
-      traefik.docker.network: ${DTD_EDGE_NETWORK:-dtd_edge}
-      traefik.http.routers.dtd-supabase.rule: Host(`${SUPABASE_PUBLIC_HOST:?SUPABASE_PUBLIC_HOST falta en .env}`) && (PathPrefix(`/auth/v1`) || PathPrefix(`/rest/v1`) || PathPrefix(`/graphql/v1`) || PathPrefix(`/storage/v1`) || PathPrefix(`/functions/v1`) || PathPrefix(`/realtime/v1`)) && !PathPrefix(`/realtime/v1/api`)
-      traefik.http.routers.dtd-supabase.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
-      traefik.http.routers.dtd-supabase.tls: "true"
-      traefik.http.routers.dtd-supabase.tls.certresolver: ${TRAEFIK_CERT_RESOLVER:-letsencrypt}
-      traefik.http.services.dtd-supabase.loadbalancer.server.port: "8000"
+      - "traefik.enable=true"
+      - "traefik.docker.network=${DTD_EDGE_NETWORK:-dtd_edge}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.rule=Host(`${SUPABASE_PUBLIC_HOST:?SUPABASE_PUBLIC_HOST falta en .env}`) && (PathPrefix(`/auth/v1`) || PathPrefix(`/rest/v1`) || PathPrefix(`/graphql/v1`) || PathPrefix(`/storage/v1`) || PathPrefix(`/functions/v1`) || PathPrefix(`/realtime/v1`)) && !PathPrefix(`/realtime/v1/api`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.tls=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.middlewares=security-headers@file"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-supabase.loadbalancer.server.port=8000"
       # Transporte largo (300 s de espera de respuesta): las subidas TUS a Storage
       # y las Edge Functions de Kommo pueden pasar del minuto. Traefik NO admite
       # definir serversTransports con labels de Docker (solo en el proveedor de
       # archivo): con `dtd-long@docker` la ruta quedaba rota, «servers transport
       # not found» (medido en el staging del VPS el 2026-10-09). Se usa el
       # `slow-300s` de infra/ops/traefik/dynamic/middlewares.yml.
-      traefik.http.services.dtd-supabase.loadbalancer.serverstransport: ${TRAEFIK_SERVERS_TRANSPORT:-slow-300s@file}
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-supabase.loadbalancer.serverstransport=${TRAEFIK_SERVERS_TRANSPORT:-slow-300s@file}"
 
   auth:
     image: supabase/gotrue:v2.196.0

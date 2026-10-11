@@ -330,7 +330,15 @@ tomado en ese tiempo se lleva la copia y vive 30 días fuera de nuestro control)
    Siempre con los tres archivos y el nombre de proyecto:
    `docker compose -p dtd-cargo-staging -f compose.yml -f compose.supabase.yml -f compose.staging.yml`.
    `compose.staging.yml` pone la lista de IP en las dos rutas de Traefik: el
-   staging lleva datos reales y no queda abierto a internet. **El gateway
+   staging lleva datos reales y no queda abierto a internet. Los routers llevan
+   el nombre del proyecto (`dtd-cargo-staging-web`, `dtd-cargo-staging-supabase`;
+   en producción `dtd-cargo-*`), así que staging y producción pueden convivir
+   detrás del mismo Traefik. La IP de la casa de Sam **cambia** (el 2026-10-11
+   pasó de `187.13.210.51` a `187.13.209.203`): si el staging responde 403 desde
+   la laptop, compara `STAGING_ALLOWED_IPS` con la IP actual
+   (`echo ${SSH_CLIENT%% *}` dentro del VPS), reemplázala (no la sumes: la vieja
+   puede tenerla otro cliente del proveedor) y recrea `api-gw` con
+   `up -d --no-deps api-gw`. **El gateway
    (`api-gw`) se levanta recién cuando el DNS de los dos hosts resuelva:**
    Traefik pide el certificado apenas ve la ruta y cada intento fallido cuenta
    contra el límite de Let's Encrypt (5 por hora). `functions` depende de
