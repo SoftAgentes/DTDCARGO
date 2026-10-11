@@ -157,6 +157,12 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   - Conexión real con `psql` a un `supabase/postgres` desechable con la contraseña ``*Ab[c]@:/%ñ é'"#?``: entra; el control sin codificar no entra.
   - Prueba de integración: **65 PASÓ · 0 FALLÓ** (los 5 nuevos son del modo contraseña).
   - Desplegado en `/srv/ops`; el sha256 coincide con el repo.
+- **Segundo intento (2026-10-11, ~04:07 UTC):**
+  - La contraseña entró (10 caracteres) y la cadena se armó bien.
+  - El Access key ID llegó con 33 caracteres y el Secret vacío: un pegado con una línea en blanco en el medio. El script cortó antes de conectar; nada leído de producción.
+  - **Arreglo:** cada credencial se prueba apenas llega (la base con `select 1`, Storage con `rclone lsd`; `ListBuckets` figura soportado en la tabla de compatibilidad S3 de Supabase) y, si no sirve, se vuelve a pedir hasta 3 veces sin perder lo anterior.
+  - Prueba de integración: **68 PASÓ · 0 FALLÓ**. Casos nuevos: reintento de contraseña (corchetes, luego mala, luego buena) y claves S3 vacías o rechazadas por el S3 falso, cortando sin copiar nada.
+  - Desplegado en `/srv/ops`; el sha256 coincide con el repo.
 - **`functions` detenido (2026-10-11):** el contenedor estaba en `Exited (15)` desde el 2026-10-09 21:42 UTC. Se paró junto al gateway mientras se esperaba el DNS y no volvió a arrancar. Se arrancó con `docker start` y quedó `healthy`.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)

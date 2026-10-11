@@ -231,6 +231,8 @@ docker run -d --name c4-cloud-db -e POSTGRES_PASSWORD=$PW3 $IMG postgres -c conf
 IS=$T/srv/c4i-staging; mkdir -p $IS
 printf 'POSTGRES_PASSWORD=%s\nS3_PROTOCOL_ACCESS_KEY_ID=x\nS3_PROTOCOL_ACCESS_KEY_SECRET=y\n' "$PW4" > $IS/.env
 docker network create --internal c4i-staging_dtd_internal >/dev/null
+# Salida del staging: ahí corre la prueba de las claves S3, contra el S3 falso.
+docker network create c4i-staging_dtd_egress >/dev/null && docker network connect c4i-staging_dtd_egress c4-s3
 docker run -d --name c4i-staging-db --network c4i-staging_dtd_internal --network-alias db -e POSTGRES_PASSWORD=$PW4 $IMG postgres -c config_file=/etc/postgresql/postgresql.conf >/dev/null
 wait_ready c4-cloud-db && wait_ready c4i-staging-db && echo "   cloud falso y staging listos" || { echo "no arrancaron"; exit 1; }
 CIP=$(ip_of c4-cloud-db)
@@ -299,7 +301,17 @@ echo "postgresql://postgres:[$PW3]@$CIP:5432/postgres" | $IMP --evidence $T/imp-
 [ $rc -eq 2 ] && grep -q 'corchetes' $T/imp-b2.log && ok "cadena con la contraseña entre corchetes: rechaza (2)" || { ko "cadena con corchetes rc=$rc"; tail -2 $T/imp-b2.log; }
 echo "$URL" | $IMP $CP --evidence $T/imp-guard.txt > $T/imp-b3.log 2>&1; rc=$?
 [ $rc -eq 2 ] && grep -q 'SOLO la contraseña' $T/imp-b3.log && ok "cadena entera donde va la contraseña: rechaza (2)" || { ko "cadena en modo contraseña rc=$rc"; tail -2 $T/imp-b3.log; }
-echo "$PW3" | $IMP $CP --evidence $T/imp-evidencia.txt > $T/imp2.log 2>&1; rc=$?
+# Claves S3: secreto vacío en el 1er intento y claves que el S3 rechaza en el 2º; sin
+# más entrada, corta con el último problema y sin haber tocado nada.
+IMPS="bash $S/migrate/import-from-cloud.sh --project c4i-staging --project-dir $IS --expect-auth-users 2"
+printf '%s\nk1\n\nk2\ns2\n' "$PW3" | CLOUD_S3_ENDPOINT=http://c4-s3:8080 $IMPS $CP --evidence $T/imp-guard.txt > $T/imp-k.log 2>&1; rc=$?
+[ $rc -eq 2 ] && grep -q 'Secret access key no llegó bien' $T/imp-k.log && grep -q 'no aceptó esas claves' $T/imp-k.log && grep -q 'intento 2 de 3' $T/imp-k.log \
+  && ! grep -q 'carpeta de trabajo' $T/imp-k.log && ok "claves S3: vuelve a pedirlas si llegan vacías o el S3 las rechaza, y corta sin copiar nada" || { ko "claves S3 rc=$rc"; tail -4 $T/imp-k.log; }
+[ "$(docker exec c4i-staging-db psql -U supabase_admin -h localhost -d postgres -Atc "select count(*) from pg_tables where schemaname = 'public'")" = 0 ] && ok "tras los rechazos, el staging sigue vacío" || ko "el staging dejó de estar vacío"
+# Corrida buena: contraseña entre corchetes (1), contraseña equivocada (2), la buena (3).
+printf '[%s]\nmala-%s\n%s\n' "$PW3" "$PW3" "$PW3" | $IMP $CP --evidence $T/imp-evidencia.txt > $T/imp2.log 2>&1; rc=$?
+grep -q 'corchetes' $T/imp2.log && grep -q 'Cloud no aceptó la conexión' $T/imp2.log && grep -q 'conexión a Cloud: OK' $T/imp2.log \
+  && ok "contraseña: rechaza corchetes, prueba la conexión y vuelve a pedir hasta que entra" || ko "reintentos de contraseña: $(grep -E '✗|OK' $T/imp2.log | head -3)"
 grep -q "contraseña recibida (${#PW3} caracteres)" $T/imp2.log && grep -q "cadena recibida: postgres@$CIP:5432/postgres" $T/imp2.log && ok "modo contraseña: arma la cadena y la confirma sin mostrarla" || ko "modo contraseña: $(grep -E 'recibida' $T/imp2.log | head -2)"
 echo "   import salió $rc"; sed 's/^/   /' $T/imp2.log | grep -vE '^   $' | tail -40
 [ $rc -eq 0 ] && ok "import-from-cloud: todas sus comprobaciones PASÓ" || ko "import-from-cloud salió $rc"

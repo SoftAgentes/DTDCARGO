@@ -266,51 +266,107 @@ urlencode() {
   printf '%s' "${out}"
 }
 BRACKETS_HINT="empieza con [ y termina con ]: esos corchetes son los de [YOUR-PASSWORD] en el panel de Supabase, no van; pega solo la contraseña"
-if [[ -n "${CLOUD_USER}" ]]; then
-  read -rs -p "Contraseña de la base de Cloud (solo la contraseña, sin corchetes; no se ve al pegar, Enter al final): " CLOUD_DB_PASSWORD < "${tty_in}"; echo
-  CLOUD_DB_PASSWORD="$(trim "${CLOUD_DB_PASSWORD}")"
-  [[ -n "${CLOUD_DB_PASSWORD}" && ! "${CLOUD_DB_PASSWORD}" =~ [[:space:]] ]] \
-    || die "la contraseña no llegó bien: $(describe_input "${CLOUD_DB_PASSWORD}" clave)"
-  [[ "${CLOUD_DB_PASSWORD}" == postgres://* || "${CLOUD_DB_PASSWORD}" == postgresql://* ]] \
-    && die "llegó una cadena postgresql:// entera: aquí va SOLO la contraseña"
-  [[ "${CLOUD_DB_PASSWORD}" == "["*"]" ]] && die "la contraseña ${BRACKETS_HINT}"
-  echo "contraseña recibida (${#CLOUD_DB_PASSWORD} caracteres)"
-  PROD_DB_URL="postgresql://${CLOUD_USER}:$(urlencode "${CLOUD_DB_PASSWORD}")@${CLOUD_HOST}:5432/postgres"
-  unset CLOUD_DB_PASSWORD
-else
-  read -rs -p "Cadena de conexión de Cloud (Session pooler, postgresql://…:5432/postgres): " PROD_DB_URL < "${tty_in}"; echo
-  PROD_DB_URL="$(trim "${PROD_DB_URL}")"
-  if ! [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://[^[:space:]]+$ ]] || [[ "${PROD_DB_URL}" == *"[YOUR-PASSWORD]"* ]]; then
-    die "la cadena no parece una URL de Postgres: $(describe_input "${PROD_DB_URL}" url)"
+# Cada credencial se prueba apenas llega (la base con un `select 1`, Storage con un
+# listado de buckets) y, si no sirve, se vuelve a pedir: hasta MAX_TRIES intentos.
+# Medido el 2026-10-11: un pegado con una línea en blanco en el medio dejó vacío el
+# Secret y obligaba a empezar de cero, contraseña incluida. Fin de la entrada
+# (sin terminal o Ctrl+D) corta en el acto con el último problema.
+MAX_TRIES=3
+ask_secret() { # $1 = pregunta, $2 = variable; sin eco, recortado; 1 si no hay más entrada
+  local v=""
+  read -rs -p "$1" v < "${tty_in}" || { echo; return 1; }
+  echo
+  printf -v "$2" '%s' "$(trim "${v}")"
+}
+retry_or_die() { # $1 = intento, $2 = problema, $3 = qué hacer
+  echo "✗ $2"
+  (( $1 < MAX_TRIES )) || die "$2 (${MAX_TRIES} intentos)"
+  echo "$3 (intento $(( $1 + 1 )) de ${MAX_TRIES})"
+}
+problem=""
+for (( try = 1; ; try++ )); do
+  if [[ -n "${CLOUD_USER}" ]]; then
+    ask_secret "Contraseña de la base de Cloud (solo la contraseña, sin corchetes; no se ve al pegar, Enter al final): " CLOUD_DB_PASSWORD \
+      || die "${problem:-la contraseña no llegó: fin de la entrada}"
+    if [[ -z "${CLOUD_DB_PASSWORD}" || "${CLOUD_DB_PASSWORD}" =~ [[:space:]] ]]; then
+      problem="la contraseña no llegó bien: $(describe_input "${CLOUD_DB_PASSWORD}" clave)"
+    elif [[ "${CLOUD_DB_PASSWORD}" == postgres://* || "${CLOUD_DB_PASSWORD}" == postgresql://* ]]; then
+      problem="llegó una cadena postgresql:// entera: aquí va SOLO la contraseña"
+    elif [[ "${CLOUD_DB_PASSWORD}" == "["*"]" ]]; then
+      problem="la contraseña ${BRACKETS_HINT}"
+    else
+      echo "contraseña recibida (${#CLOUD_DB_PASSWORD} caracteres)"
+      PROD_DB_URL="postgresql://${CLOUD_USER}:$(urlencode "${CLOUD_DB_PASSWORD}")@${CLOUD_HOST}:5432/postgres"
+      problem=""
+    fi
+    unset CLOUD_DB_PASSWORD
+  else
+    ask_secret "Cadena de conexión de Cloud (Session pooler, postgresql://…:5432/postgres): " PROD_DB_URL \
+      || die "${problem:-la cadena no llegó: fin de la entrada}"
+    if ! [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://[^[:space:]]+$ ]] || [[ "${PROD_DB_URL}" == *"[YOUR-PASSWORD]"* ]]; then
+      problem="la cadena no parece una URL de Postgres: $(describe_input "${PROD_DB_URL}" url)"
+    elif [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://[^:@/]+:\[[^@]*\]@ ]]; then
+      problem="la contraseña de la cadena ${BRACKETS_HINT} (o usa --cloud-user/--cloud-host y pega solo la contraseña)"
+    else
+      problem=""
+    fi
   fi
-  if [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://[^:@/]+:\[[^@]*\]@ ]]; then
-    die "la contraseña de la cadena ${BRACKETS_HINT} (o usa --cloud-user/--cloud-host y pega solo la contraseña)"
+  if [[ -z "${problem}" ]]; then
+    # Eco sin la contraseña, para que quien la pegó confirme que es la correcta.
+    if [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://([^:@/]+)(:[^@]*)?@([^/:?]+)(:([0-9]+))?/([^?]*) ]]; then
+      echo "cadena recibida: ${BASH_REMATCH[2]}@${BASH_REMATCH[4]}:${BASH_REMATCH[6]:-5432}/${BASH_REMATCH[7]} (contraseña oculta, ${#PROD_DB_URL} caracteres)"
+    fi
+    export PROD_DB_URL
+    if cloud_sql "select 1" >/dev/null 2>&1; then
+      echo "conexión a Cloud: OK"
+      break
+    fi
+    problem="Cloud no aceptó la conexión (¿contraseña vigente? si la reseteaste, va la nueva)"
   fi
-fi
-# Eco sin la contraseña, para que quien la pegó confirme que es la correcta.
-if [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://([^:@/]+)(:[^@]*)?@([^/:?]+)(:([0-9]+))?/([^?]*) ]]; then
-  echo "cadena recibida: ${BASH_REMATCH[2]}@${BASH_REMATCH[4]}:${BASH_REMATCH[6]:-5432}/${BASH_REMATCH[7]} (contraseña oculta, ${#PROD_DB_URL} caracteres)"
-fi
-export PROD_DB_URL
+  retry_or_die "${try}" "${problem}" "Pega de nuevo SOLO lo que se pide y pulsa Enter"
+done
 cloud_ref=""
 if [[ "${PROD_DB_URL}" =~ postgres\.([a-z0-9]{20}) ]]; then cloud_ref="${BASH_REMATCH[1]}";
 elif [[ "${PROD_DB_URL}" =~ db\.([a-z0-9]{20})\.supabase\.co ]]; then cloud_ref="${BASH_REMATCH[1]}"; fi
 if (( ! SKIP_STORAGE )); then
-  read -rs -p "Access key ID S3 temporal de Cloud: " CLOUD_S3_KEY < "${tty_in}"; echo
-  CLOUD_S3_KEY="$(trim "${CLOUD_S3_KEY}")"
-  [[ -n "${CLOUD_S3_KEY}" && ! "${CLOUD_S3_KEY}" =~ [[:space:]] ]] \
-    || die "el Access key ID no llegó bien: $(describe_input "${CLOUD_S3_KEY}" clave)"
-  echo "access key ID recibida (${#CLOUD_S3_KEY} caracteres)"
-  read -rs -p "Secret access key S3 temporal de Cloud: " CLOUD_S3_SECRET < "${tty_in}"; echo
-  CLOUD_S3_SECRET="$(trim "${CLOUD_S3_SECRET}")"
-  [[ -n "${CLOUD_S3_SECRET}" && ! "${CLOUD_S3_SECRET}" =~ [[:space:]] ]] \
-    || die "el Secret access key no llegó bien: $(describe_input "${CLOUD_S3_SECRET}" clave)"
-  echo "secret access key recibido (${#CLOUD_S3_SECRET} caracteres)"
   CLOUD_S3_ENDPOINT="${CLOUD_S3_ENDPOINT:-}"
   if [[ -z "${CLOUD_S3_ENDPOINT}" ]]; then
     [[ -n "${cloud_ref}" ]] || die "no pude deducir el proyecto de Cloud de la cadena: exporta CLOUD_S3_ENDPOINT"
     CLOUD_S3_ENDPOINT="https://${cloud_ref}.supabase.co/storage/v1/s3"
   fi
+  docker network inspect "${NET_EGRESS}" >/dev/null 2>&1 || die "no existe la red ${NET_EGRESS}"
+  # Las claves viajan por nombre (-e VAR), nunca como valor en la línea de docker.
+  s3_ok() {
+    export RCLONE_CONFIG_CLOUD_TYPE=s3 RCLONE_CONFIG_CLOUD_PROVIDER=Other RCLONE_CONFIG_CLOUD_REGION=us-east-1 \
+      RCLONE_CONFIG_CLOUD_ENDPOINT="${CLOUD_S3_ENDPOINT}" RCLONE_CONFIG_CLOUD_FORCE_PATH_STYLE=true \
+      RCLONE_CONFIG_CLOUD_ACCESS_KEY_ID="${CLOUD_S3_KEY}" RCLONE_CONFIG_CLOUD_SECRET_ACCESS_KEY="${CLOUD_S3_SECRET}"
+    docker run --rm --label "${run_label}" --network "${NET_EGRESS}" \
+      -e RCLONE_CONFIG_CLOUD_TYPE -e RCLONE_CONFIG_CLOUD_PROVIDER -e RCLONE_CONFIG_CLOUD_REGION \
+      -e RCLONE_CONFIG_CLOUD_ENDPOINT -e RCLONE_CONFIG_CLOUD_FORCE_PATH_STYLE \
+      -e RCLONE_CONFIG_CLOUD_ACCESS_KEY_ID -e RCLONE_CONFIG_CLOUD_SECRET_ACCESS_KEY \
+      "${RCLONE_IMAGE}" --contimeout 15s --timeout 60s --retries 1 --low-level-retries 1 lsd cloud: >/dev/null 2>&1
+  }
+  problem=""
+  for (( try = 1; ; try++ )); do
+    ask_secret "Access key ID S3 temporal de Cloud: " CLOUD_S3_KEY || die "${problem:-el Access key ID no llegó: fin de la entrada}"
+    if [[ -z "${CLOUD_S3_KEY}" || "${CLOUD_S3_KEY}" =~ [[:space:]] ]]; then
+      problem="el Access key ID no llegó bien: $(describe_input "${CLOUD_S3_KEY}" clave)"
+    else
+      echo "access key ID recibida (${#CLOUD_S3_KEY} caracteres)"
+      ask_secret "Secret access key S3 temporal de Cloud: " CLOUD_S3_SECRET || die "${problem:-el Secret access key no llegó: fin de la entrada}"
+      if [[ -z "${CLOUD_S3_SECRET}" || "${CLOUD_S3_SECRET}" =~ [[:space:]] ]]; then
+        problem="el Secret access key no llegó bien: $(describe_input "${CLOUD_S3_SECRET}" clave)"
+      else
+        echo "secret access key recibido (${#CLOUD_S3_SECRET} caracteres)"
+        if s3_ok; then
+          echo "acceso a Storage de Cloud: OK"
+          break
+        fi
+        problem="Storage de Cloud no aceptó esas claves (¿se copiaron completas, cada una por separado? ¿la key sigue activa?)"
+      fi
+    fi
+    retry_or_die "${try}" "${problem}" "Pega las DOS claves de nuevo, una por una, con Enter después de cada una"
+  done
 fi
 
 work="$(mktemp -d "${WORK_ROOT%/}/import-${PROJECT}-XXXXXX")"
