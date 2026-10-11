@@ -4,9 +4,12 @@
 # Qué hace, en orden:
 #   1. pg_dump -Fc de la base (formato custom, comprimido; se restaura con pg_restore)
 #   2. pg_dumpall --roles-only (los roles no viajan en pg_dump; sin ellos el restore
-#      de un Supabase falla en los GRANT/OWNER)
+#      de un Supabase falla en los GRANT/OWNER) y los permisos de `public` para
+#      los roles cliente con su huella (lib/acl.sh): restore.sh los iguala y los
+#      compara, porque un restore como supabase_admin sobre una base de la imagen
+#      los abre a anon y authenticated
 #   3. pg_restore --list sobre el dump: comprueba que el archivo es legible
-#   4. cifra los dos con age para los destinatarios de --age-recipients
+#   4. cifra los tres con age para los destinatarios de --age-recipients
 #   5. borra los claros y comprueba que no queda ninguno
 #   6. sha256 de los cifrados
 #   7. rclone copy al remoto. NUNCA sync: un sync borra en un lado lo que no esté
@@ -51,6 +54,10 @@
 set -euo pipefail
 umask 077
 
+# ACL_SYNC_SQL y ACL_FINGERPRINT_SQL (permisos de public para los roles cliente).
+# shellcheck source=../lib/acl.sh
+source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/acl.sh"
+
 PROJECT=""
 NETWORK=""
 REMOTE=""
@@ -68,7 +75,7 @@ RCLONE_IMAGE="rclone/rclone:1.75.1"
 DRY_RUN=0
 
 usage() {
-  sed -n '2,51p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,53p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 log() {
@@ -146,12 +153,14 @@ dir="${OUT}/${PROJECT}"
 base="${PROJECT}-${stamp}"
 dump_age="${dir}/${base}.dump.age"
 roles_age="${dir}/${base}-roles.sql.age"
+acl_age="${dir}/${base}-acl.sql.age"
 sums="${dir}/${base}.sha256"
 
 # Carpeta de los claros: en tmpfs, modo 700, borrada al salir pase lo que pase.
 work="${WORK_ROOT%/}/pg-dump-${PROJECT}-${stamp}"
 dump="${work}/${base}.dump"
 roles="${work}/${base}-roles.sql"
+acl="${work}/${base}-acl.sql"
 # Cada contenedor lleva esta etiqueta: si el script muere a la mitad (kill, corte
 # de SSH), la limpieza también baja el pg_dump o el rclone que quedó corriendo.
 run_label="dtd.backup.run=${PROJECT}-${stamp}-$$"
@@ -160,7 +169,7 @@ cleanup() {
   if [[ -d "${work}" ]]; then
     rm -rf -- "${work}"
   fi
-  rm -f -- "${dump_age}.part" "${roles_age}.part"
+  rm -f -- "${dump_age}.part" "${roles_age}.part" "${acl_age}.part"
 }
 if (( ! DRY_RUN )); then
   trap cleanup EXIT
@@ -202,10 +211,22 @@ log "1/9 pg_dump -Fc (en ${WORK_ROOT}, memoria)"
 run_to "${dump}.part" "${docker_pg[@]}" pg_dump -h "${HOST}" -U "${PGUSER_}" -d "${DB}" -Fc -Z 6
 run mv "${dump}.part" "${dump}"
 
-# 2. Roles del cluster (globales): no viajan en pg_dump.
-log "2/9 pg_dumpall --roles-only"
+# 2. Roles del cluster (globales): no viajan en pg_dump. Y los permisos de public
+#    para los roles cliente, con su huella en la primera línea: el restore los
+#    iguala y compara (lib/acl.sh explica por qué el dump solo no alcanza).
+log "2/9 pg_dumpall --roles-only y permisos de public"
 run_to "${roles}.part" "${docker_pg[@]}" pg_dumpall -h "${HOST}" -U "${PGUSER_}" -l "${DB}" --roles-only
 run mv "${roles}.part" "${roles}"
+psql_src=("${docker_pg[@]}" psql -h "${HOST}" -U "${PGUSER_}" -d "${DB}" -v ON_ERROR_STOP=1 -Atq)
+if (( DRY_RUN )); then
+  printf '+ %s psql … -c %q > %q\n' "docker run … ${PG_IMAGE}" 'ACL_FINGERPRINT_SQL y ACL_SYNC_SQL (lib/acl.sh)' "${acl}"
+else
+  acl_fp="$("${psql_src[@]}" -c "${ACL_FINGERPRINT_SQL}")"
+  [[ "${acl_fp}" =~ ^[0-9]+:([0-9a-f]{32}|-)$ ]] || die "huella de permisos inesperada: '${acl_fp}'"
+  { printf -- '-- huella-acl: %s\n' "${acl_fp}"; "${psql_src[@]}" -c "${ACL_SYNC_SQL}"; } > "${acl}.part"
+  mv "${acl}.part" "${acl}"
+  log "      permisos de public: huella ${acl_fp}"
+fi
 
 # 3. ¿Se puede leer el archivo? pg_restore --list lo recorre entero sin restaurar.
 log "3/9 pg_restore --list (verificación del archivo)"
@@ -216,31 +237,33 @@ else
 fi
 
 # 4. Cifrado a .part y mv: un .age a medias no debe parecer bueno.
-log "4/9 age → $(basename "${dump_age}") y $(basename "${roles_age}")"
+log "4/9 age → $(basename "${dump_age}"), $(basename "${roles_age}") y $(basename "${acl_age}")"
 run age -R "${AGE_RECIPIENTS}" -o "${dump_age}.part" "${dump}"
 run mv "${dump_age}.part" "${dump_age}"
 run age -R "${AGE_RECIPIENTS}" -o "${roles_age}.part" "${roles}"
 run mv "${roles_age}.part" "${roles_age}"
+run age -R "${AGE_RECIPIENTS}" -o "${acl_age}.part" "${acl}"
+run mv "${acl_age}.part" "${acl_age}"
 
 # 5. Fuera los claros, y se comprueba que no quedó ninguno.
 log "5/9 borrado de los claros"
-run rm -f -- "${dump}" "${roles}"
+run rm -f -- "${dump}" "${roles}" "${acl}"
 if (( ! DRY_RUN )); then
   [[ -z "$(ls -A "${work}")" ]] || die "quedó algo sin cifrar en ${work}: $(ls -A "${work}")"
-  [[ ! -e "${dir}/${base}.dump" && ! -e "${dir}/${base}-roles.sql" ]] || die "quedó un claro en ${dir}"
+  [[ ! -e "${dir}/${base}.dump" && ! -e "${dir}/${base}-roles.sql" && ! -e "${dir}/${base}-acl.sql" ]] || die "quedó un claro en ${dir}"
 fi
 
 # 6. Huellas de los CIFRADOS: el restore las compara antes de descifrar.
 log "6/9 sha256"
 if (( DRY_RUN )); then
-  printf '+ (cd %q && sha256sum %q %q > %q)\n' "${dir}" "$(basename "${dump_age}")" "$(basename "${roles_age}")" "${sums}"
+  printf '+ (cd %q && sha256sum %q %q %q > %q)\n' "${dir}" "$(basename "${dump_age}")" "$(basename "${roles_age}")" "$(basename "${acl_age}")" "${sums}"
 else
-  (cd "${dir}" && sha256sum "$(basename "${dump_age}")" "$(basename "${roles_age}")" > "${sums}")
+  (cd "${dir}" && sha256sum "$(basename "${dump_age}")" "$(basename "${roles_age}")" "$(basename "${acl_age}")" > "${sums}")
 fi
 
 # 7. Subida: copy, archivo por archivo. Nunca sync.
 log "7/9 rclone copy → ${remote_dir}"
-for f in "${dump_age}" "${roles_age}" "${sums}"; do
+for f in "${dump_age}" "${roles_age}" "${acl_age}" "${sums}"; do
   run "${docker_rclone[@]}" copy "/data/$(basename "${f}")" "${remote_dir}"
 done
 
@@ -255,5 +278,5 @@ run find "${dir}" -maxdepth 1 -type f -name "${PROJECT}-*" -mtime "+${LOCAL_RETE
 if (( DRY_RUN )); then
   log "dry-run: nada ejecutado"
 else
-  log "listo: $(basename "${dump_age}") ($(du -h "${dump_age}" | cut -f1)) · $(basename "${roles_age}") · $(basename "${sums}")"
+  log "listo: $(basename "${dump_age}") ($(du -h "${dump_age}" | cut -f1)) · $(basename "${roles_age}") · $(basename "${acl_age}") · $(basename "${sums}")"
 fi

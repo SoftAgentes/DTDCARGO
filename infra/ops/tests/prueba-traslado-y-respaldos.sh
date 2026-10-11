@@ -9,6 +9,8 @@
 #      supabase/postgres desechable sembrado como producción: default privileges
 #      cerrados, public y ledger creados por postgres
 #   C4 staging efímero (destroy-staging.sh)
+#   DR permisos de public en un restore sobre la base de la imagen (lib/acl.sh,
+#      restore.sh, restore-test.sh --dr): control rojo sin igualar y verde igualando
 #
 # Corre como root en un host Linux con Docker (el VPS), NUNCA con datos reales: todo
 # es sintético y desechable (contenedores/redes/volúmenes c4*, /srv/ops/bench/c4 y
@@ -37,16 +39,22 @@ wait_ready() {
   return 1
 }
 asadmin() { docker exec -i "$1" psql -U supabase_admin -h localhost -d postgres -v ON_ERROR_STOP=1 -Atq "${@:2}"; }
+# Contenedores de corridas de ESTA prueba (valor de la etiqueta c4… o restore-test…):
+# un import, backup o restore real que corra en el mismo host no se toca ni se cuenta.
+runs() { # $1 etiqueta · $2 "vivos" para contar solo los que están corriendo
+  docker ps -a --filter "label=$1" --format "{{.ID}} {{.State}} {{.Label \"$1\"}}" \
+    | awk -v vivos="${2:-}" '$3 ~ /^(c4|restore-test)/ && (vivos == "" || $2 == "running") {print $1}'
+}
 nuke() {
   docker ps -aq --filter name=c4 | xargs -r docker rm -f -v >/dev/null 2>&1
-  docker ps -aq --filter label=dtd.backup.run | xargs -r docker rm -f >/dev/null 2>&1
-  docker ps -aq --filter label=dtd.restore.run | xargs -r docker rm -f >/dev/null 2>&1
-  docker ps -aq --filter label=dtd.import.run | xargs -r docker rm -f >/dev/null 2>&1
+  runs dtd.backup.run | xargs -r docker rm -f >/dev/null 2>&1
+  runs dtd.restore.run | xargs -r docker rm -f >/dev/null 2>&1
+  runs dtd.import.run | xargs -r docker rm -f >/dev/null 2>&1
   docker ps -aq --filter label=com.docker.compose.project=c4-staging | xargs -r docker rm -f >/dev/null 2>&1
   docker volume ls -q | grep -E '^c4' | xargs -r docker volume rm >/dev/null 2>&1
   docker network ls --format '{{.Name}}' | grep -E '^(c4|restore-test-)' | xargs -r docker network rm >/dev/null 2>&1
-  rm -rf $T/out $T/out-kill $T/remote $T/rclone $T/rclone-muerto $T/proj $T/srv $T/backups $T/*.txt $T/*.log $T/alterado $K
-  rm -rf /dev/shm/pg-dump-c4* /dev/shm/restore-* /dev/shm/config-c4* /dev/shm/import-c4*
+  rm -rf $T/out $T/out-kill $T/remote $T/rclone $T/rclone-muerto $T/proj $T/srv $T/backups $T/*.txt $T/*.log $T/alterado $T/solo $K
+  rm -rf /dev/shm/pg-dump-c4* /dev/shm/restore-c4* /dev/shm/restore-restore-test-* /dev/shm/restore-test-* /dev/shm/config-c4* /dev/shm/import-c4*
 }
 
 echo "== preparación =="
@@ -71,6 +79,21 @@ insert into public.prueba values (1, '$MARK'), (2, 'otra fila');
 insert into auth.users (instance_id, id, aud, role, email) values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', '$MARK@example.test');
 select vault.create_secret('secreto-$MARK', 'prueba_bk');
 SQL
+# Permisos como los de producción: default privileges de postgres cerrados en public,
+# una tabla que solo authenticated lee y una función que solo service_role ejecuta.
+asadmin c4-src-db <<SQL >/dev/null
+alter default privileges for role postgres in schema public revoke all on tables from anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on sequences from anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on functions from anon, authenticated, public;
+SQL
+docker exec -i c4-src-db psql -U postgres -h localhost -d postgres -v ON_ERROR_STOP=1 -Atq <<SQL >/dev/null
+create table public.tenants (id int primary key, nombre text);
+insert into public.tenants values (1, 'A'), (2, 'B');
+grant select on public.tenants to authenticated;
+create function public.solo_servicio() returns int language sql security definer set search_path = '' as \$\$ select 1 \$\$;
+grant execute on function public.solo_servicio() to service_role;
+SQL
+echo "permisos del origen: tenants=$(asadmin c4-src-db -c "select string_agg(grantee || '=' || privilege_type, ',' order by 1) from information_schema.role_table_grants where table_schema = 'public' and table_name = 'tenants' and grantee in ('anon', 'authenticated')") · solo_servicio() anon=$(asadmin c4-src-db -c "select has_function_privilege('anon', 'public.solo_servicio()', 'execute')")"
 N_USERS=$(asadmin c4-src-db -c "select count(*) from auth.users")
 N_VAULT=$(asadmin c4-src-db -c "select count(*) from vault.secrets")
 echo "semilla: $MARK · auth.users=$N_USERS · vault.secrets=$N_VAULT · raíz origen $(docker run --rm -v c4-src_db-config:/c:ro --entrypoint sha256sum $IMG /c/pgsodium_root.key | cut -c1-16)…"
@@ -83,21 +106,25 @@ tail -2 $T/c1.log | sed 's/^/   /'
 n_plain=$(find $T/remote $T/out -type f ! -name '*.age' ! -name '*.sha256' | wc -l)
 [ "$n_plain" = 0 ] && ok "remoto y disco: solo .age y .sha256" || ko "$n_plain archivos sin cifrar"
 DUMP=$(find $T/remote -name '*.dump.age' | head -1); ROLES=$(find $T/remote -name '*-roles.sql.age' | head -1)
+ACLF=$(find $T/remote -name '*-acl.sql.age' | head -1)
+[ -n "$ACLF" ] && [ "$(head -c 21 "$ACLF")" = "age-encryption.org/v1" ] && grep -q 'permisos de public: huella [0-9]*:[0-9a-f]\{32\}' $T/c1.log \
+  && ok "permisos de public en el respaldo: cifrados y con huella ($(grep -o 'huella [0-9]*:' $T/c1.log | head -1))" || ko "falta el -acl.sql.age o su huella"
+[ "$(age -d -i $K/key.txt "$ACLF" | head -1 | grep -c '^-- huella-acl: ')" = 1 ] && ok "el -acl.sql descifrado empieza con la huella" || ko "el -acl.sql no trae la huella"
 [ "$(head -c 21 "$DUMP")" = "age-encryption.org/v1" ] && ok "cabecera age en el dump remoto" || ko "dump remoto no es age"
 docker run --rm -i $IMG pg_restore --list < "$DUMP" >/dev/null 2>&1 && ko "pg_restore leyó el cifrado" || ok "pg_restore no lee el .dump.age"
 grep -aq "CREATE ROLE" "$ROLES" && ko "roles en claro" || ok "roles remotos ilegibles"
-[ "$(ls -A /dev/shm | grep -c '^pg-dump-')" = 0 ] && ok "nada en /dev/shm" || ko "quedó pg-dump-* en /dev/shm"
+[ "$(ls -A /dev/shm | grep -c '^pg-dump-c4')" = 0 ] && ok "nada en /dev/shm" || ko "quedó pg-dump-* en /dev/shm"
 (cd "$(dirname "$DUMP")" && sha256sum -c --quiet *.sha256) && ok "sha256 del remoto" || ko "sha256 del remoto"
 PGPASSWORD=x bash $S/backup/pg-dump-to-s3.sh --project c4-src --network n --remote testr2:backups/db --dry-run >/dev/null 2>&1; [ $? -eq 2 ] && ok "sin destinatarios: 2 (también en dry-run)" || ko "sin destinatarios"
 cp $K/key.txt $T/mala.txt; bash $S/backup/pg-dump-to-s3.sh --project c4-src --network n --remote testr2:backups/db --age-recipients $T/mala.txt --dry-run >/dev/null 2>&1; [ $? -eq 2 ] && ok "clave privada como destinatario: 2" || ko "clave privada aceptada"; rm -f $T/mala.txt
 : > $T/vacio.txt; bash $S/backup/pg-dump-to-s3.sh --project c4-src --network n --remote testr2:backups/db --age-recipients $T/vacio.txt --dry-run >/dev/null 2>&1; [ $? -eq 2 ] && ok "destinatarios vacío: 2" || ko "destinatarios vacío aceptado"
 PGPASSWORD=mala bash $S/backup/pg-dump-to-s3.sh --project c4-src --network c4-src_internal --remote testr2:backups/db --age-recipients $T/recipients.txt --out $T/out --rclone-config $T/rclone >/dev/null 2>&1; rc=$?
-[ $rc -ne 0 ] && [ "$(ls -A /dev/shm | grep -c '^pg-dump-')" = 0 ] && ok "contraseña mala: falla ($rc) y limpia" || ko "contraseña mala rc=$rc"
+[ $rc -ne 0 ] && [ "$(ls -A /dev/shm | grep -c '^pg-dump-c4')" = 0 ] && ok "contraseña mala: falla ($rc) y limpia" || ko "contraseña mala rc=$rc"
 mkdir -p $T/alterado; cp "$DUMP" "$ROLES" "$(dirname "$DUMP")"/*.sha256 $T/alterado/
 A=$T/alterado/$(basename "$DUMP"); printf 'X' | dd of="$A" bs=1 seek=200 conv=notrunc 2>/dev/null
 PGPASSWORD=x bash $S/backup/restore.sh --file "$A" --age-identity $K/key.txt --project c4-dst --network c4-src_internal --target otra >/dev/null 2>&1; [ $? -eq 5 ] && ok "cifrado alterado: 5, no descifra" || ko "cifrado alterado"
 PGPASSWORD=$PW1 bash $S/backup/restore.sh --file "$DUMP" --age-identity $K/otra.txt --project c4-dst --network c4-src_internal --target otra >/dev/null 2>&1; rc=$?
-[ $rc -ne 0 ] && [ "$(ls -A /dev/shm | grep -c '^restore-')" = 0 ] && ok "clave equivocada: falla ($rc) y limpia" || ko "clave equivocada rc=$rc"
+[ $rc -ne 0 ] && [ "$(ls -A /dev/shm | grep -c '^restore-c4')" = 0 ] && ok "clave equivocada: falla ($rc) y limpia" || ko "clave equivocada rc=$rc"
 [ "$(asadmin c4-src-db -c "select count(*) from pg_database where datname='otra'")" = 0 ] && ok "ningún fallo creó la base 'otra'" || ko "se creó 'otra'"
 # kill a mitad de la subida contra un remoto muerto
 mkdir -p $T/rclone-muerto; sed "s#endpoint = .*#endpoint = http://10.255.255.1:8080#" $T/rclone/rclone.conf > $T/rclone-muerto/rclone.conf
@@ -105,11 +132,11 @@ PGPASSWORD=$PW1 bash $S/backup/pg-dump-to-s3.sh --project c4-src --network c4-sr
   --age-recipients $T/recipients.txt --out $T/out-kill --rclone-config $T/rclone-muerto > $T/kill.log 2>&1 &
 KP=$!
 for i in $(seq 1 60); do grep -q '7/9' $T/kill.log && break; sleep 1; done; sleep 4
-nb=$(docker ps -q --filter label=dtd.backup.run | wc -l)
+nb=$(runs dtd.backup.run vivos | wc -l)
 t_kill=$(date +%s); kill -TERM $KP; wait $KP; rc=$?; t_kill=$(( $(date +%s) - t_kill ))
-sleep 2; na=$(docker ps -q --filter label=dtd.backup.run | wc -l)
+sleep 2; na=$(runs dtd.backup.run vivos | wc -l)
 echo "   kill: rc=$rc en ${t_kill}s · contenedores antes=$nb después=$na"
-[ "$nb" -ge 1 ] && [ "$na" = 0 ] && [ "$(ls -A /dev/shm | grep -c '^pg-dump-')" = 0 ] && [ $t_kill -le 15 ] && ok "kill en la subida: corta en ${t_kill}s, baja rclone y limpia /dev/shm" || ko "kill en la subida"
+[ "$nb" -ge 1 ] && [ "$na" = 0 ] && [ "$(ls -A /dev/shm | grep -c '^pg-dump-c4')" = 0 ] && [ $t_kill -le 15 ] && ok "kill en la subida: corta en ${t_kill}s, baja rclone y limpia /dev/shm" || ko "kill en la subida"
 
 echo; echo "== C2 · respaldo de configuración (raíz de Vault) =="
 printf 'PROYECTO=c4-src\nPOSTGRES_PASSWORD=%s\nJWT_SECRET=secreto-de-prueba-%s\nVAULT_ENC_KEY=esta-es-la-de-supavisor\n' "$PW1" "$MARK" > $T/proj/c4-src/.env; chmod 600 $T/proj/c4-src/.env
@@ -130,7 +157,7 @@ sleep 1; $CB --force > /dev/null 2>&1; n3=$(find $T/remote -path '*c4-src-config
 [ "$n3" = $((n2+1)) ] && ok "--force sube uno nuevo" || ko "--force: $n2→$n3"
 docker volume create c4-vacio >/dev/null
 bash $S/backup/config-backup.sh --project c4-src --project-dir $T/proj/c4-src --volume c4-vacio --remote testr2:backups/db --age-recipients $T/recipients.txt --out $T/out --rclone-config $T/rclone >/dev/null 2>&1; [ $? -eq 2 ] && ok "volumen sin pgsodium_root.key: 2" || ko "volumen sin raíz aceptado"
-[ "$(ls -A /dev/shm | grep -c '^config-')" = 0 ] && ok "config-backup no dejó nada en /dev/shm" || ko "quedó config-* en /dev/shm"
+[ "$(ls -A /dev/shm | grep -c '^config-c4')" = 0 ] && ok "config-backup no dejó nada en /dev/shm" || ko "quedó config-* en /dev/shm"
 age -d -i $K/key.txt "$CFG" | tar -tf - | sort | tr '\n' ' ' | sed 's/^/   contenido: /'; echo
 
 echo; echo "== C1+C2 · restore-test (mensual, contenedor desechable) =="
@@ -144,7 +171,22 @@ bash $S/backup/restore-test.sh --file "$DUMP" --roles "$ROLES" --age-identity $K
 sed 's/^/   /' $T/rt2.log | grep -E 'raíz|vault|PASÓ|FALLÓ|RTO' | tail -10
 [ $rc2 -eq 0 ] && ok "restore-test con --config: Vault legible y filas iguales" || ko "restore-test con --config salió $rc2"
 [ "$(docker ps -aq --filter label=dtd.restore-test | wc -l)" = 0 ] && ok "no quedó ningún contenedor desechable" || ko "quedaron contenedores restore-test"
-[ "$(ls -A /dev/shm | grep -cE '^restore')" = 0 ] && ok "no quedó nada en /dev/shm" || ko "quedó restore* en /dev/shm: $(ls -A /dev/shm)"
+[ "$(ls -A /dev/shm | grep -cE '^restore-(c4|restore-test|test-)')" = 0 ] && ok "no quedó nada en /dev/shm" || ko "quedó restore* en /dev/shm: $(ls -A /dev/shm)"
+grep -q 'PASÓ  · permisos de public iguales' $T/rt1.log && ok "restore-test en base nueva: permisos iguales al origen" || ko "restore-test sin la comprobación de permisos: $(grep 'permisos' $T/rt1.log | tail -1)"
+
+echo; echo "== DR · permisos de public sobre la base de la imagen =="
+bash $S/backup/restore-test.sh --file "$DUMP" --roles "$ROLES" --age-identity $K/key.txt --dr --acl-verify-only \
+  --expect public.tenants=2 > $T/dr0.log 2>&1; rc=$?
+sed 's/^/   /' $T/dr0.log | grep -E 'DR:|permisos de public:|FALLÓ' | tail -5
+[ $rc -eq 7 ] && grep -q 'DISTINTOS' $T/dr0.log && ok "control rojo: en el DR sin igualar, la huella delata permisos distintos al origen" || ko "control rojo del DR: rc=$rc"
+bash $S/backup/restore-test.sh --file "$DUMP" --roles "$ROLES" --age-identity $K/key.txt --dr \
+  --expect public.tenants=2 --expect public.prueba=2 > $T/dr1.log 2>&1; rc=$?
+sed 's/^/   /' $T/dr1.log | grep -E 'permisos de public:|PASÓ|FALLÓ|RTO' | tail -8
+[ $rc -eq 0 ] && grep -q ' · iguales' $T/dr1.log && ok "DR: restore.sh iguala los permisos y la huella coincide con el origen" || ko "DR igualando: rc=$rc"
+mkdir -p $T/solo && cp "$DUMP" $T/solo/
+PGPASSWORD=x bash $S/backup/restore.sh --file $T/solo/$(basename "$DUMP") --age-identity $K/key.txt --project c4-dst --target postgres --i-know-this-destroys-prod < /dev/null > $T/dr2.log 2>&1; rc=$?
+[ $rc -eq 3 ] && grep -q 'archivo de permisos' $T/dr2.log && ok "destino destructivo sin archivo de permisos: rechaza (3) antes de pedir confirmación" || { ko "destructivo sin permisos rc=$rc"; tail -2 $T/dr2.log; }
+[ "$(docker ps -aq --filter label=dtd.restore-test | wc -l)" = 0 ] && [ "$(ls -A /dev/shm | grep -cE '^restore-(c4|restore-test|test-)')" = 0 ] && ok "DR: no quedó contenedor ni nada en /dev/shm" || ko "DR dejó restos"
 
 echo; echo "== C4 · destroy-staging =="
 SD=$T/srv/c4-staging; mkdir -p $SD/data/db $SD/data/storage/stub $T/backups/c4-staging $T/srv/c4b-staging
@@ -258,7 +300,7 @@ SQ() { docker exec c4i-staging-db psql -U supabase_admin -h localhost -d postgre
   && ok "cron: 1 job recreado, inactivo, con el usuario de Cloud" || ko "cron: $(SQ "select count(*)::text || ':' || count(*) filter (where active)::text || ':' || coalesce(string_agg(username, ','), '-') from cron.job")"
 echo "   grants de tenants en Cloud: $(asadmin c4-cloud-db -c "select string_agg(grantee || '=' || privilege_type, ',' order by 1) from information_schema.role_table_grants where table_schema='public' and table_name='tenants' and grantee in ('anon','authenticated')") · staging: $(SQ "select string_agg(grantee || '=' || privilege_type, ',' order by 1) from information_schema.role_table_grants where table_schema='public' and table_name='tenants' and grantee in ('anon','authenticated')")"
 grep -qE "$PW3|$MARK" $T/imp-evidencia.txt && ko "la evidencia tiene la contraseña o un dato personal" || ok "la evidencia no tiene contraseña ni datos personales"
-[ "$(ls -A /dev/shm | grep -c '^import-')" = 0 ] && ok "import no dejó nada en /dev/shm" || ko "quedó import-* en /dev/shm"
+[ "$(ls -A /dev/shm | grep -c '^import-c4')" = 0 ] && ok "import no dejó nada en /dev/shm" || ko "quedó import-* en /dev/shm"
 echo "   vault tras el import: $(SQ "select count(*) from vault.secrets") secretos · legibles $(SQ "select count(*) from vault.decrypted_secrets where decrypted_secret is not null")"
 ID0=$(SQ "select id from vault.secrets where name = 'kommo_cron_key'")
 VS="bash $S/migrate/vault-set-secret.sh --project c4i-staging --project-dir $IS --network c4i-staging_dtd_internal"

@@ -9,10 +9,11 @@ compose (plantilla en `infra/templates/proyecto/`, DTD Cargo en `infra/dtd-cargo
 |---|---|---|
 | `traefik/` | Proxy 80/443 con Let's Encrypt, para entornos **sin Dokploy** | `traefik:v3.7.14` |
 | `uptime-kuma/` | Monitor de disponibilidad con avisos | `louislam/uptime-kuma:2.5.5` |
-| `backup/pg-dump-to-s3.sh` | Dump diario + roles, **cifrados con age** (claros solo en `/dev/shm`), copia a R2/B2 con rclone y retención | `supabase/postgres:17.6.1.136`, `rclone/rclone:1.75.1`, `age` del host |
+| `backup/pg-dump-to-s3.sh` | Dump diario + roles + permisos de `public` con su huella, **cifrados con age** (claros solo en `/dev/shm`), copia a R2/B2 con rclone y retención | `supabase/postgres:17.6.1.136`, `rclone/rclone:1.75.1`, `age` del host |
 | `backup/config-backup.sh` | `.env` + clave raíz de pgsodium/Vault (volumen `db-config`), cifrados, solo cuando cambian | ídem |
-| `backup/restore.sh` | Restore en base nueva o staging, con guarda contra pisar producción; descifra `.age` en memoria | `supabase/postgres:17.6.1.136` |
-| `backup/restore-test.sh` | Restore de prueba mensual en un contenedor desechable con PGDATA en tmpfs | ídem |
+| `backup/restore.sh` | Restore en base nueva o staging, con guarda contra pisar producción; descifra `.age` en memoria; iguala los permisos de `public` a los del origen y los compara por huella (sale 8 si difieren) | `supabase/postgres:17.6.1.136` |
+| `backup/restore-test.sh` | Restore de prueba mensual en un contenedor desechable con PGDATA en tmpfs; `--dr` ensaya sobre la base `postgres` de la imagen | ídem |
+| `lib/acl.sh` | SQL de permisos de `public` (igualar y huella), compartido por el import y los respaldos; se carga con `source` | — |
 | `migrate/import-from-cloud.sh` | Copia de Supabase Cloud a un staging (Fase 2): dump en memoria, tablas de log fuera, verificación por conteos | CLI `supabase` 2.118.0, ídem |
 | `staging/destroy-staging.sh` | Borra los datos de un staging al cerrar el ensayo, con evidencia | — |
 

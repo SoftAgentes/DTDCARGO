@@ -126,7 +126,7 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
 **Pendientes de esta tarea:**
 
 - Ensayo real de la Fase 2 con producción (necesita el OK de exportar de Sam y las condiciones 1, 6 y 7): valida Storage (rclone contra `storage-api`, que aquí no se levantó) y los conteos verdaderos.
-- DR real sobre la base `postgres` de un stack nuevo: el mismo mecanismo de permisos lo afectaría (NO VERIFICADO; `backup-restore-servidor.md` §3).
+- ~~DR real sobre la base `postgres` de un stack nuevo: el mismo mecanismo de permisos lo afectaría (NO VERIFICADO)~~ → verificado y resuelto el 2026-10-11 (sección «DR · permisos de public»).
 - Retención (H7): decisión de Sam; el runbook ya dice que vale la del script (30 días) y no promete semanales/mensuales.
 
 ## Fase 2 · staging vacío en el VPS (2026-10-09, sin datos de producción)
@@ -141,6 +141,29 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   3. `functions_base_url` debe ser la URL interna (`http://api-gw:8000/functions/v1`).
   4. Los nombres de router de Traefik son fijos: staging y producción no pueden ir a la vez detrás del mismo Traefik (pendiente: parametrizarlos).
 - **OK nominal de Sam para exportar producción:** «OK exportar producción al staging del ensayo» (2026-10-09, ~22:09 UTC). Alcance: un traslado de Cloud al `dtd-cargo-staging` del VPS con `import-from-cloud.sh`, que corre Sam desde su PowerShell (pide la cadena de conexión y las claves S3 temporales). Solo lectura sobre producción, sin escribir en Cloud; el staging se destruye al cerrar el ensayo (§2.6). Scripts verificados por sha256 contra la PR antes de correr.
+- **Intentos de importación (2026-10-09/11):** seis sesiones llegaron a la pregunta de la cadena y ninguna pasó de ahí. Tres veces rechazó lo pegado («no parece una URL de Postgres»: salto de línea, pegado vacío o pegado en la terminal de la app); `4f382bb5` limpia la entrada y explica qué llegó sin mostrar la contraseña. Las otras sesiones se cerraron sin recibir nada. Ninguna leyó producción: las evidencias (`/srv/ops/evidencias/import-dtd-cargo-staging-*.txt`) terminan en «0/6 staging vacío». El 2026-10-11 a las 02:26 UTC quedó abierta otra sesión esperando a Sam.
+- **`functions` detenido (2026-10-11):** el contenedor estaba en `Exited (15)` desde el 2026-10-09 21:42 UTC. Se paró junto al gateway mientras se esperaba el DNS y no volvió a arrancar. Se arrancó con `docker start` y quedó `healthy`.
+
+## DR · permisos de public (2026-10-11, pendiente propio de la tarea)
+
+El riesgo anotado como NO VERIFICADO se midió y se cerró, con datos sintéticos en el VPS:
+
+- **Qué cambió:**
+  - `infra/ops/lib/acl.sh` nuevo, con el SQL de permisos que antes estaba solo en el import. Lo cargan `import-from-cloud.sh`, `pg-dump-to-s3.sh` y `restore.sh`.
+  - `pg-dump-to-s3.sh` guarda `<x>-acl.sql.age`, cifrado y en el `.sha256`, con la huella en la primera línea.
+  - `restore.sh` lo busca al lado del dump (o `--acl`), lo aplica en una transacción y compara la huella. Sale 8 si difieren. Rechaza (3) un destino destructivo sin archivo de permisos antes de pedir la confirmación. Opciones nuevas: `--acl-verify-only` y `--skip-acl`.
+  - `restore-test.sh` exige «iguales» y suma `--dr`: copia la base `postgres` de la imagen como destino.
+  - La limpieza de la prueba ya no toca corridas reales: filtra por el valor de la etiqueta y por los prefijos de `/dev/shm`.
+- **Prueba:** `infra/ops/tests/prueba-traslado-y-respaldos.sh`, corrida desde `/srv/ops/bench/src-dr` (copia del árbol de trabajo, sin tocar `/srv/ops`). Resultado: **60 PASÓ · 0 FALLÓ** (antes 53; los 7 nuevos son los de permisos). El origen sintético tiene default privileges de `postgres` cerrados, `tenants` con SELECT solo para `authenticated` y una función para `service_role`.
+
+  | Corrida | Origen | Restaurada | Resultado |
+  |---|---|---|---|
+  | Base nueva (prueba mensual) | `35:b5acf91ec157aaabb74c112b2cd317e8` | `35:b5acf91ec157aaabb74c112b2cd317e8` | iguales |
+  | `--dr --acl-verify-only` (control rojo; 6 default privileges de `public` con anon/authenticated en la copia) | `35:b5acf91e…` | `52:2abba70b98952708f01b1d9974f996ef` | DISTINTOS: 17 permisos de más |
+  | `--dr` | `35:b5acf91e…` | `35:b5acf91e…` | iguales |
+
+- **No verificado:** un DR completo con la app encima (servicios, Storage, Vault con la raíz) sobre un stack nuevo. Esta prueba cubre la base y sus permisos.
+- **Despliegue al VPS:** `lib/`, `backup/` y `tests/` se copian a `/srv/ops` cuando termine la importación; `import-from-cloud.sh` nuevo, también después (la sesión abierta usa el anterior, idéntico en comportamiento).
 
 ## Cierre de 2b · Worker (2026-10-08, decisión de Sam: «sigue con la migración recomendada»)
 

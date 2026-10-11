@@ -35,9 +35,11 @@ personales, así que el cifrado no es opcional (revisión del traslado, H1:
 
 1. `pg_dump -Fc` y `pg_dumpall --roles-only` (los roles no viajan en el dump)
    se escriben en **`/dev/shm`**: tmpfs, memoria. El claro nunca toca el disco
-   ni los snapshots de Contabo.
+   ni los snapshots de Contabo. Al lado va `<x>-acl.sql`: los permisos de
+   `public` para `anon`, `authenticated`, `service_role` y `PUBLIC`, con su huella
+   en la primera línea (`infra/ops/lib/acl.sh`; para qué sirve, §3).
 2. `pg_restore --list` recorre el dump entero para comprobar que se lee.
-3. `age -R <destinatarios>` cifra los dos; se borran los claros y el script
+3. `age -R <destinatarios>` cifra los tres; se borran los claros y el script
    comprueba que no quedó ninguno.
 4. `sha256` de los **cifrados**, `rclone copy` (nunca `sync`) a
    `<remoto>:<bucket>/<prefijo>/<proyecto>/`, retención remota con
@@ -163,14 +165,35 @@ cifra en el registro (§8):
 El smoke con la app (Studio, Portal, una foto) no forma parte de la prueba
 mensual: se hace en el ensayo de la Fase 2 y en cada corte.
 
-**Pendiente antes de un DR real (NO VERIFICADO).** `restore-test.sh` restaura en
-una base nueva, que no hereda default privileges, así que sus permisos son los
-del dump. Un DR de verdad restaura sobre la base `postgres` de un stack nuevo, y
-ahí la imagen le da a `supabase_admin` default privileges abiertos en `public`:
-los objetos que cree `pg_restore` nacerían con ALL para `anon` y `authenticated`
-(el mismo mecanismo medido en el traslado, servidor-contabo.md §2.2). Antes del
-primer DR hay que igualar los permisos al dump (o restaurar con esos defaults
-cerrados) y comprobarlo con la huella de permisos de `public`.
+**Permisos de `public` en un DR (medido el 2026-10-11).** Un DR de verdad
+restaura sobre la base `postgres` de un stack nuevo, y ahí la imagen le da a
+`supabase_admin` default privileges abiertos en `public`: los objetos que crea
+`pg_restore` nacen con ALL para `anon` y `authenticated`, y el dump no lo
+revierte (solo emite lo que difiere de `acldefault`). Es el mismo mecanismo
+medido en el traslado (servidor-contabo.md §2.2). Por eso:
+
+- `pg-dump-to-s3.sh` guarda `<x>-acl.sql.age` junto al dump (§2.1).
+- `restore.sh` lo busca al lado del dump (o `--acl`), lo aplica en una
+  transacción y compara la huella de permisos con la del origen. Si no
+  coinciden sale **8**: esa base no se expone a PostgREST hasta igualarla.
+- Sobre un destino destructivo (la base viva), sin archivo de permisos, el
+  script rechaza (3) antes de pedir la confirmación; `--skip-acl` existe solo
+  para igualarlos a mano.
+- `restore-test.sh` exige «permisos iguales» en cada prueba mensual, y `--dr`
+  restaura sobre una copia de la base `postgres` de la imagen, con sus default
+  privileges: es la condición del DR.
+
+Prueba en el VPS (`infra/ops/tests/prueba-traslado-y-respaldos.sh`, origen
+sintético con permisos como los de producción, 60 PASÓ · 0 FALLÓ):
+
+| Corrida | Huella del origen | Huella restaurada | Resultado |
+|---|---|---|---|
+| Base nueva (prueba mensual) | `35:b5acf91e…` | `35:b5acf91e…` | iguales |
+| `--dr --acl-verify-only` (control rojo) | `35:b5acf91e…` | `52:2abba70b…` | DISTINTOS: 17 permisos de más |
+| `--dr` (igualando) | `35:b5acf91e…` | `35:b5acf91e…` | iguales |
+
+La prueba mensual corre en base nueva; una vez por trimestre conviene agregarle
+`--dr` para ensayar la condición real.
 
 Un restore que falla **es un incidente**: se arregla la causa antes del
 siguiente dump, no se anota «ver el mes que viene».

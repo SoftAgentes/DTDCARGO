@@ -10,9 +10,17 @@
 # pgsodium_root.key de ese respaldo: así se prueba que los secretos de Vault del dump
 # se pueden leer con la raíz respaldada. Sin --config, Vault queda ilegible (control).
 #
+# Permisos de public: restore.sh aplica el `-acl.sql.age` que está al lado del dump
+# (o --acl) y compara la huella con la del origen; la prueba lo exige («iguales»).
+# --dr restaura en una copia de la base `postgres` de la imagen, con sus default
+# privileges: es lo que encuentra un DR de verdad (un stack nuevo) y donde
+# pg_restore como supabase_admin abre public a anon y authenticated.
+# --acl-verify-only compara sin corregir (sirve de control rojo junto con --dr).
+#
 # Uso:
 #   restore-test.sh --file <x.dump.age> --roles <x-roles.sql.age> --age-identity <clave> \
 #       [--config <x-config.tar.age>] [--expect <tabla>=<filas>]… [--vault-readable] \
+#       [--acl <x-acl.sql.age>] [--dr] [--acl-verify-only] \
 #       [--tmpfs-size 2g] [--pg-image …] [--work-dir /dev/shm] [--evidence <archivo>]
 #
 # --expect auth.users=297 compara el conteo; --vault-readable exige que todos los
@@ -28,6 +36,9 @@ FILE=""
 ROLES=""
 AGE_IDENTITY="${BACKUP_AGE_IDENTITY_FILE:-}"
 CONFIG=""
+ACL=""
+DR=0
+ACL_VERIFY_ONLY=0
 EXPECTS=()
 VAULT_READABLE=0
 TMPFS_SIZE="2g"
@@ -36,7 +47,7 @@ WORK_ROOT="/dev/shm"
 EVIDENCE=""
 
 usage() {
-  sed -n '2,23p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,30p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 log() {
@@ -63,6 +74,9 @@ while [[ $# -gt 0 ]]; do
     --config) setopt CONFIG "${2-}"; shift 2 ;;
     --expect) [[ -n "${2-}" ]] && EXPECTS+=("$2"); shift 2 ;;
     --vault-readable) VAULT_READABLE=1; shift ;;
+    --acl) setopt ACL "${2-}"; shift 2 ;;
+    --dr) DR=1; shift ;;
+    --acl-verify-only) ACL_VERIFY_ONLY=1; shift ;;
     --tmpfs-size) setopt TMPFS_SIZE "${2-}"; shift 2 ;;
     --pg-image) setopt PG_IMAGE "${2-}"; shift 2 ;;
     --work-dir) setopt WORK_ROOT "${2-}"; shift 2 ;;
@@ -75,6 +89,7 @@ done
 [[ -f "${FILE}" ]] || die "--file no existe: '${FILE}'"
 [[ -z "${ROLES}" || -f "${ROLES}" ]] || die "--roles no existe: '${ROLES}'"
 [[ -z "${CONFIG}" || -f "${CONFIG}" ]] || die "--config no existe: '${CONFIG}'"
+[[ -z "${ACL}" || -f "${ACL}" ]] || die "--acl no existe: '${ACL}'"
 [[ "${TMPFS_SIZE}" =~ ^[1-9][0-9]*[mg]$ ]] || die "--tmpfs-size inválido (p. ej. 2g)"
 [[ "${PG_IMAGE}" != *:latest && "${PG_IMAGE}" == *:* ]] || die "--pg-image debe llevar tag fijo"
 for e in ${EXPECTS[@]+"${EXPECTS[@]}"}; do
@@ -150,24 +165,56 @@ done
 (( streak >= 5 )) || die "el contenedor desechable no arrancó (docker logs ${name}-db)"
 log "2/5 contenedor desechable listo (PGDATA en tmpfs ${TMPFS_SIZE}, red interna ${net})"
 
+# DR: restore_test nace como copia de la base `postgres` de la imagen, con sus
+# esquemas y default privileges. CREATE DATABASE … TEMPLATE exige que nadie esté
+# conectado a la plantilla, y los workers de pg_cron/pg_net se reconectan solos:
+# se cortan y se reintenta.
+if (( DR )); then
+  dr_ok=0
+  for _ in $(seq 1 20); do
+    if docker exec "${name}-db" psql -U supabase_admin -h localhost -d template1 -v ON_ERROR_STOP=1 -Atq \
+        -c "select count(pg_catalog.pg_terminate_backend(pid)) from pg_catalog.pg_stat_activity where datname = 'postgres' and pid <> pg_catalog.pg_backend_pid()" \
+        -c "create database restore_test template postgres" >/dev/null 2>&1; then
+      dr_ok=1; break
+    fi
+    sleep 1
+  done
+  (( dr_ok )) || die "no se pudo copiar la base postgres de la imagen como restore_test"
+  dr_defaults="$(docker exec "${name}-db" psql -U supabase_admin -h localhost -d restore_test -Atq -c \
+    "select count(*) from pg_catalog.pg_default_acl d where d.defaclnamespace = 'public'::pg_catalog.regnamespace and d.defaclacl::text ~ '(^|[{,])(anon|authenticated)='")"
+  log "2/5 DR: restore_test es copia de la base postgres de la imagen · default privileges de public que dan a anon/authenticated: ${dr_defaults}"
+fi
+
 # 3. Restore con restore.sh, como supabase_admin (los event triggers de Supabase
 #    exigen superusuario) y en una base nueva: la guarda no se toca.
 log "3/5 restore.sh → ${name}/restore_test"
 restore_rc=0
+acl_args=()
+[[ -n "${ACL}" ]] && acl_args+=(--acl "${ACL}")
+(( ACL_VERIFY_ONLY )) && acl_args+=(--acl-verify-only)
 PGPASSWORD="${pw}" "${here}/restore.sh" --file "${FILE}" ${ROLES:+--roles "${ROLES}"} \
   ${AGE_IDENTITY:+--age-identity "${AGE_IDENTITY}"} --work-dir "${WORK_ROOT}" \
+  ${acl_args[@]+"${acl_args[@]}"} \
   --project "${name}" --network "${net}" --target restore_test --user supabase_admin \
   --pg-image "${PG_IMAGE}" > "${WORK_ROOT%/}/${name}.log" 2>&1 || restore_rc=$?
 errors="$(grep -c '^pg_restore: error:' "${WORK_ROOT%/}/${name}.log" || true)"
 # `|| true`: con pipefail, cero errores (grep sin coincidencias) no puede matar la prueba.
 { grep '^pg_restore: error:' "${WORK_ROOT%/}/${name}.log" || true; } | sed 's/^pg_restore: error: //' | cut -c1-140 \
   | sort | uniq -c | sort -rn | head -n 8 | while read -r line; do log "      ${line}"; done
-if (( restore_rc != 0 && restore_rc != 4 )); then
+if (( restore_rc != 0 && restore_rc != 4 && restore_rc != 8 )); then
   tail -n 15 "${WORK_ROOT%/}/${name}.log" | while read -r line; do log "      ${line}"; done
 fi
+acl_line="$(grep -o 'permisos de public: .*' "${WORK_ROOT%/}/${name}.log" | tail -n 1 || true)"
 rm -f -- "${WORK_ROOT%/}/${name}.log"
 log "3/5 restore.sh salió ${restore_rc} con ${errors} errores de pg_restore"
-check "restore.sh terminó (0 limpio o 4 con advertencias)" "ok" "$( [[ ${restore_rc} == 0 || ${restore_rc} == 4 ]] && echo ok || echo "${restore_rc}")"
+log "      ${acl_line:-permisos de public: restore.sh no informó nada}"
+check "restore.sh terminó (0 limpio, 4 con advertencias u 8 con permisos distintos)" "ok" "$( [[ ${restore_rc} == 0 || ${restore_rc} == 4 || ${restore_rc} == 8 ]] && echo ok || echo "${restore_rc}")"
+case "${acl_line}" in
+  *" · iguales") acl_state="iguales" ;;
+  *DISTINTOS*) acl_state="DISTINTOS" ;;
+  *) acl_state="no verificados" ;;
+esac
+check "permisos de public iguales a los del origen (huella)" "iguales" "${acl_state}"
 
 sql() {
   docker exec "${name}-db" psql -U supabase_admin -h localhost -d restore_test -v ON_ERROR_STOP=1 -Atq -c "$1"
