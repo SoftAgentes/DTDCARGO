@@ -143,6 +143,20 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   5. **IP de Sam cambiada (2026-10-11):** la laptop salía por `187.13.209.203` y la allowlist tenía `187.13.210.51/32`, así que todo daba 403. `STAGING_ALLOWED_IPS` se reemplazó por la IP nueva (sin dejar la vieja) y se recreó `api-gw`. Queda en el runbook §2.1.
 - **OK nominal de Sam para exportar producción:** «OK exportar producción al staging del ensayo» (2026-10-09, ~22:09 UTC). Alcance: un traslado de Cloud al `dtd-cargo-staging` del VPS con `import-from-cloud.sh`, que corre Sam desde su PowerShell (pide la cadena de conexión y las claves S3 temporales). Solo lectura sobre producción, sin escribir en Cloud; el staging se destruye al cerrar el ensayo (§2.6). Scripts verificados por sha256 contra la PR antes de correr.
 - **Intentos de importación (2026-10-09/11):** seis sesiones llegaron a la pregunta de la cadena y ninguna pasó de ahí. Tres veces rechazó lo pegado («no parece una URL de Postgres»: salto de línea, pegado vacío o pegado en la terminal de la app); `4f382bb5` limpia la entrada y explica qué llegó sin mostrar la contraseña. Las otras sesiones se cerraron sin recibir nada. Ninguna leyó producción: las evidencias (`/srv/ops/evidencias/import-dtd-cargo-staging-*.txt`) terminan en «0/6 staging vacío». El 2026-10-11 a las 02:26 UTC quedó abierta otra sesión esperando a Sam.
+- **Causa de los cortes (2026-10-11):**
+  - La sesión de las 02:26 UTC terminó con `client_loop: send disconnect: Connection reset`: la conexión de la casa de Sam se cae sola con el SSH quieto. Del lado del VPS el proceso siguió vivo hasta que el Worker lo detuvo a las ~03:47 UTC, todavía esperando y sin credenciales.
+  - Sam pegó la cadena dos veces en el PowerShell local, con la contraseña entre `[ ]`: dejó los corchetes del `[YOUR-PASSWORD]` del panel.
+  - **Limpieza hecha por el Worker:** las 4 líneas con la cadena se borraron de `ConsoleHost_history.txt` de PSReadLine (quedan 79 y ninguna la tiene) y se borró la copia local de la captura que la mostraba. La pestaña del panel que la muestra la tiene que cerrar Sam (la herramienta no cierra pestañas donde él escribió).
+  - **La contraseña quedó expuesta en la conversación:** rotarla al cerrar el ensayo deja de ser una recomendación y pasa a ser necesario. Antes de rotar hay que revisar qué la usa.
+- **Arreglo:**
+  - `import-from-cloud.sh` suma `--cloud-user`/`--cloud-host`: pide solo la contraseña, arma la URL con percent-encoding y rechaza una contraseña entre corchetes, una cadena entera en lugar de la contraseña y una cadena con la contraseña entre corchetes.
+  - Dentro de `tmux` espera un Enter al terminar.
+  - El runbook (§2.2) lanza el import con `tmux new -A -s traslado` y `ServerAliveInterval=15`, y explica qué hacer si se corta.
+- **Pruebas del arreglo:**
+  - Codificación: 10 casos iguales a `urllib.parse.quote` de Python.
+  - Conexión real con `psql` a un `supabase/postgres` desechable con la contraseña ``*Ab[c]@:/%ñ é'"#?``: entra; el control sin codificar no entra.
+  - Prueba de integración: **65 PASÓ · 0 FALLÓ** (los 5 nuevos son del modo contraseña).
+  - Desplegado en `/srv/ops`; el sha256 coincide con el repo.
 - **`functions` detenido (2026-10-11):** el contenedor estaba en `Exited (15)` desde el 2026-10-09 21:42 UTC. Se paró junto al gateway mientras se esperaba el DNS y no volvió a arrancar. Se arrancó con `docker start` y quedó `healthy`.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)

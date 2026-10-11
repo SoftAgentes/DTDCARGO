@@ -27,16 +27,26 @@
 #
 # Uso (como root en el VPS):
 #   import-from-cloud.sh --project dtd-cargo-staging \
+#       [--cloud-user postgres.<ref> --cloud-host aws-1-us-east-1.pooler.supabase.com] \
 #       [--project-dir /srv/dtd-cargo-staging] [--expect-auth-users 297] \
 #       [--include-logs] [--skip-storage] [--cron-active] [--restore-user supabase_admin] \
 #       [--work-dir /dev/shm] [--evidence <archivo>] [--cli supabase]
 #
+# Con --cloud-user y --cloud-host solo se pide la CONTRASEÑA de la base (el script
+# arma la cadena del Session pooler, puerto 5432, y codifica los caracteres
+# especiales). Sin ellos se pide la cadena entera. Lo recomendado es lanzarlo
+# dentro de tmux (`tmux new -A -s traslado …`): si se corta el SSH, el script
+# sigue esperando y el mismo comando vuelve a la misma pregunta. Medido el
+# 2026-10-11: la conexión de la casa de Sam se cae sola con el SSH quieto
+# («client_loop: send disconnect: Connection reset»), y lo pegado fue a parar a
+# PowerShell, que lo guarda en su historial.
+#
 # Los jobs de pg_cron quedan inactivos en staging; --cron-active conserva el
 # estado de Cloud (solo cuando las integraciones del staging apunten a pruebas).
 #
-# Pide por la terminal: la cadena de conexión de Cloud (Session pooler, puerto
-# 5432, con la contraseña de la base) y, si no hay --skip-storage, una access key
-# S3 TEMPORAL de Cloud (Storage › S3 Connection) que se revoca al terminar.
+# Pide por la terminal: la contraseña de la base de Cloud (o la cadena entera del
+# Session pooler, puerto 5432) y, si no hay --skip-storage, una access key S3
+# TEMPORAL de Cloud (Storage › S3 Connection) que se revoca al terminar.
 #
 # --restore-user es supabase_admin, el superusuario del Postgres self-hosted: un
 # objeto de un rol de la plataforma en el dump (OWNER/SET ROLE) hace fallar a
@@ -81,12 +91,14 @@ RESTORE_USER="supabase_admin"
 WORK_ROOT="/dev/shm"
 EVIDENCE=""
 CLI="supabase"
+CLOUD_USER=""
+CLOUD_HOST=""
 PG_IMAGE="supabase/postgres:17.6.1.136"
 RCLONE_IMAGE="rclone/rclone:1.75.1"
 PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
 
 usage() {
-  sed -n '2,42p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,63p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -124,6 +136,8 @@ while [[ $# -gt 0 ]]; do
     --work-dir) setopt WORK_ROOT "${2-}"; shift 2 ;;
     --evidence) setopt EVIDENCE "${2-}"; shift 2 ;;
     --cli) setopt CLI "${2-}"; shift 2 ;;
+    --cloud-user) setopt CLOUD_USER "${2-}"; shift 2 ;;
+    --cloud-host) setopt CLOUD_HOST "${2-}"; shift 2 ;;
     --pg-image) setopt PG_IMAGE "${2-}"; shift 2 ;;
     --rclone-image) setopt RCLONE_IMAGE "${2-}"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
@@ -137,6 +151,10 @@ done
   || refuse "${PROJECT} no es un staging: este script solo escribe en proyectos *-staging (el corte de la Fase 3 tiene su propio procedimiento)"
 [[ -z "${EXPECT_AUTH_USERS}" || "${EXPECT_AUTH_USERS}" =~ ^[0-9]+$ ]] || die "--expect-auth-users debe ser un entero"
 [[ "${RESTORE_USER}" =~ ^[a-z_][a-z0-9_]*$ ]] || die "--restore-user inválido"
+[[ -z "${CLOUD_USER}${CLOUD_HOST}" || ( -n "${CLOUD_USER}" && -n "${CLOUD_HOST}" ) ]] \
+  || die "--cloud-user y --cloud-host van juntos"
+[[ -z "${CLOUD_USER}" || "${CLOUD_USER}" =~ ^[a-z_][a-z0-9_.]*$ ]] || die "--cloud-user inválido: '${CLOUD_USER}'"
+[[ -z "${CLOUD_HOST}" || "${CLOUD_HOST}" =~ ^[A-Za-z0-9.-]+$ ]] || die "--cloud-host inválido: '${CLOUD_HOST}'"
 PROJECT_DIR="${PROJECT_DIR:-/srv/${PROJECT}}"
 EVIDENCE="${EVIDENCE:-/srv/ops/evidencias/import-${PROJECT}-${stamp}.txt}"
 mkdir -p "$(dirname "${EVIDENCE}")"
@@ -169,7 +187,14 @@ cleanup() {
     rm -rf -- "${work}"
   fi
 }
-trap cleanup EXIT
+# Dentro de tmux, la sesión se cierra cuando el script termina y con ella el
+# resultado en pantalla: se espera un Enter antes de salir (también si falló).
+pause_in_tmux() {
+  if [[ -n "${TMUX:-}" ]] && { : < /dev/tty; } 2>/dev/null; then
+    read -r -p "Terminó. Revisa el resultado de arriba y pulsa Enter para cerrar. " _ < /dev/tty || true
+  fi
+}
+trap 'cleanup; pause_in_tmux' EXIT
 # Sin trap propio para INT/TERM/HUP a propósito: con trap, bash espera a que
 # termine el docker run en curso antes de atender la señal; sin él, muere en el
 # acto y el trap de EXIT igual limpia (probado en el VPS, SDD-0505).
@@ -226,10 +251,41 @@ describe_input() { # $1 = lo recibido, $2 = url | clave
   [[ "${s}" =~ [[:space:]] ]] && d="${d}; tiene espacios o saltos de línea en el medio (¿se copiaron dos líneas?)"
   printf '%s' "${d}"
 }
-read -rs -p "Cadena de conexión de Cloud (Session pooler, postgresql://…:5432/postgres): " PROD_DB_URL < "${tty_in}"; echo
-PROD_DB_URL="$(trim "${PROD_DB_URL}")"
-if ! [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://[^[:space:]]+$ ]] || [[ "${PROD_DB_URL}" == *"[YOUR-PASSWORD]"* ]]; then
-  die "la cadena no parece una URL de Postgres: $(describe_input "${PROD_DB_URL}" url)"
+# Percent-encoding de la contraseña para la URL (RFC 3986: solo pasan sin tocar
+# letras, dígitos y -._~). Byte a byte con LC_ALL=C, así una ñ o una tilde
+# salen como sus bytes UTF-8. Sin subprocesos: el valor no pasa por `ps`.
+urlencode() {
+  local LC_ALL=C s="$1" out="" c i
+  for (( i = 0; i < ${#s}; i++ )); do
+    c="${s:i:1}"
+    case "${c}" in
+      [A-Za-z0-9._~-]) out+="${c}" ;;
+      *) printf -v c '%%%02X' "'${c}"; out+="${c}" ;;
+    esac
+  done
+  printf '%s' "${out}"
+}
+BRACKETS_HINT="empieza con [ y termina con ]: esos corchetes son los de [YOUR-PASSWORD] en el panel de Supabase, no van; pega solo la contraseña"
+if [[ -n "${CLOUD_USER}" ]]; then
+  read -rs -p "Contraseña de la base de Cloud (solo la contraseña, sin corchetes; no se ve al pegar, Enter al final): " CLOUD_DB_PASSWORD < "${tty_in}"; echo
+  CLOUD_DB_PASSWORD="$(trim "${CLOUD_DB_PASSWORD}")"
+  [[ -n "${CLOUD_DB_PASSWORD}" && ! "${CLOUD_DB_PASSWORD}" =~ [[:space:]] ]] \
+    || die "la contraseña no llegó bien: $(describe_input "${CLOUD_DB_PASSWORD}" clave)"
+  [[ "${CLOUD_DB_PASSWORD}" == postgres://* || "${CLOUD_DB_PASSWORD}" == postgresql://* ]] \
+    && die "llegó una cadena postgresql:// entera: aquí va SOLO la contraseña"
+  [[ "${CLOUD_DB_PASSWORD}" == "["*"]" ]] && die "la contraseña ${BRACKETS_HINT}"
+  echo "contraseña recibida (${#CLOUD_DB_PASSWORD} caracteres)"
+  PROD_DB_URL="postgresql://${CLOUD_USER}:$(urlencode "${CLOUD_DB_PASSWORD}")@${CLOUD_HOST}:5432/postgres"
+  unset CLOUD_DB_PASSWORD
+else
+  read -rs -p "Cadena de conexión de Cloud (Session pooler, postgresql://…:5432/postgres): " PROD_DB_URL < "${tty_in}"; echo
+  PROD_DB_URL="$(trim "${PROD_DB_URL}")"
+  if ! [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://[^[:space:]]+$ ]] || [[ "${PROD_DB_URL}" == *"[YOUR-PASSWORD]"* ]]; then
+    die "la cadena no parece una URL de Postgres: $(describe_input "${PROD_DB_URL}" url)"
+  fi
+  if [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://[^:@/]+:\[[^@]*\]@ ]]; then
+    die "la contraseña de la cadena ${BRACKETS_HINT} (o usa --cloud-user/--cloud-host y pega solo la contraseña)"
+  fi
 fi
 # Eco sin la contraseña, para que quien la pegó confirme que es la correcta.
 if [[ "${PROD_DB_URL}" =~ ^postgres(ql)?://([^:@/]+)(:[^@]*)?@([^/:?]+)(:([0-9]+))?/([^?]*) ]]; then

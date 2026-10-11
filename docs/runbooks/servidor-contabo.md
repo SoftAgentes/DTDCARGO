@@ -378,9 +378,10 @@ Garantías:
 - **Nada pasa por la laptop.** El dump sale de Cloud al VPS y se escribe en
   `/dev/shm` (memoria); un trap lo borra al salir, también si falla o se corta
   la sesión, y al final se comprueba que no quedó nada.
-- **Credenciales sin rastro.** La cadena de conexión (Session pooler, puerto
-  5432) y la access key S3 **temporal** de Cloud (Storage › S3 Connection) se
-  piden con `read -s`; viajan a los contenedores por entorno. La única
+- **Credenciales sin rastro.** La contraseña de la base (o la cadena entera del
+  Session pooler, puerto 5432) y la access key S3 **temporal** de Cloud
+  (Storage › S3 Connection) se piden con `read -s`; viajan a los contenedores
+  por entorno. La única
   excepción: `supabase db dump` solo acepta `--db-url`, así que mientras dura el
   dump la cadena se ve en `ps` del VPS (solo root entra). Recomendación: rotar
   la contraseña de la base de Cloud al cerrar el ensayo.
@@ -430,12 +431,27 @@ grep " supabase_${V}_linux_amd64.deb\$" checksums.txt | sha256sum -c - && dpkg -
 rm -f supabase_${V}_linux_amd64.deb checksums.txt
 ```
 
-El ensayo, desde la terminal de Sam:
+El ensayo, desde la terminal de Sam (la llave sale del agente de Windows):
 
 ```bash
-ssh -t -i ~/.ssh/contabo root@217.216.54.70 \
-  /srv/ops/migrate/import-from-cloud.sh --project dtd-cargo-staging --expect-auth-users 297
+ssh -t -o ServerAliveInterval=15 -o ServerAliveCountMax=8 root@217.216.54.70 tmux new -A -s traslado /srv/ops/migrate/import-from-cloud.sh --project dtd-cargo-staging --cloud-user postgres.xpfuzqombmjmxvprjgmi --cloud-host aws-1-us-east-1.pooler.supabase.com
 ```
+
+- **Solo la contraseña.** Con `--cloud-user` y `--cloud-host` el script pide
+  únicamente la contraseña de la base: sin corchetes y sin la cadena. Arma la
+  URL y codifica los caracteres especiales. Una contraseña entre `[ ]` (los
+  corchetes del `[YOUR-PASSWORD]` del panel) se rechaza con la explicación.
+- **Dentro de `tmux`.** El 2026-10-11 la conexión de la casa se cortó sola con
+  el SSH quieto («client_loop: send disconnect: Connection reset»). Lo que Sam
+  pegó después fue a PowerShell, que lo mostró y lo guardó en su historial.
+  Con `tmux`, el script sigue esperando aunque se caiga el SSH.
+- **Si aparece `Connection reset` o `Connection closed`, no pegues nada.**
+  Vuelve a correr el mismo comando: `tmux new -A` te devuelve a la misma
+  pregunta. Si ya se pegó en PowerShell, borra esas líneas de
+  `%APPDATA%\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt`
+  y cierra la pestaña.
+- Al terminar, el script espera un Enter para que el resultado no desaparezca
+  con la sesión de `tmux`. La evidencia queda igual en `/srv/ops/evidencias/`.
 
 Después del restore, a mano y con su conteo en el handoff:
 

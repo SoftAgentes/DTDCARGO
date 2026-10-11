@@ -290,7 +290,17 @@ echo "$URL" | $IMP --evidence $T/imp-guard.txt > $T/imp1.log 2>&1; rc=$?
 [ $rc -eq 3 ] && grep -q 'ya tiene' $T/imp1.log && ok "staging no vacío: rechaza (3)" || { ko "guarda de staging vacío rc=$rc"; tail -3 $T/imp1.log; }
 asadmin c4i-staging-db -c "drop table public.sobra"
 bash $S/migrate/import-from-cloud.sh --project dtd-cargo --skip-storage < /dev/null > /dev/null 2>&1; [ $? -eq 3 ] && ok "proyecto de producción: rechaza (3)" || ko "producción no rechazada"
-echo "$URL" | $IMP --evidence $T/imp-evidencia.txt > $T/imp2.log 2>&1; rc=$?
+# Modo contraseña (--cloud-user/--cloud-host), el que usa Sam: tres pegados mal
+# hechos se rechazan antes de conectar, y el bueno arma la cadena.
+CP="--cloud-user postgres --cloud-host $CIP"
+printf '[%s]\n' "$PW3" | $IMP $CP --evidence $T/imp-guard.txt > $T/imp-b1.log 2>&1; rc=$?
+[ $rc -eq 2 ] && grep -q 'corchetes' $T/imp-b1.log && ! grep -q "$PW3" $T/imp-b1.log && ok "contraseña entre corchetes: rechaza (2), lo explica y no la muestra" || { ko "contraseña entre corchetes rc=$rc"; tail -2 $T/imp-b1.log; }
+echo "postgresql://postgres:[$PW3]@$CIP:5432/postgres" | $IMP --evidence $T/imp-guard.txt > $T/imp-b2.log 2>&1; rc=$?
+[ $rc -eq 2 ] && grep -q 'corchetes' $T/imp-b2.log && ok "cadena con la contraseña entre corchetes: rechaza (2)" || { ko "cadena con corchetes rc=$rc"; tail -2 $T/imp-b2.log; }
+echo "$URL" | $IMP $CP --evidence $T/imp-guard.txt > $T/imp-b3.log 2>&1; rc=$?
+[ $rc -eq 2 ] && grep -q 'SOLO la contraseña' $T/imp-b3.log && ok "cadena entera donde va la contraseña: rechaza (2)" || { ko "cadena en modo contraseña rc=$rc"; tail -2 $T/imp-b3.log; }
+echo "$PW3" | $IMP $CP --evidence $T/imp-evidencia.txt > $T/imp2.log 2>&1; rc=$?
+grep -q "contraseña recibida (${#PW3} caracteres)" $T/imp2.log && grep -q "cadena recibida: postgres@$CIP:5432/postgres" $T/imp2.log && ok "modo contraseña: arma la cadena y la confirma sin mostrarla" || ko "modo contraseña: $(grep -E 'recibida' $T/imp2.log | head -2)"
 echo "   import salió $rc"; sed 's/^/   /' $T/imp2.log | grep -vE '^   $' | tail -40
 [ $rc -eq 0 ] && ok "import-from-cloud: todas sus comprobaciones PASÓ" || ko "import-from-cloud salió $rc"
 SQ() { docker exec c4i-staging-db psql -U supabase_admin -h localhost -d postgres -Atc "$1" 2>&1; }
@@ -300,6 +310,7 @@ SQ() { docker exec c4i-staging-db psql -U supabase_admin -h localhost -d postgre
   && ok "cron: 1 job recreado, inactivo, con el usuario de Cloud" || ko "cron: $(SQ "select count(*)::text || ':' || count(*) filter (where active)::text || ':' || coalesce(string_agg(username, ','), '-') from cron.job")"
 echo "   grants de tenants en Cloud: $(asadmin c4-cloud-db -c "select string_agg(grantee || '=' || privilege_type, ',' order by 1) from information_schema.role_table_grants where table_schema='public' and table_name='tenants' and grantee in ('anon','authenticated')") · staging: $(SQ "select string_agg(grantee || '=' || privilege_type, ',' order by 1) from information_schema.role_table_grants where table_schema='public' and table_name='tenants' and grantee in ('anon','authenticated')")"
 grep -qE "$PW3|$MARK" $T/imp-evidencia.txt && ko "la evidencia tiene la contraseña o un dato personal" || ok "la evidencia no tiene contraseña ni datos personales"
+grep -q "$PW3" $T/imp2.log && ko "la salida del import muestra la contraseña" || ok "la salida del import no muestra la contraseña"
 [ "$(ls -A /dev/shm | grep -c '^import-c4')" = 0 ] && ok "import no dejó nada en /dev/shm" || ko "quedó import-* en /dev/shm"
 echo "   vault tras el import: $(SQ "select count(*) from vault.secrets") secretos · legibles $(SQ "select count(*) from vault.decrypted_secrets where decrypted_secret is not null")"
 ID0=$(SQ "select id from vault.secrets where name = 'kommo_cron_key'")
