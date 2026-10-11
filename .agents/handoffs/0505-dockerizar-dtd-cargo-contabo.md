@@ -145,6 +145,27 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
 - **Intentos de importación (2026-10-09/11):** seis sesiones llegaron a la pregunta de la cadena y ninguna pasó de ahí. Tres veces rechazó lo pegado («no parece una URL de Postgres»: salto de línea, pegado vacío o pegado en la terminal de la app); `4f382bb5` limpia la entrada y explica qué llegó sin mostrar la contraseña. Las otras sesiones se cerraron sin recibir nada. Ninguna leyó producción: las evidencias (`/srv/ops/evidencias/import-dtd-cargo-staging-*.txt`) terminan en «0/6 staging vacío». El 2026-10-11 a las 02:26 UTC quedó abierta otra sesión esperando a Sam.
 - **`functions` detenido (2026-10-11):** el contenedor estaba en `Exited (15)` desde el 2026-10-09 21:42 UTC. Se paró junto al gateway mientras se esperaba el DNS y no volvió a arrancar. Se arrancó con `docker start` y quedó `healthy`.
 
+## Fase 2 · web del staging (2026-10-11, sin datos todavía)
+
+- **Imagen:** `dtdcargo:staging-5b2231b8`, construida **en el VPS** desde `git archive 5b2231b8` (el workflow de GHCR solo corre desde `main`, y la PR no está fusionada). Build args: `NEXT_PUBLIC_SUPABASE_URL=https://supabase-staging.dtdcargo.com`, `NEXT_PUBLIC_SITE_URL=https://staging.dtdcargo.com`, la anon key del staging y `NEXT_PUBLIC_BUILD_SHA`. Imagen local, sin publicar en ningún registro; la copia del código se borró al terminar y queda el log `/srv/build/build-5b2231b8.log`. **Es una excepción a «nunca construir en el servidor»**: hoy el VPS no tiene producción. Con producción ahí, la imagen sale de GHCR.
+- **Comprobado:** dentro del contenedor, 1 archivo de `.next/static` con `supabase-staging.dtdcargo.com` y 0 con el proyecto de producción (`xpfuzqombmjmxvprjgmi` o `supabase.dtdcargo.com`), en el cliente y en el servidor. La CSP permite `https://` y `wss://supabase-staging.dtdcargo.com`.
+- **Arriba:** `web` con `up -d --no-deps web`: `healthy` y 141 MiB. **`cron` sigue apagado**: con datos de producción, los drains escribirían a clientes reales si alguna integración tuviera clave, y hoy hay 0 claves de integración en el `.env` del staging.
+- **Defecto encontrado:** la regla del web incluye `www.${DTD_WEB_HOST}`. En staging no hay DNS para `www.staging.dtdcargo.com` y Let's Encrypt rechazó el certificado entero (un intento fallido, 02:47 UTC). `compose.staging.yml` ahora deja el router del web solo con `Host(${DTD_WEB_HOST})`. El certificado salió a las 02:50 UTC y vence el 2027-01-09.
+- **Smoke desde la laptop (IP permitida):**
+
+  | Ruta | Respuesta |
+  |---|---|
+  | `/robots.txt` | 200 |
+  | `/` | 200 |
+  | `/tarifas` | 200 |
+  | `/m` | 200 |
+  | `/studio` | 307 a `/studio/login` |
+  | `/portal` | 307 a `/entrar` |
+  | `/api/debug/health` | 401 |
+
+  Desde el VPS: 403. Sin errores en el log del web.
+- **A mirar en los smokes con datos:** el router del web aplica `buffering` (`<proyecto>-web-body`) a toda la app, y `infra/ops/traefik/dynamic/middlewares.yml` advierte que ese middleware también almacena las respuestas. Hay que medir si el streaming de RSC llega por partes o de una vez (NO VERIFICADO).
+
 ## DR · permisos de public (2026-10-11, pendiente propio de la tarea)
 
 El riesgo anotado como NO VERIFICADO se midió y se cerró, con datos sintéticos en el VPS:
