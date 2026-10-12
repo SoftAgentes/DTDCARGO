@@ -323,7 +323,7 @@ tomado en ese tiempo se lleva la copia y vive 30 días fuera de nuestro control)
    Ninguno de los secretos demo del compose oficial, que son públicos. Para
    staging, con `--set`: los hosts `staging.dtdcargo.com` y
    `supabase-staging.dtdcargo.com`, `APP_ENV=staging`, `DTD_DATA_DIR`,
-   `DISABLE_SIGNUP=true` y `STAGING_ALLOWED_IPS` (las IP que pueden entrar);
+   `DISABLE_SIGNUP=true`, `STAGING_ALLOWED_IPS` (las IP de las personas que pueden entrar) y `STAGING_INTERNAL_IPS` (la puerta de enlace de `dtd_edge`, p. ej. `172.18.0.1/32`: por ahí llegan las llamadas del propio web a Supabase; sin ella, todo lo que la app pide desde el servidor da 403);
    las claves `STORAGE_S3_*` quedan como marca con `--allow-placeholder`
    (Storage en archivos).
 
@@ -335,7 +335,7 @@ tomado en ese tiempo se lleva la copia y vive 30 días fuera de nuestro control)
    en producción `dtd-cargo-*`), así que staging y producción pueden convivir
    detrás del mismo Traefik. La IP de la casa de Sam **cambia** (el 2026-10-11
    pasó de `187.13.210.51` a `187.13.209.203`): si el staging responde 403 desde
-   la laptop, compara `STAGING_ALLOWED_IPS` con la IP actual
+   la laptop, compara `STAGING_ALLOWED_IPS` (solo esa; `STAGING_INTERNAL_IPS` no se toca) con la IP actual
    (`echo ${SSH_CLIENT%% *}` dentro del VPS), reemplázala (no la sumes: la vieja
    puede tenerla otro cliente del proveedor) y recrea `api-gw` con
    `up -d --no-deps api-gw`. **El gateway

@@ -29,4 +29,12 @@ services:
   api-gw:
     labels:
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.middlewares=security-headers@file,${COMPOSE_PROJECT_NAME}-staging-allow@docker"
-      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-staging-allow.ipallowlist.sourcerange=${STAGING_ALLOWED_IPS:?STAGING_ALLOWED_IPS falta en .env (CIDR separados por comas)}"
+      # Dos listas: las IP de las personas (cambian: la de la casa de Sam cambió tres
+      # veces entre el 2026-10-09 y el 12) y la puerta de enlace de la red edge.
+      # Por esa puerta llegan las llamadas que el propio servidor web le hace a
+      # Supabase por la URL pública. Sin ella, todo lo que la app pide desde el
+      # servidor recibe 403: medido el 2026-10-12, la calculadora de /tarifas daba
+      # «RPC error: Forbidden» y Traefik veía 172.18.0.1. Esa dirección solo puede
+      # salir de dentro del VPS. Se obtiene con
+      # `docker network inspect dtd_edge --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}'`.
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-staging-allow.ipallowlist.sourcerange=${STAGING_ALLOWED_IPS:?STAGING_ALLOWED_IPS falta en .env (CIDR separados por comas)},${STAGING_INTERNAL_IPS:?STAGING_INTERNAL_IPS falta en .env (puerta de enlace de dtd_edge, p. ej. 172.18.0.1/32)}"

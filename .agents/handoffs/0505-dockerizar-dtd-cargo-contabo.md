@@ -200,6 +200,11 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   - Copiar los archivos de Storage: 638 objetos, unos 445 MB. Necesita las claves S3 temporales y un modo «solo Storage», porque el import exige un staging vacío.
   - Los smokes con datos.
   - Destruir el staging al cerrar (§2.6).
+- **Web del staging con datos (2026-10-12):**
+  - `/`, `/tarifas`, `/m`, `/studio/login` y `/entrar` dan 200 desde la laptop.
+  - Defecto encontrado: la calculadora registraba `RPC error: Forbidden` en `getPublicCalculatorConfig`, `getPublicCbmRate`, `getPublicCarrierTariffs` y `getPublicCalculatorCities`. El servidor web llama a Supabase por la URL pública, y la allowlist del staging lo bloqueaba: Traefik ve esas llamadas desde `172.18.0.1`, la puerta de enlace de `dtd_edge`, medido con whoami. Afectaba a todo lo que la app pide desde el servidor, Studio incluido.
+  - Arreglo: `compose.staging.yml` suma `STAGING_INTERNAL_IPS` a la lista, separada de `STAGING_ALLOWED_IPS` para que no se pierda cuando cambie la IP de Sam. Después: desde el web 200, desde el host del VPS 403, y 0 errores en el log.
+  - La IP de Sam cambió otra vez (`187.13.209.203` → `187.13.209.212`) y se reemplazó en la allowlist.
 - **Fallos de la sesión de importación:** ahora quedan en la evidencia (`✗ intento N: …` y el corte de `die`), así se puede saber el motivo aunque la sesión de tmux ya se haya cerrado.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)
