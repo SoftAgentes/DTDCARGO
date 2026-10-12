@@ -205,6 +205,17 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   - Defecto encontrado: la calculadora registraba `RPC error: Forbidden` en `getPublicCalculatorConfig`, `getPublicCbmRate`, `getPublicCarrierTariffs` y `getPublicCalculatorCities`. El servidor web llama a Supabase por la URL pública, y la allowlist del staging lo bloqueaba: Traefik ve esas llamadas desde `172.18.0.1`, la puerta de enlace de `dtd_edge`, medido con whoami. Afectaba a todo lo que la app pide desde el servidor, Studio incluido.
   - Arreglo: `compose.staging.yml` suma `STAGING_INTERNAL_IPS` a la lista, separada de `STAGING_ALLOWED_IPS` para que no se pierda cuando cambie la IP de Sam. Después: desde el web 200, desde el host del VPS 403, y 0 errores en el log.
   - La IP de Sam cambió otra vez (`187.13.209.203` → `187.13.209.212`) y se reemplazó en la allowlist.
+- **Archivos de Storage: `storage-from-cloud.sh` (2026-10-12), probado antes de pedir las claves:**
+  - **El paso 4 de `import-from-cloud.sh` no habría copiado nada**, por dos causas medidas en el staging con un bucket de prueba:
+    1. El S3 del staging solo acepta la firma por la URL pública (`https://<host>/storage/v1/s3`); por `http://storage:5000/s3` y por `http://api-gw:8000/storage/v1/s3` da `SignatureDoesNotMatch`.
+    2. Con la fila de `storage.objects` ya restaurada y sin archivo, `rclone copy` normal transfiere 0: el S3 responde con los metadatos de la fila. Con `--ignore-times` copia todo y storage-api conserva `id`, `owner_id` y `created_at`; solo cambia `version`.
+  - **Script nuevo** (`infra/ops/migrate/storage-from-cloud.sh`, usa `infra/ops/lib/prompt.sh`):
+    - guardas: staging con la base importada y backend de archivos;
+    - el S3 del staging tiene que responder antes de pedir las claves; las claves de Cloud se prueban al llegar y se vuelven a pedir;
+    - copia con `--ignore-times` desde la red edge;
+    - verificación en el disco (`<raíz>/<GLOBAL_S3_BUCKET>/<TENANT_ID>/<bucket>/<nombre>/<version>`, disposición medida): por bucket, filas = objetos de Cloud, filas sin archivo = 0 y bytes de Cloud = bytes en disco; además, mimetypes iguales antes y después, y huella de id, dueño y fecha igual.
+  - **Prueba** (`infra/ops/tests/prueba-storage-from-cloud.sh`, Cloud falso con rclone serve s3): **8 PASÓ · 0 FALLÓ**. Los 16 buckets y las 638 filas reales quedaron intactos.
+  - **Pendiente:** el paso 4 de `import-from-cloud.sh` tiene los dos defectos; pasarlo a este script (o quitarlo) antes del corte.
 - **Fallos de la sesión de importación:** ahora quedan en la evidencia (`✗ intento N: …` y el corte de `die`), así se puede saber el motivo aunque la sesión de tmux ya se haya cerrado.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)
