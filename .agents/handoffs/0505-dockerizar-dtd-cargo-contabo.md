@@ -169,6 +169,18 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   - **Arreglo:** `classify_pg_error` dice la causa sin mostrar secretos: contraseña incorrecta, usuario o proyecto no reconocido por el pooler, o red/bloqueo (Network bans). Si no es ninguna de esas, muestra la línea `FATAL`, que nombra host y usuario.
   - Prueba de integración: **69 PASÓ · 0 FALLÓ**. Desplegado; el sha256 coincide con el repo.
   - Sobre el reseteo de la contraseña: el código de la app no la lee (`DATABASE_URL` era del Payload retirado; `env-status.ts` solo muestra si está puesta). No se leyeron las variables de Vercel, para no traer valores a la conversación.
+- **Cuarto intento (2026-10-12):**
+  - Sam reseteó la contraseña de la base en el panel (los tres intentos previos dieron `password authentication failed`; *Network bans* vacío) y la nueva entró.
+  - Conteos de Cloud: auth.users 305 · storage.buckets 16 · storage.objects 638 · cron.job 3 · vault.secrets 2 · ledger 477 · 266 tablas en public.
+  - El restore abortó en `data.sql:1515` con `relation "auth.mfa_recovery_code_sets" does not exist`. Era una sola transacción: no quedó nada en el staging.
+  - **Causa:** el esquema de Auth y Storage del staging era más viejo que el de Cloud. Auth: 77 migraciones (última 20260625000000) contra 82 (última 20260831180000). Storage: 69 contra 72.
+  - **Arreglo:** `supabase/gotrue:v2.197.0` (su última migración es 20260831180000) y `supabase/storage-api:v1.77.6` (último parche que termina en la 0072; la 0073 llega en v1.77.7), en `compose.supabase.yml` y en la plantilla.
+  - Aplicado al staging recreando `auth` y `storage`: los dos `healthy`, y GoTrue aplicó 5 migraciones.
+  - **Comparación por catálogo (solo nombres de tabla y columna, tipos calificados por esquema):**
+    - Auth y Storage del staging iguales a Cloud, más dos tablas vacías `storage.iceberg_*` que solo tiene el staging.
+    - El volcado de datos de la CLI 2.118.0 incluye `auth`, `storage`, `supabase_functions` y los esquemas propios, y excluye `realtime`, `vault`, `extensions` y `graphql` (`apps/cli-go/pkg/migration/dump.go`).
+    - Extensiones: Cloud tiene `pg_cron`, `hypopg` e `index_advisor`, que el staging tiene disponibles sin instalar. La prueba de integración cubre `pg_cron` con el mismo caso.
+  - **Pendiente:** una guarda en el import que compare las versiones de auth y storage antes del volcado.
 - **`functions` detenido (2026-10-11):** el contenedor estaba en `Exited (15)` desde el 2026-10-09 21:42 UTC. Se paró junto al gateway mientras se esperaba el DNS y no volvió a arrancar. Se arrancó con `docker start` y quedó `healthy`.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)

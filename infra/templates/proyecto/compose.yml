@@ -211,7 +211,7 @@ services:
       - "traefik.http.services.${PROYECTO}-supabase.loadbalancer.serverstransport=slow-300s@file"
 
   auth:
-    image: supabase/gotrue:v2.196.0
+    image: supabase/gotrue:v2.197.0
     restart: unless-stopped
     logging: *logging
     networks:
@@ -302,7 +302,7 @@ services:
           memory: 256m
 
   storage:
-    image: supabase/storage-api:v1.74.0
+    image: supabase/storage-api:v1.77.6
     restart: unless-stopped
     logging: *logging
     networks:

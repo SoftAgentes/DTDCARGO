@@ -17,8 +17,8 @@ Lo que trae:
 
 Supabase viene del compose oficial (`supabase/supabase@4205c41`, `docker/`,
 2026-10-08) con las imágenes fijadas: `supabase/postgres:17.6.1.136`,
-`envoyproxy/envoy:v1.39.1`, `supabase/gotrue:v2.196.0`, `postgrest/postgrest:v14.17`,
-`supabase/storage-api:v1.74.0`, `darthsim/imgproxy:v3.31.4`,
+`envoyproxy/envoy:v1.39.1`, `supabase/gotrue:v2.197.0`, `postgrest/postgrest:v14.17`,
+`supabase/storage-api:v1.77.6`, `darthsim/imgproxy:v3.31.4`,
 `supabase/postgres-meta:v0.99.0`; perfiles: `supabase/realtime:v2.134.10`,
 `supabase/edge-runtime:v1.76.2`, `supabase/studio:2026.09.07-sha-7996410`. Fuera:
 Supavisor, Logflare, Vector. Las reglas (sin `container_name`, sin puertos, tags
