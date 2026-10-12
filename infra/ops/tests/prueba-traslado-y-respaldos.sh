@@ -312,6 +312,7 @@ printf '%s\nk1\n\nk2\ns2\n' "$PW3" | CLOUD_S3_ENDPOINT=http://c4-s3:8080 $IMPS $
 printf '[%s]\nmala-%s\n%s\n' "$PW3" "$PW3" "$PW3" | $IMP $CP --evidence $T/imp-evidencia.txt > $T/imp2.log 2>&1; rc=$?
 grep -q 'corchetes' $T/imp2.log && grep -q 'Cloud no aceptó la conexión' $T/imp2.log && grep -q 'conexión a Cloud: OK' $T/imp2.log \
   && ok "contraseña: rechaza corchetes, prueba la conexión y vuelve a pedir hasta que entra" || ko "reintentos de contraseña: $(grep -E '✗|OK' $T/imp2.log | head -3)"
+grep -q 'la contraseña no es la de la base' $T/imp2.log && ! grep -q "mala-$PW3" $T/imp2.log && ok "contraseña equivocada: dice que es la contraseña (no la red) y no la muestra" || ko "diagnóstico de la contraseña: $(grep -E 'no aceptó' $T/imp2.log | head -1)"
 grep -q "contraseña recibida (${#PW3} caracteres)" $T/imp2.log && grep -q "cadena recibida: postgres@$CIP:5432/postgres" $T/imp2.log && ok "modo contraseña: arma la cadena y la confirma sin mostrarla" || ko "modo contraseña: $(grep -E 'recibida' $T/imp2.log | head -2)"
 echo "   import salió $rc"; sed 's/^/   /' $T/imp2.log | grep -vE '^   $' | tail -40
 [ $rc -eq 0 ] && ok "import-from-cloud: todas sus comprobaciones PASÓ" || ko "import-from-cloud salió $rc"

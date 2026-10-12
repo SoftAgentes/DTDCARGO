@@ -278,6 +278,23 @@ ask_secret() { # $1 = pregunta, $2 = variable; sin eco, recortado; 1 si no hay m
   echo
   printf -v "$2" '%s' "$(trim "${v}")"
 }
+# Por qué Cloud rechazó la conexión, sin mostrar ningún secreto: psql nombra el
+# host y el usuario, nunca la contraseña. Medido el 2026-10-11: dos rechazos
+# seguidos sin saber si era la contraseña, la red o un bloqueo.
+classify_pg_error() { # $1 = stderr de psql
+  local e="$1" fatal
+  fatal="$(grep -oE '(FATAL|ERROR): .*' <<< "${e}" | head -n 1 | cut -c1-140 || true)"
+  case "${e}" in
+    *"password authentication failed"*)
+      printf '%s' "la contraseña no es la de la base: si la reseteaste, va la nueva, sin corchetes [${fatal}]" ;;
+    *"Tenant or user not found"*)
+      printf '%s' "el pooler no reconoce el usuario o el proyecto: revisa --cloud-user y la región de --cloud-host [${fatal}]" ;;
+    *"timeout"*|*"timed out"*|*"could not connect"*|*"Connection refused"*|*"No route"*|*"could not translate"*)
+      printf '%s' "no hay conexión de red con Cloud: ¿la IP del VPS quedó bloqueada en Supabase › Database › Network bans?" ;;
+    *)
+      printf '%s' "${fatal:-$(head -n 1 <<< "${e}" | cut -c1-140)}" ;;
+  esac
+}
 retry_or_die() { # $1 = intento, $2 = problema, $3 = qué hacer
   echo "✗ $2"
   (( $1 < MAX_TRIES )) || die "$2 (${MAX_TRIES} intentos)"
@@ -317,11 +334,11 @@ for (( try = 1; ; try++ )); do
       echo "cadena recibida: ${BASH_REMATCH[2]}@${BASH_REMATCH[4]}:${BASH_REMATCH[6]:-5432}/${BASH_REMATCH[7]} (contraseña oculta, ${#PROD_DB_URL} caracteres)"
     fi
     export PROD_DB_URL
-    if cloud_sql "select 1" >/dev/null 2>&1; then
+    if cloud_err="$(cloud_sql "select 1" 2>&1 >/dev/null)"; then
       echo "conexión a Cloud: OK"
       break
     fi
-    problem="Cloud no aceptó la conexión (¿contraseña vigente? si la reseteaste, va la nueva)"
+    problem="Cloud no aceptó la conexión: $(classify_pg_error "${cloud_err}")"
   fi
   retry_or_die "${try}" "${problem}" "Pega de nuevo SOLO lo que se pide y pulsa Enter"
 done

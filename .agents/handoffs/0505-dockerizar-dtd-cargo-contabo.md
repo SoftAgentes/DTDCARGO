@@ -163,6 +163,12 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   - **Arreglo:** cada credencial se prueba apenas llega (la base con `select 1`, Storage con `rclone lsd`; `ListBuckets` figura soportado en la tabla de compatibilidad S3 de Supabase) y, si no sirve, se vuelve a pedir hasta 3 veces sin perder lo anterior.
   - Prueba de integración: **68 PASÓ · 0 FALLÓ**. Casos nuevos: reintento de contraseña (corchetes, luego mala, luego buena) y claves S3 vacías o rechazadas por el S3 falso, cortando sin copiar nada.
   - Desplegado en `/srv/ops`; el sha256 coincide con el repo.
+- **Tercer intento (2026-10-11 04:16 UTC):**
+  - Dos contraseñas de 10 caracteres; Cloud rechazó las dos («no aceptó la conexión», sin saber por qué). La sesión quedó esperando el intento 3 hasta el 2026-10-12, cuando el Worker la cerró. Nada leído de producción.
+  - Medido el 2026-10-12 desde el VPS, sin credenciales: el DNS del pooler resuelve, TCP 5432 y 6543 abren y `pg_isready` responde «accepting connections». No es la red: es la autenticación, o un bloqueo de Supabase que solo se ve en el panel.
+  - **Arreglo:** `classify_pg_error` dice la causa sin mostrar secretos: contraseña incorrecta, usuario o proyecto no reconocido por el pooler, o red/bloqueo (Network bans). Si no es ninguna de esas, muestra la línea `FATAL`, que nombra host y usuario.
+  - Prueba de integración: **69 PASÓ · 0 FALLÓ**. Desplegado; el sha256 coincide con el repo.
+  - Sobre el reseteo de la contraseña: el código de la app no la lee (`DATABASE_URL` era del Payload retirado; `env-status.ts` solo muestra si está puesta). No se leyeron las variables de Vercel, para no traer valores a la conversación.
 - **`functions` detenido (2026-10-11):** el contenedor estaba en `Exited (15)` desde el 2026-10-09 21:42 UTC. Se paró junto al gateway mientras se esperaba el DNS y no volvió a arrancar. Se arrancó con `docker start` y quedó `healthy`.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)
