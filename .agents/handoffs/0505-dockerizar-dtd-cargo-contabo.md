@@ -228,6 +228,11 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
     - La app no se entera: `app/marca/doc/[...ruta]/route.ts` fija el `Content-Type` por la extensión (`tipoDeContenido(nombre)`).
     - El script ahora cuenta HTML como texto e informa el cambio aparte. La prueba con Cloud falso sigue en 8 PASÓ · 0 FALLÓ.
     - Comparado contra Cloud por catálogo (solo tipos y conteos): Cloud `text/html` 74 + `text/plain` 3 = staging `text/plain` 77; el resto, igual.
+- **Clave S3 temporal revocada (2026-10-12, ~19:15 UTC):**
+  - Sam borró «traslado-vps» en el panel. El Worker lo verificó en *Storage › S3 › Access keys*: «No access keys created».
+  - La evidencia del script había registrado a las 19:12:15Z unas flechas del teclado como respuesta. Se agregó una línea `VERIFICADO` a la evidencia, y el script ahora solo acepta «revocada» o «pendiente».
+  - Prueba con Cloud falso: 8 PASÓ · 0 FALLÓ.
+  - Recomendado a Sam: borrar las claves y la contraseña nueva de la base del Bloc de notas y guardar la contraseña en un gestor.
 - **Fallos de la sesión de importación:** ahora quedan en la evidencia (`✗ intento N: …` y el corte de `die`), así se puede saber el motivo aunque la sesión de tmux ya se haya cerrado.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)

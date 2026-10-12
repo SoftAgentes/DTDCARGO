@@ -278,7 +278,15 @@ work=""
 check "nada quedó en ${WORK_ROOT}" "0" "$(find "${WORK_ROOT}" -maxdepth 1 -name "storage-${PROJECT}-*" | wc -l)"
 unset CLOUD_S3_KEY CLOUD_S3_SECRET RCLONE_CONFIG_CLOUD_ACCESS_KEY_ID RCLONE_CONFIG_CLOUD_SECRET_ACCESS_KEY
 log "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
-read -r -p "Revoca AHORA la access key S3 temporal en el panel de Supabase y escribe 'revocada': " answer < "${tty_in}" || answer=""
-log "claves S3 temporales: '${answer}' a las $(date -u +%H:%M:%SZ)"
+# Solo vale «revocada» o «pendiente». Medido el 2026-10-12: unas flechas del teclado
+# llegaron como respuesta («^[[B…») y quedaron en la evidencia como si fueran
+# la confirmación.
+answer=""
+until [[ "${answer}" == "revocada" || "${answer}" == "pendiente" ]]; do
+  read -r -p "Revoca AHORA la access key S3 temporal en el panel de Supabase y escribe 'revocada' (o 'pendiente'): " answer < "${tty_in}" || { answer="sin respuesta"; break; }
+  answer="$(trim "${answer}")"
+  answer="${answer//[^a-z ]/}"
+done
+log "claves S3 temporales: ${answer} a las $(date -u +%H:%M:%SZ)"
 log "evidencia: ${EVIDENCE} (solo cifras y nombres de bucket)."
 (( fail == 0 )) || exit 7
