@@ -38,3 +38,31 @@ services:
       # salir de dentro del VPS. Se obtiene con
       # `docker network inspect dtd_edge --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}'`.
       - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-staging-allow.ipallowlist.sourcerange=${STAGING_ALLOWED_IPS:?STAGING_ALLOWED_IPS falta en .env (CIDR separados por comas)},${STAGING_INTERNAL_IPS:?STAGING_INTERNAL_IPS falta en .env (puerta de enlace de dtd_edge, p. ej. 172.18.0.1/32)}"
+
+  # Atrapa-correos del staging. Los usuarios del staging son los de producción
+  # (correos reales de clientes): ningún correo de Auth puede salir del VPS. GoTrue
+  # entrega en Mailpit, que no tiene salida a internet (solo dtd_internal) ni
+  # puertos publicados. Para leerlo: su API en http://mailpit:8025 desde dentro de
+  # la red. Los correos de la app (Resend) quedan apagados porque RESEND_API_KEY
+  # está vacío en el .env del staging.
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+      MP_MAX_MESSAGES: "500"
+    networks:
+      - dtd_internal
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
+  auth:
+    environment:
+      GOTRUE_SMTP_HOST: mailpit
+      GOTRUE_SMTP_PORT: "1025"
+      GOTRUE_SMTP_ADMIN_EMAIL: staging@dtdcargo.com
+      GOTRUE_SMTP_USER: ""
+      GOTRUE_SMTP_PASS: ""

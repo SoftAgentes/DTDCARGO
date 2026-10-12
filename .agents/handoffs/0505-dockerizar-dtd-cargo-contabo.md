@@ -233,6 +233,15 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   - La evidencia del script había registrado a las 19:12:15Z unas flechas del teclado como respuesta. Se agregó una línea `VERIFICADO` a la evidencia, y el script ahora solo acepta «revocada» o «pendiente».
   - Prueba con Cloud falso: 8 PASÓ · 0 FALLÓ.
   - Recomendado a Sam: borrar las claves y la contraseña nueva de la base del Bloc de notas y guardar la contraseña en un gestor.
+- **Pruebas de la fase A con datos (2026-10-12, staging), sin escribir en producción:**
+  - **Correo de Auth: 11 PASÓ · 0 FALLÓ.**
+    - Nuevo servicio `mailpit` (`axllent/mailpit:v1.31.3`) solo en `compose.staging.yml`: red `dtd_internal`, sin salida a internet (comprobado) y sin puertos. GoTrue entrega ahí porque los usuarios del staging son los de producción.
+    - Con un usuario de prueba creado y borrado por la API admin, llegaron el enlace de acceso («Tu enlace de acceso al portal · DTD Cargo», en español, `…/auth/v1/verify` con `redirect_to`) y la recuperación («Recupera el acceso a tu cuenta · DTD Cargo»).
+    - Abrir el enlace da 303 a `staging.dtdcargo.com/portal/callback` con sesión. Mailpit solo tuvo esos 2 correos. Quedan 305 usuarios.
+  - **Subida TUS y tiempo real: 9 PASÓ · 0 FALLÓ.** 12 MB en dos trozos de 6 MB por el host público en 0,6 s; la descarga es igual a lo subido (sha256). Bucket de prueba creado y borrado. `wss` por el host público: une al canal y el broadcast vuelve.
+  - **Crons: 19 de 19 con 200** contra `localhost:3000` con el Bearer, más 403 sin Bearer. Antes se comprobó que el web del staging tiene vacías todas las claves de integración (Resend, Telegram, VAPID, Anthropic, OpenRouter, SeaRates, Cloudflare, S3, DTD_API_KEY): nada salió a clientes.
+  - **Buffering de Traefik en el web:** las páginas públicas terminan en 11-184 ms, así que la medición no permite saber si las páginas lentas llegan por partes (NO CONCLUYENTE). Recomendación para la fase B: medirlo en una página lenta del Studio, o sacar `<proyecto>-web-body` del router y dejar el tope de 12 MB a Next.
+  - **Sesión de Sam en el Studio del staging:** 2 inicios de sesión, sin errores en web, auth, rest, realtime ni api-gw. Los 18 «404» de Storage eran de la limpieza del bucket de prueba.
 - **Fallos de la sesión de importación:** ahora quedan en la evidencia (`✗ intento N: …` y el corte de `die`), así se puede saber el motivo aunque la sesión de tmux ya se haya cerrado.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)
