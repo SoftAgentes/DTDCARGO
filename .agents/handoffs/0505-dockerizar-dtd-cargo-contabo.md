@@ -183,6 +183,25 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   - **Pendiente:** una guarda en el import que compare las versiones de auth y storage antes del volcado.
 - **`functions` detenido (2026-10-11):** el contenedor estaba en `Exited (15)` desde el 2026-10-09 21:42 UTC. Se paró junto al gateway mientras se esperaba el DNS y no volvió a arrancar. Se arrancó con `docker start` y quedó `healthy`.
 
+## Fase 2 · traslado de la base al staging (2026-10-12) · PASÓ
+
+- **Corrida:** `import-from-cloud.sh --project dtd-cargo-staging --skip-storage --cloud-user postgres.xpfuzqombmjmxvprjgmi --cloud-host aws-1-us-east-1.pooler.supabase.com`, dentro de `tmux`, lanzada desde la pestaña de Sam. Sam pegó la contraseña nueva (la había reseteado en el panel ese día). El intento 1 rechazado (`password authentication failed`, la anterior) y el 2 entró. Evidencia: `/srv/ops/evidencias/import-dtd-cargo-staging-20261012T181744Z.txt` (solo cifras).
+- **Resultado: 277 PASÓ · 0 FALLÓ** (18:17:44 → 18:19:32 UTC):
+  - 266 tablas de `public` con el mismo conteo que Cloud; las 6 de log, vacías a propósito.
+  - auth.users 305; storage.buckets 16; storage.objects 638 (metadatos; los archivos todavía no se copiaron); cron.job 3 recreados e inactivos; ledger 477.
+  - Permisos de `public` idénticos a Cloud: huella `3295:a1c266670e09930f6cd2f9cb0cc884f3` (718 objetos, 3295 grants). Default privileges sin anon/authenticated. `applied_migration_names()` igual a Cloud: `865e8e23d428ac9de7c512b97edfa9da`.
+  - Nada del dump quedó en `/dev/shm`.
+  - Tamaños: roles 4 K · schema 1,8 M · ledger 3,7 M · datos 4,6 M.
+- **Después del restore, solo en el staging:**
+  - La 0472 aplicada como `postgres` en una transacción, con su fila en el ledger (versión `20261012182029`, `created_by = staging-ensayo-sdd-0505`). El ledger pasa a 478. `kommo_run_sync()` y `kommo_run_writeback_drain()` leen `functions_base_url`, y su dueño sigue siendo `postgres`.
+  - En Cloud la 0472 sigue sin aplicar: la última es la 0471, y aplicarla allí espera el OK nominal de Sam.
+  - Vault: `functions_base_url = http://api-gw:8000/functions/v1` y `kommo_cron_key` con un valor de prueba generado en el VPS (`openssl rand`, nadie lo vio). Los dos descifran.
+- **Falta en esta fase:**
+  - Copiar los archivos de Storage: 638 objetos, unos 445 MB. Necesita las claves S3 temporales y un modo «solo Storage», porque el import exige un staging vacío.
+  - Los smokes con datos.
+  - Destruir el staging al cerrar (§2.6).
+- **Fallos de la sesión de importación:** ahora quedan en la evidencia (`✗ intento N: …` y el corte de `die`), así se puede saber el motivo aunque la sesión de tmux ya se haya cerrado.
+
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)
 
 - **Imagen:** `dtdcargo:staging-5b2231b8`, construida **en el VPS** desde `git archive 5b2231b8` (el workflow de GHCR solo corre desde `main`, y la PR no está fusionada). Build args: `NEXT_PUBLIC_SUPABASE_URL=https://supabase-staging.dtdcargo.com`, `NEXT_PUBLIC_SITE_URL=https://staging.dtdcargo.com`, la anon key del staging y `NEXT_PUBLIC_BUILD_SHA`. Imagen local, sin publicar en ningún registro; la copia del código se borró al terminar y queda el log `/srv/build/build-5b2231b8.log`. **Es una excepción a «nunca construir en el servidor»**: hoy el VPS no tiene producción. Con producción ahí, la imagen sale de GHCR.

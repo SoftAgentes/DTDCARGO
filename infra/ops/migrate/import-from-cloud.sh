@@ -109,6 +109,9 @@ log() {
 
 die() {
   echo "import-from-cloud: $*" >&2
+  # También a la evidencia (sin secretos: los mensajes solo dicen largo y forma),
+  # para saber por qué cortó aunque la sesión de tmux ya se haya cerrado.
+  [[ -z "${EVIDENCE:-}" || ! -f "${EVIDENCE}" ]] || printf '%s import-from-cloud: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "${EVIDENCE}"
   exit 2
 }
 
@@ -296,7 +299,7 @@ classify_pg_error() { # $1 = stderr de psql
   esac
 }
 retry_or_die() { # $1 = intento, $2 = problema, $3 = qué hacer
-  echo "✗ $2"
+  log "✗ intento $1: $2"
   (( $1 < MAX_TRIES )) || die "$2 (${MAX_TRIES} intentos)"
   echo "$3 (intento $(( $1 + 1 )) de ${MAX_TRIES})"
 }
