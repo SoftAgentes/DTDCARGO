@@ -276,6 +276,33 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   - `MAINTENANCE_BYPASS_SECRET` generado en el VPS solo para el staging. En Vercel y en producción se fija antes del corte: runbook §3.1 y §3.2.
 - **Fallos de la sesión de importación:** ahora quedan en la evidencia (`✗ intento N: …` y el corte de `die`), así se puede saber el motivo aunque la sesión de tmux ya se haya cerrado.
 
+## Respaldos fuera de Contabo: Backblaze B2 y llave age (2026-10-12)
+
+- **Remoto:** Sam creó la cuenta de Backblaze y el bucket `dtdcargo-respaldos`, y pegó las claves en `set-remote.sh --tipo b2 --nombre b2 --bucket dtdcargo-respaldos`. Queda `/srv/ops/backup/rclone/rclone.conf` (600, carpeta 700) con `[b2]`, `type = b2` y `hard_delete = true`.
+  - **La clave guardada es la maestra:** el keyID mide 12 caracteres; las claves de aplicación miden 25. Se midió el largo, sin mostrar el valor. Recomendado: volver a correr `set-remote.sh` con la clave restringida al bucket (`vps-dtdcargo`). Así, quien entre al servidor no puede crear claves ni borrar buckets de la cuenta.
+- **Cadena contra el bucket real · 12 PASÓ · 0 FALLÓ** (`infra/ops/tests/prueba-respaldo-b2.sh`, commit `dc7c1ef1`):
+  - Datos sintéticos en un `supabase/postgres` desechable y una llave age de usar y tirar; nunca la de Sam.
+  - `pg-dump-to-s3.sh` contra `b2:dtdcargo-respaldos/prueba-<fecha>-<azar>`: 16 s, y en el bucket solo hay `.age` y `.sha256` (4 archivos).
+  - Lo bajado coincide por sha256 y no se lee en claro. `restore-test.sh` sobre lo bajado da 6/6 en 20 s, con permisos de public iguales y las filas esperadas.
+  - El purge es real: la misma lista con `--b2-versions` ve 4 archivos antes y 0 después.
+  - Al terminar, el bucket entero quedó en 0 archivos y 0 versiones.
+  - La primera corrida dio 11/12 por un defecto de la prueba (contaba la carpeta como archivo); se corrigió con `--files-only`.
+- **Llave age de Sam (`backup/new-age-key.sh`):**
+  - Dos corridas terminaron sin guardar, con la llave en pantalla.
+  - Causa reproducida en tmux: **Ctrl+C cierra la ventana**, y lo más probable es que Sam lo usara para copiar (inferencia; no se leyó su pantalla).
+  - Arreglo (commit `b479d12f`):
+    - hasta guardar, Ctrl+C avisa cómo copiar o pegar y la pregunta sigue esperando; al pegar, la terminal descarta lo que estaba a medias, y eso no cuenta como intento;
+    - si se corta sin guardar, lo dice al final de la pantalla limpia.
+  - Prueba: `prueba-new-age-key.sh` **14 PASÓ · 0 FALLÓ**, con un tmux real (Ctrl+C en las dos preguntas, historial de tmux sin la llave, corte con Ctrl+D). **Control rojo:** la versión anterior da 5 FALLÓ.
+  - Instalado en `/srv/ops/backup/new-age-key.sh` (700, sha256 igual al repo).
+  - Una tercera corrida, ya con el arreglo, se cerró tras una hora sin guardar: la sesión SSH y la de tmux terminaron en el mismo segundo, según `last`. Lo más probable es que se cerrara la pestaña; la causa no se pudo comprobar.
+  - **La cuarta quedó guardada (2026-10-12, 23:53:23Z):**
+    - `/srv/ops/backup/age-recipients.txt`: 600, dueño root, 2 líneas (comentario `# Sam 2026-10 · creada 2026-10-12T23:53:23Z` y 1 clave `age1`), 0 `AGE-SECRET-KEY`.
+    - `/dev/shm` sin `age-key-*`. Huella de la pública (sha256, 16 caracteres): `7a7abf70461889fc`.
+    - El script comparó la privada que Sam pegó desde su gestor con la generada y coincidió.
+    - Comprobado después: `age -R` con ese archivo cifra (cabecera `age-encryption.org/v1`) y `pg-dump-to-s3.sh --dry-run` lo acepta (salida 0).
+    - No se leyó la pantalla de Sam en ninguna corrida: el estado se midió por SSH (procesos, `/dev/shm`, archivo de destinatarios), y el único texto capturado fue la pantalla ya limpia, con cualquier llave tapada antes de salir del servidor.
+
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)
 
 - **Imagen:** `dtdcargo:staging-5b2231b8`, construida **en el VPS** desde `git archive 5b2231b8` (el workflow de GHCR solo corre desde `main`, y la PR no está fusionada). Build args: `NEXT_PUBLIC_SUPABASE_URL=https://supabase-staging.dtdcargo.com`, `NEXT_PUBLIC_SITE_URL=https://staging.dtdcargo.com`, la anon key del staging y `NEXT_PUBLIC_BUILD_SHA`. Imagen local, sin publicar en ningún registro; la copia del código se borró al terminar y queda el log `/srv/build/build-5b2231b8.log`. **Es una excepción a «nunca construir en el servidor»**: hoy el VPS no tiene producción. Con producción ahí, la imagen sale de GHCR.
