@@ -24,7 +24,7 @@ services:
       # certificado entero si falla uno de sus nombres (medido el 2026-10-11 con
       # www.staging.dtdcargo.com).
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.rule=Host(`${DTD_WEB_HOST:?DTD_WEB_HOST falta en .env}`)"
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-web-body@docker,${COMPOSE_PROJECT_NAME}-staging-allow@docker"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-staging-allow@docker"
 
   api-gw:
     labels:

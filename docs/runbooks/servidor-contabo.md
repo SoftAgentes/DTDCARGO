@@ -197,9 +197,12 @@ TLS y headers en Traefik (`/etc/dokploy/traefik/traefik.yml` o el del ops):
   Cloudflare delante; la lista oficial de rangos de Cloudflare si sí la hay.
   Nunca `insecure: true`.
 - Timeouts y cuerpo: la app tiene rutas de importación con `maxDuration` de
-  300 s y `serverActions.bodySizeLimit` de 12 MB; las labels del compose ya
-  piden 300 s y 12 MB, y Traefik debe respetarlas
-  (`entryPoints.websecure.transport.respondingTimeouts.readTimeout: 300s`).
+  300 s y `serverActions.bodySizeLimit` de 12 MB. Las labels del compose piden
+  los 300 s y Traefik debe respetarlos
+  (`entryPoints.websecure.transport.respondingTimeouts.readTimeout: 300s`). El
+  tope de 12 MB lo pone Next, no Traefik: el middleware `buffering` también
+  almacena la respuesta y rompía el streaming del Studio (medido el 2026-10-12:
+  primer byte a 5,46 s contra 0,60 s sin él), así que el web no lo lleva.
 - Cloudflare: delante de `dtdcargo.com` con proxy (nube naranja) es opcional en
   la Fase 1 y recomendado antes del corte (mitigación L7, cache de estáticos,
   Cloudflare ya es el proveedor de R2). Decide en la Fase 2 y deja escrito

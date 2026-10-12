@@ -89,7 +89,13 @@ services:
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.tls=true"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-web-body@docker"
+      # SIN middleware de `buffering` en el web, a propósito. Ese middleware también
+      # almacena la RESPUESTA entera antes de mandarla: medido el 2026-10-12 detrás
+      # de este Traefik, una página que manda 5 trozos en 5 s dio el primer byte a
+      # los 5,46 s con el middleware (0,60 s sin él). El Studio carga por partes
+      # (streaming de React) y en Vercel se ve así; con el middleware quedaría en
+      # blanco hasta el final. El tope de 12 MB de las server actions lo pone Next
+      # (`serverActions.bodySizeLimit` de next.config.ts).
       - "traefik.http.services.${COMPOSE_PROJECT_NAME}-web.loadbalancer.server.port=3000"
       # Timeouts de 300 s: las rutas de importación y los crons declaran
       # `maxDuration = 300`; con el default de Traefik (sin tope de respuesta
@@ -100,10 +106,6 @@ services:
       # serversTransports con labels de Docker, y con `dtd-long@docker` la ruta
       # quedaba rota (medido en el VPS el 2026-10-09).
       - "traefik.http.services.${COMPOSE_PROJECT_NAME}-web.loadbalancer.serverstransport=${TRAEFIK_SERVERS_TRANSPORT:-slow-300s@file}"
-      # 12 MB = `serverActions.bodySizeLimit` de next.config.ts (foto de cédula/RIF
-      # del registro). Traefik corta antes que Next con 413, sin consumir RAM
-      # del contenedor web.
-      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-web-body.buffering.maxrequestbodybytes=12582912"
 
   cron:
     # Imagen local (alpine fijada + curl + envsubst); ver cron/Dockerfile. El
