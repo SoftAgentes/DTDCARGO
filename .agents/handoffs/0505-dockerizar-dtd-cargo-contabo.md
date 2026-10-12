@@ -263,6 +263,17 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
     - La app no tiene modo mantenimiento, y el corte lo necesita para no perder escrituras durante la copia final.
     - `EMAIL_UNSUBSCRIBE_SECRET`, `NEWSLETTER_IP_HASH_SECRET`, `MARCA_ACCESS_SECRET`, `DOCUMENT_IMPORT_RATE_SECRET` y las VAPID tienen que ser las de Vercel.
     - Runbook §3 reescrito en dos pasos (base primero con Vercel apuntando al VPS; la web días después), con su vuelta atrás.
+- **Modo mantenimiento (2026-10-12, OK de Sam: «sí, construye el modo mantenimiento») · PASÓ de punta a punta en el staging:**
+  - Código en el commit `9e922bc5` (spec § Seguimiento): 24 pruebas de mantenimiento + 7 del contrato del proxy, 7/7 mutantes muertos, tsc y eslint PASÓ.
+  - Imagen `dtdcargo:staging-9e922bc5`, construida en el VPS. El `next build` acepta el matcher nuevo («ƒ Proxy (Middleware)»).
+  - **Encendido** (`MAINTENANCE_MODE=1` en el `.env` del staging y `web` recreado), medido desde la IP de Sam:
+    - lectura pública `/`, `/tarifas` y `/servicios`: 200;
+    - `/studio/login`, `/studio/resumen`, `/portal`, `/m/cn`, `/entrar` y `/p/abc/packlist`: 503 `text/html` con «Estamos haciendo una mejora» y `Retry-After: 300`;
+    - `GET /api/debug/health`: 503 JSON `{"error":"mantenimiento",…}`;
+    - `POST /p/abc/upload`: 503 JSON; `POST /` con `Next-Action`: 503 JSON.
+  - **Puerta de revisión**, desde dentro del contenedor, sin mostrar la clave (6/6): clave equivocada → 503; clave correcta → 307 a `/studio/login` con la cookie `dtd_mantenimiento` (un hash, no la clave); con la cookie, Studio 200 y API normal (401 sin bearer); sin la cookie → 503.
+  - **Apagado:** todo vuelve a la normalidad (`/` 200, `/studio/login` 200, redirecciones propias 307) y 0 errores en el log.
+  - `MAINTENANCE_BYPASS_SECRET` generado en el VPS solo para el staging. En Vercel y en producción se fija antes del corte: runbook §3.1 y §3.2.
 - **Fallos de la sesión de importación:** ahora quedan en la evidencia (`✗ intento N: …` y el corte de `die`), así se puede saber el motivo aunque la sesión de tmux ya se haya cerrado.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)

@@ -575,7 +575,10 @@ Hecho el 2026-10-12 (handoff de SDD-0505):
 
 Falta, en este orden:
 
-1. **Modo mantenimiento en la app** (NO EXISTE HOY). Se necesita para que nadie escriba en Cloud mientras dura la copia final, unos 2-3 minutos. Sin él, lo que se guarde en ese rato se pierde sin aviso. Tarea propia, con su prueba.
+1. **Modo mantenimiento** (`lib/runtime/maintenance.ts`, hecho el 2026-10-12):
+   - `MAINTENANCE_MODE=1` corta toda escritura y muestra «Volvemos en unos minutos». Las páginas públicas se siguen leyendo.
+   - En Vercel se fijan antes `MAINTENANCE_MODE` (vacía) y `MAINTENANCE_BYPASS_SECRET`, una clave larga que guarda Sam para el smoke.
+   - Cambiar la variable en Vercel exige redeploy, unos minutos: se prende antes de la ventana.
 2. **Claves iguales a las de hoy**, con `infra/ops/migrate/env-set.sh` (Sam pega; nada se muestra):
    - `--project dtd-cargo --claves-supabase`: JWT secret, anon y service_role de Cloud. El script comprueba la firma HS256 y los roles antes de guardar. Con eso, y con `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE` (ya en la plantilla), **las sesiones abiertas siguen valiendo**.
    - `--project dtd-cargo --integraciones --todas`: las de Vercel. Tienen que ser las MISMAS:
@@ -594,7 +597,7 @@ Falta, en este orden:
 
 La web sigue en Vercel y solo cambia a qué Supabase le habla.
 
-1. **Mantenimiento ON** en Vercel.
+1. **Mantenimiento ON** en Vercel: `MAINTENANCE_MODE=1` y redeploy. Se comprueba con `curl -s -o /dev/null -w '%{http_code}' https://dtdcargo.com/studio/login`, que debe dar `503`.
 2. **pg_cron de Cloud en pausa** (`update cron.job set active = false` en Cloud). Es una escritura en producción y va con el OK de Sam: si no, los jobs corren en los dos lados.
 3. **La base, desde una terminal en tmux**: `import-from-cloud.sh --project dtd-cargo --corte --cloud-user postgres.xpfuzqombmjmxvprjgmi --cloud-host aws-1-us-east-1.pooler.supabase.com`. Pide escribir `CORTE dtd-cargo` y la contraseña. Viajan las tablas de log con datos, los jobs de pg_cron como en Cloud y los secretos de Vault (descifrados en memoria y re-cifrados con la raíz del servidor; se verifican por huella).
 4. **Los archivos**: `storage-from-cloud.sh --project dtd-cargo --cloud-ref xpfuzqombmjmxvprjgmi --corte`, con una access key S3 temporal que se revoca al terminar.
@@ -605,7 +608,7 @@ La web sigue en Vercel y solo cambia a qué Supabase le habla.
    - Studio con un admin; PWA con un operario; Portal con un cliente de prueba;
    - una subida de archivo y el tiempo real;
    - un cron a mano.
-9. **Mantenimiento OFF.**
+9. **Mantenimiento OFF:** `MAINTENANCE_MODE` vacía, en el mismo redeploy del paso 6 si se puede. Para el smoke de antes (paso 8) se entra por `https://dtdcargo.com/mantenimiento/entrar?clave=<MAINTENANCE_BYPASS_SECRET>`, que deja una cookie de 4 h.
 
 ### 3.3 Paso 2 · la web (días después, sin mantenimiento)
 
