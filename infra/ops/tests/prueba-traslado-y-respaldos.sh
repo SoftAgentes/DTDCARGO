@@ -9,6 +9,8 @@
 #      supabase/postgres desechable sembrado como producción: default privileges
 #      cerrados, public y ledger creados por postgres
 #   C4 staging efímero (destroy-staging.sh)
+#   CORTE import-from-cloud --corte contra una «producción» falsa (c4p): confirmación
+#      escrita, logs con datos, pg_cron como en Cloud y Vault copiado y verificado
 #   DR permisos de public en un restore sobre la base de la imagen (lib/acl.sh,
 #      restore.sh, restore-test.sh --dr): control rojo sin igualar y verde igualando
 #
@@ -231,8 +233,6 @@ docker run -d --name c4-cloud-db -e POSTGRES_PASSWORD=$PW3 $IMG postgres -c conf
 IS=$T/srv/c4i-staging; mkdir -p $IS
 printf 'POSTGRES_PASSWORD=%s\nS3_PROTOCOL_ACCESS_KEY_ID=x\nS3_PROTOCOL_ACCESS_KEY_SECRET=y\n' "$PW4" > $IS/.env
 docker network create --internal c4i-staging_dtd_internal >/dev/null
-# Salida del staging: ahí corre la prueba de las claves S3, contra el S3 falso.
-docker network create c4i-staging_dtd_egress >/dev/null && docker network connect c4i-staging_dtd_egress c4-s3
 docker run -d --name c4i-staging-db --network c4i-staging_dtd_internal --network-alias db -e POSTGRES_PASSWORD=$PW4 $IMG postgres -c config_file=/etc/postgresql/postgresql.conf >/dev/null
 wait_ready c4-cloud-db && wait_ready c4i-staging-db && echo "   cloud falso y staging listos" || { echo "no arrancaron"; exit 1; }
 CIP=$(ip_of c4-cloud-db)
@@ -269,7 +269,7 @@ insert into storage.buckets (id, name) values ('client-docs','client-docs'), ('b
 insert into storage.objects (bucket_id, name, owner_id) values ('client-docs', 'a.pdf', 'u1'), ('client-docs', 'b.pdf', null), ('bug-replays', 'r.json', 'u2');
 create extension if not exists pg_cron;
 select cron.schedule('job-prueba', '0 3 * * *', 'select 1');
-select vault.create_secret('valor', 'kommo_cron_key');
+select vault.create_secret('secreto-kommo-$MARK', 'kommo_cron_key');
 SQL
 echo "   cloud falso sembrado: $(asadmin c4-cloud-db -c "select count(*) from auth.users")u · $(asadmin c4-cloud-db -c "select count(*) from public.mail_logs") mail_logs · $(asadmin c4-cloud-db -c "select count(*) from cron.job") cron"
 URL="postgresql://postgres:$PW3@$CIP:5432/postgres"
@@ -291,7 +291,8 @@ asadmin c4i-staging-db -c "create table public.sobra (id int)"
 echo "$URL" | $IMP --evidence $T/imp-guard.txt > $T/imp1.log 2>&1; rc=$?
 [ $rc -eq 3 ] && grep -q 'ya tiene' $T/imp1.log && ok "staging no vacío: rechaza (3)" || { ko "guarda de staging vacío rc=$rc"; tail -3 $T/imp1.log; }
 asadmin c4i-staging-db -c "drop table public.sobra"
-bash $S/migrate/import-from-cloud.sh --project dtd-cargo --skip-storage < /dev/null > /dev/null 2>&1; [ $? -eq 3 ] && ok "proyecto de producción: rechaza (3)" || ko "producción no rechazada"
+bash $S/migrate/import-from-cloud.sh --project dtd-cargo --skip-storage < /dev/null > /dev/null 2>&1; [ $? -eq 3 ] && ok "proyecto de producción sin --corte: rechaza (3)" || ko "producción no rechazada"
+bash $S/migrate/import-from-cloud.sh --project c4i-staging --project-dir $IS --corte < /dev/null > /dev/null 2>&1; [ $? -eq 3 ] && ok "--corte sobre un staging: rechaza (3)" || ko "--corte sobre staging aceptado"
 # Modo contraseña (--cloud-user/--cloud-host), el que usa Sam: tres pegados mal
 # hechos se rechazan antes de conectar, y el bueno arma la cadena.
 CP="--cloud-user postgres --cloud-host $CIP"
@@ -301,13 +302,6 @@ echo "postgresql://postgres:[$PW3]@$CIP:5432/postgres" | $IMP --evidence $T/imp-
 [ $rc -eq 2 ] && grep -q 'corchetes' $T/imp-b2.log && ok "cadena con la contraseña entre corchetes: rechaza (2)" || { ko "cadena con corchetes rc=$rc"; tail -2 $T/imp-b2.log; }
 echo "$URL" | $IMP $CP --evidence $T/imp-guard.txt > $T/imp-b3.log 2>&1; rc=$?
 [ $rc -eq 2 ] && grep -q 'SOLO la contraseña' $T/imp-b3.log && ok "cadena entera donde va la contraseña: rechaza (2)" || { ko "cadena en modo contraseña rc=$rc"; tail -2 $T/imp-b3.log; }
-# Claves S3: secreto vacío en el 1er intento y claves que el S3 rechaza en el 2º; sin
-# más entrada, corta con el último problema y sin haber tocado nada.
-IMPS="bash $S/migrate/import-from-cloud.sh --project c4i-staging --project-dir $IS --expect-auth-users 2"
-printf '%s\nk1\n\nk2\ns2\n' "$PW3" | CLOUD_S3_ENDPOINT=http://c4-s3:8080 $IMPS $CP --evidence $T/imp-guard.txt > $T/imp-k.log 2>&1; rc=$?
-[ $rc -eq 2 ] && grep -q 'Secret access key no llegó bien' $T/imp-k.log && grep -q 'no aceptó esas claves' $T/imp-k.log && grep -q 'intento 2 de 3' $T/imp-k.log \
-  && ! grep -q 'carpeta de trabajo' $T/imp-k.log && ok "claves S3: vuelve a pedirlas si llegan vacías o el S3 las rechaza, y corta sin copiar nada" || { ko "claves S3 rc=$rc"; tail -4 $T/imp-k.log; }
-[ "$(docker exec c4i-staging-db psql -U supabase_admin -h localhost -d postgres -Atc "select count(*) from pg_tables where schemaname = 'public'")" = 0 ] && ok "tras los rechazos, el staging sigue vacío" || ko "el staging dejó de estar vacío"
 # Corrida buena: contraseña entre corchetes (1), contraseña equivocada (2), la buena (3).
 printf '[%s]\nmala-%s\n%s\n' "$PW3" "$PW3" "$PW3" | $IMP $CP --evidence $T/imp-evidencia.txt > $T/imp2.log 2>&1; rc=$?
 grep -q 'corchetes' $T/imp2.log && grep -q 'Cloud no aceptó la conexión' $T/imp2.log && grep -q 'conexión a Cloud: OK' $T/imp2.log \
@@ -342,6 +336,36 @@ grep -q "$NUEVO" $T/vault.log && ko "el valor aparece en la salida" || ok "el va
 echo "https://supabase-staging.example.test/functions/v1" | $VS --name functions_base_url > /dev/null 2>&1; rc=$?
 [ $rc -eq 0 ] && [ "$(SQ "select count(*) from vault.decrypted_secrets where name = 'functions_base_url' and decrypted_secret like 'https://%'")" = 1 ] && ok "vault-set-secret crea functions_base_url" || ko "functions_base_url rc=$rc"
 printf '\n' | $VS --name otro > /dev/null 2>&1; [ $? -eq 2 ] && ok "valor vacío: no escribe (2)" || ko "valor vacío aceptado"
+
+echo; echo "== CORTE · import-from-cloud --corte contra una producción falsa (c4p) =="
+PW5=$(openssl rand -hex 16); CPD=$T/srv/c4p; mkdir -p $CPD
+printf 'POSTGRES_PASSWORD=%s\n' "$PW5" > $CPD/.env
+docker network create --internal c4p_dtd_internal >/dev/null
+docker run -d --name c4p-db --network c4p_dtd_internal --network-alias db -e POSTGRES_PASSWORD=$PW5 $IMG postgres -c config_file=/etc/postgresql/postgresql.conf >/dev/null
+wait_ready c4p-db || { echo "c4p no arrancó"; exit 1; }
+asadmin c4p-db <<SQL >/dev/null
+alter default privileges for role postgres in schema public revoke all on tables from anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on sequences from anon, authenticated;
+alter default privileges for role postgres in schema public revoke all on functions from anon, authenticated, public;
+create schema if not exists storage;
+create table if not exists storage.buckets (id text primary key, name text not null, public boolean default false);
+create table if not exists storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text, owner_id text);
+SQL
+IMPC="bash $S/migrate/import-from-cloud.sh --project c4p --project-dir $CPD --expect-auth-users 2"
+printf 'CORTE c4p\n%s\n' "$PW3" | $IMPC $CP --corte --evidence $T/corte-guard.txt > $T/corte0.log 2>&1; rc=$?
+[ $rc -eq 3 ] && grep -q 'solo para el proyecto de producción' $T/corte0.log && ok "--corte en un proyecto que no es el de producción: rechaza (3)" || { ko "corte en no-producción rc=$rc"; tail -2 $T/corte0.log; }
+printf 'corte c4p\n%s\n' "$PW3" | PROD_COMPOSE_PROJECT=c4p $IMPC $CP --corte --evidence $T/corte-guard.txt > $T/corte1.log 2>&1; rc=$?
+[ $rc -eq 3 ] && grep -q 'confirmación del corte incorrecta' $T/corte1.log && ! grep -q 'contraseña recibida' $T/corte1.log \
+  && ok "confirmación mal escrita: rechaza (3) sin pedir la contraseña ni conectar" || { ko "confirmación mal escrita rc=$rc"; tail -2 $T/corte1.log; }
+printf 'CORTE c4p\n%s\n' "$PW3" | PROD_COMPOSE_PROJECT=c4p $IMPC $CP --corte --evidence $T/corte.txt > $T/corte2.log 2>&1; rc=$?
+sed 's/^/   /' $T/corte2.log | grep -E 'CORTE|Vault|FALLÓ|RESULTADO' | tail -8
+[ $rc -eq 0 ] && ok "corte: import-from-cloud --corte con todas sus comprobaciones PASÓ" || ko "corte salió $rc"
+CQ() { docker exec c4p-db psql -U supabase_admin -h localhost -d postgres -Atc "$1" 2>&1; }
+[ "$(CQ 'select count(*) from public.mail_logs')" = 3 ] && ok "corte: las tablas de log viajan con datos (mail_logs 3)" || ko "corte mail_logs: $(CQ 'select count(*) from public.mail_logs')"
+[ "$(CQ "select count(*)::text || ':' || count(*) filter (where active)::text from cron.job")" = "1:1" ] && ok "corte: pg_cron como en Cloud (1 job, activo)" || ko "corte cron: $(CQ "select count(*)::text || ':' || count(*) filter (where active)::text from cron.job")"
+[ "$(CQ "select (decrypted_secret = 'secreto-kommo-$MARK')::text from vault.decrypted_secrets where name = 'kommo_cron_key'")" = true ] && ok "corte: el secreto de Vault viaja y descifra con la raíz del servidor" || ko "corte vault: $(CQ "select count(*) from vault.secrets")"
+grep -qE "secreto-kommo|$PW3" $T/corte2.log $T/corte.txt && ko "corte: el secreto o la contraseña aparecen en la salida" || ok "corte: ni el secreto ni la contraseña aparecen en la salida ni en la evidencia"
+[ "$(ls -A /dev/shm | grep -c '^import-c4')" = 0 ] && ok "corte: nada quedó en /dev/shm" || ko "corte: quedó algo en /dev/shm"
 
 echo; echo "== limpieza =="
 nuke

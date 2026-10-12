@@ -35,6 +35,10 @@ echo "preparado: $(q "select count(*) from storage.objects where bucket_id = '$B
 REF=abcdefghijklmnopqrst
 export CLOUD_S3_ENDPOINT=http://zz-fakecloud:8080
 
+echo "== guardas del corte"
+bash "$SFC" --project dtd-cargo-staging --cloud-ref $REF --corte < /dev/null > /dev/null 2>&1; [ $? -eq 3 ] && ok "--corte sobre el staging: rechaza (3)" || ko "--corte sobre staging aceptado"
+bash "$SFC" --project dtd-cargo --cloud-ref $REF < /dev/null > /dev/null 2>&1; [ $? -eq 3 ] && ok "producción sin --corte: rechaza (3)" || ko "producción sin --corte aceptada"
+
 echo "== claves equivocadas y secreto vacío: vuelve a pedir y corta sin copiar"
 printf 'k1\n\nk2\ns2\n' | bash "$SFC" --project dtd-cargo-staging --cloud-ref $REF --evidence /root/sfc-mal.txt > /root/sfc-mal.log 2>&1; rc=$?
 [ $rc -eq 2 ] && grep -q 'Secret access key no llegó bien' /root/sfc-mal.log && grep -q 'no aceptó esas claves' /root/sfc-mal.log \

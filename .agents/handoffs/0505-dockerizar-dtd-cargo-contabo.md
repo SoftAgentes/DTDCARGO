@@ -242,6 +242,27 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   - **Crons: 19 de 19 con 200** contra `localhost:3000` con el Bearer, más 403 sin Bearer. Antes se comprobó que el web del staging tiene vacías todas las claves de integración (Resend, Telegram, VAPID, Anthropic, OpenRouter, SeaRates, Cloudflare, S3, DTD_API_KEY): nada salió a clientes.
   - **Buffering de Traefik en el web:** las páginas públicas terminan en 11-184 ms, así que la medición no permite saber si las páginas lentas llegan por partes (NO CONCLUYENTE). Recomendación para la fase B: medirlo en una página lenta del Studio, o sacar `<proyecto>-web-body` del router y dejar el tope de 12 MB a Next.
   - **Sesión de Sam en el Studio del staging:** 2 inicios de sesión, sin errores en web, auth, rest, realtime ni api-gw. Los 18 «404» de Storage eran de la limpieza del bucket de prueba.
+- **Puntos 1 a 5 de la fase B (2026-10-12, OK de Sam: «sí, empieza con los puntos 1 al 5»):**
+  1. **Sesiones:** `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE` fija el nombre de la cookie en los tres clientes de `@supabase/ssr` (commit `33cef94c`, spec § Seguimiento). Prueba 9/9 con control rojo y mutante.
+  2. **Claves:** `infra/ops/migrate/env-set.sh` con `--name`, `--integraciones [--todas]` y `--claves-supabase`.
+     - Esta última comprueba la firma HS256 y los roles antes de guardar.
+     - Los valores van entre comillas simples; `printenv` dentro de un contenedor confirma que llegan literales.
+     - `infra/ops/tests/prueba-env-set.sh`: 13/13.
+  3. **Scripts del día del corte:**
+     - `import-from-cloud.sh --corte`: solo el proyecto de producción. Pide escribir `CORTE <proyecto>` antes de pedir la contraseña. Logs con datos, pg_cron como en Cloud y Vault copiado y verificado por huella.
+     - El paso 4 (Storage) sale del import: no copiaba nada. Ya no pide claves S3; `--skip-storage` se acepta y no hace nada.
+     - `storage-from-cloud.sh --corte`, con la misma confirmación.
+     - Prueba integral: **76 PASÓ · 0 FALLÓ**, con un bloque CORTE contra una producción falsa (`c4p`): confirmación mal escrita → 3 sin conectar; mail_logs 3; cron 1:1 activo; el secreto de Vault descifra; nada en la salida. `prueba-storage-from-cloud.sh`: 10/10.
+     - Desplegado en `/srv/ops`; las 9 huellas son iguales al repo.
+  4. **Producción armada y apagada** en `/srv/dtd-cargo`:
+     - compose de producción, `functions/` y `.env` de `new-env.sh` (secretos nuevos; se reemplazan con `env-set.sh` antes del corte);
+     - `config` válido; imágenes de Supabase bajadas; `dtd-cargo-cron:local` construida;
+     - 0 contenedores; marca `NO-ENCENDER-HASTA-EL-CORTE.txt`.
+  5. **Streaming:** con una página de prueba que manda 5 trozos en 5 s detrás del Traefik del VPS, el primer byte llegó a los 5,46 s con el middleware `buffering` del web y a los 0,60 s sin él. Se quitó del router del web (commit `33ec1146`); el tope de 12 MB lo pone Next.
+  - **Hallazgos para la fase B:**
+    - La app no tiene modo mantenimiento, y el corte lo necesita para no perder escrituras durante la copia final.
+    - `EMAIL_UNSUBSCRIBE_SECRET`, `NEWSLETTER_IP_HASH_SECRET`, `MARCA_ACCESS_SECRET`, `DOCUMENT_IMPORT_RATE_SECRET` y las VAPID tienen que ser las de Vercel.
+    - Runbook §3 reescrito en dos pasos (base primero con Vercel apuntando al VPS; la web días después), con su vuelta atrás.
 - **Fallos de la sesión de importación:** ahora quedan en la evidencia (`✗ intento N: …` y el corte de `die`), así se puede saber el motivo aunque la sesión de tmux ya se haya cerrado.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)

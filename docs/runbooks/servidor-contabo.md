@@ -561,46 +561,79 @@ Requiere el OK de Sam con hora de la ventana. Antes de pedirlo:
   día del corte es de 24 h, y Sam lo acepta por escrito en el mismo OK.
 - TTL del DNS bajado a 300 s 24 h antes (Cloudflare o donde esté el DNS).
 
-### 3.1 Secuencia
+### 3.1 Preparación (días antes, sin cortar nada)
 
-1. **Congelar**: aviso al equipo (Valencia y Yiwu), Studio en solo lectura si
-   hay banner, Kommo sin cambios de configuración.
-2. **Stack de producción** en `/srv/dtd-cargo` con `APP_ENV=production`,
-   `APP_URL=https://dtdcargo.com` y la imagen `sha-<sha>` que pasó en staging.
-3. **Dump final** de Cloud y restore como en §2.2, más `rclone sync` final de
-   Storage (incremental: ya se copió en la Fase 2).
-4. **Sesiones**: si se copia el `JWT_SECRET` de Cloud al `.env`, las sesiones y
-   las claves `anon`/`service_role` siguen válidas y nadie vuelve a entrar; si
-   se generan nuevas, todos vuelven a iniciar sesión. Decide antes y anótalo.
-5. **Integraciones que apuntan a nosotros** (cada una con su runbook):
-   webhook de Resend (`/api/webhooks/resend`, `setup-resend.md`), correo
-   entrante (`/api/conversaciones/email`, `setup-resend-inbound.md`), webhook
-   de Telegram (`setup-telegram-bot.md`), webhooks de Kommo
-   (`setup-kommo-webhook.md`). Mientras el DNS siga en Vercel llegan a Vercel:
-   se verifican después del cambio de DNS, no antes.
-6. **DNS**: `dtdcargo.com` y `www` al VPS (A `217.216.54.70`, o proxy de
-   Cloudflare). Vercel se deja intacto: es el rollback.
-7. **Verificar en producción** (20 minutos): home 200, Studio con un admin,
-   PWA con un operario, Portal con un cliente de prueba, un cron disparado a
-   mano con `curl -H "Authorization: Bearer $CRON_SECRET"`, el `whoami` del
-   §1.8 ya retirado y la prueba de headers repetida contra la app.
-8. **Descongelar** y avisar.
+Hecho el 2026-10-12 (handoff de SDD-0505):
 
-### 3.2 Rollback
+- `/srv/dtd-cargo` armado y **apagado**, con la marca `NO-ENCENDER-HASTA-EL-CORTE.txt`:
+  - compose de producción, sin `compose.staging.yml`; `config` validado, routers `dtd-cargo-web` y `dtd-cargo-supabase`;
+  - `functions/` armada y `.env` de `new-env.sh` con secretos NUEVOS de este servidor;
+  - imágenes de Supabase bajadas y `dtd-cargo-cron:local` construida;
+  - 0 contenedores encendidos.
 
-- **Limpio** (antes de que haya escrituras de negocio en el VPS): DNS de
-  vuelta a Vercel y `NEXT_PUBLIC_SUPABASE_URL` de Vercel sin tocar. Cloud
-  nunca se apagó. Minutos.
+  Encenderlo antes de tiempo pide certificados para `dtdcargo.com` mientras el DNS apunta a Vercel, y Let's Encrypt los rechaza.
+
+Falta, en este orden:
+
+1. **Modo mantenimiento en la app** (NO EXISTE HOY). Se necesita para que nadie escriba en Cloud mientras dura la copia final, unos 2-3 minutos. Sin él, lo que se guarde en ese rato se pierde sin aviso. Tarea propia, con su prueba.
+2. **Claves iguales a las de hoy**, con `infra/ops/migrate/env-set.sh` (Sam pega; nada se muestra):
+   - `--project dtd-cargo --claves-supabase`: JWT secret, anon y service_role de Cloud. El script comprueba la firma HS256 y los roles antes de guardar. Con eso, y con `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE` (ya en la plantilla), **las sesiones abiertas siguen valiendo**.
+   - `--project dtd-cargo --integraciones --todas`: las de Vercel. Tienen que ser las MISMAS:
+     - `EMAIL_UNSUBSCRIBE_SECRET`, que firma los enlaces de baja de correos ya enviados;
+     - `NEWSLETTER_IP_HASH_SECRET`, `MARCA_ACCESS_SECRET` y `DOCUMENT_IMPORT_RATE_SECRET`;
+     - las `VAPID_*`, sin las cuales las notificaciones push dejan de llegar a los teléfonos ya suscritos.
+   - `--name SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `SMTP_ADMIN_EMAIL`: Resend por SMTP para los correos de Auth.
+3. **Imagen** desde `main` en GHCR (`sha-<sha>`), con las variables del repo:
+   - `NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com`;
+   - la anon de Cloud;
+   - `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=sb-xpfuzqombmjmxvprjgmi-auth-token`.
+4. **DNS de `supabase.dtdcargo.com`** → `217.216.54.70`. Ese nombre no existe hoy, así que se puede crear antes. Después se encienden solo los servicios de Supabase (no `web` ni `cron`): el certificado sale antes del día del corte y la base queda vacía, como la exige `--corte`.
+5. **TTL del DNS de `dtdcargo.com`** a 300 s, 24 h antes del paso 2.
+
+### 3.2 Paso 1 · base y archivos (ventana de noche, unos 30 minutos)
+
+La web sigue en Vercel y solo cambia a qué Supabase le habla.
+
+1. **Mantenimiento ON** en Vercel.
+2. **pg_cron de Cloud en pausa** (`update cron.job set active = false` en Cloud). Es una escritura en producción y va con el OK de Sam: si no, los jobs corren en los dos lados.
+3. **La base, desde una terminal en tmux**: `import-from-cloud.sh --project dtd-cargo --corte --cloud-user postgres.xpfuzqombmjmxvprjgmi --cloud-host aws-1-us-east-1.pooler.supabase.com`. Pide escribir `CORTE dtd-cargo` y la contraseña. Viajan las tablas de log con datos, los jobs de pg_cron como en Cloud y los secretos de Vault (descifrados en memoria y re-cifrados con la raíz del servidor; se verifican por huella).
+4. **Los archivos**: `storage-from-cloud.sh --project dtd-cargo --cloud-ref xpfuzqombmjmxvprjgmi --corte`, con una access key S3 temporal que se revoca al terminar.
+5. **El secreto que Cloud no tiene**: `vault-set-secret.sh --project dtd-cargo --name functions_base_url` con `http://api-gw:8000/functions/v1`.
+6. **Vercel apunta al VPS**: `NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com` y `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=sb-xpfuzqombmjmxvprjgmi-auth-token`. La anon y la service_role siguen siendo las mismas. Redeploy.
+7. **Webhooks de Kommo** a `https://supabase.dtdcargo.com/functions/v1/…` (`setup-kommo-webhook.md`).
+8. **Smoke** (20 minutos):
+   - Studio con un admin; PWA con un operario; Portal con un cliente de prueba;
+   - una subida de archivo y el tiempo real;
+   - un cron a mano.
+9. **Mantenimiento OFF.**
+
+### 3.3 Paso 2 · la web (días después, sin mantenimiento)
+
+1. `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d web cron`, con la imagen que ya corre en Vercel (`DTD_WEB_IMAGE=…:sha-<sha>`).
+2. **DNS de `dtdcargo.com` y `www`** al VPS. Vercel y el VPS usan la misma base, así que da igual a cuál llegue cada visita mientras el DNS se actualiza. El certificado del VPS sale con las primeras visitas, en segundos.
+3. **Los crons de Vercel se apagan** en el mismo momento: deploy con `vercel.json` sin `crons`, o pausar el proyecto cuando ya no llegue tráfico. Si no, corren dos veces.
+4. Resend (webhook y entrante) y Telegram apuntan a `dtdcargo.com`: no cambian, pero se verifican.
+
+### 3.4 Rollback
+
+- **Paso 1, limpio** (el smoke falla con el mantenimiento todavía puesto: no hay
+  escrituras de negocio en el VPS):
+  - en Vercel, `NEXT_PUBLIC_SUPABASE_URL` de vuelta a Cloud y `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE` vacía, y redeploy;
+  - pg_cron de Cloud otra vez `active = true`;
+  - mantenimiento OFF.
+
+  Cloud nunca se apagó. Minutos.
+- **Paso 2, limpio:** DNS de `dtdcargo.com` de vuelta a Vercel. La base no cambia, así que no se pierde nada.
 - **Sucio** (ya hubo escrituras en el VPS): hay datos nuevos que Cloud no
   tiene. Volver exige un dump inverso (VPS → Cloud) con su propia autorización
-  y una ventana nueva. Por eso la verificación del §3.1.7 va **antes** de
-  descongelar.
+  y una ventana nueva. Por eso el smoke del §3.2.8 va **antes** de
+  quitar el mantenimiento.
 
-### 3.3 Después del corte
+### 3.5 Después del corte
 
-Vercel y Supabase Cloud quedan encendidos **14 días** como red de seguridad.
-`vercel.json` sigue agendando sus 19 crons contra Vercel: pausar el proyecto de
-Vercel (no borrarlo) al día siguiente del corte para que no corran dos veces.
+Vercel y Supabase Cloud quedan encendidos **14 días** como red de seguridad. Con
+el pg_cron de Cloud en pausa y los crons de Vercel apagados en el paso 2, nada
+corre dos veces; Vercel se pausa (no se borra) cuando ya no le llegue tráfico.
 Uptime Kuma (`infra/ops/`) vigila `https://dtdcargo.com/` y
 `https://dtdcargo.com/api/debug/health?cheap=1` con el bearer.
 

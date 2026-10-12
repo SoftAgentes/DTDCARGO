@@ -21,15 +21,27 @@
 #
 # Pasos: 0 guardas · 1 conteos de Cloud · 2 supabase db dump (roles, schema,
 # datos) + lo que ese dump no trae: el ledger (supabase_migrations) y los jobs de
-# pg_cron · 3 restore en staging · 4 Storage con rclone · 5 verificación ·
-# 6 borrado y evidencia. Los secretos de Vault tampoco viajan: después,
-# vault-set-secret.sh.
+# pg_cron · 3 restore · 4 (Storage: ya no aquí) · 5 verificación · 6 borrado y
+# evidencia. Los ARCHIVOS de Storage los copia storage-from-cloud.sh después: el
+# paso que había aquí no habría copiado nada (medido el 2026-10-12, ver la
+# cabecera de ese script). --skip-storage se acepta y no hace nada.
+#
+# Ensayo (staging): los secretos de Vault no viajan (se escriben después con
+# vault-set-secret.sh), las tablas de log llegan vacías y los jobs de pg_cron
+# inactivos.
+#
+# CORTE (--corte, solo el proyecto de producción del VPS): pide escribir
+# «CORTE <proyecto>» antes de conectar a nada, y entonces viaja TODO. Las tablas
+# de log van con datos (son registro), los jobs de pg_cron quedan como en Cloud y
+# los secretos de Vault se copian: se leen descifrados de Cloud y se vuelven a
+# cifrar con la raíz del servidor. Pasan en memoria y nunca se imprimen; se
+# verifican por huella.
 #
 # Uso (como root en el VPS):
 #   import-from-cloud.sh --project dtd-cargo-staging \
 #       [--cloud-user postgres.<ref> --cloud-host aws-1-us-east-1.pooler.supabase.com] \
 #       [--project-dir /srv/dtd-cargo-staging] [--expect-auth-users 297] \
-#       [--include-logs] [--skip-storage] [--cron-active] [--restore-user supabase_admin] \
+#       [--include-logs] [--cron-active] [--corte] [--restore-user supabase_admin] \
 #       [--work-dir /dev/shm] [--evidence <archivo>] [--cli supabase]
 #
 # Con --cloud-user y --cloud-host solo se pide la CONTRASEÑA de la base (el script
@@ -44,9 +56,8 @@
 # Los jobs de pg_cron quedan inactivos en staging; --cron-active conserva el
 # estado de Cloud (solo cuando las integraciones del staging apunten a pruebas).
 #
-# Pide por la terminal: la contraseña de la base de Cloud (o la cadena entera del
-# Session pooler, puerto 5432) y, si no hay --skip-storage, una access key S3
-# TEMPORAL de Cloud (Storage › S3 Connection) que se revoca al terminar.
+# Pide por la terminal la contraseña de la base de Cloud (o la cadena entera del
+# Session pooler, puerto 5432). Nada más: las claves S3 las pide storage-from-cloud.sh.
 #
 # --restore-user es supabase_admin, el superusuario del Postgres self-hosted: un
 # objeto de un rol de la plataforma en el dump (OWNER/SET ROLE) hace fallar a
@@ -86,7 +97,7 @@ PROJECT_DIR=""
 EXPECT_AUTH_USERS=""
 INCLUDE_LOGS=0
 CRON_ACTIVE=0
-SKIP_STORAGE=0
+CORTE=0
 RESTORE_USER="supabase_admin"
 WORK_ROOT="/dev/shm"
 EVIDENCE=""
@@ -98,7 +109,7 @@ RCLONE_IMAGE="rclone/rclone:1.75.1"
 PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
 
 usage() {
-  sed -n '2,63p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,74p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -134,7 +145,8 @@ while [[ $# -gt 0 ]]; do
     --expect-auth-users) setopt EXPECT_AUTH_USERS "${2-}"; shift 2 ;;
     --include-logs) INCLUDE_LOGS=1; shift ;;
     --cron-active) CRON_ACTIVE=1; shift ;;
-    --skip-storage) SKIP_STORAGE=1; shift ;;
+    --skip-storage) shift ;;  # sin efecto: Storage va con storage-from-cloud.sh
+    --corte) CORTE=1; shift ;;
     --restore-user) setopt RESTORE_USER "${2-}"; shift 2 ;;
     --work-dir) setopt WORK_ROOT "${2-}"; shift 2 ;;
     --evidence) setopt EVIDENCE "${2-}"; shift 2 ;;
@@ -150,8 +162,15 @@ done
 
 # ── 0 · Guardas ──────────────────────────────────────────────────────────────
 [[ "${PROJECT}" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || die "--project inválido: '${PROJECT}'"
-[[ "${PROJECT}" != "${PROD_PROJECT}" && "${PROJECT}" == *-staging ]] \
-  || refuse "${PROJECT} no es un staging: este script solo escribe en proyectos *-staging (el corte de la Fase 3 tiene su propio procedimiento)"
+if (( CORTE )); then
+  [[ "${PROJECT}" == "${PROD_PROJECT}" ]] \
+    || refuse "--corte es solo para el proyecto de producción del VPS (${PROD_PROJECT}); para ensayar, un *-staging sin --corte"
+  INCLUDE_LOGS=1
+  CRON_ACTIVE=1
+else
+  [[ "${PROJECT}" != "${PROD_PROJECT}" && "${PROJECT}" == *-staging ]] \
+    || refuse "${PROJECT} no es un staging: sin --corte este script solo escribe en proyectos *-staging"
+fi
 [[ -z "${EXPECT_AUTH_USERS}" || "${EXPECT_AUTH_USERS}" =~ ^[0-9]+$ ]] || die "--expect-auth-users debe ser un entero"
 [[ "${RESTORE_USER}" =~ ^[a-z_][a-z0-9_]*$ ]] || die "--restore-user inválido"
 [[ -z "${CLOUD_USER}${CLOUD_HOST}" || ( -n "${CLOUD_USER}" && -n "${CLOUD_HOST}" ) ]] \
@@ -274,6 +293,11 @@ BRACKETS_HINT="empieza con [ y termina con ]: esos corchetes son los de [YOUR-PA
 # Medido el 2026-10-11: un pegado con una línea en blanco en el medio dejó vacío el
 # Secret y obligaba a empezar de cero, contraseña incluida. Fin de la entrada
 # (sin terminal o Ctrl+D) corta en el acto con el último problema.
+if (( CORTE )); then
+  read -r -p "CORTE de producción: todo Cloud → ${PROJECT}. Escribe exactamente 'CORTE ${PROJECT}' para seguir: " corte_ok < "${tty_in}" || corte_ok=""
+  [[ "$(trim "${corte_ok}")" == "CORTE ${PROJECT}" ]] || refuse "confirmación del corte incorrecta: no se conectó a nada"
+  log "0/6 CORTE confirmado: logs con datos, pg_cron como en Cloud y Vault copiado"
+fi
 MAX_TRIES=3
 ask_secret() { # $1 = pregunta, $2 = variable; sin eco, recortado; 1 si no hay más entrada
   local v=""
@@ -345,49 +369,6 @@ for (( try = 1; ; try++ )); do
   fi
   retry_or_die "${try}" "${problem}" "Pega de nuevo SOLO lo que se pide y pulsa Enter"
 done
-cloud_ref=""
-if [[ "${PROD_DB_URL}" =~ postgres\.([a-z0-9]{20}) ]]; then cloud_ref="${BASH_REMATCH[1]}";
-elif [[ "${PROD_DB_URL}" =~ db\.([a-z0-9]{20})\.supabase\.co ]]; then cloud_ref="${BASH_REMATCH[1]}"; fi
-if (( ! SKIP_STORAGE )); then
-  CLOUD_S3_ENDPOINT="${CLOUD_S3_ENDPOINT:-}"
-  if [[ -z "${CLOUD_S3_ENDPOINT}" ]]; then
-    [[ -n "${cloud_ref}" ]] || die "no pude deducir el proyecto de Cloud de la cadena: exporta CLOUD_S3_ENDPOINT"
-    CLOUD_S3_ENDPOINT="https://${cloud_ref}.supabase.co/storage/v1/s3"
-  fi
-  docker network inspect "${NET_EGRESS}" >/dev/null 2>&1 || die "no existe la red ${NET_EGRESS}"
-  # Las claves viajan por nombre (-e VAR), nunca como valor en la línea de docker.
-  s3_ok() {
-    export RCLONE_CONFIG_CLOUD_TYPE=s3 RCLONE_CONFIG_CLOUD_PROVIDER=Other RCLONE_CONFIG_CLOUD_REGION=us-east-1 \
-      RCLONE_CONFIG_CLOUD_ENDPOINT="${CLOUD_S3_ENDPOINT}" RCLONE_CONFIG_CLOUD_FORCE_PATH_STYLE=true \
-      RCLONE_CONFIG_CLOUD_ACCESS_KEY_ID="${CLOUD_S3_KEY}" RCLONE_CONFIG_CLOUD_SECRET_ACCESS_KEY="${CLOUD_S3_SECRET}"
-    docker run --rm --label "${run_label}" --network "${NET_EGRESS}" \
-      -e RCLONE_CONFIG_CLOUD_TYPE -e RCLONE_CONFIG_CLOUD_PROVIDER -e RCLONE_CONFIG_CLOUD_REGION \
-      -e RCLONE_CONFIG_CLOUD_ENDPOINT -e RCLONE_CONFIG_CLOUD_FORCE_PATH_STYLE \
-      -e RCLONE_CONFIG_CLOUD_ACCESS_KEY_ID -e RCLONE_CONFIG_CLOUD_SECRET_ACCESS_KEY \
-      "${RCLONE_IMAGE}" --contimeout 15s --timeout 60s --retries 1 --low-level-retries 1 lsd cloud: >/dev/null 2>&1
-  }
-  problem=""
-  for (( try = 1; ; try++ )); do
-    ask_secret "Access key ID S3 temporal de Cloud: " CLOUD_S3_KEY || die "${problem:-el Access key ID no llegó: fin de la entrada}"
-    if [[ -z "${CLOUD_S3_KEY}" || "${CLOUD_S3_KEY}" =~ [[:space:]] ]]; then
-      problem="el Access key ID no llegó bien: $(describe_input "${CLOUD_S3_KEY}" clave)"
-    else
-      echo "access key ID recibida (${#CLOUD_S3_KEY} caracteres)"
-      ask_secret "Secret access key S3 temporal de Cloud: " CLOUD_S3_SECRET || die "${problem:-el Secret access key no llegó: fin de la entrada}"
-      if [[ -z "${CLOUD_S3_SECRET}" || "${CLOUD_S3_SECRET}" =~ [[:space:]] ]]; then
-        problem="el Secret access key no llegó bien: $(describe_input "${CLOUD_S3_SECRET}" clave)"
-      else
-        echo "secret access key recibido (${#CLOUD_S3_SECRET} caracteres)"
-        if s3_ok; then
-          echo "acceso a Storage de Cloud: OK"
-          break
-        fi
-        problem="Storage de Cloud no aceptó esas claves (¿se copiaron completas, cada una por separado? ¿la key sigue activa?)"
-      fi
-    fi
-    retry_or_die "${try}" "${problem}" "Pega las DOS claves de nuevo, una por una, con Enter después de cada una"
-  done
-fi
 
 work="$(mktemp -d "${WORK_ROOT%/}/import-${PROJECT}-XXXXXX")"
 log "carpeta de trabajo en memoria: ${work}"
@@ -465,40 +446,20 @@ docker run --rm --label "${run_label}" --network "${NET_INTERNAL}" -e PGPASSWORD
     -c 'SET session_replication_role = origin' -f /import/cron.sql -f /import/acl.sql > "${work}/restore.log" 2>&1 \
   || { tail -n 20 "${work}/restore.log" | sed 's/^/   /' | tee -a "${EVIDENCE}"; die "el restore falló (no quedó nada: era una sola transacción)"; }
 log "3/6 restore terminado"
-
-# ── 4 · Storage: rclone desde el VPS, S3 de Cloud → S3 del staging ──────────
-storage_rc=0
-if (( SKIP_STORAGE )); then
-  log "4/6 Storage omitido (--skip-storage)"
-else
-  S3_ID="$(envget S3_PROTOCOL_ACCESS_KEY_ID)"; S3_SECRET="$(envget S3_PROTOCOL_ACCESS_KEY_SECRET)"
-  [[ -n "${S3_ID}" && -n "${S3_SECRET}" ]] || die "S3_PROTOCOL_ACCESS_KEY_* vacío en ${PROJECT_DIR}/.env"
-  docker network inspect "${NET_EGRESS}" >/dev/null 2>&1 || die "no existe la red ${NET_EGRESS}"
-  # Remotos por variables de entorno de rclone: ni un rclone.conf en disco ni
-  # claves en la línea de comandos.
-  export RCLONE_CONFIG_CLOUD_TYPE=s3 RCLONE_CONFIG_CLOUD_PROVIDER=Other RCLONE_CONFIG_CLOUD_REGION=us-east-1 \
-    RCLONE_CONFIG_CLOUD_ENDPOINT="${CLOUD_S3_ENDPOINT}" RCLONE_CONFIG_CLOUD_FORCE_PATH_STYLE=true \
-    RCLONE_CONFIG_CLOUD_ACCESS_KEY_ID="${CLOUD_S3_KEY}" RCLONE_CONFIG_CLOUD_SECRET_ACCESS_KEY="${CLOUD_S3_SECRET}"
-  export RCLONE_CONFIG_STAGING_TYPE=s3 RCLONE_CONFIG_STAGING_PROVIDER=Other RCLONE_CONFIG_STAGING_REGION="$(envget REGION)"
-  export RCLONE_CONFIG_STAGING_ENDPOINT="http://storage:5000/s3" RCLONE_CONFIG_STAGING_FORCE_PATH_STYLE=true \
-    RCLONE_CONFIG_STAGING_ACCESS_KEY_ID="${S3_ID}" RCLONE_CONFIG_STAGING_SECRET_ACCESS_KEY="${S3_SECRET}"
-  [[ -n "${RCLONE_CONFIG_STAGING_REGION}" ]] || export RCLONE_CONFIG_STAGING_REGION=stub
-  rclone_env=()
-  for v in $(compgen -e | grep -E '^RCLONE_CONFIG_(CLOUD|STAGING)_'); do rclone_env+=(-e "${v}"); done
-  rclone_run() {
-    docker run --rm --label "${run_label}" --network "${NET_EGRESS}" "${rclone_env[@]}" "${RCLONE_IMAGE}" \
-      --contimeout 30s --timeout 5m --retries 3 --low-level-retries 5 "$@"
-  }
-  while read -r bucket; do
-    [[ -n "${bucket}" ]] || continue
-    log "4/6 bucket ${bucket}"
-    rclone_run copy "cloud:${bucket}" "staging:${bucket}" --transfers 4 --stats-one-line --stats 30s >> "${work}/rclone.log" 2>&1 \
-      || { storage_rc=1; log "4/6 rclone falló en ${bucket} (ver el resumen)"; }
-  done < "${work}/cloud-bucket-ids.txt"
-  rclone_run size --json "cloud:" > "${work}/rclone-cloud.json" 2>>"${work}/rclone.log" || storage_rc=1
-  rclone_run size --json "staging:" > "${work}/rclone-staging.json" 2>>"${work}/rclone.log" || storage_rc=1
-  log "4/6 tamaño total · Cloud $(cat "${work}/rclone-cloud.json" 2>/dev/null) · staging $(cat "${work}/rclone-staging.json" 2>/dev/null)"
+if (( CORTE )); then
+  # Secretos de Vault: descifrados en Cloud, re-cifrados aquí con la raíz del
+  # servidor. El archivo vive en ${work} (memoria) y se borra con él.
+  cloud_sql "select format('select vault.create_secret(%L, %L, %L);', decrypted_secret, name, coalesce(description, '')) from vault.decrypted_secrets order by name" > "${work}/vault.sql"
+  docker run --rm --label "${run_label}" --network "${NET_INTERNAL}" -e PGPASSWORD="${STAGING_PASSWORD}" \
+    -v "${work}:/import:ro" "${PG_IMAGE}" \
+    psql -h db -U "${RESTORE_USER}" -d postgres --single-transaction -v ON_ERROR_STOP=1 -q -f /import/vault.sql > /dev/null 2>&1 \
+    || die "no se pudieron escribir los secretos de Vault en ${PROJECT} (la base ya está restaurada: revisa y repite solo Vault)"
+  rm -f -- "${work}/vault.sql"
+  log "3/6 Vault: $(staging_sql "select count(*) from vault.secrets") secretos copiados (re-cifrados con la raíz del servidor)"
 fi
+
+# ── 4 · Storage ──────────────────────────────────────────────────────────────
+log "4/6 Storage: los archivos los copia storage-from-cloud.sh (paso siguiente del runbook)"
 
 # ── 5 · Verificación ────────────────────────────────────────────────────────
 log "5/6 verificación (Cloud | staging)"
@@ -529,7 +490,12 @@ summary staging_sql > "${work}/staging-resumen.txt"
 while IFS='|' read -r k n; do
   s="$(grep -E "^${k//./\\.}\|" "${work}/staging-resumen.txt" | cut -d'|' -f2 || true)"
   case "${k}" in
-    vault.secrets) log "INFO  · vault.secrets · Cloud ${n} | staging ${s:-?} (no viajan en el dump y estarían cifrados con la raíz de Cloud: se escriben con vault-set-secret.sh)";;
+    vault.secrets)
+      if (( CORTE )); then
+        check "vault.secrets (copiados)" "${n}" "${s:-?}"
+      else
+        log "INFO  · vault.secrets · Cloud ${n} | staging ${s:-?} (en el ensayo no viajan: se escriben con vault-set-secret.sh)"
+      fi ;;
     cron.job)
       check "cron.job (recreados)" "${n}" "${s:-?}"
       log "INFO  · cron.job activos en staging: $(staging_sql "select count(*) from cron.job where active" 2>/dev/null || echo '?')$( (( CRON_ACTIVE )) || echo ' (inactivos a propósito; --cron-active los deja como en Cloud)')" ;;
@@ -549,11 +515,9 @@ check "anon/authenticated sin DELETE en public.tenants" "0" \
 check "ledger: applied_migration_names() igual a Cloud" \
   "$(cloud_sql "select md5(string_agg(version || ':' || name, ',' order by version)) from public.applied_migration_names()")" \
   "$(staging_sql "select md5(string_agg(version || ':' || name, ',' order by version)) from public.applied_migration_names()" 2>/dev/null || echo '?')"
-if (( ! SKIP_STORAGE )); then
-  check "rclone: copia de Storage sin errores" "0" "${storage_rc}"
-  c_count="$(grep -o '"count":[0-9]*' "${work}/rclone-cloud.json" 2>/dev/null | cut -d: -f2)"
-  s_count="$(grep -o '"count":[0-9]*' "${work}/rclone-staging.json" 2>/dev/null | cut -d: -f2)"
-  check "rclone: objetos en Cloud = objetos en staging" "${c_count:-?}" "${s_count:-?}"
+if (( CORTE )); then
+  vault_fp="select count(*) || ':' || coalesce(md5(string_agg(name || ':' || md5(coalesce(decrypted_secret, '')), ',' order by name)), '-') from vault.decrypted_secrets"
+  check "Vault: los secretos descifran igual que en Cloud (huella)" "$(cloud_sql "${vault_fp}" 2>/dev/null || echo '?cloud')" "$(staging_sql "${vault_fp}" 2>/dev/null || echo '?staging')"
 fi
 
 # ── 6 · Borrado y evidencia ─────────────────────────────────────────────────
@@ -562,11 +526,7 @@ rm -rf -- "${work}"
 work=""
 left="$(find "${WORK_ROOT}" -maxdepth 1 -name "import-${PROJECT}-*" | wc -l)"
 check "nada del dump quedó en ${WORK_ROOT}" "0" "${left}"
-unset PROD_DB_URL CLOUD_S3_KEY CLOUD_S3_SECRET
+unset PROD_DB_URL
 log "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
-if (( ! SKIP_STORAGE )); then
-  read -r -p "Revoca AHORA la access key S3 temporal en el panel de Supabase y escribe 'revocada': " answer < "${tty_in}" || answer=""
-  log "claves S3 temporales: '${answer}' a las $(date -u +%H:%M:%SZ)"
-fi
 log "evidencia: ${EVIDENCE} (solo cifras, sin filas). Copia su contenido al handoff."
 (( fail == 0 )) || exit 7

@@ -10,6 +10,13 @@
 #   --name VAR            una variable.
 #   --integraciones       recorre las variables del bloque «Integraciones de la app»
 #                         que siguen vacías en el .env; Enter deja una vacía.
+#   --integraciones --todas
+#                         recorre TODAS las del bloque; Enter conserva el valor actual.
+#                         Para las que new-env.sh generó pero tienen que ser las de
+#                         Vercel: EMAIL_UNSUBSCRIBE_SECRET (firma los enlaces de baja de
+#                         correos ya enviados), NEWSLETTER_IP_HASH_SECRET,
+#                         MARCA_ACCESS_SECRET, DOCUMENT_IMPORT_RATE_SECRET y las VAPID
+#                         (sin las mismas, las suscripciones push dejan de llegar).
 #   --claves-supabase     JWT secret, anon key y service role key de Cloud. Comprueba
 #                         que las dos keys están firmadas (HS256) con ese secreto y
 #                         que sus roles son anon y service_role; recién entonces
@@ -32,9 +39,10 @@ PROJECT=""
 PROJECT_DIR=""
 MODE=""
 NAME=""
+TODAS=0
 
 usage() {
-  sed -n '2,27p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 log() { printf '%s\n' "$*"; }
 die() { echo "env-set: $*" >&2; exit 2; }
@@ -46,6 +54,7 @@ while [[ $# -gt 0 ]]; do
     --project-dir) setopt PROJECT_DIR "${2-}"; shift 2 ;;
     --name) MODE="name"; setopt NAME "${2-}"; shift 2 ;;
     --integraciones) MODE="integraciones"; shift ;;
+    --todas) TODAS=1; shift ;;
     --claves-supabase) MODE="supabase"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "argumento desconocido: $1 (ver --help)" ;;
@@ -83,11 +92,11 @@ write_var() { # $1 = nombre, $2 = valor
   mv -f "${tmp}" "${ENV_FILE}"
 }
 
-ask_value() { # $1 = nombre, $2 = permitir vacío (1/0); deja el valor en VALUE
-  local name="$1" allow_empty="$2" try problem=""
+ask_value() { # $1 = nombre, $2 = permitir vacío (1/0), $3 = texto del Enter; deja el valor en VALUE
+  local name="$1" allow_empty="$2" enter="${3:-Enter para dejarla vacía}" try problem=""
   VALUE=""
   for (( try = 1; ; try++ )); do
-    ask_secret "${name} (no se ve al pegar$( (( allow_empty )) && echo '; Enter para dejarla vacía')): " VALUE \
+    ask_secret "${name} (no se ve al pegar$( (( allow_empty )) && echo "; ${enter}")): " VALUE \
       || die "${problem:-${name}: no llegó nada (fin de la entrada)}"
     if [[ -z "${VALUE}" ]]; then
       (( allow_empty )) && return 0
@@ -119,14 +128,24 @@ case "${MODE}" in
     ' "${ENV_FILE}")
     (( ${#vars[@]} > 0 )) || die "no encontré el bloque «# ── Integraciones de la app» en ${ENV_FILE}"
     pendientes=()
-    for v in "${vars[@]}"; do is_empty "${v}" && pendientes+=("${v}"); done
-    log "${#pendientes[@]} de ${#vars[@]} variables de integración están vacías. Pega el valor de cada una, o Enter para dejarla vacía."
+    for v in "${vars[@]}"; do
+      if (( TODAS )) || is_empty "${v}"; then pendientes+=("${v}"); fi
+    done
+    if (( TODAS )); then
+      enter="Enter conserva el valor actual"
+      log "Las ${#vars[@]} variables de integración, una por una. Pega el valor de Vercel, o Enter para conservar el actual."
+    else
+      enter="Enter para dejarla vacía"
+      log "${#pendientes[@]} de ${#vars[@]} variables de integración están vacías. Pega el valor de cada una, o Enter para dejarla vacía."
+    fi
     guardadas=0
     for v in ${pendientes[@]+"${pendientes[@]}"}; do
-      ask_value "${v}" 1
+      ask_value "${v}" 1 "${enter}"
       if [[ -n "${VALUE}" ]]; then
         write_var "${v}" "${VALUE}"; guardadas=$((guardadas + 1))
         log "  ${v}: guardada (${#VALUE} caracteres)"
+      elif (( TODAS )) && ! is_empty "${v}"; then
+        log "  ${v}: conserva el valor actual"
       else
         log "  ${v}: queda vacía"
       fi

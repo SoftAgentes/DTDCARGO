@@ -53,6 +53,11 @@ printf '%s\n' 'tg-123' | run --integraciones > "${T}/i.log" 2>&1; rc=$?
 [ $rc -eq 0 ] && [ "$(val TELEGRAM_BOT_TOKEN)" = "'tg-123'" ] && [ "$(val ANTHROPIC_API_KEY)" = "ya-tenia" ] && [ "$(val OTRA)" = "1" ] \
   && grep -q '1 de 3 variables' "${T}/i.log" && ok "--integraciones pide solo las vacías del bloque y guarda" || { ko "--integraciones rc=$rc"; cat "${T}/i.log"; }
 
+# --integraciones --todas: pide las tres, Enter conserva (TELEGRAM y ANTHROPIC) y una se cambia
+printf '%s\n\n\n' 're-nueva' | run --integraciones --todas > "${T}/t.log" 2>&1; rc=$?
+[ $rc -eq 0 ] && [ "$(val RESEND_API_KEY)" = "'re-nueva'" ] && [ "$(val TELEGRAM_BOT_TOKEN)" = "'tg-123'" ] && [ "$(val ANTHROPIC_API_KEY)" = "ya-tenia" ] \
+  && grep -q 'Las 3 variables' "${T}/t.log" && grep -c 'conserva el valor actual' "${T}/t.log" | grep -q 2 && ok "--integraciones --todas: pide todas, Enter conserva, y reemplaza la que se pega" || { ko "--todas rc=$rc"; cat "${T}/t.log"; }
+
 # --claves-supabase: claves firmadas con un secreto inventado
 read -r SEC ANON SRK OTRO_ANON < <(python3 - <<'PY'
 import base64, hashlib, hmac, json, secrets

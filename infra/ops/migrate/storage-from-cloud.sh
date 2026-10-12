@@ -23,8 +23,11 @@
 # y, al final, que se revoque. La prueba de cada clave se hace apenas llega
 # (listado de buckets de Cloud) y, si no sirve, se vuelve a pedir.
 #
+# CORTE (--corte, solo el proyecto de producción del VPS): pide escribir
+# «CORTE <proyecto>» antes de pedir las claves; el resto es igual.
+#
 # Uso (como root en el VPS, mejor dentro de tmux):
-#   storage-from-cloud.sh --project dtd-cargo-staging --cloud-ref <ref> \
+#   storage-from-cloud.sh --project dtd-cargo-staging --cloud-ref <ref> [--corte] \
 #       [--project-dir /srv/dtd-cargo-staging] [--evidence <archivo>] [--work-dir /dev/shm]
 #
 # Códigos: 0 todo PASÓ · 2 uso inválido o credenciales · 3 rechazado por una guarda ·
@@ -36,13 +39,14 @@ PROJECT=""
 PROJECT_DIR=""
 CLOUD_REF=""
 EVIDENCE=""
+CORTE=0
 WORK_ROOT="/dev/shm"
 PG_IMAGE="supabase/postgres:17.6.1.136"
 RCLONE_IMAGE="rclone/rclone:1.75.1"
 PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
 
 usage() {
-  sed -n '2,33p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -73,6 +77,7 @@ while [[ $# -gt 0 ]]; do
     --evidence) setopt EVIDENCE "${2-}"; shift 2 ;;
     --work-dir) setopt WORK_ROOT "${2-}"; shift 2 ;;
     --rclone-image) setopt RCLONE_IMAGE "${2-}"; shift 2 ;;
+    --corte) CORTE=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "argumento desconocido: $1 (ver --help)" ;;
   esac
@@ -80,8 +85,13 @@ done
 
 # ── 0 · Guardas ──────────────────────────────────────────────────────────────
 [[ "${PROJECT}" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || die "--project inválido: '${PROJECT}'"
-[[ "${PROJECT}" != "${PROD_PROJECT}" && "${PROJECT}" == *-staging ]] \
-  || refuse "${PROJECT} no es un staging: este script solo escribe en proyectos *-staging"
+if (( CORTE )); then
+  [[ "${PROJECT}" == "${PROD_PROJECT}" ]] \
+    || refuse "--corte es solo para el proyecto de producción del VPS (${PROD_PROJECT})"
+else
+  [[ "${PROJECT}" != "${PROD_PROJECT}" && "${PROJECT}" == *-staging ]] \
+    || refuse "${PROJECT} no es un staging: sin --corte este script solo escribe en proyectos *-staging"
+fi
 [[ "${CLOUD_REF}" =~ ^[a-z0-9]{20}$ ]] || die "--cloud-ref debe ser el id de 20 caracteres del proyecto de Cloud"
 PROJECT_DIR="${PROJECT_DIR:-/srv/${PROJECT}}"
 EVIDENCE="${EVIDENCE:-/srv/ops/evidencias/storage-${PROJECT}-${stamp}.txt}"
@@ -172,6 +182,12 @@ rclone_run() {
 rclone_run lsd staging: > /dev/null 2>&1 \
   || refuse "el S3 del staging (https://${PUBLIC_HOST}/storage/v1/s3) no responde a rclone desde ${NET_EDGE}: revisa STAGING_INTERNAL_IPS y que api-gw esté arriba"
 log "0/5 S3 del staging responde por https://${PUBLIC_HOST}/storage/v1/s3"
+
+if (( CORTE )); then
+  read -r -p "CORTE de producción: archivos de Cloud → ${PROJECT}. Escribe exactamente 'CORTE ${PROJECT}' para seguir: " corte_ok < "${tty_in}" || corte_ok=""
+  [[ "$(trim "${corte_ok}")" == "CORTE ${PROJECT}" ]] || refuse "confirmación del corte incorrecta: no se pidieron claves ni se copió nada"
+  log "0/5 CORTE confirmado"
+fi
 
 # ── 1 · Claves S3 de Cloud (probadas al llegar) ─────────────────────────────
 problem=""
