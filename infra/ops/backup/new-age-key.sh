@@ -16,6 +16,12 @@
 #   5. Limpia la pantalla y el historial de tmux: la privada no queda en el
 #      scrollback.
 #
+# Ctrl+C no cancela hasta que la llave queda guardada: en la terminal significa
+# «cancelar», no «copiar». El 2026-10-12 la ventana se cerró dos veces con la
+# llave en pantalla, muy probablemente por un Ctrl+C para copiarla. Ahora avisa
+# cómo copiar o pegar y sigue esperando; para cancelar de verdad se cierra la
+# ventana. Si se corta sin guardar, lo dice al final de la pantalla limpia.
+#
 # Uso (como root en el VPS, dentro de tmux):
 #   new-age-key.sh [--destinatarios /srv/ops/backup/age-recipients.txt] [--nombre "Sam 2026-10"]
 #
@@ -25,8 +31,12 @@ umask 077
 
 DEST="/srv/ops/backup/age-recipients.txt"
 NOMBRE="Sam $(date -u +%Y-%m)"
-usage() { sed -n '2,23p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
-die() { echo "new-age-key: $*" >&2; exit 2; }
+usage() { sed -n '2,28p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+# Con el trap de salida armado, el motivo lo imprime el trap: la limpieza de
+# pantalla borraría un error impreso aquí.
+armado=0
+motivo=""
+die() { motivo="$*"; (( armado )) || echo "new-age-key: $*" >&2; exit 2; }
 setopt() { local n="$1" v="${2-}"; [[ -z "${v}" ]] || printf -v "${n}" '%s' "${v}"; }
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -51,7 +61,37 @@ limpiar_pantalla() {
 # Si se corta mientras la privada está en pantalla, se limpia igual; al terminar
 # bien no, para que se vea el resultado.
 en_pantalla=0
-trap 'rm -rf -- "${work}"; (( en_pantalla )) && limpiar_pantalla; pause_in_tmux' EXIT
+guardada=0
+al_salir() {
+  trap - INT
+  rm -rf -- "${work}"
+  if (( en_pantalla )); then limpiar_pantalla; fi
+  if (( ! guardada )); then
+    echo
+    echo "✗ La llave NO se guardó${motivo:+: ${motivo}}."
+    echo "  Esa llave ya no sirve: si alcanzaste a guardarla, bórrala."
+    echo "  Para generar otra, vuelve a abrir esta ventana."
+  fi
+  pause_in_tmux
+}
+trap al_salir EXIT
+armado=1
+
+# Ctrl+C no corta `read`: el trap avisa y la pregunta sigue esperando. Al pegar,
+# la terminal descarta lo que estaba a medio escribir.
+etapa=copiar
+aviso_ctrl_c() {
+  echo
+  echo "  Ctrl+C aquí no copia: en la terminal significa «cancelar», y lo dejé sin efecto."
+  if [[ "${etapa}" == copiar ]]; then
+    echo "  Para copiar: selecciona la línea con el ratón y pulsa Ctrl+Shift+C (o clic derecho → Copiar)."
+    echo "  Cuando la hayas guardado, pulsa Enter."
+  else
+    echo "  Para pegar: Ctrl+Shift+V o clic derecho. Lo que habías pegado se borró:"
+    echo "  pega la llave otra vez y pulsa Enter."
+  fi
+}
+trap aviso_ctrl_c INT
 
 age-keygen -o "${work}/llave.txt" 2>/dev/null
 PRIVADA="$(grep '^AGE-SECRET-KEY-' "${work}/llave.txt")"
@@ -66,7 +106,8 @@ cat <<EOF
 
 ${PRIVADA}
 
-  1. Cópiala COMPLETA (empieza con AGE-SECRET-KEY- y es una sola línea).
+  1. Cópiala COMPLETA (empieza con AGE-SECRET-KEY- y es una sola línea):
+     selecciónala con el ratón y pulsa Ctrl+Shift+C (Ctrl+C sin Shift no copia).
   2. Guárdala en tu gestor de contraseñas con el nombre:
        «DTD Cargo · llave de respaldos (age)»
   3. Recomendado: escríbela también en papel y guárdalo en un lugar seguro.
@@ -76,9 +117,11 @@ ${PRIVADA}
 ══════════════════════════════════════════════════════════════════════
 
 EOF
-read -r -p "Cuando la hayas guardado, pulsa Enter para comprobarla. " _ < "${tty_in}" || die "no hubo respuesta"
+read -r -p "Cuando la hayas guardado, pulsa Enter para comprobarla. " _ < "${tty_in}" \
+  || die "se cortó antes de comprobar la llave"
 limpiar_pantalla
 en_pantalla=0
+etapa=pegar
 problem=""
 for (( try = 1; ; try++ )); do
   ask_secret "Pega aquí la llave que guardaste (no se ve al pegar), para comprobarla: " VUELTA \
@@ -96,5 +139,7 @@ install -d -m 700 "$(dirname "${DEST}")"
 [[ -f "${DEST}" ]] || install -m 600 /dev/null "${DEST}"
 grep -qF "${PUBLICA}" "${DEST}" || printf '# %s · creada %s\n%s\n' "${NOMBRE}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${PUBLICA}" >> "${DEST}"
 chmod 600 "${DEST}"
+guardada=1
+trap - INT
 log "Listo: la clave PÚBLICA quedó en ${DEST}. La privada ya no está en el servidor."
 log "Huella de la pública: $(printf '%s' "${PUBLICA}" | sha256sum | cut -c1-16)"
