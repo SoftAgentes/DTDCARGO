@@ -209,8 +209,14 @@ missing_buckets="$(comm -23 "${work}/buckets-cloud.txt" "${work}/buckets-staging
 # ── 3 · Copia ───────────────────────────────────────────────────────────────
 # Tipos de archivo antes de copiar (los de Cloud, que trajo el import): después se
 # comparan, porque la subida reescribe los metadatos de cada fila.
-mime_sql="select m || ':' || n from (select coalesce(metadata->>'mimetype', '-') as m, count(*) as n from storage.objects group by 1) t order by 1"
+# storage-api v1.77 guarda las subidas HTML como text/plain (medido el 2026-10-12: los
+# 74 .html de brand-assets llegaron así). La app no se entera: /marca/doc fija el
+# Content-Type por la extensión. Por eso se comparan con text/html contado como
+# text/plain, y el cambio se informa aparte.
+mime_sql="select m || ':' || n from (select case coalesce(metadata->>'mimetype', '-') when 'text/html' then 'text/plain' else coalesce(metadata->>'mimetype', '-') end as m, count(*) as n from storage.objects group by 1) t order by 1"
+html_sql="select count(*) from storage.objects where metadata->>'mimetype' = 'text/html'"
 staging_sql "${mime_sql}" > "${work}/tipos-antes.txt"
+html_before="$(staging_sql "${html_sql}")"
 # Huella de id + dueño + fecha de creación: la copia no los debe tocar (medido).
 copy_start="$(staging_sql "select now()")"
 owners_sql="select count(*) || ':' || count(owner_id) || ':' || md5(string_agg(id::text || coalesce(owner_id, '') || created_at::text, ',' order by id)) from storage.objects where created_at < '${copy_start}'"
@@ -259,7 +265,8 @@ while read -r bucket; do
   total_disk_n=$((total_disk_n + dn - missing)); total_disk_b=$((total_disk_b + disk_b)); total_missing=$((total_missing + missing))
 done < "${work}/buckets-cloud.txt"
 log "      total · Cloud ${total_cloud_n} objetos / ${total_cloud_b} bytes · disco ${total_disk_n} archivos / ${total_disk_b} bytes · filas sin archivo ${total_missing}"
-check "tipos de archivo (mimetype) iguales antes y después de copiar" \
+log "INFO  · archivos con text/html: ${html_before} antes · $(staging_sql "${html_sql}") después (storage-api los guarda como text/plain)"
+check "tipos de archivo (mimetype) iguales antes y después de copiar, HTML contado como texto" \
   "$(tr '\n' ' ' < "${work}/tipos-antes.txt")" "$(staging_sql "${mime_sql}" | tr '\n' ' ')"
 check "dueños y fechas conservados: filas con owner_id antes y después" \
   "${owners_before}" "$(staging_sql "${owners_sql}")"

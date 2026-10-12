@@ -216,6 +216,18 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
     - verificación en el disco (`<raíz>/<GLOBAL_S3_BUCKET>/<TENANT_ID>/<bucket>/<nombre>/<version>`, disposición medida): por bucket, filas = objetos de Cloud, filas sin archivo = 0 y bytes de Cloud = bytes en disco; además, mimetypes iguales antes y después, y huella de id, dueño y fecha igual.
   - **Prueba** (`infra/ops/tests/prueba-storage-from-cloud.sh`, Cloud falso con rclone serve s3): **8 PASÓ · 0 FALLÓ**. Los 16 buckets y las 638 filas reales quedaron intactos.
   - **Pendiente:** el paso 4 de `import-from-cloud.sh` tiene los dos defectos; pasarlo a este script (o quitarlo) antes del corte.
+- **Copia de archivos al staging (2026-10-12, 19:04-19:06 UTC) · PASÓ:**
+  - `storage-from-cloud.sh --project dtd-cargo-staging --cloud-ref xpfuzqombmjmxvprjgmi` dentro de tmux. Sam pegó las claves de la access key «traslado-vps» (creada el 2026-10-10). El intento 1 fue rechazado por Cloud y el 2 entró. El endpoint es el que muestra el panel: `https://<ref>.storage.supabase.co/storage/v1/s3`.
+  - Evidencia: `/srv/ops/evidencias/storage-dtd-cargo-staging-20261012T184937Z.txt`.
+  - **Resultado: 51 PASÓ · 1 FALLÓ.**
+    - Los 16 buckets: filas = objetos de Cloud, 0 filas sin archivo y bytes iguales.
+    - Total: 638 objetos y 470.562.607 bytes en Cloud = 638 archivos y 470.562.607 bytes en el disco del staging. Los más grandes: brand-assets 424 / 244.044.521 B; client-docs 172 / 207.964.734 B; prealerta-docs 32 / 15.641.832 B.
+    - Huella de id, dueño y fecha igual antes y después (`638:2:3ea7930a…`).
+  - **El FALLÓ es esperado e inofensivo:**
+    - Los 74 objetos `text/html` de `brand-assets` (privado, subidos el 2026-08-02/03; el sistema de marca) quedaron como `text/plain`, porque storage-api v1.77.6 guarda así las subidas HTML.
+    - La app no se entera: `app/marca/doc/[...ruta]/route.ts` fija el `Content-Type` por la extensión (`tipoDeContenido(nombre)`).
+    - El script ahora cuenta HTML como texto e informa el cambio aparte. La prueba con Cloud falso sigue en 8 PASÓ · 0 FALLÓ.
+    - Comparado contra Cloud por catálogo (solo tipos y conteos): Cloud `text/html` 74 + `text/plain` 3 = staging `text/plain` 77; el resto, igual.
 - **Fallos de la sesión de importación:** ahora quedan en la evidencia (`✗ intento N: …` y el corte de `die`), así se puede saber el motivo aunque la sesión de tmux ya se haya cerrado.
 
 ## Fase 2 · web del staging (2026-10-11, sin datos todavía)
