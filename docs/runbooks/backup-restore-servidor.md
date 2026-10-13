@@ -99,9 +99,23 @@ una decisión de Sam, no un ajuste técnico.
 
 ### 2.2 Horario
 
-`0 6 * * * /srv/dtd-cargo/backup.sh >> /var/log/backup-dtd-cargo.log 2>&1`
-(para DTD, `/srv/dtd-cargo/backup.sh` son los dos comandos de §2.1 con
-`set -euo pipefail`; los proyectos de la plantilla ya traen el suyo).
+DTD Cargo usa un **timer de systemd**, no una línea de cron
+(`infra/dtd-cargo/systemd/dtd-cargo-backup.timer`, instalado en el VPS el
+2026-10-13): `OnCalendar=*-*-* 06:00:00 UTC` con la zona explícita, porque el
+reloj del VPS está en `Europe/Berlin` y un cron a secas correría a otra hora;
+`Persistent=true` recupera la corrida si el servidor estaba apagado. El service
+corre `/srv/dtd-cargo/backup.sh` y escribe en `/var/log/backup-dtd-cargo.log`
+(rotado por logrotate, 12 meses). `backup.sh` envuelve los dos comandos de §2.1
+con los valores del `.env`, toma un candado (`flock`) para que dos corridas no
+se pisen, y mientras exista `NO-ENCENDER-HASTA-EL-CORTE.txt` sale 0 diciendo
+«producción apagada»: el timer queda encendido desde antes del corte. Los
+proyectos de la plantilla siguen con su `backup.sh` en el cron del host.
+
+```bash
+systemctl list-timers dtd-cargo-backup.timer   # próxima corrida
+systemctl start dtd-cargo-backup.service       # una corrida a mano
+tail -n 20 /var/log/backup-dtd-cargo.log
+```
 
 06:00 UTC = 02:00 en Caracas, 14:00 en Yiwu. No hay una hora en la que los dos
 equipos duerman (12 h de diferencia); como `pg_dump` no bloquea y la base pesa

@@ -88,11 +88,12 @@ esa corrida.
 clave raíz de Vault, `pgsodium_root.key`; **no** es `VAULT_ENC_KEY`, que es de
 Supavisor) en `<remoto>/<proyecto>-config/`, cifrados, y solo cuando cambiaron.
 
-Cada proyecto los llama desde su `backup.sh` (lee `.env`), agendado en el cron
-del host, escalonado para no solapar:
+Cada proyecto los llama desde su `backup.sh` (lee `.env`). DTD Cargo lo agenda
+con un timer de systemd a las 06:00 UTC (`infra/dtd-cargo/systemd/`, zona
+explícita porque el VPS está en `Europe/Berlin`); los proyectos de la plantilla,
+en el cron del host, escalonados para no solapar:
 
 ```
-15 3 * * * /srv/dtd-cargo/backup.sh >> /var/log/backup-dtd-cargo.log 2>&1
 45 3 * * * /srv/loop3d/backup.sh   >> /var/log/backup-loop3d.log   2>&1
 ```
 

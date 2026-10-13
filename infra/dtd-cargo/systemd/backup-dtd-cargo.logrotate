@@ -1,0 +1,12 @@
+# /etc/logrotate.d/backup-dtd-cargo — el log del respaldo diario no crece sin límite (SDD-0505).
+/var/log/backup-dtd-cargo.log {
+    # /var/log es escribible por el grupo syslog en Ubuntu; sin esto logrotate se niega.
+    su root root
+    monthly
+    rotate 12
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0600 root root
+}

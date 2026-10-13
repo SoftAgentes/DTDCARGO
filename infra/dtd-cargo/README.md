@@ -166,6 +166,35 @@ renderiza, el log muestra `Bearer ${CRON_SECRET}` literal y nunca el valor. La
 salida de cada curl (JSON de la ruta o `curl: (22) ... 401`) va directo a los
 mismos logs: en modo `-f -d` crond no usa sendmail.
 
+## Respaldo diario
+
+`backup.sh` corre todos los días a las **06:00 UTC** (02:00 en Caracas) por el
+timer de systemd de `systemd/` y envuelve los dos scripts de `/srv/ops/backup`
+con los valores del `.env`: el dump cifrado de la base (`pg-dump-to-s3.sh`) y la
+configuración (`config-backup.sh`), al bucket `b2:dtdcargo-respaldos/db`. Si los
+dos salen 0 y `BACKUP_HEARTBEAT_URL` está en el `.env`, manda el latido a Uptime
+Kuma; un respaldo que falla no late.
+
+Mientras exista `NO-ENCENDER-HASTA-EL-CORTE.txt` el script dice «producción
+apagada» y sale 0 sin respaldar: el timer queda encendido desde antes del corte
+y el log muestra que corre cada día. Sin la marca, una base que no está
+corriendo es un fallo (1).
+
+```bash
+install -m 700 backup.sh /srv/dtd-cargo/backup.sh
+install -m 644 systemd/dtd-cargo-backup.service systemd/dtd-cargo-backup.timer /etc/systemd/system/
+install -m 644 systemd/backup-dtd-cargo.logrotate /etc/logrotate.d/backup-dtd-cargo
+systemctl daemon-reload && systemctl enable --now dtd-cargo-backup.timer
+systemctl list-timers dtd-cargo-backup.timer      # próxima corrida
+/srv/dtd-cargo/backup.sh --dry-run                 # los comandos, sin tocar nada
+systemctl start dtd-cargo-backup.service           # una corrida a mano
+tail -n 20 /var/log/backup-dtd-cargo.log
+```
+
+Prueba: `infra/ops/tests/prueba-backup-dtd.sh` (dobles de los scripts de ops,
+una base dormida con las etiquetas de compose y un monitor local). Detalle del
+respaldo y del restore mensual: `docs/runbooks/backup-restore-servidor.md`.
+
 ## Diferencias conocidas con Vercel
 
 - La pestaña Norte de `/studio/debug` no tiene snapshot (`/norte.html`): el
