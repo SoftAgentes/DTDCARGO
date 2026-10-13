@@ -60,6 +60,15 @@ printf '%s\n\n\n' 're-nueva' | run --integraciones --todas > "${T}/t.log" 2>&1; 
 [ $rc -eq 0 ] && [ "$(val RESEND_API_KEY)" = "'re-nueva'" ] && [ "$(val TELEGRAM_BOT_TOKEN)" = "'tg-123'" ] && [ "$(val ANTHROPIC_API_KEY)" = "ya-tenia" ] \
   && grep -q 'Las 3 variables' "${T}/t.log" && grep -c 'conserva el valor actual' "${T}/t.log" | grep -q 2 && ok "--integraciones --todas: pide todas, Enter conserva, y reemplaza la que se pega" || { ko "--todas rc=$rc"; cat "${T}/t.log"; }
 
+# --integraciones --solo: solo las listadas, en ese orden; Enter conserva; una fuera del bloque se rechaza.
+printf '%s\n\n' 'an-nueva' | run --integraciones --solo ANTHROPIC_API_KEY,RESEND_API_KEY > "${T}/so.log" 2>&1; rc=$?
+[ $rc -eq 0 ] && [ "$(val ANTHROPIC_API_KEY)" = "'an-nueva'" ] && [ "$(val RESEND_API_KEY)" = "'re-nueva'" ] && [ "$(val TELEGRAM_BOT_TOKEN)" = "'tg-123'" ] \
+  && grep -q '2 variables elegidas' "${T}/so.log" && ok "--solo: pide solo las listadas, en ese orden, y Enter conserva" || { ko "--solo rc=$rc"; cat "${T}/so.log"; }
+antes="$(sha256sum "${P}/.env")"
+printf '%s\n' 'x' | run --integraciones --solo ANTHROPIC_API_KEY,NO_EXISTE > "${T}/so2.log" 2>&1; rc=$?
+[ $rc -eq 2 ] && grep -q 'NO_EXISTE no está en el bloque' "${T}/so2.log" && [ "$(sha256sum "${P}/.env")" = "${antes}" ] \
+  && ok "--solo con una variable fuera del bloque: rechaza (2) antes de pedir nada" || { ko "--solo inválida rc=$rc"; tail -2 "${T}/so2.log"; }
+
 # --claves-supabase: claves firmadas con un secreto inventado
 read -r SEC ANON SRK OTRO_ANON < <(python3 - <<'PY'
 import base64, hashlib, hmac, json, secrets

@@ -10,6 +10,9 @@
 #   --name VAR            una variable.
 #   --integraciones       recorre las variables del bloque «Integraciones de la app»
 #                         que siguen vacías en el .env; Enter deja una vacía.
+#   --integraciones --solo A,B,C
+#                         recorre solo esas, en ese orden; Enter conserva el valor
+#                         actual. Es el modo del corte: las que existen en Vercel.
 #   --integraciones --todas
 #                         recorre TODAS las del bloque; Enter conserva el valor actual.
 #                         Para las que new-env.sh generó pero tienen que ser las de
@@ -40,6 +43,7 @@ PROJECT_DIR=""
 MODE=""
 NAME=""
 TODAS=0
+SOLO=""
 
 usage() {
   sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
@@ -58,6 +62,7 @@ while [[ $# -gt 0 ]]; do
     --name) MODE="name"; setopt NAME "${2-}"; shift 2 ;;
     --integraciones) MODE="integraciones"; shift ;;
     --todas) TODAS=1; shift ;;
+    --solo) setopt SOLO "${2-}"; shift 2 ;;
     --claves-supabase) MODE="supabase"; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "argumento desconocido: $1 (ver --help)" ;;
@@ -139,10 +144,25 @@ case "${MODE}" in
     ' "${ENV_FILE}")
     (( ${#vars[@]} > 0 )) || die "no encontré el bloque «# ── Integraciones de la app» en ${ENV_FILE}"
     pendientes=()
+    if [[ -n "${SOLO}" ]]; then
+      # Solo esta lista, en este orden; Enter conserva. Lo que no esté en el
+      # bloque se rechaza antes de pedir nada.
+      IFS=',' read -r -a solo_vars <<< "${SOLO}"
+      for v in "${solo_vars[@]}"; do
+        v="${v// /}"; [[ -n "${v}" ]] || continue
+        printf '%s\n' "${vars[@]}" | grep -qx "${v}" || die "--solo: ${v} no está en el bloque de integraciones del .env"
+        pendientes+=("${v}")
+      done
+      TODAS=1
+    else
     for v in "${vars[@]}"; do
       if (( TODAS )) || is_empty "${v}"; then pendientes+=("${v}"); fi
     done
-    if (( TODAS )); then
+    fi
+    if [[ -n "${SOLO}" ]]; then
+      enter="Enter conserva el valor actual"
+      log "${#pendientes[@]} variables elegidas con --solo, una por una. Pega el valor, o Enter para conservar el actual."
+    elif (( TODAS )); then
       enter="Enter conserva el valor actual"
       log "Las ${#vars[@]} variables de integración, una por una. Pega el valor de Vercel, o Enter para conservar el actual."
     else
