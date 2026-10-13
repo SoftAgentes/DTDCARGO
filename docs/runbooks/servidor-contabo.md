@@ -677,6 +677,6 @@ Orden:
 |---|---|---|---|---|
 | 2026-10-08 | 0 | Worker SDD-0505 | Repo preparado; ver spec | `.agents/handoffs/0505-dockerizar-dtd-cargo-contabo.md` |
 | 2026-10-09 | 1 (parcial) | Worker SDD-0505, con Sam en el panel | Reinstalado Ubuntu 24.04.5; SSH solo con llave; ufw 22/80/443; fail2ban; actualizaciones automáticas; swap 4 GB; Docker 29.9 + Compose v5.6; `/srv` creado; **benchmark PASÓ** (21.428 IOPS, fsync p95 7,24 ms). Faltan Tailscale, panel/Traefik, snapshot «base limpia» y repetir el benchmark otro día | `.agents/handoffs/0505-dockerizar-dtd-cargo-contabo.md` § Fase 1 en el VPS |
-| — | 2 | — | pendiente | — |
-| — | 3 | — | pendiente | — |
+| 2026-10-09 → 2026-10-13 | 2 | Worker SDD-0505, con Sam en las ventanas de credenciales | Staging vacío (2026-10-09); base importada desde Cloud con `--skip-storage` (2026-10-12: 277 PASÓ, 266 tablas, 305 usuarios, ledger 477 → 478 con la 0472); archivos con `storage-from-cloud.sh` (638 objetos, 470.562.607 bytes, 51 PASÓ + 1 esperado); smokes con datos (correo de Auth 11/11, TUS y tiempo real 9/9, 19 crons, Studio); sesiones, claves, scripts del corte, mantenimiento y producción armada y apagada; **staging destruido el 2026-10-13 con evidencia** (`/srv/ops/evidencias/destroy-dtd-cargo-staging-20261013T0132Z.txt`: 0 contenedores, 0 volúmenes, 0 redes, 0 datos). Fuera de esta fase: pgBackRest (§7 del runbook de backup) | `.agents/handoffs/0505-dockerizar-dtd-cargo-contabo.md` § Fase 2 |
+| — | 3 | — | pendiente: 0472 aplicada en Cloud (2026-10-13), respaldo diario instalado y encendido, texto de privacidad aprobado; faltan claves, DNS de `supabase.dtdcargo.com`, imagen de `main`, aviso a clientes y la fecha | — |
 | — | 4 | — | pendiente | — |

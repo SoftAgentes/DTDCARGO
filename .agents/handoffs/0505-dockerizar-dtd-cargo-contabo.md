@@ -308,6 +308,17 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
 - **El día del corte:** al quitar la marca, el timer respalda solo a las 06:00 UTC. Antes conviene una corrida a mano (`systemctl start dtd-cargo-backup.service`) y, cuando exista el monitor, poner `BACKUP_HEARTBEAT_URL` en el `.env`.
 - **Fuera de alcance aquí:** Uptime Kuma no corre todavía en el VPS (sin latido no hay aviso); WAL continuo sigue como pendiente declarado (runbook §7).
 
+## Fase 2 cerrada: staging destruido (2026-10-13, 01:32Z, decisión de Sam: «sí, borra el staging»)
+
+- **Antes:** 11 contenedores (`web`, `auth`, `mailpit`, `api-gw`, `storage`, `functions`, `imgproxy`, `auth-templates`, `realtime`, `rest`, `db`), 2 volúmenes (`db-config`, `deno-cache`), 2 redes, 600 M de datos en `/srv/dtd-cargo-staging/data` (PGDATA con los 305 usuarios y las 266 tablas, y los 638 archivos de Storage), 0 dumps locales, 0 en `/dev/shm`. El script instalado es idéntico al del repo (sha256 `b21d5468e69582f0`).
+- **Ensayo en seco** (`--dry-run`): salida 0, sin borrar nada.
+- **Destrucción:** `destroy-staging.sh --project dtd-cargo-staging --confirm dtd-cargo-staging --evidence /srv/ops/evidencias/destroy-dtd-cargo-staging-20261013T0132Z.txt` → salida 0 en 8 s. **Después: 0 contenedores · 0 volúmenes · 0 redes · datos 0 · dumps 0 · /dev/shm 0** (comprobado por el script y, aparte, por `docker ps -a`, `docker volume ls`, `docker network ls`, `ls`). Conserva compose, `.env` (secretos solo del staging), `functions/` y `supabase/` (sin datos) por si hace falta un segundo ensayo. `https://staging.dtdcargo.com/` responde 404 desde Traefik.
+- **Snapshot de Contabo:** el único es `base-limpia-2026-10-09` (19:37 CEST), anterior a la importación del 2026-10-12: no lleva datos de producción. No hay nada que borrar en el panel.
+- **Restos de pruebas en `/root`** (`agekey-*`, `zz-*`): borrados.
+- **Queda en el servidor** (sin datos personales): las evidencias de importación y Storage (solo cifras), las imágenes `dtdcargo:staging-5b2231b8` y `dtdcargo:staging-9e922bc5` (código, sin datos) y `/srv/build/build-*.log`.
+- **Pendiente de Sam, sin urgencia:** borrar en Hostinger los registros DNS `staging.dtdcargo.com` y `supabase-staging.dtdcargo.com`.
+- Con esto se cumple la condición 5 (H6) de la revisión del traslado y el requisito «Fase 2 cerrada y su staging destruido» de la Fase 3.
+
 ## Decisiones de Sam del 2026-10-13 (texto literal, por chat)
 
 - «La revisión del abogado de la política de privacidad: aprobado, ya el abogado las aprobó, te lo confirmo.» → registrado en `revision-traslado-contabo-2026-10-09.md` §5.1 (H4). **Lo que falta y no es del abogado:** el texto aprobado todavía no está en `app/privacidad/page.tsx` (sigue «se tratan en Venezuela», `UPDATED` 19 de septiembre de 2026) ni se avisó a los clientes; el runbook §3 lo exige antes del corte. Sam aclaró después que las políticas ya existían (`docs/legal/borradores/politica-privacidad-DRAFT.md`, `DTDCARGO_Politicas_Digitales_v3_para_abogada.md`, julio de 2026); ninguna versión decía dónde se alojan los datos ni mencionaba respaldos. El ajuste de H4 se redactó sobre la página publicada (commit `bf7bf1e2`: §4, §5, §6, §7 y la fecha) y **Sam lo aprobó el 2026-10-13** («ok, aprobado el texto»). Se publica con el merge. Falta el aviso a los clientes.
