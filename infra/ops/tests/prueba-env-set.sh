@@ -80,5 +80,19 @@ printf '%s\n%s\n%s\n' "${SEC}" "${ANON}" "${SRK}" | run --claves-supabase > "${T
 grep -qE "${SEC}|${ANON}|${SRK}" "${T}/s1.log" "${T}/s2.log" "${T}/s3.log" && ko "alguna clave apareció en la salida" || ok "ninguna clave aparece en la salida"
 [ "$(grep -c '^JWT_SECRET=' "${P}/.env")" = 1 ] && ok "sin líneas duplicadas" || ko "JWT_SECRET duplicado"
 ls "${P}"/.env.* >/dev/null 2>&1 && ko "quedó un temporal .env.*" || ok "no quedaron temporales"
+
+# Reintentos y evidencia: un secreto mal pegado (los puntos del panel) y después el bueno.
+mkdir -p "${T}/evid"
+antes="$(sha256sum "${P}/.env")"
+printf '%s\n%s\n%s\n%s\n%s\n%s\n' "••••••••••••" "${ANON}" "${SRK}" "${SEC}" "${ANON}" "${SRK}" | ENV_SET_EVIDENCE_DIR="${T}/evid" run --claves-supabase > "${T}/s4.log" 2>&1; rc=$?
+[ $rc -eq 0 ] && grep -q 'intento 1' "${T}/s4.log" && grep -q 'se copiaron los puntos' "${T}/s4.log" && grep -q 'guardadas' "${T}/s4.log" \
+  && ok "secreto mal pegado y después el bueno: explica, reintenta y guarda" || { ko "reintento rc=$rc"; tail -4 "${T}/s4.log"; }
+printf '%s\n%s\n%s\n' "otro" "${ANON}" "${SRK}" "otro" "${ANON}" "${SRK}" "otro" "${ANON}" "${SRK}" | ENV_SET_EVIDENCE_DIR="${T}/evid" run --claves-supabase > "${T}/s5.log" 2>&1; rc=$?
+despues="$(sha256sum "${P}/.env")"
+[ $rc -eq 2 ] && grep -q '3 intentos' "${T}/s5.log" && [ "$(val JWT_SECRET)" = "'${SEC}'" ] && ok "tres veces mal: corta (2) y conserva lo que ya estaba guardado" || { ko "tres intentos rc=$rc"; tail -3 "${T}/s5.log"; }
+ev="$(ls "${T}"/evid/env-set-zz-envset-supabase-*.txt 2>/dev/null | tail -1)"
+[ -n "${ev}" ] && grep -q 'firma NO coincide' "${ev}" && grep -q '✗' "${ev}" && [ "$(stat -c %a "${ev}")" = 600 ] \
+  && ok "la evidencia registra los fallos y el corte (600)" || ko "evidencia: ${ev:-ninguna}"
+grep -qE "${SEC}|${ANON}|${SRK}" "${T}"/evid/*.txt && ko "la evidencia tiene una clave" || ok "la evidencia no tiene ninguna clave"
 echo "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
 [ "${fail}" = 0 ]

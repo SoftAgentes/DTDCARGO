@@ -44,8 +44,11 @@ TODAS=0
 usage() {
   sed -n '2,34p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
-log() { printf '%s\n' "$*"; }
-die() { echo "env-set: $*" >&2; exit 2; }
+# Lo que pasa en la sesión (nunca un valor) queda en una evidencia: el 2026-10-13
+# la ventana de tmux se cerró al primer fallo y no se supo qué había pasado.
+EVIDENCE=""
+log() { printf '%s\n' "$*"; [[ -z "${EVIDENCE}" ]] || printf '%s %s\n' "$(date -u +%H:%M:%SZ)" "$*" >> "${EVIDENCE}"; }
+die() { echo "env-set: $*" >&2; [[ -z "${EVIDENCE}" ]] || printf '%s ✗ %s\n' "$(date -u +%H:%M:%SZ)" "$*" >> "${EVIDENCE}"; exit 2; }
 setopt() { local n="$1" v="${2-}"; [[ -z "${v}" ]] || printf -v "${n}" '%s' "${v}"; }
 
 while [[ $# -gt 0 ]]; do
@@ -71,6 +74,14 @@ tty_in=/dev/stdin
 if { : < /dev/tty; } 2>/dev/null; then tty_in=/dev/tty; fi
 # shellcheck source=../lib/prompt.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/prompt.sh"
+EVIDENCE_DIR="${ENV_SET_EVIDENCE_DIR:-/srv/ops/evidencias}"
+if mkdir -p "${EVIDENCE_DIR}" 2>/dev/null; then
+  EVIDENCE="${EVIDENCE_DIR}/env-set-${PROJECT}-${MODE}-$(date -u +%Y%m%dT%H%M%SZ).txt"
+  : > "${EVIDENCE}" && chmod 600 "${EVIDENCE}" || EVIDENCE=""
+fi
+log "env-set --project ${PROJECT} --${MODE}${NAME:+ ${NAME}} · evidencia ${EVIDENCE:-ninguna}"
+# También cuando falla: en tmux la ventana se quedaría abierta para leer el motivo.
+trap pause_in_tmux EXIT
 
 has_var() { grep -qE "^${1}=" "${ENV_FILE}"; }
 is_empty() { local v; v="$(grep -E "^${1}=" "${ENV_FILE}" | tail -n1 | cut -d= -f2-)"; [[ -z "${v}" || "${v}" == "''" || "${v}" == '""' ]]; }
@@ -155,9 +166,12 @@ case "${MODE}" in
 
   supabase)
     command -v python3 >/dev/null || die "falta python3 para comprobar las firmas"
-    ask_value "JWT secret de Supabase Cloud (Settings › JWT Keys › Legacy JWT secret)" 0; JWT="${VALUE}"
-    ask_value "anon key (legacy) de Cloud" 0; ANON="${VALUE}"
-    ask_value "service_role key (legacy) de Cloud" 0; SRK="${VALUE}"
+    # Si la comprobación falla se piden las tres otra vez (MAX_TRIES): antes el
+    # script terminaba al primer fallo y la ventana se cerraba sin explicar nada.
+    for (( try = 1; ; try++ )); do
+    ask_value "JWT secret de Supabase Cloud (Settings › JWT Keys › pestaña Legacy JWT Secret › Reveal)" 0; JWT="${VALUE}"
+    ask_value "anon key (legacy) de Cloud (Settings › API Keys › pestaña Legacy › anon › Copy)" 0; ANON="${VALUE}"
+    ask_value "service_role key (legacy) de Cloud (misma pestaña › service_role › Reveal)" 0; SRK="${VALUE}"
     # La comprobación corre con los valores por entorno, nunca por argumento.
     resultado="$(JWT="${JWT}" ANON="${ANON}" SRK="${SRK}" python3 - <<'PY'
 import base64, hashlib, hmac, json, os
@@ -174,7 +188,7 @@ for name, role in (("ANON", "anon"), ("SRK", "service_role")):
     except Exception:
         out.append(f"{name}: no se puede leer"); continue
     firma = base64.urlsafe_b64encode(hmac.new(secret, f"{parts[0]}.{parts[1]}".encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
-    if head.get("alg") != "HS256": out.append(f"{name}: alg {head.get('alg')} (se esperaba HS256)")
+    if head.get("alg") != "HS256": out.append(f"{name}: alg {head.get('alg')} (se esperaba HS256: es una key del sistema nuevo; hace falta la de la pestaña Legacy)")
     elif not hmac.compare_digest(firma, parts[2]): out.append(f"{name}: la firma NO coincide con ese JWT secret")
     elif body.get("role") != role: out.append(f"{name}: role {body.get('role')} (se esperaba {role})")
     else: out.append(f"{name}: OK (role {role}, ref {body.get('ref', '-')})")
@@ -182,7 +196,14 @@ print("\n".join(out))
 PY
 )"
     log "${resultado}"
-    [[ "$(grep -c ': OK ' <<< "${resultado}")" == "2" ]] || die "las claves no son coherentes: no se guardó nada"
+    [[ "$(grep -c ': OK ' <<< "${resultado}")" == "2" ]] && break
+    pista="JWT secret $(describe_input "${JWT}")"
+    [[ "${JWT}" == *"•"* ]] && pista="${pista}; trae puntos «•»: se copiaron los puntos en vez del secreto, pulsa Reveal primero"
+    [[ "${ANON}" == eyJ* ]] || pista="${pista}; la anon no empieza con eyJ"
+    [[ "${SRK}" == eyJ* ]] || pista="${pista}; la service_role no empieza con eyJ"
+    retry_or_die "${try}" "las claves no son coherentes (${pista}): no se guardó nada" \
+      "Vuelve a pegar las tres, una por una: el JWT secret después de pulsar Reveal, y las dos keys de la pestaña Legacy"
+    done
     write_var JWT_SECRET "${JWT}"
     write_var ANON_KEY "${ANON}"
     write_var NEXT_PUBLIC_SUPABASE_ANON_KEY "${ANON}"
