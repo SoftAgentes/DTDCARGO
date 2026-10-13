@@ -398,15 +398,30 @@ Sam pidió que el Worker hiciera por su cuenta todo lo de la lista de arriba que
 |---|---|---|---|
 | 1 | Telegram en Uptime Kuma | **Hecho antes** (06:40Z) y comprobado ahora en `/edit/1..4`: el interruptor de Telegram está encendido en los 4 monitores | zoom del panel, sesión de Sam |
 | 2 | `MAINTENANCE_MODE` en Vercel | **Hecho** (09:40Z): variable tipo Config, valor `off`, Production y Preview, con nota. Vercel rechaza el valor vacío («Enter a value»); `mantenimientoActivo()` solo acepta `1`, `true`, `on`, `si`, así que `off` equivale a vacía. Sin redeploy todavía: lo trae el merge de la PR | panel de Vercel, «Added Environment Variable successfully» |
-| 2 | `MAINTENANCE_BYPASS_SECRET` en Vercel | **Preparado, no guardado:** el formulario «Add Environment Variable» quedó abierto en el Chrome de Sam con tipo Secret, el nombre, la nota, Production y Preview marcados y el cursor en «Value». El Worker no escribe secretos en paneles: Sam pega el valor (`grep ^MAINTENANCE_BYPASS_SECRET /srv/dtd-cargo/.env` en el VPS) y pulsa Save | pestaña de Vercel abierta |
+| 2 | `MAINTENANCE_BYPASS_SECRET` en Vercel | **Hecho por Sam** (10:45Z, «listo, ya pegué la clave en Vercel»): el Worker dejó el formulario con tipo Secret, nombre, nota, Production y Preview, y Sam pegó el valor del `.env` del VPS. Comprobado en el panel: dos filas Secret (Production, Preview) más `MAINTENANCE_MODE`. El redeploy lo trae el merge | panel de Vercel, filtro «MAINTENANCE» |
 | 3 | `pnpm verify` de la PR #194 | **Corrido por el Worker** sobre `39b2465e` (no había otra sesión activa en la máquina: `ListAgents` 0 locales en línea, CPU 27 %, 14,6 GB libres). Resultado en la sección siguiente | `scratchpad/verify-0505-20261013.log` |
-| 4 | Backblaze (clave «NEW», bucket `vps-dtdcargo-3`, clave maestra nueva) | **No se pudo:** `secure.backblaze.com` pidió el reto «Verifique que es un ser humano» de Cloudflare y volver a iniciar sesión; el Worker no pasa CAPTCHAs. La pestaña quedó abierta para Sam | pestaña de Backblaze |
+| 4 | Backblaze (clave «NEW», bucket `vps-dtdcargo-3`, clave maestra nueva) | **Parcial.** Primero `secure.backblaze.com` pidió el reto de Cloudflare y volver a entrar (Sam entró, 10:55Z). Con su sesión: la clave «NEW» **ya no existe** (solo queda `vps-dtdcargo-servidor`, restringida a `dtdcargo-respaldos`); el bucket `vps-dtdcargo-3` tiene 0 archivos y 0 bytes, pero el clasificador bloqueó al Worker el clic en «Delete Bucket» ([Cloud Storage Mass Delete]) y el de «Generate New Master Application Key» ([Secret-Store Writes]). Las dos pestañas quedaron abiertas con el botón a la vista para que Sam los pulse. Antes de pedir la rotación se comprobó por SSH que `/srv/ops/backup/rclone/rclone.conf` usa la cuenta `005635…` (la restringida), no la maestra `63552a8e6be8` | panel de Backblaze; `grep ^account` por SSH |
 | 4 | Hostinger (borrar `staging`/`supabase-staging`, TTL 300 s) | **Sigue en Sam:** el clasificador bloquea al Worker los cambios de DNS | — |
 | 5 | Aviso a los clientes | **Borrador listo:** `docs/legal/privacidad/aviso-clientes-traslado-2026-10.md` (correo, versión corta y versión para el equipo), con los hechos de la política aprobada y sin nombrar proveedores. Sam aprueba texto y fecha y lo envía | archivo en la PR |
 | 5 | Facturas de Supabase; 2FA en Kuma | **Siguen en Sam** (pago y contraseña) | — |
 | 6 | Fecha del corte | **Sigue en Sam** (propuesta: domingo 18 y domingo 25) | — |
 
 Runbook `servidor-contabo.md` §3.6 actualizado con los puntos 2, 3 y 4 del checklist y con `MAINTENANCE_MODE=off` donde decía «vacía».
+
+### `pnpm verify` sobre `39b2465e` (2026-10-13, 09:24-09:41Z, 17 min) · 14 de 17 PASÓ, 0 FALLÓ, 3 NO EJECUTADO
+
+Registro: `scratchpad/verify-0505-20261013.log` de la sesión (no va a Git). Máquina sin otra corrida (0 sesiones locales en línea, CPU 27 %, 14,6 GB libres al arrancar).
+
+| Paso | Resultado |
+|---|---|
+| harness, lint, rsc-boundary, typecheck, edge-functions (4 compilan), docs:check (491 specs), numbering, feature-constants (5), components:check, governance:check, pending-migration-symbols (0 ROJO · 0 AMARILLO) | PASÓ |
+| test (Vitest) | PASÓ · 669 archivos, **9.108 pruebas, 1 omitida** |
+| e2e (Playwright) | PASÓ con aviso · **176 pasaron, 2 flaky, 0 fallaron** (9,4 min); el proceso salió ≠ 0 por el worker de WebKit que no cierra en Windows (aviso conocido de `verify.mjs`, no regresión) |
+| build (Next, `.next-verify`, tsconfig restaurado) | PASÓ |
+| migrations-applied | NO EJECUTADO · sin `.env.local` en el worktree (SKIP en todo worktree; el estado real se midió contra producción el 2026-10-13: 0472 aplicada, ledger 478) |
+| sql-tests, schema-rebuild | NO EJECUTADO en esa corrida · Docker Desktop apagado. **Se arrancó Docker (29.7.2; el primer lanzamiento se cerró solo, el segundo quedó) y se corrieron aparte sobre `4939a7ce`** (`scratchpad/docker-steps-0505-20261013.log`, 09:45-09:52Z): `check-schema-rebuild.mjs` **PASÓ** («468 migraciones sobre postgres:17 · 450 aplicadas desde cero · schema reconstruible · 18 sólo-ledger verificadas»); `run-sql-tests.mjs` **PASÓ** («225 contrato(s) de SQL verificado(s) · rollback total», incluida `0472_kommo_functions_base_url.test.sql`) |
+
+`verify.mjs` lo dice él mismo: «exit 0 NO equivale a cierre verde completo» con tres críticos sin medir; por eso los dos de Docker se repitieron sueltos. Brecha entre el SHA verificado y la punta: los commits posteriores (`4939a7ce` y el de cierre) son solo docs y handoff (`docs/legal/privacidad/`, `docs/runbooks/servidor-contabo.md`, este archivo); `docs:check` se volvió a correr después de crearlos: PASÓ.
 
 ## Decisiones de Sam del 2026-10-13 (texto literal, por chat)
 
