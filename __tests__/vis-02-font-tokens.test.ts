@@ -60,18 +60,29 @@ function appSourceFiles(directory = join(ROOT, "app")): string[] {
 }
 
 describe("SDD-0175 Gate V1 · fuentes chinas", () => {
-  it("carga Noto Serif SC sin bloquear el render ni precargarla globalmente", () => {
+  // Tipografía SDD-0505 (decisión de Sam 2026-10-13): el chino ya no descarga Noto
+  // SC; las variables apuntan a las fuentes CJK del sistema. Se conservan los
+  // nombres (--font-noto-sc / --font-noto-serif-sc) para no tocar consumidores.
+  it("el chino usa fuentes del sistema: html.dtd-cjk-sistema define las dos variables", () => {
     const layout = read("app/layout.tsx");
-    const config = layout.match(
-      /const notoSerifSc = Noto_Serif_SC\(\{([\s\S]*?)\}\);/,
-    )?.[1];
+    const css = read("app/globals.css");
+    const bloque = css.match(/html\.dtd-cjk-sistema\s*\{([\s\S]*?)\}/)?.[1] ?? "";
 
-    expect(layout).toContain("Noto_Serif_SC");
-    expect(config).toContain('variable: "--font-noto-serif-sc"');
-    expect(config).toContain('display: "swap"');
-    expect(config).toContain("preload: false");
-    expect(config).toContain('fallback: ["Noto Sans SC", "sans-serif"]');
-    expect(layout).toContain("${notoSerifSc.variable}");
+    expect(layout).toContain("dtd-cjk-sistema");
+    expect(layout).not.toMatch(/Noto_Sans_SC|Noto_Serif_SC/);
+
+    const sans = tokenValues(bloque, "--font-noto-sc")[0] ?? "";
+    const serif = tokenValues(bloque, "--font-noto-serif-sc")[0] ?? "";
+    // Sistemas reales primero (macOS/iOS, Windows, Android) y un genérico al final.
+    expect(sans).toMatch(/^"PingFang SC"/);
+    expect(sans).toContain('"Microsoft YaHei"');
+    expect(sans).toContain('"Noto Sans CJK SC"');
+    expect(sans).toMatch(/sans-serif$/);
+    expect(serif).toContain('"SimSun"');
+    expect(serif).toContain('"Noto Serif CJK SC"');
+    expect(serif).toMatch(/serif$/);
+    // Sin autorreferencia: un var(--font-noto-sc) aquí sería un ciclo inválido.
+    expect(bloque).not.toContain("var(");
   });
 
   it.each([
