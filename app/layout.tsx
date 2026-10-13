@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-// Fuentes desde el repositorio (tipografía SDD-0505, 2026-10-13): solo Archivo + Archivo Black
-// aquí; JetBrains Mono la montan las superficies que la usan. El chino usa la
-// fuente del sistema (`html.dtd-cjk-sistema` en globals.css).
+// Fuentes desde el repositorio (tipografía SDD-0505, 2026-10-13): Archivo + Archivo Black
+// aquí; Sora + Nunito Sans las montan Studio y Portal, y JetBrains Mono las
+// superficies que la usan. El chino usa la fuente del sistema
+// (`html.dtd-cjk-sistema` en globals.css).
 import { archivo, archivoBlack } from "@/lib/fonts";
 import { BRAND_ASSETS, CONTACT } from "@/lib/design-tokens";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";

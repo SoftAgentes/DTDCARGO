@@ -105,7 +105,10 @@ export function hoyCaracas(now: Date = new Date()): string {
  *
  * Cortos a propósito: van en la columna «Servicio» de 170px. MEDIDOS en
  * Nunito Sans 700 a 10,5px (Badge sm): «Programada · sin fecha» 146px, el más
- * largo; «Programada · entra el 30/11» medía 173px y desbordaba.
+ * largo; «Programada · entra el 30/11» medía 173px y desbordaba. Desde el
+ * 2026-10-13 el Studio va en Archivo (tipografía SDD-0505): el texto de
+ * «Programada · sin fecha» mide 114px en Archivo 700 a 10,5px (canvas, Preview),
+ * así que el techo sigue cubierto.
  */
 export function programadaBadge(
   validFrom: string | null,

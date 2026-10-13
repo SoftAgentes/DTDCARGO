@@ -373,19 +373,25 @@ html.dtd-cjk-sistema {
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Wrappers de superficie: `.portal-sys` (/portal), `.calc-sys` (/calculadora) y
-   `.studio-sys` (Studio ERP). Hasta el 2026-10-13 remapeaban la tipografía a
-   Sora + Nunito Sans (capa SISTEMA del Norte, BD-035).
+   Capa SISTEMA (Norte): Sora (títulos) + Nunito Sans (cuerpo). Scopeada a
+   3 superficies vía wrapper class — el resto del sitio público sigue en Archivo:
+     · `.portal-sys` → /portal        (app/portal/layout.tsx · founder 2026-06-02)
+     · `.calc-sys`   → /calculadora   (founder 2026-06-06)
+     · `.studio-sys` → Studio ERP     (app/studio/layout.tsx · founder 2026-06-11)
+   Truco: redefinimos las MISMAS variables que ya consumen los componentes
+   (--font-archivo / --font-archivo-black, y --font-sans para usos sueltos del
+   Studio) → la superficie entera migra a Sora/Nunito sin tocar JSX. El wordmark
+   <BrandMark> NO migra (usa --font-brand-display, inmune). Mono (JetBrains) y CJK
+   (fuente del sistema) quedan igual. Sin capas (@layer) → gana al body de @layer base.
+   Las fuentes vienen del repositorio (lib/fonts.ts, tipografía SDD-0505).
    ────────────────────────────────────────────────────────────────── */
-/* Tipografía SDD-0505 (2026-10-13): Sora y Nunito Sans salieron del sitio. Las tres
-   superficies ya no remapean --font-archivo/--font-archivo-black: heredan Archivo
-   y Archivo Black de <html> como el resto. Se conserva --font-sans (lo usan
-   estilos sueltos del Studio). */
 .portal-sys,
 .calc-sys,
 .studio-sys {
-  --font-sans: var(--font-archivo), "Archivo", system-ui, -apple-system, sans-serif;
-  font-family: var(--font-archivo), "Archivo", system-ui, -apple-system, sans-serif;
+  --font-archivo: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
+  --font-archivo-black: var(--font-sora), "Sora", var(--font-nunito), system-ui, sans-serif;
+  --font-sans: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
 }
 
 /* Números de la calculadora en JetBrains Mono (tabular). Se aplica con la clase
