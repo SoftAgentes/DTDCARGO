@@ -231,6 +231,10 @@ Las condiciones 1, 6 y 7 siguen siendo de Sam.
 
 **Revisión del abogado (2026-10-09):** Sam informa que está hecha («listo verificacion del abogado list»). Con eso, la condición 1 queda **cumplida según Sam**. El Worker no vio el dictamen: no se registra qué decidió sobre biométricos, el titular del acuerdo o el plazo de aviso de brechas. Si cambia algo del DPA, se recrea en el portal y se vuelve a verificar el PDF.
 
+**Política de privacidad (H4) · revisión del abogado (2026-10-13):** Sam confirma por chat: «La revisión del abogado de la política de privacidad: aprobado, ya el abogado las aprobó, te lo confirmo». La revisión legal del texto queda **hecha según Sam**. Lo que sigue abierto, y no es del abogado: el texto aprobado **no está en el repo** (`app/privacidad/page.tsx` §5 sigue diciendo que los datos «se tratan en Venezuela», sin mencionar respaldos, y `UPDATED` es «19 de septiembre de 2026»), y los clientes no han sido avisados. Las dos cosas son requisito de la Fase 3 (`servidor-contabo.md` §3). El Worker no vio el texto aprobado: Sam lo pasa, o confirma que es la redacción propuesta en H4, y recién entonces se publica.
+
+**Proveedor de respaldos (H3, H7) · 2026-10-12/13:** Backblaze B2 contratado por Sam (bucket `dtdcargo-respaldos`, región `us-east-005` medida por la API), con `hard_delete` para que el borrado a los 30 días sea real, y la clave del servidor restringida a ese bucket. Fila agregada a `inventario-terceros.md`. Queda NO VERIFICABLE el DPA de Backblaze (no se leyó ni se archivó). N5 queda respondido para Backblaze: aceptó el pago de Sam.
+
 ## 6 · Fuera de alcance (para el abogado)
 
 - La redacción de la política de privacidad y del aviso a los clientes por el cambio de alojamiento (H4).
