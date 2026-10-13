@@ -145,12 +145,14 @@ case "${MODE}" in
     (( ${#vars[@]} > 0 )) || die "no encontré el bloque «# ── Integraciones de la app» en ${ENV_FILE}"
     pendientes=()
     if [[ -n "${SOLO}" ]]; then
-      # Solo esta lista, en este orden; Enter conserva. Lo que no esté en el
-      # bloque se rechaza antes de pedir nada.
+      # Solo esta lista, en este orden; Enter conserva. Vale cualquier variable
+      # del .env (las NEXT_PUBLIC_* de VAPID y Telegram viven en el bloque de la
+      # app, no en el de integraciones); una que no exista se rechaza antes de
+      # pedir nada.
       IFS=',' read -r -a solo_vars <<< "${SOLO}"
       for v in "${solo_vars[@]}"; do
         v="${v// /}"; [[ -n "${v}" ]] || continue
-        printf '%s\n' "${vars[@]}" | grep -qx "${v}" || die "--solo: ${v} no está en el bloque de integraciones del .env"
+        [[ "${v}" =~ ^[A-Z_][A-Z0-9_]*$ ]] && has_var "${v}" || die "--solo: ${v} no está en ${ENV_FILE}"
         pendientes+=("${v}")
       done
       TODAS=1
