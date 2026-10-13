@@ -378,6 +378,18 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
 - **Falta:** el canal de avisos a Telegram (Sam pega en el panel el token del bot `@dtdcargobot` «Prueba», que está libre; el de DTDStudioBot tiene webhook y `getUpdates` chocaría) y el aviso de caducidad de certificados; el monitor de `/api/debug/health` espera a que la web viva en el VPS (el `DEBUG_HEALTH_SECRET` de Vercel no se puede leer).
 - **Otro inquilino del VPS visto de paso:** corre un proyecto `rent-awada-pruebas` (web, Supabase propio, contenedores «candidate» recién creados), ajeno a esta tarea.
 
+## Estado al cierre de la noche del 2026-10-13 (Sam durmiendo; «avanza con todo lo que no me necesite»)
+
+- **Hecho sin Sam después de que se fue:** monitor de Storage en Kuma (#4, 200, cert 89 días); descripción de la PR #194 actualizada con el estado real; guion del corte con tiempos (`servidor-contabo.md` §3.6); spec § Seguimiento al día; memorias nuevas (`vercel-variables-secret-no-se-leen`, `ventanas-de-pegar-claves-en-el-vps`).
+- **Lo que necesita a Sam** (en orden de urgencia):
+  1. Telegram en Uptime Kuma: pegar el token de `@dtdcargobot` en Ajustes → Notificaciones → Telegram, «Auto Get» del chat (tras `/start` al bot), «Test», «Guardar».
+  2. `MAINTENANCE_MODE` (vacía) y `MAINTENANCE_BYPASS_SECRET` en Vercel (valor: `grep ^MAINTENANCE_BYPASS_SECRET /srv/dtd-cargo/.env`; el Worker no lo escribe en Vercel porque es un secreto) y redeploy.
+  3. Turno al Director para `pnpm verify` y merge de la PR #194 (publica `/privacidad` y la imagen de GHCR).
+  4. Backblaze: clave maestra nueva, borrar «NEW» y el bucket `vps-dtdcargo-3`. Hostinger: borrar `staging` y `supabase-staging`; TTL de `dtdcargo.com`/`www` a 300 s antes del paso 2.
+  5. Aviso a los clientes; facturas de Supabase; 2FA en Kuma.
+  6. Fecha del corte (miércoles 15): propuesta domingo 18 de octubre 07:00 Caracas (paso 1) y domingo 25 (paso 2).
+- **Lo que queda del Worker, sin Sam:** nada bloqueante. El día D: repetir `jwks-set.sh`, pausar pg_cron de Cloud con OK nominal, correr los scripts del corte, primer respaldo, reanudar el monitor.
+
 ## Decisiones de Sam del 2026-10-13 (texto literal, por chat)
 
 - «La revisión del abogado de la política de privacidad: aprobado, ya el abogado las aprobó, te lo confirmo.» → registrado en `revision-traslado-contabo-2026-10-09.md` §5.1 (H4). **Lo que falta y no es del abogado:** el texto aprobado todavía no está en `app/privacidad/page.tsx` (sigue «se tratan en Venezuela», `UPDATED` 19 de septiembre de 2026) ni se avisó a los clientes; el runbook §3 lo exige antes del corte. Sam aclaró después que las políticas ya existían (`docs/legal/borradores/politica-privacidad-DRAFT.md`, `DTDCARGO_Politicas_Digitales_v3_para_abogada.md`, julio de 2026); ninguna versión decía dónde se alojan los datos ni mencionaba respaldos. El ajuste de H4 se redactó sobre la página publicada (commit `bf7bf1e2`: §4, §5, §6, §7 y la fecha) y **Sam lo aprobó el 2026-10-13** («ok, aprobado el texto»). Se publica con el merge. Falta el aviso a los clientes.
