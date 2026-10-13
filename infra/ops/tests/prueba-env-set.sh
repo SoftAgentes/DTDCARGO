@@ -9,7 +9,9 @@ T="$(mktemp -d)"; trap 'docker network rm zz-envset_default >/dev/null 2>&1; rm 
 pass=0; fail=0
 ok() { echo "PASÓ  · $*"; pass=$((pass+1)); }
 ko() { echo "FALLÓ · $*"; fail=$((fail+1)); }
-P="${T}/zz-envset"; mkdir -p "${P}"
+P="${T}/zz-envset"; mkdir -p "${P}" "${T}/evid"
+# Las evidencias de la prueba van al temporal, no a /srv/ops/evidencias.
+export ENV_SET_EVIDENCE_DIR="${T}/evid"
 cat > "${P}/.env" <<'EOF'
 POSTGRES_PASSWORD=x
 JWT_SECRET=viejo
