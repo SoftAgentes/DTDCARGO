@@ -390,6 +390,24 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
   6. Fecha del corte (miércoles 15): propuesta domingo 18 de octubre 07:00 Caracas (paso 1) y domingo 25 (paso 2).
 - **Lo que queda del Worker, sin Sam:** nada bloqueante. El día D: repetir `jwks-set.sh`, pausar pg_cron de Cloud con OK nominal, correr los scripts del corte, primer respaldo, reanudar el monitor.
 
+## «Con los pendientes, hazlo tú» (2026-10-13, 09:20-10:30Z, decisión de Sam)
+
+Sam pidió que el Worker hiciera por su cuenta todo lo de la lista de arriba que no necesitara su contraseña ni su teléfono. Resultado, punto por punto:
+
+| # | Pendiente | Estado | Evidencia |
+|---|---|---|---|
+| 1 | Telegram en Uptime Kuma | **Hecho antes** (06:40Z) y comprobado ahora en `/edit/1..4`: el interruptor de Telegram está encendido en los 4 monitores | zoom del panel, sesión de Sam |
+| 2 | `MAINTENANCE_MODE` en Vercel | **Hecho** (09:40Z): variable tipo Config, valor `off`, Production y Preview, con nota. Vercel rechaza el valor vacío («Enter a value»); `mantenimientoActivo()` solo acepta `1`, `true`, `on`, `si`, así que `off` equivale a vacía. Sin redeploy todavía: lo trae el merge de la PR | panel de Vercel, «Added Environment Variable successfully» |
+| 2 | `MAINTENANCE_BYPASS_SECRET` en Vercel | **Preparado, no guardado:** el formulario «Add Environment Variable» quedó abierto en el Chrome de Sam con tipo Secret, el nombre, la nota, Production y Preview marcados y el cursor en «Value». El Worker no escribe secretos en paneles: Sam pega el valor (`grep ^MAINTENANCE_BYPASS_SECRET /srv/dtd-cargo/.env` en el VPS) y pulsa Save | pestaña de Vercel abierta |
+| 3 | `pnpm verify` de la PR #194 | **Corrido por el Worker** sobre `39b2465e` (no había otra sesión activa en la máquina: `ListAgents` 0 locales en línea, CPU 27 %, 14,6 GB libres). Resultado en la sección siguiente | `scratchpad/verify-0505-20261013.log` |
+| 4 | Backblaze (clave «NEW», bucket `vps-dtdcargo-3`, clave maestra nueva) | **No se pudo:** `secure.backblaze.com` pidió el reto «Verifique que es un ser humano» de Cloudflare y volver a iniciar sesión; el Worker no pasa CAPTCHAs. La pestaña quedó abierta para Sam | pestaña de Backblaze |
+| 4 | Hostinger (borrar `staging`/`supabase-staging`, TTL 300 s) | **Sigue en Sam:** el clasificador bloquea al Worker los cambios de DNS | — |
+| 5 | Aviso a los clientes | **Borrador listo:** `docs/legal/privacidad/aviso-clientes-traslado-2026-10.md` (correo, versión corta y versión para el equipo), con los hechos de la política aprobada y sin nombrar proveedores. Sam aprueba texto y fecha y lo envía | archivo en la PR |
+| 5 | Facturas de Supabase; 2FA en Kuma | **Siguen en Sam** (pago y contraseña) | — |
+| 6 | Fecha del corte | **Sigue en Sam** (propuesta: domingo 18 y domingo 25) | — |
+
+Runbook `servidor-contabo.md` §3.6 actualizado con los puntos 2, 3 y 4 del checklist y con `MAINTENANCE_MODE=off` donde decía «vacía».
+
 ## Decisiones de Sam del 2026-10-13 (texto literal, por chat)
 
 - «La revisión del abogado de la política de privacidad: aprobado, ya el abogado las aprobó, te lo confirmo.» → registrado en `revision-traslado-contabo-2026-10-09.md` §5.1 (H4). **Lo que falta y no es del abogado:** el texto aprobado todavía no está en `app/privacidad/page.tsx` (sigue «se tratan en Venezuela», `UPDATED` 19 de septiembre de 2026) ni se avisó a los clientes; el runbook §3 lo exige antes del corte. Sam aclaró después que las políticas ya existían (`docs/legal/borradores/politica-privacidad-DRAFT.md`, `DTDCARGO_Politicas_Digitales_v3_para_abogada.md`, julio de 2026); ninguna versión decía dónde se alojan los datos ni mencionaba respaldos. El ajuste de H4 se redactó sobre la página publicada (commit `bf7bf1e2`: §4, §5, §6, §7 y la fecha) y **Sam lo aprobó el 2026-10-13** («ok, aprobado el texto»). Se publica con el merge. Falta el aviso a los clientes.

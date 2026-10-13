@@ -577,7 +577,7 @@ Falta, en este orden:
 
 1. **Modo mantenimiento** (`lib/runtime/maintenance.ts`, hecho el 2026-10-12):
    - `MAINTENANCE_MODE=1` corta toda escritura y muestra «Volvemos en unos minutos». Las páginas públicas se siguen leyendo.
-   - En Vercel se fijan antes `MAINTENANCE_MODE` (vacía) y `MAINTENANCE_BYPASS_SECRET`, una clave larga que guarda Sam para el smoke.
+   - En Vercel se fijan antes `MAINTENANCE_MODE=off` (Vercel no acepta valores vacíos; el código solo activa el modo con `1`, `true`, `on` o `si`) y `MAINTENANCE_BYPASS_SECRET`, una clave larga que guarda Sam para el smoke.
    - Cambiar la variable en Vercel exige redeploy, unos minutos: se prende antes de la ventana.
 2. **Claves iguales a las de hoy**, con `infra/ops/migrate/env-set.sh` (Sam pega; nada se muestra):
    - `--project dtd-cargo --claves-supabase`: JWT secret, anon y service_role de Cloud. El script comprueba la firma HS256 y los roles antes de guardar. **Hecho el 2026-10-13** (evidencia `env-set-dtd-cargo-supabase-20261013T020821Z.txt`; `api-gw` recreado después). Con eso, y con `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE` (ya en la plantilla), las anon/service_role de hoy siguen valiendo. **Ojo con las sesiones abiertas:** el proyecto de Cloud firma los access tokens con una clave ECC P-256 (JWT Signing Keys, desde mayo de 2026); el secreto HS256 solo verifica las keys legacy. Para que las sesiones sobrevivan sin volver a entrar, el stack del servidor tiene que verificar también la clave pública ECC de Cloud (JWKS de `/auth/v1/.well-known/jwks.json`); pendiente de resolver antes del corte (handoff § Claves de Supabase Cloud). Si no se resuelve, cada usuario entra una vez más.
@@ -615,7 +615,7 @@ La web sigue en Vercel y solo cambia a qué Supabase le habla.
    - Studio con un admin; PWA con un operario; Portal con un cliente de prueba;
    - una subida de archivo y el tiempo real;
    - un cron a mano.
-9. **Mantenimiento OFF:** `MAINTENANCE_MODE` vacía, en el mismo redeploy del paso 6 si se puede. Para el smoke de antes (paso 8) se entra por `https://dtdcargo.com/mantenimiento/entrar?clave=<MAINTENANCE_BYPASS_SECRET>`, que deja una cookie de 4 h.
+9. **Mantenimiento OFF:** `MAINTENANCE_MODE=off`, en el mismo redeploy del paso 6 si se puede. Para el smoke de antes (paso 8) se entra por `https://dtdcargo.com/mantenimiento/entrar?clave=<MAINTENANCE_BYPASS_SECRET>`, que deja una cookie de 4 h.
 
 ### 3.3 Paso 2 · la web (días después, sin mantenimiento)
 
@@ -660,9 +660,9 @@ sea secreto.
 | # | Qué | Quién | Cómo se comprueba |
 |---|---|---|---|
 | 1 | PR #194 con `pnpm verify` y merge | Director | imagen `ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha de main>` publicada por el workflow |
-| 2 | `MAINTENANCE_MODE` (vacía) y `MAINTENANCE_BYPASS_SECRET` en Vercel, Production y Preview, y un redeploy | Sam | el valor del secreto es el de `/srv/dtd-cargo/.env` (`grep ^MAINTENANCE_BYPASS_SECRET`); `curl -s -o /dev/null -w '%{http_code}' https://dtdcargo.com/studio/login` sigue 200 |
-| 3 | Aviso a los clientes del cambio de alojamiento; facturas de Supabase al día | Sam | — |
-| 4 | Avisos de Uptime Kuma a Telegram configurados (mensaje de prueba recibido) | Sam | Ajustes → Notificaciones |
+| 2 | `MAINTENANCE_MODE=off` y `MAINTENANCE_BYPASS_SECRET` en Vercel, Production y Preview, y un redeploy. **`MAINTENANCE_MODE=off` creada el 2026-10-13** (tipo Config; Vercel no acepta valores vacíos y el código solo activa el modo con `1`, `true`, `on` o `si`). Falta el secreto: lo pega Sam (el Worker no escribe secretos) | Sam | el valor del secreto es el de `/srv/dtd-cargo/.env` (`grep ^MAINTENANCE_BYPASS_SECRET`); `curl -s -o /dev/null -w '%{http_code}' https://dtdcargo.com/studio/login` sigue 200 |
+| 3 | Aviso a los clientes del cambio de alojamiento (borrador listo en `docs/legal/privacidad/aviso-clientes-traslado-2026-10.md`: Sam aprueba texto y fecha y lo envía); facturas de Supabase al día | Sam | — |
+| 4 | Avisos de Uptime Kuma a Telegram configurados (mensaje de prueba recibido). **Hecho el 2026-10-13** (bot `@dtdcargobot`, «Sent Successfully»; el interruptor de Telegram está encendido en los 4 monitores, comprobado en `/edit/1..4`) | Sam | Ajustes → Notificaciones |
 | 5 | `jwks-set.sh --project dtd-cargo --cloud-ref xpfuzqombmjmxvprjgmi` y `up -d --force-recreate --no-deps auth rest realtime storage functions` | VPS | `prueba-jwks-sesiones.sh` (vuelve a dejar el JWKS limpio) |
 | 6 | `backup.sh --dry-run` imprime la cadena completa; `rclone lsf b2:dtdcargo-respaldos` responde | VPS | — |
 | 7 | Access key S3 temporal nueva en Cloud (Storage › S3 › Access keys) para `storage-from-cloud.sh`; se revoca al terminar | Sam | — |
@@ -682,7 +682,7 @@ sea secreto.
 | 07:32 | Vercel: `NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com` y `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=sb-xpfuzqombmjmxvprjgmi-auth-token`; anon y service_role **sin cambiar**; redeploy | Sam | `/studio/login` sigue 503 (mantenimiento) |
 | 07:40 | Webhooks de Kommo → `https://supabase.dtdcargo.com/functions/v1/kommo-webhook?secret=<el mismo>` | Sam | `docker logs dtd-cargo-functions-1` recibe un evento de prueba |
 | 07:42 | Smoke con el mantenimiento puesto, entrando por `https://dtdcargo.com/mantenimiento/entrar?clave=<MAINTENANCE_BYPASS_SECRET>` (cookie de 4 h): Studio con un admin (sesión ya abierta: no debe pedir login); Portal con un cliente de prueba; PWA `/m` con PIN; una subida de archivo y su descarga; bitácora en tiempo real; un cron disparado desde el panel de Vercel; un correo de acceso (magic link) | Sam + Worker | todo PASÓ en el handoff; `docker logs` de auth/rest/storage/realtime sin errores |
-| 08:00 | `MAINTENANCE_MODE` vacía en Vercel y redeploy | Sam | `/studio/login` → 200; Uptime Kuma en verde |
+| 08:00 | `MAINTENANCE_MODE=off` en Vercel y redeploy | Sam | `/studio/login` → 200; Uptime Kuma en verde |
 | 08:05 | Avisar al equipo; mirar Kuma y los logs durante 2 h | Sam + Worker | — |
 
 **Rollback limpio (antes de las 08:00):** Vercel vuelve a `NEXT_PUBLIC_SUPABASE_URL` de Cloud y `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE` vacía (redeploy); `update cron.job set active = true` en Cloud; mantenimiento fuera. El VPS se deja encendido para analizar; antes del siguiente intento, `destroy-staging.sh` **no** sirve (es producción): se vacían los datos a mano con `docker compose down -v` + borrar `/srv/dtd-cargo/data`, con el OK de Sam.
