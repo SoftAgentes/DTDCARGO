@@ -11,6 +11,11 @@
 #               sin eso, un borrado en B2 solo OCULTA el archivo y la versión vieja
 #               queda guardada, así que la retención de 30 días no borraría nada
 #               (y la política de privacidad promete que sí).
+#               La clave MAESTRA de la cuenta (keyID de 12 caracteres) se rechaza y
+#               se vuelve a pedir: con ella, quien entre al servidor maneja toda la
+#               cuenta (crear claves, borrar buckets). Entre el 2026-10-12 y el 13
+#               quedó guardada así tres veces y el mensaje de éxito no lo delataba.
+#               `--permitir-maestra` la acepta, solo para una emergencia.
 #   --tipo s3   S3 genérico (R2 u otro): pide endpoint, access key y secret.
 #
 # Uso (como root en el VPS, mejor dentro de tmux):
@@ -26,8 +31,9 @@ BUCKET=""
 DIR="/srv/ops/backup/rclone"
 RCLONE_IMAGE="rclone/rclone:1.75.1"
 NETWORK="${RCLONE_NETWORK:-bridge}"
+PERMITIR_MAESTRA=0
 
-usage() { sed -n '2,22p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"; }
 die() { echo "set-remote: $*" >&2; exit 2; }
 setopt() { local n="$1" v="${2-}"; [[ -z "${v}" ]] || printf -v "${n}" '%s' "${v}"; }
@@ -38,6 +44,7 @@ while [[ $# -gt 0 ]]; do
     --nombre) setopt NOMBRE "${2-}"; shift 2 ;;
     --bucket) setopt BUCKET "${2-}"; shift 2 ;;
     --dir) setopt DIR "${2-}"; shift 2 ;;
+    --permitir-maestra) PERMITIR_MAESTRA=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "argumento desconocido: $1 (ver --help)" ;;
   esac
@@ -77,6 +84,8 @@ for (( try = 1; ; try++ )); do
     ask_secret "applicationKey de Backblaze: " K2 || die "${problem:-no llegó la applicationKey}"
     if [[ -z "${K1}" || -z "${K2}" || "${K1}${K2}" =~ [[:space:]] ]]; then
       problem="las claves no llegaron bien: keyID $(describe_input "${K1}"); applicationKey $(describe_input "${K2}")"
+    elif (( ${#K1} == 12 )) && [[ "${PERMITIR_MAESTRA}" != 1 ]]; then
+      problem="esa es la clave MAESTRA de tu cuenta de Backblaze (keyID de 12 caracteres): en el servidor va una clave restringida al bucket ${BUCKET}, cuyo keyID tiene 25 caracteres y suele empezar con 00, y cuya applicationKey empieza con K"
     else
       echo "claves recibidas (keyID ${#K1} caracteres, applicationKey ${#K2})"
       export "${PFX}_TYPE=b2" "${PFX}_ACCOUNT=${K1}" "${PFX}_KEY=${K2}" "${PFX}_HARD_DELETE=true"
