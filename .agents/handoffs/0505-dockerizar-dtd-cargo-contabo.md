@@ -383,7 +383,7 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
 - **Hecho sin Sam después de que se fue:** monitor de Storage en Kuma (#4, 200, cert 89 días); descripción de la PR #194 actualizada con el estado real; guion del corte con tiempos (`servidor-contabo.md` §3.6); spec § Seguimiento al día; memorias nuevas (`vercel-variables-secret-no-se-leen`, `ventanas-de-pegar-claves-en-el-vps`).
 - **Lo que necesita a Sam** (en orden de urgencia):
   1. Telegram en Uptime Kuma: pegar el token de `@dtdcargobot` en Ajustes → Notificaciones → Telegram, «Auto Get» del chat (tras `/start` al bot), «Test», «Guardar».
-  2. `MAINTENANCE_MODE` (vacía) y `MAINTENANCE_BYPASS_SECRET` en Vercel (valor: `grep ^MAINTENANCE_BYPASS_SECRET /srv/dtd-cargo/.env`; el Worker no lo escribe en Vercel porque es un secreto) y redeploy.
+  2. `MAINTENANCE_MODE` (vacía) y `MAINTENANCE_BYPASS_SECRET` en Vercel (valor: `grep ^MAINTENANCE_BYPASS_SECRET /srv/dtd-cargo/.env`; el Worker no lo escribe en Vercel porque es un secreto) y redeploy. **Ojo:** el `.env` de producción no tenía ninguna de las dos líneas (se generó con `new-env.sh` antes de que existiera el modo mantenimiento); el 2026-10-13 a las 07:05Z se agregaron, con el secreto generado en el servidor (48 hex) y `MAINTENANCE_MODE` vacía.
   3. Turno al Director para `pnpm verify` y merge de la PR #194 (publica `/privacidad` y la imagen de GHCR).
   4. Backblaze: clave maestra nueva, borrar «NEW» y el bucket `vps-dtdcargo-3`. Hostinger: borrar `staging` y `supabase-staging`; TTL de `dtdcargo.com`/`www` a 300 s antes del paso 2.
   5. Aviso a los clientes; facturas de Supabase; 2FA en Kuma.
