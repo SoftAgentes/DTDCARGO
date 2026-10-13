@@ -15,8 +15,8 @@
   seguir válida después del corte (claves de sesión compartidas, `jwks-set.sh`),
   pero como eso se comprueba recién en el smoke del corte, el texto solo garantiza
   que usuario y contraseña no cambian.
-- **Antes de enviar hay que completar:** la fecha y la hora (propuesta: domingo
-  2026-10-18, de 7:00 a 8:00 a. m., hora de Venezuela; Sam la confirma) y el canal
+- **Antes de enviar hay que completar:** la fecha y la hora (**decidida por Sam el
+  2026-10-13: hoy martes 13, de 10:00 a 11:00 p. m., hora de Venezuela**) y el canal
   (correo a los clientes con cuenta en el Portal, mensaje en el Portal, WhatsApp a
   quienes lo usan). El paso 2 del corte (la web, domingo 25) no interrumpe el
   servicio y no necesita aviso.
@@ -25,7 +25,7 @@
 
 ## Versión larga (correo)
 
-**Asunto:** Mejora en la plataforma de DTD Cargo · domingo 18 de octubre, 7:00 a. m.
+**Asunto:** Mejora en la plataforma de DTD Cargo · hoy martes 13 de octubre, 10:00 p. m.
 
 Hola, [nombre]:
 
@@ -37,7 +37,7 @@ a un servidor administrado por nosotros, que sigue estando en Estados Unidos.
 Con esto ganamos control sobre la información y sobre las copias de seguridad,
 que se cifran antes de salir del servidor y se guardan en un proveedor distinto.
 
-**Cuándo.** El domingo 18 de octubre, entre las 7:00 y las 8:00 de la mañana
+**Cuándo.** Hoy martes 13 de octubre, entre las 10:00 y las 11:00 de la noche
 (hora de Venezuela). Durante ese rato la plataforma mostrará el mensaje «Estamos
 haciendo una mejora» y no se podrán guardar cambios: ni registrar prealertas, ni
 subir documentos, ni editar tu perfil. Las páginas informativas siguen abiertas.
@@ -60,7 +60,7 @@ El equipo de DTD Cargo
 
 ## Versión corta (WhatsApp o aviso en el Portal)
 
-Hola, [nombre]. Este domingo 18 de octubre, de 7:00 a 8:00 a. m. (hora de
+Hola, [nombre]. Hoy martes 13 de octubre, de 10:00 a 11:00 p. m. (hora de
 Venezuela), la plataforma de DTD Cargo estará en mantenimiento por una mejora en
 nuestros servidores. En ese rato no se podrán guardar cambios. No tienes que
 hacer nada: tu usuario y tu contraseña siguen igual. Actualizamos la política de
@@ -68,10 +68,10 @@ privacidad en dtdcargo.com/privacidad. ¡Gracias!
 
 ## Versión para el equipo interno (Studio y Back)
 
-Domingo 18, 7:00 a. m.: el sistema queda en modo mantenimiento alrededor de una
-hora mientras se copia la base al servidor propio. No guarden nada en ese rato
-(lo que se guarde en el sistema viejo después de la copia se pierde). A las 8:00
-vuelve con los mismos datos; si algo no se ve igual, avisen de inmediato por el
+Hoy martes 13, 10:00 p. m.: el sistema queda en modo mantenimiento alrededor de
+una hora mientras se copia la base al servidor propio. No guarden nada en ese
+rato (lo que se guarde en el sistema viejo después de la copia se pierde). A las
+11:00 p. m. vuelve con los mismos datos; si algo no se ve igual, avisen de inmediato por el
 grupo. El sitio público y las tarifas siguen abiertos todo el tiempo.
 
 ## Registro
@@ -79,5 +79,6 @@ grupo. El sitio público y las tarifas siguen abiertos todo el tiempo.
 | Fecha | Qué | Quién |
 |---|---|---|
 | 2026-10-13 | Borrador escrito con los hechos del inventario y la política aprobada | Worker SDD-0505 |
-| — | Aprobación del texto y de la fecha | Sam |
+| 2026-10-13 | Fecha decidida por Sam: hoy 22:00-23:00 de Caracas; los tres textos pasados a esa hora | Sam (fecha) · Worker (texto) |
+| — | Aprobación del texto | Sam |
 | — | Envío (canal, cuántos clientes) | Sam |

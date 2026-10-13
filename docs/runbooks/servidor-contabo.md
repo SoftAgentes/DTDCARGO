@@ -611,7 +611,7 @@ La web sigue en Vercel y solo cambia a qué Supabase le habla.
 3. **La base, desde una terminal en tmux**: `import-from-cloud.sh --project dtd-cargo --corte --cloud-user postgres.xpfuzqombmjmxvprjgmi --cloud-host aws-1-us-east-1.pooler.supabase.com`. Pide escribir `CORTE dtd-cargo` y la contraseña. Viajan las tablas de log con datos, los jobs de pg_cron como en Cloud y los secretos de Vault (descifrados en memoria y re-cifrados con la raíz del servidor; se verifican por huella).
 4. **Los archivos**: `storage-from-cloud.sh --project dtd-cargo --cloud-ref xpfuzqombmjmxvprjgmi --corte`, con una access key S3 temporal que se revoca al terminar.
 5. **El secreto que Cloud no tiene**: `vault-set-secret.sh --project dtd-cargo --name functions_base_url` con `http://api-gw:8000/functions/v1`.
-6. **Vercel apunta al VPS**: `NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com` y `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=sb-xpfuzqombmjmxvprjgmi-auth-token`. La anon y la service_role siguen siendo las mismas. Redeploy.
+6. **Vercel apunta al VPS**: `NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com`, `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=sb-xpfuzqombmjmxvprjgmi-auth-token`, **y las claves legadas (JWT `eyJ…`) en `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY`** (Supabase → Project Settings → API Keys → «Legacy API keys»). Redeploy. **Hallazgo del ensayo del 2026-10-13:** la app en Vercel manda una clave que el gateway del VPS rechaza con 401 «Unauthorized» antes de llegar a GoTrue (el proyecto tiene además la `sb_publishable_…` nueva, y el self-hosted solo entiende las legadas); con la anon legada el mismo gateway responde 400 `invalid_credentials`, es decir, ya consulta la base. La frase anterior («siguen siendo las mismas») era falsa.
 7. **Webhooks de Kommo** a `https://supabase.dtdcargo.com/functions/v1/…` (`setup-kommo-webhook.md`).
 8. **Smoke** (20 minutos):
    - Studio con un admin; PWA con un operario; Portal con un cliente de prueba;
@@ -670,6 +670,8 @@ sea secreto.
 | 7 | Access key S3 temporal nueva en Cloud (Storage › S3 › Access keys) para `storage-from-cloud.sh`; se revoca al terminar | Sam | — |
 | 8 | TTL de `dtdcargo.com` y `www` a 300 s en Hostinger (para el paso 2 del 25) | Sam o Worker con su OK | `dig +short -t A dtdcargo.com` sigue dando Vercel |
 
+**Ejecución real decidida por Sam el 2026-10-13 (14:35Z): paso 1 el martes 13 a las 22:00 de Caracas (02:00Z del 14).** La tabla de abajo vale igual con las horas corridas (+15 h): 21:50 última mirada · 22:00 mantenimiento ON · 22:06 pausar pg_cron de Cloud · 22:08 `import-from-cloud.sh --corte` · 22:20 `storage-from-cloud.sh --corte` · 22:26 `vault-set-secret.sh` · 22:28 marca fuera, primer respaldo, monitor del latido · 22:32 Vercel (URL, cookie, **claves legadas**) y redeploy · 22:40 webhooks de Kommo · 22:41 `kommo_run_sync` · 22:42 smoke · 23:00 mantenimiento OFF · hasta 01:00 vigilancia. **Lo que Sam tiene a mano desde las 21:45:** factura de Supabase pagada (la organización se factura por el Marketplace de Vercel), aviso corto enviado por la tarde, contraseña de la base de Cloud (pooler, sin corchetes), acceso al panel de Supabase para crear la access key S3 temporal a las 22:18 y a la pestaña Legacy API keys, acceso a Vercel (Production) y a Kommo (webhooks). Rollback limpio hasta las 23:00.
+
 **Domingo 18 (paso 1: base y archivos):**
 
 | Hora | Paso | Quién | Comprobación |
@@ -681,13 +683,14 @@ sea secreto.
 | 07:20 | `storage-from-cloud.sh --project dtd-cargo --cloud-ref xpfuzqombmjmxvprjgmi --corte`; Sam pega la access key temporal | VPS + Sam | 16 buckets, 638+ objetos y bytes iguales; Sam revoca la access key |
 | 07:26 | `vault-set-secret.sh --project dtd-cargo --name functions_base_url` con `http://api-gw:8000/functions/v1` | VPS | `select name from vault.decrypted_secrets` muestra `functions_base_url` y `kommo_cron_key` |
 | 07:28 | `rm /srv/dtd-cargo/NO-ENCENDER-HASTA-EL-CORTE.txt`; `systemctl start dtd-cargo-backup.service` (primer respaldo real, con datos); reanudar el monitor «Respaldo diario DTD · latido» en Uptime Kuma | VPS | `tail /var/log/backup-dtd-cargo.log` → PASÓ y «latido enviado»; el monitor en verde |
-| 07:32 | Vercel: `NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com` y `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=sb-xpfuzqombmjmxvprjgmi-auth-token`; anon y service_role **sin cambiar**; redeploy | Sam | `/studio/login` sigue 503 (mantenimiento) |
-| 07:40 | Webhooks de Kommo → `https://supabase.dtdcargo.com/functions/v1/kommo-webhook?secret=<el mismo>` | Sam | `docker logs dtd-cargo-functions-1` recibe un evento de prueba |
+| 07:32 | Vercel (Production): `NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com`, `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=sb-xpfuzqombmjmxvprjgmi-auth-token`, **`NEXT_PUBLIC_SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` = las claves LEGADAS (JWT) de Supabase → API Keys → Legacy** (la `sb_publishable_`/`sb_secret_` nueva no sirve en el VPS: hallazgo del ensayo del 13-10); redeploy | Sam | `/studio/login` sigue 503 (mantenimiento); en el `api-gw` del VPS, `POST /auth/v1/token` debe responder 400 o 200, nunca 401 «Unauthorized» (= clave rechazada) |
+| 07:40 | Webhooks de Kommo → `https://supabase.dtdcargo.com/functions/v1/kommo-webhook?secret=<el del .env del VPS>` | Sam | `docker logs dtd-cargo-functions-1` recibe un evento de prueba |
+| 07:41 | `select public.kommo_run_sync();` una vez en el VPS (como `postgres`): recupera lo que Kommo cambió entre el dump y el cambio de webhooks, que fue a parar a la función de Cloud (revisión §3.7 D.1) | VPS | la RPC termina sin error; `docker logs dtd-cargo-functions-1` muestra `kommo-sync` |
 | 07:42 | Smoke con el mantenimiento puesto, entrando por `https://dtdcargo.com/mantenimiento/entrar?clave=<MAINTENANCE_BYPASS_SECRET>` (cookie de 4 h): Studio con un admin (sesión ya abierta: no debe pedir login); Portal con un cliente de prueba; PWA `/m` con PIN; una subida de archivo y su descarga; bitácora en tiempo real; un cron disparado desde el panel de Vercel; un correo de acceso (magic link) | Sam + Worker | todo PASÓ en el handoff; `docker logs` de auth/rest/storage/realtime sin errores |
 | 08:00 | `MAINTENANCE_MODE=off` en Vercel y redeploy | Sam | `/studio/login` → 200; Uptime Kuma en verde |
 | 08:05 | Avisar al equipo; mirar Kuma y los logs durante 2 h | Sam + Worker | — |
 
-**Rollback limpio (antes de las 08:00):** Vercel vuelve a `NEXT_PUBLIC_SUPABASE_URL` de Cloud y `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE` vacía (redeploy); `update cron.job set active = true` en Cloud; mantenimiento fuera. El VPS se deja encendido para analizar; antes del siguiente intento, `destroy-staging.sh` **no** sirve (es producción): se vacían los datos a mano con `docker compose down -v` + borrar `/srv/dtd-cargo/data`, con el OK de Sam.
+**Rollback limpio (antes de las 08:00):** Vercel vuelve a `NEXT_PUBLIC_SUPABASE_URL` de Cloud, `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE` vacía y las claves que tenía antes en `NEXT_PUBLIC_SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` (Vercel no las deja leer: se copian de nuevo de Supabase → API Keys; las legadas también valen en Cloud mientras no se desactiven) (redeploy); `update cron.job set active = true` en Cloud; mantenimiento fuera. El VPS se deja encendido para analizar; antes del siguiente intento, `destroy-staging.sh` **no** sirve (es producción): se vacían los datos a mano con `docker compose down -v` + borrar `/srv/dtd-cargo/data`, con el OK de Sam.
 
 **Después del paso 1:** Cloud y Vercel siguen encendidos 14 días (pg_cron de Cloud en pausa). Lunes 19: `restore-test.sh` con el dump real de la noche (registro en `backup-restore-servidor.md` §8). Se vigila el latido y `supabase.dtdcargo.com` en Kuma.
 
@@ -703,6 +706,72 @@ sea secreto.
 | 07:30 | Smoke público: `/`, `/tarifas`, Studio, Portal, PWA, un correo; Resend (webhook e inbound) y Telegram siguen apuntando a `dtdcargo.com` | Sam + Worker |
 
 Rollback del paso 2: DNS de vuelta a Vercel (TTL 300); la base no cambia.
+
+### 3.7 Revisión de preparación del corte (go/no-go), medida el 2026-10-13
+
+Hecha después del ensayo 2 (handoff § «Ensayo 2»), con cifras tomadas ese día de
+Cloud (solo metadatos) y del VPS. Cada fila dice qué se midió, cómo y qué falta.
+«OK» = medido y en paridad; «OK·corregido» = estaba mal y se corrigió el mismo
+día; «ABIERTO» = decisión o acción pendiente antes del corte.
+
+**A · Datos y esquema (lo que no se ve en un smoke)**
+
+| Qué | Medición | Estado |
+|---|---|---|
+| Tablas, filas, usuarios, buckets, objetos, ledger | `import-from-cloud.sh --corte`: 279 PASÓ (266 tablas comparadas, 308 usuarios, 643 objetos, ledger 478, `applied_migration_names()` igual `27299b22…`) | OK |
+| Archivos de Storage | `storage-from-cloud.sh --corte`: 52 PASÓ, 643 objetos / 474.383.445 bytes iguales, 0 filas sin archivo, mimetypes y dueños iguales | OK |
+| Permisos de `public` y default privileges | huella `3295:a1c26667…` igual a Cloud; `pg_default_acl` `4ca2c66f…` igual antes de importar | OK |
+| **Secuencias** (el clásico olvidado: inserciones que chocan después del corte) | las 6 secuencias de `public`/`auth`/`storage` existen en los dos lados con el mismo valor al momento del dump (`brand_access_attempts` 1, `operario_pin_attempts` 3, `document_*_outbox` null, `auth.refresh_tokens` 2271 vs 2276 en Cloud, que siguió viva) | OK |
+| **URLs absolutas de Cloud guardadas en los datos** (`https://xpfuzqombmjmxvprjgmi.supabase.co/…` en avatares, plantillas, adjuntos) | barrido de todas las columnas `text`/`varchar`/`json`/`jsonb` de `public`, `storage` y `auth` en la copia: **ninguna** fila | OK |
+| Publicación de tiempo real | `supabase_realtime` 11 tablas en los dos lados (`…messages_publication` difiere por las particiones diarias: esperado) | OK |
+| Roles y sus límites | `anon` 3 s, `authenticated` 8 s, `authenticator` 8 s + `safeupdate`, `service_role` sin límite: iguales | OK |
+| Vault | 2 secretos (`kommo_cron_key`, `kommo_token_dtd_v1`) re-cifrados con la raíz del servidor y verificados por huella `2d4254d7…` | OK |
+| pg_cron | 3 jobs recreados 1:1; `cron.timezone` GMT en los dos lados; en el corte quedan activos como en Cloud | OK |
+| Extensiones | VPS sin `hypopg`/`index_advisor` (herramientas de análisis, no de la app); el restore completo no las necesitó | OK |
+
+**B · Servicios del VPS frente a Cloud (configuración)**
+
+| Qué | Medición | Estado |
+|---|---|---|
+| Postgres | VPS `shared_buffers` 1 GB, `max_connections` 100, `work_mem` 8 MB (Cloud 256 MB / 60 / 3,5 MB): más holgado. `statement_timeout` de sesión 0 en el VPS vs 2 min en Cloud (solo afecta a `postgres`; los roles de la app llevan el suyo) | OK |
+| PostgREST | `db-max-rows` 1000 y `db-schemas` `public,graphql_public` iguales a Cloud; **`db-extra-search-path` era `public` y Cloud usa `public, extensions`** (una RPC que nombre `uuid_generate_v4()` sin esquema fallaría) → `PGRST_DB_EXTRA_SEARCH_PATH=public,extensions` en el `.env` del VPS, `rest` recreado y `.env.example` actualizado | OK·corregido |
+| GoTrue | `JWT_EXP` 3600, OTP 3600, SMTP Resend, `URI_ALLOW_LIST` = `https://dtdcargo.com/portal/callback`, que es la única `redirectTo` que usa la app (`app/entrar/actions.ts`, `lib/studio/portal/magic-link.ts`). Sesiones firmadas por Cloud (ES256) aceptadas: 15/15 | OK |
+| Storage | backend `file`, límite 50 MB (Cloud lo tiene reducido por el tope de gasto), TUS probado 12 MB en staging | OK |
+| Edge Functions | 4 funciones de Kommo cargadas; `VERIFY_JWT=false` con secreto propio (403/403/200); `SUPABASE_URL` interno | OK |
+| Memoria | límites por contenedor: db 4 GB, functions 768 MB, realtime 768 MB, storage 512 MB, imgproxy 512 MB, rest 384 MB, auth 256 MB, api-gw 256 MB (≈7,6 GB de 23 GB); uso real 2 GB | OK |
+| Host | solo 22/80/443 a la escucha; `ufw` activo; `fail2ban` y `unattended-upgrades` activos; logs de Docker 50 MB × 3; certificados Let's Encrypt en `acme.json` (600, 5 certificados, renovación automática) | OK |
+| Respaldo | timer 06:00 UTC encendido con la marca de apagado; cadena contra Backblaze 12/12 con restore; clave restringida verificada tras rotar la maestra | OK |
+| Monitoreo | Uptime Kuma: web, auth, storage, latido del respaldo (en pausa hasta el corte); Telegram en los 4 | OK |
+
+**C · La app en Vercel contra el VPS (el camino del domingo)**
+
+| Qué | Medición | Estado |
+|---|---|---|
+| Claves API | Vercel usa la familia nueva (`sb_publishable_`/`sb_secret_`) y el self-hosted solo acepta las legadas: 401 en el gateway hasta cambiarlas. Con las legadas en el Preview: login 200 | OK·corregido (guion §3.2.6, 07:32 y rollback) |
+| Login por contraseña, sesión, datos | GoTrue del VPS registró el login de Sam con su contraseña de siempre; dashboard con datos; `/auth/v1/user` y `/rest/v1` 200 | OK |
+| Tiempo real | conexiones activas en realtime del VPS desde el Studio | OK |
+| Storage por URL firmada (cliente admin → `service_role` legado) | `POST …/object/sign` 200 (node) + `GET` 200 del navegador, PNG de 1.847 bytes | OK |
+| Escritura aislada | tarea creada desde el Preview: VPS 1, Cloud 0 | OK |
+| **Modo mantenimiento en Vercel** (nunca encendido antes en Vercel) | `MAINTENANCE_MODE=1` solo en el Preview de la rama: `/studio/login` y `/portal` 503 con «Estamos haciendo una mejora», `/api/*` 503 JSON con `Retry-After: 300`, `/` y `/tarifas` 200, clave de bypass incorrecta → 503 | OK |
+| CSP | solo `https://supabase.dtdcargo.com`; sin referencias a Cloud en el código fuera de comentarios | OK |
+| No cubierto por el Preview | Portal con cliente, PWA `/m` con PIN, magic link, crons, subida de archivo (pasaron en el staging del 12-10 por el camino Docker); Kommo con un evento real | ABIERTO (riesgo bajo; se cubren en el smoke del corte) |
+
+**D · Mecánica del corte: lo que la revisión cambia en el guion**
+
+1. **Eventos de Kommo durante la ventana.** Entre el dump (07:08) y el cambio de webhooks (07:40) Kommo sigue avisando a la función de **Cloud**, y esos cambios no viajan. Arreglo: después del paso 1 correr una vez `select public.kommo_run_sync();` en el VPS (es lo que hace el job diario `kommo-sync-dtd`): trae de Kommo lo que haya cambiado. Fila nueva en el guion (07:41).
+2. **Claves legadas en Vercel** (arriba) y su vuelta en el rollback.
+3. **Vaciar la copia del ensayo** antes del corte real, con OK de Sam: `docker compose … down -v` + `rm -rf /srv/dtd-cargo/data/{db,storage}` + `up -d` + igualar default privileges (§2.1 paso 4) + comprobar huella `4ca2c66f…`. **Rotar en el mismo paso** `POSTGRES_PASSWORD` (la base se inicializa con la nueva) y `KOMMO_WEBHOOK_SECRET` (se fija en Kommo recién el día del corte): un listado de env del 13-10 dejó fragmentos de los dos en el transcript local del Worker.
+4. **Borrar las 5 variables de la rama en Vercel** (`NEXT_PUBLIC_SUPABASE_URL`, `…_AUTH_COOKIE`, `…_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `MAINTENANCE_MODE`) al cerrar el ensayo; no afectan a producción pero no deben quedar.
+5. **Factura de Supabase**: el panel muestra «Outstanding invoice». Un proyecto suspendido por pago no se puede exportar: se paga antes del corte.
+6. **CLI de Supabase**: queda en 2.118.0 hasta después del corte (el aviso de 2.120.0 no se atiende entre ensayo y corte).
+
+**E · Decisiones que quedan en Sam**
+
+| Decisión | Opciones | Recomendación del Worker |
+|---|---|---|
+| Fecha del corte | hoy 21:00 Caracas · domingo 18 07:00 | Técnicamente listo para cualquiera de las dos. Si hoy: factura pagada, aviso corto enviado por la tarde, Sam disponible 20:45-22:00 para pegar la contraseña de Cloud, la access key S3 y las claves legadas en Vercel. Si hay la menor duda, domingo: el ensayo no caduca. |
+| Aviso a clientes | enviar hoy · enviar jueves | Enviar el día antes del corte elegido (borrador en `docs/legal/privacidad/aviso-clientes-traslado-2026-10.md`). |
+| Paso 2 (la web al VPS) | 25 de octubre · antes | Mantener el 25: el paso 1 ya quita la dependencia de Supabase Cloud; el 2 quita la de Vercel y necesita el TTL bajado 24 h antes y el `docker login` ya hecho (listo). |
 
 ## 4 · Fase 4 — Retiro de Vercel y Supabase Cloud
 

@@ -18,6 +18,8 @@ import { showNortePortal } from "@/lib/portal/demo";
 import { PortalShell } from "../_components/PortalShell";
 import { PortalCalcFab } from "../_components/PortalCalcFab";
 import { PortalPushRegister } from "../_components/PortalPushRegister";
+import { PortalMaintenanceNotice } from "../_components/PortalMaintenanceNotice";
+import { avisoDeMantenimiento } from "@/lib/runtime/maintenance-notice";
 
 // JetBrains Mono scoped al área autenticada del portal (codes: MARKBOX,
 // tracking): el wrapper monta --font-jetbrains-mono con la instancia única
@@ -86,6 +88,9 @@ export default async function PortalAppLayout({
         sailing={sailing}
         sailingDaysToCutoff={sailingDaysToCutoff}
       >
+        {/* Mantenimiento programado (SDD-0505): solo con MAINTENANCE_NOTICE_START/END
+            y hasta el fin de la ventana; sin variables no pinta nada. */}
+        <PortalMaintenanceNotice aviso={avisoDeMantenimiento()} />
         {children}
       </PortalShell>
       {/* Calculadora flotante (Norte) — siempre a mano, sin salir del portal. */}
