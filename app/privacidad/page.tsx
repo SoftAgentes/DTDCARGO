@@ -20,7 +20,7 @@ const DESC =
 // todavía decía que la dirección se agregaba después, en el Portal. El
 // 2026-09-19 (SDD-0487) el Portal empezó a recoger la empresa para facturar y
 // la foto de perfil pasó a guardarse sin metadatos.
-const UPDATED = "19 de septiembre de 2026";
+const UPDATED = "13 de octubre de 2026";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad",
@@ -224,7 +224,9 @@ export default function PrivacidadPage() {
               <ul className={UL}>
                 <li>
                   <strong>Proveedores de infraestructura y alojamiento</strong>{" "}
-                  del sitio y la base de datos.
+                  del sitio y la base de datos, con servidores en Estados
+                  Unidos, y un proveedor de almacenamiento donde guardamos
+                  copias de respaldo cifradas.
                 </li>
                 <li>
                   <strong>Proveedor de envío de correos</strong> para mensajes
@@ -260,8 +262,13 @@ export default function PrivacidadPage() {
               <h2 className={H2}>5. Transferencias internacionales</h2>
               <p className={P}>
                 Operamos entre <strong>China y Venezuela</strong>. Tus datos
-                identificatorios —nombre, documento, dirección y teléfono— se
-                tratan <strong>en Venezuela</strong>.
+                identificatorios —nombre, documento, dirección y teléfono— los
+                trata <strong>nuestro equipo en Venezuela</strong>, y se alojan
+                en servidores ubicados en <strong>Estados Unidos</strong>,
+                operados por un proveedor de infraestructura. Las copias de
+                respaldo se guardan <strong>cifradas</strong> en otro proveedor,
+                también en Estados Unidos: solo nosotros tenemos la clave para
+                abrirlas.
               </p>
               <p className={P}>
                 Nuestro equipo en China trabaja con tu{" "}
@@ -290,6 +297,11 @@ export default function PrivacidadPage() {
                   en servicio se conservan solo lo necesario para atenderte y luego
                   se eliminan o anonimizan.
                 </li>
+                <li>
+                  Las <strong>copias de respaldo</strong> se conservan{" "}
+                  <strong>30 días</strong>. Lo que eliminas desaparece de nuestra
+                  base al momento, y de los respaldos al cumplirse ese plazo.
+                </li>
               </ul>
             </article>
 
@@ -311,6 +323,11 @@ export default function PrivacidadPage() {
                 <li>
                   Los documentos que subes se guardan en almacenamiento seguro,
                   accesibles solo con tu sesión.
+                </li>
+                <li>
+                  Las copias de respaldo se <strong>cifran antes de salir</strong>{" "}
+                  de nuestro servidor, y la clave para abrirlas no se guarda ni
+                  en el servidor ni con el proveedor de respaldos.
                 </li>
               </ul>
             </article>
