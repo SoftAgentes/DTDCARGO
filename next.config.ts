@@ -1,6 +1,28 @@
 import type { NextConfig } from "next";
+// Import RELATIVO a propósito: el loader de `next.config.ts` corre antes del
+// bundler y no resuelve el alias `@/`.
+import { originFromEnv } from "./lib/runtime/supabase-origin";
 
 const isDev = process.env.NODE_ENV === "development";
+
+/**
+ * Supabase propio (SDD-0505). Si `NEXT_PUBLIC_SUPABASE_URL` apunta a un host que
+ * no es `*.supabase.co` (self-hosted en el dominio propio, o `http://api-gw:8000`
+ * en una prueba local), ese origen entra en la CSP (https para REST/Storage y
+ * ws(s) para Realtime) y en `images.remotePatterns`. `*.supabase.co` se conserva
+ * siempre: los builds de Vercel contra Cloud no cambian. Con la URL vacía o
+ * inválida `originFromEnv` devuelve null y no se añade nada.
+ */
+const ownSupabase = (() => {
+  const origin = originFromEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  return origin && !origin.isSupabaseCloud ? origin : null;
+})();
+/** Fuentes http(s) de Supabase para `img-src` y `media-src`. */
+const supabaseHttpSrc = `https://*.supabase.co${ownSupabase ? ` ${ownSupabase.origin}` : ""}`;
+/** Lo mismo más el websocket de Realtime, para `connect-src`. */
+const supabaseConnectSrc = `https://*.supabase.co wss://*.supabase.co${
+  ownSupabase ? ` ${ownSupabase.origin} ${ownSupabase.wsOrigin}` : ""
+}`;
 
 /**
  * Content Security Policy — defense-in-depth contra XSS.
@@ -20,6 +42,9 @@ const isDev = process.env.NODE_ENV === "development";
  *   `createBrowserClient`). Sin esto, el websocket de Realtime no conecta en prod
  *   (el bridge cross-cliente no actualiza solo). El `ws: wss:` extra es SOLO en dev
  *   (websocket de HMR de Turbopack).
+ * - Supabase propio (SDD-0505): cuando `NEXT_PUBLIC_SUPABASE_URL` no es Cloud, su
+ *   origen se suma a `img-src`/`media-src`/`connect-src` (+ `ws(s)://`) vía
+ *   `supabaseHttpSrc`/`supabaseConnectSrc`, sin quitar `*.supabase.co`.
  * - `frame-ancestors 'none'`: bloquea ser iframeado (espejo moderno de X-Frame-Options).
  * - `object-src 'none'`: cero soporte para <object>, <embed>, <applet> (legacy Flash).
  * - `base-uri 'self'`: previene inyección de <base href="evil"> que cambiaría todos
@@ -40,13 +65,13 @@ const cspHeader = [
   `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net${isDev ? " 'unsafe-eval'" : ""}`,
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self' data:`,
-  `img-src 'self' data: blob: https://*.supabase.co https://*.google-analytics.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.google.com`,
+  `img-src 'self' data: blob: ${supabaseHttpSrc} https://*.google-analytics.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.google.com`,
   // `media-src` para <audio>/<video>: `blob:` = preview de la grabación de Bitácora
   // (URL.createObjectURL) · `https://*.supabase.co` = playback del audio firmado
   // (signed URL del bucket). Sin esta línea heredarían `default-src 'self'` y ambos
   // se bloquearían en silencio (SDD-0146 Fase 3). Aplica también a /m (mismo cspHeader).
-  `media-src 'self' blob: https://*.supabase.co`,
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.google.com${isDev ? " ws: wss:" : ""}`,
+  `media-src 'self' blob: ${supabaseHttpSrc}`,
+  `connect-src 'self' ${supabaseConnectSrc} https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://ad.doubleclick.net https://www.google.com${isDev ? " ws: wss:" : ""}`,
   `frame-ancestors 'none'`,
   `base-uri 'self'`,
   `form-action 'self'`,
@@ -182,6 +207,15 @@ const nextConfig: NextConfig = {
    * siguiente.
    */
   distDir: process.env.VERIFY_DIST_DIR || ".next",
+  /**
+   * Salida `standalone` SOLO para la imagen Docker (SDD-0505). El `Dockerfile`
+   * fija `DTD_STANDALONE=1` y copia `.next/standalone` + `.next/static` +
+   * `public/` al runner, que arranca con `node server.js` sin `node_modules`
+   * completos. Vercel, `pnpm build` local y `scripts/check-build.mjs` no
+   * definen la variable y conservan la salida de siempre: un `output` fijo
+   * cambiaría lo que Vercel despliega y lo que el gate construye.
+   */
+  output: process.env.DTD_STANDALONE === "1" ? "standalone" : undefined,
   // Sitio público, optimizado para SEO. App Router por default.
   reactStrictMode: true,
   // Bloquea que el sitio dependa accidentalmente del repo del ERP.
@@ -208,6 +242,18 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      // Storage del Supabase propio (SDD-0505). `port` va explícito: `""` es el
+      // puerto por defecto, y así el patrón queda tan estrecho como el de Cloud.
+      ...(ownSupabase
+        ? [
+            {
+              protocol: ownSupabase.protocol,
+              hostname: ownSupabase.hostname,
+              port: ownSupabase.port,
+              pathname: "/storage/v1/object/public/**",
+            },
+          ]
+        : []),
     ],
   },
   // El route handler de descargas del hub de marca (`/interno/marca/d/[bundle]`)

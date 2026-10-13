@@ -1,0 +1,29 @@
+# Generado por scripts/build-crontab.mjs desde vercel.json · no editar a mano.
+# Regenerar: node scripts/build-crontab.mjs · Verificar: node scripts/build-crontab.mjs --check
+# Horarios en UTC (los mismos que agenda Vercel). ${CRON_SECRET} se queda literal:
+# lo resuelve el contenedor `cron` (entrypoint con envsubst, o sh -c) desde su entorno.
+
+# 19 crons de vercel.json, en su mismo orden.
+* * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/document-import-drain
+17 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/document-import-cleanup
+0 11 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/ceo-brief
+0 10 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/kommo-contact-status
+* * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/push-drain
+* * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/client-notifications-drain
+0 4 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/purge-throttle
+30 4 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/portal-revoked-retention
+0 3 * * 1 curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/purge-receipt-orphans
+30 3 * * 1 curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/bitacora-purge-orphans
+*/5 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/mail-scheduled
+0 12 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/bitacora-digest
+0 5 1 * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/conversation-digests
+0 14 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/portal-cold-reminder
+*/5 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/bug-notifications-drain
+*/5 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/workflow-drain
+0 13 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/rate-expiry-alert
+*/30 * * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/mail-health
+0 12 * * * curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/alta-health
+
+# Solo en el servidor (no están en vercel.json).
+# /api/cron/searates-refresh: semanal, lunes 06:00 UTC · no está en vercel.json · 20 rutas/corrida caben en el plan gratis de SeaRates (100/mes)
+0 6 * * 1 curl -fsS --max-time 290 -H "Authorization: Bearer ${CRON_SECRET}" http://web:3000/api/cron/searates-refresh

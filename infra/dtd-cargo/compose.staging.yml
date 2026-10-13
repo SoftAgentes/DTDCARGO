@@ -1,0 +1,68 @@
+# DTD Cargo · overlay del STAGING con copia de producción (SDD-0505, Fase 2).
+#
+# El staging del ensayo lleva datos reales (usuarios, embarques, documentos), así
+# que no queda abierto a internet como un sitio público: Traefik solo deja pasar
+# las IP de STAGING_ALLOWED_IPS (lista separada por comas, en CIDR: la de Sam y,
+# si hace falta para los smokes, las del equipo). El resto recibe 403.
+#
+#   docker compose -p dtd-cargo-staging \
+#     -f compose.yml -f compose.supabase.yml -f compose.staging.yml config
+#
+# Los nombres de router, servicio y middleware llevan el nombre del proyecto de
+# compose (compose.yml, compose.supabase.yml), así que staging y producción
+# pueden correr a la vez detrás del mismo Traefik. Estas líneas reemplazan la
+# lista de middlewares de cada router: repiten las de la base y suman la
+# allowlist.
+#
+# El middleware se define una sola vez, en api-gw (que siempre corre en staging),
+# y web lo usa por referencia.
+
+services:
+  web:
+    labels:
+      # Sin `www.`: el staging no tiene ese registro DNS y Let's Encrypt rechaza el
+      # certificado entero si falla uno de sus nombres (medido el 2026-10-11 con
+      # www.staging.dtdcargo.com).
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.rule=Host(`${DTD_WEB_HOST:?DTD_WEB_HOST falta en .env}`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-staging-allow@docker"
+
+  api-gw:
+    labels:
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.middlewares=security-headers@file,${COMPOSE_PROJECT_NAME}-staging-allow@docker"
+      # Dos listas: las IP de las personas (cambian: la de la casa de Sam cambió tres
+      # veces entre el 2026-10-09 y el 12) y la puerta de enlace de la red edge.
+      # Por esa puerta llegan las llamadas que el propio servidor web le hace a
+      # Supabase por la URL pública. Sin ella, todo lo que la app pide desde el
+      # servidor recibe 403: medido el 2026-10-12, la calculadora de /tarifas daba
+      # «RPC error: Forbidden» y Traefik veía 172.18.0.1. Esa dirección solo puede
+      # salir de dentro del VPS. Se obtiene con
+      # `docker network inspect dtd_edge --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}'`.
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-staging-allow.ipallowlist.sourcerange=${STAGING_ALLOWED_IPS:?STAGING_ALLOWED_IPS falta en .env (CIDR separados por comas)},${STAGING_INTERNAL_IPS:?STAGING_INTERNAL_IPS falta en .env (puerta de enlace de dtd_edge, p. ej. 172.18.0.1/32)}"
+
+  # Atrapa-correos del staging. Los usuarios del staging son los de producción
+  # (correos reales de clientes): ningún correo de Auth puede salir del VPS. GoTrue
+  # entrega en Mailpit, que no tiene salida a internet (solo dtd_internal) ni
+  # puertos publicados. Para leerlo: su API en http://mailpit:8025 desde dentro de
+  # la red. Los correos de la app (Resend) quedan apagados porque RESEND_API_KEY
+  # está vacío en el .env del staging.
+  mailpit:
+    image: axllent/mailpit:v1.31.3
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "true"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "true"
+      MP_MAX_MESSAGES: "500"
+    networks:
+      - dtd_internal
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
+  auth:
+    environment:
+      GOTRUE_SMTP_HOST: mailpit
+      GOTRUE_SMTP_PORT: "1025"
+      GOTRUE_SMTP_ADMIN_EMAIL: staging@dtdcargo.com
+      GOTRUE_SMTP_USER: ""
+      GOTRUE_SMTP_PASS: ""

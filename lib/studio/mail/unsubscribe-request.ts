@@ -58,7 +58,10 @@ async function processUnsubscribe(
     console.warn(JSON.stringify({
       level: "warn",
       event: "email_unsubscribe_invalid",
-      requestId: req.headers.get("x-vercel-id"),
+      // Correlación con el log del proxy: `x-vercel-id` en Vercel; detrás de
+      // Traefik, el `X-Request-Id` que fija su middleware (SDD-0505). Sin
+      // ninguno queda null: la app no inventa IDs.
+      requestId: req.headers.get("x-vercel-id") ?? req.headers.get("x-request-id"),
       tokenTransport: transport,
       tokenPresent: tokenValue.length > 0,
       tokenLength: tokenValue.length,

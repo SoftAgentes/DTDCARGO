@@ -1,0 +1,21 @@
+# /etc/systemd/system/dtd-cargo-backup.service — respaldo diario de DTD Cargo (SDD-0505).
+# Lo dispara dtd-cargo-backup.timer; a mano: systemctl start dtd-cargo-backup.service
+[Unit]
+Description=Respaldo cifrado de DTD Cargo (base + configuración) a Backblaze
+Documentation=file:///srv/dtd-cargo/README.md
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/srv/dtd-cargo
+ExecStart=/srv/dtd-cargo/backup.sh
+# El log queda en un archivo (lo rota logrotate) y en el journal.
+StandardOutput=append:/var/log/backup-dtd-cargo.log
+StandardError=append:/var/log/backup-dtd-cargo.log
+# Un dump de 69 MB tarda segundos; si pasa de una hora algo está colgado.
+TimeoutStartSec=1h
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

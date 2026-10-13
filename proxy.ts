@@ -30,9 +30,11 @@
  * función son `startsWith("/studio")` y `startsWith("/back")`, así que caen al
  * `return supabaseResponse` final — exactamente el refresco que les faltaba.
  *
- * `/m/cn` y `/m/ve` quedan FUERA a propósito: el operario entra con **PIN**, no
- * con sesión de Supabase (ver `app/m/layout.tsx`), y meterlas sólo agregaría un
- * `getUser()` por request.
+ * `/m/cn` y `/m/ve` quedan FUERA del refresco a propósito: el operario entra con
+ * **PIN**, no con sesión de Supabase (ver `app/m/layout.tsx`), y meterlas sólo
+ * agregaría un `getUser()` por request. Desde el modo mantenimiento (SDD-0505)
+ * pasan por el proxy (para poder cortarlas) pero salen antes del `getUser()`:
+ * el refresco solo corre en `RUTAS_CON_SESION`.
  *
  * ## ⚖️ `/entrar` y `/registro`: entran, y cuestan una llamada extra
  *
@@ -56,10 +58,22 @@
 
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { sessionCookieOptions } from "@/lib/db/session-cookie";
+import { respuestaDeMantenimiento } from "@/lib/runtime/maintenance";
+import { necesitaSesion } from "@/lib/runtime/session-routes";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 export async function proxy(request: NextRequest) {
+  // Modo mantenimiento (SDD-0505): antes de cualquier llamada a Supabase.
+  const mantenimiento = await respuestaDeMantenimiento(request);
+  if (mantenimiento) return mantenimiento;
+
+  // El matcher cubre también la API, las server actions y las rutas que
+  // escriben (para el mantenimiento); el refresco de sesión, con su getUser(),
+  // solo corre en las rutas que la resuelven.
+  if (!necesitaSesion(request.nextUrl.pathname)) return NextResponse.next();
+
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -68,6 +82,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: sessionCookieOptions(),
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -154,24 +169,33 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   /**
-   * Toda ruta que resuelva la sesión de Supabase server-side tiene que estar
-   * acá, o su access token vence sin refrescarse. Lo vigila
-   * `proxy-matcher-contract.test.ts`: si agregas una pantalla con
-   * `auth.getUser()`, ese test te lo recuerda.
+   * Dos listas distintas desde el modo mantenimiento (SDD-0505):
    *
-   * `/m/cn` y `/m/ve` NO van: entran con PIN, no con sesión.
+   *   · El MATCHER: todo lo que el mantenimiento tiene que poder cortar. Las
+   *     pantallas con sesión, la app de operarios entera (/m, también el PIN),
+   *     la API, las rutas fuera de /api que escriben (/p, /marca), la puerta
+   *     del bypass (/mantenimiento) y cualquier server action, desde cualquier
+   *     página: llegan con el header `Next-Action`.
+   *   · `RUTAS_CON_SESION` (lib/runtime/session-routes.ts): dónde se refresca la
+   *     sesión de Supabase. Toda pantalla con `auth.getUser()` tiene que estar
+   *     ahí, o su access token vence sin refrescarse.
+   *
+   * Las páginas públicas que solo muestran (/, /tarifas…) siguen FUERA: cero
+   * costo en Vercel, y en mantenimiento se pueden leer. Lo vigila
+   * `proxy-matcher-contract.test.ts`.
    */
   matcher: [
-    // Gateadas acá (redirección si no hay sesión):
     "/studio/:path*",
     "/back/:path*",
-    // Sólo refresco de cookies — caen al `return supabaseResponse` final:
     "/portal/:path*",
-    "/m/erp/:path*",
-    "/m/emp/:path*",
-    // Puertas del portal. `:path*` es CERO o más segmentos, así que esto
-    // cubre `/entrar` y `/registro` a secas.
+    "/m/:path*",
+    // `:path*` es CERO o más segmentos: cubre `/entrar` y `/registro` a secas.
     "/entrar/:path*",
     "/registro/:path*",
+    "/api/:path*",
+    "/p/:path*",
+    "/marca/:path*",
+    "/mantenimiento/:path*",
+    { source: "/:path*", has: [{ type: "header", key: "next-action" }] },
   ],
 };

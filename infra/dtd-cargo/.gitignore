@@ -1,0 +1,6 @@
+# Estado del servidor que nunca va a git (SDD-0505). La copia desplegada vive en
+# /srv/dtd-cargo (runbook servidor-contabo.md); si alguien levanta el compose
+# desde el repo, lo que generen los contenedores queda fuera igual.
+.env
+data/
+backups/

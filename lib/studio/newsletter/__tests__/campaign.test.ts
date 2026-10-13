@@ -51,6 +51,34 @@ describe("campañas del newsletter", () => {
     })).toBe("https://dtdcargo.com");
   });
 
+  it("en un preview Docker usa APP_URL sin barra final (SDD-0505)", () => {
+    expect(resolveNewsletterSiteUrl({
+      APP_ENV: "preview",
+      APP_URL: "https://staging.dtdcargo.com/",
+      NEXT_PUBLIC_SITE_URL: "https://dtdcargo.com",
+    })).toBe("https://staging.dtdcargo.com");
+  });
+
+  it("APP_URL no gana fuera de preview: producción y staging conservan la canónica", () => {
+    expect(resolveNewsletterSiteUrl({
+      APP_ENV: "production",
+      APP_URL: "https://x.test",
+      NEXT_PUBLIC_SITE_URL: "https://dtdcargo.com",
+    })).toBe("https://dtdcargo.com");
+    expect(resolveNewsletterSiteUrl({
+      APP_ENV: "staging",
+      APP_URL: "https://staging.dtdcargo.com",
+      NEXT_PUBLIC_SITE_URL: "https://dtdcargo.com",
+    })).toBe("https://dtdcargo.com");
+  });
+
+  it("preview sin URL del despliegue cae a la canónica", () => {
+    expect(resolveNewsletterSiteUrl({
+      APP_ENV: "preview",
+      NEXT_PUBLIC_SITE_URL: "https://dtdcargo.com/",
+    })).toBe("https://dtdcargo.com");
+  });
+
   it("escapa HTML, incluye versión texto y enlace de baja", () => {
     const rendered = renderNewsletterEmail(
       { ...VALID, heading: "Importa <sin sorpresas>" },
