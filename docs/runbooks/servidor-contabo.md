@@ -590,7 +590,7 @@ Falta, en este orden:
    - `NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com`;
    - la anon de Cloud;
    - `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=sb-xpfuzqombmjmxvprjgmi-auth-token`.
-4. **DNS de `supabase.dtdcargo.com`** → `217.216.54.70`. Ese nombre no existe hoy, así que se puede crear antes. Después se encienden solo los servicios de Supabase (no `web` ni `cron`): el certificado sale antes del día del corte y la base queda vacía, como la exige `--corte`.
+4. **DNS de `supabase.dtdcargo.com`** → `217.216.54.70`. **Hecho el 2026-10-13** (registro A en Hostinger, TTL 300). Con el DNS resolviendo se encendió **solo el gateway** (`up -d --no-deps api-gw`: no tiene `depends_on`) y Traefik obtuvo el certificado de Let's Encrypt en 8 s (vence el 2027-01-11). La base **no** se enciende todavía: `db` se inicializa con el `JWT_SECRET` y la contraseña del `.env` del momento, así que primero van las claves de Cloud (punto 2) y recién después `up -d db auth rest realtime storage imgproxy functions auth-templates`, con `api-gw` recreado (`up -d --force-recreate --no-deps api-gw`, porque Envoy incorpora `ANON_KEY`/`SERVICE_ROLE_KEY` al arrancar). La base queda vacía, como la exige `--corte`; antes de importar, igualar los default privileges (§2.1 paso 4).
 5. **TTL del DNS de `dtdcargo.com`** a 300 s, 24 h antes del paso 2.
 
 ### 3.2 Paso 1 · base y archivos (ventana de noche, unos 30 minutos)
