@@ -131,6 +131,15 @@ latido, Uptime Kuma avisa a Sam por Telegram. Un cron que falla en silencio
 (sin espacio, `age` sin clave, credenciales del bucket vencidas) se descubre así
 el mismo día, no el día que haga falta el restore.
 
+**Hecho el 2026-10-13:** Uptime Kuma corre en `https://vps.dtdcargo.com` (usuario
+admin de Sam) con el monitor Push «Respaldo diario DTD · latido» (#3, cada
+93.600 s = 26 h, 0 reintentos). Su URL de push está en `BACKUP_HEARTBEAT_URL`
+del `.env` de producción (600; no va en Git) y `backup.sh` la llama al terminar
+bien. Un latido de prueba a mano devolvió `{"ok":true}`. **El monitor queda en
+pausa hasta el corte** (producción apagada no late y avisaría cada día): el
+día del corte, al encender producción, se reanuda desde el panel («Reanudar»)
+y se comprueba que la primera corrida a mano lo deje en verde.
+
 Revisión semanal (2 minutos): `rclone lsl backups:dtdcargo-backups/db/daily/ | tail -7`
 muestra 7 archivos de fechas consecutivas y tamaño parecido. Un tamaño que cae
 a la mitad es un dump roto aunque el latido haya llegado.

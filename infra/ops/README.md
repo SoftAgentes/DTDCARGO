@@ -61,7 +61,10 @@ middlewares `@file`.
 `cp uptime-kuma/.env.example uptime-kuma/.env`, define `UPTIME_KUMA_HOST` (DNS al
 VPS) y `docker compose -f uptime-kuma/compose.yml up -d`. Entra de inmediato a
 crear el usuario admin: hasta entonces cualquiera que llegue al dominio puede
-hacerlo. Si prefieres que el panel no sea público, añade `tailscale-only@file` a
+hacerlo. **En el VPS de DTD (2026-10-13):** `UPTIME_KUMA_HOST=vps.dtdcargo.com`
+(el `whoami` de prueba que vivía ahí se retiró), base SQLite, admin creado por
+Sam, monitores `Web · dtdcargo.com`, `Supabase servidor · auth` (con la cabecera
+`apikey` anon) y el Push del respaldo diario (en pausa hasta el corte). Si prefieres que el panel no sea público, añade `tailscale-only@file` a
 `traefik.http.routers.uptime-kuma.middlewares` (las páginas de estado públicas
 dejarían de verse desde fuera).
 

@@ -368,6 +368,16 @@ Origen: revisión `revisar-datos-ve` del traslado (`docs/legal/privacidad/revisi
 - **Estado del servidor:** `.env` con `JWT_KEYS`/`JWT_JWKS` solo con la clave de Cloud + el `oct`; auth, rest, realtime, storage y functions recreados y healthy. Runbook §3.1 punto 6: **repetir `jwks-set.sh` el día del corte** por si Cloud rotó la clave.
 - **Límite:** no se probó con un token real emitido por Cloud (haría falta una sesión real); el token de prueba imita sus claims (`iss` de Cloud, `aud authenticated`, `role`, `session_id`) y Auth no rechazó el `iss` distinto.
 
+## Monitor de avisos: Uptime Kuma (2026-10-13, 06:20-06:40Z, decisión de Sam: «sigue con el monitor de avisos»)
+
+- **Despliegue:** `infra/ops/uptime-kuma/compose.yml` (`louislam/uptime-kuma:2.5.5`, 256 MB) en `/srv/ops/uptime-kuma` con `UPTIME_KUMA_HOST=vps.dtdcargo.com` (DNS y certificado ya existían; el `whoami` de prueba de `/srv/ops/whoami` se bajó con `compose down`, su compose se conserva). Healthy, 108 MB. Base SQLite (el Embedded MariaDB no cabe en 256 MB). **Sam creó el usuario admin** (contraseña suya). Recomendado: activar 2FA en Ajustes → Seguridad.
+- **Monitores** (creados por el Worker en el panel, con la sesión de Sam):
+  1. `Web · dtdcargo.com` → `GET https://dtdcargo.com/` cada 60 s: 200, 100 ms; certificado vence en 69 días (2026-12-21), dominio 208 días.
+  2. `Supabase servidor · auth` → `GET https://supabase.dtdcargo.com/auth/v1/health` con cabecera `apikey` (la anon, pública): 200, 77 ms.
+  3. `Respaldo diario DTD · latido` → Push, 93.600 s (26 h), 0 reintentos. La URL de push quedó en `BACKUP_HEARTBEAT_URL` del `.env` de producción (600; su token no va a Git ni al handoff). Un latido de prueba a mano: `{"ok":true}` y el monitor en «Funcional». **En pausa hasta el corte** (sin producción no late); se reanuda el día del corte y se verifica con la primera corrida a mano de `backup.sh`.
+- **Falta:** el canal de avisos a Telegram (Sam pega en el panel el token del bot `@dtdcargobot` «Prueba», que está libre; el de DTDStudioBot tiene webhook y `getUpdates` chocaría) y el aviso de caducidad de certificados; el monitor de `/api/debug/health` espera a que la web viva en el VPS (el `DEBUG_HEALTH_SECRET` de Vercel no se puede leer).
+- **Otro inquilino del VPS visto de paso:** corre un proyecto `rent-awada-pruebas` (web, Supabase propio, contenedores «candidate» recién creados), ajeno a esta tarea.
+
 ## Decisiones de Sam del 2026-10-13 (texto literal, por chat)
 
 - «La revisión del abogado de la política de privacidad: aprobado, ya el abogado las aprobó, te lo confirmo.» → registrado en `revision-traslado-contabo-2026-10-09.md` §5.1 (H4). **Lo que falta y no es del abogado:** el texto aprobado todavía no está en `app/privacidad/page.tsx` (sigue «se tratan en Venezuela», `UPDATED` 19 de septiembre de 2026) ni se avisó a los clientes; el runbook §3 lo exige antes del corte. Sam aclaró después que las políticas ya existían (`docs/legal/borradores/politica-privacidad-DRAFT.md`, `DTDCARGO_Politicas_Digitales_v3_para_abogada.md`, julio de 2026); ninguna versión decía dónde se alojan los datos ni mencionaba respaldos. El ajuste de H4 se redactó sobre la página publicada (commit `bf7bf1e2`: §4, §5, §6, §7 y la fecha) y **Sam lo aprobó el 2026-10-13** («ok, aprobado el texto»). Se publica con el merge. Falta el aviso a los clientes.
