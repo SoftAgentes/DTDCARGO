@@ -670,6 +670,8 @@ sea secreto.
 | 7 | Access key S3 temporal nueva en Cloud (Storage › S3 › Access keys) para `storage-from-cloud.sh`; se revoca al terminar | Sam | — |
 | 8 | TTL de `dtdcargo.com` y `www` a 300 s en Hostinger (para el paso 2 del 25) | Sam o Worker con su OK | `dig +short -t A dtdcargo.com` sigue dando Vercel |
 
+**Ejecución real decidida por Sam el 2026-10-13 (14:35Z): paso 1 el martes 13 a las 22:00 de Caracas (02:00Z del 14).** La tabla de abajo vale igual con las horas corridas (+15 h): 21:50 última mirada · 22:00 mantenimiento ON · 22:06 pausar pg_cron de Cloud · 22:08 `import-from-cloud.sh --corte` · 22:20 `storage-from-cloud.sh --corte` · 22:26 `vault-set-secret.sh` · 22:28 marca fuera, primer respaldo, monitor del latido · 22:32 Vercel (URL, cookie, **claves legadas**) y redeploy · 22:40 webhooks de Kommo · 22:41 `kommo_run_sync` · 22:42 smoke · 23:00 mantenimiento OFF · hasta 01:00 vigilancia. **Lo que Sam tiene a mano desde las 21:45:** factura de Supabase pagada (la organización se factura por el Marketplace de Vercel), aviso corto enviado por la tarde, contraseña de la base de Cloud (pooler, sin corchetes), acceso al panel de Supabase para crear la access key S3 temporal a las 22:18 y a la pestaña Legacy API keys, acceso a Vercel (Production) y a Kommo (webhooks). Rollback limpio hasta las 23:00.
+
 **Domingo 18 (paso 1: base y archivos):**
 
 | Hora | Paso | Quién | Comprobación |
