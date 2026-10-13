@@ -647,6 +647,61 @@ corre dos veces; Vercel se pausa (no se borra) cuando ya no le llegue tráfico.
 Uptime Kuma (`infra/ops/`) vigila `https://dtdcargo.com/` y
 `https://dtdcargo.com/api/debug/health?cheap=1` con el bearer.
 
+### 3.6 Guion del corte de DTD Cargo, con tiempos (propuesta: domingo 2026-10-18, 07:00 de Caracas)
+
+Escrito el 2026-10-13 con el estado real del servidor (handoff de SDD-0505).
+Horas en Caracas (UTC−4). Paso 1 dura ~1 h con la app en mantenimiento; el
+rollback limpio vale hasta que se quite el mantenimiento. «Sam» = lo hace Sam en
+un panel; «VPS» = lo corre el Worker por SSH, en `tmux`, con Sam pegando lo que
+sea secreto.
+
+**Antes del viernes 16 (checklist; si falta algo, se corre una semana):**
+
+| # | Qué | Quién | Cómo se comprueba |
+|---|---|---|---|
+| 1 | PR #194 con `pnpm verify` y merge | Director | imagen `ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha de main>` publicada por el workflow |
+| 2 | `MAINTENANCE_MODE` (vacía) y `MAINTENANCE_BYPASS_SECRET` en Vercel, Production y Preview, y un redeploy | Sam | el valor del secreto es el de `/srv/dtd-cargo/.env` (`grep ^MAINTENANCE_BYPASS_SECRET`); `curl -s -o /dev/null -w '%{http_code}' https://dtdcargo.com/studio/login` sigue 200 |
+| 3 | Aviso a los clientes del cambio de alojamiento; facturas de Supabase al día | Sam | — |
+| 4 | Avisos de Uptime Kuma a Telegram configurados (mensaje de prueba recibido) | Sam | Ajustes → Notificaciones |
+| 5 | `jwks-set.sh --project dtd-cargo --cloud-ref xpfuzqombmjmxvprjgmi` y `up -d --force-recreate --no-deps auth rest realtime storage functions` | VPS | `prueba-jwks-sesiones.sh` (vuelve a dejar el JWKS limpio) |
+| 6 | `backup.sh --dry-run` imprime la cadena completa; `rclone lsf b2:dtdcargo-respaldos` responde | VPS | — |
+| 7 | Access key S3 temporal nueva en Cloud (Storage › S3 › Access keys) para `storage-from-cloud.sh`; se revoca al terminar | Sam | — |
+| 8 | TTL de `dtdcargo.com` y `www` a 300 s en Hostinger (para el paso 2 del 25) | Sam o Worker con su OK | `dig +short -t A dtdcargo.com` sigue dando Vercel |
+
+**Domingo 18 (paso 1: base y archivos):**
+
+| Hora | Paso | Quién | Comprobación |
+|---|---|---|---|
+| 06:50 | Última mirada: 9 contenedores de Supabase `healthy` en el VPS, `auth/v1/health` 200, Cloud accesible (`import-from-cloud.sh` sin `--corte` no se corre: solo se comprueba la contraseña a mano con `psql`) | VPS | — |
+| 07:00 | `MAINTENANCE_MODE=1` en Vercel y redeploy | Sam | `/studio/login` → 503; `/` → 200 |
+| 07:06 | Pausar pg_cron en Cloud: `update cron.job set active = false` (3 jobs) | Worker por el conector, **con el OK nominal de Sam en el chat** | `select jobname, active from cron.job` → 3 × false |
+| 07:08 | `import-from-cloud.sh --project dtd-cargo --corte --cloud-user postgres.xpfuzqombmjmxvprjgmi --cloud-host aws-1-us-east-1.pooler.supabase.com` en tmux; Sam escribe `CORTE dtd-cargo` y pega la contraseña | VPS + Sam | el script termina en PASÓ: conteos iguales por tabla, logs con datos, ledger 478 = Cloud, permisos de `public` por huella, pg_cron 3 activos, Vault copiado |
+| 07:20 | `storage-from-cloud.sh --project dtd-cargo --cloud-ref xpfuzqombmjmxvprjgmi --corte`; Sam pega la access key temporal | VPS + Sam | 16 buckets, 638+ objetos y bytes iguales; Sam revoca la access key |
+| 07:26 | `vault-set-secret.sh --project dtd-cargo --name functions_base_url` con `http://api-gw:8000/functions/v1` | VPS | `select name from vault.decrypted_secrets` muestra `functions_base_url` y `kommo_cron_key` |
+| 07:28 | `rm /srv/dtd-cargo/NO-ENCENDER-HASTA-EL-CORTE.txt`; `systemctl start dtd-cargo-backup.service` (primer respaldo real, con datos); reanudar el monitor «Respaldo diario DTD · latido» en Uptime Kuma | VPS | `tail /var/log/backup-dtd-cargo.log` → PASÓ y «latido enviado»; el monitor en verde |
+| 07:32 | Vercel: `NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com` y `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE=sb-xpfuzqombmjmxvprjgmi-auth-token`; anon y service_role **sin cambiar**; redeploy | Sam | `/studio/login` sigue 503 (mantenimiento) |
+| 07:40 | Webhooks de Kommo → `https://supabase.dtdcargo.com/functions/v1/kommo-webhook?secret=<el mismo>` | Sam | `docker logs dtd-cargo-functions-1` recibe un evento de prueba |
+| 07:42 | Smoke con el mantenimiento puesto, entrando por `https://dtdcargo.com/mantenimiento/entrar?clave=<MAINTENANCE_BYPASS_SECRET>` (cookie de 4 h): Studio con un admin (sesión ya abierta: no debe pedir login); Portal con un cliente de prueba; PWA `/m` con PIN; una subida de archivo y su descarga; bitácora en tiempo real; un cron disparado desde el panel de Vercel; un correo de acceso (magic link) | Sam + Worker | todo PASÓ en el handoff; `docker logs` de auth/rest/storage/realtime sin errores |
+| 08:00 | `MAINTENANCE_MODE` vacía en Vercel y redeploy | Sam | `/studio/login` → 200; Uptime Kuma en verde |
+| 08:05 | Avisar al equipo; mirar Kuma y los logs durante 2 h | Sam + Worker | — |
+
+**Rollback limpio (antes de las 08:00):** Vercel vuelve a `NEXT_PUBLIC_SUPABASE_URL` de Cloud y `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE` vacía (redeploy); `update cron.job set active = true` en Cloud; mantenimiento fuera. El VPS se deja encendido para analizar; antes del siguiente intento, `destroy-staging.sh` **no** sirve (es producción): se vacían los datos a mano con `docker compose down -v` + borrar `/srv/dtd-cargo/data`, con el OK de Sam.
+
+**Después del paso 1:** Cloud y Vercel siguen encendidos 14 días (pg_cron de Cloud en pausa). Lunes 19: `restore-test.sh` con el dump real de la noche (registro en `backup-restore-servidor.md` §8). Se vigila el latido y `supabase.dtdcargo.com` en Kuma.
+
+**Domingo 25 (paso 2: la web, sin mantenimiento):**
+
+| Hora | Paso | Quién |
+|---|---|---|
+| 07:00 | `DTD_WEB_IMAGE=ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha de main>` en el `.env`; `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d web cron`; `web` healthy; `curl -H 'Host: dtdcargo.com' https://217.216.54.70/robots.txt -k` → 200 | VPS |
+| 07:10 | Hostinger: `A dtdcargo.com` y `CNAME www` → `217.216.54.70` (TTL 300 desde el 24) | Sam |
+| 07:15 | Certificado de `dtdcargo.com` emitido por Traefik con las primeras visitas; `curl -sI https://dtdcargo.com` con emisor Let's Encrypt | VPS |
+| 07:20 | Telegram: `setWebhook` con `https://dtdcargo.com/api/telegram/webhook` y `secret_token` = `TELEGRAM_WEBHOOK_SECRET` del `.env` del servidor | VPS (token del `.env`) |
+| 07:25 | Apagar los crons de Vercel (deploy con `vercel.json` sin `crons`) o pausar el proyecto cuando ya no llegue tráfico | Sam |
+| 07:30 | Smoke público: `/`, `/tarifas`, Studio, Portal, PWA, un correo; Resend (webhook e inbound) y Telegram siguen apuntando a `dtdcargo.com` | Sam + Worker |
+
+Rollback del paso 2: DNS de vuelta a Vercel (TTL 300); la base no cambia.
+
 ## 4 · Fase 4 — Retiro de Vercel y Supabase Cloud
 
 Requiere el OK de Sam, con estas condiciones cumplidas y escritas en el handoff:
