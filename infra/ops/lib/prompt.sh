@@ -15,10 +15,16 @@
 
 MAX_TRIES="${MAX_TRIES:-3}"
 
-# Quita espacios, tabuladores y \r de los extremos. Sin subprocesos: el valor no
-# pasa por `ps`.
+# Quita espacios, tabuladores y \r de los extremos, y las secuencias de escape
+# que mete la terminal: las marcas de pegado (ESC[200~ … ESC[201~) y las teclas
+# de flecha (ESC[A…D). `read -s` no usa readline, así que llegan como texto: el
+# 2026-10-13 un TELEGRAM_BOT_TOKEN quedó guardado con «ESC[B» delante. Sin
+# subprocesos: el valor no pasa por `ps`.
 trim() {
   local s="$1"
+  shopt -s extglob
+  s="${s//$'\e'\[*([0-9;?])[@-~]/}"
+  s="${s//$'\e'/}"
   s="${s//$'\r'/}"
   s="${s#"${s%%[![:space:]]*}"}"
   s="${s%"${s##*[![:space:]]}"}"

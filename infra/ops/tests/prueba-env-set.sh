@@ -60,6 +60,13 @@ printf '%s\n\n\n' 're-nueva' | run --integraciones --todas > "${T}/t.log" 2>&1; 
 [ $rc -eq 0 ] && [ "$(val RESEND_API_KEY)" = "'re-nueva'" ] && [ "$(val TELEGRAM_BOT_TOKEN)" = "'tg-123'" ] && [ "$(val ANTHROPIC_API_KEY)" = "ya-tenia" ] \
   && grep -q 'Las 3 variables' "${T}/t.log" && grep -c 'conserva el valor actual' "${T}/t.log" | grep -q 2 && ok "--integraciones --todas: pide todas, Enter conserva, y reemplaza la que se pega" || { ko "--todas rc=$rc"; cat "${T}/t.log"; }
 
+# Secuencias de la terminal: marcas de pegado y flechas no entran al valor.
+printf '\033[200~pegado-limpio\033[201~\n' | run --name OTRA > /dev/null 2>&1; rc=$?
+[ $rc -eq 0 ] && [ "$(val OTRA)" = "'pegado-limpio'" ] && ok "las marcas de pegado (ESC[200~ … ESC[201~) no entran al valor" || ko "marcas de pegado: $(val OTRA | cat -v)"
+printf '\033[B\033[Acon-flechas\n' | run --name OTRA > /dev/null 2>&1; rc=$?
+[ $rc -eq 0 ] && [ "$(val OTRA)" = "'con-flechas'" ] && ok "las teclas de flecha (ESC[B, ESC[A) no entran al valor" || ko "flechas: $(val OTRA | cat -v)"
+printf '%s\n' '1' | run --name OTRA > /dev/null 2>&1
+
 # --integraciones --solo: solo las listadas, en ese orden; Enter conserva; una fuera del bloque se rechaza.
 printf '%s\n\n%s\n' 'an-nueva' 'otra-2' | run --integraciones --solo ANTHROPIC_API_KEY,RESEND_API_KEY,OTRA > "${T}/so.log" 2>&1; rc=$?
 [ $rc -eq 0 ] && [ "$(val ANTHROPIC_API_KEY)" = "'an-nueva'" ] && [ "$(val RESEND_API_KEY)" = "'re-nueva'" ] && [ "$(val TELEGRAM_BOT_TOKEN)" = "'tg-123'" ] && [ "$(val OTRA)" = "'otra-2'" ] \
