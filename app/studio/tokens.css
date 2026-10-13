@@ -161,14 +161,10 @@
   --content-max: 1440px;
 
   /* ── Typography ────────────────────────────────────────── */
-  /* SISTEMA (Norte): Nunito Sans (cuerpo) + Sora (títulos). El switch de marca
-     vive en `.studio-sys` (app/globals.css), que dentro del Studio redefine
-     --font-archivo→Nunito y --font-archivo-black→Sora (mirror del portal/calc) —
-     por eso estos --f-* siguen "chainando" por --font-archivo* pero resuelven a
-     Nunito/Sora en toda la superficie. BRAND-EXCEPTION autorizada por el founder
-     el 2026-06-11 (alinear el Studio con el Norte). El wordmark <BrandMark> NO
-     migra (usa --font-brand-display, inmune). Revertir la marca = quitar
-     `studio-sys` del wrapper en app/studio/layout.tsx (vuelve todo a Archivo). */
+  /* Archivo (cuerpo) + Archivo Black (títulos), como todo el sitio: tipografía SDD-0505
+     (SDD-0505, decisión de Sam 2026-10-13) retiró Nunito Sans + Sora (BD-035).
+     Las fuentes vienen del repositorio (lib/fonts.ts); el chino usa la fuente
+     CJK del sistema (`html.dtd-cjk-sistema` en app/globals.css). */
   --f-sans: var(--font-archivo), 'Archivo', system-ui, -apple-system, sans-serif;
   --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --f-display: var(--font-archivo-black), 'Archivo Black', 'Archivo', sans-serif;
@@ -219,14 +215,13 @@
   --grad-card:       linear-gradient(160deg,#ffffff 0%,#FBFAF7 100%);
 }
 
-/* ── Migración de fuente del ERP → Nunito Sans + Sora (BD-035, founder 2026-07-19) ──
-   Los tokens --f-sans/--f-display se declaran ARRIBA en :root envolviendo
-   var(--font-archivo/-black). Declarados en :root el var() se resuelve EN :root
-   (= Archivo) y queda CONGELADO al heredar → por eso la migración de 2026-06-11
-   nunca surtió efecto y el ERP siguió en Archivo. Re-declarándolos acá, scopeados a
-   `.studio-sys` (el wrapper del Studio, donde globals.css ya redefine
-   --font-archivo → Nunito y --font-archivo-black → Sora), el var() resuelve en ese
-   scope y TODO el ERP (que consume --f-sans/--f-display) migra de verdad. */
+/* ── Tokens de fuente del ERP re-declarados en `.studio-sys` ──
+   Se declaran ARRIBA en :root envolviendo var(--font-archivo/-black); declarados en
+   :root el var() se resuelve EN :root y queda congelado al heredar. Re-declarados
+   acá resuelven en el scope del Studio. Desde la tipografía SDD-0505 (2026-10-13) `.studio-sys`
+   ya no redefine --font-archivo (salieron Nunito/Sora), así que resuelven a
+   Archivo / Archivo Black como el resto; se conservan para que una redefinición
+   futura del scope vuelva a surtir efecto sin tocar el ERP. */
 .studio-sys {
   --f-sans: var(--font-archivo), system-ui, -apple-system, sans-serif;
   --f-display: var(--font-archivo-black), var(--font-archivo), sans-serif;

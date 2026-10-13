@@ -75,14 +75,31 @@
   --radius-card: 18px;
   --radius-track: 24px;
 
-  /* Font families — completadas en layout.tsx con next/font/google */
+  /* Font families — completadas en app/layout.tsx con next/font/local
+     (lib/fonts.ts, tipografía SDD-0505); --font-noto-sc la redefine html.dtd-cjk-sistema. */
   --font-archivo: var(--font-archivo), "Archivo", system-ui, -apple-system, sans-serif;
   --font-archivo-black: var(--font-archivo-black), "Archivo Black", sans-serif;
   --font-noto-sc: var(--font-noto-sc), "Noto Sans SC", sans-serif;
 }
 
+/* Tipografía SDD-0505 (decisión de Sam 2026-10-13): el chino ya no carga fuentes
+   web. Las variables que antes llenaba next/font con Noto Sans SC / Noto Serif SC
+   apuntan a las fuentes CJK del sistema, en el orden en que suelen estar:
+   macOS/iOS (PingFang, Songti), Windows (Microsoft YaHei, SimSun), Android/Linux
+   (Noto CJK, Source Han). Los nombres se conservan para no tocar ~20 consumidores;
+   "Noto Sans SC"/"Noto Serif SC" siguen en la lista por si el equipo la tiene
+   instalada. `html.dtd-cjk-sistema` (lo pone app/layout.tsx) gana en especificidad
+   al :root que emite @theme, que se referencia a sí mismo. */
+html.dtd-cjk-sistema {
+  --font-noto-sc: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC",
+    "WenQuanYi Micro Hei", sans-serif;
+  --font-noto-serif-sc: "Songti SC", "STSong", "SimSun", "Noto Serif CJK SC",
+    "Noto Serif SC", "Source Han Serif SC", serif;
+}
+
 /* VIS-02 · chino por contexto. El alias histórico --f-cn permanece en UI
-   y Noto Serif SC solo queda disponible para documento formal lang="zh-CN". */
+   y la serif solo queda para documento formal lang="zh-CN". */
 :root {
   /* SDD-0441: navy fijo aprobado BD-027, incluso cuando ink invierte por tema. */
   --on-warning: #0F1E3D;
@@ -356,24 +373,19 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Capa SISTEMA (Norte): Sora (títulos) + Nunito Sans (cuerpo). Scopeada a
-   3 superficies vía wrapper class — el resto del sitio público sigue en Archivo:
-     · `.portal-sys` → /portal        (app/portal/layout.tsx · founder 2026-06-02)
-     · `.calc-sys`   → /calculadora   (founder 2026-06-06)
-     · `.studio-sys` → Studio ERP     (app/studio/layout.tsx · founder 2026-06-11)
-   Truco: redefinimos las MISMAS variables que ya consumen los componentes
-   (--font-archivo / --font-archivo-black, y --font-sans para usos sueltos del
-   Studio) → la superficie entera migra a Sora/Nunito sin tocar JSX. El wordmark
-   <BrandMark> NO migra (usa --font-brand-display, inmune). Mono (JetBrains) y CJK
-   (Noto SC) quedan igual. Sin capas (@layer) → gana al body de @layer base.
+   Wrappers de superficie: `.portal-sys` (/portal), `.calc-sys` (/calculadora) y
+   `.studio-sys` (Studio ERP). Hasta el 2026-10-13 remapeaban la tipografía a
+   Sora + Nunito Sans (capa SISTEMA del Norte, BD-035).
    ────────────────────────────────────────────────────────────────── */
+/* Tipografía SDD-0505 (2026-10-13): Sora y Nunito Sans salieron del sitio. Las tres
+   superficies ya no remapean --font-archivo/--font-archivo-black: heredan Archivo
+   y Archivo Black de <html> como el resto. Se conserva --font-sans (lo usan
+   estilos sueltos del Studio). */
 .portal-sys,
 .calc-sys,
 .studio-sys {
-  --font-archivo: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
-  --font-archivo-black: var(--font-sora), "Sora", var(--font-nunito), system-ui, sans-serif;
-  --font-sans: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
-  font-family: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-archivo), "Archivo", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-archivo), "Archivo", system-ui, -apple-system, sans-serif;
 }
 
 /* Números de la calculadora en JetBrains Mono (tabular). Se aplica con la clase

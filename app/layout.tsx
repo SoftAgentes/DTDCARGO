@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import {
-  Archivo,
-  Archivo_Black,
-  Noto_Sans_SC,
-  Noto_Serif_SC,
-} from "next/font/google";
+// Fuentes desde el repositorio (tipografía SDD-0505, 2026-10-13): solo Archivo + Archivo Black
+// aquí; JetBrains Mono la montan las superficies que la usan. El chino usa la
+// fuente del sistema (`html.dtd-cjk-sistema` en globals.css).
+import { archivo, archivoBlack } from "@/lib/fonts";
 import { BRAND_ASSETS, CONTACT } from "@/lib/design-tokens";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
@@ -20,36 +18,6 @@ import "./noticias/noticias.css";
 // Superficie de `/pre-alertas` (`.pa-surface`) — mismo criterio que recursos.css.
 import "./prealertas.css";
 import { serializeJsonLd } from "@/lib/public/json-ld";
-
-const archivo = Archivo({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-  variable: "--font-archivo",
-  display: "swap",
-});
-
-const archivoBlack = Archivo_Black({
-  subsets: ["latin"],
-  weight: "400", // Archivo Black solo trae el peso 400 (que renderiza como 900 visual)
-  variable: "--font-archivo-black",
-  display: "swap",
-});
-
-const notoSansSc = Noto_Sans_SC({
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "900"],
-  variable: "--font-noto-sc",
-  display: "swap",
-});
-
-const notoSerifSc = Noto_Serif_SC({
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "900"],
-  variable: "--font-noto-serif-sc",
-  display: "swap",
-  preload: false,
-  fallback: ["Noto Sans SC", "sans-serif"],
-});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -311,11 +279,11 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${archivo.variable} ${archivoBlack.variable} ${notoSansSc.variable} ${notoSerifSc.variable}`}
+      className={`${archivo.variable} ${archivoBlack.variable} dtd-cjk-sistema`}
       // Token de marca INMUNE: captura la familia real de Archivo Black (next/font)
-      // como literal, sin pasar por --font-archivo-black (que el portal redefine a
-      // Sora). Así el wordmark del logo sigue en Archivo Black en TODA la app,
-      // incluido /portal (capa branding ≠ capa sistema · regla del Norte).
+      // como literal, sin pasar por --font-archivo-black. Así el wordmark del logo
+      // sigue en Archivo Black en TODA la app (capa branding ≠ capa sistema · regla
+      // del Norte), aunque una superficie redefina sus tokens de título.
       style={
         {
           "--font-brand-display": `${archivoBlack.style.fontFamily}, "Archivo Black", sans-serif`,
