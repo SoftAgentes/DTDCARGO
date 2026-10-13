@@ -169,12 +169,14 @@ describe("SDD-0505 · 0472 base de la URL de las Edge Functions desde el Vault (
     expect(code).not.toMatch(/cron\.(schedule|unschedule)/);
   });
 
-  it("está declarada como espera con lo que el operador tiene que leer", () => {
-    const entry = BASELINE.pendingBelowCutoff["0472_kommo_functions_base_url"];
-    expect(entry).toBeTypeOf("string");
+  it("aplicada a producción el 2026-10-13: ya no es una espera y el archivo no se tocó", () => {
+    // El ledger guarda el texto exacto del archivo (identidad por md5), así que
+    // la cabecera «NO APLICADA» se queda; lo que cambia es el baseline, del que la
+    // espera sale solo tras la aplicación verificada (aplicar-migraciones-prod.md).
+    expect(BASELINE.pendingBelowCutoff["0472_kommo_functions_base_url"]).toBeUndefined();
     expect(FILE_0472).toContain("Declarada como espera en\n--    supabase/migrations-baseline.json › pendingBelowCutoff");
-    for (const text of ["MIGRATE-FIRST", "functions_base_url", "http://functions:9000", "FUSIONAR LA PR NO AUTORIZA"]) {
-      expect(entry).toContain(text);
+    for (const text of ["MIGRATE-FIRST", "functions_base_url", "http://functions:9000"]) {
+      expect(FILE_0472).toContain(text);
     }
   });
 });
