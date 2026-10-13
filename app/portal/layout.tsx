@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import { sora, nunitoSans } from "@/lib/fonts";
 
 /**
  * Layout raíz de la 5ª superficie: Portal del Cliente (SDD-0042).
  *
- * Tipografía: desde SDD-0505 (decisión de Sam del 2026-10-13) el Portal usa
- * **Archivo** como todo el sitio; Sora + Nunito Sans (Norte v2.4) salieron. Las
- * fuentes las carga el layout raíz desde el repositorio (`lib/fonts.ts`). El
- * wrapper `.portal-sys` se conserva por sus estilos de superficie; ya no remapea
- * la tipografía (ver `globals.css`).
+ * Tipografía de CAPA SISTEMA (Norte v2.4): **Sora** (display) + **Nunito Sans**
+ * (cuerpo) — igual que el ERP/portal del Norte. El resto del sitio público sigue
+ * en Archivo. Las fuentes vienen del repositorio (`lib/fonts.ts`, SDD-0505: el
+ * build ya no las baja de Google) y exponen `--font-sora` /
+ * `--font-nunito`; el wrapper `.portal-sys` (ver `globals.css`) redefine las
+ * variables que ya usan los componentes del portal (`--font-archivo` /
+ * `--font-archivo-black`) para que toda la superficie migre sin tocar JSX.
+ * Mono (JetBrains) y CJK quedan igual.
  *
  * `robots: noindex` — área autenticada de cliente, no marketing.
  *
@@ -60,7 +64,7 @@ export default function PortalRootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="portal-sys">
+    <div className={`${sora.variable} ${nunitoSans.variable} portal-sys`}>
       {children}
     </div>
   );
