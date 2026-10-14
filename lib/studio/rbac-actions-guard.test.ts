@@ -235,18 +235,21 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
    * vuelve a cuadrar y el total no. Dos aserciones que fallan por caminos
    * distintos valen más que una más estricta.
    */
-  it("la superficie escaneada es la esperada (73 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0507 sumó `clientes/adjuntos-actions.ts` con una sola acción,
+  // `firmarAdjuntoAction`, que pasa el veredicto por acción sin entrar en
+  // ninguna de las dos listas (gate de vista `clients` antes de firmar).
+  it("la superficie escaneada es la esperada (74 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 73,
+      total: 74,
       exactos: 54,
-      conPrefijo: 19,
+      conPrefijo: 20,
     });
   });
 
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(427);
+    expect(reportes.length).toBe(428);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

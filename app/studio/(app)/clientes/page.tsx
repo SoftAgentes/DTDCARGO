@@ -15,6 +15,8 @@ import {
 } from "@/lib/studio/client-queries";
 import { ClientsClient } from "./_components/ClientsClient";
 import { listAliadoOptions } from "@/lib/studio/aliados/aliado-queries";
+import { contarAdjuntosDeClientes } from "@/lib/studio/documents/adjuntos-queries";
+import { conteosPorId } from "@/lib/studio/documents/adjuntos";
 
 export const metadata = { title: "Clientes" };
 
@@ -39,7 +41,16 @@ export default async function ClientesPage({
   );
   // SDD-0255: los aliados alimentan el selector "Pertenece a" del alta. Un
   // cliente creado bajo un aliado recibe la insignia de ese aliado, no DTD-.
-  const aliados = await listAliadoOptions(supabase);
+  // SDD-0507: cuántos adjuntos tiene cada fila (su ficha + sus embarques), con
+  // el cliente de sesión: lo que la RLS no le muestra no se cuenta. `null` si
+  // no se pudo contar; la tabla lo dice en vez de pintar «Ninguno».
+  const [aliados, adjuntos] = await Promise.all([
+    listAliadoOptions(supabase),
+    contarAdjuntosDeClientes(
+      supabase,
+      clients.map((c) => ({ id: c.id, markbox: c.markbox })),
+    ),
+  ]);
 
   return (
     <ClientsClient
@@ -49,6 +60,7 @@ export default async function ClientesPage({
       topeAlcanzado={topeAlcanzado}
       filters={filters}
       aliados={aliados}
+      adjuntos={conteosPorId(adjuntos)}
     />
   );
 }

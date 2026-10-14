@@ -32,6 +32,8 @@ import { TrackingMap } from "./_components/TrackingMap";
 import { TrackingTimeline } from "./_components/TrackingTimeline";
 import { TrackingDetailActions } from "./_components/TrackingDetailActions";
 import { TrackingEmptyOps } from "./_components/TrackingEmptyOps";
+import { contarAdjuntosDeEmbarques } from "@/lib/studio/documents/adjuntos-queries";
+import { conteosPorId } from "@/lib/studio/documents/adjuntos";
 
 export const metadata = { title: "Tracking en vivo" };
 
@@ -100,6 +102,15 @@ export default async function TrackingPage({
     );
   }
 
+  // SDD-0507: cuántos adjuntos tiene cada envío activo, con el cliente de
+  // sesión. `null` si no se pudo contar: la barra lateral lo dice.
+  const adjuntos = conteosPorId(
+    await contarAdjuntosDeEmbarques(
+      supabase,
+      active.map((s) => s.id),
+    ),
+  );
+
   const sidebarRows: ActiveShipmentRow[] = active.map((s) => ({
     id: s.id,
     code: s.code,
@@ -122,6 +133,7 @@ export default async function TrackingPage({
         <ActiveShipmentList
           shipments={sidebarRows}
           selectedId={selected.id}
+          adjuntos={adjuntos}
         />
 
         {/* Detalle */}
