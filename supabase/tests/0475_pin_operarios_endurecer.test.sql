@@ -54,6 +54,10 @@ create table auth.users (id uuid primary key, email text);
 create function auth.uid() returns uuid language sql stable set search_path = '' as $$
   select nullif(pg_catalog.current_setting('request.jwt.claim.sub', true), '')::uuid
 $$;
+-- Como el de Supabase: los claims del JWT que PostgREST deja en request.jwt.claims.
+create function auth.jwt() returns jsonb language sql stable set search_path = '' as $$
+  select coalesce(nullif(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb)
+$$;
 
 -- Vault real o stub (mismo patrón que 0472_kommo_functions_base_url.test.sql).
 create schema if not exists vault;
@@ -173,6 +177,16 @@ create table public.operario_pins (
 revoke all on public.operario_pins from public, anon, authenticated;
 grant select, insert, update, delete on public.operario_pins to service_role;
 alter table public.operario_pins enable row level security;
+-- La ACL viva de service_role, leída por el Director el 2026-10-14: arwdDxtm
+-- (también TRUNCATE, REFERENCES, TRIGGER y, desde PostgreSQL 17, MAINTAIN).
+grant truncate, references, trigger on public.operario_pins to service_role;
+do $maintain$
+begin
+  if pg_catalog.current_setting('server_version_num')::integer >= 170000 then
+    execute 'grant maintain on public.operario_pins to service_role';
+  end if;
+end;
+$maintain$;
 
 -- Las RPC de Operarios reales: 0021 (policy, grants), 0037 (validador) con el
 -- search_path de 0210, y 0351 (candado de rol), que es lo que corre hoy.
@@ -293,18 +307,31 @@ begin
   return v_value;
 end;
 $$;
-create function pg_temp.reset_sql(p_operario text, p_pin text, p_motivo text default 'Olvidó su PIN en el turno',
-  p_reactivar boolean default false) returns text language sql as $$
-  select format('select public.admin_reset_operario_pin(%L::uuid, %L, %L, %L)',
-    pg_temp.fixture_id(p_operario), p_pin, p_motivo, p_reactivar)
+-- Motivo: un código de la lista y, sólo para 'otro', el texto (decisión de Sam).
+create function pg_temp.reset_sql(p_operario text, p_pin text, p_motivo text default 'olvido',
+  p_reactivar boolean default false, p_texto text default null) returns text language sql as $$
+  select format('select public.admin_reset_operario_pin(%L::uuid, %L, %L, %L, %L)',
+    pg_temp.fixture_id(p_operario), p_pin, p_motivo, p_texto, p_reactivar)
 $$;
 create function pg_temp.create_sql(p_tenant text, p_name text, p_pin text,
-  p_motivo text default 'Operario nuevo del turno de la mañana') returns text language sql as $$
-  select format('select public.admin_create_operario(%L::uuid, %L::uuid, %L, null, %L, %L, %L)',
-    pg_temp.fixture_id(p_tenant), pg_temp.fixture_id('wh-' || p_tenant), p_name, p_pin, 'operario', p_motivo)
+  p_motivo text default 'empleado_nuevo', p_texto text default null) returns text language sql as $$
+  select format('select public.admin_create_operario(%L::uuid, %L::uuid, %L, null, %L, %L, %L, %L)',
+    pg_temp.fixture_id(p_tenant), pg_temp.fixture_id('wh-' || p_tenant), p_name, p_pin, 'operario', p_motivo, p_texto)
 $$;
-create function pg_temp.ver_sql(p_operario text, p_motivo text default 'El operario no recuerda su PIN') returns text language sql as $$
-  select format('select public.admin_ver_operario_pin(%L::uuid, %L)', pg_temp.fixture_id(p_operario), p_motivo)
+create function pg_temp.ver_sql(p_operario text, p_motivo text default 'olvido', p_texto text default null)
+returns text language sql as $$
+  select format('select public.admin_ver_operario_pin(%L::uuid, %L, %L)', pg_temp.fixture_id(p_operario), p_motivo, p_texto)
+$$;
+-- El JWT de la petición: un amr password de hace p_hace segundos (null = sin amr),
+-- como el que deja un signInWithPassword fresco en GoTrue v2.197.0.
+create function pg_temp.con_password(p_hace integer) returns void language sql volatile as $$
+  select set_config('request.jwt.claims',
+    case when p_hace is null then '{}'
+    else jsonb_build_object('amr', jsonb_build_array(jsonb_build_object('method', 'password',
+      'timestamp', floor(extract(epoch from now()))::bigint - p_hace)))::text end, true)
+$$;
+create function pg_temp.con_claims(p_claims jsonb) returns void language sql volatile as $$
+  select set_config('request.jwt.claims', p_claims::text, true)
 $$;
 create function pg_temp.hash_of(p_operario text) returns text language sql volatile as $$
   select pin_hash from public.operario_pins where id = pg_temp.fixture_id(p_operario)
@@ -334,6 +361,9 @@ create function pg_temp.set_override(p_role text, p_view boolean, p_edit boolean
   select pg_temp.fixture_id('tenant-A'), p_role, 'operarios', p_view, p_edit
   where p_view is not null;
 $$;
+
+-- Por defecto, la sesión acaba de confirmar su contraseña: «Ver PIN» la exige.
+select pg_temp.con_password(10);
 
 \if :fixture_only
 \quit
@@ -482,7 +512,7 @@ begin
       and v_event.event_type = 'operario_pin_reset' and v_event.actor_type = 'user'
       and v_event.actor_id = pg_temp.fixture_id('operations-A') and v_event.source = 'rpc'
       and v_event.result = 'succeeded' and v_event.sensitivity = 'restricted'
-      and v_event.reason = 'Olvidó su PIN en el turno' and v_event.payload = '{}'::jsonb
+      and v_event.reason = 'olvido' and v_event.payload = '{"motivo": "olvido"}'::jsonb
       and v_event.correlation_id like 'operario_pin_reset:%',
     'el evento dice quién, a qué operario, en qué tenant, por qué y desde dónde');
   perform pg_temp.check(v_event.before_data = '{"active": true}'::jsonb
@@ -500,22 +530,27 @@ begin
 end;
 $restablecer$;
 
--- 5. El motivo es obligatorio, acotado y sin el PIN; sin él no cambia nada.
+-- 5. El motivo es un código de la lista y, sólo para «Otro», un texto acotado y
+--    sin el PIN; sin motivo válido no cambia nada.
 do $motivo$
 declare
   v_before text := pg_temp.hash_of('cn-2');
   v_events bigint := pg_temp.events(pg_temp.fixture_id('cn-2'));
   v_result jsonb;
   v_case record;
+  v_event public.entity_audit_log;
 begin
   for v_case in select * from (values
-    ('sin motivo', null::text, 'Escribe el motivo: entre 4 y 300 caracteres.'),
-    ('con un motivo de espacios', '      ', 'Escribe el motivo: entre 4 y 300 caracteres.'),
-    ('con un motivo de 3 letras', 'abc', 'Escribe el motivo: entre 4 y 300 caracteres.'),
-    ('con un motivo de 301 letras', repeat('x', 301), 'Escribe el motivo: entre 4 y 300 caracteres.'),
-    ('con el PIN en el motivo', 'Le puse 4152 porque lo pidió', 'No escribas el PIN en el motivo: queda en la auditoría.')
-  ) c(label, motivo, message) loop
-    v_result := pg_temp.run_as('authenticated', 'operations-A', pg_temp.reset_sql('cn-2', '4152', v_case.motivo));
+    ('sin motivo', null::text, null::text, 'Elige un motivo de la lista.'),
+    ('con un código que no está en la lista', 'inventado', null, 'Elige un motivo de la lista.'),
+    ('con «Otro» sin texto', 'otro', null, 'Escribe el motivo: entre 4 y 200 caracteres.'),
+    ('con «Otro» de espacios', 'otro', '      ', 'Escribe el motivo: entre 4 y 200 caracteres.'),
+    ('con «Otro» de 3 letras', 'otro', 'abc', 'Escribe el motivo: entre 4 y 200 caracteres.'),
+    ('con «Otro» de 201 letras', 'otro', repeat('x', 201), 'Escribe el motivo: entre 4 y 200 caracteres.'),
+    ('con el PIN en el texto de «Otro»', 'otro', 'Le puse 4152 porque lo pidió', 'No escribas el PIN en el motivo: queda en la auditoría.')
+  ) c(label, motivo, texto, message) loop
+    v_result := pg_temp.run_as('authenticated', 'operations-A',
+      pg_temp.reset_sql('cn-2', '4152', v_case.motivo, false, v_case.texto));
     perform pg_temp.check(v_result->>'state' = 'P0020' and v_result->>'message' = v_case.message,
       'restablecer ' || v_case.label || ' se rechaza con P0020');
   end loop;
@@ -527,8 +562,20 @@ begin
     'sin motivo válido no cambia el hash ni queda evento');
   -- Con un PIN nuevo y libre: el operario no vuelve al suyo, que es otra regla.
   perform pg_temp.check((pg_temp.run_as('authenticated', 'operations-A',
-      pg_temp.reset_sql('cn-2', '9047', '  ' || repeat('m', 300) || '  '))->>'ok')::boolean,
-    'el motivo se recorta antes de medirlo: 300 letras con espacios alrededor pasan');
+      pg_temp.reset_sql('cn-2', '9047', 'otro', false, '  ' || repeat('m', 200) || '  '))->>'ok')::boolean,
+    'el texto de «Otro» se recorta antes de medirlo: 200 letras con espacios alrededor pasan');
+  select * into v_event from public.entity_audit_log
+   where entity_id = pg_temp.fixture_id('cn-2') order by occurred_at desc, id desc limit 1;
+  perform pg_temp.check(v_event.reason = repeat('m', 200) and v_event.payload = '{"motivo": "otro"}'::jsonb,
+    'con «Otro» la auditoría guarda el código y el texto');
+  perform pg_temp.check((pg_temp.run_as('authenticated', 'operations-A',
+      pg_temp.reset_sql('cn-2', '7395', '  Revision_Seguridad ', false, 'un texto que no va'))->>'ok')::boolean,
+    'el código se acepta sin importar mayúsculas ni espacios');
+  select * into v_event from public.entity_audit_log
+   where entity_id = pg_temp.fixture_id('cn-2') order by occurred_at desc, id desc limit 1;
+  perform pg_temp.check(v_event.reason = 'revision_seguridad'
+      and v_event.payload = '{"motivo": "revision_seguridad"}'::jsonb,
+    'con un código fijo la auditoría guarda sólo el código, no el texto');
 end;
 $motivo$;
 
@@ -621,7 +668,7 @@ begin
   perform pg_temp.check(not exists (select 1 from public.operario_pins where display_name = 'Nuevo')
       and not exists (select 1 from public.entity_audit_log where event_type = 'operario_created'),
     'el alta rechazada no deja operario ni evento');
-  perform pg_temp.check(pg_temp.run_as('authenticated', 'admin-A', pg_temp.create_sql('tenant-A', 'Nuevo', '2963', 'ok'))->>'state' = 'P0020',
+  perform pg_temp.check(pg_temp.run_as('authenticated', 'admin-A', pg_temp.create_sql('tenant-A', 'Nuevo', '2963', 'inventado'))->>'state' = 'P0020',
     'el alta sin un motivo válido se rechaza');
   perform pg_temp.check(pg_temp.run_as('authenticated', 'commercial-A', pg_temp.create_sql('tenant-A', 'Nuevo', '2963'))->>'state' = '42501',
     'commercial no crea operarios por default');
@@ -639,7 +686,7 @@ begin
   perform pg_temp.check(v_event.entity_id = v_id and v_event.entity_type = 'operario'
       and v_event.tenant_id = pg_temp.fixture_id('tenant-A') and v_event.actor_id = pg_temp.fixture_id('operations-A')
       and v_event.source = 'rpc' and v_event.result = 'succeeded' and v_event.sensitivity = 'restricted'
-      and v_event.reason = 'Operario nuevo del turno de la mañana'
+      and v_event.reason = 'empleado_nuevo' and v_event.payload = '{"motivo": "empleado_nuevo"}'::jsonb
       and v_event.correlation_id like 'operario_created:%'
       and v_event.after_data = jsonb_build_object('credential', 'pin', 'region', 'cn', 'role', 'operario',
         'warehouse_id', pg_temp.fixture_id('wh-tenant-A'), 'active', true, 'recoverable', true)
@@ -673,12 +720,24 @@ begin
   perform pg_temp.check(v_event.tenant_id = pg_temp.fixture_id('tenant-A') and v_event.entity_type = 'operario'
       and v_event.actor_type = 'user' and v_event.actor_id = pg_temp.fixture_id('operations-A')
       and v_event.source = 'rpc' and v_event.result = 'succeeded' and v_event.sensitivity = 'restricted'
-      and v_event.reason = 'El operario no recuerda su PIN' and v_event.correlation_id like 'pin_visto:%'
-      and v_event.before_data is null and v_event.payload = '{}'::jsonb
+      and v_event.reason = 'olvido' and v_event.correlation_id like 'pin_visto:%'
+      and v_event.before_data is null and v_event.payload = '{"motivo": "olvido"}'::jsonb
       and v_event.after_data = '{"credential": "pin", "recoverable": true}'::jsonb,
     'el evento pin_visto dice quién, a qué operario y por qué');
   perform pg_temp.check(position('6193' in concat_ws('|', v_event.payload::text, v_event.after_data::text, v_event.reason)) = 0,
     'el evento pin_visto no guarda el PIN');
+  -- «Otro»: el texto queda como motivo y el código en el payload.
+  perform pg_temp.check(pg_temp.read_as('authenticated', 'operations-A',
+      pg_temp.ver_sql('cn-2', ' Otro ', '  Lo pidió el supervisor del turno  ')) = '6193',
+    'con «Otro» y un texto válido se ve el PIN');
+  -- Mismo occurred_at dentro del bloque: se busca por el payload, no por orden.
+  perform pg_temp.check((select count(*) from public.entity_audit_log
+      where entity_id = pg_temp.fixture_id('cn-2') and event_type = 'pin_visto'
+        and payload = '{"motivo": "otro"}'::jsonb) = 1
+    and (select reason from public.entity_audit_log
+      where entity_id = pg_temp.fixture_id('cn-2') and event_type = 'pin_visto'
+        and payload = '{"motivo": "otro"}'::jsonb) = 'Lo pidió el supervisor del turno',
+    'con «Otro», pin_visto guarda el texto como motivo y el código en el payload');
   -- Sin permiso, sin motivo o con el PIN en el motivo: ni PIN ni evento.
   v_events := (select count(*) from public.entity_audit_log where event_type = 'pin_visto');
   foreach v_user in array array['commercial-A', 'accounting-A', 'warehouse-A', 'support-A', 'marketing-A', 'operations-off-A'] loop
@@ -692,9 +751,15 @@ begin
   perform pg_temp.check(pg_temp.read_as('authenticated', 'commercial-A', pg_temp.ver_sql('no-existe')) = 'ERROR 42501',
     'sin permiso, un id inexistente también da 42501 al ver');
   perform pg_temp.check(pg_temp.read_as('authenticated', 'operations-A', pg_temp.ver_sql('cn-2', null)) = 'ERROR P0020'
-      and pg_temp.read_as('authenticated', 'operations-A', pg_temp.ver_sql('cn-2', 'ok')) = 'ERROR P0020',
+      and pg_temp.read_as('authenticated', 'operations-A', pg_temp.ver_sql('cn-2', 'otro', 'ok')) = 'ERROR P0020',
     'ver el PIN sin un motivo válido se rechaza');
-  v_result := pg_temp.run_as('authenticated', 'operations-A', pg_temp.ver_sql('cn-2', 'Confirmar que es el 6193'));
+  -- El motivo se valida antes de buscar el PIN: también sin PIN cifrado y con un id
+  -- que no existe (la segunda validación, con el PIN ya descifrado, no cubre esos).
+  perform pg_temp.check(pg_temp.read_as('authenticated', 'admin-A', pg_temp.ver_sql('cn-baja', null)) = 'ERROR P0020'
+      and pg_temp.read_as('authenticated', 'admin-A', pg_temp.ver_sql('cn-baja', 'inventado')) = 'ERROR P0020'
+      and pg_temp.read_as('authenticated', 'admin-A', pg_temp.ver_sql('no-existe', 'otro', 'ok')) = 'ERROR P0020',
+    'ver un PIN anterior a 0475 o un id inexistente sin un motivo válido se rechaza');
+  v_result := pg_temp.run_as('authenticated', 'operations-A', pg_temp.ver_sql('cn-2', 'otro', 'Confirmar que es el 6193'));
   perform pg_temp.check(v_result->>'state' = 'P0020'
       and v_result->>'message' = 'No escribas el PIN en el motivo: queda en la auditoría.',
     'un motivo con el PIN se rechaza y no lo guarda');
@@ -723,6 +788,52 @@ begin
 end;
 $ver$;
 
+-- 9b. «Ver PIN» exige la contraseña de quien mira, confirmada hace 5 minutos o
+--     menos: un amr password reciente en el JWT. Lo cumple la base, no la UI.
+do $password$
+declare
+  v_events bigint := (select count(*) from public.entity_audit_log where event_type = 'pin_visto');
+  v_case record;
+begin
+  for v_case in select * from (values
+    ('sin amr', '{}'::jsonb),
+    ('con amr vacío', '{"amr": []}'::jsonb),
+    ('con amr que no es lista', '{"amr": {"method": "password", "timestamp": 1}}'::jsonb),
+    ('con amr en texto, sin hora', '{"amr": ["password"]}'::jsonb),
+    ('con otro método (otp)', jsonb_build_object('amr', jsonb_build_array(jsonb_build_object(
+      'method', 'otp', 'timestamp', floor(extract(epoch from now()))::bigint)))),
+    ('con la contraseña de hace 6 minutos', jsonb_build_object('amr', jsonb_build_array(jsonb_build_object(
+      'method', 'password', 'timestamp', floor(extract(epoch from now()))::bigint - 360)))),
+    ('con una hora futura', jsonb_build_object('amr', jsonb_build_array(jsonb_build_object(
+      'method', 'password', 'timestamp', floor(extract(epoch from now()))::bigint + 600)))),
+    ('con una hora mal formada', '{"amr": [{"method": "password", "timestamp": "ayer"}]}'::jsonb)
+  ) c(label, claims) loop
+    perform pg_temp.con_claims(v_case.claims);
+    perform pg_temp.check(pg_temp.read_as('authenticated', 'operations-A', pg_temp.ver_sql('cn-2')) = 'ERROR P0022',
+      '«Ver PIN» ' || v_case.label || ' se rechaza con P0022');
+  end loop;
+  perform pg_temp.con_password(null);
+  perform pg_temp.check((pg_temp.run_as('authenticated', 'operations-A', pg_temp.ver_sql('cn-2'))->>'message')
+      = 'Confirma tu contraseña para ver el PIN.',
+    'el rechazo pide confirmar la contraseña');
+  perform pg_temp.check(pg_temp.read_as('authenticated', 'commercial-A', pg_temp.ver_sql('cn-2')) = 'ERROR 42501',
+    'sin permiso, el candado de la matriz corre antes que la contraseña');
+  perform pg_temp.check((select count(*) from public.entity_audit_log where event_type = 'pin_visto') = v_events,
+    'sin contraseña reciente no hay PIN ni evento');
+  perform pg_temp.check((pg_temp.run_as('authenticated', 'operations-A', pg_temp.reset_sql('cn-2', '6193'))->>'ok')::boolean,
+    'restablecer no pide la contraseña: sólo «Ver PIN»');
+  perform pg_temp.con_password(299);
+  perform pg_temp.check(pg_temp.read_as('authenticated', 'operations-A', pg_temp.ver_sql('cn-2')) = '6193',
+    'con la contraseña de hace 4 minutos y 59 segundos se ve el PIN');
+  perform pg_temp.con_claims(jsonb_build_object('amr', jsonb_build_array(
+    jsonb_build_object('method', 'otp', 'timestamp', floor(extract(epoch from now()))::bigint),
+    jsonb_build_object('method', 'password', 'timestamp', floor(extract(epoch from now()))::bigint + 30))));
+  perform pg_temp.check(pg_temp.read_as('authenticated', 'operations-A', pg_temp.ver_sql('cn-2')) = '6193',
+    'entre varios métodos basta un password reciente, con 60 s de margen de reloj');
+  perform pg_temp.con_password(10);
+end;
+$password$;
+
 -- 10. Reactivar exige un PIN nuevo y libre; desactivar sigue igual.
 do $reactivar$
 declare
@@ -738,7 +849,7 @@ begin
     'y sigue de baja');
   perform pg_temp.check(pg_temp.run_as('authenticated', 'admin-A', pg_temp.reset_sql('cn-baja', '5824', p_reactivar => true))->>'state' = 'P0018',
     'reactivar con el PIN de otro operario activo se rechaza');
-  v_result := pg_temp.run_as('authenticated', 'admin-A', pg_temp.reset_sql('cn-baja', '2741', 'Vuelve de vacaciones', true));
+  v_result := pg_temp.run_as('authenticated', 'admin-A', pg_temp.reset_sql('cn-baja', '2741', 'otro', true, 'Vuelve de vacaciones'));
   perform pg_temp.check((v_result->>'ok')::boolean
       and (select active from public.operario_pins where id = pg_temp.fixture_id('cn-baja'))
       and pg_temp.login('2741', 'tenant-A', 'cn') = pg_temp.fixture_id('cn-baja'),
@@ -821,7 +932,7 @@ begin
   perform pg_temp.check(not exists (select 1 from unnest(array[
         'public.operario_pin_assert_available(uuid,operario_region,text,uuid)',
         'public.operario_pin_cifrar(text)', 'public.operario_pin_descifrar(bytea)',
-        'public.operario_motivo_valido(text,text)']) f(signature)
+        'public.operario_motivo_valido(text,text,text)', 'public.operario_password_reciente()']) f(signature)
       where has_function_privilege('authenticated', f.signature, 'EXECUTE')
          or has_function_privilege('service_role', f.signature, 'EXECUTE')
          or has_function_privilege('anon', f.signature, 'EXECUTE')),
@@ -839,7 +950,7 @@ begin
     where coalesce(b.proname, c.proname) not in ('admin_create_operario', 'admin_reset_operario_pin',
         'admin_set_operario_active', 'admin_ver_operario_pin', 'validate_operario_pin_format',
         'operarios_module_authorized', 'operario_pin_assert_available', 'operario_pin_cifrar',
-        'operario_pin_descifrar', 'operario_motivo_valido')
+        'operario_pin_descifrar', 'operario_motivo_valido', 'operario_password_reciente')
       and (b.oid is null or c.oid is null or b.definition <> c.definition)),
     '0475 no toca ninguna otra función de public (verify_operario_pin y admin_update_operario incluidas)');
   perform pg_temp.check((select count(*) from public.audit_entity_types where entity_type = 'operario'

@@ -42,7 +42,7 @@ import {
   type ModuleAccessOverride,
 } from "@/lib/studio/rbac";
 import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types";
-import { OPERARIO_MOTIVO_MESSAGE, operarioMotivoProblem } from "@/lib/studio/operario-pin";
+import { OPERARIO_MOTIVOS, OPERARIO_MOTIVO_MESSAGE, operarioMotivoProblem } from "@/lib/studio/operario-pin";
 
 vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
 const { moduleEditDenial, moduleViewDenial } = await import("@/lib/studio/rbac-guard");
@@ -184,7 +184,39 @@ const FUNCTIONS = [
   "operario_pin_cifrar",
   "operario_pin_descifrar",
   "operario_motivo_valido",
+  "operario_password_reciente",
 ] as const;
+
+/**
+ * El prosrc VIVO de validate_operario_pin_format en producción (md5
+ * 2c22a7b2b639e69464ced0e77173bbaf, leído por el Director el 2026-10-14
+ * 20:05:15Z), reconstruido a partir de sus diferencias con 0037 hasta dar ese
+ * md5 exacto: sin «+ patrones» en el comentario, sin subcomentarios, sin '0987'
+ * y con '7777' dos veces. Es el ANTES real del validador en producción.
+ */
+const LIVE_VALIDATOR_BODY = [
+  "",
+  "begin",
+  "  -- Format: exactamente 4 dígitos numéricos",
+  "  if p_pin is null or length(p_pin) <> 4 or p_pin !~ '^\\d{4}$' then",
+  "    raise exception 'PIN debe ser 4 dígitos numéricos' using errcode = 'P0010';",
+  "  end if;",
+  "",
+  "  -- Blacklist: PINs débiles más comunes (top 10 + secuenciales obvios)",
+  "  if p_pin in (",
+  "    '0000', '1111', '2222', '3333', '4444',",
+  "    '5555', '6666', '7777', '8888', '9999',",
+  "    '1234', '4321', '0123', '1212', '2121',",
+  "    '0101', '1010', '1313', '6969', '7777',",
+  "    '2580', '1357', '2468', '1379'",
+  "  ) then",
+  "    raise exception 'PIN demasiado común. Elegí uno menos predecible.'",
+  "      using errcode = 'P0010';",
+  "  end if;",
+  "end;",
+  "",
+].join("\n");
+const LIVE_VALIDATOR_MD5 = "2c22a7b2b639e69464ced0e77173bbaf";
 
 /** 0475 con cambios y el md5 de cada cuerpo que cambió en lugar del suyo. */
 function mutant(...changes: [string, string][]): string {
@@ -267,6 +299,23 @@ describe("SDD-0515 · 0475 (texto)", () => {
     // 0453 es la del preflight de 0456, medida en producción.
     expect(bodyMd5(mig("0453_portal_helpers_principal_determinista.sql"), "get_user_tenant_id"))
       .toBe("5ff0c51c26a49419c34abc78f1d95c37");
+    // El validador vivo: la reconstrucción da el md5 que se leyó en producción,
+    // y el preflight lo acepta junto al del repo.
+    expect(md5(LIVE_VALIDATOR_BODY)).toBe(LIVE_VALIDATOR_MD5);
+    expect(FILE_0475.split(`'${LIVE_VALIDATOR_MD5}'`)).toHaveLength(2);
+  });
+
+  it("el cuerpo vivo del validador es el drift descrito: sin '0987' y con '7777' dos veces", () => {
+    const repo = prosrc(block(mig("0037_harden_operario_pin_validator.sql"), "validate_operario_pin_format"));
+    const pins = (body: string) => [...body.matchAll(/'(\d{4})'/g)].map((m) => m[1]);
+    const live = pins(LIVE_VALIDATOR_BODY);
+    expect(live).toHaveLength(24);
+    expect(new Set(live).size).toBe(23);
+    expect(live.filter((pin) => pin === "7777")).toHaveLength(2);
+    expect(live).not.toContain("0987");
+    expect(new Set(pins(repo))).toEqual(new Set([...new Set(live), "0987"]));
+    // 0475 instala la lista del repo, que es la que espeja operario-pin.ts.
+    expect(new Set(pins(prosrc(block(FILE_0475, "validate_operario_pin_format"))))).toEqual(new Set(pins(repo)));
   });
 
   it("las RPC se reescribieron desde 0351 sin perder más líneas que las que cambian a propósito", () => {
@@ -301,7 +350,7 @@ describe("SDD-0515 · 0475 (texto)", () => {
       const now = block(FILE_0475, name);
       expect(now, `${name} sin rol a mano`).not.toContain("assert_studio_role");
       expect(now).toContain("  if not public.operarios_module_authorized(public.get_user_tenant_id(), 'edit') then");
-      expect(now).toContain("public.operario_motivo_valido(p_motivo, p_pin)");
+      expect(now).toContain("public.operario_motivo_valido(p_motivo, p_motivo_texto, p_pin)");
       expect(now).toContain("perform public.operario_pin_assert_available(");
       expect(now).toContain("public.operario_pin_cifrar(p_pin)");
       expect(now).toContain("v_event := public.append_audit_event(");
@@ -463,6 +512,31 @@ describe("SDD-0515 · 0475 (PGlite)", () => {
       expect(result.error).toBe(p.fails);
     }, SLOW);
   }
+
+  // El validador vivo en producción no es el del repo (drift del 2026-10-14):
+  // el contrato corre con 0037 cambiado por el cuerpo vivo exacto.
+  const FILE_0037 = mig("0037_harden_operario_pin_validator.sql");
+  const REPO_VALIDATOR_BODY = prosrc(block(FILE_0037, "validate_operario_pin_format"));
+
+  it("preflight con el validador VIVO de producción: lo acepta y 0475 instala el del repo", async () => {
+    const result = await contract({
+      replace: { "0037_harden_operario_pin_validator.sql": once(FILE_0037, REPO_VALIDATOR_BODY, LIVE_VALIDATOR_BODY) },
+    });
+    expect(result.error).toBeNull();
+    // El contrato exige después de 0475 los 24 comunes del repo, con '0987'.
+    expect(result.green).toMatch(/^TEST 0475 GREEN: \d+ aserciones$/);
+  }, SLOW);
+
+  it("preflight con un tercer cuerpo del validador (el vivo sin '1379'): aborta", async () => {
+    const third = once(LIVE_VALIDATOR_BODY, ",\n    '2580', '1357', '2468', '1379'\n", ",\n    '2580', '1357', '2468'\n");
+    expect(md5(third)).not.toBe(LIVE_VALIDATOR_MD5);
+    const result = await contract({
+      replace: { "0037_harden_operario_pin_validator.sql": once(FILE_0037, REPO_VALIDATOR_BODY, third) },
+    });
+    expect(result.error).toBe(
+      "0475 abortado: public.validate_operario_pin_format(text) tiene drift (md5 de prosrc, DEFINER, volatilidad o search_path)",
+    );
+  }, SLOW);
 
   const GUARD_RESET =
     "  if not public.operarios_module_authorized(public.get_user_tenant_id(), 'edit') then\n" +
@@ -626,19 +700,61 @@ describe("SDD-0515 · 0475 (PGlite)", () => {
     },
     {
       name: "cuyo restablecimiento no pide motivo",
-      changes: [["  v_motivo := public.operario_motivo_valido(p_motivo, p_pin);\n  perform public.operario_pin_assert_available(v_tenant_id",
+      changes: [["  v_motivo := public.operario_motivo_valido(p_motivo, p_motivo_texto, p_pin);\n  perform public.operario_pin_assert_available(v_tenant_id",
         "  v_motivo := coalesce(p_motivo, 'sin motivo declarado');\n  perform public.operario_pin_assert_available(v_tenant_id"]],
       fails: "TEST 0475: restablecer sin motivo se rechaza con P0020",
     },
     {
-      name: "cuyo motivo puede llevar el PIN",
-      changes: [["  if p_pin is not null and pg_catalog.strpos(v_motivo, p_pin) > 0 then\n    raise exception 'No escribas el PIN en el motivo: queda en la auditoría.' using errcode = 'P0020';\n  end if;\n", ""]],
-      fails: "TEST 0475: restablecer con el PIN en el motivo se rechaza con P0020",
+      name: "cuyo motivo acepta cualquier código",
+      changes: [["  if v_codigo not in ('olvido', 'empleado_nuevo', 'revision_seguridad', 'otro') then\n    raise exception 'Elige un motivo de la lista.' using errcode = 'P0020';\n  end if;\n", ""]],
+      fails: "TEST 0475: restablecer sin motivo se rechaza con P0020",
     },
     {
-      name: "cuyo motivo no tiene tope",
-      changes: [["pg_catalog.char_length(v_motivo) > 300 then", "pg_catalog.char_length(v_motivo) > 3000 then"]],
-      fails: "TEST 0475: restablecer con un motivo de 301 letras se rechaza con P0020",
+      name: "cuya lista de motivos gana un código",
+      changes: [["  if v_codigo not in ('olvido', 'empleado_nuevo', 'revision_seguridad', 'otro') then",
+        "  if v_codigo not in ('olvido', 'empleado_nuevo', 'revision_seguridad', 'otro', 'inventado') then"]],
+      fails: "TEST 0475: restablecer con un código que no está en la lista se rechaza con P0020",
+    },
+    {
+      name: "cuyo motivo puede llevar el PIN",
+      changes: [["  if p_pin is not null and pg_catalog.strpos(v_texto, p_pin) > 0 then\n    raise exception 'No escribas el PIN en el motivo: queda en la auditoría.' using errcode = 'P0020';\n  end if;\n", ""]],
+      fails: "TEST 0475: restablecer con el PIN en el texto de «Otro» se rechaza con P0020",
+    },
+    {
+      name: "cuyo texto de «Otro» no tiene tope",
+      changes: [["pg_catalog.char_length(v_texto) > 200 then", "pg_catalog.char_length(v_texto) > 2000 then"]],
+      fails: "TEST 0475: restablecer con «Otro» de 201 letras se rechaza con P0020",
+    },
+    {
+      name: "que guarda el texto de un código fijo",
+      changes: [["  if v_codigo <> 'otro' then\n    return v_codigo;\n  end if;\n", "  if v_codigo <> 'otro' and v_texto = '' then\n    return v_codigo;\n  end if;\n"]],
+      fails: "TEST 0475: con un código fijo la auditoría guarda sólo el código, no el texto",
+    },
+    {
+      name: "cuyo «Ver PIN» no pide la contraseña",
+      changes: [["  if not public.operario_password_reciente() then\n    raise exception 'Confirma tu contraseña para ver el PIN.'\n      using errcode = 'P0022';\n  end if;\n", ""]],
+      fails: "TEST 0475: «Ver PIN» sin amr se rechaza con P0022",
+    },
+    {
+      name: "cuya contraseña vale una hora",
+      changes: [["::bigint - 300\n", "::bigint - 3600\n"]],
+      fails: "TEST 0475: «Ver PIN» con la contraseña de hace 6 minutos se rechaza con P0022",
+    },
+    {
+      name: "que acepta cualquier método de autenticación",
+      changes: [["      and e.value->>'method' = 'password'\n", ""]],
+      fails: "TEST 0475: «Ver PIN» con otro método (otp) se rechaza con P0022",
+    },
+    {
+      name: "que acepta horas del futuro",
+      changes: [["::bigint + 60)\n", "::bigint + 6000)\n"]],
+      fails: "TEST 0475: «Ver PIN» con una hora futura se rechaza con P0022",
+    },
+    {
+      name: "que deja chequear la contraseña desde la API",
+      changes: [["revoke all on function public.operario_password_reciente() from public, anon, authenticated, service_role;",
+        "revoke all on function public.operario_password_reciente() from public, anon, service_role;\ngrant execute on function public.operario_password_reciente() to authenticated;"]],
+      fails: "0475: postflight — EXECUTE de public.operario_password_reciente() no es el esperado",
     },
     {
       name: "cuyo restablecimiento no guarda el PIN cifrado",
@@ -685,8 +801,16 @@ describe("SDD-0515 · 0475 (PGlite)", () => {
     },
     {
       name: "cuyo «Ver PIN» no pide motivo",
-      changes: [["  v_motivo := public.operario_motivo_valido(p_motivo, null);\n", "  v_motivo := coalesce(p_motivo, 'sin motivo declarado');\n"]],
-      fails: "TEST 0475: ver el PIN sin un motivo válido se rechaza",
+      changes: [["  v_motivo := public.operario_motivo_valido(p_motivo, p_motivo_texto, null);\n", "  v_motivo := coalesce(p_motivo, 'sin motivo declarado');\n"]],
+      fails: "TEST 0475: con «Otro», pin_visto guarda el texto como motivo y el código en el payload",
+    },
+    {
+      // Arma bien el motivo pero sólo lo valida con el PIN ya descifrado: un PIN
+      // anterior a 0475 o un id inexistente pasan sin motivo.
+      name: "cuyo «Ver PIN» valida el motivo sólo si hay PIN cifrado",
+      changes: [["  v_motivo := public.operario_motivo_valido(p_motivo, p_motivo_texto, null);\n",
+        "  v_motivo := case when pg_catalog.lower(pg_catalog.btrim(coalesce(p_motivo, ''))) = 'otro'\n    then pg_catalog.btrim(p_motivo_texto) else coalesce(p_motivo, 'sin motivo declarado') end;\n"]],
+      fails: "TEST 0475: ver un PIN anterior a 0475 o un id inexistente sin un motivo válido se rechaza",
     },
     {
       name: "cuyo «Ver PIN» guarda el PIN en el evento",
@@ -696,7 +820,7 @@ describe("SDD-0515 · 0475 (PGlite)", () => {
     },
     {
       name: "cuyo «Ver PIN» deja el PIN en el motivo",
-      changes: [["    perform public.operario_motivo_valido(v_motivo, v_pin);\n", ""]],
+      changes: [["    perform public.operario_motivo_valido(p_motivo, p_motivo_texto, v_pin);\n", ""]],
       fails: "TEST 0475: un motivo con el PIN se rechaza y no lo guarda",
     },
     {
@@ -913,31 +1037,50 @@ describe("SDD-0515 · propiedad: el rol escrito a mano rompe la coincidencia", (
 // ─── Espejo del motivo: la función SQL real contra operarioMotivoProblem ─────
 
 describe("SDD-0515 · el motivo se valida igual en el Studio y en la base", () => {
-  const CASES: [string, string | null][] = [
-    ["", null], ["abc", null], ["abcd", null], ["   abc   ", null], ["  abcd  ", null],
-    ["\tabc", null], ["abc\n", null], ["😀😀", null], ["😀😀😀😀", null], ["😀".repeat(300), null],
-    ["😀".repeat(301), null], ["x".repeat(300), null], ["x".repeat(301), null],
-    [`${" ".repeat(10)}${"x".repeat(300)}${" ".repeat(10)}`, null], [`\t${"x".repeat(300)}`, null],
-    ["Le puse 4827 a pedido", "4827"], ["Le puse otro a pedido", "4827"], ["4827", "4827"],
-    ["Le puse 4827 a pedido", null],
+  const OTRO_TEXTOS = [
+    "", "abc", "abcd", "   abc   ", "  abcd  ", "\tabc", "abc\n", "😀😀", "😀😀😀😀", "😀".repeat(200),
+    "😀".repeat(201), "x".repeat(200), "x".repeat(201), `${" ".repeat(10)}${"x".repeat(200)}${" ".repeat(10)}`,
+    `\t${"x".repeat(200)}`,
   ];
+  const CASES: [string | null, string | null, string | null][] = [
+    // Los códigos de la lista, con y sin mayúsculas o espacios, y los que no están.
+    ...OPERARIO_MOTIVOS.map((m) => [m.value, null, null] as [string, null, null]),
+    ["OLVIDO", null, null], ["  empleado_nuevo  ", null, null], ["Revision_Seguridad", null, null],
+    [null, null, null], ["", null, null], ["inventado", null, null], ["olvido ya", null, null], ["olvidó", null, null],
+    // Un código fijo ignora el texto, aunque lleve el PIN.
+    ["olvido", "Le puse 4827 a pedido", "4827"],
+    // «Otro»: el texto manda.
+    ...OTRO_TEXTOS.map((t) => ["otro", t, null] as [string, string, null]),
+    ["otro", "Le puse 4827 a pedido", "4827"], ["otro", "Le puse otro a pedido", "4827"],
+    ["otro", "4827", "4827"], ["otro", "Le puse 4827 a pedido", null], ["otro", null, null],
+  ];
+
+  it("la lista de códigos es la misma en la base y en el Studio", () => {
+    const fn = block(FILE_0475, "operario_motivo_valido");
+    const match = fn.match(/if v_codigo not in \(([^)]*)\) then/);
+    expect(match).not.toBeNull();
+    const sqlCodes = [...match![1].matchAll(/'(\w+)'/g)].map((m) => m[1]);
+    expect(sqlCodes).toEqual(OPERARIO_MOTIVOS.map((m) => m.value));
+  });
 
   it("para cada caso, la base y el Studio aceptan y rechazan lo mismo, con el mismo mensaje", async () => {
     const db = new PGlite();
     try {
       await db.exec(block(FILE_0475, "operario_motivo_valido"));
       const mismatches: string[] = [];
-      for (const [motivo, pin] of CASES) {
+      for (const [codigo, texto, pin] of CASES) {
         let sql: string | null;
         try {
-          await db.query("select public.operario_motivo_valido($1, $2)", [motivo, pin]);
+          await db.query("select public.operario_motivo_valido($1, $2, $3)", [codigo, texto, pin]);
           sql = null;
         } catch (error) {
           sql = error instanceof Error ? error.message : String(error);
         }
-        const problem = operarioMotivoProblem(motivo, pin);
+        const problem = operarioMotivoProblem(codigo, texto, pin);
         const ts = problem ? OPERARIO_MOTIVO_MESSAGE[problem] : null;
-        if (sql !== ts) mismatches.push(`${JSON.stringify(motivo.slice(0, 20))}/${pin}: base=${sql} studio=${ts}`);
+        if (sql !== ts) {
+          mismatches.push(`${JSON.stringify(codigo)}/${JSON.stringify((texto ?? "").slice(0, 20))}/${pin}: base=${sql} studio=${ts}`);
+        }
       }
       expect(mismatches).toEqual([]);
     } finally {

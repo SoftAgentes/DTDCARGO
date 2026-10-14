@@ -14,10 +14,10 @@
 --    (.agents/handoffs/0515-pin-operarios-endurecer.md).
 --    ORDEN: MIGRATE-FIRST y desplegar la app enseguida. Las RPC de alta y
 --    restablecimiento cambian de firma (motivo obligatorio): con la migración
---    aplicada y la app de antes, el alta y el restablecimiento responden «Escribe
---    el motivo…» hasta que se despliega la app nueva; con la app nueva y sin la
---    migración, fallarían con un error de PostgREST. Fusionar la PR NO autoriza
---    aplicarla.
+--    aplicada y la app de antes, el alta y el restablecimiento responden «Elige
+--    un motivo de la lista.» hasta que se despliega la app nueva; con la app
+--    nueva y sin la migración, fallarían con un error de PostgREST. Fusionar la
+--    PR NO autoriza aplicarla.
 --
 -- ── El defecto ──────────────────────────────────────────────
 -- 1. authenticated tiene SELECT de tabla sobre public.operario_pins (0021,
@@ -41,6 +41,19 @@
 --    reactivar a un operario dado de baja podía devolverlo con un PIN que otro
 --    ya usa.
 -- 5. validate_operario_pin_format (0037) contesta con voseo («Elegí»).
+-- 6. DRIFT del validador: producción no corre el cuerpo del repo. Leído por el
+--    Director el 2026-10-14 20:05:15Z, READ ONLY: md5(prosrc) vivo
+--    2c22a7b2b639e69464ced0e77173bbaf contra 62f64d916edf371cb7a2b8d4b784c18d
+--    de 0037 (y de sus reafirmaciones en 0271, 0280, 0287 y 0288). El cuerpo
+--    vivo, reconstruido hasta dar ese md5 exacto, es 0037 con el comentario
+--    «(top 10 + secuenciales obvios)» sin «+ patrones», sin ninguno de los tres
+--    subcomentarios (Repetidos, Secuenciales, Patrones) y con la lista en cinco
+--    renglones de 5/5/5/5/4: '1234','4321','0123','1212','2121','0101','1010',
+--    '1313','6969','7777','2580','1357','2468','1379' después de los diez
+--    repetidos. O sea: en vivo NO se rechaza '0987' y '7777' está dos veces (23
+--    PIN distintos). Mismos INVOKER, IMMUTABLE y search_path = public. El
+--    preflight acepta los dos cuerpos de origen; 0475 instala el del repo (24,
+--    con '0987') más «Elige», que es el que espeja lib/studio/operario-pin.ts.
 --
 -- ── Decisión de Sam y riesgo aceptado (2026-10-14, AskUserQuestion) ─────────
 -- Opción elegida: «Sí, con un botón «Ver PIN» auditado». Lo que se le explicó:
@@ -50,7 +63,11 @@
 -- auditoría. Riesgo: quien lo vea puede entrar como ese operario, y la
 -- auditoría ya no prueba quién hizo cada entrega. Los PIN actuales no se pueden
 -- recuperar: hay que restablecerlos una vez para que empiecen a verse.»
--- Y «Sí, un motivo corto obligatorio (Recomendado)» para restablecer y para ver.
+-- Y «Sí, un motivo corto obligatorio (Recomendado)» para restablecer y para ver;
+-- «Lista + «Otro» con texto (Recomendado)» para su forma; «Sí, pedir la
+-- contraseña (Recomendado)» para «Ver PIN»; y «Sólo si hay sospecha o sale
+-- alguien con acceso (Recomendado)» para rotar la clave (procedimiento en
+-- docs/runbooks/servidor-contabo.md y en la spec).
 --
 -- ── Qué cambia ──────────────────────────────────────────────
 -- · operarios_module_authorized(tenant, 'view'|'edit'): el mismo patrón que
@@ -77,14 +94,20 @@
 --   insertar y sólo actualiza las columnas que no son credencial: pin_hash y
 --   pin_cifrado sólo los escriben admin_create_operario y
 --   admin_reset_operario_pin.
+-- · Motivo: un código de la lista (olvido, empleado_nuevo, revision_seguridad,
+--   otro) y, sólo para otro, un texto de 4 a 200 caracteres sin el PIN
+--   (operario_motivo_valido). El evento guarda el código en el payload y en el
+--   reason (o el texto, si es otro).
 -- · admin_create_operario y admin_reset_operario_pin, reescritas desde 0351 con
---   firma nueva (p_motivo; y p_reactivar en el restablecimiento): la matriz de
---   primero, el motivo (4 a 300 caracteres, sin el PIN), el chequeo de PIN libre
+--   firma nueva (p_motivo y p_motivo_texto; y p_reactivar en el
+--   restablecimiento): la matriz de primero, el motivo, el chequeo de PIN libre
 --   con un lock por (tenant, región), el PIN cifrado y el evento en la misma
 --   transacción, sin el PIN ni el hash: si no se escribe, nada cambia.
--- · admin_ver_operario_pin(operario, motivo): misma regla que restablecer,
---   motivo obligatorio, evento pin_visto en la misma transacción; devuelve el PIN
---   o NULL si es anterior a 0475.
+-- · admin_ver_operario_pin(operario, motivo, texto): misma regla que
+--   restablecer, la contraseña de quien mira confirmada hace 5 minutos o menos
+--   (amr password del JWT, operario_password_reciente; si no, P0022), motivo
+--   obligatorio, evento pin_visto en la misma transacción; devuelve el PIN o
+--   NULL si es anterior a 0475.
 -- · admin_set_operario_active (0351) ya no reactiva: P0019 pide restablecer con
 --   p_reactivar, que da un PIN nuevo y libre. Desactivar no cambia, y su
 --   autorización sigue escrita a mano (la matriz para editar y desactivar va en
@@ -101,10 +124,11 @@
 --
 -- ── Preflight / postflight ──────────────────────────────────
 -- Aborta sin cambiar nada si el md5(prosrc) (CRLF→LF) de cada función
--- reemplazada no es el de su última definición en el repo (o, al re-aplicar, el
--- de esta migración); si las dependencias (get_user_tenant_id 0453,
--- assert_tenant_match 0012, verify_operario_pin 0325, append_audit_event 0294,
--- pgcrypto, Vault) no son las esperadas; si operario_pins no tiene exactamente
+-- reemplazada no es el de su última definición en el repo (para el validador,
+-- también el vivo de producción; al re-aplicar, el de esta migración); si las
+-- dependencias (get_user_tenant_id 0453, assert_tenant_match 0012,
+-- verify_operario_pin 0325, append_audit_event 0294, auth.jwt(), pgcrypto,
+-- Vault) no son las esperadas; si operario_pins no tiene exactamente
 -- sus columnas, RLS activa sin FORCE, una sola policy y la ACL de origen; o si
 -- 'operario' o la clave de Vault ya existen sin venir de aquí. Re-aplicarla no
 -- cambia nada. El postflight exige los cuerpos, las firmas, la ACL por columna,
@@ -224,42 +248,54 @@ begin
     raise exception '0475 abortado: hay sobrecargas inesperadas de las RPC de operario';
   end if;
 
-  -- Cuerpos: el de su última definición en el repo (origen) o el de 0475.
+  -- Cuerpos: el de su última definición (origen) o el de 0475 (re-aplicar).
+  -- validate_operario_pin_format tiene DOS cuerpos de origen válidos: el del
+  -- repo (0037, el que reconstruye el schema desde cero) y el VIVO en
+  -- producción, distinto del repo (drift leído por el Director el 2026-10-14
+  -- 20:05:15Z: misma función con la lista de 0037 sin '0987', con '7777' dos
+  -- veces y sin los subcomentarios). Los dos se reemplazan por el de 0475.
   for v_expected in select * from (values
-    ('public.admin_create_operario(uuid,uuid,text,text,text,text)', 'f7e89f156817fc3d30eb4635090b0603',   -- 0351
+    ('public.admin_create_operario(uuid,uuid,text,text,text,text)',
+      array['f7e89f156817fc3d30eb4635090b0603'],                          -- 0351
       true, 'v', array['search_path=public, extensions']::text[], true),
-    ('public.admin_reset_operario_pin(uuid,text)', 'ea358b166dbd5c90dff337d473649da3',                   -- 0351
+    ('public.admin_reset_operario_pin(uuid,text)',
+      array['ea358b166dbd5c90dff337d473649da3'],                          -- 0351
       true, 'v', array['search_path=public, extensions']::text[], true),
-    ('public.admin_set_operario_active(uuid,boolean)', '9981fa8486c2e32e53ad4f805703a0dc',               -- 0351
+    ('public.admin_set_operario_active(uuid,boolean)',
+      array['9981fa8486c2e32e53ad4f805703a0dc'],                          -- 0351
       true, 'v', array['search_path=public']::text[], true),
-    ('public.validate_operario_pin_format(text)', '62f64d916edf371cb7a2b8d4b784c18d',                    -- 0037 (+ 0210)
+    ('public.validate_operario_pin_format(text)',
+      array['62f64d916edf371cb7a2b8d4b784c18d',                           -- 0037 (+ 0210), repo
+            '2c22a7b2b639e69464ced0e77173bbaf'],                          -- vivo en producción
       false, 'i', array['search_path=public']::text[], true),
-    ('public.admin_create_operario(uuid,uuid,text,text,text,text,text)', 'ce150274eda586c84d38e5c08fdd129b',
+    ('public.admin_create_operario(uuid,uuid,text,text,text,text,text,text)', array['0268b8a2490e1e7a66fb0d3eda5b894c'],
       true, 'v', array['search_path=public, extensions']::text[], false),
-    ('public.admin_reset_operario_pin(uuid,text,text,boolean)', '15bd52e476ad5a2bb5683b921c2ee644',
+    ('public.admin_reset_operario_pin(uuid,text,text,text,boolean)', array['913fbfa8a0b18dcc2986381dacc658b8'],
       true, 'v', array['search_path=public, extensions']::text[], false),
-    ('public.admin_set_operario_active(uuid,boolean)', '37130d853ce44a7455387e40b115df5b',
+    ('public.admin_set_operario_active(uuid,boolean)', array['37130d853ce44a7455387e40b115df5b'],
       true, 'v', array['search_path=public']::text[], false),
-    ('public.validate_operario_pin_format(text)', '5d21a590c47cc39ae99f2f853aedae82',
+    ('public.validate_operario_pin_format(text)', array['5d21a590c47cc39ae99f2f853aedae82'],
       false, 'i', array['search_path=public']::text[], false),
-    ('public.admin_ver_operario_pin(uuid,text)', '608f7f7daf17e0a7f93cc594a2761962',
+    ('public.admin_ver_operario_pin(uuid,text,text)', array['b2658b7ab607856e99550348b8e0bb3a'],
       true, 'v', array['search_path=""']::text[], false),
-    ('public.operarios_module_authorized(uuid,text)', '299f276babe7177556c5d2105d45b2c0',
+    ('public.operarios_module_authorized(uuid,text)', array['299f276babe7177556c5d2105d45b2c0'],
       true, 's', array['search_path=""']::text[], false),
-    ('public.operario_pin_assert_available(uuid,public.operario_region,text,uuid)', '9188d650ed78acafc732883df09d14a7',
+    ('public.operario_pin_assert_available(uuid,public.operario_region,text,uuid)', array['9188d650ed78acafc732883df09d14a7'],
       false, 'v', array['search_path=""']::text[], false),
-    ('public.operario_pin_cifrar(text)', '311fa9add0e2f89366bfc1efa1a61c2d',
+    ('public.operario_pin_cifrar(text)', array['311fa9add0e2f89366bfc1efa1a61c2d'],
       false, 'v', array['search_path=""']::text[], false),
-    ('public.operario_pin_descifrar(bytea)', '8bbcce0e888b8593c1eabfc4a975464d',
+    ('public.operario_pin_descifrar(bytea)', array['8bbcce0e888b8593c1eabfc4a975464d'],
       false, 'v', array['search_path=""']::text[], false),
-    ('public.operario_motivo_valido(text,text)', 'f9f519a4f9f4da3594398fa1dc5d36c0',
-      false, 'i', array['search_path=""']::text[], false)
-  ) e(signature, body, definer, volatility, config, origin) loop
+    ('public.operario_motivo_valido(text,text,text)', array['13553b9716508176c9c41b09d7c7af0b'],
+      false, 'i', array['search_path=""']::text[], false),
+    ('public.operario_password_reciente()', array['951cf768214f9aeda0c49e8d4e6ff102'],
+      false, 's', array['search_path=""']::text[], false)
+  ) e(signature, bodies, definer, volatility, config, origin) loop
     -- Las de origen sólo se exigen en el origen; las de 0475, sólo al re-aplicar
     -- (en el origen tienen que no existir, salvo las dos que se reemplazan).
     if v_expected.origin = v_fresh and not exists (select 1 from pg_catalog.pg_proc p
       where p.oid = pg_catalog.to_regprocedure(v_expected.signature)
-        and pg_catalog.md5(pg_catalog.replace(p.prosrc, E'\r\n', E'\n')) = v_expected.body
+        and pg_catalog.md5(pg_catalog.replace(p.prosrc, E'\r\n', E'\n')) = any (v_expected.bodies)
         and p.prosecdef = v_expected.definer
         and p.provolatile::text = v_expected.volatility
         and p.proconfig = v_expected.config) then
@@ -297,15 +333,20 @@ begin
   for v_expected in select * from (values
     ('public.admin_set_operario_active(uuid,boolean)'),
     (case when v_fresh then 'public.admin_reset_operario_pin(uuid,text)'
-      else 'public.admin_reset_operario_pin(uuid,text,text,boolean)' end),
+      else 'public.admin_reset_operario_pin(uuid,text,text,text,boolean)' end),
     (case when v_fresh then 'public.admin_create_operario(uuid,uuid,text,text,text,text)'
-      else 'public.admin_create_operario(uuid,uuid,text,text,text,text,text)' end)
+      else 'public.admin_create_operario(uuid,uuid,text,text,text,text,text,text)' end)
   ) e(signature) loop
     if not pg_catalog.has_function_privilege(v_auth, v_expected.signature, 'EXECUTE')
        or pg_catalog.has_function_privilege(v_anon, v_expected.signature, 'EXECUTE') then
       raise exception '0475 abortado: EXECUTE de % no es el esperado', v_expected.signature;
     end if;
   end loop;
+
+  -- auth.jwt(): de ahí sale el amr con el que «Ver PIN» exige la contraseña.
+  if pg_catalog.to_regprocedure('auth.jwt()') is null then
+    raise exception '0475 abortado: falta auth.jwt() (Supabase Auth)';
+  end if;
 
   -- pgcrypto en extensions y Vault: lo que cifra y lo que guarda la clave.
   if pg_catalog.to_regprocedure('extensions.pgp_sym_encrypt(text,text,text)') is null
@@ -435,8 +476,12 @@ comment on function public.operario_pin_descifrar(bytea) is
 revoke all on function public.operario_pin_cifrar(text) from public, anon, authenticated, service_role;
 revoke all on function public.operario_pin_descifrar(bytea) from public, anon, authenticated, service_role;
 
--- ── 3. Motivo obligatorio (AUD-01): 4 a 300 caracteres y sin el PIN ──
-create or replace function public.operario_motivo_valido(p_motivo text, p_pin text)
+-- ── 3. Motivo obligatorio (AUD-01): un código de la lista y texto sólo en «Otro» ──
+-- Decisión de Sam: «Lista + «Otro» con texto (Recomendado)». Devuelve lo que va
+-- al reason del evento: el código, o el texto de «Otro» recortado. El código va
+-- además al payload. La lista está duplicada en lib/studio/operario-pin.ts
+-- (OPERARIO_MOTIVOS); la prueba PGlite las enfrenta.
+create or replace function public.operario_motivo_valido(p_codigo text, p_texto text, p_pin text)
 returns text
 language plpgsql
 immutable
@@ -444,22 +489,63 @@ security invoker
 set search_path = ''
 as $function$
 declare
-  v_motivo text := pg_catalog.btrim(coalesce(p_motivo, ''));
+  v_codigo text := pg_catalog.lower(pg_catalog.btrim(coalesce(p_codigo, '')));
+  v_texto text := pg_catalog.btrim(coalesce(p_texto, ''));
 begin
-  if pg_catalog.char_length(v_motivo) < 4 or pg_catalog.char_length(v_motivo) > 300 then
-    raise exception 'Escribe el motivo: entre 4 y 300 caracteres.' using errcode = 'P0020';
+  if v_codigo not in ('olvido', 'empleado_nuevo', 'revision_seguridad', 'otro') then
+    raise exception 'Elige un motivo de la lista.' using errcode = 'P0020';
   end if;
-  if p_pin is not null and pg_catalog.strpos(v_motivo, p_pin) > 0 then
+  if v_codigo <> 'otro' then
+    return v_codigo;
+  end if;
+  if pg_catalog.char_length(v_texto) < 4 or pg_catalog.char_length(v_texto) > 200 then
+    raise exception 'Escribe el motivo: entre 4 y 200 caracteres.' using errcode = 'P0020';
+  end if;
+  if p_pin is not null and pg_catalog.strpos(v_texto, p_pin) > 0 then
     raise exception 'No escribas el PIN en el motivo: queda en la auditoría.' using errcode = 'P0020';
   end if;
-  return v_motivo;
+  return v_texto;
 end;
 $function$;
 
-comment on function public.operario_motivo_valido(text, text) is
-  'SDD-0515: valida el motivo de alta, restablecimiento y «Ver PIN» (4 a 300 caracteres, sin el PIN) y lo devuelve recortado. Sin EXECUTE para roles de API.';
+comment on function public.operario_motivo_valido(text, text, text) is
+  'SDD-0515: valida el motivo de alta, restablecimiento y «Ver PIN»: un código de la lista (olvido, empleado_nuevo, revision_seguridad, otro) y, sólo para otro, un texto de 4 a 200 caracteres sin el PIN. Devuelve el reason del evento. Sin EXECUTE para roles de API.';
 
-revoke all on function public.operario_motivo_valido(text, text) from public, anon, authenticated, service_role;
+revoke all on function public.operario_motivo_valido(text, text, text) from public, anon, authenticated, service_role;
+
+-- ── 3b. Contraseña reciente para «Ver PIN» (AUD-02) ──────────
+-- Decisión de Sam: «Sí, pedir la contraseña (Recomendado)». Lo exige la base: el
+-- JWT tiene que traer un amr {"method":"password"} de hace 5 minutos o menos.
+-- GoTrue v2.197.0 (el del servidor propio) emite amr como lista de
+-- {method, timestamp} con el timestamp en segundos Unix de cuándo se agregó el
+-- método a la sesión (internal/models/sessions.go, CalculateAALAndAMR). La app
+-- lo obtiene con un signInWithPassword fresco; un amr que no sea lista, un método
+-- distinto o un timestamp viejo, futuro o mal formado no pasa.
+create or replace function public.operario_password_reciente()
+returns boolean
+language sql
+stable
+security invoker
+set search_path = ''
+as $function$
+  select coalesce((
+    select bool_or(
+      pg_catalog.jsonb_typeof(e.value) = 'object'
+      and e.value->>'method' = 'password'
+      and coalesce(e.value->>'timestamp', '') ~ '^[0-9]{1,12}$'
+      and (e.value->>'timestamp')::bigint
+          between pg_catalog.floor(extract(epoch from pg_catalog.now()))::bigint - 300
+              and pg_catalog.floor(extract(epoch from pg_catalog.now()))::bigint + 60)
+    from pg_catalog.jsonb_array_elements(
+      case when pg_catalog.jsonb_typeof(auth.jwt()->'amr') = 'array'
+        then auth.jwt()->'amr' else '[]'::jsonb end) as e
+  ), false)
+$function$;
+
+comment on function public.operario_password_reciente() is
+  'SDD-0515: ¿el JWT de la petición trae un amr password de hace 5 minutos o menos (con 60 s de margen hacia adelante)? La exige admin_ver_operario_pin. Sin EXECUTE para roles de API.';
+
+revoke all on function public.operario_password_reciente() from public, anon, authenticated, service_role;
 
 -- ── 4. La regla de la app, en la base ────────────────────────
 -- Mismo cuerpo que document_entity_authorized (0444) con el contrato fijo del
@@ -595,7 +681,8 @@ create or replace function public.admin_create_operario(
   p_display_name_cn text,
   p_pin text,
   p_role text,
-  p_motivo text default null
+  p_motivo text default null,
+  p_motivo_texto text default null
 )
 returns uuid
 language plpgsql
@@ -614,7 +701,7 @@ begin
   end if;
   perform public.assert_tenant_match(p_tenant_id);
   perform public.validate_operario_pin_format(p_pin);
-  v_motivo := public.operario_motivo_valido(p_motivo, p_pin);
+  v_motivo := public.operario_motivo_valido(p_motivo, p_motivo_texto, p_pin);
 
   if p_display_name is null or length(trim(p_display_name)) = 0 then
     raise exception 'Nombre requerido' using errcode = 'P0011';
@@ -652,7 +739,7 @@ begin
     p_before_data => null,
     p_after_data => pg_catalog.jsonb_build_object('credential', 'pin', 'region', v_region,
       'role', p_role, 'warehouse_id', p_warehouse_id, 'active', true, 'recoverable', true),
-    p_payload => '{}'::jsonb,
+    p_payload => pg_catalog.jsonb_build_object('motivo', pg_catalog.lower(pg_catalog.btrim(p_motivo))),
     p_correlation_id => 'operario_created:' || pg_catalog.gen_random_uuid()::text,
     p_schema_version => 1,
     p_sensitivity => 'restricted'
@@ -678,6 +765,7 @@ create or replace function public.admin_reset_operario_pin(
   p_operario_id uuid,
   p_pin text,
   p_motivo text default null,
+  p_motivo_texto text default null,
   p_reactivar boolean default false
 )
 returns void
@@ -706,7 +794,7 @@ begin
 
   perform public.assert_tenant_match(v_tenant_id);
   perform public.validate_operario_pin_format(p_pin);
-  v_motivo := public.operario_motivo_valido(p_motivo, p_pin);
+  v_motivo := public.operario_motivo_valido(p_motivo, p_motivo_texto, p_pin);
   perform public.operario_pin_assert_available(v_tenant_id, v_region, p_pin, p_operario_id);
   v_reactivado := coalesce(p_reactivar, false) and not v_active;
 
@@ -731,7 +819,7 @@ begin
     p_before_data => pg_catalog.jsonb_build_object('active', v_active),
     p_after_data => pg_catalog.jsonb_build_object('credential', 'pin', 'region', v_region,
       'active', v_active or v_reactivado, 'recoverable', true),
-    p_payload => '{}'::jsonb,
+    p_payload => pg_catalog.jsonb_build_object('motivo', pg_catalog.lower(pg_catalog.btrim(p_motivo))),
     p_correlation_id => 'operario_pin_reset:' || pg_catalog.gen_random_uuid()::text,
     p_schema_version => 1,
     p_sensitivity => 'restricted'
@@ -778,10 +866,11 @@ begin
 end;
 $$;
 
--- ── 10. Ver PIN: misma regla que restablecer, motivo y evento pin_visto ──
+-- ── 10. Ver PIN: misma regla que restablecer, contraseña reciente, motivo y pin_visto ──
 create or replace function public.admin_ver_operario_pin(
   p_operario_id uuid,
-  p_motivo text
+  p_motivo text,
+  p_motivo_texto text default null
 )
 returns text
 language plpgsql
@@ -801,7 +890,13 @@ begin
     raise exception 'No tienes permiso para realizar esta acción'
       using errcode = '42501';
   end if;
-  v_motivo := public.operario_motivo_valido(p_motivo, null);
+  -- AUD-02 (decisión de Sam): la contraseña de quien mira, confirmada hace 5
+  -- minutos o menos. Lo exige la base: llamar a la RPC desde la consola no lo salta.
+  if not public.operario_password_reciente() then
+    raise exception 'Confirma tu contraseña para ver el PIN.'
+      using errcode = 'P0022';
+  end if;
+  v_motivo := public.operario_motivo_valido(p_motivo, p_motivo_texto, null);
 
   select op.tenant_id, op.pin_cifrado into v_tenant_id, v_cifrado
     from public.operario_pins op where op.id = p_operario_id;
@@ -813,7 +908,7 @@ begin
   -- NULL: PIN anterior a 0475, que nunca se guardó cifrado.
   if v_cifrado is not null then
     v_pin := public.operario_pin_descifrar(v_cifrado);
-    perform public.operario_motivo_valido(v_motivo, v_pin);
+    perform public.operario_motivo_valido(p_motivo, p_motivo_texto, v_pin);
   end if;
 
   -- AUD-01 / AUD-02: quién, a qué operario, el motivo y si había PIN; nunca el PIN.
@@ -830,7 +925,7 @@ begin
     p_reason => v_motivo,
     p_before_data => null,
     p_after_data => pg_catalog.jsonb_build_object('credential', 'pin', 'recoverable', v_pin is not null),
-    p_payload => '{}'::jsonb,
+    p_payload => pg_catalog.jsonb_build_object('motivo', pg_catalog.lower(pg_catalog.btrim(p_motivo))),
     p_correlation_id => 'pin_visto:' || pg_catalog.gen_random_uuid()::text,
     p_schema_version => 1,
     p_sensitivity => 'restricted'
@@ -843,22 +938,22 @@ begin
 end;
 $function$;
 
-comment on function public.admin_create_operario(uuid, uuid, text, text, text, text, text) is
-  'Crea un operario del tenant del caller. SDD-0515: autoriza con la matriz de módulos (operarios_module_authorized), exige motivo, rechaza con P0018 un PIN de otro operario activo del mismo tenant y región, guarda el PIN cifrado y audita operario_created en la misma transacción sin el PIN.';
-comment on function public.admin_reset_operario_pin(uuid, text, text, boolean) is
-  'Restablece el PIN de un operario del tenant del caller y, con p_reactivar, lo reactiva. SDD-0515: autoriza con la matriz de módulos, exige motivo, rechaza con P0018 un PIN de otro operario activo del mismo tenant y región, guarda el PIN cifrado y audita operario_pin_reset u operario_reactivated en la misma transacción sin el PIN.';
+comment on function public.admin_create_operario(uuid, uuid, text, text, text, text, text, text) is
+  'Crea un operario del tenant del caller. SDD-0515: autoriza con la matriz de módulos (operarios_module_authorized), exige un motivo de la lista, rechaza con P0018 un PIN de otro operario activo del mismo tenant y región, guarda el PIN cifrado y audita operario_created en la misma transacción sin el PIN.';
+comment on function public.admin_reset_operario_pin(uuid, text, text, text, boolean) is
+  'Restablece el PIN de un operario del tenant del caller y, con p_reactivar, lo reactiva. SDD-0515: autoriza con la matriz de módulos, exige un motivo de la lista, rechaza con P0018 un PIN de otro operario activo del mismo tenant y región, guarda el PIN cifrado y audita operario_pin_reset u operario_reactivated en la misma transacción sin el PIN.';
 comment on function public.admin_set_operario_active(uuid, boolean) is
   'Activa/desactiva un operario. SDD-0515: reactivar a uno dado de baja se hace con admin_reset_operario_pin(p_reactivar), que da un PIN nuevo; aquí responde P0019. Autorización todavía escrita a mano (0351).';
-comment on function public.admin_ver_operario_pin(uuid, text) is
-  'SDD-0515: «Ver PIN». Autoriza con la matriz (edición), exige motivo, audita pin_visto en la misma transacción sin el PIN y devuelve el PIN, o NULL si es anterior a 0475.';
+comment on function public.admin_ver_operario_pin(uuid, text, text) is
+  'SDD-0515: «Ver PIN». Autoriza con la matriz (edición), exige la contraseña confirmada hace 5 minutos o menos (amr password del JWT, P0022) y un motivo de la lista, audita pin_visto en la misma transacción sin el PIN y devuelve el PIN, o NULL si es anterior a 0475.';
 
 -- Firmas nuevas: sin EXECUTE de PUBLIC, anon ni service_role (necesitan auth.uid()).
-revoke all on function public.admin_create_operario(uuid, uuid, text, text, text, text, text) from public, anon, service_role;
-grant execute on function public.admin_create_operario(uuid, uuid, text, text, text, text, text) to authenticated;
-revoke all on function public.admin_reset_operario_pin(uuid, text, text, boolean) from public, anon, service_role;
-grant execute on function public.admin_reset_operario_pin(uuid, text, text, boolean) to authenticated;
-revoke all on function public.admin_ver_operario_pin(uuid, text) from public, anon, authenticated, service_role;
-grant execute on function public.admin_ver_operario_pin(uuid, text) to authenticated;
+revoke all on function public.admin_create_operario(uuid, uuid, text, text, text, text, text, text) from public, anon, service_role;
+grant execute on function public.admin_create_operario(uuid, uuid, text, text, text, text, text, text) to authenticated;
+revoke all on function public.admin_reset_operario_pin(uuid, text, text, text, boolean) from public, anon, service_role;
+grant execute on function public.admin_reset_operario_pin(uuid, text, text, text, boolean) to authenticated;
+revoke all on function public.admin_ver_operario_pin(uuid, text, text) from public, anon, authenticated, service_role;
+grant execute on function public.admin_ver_operario_pin(uuid, text, text) to authenticated;
 -- `create or replace` conserva la ACL de 0021/0351; se repite para leer el archivo solo.
 revoke all on function public.admin_set_operario_active(uuid, boolean) from public, anon;
 grant execute on function public.admin_set_operario_active(uuid, boolean) to authenticated;
@@ -890,15 +985,15 @@ declare
   v_column text;
 begin
   for v_expected in select * from (values
-    ('public.admin_create_operario(uuid,uuid,text,text,text,text,text)', 'ce150274eda586c84d38e5c08fdd129b',
+    ('public.admin_create_operario(uuid,uuid,text,text,text,text,text,text)', '0268b8a2490e1e7a66fb0d3eda5b894c',
       true, 'v', array['search_path=public, extensions']::text[]),
-    ('public.admin_reset_operario_pin(uuid,text,text,boolean)', '15bd52e476ad5a2bb5683b921c2ee644',
+    ('public.admin_reset_operario_pin(uuid,text,text,text,boolean)', '913fbfa8a0b18dcc2986381dacc658b8',
       true, 'v', array['search_path=public, extensions']::text[]),
     ('public.admin_set_operario_active(uuid,boolean)', '37130d853ce44a7455387e40b115df5b',
       true, 'v', array['search_path=public']::text[]),
     ('public.validate_operario_pin_format(text)', '5d21a590c47cc39ae99f2f853aedae82',
       false, 'i', array['search_path=public']::text[]),
-    ('public.admin_ver_operario_pin(uuid,text)', '608f7f7daf17e0a7f93cc594a2761962',
+    ('public.admin_ver_operario_pin(uuid,text,text)', 'b2658b7ab607856e99550348b8e0bb3a',
       true, 'v', array['search_path=""']::text[]),
     ('public.operarios_module_authorized(uuid,text)', '299f276babe7177556c5d2105d45b2c0',
       true, 's', array['search_path=""']::text[]),
@@ -908,8 +1003,10 @@ begin
       false, 'v', array['search_path=""']::text[]),
     ('public.operario_pin_descifrar(bytea)', '8bbcce0e888b8593c1eabfc4a975464d',
       false, 'v', array['search_path=""']::text[]),
-    ('public.operario_motivo_valido(text,text)', 'f9f519a4f9f4da3594398fa1dc5d36c0',
-      false, 'i', array['search_path=""']::text[])
+    ('public.operario_motivo_valido(text,text,text)', '13553b9716508176c9c41b09d7c7af0b',
+      false, 'i', array['search_path=""']::text[]),
+    ('public.operario_password_reciente()', '951cf768214f9aeda0c49e8d4e6ff102',
+      false, 's', array['search_path=""']::text[])
   ) e(signature, body, definer, volatility, config) loop
     if not exists (select 1 from pg_catalog.pg_proc p
       where p.oid = pg_catalog.to_regprocedure(v_expected.signature)
@@ -931,15 +1028,16 @@ begin
 
   -- EXECUTE: las RPC sólo para authenticated; los helpers privados para nadie de la API.
   for v_expected in select * from (values
-    ('public.admin_create_operario(uuid,uuid,text,text,text,text,text)', true, false),
-    ('public.admin_reset_operario_pin(uuid,text,text,boolean)', true, false),
-    ('public.admin_ver_operario_pin(uuid,text)', true, false),
+    ('public.admin_create_operario(uuid,uuid,text,text,text,text,text,text)', true, false),
+    ('public.admin_reset_operario_pin(uuid,text,text,text,boolean)', true, false),
+    ('public.admin_ver_operario_pin(uuid,text,text)', true, false),
     ('public.admin_set_operario_active(uuid,boolean)', true, null),
     ('public.operarios_module_authorized(uuid,text)', true, true),
     ('public.operario_pin_assert_available(uuid,public.operario_region,text,uuid)', false, false),
     ('public.operario_pin_cifrar(text)', false, false),
     ('public.operario_pin_descifrar(bytea)', false, false),
-    ('public.operario_motivo_valido(text,text)', false, false)
+    ('public.operario_motivo_valido(text,text,text)', false, false),
+    ('public.operario_password_reciente()', false, false)
   ) e(signature, authenticated, service_role) loop
     if pg_catalog.has_function_privilege('authenticated', v_expected.signature, 'EXECUTE') <> v_expected.authenticated
        or pg_catalog.has_function_privilege('anon', v_expected.signature, 'EXECUTE')
