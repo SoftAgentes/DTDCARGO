@@ -4,6 +4,7 @@ import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ChipF2 } from "@/components/servicios/ChipF2";
 import { ConGlosario, TerminoEnlace } from "@/components/TerminoGlosario";
 import { svcHref } from "@/components/servicios/svcHref";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 import {
   FichaF2,
   SecF2,
@@ -781,6 +782,14 @@ function ReEmpaque() {
 }
 
 function PreAlerta() {
+  /**
+   * SDD-0519 · Mientras la bodega de China registre en Excel, el aviso «tu
+   * mercancía llegó a bodega» no sale: sólo se programa cuando la recepción se
+   * registra en el sistema (SDD-0516). Con el interruptor de la 0514 prendido,
+   * la ruta, el actor 3 y el paso 5 dicen lo que sí pasa hoy; al apagarlo vuelve
+   * el texto de siempre. Se lee aquí, al renderizar, y no al cargar el módulo.
+   */
+  const enConstruccion = TRACKING_EN_CONSTRUCCION;
   return (
     <FichaF2
       hookAs="h2"
@@ -802,7 +811,10 @@ function PreAlerta() {
         stops: [
           { lb: "Tú", sb: "creas tu compra" },
           { lb: "Tu proveedor", sb: "packing list + etiquetas" },
-          { lb: "Operario Yiwu", sb: "escanea y te avisa" },
+          {
+            lb: "Operario Yiwu",
+            sb: enConstruccion ? "recibe tu carga" : "escanea y te avisa",
+          },
         ],
         segs: [true, true],
         cap: [<b key="a">Un enlace conecta a los 3</b>, "sin grupos de WeChat"],
@@ -845,8 +857,17 @@ function PreAlerta() {
               <span className="n">3</span>Operario en Yiwu
             </div>
             <div className="does">
-              <b>Recibe escaneando</b> la etiqueta cuando llega tu mercancía y{" "}
-              <b>te avisamos</b> al instante.
+              {enConstruccion ? (
+                <>
+                  <b>Recibe tu mercancía</b> cuando llega y la <b>identifica</b> por
+                  la etiqueta.
+                </>
+              ) : (
+                <>
+                  <b>Recibe escaneando</b> la etiqueta cuando llega tu mercancía y{" "}
+                  <b>te avisamos</b> al instante.
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -872,10 +893,17 @@ function PreAlerta() {
               Al final, eliges los <b>servicios extra para la llegada</b> que quieras
               (Validación, Inspección, Etiquetado, HOLD, Re-Empaque).
             </>,
-            <>
-              Cuando tu mercancía llega a Yiwu, el operario <b>la recibe escaneando</b>{" "}
-              la etiqueta y <b>te avisamos</b>.
-            </>,
+            enConstruccion ? (
+              <>
+                Cuando tu mercancía llega a Yiwu, el operario{" "}
+                <b>la recibe y la identifica</b> por la etiqueta.
+              </>
+            ) : (
+              <>
+                Cuando tu mercancía llega a Yiwu, el operario <b>la recibe escaneando</b>{" "}
+                la etiqueta y <b>te avisamos</b>.
+              </>
+            ),
           ]}
         />
       </SecF2>
