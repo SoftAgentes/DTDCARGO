@@ -248,8 +248,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
     });
   });
 
+  // SDD-0513 sumó `operarios/actions.ts::generateOperarioPinAction` (428 → 429):
+  // restablece el PIN con uno sorteado en el servidor y llama a
+  // `moduleEditDenial(supabase, "operarios")` antes de sortear; pasa el
+  // veredicto por acción sin entrar en ninguna de las dos listas.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(428);
+    expect(reportes.length).toBe(429);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
