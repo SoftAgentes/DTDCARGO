@@ -208,6 +208,8 @@ export async function syncKommoContactStatus(
 
   // 3) Facturas y embarques de esos clientes. Se piden por markbox para no
   //    barrer el ERP entero: con 32 vinculados esto es una lista corta.
+  //    SDD-0511 · solo VIVOS: un embarque eliminado no es carga en tránsito y
+  //    una factura eliminada no es saldo. Cliente admin: la RLS no filtra.
   const markboxes = [...new Set(filas.map((c) => (c.markbox ?? "").trim()).filter(Boolean))];
 
   const [{ data: facturas }, { data: embarques }] = await Promise.all([
@@ -216,12 +218,14 @@ export async function syncKommoContactStatus(
       .select("client_markbox, status, total_amount, paid_amount")
       .eq("tenant_id", tenantId)
       .in("client_markbox", markboxes)
+      .is("deleted_at", null)
       .limit(PAGINA),
     admin
       .from("shipments")
       .select("client_markbox, status")
       .eq("tenant_id", tenantId)
       .in("client_markbox", markboxes)
+      .is("deleted_at", null)
       .limit(PAGINA),
   ]);
 

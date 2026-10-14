@@ -9,7 +9,9 @@
  *   1. SELECT mail_rules WHERE tenant=? AND event=? AND active=true
  *   2. SELECT templates por id (batch) — descarta inactivas
  *   3. Resolver recipients según rule.recipient_kind:
- *        - client   → query clients.email por markbox (o usar override)
+ *        - client   → query clients.email por markbox (o usar override); un
+ *                     cliente eliminado no recibe, uno fusionado se resuelve
+ *                     a su vigente (SDD-0511, `emailDelShippingMark`)
  *        - internal → emails de los admins activos del tenant
  *        - custom   → rule.recipient_value
  *   4. Por cada (rule, recipient) → sendEmail() best-effort
@@ -99,13 +101,11 @@ export async function fireMailEvent(
 
     let markboxEmail: string | null = null;
     if (!input.clientEmail && needsClient && input.clientMarkbox) {
-      const { data: client } = await supabaseAdmin
-        .from("clients")
-        .select("email")
-        .eq("tenant_id", tenantId)
-        .eq("markbox", input.clientMarkbox)
-        .maybeSingle<{ email: string | null }>();
-      markboxEmail = client?.email ?? null;
+      markboxEmail = await emailDelShippingMark(
+        supabaseAdmin,
+        tenantId,
+        input.clientMarkbox,
+      );
     }
     // Override → markbox → prospecto (estimado web sin markbox).
     const resolvedClientEmail = resolveClientRecipientEmail({
@@ -187,6 +187,58 @@ export async function fireMailEvent(
   } catch (err) {
     console.error(`[mail-rule-engine] fireMailEvent error (${input.event}):`, err);
   }
+}
+
+/**
+ * El correo del cliente dueño de un Shipping Mark — SDD-0511.
+ *
+ * - Ficha viva → su correo.
+ * - Ficha eliminada por FUSIÓN (`merged_into_client_id`) → el correo del
+ *   cliente vigente. La fila fusionada conserva su Shipping Mark como alias
+ *   (0341) y las facturas y envíos con ese código no se renumeran, así que el
+ *   cobro vencido de una de ellas tiene que seguir llegándole a su dueño.
+ * - Ficha eliminada SIN fusión → `null`: a un cliente eliminado no se le
+ *   escribe (decisión de Sam, 2026-10-14).
+ *
+ * Las dos últimas salen del mismo camino: `resolve_markbox` sigue la cadena de
+ * fusiones y devuelve su final AUNQUE esté eliminado (sin fusión, la propia
+ * ficha). Por eso el vigente se relee exigiendo `deleted_at is null`.
+ *
+ * Un código retirado por RENOMBRADO no tiene fila en `clients` y sigue sin
+ * correo, como antes: esta función no amplía a quién se le escribe.
+ */
+async function emailDelShippingMark(
+  supabaseAdmin: SupabaseClient,
+  tenantId: string,
+  markbox: string,
+): Promise<string | null> {
+  const { data: ficha } = await supabaseAdmin
+    .from("clients")
+    .select("email, deleted_at")
+    .eq("tenant_id", tenantId)
+    .eq("markbox", markbox)
+    .maybeSingle<{ email: string | null; deleted_at: string | null }>();
+  if (!ficha) return null;
+  if (ficha.deleted_at == null) return ficha.email ?? null;
+
+  const { data: resuelto } = await supabaseAdmin.rpc("resolve_markbox", {
+    p_tenant_id: tenantId,
+    p_markbox: markbox,
+  });
+  const fila = (Array.isArray(resuelto) ? resuelto[0] : null) as
+    | { client_id: string | null }
+    | null
+    | undefined;
+  if (!fila?.client_id) return null;
+
+  const { data: vigente } = await supabaseAdmin
+    .from("clients")
+    .select("email")
+    .eq("tenant_id", tenantId)
+    .eq("id", fila.client_id)
+    .is("deleted_at", null)
+    .maybeSingle<{ email: string | null }>();
+  return vigente?.email ?? null;
 }
 
 function resolveRecipients(

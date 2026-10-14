@@ -75,11 +75,25 @@ export async function scheduleConsolidationEvent(
     if (rows.length === 0) return 0;
 
     // Código real de cada envío (consolidation_items no lo guarda).
+    //
+    // SDD-0511 · solo envíos VIVOS. Eliminar un envío pone `deleted_at` y no lo
+    // saca del contenedor; este cliente es admin, así que la RLS no filtra
+    // nada. El envío que no vuelve vivo de esta lectura no recibe el aviso: un
+    // aviso sobre un envío eliminado no sale.
     const ids = rows.map((r) => r.shipment_id);
-    const { data: shipments } = await admin
+    const { data: shipments, error: shipmentsErr } = await admin
       .from("shipments")
       .select("id, code, client_markbox, client_name")
-      .in("id", ids);
+      .in("id", ids)
+      .is("deleted_at", null);
+    if (shipmentsErr) {
+      // Sin saber cuáles siguen vivos, no se avisa a ciegas.
+      console.error(
+        `[client-notif] scheduleConsolidationEvent no pudo leer los envíos:`,
+        shipmentsErr.message,
+      );
+      return 0;
+    }
     const byId = new Map(
       ((shipments ?? []) as Array<{
         id: string;
@@ -89,15 +103,17 @@ export async function scheduleConsolidationEvent(
       }>).map((s) => [s.id, s]),
     );
 
-    const targets: FanoutTarget[] = rows.map((r) => {
+    const targets: FanoutTarget[] = [];
+    for (const r of rows) {
       const s = byId.get(r.shipment_id);
-      return {
+      if (!s) continue; // eliminado
+      targets.push({
         shipmentId: r.shipment_id,
-        shipmentCode: s?.code ?? "",
-        clientMarkbox: s?.client_markbox ?? r.client_markbox,
-        clientName: s?.client_name ?? r.client_name,
-      };
-    });
+        shipmentCode: s.code,
+        clientMarkbox: s.client_markbox ?? r.client_markbox,
+        clientName: s.client_name ?? r.client_name,
+      });
+    }
 
     return await scheduleForTargets(admin, tenantId, event, targets, eventTime);
   } catch (err) {
@@ -186,12 +202,16 @@ export async function scheduleReceiptVeReceived(
     let scheduled = 0;
     const sinDestino: string[] = [];
     for (const markbox of marks) {
+      // SDD-0511 · `deleted_at is null`: un envío eliminado más reciente que el
+      // vivo se llevaba el aviso, y si era el único, el cliente no salía en
+      // `sinDestino`. Cliente admin: la RLS no lo filtra.
       const { data: shipment } = await admin
         .from("shipments")
         .select("id, code, client_markbox, client_name")
         .eq("tenant_id", tenantId)
         .eq("client_markbox", markbox)
         .not("status", "in", "(delivered,cancelled)")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle<{
@@ -300,12 +320,15 @@ export async function scheduleReceiptInWarehouse(
     let scheduled = 0;
     const sinDestino: string[] = [];
     for (const [markbox, rec] of porMark) {
+      // SDD-0511 · `deleted_at is null`, como en `scheduleReceiptVeReceived`:
+      // si el único envío abierto está eliminado, el aviso cuelga de la compra.
       const { data: shipment } = await admin
         .from("shipments")
         .select("id, code, client_markbox, client_name")
         .eq("tenant_id", tenantId)
         .eq("client_markbox", markbox)
         .not("status", "in", "(delivered,cancelled)")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle<{
