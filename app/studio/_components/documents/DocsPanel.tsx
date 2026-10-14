@@ -111,9 +111,9 @@ export function DocsPanel({
   }, [state]);
 
   // Abrir un documento: firma la URL on-demand y la abre en pestaña nueva.
-  function open(storagePath: string) {
+  function open(documentId: string) {
     startOpen(async () => {
-      const url = await signDocumentUrl(storagePath);
+      const url = await signDocumentUrl(documentId);
       if (url) window.open(url, "_blank", "noopener,noreferrer");
     });
   }
@@ -254,7 +254,7 @@ export function DocsPanel({
                       <button
                         type="button"
                         className="studio-btn studio-btn-ghost studio-btn-xs"
-                        onClick={() => open(doc.storage_path)}
+                        onClick={() => open(doc.id)}
                         disabled={opening}
                         style={{ flexShrink: 0 }}
                       >
@@ -677,9 +677,9 @@ export function VersionHistoryDrawer({
     };
   }, [rootId]);
 
-  function open(storagePath: string) {
+  function open(documentId: string) {
     startOpen(async () => {
-      const url = await signDocumentUrl(storagePath);
+      const url = await signDocumentUrl(documentId);
       if (url) window.open(url, "_blank", "noopener,noreferrer");
     });
   }
@@ -783,7 +783,7 @@ export function VersionHistoryDrawer({
                     <button
                       type="button"
                       className="studio-btn studio-btn-ghost studio-btn-xs"
-                      onClick={() => open(v.storage_path)}
+                      onClick={() => open(v.id)}
                       disabled={opening}
                       style={{ flexShrink: 0 }}
                     >

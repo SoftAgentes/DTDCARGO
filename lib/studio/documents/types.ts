@@ -264,8 +264,8 @@ export const LINK_KIND: Record<
   consolidation: { label: "Contenedor", module: "naviera", route: "/studio/naviera" },
   booking: { label: "Booking", module: "naviera", route: "/studio/naviera" },
   // SDD-0146: adjunto "prueba de avance" de una tarea de Bitácora. El binario
-  // vive en el bucket `bitacora` (no en `documents`) — el "Ver" del hub no lo
-  // firma (bucket distinto); se ve desde la galería de la tarea. Ver por módulo.
+  // vive en el bucket `bitacora` y la fila lo dice en `bucket_id` (SDD-0508):
+  // el "Ver" y el borrado del hub resuelven el bucket desde la fila.
   bitacora_task: { label: "Tarea (Bitácora)", module: "bitacora", route: "/studio/bitacora" },
   none: { label: "Sin transacción", module: null, route: null },
 };
@@ -284,6 +284,8 @@ export type DocumentRow = {
   doc_type: string | null;
   name: string;
   storage_path: string;
+  /** Bucket donde vive el objeto (0307). Se resuelve con documentObjectBucket (SDD-0508). */
+  bucket_id: string;
   content_type: string | null;
   size_bytes: number | null;
   status: DocumentStatus;
