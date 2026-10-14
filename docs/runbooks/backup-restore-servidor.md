@@ -323,3 +323,10 @@ toma antes de la Fase 3, por escrito en el OK del corte:
 | Fecha | Dump usado (nombre) | `auth.users` | `storage.objects` | ledger | Vault legible | RTO (min) | Resultado | Quién |
 |---|---|---|---|---|---|---|---|---|
 | — | — | — | — | — | — | — | pendiente (arranca en la Fase 2) | — |
+
+## Registro · 2026-10-14 · primera restauración del respaldo real
+
+- Respaldo `dtd-cargo-20261014T014837Z` (6,1 MB) + configuración `dtd-cargo-config-20261014T014859Z`, con la llave age **nueva** de Sam (huella pública `f4aab8d945aa686a`; la del 12-10 se perdió y sus respaldos de 00:10Z y 00:31Z son ilegibles).
+- `/srv/ops/backup/restore-real-prueba.sh` (llave pegada sin eco, en `/dev/shm`, borrada al salir): **5 PASÓ · 0 FALLÓ**, permisos de public idénticos, 3 secretos de Vault legibles con la raíz respaldada, **RTO 34 s**. Evidencia: `/srv/ops/evidencias/restore-real-20261014T015017Z.txt`.
+- Próxima: mensual (§3), con el mismo script.
+

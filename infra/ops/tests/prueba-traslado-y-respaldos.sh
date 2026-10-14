@@ -19,13 +19,20 @@
 # /dev/shm/c4key) y se borra al terminar. Instala `age` y la CLI de Supabase fijada
 # (sha256 verificado) si faltan. Uso: bash infra/ops/tests/prueba-traslado-y-respaldos.sh
 # Termina con «RESULTADO: N PASÓ · M FALLÓ»; sale 1 si algo falló.
+#
+# Desde el corte (2026-10-14) el VPS ES producción: las guardas que rechazan tocar
+# producción se prueban contra un nombre de producción FALSO (PROD_COMPOSE_PROJECT,
+# que leen los scripts), nunca contra dtd-cargo ni /srv/dtd-cargo. Si una guarda se
+# rompiera, lo que intentaría borrar no existe.
 set -uo pipefail
+export PROD_COMPOSE_PROJECT=c4-prod-falsa
+PRODF=$PROD_COMPOSE_PROJECT
 T=/srv/ops/bench/c4
 S="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 K=/dev/shm/c4key
 IMG=supabase/postgres:17.6.1.136
 RC=rclone/rclone:1.75.1
-CLI_VER=2.118.0
+CLI_VER=2.120.0
 pass=0; fail=0
 ok() { echo "PASÓ  · $*"; pass=$((pass+1)); }
 ko() { echo "FALLÓ · $*"; fail=$((fail+1)); }
@@ -157,6 +164,14 @@ $CB > $T/c2b.log 2>&1; n2=$(find $T/remote -path '*c4-src-config*' -name '*.tar.
 grep -q 'sin cambios' $T/c2b.log && [ "$n1" = "$n2" ] && ok "sin cambios: no sube otro respaldo" || ko "segunda corrida sin cambios subió algo ($n1→$n2)"
 sleep 1; $CB --force > /dev/null 2>&1; n3=$(find $T/remote -path '*c4-src-config*' -name '*.tar.age' | wc -l)
 [ "$n3" = $((n2+1)) ] && ok "--force sube uno nuevo" || ko "--force: $n2→$n3"
+# Cambio de llave (2026-10-14: se perdió la privada y se creó otra): sin --force y sin
+# tocar el .env ni la raíz, tiene que subir uno nuevo, cerrado también para la llave nueva.
+cp $T/recipients.txt $T/recipients2.txt; age-keygen -y $K/otra.txt >> $T/recipients2.txt
+sleep 1; bash $S/backup/config-backup.sh --project c4-src --project-dir $T/proj/c4-src --remote testr2:backups/db --age-recipients $T/recipients2.txt --out $T/out --rclone-config $T/rclone > $T/c2c.log 2>&1
+n4=$(find $T/remote -path '*c4-src-config*' -name '*.tar.age' | wc -l)
+ult=$(find $T/remote -path '*c4-src-config*' -name '*.tar.age' -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2)
+[ "$n4" = $((n3+1)) ] && grep -q 'hay cambios' $T/c2c.log && age -d -i $K/otra.txt "$ult" > /dev/null 2>&1 \
+  && ok "cambio de llave: sube un respaldo nuevo que abre la llave nueva" || ko "cambio de llave: $n3→$n4, $(grep -oE 'sin cambios|hay cambios' $T/c2c.log | head -1)"
 docker volume create c4-vacio >/dev/null
 bash $S/backup/config-backup.sh --project c4-src --project-dir $T/proj/c4-src --volume c4-vacio --remote testr2:backups/db --age-recipients $T/recipients.txt --out $T/out --rclone-config $T/rclone >/dev/null 2>&1; [ $? -eq 2 ] && ok "volumen sin pgsodium_root.key: 2" || ko "volumen sin raíz aceptado"
 [ "$(ls -A /dev/shm | grep -c '^config-c4')" = 0 ] && ok "config-backup no dejó nada en /dev/shm" || ko "quedó config-* en /dev/shm"
@@ -193,7 +208,7 @@ PGPASSWORD=x bash $S/backup/restore.sh --file $T/solo/$(basename "$DUMP") --age-
 echo; echo "== C4 · destroy-staging =="
 SD=$T/srv/c4-staging; mkdir -p $SD/data/db $SD/data/storage/stub $T/backups/c4-staging $T/srv/c4b-staging
 printf 'DTD_DATA_DIR=./data\n' > $SD/.env; echo "fila" > $SD/data/db/archivo; echo "foto" > $SD/data/storage/stub/x.jpg; echo x > $T/backups/c4-staging/c4-staging-1.dump.age
-printf 'DTD_DATA_DIR=/srv/dtd-cargo/data\n' > $T/srv/c4b-staging/.env
+printf 'DTD_DATA_DIR=/srv/%s/data\n' "$PRODF" > $T/srv/c4b-staging/.env
 mkdir -p /dev/shm/import-c4-staging-abc123
 L=com.docker.compose.project
 docker volume create --label $L=c4-staging c4-staging_db-config >/dev/null
@@ -201,7 +216,7 @@ docker network create --label $L=c4-staging c4-staging_net >/dev/null
 docker run -d --name c4-staging-db --label $L=c4-staging --network c4-staging_net --entrypoint sleep $IMG 600 >/dev/null
 docker run -d --name c4-otro --label $L=c4-otro --entrypoint sleep $IMG 600 >/dev/null
 D="bash $S/staging/destroy-staging.sh"
-$D --project dtd-cargo --confirm dtd-cargo >/dev/null 2>&1; [ $? -eq 3 ] && ok "producción: rechaza (3)" || ko "producción no rechazada"
+$D --project $PRODF --confirm $PRODF >/dev/null 2>&1; [ $? -eq 3 ] && ok "producción: rechaza (3)" || ko "producción no rechazada"
 $D --project c4-prod --confirm c4-prod >/dev/null 2>&1; [ $? -eq 3 ] && ok "sin -staging: rechaza (3)" || ko "sin -staging no rechazado"
 $D --project c4-staging --confirm otra-cosa --project-dir $SD >/dev/null 2>&1; [ $? -eq 3 ] && ok "--confirm distinto: rechaza (3)" || ko "--confirm distinto aceptado"
 $D --project c4b-staging --confirm c4b-staging --project-dir $T/srv/c4b-staging >/dev/null 2>&1; [ $? -eq 3 ] && ok "DTD_DATA_DIR de producción: rechaza (3)" || ko "DTD_DATA_DIR de producción aceptado"
@@ -259,6 +274,8 @@ create table public.embarques (id serial primary key, nota text);
 insert into public.embarques (nota) select 'embarque ' || g from generate_series(1,5) g;
 create table public.mail_logs (id serial primary key, para text);
 insert into public.mail_logs (para) values ('$MARK@example.test'), ('b@example.test'), ('c@example.test');
+create table public.altas (id uuid primary key);
+create function public.app_alta_usuario() returns trigger language plpgsql security definer set search_path = '' as \$\$ begin insert into public.altas (id) values (new.id); return new; end \$\$;
 SQL
 asadmin c4-cloud-db <<SQL >/dev/null
 insert into auth.users (instance_id, id, aud, role, email) values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'u1@example.test'), ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated', 'u2@example.test');
@@ -267,6 +284,12 @@ create table if not exists storage.buckets (id text primary key, name text not n
 create table if not exists storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id), name text, owner_id text);
 insert into storage.buckets (id, name) values ('client-docs','client-docs'), ('bug-replays','bug-replays');
 insert into storage.objects (bucket_id, name, owner_id) values ('client-docs', 'a.pdf', 'u1'), ('client-docs', 'b.pdf', null), ('bug-replays', 'r.json', 'u2');
+-- Lo que el dump no trae (corte del 2026-10-14): policies de storage y un disparador
+-- de la app sobre auth.users con su función en public.
+alter table storage.objects enable row level security;
+create policy "client-docs tenant read" on storage.objects as permissive for select to authenticated using ((bucket_id = 'client-docs'::text) and (owner_id is not null));
+create policy bug_replays_no_write_authenticated on storage.objects as restrictive for insert to authenticated with check ((bucket_id <> 'bug-replays'::text));
+create trigger app_on_auth_user_created after insert on auth.users for each row execute function public.app_alta_usuario();
 create extension if not exists pg_cron;
 select cron.schedule('job-prueba', '0 3 * * *', 'select 1');
 select vault.create_secret('secreto-kommo-$MARK', 'kommo_cron_key');
@@ -291,7 +314,7 @@ asadmin c4i-staging-db -c "create table public.sobra (id int)"
 echo "$URL" | $IMP --evidence $T/imp-guard.txt > $T/imp1.log 2>&1; rc=$?
 [ $rc -eq 3 ] && grep -q 'ya tiene' $T/imp1.log && ok "staging no vacío: rechaza (3)" || { ko "guarda de staging vacío rc=$rc"; tail -3 $T/imp1.log; }
 asadmin c4i-staging-db -c "drop table public.sobra"
-bash $S/migrate/import-from-cloud.sh --project dtd-cargo --skip-storage < /dev/null > /dev/null 2>&1; [ $? -eq 3 ] && ok "proyecto de producción sin --corte: rechaza (3)" || ko "producción no rechazada"
+bash $S/migrate/import-from-cloud.sh --project $PRODF --skip-storage < /dev/null > /dev/null 2>&1; [ $? -eq 3 ] && ok "proyecto de producción sin --corte: rechaza (3)" || ko "producción no rechazada"
 bash $S/migrate/import-from-cloud.sh --project c4i-staging --project-dir $IS --corte < /dev/null > /dev/null 2>&1; [ $? -eq 3 ] && ok "--corte sobre un staging: rechaza (3)" || ko "--corte sobre staging aceptado"
 # Modo contraseña (--cloud-user/--cloud-host), el que usa Sam: tres pegados mal
 # hechos se rechazan antes de conectar, y el bueno arma la cadena.
@@ -315,6 +338,12 @@ SQ() { docker exec c4i-staging-db psql -U supabase_admin -h localhost -d postgre
 [ "$(SQ 'select count(*) from public.embarques')" = 5 ] && ok "embarques: 5 filas" || ko "embarques: $(SQ 'select count(*) from public.embarques')"
 [ "$(SQ "select count(*)::text || ':' || count(*) filter (where active)::text || ':' || string_agg(username, ',') from cron.job")" = "1:0:supabase_admin" ] \
   && ok "cron: 1 job recreado, inactivo, con el usuario de Cloud" || ko "cron: $(SQ "select count(*)::text || ':' || count(*) filter (where active)::text || ':' || coalesce(string_agg(username, ','), '-') from cron.job")"
+[ "$(SQ "select string_agg(policyname || ':' || permissive, ',' order by policyname) from pg_policies where schemaname = 'storage'")" = "bug_replays_no_write_authenticated:RESTRICTIVE,client-docs tenant read:PERMISSIVE" ] \
+  && ok "storage: las 2 policies de Cloud llegan (el dump no las trae)" || ko "storage policies: $(SQ "select coalesce(string_agg(policyname, ','), '-') from pg_policies where schemaname = 'storage'")"
+[ "$(SQ "select count(*) from pg_trigger where tgname = 'app_on_auth_user_created' and tgrelid = 'auth.users'::regclass")" = 1 ] \
+  && ok "auth: el disparador de la app sobre auth.users llega" || ko "disparador de auth.users: falta"
+grep -q 'PASÓ  · policies de storage y auth idénticas a Cloud' $T/imp-evidencia.txt && grep -q 'PASÓ  · disparadores de la app sobre auth y storage idénticos a Cloud' $T/imp-evidencia.txt \
+  && ok "import compara por huella policies y disparadores de la plataforma" || ko "falta la comparación de policies/disparadores en la evidencia"
 echo "   grants de tenants en Cloud: $(asadmin c4-cloud-db -c "select string_agg(grantee || '=' || privilege_type, ',' order by 1) from information_schema.role_table_grants where table_schema='public' and table_name='tenants' and grantee in ('anon','authenticated')") · staging: $(SQ "select string_agg(grantee || '=' || privilege_type, ',' order by 1) from information_schema.role_table_grants where table_schema='public' and table_name='tenants' and grantee in ('anon','authenticated')")"
 grep -qE "$PW3|$MARK" $T/imp-evidencia.txt && ko "la evidencia tiene la contraseña o un dato personal" || ok "la evidencia no tiene contraseña ni datos personales"
 grep -q "$PW3" $T/imp2.log && ko "la salida del import muestra la contraseña" || ok "la salida del import no muestra la contraseña"
@@ -339,7 +368,9 @@ printf '\n' | $VS --name otro > /dev/null 2>&1; [ $? -eq 2 ] && ok "valor vacío
 
 echo; echo "== CORTE · import-from-cloud --corte contra una producción falsa (c4p) =="
 PW5=$(openssl rand -hex 16); CPD=$T/srv/c4p; mkdir -p $CPD
-printf 'POSTGRES_PASSWORD=%s\n' "$PW5" > $CPD/.env
+# La service key del servidor, entre comillas simples como la deja env-set.sh.
+SRVKEY="eyJservidor.$(openssl rand -hex 20)"
+printf "POSTGRES_PASSWORD=%s\nSERVICE_ROLE_KEY='%s'\n" "$PW5" "$SRVKEY" > $CPD/.env
 docker network create --internal c4p_dtd_internal >/dev/null
 docker run -d --name c4p-db --network c4p_dtd_internal --network-alias db -e POSTGRES_PASSWORD=$PW5 $IMG postgres -c config_file=/etc/postgresql/postgresql.conf >/dev/null
 wait_ready c4p-db || { echo "c4p no arrancó"; exit 1; }
@@ -363,8 +394,12 @@ sed 's/^/   /' $T/corte2.log | grep -E 'CORTE|Vault|FALLÓ|RESULTADO' | tail -8
 CQ() { docker exec c4p-db psql -U supabase_admin -h localhost -d postgres -Atc "$1" 2>&1; }
 [ "$(CQ 'select count(*) from public.mail_logs')" = 3 ] && ok "corte: las tablas de log viajan con datos (mail_logs 3)" || ko "corte mail_logs: $(CQ 'select count(*) from public.mail_logs')"
 [ "$(CQ "select count(*)::text || ':' || count(*) filter (where active)::text from cron.job")" = "1:1" ] && ok "corte: pg_cron como en Cloud (1 job, activo)" || ko "corte cron: $(CQ "select count(*)::text || ':' || count(*) filter (where active)::text from cron.job")"
-[ "$(CQ "select (decrypted_secret = 'secreto-kommo-$MARK')::text from vault.decrypted_secrets where name = 'kommo_cron_key'")" = true ] && ok "corte: el secreto de Vault viaja y descifra con la raíz del servidor" || ko "corte vault: $(CQ "select count(*) from vault.secrets")"
-grep -qE "secreto-kommo|$PW3" $T/corte2.log $T/corte.txt && ko "corte: el secreto o la contraseña aparecen en la salida" || ok "corte: ni el secreto ni la contraseña aparecen en la salida ni en la evidencia"
+[ "$(CQ "select count(*) from vault.secrets where name = 'kommo_cron_key'")" = 1 ] && ok "corte: el secreto de Vault viaja y descifra con la raíz del servidor" || ko "corte vault: $(CQ "select count(*) from vault.secrets")"
+# La de Cloud no sirve contra las funciones del servidor (403 en el corte real): queda la service key del servidor, sin comillas.
+[ "$(CQ "select (decrypted_secret = '$SRVKEY')::text from vault.decrypted_secrets where name = 'kommo_cron_key'")" = true ] \
+  && ok "corte: kommo_cron_key = SERVICE_ROLE_KEY del servidor (sin las comillas del .env)" || ko "corte: kommo_cron_key no es la service key del servidor"
+grep -q 'PASÓ  · Vault: kommo_cron_key es la service key del servidor' $T/corte.txt && ok "corte: la evidencia lo comprueba por huella" || ko "corte: falta la comprobación de kommo_cron_key en la evidencia"
+grep -qE "secreto-kommo|$PW3|$SRVKEY" $T/corte2.log $T/corte.txt && ko "corte: un secreto o la contraseña aparecen en la salida" || ok "corte: ni los secretos ni la contraseña aparecen en la salida ni en la evidencia"
 [ "$(ls -A /dev/shm | grep -c '^import-c4')" = 0 ] && ok "corte: nada quedó en /dev/shm" || ko "corte: quedó algo en /dev/shm"
 
 echo; echo "== limpieza =="
