@@ -39,9 +39,12 @@ export async function GET() {
   }
   const denial = await moduleViewDenial(supabase, "dashboard");
   if (denial) return NextResponse.json({ error: denial }, { status: 403 });
+  // SDD-0509: solo envíos vivos, igual que `shipments_dashboard_counts` (0014).
+  // La RLS no excluye los eliminados desde la 0230.
   const { data, error } = await supabase
     .from("shipments")
-    .select("status");
+    .select("status")
+    .is("deleted_at", null);
 
   if (error) {
     return apiError("No pudimos leer KPIs.", error, 500, "kpis");

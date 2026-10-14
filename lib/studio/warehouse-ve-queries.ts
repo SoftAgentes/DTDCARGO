@@ -34,9 +34,12 @@ export async function listVeReceipts(
   supabase: SupabaseClient,
   filters: VeFilters = {},
 ): Promise<VeReceiptRow[]> {
+  // SDD-0509: la RLS no excluye los eliminados; sin este filtro un envío
+  // eliminado seguía en la bandeja de recepción VE.
   let query = supabase
     .from("shipments")
     .select(VE_SELECT_COLUMNS)
+    .is("deleted_at", null)
     .in("status", VE_STATUSES)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -88,6 +91,9 @@ export type VeKpis = {
  * - readyForPickup: status = arrived_destination
  * - outForDelivery: status IN (out_for_delivery, last_mile)
  * - deliveredThisMonth: status = delivered AND delivered_at >= primer día mes
+ *
+ * Los cuatro cuentan solo envíos vivos (SDD-0509): la RLS no excluye los
+ * eliminados.
  */
 export async function computeVeKpis(
   supabase: SupabaseClient,
@@ -100,18 +106,22 @@ export async function computeVeKpis(
       supabase
         .from("shipments")
         .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
         .eq("status", "in_customs"),
       supabase
         .from("shipments")
         .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
         .eq("status", "arrived_destination"),
       supabase
         .from("shipments")
         .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
         .in("status", ["out_for_delivery", "last_mile"]),
       supabase
         .from("shipments")
         .select("id", { count: "exact", head: true })
+        .is("deleted_at", null)
         .eq("status", "delivered")
         .gte("delivered_at", firstOfMonth),
     ]);

@@ -45,8 +45,12 @@ const DETAIL_COLUMNS =
   "id, tenant_id, code, client_name, client_markbox, origin, destination, destination_gps, shipment_service, status, weight_kg, volume_m3, vehicle_category, vehicle_model, arrived_destination_at, planned_departure_at, planned_arrival_at, planned_delivery_at, planning_timezone, planning_version, planning_updated_at, planning_updated_by, cancellation_reason, notes, deleted_at, created_at, updated_at";
 
 /**
- * Lista de envios con filtros opcionales. RLS filtra por tenant.
+ * Lista de envios vivos con filtros opcionales. RLS filtra por tenant.
  * Devuelve hasta 100 mas recientes.
+ *
+ * SDD-0509: la RLS NO excluye los eliminados — la 0230 sacó `deleted_at is
+ * null` de la policy FOR ALL porque bloqueaba el propio soft delete. El
+ * `.is("deleted_at", null)` de abajo es lo único que los deja fuera.
  */
 export async function listShipments(
   supabase: SupabaseClient,
@@ -55,6 +59,7 @@ export async function listShipments(
   let query = supabase
     .from("shipments")
     .select(LIST_COLUMNS)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -117,12 +122,14 @@ export async function listShipments(
 
 /**
  * Lista de envios activos para el tracking operativo (SDD-0013).
- * Excluye delivered / cancelled / draft. Hasta 200 mas recientes.
+ * Excluye delivered / cancelled / draft y los eliminados (SDD-0509).
+ * Hasta 200 mas recientes.
  */
 export async function listActiveShipments(supabase: SupabaseClient) {
   const { data, error } = await supabase
     .from("shipments")
     .select(ACTIVE_LIST_COLUMNS)
+    .is("deleted_at", null)
     .not("status", "in", `(${INACTIVE_STATUSES.join(",")})`)
     .order("created_at", { ascending: false })
     .limit(200);
@@ -151,7 +158,9 @@ export async function getShipmentById(
 
 /**
  * Eventos del timeline para un envio. Orden mas reciente arriba.
- * RLS filtra por tenant y excluye soft-deleted.
+ * RLS filtra por tenant, pero NO excluye soft-deleted (0230; ver SDD-0509).
+ * Hoy solo la cascada al eliminar el envío pone `deleted_at` en un evento, así
+ * que en un envío vivo no aparecen eventos eliminados.
  */
 export async function getShipmentEvents(
   supabase: SupabaseClient,

@@ -94,12 +94,14 @@ export async function clientsWithTier(
 ): Promise<ClientWithTier[]> {
   const billing = await clientAnnualBilling(supabase, now);
 
-  // Paginado: la cartera completa para cruzar con la facturación.
+  // Paginado: la cartera viva completa para cruzar con la facturación.
+  // SDD-0509: la RLS no excluye a los eliminados; el filtro va acá.
   const { rows: data, complete } = await fetchAllPaged<Record<string, unknown>>(
     (d, h) =>
       supabase
         .from("clients")
         .select("id, markbox, name")
+        .is("deleted_at", null)
         .order("id", { ascending: true })
         .range(d, h),
   );
