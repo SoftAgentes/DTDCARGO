@@ -7,5 +7,27 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0515-ver-pin-operario",
+      "primarySymbol": "admin_ver_operario_pin",
+      "migration": "0475_pin_operarios_endurecer",
+      "symbols": [
+        {
+          "name": "admin_ver_operario_pin",
+          "kind": "function",
+          "callSites": [
+            "app/studio/(app)/operarios/actions.ts:257"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "app/studio/(app)/operarios/actions.ts:263",
+          "contains": "return { error: `No se pudo mostrar el PIN: ${error.message}` };",
+          "degradation": "Sin 0475 la RPC no existe y PostgREST responde con error: «Ver PIN» devuelve «No se pudo mostrar el PIN: …» con el texto de PostgREST, sin PIN y sin escribir nada; el diálogo deja el error a la vista. Es la única función nueva que llama la app, pero no la única dependencia: el alta y el restablecimiento mandan p_motivo (y p_reactivar), que sólo existen en las firmas de 0475, así que sin la migración también fallan con error de PostgREST y sin cambiar nada. Por eso el orden es MIGRATE-FIRST: 0475 antes de desplegar, y desplegar enseguida, porque con 0475 aplicada la app de antes recibe «Escribe el motivo…» al crear o restablecer."
+        }
+      ]
+    }
+  ]
 }

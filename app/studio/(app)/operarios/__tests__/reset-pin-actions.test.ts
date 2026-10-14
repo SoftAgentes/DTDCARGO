@@ -43,6 +43,8 @@ const mocks = vi.hoisted(() => ({
   rpcError: null as { message: string; code?: string } | null,
   /** Respuestas por llamada, en orden; vacía = `rpcError` en todas. */
   rpcErrors: [] as Array<{ message: string; code?: string } | null>,
+  /** Lo que devuelve la RPC cuando no hay error (el PIN de «Ver PIN»). */
+  rpcData: null as unknown,
   fromCalls: [] as string[],
   randomIntCalls: [] as Array<[number, number]>,
   /** Valores forzados para randomInt; vacío = azar real de Node. */
@@ -118,13 +120,20 @@ vi.mock("@/lib/db/server", () => ({
     rpc: async (fn: string, args: Record<string, unknown>) => {
       mocks.rpcCalls.push({ fn, args: { ...args } });
       const error = mocks.rpcErrors.length > 0 ? (mocks.rpcErrors.shift() ?? null) : mocks.rpcError;
-      return { data: null, error };
+      return { data: error ? null : mocks.rpcData, error };
     },
   }),
 }));
 
-import { createOperarioAction, generateOperarioPinAction, resetOperarioPinAction } from "../actions";
 import {
+  createOperarioAction,
+  generateOperarioPinAction,
+  resetOperarioPinAction,
+  viewOperarioPinAction,
+} from "../actions";
+import {
+  OPERARIO_MOTIVO_CODE,
+  OPERARIO_MOTIVO_MESSAGE,
   OPERARIO_PIN_IN_USE_CODE,
   OPERARIO_PIN_IN_USE_MESSAGE,
   OPERARIO_PIN_MAX_ATTEMPTS,
@@ -134,9 +143,14 @@ import {
 /** El rechazo de 0475 (SDD-0515) por PIN de otro operario activo del mismo tenant y región. */
 const IN_USE = { code: OPERARIO_PIN_IN_USE_CODE, message: OPERARIO_PIN_IN_USE_MESSAGE };
 
-function form(fields: Record<string, string>): FormData {
+/** SDD-0515: alta, restablecimiento y «Ver PIN» piden motivo. */
+const MOTIVO = "El operario olvidó su PIN";
+
+/** El formulario con el motivo de siempre, salvo que el caso traiga el suyo (o `motivo: null`). */
+function form(fields: Record<string, string | null>): FormData {
   const fd = new FormData();
-  for (const [k, v] of Object.entries(fields)) fd.set(k, v);
+  const withMotivo = "motivo" in fields ? fields : { ...fields, motivo: MOTIVO };
+  for (const [k, v] of Object.entries(withMotivo)) if (v !== null) fd.set(k, v);
   return fd;
 }
 
@@ -181,6 +195,7 @@ beforeEach(() => {
   mocks.rpcCalls = [];
   mocks.rpcError = null;
   mocks.rpcErrors = [];
+  mocks.rpcData = null;
   mocks.fromCalls = [];
   mocks.randomIntCalls = [];
   mocks.forced = [];
@@ -203,7 +218,7 @@ describe("generateOperarioPinAction · candado de rol", () => {
     const pin = res.pinReveal!;
     expect(isValidOperarioPin(pin)).toBe(true);
     expect(mocks.rpcCalls).toEqual([
-      { fn: "admin_reset_operario_pin", args: { p_operario_id: OPERARIO_ID, p_pin: pin } },
+      { fn: "admin_reset_operario_pin", args: { p_operario_id: OPERARIO_ID, p_pin: pin, p_motivo: MOTIVO, p_reactivar: false } },
     ]);
     expect(mocks.randomIntCalls.length).toBeGreaterThanOrEqual(1);
     expect(mocks.randomIntCalls.every(([a, b]) => a === 0 && b === 10_000)).toBe(true);
@@ -327,7 +342,7 @@ describe("resetOperarioPinAction · el camino manual se conserva", () => {
 
     expect(res).toEqual({ ok: true, pinReveal: "7310" });
     expect(mocks.rpcCalls).toEqual([
-      { fn: "admin_reset_operario_pin", args: { p_operario_id: OPERARIO_ID, p_pin: "7310" } },
+      { fn: "admin_reset_operario_pin", args: { p_operario_id: OPERARIO_ID, p_pin: "7310", p_motivo: MOTIVO, p_reactivar: false } },
     ]);
     expect(mocks.randomIntCalls).toEqual([]);
   });
@@ -412,16 +427,214 @@ describe("PIN repetido en el tenant y la región", () => {
   it("alta: el PIN que escribió el admin no se cambia por otro; vuelve como error del campo", async () => {
     signIn("admin");
     mocks.rpcErrors = [IN_USE];
-    const res = await createOperarioAction({}, form({
-      warehouse_id: "30000000-0000-4000-8000-000000000001",
-      display_name: "Li Wei",
-      pin: "7310",
-      role: "operario",
-    }));
+    const res = await createOperarioAction({}, form({ ...ALTA, pin_mode: "manual", pin: "7310" }));
 
     expect(res).toEqual({ fieldErrors: { pin: OPERARIO_PIN_IN_USE_MESSAGE } });
     expect(mocks.rpcCalls.map((c) => [c.fn, c.args.p_pin])).toEqual([["admin_create_operario", "7310"]]);
     expect(mocks.randomIntCalls).toEqual([]);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+// ─── SDD-0515 · motivo obligatorio ──────────────────────────────────────────
+
+const ALTA = {
+  warehouse_id: "30000000-0000-4000-8000-000000000001",
+  display_name: "Li Wei",
+  role: "operario",
+};
+
+describe("motivo obligatorio (AUD-01)", () => {
+  it.each([
+    ["sin motivo", null, OPERARIO_MOTIVO_MESSAGE.length],
+    ["vacío", "   ", OPERARIO_MOTIVO_MESSAGE.length],
+    ["de 3 letras", "abc", OPERARIO_MOTIVO_MESSAGE.length],
+    ["de 301 letras", "x".repeat(301), OPERARIO_MOTIVO_MESSAGE.length],
+  ])("generado %s: no sortea ni llama a la base", async (_label, motivo, message) => {
+    signIn("admin");
+    const res = await generateOperarioPinAction({}, form({ operario_id: OPERARIO_ID, motivo }));
+
+    expect(res).toEqual({ fieldErrors: { motivo: message } });
+    expect(mocks.rpcCalls).toEqual([]);
+    expect(mocks.randomIntCalls).toEqual([]);
+  });
+
+  it("escrito a mano: un motivo con el PIN se rechaza antes de la base", async () => {
+    signIn("admin");
+    const res = await resetOperarioPinAction({}, form({
+      operario_id: OPERARIO_ID, pin: "7310", motivo: "Le dejé el 7310 que pidió",
+    }));
+
+    expect(res).toEqual({ fieldErrors: { motivo: OPERARIO_MOTIVO_MESSAGE.contains_pin } });
+    expect(mocks.rpcCalls).toEqual([]);
+  });
+
+  it("el motivo llega a la RPC, y si la base lo rechaza vuelve al campo", async () => {
+    signIn("operations");
+    mocks.forced = [4827];
+    mocks.rpcErrors = [{ code: OPERARIO_MOTIVO_CODE, message: "Escribe el motivo: entre 4 y 300 caracteres." }];
+    const res = await generateOperarioPinAction({}, form({ operario_id: OPERARIO_ID }));
+
+    expect(mocks.rpcCalls[0].args.p_motivo).toBe(MOTIVO);
+    expect(res).toEqual({ fieldErrors: { motivo: "Escribe el motivo: entre 4 y 300 caracteres." } });
+    expect(mocks.rpcCalls).toHaveLength(1);
+  });
+
+  it("alta sin motivo: no llama a la base", async () => {
+    signIn("admin");
+    const res = await createOperarioAction({}, form({ ...ALTA, motivo: "" }));
+
+    expect(res).toEqual({ fieldErrors: { motivo: OPERARIO_MOTIVO_MESSAGE.length } });
+    expect(mocks.rpcCalls).toEqual([]);
+  });
+});
+
+describe("reactivar a un operario de baja (SDD-0515)", () => {
+  it.each([
+    ["generado", generateOperarioPinAction, {}],
+    ["escrito a mano", resetOperarioPinAction, { pin: "7310", pin_mode: "manual" }],
+  ] as const)("%s: `reactivar=1` llega como p_reactivar", async (_label, action, extra) => {
+    signIn("admin");
+    mocks.forced = [4827];
+    const res = await action({}, form({ operario_id: OPERARIO_ID, reactivar: "1", ...extra }));
+
+    expect(res.ok).toBe(true);
+    expect(mocks.rpcCalls).toHaveLength(1);
+    expect(mocks.rpcCalls[0].args.p_reactivar).toBe(true);
+    expect(mocks.rpcCalls[0].args.p_motivo).toBe(MOTIVO);
+  });
+});
+
+describe("alta con el PIN generado en el servidor (SDD-0515)", () => {
+  it("por defecto el servidor sortea el PIN, ignora el del formulario y no usa Math.random", async () => {
+    const mathRandom = vi.spyOn(Math, "random");
+    signIn("operations");
+    mocks.forced = [4827];
+    const res = await createOperarioAction({}, form({ ...ALTA, pin: "2580" }));
+
+    expect(res).toEqual({ ok: true, pinReveal: "4827" });
+    expect(mocks.rpcCalls).toEqual([{
+      fn: "admin_create_operario",
+      args: {
+        p_tenant_id: TENANT_ID,
+        p_warehouse_id: ALTA.warehouse_id,
+        p_display_name: "Li Wei",
+        p_display_name_cn: null,
+        p_pin: "4827",
+        p_role: "operario",
+        p_motivo: MOTIVO,
+      },
+    }]);
+    expect(mathRandom).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/studio/operarios");
+  });
+
+  it("si el PIN generado está repetido, sortea otro y lo guarda", async () => {
+    signIn("admin");
+    mocks.forced = [4827, 6083];
+    mocks.rpcErrors = [IN_USE, null];
+    const res = await createOperarioAction({}, form(ALTA));
+
+    expect(res).toEqual({ ok: true, pinReveal: "6083" });
+    expect(mocks.rpcCalls.map((c) => c.args.p_pin)).toEqual(["4827", "6083"]);
+    expect(consoleText()).not.toContain("4827");
+  });
+
+  it("un nombre repetido (P0013) no se reintenta con otro PIN", async () => {
+    signIn("admin");
+    mocks.forced = [4827, 6083];
+    mocks.rpcErrors = [{ code: "P0013", message: "Ya existe un operario con ese nombre en ese warehouse" }];
+    const res = await createOperarioAction({}, form(ALTA));
+
+    expect(res).toEqual({ error: "No se pudo crear: Ya existe un operario con ese nombre en ese warehouse" });
+    expect(mocks.rpcCalls).toHaveLength(1);
+  });
+
+  it("escrito a mano: un PIN común se rechaza en tuteo sin llegar a la base", async () => {
+    signIn("admin");
+    const res = await createOperarioAction({}, form({ ...ALTA, pin_mode: "manual", pin: "1234" }));
+
+    expect(res).toEqual({ fieldErrors: { pin: COMMON } });
+    expect(mocks.rpcCalls).toEqual([]);
+  });
+
+  it.each(["commercial", "support", "marketing"])("%s no crea operarios ni sortea", async (role) => {
+    signIn(role);
+    const res = await createOperarioAction({}, form(ALTA));
+
+    expect(res).toEqual({ error: DENIED });
+    expect(mocks.rpcCalls).toEqual([]);
+    expect(mocks.randomIntCalls).toEqual([]);
+  });
+});
+
+// ─── SDD-0515 · «Ver PIN» ────────────────────────────────────────────────────
+
+describe("viewOperarioPinAction", () => {
+  it.each(["admin", "operations"])("%s ve el PIN con motivo y la RPC recibe el motivo", async (role) => {
+    signIn(role);
+    mocks.rpcData = "6083";
+    const res = await viewOperarioPinAction(OPERARIO_ID, `  ${MOTIVO}  `);
+
+    expect(res).toEqual({ ok: true, pin: "6083" });
+    expect(mocks.rpcCalls).toEqual([
+      { fn: "admin_ver_operario_pin", args: { p_operario_id: OPERARIO_ID, p_motivo: MOTIVO } },
+    ]);
+    // Ver no cambia nada: no se revalida ni se escribe en consola.
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+    expect(consoleText()).not.toContain("6083");
+  });
+
+  it.each(["commercial", "accounting", "warehouse", "support", "marketing"])(
+    "%s no ve el PIN y la RPC no se llama",
+    async (role) => {
+      signIn(role);
+      mocks.rpcData = "6083";
+      const res = await viewOperarioPinAction(OPERARIO_ID, MOTIVO);
+
+      expect(res).toEqual({ error: DENIED });
+      expect(mocks.rpcCalls).toEqual([]);
+    },
+  );
+
+  it("un operations desactivado tampoco", async () => {
+    signIn("operations", { disabled: true });
+    expect(await viewOperarioPinAction(OPERARIO_ID, MOTIVO)).toEqual({ error: DENIED });
+    expect(mocks.rpcCalls).toEqual([]);
+  });
+
+  it.each([["vacío", ""], ["corto", "abc"], ["largo", "x".repeat(301)]])(
+    "con un motivo %s no llama a la base",
+    async (_label, motivo) => {
+      signIn("admin");
+      const res = await viewOperarioPinAction(OPERARIO_ID, motivo);
+
+      expect(res).toEqual({ error: OPERARIO_MOTIVO_MESSAGE.length, fieldError: "motivo" });
+      expect(mocks.rpcCalls).toEqual([]);
+    },
+  );
+
+  it("un PIN anterior a 0475 vuelve como null", async () => {
+    signIn("admin");
+    mocks.rpcData = null;
+    expect(await viewOperarioPinAction(OPERARIO_ID, MOTIVO)).toEqual({ ok: true, pin: null });
+  });
+
+  it("si la base rechaza, no hay PIN en la respuesta", async () => {
+    signIn("admin");
+    mocks.rpcData = "6083";
+    mocks.rpcErrors = [{ code: "P0014", message: "Operario no encontrado" }];
+    const res = await viewOperarioPinAction(OPERARIO_ID, MOTIVO);
+
+    expect(res).toEqual({ error: "No se pudo mostrar el PIN: Operario no encontrado" });
+    expect(JSON.stringify(res)).not.toContain("6083");
+  });
+
+  it("el motivo que la base rechaza vuelve marcado como error del motivo", async () => {
+    signIn("admin");
+    mocks.rpcErrors = [{ code: OPERARIO_MOTIVO_CODE, message: OPERARIO_MOTIVO_MESSAGE.contains_pin }];
+    expect(await viewOperarioPinAction(OPERARIO_ID, MOTIVO)).toEqual({
+      error: OPERARIO_MOTIVO_MESSAGE.contains_pin, fieldError: "motivo",
+    });
   });
 });

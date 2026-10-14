@@ -42,6 +42,7 @@ import {
   type ModuleAccessOverride,
 } from "@/lib/studio/rbac";
 import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types";
+import { OPERARIO_MOTIVO_MESSAGE, operarioMotivoProblem } from "@/lib/studio/operario-pin";
 
 vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
 const { moduleEditDenial, moduleViewDenial } = await import("@/lib/studio/rbac-guard");
@@ -907,4 +908,40 @@ describe("SDD-0515 · propiedad: el rol escrito a mano rompe la coincidencia", (
       await db.close();
     }
   }, SLOW);
+});
+
+// ─── Espejo del motivo: la función SQL real contra operarioMotivoProblem ─────
+
+describe("SDD-0515 · el motivo se valida igual en el Studio y en la base", () => {
+  const CASES: [string, string | null][] = [
+    ["", null], ["abc", null], ["abcd", null], ["   abc   ", null], ["  abcd  ", null],
+    ["\tabc", null], ["abc\n", null], ["😀😀", null], ["😀😀😀😀", null], ["😀".repeat(300), null],
+    ["😀".repeat(301), null], ["x".repeat(300), null], ["x".repeat(301), null],
+    [`${" ".repeat(10)}${"x".repeat(300)}${" ".repeat(10)}`, null], [`\t${"x".repeat(300)}`, null],
+    ["Le puse 4827 a pedido", "4827"], ["Le puse otro a pedido", "4827"], ["4827", "4827"],
+    ["Le puse 4827 a pedido", null],
+  ];
+
+  it("para cada caso, la base y el Studio aceptan y rechazan lo mismo, con el mismo mensaje", async () => {
+    const db = new PGlite();
+    try {
+      await db.exec(block(FILE_0475, "operario_motivo_valido"));
+      const mismatches: string[] = [];
+      for (const [motivo, pin] of CASES) {
+        let sql: string | null;
+        try {
+          await db.query("select public.operario_motivo_valido($1, $2)", [motivo, pin]);
+          sql = null;
+        } catch (error) {
+          sql = error instanceof Error ? error.message : String(error);
+        }
+        const problem = operarioMotivoProblem(motivo, pin);
+        const ts = problem ? OPERARIO_MOTIVO_MESSAGE[problem] : null;
+        if (sql !== ts) mismatches.push(`${JSON.stringify(motivo.slice(0, 20))}/${pin}: base=${sql} studio=${ts}`);
+      }
+      expect(mismatches).toEqual([]);
+    } finally {
+      await db.close();
+    }
+  });
 });

@@ -2,7 +2,9 @@
 
 /**
  * ResetPinDrawer — restablece el PIN de un operario de la app del teléfono
- * (SDD-0513).
+ * (SDD-0513) y, con `reactivar`, vuelve a dar de alta a uno de baja con un PIN
+ * nuevo (SDD-0515: el toggle ya no reactiva, para que nadie vuelva con un PIN
+ * que otro operario activo de su región ya usa).
  *
  * Dos modos:
  *  · «Generar PIN nuevo» (por defecto): lo sortea el SERVIDOR con
@@ -10,11 +12,13 @@
  *    de enviar.
  *  · «Escribirlo yo»: el admin escribe un PIN que ya acordó con el operario.
  *
- * El PIN nuevo se muestra UNA vez. Vive solo en el estado de este cajón: al
- * cerrarlo (Listo, la X, Escape o clic afuera) el padre lo desmonta y el valor
- * desaparece; al recargar la página, también. No se copia a localStorage,
- * sessionStorage, la URL ni la consola. «Copiar PIN» lo pone en el portapapeles
- * del sistema solo cuando el admin lo pide.
+ * Los dos piden un motivo, que va a la auditoría (SDD-0515).
+ *
+ * El PIN nuevo se muestra en la respuesta. Vive solo en el estado de este
+ * cajón: al cerrarlo (Listo, la X, Escape o clic afuera) el padre lo desmonta y
+ * el valor desaparece; al recargar la página, también. No se copia a
+ * localStorage, sessionStorage, la URL ni la consola. Después, quien tenga
+ * permiso puede volver a verlo con «Ver PIN», y eso queda en la auditoría.
  */
 
 import { startTransition, useActionState, useState } from "react";
@@ -24,7 +28,6 @@ import {
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
-import { Icon } from "@/app/studio/_components/icons";
 import { StatusIcon } from "@/components/StatusIcon";
 import type { OperarioRow } from "@/lib/studio/operario-queries";
 import {
@@ -33,6 +36,8 @@ import {
   operarioPinProblem,
 } from "@/lib/studio/operario-pin";
 import { generateOperarioPinAction, resetOperarioPinAction } from "../actions";
+import { MotivoField, motivoListo } from "./MotivoField";
+import { PinRevealBlock } from "./PinRevealBlock";
 
 type State = {
   ok?: boolean;
@@ -68,9 +73,12 @@ const MODE_OPTIONS = [
 export function ResetPinDrawer({
   operario,
   onClose,
+  reactivar = false,
 }: {
   operario: OperarioRow;
   onClose: () => void;
+  /** Reactiva a un operario de baja con el PIN nuevo (SDD-0515). */
+  reactivar?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(
     submitReset,
@@ -78,15 +86,23 @@ export function ResetPinDrawer({
   );
   const [mode, setMode] = useState<PinMode>("generar");
   const [pin, setPin] = useState("");
+  const [motivo, setMotivo] = useState("");
 
   if (state.ok && state.pinReveal) {
     return (
-      <PinReveal operario={operario} pin={state.pinReveal} onClose={onClose} />
+      <PinReveal
+        operario={operario}
+        pin={state.pinReveal}
+        reactivado={reactivar}
+        onClose={onClose}
+      />
     );
   }
 
   const manualProblem = mode === "manual" ? operarioPinProblem(pin) : null;
-  const canSubmit = mode === "generar" || manualProblem === null;
+  const canSubmit =
+    (mode === "generar" || manualProblem === null) &&
+    motivoListo(motivo, mode === "manual" ? pin : null);
   // Mientras escribe no se regaña por largo; sí se avisa apenas completa un
   // PIN que la base rechazaría por común.
   const liveError =
@@ -101,8 +117,12 @@ export function ResetPinDrawer({
 
   return (
     <DrawerShell
-      title={`Restablecer PIN · ${operario.display_name}`}
-      subtitle="El PIN actual deja de funcionar en cuanto lo restableces."
+      title={reactivar ? `Reactivar a ${operario.display_name}` : `Restablecer PIN · ${operario.display_name}`}
+      subtitle={
+        reactivar
+          ? "Para volver a entrar necesita un PIN nuevo: el anterior pudo pasar a otro operario."
+          : "El PIN actual deja de funcionar en cuanto lo restableces."
+      }
       onClose={onClose}
       pending={isPending}
       width={520}
@@ -121,6 +141,7 @@ export function ResetPinDrawer({
       >
         <input type="hidden" name="operario_id" value={operario.id} />
         <input type="hidden" name="pin_mode" value={mode} />
+        {reactivar && <input type="hidden" name="reactivar" value="1" />}
 
         <div>
           <span className="studio-label" style={{ display: "block" }}>
@@ -144,8 +165,9 @@ export function ResetPinDrawer({
               margin: 0,
             }}
           >
-            Al restablecerlo verás el PIN nuevo una sola vez, para que se lo
-            pases al operario.
+            {reactivar
+              ? "Al reactivarlo verás el PIN nuevo, para que se lo pases al operario."
+              : "Al restablecerlo verás el PIN nuevo, para que se lo pases al operario."}
           </p>
         ) : (
           <div>
@@ -205,6 +227,16 @@ export function ResetPinDrawer({
           </div>
         )}
 
+        <MotivoField
+          id="reset-motivo"
+          value={motivo}
+          onChange={setMotivo}
+          pin={mode === "manual" ? pin : null}
+          serverError={state.fieldErrors?.motivo}
+          disabled={isPending}
+          placeholder={reactivar ? "Ej.: vuelve de vacaciones" : "Ej.: el operario olvidó su PIN"}
+        />
+
         <ErrorAlert state={state} compact />
       </form>
 
@@ -213,42 +245,31 @@ export function ResetPinDrawer({
         onClose={onClose}
         isPending={isPending}
         canSubmit={canSubmit}
-        submitLabel="Restablecer PIN"
-        pendingLabel="Restableciendo…"
+        submitLabel={reactivar ? "Reactivar con PIN nuevo" : "Restablecer PIN"}
+        pendingLabel={reactivar ? "Reactivando…" : "Restableciendo…"}
       />
     </DrawerShell>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Revelado único
+// Revelado
 // ─────────────────────────────────────────────────────────────
-
-type CopyState = "idle" | "copied" | "failed";
 
 function PinReveal({
   operario,
   pin,
+  reactivado,
   onClose,
 }: {
   operario: OperarioRow;
   pin: string;
+  reactivado: boolean;
   onClose: () => void;
 }) {
-  const [copy, setCopy] = useState<CopyState>("idle");
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(pin);
-      setCopy("copied");
-    } catch {
-      setCopy("failed");
-    }
-  };
-
   return (
     <DrawerShell
-      title="PIN restablecido"
+      title={reactivado ? "Operario reactivado" : "PIN restablecido"}
       subtitle={`PIN nuevo de ${operario.display_name}`}
       onClose={onClose}
       pending={false}
@@ -287,47 +308,10 @@ function PinReveal({
             size={16}
             style={{ color: "var(--warning)", marginTop: 1 }}
           />
-          <span>Anótalo ahora: no se vuelve a mostrar.</span>
+          <span>Pásaselo al operario. Volver a verlo con «Ver PIN» queda en la auditoría.</span>
         </div>
 
-        <p
-          style={{
-            margin: 0,
-            padding: "20px 32px",
-            background: "var(--bg-elevated)",
-            border: "2px dashed var(--wine)",
-            borderRadius: "var(--r-md)",
-            font: "900 38px/1 var(--f-mono)",
-            color: "var(--wine-text)",
-            letterSpacing: "0.16em",
-          }}
-        >
-          {pin}
-        </p>
-
-        <button
-          type="button"
-          className="studio-btn studio-btn-ghost studio-btn-sm"
-          onClick={handleCopy}
-        >
-          {copy === "copied" ? Icon.check(14) : Icon.copy(14)}
-          {copy === "copied" ? "Copiado" : "Copiar PIN"}
-        </button>
-        <span
-          role="status"
-          aria-live="polite"
-          style={{
-            font: "500 12px/1.4 var(--f-sans)",
-            color: "var(--ink-soft)",
-            minHeight: "1.4em",
-          }}
-        >
-          {copy === "copied"
-            ? "PIN copiado."
-            : copy === "failed"
-              ? "No se pudo copiar. Anótalo a mano."
-              : ""}
-        </span>
+        <PinRevealBlock pin={pin} />
 
         <p
           style={{
@@ -338,8 +322,9 @@ function PinReveal({
             margin: 0,
           }}
         >
-          El PIN anterior ya no funciona. Pásaselo al operario para que entre a
-          la app del teléfono.
+          {reactivado
+            ? "Ya puede volver a entrar a la app del teléfono con este PIN."
+            : "El PIN anterior ya no funciona. Pásaselo al operario para que entre a la app del teléfono."}
         </p>
       </div>
       <footer

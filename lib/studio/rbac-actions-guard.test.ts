@@ -252,8 +252,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // restablece el PIN con uno sorteado en el servidor y llama a
   // `moduleEditDenial(supabase, "operarios")` antes de sortear; pasa el
   // veredicto por acción sin entrar en ninguna de las dos listas.
+  // SDD-0515 sumó `operarios/actions.ts::viewOperarioPinAction` (429 → 430):
+  // «Ver PIN» llama a `moduleEditDenial(supabase, "operarios")` antes de leer
+  // nada, y la RPC repite el candado con la matriz y audita en su transacción;
+  // pasa el veredicto por acción sin entrar en ninguna de las dos listas.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(429);
+    expect(reportes.length).toBe(430);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

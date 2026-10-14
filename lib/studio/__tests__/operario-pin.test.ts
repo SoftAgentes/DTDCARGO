@@ -30,6 +30,11 @@ import {
   isValidOperarioPin,
   operarioPinProblem,
   saveWithFreshOperarioPin,
+  OPERARIO_MOTIVO_CODE,
+  OPERARIO_MOTIVO_MESSAGE,
+  OPERARIO_PIN_LEGACY_MESSAGE,
+  isOperarioMotivoRejected,
+  operarioMotivoProblem,
 } from "../operario-pin";
 import { generateOperarioPin, saveWithGeneratedOperarioPin } from "../operario-pin-generator";
 
@@ -246,5 +251,49 @@ describe("saveWithGeneratedOperarioPin (crypto.randomInt real)", () => {
     expect(new Set(db.saved).size).toBe(2);
     for (const pin of db.saved) expect(operarioPinProblem(pin), pin).toBeNull();
     expect(result.pin).toBe(db.saved[1]);
+  });
+});
+
+// ─── SDD-0515 · motivo obligatorio ──────────────────────────────────────────
+
+describe("operarioMotivoProblem (espejo de operario_motivo_valido)", () => {
+  it("acepta de 4 a 300 caracteres y rechaza fuera de ese rango", () => {
+    expect(operarioMotivoProblem("abcd")).toBeNull();
+    expect(operarioMotivoProblem("x".repeat(300))).toBeNull();
+    expect(operarioMotivoProblem("abc")).toBe("length");
+    expect(operarioMotivoProblem("x".repeat(301))).toBe("length");
+    expect(operarioMotivoProblem("")).toBe("length");
+  });
+
+  it("recorta sólo espacios, como btrim(), y cuenta caracteres, como char_length()", () => {
+    expect(operarioMotivoProblem("   abc   ")).toBe("length");
+    expect(operarioMotivoProblem("  abcd  ")).toBeNull();
+    // Un tab no es espacio para btrim(): cuenta como carácter.
+    expect(operarioMotivoProblem("\tabc")).toBeNull();
+    // Dos emojis son 2 caracteres para la base aunque sean 4 unidades UTF-16.
+    expect("😀😀".length).toBe(4);
+    expect(operarioMotivoProblem("😀😀")).toBe("length");
+    expect(operarioMotivoProblem("😀".repeat(300))).toBeNull();
+  });
+
+  it("no deja el PIN en el motivo cuando se conoce", () => {
+    expect(operarioMotivoProblem("Le puse 4827 a pedido", "4827")).toBe("contains_pin");
+    expect(operarioMotivoProblem("Le puse otro a pedido", "4827")).toBeNull();
+    expect(operarioMotivoProblem("Le puse 4827 a pedido")).toBeNull();
+    expect(operarioMotivoProblem("Le puse 4827 a pedido", null)).toBeNull();
+  });
+
+  it("los mensajes son los de la base, en tuteo, y sólo P0020 es «motivo»", () => {
+    const sql = readFileSync(new URL("../../../supabase/migrations/0475_pin_operarios_endurecer.sql", import.meta.url), "utf8")
+      .replace(/\r\n/g, "\n");
+    for (const message of Object.values(OPERARIO_MOTIVO_MESSAGE)) {
+      expect(sql).toContain(`raise exception '${message}' using errcode = '${OPERARIO_MOTIVO_CODE}';`);
+    }
+    const all = [...Object.values(OPERARIO_MOTIVO_MESSAGE), OPERARIO_PIN_LEGACY_MESSAGE].join(" ");
+    expect(all).not.toMatch(/escribí|restablecé|usá|elegí|podés/i);
+    expect(isOperarioMotivoRejected({ code: OPERARIO_MOTIVO_CODE })).toBe(true);
+    for (const error of [{ code: "P0018" }, { code: "P0010" }, { code: "42501" }, null]) {
+      expect(isOperarioMotivoRejected(error)).toBe(false);
+    }
   });
 });

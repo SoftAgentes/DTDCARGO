@@ -22,6 +22,10 @@
  * la base, comparando contra cada bcrypt. La RPC lo rechaza con
  * `OPERARIO_PIN_IN_USE_CODE`; `saveWithFreshOperarioPin` sortea otro y vuelve a
  * intentar cuando el PIN lo puso el servidor.
+ *
+ * MOTIVO (SDD-0515). Alta, restablecimiento y «Ver PIN» exigen un motivo que va
+ * a la auditoría. `operarioMotivoProblem` es el espejo de
+ * `operario_motivo_valido`: avisa antes de llamar a la base, que es la que manda.
  */
 
 export const OPERARIO_PIN_LENGTH = 4;
@@ -106,6 +110,55 @@ export const OPERARIO_PIN_IN_USE_MESSAGE =
 export function isOperarioPinInUse(error: { code?: string } | null | undefined): boolean {
   return error?.code === OPERARIO_PIN_IN_USE_CODE;
 }
+
+// ─── Motivo, «Ver PIN» y reactivación (SDD-0515, migr 0475) ─────────────────
+
+/** SQLSTATE del motivo inválido (vacío, corto, largo o con el PIN adentro). */
+export const OPERARIO_MOTIVO_CODE = "P0020";
+/** SQLSTATE de activar con el toggle a un operario de baja: hay que darle PIN nuevo. */
+export const OPERARIO_REACTIVAR_CODE = "P0019";
+
+/** Límites del motivo: los mismos que `operario_motivo_valido` en la base. */
+export const OPERARIO_MOTIVO_MIN = 4;
+export const OPERARIO_MOTIVO_MAX = 300;
+
+export type OperarioMotivoProblem = "length" | "contains_pin";
+
+/** Copy del Studio para cada motivo inválido: el mismo texto que da la base. */
+export const OPERARIO_MOTIVO_MESSAGE: Record<OperarioMotivoProblem, string> = {
+  length: "Escribe el motivo: entre 4 y 300 caracteres.",
+  contains_pin: "No escribas el PIN en el motivo: queda en la auditoría.",
+};
+
+/**
+ * `null` si la base aceptaría el motivo; si no, el problema. El motivo va a la
+ * auditoría: se mide recortado y no puede llevar el PIN que se está guardando.
+ */
+export function operarioMotivoProblem(motivo: string, pin?: string | null): OperarioMotivoProblem | null {
+  // Igual que la base: btrim() sin segundo argumento sólo quita espacios, y
+  // char_length() cuenta caracteres, no unidades UTF-16 (un emoji es uno).
+  const trimmed = motivo.replace(/^ +| +$/g, "");
+  const length = [...trimmed].length;
+  if (length < OPERARIO_MOTIVO_MIN || length > OPERARIO_MOTIVO_MAX) return "length";
+  if (pin && trimmed.includes(pin)) return "contains_pin";
+  return null;
+}
+
+export function isOperarioMotivoRejected(error: { code?: string } | null | undefined): boolean {
+  return error?.code === OPERARIO_MOTIVO_CODE;
+}
+
+/**
+ * Respuesta de `viewOperarioPinAction`. `pin: null` = PIN anterior a 0475, que
+ * no tiene copia cifrada. `fieldError` marca el campo a corregir en el diálogo.
+ */
+export type ViewPinResult =
+  | { ok: true; pin: string | null }
+  | { ok?: undefined; error: string; fieldError?: "motivo" };
+
+/** «Ver PIN» de un operario cuyo PIN se guardó antes de 0475 (no hay copia cifrada). */
+export const OPERARIO_PIN_LEGACY_MESSAGE =
+  "Este PIN es anterior al cambio: restablécelo una vez para poder verlo.";
 
 /**
  * Intentos de guardar un PIN sorteado mientras la base diga que está repetido.
