@@ -723,18 +723,33 @@ sea secreto.
 3. Smoke por rol en `nuevo.dtdcargo.com`: Studio (login con contraseña), Portal con un cliente, PWA `/m` con PIN, subida de archivo, Realtime. El magic link y los correos llevan a `dtdcargo.com` (SITE_URL): se prueban el jueves.
 4. `docker stats` del web con uso real; si algo falla, se corrige con calma y el jueves se mueve.
 
-**Jueves 15 en la noche (paso 2: la web, sin mantenimiento).** La tabla usa los minutos del domingo; se corren a la hora que fije Sam.
+**Ensayo ejecutado el 2026-10-14** (horas UTC; Caracas = −4):
 
-| Hora | Paso | Quién |
+| Hora | Qué | Resultado |
 |---|---|---|
-| 07:00 | `DTD_WEB_IMAGE=ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha de main>` en el `.env`; `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d web` (**sin `cron`**: los crons de Vercel siguen vivos hasta las 07:25 y correrían dos veces); `web` healthy; `curl -H 'Host: dtdcargo.com' https://217.216.54.70/robots.txt -k` → 200 | VPS |
-| 07:10 | Hostinger: `A dtdcargo.com` y `CNAME www` → `217.216.54.70` (TTL 300 desde el 24) | Sam |
-| 07:15 | Certificado de `dtdcargo.com` emitido por Traefik con las primeras visitas; `curl -sI https://dtdcargo.com` con emisor Let's Encrypt | VPS |
-| 07:20 | Telegram: `setWebhook` con `https://dtdcargo.com/api/telegram/webhook` y `secret_token` = `TELEGRAM_WEBHOOK_SECRET` del `.env` del servidor | VPS (token del `.env`) |
-| 07:25 | Apagar los crons de Vercel (deploy con `vercel.json` sin `crons`) o pausar el proyecto cuando ya no llegue tráfico; **después**, `up -d cron` en el VPS y un cron disparado a mano con `CRON_SECRET` | Sam + VPS |
-| 07:30 | Smoke público: `/`, `/tarifas`, Studio, Portal, PWA, un correo; Resend (webhook e inbound) y Telegram siguen apuntando a `dtdcargo.com` | Sam + Worker |
+| 13:23 | Override `/srv/dtd-cargo/compose.ensayo.yml` (router solo en `Host(nuevo.dtdcargo.com)`, sin `www.nuevo` porque no existe en el DNS y Traefik pediría un solo certificado para los dos; `DOCUMENT_IMPORT_ALLOWED_ORIGINS=https://nuevo.dtdcargo.com`) y `DTD_WEB_IMAGE` fijado por SHA (copia `.env.bak-ensayo-20261014T132336Z`) | `config` con un solo router y `APP_URL` en `dtdcargo.com` |
+| 13:26 | La imagen de `main` salía **sin Google Analytics**: el build arg `NEXT_PUBLIC_GA_ID` vacío llega como `""` y `components/Analytics.tsx` usa `??`, que no cae al ID por defecto con una cadena vacía (0 archivos de `.next/static` con el ID; Vercel lo sirve). Arreglo: variable de repositorio `NEXT_PUBLIC_GA_ID=G-25CD7BZH98` (el ID que sirve producción) | imagen `sha-cbce7692…` (merge de la #207, solo docs): 1 archivo con el ID |
+| 16:30 | Sam creó `A nuevo → 217.216.54.70` (TTL 300) | Google y Cloudflare a las 16:30; los dos autoritativos con serial `2026101403` |
+| 16:31 | `up -d --no-deps web` con la imagen `sha-cbce7692…`, sin `cron` | healthy en 12 s, 0 reinicios; certificado de Let's Encrypt a los 2 s del primer pedido; los 9 servicios de Supabase sin tocar |
+| 16:32 | Smoke sin sesión | 8 PASÓ · 0 FALLÓ; portada en 0,065 s desde el propio VPS; 162 MiB de 2 GiB; 0 errores en el log; los escáneres de Certificate Transparency llegan en segundos (wp-json, xmlrpc → 404). La sesión Director comparó 62 rutas públicas con Vercel (estado, título, canonical, robots): iguales |
+| 16:45 | **`/_next/image` sin optimizar** (hallazgo del Director): el isologo a 48 px salía en PNG de 38 KB contra WebP de 1,5 KB en Vercel. `require('sharp')` fallaba en el contenedor: `libvips-cpp.so…: cannot open shared object file`. El tracer de Next copia el `.node` de sharp pero no las `.so` de libvips. Arreglo en el `Dockerfile` (copia de `@img/*` a `.next/standalone` y prueba de conversión en el build) y en la plantilla `infra/templates/proyecto/Dockerfile.next`; `infra/ops/web/smoke-web.sh` lo vigila | smoke nuevo: VPS 11 PASÓ · 1 FALLÓ (la imagen), Vercel 12 PASÓ · 0 FALLÓ |
+| — | Smoke por roles de Sam (Studio con contraseña, PWA con PIN, subida, Realtime). El Portal **no** se puede probar en `nuevo`: entra solo con enlace mágico y el enlace lleva a `SITE_URL` (`dtdcargo.com`) → va el jueves en T+20 | PENDIENTE |
 
-Rollback del paso 2: DNS de vuelta a Vercel (TTL 300); la base no cambia.
+**Jueves 15 en la noche (paso 2: la web, sin mantenimiento).** Reescrito el 2026-10-14 después del ensayo. T = la hora que fije Sam. **Orden cambiado: primero el DNS, después el router.** Traefik pide el certificado en el momento en que aparece el router. Si el router de `dtdcargo.com` se levanta con el DNS todavía en Vercel, el desafío HTTP de Let's Encrypt llega a Vercel y falla, y que Traefik reintente solo no está medido en este servidor: no se apuesta a eso. Con el DNS ya en el VPS, el certificado de `nuevo` salió en 2 s (ensayo). `www` es un CNAME a la raíz (`dig www.dtdcargo.com @athena.dns-parking.com` → `dtdcargo.com.`): basta cambiar un registro.
+
+| Hora | Paso | Quién | Comprobación |
+|---|---|---|---|
+| T−60 | El Director congela los merges a `main` hasta el fin del paso 2. Imagen: la del ensayo (`DTD_WEB_IMAGE` ya fijado en el `.env`). Si entre el ensayo y el corte se fusionó código de la app, se fija la imagen nueva y se repite el smoke en `nuevo` antes de seguir | Director + VPS | `grep ^DTD_WEB_IMAGE= /srv/dtd-cargo/.env` |
+| T−10 | Última mirada: `web` del ensayo healthy y sin reinicios, los 9 servicios de Supabase healthy, `docker stats` del web | VPS | `infra/ops/web/smoke-web.sh --host nuevo.dtdcargo.com` → 0 FALLÓ |
+| T+0 | Hostinger: registro `A @` (`dtdcargo.com`) de `76.76.21.21` a `217.216.54.70`, TTL 300. `www` no se toca | Sam | — |
+| T+1…5 | Esperar a que los dos autoritativos sirvan la IP nueva: `dig +short dtdcargo.com @athena.dns-parking.com` y `@apollo.dns-parking.com` → `217.216.54.70` (el serial de la zona sube). Mientras tanto, quien tenga la IP vieja en caché sigue en Vercel: misma base, no se pierde nada | VPS | — |
+| T+5 | `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web` **sin `compose.ensayo.yml`**: el router pasa a `Host(dtdcargo.com) \|\| Host(www.dtdcargo.com)` y `nuevo` deja de responder. **Sin `cron`** (los crons de Vercel siguen vivos hasta T+15) | VPS | `web` healthy (~12 s); log de Traefik «Server responded with a certificate» con `dtdcargo.com,www.dtdcargo.com`; `infra/ops/web/smoke-web.sh --host dtdcargo.com` → 0 FALLÓ (certificado, rutas, login del mismo host, `/_next/image` en WebP, Google Analytics, CSP) |
+| T+8 | Telegram: `setWebhook` con `https://dtdcargo.com/api/telegram/webhook` y `secret_token` = `TELEGRAM_WEBHOOK_SECRET` del `.env` del servidor | VPS (token del `.env`) | `getWebhookInfo` sin errores |
+| T+15 | Pasados 10 min del cambio de DNS (TTL 300 vencido): **pausar el proyecto en Vercel** (Settings → General → Pause): la producción de Vercel responde 503 `DEPLOYMENT_PAUSED` (docs de Vercel, «Pause a project»), así que sus crons, que llaman a esa producción, dejan de ejecutar; **después**, `up -d --no-deps cron` en el VPS y un cron disparado a mano con `CRON_SECRET` | Sam + VPS | `docker logs dtd-cargo-cron-1` con 200; `curl -sI https://dtdcargo.com` sin `server: Vercel` |
+| T+20 | Smoke en `dtdcargo.com`: `/`, `/tarifas`, Studio con contraseña, Portal con el **enlace por correo** (es la primera vez que el magic link cae en el VPS), PWA con PIN, una subida, Realtime; Resend (webhook e inbound) y Telegram siguen apuntando a `dtdcargo.com` | Sam + Worker | — |
+| T+30 | `rm /srv/dtd-cargo/compose.ensayo.yml`; Sam borra `A nuevo` en Hostinger; el Director descongela los merges | VPS + Sam + Director | — |
+
+Rollback del paso 2: `A @` de vuelta a `76.76.21.21` (TTL 300) y, si ya se pausó, reanudar el proyecto en Vercel; `stop cron` en el VPS. La base no cambia.
 
 ### 3.7 Revisión de preparación del corte (go/no-go), medida el 2026-10-13
 
