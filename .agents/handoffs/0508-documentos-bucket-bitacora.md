@@ -215,3 +215,8 @@ unitarias; 3) evaluar restricción o backfill en la base; 4) cierre por el diff 
   cierre.
 - **Pendiente:** la prueba manual de Sam (pendiente 3 de arriba; criterio 10 de la spec). La
   SDD-0508 sigue `in-progress` hasta entonces.
+- **Prueba manual, 2026-10-14: PASÓ.** Sam probó la Bitácora en producción: la foto en la galería y
+  en el «Historial», y el borrado de un adjunto de prueba desde el hub. Su texto literal: «Ya probé
+  la 0508, funciona la Bitácora». La SDD-0508 pasa a `done`. Estado de la tarea: **integrada**. Sin
+  pendientes propios. Lo único que queda es el FUERA DE ALCANCE 1: que «Todos los adjuntos» de la
+  0507 tome el bucket de la fila; es propuesta, no tarea de esta SDD.
