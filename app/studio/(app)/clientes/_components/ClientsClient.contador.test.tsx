@@ -77,6 +77,7 @@ function renderLista(over: {
       topeAlcanzado={over.topeAlcanzado ?? false}
       filters={over.filters ?? FILTROS_VACIOS}
       aliados={[]}
+      adjuntos={{}}
     />,
   );
 }
