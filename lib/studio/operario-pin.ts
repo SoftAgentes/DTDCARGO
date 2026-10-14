@@ -7,13 +7,21 @@
  *
  * ESPEJO DE LA BASE. `operarioPinProblem` replica la ÚLTIMA definición de
  * `public.validate_operario_pin_format` (0037, reafirmada sin cambios en 0271,
- * 0280, 0287 y 0288): 4 dígitos ASCII y fuera de una lista de 24 PIN comunes.
+ * 0280, 0287 y 0288, y reescrita por 0475 sólo para pasar su mensaje a tuteo):
+ * 4 dígitos ASCII y fuera de una lista de 24 PIN comunes.
  * La base sigue siendo la autoridad —la RPC `admin_reset_operario_pin` vuelve a
  * validar—; este espejo existe para que el generador nunca proponga un PIN que
- * la base rechazaría, y para que el Studio explique el rechazo con tuteo (el
- * mensaje de la base dice «Elegí», con voseo). La prueba
- * `lib/studio/__tests__/operario-pin.migration.test.ts` corre la función SQL
- * real sobre los 10.000 PIN posibles y exige que ambos lados coincidan.
+ * la base rechazaría, y para que el Studio explique el rechazo con su copy
+ * (hasta que se aplique 0475, el mensaje de la base dice «Elegí», con voseo).
+ * La prueba `lib/studio/__tests__/operario-pin.migration.test.ts` corre la
+ * función SQL real sobre los 10.000 PIN posibles y exige que ambos lados
+ * coincidan.
+ *
+ * PIN REPETIDO (SDD-0515, migr 0475). Lo que este espejo NO puede saber es si
+ * otro operario activo del mismo tenant y región ya usa el PIN: eso sólo lo ve
+ * la base, comparando contra cada bcrypt. La RPC lo rechaza con
+ * `OPERARIO_PIN_IN_USE_CODE`; `saveWithFreshOperarioPin` sortea otro y vuelve a
+ * intentar cuando el PIN lo puso el servidor.
  */
 
 export const OPERARIO_PIN_LENGTH = 4;
@@ -79,4 +87,71 @@ export function drawOperarioPin(randomInt: RandomIntSource): string {
     if (isValidOperarioPin(pin)) return pin;
   }
   throw new Error("No se pudo generar un PIN válido: la fuente de azar falló.");
+}
+
+// ─── PIN repetido en el tenant y la región (SDD-0515, migr 0475) ────────────
+
+/**
+ * SQLSTATE con que `admin_reset_operario_pin` y `admin_create_operario`
+ * rechazan un PIN que ya usa otro operario ACTIVO del mismo tenant y región.
+ * El login (0325) exige una sola coincidencia: un PIN repetido dejaría fuera a
+ * los dos operarios.
+ */
+export const OPERARIO_PIN_IN_USE_CODE = "P0018";
+
+/** Copy del Studio para ese rechazo: el mismo texto que da la base, en tuteo. */
+export const OPERARIO_PIN_IN_USE_MESSAGE =
+  "Ese PIN ya lo usa otro operario activo de la misma región. Usa otro o genera uno nuevo.";
+
+export function isOperarioPinInUse(error: { code?: string } | null | undefined): boolean {
+  return error?.code === OPERARIO_PIN_IN_USE_CODE;
+}
+
+/**
+ * Intentos de guardar un PIN sorteado mientras la base diga que está repetido.
+ * Con k operarios activos en el tenant y la región, cada intento choca con
+ * probabilidad k/9.976: con k = 50, cinco choques seguidos son ~(0,005)^5.
+ * Agotarlos no se esconde: vuelve el rechazo de la base.
+ */
+export const OPERARIO_PIN_MAX_ATTEMPTS = 5;
+
+/**
+ * El PIN guardado, o el último rechazo de la base sin PIN: nunca se devuelve
+ * uno rechazado. `attempts` cuenta los PIN distintos que se le propusieron.
+ */
+export type OperarioPinSave<E> =
+  | { pin: string; error: null; attempts: number }
+  | { pin: null; error: E; attempts: number };
+
+/**
+ * Sortea un PIN, lo guarda y, si la base contesta que otro operario activo del
+ * mismo tenant y región ya lo usa, sortea OTRO distinto y vuelve a intentar,
+ * hasta `maxAttempts`. Cualquier otro error corta en el acto: reintentar no lo
+ * arregla y un rechazo de permiso no debe convertirse en N llamadas. Un PIN que
+ * la base rechazó no se vuelve a proponer ni sale en el resultado.
+ */
+export async function saveWithFreshOperarioPin<E extends { code?: string }>(
+  draw: () => string,
+  save: (pin: string) => PromiseLike<{ error: E | null }>,
+  maxAttempts: number = OPERARIO_PIN_MAX_ATTEMPTS,
+): Promise<OperarioPinSave<E>> {
+  if (!Number.isInteger(maxAttempts) || maxAttempts < 1) {
+    throw new Error("maxAttempts tiene que ser un entero positivo.");
+  }
+  const tried = new Set<string>();
+  let error: E | null = null;
+  let pin = "";
+  while (tried.size < maxAttempts) {
+    pin = draw();
+    for (let i = 0; tried.has(pin) && i < OPERARIO_PIN_MAX_DRAWS; i++) pin = draw();
+    if (tried.has(pin)) {
+      throw new Error("No se pudo generar un PIN distinto: la fuente de azar falló.");
+    }
+    tried.add(pin);
+    ({ error } = await save(pin));
+    if (!isOperarioPinInUse(error)) break;
+  }
+  return error
+    ? { pin: null, error, attempts: tried.size }
+    : { pin, error: null, attempts: tried.size };
 }

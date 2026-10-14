@@ -6,16 +6,23 @@
  * Patrón Studio: cliente Supabase con session del usuario authenticated,
  * llama RPCs admin_* que validan assert_tenant_match() server-side.
  * NO service_role — el admin tiene su propio JWT.
+ *
+ * SDD-0515 (migr 0475): alta y restablecimiento rechazan con P0018 un PIN que
+ * ya usa otro operario activo del mismo tenant y región. Si el PIN lo generó
+ * el servidor, se sortea otro y se reintenta; si lo escribió el admin, vuelve
+ * como error del campo PIN para que elija otro.
  */
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
+  OPERARIO_PIN_IN_USE_MESSAGE,
   OPERARIO_PIN_PROBLEM_MESSAGE,
+  isOperarioPinInUse,
   operarioPinProblem,
 } from "@/lib/studio/operario-pin";
-import { generateOperarioPin } from "@/lib/studio/operario-pin-generator";
+import { saveWithGeneratedOperarioPin } from "@/lib/studio/operario-pin-generator";
 
 type State = {
   ok?: boolean;
@@ -89,6 +96,9 @@ export async function createOperarioAction(
   });
 
   if (error) {
+    if (isOperarioPinInUse(error)) {
+      return { fieldErrors: { pin: OPERARIO_PIN_IN_USE_MESSAGE } };
+    }
     return { error: `No se pudo crear: ${error.message}` };
   }
 
@@ -99,19 +109,21 @@ export async function createOperarioAction(
 // ─────────────────────────────────────────────────────────────
 // Restablecer PIN (SDD-0513)
 //
-// Dos caminos, el mismo candado (`moduleEditDenial` + el rol que exige la RPC
-// desde 0351) y la misma RPC: el PIN llega a la base en claro solo para que
-// `admin_reset_operario_pin` lo guarde como hash bcrypt.
+// Dos caminos, el mismo candado (`moduleEditDenial` + la matriz de módulos que
+// exige la RPC desde 0475) y la misma RPC: el PIN llega a la base en claro solo
+// para que `admin_reset_operario_pin` lo guarde como hash bcrypt.
 //
 //  · generateOperarioPinAction — el servidor sortea el PIN con
 //    crypto.randomInt DESPUÉS del candado. Ignora cualquier `pin` que mande el
-//    formulario.
-//  · resetOperarioPinAction — el admin escribe el PIN (camino de siempre).
+//    formulario. Si la base contesta que otro operario activo del mismo tenant
+//    y región ya lo usa (P0018), sortea otro distinto y reintenta.
+//  · resetOperarioPinAction — el admin escribe el PIN (camino de siempre); un
+//    PIN repetido vuelve como error del campo.
 //
 // En los dos, el PIN viaja de vuelta UNA vez en `pinReveal` y no se escribe
-// en ningún log, tabla, URL ni almacenamiento. La auditoría de quién lo
-// restableció necesita migración (AUD-01 exige el evento en la misma
-// transacción): pendiente de la spec, ver SDD-0513.
+// en ningún log, tabla, URL ni almacenamiento; un PIN rechazado por repetido
+// tampoco. La auditoría de quién lo restableció la escribe la RPC en su misma
+// transacción (AUD-01), sin el PIN: ver SDD-0515.
 // ─────────────────────────────────────────────────────────────
 
 function resetErrorMessage(error: { message: string }): string {
@@ -128,15 +140,16 @@ export async function generateOperarioPinAction(
   const operarioId = parseStr(formData.get("operario_id"));
   if (!operarioId) return { error: "Falta el operario." };
 
-  const pin = generateOperarioPin();
-  const { error } = await supabase.rpc("admin_reset_operario_pin", {
-    p_operario_id: operarioId,
-    p_pin: pin,
-  });
-  if (error) return { error: resetErrorMessage(error) };
+  const saved = await saveWithGeneratedOperarioPin((candidate) =>
+    supabase.rpc("admin_reset_operario_pin", {
+      p_operario_id: operarioId,
+      p_pin: candidate,
+    }),
+  );
+  if (saved.error) return { error: resetErrorMessage(saved.error) };
 
   revalidatePath("/studio/operarios");
-  return { ok: true, pinReveal: pin };
+  return { ok: true, pinReveal: saved.pin };
 }
 
 export async function resetOperarioPinAction(
@@ -159,7 +172,12 @@ export async function resetOperarioPinAction(
     p_operario_id: operarioId,
     p_pin: pin,
   });
-  if (error) return { error: resetErrorMessage(error) };
+  if (error) {
+    if (isOperarioPinInUse(error)) {
+      return { fieldErrors: { pin: OPERARIO_PIN_IN_USE_MESSAGE } };
+    }
+    return { error: resetErrorMessage(error) };
+  }
 
   revalidatePath("/studio/operarios");
   return { ok: true, pinReveal: pin };

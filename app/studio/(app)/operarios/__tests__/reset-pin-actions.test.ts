@@ -41,6 +41,8 @@ const mocks = vi.hoisted(() => ({
   memberships: [] as Membership[],
   rpcCalls: [] as Array<{ fn: string; args: Record<string, unknown> }>,
   rpcError: null as { message: string; code?: string } | null,
+  /** Respuestas por llamada, en orden; vacía = `rpcError` en todas. */
+  rpcErrors: [] as Array<{ message: string; code?: string } | null>,
   fromCalls: [] as string[],
   randomIntCalls: [] as Array<[number, number]>,
   /** Valores forzados para randomInt; vacío = azar real de Node. */
@@ -115,13 +117,22 @@ vi.mock("@/lib/db/server", () => ({
     },
     rpc: async (fn: string, args: Record<string, unknown>) => {
       mocks.rpcCalls.push({ fn, args: { ...args } });
-      return { data: null, error: mocks.rpcError };
+      const error = mocks.rpcErrors.length > 0 ? (mocks.rpcErrors.shift() ?? null) : mocks.rpcError;
+      return { data: null, error };
     },
   }),
 }));
 
-import { generateOperarioPinAction, resetOperarioPinAction } from "../actions";
-import { isValidOperarioPin } from "@/lib/studio/operario-pin";
+import { createOperarioAction, generateOperarioPinAction, resetOperarioPinAction } from "../actions";
+import {
+  OPERARIO_PIN_IN_USE_CODE,
+  OPERARIO_PIN_IN_USE_MESSAGE,
+  OPERARIO_PIN_MAX_ATTEMPTS,
+  isValidOperarioPin,
+} from "@/lib/studio/operario-pin";
+
+/** El rechazo de 0475 (SDD-0515) por PIN de otro operario activo del mismo tenant y región. */
+const IN_USE = { code: OPERARIO_PIN_IN_USE_CODE, message: OPERARIO_PIN_IN_USE_MESSAGE };
 
 function form(fields: Record<string, string>): FormData {
   const fd = new FormData();
@@ -169,6 +180,7 @@ beforeEach(() => {
   mocks.memberships = [];
   mocks.rpcCalls = [];
   mocks.rpcError = null;
+  mocks.rpcErrors = [];
   mocks.fromCalls = [];
   mocks.randomIntCalls = [];
   mocks.forced = [];
@@ -342,5 +354,74 @@ describe("resetOperarioPinAction · el camino manual se conserva", () => {
 
     expect(res).toEqual({ error: DENIED });
     expect(mocks.rpcCalls).toEqual([]);
+  });
+});
+
+// ─── SDD-0515 · la base rechaza un PIN repetido (P0018, migr 0475) ──────────
+
+describe("PIN repetido en el tenant y la región", () => {
+  it("generado: si la base dice que ya lo usa otro operario, sortea otro distinto y lo guarda", async () => {
+    signIn("operations");
+    // El tercer sorteo repite el PIN rechazado: no se vuelve a proponer.
+    mocks.forced = [4827, 4827, 6083];
+    mocks.rpcErrors = [IN_USE, null];
+    const res = await generateOperarioPinAction({}, form({ operario_id: OPERARIO_ID }));
+
+    expect(res).toEqual({ ok: true, pinReveal: "6083" });
+    expect(mocks.rpcCalls.map((c) => c.args.p_pin)).toEqual(["4827", "6083"]);
+    expect(mocks.rpcCalls.every((c) => c.fn === "admin_reset_operario_pin" && c.args.p_operario_id === OPERARIO_ID)).toBe(true);
+    // El PIN rechazado es el de OTRO operario: no sale por ningún lado.
+    expect(JSON.stringify(res)).not.toContain("4827");
+    expect(consoleText()).not.toContain("4827");
+    expect(mocks.revalidatePath).toHaveBeenCalledTimes(1);
+  });
+
+  it(`generado: tras ${OPERARIO_PIN_MAX_ATTEMPTS} repetidos seguidos se rinde con el mensaje de la base y sin PIN`, async () => {
+    signIn("admin");
+    const tried = [4827, 6083, 7310, 5291, 3846];
+    mocks.forced = [...tried];
+    mocks.rpcErrors = tried.map(() => IN_USE);
+    const res = await generateOperarioPinAction({}, form({ operario_id: OPERARIO_ID }));
+
+    expect(res).toEqual({ error: `No se pudo restablecer el PIN: ${OPERARIO_PIN_IN_USE_MESSAGE}` });
+    expect(mocks.rpcCalls).toHaveLength(OPERARIO_PIN_MAX_ATTEMPTS);
+    for (const pin of tried) expect(JSON.stringify(res)).not.toContain(String(pin));
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("generado: un rechazo que no es por repetido no reintenta", async () => {
+    signIn("admin");
+    mocks.forced = [4827, 6083];
+    mocks.rpcErrors = [{ code: "42501", message: "No tienes permiso para realizar esta acción" }];
+    const res = await generateOperarioPinAction({}, form({ operario_id: OPERARIO_ID }));
+
+    expect(res).toEqual({ error: "No se pudo restablecer el PIN: No tienes permiso para realizar esta acción" });
+    expect(mocks.rpcCalls).toHaveLength(1);
+  });
+
+  it("escrito a mano: vuelve como error del campo PIN, sin reintentar ni revelar", async () => {
+    signIn("admin");
+    mocks.rpcErrors = [IN_USE];
+    const res = await resetOperarioPinAction({}, form({ operario_id: OPERARIO_ID, pin: "7310" }));
+
+    expect(res).toEqual({ fieldErrors: { pin: OPERARIO_PIN_IN_USE_MESSAGE } });
+    expect(mocks.rpcCalls).toHaveLength(1);
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("alta: el PIN que escribió el admin no se cambia por otro; vuelve como error del campo", async () => {
+    signIn("admin");
+    mocks.rpcErrors = [IN_USE];
+    const res = await createOperarioAction({}, form({
+      warehouse_id: "30000000-0000-4000-8000-000000000001",
+      display_name: "Li Wei",
+      pin: "7310",
+      role: "operario",
+    }));
+
+    expect(res).toEqual({ fieldErrors: { pin: OPERARIO_PIN_IN_USE_MESSAGE } });
+    expect(mocks.rpcCalls.map((c) => [c.fn, c.args.p_pin])).toEqual([["admin_create_operario", "7310"]]);
+    expect(mocks.randomIntCalls).toEqual([]);
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 });
