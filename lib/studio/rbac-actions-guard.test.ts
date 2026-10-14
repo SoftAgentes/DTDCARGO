@@ -208,7 +208,7 @@ const DEUDA: Lista = {
   "facturacion/actions.ts::lookupInvoiceBillingOptions":
     "Sin candado: `from(\"clients\").select` con los datos de facturación del cliente.",
   "documentos/actions.ts::signDocumentUrl":
-    "Sin candado y sin validar el path: firma CUALQUIER `storagePath` del bucket `documents` que le pasen. Lo único que acota es la RLS de `storage.objects`. Es el más expuesto de esta lista.",
+    "Sin candado de módulo. Desde SDD-0508 recibe el id de la fila, no un path: firma el `storage_path` de una fila de `documents` que la RLS deje leer, en el bucket que dice la fila (sólo `documents` o `bitacora`). Lo que acota es la RLS de `documents` y la de `storage.objects`.",
   "documentos/actions.ts::listDocumentVersionsAction":
     "Sin candado: lista el historial de versiones de una cadena documental.",
   "nomina/actions.ts::listPayrollRunLinesAction":

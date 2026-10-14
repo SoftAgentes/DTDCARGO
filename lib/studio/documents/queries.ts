@@ -17,7 +17,7 @@ import {
 } from "./types";
 
 const COLUMNS =
-  "id, tenant_id, entity_type, entity_id, folder, doc_type, name, storage_path, content_type, size_bytes, status, valid_until, uploaded_by, created_at, updated_at, deleted_at, root_id, version_no, supersedes_id, is_current, version_note";
+  "id, tenant_id, entity_type, entity_id, folder, doc_type, name, storage_path, bucket_id, content_type, size_bytes, status, valid_until, uploaded_by, created_at, updated_at, deleted_at, root_id, version_no, supersedes_id, is_current, version_note";
 
 /**
  * Documentos adjuntos a una entidad concreta (el panel embebible de Slice B),
