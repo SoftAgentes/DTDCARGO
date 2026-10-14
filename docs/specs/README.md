@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 492 specs)
+### Índice de specs (generado · 493 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -529,7 +529,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0503 | Carrusel de fotos de la empresa en la web pública | in-progress | interno |
 | 0504 | Entrega incluida desde Editar ciudad | done | interno |
 | 0505 | Dockerizar DTD Cargo para el servidor propio en Contabo (Fase 0) | in-progress | interno |
+| 0506 | Los adjuntos de Bitácora vuelven a pasar la validación de ent… | done | interno |
 | 0508 | El objeto de un documento se firma y se borra en el bucket qu… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0506, 0507 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0507 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
