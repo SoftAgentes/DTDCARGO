@@ -1,7 +1,9 @@
 # Handoff 0506 · Los adjuntos de Bitácora vuelven a pasar la validación de entidad
 
-- Fecha: 2026-10-14 00:58Z → 01:35Z (2026-10-13 noche, Caracas). Estado de la tarea:
-  **migración lista y probada, NO APLICADA**. PR abierta contra `main`, sin merge.
+- Fecha: 2026-10-14 00:58Z → 01:50Z (2026-10-13 noche, Caracas). Estado de la tarea:
+  **0473 APLICADA en el servidor propio el 2026-10-14 a las 01:44:06Z y verificada**. Falta el
+  smoke en la UI. PR [#199](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/199) abierta
+  contra `main`, sin merge.
 - Owner/sesión: `claude-jovial-lovelace-6d8291` (Claude Opus 5.5, Worker). Sesión de la app:
   «Arreglar adjuntos de tareas de bitácora». No había Director activo (ListAgents a las
   01:20Z); hice la coordinación de esta tarea según la skill Worker.
@@ -133,33 +135,68 @@ la máquina libre (CPU 0 %, Docker sin contenedores, sin Director activo).
 
 - `65f0bbbd` docs: SDD-0506 spec — los adjuntos de Bitácora vuelven a pasar la validación de entidad
 - `6e72a85b` fix(studio): SDD-0506 — 0473 devuelve la rama bitacora_task a document_entity_in_tenant
-- (este handoff) docs: SDD-0506 handoff
+- `8cea4821` docs: SDD-0506 handoff — 0473 lista y probada, pendiente del OK de Sam
+- Tras aplicar: un commit que retira la espera del baseline y ajusta la prueba («ya no es una
+  espera y el archivo no se tocó»), y otro con la spec y este handoff al día.
 
 ## PR / BRANCH
 
-- Rama `claude/reverent-poitras-59e021` → PR contra `main` (el enlace va en el reporte de cierre).
-  No es draft: lo que falta es la aplicación, que es una autorización aparte, no validación pendiente.
-- **Fusionar la PR NO aplica la migración** y no rompe nada: hasta aplicarla, la subida sigue
-  fallando como hoy. Orden libre.
+- Rama `claude/reverent-poitras-59e021` → PR [#199](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/199)
+  contra `main`. No es draft.
+- La espera se agregó y se retiró en esta misma PR, así que no hace falta una PR de limpieza: el
+  diff neto del baseline contra `main` es vacío.
+
+## APLICACIÓN EN EL SERVIDOR (2026-10-14)
+
+- **Autorización**: Sam, en esta sesión, textual: «ok, aplica la 0473_document_entity_bitacora_task
+  en el servidor». Nombra la migración y el destino. Sam la ordenó en el servidor sabiendo (lo
+  decía el reporte anterior) que el procedimiento del §4 de `servidor-contabo.md` no existe todavía:
+  la registro como la **excepción explícita** a ese bloqueo, solo para esta migración.
+- **Coordinación**: no había Director activo; la sesión «Contabo VPS y dockerización de proyectos»
+  estaba inactiva. En el servidor: stack `dtd-cargo` sano (Up 11 h, `db` healthy), carga 6 sobre
+  8 vCPU, 24 conexiones y 0 esperando locks.
+- **Acceso**: `C:\Windows\System32\OpenSSH\ssh.exe -o BatchMode=yes root@217.216.54.70` (agente de
+  Windows). Base: `docker exec -i dtd-cargo-db-1 psql -U postgres -d postgres -X` (postgres no es
+  superusuario; es dueño de la función y del ledger).
+- **Lectura previa** (READ ONLY, 01:42:43Z): cuerpo `fe0e86178dfd646dc7d58b46ef404949` (0314), dueño
+  `postgres`, DEFINER, STABLE, boolean, `{search_path=""}`, ACL
+  `{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}`, comentario de 0215; el
+  enum con `bitacora_task`; `bitacora_tasks` con `id,tenant_id`, sin `deleted_at`;
+  `documents_validate_entity` = 0097 (`f30ca464…`); `comment_entity_in_tenant` = `473bd66f…` (igual
+  que Cloud). Ledger de 478 filas, última `20261013002655 · 0472_kommo_functions_base_url`, sin 0473.
+  0 documentos `bitacora_task`.
+- **Convención del ledger, medida**: la fila de 0472 guarda el archivo **con** el salto final (md5 =
+  md5 del archivo, `1cfa2376…`, 10142 caracteres); la de 0471, sin él (`45696a7f…`). Para 0473 se
+  guardó el archivo exacto, así que la identidad es directa contra el blob.
+- **Aplicación** (01:44:06.960Z → 01:44:06.996Z, 36 ms): el script lo generó node a partir del blob
+  de `6e72a85b`. El generador comprobó md5, bytes, que no hubiera CRLF ni barras invertidas, y que
+  el delimitador no apareciera en el texto. Se verificó el md5 del script en el servidor
+  (`d096408f…`). Una sola transacción: el texto de la migración + `insert` en
+  `supabase_migrations.schema_migrations` (`version` = hora UTC, `name` exacto, `statements` =
+  `array[<archivo>]`, `created_by` = `servidor-propio:psql:SDD-0506`) + `commit`. Salida: `SET`,
+  `SET`, `DO` (preflight), `CREATE FUNCTION`, `COMMENT`, `REVOKE`, `GRANT`, `DO` (postflight),
+  `INSERT 0 1`, `COMMIT`; psql exit 0.
+- **Verificación** (READ ONLY, 01:44:43Z): cuerpo `333626d3c6fc4a6b2490f7a4607abab9`, dueño `postgres`,
+  DEFINER, STABLE, boolean, `search_path` vacío, la misma ACL; EXECUTE para `authenticated` y
+  `service_role`, no para `anon`; comentario de SDD-0506. `documents_validate_entity` y
+  `comment_entity_in_tenant` intactas. Ledger: `20261014014406 · 0473_document_entity_bitacora_task`,
+  1 sentencia, md5 `e4db161fb91db934d71585f9c8da86f8` = blob, 11078 bytes, **479 filas**. Prueba
+  funcional, agregada y sin mostrar filas: `hay_tareas` t, `todas_aceptadas_con_su_tenant` t,
+  `alguna_aceptada_con_otro_tenant` f, `alguna_inexistente_aceptada` f. 0 esperando locks.
+- **Evidencia**: `/srv/ops/evidencias/apply-0473-dtd-cargo-20261014T0144Z/` (los tres scripts, sus
+  tres salidas y `SHA256SUMS`). La copia de trabajo en `/root/dtd-0473` se borró después de copiarla.
+- **Cloud NO**: Supabase Cloud no tiene la 0473. Si el corte se revirtiera a Cloud, la subida
+  fallaría allí otra vez hasta aplicarla.
+- La cabecera «NO APLICADA» del archivo **no se corrige**: el ledger guarda su texto exacto.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. **OK nominal de Sam para aplicar `0473_document_entity_bitacora_task`** en producción, que desde
-   el 2026-10-14 es el Supabase self-hosted del servidor propio (217.216.54.70).
-   **Bloqueo previo**: `docs/runbooks/servidor-contabo.md` §4 dice que hasta reescribir
-   `aplicar-migraciones-prod.md` para el VPS (psql + fila del ledger a mano o
-   `supabase migration up --db-url`) no se aplican migraciones allí. Ese runbook no existe
-   todavía. Sam decide si se escribe primero o si hay una excepción explícita.
-2. Antes de aplicar, en el servidor y en modo READ ONLY: `proowner`, `prosecdef`, `proconfig`,
-   `proacl` y `md5(prosrc)` de `document_entity_in_tenant`. Se espera `fe0e8617…`, dueño `postgres`
-   y la ACL de arriba. Si difiere, la migración aborta sola.
-3. Aplicar **de a una**, con el name exacto `0473_document_entity_bitacora_task` y el archivo de
-   11078 bytes / md5 `e4db161f…`. Postflight: md5 `333626d3…` y ACL.
-4. **Smoke** en el servidor: subir una foto a una tarea de prueba, verla en la galería «Prueba de
-   avance» y quitarla. Leer que la fila de `documents` quedó con `deleted_at` y el objeto fuera del
-   bucket `bitacora`.
-5. Tras aplicar y verificar: retirar la entrada de `pendingBelowCutoff` en una PR de limpieza y
-   actualizar el estado de la SDD-0506.
+1. **Smoke en la UI** (Sam, que tiene la sesión): Bitácora → editar una tarea de prueba → «Prueba de
+   avance» → «Subir foto o documento». La foto aparece en la galería; quitarla con el botón de la
+   galería. Si falla, el mensaje que devuelva la acción dice qué candado saltó.
+2. Revisión y merge de la PR #199. El encargo pidió no mergear desde esta sesión: lo hace el
+   Director o Sam (merge = despliegue). La PR no cambia la app, así que el orden respecto de la
+   migración ya no importa.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -168,21 +205,25 @@ la máquina libre (CPU 0 %, Docker sin contenedores, sin Director activo).
    El hub ya sabe que no las firma (nota de SDD-0146 en `lib/studio/documents/types.ts:266`). Pero
    `deleteDocument` (`app/studio/(app)/documentos/actions.ts:295`) borra el objeto en
    `DOCUMENTS_BUCKET` y en `bitacora` quedaría **huérfano**. Y `bitacora-purge-orphans` nunca toca
-   adjuntos de tarea. Hoy no hay filas (0 en Cloud); aparecen apenas se aplique la 0473. Propuesta:
+   adjuntos de tarea. Había 0 filas antes de aplicar; con la 0473 ya aplicada, la primera subida
+   real crea la primera. Propuesta (tarea sugerida aparte en la app):
    que la acción envíe `bucket_id: 'bitacora'` y que el borrado del hub use `doc.bucket_id`. Es
    cambio de producto: otra SDD.
-2. **Runbook de aplicación para el VPS** (SDD-0505 Fase 4): bloquea esta migración y cualquier otra
-   en el servidor propio. Es del Director/SDD-0505.
+2. **Runbook de aplicación para el VPS** (SDD-0505 Fase 4): sigue sin existir. La 0473 entró por
+   excepción explícita de Sam, y el procedimiento de arriba («APLICACIÓN EN EL SERVIDOR») sirve de
+   borrador medido: psql en el contenedor, migración y ledger en una transacción, identidad contra
+   el blob y evidencia en `/srv/ops/evidencias`. Escribirlo es del Director/SDD-0505.
 3. **md5 vivo distinto del archivo en `comment_entity_in_tenant`** por comentarios que se perdieron
    al aplicar la 0215. No es un defecto. Pero un preflight futuro por md5 sobre esa función tiene
    que usar `473bd66f…`, no el md5 del archivo.
-4. `migrations-applied` sigue midiendo Supabase Cloud (RPC 0239 contra `NEXT_PUBLIC_SUPABASE_URL`).
-   Con producción en el servidor, su verde/rojo depende de a qué URL apunte `.env.local`.
+4. `migrations-applied` mide lo que diga `NEXT_PUBLIC_SUPABASE_URL` (RPC 0239). Si un `.env.local`
+   todavía apunta a Cloud, va a marcar la 0473 como faltante. Sería medir bien el objeto
+   equivocado: la 0473 está en el ledger del servidor, que es producción.
 
 ## IMPACTO DOCUMENTAL Y CONOCIMIENTO
 
 - Documento canónico nuevo: la spec SDD-0506 (+ índice regenerado). Ningún runbook ni AGENTS
-  cambió; la condición de aplicación vive en el baseline y en la cabecera de la migración.
+  cambió. La aplicación quedó registrada en la spec (§ Aplicación) y en este handoff.
 - `pnpm knowledge:status`: `structural INVALID` (4479 pendientes, 3304 ausentes) y `semantic INVALID`
   en **todo** el repo, porque este worktree no tiene grafo construido. No lo causa este diff.
   Graphify se publica desde main integrado (Director). Recibos semánticos: no aplica (sin fuentes de
@@ -193,9 +234,10 @@ la máquina libre (CPU 0 %, Docker sin contenedores, sin Director activo).
 
 ## HANDOFF AL DIRECTOR
 
-- Revisar la PR (SHA de cabeza en el reporte). Integración: orden libre respecto de la migración.
-- La aplicación necesita **dos** decisiones de Sam: el OK nominal de la 0473 y cómo se aplica en el
-  VPS mientras no exista el runbook de la Fase 4.
+- Revisar la PR #199 (SHA de cabeza en el reporte). La 0473 ya está aplicada en el servidor; la PR
+  ya no declara espera.
+- Escribir en el ledger del servidor queda registrado arriba: quién (esta sesión), con qué OK y
+  con qué método. GitHub no distingue sesiones; este handoff sí.
 - Si `main` se mueve antes del merge, `docs/specs/README.md` choca: usar el driver de main y
   regenerar con `node scripts/build-docs-index.mjs`.
 - La rama de reserva `codex/sdd-reserve-0506-bitacora-adjuntos-entidad` es local y sin push. Se

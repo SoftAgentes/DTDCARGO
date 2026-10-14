@@ -138,15 +138,45 @@ nominal de Sam nombrando `0473_document_entity_bitacora_task`. Desde el
 2026-10-14 producción es el Supabase self-hosted del servidor propio
 ([runbook](../../runbooks/servidor-contabo.md)), y su §4 dice que, mientras
 [aplicar-migraciones-prod.md](../../runbooks/aplicar-migraciones-prod.md) no se
-reescriba para el VPS, no se aplican migraciones allí. La condición completa
-está en `supabase/migrations-baseline.json › pendingBelowCutoff`.
+reescriba para el VPS, no se aplican migraciones allí.
+
+### Aplicación (2026-10-14)
+
+**APLICADA al servidor propio** el 2026-10-14 a las 01:44:06Z, con el OK nominal
+de Sam en esta tarea: «ok, aplica la 0473_document_entity_bitacora_task en el
+servidor». Sam la ordenó en el servidor sabiendo que el procedimiento del §4 no
+existe todavía, y eso cuenta como la excepción explícita. Se hizo así:
+
+- Lectura previa READ ONLY: cuerpo `fe0e8617…` de 0314, dueño `postgres`,
+  DEFINER, STABLE, `search_path=""`, la ACL esperada, el enum con el valor,
+  `bitacora_tasks` sin `deleted_at`, ledger de 478 filas sin 0473, 0 adjuntos de
+  Bitácora y nadie esperando locks.
+- Una sola transacción por `psql` como `postgres`, dentro del contenedor `db` del
+  proyecto `dtd-cargo`: el archivo del commit `6e72a85b` y su fila del ledger
+  (versión `20261014014406`, name `0473_document_entity_bitacora_task`, una
+  sentencia con el archivo entero, md5 `e4db161f…` y 11078 bytes, igual al blob;
+  `created_by` = `servidor-propio:psql:SDD-0506`). Preflight y postflight
+  pasaron; 36 ms.
+- Verificación READ ONLY: cuerpo `333626d3…`, misma forma y ACL, sin EXECUTE
+  para `anon`, el trigger de `documents` y el helper de comentarios intactos,
+  ledger de 479 filas. En la prueba funcional, agregada y sin mostrar filas, toda
+  tarea existente se acepta con su tenant y ninguna con un tenant ajeno ni con un
+  id inexistente.
+
+Evidencia en el servidor: `/srv/ops/evidencias/apply-0473-dtd-cargo-20261014T0144Z/`
+(scripts, salidas y `SHA256SUMS`). **No se aplicó en Supabase Cloud**, que queda
+como red de seguridad del corte: si se volviera a Cloud, la subida fallaría allí
+de nuevo hasta aplicarla. La espera se agregó y se retiró del baseline en esta
+misma PR. La cabecera «NO APLICADA» del archivo no se corrige, porque el ledger
+guarda su texto exacto.
 
 ### Allowlist exacta
 
 - `supabase/migrations/0473_document_entity_bitacora_task.sql` (nuevo)
 - `supabase/tests/0473_document_entity_bitacora_task.test.sql` (nuevo)
 - `lib/studio/__tests__/document-entity-bitacora-task.migration.test.ts` (nuevo)
-- `supabase/migrations-baseline.json` (la espera de 0473)
+- `supabase/migrations-baseline.json` (espera de 0473 agregada y retirada al
+  aplicarla: diff neto vacío contra main)
 - `docs/specs/0506-bitacora-adjuntos-entidad/spec.md` y `docs/specs/README.md`
   (regenerado)
 - `.agents/handoffs/0506-bitacora-adjuntos-entidad.md`
@@ -173,14 +203,17 @@ está en `supabase/migrations-baseline.json › pendingBelowCutoff`.
    cobertura de la migración en el CI de calidad. Incluye: copias del ANTES
    iguales a 0314, 0215, 0209, 0097 y 0210; 0473 = 0314 + la rama y nada más; el
    md5 de 0314 igual al medido en producción y el de 0473 igual a su cuerpo; la
-   propiedad del enum completo; la espera declarada; cuatro preflights que
+   propiedad del enum completo; que ya no es una espera y que el archivo sigue
+   siendo el que guarda el ledger (md5 y bytes); cuatro preflights que
    abortan (cuerpo de 0215, un espacio de más, `deleted_at`, enum sin el valor);
    un mutante del preflight sin md5 que deja pasar el drift; y **seis mutantes**
    coherentes (sin filtro de tenant, sin filtro de id, otra etiqueta, sin la rama
    `expense`, INVOKER, EXECUTE para `anon`), cada uno cayendo en su aserción.
 4. **El gate de símbolos pendientes** sin rojos: la 0473 no crea símbolos nuevos.
-5. **Después de aplicar** (fuera de esta PR): el smoke de subir una foto a una
-   tarea de prueba, verla en la galería y quitarla, en el servidor propio.
+5. **Aplicada en el servidor propio** con preflight, postflight, identidad del
+   ledger y prueba funcional (ver «Aplicación»). **Falta el smoke en la UI**:
+   subir una foto a una tarea de prueba, verla en la galería «Prueba de avance»
+   y quitarla.
 
 ## Riesgos
 
