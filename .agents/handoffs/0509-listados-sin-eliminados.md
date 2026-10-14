@@ -126,3 +126,19 @@ comparten archivos con esta (comprobado con `git diff --name-only origin/main...
 Diff de producto chico y mecánico, con prueba roja contra main y mutantes. Falta: turno de verify,
 la cuenta con OK de Sam y el smoke después del deploy. El índice de specs choca con 0507/0508 al
 integrar: usar el driver de main y regenerar con el script.
+
+## CIERRE (Director, 2026-10-14)
+
+- **Integración.** El Director resolvió el conflicto del índice con un merge de `origin/main`
+  `55d1b871` (→ `0005c584`).
+- **Cuenta en producción.** Conteo READ ONLY autorizado por Sam, a las 04:23:39Z: clientes, 5
+  eliminados y 663 vivos; embarques, 0 eliminados y 19 vivos.
+- **CI.** PASÓ (18m15s).
+- **`pnpm verify` local:** NO EJECUTADO, por decisión de Sam. Literal: «ok, autorizo el conteo y
+  fusiona la #203 con el CI».
+- **Merge.** PR #203, merge `7f05a501` a las 04:47:19Z, con `--match-head-commit 0005c584`.
+- **Deploy** a las 04:50:07Z.
+- **Smoke.** PASÓ, Sam. Literal: «Aprobado, funcionan los listados».
+- Pendientes de arriba: 1 (verify) NO EJECUTADO por decisión de Sam, con el CI como evidencia; 2
+  (cuenta) y 3 (smoke) hechos; 4: **SDD-0509 → `done`** en la PR de cierre
+  `codex/cierres-noche-20261014`, con una sección «Cierre (2026-10-14)» en la spec.

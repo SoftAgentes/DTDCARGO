@@ -165,3 +165,22 @@ eliminado.
 - Ojo al desplegar: el primer cron **escribe** en producción (marca `canceled` los avisos vencidos de
   envíos eliminados). Es lo pedido; la cuenta previa (pendiente 2) dice cuántos.
 - El índice de specs choca con #203 por diseño; al integrar la segunda, regenerar con `pnpm docs:index`.
+
+## CIERRE (Director, 2026-10-14)
+
+- **Integración.** El Director resolvió el conflicto del índice con un merge de `origin/main`
+  `4328f4fa` (→ `374568d3`).
+- **Cuenta previa.** Conteo READ ONLY autorizado por Sam («ok, autorizo el conteo de la #205»), a
+  las 03:59:44Z: 0 avisos `scheduled` con envío eliminado (0 vencidos, 0 futuros); 2 clientes
+  eliminados por fusión.
+- **CI.** PASÓ (18m34s).
+- **`pnpm verify` local:** NO EJECUTADO; el merge se hizo con el CI como evidencia.
+- **Merge.** PR #205, merge `55d1b871` a las 04:26:52Z, con `--match-head-commit 374568d3`.
+- **Deploy** a las 04:28:44Z.
+- **Smoke de pantalla:** no hay; el cambio no tiene UI.
+- Pendientes de arriba: 1 (verify) NO EJECUTADO, con el CI como evidencia; 2 (cuenta) hecho.
+- **Pendiente:** observar la primera cancelación real («envío eliminado»; pendiente 3 de arriba).
+  La SDD-0511 sigue `in-progress` hasta entonces; la spec suma «Seguimiento (2026-10-14)» en la PR
+  de cierre `codex/cierres-noche-20261014`.
+- Pendiente 4 de arriba (unir `lectores-admin-double.ts` y `listados-double.ts`): sigue abierto.
+  Los dos están en main desde `7f05a501`.

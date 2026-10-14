@@ -1,7 +1,7 @@
 ---
 sdd: "0509"
 title: "Clientes y embarques eliminados fuera de los listados del Studio"
-status: in-progress
+status: done
 author: "Claude"
 created: 2026-10-14
 updated: 2026-10-14
@@ -220,3 +220,21 @@ control sin mutar y el control restaurado dieron 0 fallos.
 - **El total de `/studio/clientes` baja** en tantos clientes como eliminados
   haya. Es el número correcto, pero quien lo compare con una captura vieja verá
   la diferencia: conviene decirlo al publicar.
+
+## Cierre (2026-10-14)
+
+Este cierre reemplaza la nota de `status: in-progress` de «Aceptación» y el
+«NO VERIFICADA» de la cuenta en producción del «Contexto».
+
+- **Criterio 7, la cuenta.** Conteo READ ONLY autorizado por Sam, a las
+  04:23:39Z: clientes, 5 eliminados y 663 vivos; embarques, 0 eliminados y 19
+  vivos.
+- **Integración.** El Director resolvió el conflicto del índice con un merge
+  de `origin/main` `55d1b871` (→ `0005c584`).
+- **CI.** PASÓ (18m15s).
+- **`pnpm verify` local:** NO EJECUTADO, por decisión de Sam. Literal: «ok,
+  autorizo el conteo y fusiona la #203 con el CI».
+- **Merge.** PR #203, merge `7f05a501` a las 04:47:19Z, con
+  `--match-head-commit 0005c584`.
+- **Deploy** a las 04:50:07Z.
+- **Smoke.** PASÓ, Sam. Literal: «Aprobado, funcionan los listados».

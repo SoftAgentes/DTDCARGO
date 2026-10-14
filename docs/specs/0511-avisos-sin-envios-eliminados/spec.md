@@ -162,3 +162,21 @@ prueba, no sobraba el código. Lista completa en el handoff.
 - **El resultado del despacho cambia de forma**: `DrainResult` suma `canceled`, y la ruta
   `/api/cron/client-notifications-drain` lo devuelve en su JSON. Ningún lector de ese JSON
   en el repo depende de sus claves (medido con grep de `drainClientNotifications`).
+
+## Seguimiento (2026-10-14)
+
+`status: in-progress` a propósito: falta observar la primera cancelación real («envío
+eliminado»).
+
+- **La cuenta previa.** Conteo READ ONLY autorizado por Sam («ok, autorizo el conteo de la
+  #205»), a las 03:59:44Z: 0 avisos `scheduled` con envío eliminado (0 vencidos, 0 futuros);
+  2 clientes eliminados por fusión.
+- **Integración.** El Director resolvió el conflicto del índice con un merge de `origin/main`
+  `4328f4fa` (→ `374568d3`).
+- **CI.** PASÓ (18m34s).
+- **`pnpm verify` local:** NO EJECUTADO; el merge se hizo con el CI como evidencia.
+- **Merge.** PR #205, merge `55d1b871` a las 04:26:52Z, con `--match-head-commit 374568d3`.
+- **Deploy** a las 04:28:44Z.
+- **Smoke de pantalla:** no hay; el cambio no tiene UI.
+- **Pendiente.** Observar la primera cancelación real: un aviso con `status = 'canceled'` y
+  `error = 'envío eliminado'`, y `canceled` en el JSON del cron `client-notifications-drain`.

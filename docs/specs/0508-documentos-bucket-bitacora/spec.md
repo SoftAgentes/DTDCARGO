@@ -300,3 +300,53 @@ mal y la migración ya no las vería.
 - `addDocumentVersion` sobre una cadena de `bitacora_task` guarda la versión
   nueva en `documents`. Ya no rompe nada (cada fila lleva su bucket), pero la
   galería de la tarea solo muestra las extensiones que acepta Bitácora.
+
+## Aplicación de la 0474 (2026-10-14)
+
+`status: in-progress` a propósito: falta la prueba manual de Sam (criterio 10,
+abajo).
+
+### Merge y deploy
+
+- PR #200, merge `ddf14c06` a las 03:31:43Z, con `--match-head-commit
+  e611ae3f`. CI PASÓ (18m14s).
+- Deploy a las 03:33:39Z.
+
+### Aplicación en el servidor propio
+
+- **OK nominal de Sam**, literal: «OK, aplica la
+  0474_documents_bitacora_bucket_backfill en el servidor propio».
+- **Lectura previa READ ONLY, 04:01:13Z.** Ledger de 479 filas, con la última
+  en 0473 y sin 0474; la rama `bitacora_task` de la 0473 presente; 1 fila por
+  corregir; 30 conexiones y 0 esperando locks.
+- **Script.** Generado desde el blob `4f901d17` de `origin/main` `4328f4fa`:
+  md5 `6f4bb32df48a6e8851c8ced80ca02361`, 5786 bytes. El md5 del script se
+  verificó en el servidor (`55b519c003286b8f4dee9cc1907b9c07`) antes de
+  correrlo.
+- **Aplicación**, de 04:02:18.561Z a 04:02:18.794Z, en una transacción.
+  Salida: `SET`, `SET`, `DO`, `DO` con «NOTICE: 0474: 1 fila(s) bitacora_task
+  pasaron a bucket_id = bitacora», `DO`, `INSERT 0 1`, `COMMIT`; psql exit 0.
+- **Verificación READ ONLY, 04:02:34Z.** Ledger de 480 filas;
+  `20261014040218 · 0474_documents_bitacora_bucket_backfill`, `created_by =
+  servidor-propio:psql:SDD-0508`, 1 sentencia, md5 igual al blob, 5786 bytes;
+  0 filas por corregir; `bitacora_task` en `bitacora` 1 y en `documents` 0; 0
+  esperando locks.
+- **Evidencia** en `/srv/ops/evidencias/apply-0474-dtd-cargo-20261014T0402Z/`,
+  con `SHA256SUMS`. Supabase Cloud no tiene la 0474.
+
+### En el repo
+
+- La espera de la 0474 sale de `pendingBelowCutoff` en
+  `supabase/migrations-baseline.json` (PR de cierre
+  `codex/cierres-noche-20261014`). `cutoff` y las demás esperas no cambian.
+- El archivo de la migración no se edita, ni siquiera la cabecera «NO
+  APLICADA»: el ledger guarda el archivo entero y editarlo rompería la
+  identidad. En el criterio 8, la prueba «la espera está declarada con su orden
+  y el OK nominal» pasa a afirmar que ya no hay espera y que el archivo sigue
+  teniendo el md5 y los bytes del ledger.
+
+### Criterio 10
+
+- El conteo READ ONLY da 0: **cumplido** (verificación de las 04:02:34Z).
+- La foto del smoke en la galería y en el «Historial» del hub, y borrar un
+  adjunto de prueba desde el hub: **pendiente**, es la prueba manual de Sam.

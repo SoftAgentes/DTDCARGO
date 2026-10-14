@@ -184,3 +184,34 @@ unitarias; 3) evaluar restricción o backfill en la base; 4) cierre por el diff 
   larga entre deploy y migración (en ese intervalo la foto del smoke no se ve en la galería).
 - La rama de reserva `codex/sdd-reserve-0508-documentos-bucket-bitacora` es local y sin push. Se
   borra con `-D` cuando la spec esté en main.
+
+## CIERRE (Director, 2026-10-14)
+
+- **Merge.** PR #200, merge `ddf14c06` a las 03:31:43Z, con `--match-head-commit e611ae3f`. CI
+  PASÓ (18m14s). Deploy a las 03:33:39Z.
+- **OK nominal de Sam**, literal: «OK, aplica la 0474_documents_bitacora_bucket_backfill en el
+  servidor propio».
+- **Lectura previa READ ONLY, 04:01:13Z.** Ledger de 479 filas, con la última en 0473 y sin 0474;
+  la rama `bitacora_task` de la 0473 presente; 1 fila por corregir; 30 conexiones y 0 esperando
+  locks.
+- **Script.** Generado desde el blob `4f901d17` de `origin/main` `4328f4fa`: md5
+  `6f4bb32df48a6e8851c8ced80ca02361`, 5786 bytes. El md5 del script se verificó en el servidor
+  (`55b519c003286b8f4dee9cc1907b9c07`) antes de correrlo.
+- **Aplicación**, de 04:02:18.561Z a 04:02:18.794Z, en una transacción. Salida: `SET`, `SET`, `DO`,
+  `DO` con «NOTICE: 0474: 1 fila(s) bitacora_task pasaron a bucket_id = bitacora», `DO`,
+  `INSERT 0 1`, `COMMIT`; psql exit 0.
+- **Verificación READ ONLY, 04:02:34Z.** Ledger de 480 filas;
+  `20261014040218 · 0474_documents_bitacora_bucket_backfill`, `created_by =
+  servidor-propio:psql:SDD-0508`, 1 sentencia, md5 igual al blob, 5786 bytes; 0 filas por corregir;
+  `bitacora_task` en `bitacora` 1 y en `documents` 0; 0 esperando locks.
+- **Evidencia** en `/srv/ops/evidencias/apply-0474-dtd-cargo-20261014T0402Z/`, con `SHA256SUMS`.
+  Supabase Cloud no tiene la 0474.
+- **En el repo** (PR de cierre `codex/cierres-noche-20261014`): la espera de la 0474 sale de
+  `pendingBelowCutoff`; la prueba de la espera en
+  `documents-bitacora-bucket-backfill.migration.test.ts` pasa a afirmar que ya no hay espera y que
+  el archivo conserva el md5 y los bytes del ledger; la spec suma «Aplicación de la 0474
+  (2026-10-14)». El archivo de la migración no se edita.
+- Pendientes de arriba: 1 (merge) y 2 (conteo y 0474) hechos; 4 (retirar la espera) en la PR de
+  cierre.
+- **Pendiente:** la prueba manual de Sam (pendiente 3 de arriba; criterio 10 de la spec). La
+  SDD-0508 sigue `in-progress` hasta entonces.
