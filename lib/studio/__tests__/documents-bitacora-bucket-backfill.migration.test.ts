@@ -11,6 +11,7 @@
  * cae en el caso que esa condición protege. PREFLIGHT: sin la rama de la 0473
  * o sin storage.objects, aborta con su mensaje antes de tocar filas.
  */
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -126,12 +127,15 @@ describe("0474 · texto de la migración", () => {
     expect(SQL_0474).toMatch(/^set statement_timeout = '30s';$/m);
   });
 
-  it("la espera está declarada con su orden y el OK nominal", () => {
-    const espera = BASELINE.pendingBelowCutoff[NAME];
-    expect(espera).toBeTruthy();
-    expect(espera).toMatch(/DESPUÉS de desplegar/);
-    expect(espera).toMatch(/OK nominal de Sam/);
-    expect(espera).toContain(NAME);
+  it("aplicada al servidor propio el 2026-10-14: ya no es una espera y el archivo no se tocó", () => {
+    // Aplicada el 2026-10-14 a las 04:02:18Z en el servidor propio, con OK nominal
+    // de Sam. El ledger guarda el archivo entero, con md5 6f4bb32d… y 5786 bytes:
+    // editar el archivo, aunque sea la cabecera «NO APLICADA», rompería esa
+    // identidad. Lo que cambia es el baseline.
+    const md5 = (text: string) => createHash("md5").update(text, "utf8").digest("hex");
+    expect(BASELINE.pendingBelowCutoff[NAME]).toBeUndefined();
+    expect(md5(FILE_0474)).toBe("6f4bb32df48a6e8851c8ced80ca02361");
+    expect(Buffer.byteLength(FILE_0474)).toBe(5786);
   });
 });
 

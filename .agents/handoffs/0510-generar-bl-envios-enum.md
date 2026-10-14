@@ -155,3 +155,14 @@ control rojo contra main y mutantes, incluido uno del doble. Con #203 (SDD-0509)
 en main y en esta rama. Al integrar, el índice de specs choca con esas PR: usar el
 driver de main y regenerar con el script. Falta el turno de `verify` y el smoke después del deploy.
 Ownership: claim liberado al terminar la escritura.
+
+## CIERRE (Director, 2026-10-14)
+
+- **CI.** PASÓ (11m51s).
+- **`pnpm verify` local:** NO EJECUTADO, por decisión de Sam. Literal: «ok, fusiona la #204 así».
+- **Merge.** PR #204, merge `4328f4fa` a las 03:47:33Z, con `--match-head-commit fb57a898`.
+- **Deploy** a las 03:49:23Z.
+- **Smoke.** PASÓ, Sam. Literal: «Aprobado, funciona el Generar BL».
+- Pendientes de arriba: 1 (verify) NO EJECUTADO por decisión de Sam, con el CI como evidencia; 2
+  (smoke) hecho; 3: **SDD-0510 → `done`** en la PR de cierre `codex/cierres-noche-20261014`, con
+  una sección «Cierre (2026-10-14)» en la spec.

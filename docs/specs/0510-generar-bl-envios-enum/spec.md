@@ -1,7 +1,7 @@
 ---
 sdd: "0510"
 title: "El selector de «Generar Bill of Lading» filtra con las etiquetas reales del enum"
-status: in-progress
+status: done
 author: "Claude"
 created: 2026-10-14
 updated: 2026-10-14
@@ -174,3 +174,15 @@ transpila sin comprobar tipos: en `pnpm verify` lo frenaría el paso
   siendo simulado.
 - **El enum en producción no se leyó.** Si alguien lo hubiera alterado a mano
   fuera de las migraciones, la reproducción no lo vería.
+
+## Cierre (2026-10-14)
+
+Este cierre reemplaza la nota de `status: in-progress` de «Aceptación».
+
+- **CI.** PASÓ (11m51s).
+- **`pnpm verify` local:** NO EJECUTADO, por decisión de Sam. Literal: «ok,
+  fusiona la #204 así».
+- **Merge.** PR #204, merge `4328f4fa` a las 03:47:33Z, con
+  `--match-head-commit fb57a898`.
+- **Deploy** a las 03:49:23Z.
+- **Smoke.** PASÓ, Sam. Literal: «Aprobado, funciona el Generar BL».

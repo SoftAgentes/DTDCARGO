@@ -1,7 +1,7 @@
 ---
 sdd: "0507"
 title: "Adjuntos visibles en el Studio: conteo por fila en Clientes, Embarques y Tracking, y «Todos los adjuntos» en la ficha del cliente"
-status: in-progress
+status: done
 author: "Claude + founder"
 created: 2026-10-14
 updated: 2026-10-14
@@ -330,3 +330,19 @@ El filtro que aprobó Sam vive en `EmbarquesClient.tsx` y
 
 La reserva SDD-0506 `bitacora-adjuntos-entidad` (Codex, 2026-10-14 01:01 UTC)
 no es este pedido, según Sam.
+
+## Cierre (2026-10-14)
+
+- **Merge.** PR #202, merge `c80eea64` el 2026-10-14 a las 03:08:02Z, con
+  `--match-head-commit 0c45112a` (el Director actualizó la rama del lado de
+  GitHub con la #201).
+- **CI.** «Calidad local sin secretos» PASÓ (14m34s).
+- **Deploy.** Vercel, «Deployment has completed» a las 03:10:39Z.
+- **Smoke en producción.** Hecho por Sam, PASÓ. Literal: «Aprobado, funcionan
+  las cosas de adjuntos.»
+- **Criterio 10.** `pnpm verify` completo sobre `c9fa11ef`: 16 de 17 pasos sin
+  fallos; `migrations-applied` NO DISPONIBLE (SKIP, la tarea no trae
+  migración). La brecha hasta la punta está en el handoff de la tarea.
+- **Pendiente propuesto, no hecho.** Que «Ver» de «Todos los adjuntos» tome el
+  bucket de la fila con `documentObjectBucket` (SDD-0508). Hoy no cambia el
+  comportamiento; queda como tarea posterior.

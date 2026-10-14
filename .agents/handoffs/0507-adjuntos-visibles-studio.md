@@ -228,3 +228,19 @@ app; desde aquí no se registra ningún nombre de archivo.
 - Después de la fusión: `git diff --check` limpio, `docs:check` (493 specs) y
   `sdd:check` OK, y las 10 suites de la 0507 más `rbac-actions-guard`: 493
   pruebas pasadas.
+
+## CIERRE (Director, 2026-10-14)
+
+- **Merge.** PR #202, merge `c80eea64` el 2026-10-14 a las 03:08:02Z, con
+  `--match-head-commit 0c45112a`. El Director actualizó la rama del lado de
+  GitHub con la #201.
+- **CI.** «Calidad local sin secretos» PASÓ (14m34s).
+- **Deploy.** Vercel, «Deployment has completed» a las 03:10:39Z.
+- **Smoke en producción.** Hecho por Sam, PASÓ. Literal: «Aprobado, funcionan
+  las cosas de adjuntos.»
+- **SDD-0507 → `done`** en la PR de cierre `codex/cierres-noche-20261014`, con
+  una sección «Cierre (2026-10-14)» en la spec.
+- Pendientes 1 (merge) y 2 (smoke) de arriba: hechos.
+- **Pendiente propuesto, no hecho:** que «Ver» de «Todos los adjuntos» tome el
+  bucket de la fila con `documentObjectBucket` (pendiente 4 de arriba). Hoy no
+  cambia el comportamiento; queda como tarea posterior.
