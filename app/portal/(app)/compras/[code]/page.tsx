@@ -22,6 +22,7 @@ import {
 import { defaultAddon } from "@/lib/studio/prealertas/addons";
 import { PREALERTA_DESCRIPCION_PENDIENTE } from "@/lib/studio/prealertas/types";
 import { ArrowIcon } from "@/components/Icon";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 import { PrealertaStatusBadge } from "../../../_components/PrealertaStatusBadge";
 import { PortalTrackingEnConstruccion } from "../../../_components/PortalTrackingEnConstruccion";
 import { PackingListDelProveedor } from "./_components/PackingListDelProveedor";
@@ -112,6 +113,17 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
     prealerta.description === PREALERTA_DESCRIPCION_PENDIENTE;
   const cotejo = compararCajas(prealerta.boxes, recepcion.cajasRecibidas);
 
+  /**
+   * SDD-0516 · Mientras el seguimiento esté en construcción (SDD-0514), la
+   * pantalla no promete lo que hoy no pasa. El aviso «recibido en bodega» sólo
+   * se programa cuando la recepción se registra en el sistema, y la bodega de
+   * China todavía registra en Excel: «Te avisamos apenas…» y «verás acá cada
+   * recepción» serían falsos. Se dice una frase neutra; con el interruptor
+   * apagado vuelve el texto de siempre. Sólo cambia la compra SIN recepciones:
+   * una recepción registrada es real y se muestra como siempre.
+   */
+  const enConstruccion = TRACKING_EN_CONSTRUCCION;
+
   return (
     <div>
       <Link
@@ -152,6 +164,7 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
         estado={cotejo.estado}
         diferencia={cotejo.diferencia}
         primeraRecepcion={recepcion.primeraRecepcion}
+        enConstruccion={enConstruccion}
       />
 
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6 lg:gap-8 items-start">
@@ -162,11 +175,18 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
           </h2>
 
           {recepcion.recepciones.length === 0 ? (
-            <p className="mt-5 text-[14px] text-grey-700 leading-[1.55]">
-              Todavía no registramos la llegada de esta compra a nuestra bodega
-              en Yiwu. Cuando el proveedor entregue, verás acá cada recepción con
-              su fecha, sus cajas y las medidas reales.
-            </p>
+            enConstruccion ? (
+              <p className="mt-5 text-[14px] text-grey-700 leading-[1.55]">
+                Las recepciones de esta compra todavía no aparecen aquí mientras
+                activamos el seguimiento.
+              </p>
+            ) : (
+              <p className="mt-5 text-[14px] text-grey-700 leading-[1.55]">
+                Todavía no registramos la llegada de esta compra a nuestra bodega
+                en Yiwu. Cuando el proveedor entregue, verás acá cada recepción con
+                su fecha, sus cajas y las medidas reales.
+              </p>
+            )
           ) : (
             <>
               <div className="mt-5 flex flex-col divide-y divide-grey-200">
@@ -436,6 +456,12 @@ function EsperandoPackingList({ code }: { code: string }) {
  * Un faltante se dice con todas las letras y con el número exacto. El cliente
  * que anunció 10 y recibió 7 necesita ver "faltan 3" acá, no deducirlo restando
  * dos cifras que están en tarjetas distintas.
+ *
+ * SDD-0516 · `enConstruccion` sólo cambia el caso `sin_llegar`. Con la bodega
+ * registrando en Excel, «Todavía no llegó» puede ser falso para mercancía que
+ * ya está en Yiwu, y el «Te avisamos apenas…» no va a salir. La frase neutra
+ * dice lo que es cierto y manda a Soporte, que es quien puede contestar hoy.
+ * Los otros tres casos sólo existen con recepciones registradas, que son reales.
  */
 function EstadoDeLlegada({
   anunciadas,
@@ -443,19 +469,28 @@ function EstadoDeLlegada({
   estado,
   diferencia,
   primeraRecepcion,
+  enConstruccion,
 }: {
   anunciadas: number;
   recibidas: number;
   estado: "sin_llegar" | "parcial" | "completo" | "excedente";
   diferencia: number;
   primeraRecepcion: string | null;
+  enConstruccion: boolean;
 }) {
+  const cajasAnunciadas = `${anunciadas} ${anunciadas === 1 ? "caja" : "cajas"}`;
   const copy = {
-    sin_llegar: {
-      titulo: "Todavía no llegó a nuestra bodega",
-      detalle: `Anunciaste ${anunciadas} ${anunciadas === 1 ? "caja" : "cajas"}. Te avisamos apenas el proveedor entregue en Yiwu.`,
-      color: "var(--color-grey-500)",
-    },
+    sin_llegar: enConstruccion
+      ? {
+          titulo: "La llegada a bodega todavía no aparece aquí",
+          detalle: `Anunciaste ${cajasAnunciadas}. Mientras activamos el seguimiento, nuestro equipo en China lleva el control de cada recepción. Para saber si ya llegó, escríbenos en Soporte.`,
+          color: "var(--color-grey-500)",
+        }
+      : {
+          titulo: "Todavía no llegó a nuestra bodega",
+          detalle: `Anunciaste ${cajasAnunciadas}. Te avisamos apenas el proveedor entregue en Yiwu.`,
+          color: "var(--color-grey-500)",
+        },
     parcial: {
       titulo: `Llegaron ${recibidas} de ${anunciadas} cajas`,
       detalle: `Faltan ${Math.abs(diferencia)} ${Math.abs(diferencia) === 1 ? "caja" : "cajas"} por recibir. Si tu proveedor ya las despachó, escríbenos con la guía y las rastreamos.`,

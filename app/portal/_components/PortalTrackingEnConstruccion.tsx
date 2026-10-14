@@ -13,7 +13,9 @@ import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion"
  * Portal.
  *
  * Se apaga con `TRACKING_EN_CONSTRUCCION` en `lib/portal/tracking-en-construccion.ts`;
- * este componente es el único que lo lee.
+ * este componente es el único que pinta el aviso. Las pantallas no lo pintan
+ * por su cuenta: el detalle de compra y la portada leen el mismo valor sólo para
+ * suavizar su propio texto (SDD-0516).
  *
  * El aviso se SUMA a la pantalla y no reemplaza nada: si un envío o una compra
  * ya tiene hitos, recepciones o datos de naviera, se siguen mostrando debajo.

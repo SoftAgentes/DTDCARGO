@@ -21,6 +21,7 @@ import { getShipmentNaviera } from "@/lib/studio/naviera-tracking/queries";
 import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import { effectiveVisibleStatus } from "@/lib/portal/portal-types";
 import { getHiddenPortalStatusesForPortal } from "@/lib/studio/notifications/portal-visibility-queries";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 import { PortalPending } from "../_components/PortalPending";
 import { PortalDashboardNorte } from "./_components/PortalDashboardNorte";
 import { PendingAcceptanceCard } from "./_components/PendingAcceptanceCard";
@@ -147,10 +148,20 @@ export default async function PortalHomePage() {
         negó el permiso — el componente decide eso por su cuenta). Un botón de
         descartar guardado en localStorage es justo la forma en que estas
         tarjetas se apagan para siempre sin que nadie se entere.
+
+        SDD-0516 · mientras el seguimiento esté en construcción (SDD-0514), la
+        tarjeta no promete el aviso de llegada a bodega: sólo se programa cuando
+        la recepción se registra en el sistema, y la bodega de China todavía
+        registra en Excel. Zarpe y entrega se conservan porque los disparan
+        operaciones del Studio, no la bodega. Apagado, vuelve el texto de siempre.
       */}
       <PortalPushOptIn
         titulo="Entérate apenas se mueva tu carga"
-        descripcion="Activa las notificaciones y tu navegador te avisa cuando tu mercancía llega a bodega, cuando zarpa y cuando está por entregarse — aunque no tengas el portal abierto."
+        descripcion={
+          TRACKING_EN_CONSTRUCCION
+            ? "Activa las notificaciones y tu navegador te avisa cuando tu carga zarpa y cuando está por entregarse — aunque no tengas el portal abierto."
+            : "Activa las notificaciones y tu navegador te avisa cuando tu mercancía llega a bodega, cuando zarpa y cuando está por entregarse — aunque no tengas el portal abierto."
+        }
         tituloActivo="Notificaciones activadas"
         descripcionActiva="Te avisamos apenas tu carga se mueva."
       />
