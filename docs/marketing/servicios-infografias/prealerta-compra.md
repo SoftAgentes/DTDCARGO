@@ -18,7 +18,12 @@ recibir tu carga sin errores.
    las cajas — todo queda registrado con nosotros, sin grupos de WeChat.
 4. Al final, eliges los **servicios extra para la llegada** que quieras (Validación, Inspección,
    Etiquetado, HOLD, Re-Empaque).
-5. Cuando tu mercancía llega a Yiwu, el operario **la recibe escaneando** la etiqueta y **te avisamos**.
+5. Cuando tu mercancía llega a Yiwu, el operario **la recibe y la identifica** por la etiqueta.
+
+> **Nota (SDD-0519, 2026-10-14):** mientras la bodega de China registre en Excel y el seguimiento del
+> Portal esté en construcción, esta ficha no promete un aviso automático de llegada a bodega. Cuando el
+> seguimiento esté activo, el paso 5 puede volver a su texto original; está en la
+> [SDD-0519](../../specs/0519-servicios-sin-promesa-bodega/spec.md).
 
 ## ¿Por qué te conviene?
 - **Se acabaron los grupos de WeChat**: el proveedor entrega los datos por el enlace. Solo lo

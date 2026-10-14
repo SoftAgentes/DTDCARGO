@@ -12,6 +12,13 @@
 > **reemplaza los grupos de WeChat**: ese ES el mensaje clave. Es el video "madre" de la serie —
 > presenta el portal y el flujo de 3 actores (cliente → proveedor → operario en China).
 
+> **Nota (SDD-0519, 2026-10-14):** mientras la bodega de China registre en Excel y el seguimiento
+> del Portal esté en construcción, este video no promete un aviso automático de llegada a bodega:
+> sin «te avisamos» en el guion ni en los rótulos, y sin la notificación en el teléfono del cliente.
+> Cuando el seguimiento esté activo, se puede volver al texto original; está en la
+> [SDD-0519](../../../specs/0519-servicios-sin-promesa-bodega/spec.md). Si el video ya se grabó con
+> la frase vieja, regraba el bloque [Con seguridad] y el rótulo de la escena 5 antes de publicarlo.
+
 ---
 
 ## (a) Para el diseñador / productor
@@ -19,8 +26,9 @@
 **Concepto:** "Avísanos que compraste y nosotros nos preparamos." Un asesor DTD te muestra el
 flujo completo en un minuto: registras tu compra en el portal → el sistema te da un enlace y las
 etiquetas → tu proveedor llena el packing list en línea y pega las etiquetas → tu mercancía llega
-a la bodega en China, se recibe escaneando, y te avisamos. Tensión → alivio: del caos de los
-grupos de chat interminables a UN solo código que acompaña tu carga de principio a fin.
+a la bodega en China y nuestro equipo la recibe y la identifica por su etiqueta. Tensión → alivio:
+del caos de los grupos de chat interminables a UN solo código que acompaña tu carga de principio a
+fin.
 
 **Hilo conductor visual:** la **etiqueta**. Es el objeto que conecta a los 3 actores: nace en el
 portal (cliente), viaja al proveedor (la pega en la caja) y cierra en la bodega (el operario la
@@ -39,8 +47,7 @@ escanea). Cada transición del video pasa por la etiqueta.
    llena el **packing list en línea** → imprime y **pega las etiquetas** en las cajas.
    Plano detalle de la etiqueta quedando pegada (es el hilo conductor).
 5. **Paso 3 — nuestra bodega (25–32 s):** b-roll real en Yiwu: el operario recibe la caja y
-   **escanea la etiqueta** → corte al teléfono del cliente recibiendo el aviso "tu mercancía
-   llegó a la bodega" (mock del portal, cuenta demo).
+   **escanea la etiqueta** (plano detalle: la etiqueta cierra el hilo conductor).
 6. **Servicios de la llegada (32–37 s):** pantalla del portal con las tarjetas de servicios
    (Validación, Inspección, Etiquetado, HOLD, Re-Empaque) — mención de pasada, sin detallar.
 7. **Cierre (37–46 s):** presentador a cámara: la pre-alerta es **gratis** + regla "antes de la
@@ -59,7 +66,7 @@ visibles.
 - Escena 3: "1 · Registra tu compra".
 - Escena 4: "2 · Tu proveedor llena el packing list" → al cerrar la escena: **"Se acabaron los
   grupos de WeChat"** (rótulo estrella del video).
-- Escena 5: "3 · La recibimos escaneando · te avisamos".
+- Escena 5: "3 · La recibimos y la identificamos".
 - Escena 6: "Elige tus servicios de la llegada".
 - Cierre: "La pre-alerta es GRATIS" + "Hazla ANTES de que tu compra llegue a la bodega" +
   "dtdcargo.com · WhatsApp +58 412 166 8021".
@@ -82,9 +89,9 @@ servicios 5 s · cierre 9 s ≈ **46 s**.
 > en línea** y pega las etiquetas en las cajas. Todo queda registrado con nosotros…
 > **se acabaron los grupos de WeChat.**
 >
-> [Con seguridad] Cuando tu mercancía llega a nuestra bodega en China, la recibimos **escaneando
-> su etiqueta** y te avisamos al momento. Y en la misma pre-alerta eliges los servicios de la
-> llegada: Validación, Inspección, Etiquetado y más.
+> [Con seguridad] Cuando tu mercancía llega a nuestra bodega en China, la recibimos y la
+> identificamos **por su etiqueta**. Y en la misma pre-alerta eliges los servicios de la llegada:
+> Validación, Inspección, Etiquetado y más.
 >
 > [Media sonrisa, tono de buena noticia] ¿Lo mejor? La pre-alerta **no tiene costo**. Es gratis.
 >
@@ -101,7 +108,7 @@ servicios 5 s · cierre 9 s ≈ **46 s**.
    mismo objeto.
 4. En el paso del proveedor: un corte por acción — recibe el enlace / llena el packing list /
    pega la etiqueta (2–3 s cada uno).
-5. Corte del escaneo en bodega a la notificación en el teléfono del cliente (causa → efecto).
+5. Del escaneo en bodega, corte a la pantalla del portal con los servicios de la llegada (escena 6).
 6. Volver al presentador para "es gratis" y el cierre (sin b-roll encima: es el mensaje clave).
 
 **Rótulos:** entran sincronizados con la voz (cuando dice "se acabaron los grupos de WeChat",
