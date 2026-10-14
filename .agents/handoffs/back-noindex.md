@@ -16,8 +16,9 @@ Fecha: 2026-10-14. Task ID: `back-noindex`.
     y worktrees y dio 0512 para spec y 0475 para migración. La ref local es
     `codex/sdd-reserve-0512-back-noindex` y no se publicó aparte: la PR lleva la spec.
   - Le pedí el número al Director por mensaje (sesión «Revisión de tareas en progreso»,
-    `message_id 1fa58206`). El mensaje quedó en cola y sin respuesta al cerrar, así que el número
-    sigue provisional hasta que lo confirme.
+    `message_id 1fa58206`). El Director asignó la SDD-0512 y aprobó la spec corta tal como estaba
+    el 2026-10-14, incluida la decisión de no meter `/back` en el Disallow. La reserva sigue local
+    por indicación suya: la spec entra con la PR.
 - **Permisos del encargo:**
   - Puedo hacer commits locales, publicar mi rama y abrir la PR en borrador.
   - No puedo fusionar: el merge lo hace el Director con OK de Sam.
@@ -88,8 +89,39 @@ Todo sobre el árbol de `acef0b52`. El handoff no cambia código.
 | `pnpm docs:check` | PASÓ | Índice sincronizado con 498 specs. |
 | `pnpm sdd:check` | PASÓ | `numbering: sin números repetidos`. Los avisos ⏸ son los choques históricos ya aplicados. |
 | `git diff --check` | PASÓ | — |
-| `pnpm verify` completo | NO EJECUTADO | Es una corrida pesada: se le pide turno al Director, y lo pedí en el reporte. |
+| `pnpm verify` completo, sobre `f422fc56` | PASÓ en lo medido; cierre incompleto | Con turno del Director, de 16:55Z a 17:13Z. Exit 0, y el propio verify avisa «CIERRE INCOMPLETO»: 14 de 17 pasos corrieron de verdad, sin fallos, y 3 críticos quedaron sin medir. El desglose por paso está debajo de la tabla. |
 | Verificación en producción con curl | NO EJECUTADO | Es de release: va después del merge y del deploy, fuera de la ventana del corte. |
+
+`pnpm verify` paso por paso, sobre `f422fc56`:
+
+| Paso | Resultado | Detalle |
+|---|---|---|
+| harness | PASÓ | 201 de 201 (24 archivos `scripts/tests/*.node.mjs`). |
+| lint | PASÓ | — |
+| rsc-boundary | PASÓ | Sin cruces server→client ni client→node. |
+| typecheck | PASÓ | — |
+| edge-functions | PASÓ | Compilan 4 funciones. |
+| test | PASÓ | 690 archivos pasaron y 1 se saltó; 9307 pruebas pasaron y 1 se saltó. |
+| docs:check | PASÓ | — |
+| numbering | PASÓ | Sin números repetidos. |
+| feature-constants | PASÓ | 5 banderas coinciden. |
+| components:check | PASÓ | — |
+| governance:check | PASÓ | — |
+| migrations-applied | NO DISPONIBLE (SKIP) | Falta `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`: el worktree no tiene `.env.local`. Esta tarea no tiene migraciones. |
+| pending-migration-symbols | PASÓ | 0 ROJO · 0 AMARILLO. |
+| sql-tests | NO DISPONIBLE (SKIP) | Docker no está disponible. Esta tarea no toca SQL. |
+| schema-rebuild | NO DISPONIBLE (SKIP) | Docker no está disponible. Esta tarea no toca el esquema. |
+| e2e | PASÓ con aviso | Pasaron 177, hubo 1 flaky, se saltaron 20 y ninguno falló. Vale el aviso de verify: el proceso salió ≠ 0 por el worker de WebKit que no cierra en Windows. |
+| build | PASÓ | Build de producción OK, y verify restauró `tsconfig.json`. |
+
+- **El flaky:** fue `[chromium] e2e/auth.spec.ts:81`, «Acceso: un token inválido renderiza el
+  mismo error las dos veces».
+  - En el primer intento, `page.goto` falló con `net::ERR_ABORTED` en `/acceso/...`: la
+    navegación se cortó, no falló una aserción.
+  - Pasó en el reintento y también en mobile-chrome y mobile-safari.
+  - `/acceso` cuelga de `app/acceso/layout.tsx` y no comparte árbol con `app/back`, así que no
+    lo atribuyo al cambio y no lo repetí aparte.
+- **Al terminar:** `git status` quedó limpio y `tsconfig.json` sin `.next-verify`.
 
 Sobre los mutantes: el primer intento de M3 agregó un segundo `export const metadata` al final
 de la página. Sobrevivió porque era un programa inválido: la página ya exporta `metadata` con su
@@ -120,24 +152,21 @@ de la página. Sobrevivió porque era un programa inválido: la página ya expor
 - `5bcf7585` — `chore(sdd): reserva SDD-0512 — back-noindex`, el stub generado por el script.
 - `a99ef539` — `docs(sdd): SDD-0512 — spec e índice de /back fuera de los buscadores`.
 - `acef0b52` — `fix(back): SDD-0512 — /back sale con noindex, nofollow`, con el layout y la prueba.
-- El commit que contiene este documento: `docs(sdd): SDD-0512 — handoff`.
+- `f422fc56` — `docs(sdd): SDD-0512 — handoff`, la versión que revisó el Director y sobre la que corrió verify.
+- El commit que contiene esta versión del documento: `docs(sdd): SDD-0512 — handoff con verify y SDD confirmada`. Solo cambia este archivo.
 
 ## PR / BRANCH
 
 - **Rama:** `codex/back-noindex`, publicada con `git push -u origin codex/back-noindex:codex/back-noindex`.
-- **PR:** en borrador contra `main`, abierta desde esa rama. El número y la URL quedan en la PR y
-  en el reporte al Director, para no crear un commit nuevo después de publicar.
+- **PR:** [#208](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/208), en borrador contra `main`.
 - **Worktree:** `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/back-noindex`.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. Que el Director confirme el número 0512 o asigne otro. Si cambia, renumero carpeta,
-   frontmatter, referencias e índice en esta rama. No hay migración.
-2. `pnpm verify` completo, con turno del Director.
-3. Revisión y merge del Director con OK de Sam, fuera de la ventana del corte a Contabo del
+1. Revisión y merge del Director con OK de Sam, fuera de la ventana del corte a Contabo del
    jueves 2026-10-15 en la noche.
-4. Después del deploy, el curl de `/back/login` en `dtdcargo.com`, y en `nuevo.dtdcargo.com`
-   mientras exista, tiene que traer `noindex, nofollow`. Con eso la spec pasa a `done`.
+2. Después del deploy, el curl de `/back/login` en `dtdcargo.com`, y en `nuevo.dtdcargo.com`
+   mientras exista, tiene que traer `noindex, nofollow`. Con eso la spec pasa a `done` en una PR de cierre. El curl lo hace el Director o yo.
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -156,13 +185,14 @@ de la página. Sobrevivió porque era un programa inválido: la página ya expor
 ## HANDOFF AL DIRECTOR
 
 - **Siguiente acción:**
-  - Confirmar SDD-0512.
-  - Dar turno para `pnpm verify` o registrarlo como NO EJECUTADO.
-  - Revisar la PR en borrador.
+  - Revisar el último commit, que solo toca el handoff.
+  - Pasar la PR a lista.
+  - Fusionarla con el OK de Sam.
+- **Hecho:** la SDD-0512 está confirmada y el `pnpm verify` corrió con el turno del Director.
 - **Dependencias:** ninguna. No toca DB, migraciones, API, `robots.ts`, `next.config.ts` ni
   componentes compartidos.
 - **Integración:** el merge a main despliega a producción en Vercel. Hace falta el OK de Sam
   para el merge y el deploy, fuera de la ventana del corte.
 - **Sesiones consumidoras:** ninguna conocida.
-- **Ownership:** libero el claim al cerrar, después de publicar. El worktree y la rama se
+- **Ownership:** liberé el claim al terminar verify y publicar este handoff. El worktree y la rama se
   conservan.
