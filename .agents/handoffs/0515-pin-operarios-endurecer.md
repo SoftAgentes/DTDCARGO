@@ -100,8 +100,8 @@ este archivo. Windows, PGlite 0.5.8, Vitest 4.1.7.
 
 ## PR / BRANCH
 
-PR draft contra `main` desde `codex/pin-operarios-endurecer` (URL en el reporte al
-Director y en la línea de abajo cuando exista). Worktree arriba.
+PR draft #212 contra `main` desde `codex/pin-operarios-endurecer`:
+https://github.com/hailuwaycom-sketch/DTDCARGO/pull/212. Worktree arriba.
 
 ## PENDIENTES DE ESTA TAREA
 
