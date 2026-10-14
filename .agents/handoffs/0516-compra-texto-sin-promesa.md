@@ -212,3 +212,10 @@ Sobre el árbol de trabajo encima de `origin/main` `4c4c6c17`.
   - Ownership: claim liberado al terminar la escritura (`release --owner
     compra-texto-sin-promesa-worker`). No hay sesiones consumidoras de este
     worktree. No borrar worktree ni rama hasta que la PR se integre.
+
+## CIERRE DE INTEGRACIÓN (Director, 2026-10-14)
+
+- **Merge:** PR #213, merge `d28fa515` a las 19:55:06Z, con `--match-head-commit 7400be53`, con OK de Sam («ok, fusiona la #213 cuando esté en verde») y el CI como evidencia.
+- **Deploy:** «Deployment has completed» a las 19:56:36Z.
+- **Smoke en producción: PASÓ.** Sam, literal: «ya hice el smoke del Portal, funciona todo».
+- Fuera de alcance que queda abierto: `app/registro/RegisterForm.tsx:787` también promete un aviso por WhatsApp «cuando llega a bodega». Estado de la tarea: **integrada**.

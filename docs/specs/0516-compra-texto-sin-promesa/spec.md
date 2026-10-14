@@ -1,7 +1,7 @@
 ---
 sdd: "0516"
 title: "Portal: el detalle de compra no promete avisos mientras el seguimiento está en construcción"
-status: in-progress
+status: done
 author: "Claude"
 created: 2026-10-14
 updated: 2026-10-14
@@ -142,3 +142,10 @@ Detalle en el handoff `.agents/handoffs/0516-compra-texto-sin-promesa.md`.
 - Si una compra tuviera parte de sus cajas en el sistema y parte sólo en Excel,
   el estado «parcial» diría «Faltan N cajas por recibir». No se cambia: ese caso
   necesita recepciones registradas y el aviso de la 0514 lo pone en contexto.
+
+## Cierre (2026-10-14)
+
+- **Merge:** PR #213, merge `d28fa515` a las 19:55:06Z, con `--match-head-commit 7400be53`, con OK de Sam («ok, fusiona la #213 cuando esté en verde») y el CI como evidencia.
+- **Deploy:** «Deployment has completed» a las 19:56:36Z.
+- **Smoke en producción: PASÓ.** Sam, literal: «ya hice el smoke del Portal, funciona todo».
+- Fuera de alcance que queda abierto: `app/registro/RegisterForm.tsx:787` también promete un aviso por WhatsApp «cuando llega a bodega». Estado de la tarea: **integrada**.
