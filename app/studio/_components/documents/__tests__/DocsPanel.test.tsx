@@ -60,6 +60,7 @@ function makeDoc(over: Partial<DocumentRow> = {}): DocumentRow {
     doc_type: "BL",
     name: "BL COSCO",
     storage_path: "t1/shipment/ship-1/aaa.pdf",
+    bucket_id: "documents",
     content_type: "application/pdf",
     size_bytes: 1024,
     status: "vigente",

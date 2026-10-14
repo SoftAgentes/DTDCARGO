@@ -36,6 +36,7 @@ import {
   type DocumentVersionRow,
 } from "@/lib/studio/documents/types";
 import { listDocumentVersions } from "@/lib/studio/documents/queries";
+import { documentObjectBucket } from "@/lib/studio/documents/object-bucket";
 
 /** UUID v4-ish (mismo patrón que validateDocumentInput; usado para root_id). */
 const UUID_RE =
@@ -300,12 +301,14 @@ export async function deleteDocument(id: string): Promise<DocActionState> {
 
   const { data: doc } = await supabase
     .from("documents")
-    .select("id, storage_path, entity_type, entity_id")
+    .select("id, tenant_id, storage_path, bucket_id, entity_type, entity_id")
     .eq("id", id)
     .is("deleted_at", null)
     .maybeSingle<{
       id: string;
+      tenant_id: string;
       storage_path: string;
+      bucket_id: string;
       entity_type: DocumentEntityType;
       entity_id: string | null;
     }>();
@@ -319,8 +322,10 @@ export async function deleteDocument(id: string): Promise<DocActionState> {
 
   // El soft-delete ya lo oculta (RLS + queries filtran deleted_at). Borrar el
   // object es best-effort — NUNCA confiamos en un path del cliente: usamos el de
-  // la fila (validado en su día por la Storage RLS al subir).
-  await supabase.storage.from(DOCUMENTS_BUCKET).remove([doc.storage_path]);
+  // la fila (validado en su día por la Storage RLS al subir), en el bucket que
+  // dice la fila (SDD-0508: un adjunto de Bitácora vive en `bitacora`).
+  const bucket = documentObjectBucket(doc);
+  if (bucket) await supabase.storage.from(bucket).remove([doc.storage_path]);
 
   revalidateDocuments(doc.entity_type, doc.entity_id);
   return { ok: true };
@@ -396,17 +401,37 @@ export async function updateDocumentMeta(
 }
 
 /**
- * Firma una signed URL (TTL corto) para abrir/descargar un documento. La firma
- * la hace el user client (Storage RLS por tenant) — un cliente de otro tenant no
- * matchea el 1er segmento del path → no puede firmar. Devuelve null si falla.
+ * Firma una signed URL (TTL corto) para abrir/descargar un documento. Recibe el
+ * id de la fila, no un path (SDD-0508): el path y el bucket salen de la fila que
+ * la RLS de `documents` deja leer. La firma la hace el user client (Storage RLS
+ * por tenant) — un cliente de otro tenant no matchea el 1er segmento del path →
+ * no puede firmar. Devuelve null si falla.
  */
 export async function signDocumentUrl(
-  storagePath: string,
+  documentId: string,
 ): Promise<string | null> {
+  if (!documentId || !UUID_RE.test(documentId)) return null;
   const supabase = await createClient();
+  const { data: doc } = await supabase
+    .from("documents")
+    .select("id, tenant_id, storage_path, bucket_id, entity_type, entity_id")
+    .eq("id", documentId)
+    .is("deleted_at", null)
+    .maybeSingle<{
+      id: string;
+      tenant_id: string;
+      storage_path: string;
+      bucket_id: string;
+      entity_type: DocumentEntityType;
+      entity_id: string | null;
+    }>();
+  if (!doc?.id) return null;
+
+  const bucket = documentObjectBucket(doc);
+  if (!bucket) return null;
   const { data, error } = await supabase.storage
-    .from(DOCUMENTS_BUCKET)
-    .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
+    .from(bucket)
+    .createSignedUrl(doc.storage_path, SIGNED_URL_TTL_SECONDS);
   if (error || !data) return null;
   return data.signedUrl;
 }
