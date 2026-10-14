@@ -34,7 +34,20 @@ export interface DrainResult {
   delivered: number;
   skipped: number;
   failed: number;
+  /** SDD-0511: avisos cancelados porque su envío se eliminó después de programarlos. */
+  canceled: number;
 }
+
+const VACIO: DrainResult = {
+  processed: 0,
+  delivered: 0,
+  skipped: 0,
+  failed: 0,
+  canceled: 0,
+};
+
+/** Motivo que queda en la fila cancelada. */
+export const MOTIVO_ENVIO_ELIMINADO = "envío eliminado";
 
 export async function drainClientNotifications(
   admin: SupabaseClient,
@@ -51,16 +64,40 @@ export async function drainClientNotifications(
     .limit(MAX_BATCH);
 
   if (error || !rowsRaw || rowsRaw.length === 0) {
-    return { processed: 0, delivered: 0, skipped: 0, failed: 0 };
+    return { ...VACIO };
   }
 
   const rows = rowsRaw as ClientNotificationScheduleRow[];
+
+  // ── SDD-0511 · un aviso ya programado no sale si su envío se eliminó ──
+  //    después de programarlo (un aviso anclado al ETA puede esperar días).
+  //    Si no se puede saber, no se despacha a ciegas: el lote espera a la
+  //    próxima corrida, que el cron repite cada minuto.
+  const eliminados = await enviosEliminados(admin, rows);
+  if (eliminados === null) return { ...VACIO };
+
   let delivered = 0;
   let skipped = 0;
   let failed = 0;
+  let canceled = 0;
   let enqueuedPush = false;
 
   for (const row of rows) {
+    if (row.shipment_id && eliminados.has(row.shipment_id)) {
+      // Condicional como el claim: si otro worker ya la tomó, no se toca.
+      // 'canceled' libera el índice de idempotencia: si el envío se restaura,
+      // el evento se puede volver a programar.
+      const { data: cancelada } = await admin
+        .from("client_notification_schedule")
+        .update({ status: "canceled", error: MOTIVO_ENVIO_ELIMINADO })
+        .eq("id", row.id)
+        .eq("status", "scheduled")
+        .select("id")
+        .maybeSingle();
+      if (cancelada) canceled += 1;
+      continue;
+    }
+
     // ── Claim atómico: 'scheduled' → 'sent'. Si otro worker ya lo tomó, el
     //    UPDATE matchea 0 filas y lo saltamos. Revertimos si el envío falla.
     const { data: claimed } = await admin
@@ -111,7 +148,35 @@ export async function drainClientNotifications(
     });
   }
 
-  return { processed: rows.length, delivered, skipped, failed };
+  return { processed: rows.length, delivered, skipped, failed, canceled };
+}
+
+/**
+ * Los envíos del lote que están eliminados. `null` si la lectura falló: el
+ * llamador no despacha sin saberlo. Cliente admin: la RLS no filtra nada.
+ */
+async function enviosEliminados(
+  admin: SupabaseClient,
+  rows: ClientNotificationScheduleRow[],
+): Promise<Set<string> | null> {
+  const ids = [
+    ...new Set(rows.map((r) => r.shipment_id).filter((id): id is string => !!id)),
+  ];
+  if (ids.length === 0) return new Set();
+
+  const { data, error } = await admin
+    .from("shipments")
+    .select("id")
+    .in("id", ids)
+    .not("deleted_at", "is", null);
+  if (error) {
+    console.error(
+      "[client-notif-drain] no se pudo comprobar si los envíos siguen vivos:",
+      error.message,
+    );
+    return null;
+  }
+  return new Set(((data ?? []) as Array<{ id: string }>).map((s) => s.id));
 }
 
 interface RowDispatch {

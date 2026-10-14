@@ -54,6 +54,8 @@ function makeAdmin(cfg: Cfg) {
       },
       eq: () => builder,
       is: () => builder,
+      // SDD-0511: el drain lee qué envíos del lote están eliminados.
+      in: () => builder,
       not: () => builder,
       lte: () => builder,
       lt: () => builder,
@@ -149,6 +151,6 @@ describe("drainClientNotifications", () => {
   it("sin filas vencidas → resultado vacío", async () => {
     const { admin } = makeAdmin({ rows: [] });
     const res = await drainClientNotifications(admin);
-    expect(res).toEqual({ processed: 0, delivered: 0, skipped: 0, failed: 0 });
+    expect(res).toEqual({ processed: 0, delivered: 0, skipped: 0, failed: 0, canceled: 0 });
   });
 });
