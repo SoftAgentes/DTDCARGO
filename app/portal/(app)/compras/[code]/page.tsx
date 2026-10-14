@@ -23,6 +23,7 @@ import { defaultAddon } from "@/lib/studio/prealertas/addons";
 import { PREALERTA_DESCRIPCION_PENDIENTE } from "@/lib/studio/prealertas/types";
 import { ArrowIcon } from "@/components/Icon";
 import { PrealertaStatusBadge } from "../../../_components/PrealertaStatusBadge";
+import { PortalTrackingEnConstruccion } from "../../../_components/PortalTrackingEnConstruccion";
 import { PackingListDelProveedor } from "./_components/PackingListDelProveedor";
 
 type Props = { params: Promise<{ code: string }> };
@@ -138,6 +139,11 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
         </div>
         <PrealertaStatusBadge status={prealerta.status} />
       </div>
+
+      {/* SDD-0514 · la bodega de China todavía registra en Excel, así que la
+          recepción de abajo puede salir vacía aunque la mercancía haya llegado.
+          El aviso lo explica; no esconde las recepciones que sí existan. */}
+      <PortalTrackingEnConstruccion className="mt-7" />
 
       {/* ── Lo primero que se pregunta: ¿llegó todo? ───────────── */}
       <EstadoDeLlegada

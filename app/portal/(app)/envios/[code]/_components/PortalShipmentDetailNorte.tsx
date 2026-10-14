@@ -22,6 +22,7 @@ import type { PortalNotificationHistoryItem } from "@/lib/studio/notifications/n
 import { StatusBadge } from "../../../../_components/StatusBadge";
 import { PortalDocsCard } from "../../../../_components/PortalDocsCard";
 import { PortalNotificationHistory } from "../../../../_components/PortalNotificationHistory";
+import { PortalTrackingEnConstruccion } from "../../../../_components/PortalTrackingEnConstruccion";
 import { PendingAcceptanceCard } from "../../../_components/PendingAcceptanceCard";
 
 /**
@@ -126,6 +127,11 @@ export function PortalShipmentDetailNorte({
           />
         </div>
       ) : null}
+
+      {/* SDD-0514 · aviso de seguimiento en construcción. Va ARRIBA del stepper
+          y no en su lugar: si el envío ya tiene hitos con fecha, se siguen
+          viendo debajo. */}
+      <PortalTrackingEnConstruccion className="mt-8" />
 
       {/* Stepper de seguimiento (horizontal, canónico) */}
       <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">

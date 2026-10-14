@@ -34,6 +34,12 @@
       "significa": "Anunciar una compra usa el asistente de 3 pasos. En false vuelve el formulario viejo."
     },
     {
+      "name": "TRACKING_EN_CONSTRUCCION",
+      "file": "lib/portal/tracking-en-construccion.ts",
+      "value": true,
+      "significa": "SDD-0514. El Portal muestra el aviso «Seguimiento en construcción» en la portada, Envíos y los detalles de envío y de compra, porque la bodega de China todavía registra en Excel. En false el aviso desaparece de todas esas pantallas a la vez: apágalo cuando la bodega registre en el sistema."
+    },
+    {
       "name": "LEGAL_GATE_HARD_BLOCK",
       "file": "lib/studio/legal/gate-config.ts",
       "value": true,
