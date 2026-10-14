@@ -247,7 +247,7 @@ while read -r bucket; do
 done < "${work}/buckets-cloud.txt"
 
 # ── 4 · Verificación en el disco ────────────────────────────────────────────
-log "4/5 verificación (Cloud | staging, archivos en disco)"
+log "4/5 verificación (Cloud | staging, archivos en disco) · NO revoques la llave todavía: esta verificación la usa"
 pass=0; fail=0
 check() { # $1 = descripción, $2 = esperado, $3 = obtenido
   if [[ "$2" == "$3" ]]; then
@@ -264,7 +264,10 @@ total_cloud_n=0; total_cloud_b=0; total_disk_n=0; total_disk_b=0; total_missing=
 while read -r bucket; do
   [[ -n "${bucket}" ]] || continue
   cj="$(rclone_run size --json "cloud:${bucket}" 2>/dev/null || echo '{}')"
-  cn="$(grep -oE '"count":[0-9]+' <<< "${cj}" | cut -d: -f2)"; cb="$(grep -oE '"bytes":[0-9]+' <<< "${cj}" | cut -d: -f2)"
+  # `|| true`: si Cloud no responde (p. ej. la llave ya se revocó), grep no encuentra
+  # nada y, con pipefail, la asignación mataba el script sin decir por qué (corte del
+  # 2026-10-14, a mitad de la verificación). Así el bucket queda en FALLÓ con «?».
+  cn="$(grep -oE '"count":[0-9]+' <<< "${cj}" | cut -d: -f2 || true)"; cb="$(grep -oE '"bytes":[0-9]+' <<< "${cj}" | cut -d: -f2 || true)"
   dn="$(staging_sql "select count(*) from storage.objects where bucket_id = '${bucket//\'/\'\'}'")"
   missing=0; disk_b=0
   while IFS= read -r rel; do
