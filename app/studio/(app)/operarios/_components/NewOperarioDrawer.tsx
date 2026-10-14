@@ -1,9 +1,15 @@
 "use client";
 
 /**
- * NewOperarioDrawer — crea operario. Genera PIN auto-random (4 dígitos)
- * o permite que el admin lo tipee. Después de crear, muestra el PIN en
- * pantalla UNA vez (no se guarda en ningún lado más).
+ * NewOperarioDrawer — crea un operario de la app del teléfono.
+ *
+ * SDD-0515: el PIN ya no se sortea en el navegador. Igual que al restablecer
+ * (SDD-0513), por defecto lo genera el SERVIDOR con crypto.randomInt; «Escribirlo
+ * yo» deja escribir uno acordado. El alta pide un motivo de la lista (con texto
+ * sólo para «Otro»), que va a la auditoría. Después de crear se muestra el PIN
+ * y la app por la que entra (/m/cn/login: el alta del Studio es de China) para
+ * pasárselo al operario; vive sólo en el estado de este cajón y desaparece al
+ * cerrarlo.
  */
 
 import { startTransition, useActionState, useState } from "react";
@@ -11,21 +17,44 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
+import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
+import { StatusIcon } from "@/components/StatusIcon";
 import type { WarehouseCN } from "@/lib/studio/warehouse-cn-types";
+import {
+  OPERARIO_PIN_LENGTH,
+  OPERARIO_PIN_PROBLEM_MESSAGE,
+  operarioPinProblem,
+  type OperarioRegion,
+} from "@/lib/studio/operario-pin";
 import { createOperarioAction } from "../actions";
+import { MOTIVO_VACIO, MotivoField, motivoListo, type MotivoValue } from "./MotivoField";
+import { PinRevealBlock } from "./PinRevealBlock";
 
 type State = {
   ok?: boolean;
   error?: string;
   fieldErrors?: Record<string, string>;
   pinReveal?: string;
+  region?: OperarioRegion;
 };
+
+type PinMode = "generar" | "manual";
 
 const initialState: State = {};
 
-function randomPin(): string {
-  return String(Math.floor(Math.random() * 10000)).padStart(4, "0");
-}
+const MODE_OPTIONS = [
+  {
+    value: "generar" as const,
+    label: "Generar PIN",
+    description: "El sistema crea uno difícil de adivinar.",
+  },
+  {
+    value: "manual" as const,
+    label: "Escribirlo yo",
+    description: "Si ya acordaste uno con el operario.",
+  },
+];
 
 export function NewOperarioDrawer({
   warehouses,
@@ -44,21 +73,33 @@ export function NewOperarioDrawer({
   const [displayName, setDisplayName] = useState("");
   const [displayNameCn, setDisplayNameCn] = useState("");
   const [role, setRole] = useState<"operario" | "supervisor">("operario");
-  const [pin, setPin] = useState(() => randomPin());
-
-  const canSubmit =
-    !!warehouseId && displayName.trim().length > 0 && /^\d{4}$/.test(pin);
+  const [mode, setMode] = useState<PinMode>("generar");
+  const [pin, setPin] = useState("");
+  const [motivo, setMotivo] = useState<MotivoValue>(MOTIVO_VACIO);
 
   // Si la action retornó ok, mostramos vista de éxito con el PIN.
   if (state.ok && state.pinReveal) {
     return (
       <PinRevealSuccess
         pin={state.pinReveal}
+        region={state.region ?? "cn"}
         displayName={displayName}
         onClose={onClose}
       />
     );
   }
+
+  const manualProblem = mode === "manual" ? operarioPinProblem(pin) : null;
+  const canSubmit =
+    !!warehouseId &&
+    displayName.trim().length > 0 &&
+    (mode === "generar" || manualProblem === null) &&
+    motivoListo(motivo, mode === "manual" ? pin : null);
+  const liveError =
+    pin.length === OPERARIO_PIN_LENGTH && manualProblem === "common"
+      ? OPERARIO_PIN_PROBLEM_MESSAGE.common
+      : null;
+  const pinError = state.fieldErrors?.pin ?? liveError;
 
   const handleSubmit = (fd: FormData) => {
     startTransition(() => formAction(fd));
@@ -67,7 +108,7 @@ export function NewOperarioDrawer({
   return (
     <DrawerShell
       title="Nuevo operario"
-      subtitle="PIN de 4 dígitos para entrar a la PWA mobile"
+      subtitle="PIN de 4 dígitos para entrar a la app del teléfono"
       onClose={onClose}
       pending={isPending}
       width={560}
@@ -84,6 +125,8 @@ export function NewOperarioDrawer({
           gap: 16,
         }}
       >
+        <input type="hidden" name="pin_mode" value={mode} />
+
         <div>
           <label htmlFor="op-warehouse" className="studio-label">
             Warehouse <span style={{ color: "var(--wine-text)" }}>*</span>
@@ -167,68 +210,100 @@ export function NewOperarioDrawer({
             }}
           >
             {role === "operario"
-              ? "Registra recepciones desde la PWA."
+              ? "Registra recepciones desde la app del teléfono."
               : "Supervisor: mismo acceso + futuras acciones de aprobación."}
           </p>
         </div>
 
         <div>
-          <label htmlFor="op-pin" className="studio-label">
-            PIN <span style={{ color: "var(--wine-text)" }}>*</span>
-            <button
-              type="button"
-              onClick={() => setPin(randomPin())}
-              className="studio-btn studio-btn-ghost studio-btn-xs"
-              style={{ marginLeft: 8 }}
-            >
-              ↻ Generar otro
-            </button>
-          </label>
-          <input
-            id="op-pin"
-            name="pin"
-            type="text"
-            inputMode="numeric"
-            pattern="\d{4}"
-            maxLength={4}
-            className="studio-input studio-input-mono"
-            value={pin}
-            onChange={(e) =>
-              setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
-            }
-            placeholder="0000"
-            required
-            style={{ font: "700 18px/1 var(--f-mono)", letterSpacing: "0.12em" }}
+          <span className="studio-label" style={{ display: "block" }}>
+            ¿Cómo quieres el PIN?
+          </span>
+          <SegmentedControl
+            ariaLabel="Cómo quieres el PIN"
+            value={mode}
+            onChange={setMode}
+            options={MODE_OPTIONS}
+            columns={2}
+            disabled={isPending}
           />
-          {state.fieldErrors?.pin && <FieldError msg={state.fieldErrors.pin} />}
-          <p
-            style={{
-              font: "500 11px/1.4 var(--f-sans)",
-              color: "var(--ink-soft)",
-              margin: "4px 0 0",
-            }}
-          >
-            Muestra el PIN al operario apenas se cree. No se puede recuperar
-            después (solo resetear).
-          </p>
         </div>
 
-        {state.error && (
+        {mode === "generar" ? (
           <p
-            role="alert"
             style={{
-              font: "500 12px/1.4 var(--f-sans)",
-              color: "var(--danger)",
-              padding: "10px 12px",
-              background: "var(--danger-bg, rgba(168,50,62,0.08))",
-              border: "1px solid var(--danger)",
-              borderRadius: "var(--r-sm)",
+              font: "500 12.5px/1.5 var(--f-sans)",
+              color: "var(--ink-soft)",
               margin: 0,
             }}
           >
-            {state.error}
+            Al crearlo verás el PIN, para que se lo pases al operario.
+            {state.fieldErrors?.pin ? <FieldError msg={state.fieldErrors.pin} /> : null}
           </p>
+        ) : (
+          <div>
+            <label htmlFor="op-pin" className="studio-label">
+              PIN <span style={{ color: "var(--wine-text)" }}>*</span>
+            </label>
+            <input
+              id="op-pin"
+              name="pin"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              spellCheck={false}
+              pattern="[0-9]{4}"
+              maxLength={OPERARIO_PIN_LENGTH}
+              className="studio-input studio-input-mono"
+              value={pin}
+              onChange={(e) =>
+                setPin(e.target.value.replace(/\D/g, "").slice(0, OPERARIO_PIN_LENGTH))
+              }
+              aria-invalid={pinError ? true : undefined}
+              aria-describedby="op-pin-hint"
+              required
+              style={{ font: "700 18px/1 var(--f-mono)", letterSpacing: "0.12em" }}
+            />
+            <p
+              id="op-pin-hint"
+              role={pinError ? "alert" : undefined}
+              style={{
+                font: "500 11.5px/1.4 var(--f-sans)",
+                color: pinError ? "var(--ink)" : "var(--ink-soft)",
+                margin: "var(--s-1) 0 0",
+              }}
+            >
+              {pinError ? (
+                <>
+                  <StatusIcon
+                    tone="danger"
+                    style={{
+                      color: "var(--danger-text)",
+                      display: "inline",
+                      marginRight: "var(--s-1)",
+                      verticalAlign: "middle",
+                    }}
+                  />
+                  {pinError}
+                </>
+              ) : (
+                "4 dígitos. No se aceptan los muy comunes, como 1234 o 0000."
+              )}
+            </p>
+          </div>
         )}
+
+        <MotivoField
+          id="op-motivo"
+          value={motivo}
+          onChange={setMotivo}
+          pin={mode === "manual" ? pin : null}
+          serverError={state.fieldErrors?.motivo}
+          disabled={isPending}
+          placeholder="Ej.: entra al turno de la mañana"
+        />
+
+        <ErrorAlert state={state} compact />
       </form>
 
       <DrawerFooter
@@ -237,6 +312,7 @@ export function NewOperarioDrawer({
         isPending={isPending}
         canSubmit={canSubmit}
         submitLabel="Crear operario"
+        pendingLabel="Creando…"
       />
     </DrawerShell>
   );
@@ -244,35 +320,39 @@ export function NewOperarioDrawer({
 
 function FieldError({ msg }: { msg: string }) {
   return (
-    <p
+    <span
+      role="alert"
       style={{
+        display: "block",
         font: "500 11px/1.3 var(--f-sans)",
-        color: "var(--danger)",
+        color: "var(--danger-text, var(--danger))",
         margin: "4px 0 0",
       }}
     >
       {msg}
-    </p>
+    </span>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Success view post-create: muestra PIN en grande UNA vez
+// Vista de éxito: el PIN del operario nuevo
 // ─────────────────────────────────────────────────────────────
 
 function PinRevealSuccess({
   pin,
+  region,
   displayName,
   onClose,
 }: {
   pin: string;
+  region: OperarioRegion;
   displayName: string;
   onClose: () => void;
 }) {
   return (
     <DrawerShell
       title="Operario creado"
-      subtitle="Muéstrale este PIN al operario · no se puede recuperar después"
+      subtitle="Pásale este PIN al operario"
       onClose={onClose}
       pending={false}
       width={560}
@@ -287,21 +367,6 @@ function PinRevealSuccess({
           gap: 16,
         }}
       >
-        <div
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: "50%",
-            background: "var(--success-bg, rgba(31,138,91,0.12))",
-            color: "var(--success)",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            font: "900 28px/1 var(--f-display)",
-          }}
-        >
-          ✓
-        </div>
         <p
           style={{
             font: "600 14px/1.4 var(--f-sans)",
@@ -312,19 +377,7 @@ function PinRevealSuccess({
         >
           <strong>{displayName}</strong> ya puede entrar.
         </p>
-        <div
-          style={{
-            padding: "20px 32px",
-            background: "var(--bg-elevated)",
-            border: "2px dashed var(--wine)",
-            borderRadius: "var(--r-md)",
-            font: "900 38px/1 var(--f-mono)",
-            color: "var(--wine-text)",
-            letterSpacing: "0.16em",
-          }}
-        >
-          {pin}
-        </div>
+        <PinRevealBlock pin={pin} region={region} />
         <p
           style={{
             font: "500 12px/1.5 var(--f-sans)",
@@ -334,8 +387,8 @@ function PinRevealSuccess({
             margin: 0,
           }}
         >
-          Anótalo o díselo en persona. Si lo pierdes, vas a tener que resetearlo
-          desde esta misma página.
+          Díselo en persona. Si se le olvida, puedes verlo con «Ver PIN»; cada
+          consulta queda en la auditoría.
         </p>
       </div>
       <footer

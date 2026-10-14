@@ -857,3 +857,56 @@ Orden:
 | 2026-10-09 → 2026-10-13 | 2 | Worker SDD-0505, con Sam en las ventanas de credenciales | Staging vacío (2026-10-09); base importada desde Cloud con `--skip-storage` (2026-10-12: 277 PASÓ, 266 tablas, 305 usuarios, ledger 477 → 478 con la 0472); archivos con `storage-from-cloud.sh` (638 objetos, 470.562.607 bytes, 51 PASÓ + 1 esperado); smokes con datos (correo de Auth 11/11, TUS y tiempo real 9/9, 19 crons, Studio); sesiones, claves, scripts del corte, mantenimiento y producción armada y apagada; **staging destruido el 2026-10-13 con evidencia** (`/srv/ops/evidencias/destroy-dtd-cargo-staging-20261013T0132Z.txt`: 0 contenedores, 0 volúmenes, 0 redes, 0 datos). Fuera de esta fase: pgBackRest (§7 del runbook de backup) | `.agents/handoffs/0505-dockerizar-dtd-cargo-contabo.md` § Fase 2 |
 | — | 3 | — | pendiente: 0472 aplicada en Cloud (2026-10-13), respaldo diario instalado y encendido, texto de privacidad aprobado y **publicado con el merge de la PR #194 (`2035a5fa`, 2026-10-13 10:27Z, OK de Sam: «ok, haz el merge»)**; claves de Cloud e integraciones en el servidor, DNS de `supabase.dtdcargo.com`, sesiones ES256, Kuma con Telegram, `MAINTENANCE_MODE=off` y el secreto de bypass en Vercel, Backblaze limpio (bucket de prueba borrado, maestra rotada); aviso a clientes en borrador; **imagen de `main` publicada** (`ghcr.io/hailuwaycom-sketch/dtdcargo:sha-2035a5faeb7f8b526843b22a9cc4276ee707a479`, cuarto intento del workflow: tres caídas por la descarga de fuentes de Google en el runner, y la primera además por las variables del repo que faltaban, ya creadas). Faltan TTL/registros viejos en Hostinger, facturas, 2FA en Kuma, el `docker login ghcr.io` del servidor y la fecha | handoff § «Con los pendientes, hazlo tú» |
 | — | 4 | — | pendiente | — |
+
+## 6 · Rotación de `operario_pin_key` (PIN de operarios, SDD-0515)
+
+Desde la migración `0475_pin_operarios_endurecer.sql`, la base guarda el PIN de
+cada operario dos veces: el hash bcrypt con que entra a la app del teléfono y una
+copia cifrada (`operario_pins.pin_cifrado`, `pgp_sym_encrypt` AES-256) que sale
+por «Ver PIN». La clave de esa copia es el secreto de Vault `operario_pin_key`,
+que la migración creó con 32 bytes aleatorios. Spec:
+[0515](../specs/0515-pin-operarios-endurecer/spec.md).
+
+**Decisión de Sam (2026-10-14), literal:** «Sólo si hay sospecha o sale alguien con
+acceso (Recomendado)». No hay rotación programada.
+
+### Cuándo se rota
+
+- Se pierde o se filtra un respaldo de la base, o se sospecha que alguien la leyó
+  sin permiso. El respaldo lleva `pin_cifrado` y el secreto cifrado en
+  `vault.secrets`; con la raíz de Vault del servidor, alcanza para descifrar todos
+  los PIN (dónde vive esa raíz y si viaja con los respaldos: **NO VERIFICADO**).
+- Sale de la empresa alguien con acceso a la raíz de Vault del servidor, a la base
+  como `postgres` o `supabase_admin`, o al `.env` del servidor.
+
+No hace falta rotar cuando sale alguien que sólo tenía «Ver PIN» en el Studio:
+se le quita el rol (o el desvío de Operarios) y, si hay sospecha, se restablecen
+los PIN que vio, que están en los eventos `pin_visto` de la auditoría.
+
+Rotar la clave no cambia los PIN: quien ya vio un PIN en claro lo sigue sabiendo.
+Si la sospecha es sobre los PIN y no sólo sobre la clave, además hay que
+restablecerlos (Studio › Operarios › «Restablecer PIN»).
+
+### Cómo se rota
+
+Con una migración numerada nueva, con OK nominal de Sam y el
+[runbook de producción](aplicar-migraciones-prod.md), en **una sola transacción**:
+
+1. **Preflight.** Que exista exactamente un secreto `operario_pin_key`, que
+   `vault.update_secret` exista con la firma que se va a usar y que cada fila con
+   `pin_cifrado` se descifre con la clave actual (conteo, sin mostrar nada).
+2. `lock table public.operario_pins in share row exclusive mode`, para que nadie
+   cree ni restablezca un PIN a mitad de la rotación.
+3. Leer la clave actual de `vault.decrypted_secrets` y generar la nueva con
+   `pg_catalog.encode(extensions.gen_random_bytes(32), 'base64')`, en variables
+   de la función, nunca en una tabla.
+4. Volver a cifrar todas las filas:
+   `update public.operario_pins set pin_cifrado = extensions.pgp_sym_encrypt(extensions.pgp_sym_decrypt(pin_cifrado, v_actual), v_nueva, 'cipher-algo=aes256') where pin_cifrado is not null`.
+5. Guardar la nueva con `vault.update_secret(<id>, v_nueva)`: el nombre no
+   cambia, así que `operario_pin_cifrar` y `operario_pin_descifrar` siguen igual.
+6. **Postflight.** Mismo número de filas con `pin_cifrado` antes y después; todas
+   se descifran con la clave nueva y ninguna con la anterior (conteos).
+
+La clave, vieja o nueva, y los PIN nunca se imprimen: ni `NOTICE`, ni `RAISE`, ni
+salida de `psql`; la evidencia son conteos. Una corrida que falla a la mitad
+vuelve atrás entera y deja la clave anterior funcionando.

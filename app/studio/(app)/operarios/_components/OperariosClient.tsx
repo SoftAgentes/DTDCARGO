@@ -1,21 +1,42 @@
 "use client";
 
 /**
- * OperariosClient — tabla + drawers Nuevo/Restablecer PIN/Editar (SDD-0028, SDD-0513).
+ * OperariosClient — tabla + drawers Nuevo/Restablecer PIN/Editar (SDD-0028, SDD-0513)
+ * y, desde SDD-0515, «Ver PIN» y «Reactivar» (un operario de baja vuelve con PIN nuevo).
+ *
+ * Cada fila dice por qué app entra el operario según su región («Entra por
+ * dtdcargo.com/m/cn/login» o «…/m/ve/login»): el PIN de uno de China no sirve
+ * en la de Venezuela, y al revés. La columna «Rol» muestra los cuatro roles de
+ * la base (operario, supervisor, bodeguero, camionero); antes todo lo que no
+ * era supervisor salía como «Operario».
  */
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Icon } from "@/app/studio/_components/icons";
 import type { OperarioRow } from "@/lib/studio/operario-queries";
 import type { WarehouseCN } from "@/lib/studio/warehouse-cn-types";
+import { operarioLoginLabel, operarioRolLabel } from "@/lib/studio/operario-pin";
 import { setOperarioActiveAction } from "../actions";
 import { NewOperarioDrawer } from "./NewOperarioDrawer";
 import { ResetPinDrawer } from "./ResetPinDrawer";
 import { EditOperarioDrawer } from "./EditOperarioDrawer";
+import { PinViewDialog } from "./PinViewDialog";
 
-type DrawerKind = null | "new" | "reset" | "edit";
+type DrawerKind = null | "new" | "reset" | "reactivar" | "ver" | "edit";
+
+type RowActions = {
+  onResetPin: (op: OperarioRow) => void;
+  onReactivar: (op: OperarioRow) => void;
+  onVerPin: (op: OperarioRow) => void;
+  onEdit: (op: OperarioRow) => void;
+};
+
+// La columna de acciones lleva «Ver PIN», «Restablecer PIN» y el lápiz. Los
+// botones no se parten (nowrap): si algún día no caben, se ve el desborde en vez
+// de crecer la fila en silencio.
+const GRID_COLUMNS = "1fr 130px 130px 160px 90px 290px";
 
 export function OperariosClient({
   operarios,
@@ -31,13 +52,9 @@ export function OperariosClient({
     setSelected(null);
     setDrawer("new");
   };
-  const openReset = (op: OperarioRow) => {
+  const openFor = (kind: Exclude<DrawerKind, null | "new">) => (op: OperarioRow) => {
     setSelected(op);
-    setDrawer("reset");
-  };
-  const openEdit = (op: OperarioRow) => {
-    setSelected(op);
-    setDrawer("edit");
+    setDrawer(kind);
   };
   const close = () => {
     setDrawer(null);
@@ -80,7 +97,7 @@ export function OperariosClient({
         <EmptyState
           eyebrow="Catálogo vacío"
           title="Aún no hay operarios."
-          description="Cada operario tiene un PIN de 4 dígitos para entrar a la PWA mobile. Crea el primero."
+          description="Cada operario tiene un PIN de 4 dígitos para entrar a la app del teléfono. Crea el primero."
           action={
             <button
               type="button"
@@ -94,8 +111,10 @@ export function OperariosClient({
       ) : (
         <OperariosTable
           operarios={operarios}
-          onResetPin={openReset}
-          onEdit={openEdit}
+          onResetPin={openFor("reset")}
+          onReactivar={openFor("reactivar")}
+          onVerPin={openFor("ver")}
+          onEdit={openFor("edit")}
         />
       )}
 
@@ -104,6 +123,12 @@ export function OperariosClient({
       )}
       {drawer === "reset" && selected && (
         <ResetPinDrawer operario={selected} onClose={close} />
+      )}
+      {drawer === "reactivar" && selected && (
+        <ResetPinDrawer operario={selected} onClose={close} reactivar />
+      )}
+      {drawer === "ver" && selected && (
+        <PinViewDialog operario={selected} onClose={close} />
       )}
       {drawer === "edit" && selected && (
         <EditOperarioDrawer
@@ -122,13 +147,8 @@ export function OperariosClient({
 
 function OperariosTable({
   operarios,
-  onResetPin,
-  onEdit,
-}: {
-  operarios: OperarioRow[];
-  onResetPin: (op: OperarioRow) => void;
-  onEdit: (op: OperarioRow) => void;
-}) {
+  ...actions
+}: { operarios: OperarioRow[] } & RowActions) {
   return (
     <div
       style={{
@@ -142,7 +162,7 @@ function OperariosTable({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 130px 130px 160px 90px 200px",
+          gridTemplateColumns: GRID_COLUMNS,
           gap: 12,
           padding: "10px 20px",
           font: "700 9.5px/1 var(--f-sans)",
@@ -162,13 +182,7 @@ function OperariosTable({
       </div>
 
       {operarios.map((op, i) => (
-        <OperarioRowItem
-          key={op.id}
-          op={op}
-          first={i === 0}
-          onResetPin={onResetPin}
-          onEdit={onEdit}
-        />
+        <OperarioRowItem key={op.id} op={op} first={i === 0} {...actions} />
       ))}
     </div>
   );
@@ -178,13 +192,10 @@ function OperarioRowItem({
   op,
   first,
   onResetPin,
+  onReactivar,
+  onVerPin,
   onEdit,
-}: {
-  op: OperarioRow;
-  first: boolean;
-  onResetPin: (op: OperarioRow) => void;
-  onEdit: (op: OperarioRow) => void;
-}) {
+}: { op: OperarioRow; first: boolean } & RowActions) {
   const initials = op.display_name
     .split(/\s+/)
     .map((p) => p[0]?.toUpperCase() ?? "")
@@ -198,7 +209,7 @@ function OperarioRowItem({
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "1fr 130px 130px 160px 90px 200px",
+        gridTemplateColumns: GRID_COLUMNS,
         gap: 12,
         padding: "12px 20px",
         alignItems: "center",
@@ -247,6 +258,21 @@ function OperarioRowItem({
               </span>
             ) : null}
           </div>
+          <div
+            style={{
+              font: "500 11.5px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 3,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Entra por{" "}
+            <span style={{ font: "600 11.5px/1.3 var(--f-mono)", color: "var(--ink)" }}>
+              {operarioLoginLabel(op.region)}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -257,7 +283,7 @@ function OperarioRowItem({
 
       {/* Rol */}
       <Badge tone={op.role === "supervisor" ? "wine" : "neutral"} size="sm">
-        {op.role === "supervisor" ? "Supervisor" : "Operario"}
+        {operarioRolLabel(op.role)}
       </Badge>
 
       {/* Last login */}
@@ -271,13 +297,22 @@ function OperarioRowItem({
       </span>
 
       {/* Active toggle */}
-      <ActiveToggle op={op} />
+      <ActiveToggle op={op} onReactivar={onReactivar} />
 
       {/* Acciones */}
-      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", whiteSpace: "nowrap" }}>
+        <button
+          type="button"
+          onClick={() => onVerPin(op)}
+          aria-label={`Ver PIN de ${op.display_name}`}
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+        >
+          Ver PIN
+        </button>
         <button
           type="button"
           onClick={() => onResetPin(op)}
+          aria-label={`Restablecer PIN de ${op.display_name}`}
           className="studio-btn studio-btn-ghost studio-btn-sm"
         >
           Restablecer PIN
@@ -296,41 +331,69 @@ function OperarioRowItem({
   );
 }
 
-function ActiveToggle({ op }: { op: OperarioRow }) {
+/**
+ * Activo → el toggle desactiva (el formulario de siempre). De baja → abre
+ * «Reactivar», que le da un PIN nuevo: desde 0475 la base no deja reactivar sin
+ * PIN nuevo, para que nadie vuelva con uno que otro operario activo ya usa.
+ */
+function ActiveToggle({
+  op,
+  onReactivar,
+}: {
+  op: OperarioRow;
+  onReactivar: (op: OperarioRow) => void;
+}) {
+  if (!op.active) {
+    return (
+      <button
+        type="button"
+        onClick={() => onReactivar(op)}
+        aria-label={`Reactivar a ${op.display_name} con un PIN nuevo`}
+        style={toggleStyle(false)}
+      >
+        <span aria-hidden style={knobStyle(false)} />
+      </button>
+    );
+  }
   return (
     <form action={setOperarioActiveAction}>
       <input type="hidden" name="operario_id" value={op.id} />
-      <input type="hidden" name="active" value={op.active ? "false" : "true"} />
+      <input type="hidden" name="active" value="false" />
       <button
         type="submit"
-        aria-label={op.active ? "Desactivar operario" : "Activar operario"}
-        style={{
-          width: 38,
-          height: 24,
-          borderRadius: 999,
-          background: op.active ? "var(--success)" : "var(--ink-mute)",
-          border: 0,
-          position: "relative",
-          cursor: "pointer",
-          transition: "background var(--dur-fast) var(--ease)",
-        }}
+        aria-label={`Desactivar a ${op.display_name}`}
+        style={toggleStyle(true)}
       >
-        <span
-          aria-hidden
-          style={{
-            position: "absolute",
-            top: 3,
-            left: op.active ? 18 : 2,
-            width: 18,
-            height: 18,
-            borderRadius: "50%",
-            background: "#FFFFFF",
-            transition: "left var(--dur-fast) var(--ease)",
-          }}
-        />
+        <span aria-hidden style={knobStyle(true)} />
       </button>
     </form>
   );
+}
+
+function toggleStyle(active: boolean): CSSProperties {
+  return {
+    width: 38,
+    height: 24,
+    borderRadius: 999,
+    background: active ? "var(--success)" : "var(--ink-mute)",
+    border: 0,
+    position: "relative",
+    cursor: "pointer",
+    transition: "background var(--dur-fast) var(--ease)",
+  };
+}
+
+function knobStyle(active: boolean): CSSProperties {
+  return {
+    position: "absolute",
+    top: 3,
+    left: active ? 18 : 2,
+    width: 18,
+    height: 18,
+    borderRadius: "50%",
+    background: "#FFFFFF",
+    transition: "left var(--dur-fast) var(--ease)",
+  };
 }
 
 function formatDateTime(iso: string): string {
