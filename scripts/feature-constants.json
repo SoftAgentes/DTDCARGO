@@ -37,7 +37,7 @@
       "name": "TRACKING_EN_CONSTRUCCION",
       "file": "lib/portal/tracking-en-construccion.ts",
       "value": true,
-      "significa": "SDD-0514. El Portal muestra el aviso «Seguimiento en construcción» en la portada, Envíos y los detalles de envío y de compra, porque la bodega de China todavía registra en Excel. En false el aviso desaparece de todas esas pantallas a la vez: apágalo cuando la bodega registre en el sistema."
+      "significa": "SDD-0514 y SDD-0516. El Portal muestra el aviso «Seguimiento en construcción» en la portada, Envíos y los detalles de envío y de compra, porque la bodega de China todavía registra en Excel. Además, el detalle de una compra sin recepciones y la tarjeta de notificaciones de la portada dejan de prometer el aviso de llegada a bodega. En false el aviso desaparece de todas esas pantallas a la vez y vuelven esos textos: apágalo cuando la bodega registre en el sistema."
     },
     {
       "name": "LEGAL_GATE_HARD_BLOCK",

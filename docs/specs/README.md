@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 501 specs)
+### Índice de specs (generado · 502 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -539,6 +539,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0513 | Restablecer el PIN de un operario con uno generado y mostrarl… | in-progress | interno |
 | 0514 | Portal: aviso de seguimiento en construcción | in-progress | interno |
 | 0515 | PIN de operarios endurecido en la base: sin lectura de pin_ha… | in-progress | interno |
+| 0516 | Portal: el detalle de compra no promete avisos mientras el se… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
