@@ -54,6 +54,9 @@ import {
 } from "@/lib/public/rates-queries";
 import { DocsPanel } from "@/app/studio/_components/documents/DocsPanel";
 import { listDocumentsByEntity } from "@/lib/studio/documents/queries";
+import { listarAdjuntosDelCliente } from "@/lib/studio/documents/adjuntos-queries";
+import { textoAdjuntos } from "@/lib/studio/documents/adjuntos";
+import { TodosLosAdjuntos } from "../_components/TodosLosAdjuntos";
 import {
   getOpenChangeRequest,
   listResolvedChangeRequests,
@@ -161,6 +164,14 @@ export default async function ClienteDetallePage({
   // Documentos del DMS genérico (SDD-0049) adjuntos a este cliente — KYC, RIF,
   // contratos, poderes. Coexiste con shipment_documents.
   const dmsDocuments = await listDocumentsByEntity(supabase, "client", client.id);
+
+  // SDD-0507: «Todos los adjuntos» — los de la ficha y los de sus embarques
+  // vivos, con la misma definición que el conteo del listado. `null` si no se
+  // pudo leer: la sección lo dice.
+  const todosLosAdjuntos = await listarAdjuntosDelCliente(supabase, {
+    id: client.id,
+    markbox: client.markbox,
+  });
 
   // Direcciones de entrega (SDD-0138 Slice B). Best-effort: si la migración 0198
   // todavía no está aplicada, la query falla → degradamos a lista vacía sin romper.
@@ -295,6 +306,31 @@ export default async function ClienteDetallePage({
             <Badge tone={tierBadgeTone(client.tier)} size="md">
               {tierLabel(client.tier)}
             </Badge>
+            {/* SDD-0507: el total, a la vista, y un salto a la sección. */}
+            {todosLosAdjuntos !== null && todosLosAdjuntos.total > 0 && (
+              <a
+                href="#adjuntos"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "var(--s-2)",
+                  height: 28,
+                  padding: "0 var(--s-3)",
+                  borderRadius: "var(--r-pill)",
+                  border: "1px solid var(--border-strong)",
+                  background: "var(--bg-surface)",
+                  color: "var(--ink)",
+                  font: "700 12px/1 var(--f-sans)",
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span aria-hidden="true" style={{ display: "inline-flex" }}>
+                  {Icon.doc(14)}
+                </span>
+                {textoAdjuntos(todosLosAdjuntos.total)} · ver todos
+              </a>
+            )}
           </div>
         </div>
 
@@ -693,6 +729,9 @@ export default async function ClienteDetallePage({
               </div>
             )}
           </section>
+
+          {/* SDD-0507: todo lo adjunto al cliente y a sus embarques, junto. */}
+          <TodosLosAdjuntos datos={todosLosAdjuntos} />
           </div>
         </div>
       </ClientDetailClient>

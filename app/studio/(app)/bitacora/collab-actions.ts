@@ -35,6 +35,7 @@ import type {
   CommentWithMeta,
 } from "@/lib/studio/comments/types";
 import { listDocumentsByEntity } from "@/lib/studio/documents/queries";
+import { documentObjectBucket } from "@/lib/studio/documents/object-bucket";
 import {
   ATTACH_MAX_BYTES,
   BITACORA_BUCKET,
@@ -112,7 +113,7 @@ export type TaskAttachment = {
   sizeBytes: number | null;
   createdAt: string;
   storagePath: string;
-  /** Signed URL (1h) contra el bucket `bitacora`. null si no se pudo firmar. */
+  /** Signed URL (1h) contra el bucket de la fila (`bitacora`). null si no se pudo firmar. */
   signedUrl: string | null;
 };
 
@@ -134,10 +135,12 @@ export async function listTaskAttachmentsAction(
     docs.map(async (d) => {
       let signedUrl: string | null = null;
       // Solo firmamos paths que matchean el shape del tenant+tarea (defensa; los
-      // paths vienen de filas RLS-scoped, pero validamos igual antes de firmar).
-      if (isValidTaskAttachmentPath(d.storage_path, tenantId, taskId)) {
+      // paths vienen de filas RLS-scoped, pero validamos igual antes de firmar),
+      // en el bucket que dice la fila (SDD-0508).
+      const bucket = documentObjectBucket(d);
+      if (bucket && isValidTaskAttachmentPath(d.storage_path, tenantId, taskId)) {
         const { data } = await supabase.storage
-          .from(BITACORA_BUCKET)
+          .from(bucket)
           .createSignedUrl(d.storage_path, SIGNED_URL_TTL_SECONDS);
         signedUrl = data?.signedUrl ?? null;
       }
@@ -211,6 +214,9 @@ export async function registerTaskAttachmentAction(
     doc_type: attachmentKindLabel(kind),
     name,
     storage_path: storagePath,
+    // SDD-0508: el objeto está en `bitacora`. Sin esto la columna toma el
+    // default 'documents' (0307) y el hub borraría/firmaría en el bucket ajeno.
+    bucket_id: BITACORA_BUCKET,
     content_type: mime,
     size_bytes: size,
     status: "vigente",
@@ -247,11 +253,18 @@ export async function deleteTaskAttachmentAction(
 
   const { data: doc } = await supabase
     .from("documents")
-    .select("id, storage_path, entity_id")
+    .select("id, tenant_id, storage_path, bucket_id, entity_type, entity_id")
     .eq("id", docId)
     .eq("entity_type", "bitacora_task")
     .is("deleted_at", null)
-    .maybeSingle<{ id: string; storage_path: string; entity_id: string | null }>();
+    .maybeSingle<{
+      id: string;
+      tenant_id: string;
+      storage_path: string;
+      bucket_id: string;
+      entity_type: string;
+      entity_id: string | null;
+    }>();
   if (!doc?.id) return { error: "Adjunto no encontrado." };
 
   const { error } = await supabase
@@ -261,7 +274,9 @@ export async function deleteTaskAttachmentAction(
   if (error) return { error: `No se pudo eliminar: ${error.message}` };
 
   // Best-effort: el soft-delete ya lo oculta (RLS + queries filtran deleted_at).
-  await supabase.storage.from(BITACORA_BUCKET).remove([doc.storage_path]);
+  // El objeto se borra en el bucket que dice la fila (SDD-0508).
+  const bucket = documentObjectBucket(doc);
+  if (bucket) await supabase.storage.from(bucket).remove([doc.storage_path]);
 
   revalidatePath("/studio/bitacora");
   revalidatePath("/studio/documentos");

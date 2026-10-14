@@ -28,6 +28,15 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Icon } from "@/app/studio/_components/icons";
 import { ShipmentDetailDrawer } from "./ShipmentDetailDrawer";
+import { AdjuntosConteo } from "@/app/studio/_components/documents/AdjuntosConteo";
+import {
+  FILTRO_ADJUNTOS_OPCIONES,
+  desgloseEmbarque,
+  pasaFiltroAdjuntos,
+  type ConteoEmbarque,
+  type ConteosPorId,
+  type FiltroAdjuntos,
+} from "@/lib/studio/documents/adjuntos";
 
 type Tab = "all" | "active" | "delivered" | "alerts";
 type ServiceFilter = ShipmentService | "all";
@@ -68,12 +77,21 @@ function formatDate(iso: string): string {
 
 export function EmbarquesClient({
   shipments,
+  adjuntos,
 }: {
   shipments: ShipmentListRow[];
+  /**
+   * SDD-0507: adjuntos por embarque. `null` = no se pudo contar (se dice).
+   * `undefined` = quien mira no tiene el módulo `tracking`: la RLS no le deja
+   * ver ningún adjunto de embarque, así que no se pinta nada (un «Ninguno» en
+   * todas las filas no sería cierto).
+   */
+  adjuntos: ConteosPorId<ConteoEmbarque> | undefined;
 }) {
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const [serviceFilter, setServiceFilter] = useState<ServiceFilter>("all");
+  const [filtroAdjuntos, setFiltroAdjuntos] = useState<FiltroAdjuntos>("todos");
   const [drawerShipmentId, setDrawerShipmentId] = useState<string | null>(null);
 
   // Counts globales para los tabs (sin search aplicado)
@@ -95,6 +113,9 @@ export function EmbarquesClient({
       rows = rows.filter((r) => r.shipment_service === serviceFilter);
     }
 
+    // SDD-0507: con / sin adjuntos. Sin conteo no filtra (y el select ni se pinta).
+    rows = rows.filter((r) => pasaFiltroAdjuntos(filtroAdjuntos, adjuntos ?? null, r.id));
+
     if (q.trim()) {
       const needle = q.trim().toLowerCase();
       rows = rows.filter((r) => {
@@ -109,7 +130,7 @@ export function EmbarquesClient({
     }
 
     return groupShipmentsByClient(rows);
-  }, [shipments, tab, serviceFilter, q]);
+  }, [shipments, tab, serviceFilter, q, filtroAdjuntos, adjuntos]);
 
   // Default expand: si <3 grupos, todos abiertos; sino, todos cerrados
   const [expanded, setExpanded] = useState<Set<string>>(
@@ -281,6 +302,28 @@ export function EmbarquesClient({
             ))}
           </select>
         </div>
+        {adjuntos != null && (
+          <div
+            className="emb-toolbar-adj"
+            style={{ flex: "0 1 180px", minWidth: 160 }}
+          >
+            <label className="studio-label" htmlFor="emb-adj">
+              Adjuntos
+            </label>
+            <select
+              id="emb-adj"
+              className="studio-input"
+              value={filtroAdjuntos}
+              onChange={(e) => setFiltroAdjuntos(e.target.value as FiltroAdjuntos)}
+            >
+              {FILTRO_ADJUNTOS_OPCIONES.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         {groupedFiltered.length > 0 && (
           <button
             type="button"
@@ -295,7 +338,8 @@ export function EmbarquesClient({
       <style>{`
         @media (max-width: 640px) {
           .emb-toolbar-search,
-          .emb-toolbar-svc {
+          .emb-toolbar-svc,
+          .emb-toolbar-adj {
             flex: 1 1 100% !important;
             min-width: 0 !important;
           }
@@ -337,13 +381,37 @@ export function EmbarquesClient({
         }
       `}</style>
 
+      {/* SDD-0507: si no se pudo contar, se dice; la columna no se pinta. */}
+      {adjuntos === null && (
+        <p
+          role="status"
+          style={{
+            margin: "0 0 var(--s-3)",
+            font: "500 12.5px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          No se pudieron contar los adjuntos.
+        </p>
+      )}
+
       {/* Tabla agrupada o empty */}
       {groupedFiltered.length === 0 ? (
         <EmptyState
-          eyebrow={q ? "Sin resultados" : tab === "all" ? "Catálogo vacío" : "Sin envíos en este tab"}
+          eyebrow={
+            q || filtroAdjuntos !== "todos"
+              ? "Sin resultados"
+              : tab === "all"
+                ? "Catálogo vacío"
+                : "Sin envíos en este tab"
+          }
           title={
             q
               ? "Ningún envío matchea la búsqueda."
+              : filtroAdjuntos !== "todos"
+                ? filtroAdjuntos === "con"
+                  ? "Ningún envío de esta vista tiene adjuntos."
+                  : "Todos los envíos de esta vista tienen adjuntos."
               : tab === "all"
                 ? "Aún no hay envíos registrados."
                 : tab === "alerts"
@@ -355,6 +423,8 @@ export function EmbarquesClient({
           description={
             q
               ? "Prueba ajustar los términos de búsqueda."
+              : filtroAdjuntos !== "todos"
+                ? "Cambia el filtro «Adjuntos» a «Todos» para ver el resto."
               : "Crea envíos desde Estimados (convertir estimado aceptado) o desde /tracking/nuevo."
           }
         />
@@ -364,6 +434,7 @@ export function EmbarquesClient({
           expanded={expanded}
           toggleGroup={toggleGroup}
           onRowClick={(id) => setDrawerShipmentId(id)}
+          adjuntos={adjuntos ?? null}
         />
       )}
 
@@ -384,12 +455,20 @@ function GroupedTable({
   expanded,
   toggleGroup,
   onRowClick,
+  adjuntos,
 }: {
   groups: ReturnType<typeof groupShipmentsByClient>;
   expanded: Set<string>;
   toggleGroup: (key: string) => void;
   onRowClick: (shipmentId: string) => void;
+  adjuntos: ConteosPorId<ConteoEmbarque>;
 }) {
+  // SDD-0507: «Adjuntos» va antes de «Creado», sólo si se pudo contar.
+  const columnas =
+    adjuntos === null
+      ? "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px"
+      : "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 96px 90px";
+  const anchoMinimo = adjuntos === null ? 824 : 930;
   return (
     <div
       style={{
@@ -530,8 +609,7 @@ function GroupedTable({
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns:
-                      "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px",
+                    gridTemplateColumns: columnas,
                     gap: 10,
                     padding: "var(--s-2) var(--s-5)",
                     borderTop: "1px solid var(--border)",
@@ -539,7 +617,7 @@ function GroupedTable({
                     letterSpacing: "0.08em",
                     textTransform: "uppercase",
                     color: "var(--ink-soft)",
-                    minWidth: 824,
+                    minWidth: anchoMinimo,
                   }}
                 >
                   <span></span>
@@ -549,6 +627,7 @@ function GroupedTable({
                   <span>Estado</span>
                   <span>Progreso</span>
                   <span style={{ textAlign: "right" }}>CBM</span>
+                  {adjuntos !== null && <span>Adjuntos</span>}
                   <span>Creado</span>
                 </div>
                 {group.shipments.map((s) => {
@@ -562,8 +641,7 @@ function GroupedTable({
                       style={{
                         width: "100%",
                         display: "grid",
-                        gridTemplateColumns:
-                          "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px",
+                        gridTemplateColumns: columnas,
                         gap: 10,
                         padding: "var(--s-3) var(--s-5)",
                         background: "transparent",
@@ -573,7 +651,7 @@ function GroupedTable({
                         textAlign: "left",
                         cursor: "pointer",
                         transition: "background var(--dur-fast) var(--ease)",
-                        minWidth: 824,
+                        minWidth: anchoMinimo,
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = "var(--bg-elevated)";
@@ -645,6 +723,11 @@ function GroupedTable({
                       >
                         {s.volume_m3 != null ? Number(s.volume_m3).toFixed(2) : "—"}
                       </span>
+                      {adjuntos !== null && (
+                        <span>
+                          <AdjuntosDeEmbarque conteo={adjuntos[s.id]} />
+                        </span>
+                      )}
                       <span
                         style={{
                           font: "500 11px/1 var(--f-sans)",
@@ -730,4 +813,10 @@ function ProgressBar({
       </span>
     </span>
   );
+}
+
+/** Celda «Adjuntos» de un embarque. Sin entrada cuenta como cero (ver `pasaFiltroAdjuntos`). */
+function AdjuntosDeEmbarque({ conteo }: { conteo: ConteoEmbarque | undefined }) {
+  const c = conteo ?? { internos: 0, portal: 0, total: 0 };
+  return <AdjuntosConteo total={c.total} desglose={desgloseEmbarque(c)} />;
 }
