@@ -79,7 +79,9 @@ export function ShipmentDocsPanel({
           marginBottom: 4,
         }}
       >
-        <span className="studio-eyebrow">Documentos del cliente · portal</span>
+        {/* SDD-0507: decía «Documentos del cliente · portal» y parecía que el
+            archivo era del cliente, no del embarque. */}
+        <span className="studio-eyebrow">Documentos del embarque · los ve el cliente</span>
         <Badge tone="info" size="sm">
           Portal
         </Badge>
