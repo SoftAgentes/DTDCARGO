@@ -1,7 +1,7 @@
 ---
 sdd: "0507"
 title: "Adjuntos visibles en el Studio: conteo por fila en Clientes, Embarques y Tracking, y «Todos los adjuntos» en la ficha del cliente"
-status: proposed
+status: in-progress
 author: "Claude + founder"
 created: 2026-10-14
 updated: 2026-10-14
@@ -27,6 +27,15 @@ hecha por el Worker con `pnpm sdd:next --reserve` sobre `origin/main`
 
 Probando el Studio, Sam no encontraba qué clientes o embarques tenían documentos
 o fotos. Hoy sólo se ven entrando a cada ficha.
+
+## Decisiones de Sam (2026-10-14, respuestas literales en AskUserQuestion)
+
+| Pregunta | Respuesta | Descartó |
+|---|---|---|
+| «¿Apruebas el diseño del mockup?» | «Apruebo el mockup (Recomendado)» | Apruebo con cambios |
+| «¿Qué cuenta como adjunto en esta primera parte?» | «Lo que muestran las fichas (Recomendado)». La opción decía: «Documentos del hub (cliente y embarque) y documentos del portal del embarque (BL, POD), con las fotos que se suban ahí. Mismos permisos que hoy.» | Sumar fotos de recepción en China · Todo lo del cliente |
+| «¿Quieres el filtro «Con adjuntos / Sin adjuntos» en los listados?» | «En Embarques y Tracking (Recomendado)» | También en Clientes · Ninguno por ahora |
+| «Codex reservó hoy la SDD-0506 «bitácora-adjuntos-entidad» […] ¿Es este mismo pedido?» | «No, es otra cosa» | Sí, es lo mismo · No sé |
 
 ## Contexto (medido en el código de `221c48f4`)
 
@@ -135,12 +144,23 @@ Mockup para validar: <https://claude.ai/artifact/SkR6QtFSXCLdaQcwGTCsVx>.
 ### Embarques (`/studio/embarques`)
 
 - Columna nueva «Adjuntos» antes de «Creado» en las filas de cada grupo.
-- Mismo comportamiento ante error que Clientes.
+- Filtro nuevo en la barra, junto a «Servicio»: «Adjuntos» con «Todos», «Con
+  adjuntos» y «Sin adjuntos». Se aplica en el navegador, como las pestañas y
+  la búsqueda, y se combina con ellas.
+- Mismo comportamiento ante error que Clientes. Si no se pudo contar, el filtro
+  no aparece: filtrar sobre un conteo que no existe mentiría.
+- Esta pantalla se abre con el módulo `shipments`, pero la RLS de los
+  documentos de un embarque pide `tracking`. Si quien mira no tiene `tracking`
+  (sólo puede pasar con un override), no se cuenta ni se pinta nada: la columna
+  diría «Ninguno» en todas las filas sin ser cierto.
 
 ### Tracking (`/studio/tracking`)
 
 - En la línea inferior de cada tarjeta de envío activo, entre el progreso y la
   ETA: «2 adjuntos» o «Sin adjuntos».
+- Filtro nuevo bajo el buscador de la barra lateral, con las mismas tres
+  opciones y la misma regla ante error. El mensaje de lista vacía nombra el
+  filtro cuando es él el que deja la lista vacía.
 
 ### Ficha del cliente (`/studio/clientes/[markbox]`)
 
@@ -153,10 +173,23 @@ Mockup para validar: <https://claude.ai/artifact/SkR6QtFSXCLdaQcwGTCsVx>.
     detalle), ordenados por el adjunto más reciente.
   - Cada fila: extensión, nombre, versión cuando la tiene, tipo o carpeta,
     tamaño, fecha, «Interno» o «Portal» (lo ve el cliente) y el botón «Ver».
-  - «Ver» firma la URL al tocarlo, con TTL de 60 s y el cliente de sesión:
-    `signDocumentUrl` (bucket `documents`) y una acción nueva
-    `signShipmentDocumentUrl` (bucket `shipment-docs`). La RLS de Storage
-    decide; ningún cliente admin.
+  - «Ver» firma la URL al tocarlo, con TTL de 60 s y el cliente de sesión, con
+    una acción nueva, `firmarAdjuntoAction`
+    (`app/studio/(app)/clientes/adjuntos-actions.ts`). No reutiliza
+    `signDocumentUrl`: el contrato de RBAC por acción la tiene en `DEUDA` porque
+    firma cualquier ruta sin candado (`lib/studio/rbac-actions-guard.test.ts`,
+    entrada `documentos/actions.ts::signDocumentUrl`), y sumarle un consumidor
+    agranda esa deuda. La acción nueva:
+    1. pide `moduleViewDenial(supabase, "clients")` antes de todo, sin
+       condiciones;
+    2. acepta sólo los buckets `documents` y `shipment-docs`, y sólo rutas con
+       la forma que arman las subidas de hoy:
+       `{tenant}/client|shipment/{uuid}/{archivo}` y
+       `{tenant}/{embarque}/{archivo}`;
+    3. si la ruta es de un embarque, pide además `moduleViewDenial(supabase,
+       "tracking")`;
+    4. firma con el cliente de sesión, así que la RLS de Storage decide por
+       tenant y por entidad. Ningún cliente admin.
   - Para subir, versionar o eliminar se sigue usando el panel de la ficha o del
     embarque. La sección no duplica esas acciones.
   - Vacía: «Este cliente todavía no tiene adjuntos, ni en su ficha ni en sus
@@ -208,7 +241,7 @@ Producto:
 - `app/studio/(app)/tracking/page.tsx`
 - `app/studio/(app)/tracking/_components/ActiveShipmentList.tsx`
 - `app/studio/(app)/tracking/[id]/_components/ShipmentDocsPanel.tsx` (sólo el rótulo)
-- `app/studio/(app)/tracking/[id]/document-actions.ts` (sólo `signShipmentDocumentUrl`)
+- `app/studio/(app)/clientes/adjuntos-actions.ts` (`firmarAdjuntoAction`)
 
 Pruebas:
 
@@ -216,11 +249,17 @@ Pruebas:
 - `lib/studio/documents/__tests__/adjuntos-queries.test.ts`
 - `app/studio/_components/documents/__tests__/AdjuntosConteo.test.tsx`
 - `app/studio/(app)/clientes/_components/__tests__/TodosLosAdjuntos.test.tsx`
-- Ajustes en pruebas existentes de esos componentes si fijan el texto o las
-  columnas que cambian.
+- `app/studio/(app)/clientes/__tests__/adjuntos-actions.test.ts`
+- `app/studio/(app)/clientes/_components/ClientsClient.adjuntos.test.tsx`
+- `app/studio/(app)/embarques/_components/__tests__/EmbarquesClient.adjuntos.test.tsx`
+- `app/studio/(app)/tracking/_components/__tests__/ActiveShipmentList.adjuntos.test.tsx`
+- `app/studio/(app)/clientes/_components/ClientsClient.contador.test.tsx` (sólo
+  la prop nueva `adjuntos`)
+- `lib/studio/rbac-actions-guard.test.ts` (sólo el inventario: 74 archivos y
+  428 acciones, por `firmarAdjuntoAction`)
 
-Si Sam aprueba el filtro opcional, se suman sólo los archivos de los listados
-que lo llevan; se anota aquí antes de tocarlos.
+El filtro que aprobó Sam vive en `EmbarquesClient.tsx` y
+`ActiveShipmentList.tsx`, ya listados arriba.
 
 ## Criterios de aceptación
 
@@ -240,12 +279,17 @@ que lo llevan; se anota aquí antes de tocarlos.
    pantalla dice «No se pudieron contar los adjuntos.»; nunca «Ninguno».
 6. **Indicador accesible.** «5 adjuntos», «1 adjunto» y «Ninguno» se leen como
    texto; el desglose sale en `title`.
-7. **Ver.** Cada fila de la sección abre su archivo con la acción del bucket
-   que corresponde; `signShipmentDocumentUrl` rechaza rutas que no tengan la
-   forma `{tenant}/{embarque}/{archivo}` antes de firmar.
+7. **Ver.** Cada fila de la sección abre su archivo con `firmarAdjuntoAction`.
+   Sin el módulo `clients` no firma nada; una ruta de embarque sin el módulo
+   `tracking` tampoco; un bucket o una ruta con otra forma se rechaza antes de
+   tocar Storage. El contrato `rbac-actions-guard.test.ts` la acepta sin
+   entrar en `EXCEPCIONES` ni en `DEUDA`.
 8. **Rótulo.** El panel del portal en el detalle del envío dice «Documentos del
    embarque · los ve el cliente».
-9. `pnpm verify` completo, con turno pedido al Director.
+9. **Filtro.** En Embarques y Tracking, «Con adjuntos» deja sólo las filas con
+   total mayor que cero y «Sin adjuntos» sólo las de cero; se combina con
+   pestaña, servicio y búsqueda. Si el conteo es `null`, el filtro no se pinta.
+10. `pnpm verify` completo, con turno pedido al Director.
 
 ## Fuera de alcance
 
@@ -255,7 +299,7 @@ que lo llevan; se anota aquí antes de tocarlos.
   parte con su propia revisión de permisos (pendiente de la decisión de Sam).
 - Subir o borrar desde «Todos los adjuntos».
 - Vista o RPC de conteo (plan B, cuando se pueda migrar en el servidor).
-- Filtro «con / sin adjuntos» en Clientes, salvo que Sam lo pida ahora: el
+- Filtro «con / sin adjuntos» en Clientes (Sam lo dejó para después): el
   listado se pagina en el servidor y el filtro tiene que contar antes de
   paginar.
 
@@ -270,11 +314,11 @@ que lo llevan; se anota aquí antes de tocarlos.
   `expense`, que la base tiene desde la 0314.
 - `addDocumentVersion` (`app/studio/(app)/documentos/actions.ts:175-277`) no
   tiene el gate de módulo que sí tienen subir y borrar; depende sólo de la base.
-- La reserva SDD-0506 `bitacora-adjuntos-entidad` (Codex, 2026-10-14 01:01 UTC)
-  puede tocar el mismo dominio. Pendiente de confirmar con Sam o el Director.
+- `IDS_POR_LOTE = 500` en `lib/db/paginate.ts` arma, con UUID, URLs de unos
+  19 KB por `.in(...)`. Desde el 2026-10-14 las peticiones pasan por el Kong del
+  servidor propio, y no hay en `infra/` un ajuste de su límite de línea de
+  petición. **NO VERIFICADO** si corta; esta SDD usa lotes de 100 (unos 3,7 KB)
+  para no depender de eso.
 
-## Decisiones pendientes de Sam
-
-1. Aprobación del mockup.
-2. Qué cuenta como adjunto en esta primera parte.
-3. Filtro «con / sin adjuntos» y en qué listados.
+La reserva SDD-0506 `bitacora-adjuntos-entidad` (Codex, 2026-10-14 01:01 UTC)
+no es este pedido, según Sam.

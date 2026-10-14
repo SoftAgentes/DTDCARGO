@@ -529,7 +529,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0503 | Carrusel de fotos de la empresa en la web pública | in-progress | interno |
 | 0504 | Entrega incluida desde Editar ciudad | done | interno |
 | 0505 | Dockerizar DTD Cargo para el servidor propio en Contabo (Fase 0) | in-progress | interno |
-| 0507 | Adjuntos visibles en el Studio: conteo por fila en Clientes, … | proposed | interno |
+| 0507 | Adjuntos visibles en el Studio: conteo por fila en Clientes, … | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0506 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
