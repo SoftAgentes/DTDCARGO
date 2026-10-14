@@ -14,6 +14,12 @@
  * pantallas que lo muestran (portada, Envíos, detalle de envío y detalle de
  * compra) dejan de pintarlo a la vez.
  *
+ * Con el mismo valor se suavizan los textos que prometen un aviso o una
+ * recepción automática de bodega (SDD-0516): el detalle de una compra sin
+ * recepciones (`app/portal/(app)/compras/[code]/page.tsx`) y la tarjeta de
+ * notificaciones de la portada (`app/portal/(app)/page.tsx`). Al apagarlo,
+ * vuelven sus textos de siempre en el mismo momento.
+ *
  * En el mismo commit, cambia también su `value` en `scripts/feature-constants.json`.
  * Eso no cambia el comportamiento: deja dicho en qué estado quedó para el
  * cliente. Si se te olvida, el paso `feature-constants` de `pnpm verify` se pone
