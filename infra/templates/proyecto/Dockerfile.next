@@ -47,6 +47,20 @@ ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
     NODE_ENV=production
 COPY . .
 RUN pnpm build
+# Si el proyecto tiene `sharp` (next/image), el tracer de Next copia el `.node`
+# pero no las `.so` de libvips (las abre por dlopen): sin esto, /_next/image
+# sirve el original sin optimizar. Visto en DTD Cargo el 2026-10-14 (ver el
+# Dockerfile de la raíz de DTD). Se copian los `@img/*` enteros y se prueba que
+# sharp convierte; si no, el build falla. Sin `sharp`, el paso no hace nada.
+RUN set -e; \
+    if [ -e node_modules/sharp ]; then \
+      for d in node_modules/.pnpm/@img+*; do \
+        [ -e "$d" ] || continue; \
+        mkdir -p ".next/standalone/$d"; \
+        cp -a "$d/." ".next/standalone/$d/"; \
+      done; \
+      cd .next/standalone && node -e "require('sharp')({create:{width:4,height:4,channels:3,background:'#ffffff'}}).webp().toBuffer().then((b)=>{if(!b.length)process.exit(1)}).catch((e)=>{console.error(e);process.exit(1)})"; \
+    fi
 
 # ── runner ─────────────────────────────────────────────────────────────────
 FROM ${NODE_IMAGE} AS runner

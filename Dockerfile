@@ -87,6 +87,23 @@ ENV DTD_STANDALONE=1 \
 # contenedor es el snapshot `/norte.html` de la pestaña Norte de /studio/debug.
 RUN pnpm exec next build
 
+# libvips para `sharp` (el optimizador de next/image). El tracer de Next copia
+# `sharp` y su `.node`, pero NO las `.so` de libvips: el `.node` las abre por
+# dlopen, no por require, y el tracer no las ve. Medido en el ensayo del
+# 2026-10-14: en `.next/standalone` el paquete `@img/sharp-libvips-linux-x64`
+# llegaba solo con `lib/index.js`, `require('sharp')` fallaba con
+# `libvips-cpp.so…: cannot open shared object file` y `/_next/image` devolvía el
+# PNG original (38 KB) en vez del WebP redimensionado (1,5 KB en Vercel). Se
+# copian los paquetes `@img/*` enteros con la misma ruta de `.pnpm` (sin fijar
+# versiones a mano) y se prueba ahí mismo que sharp convierte: si no, el build
+# falla en vez de publicar una imagen que sirve fotos sin optimizar.
+RUN set -e; \
+    for d in node_modules/.pnpm/@img+*; do \
+      mkdir -p ".next/standalone/$d"; \
+      cp -a "$d/." ".next/standalone/$d/"; \
+    done; \
+    cd .next/standalone && node -e "require('sharp')({create:{width:4,height:4,channels:3,background:'#ffffff'}}).webp().toBuffer().then((b)=>{if(!b.length)process.exit(1);console.log('sharp OK, webp de prueba:',b.length,'bytes')}).catch((e)=>{console.error(e);process.exit(1)})"
+
 # ─── runner ─────────────────────────────────────────────────────────────────
 FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
@@ -97,8 +114,9 @@ ENV NODE_ENV=production \
     PORT=3000
 
 # El bundle standalone ya trae `server.js` y un `node_modules` trazado (incluye
-# `sharp` para next/image y lo que declara `outputFileTracingIncludes`:
-# public/brand, private/marca/herramientas, docs/marketing/*.md). `public/` y
+# `sharp` con libvips, completado en la etapa build, y lo que declara
+# `outputFileTracingIncludes`: public/brand, private/marca/herramientas,
+# docs/marketing/*.md). `public/` y
 # `.next/static` NO los incluye el tracer: se copian aparte. `--chown=node`
 # porque el proceso corre sin root y Next escribe su caché en `.next/cache`.
 COPY --from=build --chown=node:node /app/.next/standalone ./
