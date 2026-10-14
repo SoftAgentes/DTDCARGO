@@ -43,23 +43,18 @@ type ShipmentDateRow = {
   planning_timezone: string;
 };
 
+type ShippedEventShipment = {
+  id: string;
+  code: string;
+  client_name: string | null;
+  destination: string | null;
+  deleted_at: string | null;
+};
+
 type ShippedEventRow = {
   id: string;
   occurred_at: string;
-  shipment:
-    | {
-        id: string;
-        code: string;
-        client_name: string | null;
-        destination: string | null;
-      }
-    | {
-        id: string;
-        code: string;
-        client_name: string | null;
-        destination: string | null;
-      }[]
-    | null;
+  shipment: ShippedEventShipment | ShippedEventShipment[] | null;
 };
 
 function shiftIsoDay(day: string, amount: number): string {
@@ -102,11 +97,13 @@ export async function listCalendarEvents(
   // ── Arribo + entrega: columnas timestamptz en shipments ──────────
   // El .or() trae la fila si CUALQUIER columna cae en rango; luego
   // filtramos por columna para no emitir un hito fuera del rango.
+  // SDD-0509: solo envíos vivos — la RLS no excluye los eliminados (0230).
   const { data: shipmentsData, error: shipErr } = await supabase
     .from("shipments")
     .select(
       "id, code, client_name, destination, arrived_destination_at, delivered_at, planned_departure_at, planned_arrival_at, planned_delivery_at, planning_timezone",
     )
+    .is("deleted_at", null)
     .or(
         `and(arrived_destination_at.gte.${fromTs},arrived_destination_at.lte.${toTs}),` +
         `and(delivered_at.gte.${fromTs},delivered_at.lte.${toTs}),` +
@@ -179,11 +176,16 @@ export async function listCalendarEvents(
   }
 
   // ── Zarpe: evento 'shipped' del timeline, con el embarque embebido ──
+  // SDD-0509: la RLS no oculta eliminados, ni eventos ni embarques. El
+  // `.is` saca los eventos que la cascada (0003) marcó al eliminar el envío;
+  // el `deleted_at` del embebido saca un evento insertado DESPUÉS de eliminar,
+  // que la cascada no alcanzó.
   const { data: shippedData, error: evErr } = await supabase
     .from("shipment_events")
     .select(
-      "id, occurred_at, shipment:shipments(id, code, client_name, destination)",
+      "id, occurred_at, shipment:shipments(id, code, client_name, destination, deleted_at)",
     )
+    .is("deleted_at", null)
     .eq("status", "shipped")
     .gte("occurred_at", fromTs)
     .lte("occurred_at", toTs)
@@ -194,7 +196,7 @@ export async function listCalendarEvents(
     if (!dayInRange(ev.occurred_at, from, to, timeZone)) continue;
     // El embed to-one puede venir como objeto o (según PostgREST) array.
     const s = Array.isArray(ev.shipment) ? ev.shipment[0] : ev.shipment;
-    if (!s) continue; // embarque soft-deleted → filtrado por RLS
+    if (!s || s.deleted_at != null) continue;
     events.push({
       id: `${ev.id}-zarpe`,
       date: timestampToCalendarDay(ev.occurred_at, timeZone),

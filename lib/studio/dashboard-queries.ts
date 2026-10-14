@@ -50,10 +50,12 @@ export async function getOperationalCounts(
   };
 }
 
+/** Clientes vivos del tenant. SDD-0509: la RLS no excluye los eliminados. */
 export async function getClientCount(supabase: SupabaseClient): Promise<number> {
   const { count } = await supabase
     .from("clients")
-    .select("id", { count: "exact", head: true });
+    .select("id", { count: "exact", head: true })
+    .is("deleted_at", null);
   return count ?? 0;
 }
 

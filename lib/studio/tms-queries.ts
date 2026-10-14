@@ -240,11 +240,14 @@ export type EligibleShipmentForRoute = {
 export async function listEligibleShipmentsForRoute(
   supabase: SupabaseClient,
 ): Promise<EligibleShipmentForRoute[]> {
+  // SDD-0509: solo envíos vivos. La RLS no excluye los eliminados, y sin el
+  // filtro se podía planificar una ruta para un envío eliminado.
   const { data: shipments, error } = await supabase
     .from("shipments")
     .select(
       "id, code, client_name, client_markbox, destination, delivery_address, arrived_destination_at",
     )
+    .is("deleted_at", null)
     .in("status", ["arrived_destination", "out_for_delivery", "last_mile"])
     .order("arrived_destination_at", { ascending: false })
     .limit(100);

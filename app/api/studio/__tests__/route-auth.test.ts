@@ -159,10 +159,14 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
 
   it("preserva KPIs para una sesión válida", async () => {
     mocks.user = { id: "user-1" };
+    // SDD-0509: la ruta encadena `.is("deleted_at", null)` tras el select; el
+    // filtro en sí lo prueba listados-sin-eliminados.test.ts.
     mocks.from.mockReturnValue({
-      select: async () => ({
-        data: [{ status: "delivered" }, { status: "in_transit" }],
-        error: null,
+      select: () => ({
+        is: async () => ({
+          data: [{ status: "delivered" }, { status: "in_transit" }],
+          error: null,
+        }),
       }),
     });
 

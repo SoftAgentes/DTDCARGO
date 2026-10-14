@@ -44,11 +44,13 @@ export async function GET() {
   const denial = await moduleViewDenial(supabase, "tracking");
   if (denial) return NextResponse.json({ error: denial }, { status: 403 });
 
+  // SDD-0509: solo envíos vivos. La RLS no excluye los eliminados (0230).
   const { data, error } = await supabase
     .from("shipments")
     .select(
       "id, code, client_name, client_markbox, origin, destination, shipment_service, status, weight_kg, volume_m3, vehicle_category, vehicle_model, created_at, updated_at",
     )
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(100);
 
