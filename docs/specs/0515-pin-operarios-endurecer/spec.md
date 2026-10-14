@@ -1,6 +1,6 @@
 ---
 sdd: "0515"
-title: "PIN de operarios endurecido en la base: sin lectura de pin_hash, con la matriz, auditado y sin repetidos"
+title: "PIN de operarios endurecido: matriz de módulos, «Ver PIN» auditado, motivo obligatorio y sin repetidos"
 status: in-progress
 author: "Sam (founder) + Claude Opus 5.5 (Worker)"
 created: 2026-10-14
@@ -11,12 +11,14 @@ related: ["0139", "0166", "0174", "0235", "0251", "0252", "0412", "0513"]
 confidencialidad: interno
 ---
 
-# SDD-0515 — PIN de operarios endurecido en la base
+# SDD-0515 — PIN de operarios endurecido
 
 > El PIN de 4 dígitos con que los operarios entran a `/m/cn` y `/m/ve` deja de
-> poder leerse desde la API, la base autoriza con la misma matriz de módulos que
-> la app, cada alta y restablecimiento queda auditado sin el PIN, y no puede
-> haber dos operarios activos con el mismo PIN en el mismo tenant y región.
+> poder leerse desde la API; la base autoriza con la misma matriz de módulos que
+> la app; quien tenga Operarios puede ver un PIN con un motivo, y eso queda en la
+> auditoría; alta, restablecimiento y reactivación piden motivo y dejan su
+> evento sin el PIN; y no puede haber dos operarios activos con el mismo PIN en
+> el mismo tenant y región.
 
 ## Contexto
 
@@ -40,7 +42,7 @@ dejaba rastro (criterio 5 pendiente de SDD-0513), y el login
 (`0325_operario_pin_login_hardening.sql`) exige una sola coincidencia en tenant +
 región: un PIN repetido deja fuera a los dos operarios.
 
-**Decisiones de Sam (2026-10-14, AskUserQuestion), literal de la opción elegida:**
+### Decisiones de Sam (2026-10-14, AskUserQuestion), literales
 
 1. «Sí, en una tarea aparte (Recomendado)», sobre «Nueva SDD-0515 con una
    migración que: quita al personal la lectura de pin_hash (sólo
@@ -52,121 +54,187 @@ región: un PIN repetido deja fuera a los dos operarios.
    administradora. La 0515 hace que la base respete esa matriz (hoy sólo acepta
    admin u operaciones).» La administradora tiene rol Admin. Los permisos por
    usuario siguen descartados (SDD-0139).
+3. «Sí, con un botón «Ver PIN» auditado». Lo que se le explicó: «Además del hash
+   (que sigue sin poder leerse), se guarda el PIN cifrado con una clave del
+   servidor. Un botón «Ver PIN» lo muestra sólo a los roles con acceso a
+   Operarios en la matriz, y cada vez que alguien lo ve queda en la auditoría.
+   Riesgo: quien lo vea puede entrar como ese operario, y la auditoría ya no
+   prueba quién hizo cada entrega. Los PIN actuales no se pueden recuperar: hay
+   que restablecerlos una vez para que empiecen a verse.»
+4. «Sí, un motivo corto obligatorio (Recomendado)», para restablecer y para ver
+   un PIN (AUD-01).
+
+### Defaults del Director para las decisiones que esta spec dejó abiertas
+
+(a) Activar, desactivar y editar operarios por la matriz van en una SDD aparte.
+(b) Al reactivar a un operario dado de baja se exige un PIN nuevo. (c) La fuga de
+P0018 queda moot con «Ver PIN» y se anota. (d) `service_role` no lee `pin_hash`
+ni `pin_cifrado`. (e) El alta deja de usar `Math.random` en el navegador y genera
+en el servidor como el restablecimiento.
 
 ## Alcance
 
-Una migración, `0475_pin_operarios_endurecer.sql`, más el reintento de la app:
+Una migración, `0475_pin_operarios_endurecer.sql`, más la app de Operarios:
 
 - **Lectura.** El SELECT de `operario_pins` de `authenticated` y de
-  `service_role` pasa a ser por columna: las 13 columnas menos `pin_hash`. La
-  policy SELECT exige, además del tenant, el permiso de **vista** de Operarios
-  según la matriz. `pin_hash` sólo lo leen las funciones SECURITY DEFINER: el
-  login y las de alta y restablecimiento.
+  `service_role` pasa a ser por columna: las 13 columnas menos `pin_hash` y la
+  nueva `pin_cifrado`. La policy SELECT exige, además del tenant, el permiso de
+  **vista** de Operarios según la matriz. `service_role` deja de insertar y sólo
+  actualiza las columnas que no son credencial.
 - **Matriz en la base.** `operarios_module_authorized(tenant, 'view'|'edit')`
   reproduce `canAccessModule`/`canEditModule` con el patrón de
   `document_entity_authorized` (`0444_unlinked_document_entity_rbac.sql`): admin
   siempre, support nunca edita, desvío de 0357 si existe y, si no, el default
   `['operations']`.
-- **RPC.** `admin_reset_operario_pin` y `admin_create_operario`, reescritas desde
-  0351, autorizan con la matriz (de primero, sin oráculo de ids), rechazan con
-  **P0018** un PIN que coincida con otro operario **activo** del mismo tenant y
-  región (con un advisory lock transaccional por tenant y región) y escriben el
-  evento de auditoría en la misma transacción.
-- **Auditoría (AUD-01).** Entidad `operario` (dominio `access`) en
-  `audit_entity_types`; eventos `operario_pin_reset` y `operario_created` con
-  actor `user`, `source = rpc`, `sensitivity = restricted`, `correlation_id`
-  propio y `after_data` sin el PIN ni el hash.
+- **PIN recuperable.** `pin_cifrado` (bytea) guarda el PIN con
+  `pgp_sym_encrypt` (AES-256) y la clave `operario_pin_key` que la migración crea
+  en Vault con 32 bytes aleatorios. Lo escriben sólo `admin_create_operario` y
+  `admin_reset_operario_pin`.
+- **«Ver PIN».** `admin_ver_operario_pin(operario, motivo)`: SECURITY DEFINER,
+  `search_path` vacío, la matriz en **edición** (la misma regla que restablecer),
+  motivo obligatorio, evento `pin_visto` en la misma transacción sin el PIN;
+  devuelve el PIN o `NULL` si es anterior a 0475.
+- **Motivo obligatorio.** Alta, restablecimiento y «Ver PIN»: 4 a 300 caracteres
+  y sin el PIN adentro (`operario_motivo_valido`). Las RPC de alta y
+  restablecimiento cambian de firma (`p_motivo`, y `p_reactivar` en el
+  restablecimiento); las firmas viejas se quitan para que no quede una puerta sin
+  motivo. El motivo va al `reason` del evento.
+- **Sin repetidos.** Alta y restablecimiento rechazan con **P0018** un PIN que
+  coincida con otro operario **activo** del mismo tenant y región, con un advisory
+  lock transaccional por tenant y región.
+- **Reactivar.** `admin_set_operario_active` (0351) ya no reactiva (P0019);
+  `admin_reset_operario_pin(p_reactivar => true)` reactiva con un PIN nuevo y
+  libre y deja `operario_reactivated`.
 - **Validador.** `validate_operario_pin_format`, reescrita desde
-  `0037_harden_operario_pin_validator.sql` (su última definición; 0271, 0280,
-  0287 y 0288 sólo la reafirman en el ledger), dice «Elige» en vez de «Elegí» y
-  conserva el `search_path = public` de 0210.
-- **App.** `generateOperarioPinAction` reintenta con otro PIN generado si la base
-  contesta P0018 (hasta 5 PIN distintos); el camino manual y el alta devuelven el
-  rechazo como error del campo PIN, sin cambiar el PIN que eligió el admin.
+  `0037_harden_operario_pin_validator.sql`, dice «Elige» en vez de «Elegí».
+- **App.** «Ver PIN» por operario (motivo → modal con «Copiar PIN», se borra al
+  cerrar; aviso para un PIN anterior); campo motivo en el cajón de restablecer y
+  en el alta; el alta genera el PIN en el servidor (sin `Math.random`) con
+  reintento ante P0018 o lo deja escribir; el toggle de un operario de baja abre
+  «Reactivar».
 
-Fuera de alcance: `admin_set_operario_active`, `admin_update_operario`,
-`verify_operario_pin` y el sorteo con `Math.random` de `NewOperarioDrawer.tsx`
-(ver Riesgos y decisiones).
+Fuera de alcance: la autorización de `admin_set_operario_active` y de
+`admin_update_operario`, que sigue escrita a mano (default a); el login
+(`verify_operario_pin`), que no cambia.
 
 ## Criterios de aceptación
 
-Cada uno con su evidencia; el contrato es
-`supabase/tests/0475_pin_operarios_endurecer.test.sql` y su envoltorio PGlite
-`lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts`.
+El contrato es `supabase/tests/0475_pin_operarios_endurecer.test.sql` y su
+envoltorio PGlite `lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts`.
 
-1. **Nadie lee `pin_hash` desde la API.** admin, operations, commercial, support
-   y service_role reciben 42501 al pedirlo; las otras 13 columnas siguen
-   legibles por columna; `select *` falla; la lista de Studio › Operarios
-   (`lib/studio/operario-queries.ts`, columnas nombradas) y la sesión del
-   operario (`lib/auth/operario-session.ts`, service_role) siguen funcionando.
-2. **La lectura sigue la matriz.** operations y admin ven los operarios de su
-   tenant; commercial y support no; un desvío que le da la vista a commercial la
-   abre y uno que le quita Operarios a operations la cierra; un usuario
-   desactivado no ve nada; otro tenant sólo ve los suyos.
-3. **Restablecer y crear siguen la matriz.** Para los 7 roles, sin desvío y con
-   cada desvío posible (25 casos), la policy, el helper y las dos RPC deciden lo
-   mismo que `moduleViewDenial`/`moduleEditDenial` reales. El mutante que vuelve
-   al rol escrito a mano rompe exactamente los 6 casos donde la lista a mano y
-   la matriz difieren. El candado corre antes de buscar el operario.
-4. **Auditoría en la misma transacción, sin el PIN.** Cada restablecimiento y
-   cada alta dejan un evento con quién, a qué operario, en qué tenant y cuándo;
-   ni el PIN ni el hash aparecen en `payload`, `before_data`, `after_data` ni
-   `reason`. Si el evento no se puede escribir (entidad desactivada), el PIN no
-   cambia y el operario no se crea.
-5. **Sin PIN repetidos.** El PIN de otro operario activo del mismo tenant y región
-   se rechaza con P0018 y el mensaje «Ese PIN ya lo usa otro operario activo de la
-   misma región. Usa otro o genera uno nuevo.»; en otra región, en otro tenant o
-   igual al de un operario dado de baja se acepta; un operario puede volver a su
-   propio PIN; el lock por tenant y región está en `pg_locks` hasta el COMMIT.
-6. **El login sigue funcionando.** `verify_operario_pin` no cambia (md5 de 0325)
-   y entra con el PIN nuevo, no con el viejo, y con el mismo PIN en otra región u
-   otro tenant cada login encuentra a su operario.
-7. **Tuteo.** El PIN común se rechaza con «PIN demasiado común. Elige uno menos
-   predecible.»; el validador rechaza los mismos 24 de siempre
-   (`lib/studio/__tests__/operario-pin.migration.test.ts`, de SDD-0513, corre
-   ahora contra la definición de 0475).
-8. **La app reintenta.** Con un P0018, `generateOperarioPinAction` guarda otro PIN
-   distinto, nunca devuelve ni escribe en consola el rechazado y se rinde tras 5
-   con el mensaje de la base; un rechazo que no es P0018 no reintenta; el camino
-   manual y el alta devuelven el error en el campo PIN
-   (`lib/studio/__tests__/operario-pin.test.ts`,
-   `app/studio/(app)/operarios/__tests__/reset-pin-actions.test.ts`; 8 mutantes
-   de la app mueren).
-9. **Preflight y postflight.** Un ANTES con drift (cuerpo de 0351, login de 0325,
-   policy de más, columna de más, RLS forzada, entidad `operario` con otra forma,
-   anon con SELECT) aborta sin cambiar nada; re-aplicar la migración es inocuo.
-10. **Aplicada a producción** con OK nominal de Sam, preflight leído antes y smoke
-    después. **Pendiente**: el estado de la spec no pasa a `done` hasta entonces.
+1. **Nadie lee `pin_hash` ni `pin_cifrado` desde la API.** admin, operations,
+   commercial, support y service_role reciben 42501 al pedirlos; service_role no
+   los escribe ni inserta operarios; las otras 13 columnas siguen legibles por
+   columna; la lista de Studio › Operarios y la sesión del operario siguen
+   funcionando.
+2. **La lectura sigue la matriz.** Default, desvíos en las dos direcciones,
+   membresía desactivada y otro tenant.
+3. **Escritura y «Ver PIN» siguen la matriz.** Para los 7 roles, sin desvío y con
+   cada desvío (25 casos), la policy, el helper, las dos RPC de escritura y «Ver
+   PIN» deciden lo mismo que `moduleViewDenial`/`moduleEditDenial` reales; el
+   mutante del rol escrito a mano rompe exactamente los 6 casos donde difieren;
+   con sólo la vista no se ve el PIN; el candado corre antes de buscar el
+   operario y antes del motivo.
+4. **Auditoría en la misma transacción, sin el PIN.** `operario_created`,
+   `operario_pin_reset`, `operario_reactivated` y `pin_visto` dicen quién, a qué
+   operario, en qué tenant, con qué motivo y desde dónde; ni el PIN ni el hash
+   aparecen en los datos del evento; si el evento no se puede escribir, el PIN no
+   cambia, el operario no se crea y «Ver PIN» no devuelve nada.
+5. **Motivo obligatorio.** Sin motivo, con menos de 4 o más de 300 caracteres, o
+   con el PIN adentro, la base rechaza con P0020 y no cambia nada; la llamada de
+   la app de antes (sin `p_motivo`) también rebota. El espejo de la app coincide
+   con la función SQL real en PGlite.
+6. **PIN recuperable.** El PIN restablecido o creado queda cifrado con la clave
+   de Vault y «Ver PIN» lo devuelve; un PIN anterior devuelve `NULL` y la consulta
+   igual queda registrada; la clave se crea una sola vez aunque la migración corra
+   dos veces.
+7. **Sin repetidos.** P0018 contra otro operario activo del mismo tenant y región;
+   se acepta en otra región, otro tenant o contra uno de baja; un operario puede
+   volver a su propio PIN; el lock está en `pg_locks` hasta el COMMIT.
+8. **Reactivar exige PIN nuevo.** El toggle responde P0019 y deja al operario de
+   baja; restablecer con `p_reactivar` lo reactiva con un PIN libre y entra;
+   restablecer sin `p_reactivar` no reactiva; desactivar sigue igual.
+9. **Login y validador.** `verify_operario_pin` no cambia y entra con el PIN
+   nuevo; el validador dice «Elige» y rechaza los mismos 24 PIN.
+10. **La app.** «Ver PIN» pide motivo, muestra y copia el PIN y lo borra al
+    cerrar; el aviso de PIN anterior; el motivo en restablecer y en el alta; el
+    alta sin `Math.random`; el reintento ante P0018; «Reactivar» manda
+    `reactivar=1`. Pruebas de actions y de UI; 16 mutantes de la app mueren.
+11. **Preflight y postflight.** Un ANTES con drift (cuerpos de 0351 y 0325,
+    policy, columnas, `pin_cifrado` previo, RLS forzada, entidad `operario`, anon,
+    Vault ausente, clave previa, sobrecarga) aborta sin cambiar nada; re-aplicar
+    es inocuo.
+12. **Aplicada a producción** con OK nominal de Sam, preflight leído antes y
+    smoke después. **Pendiente**: la spec no pasa a `done` hasta entonces.
 
 ## Diseño
+
+### Por qué pgcrypto y Vault
+
+`pgcrypto` ya está instalado en `extensions` y es lo que el repo usa para el PIN
+(`crypt`/`gen_salt`). `pgp_sym_encrypt` (OpenPGP simétrico, AES-256) usa sesión y
+sal aleatorias: dos PIN iguales no producen el mismo texto cifrado, así que
+`pin_cifrado` no delata repetidos ni se puede comparar entre filas. La clave no
+vive en el código ni en una variable de entorno: la crea la migración en Vault,
+como se crearon `kommo_cron_key` y la KEK de No-Olvidar, y la leen sólo dos
+funciones privadas (`operario_pin_cifrar`/`operario_pin_descifrar`) sin EXECUTE
+para ningún rol de la API. Se descartó un secreto de Vault por operario: mezcla
+el ciclo de vida de una credencial operativa con el de Vault y multiplica los
+secretos.
+
+### El chequeo de repetidos compara `pin_hash`
+
+El Director sugirió que el chequeo pudiera descifrar `pin_cifrado` cuando
+existiera. Se dejó contra `pin_hash` a propósito: es lo que compara el login, así
+que es la única comparación que garantiza la invariante del login; descifrar
+haría depender el chequeo de que Vault esté disponible y de que `pin_cifrado`
+siga al día con `pin_hash`. El costo es un bcrypt por operario activo de la
+región, milisegundos.
 
 ### La regla duplicada TS ↔ SQL
 
 El default `['operations']` de Operarios queda escrito dos veces: en
 `ROLE_MODULE_ACCESS.operarios` de `lib/studio/rbac.ts` y en el contrato de
 `operarios_module_authorized`. Es el mismo trade-off que aceptó 0357 con la lista
-de módulos candado: no hay forma de que SQL lea `rbac.ts` en runtime.
-**`rbac.test.ts` es la fuente**; la prueba PGlite de esta spec falla si los dos
-defaults dejan de coincidir, y si cambia el de TS hace falta una migración
-hermana. Las premisas que hacen que el helper sea toda la regla de
-`moduleEditDenial` (Operarios no es LOCKED, no tiene lado de almacén ni es de
-superadmin) también están afirmadas.
+de módulos candado. **`rbac.test.ts` es la fuente**; la prueba PGlite falla si los
+dos defaults dejan de coincidir. Lo mismo vale para el motivo: los límites viven
+en `operario_motivo_valido` y en `operarioMotivoProblem`, y una prueba los
+enfrenta contra la función SQL real.
 
-### Por qué la comparación de PIN vive en la RPC
+### Orden de despliegue: MIGRATE-FIRST
 
-Un bcrypt lleva sal propia: dos hashes del mismo PIN no se parecen. Sólo quien
-tiene el PIN en claro puede compararlo, y eso pasa únicamente dentro de la RPC.
-Por eso no hay índice ni trigger que lo garantice, y por eso
-`operario_pin_assert_available` no tiene EXECUTE para ningún rol de la API.
+Las RPC de alta y restablecimiento cambian de firma y la app nueva llama a
+`admin_ver_operario_pin`. Con la app nueva y sin 0475, alta, restablecimiento y
+«Ver PIN» fallan con un error de PostgREST sin cambiar nada (declarado como espera
+en `supabase/pending-migration-symbol-declarations.json`). Con 0475 aplicada y la
+app de antes, alta y restablecimiento responden «Escribe el motivo…» hasta el
+despliegue. Por eso: aplicar 0475 con OK nominal y desplegar enseguida, fuera de
+la ventana del corte de dtdcargo.com al servidor propio (jueves 2026-10-15 en la
+noche).
 
-### Orden de despliegue
+## Seguridad
 
-**Independiente.** Ningún código desplegado lee `pin_hash` con el cliente de
-usuario ni depende de los símbolos nuevos; antes de la migración el reintento de
-la app nunca ve un P0018, y después de la migración la app de hoy muestra el
-mensaje de la base. Recomendado: fusionar y desplegar la PR primero (sólo con su
-autorización), aplicar 0475 después, con OK nominal de Sam y fuera de la ventana
-del corte de dtdcargo.com al servidor propio (jueves 2026-10-15 en la noche).
+- **Riesgo aceptado por Sam (literal):** «Riesgo: quien lo vea puede entrar como
+  ese operario, y la auditoría ya no prueba quién hizo cada entrega.» Desde 0475,
+  una entrega registrada con el PIN de un operario prueba que alguien con ese PIN
+  la hizo, no que fue el operario: cualquiera con «Ver PIN» pudo usarlo. El
+  evento `pin_visto` dice quién lo vio y cuándo, y es lo que permite reconstruir.
+- **Respaldos.** Un respaldo de la base lleva `pin_cifrado` y el secreto
+  `operario_pin_key` cifrado en `vault.secrets`. Quien tenga el respaldo y la raíz
+  de Vault del servidor puede descifrar todos los PIN. Dónde guarda esa raíz el
+  Supabase del servidor propio, y si viaja con los respaldos, **NO VERIFICADO**:
+  si viaja, el respaldo solo alcanza.
+- **P0018.** Antes de «Ver PIN», el rechazo por repetido revelaba a quien edita
+  Operarios que un PIN estaba en uso. Con «Ver PIN» esa misma persona puede ver
+  cualquier PIN, así que la fuga queda moot (default c); lo que importa es que
+  «Ver PIN» sí deja evento.
+- **`service_role`.** No lee `pin_hash` ni `pin_cifrado`, no inserta operarios y
+  sólo actualiza columnas que no son credencial (default d). Ningún código lo
+  usaba (verificado por grep).
+- **El PIN en tránsito.** Viaja en la respuesta de la RPC y de la server action,
+  no se escribe en logs, tablas, URL ni almacenamiento del navegador (pruebas de
+  actions y UI). Los logs del gateway del servidor propio no se revisaron (NO
+  VERIFICADO).
 
 ## Allowlist exacta
 
@@ -174,82 +242,86 @@ del corte de dtdcargo.com al servidor propio (jueves 2026-10-15 en la noche).
 |---|---|
 | `supabase/migrations/0475_pin_operarios_endurecer.sql` | nuevo · la migración |
 | `supabase/tests/0475_pin_operarios_endurecer.test.sql` | nuevo · contrato SQL |
-| `lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts` | nuevo · PGlite, control rojo, preflights, mutantes y propiedad |
-| `supabase/migrations-baseline.json` | espera `0475_pin_operarios_endurecer` en `pendingBelowCutoff` |
-| `lib/studio/operario-pin.ts` | P0018, copy y `saveWithFreshOperarioPin` (puro) |
-| `lib/studio/operario-pin-generator.ts` | `saveWithGeneratedOperarioPin` (reintento con `crypto.randomInt`) |
-| `app/studio/(app)/operarios/actions.ts` | reintento en el PIN generado; P0018 como error de campo en manual y alta |
-| `lib/studio/__tests__/operario-pin.test.ts` | casos del reintento |
-| `app/studio/(app)/operarios/__tests__/reset-pin-actions.test.ts` | casos de P0018 |
+| `lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts` | nuevo · PGlite: texto, contrato, control rojo, preflights, mutantes, propiedad y espejo del motivo |
+| `supabase/migrations-baseline.json` | espera `0475_pin_operarios_endurecer` |
+| `supabase/pending-migration-symbol-declarations.json` | espera de `admin_ver_operario_pin` (AMARILLO) |
+| `lib/studio/operario-pin.ts` | P0018, motivo (espejo), códigos, copy, `saveWithFreshOperarioPin`, `ViewPinResult` |
+| `lib/studio/operario-pin-generator.ts` | `saveWithGeneratedOperarioPin` |
+| `app/studio/(app)/operarios/actions.ts` | motivo, alta generada en el servidor, reintento, reactivar, `viewOperarioPinAction` |
+| `app/studio/(app)/operarios/_components/OperariosClient.tsx` | botón «Ver PIN»; toggle de baja abre «Reactivar» |
+| `app/studio/(app)/operarios/_components/ResetPinDrawer.tsx` | motivo, modo «Reactivar», aviso de «Ver PIN» |
+| `app/studio/(app)/operarios/_components/NewOperarioDrawer.tsx` | sin `Math.random`; modos generar/escribir; motivo |
+| `app/studio/(app)/operarios/_components/PinViewDialog.tsx` | nuevo · «Ver PIN» |
+| `app/studio/(app)/operarios/_components/PinRevealBlock.tsx` | nuevo · PIN en grande con «Copiar PIN» |
+| `app/studio/(app)/operarios/_components/MotivoField.tsx` | nuevo · campo motivo |
+| `app/studio/(app)/operarios/_components/*.test.tsx` | `ResetPinDrawer` actualizada; `NewOperarioDrawer` y `PinViewDialog` nuevas |
+| `app/studio/(app)/operarios/__tests__/reset-pin-actions.test.ts` | casos de P0018, motivo, reactivar, alta y «Ver PIN» |
+| `lib/studio/__tests__/operario-pin.test.ts` | reintento y motivo |
+| `lib/studio/rbac-actions-guard.test.ts` | inventario 429 → 430 con la justificación |
 | `lib/studio/operario-queries.ts` | comentario: RLS por matriz y columnas nombradas |
 | `app/studio/(app)/operarios/layout.tsx` | comentario del gate |
 | `docs/specs/0515-pin-operarios-endurecer/spec.md` | esta spec |
 | `docs/specs/README.md` | índice regenerado |
 | `.agents/handoffs/0515-pin-operarios-endurecer.md` | handoff |
 
-Sin cambios de UI: el cajón de restablecer y el de alta ya muestran `error` y
-`fieldErrors.pin`.
-
 ## Gobernanza
 
 | Política | Clasificación | Evidencia |
 |---|---|---|
-| AUD-01 §1, §4 (atomicidad) | cumplimiento | evento por RPC en la misma transacción; prueba de fallo del log con rollback (contrato §9) |
-| AUD-01 §2 (credenciales y acceso) | cumplimiento para alta y restablecimiento | `operario_created`, `operario_pin_reset` |
-| AUD-01 §3 (`reason` en cambios de acceso) | excepción propuesta, a decidir por Sam | sin motivo humano, como `membership.role_change` en D1 (0289); exigirlo pide UI |
-| AUD-01 §5 (sin secretos) | cumplimiento | contrato §4 y §7: ni PIN ni hash en los datos del evento |
-| AUD-01 §7 (flujos modificados) | no conformidad preexistente fuera de alcance | `admin_set_operario_active` y `admin_update_operario` mutan sin evento (0351) |
-| AUD-02 | no aplica | no cambia quién consulta el log; `sensitivity = restricted` |
-| BTN-01, FRM-01, ERR-01 | no aplica | sin cambios de UI; los mensajes nuevos van en tuteo |
+| AUD-01 §1, §4 (atomicidad) | cumplimiento | eventos por RPC en la misma transacción; prueba de fallo del log con rollback (contrato §12) |
+| AUD-01 §2 (credenciales, acceso, consultas sensibles) | cumplimiento para alta, restablecimiento, reactivación y «Ver PIN» | `operario_created`, `operario_pin_reset`, `operario_reactivated`, `pin_visto` |
+| AUD-01 §3 (`reason`) | cumplimiento | motivo obligatorio en los cuatro eventos (decisión 4) |
+| AUD-01 §5 (sin secretos) | cumplimiento | ni PIN ni hash en los datos del evento; el motivo no puede llevar el PIN |
+| AUD-01 §7 (flujos modificados) | cumplimiento para lo que cambia; no conformidad preexistente fuera de alcance | desactivar y editar siguen sin evento (default a, SDD aparte) |
+| AUD-02 §4 y §7 (revelación sensible) | cumplimiento del registro; excepción a decidir en la reautenticación | `pin_visto` guarda actor, alcance, motivo y resultado, nunca el PIN; AUD-02 pide reautenticación para revelar campos sensibles del log; «Ver PIN» no la pide (decisión pendiente) |
+| BTN-01 | cumplimiento | una primaria por diálogo («Ver PIN», «Restablecer PIN», «Reactivar con PIN nuevo», «Crear operario»); Cancelar a la izquierda |
+| FRM-01, ERR-01 | cumplimiento | errores en su campo, con tuteo; el botón espera un motivo válido |
+| CMP-01 | cumplimiento | `ConfirmDialog`, `SegmentedControl`, `ErrorAlert`, `DrawerShell`, `useDialogA11y` |
 
 ## Revisión de datos (`/revisar-datos-ve`)
 
 Advisory; no afirma cumplimiento. Alcance: la credencial de acceso de los
-operarios (PIN) y lo que la auditoría guarda de ellos.
+operarios (PIN), su copia recuperable y lo que la auditoría guarda de ellos.
 
 | Punto | Estado | Evidencia |
 |---|---|---|
-| `pin_hash` legible por cualquier rol del personal | CORRECTO tras aplicar 0475 | `0475_pin_operarios_endurecer.sql` § 7 (grant por columna) y contrato §1-§2; NO VERIFICADO contra producción hasta aplicar |
-| El PIN en claro no se persiste ni se audita | CORRECTO | RPC: `crypt(p_pin, gen_salt('bf'))` y `after_data` sin el PIN (contrato §4, §7); app: el PIN rechazado no sale en la respuesta ni en consola (`reset-pin-actions.test.ts`) |
-| Minimización en la auditoría | CORRECTO | el evento guarda ids, región, rol, almacén y estado; no el nombre del operario |
-| Oráculo de PIN en uso | ENCONTRADO | un rol con edición de Operarios puede saber, por el P0018, que un PIN está en uso en la región, y los rechazos no dejan evento (se revierten con la transacción). Ver decisión 3 |
-| PIN duplicados ya existentes en producción | NO VERIFICABLE | no se pueden detectar sin el PIN en claro; probar los 10.000 valores sería romper los hashes |
-| Transferencia o terceros | no aplica | sin integraciones nuevas |
+| `pin_hash` y `pin_cifrado` legibles desde la API | CORRECTO tras aplicar 0475 | `0475_pin_operarios_endurecer.sql` § 11 (grant por columna) y contrato §1-§2; NO VERIFICADO contra producción hasta aplicar |
+| PIN recuperable (cifrado reversible) | ENCONTRADO, riesgo aceptado por Sam | `pin_cifrado` + `operario_pin_key` en Vault; quien tenga «Ver PIN», o un respaldo con la raíz de Vault, obtiene el PIN |
+| El PIN en claro no se persiste ni se audita | CORRECTO | RPC y app: contrato §4, §8, §9; `reset-pin-actions.test.ts`, `PinViewDialog.test.tsx` |
+| Minimización en la auditoría | CORRECTO con salvedad | el evento guarda ids, región, rol, almacén, estado y el motivo; el motivo es texto libre y puede llevar datos personales de quien lo escribe (se bloquea el PIN, no otros datos) |
+| Valor probatorio de las acciones del operario | ENCONTRADO, riesgo aceptado por Sam | ver Seguridad |
+| PIN duplicados ya existentes en producción | NO VERIFICABLE | no se detectan sin el PIN en claro; los PIN anteriores no tienen copia |
+| Respaldos | NO VERIFICABLE | dónde vive la raíz de Vault del servidor propio y si viaja con los respaldos |
 
 Marco citado desde `references/`: Ley Especial contra los Delitos Informáticos,
-arts. 20-22 (obtención y revelación indebida); PIPL art. 51 (control de permisos)
-por el equipo de Yiwu. No es asesoría legal.
+arts. 20-22 (obtención y revelación indebida; quien vea un PIN y lo use o lo
+revele cae ahí); PIPL art. 51 (control de permisos y medidas técnicas) por el
+equipo de Yiwu. No es asesoría legal.
 
 ## Riesgos
 
-- **Locks.** DROP/CREATE POLICY y los GRANT toman ACCESS EXCLUSIVE sobre
-  `operario_pins` hasta el COMMIT; el login espera milisegundos dentro del
+- **Ventana de despliegue.** MIGRATE-FIRST: entre aplicar 0475 y desplegar, alta y
+  restablecimiento responden «Escribe el motivo…».
+- **Locks.** ALTER TABLE, DROP/CREATE POLICY y los GRANT toman ACCESS EXCLUSIVE
+  sobre `operario_pins` hasta el COMMIT; el login espera milisegundos dentro del
   `lock_timeout` de 5 s.
 - **La carrera no se ejerce con dos conexiones.** PGlite tiene una sola: el
   contrato prueba que el advisory lock existe en `pg_locks`, no que dos sesiones
-  se serialicen. Un `*_carrera.test.sql` con dblink (patrón 0459) lo cubriría en
-  `verify` con Docker.
-- **Reactivar puede reintroducir un repetido.** El PIN de un operario dado de baja
-  no bloquea a los demás; si se lo reactiva, la base no puede comparar su hash con
-  los otros. Ver decisión 2.
-- **Drift en producción.** Los md5 del preflight salen del repo; si producción
-  difiere, la migración aborta sin cambiar nada y hay que leer el cuerpo vivo.
+  se serialicen (un `*_carrera.test.sql` con dblink, patrón 0459, lo cubriría en
+  `verify` con Docker).
+- **Vault en producción.** El contrato usa Vault real si la base lo trae y, si no,
+  el stub de 0472; en PGlite corrió con el stub. La creación de la clave en el
+  Supabase del servidor propio se verifica en el postflight al aplicar.
+- **Ancho de la columna de acciones.** 290 px estimados para «Ver PIN»,
+  «Restablecer PIN» y el lápiz, con `nowrap`; no se midió en navegador.
 
 ## Decisiones que necesitan a Sam
 
-1. **Activar/desactivar y editar operarios siguen con `admin|operations` escrito a
-   mano** (0351): un rol al que la matriz le dé Operarios podrá ver, crear y
-   restablecer, pero no editar ni desactivar (la action de activar ignora el error
-   en silencio); y a operations con Operarios revocado la base todavía le deja
-   editar y desactivar. Pasarlas a la matriz obliga a auditarlas (AUD-01 §7) y,
-   para desactivar, a pedir un motivo (precedente `membership.disable` de D1), o
-   sea UI. Propuesta: SDD aparte.
-2. **Reactivar un operario**: ¿exigir un PIN nuevo al reactivarlo, para que nunca
-   vuelva un repetido?
-3. **Oráculo del P0018**: ¿generar el PIN dentro de la base y retirar el camino
-   manual, o limitar intentos? Hoy quien puede restablecer ya puede entrar como
-   cualquier operario, pero dejando rastro; el sondeo no lo deja.
-4. **Motivo del restablecimiento**: AUD-01 pide `reason` en cambios de acceso; esta
-   spec sigue el precedente D1 (`role_change` sin motivo). ¿Se exige en el cajón?
-5. **service_role también pierde `pin_hash`**, por «nadie lo lee desde la API».
-   Ningún código lo usa (verificado por grep); confirmar.
+1. **Reautenticación para «Ver PIN».** AUD-02 la pide para revelar campos
+   sensibles del log; «Ver PIN» hoy sólo pide sesión, permiso y motivo. ¿Se exige
+   volver a autenticarse (por ejemplo, contraseña o segundo factor) antes de ver?
+2. **Rotación de la clave.** `operario_pin_key` no rota sola; rotarla exige una
+   migración que vuelva a cifrar. ¿Con qué frecuencia, o sólo ante incidente?
+3. **Retención del motivo.** El motivo es texto libre en la auditoría (clase A,
+   sin purga hasta el calendario de AUD-02). ¿Alcanza la advertencia de no
+   escribir el PIN, o se limita a una lista de motivos?

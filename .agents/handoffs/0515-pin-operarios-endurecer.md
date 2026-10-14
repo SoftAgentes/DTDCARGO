@@ -1,4 +1,4 @@
-# Handoff · SDD-0515 · PIN de operarios endurecido en la base
+# Handoff · SDD-0515 · PIN de operarios endurecido
 
 | Campo | Valor |
 |---|---|
@@ -7,96 +7,108 @@
 | Owner | subagente Worker del Director (claim `pin-operarios-endurecer-worker`, liberado al cerrar) |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\agent-ae87abaf4a23e67ee` |
 | Rama | `codex/pin-operarios-endurecer` |
-| Base | `origin/main` `9a935562`; traído `origin/main` `ad959bca` (merge de la PR #210, fast-forward) antes de tocar los archivos de Operarios |
+| Base | `origin/main`, traída con merge tres veces: `ad959bca` (#210), `4c4c6c17` (#211, merge `e0bd8ea4` publicado por el Director) y `d28fa515` (#213) |
 | SDD | [0515](../../docs/specs/0515-pin-operarios-endurecer/spec.md) · `in-progress` |
 | Migración | `0475_pin_operarios_endurecer.sql` · **NO APLICADA** · espera en `pendingBelowCutoff` |
+| PR | draft #212: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/212 |
 | Estado de tarea | lista-para-revision (PR draft) |
 
 ## OBJETIVO ORIGINAL
 
-Endurecer en la base el PIN de los operarios de `/m/cn` y `/m/ve`, en una sola
-migración (0475): (1) que el personal del Studio no lea `pin_hash`; (2) auditar
-cada restablecimiento en la misma transacción, sin el PIN (AUD-01); (3) rechazar
-un PIN repetido entre operarios activos del mismo tenant y región, con reintento
-de la app; corregir el voseo del validador. Ampliación del Director (decisión de
-Sam «Por rol, con la matriz (Recomendado)»): la RPC y la lectura autorizan con la
-misma matriz que `moduleEditDenial`/`moduleViewDenial` (default de `rbac.ts` +
-desvíos de 0357), admin siempre; `pin_hash` no lo lee nadie desde la API; sin
-permisos por usuario (SDD-0139); pruebas de propiedad por rol con y sin desvío y
-el mutante que vuelve al rol escrito a mano.
+Endurecer en la base el PIN de los operarios de `/m/cn` y `/m/ve` en una sola
+migración (0475): que el personal no lea `pin_hash`; auditar cada
+restablecimiento en la misma transacción, sin el PIN (AUD-01); rechazar PIN
+repetidos entre operarios activos del mismo tenant y región, con reintento de la
+app; corregir el voseo del validador. Ampliaciones del Director con decisiones de
+Sam: (1) la base autoriza con la matriz de módulos, como `moduleEditDenial`; (2)
+PIN recuperable cifrado con una clave de Vault y botón «Ver PIN» auditado; (3)
+motivo obligatorio para restablecer, crear y ver; (4) defaults (a)-(e): editar y
+desactivar por la matriz en otra SDD, reactivar exige PIN nuevo, la fuga de P0018
+queda moot, `service_role` sin lectura de credenciales, alta generada en el
+servidor sin `Math.random`.
 
 ## COMPLETADO
 
-- **0475** (`supabase/migrations/0475_pin_operarios_endurecer.sql`):
-  - SELECT de `operario_pins` por columna (13 columnas, sin `pin_hash`) para
-    `authenticated` y `service_role`; policy SELECT nueva «operario_pins select by
-    operarios module» = tenant + permiso de vista de la matriz.
-  - `operarios_module_authorized(tenant, 'view'|'edit')` con el patrón de
-    `document_entity_authorized` (0444); EXECUTE `authenticated`, `service_role`.
-  - `operario_pin_assert_available(...)` privada (sin EXECUTE de API): advisory
-    lock por (tenant, región) y P0018 si el PIN coincide con otro operario activo.
-  - `admin_reset_operario_pin` y `admin_create_operario` reescritas desde 0351
-    (sin perder una línea salvo el candado a mano y el `select`/`returning` que
-    cambian): matriz de primero, PIN libre, evento `operario_pin_reset` /
-    `operario_created` en la misma transacción, `sensitivity = restricted`, sin
-    PIN ni hash.
-  - Entidad `operario` (dominio `access`) en `audit_entity_types`.
-  - `validate_operario_pin_format` desde 0037 con «Elige» y `search_path = public`.
-  - Preflight con md5 de prosrc (CRLF→LF) de lo que reemplaza y de sus
-    dependencias, columnas, RLS, policy y ACL; re-aplicable; postflight.
-- **Contrato** `supabase/tests/0475_pin_operarios_endurecer.test.sql` (88
-  aserciones) sobre la auditoría real (0258/0261/0267/0294), los desvíos reales
-  (0357), las RPC vigentes por `\ir` (0021, 0037, 0351, 0325) y copias verbatim
-  verificadas de 0453, 0200, 0012, 0211, 0020, 0023 y 0210.
-- **PGlite** `lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts` (43
-  pruebas): texto (copias, md5, reescritura desde 0351/0037, default duplicado =
-  `ROLE_MODULE_ACCESS.operarios`, espera declarada), contrato verde, control rojo,
-  7 preflights, 25 mutantes de la migración, propiedad de 25 casos (7 roles ×
-  desvíos) contra `moduleViewDenial`/`moduleEditDenial` reales, y el mutante del
-  rol escrito a mano rompe exactamente 6 casos.
-- **App**: `lib/studio/operario-pin.ts` (`OPERARIO_PIN_IN_USE_CODE`, copy,
-  `saveWithFreshOperarioPin`), `lib/studio/operario-pin-generator.ts`
-  (`saveWithGeneratedOperarioPin`), `app/studio/(app)/operarios/actions.ts`
-  (reintento hasta 5 PIN distintos en el generado; P0018 como error del campo en
-  manual y alta). Pruebas nuevas en `operario-pin.test.ts` y
-  `reset-pin-actions.test.ts`; 8 mutantes de la app mueren con control verde.
-- Comentarios al día en `lib/studio/operario-queries.ts` (nombrar columnas) y
-  `app/studio/(app)/operarios/layout.tsx`.
-- Espera en `supabase/migrations-baseline.json`; spec 0515; índice regenerado.
+- **0475**: policy SELECT por matriz y SELECT por columna sin `pin_hash` ni
+  `pin_cifrado` para `authenticated` y `service_role` (que además pierde INSERT y
+  el UPDATE de credenciales); `operarios_module_authorized`; columna
+  `pin_cifrado` (bytea, `pgp_sym_encrypt` AES-256) con la clave
+  `operario_pin_key` creada en Vault por la migración; helpers privados
+  `operario_pin_cifrar`, `operario_pin_descifrar`, `operario_motivo_valido` y
+  `operario_pin_assert_available`; `admin_create_operario` y
+  `admin_reset_operario_pin` con firma nueva (`p_motivo`; `p_reactivar`) y las
+  firmas viejas quitadas; `admin_ver_operario_pin` (matriz en edición, motivo,
+  `pin_visto`, `NULL` para PIN anterior); `admin_set_operario_active` ya no
+  reactiva (P0019); entidad `operario`; validador con «Elige». Preflight
+  re-aplicable y postflight.
+- **Contrato** `supabase/tests/0475_pin_operarios_endurecer.test.sql`: «TEST 0475
+  GREEN: 148 aserciones», con Vault real o stub (patrón de 0472).
+- **PGlite** `lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts`: 70
+  pruebas — 6 de texto, contrato, control rojo, 12 preflights, 46 mutantes, 3 de
+  propiedad (25 casos rol × desvío contra `moduleViewDenial`/`moduleEditDenial`,
+  con «Ver PIN»; el mutante del rol a mano rompe exactamente 6) y el espejo del
+  motivo contra la función SQL real.
+- **App**: «Ver PIN» (`PinViewDialog`, `viewOperarioPinAction`); motivo en el
+  cajón de restablecer y en el alta (`MotivoField`); alta con PIN generado en el
+  servidor con reintento ante P0018 o escrito a mano (sin `Math.random`); toggle de
+  un operario de baja abre «Reactivar» (`ResetPinDrawer reactivar`);
+  `PinRevealBlock` compartido; inventario de actions 429 → 430;
+  `admin_ver_operario_pin` declarado en el gate de símbolos (AMARILLO).
+- Spec 0515 reescrita (decisiones literales, diseño, seguridad, allowlist,
+  gobernanza, revisión de datos, riesgos); espera del baseline actualizada.
 
-Criterios 1-9 de la spec cumplidos en local; el 10 (aplicación + smoke) queda
-pendiente de OK nominal de Sam.
+Criterios 1-11 cumplidos en local; el 12 (aplicación + smoke) queda pendiente.
 
 ## VALIDACIÓN
 
-Sobre la rama en `b5cb54bd` (código) más el commit de documentación que contiene
-este archivo. Windows, PGlite 0.5.8, Vitest 4.1.7.
+Sobre la rama con el merge de `d28fa515`, antes del commit que contiene este
+documento. Windows, PGlite 0.5.8 (PostgreSQL 18.3), Vitest 4.1.7.
 
 | Comprobación | Resultado |
 |---|---|
-| `vitest run lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts` | PASÓ · 43/43 (contrato «TEST 0475 GREEN: 88 aserciones», control rojo, 7 preflights, 25 mutantes, propiedad) |
-| `vitest run lib/studio/__tests__/operario-pin.migration.test.ts lib/studio/__tests__/operario-pin.test.ts` (antes de tocar la app) | PASÓ · 15/15; la prueba de SDD-0513 ya toma la definición del validador de 0475 |
-| `vitest run operario-pin.test.ts reset-pin-actions.test.ts` | PASÓ · 50/50 |
-| Mutantes de la app (scratchpad, 8: sin reintento, reintenta ante cualquier error, repropone el rechazado, devuelve el rechazado, un intento de menos, código equivocado, manual y alta sin mapear) | PASÓ · los 8 mueren; control verde 50/50 |
-| `vitest related --run` (actions, layout, operario-pin, generator, queries) | PASÓ · 4 archivos, 65 pruebas (`reset-pin-actions` 30, `ResetPinDrawer.test.tsx` 10, `operario-pin.migration` 5, `operario-pin` 20) |
-| `vitest run scripts/__tests__/spec-migration-refs.test.ts lib/studio/rbac-actions-guard.test.ts lib/studio/rbac.test.ts lib/studio/__tests__/rbac-action-scan.test.ts` | PASÓ · 4 archivos, 526 pruebas |
+| Contrato SQL en PGlite (corredor de scratchpad) | PASÓ · «TEST 0475 GREEN: 148 aserciones»; control rojo cae en «authenticated no tiene SELECT sobre pin_hash» |
+| `vitest run` de 11 archivos: la prueba PGlite de 0475, `operario-pin.migration`, `operario-pin`, `app/studio/(app)/operarios` (actions + 3 de UI), `spec-migration-refs`, `rbac-actions-guard`, `rbac`, `rbac-action-scan` | PASÓ · 711/711 (`pin-operarios-endurecer.migration` 70, `reset-pin-actions` 60, `ResetPinDrawer` 15, `NewOperarioDrawer` 5, `PinViewDialog` 5, `operario-pin` 24, `operario-pin.migration` 5, `rbac-actions-guard` 435, `rbac` 36, `rbac-action-scan` 51, `spec-migration-refs` 5) |
+| Mutantes de la app (scratchpad, 16) | PASÓ · los 16 mueren; control verde 84/84 |
 | `tsc --noEmit -p tsconfig.json` | PASÓ · exit 0 |
-| `eslint` de los 8 archivos TS tocados | PASÓ · exit 0 |
-| `node scripts/check-pending-migration-symbols.mjs` | PASÓ · «0 ROJO · 0 AMARILLO» |
-| `node scripts/check-numbering.mjs` (`sdd:check`) | PASÓ · sin números repetidos (los choques históricos de siempre, en pausa) |
-| `node scripts/build-docs-index.mjs --check` | PASÓ · 500 specs |
+| `eslint` de los 16 archivos TS/TSX tocados | PASÓ · exit 0 |
+| `node scripts/check-pending-migration-symbols.mjs` | PASÓ · «0 ROJO · 1 AMARILLO declarado(s)» (`admin_ver_operario_pin`) |
+| `node scripts/check-numbering.mjs` | PASÓ · «sin números repetidos» |
+| `node scripts/build-docs-index.mjs --check` | PASÓ · 502 specs |
 | `node scripts/build-governance-capsule.mjs --check` | PASÓ · 28 políticas, cápsula vigente |
-| `git diff --check` | PASÓ |
-| `node scripts/check-migrations-applied.mjs` | NO DISPONIBLE · SKIP, el worktree no tiene `.env.local` (exit 3) |
-| Contrato `.test.sql` con psql en Docker (`run-sql-tests.mjs`) | NO EJECUTADO · Docker y corridas pesadas sólo con turno del Director; PGlite corre el mismo archivo |
-| `pnpm verify` completo | NO EJECUTADO · el encargo pide validación liviana; el turno lo da el Director |
-| Carrera de dos conexiones sobre el advisory lock | NO EJECUTADO · PGlite tiene una conexión; el contrato prueba el lock en `pg_locks`, no la serialización |
+| `git diff --check` (árbol y `origin/main` → HEAD) | PASÓ |
+| `node scripts/knowledge-sync.mjs status` | `ok: false` — ver «Impacto documental» |
+| `check-migrations-applied` | NO DISPONIBLE · SKIP sin `.env.local` |
+| Contrato con psql en Docker, `check-schema-rebuild`, `pnpm verify` | NO EJECUTADO · turno del Director |
+| Carrera de dos conexiones sobre el advisory lock | NO EJECUTADO · PGlite tiene una conexión |
+| `/ui-check` (rúbrica liviana, inline) | ver abajo |
+
+### /ui-check · diff de Operarios
+
+Hallazgos (3):
+1 ⭐ [media] `OperariosClient.tsx:32` — la columna de acciones pasó a 290 px
+  **estimados** para «Ver PIN», «Restablecer PIN» y el lápiz; con `nowrap` un
+  desborde se ve, pero hay que medirlo en navegador con la tipografía real.
+2 [baja] `PinViewDialog.tsx` — la sombra `rgba(0,0,0,0.18)` y el velo con
+  fallback `rgba` copian los del `ConfirmDialog`; no hay token de sombra de modal.
+3 [baja] `OperariosClient.tsx` — la perilla del toggle sigue en `#FFFFFF`
+  (preexistente, sólo se movió a una función).
+✅ Lo que está bien: componentes del sistema (`ConfirmDialog`, `DrawerShell`,
+`SegmentedControl`, `ErrorAlert`, `useDialogA11y`); una primaria por diálogo;
+estados deshabilitado/cargando/error; etiquetas y `aria-describedby`; foco en
+«Cerrar» al mostrar el PIN; nombres accesibles con el operario en cada botón de
+fila; copy en tuteo, sin voseo.
+Veredicto: OK con ajustes menores (no bloqueante).
 
 ## COMMITS
 
-- `546c1d1b` — migración 0475, contrato SQL, prueba PGlite y espera en el baseline.
-- `b5cb54bd` — reintento del PIN generado y P0018 en manual y alta; pruebas.
-- commit que contiene este documento — spec 0515, índice y handoff.
+- `546c1d1b` — migración 0475 inicial, contrato, PGlite, baseline.
+- `b5cb54bd` — reintento del PIN generado (primera versión).
+- `fa3976cc`, `a9eefd31` — spec, índice y handoff de la primera versión.
+- `e0bd8ea4` — merge de `origin/main` (#211), publicado por el Director.
+- `37000da9` — 0475 con «Ver PIN» auditado, motivo obligatorio y reactivación.
+- `f0743e1b` — app: «Ver PIN», motivo, alta generada en el servidor, reactivar.
+- `a93ffb1d` — merge de `origin/main` `d28fa515` (#213).
+- commit que contiene este documento — spec, índice y handoff.
 
 ## PR / BRANCH
 
@@ -105,28 +117,25 @@ https://github.com/hailuwaycom-sketch/DTDCARGO/pull/212. Worktree arriba.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. **Lecturas READ ONLY de producción** (las corre el Director, sección de abajo)
-   antes de pedir el OK.
-2. **OK nominal de Sam** para aplicar `0475_pin_operarios_endurecer` con el
-   runbook; fuera de la ventana del corte (jueves 2026-10-15 en la noche).
-3. **Smoke después de aplicar** (abajo) y retirar la espera del baseline; la spec
-   pasa a `done` recién ahí.
-4. Turno del Director para el contrato con Docker y, si lo pide, `pnpm verify`.
+1. **Lecturas READ ONLY de producción** (las corre el Director, abajo).
+2. **OK nominal de Sam** para aplicar `0475_pin_operarios_endurecer`, MIGRATE-FIRST
+   y desplegar enseguida, fuera de la ventana del corte (jueves 2026-10-15 noche).
+3. **Smoke después de aplicar** (abajo); retirar la espera del baseline y la
+   declaración del gate de símbolos; la spec pasa a `done` recién ahí.
+4. Turno del Director para el contrato con Docker (Vault real), `check-schema-rebuild`
+   y, si lo pide, `pnpm verify`.
+5. Medir en navegador el ancho de la columna de acciones (hallazgo 1 del `/ui-check`).
 
 ## FUERA DE ALCANCE DETECTADO
 
 - `admin_set_operario_active` y `admin_update_operario` siguen con `admin|operations`
-  escrito a mano (0351) y sin auditoría (AUD-01 §7, no conformidad preexistente).
-  Con un desvío, la matriz y la base dejan de coincidir para editar y desactivar,
-  y `setOperarioActiveAction` ignora el error en silencio. Decisión 1 de la spec.
-- `NewOperarioDrawer.tsx` sigue sorteando el PIN del alta con `Math.random` en el
-  navegador (SDD-0513 sólo cambió el restablecimiento).
-- Reactivar un operario puede reintroducir un PIN repetido (la base no puede
-  comparar hashes sin el PIN en claro). Decisión 2.
-- El P0018 es un oráculo de PIN en uso para quien edita Operarios, y los rechazos
-  no dejan evento. Decisión 3.
-- La spec 0513 sigue con su criterio 5 «PENDIENTE»: lo resuelve 0475 al aplicarse;
-  su estado lo actualiza quien cierre 0513.
+  escrito a mano y sin auditoría de desactivar/editar (default a: SDD aparte). Con
+  un desvío, la matriz y la base no coinciden para editar y desactivar, y
+  `setOperarioActiveAction` ignora el error en silencio.
+- La spec 0513 sigue con su criterio 5 «PENDIENTE»: lo resuelve 0475 al aplicarse.
+  Su texto del revelado («no se vuelve a mostrar») quedó superado por «Ver PIN».
+- Los PIN anteriores a 0475 no se pueden ver hasta restablecerlos; los
+  duplicados que ya existan en producción no se pueden detectar.
 
 ## Lecturas de preflight para el Director (producción, READ ONLY, sin filas de negocio)
 
@@ -144,15 +153,23 @@ from pg_proc p
 where p.oid in (
   to_regprocedure('public.admin_create_operario(uuid,uuid,text,text,text,text)'),
   to_regprocedure('public.admin_reset_operario_pin(uuid,text)'),
+  to_regprocedure('public.admin_set_operario_active(uuid,boolean)'),
   to_regprocedure('public.validate_operario_pin_format(text)'),
   to_regprocedure('public.get_user_tenant_id()'),
   to_regprocedure('public.assert_tenant_match(uuid)'),
   to_regprocedure('public.verify_operario_pin(text,uuid,public.operario_region,text)'),
   to_regprocedure('public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'));
 
--- 2. Las funciones nuevas no existen todavía (ambas NULL).
+-- 2. Lo nuevo todavía no existe y no hay sobrecargas (esperado: 6 NULL y 2).
 select to_regprocedure('public.operarios_module_authorized(uuid,text)'),
-       to_regprocedure('public.operario_pin_assert_available(uuid,public.operario_region,text,uuid)');
+       to_regprocedure('public.operario_pin_assert_available(uuid,public.operario_region,text,uuid)'),
+       to_regprocedure('public.operario_pin_cifrar(text)'),
+       to_regprocedure('public.operario_pin_descifrar(bytea)'),
+       to_regprocedure('public.operario_motivo_valido(text,text)'),
+       to_regprocedure('public.admin_ver_operario_pin(uuid,text)');
+select count(*) from pg_proc
+where pronamespace = 'public'::regnamespace
+  and proname in ('admin_create_operario', 'admin_reset_operario_pin', 'admin_ver_operario_pin');
 
 -- 3. operario_pins: columnas, RLS, ACL de tabla y de columna.
 select array_agg(attname::text order by attname) as columnas,
@@ -165,7 +182,7 @@ select r.rol,
   has_table_privilege(r.rol, 'public.operario_pins', 'INSERT') as ins,
   has_table_privilege(r.rol, 'public.operario_pins', 'UPDATE') as upd,
   has_table_privilege(r.rol, 'public.operario_pins', 'DELETE') as del,
-  has_table_privilege(r.rol, 'public.operario_pins', 'TRUNCATE, REFERENCES, TRIGGER') as otros,
+  has_table_privilege(r.rol, 'public.operario_pins', 'TRUNCATE') as trunc,
   has_column_privilege(r.rol, 'public.operario_pins', 'pin_hash', 'SELECT') as pin_hash
 from (values ('anon'), ('authenticated'), ('service_role')) r(rol);
 
@@ -175,7 +192,21 @@ select polname, polcmd, polpermissive, polroles::regrole[],
        regexp_replace(replace(coalesce(pg_get_expr(polqual, polrelid), ''), 'public.', ''), '[\s()]', '', 'g') as normalizada
 from pg_policy where polrelid = 'public.operario_pins'::regclass;
 
--- 5. Enum, overrides (forma, no filas) y catálogo de auditoría.
+-- 5. pgcrypto en extensions y Vault (sin leer ningún secreto).
+select to_regprocedure('extensions.pgp_sym_encrypt(text,text,text)'),
+       to_regprocedure('extensions.pgp_sym_decrypt(bytea,text)'),
+       to_regprocedure('extensions.gen_random_bytes(integer)'),
+       to_regprocedure('extensions.crypt(text,text)');
+select extname, extversion from pg_extension where extname in ('pgcrypto', 'supabase_vault', 'pgsodium');
+select to_regclass('vault.decrypted_secrets'),
+       (select string_agg(pg_get_function_identity_arguments(p.oid), ' | ')
+          from pg_proc p where p.pronamespace = to_regnamespace('vault') and p.proname = 'create_secret');
+select name, created_at from vault.secrets
+where name in ('operario_pin_key', 'kommo_cron_key', 'kommo_token_dtd_v1') order by name;
+-- ¿postgres puede leer la vista que usarán las funciones? Sólo el conteo, nunca el valor.
+select count(*) from vault.decrypted_secrets where name = 'kommo_cron_key';
+
+-- 6. Enum, overrides (forma, no filas) y catálogo de auditoría.
 select array_agg(enumlabel::text order by enumsortorder) from pg_enum
 where enumtypid = 'public.operario_region'::regtype;
 select conname, convalidated, pg_get_constraintdef(oid) from pg_constraint
@@ -189,67 +220,88 @@ Valores que el preflight exige:
 
 | Lectura | Valor esperado |
 |---|---|
-| `admin_create_operario` | md5 `f7e89f156817fc3d30eb4635090b0603` (0351) · DEFINER · `v` · `{"search_path=public, extensions"}` · EXECUTE authenticated sí, anon no |
-| `admin_reset_operario_pin` | md5 `ea358b166dbd5c90dff337d473649da3` (0351) · igual que arriba |
-| `validate_operario_pin_format` | md5 `62f64d916edf371cb7a2b8d4b784c18d` (0037) · INVOKER · `i` · `{search_path=public}` |
-| `get_user_tenant_id` | md5 `5ff0c51c26a49419c34abc78f1d95c37` (0453; el mismo que midió 0456) · DEFINER · `s` · `{"search_path=\"\""}` |
-| `assert_tenant_match` | md5 `bf5e898bc3a6209c0a5dc75f89ba9333` (0012) · DEFINER · `v` · `{search_path=public}` |
-| `verify_operario_pin` | md5 `99c5f3e9eaae92bfe3987e1377d4734f` (0325) · DEFINER · `v` · `{"search_path=public, extensions"}` |
-| `append_audit_event` | DEFINER · owner `postgres` · `{"search_path=\"\""}` · sin EXECUTE de authenticated |
-| funciones nuevas | las dos NULL |
-| columnas | `{active,created_at,display_name,display_name_cn,id,last_login_at,pin_hash,region,role,roles,tenant_id,tms_driver_id,updated_at,warehouse_id}` · sin ACL por columna |
+| `admin_create_operario(uuid,uuid,text,text,text,text)` | md5 `f7e89f156817fc3d30eb4635090b0603` (0351) · DEFINER · `v` · `{"search_path=public, extensions"}` · EXECUTE authenticated sí, anon no |
+| `admin_reset_operario_pin(uuid,text)` | md5 `ea358b166dbd5c90dff337d473649da3` (0351) · igual que arriba |
+| `admin_set_operario_active(uuid,boolean)` | md5 `9981fa8486c2e32e53ad4f805703a0dc` (0351) · DEFINER · `v` · `{search_path=public}` · EXECUTE authenticated sí, anon no |
+| `validate_operario_pin_format(text)` | md5 `62f64d916edf371cb7a2b8d4b784c18d` (0037) · INVOKER · `i` · `{search_path=public}` |
+| `get_user_tenant_id()` | md5 `5ff0c51c26a49419c34abc78f1d95c37` (0453; el mismo que midió 0456) · DEFINER · `s` · `{"search_path=\"\""}` |
+| `assert_tenant_match(uuid)` | md5 `bf5e898bc3a6209c0a5dc75f89ba9333` (0012) · DEFINER · `v` · `{search_path=public}` |
+| `verify_operario_pin(...)` | md5 `99c5f3e9eaae92bfe3987e1377d4734f` (0325) · DEFINER · `v` · `{"search_path=public, extensions"}` |
+| `append_audit_event(...)` | DEFINER · owner `postgres` · `{"search_path=\"\""}` · sin EXECUTE de authenticated |
+| lo nuevo | las 6 funciones NULL; conteo de sobrecargas = 2 |
+| columnas | `{active,created_at,display_name,display_name_cn,id,last_login_at,pin_hash,region,role,roles,tenant_id,tms_driver_id,updated_at,warehouse_id}` (sin `pin_cifrado`) · sin ACL por columna |
 | RLS | `relrowsecurity = t`, `relforcerowsecurity = f` |
 | privilegios | anon: todo `f`; authenticated: sólo `sel = t` (y `pin_hash = t`, el defecto); service_role: sel, ins, upd y del `t` |
 | policies | **una sola**: «operario_pins select by admin of tenant», `r`, permisiva, `{authenticated}`, normalizada `tenant_id=get_user_tenant_id` |
+| pgcrypto | las 4 funciones no NULL (en `extensions`) |
+| Vault | `vault.decrypted_secrets` existe; existe `vault.create_secret`; **sin** `operario_pin_key` en `vault.secrets`; el conteo de `kommo_cron_key` es 1 (postgres lee la vista) |
 | enum | `{cn,ve}` |
 | overrides | `studio_role_module_overrides_pkey` = `PRIMARY KEY (tenant_id, role, module_id)`; `…_edit_implies_view` = `CHECK (((NOT can_edit) OR can_view))`; `…_role_check` con los 6 roles; las dos escrituras `f` |
 | catálogo | sin fila `operario` |
 
 Opcional, con autorización de Sam porque lee filas (metadatos de permisos, no PII):
 `select role, can_view, can_edit, count(*) from public.studio_role_module_overrides
-where module_id = 'operarios' group by 1, 2, 3;` — dice si algún tenant ya tiene un
-desvío de Operarios, que cambiaría la vista o la edición en el momento de aplicar.
+where module_id = 'operarios' group by 1, 2, 3;` — si un tenant ya tiene un desvío
+de Operarios, la vista, la edición y «Ver PIN» cambian en el momento de aplicar.
 
 ## Orden de despliegue
 
-**La migración es independiente de la app.** Ningún código desplegado lee
-`pin_hash` con el cliente de usuario (la lista nombra columnas; la sesión del
-operario usa service_role con columnas nombradas) ni llama símbolos nuevos.
-Antes de 0475, el reintento de la app nunca ve un P0018; después de 0475, la app
-de hoy muestra el mensaje de la base. **Recomendado:** fusionar y desplegar la PR
-primero (con su autorización), y aplicar 0475 después, con OK nominal de Sam,
-fuera de la ventana del corte del jueves 2026-10-15 en la noche.
+**MIGRATE-FIRST y desplegar enseguida.** Las RPC de alta y restablecimiento
+cambian de firma (motivo) y la app nueva llama a `admin_ver_operario_pin`:
 
-## Smoke propuesto después de aplicar
+- con la app nueva y sin 0475, alta, restablecimiento y «Ver PIN» fallan con un
+  error de PostgREST, sin cambiar nada (declarado en el gate de símbolos);
+- con 0475 y la app de antes, alta y restablecimiento responden «Escribe el
+  motivo: entre 4 y 300 caracteres.» hasta el despliegue.
+
+Secuencia: OK nominal → aplicar 0475 (runbook, una transacción con la fila del
+ledger) → postflight → fusionar y desplegar la PR → smoke. Fuera de la ventana del
+corte del jueves 2026-10-15 en la noche.
+
+## Smoke propuesto después de aplicar y desplegar
 
 1. Studio › Operarios como **admin** y como **operations**: la lista carga igual.
-2. Restablecer PIN → «Generar PIN nuevo»: se muestra una vez; entrar a `/m/cn` (o
-   `/m/ve`) con ese PIN funciona y con el anterior no.
-3. Alta de un operario escribiendo el PIN de otro operario activo de la misma
-   región: el cajón muestra «Ese PIN ya lo usa otro operario activo de la misma
-   región…» en el campo PIN y no se crea.
-4. Catálogo, sin filas: `has_column_privilege('authenticated','public.operario_pins','pin_hash','select') = f`.
-5. El evento del paso 2 (`operario_pin_reset`) existe: leerlo es una fila de
-   negocio; con OK de Sam o desde el visor de auditoría del Studio.
+2. «Ver PIN» de un operario anterior: pide motivo y muestra «Este PIN es anterior
+   al cambio: restablécelo una vez para poder verlo.»
+3. «Restablecer PIN» con motivo → se muestra el PIN nuevo; `/m/cn` (o `/m/ve`)
+   entra con ese PIN y no con el anterior.
+4. «Ver PIN» del mismo operario con motivo: muestra ese PIN; al cerrar desaparece.
+5. Alta de un operario con PIN generado y motivo: se muestra el PIN y entra.
+6. Desactivar a un operario y tocar su toggle: abre «Reactivar»; con motivo,
+   vuelve activo con un PIN nuevo que entra.
+7. Catálogo, sin filas: `has_column_privilege('authenticated','public.operario_pins','pin_hash','select') = f`
+   y lo mismo para `pin_cifrado`; `operario_pin_key` existe en `vault.secrets`.
+8. Los eventos (`operario_pin_reset`, `pin_visto`, `operario_created`,
+   `operario_reactivated`) son filas de negocio: con OK de Sam o desde el visor de
+   auditoría del Studio.
+
+## Datos personales y credenciales (`/revisar-datos-ve`)
+
+Advisory; resultado completo en la spec. ENCONTRADO con riesgo aceptado por Sam:
+PIN recuperable y pérdida de valor probatorio de las acciones del operario.
+CORRECTO: nada de la API lee `pin_hash`/`pin_cifrado`; el PIN no va a logs,
+tablas ni al navegador; el motivo no puede llevar el PIN. NO VERIFICABLE: dónde
+vive la raíz de Vault del servidor propio y si viaja con los respaldos; duplicados
+existentes en producción.
 
 ## Impacto documental y conocimiento
 
-- Canónico actualizado: la spec 0515 y el índice de specs. Sin cambios en
-  runbooks ni en `docs/architecture/module-sdd-map.md` (la fila de Operarios la
-  agrega quien cierre la SDD, como anotó 0513).
-- `pnpm knowledge:status` al cerrar: `ok: false` — `graph_missing_or_invalid`
-  (este worktree nuevo no tiene `graphify-out/graph.json`), estructural y
-  semántico INVALID, Archify `ARCHIFY_RUNTIME_MISSING`, Obsidian PENDING. No se
-  reconstruyó el grafo (corrida pesada; el Director publica desde main) ni se
-  generó preview. Recibos semánticos: ninguna fuente del piloto modificada.
+- Canónico actualizado: spec 0515 e índice de specs. Sin cambios en runbooks ni en
+  `docs/architecture/module-sdd-map.md` (la fila de Operarios la agrega quien
+  cierre la SDD).
+- `pnpm knowledge:status`: `ok: false` en este worktree — sin
+  `graphify-out/graph.json` (`graph_missing_or_invalid`), estructural y semántico
+  INVALID, Archify `ARCHIFY_RUNTIME_MISSING`, Obsidian PENDING. No se reconstruyó
+  el grafo (corrida pesada; el Director publica desde main) ni se generó preview.
+  Ninguna fuente del piloto semántico modificada.
 
 ## HANDOFF AL DIRECTOR
 
-- Revisar la PR draft (diff completo, la migración y su contrato) y correr el
-  contrato con Docker si da el turno.
-- Leer el preflight en producción con las consultas de arriba y pedir a Sam el OK
-  nominal de `0475_pin_operarios_endurecer`, con las cinco decisiones de la spec.
-- Cambios compartidos: `lib/studio/operario-pin.ts` y el generador (de SDD-0513)
-  ganan el reintento; nadie más los consume. `rbac-actions-guard.test.ts` no
-  cambió (no hay actions nuevas).
+- Revisar la PR draft #212 (la migración, su contrato y la app), correr el
+  contrato con Docker y `check-schema-rebuild` si da el turno.
+- Correr las lecturas de preflight y pedir a Sam el OK nominal de
+  `0475_pin_operarios_endurecer`, con las tres decisiones abiertas de la spec
+  (reautenticación para «Ver PIN», rotación de la clave, retención del motivo).
+- Cambios compartidos: `lib/studio/operario-pin.ts` y el generador ganan el
+  reintento y el motivo; sólo los consume el módulo Operarios.
 - Sin otras sesiones consumidoras de este worktree. Ownership liberado al cerrar.
