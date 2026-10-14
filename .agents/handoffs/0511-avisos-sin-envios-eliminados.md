@@ -100,8 +100,11 @@ eliminado.
 
 - PRs abiertas: con #203 (SDD-0509) solo comparto `docs/specs/README.md`, que es índice generado; #200
   ya entró a main; #114 no comparte archivos (`git diff --name-only origin/main...<rama>`).
-- `origin/main` avanzó a `ddf14c06` (PR #200, SDD-0508) durante la tarea: lo traigo a mi rama con
-  merge y regenero el índice.
+- `origin/main` avanzó a `ddf14c06` (PR #200, SDD-0508) durante la tarea. `sync_with_base_branch` de la
+  app se negó (archivos con filtro git-lfs), así que hice `git merge --no-ff origin/main` en mi rama
+  (`fb37587f`): limpio, el driver `dtd-generated-records` resolvió el índice. Después del merge:
+  `docs:check` PASÓ (495 specs), `sdd:check` PASÓ, `pnpm typecheck` PASÓ y `vitest related` sobre los
+  4 archivos de producto PASÓ (19 archivos, 174 pruebas).
 
 ## Impacto documental y conocimiento
 
@@ -122,7 +125,9 @@ eliminado.
 
 - `ea580b44` chore(sdd): reserva SDD-0511 — avisos-sin-envios-eliminados (stub de la reserva)
 - `82b54183` fix(studio): SDD-0511 — envíos y clientes eliminados fuera de avisos, Kommo y correo por regla
-- (siguientes) docs(sdd): SDD-0511 — spec, índice y handoff; merge de `origin/main`
+- `821d5465` docs(sdd): SDD-0511 — spec, índice y handoff de los avisos sin envíos eliminados
+- `fb37587f` Merge remote-tracking branch `origin/main` (PR #200, SDD-0508)
+- (último) docs(sdd): SDD-0511 — handoff con el merge y la PR
 
 ## PR / BRANCH
 
