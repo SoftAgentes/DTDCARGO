@@ -6,16 +6,18 @@
  *    Math.random y el formulario no manda `pin`;
  *  - «Escribirlo yo» arranca vacío, rechaza en vivo los comunes y manda el PIN
  *    escrito;
- *  - sin un motivo válido no se puede crear, y el motivo viaja en el formulario;
- *  - el PIN devuelto se muestra con «Copiar PIN» y no se persiste en el
- *    navegador.
+ *  - sin un motivo de la lista no se puede crear; «Empleado nuevo» viaja como
+ *    su código y «Otro» con su texto;
+ *  - el PIN devuelto se muestra con «Copiar PIN» y «Entra por
+ *    https://dtdcargo.com/m/cn/login» (el alta del Studio es de China), y no se
+ *    persiste en el navegador.
  */
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { WarehouseCN } from "@/lib/studio/warehouse-cn-types";
 
-type State = { ok?: boolean; error?: string; fieldErrors?: Record<string, string>; pinReveal?: string };
+type State = { ok?: boolean; error?: string; fieldErrors?: Record<string, string>; pinReveal?: string; region?: "cn" | "ve" };
 
 const createMock = vi.fn<(prev: State, fd: FormData) => Promise<State>>();
 
@@ -32,7 +34,8 @@ const WAREHOUSE = {
   warehouse_name: null,
 } as unknown as WarehouseCN;
 
-const MOTIVO = "Entra al turno de la mañana";
+/** El código de «Empleado nuevo». */
+const MOTIVO = "empleado_nuevo";
 
 function sent(): Record<string, string> {
   const fd = createMock.mock.calls[0][1];
@@ -46,18 +49,24 @@ beforeEach(() => {
   createMock.mockImplementation(async (_prev, fd) => ({
     ok: true,
     pinReveal: fd.get("pin_mode") === "manual" ? String(fd.get("pin")) : "4827",
+    region: "cn",
   }));
   setItem = vi.spyOn(Storage.prototype, "setItem");
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://dtdcargo.com");
 });
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
-async function llenar(user: ReturnType<typeof userEvent.setup>, motivo = MOTIVO) {
+const motivoSelect = () => screen.getByRole("combobox", { name: /^Motivo/ });
+
+/** Nombre y motivo (por su rótulo); sin rótulo, deja el motivo sin elegir. */
+async function llenar(user: ReturnType<typeof userEvent.setup>, motivo: string | null = "Empleado nuevo") {
   await user.type(screen.getByRole("textbox", { name: "Nombre *" }), "Li Wei");
-  if (motivo) await user.type(screen.getByRole("textbox", { name: /^Motivo/ }), motivo);
+  if (motivo) await user.selectOptions(motivoSelect(), motivo);
 }
 
 describe("NewOperarioDrawer · PIN generado en el servidor (por defecto)", () => {
@@ -93,27 +102,40 @@ describe("NewOperarioDrawer · PIN generado en el servidor (por defecto)", () =>
     await llenar(user);
     await user.click(screen.getByRole("button", { name: "Crear operario" }));
 
-    const dialog = await screen.findByRole("dialog");
-    expect(await within(dialog).findByText("Operario creado")).toBeInTheDocument();
+    // Primero la vista de éxito y después su diálogo: buscar el diálogo antes
+    // puede devolver el del formulario, que se desmonta al llegar la respuesta.
+    const title = await screen.findByText("Operario creado");
+    const dialog = title.closest<HTMLElement>("[role='dialog']")!;
+    expect(dialog).toBeInTheDocument();
     expect(within(dialog).getAllByText("4827")).toHaveLength(1);
     await user.click(within(dialog).getByRole("button", { name: "Copiar PIN" }));
     expect(writeText).toHaveBeenCalledWith("4827");
+    expect(within(dialog).getByText("https://dtdcargo.com/m/cn/login").parentElement).toHaveTextContent(
+      "Entra por https://dtdcargo.com/m/cn/login",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Copiar enlace" }));
+    expect(writeText).toHaveBeenLastCalledWith("https://dtdcargo.com/m/cn/login");
     expect(setItem).not.toHaveBeenCalled();
     expect(window.location.href).not.toContain("4827");
   });
 });
 
 describe("NewOperarioDrawer · motivo obligatorio", () => {
-  it("sin motivo no deja crear", async () => {
+  it("sin motivo no deja crear; «Otro» pide al menos 4 caracteres", async () => {
     const user = userEvent.setup();
     render(<NewOperarioDrawer warehouses={[WAREHOUSE]} onClose={() => {}} />);
-    await llenar(user, "");
+    await llenar(user, null);
 
     expect(screen.getByRole("button", { name: "Crear operario" })).toBeDisabled();
-    await user.type(screen.getByRole("textbox", { name: /^Motivo/ }), "abc");
+    await user.selectOptions(motivoSelect(), "Otro");
+    const texto = screen.getByRole("textbox", { name: /^Escribe el motivo/ });
+    await user.type(texto, "abc");
     expect(screen.getByRole("button", { name: "Crear operario" })).toBeDisabled();
-    await user.type(screen.getByRole("textbox", { name: /^Motivo/ }), "d");
+    await user.type(texto, "d");
     expect(screen.getByRole("button", { name: "Crear operario" })).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Crear operario" }));
+    await screen.findByText("4827");
+    expect(sent()).toMatchObject({ motivo: "otro", motivo_texto: "abcd" });
   });
 
   it("el error de PIN repetido del servidor se ve en el formulario", async () => {

@@ -11,10 +11,12 @@
  * Lo que se afirma:
  *  - por defecto el PIN lo genera el servidor: el formulario no manda `pin` y
  *    el cliente no sortea nada (Math.random no se llama);
- *  - sin un motivo válido (4 a 300 caracteres, sin el PIN) no se puede enviar,
- *    y el motivo viaja en el formulario;
+ *  - sin un motivo de la lista no se puede enviar; «Otro» pide su texto (4 a
+ *    200 caracteres, sin el PIN); el código, y el texto sólo con «Otro», viajan
+ *    en el formulario;
  *  - el PIN devuelto se muestra con el aviso de que volver a verlo queda en la
- *    auditoría, y se puede copiar;
+ *    auditoría, se puede copiar y dice por qué app entra el operario según su
+ *    región (/m/ve/login o /m/cn/login), también copiable;
  *  - al cerrar (Listo, Cerrar o Escape) el PIN sale del DOM y al reabrir no
  *    vuelve;
  *  - nunca se escribe en localStorage, sessionStorage, la URL ni el historial;
@@ -41,7 +43,8 @@ vi.mock("../actions", () => ({
 
 import { ResetPinDrawer } from "./ResetPinDrawer";
 
-const MOTIVO = "Olvidó su PIN";
+/** El código de «Se le olvidó». */
+const MOTIVO = "olvido";
 
 const OPERARIO: OperarioRow = {
   id: "50000000-0000-4000-8000-000000000001",
@@ -59,7 +62,7 @@ const OPERARIO: OperarioRow = {
 };
 
 /** Igual que OperariosClient: cerrar = desmontar; reabrir = montar de cero. */
-function Harness({ reactivar = false }: { reactivar?: boolean }) {
+function Harness({ reactivar = false, operario = OPERARIO }: { reactivar?: boolean; operario?: OperarioRow }) {
   const [open, setOpen] = useState(true);
   return (
     <>
@@ -67,7 +70,7 @@ function Harness({ reactivar = false }: { reactivar?: boolean }) {
         Abrir restablecer
       </button>
       {open && (
-        <ResetPinDrawer operario={OPERARIO} onClose={() => setOpen(false)} reactivar={reactivar} />
+        <ResetPinDrawer operario={operario} onClose={() => setOpen(false)} reactivar={reactivar} />
       )}
     </>
   );
@@ -95,11 +98,13 @@ beforeEach(() => {
   pushState = vi.spyOn(window.history, "pushState");
   replaceState = vi.spyOn(window.history, "replaceState");
   hrefBefore = window.location.href;
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://dtdcargo.com");
 });
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 function expectNothingPersisted(pin: string) {
@@ -110,10 +115,16 @@ function expectNothingPersisted(pin: string) {
   expect(JSON.stringify(replaceState.mock.calls)).not.toContain(pin);
 }
 
-const motivoInput = () => screen.getByRole("textbox", { name: /^Motivo/ });
+const motivoSelect = () => screen.getByRole("combobox", { name: /^Motivo/ });
+const motivoTexto = () => screen.getByRole("textbox", { name: /^Escribe el motivo/ });
+
+/** Elige el motivo por su rótulo, como lo ve el admin. */
+async function elegirMotivo(user: ReturnType<typeof userEvent.setup>, label = "Se le olvidó") {
+  await user.selectOptions(motivoSelect(), label);
+}
 
 async function restablecerGenerado(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(motivoInput(), MOTIVO);
+  await elegirMotivo(user);
   await user.click(screen.getByRole("button", { name: "Restablecer PIN" }));
   await screen.findByText("4827");
 }
@@ -151,7 +162,7 @@ describe("ResetPinDrawer · generar PIN nuevo (por defecto)", () => {
 
     await user.click(within(dialog).getByRole("button", { name: "Copiar PIN" }));
     expect(writeText).toHaveBeenCalledWith("4827");
-    expect(within(dialog).getByRole("status")).toHaveTextContent("PIN copiado.");
+    expect(within(dialog).getByText("PIN copiado.")).toHaveAttribute("role", "status");
     expect(within(dialog).getByRole("button", { name: "Copiado" })).toBeInTheDocument();
     expectNothingPersisted("4827");
   });
@@ -163,7 +174,7 @@ describe("ResetPinDrawer · generar PIN nuevo (por defecto)", () => {
     await restablecerGenerado(user);
 
     await user.click(screen.getByRole("button", { name: "Copiar PIN" }));
-    expect(screen.getByRole("status")).toHaveTextContent("No se pudo copiar. Anótalo a mano.");
+    expect(screen.getByText("No se pudo copiar. Anótalo a mano.")).toHaveAttribute("role", "status");
     expect(screen.getByText("4827")).toBeInTheDocument();
   });
 
@@ -172,7 +183,7 @@ describe("ResetPinDrawer · generar PIN nuevo (por defecto)", () => {
     generateMock.mockResolvedValue({ error: "No tienes permiso para realizar esta acción." });
     render(<Harness />);
 
-    await user.type(motivoInput(), MOTIVO);
+    await elegirMotivo(user);
     await user.click(screen.getByRole("button", { name: "Restablecer PIN" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("No tienes permiso para realizar esta acción.");
     expect(screen.queryByText("PIN restablecido")).not.toBeInTheDocument();
@@ -181,42 +192,109 @@ describe("ResetPinDrawer · generar PIN nuevo (por defecto)", () => {
 });
 
 describe("ResetPinDrawer · motivo obligatorio (SDD-0515)", () => {
-  it("sin motivo, o con menos de 4 caracteres, no se puede enviar", async () => {
+  it("la lista es la de la base, en este orden, y arranca sin elegir", () => {
+    render(<Harness />);
+    const options = within(motivoSelect()).getAllByRole("option");
+
+    expect(options.map((o) => o.textContent)).toEqual([
+      "Elige un motivo", "Se le olvidó", "Empleado nuevo", "Revisión de seguridad", "Otro",
+    ]);
+    expect(motivoSelect()).toHaveValue("");
+    expect(screen.queryByRole("textbox", { name: /^Escribe el motivo/ })).not.toBeInTheDocument();
+  });
+
+  it("sin motivo no se puede enviar; con uno de la lista, sí", async () => {
     const user = userEvent.setup();
     render(<Harness />);
     const submit = screen.getByRole("button", { name: "Restablecer PIN" });
 
     expect(submit).toBeDisabled();
-    await user.type(motivoInput(), "abc");
-    expect(submit).toBeDisabled();
-    await user.type(motivoInput(), "d");
+    await elegirMotivo(user, "Revisión de seguridad");
     expect(submit).toBeEnabled();
-    await user.clear(motivoInput());
-    await user.type(motivoInput(), "     ");
+    await user.click(submit);
+    await screen.findByText("4827");
+    expect(sentFields(generateMock)).toEqual({
+      operario_id: OPERARIO.id, pin_mode: "generar", motivo: "revision_seguridad",
+    });
+  });
+
+  it("«Otro» pide su texto: con menos de 4 caracteres o sólo espacios no deja enviar", async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    const submit = screen.getByRole("button", { name: "Restablecer PIN" });
+    await elegirMotivo(user, "Otro");
+
+    expect(submit).toBeDisabled();
+    expect(motivoTexto()).toHaveAttribute("maxLength", "200");
+    await user.type(motivoTexto(), "abc");
+    expect(submit).toBeDisabled();
+    await user.type(motivoTexto(), "d");
+    expect(submit).toBeEnabled();
+    await user.clear(motivoTexto());
+    await user.type(motivoTexto(), "     ");
     expect(submit).toBeDisabled();
     expect(generateMock).not.toHaveBeenCalled();
   });
 
-  it("el error de motivo que devuelve el servidor se ve en el campo", async () => {
+  it("«Otro» manda el código y su texto", async () => {
     const user = userEvent.setup();
-    generateMock.mockResolvedValue({ fieldErrors: { motivo: "Escribe el motivo: entre 4 y 300 caracteres." } });
     render(<Harness />);
-
-    await user.type(motivoInput(), MOTIVO);
+    await elegirMotivo(user, "Otro");
+    await user.type(motivoTexto(), "Cambio de turno");
     await user.click(screen.getByRole("button", { name: "Restablecer PIN" }));
-    expect(await screen.findByText("Escribe el motivo: entre 4 y 300 caracteres.")).toBeInTheDocument();
-    expect(motivoInput()).toHaveAttribute("aria-invalid", "true");
+    await screen.findByText("4827");
+
+    expect(sentFields(generateMock)).toEqual({
+      operario_id: OPERARIO.id, pin_mode: "generar", motivo: "otro", motivo_texto: "Cambio de turno",
+    });
   });
 
-  it("escrito a mano: un motivo con el PIN avisa en vivo y no deja enviar", async () => {
+  it("el error de motivo que devuelve el servidor se ve en el campo", async () => {
+    const user = userEvent.setup();
+    generateMock.mockResolvedValue({ fieldErrors: { motivo: "Elige un motivo de la lista." } });
+    render(<Harness />);
+
+    await elegirMotivo(user);
+    await user.click(screen.getByRole("button", { name: "Restablecer PIN" }));
+    expect(await screen.findByText("Elige un motivo de la lista.")).toBeInTheDocument();
+    expect(motivoSelect()).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("escrito a mano: un texto de «Otro» con el PIN avisa en vivo y no deja enviar", async () => {
     const user = userEvent.setup();
     render(<Harness />);
     await user.click(screen.getByRole("radio", { name: /Escribirlo yo/ }));
     await user.type(screen.getByRole("textbox", { name: /^PIN nuevo/ }), "7310");
-    await user.type(motivoInput(), "Le puse 7310");
+    await elegirMotivo(user, "Otro");
+    await user.type(motivoTexto(), "Le puse 7310");
 
     expect(screen.getByRole("alert")).toHaveTextContent("No escribas el PIN en el motivo: queda en la auditoría.");
+    expect(motivoTexto()).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByRole("button", { name: "Restablecer PIN" })).toBeDisabled();
+  });
+});
+
+describe("ResetPinDrawer · por qué app entra el operario (región)", () => {
+  it.each([
+    ["ve", "https://dtdcargo.com/m/ve/login"],
+    ["cn", "https://dtdcargo.com/m/cn/login"],
+  ] as const)("región %s: dice «Entra por %s» y copia el enlace", async (region, url) => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, "writeText");
+    render(<Harness operario={{ ...OPERARIO, region }} />);
+    await restablecerGenerado(user);
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(url)).toBeInTheDocument();
+    expect(within(dialog).getByText(url).parentElement).toHaveTextContent(`Entra por ${url}`);
+    const other = region === "ve" ? "/m/cn/login" : "/m/ve/login";
+    expect(dialog.textContent).not.toContain(other);
+
+    await user.click(within(dialog).getByRole("button", { name: "Copiar enlace" }));
+    expect(writeText).toHaveBeenCalledWith(url);
+    expect(within(dialog).getByText("Enlace copiado.")).toBeInTheDocument();
+    // El enlace no lleva el PIN.
+    expect(url).not.toContain("4827");
   });
 });
 
@@ -261,7 +339,7 @@ describe("ResetPinDrawer · escribirlo a mano", () => {
     render(<Harness />);
     await user.click(screen.getByRole("radio", { name: /Escribirlo yo/ }));
     const input = screen.getByRole("textbox", { name: /^PIN nuevo/ });
-    await user.type(motivoInput(), MOTIVO);
+    await elegirMotivo(user);
 
     await user.type(input, "1234");
     expect(screen.getByRole("alert")).toHaveTextContent(
@@ -277,7 +355,7 @@ describe("ResetPinDrawer · escribirlo a mano", () => {
     render(<Harness />);
     await user.click(screen.getByRole("radio", { name: /Escribirlo yo/ }));
     await user.type(screen.getByRole("textbox", { name: /^PIN nuevo/ }), "7310");
-    await user.type(motivoInput(), MOTIVO);
+    await elegirMotivo(user);
 
     const submit = screen.getByRole("button", { name: "Restablecer PIN" });
     expect(submit).toBeEnabled();
@@ -301,12 +379,13 @@ describe("ResetPinDrawer · reactivar a un operario de baja (SDD-0515)", () => {
 
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText(`Reactivar a ${OPERARIO.display_name}`)).toBeInTheDocument();
-    await user.type(motivoInput(), "Vuelve de vacaciones");
+    await elegirMotivo(user, "Otro");
+    await user.type(motivoTexto(), "Vuelve de vacaciones");
     await user.click(screen.getByRole("button", { name: "Reactivar con PIN nuevo" }));
     await screen.findByText("4827");
 
     expect(sentFields(generateMock)).toEqual({
-      operario_id: OPERARIO.id, pin_mode: "generar", reactivar: "1", motivo: "Vuelve de vacaciones",
+      operario_id: OPERARIO.id, pin_mode: "generar", reactivar: "1", motivo: "otro", motivo_texto: "Vuelve de vacaciones",
     });
     expect(screen.getByText("Operario reactivado")).toBeInTheDocument();
     expect(screen.getByText("Ya puede volver a entrar a la app del teléfono con este PIN.")).toBeInTheDocument();

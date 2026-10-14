@@ -8,7 +8,10 @@
  * NO service_role — el admin tiene su propio JWT.
  *
  * SDD-0515 (migr 0475):
- *  - alta, restablecimiento y «Ver PIN» exigen un motivo que va a la auditoría;
+ *  - alta, restablecimiento y «Ver PIN» exigen un motivo de la lista fija (con
+ *    texto sólo para «Otro»), que va a la auditoría;
+ *  - «Ver PIN» pide otra vez la contraseña del Studio: la base exige un `amr`
+ *    `password` de hace 5 minutos o menos en el JWT (P0022);
  *  - alta y restablecimiento rechazan con P0018 un PIN que ya usa otro operario
  *    activo del mismo tenant y región: si el PIN lo generó el servidor, se
  *    sortea otro y se reintenta; si lo escribió el admin, vuelve como error del
@@ -19,15 +22,20 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { withPasswordConfirmedClient } from "@/lib/db/password-confirmed";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   OPERARIO_MOTIVO_MESSAGE,
+  OPERARIO_PASSWORD_FAILURE_MESSAGE,
+  OPERARIO_PASSWORD_MESSAGE,
   OPERARIO_PIN_IN_USE_MESSAGE,
   OPERARIO_PIN_PROBLEM_MESSAGE,
   isOperarioMotivoRejected,
+  isOperarioPasswordRequired,
   isOperarioPinInUse,
   operarioMotivoProblem,
   operarioPinProblem,
+  type OperarioRegion,
   type ViewPinResult,
 } from "@/lib/studio/operario-pin";
 import { saveWithGeneratedOperarioPin } from "@/lib/studio/operario-pin-generator";
@@ -40,6 +48,8 @@ type State = {
    *  en claro para mostrarlo al admin UNA vez en esa respuesta. La base
    *  guarda el hash bcrypt y una copia cifrada que sólo sale por «Ver PIN». */
   pinReveal?: string;
+  /** La región del operario, para decir por qué app entra con ese PIN. */
+  region?: OperarioRegion;
 };
 
 type RpcError = { code?: string; message: string };
@@ -85,6 +95,16 @@ function rpcErrorState(error: RpcError, prefix: string, pinField: boolean): Stat
 
 type PinMode = "generar" | "manual";
 
+/**
+ * El motivo del formulario: el código de la lista y, sólo si es «Otro», su texto.
+ * Se valida y se manda lo mismo: el texto de un código fijo ni viaja.
+ */
+function parseMotivo(formData: FormData): { motivo: string; motivoTexto: string | null } {
+  const motivo = parseStr(formData.get("motivo"));
+  const otro = motivo.toLowerCase() === "otro";
+  return { motivo, motivoTexto: otro ? parseStr(formData.get("motivo_texto")) : null };
+}
+
 function parsePinMode(v: FormDataEntryValue | null): PinMode {
   return parseStr(v) === "manual" ? "manual" : "generar";
 }
@@ -107,7 +127,7 @@ export async function createOperarioAction(
   const displayName = parseStr(formData.get("display_name"));
   const displayNameCn = parseStr(formData.get("display_name_cn"));
   const role = parseStr(formData.get("role")) || "operario";
-  const motivo = parseStr(formData.get("motivo"));
+  const { motivo, motivoTexto } = parseMotivo(formData);
   // SDD-0515: por defecto el PIN lo genera el servidor, como al restablecer;
   // el cliente ya no sortea nada. «Escribirlo yo» manda el PIN escrito.
   const mode = parsePinMode(formData.get("pin_mode"));
@@ -122,7 +142,7 @@ export async function createOperarioAction(
     const problem = operarioPinProblem(pin);
     if (problem) fieldErrors.pin = OPERARIO_PIN_PROBLEM_MESSAGE[problem];
   }
-  const motivoProblem = operarioMotivoProblem(motivo, pin);
+  const motivoProblem = operarioMotivoProblem(motivo, motivoTexto, pin);
   if (motivoProblem) fieldErrors.motivo = OPERARIO_MOTIVO_MESSAGE[motivoProblem];
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
@@ -135,20 +155,28 @@ export async function createOperarioAction(
       p_pin: candidate,
       p_role: role,
       p_motivo: motivo,
+      p_motivo_texto: motivoTexto,
     });
 
   if (pin !== null) {
     const { error } = await create(pin);
     if (error) return rpcErrorState(error, "No se pudo crear", true);
     revalidatePath("/studio/operarios");
-    return { ok: true, pinReveal: pin };
+    return { ok: true, pinReveal: pin, region: CREATED_REGION };
   }
 
   const saved = await saveWithGeneratedOperarioPin(create);
   if (saved.error) return rpcErrorState(saved.error, "No se pudo crear", false);
   revalidatePath("/studio/operarios");
-  return { ok: true, pinReveal: saved.pin };
+  return { ok: true, pinReveal: saved.pin, region: CREATED_REGION };
 }
+
+/**
+ * El alta del Studio crea operarios de China: `admin_create_operario` no recibe
+ * región, la columna toma su default 'cn' (0023) y el alta exige un warehouse
+ * de China. Los de Venezuela no se crean desde este formulario.
+ */
+const CREATED_REGION: OperarioRegion = "cn";
 
 // ─────────────────────────────────────────────────────────────
 // Restablecer PIN (SDD-0513, SDD-0515)
@@ -181,8 +209,8 @@ export async function generateOperarioPinAction(
   if (denial) return { error: denial };
   const operarioId = parseStr(formData.get("operario_id"));
   if (!operarioId) return { error: "Falta el operario." };
-  const motivo = parseStr(formData.get("motivo"));
-  const motivoProblem = operarioMotivoProblem(motivo);
+  const { motivo, motivoTexto } = parseMotivo(formData);
+  const motivoProblem = operarioMotivoProblem(motivo, motivoTexto);
   if (motivoProblem) return { fieldErrors: { motivo: OPERARIO_MOTIVO_MESSAGE[motivoProblem] } };
   const reactivar = parseBool(formData.get("reactivar"));
 
@@ -191,6 +219,7 @@ export async function generateOperarioPinAction(
       p_operario_id: operarioId,
       p_pin: candidate,
       p_motivo: motivo,
+      p_motivo_texto: motivoTexto,
       p_reactivar: reactivar,
     }),
   );
@@ -209,14 +238,14 @@ export async function resetOperarioPinAction(
   if (denial) return { error: denial };
   const operarioId = parseStr(formData.get("operario_id"));
   const pin = parseStr(formData.get("pin"));
-  const motivo = parseStr(formData.get("motivo"));
+  const { motivo, motivoTexto } = parseMotivo(formData);
   const reactivar = parseBool(formData.get("reactivar"));
 
   if (!operarioId) return { error: "Falta el operario." };
   const fieldErrors: Record<string, string> = {};
   const problem = operarioPinProblem(pin);
   if (problem) fieldErrors.pin = OPERARIO_PIN_PROBLEM_MESSAGE[problem];
-  const motivoProblem = operarioMotivoProblem(motivo, problem ? null : pin);
+  const motivoProblem = operarioMotivoProblem(motivo, motivoTexto, problem ? null : pin);
   if (motivoProblem) fieldErrors.motivo = OPERARIO_MOTIVO_MESSAGE[motivoProblem];
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
@@ -224,6 +253,7 @@ export async function resetOperarioPinAction(
     p_operario_id: operarioId,
     p_pin: pin,
     p_motivo: motivo,
+    p_motivo_texto: motivoTexto,
     p_reactivar: reactivar,
   });
   if (error) return rpcErrorState(error, RESET_PREFIX, true);
@@ -235,7 +265,13 @@ export async function resetOperarioPinAction(
 // ─────────────────────────────────────────────────────────────
 // Ver PIN (SDD-0515)
 //
-// Misma regla que restablecer (la matriz, en edición) y un motivo obligatorio.
+// Misma regla que restablecer (la matriz, en edición), un motivo de la lista y
+// la contraseña del Studio otra vez (decisión de Sam). La contraseña se
+// confirma con Supabase Auth en una sesión aparte que sólo sirve para esta
+// llamada (`withPasswordConfirmedClient`): su JWT trae el `amr` `password`
+// reciente que exige la base, y se cierra al terminar. La contraseña no se
+// guarda, no va a la consola y no vuelve en el resultado.
+//
 // La RPC escribe el evento `pin_visto` en su misma transacción antes de
 // devolver el PIN; si el operario es anterior a 0475 no hay copia cifrada y
 // devuelve null. El PIN sólo viaja en esta respuesta: nada de logs, tablas ni
@@ -243,23 +279,45 @@ export async function resetOperarioPinAction(
 // ─────────────────────────────────────────────────────────────
 
 export async function viewOperarioPinAction(
-  operarioId: string,
-  motivoInput: string,
+  formData: FormData,
 ): Promise<ViewPinResult> {
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "operarios");
   if (denial) return { error: denial };
+  const operarioId = parseStr(formData.get("operario_id"));
   if (!operarioId) return { error: "Falta el operario." };
-  const motivo = String(motivoInput ?? "").trim();
-  const motivoProblem = operarioMotivoProblem(motivo);
+  const { motivo, motivoTexto } = parseMotivo(formData);
+  const motivoProblem = operarioMotivoProblem(motivo, motivoTexto);
   if (motivoProblem) return { error: OPERARIO_MOTIVO_MESSAGE[motivoProblem], fieldError: "motivo" };
+  // La contraseña va tal cual: sin recortar y sin pasar por ningún estado.
+  const password = formData.get("password");
+  if (typeof password !== "string" || password.length === 0) {
+    return { error: OPERARIO_PASSWORD_FAILURE_MESSAGE.empty, fieldError: "password" };
+  }
 
-  const { data, error } = await supabase.rpc("admin_ver_operario_pin", {
-    p_operario_id: operarioId,
-    p_motivo: motivo,
-  });
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
+  if (!user) return { error: OPERARIO_PASSWORD_FAILURE_MESSAGE.mismatch, fieldError: "password" };
+  if (!user.email) return { error: OPERARIO_PASSWORD_FAILURE_MESSAGE.noEmail, fieldError: "password" };
+
+  const confirmed = await withPasswordConfirmedClient(
+    { userId: user.id, email: user.email },
+    password,
+    async (client) =>
+      client.rpc("admin_ver_operario_pin", {
+        p_operario_id: operarioId,
+        p_motivo: motivo,
+        p_motivo_texto: motivoTexto,
+      }),
+  );
+  if (!confirmed.ok) {
+    return { error: OPERARIO_PASSWORD_FAILURE_MESSAGE[confirmed.reason], fieldError: "password" };
+  }
+
+  const { data, error } = confirmed.value;
   if (error) {
     if (isOperarioMotivoRejected(error)) return { error: error.message, fieldError: "motivo" };
+    if (isOperarioPasswordRequired(error)) return { error: OPERARIO_PASSWORD_MESSAGE, fieldError: "password" };
     return { error: `No se pudo mostrar el PIN: ${error.message}` };
   }
   return { ok: true, pin: typeof data === "string" && data.length > 0 ? data : null };

@@ -3,6 +3,12 @@
 /**
  * OperariosClient — tabla + drawers Nuevo/Restablecer PIN/Editar (SDD-0028, SDD-0513)
  * y, desde SDD-0515, «Ver PIN» y «Reactivar» (un operario de baja vuelve con PIN nuevo).
+ *
+ * Cada fila dice por qué app entra el operario según su región («Entra por
+ * dtdcargo.com/m/cn/login» o «…/m/ve/login»): el PIN de uno de China no sirve
+ * en la de Venezuela, y al revés. La columna «Rol» muestra los cuatro roles de
+ * la base (operario, supervisor, bodeguero, camionero); antes todo lo que no
+ * era supervisor salía como «Operario».
  */
 
 import { useState, type CSSProperties } from "react";
@@ -11,6 +17,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Icon } from "@/app/studio/_components/icons";
 import type { OperarioRow } from "@/lib/studio/operario-queries";
 import type { WarehouseCN } from "@/lib/studio/warehouse-cn-types";
+import { operarioLoginLabel, operarioRolLabel } from "@/lib/studio/operario-pin";
 import { setOperarioActiveAction } from "../actions";
 import { NewOperarioDrawer } from "./NewOperarioDrawer";
 import { ResetPinDrawer } from "./ResetPinDrawer";
@@ -251,6 +258,21 @@ function OperarioRowItem({
               </span>
             ) : null}
           </div>
+          <div
+            style={{
+              font: "500 11.5px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 3,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Entra por{" "}
+            <span style={{ font: "600 11.5px/1.3 var(--f-mono)", color: "var(--ink)" }}>
+              {operarioLoginLabel(op.region)}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -261,7 +283,7 @@ function OperarioRowItem({
 
       {/* Rol */}
       <Badge tone={op.role === "supervisor" ? "wine" : "neutral"} size="sm">
-        {op.role === "supervisor" ? "Supervisor" : "Operario"}
+        {operarioRolLabel(op.role)}
       </Badge>
 
       {/* Last login */}

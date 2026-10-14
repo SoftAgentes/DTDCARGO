@@ -32,9 +32,17 @@ import {
   saveWithFreshOperarioPin,
   OPERARIO_MOTIVO_CODE,
   OPERARIO_MOTIVO_MESSAGE,
+  OPERARIO_MOTIVOS,
+  OPERARIO_PASSWORD_CODE,
+  OPERARIO_PASSWORD_FAILURE_MESSAGE,
+  OPERARIO_PASSWORD_MESSAGE,
   OPERARIO_PIN_LEGACY_MESSAGE,
   isOperarioMotivoRejected,
+  isOperarioPasswordRequired,
+  operarioLoginLabel,
+  operarioLoginUrl,
   operarioMotivoProblem,
+  operarioRolLabel,
 } from "../operario-pin";
 import { generateOperarioPin, saveWithGeneratedOperarioPin } from "../operario-pin-generator";
 
@@ -54,6 +62,7 @@ function sequence(values: number[]) {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.unstubAllEnvs();
 });
 
 describe("operarioPinProblem", () => {
@@ -254,46 +263,144 @@ describe("saveWithGeneratedOperarioPin (crypto.randomInt real)", () => {
   });
 });
 
-// ─── SDD-0515 · motivo obligatorio ──────────────────────────────────────────
+// ─── SDD-0515 · motivo de la lista ──────────────────────────────────────────
+
+const SQL_0475 = () =>
+  readFileSync(new URL("../../../supabase/migrations/0475_pin_operarios_endurecer.sql", import.meta.url), "utf8")
+    .replace(/\r\n/g, "\n");
 
 describe("operarioMotivoProblem (espejo de operario_motivo_valido)", () => {
-  it("acepta de 4 a 300 caracteres y rechaza fuera de ese rango", () => {
-    expect(operarioMotivoProblem("abcd")).toBeNull();
-    expect(operarioMotivoProblem("x".repeat(300))).toBeNull();
-    expect(operarioMotivoProblem("abc")).toBe("length");
-    expect(operarioMotivoProblem("x".repeat(301))).toBe("length");
-    expect(operarioMotivoProblem("")).toBe("length");
+  it("la lista es la de Sam, en su orden", () => {
+    expect(OPERARIO_MOTIVOS.map((m) => [m.value, m.label])).toEqual([
+      ["olvido", "Se le olvidó"],
+      ["empleado_nuevo", "Empleado nuevo"],
+      ["revision_seguridad", "Revisión de seguridad"],
+      ["otro", "Otro"],
+    ]);
   });
 
-  it("recorta sólo espacios, como btrim(), y cuenta caracteres, como char_length()", () => {
-    expect(operarioMotivoProblem("   abc   ")).toBe("length");
-    expect(operarioMotivoProblem("  abcd  ")).toBeNull();
+  it("acepta cada código de la lista, sin mayúsculas ni espacios alrededor", () => {
+    for (const { value } of OPERARIO_MOTIVOS.filter((m) => m.value !== "otro")) {
+      expect(operarioMotivoProblem(value)).toBeNull();
+      expect(operarioMotivoProblem(`  ${value.toUpperCase()}  `)).toBeNull();
+    }
+  });
+
+  it("rechaza lo que no está en la lista, incluido el texto libre de antes", () => {
+    for (const codigo of [null, undefined, "", "   ", "inventado", "olvidó", "olvido ya", "El operario olvidó su PIN"]) {
+      expect(operarioMotivoProblem(codigo)).toBe("codigo");
+    }
+  });
+
+  it("un código fijo ignora el texto, aunque lleve el PIN", () => {
+    expect(operarioMotivoProblem("olvido", "Le puse 4827", "4827")).toBeNull();
+    expect(operarioMotivoProblem("empleado_nuevo", "abc")).toBeNull();
+  });
+
+  it("«Otro» pide de 4 a 200 caracteres", () => {
+    expect(operarioMotivoProblem("otro")).toBe("length");
+    expect(operarioMotivoProblem("otro", "abc")).toBe("length");
+    expect(operarioMotivoProblem("otro", "abcd")).toBeNull();
+    expect(operarioMotivoProblem("otro", "x".repeat(200))).toBeNull();
+    expect(operarioMotivoProblem("otro", "x".repeat(201))).toBe("length");
+  });
+
+  it("en «Otro» recorta sólo espacios, como btrim(), y cuenta caracteres, como char_length()", () => {
+    expect(operarioMotivoProblem("otro", "   abc   ")).toBe("length");
+    expect(operarioMotivoProblem("otro", "  abcd  ")).toBeNull();
     // Un tab no es espacio para btrim(): cuenta como carácter.
-    expect(operarioMotivoProblem("\tabc")).toBeNull();
+    expect(operarioMotivoProblem("otro", "\tabc")).toBeNull();
     // Dos emojis son 2 caracteres para la base aunque sean 4 unidades UTF-16.
     expect("😀😀".length).toBe(4);
-    expect(operarioMotivoProblem("😀😀")).toBe("length");
-    expect(operarioMotivoProblem("😀".repeat(300))).toBeNull();
+    expect(operarioMotivoProblem("otro", "😀😀")).toBe("length");
+    expect(operarioMotivoProblem("otro", "😀".repeat(200))).toBeNull();
   });
 
-  it("no deja el PIN en el motivo cuando se conoce", () => {
-    expect(operarioMotivoProblem("Le puse 4827 a pedido", "4827")).toBe("contains_pin");
-    expect(operarioMotivoProblem("Le puse otro a pedido", "4827")).toBeNull();
-    expect(operarioMotivoProblem("Le puse 4827 a pedido")).toBeNull();
-    expect(operarioMotivoProblem("Le puse 4827 a pedido", null)).toBeNull();
+  it("en «Otro» no deja el PIN cuando se conoce", () => {
+    expect(operarioMotivoProblem("otro", "Le puse 4827 a pedido", "4827")).toBe("contains_pin");
+    expect(operarioMotivoProblem("otro", "Le puse otro a pedido", "4827")).toBeNull();
+    expect(operarioMotivoProblem("otro", "Le puse 4827 a pedido")).toBeNull();
+    expect(operarioMotivoProblem("otro", "Le puse 4827 a pedido", null)).toBeNull();
   });
 
   it("los mensajes son los de la base, en tuteo, y sólo P0020 es «motivo»", () => {
-    const sql = readFileSync(new URL("../../../supabase/migrations/0475_pin_operarios_endurecer.sql", import.meta.url), "utf8")
-      .replace(/\r\n/g, "\n");
+    const sql = SQL_0475();
     for (const message of Object.values(OPERARIO_MOTIVO_MESSAGE)) {
       expect(sql).toContain(`raise exception '${message}' using errcode = '${OPERARIO_MOTIVO_CODE}';`);
     }
     const all = [...Object.values(OPERARIO_MOTIVO_MESSAGE), OPERARIO_PIN_LEGACY_MESSAGE].join(" ");
     expect(all).not.toMatch(/escribí|restablecé|usá|elegí|podés/i);
     expect(isOperarioMotivoRejected({ code: OPERARIO_MOTIVO_CODE })).toBe(true);
-    for (const error of [{ code: "P0018" }, { code: "P0010" }, { code: "42501" }, null]) {
+    for (const error of [{ code: "P0018" }, { code: "P0010" }, { code: "42501" }, { code: OPERARIO_PASSWORD_CODE }, null]) {
       expect(isOperarioMotivoRejected(error)).toBe(false);
     }
+  });
+});
+
+// ─── SDD-0515 · «Ver PIN» pide la contraseña ────────────────────────────────
+
+describe("contraseña de «Ver PIN»", () => {
+  it("el mensaje y el código son los de la base", () => {
+    expect(SQL_0475()).toMatch(
+      new RegExp(`raise exception '${OPERARIO_PASSWORD_MESSAGE}'\\s+using errcode = '${OPERARIO_PASSWORD_CODE}';`),
+    );
+    expect(isOperarioPasswordRequired({ code: OPERARIO_PASSWORD_CODE })).toBe(true);
+    for (const error of [{ code: OPERARIO_MOTIVO_CODE }, { code: "42501" }, null, undefined]) {
+      expect(isOperarioPasswordRequired(error)).toBe(false);
+    }
+  });
+
+  it("los avisos están en tuteo", () => {
+    const all = [OPERARIO_PASSWORD_MESSAGE, ...Object.values(OPERARIO_PASSWORD_FAILURE_MESSAGE)].join(" ");
+    expect(all).not.toMatch(/escribí|revisala|intentá|salí|volvé|hablá|confirmá/i);
+  });
+});
+
+// ─── Por qué app entra cada operario (región) ───────────────────────────────
+
+describe("operarioLoginUrl / operarioLoginLabel", () => {
+  it.each([
+    ["cn", "https://dtdcargo.com/m/cn/login", "dtdcargo.com/m/cn/login"],
+    ["ve", "https://dtdcargo.com/m/ve/login", "dtdcargo.com/m/ve/login"],
+  ] as const)("región %s → %s", (region, url, label) => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://dtdcargo.com");
+    expect(operarioLoginUrl(region)).toBe(url);
+    expect(operarioLoginLabel(region)).toBe(label);
+  });
+
+  it("sin la variable, o vacía, usa dtdcargo.com; con barra final, no la duplica", () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
+    expect(operarioLoginUrl("cn")).toBe("https://dtdcargo.com/m/cn/login");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://dtdcargo.com/");
+    expect(operarioLoginUrl("ve")).toBe("https://dtdcargo.com/m/ve/login");
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
+    expect(operarioLoginUrl("ve")).toBe("http://localhost:3000/m/ve/login");
+    expect(operarioLoginLabel("ve")).toBe("localhost:3000/m/ve/login");
+  });
+
+  it("las dos rutas existen en la app", () => {
+    for (const region of ["cn", "ve"]) {
+      expect(() => readFileSync(new URL(`../../../app/m/${region}/login/page.tsx`, import.meta.url))).not.toThrow();
+    }
+  });
+});
+
+// ─── Rótulo del rol ──────────────────────────────────────────────────────────
+
+describe("operarioRolLabel", () => {
+  it("nombra los cuatro roles de la base, no sólo supervisor", () => {
+    expect(operarioRolLabel("operario")).toBe("Operario");
+    expect(operarioRolLabel("supervisor")).toBe("Supervisor");
+    expect(operarioRolLabel("bodeguero")).toBe("Bodeguero");
+    expect(operarioRolLabel("camionero")).toBe("Camionero");
+  });
+
+  it("los cuatro son los de operario_pins_role_check", () => {
+    const sql = readFileSync(new URL("../../../supabase/migrations/0025_operario_roles_extend.sql", import.meta.url), "utf8");
+    expect(sql).toContain("check (role in ('operario', 'supervisor', 'bodeguero', 'camionero'))");
+  });
+
+  it("uno desconocido se muestra tal cual, no como «Operario»", () => {
+    expect(operarioRolLabel("chofer")).toBe("chofer");
   });
 });

@@ -11,6 +11,7 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import type { OperarioRow } from "@/lib/studio/operario-queries";
+import type { OperarioRol } from "@/lib/studio/operario-pin";
 import type { WarehouseCN } from "@/lib/studio/warehouse-cn-types";
 import { updateOperarioAction } from "../actions";
 
@@ -43,7 +44,7 @@ export function EditOperarioDrawer({
   const [displayNameCn, setDisplayNameCn] = useState(
     operario.display_name_cn ?? "",
   );
-  const [role, setRole] = useState<"operario" | "supervisor">(operario.role);
+  const [role, setRole] = useState<OperarioRol>(operario.role);
 
   // Auto-cerrar al éxito
   useEffect(() => {
@@ -150,7 +151,7 @@ export function EditOperarioDrawer({
             name="role"
             className="studio-input"
             value={role}
-            onChange={(e) => setRole(e.target.value as "operario" | "supervisor")}
+            onChange={(e) => setRole(e.target.value as OperarioRol)}
           >
             <option value="operario">Operario</option>
             <option value="supervisor">Supervisor</option>

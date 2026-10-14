@@ -5,9 +5,11 @@
  *
  * SDD-0515: el PIN ya no se sortea en el navegador. Igual que al restablecer
  * (SDD-0513), por defecto lo genera el SERVIDOR con crypto.randomInt; «Escribirlo
- * yo» deja escribir uno acordado. El alta pide un motivo, que va a la auditoría.
- * Después de crear se muestra el PIN para pasárselo al operario; vive sólo en el
- * estado de este cajón y desaparece al cerrarlo.
+ * yo» deja escribir uno acordado. El alta pide un motivo de la lista (con texto
+ * sólo para «Otro»), que va a la auditoría. Después de crear se muestra el PIN
+ * y la app por la que entra (/m/cn/login: el alta del Studio es de China) para
+ * pasárselo al operario; vive sólo en el estado de este cajón y desaparece al
+ * cerrarlo.
  */
 
 import { startTransition, useActionState, useState } from "react";
@@ -23,9 +25,10 @@ import {
   OPERARIO_PIN_LENGTH,
   OPERARIO_PIN_PROBLEM_MESSAGE,
   operarioPinProblem,
+  type OperarioRegion,
 } from "@/lib/studio/operario-pin";
 import { createOperarioAction } from "../actions";
-import { MotivoField, motivoListo } from "./MotivoField";
+import { MOTIVO_VACIO, MotivoField, motivoListo, type MotivoValue } from "./MotivoField";
 import { PinRevealBlock } from "./PinRevealBlock";
 
 type State = {
@@ -33,6 +36,7 @@ type State = {
   error?: string;
   fieldErrors?: Record<string, string>;
   pinReveal?: string;
+  region?: OperarioRegion;
 };
 
 type PinMode = "generar" | "manual";
@@ -71,13 +75,14 @@ export function NewOperarioDrawer({
   const [role, setRole] = useState<"operario" | "supervisor">("operario");
   const [mode, setMode] = useState<PinMode>("generar");
   const [pin, setPin] = useState("");
-  const [motivo, setMotivo] = useState("");
+  const [motivo, setMotivo] = useState<MotivoValue>(MOTIVO_VACIO);
 
   // Si la action retornó ok, mostramos vista de éxito con el PIN.
   if (state.ok && state.pinReveal) {
     return (
       <PinRevealSuccess
         pin={state.pinReveal}
+        region={state.region ?? "cn"}
         displayName={displayName}
         onClose={onClose}
       />
@@ -335,10 +340,12 @@ function FieldError({ msg }: { msg: string }) {
 
 function PinRevealSuccess({
   pin,
+  region,
   displayName,
   onClose,
 }: {
   pin: string;
+  region: OperarioRegion;
   displayName: string;
   onClose: () => void;
 }) {
@@ -370,7 +377,7 @@ function PinRevealSuccess({
         >
           <strong>{displayName}</strong> ya puede entrar.
         </p>
-        <PinRevealBlock pin={pin} />
+        <PinRevealBlock pin={pin} region={region} />
         <p
           style={{
             font: "500 12px/1.5 var(--f-sans)",

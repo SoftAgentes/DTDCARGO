@@ -37,10 +37,13 @@ export default async function OperariosPage() {
             maxWidth: "62ch",
           }}
         >
-          Personas que entran a la PWA mobile (
-          <code style={{ font: "600 12px/1 var(--f-mono)" }}>/m/cn</code>)
-          con PIN de 4 dígitos. Cada operario pertenece a un warehouse
-          y queda registrado como autor de las recepciones que toma.
+          Personas que entran con un PIN de 4 dígitos a la app del teléfono
+          de su región: China por{" "}
+          <code style={{ font: "600 12px/1 var(--f-mono)" }}>/m/cn</code>{" "}
+          (almacén) y Venezuela por{" "}
+          <code style={{ font: "600 12px/1 var(--f-mono)" }}>/m/ve</code>{" "}
+          (despacho). El PIN sólo sirve en la app de su región. Cada operario
+          queda registrado como autor de lo que hace en la app.
         </p>
       </div>
 

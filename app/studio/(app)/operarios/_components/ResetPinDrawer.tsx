@@ -12,7 +12,9 @@
  *    de enviar.
  *  · «Escribirlo yo»: el admin escribe un PIN que ya acordó con el operario.
  *
- * Los dos piden un motivo, que va a la auditoría (SDD-0515).
+ * Los dos piden un motivo de la lista (con texto sólo para «Otro»), que va a la
+ * auditoría (SDD-0515). Al mostrar el PIN se dice por qué app entra el
+ * operario según su región (/m/cn/login o /m/ve/login).
  *
  * El PIN nuevo se muestra en la respuesta. Vive solo en el estado de este
  * cajón: al cerrarlo (Listo, la X, Escape o clic afuera) el padre lo desmonta y
@@ -36,7 +38,7 @@ import {
   operarioPinProblem,
 } from "@/lib/studio/operario-pin";
 import { generateOperarioPinAction, resetOperarioPinAction } from "../actions";
-import { MotivoField, motivoListo } from "./MotivoField";
+import { MOTIVO_VACIO, MotivoField, motivoListo, type MotivoValue } from "./MotivoField";
 import { PinRevealBlock } from "./PinRevealBlock";
 
 type State = {
@@ -86,7 +88,7 @@ export function ResetPinDrawer({
   );
   const [mode, setMode] = useState<PinMode>("generar");
   const [pin, setPin] = useState("");
-  const [motivo, setMotivo] = useState("");
+  const [motivo, setMotivo] = useState<MotivoValue>(MOTIVO_VACIO);
 
   if (state.ok && state.pinReveal) {
     return (
@@ -234,7 +236,7 @@ export function ResetPinDrawer({
           pin={mode === "manual" ? pin : null}
           serverError={state.fieldErrors?.motivo}
           disabled={isPending}
-          placeholder={reactivar ? "Ej.: vuelve de vacaciones" : "Ej.: el operario olvidó su PIN"}
+          placeholder={reactivar ? "Ej.: vuelve de vacaciones" : "Ej.: lo pidió el supervisor del turno"}
         />
 
         <ErrorAlert state={state} compact />
@@ -311,7 +313,7 @@ function PinReveal({
           <span>Pásaselo al operario. Volver a verlo con «Ver PIN» queda en la auditoría.</span>
         </div>
 
-        <PinRevealBlock pin={pin} />
+        <PinRevealBlock pin={pin} region={operario.region} />
 
         <p
           style={{

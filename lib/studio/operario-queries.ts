@@ -12,6 +12,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { OperarioRol } from "./operario-pin";
 
 export type OperarioRow = {
   id: string;
@@ -20,7 +21,8 @@ export type OperarioRow = {
   region: "cn" | "ve";
   display_name: string;
   display_name_cn: string | null;
-  role: "operario" | "supervisor";
+  /** Los cuatro de operario_pins_role_check (0025): bodeguero y camionero son de Venezuela. */
+  role: OperarioRol;
   active: boolean;
   last_login_at: string | null;
   created_at: string;
