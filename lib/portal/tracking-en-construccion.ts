@@ -17,8 +17,14 @@
  * Con el mismo valor se suavizan los textos que prometen un aviso o una
  * recepción automática de bodega (SDD-0516): el detalle de una compra sin
  * recepciones (`app/portal/(app)/compras/[code]/page.tsx`) y la tarjeta de
- * notificaciones de la portada (`app/portal/(app)/page.tsx`). Al apagarlo,
- * vuelven sus textos de siempre en el mismo momento.
+ * notificaciones de la portada (`app/portal/(app)/page.tsx`). Fuera del Portal,
+ * el paso Contacto del registro público (`app/registro/RegisterForm.tsx`,
+ * SDD-0517) deja de prometer avisos por WhatsApp. Al apagarlo, vuelven sus
+ * textos de siempre en el mismo momento.
+ *
+ * Este módulo no importa nada a propósito: lo lee también el registro, que es
+ * un componente de cliente de una página pública, y no debe arrastrar código
+ * del Portal ni de la base al navegador.
  *
  * En el mismo commit, cambia también su `value` en `scripts/feature-constants.json`.
  * Eso no cambia el comportamiento: deja dicho en qué estado quedó para el
