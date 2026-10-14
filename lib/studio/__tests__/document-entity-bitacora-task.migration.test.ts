@@ -218,11 +218,13 @@ describe("SDD-0506 · 0473 devuelve la rama bitacora_task a document_entity_in_t
     expect(code.match(/create or replace function/g)).toHaveLength(1);
   });
 
-  it("sigue siendo una espera: el baseline la declara y la cabecera pide el OK de Sam", () => {
-    const wait = BASELINE.pendingBelowCutoff["0473_document_entity_bitacora_task"];
-    expect(wait).toBeDefined();
-    expect(wait).toContain("PENDIENTE DE APLICAR");
-    expect(wait).toContain("name exacto 0473_document_entity_bitacora_task");
+  it("aplicada al servidor propio el 2026-10-14: ya no es una espera y el archivo no se tocó", () => {
+    // El ledger del servidor (versión 20261014014406) guarda el archivo entero,
+    // con md5 e4db161f… y 11078 bytes: editar el archivo, aunque sea la cabecera
+    // «NO APLICADA», rompería esa identidad. Lo que cambia es el baseline.
+    expect(BASELINE.pendingBelowCutoff["0473_document_entity_bitacora_task"]).toBeUndefined();
+    expect(md5(FILE_0473)).toBe("e4db161fb91db934d71585f9c8da86f8");
+    expect(Buffer.byteLength(FILE_0473)).toBe(11078);
     expect(FILE_0473).toContain("⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en\n--    supabase/migrations-baseline.json › pendingBelowCutoff");
   });
 });
