@@ -165,7 +165,10 @@ root_fp="$(sha256sum "${work}/volume/pgsodium_root.key" | cut -d' ' -f1)"
 log "huella de pgsodium_root.key: ${root_fp}"
 
 # 2. ¿Cambió algo? La huella es de los contenidos, no del tar (que cambia con las fechas).
-fingerprint="$(cd "${work}" && find . -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d' ' -f1)"
+# Entran también los destinatarios age: si cambia la llave (el 2026-10-14 se perdió la
+# privada y se creó otra), el último respaldo subido está cerrado con la vieja y hay
+# que subir uno nuevo aunque el .env y la raíz no hayan cambiado.
+fingerprint="$( { (cd "${work}" && find . -type f -print0 | sort -z | xargs -0 sha256sum); grep -E '^[[:space:]]*(age1|ssh-)' "${AGE_RECIPIENTS}" | sha256sum; } | sha256sum | cut -d' ' -f1)"
 if (( ! FORCE )) && [[ -f "${last}" && "$(cat "${last}")" == "${fingerprint}" ]]; then
   log "2/5 sin cambios desde el último respaldo subido: no se sube nada (usa --force para subir igual)"
   log "listo"

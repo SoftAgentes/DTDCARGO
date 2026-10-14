@@ -92,6 +92,27 @@ LOG_TABLES=(
 # shellcheck source=../lib/acl.sh
 source "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/acl.sh"
 
+# Lo que `supabase db dump` NO trae de los esquemas de la plataforma (medido en el
+# corte del 2026-10-14): las policies de storage y auth, y los disparadores de la
+# app sobre tablas de auth y storage (alta de usuarios, último ingreso). Sin las
+# policies, toda subida con sesión de usuario cae en «new row violates row-level
+# security policy». Se recrean con el texto de Cloud y el paso 5 compara huellas.
+# Los disparadores propios de Supabase (función en storage/auth) no se tocan.
+PLATFORM_DDL_SQL="
+select format('drop policy if exists %I on %I.%I;', policyname, schemaname, tablename) || chr(10)
+    || format('create policy %I on %I.%I as %s for %s to %s%s%s;', policyname, schemaname, tablename, permissive, cmd,
+         (select string_agg(case when r = 'public' then 'public' else quote_ident(r) end, ', ') from unnest(roles) r),
+         case when qual is not null then ' using (' || qual || ')' else '' end,
+         case when with_check is not null then ' with check (' || with_check || ')' else '' end)
+  from pg_policies where schemaname in ('storage', 'auth')
+union all
+select format('drop trigger if exists %I on %I.%I;', t.tgname, n.nspname, c.relname) || chr(10) || pg_get_triggerdef(t.oid) || ';'
+  from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace join pg_proc p on p.oid = t.tgfoid
+ where not t.tgisinternal and n.nspname in ('storage', 'auth')
+   and p.pronamespace::regnamespace::text not in ('storage', 'auth', 'realtime', 'extensions', 'pgbouncer', 'supabase_functions')"
+PLATFORM_POLICIES_FP_SQL="select count(*) || ':' || coalesce(md5(string_agg(schemaname || '.' || tablename || '.' || policyname || '|' || permissive || '|' || cmd || '|' || array_to_string(roles, ',') || '|' || coalesce(qual, '') || '|' || coalesce(with_check, ''), ',' order by schemaname, tablename, policyname)), '-') from pg_policies where schemaname in ('storage', 'auth')"
+APP_TRIGGERS_FP_SQL="select count(*) || ':' || coalesce(md5(string_agg(pg_get_triggerdef(t.oid) || '|' || t.tgenabled::text, ',' order by n.nspname, c.relname, t.tgname)), '-') from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace join pg_proc p on p.oid = t.tgfoid where not t.tgisinternal and n.nspname in ('storage', 'auth') and p.pronamespace::regnamespace::text not in ('storage', 'auth', 'realtime', 'extensions', 'pgbouncer', 'supabase_functions')"
+
 PROJECT=""
 PROJECT_DIR=""
 EXPECT_AUTH_USERS=""
@@ -191,7 +212,10 @@ command -v "${CLI}" >/dev/null || die "no encuentro la CLI de Supabase (${CLI});
 envget() {
   local value
   value="$(grep -E "^${1}=" "${PROJECT_DIR}/.env" | tail -n1 | cut -d= -f2- || true)"
+  value="${value%$'\r'}"
   value="${value%\"}"; value="${value#\"}"
+  # env-set.sh guarda las claves entre comillas simples (medido en el corte).
+  value="${value%\'}"; value="${value#\'}"
   printf '%s' "${value}"
 }
 
@@ -434,6 +458,8 @@ cloud_sql "select format('select cron.schedule_in_database(%L, %L, %L, %L, %L, %
 # objeto por objeto, a lo que dice Cloud, y el paso 5 lo comprueba por huella.
 cloud_sql "${ACL_SYNC_SQL}" > "${work}/acl.sql"
 log "2/6 permisos de public a igualar: $(grep -c '^revoke' "${work}/acl.sql" || true) objetos, $(grep -c '^grant' "${work}/acl.sql" || true) grants"
+cloud_sql "${PLATFORM_DDL_SQL}" > "${work}/platform.sql"
+log "2/6 esquemas de la plataforma a recrear: $(grep -c '^create policy' "${work}/platform.sql" || true) policies de storage/auth, $(grep -c '^CREATE TRIGGER' "${work}/platform.sql" || true) disparadores de la app"
 log "2/6 tamaños: roles $(du -h "${work}/roles.sql" | cut -f1) · schema $(du -h "${work}/schema.sql" | cut -f1) · ledger $(du -h "${work}/ledger.sql" | cut -f1) · datos $(du -h "${work}/data.sql" | cut -f1)"
 
 # ── 3 · Restore en staging (una transacción) ─────────────────────────────────
@@ -446,6 +472,13 @@ docker run --rm --label "${run_label}" --network "${NET_INTERNAL}" -e PGPASSWORD
     -c 'SET session_replication_role = origin' -f /import/cron.sql -f /import/acl.sql > "${work}/restore.log" 2>&1 \
   || { tail -n 20 "${work}/restore.log" | sed 's/^/   /' | tee -a "${EVIDENCE}"; die "el restore falló (no quedó nada: era una sola transacción)"; }
 log "3/6 restore terminado"
+# Policies y disparadores de storage/auth: aparte, porque esas tablas las crean los
+# servicios de la plataforma (storage-api, GoTrue) y no el dump.
+docker run --rm --label "${run_label}" --network "${NET_INTERNAL}" -e PGPASSWORD="${STAGING_PASSWORD}" \
+  -v "${work}:/import:ro" "${PG_IMAGE}" \
+  psql -h db -U "${RESTORE_USER}" -d postgres --single-transaction -v ON_ERROR_STOP=1 -q -f /import/platform.sql > "${work}/platform.log" 2>&1 \
+  || { tail -n 5 "${work}/platform.log" | sed 's/^/   /' | tee -a "${EVIDENCE}"; die "no se pudieron recrear las policies/disparadores de storage y auth (la base ya está restaurada: revisa y repite solo ese paso)"; }
+log "3/6 plataforma: $(staging_sql "select count(*) from pg_policies where schemaname in ('storage', 'auth')") policies de storage/auth recreadas"
 if (( CORTE )); then
   # Secretos de Vault: descifrados en Cloud, re-cifrados aquí con la raíz del
   # servidor. El archivo vive en ${work} (memoria) y se borra con él.
@@ -456,6 +489,25 @@ if (( CORTE )); then
     || die "no se pudieron escribir los secretos de Vault en ${PROJECT} (la base ya está restaurada: revisa y repite solo Vault)"
   rm -f -- "${work}/vault.sql"
   log "3/6 Vault: $(staging_sql "select count(*) from vault.secrets") secretos copiados (re-cifrados con la raíz del servidor)"
+  # kommo_cron_key es el Bearer con que pg_cron llama a las Edge Functions, y la
+  # función lo compara con SUPABASE_SERVICE_ROLE_KEY del stack. En Cloud guarda la
+  # clave nueva (sb_secret_…), que el servidor no conoce: la tarea de las 00:15 del
+  # corte respondió 403. Se reemplaza por la service key legada del servidor.
+  SERVER_SERVICE_KEY="$(envget SERVICE_ROLE_KEY)"
+  if [[ -n "${SERVER_SERVICE_KEY}" && -n "$(staging_sql "select 1 from vault.secrets where name = 'kommo_cron_key'")" ]]; then
+    # Como vault-set-secret.sh: \getenv toma el valor del entorno del contenedor
+    # (nunca por argumento) y :'valor' lo cita como literal. El heredoc es la
+    # entrada de este docker run, no la del script: aquí ya no se pregunta nada.
+    KEY="${SERVER_SERVICE_KEY}" docker run --rm -i --label "${run_label}" --network "${NET_INTERNAL}" -e PGPASSWORD="${STAGING_PASSWORD}" -e KEY "${PG_IMAGE}" \
+      psql -h db -U "${RESTORE_USER}" -d postgres -v ON_ERROR_STOP=1 -Atq > /dev/null <<'SQL' \
+      || die "no se pudo poner la service key del servidor en kommo_cron_key"
+\getenv valor KEY
+select vault.update_secret((select id from vault.secrets where name = 'kommo_cron_key'), :'valor');
+SQL
+    log "3/6 Vault: kommo_cron_key = SERVICE_ROLE_KEY del servidor (la de Cloud no sirve contra estas funciones)"
+  else
+    log "INFO  · kommo_cron_key se queda como en Cloud (sin SERVICE_ROLE_KEY en ${PROJECT_DIR}/.env o sin el secreto)"
+  fi
 fi
 
 # ── 4 · Storage ──────────────────────────────────────────────────────────────
@@ -515,10 +567,22 @@ check "anon/authenticated sin DELETE en public.tenants" "0" \
 check "ledger: applied_migration_names() igual a Cloud" \
   "$(cloud_sql "select md5(string_agg(version || ':' || name, ',' order by version)) from public.applied_migration_names()")" \
   "$(staging_sql "select md5(string_agg(version || ':' || name, ',' order by version)) from public.applied_migration_names()" 2>/dev/null || echo '?')"
+check "policies de storage y auth idénticas a Cloud" \
+  "$(cloud_sql "${PLATFORM_POLICIES_FP_SQL}" 2>/dev/null || echo '?cloud')" "$(staging_sql "${PLATFORM_POLICIES_FP_SQL}" 2>/dev/null || echo '?staging')"
+check "disparadores de la app sobre auth y storage idénticos a Cloud" \
+  "$(cloud_sql "${APP_TRIGGERS_FP_SQL}" 2>/dev/null || echo '?cloud')" "$(staging_sql "${APP_TRIGGERS_FP_SQL}" 2>/dev/null || echo '?staging')"
 if (( CORTE )); then
-  vault_fp="select count(*) || ':' || coalesce(md5(string_agg(name || ':' || md5(coalesce(decrypted_secret, '')), ',' order by name)), '-') from vault.decrypted_secrets"
-  check "Vault: los secretos descifran igual que en Cloud (huella)" "$(cloud_sql "${vault_fp}" 2>/dev/null || echo '?cloud')" "$(staging_sql "${vault_fp}" 2>/dev/null || echo '?staging')"
+  # kommo_cron_key se compara aparte: en el corte se reemplaza a propósito (arriba).
+  vault_fp="select count(*) || ':' || coalesce(md5(string_agg(name || ':' || md5(coalesce(decrypted_secret, '')), ',' order by name)), '-') from vault.decrypted_secrets where name <> 'kommo_cron_key'"
+  check "Vault: los secretos descifran igual que en Cloud (huella, sin kommo_cron_key)" "$(cloud_sql "${vault_fp}" 2>/dev/null || echo '?cloud')" "$(staging_sql "${vault_fp}" 2>/dev/null || echo '?staging')"
+  if [[ -n "${SERVER_SERVICE_KEY:-}" ]]; then
+    check "Vault: kommo_cron_key es la service key del servidor (huella)" \
+      "$(printf '%s' "${SERVER_SERVICE_KEY}" | md5sum | cut -c1-32)" \
+      "$(staging_sql "select md5(decrypted_secret) from vault.decrypted_secrets where name = 'kommo_cron_key'" 2>/dev/null || echo '?staging')"
+  fi
+  log "INFO  · cron.job activos: $(staging_sql "select count(*) from cron.job where active" 2>/dev/null || echo '?') — si pausaste pg_cron en Cloud antes del dump (runbook §3.6), llegan inactivos: enciéndelos después de escribir functions_base_url"
 fi
+unset SERVER_SERVICE_KEY
 
 # ── 6 · Borrado y evidencia ─────────────────────────────────────────────────
 log "6/6 borrado de la carpeta de trabajo"
