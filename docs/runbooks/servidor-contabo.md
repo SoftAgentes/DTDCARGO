@@ -427,7 +427,7 @@ Garantías:
 Preparación en el VPS, una vez (CLI con versión fijada y sha256 verificado):
 
 ```bash
-cd /tmp && V=2.118.0
+cd /tmp && V=2.120.0
 curl -fsSLO https://github.com/supabase/cli/releases/download/v$V/supabase_${V}_linux_amd64.deb
 curl -fsSLO https://github.com/supabase/cli/releases/download/v$V/checksums.txt
 grep " supabase_${V}_linux_amd64.deb\$" checksums.txt | sha256sum -c - && dpkg -i supabase_${V}_linux_amd64.deb
@@ -694,7 +694,25 @@ sea secreto.
 
 **Rollback limpio (antes de las 08:00):** Vercel (Production y Preview) vuelve a `NEXT_PUBLIC_SUPABASE_URL` de Cloud, `NEXT_PUBLIC_SUPABASE_AUTH_COOKIE` vacía y las claves que tenía antes en `NEXT_PUBLIC_SUPABASE_ANON_KEY`/`SUPABASE_SERVICE_ROLE_KEY` (Vercel no las deja leer: se copian de nuevo de Supabase → API Keys; las legadas también valen en Cloud mientras no se desactiven) (redeploy); `update cron.job set active = true` en Cloud; mantenimiento fuera. El VPS se deja encendido para analizar; antes del siguiente intento, `destroy-staging.sh` **no** sirve (es producción): se vacían los datos a mano con `docker compose down -v` + borrar `/srv/dtd-cargo/data`, con el OK de Sam.
 
-**Después del paso 1:** Cloud y Vercel siguen encendidos 14 días (pg_cron de Cloud en pausa). Lunes 19: `restore-test.sh` con el dump real de la noche (registro en `backup-restore-servidor.md` §8). Se vigila el latido y `supabase.dtdcargo.com` en Kuma.
+**Paso 1 EJECUTADO el martes 13 de octubre (decisión de Sam: «arrancamos ahora», 19:46 de Caracas, adelantado desde las 22:00).** Mantenimiento ON 19:52 → OFF 21:04 (1 h 12 min). Lo que la noche enseñó y ya está en este guion o en los scripts (commit `23629559`):
+
+| Hora real (Caracas) | Paso | Resultado y lo aprendido |
+|---|---|---|
+| 19:47 | Última mirada | 9 servicios arriba; `auth/v1/health` 200 con la anon **sin las comillas** del `.env` (con comillas da 401). Se cerraron las ventanas tmux del ensayo: una tenía `storage-from-cloud` esperando «revocada» desde la mañana. |
+| 19:52 | Mantenimiento ON | `MAINTENANCE_MODE=1` (Production y Preview) + redeploy. |
+| 19:55 | Pausar pg_cron de Cloud | `update cron.job` no tiene permiso desde el conector: se usa `select cron.alter_job(job_id := N, active := false)` por job. Los 3 jobs (`kommo-sync-dtd`, `kommo-writeback-drain-dtd`, `tarifas-programadas-relevo`) estaban activos. |
+| 19:57-20:00 | Base | **279 PASÓ · 0 FALLÓ.** Los jobs llegan **inactivos** (Cloud ya estaba pausado): se encienden en el VPS después de `functions_base_url`. |
+| 20:03-20:07 | Archivos | Copia completa (645 archivos, rclone sin errores). La verificación se cortó en el bucket 9 porque la llave se revocó antes de tiempo y el script moría en silencio con `pipefail` (arreglado: ahora el bucket queda en FALLÓ y el script avisa «NO revoques la llave todavía»). Se verificó aparte, sin llave: filas, archivos, bytes, tipos y dueños iguales a Cloud. Comando suelto pegado dentro de tmux = marcas `^[[200~`: la copia se abre con su propio `ssh -t … tmux new`. |
+| 20:09-20:10 | Vault y crons | `functions_base_url` = `http://api-gw:8000/functions/v1`; luego `update cron.job set active = true` de los 3 jobs **en el VPS** (como `supabase_admin`). |
+| 20:10 | Respaldo | Primer respaldo real completo en B2; el latido dio 404 porque el monitor de Kuma estaba en pausa: **reanudarlo antes**. Repetido 20:32 con latido. |
+| 20:12-20:22 | Vercel | Las `NEXT_PUBLIC_*` eran «Secret» y Vercel ya no deja guardar ese tipo con prefijo público: **Sam las borró y se crearon de nuevo como Config** (Production y Preview); `SUPABASE_SERVICE_ROLE_KEY` se edita normal. Redeploy: el build de Vercel ya leyó la base nueva. |
+| 20:15 | Kommo | El drain de las 20:15 dio **403**: `kommo_cron_key` de Cloud es la clave nueva `sb_secret_`; se puso la service key legada del servidor (ahora lo hace `import-from-cloud --corte`). Webhook de Kommo cambiado por Sam (URL al portapapeles con `/srv/ops/kommo-webhook-url.sh`); `kommo_run_sync` completo (3.966 leads). |
+| 20:35-21:00 | Prueba con mantenimiento | Enlace de entrada abierto **directo en Chrome** con un script (pegarlo fallaba: una captura de pantalla pisa el portapapeles). Studio, Portal, archivos de embarques y enlace por correo: PASÓ. **Subir con sesión daba RLS**: faltaban las **44 policies de storage** y **2 disparadores de auth** (`supabase db dump` no los trae); se copiaron de Cloud con huella igual (ahora lo hace el import). La subida en «Prueba de avance» de la bitácora falla también en Cloud (error previo, tarea aparte). |
+| 21:04 | Mantenimiento OFF | Redeploy. El aviso del Portal se apagó con `MAINTENANCE_NOTICE_END` = hora real de fin (21:11). |
+| 21:35-21:51 | Llave de respaldos | La llave age del 12-10 no apareció: se creó otra (`new-age-key.sh`, huella `f4aab8d9…`), `age-recipients.txt` quedó solo con ella, y la prueba de restauración con la llave pegada por Sam dio 5 PASÓ, RTO 34 s. **Regla:** la prueba de restauración con la llave de Sam va el mismo día que se crea la llave, no un mes después. |
+| 21:15 | Paridad | `ensure_rls` (event trigger de Cloud que activa RLS en tablas nuevas de public) recreado **con `set role postgres`** (supautils rechaza un superusuario disparando una función de un rol que no lo es). Funciones de public/auth/storage, publicación de Realtime y event triggers iguales a Cloud. |
+
+ (pg_cron de Cloud en pausa). Lunes 19: `restore-test.sh` con el dump real de la noche (registro en `backup-restore-servidor.md` §8). Se vigila el latido y `supabase.dtdcargo.com` en Kuma.
 
 **Paso 2 (la web) · decisión de Sam del 2026-10-13:** «ok, el jueves 15 en la noche … nos quedamos como lo estás recomendando … El miércoles levantamos web y el 15 apagamos Vercel». Pasa del domingo 25 al **jueves 15 en la noche** (hora exacta la fija Sam), con un ensayo el miércoles 14. Esta noche solo va el paso 1.
 
@@ -774,7 +792,7 @@ día; «ABIERTO» = decisión o acción pendiente antes del corte.
 3. **Vaciar la copia del ensayo** antes del corte real, con OK de Sam: `docker compose … down -v` + `rm -rf /srv/dtd-cargo/data/{db,storage}` + `up -d` + igualar default privileges (§2.1 paso 4) + comprobar huella `4ca2c66f…`. **Rotar en el mismo paso** `POSTGRES_PASSWORD` (la base se inicializa con la nueva) y `KOMMO_WEBHOOK_SECRET` (se fija en Kommo recién el día del corte): un listado de env del 13-10 dejó fragmentos de los dos en el transcript local del Worker.
 4. **Borrar las 5 variables de la rama en Vercel** (`NEXT_PUBLIC_SUPABASE_URL`, `…_AUTH_COOKIE`, `…_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `MAINTENANCE_MODE`) al cerrar el ensayo; no afectan a producción pero no deben quedar.
 5. **Factura de Supabase**: el panel muestra «Outstanding invoice». Un proyecto suspendido por pago no se puede exportar: se paga antes del corte.
-6. **CLI de Supabase**: queda en 2.118.0 hasta después del corte (el aviso de 2.120.0 no se atiende entre ensayo y corte).
+6. **CLI de Supabase**: queda en 2.118.0 hasta después del corte (el aviso de 2.120.0 no se atiende entre ensayo y corte). **Pendiente pedido por Sam (2026-10-14, durante el corte):** actualizar la CLI en el VPS a la versión vigente después del corte, con el mismo método de §(instalación, `V=…` y sha256 verificado), y repetir `prueba-traslado-y-respaldos.sh` antes de dar la actualización por buena.
 
 **E · Decisiones que quedan en Sam**
 
