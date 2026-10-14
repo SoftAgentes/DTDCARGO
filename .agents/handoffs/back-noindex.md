@@ -196,3 +196,11 @@ de la página. Sobrevivió porque era un programa inválido: la página ya expor
 - **Sesiones consumidoras:** ninguna conocida.
 - **Ownership:** liberé el claim al terminar verify y publicar este handoff. El worktree y la rama se
   conservan.
+
+## CIERRE DE INTEGRACIÓN (Director, 2026-10-14)
+
+- **Merge:** PR #208, merge `9a935562` a las 17:34:58Z, con `--match-head-commit 3dccfcc6` (el Director trajo main con la #209 del lado de GitHub; el diff contra main quedó idéntico al revisado).
+- **Validación:** `pnpm verify` sobre `f422fc56` con 14 de 17 pasos PASÓ y 0 FALLÓ (e2e: 1 flaky ajeno, que pasó al reintentar). CI «Calidad local sin secretos» PASÓ sobre la cabeza fusionada.
+- **Deploy:** «Deployment has completed» a las 17:36:55Z.
+- **Comprobado en producción por el Director (curl):** `dtdcargo.com/back/login` responde 200 con `robots=noindex, nofollow`; `/studio/login` sigue en `noindex, nofollow`; la portada sigue en `index, follow`.
+- Todos los criterios cumplidos. Estado de la tarea: **integrada**.
