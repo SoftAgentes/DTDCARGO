@@ -81,10 +81,12 @@ registra quién lo restableció. Sam descartó «Ver el PIN guardado».
 | `app/studio/(app)/operarios/_components/ResetPinDrawer.test.tsx` | nuevo |
 | `docs/specs/0513-reset-pin-mostrar-una-vez/spec.md` | esta spec |
 | `docs/specs/README.md` | índice regenerado |
-| `docs/architecture/module-sdd-map.md` | fila de Operarios |
 | `.agents/handoffs/0513-reset-pin-mostrar-una-vez.md` | handoff |
 
-Sin migración, sin RPC nueva y sin cambios de policy.
+Sin migración, sin RPC nueva y sin cambios de policy. La fila de Operarios en
+`docs/architecture/module-sdd-map.md` se agrega al cerrar la spec: ese mapa se
+actualiza al cierre de cada SDD y es fuente del piloto semántico de Graphify,
+cuyo recibo se emite desde main.
 
 ## Revisión de datos (`/revisar-datos-ve`)
 
