@@ -164,6 +164,14 @@ $CB > $T/c2b.log 2>&1; n2=$(find $T/remote -path '*c4-src-config*' -name '*.tar.
 grep -q 'sin cambios' $T/c2b.log && [ "$n1" = "$n2" ] && ok "sin cambios: no sube otro respaldo" || ko "segunda corrida sin cambios subió algo ($n1→$n2)"
 sleep 1; $CB --force > /dev/null 2>&1; n3=$(find $T/remote -path '*c4-src-config*' -name '*.tar.age' | wc -l)
 [ "$n3" = $((n2+1)) ] && ok "--force sube uno nuevo" || ko "--force: $n2→$n3"
+# Cambio de llave (2026-10-14: se perdió la privada y se creó otra): sin --force y sin
+# tocar el .env ni la raíz, tiene que subir uno nuevo, cerrado también para la llave nueva.
+cp $T/recipients.txt $T/recipients2.txt; age-keygen -y $K/otra.txt >> $T/recipients2.txt
+sleep 1; bash $S/backup/config-backup.sh --project c4-src --project-dir $T/proj/c4-src --remote testr2:backups/db --age-recipients $T/recipients2.txt --out $T/out --rclone-config $T/rclone > $T/c2c.log 2>&1
+n4=$(find $T/remote -path '*c4-src-config*' -name '*.tar.age' | wc -l)
+ult=$(find $T/remote -path '*c4-src-config*' -name '*.tar.age' -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2)
+[ "$n4" = $((n3+1)) ] && grep -q 'hay cambios' $T/c2c.log && age -d -i $K/otra.txt "$ult" > /dev/null 2>&1 \
+  && ok "cambio de llave: sube un respaldo nuevo que abre la llave nueva" || ko "cambio de llave: $n3→$n4, $(grep -oE 'sin cambios|hay cambios' $T/c2c.log | head -1)"
 docker volume create c4-vacio >/dev/null
 bash $S/backup/config-backup.sh --project c4-src --project-dir $T/proj/c4-src --volume c4-vacio --remote testr2:backups/db --age-recipients $T/recipients.txt --out $T/out --rclone-config $T/rclone >/dev/null 2>&1; [ $? -eq 2 ] && ok "volumen sin pgsodium_root.key: 2" || ko "volumen sin raíz aceptado"
 [ "$(ls -A /dev/shm | grep -c '^config-c4')" = 0 ] && ok "config-backup no dejó nada en /dev/shm" || ko "quedó config-* en /dev/shm"
