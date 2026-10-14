@@ -41,6 +41,7 @@
 | TMS · transporte VE | 0019, 0230 | `app/studio/(app)/tms/` | `lib/studio/tms-*` · `supabase/migrations/{0011,0320}` (cierre R3 de ruta gobernado) |
 | Agentes y Skills | 0020 | `app/studio/(app)/admin/agentes/` + `app/api/studio/agents/` | `lib/studio/agents/`, `agent-*` |
 | Usuarios & Roles | 0024 | `app/studio/(app)/usuarios/` + `app/invitar/[token]/` | `lib/studio/user-*` |
+| Operarios · PIN de las apps del teléfono | 0235, 0251, 0513 (`in-progress`) | `app/studio/(app)/operarios/` | `lib/studio/operario-*` · `supabase/migrations/{0020,0021,0037,0325,0351}` · 0513: PIN generado en el servidor y mostrado una vez; auditoría del restablecimiento pendiente de migración |
 | No-Olvidar | 0025 | `app/studio/(app)/no-olvidar/` | `lib/studio/no-olvidar-*` |
 | Mailing & Notif | 0026 | `app/studio/(app)/mailing/` | `lib/studio/mail/`, `mail-*` |
 | Facturación | 0021 | `app/studio/(app)/facturacion/` | `lib/studio/invoice-*` |
