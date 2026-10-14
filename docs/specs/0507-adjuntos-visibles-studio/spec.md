@@ -69,16 +69,24 @@ o fotos. Hoy sólo se ven entrando a cada ficha.
   filtra `deleted_at` (la 0230 lo sacó de todas las policies FOR ALL). Ese
   filtro lo pone la aplicación en cada consulta.
 
-### Restricción: hoy no se pueden aplicar migraciones en producción
+### Restricción: migrar en el servidor propio todavía no tiene procedimiento
 
 Desde el 2026-10-14 producción es Supabase en el servidor propio.
 `docs/runbooks/servidor-contabo.md` §4 condiciona aplicar migraciones ahí a que
 `aplicar-migraciones-prod.md` se reescriba para el servidor: «Hasta que ese
 runbook exista, no se aplican migraciones en el VPS». Al 2026-10-14 ese runbook
-sigue describiendo Supabase Cloud. Una vista o RPC nueva quedaría en espera sin
-fecha.
+sigue describiendo Supabase Cloud.
 
-## Decisión técnica (propuesta)
+**Corrección del mismo día.** La propuesta decía que una vista o RPC «quedaría
+en espera sin fecha», y eso quedó viejo: a las 01:44 UTC la SDD-0506 aplicó la
+0473 en el servidor por orden explícita de Sam, a mano con `psql` dentro del
+contenedor (`.agents/handoffs/0506-bitacora-adjuntos-entidad.md`, sección
+«APLICACIÓN EN EL SERVIDOR»). Se puede migrar con un OK nominal, como
+excepción y sin procedimiento escrito. La decisión de abajo no cambia: Sam
+aprobó la versión sin migración (estaba en el mockup), y así no hay superficie
+nueva en la base ni una aplicación manual que pedirle a mitad del corte.
+
+## Decisión técnica (aprobada por Sam con el mockup)
 
 **Sin migración.** Los conteos y la sección se calculan en el servidor de Next
 con el cliente de sesión del usuario (`createClient()`), leyendo las mismas
