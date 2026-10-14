@@ -11,10 +11,18 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/db/client";
+import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ModalShell } from "./ProfileModal";
 
 type BLType = "OR" | "CP" | "SW";
+
+/**
+ * Estados que ya no admiten BL. Van tipados contra el enum `shipment_status`
+ * (0002), que sólo tiene etiquetas en inglés: con «entregado»/«cancelado»
+ * Postgres rechazaba la consulta (22P02) y el selector quedaba vacío (SDD-0510).
+ */
+const ESTADOS_SIN_BL: ShipmentStatus[] = ["delivered", "cancelled"];
 
 const BL_TYPES: Array<{ value: BLType; label: string; desc: string }> = [
   { value: "OR", label: "Original", desc: "BL emitido como original · 3 copias" },
@@ -45,7 +53,9 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
       const { data, error } = await supabase
         .from("shipments")
         .select("id, code, client_name, destination")
-        .not("status", "in", "(entregado,cancelado)")
+        .not("status", "in", `(${ESTADOS_SIN_BL.join(",")})`)
+        // La RLS no oculta eliminados desde la 0230: el filtro va en la consulta.
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(50);
       if (cancelled) return;
