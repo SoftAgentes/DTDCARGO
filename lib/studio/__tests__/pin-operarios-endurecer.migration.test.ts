@@ -14,15 +14,16 @@
  * rompe.
  *
  * PROPIEDAD: para cada rol del Studio, sin desvío y con cada desvío posible de
- * 0357, la base (la policy, el helper y las dos RPC) decide lo mismo que
- * `moduleViewDenial`/`moduleEditDenial` de rbac-guard.ts, que es lo que usa la
- * app. Y el mutante que vuelve al rol escrito a mano rompe exactamente los
- * casos donde la matriz y la lista a mano no coinciden.
+ * 0357, la base (la policy, el helper, las dos RPC de escritura y «Ver PIN»)
+ * decide lo mismo que `moduleViewDenial`/`moduleEditDenial` de rbac-guard.ts,
+ * que es lo que usa la app. Y el mutante que vuelve al rol escrito a mano rompe
+ * exactamente los casos donde la matriz y la lista a mano no coinciden.
  *
  * TEXTO: las copias verbatim del contrato siguen iguales a sus archivos; 0475
  * se reescribió desde la última definición de cada función (0351 y 0037) sin
- * perder una línea; y el default `['operations']` duplicado en SQL es el de
- * ROLE_MODULE_ACCESS.operarios (rbac.test.ts es la fuente).
+ * perder más líneas que las que cambia a propósito; y el default
+ * `['operations']` duplicado en SQL es el de ROLE_MODULE_ACCESS.operarios
+ * (rbac.test.ts es la fuente).
  */
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -174,9 +175,14 @@ const bodyMd5 = (text: string, name: string, head?: string) => md5(prosrc(block(
 const FUNCTIONS = [
   "admin_create_operario",
   "admin_reset_operario_pin",
+  "admin_set_operario_active",
   "validate_operario_pin_format",
+  "admin_ver_operario_pin",
   "operarios_module_authorized",
   "operario_pin_assert_available",
+  "operario_pin_cifrar",
+  "operario_pin_descifrar",
+  "operario_motivo_valido",
 ] as const;
 
 /** 0475 con cambios y el md5 de cada cuerpo que cambió en lugar del suyo. */
@@ -244,6 +250,7 @@ describe("SDD-0515 · 0475 (texto)", () => {
     const expected: [string, string][] = [
       [bodyMd5(mig("0351_operario_rpc_exige_rol.sql"), "admin_create_operario"), "0351"],
       [bodyMd5(mig("0351_operario_rpc_exige_rol.sql"), "admin_reset_operario_pin"), "0351"],
+      [bodyMd5(mig("0351_operario_rpc_exige_rol.sql"), "admin_set_operario_active"), "0351"],
       [bodyMd5(mig("0037_harden_operario_pin_validator.sql"), "validate_operario_pin_format"), "0037"],
       [bodyMd5(mig("0453_portal_helpers_principal_determinista.sql"), "get_user_tenant_id"), "0453"],
       [bodyMd5(mig("0012_rls_perf_and_rpc_guards.sql"), "assert_tenant_match"), "0012"],
@@ -252,7 +259,7 @@ describe("SDD-0515 · 0475 (texto)", () => {
     for (const [hash, origin] of expected) {
       expect(FILE_0475.split(`'${hash}'`), `md5 de ${origin} en el preflight`).toHaveLength(2);
     }
-    // Las cinco de 0475: una vez en el preflight y otra en el postflight.
+    // Las diez de 0475: una vez en el preflight y otra en el postflight.
     for (const name of FUNCTIONS) {
       expect(FILE_0475.split(`'${bodyMd5(FILE_0475, name)}'`), `md5 de ${name}`).toHaveLength(3);
     }
@@ -261,22 +268,50 @@ describe("SDD-0515 · 0475 (texto)", () => {
       .toBe("5ff0c51c26a49419c34abc78f1d95c37");
   });
 
-  it("las RPC se reescribieron desde 0351 sin perder una línea, salvo las dos reemplazadas", () => {
+  it("las RPC se reescribieron desde 0351 sin perder más líneas que las que cambian a propósito", () => {
     const file0351 = mig("0351_operario_rpc_exige_rol.sql");
     const GUARD = "  perform public.assert_studio_role(array['admin', 'operations']);";
+    // Cada línea de 0351 que falta en 0475 está acá con su motivo; cualquier
+    // otra que se pierda rompe la prueba.
     const replaced: Record<string, string[]> = {
-      admin_create_operario: [GUARD, "  returning id into v_id;"],
-      admin_reset_operario_pin: [GUARD, "  select op.tenant_id into v_tenant_id"],
+      admin_create_operario: [
+        "  p_role text", // ahora `p_role text,` + p_motivo
+        GUARD, // la matriz
+        "    tenant_id, warehouse_id, display_name, display_name_cn, pin_hash, role", // + pin_cifrado
+        "    p_role", // `p_role,` + el PIN cifrado
+        "  returning id into v_id;", // + la región, para el PIN libre
+      ],
+      admin_reset_operario_pin: [
+        "  p_pin text", // ahora `p_pin text,` + p_motivo y p_reactivar
+        GUARD, // la matriz
+        "  select op.tenant_id into v_tenant_id", // + región y estado
+        "     set pin_hash = crypt(p_pin, gen_salt('bf'))", // + PIN cifrado y reactivación
+      ],
+      admin_set_operario_active: [
+        "  select op.tenant_id into v_tenant_id", // + el estado, para no reactivar sin PIN
+      ],
     };
     for (const [name, gone] of Object.entries(replaced)) {
       const old = block(file0351, name);
       const now = block(FILE_0475, name);
       expect(missingLines(now, old), name).toEqual(gone);
+    }
+    for (const name of ["admin_create_operario", "admin_reset_operario_pin"]) {
+      const now = block(FILE_0475, name);
       expect(now, `${name} sin rol a mano`).not.toContain("assert_studio_role");
       expect(now).toContain("  if not public.operarios_module_authorized(public.get_user_tenant_id(), 'edit') then");
+      expect(now).toContain("public.operario_motivo_valido(p_motivo, p_pin)");
       expect(now).toContain("perform public.operario_pin_assert_available(");
+      expect(now).toContain("public.operario_pin_cifrar(p_pin)");
       expect(now).toContain("v_event := public.append_audit_event(");
+      expect(now).toContain("    p_reason => v_motivo,");
     }
+    // Activar/desactivar conserva su candado a mano: la matriz va en otra SDD.
+    expect(block(FILE_0475, "admin_set_operario_active")).toContain(GUARD);
+    // La firma vieja se quita antes de crear la nueva: si no, quedaría una
+    // sobrecarga sin motivo.
+    expect(FILE_0475).toContain("drop function if exists public.admin_create_operario(uuid, uuid, text, text, text, text);");
+    expect(FILE_0475).toContain("drop function if exists public.admin_reset_operario_pin(uuid, text);");
   });
 
   it("el validador es 0037 con «Elige» y nada más, y 0475 es su última definición", () => {
@@ -291,7 +326,8 @@ describe("SDD-0515 · 0475 (texto)", () => {
     // última definición por archivo: tiene que aparecer una sola vez aquí.
     expect(FILE_0475.split("create or replace function public.validate_operario_pin_format")).toHaveLength(2);
     const files = readdirSync(MIGRATIONS).filter((name) => name.endsWith(".sql")).sort();
-    for (const name of ["admin_create_operario", "admin_reset_operario_pin", "validate_operario_pin_format"]) {
+    for (const name of ["admin_create_operario", "admin_reset_operario_pin", "admin_set_operario_active",
+      "validate_operario_pin_format", "admin_ver_operario_pin"]) {
       const last = files.filter((file) => mig(file).includes(`create or replace function public.${name}(`)).at(-1);
       expect(last, name).toBe(M0475);
     }
@@ -360,7 +396,42 @@ describe("SDD-0515 · 0475 (PGlite)", () => {
       file: "0475_pin_operarios_endurecer.test.sql",
       from: "  roles text[] not null default '{}',\n",
       to: "  roles text[] not null default '{}',\n  pin_recovery text,\n",
-      fails: "0475 abortado: operario_pins no tiene exactamente sus 14 columnas ({active,created_at,display_name,display_name_cn,id,last_login_at,pin_hash,pin_recovery,region,role,roles,tenant_id,tms_driver_id,updated_at,warehouse_id})",
+      fails: "0475 abortado: operario_pins no tiene exactamente sus columnas ({active,created_at,display_name,display_name_cn,id,last_login_at,pin_hash,pin_recovery,region,role,roles,tenant_id,tms_driver_id,updated_at,warehouse_id})",
+    },
+    {
+      name: "una columna pin_cifrado que no puso 0475",
+      file: "0475_pin_operarios_endurecer.test.sql",
+      from: "  roles text[] not null default '{}',\n",
+      to: "  roles text[] not null default '{}',\n  pin_cifrado bytea,\n",
+      fails: "0475 abortado: operario_pins no tiene exactamente sus columnas ({active,created_at,display_name,display_name_cn,id,last_login_at,pin_cifrado,pin_hash,region,role,roles,tenant_id,tms_driver_id,updated_at,warehouse_id})",
+    },
+    {
+      name: "una base sin Vault",
+      file: "0475_pin_operarios_endurecer.test.sql",
+      from: "  if to_regclass('vault.secrets') is null then\n",
+      to: "  if false then\n",
+      fails: "0475 abortado: falta Vault (vault.create_secret y vault.decrypted_secrets)",
+    },
+    {
+      name: "una clave operario_pin_key que no creó 0475",
+      file: "0475_pin_operarios_endurecer.test.sql",
+      from: "\\ir ../migrations/0294_audit_d2_human_reasons.sql\n",
+      to: "\\ir ../migrations/0294_audit_d2_human_reasons.sql\nselect vault.create_secret(repeat('k', 44), 'operario_pin_key', 'de otro lado');\n",
+      fails: "0475 abortado: la clave operario_pin_key de Vault ya existe sin venir de 0475, o falta al re-aplicar",
+    },
+    {
+      name: "una sobrecarga de la RPC de restablecer",
+      file: "0475_pin_operarios_endurecer.test.sql",
+      from: "\\ir ../migrations/0294_audit_d2_human_reasons.sql\n",
+      to: "\\ir ../migrations/0294_audit_d2_human_reasons.sql\ncreate function public.admin_reset_operario_pin(p_operario_id uuid) returns void language sql as $x$ select $x$;\n",
+      fails: "0475 abortado: hay sobrecargas inesperadas de las RPC de operario",
+    },
+    {
+      name: "admin_set_operario_active distinto del de 0351",
+      file: "0351_operario_rpc_exige_rol.sql",
+      from: "  update public.operario_pins\n     set active = p_active\n   where id = p_operario_id;",
+      to: "  update public.operario_pins\n     set active = coalesce(p_active, true)\n   where id = p_operario_id;",
+      fails: "0475 abortado: public.admin_set_operario_active(uuid,boolean) tiene drift (md5 de prosrc, DEFINER, volatilidad o search_path)",
     },
     {
       name: "RLS forzada",
@@ -416,6 +487,12 @@ describe("SDD-0515 · 0475 (PGlite)", () => {
   const createAudit = (() => {
     const start = FILE_0475.indexOf(CREATE_AUDIT_START);
     const end = FILE_0475.indexOf("  return v_id;", start);
+    return FILE_0475.slice(start, end);
+  })();
+  const VER_AUDIT_START = "  -- AUD-01 / AUD-02: quién, a qué operario, el motivo y si había PIN; nunca el PIN.\n";
+  const verAudit = (() => {
+    const start = FILE_0475.indexOf(VER_AUDIT_START);
+    const end = FILE_0475.indexOf("  return v_pin;", start);
     return FILE_0475.slice(start, end);
   })();
   const POSTFLIGHT_FUNCTION = (signature: string) =>
@@ -483,12 +560,27 @@ describe("SDD-0515 · 0475 (PGlite)", () => {
     {
       name: "que concede pin_hash por columna",
       changes: [["grant select (id, tenant_id, warehouse_id,", "grant select (id, tenant_id, pin_hash, warehouse_id,"]],
-      fails: "0475: postflight — pin_hash sigue legible o el SELECT sigue siendo de tabla",
+      fails: "0475: postflight — pin_hash sigue legible o escribible desde la API",
+    },
+    {
+      name: "que concede pin_cifrado por columna",
+      changes: [["grant select (id, tenant_id, warehouse_id,", "grant select (id, tenant_id, pin_cifrado, warehouse_id,"]],
+      fails: "0475: postflight — pin_cifrado sigue legible o escribible desde la API",
+    },
+    {
+      name: "que deja a service_role escribir el PIN cifrado",
+      changes: [["grant update (warehouse_id, region,", "grant update (pin_cifrado, warehouse_id, region,"]],
+      fails: "0475: postflight — pin_cifrado sigue legible o escribible desde la API",
     },
     {
       name: "que sólo revoca el SELECT de authenticated",
-      changes: [["revoke select on table public.operario_pins from authenticated, service_role;", "revoke select on table public.operario_pins from authenticated;"]],
-      fails: "0475: postflight — pin_hash sigue legible o el SELECT sigue siendo de tabla",
+      changes: [["revoke select, insert, update on table public.operario_pins from authenticated, service_role;", "revoke select, insert, update on table public.operario_pins from authenticated;"]],
+      fails: "0475: postflight — pin_hash sigue legible o escribible desde la API",
+    },
+    {
+      name: "que le deja a service_role el INSERT de tabla",
+      changes: [["revoke select, insert, update on table public.operario_pins from authenticated, service_role;", "revoke select, update on table public.operario_pins from authenticated, service_role;"]],
+      fails: "0475: postflight — pin_hash sigue legible o escribible desde la API",
     },
     {
       name: "cuyo chequeo de repetidos ignora la región",
@@ -527,18 +619,114 @@ describe("SDD-0515 · 0475 (PGlite)", () => {
     },
     {
       name: "que guarda el PIN en la auditoría",
-      changes: [["'region', v_region,\n      'active', v_active),", "'region', v_region,\n      'active', v_active, 'value', p_pin),"]],
-      fails: "TEST 0475: el after_data es la credencial rotada, la región y el estado",
+      changes: [["'region', v_region,\n      'active', v_active or v_reactivado, 'recoverable', true),",
+        "'region', v_region,\n      'active', v_active or v_reactivado, 'recoverable', true, 'value', p_pin),"]],
+      fails: "TEST 0475: el before/after es el estado y la credencial rotada",
+    },
+    {
+      name: "cuyo restablecimiento no pide motivo",
+      changes: [["  v_motivo := public.operario_motivo_valido(p_motivo, p_pin);\n  perform public.operario_pin_assert_available(v_tenant_id",
+        "  v_motivo := coalesce(p_motivo, 'sin motivo declarado');\n  perform public.operario_pin_assert_available(v_tenant_id"]],
+      fails: "TEST 0475: restablecer sin motivo se rechaza con P0020",
+    },
+    {
+      name: "cuyo motivo puede llevar el PIN",
+      changes: [["  if p_pin is not null and pg_catalog.strpos(v_motivo, p_pin) > 0 then\n    raise exception 'No escribas el PIN en el motivo: queda en la auditoría.' using errcode = 'P0020';\n  end if;\n", ""]],
+      fails: "TEST 0475: restablecer con el PIN en el motivo se rechaza con P0020",
+    },
+    {
+      name: "cuyo motivo no tiene tope",
+      changes: [["pg_catalog.char_length(v_motivo) > 300 then", "pg_catalog.char_length(v_motivo) > 3000 then"]],
+      fails: "TEST 0475: restablecer con un motivo de 301 letras se rechaza con P0020",
+    },
+    {
+      name: "cuyo restablecimiento no guarda el PIN cifrado",
+      changes: [["         pin_cifrado = public.operario_pin_cifrar(p_pin),\n", ""]],
+      fails: "TEST 0475: el PIN nuevo queda cifrado con la clave de Vault",
+    },
+    {
+      name: "cuya alta no guarda el PIN cifrado",
+      changes: [["    p_role,\n    public.operario_pin_cifrar(p_pin)\n  )", "    p_role,\n    null\n  )"]],
+      fails: "TEST 0475: el alta guarda el PIN cifrado",
+    },
+    {
+      name: "que no crea la clave en Vault",
+      changes: [["  if not exists (select 1 from vault.decrypted_secrets s where s.name = 'operario_pin_key') then\n    perform vault.create_secret(",
+        "  if false then\n    perform vault.create_secret("]],
+      fails: "0475: postflight — falta la clave operario_pin_key en Vault",
+    },
+    {
+      name: "que deja descifrar desde la API",
+      changes: [["revoke all on function public.operario_pin_descifrar(bytea) from public, anon, authenticated, service_role;",
+        "revoke all on function public.operario_pin_descifrar(bytea) from public, anon, service_role;\ngrant execute on function public.operario_pin_descifrar(bytea) to authenticated;"]],
+      fails: "0475: postflight — EXECUTE de public.operario_pin_descifrar(bytea) no es el esperado",
+    },
+    {
+      name: "que no quita la firma vieja sin motivo",
+      changes: [["drop function if exists public.admin_reset_operario_pin(uuid, text);\n", ""]],
+      fails: "0475: postflight — quedaron firmas viejas o sobrecargas de las RPC de operario",
+    },
+    {
+      name: "cuyo «Ver PIN» no tiene candado",
+      changes: [["  -- De primero, como en restablecer: sin permiso no hay oráculo de ids.\n  if not public.operarios_module_authorized(public.get_user_tenant_id(), 'edit') then\n    raise exception 'No tienes permiso para realizar esta acción'\n      using errcode = '42501';\n  end if;\n", ""]],
+      fails: "TEST 0475: commercial-A no ve el PIN por default",
+    },
+    {
+      name: "cuyo «Ver PIN» autoriza con la vista",
+      changes: [["  -- De primero, como en restablecer: sin permiso no hay oráculo de ids.\n  if not public.operarios_module_authorized(public.get_user_tenant_id(), 'edit') then",
+        "  -- De primero, como en restablecer: sin permiso no hay oráculo de ids.\n  if not public.operarios_module_authorized(public.get_user_tenant_id(), 'view') then"]],
+      fails: "TEST 0475: con sólo la vista de Operarios no se ve el PIN",
+    },
+    {
+      name: "cuyo «Ver PIN» no audita",
+      changes: [[verAudit, ""]],
+      fails: "TEST 0475: ver el PIN deja exactamente un evento pin_visto",
+    },
+    {
+      name: "cuyo «Ver PIN» no pide motivo",
+      changes: [["  v_motivo := public.operario_motivo_valido(p_motivo, null);\n", "  v_motivo := coalesce(p_motivo, 'sin motivo declarado');\n"]],
+      fails: "TEST 0475: ver el PIN sin un motivo válido se rechaza",
+    },
+    {
+      name: "cuyo «Ver PIN» guarda el PIN en el evento",
+      changes: [["pg_catalog.jsonb_build_object('credential', 'pin', 'recoverable', v_pin is not null),",
+        "pg_catalog.jsonb_build_object('credential', 'pin', 'recoverable', v_pin is not null, 'value', v_pin),"]],
+      fails: "TEST 0475: el evento pin_visto dice quién, a qué operario y por qué",
+    },
+    {
+      name: "cuyo «Ver PIN» deja el PIN en el motivo",
+      changes: [["    perform public.operario_motivo_valido(v_motivo, v_pin);\n", ""]],
+      fails: "TEST 0475: un motivo con el PIN se rechaza y no lo guarda",
+    },
+    {
+      name: "cuyo «Ver PIN» no mira el tenant",
+      changes: [["  perform public.assert_tenant_match(v_tenant_id);\n\n  -- NULL: PIN anterior a 0475", "\n  -- NULL: PIN anterior a 0475"]],
+      fails: "TEST 0475: operations de otro tenant no ve el PIN",
+    },
+    {
+      name: "cuyo toggle todavía reactiva",
+      changes: [["  if p_active and not v_active then\n    raise exception 'Para reactivar a un operario dale un PIN nuevo con «Restablecer PIN»: así no vuelve con un PIN repetido.'\n      using errcode = 'P0019';\n  end if;\n", ""]],
+      fails: "TEST 0475: activar a un operario de baja sin PIN nuevo se rechaza con P0019",
+    },
+    {
+      name: "que ignora p_reactivar",
+      changes: [["         active = active or v_reactivado\n", "         active = active\n"]],
+      fails: "TEST 0475: restablecer con p_reactivar lo reactiva con un PIN nuevo que entra",
+    },
+    {
+      name: "que reactiva aunque no se lo pidan",
+      changes: [["  v_reactivado := coalesce(p_reactivar, false) and not v_active;", "  v_reactivado := not v_active;"]],
+      fails: "TEST 0475: restablecer sin p_reactivar deja al operario de baja",
     },
     {
       name: "cuya alta no audita",
       changes: [[createAudit, ""]],
-      fails: "TEST 0475: el alta deja su evento sin el PIN",
+      fails: "TEST 0475: el alta deja su evento con el motivo y sin el PIN",
     },
     {
       name: "cuya alta audita con otro evento",
       changes: [["    p_event_type => 'operario_created',", "    p_event_type => 'operario_added',"]],
-      fails: "TEST 0475: el alta deja su evento sin el PIN",
+      fails: "TEST 0475: el alta deja su evento con el motivo y sin el PIN",
     },
     {
       name: "que conserva el voseo",
@@ -554,7 +742,7 @@ describe("SDD-0515 · 0475 (PGlite)", () => {
       name: "que deja el chequeo de PIN libre al alcance de authenticated",
       changes: [["revoke all on function public.operario_pin_assert_available(uuid, public.operario_region, text, uuid)\n  from public, anon, authenticated, service_role;",
         "revoke all on function public.operario_pin_assert_available(uuid, public.operario_region, text, uuid)\n  from public, anon, service_role;\ngrant execute on function public.operario_pin_assert_available(uuid, public.operario_region, text, uuid) to authenticated;"]],
-      fails: "0475: postflight — EXECUTE de las funciones de operario no es el esperado",
+      fails: "0475: postflight — EXECUTE de public.operario_pin_assert_available(uuid,public.operario_region,text,uuid) no es el esperado",
     },
   ];
   for (const m of MUTANTS) {
@@ -652,6 +840,7 @@ async function baseDecision(db: PGlite, tenant: string, role: StudioUserRole, ov
       helperEdit: (await helper("edit")) === "true",
       reset: await outcome("pg_temp.reset_sql('cn-2', '7395')"),
       create: await outcome("pg_temp.create_sql('tenant-A', 'Propiedad', '2963')"),
+      ver: await outcome("pg_temp.ver_sql('cn-2')"),
     };
   } finally {
     await db.exec("rollback to savepoint caso");
@@ -676,7 +865,7 @@ describe("SDD-0515 · propiedad: la base y moduleEditDenial deciden lo mismo", (
     for (const c of CASES) {
       const app = await appDecision(c.role, c.override);
       const base = await baseDecision(fixture.db, fixture.tenant, c.role, c.override);
-      const expected = { view: app.view, helperView: app.view, helperEdit: app.edit, reset: app.edit, create: app.edit };
+      const expected = { view: app.view, helperView: app.view, helperEdit: app.edit, reset: app.edit, create: app.edit, ver: app.edit };
       if (JSON.stringify(base) !== JSON.stringify(expected)) mismatches.push(`${label(c)} base=${JSON.stringify(base)} app=${JSON.stringify(app)}`);
     }
     expect(mismatches).toEqual([]);
