@@ -66,7 +66,10 @@ recientes.
 ## VALIDACIÓN
 
 SHA observado: árbol de trabajo sobre `a81d84fd` (= `origin/main` `c80eea64` + reserva), antes de
-los commits de esta tarea; los commits no cambian contenido respecto de lo validado.
+los commits de esta tarea; los commits no cambian contenido respecto de lo validado. Antes de
+publicar, `origin/main` avanzó a `ddf14c06` (#200, SDD-0508): lo traje con merge (`a21bab4b`, el
+driver resolvió el índice) y repetí sobre el árbol fusionado `docs:check` (495 specs), `sdd:check`,
+la prueba focal (6/6) y `pnpm typecheck`.
 
 | Comprobación | Resultado |
 |---|---|
@@ -94,8 +97,10 @@ ERR-01 sobre el mensaje de error del modal → **no conformidad preexistente**, 
 ## COMMITS
 
 - `a81d84fd` chore(sdd): reserva SDD-0510 — generar-bl-envios-enum
-- fix(studio): SDD-0510 — el selector de Generar BL filtra con las etiquetas del enum (modal y prueba)
-- docs(sdd): SDD-0510 — spec, reproducción, índice y handoff: el commit que contiene este documento
+- `8f9a340f` fix(studio): SDD-0510 — el selector de Generar BL filtra con las etiquetas del enum
+- `b42b65bd` docs(sdd): SDD-0510 — spec, reproducción, índice y handoff
+- `a21bab4b` merge de `origin/main` (`ddf14c06`)
+- docs(sdd): SDD-0510 — handoff con la base al día: el commit que contiene este documento
 
 ## PR / BRANCH
 
@@ -134,8 +139,8 @@ ERR-01 sobre el mensaje de error del modal → **no conformidad preexistente**, 
 ## Conocimiento
 
 - Impacto documental: spec nueva 0510 con su script de evidencia; índice `docs/specs/README.md`
-  regenerado con `docs:index` (494 specs; los huecos 0508/0509 son las PR #200 y #203 aún
-  abiertas). Ningún documento del piloto semántico cambió.
+  regenerado con `docs:index`; tras traer main, 495 specs y el hueco 0509 es la PR #203, aún
+  abierta. Ningún documento del piloto semántico cambió.
 - `knowledge:status` (03:2xZ): `structural INVALID` y `semantic INVALID` porque este worktree nuevo
   no tiene `graphify-out/`. Graphify **no se corrió** (corrida pesada; la publica el Director desde
   main): NO DISPONIBLE aquí.
@@ -145,8 +150,8 @@ ERR-01 sobre el mensaje de error del modal → **no conformidad preexistente**, 
 ## HANDOFF AL DIRECTOR
 
 Diff de producto de +11/−1 líneas en un componente, con reproducción contra PostgREST real,
-control rojo contra main y mutantes, incluido uno del doble. Con #203 (SDD-0509) y #200
-(SDD-0508) sólo comparte `docs/specs/README.md` (comprobado con
-`git diff --name-only origin/main...<rama>`). Al integrar, el índice de specs choca con esas PR: usar el
+control rojo contra main y mutantes, incluido uno del doble. Con #203 (SDD-0509) sólo comparte
+`docs/specs/README.md` (comprobado con `git diff --name-only origin/main...<rama>`); #200 ya está
+en main y en esta rama. Al integrar, el índice de specs choca con esas PR: usar el
 driver de main y regenerar con el script. Falta el turno de `verify` y el smoke después del deploy.
 Ownership: claim liberado al terminar la escritura.
