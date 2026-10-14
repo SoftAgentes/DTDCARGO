@@ -1,7 +1,7 @@
 ---
 sdd: "0506"
 title: "Los adjuntos de Bitácora vuelven a pasar la validación de entidad"
-status: in-progress
+status: done
 author: "Sam + Claude Opus 5.5 (Worker)"
 created: 2026-10-14
 updated: 2026-10-14
@@ -211,9 +211,9 @@ guarda su texto exacto.
    `expense`, INVOKER, EXECUTE para `anon`), cada uno cayendo en su aserción.
 4. **El gate de símbolos pendientes** sin rojos: la 0473 no crea símbolos nuevos.
 5. **Aplicada en el servidor propio** con preflight, postflight, identidad del
-   ledger y prueba funcional (ver «Aplicación»). **Falta el smoke en la UI**:
-   subir una foto a una tarea de prueba, verla en la galería «Prueba de avance»
-   y quitarla.
+   ledger y prueba funcional (ver «Aplicación»). **Smoke en la UI: PASÓ**. Sam
+   subió una foto a una tarea en el Studio y lo reportó el 2026-10-14 («ya probé
+   la subida y funciona»).
 
 ## Riesgos
 

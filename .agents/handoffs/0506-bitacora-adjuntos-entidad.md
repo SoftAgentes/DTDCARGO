@@ -1,9 +1,9 @@
 # Handoff 0506 · Los adjuntos de Bitácora vuelven a pasar la validación de entidad
 
 - Fecha: 2026-10-14 00:58Z → 01:50Z (2026-10-13 noche, Caracas). Estado de la tarea:
-  **0473 APLICADA en el servidor propio el 2026-10-14 a las 01:44:06Z y verificada**. Falta el
-  smoke en la UI. PR [#199](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/199) abierta
-  contra `main`, sin merge.
+  **0473 APLICADA en el servidor propio el 2026-10-14 a las 01:44:06Z y verificada; smoke en la UI
+  PASÓ (Sam)**. PR [#199](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/199) contra `main`, con
+  merge ordenado por Sam.
 - Owner/sesión: `claude-jovial-lovelace-6d8291` (Claude Opus 5.5, Worker). Sesión de la app:
   «Arreglar adjuntos de tareas de bitácora». No había Director activo (ListAgents a las
   01:20Z); hice la coordinación de esta tarea según la skill Worker.
@@ -189,14 +189,17 @@ la máquina libre (CPU 0 %, Docker sin contenedores, sin Director activo).
   fallaría allí otra vez hasta aplicarla.
 - La cabecera «NO APLICADA» del archivo **no se corrige**: el ledger guarda su texto exacto.
 
+## SMOKE EN LA UI (2026-10-14)
+
+**PASÓ**, hecho por Sam en el Studio y reportado en esta sesión hacia las 01:53Z, textual: «ya probé
+la subida y funciona». No vi la pantalla ni leí filas: la evidencia es su reporte. Con eso se
+cumplen los cinco criterios de aceptación y la SDD-0506 pasa a `done`.
+
 ## PENDIENTES DE ESTA TAREA
 
-1. **Smoke en la UI** (Sam, que tiene la sesión): Bitácora → editar una tarea de prueba → «Prueba de
-   avance» → «Subir foto o documento». La foto aparece en la galería; quitarla con el botón de la
-   galería. Si falla, el mensaje que devuelva la acción dice qué candado saltó.
-2. Revisión y merge de la PR #199. El encargo pidió no mergear desde esta sesión: lo hace el
-   Director o Sam (merge = despliegue). La PR no cambia la app, así que el orden respecto de la
-   migración ya no importa.
+1. Merge de la PR #199, ordenado por Sam en esta sesión: «haz el merge» (merge = despliegue). Se
+   hace con el check obligatorio «Calidad local sin secretos» en verde sobre la cabeza que se fusiona.
+   La PR no cambia la app, así que el orden respecto de la migración ya no importa.
 
 ## FUERA DE ALCANCE DETECTADO
 
