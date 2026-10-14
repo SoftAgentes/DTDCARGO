@@ -1,33 +1,38 @@
 # Handoff 0508 · El objeto de un documento se firma y se borra en el bucket que dice su fila
 
-- Fecha: 2026-10-14 01:20Z → 02:20Z (2026-10-13 noche, Caracas). Estado: **app y pruebas
-  listas; sin migración**. PR contra `main`, sin merge.
+- Fecha: 2026-10-14 01:20Z → 03:10Z (2026-10-13 noche, Caracas). Estado: **app, pruebas y
+  migración 0474 listas; 0474 NO APLICADA**. PR [#200](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/200)
+  contra `main`, sin merge.
 - Owner/sesión: `claude-keen-swirles-62b904` (Claude Opus 5.5, Worker). Sesión de la app:
   «Corregir bucket_id de adjuntos de Bitácora». No había Director activo (ListAgents ~02:00Z);
-  hice la coordinación de esta tarea según la skill Worker.
+  hice la coordinación de esta tarea según la skill Worker. Turnos de corrida pesada coordinados
+  por mensaje con la sesión de la SDD-0507.
 - Worktree: `C:/Users/AKX generator/Desktop/Developer/DTDCARGO/.claude/worktrees/keen-swirles-62b904`
   (lo creó la app de Claude). `guard` OK, sin claim previo; reclamé con
   `harness-worktree.mjs claim --owner claude-keen-swirles-62b904` y revalidé con `guard --owner`
   antes de cada commit.
-- Rama: `claude/keen-liskov-c47c81` (nombre de la app), desde `origin/main` = `221c48f4`.
+- Rama: `claude/keen-liskov-c47c81` (nombre de la app), desde `origin/main` = `221c48f4`; trae
+  `origin/main` = `8824a9ac` (PR #199) en el merge `3e50b182`.
 - SDD: [0508](../../docs/specs/0508-documentos-bucket-bitacora/spec.md), reservada con
   `node scripts/next-number.mjs --reserve documentos-bucket-bitacora` (rama
   `codex/sdd-reserve-0508-documentos-bucket-bitacora`, commit `1fda890c`, **local, sin push**).
-  El inventario de ese momento: spec siguiente 0508, migración siguiente 0474 (0506 y 0507 ya
-  tomadas por las sesiones de Bitácora y de adjuntos visibles).
+  Migración 0474: el inventario de refs, PRs y worktrees la dio libre antes de usarla.
 - Permisos del encargo (Sam): rama y worktree propios, SDD reservado, **PR al final, sin merge**.
-  Cualquier migración no se aplica sin OK nominal (esta tarea no tiene migración).
+  Ninguna migración se aplica sin OK nominal.
+- Autorizaciones de Sam en esta sesión, textuales (respuestas del 2026-10-14 ~02:25Z):
+  backfill → «Migración 0474 en la PR (Recommended)»; lectura → «Sí, solo el conteo» (un
+  `count(*)` agregado, READ ONLY, sin leer filas). Auto-fix de la PR: «activa el Auto-fix del CI
+  de la PR».
 
 ## OBJETIVO ORIGINAL
 
-La SDD-0506 (PR #199, migración 0473 sin aplicar) va a permitir que la «Prueba de avance» de
-Bitácora cree filas `documents` con `entity_type='bitacora_task'`. Esas filas nacen con
-`bucket_id='documents'` (default de 0307) aunque el objeto vive en `bitacora`, y
-`deleteDocument` del hub borra en `DOCUMENTS_BUCKET`: el objeto quedaría huérfano. Pedido:
-1) confirmar leyendo el código; 2) cambio mínimo en la app (la acción envía
-`bucket_id: 'bitacora'`; el borrado del hub y cualquier consumidor que borre o firme por
-`storage_path` usa el `bucket_id` de la fila) con pruebas unitarias; 3) evaluar restricción o
-backfill en la base; 4) cierre por el diff y handoff.
+La SDD-0506 (PR #199, migración 0473) permite que la «Prueba de avance» de Bitácora cree filas
+`documents` con `entity_type='bitacora_task'`. Esas filas nacen con `bucket_id='documents'`
+(default de 0307) aunque el objeto vive en `bitacora`, y `deleteDocument` del hub borra en
+`DOCUMENTS_BUCKET`: el objeto quedaría huérfano. Pedido: 1) confirmar leyendo el código;
+2) cambio mínimo en la app (la acción envía `bucket_id: 'bitacora'`; el borrado del hub y cualquier
+consumidor que borre o firme por `storage_path` usa el `bucket_id` de la fila) con pruebas
+unitarias; 3) evaluar restricción o backfill en la base; 4) cierre por el diff y handoff.
 
 ## COMPLETADO
 
@@ -50,8 +55,7 @@ backfill en la base; 4) cierre por el diff y handoff.
 - `bitacora-purge-orphans` no toca adjuntos de tarea. `shipment_documents` es otra tabla con otro
   bucket (no afectada). `scripts/attachments-pilot-worker.mjs` ya usa `document.bucket_id`.
 - Grants de `documents` para `authenticated` son de tabla (0097; 0394 solo quitó DELETE): enviar
-  `bucket_id` en el INSERT no choca con ningún grant por columna, trigger ni policy (ninguna
-  migración posterior a 0309 menciona `documents.bucket_id`).
+  `bucket_id` en el INSERT no choca con ningún grant por columna, trigger ni policy.
 
 ### 2. Cambio en la app
 
@@ -68,91 +72,115 @@ backfill en la base; 4) cierre por el diff y handoff.
 - Galería y borrado de la tarea usan el bucket de la fila; `COLUMNS` de
   `lib/studio/documents/queries.ts` y `DocumentRow` suman `bucket_id`.
 
-### 3. Base de datos: sin migración (evaluado)
+### 3. Base de datos: la premisa cambió a mitad de la tarea → migración 0474
 
-- **Backfill: no aplica.** 0 filas `bitacora_task` en producción (dato de Sam; la 0506 midió 0 en
-  Cloud) y no pueden crearse hasta aplicar la 0473 (el trigger las rechaza).
+- Mi primera evaluación (0 filas, backfill no aplica, desplegar antes de la 0473) dejó de valer:
+  la PR #199 se fusionó y su handoff registra la 0473 **aplicada en el servidor el 2026-10-14 a
+  las 01:44:06Z** y el smoke de Sam («ya probé la subida y funciona», ~01:53Z), con la app todavía
+  sin el fix.
+- **Conteo READ ONLY** (autorizado; 2026-10-14 02:26:44Z; `ssh.exe` del agente de Windows →
+  `docker exec -i dtd-cargo-db-1 psql -U postgres -d postgres -X`, `begin transaction read only`
+  … `rollback`, solo agregados): `bitacora_task_total` 1, `en_documents` 1, `en_documents_vivas` 1,
+  `en_bitacora` 0, `corregibles` 1 (objeto en `bitacora` y no en `documents`). Es la foto del smoke.
+- **`supabase/migrations/0474_documents_bitacora_bucket_backfill.sql`** (NUEVA, **NO APLICADA**):
+  - `bucket_id` → `'bitacora'` solo para `bitacora_task` cuyo objeto existe en `storage.objects`
+    de `bitacora` y no en el de `documents`; incluye borrados lógicos; no toca el resto.
+  - Preflight: `documents` con sus columnas, `storage.objects` y la rama `bitacora_task` de la
+    0473 en `document_entity_in_tenant` (el trigger de validación revalida la entidad en el
+    UPDATE).
+  - Postflight: no queda ninguna fila con el mismo filtro.
+  - Sin DDL; re-aplicable; `lock_timeout` 5 s, `statement_timeout` 30 s.
+  - NOTICE con el número de filas cambiadas. El guardia RBAC no interviene al aplicarla como
+    `postgres` (solo actúa con `auth.role()='authenticated'`).
+- Identidad del archivo (commit `5e8188e7`): blob `4f901d17ae3f7779cb999272fa17f53bb2bec99b`,
+  **5786 bytes, md5 `6f4bb32df48a6e8851c8ced80ca02361`**, sin CRLF. Es lo que se compara con el
+  ledger al aplicar.
+- Espera declarada en `supabase/migrations-baseline.json › pendingBelowCutoff`, con la condición
+  completa: aplicar **después** del deploy de esta PR, OK nominal, de a una, mismo procedimiento
+  que la 0473.
 - **Restricción: no.** `bitacora_task ⇒ bitacora` sería falsa (el hub guarda `bitacora_task` en
   `documents`). `bitacora ⇒ bitacora_task` es válida, pero el resolvedor ya la exige donde se
   actúa sobre el objeto; queda como propuesta.
-- **Orden**: desplegar esta PR **antes** de aplicar la 0473. Si no, la spec trae la consulta de
-  lectura y el `update` de contingencia (filtran por existencia real del objeto en
-  `storage.objects`).
 
 ## VALIDACIÓN
 
-Cierre elegido por el diff: código de producto (`app/`, `lib/`) + pruebas + spec. **No corrí
-`pnpm verify` completo**: no había Director para dar turno y otra sesión Worker (SDD-0507) estaba
-ocupada en la máquina (CPU 37 %, 10 GB libres). Corrí los pasos que el diff puede afectar.
-
 | Comprobación | Resultado | Evidencia |
 |---|---|---|
-| Pruebas nuevas (3 archivos) | PASÓ | 27/27 |
-| Control rojo (acciones de `main`, pruebas nuevas) | PASÓ (rojo esperado) | 12 de 27 caen, cada una en su aserción; archivos restaurados con el mismo sha256 |
-| Mutantes (7) | PASÓ | 7/7 muertos: COLUMNS sin `bucket_id`, `deleteDocument` sin `bucket_id`, borrado de tarea sin `tenant_id`, resolvedor sin entidad, resolvedor sin carpeta, `signDocumentUrl` sin `deleted_at`, registro sin `bucket_id` |
-| Suites afectadas (documents, documentos, bitacora, `_components/documents`, `lib/studio/bitacora`, rbac guard, portal signed docs, `app/m/erp`) | PASÓ | 28 archivos, 780 pruebas |
-| typecheck (`tsc --noEmit` completo) | PASÓ | exit 0, sin salida |
-| eslint de los 13 archivos tocados | PASÓ | exit 0, 0 warnings |
-| docs:check | PASÓ | índice sincronizado con 492 specs |
-| numbering (`sdd:check`) | PASÓ | sin números repetidos |
-| governance:check | PASÓ | 28 políticas · cápsula vigente |
-| components:check | PASÓ | CMP-01 válido |
-| `git diff --check` | PASÓ | exit 0 |
-| `pnpm verify` completo (test, lint, build, e2e, rsc-boundary, sql-tests…) | NO EJECUTADO | Corrida pesada: pide turno al Director. Sin migraciones ni SQL en el diff |
-| Smoke en el servidor | NO EJECUTADO | Depende de desplegar esta PR y de aplicar la 0473 (spec, aceptación 7) |
+| Pruebas nuevas de la app (3 archivos) | PASÓ | 27/27 |
+| Control rojo de la app (acciones de `main`) | PASÓ (rojo esperado) | 12 de 27 caen, cada una en su aserción; archivos restaurados con el mismo sha256 |
+| Mutantes de la app (7) | PASÓ | 7/7 muertos |
+| Suites afectadas (documents, documentos, bitacora, `_components/documents`, `lib/studio/bitacora`, rbac guard, portal, `app/m/erp`) | PASÓ | 28 archivos, 780 pruebas |
+| **`pnpm verify` completo** sobre `3e50b182` (02:22Z → 02:47Z) | **FALLÓ** (1 de 17) | `test`: un timeout de 20 s en cada intento, en pruebas distintas (`lib/db/__tests__/session-cookie.test.ts`, luego `__tests__/fuentes-locales.test.ts`), ambas de barrido de archivos, con la CPU saturada. 9175/9177 pasaron. El resto: harness, docs, numbering, governance, components, feature-constants, lint, rsc-boundary, typecheck, edge-functions, pending-migration-symbols, sql-tests, schema-rebuild, build y e2e (173 passed, 20 skipped) en [OK]; `migrations-applied` [SKIP] (worktree sin `.env.local`) |
+| Las dos pruebas que vencieron, aisladas, mismo SHA | PASÓ | 14/14 en 2,9 s; cada barrido 0,9 s. Ninguno de los dos archivos está en este diff |
+| Contrato 0474 en PGlite (Vitest) | PASÓ | 14/14: green 10 aserciones, control rojo en A, 2 preflights, mutante del preflight, 5 mutantes del filtro |
+| Contrato 0474 en `postgres:17` (psql real) | PASÓ | 1.ª corrida 2 filas, 2.ª 0; `-v apply_fix=false` cae en A; `sin_rama` y `sin_storage` abortan con su mensaje; 0 tablas tras el ROLLBACK |
+| `schema-rebuild` con la 0474 | PASÓ | 470 migraciones (452 desde cero + 18 solo-ledger) sobre `postgres:17` y sobre `supabase/postgres:17.6.1.136`; aislamiento de 219 tablas + 2 tenants |
+| Todos los `*migration.test*` (leen el baseline) | PASÓ | 17 archivos, 212 pruebas |
+| `scripts/tests/merge-generated-records.node.mjs` | PASÓ | 20/20 (TAP) |
+| pending-migration-symbols | PASÓ | 0 ROJO · 0 AMARILLO |
+| typecheck, eslint, docs:check, numbering, `git diff --check` | PASÓ | exit 0 |
+| `verify` completo después de la 0474 | NO EJECUTADO | Los pasos que la 0474 afecta (sql-tests de su contrato, schema-rebuild, migration tests, símbolos, numeración) se corrieron de a uno arriba. La brecha entre el SHA verificado `3e50b182` y la punta es solo la 0474, sus pruebas, el baseline y docs |
+| Smoke en el servidor | NO EJECUTADO | Después del deploy y de aplicar la 0474 (spec, aceptación 10) |
 
 ## COMMITS
 
 - `c9b9257d` docs: SDD-0508 spec — el objeto de un documento se firma y se borra en el bucket que dice su fila
 - `732f9f85` fix(studio): SDD-0508 — el objeto de un documento se firma y se borra en el bucket de su fila
-- (este handoff) docs: SDD-0508 handoff
+- `4947f0dc` docs: SDD-0508 handoff
+- `3e50b182` merge de `origin/main` (PR #199); índice de specs con el driver y regenerado
+- `5e8188e7` fix(studio): SDD-0508 — 0474 corrige el bucket de los adjuntos de Bitácora creados antes del fix
+- (este commit) docs: SDD-0508 — la 0473 ya estaba aplicada: spec y handoff con la 0474
 
 ## PR / BRANCH
 
-- Rama `claude/keen-liskov-c47c81` → PR contra `main` (el enlace va en el reporte de cierre). No es
-  draft: sin migración; lo que falta es `verify` completo con turno y el smoke posterior.
+- PR [#200](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/200), rama `claude/keen-liskov-c47c81`
+  → `main`. Auto-fix activado por Sam. No es draft: la aplicación de la 0474 es una autorización
+  aparte, no validación pendiente.
+- **Fusionar la PR despliega la app y NO aplica la 0474.**
 
 ## PENDIENTES DE ESTA TAREA
 
-1. `pnpm verify` completo cuando el Director dé turno (o el CI de quality de la PR como evidencia).
-2. **Orden de despliegue**: esta PR antes de aplicar la 0473. Si la 0473 se aplica antes, correr la
-   consulta READ ONLY de la spec y, si da > 0, el `update` de contingencia con OK nominal de Sam.
-3. Smoke tras desplegar y aplicar la 0473 (spec, aceptación 7): subir foto, verla en la galería y en
-   el «Historial» del hub, quitarla desde el hub; leer `bucket_id='bitacora'`, `deleted_at` y que el
-   objeto ya no esté en `bitacora`.
-4. Estado de la SDD-0508 a `done` solo con el smoke hecho.
+1. Merge de la PR (decisión de Sam o del Director; merge = deploy).
+2. **Inmediatamente después del deploy**: repetir el conteo READ ONLY (consulta en la spec) y pedir
+   el **OK nominal de Sam para `0474_documents_bitacora_bucket_backfill`**. Aplicarla de a una con el
+   procedimiento de la 0473 (psql en el contenedor, migración + fila del ledger en una transacción,
+   identidad contra el blob de 5786 bytes / md5 `6f4bb32d…`). El NOTICE debe decir 1 fila (o las que
+   dé el conteo); el postflight aborta si queda alguna.
+3. Smoke (spec, aceptación 10): la foto del smoke se ve en la galería y en el «Historial» del hub;
+   borrar un adjunto de prueba desde el hub deja `deleted_at` y el objeto fuera de `bitacora`.
+4. Tras aplicar y verificar: retirar la espera de 0474 del baseline en una PR de limpieza y pasar la
+   SDD-0508 a `done`.
 
 ## FUERA DE ALCANCE DETECTADO
 
-1. **SDD-0507 (adjuntos visibles, sesión activa)** fija `bucket: "documents"` para filas de
-   `documents` en `lib/studio/documents/adjuntos-queries.ts` (`desdeHub`) y firma con un bucket que
-   manda el cliente (`firmarAdjuntoAction(bucket, storagePath)`). Hoy acierta: solo lista clientes y
-   embarques, que solo sube el hub. Cuando ambas estén en `main`, conviene que use
-   `documentObjectBucket`. Mi prueba de propiedad no la marca (usa `storagePath` y un bucket
-   variable). Ambas PR editan `lib/studio/rbac-actions-guard.test.ts` en hunks distintos (yo el
-   texto de la DEUDA, ella los totales): debería fusionar sin conflicto; si `main` se mueve,
-   `docs/specs/README.md` se regenera con el script.
+1. **SDD-0507 (adjuntos visibles)** fija `bucket: "documents"` para filas de `documents` en
+   `lib/studio/documents/adjuntos-queries.ts` (`desdeHub`) y firma con su propia acción
+   (`firmarAdjuntoAction`, solo `documents` y `shipment-docs`, gates de vista). Hoy acierta: lista
+   clientes y embarques, que solo sube el hub. Esa sesión confirmó por mensaje que no usa
+   `signDocumentUrl` ni arma `DocumentRow`, y anotó en su handoff pasar a `documentObjectBucket`
+   cuando las dos estén en `main`. Ambas PR tocan `lib/studio/rbac-actions-guard.test.ts` en hunks
+   distintos.
 2. Las specs 0049, 0060 y 0500 describen el `signDocumentUrl` por path. Evidencia fechada; no las
    reescribí.
 3. Propuesta (no decisión): `check (bucket_id <> 'bitacora' or entity_type = 'bitacora_task')` en
-   `documents`, si algún día se quiere el invariante en la base además de en la app.
+   `documents`.
+4. Las pruebas de barrido de archivos con timeout de 20 s (`session-cookie`, `fuentes-locales`)
+   vencen con la máquina saturada. Si se repite, subirles el timeout o acotar el barrido.
 
 ## IMPACTO DOCUMENTAL Y CONOCIMIENTO
 
-- Documento canónico nuevo: la spec SDD-0508 (+ índice regenerado). Ningún runbook ni AGENTS cambió.
+- Documento canónico nuevo: la spec SDD-0508 (+ índice regenerado). Ningún runbook ni AGENTS cambió;
+  la condición de aplicación de la 0474 vive en el baseline y en la cabecera de la migración.
 - `pnpm knowledge:status`: `structural INVALID` (4481 pendientes, 3306 ausentes), `semantic INVALID`
   (1175), `archify PENDING`, `obsidian PENDING`, en todo el repo: este worktree no tiene grafo
-  construido. No lo causa este diff. Graphify se publica desde main integrado (Director). Recibos
-  semánticos: no aplica (no toqué fuentes de `semanticPilot` que haya podido verificar).
-- Archify: **NO DISPONIBLE** — `knowledge:visual` → `ARCHIFY_RUNTIME_MISSING` (falta `archify.zip`
-  v2.16.0 en `graphify-out/archify-package`; descargarlo requiere permiso). Preview de Obsidian: no
-  generada.
+  construido. No lo causa este diff. Graphify se publica desde main integrado (Director).
+- Archify: **NO DISPONIBLE** — `knowledge:visual` → `ARCHIFY_RUNTIME_MISSING`. Preview de Obsidian:
+  no generada.
 
 ## HANDOFF AL DIRECTOR
 
-- Revisar la PR (SHA de cabeza en el reporte). Sin migración: el merge despliega solo código.
-- **Integrar antes de aplicar la 0473** (PR #199). Sugiero sumar esa condición a la espera de la
-  0473 en `pendingBelowCutoff` dentro de la PR #199 (archivo de otra tarea: no lo toqué).
-- Coordinar el orden con la SDD-0507 (ver FUERA DE ALCANCE 1).
+- Revisar la PR (SHA de cabeza en el reporte). El merge despliega la app; la 0474 espera el OK.
+- Ventana recomendada: merge → deploy verde → conteo READ ONLY → 0474 con OK nominal, sin pausa
+  larga entre deploy y migración (en ese intervalo la foto del smoke no se ve en la galería).
 - La rama de reserva `codex/sdd-reserve-0508-documentos-bucket-bitacora` es local y sin push. Se
   borra con `-D` cuando la spec esté en main.

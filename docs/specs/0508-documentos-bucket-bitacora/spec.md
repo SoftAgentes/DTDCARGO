@@ -15,12 +15,13 @@ confidencialidad: interno
 
 ## Contexto
 
-La [SDD-0506](../0506-bitacora-adjuntos-entidad/spec.md) (migración 0473,
-todavía no aplicada) devuelve la rama `bitacora_task` a
-`document_entity_in_tenant()`. Cuando se aplique, la «Prueba de avance» de
-Bitácora va a empezar a crear filas en `public.documents` con
+La [SDD-0506](../0506-bitacora-adjuntos-entidad/spec.md) (migración 0473)
+devuelve la rama `bitacora_task` a `document_entity_in_tenant()`. Con ella, la
+«Prueba de avance» de Bitácora crea filas en `public.documents` con
 `entity_type = 'bitacora_task'`. Su handoff lo dejó anotado como fuera de alcance
-(§ FUERA DE ALCANCE DETECTADO, punto 1).
+(§ FUERA DE ALCANCE DETECTADO, punto 1). La 0473 se aplicó en el servidor el
+2026-10-14 a las 01:44:06Z, mientras esta SDD estaba en curso (ver «Base de
+datos»).
 
 ### Lo que hace el código hoy (leído el 2026-10-14 sobre `main` = `221c48f4`)
 
@@ -101,12 +102,35 @@ el escaneo encuentra a los consumidores conocidos, para no pasar en vacío. Una
 subida recién hecha (`remove([storagePath])` del rollback) sigue pudiendo usar
 la constante: el objeto es propio y su bucket se conoce.
 
-### Base de datos: sin migración
+### Base de datos: backfill 0474, sin restricción
 
-- **Backfill: no aplica.** Hoy hay 0 filas `bitacora_task` en producción (dato
-  de Sam; la 0506 midió 0 en Cloud) y no se pueden crear hasta aplicar la 0473,
-  porque el trigger las rechaza. Si esta PR se despliega antes de aplicar la
-  0473, ninguna fila nace mintiendo.
+- **Backfill: sí, en `0474_documents_bitacora_bucket_backfill.sql`.** Al
+  escribir esta spec había 0 filas y la idea era desplegar esta PR antes de la
+  0473. No pasó: la 0473 se aplicó en el servidor el 2026-10-14 a las
+  01:44:06Z, y Sam hizo el smoke subiendo una foto hacia las 01:53Z, con la app
+  todavía sin el fix. Conteo READ ONLY del 2026-10-14 a las 02:26:44Z, solo
+  agregados, autorizado por Sam («Sí, solo el conteo»): **1 fila**
+  `bitacora_task`, viva, con `bucket_id = 'documents'`, cuyo objeto existe en
+  `bitacora` y no en `documents`. Sin corregirla, al desplegar esta PR esa foto
+  dejaría de verse en la galería y su borrado dejaría el objeto huérfano. Sam
+  eligió corregirla con una migración en esta PR («Migración 0474 en la PR»).
+- **Qué hace la 0474.** Pasa `bucket_id` a `'bitacora'` solo en las filas
+  `bitacora_task` cuyo objeto existe en `storage.objects` del bucket
+  `bitacora` y **no** en el de `documents`: la existencia del objeto es la
+  prueba, porque el tipo de entidad no basta. Incluye filas con `deleted_at`.
+  No toca las que tienen el objeto en `documents`, en los dos buckets o en
+  ninguno, ni otras entidades u otros buckets de origen. Sin DDL; no cambia
+  `storage_path`, `object_key` ni Storage.
+  - Preflight: `public.documents` con sus columnas, `storage.objects` y la rama
+    `bitacora_task` de la 0473 en `document_entity_in_tenant`. El trigger
+    `documents_validate_entity` revalida la entidad en el UPDATE; sin la rama,
+    fallaría con un error críptico.
+  - Postflight: no queda ninguna fila con el mismo filtro (la prueba compara
+    los dos textos).
+  - Se puede volver a correr. `lock_timeout` 5 s, `statement_timeout` 30 s.
+  - El guardia RBAC de 0435/0438 solo actúa con `auth.role() =
+    'authenticated'`; aplicada por `psql` como `postgres`, no interviene.
+    `documents_touch` actualiza `updated_at` de las filas corregidas.
 - **Restricción: no se agrega.** `bitacora_task ⇒ bucket bitacora` sería falsa:
   el hub guarda legítimamente un `bitacora_task` en `documents`. La inversa
   (`bucket bitacora ⇒ bitacora_task`) es válida, pero el resolvedor ya la exige
@@ -132,28 +156,33 @@ la constante: el objeto es propio y su bucket se conoce.
   como ya hacían el hub y Bitácora. Nada nuevo se purga.
 - `erp-attachments` y su servicio, la RLS, las policies de Storage, el cron de
   huérfanos, la firma de `shipment_documents` (otra tabla, otro bucket).
-- Ninguna migración ni fila.
+- Ningún objeto de Storage, ningún DDL. La única escritura en la base es el
+  `bucket_id` de las filas que la 0474 demuestra mal ubicadas.
 
 ### Orden de despliegue
 
-**Esta PR debería desplegarse antes de aplicar la 0473.** Si la 0473 se aplica
-primero y alguien sube un adjunto en ese intervalo, la fila nace con
-`bucket_id = 'documents'` y la galería no la firma (el borrado la deja huérfana
-en `bitacora`). Contingencia, solo en ese caso y con OK nominal de Sam:
+La 0473 ya está aplicada (01:44:06Z), así que hasta desplegar esta PR cada
+subida nueva de Bitácora sigue naciendo con `bucket_id = 'documents'`. El orden
+es:
 
-```sql
--- Lectura (READ ONLY): ¿hay filas que mienten?
-select count(*) from public.documents d
-where d.entity_type = 'bitacora_task' and d.bucket_id = 'documents'
-  and exists (select 1 from storage.objects o where o.bucket_id = 'bitacora' and o.name = d.storage_path)
-  and not exists (select 1 from storage.objects o where o.bucket_id = 'documents' and o.name = d.storage_path);
+1. Fusionar esta PR (el merge a `main` despliega la app con el fix).
+2. Repetir el conteo READ ONLY en el servidor:
+   ```sql
+   select count(*) from public.documents d
+   where d.entity_type = 'bitacora_task' and d.bucket_id = 'documents'
+     and exists (select 1 from storage.objects o where o.bucket_id = 'bitacora' and o.name = d.storage_path)
+     and not exists (select 1 from storage.objects o where o.bucket_id = 'documents' and o.name = d.storage_path);
+   ```
+3. Con OK nominal de Sam, aplicar `0474_documents_bitacora_bucket_backfill`
+   **de a una**, con el mismo procedimiento que la 0473 (`psql` en el
+   contenedor, migración y ledger en una transacción, identidad contra el
+   blob). El NOTICE dice cuántas filas cambió; el postflight aborta si queda
+   alguna.
 
--- Corrección (mismo filtro):
-update public.documents d set bucket_id = 'bitacora'
-where d.entity_type = 'bitacora_task' and d.bucket_id = 'documents'
-  and exists (select 1 from storage.objects o where o.bucket_id = 'bitacora' and o.name = d.storage_path)
-  and not exists (select 1 from storage.objects o where o.bucket_id = 'documents' and o.name = d.storage_path);
-```
+Entre el deploy y la aplicación, las filas que todavía mienten (hoy 1) no se
+ven en la galería; nada se pierde: el objeto sigue en `bitacora`. Aplicar la
+0474 **antes** del deploy no sirve: las subidas posteriores volverían a nacer
+mal y la migración ya no las vería.
 
 ### Allowlist exacta
 
@@ -170,6 +199,10 @@ where d.entity_type = 'bitacora_task' and d.bucket_id = 'documents'
 - `lib/studio/documents/__tests__/queries.test.ts` y
   `app/studio/_components/documents/__tests__/DocsPanel.test.tsx` (fixture con `bucket_id`)
 - `lib/studio/rbac-actions-guard.test.ts` (texto de la DEUDA de `signDocumentUrl`)
+- `supabase/migrations/0474_documents_bitacora_bucket_backfill.sql` (nuevo, **no aplicada**)
+- `supabase/tests/0474_documents_bitacora_bucket_backfill.test.sql` (nuevo)
+- `lib/studio/__tests__/documents-bitacora-bucket-backfill.migration.test.ts` (nuevo)
+- `supabase/migrations-baseline.json` (la espera de 0474)
 - `docs/specs/0508-documentos-bucket-bitacora/spec.md` y `docs/specs/README.md` (regenerado)
 - `.agents/handoffs/0508-documentos-bucket-bitacora.md`
 
@@ -210,15 +243,47 @@ where d.entity_type = 'bitacora_task' and d.bucket_id = 'documents'
    `bucket_id`, borrado de tarea sin `tenant_id`, resolvedor sin chequeo de
    entidad, resolvedor sin chequeo de carpeta, `signDocumentUrl` sin
    `deleted_at`, registro sin `bucket_id`); todos mueren.
-7. **Después de desplegar y aplicar la 0473** (fuera de esta PR): subir una
-   foto a una tarea de prueba, verla en la galería y en el «Historial» del hub,
-   quitarla desde el hub, y leer que la fila quedó con `bucket_id = 'bitacora'`
-   y `deleted_at`, y que el objeto ya no está en `bitacora`.
+7. **Contrato de la 0474** (`0474_documents_bitacora_bucket_backfill.test.sql`,
+   10 aserciones) corre el archivo real de la migración **dos veces** sobre un
+   fixture con el trigger `documents_validate_entity` de 0097. Comprueba:
+   - se corrigen el adjunto medido en producción (A) y su variante borrada (B);
+   - no se tocan la versión del hub en `documents` (C), el objeto en los dos
+     buckets (D), el objeto en ninguno (E), otra entidad (F), una fila que ya
+     decía `bitacora` (G) ni otro bucket de origen (H);
+   - `storage_path` y `storage.objects` quedan intactos.
+
+   En `postgres:17` con `psql` real: la primera corrida corrige 2 filas y la
+   segunda 0. El control rojo (`-v apply_fix=false`) cae en A. Los preflights
+   (`-v sin_rama=true`, `-v sin_storage=true`) abortan con su mensaje.
+8. **El mismo contrato en PGlite**
+   (`documents-bitacora-bucket-backfill.migration.test.ts`, 14 pruebas): verde,
+   control rojo y los dos preflights. Además:
+   - el postflight usa exactamente el filtro del UPDATE, comparado por texto;
+   - el archivo no tiene DDL y fija los timeouts;
+   - la espera está declarada con su orden y el OK nominal;
+   - el mutante del preflight sin chequeo de rama muestra el error críptico del
+     trigger;
+   - cinco mutantes del filtro caen, cada uno en el caso que protege: sin «no
+     está en `documents`» → D, sin «está en `bitacora`» → E, sin entidad → F,
+     sin bucket de origen → H, sin los borrados → postflight.
+9. **`schema-rebuild`** con la 0474 en la cadena: 470 migraciones sobre
+   `postgres:17` y sobre `supabase/postgres:17.6.1.136` (la imagen del
+   servidor), con aislamiento multi-tenant verificado.
+10. **Después del deploy y de aplicar la 0474** (fuera de esta PR): el conteo
+    READ ONLY da 0; la foto del smoke se ve en la galería y en el «Historial»
+    del hub; borrar un adjunto de prueba desde el hub deja la fila con
+    `deleted_at` y el objeto fuera de `bitacora`.
 
 ## Riesgos
 
-- **Orden con la 0473.** Ver «Orden de despliegue». Es el único caso en el que
-  una fila nace mintiendo, y tiene consulta de lectura y corrección escritas.
+- **El intervalo entre el deploy y la 0474.** Las filas que todavía mienten
+  (hoy 1) no se ven en la galería hasta aplicar la migración; el objeto no se
+  pierde. Borrar esa fila en ese intervalo la dejaría huérfana en `bitacora`:
+  aplicar la 0474 apenas termine el deploy.
+- **Filas borradas cuyo objeto ya no existe.** Si alguien borró un adjunto
+  desde la galería antes del fix, su objeto salió de `bitacora` y la fila quedó
+  con `bucket_id = 'documents'`. La 0474 no la toca (no puede probar dónde
+  estaba). Es una fila borrada sin objeto; no tiene efecto.
 - **El doble no reproduce RLS ni Storage RLS.** El borrado en `bitacora` con el
   user client pasa por la policy `bitacora tenant delete storage` (0443), que
   exige editar Bitácora; la fila solo se pudo marcar borrada si la RLS de
