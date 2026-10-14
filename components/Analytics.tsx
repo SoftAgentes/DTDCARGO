@@ -23,13 +23,18 @@ import { Suspense, useEffect, useLayoutEffect, useSyncExternalStore } from "reac
  * (público — viaja en el HTML) SOLO en producción. En dev queda apagado para
  * no ensuciar reportes con localhost.
  *
+ * «Falta» incluye la cadena vacía o con sólo espacios (SDD-0518): la imagen
+ * Docker recibe cada `NEXT_PUBLIC_*` como build arg y uno sin valor llega como
+ * `""`, no como `undefined`. Con `??` esa cadena no caía al respaldo, GA_ID
+ * quedaba vacío y el componente no cargaba ni GA ni la etiqueta de Ads.
+ *
  * Componente propio (no `@next/third-parties`): cero deps nuevas + control del
  * page_view en navegación SPA + gating por ruta. El CSP (next.config.ts) ya
  * permite googletagmanager.com + google-analytics.com.
  */
 
 const GA_ID =
-  process.env.NEXT_PUBLIC_GA_ID ??
+  process.env.NEXT_PUBLIC_GA_ID?.trim() ||
   (process.env.NODE_ENV === "production" ? "G-25CD7BZH98" : "");
 
 /**
