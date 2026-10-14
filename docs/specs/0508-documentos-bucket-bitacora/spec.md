@@ -1,7 +1,7 @@
 ---
 sdd: "0508"
 title: "El objeto de un documento se firma y se borra en el bucket que dice su fila"
-status: in-progress
+status: done
 author: "Sam + Claude Opus 5.5 (Worker)"
 created: 2026-10-14
 updated: 2026-10-14
@@ -303,8 +303,8 @@ mal y la migración ya no las vería.
 
 ## Aplicación de la 0474 (2026-10-14)
 
-`status: in-progress` a propósito: falta la prueba manual de Sam (criterio 10,
-abajo).
+`status: done` desde que Sam hizo la prueba manual del criterio 10, el
+2026-10-14 (abajo). Hasta entonces, la spec estuvo en `in-progress` a propósito.
 
 ### Merge y deploy
 
@@ -349,4 +349,7 @@ abajo).
 
 - El conteo READ ONLY da 0: **cumplido** (verificación de las 04:02:34Z).
 - La foto del smoke en la galería y en el «Historial» del hub, y borrar un
-  adjunto de prueba desde el hub: **pendiente**, es la prueba manual de Sam.
+  adjunto de prueba desde el hub: **cumplido**. Lo probó Sam en producción el
+  2026-10-14, después del deploy de `ddf14c06` y de aplicar la 0474. Su texto
+  literal: «Ya probé la 0508, funciona la Bitácora». Queda registrado también en
+  el comentario del Director en la PR #200.
