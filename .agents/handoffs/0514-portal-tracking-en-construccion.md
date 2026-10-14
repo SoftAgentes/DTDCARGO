@@ -7,7 +7,7 @@
 | Claim del harness | `portal-tracking-en-construccion-worker` |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\agent-a00f97b838bf0b595` |
 | Rama | `codex/portal-tracking-en-construccion` |
-| Base | `origin/main` `9a935562` (la rama nació en `1ce2ba99` y se adelantó por fast-forward antes del primer commit, cuando entró SDD-0512) |
+| Base | `origin/main` `ad959bca`. La rama nació en `1ce2ba99`, se adelantó por fast-forward a `9a935562` antes del primer commit (entró SDD-0512) y después de publicar se trajo `ad959bca` con un merge (entró SDD-0513), a pedido del Director porque la PR quedó en conflicto en el índice. |
 | SDD | [0514](../../docs/specs/0514-portal-tracking-en-construccion/spec.md), `in-progress` (la asignó el Director) |
 | Estado de la tarea | lista para revisión (PR en draft) |
 | Permisos | commits locales selectivos, push de la rama propia y PR en draft contra main. Sin merge, sin producción, sin VPS, sin base de datos. |
@@ -129,10 +129,12 @@ desplegada. No hace falta escribir nada: sólo mirar.
 ## Validación
 
 Sobre el árbol de trabajo encima de `origin/main` `9a935562` (contenido idéntico al
-de los commits de esta rama).
+de `6798da07`). Después del merge con `ad959bca` se repitió la validación liviana
+(primera fila).
 
 | Comprobación | Resultado |
 |---|---|
+| Repetición sobre el merge con `origin/main` `ad959bca` | PASÓ: merge sin conflictos (el driver `dtd-generated-records` resolvió `docs/specs/README.md`; regenerarlo no dejó diferencias). Pruebas tocadas 16/16 (3 archivos); `tsc --noEmit` exit 0 sin salida, sin tubería; eslint de los 8 archivos exit 0; docs:check (500 specs), sdd:check, feature-constants (6) y `git diff --check` contra el primer padre y contra main, todos exit 0. Mutantes y control rojo no se repitieron: el merge no toca ningún archivo de esta tarea. |
 | `corepack pnpm install --frozen-lockfile --prefer-offline` | PASÓ (exit 0, 28,4 s) |
 | Pruebas nuevas (2 archivos, 13 casos) | PASÓ, 13/13 |
 | `vitest related --run` de los 6 archivos de código tocados | PASÓ: 3 archivos, 16 pruebas (incluida la prueba existente `PortalAlertasHub.test.tsx`, ahora con el aviso prendido) |
@@ -181,8 +183,9 @@ de los commits de esta rama).
 - **VALIDACIÓN:** tabla de arriba.
 - **COMMITS:** en `codex/portal-tracking-en-construccion`:
   1. `e10a6ab0` `docs: SDD-0514 — spec, capturas e índice del aviso de seguimiento en construcción`.
-  2. `feat(portal): SDD-0514 — aviso «Seguimiento en construcción» en portada, Envíos y detalles`: el commit que contiene este documento. Va último a propósito: el `ignoreCommand` de Vercel mira sólo el último commit y cancela el build si es sólo documentación.
-- **PR / BRANCH:** PR en draft contra `main` desde `codex/portal-tracking-en-construccion` (URL en la PR y en el reporte al Director). Worktree arriba.
+  2. `6798da07` `feat(portal): SDD-0514 — aviso «Seguimiento en construcción» en portada, Envíos y detalles`: código, pruebas, declaración y la primera versión de este documento.
+  3. Merge de `origin/main` `ad959bca` en la rama: el commit que contiene la versión final de este documento (hash en el reporte al Director y en la PR). Trae código de main frente a su primer padre, así que el `ignoreCommand` de Vercel, que mira sólo el último commit, no cancela el build de Preview.
+- **PR / BRANCH:** https://github.com/hailuwaycom-sketch/DTDCARGO/pull/211, en draft, contra `main` desde `codex/portal-tracking-en-construccion`. Worktree arriba.
 - **PENDIENTES DE ESTA TAREA:**
   - Smoke de Sam con el guion de arriba, después del despliegue.
   - `pnpm verify` completo cuando el Director dé el turno.
@@ -218,9 +221,9 @@ de los commits de esta rama).
   - Archivos compartidos: ninguno con la PR #114. `scripts/feature-constants.json`
     lo pueden tocar otras PRs que agreguen banderas; el conflicto sería de una
     entrada en un arreglo.
-  - Índice de specs: lista 0513 como hueco porque la PR #210 no está en main, y
-    #210 también toca `docs/specs/README.md`. La que entre segunda tiene que
-    traer main y regenerar con `node scripts/build-docs-index.mjs`.
+  - Índice de specs: resuelto. La PR quedó en conflicto cuando entró la #210
+    (SDD-0513); se trajo `origin/main` `ad959bca` con merge, y el índice quedó con
+    0511 a 0514 y sin huecos nuevos.
   - Ownership: claim liberado al terminar la escritura (`release --owner
     portal-tracking-en-construccion-worker`). No hay sesiones consumidoras de este
     worktree. No borrar worktree ni rama hasta que la PR se integre.

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * OperariosClient — tabla + drawers Nuevo/Reset PIN/Editar (SDD-0028).
+ * OperariosClient — tabla + drawers Nuevo/Restablecer PIN/Editar (SDD-0028, SDD-0513).
  */
 
 import { useState } from "react";
@@ -280,7 +280,7 @@ function OperarioRowItem({
           onClick={() => onResetPin(op)}
           className="studio-btn studio-btn-ghost studio-btn-sm"
         >
-          Reset PIN
+          Restablecer PIN
         </button>
         <button
           type="button"
