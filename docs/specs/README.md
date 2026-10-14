@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 501 specs)
+### Índice de specs (generado · 502 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -539,6 +539,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0513 | Restablecer el PIN de un operario con uno generado y mostrarl… | in-progress | interno |
 | 0514 | Portal: aviso de seguimiento en construcción | done | interno |
 | 0516 | Portal: el detalle de compra no promete avisos mientras el se… | done | interno |
+| 0518 | Google Analytics y la etiqueta de Ads cargan aunque NEXT_PUBL… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0515 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0515, 0517 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
