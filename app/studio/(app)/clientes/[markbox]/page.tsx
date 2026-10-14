@@ -313,9 +313,9 @@ export default async function ClienteDetallePage({
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: 6,
-                  height: 26,
-                  padding: "0 10px",
+                  gap: "var(--s-2)",
+                  height: 28,
+                  padding: "0 var(--s-3)",
                   borderRadius: "var(--r-pill)",
                   border: "1px solid var(--border-strong)",
                   background: "var(--bg-surface)",

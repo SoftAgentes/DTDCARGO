@@ -76,9 +76,10 @@ export function TodosLosAdjuntos({ datos }: { datos: AdjuntosDelCliente | null }
       }}
     >
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-        <span className="studio-eyebrow" id="adjuntos-titulo">
+        {/* h2: los grupos son h3 y la ficha no debe saltar de h1 a h3. */}
+        <h2 className="studio-eyebrow" id="adjuntos-titulo" style={{ margin: 0 }}>
           Todos los adjuntos
-        </span>
+        </h2>
         {datos !== null && datos.total > 0 && (
           <span style={{ font: "700 11px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
             {datos.total}
@@ -129,7 +130,7 @@ export function TodosLosAdjuntos({ datos }: { datos: AdjuntosDelCliente | null }
           Este cliente todavía no tiene adjuntos, ni en su ficha ni en sus embarques.
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
           {datos.grupos.map((g) => (
             <Grupo key={g.origen === "cliente" ? "cliente" : g.embarque.id} grupo={g} />
           ))}

@@ -47,9 +47,9 @@ export function AdjuntosConteo({
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 5,
-        height: tarjeta ? 20 : 22,
-        padding: "0 7px",
+        gap: "var(--s-1)",
+        height: tarjeta ? 20 : 24,
+        padding: "0 var(--s-2)",
         borderRadius: "var(--r-sm)",
         background: "var(--neutral-bg)",
         color: "var(--ink)",
