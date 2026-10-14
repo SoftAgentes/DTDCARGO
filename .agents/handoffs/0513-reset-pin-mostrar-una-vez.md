@@ -218,3 +218,9 @@ introducida; queda como criterio 5. BTN-01: cumplimiento. CMP-01: cumplimiento.
 - **Turno pesado:** falta `pnpm verify` completo.
 - **Ownership:** claim `reset-pin-mostrar-una-vez` liberado al terminar la
   escritura; worktree y rama se conservan.
+
+## CIERRE DE INTEGRACIÓN (Director, 2026-10-14)
+
+- **Merge:** PR #210, merge `ad959bca` a las 17:57:31Z, con `--match-head-commit 70a5330e`, con OK de Sam («Sí, fusiónala cuando esté verde (Recomendado)»). Deploy a las 17:59:21Z.
+- **Smoke en producción (restablecer + login): PASÓ.** Sam restableció el PIN de Wang Hua (región `cn`) a las 18:07:04Z (gateway 204). Los intentos por `/m/ve/login` fallaron, como corresponde a un operario `cn`. A las **20:28:19Z** entró por `/m/cn/login` (`operario_pin_attempts`: `region = cn`, `succeeded = t`; `last_login_at` actualizado). Sam, literal: «SI APROBE ENTRO».
+- La spec queda `in-progress` a propósito: el criterio 5 (auditoría del restablecimiento) lo cumple la migración 0475 de la SDD-0515 (PR #212), todavía sin aplicar.

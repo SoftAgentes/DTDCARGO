@@ -1,7 +1,7 @@
 ---
 sdd: "0512"
 title: "/back fuera de los buscadores: noindex en todo el back de contenido"
-status: in-progress
+status: done
 author: "Claude"
 created: 2026-10-14
 updated: 2026-10-14
@@ -84,3 +84,11 @@ corte de dtdcargo.com al VPS de Contabo (jueves 2026-10-15 en la noche).
 - El layout envuelve los dos grupos. Como devuelve un fragment y no declara `title`, no
   cambia ni el DOM ni los títulos de `(app)`.
 - El efecto en buscadores tarda: Google tiene que volver a rastrear la URL.
+
+## Cierre (2026-10-14)
+
+- **Merge:** PR #208, merge `9a935562` a las 17:34:58Z, con `--match-head-commit 3dccfcc6` (el Director trajo main con la #209 del lado de GitHub; el diff contra main quedó idéntico al revisado).
+- **Validación:** `pnpm verify` sobre `f422fc56` con 14 de 17 pasos PASÓ y 0 FALLÓ (e2e: 1 flaky ajeno, que pasó al reintentar). CI «Calidad local sin secretos» PASÓ sobre la cabeza fusionada.
+- **Deploy:** «Deployment has completed» a las 17:36:55Z.
+- **Comprobado en producción por el Director (curl):** `dtdcargo.com/back/login` responde 200 con `robots=noindex, nofollow`; `/studio/login` sigue en `noindex, nofollow`; la portada sigue en `index, follow`.
+- Todos los criterios cumplidos. Estado de la tarea: **integrada**.

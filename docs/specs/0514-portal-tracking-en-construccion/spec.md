@@ -1,7 +1,7 @@
 ---
 sdd: "0514"
 title: "Portal: aviso de seguimiento en construcción"
-status: in-progress
+status: done
 author: "Claude"
 created: 2026-10-14
 updated: 2026-10-14
@@ -133,3 +133,10 @@ Detalle en el handoff `.agents/handoffs/0514-portal-tracking-en-construccion.md`
 Si el almacén empieza a registrar en el sistema y nadie cambia la constante, el
 aviso sigue diciendo «en construcción» con datos reales debajo: hay que apagarlo
 en el mismo momento en que se active la bodega.
+
+## Cierre (2026-10-14)
+
+- **Merge:** PR #211, merge `4c4c6c17` a las 18:38:54Z, con `--match-head-commit 31d4b4eb`, con OK de Sam («Sí, fusiónala (Recomendado)») y el CI como evidencia (`pnpm verify` local NO EJECUTADO por esa decisión).
+- **Deploy:** «Deployment has completed» a las 18:41:17Z.
+- **Smoke en producción: PASÓ.** Sam, literal: «ya hice el smoke del Portal, funciona todo».
+- El aviso se apaga con `TRACKING_EN_CONSTRUCCION` (más su `value` en `scripts/feature-constants.json`) el día que la bodega de China empiece a registrar en el sistema. Estado de la tarea: **integrada**.

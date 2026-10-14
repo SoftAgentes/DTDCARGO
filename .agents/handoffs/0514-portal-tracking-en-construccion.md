@@ -227,3 +227,10 @@ de `6798da07`). Después del merge con `ad959bca` se repitió la validación liv
   - Ownership: claim liberado al terminar la escritura (`release --owner
     portal-tracking-en-construccion-worker`). No hay sesiones consumidoras de este
     worktree. No borrar worktree ni rama hasta que la PR se integre.
+
+## CIERRE DE INTEGRACIÓN (Director, 2026-10-14)
+
+- **Merge:** PR #211, merge `4c4c6c17` a las 18:38:54Z, con `--match-head-commit 31d4b4eb`, con OK de Sam («Sí, fusiónala (Recomendado)») y el CI como evidencia (`pnpm verify` local NO EJECUTADO por esa decisión).
+- **Deploy:** «Deployment has completed» a las 18:41:17Z.
+- **Smoke en producción: PASÓ.** Sam, literal: «ya hice el smoke del Portal, funciona todo».
+- El aviso se apaga con `TRACKING_EN_CONSTRUCCION` (más su `value` en `scripts/feature-constants.json`) el día que la bodega de China empiece a registrar en el sistema. Estado de la tarea: **integrada**.
