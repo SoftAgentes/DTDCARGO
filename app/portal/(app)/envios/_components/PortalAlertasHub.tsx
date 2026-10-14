@@ -29,6 +29,7 @@ import {
 } from "@/components/Icon";
 import { NewPurchaseButton } from "../../../_components/NewPurchaseButton";
 import { ServiceRequestButton } from "../../../_components/ServiceRequestButton";
+import { PortalTrackingEnConstruccion } from "../../../_components/PortalTrackingEnConstruccion";
 
 /**
  * Hub "Alertas · mis envíos" (Norte `PortalAlertas`). Unifica el ciclo
@@ -146,6 +147,10 @@ export function PortalAlertasHub({
           <ServiceRequestButton markbox={markbox} />
         </div>
       </div>
+
+      {/* SDD-0514 · el almacén de China todavía registra en Excel: lo que sigue a
+          la pre-alerta sale vacío. El aviso se suma; las filas siguen abajo. */}
+      <PortalTrackingEnConstruccion className="mt-6" />
 
       {banner ? <ConsolidadoBanner banner={banner} /> : null}
 
@@ -460,6 +465,10 @@ function SeguimientoTotal({
         China → Venezuela. Las compras que van en el mismo contenedor se siguen
         juntas.
       </p>
+
+      {/* SDD-0514 · mismo aviso que en la lista: esta es la vista que el
+          cliente abre para buscar su tracking. */}
+      <PortalTrackingEnConstruccion className="mt-6" />
 
       {groups.length === 0 ? (
         <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center text-[14px] text-grey-700">

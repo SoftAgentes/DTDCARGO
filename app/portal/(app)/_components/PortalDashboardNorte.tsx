@@ -25,6 +25,7 @@ import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import type { PortalActivityItem } from "@/lib/portal/shipment-events-queries";
 import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
 import { ShipmentRow } from "../../_components/ShipmentRow";
+import { PortalTrackingEnConstruccion } from "../../_components/PortalTrackingEnConstruccion";
 import { PortalNextSailingCard } from "./PortalNextSailingCard";
 
 /**
@@ -100,6 +101,10 @@ export function PortalDashboardNorte({
           {pendingWord}
         </p>
       </div>
+
+      {/* SDD-0514 · la portada es el tablero de seguimiento: el aviso va antes
+          del héroe y de "Tus envíos", que siguen mostrando lo que haya. */}
+      <PortalTrackingEnConstruccion className="mt-7" />
 
       {/* ── Héroe navy "Próximo arribo" (progreso derivado del status; buque real
             de la cadena naviera cuando existe, SDD-0101) ── */}
