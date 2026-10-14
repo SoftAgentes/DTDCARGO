@@ -2,7 +2,7 @@
 
 /**
  * EditOperarioDrawer — edita nombre, rol y warehouse del operario.
- * NO toca PIN (usar ResetPinDrawer).
+ * NO toca PIN (usar ResetPinDrawer · «Restablecer PIN»).
  */
 
 import { startTransition, useActionState, useEffect, useState } from "react";
@@ -59,7 +59,7 @@ export function EditOperarioDrawer({
   return (
     <DrawerShell
       title={`Editar · ${operario.display_name}`}
-      subtitle="No toca el PIN. Usa Reset PIN si necesitas cambiarlo."
+      subtitle="No toca el PIN. Usa «Restablecer PIN» si necesitas cambiarlo."
       onClose={onClose}
       pending={isPending}
       width={560}
