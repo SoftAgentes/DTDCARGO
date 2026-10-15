@@ -293,3 +293,30 @@ hace falta:
 
 Fusionar la PR no autoriza aplicarlas. Los merges están congelados hasta después
 del corte de Vercel al servidor propio (2026-10-15, noche de Caracas).
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #239 (`claude/infallible-ellis-1b9414`). Cabeza `eb444310` fusionada con `--match-head-commit`; merge `7232e28d` a las 20:25:14Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38797235434), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (20:26:52Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Migraciones 0483–0489: APLICADAS** en el servidor propio (`dtd-cargo-db-1`), migrate-first, con el OK nominal de Sam, literal: «autorizo aplicar 0483_financiero_china_pago_correlation_id, 0484_seniat_liberar_correlation_id, 0485_reclamos_pagar_indemnizacion_correlation_id, 0486_tms_completar_ruta_correlation_id, 0487_ve_confirmar_entrega_correlation_id, 0488_inspecciones_retirar_reporte_correlation_id y 0489_despacho_cancelar_od_correlation_id en el servidor propio».
+  - En orden, de a una. Cada una pasó antes su lectura previa READ ONLY («PREFLIGHT NNNN OK»), y se aplicó con `psql`, con la migración y su fila del ledger en una transacción. El lote paraba en la primera falla; no hubo ninguna.
+  - La PR se fusionó 7 s después de la última fila del ledger. Ledger en 493 filas.
+  - Las esperas salieron de `supabase/migrations-baseline.json` en la misma PR, y `r3-correlation-contract.ts` dejó de afirmarlas. Las cabeceras «NO APLICADA» no se corrigen.
+
+  | Migración | Ledger | md5 | Bytes | Evidencia en `/srv/ops/evidencias/` |
+  |---|---|---|---|---|
+  | `0483_financiero_china_pago_correlation_id` | `20261015202357` | `77857aa9…` | 12245 | `apply-0483-dtd-cargo-20261015T202357Z/` |
+  | `0484_seniat_liberar_correlation_id` | `20261015202410` | `c14ece50…` | 14158 | `apply-0484-dtd-cargo-20261015T202411Z/` |
+  | `0485_reclamos_pagar_indemnizacion_correlation_id` | `20261015202421` | `0b3f2102…` | 14878 | `apply-0485-dtd-cargo-20261015T202422Z/` |
+  | `0486_tms_completar_ruta_correlation_id` | `20261015202432` | `27d3c078…` | 14382 | `apply-0486-dtd-cargo-20261015T202433Z/` |
+  | `0487_ve_confirmar_entrega_correlation_id` | `20261015202443` | `df7da355…` | 11852 | `apply-0487-dtd-cargo-20261015T202443Z/` |
+  | `0488_inspecciones_retirar_reporte_correlation_id` | `20261015202455` | `e33240a0…` | 12329 | `apply-0488-dtd-cargo-20261015T202456Z/` |
+  | `0489_despacho_cancelar_od_correlation_id` | `20261015202507` | `a7e21b8c…` | 11563 | `apply-0489-dtd-cargo-20261015T202508Z/` |
+
+  Las siete: una sentencia, md5 y bytes iguales al blob de la cabeza fusionada, y `SHA256SUMS` en cada carpeta de evidencia.
+- **CI antes de la cabeza fusionada** (sobre `fb949002`, cuatro intentos, ninguno por el código de esta PR):
+  - intento 1: el test intermitente del contrato 0480 (empate de la hora en `last_event`), que corrigió la SDD-0536 (#242);
+  - intentos 2 a 4: pruebas unitarias en verde, cortadas en el build por el límite de 30 minutos, que la #240 subió a 45.
+- **Smoke de Sam: PENDIENTE.** Hacer una o dos de las siete acciones desde su pantalla (§1, tabla «Migración · RPC»). Antes fallaban siempre con 22023.
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.
