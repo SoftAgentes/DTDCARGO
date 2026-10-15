@@ -107,11 +107,14 @@ describe("Tracking · modal de eliminar envío", () => {
 
   async function abrirModalYConfirmar() {
     const user = userEvent.setup();
-    render(<FooterActions {...SHIPMENT} status="in_transit" />);
+    // SDD-0522: el botón sólo existe para quien puede eliminar (admin).
+    render(<FooterActions {...SHIPMENT} status="in_transit" canDelete />);
     await user.click(screen.getByRole("button", { name: "Eliminar envío" }));
 
     const dialogo = screen.getByRole("dialog");
-    // La doble confirmación estilo GitHub: hay que tipear el código exacto.
+    // SDD-0522: motivo obligatorio, y además la doble confirmación estilo
+    // GitHub: hay que tipear el código exacto.
+    await user.type(within(dialogo).getByLabelText(/motivo/i), "Embarque de prueba");
     await user.type(
       within(dialogo).getByLabelText(/escribe el código del envío/i),
       SHIPMENT.shipmentCode,
