@@ -158,7 +158,9 @@ defecto sólo aparece con el writer real, y eso es lo que montan los contratos n
 | `24d122d2` | Merge de `origin/main@ce5cddda` (#230, SDD-0526, migración 0479) por el conflicto que GitHub marcó en el índice: el driver local lo resolvió. La 0479 no toca el writer ni las siete RPC y no arma `correlation_id`. docs:check (517 specs), sdd:check, símbolos y las siete suites (182/182) en verde después del merge |
 | `53e0b42e` | docs(handoff): SDD-0534 — merge con #230 |
 | `67386d2e` | Merge de `origin/main@502f519d` (#231, SDD-0529, migración 0480) por el conflicto que GitHub marcó en el índice: el driver local lo resolvió. La 0480 no toca el writer ni las siete RPC; su `correlation_id` (`operario_updated:<uuid>`, 53) no tiene el defecto. docs:check (518 specs), sdd:check, símbolos y las siete suites (182/182) en verde después del merge |
-| (este commit) | docs(handoff): SDD-0534 — merge con #231 |
+| `dfd6ca72` | docs(handoff): SDD-0534 — merge con #231 |
+| `3559e391` | Merge de `origin/main@51b74da0` (#235, SDD-0532, migración 0482) por el conflicto que GitHub marcó en el índice: el driver local lo resolvió y el baseline no chocó (la #235 sacó la 0482 de las esperas). docs:check (519 specs), sdd:check, símbolos, las siete suites (182/182) y el envoltorio de la 0482 (26/26) en verde después del merge |
+| (este commit) | docs: SDD-0534 — la #235 ya está en main |
 
 ## PR / BRANCH
 
@@ -221,9 +223,11 @@ defecto sólo aparece con el writer real, y eso es lo que montan los contratos n
 4. **La huella LF del preflight es lógicamente redundante** con la huella sin espacios (si coincide
    una, coincide la otra). Se conserva por paridad con la 0482 y porque es la que se compara en la
    lectura de catálogo. Vale igual para la 0482.
-5. **Conflicto textual esperado con la PR #235**: las dos agregan esperas al final de
-   `pendingBelowCutoff` y regeneran `docs/specs/README.md`. La segunda en integrarse conserva ambas
-   esperas y regenera el índice (ver memoria «merge de main con índice de specs»).
+5. **La PR #235 ya está en `main`** (`51b74da0`). Su commit `5fcc8ad1` sacó la 0482 de las
+   esperas «para aplicarse y fusionarse juntas»; que esté aplicada en producción NO lo verifiqué.
+   El merge con esta rama fue limpio (el baseline no chocó y el driver regeneró el índice), y su
+   envoltorio da 26/26 junto a los siete nuevos. Su contrato conserva su preludio propio; podría
+   incluir `_audit-writer-real.sql`, pero no lo toqué.
 6. **La reserva SDD `codex/sdd-reserve-0534-…` es local.** El stub viaja en esta PR. Si se descarta
    la PR, hay que borrar la reserva.
 

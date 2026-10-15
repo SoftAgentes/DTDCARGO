@@ -266,9 +266,12 @@ paridad con la 0482 y porque es la huella que se compara en la lectura de
 catálogo. En el barrido, el mutante que la ignora sobrevive y es equivalente.
 Lo mismo vale para la 0482.
 
-**Conflicto textual esperado con la PR #235.** Las dos agregan esperas al final
-de `pendingBelowCutoff` y regeneran el índice de specs. La que se integre
-segunda tiene que conservar las dos esperas y regenerar el índice.
+**La PR #235 ya está en `main`** (`51b74da0`, 2026-10-15). Su último commit
+(`5fcc8ad1`) sacó la 0482 de las esperas «para aplicarse y fusionarse juntas»;
+que la 0482 esté aplicada en producción no lo verifiqué. El merge con esta rama
+fue limpio: el baseline no chocó y el índice lo regeneró el driver. Su contrato
+0482 conserva su propio preludio; podría pasar a incluir
+`_audit-writer-real.sql`, pero no se tocó.
 
 ## 8. Validación
 
