@@ -11,8 +11,8 @@
  * CONTROL ROJO: sin 0490 el contrato cae (ninguna escritura deja evento).
  * MUTANTES: cada uno es una 0490 coherente con un defecto y tiene que caer.
  * DRIFT: si la función ya existe, el preflight aborta sin cambiar nada.
- * ESPERA: la 0490 sigue declarada como pendiente en migrations-baseline.json y
- * su cabecera dice NO APLICADA.
+ * APLICADA: la 0490 salió de las esperas de migrations-baseline.json; la
+ * cabecera «NO APLICADA» se conserva porque el ledger guarda el texto exacto.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -167,16 +167,13 @@ describe("SDD-0537 · 0490 auditoría del tarifario (PGlite)", () => {
   }, SLOW);
 });
 
-describe("SDD-0537 · 0490 queda como espera declarada (texto)", () => {
-  it("la cabecera dice NO APLICADA y pide OK nominal", () => {
+describe("SDD-0537 · 0490 aplicada al servidor propio (texto)", () => {
+  it("la cabecera «NO APLICADA» no se corrige: el ledger guarda el texto exacto", () => {
     expect(FILE_0490).toContain("NO APLICADA A PRODUCCIÓN");
     expect(FILE_0490).toContain("docs/runbooks/aplicar-migraciones-prod.md");
   });
 
-  it("migrations-baseline.json la declara pendiente con su nombre exacto", () => {
-    const espera = BASELINE.pendingBelowCutoff["0490_carrier_tariffs_auditoria"];
-    expect(espera).toMatch(/^PENDIENTE DE APLICAR — SDD-0537/);
-    expect(espera).toContain("OK nominal de Sam");
-    expect(espera).toContain("0490_carrier_tariffs_auditoria");
+  it("aplicada el 2026-10-15 con el OK nominal de Sam: ya no es una espera", () => {
+    expect(BASELINE.pendingBelowCutoff["0490_carrier_tariffs_auditoria"]).toBeUndefined();
   });
 });
