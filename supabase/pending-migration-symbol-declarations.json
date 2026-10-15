@@ -7,5 +7,27 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": []
+  "degradations": [
+    {
+      "id": "sdd-0529-roles-por-region",
+      "primarySymbol": "operario_roles_por_region",
+      "migration": "0480_operarios_editar_por_region",
+      "symbols": [
+        {
+          "name": "operario_roles_por_region",
+          "kind": "function",
+          "callSites": [
+            "lib/studio/operario-queries.ts:94"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "site": "lib/studio/operario-queries.ts:95",
+          "contains": "if (error) return null;",
+          "degradation": "Sin 0480 la función no existe y PostgREST responde con error: getOperarioRolesPorRegion devuelve null sin lanzar, así que /studio/operarios carga igual. Con null, el cajón «Editar» no ofrece roles, dice «No se pudieron cargar los roles de cada región. Recarga la página para editar este operario.» y no deja guardar a nadie, de China ni de Venezuela: nunca se inventa una lista. Por eso el orden es MIGRATE-FIRST: 0480 antes de desplegar. Con 0480 aplicada y la app de antes, los de China se siguen editando igual (sus roles y su almacén son los mismos) y los de Venezuela siguen sin poder guardarse, como hoy."
+        }
+      ]
+    }
+  ]
 }
