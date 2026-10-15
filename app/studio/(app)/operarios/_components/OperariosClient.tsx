@@ -28,6 +28,7 @@ import {
 import type { ColumnWidthSpec } from "@/app/studio/_components/ui/columns/column-widths";
 import { Icon } from "@/app/studio/_components/icons";
 import type { OperarioRow } from "@/lib/studio/operario-queries";
+import type { OperarioRolesPorRegion } from "@/lib/studio/operario-edicion";
 import type { WarehouseCN } from "@/lib/studio/warehouse-cn-types";
 import { operarioLoginLabel, operarioRolLabel } from "@/lib/studio/operario-pin";
 import { setOperarioActiveAction } from "../actions";
@@ -87,9 +88,12 @@ const PAD_X = 20;
 export function OperariosClient({
   operarios,
   warehouses,
+  rolesPorRegion,
 }: {
   operarios: OperarioRow[];
   warehouses: WarehouseCN[];
+  /** SDD-0529: los roles de cada región que da la base, para «Editar»; null si no llegaron. */
+  rolesPorRegion: OperarioRolesPorRegion | null;
 }) {
   const [drawer, setDrawer] = useState<DrawerKind>(null);
   const [selected, setSelected] = useState<OperarioRow | null>(null);
@@ -196,6 +200,7 @@ export function OperariosClient({
         <EditOperarioDrawer
           operario={selected}
           warehouses={warehouses}
+          rolesPorRegion={rolesPorRegion}
           onClose={close}
         />
       )}
