@@ -160,7 +160,9 @@ defecto sólo aparece con el writer real, y eso es lo que montan los contratos n
 | `67386d2e` | Merge de `origin/main@502f519d` (#231, SDD-0529, migración 0480) por el conflicto que GitHub marcó en el índice: el driver local lo resolvió. La 0480 no toca el writer ni las siete RPC; su `correlation_id` (`operario_updated:<uuid>`, 53) no tiene el defecto. docs:check (518 specs), sdd:check, símbolos y las siete suites (182/182) en verde después del merge |
 | `dfd6ca72` | docs(handoff): SDD-0534 — merge con #231 |
 | `3559e391` | Merge de `origin/main@51b74da0` (#235, SDD-0532, migración 0482) por el conflicto que GitHub marcó en el índice: el driver local lo resolvió y el baseline no chocó (la #235 sacó la 0482 de las esperas). docs:check (519 specs), sdd:check, símbolos, las siete suites (182/182) y el envoltorio de la 0482 (26/26) en verde después del merge |
-| (este commit) | docs: SDD-0534 — la #235 ya está en main |
+| `4c1479fc` | docs: SDD-0534 — la #235 ya está en main |
+| `cf7b3061` | Merge de `origin/main@cbf18acf` (#237, SDD-0533, sin migraciones) por el conflicto que GitHub marcó en el índice: el driver local lo resolvió. docs:check (520 specs), sdd:check, símbolos y las siete suites (182/182) en verde después del merge |
+| (este commit) | docs(handoff): SDD-0534 — merge con #237 |
 
 ## PR / BRANCH
 
