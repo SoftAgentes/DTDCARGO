@@ -89,6 +89,15 @@ services:
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.tls=true"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      # `www` → raíz con 301, conservando ruta y query: así lo hace hoy Vercel
+      # (medido el 2026-10-15) y así Google ve una sola versión del sitio. Un solo
+      # router (un certificado con los dos nombres) y el middleware solo actúa
+      # sobre los pedidos a `www.`; la raíz pasa intacta. `$${1}`: `$$` es el `$`
+      # literal para compose. Probado en el Traefik del VPS con un host `.test`.
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-www-a-raiz@docker"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-www-a-raiz.redirectregex.regex=^https://www\\.(.+)"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-www-a-raiz.redirectregex.replacement=https://$${1}"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-www-a-raiz.redirectregex.permanent=true"
       # SIN middleware de `buffering` en el web, a propósito. Ese middleware también
       # almacena la RESPUESTA entera antes de mandarla: medido el 2026-10-12 detrás
       # de este Traefik, una página que manda 5 trozos en 5 s dio el primer byte a
