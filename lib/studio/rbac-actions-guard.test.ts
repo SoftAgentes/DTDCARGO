@@ -270,8 +270,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // (431 → 432): guarda los datos del envío conservando la ubicación para quien
   // no puede verla; llama a `moduleEditDenial(supabase, "tracking")` antes de
   // leer nada y delega la escritura en `updateShipment`, que repite el candado.
+  // SDD-0537 sumó `admin/carrier-actions.ts::bulkUpdateTariffPricesAction`
+  // (432 → 433): cambio en lote del tarifario de transportistas; llama a
+  // `resolveTenantAdmin` → `tenantAdminGate` antes de leer nada (el patrón del
+  // resto del archivo) y la RLS de 0330 repite el candado de admin vivo.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(432);
+    expect(reportes.length).toBe(433);
   });
 
   it("el tamaño de las dos listas está congelado", () => {

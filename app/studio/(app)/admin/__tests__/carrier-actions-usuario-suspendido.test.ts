@@ -47,6 +47,10 @@ function conMembresia(role: string, disabled_at: string | null) {
   db = supabaseDouble({
     userId: USER,
     memberships: [{ user_id: USER, tenant_id: TENANT, role, disabled_at, warehouse_scope: "all" }],
+    // SDD-0537: dar de alta una tarifa exige que la ciudad exista viva en el
+    // catálogo del tenant. Sin esto, el control del admin activo cae por la
+    // ciudad y no por el gate, que es lo que este archivo mide.
+    tables: { calculator_cities: [{ tenant_id: TENANT, slug: "valencia", deleted_at: null }] },
   });
 }
 
