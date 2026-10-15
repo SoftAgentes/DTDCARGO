@@ -201,12 +201,8 @@ export function describeCorrelationMigration(c: CorrelationCase) {
       expect(FILE_NEW).toContain("set lock_timeout = '5s';\nset statement_timeout = '30s';\n");
     });
 
-    it("es una espera declarada hasta que Sam la autorice por nombre", () => {
-      const entry = BASELINE.pendingBelowCutoff[c.file];
-      expect(entry).toBeDefined();
-      for (const text of ["SDD-0534", "OK nominal de Sam", "aplicar-migraciones-prod.md", c.name]) {
-        expect(entry).toContain(text);
-      }
+    it("aplicada al servidor propio el 2026-10-15 con el OK nominal de Sam: ya no es una espera", () => {
+      expect(BASELINE.pendingBelowCutoff[c.file]).toBeUndefined();
     });
   });
 
