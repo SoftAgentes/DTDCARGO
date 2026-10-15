@@ -242,6 +242,15 @@ export const CAPABILITIES = {
   void_payroll_settlement: [],
   /** Anular un gasto y su asiento (SDD-0243): accounting + admin implícito. */
   void_expense: ["accounting"],
+  /**
+   * Eliminar embarques (SDD-0522): admin-only, decisión de Sam. La base lo
+   * exige por su cuenta —`soft_delete_shipments_with_audit_reason` (migr 0476)
+   * pide `role = 'admin'` en user_tenants—, así que agregar un rol acá sin una
+   * migración sólo mostraría la casilla a quien la base igual rechaza.
+   */
+  delete_shipments: [],
+  /** Eliminar recepciones del Almacén CN (SDD-0522): admin-only, igual que embarques. */
+  delete_warehouse_receipts: [],
 } as const satisfies Record<string, readonly StudioUserRole[]>;
 
 export type StudioCapability = keyof typeof CAPABILITIES;
