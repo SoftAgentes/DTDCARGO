@@ -92,8 +92,12 @@ export async function listWarehouses(
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Lista de recepciones con filtros. Joins con warehouses_cn y trae
+ * Lista de recepciones VIVAS con filtros. Joins con warehouses_cn y trae
  * items_count agregado. Hasta 100 más recientes.
+ *
+ * SDD-0522: la RLS NO excluye las eliminadas —la 0230 sacó `deleted_at is
+ * null` de la policy FOR ALL porque bloqueaba el propio soft delete—, así que
+ * el `.is("deleted_at", null)` de abajo es lo único que las deja fuera.
  */
 export async function listReceipts(
   supabase: SupabaseClient,
@@ -103,6 +107,7 @@ export async function listReceipts(
   let query = supabase
     .from("warehouse_receipts_cn")
     .select(RECEIPT_LIST_SELECT)
+    .is("deleted_at", null)
     .order("received_at", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(100);
@@ -266,7 +271,8 @@ export type WarehouseKpis = {
  * - incidentsCount: receipts en `incidencia`
  *
  * Sin agregados Postgres complejos (group by) — usa 3 selects livianos.
- * RLS filtra por tenant automáticamente.
+ * RLS filtra por tenant automáticamente; las eliminadas las saca cada select
+ * (SDD-0522: la RLS no lo hace desde la 0230).
  */
 export async function computeWarehouseKpis(
   supabase: SupabaseClient,
@@ -280,15 +286,18 @@ export async function computeWarehouseKpis(
     supabase
       .from("warehouse_receipts_cn")
       .select("id", { count: "exact", head: true })
+      .is("deleted_at", null)
       .gte("received_at", firstOfMonth),
     supabase
       .from("warehouse_receipts_cn")
       .select("total_cbm", { count: "exact" })
+      .is("deleted_at", null)
       .eq("status", "pendiente_consolidacion")
       .limit(500),
     supabase
       .from("warehouse_receipts_cn")
       .select("id", { count: "exact", head: true })
+      .is("deleted_at", null)
       .eq("status", "incidencia"),
   ]);
 
