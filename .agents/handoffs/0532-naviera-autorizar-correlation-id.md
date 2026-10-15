@@ -146,7 +146,8 @@ prueba «deriva sólo de espacios». Desde ahí, los scripts se escriben con Wri
 | `9f511ddc` | test(studio): SDD-0532 — contrato 0482 con el writer AUD-01 real y envoltorio PGlite |
 | `f43b1732` | docs: SDD-0532 — spec, índice y handoff de la autorización Naviera |
 | `7d05f715` | Merge de `origin/main@7075883e` (#224, #225): el driver resolvió el índice; docs:check, sdd:check, símbolos y el envoltorio (26/26) en verde después del merge |
-| (este commit) | docs(handoff): SDD-0532 — PR #235 y SHA |
+| `5251fb9c` | docs(handoff): SDD-0532 — PR #235 y SHA |
+| `40e9507e` | Merge de `origin/main@19d4128e` (#220, #226–#229, entre ellas la SDD-0528): la #235 había quedado CONFLICTING por el índice de specs. El driver lo resolvió; docs:check (513 specs), sdd:check, símbolos (0 rojo) y el envoltorio (26/26) en verde después del merge |
 
 ## PR / BRANCH
 
