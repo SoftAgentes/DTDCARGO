@@ -788,6 +788,10 @@ function PreAlerta() {
    * registra en el sistema (SDD-0516). Con el interruptor de la 0514 prendido,
    * la ruta, el actor 3 y el paso 5 dicen lo que sí pasa hoy; al apagarlo vuelve
    * el texto de siempre. Se lee aquí, al renderizar, y no al cargar el módulo.
+   *
+   * SDD-0528 · con el mismo valor, el tercer beneficio deja de prometer que ves
+   * el estado de tu compra en todo momento (el seguimiento del Portal está en
+   * construcción) y dice lo que el Portal ya hace: registrar la compra.
    */
   const enConstruccion = TRACKING_EN_CONSTRUCCION;
   return (
@@ -919,9 +923,15 @@ function PreAlerta() {
               Tu carga llega <b>identificada</b> desde la mesa del proveedor hasta el
               galpón — un solo código.
             </>,
-            <>
-              Ves el <b>estado de tu compra</b> en todo momento.
-            </>,
+            enConstruccion ? (
+              <>
+                Tu compra queda <b>registrada en tu portal</b> desde el primer día.
+              </>
+            ) : (
+              <>
+                Ves el <b>estado de tu compra</b> en todo momento.
+              </>
+            ),
           ]}
         />
       </SecF2>
