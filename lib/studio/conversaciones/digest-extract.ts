@@ -4,6 +4,7 @@
  * ÚNICO punto del digest que usa un LLM. Calca `bitacora/extract.ts`: Anthropic
  * directo con **tool-use FORZADO** (schema como input_schema → cero parseo frágil).
  * Modelo `CONVERSATION_DIGEST_MODEL` (env) → default el de Bitácora → `claude-sonnet-4-6`.
+ * Una variable vacía o con sólo espacios cuenta como sin definir (SDD-0525).
  *
  * Sin `ANTHROPIC_API_KEY` (o `LLM_FORCE_MOCK=1`) → **mock determinista** derivado del
  * hilo (dev/tests/verify sin gastar tokens). NUNCA lanza → `{ summary, model }` o
@@ -13,6 +14,7 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import type { ToolUseBlock } from "@anthropic-ai/sdk/resources/messages";
+import { firstConfiguredSetting } from "@/lib/runtime/server-setting";
 
 export interface DigestMessage {
   direction: "in" | "out";
@@ -24,9 +26,10 @@ export type DigestResult = { summary: string; model: string } | { error: string 
 
 const TOOL_NAME = "resumen";
 const DEFAULT_MODEL =
-  process.env.CONVERSATION_DIGEST_MODEL ??
-  process.env.BITACORA_ACTA_MODEL ??
-  "claude-sonnet-4-6";
+  firstConfiguredSetting(
+    process.env.CONVERSATION_DIGEST_MODEL,
+    process.env.BITACORA_ACTA_MODEL,
+  ) ?? "claude-sonnet-4-6";
 
 const SCHEMA: Anthropic.Messages.Tool.InputSchema = {
   type: "object",

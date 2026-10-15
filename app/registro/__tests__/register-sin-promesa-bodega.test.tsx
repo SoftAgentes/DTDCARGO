@@ -5,7 +5,11 @@
  * La bodega de China todavía registra en Excel y los avisos automáticos al
  * cliente sólo salen por correo o push, nunca por WhatsApp. Con
  * `TRACKING_EN_CONSTRUCCION` prendido, el paso Contacto dice para qué sirve el
- * WhatsApp sin prometer avisos; apagado, vuelve el texto de siempre.
+ * WhatsApp sin prometer avisos.
+ *
+ * SDD-0524 · apagado ya no vuelve el texto de siempre: ese prometía los avisos
+ * POR WHATSAPP, que no existe. Dice el canal real: correo, y push si el
+ * cliente activa las notificaciones del Portal.
  *
  * Se mira el `<p>` que va debajo del título del paso: ahí vive el texto, y para
  * una empresa empieza por «Registras a …», que no se puede perder.
@@ -27,8 +31,10 @@ vi.mock("@/components/Analytics", () => ({ trackLead: vi.fn() }));
 import { RegisterForm } from "../RegisterForm";
 
 const NEUTRO = "El WhatsApp es por donde hablamos contigo sobre tu carga.";
-const DE_SIEMPRE =
-  "El WhatsApp es por donde te avisamos de tu carga: cuando llega a bodega en China, cuando zarpa y cuando está lista para entrega.";
+const APAGADO =
+  "El WhatsApp es por donde hablamos contigo sobre tu carga. Los avisos de cuando llega a bodega en China, cuando zarpa y cuando está lista para entrega te llegan por correo y, si activas las notificaciones en tu Portal, también en tu teléfono o tu computadora.";
+/** El texto viejo (antes de la 0524): prometía los avisos por WhatsApp. */
+const PROMESA_WHATSAPP = /WhatsApp es por donde te avisamos|te avisamos por WhatsApp|avisos? por WhatsApp/i;
 const PROMESA = /bodega|te avisamos|te notificamos|te avisaremos/i;
 
 const CIUDADES = [{ city: "Valencia", state: "Carabobo" }];
@@ -94,20 +100,28 @@ describe("registro · sin promesa de aviso de bodega (SDD-0517)", () => {
     expect(textoDelPaso()).toBe(`Registras a Importadora Pérez. ${NEUTRO}`);
   });
 
-  it("apagado: vuelve el texto de siempre, palabra por palabra", async () => {
+  it("apagado (SDD-0524): promete los avisos por el canal real, correo y push, palabra por palabra", async () => {
     h.prendido = false;
-    render(<RegisterForm cities={CIUDADES} />);
+    const { container } = render(<RegisterForm cities={CIUDADES} />);
     await irAContactoPersona();
 
-    expect(textoDelPaso()).toBe(DE_SIEMPRE);
-    expect(screen.queryByText(NEUTRO)).not.toBeInTheDocument();
+    expect(textoDelPaso()).toBe(APAGADO);
+    // En ninguna parte del formulario se promete un aviso por WhatsApp.
+    expect(container.textContent).not.toMatch(PROMESA_WHATSAPP);
   });
 
-  it("apagado, empresa: «Registras a …» y el texto de siempre", async () => {
+  it("apagado, empresa: «Registras a …» y el texto con el canal real", async () => {
     h.prendido = false;
     render(<RegisterForm cities={CIUDADES} />);
     await irAContactoEmpresa();
 
-    expect(textoDelPaso()).toBe(`Registras a Importadora Pérez. ${DE_SIEMPRE}`);
+    expect(textoDelPaso()).toBe(`Registras a Importadora Pérez. ${APAGADO}`);
+  });
+
+  it("control: la expresión de la promesa vieja sí reconoce el texto de antes", () => {
+    // Sin esto, un `not.toMatch` con una expresión rota pasaría siempre.
+    expect(
+      "El WhatsApp es por donde te avisamos de tu carga: cuando llega a bodega en China, cuando zarpa y cuando está lista para entrega.",
+    ).toMatch(PROMESA_WHATSAPP);
   });
 });

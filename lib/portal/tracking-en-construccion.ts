@@ -43,7 +43,10 @@
  * este valor: su enlace al Portal dice «Portal del cliente», que es cierto en
  * las dos posiciones.
  *
- * Al apagarlo, vuelven todos esos textos de siempre en el mismo momento.
+ * Al apagarlo, vuelven todos esos textos de siempre en el mismo momento, con una
+ * excepción (SDD-0524): el paso Contacto del registro no vuelve a prometer los
+ * avisos POR WHATSAPP, que no existen; apagado dice el canal real (correo, y push
+ * si el cliente activa las notificaciones del Portal).
  *
  * Este módulo no importa nada a propósito: lo leen también páginas y
  * componentes públicos (algunos de cliente, como el registro), y no debe
