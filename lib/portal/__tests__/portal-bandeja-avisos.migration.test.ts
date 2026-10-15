@@ -133,28 +133,21 @@ describe("0479 · bandeja de avisos del Portal (PGlite)", () => {
     expect(notices.join("\n")).toMatch(/TEST 0479 GREEN: 61 aserciones/);
   }, SLOW);
 
-  it("mientras no se aplique: cabecera, espera en el baseline y degradación declarada", () => {
+  it("aplicada al servidor propio el 2026-10-15: ya no es una espera ni una degradación declarada", () => {
+    // Aplicada con el OK nominal de Sam; el ledger guarda el archivo entero. La
+    // cabecera «NO APLICADA» no se corrige: editarla rompería la identidad.
     const baseline = JSON.parse(readFileSync(resolve(ROOT, "supabase/migrations-baseline.json"), "utf8")) as {
       cutoff: number;
       pendingBelowCutoff: Record<string, string>;
     };
     const declaraciones = JSON.parse(
       readFileSync(resolve(ROOT, "supabase/pending-migration-symbol-declarations.json"), "utf8"),
-    ) as { degradations: { migration: string; symbols: { name: string }[] }[] };
+    ) as { degradations: { migration: string }[] };
 
-    expect(FILE_0479).toContain(
-      "⚠️ NO APLICADA A PRODUCCIÓN. Declarada como espera en\n--    supabase/migrations-baseline.json › pendingBelowCutoff.",
-    );
+    expect(FILE_0479).toContain("⚠️ NO APLICADA A PRODUCCIÓN.");
     expect(baseline.cutoff).toBe(238);
-    const espera = baseline.pendingBelowCutoff["0479_portal_bandeja_avisos"];
-    expect(espera).toMatch(/^PENDIENTE DE APLICAR — SDD-0526\./);
-    expect(espera).toContain("MIGRATE-FIRST");
-    expect(espera).toContain("name exacto 0479_portal_bandeja_avisos");
-    const grupo = declaraciones.degradations.find((d) => d.migration === "0479_portal_bandeja_avisos");
-    expect(grupo?.symbols.map((s) => s.name).sort()).toEqual([
-      "portal_list_my_notifications",
-      "portal_mark_my_notifications_seen",
-    ]);
+    expect(baseline.pendingBelowCutoff["0479_portal_bandeja_avisos"]).toBeUndefined();
+    expect(declaraciones.degradations.some((d) => d.migration === "0479_portal_bandeja_avisos")).toBe(false);
   });
 
   it("control rojo: sin 0479 el contrato falla", async () => {

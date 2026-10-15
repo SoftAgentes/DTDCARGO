@@ -7,39 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "sdd-0526-bandeja-avisos",
-      "primarySymbol": "portal_list_my_notifications",
-      "migration": "0479_portal_bandeja_avisos",
-      "symbols": [
-        {
-          "name": "portal_list_my_notifications",
-          "kind": "function",
-          "callSites": [
-            "lib/portal/portal-avisos-queries.ts:24"
-          ]
-        },
-        {
-          "name": "portal_mark_my_notifications_seen",
-          "kind": "function",
-          "callSites": [
-            "lib/portal/portal-avisos-queries.ts:51"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/portal/portal-avisos-queries.ts:30",
-          "contains": "return [];",
-          "degradation": "Sin 0479 la RPC no existe y PostgREST responde con error: listMyPortalAvisos registra sólo el código y devuelve una lista vacía. El layout del Portal sigue cargando; la campana queda sin contador de avisos y con la bandeja vacía («Todavía no tienes avisos.»), pero conserva la marca y el enlace de la respuesta del asesor. El detalle de una compra no muestra historial de avisos. Nada se escribe. Por eso el orden es MIGRATE-FIRST: 0479 antes de desplegar; con 0479 aplicada y la app de antes no cambia nada, porque nadie llama a las RPC nuevas."
-        },
-        {
-          "site": "lib/portal/portal-avisos-queries.ts:56",
-          "contains": "return false;",
-          "degradation": "Sin 0479 marcar como visto falla con error de PostgREST: markMyPortalAvisosSeen registra sólo el código y devuelve false, la server action responde { ok: false } y la campana no baja el contador. Sólo se llama si hay avisos sin leer, y sin 0479 la bandeja siempre está vacía, así que en la práctica no se llama."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
