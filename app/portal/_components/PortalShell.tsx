@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import type { PortalSailing } from "@/lib/portal/next-sailing-queries";
+import type { PortalAviso } from "@/lib/portal/portal-avisos";
 import { PortalSidebar } from "./PortalSidebar";
 import { PortalTopbar } from "./PortalTopbar";
 import { PortalFooter } from "./PortalFooter";
@@ -81,6 +82,7 @@ export function PortalShell({
   profileComplete,
   sailing,
   sailingDaysToCutoff,
+  avisos,
   children,
 }: {
   name: string;
@@ -93,6 +95,8 @@ export function PortalShell({
   profileComplete: boolean;
   sailing: PortalSailing | null;
   sailingDaysToCutoff: number | null;
+  /** Bandeja de avisos de la campana (SDD-0526). */
+  avisos: readonly PortalAviso[];
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -161,6 +165,7 @@ export function PortalShell({
           sailing={sailing}
           sailingDaysToCutoff={sailingDaysToCutoff}
           soporteDot={soporteDot}
+          avisos={avisos}
           onOpenMenu={() => setMobileState({ path, open: true })}
         />
 
