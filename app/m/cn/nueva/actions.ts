@@ -7,8 +7,10 @@
  *  1. getCurrentOperario() valida cookie + DB → si no hay sesión, error
  *  2. Parse + valida input contra validateCreateReceiptInput
  *  3. Llama RPC create_receipt_as_operario con service_role
- *  4. revalidatePath /studio/cn para que el Studio web refresh KPIs
- *  5. Retorna receipt_code para mostrar en el "Done" screen
+ *  4. SDD-0524 · vincula la recepción a su compra (si hay exactamente una
+ *     abierta) y programa el aviso «llegó a bodega» al cliente, como el Studio
+ *  5. revalidatePath /studio/cn para que el Studio web refresh KPIs
+ *  6. Retorna receipt_code para mostrar en el "Done" screen
  *
  * NO retorna detalle del operario al cliente — la PWA ya sabe quién es
  * por la cookie. Solo retorna el código asignado.
@@ -18,6 +20,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { resolveClientNameByMarkbox } from "@/lib/studio/warehouse-cn-queries";
+import { vincularYAvisarRecepcionCn } from "@/lib/studio/notifications/aviso-recepcion-cn";
 import {
   validateCreateReceiptInput,
   type CreateReceiptInput,
@@ -103,6 +106,29 @@ export async function createReceiptFromOperarioAction(
   const row = Array.isArray(data) ? data[0] : null;
   if (!row?.receipt_code) {
     return { error: "RPC no devolvió código." };
+  }
+
+  // ── SDD-0524 · vincular a su compra y avisarle al cliente ──
+  //
+  // 🔴 Este camino no avisaba a nadie y nunca vinculaba: la mercancía que el
+  // equipo de China registraba a mano llegaba a Yiwu en silencio, y en el
+  // Portal la compra seguía diciendo que no había llegado. Ahora hace lo mismo
+  // que el Studio de escritorio (detalle en `aviso-recepcion-cn.ts`).
+  //
+  // Con `await`, como el escritorio: el operario espera unos milisegundos y, a
+  // cambio, la nota de un cliente sin aviso queda escrita antes de responder.
+  // Best-effort: un fallo del aviso no invalida la recepción ya creada.
+  // Una huérfana no avisa a nadie: todavía no se sabe de quién es.
+  if (!input.is_orphan && input.client_markbox && row.receipt_id) {
+    try {
+      await vincularYAvisarRecepcionCn(admin, {
+        tenantId: operario.tenant_id,
+        receiptId: row.receipt_id,
+        markbox: input.client_markbox,
+      });
+    } catch (err) {
+      console.error("[createReceiptFromOperarioAction] aviso de recepción falló:", err);
+    }
   }
 
   // Refresh Studio web (KPIs + listado)
