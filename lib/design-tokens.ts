@@ -1112,6 +1112,16 @@ export const PHILOSOPHY = {
       kicker: "TRAZABILIDAD",
       title: "Tracking etapa por etapa",
       copy: "Sigue tu carga desde la recepción en China hasta la entrega final en Venezuela.",
+      /**
+       * SDD-0521 · lo que dice la tarjeta mientras el seguimiento del Portal
+       * está en construcción (`TRACKING_EN_CONSTRUCCION`, SDD-0514): quien
+       * sigue la carga es el equipo, no el cliente desde el Portal. La elige
+       * `components/Philosophy.tsx`, para que este archivo siga sin imports.
+       */
+      enConstruccion: {
+        title: "Acompañamiento etapa por etapa",
+        copy: "Nuestro equipo sigue tu carga desde la recepción en China hasta la entrega final en Venezuela.",
+      },
     },
   ],
   cta: "Deja que nuestra experiencia sea tu mayor tranquilidad.",

@@ -1,6 +1,18 @@
 import Link from "next/link";
 import { PHILOSOPHY, buildWhatsAppLink } from "@/lib/design-tokens";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 import { ArrowIcon, QuoteIcon, WhatsAppIcon } from "./Icon";
+
+/**
+ * SDD-0521 · mientras el seguimiento esté en construcción (SDD-0514), una
+ * tarjeta con variante `enConstruccion` muestra ese título y texto en vez de
+ * prometer tracking. Apagado el interruptor, vuelve la de siempre.
+ */
+function tarjetaVigente(card: (typeof PHILOSOPHY.cards)[number]) {
+  return TRACKING_EN_CONSTRUCCION && "enConstruccion" in card
+    ? { ...card, ...card.enConstruccion }
+    : card;
+}
 
 /**
  * Sección de filosofía / cierre — la confianza se construye envío a envío.
@@ -61,7 +73,7 @@ export function Philosophy() {
 
         {/* 4 razones — patrón de tarjeta del sistema */}
         <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {PHILOSOPHY.cards.map((card) => (
+          {PHILOSOPHY.cards.map(tarjetaVigente).map((card) => (
             <div
               key={card.title}
               className="card-shadow-static bg-white border border-grey-200 rounded-[18px] p-7 lg:p-8 flex flex-col"

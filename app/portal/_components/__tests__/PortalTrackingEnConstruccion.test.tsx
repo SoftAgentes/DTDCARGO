@@ -13,6 +13,10 @@
  * El detalle de una compra se prueba aparte, en
  * `app/portal/(app)/compras/[code]/page.test.tsx`, porque es una página async
  * con sus consultas.
+ *
+ * SDD-0521 · el aviso dice además «Te avisaremos apenas esté activo.» (pedido de
+ * Sam). El caso del componente fija el párrafo entero; cada pantalla comprueba
+ * que su aviso lo trae.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
@@ -43,6 +47,22 @@ import { PortalShipmentDetailNorte } from "../../(app)/envios/[code]/_components
 import { PortalDashboardNorte } from "../../(app)/_components/PortalDashboardNorte";
 
 const TITULO = "Seguimiento en construcción";
+/**
+ * SDD-0521 · el texto completo del aviso, palabra por palabra. Sam pidió
+ * agregar «Te avisaremos apenas esté activo.» justo después de «Muy pronto vas
+ * a ver aquí cada paso de tu carga.»; el resto es el de la 0514.
+ */
+const AVISAREMOS = "Te avisaremos apenas esté activo.";
+const TEXTO =
+  "Estamos activando el registro de tu mercancía en nuestra bodega de China. " +
+  "Muy pronto vas a ver aquí cada paso de tu carga. " +
+  AVISAREMOS +
+  " Tus pre-alertas quedan guardadas y nuestro equipo las recibe.";
+
+/** El texto de un nodo con los espacios colapsados. */
+function plano(el: Element): string {
+  return (el.textContent ?? "").replace(/\s+/g, " ").trim();
+}
 
 beforeEach(() => {
   interruptor.prendido = true;
@@ -217,11 +237,10 @@ describe("PortalTrackingEnConstruccion (SDD-0514)", () => {
     render(<PortalTrackingEnConstruccion />);
     const caja = aviso();
     expect(caja).not.toBeNull();
-    expect(caja!.textContent).toContain(
-      "Estamos activando el registro de tu mercancía en nuestra bodega de China.",
-    );
-    expect(caja!.textContent).toContain("Muy pronto vas a ver aquí cada paso de tu carga.");
-    expect(caja!.textContent).toContain("Tus pre-alertas quedan guardadas");
+    // SDD-0521 · el párrafo entero y en orden: «Te avisaremos apenas esté
+    // activo.» va después de «Muy pronto…» y antes de «Tus pre-alertas…».
+    const parrafo = within(caja!).getByText((_, el) => el?.tagName === "P" && plano(el).startsWith("Estamos activando"));
+    expect(plano(parrafo)).toBe(TEXTO);
     expect(within(caja!).getByRole("link", { name: /Escríbenos en Soporte/ })).toHaveAttribute(
       "href",
       "/portal/soporte",
@@ -240,6 +259,7 @@ describe("Envíos · lista (SDD-0514)", () => {
     montarHub();
     const caja = aviso();
     expect(caja).not.toBeNull();
+    expect(plano(caja!)).toContain(AVISAREMOS);
     const filaPrealerta = screen.getByText("DTD-TEST-1");
     expect(antes(caja!, filaPrealerta)).toBe(true);
   });
@@ -258,6 +278,7 @@ describe("Envíos · Seguimiento total (SDD-0514)", () => {
     await userEvent.click(screen.getByRole("button", { name: /Seguimiento total/ }));
     const caja = aviso();
     expect(caja).not.toBeNull();
+    expect(plano(caja!)).toContain(AVISAREMOS);
     const barra = screen.getByRole("progressbar", { name: "60% del viaje" });
     expect(screen.getByRole("link", { name: /ENV-0001/ })).toHaveAttribute(
       "href",
@@ -285,6 +306,7 @@ describe("Detalle de un envío (SDD-0514)", () => {
     montarDetalle();
     const caja = aviso();
     expect(caja).not.toBeNull();
+    expect(plano(caja!)).toContain(AVISAREMOS);
     const seguimiento = screen.getByRole("heading", { name: "Seguimiento" });
     expect(antes(caja!, seguimiento)).toBe(true);
     // El hito real con su fecha sigue en el stepper.
@@ -309,6 +331,7 @@ describe("Portada (SDD-0514)", () => {
     montarPortada();
     const caja = aviso();
     expect(caja).not.toBeNull();
+    expect(plano(caja!)).toContain(AVISAREMOS);
     const heroe = screen.getByRole("link", { name: "Ver detalle del próximo arribo ENV-0001" });
     expect(antes(caja!, heroe)).toBe(true);
     expect(screen.getByText("Tus envíos")).toBeInTheDocument();

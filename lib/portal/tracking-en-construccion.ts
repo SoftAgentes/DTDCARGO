@@ -19,12 +19,26 @@
  * recepciones (`app/portal/(app)/compras/[code]/page.tsx`) y la tarjeta de
  * notificaciones de la portada (`app/portal/(app)/page.tsx`). Fuera del Portal,
  * el paso Contacto del registro público (`app/registro/RegisterForm.tsx`,
- * SDD-0517) deja de prometer avisos por WhatsApp. Al apagarlo, vuelven sus
- * textos de siempre en el mismo momento.
+ * SDD-0517) deja de prometer avisos por WhatsApp y la ficha de pre-alerta de
+ * `/servicios` (`components/servicios/hub-fichas.tsx`, SDD-0519) deja de
+ * prometer el aviso de llegada.
  *
- * Este módulo no importa nada a propósito: lo lee también el registro, que es
- * un componente de cliente de una página pública, y no debe arrastrar código
- * del Portal ni de la base al navegador.
+ * Y la web pública deja de prometer rastreo (SDD-0521): el enlace del pie de
+ * página (`components/Footer.tsx`), la tarjeta y los metadatos de `/enlaces`
+ * (`app/enlaces/page.tsx`), el botón de la 404 (`app/not-found.tsx`), el acceso
+ * de Actualidad (`app/noticias/_components/ActualidadHub.tsx`), el botón de
+ * `/verificar` (`app/verificar/page.tsx`), la tarjeta de trazabilidad de
+ * `/brochure` (`components/Philosophy.tsx`, con su texto en `lib/design-tokens.ts`),
+ * el paso 06 de `/shipping-mark` (`components/ShippingMark.tsx`) y la
+ * descripción, la entrada y un beneficio de `/pre-alertas`
+ * (`app/pre-alertas/page.tsx`).
+ *
+ * Al apagarlo, vuelven todos esos textos de siempre en el mismo momento.
+ *
+ * Este módulo no importa nada a propósito: lo leen también páginas y
+ * componentes públicos (algunos de cliente, como el registro), y no debe
+ * arrastrar código del Portal ni de la base al navegador. Lo vigila
+ * `components/servicios/hub-fichas-sin-promesa-bodega.test.tsx`.
  *
  * En el mismo commit, cambia también su `value` en `scripts/feature-constants.json`.
  * Eso no cambia el comportamiento: deja dicho en qué estado quedó para el

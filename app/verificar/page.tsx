@@ -7,6 +7,7 @@ import { BrandMark } from "@/components/BrandMark";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { CONTACT } from "@/lib/design-tokens";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 
 /**
  * /verificar — destino del QR de las etiquetas de caja (SDD-0097 · Slice C).
@@ -496,8 +497,10 @@ export default async function VerificarPage({
                   >
                     Escríbenos por WhatsApp
                   </a>
+                  {/* SDD-0521 · sin promesa de rastreo mientras el
+                      seguimiento esté en construcción (SDD-0514). */}
                   <Link href="/entrar" className="btn btn-ghost">
-                    Rastrear un envío
+                    {TRACKING_EN_CONSTRUCCION ? "Entrar a mi portal" : "Rastrear un envío"}
                   </Link>
                 </div>
               </div>
