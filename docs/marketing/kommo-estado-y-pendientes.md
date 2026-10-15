@@ -130,11 +130,19 @@ están apagados**, incluidos los 4 «Ping 23 h». Quién los apagó: **NO VERIFI
 Es la misma causa de fondo que el 25-ago: sin agentes corriendo no hay tarea, y sin
 tarea no hay rojo. **No es WhatsApp:** los mensajes siguen entrando todos los días.
 
-**Recontacto:** cuando alguien con el trato en `Ventas Perdidos` vuelve a escribir,
-**Kommo no crea un trato nuevo**: cuelga el mensaje del trato cerrado (57 casos en
-30 días, ninguno con trato posterior). El enrutador de SDD-0244 espera un
-`leads[add]` que nunca llega. Lo arregla SDD-0535 desde el webhook: perdido →
-Recontacto + tarea vencida; ganado → solo la tarea.
+**Recontacto: dos caminos, y el enrutador no veía ninguno.**
+
+- **El cliente con Shipping Mark** que vuelve a escribir recibe un trato **nuevo**
+  en «Leads Entrantes», y Kommo lo avisa con `unsorted[add]`, no con `leads[add]`
+  (1.864 en 5 días en los logs del servidor). El webhook descartaba ese evento, así
+  que el enrutador de SDD-0244 **no movió un trato nunca**: la cola no tiene un solo
+  `patch_stage` a Recontacto. Los 18 movimientos a Recontacto desde julio los hizo
+  una persona, al aceptar la entrada.
+- **El perdido** que vuelve a escribir no recibe trato nuevo: Kommo cuelga el
+  mensaje del trato cerrado (57 casos en 30 días).
+
+Lo arregla SDD-0535 desde el webhook: la entrada del cliente se **acepta directo en
+Recontacto**; el perdido vuelve a Recontacto; los dos, con tarea vencida.
 
 ### 🟢 Mismo día · Los 4 agentes encendidos otra vez (13:19-13:30 UTC)
 
