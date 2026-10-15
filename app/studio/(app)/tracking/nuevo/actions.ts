@@ -28,6 +28,8 @@ import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { fireWorkflowEvent } from "@/lib/studio/workflow/workflow-rule-engine";
 import { prefillShipmentCostsFromTemplate } from "@/lib/studio/costing/queries";
+import { readCanSeeClientNames } from "@/lib/studio/privacidad-cn";
+import { resolveClientNameByMarkbox } from "@/lib/studio/warehouse-cn-queries";
 
 export type CreateShipmentState = {
   error?: string;
@@ -54,7 +56,7 @@ export async function createShipment(
 ): Promise<CreateShipmentState> {
   const code = parseString(formData.get("code"));
   const shipment_service = String(formData.get("shipment_service") ?? "") as ShipmentService;
-  const client_name = parseString(formData.get("client_name"));
+  let client_name = parseString(formData.get("client_name"));
   const client_markbox = parseString(formData.get("client_markbox"));
   const origin = parseString(formData.get("origin"));
   const destination = parseString(formData.get("destination"));
@@ -87,6 +89,18 @@ export async function createShipment(
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "tracking");
   if (denial) return { error: denial };
+
+  // SDD-0531 · PIPL: quien no puede ver nombres (región China, no admin) crea el
+  // envío con el Shipping Mark y el nombre lo pone el SERVER desde ahí — mismo
+  // principio que las recepciones de Yiwu (H-7, resolveClientNameByMarkbox). Lo
+  // que mande su navegador en client_name no cuenta: no tiene de dónde sacarlo.
+  if (!(await readCanSeeClientNames(supabase))) {
+    client_name = await resolveClientNameByMarkbox(
+      supabase,
+      tenantId,
+      client_markbox,
+    );
+  }
 
   const { data: created, error } = await supabase
     .from("shipments")

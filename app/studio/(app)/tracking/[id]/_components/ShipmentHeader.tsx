@@ -11,6 +11,7 @@ import Link from "next/link";
 import { ServiceBadge } from "../../_components/ServiceBadge";
 import { StatusBadge } from "../../_components/StatusBadge";
 import type { Shipment } from "@/lib/studio/shipment-types";
+import { etiquetaDelCliente } from "@/lib/studio/privacidad-cn";
 
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -37,7 +38,14 @@ function formatCreated(iso: string): string {
   });
 }
 
-export function ShipmentHeader({ shipment }: { shipment: Shipment }) {
+export function ShipmentHeader({
+  shipment,
+  nombresOcultos = false,
+}: {
+  shipment: Shipment;
+  /** SDD-0531: sin nombre del cliente (región China) se muestra su Shipping Mark. */
+  nombresOcultos?: boolean;
+}) {
   return (
     <div style={{ marginBottom: 32 }}>
       <Link
@@ -84,7 +92,7 @@ export function ShipmentHeader({ shipment }: { shipment: Shipment }) {
             className="studio-display"
             style={{ fontSize: 22, color: "var(--ink)" }}
           >
-            {shipment.client_name ?? "Sin cliente"}
+            {etiquetaDelCliente(shipment, nombresOcultos)}
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
