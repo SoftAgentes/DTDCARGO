@@ -15,7 +15,7 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
-import { kommoFetch } from "../kommo-sync/kommo-client.ts";
+import { kommoFetch, kommoWrite } from "../kommo-sync/kommo-client.ts";
 import { upsertRows } from "../kommo-sync/sync.ts";
 import type { KommoContact, KommoLead } from "../kommo-sync/types.ts";
 import {
@@ -38,8 +38,18 @@ import {
   decideRoute,
   phoneKey,
   readRecontactoTarget,
+  type RouteDecision,
   type RouterClientRow,
 } from "../_shared/kommo-router.ts";
+import {
+  decidirReapertura,
+  type EntradaBandeja,
+  leadsConMensajeEntrante,
+  type LeadCerradoLike,
+  parseEntradasBandeja,
+  procesarEntradasBandeja,
+  type ResumenEntradas,
+} from "../_shared/kommo-reapertura.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -69,6 +79,9 @@ interface ConnRow {
   markbox_field_id: number | null;
   /** SDD-0244 rebanada B — custom field de CONTACTO (la marca permanente). */
   markbox_contact_field_id: number | null;
+  /** SDD-0535 — el gate de la cola, que también gobierna el accept de la bandeja. */
+  writeback_enabled: boolean | null;
+  writeback_dry_run: boolean | null;
 }
 
 /** Lead de Kommo pedido con `?with=contacts` (el enrutador necesita el contacto). */
@@ -89,17 +102,13 @@ interface LeadWithContacts {
  * El gate de escritura sigue siendo el de la outbox (`writeback_dry_run`): acá
  * solo se ENCOLA. Con dry-run encendido se puede observar sin que Kommo cambie.
  */
-async function routeNewLeads(
-  supabase: SupabaseClient,
-  baseUrl: string,
-  token: string,
-  conn: ConnRow,
-  leadIds: number[],
-): Promise<Record<string, unknown>> {
-  const target = readRecontactoTarget(conn.stage_map);
-  if (!target) return { skipped: "sin stage_map.recontacto (enrutador inerte)" };
-  if (leadIds.length === 0) return { checked: 0 };
+type CargarPorClaves = (claves: string[]) => Promise<RouterClientRow[]>;
 
+/**
+ * Cargador de clientes por clave de teléfono, con caché por request. Lo comparten
+ * el enrutador de `leads[add]` y la aceptación de la bandeja (SDD-0535).
+ */
+function crearCargadorPorClaves(supabase: SupabaseClient, conn: ConnRow): CargarPorClaves {
   // Candidatos por CLAVE EXACTA, no el universo entero.
   //
   // 🔴 Antes esto traía la tabla completa con `.limit(10000)`, y PostgREST corta
@@ -114,7 +123,7 @@ async function routeNewLeads(
   // poder mentir: si mil clientes compartieran una clave, cualquier conteo ≥2
   // ya es ambiguo — truncar no puede convertir un ambiguo en un único.
   const porClave = new Map<string, RouterClientRow[]>();
-  const loadClientesPorClaves = async (claves: string[]): Promise<RouterClientRow[]> => {
+  return async (claves: string[]): Promise<RouterClientRow[]> => {
     const faltan = claves.filter((k) => !porClave.has(k));
     if (faltan.length > 0) {
       const { data } = await supabase
@@ -133,6 +142,112 @@ async function routeNewLeads(
     }
     return claves.flatMap((k) => porClave.get(k) ?? []);
   };
+}
+
+/**
+ * ¿El trato es de un cliente que ya pasó? Pide el lead con su contacto y lo
+ * cruza contra `clients`: primero por `kommo_contact_id`, después por teléfono
+ * (`decideRoute`). Si el cruce fue por teléfono, AUTO-SANA el vínculo.
+ */
+async function resolverCliente(
+  supabase: SupabaseClient,
+  baseUrl: string,
+  token: string,
+  conn: ConnRow,
+  leadId: number,
+  cargarPorClaves: CargarPorClaves,
+): Promise<{ decision: RouteDecision | null; contactId: number | null; healed: boolean }> {
+  const lead = await kommoFetch<LeadWithContacts>(
+    baseUrl,
+    token,
+    `/api/v4/leads/${leadId}?with=contacts`,
+  );
+  const contactId = lead?._embedded?.contacts?.[0]?.id ?? null;
+  if (!contactId) return { decision: null, contactId: null, healed: false };
+
+  // 1) Vínculo directo (exacto e indexado).
+  const { data: linked } = await supabase
+    .from("clients")
+    .select("id, markbox, kommo_contact_id, phone")
+    .eq("tenant_id", conn.tenant_id)
+    .eq("kommo_contact_id", contactId)
+    .is("deleted_at", null)
+    .maybeSingle<RouterClientRow>();
+
+  // 2) Si no hay vínculo, cruce por teléfono del contacto de Kommo.
+  let phones: string[] = [];
+  let universe: RouterClientRow[] = [];
+  if (!linked) {
+    const contact = await kommoFetch<{ id: number; custom_fields_values?: unknown[] | null }>(
+      baseUrl,
+      token,
+      `/api/v4/contacts/${contactId}`,
+    );
+    phones = contactPhoneKeys(contact);
+    if (phones.length > 0) universe = await cargarPorClaves(phones);
+  }
+
+  const decision = decideRoute(contactId, phones, linked, universe);
+
+  // AUTO-SANADO: el cliente heredado que escribe una vez queda vinculado para
+  // siempre. `is("kommo_contact_id", null)` evita pisar un vínculo existente.
+  let healed = false;
+  if (decision.kind === "cliente" && decision.needsHeal) {
+    const { error } = await supabase
+      .from("clients")
+      .update({ kommo_contact_id: contactId })
+      .eq("id", decision.client.id)
+      .eq("tenant_id", conn.tenant_id)
+      .is("kommo_contact_id", null);
+    healed = !error;
+  }
+  return { decision, contactId, healed };
+}
+
+/**
+ * Shipping Mark en el trato y la marca permanente en el contacto (SDD-0244 y
+ * rebanada B). Cada uno es inerte si su campo no está configurado.
+ */
+async function encolarMarcas(
+  supabase: SupabaseClient,
+  conn: ConnRow,
+  leadId: number,
+  contactId: number,
+  markbox: string,
+): Promise<void> {
+  if (conn.markbox_field_id && markbox) {
+    await supabase.rpc("enqueue_kommo_writeback", {
+      p_tenant_id: conn.tenant_id,
+      p_kommo_lead_id: leadId,
+      p_op: "patch_lead",
+      p_payload: buildMarkboxPayload(conn.markbox_field_id, markbox),
+      p_kommo_updated_at: null,
+    });
+  }
+  // El campo del lead se lo lleva el trato al cerrarse; el del contacto
+  // sobrevive, así que la próxima vez el enrutado ya no depende del teléfono.
+  if (conn.markbox_contact_field_id && markbox) {
+    await supabase.rpc("enqueue_kommo_contact_writeback", {
+      p_tenant_id: conn.tenant_id,
+      p_kommo_contact_id: contactId,
+      p_op: "patch_contact",
+      p_payload: buildMarkboxPayload(conn.markbox_contact_field_id, markbox),
+    });
+  }
+}
+
+async function routeNewLeads(
+  supabase: SupabaseClient,
+  baseUrl: string,
+  token: string,
+  conn: ConnRow,
+  leadIds: number[],
+): Promise<Record<string, unknown>> {
+  const target = readRecontactoTarget(conn.stage_map);
+  if (!target) return { skipped: "sin stage_map.recontacto (enrutador inerte)" };
+  if (leadIds.length === 0) return { checked: 0 };
+
+  const cargarPorClaves = crearCargadorPorClaves(supabase, conn);
 
   let routed = 0;
   let healed = 0;
@@ -140,55 +255,13 @@ async function routeNewLeads(
 
   for (const leadId of leadIds) {
     try {
-      const lead = await kommoFetch<LeadWithContacts>(
-        baseUrl,
-        token,
-        `/api/v4/leads/${leadId}?with=contacts`,
-      );
-      const contactId = lead?._embedded?.contacts?.[0]?.id ?? null;
-      if (!contactId) {
+      const r = await resolverCliente(supabase, baseUrl, token, conn, leadId, cargarPorClaves);
+      if (r.healed) healed++;
+      const decision = r.decision;
+      const contactId = r.contactId;
+      if (!decision || decision.kind !== "cliente" || !contactId) {
         unknown++;
         continue;
-      }
-
-      // 1) Vínculo directo (exacto e indexado).
-      const { data: linked } = await supabase
-        .from("clients")
-        .select("id, markbox, kommo_contact_id, phone")
-        .eq("tenant_id", conn.tenant_id)
-        .eq("kommo_contact_id", contactId)
-        .is("deleted_at", null)
-        .maybeSingle<RouterClientRow>();
-
-      // 2) Si no hay vínculo, cruce por teléfono del contacto de Kommo.
-      let phones: string[] = [];
-      let universe: RouterClientRow[] = [];
-      if (!linked) {
-        const contact = await kommoFetch<{ id: number; custom_fields_values?: unknown[] | null }>(
-          baseUrl,
-          token,
-          `/api/v4/contacts/${contactId}`,
-        );
-        phones = contactPhoneKeys(contact);
-        if (phones.length > 0) universe = await loadClientesPorClaves(phones);
-      }
-
-      const decision = decideRoute(contactId, phones, linked, universe);
-      if (decision.kind !== "cliente") {
-        unknown++;
-        continue;
-      }
-
-      // AUTO-SANADO: el cliente heredado que escribe una vez queda vinculado para
-      // siempre. `is("kommo_contact_id", null)` evita pisar un vínculo existente.
-      if (decision.needsHeal) {
-        const { error } = await supabase
-          .from("clients")
-          .update({ kommo_contact_id: contactId })
-          .eq("id", decision.client.id)
-          .eq("tenant_id", conn.tenant_id)
-          .is("kommo_contact_id", null);
-        if (!error) healed++;
       }
 
       // Encolar el movimiento a Recontacto. La clave de idempotencia de la RPC es
@@ -202,30 +275,14 @@ async function routeNewLeads(
         p_kommo_updated_at: null,
       });
 
-      // Y el Shipping Mark en el trato nuevo, si el campo está configurado.
-      const markbox = (decision.client.markbox ?? "").trim();
-      if (conn.markbox_field_id && markbox) {
-        await supabase.rpc("enqueue_kommo_writeback", {
-          p_tenant_id: conn.tenant_id,
-          p_kommo_lead_id: leadId,
-          p_op: "patch_lead",
-          p_payload: buildMarkboxPayload(conn.markbox_field_id, markbox),
-          p_kommo_updated_at: null,
-        });
-      }
-
-      // Y la marca PERMANENTE en el contacto (SDD-0244 rebanada B). El campo del
-      // lead de arriba se lo lleva el trato al cerrarse; éste sobrevive, así que
-      // la próxima vez el enrutado ya no depende del cruce por teléfono.
-      // Inerte mientras no exista el campo de contacto en Kommo.
-      if (conn.markbox_contact_field_id && markbox) {
-        await supabase.rpc("enqueue_kommo_contact_writeback", {
-          p_tenant_id: conn.tenant_id,
-          p_kommo_contact_id: contactId,
-          p_op: "patch_contact",
-          p_payload: buildMarkboxPayload(conn.markbox_contact_field_id, markbox),
-        });
-      }
+      // Y el Shipping Mark en el trato nuevo y en el contacto.
+      await encolarMarcas(
+        supabase,
+        conn,
+        leadId,
+        contactId,
+        (decision.client.markbox ?? "").trim(),
+      );
 
       routed++;
     } catch (e) {
@@ -235,6 +292,164 @@ async function routeNewLeads(
   }
 
   return { checked: leadIds.length, routed, healed, unknown };
+}
+
+/**
+ * SDD-0535 — el cliente volvió a escribir en un trato CERRADO.
+ *
+ * Kommo cuelga ese mensaje del trato en `Ventas Perdidos` y no crea uno nuevo,
+ * así que `routeNewLeads` nunca se entera (no hay `leads[add]`). Acá se pide
+ * cada trato con un mensaje entrante y, si está cerrado, se encola:
+ *   Perdido → `patch_stage` a Recontacto + `add_task` vencida (el rojo)
+ *   Ganado  → sólo `add_task`: no se reabre una venta (SDD-0244 §5)
+ *
+ * Mismo interruptor que el enrutador: sin `stage_map.recontacto` no hace nada.
+ * Mismo gate: sólo encola; escribe el drenaje si `writeback_dry_run` está apagado.
+ * Best-effort: nunca tira, porque el espejado es lo principal de este webhook.
+ */
+async function reabrirTratosCerrados(
+  supabase: SupabaseClient,
+  baseUrl: string,
+  token: string,
+  conn: ConnRow,
+  leadIds: number[],
+): Promise<Record<string, unknown>> {
+  const destino = readRecontactoTarget(conn.stage_map);
+  if (!destino) return { skipped: "sin stage_map.recontacto (inerte)" };
+  if (leadIds.length === 0) return { checked: 0 };
+
+  let reabiertos = 0;
+  let avisados = 0;
+  let sinCambio = 0;
+  let fallidos = 0;
+
+  for (const leadId of leadIds) {
+    try {
+      const lead = await kommoFetch<LeadCerradoLike>(
+        baseUrl,
+        token,
+        `/api/v4/leads/${leadId}`,
+      );
+      const decision = decidirReapertura(lead, destino, new Date().toISOString());
+      if (decision.kind === "nada") {
+        sinCambio++;
+        continue;
+      }
+
+      if (decision.kind === "reabrir") {
+        // Sin snapshot (`p_kommo_updated_at: null`), a propósito: cada mensaje
+        // entrante le sube el `updated_at` al trato (medido: 32 de 40, 1 a 5 s
+        // después del mensaje). Con snapshot, el segundo mensaje de una ráfaga
+        // haría que el drenaje saltee el cambio de etapa por «el lead cambió».
+        const { error } = await supabase.rpc("enqueue_kommo_writeback", {
+          p_tenant_id: conn.tenant_id,
+          p_kommo_lead_id: leadId,
+          p_op: "patch_stage",
+          p_payload: decision.etapa,
+          p_kommo_updated_at: null,
+        });
+        if (error) throw new Error(`patch_stage: ${error.message}`);
+      }
+
+      // Una tarea por episodio de cierre: el token la deduplica en la cola
+      // aunque lleguen varios mensajes antes de que el drenaje pase.
+      const { error: tareaErr } = await supabase.rpc("enqueue_kommo_writeback", {
+        p_tenant_id: conn.tenant_id,
+        p_kommo_lead_id: leadId,
+        p_op: "add_task",
+        p_payload: decision.tarea,
+        p_kommo_updated_at: null,
+        p_dedupe_token: decision.dedupeToken,
+      });
+      if (tareaErr) throw new Error(`add_task: ${tareaErr.message}`);
+
+      if (decision.kind === "reabrir") reabiertos++;
+      else avisados++;
+    } catch (e) {
+      fallidos++;
+      console.error("[kommo-webhook][reapertura] lead", leadId, errMsg(e));
+    }
+  }
+
+  return { checked: leadIds.length, reabiertos, avisados, sinCambio, fallidos };
+}
+
+/**
+ * Despierta el drenaje en vez de esperar al cron de 15 minutos.
+ *
+ * Gemelo de `nudgeWriteback` del Studio (`crm/actions.ts`): invoca nuestra propia
+ * función con la service key, no la API de Kommo. Corre después de responderle a
+ * Kommo (`EdgeRuntime.waitUntil`), así el webhook no espera el drenaje. Si el
+ * runtime no lo ofrece, el cron drena igual.
+ */
+function despertarDrenaje(supabase: SupabaseClient, tenantId: string): void {
+  const tarea = supabase.functions
+    .invoke("kommo-writeback", { body: { tenant_id: tenantId } })
+    .then(({ error }) => {
+      if (error) console.warn("[kommo-webhook] despertar el drenaje falló:", error.message);
+    })
+    .catch((e) => console.warn("[kommo-webhook] despertar el drenaje lanzó:", errMsg(e)));
+  const runtime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
+    .EdgeRuntime;
+  runtime?.waitUntil?.(tarea);
+}
+
+/**
+ * SDD-0535 — el cliente que ya pasó vuelve a escribir y Kommo le abre un trato
+ * nuevo en «Leads Entrantes» (`unsorted[add]`). Si `decideRoute` lo reconoce como
+ * cliente, se ACEPTA la entrada directo en Recontacto y se encolan su Shipping Mark
+ * y la tarea vencida. Un desconocido se queda en la bandeja.
+ *
+ * El accept va directo a Kommo, no por la cola: tiene que llegar antes de que una
+ * persona acepte la entrada a mano, y es idempotente por naturaleza (aceptada una
+ * vez, la entrada ya no existe y el segundo intento da 404). Respeta el mismo gate
+ * que la cola (`writeback_enabled && !writeback_dry_run`) y el mismo interruptor
+ * (`stage_map.recontacto`). Lo que viene después sí va por la cola.
+ */
+async function aceptarClientesEntrantes(
+  supabase: SupabaseClient,
+  baseUrl: string,
+  token: string,
+  conn: ConnRow,
+  entradas: EntradaBandeja[],
+): Promise<ResumenEntradas> {
+  const cargarPorClaves = crearCargadorPorClaves(supabase, conn);
+  return await procesarEntradasBandeja(entradas, {
+    destino: readRecontactoTarget(conn.stage_map),
+    escribe: conn.writeback_enabled === true && conn.writeback_dry_run === false,
+    resolverCliente: async (leadId) => {
+      const r = await resolverCliente(supabase, baseUrl, token, conn, leadId, cargarPorClaves);
+      const esCliente = r.decision?.kind === "cliente";
+      return {
+        esCliente,
+        contactId: r.contactId,
+        markbox: r.decision?.kind === "cliente" ? r.decision.client.markbox : null,
+      };
+    },
+    aceptar: async (uid, cuerpo) => {
+      await kommoWrite(
+        baseUrl,
+        token,
+        `/api/v4/leads/unsorted/${encodeURIComponent(uid)}/accept`,
+        "POST",
+        cuerpo,
+      );
+    },
+    encolarMarcas: (leadId, contactId, markbox) =>
+      encolarMarcas(supabase, conn, leadId, contactId, markbox),
+    encolarTarea: async (leadId, tarea, dedupeToken) => {
+      const { error } = await supabase.rpc("enqueue_kommo_writeback", {
+        p_tenant_id: conn.tenant_id,
+        p_kommo_lead_id: leadId,
+        p_op: "add_task",
+        p_payload: tarea,
+        p_kommo_updated_at: null,
+        p_dedupe_token: dedupeToken,
+      });
+      if (error) throw new Error(`add_task: ${error.message}`);
+    },
+    ahoraIso: () => new Date().toISOString(),
+  });
 }
 
 /** Aplica un lote de eventos de una entidad. Devuelve {fetched, upserted, deleted}. */
@@ -353,6 +568,9 @@ Deno.serve(async (req: Request) => {
   // SDD-0288 rebanada 1 · los mensajes viven fuera de `parsed.events`:
   // el parser de entidades sólo entiende leads/contactos.
   const mensajes = parseKommoMessages(crudo);
+  // SDD-0535 · las entradas nuevas de la bandeja (`unsorted[add]`). Es como avisa
+  // Kommo el trato nuevo del cliente que vuelve, no con `leads[add]`.
+  const entradas = parseEntradasBandeja(crudo);
 
   // 🔴 SDD-0288 · los valores enumerados se registran SIEMPRE, no sólo cuando la
   // forma es desconocida.
@@ -377,7 +595,7 @@ Deno.serve(async (req: Request) => {
     );
   }
 
-  if (parsed.events.length === 0 && mensajes.length === 0) {
+  if (parsed.events.length === 0 && mensajes.length === 0 && entradas.length === 0) {
     // SDD-0288 rebanada 0 · acá es donde se pierde todo lo que no sabemos leer.
     //
     // El webhook de la cuenta está en "Todos" (medido 2026-08-24), así que
@@ -409,7 +627,7 @@ Deno.serve(async (req: Request) => {
   const { data: conn, error: connErr } = await supabase
     .from("kommo_connections")
     .select(
-      "id, tenant_id, subdomain, domain, status, stage_map, markbox_field_id, markbox_contact_field_id",
+      "id, tenant_id, subdomain, domain, status, stage_map, markbox_field_id, markbox_contact_field_id, writeback_enabled, writeback_dry_run",
     )
     .eq("subdomain", parsed.subdomain)
     .maybeSingle<ConnRow>();
@@ -499,6 +717,48 @@ Deno.serve(async (req: Request) => {
         JSON.stringify(summary.mensajes),
       );
     }
+
+    // SDD-0535 — el cliente que vuelve llega a Recontacto. Va DESPUÉS del
+    // estampado: lo que importa primero es que el ERP registre el mensaje. Ni
+    // aceptarClientesEntrantes ni reabrirTratosCerrados tiran.
+    let despertar = false;
+
+    // (a) Trato nuevo en la bandeja → se acepta directo en Recontacto.
+    if (entradas.length > 0) {
+      const resumen = await aceptarClientesEntrantes(
+        supabase,
+        baseUrl,
+        token as string,
+        conn,
+        entradas,
+      );
+      summary.entradas = resumen;
+      const notable = resumen.aceptadas + resumen.enEnsayo + resumen.yaNoEstaban +
+        resumen.rechazadas + resumen.fallidas;
+      if (notable > 0) {
+        console.log("[kommo-webhook][sdd-0535][entradas]", JSON.stringify(resumen));
+      }
+      if (resumen.aceptadas > 0) despertar = true;
+    }
+
+    // (b) Mensaje en un trato cerrado → Perdido vuelve a Recontacto; Ganado, tarea.
+    const leadsQueEscribieron = leadsConMensajeEntrante(mensajes);
+    if (leadsQueEscribieron.length > 0) {
+      const reapertura = await reabrirTratosCerrados(
+        supabase,
+        baseUrl,
+        token as string,
+        conn,
+        leadsQueEscribieron,
+      );
+      summary.reapertura = reapertura;
+      if (Number(reapertura.reabiertos ?? 0) + Number(reapertura.avisados ?? 0) > 0) {
+        console.log("[kommo-webhook][sdd-0535][reapertura]", JSON.stringify(reapertura));
+        despertar = true;
+      }
+    }
+
+    if (despertar) despertarDrenaje(supabase, conn.tenant_id);
 
     // SDD-0244 — enrutado del cliente que vuelve. Va DESPUÉS del espejado (que es
     // lo crítico) y nunca lo rompe: routeNewLeads no tira.
