@@ -13,6 +13,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { OperarioRol } from "./operario-pin";
+import { parseOperarioRolesPorRegion, type OperarioRolesPorRegion } from "./operario-edicion";
 
 export type OperarioRow = {
   id: string;
@@ -78,4 +79,19 @@ export async function listOperarios(
       warehouse_name_es: wh?.hub_name_es ?? null,
     };
   });
+}
+
+/**
+ * Los roles de cada región para el selector de «Editar» (SDD-0529). Los da
+ * `operario_roles_por_region()` (migr 0480), la misma regla con que valida
+ * `admin_update_operario`: el Studio no tiene una lista propia. Si la base no
+ * responde, o responde algo con otra forma, devuelve `null` y el cajón no deja
+ * guardar; nunca se inventa una lista.
+ */
+export async function getOperarioRolesPorRegion(
+  supabase: SupabaseClient,
+): Promise<OperarioRolesPorRegion | null> {
+  const { data, error } = await supabase.rpc("operario_roles_por_region");
+  if (error) return null;
+  return parseOperarioRolesPorRegion(data);
 }
