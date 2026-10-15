@@ -47,7 +47,14 @@ function cumple(fila: Row, filtros: Filtro[]): boolean {
   );
 }
 
-function doble(tablas: Record<string, Row[]>, opciones: { fallaUpdate?: string } = {}) {
+type Opciones = {
+  fallaUpdate?: string;
+  /** Corre UNA vez después de la primera lectura de carrier_tariffs: simula otra pestaña. */
+  trasLeer?: (store: Record<string, Row[]>) => void;
+};
+
+function doble(tablas: Record<string, Row[]>, opciones: Opciones = {}) {
+  let trasLeer = opciones.trasLeer;
   const escrituras: Escritura[] = [];
   const store: Record<string, Row[]> = Object.fromEntries(
     Object.entries(tablas).map(([k, filas]) => [k, filas.map((f) => ({ ...f }))]),
@@ -81,7 +88,13 @@ function doble(tablas: Record<string, Row[]>, opciones: { fallaUpdate?: string }
         for (const f of tocadas) Object.assign(f, patch);
         return { data: conSelect ? tocadas.map((f) => ({ id: f.id })) : null, error: null };
       }
-      return { data: (store[tabla] ?? []).filter((f) => cumple(f, filtros)).map((f) => ({ ...f })), error: null };
+      const leidas = (store[tabla] ?? []).filter((f) => cumple(f, filtros)).map((f) => ({ ...f }));
+      if (tabla === "carrier_tariffs" && trasLeer) {
+        const hook = trasLeer;
+        trasLeer = undefined;
+        hook(store);
+      }
+      return { data: leidas, error: null };
     };
 
     const b: Record<string, unknown> = {};
@@ -152,7 +165,7 @@ function tarifa(id: string, carrier: string, city: string, extra: Row = {}): Row
   };
 }
 
-function sembrar(role = "admin", opciones: { fallaUpdate?: string } = {}) {
+function sembrar(role = "admin", opciones: Opciones = {}) {
   db = doble(
     {
       user_tenants: [{ user_id: USER, tenant_id: TENANT, role, disabled_at: null }],
@@ -441,6 +454,23 @@ describe("bulkUpdateTariffPricesAction · cambio en lote", () => {
     expect(res.error).toBe("Solo un administrador puede editar los transportistas.");
     expect(db.escrituras).toEqual([]);
   });
+
+  it.each([
+    ["la quitaron", (f: Row) => Object.assign(f, { deleted_at: "2026-10-15T20:00:00Z" })],
+    ["la pasaron a otro transportista", (f: Row) => Object.assign(f, { carrier_id: OTRO })],
+  ])(
+    "si entre la comprobación y el UPDATE a una ruta %s, no se toca y el total lo dice",
+    async (_caso, cambiar) => {
+      sembrar("admin", {
+        trasLeer: (store) => cambiar(store.carrier_tariffs.find((f) => f.id === T_MERIDA)!),
+      });
+      const res = await bulkUpdateTariffPricesAction({}, lote([T_VALENCIA, T_MERIDA], { costUsdCbm: "90" }));
+
+      expect(res).toEqual({ ok: true, updated: 1 });
+      expect(fila(T_VALENCIA).cost_usd_cbm).toBe(90);
+      expect(fila(T_MERIDA).cost_usd_cbm).toBe(80);
+    },
+  );
 
   it("un error de la base se informa y no se anuncia éxito", async () => {
     sembrar("admin", { fallaUpdate: "lock timeout" });

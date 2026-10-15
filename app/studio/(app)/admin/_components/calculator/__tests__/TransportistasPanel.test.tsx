@@ -17,7 +17,7 @@ const mocks = vi.hoisted(() => ({
   bulk: vi.fn(),
   setDefault: vi.fn(),
   router: { refresh: vi.fn(), push: vi.fn(), replace: vi.fn() },
-  toast: { success: vi.fn() },
+  toast: { success: vi.fn(), warning: vi.fn() },
 }));
 vi.mock("../../../carrier-actions", () => ({
   saveTariffAction: mocks.save,
@@ -75,7 +75,7 @@ const escribir = (input: HTMLElement, valor: string) => fireEvent.change(input, 
 const enviado = (): FormData => mocks.save.mock.calls.at(-1)![1] as FormData;
 
 beforeEach(() => {
-  for (const fn of [mocks.save, mocks.remove, mocks.bulk, mocks.setDefault, mocks.router.refresh, mocks.router.push, mocks.toast.success]) {
+  for (const fn of [mocks.save, mocks.remove, mocks.bulk, mocks.setDefault, mocks.router.refresh, mocks.router.push, mocks.toast.success, mocks.toast.warning]) {
     fn.mockReset();
   }
 });
@@ -286,21 +286,22 @@ describe("quitar una ruta", () => {
     expect(mocks.router.refresh).toHaveBeenCalled();
   });
 
-  it("si falla, el error queda en el diálogo y se puede reintentar con el mismo error", async () => {
+  it("si falla, el error queda en el diálogo y se puede reintentar aunque el error se repita", async () => {
+    // ConfirmDialog suelta su candado cuando CAMBIA `error`. Con el mismo texto
+    // dos veces seguidas, sólo se suelta si el panel lo limpia antes de cada
+    // intento: por eso son TRES intentos, el tercero es el que se trabaría.
     const msg = "Esa ruta ya no está activa con este transportista.";
-    mocks.remove.mockResolvedValueOnce({ error: msg }).mockResolvedValueOnce({ error: msg });
+    mocks.remove.mockResolvedValue({ error: msg });
     montar();
     fireEvent.click(screen.getByRole("button", { name: "Quitar Valencia" }));
     const confirm = dialogo("Quitar la ruta a Valencia");
-    await act(async () => {
-      fireEvent.click(within(confirm).getByRole("button", { name: "Quitar ruta" }));
-    });
-    expect(await within(confirm).findByText(msg)).toBeVisible();
-    await act(async () => {
-      fireEvent.click(within(confirm).getByRole("button", { name: "Quitar ruta" }));
-    });
-    await waitFor(() => expect(mocks.remove).toHaveBeenCalledTimes(2));
-    expect(within(dialogo("Quitar la ruta a Valencia")).getByText(msg)).toBeVisible();
+    for (const intento of [1, 2, 3]) {
+      await act(async () => {
+        fireEvent.click(within(confirm).getByRole("button", { name: "Quitar ruta" }));
+      });
+      await waitFor(() => expect(mocks.remove).toHaveBeenCalledTimes(intento));
+      expect(await within(confirm).findByText(msg)).toBeVisible();
+    }
     expect(mocks.toast.success).not.toHaveBeenCalled();
   });
 });
@@ -362,6 +363,11 @@ describe("cambio en lote", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cambiar precios" }));
     const panel = dialogo("Cambiar precios en lote");
     escribir(campo(panel, /^Venta nueva/), "130");
+    // Sólo la venta: el costo se muestra como estaba y el margen sale del costo vigente.
+    const fila1 = within(within(panel).getByRole("table", { name: "Antes y después" })).getByRole("row", {
+      name: /Valencia/,
+    });
+    expect(fila1).toHaveTextContent("Valencia$70,00$105,94 → pasa a $130,00$35,94 → pasa a $60,00");
     fireEvent.click(within(panel).getByRole("button", { name: "Aplicar a 1 ciudad" }));
 
     const alerta = await within(panel).findByRole("alert");
@@ -370,6 +376,22 @@ describe("cambio en lote", () => {
     expect(mocks.toast.success).not.toHaveBeenCalled();
     fireEvent.click(within(panel).getByRole("button", { name: "Cancelar" }));
     expect(barra()).toHaveTextContent("1 ciudad seleccionada");
+  });
+
+  it("si el servidor cambió menos de las elegidas, el aviso dice cuántas", async () => {
+    mocks.bulk.mockResolvedValue({ ok: true, updated: 1 });
+    montar();
+    marcar("Valencia");
+    marcar("Mérida");
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar precios" }));
+    const panel = dialogo("Cambiar precios en lote");
+    escribir(campo(panel, /^Costo nuevo/), "90");
+    fireEvent.click(within(panel).getByRole("button", { name: "Aplicar a 2 ciudades" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(mocks.toast.success).not.toHaveBeenCalled();
+    expect(mocks.toast.warning).toHaveBeenCalledWith(
+      "Precios actualizados en 1 de 2 ciudades de Benito. Las demás ya no estaban activas.",
+    );
   });
 
   it("la casilla del encabezado marca sólo las ciudades visibles por la búsqueda", () => {

@@ -51,7 +51,7 @@ type DrawerState =
 
 /** Sin acentos ni mayúsculas, para que «merida» encuentre «Mérida». */
 function normalizar(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
 
 export function TransportistasPanel({
@@ -269,7 +269,8 @@ export function TransportistasPanel({
               </div>
 
               {/* ── Cambio en lote (fase 2) ── */}
-              {isAdmin && seleccion.length > 0 && (
+              {/* Sólo hay selección si hay casillas, y sólo un admin las ve. */}
+              {seleccion.length > 0 && (
                 <div
                   role="region"
                   aria-label="Selección para cambio en lote"

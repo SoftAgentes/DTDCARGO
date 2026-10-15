@@ -283,7 +283,9 @@ export type BulkPriceActionState = {
  *
  * Todo o nada: primero cuenta que TODAS las tarifas elegidas sigan vivas con
  * ese transportista; si falta una, no cambia ninguna. Después un solo UPDATE
- * con `in(id)`, que es una sola sentencia: no queda un lote a medias. Con 0490
+ * con `in(id)`, que es una sola sentencia, con los MISMOS filtros: si otra
+ * pestaña quitó una ruta entre la cuenta y el UPDATE, esa no se toca y
+ * `updated` dice cuántas cambiaron de verdad (la UI lo avisa). Con 0490
  * aplicada, cada fila deja su evento AUD-01 en esa misma transacción.
  */
 export async function bulkUpdateTariffPricesAction(

@@ -60,7 +60,15 @@ export function BulkPriceDrawer({
     if (!state.ok) return;
     const n = state.updated ?? tariffs.length;
     // Un solo toast resumen para el lote (regla de trazabilidad del Studio).
-    toast.success(`Precios actualizados en ${n} ciudad${n === 1 ? "" : "es"} de ${carrier.name}`);
+    if (n < tariffs.length) {
+      // Carrera: alguna ruta dejó de estar viva entre la comprobación y el
+      // UPDATE. Lo que cambió, cambió; se dice cuántas, no se calla.
+      toast.warning(
+        `Precios actualizados en ${n} de ${tariffs.length} ciudades de ${carrier.name}. Las demás ya no estaban activas.`,
+      );
+    } else {
+      toast.success(`Precios actualizados en ${n} ciudad${n === 1 ? "" : "es"} de ${carrier.name}`);
+    }
     router.refresh();
     onDone();
     onClose();
