@@ -21,7 +21,8 @@ import { ParametrosPanel } from "./ParametrosPanel";
 import { CiudadesPanel } from "./CiudadesPanel";
 import { TransportistasPanel } from "./TransportistasPanel";
 
-type Tab = "parametros" | "ciudades" | "transportistas";
+export type CalculatorTab = "parametros" | "ciudades" | "transportistas";
+type Tab = CalculatorTab;
 
 export function CalculatorSection({
   settings,
@@ -106,7 +107,7 @@ export function CalculatorSection({
           <TransportistasPanel
             carriers={carriers}
             tariffs={tariffs}
-            cityLabels={Object.fromEntries(cities.map((c) => [c.slug, c.label]))}
+            cities={cities.map((c) => ({ slug: c.slug, label: c.label }))}
             isAdmin={isAdmin}
           />
         </div>

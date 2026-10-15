@@ -18,8 +18,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import {
+  validateBulkPriceInput,
   validateCarrierInput,
   validateTariffInput,
+  type BulkPriceFieldKey,
   type CarrierFieldKey,
   type TariffFieldKey,
 } from "@/lib/studio/freight-carriers/types";
@@ -171,6 +173,23 @@ export async function deleteCarrierAction(
 // Tarifas
 // ─────────────────────────────────────────────────────────────
 
+/** Una edición o un retiro que no tocó ninguna fila NO es un éxito (SDD-0537). */
+const TARIFA_NO_ENCONTRADA =
+  "Esa ruta ya no está activa con este transportista. Recarga la página y vuelve a intentarlo.";
+
+/**
+ * Alta o edición de la tarifa de UNA ciudad (SDD-0236 · SDD-0537).
+ *
+ * · Alta: la ciudad tiene que existir viva en `calculator_cities` del tenant.
+ *   La UI sólo ofrece ciudades del catálogo, pero la acción lo vuelve a
+ *   comprobar: `city_slug` no tiene FK dura (0330) y un slug inventado
+ *   quedaría como una tarifa que la web nunca puede cotizar.
+ * · Edición: cambia los números y las condiciones, NUNCA el transportista ni
+ *   la ciudad — cambiar de ciudad es quitar una ruta y agregar otra. El UPDATE
+ *   va acotado a tenant + transportista + viva y con `.select("id")`: sin eso,
+ *   una fila filtrada por la RLS o quitada en otra pestaña devolvía `ok` sin
+ *   haber guardado nada.
+ */
 export async function saveTariffAction(
   _prev: TariffActionState,
   formData: FormData,
@@ -185,10 +204,7 @@ export async function saveTariffAction(
   if (!v.carrierId) return { error: "Falta el transportista." };
 
   const id = String(formData.get("id") ?? "").trim();
-  const fila = {
-    tenant_id: who.tenantId,
-    carrier_id: v.carrierId,
-    city_slug: v.citySlug,
+  const numeros = {
     cost_usd_cbm: v.costUsdCbm,
     price_usd_cbm: v.priceUsdCbm,
     price_usd_ft3: v.priceUsdFt3,
@@ -201,9 +217,41 @@ export async function saveTariffAction(
     valid_to: v.validTo,
   };
 
-  const { error } = id
-    ? await supabase.from("carrier_tariffs").update(fila).eq("id", id)
-    : await supabase.from("carrier_tariffs").insert(fila);
+  if (id) {
+    const { data, error } = await supabase
+      .from("carrier_tariffs")
+      .update(numeros)
+      .eq("id", id)
+      .eq("tenant_id", who.tenantId)
+      .eq("carrier_id", v.carrierId)
+      .is("deleted_at", null)
+      .select("id");
+    if (error) return { error: `No se pudo guardar la tarifa: ${error.message}` };
+    if (!Array.isArray(data) || data.length === 0) return { error: TARIFA_NO_ENCONTRADA };
+    revalidarTodo();
+    return { ok: true };
+  }
+
+  const { data: ciudad, error: ciudadError } = await supabase
+    .from("calculator_cities")
+    .select("slug")
+    .eq("tenant_id", who.tenantId)
+    .eq("slug", v.citySlug)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (ciudadError) return { error: `No se pudo comprobar la ciudad: ${ciudadError.message}` };
+  if (!ciudad) {
+    return {
+      fieldErrors: { citySlug: "Esa ciudad no está en el catálogo de la calculadora." },
+    };
+  }
+
+  const { error } = await supabase.from("carrier_tariffs").insert({
+    tenant_id: who.tenantId,
+    carrier_id: v.carrierId,
+    city_slug: v.citySlug,
+    ...numeros,
+  });
 
   if (error) {
     // El índice único parcial: ya hay una tarifa viva para esa ciudad.
@@ -221,6 +269,77 @@ export async function saveTariffAction(
   return { ok: true };
 }
 
+export type BulkPriceActionState = {
+  ok?: boolean;
+  /** Cuántas ciudades cambiaron. */
+  updated?: number;
+  error?: string;
+  fieldErrors?: Partial<Record<BulkPriceFieldKey, string>>;
+};
+
+/**
+ * Cambio en lote (SDD-0537): un costo y/o una venta nuevos, en valor
+ * absoluto, para varias ciudades del mismo transportista.
+ *
+ * Todo o nada: primero cuenta que TODAS las tarifas elegidas sigan vivas con
+ * ese transportista; si falta una, no cambia ninguna. Después un solo UPDATE
+ * con `in(id)`, que es una sola sentencia, con los MISMOS filtros: si otra
+ * pestaña quitó una ruta entre la cuenta y el UPDATE, esa no se toca y
+ * `updated` dice cuántas cambiaron de verdad (la UI lo avisa). Con 0490
+ * aplicada, cada fila deja su evento AUD-01 en esa misma transacción.
+ */
+export async function bulkUpdateTariffPricesAction(
+  _prev: BulkPriceActionState,
+  formData: FormData,
+): Promise<BulkPriceActionState> {
+  const supabase = await createClient();
+  const who = await resolveTenantAdmin(supabase);
+  if (!who.ok) return { error: who.error };
+
+  const parsed = validateBulkPriceInput(formData);
+  if (!parsed.ok) return { error: parsed.error, fieldErrors: parsed.errors };
+  const v = parsed.value;
+
+  const { data: vivas, error: lecturaError } = await supabase
+    .from("carrier_tariffs")
+    .select("id")
+    .in("id", v.ids)
+    .eq("tenant_id", who.tenantId)
+    .eq("carrier_id", v.carrierId)
+    .is("deleted_at", null);
+  if (lecturaError) return { error: `No se pudo comprobar la selección: ${lecturaError.message}` };
+  if (!Array.isArray(vivas) || vivas.length !== v.ids.length) {
+    return {
+      error:
+        "Alguna de las ciudades elegidas ya no está activa con este transportista. No se cambió ninguna: recarga la página y vuelve a seleccionar.",
+    };
+  }
+
+  const patch: { cost_usd_cbm?: number; price_usd_cbm?: number } = {};
+  if (v.costUsdCbm != null) patch.cost_usd_cbm = v.costUsdCbm;
+  if (v.priceUsdCbm != null) patch.price_usd_cbm = v.priceUsdCbm;
+
+  const { data, error } = await supabase
+    .from("carrier_tariffs")
+    .update(patch)
+    .in("id", v.ids)
+    .eq("tenant_id", who.tenantId)
+    .eq("carrier_id", v.carrierId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error) return { error: `No se pudieron cambiar los precios: ${error.message}` };
+  const updated = Array.isArray(data) ? data.length : 0;
+  if (updated === 0) return { error: TARIFA_NO_ENCONTRADA };
+
+  revalidarTodo();
+  return { ok: true, updated };
+}
+
+/**
+ * Quitar una ruta: borrado en blando (MP-01). La ciudad se puede volver a
+ * agregar después: el índice único de 0330 sólo cuenta las tarifas vivas.
+ * Exige el transportista para no quitar por id una ruta de otro.
+ */
 export async function deleteTariffAction(
   _prev: TariffActionState,
   formData: FormData,
@@ -231,13 +350,20 @@ export async function deleteTariffAction(
 
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return { error: "Falta la tarifa." };
+  const carrierId = String(formData.get("carrierId") ?? "").trim();
+  if (!carrierId) return { error: "Falta el transportista." };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("carrier_tariffs")
     .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("tenant_id", who.tenantId)
+    .eq("carrier_id", carrierId)
+    .is("deleted_at", null)
+    .select("id");
 
-  if (error) return { error: `No se pudo eliminar la tarifa: ${error.message}` };
+  if (error) return { error: `No se pudo quitar la ruta: ${error.message}` };
+  if (!Array.isArray(data) || data.length === 0) return { error: TARIFA_NO_ENCONTRADA };
 
   revalidarTodo();
   return { ok: true };
