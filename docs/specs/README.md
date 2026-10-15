@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 507 specs)
+### Índice de specs (generado · 508 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -545,6 +545,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0519 | Servicios y marketing: sin promesa de aviso de bodega mientra… | done | interno |
 | 0520 | Operarios: columnas ajustables y botones compactos | done | interno |
 | 0521 | Tracking en construcción: «Te avisaremos apenas esté activo» … | done | interno |
+| 0529 | Editar operarios de Venezuela: rol de su región, sin almacén,… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0522, 0523, 0524, 0525, 0526, 0527, 0528 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
