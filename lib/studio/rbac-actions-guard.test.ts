@@ -238,13 +238,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // SDD-0507 sumó `clientes/adjuntos-actions.ts` con una sola acción,
   // `firmarAdjuntoAction`, que pasa el veredicto por acción sin entrar en
   // ninguna de las dos listas (gate de vista `clients` antes de firmar).
-  it("la superficie escaneada es la esperada (74 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0531 sumó `tracking/[id]/datos-reservados-actions.ts` (74 → 75, con
+  // prefijo 20 → 21) con una sola acción, `updateShipmentSinUbicacion`.
+  it("la superficie escaneada es la esperada (75 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 74,
+      total: 75,
       exactos: 54,
-      conPrefijo: 20,
+      conPrefijo: 21,
     });
   });
 
@@ -256,8 +258,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // «Ver PIN» llama a `moduleEditDenial(supabase, "operarios")` antes de leer
   // nada, y la RPC repite el candado con la matriz y audita en su transacción;
   // pasa el veredicto por acción sin entrar en ninguna de las dos listas.
+  // SDD-0531 sumó `tracking/[id]/datos-reservados-actions.ts::updateShipmentSinUbicacion`
+  // (430 → 431): guarda los datos del envío conservando la ubicación para quien
+  // no puede verla; llama a `moduleEditDenial(supabase, "tracking")` antes de
+  // leer nada y delega la escritura en `updateShipment`, que repite el candado.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(430);
+    expect(reportes.length).toBe(431);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
