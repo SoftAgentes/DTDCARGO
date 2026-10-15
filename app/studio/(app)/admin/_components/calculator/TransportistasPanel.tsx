@@ -335,17 +335,19 @@ export function TransportistasPanel({
                       <tr>
                         {isAdmin && (
                           <Th>
-                            <input
-                              type="checkbox"
-                              className="studio-checkbox"
-                              aria-label="Seleccionar todas las ciudades visibles"
-                              checked={todasVisiblesMarcadas}
-                              ref={(el) => {
-                                if (el) el.indeterminate = algunaVisibleMarcada && !todasVisiblesMarcadas;
-                              }}
-                              onChange={alternarVisibles}
-                              style={{ width: 16, height: 16, accentColor: "var(--wine)", cursor: "pointer" }}
-                            />
+                            <Casilla>
+                              <input
+                                type="checkbox"
+                                className="studio-checkbox"
+                                aria-label="Seleccionar todas las ciudades visibles"
+                                checked={todasVisiblesMarcadas}
+                                ref={(el) => {
+                                  if (el) el.indeterminate = algunaVisibleMarcada && !todasVisiblesMarcadas;
+                                }}
+                                onChange={alternarVisibles}
+                                style={{ width: 16, height: 16, accentColor: "var(--wine)", cursor: "pointer" }}
+                              />
+                            </Casilla>
                           </Th>
                         )}
                         <Th>Ciudad</Th>
@@ -378,14 +380,16 @@ export function TransportistasPanel({
                           >
                             {isAdmin && (
                               <Td>
-                                <input
-                                  type="checkbox"
-                                  className="studio-checkbox"
-                                  aria-label={`Seleccionar ${ciudad}`}
-                                  checked={marcadas.has(t.id)}
-                                  onChange={() => alternar(t.id)}
-                                  style={{ width: 16, height: 16, accentColor: "var(--wine)", cursor: "pointer" }}
-                                />
+                                <Casilla>
+                                  <input
+                                    type="checkbox"
+                                    className="studio-checkbox"
+                                    aria-label={`Seleccionar ${ciudad}`}
+                                    checked={marcadas.has(t.id)}
+                                    onChange={() => alternar(t.id)}
+                                    style={{ width: 16, height: 16, accentColor: "var(--wine)", cursor: "pointer" }}
+                                  />
+                                </Casilla>
                               </Td>
                             )}
                             <Td>
@@ -417,7 +421,7 @@ export function TransportistasPanel({
                                     tono === "negative"
                                       ? "var(--danger)"
                                       : tono === "positive"
-                                        ? "var(--success)"
+                                        ? "var(--ink)"
                                         : "var(--ink-soft)",
                                 }}
                               >
@@ -628,23 +632,40 @@ function IconButton({
   return (
     <button
       type="button"
+      className="studio-btn studio-btn-ghost studio-btn-xs"
       onClick={onClick}
       title={label}
       aria-label={label}
       style={{
         width: 32,
         height: 32,
-        display: "grid",
-        placeItems: "center",
-        border: 0,
-        borderRadius: "var(--r-sm)",
+        padding: 0,
         color: danger ? "var(--danger)" : "var(--ink-soft)",
-        background: "transparent",
-        cursor: "pointer",
       }}
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Área de toque de 32 px alrededor de una casilla de 16 px (A11Y-01). El
+ * nombre accesible sigue en el `aria-label` de la casilla.
+ */
+function Casilla({ children }: { children: React.ReactNode }) {
+  return (
+    <label
+      style={{
+        display: "inline-grid",
+        placeItems: "center",
+        width: 32,
+        height: 32,
+        margin: -8,
+        cursor: "pointer",
+      }}
+    >
+      {children}
+    </label>
   );
 }
 

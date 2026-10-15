@@ -227,12 +227,10 @@ export function TariffDrawer({
               style={{
                 font: "700 15px/1 var(--f-mono)",
                 fontVariantNumeric: "tabular-nums",
-                color:
-                  tono === "negative"
-                    ? "var(--danger)"
-                    : tono === "positive"
-                      ? "var(--success)"
-                      : "var(--ink-soft)",
+                // --ink y no --success: el verde como texto da 4,33:1 sobre
+                // blanco y no pasa AA (BRAND regla 6). El rojo se queda para
+                // el margen negativo, que es lo que hay que ver.
+                color: tono === "negative" ? "var(--danger)" : "var(--ink)",
               }}
             >
               {margen == null ? "—" : usdConSigno(margen)}
