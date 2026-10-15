@@ -10,8 +10,8 @@
 | Base | `origin/main` `487971c8`; reserva SDD `666837d1` (fast-forward); merge de `origin/main` `c60cd4fe` (#218) en `11c7339d` |
 | SDD | [0520](../../docs/specs/0520-operarios-columnas-ajustables/spec.md) · `in-progress` |
 | Migración | ninguna |
-| PR | pendiente de abrir |
-| Estado de tarea | en-progreso |
+| PR | draft contra `main`, abierta desde esta rama después del commit que contiene este documento |
+| Estado de tarea | lista-para-revision (PR draft) |
 
 ## OBJETIVO ORIGINAL
 
@@ -65,8 +65,48 @@ Base del código: commit `1ea22403` (sobre el merge `11c7339d`).
 | `git diff --check` | diff | PASÓ |
 | `/ui-check` | diff visual | PASÓ con observaciones (abajo) |
 | Arnés en Chromium (Playwright del repo) | `OperariosClient` real con stubs de actions | PASÓ (abajo) |
-| `corepack pnpm verify` | completo | EN CURSO (se completa en el commit siguiente) |
+| `corepack pnpm verify` | completo, sobre `71c3cceb`, una sola corrida (01:55–02:23Z), sin otra corrida pesada en la máquina | **FALLÓ** por el paso `test` (3 pruebas ajenas al diff, verdes aisladas en el mismo SHA); `migrations-applied` NO EJECUTADO (SKIP); los otros 15 pasos PASARON. Detalle abajo |
 | Studio con sesión real | `/studio/operarios` | NO DISPONIBLE: el worktree no tiene credenciales de Supabase (no se copian secretos); la evidencia es de componente y de Chromium con stubs |
+
+### `corepack pnpm verify` paso por paso (SHA `71c3cceb`)
+
+| Paso | Estado |
+|---|---|
+| harness | PASÓ |
+| lint | PASÓ (avisos preexistentes de `react-hooks`, ninguno en archivos de esta tarea) |
+| rsc-boundary | PASÓ (1665 módulos) |
+| typecheck | PASÓ |
+| edge-functions | PASÓ (4 funciones) |
+| test | **FALLÓ**: `3 failed | 9661 passed | 1 skipped (9665)` en la corrida y en su reintento |
+| docs:check | PASÓ |
+| numbering | PASÓ |
+| feature-constants | PASÓ |
+| components:check | PASÓ |
+| governance:check | PASÓ |
+| migrations-applied | NO EJECUTADO: `[SKIP]` sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` en el worktree. Esta tarea no tiene migraciones |
+| pending-migration-symbols | PASÓ (0 ROJO · 0 AMARILLO) |
+| sql-tests | PASÓ |
+| schema-rebuild | PASÓ |
+| e2e | PASÓ con aviso: 177 passed, 1 flaky (`e2e/auth.spec.ts:81` «Acceso: un token inválido…», `net::ERR_ABORTED` en el primer intento), 20 skipped; salida ≠0 por el worker de WebKit que no cierra en Windows |
+| build | PASÓ |
+
+Resumen literal: «16 de 17 pasos corrieron de verdad» · «[FAIL] verify: 1
+fallo(s) → test CIERRE ADEMÁS INCOMPLETO — CRÍTICOS SIN MEDIR:
+migrations-applied.» · exit 1.
+
+**Las tres pruebas rojas del paso `test`**, sin relación con el diff (ninguno
+de sus archivos ni de sus imports cambia en esta rama:
+`git diff origin/main HEAD` sobre ellos sale vacío):
+
+| Prueba | En la suite | Aislada, mismo SHA `71c3cceb`, máquina quieta |
+|---|---|---|
+| `PinViewDialog.test.tsx` · «si la base pide confirmarla (P0022): el error va al campo…» | `toHaveFocus()` falla en 662 ms y 858 ms (el foco queda en «Ver PIN»): rojo rápido, carrera del foco bajo carga | 3 corridas: `12 passed (12)` cada una |
+| `__tests__/fuentes-locales.test.ts` · «ningún archivo… importa next/font/google» | timeout de 20 s (35,2 s y 22,8 s) | `14 passed (14)` junto con `session-cookie`, 3,07 s |
+| `lib/db/__tests__/session-cookie.test.ts` · «no hay otro archivo que cree clientes de @supabase/ssr» (1.ª corrida) | timeout (30,6 s) | ídem |
+| `pin-operarios-endurecer.migration.test.ts` · «el validador es 0037…» (reintento) | timeout (35,2 s; el archivo tardó 284 s) | `83 passed (83)`, 111,95 s |
+
+No se relanzó verify: el turno era de una sola corrida. La carrera de
+`PinViewDialog` va en FUERA DE ALCANCE.
 
 ### Mutantes
 
@@ -130,18 +170,22 @@ con ajustes menores (no bloqueante).
 - `666837d1` chore(sdd): reserva SDD-0520 (stub, fast-forward).
 - `11c7339d` merge de `origin/main` `c60cd4fe`.
 - `1ea22403` feat(studio): SDD-0520 — código, pruebas, CSS, contrato y CLAUDE.md.
-- commit que contiene este documento: spec, índice y handoff.
+- `71c3cceb` docs(sdd): spec, índice y primera versión de este handoff (SHA verificado).
+- commit que contiene este documento: sólo este handoff con los resultados de
+  verify. La cabeza final y su hash quedan en la PR.
 
 ## PR / BRANCH
 
 Base `main`, rama `codex/operarios-columnas-ajustables`, worktree arriba. PR
-pendiente de abrir.
+draft abierta con `gh pr create` después de este commit; el número y la cabeza
+final van en la PR y en el reporte al Director.
 
 ## PENDIENTES DE ESTA TAREA
 
-- `corepack pnpm verify` completo y su registro paso por paso.
-- Push y PR contra `main`.
-- Smoke de Sam en `dtdcargo.com/studio/operarios` después del merge.
+- Que el Director decida si el rojo de `test` (ajeno, verde aislado) basta o
+  pide otra corrida de verify; con su OK, pasar la PR de draft a lista.
+- Smoke de Sam en `dtdcargo.com/studio/operarios` después del merge (guion en
+  la PR).
 
 ## FUERA DE ALCANCE DETECTADO
 
@@ -165,6 +209,13 @@ pendiente de abrir.
    SDD-0023: un bodeguero o camionero no se puede editar sin asignarle uno.
 5. **La tabla no es una tabla semántica** (A11Y-01, punto 10; TBL-01): es una
    grilla de `div` sin `role="table"`/`columnheader`, como antes de esta tarea.
+6. **Carrera del foco en `PinViewDialog.test.tsx`** (SDD-0515). El caso «si la
+   base pide confirmarla (P0022)…» falló dos veces seguidas en la suite
+   completa en 662 ms y 858 ms con el foco en «Ver PIN» en vez del campo de
+   contraseña (`PinViewDialog.tsx:136` enfoca después del render del error), y
+   pasa 3/3 aislado. Rojo rápido: carrera, no timeout. Se reproduce retrasando
+   el Scheduler; la prueba debería esperar el foco con `waitFor`, o el
+   componente enfocar en el mismo commit que pinta el error.
 
 ## Impacto documental
 
@@ -176,4 +227,15 @@ pendiente de abrir.
 
 ## HANDOFF AL DIRECTOR
 
-Pendiente de completar al cerrar: verify, PR, SHA verificado y cabeza final.
+- **SHA verificado:** `71c3cceb` (verify completo). Después sólo cambia este
+  handoff; la cabeza final la reporta la PR.
+- **Siguiente acción:** revisar la PR draft; decidir sobre el rojo de `test`
+  (tres pruebas ajenas, verdes aisladas en el mismo SHA) y sobre
+  `migrations-applied` sin medir (no hay migraciones en la tarea).
+- **Cambios compartidos:** primitiva nueva en `app/studio/_components/ui/columns/`
+  y una clase nueva en `app/studio/studio.css`; ningún otro módulo la consume.
+  Sin DB ni migraciones. Ninguna dependencia con otras PR abiertas conocida.
+- **Merge = deploy** a producción por Vercel; el smoke de Sam está en la PR.
+- **Ownership:** claim `worker-sdd-0520-agent-a200f75a` liberado al cerrar. No
+  se eliminó worktree ni rama; la reserva local
+  `codex/sdd-reserve-0520-operarios-columnas-ajustables` queda como está.
