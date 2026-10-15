@@ -341,3 +341,12 @@ misma finalidad. **NO VERIFICABLE** el contenido real de las reglas en producci�
 - **MP-01/BTN-01.** No aplica: no hay botones ni acciones nuevas en pantalla.
 - **ERR-01.** Cumplimiento: los fallos del aviso no rompen la recepción y quedan dichos.
 - **CMP-01.** No aplica: no hay componentes.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #227 (`codex/avisos-bodega-confiables`). Cabeza `d4768ed2` fusionada con `--match-head-commit`; merge `8f8cabfc` a las 12:40:38Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38733575375), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (12:41:59Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Smoke de Sam: PENDIENTE.** Guion en `.agents/handoffs/0524-avisos-bodega-confiables.md` § «Smoke para Sam».
+  - Antes del smoke, Sam cambia la regla «Recibido en bodega China» a «Correo + push» en Admin → Notificaciones.
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.

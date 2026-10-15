@@ -213,3 +213,16 @@ Detalle en el handoff `.agents/handoffs/0528-textos-rastreo-restantes.md`.
   Portal.
 - Si Sam prefiere otro texto para alguno de estos lugares, se cambia sin tocar
   el resto: cada uno vive en su archivo.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #229 (`codex/textos-rastreo-restantes`). Cabeza `fd8ae478` fusionada con `--match-head-commit`; merge `19d4128e` a las 13:03:32Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38736582294), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (13:05:14Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Comprobado por el Director en producción** (HTML público, 2026-10-15 ~16:48Z):
+  - `/entrar`: el texto visible no tiene ninguna de las palabras del criterio 1.
+  - `/glosario`: DTDU dice el texto «Encendido» de la tabla («…con él nuestro equipo sigue tu envío. El seguimiento desde tu portal del cliente (dtdcargo.com/portal) está en construcción.»).
+  - `/servicios`: el beneficio 3 de pre-alerta dice «Tu compra queda registrada en tu portal desde el primer día.», y la página no contiene «en todo momento» ni «estado de tu compra».
+  - `/llms.txt`: tiene «- Portal del cliente: https://dtdcargo.com/portal». La línea «Seguimiento de cada envío mediante un código de cliente propio…» sigue, como decidió esta spec (describe al equipo).
+- **Pendiente:** el visto bueno de Sam a los textos, y si quiere más neutra la línea de `llms.txt` (propuesta en el handoff).
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el visto bueno.

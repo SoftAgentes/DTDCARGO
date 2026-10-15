@@ -210,3 +210,11 @@ Los demás secretos de firma o verificación del servidor no usan `??` y ya trat
   lo deciden Sam y la sesión de Contabo.
 - Un secreto dedicado con espacios en los bordes se sigue usando con ellos. Es
   deliberado (ver Decisión).
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #225 (`claude/wonderful-goldstine-7838d9`). Cabeza `16f32c52` fusionada con `--match-head-commit`; merge `7075883e` a las 11:18:58Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38723816554), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (11:20:36Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Smoke:** NO APLICA uno de pantalla. En Vercel esas variables no existen; el cambio protege al servidor propio, donde el `.env` del corte ya no lleva líneas vacías.
+- **Estado:** integrada.

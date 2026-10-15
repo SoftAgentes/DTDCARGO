@@ -241,3 +241,18 @@ La 0482 queda preparada y validada sólo en local, como espera declarada en
 
 Fusionar la PR no autoriza aplicarla. Los merges están congelados hasta después
 del corte de Vercel al servidor propio (2026-10-15, noche de Caracas).
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #235 (`claude/nervous-leakey-ff74c7`). Cabeza `5fcc8ad1` fusionada con `--match-head-commit`; merge `51b74da0` a las 15:45:26Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38758637673), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (15:47:12Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Migración `0482_naviera_autorizar_correlation_id`: APLICADA** en el servidor propio (`dtd-cargo-db-1`), migrate-first, con el OK nominal de Sam, literal: «autorizo aplicar 0476_borrado_embarques_recepciones, 0477_naviera_zarpe_avanza_envios, 0479_portal_bandeja_avisos, 0480_operarios_editar_por_region y 0482_naviera_autorizar_correlation_id en el servidor propio».
+  - Antes, la lectura previa READ ONLY de la migración dio «PREFLIGHT 0482 OK».
+  - `psql` con la migración y la fila del ledger en una transacción. Ledger `20261015154521 · 0482_naviera_autorizar_correlation_id`, una sentencia, md5 `3572011a…` y 12451 bytes, igual al blob de la cabeza fusionada.
+  - La PR se fusionó 5 s después de la fila del ledger, así que la app vieja y la base nueva no convivieron.
+  - La espera salió de `supabase/migrations-baseline.json` en la misma PR. La cabecera «NO APLICADA» del `.sql` no se corrige: editarla rompería la identidad con el ledger.
+  - Evidencia: `/srv/ops/evidencias/apply-0482-dtd-cargo-20261015T154521Z/` con `SHA256SUMS`.
+- **Corrección:** el mensaje del commit `5fcc8ad1` cita md5 `ec83e2de…` y 12439 bytes, que eran de una versión anterior. La sesión dueña cambió después un comentario. Los valores aplicados son los de arriba; la corrección también quedó en un comentario de la PR y en la identidad de la evidencia.
+- **Smoke de Sam: PENDIENTE.** Autorizar una solicitud real desde Naviera (criterio pendiente de la spec). Antes caía siempre con 22023 y la solicitud seguía `solicitada`.
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.

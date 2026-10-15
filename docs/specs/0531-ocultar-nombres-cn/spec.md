@@ -289,3 +289,12 @@ cajón), el CSV, la API y Almacén CN. La corrida y su conteo están en el hando
 
 Pendiente: revisión del Director, `pnpm verify` completo (turno de corrida
 pesada) y el smoke de Sam del handoff.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #234 (`codex/ocultar-nombres-cn`). Cabeza `01c3fcea` fusionada con `--match-head-commit`; merge `1bc88fca` a las 13:50:13Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38742522922), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (13:51:44Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Conflicto al integrar:** `lib/studio/rbac-actions-guard.test.ts` cambió de totales con main; el Director lo resolvió con 76 archivos (55 exactos y 21 con prefijo) y 432 acciones, y la prueba pasó 437/437.
+- **Smoke de Sam: PENDIENTE.** Guion en `.agents/handoffs/0531-ocultar-nombres-cn.md` § «Smoke para Sam».
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.

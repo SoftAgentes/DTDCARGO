@@ -177,3 +177,12 @@ Quedan anotados en el handoff.
   en vez de `null` (16), acta con `??` (3), Escucha sin respaldo al acta (3) o
   con el orden invertido (2), digest sin respaldo al acta (6) o con el orden
   invertido (4), digest con otro default (6). **Los 10 mueren.**
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #226 (`claude/nostalgic-grothendieck-e4f689`). Cabeza `6e75451e` fusionada con `--match-head-commit`; merge `f3651f24` a las 11:35:29Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38726650430), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (11:37:00Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Docs:** el parche de la sesión dueña («spec y handoff con la #225 ya en main») entró en este cierre, y la cabecera de `infra/dtd-cargo/.env.example` dejó de nombrar los modelos como lecturas que no caen al respaldo.
+- **Smoke:** NO APLICA uno de pantalla (sin cambio visible; los modelos vacíos caen a su respaldo).
+- **Estado:** integrada.
