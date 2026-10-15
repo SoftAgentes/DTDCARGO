@@ -20,7 +20,7 @@ import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { isBoxCode } from "@/lib/studio/etiquetas-qr";
 import {
-  notaSinAviso,
+  notaSinAvisoBodega,
   scheduleReceiptInWarehouse,
 } from "@/lib/studio/notifications/schedule-fanout";
 
@@ -235,7 +235,8 @@ export async function receivePrealertaAction(
     ]);
   })()
     .then(async (r) => {
-      const nota = notaSinAviso(r.sinDestino);
+      // SDD-0524 · la nota dice el motivo real (sin destino, ya avisado…).
+      const nota = notaSinAvisoBodega(r);
       if (!nota || !res.receipt_id) return;
       await admin.from("warehouse_receipt_events").insert({
         tenant_id: auth.session.tenant_id,

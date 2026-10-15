@@ -26,7 +26,7 @@ import { eliminarRecepciones } from "@/lib/studio/borrado/servidor";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { autoInvoiceForReceipt } from "@/lib/studio/sales-orders/actions";
 import {
-  notaSinAviso,
+  notaSinAvisoBodega,
   scheduleReceiptInWarehouse,
 } from "@/lib/studio/notifications/schedule-fanout";
 import {
@@ -335,7 +335,9 @@ export async function createReceiptAction(
           prealertaCode: compra?.code ?? null,
         },
       ]);
-      const nota = notaSinAviso(fanout.sinDestino);
+      // SDD-0524 · con el motivo real: desde que el duplicado también se
+      // anota, «no tiene un envío abierto» sería falso cuando el envío existe.
+      const nota = notaSinAvisoBodega(fanout);
       if (nota) {
         await notifAdmin.from("warehouse_receipt_events").insert({
           tenant_id: link.tenant_id,

@@ -18,10 +18,18 @@ vi.mock("@/lib/studio/mail/mail-rule-engine", () => ({ fireMailEvent: vi.fn(asyn
 vi.mock("@/lib/studio/sales-orders/actions", () => ({
   autoInvoiceForReceipt: vi.fn(async () => ({ notApplicable: true })),
 }));
-vi.mock("@/lib/studio/notifications/schedule-fanout", () => ({
-  notaSinAviso: vi.fn(() => null),
-  scheduleReceiptInWarehouse: vi.fn(async () => ({ scheduled: 0 })),
+// SDD-0524 · la nota es la REAL (notaSinAvisoBodega); el fan-out, un doble.
+const fanout = vi.hoisted(() => ({
+  resultado: { scheduled: 0, sinDestino: [] as string[], detalle: [] as unknown[] },
 }));
+vi.mock("@/lib/studio/notifications/schedule-fanout", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/studio/notifications/schedule-fanout")>();
+  return {
+    notaSinAviso: vi.fn(() => null),
+    notaSinAvisoBodega: real.notaSinAvisoBodega,
+    scheduleReceiptInWarehouse: vi.fn(async () => fanout.resultado),
+  };
+});
 vi.mock("@/lib/studio/expense-alerts-queries", () => ({
   findOrCreateConsolidationShipment: vi.fn(async () => null),
   ensureActiveAlert: vi.fn(async () => null),
@@ -118,6 +126,7 @@ beforeEach(() => {
   rpcs = [];
   inserts = [];
   codigoDeLaBase = "WR-2026-0007";
+  fanout.resultado = { scheduled: 0, sinDestino: [], detalle: [] };
 });
 
 describe("createReceiptAction · SDD-0491, el código lo asigna la base", () => {
@@ -152,5 +161,28 @@ describe("createReceiptAction · SDD-0491, el código lo asigna la base", () => 
 
     const evento = inserts.find((i) => i.tabla === "warehouse_receipt_events");
     expect(evento?.valores.description).toContain("Recepción WR-2026-0007 registrada");
+  });
+});
+
+describe("createReceiptAction · la nota del aviso dice el motivo real (SDD-0524)", () => {
+  it("un aviso descartado por duplicado se anota como tal, no como «sin envío abierto»", async () => {
+    fanout.resultado = {
+      scheduled: 0,
+      sinDestino: ["DTD-1001"],
+      detalle: [{ markbox: "DTD-1001", motivo: "ya_avisado", ancla: "ENV-7" }],
+    };
+    await createReceiptAction({}, formulario(false));
+
+    const notas = inserts.filter(
+      (i) => i.tabla === "warehouse_receipt_events" && i.valores.event_type === "note",
+    );
+    expect(notas).toHaveLength(1);
+    expect(String(notas[0].valores.description)).toContain("ENV-7");
+    expect(String(notas[0].valores.description)).not.toContain("no tiene un envío abierto");
+  });
+
+  it("si nadie se quedó sin aviso, no hay nota", async () => {
+    await createReceiptAction({}, formulario(false));
+    expect(inserts.filter((i) => i.valores.event_type === "note")).toEqual([]);
   });
 });

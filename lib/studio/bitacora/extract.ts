@@ -10,7 +10,8 @@
  * Modelo: `BITACORA_ACTA_MODEL` (env) con default `claude-sonnet-4-6` — el
  * mismo ID que noticias-web/actions.ts tiene cableado y funcionando hoy. El
  * spec menciona "Sonnet 5" como norte; se deja configurable por env para
- * subirlo sin tocar código cuando el ID esté disponible.
+ * subirlo sin tocar código cuando el ID esté disponible. Vacía o con sólo
+ * espacios cuenta como sin definir (SDD-0525).
  *
  * Sin `ANTHROPIC_API_KEY` (o `LLM_FORCE_MOCK=1`) → **mock determinista**
  * derivado de la transcripción (patrón SDD-0020): dev/tests/verify corren sin
@@ -23,6 +24,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { ToolUseBlock } from "@anthropic-ai/sdk/resources/messages";
 import { buildActaPrompt } from "./prompts";
 import { TRANSCRIPT_MIN_CHARS, type MeetingTipo } from "./bitacora-types";
+import { firstConfiguredSetting } from "@/lib/runtime/server-setting";
 
 // ── Shape cruda del acta (lo que devuelve el LLM / el mock) ───
 
@@ -260,7 +262,8 @@ export async function extractActa(
 
   try {
     const client = new Anthropic({ apiKey });
-    const model = process.env.BITACORA_ACTA_MODEL ?? DEFAULT_MODEL;
+    const model =
+      firstConfiguredSetting(process.env.BITACORA_ACTA_MODEL) ?? DEFAULT_MODEL;
     const response = await client.messages.create({
       model,
       max_tokens: 5000, // +1000 vs SDD-0146: el contrato ahora trae hilos + dudas.
