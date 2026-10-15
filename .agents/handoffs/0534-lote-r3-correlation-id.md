@@ -10,7 +10,7 @@
 | Base | `origin/main@f3651f24` (#226) |
 | SDD | [0534](../../docs/specs/0534-lote-r3-correlation-id/spec.md) · `in-progress` · reserva `codex/sdd-reserve-0534-lote-r3-correlation-id` (local, sin publicar; cherry-pick `ed128d3f`) |
 | Migraciones | 0483–0489, una por RPC · **NO APLICADAS** · siete esperas en `pendingBelowCutoff` |
-| PR | __PR__ |
+| PR | draft [#239](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/239) |
 | Estado de tarea | lista-para-revisión (PR draft, sin fusionar) |
 
 ## OBJETIVO ORIGINAL
@@ -144,13 +144,15 @@ defecto sólo aparece con el writer real, y eso es lo que montan los contratos n
 | `ed128d3f` | chore(sdd): reserva SDD-0534 — lote-r3-correlation-id |
 | `f5db3767` | feat(studio): SDD-0534 — migraciones 0483–0489: correlation_id del lote R3 con md5 de la referencia |
 | `609579ed` | test(studio): SDD-0534 — contratos 0483–0489 con el writer AUD-01 real y envoltorio PGlite |
-| (siguiente) | docs: SDD-0534 — spec, índice y handoff del lote R3 |
+| `b269cb99` | docs: SDD-0534 — spec, índice y handoff del lote R3 |
+| `1068dc11` | Merge de `origin/main@8f8cabfc` (#227, #220, #228): limpio; docs:check, sdd:check, símbolos y las siete suites (182/182) en verde después del merge |
+| (este commit) | docs(handoff): SDD-0534 — PR #239 y SHA |
 
 ## PR / BRANCH
 
 - Rama `claude/infallible-ellis-1b9414`, publicada a sí misma.
-- PR draft contra `main`, **sin fusionar**: los merges están congelados hasta después del corte de
-  Vercel al servidor propio. El número se anota en el commit siguiente al de la apertura.
+- [#239](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/239), draft contra `main`, **sin fusionar**: los merges están congelados hasta después del corte
+  de Vercel al servidor propio.
 
 ## PENDIENTES DE ESTA TAREA
 
