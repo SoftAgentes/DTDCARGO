@@ -1,6 +1,6 @@
 ---
 sdd: "0528"
-title: "Textos públicos de rastreo que quedan: /entrar, glosario y llms.txt"
+title: "Textos públicos de rastreo que quedan: /entrar, glosario, /servicios y llms.txt"
 status: in-progress
 author: "Claude"
 created: 2026-10-15
@@ -11,12 +11,12 @@ related: ["0514","0519","0521"]
 confidencialidad: interno
 ---
 
-# SDD-0528 — Textos públicos de rastreo que quedan: /entrar, glosario y llms.txt
+# SDD-0528 — Textos públicos de rastreo que quedan: /entrar, glosario, /servicios y llms.txt
 
 > Continuación de la SDD-0521. Mientras el seguimiento del Portal esté en
-> construcción, la puerta de acceso `/entrar`, el glosario y `public/llms.txt`
-> dejan de prometer rastreo. Dicen lo que es cierto hoy y conservan sus
-> destinos.
+> construcción, la puerta de acceso `/entrar`, el glosario, la ficha de
+> pre-alerta de `/servicios` y `public/llms.txt` dejan de prometer rastreo.
+> Dicen lo que es cierto hoy y conservan sus destinos.
 
 ## Contexto
 
@@ -32,16 +32,18 @@ Sam como «Textos públicos que quedan», y Sam eligió esa tarea:
 (Texto de la descripción que el Director le presentó a Sam; la elección de Sam
 fue esa opción.)
 
-El Director excluyó de esta tarea la ficha de pre-alerta de `/servicios`
-(`components/servicios/hub-fichas.tsx`), porque otra tarea (SDD-0524) puede
-estar tocando ese archivo. Queda pendiente, con propuesta de texto, en el
-handoff.
+Al asignarla, el Director dejó fuera la ficha de pre-alerta de `/servicios`
+(`components/servicios/hub-fichas.tsx`), porque la SDD-0524 podía estar
+tocando ese archivo. Cuando la SDD-0524 cerró su PR (#227) sin tocarlo, el
+Director la sumó a esta tarea, con la propuesta de la 0519 y la orden de
+ampliar su prueba de forma explícita, sin debilitarla.
 
 ## Objetivo
 
-1. Con `TRACKING_EN_CONSTRUCCION = true`, `/entrar` y los términos DTDU y POD
-   de `/glosario` (ficha y JSON-LD) no prometen que el cliente sigue su carga.
-   Con `false`, vuelven los textos de siempre.
+1. Con `TRACKING_EN_CONSTRUCCION = true`, `/entrar`, los términos DTDU y POD
+   de `/glosario` (ficha y JSON-LD) y la ficha de pre-alerta de `/servicios` no
+   prometen que el cliente sigue su carga o su compra. Con `false`, vuelven los
+   textos de siempre.
 2. `public/llms.txt`, que es estático, enlaza al Portal con un nombre cierto en
    las dos posiciones del interruptor.
 3. En `/entrar` sólo cambia el texto: campos, botones, enlaces, destinos y
@@ -59,6 +61,7 @@ no se crea otro.
 | `app/entrar/EntrarForm.tsx` | Panel lateral, párrafo | Tu Shipping Mark identifica tu carga de punta a punta. Cotiza, sigue tus envíos y paga, todo en un lugar. | Tu Shipping Mark identifica tu carga de punta a punta. Cotiza y paga, todo en un lugar. |
 | `lib/design-tokens.ts` + `app/glosario/page.tsx` | DTDU, primer párrafo (ficha y JSON-LD) | … Te lo damos al confirmar la cotización y lo ves entrando a tu portal del cliente (dtdcargo.com/portal), donde sigues el estado en tiempo real. | … Te lo damos al confirmar la cotización y con él nuestro equipo sigue tu envío. El seguimiento desde tu portal del cliente (dtdcargo.com/portal) está en construcción. |
 | `lib/design-tokens.ts` + `app/glosario/page.tsx` | POD, segundo párrafo (ficha y JSON-LD) | En el portal de tracking, el POD aparece como el último evento del envío junto con la fecha y firma escaneada. | Es el último evento del envío: lleva la fecha de la entrega y la firma de quien recibe. |
+| `components/servicios/hub-fichas.tsx` | `/servicios`, ficha de pre-alerta, «¿Por qué te conviene?», beneficio 3 | Ves el **estado de tu compra** en todo momento. | Tu compra queda **registrada en tu portal** desde el primer día. |
 
 `public/llms.txt` (estático, igual en las dos posiciones):
 
@@ -91,6 +94,15 @@ no se crea otro.
   imports. `app/glosario/page.tsx` elige el cuerpo con una sola función y la
   usa en la ficha y en el JSON-LD `DefinedTermSet`, para que la página y su
   versión para buscadores digan lo mismo.
+- **El beneficio de la ficha de pre-alerta es la propuesta de la 0519.** Dice
+  lo que el Portal ya hace al pre-alertar: registrar la compra. Conserva la
+  negrita en el mismo lugar de la frase. Lo elige la misma variable
+  `enConstruccion` que la 0519 ya lee al renderizar la ficha.
+- **La prueba de la 0519 se amplía, no se afloja.** Su invariante «el resto de
+  la ficha no cambia con el interruptor» excluye ahora cuatro lugares por
+  nombre (los tres de la 0519 y este beneficio); cualquier otro texto que cambie
+  la sigue tumbando, y un mutante lo comprueba. Además mide la forma (tres
+  beneficios) y el beneficio en las dos posiciones.
 - **`llms.txt` no puede leer el interruptor.** «Portal del cliente» es cierto en
   las dos posiciones y conserva el enlace.
 - **Sin cambios visuales.** Mismos elementos, clases, colores e íconos; sólo
@@ -103,7 +115,10 @@ datos personales, y no agrega consultas.
 
 Se buscaron `rastre`, «seguimiento», «sigue», «tiempo real», «en vivo», «cada
 paso», «en todo momento», «estado de tu» y `tracking` en `app/entrar/**`, en
-`GLOSSARY_TERMS` y en `public/llms.txt`.
+`GLOSSARY_TERMS` y en `public/llms.txt`. «Estado de tu compra» y «en todo
+momento» se buscaron además en todo el repositorio: fuera de la ficha sólo
+aparecen en handoffs, specs y el copy fuente de la infografía de pre-alerta
+(fuera de alcance, ver «Riesgos y límites»).
 
 Revisados que **no** se cambian:
 
@@ -127,6 +142,8 @@ Allowlist exacta:
 | `app/glosario/page.tsx` | `cuerpoVigente()` elige el cuerpo de cada término para la ficha y el JSON-LD. |
 | `public/llms.txt` | El nombre del enlace al Portal. |
 | `app/__tests__/sin-promesa-rastreo-restantes.test.tsx` | Nuevo. `/entrar`, `/glosario` y `llms.txt`, encendido y apagado. |
+| `components/servicios/hub-fichas.tsx` | El beneficio 3 de la ficha de pre-alerta según el interruptor, y su comentario. |
+| `components/servicios/hub-fichas-sin-promesa-bodega.test.tsx` | Prueba de la 0519 ampliada: el beneficio en las dos posiciones, la forma de la lista y la invariante con el cuarto lugar nombrado. |
 | `lib/portal/tracking-en-construccion.ts` | Sólo el comentario: los lugares nuevos. El valor no cambia. |
 | `scripts/feature-constants.json` | Sólo el `significa` de `TRACKING_EN_CONSTRUCCION`. `value` sigue en `true`. |
 | `docs/marketing/README.md` | Una viñeta fechada; la última frase de la viñeta de la 0521 deja de afirmar el estado actual. |
@@ -134,9 +151,9 @@ Allowlist exacta:
 | `docs/specs/README.md` | Índice regenerado con `node scripts/build-docs-index.mjs`. |
 | `.agents/handoffs/0528-textos-rastreo-restantes.md` | Handoff de la tarea. |
 
-Fuera de alcance: `components/servicios/hub-fichas.tsx` (lo puede estar tocando
-la SDD-0524), las FAQ (`lib/faqs.ts`, atadas a la base de Kommo), la política de
-privacidad, `components/PuertaAPuerta.tsx` (tabla de la SDD-0064),
+Fuera de alcance: el resto de `components/servicios/hub-fichas.tsx`, el copy
+fuente de la infografía (`docs/marketing/servicios-infografias/prealerta-compra.md`),
+las FAQ (`lib/faqs.ts`, atadas a la base de Kommo), la política de privacidad, `components/PuertaAPuerta.tsx` (tabla de la SDD-0064),
 `public/portal/manifest.json`, el formulario de contacto, `app/portal/**` y
 `app/registro/**`. Tampoco datos, migraciones, server actions ni RPC, ni el
 recibo semántico de `docs/marketing/README.md` (lo renueva el Director después
@@ -162,7 +179,15 @@ del merge).
 6. `public/llms.txt` enlaza a `https://dtdcargo.com/portal` exactamente como
    «- Portal del cliente: https://dtdcargo.com/portal» y no contiene una
    promesa de rastreo.
-7. Las pruebas de `/entrar` (SDD-0276), de la 0521 y de la 0519, los contratos
+7. Con `TRACKING_EN_CONSTRUCCION = true`, el beneficio 3 de la ficha de
+   pre-alerta de `/servicios` dice «Tu compra queda registrada en tu portal
+   desde el primer día.» y la ficha no contiene «en todo momento» ni «estado de
+   tu compra». Con `false`, vuelve «Ves el estado de tu compra en todo
+   momento.».
+8. El resto de la ficha de pre-alerta, fuera de los tres lugares de la 0519 y
+   este beneficio, y las demás fichas del hub, son iguales con el interruptor
+   en cualquier posición.
+9. Las pruebas de `/entrar` (SDD-0276), de la 0521 y de la 0519, los contratos
    del glosario y de JSON-LD y el paso `feature-constants` siguen verdes, con
    `value: true`.
 
@@ -176,8 +201,13 @@ Detalle en el handoff `.agents/handoffs/0528-textos-rastreo-restantes.md`.
   sistema y nadie apaga el interruptor, estos textos siguen neutros. Al
   apagarlo vuelven todos en el mismo commit, salvo `llms.txt`, que dice lo mismo
   en las dos posiciones.
-- La ficha de pre-alerta de `/servicios` sigue diciendo «Ves el estado de tu
-  compra en todo momento» hasta que se resuelva junto con la SDD-0524.
+- El copy fuente de la infografía de pre-alerta
+  (`docs/marketing/servicios-infografias/prealerta-compra.md:32`) sigue diciendo
+  «Ves el estado de tu compra en todo momento.». No alimenta la web, pero sí a
+  Cloud Design y al PDF: queda anotado en el handoff.
+- La PR #227 (SDD-0524) toca también el comentario del interruptor y el
+  `significa` de `scripts/feature-constants.json`. Quien entre segundo resuelve
+  el conflicto conservando las dos frases.
 - El texto de DTDU encendido repite la palabra «seguimiento» para decir que
   está en construcción. Es la misma frase que ya ve el cliente en el pie y en el
   Portal.
