@@ -564,15 +564,20 @@ begin
   perform pg_temp.check((pg_temp.run_as('authenticated', 'operations-A',
       pg_temp.reset_sql('cn-2', '9047', 'otro', false, '  ' || repeat('m', 200) || '  '))->>'ok')::boolean,
     'el texto de «Otro» se recorta antes de medirlo: 200 letras con espacios alrededor pasan');
+  -- El evento que se lee es el del último restablecimiento, y lo dice xmin: cada
+  -- uno corre en su propia subtransacción (el bloque con excepción de run_as) y
+  -- su xid crece con cada una. La hora no desempata: append_audit_event escribe
+  -- clock_timestamp(), que en PGlite no tiene microsegundos, y el id es un uuid
+  -- aleatorio (SDD-0538). El bloque 14 comprueba la premisa.
   select * into v_event from public.entity_audit_log
-   where entity_id = pg_temp.fixture_id('cn-2') order by occurred_at desc, id desc limit 1;
+   where entity_id = pg_temp.fixture_id('cn-2') order by xmin::text::bigint desc limit 1;
   perform pg_temp.check(v_event.reason = repeat('m', 200) and v_event.payload = '{"motivo": "otro"}'::jsonb,
     'con «Otro» la auditoría guarda el código y el texto');
   perform pg_temp.check((pg_temp.run_as('authenticated', 'operations-A',
       pg_temp.reset_sql('cn-2', '7395', '  Revision_Seguridad ', false, 'un texto que no va'))->>'ok')::boolean,
     'el código se acepta sin importar mayúsculas ni espacios');
   select * into v_event from public.entity_audit_log
-   where entity_id = pg_temp.fixture_id('cn-2') order by occurred_at desc, id desc limit 1;
+   where entity_id = pg_temp.fixture_id('cn-2') order by xmin::text::bigint desc limit 1;
   perform pg_temp.check(v_event.reason = 'revision_seguridad'
       and v_event.payload = '{"motivo": "revision_seguridad"}'::jsonb,
     'con un código fijo la auditoría guarda sólo el código, no el texto');
@@ -958,6 +963,16 @@ begin
     'el catálogo tiene la entidad operario de acceso');
 end;
 $sin_danos$;
+
+-- 14. La premisa del bloque 5: ningún par de eventos de cn-2 comparte xmin, así
+--     que el orden por xmin no empata nunca, aunque empate la hora.
+do $orden$
+begin
+  perform pg_temp.check((select count(*) > 1 and count(*) = count(distinct e.xmin::text)
+      from public.entity_audit_log e where e.entity_id = pg_temp.fixture_id('cn-2')),
+    'cada evento de cn-2 nació en su propio guardado (xmin distinto): el bloque 5 no depende de la hora');
+end;
+$orden$;
 
 select 'TEST 0475 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;
