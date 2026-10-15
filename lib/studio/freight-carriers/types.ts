@@ -267,6 +267,76 @@ export function validateTariffInput(
 }
 
 // ────────────────────────────────────────────────────────────────
+// Cambio en lote (SDD-0537)
+// ────────────────────────────────────────────────────────────────
+
+/** Tope de ciudades por lote: un tarifario completo de hoy cabe con holgura. */
+export const MAX_LOTE = 300;
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type BulkPriceFieldKey = "costUsdCbm" | "priceUsdCbm";
+
+export type BulkPriceInput = {
+  carrierId: string;
+  ids: string[];
+  /** `null` = no cambia. */
+  costUsdCbm: number | null;
+  /** `null` = no cambia. */
+  priceUsdCbm: number | null;
+};
+
+/**
+ * Valida un cambio en lote: un VALOR ABSOLUTO nuevo de costo y/o de venta para
+ * varias ciudades del mismo transportista.
+ *
+ * ⚠️ No existe «subir un X %» ni «venta = costo × factor»: la venta no se
+ * deriva del costo (SDD-0236). Si cambian los dos, son dos números que el
+ * equipo escribe.
+ */
+export function validateBulkPriceInput(
+  form: FormData,
+):
+  | { ok: true; value: BulkPriceInput }
+  | { ok: false; error?: string; errors?: Partial<Record<BulkPriceFieldKey, string>> } {
+  const carrierId = String(form.get("carrierId") ?? "").trim();
+  if (!carrierId) return { ok: false, error: "Falta el transportista." };
+
+  const ids = [
+    ...new Set(
+      form
+        .getAll("ids")
+        .map((v) => (typeof v === "string" ? v.trim() : ""))
+        .filter((v) => v !== ""),
+    ),
+  ];
+  if (ids.length === 0) return { ok: false, error: "Selecciona al menos una ciudad." };
+  if (ids.length > MAX_LOTE)
+    return { ok: false, error: `Máximo ${MAX_LOTE} ciudades por lote.` };
+  if (!ids.every((id) => UUID.test(id)))
+    return { ok: false, error: "La selección no es válida. Recarga la página." };
+
+  const errors: Partial<Record<BulkPriceFieldKey, string>> = {};
+  const leer = (k: BulkPriceFieldKey) => {
+    const raw = form.get(k);
+    return typeof raw === "string" ? raw.trim() : "";
+  };
+  const costoRaw = leer("costUsdCbm");
+  const ventaRaw = leer("priceUsdCbm");
+  const costo = parseMonto(costoRaw);
+  const venta = parseMonto(ventaRaw);
+  if (costoRaw !== "" && costo == null) errors.costUsdCbm = "No es un monto válido.";
+  else if (costo != null && costo < 0) errors.costUsdCbm = "No puede ser negativo.";
+  if (ventaRaw !== "" && venta == null) errors.priceUsdCbm = "No es un monto válido.";
+  else if (venta != null && venta < 0) errors.priceUsdCbm = "No puede ser negativo.";
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  if (costo == null && venta == null)
+    return { ok: false, error: "Escribe el costo nuevo, la venta nueva o los dos." };
+
+  return { ok: true, value: { carrierId, ids, costUsdCbm: costo, priceUsdCbm: venta } };
+}
+
+// ────────────────────────────────────────────────────────────────
 // Helpers de presentación
 // ────────────────────────────────────────────────────────────────
 

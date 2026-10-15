@@ -135,7 +135,9 @@ function doble(tablas: Record<string, Row[]>, opciones: { fallaUpdate?: string }
 let db: ReturnType<typeof doble>;
 vi.mock("@/lib/db/server", () => ({ createClient: async () => db.client }));
 
-const { saveTariffAction, deleteTariffAction } = await import("../carrier-actions");
+const { saveTariffAction, deleteTariffAction, bulkUpdateTariffPricesAction } = await import(
+  "../carrier-actions"
+);
 
 function tarifa(id: string, carrier: string, city: string, extra: Row = {}): Row {
   return {
@@ -366,5 +368,84 @@ describe("deleteTariffAction · quitar una ruta", () => {
     const res = await deleteTariffAction({}, form({ id: T_VALENCIA }));
     expect(res.error).toBe("Falta el transportista.");
     expect(db.escrituras).toEqual([]);
+  });
+});
+
+describe("bulkUpdateTariffPricesAction · cambio en lote", () => {
+  function lote(ids: string[], campos: Record<string, string>): FormData {
+    const fd = form({ carrierId: BENITO, ...campos });
+    for (const id of ids) fd.append("ids", id);
+    return fd;
+  }
+
+  it("pone el mismo costo nuevo en todas las elegidas y deja la venta como estaba", async () => {
+    const res = await bulkUpdateTariffPricesAction({}, lote([T_VALENCIA, T_MERIDA], { costUsdCbm: "90" }));
+
+    expect(res).toEqual({ ok: true, updated: 2 });
+    expect(fila(T_VALENCIA)).toMatchObject({ cost_usd_cbm: 90, price_usd_cbm: 123.6 });
+    expect(fila(T_MERIDA)).toMatchObject({ cost_usd_cbm: 90, price_usd_cbm: 123.6 });
+    expect(fila(T_OTRO)).toMatchObject({ cost_usd_cbm: 80 });
+    const update = db.escrituras.find((w) => w.op === "update")!;
+    expect(update.fila).toEqual({ cost_usd_cbm: 90 });
+    expect(revalidatePath).toHaveBeenCalledWith("/tarifas");
+  });
+
+  it("con los dos valores escribe los dos tal cual, sin derivar uno del otro", async () => {
+    const res = await bulkUpdateTariffPricesAction(
+      {},
+      lote([T_VALENCIA], { costUsdCbm: "95", priceUsdCbm: "140,25" }),
+    );
+    expect(res.ok).toBe(true);
+    expect(fila(T_VALENCIA)).toMatchObject({ cost_usd_cbm: 95, price_usd_cbm: 140.25 });
+  });
+
+  it.each([
+    ["una ruta de otro transportista", T_OTRO],
+    ["una ruta ya quitada", T_QUITADA],
+  ])("si la selección incluye %s no cambia ninguna", async (_caso, ajena) => {
+    const antes = JSON.stringify(db.store.carrier_tariffs);
+    const res = await bulkUpdateTariffPricesAction({}, lote([T_VALENCIA, ajena], { priceUsdCbm: "1" }));
+
+    expect(res.ok).toBeUndefined();
+    expect(res.error).toMatch(/No se cambió ninguna/);
+    expect(JSON.stringify(db.store.carrier_tariffs)).toBe(antes);
+    expect(db.escrituras).toEqual([]);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it.each<[string, string[], Record<string, string>, RegExp]>([
+    ["sin ningún valor", [T_VALENCIA], {}, /Escribe el costo nuevo, la venta nueva o los dos/],
+    ["sin ciudades", [], { costUsdCbm: "90" }, /Selecciona al menos una ciudad/],
+    ["con un id que no es uuid", ["no-es-uuid"], { costUsdCbm: "90" }, /La selección no es válida/],
+  ])("rechaza un lote %s sin escribir", async (_caso, ids, campos, msg) => {
+    const res = await bulkUpdateTariffPricesAction({}, lote(ids, campos));
+    expect(res.error).toMatch(msg);
+    expect(db.escrituras).toEqual([]);
+  });
+
+  it("los montos negativos o ilegibles vuelven por campo", async () => {
+    const res = await bulkUpdateTariffPricesAction(
+      {},
+      lote([T_VALENCIA], { costUsdCbm: "-5", priceUsdCbm: "abc" }),
+    );
+    expect(res.fieldErrors).toEqual({
+      costUsdCbm: "No puede ser negativo.",
+      priceUsdCbm: "No es un monto válido.",
+    });
+    expect(db.escrituras).toEqual([]);
+  });
+
+  it("un rol que no es admin no cambia nada", async () => {
+    sembrar("commercial");
+    const res = await bulkUpdateTariffPricesAction({}, lote([T_VALENCIA], { costUsdCbm: "90" }));
+    expect(res.error).toBe("Solo un administrador puede editar los transportistas.");
+    expect(db.escrituras).toEqual([]);
+  });
+
+  it("un error de la base se informa y no se anuncia éxito", async () => {
+    sembrar("admin", { fallaUpdate: "lock timeout" });
+    const res = await bulkUpdateTariffPricesAction({}, lote([T_VALENCIA], { costUsdCbm: "90" }));
+    expect(res).toEqual({ error: "No se pudieron cambiar los precios: lock timeout" });
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

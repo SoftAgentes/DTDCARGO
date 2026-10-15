@@ -41,10 +41,12 @@ import {
   type CarrierActionState,
 } from "../../carrier-actions";
 import { TariffDrawer, type CityOption } from "./TariffDrawer";
+import { BulkPriceDrawer } from "./BulkPriceDrawer";
 
 type DrawerState =
   | { mode: "create" }
   | { mode: "edit"; tariff: CarrierTariff }
+  | { mode: "bulk" }
   | null;
 
 /** Sin acentos ni mayúsculas, para que «merida» encuentre «Mérida». */
@@ -73,6 +75,8 @@ export function TransportistasPanel({
   const [quitar, setQuitar] = useState<CarrierTariff | null>(null);
   const [quitarError, setQuitarError] = useState<string | undefined>();
   const [quitando, startQuitar] = useTransition();
+  /** Fase 2: ids de las tarifas marcadas para el cambio en lote. */
+  const [marcadas, setMarcadas] = useState<Set<string>>(() => new Set());
   const toast = useToast();
   const router = useRouter();
   const flashClassFor = useRowHighlight();
@@ -104,6 +108,28 @@ export function TransportistasPanel({
       normalizar(cityLabels[t.citySlug] ?? t.citySlug).includes(q),
     );
   }, [delSeleccionado, busqueda, cityLabels]);
+
+  const seleccion = delSeleccionado.filter((t) => marcadas.has(t.id));
+  const todasVisiblesMarcadas = visibles.length > 0 && visibles.every((t) => marcadas.has(t.id));
+  const algunaVisibleMarcada = visibles.some((t) => marcadas.has(t.id));
+
+  function alternar(id: string) {
+    setMarcadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function alternarVisibles() {
+    setMarcadas((prev) => {
+      const next = new Set(prev);
+      if (todasVisiblesMarcadas) for (const t of visibles) next.delete(t.id);
+      else for (const t of visibles) next.add(t.id);
+      return next;
+    });
+  }
 
   const disponibles = useMemo(
     () => (seleccionado ? ciudadesSinTarifa(cities, tariffs, seleccionado) : []),
@@ -179,6 +205,7 @@ export function TransportistasPanel({
                 onSeleccionar={() => {
                   setSeleccionado(c.id);
                   setBusqueda("");
+                  setMarcadas(new Set());
                 }}
               />
             ))}
@@ -241,6 +268,48 @@ export function TransportistasPanel({
                 </div>
               </div>
 
+              {/* ── Cambio en lote (fase 2) ── */}
+              {isAdmin && seleccion.length > 0 && (
+                <div
+                  role="region"
+                  aria-label="Selección para cambio en lote"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "var(--s-3)",
+                    flexWrap: "wrap",
+                    padding: "var(--s-2) var(--s-3)",
+                    marginBottom: "var(--s-2)",
+                    border: "1px solid var(--border-strong)",
+                    borderRadius: "var(--r-md)",
+                    background: "var(--bg-elevated)",
+                  }}
+                >
+                  <span style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
+                    {seleccion.length === 1
+                      ? "1 ciudad seleccionada"
+                      : `${seleccion.length} ciudades seleccionadas`}
+                  </span>
+                  <span style={{ display: "inline-flex", gap: "var(--s-2)" }}>
+                    <button
+                      type="button"
+                      className="studio-btn studio-btn-ghost studio-btn-sm"
+                      onClick={() => setMarcadas(new Set())}
+                    >
+                      Quitar selección
+                    </button>
+                    <button
+                      type="button"
+                      className="studio-btn studio-btn-dark studio-btn-sm"
+                      onClick={() => setDrawer({ mode: "bulk" })}
+                    >
+                      Cambiar precios
+                    </button>
+                  </span>
+                </div>
+              )}
+
               {/* ── El tarifario del seleccionado ── */}
               {delSeleccionado.length === 0 ? (
                 <EmptyState
@@ -263,6 +332,21 @@ export function TransportistasPanel({
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
                       <tr>
+                        {isAdmin && (
+                          <Th>
+                            <input
+                              type="checkbox"
+                              className="studio-checkbox"
+                              aria-label="Seleccionar todas las ciudades visibles"
+                              checked={todasVisiblesMarcadas}
+                              ref={(el) => {
+                                if (el) el.indeterminate = algunaVisibleMarcada && !todasVisiblesMarcadas;
+                              }}
+                              onChange={alternarVisibles}
+                              style={{ width: 16, height: 16, accentColor: "var(--wine)", cursor: "pointer" }}
+                            />
+                          </Th>
+                        )}
                         <Th>Ciudad</Th>
                         <Th align="right">Costo /m³</Th>
                         <Th align="right">Venta /m³</Th>
@@ -286,8 +370,23 @@ export function TransportistasPanel({
                             key={t.id}
                             data-row-id={t.citySlug}
                             className={flashClassFor(t.citySlug)}
-                            style={{ borderTop: "1px solid var(--border)" }}
+                            style={{
+                              borderTop: "1px solid var(--border)",
+                              background: marcadas.has(t.id) ? "var(--bg-elevated)" : undefined,
+                            }}
                           >
+                            {isAdmin && (
+                              <Td>
+                                <input
+                                  type="checkbox"
+                                  className="studio-checkbox"
+                                  aria-label={`Seleccionar ${ciudad}`}
+                                  checked={marcadas.has(t.id)}
+                                  onChange={() => alternar(t.id)}
+                                  style={{ width: 16, height: 16, accentColor: "var(--wine)", cursor: "pointer" }}
+                                />
+                              </Td>
+                            )}
                             <Td>
                               <span style={{ fontWeight: 600 }}>{ciudad}</span>
                               {tardaMasDeLoNormal(t.dispatchFrequencyDays) && (
@@ -368,7 +467,17 @@ export function TransportistasPanel({
         </>
       )}
 
-      {drawer && carrier && (
+      {drawer?.mode === "bulk" && carrier && seleccion.length > 0 && (
+        <BulkPriceDrawer
+          carrier={carrier}
+          tariffs={seleccion}
+          nombre={nombre}
+          onDone={() => setMarcadas(new Set())}
+          onClose={() => setDrawer(null)}
+        />
+      )}
+
+      {drawer && drawer.mode !== "bulk" && carrier && (
         <TariffDrawer
           mode={drawer.mode}
           carrier={carrier}

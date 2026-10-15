@@ -14,6 +14,7 @@ import { TransportistasPanel } from "../TransportistasPanel";
 const mocks = vi.hoisted(() => ({
   save: vi.fn(),
   remove: vi.fn(),
+  bulk: vi.fn(),
   setDefault: vi.fn(),
   router: { refresh: vi.fn(), push: vi.fn(), replace: vi.fn() },
   toast: { success: vi.fn() },
@@ -21,6 +22,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("../../../carrier-actions", () => ({
   saveTariffAction: mocks.save,
   deleteTariffAction: mocks.remove,
+  bulkUpdateTariffPricesAction: mocks.bulk,
   setDefaultCarrierAction: mocks.setDefault,
 }));
 vi.mock("next/navigation", () => ({
@@ -73,7 +75,7 @@ const escribir = (input: HTMLElement, valor: string) => fireEvent.change(input, 
 const enviado = (): FormData => mocks.save.mock.calls.at(-1)![1] as FormData;
 
 beforeEach(() => {
-  for (const fn of [mocks.save, mocks.remove, mocks.setDefault, mocks.router.refresh, mocks.router.push, mocks.toast.success]) {
+  for (const fn of [mocks.save, mocks.remove, mocks.bulk, mocks.setDefault, mocks.router.refresh, mocks.router.push, mocks.toast.success]) {
     fn.mockReset();
   }
 });
@@ -113,6 +115,7 @@ describe("tarifario del transportista seleccionado", () => {
     expect(screen.queryByRole("button", { name: /Editar/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Quitar/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "+ Agregar ciudad" })).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
   });
 });
 
@@ -299,5 +302,92 @@ describe("quitar una ruta", () => {
     await waitFor(() => expect(mocks.remove).toHaveBeenCalledTimes(2));
     expect(within(dialogo("Quitar la ruta a Valencia")).getByText(msg)).toBeVisible();
     expect(mocks.toast.success).not.toHaveBeenCalled();
+  });
+});
+
+describe("cambio en lote", () => {
+  const marcar = (ciudad: string) =>
+    fireEvent.click(screen.getByRole("checkbox", { name: `Seleccionar ${ciudad}` }));
+  const barra = () => screen.queryByRole("region", { name: "Selección para cambio en lote" });
+
+  it("muestra el antes y el después con el margen, y envía sólo las elegidas", async () => {
+    mocks.bulk.mockResolvedValue({ ok: true, updated: 2 });
+    montar();
+    expect(barra()).toBeNull();
+    marcar("Valencia");
+    marcar("Mérida");
+    expect(barra()).toHaveTextContent("2 ciudades seleccionadas");
+    fireEvent.click(within(barra()!).getByRole("button", { name: "Cambiar precios" }));
+
+    const panel = dialogo("Cambiar precios en lote");
+    const aplicar = within(panel).getByRole("button", { name: "Aplicar a 2 ciudades" });
+    expect(aplicar).toBeDisabled();
+    const previa = within(panel).getByRole("table", { name: "Antes y después" });
+    expect(within(previa).getAllByRole("row")).toHaveLength(3);
+
+    escribir(campo(panel, /^Costo nuevo/), "90");
+    const valencia = within(previa).getByRole("row", { name: /Valencia/ });
+    // Lo que lee un lector de pantalla: «$70,00 pasa a $90,00».
+    expect(valencia).toHaveTextContent("$70,00 → pasa a $90,00");
+    expect(valencia).toHaveTextContent("$35,94 → pasa a $15,94");
+    // La venta no se tocó: sólo su valor, sin «pasa a».
+    expect(valencia).toHaveTextContent("$90,00$105,94$35,94");
+    expect(within(panel).queryByText(/quedaría/)).toBeNull();
+
+    escribir(campo(panel, /^Venta nueva/), "85");
+    expect(within(panel).getByText(/2 ciudades quedarían con la venta por debajo del costo/)).toBeVisible();
+    expect(within(previa).getByRole("row", { name: /Mérida/ })).toHaveTextContent("$43,60 → pasa a −$5,00");
+
+    fireEvent.click(aplicar);
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+
+    const data = mocks.bulk.mock.calls[0][1] as FormData;
+    expect(data.get("carrierId")).toBe(BENITO);
+    // En el orden de la tabla (alfabético), no en el de los clics.
+    expect(data.getAll("ids")).toEqual(["t-merida", "t-valencia"]);
+    expect(data.get("costUsdCbm")).toBe("90");
+    expect(data.get("priceUsdCbm")).toBe("85");
+    expect(mocks.toast.success).toHaveBeenCalledOnce();
+    expect(mocks.toast.success).toHaveBeenCalledWith("Precios actualizados en 2 ciudades de Benito");
+    expect(barra()).toBeNull();
+    expect(screen.getByRole("checkbox", { name: "Seleccionar Valencia" })).not.toBeChecked();
+  });
+
+  it("si falla, el panel queda abierto con el error y la selección se conserva", async () => {
+    mocks.bulk.mockResolvedValueOnce({
+      error: "Alguna de las ciudades elegidas ya no está activa con este transportista. No se cambió ninguna.",
+    });
+    montar();
+    marcar("Valencia");
+    fireEvent.click(screen.getByRole("button", { name: "Cambiar precios" }));
+    const panel = dialogo("Cambiar precios en lote");
+    escribir(campo(panel, /^Venta nueva/), "130");
+    fireEvent.click(within(panel).getByRole("button", { name: "Aplicar a 1 ciudad" }));
+
+    const alerta = await within(panel).findByRole("alert");
+    expect(alerta).toHaveTextContent("No se cambió ninguna");
+    expect(alerta).toHaveFocus();
+    expect(mocks.toast.success).not.toHaveBeenCalled();
+    fireEvent.click(within(panel).getByRole("button", { name: "Cancelar" }));
+    expect(barra()).toHaveTextContent("1 ciudad seleccionada");
+  });
+
+  it("la casilla del encabezado marca sólo las ciudades visibles por la búsqueda", () => {
+    montar();
+    escribir(screen.getByRole("searchbox"), "mer");
+    fireEvent.click(screen.getByRole("checkbox", { name: "Seleccionar todas las ciudades visibles" }));
+    expect(barra()).toHaveTextContent("1 ciudad seleccionada");
+    escribir(screen.getByRole("searchbox"), "");
+    expect(screen.getByRole("checkbox", { name: "Seleccionar Mérida" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Seleccionar Valencia" })).not.toBeChecked();
+  });
+
+  it("cambiar de transportista limpia la selección", () => {
+    montar();
+    marcar("Valencia");
+    fireEvent.click(screen.getByRole("button", { name: /Fletes Sur/ }));
+    expect(barra()).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Benito/ }));
+    expect(screen.getByRole("checkbox", { name: "Seleccionar Valencia" })).not.toBeChecked();
   });
 });

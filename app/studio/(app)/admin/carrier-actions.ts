@@ -18,8 +18,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import {
+  validateBulkPriceInput,
   validateCarrierInput,
   validateTariffInput,
+  type BulkPriceFieldKey,
   type CarrierFieldKey,
   type TariffFieldKey,
 } from "@/lib/studio/freight-carriers/types";
@@ -265,6 +267,70 @@ export async function saveTariffAction(
 
   revalidarTodo();
   return { ok: true };
+}
+
+export type BulkPriceActionState = {
+  ok?: boolean;
+  /** Cuántas ciudades cambiaron. */
+  updated?: number;
+  error?: string;
+  fieldErrors?: Partial<Record<BulkPriceFieldKey, string>>;
+};
+
+/**
+ * Cambio en lote (SDD-0537): un costo y/o una venta nuevos, en valor
+ * absoluto, para varias ciudades del mismo transportista.
+ *
+ * Todo o nada: primero cuenta que TODAS las tarifas elegidas sigan vivas con
+ * ese transportista; si falta una, no cambia ninguna. Después un solo UPDATE
+ * con `in(id)`, que es una sola sentencia: no queda un lote a medias. Con 0490
+ * aplicada, cada fila deja su evento AUD-01 en esa misma transacción.
+ */
+export async function bulkUpdateTariffPricesAction(
+  _prev: BulkPriceActionState,
+  formData: FormData,
+): Promise<BulkPriceActionState> {
+  const supabase = await createClient();
+  const who = await resolveTenantAdmin(supabase);
+  if (!who.ok) return { error: who.error };
+
+  const parsed = validateBulkPriceInput(formData);
+  if (!parsed.ok) return { error: parsed.error, fieldErrors: parsed.errors };
+  const v = parsed.value;
+
+  const { data: vivas, error: lecturaError } = await supabase
+    .from("carrier_tariffs")
+    .select("id")
+    .in("id", v.ids)
+    .eq("tenant_id", who.tenantId)
+    .eq("carrier_id", v.carrierId)
+    .is("deleted_at", null);
+  if (lecturaError) return { error: `No se pudo comprobar la selección: ${lecturaError.message}` };
+  if (!Array.isArray(vivas) || vivas.length !== v.ids.length) {
+    return {
+      error:
+        "Alguna de las ciudades elegidas ya no está activa con este transportista. No se cambió ninguna: recarga la página y vuelve a seleccionar.",
+    };
+  }
+
+  const patch: { cost_usd_cbm?: number; price_usd_cbm?: number } = {};
+  if (v.costUsdCbm != null) patch.cost_usd_cbm = v.costUsdCbm;
+  if (v.priceUsdCbm != null) patch.price_usd_cbm = v.priceUsdCbm;
+
+  const { data, error } = await supabase
+    .from("carrier_tariffs")
+    .update(patch)
+    .in("id", v.ids)
+    .eq("tenant_id", who.tenantId)
+    .eq("carrier_id", v.carrierId)
+    .is("deleted_at", null)
+    .select("id");
+  if (error) return { error: `No se pudieron cambiar los precios: ${error.message}` };
+  const updated = Array.isArray(data) ? data.length : 0;
+  if (updated === 0) return { error: TARIFA_NO_ENCONTRADA };
+
+  revalidarTodo();
+  return { ok: true, updated };
 }
 
 /**
