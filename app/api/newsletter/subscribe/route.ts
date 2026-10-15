@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/db/admin";
 import { apiError } from "@/lib/http/api-error";
 import { readJsonBody } from "@/lib/http/read-json-body";
 import { resolveRequestIp } from "@/lib/http/request-ip";
+import { firstConfiguredSecret } from "@/lib/runtime/server-secret";
 import {
   buildNewsletterSubscriberUpsert,
   newsletterSuccessMessage,
@@ -152,11 +153,17 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(newsletterSuccessMessage());
 }
 
+/**
+ * SDD-0523: una variable vacía o con sólo espacios cuenta como ausente. Con `??`
+ * una `NEWSLETTER_IP_HASH_SECRET=` vacía dejaba la sal en `""`, y un hash de IPv4
+ * sin sal se revierte probando las 4 mil millones de direcciones.
+ */
 function hashIp(ip: string): string {
   const salt =
-    process.env.NEWSLETTER_IP_HASH_SECRET ??
-    process.env.EMAIL_UNSUBSCRIBE_SECRET ??
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    "newsletter-local";
+    firstConfiguredSecret(
+      process.env.NEWSLETTER_IP_HASH_SECRET,
+      process.env.EMAIL_UNSUBSCRIBE_SECRET,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+    ) ?? "newsletter-local";
   return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
 }
