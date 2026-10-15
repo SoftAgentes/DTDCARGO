@@ -286,3 +286,47 @@ export function margenTone(margen: number): "positive" | "neutral" | "negative" 
   if (margen === 0) return "neutral";
   return "positive";
 }
+
+/** Dólares como se leen en Venezuela: `$123,60`. */
+export function usd(n: number): string {
+  return `$${n.toLocaleString("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** El margen con su signo: `$43,60` o `−$5,00`. */
+export function usdConSigno(n: number): string {
+  return `${n < 0 ? "−" : ""}${usd(Math.abs(n))}`;
+}
+
+/**
+ * Las ciudades del catálogo que este transportista todavía NO tiene con una
+ * tarifa viva, por nombre (SDD-0537). Es la lista de «Agregar ciudad»: así el
+ * equipo escoge una ciudad que existe y nunca escribe un slug a mano.
+ */
+export function ciudadesSinTarifa<C extends { slug: string; label: string }>(
+  cities: readonly C[],
+  tariffs: readonly Pick<CarrierTariff, "carrierId" | "citySlug">[],
+  carrierId: string,
+): C[] {
+  const tomadas = new Set(
+    tariffs.filter((t) => t.carrierId === carrierId).map((t) => t.citySlug),
+  );
+  return cities
+    .filter((c) => !tomadas.has(c.slug))
+    .sort((a, b) => a.label.localeCompare(b.label, "es"));
+}
+
+/**
+ * ¿La venta en ft³ guardada como referencia ya no corresponde a la venta por m³?
+ *
+ * `price_usd_ft3` guarda la oferta original del proveedor en pie cúbico. Si la
+ * venta por m³ cambia y esa referencia se queda, la pantalla mostraría dos
+ * precios que no son el mismo. No se borra sola: se avisa (SDD-0537).
+ * Tolerancia de medio centavo, porque la conversión redondea.
+ */
+export function referenciaFt3Desfasada(
+  priceUsdCbm: number | null,
+  priceUsdFt3: number | null,
+): boolean {
+  if (priceUsdCbm == null || priceUsdFt3 == null) return false;
+  return Math.abs(cbmAFt3(priceUsdCbm) - priceUsdFt3) >= 0.005;
+}
