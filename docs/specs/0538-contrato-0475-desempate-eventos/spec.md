@@ -141,3 +141,11 @@ corrige la PR hailuwaycom-sketch/DTDCARGO#242, todavía abierta.
 ## Validación
 
 Ver el handoff `.agents/handoffs/0538-contrato-0475-desempate-eventos.md`.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #243 (`claude/blissful-boyd-d8600b`). Cabeza `e79ac552` fusionada con `--match-head-commit`; merge `4fce36ee` a las 23:22:52Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38821212335), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (23:25:00Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Alcance:** sólo el contrato de prueba de la 0475 y su envoltorio de Vitest; es el mismo patrón de la SDD-0536 (desempate por `xmin`, con la premisa comprobada). La 0475, aplicada en producción, no se toca. Sin cambio de runtime.
+- **Estado:** integrada.

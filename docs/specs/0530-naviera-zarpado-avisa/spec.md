@@ -382,3 +382,17 @@ Detalle en el handoff:
 - Que `createConsolidation` fuerce `consolidando`. Hoy acepta cualquier estado del cliente, y el
   trigger sólo cubre UPDATE.
 - Unificar `transitionShipment` con `programarAvisosDelAvance` cuando entre la 0522.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #233 (`codex/naviera-zarpado-avisa`). Cabeza `4ca3b943` fusionada con `--match-head-commit`; merge `016e76d6` a las 14:15:52Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38746544599), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (14:18:07Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Migración `0477_naviera_zarpe_avanza_envios`: APLICADA** en el servidor propio (`dtd-cargo-db-1`), migrate-first, con el OK nominal de Sam, literal: «autorizo aplicar 0476_borrado_embarques_recepciones, 0477_naviera_zarpe_avanza_envios, 0479_portal_bandeja_avisos, 0480_operarios_editar_por_region y 0482_naviera_autorizar_correlation_id en el servidor propio».
+  - Antes, la lectura previa READ ONLY de la migración dio «PREFLIGHT 0477 OK».
+  - `psql` con la migración y la fila del ledger en una transacción. Ledger `20261015141547 · 0477_naviera_zarpe_avanza_envios`, una sentencia, md5 `b48c0652…` y 23525 bytes, igual al blob de la cabeza fusionada.
+  - La PR se fusionó 5 s después de la fila del ledger, así que la app vieja y la base nueva no convivieron.
+  - La espera salió de `supabase/migrations-baseline.json` en la misma PR. La cabecera «NO APLICADA» del `.sql` no se corrige: editarla rompería la identidad con el ledger.
+  - Evidencia: `/srv/ops/evidencias/apply-0477-dtd-cargo-20261015T141548Z/` con `SHA256SUMS`.
+- **Smoke de Sam: PENDIENTE.** Guion en `.agents/handoffs/0530-naviera-zarpado-avisa.md` § «Smoke para Sam (Studio › Naviera, rol operations o admin)».
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.

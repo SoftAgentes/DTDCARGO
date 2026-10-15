@@ -549,3 +549,18 @@ auditoría» y «componente»: SGE-00, MP-01, BTN-01, AUD-01, AUD-02 y CMP-01.
   (que despliega).
 - Lecturas previas (catálogo, sin filas), postflight y smoke: en el handoff.
 - Después de aplicar: retirar la espera del baseline y la declaración de símbolos.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #232 (`codex/borrar-embarques-recepciones`). Cabeza `6c13978d` fusionada con `--match-head-commit`; merge `4b72d66a` a las 13:21:10Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38739647784), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (13:22:32Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Migración `0476_borrado_embarques_recepciones`: APLICADA** en el servidor propio (`dtd-cargo-db-1`), migrate-first, con el OK nominal de Sam, literal: «autorizo aplicar 0476_borrado_embarques_recepciones, 0477_naviera_zarpe_avanza_envios, 0479_portal_bandeja_avisos, 0480_operarios_editar_por_region y 0482_naviera_autorizar_correlation_id en el servidor propio».
+  - Antes, la lectura previa READ ONLY de la migración dio «PREFLIGHT 0476 OK».
+  - `psql` con la migración y la fila del ledger en una transacción. Ledger `20261015132057 · 0476_borrado_embarques_recepciones`, una sentencia, md5 `9d1dd9e1…` y 60552 bytes, igual al blob de la cabeza fusionada.
+  - La PR se fusionó 13 s después de la fila del ledger, así que la app vieja y la base nueva no convivieron.
+  - La espera salió de `supabase/migrations-baseline.json` en la misma PR. La cabecera «NO APLICADA» del `.sql` no se corrige: editarla rompería la identidad con el ledger.
+  - Evidencia: `/srv/ops/evidencias/apply-0476-dtd-cargo-20261015T132057Z/` con `SHA256SUMS`.
+- **Smoke de Sam: PENDIENTE.** Guion en `.agents/handoffs/0522-borrar-embarques-recepciones.md` § «Smoke para Sam (después de desplegar)».
+  - El intento de Sam de las 12:44Z («todavía no puedo eliminarlo») fue antes de aplicar la 0476 (13:20:57Z). No cuenta como smoke.
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.

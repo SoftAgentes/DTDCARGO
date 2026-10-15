@@ -145,3 +145,12 @@ Búsqueda de `order by … occurred_at desc limit 1` en `supabase/tests/*.test.s
 ## Validación
 
 Ver el handoff `.agents/handoffs/0536-contrato-0480-desempate-eventos.md`.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #242 (`claude/gallant-pare-63349c`). Cabeza `34282984` fusionada con `--match-head-commit`; merge `d9bbdb28` a las 19:50:21Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38793087465), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (19:52:03Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Alcance:** sólo el contrato de prueba de la 0480 y su envoltorio de Vitest. La migración 0480, aplicada en producción, no se toca. Sin cambio de runtime.
+- **Efecto:** desde este merge, el test intermitente que tumbó el CI de la #239 (run 38771102511, intento 1) y el de la #241 (run 38789677290) deja de depender del empate de la hora.
+- **Estado:** integrada.

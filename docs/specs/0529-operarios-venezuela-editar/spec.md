@@ -366,3 +366,18 @@ Ver el handoff.
 ## Validación
 
 Ver el handoff: PASÓ / FALLÓ / NO EJECUTADO por comprobación.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #231 (`codex/operarios-venezuela-editar`). Cabeza `ff901b08` fusionada con `--match-head-commit`; merge `502f519d` a las 15:11:08Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38753773729), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (15:12:52Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Migración `0480_operarios_editar_por_region`: APLICADA** en el servidor propio (`dtd-cargo-db-1`), migrate-first, con el OK nominal de Sam, literal: «autorizo aplicar 0476_borrado_embarques_recepciones, 0477_naviera_zarpe_avanza_envios, 0479_portal_bandeja_avisos, 0480_operarios_editar_por_region y 0482_naviera_autorizar_correlation_id en el servidor propio».
+  - Antes, la lectura previa READ ONLY de la migración dio «PREFLIGHT 0480 OK».
+  - `psql` con la migración y la fila del ledger en una transacción. Ledger `20261015151104 · 0480_operarios_editar_por_region`, una sentencia, md5 `1c78864e…` y 25024 bytes, igual al blob de la cabeza fusionada.
+  - La PR se fusionó 4 s después de la fila del ledger, así que la app vieja y la base nueva no convivieron.
+  - La espera salió de `supabase/migrations-baseline.json` en la misma PR. La cabecera «NO APLICADA» del `.sql` no se corrige: editarla rompería la identidad con el ledger.
+  - Evidencia: `/srv/ops/evidencias/apply-0480-dtd-cargo-20261015T151104Z/` con `SHA256SUMS`.
+- **Decisiones de Sam:** los roles de Venezuela son bodeguero, camionero y supervisor («El rol de operario ya no es necesario»), y editar un operario no pide motivo («Sí»).
+- **Smoke de Sam: PENDIENTE.** Guion en `.agents/handoffs/0529-operarios-venezuela-editar.md` § «Smoke para Sam (después de aplicar 0480 y desplegar)».
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.

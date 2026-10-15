@@ -213,3 +213,23 @@ cambia la RLS, no modifica `audit_d5_residual_change` (función propia).
    original guardada. La oferta original se sigue viendo y editando en el panel.
 4. **Lote sólo con valores absolutos.** No hay «subir un X %». Si Sam lo quiere,
    necesita su propia decisión, porque toca la regla de SDD-0236.
+
+## Registro de integración (2026-10-15)
+
+- **Prioridad de Sam**, literal: «Autorizo para que avancemos con esta edición de la calculadora y darle preferencia, ya que acaban de cambiar los precios y hay clientes cotizando en ella».
+- **PR:** #241 (`worktree-agent-ad23b4a6a6176276d`). Cabeza `e6020702` fusionada con `--match-head-commit`; merge `3e0368e0` a las 22:59:42Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38810419899), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (23:01:38Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Migración `0490_carrier_tariffs_auditoria`: APLICADA** en el servidor propio (`dtd-cargo-db-1`) con el OK nominal de Sam.
+  - Sam pegó «autorizo aplicar 0490_carrier_tariffs_auditoria en el servidor propio» junto con la otra opción. Ante la pregunta del Director eligió «Aplicar la 0490 (Recomendado)», cuya descripción repite esa autorización.
+  - Lecturas previas READ ONLY a las 19:15Z, 22:03Z y justo antes de aplicar: «PREFLIGHT 0490 OK».
+  - `psql` con la migración y la fila del ledger en una transacción. Ledger `20261015225935 · 0490_carrier_tariffs_auditoria`, una sentencia, md5 `0e604805…` y 11173 bytes, igual al blob de la cabeza fusionada. Ledger en 494 filas.
+  - La PR se fusionó 7 s después de la fila del ledger, con la espera todavía declarada, como la 0475 (#212 → #218). La espera sale en el cierre del Director; la cabecera «NO APLICADA» no se corrige.
+  - Evidencia: `/srv/ops/evidencias/apply-0490-dtd-cargo-20261015T225936Z/` con `SHA256SUMS`.
+- **Comprobado por el Director en producción** después del deploy: `/tarifas` responde 200 y `/studio/admin` redirige al login (307).
+- **Revisión del Director:**
+  - El `correlation_id` del trigger mide unos 62 caracteres y cabe en los 128 del writer.
+  - El lote es una sola sentencia `update … in(id)` con los mismos filtros que la cuenta previa.
+  - Riesgo anotado: `MAX_LOTE = 300` y el filtro `in.(…)` va en la URL; con las 169 ciudades de hoy mide unos 6,6 KB, por debajo de los 8 KB habituales del proxy. Con muchas más ciudades conviene filtrar por `city_slug` o partir el lote.
+- **Smoke de Sam: PENDIENTE.** Guion en `.agents/handoffs/0537-transportistas-tarifas-editables.md` (rol admin, `/studio/admin?section=calculadora&tab=transportistas` y `/tarifas`). En el lote, probar también con las 169 ciudades seleccionadas.
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.

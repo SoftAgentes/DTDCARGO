@@ -291,3 +291,20 @@ el teléfono y el texto que trae el evento no se leen ni se registran. El cruce 
 - **Prueba en producción:** pendiente; la despliega el Director. Prueba: un
   contacto con Shipping Mark escribe y su trato nuevo pasa de la bandeja a
   Recontacto en segundos, con la tarea vencida.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #238 (`claude/epic-brattain-3aee82`). Cabeza `69149c3d` fusionada con `--match-head-commit`; merge `20134e83` a las 20:57:30Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38801883701), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (20:59:11Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Alcance ampliado antes del merge:** además del trato perdido que vuelve a escribir, la función acepta directo en Recontacto el trato nuevo que Kommo abre en «Leads Entrantes» (`unsorted[add]`) cuando `decideRoute` reconoce al cliente. Un desconocido se queda en la bandeja.
+- **Excepción de AUD-01, aprobada por el Director:** el accept va directo a Kommo y no por la cola. Es idempotente (un segundo intento da 404), tiene que llegar antes de que una persona acepte la entrada a mano, y meterlo en la cola exigiría una migración. La traza queda en el log `[sdd-0535][entradas]`, que solo trae conteos, y en el historial de Kommo. El Shipping Mark y la tarea sí van por la cola.
+- **Despliegue de `kommo-webhook` en el servidor propio**, con la autorización de Sam, literal: «Y TAMBIEN autorizo desplegar kommo-webhook en el servidor propio», y su confirmación del comportamiento nuevo: «Confirmo desplegar kommo-webhook con el cambio: los tratos nuevos de clientes que ya pasaron se aceptan directo en Recontacto con tarea vencida».
+  - Antes del despliegue, los 13 archivos de funciones del servidor eran idénticos a los de main por md5. Entre esa comparación y el merge sólo cambiaron los dos archivos que se copiaron.
+  - Se copiaron desde el merge `20134e83`: `kommo-webhook/index.ts` (md5 `0a9fd844…`) y `_shared/kommo-reapertura.ts` (md5 `f9d7b2dd…`, nuevo). La versión anterior de `index.ts` quedó respaldada en la evidencia.
+  - `docker restart dtd-cargo-functions-1` a las 20:58:20Z; `healthy` a las 20:58:28Z.
+  - Smoke sin credenciales: GET 405 y POST sin `secret` 403. Son las mismas respuestas de antes del despliegue: la función arranca sin errores de importación.
+  - Evidencia: `/srv/ops/evidencias/deploy-kommo-webhook-dtd-cargo-20261015T205820Z/` con `SHA256SUMS`.
+  - `stage_map.recontacto` configurado en producción: `{pipeline_id 14036567, status_id 108343835}`. Es una lectura de solo esa clave de `kommo_connections`, sin tokens.
+- **Prueba real: PENDIENTE.** Un contacto con Shipping Mark escribe y su trato nuevo pasa de la bandeja a Recontacto en segundos. En el log debe aparecer `aceptadas: 1`, y en la cola `patch_lead`, `patch_contact` y `add_task`; leer la cola pide el OK de Sam.
+- **Estado:** integrada y desplegada. La spec sigue en `in-progress` hasta la prueba real.

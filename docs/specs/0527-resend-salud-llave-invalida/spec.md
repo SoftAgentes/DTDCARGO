@@ -161,3 +161,13 @@ GoTrue).
 ## Evidencia
 
 Se completa en `.agents/handoffs/0527-resend-salud-llave-invalida.md`.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #228 (`claude/upbeat-poincare-8b87cc`). Cabeza `3f851baa` fusionada con `--match-head-commit`; merge `262ba234` a las 11:54:04Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38728500639), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (11:56:12Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Decisión de Sam,** literal: «Así está bien: «llave inválida o borrada» solo con 401/403; un 500 o 429 dice el código.»
+- **Revisión del Director:** aprobado decidir por el campo `name` (`restricted_api_key`) y no por el texto ni por el código.
+- **Smoke de Sam: PENDIENTE.** Abrir `/studio/debug` y confirmar que la fila de Resend refleja la llave vigente.
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.

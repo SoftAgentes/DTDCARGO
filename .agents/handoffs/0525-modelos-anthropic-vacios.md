@@ -7,7 +7,7 @@
 | Claim del harness | `f27c7d81-c2dd-4629-85bf-1ded3f6f7ed6` (el worktree no tenía claim previo) |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\funny-chatterjee-390769` |
 | Rama | `claude/nostalgic-grothendieck-e4f689` (nombre que le dio la app; sin upstream hasta el push) |
-| Base | `origin/main` `a8d99acf` (merge de la #223); actualizada con merge de `818cccf0` (#224) por conflicto en el runbook |
+| Base | `origin/main` `a8d99acf` (merge de la #223); actualizada con merge de `818cccf0` (#224, conflicto en el runbook) y de `7075883e` (#225, sin conflictos) |
 | SDD | [0525](../../docs/specs/0525-modelos-anthropic-vacios/spec.md), `in-progress`. Reservada con `corepack pnpm sdd:next --reserve modelos-anthropic-vacios` (rama local `codex/sdd-reserve-0525-modelos-anthropic-vacios`, commit `9edbfd15`, traída aquí por cherry-pick como `cb024acb`). Sin migración. |
 | Estado de la tarea | lista para revisión (PR contra main, sin fusionar) |
 | Permisos | commits selectivos, push de la rama propia y PR contra main, sin fusionar. Sin producción, sin servidor, sin variables de entorno, sin datos ni migraciones. `pnpm verify` no se corre sin turno del Director. |
@@ -33,8 +33,9 @@ su FUERA DE ALCANCE porque no son secretos.
 
 ### Decisión: helper propio y no el de la 0523
 
-La PR #225 (SDD-0523) sigue abierta, así que `lib/runtime/server-secret.ts` no
-está en main; depender de ella apilaría esta PR. Además su regla es no recortar
+Al empezar, la PR #225 (SDD-0523) estaba abierta y `lib/runtime/server-secret.ts`
+no estaba en main; depender de ella habría apilado esta PR. Se integró después
+(`7075883e`) y la rama la trajo por merge. Además su regla es no recortar
 (un secreto recortado cambia la clave), y aquí conviene recortar (un ID de
 modelo con un espacio al final no existe). Los dos helpers viven en archivos
 nuevos y distintos: las dos PR sólo coinciden en el índice `docs/specs/README.md`.
@@ -109,7 +110,9 @@ sdd:check; spec, handoff, push y PR sin fusionar.
 - `e41f1170` — docs(sdd): spec 0525, índice regenerado, runbook y `.env.example`.
 - `ddd41d0d` — handoff.
 - `e7083946` — merge de `origin/main` (#224) con el conflicto del runbook resuelto.
-- Commit posterior: spec y handoff actualizados con el merge.
+- `42973fee` — spec y handoff actualizados con el merge de la #224.
+- `8402270e` — merge de `origin/main` (#225, SDD-0523), sin conflictos.
+- Commit posterior: spec y handoff actualizados con la #225 ya en main.
 
 **PR / BRANCH:** PR contra `main` desde `claude/nostalgic-grothendieck-e4f689`,
 sin fusionar. La URL va en el reporte a la sesión que encargó la tarea y se
@@ -133,14 +136,15 @@ empuja otro commit sólo para anotarla.
 - **`ANTHROPIC_API_KEY` con sólo espacios** en los tres extractores: `!apiKey`
   descarta `""` (cae al mock), pero `"  "` pasaría como clave y daría error de
   autenticación en vez del mock. Es un secreto: le corresponde el helper de la
-  0523 cuando esté en main, no este.
+  0523 (`firstConfiguredSecret`, ya en main), no este.
 - **Cabecera de `infra/dtd-cargo/.env.example:17-25`** (de la #224): nombra
   «los modelos de la bitácora» y los cuatro secretos de la 0523 como lecturas con
-  `??` que no caen al respaldo. Cuando la 0523 y la 0525 estén en main, esa lista
-  queda vieja (quedarían `IDENTITY_CNE_PROVIDER` y `DTD_ATTACHMENTS_AWS_AUTH_MODE`).
+  `??` que no caen al respaldo. Con la 0523 ya en main, los secretos de esa lista
+  ya caen; al integrar la 0525 caen también los modelos, y la lista queda vieja
+  (seguirían `IDENTITY_CNE_PROVIDER` y `DTD_ATTACHMENTS_AWS_AUTH_MODE`).
   Es archivo de la sesión de Contabo; ajustarla le toca a ella o al Director al
   integrar.
-- Cuando la 0523 y la 0525 estén en main, `lib/runtime/` tendrá
+- Con la 0523 ya en main y la 0525 en esta rama, `lib/runtime/` tiene
   `firstConfiguredSecret` (no recorta) y `firstConfiguredSetting` (recorta), más
   el `nonEmpty` privado de `app-env.ts` (recorta). Si se quiere una sola fuente,
   `app-env.ts` podría usar `firstConfiguredSetting`; es un cambio de forma, no
@@ -152,8 +156,8 @@ empuja otro commit sólo para anotarla.
   documentación operativa (una de ellas, la del runbook, unida con la #224). No toca `lib/shared/`, contratos, migraciones ni
   infraestructura.
 - Al integrar: el índice (`docs/specs/README.md`) tiene el driver de merge; si la
-  0523 o la 0524 entran antes, regenerarlo con `pnpm docs:index`. Con la 0523 no
-  hay otro archivo en común.
+  0524 entra antes, regenerarlo con `pnpm docs:index`. La 0523 ya está fusionada
+  en esta rama.
 - La rama de reserva `codex/sdd-reserve-0525-modelos-anthropic-vacios` quedó
   local y sin publicar, como las anteriores; se borra con `-D` cuando la spec
   esté en main, con la comprobación de siempre.

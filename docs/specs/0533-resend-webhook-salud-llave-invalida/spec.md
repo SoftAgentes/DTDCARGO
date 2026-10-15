@@ -148,3 +148,11 @@ No cambian `checkResend`, la UI, `/api/debug/health` ni migraciones.
 ## Evidencia
 
 Se completa en `.agents/handoffs/0533-resend-webhook-salud-llave-invalida.md`.
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #237 (`claude/focused-mestorf-69fb3b`). Cabeza `ad48d85d` fusionada con `--match-head-commit`; merge `cbf18acf` a las 16:13:56Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38763224945), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (16:16:00Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Smoke de Sam: PENDIENTE.** Abrir `/studio/debug` y confirmar que la fila del webhook de Resend refleja la llave vigente.
+- **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.

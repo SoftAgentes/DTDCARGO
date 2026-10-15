@@ -4,7 +4,7 @@ title: "PIN de operarios endurecido: matriz de módulos, «Ver PIN» con contras
 status: done
 author: "Sam (founder) + Claude Opus 5.5 (Worker)"
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-15
 supersedes: null
 superseded_by: null
 related: ["0139", "0166", "0174", "0235", "0251", "0252", "0412", "0505", "0513"]
@@ -500,3 +500,8 @@ purga propia); rotación de la clave → decisión 7.
   - editar un operario de Venezuela no funciona desde el Studio;
   - `admin_set_operario_active` y `admin_update_operario` siguen sin la matriz ni auditoría.
 - Estado de la tarea: **integrada**.
+
+### Nota posterior (2026-10-15)
+
+- **PR #220** (`codex/pinview-foco-carrera`, sólo prueba y handoff): «Ver PIN» espera el foco final, que era la carrera del P0022 y de Escape. Cabeza `17eb217a` con `--match-head-commit`, merge `dd22607a` a las 12:17:15Z. «Calidad continua» PASÓ sobre la cabeza (run 38730775958). Status de Vercel del merge: «Deployment has completed» (12:18:33Z). Sin cambio de runtime.
+- El fuera de alcance «editar un operario de Venezuela no funciona desde el Studio» lo resuelve la SDD-0529 (PR #231, migración 0480 aplicada el mismo día).

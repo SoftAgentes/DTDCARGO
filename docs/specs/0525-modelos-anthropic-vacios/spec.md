@@ -82,11 +82,12 @@ export function firstConfiguredSetting(
 
 ### Por qué no se reutiliza `server-secret.ts`
 
-La PR #225 (SDD-0523) sigue abierta: `lib/runtime/server-secret.ts` no está en
-`main`. Depender de ella apilaría esta PR sobre otra que el Director todavía no
-integra. Y aunque estuviera, su regla de no recortar no sirve aquí. Los dos
-archivos son nuevos y distintos, así que las dos PR no chocan en código; sólo en
-el índice `docs/specs/README.md`, que se regenera.
+Cuando se escribió esta spec, la PR #225 (SDD-0523) estaba abierta y
+`lib/runtime/server-secret.ts` no estaba en `main`; depender de ella habría
+apilado esta PR. La #225 se integró después (`7075883e`) y esta rama la trajo por
+merge sin conflictos: el índice `docs/specs/README.md` lo resolvió el driver.
+La razón de fondo no cambia: su regla de no recortar no sirve aquí. Ahora
+`lib/runtime/` tiene los dos helpers, cada uno con su regla.
 
 `lib/runtime/app-env.ts:48-51` ya tiene un `nonEmpty` privado con la misma regla
 (recorta y devuelve `null` si queda vacío). No se exporta ni se toca: es parte
@@ -176,3 +177,12 @@ Quedan anotados en el handoff.
   en vez de `null` (16), acta con `??` (3), Escucha sin respaldo al acta (3) o
   con el orden invertido (2), digest sin respaldo al acta (6) o con el orden
   invertido (4), digest con otro default (6). **Los 10 mueren.**
+
+## Registro de integración (2026-10-15)
+
+- **PR:** #226 (`claude/nostalgic-grothendieck-e4f689`). Cabeza `6e75451e` fusionada con `--match-head-commit`; merge `f3651f24` a las 11:35:29Z.
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38726650430), con la suite y el build. `pnpm verify` local: NO EJECUTADO (una corrida pesada a la vez; el CI corre la suite completa).
+- **Deploy:** el status de Vercel del merge dice «Deployment has completed» (11:37:00Z). El ID del deployment y el alias quedan NO VERIFICADOS: el conector de Vercel responde 403.
+- **Docs:** el parche de la sesión dueña («spec y handoff con la #225 ya en main») entró en este cierre, y la cabecera de `infra/dtd-cargo/.env.example` dejó de nombrar los modelos como lecturas que no caen al respaldo.
+- **Smoke:** NO APLICA uno de pantalla (sin cambio visible; los modelos vacíos caen a su respaldo).
+- **Estado:** integrada.
