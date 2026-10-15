@@ -10,7 +10,12 @@
  * rompe la operación de naviera/recepción.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { scheduleClientNotifications } from "./schedule-client-notifications";
+import {
+  scheduleClientNotifications,
+  type AnclaDelAviso,
+  type MotivoProgramacion,
+  type ScheduleResult,
+} from "./schedule-client-notifications";
 
 /** Un envío alcanzado por el fan-out, con lo mínimo para programar el aviso. */
 interface FanoutTarget {
@@ -266,25 +271,6 @@ export interface FanoutResultado {
 }
 
 /**
- * Programa `status:in_warehouse` ("Recibido en bodega China") para los envíos de
- * los Shipping Mark recibidos en Yiwu (SDD-0162, puente 0154↔0156). Espeja
- * `scheduleReceiptVeReceived`: la caja recién recibida no trae shipment_id → se
- * resuelve el envío no terminal más reciente por Shipping Mark.
- *
- * 🔴 **El caso sin envío abierto NO es raro: es el normal en una primera
- * compra.** El cliente anuncia, la caja llega a Yiwu, y el envío recién se crea
- * al consolidar — que puede ser semanas después. En esa ventana
- * `client_notification_schedule.shipment_id` es `not null`, así que no hay
- * dónde colgar el aviso y el cliente se queda sin saber que su mercancía llegó.
- * Justo cuando más lo pregunta.
- *
- * Hasta SDD-0282 eso era un `continue` mudo. Ahora sale en `sinDestino` para que
- * el llamador lo deje asentado en la bitácora de la recepción: no arregla el
- * hueco de fondo —eso pide migración— pero deja de ser invisible.
- *
- * Best-effort: nunca throwea. Un fallo acá no rompe la recepción.
- */
-/**
  * Una recepción a notificar. La compra es opcional: la recepción manual de la
  * oficina puede no tener una detrás (mercancía que nadie pre-declaró).
  */
@@ -295,34 +281,173 @@ export interface RecepcionANotificar {
   prealertaCode?: string | null;
 }
 
+/**
+ * SDD-0524 · por qué un cliente se quedó sin el aviso de llegada a bodega.
+ * Cada motivo tiene su frase en la bitácora (`notaSinAvisoBodega`): la nota
+ * vieja decía «no tiene un envío abierto» para todo, y con un envío abierto eso
+ * era falso.
+ */
+export type MotivoSinAviso =
+  /** Ni compra conocida ni envío abierto donde colgar el aviso. */
+  | "sin_destino"
+  /** Esa ancla ya tenía un aviso de llegada (índice único de la 0389). */
+  | "ya_avisado"
+  /** La regla está anclada a ETA/ETD, y una compra no tiene esa fecha. */
+  | "regla_sin_fecha"
+  /** El aviso no se pudo programar por un error. */
+  | "fallo";
+
+export interface SinAviso {
+  markbox: string;
+  motivo: MotivoSinAviso;
+  /** El código de la compra o del envío en juego, si lo hubo. */
+  ancla: string | null;
+}
+
+/** El resultado del fan-out de la recepción en Yiwu, con el porqué de cada olvido. */
+export interface FanoutBodega extends FanoutResultado {
+  /** Uno por Shipping Mark de `sinDestino`, en el mismo orden. */
+  detalle: SinAviso[];
+}
+
+/**
+ * El motivo, aunque quien armó el resultado no lo haya puesto (dobles de
+ * prueba viejos). Sin motivo y sin nada programado se toma como fallo: ante la
+ * duda, el cliente cuenta como sin aviso y se anota.
+ */
+function motivoDe(res: ScheduleResult): MotivoProgramacion {
+  if (res.motivo) return res.motivo;
+  return res.scheduled > 0 ? "programado" : "error";
+}
+
+/**
+ * Lo que se hace con el resultado de UN intento de programar.
+ *  - `listo`: o se programó, o el tenant no quiere el aviso (sin regla o regla
+ *    apagada), que es una decisión y no un cliente olvidado.
+ *  - `sin_aviso`: el cliente se queda sin aviso y hay que decirlo.
+ *  - `seguir`: este intento no aplica (falta la 0389); probar el siguiente.
+ */
+type Desenlace =
+  | { kind: "listo"; scheduled: number }
+  | { kind: "sin_aviso"; motivo: MotivoSinAviso }
+  | { kind: "seguir" };
+
+function desenlace(res: ScheduleResult): Desenlace {
+  switch (motivoDe(res)) {
+    case "programado":
+      return { kind: "listo", scheduled: res.scheduled };
+    case "sin_regla":
+    case "regla_apagada":
+      return { kind: "listo", scheduled: 0 };
+    case "duplicado":
+      return { kind: "sin_aviso", motivo: "ya_avisado" };
+    case "sin_fecha":
+      return { kind: "sin_aviso", motivo: "regla_sin_fecha" };
+    case "falta_migracion":
+      return { kind: "seguir" };
+    case "sin_markbox":
+    case "error":
+      return { kind: "sin_aviso", motivo: "fallo" };
+  }
+}
+
+function programarEnBodega(
+  admin: SupabaseClient,
+  tenantId: string,
+  markbox: string,
+  ancla: AnclaDelAviso,
+  clientName: string | null,
+  eventTime: Date,
+): Promise<ScheduleResult> {
+  return scheduleClientNotifications(admin, tenantId, {
+    ancla,
+    clientMarkbox: markbox,
+    clientName,
+    event: "status:in_warehouse",
+    eventTime,
+  });
+}
+
+/**
+ * Programa `status:in_warehouse` («Recibido en bodega China») para los Shipping
+ * Mark recibidos en Yiwu (SDD-0162, puente 0154↔0156).
+ *
+ * **De qué cuelga el aviso, en orden (SDD-0524):**
+ *
+ *   1. **La compra, si el llamador la conoce.** Es la mercancía que acaba de
+ *      llegar: la caja escaneada (`/m/cn/recibir`) o la recepción vinculada a
+ *      su compra (Studio y `/m/cn/nueva`). El correo lleva a
+ *      `/portal/compras/[code]`, donde el cliente ve esa llegada.
+ *   2. **Si no, el envío abierto más reciente del Shipping Mark** (SDD-0162).
+ *
+ * Hasta SDD-0524 el orden era el inverso, y con un cliente recurrente eso
+ * perdía el aviso: su envío abierto es el de una compra anterior, que ya tuvo
+ * su `in_warehouse`; el índice único de la 0389 (`client_notif_sched_idem_
+ * envio_uniq`) descartaba el aviso nuevo y nadie se enteraba. Y si salía, el
+ * correo enlazaba a un envío que no era el de esta mercancía.
+ *
+ * **Un cliente sin aviso nunca es silencioso.** Sale en `sinDestino`, con su
+ * motivo en `detalle`, para que el llamador lo deje en la bitácora de la
+ * recepción (SDD-0282). Eso incluye el duplicado: la segunda recepción de la
+ * misma compra, o una recepción sin compra cuyo envío ya tuvo su aviso. No se
+ * «compensa» por la otra ancla: sería un segundo correo por la misma llegada.
+ *
+ * Si falta la migración 0389 (no se puede colgar de una compra), se cae al
+ * envío como antes de ella.
+ *
+ * Best-effort: nunca throwea. Un fallo acá no rompe la recepción.
+ */
 export async function scheduleReceiptInWarehouse(
   admin: SupabaseClient,
   tenantId: string,
   recepciones: RecepcionANotificar[],
   eventTime: Date = new Date(),
-): Promise<FanoutResultado> {
-  const vacio: FanoutResultado = { scheduled: 0, sinDestino: [] };
-  try {
-    // Dedup por Shipping Mark, quedándose con la primera entrada que traiga
-    // compra: si el mismo cliente aparece dos veces y sólo una sabe de qué
-    // compra viene, esa es la útil.
-    const porMark = new Map<string, RecepcionANotificar>();
-    for (const r of recepciones) {
-      const mark = (r.markbox ?? "").trim();
-      if (!mark) continue;
-      const previo = porMark.get(mark);
-      if (!previo || (!previo.prealertaId && r.prealertaId)) {
-        porMark.set(mark, { ...r, markbox: mark });
-      }
+): Promise<FanoutBodega> {
+  // Dedup por Shipping Mark, quedándose con la primera entrada que traiga
+  // compra: si el mismo cliente aparece dos veces y sólo una sabe de qué
+  // compra viene, esa es la útil.
+  const porMark = new Map<string, RecepcionANotificar>();
+  for (const r of recepciones) {
+    const mark = (r.markbox ?? "").trim();
+    if (!mark) continue;
+    const previo = porMark.get(mark);
+    if (!previo || (!previo.prealertaId && r.prealertaId)) {
+      porMark.set(mark, { ...r, markbox: mark });
     }
-    if (porMark.size === 0) return vacio;
+  }
 
-    let scheduled = 0;
-    const sinDestino: string[] = [];
-    for (const [markbox, rec] of porMark) {
-      // SDD-0511 · `deleted_at is null`, como en `scheduleReceiptVeReceived`:
-      // si el único envío abierto está eliminado, el aviso cuelga de la compra.
-      const { data: shipment } = await admin
+  let scheduled = 0;
+  const detalle: SinAviso[] = [];
+  for (const [markbox, rec] of porMark) {
+    // Un fallo inesperado con un cliente no calla a los demás, y tampoco a él:
+    // queda como `fallo` en la bitácora.
+    try {
+      // ── 1 · La compra, si se conoce ──
+      if (rec.prealertaId && rec.prealertaCode) {
+        const d = desenlace(
+          await programarEnBodega(
+            admin,
+            tenantId,
+            markbox,
+            { kind: "prealerta", prealertaId: rec.prealertaId, prealertaCode: rec.prealertaCode },
+            null,
+            eventTime,
+          ),
+        );
+        if (d.kind === "listo") {
+          scheduled += d.scheduled;
+          continue;
+        }
+        if (d.kind === "sin_aviso") {
+          detalle.push({ markbox, motivo: d.motivo, ancla: rec.prealertaCode });
+          continue;
+        }
+        // `seguir`: falta la 0389 → el envío, como antes de ella.
+      }
+
+      // ── 2 · El envío abierto más reciente ──
+      // SDD-0511 · `deleted_at is null`: un envío eliminado no recibe avisos.
+      const { data: shipment, error: shipmentErr } = await admin
         .from("shipments")
         .select("id, code, client_markbox, client_name")
         .eq("tenant_id", tenantId)
@@ -338,57 +463,44 @@ export async function scheduleReceiptInWarehouse(
           client_name: string | null;
         }>();
 
-      if (shipment) {
-        scheduled += await scheduleForTargets(
-          admin,
-          tenantId,
-          "status:in_warehouse",
-          [
-            {
-              shipmentId: shipment.id,
-              shipmentCode: shipment.code,
-              clientMarkbox: shipment.client_markbox,
-              clientName: shipment.client_name,
-            },
-          ],
-          eventTime,
-        );
+      if (shipmentErr) {
+        // Sin saber si hay envío, no se afirma que no lo hay.
+        detalle.push({ markbox, motivo: "fallo", ancla: null });
+        continue;
+      }
+      if (!shipment) {
+        // No se inventa un destino: mal-notificar a otro cliente sería peor.
+        detalle.push({ markbox, motivo: "sin_destino", ancla: null });
         continue;
       }
 
-      // ── SDD-0283 · sin envío, el aviso cuelga de la COMPRA ──
-      //
-      // Éste es el caso que antes se perdía, y no es el raro: es el normal en
-      // una primera compra. El MISMO `trigger_event` a propósito — significa lo
-      // mismo cuelgue de donde cuelgue, así que el tenant que ya lo tenía
-      // configurado no tiene que volver a configurar nada.
-      if (rec.prealertaId && rec.prealertaCode) {
-        const res = await scheduleClientNotifications(admin, tenantId, {
-          ancla: {
-            kind: "prealerta",
-            prealertaId: rec.prealertaId,
-            prealertaCode: rec.prealertaCode,
-          },
-          clientMarkbox: markbox,
-          clientName: null,
-          event: "status:in_warehouse",
+      const d = desenlace(
+        await programarEnBodega(
+          admin,
+          tenantId,
+          shipment.client_markbox ?? markbox,
+          { kind: "shipment", shipmentId: shipment.id, shipmentCode: shipment.code },
+          shipment.client_name,
           eventTime,
+        ),
+      );
+      if (d.kind === "listo") {
+        scheduled += d.scheduled;
+      } else {
+        // `seguir` no ocurre con un envío (la 0389 sólo agrega la compra);
+        // si ocurriera, sigue siendo un cliente sin aviso.
+        detalle.push({
+          markbox,
+          motivo: d.kind === "sin_aviso" ? d.motivo : "fallo",
+          ancla: shipment.code,
         });
-        if (res.scheduled > 0) {
-          scheduled += res.scheduled;
-          continue;
-        }
-        // Si faltó la migración 0389, esto sigue siendo un cliente sin avisar y
-        // tiene que salir en la nota de la bitácora igual que antes.
       }
-
-      sinDestino.push(markbox);
+    } catch (err) {
+      console.error(`[client-notif] scheduleReceiptInWarehouse falló con ${markbox}:`, err);
+      detalle.push({ markbox, motivo: "fallo", ancla: null });
     }
-    return { scheduled, sinDestino };
-  } catch (err) {
-    console.error(`[client-notif] scheduleReceiptInWarehouse falló:`, err);
-    return vacio;
   }
+  return { scheduled, sinDestino: detalle.map((x) => x.markbox), detalle };
 }
 
 /**
@@ -407,4 +519,50 @@ export function notaSinAviso(sinDestino: readonly string[]): string | null {
     `colgarlo. Se le avisa al consolidar. Si está esperando respuesta, ` +
     `escríbele.`
   );
+}
+
+/**
+ * SDD-0524 · la nota de la bitácora de una recepción en Yiwu, con el PORQUÉ de
+ * cada cliente que se quedó sin el aviso de llegada. PURA. La escriben los tres
+ * caminos de recepción: el escaneo (`/m/cn/recibir`), la recepción manual del
+ * móvil (`/m/cn/nueva`) y la de oficina (`/studio/cn`).
+ *
+ * `notaSinAviso` decía «no tiene un envío abierto» para todo, y desde que el
+ * duplicado también se anota eso sería falso: el envío existe y ya tuvo su
+ * aviso. Esa nota se conserva para el arribo a Venezuela, donde sí es cierta.
+ *
+ * Devuelve `null` si nadie se quedó sin aviso: así no se escribe una nota vacía.
+ */
+export function notaSinAvisoBodega(r: Pick<FanoutBodega, "detalle">): string | null {
+  if (r.detalle.length === 0) return null;
+  return r.detalle.map(fraseSinAviso).join(" ");
+}
+
+function fraseSinAviso(s: SinAviso): string {
+  const quien = `Aviso al cliente NO enviado (${s.markbox})`;
+  switch (s.motivo) {
+    case "sin_destino":
+      return (
+        `${quien}: no tiene un envío abierto ni una compra vinculada donde ` +
+        `colgarlo. Si está esperando respuesta, escríbele.`
+      );
+    case "ya_avisado":
+      return (
+        `${quien}: ya existía un aviso de llegada a bodega para ` +
+        `${s.ancla ?? "esta mercancía"} y el sistema no lo repite. Si esta ` +
+        `mercancía es otra, escríbele.`
+      );
+    case "regla_sin_fecha":
+      return (
+        `${quien}: la regla «Recibido en bodega China» está anclada a una fecha ` +
+        `(ETA/ETD) que ${s.ancla ?? "esta recepción"} todavía no tiene. Revísala ` +
+        `en Administración › Notificaciones. Si está esperando respuesta, ` +
+        `escríbele.`
+      );
+    case "fallo":
+      return (
+        `${quien}: el aviso falló al programarse. Si está esperando respuesta, ` +
+        `escríbele.`
+      );
+  }
 }

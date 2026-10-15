@@ -163,3 +163,170 @@ describe("checkSeaRates · el auth 200 no basta", () => {
     expect(contar).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * 🔴 SDD-0527 · la llave borrada que salía verde.
+ *
+ * `GET /domains` responde 401 a dos llaves muy distintas: la «Sending access»
+ * (`name: "restricted_api_key"`), que existe y envía, y la borrada o inválida
+ * («API key is invalid»), que no envía nada. El chequeo viejo daba por sana
+ * cualquier 401/403, así que /studio/debug no podía decir si la llave de un
+ * entorno había muerto. El 2026-10-15 se borraron dos llaves por error y el
+ * panel no lo podía mostrar.
+ *
+ * Se prueba por `checkAllIntegrations`, la misma entrada que usan
+ * /studio/debug y /api/debug/health, y por eso estos casos también corren
+ * contra el código anterior (el control rojo).
+ */
+describe("checkResend · el cuerpo del 401 decide", () => {
+  const LLAVE = "re_prueba_NO_DEBE_SALIR_0527";
+  const URL_DOMINIOS = "https://api.resend.com/domains";
+
+  /** Responde `/domains` con lo dado; el resto de las URLs, 200 vacío. */
+  function responderDominios(respuesta: () => Response | Promise<Response>) {
+    const llamadas: Array<{ url: string; init?: RequestInit }> = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: unknown, init?: RequestInit) => {
+        const url = String(input);
+        llamadas.push({ url, init });
+        if (url === URL_DOMINIOS) return respuesta();
+        return new Response("{}", {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }),
+    );
+    return llamadas;
+  }
+
+  const json = (status: number, cuerpo: unknown) => () =>
+    new Response(JSON.stringify(cuerpo), {
+      status,
+      headers: { "content-type": "application/json" },
+    });
+
+  const saludResend = async () =>
+    (await checkAllIntegrations({ skipMetered: true })).resend;
+
+  beforeEach(() => {
+    vi.stubEnv("RESEND_API_KEY", LLAVE);
+    // Sin secret, el chequeo del webhook queda fuera y no pega a la API.
+    vi.stubEnv("RESEND_WEBHOOK_SECRET", "");
+  });
+
+  it("200: sana con acceso completo y cuenta sólo los dominios verificados", async () => {
+    responderDominios(
+      json(200, {
+        data: [
+          { name: "dtdcargo.com", status: "verified" },
+          { name: "envios.dtdcargo.com", status: "verified" },
+          { name: "pendiente.dtdcargo.com", status: "pending" },
+        ],
+      }),
+    );
+    const salud = await saludResend();
+    expect(salud.status).toBe("ok");
+    expect(salud.error).toBeNull();
+    expect(salud.detail).toBe("acceso completo · 2 dominio(s) verificado(s)");
+  });
+
+  it("401 restricted_api_key: sana, pero sólo envía y avisa que el correo entrante no funciona", async () => {
+    responderDominios(
+      json(401, {
+        statusCode: 401,
+        name: "restricted_api_key",
+        message: "This API key is restricted to only send emails",
+      }),
+    );
+    const salud = await saludResend();
+    expect(salud.status).toBe("ok");
+    expect(salud.error).toBeNull();
+    expect(salud.detail).toContain("solo de envío");
+    expect(salud.detail).toContain("correo entrante de Conversaciones");
+  });
+
+  it("401 «API key is invalid»: rojo, llave inválida o borrada", async () => {
+    responderDominios(
+      json(401, {
+        statusCode: 401,
+        name: "validation_error",
+        message: "API key is invalid",
+      }),
+    );
+    const salud = await saludResend();
+    expect(salud.status).toBe("error");
+    expect(salud.error).toBe("llave inválida o borrada · HTTP 401");
+  });
+
+  it("403 sin restricted_api_key: también rojo (antes salía verde)", async () => {
+    responderDominios(
+      json(403, {
+        statusCode: 403,
+        name: "invalid_api_key",
+        message: "API key is invalid",
+      }),
+    );
+    const salud = await saludResend();
+    expect(salud.status).toBe("error");
+    expect(salud.error).toBe("llave inválida o borrada · HTTP 403");
+  });
+
+  it("401 sin cuerpo legible: rojo, no se presume que sea de sólo envío", async () => {
+    responderDominios(() => new Response("Unauthorized", { status: 401 }));
+    const salud = await saludResend();
+    expect(salud.status).toBe("error");
+    expect(salud.error).toBe("llave inválida o borrada · HTTP 401");
+  });
+
+  it("restricted_api_key tiene que venir en `name`, no basta con que lo diga el mensaje", async () => {
+    responderDominios(
+      json(401, {
+        statusCode: 401,
+        name: "validation_error",
+        message: "restricted_api_key",
+      }),
+    );
+    const salud = await saludResend();
+    expect(salud.status).toBe("error");
+  });
+
+  it("otro error (500) es rojo y no culpa a la llave", async () => {
+    responderDominios(
+      json(500, { statusCode: 500, name: "internal_server_error", message: "boom" }),
+    );
+    const salud = await saludResend();
+    expect(salud.status).toBe("error");
+    expect(salud.error).toBe("HTTP 500");
+  });
+
+  it("sin red: rojo con el motivo", async () => {
+    responderDominios(() => Promise.reject(new Error("fetch failed")));
+    const salud = await saludResend();
+    expect(salud.status).toBe("error");
+    expect(salud.error).toBe("fetch failed");
+  });
+
+  it("nunca expone ni registra la llave, aunque Resend la devuelva en el cuerpo", async () => {
+    const consolas = (["log", "info", "warn", "error", "debug"] as const).map((m) =>
+      vi.spyOn(console, m).mockImplementation(() => {}),
+    );
+    const escenarios = [
+      json(200, { data: [{ name: LLAVE, status: "verified" }] }),
+      json(401, { statusCode: 401, name: "restricted_api_key", message: `Key ${LLAVE} restricted` }),
+      json(401, { statusCode: 401, name: LLAVE, message: `API key ${LLAVE} is invalid` }),
+      json(500, { statusCode: 500, name: LLAVE, message: LLAVE }),
+    ];
+    for (const escenario of escenarios) {
+      const llamadas = responderDominios(escenario);
+      const salud = await saludResend();
+      // La llave sí viajó, en el header y sólo ahí: si no, la prueba no prueba nada.
+      const dominios = llamadas.find((l) => l.url === URL_DOMINIOS);
+      expect(new Headers(dominios?.init?.headers).get("authorization")).toBe(`Bearer ${LLAVE}`);
+      expect(JSON.stringify(salud)).not.toContain(LLAVE);
+    }
+    for (const espia of consolas) {
+      expect(JSON.stringify(espia.mock.calls)).not.toContain(LLAVE);
+    }
+  });
+});

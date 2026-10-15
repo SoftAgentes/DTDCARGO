@@ -33,7 +33,20 @@
  * descripción, la entrada y un beneficio de `/pre-alertas`
  * (`app/pre-alertas/page.tsx`).
  *
- * Al apagarlo, vuelven todos esos textos de siempre en el mismo momento.
+ * También dejan de prometer seguimiento (SDD-0528) la puerta de acceso
+ * `/entrar` (`app/entrar/EntrarForm.tsx`: dos beneficios y el párrafo del panel
+ * lateral; el acceso no cambia) y los términos DTDU y POD de `/glosario`
+ * (`app/glosario/page.tsx`, con su texto en `lib/design-tokens.ts`; la ficha y
+ * su JSON-LD). La ficha de pre-alerta de `/servicios`
+ * (`components/servicios/hub-fichas.tsx`) deja además de prometer que ves el
+ * estado de tu compra en todo momento. `public/llms.txt` es estático y no lee
+ * este valor: su enlace al Portal dice «Portal del cliente», que es cierto en
+ * las dos posiciones.
+ *
+ * Al apagarlo, vuelven todos esos textos de siempre en el mismo momento, con una
+ * excepción (SDD-0524): el paso Contacto del registro no vuelve a prometer los
+ * avisos POR WHATSAPP, que no existen; apagado dice el canal real (correo, y push
+ * si el cliente activa las notificaciones del Portal).
  *
  * Este módulo no importa nada a propósito: lo leen también páginas y
  * componentes públicos (algunos de cliente, como el registro), y no debe

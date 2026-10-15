@@ -129,6 +129,39 @@ export const warehouse = {
   "warehouse_cn.bulk.feedback_ok": "{count} actualizadas.",
   "warehouse_cn.bulk.feedback_error_generic": "Error",
 
+  // ── Eliminar recepciones (SDD-0522) ──────────────────────
+  "warehouse_cn.bulk.delete": "Eliminar…",
+  "warehouse_cn.delete.title_one": "Eliminar 1 recepción",
+  "warehouse_cn.delete.title_many": "Eliminar {count} recepciones",
+  "warehouse_cn.delete.message":
+    "Vas a eliminar: {codes}. Desaparecen del Almacén CN y de sus indicadores, y sus cajas se retiran: ya no se pueden estibar ni imprimir. Los códigos no se vuelven a usar. Solo se recuperan desde la base de datos.",
+  "warehouse_cn.delete.warning_boxes_one": "Se retira 1 caja.",
+  "warehouse_cn.delete.warning_boxes_many": "Se retiran {count} cajas.",
+  "warehouse_cn.delete.reason_label": "Motivo (obligatorio, sin datos personales)",
+  "warehouse_cn.delete.reason_placeholder": "p. ej. Recepciones de prueba",
+  "warehouse_cn.delete.confirm_one": "Eliminar recepción",
+  "warehouse_cn.delete.confirm_many": "Eliminar recepciones",
+  "warehouse_cn.delete.cancel": "Cancelar",
+  "warehouse_cn.delete.success_one": "1 recepción eliminada. Ya no aparece en el Almacén CN.",
+  "warehouse_cn.delete.success_many":
+    "{count} recepciones eliminadas. Ya no aparecen en el Almacén CN.",
+  "warehouse_cn.delete.blocked_intro":
+    "No puedes eliminar esta selección: {count} no se pueden eliminar.",
+  "warehouse_cn.delete.blocked_row": "{code}: {reasons}.",
+  "warehouse_cn.delete.blocked_more": "Y {count} más.",
+  "warehouse_cn.delete.unavailable":
+    "No se pudo comprobar qué recepciones se pueden eliminar. Recarga la página.",
+  "warehouse_cn.delete.blocker.already_deleted": "ya estaba eliminada",
+  "warehouse_cn.delete.blocker.consolidated":
+    "está consolidada en un embarque (sácala del contenedor primero)",
+  "warehouse_cn.delete.blocker.dispatch_orders": "está en una orden de despacho",
+  "warehouse_cn.delete.blocker.purchase": "está unida a una compra",
+  "warehouse_cn.delete.blocker.sales_order": "está unida a una orden de venta",
+  "warehouse_cn.delete.blocker.ve_receipts": "ya se recibió en Venezuela",
+  "warehouse_cn.delete.blocker.stowed_boxes": "tiene cajas estibadas en un contenedor",
+  "warehouse_cn.delete.blocker.otro": "tiene otra dependencia",
+  "warehouse_cn.delete.blocker.sin_datos": "no se pudo comprobar qué depende de ella",
+
   // ── New Receipt Drawer ───────────────────────────────────
   "warehouse_cn.drawer.title": "Nueva recepción",
   "warehouse_cn.drawer.subtitle":

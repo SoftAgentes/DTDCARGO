@@ -4,14 +4,19 @@
  * SDD-0012. Server component fetchea todos los shipments del tenant
  * (RLS-filtered) y delega la UI a EmbarquesClient. Los filtros (tabs +
  * search) son client-side para evitar round trips por interacción.
+ *
+ * SDD-0522: a quien puede eliminar embarques (admin) se le lee además qué
+ * bloquea cada uno, con la misma regla que aplica el borrado.
  */
 
 import { createClient } from "@/lib/db/server";
-import { moduleViewDenial, requireModuleView } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, moduleViewDenial, requireModuleView } from "@/lib/studio/rbac-guard";
+import { canSpecial } from "@/lib/studio/rbac";
 import { listShipments, type ShipmentListRow } from "@/lib/studio/shipment-queries";
 import { contarAdjuntosDeEmbarques } from "@/lib/studio/documents/adjuntos-queries";
 import { conteosPorId } from "@/lib/studio/documents/adjuntos";
-import { EmbarquesClient } from "./_components/EmbarquesClient";
+import { leerInfoEmbarques } from "@/lib/studio/borrado/servidor";
+import { EmbarquesClient, type EliminacionEmbarques } from "./_components/EmbarquesClient";
 
 export const metadata = { title: "Embarques" };
 
@@ -35,5 +40,17 @@ export default async function EmbarquesPage() {
       )
     : undefined;
 
-  return <EmbarquesClient shipments={shipments} adjuntos={adjuntos} />;
+  // SDD-0522: sin la capability no se pinta nada de borrar. Si la lectura de
+  // bloqueos falla (por ejemplo, sin la 0476), se dice y no se ofrece borrar.
+  const { role } = await getStudioAccess(supabase);
+  let eliminacion: EliminacionEmbarques | undefined;
+  if (canSpecial(role, "delete_shipments")) {
+    const info = await leerInfoEmbarques(
+      supabase,
+      shipments.map((s) => s.id),
+    );
+    eliminacion = info === null ? { estado: "no_disponible" } : { estado: "lista", info };
+  }
+
+  return <EmbarquesClient shipments={shipments} adjuntos={adjuntos} eliminacion={eliminacion} />;
 }

@@ -635,6 +635,14 @@ export type GlossaryTerm = {
   body: string[];
   /** Callout opcional "Cómo lo vives" / "Por qué importa" / "Ejemplo real" */
   analogy?: { label: string; text: string };
+  /**
+   * SDD-0528 · el cuerpo mientras el seguimiento del Portal está en
+   * construcción (`TRACKING_EN_CONSTRUCCION`, SDD-0514): explica el mismo
+   * concepto sin prometer que el cliente lo sigue en el Portal. Lo elige
+   * `app/glosario/page.tsx` (la ficha y su JSON-LD), para que este archivo siga
+   * sin imports. Sólo lo llevan los términos que prometían seguimiento.
+   */
+  enConstruccion?: { body: string[] };
 };
 
 export const GLOSSARY_CATEGORIES: { id: GlossaryCategory; label: string }[] = [
@@ -749,6 +757,12 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
       "Documento firmado por el destinatario cuando recibe la carga en su puerta. Cierra el ciclo logístico y sirve como prueba legal de que la entrega se completó.",
       "En el portal de tracking, el POD aparece como el último evento del envío junto con la fecha y firma escaneada.",
     ],
+    enConstruccion: {
+      body: [
+        "Documento firmado por el destinatario cuando recibe la carga en su puerta. Cierra el ciclo logístico y sirve como prueba legal de que la entrega se completó.",
+        "Es el último evento del envío: lleva la fecha de la entrega y la firma de quien recibe.",
+      ],
+    },
   },
 
   // TRACKING
@@ -783,6 +797,12 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
       "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo ves entrando a tu portal del cliente (dtdcargo.com/portal), donde sigues el estado en tiempo real.",
       "El DTDU agrupa el BL marítimo, los documentos de aduana y el last mile bajo un solo identificador — más cómodo que recordar múltiples números.",
     ],
+    enConstruccion: {
+      body: [
+        "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y con él nuestro equipo sigue tu envío. El seguimiento desde tu portal del cliente (dtdcargo.com/portal) está en construcción.",
+        "El DTDU agrupa el BL marítimo, los documentos de aduana y el last mile bajo un solo identificador — más cómodo que recordar múltiples números.",
+      ],
+    },
   },
   {
     id: "markbox",

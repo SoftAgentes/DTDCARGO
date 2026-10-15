@@ -26,6 +26,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { readCanSeeClientNames } from "@/lib/studio/privacidad-cn";
+import { resolveClientNameByMarkbox } from "@/lib/studio/warehouse-cn-queries";
 import { notifyConsolidationAuthorizedToOperario } from "@/lib/studio/naviera/consolidation-request-notify";
 import {
   scheduleConsolidationEvent,
@@ -813,6 +815,34 @@ export async function linkConsolidation(
 // ── Asignación de carga suelta (guard advisory) ────────────────
 
 /**
+ * SDD-0531 · El nombre del cliente de una pieza, resuelto EN EL SERVIDOR.
+ *
+ * Al equipo de China (región cn, no admin) la carga suelta le llega sin nombre,
+ * así que el cajón no tiene qué prellenar y la pieza se guardaría sin cliente:
+ * en Venezuela el contenedor aparecería con filas vacías y el plan de carga sin
+ * dueño. Para ese usuario el nombre lo pone el servidor: el del embarque si la
+ * pieza viene de uno, o el de la ficha por su Shipping Mark (mismo principio que
+ * las recepciones de Yiwu, H-7). Nunca viaja al navegador.
+ */
+async function nombreDeClienteEnServidor(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  shipmentId: string | null,
+  markbox: string | null,
+): Promise<string | null> {
+  if (shipmentId) {
+    const { data } = await supabase
+      .from("shipments")
+      .select("client_name")
+      .eq("id", shipmentId)
+      .maybeSingle<{ client_name: string | null }>();
+    const delEmbarque = data?.client_name?.trim();
+    if (delEmbarque) return delEmbarque;
+  }
+  return resolveClientNameByMarkbox(supabase, tenantId, markbox);
+}
+
+/**
  * Asigna una pieza de carga suelta a un contenedor (loose_cargo →
  * consolidation_items). Guard de capacidad ADVISORY: si supera el CBM/kg del
  * tipo, igual asigna pero devuelve `warning` para que la UI lo muestre.
@@ -865,12 +895,23 @@ export async function assignLooseCargo(
   };
   const guard = evaluateCapacity(existing, incoming, consRow.container_type);
 
+  // Quien no puede ver nombres tampoco los escribe: lo que mande su navegador
+  // no cuenta (no tiene de dónde sacarlo) y el servidor lo resuelve.
+  const clientName = (await readCanSeeClientNames(supabase))
+    ? input!.clientName
+    : await nombreDeClienteEnServidor(
+        supabase,
+        tenantId,
+        input!.shipmentId,
+        input!.clientMarkbox,
+      );
+
   const { error } = await supabase.from("consolidation_items").insert({
     tenant_id: tenantId,
     consolidation_id: consolidationId,
     shipment_id: input!.shipmentId,
     client_markbox: input!.clientMarkbox,
-    client_name: input!.clientName,
+    client_name: clientName,
     supplier_name: input!.supplierName,
     cbm: input!.cbm,
     weight_kg: input!.weightKg,

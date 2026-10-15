@@ -47,6 +47,13 @@ export type ErrorCode =
   | "cn_invalid_payment_status"
   | "cn_destination_required"
   | "cn_bulk_max_exceeded"
+  // SDD-0522 · borrado auditado de recepciones
+  | "cn_delete_reason_short"
+  | "cn_delete_reason_long"
+  | "cn_delete_blocked"
+  | "cn_delete_not_found"
+  | "cn_delete_failed"
+  | "cn_delete_unconfirmed"
 
   // ── Usuarios + invitaciones ──────────────────────────────
   | "user_email_invalid"
@@ -80,6 +87,12 @@ export const ERROR_CODE_KEY: Record<ErrorCode, I18nKey> = {
   cn_invalid_payment_status: "error.cn_invalid_payment_status",
   cn_destination_required: "error.cn_destination_required",
   cn_bulk_max_exceeded: "error.cn_bulk_max_exceeded",
+  cn_delete_reason_short: "error.cn_delete_reason_short",
+  cn_delete_reason_long: "error.cn_delete_reason_long",
+  cn_delete_blocked: "error.cn_delete_blocked",
+  cn_delete_not_found: "error.cn_delete_not_found",
+  cn_delete_failed: "error.cn_delete_failed",
+  cn_delete_unconfirmed: "error.cn_delete_unconfirmed",
 
   // Usuarios
   user_email_invalid: "error.user_email_invalid",

@@ -92,6 +92,7 @@ export function NavieraClient({
   trackingByConsolidation,
   stuffingByConsolidation,
   plansByConsolidation,
+  nombresOcultos = false,
 }: {
   sailings: Sailing[];
   bookings: Booking[];
@@ -106,6 +107,12 @@ export function NavieraClient({
   /** Dónde quedó cada caja dentro de cada contenedor (SDD-0152 → 0155). */
   stuffingByConsolidation?: Record<string, StuffedBox[]>;
   plansByConsolidation?: Record<string, ConsolidationPlan>;
+  /**
+   * SDD-0531: el usuario no puede ver nombres de clientes (región China). Los
+   * datos ya llegan sin ellos; esto sólo saca el campo «Cliente» del cajón de
+   * asignar, donde lo que escribiera se ignoraría.
+   */
+  nombresOcultos?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("consolidation");
   const [showNewSailing, setShowNewSailing] = useState(false);
@@ -327,6 +334,7 @@ export function NavieraClient({
           detail={assignTo}
           looseCargo={looseCargo}
           onClose={() => setAssignTo(null)}
+          nombresOcultos={nombresOcultos}
         />
       )}
     </div>
