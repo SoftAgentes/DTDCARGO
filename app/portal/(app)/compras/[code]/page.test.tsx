@@ -14,12 +14,17 @@
  * avisos ni recepciones automáticas que hoy no van a llegar («Te avisamos
  * apenas…», «verás acá cada recepción»): dice una frase neutra. Apagado, vuelve
  * el texto de siempre, palabra por palabra.
+ *
+ * SDD-0526 · el detalle muestra además el historial de avisos ENVIADOS de esa
+ * compra, leído con la sesión del cliente (RPC 0479) y acotado a la compra.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 
 const h = vi.hoisted(() => ({
   prendido: true,
+  avisos: [] as unknown[],
+  avisosLlamadas: [] as { db: unknown; opts: unknown }[],
   recepcion: {
     recepciones: [] as unknown[],
     cajasRecibidas: 0,
@@ -39,8 +44,14 @@ vi.mock("next/navigation", () => ({
     throw new Error("NEXT_NOT_FOUND");
   },
 }));
-vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
-vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({}) }));
+vi.mock("@/lib/db/server", () => ({ createClient: async () => ({ cliente: "sesion" }) }));
+vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({ cliente: "admin" }) }));
+vi.mock("@/lib/portal/portal-avisos-queries", () => ({
+  listMyPortalAvisos: async (db: unknown, opts: unknown) => {
+    h.avisosLlamadas.push({ db, opts });
+    return h.avisos;
+  },
+}));
 vi.mock("@/lib/portal/portal-queries", () => ({
   getPortalClient: async () => ({ id: "c1", markbox: "DTD-TEST", name: "Cliente Prueba" }),
 }));
@@ -133,6 +144,8 @@ function textoSinLaFraseDelAviso(): string {
 
 beforeEach(() => {
   h.prendido = true;
+  h.avisos = [];
+  h.avisosLlamadas = [];
   h.recepcion = {
     recepciones: [],
     cajasRecibidas: 0,
@@ -241,5 +254,49 @@ describe("/portal/compras/[code] sin promesas de aviso mientras el seguimiento e
     expect(screen.queryByText(NEUTRO.titulo)).toBeNull();
     expect(screen.queryByText(NEUTRO.detalle)).toBeNull();
     expect(screen.queryByText(NEUTRO.recepcion)).toBeNull();
+  });
+});
+
+describe("/portal/compras/[code] con el historial de avisos de la compra (SDD-0526)", () => {
+  const AVISO = {
+    id: "n1",
+    title: "Tu carga llegó a nuestra bodega en China",
+    body: "Recibimos tu mercancía en Yiwu. Ya arrancó el proceso hacia Venezuela.",
+    sentAt: "2026-10-14T13:00:00+00:00",
+    sentAtLabel: "14 oct 2026 · 09:00",
+    eventLabel: "En bodega",
+    channel: "email",
+    anchorKind: "compra",
+    anchorCode: "PA-0001",
+    anchorLabel: "Compra",
+    href: "/portal/compras/PA-0001",
+    unread: true,
+  };
+
+  it("lee con la sesión del cliente y sólo los de esta compra", async () => {
+    await abrir();
+    expect(h.avisosLlamadas).toEqual([
+      { db: { cliente: "sesion" }, opts: { prealertaId: "p1", limit: 50 } },
+    ]);
+  });
+
+  it("con avisos enviados: el historial va al final, con su título, texto y canal", async () => {
+    h.avisos = [AVISO];
+    await abrir();
+    const titulo = screen.getByRole("heading", { name: "Avisos que te enviamos" });
+    const tarjeta = titulo.parentElement!;
+    expect(within(tarjeta).getByText("El historial de notificaciones de esta compra.")).toBeInTheDocument();
+    expect(within(tarjeta).getByText(AVISO.title)).toBeInTheDocument();
+    expect(within(tarjeta).getByText(AVISO.body)).toBeInTheDocument();
+    expect(within(tarjeta).getByText("En bodega")).toBeInTheDocument();
+    expect(within(tarjeta).getByText("Correo")).toBeInTheDocument();
+    expect(within(tarjeta).queryByText(/este envío/)).toBeNull();
+    const packing = screen.getByRole("heading", { name: "Packing list del proveedor" });
+    expect(packing.compareDocumentPosition(titulo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("sin avisos enviados: no hay historial", async () => {
+    await abrir();
+    expect(screen.queryByRole("heading", { name: "Avisos que te enviamos" })).toBeNull();
   });
 });

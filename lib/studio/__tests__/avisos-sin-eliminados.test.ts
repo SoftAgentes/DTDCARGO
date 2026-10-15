@@ -171,7 +171,7 @@ describe("scheduleReceiptInWarehouse · el aviso no cuelga de un envío eliminad
       { markbox: "DTD-1001" },
     ]);
 
-    expect(r).toEqual({ scheduled: 1, sinDestino: [] });
+    expect(r).toEqual({ scheduled: 1, sinDestino: [], detalle: [] });
     expect(anclaDelAviso(0)).toEqual({
       kind: "shipment",
       shipmentId: "s-vivo",
@@ -195,7 +195,7 @@ describe("scheduleReceiptInWarehouse · el aviso no cuelga de un envío eliminad
       { markbox: "DTD-1001", prealertaId: "pa-1", prealertaCode: "PA-0001" },
     ]);
 
-    expect(r).toEqual({ scheduled: 1, sinDestino: [] });
+    expect(r).toEqual({ scheduled: 1, sinDestino: [], detalle: [] });
     expect(anclaDelAviso(0)).toEqual({
       kind: "prealerta",
       prealertaId: "pa-1",
@@ -203,15 +203,23 @@ describe("scheduleReceiptInWarehouse · el aviso no cuelga de un envío eliminad
     });
   });
 
-  it("ese mismo envío, vivo, se lleva el aviso en vez de la compra (control del doble)", async () => {
+  // SDD-0524 invirtió la precedencia: con la compra conocida, el aviso cuelga
+  // de ELLA aunque haya un envío abierto (antes el envío mandaba y, con un
+  // cliente recurrente, el índice único de la 0389 descartaba el aviso). Por
+  // eso este control ya no puede decir «el envío vivo se lo lleva»: lo que
+  // separa vivo de eliminado lo cubren el par de arriba (sin compra) y el caso
+  // de abajo. Aquí queda la regla nueva, con el mismo fixture.
+  it("ese mismo envío, vivo, tampoco se lleva el aviso: con compra conocida manda la compra (SDD-0524)", async () => {
     const { client } = dobleLectores(todoVivo({ shipments: [ENVIO_ELIMINADO] }));
     await scheduleReceiptInWarehouse(client, "t1", [
       { markbox: "DTD-1001", prealertaId: "pa-1", prealertaCode: "PA-0001" },
     ]);
 
-    expect(anclaDelAviso(0)).toMatchObject({
-      kind: "shipment",
-      shipmentId: "s-eliminado",
+    expect(scheduleMock).toHaveBeenCalledTimes(1);
+    expect(anclaDelAviso(0)).toEqual({
+      kind: "prealerta",
+      prealertaId: "pa-1",
+      prealertaCode: "PA-0001",
     });
   });
 
@@ -221,7 +229,11 @@ describe("scheduleReceiptInWarehouse · el aviso no cuelga de un envío eliminad
       { markbox: "DTD-1001" },
     ]);
 
-    expect(r).toEqual({ scheduled: 0, sinDestino: ["DTD-1001"] });
+    expect(r).toEqual({
+      scheduled: 0,
+      sinDestino: ["DTD-1001"],
+      detalle: [{ markbox: "DTD-1001", motivo: "sin_destino", ancla: null }],
+    });
     expect(scheduleMock).not.toHaveBeenCalled();
   });
 });

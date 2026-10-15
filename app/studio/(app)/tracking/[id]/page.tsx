@@ -39,6 +39,10 @@ import { CommentsThread } from "@/app/studio/(app)/_components/comments/Comments
 import type { CommentTenantUser } from "@/lib/studio/comments/types";
 import { canEditModule, canSpecial } from "@/lib/studio/rbac";
 import type { StudioUserRole } from "@/lib/studio/user-types";
+import {
+  readCanSeeClientNames,
+  segunVisibilidad,
+} from "@/lib/studio/privacidad-cn";
 
 export const metadata = {
   title: "Detalle envío",
@@ -52,8 +56,14 @@ export default async function ShipmentDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const shipment = await getShipmentById(supabase, id);
-  if (!shipment) notFound();
+  const leido = await getShipmentById(supabase, id);
+  if (!leido) notFound();
+
+  // SDD-0531 · PIPL: al equipo de China (región cn, no admin) no le llegan el
+  // nombre del cliente ni la ubicación de entrega. Se ocultan acá, antes de que
+  // el envío se pase a los paneles de cliente (que lo serializan entero).
+  const puedeVerNombres = await readCanSeeClientNames(supabase);
+  const shipment = segunVisibilidad(leido, puedeVerNombres);
 
   const events = await getShipmentEvents(supabase, id);
 
@@ -113,7 +123,7 @@ export default async function ShipmentDetailPage({
 
   return (
     <div style={{ maxWidth: 1200 }}>
-      <ShipmentHeader shipment={shipment} />
+      <ShipmentHeader shipment={shipment} nombresOcultos={!puedeVerNombres} />
 
       {/* Cancellation reason banner — solo si el envio esta cancelado */}
       {shipment.status === "cancelled" && shipment.cancellation_reason && (
@@ -209,7 +219,10 @@ export default async function ShipmentDetailPage({
               padding: 24,
             }}
           >
-            <ShipmentDataPanel shipment={shipment} />
+            <ShipmentDataPanel
+              shipment={shipment}
+              nombresOcultos={!puedeVerNombres}
+            />
           </section>
           <section
             style={{
@@ -367,6 +380,7 @@ export default async function ShipmentDetailPage({
         shipmentId={shipment.id}
         shipmentCode={shipment.code}
         status={shipment.status}
+        canDelete={canSpecial(roleRow?.role, "delete_shipments")}
       />
     </div>
   );

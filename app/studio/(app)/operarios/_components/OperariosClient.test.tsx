@@ -71,7 +71,7 @@ describe("OperariosClient · por qué app entra cada operario", () => {
     ["Carla Bodega", "dtdcargo.com/m/ve/login", "/m/cn/login"],
     ["Diego Ruta", "dtdcargo.com/m/ve/login", "/m/cn/login"],
   ])("%s: «Entra por %s» y no la otra", (name, label, other) => {
-    render(<OperariosClient operarios={ROWS} warehouses={[]} />);
+    render(<OperariosClient operarios={ROWS} warehouses={[]} rolesPorRegion={null} />);
     const row = rowOf(name);
 
     expect(within(row).getByText(label).parentElement).toHaveTextContent(`Entra por ${label}`);
@@ -86,7 +86,7 @@ describe("OperariosClient · columna «Rol»", () => {
     ["Carla Bodega", "Bodeguero"],
     ["Diego Ruta", "Camionero"],
   ])("%s se muestra como %s", (name, label) => {
-    render(<OperariosClient operarios={ROWS} warehouses={[]} />);
+    render(<OperariosClient operarios={ROWS} warehouses={[]} rolesPorRegion={null} />);
     const row = rowOf(name);
 
     expect(within(row).getByText(label)).toBeInTheDocument();
@@ -127,7 +127,7 @@ function fixed(op: number, rest = "88px 104px 96px 64px"): string {
 
 /** Render + vaciar el microtask en que el hook lee lo guardado. */
 async function renderTable(rows: OperarioRow[] = ROWS) {
-  const view = render(<OperariosClient operarios={rows} warehouses={[]} />);
+  const view = render(<OperariosClient operarios={rows} warehouses={[]} rolesPorRegion={null} />);
   await act(async () => {});
   return view;
 }
@@ -437,7 +437,7 @@ describe("OperariosClient · lo guardado (SDD-0520)", () => {
     localStorage.setItem(OPERARIOS_COLUMN_WIDTHS_KEY, '{"operario":400,"rol":160}');
     const getItem = vi.spyOn(Storage.prototype, "getItem");
 
-    const html = renderToString(<OperariosClient operarios={ROWS} warehouses={[]} />);
+    const html = renderToString(<OperariosClient operarios={ROWS} warehouses={[]} rolesPorRegion={null} />);
 
     expect(getItem).not.toHaveBeenCalled();
     expect(html).toContain(`grid-template-columns:${DEFAULT_TEMPLATE}`);

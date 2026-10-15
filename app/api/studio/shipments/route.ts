@@ -6,6 +6,9 @@
  *
  * Auth: requiere sesion Supabase valida. RLS filtra por tenant automaticamente.
  * tenant_id NO se acepta como param (se deriva del JWT) — seguridad.
+ *
+ * SDD-0531 · el GET pasa por la regla de Tracking: al equipo de China (región
+ * cn, no admin) los envíos le llegan sin nombre del cliente.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -14,6 +17,10 @@ import { apiError } from "@/lib/http/api-error";
 import { requireStudioSession } from "@/lib/http/studio-session";
 import { getUserTenantId } from "@/lib/auth/session";
 import { moduleViewDenial } from "@/lib/studio/rbac-guard";
+import {
+  readCanSeeClientNames,
+  segunVisibilidad,
+} from "@/lib/studio/privacidad-cn";
 import {
   isShipmentService,
   type ShipmentService,
@@ -58,7 +65,9 @@ export async function GET() {
     return apiError("No pudimos leer los envíos.", error, 500, "shipments:list");
   }
 
-  return NextResponse.json({ shipments: data ?? [] });
+  return NextResponse.json({
+    shipments: segunVisibilidad(data ?? [], await readCanSeeClientNames(supabase)),
+  });
 }
 
 export async function POST(request: NextRequest) {

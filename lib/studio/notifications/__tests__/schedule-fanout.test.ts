@@ -199,7 +199,7 @@ describe("scheduleReceiptInWarehouse", () => {
       { markbox: null },
       { markbox: "  " },
     ]);
-    expect(r).toEqual({ scheduled: 0, sinDestino: [] });
+    expect(r).toEqual({ scheduled: 0, sinDestino: [], detalle: [] });
   });
 });
 
@@ -238,16 +238,23 @@ describe("scheduleReceiptInWarehouse · el aviso cae en la COMPRA (SDD-0283)", (
     });
   });
 
-  it("con envío abierto NO usa la compra (el envío manda)", () => {
+  // SDD-0524 invirtió esta regla. Antes «el envío manda», y con un cliente
+  // recurrente eso perdía el aviso: su envío abierto es el de una compra
+  // anterior, que ya tuvo su `in_warehouse`, y el índice único de la 0389 lo
+  // descartaba. Ahora, con la compra conocida, cuelga de ella y lleva a su
+  // detalle. La batería completa está en avisos-bodega-confiables.test.ts.
+  it("con envío abierto Y compra conocida, manda la compra (SDD-0524)", () => {
     const admin = makeAdmin({
       shipments: { id: "s-3", code: "ENV-3", client_markbox: "DTD-9", client_name: "Li" },
     });
     return scheduleReceiptInWarehouse(admin, "t-1", [
       { markbox: "DTD-9", prealertaId: "p-9", prealertaCode: "DTD-9-1-1" },
-    ]).then(() => {
+    ]).then((r) => {
+      expect(scheduleMock).toHaveBeenCalledTimes(1);
       expect(scheduleMock.mock.calls[0][2]).toMatchObject({
-        ancla: { kind: "shipment", shipmentId: "s-3" },
+        ancla: { kind: "prealerta", prealertaId: "p-9", prealertaCode: "DTD-9-1-1" },
       });
+      expect(r).toEqual({ scheduled: 1, sinDestino: [], detalle: [] });
     });
   });
 

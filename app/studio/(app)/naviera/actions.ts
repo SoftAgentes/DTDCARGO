@@ -26,6 +26,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { readCanSeeClientNames } from "@/lib/studio/privacidad-cn";
+import { resolveClientNameByMarkbox } from "@/lib/studio/warehouse-cn-queries";
 import { notifyConsolidationAuthorizedToOperario } from "@/lib/studio/naviera/consolidation-request-notify";
 import {
   scheduleConsolidationEvent,
@@ -39,6 +41,16 @@ import {
 } from "@/lib/studio/naviera-tracking/tracking-quota";
 import { getTrackingUsage } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import { authorizeConsolidationGoverned } from "@/lib/studio/naviera/queries";
+import {
+  esAvanceContenedor,
+  resumirAvance,
+  type AvanceContenedor,
+  type ResumenAvanceContenedor,
+} from "@/lib/studio/naviera/avance-por-contenedor";
+import {
+  avanzarContenedorGobernado,
+  programarAvisosDelAvance,
+} from "@/lib/studio/naviera/avance-por-contenedor-queries";
 import {
   evaluateCapacity,
   normalizeContainerNo,
@@ -519,14 +531,98 @@ export async function refreshTracking(
   return { ok: true, remaining };
 }
 
+// SDD-0156 · Slice D: al CERRAR el contenedor (consolidando → cerrado) la carga
+// quedó consolidada → programa el aviso 'consolidated' para sus envíos.
+//
+// SDD-0311: y al ARRIBAR (→ arribado) sale 'received_ve', el aviso «tu carga
+// llegó a Venezuela».
+//
+// 🔴 Por qué hacía falta: el 2026-07-19 se quitó el mail `shipment_arrived`
+// de la transición de status del ENVÍO porque el arribo pasaba a ser canónico
+// por `received_ve`. Pero `received_ve` sólo se disparaba desde
+// `createReceiptVe`, y esa función NO TIENE LLAMADORES en todo el repo
+// (medido 2026-08-26): el recibo de contenedor VE no se puede crear desde
+// ninguna pantalla. Resultado: la regla sembrada por la migración 0331 estaba
+// armada y esperando un disparador que no existía, y el cliente se quedaba
+// sin el aviso que más espera — por las DOS vías a la vez.
+//
+// Este es el mismo hecho físico —el contenedor llegó— expresado con lo que el
+// producto sí tiene vivo hoy. Mismo `trigger_event`, así que usa la regla ya
+// sembrada sin migración nueva; y como `scheduleClientNotifications` es
+// idempotente por índice único parcial, el día que `createReceiptVe` tenga
+// puerta no se duplica el correo.
+//
+// Idempotente; best-effort (no rompe el cambio de estado).
+const EVENTO_DEL_CONTENEDOR: Partial<Record<ContainerStatus, string>> = {
+  cerrado: "consolidated",
+  arribado: "received_ve",
+};
+
+/**
+ * SDD-0530 · Zarpar (cerrado → zarpado) o arribar (zarpado → arribado) el
+ * contenedor con sus envíos.
+ *
+ * 1. Además de Naviera, hace falta editar Tracking: se cambia el estado de
+ *    envíos. La base vuelve a exigir las dos cosas (`advance_consolidation_governed`).
+ * 2. La RPC cambia contenedor, envíos, historial y auditoría en una sola
+ *    transacción, con la sesión del usuario. Si falla, no cambió nada.
+ * 3. Después, best-effort como en Tracking, el aviso `status:<destino>` de cada
+ *    envío que avanzó y, al arribar, el `received_ve` de siempre.
+ * 4. Si el contenedor ya estaba en ese estado (dos clics, dos pestañas), la RPC
+ *    no toca nada y aquí no se programa ningún aviso.
+ */
+async function avanzarContenedor(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  consolidationId: string,
+  to: AvanceContenedor,
+): Promise<Result & { avisados?: number; avance?: ResumenAvanceContenedor }> {
+  const trackingDenial = await moduleEditDenial(supabase, "tracking");
+  if (trackingDenial) return { error: trackingDenial };
+
+  const r = await avanzarContenedorGobernado(supabase, consolidationId, to);
+  if (!r.ok) return { error: r.error };
+  const { resultado } = r;
+
+  let avisosEstado = 0;
+  let avisados: number | undefined;
+  if (resultado.outcome === "transitioned") {
+    const admin = createAdminClient();
+    avisosEstado = await programarAvisosDelAvance(
+      admin,
+      resultado.tenantId,
+      resultado.destino,
+      resultado.avanzados,
+    );
+    const evento = EVENTO_DEL_CONTENEDOR[to];
+    if (evento) {
+      avisados = await scheduleConsolidationEvent(
+        admin,
+        resultado.tenantId,
+        consolidationId,
+        evento,
+      );
+    }
+  }
+
+  revalidate();
+  revalidatePath("/studio/tracking");
+  if (to === "arribado") revalidatePath("/studio/ve");
+  return { ok: true, avisados, avance: resumirAvance(resultado, avisosEstado, avisados) };
+}
+
 export async function changeConsolidationStatus(
   consolidationId: string,
   status: ContainerStatus,
-): Promise<Result & { avisados?: number }> {
+): Promise<Result & { avisados?: number; avance?: ResumenAvanceContenedor }> {
   if (!VALID_CONTAINER_STATUS.has(status)) return { error: "Estado inválido." };
   const supabase = await createClient();
   const denial = await moduleEditDenial(supabase, "naviera");
   if (denial) return { error: denial };
+
+  // SDD-0530 · zarpar y arribar arrastran a los envíos del contenedor.
+  if (esAvanceContenedor(status)) {
+    return avanzarContenedor(supabase, consolidationId, status);
+  }
 
   const { error } = await supabase
     .from("consolidations")
@@ -534,33 +630,7 @@ export async function changeConsolidationStatus(
     .eq("id", consolidationId);
   if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
 
-  // SDD-0156 · Slice D: al CERRAR el contenedor (consolidando → cerrado) la carga
-  // quedó consolidada → programa el aviso 'consolidated' para sus envíos.
-  //
-  // SDD-0311: y al ARRIBAR (→ arribado) sale 'received_ve', el aviso «tu carga
-  // llegó a Venezuela».
-  //
-  // 🔴 Por qué hacía falta: el 2026-07-19 se quitó el mail `shipment_arrived`
-  // de la transición de status del ENVÍO porque el arribo pasaba a ser canónico
-  // por `received_ve`. Pero `received_ve` sólo se disparaba desde
-  // `createReceiptVe`, y esa función NO TIENE LLAMADORES en todo el repo
-  // (medido 2026-08-26): el recibo de contenedor VE no se puede crear desde
-  // ninguna pantalla. Resultado: la regla sembrada por la migración 0331 estaba
-  // armada y esperando un disparador que no existía, y el cliente se quedaba
-  // sin el aviso que más espera — por las DOS vías a la vez.
-  //
-  // Este es el mismo hecho físico —el contenedor llegó— expresado con lo que el
-  // producto sí tiene vivo hoy. Mismo `trigger_event`, así que usa la regla ya
-  // sembrada sin migración nueva; y como `scheduleClientNotifications` es
-  // idempotente por índice único parcial, el día que `createReceiptVe` tenga
-  // puerta no se duplica el correo.
-  //
-  // Idempotente; best-effort (no rompe el cambio de estado).
-  const EVENTO_POR_ESTADO: Partial<Record<ContainerStatus, string>> = {
-    cerrado: "consolidated",
-    arribado: "received_ve",
-  };
-  const evento = EVENTO_POR_ESTADO[status];
+  const evento = EVENTO_DEL_CONTENEDOR[status];
   let avisados: number | undefined;
   if (evento) {
     const tenantId = await resolveTenant(supabase);
@@ -745,6 +815,34 @@ export async function linkConsolidation(
 // ── Asignación de carga suelta (guard advisory) ────────────────
 
 /**
+ * SDD-0531 · El nombre del cliente de una pieza, resuelto EN EL SERVIDOR.
+ *
+ * Al equipo de China (región cn, no admin) la carga suelta le llega sin nombre,
+ * así que el cajón no tiene qué prellenar y la pieza se guardaría sin cliente:
+ * en Venezuela el contenedor aparecería con filas vacías y el plan de carga sin
+ * dueño. Para ese usuario el nombre lo pone el servidor: el del embarque si la
+ * pieza viene de uno, o el de la ficha por su Shipping Mark (mismo principio que
+ * las recepciones de Yiwu, H-7). Nunca viaja al navegador.
+ */
+async function nombreDeClienteEnServidor(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  shipmentId: string | null,
+  markbox: string | null,
+): Promise<string | null> {
+  if (shipmentId) {
+    const { data } = await supabase
+      .from("shipments")
+      .select("client_name")
+      .eq("id", shipmentId)
+      .maybeSingle<{ client_name: string | null }>();
+    const delEmbarque = data?.client_name?.trim();
+    if (delEmbarque) return delEmbarque;
+  }
+  return resolveClientNameByMarkbox(supabase, tenantId, markbox);
+}
+
+/**
  * Asigna una pieza de carga suelta a un contenedor (loose_cargo →
  * consolidation_items). Guard de capacidad ADVISORY: si supera el CBM/kg del
  * tipo, igual asigna pero devuelve `warning` para que la UI lo muestre.
@@ -797,12 +895,23 @@ export async function assignLooseCargo(
   };
   const guard = evaluateCapacity(existing, incoming, consRow.container_type);
 
+  // Quien no puede ver nombres tampoco los escribe: lo que mande su navegador
+  // no cuenta (no tiene de dónde sacarlo) y el servidor lo resuelve.
+  const clientName = (await readCanSeeClientNames(supabase))
+    ? input!.clientName
+    : await nombreDeClienteEnServidor(
+        supabase,
+        tenantId,
+        input!.shipmentId,
+        input!.clientMarkbox,
+      );
+
   const { error } = await supabase.from("consolidation_items").insert({
     tenant_id: tenantId,
     consolidation_id: consolidationId,
     shipment_id: input!.shipmentId,
     client_markbox: input!.clientMarkbox,
-    client_name: input!.clientName,
+    client_name: clientName,
     supplier_name: input!.supplierName,
     cbm: input!.cbm,
     weight_kg: input!.weightKg,

@@ -3,10 +3,12 @@
  *
  * Server component que fetcha operarios del tenant + warehouses CN
  * (para el select del drawer Nuevo/Editar) y delega UI al cliente.
+ * SDD-0529: también los roles de cada región, que da la base, para el
+ * selector de «Editar».
  */
 
 import { createClient } from "@/lib/db/server";
-import { listOperarios } from "@/lib/studio/operario-queries";
+import { getOperarioRolesPorRegion, listOperarios } from "@/lib/studio/operario-queries";
 import { listWarehouses } from "@/lib/studio/warehouse-cn-queries";
 import { OperariosClient } from "./_components/OperariosClient";
 
@@ -14,9 +16,10 @@ export const metadata = { title: "Operarios" };
 
 export default async function OperariosPage() {
   const supabase = await createClient();
-  const [operarios, warehouses] = await Promise.all([
+  const [operarios, warehouses, rolesPorRegion] = await Promise.all([
     listOperarios(supabase),
     listWarehouses(supabase),
+    getOperarioRolesPorRegion(supabase),
   ]);
 
   return (
@@ -47,7 +50,11 @@ export default async function OperariosPage() {
         </p>
       </div>
 
-      <OperariosClient operarios={operarios} warehouses={warehouses} />
+      <OperariosClient
+        operarios={operarios}
+        warehouses={warehouses}
+        rolesPorRegion={rolesPorRegion}
+      />
     </div>
   );
 }

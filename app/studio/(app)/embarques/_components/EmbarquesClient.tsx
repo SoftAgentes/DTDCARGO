@@ -7,10 +7,14 @@
  * - Toolbar: search por client_name, MARKBOX, code, ruta
  * - Tabla acordeón agrupada por cliente
  * - Click en row hijo abre ShipmentDetailDrawer
+ * - SDD-0522: quien puede eliminar (admin) ve una casilla por fila, el motivo
+ *   de las bloqueadas, una barra con la selección y un ConfirmDialog R3 con
+ *   motivo obligatorio. La casilla vive FUERA del <button> de la fila: un
+ *   control interactivo dentro de otro no es HTML válido ni accesible.
  */
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   computeClientStats,
   groupShipmentsByClient,
@@ -37,6 +41,35 @@ import {
   type ConteosPorId,
   type FiltroAdjuntos,
 } from "@/lib/studio/documents/adjuntos";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import {
+  MAX_LOTE_BORRADO,
+  shipmentDeleteBlockReason,
+  shipmentDeleteWarningsSummary,
+  type InfoBorradoEmbarque,
+} from "@/lib/studio/borrado/reglas";
+import { deleteShipmentsAction } from "../actions";
+
+/**
+ * SDD-0522 · Qué sabe la pantalla para ofrecer el borrado. `undefined` = quien
+ * mira no puede eliminar: no se pinta nada. `no_disponible` = no se pudo leer
+ * qué bloquea cada embarque: se dice y no se ofrece borrar.
+ */
+export type EliminacionEmbarques =
+  | { estado: "lista"; info: Record<string, InfoBorradoEmbarque> }
+  | { estado: "no_disponible" };
+
+/** Lo que cuelga de la casilla de cada fila. */
+interface Seleccionable {
+  seleccion: Set<string>;
+  motivo: (id: string) => string | null;
+  onToggle: (id: string) => void;
+  onToggleGrupo: (ids: string[]) => void;
+}
+
+const BORRADO_SIN_CONFIRMAR =
+  "No se pudo confirmar el borrado. Recarga la lista para ver cómo quedó.";
 
 type Tab = "all" | "active" | "delivered" | "alerts";
 type ServiceFilter = ShipmentService | "all";
@@ -78,6 +111,7 @@ function formatDate(iso: string): string {
 export function EmbarquesClient({
   shipments,
   adjuntos,
+  eliminacion,
 }: {
   shipments: ShipmentListRow[];
   /**
@@ -87,7 +121,48 @@ export function EmbarquesClient({
    * todas las filas no sería cierto).
    */
   adjuntos: ConteosPorId<ConteoEmbarque> | undefined;
+  /** SDD-0522: ver `EliminacionEmbarques`. */
+  eliminacion?: EliminacionEmbarques;
 }) {
+  const [seleccion, setSeleccion] = useState<Set<string>>(() => new Set());
+
+  const seleccionable: Seleccionable | null =
+    eliminacion?.estado === "lista"
+      ? {
+          seleccion,
+          // La misma regla que decide el servidor: sin información, bloquea.
+          motivo: (id) => shipmentDeleteBlockReason(eliminacion.info[id]),
+          onToggle: (id) =>
+            setSeleccion((prev) => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
+              return next;
+            }),
+          onToggleGrupo: (ids) =>
+            setSeleccion((prev) => {
+              const next = new Set(prev);
+              const todos = ids.length > 0 && ids.every((id) => next.has(id));
+              for (const id of ids) {
+                if (todos) next.delete(id);
+                else next.add(id);
+              }
+              return next;
+            }),
+        }
+      : null;
+
+  // Lo elegido que sigue en la lista y se puede eliminar, por código.
+  const elegidos = useMemo(
+    () =>
+      eliminacion?.estado === "lista"
+        ? shipments
+            .filter((s) => seleccion.has(s.id) && shipmentDeleteBlockReason(eliminacion.info[s.id]) === null)
+            .sort((a, b) => a.code.localeCompare(b.code))
+        : [],
+    [shipments, seleccion, eliminacion],
+  );
+
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
   const [serviceFilter, setServiceFilter] = useState<ServiceFilter>("all");
@@ -381,6 +456,20 @@ export function EmbarquesClient({
         }
       `}</style>
 
+      {/* SDD-0522: sin saber qué bloquea cada embarque no se ofrece borrar. */}
+      {eliminacion?.estado === "no_disponible" && (
+        <p
+          role="status"
+          style={{
+            margin: "0 0 var(--s-3)",
+            font: "500 12.5px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          No se pudo comprobar qué embarques se pueden eliminar. Recarga la página.
+        </p>
+      )}
+
       {/* SDD-0507: si no se pudo contar, se dice; la columna no se pinta. */}
       {adjuntos === null && (
         <p
@@ -435,6 +524,7 @@ export function EmbarquesClient({
           toggleGroup={toggleGroup}
           onRowClick={(id) => setDrawerShipmentId(id)}
           adjuntos={adjuntos ?? null}
+          seleccionable={seleccionable}
         />
       )}
 
@@ -443,6 +533,197 @@ export function EmbarquesClient({
           shipment={selectedShipment}
           onClose={() => setDrawerShipmentId(null)}
         />
+      )}
+
+      {seleccionable && elegidos.length > 0 && (
+        <PanelDeBorrado
+          elegidos={elegidos}
+          eliminacion={eliminacion}
+          onCancelar={() => setSeleccion(new Set())}
+          onBorrado={() => setSeleccion(new Set())}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * SDD-0522 · Barra + diálogo + aviso. Sólo se monta con selección, así quien no
+ * puede borrar no depende del ToastProvider ni de nada de esto. El diálogo va
+ * como HERMANO de la barra: la barra tiene transform y backdrop-filter, que la
+ * vuelven el contenedor de cualquier hijo `position: fixed`.
+ */
+function PanelDeBorrado({
+  elegidos,
+  eliminacion,
+  onCancelar,
+  onBorrado,
+}: {
+  elegidos: ShipmentListRow[];
+  eliminacion: EliminacionEmbarques | undefined;
+  onCancelar: () => void;
+  onBorrado: () => void;
+}) {
+  const toast = useToast();
+  const [confirmar, setConfirmar] = useState(false);
+  const [errorBorrado, setErrorBorrado] = useState<string | undefined>(undefined);
+  const [borrando, startBorrado] = useTransition();
+
+  const cerrarConfirmacion = () => {
+    if (borrando) return;
+    setConfirmar(false);
+    setErrorBorrado(undefined);
+  };
+
+  const confirmarBorrado = (motivo: string) => {
+    const ids = elegidos.map((s) => s.id);
+    // Limpiar antes de reintentar: el diálogo reabre su candado cuando cambia
+    // `error`, también si la acción repite el mismo mensaje.
+    setErrorBorrado(undefined);
+    startBorrado(async () => {
+      try {
+        const resultado = await deleteShipmentsAction(ids, motivo);
+        if (resultado.ok) {
+          setConfirmar(false);
+          toast.show({
+            eventKey: "shipments:deleted",
+            tone: "success",
+            message:
+              resultado.deleted === 1
+                ? `Embarque ${resultado.codes[0] ?? ""} eliminado. Ya no aparece en Embarques, Tracking ni el Portal.`
+                : `${resultado.deleted} embarques eliminados. Ya no aparecen en Embarques, Tracking ni el Portal.`,
+            priority: "normal",
+            scope: "module",
+            dedupeKey: `shipments:deleted:${resultado.codes.join(",")}`,
+          });
+          onBorrado();
+        } else {
+          setErrorBorrado(resultado.error);
+        }
+      } catch {
+        setErrorBorrado(BORRADO_SIN_CONFIRMAR);
+      }
+    });
+  };
+
+  return (
+    <>
+      {/* Colchón: la barra es fija y taparía la última fila. */}
+      <div aria-hidden style={{ height: 96 }} />
+      <BarraDeSeleccion
+        cantidad={elegidos.length}
+        pending={borrando}
+        onEliminar={() => {
+          setErrorBorrado(undefined);
+          setConfirmar(true);
+        }}
+        onCancelar={onCancelar}
+      />
+      <ConfirmDialog
+        open={confirmar}
+        danger
+        reason
+        reasonRequired
+        reasonLabel="Motivo (obligatorio, sin datos personales)"
+        reasonPlaceholder="p. ej. Embarques de prueba"
+        title={elegidos.length === 1 ? "Eliminar 1 embarque" : `Eliminar ${elegidos.length} embarques`}
+        message={mensajeConfirmacion(elegidos, eliminacion)}
+        confirmLabel={elegidos.length === 1 ? "Eliminar embarque" : "Eliminar embarques"}
+        pending={borrando}
+        error={errorBorrado}
+        onCancel={cerrarConfirmacion}
+        onConfirm={confirmarBorrado}
+      />
+    </>
+  );
+}
+
+/** El texto del diálogo: qué se elimina, qué pasa y qué se conserva. */
+function mensajeConfirmacion(
+  elegidos: ShipmentListRow[],
+  eliminacion: EliminacionEmbarques | undefined,
+): string {
+  const codigos = elegidos.map((s) => s.code).join(", ");
+  const avisos =
+    eliminacion?.estado === "lista"
+      ? shipmentDeleteWarningsSummary(elegidos.map((s) => eliminacion.info[s.id]))
+      : null;
+  return [
+    `Vas a eliminar ${elegidos.length === 1 ? "el embarque" : `${elegidos.length} embarques`}: ${codigos}.`,
+    "Desaparecen de Embarques, Tracking, el Portal del cliente y el calendario, y se cancelan sus avisos pendientes.",
+    "Sus códigos no se pueden volver a usar. Solo se recuperan desde la base de datos.",
+    avisos,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+// ── Barra de selección (SDD-0522) ──────────────────────────────
+// Mismo panel que la barra masiva del Almacén CN: aparece sólo con selección.
+
+function BarraDeSeleccion({
+  cantidad,
+  pending,
+  onEliminar,
+  onCancelar,
+}: {
+  cantidad: number;
+  pending: boolean;
+  onEliminar: () => void;
+  onCancelar: () => void;
+}) {
+  const excede = cantidad > MAX_LOTE_BORRADO;
+  return (
+    <div
+      role="region"
+      aria-label={`Selección de embarques · ${cantidad}`}
+      style={{
+        position: "fixed",
+        bottom: 16,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 70,
+        maxWidth: "calc(100vw - 32px)",
+        background: "var(--glass-bg)",
+        backdropFilter: "var(--glass-blur)",
+        WebkitBackdropFilter: "var(--glass-blur)",
+        border: "1px solid var(--glass-border)",
+        color: "var(--glass-ink)",
+        borderRadius: "var(--r-md)",
+        boxShadow: "var(--glass-shadow), var(--glass-hi)",
+        padding: "10px 14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--s-2)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <span style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--glass-ink)", whiteSpace: "nowrap" }}>
+          {cantidad === 1 ? "1 embarque seleccionado" : `${cantidad} embarques seleccionados`}
+        </span>
+        <span aria-hidden style={{ width: 1, height: 20, background: "var(--glass-border)" }} />
+        <button
+          type="button"
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          onClick={onCancelar}
+          disabled={pending}
+        >
+          Cancelar selección
+        </button>
+        <button
+          type="button"
+          className="studio-btn studio-btn-danger studio-btn-sm"
+          onClick={onEliminar}
+          disabled={pending || excede}
+          aria-describedby={excede ? "emb-borrado-excede" : undefined}
+        >
+          Eliminar…
+        </button>
+      </div>
+      {excede && (
+        <p id="emb-borrado-excede" role="status" style={{ margin: 0, font: "600 11.5px/1.3 var(--f-sans)" }}>
+          Elige hasta {MAX_LOTE_BORRADO} por vez: quita {cantidad - MAX_LOTE_BORRADO} de la selección.
+        </p>
       )}
     </div>
   );
@@ -456,18 +737,25 @@ function GroupedTable({
   toggleGroup,
   onRowClick,
   adjuntos,
+  seleccionable,
 }: {
   groups: ReturnType<typeof groupShipmentsByClient>;
   expanded: Set<string>;
   toggleGroup: (key: string) => void;
   onRowClick: (shipmentId: string) => void;
   adjuntos: ConteosPorId<ConteoEmbarque>;
+  /** SDD-0522: `null` = sin casillas (quien mira no puede eliminar). */
+  seleccionable: Seleccionable | null;
 }) {
   // SDD-0507: «Adjuntos» va antes de «Creado», sólo si se pudo contar.
   const columnas =
     adjuntos === null
       ? "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px"
       : "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 96px 90px";
+  // SDD-0522: la fila es [casilla | botón con el resto]. El botón usa las
+  // mismas columnas sin la primera, así el encabezado y las filas no se
+  // desalinean (24px + gap + resto, igual que el encabezado).
+  const columnasDatos = columnas.replace(/^24px /, "");
   const anchoMinimo = adjuntos === null ? 824 : 930;
   return (
     <div
@@ -620,7 +908,17 @@ function GroupedTable({
                     minWidth: anchoMinimo,
                   }}
                 >
-                  <span></span>
+                  <span style={{ display: "flex", alignItems: "center" }}>
+                    {seleccionable && (
+                      <CasillaDeGrupo
+                        clientName={group.clientName}
+                        ids={group.shipments
+                          .filter((s) => seleccionable.motivo(s.id) === null)
+                          .map((s) => s.id)}
+                        seleccionable={seleccionable}
+                      />
+                    )}
+                  </span>
                   <span>Código</span>
                   <span>Ruta</span>
                   <span>Servicio</span>
@@ -633,34 +931,69 @@ function GroupedTable({
                 {group.shipments.map((s) => {
                   const pct = computeProgress(s.status);
                   const svc = SERVICE_LABELS[s.shipment_service];
+                  const motivo = seleccionable ? seleccionable.motivo(s.id) : null;
+                  const elegido = seleccionable?.seleccion.has(s.id) === true && motivo === null;
+                  const fondo = elegido ? "var(--wine-tint)" : "transparent";
+                  const motivoId = `emb-motivo-${s.id}`;
                   return (
-                    <button
+                    <div
                       key={s.id}
-                      type="button"
-                      onClick={() => onRowClick(s.id)}
+                      data-row-id={s.code}
                       style={{
-                        width: "100%",
                         display: "grid",
-                        gridTemplateColumns: columnas,
-                        gap: 10,
+                        gridTemplateColumns: "24px minmax(0, 1fr)",
+                        columnGap: 10,
                         padding: "var(--s-3) var(--s-5)",
-                        background: "transparent",
-                        border: 0,
+                        background: fondo,
                         borderTop: "1px solid var(--border)",
                         alignItems: "center",
-                        textAlign: "left",
-                        cursor: "pointer",
                         transition: "background var(--dur-fast) var(--ease)",
                         minWidth: anchoMinimo,
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "var(--bg-elevated)";
+                        if (!elegido) e.currentTarget.style.background = "var(--bg-elevated)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.background = fondo;
                       }}
                     >
-                      <span></span>
+                      <span style={{ display: "flex", alignItems: "center" }}>
+                        {seleccionable && (
+                          <input
+                            type="checkbox"
+                            aria-label={`Seleccionar ${s.code}`}
+                            checked={elegido}
+                            disabled={motivo !== null}
+                            aria-describedby={motivo !== null ? motivoId : undefined}
+                            onChange={() => seleccionable.onToggle(s.id)}
+                            style={{
+                              accentColor: "var(--wine)",
+                              cursor: motivo !== null ? "not-allowed" : "pointer",
+                              width: 16,
+                              height: 16,
+                              margin: 0,
+                            }}
+                          />
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onRowClick(s.id)}
+                        style={{
+                          width: "100%",
+                          display: "grid",
+                          gridTemplateColumns: columnasDatos,
+                          gap: 10,
+                          padding: 0,
+                          background: "transparent",
+                          border: 0,
+                          alignItems: "center",
+                          textAlign: "left",
+                          cursor: "pointer",
+                          color: "inherit",
+                          font: "inherit",
+                        }}
+                      >
                       <span
                         style={{
                           font: "700 12px/1 var(--f-mono)",
@@ -736,7 +1069,23 @@ function GroupedTable({
                       >
                         {formatDate(s.created_at)}
                       </span>
-                    </button>
+                      </button>
+                      {/* SDD-0522 · BTN-01 §6: el motivo de una casilla
+                          deshabilitada se ve, no depende de enfocarla. */}
+                      {motivo !== null && (
+                        <p
+                          id={motivoId}
+                          style={{
+                            gridColumn: "2 / -1",
+                            margin: "var(--s-1) 0 0",
+                            font: "500 11.5px/1.4 var(--f-sans)",
+                            color: "var(--ink-soft)",
+                          }}
+                        >
+                          {motivo}
+                        </p>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -745,6 +1094,42 @@ function GroupedTable({
         );
       })}
     </div>
+  );
+}
+
+/**
+ * SDD-0522 · Elige o suelta, de una vez, los embarques del cliente que se
+ * pueden eliminar. Los bloqueados no entran nunca.
+ */
+function CasillaDeGrupo({
+  clientName,
+  ids,
+  seleccionable,
+}: {
+  clientName: string;
+  ids: string[];
+  seleccionable: Seleccionable;
+}) {
+  const todos = ids.length > 0 && ids.every((id) => seleccionable.seleccion.has(id));
+  const alguno = ids.some((id) => seleccionable.seleccion.has(id));
+  return (
+    <input
+      type="checkbox"
+      aria-label={`Seleccionar los embarques de ${clientName} que se pueden eliminar`}
+      checked={todos}
+      disabled={ids.length === 0}
+      ref={(el) => {
+        if (el) el.indeterminate = alguno && !todos;
+      }}
+      onChange={() => seleccionable.onToggleGrupo(ids)}
+      style={{
+        accentColor: "var(--wine)",
+        cursor: ids.length === 0 ? "not-allowed" : "pointer",
+        width: 16,
+        height: 16,
+        margin: 0,
+      }}
+    />
   );
 }
 
