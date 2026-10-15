@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 523 specs)
+### Índice de specs (generado · 524 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -560,7 +560,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0534 | Siete acciones R3 del Studio dejan de fallar siempre: correla… | in-progress | interno |
 | 0535 | Kommo: el cliente que vuelve a escribir llega a Recontacto, c… | in-progress | interno |
 | 0536 | Contrato 0480: el último evento se elige por guardado, no por… | in-progress | interno |
+| 0537 | Tarifario de transportistas editable por ciudad, con rutas y … | in-progress | interno |
 | 0538 | Contrato 0475: el bloque 5 lee el último restablecimiento por… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0537 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

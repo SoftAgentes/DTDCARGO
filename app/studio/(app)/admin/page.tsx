@@ -378,7 +378,8 @@ export default async function AdminPage({
   const tabParam = Array.isArray(sp.tab) ? sp.tab[0] : sp.tab;
   const activeId: string = isSection(sectionParam) ? sectionParam : "company";
   const active = SECTIONS.find((s) => s.id === activeId) ?? SECTIONS[0];
-  const calcInitialTab = tabParam === "ciudades" ? "ciudades" : "parametros";
+  const calcInitialTab =
+    tabParam === "ciudades" || tabParam === "transportistas" ? tabParam : "parametros";
   const auditFilters = parseAuditFilters(sp);
 
   // Solo la sección "company" tiene implementación real (SDD-0120): fetch acá
@@ -690,7 +691,7 @@ function Content({
   importData: { calendar: CalendarEvent[]; company: CompanyData } | null;
   legalData: LegalSectionData | null;
   calcData: { settings: CalculatorSettings | null; cities: CalculatorCity[]; carriers: FreightCarrier[]; tariffs: CarrierTariff[] } | null;
-  calcInitialTab: "parametros" | "ciudades";
+  calcInitialTab: "parametros" | "ciudades" | "transportistas";
   addonsData: PrealertaAddon[] | null;
   containerTypes: ContainerType[] | null;
   inviteCandidates: PortalInviteCandidate[] | null;
