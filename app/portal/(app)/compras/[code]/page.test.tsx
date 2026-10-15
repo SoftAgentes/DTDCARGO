@@ -96,6 +96,14 @@ const DE_SIEMPRE = {
  * otro lugar también cuenta.
  */
 const PROMESA = /te avisamos|te notificamos|te avisaremos|verás acá cada recepción/i;
+/**
+ * SDD-0521 · la única excepción a PROMESA: la frase que Sam pidió para el aviso
+ * de la 0514 («sí, agrega "Te avisaremos apenas esté activo"»). Avisa que la
+ * herramienta se activó, no que la carga llegó a bodega. Se quita UNA vez y
+ * sólo si está dentro del aviso: en cualquier otro lugar, o repetida, la
+ * pantalla sigue fallando.
+ */
+const AVISAREMOS = "Te avisaremos apenas esté activo.";
 
 async function abrir() {
   const ui = await PortalPurchaseDetailPage({ params: Promise.resolve({ code: "PA-0001" }) });
@@ -108,6 +116,19 @@ function aviso(): HTMLElement | null {
       .queryAllByRole("status")
       .find((el) => el.textContent?.includes(TITULO)) ?? null
   );
+}
+
+/**
+ * SDD-0521 · el texto de toda la pantalla, con la frase aprobada quitada del
+ * aviso y de ningún otro lado.
+ */
+function textoSinLaFraseDelAviso(): string {
+  const total = document.body.textContent ?? "";
+  const caja = aviso();
+  if (!caja) return total;
+  const delAviso = caja.textContent ?? "";
+  expect(delAviso).toContain(AVISAREMOS);
+  return total.replace(delAviso, delAviso.replace(AVISAREMOS, ""));
 }
 
 beforeEach(() => {
@@ -127,6 +148,7 @@ describe("/portal/compras/[code] con el aviso de seguimiento (SDD-0514)", () => 
     await abrir();
     const caja = aviso();
     expect(caja).not.toBeNull();
+    expect(caja!.textContent).toContain(AVISAREMOS);
     // SDD-0516 · con el interruptor prendido, el estado de llegada lleva el
     // título neutro; la posición del aviso es la misma.
     const llegada = screen.getByText(NEUTRO.titulo);
@@ -182,7 +204,7 @@ describe("/portal/compras/[code] con el aviso de seguimiento (SDD-0514)", () => 
 describe("/portal/compras/[code] sin promesas de aviso mientras el seguimiento está en construcción (SDD-0516)", () => {
   it("prendido: no promete avisos ni recepciones automáticas y dice la frase neutra", async () => {
     await abrir();
-    expect(document.body.textContent).not.toMatch(PROMESA);
+    expect(textoSinLaFraseDelAviso()).not.toMatch(PROMESA);
     expect(screen.queryByText(DE_SIEMPRE.titulo)).toBeNull();
     expect(screen.queryByText(DE_SIEMPRE.detalle)).toBeNull();
     expect(screen.queryByText(DE_SIEMPRE.recepcion)).toBeNull();

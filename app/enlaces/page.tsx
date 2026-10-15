@@ -7,6 +7,7 @@ import {
   buildWhatsAppLink,
 } from "@/lib/design-tokens";
 import { jetbrainsMono } from "@/lib/fonts";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 import { MapsRow } from "./MapsRow";
 
 /**
@@ -21,23 +22,35 @@ import { MapsRow } from "./MapsRow";
  *  · WhatsApp → el mensaje pre-cargado termina con "(Vía: …/enlaces · <origen>)".
  *  · Web → parámetros UTM (utm_source=instagram&utm_medium=bio…) en la URL.
  *
- * Frontera pública: NO importa @/lib/studio ni Supabase — solo tokens de marca.
+ * Frontera pública: NO importa @/lib/studio ni Supabase — solo tokens de marca
+ * y el interruptor del seguimiento (`lib/portal/tracking-en-construccion`, un
+ * módulo sin imports; SDD-0521).
  */
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
+/**
+ * SDD-0521 · mientras el seguimiento esté en construcción (SDD-0514), ni la
+ * descripción ni la tarjeta prometen rastreo. Con el interruptor apagado
+ * vuelven los textos de siempre.
+ */
+const RESUMEN = TRACKING_EN_CONSTRUCCION
+  ? "Cotiza por WhatsApp, calcula tu envío y entra a tu portal."
+  : "Cotiza por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal.";
+const DESCRIPCION = TRACKING_EN_CONSTRUCCION
+  ? "Todos los enlaces de DTD Cargo en un solo lugar: cotiza por WhatsApp, calcula tu envío y entra a tu portal. China → Venezuela, con Confianza."
+  : "Todos los enlaces de DTD Cargo en un solo lugar: cotiza por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal. China → Venezuela, con Confianza.";
+
 export const metadata: Metadata = {
   title: "Enlaces",
-  description:
-    "Todos los enlaces de DTD Cargo en un solo lugar: cotiza por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal. China → Venezuela, con Confianza.",
+  description: DESCRIPCION,
   alternates: { canonical: "/enlaces" },
   openGraph: {
     type: "website",
     url: `${SITE_URL}/enlaces`,
     siteName: "DTD Cargo",
     title: "DTD Cargo · Con Confianza, de China a tu puerta",
-    description:
-      "Cotiza por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal.",
+    description: RESUMEN,
     images: [
       {
         url: "/brand/og-enlaces.png",
@@ -50,8 +63,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "DTD Cargo · Con Confianza, de China a tu puerta",
-    description:
-      "Cotiza por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal.",
+    description: RESUMEN,
     images: ["/brand/og-enlaces.png"],
   },
 };
@@ -205,8 +217,13 @@ const LINKS: LinkRow[] = [
   },
   {
     icon: "radar",
-    label: "Rastrear mi embarque",
-    sub: "Sigue tu carga en tiempo real",
+    // SDD-0521 · con el seguimiento en construcción, la tarjeta dice lo mismo
+    // que el aviso del Portal en vez de prometer «tiempo real». Destino y
+    // origen de la analítica no cambian.
+    label: TRACKING_EN_CONSTRUCCION ? "Seguimiento en construcción" : "Rastrear mi embarque",
+    sub: TRACKING_EN_CONSTRUCCION
+      ? "Te avisaremos apenas esté activo"
+      : "Sigue tu carga en tiempo real",
     // Fase 6: el rastreo público se retiró → entra al portal.
     href: webLink("/entrar", "rastreo"),
   },

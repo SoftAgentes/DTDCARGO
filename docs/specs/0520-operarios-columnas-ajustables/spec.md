@@ -1,10 +1,10 @@
 ---
 sdd: "0520"
 title: "Operarios: columnas ajustables y botones compactos"
-status: in-progress
+status: done
 author: "Sam (founder) + Claude Opus 5.5 (Worker)"
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-15
 supersedes: null
 superseded_by: null
 related: ["0028", "0513", "0515"]
@@ -218,3 +218,16 @@ No aplica: no se capturan, mueven ni borran datos personales. Lo guardado en
 Ver el handoff: alternativa de puntero sin arrastre, registro CMP-01, mono del
 Studio sin JetBrains Mono, edición de operarios de Venezuela sin warehouse y
 tabla sin semántica de tabla.
+
+## Cierre (2026-10-15)
+
+- **Merge:** PR #219, merge `530a3158` a las 02:50:11Z del 2026-10-15, con `--match-head-commit 0c23ad38` y el OK de Sam («ok, fusiona la #219 cuando esté en verde»).
+- **Validación:** CI «Calidad continua» PASÓ sobre la cabeza fusionada. `pnpm verify` local sobre `71c3cceb` FALLÓ en `test` (3 de 9664), con archivos rojos idénticos a main que pasan aislados; la carrera de foco de `PinViewDialog.test.tsx` se trata en la PR #220. Los demás pasos PASARON, incluido el build.
+- **Deploy:** «Deployment has completed» a las 02:51:58Z.
+- **Smoke en producción: PASÓ.** Sam, literal: «ya probé las columnas, funcionan».
+- Fuera de alcance que sigue abierto, ya anotado en el handoff:
+  - ajustar el ancho sin arrastrar (A11Y-01);
+  - la ficha de catálogo de la primitiva;
+  - JetBrains Mono en el Studio;
+  - editar operarios de Venezuela.
+- Estado de la tarea: **integrada**.

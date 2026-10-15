@@ -108,10 +108,35 @@ async function checkSupabase(): Promise<IntegrationHealth> {
 }
 
 // ─── Resend (mail) ────────────────────────────────────────────
+
+/**
+ * `name` del cuerpo de error de Resend (`{ statusCode, message, name }`), sin
+ * confiar en su forma. Sólo se compara: nunca se copia al resultado.
+ */
+function resendErrorName(body: unknown): string | null {
+  if (typeof body !== "object" || body === null) return null;
+  const name = (body as { name?: unknown }).name;
+  return typeof name === "string" ? name : null;
+}
+
+/**
+ * 🔴 **Por qué se lee el cuerpo y no sólo el código (SDD-0527).**
+ *
+ * `GET /domains` responde 401 a dos llaves muy distintas:
+ *   - «Sending access» (la del runbook): `name: "restricted_api_key"`. La llave
+ *     existe y envía; sólo no puede leer otros recursos.
+ *   - Borrada o inválida: «API key is invalid». No envía nada.
+ * Antes cualquier 401/403 salía verde, y /studio/debug no podía decir si la
+ * llave de un entorno había muerto (el 2026-10-15 se borraron dos por error).
+ * Ahora sólo `restricted_api_key` cuenta como sana sin acceso completo.
+ *
+ * La llave va únicamente en el header: el resultado no copia texto del cuerpo
+ * de Resend y aquí no se registra nada.
+ */
 async function checkResend(): Promise<IntegrationHealth> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return skipped();
-  // GET /domains lista dominios verificados · 200 con key válida
+  // GET /domains lista dominios verificados · 200 sólo con acceso completo
   const r = await timedFetch("https://api.resend.com/domains", {
     headers: { Authorization: `Bearer ${key}` },
   });
@@ -119,13 +144,19 @@ async function checkResend(): Promise<IntegrationHealth> {
     const data = r.body as { data?: Array<{ name: string; status: string }> } | undefined;
     const domains = data?.data ?? [];
     const verified = domains.filter((d) => d.status === "verified").length;
-    return ok(r.latencyMs, `${verified} dominio(s) verificado(s)`);
+    return ok(r.latencyMs, `acceso completo · ${verified} dominio(s) verificado(s)`);
   }
-  // Key con scope "Sending access" (lo recomendado por el runbook) NO puede
-  // leer /domains → 401/403. NO es key inválida: el envío funciona igual.
-  // Reportamos ok con nota en vez de un rojo engañoso.
+  // Se decide por el `name`, que prueba que la llave existe, y no por el código.
+  // El correo entrante de Conversaciones baja el contenido con esta misma llave
+  // (`GET /emails/receiving/:id`), y una llave de sólo envío no puede.
+  if (resendErrorName(r.body) === "restricted_api_key") {
+    return ok(
+      r.latencyMs,
+      "llave solo de envío · el correo entrante de Conversaciones no funcionará",
+    );
+  }
   if (r.status === 401 || r.status === 403) {
-    return ok(r.latencyMs, "key Sending-scoped · envío activo (/domains no legible)");
+    return err(r.latencyMs, `llave inválida o borrada · HTTP ${r.status}`);
   }
   return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
 }

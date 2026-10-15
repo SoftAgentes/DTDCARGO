@@ -1,10 +1,10 @@
 ---
 sdd: "0517"
 title: "Registro público: sin promesa de aviso de bodega mientras el seguimiento está en construcción"
-status: in-progress
+status: done
 author: "Claude"
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-15
 supersedes: null
 superseded_by: null
 related: ["0514","0516"]
@@ -156,3 +156,10 @@ Detalle en el handoff `.agents/handoffs/0517-registro-sin-promesa-bodega.md`.
   del equipo, no del sistema; no se verificó.
 - Hay promesas parecidas fuera del registro, en el sitio público y en material de
   marketing. Quedan anotadas en el handoff como fuera de alcance.
+
+## Cierre (2026-10-15)
+
+- **Merge:** PR #215, merge `a5e40141` a las 22:38:44Z del 2026-10-14, con `--match-head-commit 7b6618a2` y el OK de Sam («ok, fusiona la #215, #216 y #217»).
+- Deploy de las tres PR (#215, #216 y #217): «Deployment has completed», el último a las 23:07Z del 2026-10-14.
+- **Smoke en producción de `/registro`: PASÓ.** Sam, literal: «ya probé /registro y /servicios, funcionan».
+- Desde la SDD-0521, el mismo interruptor (`TRACKING_EN_CONSTRUCCION`) gobierna también los textos públicos de rastreo. Estado de la tarea: **integrada**.
