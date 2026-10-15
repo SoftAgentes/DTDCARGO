@@ -136,9 +136,29 @@ tarea no hay rojo. **No es WhatsApp:** los mensajes siguen entrando todos los d�
 `leads[add]` que nunca llega. Lo arregla SDD-0535 desde el webhook: perdido →
 Recontacto + tarea vencida; ganado → solo la tarea.
 
-Lo que queda en manos de Sam: encender los agentes (y los créditos para
-sostenerlos) si quiere el rojo en **todos** los mensajes, no solo en los que
-vuelven.
+### 🟢 Mismo día · Los 4 agentes encendidos otra vez (13:19-13:30 UTC)
+
+Con el OK nominal de Sam («a los 4 agentes ponles canal WhatsApp con las etapas de
+agosto … guarda y enciéndelos»). ⭐ **Apagados, los agentes habían perdido el canal
+y las etapas** (Ajustes → «Lanzar agente de IA» vacío): encenderlos así no habría
+hecho nada. Se configuró cada uno, se guardó y se activó:
+
+| Agente | Canal | Etapas |
+|---|---|---|
+| Asistente de ventas (`326244`) | WhatsApp | Leads Entrantes · Contacto inicial · Ventas Perdidos |
+| Cotizador (`350054`) | WhatsApp | Estimado enviado · Negociación |
+| Reenganche (`350032`) | WhatsApp | Recontacto |
+| Atención al cliente de comercio minorista (`28571`, el de post-venta) | WhatsApp | Logrado con éxito |
+
+Verificado recargando: los 4 activos, con su disparador «En un mensaje recibido →
+Activar agente de IA» de vuelta en el embudo y la acción «Agregar tarea · Ahora ·
+Responder al cliente» en los 4. **Prueba real:** un mensaje a las 13:33:54 UTC; el
+robot respondió y creó 3 tareas «Responder al cliente» que vencen a los 5 minutos.
+
+⚠️ **Créditos:** 48 de 2.250 usados a las 13:35 UTC. Al ritmo de agosto (15.000 a
+18.000 por mes) alcanzan para unos 4 días (inferido, no medido). Cuando se acaben,
+los agentes callan y el rojo se vuelve a apagar: lo sostiene el paquete
+Crecimiento (US$99), hoy caducado. Los 4 Salesbots «Ping 23 h» siguen apagados.
 
 ## 🔴 Por qué no llegan las alertas rojas
 

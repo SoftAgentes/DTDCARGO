@@ -101,9 +101,12 @@ Cifras y fuentes en la spec, sección «Contexto».
 
 ## FUERA DE ALCANCE DETECTADO
 
-- **Rojo en todos los mensajes:** depende de encender los 4 agentes de IA y de
-  tener créditos (2.250 del plan alcanzan para pocos días; el paquete de US$99 está
-  caducado). Decisión y costo de Sam.
+- **Rojo en todos los mensajes:** ~~depende de encender los 4 agentes~~ **hecho el
+  2026-10-15, 13:19-13:30 UTC**, con OK nominal de Sam: canal WhatsApp y las etapas
+  de agosto en los 4 (detalle en `docs/marketing/kommo-estado-y-pendientes.md`).
+  Prueba real a las 13:33:54 UTC: el robot respondió y creó la tarea. Queda la
+  plata: 2.250 créditos del plan alcanzan para unos 4 días (inferido); el paquete
+  de US$99 sigue caducado.
 - **Salesbots «Ping 23 h» apagados:** el embudo conserva sus 4 disparadores con el
   aviso rojo de Kommo. Si no se van a usar, conviene quitar los disparadores; si
   sí, encender los bots.
