@@ -64,7 +64,7 @@ describe("SDD-0349 · CI de calidad sin secretos", () => {
     expect(workflow).not.toMatch(/run-sql-tests|check-schema-rebuild|test:e2e/i);
     expect(workflow).not.toMatch(/migrations-applied|supabase|vercel|deploy/i);
     expect(workflow).toMatch(/^\s+runs-on: ubuntu-24\.04\s*$/m);
-    expect(workflow).toMatch(/^\s+timeout-minutes: 30\s*$/m);
+    expect(workflow).toMatch(/^\s+timeout-minutes: 45\s*$/m);
     expect(workflow).toMatch(/^\s+cancel-in-progress: true\s*$/m);
   });
 

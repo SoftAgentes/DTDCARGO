@@ -24,6 +24,12 @@
  * TEXTO: las copias verbatim del contrato siguen iguales a sus archivos; 0480
  * reescribe admin_update_operario desde su última definición (0351) sin perder
  * más líneas que las que cambia a propósito.
+ *
+ * DESEMPATE (SDD-0536): en PGlite clock_timestamp() no tiene microsegundos, así
+ * que dos guardados seguidos del mismo operario pueden dejar dos eventos con la
+ * misma hora. last_event elige por xmin; con los guardados del bloque 8 a la
+ * misma hora el contrato sigue verde, y con el orden por hora cae donde cayó el
+ * CI de la PR #239.
  */
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -564,6 +570,50 @@ describe("SDD-0529 · 0480 (PGlite)", () => {
       expect(result.error).toBe(m.fails);
     }, SLOW);
   }
+});
+
+describe("SDD-0536 · last_event elige el último guardado aunque la hora empate", () => {
+  const CONTRACT_NAME = "0480_operarios_editar_por_region.test.sql";
+  // La disposición infeliz, sin esperar a que el reloj la arme: desde el bloque 8
+  // todo evento nace con la misma hora. Los dos guardados de cn-viejo empatan y el
+  // viejo está primero en la tabla, como en el CI.
+  const MODOS = "-- 8. Los modos de la app";
+  const MISMA_HORA =
+    "create function pg_temp.misma_hora() returns trigger language plpgsql as $x$\n" +
+    "begin new.occurred_at := '2100-01-01 00:00:00+00'; return new; end;\n" +
+    "$x$;\n" +
+    "create trigger misma_hora before insert on public.entity_audit_log\n" +
+    "  for each row execute function pg_temp.misma_hora();\n";
+  const POR_XMIN = "  order by e.xmin::text::bigint desc limit 1\n";
+  const POR_HORA = "  order by e.occurred_at desc limit 1\n";
+  const empatado = (text: string) => once(text, MODOS, MISMA_HORA + MODOS);
+
+  it("con los guardados del bloque 8 a la misma hora, el contrato sigue verde", async () => {
+    const result = await contract({ replace: { [CONTRACT_NAME]: empatado(FILE_CONTRACT) } });
+    expect(result.error).toBeNull();
+    expect(result.green).toMatch(/^TEST 0480 GREEN: \d+ aserciones$/);
+  }, SLOW);
+
+  it("control rojo: ordenando por hora, cae donde cayó el CI (run 38771102511)", async () => {
+    const result = await contract({ replace: { [CONTRACT_NAME]: empatado(once(FILE_CONTRACT, POR_XMIN, POR_HORA)) } });
+    expect(result.error).toBe("TEST 0480: le da el modo del rol nuevo");
+  }, SLOW);
+
+  it("control rojo de la premisa: dos ediciones en la misma subtransacción hacen caer el bloque 12", async () => {
+    // Sin run_as en medio, los dos eventos nacen con el xid de la transacción.
+    const PREMISA = "-- 12. La premisa de last_event";
+    const mismoXmin =
+      "do $mismo_xmin$\nbegin\n" +
+      "  perform set_config('request.jwt.claim.sub', pg_temp.fixture_id('operations-A')::text, true);\n" +
+      "  execute 'set local role authenticated';\n" +
+      "  perform public.admin_update_operario(pg_temp.fixture_id('ve-quieto'), 'Quieto Uno', null, 'camionero', null);\n" +
+      "  perform public.admin_update_operario(pg_temp.fixture_id('ve-quieto'), 'Quieto Dos', null, 'camionero', null);\n" +
+      "  reset role;\n" +
+      "end;\n$mismo_xmin$;\n";
+    const result = await contract({ replace: { [CONTRACT_NAME]: once(FILE_CONTRACT, PREMISA, mismoXmin + PREMISA) } });
+    expect(result.error).toBe(
+      "TEST 0480: cada evento de edición nació en su propio guardado (xmin distinto): last_event no depende de la hora");
+  }, SLOW);
 });
 
 // ─── Propiedad: la base decide igual que la app ──────────────────────────────
