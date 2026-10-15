@@ -544,7 +544,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0518 | Google Analytics y la etiqueta de Ads cargan aunque NEXT_PUBL… | done | interno |
 | 0519 | Servicios y marketing: sin promesa de aviso de bodega mientra… | done | interno |
 | 0520 | Operarios: columnas ajustables y botones compactos | done | interno |
-| 0521 | Tracking en construcción: «Te avisaremos apenas esté activo» … | in-progress | interno |
+| 0521 | Tracking en construcción: «Te avisaremos apenas esté activo» … | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

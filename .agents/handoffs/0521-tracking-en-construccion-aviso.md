@@ -197,3 +197,21 @@ estar fuera del encargo.
 - **Sesiones consumidoras:** ninguna.
 - **Ownership:** se libera el claim al terminar la escritura y la publicación.
   No se borran ni el worktree ni la rama.
+
+## CIERRE DE INTEGRACIÓN (Director, 2026-10-15)
+
+- **Merge:** PR #221, merge `1b19ba5c` a las 04:19:11Z, con `--match-head-commit 7fceaa18`, con OK de Sam («ok, fusiona la #221 cuando esté en verde»). Fue fuera de la ventana del corte: eran las 00:15 en Caracas del jueves 15, y el corte es esa noche.
+- **Validación:** el CI «Calidad continua» PASÓ sobre la cabeza fusionada, con la suite completa y el build. El `pnpm verify` local quedó NO EJECUTADO, porque no había turno de corrida pesada.
+- **Deploy:** «Deployment has completed» a las 04:20:54Z.
+- **Comprobado por el Director en producción** (curl del HTML público, después del deploy):
+  - el pie de página dice «Seguimiento en construcción» y ya no «Rastrea tu envío»;
+  - `/enlaces` dice «Te avisaremos apenas esté activo» y ya no «Sigue tu carga en tiempo real» ni «rastrea tu carga»;
+  - una URL inexistente muestra «entra a tu portal» y el botón «Entrar a mi portal», sin el «buscador de tracking»;
+  - `/pre-alertas` dice «Te acompañamos hasta tu puerta» y ya no «tú sigues cada paso desde el portal».
+- **Smoke en producción del aviso del Portal: PASÓ.** Sam, literal: «ya probé el Portal, funciona el aviso».
+- **Conocimiento:** el recibo semántico de `docs/marketing/README.md` se renovó en main `1b19ba5c`:
+  - se quitó su capa y se corrió `graphify update`;
+  - se reinyectó con las ubicaciones corridas desde la línea 161, más el nodo de esta SDD;
+  - quedó publicado con `knowledge:check` en `ok: true`.
+- Fuera de alcance que sigue abierto, ya anotado en el handoff, a la espera de la decisión de Sam: FAQ con su base de Kommo, glosario, `/entrar`, `llms.txt`, `hub-fichas` y la política de privacidad.
+- Estado de la tarea: **integrada**.
