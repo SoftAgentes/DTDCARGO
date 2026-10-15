@@ -236,6 +236,11 @@ export function operarioRolLabel(role: string): string {
   return ROL_LABEL[role as OperarioRol] ?? role;
 }
 
+/** ¿Es uno de los cuatro roles de `operario_pins_role_check`? (SDD-0529) */
+export function isOperarioRol(value: unknown): value is OperarioRol {
+  return typeof value === "string" && Object.hasOwn(ROL_LABEL, value);
+}
+
 export function isOperarioMotivoRejected(error: { code?: string } | null | undefined): boolean {
   return error?.code === OPERARIO_MOTIVO_CODE;
 }
