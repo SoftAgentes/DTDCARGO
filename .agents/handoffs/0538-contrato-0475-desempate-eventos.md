@@ -7,7 +7,7 @@
 | Claim del harness | `local_blissful-boyd-d8600b` (se libera al cerrar) |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\blissful-boyd-d8600b` |
 | Rama | `claude/blissful-boyd-d8600b` |
-| Base | `origin/main` `5d98ef62` (merge de la #236); el 2026-10-15 se mergeó `origin/main` `d9bbdb28` (#242 y #240) en la rama (`adb3ddc1`), ver «Merge de main» |
+| Base | `origin/main` `5d98ef62` (merge de la #236); el 2026-10-15 se mergeó `origin/main` `d9bbdb28` (#242 y #240) en la rama (`adb3ddc1`), y después `7232e28d` (#239, SDD-0534) (`c27c458e`), ver «Merge de main» |
 | SDD | [0538](../../docs/specs/0538-contrato-0475-desempate-eventos/spec.md), `in-progress`. Reserva local `codex/sdd-reserve-0538-contrato-0475-desempate-eventos` (`ea106741`), sin push; su contenido entró a esta rama por cherry-pick (`adedac59`) |
 | Estado de la tarea | lista para revisión |
 | Permisos | commits selectivos, push de la rama propia y PR contra `main` sin fusionar. Sin producción ni base de datos. `pnpm verify` completo no ejecutado: requiere turno del Director |
@@ -79,8 +79,8 @@ Todo sobre el worktree de arriba, base `5d98ef62`.
 
 ## Impacto documental y conocimiento
 
-- Canónicos actualizados: spec 0538, `docs/specs/README.md` (índice). Tras el
-  merge de main, el índice lista 521 specs y 0534, 0535 y 0537 como huecos: son
+- Canónicos actualizados: spec 0538, `docs/specs/README.md` (índice). Tras los
+  merges de main, el índice lista 522 specs y 0535 y 0537 como huecos: son
   specs de otras ramas que aún no están en main.
 - La spec 0536 y su handoff entraron a main con la #242; no se tocaron.
 - `corepack pnpm knowledge:status` (exit 0, `ok: false`): estructural `INVALID`,
@@ -109,6 +109,20 @@ tarea.
 | `vitest run lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts` | PASÓ: 87/87 (UTC 19:55–19:57) |
 | `corepack pnpm typecheck` | PASÓ (exit 0) |
 
+Segundo aviso, misma tarde: se fusionó la #239 (SDD-0534, migraciones
+0483–0489 y sus pruebas) y la PR volvió a chocar en el índice. Se mergeó
+`origin/main` `7232e28d` igual que antes; el driver resolvió el índice y
+`docs:index` dejó el árbol limpio. Nada de lo que trajo toca lo que lee el
+contrato 0475 (sus `\ir`, `migrations-baseline.json` ni
+`pending-migration-symbol-declarations.json`).
+
+| Comprobación tras el segundo merge | Resultado |
+|---|---|
+| `corepack pnpm docs:check` | PASÓ (522 specs) |
+| `corepack pnpm sdd:check` | PASÓ |
+| `vitest run lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts` | PASÓ: 87/87 (UTC 20:30–20:32) |
+| `corepack pnpm typecheck` | PASÓ (exit 0) |
+
 ## COMMITS
 
 | Hash | Propósito |
@@ -118,7 +132,9 @@ tarea.
 | `80bbdb13` | `docs(sdd)`: spec e índice |
 | `7cacad13` | handoff |
 | `adb3ddc1` | merge de `origin/main` `d9bbdb28` (#242 y #240), índice resuelto por el driver |
-| commit que contiene este cambio | handoff: merge de main y revalidación |
+| `40aac85c` | handoff: merge de main y revalidación |
+| `c27c458e` | merge de `origin/main` `7232e28d` (#239), índice resuelto por el driver |
+| commit que contiene este cambio | handoff: segundo merge de main |
 
 ## PR / BRANCH
 
