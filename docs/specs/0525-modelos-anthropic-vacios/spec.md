@@ -82,11 +82,12 @@ export function firstConfiguredSetting(
 
 ### Por qué no se reutiliza `server-secret.ts`
 
-La PR #225 (SDD-0523) sigue abierta: `lib/runtime/server-secret.ts` no está en
-`main`. Depender de ella apilaría esta PR sobre otra que el Director todavía no
-integra. Y aunque estuviera, su regla de no recortar no sirve aquí. Los dos
-archivos son nuevos y distintos, así que las dos PR no chocan en código; sólo en
-el índice `docs/specs/README.md`, que se regenera.
+Cuando se escribió esta spec, la PR #225 (SDD-0523) estaba abierta y
+`lib/runtime/server-secret.ts` no estaba en `main`; depender de ella habría
+apilado esta PR. La #225 se integró después (`7075883e`) y esta rama la trajo por
+merge sin conflictos: el índice `docs/specs/README.md` lo resolvió el driver.
+La razón de fondo no cambia: su regla de no recortar no sirve aquí. Ahora
+`lib/runtime/` tiene los dos helpers, cada uno con su regla.
 
 `lib/runtime/app-env.ts:48-51` ya tiene un `nonEmpty` privado con la misma regla
 (recorta y devuelve `null` si queda vacío). No se exporta ni se toca: es parte
