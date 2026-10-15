@@ -355,7 +355,12 @@ create function pg_temp.events(p_operario text) returns bigint language sql vola
   select count(*) from public.entity_audit_log
   where entity_type = 'operario' and entity_id = pg_temp.fixture_id(p_operario) and event_type = 'operario_updated'
 $$;
--- El último evento de edición, con los campos que importan.
+-- El último evento de edición, con los campos que importan. «Último» es el del
+-- último guardado, y lo dice xmin: cada guardado corre en su propia
+-- subtransacción (el bloque con excepción de run_as) y su xid crece con cada
+-- una. La hora no desempata: append_audit_event escribe clock_timestamp(), que
+-- en PGlite no tiene microsegundos, y dos guardados seguidos del mismo operario
+-- caen en el mismo milisegundo (SDD-0536). El bloque 12 comprueba la premisa.
 create function pg_temp.last_event(p_operario text) returns jsonb language sql volatile as $$
   select jsonb_build_object('tenant_id', e.tenant_id, 'actor_type', e.actor_type, 'actor_id', e.actor_id,
     'source', e.source, 'result', e.result, 'reason', e.reason, 'sensitivity', e.sensitivity,
@@ -364,7 +369,7 @@ create function pg_temp.last_event(p_operario text) returns jsonb language sql v
   from public.entity_audit_log e
   where e.entity_type = 'operario' and e.entity_id = pg_temp.fixture_id(p_operario)
     and e.event_type = 'operario_updated'
-  order by e.occurred_at desc limit 1
+  order by e.xmin::text::bigint desc limit 1
 $$;
 -- El login real como lo llama la app: devuelve el rol y los modos con que entra.
 create function pg_temp.login(p_pin text, p_tenant text, p_region text) returns jsonb language sql volatile as $$
@@ -742,6 +747,16 @@ begin
     'desactivar conserva su candado de 0475 (fuera de alcance de 0480)');
 end;
 $sin_danos$;
+
+-- 12. La premisa de last_event: ningún par de eventos de edición comparte xmin,
+--     así que el orden por xmin no empata nunca, aunque empate la hora.
+do $orden$
+begin
+  perform pg_temp.check((select count(*) > 1 and count(*) = count(distinct e.xmin::text)
+      from public.entity_audit_log e where e.entity_type = 'operario' and e.event_type = 'operario_updated'),
+    'cada evento de edición nació en su propio guardado (xmin distinto): last_event no depende de la hora');
+end;
+$orden$;
 
 select 'TEST 0480 GREEN: ' || currval('pg_temp.assertion_count') || ' aserciones' as resultado;
 rollback;
