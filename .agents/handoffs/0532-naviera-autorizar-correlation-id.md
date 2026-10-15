@@ -34,7 +34,7 @@ el writer de auditoría. Se pidió:
 ### 1. Reproducción: CONFIRMADO
 
 - **La referencia de la pantalla mide 109 siempre.**
-  - Se arma en `NavieraClient.tsx:706-707` como
+  - Se arma en `NavieraClient.tsx:706-707` (en `a8d99acf`; desde la #234 son las 714-715) como
     `naviera-consolidation-authorization:${c.id}:${crypto.randomUUID()}`.
   - No interviene el código de contenedor ni otro dato variable: las tres partes tienen largo fijo
     (36 + 36 + 1 + 36).
@@ -150,6 +150,8 @@ prueba «deriva sólo de espacios». Desde ahí, los scripts se escriben con Wri
 | `40e9507e` | Merge de `origin/main@19d4128e` (#220, #226–#229, entre ellas la SDD-0528): la #235 había quedado CONFLICTING por el índice de specs. El driver lo resolvió; docs:check (513 specs), sdd:check, símbolos (0 rojo) y el envoltorio (26/26) en verde después del merge |
 | `6b9d2405` | docs(handoff): SDD-0532 — merge de main y validación posterior |
 | `560d8fea` | Merge de `origin/main@4b72d66a` (#232, SDD-0522, migración 0476): otra vez CONFLICTING sólo por el índice de specs; el baseline no chocaba porque la 0476 entró y salió de las esperas en la misma PR. docs:check (514 specs), sdd:check, símbolos (0 rojo) y envoltorio (26/26) en verde; la única espera nueva sigue siendo la 0482 |
+| `7cff4038` | docs(handoff): SDD-0532 — segundo merge de main (#232) |
+| `f65d0e00` | Merge de `origin/main` con la #234 (SDD-0531), que tocó `NavieraClient.tsx` y `actions.ts`. La referencia de la pantalla es la misma (sólo se corrieron las líneas: 714-715 y 655), y la prueba de texto que la exige sigue en verde. Las citas de línea de la cabecera de 0482 y del contrato quedan atadas a `a8d99acf`; el cuerpo y su md5 no cambian. Después del merge pasan docs:check, sdd:check, símbolos (0 rojo) y el envoltorio (26/26) |
 
 ## PR / BRANCH
 

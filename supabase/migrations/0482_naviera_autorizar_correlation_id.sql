@@ -18,7 +18,7 @@
 -- ── El defecto ──────────────────────────────────────────────
 -- La pantalla arma la referencia como
 -- `naviera-consolidation-authorization:<id>:<uuid aleatorio>`
--- (app/studio/(app)/naviera/_components/NavieraClient.tsx:706-707): 109
+-- (app/studio/(app)/naviera/_components/NavieraClient.tsx:706-707 en a8d99acf): 109
 -- caracteres siempre, porque sus tres partes tienen largo fijo. La 0322
 -- (0322:232-234) arma el correlation_id como
 -- `consolidation-authorization:<id>:<referencia>`: 28 + 36 + 1 + 109 = 174.

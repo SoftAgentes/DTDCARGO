@@ -192,7 +192,7 @@ begin
 end;
 $writer_real$;
 
--- 2. La referencia que arma la pantalla (NavieraClient.tsx:706-707): 109.
+-- 2. La referencia que arma la pantalla (NavieraClient.tsx:706-707 en a8d99acf): 109.
 do $pantalla$
 declare
   v_id uuid := '30000000-0000-4000-8000-000000000001';
