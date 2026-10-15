@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 513 specs)
+### Índice de specs (generado · 514 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -551,6 +551,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0525 | Modelos de Anthropic vacíos caen a su respaldo: acta, Escucha… | in-progress | interno |
 | 0527 | Salud de Resend: una llave borrada deja de salir verde en /st… | in-progress | interno |
 | 0528 | Textos públicos de rastreo que quedan: /entrar, glosario, /se… | in-progress | interno |
+| 0531 | Ocultar nombres de clientes al equipo de China en Tracking y … | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0526 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0526, 0529, 0530 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

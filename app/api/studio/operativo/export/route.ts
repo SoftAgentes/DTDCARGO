@@ -24,6 +24,11 @@
  * Seguridad: `requireStudioSession()` primero (401 sin sesión / 403 sin tenant),
  * después el gate de VISTA del módulo — exportar no muta. Los datos salen con el
  * cliente autenticado, nunca service-role.
+ *
+ * SDD-0531 · el CSV de embarques respeta la misma regla que la pantalla de
+ * Tracking: al equipo de China (región cn, no admin) la columna `cliente` le
+ * sale vacía. La cabecera no cambia, para que una planilla armada sobre ella no
+ * se descuadre.
  */
 
 import { NextResponse } from "next/server";
@@ -32,6 +37,10 @@ import { requireStudioSession } from "@/lib/http/studio-session";
 import { getStudioAccess } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
 import { receivablesQueue } from "@/lib/studio/payment-queries";
+import {
+  readCanSeeClientNames,
+  segunVisibilidad,
+} from "@/lib/studio/privacidad-cn";
 import { respuestaCsv } from "@/lib/studio/export/csv";
 import {
   buildClientesCsv,
@@ -80,7 +89,10 @@ export async function GET(req: Request) {
       if (!canAccessModule(role, "tracking", overrides)) {
         return apiError("No tienes acceso a Tracking.", null, 403, "operativo-export");
       }
-      const embarques = await listarEmbarquesParaExport(supabase);
+      const embarques = segunVisibilidad(
+        await listarEmbarquesParaExport(supabase),
+        await readCanSeeClientNames(supabase),
+      );
       return respuestaCsv(buildTrackingCsv(embarques), trackingCsvFilename(hoy));
     }
 
