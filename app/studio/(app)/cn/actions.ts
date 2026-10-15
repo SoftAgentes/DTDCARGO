@@ -5,7 +5,7 @@
  *   asigna la base al insertar, SDD-0491) + insert items + insert event
  *   'received' en una operación pseudo-atómica (rollback manual si falla items).
  * - changeReceiptStatusAction: update status + insert event 'status_change'.
- * - softDeleteReceiptAction: deleted_at = now() (no expuesto en UI V1).
+ * - deleteReceiptsAction: borrado auditado por lote, sólo admin (SDD-0522, migr 0476).
  *
  * Validación con validateReceiptInput() — patrón del proyecto (sin zod).
  */
@@ -14,8 +14,15 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
+import {
+  codigoResultadoRecepciones,
+  normalizarLote,
+  type ResultadoAccionRecepciones,
+} from "@/lib/studio/borrado/reglas";
+import { eliminarRecepciones } from "@/lib/studio/borrado/servidor";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { autoInvoiceForReceipt } from "@/lib/studio/sales-orders/actions";
 import {
@@ -204,8 +211,17 @@ export async function createReceiptAction(
     .insert(itemsToInsert);
 
   if (itemsErr) {
-    // Rollback: borrar el receipt huérfano
-    await supabase.from("warehouse_receipts_cn").delete().eq("id", receipt.id);
+    // Rollback técnico (MP-01 P0): borrar la recepción recién creada y sin
+    // items. Va por el cliente admin porque la 0476 (SDD-0522) le quitó el
+    // DELETE físico a `authenticated`; acotado a ese id y a este tenant.
+    const { error: rollbackErr } = await createAdminClient()
+      .from("warehouse_receipts_cn")
+      .delete()
+      .eq("id", receipt.id)
+      .eq("tenant_id", link.tenant_id);
+    if (rollbackErr) {
+      console.error("[createReceiptAction] rollback", rollbackErr.message);
+    }
     return {
       error: `No se pudieron registrar los items: ${itemsErr.message}`,
     };
@@ -892,24 +908,39 @@ export async function bulkChangeReceiptStatusAction(
 }
 
 // ─────────────────────────────────────────────────────────────
-// softDeleteReceiptAction (no expuesto en UI V1)
+// deleteReceiptsAction · borrado auditado por lote (SDD-0522)
+//
+// Reemplaza a `softDeleteReceiptAction`, que ponía `deleted_at` con un UPDATE
+// por RLS, sin motivo, sin evento y sin mirar dependencias (y nunca tuvo UI).
+// Desde la 0476 ese UPDATE directo lo rechaza la base: se borra sólo por
+// `soft_delete_warehouse_receipts_cn_with_audit_reason`, de admin, con motivo,
+// todo o nada, retirando las cajas y con el evento warehouse_receipt_cn_deleted.
 // ─────────────────────────────────────────────────────────────
 
-export async function softDeleteReceiptAction(
-  receiptId: string,
-): Promise<{ ok?: boolean; error?: string }> {
+export async function deleteReceiptsAction(
+  receiptIds: string[],
+  reason: string,
+): Promise<ResultadoAccionRecepciones> {
   const supabase = await createClient();
-  const denial = await moduleEditDenial(supabase, "cn");
-  if (denial) return { error: denial };
+  const denial = await capabilityDenial(supabase, "delete_warehouse_receipts");
+  if (denial) return { error: denial, errorCode: "permission_denied" };
 
+  const lote = normalizarLote(receiptIds);
+  if (!lote.ok) {
+    return { errorCode: lote.motivo === "maximo" ? "cn_bulk_max_exceeded" : "invalid_input" };
+  }
 
-  const { error } = await supabase
-    .from("warehouse_receipts_cn")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", receiptId);
+  const motivo = validateAuditReason(reason);
+  if (!motivo.ok) {
+    return {
+      errorCode: String(reason ?? "").trim().length < 4 ? "cn_delete_reason_short" : "cn_delete_reason_long",
+    };
+  }
 
-  if (error) return { error: error.message };
-
-  revalidatePath("/studio/cn");
-  return { ok: true };
+  const resultado = await eliminarRecepciones(supabase, lote.ids, motivo.reason);
+  if (resultado.estado === "eliminado" || (resultado.estado === "error" && resultado.tipo === "sin_confirmar")) {
+    revalidatePath("/studio/cn");
+    revalidatePath("/studio/despacho");
+  }
+  return codigoResultadoRecepciones(resultado);
 }

@@ -262,12 +262,14 @@ begin
   delete from public.shipment_events where shipment_id = v_id;
   get diagnostics v_count = row_count;
   if v_count <> 1 then raise exception 'TEST 0416: equipo no borró hito de prueba'; end if;
-  delete from public.shipments where id = v_id;
-  get diagnostics v_count = row_count;
-  if v_count <> 1 then raise exception 'TEST 0416: equipo no borró envío de prueba'; end if;
+  -- El equipo ya no borra físicamente un envío: la 0476 (SDD-0522) revoca ese
+  -- DELETE y lo mide su contrato. Esta fixture no aplica la 0476, así que no
+  -- se afirma nada sobre ese permiso acá; la fila de prueba se limpia abajo,
+  -- fuera del rol del equipo.
 end;
 $team_crud$;
 reset role;
+delete from public.shipments where code = 'TEAM-EDIT';
 -- Portal B + equipo A: unión legítima, no acceso a B2 por ser equipo de A.
 insert into public.user_tenants values
   ('bbbbbbbb-4160-0000-0000-000000000101', '10000000-4160-0000-0000-000000000001', null);

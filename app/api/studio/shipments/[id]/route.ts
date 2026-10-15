@@ -3,7 +3,7 @@
  *
  * GET    /api/studio/shipments/[id]  — detalle envio + lista de eventos
  * PATCH  /api/studio/shipments/[id]  — edita campos (no cambia code ni shipment_service)
- * DELETE /api/studio/shipments/[id]  — soft delete (set deleted_at = now())
+ * DELETE /api/studio/shipments/[id]  — borrado auditado con motivo (RPC de la 0476, SDD-0522)
  *
  * Auth: sesion Supabase valida obligatoria. RLS filtra por tenant.
  * tenant_id NO se acepta como param (se deriva del JWT).
@@ -16,7 +16,14 @@ import {
   getShipmentById,
   getShipmentEvents,
 } from "@/lib/studio/shipment-queries";
-import { moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
+import { capabilityDenial, moduleEditDenial, moduleViewDenial } from "@/lib/studio/rbac-guard";
+import { validateAuditReason } from "@/lib/studio/audit/reason";
+import {
+  mensajeResultadoEmbarques,
+  normalizarLote,
+  shipmentDeleteBlockReason,
+} from "@/lib/studio/borrado/reglas";
+import { eliminarEmbarques } from "@/lib/studio/borrado/servidor";
 
 async function requireStudioSession() {
   const supabase = await createClient();
@@ -135,24 +142,47 @@ export async function PATCH(
   return NextResponse.json({ shipment: data });
 }
 
+/**
+ * DELETE con motivo (SDD-0522): body JSON `{ "reason": "…" }`, de 4 a 1000
+ * caracteres. Sólo admin (`delete_shipments`); la RPC de la 0476 decide si se
+ * puede (409 con los bloqueos si no), escribe `shipment_deleted` y cancela los
+ * avisos pendientes. El UPDATE directo de `deleted_at` ya no está permitido.
+ */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   const { supabase, user } = await requireStudioSession();
   if (!user) return NextResponse.json({ error: "No autorizado." }, { status: 401 });
-  const denial = await moduleEditDenial(supabase, "tracking");
+  const denial = await capabilityDenial(supabase, "delete_shipments");
   if (denial) return NextResponse.json({ error: denial }, { status: 403 });
 
-  // Soft delete — el trigger cascade_soft_delete_events propaga a shipment_events
-  const { error } = await supabase
-    .from("shipments")
-    .update({ deleted_at: new Date().toISOString() })
-    .eq("id", id);
+  const lote = normalizarLote([id]);
+  if (!lote.ok) return NextResponse.json({ error: "Envío no válido." }, { status: 400 });
 
-  if (error) {
-    return apiError("No pudimos eliminar el envío.", error, 500, "shipments:delete");
+  let body: unknown = null;
+  try {
+    body = await request.json();
+  } catch {
+    body = null;
   }
-  return NextResponse.json({ ok: true });
+  const motivo = validateAuditReason(
+    typeof body === "object" && body !== null ? (body as { reason?: unknown }).reason : undefined,
+  );
+  if (!motivo.ok) return NextResponse.json({ error: motivo.error }, { status: 400 });
+
+  const resultado = await eliminarEmbarques(supabase, lote.ids, motivo.reason);
+  if (resultado.estado === "eliminado") return NextResponse.json({ ok: true });
+  if (resultado.estado === "rechazado") {
+    const fila = resultado.bloqueadas[0];
+    if (!fila) return NextResponse.json({ error: "Envío no encontrado." }, { status: 404 });
+    return NextResponse.json(
+      { error: shipmentDeleteBlockReason({ bloqueos: fila.bloqueos, avisos: {} }), blockers: fila.bloqueos },
+      { status: 409 },
+    );
+  }
+  const status = resultado.tipo === "permiso" ? 403 : resultado.tipo === "entrada" ? 400 : 500;
+  const mensaje = mensajeResultadoEmbarques(resultado);
+  return NextResponse.json({ error: "error" in mensaje ? mensaje.error : "No pudimos eliminar el envío." }, { status });
 }
