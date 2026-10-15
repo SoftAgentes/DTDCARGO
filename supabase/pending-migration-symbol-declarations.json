@@ -7,30 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "sdd-0530-zarpe-avanza-envios",
-      "primarySymbol": "advance_consolidation_governed",
-      "migration": "0477_naviera_zarpe_avanza_envios",
-      "symbols": [
-        {
-          "name": "advance_consolidation_governed",
-          "kind": "function",
-          "callSites": [
-            "lib/studio/naviera/avance-por-contenedor-queries.ts:39",
-            "lib/studio/naviera/avance-por-contenedor-queries.ts:47",
-            "lib/studio/naviera/avance-por-contenedor-queries.ts:55",
-            "lib/studio/naviera/avance-por-contenedor-queries.ts:65"
-          ]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/naviera/avance-por-contenedor-queries.ts:51",
-          "contains": "return { ok: false, code, error: mensajeErrorAvance(code) };",
-          "degradation": "Sin 0477 la RPC no existe y PostgREST responde PGRST202: «Marcar zarpado» y «Marcar arribado» devuelven «No se pudo cambiar el estado del contenedor. No cambió nada; vuelve a intentarlo.», el log nombra la migración que falta, el contenedor no cambia de estado, ningún envío avanza y no se programa ningún aviso; el diálogo deja el error a la vista. Las :47, :55 y :65 son textos del log, no llamadas. Por eso el orden es MIGRATE-FIRST: 0477 antes de desplegar, y desplegar enseguida, porque con 0477 aplicada la app de antes hace el UPDATE directo y el trigger guard_consolidation_advance_trg lo rechaza con 42501 («No se pudo cambiar el estado: naviera: zarpar o arribar el contenedor requiere advance_consolidation_governed»), también sin cambiar nada. Cerrar el contenedor y el resto de Naviera no dependen de 0477."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
