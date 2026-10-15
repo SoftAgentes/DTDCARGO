@@ -8,17 +8,23 @@
  *
  * Despues delega al CreateShipmentForm (client) que tiene toda la logica
  * interactiva.
+ *
+ * SDD-0531 · al equipo de China (región cn, no admin) no se le manda la lista:
+ * son hasta 500 nombres de clientes. Trabaja con el Shipping Mark y el server
+ * completa el nombre al crear el envío.
  */
 
 import { createClient } from "@/lib/db/server";
+import { readCanSeeClientNames } from "@/lib/studio/privacidad-cn";
 import { CreateShipmentForm } from "./_components/CreateShipmentForm";
 
 export const metadata = {
   title: "Nuevo envío",
 };
 
-async function fetchExistingClients(): Promise<string[]> {
-  const supabase = await createClient();
+async function fetchExistingClients(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<string[]> {
   const { data, error } = await supabase
     .from("shipments")
     .select("client_name")
@@ -38,6 +44,15 @@ async function fetchExistingClients(): Promise<string[]> {
 }
 
 export default async function NuevoEnvioPage() {
-  const existingClients = await fetchExistingClients();
-  return <CreateShipmentForm existingClients={existingClients} />;
+  const supabase = await createClient();
+  const puedeVerNombres = await readCanSeeClientNames(supabase);
+  const existingClients = puedeVerNombres
+    ? await fetchExistingClients(supabase)
+    : [];
+  return (
+    <CreateShipmentForm
+      existingClients={existingClients}
+      nombresOcultos={!puedeVerNombres}
+    />
+  );
 }

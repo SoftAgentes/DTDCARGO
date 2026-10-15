@@ -13,12 +13,22 @@ import {
 import { requestMagicLink, type PortalLoginState } from "./actions";
 import { signOutAction } from "@/app/portal/actions";
 import { PortalFieldError } from "@/app/portal/_components/PortalFieldError";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 
 const initialMagic: PortalLoginState = {};
 
+/*
+ * SDD-0528 · mientras el seguimiento del Portal esté en construcción
+ * (`TRACKING_EN_CONSTRUCCION`, SDD-0514), la puerta de acceso no promete
+ * seguimiento: dice lo que el Portal ya ofrece. Apagado el interruptor, vuelven
+ * los textos de siempre. Sólo cambia el texto; el acceso no se toca.
+ */
+
 /** Beneficios del panel lateral (mockup Acceso · Transición). */
 const SIDE_BULLETS = [
-  "Seguimiento por compra y contenedor",
+  TRACKING_EN_CONSTRUCCION
+    ? "Tus compras y pre-alertas en un solo lugar"
+    : "Seguimiento por compra y contenedor",
   "Cotización puerta a puerta",
   "Documentos y facturas al día",
 ] as const;
@@ -27,8 +37,15 @@ const SIDE_BULLETS = [
 const NUEVO_BULLETS = [
   "El código que identifica tus cajas",
   "La dirección de nuestra bodega en China",
-  "Seguimiento hasta tu puerta",
+  TRACKING_EN_CONSTRUCCION
+    ? "Acompañamiento hasta tu puerta"
+    : "Seguimiento hasta tu puerta",
 ] as const;
+
+/** Lo que el Portal deja hacer, en el párrafo del panel lateral. */
+const SIDE_RESUMEN = TRACKING_EN_CONSTRUCCION
+  ? "Cotiza y paga, todo en un lugar."
+  : "Cotiza, sigue tus envíos y paga, todo en un lugar.";
 
 /**
  * `/entrar` — la puerta única (SDD-0276). Enlace mágico, SIN contraseña.
@@ -271,8 +288,7 @@ export function EntrarForm({
               Con confianza, en cada contenedor.
             </h2>
             <p className="relative mt-2.5 text-[13.5px] leading-[1.6] text-white/75 max-w-[32ch]">
-              Tu Shipping Mark identifica tu carga de punta a punta. Cotiza, sigue
-              tus envíos y paga, todo en un lugar.
+              Tu Shipping Mark identifica tu carga de punta a punta. {SIDE_RESUMEN}
             </p>
             <ul className="relative mt-6 flex flex-col gap-3 list-none p-0">
               {SIDE_BULLETS.map((b) => (

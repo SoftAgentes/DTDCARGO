@@ -26,6 +26,16 @@ export const errors = {
   "error.cn_destination_required":
     "Ciudad destino es obligatoria para consolidar.",
   "error.cn_bulk_max_exceeded": "Máximo 100 recepciones por operación masiva.",
+  "error.cn_delete_reason_short": "Indica un motivo de al menos 4 caracteres.",
+  "error.cn_delete_reason_long": "El motivo no puede superar 1000 caracteres.",
+  "error.cn_delete_blocked":
+    "No se eliminó ninguna recepción: {count} de las elegidas no se pueden eliminar.",
+  "error.cn_delete_not_found":
+    "No se eliminó ninguna recepción: alguna ya no existe o ya se eliminó. Recarga la lista.",
+  "error.cn_delete_failed":
+    "No se pudo eliminar. No se borró ninguna recepción; intenta de nuevo.",
+  "error.cn_delete_unconfirmed":
+    "No se pudo confirmar el borrado. Recarga la lista para ver cómo quedó.",
 
   // ── Usuarios ─────────────────────────────────────────────
   "error.user_email_invalid": "Email inválido.",
