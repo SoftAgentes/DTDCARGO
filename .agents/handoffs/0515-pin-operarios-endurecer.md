@@ -385,3 +385,36 @@ dónde vive la raíz de Vault del servidor propio y si viaja con los respaldos
   lo usa Operarios); `lib/studio/operario-pin.ts` y el generador sólo los consume
   el módulo Operarios.
 - Sin otras sesiones consumidoras de este worktree. Ownership liberado al cerrar.
+
+## CIERRE DE INTEGRACIÓN (Director, 2026-10-14 noche)
+
+- **0475 aplicada en el servidor propio** a las 23:32:24Z con el OK nominal de Sam, literal: «OK, aplica la 0475_pin_operarios_endurecer en el servidor propio».
+  - Antes de aplicar, el Director repitió la lectura previa READ ONLY a las 23:31Z: los siete md5 de origen (incluida la forma viva `2c22a7b2` del validador), las sobrecargas, que el Vault no tuviera `operario_pin_key` y que no existiera la entidad `operario`.
+  - Aplicación: `psql` en `dtd-cargo-db-1`, con migración y fila del ledger en una transacción. El script tiene md5 `b2b75da6…`, verificado en el servidor, y sale del blob `0d7492ce` (61685 bytes). Exit 0 y COMMIT; el postflight interno pasó.
+  - Verificación posterior READ ONLY:
+    - ledger en 481 filas, con la fila `20261014233224 · 0475_pin_operarios_endurecer`, cuyo `md5(statements[1])` es `1273d8a4…`, igual al blob;
+    - `pin_hash` y `pin_cifrado` sin SELECT para anon, authenticated y service_role;
+    - `operario_pin_key` en el Vault y la entidad `operario` en `active`;
+    - 3 operarios, 0 con `pin_cifrado`, y 0 locks en espera.
+  - Evidencia: `/srv/ops/evidencias/apply-0475-dtd-cargo-20261014T233453Z/` con `SHA256SUMS`.
+- **Merge:** PR #212, merge `487971c8` a las 23:35:19Z, con `--match-head-commit fb23fa7c`, migración primero y merge enseguida. Deploy: «Deployment has completed» a las 23:37:29Z.
+- **Smoke en producción de «Ver PIN»: PASÓ.** Sam, literal: «ya probé Ver PIN, funciona», con una captura de `/studio/operarios` tomada como admin.
+  - En la verificación posterior, los 3 operarios tenían `pin_cifrado` vacío. Para ver un PIN hacía falta restablecerlo antes; si no, «Ver PIN» muestra el aviso de PIN anterior.
+  - Sam no detalló cuál de los dos casos vio. *Inferencia, no verificada:* cubre el paso 2 y probablemente el 4 y el 5.
+- **Pasos del smoke propuesto que Sam no reportó por separado (NO EJECUTADO):**
+  - el 1, con el rol operations;
+  - el 3, con una contraseña equivocada;
+  - el 6, el alta;
+  - el 7, reactivar;
+  - el 9, los eventos de auditoría, que son filas de negocio y se leen con OK de Sam o desde el visor del Studio.
+  Quedan cubiertos por el contrato SQL, las pruebas de componente y el CI.
+- **Cierre de la espera (este cierre):**
+  - `0475_pin_operarios_endurecer` sale de `pendingBelowCutoff`, y el baseline vuelve byte a byte al estado de `ad959bca`;
+  - la declaración `sdd-0515-ver-pin-operario` sale de `supabase/pending-migration-symbol-declarations.json`, que vuelve a `degradations: []`;
+  - la prueba de la migración afirma ahora la identidad del archivo con el ledger (md5 `1273d8a4…`, 61685 bytes);
+  - la cabecera «NO APLICADA» del `.sql` no se corrige.
+- **Pedido de seguimiento de Sam,** con su captura de `/studio/operarios`: la tabla corta el nombre del operario y los botones son grandes. Va en la SDD-0520 (columnas ajustables y botones compactos), en tarea aparte.
+- Fuera de alcance que sigue abierto, ya anotado en el handoff:
+  - editar un operario de Venezuela no funciona desde el Studio;
+  - `admin_set_operario_active` y `admin_update_operario` siguen sin la matriz ni auditoría.
+- Estado de la tarea: **integrada**.
