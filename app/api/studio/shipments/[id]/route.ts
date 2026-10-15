@@ -7,10 +7,18 @@
  *
  * Auth: sesion Supabase valida obligatoria. RLS filtra por tenant.
  * tenant_id NO se acepta como param (se deriva del JWT).
+ *
+ * SDD-0531 · lo que devuelven GET y PATCH pasa por la regla de Tracking: al
+ * equipo de China (región cn, no admin) el envío le llega sin nombre del
+ * cliente ni ubicación de entrega.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
+import {
+  readCanSeeClientNames,
+  segunVisibilidad,
+} from "@/lib/studio/privacidad-cn";
 import { apiError } from "@/lib/http/api-error";
 import {
   getShipmentById,
@@ -78,7 +86,10 @@ export async function GET(
       return NextResponse.json({ error: "Envío no encontrado." }, { status: 404 });
     }
     const events = await getShipmentEvents(supabase, id);
-    return NextResponse.json({ shipment, events });
+    return NextResponse.json({
+      shipment: segunVisibilidad(shipment, await readCanSeeClientNames(supabase)),
+      events,
+    });
   } catch (err) {
     return apiError("No pudimos leer el envío.", err, 500, "shipments:get");
   }
@@ -139,7 +150,9 @@ export async function PATCH(
     }
     return apiError("No pudimos guardar los cambios.", error, 500, "shipments:patch");
   }
-  return NextResponse.json({ shipment: data });
+  return NextResponse.json({
+    shipment: segunVisibilidad(data, await readCanSeeClientNames(supabase)),
+  });
 }
 
 /**

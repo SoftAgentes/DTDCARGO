@@ -36,10 +36,13 @@ export function AssignCargoDrawer({
   detail,
   looseCargo,
   onClose,
+  nombresOcultos = false,
 }: {
   detail: ConsolidationDetail;
   looseCargo: LooseCargo[];
   onClose: () => void;
+  /** SDD-0531: sin campo «Cliente»; el nombre lo pone el servidor. */
+  nombresOcultos?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -220,7 +223,13 @@ export function AssignCargoDrawer({
           </select>
         </Field>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: nombresOcultos ? "1fr" : "1fr 1fr",
+            gap: 10,
+          }}
+        >
           <Field label="Shipping Mark" optional>
             <input
               className="studio-input studio-input-mono"
@@ -229,14 +238,28 @@ export function AssignCargoDrawer({
               onChange={(e) => setClientMarkbox(e.target.value)}
             />
           </Field>
-          <Field label="Cliente" optional>
-            <input
-              className="studio-input"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-            />
-          </Field>
+          {!nombresOcultos && (
+            <Field label="Cliente" optional>
+              <input
+                className="studio-input"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+              />
+            </Field>
+          )}
         </div>
+        {nombresOcultos && (
+          <p
+            style={{
+              font: "500 11px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              margin: 0,
+            }}
+          >
+            Por privacidad, el nombre del cliente no se muestra en tu región. Lo
+            completa el sistema a partir del embarque o del Shipping Mark.
+          </p>
+        )}
 
         <Field label="Proveedor" optional>
           <input

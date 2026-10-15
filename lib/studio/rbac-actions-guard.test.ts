@@ -241,13 +241,15 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // SDD-0522 sumó `embarques/actions.ts` (74 → 75, exactos 54 → 55) con
   // `deleteShipmentsAction`, que llama a `capabilityDenial(…, "delete_shipments")`
   // antes de tocar nada y pasa el veredicto sin entrar en ninguna lista.
-  it("la superficie escaneada es la esperada (75 archivos, no sólo los `actions.ts`)", () => {
+  // SDD-0531 sumó `tracking/[id]/datos-reservados-actions.ts` (75 → 76, con
+  // prefijo 20 → 21) con una sola acción, `updateShipmentSinUbicacion`.
+  it("la superficie escaneada es la esperada (76 archivos, no sólo los `actions.ts`)", () => {
     const exactos = archivos.filter((f) => f.endsWith(`${"/"}actions.ts`) || f.endsWith("\\actions.ts"));
     const conPrefijo = archivos.length - exactos.length;
     expect({ total: archivos.length, exactos: exactos.length, conPrefijo }).toEqual({
-      total: 75,
+      total: 76,
       exactos: 55,
-      conPrefijo: 20,
+      conPrefijo: 21,
     });
   });
 
@@ -264,8 +266,12 @@ describe("RBAC anti-drift · por acción (SDD-0085 · SDD-0500)", () => {
   // edición de `cn`, sin UI) por `deleteReceiptsAction` (capability
   // `delete_warehouse_receipts` y la RPC de la 0476). Las dos nuevas llaman a
   // `capabilityDenial` antes de tocar nada.
+  // SDD-0531 sumó `tracking/[id]/datos-reservados-actions.ts::updateShipmentSinUbicacion`
+  // (431 → 432): guarda los datos del envío conservando la ubicación para quien
+  // no puede verla; llama a `moduleEditDenial(supabase, "tracking")` antes de
+  // leer nada y delega la escritura en `updateShipment`, que repite el candado.
   it("el inventario de acciones exportadas no se mueve en silencio", () => {
-    expect(reportes.length).toBe(431);
+    expect(reportes.length).toBe(432);
   });
 
   it("el tamaño de las dos listas está congelado", () => {
