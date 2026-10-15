@@ -63,12 +63,35 @@ precios y hay clientes cotizando en ella». Entrega por fases: la fase 1 primero
    transportista indicado y esté viva; si el `update` toca cero filas, la acción
    lo dice en vez de devolver `ok`.
 
-### Fase 2 — cambio en lote (si no retrasa la fase 1)
+### Fase 2 — cambio en lote (entregada en la misma PR)
 
-Seleccionar varias ciudades y poner **un valor absoluto nuevo** de costo y/o de
-venta, con una vista previa antes/después (y el margen resultante) antes de
-guardar. Un solo `UPDATE` con `in(id)`: o cambian todas o ninguna. **No hay
-multiplicador automático de la venta sobre el costo** (SDD-0236).
+Seleccionar varias ciudades (casilla por fila y casilla de encabezado para las
+visibles por la búsqueda) y poner **un valor absoluto nuevo** de costo y/o de
+venta. El panel muestra el antes y el después de cada ciudad con su margen y
+avisa cuántas quedarían con la venta por debajo del costo. **No hay
+multiplicador automático de la venta sobre el costo** (SDD-0236): el campo
+vacío es «no cambia».
+
+Todo o nada: la acción primero cuenta que **todas** las elegidas sigan vivas
+con ese transportista; si falta una, no cambia ninguna. Después un solo
+`UPDATE` con `in(id)` y los mismos filtros. Si otra pestaña quita una ruta
+entre la cuenta y el `UPDATE`, esa no se toca y la pantalla avisa «Precios
+actualizados en N de M ciudades». Un solo toast resumen, sin uno por ciudad.
+
+### Detalles de pantalla que cambian
+
+- La columna **En ft³** muestra el equivalente de la venta vigente
+  (`cbmAFt3(price_usd_cbm)`). Antes mostraba la referencia guardada, que al
+  editar la venta quedaría mintiendo. La referencia se edita en el panel, con
+  aviso si ya no coincide con la venta por m³ (tolerancia de medio centavo).
+- El margen positivo se pinta en `--ink` y el negativo en `--danger`. Antes el
+  positivo iba en `--success`, que como texto da 4,33:1 sobre blanco y no pasa
+  AA (BRAND regla 6).
+- Tokens inexistentes del panel original (`--accent`, `--radius-md`,
+  `--font-mono`) pasan a los del Studio (`--wine`, `--r-md`, `--f-mono`).
+- Buscador por ciudad sin acentos ni mayúsculas, rastro visual de la fila tras
+  guardar (`useRowHighlight`) y `?tab=transportistas` en la URL de
+  Administración.
 
 ### Lo que NO cambia
 
@@ -87,11 +110,15 @@ multiplicador automático de la venta sobre el costo** (SDD-0236).
 | MP-01 | cumplimiento | Quitar ruta = borrado en blando reversible (se puede volver a agregar la ciudad); confirmación explícita; evento `carrier_tariff_deleted` con motivo fijo, igual que `calculator_city_deleted` en 0293. |
 | BTN-01 | cumplimiento | Una acción primaria por superficie (Guardar en el panel), destructiva separada y con confirmación. |
 | SGE-00 | cumplimiento | Permiso en servidor y en la base; el cliente nunca ve el costo. |
-| FRM-01 / ERR-01 | cumplimiento | Errores por campo del validador existente; error general en `role="alert"`. |
-| NUM-01 | ver evidencia de implementación | Montos con coma o punto (`parseMonto`). |
-| A11Y-01 | cumplimiento | Panel con foco y nombre accesible; checkboxes con etiqueta por ciudad. |
-| CMP-01 | cumplimiento | `DrawerShell`, `ConfirmDialog`, `Badge`, `EmptyState` existentes; ningún `deprecated`. |
-| Resto (BUS, CRT, DND, CAL, DAT, PRG, WIZ, UPL, IA, LNK, HTD, VIS-02, MOT, LOD, TBL, ICO, PLG) | no aplica / sin cambio | Sin búsqueda predictiva, arrastre, fechas operativas, archivos, IA ni flujos por pasos nuevos. |
+| FRM-01 / ERR-01 | cumplimiento | Errores por campo del validador; error general en `role="alert"` con foco; un error conserva lo escrito y permite reintentar (envío manual, patrón de CityDrawer). |
+| NUM-01 | cumplimiento con observación | Montos con `NumericInput` (canonical): coma o punto, expresiones, valor canónico al servidor. El margen es presentación (resta redondeada a centavos), no se guarda. Observación: un monto con más de 2 decimales lo redondea la base a centavos (`numeric(10,2)` de 0330); el validador no lo rechaza, igual que antes. |
+| TBL-01 | cumplimiento | Tabla semántica; columnas esenciales, sin opcionales que configurar; «sin datos» distinto de «sin coincidencias»; la selección muestra cantidad, activa la acción masiva y se limpia de forma explícita (botón, cambio de transportista o tras aplicar). Filtro en cliente: 169 filas, no es un volumen que pida servidor. |
+| A11Y-01 | cumplimiento | Paneles con `DrawerShell`/`ConfirmDialog` (foco, Esc, nombre); botones de ícono y casillas con nombre por ciudad; casillas con área de toque de 32 px; el «antes → después» se lee como «pasa a». |
+| BUS-01 | no aplica | El buscador filtra la tabla visible; no es búsqueda predictiva. |
+| AVS-01 | cumplimiento | Toast al guardar, agregar, quitar y aplicar el lote (uno resumen); la fila editada o agregada se resalta. |
+| CMP-01 | cumplimiento | `DrawerShell`, `ConfirmDialog`, `NumericInput`, `Badge`, `EmptyState` existentes; ningún `deprecated`. `components:check` verde. |
+| HTD-01 | no aplica | Quitar una ruta es reversible (se vuelve a agregar): no es R3. |
+| Resto (CRT, DND, CAL, DAT, PRG, WIZ, UPL, IA, LNK, VIS-02, MOT, LOD, ICO, PLG) | no aplica | Sin creación contextual, arrastre, fechas operativas, progreso, pasos, archivos, IA, enlaces ni movimiento nuevos. Las fechas de vigencia usan `<input type="date">` como antes. |
 
 ### Migración 0490 — NO APLICADA
 
@@ -112,6 +139,9 @@ cambia la RLS, no modifica `audit_d5_residual_change` (función propia).
 
 - `app/studio/(app)/admin/_components/calculator/TransportistasPanel.tsx`
 - `app/studio/(app)/admin/_components/calculator/TariffDrawer.tsx` (nuevo)
+- `app/studio/(app)/admin/_components/calculator/BulkPriceDrawer.tsx` (nuevo, fase 2)
+- `lib/studio/rbac-actions-guard.test.ts` (inventario de acciones 432 → 433, con
+  la justificación de `bulkUpdateTariffPricesAction`)
 - `app/studio/(app)/admin/_components/calculator/CalculatorSection.tsx`
 - `app/studio/(app)/admin/_components/calculator/__tests__/TransportistasPanel.test.tsx` (nuevo)
 - `app/studio/(app)/admin/page.tsx` (sólo `?tab=transportistas`)
@@ -139,3 +169,47 @@ cambia la RLS, no modifica `audit_d5_residual_change` (función propia).
    devuelve error y no `ok`.
 5. Con 0490 aplicada, cada alta, edición y retiro deja un evento AUD-01 con
    antes, después y actor; si el writer falla, la escritura se revierte.
+6. Un admin cambia en lote el costo o la venta de varias ciudades viendo el
+   antes y el después; si alguna elegida ya no está viva, no cambia ninguna.
+
+## Verificación (2026-10-15, en el worktree; sin producción)
+
+- Acciones: `app/studio/(app)/admin/__tests__/carrier-tariff-actions.test.ts`,
+  31 casos, con un doble de PostgREST que aplica `.eq()`/`.is()`/`.in()`
+  también en las escrituras, devuelve copias, simula el índice único de 0330 y
+  una carrera entre la cuenta y el `UPDATE` del lote.
+- Pantalla: `_components/calculator/__tests__/TransportistasPanel.test.tsx`,
+  20 casos: editar (margen en vivo y FormData exacto), errores por campo y
+  generales con reintento, agregar (sólo ciudades libres), quitar con
+  confirmación y reintento con el mismo error, buscador, rol sin permiso y lote.
+- Helpers: `lib/studio/__tests__/freight-carriers-types.test.ts` (31).
+- Migración: `supabase/tests/0490_carrier_tariffs_auditoria.test.sql`, 29
+  aserciones en PGlite con el writer real (0267 + 0294) y la 0330 real,
+  envuelto por `lib/studio/__tests__/carrier-tariffs-auditoria.migration.test.ts`
+  (control rojo, 9 mutantes, 2 drifts del preflight y la espera declarada).
+- **Control rojo y mutantes del diff de aplicación:** las pruebas nuevas contra
+  el `carrier-actions.ts` y el `TransportistasPanel.tsx` de `main` fallan
+  (22 y 19 casos), y los 36 mutantes de las líneas del diff mueren. La primera
+  ronda dejó 4 vivos; se cerraron con pruebas (3) y quitando una guarda
+  inalcanzable (1).
+- `rbac-actions-guard`: la acción nueva pasa su veredicto por acción; el
+  inventario sube a 433 con su justificación.
+
+## Estado
+
+- **Fase 1 y fase 2:** implementadas en la PR de esta spec, sin fusionar.
+- **0490:** NO APLICADA. Hasta que se aplique, las escrituras del tarifario no
+  dejan evento AUD-01 (igual que hoy): el criterio 5 depende de su aplicación.
+
+## Decisiones de criterio para Sam
+
+1. **Auditoría con migración (0490).** Recomendación: aplicarla antes de
+   fusionar (migrate-first compatible). Alternativa: fusionar sin ella y
+   aceptar por escrito una excepción temporal a AUD-01 para el tarifario.
+2. **Margen positivo en negro en vez de verde**, por contraste AA. Si Sam
+   quiere el verde, hace falta un token de texto verde que pase AA (hoy no
+   existe) y eso es una decisión de marca, no de esta spec.
+3. **Columna «En ft³» = equivalente de la venta actual**, no la oferta
+   original guardada. La oferta original se sigue viendo y editando en el panel.
+4. **Lote sólo con valores absolutos.** No hay «subir un X %». Si Sam lo quiere,
+   necesita su propia decisión, porque toca la regla de SDD-0236.
