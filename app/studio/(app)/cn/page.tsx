@@ -17,6 +17,7 @@ import {
   parseReceiptFiltersFromSearchParams,
 } from "@/lib/studio/warehouse-cn-queries";
 import { listCities } from "@/lib/studio/dispatch-routes-queries";
+import { canSeeClientNames as reglaNombresDeClientes } from "@/lib/studio/privacidad-cn";
 import { activeAlertShipmentIds } from "@/lib/studio/expense-alerts-queries";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { t } from "@/lib/i18n";
@@ -63,8 +64,9 @@ export default async function CnPage({
     userTenantRegion: ut?.region ?? null,
   });
   // Privacidad: el equipo CN (no-admin) NO ve el nombre real del importador VE,
-  // solo el MARKBOX. Admin (cualquier región) y users VE sí.
-  const canSeeClientNames = !(ut?.region === "cn" && ut?.role !== "admin");
+  // solo el MARKBOX. Admin (cualquier región) y users VE sí. La regla vive en
+  // lib/studio/privacidad-cn.ts (SDD-0531): Tracking y Naviera leen la misma.
+  const canSeeClientNames = reglaNombresDeClientes(ut);
 
   const [receipts, warehouses, clients, kpis, cities, alertShipmentSet] =
     await Promise.all([
