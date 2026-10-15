@@ -149,6 +149,8 @@ where tenant_id = (select id from public.tenants limit 1);
 | `/studio/debug` → Resend: «llave inválida o borrada · HTTP 401» | La `RESEND_API_KEY` del entorno se borró en Resend o está mal copiada | Crear una llave nueva en Resend y reemplazar la del entorno (SDD-0527) |
 | `/studio/debug` → Resend: «llave solo de envío · el correo entrante de Conversaciones no funcionará» | Llave «Sending access»: envía, pero no puede bajar los correos entrantes | Nada, si no se usa el correo entrante; si se usa, llave con Full access |
 | `/studio/debug` → Resend: «acceso completo · N dominio(s) verificado(s)» | Llave con Full access | Nada |
+| `/studio/debug` → Resend webhook: «llave inválida o borrada · HTTP 401» (o 403) | La `RESEND_API_KEY` del entorno se borró, está inactiva o mal copiada | Crear una llave nueva en Resend y reemplazar la del entorno. Si la llave existe y es 403, puede estar suspendida: soporte de Resend (SDD-0533) |
+| `/studio/debug` → Resend webhook: «secret configurado · llave solo de envío, no puede listar webhooks» | Llave «Sending access»: no puede leer la lista de webhooks | Confirmar en Resend → **Webhooks** que el endpoint existe y está activo |
 | Webhook devuelve 401 | `RESEND_WEBHOOK_SECRET` mal copiado | Re-copy del dashboard |
 | Webhook devuelve 503 | Secret no set en Vercel | Agregar env var + redeploy |
 | Email llega pero no aparece en `mail_logs` | `resend_message_id` mismatch | Ver logs server-side |
