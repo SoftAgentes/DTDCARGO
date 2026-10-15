@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 510 specs)
+### Índice de specs (generado · 511 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -548,6 +548,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0523 | Secretos de firma vacíos cuentan como ausentes: baja de corre… | in-progress | interno |
 | 0525 | Modelos de Anthropic vacíos caen a su respaldo: acta, Escucha… | in-progress | interno |
 | 0527 | Salud de Resend: una llave borrada deja de salir verde en /st… | in-progress | interno |
+| 0535 | Kommo: el cliente que vuelve a escribir en un trato cerrado r… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0522, 0524, 0526 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0522, 0524, 0526, 0528, 0529, 0530, 0531, 0532, 0533, 0534 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

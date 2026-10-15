@@ -117,6 +117,29 @@ negocio (afecta a clientes que ya compraron), por eso queda en el checklist y no
 
 **Origen** (contactos nuevos, 30 días): **154 WhatsApp** · **72 Instagram/Facebook (32%)** · 226 total.
 
+## 🔴 2026-10-15 · Otra vez sin rojo, y los que vuelven no llegan a Recontacto
+
+> Medido con la sesión de Sam, solo lectura, por la API v4 y el panel. Detalle y
+> cifras en [SDD-0535](../specs/0535-crm-kommo-mensaje-entrante/spec.md).
+
+**El rojo:** los **4 agentes de IA están apagados** (`Agente de IA`, interruptor sin
+marcar en los 4). La última tarea del robot y el último bloque de mensajes de bots
+son del **2026-09-24**. El paquete de créditos de US$99 figura **Caducado**
+(última renovación 29-08, renovación automática desactivada) y los **15 Salesbots
+están apagados**, incluidos los 4 «Ping 23 h». Quién los apagó: **NO VERIFICADO**.
+Es la misma causa de fondo que el 25-ago: sin agentes corriendo no hay tarea, y sin
+tarea no hay rojo. **No es WhatsApp:** los mensajes siguen entrando todos los días.
+
+**Recontacto:** cuando alguien con el trato en `Ventas Perdidos` vuelve a escribir,
+**Kommo no crea un trato nuevo**: cuelga el mensaje del trato cerrado (57 casos en
+30 días, ninguno con trato posterior). El enrutador de SDD-0244 espera un
+`leads[add]` que nunca llega. Lo arregla SDD-0535 desde el webhook: perdido →
+Recontacto + tarea vencida; ganado → solo la tarea.
+
+Lo que queda en manos de Sam: encender los agentes (y los créditos para
+sostenerlos) si quiere el rojo en **todos** los mensajes, no solo en los que
+vuelven.
+
 ## 🔴 Por qué no llegan las alertas rojas
 
 **No es un bug, y no tenía que ver con los dos usuarios.**
