@@ -40,6 +40,11 @@ import {
   readRecontactoTarget,
   type RouterClientRow,
 } from "../_shared/kommo-router.ts";
+import {
+  decidirReapertura,
+  leadsConMensajeEntrante,
+  type LeadCerradoLike,
+} from "../_shared/kommo-reapertura.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -235,6 +240,106 @@ async function routeNewLeads(
   }
 
   return { checked: leadIds.length, routed, healed, unknown };
+}
+
+/**
+ * SDD-0535 — el cliente volvió a escribir en un trato CERRADO.
+ *
+ * Kommo cuelga ese mensaje del trato en `Ventas Perdidos` y no crea uno nuevo,
+ * así que `routeNewLeads` nunca se entera (no hay `leads[add]`). Acá se pide
+ * cada trato con un mensaje entrante y, si está cerrado, se encola:
+ *   Perdido → `patch_stage` a Recontacto + `add_task` vencida (el rojo)
+ *   Ganado  → sólo `add_task`: no se reabre una venta (SDD-0244 §5)
+ *
+ * Mismo interruptor que el enrutador: sin `stage_map.recontacto` no hace nada.
+ * Mismo gate: sólo encola; escribe el drenaje si `writeback_dry_run` está apagado.
+ * Best-effort: nunca tira, porque el espejado es lo principal de este webhook.
+ */
+async function reabrirTratosCerrados(
+  supabase: SupabaseClient,
+  baseUrl: string,
+  token: string,
+  conn: ConnRow,
+  leadIds: number[],
+): Promise<Record<string, unknown>> {
+  const destino = readRecontactoTarget(conn.stage_map);
+  if (!destino) return { skipped: "sin stage_map.recontacto (inerte)" };
+  if (leadIds.length === 0) return { checked: 0 };
+
+  let reabiertos = 0;
+  let avisados = 0;
+  let sinCambio = 0;
+  let fallidos = 0;
+
+  for (const leadId of leadIds) {
+    try {
+      const lead = await kommoFetch<LeadCerradoLike>(
+        baseUrl,
+        token,
+        `/api/v4/leads/${leadId}`,
+      );
+      const decision = decidirReapertura(lead, destino, new Date().toISOString());
+      if (decision.kind === "nada") {
+        sinCambio++;
+        continue;
+      }
+
+      if (decision.kind === "reabrir") {
+        // Sin snapshot (`p_kommo_updated_at: null`), a propósito: cada mensaje
+        // entrante le sube el `updated_at` al trato (medido: 32 de 40, 1 a 5 s
+        // después del mensaje). Con snapshot, el segundo mensaje de una ráfaga
+        // haría que el drenaje saltee el cambio de etapa por «el lead cambió».
+        const { error } = await supabase.rpc("enqueue_kommo_writeback", {
+          p_tenant_id: conn.tenant_id,
+          p_kommo_lead_id: leadId,
+          p_op: "patch_stage",
+          p_payload: decision.etapa,
+          p_kommo_updated_at: null,
+        });
+        if (error) throw new Error(`patch_stage: ${error.message}`);
+      }
+
+      // Una tarea por episodio de cierre: el token la deduplica en la cola
+      // aunque lleguen varios mensajes antes de que el drenaje pase.
+      const { error: tareaErr } = await supabase.rpc("enqueue_kommo_writeback", {
+        p_tenant_id: conn.tenant_id,
+        p_kommo_lead_id: leadId,
+        p_op: "add_task",
+        p_payload: decision.tarea,
+        p_kommo_updated_at: null,
+        p_dedupe_token: decision.dedupeToken,
+      });
+      if (tareaErr) throw new Error(`add_task: ${tareaErr.message}`);
+
+      if (decision.kind === "reabrir") reabiertos++;
+      else avisados++;
+    } catch (e) {
+      fallidos++;
+      console.error("[kommo-webhook][reapertura] lead", leadId, errMsg(e));
+    }
+  }
+
+  return { checked: leadIds.length, reabiertos, avisados, sinCambio, fallidos };
+}
+
+/**
+ * Despierta el drenaje en vez de esperar al cron de 15 minutos.
+ *
+ * Gemelo de `nudgeWriteback` del Studio (`crm/actions.ts`): invoca nuestra propia
+ * función con la service key, no la API de Kommo. Corre después de responderle a
+ * Kommo (`EdgeRuntime.waitUntil`), así el webhook no espera el drenaje. Si el
+ * runtime no lo ofrece, el cron drena igual.
+ */
+function despertarDrenaje(supabase: SupabaseClient, tenantId: string): void {
+  const tarea = supabase.functions
+    .invoke("kommo-writeback", { body: { tenant_id: tenantId } })
+    .then(({ error }) => {
+      if (error) console.warn("[kommo-webhook] despertar el drenaje falló:", error.message);
+    })
+    .catch((e) => console.warn("[kommo-webhook] despertar el drenaje lanzó:", errMsg(e)));
+  const runtime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } })
+    .EdgeRuntime;
+  runtime?.waitUntil?.(tarea);
 }
 
 /** Aplica un lote de eventos de una entidad. Devuelve {fetched, upserted, deleted}. */
@@ -498,6 +603,25 @@ Deno.serve(async (req: Request) => {
         "[kommo-webhook][sdd-0288][mensajes]",
         JSON.stringify(summary.mensajes),
       );
+    }
+
+    // SDD-0535 — el cliente que escribe en un trato cerrado vuelve a Recontacto.
+    // Va DESPUÉS del estampado: lo que importa primero es que el ERP registre el
+    // mensaje. reabrirTratosCerrados no tira.
+    const leadsQueEscribieron = leadsConMensajeEntrante(mensajes);
+    if (leadsQueEscribieron.length > 0) {
+      const reapertura = await reabrirTratosCerrados(
+        supabase,
+        baseUrl,
+        token as string,
+        conn,
+        leadsQueEscribieron,
+      );
+      summary.reapertura = reapertura;
+      if (Number(reapertura.reabiertos ?? 0) + Number(reapertura.avisados ?? 0) > 0) {
+        console.log("[kommo-webhook][sdd-0535][reapertura]", JSON.stringify(reapertura));
+        despertarDrenaje(supabase, conn.tenant_id);
+      }
     }
 
     // SDD-0244 — enrutado del cliente que vuelve. Va DESPUÉS del espejado (que es
