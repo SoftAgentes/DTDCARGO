@@ -321,19 +321,12 @@ describe("SDD-0529 · 0480 (texto)", () => {
       "  p_operario_id uuid,\n  p_display_name text,\n  p_display_name_cn text,\n  p_role text,\n  p_warehouse_id uuid\n)");
   });
 
-  it("no aplicada: cabecera, espera en el baseline y declaración del símbolo que lee la app", () => {
+  it("aplicada al servidor propio el 2026-10-15: ya no es una espera ni una degradación declarada", () => {
+    // Aplicada con el OK nominal de Sam; el ledger guarda el archivo entero. La
+    // cabecera «NO APLICADA» no se corrige: editarla rompería la identidad.
     expect(FILE_0480).toContain("-- ⚠️ NO APLICADA A PRODUCCIÓN.");
-    const wait = BASELINE.pendingBelowCutoff["0480_operarios_editar_por_region"];
-    expect(wait).toBeDefined();
-    expect(wait).toContain("MIGRATE-FIRST");
-    expect(wait).toContain("name exacto 0480_operarios_editar_por_region");
-    const declaration = DECLARATIONS.degradations.find((d) => d.migration === "0480_operarios_editar_por_region");
-    expect(declaration?.primarySymbol).toBe("operario_roles_por_region");
-    expect(declaration?.symbols.map((s) => s.name)).toEqual(["operario_roles_por_region"]);
-    const [site] = declaration!.symbols[0].callSites;
-    const [path, line] = site.split(":");
-    expect(path).toBe("lib/studio/operario-queries.ts");
-    expect(read(resolve(ROOT, path)).split("\n")[Number(line) - 1]).toContain('supabase.rpc("operario_roles_por_region")');
+    expect(BASELINE.pendingBelowCutoff["0480_operarios_editar_por_region"]).toBeUndefined();
+    expect(DECLARATIONS.degradations.some((d) => d.migration === "0480_operarios_editar_por_region")).toBe(false);
   });
 });
 
