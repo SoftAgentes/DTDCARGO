@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 518 specs)
+### Índice de specs (generado · 519 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -555,7 +555,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0529 | Editar operarios de Venezuela: rol de su región, sin almacén,… | in-progress | interno |
 | 0530 | Naviera: al zarpar el contenedor, los envíos de los clientes … | in-progress | interno |
 | 0531 | Ocultar nombres de clientes al equipo de China en Tracking y … | in-progress | interno |
+| 0532 | Autorizar una consolidación de Naviera deja de fallar siempre… | in-progress | interno |
 | 0534 | Siete acciones R3 del Studio dejan de fallar siempre: correla… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0532, 0533 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0533 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
