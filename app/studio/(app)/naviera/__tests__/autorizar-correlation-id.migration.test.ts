@@ -165,12 +165,8 @@ describe("SDD-0532 · 0482 correlation_id de la autorización Naviera (texto)", 
     expect(FILE_0482).toContain("set lock_timeout = '5s';\nset statement_timeout = '30s';\n");
   });
 
-  it("es una espera declarada hasta que Sam la autorice por nombre", () => {
-    const entry = BASELINE.pendingBelowCutoff["0482_naviera_autorizar_correlation_id"];
-    expect(entry).toBeDefined();
-    for (const text of ["SDD-0532", "OK nominal de Sam", "aplicar-migraciones-prod.md"]) {
-      expect(entry).toContain(text);
-    }
+  it("aplicada al servidor propio el 2026-10-15 con el OK nominal de Sam: ya no es una espera", () => {
+    expect(BASELINE.pendingBelowCutoff["0482_naviera_autorizar_correlation_id"]).toBeUndefined();
   });
 });
 
