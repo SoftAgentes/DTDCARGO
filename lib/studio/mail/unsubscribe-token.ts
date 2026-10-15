@@ -18,6 +18,7 @@
  */
 
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { firstConfiguredSecret } from "@/lib/runtime/server-secret";
 import { openToken, sealToken, type SealOptions } from "@/lib/shared/signed-token";
 
 export type UnsubscribeAudience = "marketing" | "newsletter";
@@ -132,11 +133,20 @@ export function buildUnsubscribeUrl(siteUrl: string, token: string): string {
  * Secreto del server para firmar/verificar (NUNCA al cliente). Dedicado si existe,
  * sino el service-role key (ya presente en prod → sin gate nuevo). `null` si no hay
  * ninguno (el route responde error claro; no se manda marketing sin esto igual).
+ *
+ * SDD-0523: una variable vacía o con sólo espacios cuenta como ausente. Con `??`
+ * una `EMAIL_UNSUBSCRIBE_SECRET=` vacía sellaba los tokens con la clave `""`.
  */
 export function unsubscribeSecret(): string | null {
-  return (
-    process.env.EMAIL_UNSUBSCRIBE_SECRET ??
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    null
+  return firstConfiguredSecret(
+    process.env.EMAIL_UNSUBSCRIBE_SECRET,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
+}
+
+/** De dónde sale `unsubscribeSecret()`, para el log. No dice nada del valor. */
+export function unsubscribeSecretSource(): "dedicated" | "service_role" | null {
+  if (firstConfiguredSecret(process.env.EMAIL_UNSUBSCRIBE_SECRET)) return "dedicated";
+  if (firstConfiguredSecret(process.env.SUPABASE_SERVICE_ROLE_KEY)) return "service_role";
+  return null;
 }
