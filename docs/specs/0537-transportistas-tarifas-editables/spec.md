@@ -117,6 +117,8 @@ cambia la RLS, no modifica `audit_d5_residual_change` (función propia).
 - `app/studio/(app)/admin/page.tsx` (sólo `?tab=transportistas`)
 - `app/studio/(app)/admin/carrier-actions.ts`
 - `app/studio/(app)/admin/__tests__/carrier-tariff-actions.test.ts` (nuevo)
+- `app/studio/(app)/admin/__tests__/carrier-actions-usuario-suspendido.test.ts` (sólo
+  siembra la ciudad del catálogo que el alta ahora exige; la aserción no cambia)
 - `lib/studio/freight-carriers/types.ts`
 - `lib/studio/__tests__/freight-carriers-types.test.ts`
 - `supabase/migrations/0490_carrier_tariffs_auditoria.sql` (nuevo, NO APLICADA)
