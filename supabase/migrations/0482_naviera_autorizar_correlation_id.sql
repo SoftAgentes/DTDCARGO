@@ -47,27 +47,22 @@
 -- No se toca nada más: el resto del cuerpo es el de 0322, byte a byte.
 --
 -- ── Locks de esta migración ─────────────────────────────────
--- Sólo catálogo: reemplaza el cuerpo de una función y reafirma su owner y su
--- ACL. No toca filas ni toma locks de tabla. lock_timeout 5 s y
--- statement_timeout 30 s con set de sesión, como 0322.
+-- Sólo catálogo: reemplaza el cuerpo y el comentario de una función. No toca
+-- filas ni toma locks de tabla. lock_timeout 5 s y statement_timeout 30 s con
+-- set de sesión, como 0322.
 -- ─────────────────────────────────────────────────────────────────────────────
 set lock_timeout = '5s';
 set statement_timeout = '30s';
 
 -- Aborta sin cambiar nada si la RPC no es la de 0322 (md5 del prosrc con
--- CRLF→LF, o sin espacios), si perdió SECURITY DEFINER o el search_path
--- sellado, o si falta el writer AUD-01.
+-- CRLF→LF, o sin espacios), o si perdió SECURITY DEFINER o el search_path
+-- sellado. El writer AUD-01 no se vuelve a exigir: la 0322 aplicada ya lo
+-- exigió (0322:12-15) y su cuerpo lo llama.
 do $preflight$
 declare
   v_md5 text;
   v_md5_normalized text;
 begin
-  if to_regprocedure(
-    'public.append_audit_event(uuid,text,uuid,text,uuid,text,text,text,text,jsonb,jsonb,jsonb,text,integer,text)'
-  ) is null then
-    raise exception '0482 requiere el writer AUD-01 append_audit_event';
-  end if;
-
   select pg_catalog.md5(pg_catalog.replace(p.prosrc, E'\r\n', E'\n')),
          pg_catalog.md5(pg_catalog.regexp_replace(p.prosrc, '\s', '', 'g'))
     into v_md5, v_md5_normalized
@@ -82,7 +77,7 @@ begin
     raise exception '0482 abortado: authorize_consolidation_governed falta o no es SECURITY DEFINER con search_path vacío';
   end if;
   if v_md5 <> 'e65455c17974c8b3ec78044085bca67e'
-     and v_md5_normalized <> '3730b203e44360c98bfc8e95248db311' then
+     and v_md5_normalized <> '18176835d747fcf8fb49a639579b27f3' then
     raise exception '0482 abortado: authorize_consolidation_governed tiene otro cuerpo (md5 %, sin espacios %); revisar antes de aplicar',
       v_md5, v_md5_normalized;
   end if;
@@ -265,17 +260,14 @@ begin
 end;
 $function$;
 
-alter function public.authorize_consolidation_governed(uuid, text, text)
-  owner to postgres;
-revoke all on function public.authorize_consolidation_governed(uuid, text, text)
-  from public, anon, service_role;
-grant execute on function public.authorize_consolidation_governed(uuid, text, text)
-  to authenticated;
-
+-- CREATE OR REPLACE conserva el owner y la ACL que dejó 0322 (postgres;
+-- EXECUTE sólo para authenticated). No se reafirman: si producción los tiene
+-- distintos, el postflight aborta y se revisa antes de aplicar.
 comment on function public.authorize_consolidation_governed(uuid, text, text) is
   'SDD-0232: autorización R3 de consolidación con rol, tenant, correlativo, idempotencia y AUD-01 atómicos. SDD-0532: correlation_id con md5 de la referencia, 97 caracteres.';
 
--- El cuerpo instalado es el de esta migración, con la misma seguridad y ACL.
+-- El cuerpo instalado es el de esta migración, con la seguridad, el owner y
+-- la ACL de 0322.
 do $postflight$
 begin
   if not exists (
