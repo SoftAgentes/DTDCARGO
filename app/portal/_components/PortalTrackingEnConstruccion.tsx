@@ -55,8 +55,9 @@ export function PortalTrackingEnConstruccion({
           </p>
           <p className="mt-2 text-[13.5px] text-grey-700 leading-[1.55] max-w-[65ch]">
             Estamos activando el registro de tu mercancía en nuestra bodega de
-            China. Muy pronto vas a ver aquí cada paso de tu carga. Tus
-            pre-alertas quedan guardadas y nuestro equipo las recibe.
+            China. Muy pronto vas a ver aquí cada paso de tu carga. Te
+            avisaremos apenas esté activo. Tus pre-alertas quedan guardadas y
+            nuestro equipo las recibe.
           </p>
           <Link
             href="/portal/soporte"
