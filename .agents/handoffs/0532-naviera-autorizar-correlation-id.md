@@ -148,6 +148,8 @@ prueba «deriva sólo de espacios». Desde ahí, los scripts se escriben con Wri
 | `7d05f715` | Merge de `origin/main@7075883e` (#224, #225): el driver resolvió el índice; docs:check, sdd:check, símbolos y el envoltorio (26/26) en verde después del merge |
 | `5251fb9c` | docs(handoff): SDD-0532 — PR #235 y SHA |
 | `40e9507e` | Merge de `origin/main@19d4128e` (#220, #226–#229, entre ellas la SDD-0528): la #235 había quedado CONFLICTING por el índice de specs. El driver lo resolvió; docs:check (513 specs), sdd:check, símbolos (0 rojo) y el envoltorio (26/26) en verde después del merge |
+| `6b9d2405` | docs(handoff): SDD-0532 — merge de main y validación posterior |
+| `560d8fea` | Merge de `origin/main@4b72d66a` (#232, SDD-0522, migración 0476): otra vez CONFLICTING sólo por el índice de specs; el baseline no chocaba porque la 0476 entró y salió de las esperas en la misma PR. docs:check (514 specs), sdd:check, símbolos (0 rojo) y envoltorio (26/26) en verde; la única espera nueva sigue siendo la 0482 |
 
 ## PR / BRANCH
 
