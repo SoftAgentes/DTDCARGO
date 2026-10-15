@@ -9,11 +9,23 @@
  * en la de Venezuela, y al revés. La columna «Rol» muestra los cuatro roles de
  * la base (operario, supervisor, bodeguero, camionero); antes todo lo que no
  * era supervisor salía como «Operario».
+ *
+ * SDD-0520: las columnas se ajustan arrastrando el borde del encabezado (o con
+ * las flechas sobre el asa) y el ancho queda guardado en este navegador. La
+ * columna «Operario» tiene un mínimo que deja leer el nombre y «Entra por …»;
+ * si la suma no cabe, la tabla hace scroll horizontal en vez de aplastar el
+ * nombre. Los botones de la fila son `studio-btn-xs`.
  */
 
 import { useState, type CSSProperties } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import {
+  ColumnResizeHandle,
+  useColumnWidths,
+  type ColumnWidthsController,
+} from "@/app/studio/_components/ui/columns/ColumnResize";
+import type { ColumnWidthSpec } from "@/app/studio/_components/ui/columns/column-widths";
 import { Icon } from "@/app/studio/_components/icons";
 import type { OperarioRow } from "@/lib/studio/operario-queries";
 import type { WarehouseCN } from "@/lib/studio/warehouse-cn-types";
@@ -33,10 +45,44 @@ type RowActions = {
   onEdit: (op: OperarioRow) => void;
 };
 
-// La columna de acciones lleva «Ver PIN», «Restablecer PIN» y el lápiz. Los
-// botones no se parten (nowrap): si algún día no caben, se ve el desborde en vez
-// de crecer la fila en silencio.
-const GRID_COLUMNS = "1fr 130px 130px 160px 90px 290px";
+/**
+ * Columnas de la tabla (SDD-0520). Anchos en px, múltiplos de 4, MEDIDOS en
+ * Chromium con la tipografía real (la tabla de medidas está en la spec): el
+ * mínimo de cada columna deja leer su peor caso.
+ *
+ * - «Operario» absorbe el espacio libre mientras nadie la ajuste (como antes),
+ *   pero con piso de 260 px: avatar 36 + gap 12 + «Entra por
+ *   dtdcargo.com/m/cn/login», que mide 209,8 px con JetBrains Mono. Por debajo
+ *   de eso la tabla hace scroll horizontal; ya no se aplasta a «L…».
+ * - Si el usuario la ajusta, queda exacta y el espacio libre pasa a «Acciones»,
+ *   que va al final y no se ajusta: «Ver PIN» + «Restablecer PIN» + lápiz en
+ *   xs miden 223,4 px con sus gaps. Los botones no se parten (nowrap): si algún
+ *   día no caben, se ve el desborde en vez de crecer la fila.
+ * - Con los defaults la tabla pide 944 px: cabe en el contenido del Studio con
+ *   una ventana de 1280 px (968 px útiles).
+ */
+export const OPERARIOS_COLUMNS: readonly ColumnWidthSpec[] = [
+  { key: "operario", label: "Operario", defaultWidth: 260, minWidth: 260, maxWidth: 640, grow: true },
+  { key: "warehouse", label: "Warehouse", defaultWidth: 88, minWidth: 72, maxWidth: 240 },
+  { key: "rol", label: "Rol", defaultWidth: 104, minWidth: 88, maxWidth: 200 },
+  { key: "ultimo_login", label: "Último login", defaultWidth: 96, minWidth: 80, maxWidth: 200 },
+  { key: "activo", label: "Activo", defaultWidth: 64, minWidth: 48, maxWidth: 120 },
+  {
+    key: "acciones",
+    label: "Acciones",
+    defaultWidth: 232,
+    minWidth: 232,
+    maxWidth: 232,
+    resizable: false,
+    grow: true,
+  },
+];
+
+/** Clave versionada: si cambia el formato de lo guardado, se sube a -v2. */
+export const OPERARIOS_COLUMN_WIDTHS_KEY = "dtd-operarios-col-widths-v1";
+
+const GRID_GAP = 12;
+const PAD_X = 20;
 
 export function OperariosClient({
   operarios,
@@ -47,6 +93,7 @@ export function OperariosClient({
 }) {
   const [drawer, setDrawer] = useState<DrawerKind>(null);
   const [selected, setSelected] = useState<OperarioRow | null>(null);
+  const columns = useColumnWidths(OPERARIOS_COLUMN_WIDTHS_KEY, OPERARIOS_COLUMNS);
 
   const openNew = () => {
     setSelected(null);
@@ -74,15 +121,29 @@ export function OperariosClient({
           flexWrap: "wrap",
         }}
       >
-        <div
-          style={{
-            font: "500 12.5px/1.4 var(--f-sans)",
-            color: "var(--ink-soft)",
-          }}
-        >
-          {operarios.length === 0
-            ? "Aún no hay operarios."
-            : `${operarios.length} ${operarios.length === 1 ? "operario" : "operarios"}`}
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)", flexWrap: "wrap" }}>
+          <div
+            style={{
+              font: "500 12.5px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+            }}
+          >
+            {operarios.length === 0
+              ? "Aún no hay operarios."
+              : `${operarios.length} ${operarios.length === 1 ? "operario" : "operarios"}`}
+          </div>
+          {/* Sólo aparece cuando hay algo que restablecer: un botón deshabilitado
+              sin explicación no ayuda (BTN-01 §6). */}
+          {operarios.length > 0 && columns.customized && (
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-xs"
+              onClick={columns.resetAll}
+              title="Vuelve todas las columnas a su ancho original"
+            >
+              Restablecer columnas
+            </button>
+          )}
         </div>
         <button
           type="button"
@@ -111,6 +172,7 @@ export function OperariosClient({
       ) : (
         <OperariosTable
           operarios={operarios}
+          columns={columns}
           onResetPin={openFor("reset")}
           onReactivar={openFor("reactivar")}
           onVerPin={openFor("ver")}
@@ -145,10 +207,18 @@ export function OperariosClient({
 // Tabla
 // ─────────────────────────────────────────────────────────────
 
+const HEADER_PAD_Y = 10;
+
 function OperariosTable({
   operarios,
+  columns,
   ...actions
-}: { operarios: OperarioRow[] } & RowActions) {
+}: { operarios: OperarioRow[]; columns: ColumnWidthsController } & RowActions) {
+  // Piso de la tabla: si el contenedor es más angosto, scroll horizontal (el
+  // nombre no se aplasta). Encabezado y filas usan el mismo `columns.template`.
+  const minWidth =
+    columns.totalWidth + GRID_GAP * (columns.specs.length - 1) + PAD_X * 2;
+
   return (
     <div
       style={{
@@ -158,44 +228,83 @@ function OperariosTable({
         overflow: "hidden",
       }}
     >
-      {/* Header columnas */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: GRID_COLUMNS,
-          gap: 12,
-          padding: "10px 20px",
-          font: "700 9.5px/1 var(--f-sans)",
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: "var(--ink-soft)",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--bg-elevated)",
-        }}
-      >
-        <span>Operario</span>
-        <span>Warehouse</span>
-        <span>Rol</span>
-        <span>Último login</span>
-        <span>Activo</span>
-        <span style={{ textAlign: "right" }}>Acciones</span>
-      </div>
+      <div style={{ overflowX: "auto" }}>
+        <div style={{ minWidth }}>
+          {/* Header columnas */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: columns.template,
+              gap: GRID_GAP,
+              padding: `${HEADER_PAD_Y}px ${PAD_X}px`,
+              font: "700 9.5px/1 var(--f-sans)",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--ink-soft)",
+              borderBottom: "1px solid var(--border)",
+              background: "var(--bg-elevated)",
+            }}
+          >
+            {columns.specs.map((spec) => (
+              <div
+                key={spec.key}
+                style={{
+                  position: "relative",
+                  minWidth: 0,
+                  textAlign: spec.key === "acciones" ? "right" : undefined,
+                }}
+              >
+                <span
+                  style={{
+                    display: "block",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {spec.label}
+                </span>
+                <ColumnResizeHandle
+                  controller={columns}
+                  columnKey={spec.key}
+                  gap={GRID_GAP}
+                  insetBlock={HEADER_PAD_Y}
+                />
+              </div>
+            ))}
+          </div>
 
-      {operarios.map((op, i) => (
-        <OperarioRowItem key={op.id} op={op} first={i === 0} {...actions} />
-      ))}
+          {operarios.map((op, i) => (
+            <OperarioRowItem
+              key={op.id}
+              op={op}
+              first={i === 0}
+              template={columns.template}
+              {...actions}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
 
+const ellipsis: CSSProperties = {
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
 function OperarioRowItem({
   op,
   first,
+  template,
   onResetPin,
   onReactivar,
   onVerPin,
   onEdit,
-}: { op: OperarioRow; first: boolean } & RowActions) {
+}: { op: OperarioRow; first: boolean; template: string } & RowActions) {
   const initials = op.display_name
     .split(/\s+/)
     .map((p) => p[0]?.toUpperCase() ?? "")
@@ -204,14 +313,18 @@ function OperarioRowItem({
   const lastLogin = op.last_login_at
     ? formatDateTime(op.last_login_at)
     : "Nunca";
+  const fullName = op.display_name_cn
+    ? `${op.display_name} · ${op.display_name_cn}`
+    : op.display_name;
+  const loginLabel = operarioLoginLabel(op.region);
 
   return (
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: GRID_COLUMNS,
-        gap: 12,
-        padding: "12px 20px",
+        gridTemplateColumns: template,
+        gap: GRID_GAP,
+        padding: `12px ${PAD_X}px`,
         alignItems: "center",
         borderTop: first ? 0 : "1px solid var(--border)",
         opacity: op.active ? 1 : 0.55,
@@ -236,13 +349,13 @@ function OperarioRowItem({
           {initials || "??"}
         </span>
         <div style={{ minWidth: 0 }}>
+          {/* Si el ancho no alcanza, el nombre completo queda en el title. */}
           <div
+            title={fullName}
             style={{
               font: "700 13px/1.2 var(--f-sans)",
               color: "var(--ink)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              ...ellipsis,
             }}
           >
             {op.display_name}
@@ -259,38 +372,43 @@ function OperarioRowItem({
             ) : null}
           </div>
           <div
+            title={`Entra por ${loginLabel}`}
             style={{
               font: "500 11.5px/1.3 var(--f-sans)",
               color: "var(--ink-soft)",
               marginTop: 3,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
+              ...ellipsis,
             }}
           >
             Entra por{" "}
             <span style={{ font: "600 11.5px/1.3 var(--f-mono)", color: "var(--ink)" }}>
-              {operarioLoginLabel(op.region)}
+              {loginLabel}
             </span>
           </div>
         </div>
       </div>
 
       {/* Warehouse */}
-      <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}>
+      <span
+        title={op.warehouse_code ?? undefined}
+        style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)", ...ellipsis }}
+      >
         {op.warehouse_code ?? "—"}
       </span>
 
       {/* Rol */}
-      <Badge tone={op.role === "supervisor" ? "wine" : "neutral"} size="sm">
-        {operarioRolLabel(op.role)}
-      </Badge>
+      <div style={{ minWidth: 0 }}>
+        <Badge tone={op.role === "supervisor" ? "wine" : "neutral"} size="sm">
+          {operarioRolLabel(op.role)}
+        </Badge>
+      </div>
 
       {/* Last login */}
       <span
         style={{
           font: "500 12px/1.2 var(--f-sans)",
           color: op.last_login_at ? "var(--ink-soft)" : "var(--ink-mute)",
+          ...ellipsis,
         }}
       >
         {lastLogin}
@@ -299,13 +417,13 @@ function OperarioRowItem({
       {/* Active toggle */}
       <ActiveToggle op={op} onReactivar={onReactivar} />
 
-      {/* Acciones */}
+      {/* Acciones · tamaño xs (SDD-0520): textos y nombres accesibles de siempre */}
       <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", whiteSpace: "nowrap" }}>
         <button
           type="button"
           onClick={() => onVerPin(op)}
           aria-label={`Ver PIN de ${op.display_name}`}
-          className="studio-btn studio-btn-ghost studio-btn-sm"
+          className="studio-btn studio-btn-ghost studio-btn-xs"
         >
           Ver PIN
         </button>
@@ -313,7 +431,7 @@ function OperarioRowItem({
           type="button"
           onClick={() => onResetPin(op)}
           aria-label={`Restablecer PIN de ${op.display_name}`}
-          className="studio-btn studio-btn-ghost studio-btn-sm"
+          className="studio-btn studio-btn-ghost studio-btn-xs"
         >
           Restablecer PIN
         </button>
@@ -321,7 +439,8 @@ function OperarioRowItem({
           type="button"
           onClick={() => onEdit(op)}
           aria-label="Editar"
-          className="studio-btn studio-btn-ghost studio-btn-sm"
+          title="Editar"
+          className="studio-btn studio-btn-ghost studio-btn-xs"
           style={{ padding: "6px 10px" }}
         >
           {Icon.edit(13)}

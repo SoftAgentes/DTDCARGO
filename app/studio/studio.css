@@ -1407,3 +1407,45 @@ details[open] > .calc-why-summary .calc-why-chev {
   background: var(--wine-tint);
   color: var(--wine-text);
 }
+
+/* ───────────────────────────────────────────────────────────
+   Asa para ajustar el ancho de una columna · SDD-0520
+   `ColumnResizeHandle` (ui/columns/ColumnResize.tsx). La geometría (top,
+   bottom, right, width) va inline porque depende del gap y del padding de
+   cada tabla; acá van el cursor, la línea y sus estados. La línea en reposo
+   es un divisor decorativo; hover, foco y arrastre la pintan con
+   --wine-text, que pasa 3:1 en claro y en oscuro.
+   ─────────────────────────────────────────────────────────── */
+.studio-col-resize {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.studio-col-resize::before {
+  content: "";
+  width: 1px;
+  height: 100%;
+  background: var(--border-strong);
+  transition: background var(--dur-fast) var(--ease), width var(--dur-fast) var(--ease);
+}
+.studio-col-resize:hover::before,
+.studio-col-resize:focus-visible::before,
+.studio-col-resize[data-resizing="true"]::before {
+  width: 2px;
+  background: var(--wine-text);
+}
+.studio-col-resize:focus-visible {
+  outline: 2px solid var(--wine-text);
+  outline-offset: -2px;
+  border-radius: var(--r-xs);
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-col-resize::before {
+    transition: none;
+  }
+}
