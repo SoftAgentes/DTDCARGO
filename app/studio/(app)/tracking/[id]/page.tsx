@@ -380,6 +380,7 @@ export default async function ShipmentDetailPage({
         shipmentId={shipment.id}
         shipmentCode={shipment.code}
         status={shipment.status}
+        canDelete={canSpecial(roleRow?.role, "delete_shipments")}
       />
     </div>
   );
