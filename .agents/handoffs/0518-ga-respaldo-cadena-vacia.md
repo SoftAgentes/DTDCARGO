@@ -164,3 +164,13 @@ para anotarla. Worktree:
 - Sesiones consumidoras: ninguna aparte de esta. Ownership: el claim
   `worker-0518-ga-respaldo-cadena-vacia` se libera al terminar el push y la PR, y
   el reporte al Director lo confirma. No se eliminan el worktree ni la rama.
+
+## CIERRE DE INTEGRACIÓN (Director, 2026-10-15)
+
+- **Merge:** PR #216, merge `103cfdaf` a las 22:51:38Z del 2026-10-14, con `--match-head-commit a1a60510` y el OK de Sam («ok, fusiona la #215, #216 y #217»).
+- Deploy de las tres PR (#215, #216 y #217): «Deployment has completed», el último a las 23:07Z del 2026-10-14. La imagen Docker de main se construye en cada merge (workflow «Imagen Docker»; la última, de `1b19ba5c`, salió en success).
+- **Comprobado por el Director en el servidor propio** (2026-10-15, alrededor de las 03:55Z, HTML y JS públicos):
+  - `G-25CD7BZH98` está en un chunk JS de `nuevo.dtdcargo.com` (`1812jytps5u6r.js`), igual que en `dtdcargo.com` (`0bmkfo8qcfl67.js`); en ninguno de los dos está en el HTML inicial, porque `NEXT_PUBLIC_*` se inlinea en el cliente;
+  - GA ya no queda apagado en la imagen Docker.
+  - *No verificado:* si en ese build el ID salió del respaldo o de la variable de repositorio `NEXT_PUBLIC_GA_ID`, que creó la sesión de Contabo. Desde afuera no se distingue.
+- Los criterios ya estaban marcados con evidencia de pruebas. Estado de la tarea: **integrada**.

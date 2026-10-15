@@ -4,7 +4,7 @@ title: "Portal: el detalle de compra no promete avisos mientras el seguimiento e
 status: done
 author: "Claude"
 created: 2026-10-14
-updated: 2026-10-14
+updated: 2026-10-15
 supersedes: null
 superseded_by: null
 related: ["0514"]
@@ -149,3 +149,9 @@ Detalle en el handoff `.agents/handoffs/0516-compra-texto-sin-promesa.md`.
 - **Deploy:** «Deployment has completed» a las 19:56:36Z.
 - **Smoke en producción: PASÓ.** Sam, literal: «ya hice el smoke del Portal, funciona todo».
 - Fuera de alcance que queda abierto: `app/registro/RegisterForm.tsx:787` también promete un aviso por WhatsApp «cuando llega a bodega». Estado de la tarea: **integrada**.
+
+## Nota posterior (2026-10-15)
+
+- La [SDD-0521](../0521-tracking-en-construccion-aviso/spec.md), PR #221, agrega al aviso «Seguimiento en construcción» la frase «Te avisaremos apenas esté activo», aprobada por Sam con estas palabras: «sí, agrega «Te avisaremos apenas esté activo» y corrige los textos públicos».
+- El aviso aparece también en el detalle de una compra. Por eso la prueba de esta spec, `app/portal/(app)/compras/[code]/page.test.tsx`, admite esa frase exacta una sola vez y sólo dentro del aviso. Cualquier otra promesa de aviso en el detalle de compra sigue fallando el criterio 1: un mutante que repite la frase tumba la prueba.
+- El criterio 1 de esta spec se lee con esa salvedad.

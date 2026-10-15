@@ -275,3 +275,10 @@ Sobre el árbol de trabajo encima de `origin/main` `3086befb`.
   - Ownership: claim liberado al terminar la escritura (`release --owner
     worker-0519-servicios-sin-promesa-bodega`). No hay sesiones consumidoras de
     este worktree. No borrar worktree ni rama hasta que la PR se integre.
+
+## CIERRE DE INTEGRACIÓN (Director, 2026-10-15)
+
+- **Merge:** PR #217, merge `281675ea` a las 23:05:30Z del 2026-10-14, con `--match-head-commit 066102cd` y el OK de Sam («ok, fusiona la #215, #216 y #217»).
+- Deploy de las tres PR (#215, #216 y #217): «Deployment has completed», el último a las 23:07Z del 2026-10-14.
+- **Smoke en producción de `/servicios`: PASÓ.** Sam, literal: «ya probé /registro y /servicios, funcionan».
+- «Ves el estado de tu compra en todo momento» (`components/servicios/hub-fichas.tsx`) sigue anotado fuera de alcance, también en la SDD-0521. Estado de la tarea: **integrada**.
