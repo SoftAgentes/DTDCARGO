@@ -23,6 +23,9 @@ import { defaultAddon } from "@/lib/studio/prealertas/addons";
 import { PREALERTA_DESCRIPCION_PENDIENTE } from "@/lib/studio/prealertas/types";
 import { ArrowIcon } from "@/components/Icon";
 import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
+import { listMyPortalAvisos } from "@/lib/portal/portal-avisos-queries";
+import { historialDesdeAviso } from "@/lib/portal/portal-avisos";
+import { PortalNotificationHistory } from "../../../_components/PortalNotificationHistory";
 import { PrealertaStatusBadge } from "../../../_components/PrealertaStatusBadge";
 import { PortalTrackingEnConstruccion } from "../../../_components/PortalTrackingEnConstruccion";
 import { PackingListDelProveedor } from "./_components/PackingListDelProveedor";
@@ -81,7 +84,7 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
   });
   if (!prealerta) notFound();
 
-  const [cajas, proveedores, servicios, recepcion, packing] = await Promise.all([
+  const [cajas, proveedores, servicios, recepcion, packing, avisos] = await Promise.all([
     listPredeclaredBoxes(supabase, prealerta.id),
     listSuppliers(supabase, { markbox: client.markbox }),
     listPrealertaServiceRequests(supabase, { markbox: client.markbox }),
@@ -96,6 +99,9 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
       prealerta.id,
       client.markbox,
     ),
+    // SDD-0526 · los avisos ya enviados de ESTA compra, con la sesión del
+    // cliente (RPC 0479): la base vuelve a exigir que la compra sea suya y viva.
+    listMyPortalAvisos(supabase, { prealertaId: prealerta.id, limit: 50 }),
   ]);
 
   const proveedor = prealerta.supplier_id
@@ -418,6 +424,17 @@ export default async function PortalPurchaseDetailPage({ params }: Props) {
       ) : (
         <EsperandoPackingList code={prealerta.code} />
       )}
+
+      {/* SDD-0526 · Historial de avisos de esta compra, igual que el del envío.
+          Se oculta si no hay. */}
+      {avisos.length > 0 ? (
+        <div className="mt-6">
+          <PortalNotificationHistory
+            items={avisos.map(historialDesdeAviso)}
+            descripcion="El historial de notificaciones de esta compra."
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
