@@ -44,6 +44,30 @@ export interface ClientDomainEvent {
   eventTime?: Date;
 }
 
+/**
+ * SDD-0524 · por qué se programó (o no) un aviso. Un `scheduled: 0` puede
+ * querer decir cosas opuestas —«el tenant no quiere este aviso» o «el aviso
+ * chocó con uno anterior y se descartó»— y sin separarlas el llamador no puede
+ * decir la verdad en la bitácora.
+ */
+export type MotivoProgramacion =
+  /** Quedó en la agenda. */
+  | "programado"
+  /** 23505: esa ancla ya tenía un aviso de este evento y esta regla (0389). */
+  | "duplicado"
+  /** No hay regla activa para el evento: decisión del tenant. */
+  | "sin_regla"
+  /** La regla elegida tiene canal `none`: decisión del tenant. */
+  | "regla_apagada"
+  /** Regla anclada a ETA/ETD sin fecha disponible (una compra nunca la tiene). */
+  | "sin_fecha"
+  /** Falta la migración 0389 (aviso de compra). */
+  | "falta_migracion"
+  /** Sin Shipping Mark: no hay a quién resolver. */
+  | "sin_markbox"
+  /** Cualquier otro error al leer o insertar. */
+  | "error";
+
 export interface ScheduleResult {
   scheduled: number;
   skipped: number;
@@ -55,6 +79,11 @@ export interface ScheduleResult {
    * decirlo con esas palabras en vez de inventar una causa.
    */
   faltaMigracion?: boolean;
+  /**
+   * SDD-0524 · el motivo exacto. Opcional sólo para no romper a quien arma un
+   * `ScheduleResult` a mano (dobles de prueba); esta función lo pone siempre.
+   */
+  motivo?: MotivoProgramacion;
 }
 
 /** Códigos de Postgres que significan "la migr 0389 no está aplicada acá". */
@@ -74,7 +103,7 @@ export async function scheduleClientNotifications(
   ev: ClientDomainEvent,
 ): Promise<ScheduleResult> {
   try {
-    if (!ev.clientMarkbox) return { scheduled: 0, skipped: 0 };
+    if (!ev.clientMarkbox) return { scheduled: 0, skipped: 0, motivo: "sin_markbox" };
 
     // Resolver el cliente por markbox (para overrides + destino).
     const { data: client } = await admin
@@ -101,14 +130,14 @@ export async function scheduleClientNotifications(
       .or(orFilter);
 
     const rules = (rulesRaw ?? []) as ClientNotificationRule[];
-    if (rules.length === 0) return { scheduled: 0, skipped: 0 };
+    if (rules.length === 0) return { scheduled: 0, skipped: 0, motivo: "sin_regla" };
 
     // Precedencia: override del cliente gana al default del tenant.
     const chosen =
       rules.find((r) => r.client_id === clientId && clientId != null) ??
       rules.find((r) => r.client_id === null);
-    if (!chosen) return { scheduled: 0, skipped: 0 };
-    if (chosen.channel === "none") return { scheduled: 0, skipped: 1 };
+    if (!chosen) return { scheduled: 0, skipped: 0, motivo: "sin_regla" };
+    if (chosen.channel === "none") return { scheduled: 0, skipped: 1, motivo: "regla_apagada" };
 
     // Ancla + offset → scheduled_for.
     const anchorTime = await resolveAnchorTime(admin, ev, chosen.anchor);
@@ -119,7 +148,7 @@ export async function scheduleClientNotifications(
       console.warn(
         `[client-notif] regla ${chosen.id} anclada en '${chosen.anchor}' sin fecha disponible (${codigoDelAncla(ev.ancla)}) → skip`,
       );
-      return { scheduled: 0, skipped: 1 };
+      return { scheduled: 0, skipped: 1, motivo: "sin_fecha" };
     }
     const scheduledFor = new Date(
       anchorTime.getTime() + chosen.offset_minutes * 60_000,
@@ -180,7 +209,12 @@ export async function scheduleClientNotifications(
           "[client-notif] aviso de COMPRA no programado: falta aplicar la migración " +
             "0389_aviso_que_cuelga_de_la_compra. Hasta entonces sólo se avisa por envío.",
         );
-        return { scheduled: 0, skipped: 1, faltaMigracion: true };
+        return {
+          scheduled: 0,
+          skipped: 1,
+          faltaMigracion: true,
+          motivo: "falta_migracion",
+        };
       }
       if (insErr.code === "23505") {
         // Ya estaba programado (mismo envío+evento+regla) → idempotente.
@@ -199,10 +233,12 @@ export async function scheduleClientNotifications(
             .eq("rule_id", chosen.id)
             .eq("status", "scheduled");
         }
-        return { scheduled: 0, skipped: 1 };
+        // SDD-0524 · se dice que fue un duplicado: quien llama decide si eso
+        // es un cliente sin avisar (la recepción en Yiwu) y lo anota.
+        return { scheduled: 0, skipped: 1, motivo: "duplicado" };
       }
       console.error(`[client-notif] insert agenda falló:`, insErr.message);
-      return { scheduled: 0, skipped: 1 };
+      return { scheduled: 0, skipped: 1, motivo: "error" };
     }
 
     // Drain inline best-effort: entrega los inmediatos (offset ≤0) sin esperar al
@@ -211,10 +247,10 @@ export async function scheduleClientNotifications(
       console.error("[client-notif] drain inline falló:", err);
     });
 
-    return { scheduled: 1, skipped: 0 };
+    return { scheduled: 1, skipped: 0, motivo: "programado" };
   } catch (err) {
     console.error(`[client-notif] scheduleClientNotifications falló:`, err);
-    return { scheduled: 0, skipped: 0 };
+    return { scheduled: 0, skipped: 0, motivo: "error" };
   }
 }
 

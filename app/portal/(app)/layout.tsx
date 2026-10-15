@@ -15,6 +15,7 @@ import {
   type PortalSailing,
 } from "@/lib/portal/next-sailing-queries";
 import { showNortePortal } from "@/lib/portal/demo";
+import { listMyPortalAvisos } from "@/lib/portal/portal-avisos-queries";
 import { PortalShell } from "../_components/PortalShell";
 import { PortalCalcFab } from "../_components/PortalCalcFab";
 import { PortalPushRegister } from "../_components/PortalPushRegister";
@@ -70,6 +71,11 @@ export default async function PortalAppLayout({
   // Admin client scopeado por tenant (el cliente no tiene RLS sobre `sailings`).
   const { sailing, sailingDaysToCutoff } = await loadSailing(client.id);
 
+  // Bandeja de avisos de la campana (SDD-0526): los avisos ya enviados al
+  // cliente, con su sesión (RPC 0479, frontera de tenant y Shipping Mark en la
+  // base). Degrada a lista vacía: nunca tumba el portal.
+  const avisos = await listMyPortalAvisos(supabase);
+
   return (
     <div
       id="portal-shell"
@@ -87,6 +93,7 @@ export default async function PortalAppLayout({
         profileComplete={profile?.complete ?? true}
         sailing={sailing}
         sailingDaysToCutoff={sailingDaysToCutoff}
+        avisos={avisos}
       >
         {/* Mantenimiento programado (SDD-0505): solo con MAINTENANCE_NOTICE_START/END
             y hasta el fin de la ventana; sin variables no pinta nada. */}

@@ -1,29 +1,28 @@
 /**
- * Gate de EDICIÓN de `deleteShipment` y su fallo mudo (SDD-0497).
+ * `deleteShipment` de Tracking (SDD-0497 → SDD-0522).
  *
- * Era la única de las siete acciones de `tracking/[id]/actions.ts` sin
- * `moduleEditDenial` —las otras seis lo llaman— y la más destructiva: pone
- * `deleted_at` sobre `shipments`, y el trigger `cascade_soft_delete_events`
- * propaga a los eventos. El `requireModuleView("tracking")` del layout protege
- * la página, no la action; y la policy viva de `shipments` sólo compara
- * `tenant_id`.
+ * SDD-0497 le puso gate de edición y le quitó el fallo mudo. SDD-0522 cambia
+ * QUIÉN y CÓMO: borrar es de admin (`delete_shipments`), con motivo, y por la
+ * RPC `soft_delete_shipments_with_audit_reason` (migr 0476), que es la que
+ * decide si algo lo bloquea. La acción ya no escribe `shipments`: desde la 0476
+ * la base rechaza ese UPDATE directo.
  *
- * El segundo defecto era peor de leer: si el UPDATE fallaba, un `console.error`
- * se tragaba el error y la action redirigía IGUAL. El operador escribía el
- * código exacto del envío (doble confirmación estilo GitHub), aterrizaba en la
- * lista y se iba creyendo que había borrado. Acá se fija que el redirect ocurra
- * SÓLO cuando el borrado ocurrió.
+ * Lo que se conserva de SDD-0497: el redirect ocurre SÓLO cuando el borrado
+ * ocurrió, y cada fallo devuelve su motivo.
  *
- * Se usan el guard y la matriz REALES; sólo se reemplazan los bordes. `redirect`
- * se modela como lo que es en Next: una excepción de control de flujo.
+ * El doble (`user-tenants-double.ts`) APLICA `.eq`/`.is` y devuelve copias: un
+ * admin desactivado no pasa, porque `getStudioAccess` filtra `disabled_at`.
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { STUDIO_USER_ROLES, type StudioUserRole } from "@/lib/studio/user-types";
+import { shipmentDeleteBlockReason } from "@/lib/studio/borrado/reglas";
+import { supabaseDouble, type DoubleHandle, type MembershipRow, type Reply } from "@/lib/studio/__tests__/user-tenants-double";
 
 const TENANT = "tn-1";
-const SHIPMENT = "shp-1";
+const SHIPMENT = "11111111-1111-4111-8111-111111111111";
 const DENIAL = "No tienes permiso para realizar esta acción.";
+const RPC = "soft_delete_shipments_with_audit_reason";
 
 /** Marcador del `redirect()` de Next, que en producción también lanza. */
 const REDIRECT = Symbol("NEXT_REDIRECT");
@@ -40,67 +39,36 @@ vi.mock("@/lib/auth/session", () => ({
   getUser: async () => ({ id: "user-1" }),
   getUserTenantId: async () => TENANT,
 }));
-
-let overrides: Record<string, { view: boolean; edit: boolean }> = {};
 vi.mock("@/lib/studio/role-module-overrides-queries", () => ({
-  getRoleModuleOverrides: async () => overrides,
+  getRoleModuleOverrides: async () => ({}),
 }));
 
-// ── Cliente de la sesión ──────────────────────────────────────
-let sessionUser: { id: string } | null = null;
-let role: StudioUserRole | null = null;
-let updateError: { message: string } | null = null;
-/** Cada UPDATE que llegó a salir, con la tabla y el patch. */
-const updates: { table: string; patch: Record<string, unknown> }[] = [];
+let doble: DoubleHandle;
+let userId: string | null = "user-1";
+let memberships: MembershipRow[] = [];
+let rpcReply: Reply | ((args: Record<string, unknown>) => Reply) = { data: [], error: null };
 
-type Query = {
-  select: () => Query;
-  eq: () => Query;
-  is: () => Query;
-  limit: () => Query;
-  maybeSingle: () => Promise<{ data: unknown; error: null }>;
-};
-
-function sessionClient() {
-  return {
-    auth: { getUser: async () => ({ data: { user: sessionUser } }) },
-    from(table: string) {
-      const row =
-        table === "user_tenants" && role ? { tenant_id: TENANT, role } : null;
-      const query: Query = {
-        select: () => query,
-        eq: () => query,
-        is: () => query,
-        limit: () => query,
-        maybeSingle: async () => ({ data: row, error: null }),
-      };
-      return {
-        ...query,
-        update: (patch: Record<string, unknown>) => ({
-          eq: async () => {
-            updates.push({ table, patch });
-            return { error: updateError };
-          },
-        }),
-      };
-    },
-  };
-}
-
-vi.mock("@/lib/db/server", () => ({ createClient: async () => sessionClient() }));
+vi.mock("@/lib/db/server", () => ({
+  createClient: async () => {
+    doble = supabaseDouble({ userId, memberships, rpc: { [RPC]: rpcReply } });
+    return doble.client;
+  },
+}));
 
 const { deleteShipment } = await import("../[id]/actions");
 
-/**
- * Corre la action absorbiendo el `redirect`, que lanza. Devuelve o el valor
- * devuelto (fallo) o `{ redirectedTo }` (éxito). Que las dos salidas sean
- * distinguibles ES lo que esta spec arregla.
- */
-async function correr(): Promise<
+const fila = (outcome: string, blockers: Record<string, number> = {}, id = SHIPMENT) => ({
+  shipment_id: id,
+  code: "S-2026-0042",
+  outcome,
+  blockers,
+});
+
+async function correr(id = SHIPMENT, reason = "Embarque de prueba"): Promise<
   { value: Awaited<ReturnType<typeof deleteShipment>> } | { redirectedTo: string }
 > {
   try {
-    return { value: await deleteShipment(SHIPMENT) };
+    return { value: await deleteShipment(id, reason) };
   } catch (e) {
     if ((e as { digest?: symbol }).digest === REDIRECT) {
       return { redirectedTo: (e as { url: string }).url };
@@ -109,111 +77,135 @@ async function correr(): Promise<
   }
 }
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  updates.length = 0;
-  overrides = {};
-  sessionUser = { id: "user-1" };
-  role = "operations";
-  updateError = null;
+const membresia = (role: StudioUserRole, disabled_at: string | null = null): MembershipRow => ({
+  user_id: "user-1",
+  tenant_id: TENANT,
+  role,
+  disabled_at,
 });
 
-/**
- * Los que la matriz deja fuera de `tracking`. `support` sale de esta lista y
- * tiene su propio caso abajo, porque su motivo es otro: SÍ ve el módulo, pero
- * `canEditModule` lo rechaza siempre (read-only V1).
- */
-const ROLES_SIN_TRACKING = STUDIO_USER_ROLES.filter(
-  (r) =>
-    !["admin", "commercial", "operations", "accounting", "warehouse", "support"].includes(
-      r,
-    ),
-);
+beforeEach(() => {
+  vi.clearAllMocks();
+  userId = "user-1";
+  memberships = [membresia("admin")];
+  rpcReply = { data: [fila("deleted")], error: null };
+});
 
-describe("deleteShipment · el candado que faltaba", () => {
-  it.each(ROLES_SIN_TRACKING)(
-    "rol %s: no borra el envío y recibe el motivo",
+describe("deleteShipment · sólo admin", () => {
+  it.each(STUDIO_USER_ROLES.filter((r) => r !== "admin"))(
+    "rol %s: no llama a la RPC y recibe el motivo",
     async (r) => {
-      role = r;
+      memberships = [membresia(r)];
 
       const res = await correr();
 
       expect(res).toEqual({ value: { error: DENIAL } });
-      expect(updates).toHaveLength(0);
+      expect(doble.rpcCalls).toEqual([]);
       expect(redirectMock).not.toHaveBeenCalled();
+      expect(revalidatePathMock).not.toHaveBeenCalled();
     },
   );
 
-  it("support ve Tracking pero es read-only: tampoco borra", async () => {
-    role = "support";
+  it("un admin DESACTIVADO tampoco (el doble filtra disabled_at)", async () => {
+    memberships = [membresia("admin", "2026-10-01T00:00:00Z")];
 
-    const res = await correr();
-
-    expect(res).toEqual({ value: { error: DENIAL } });
-    expect(updates).toHaveLength(0);
+    expect(await correr()).toEqual({ value: { error: DENIAL } });
+    expect(doble.rpcCalls).toEqual([]);
   });
 
-  it("sin sesión tampoco borra", async () => {
-    sessionUser = null;
-    role = null;
+  it("sin sesión tampoco", async () => {
+    userId = null;
 
-    const res = await correr();
-
-    expect(res).toEqual({ value: { error: DENIAL } });
-    expect(updates).toHaveLength(0);
-  });
-
-  it("denegado no revalida ninguna ruta", async () => {
-    role = "marketing";
-
-    await correr();
-
-    expect(revalidatePathMock).not.toHaveBeenCalled();
+    expect(await correr()).toEqual({ value: { error: DENIAL } });
+    expect(doble.rpcCalls).toEqual([]);
   });
 });
 
-describe("deleteShipment · el fallo ya no es mudo", () => {
-  it("si el UPDATE falla, devuelve el motivo y NO redirige", async () => {
-    updateError = { message: "permission denied for table shipments" };
+describe("deleteShipment · entrada antes de la base", () => {
+  it("un código en vez de un id no llega a la RPC", async () => {
+    const res = await correr("S-2026-0042");
+
+    expect(res).toEqual({ value: { error: "Este envío no es válido. Recarga la página." } });
+    expect(doble.rpcCalls).toEqual([]);
+  });
+
+  it.each(["", "   ", "abc", "x".repeat(1001)])("motivo %j: no llega a la RPC", async (motivo) => {
+    const res = await correr(SHIPMENT, motivo);
+
+    expect(res).toHaveProperty("value.error");
+    expect(doble.rpcCalls).toEqual([]);
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteShipment · la RPC decide", () => {
+  it("borrado: llama con el id y el motivo recortado, revalida y recién ahí redirige", async () => {
+    const res = await correr(SHIPMENT, "  Embarque de prueba  ");
+
+    expect(res).toEqual({ redirectedTo: "/studio/tracking" });
+    expect(doble.rpcCalls).toEqual([{ name: RPC, args: { p_ids: [SHIPMENT], p_reason: "Embarque de prueba" } }]);
+    for (const ruta of ["/studio/embarques", "/studio/tracking", "/studio/resumen", "/studio/calendario"]) {
+      expect(revalidatePathMock).toHaveBeenCalledWith(ruta);
+    }
+    // Nunca escribe `shipments` directo: la base lo rechazaría.
+    expect(doble.writes).toEqual([]);
+  });
+
+  it("bloqueado: devuelve el mismo motivo que la casilla y NO redirige", async () => {
+    rpcReply = { data: [fila("blocked", { invoices: 1, expenses: 2 })], error: null };
 
     const res = await correr();
 
     expect(res).toEqual({
-      value: { error: "No pudimos eliminar el envío. Intenta de nuevo." },
+      value: { error: shipmentDeleteBlockReason({ bloqueos: { invoices: 1, expenses: 2 }, avisos: {} }) },
     });
+    expect(res).toHaveProperty("value.error", expect.stringContaining("1 factura sin anular"));
     expect(redirectMock).not.toHaveBeenCalled();
-    // Ni siquiera revalida: la lista no cambió.
     expect(revalidatePathMock).not.toHaveBeenCalled();
   });
 
-  it("el mensaje del fallo del UPDATE no se confunde con el de permiso", async () => {
-    updateError = { message: "boom" };
+  it("entregado: lo dice con su propio motivo", async () => {
+    rpcReply = { data: [fila("blocked", { delivered: 1 })], error: null };
 
-    const fallo = await correr();
-    updateError = null;
-    role = "support";
-    const permiso = await correr();
-
-    expect(fallo).not.toEqual(permiso);
+    expect(await correr()).toEqual({
+      value: { error: "No se puede eliminar: ya se entregó, y la entrega no se borra." },
+    });
   });
-});
 
-describe("deleteShipment · lado positivo", () => {
-  it("operations borra: marca deleted_at y recién ahí redirige", async () => {
-    const res = await correr();
+  it("no encontrado (otro tenant, inexistente): no redirige", async () => {
+    rpcReply = { data: [fila("not_found")], error: null };
 
-    expect(res).toEqual({ redirectedTo: "/studio/tracking" });
-    expect(updates).toHaveLength(1);
-    expect(updates[0].table).toBe("shipments");
-    expect(updates[0].patch).toHaveProperty("deleted_at");
+    expect(await correr()).toEqual({
+      value: { error: "Este envío ya no existe o ya se eliminó. Recarga la página." },
+    });
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("la base niega el permiso: el mensaje es de permiso, no de falla", async () => {
+    rpcReply = { data: null, error: { code: "42501", message: "borrado: solo un administrador…" } };
+
+    expect(await correr()).toEqual({
+      value: { error: "No tienes permiso para eliminar embarques. Solo un administrador puede hacerlo." },
+    });
+  });
+
+  it("una falla de la base no promete nada y no redirige", async () => {
+    rpcReply = { data: null, error: { code: "PGRST202", message: "function not found" } };
+
+    expect(await correr()).toEqual({
+      value: { error: "No se pudo eliminar. No se borró ningún embarque; intenta de nuevo." },
+    });
+    expect(redirectMock).not.toHaveBeenCalled();
+    expect(revalidatePathMock).not.toHaveBeenCalled();
+  });
+
+  it("una respuesta que no cuadra con lo pedido: no confirma, revalida y no redirige", async () => {
+    rpcReply = { data: [fila("deleted", {}, "22222222-2222-4222-8222-222222222222")], error: null };
+
+    expect(await correr()).toEqual({
+      value: { error: "No se pudo confirmar el borrado. Recarga la lista para ver cómo quedó." },
+    });
+    expect(redirectMock).not.toHaveBeenCalled();
     expect(revalidatePathMock).toHaveBeenCalledWith("/studio/tracking");
-    expect(revalidatePathMock).toHaveBeenCalledWith("/studio/resumen");
-  });
-
-  it("admin también", async () => {
-    role = "admin";
-
-    expect(await correr()).toEqual({ redirectedTo: "/studio/tracking" });
-    expect(updates).toHaveLength(1);
   });
 });

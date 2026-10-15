@@ -8,7 +8,9 @@
  */
 
 import { createClient } from "@/lib/db/server";
-import { requireModuleView } from "@/lib/studio/rbac-guard";
+import { getStudioAccess, requireModuleView } from "@/lib/studio/rbac-guard";
+import { canSpecial } from "@/lib/studio/rbac";
+import { leerInfoRecepciones } from "@/lib/studio/borrado/servidor";
 import { listClients } from "@/lib/studio/client-queries";
 import {
   computeWarehouseKpis,
@@ -17,10 +19,11 @@ import {
   parseReceiptFiltersFromSearchParams,
 } from "@/lib/studio/warehouse-cn-queries";
 import { listCities } from "@/lib/studio/dispatch-routes-queries";
+import { canSeeClientNames as reglaNombresDeClientes } from "@/lib/studio/privacidad-cn";
 import { activeAlertShipmentIds } from "@/lib/studio/expense-alerts-queries";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { t } from "@/lib/i18n";
-import { AlmacenCnClient } from "./_components/AlmacenCnClient";
+import { AlmacenCnClient, type EliminacionRecepciones } from "./_components/AlmacenCnClient";
 import { HeaderActions } from "./_components/HeaderActions";
 import { WarehouseKpis } from "./_components/WarehouseKpis";
 
@@ -63,8 +66,14 @@ export default async function CnPage({
     userTenantRegion: ut?.region ?? null,
   });
   // Privacidad: el equipo CN (no-admin) NO ve el nombre real del importador VE,
-  // solo el MARKBOX. Admin (cualquier región) y users VE sí.
-  const canSeeClientNames = !(ut?.region === "cn" && ut?.role !== "admin");
+  // solo el MARKBOX. Admin (cualquier región) y users VE sí. La regla vive en
+  // lib/studio/privacidad-cn.ts (SDD-0531): Tracking y Naviera leen la misma.
+  const canSeeClientNames = reglaNombresDeClientes(ut);
+
+  // SDD-0522: eliminar recepciones es de admin. A quien puede se le lee qué
+  // bloquea cada una, con la misma regla que aplica el borrado.
+  const { role } = await getStudioAccess(supabase);
+  const puedeEliminar = canSpecial(role, "delete_warehouse_receipts");
 
   const [receipts, warehouses, clients, kpis, cities, alertShipmentSet] =
     await Promise.all([
@@ -78,6 +87,15 @@ export default async function CnPage({
       // Shipments con alerta de gastos activa → chip "Pendiente gastos" en la row.
       activeAlertShipmentIds(supabase),
     ]);
+
+  let eliminacion: EliminacionRecepciones | undefined;
+  if (puedeEliminar) {
+    const info = await leerInfoRecepciones(
+      supabase,
+      receipts.map((r) => r.id),
+    );
+    eliminacion = info === null ? { estado: "no_disponible" } : { estado: "lista", info };
+  }
 
   // Header: título queda compuesto "<prefijo> · 中国" — el sufijo 中国 va
   // siempre en CN como guiño visual (cuando el locale es zh-CN ya se dobla,
@@ -148,6 +166,7 @@ export default async function CnPage({
         filters={filters}
         alertShipmentIds={Array.from(alertShipmentSet)}
         canSeeClientNames={canSeeClientNames}
+        eliminacion={eliminacion}
       />
     </div>
   );

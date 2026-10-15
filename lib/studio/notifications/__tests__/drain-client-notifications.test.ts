@@ -72,6 +72,23 @@ function makeAdmin(cfg: Cfg) {
       },
       then: (resolve: (v: unknown) => unknown, reject?: (e: unknown) => unknown) => {
         if (mode === "update" && payload) finalUpdates.push({ payload });
+        // SDD-0524: el push lee la LISTA de vínculos y quién tiene suscripción
+        // (ya no `maybeSingle`). Este doble da el vínculo de `cfg.clientUser`
+        // con su suscripción; los casos de varios usuarios viven en
+        // push-varios-usuarios.test.ts, con el doble que filtra.
+        if (mode === "select" && table === "client_users") {
+          return Promise.resolve({
+            data: cfg.clientUser ? [cfg.clientUser] : [],
+            error: null,
+          }).then(resolve, reject);
+        }
+        if (mode === "select" && table === "user_push_subscriptions") {
+          const uid = cfg.clientUser?.auth_user_id;
+          return Promise.resolve({ data: uid ? [{ user_id: uid }] : [], error: null }).then(
+            resolve,
+            reject,
+          );
+        }
         return Promise.resolve({ error: null }).then(resolve, reject);
       },
     };

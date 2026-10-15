@@ -13,8 +13,22 @@ import {
 import { renderBolded } from "@/lib/text";
 import { ArrowIcon } from "@/components/Icon";
 import { serializeJsonLd } from "@/lib/public/json-ld";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
+
+/**
+ * SDD-0528 · mientras el seguimiento del Portal esté en construcción
+ * (SDD-0514), un término con variante `enConstruccion` explica el concepto sin
+ * prometer que el cliente lo sigue en el Portal. La misma elección alimenta la
+ * ficha y el JSON-LD, para que la página y su versión para buscadores digan lo
+ * mismo. Apagado el interruptor, vuelve el cuerpo de siempre.
+ */
+function cuerpoVigente(term: GlossaryTerm): string[] {
+  return TRACKING_EN_CONSTRUCCION && term.enConstruccion
+    ? term.enConstruccion.body
+    : term.body;
+}
 
 export const metadata: Metadata = {
   title: "Glosario de comercio exterior",
@@ -55,7 +69,7 @@ export default function GlosarioPage() {
       "@id": `${SITE_URL}/glosario#${t.id}`,
       name: t.term,
       alternateName: t.acronym,
-      description: t.body.join(" ").replace(/<\/?b>/g, ""),
+      description: cuerpoVigente(t).join(" ").replace(/<\/?b>/g, ""),
       url: `${SITE_URL}/glosario#${t.id}`,
       inDefinedTermSet: { "@id": `${SITE_URL}/glosario#terminos` },
     })),
@@ -186,7 +200,7 @@ function GlossaryEntry({ term }: { term: GlossaryTerm }) {
         {term.term}
         {term.acronym ? <span className="tag">{term.acronym}</span> : null}
       </h3>
-      {term.body.map((paragraph, i) => (
+      {cuerpoVigente(term).map((paragraph, i) => (
         <p key={i} className="gl-def">
           {renderBolded(paragraph)}
         </p>

@@ -23,6 +23,8 @@ vi.mock("@/lib/db/server", () => ({
 
 vi.mock("@/lib/studio/rbac-guard", () => ({
   moduleEditDenial: async () => mocks.denial,
+  // SDD-0522: el DELETE de un envío se gatea con `delete_shipments`.
+  capabilityDenial: async () => mocks.denial,
   moduleViewDenial: async (_client: unknown, moduleId: string) => {
     mocks.viewModules.push(moduleId);
     return mocks.viewDenial;
@@ -102,7 +104,7 @@ describe("API Studio · sesión y RBAC obligatorios", () => {
     expect(mocks.from).not.toHaveBeenCalled();
   });
 
-  it("rechaza PATCH y DELETE cuando el rol no puede editar tracking", async () => {
+  it("rechaza PATCH (sin editar tracking) y DELETE (sin delete_shipments) antes de consultar", async () => {
     mocks.user = { id: "user-1" };
     mocks.denial = "No tienes permiso para realizar esta acción.";
 

@@ -152,6 +152,18 @@ describe("RBAC: capabilities (SDD-0139)", () => {
     expect(canSpecial(undefined, "approve_money")).toBe(false);
   });
 
+  it("delete_shipments y delete_warehouse_receipts (SDD-0522): SOLO admin, como exige la 0476", () => {
+    for (const cap of ["delete_shipments", "delete_warehouse_receipts"] as const) {
+      expect(CAPABILITIES[cap]).toEqual([]);
+      expect(canSpecial("admin", cap)).toBe(true);
+      for (const r of NON_ADMIN) {
+        expect(canSpecial(r, cap), `${r} no debe ${cap}`).toBe(false);
+      }
+      expect(canSpecial(null, cap)).toBe(false);
+      expect(canSpecial(undefined, cap)).toBe(false);
+    }
+  });
+
   it("escucha_activa (SDD-0150): SOLO admin hoy (extensible por rol)", () => {
     expect(canSpecial("admin", "escucha_activa")).toBe(true);
     for (const r of NON_ADMIN) {

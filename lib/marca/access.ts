@@ -27,6 +27,7 @@ import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/db/admin";
 import { getUser } from "@/lib/auth/session";
 import { getRequestIp } from "@/lib/http/request-ip";
+import { firstConfiguredSecret } from "@/lib/runtime/server-secret";
 import { openToken, sealToken, type SealOptions } from "@/lib/shared/signed-token";
 
 export const MARCA_COOKIE = "dtd_marca";
@@ -74,13 +75,16 @@ export type CodeVerdict =
 /**
  * Secreto para sellar la cookie y salar la huella. Dedicado si existe; si no, el
  * service-role key (ya presente en prod → sin variable de entorno nueva que
- * configurar). Mismo criterio que `unsubscribeSecret()`.
+ * configurar). Mismo criterio que `unsubscribeSecret()`: vacía o con sólo
+ * espacios cuenta como ausente (SDD-0523). Con `??`, una `MARCA_ACCESS_SECRET=`
+ * vacía no caía al service role: el `!secret` la descartaba y `/marca` quedaba
+ * cerrada. Con sólo espacios, `"  "` se usaba como clave y cualquiera podía
+ * fabricar la cookie.
  */
 function marcaSecret(): string | null {
-  return (
-    process.env.MARCA_ACCESS_SECRET ??
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    null
+  return firstConfiguredSecret(
+    process.env.MARCA_ACCESS_SECRET,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
 }
 
