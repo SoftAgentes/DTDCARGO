@@ -8,6 +8,7 @@ import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { serializeJsonLd } from "@/lib/public/json-ld";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 
 /**
  * `/pre-alertas` — landing de la pre-alerta de carga (acción del portal).
@@ -35,8 +36,14 @@ import { serializeJsonLd } from "@/lib/public/json-ld";
  * una acción del portal (requiere sesión), no del sitio público.
  */
 
-const DESC =
-  "Pre-alerta tu carga antes de que salga de China: registra tu compra, define la modalidad de envío y sigue cada paso con tu Shipping Mark, desde la bodega en Yiwu hasta tu puerta en Venezuela.";
+/**
+ * SDD-0521 · mientras el seguimiento esté en construcción (SDD-0514), la
+ * descripción (metadatos, redes y JSON-LD) no dice que el cliente «sigue cada
+ * paso». Apagado el interruptor, vuelve la de siempre.
+ */
+const DESC = TRACKING_EN_CONSTRUCCION
+  ? "Pre-alerta tu carga antes de que salga de China: registra tu compra, define la modalidad de envío y tu Shipping Mark la identifica desde la bodega en Yiwu hasta tu puerta en Venezuela."
+  : "Pre-alerta tu carga antes de que salga de China: registra tu compra, define la modalidad de envío y sigue cada paso con tu Shipping Mark, desde la bodega en Yiwu hasta tu puerta en Venezuela.";
 
 export const metadata: Metadata = {
   title: "Pre-alertas",
@@ -108,10 +115,15 @@ export default function PreAlertasPage() {
                 Pre-alerta tu carga{" "}
                 <span className="accent">antes de que salga de China.</span>
               </h1>
+              {/* SDD-0521 · sin «tú sigues cada paso desde el portal» mientras
+                  el seguimiento esté en construcción (SDD-0514). */}
               <p className="pa-lead">
                 Avísanos que viene tu mercancía y define cómo debe viajar.
                 Nuestro equipo en Yiwu la recibe con tu Shipping Mark, la
-                revisa y la consolida — tú sigues cada paso desde el portal.
+                revisa y la consolida
+                {TRACKING_EN_CONSTRUCCION
+                  ? ". Te acompañamos hasta tu puerta."
+                  : " — tú sigues cada paso desde el portal."}
               </p>
               <div className="pa-hero-ctas">
                 <Link href="/entrar" className="btn btn-primary btn-lg">
@@ -372,7 +384,11 @@ export default function PreAlertasPage() {
                   </li>
                   <li>
                     <CheckIcon />
-                    Seguimiento de punta a punta desde el portal
+                    {/* SDD-0521 · sin promesa de seguimiento en el portal
+                        mientras esté en construcción (SDD-0514). */}
+                    {TRACKING_EN_CONSTRUCCION
+                      ? "Nuestro equipo la sigue de punta a punta"
+                      : "Seguimiento de punta a punta desde el portal"}
                   </li>
                 </ul>
                 <div className="pa-b-ctas">

@@ -15,6 +15,7 @@ import {
   matchesEditorialSearch,
 } from "@/lib/news/editorial";
 import type { NewsPostRow } from "@/lib/news/types";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 import { EditorialIcon } from "./EditorialIcon";
 import { NewsletterCard } from "./NewsletterCard";
 
@@ -31,7 +32,12 @@ const CATEGORY_DESCRIPTIONS: Record<NewsCategoria, string> = {
 };
 
 const QUICK_ACTIONS = [
-  { href: "/entrar", label: "Rastrear un envío" },
+  // SDD-0521 · mientras el seguimiento esté en construcción (SDD-0514), el
+  // acceso lleva al mismo lugar sin prometer rastreo.
+  {
+    href: "/entrar",
+    label: TRACKING_EN_CONSTRUCCION ? "Entrar a mi portal" : "Rastrear un envío",
+  },
   { href: "/fcl", label: "Ver referencia FCL" },
   { href: "/servicios/lcl", label: "Elegir LCL o FCL" },
   { href: "/servicios/inspeccion", label: "Verificar proveedor" },

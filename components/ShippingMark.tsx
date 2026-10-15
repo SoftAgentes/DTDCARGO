@@ -14,6 +14,7 @@
  * internacional); el identificador interno sigue siendo DTD-NNNN.
  */
 import type { ReactNode } from "react";
+import { TRACKING_EN_CONSTRUCCION } from "@/lib/portal/tracking-en-construccion";
 
 type Paso = { n: string; title: string; copy: string; icon: ReactNode };
 
@@ -91,8 +92,12 @@ const PASOS: Paso[] = [
   },
   {
     n: "06",
-    title: "Consolidamos y rastreas",
-    copy: "Se consolida con el resto de tu carga y empieza a verse en tu tracking, etapa por etapa.",
+    // SDD-0521 · mientras el seguimiento esté en construcción (SDD-0514), el
+    // paso no promete que la carga «empieza a verse en tu tracking».
+    title: TRACKING_EN_CONSTRUCCION ? "La consolidamos" : "Consolidamos y rastreas",
+    copy: TRACKING_EN_CONSTRUCCION
+      ? "Se consolida con el resto de tu carga y nuestro equipo la sigue etapa por etapa."
+      : "Se consolida con el resto de tu carga y empieza a verse en tu tracking, etapa por etapa.",
     icon: (
       <svg {...S}>
         <rect x="3" y="10" width="7" height="7" rx="1" />
