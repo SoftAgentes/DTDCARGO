@@ -536,9 +536,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0510 | El selector de «Generar Bill of Lading» filtra con las etique… | done | interno |
 | 0511 | Envíos y clientes eliminados fuera de los avisos, Kommo y el … | in-progress | interno |
 | 0512 | /back fuera de los buscadores: noindex en todo el back de con… | done | interno |
-| 0513 | Restablecer el PIN de un operario con uno generado y mostrarl… | in-progress | interno |
+| 0513 | Restablecer el PIN de un operario con uno generado y mostrarl… | done | interno |
 | 0514 | Portal: aviso de seguimiento en construcción | done | interno |
-| 0515 | PIN de operarios endurecido: matriz de módulos, «Ver PIN» con… | in-progress | interno |
+| 0515 | PIN de operarios endurecido: matriz de módulos, «Ver PIN» con… | done | interno |
 | 0516 | Portal: el detalle de compra no promete avisos mientras el se… | done | interno |
 | 0517 | Registro público: sin promesa de aviso de bodega mientras el … | in-progress | interno |
 | 0518 | Google Analytics y la etiqueta de Ads cargan aunque NEXT_PUBL… | in-progress | interno |
