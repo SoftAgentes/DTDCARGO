@@ -162,6 +162,22 @@ async function checkResend(): Promise<IntegrationHealth> {
 }
 
 // ─── Resend webhook ───────────────────────────────────────────
+
+/**
+ * 🔴 **El criterio de `checkResend`, más estricto con el código (SDD-0533).**
+ *
+ * `GET /webhooks` también responde 401 a la llave «Sending access»
+ * (`restricted_api_key`) y a la borrada o inválida. Antes cualquier 401/403
+ * salía verde, y con `RESEND_WEBHOOK_SECRET` configurado la fila «Resend
+ * webhook» seguía sana con la llave muerta.
+ *
+ * Sólo cuenta como sana sin poder leer la lista la pareja 401 +
+ * `restricted_api_key`. La referencia de errores de Resend usa el mismo `name`
+ * con 403 para «API key is not active», y esa llave no envía.
+ *
+ * La llave va únicamente en el header: el resultado no copia texto del cuerpo
+ * de Resend y aquí no se registra nada.
+ */
 async function checkResendWebhook(): Promise<IntegrationHealth> {
   const key = process.env.RESEND_API_KEY;
   const secret = process.env.RESEND_WEBHOOK_SECRET;
@@ -178,10 +194,13 @@ async function checkResendWebhook(): Promise<IntegrationHealth> {
     }
     return ok(r.latencyMs, `${hooks.length} webhook(s) activo(s)`);
   }
-  // Key Sending-scoped no puede listar /webhooks → 401/403, pero el webhook
+  // La llave de sólo envío existe pero no puede listar /webhooks: el webhook
   // puede estar configurado y activo (lo confirma el dashboard de Resend).
+  if (r.status === 401 && resendErrorName(r.body) === "restricted_api_key") {
+    return ok(r.latencyMs, "secret configurado · llave solo de envío, no puede listar webhooks");
+  }
   if (r.status === 401 || r.status === 403) {
-    return ok(r.latencyMs, "secret configurado · lista no legible con key Sending-scoped");
+    return err(r.latencyMs, `llave inválida o borrada · HTTP ${r.status}`);
   }
   return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
 }

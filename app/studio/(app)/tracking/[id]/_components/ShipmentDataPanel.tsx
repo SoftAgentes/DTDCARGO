@@ -15,10 +15,16 @@
  *    momento de crear el envio (form /nuevo). Cuando llegue el modulo de
  *    Clientes, estos se sincronizan, no se editan aca.
  *  - deleted_at: solo via boton "Eliminar envio".
+ *
+ * SDD-0531 · con `nombresOcultos` (región China, no admin) el envío llega sin
+ * nombre del cliente ni ubicación de entrega: no se pintan esos campos y el
+ * formulario guarda por `updateShipmentSinUbicacion`, que conserva la ubicación
+ * en el servidor en vez de pisarla con el campo vacío.
  */
 
 import { useActionState, useState } from "react";
 import { updateShipment, type ActionState } from "../actions";
+import { updateShipmentSinUbicacion } from "../datos-reservados-actions";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import {
   VEHICLE_CATEGORY_OPTIONS,
@@ -31,8 +37,16 @@ const initialState: ActionState = {};
 
 const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
 
-export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
-  const action = updateShipment.bind(null, shipment.id);
+export function ShipmentDataPanel({
+  shipment,
+  nombresOcultos = false,
+}: {
+  shipment: Shipment;
+  nombresOcultos?: boolean;
+}) {
+  const action = (
+    nombresOcultos ? updateShipmentSinUbicacion : updateShipment
+  ).bind(null, shipment.id);
   const [state, formAction, isPending] = useActionState(action, initialState);
   const [showChangeDest, setShowChangeDest] = useState(false);
   const canChangeDest = !TERMINAL_STATUSES.includes(shipment.status);
@@ -57,7 +71,8 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
 
   const isTerrestre = shipment.shipment_service === "transporte_terrestre";
   const showVehicle = isTerrestre || shipment.vehicle_category;
-  const showGps = isTerrestre || shipment.destination_gps;
+  const showGps = !nombresOcultos && (isTerrestre || shipment.destination_gps);
+  const showGpsReservado = nombresOcultos && isTerrestre;
 
   // Si hay GPS, intentamos detectar si es link o lat,long para mostrar el boton
   // "Abrir en Google Maps" con el href apropiado.
@@ -84,21 +99,23 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
           marginBottom: 6,
         }}
       >
-        <div>
-          <label className="studio-label" htmlFor="client_name">
-            <span style={{ marginRight: 6 }}>🔒</span> Cliente
-          </label>
-          <input
-            id="client_name"
-            name="client_name"
-            className="studio-input"
-            defaultValue={shipment.client_name ?? ""}
-            placeholder="—"
-            readOnly
-            disabled
-            title="El cliente se gestiona desde la base de clientes (futuro: sync con Excel)"
-          />
-        </div>
+        {!nombresOcultos && (
+          <div>
+            <label className="studio-label" htmlFor="client_name">
+              <span style={{ marginRight: 6 }}>🔒</span> Cliente
+            </label>
+            <input
+              id="client_name"
+              name="client_name"
+              className="studio-input"
+              defaultValue={shipment.client_name ?? ""}
+              placeholder="—"
+              readOnly
+              disabled
+              title="El cliente se gestiona desde la base de clientes (futuro: sync con Excel)"
+            />
+          </div>
+        )}
         <div>
           <label className="studio-label" htmlFor="client_markbox">
             <span style={{ marginRight: 6 }}>🔒</span> Shipping Mark
@@ -123,7 +140,9 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
           letterSpacing: "0.02em",
         }}
       >
-        Cliente y Shipping Mark vienen de la base de clientes — no se editan acá.
+        {nombresOcultos
+          ? "El Shipping Mark viene de la base de clientes — no se edita acá. Por privacidad, el nombre del cliente no se muestra en tu región."
+          : "Cliente y Shipping Mark vienen de la base de clientes — no se editan acá."}
       </p>
 
       <div
@@ -131,7 +150,7 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: 14,
-          marginBottom: showGps ? 8 : 14,
+          marginBottom: showGps || showGpsReservado ? 8 : 14,
         }}
       >
         <div>
@@ -186,6 +205,24 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
           />
         </div>
       </div>
+
+      {/* SDD-0531: la ubicación existe pero no se muestra; al guardar se conserva. */}
+      {showGpsReservado && (
+        <p
+          style={{
+            padding: "12px 14px",
+            background: "var(--bg-elevated)",
+            border: "1px dashed var(--border)",
+            borderRadius: 8,
+            margin: "0 0 14px",
+            font: "500 12px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          La ubicación de entrega no se muestra en tu región. Se conserva tal
+          cual al guardar.
+        </p>
+      )}
 
       {/* GPS destino — solo terrestre o si ya tiene valor */}
       {showGps && (

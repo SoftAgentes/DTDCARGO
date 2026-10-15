@@ -2,7 +2,8 @@
 # Smoke sin sesión de la web de DTD Cargo servida por el VPS (SDD-0505, paso 2).
 #
 #   smoke-web.sh --host nuevo.dtdcargo.com          # ensayo (miércoles 14)
-#   smoke-web.sh --host dtdcargo.com                # corte (jueves 15, T+5 y T+20)
+#   smoke-web.sh --host dtdcargo.com --www          # corte (jueves 15, T+5 y T+20):
+#                                                   # además, www → 301 a la raíz
 #   smoke-web.sh --host dtdcargo.com --ip 1.2.3.4   # otro servidor
 #
 # Pide todo a la IP del VPS con `--resolve`: mide el servidor aunque el DNS
@@ -17,11 +18,13 @@ set -uo pipefail
 
 HOST=""
 IP="217.216.54.70"
+WWW=0
 GA_ID="G-25CD7BZH98"
 while [ $# -gt 0 ]; do
   case "$1" in
     --host) HOST="${2:-}"; shift 2 ;;
     --ip) IP="${2:-}"; shift 2 ;;
+    --www) WWW=1; shift ;;
     -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
     *) echo "argumento desconocido: $1" >&2; exit 2 ;;
   esac
@@ -75,6 +78,18 @@ done
 
 csp=$(pedir -I "https://${HOST}/studio/login" | tr -d '\r' | grep -i '^content-security-policy:' | tr ';' '\n' | grep -i 'connect-src')
 printf '%s' "$csp" | grep -q 'supabase.dtdcargo.com' && pasa "CSP connect-src con supabase.dtdcargo.com" || falla "CSP connect-src sin supabase.dtdcargo.com"
+
+# --www: `www.<host>` responde con su propio certificado y 301 a la raíz,
+# conservando ruta y query (como Vercel).
+if [ "$WWW" = 1 ]; then
+  wemisor=$(echo | openssl s_client -connect "${IP}:443" -servername "www.${HOST}" 2>/dev/null | openssl x509 -noout -issuer -ext subjectAltName 2>/dev/null | tr '\n' ' ')
+  case "$wemisor" in
+    *"Let's Encrypt"*"www.${HOST}"*) pasa "certificado de Let's Encrypt con www.${HOST}" ;;
+    *) falla "certificado de www.${HOST}: «${wemisor:-ninguno}»" ;;
+  esac
+  wr=$(curl -s --max-time 30 --resolve "www.${HOST}:443:${IP}" -o /dev/null -w '%{http_code} %{redirect_url}' "https://www.${HOST}/tarifas?x=1")
+  [ "$wr" = "301 https://${HOST}/tarifas?x=1" ] && pasa "www.${HOST} → 301 a https://${HOST}/tarifas?x=1" || falla "www.${HOST}/tarifas?x=1 → ${wr} (esperado 301 a la raíz)"
+fi
 
 echo "== tiempos de la portada =="
 for _ in 1 2 3; do pedir -o /dev/null -w '  ttfb %{time_starttransfer}s total %{time_total}s\n' "https://${HOST}/"; done

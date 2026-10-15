@@ -62,6 +62,9 @@ import { BookingDrawer } from "./BookingDrawer";
 import { ConsolidationDrawer } from "./ConsolidationDrawer";
 import { AssignCargoDrawer } from "./AssignCargoDrawer";
 import { UtilizationBar, utilizationTone } from "./UtilizationBar";
+import { AvanceContenedorAccion } from "./AvanceContenedorAccion";
+import { AvanceContenedorResumen } from "./AvanceContenedorResumen";
+import type { ResumenAvanceContenedor } from "@/lib/studio/naviera/avance-por-contenedor";
 
 type Tab = "sailings" | "consolidation" | "loose" | "bookings";
 
@@ -89,6 +92,7 @@ export function NavieraClient({
   trackingByConsolidation,
   stuffingByConsolidation,
   plansByConsolidation,
+  nombresOcultos = false,
 }: {
   sailings: Sailing[];
   bookings: Booking[];
@@ -103,6 +107,12 @@ export function NavieraClient({
   /** Dónde quedó cada caja dentro de cada contenedor (SDD-0152 → 0155). */
   stuffingByConsolidation?: Record<string, StuffedBox[]>;
   plansByConsolidation?: Record<string, ConsolidationPlan>;
+  /**
+   * SDD-0531: el usuario no puede ver nombres de clientes (región China). Los
+   * datos ya llegan sin ellos; esto sólo saca el campo «Cliente» del cajón de
+   * asignar, donde lo que escribiera se ignoraría.
+   */
+  nombresOcultos?: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("consolidation");
   const [showNewSailing, setShowNewSailing] = useState(false);
@@ -324,6 +334,7 @@ export function NavieraClient({
           detail={assignTo}
           looseCargo={looseCargo}
           onClose={() => setAssignTo(null)}
+          nombresOcultos={nombresOcultos}
         />
       )}
     </div>
@@ -894,10 +905,14 @@ function ContainerDetail({
 }) {
   const c = detail.consolidation;
   const st = detail.stats;
-  // SDD-0311 · marcar arribado le escribe a los clientes del contenedor. La
-  // regla de trazabilidad del Studio pide dejar rastro de toda acción que muta
-  // con efecto afuera, y acá el efecto sale del sistema: son correos.
-  const toast = useToast();
+  // SDD-0530 · zarpar y arribar le escriben a los clientes del contenedor y
+  // avanzan sus envíos. El resumen se queda a la vista aquí, aunque el botón
+  // desaparezca al cambiar el estado: es el rastro de la acción.
+  const [ultimoAvance, setUltimoAvance] = useState<ResumenAvanceContenedor | null>(null);
+  const totalEnvios = new Set(
+    detail.items.map((i) => i.shipment_id).filter((id): id is string => !!id),
+  ).size;
+  const refContenedor = c.ref ?? "el contenedor";
   const sailing = c.sailing_id
     ? sailings.find((s) => s.id === c.sailing_id) ?? null
     : null;
@@ -989,52 +1004,32 @@ function ContainerDetail({
               />
             </div>
           )}
+          {/*
+            SDD-0530 · Zarpar y arribar avanzan los envíos del contenedor y les
+            escriben a sus clientes: por eso pasan por un diálogo que lo dice
+            antes. Los números del resumen salen del servidor (SDD-0311): son
+            los envíos que avanzaron y los avisos que quedaron en la agenda de
+            verdad, no la cantidad de ítems del contenedor.
+
+            SDD-0311 · `arribado` es el último escalón: sin él, el aviso «tu
+            carga llegó a Venezuela» no tenía quién lo disparara.
+          */}
           {c.status === "cerrado" && (
-            <ActionButton
-              variant="dark"
-              size="sm"
-              idleLabel="Marcar zarpado"
-              loadingLabel="Marcando…"
-              successLabel="Zarpado"
-              onAction={() => changeConsolidationStatus(c.id, "zarpado")}
+            <AvanceContenedorAccion
+              to="zarpado"
+              consolidationRef={refContenedor}
+              totalEnvios={totalEnvios}
+              onAvanzar={() => changeConsolidationStatus(c.id, "zarpado")}
+              onResumen={setUltimoAvance}
             />
           )}
-          {/*
-            SDD-0311 · El último escalón del contenedor. La cadena llegaba hasta
-            `zarpado` y ahí se cortaba, así que `arribado` era un estado que el
-            producto sabía nombrar pero nadie podía poner — y con él se quedaba
-            sin disparar el aviso «tu carga llegó a Venezuela».
-
-            El `title` no es adorno: este botón le escribe a TODOS los clientes
-            del contenedor. Quien lo aprieta tiene que saberlo antes, no después.
-          */}
           {c.status === "zarpado" && (
-            <ActionButton
-              variant="dark"
-              size="sm"
-              idleLabel="Marcar arribado"
-              loadingLabel="Marcando…"
-              successLabel="Arribado"
-              title="Avisa a los clientes del contenedor que su carga llegó a Venezuela"
-              onAction={async () => {
-                const r = await changeConsolidationStatus(c.id, "arribado");
-                if (r.error) return r;
-                // El número sale del servidor: son los avisos REALMENTE
-                // programados, no la cantidad de items del contenedor. No es lo
-                // mismo —dos items pueden ser del mismo cliente— y decir un
-                // número plausible es peor que no decir ninguno.
-                const n = r.avisados;
-                toast.success(
-                  n == null
-                    ? "Contenedor arribado"
-                    : n === 0
-                      ? "Contenedor arribado · ningún cliente recibió aviso"
-                      : n === 1
-                        ? "Contenedor arribado · le avisamos a 1 cliente"
-                        : `Contenedor arribado · les avisamos a ${n} clientes`,
-                );
-                return r;
-              }}
+            <AvanceContenedorAccion
+              to="arribado"
+              consolidationRef={refContenedor}
+              totalEnvios={totalEnvios}
+              onAvanzar={() => changeConsolidationStatus(c.id, "arribado")}
+              onResumen={setUltimoAvance}
             />
           )}
         </div>
@@ -1212,6 +1207,9 @@ function ContainerDetail({
           </div>
         )}
       </div>
+
+      {/* SDD-0530 · qué pasó con los envíos al zarpar o arribar. */}
+      {ultimoAvance && <AvanceContenedorResumen resumen={ultimoAvance} />}
 
       {/* Tracking en vivo desde SeaRates (SDD-0101 · Slice B.2) */}
       <LiveTrackingCard snapshot={snapshot} consolidationId={c.id} />

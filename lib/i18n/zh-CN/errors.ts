@@ -21,6 +21,12 @@ export const errors: ErrorsDict = {
   "error.cn_invalid_payment_status": "付款状态无效。",
   "error.cn_destination_required": "拼柜必须选择目的地城市。",
   "error.cn_bulk_max_exceeded": "每次批量操作最多 100 条收货。",
+  "error.cn_delete_reason_short": "请填写至少 4 个字符的原因。",
+  "error.cn_delete_reason_long": "原因不能超过 1000 个字符。",
+  "error.cn_delete_blocked": "未删除任何收货：所选中有 {count} 条无法删除。",
+  "error.cn_delete_not_found": "未删除任何收货：部分收货已不存在或已被删除。请刷新列表。",
+  "error.cn_delete_failed": "删除失败。未删除任何收货，请重试。",
+  "error.cn_delete_unconfirmed": "无法确认删除结果。请刷新列表查看当前状态。",
 
   // ── 用户 ─────────────────────────────────────────────────
   "error.user_email_invalid": "邮箱无效。",
