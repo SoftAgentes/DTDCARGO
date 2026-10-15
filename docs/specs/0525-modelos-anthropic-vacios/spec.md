@@ -39,11 +39,15 @@ Escucha Activa: …» a la acción de Bitácora, y el resumen mensual lo registr
 el log y salta la conversación (`monthly-digest.ts:99-106`). En la cascada, además, una
 `BITACORA_ESCUCHA_MODEL` vacía tapaba una `BITACORA_ACTA_MODEL` bien puesta.
 
-La plantilla del servidor propio (`infra/dtd-cargo/.env.example:116-118`) trae
-las tres vacías, y el runbook (`docs/runbooks/servidor-contabo.md:589`) ya decía
+La plantilla del servidor propio (`infra/dtd-cargo/.env.example:126-128`) trae
+las tres vacías, y el runbook (`docs/runbooks/servidor-contabo.md:589`) decía
 «`BITACORA_ACTA_MODEL` (vacío = `claude-sonnet-4-6`)», lo que en `a8d99acf` era
-falso. Según el encargo, el servidor no rompe hoy porque la sesión de Contabo
-quitó esas líneas vacías de su `.env`; esta spec quita la dependencia de eso.
+falso. La #224 (`818cccf0`, fusionada mientras esta PR estaba abierta) corrigió
+esa línea para decir que la vacía no cae al default y que se borra del `.env`, y
+registró en el runbook (§3.6, 2026-10-15 05:36Z) que se borraron del `.env` del
+servidor las líneas vacías que ningún compose interpola. Esta spec quita la
+dependencia de ese borrado; la línea del runbook quedó unida en el merge (ver
+Compatibilidad).
 *No verificado aquí:* el `.env` vivo del servidor (no se leyó) y el código de
 error exacto que devuelve la API con `model: ""` (no hay clave en este worktree
 y no se gasta una llamada para medirlo).
@@ -108,6 +112,10 @@ y no hace falta para esto.
   siguiente de la cascada o `claude-sonnet-4-6`.
 - Variable con espacios en los bordes: antes fallaba la llamada; ahora usa el
   valor recortado. El `model` que guarda el resumen mensual también sale recortado.
+- Operación del servidor: el arreglo sólo existe en una imagen construida con
+  esta spec. Por eso el runbook (`servidor-contabo.md:589`) dice las dos cosas:
+  desde la 0525 la línea vacía cae al default; con una imagen anterior no, y si
+  no hay modelo elegido la línea se borra del `.env` igual que las demás vacías.
 
 ## Fuera de alcance
 

@@ -7,7 +7,7 @@
 | Claim del harness | `f27c7d81-c2dd-4629-85bf-1ded3f6f7ed6` (el worktree no tenía claim previo) |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\funny-chatterjee-390769` |
 | Rama | `claude/nostalgic-grothendieck-e4f689` (nombre que le dio la app; sin upstream hasta el push) |
-| Base | `origin/main` `a8d99acf` (merge de la #223) |
+| Base | `origin/main` `a8d99acf` (merge de la #223); actualizada con merge de `818cccf0` (#224) por conflicto en el runbook |
 | SDD | [0525](../../docs/specs/0525-modelos-anthropic-vacios/spec.md), `in-progress`. Reservada con `corepack pnpm sdd:next --reserve modelos-anthropic-vacios` (rama local `codex/sdd-reserve-0525-modelos-anthropic-vacios`, commit `9edbfd15`, traída aquí por cherry-pick como `cb024acb`). Sin migración. |
 | Estado de la tarea | lista para revisión (PR contra main, sin fusionar) |
 | Permisos | commits selectivos, push de la rama propia y PR contra main, sin fusionar. Sin producción, sin servidor, sin variables de entorno, sin datos ni migraciones. `pnpm verify` no se corre sin turno del Director. |
@@ -44,13 +44,18 @@ no se tocó.
 ## Impacto documental y conocimiento
 
 - Documentos actualizados: spec 0525 (nueva), `docs/specs/README.md` (regenerado
-  con `pnpm docs:index`), `docs/runbooks/servidor-contabo.md:589` (la frase
-  «vacío = `claude-sonnet-4-6`» ahora es cierta y se extiende a las otras dos
-  variables) y `.env.example` (raíz: comentarios de `BITACORA_ACTA_MODEL` y del
-  bloque de modelos por tarea).
-- No se tocó `infra/dtd-cargo/.env.example:116-118`: ya dice que las variables
-  sin usar quedan vacías y la app «degrada con gracia», que con esta rama pasa a
-  ser cierto para los modelos.
+  con `pnpm docs:index`), `docs/runbooks/servidor-contabo.md:589` y `.env.example`
+  (raíz: comentarios de `BITACORA_ACTA_MODEL` y del bloque de modelos por tarea).
+- **Merge con la #224** (`818cccf0`, sesión de Contabo, fusionada con esta PR
+  abierta): corrigió la misma línea 589 para decir que la línea vacía NO cae al
+  default y que se borra del `.env`. Conflicto resuelto uniendo las dos: sin
+  definir = default; desde la 0525 la vacía también; con una imagen anterior no,
+  y si no hay modelo elegido la línea se borra igual. Commit `e7083946`.
+- No se tocó `infra/dtd-cargo/.env.example`. Su cabecera nueva (líneas 17-25,
+  de la #224) cita «los modelos de la bitácora» entre las variables que se leen
+  con `??`; deja de ser cierto cuando esta PR se integre, pero la instrucción
+  (borrar las vacías que ningún compose interpola) sigue valiendo. Ver FUERA DE
+  ALCANCE.
 - `pnpm knowledge:status` (exit 0, `ok: false`, revisión `c9047b2f`): structural
   INVALID con 4577 pendientes y 0 drifted, semantic INVALID con 1208 pendientes,
   archify PENDING, obsidian PENDING (0 conflictos, 42 advertencias). Igual que en
@@ -101,8 +106,10 @@ sdd:check; spec, handoff, push y PR sin fusionar.
 **COMMITS:**
 - `cb024acb` — chore(sdd): reserva SDD-0525 (cherry-pick del stub).
 - `c9047b2f` — fix(studio): helper, tres sitios y tres archivos de prueba.
-- Commit de documentación: spec 0525, índice regenerado, runbook y `.env.example`.
-- Commit de este handoff.
+- `e41f1170` — docs(sdd): spec 0525, índice regenerado, runbook y `.env.example`.
+- `ddd41d0d` — handoff.
+- `e7083946` — merge de `origin/main` (#224) con el conflicto del runbook resuelto.
+- Commit posterior: spec y handoff actualizados con el merge.
 
 **PR / BRANCH:** PR contra `main` desde `claude/nostalgic-grothendieck-e4f689`,
 sin fusionar. La URL va en el reporte a la sesión que encargó la tarea y se
@@ -127,6 +134,12 @@ empuja otro commit sólo para anotarla.
   descarta `""` (cae al mock), pero `"  "` pasaría como clave y daría error de
   autenticación en vez del mock. Es un secreto: le corresponde el helper de la
   0523 cuando esté en main, no este.
+- **Cabecera de `infra/dtd-cargo/.env.example:17-25`** (de la #224): nombra
+  «los modelos de la bitácora» y los cuatro secretos de la 0523 como lecturas con
+  `??` que no caen al respaldo. Cuando la 0523 y la 0525 estén en main, esa lista
+  queda vieja (quedarían `IDENTITY_CNE_PROVIDER` y `DTD_ATTACHMENTS_AWS_AUTH_MODE`).
+  Es archivo de la sesión de Contabo; ajustarla le toca a ella o al Director al
+  integrar.
 - Cuando la 0523 y la 0525 estén en main, `lib/runtime/` tendrá
   `firstConfiguredSecret` (no recorta) y `firstConfiguredSetting` (recorta), más
   el `nonEmpty` privado de `app-env.ts` (recorta). Si se quiere una sola fuente,
@@ -136,7 +149,7 @@ empuja otro commit sólo para anotarla.
 **HANDOFF AL DIRECTOR:**
 - Siguiente acción: revisar la PR. Toca tres archivos de código con el mismo
   cambio de una expresión, un helper nuevo, pruebas y tres líneas de
-  documentación operativa. No toca `lib/shared/`, contratos, migraciones ni
+  documentación operativa (una de ellas, la del runbook, unida con la #224). No toca `lib/shared/`, contratos, migraciones ni
   infraestructura.
 - Al integrar: el índice (`docs/specs/README.md`) tiene el driver de merge; si la
   0523 o la 0524 entran antes, regenerarlo con `pnpm docs:index`. Con la 0523 no
