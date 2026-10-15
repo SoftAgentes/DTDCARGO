@@ -7,45 +7,5 @@
     "degradar sin romper. Los sitios y fragmentos son verificados contra el árbol y no se infieren",
     "de try/catch. Elimina la declaración cuando la migración deje de estar pendiente."
   ],
-  "degradations": [
-    {
-      "id": "sdd-0522-borrado-embarques-recepciones",
-      "primarySymbol": "soft_delete_shipments_with_audit_reason",
-      "migration": "0476_borrado_embarques_recepciones",
-      "symbols": [
-        {
-          "name": "shipment_delete_blockers",
-          "kind": "function",
-          "callSites": ["lib/studio/borrado/servidor.ts:34", "lib/studio/borrado/servidor.ts:67"]
-        },
-        {
-          "name": "warehouse_receipt_cn_delete_blockers",
-          "kind": "function",
-          "callSites": ["lib/studio/borrado/servidor.ts:34", "lib/studio/borrado/servidor.ts:75"]
-        },
-        {
-          "name": "soft_delete_shipments_with_audit_reason",
-          "kind": "function",
-          "callSites": ["lib/studio/borrado/servidor.ts:80", "lib/studio/borrado/servidor.ts:104"]
-        },
-        {
-          "name": "soft_delete_warehouse_receipts_cn_with_audit_reason",
-          "kind": "function",
-          "callSites": ["lib/studio/borrado/servidor.ts:80", "lib/studio/borrado/servidor.ts:114"]
-        }
-      ],
-      "evidence": [
-        {
-          "site": "lib/studio/borrado/servidor.ts:45",
-          "contains": "if (error || !Array.isArray(data)) {",
-          "degradation": "Sin 0476 las lecturas no existen y PostgREST responde con error: leerInfoEmbarques y leerInfoRecepciones devuelven null, Embarques y Almacén CN muestran «No se pudo comprobar qué … se pueden eliminar. Recarga la página.» y no ofrecen casillas ni «Eliminar…». Nada se borra. Orden previsto: migrate-first (0476 antes del despliegue), con el que la ventana no existe."
-        },
-        {
-          "site": "lib/studio/borrado/servidor.ts:90",
-          "contains": "return { estado: \"error\", tipo: tipoDeError(error) };",
-          "degradation": "Sin 0476 las RPC de borrado no existen: deleteShipmentsAction, deleteShipment (Tracking), el DELETE de /api/studio/shipments/[id] y deleteReceiptsAction devuelven «No se pudo eliminar. No se borró ningún …» (o cn_delete_failed), sin revalidar y sin borrado a medias."
-        }
-      ]
-    }
-  ]
+  "degradations": []
 }
