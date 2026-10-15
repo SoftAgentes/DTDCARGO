@@ -59,7 +59,9 @@ describe("AVANCE", () => {
 
 describe("decidirAvance", () => {
   it("un servicio que no existe no avanza", () => {
-    expect(decidirAvance("consolidacion", "in_warehouse", "shipped")).toBe("servicio_sin_estado");
+    // Un nombre inventado: los nombres de antes de 0256 no se pueden escribir
+    // entre comillas en el repo (lib/shared/__tests__/shipment-public.test.ts).
+    expect(decidirAvance("maritimo_inexistente", "in_warehouse", "shipped")).toBe("servicio_sin_estado");
   });
   it("un estado que no existe no avanza", () => {
     expect(decidirAvance("consolidado_lcl", "perdido", "shipped")).toBe("estado_desconocido");

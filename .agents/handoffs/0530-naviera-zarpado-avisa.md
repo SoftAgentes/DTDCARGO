@@ -107,8 +107,20 @@ Sobre el árbol de trabajo de esta rama, base `a8d99acf`.
 | `node scripts/check-feature-constants.mjs` | PASÓ: 6 banderas |
 | `git diff --check` y archivos nuevos sin espacios finales | PASÓ |
 | `pnpm verify` completo | NO EJECUTADO: el turno pesado es de otro Worker; el CI de la PR es la evidencia |
+| CI de la PR, run `38701796920` sobre `f2dcd876` | FALLÓ en «Unitarios», 1 de 9760. Ver la nota de abajo |
+| CI sobre la corrección | pendiente al cerrar este documento: va en el mensaje al Director |
 | `/ui-check` (rúbrica aplicada a mano, sin agente) | OK para commit; abajo |
 | Smoke en pantalla | NO EJECUTADO: este worktree no tiene `.env` ni base, y la 0477 no está aplicada |
+
+**El rojo del CI, y por qué no lo vi en local.**
+
+- `lib/shared/__tests__/shipment-public.test.ts` prohíbe en todo el repo los nombres de servicio de
+  antes de 0256 entre comillas.
+- Mi prueba de «un servicio que no existe» usaba justo uno de esos nombres.
+- Ese contrato recorre el repo con `git grep` y no estaba en mis baterías: `vitest related` no lo
+  encuentra, porque no importa nada de lo tocado.
+- La corrección usa un nombre inventado (`maritimo_inexistente`) y conserva lo que se afirma. El
+  contrato y la prueba quedaron verdes en local: 2 archivos y 29 pruebas.
 
 ### Mutantes de app y lib (31)
 
@@ -222,7 +234,9 @@ Veredicto: OK para commit.
   les avisa.
 - `a43d4e8a` feat(studio): SDD-0530 — «Marcar zarpado» y «Marcar arribado» confirman y dejan el
   resumen de los envíos.
-- El commit que contiene este documento: spec, índice y handoff.
+- `f2dcd876` docs: SDD-0530 — spec, índice y handoff del zarpe que avanza los envíos.
+- El commit que contiene esta versión del documento: la prueba sin el nombre de servicio viejo
+  (el rojo del CI) y este handoff al día.
 
 ## PR / BRANCH
 
