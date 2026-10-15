@@ -126,7 +126,10 @@ describe("🔴 la medicion de valores NO puede vivir dentro de una rama", () => 
       "utf8",
     );
     const mide  = code.indexOf("const valores = valoresEnumerados(crudo);");
-    const rama  = code.indexOf("if (parsed.events.length === 0 && mensajes.length === 0)");
+    // SDD-0535 sumó las entradas de la bandeja a la condición de la salida temprana.
+    const rama  = code.indexOf(
+      "if (parsed.events.length === 0 && mensajes.length === 0 && entradas.length === 0)",
+    );
 
     expect(mide).toBeGreaterThan(-1);
     expect(rama).toBeGreaterThan(-1);
