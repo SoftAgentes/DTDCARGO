@@ -22,6 +22,19 @@
  *  - las RPC responden lo que diga el test (`rpcs`), con el store a la vista;
  *    una RPC no declarada falla como en PostgREST (PGRST202).
  *
+ * SDD-0524 le suma, sin cambiar lo anterior:
+ *
+ *  - `insert()` sobre su copia del store, con los índices únicos que declare
+ *    el test (`opciones.unicos`, parciales con `where`): un INSERT que choca
+ *    devuelve 23505 y NO escribe, como Postgres. Sin eso, el descarte por
+ *    duplicado del índice de la 0389 no existe en la prueba y el aviso «sale»;
+ *  - `opciones.rechazarInsert` para simular una columna que falta (42703) u
+ *    otro error de la base sin tocar el store;
+ *  - `opciones.fallarSelect` para que una lectura devuelva error y `data: null`,
+ *    como cuando PostgREST no responde: separa «no hay» de «no se pudo saber»;
+ *  - `or("a.is.null,a.eq.x")`, la única forma que usa el motor de avisos;
+ *  - `inserts`, en orden, con lo que se pidió escribir (haya entrado o no).
+ *
  * Es equivalente al de SDD-0509 (`listados-double.ts`, PR #203, todavía sin
  * fusionar al escribir esto). Cuando los dos estén en main conviene unirlos.
  * No es un motor SQL: alcanza para las cadenas de los lectores de esta SDD.
@@ -50,6 +63,29 @@ type Resultado = { data: unknown; error: ErrorPostgrest | null };
 
 export type Rpc = (args: Record<string, unknown>, store: Tablas) => Resultado;
 
+/** Un índice único (parcial si trae `where`), como los de la 0389. */
+export interface IndiceUnico {
+  nombre: string;
+  cols: string[];
+  where?: (fila: Fila) => boolean;
+}
+
+export interface InsertVisto {
+  table: string;
+  values: Fila;
+  /** `null` si entró; el error de la base si no. */
+  error: ErrorPostgrest | null;
+}
+
+export interface OpcionesDoble {
+  /** Índices únicos por tabla. */
+  unicos?: Record<string, IndiceUnico[]>;
+  /** Error que la base devuelve a un INSERT en esa tabla (no escribe). */
+  rechazarInsert?: (table: string, fila: Fila) => ErrorPostgrest | null;
+  /** Error que la base devuelve a toda lectura de esa tabla (`data: null`). */
+  fallarSelect?: (table: string) => ErrorPostgrest | null;
+}
+
 export interface DobleLectores {
   client: SupabaseClient;
   /** El estado de las tablas, con los `update` aplicados. */
@@ -58,6 +94,8 @@ export interface DobleLectores {
   filtros: FiltroVisto[];
   /** Updates pedidos, en orden. */
   updates: UpdateVisto[];
+  /** Inserts pedidos, en orden, con su resultado. */
+  inserts: InsertVisto[];
 }
 
 const copia = (fila: Fila): Fila => ({ ...fila });
@@ -92,15 +130,53 @@ function unaOninguna(filas: Fila[]): Resultado {
   return { data: filas[0] ? copia(filas[0]) : null, error: null };
 }
 
+/**
+ * `"client_id.is.null,client_id.eq.c-1"` → predicado. Solo `is.null` y `eq`:
+ * otra forma lanza, para que el doble no finja entender lo que no modela.
+ */
+function predicadoOr(expr: string): (r: Fila) => boolean {
+  const partes = expr.split(",").map((p) => p.trim()).filter(Boolean);
+  const preds = partes.map((p) => {
+    const m = /^(\w+)\.(is|eq)\.(.+)$/.exec(p);
+    if (!m) throw new Error(`doble: or(${expr}) sin modelar`);
+    const [, col, op, val] = m;
+    if (op === "is") {
+      if (val !== "null") throw new Error(`doble: or(${p}) sin modelar`);
+      return (r: Fila) => r[col] == null;
+    }
+    return (r: Fila) => r[col] != null && String(r[col]) === val;
+  });
+  return (r) => preds.some((pred) => pred(r));
+}
+
 export function dobleLectores(
   tablas: Tablas,
   rpcs: Record<string, Rpc> = {},
+  opciones: OpcionesDoble = {},
 ): DobleLectores {
   const store: Tablas = Object.fromEntries(
     Object.entries(tablas).map(([t, filas]) => [t, filas.map(copia)]),
   );
   const filtros: FiltroVisto[] = [];
   const updates: UpdateVisto[] = [];
+  const inserts: InsertVisto[] = [];
+  let secuencia = 0;
+
+  /** El índice único que esta fila violaría, o `null`. */
+  function choque(table: string, fila: Fila): IndiceUnico | null {
+    for (const idx of opciones.unicos?.[table] ?? []) {
+      if (idx.where && !idx.where(fila)) continue;
+      // En Postgres los NULL no chocan entre sí en un índice único.
+      if (idx.cols.some((c) => fila[c] == null)) continue;
+      const otra = (store[table] ?? []).find(
+        (r) =>
+          (!idx.where || idx.where(r)) &&
+          idx.cols.every((c) => r[c] != null && r[c] === fila[c]),
+      );
+      if (otra) return idx;
+    }
+    return null;
+  }
 
   function from(table: string) {
     const lanzar = (metodo: string) => () => {
@@ -151,6 +227,12 @@ export function dobleLectores(
             }
             return chain;
           },
+          or(expr: string) {
+            registrar("or", "*", expr);
+            const pred = predicadoOr(expr);
+            visibles = visibles.filter(pred);
+            return chain;
+          },
           lt(col: string, val: string | number) {
             registrar("lt", col, val);
             visibles = visibles.filter(
@@ -177,13 +259,17 @@ export function dobleLectores(
             return chain;
           },
           maybeSingle(): Promise<Resultado> {
+            const falla = opciones.fallarSelect?.(table) ?? null;
+            if (falla) return Promise.resolve({ data: null, error: falla });
             return Promise.resolve(unaOninguna(cortadas()));
           },
           then(resolve: (v: Resultado) => unknown, reject?: (e: unknown) => unknown) {
-            return Promise.resolve<Resultado>({
-              data: cortadas().map(copia),
-              error: null,
-            }).then(resolve, reject);
+            const falla = opciones.fallarSelect?.(table) ?? null;
+            return Promise.resolve<Resultado>(
+              falla
+                ? { data: null, error: falla }
+                : { data: cortadas().map(copia), error: null },
+            ).then(resolve, reject);
           },
         };
         return chain;
@@ -232,10 +318,42 @@ export function dobleLectores(
         };
         return chain;
       },
+      insert(values: Fila | Fila[]) {
+        const filas = (Array.isArray(values) ? values : [values]).map(copia);
+        // Todo o nada, como un INSERT de varias filas en Postgres.
+        let error: ErrorPostgrest | null = null;
+        for (const fila of filas) {
+          error = opciones.rechazarInsert?.(table, fila) ?? null;
+          if (error) break;
+          const idx = choque(table, fila);
+          if (idx) {
+            error = {
+              code: "23505",
+              message: `duplicate key value violates unique constraint "${idx.nombre}"`,
+            };
+            break;
+          }
+        }
+        for (const fila of filas) inserts.push({ table, values: copia(fila), error });
+        if (!error) {
+          store[table] = store[table] ?? [];
+          for (const fila of filas) {
+            if (fila.id == null) fila.id = `${table}-${++secuencia}`;
+            store[table].push(fila);
+          }
+        }
+        const resultado: Resultado = { data: null, error };
+        return {
+          then(resolve: (v: Resultado) => unknown, reject?: (e: unknown) => unknown) {
+            return Promise.resolve(resultado).then(resolve, reject);
+          },
+        };
+      },
       eq: lanzar("eq"),
       is: lanzar("is"),
       in: lanzar("in"),
       not: lanzar("not"),
+      or: lanzar("or"),
       order: lanzar("order"),
       limit: lanzar("limit"),
       maybeSingle: lanzar("maybeSingle"),
@@ -258,6 +376,7 @@ export function dobleLectores(
     store,
     filtros,
     updates,
+    inserts,
   };
 }
 

@@ -144,7 +144,11 @@ describe("PinViewDialog · motivo y contraseña", () => {
     expect(await screen.findByText(message)).toBeInTheDocument();
     expect(passwordInput()).toHaveValue("");
     expect(passwordInput()).toHaveAttribute("aria-invalid", "true");
-    expect(passwordInput()).toHaveFocus();
+    // El error, el fin de la transición (el campo se habilita) y el efecto que
+    // mueve el foco llegan en tandas distintas del Scheduler de React. Bajo carga,
+    // `findByText` volvía con el campo todavía deshabilitado y el foco en
+    // «Confirmando…». Se espera el foco en el campo, no se afirma a medio camino.
+    await waitFor(() => expect(passwordInput()).toHaveFocus());
     // El motivo elegido se conserva; la contraseña hay que escribirla de nuevo.
     expect(motivoSelect()).toHaveValue("olvido");
     expect(screen.getByRole("dialog", { name: `Ver PIN de ${OPERARIO.display_name}` })).toBeInTheDocument();
@@ -237,6 +241,10 @@ describe("PinViewDialog · el PIN", () => {
     render(<Harness />);
     await pedirPin(user);
     await screen.findByText("6083");
+    // El modal del PIN instala el listener de Escape en un efecto de la misma
+    // tanda que el que pone el foco en «Cerrar» (useDialogA11y). Sin esperar ese
+    // foco, bajo carga el Escape llegaba antes que el listener.
+    await waitFor(() => expect(screen.getByRole("button", { name: "Cerrar" })).toHaveFocus());
 
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
