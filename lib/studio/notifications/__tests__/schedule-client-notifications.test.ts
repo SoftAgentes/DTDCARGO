@@ -91,7 +91,7 @@ describe("scheduleClientNotifications", () => {
       ...EV,
       clientMarkbox: null,
     });
-    expect(res).toEqual({ scheduled: 0, skipped: 0 });
+    expect(res).toEqual({ scheduled: 0, skipped: 0, motivo: "sin_markbox" });
     expect(inserts).toHaveLength(0);
   });
 
@@ -102,6 +102,7 @@ describe("scheduleClientNotifications", () => {
     });
     const res = await scheduleClientNotifications(admin, "t-1", EV);
     expect(res.scheduled).toBe(1);
+    expect(res.motivo).toBe("programado");
     expect(inserts[0].scheduled_for).toBe("2026-01-01T00:00:00.000Z");
     expect(inserts[0].channel).toBe("email");
     expect(inserts[0].rule_id).toBe("r-def");
@@ -138,7 +139,7 @@ describe("scheduleClientNotifications", () => {
       rules: [{ id: "r", client_id: null, channel: "none", anchor: "event", offset_minutes: 0 }],
     });
     const res = await scheduleClientNotifications(admin, "t-1", EV);
-    expect(res).toEqual({ scheduled: 0, skipped: 1 });
+    expect(res).toEqual({ scheduled: 0, skipped: 1, motivo: "regla_apagada" });
     expect(inserts).toHaveLength(0);
   });
 
@@ -162,6 +163,7 @@ describe("scheduleClientNotifications", () => {
     const res = await scheduleClientNotifications(admin, "t-1", EV);
     expect(res.scheduled).toBe(0);
     expect(res.skipped).toBe(1);
+    expect(res.motivo).toBe("sin_fecha");
     expect(inserts).toHaveLength(0);
   });
 
@@ -172,7 +174,7 @@ describe("scheduleClientNotifications", () => {
       insertError: { code: "23505" },
     });
     const res = await scheduleClientNotifications(admin, "t-1", EV);
-    expect(res).toEqual({ scheduled: 0, skipped: 1 });
+    expect(res).toEqual({ scheduled: 0, skipped: 1, motivo: "duplicado" });
     // Actualizó scheduled_for de la fila aún 'scheduled' a la fecha fresca.
     expect(updates).toHaveLength(1);
     expect(updates[0].scheduled_for).toBe("2026-02-06T00:00:00.000Z");
@@ -185,15 +187,43 @@ describe("scheduleClientNotifications", () => {
       insertError: { code: "23505" },
     });
     const res = await scheduleClientNotifications(admin, "t-1", EV);
-    expect(res).toEqual({ scheduled: 0, skipped: 1 });
+    expect(res).toEqual({ scheduled: 0, skipped: 1, motivo: "duplicado" });
     expect(updates).toHaveLength(0);
   });
 
   it("sin reglas para el evento → no hace nada", async () => {
     const { admin, inserts } = makeAdmin({ client: { id: "c-1" }, rules: [] });
     const res = await scheduleClientNotifications(admin, "t-1", EV);
-    expect(res).toEqual({ scheduled: 0, skipped: 0 });
+    expect(res).toEqual({ scheduled: 0, skipped: 0, motivo: "sin_regla" });
     expect(inserts).toHaveLength(0);
+  });
+
+  it("SDD-0524 · otro error al insertar → motivo «error», no «duplicado»", async () => {
+    const { admin } = makeAdmin({
+      client: { id: "c-1" },
+      rules: [{ id: "r", client_id: null, channel: "email", anchor: "event", offset_minutes: 0 }],
+      insertError: { code: "XX000" },
+    });
+    const res = await scheduleClientNotifications(admin, "t-1", EV);
+    expect(res).toEqual({ scheduled: 0, skipped: 1, motivo: "error" });
+  });
+
+  it("SDD-0524 · aviso de compra sin la 0389 (42703) → motivo «falta_migracion»", async () => {
+    const { admin } = makeAdmin({
+      client: { id: "c-1" },
+      rules: [{ id: "r", client_id: null, channel: "email", anchor: "event", offset_minutes: 0 }],
+      insertError: { code: "42703" },
+    });
+    const res = await scheduleClientNotifications(admin, "t-1", {
+      ...EV,
+      ancla: { kind: "prealerta", prealertaId: "p-1", prealertaCode: "DTD-1-0001" },
+    });
+    expect(res).toEqual({
+      scheduled: 0,
+      skipped: 1,
+      faltaMigracion: true,
+      motivo: "falta_migracion",
+    });
   });
 
   it("idempotente: 23505 al insertar → skipped, no rompe", async () => {
@@ -203,6 +233,6 @@ describe("scheduleClientNotifications", () => {
       insertError: { code: "23505" },
     });
     const res = await scheduleClientNotifications(admin, "t-1", EV);
-    expect(res).toEqual({ scheduled: 0, skipped: 1 });
+    expect(res).toEqual({ scheduled: 0, skipped: 1, motivo: "duplicado" });
   });
 });
