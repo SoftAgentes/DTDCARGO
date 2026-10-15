@@ -58,6 +58,9 @@ const FILE_CONTRACT = read(CONTRACT);
 const BASELINE = JSON.parse(read(resolve(ROOT, "supabase/migrations-baseline.json"))) as {
   pendingBelowCutoff: Record<string, string>;
 };
+const DECLARATIONS = JSON.parse(read(resolve(ROOT, "supabase/pending-migration-symbol-declarations.json"))) as {
+  degradations: { migration: string }[];
+};
 const SLOW = 240_000;
 
 const TRUE = /^(t|true|on|y|yes|1)$/i;
@@ -399,11 +402,16 @@ describe("SDD-0515 · 0475 (texto)", () => {
     expect(SUPERADMIN_ONLY_MODULES.has("operarios")).toBe(false);
   });
 
-  it("es una espera declarada: no se aplica hasta el OK nominal de Sam", () => {
-    const entry = BASELINE.pendingBelowCutoff["0475_pin_operarios_endurecer"];
-    expect(entry).toMatch(/^PENDIENTE DE APLICAR — SDD-0515/);
-    expect(entry).toContain("OK nominal de Sam");
-    expect(FILE_0475).toContain("⚠️ NO APLICADA A PRODUCCIÓN.");
+  it("aplicada al servidor propio el 2026-10-14: ya no es una espera y el archivo no se tocó", () => {
+    // Aplicada el 2026-10-14 a las 23:32:24Z en el servidor propio, con OK nominal
+    // de Sam. El ledger (20261014233224) guarda el archivo entero, con md5
+    // 1273d8a4… y 61685 bytes: editar el archivo, aunque sea la cabecera
+    // «NO APLICADA», rompería esa identidad. Lo que cambia es el baseline, y la
+    // declaración de «Ver PIN» sale del gate de símbolos pendientes.
+    expect(BASELINE.pendingBelowCutoff["0475_pin_operarios_endurecer"]).toBeUndefined();
+    expect(md5(FILE_0475)).toBe("1273d8a483ccc504e296befe53a6bcac");
+    expect(Buffer.byteLength(FILE_0475)).toBe(61685);
+    expect(DECLARATIONS.degradations.some((d) => d.migration === "0475_pin_operarios_endurecer")).toBe(false);
   });
 });
 
