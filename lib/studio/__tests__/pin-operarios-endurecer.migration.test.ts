@@ -24,6 +24,12 @@
  * perder más líneas que las que cambia a propósito; y el default
  * `['operations']` duplicado en SQL es el de ROLE_MODULE_ACCESS.operarios
  * (rbac.test.ts es la fuente).
+ *
+ * DESEMPATE (SDD-0538): en PGlite clock_timestamp() no tiene microsegundos, así
+ * que dos restablecimientos seguidos de cn-2 pueden dejar dos eventos con la
+ * misma hora, y el id es un uuid aleatorio. El bloque 5 elige por xmin; con los
+ * eventos a la misma hora y el uuid del viejo siempre mayor, el contrato sigue
+ * verde, y con el orden por hora e id lee el evento viejo.
  */
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -884,6 +890,68 @@ describe("SDD-0515 · 0475 (PGlite)", () => {
       expect(result.error).toBe(m.fails);
     }, SLOW);
   }
+});
+
+describe("SDD-0538 · el bloque 5 lee el último restablecimiento aunque la hora empate", () => {
+  const CONTRACT_NAME = "0475_pin_operarios_endurecer.test.sql";
+  // La disposición infeliz, sin esperar a que el reloj la arme: desde el bloque 4
+  // todo evento nace con la misma hora y con un uuid que baja, así que el evento
+  // viejo gana cualquier desempate por id. Los tres restablecimientos de cn-2 que
+  // ve el bloque 5 empatan en la hora.
+  const RESTABLECER = "-- 4. Restablecer: operations lo hace con motivo";
+  const MISMA_HORA =
+    "create temporary sequence uuid_baja;\n" +
+    "create function pg_temp.misma_hora() returns trigger language plpgsql as $x$\n" +
+    "begin\n" +
+    "  new.occurred_at := '2100-01-01 00:00:00+00';\n" +
+    "  new.id := ('00000000-0000-4000-8000-' || lpad(to_hex(1000000 - nextval('pg_temp.uuid_baja')), 12, '0'))::uuid;\n" +
+    "  return new;\n" +
+    "end;\n$x$;\n" +
+    "create trigger misma_hora before insert on public.entity_audit_log\n" +
+    "  for each row execute function pg_temp.misma_hora();\n";
+  const POR_XMIN = "order by xmin::text::bigint desc limit 1;";
+  const POR_HORA_E_ID = "order by occurred_at desc, id desc limit 1;";
+  const empatado = (text: string) => once(text, RESTABLECER, MISMA_HORA + RESTABLECER);
+  // Una de las dos lecturas del bloque 5 vuelve al orden de antes.
+  const ordenViejo = (text: string, lectura: number) => {
+    const parts = text.split(POR_XMIN);
+    expect(parts, "las dos lecturas del bloque 5 ordenan por xmin").toHaveLength(3);
+    return parts[0] + (lectura === 0 ? POR_HORA_E_ID : POR_XMIN) + parts[1]
+      + (lectura === 1 ? POR_HORA_E_ID : POR_XMIN) + parts[2];
+  };
+  const LECTURAS = [
+    { name: "la primera lectura", fails: "TEST 0475: con «Otro» la auditoría guarda el código y el texto" },
+    { name: "la segunda lectura", fails: "TEST 0475: con un código fijo la auditoría guarda sólo el código, no el texto" },
+  ];
+
+  it("con los eventos de cn-2 a la misma hora y el uuid del viejo mayor, el contrato sigue verde", async () => {
+    const result = await contract({ replace: { [CONTRACT_NAME]: empatado(FILE_CONTRACT) } });
+    expect(result.error).toBeNull();
+    expect(result.green).toMatch(/^TEST 0475 GREEN: \d+ aserciones$/);
+  }, SLOW);
+
+  LECTURAS.forEach((lectura, index) => {
+    it(`control rojo: con ${lectura.name} por hora e id, el bloque 5 lee un restablecimiento viejo`, async () => {
+      const result = await contract({ replace: { [CONTRACT_NAME]: empatado(ordenViejo(FILE_CONTRACT, index)) } });
+      expect(result.error).toBe(lectura.fails);
+    }, SLOW);
+  });
+
+  it("control rojo de la premisa: dos restablecimientos en la misma subtransacción hacen caer el bloque 14", async () => {
+    // Sin run_as en medio, los dos eventos nacen con el xid de la transacción.
+    const PREMISA = "-- 14. La premisa del bloque 5";
+    const mismoXmin =
+      "do $mismo_xmin$\nbegin\n" +
+      "  perform set_config('request.jwt.claim.sub', pg_temp.fixture_id('operations-A')::text, true);\n" +
+      "  execute 'set local role authenticated';\n" +
+      "  perform public.admin_reset_operario_pin(pg_temp.fixture_id('cn-2'), '2486', 'olvido', null, false);\n" +
+      "  perform public.admin_reset_operario_pin(pg_temp.fixture_id('cn-2'), '3517', 'olvido', null, false);\n" +
+      "  reset role;\n" +
+      "end;\n$mismo_xmin$;\n";
+    const result = await contract({ replace: { [CONTRACT_NAME]: once(FILE_CONTRACT, PREMISA, mismoXmin + PREMISA) } });
+    expect(result.error).toBe(
+      "TEST 0475: cada evento de cn-2 nació en su propio guardado (xmin distinto): el bloque 5 no depende de la hora");
+  }, SLOW);
 });
 
 // ─── Propiedad: la base decide igual que la app ──────────────────────────────
