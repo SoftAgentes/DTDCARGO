@@ -840,7 +840,12 @@ Orden:
    último `supabase db dump` guardado cifrado fuera del servidor.
 2. Vercel: quitar el dominio del proyecto, pausar el proyecto, revocar
    `VERCEL_API_TOKEN` (el panel de estado del Studio lee `APP_ENV`/`APP_URL`
-   y ya no lo necesita).
+   y ya no lo necesita) y **desconectar la integración de Git** (Settings →
+   Git → Disconnect): mientras siga conectada, cada PR construye un preview y
+   `vercel[bot]` comenta y manda correo, y Sam leía esos avisos como «los
+   cambios se hacen en Vercel» (propuesta del Director, 2026-10-15). Si
+   hiciera falta antes, se apagan solo los comentarios del bot. Ojo: desde el
+   paso 1, un preview de Vercel escribe en la base del VPS.
 3. Cancelar los planes de pago de los dos.
 4. Documentación: `setup-portal-auth.md`, `setup-resend.md`,
    `setup-web-push.md`, `setup-kommo-webhook.md` y `e2e-supabase-efimero.md`
