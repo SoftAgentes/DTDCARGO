@@ -10,7 +10,7 @@
 | Base | `origin/main@a8d99acf` (#223) |
 | SDD | [0532](../../docs/specs/0532-naviera-autorizar-correlation-id/spec.md) · `in-progress` · reserva `codex/sdd-reserve-0532-naviera-autorizar-correlation-id` (local, sin publicar; cherry-pick `923ccaca`) |
 | Migración | `0482_naviera_autorizar_correlation_id.sql` · **NO APLICADA** · espera en `pendingBelowCutoff` |
-| PR | __PR__ |
+| PR | draft #235: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/235 |
 | Estado de tarea | lista-para-revisión (PR draft, sin fusionar) |
 
 ## OBJETIVO ORIGINAL
@@ -144,12 +144,14 @@ prueba «deriva sólo de espacios». Desde ahí, los scripts se escriben con Wri
 | `923ccaca` | chore(sdd): reserva SDD-0532 — naviera-autorizar-correlation-id |
 | `55542444` | feat(studio): SDD-0532 — migración 0482: correlation_id de la autorización Naviera con md5 de la referencia |
 | `9f511ddc` | test(studio): SDD-0532 — contrato 0482 con el writer AUD-01 real y envoltorio PGlite |
-| __DOCS_SHA__ | docs: SDD-0532 — spec, índice y handoff |
+| `f43b1732` | docs: SDD-0532 — spec, índice y handoff de la autorización Naviera |
+| `7d05f715` | Merge de `origin/main@7075883e` (#224, #225): el driver resolvió el índice; docs:check, sdd:check, símbolos y el envoltorio (26/26) en verde después del merge |
+| (este commit) | docs(handoff): SDD-0532 — PR #235 y SHA |
 
 ## PR / BRANCH
 
 - Rama `claude/nervous-leakey-ff74c7` publicada a sí misma.
-- __PR__, draft contra `main`, **sin fusionar**: los merges están congelados hasta después del corte
+- [#235](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/235), draft contra `main`, **sin fusionar**: los merges están congelados hasta después del corte
   de Vercel al servidor propio.
 
 ## PENDIENTES DE ESTA TAREA
