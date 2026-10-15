@@ -124,7 +124,13 @@ y PR sin fusionar.
 - `9a8a722f` — chore(sdd): reserva SDD-0523 (cherry-pick del stub).
 - `cd826d8b` — fix(studio): helper, cinco sitios y seis archivos de prueba.
 - `4832fbe7` — docs(sdd): spec 0523 e índice regenerado.
-- Commit que contiene este documento — handoff.
+- `e4a67ca8` — handoff.
+- Commit posterior, a pedido del Director en la revisión de la PR: corrige el
+  relato de tres comentarios (`lib/runtime/server-secret.ts`,
+  `lib/studio/mail/unsubscribe-token.ts` y `lib/marca/access.ts`), que decían
+  que con `""` se podía falsificar. Con `""` fallaba cerrado; la falsificación
+  era con sólo espacios. Actualiza las tres citas de línea que se corrieron en
+  la spec. Las pruebas no cambian.
 
 **PR / BRANCH:** PR contra `main` desde `claude/wonderful-goldstine-7838d9`, sin
 fusionar. La URL va en el reporte al Director y se obtiene con

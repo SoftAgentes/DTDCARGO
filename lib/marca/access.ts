@@ -77,7 +77,9 @@ export type CodeVerdict =
  * service-role key (ya presente en prod → sin variable de entorno nueva que
  * configurar). Mismo criterio que `unsubscribeSecret()`: vacía o con sólo
  * espacios cuenta como ausente (SDD-0523). Con `??`, una `MARCA_ACCESS_SECRET=`
- * vacía sellaba la cookie con la clave `""` y cualquiera podía fabricarla.
+ * vacía no caía al service role: el `!secret` la descartaba y `/marca` quedaba
+ * cerrada. Con sólo espacios, `"  "` se usaba como clave y cualquiera podía
+ * fabricar la cookie.
  */
 function marcaSecret(): string | null {
   return firstConfiguredSecret(

@@ -84,10 +84,10 @@ Sitios corregidos:
 
 | Sitio | Antes | Después |
 |---|---|---|
-| `unsubscribeSecret()` (`lib/studio/mail/unsubscribe-token.ts:140-145`) | `EMAIL_UNSUBSCRIBE_SECRET ?? SUPABASE_SERVICE_ROLE_KEY ?? null` | `firstConfiguredSecret(…)` con el mismo orden |
-| Log `secretSource` (`lib/studio/mail/unsubscribe-request.ts:73`) | `EMAIL_UNSUBSCRIBE_SECRET ? "dedicated" : "service_role"`: con espacios decía `dedicated` | `unsubscribeSecretSource()` (nuevo, `unsubscribe-token.ts:147-152`), que usa el mismo criterio que el secreto |
+| `unsubscribeSecret()` (`lib/studio/mail/unsubscribe-token.ts:142-147`) | `EMAIL_UNSUBSCRIBE_SECRET ?? SUPABASE_SERVICE_ROLE_KEY ?? null` | `firstConfiguredSecret(…)` con el mismo orden |
+| Log `secretSource` (`lib/studio/mail/unsubscribe-request.ts:73`) | `EMAIL_UNSUBSCRIBE_SECRET ? "dedicated" : "service_role"`: con espacios decía `dedicated` | `unsubscribeSecretSource()` (nuevo, `unsubscribe-token.ts:149-154`), que usa el mismo criterio que el secreto |
 | `hashIp()` (`app/api/newsletter/subscribe/route.ts:161-167`) | `NEWSLETTER_IP_HASH_SECRET ?? EMAIL_UNSUBSCRIBE_SECRET ?? SUPABASE_SERVICE_ROLE_KEY ?? "newsletter-local"` | `firstConfiguredSecret(…) ?? "newsletter-local"` |
-| `marcaSecret()` (`lib/marca/access.ts:82-87`) | `MARCA_ACCESS_SECRET ?? SUPABASE_SERVICE_ROLE_KEY ?? null` | `firstConfiguredSecret(…)` |
+| `marcaSecret()` (`lib/marca/access.ts:84-89`) | `MARCA_ACCESS_SECRET ?? SUPABASE_SERVICE_ROLE_KEY ?? null` | `firstConfiguredSecret(…)` |
 | Webhook entrante (`app/api/conversaciones/email/route.ts:46-49`) | `RESEND_INBOUND_WEBHOOK_SECRET ?? RESEND_WEBHOOK_SECRET` | `firstConfiguredSecret(…)` |
 
 ### Fallo cerrado

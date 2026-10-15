@@ -4,8 +4,12 @@
  * Docker Compose pasa `VAR=` como cadena vacía, no como `undefined`. Con
  * `process.env.A ?? process.env.B`, una `A` vacía no cae a `B`: el secreto queda
  * en `""`. El 2026-10-15 el servidor propio tenía `EMAIL_UNSUBSCRIBE_SECRET`
- * vacía, y los enlaces de baja se sellaban con la clave `sha256("")`, que
- * cualquiera puede calcular para falsificar uno.
+ * vacía. Con `""` exacto, el `!secret` de los llamadores la descartaba y fallaban
+ * cerrados, pero sin caer al respaldo: toda baja daba error, también las
+ * legítimas, y Actualidad no enviaba. Con sólo espacios era peor: `"  "` pasaba
+ * el `!secret` y se usaba como clave, así que cualquiera podía sellar un enlace
+ * de baja o una cookie de `/marca` válidos. Y donde no había `!secret`, como la
+ * sal del hash de IP del newsletter, `""` sí se usaba.
  *
  * Reglas:
  *   - Vacía o con sólo espacios cuenta como ausente: se pasa a la siguiente.

@@ -134,8 +134,10 @@ export function buildUnsubscribeUrl(siteUrl: string, token: string): string {
  * sino el service-role key (ya presente en prod → sin gate nuevo). `null` si no hay
  * ninguno (el route responde error claro; no se manda marketing sin esto igual).
  *
- * SDD-0523: una variable vacía o con sólo espacios cuenta como ausente. Con `??`
- * una `EMAIL_UNSUBSCRIBE_SECRET=` vacía sellaba los tokens con la clave `""`.
+ * SDD-0523: una variable vacía o con sólo espacios cuenta como ausente. Con `??`,
+ * una `EMAIL_UNSUBSCRIBE_SECRET=` vacía no caía al service role: el `!secret` de
+ * los llamadores la descartaba, toda baja daba error y no se enviaba Actualidad.
+ * Con sólo espacios, `"  "` se usaba como clave y los tokens se podían falsificar.
  */
 export function unsubscribeSecret(): string | null {
   return firstConfiguredSecret(
