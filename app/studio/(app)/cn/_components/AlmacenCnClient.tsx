@@ -44,7 +44,28 @@ import { NewReceiptDrawer } from "./NewReceiptDrawer";
 import {
   bulkChangeReceiptPaymentStatusAction,
   bulkChangeReceiptStatusAction,
+  deleteReceiptsAction,
 } from "../actions";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import {
+  CLAVE_BLOQUEO_RECEPCION,
+  MAX_LOTE_BORRADO,
+  receiptBoxesToRetire,
+  receiptDeleteBlockers,
+  type BloqueoContado,
+  type BloqueoRecepcionVisible,
+  type InfoBorradoRecepcion,
+} from "@/lib/studio/borrado/reglas";
+
+/**
+ * SDD-0522 · Qué sabe la pantalla para ofrecer el borrado. `undefined` = quien
+ * mira no puede eliminar: «Eliminar…» no aparece. `no_disponible` = no se pudo
+ * leer qué bloquea cada recepción: se dice y no se ofrece borrar.
+ */
+export type EliminacionRecepciones =
+  | { estado: "lista"; info: Record<string, InfoBorradoRecepcion> }
+  | { estado: "no_disponible" };
 
 interface Props {
   receipts: WarehouseReceiptRow[];
@@ -57,6 +78,8 @@ interface Props {
   /** Si false (user region=cn no-admin), se oculta el toggle "Mostrar nombres"
    *  y el server ya redactó client_name. Default true (compat). */
   canSeeClientNames?: boolean;
+  /** SDD-0522: ver `EliminacionRecepciones`. */
+  eliminacion?: EliminacionRecepciones;
 }
 
 type FilterValues = {
@@ -93,6 +116,7 @@ function AlmacenCnView({
   cities,
   alertShipmentIds = [],
   canSeeClientNames = true,
+  eliminacion,
 }: Props) {
   const alertSet = new Set(alertShipmentIds);
   const router = useRouter();
@@ -354,8 +378,22 @@ function AlmacenCnView({
               clearSelection();
               router.refresh();
             }}
+            eliminacion={eliminacion}
+            codigos={Object.fromEntries(receipts.map((r) => [r.id, r.receipt_code]))}
           />
         </>
+      )}
+      {eliminacion?.estado === "no_disponible" && (
+        <p
+          role="status"
+          style={{
+            margin: "var(--s-3) 0 0",
+            font: "500 12.5px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          {t("warehouse_cn.delete.unavailable")}
+        </p>
       )}
     </>
   );
@@ -932,19 +970,85 @@ const BULK_LABEL_KEYS: Record<BulkAction, I18nKey> = {
 
 const BULK_CONFIRM_THRESHOLD = 5;
 
+/** Cuántas recepciones bloqueadas se nombran en la barra antes de «Y N más». */
+const BLOQUEADAS_VISIBLES = 3;
+
 function BulkBar({
   count,
   ids,
   onClear,
   onAfter,
+  eliminacion,
+  codigos,
 }: {
   count: number;
   ids: string[];
   onClear: () => void;
   onAfter: () => void;
+  /** SDD-0522: `undefined` = sin «Eliminar…» (quien mira no puede). */
+  eliminacion?: EliminacionRecepciones;
+  /** id → código de recepción, para nombrarlas en la barra y en el diálogo. */
+  codigos: Record<string, string>;
 }) {
   const t = useT();
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
+  const [confirmarBorrado, setConfirmarBorrado] = useState(false);
+  const [errorBorrado, setErrorBorrado] = useState<string | undefined>(undefined);
+  const [borrando, startBorrado] = useTransition();
+
+  // SDD-0522 · La misma regla que decide el servidor: sin información, bloquea.
+  const bloqueadas =
+    eliminacion?.estado === "lista"
+      ? ids
+          .map((id) => ({
+            id,
+            code: codigos[id] ?? null,
+            blockers: receiptDeleteBlockers(eliminacion.info[id]),
+          }))
+          .filter((b) => b.blockers.length > 0)
+      : [];
+  const excede = count > MAX_LOTE_BORRADO;
+  const puedeEliminar = eliminacion?.estado === "lista" && bloqueadas.length === 0 && !excede;
+  const motivos = (blockers: BloqueoContado<BloqueoRecepcionVisible>[]) =>
+    blockers.map((b) => t(CLAVE_BLOQUEO_RECEPCION[b.kind])).join(", ");
+  const filaBloqueada = (b: { code: string | null; blockers: BloqueoContado<BloqueoRecepcionVisible>[] }) =>
+    t("warehouse_cn.delete.blocked_row", { code: b.code ?? "—", reasons: motivos(b.blockers) });
+  const codigosElegidos = ids.map((id) => codigos[id] ?? id).sort().join(", ");
+  const cajas =
+    eliminacion?.estado === "lista" ? receiptBoxesToRetire(ids.map((id) => eliminacion.info[id])) : 0;
+
+  const confirmar = (motivo: string) => {
+    // Limpiar antes de reintentar: el diálogo reabre su candado cuando cambia
+    // `error`, también si la acción repite el mismo mensaje.
+    setErrorBorrado(undefined);
+    startBorrado(async () => {
+      try {
+        const resultado = await deleteReceiptsAction(ids, motivo);
+        if (resultado.ok) {
+          setConfirmarBorrado(false);
+          toast.show({
+            eventKey: "warehouse_receipts_cn:deleted",
+            tone: "success",
+            message:
+              resultado.deleted === 1
+                ? t("warehouse_cn.delete.success_one")
+                : t("warehouse_cn.delete.success_many", { count: resultado.deleted }),
+            priority: "normal",
+            scope: "module",
+            dedupeKey: `warehouse_receipts_cn:deleted:${resultado.codes.join(",")}`,
+          });
+          onAfter();
+        } else {
+          const base = resolveErrorMessage(t, resultado) ?? t("warehouse_cn.bulk.feedback_error_generic");
+          const filas = (resultado.blocked ?? []).slice(0, BLOQUEADAS_VISIBLES).map(filaBloqueada);
+          setErrorBorrado([base, ...filas].join(" "));
+        }
+      } catch {
+        setErrorBorrado(t("error.cn_delete_unconfirmed"));
+      }
+    });
+  };
   const [confirmAction, setConfirmAction] = useState<BulkAction | null>(null);
   const [feedback, setFeedback] = useState<
     | { kind: "ok"; msg: string }
@@ -1002,6 +1106,7 @@ function BulkBar({
   };
 
   return (
+    <>
     <div
       role="region"
       aria-label={t("warehouse_cn.bulk.aria_region", { count })}
@@ -1095,7 +1200,54 @@ function BulkBar({
         >
           {t("warehouse_cn.bulk.cancel_btn")}
         </button>
+        {eliminacion && (
+          <>
+            {/* BTN-01 §4: la destructiva, al final y separada. */}
+            <span aria-hidden style={{ width: 1, height: 20, background: "var(--glass-border)" }} />
+            <button
+              type="button"
+              className="studio-btn studio-btn-danger studio-btn-sm"
+              onClick={() => {
+                setErrorBorrado(undefined);
+                setConfirmarBorrado(true);
+              }}
+              disabled={pending || borrando || !puedeEliminar}
+              aria-describedby={!puedeEliminar ? "cn-borrado-motivo" : undefined}
+            >
+              {t("warehouse_cn.bulk.delete")}
+            </button>
+          </>
+        )}
       </div>
+
+      {/* BTN-01 §6: por qué «Eliminar…» está deshabilitado, a la vista. */}
+      {eliminacion && !puedeEliminar && (
+        <div
+          id="cn-borrado-motivo"
+          role="status"
+          style={{ font: "600 11.5px/1.4 var(--f-sans)", color: "var(--glass-ink)", maxWidth: 640 }}
+        >
+          {eliminacion.estado === "no_disponible" ? (
+            t("warehouse_cn.delete.unavailable")
+          ) : excede ? (
+            t("warehouse_cn.bulk.max_exceeded")
+          ) : (
+            <>
+              <span>{t("warehouse_cn.delete.blocked_intro", { count: bloqueadas.length })}</span>
+              {bloqueadas.slice(0, BLOQUEADAS_VISIBLES).map((b) => (
+                <span key={b.id} style={{ display: "block", fontWeight: 500 }}>
+                  {filaBloqueada(b)}
+                </span>
+              ))}
+              {bloqueadas.length > BLOQUEADAS_VISIBLES && (
+                <span style={{ display: "block", fontWeight: 500 }}>
+                  {t("warehouse_cn.delete.blocked_more", { count: bloqueadas.length - BLOQUEADAS_VISIBLES })}
+                </span>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {confirmAction && (
         <div
@@ -1155,5 +1307,39 @@ function BulkBar({
         </div>
       )}
     </div>
+
+    {/* Fuera de la barra a propósito: la barra tiene transform y
+        backdrop-filter, que vuelven a la barra el contenedor de cualquier
+        hijo `position: fixed` y encerrarían el diálogo dentro de ella. */}
+    <ConfirmDialog
+      open={confirmarBorrado && puedeEliminar}
+      danger
+      reason
+      reasonRequired
+      reasonLabel={t("warehouse_cn.delete.reason_label")}
+      reasonPlaceholder={t("warehouse_cn.delete.reason_placeholder")}
+      title={count === 1 ? t("warehouse_cn.delete.title_one") : t("warehouse_cn.delete.title_many", { count })}
+      message={[
+        t("warehouse_cn.delete.message", { codes: codigosElegidos }),
+        cajas === 0
+          ? null
+          : cajas === 1
+            ? t("warehouse_cn.delete.warning_boxes_one")
+            : t("warehouse_cn.delete.warning_boxes_many", { count: cajas }),
+      ]
+        .filter(Boolean)
+        .join(" ")}
+      confirmLabel={count === 1 ? t("warehouse_cn.delete.confirm_one") : t("warehouse_cn.delete.confirm_many")}
+      cancelLabel={t("warehouse_cn.delete.cancel")}
+      pending={borrando}
+      error={errorBorrado}
+      onCancel={() => {
+        if (borrando) return;
+        setConfirmarBorrado(false);
+        setErrorBorrado(undefined);
+      }}
+      onConfirm={confirmar}
+    />
+    </>
   );
 }
