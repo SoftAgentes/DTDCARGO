@@ -18,6 +18,9 @@
  *    campo PIN para que elija otro;
  *  - reactivar a un operario de baja se hace restableciendo su PIN
  *    (`reactivar=1`): el toggle ya no lo reactiva (P0019).
+ *
+ * SDD-0529 (migr 0480): editar sirve para los de Venezuela; ver
+ * `updateOperarioAction`.
  */
 
 import { revalidatePath } from "next/cache";
@@ -39,6 +42,7 @@ import {
   type ViewPinResult,
 } from "@/lib/studio/operario-pin";
 import { saveWithGeneratedOperarioPin } from "@/lib/studio/operario-pin-generator";
+import { OPERARIO_UPDATE_MESSAGE, operarioUpdateField } from "@/lib/studio/operario-edicion";
 
 type State = {
   ok?: boolean;
@@ -348,7 +352,14 @@ export async function setOperarioActiveAction(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Update operario
+// Update operario (SDD-0529, migr 0480)
+//
+// Sirve para los de China y los de Venezuela. La regla vive en la base:
+// `admin_update_operario` autoriza con la matriz, exige un rol de los de la
+// región de la fila (operario_roles_por_region), un almacén de China activo
+// para los de China y ninguno para los de Venezuela, y deja el evento. Aquí no
+// hay lista de roles ni rol por defecto: antes, un rol vacío caía a
+// «operario» en silencio. Lo que la base rechaza vuelve al campo que toca.
 // ─────────────────────────────────────────────────────────────
 
 export async function updateOperarioAction(
@@ -361,15 +372,14 @@ export async function updateOperarioAction(
   const operarioId = parseStr(formData.get("operario_id"));
   const displayName = parseStr(formData.get("display_name"));
   const displayNameCn = parseStr(formData.get("display_name_cn"));
-  const role = parseStr(formData.get("role")) || "operario";
+  const role = parseStr(formData.get("role"));
+  // Vacío = sin almacén (los de Venezuela); la base decide por la región.
   const warehouseId = parseStr(formData.get("warehouse_id"));
 
+  if (!operarioId) return { error: "Falta el operario." };
   const fieldErrors: Record<string, string> = {};
-  if (!operarioId) return { error: "Falta operario_id" };
-  if (!displayName) fieldErrors.display_name = "Nombre requerido";
-  if (!warehouseId) fieldErrors.warehouse_id = "Warehouse requerido";
-  if (!["operario", "supervisor"].includes(role))
-    fieldErrors.role = "Rol inválido";
+  if (!displayName) fieldErrors.display_name = OPERARIO_UPDATE_MESSAGE.nombre;
+  if (!role) fieldErrors.role = OPERARIO_UPDATE_MESSAGE.rol;
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   const { error } = await supabase.rpc("admin_update_operario", {
@@ -377,9 +387,13 @@ export async function updateOperarioAction(
     p_display_name: displayName,
     p_display_name_cn: displayNameCn || null,
     p_role: role,
-    p_warehouse_id: warehouseId,
+    p_warehouse_id: warehouseId || null,
   });
-  if (error) return { error: `No se pudo actualizar: ${error.message}` };
+  if (error) {
+    const field = operarioUpdateField(error);
+    if (field) return { fieldErrors: { [field]: error.message } };
+    return { error: `No se pudo guardar: ${error.message}` };
+  }
 
   revalidatePath("/studio/operarios");
   return { ok: true };
