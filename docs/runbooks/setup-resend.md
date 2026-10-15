@@ -30,7 +30,10 @@ primeros 3,000 emails/mes y 100/día. Perfecto para arranque.
 
 1. Dashboard Resend → **API Keys** → **Create API Key**
 2. Nombre: `DTDCargo Production` (o similar)
-3. Permission: **Sending access** (suficiente; full access innecesario)
+3. Permission: **Sending access** (suficiente para enviar). Con esa llave el
+   correo entrante de Conversaciones no puede bajar el contenido de los mensajes
+   (ver `setup-resend-inbound.md`): necesita **Full access**. `/studio/debug`
+   lo indica (ver Troubleshooting).
 4. Domain: `dtdcargo.com`
 5. Copy la key (formato `re_xxxxxxxxxxxxxxxxxxxx`) — **NO se vuelve a mostrar**
 
@@ -143,6 +146,9 @@ where tenant_id = (select id from public.tenants limit 1);
 |---|---|---|
 | `mock_no_key` en `mail_logs.error` | `RESEND_API_KEY` no set | Agregar env var |
 | `403 forbidden` desde Resend | Domain no verificado | Esperar DNS o verificar records |
+| `/studio/debug` → Resend: «llave inválida o borrada · HTTP 401» | La `RESEND_API_KEY` del entorno se borró en Resend o está mal copiada | Crear una llave nueva en Resend y reemplazar la del entorno (SDD-0527) |
+| `/studio/debug` → Resend: «llave solo de envío · el correo entrante de Conversaciones no funcionará» | Llave «Sending access»: envía, pero no puede bajar los correos entrantes | Nada, si no se usa el correo entrante; si se usa, llave con Full access |
+| `/studio/debug` → Resend: «acceso completo · N dominio(s) verificado(s)» | Llave con Full access | Nada |
 | Webhook devuelve 401 | `RESEND_WEBHOOK_SECRET` mal copiado | Re-copy del dashboard |
 | Webhook devuelve 503 | Secret no set en Vercel | Agregar env var + redeploy |
 | Email llega pero no aparece en `mail_logs` | `resend_message_id` mismatch | Ver logs server-side |

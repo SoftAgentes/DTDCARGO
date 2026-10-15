@@ -789,10 +789,12 @@ function StepContacto({
                 no se promete el aviso de llegada a bodega: la bodega de China
                 todavía registra en Excel. Tampoco zarpe ni entrega, porque los
                 avisos automáticos salen por correo o push, nunca por WhatsApp.
-                Apagado, vuelve el texto de siempre. */}
+                SDD-0524 · apagado ya no vuelve el texto viejo, que prometía esos
+                avisos POR WHATSAPP: dice el canal real (correo, y push si el
+                cliente activa las notificaciones del Portal). */}
             {TRACKING_EN_CONSTRUCCION
               ? "El WhatsApp es por donde hablamos contigo sobre tu carga."
-              : "El WhatsApp es por donde te avisamos de tu carga: cuando llega a bodega en China, cuando zarpa y cuando está lista para entrega."}
+              : "El WhatsApp es por donde hablamos contigo sobre tu carga. Los avisos de cuando llega a bodega en China, cuando zarpa y cuando está lista para entrega te llegan por correo y, si activas las notificaciones en tu Portal, también en tu teléfono o tu computadora."}
           </>
         }
       />

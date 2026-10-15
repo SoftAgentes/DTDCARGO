@@ -7,6 +7,11 @@
  * la ruta, el actor 3 y el paso 5 de la ficha dicen lo que sí pasa hoy; apagado,
  * vuelve el texto de siempre, palabra por palabra.
  *
+ * SDD-0528 suma un cuarto lugar con el mismo interruptor: el tercer beneficio
+ * («Ves el estado de tu compra en todo momento.») deja de prometer seguimiento.
+ * La invariante «el resto de la ficha no cambia» lo excluye por nombre, igual
+ * que a los otros tres; cualquier otro texto que cambie la sigue tumbando.
+ *
  * Se mide sobre la ficha renderizada (`HUB_FICHAS`), no sobre el fuente: lo que
  * importa es lo que lee el visitante.
  */
@@ -35,21 +40,27 @@ const ficha = (slug: string) => {
 
 const limpio = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").trim();
 
-/** Los tres lugares de la ficha de pre-alerta que hablan de la recepción en Yiwu. */
+/**
+ * Los tres lugares de la ficha de pre-alerta que hablan de la recepción en Yiwu
+ * (SDD-0519) y el tercer beneficio (SDD-0528).
+ */
 function preAlerta() {
   const { container } = render(<>{ficha("pre-alerta")}</>);
   const paradas = [...container.querySelectorAll(".f2route .stop")];
   const actores = [...container.querySelectorAll(".f2actors .actor")];
   const pasos = [...container.querySelectorAll(".f2steps li")];
+  const beneficios = [...container.querySelectorAll(".f2benes li")];
   // Si cambia la forma de la ficha, que falle aquí y no en una aserción vaga.
   expect(paradas).toHaveLength(3);
   expect(actores).toHaveLength(3);
   expect(pasos).toHaveLength(5);
+  expect(beneficios).toHaveLength(3);
   return {
     todo: limpio(container.textContent),
     parada: limpio(paradas[2].querySelector(".sb")?.textContent),
     actor: limpio(actores[2].querySelector(".does")?.textContent),
     paso: limpio(pasos[4].textContent),
+    beneficio: limpio(beneficios[2].textContent),
   };
 }
 
@@ -57,12 +68,14 @@ const NEUTRO = {
   parada: "recibe tu carga",
   actor: "Recibe tu mercancía cuando llega y la identifica por la etiqueta.",
   paso: "Cuando tu mercancía llega a Yiwu, el operario la recibe y la identifica por la etiqueta.",
+  beneficio: "Tu compra queda registrada en tu portal desde el primer día.",
 };
 
 const DE_SIEMPRE = {
   parada: "escanea y te avisa",
   actor: "Recibe escaneando la etiqueta cuando llega tu mercancía y te avisamos al instante.",
   paso: "Cuando tu mercancía llega a Yiwu, el operario la recibe escaneando la etiqueta y te avisamos.",
+  beneficio: "Ves el estado de tu compra en todo momento.",
 };
 
 describe("SDD-0519 · ficha de pre-alerta con el seguimiento en construcción", () => {
@@ -84,26 +97,37 @@ describe("SDD-0519 · ficha de pre-alerta con el seguimiento en construcción", 
     expect(todo).not.toMatch(/al instante/i);
   });
 
-  it("apagado: vuelven los tres textos de siempre y ningún texto neutro", () => {
+  it("SDD-0528 · prendido: el tercer beneficio no promete ver el estado de la compra", () => {
+    const f = preAlerta();
+    expect(f.beneficio).toBe(NEUTRO.beneficio);
+    expect(f.todo).not.toMatch(/en todo momento/i);
+    expect(f.todo).not.toMatch(/estado de tu compra/i);
+  });
+
+  it("apagado: vuelven los cuatro textos de siempre y ningún texto neutro", () => {
     h.prendido = false;
     const f = preAlerta();
     expect(f.parada).toBe(DE_SIEMPRE.parada);
     expect(f.actor).toBe(DE_SIEMPRE.actor);
     expect(f.paso).toBe(DE_SIEMPRE.paso);
+    expect(f.beneficio).toBe(DE_SIEMPRE.beneficio);
     expect(f.todo).not.toContain(NEUTRO.parada);
     expect(f.todo).not.toContain(NEUTRO.actor);
     expect(f.todo).not.toContain(NEUTRO.paso);
+    expect(f.todo).not.toContain(NEUTRO.beneficio);
   });
 
   it("el resto de la ficha no cambia con el interruptor", () => {
-    const sinLosTres = () => {
+    // Se quitan sólo los cuatro lugares que dependen del interruptor: los tres
+    // de la 0519 y el beneficio de la 0528. Todo lo demás debe ser idéntico.
+    const sinLosCuatro = () => {
       const f = preAlerta();
-      return [f.parada, f.actor, f.paso].reduce((t, x) => t.replace(x, "·"), f.todo);
+      return [f.parada, f.actor, f.paso, f.beneficio].reduce((t, x) => t.replace(x, "·"), f.todo);
     };
-    const prendida = sinLosTres();
+    const prendida = sinLosCuatro();
     cleanup();
     h.prendido = false;
-    expect(sinLosTres()).toBe(prendida);
+    expect(sinLosCuatro()).toBe(prendida);
   });
 
   it("las demás fichas del hub no cambian con el interruptor", () => {
