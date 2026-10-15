@@ -495,6 +495,33 @@ Primer módulo consumidor: PreAlertas de servicios (`proveedores/`).
 - Kanbans, calendarios, timelines — no son tablas de columnas.
 - Tablas de configuración chicas (< 4 columnas) donde no hay nada que ocultar.
 
+### Ancho ajustable · `useColumnWidths` + `<ColumnResizeHandle>` (SDD-0520)
+
+Para tablas en grilla (`display: grid`) donde el usuario necesita ajustar el
+ancho de las columnas. Vive en `app/studio/_components/ui/columns/ColumnResize.tsx`;
+la lógica pura (rango, lectura de lo guardado, reset, template) en
+`column-widths.ts`, con sus pruebas. Primer consumidor: Operarios.
+
+- El módulo declara `{ key, label, defaultWidth, minWidth, maxWidth, resizable?, grow? }`
+  en px **medidos** con la tipografía real (ver `/ui-check`).
+- `useColumnWidths("dtd-<modulo>-col-widths-v1", COLUMNAS)` devuelve UN
+  `template` para el encabezado y las filas: nunca se desalinean.
+- La primera columna `grow` sin ajustar toma `minmax(<ancho>px, 1fr)`: absorbe
+  el espacio libre y su ancho es el piso; si el usuario la ajusta, el espacio
+  pasa a la siguiente `grow` (típicamente acciones, al final y sin asa).
+- El contenedor de encabezado + filas lleva `minWidth` = `totalWidth` + gaps +
+  padding, dentro de un `overflowX: auto`: si no cabe, scroll horizontal en vez
+  de aplastar columnas.
+- `<ColumnResizeHandle controller columnKey gap insetBlock />` va dentro de la
+  celda del encabezado (`position: relative`): arrastre con captura del
+  puntero, `role="separator"` con flechas/Home/End, doble clic restablece.
+  Estilos en `.studio-col-resize` (`studio.css`).
+- Se guarda sólo lo que el usuario fijó, al soltar; lo corrupto o fuera de
+  rango se ignora y se limpia. Lectura diferida y cancelable como
+  `useColumnConfig` (sin diferencias de hidratación).
+- Pendiente: alternativa de puntero sin arrastre (A11Y-01, contrato punto 8);
+  hoy la alternativa es el teclado.
+
 ## Inputs numéricos · usa `<NumericInput>`
 
 Todos los inputs numéricos del Studio (kg, CBM, USD, cajas, montos) deben

@@ -13,6 +13,7 @@ const consumers = [
   "app/studio/_components/bug-reporter/BugFABButton.tsx",
   "app/studio/_components/ui/SplitActionButton.tsx",
   "app/studio/_components/ui/columns/ColumnConfig.tsx",
+  "app/studio/_components/ui/columns/ColumnResize.tsx",
   "app/studio/_components/wiring/WiringProvider.tsx",
 ];
 
