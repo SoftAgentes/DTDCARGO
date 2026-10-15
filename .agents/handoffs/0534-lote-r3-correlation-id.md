@@ -150,7 +150,9 @@ defecto sólo aparece con el writer real, y eso es lo que montan los contratos n
 | `bb6f5c51` | Merge de `origin/main@19d4128e` (#229, SDD-0528) por el conflicto que GitHub marcó en el índice: el driver local lo resolvió; docs:check (513 specs), sdd:check, símbolos y las siete suites (182/182) en verde después del merge |
 | `edf6e0b0` | docs(handoff): SDD-0534 — merge con #229 |
 | `3d6fb493` | Merge de `origin/main@4b72d66a` (#232, SDD-0522, migración 0476) por el conflicto que GitHub marcó en el índice: el driver local lo resolvió. La 0476 no toca el writer AUD-01, el CHECK del `correlation_id` ni las siete RPC, y no arma `correlation_id`. docs:check (514 specs), sdd:check, símbolos y las siete suites (182/182) en verde después del merge |
-| (este commit) | docs(handoff): SDD-0534 — merge con #232 |
+| `cf62b436` | docs(handoff): SDD-0534 — merge con #232 |
+| `cc6ed762` | Merge de `origin/main@1bc88fca` (#234, SDD-0531) por el conflicto que GitHub marcó en el índice: el driver local lo resolvió; no toca las pantallas, migraciones ni el baseline que leen estas pruebas. docs:check (515 specs), sdd:check, símbolos y las siete suites (182/182) en verde después del merge |
+| (este commit) | docs(handoff): SDD-0534 — merge con #234 |
 
 ## PR / BRANCH
 
