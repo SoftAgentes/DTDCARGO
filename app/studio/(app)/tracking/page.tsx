@@ -34,6 +34,10 @@ import { TrackingDetailActions } from "./_components/TrackingDetailActions";
 import { TrackingEmptyOps } from "./_components/TrackingEmptyOps";
 import { contarAdjuntosDeEmbarques } from "@/lib/studio/documents/adjuntos-queries";
 import { conteosPorId } from "@/lib/studio/documents/adjuntos";
+import {
+  readCanSeeClientNames,
+  segunVisibilidad,
+} from "@/lib/studio/privacidad-cn";
 
 export const metadata = { title: "Tracking en vivo" };
 
@@ -61,7 +65,14 @@ export default async function TrackingPage({
   const requestedId = typeof sp.id === "string" ? sp.id : null;
 
   const supabase = await createClient();
-  const active = (await listActiveShipments(supabase)) as ActiveRow[];
+  // SDD-0531 · PIPL: al equipo de China (región cn, no admin) el nombre del
+  // cliente no le llega. Se oculta acá, en el servidor, antes de que la lista y
+  // el envío seleccionado se serialicen hacia el navegador.
+  const puedeVerNombres = await readCanSeeClientNames(supabase);
+  const active = segunVisibilidad(
+    (await listActiveShipments(supabase)) as ActiveRow[],
+    puedeVerNombres,
+  );
 
   // Empty state si no hay activos
   if (active.length === 0) {
@@ -91,6 +102,7 @@ export default async function TrackingPage({
   if (!selected) {
     selected = await getShipmentById(supabase, active[0].id);
   }
+  selected = segunVisibilidad(selected, puedeVerNombres);
 
   // Si después de todo no hay selected, fallback al empty (caso edge).
   if (!selected) {
@@ -134,6 +146,7 @@ export default async function TrackingPage({
           shipments={sidebarRows}
           selectedId={selected.id}
           adjuntos={adjuntos}
+          nombresOcultos={!puedeVerNombres}
         />
 
         {/* Detalle */}

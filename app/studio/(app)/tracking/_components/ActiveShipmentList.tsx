@@ -18,6 +18,7 @@ import type {
   ShipmentStatus,
 } from "@/lib/studio/shipment-types";
 import { AdjuntosConteo } from "@/app/studio/_components/documents/AdjuntosConteo";
+import { etiquetaDelCliente } from "@/lib/studio/privacidad-cn";
 import {
   FILTRO_ADJUNTOS_OPCIONES,
   desgloseEmbarque,
@@ -45,6 +46,12 @@ type Props = {
   selectedId: string | null;
   /** SDD-0507: adjuntos por embarque. `null` = no se pudo contar (se dice). */
   adjuntos: ConteosPorId<ConteoEmbarque>;
+  /**
+   * SDD-0531: el usuario no puede ver nombres de clientes (región China). El
+   * server ya mandó `client_name` en null; acá sólo se decide qué decir en su
+   * lugar: el Shipping Mark, no «Sin cliente».
+   */
+  nombresOcultos?: boolean;
 };
 
 function formatEta(iso: string | null): string {
@@ -55,7 +62,12 @@ function formatEta(iso: string | null): string {
   });
 }
 
-export function ActiveShipmentList({ shipments, selectedId, adjuntos }: Props) {
+export function ActiveShipmentList({
+  shipments,
+  selectedId,
+  adjuntos,
+  nombresOcultos = false,
+}: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const [query, setQuery] = useState("");
@@ -216,7 +228,7 @@ export function ActiveShipmentList({ shipments, selectedId, adjuntos }: Props) {
                     color: "var(--ink)",
                   }}
                 >
-                  {s.client_name ?? "Sin cliente"}
+                  {etiquetaDelCliente(s, nombresOcultos)}
                 </div>
 
                 {(s.origin || s.destination) && (
