@@ -91,7 +91,9 @@ chmod 600 "${CRED}.tmp"; mv -f -- "${CRED}.tmp" "${CRED}"
 
 SALIDA="${SALIDA:-$(mktemp)}"
 {
-  printf '%s\n' '\set ON_ERROR_STOP on' \
+  # VERBOSITY terse y SHOW_CONTEXT never: un error no copia la sentencia (con las
+  # claves ya sustituidas) en la salida.
+  printf '%s\n' '\set ON_ERROR_STOP on' '\set VERBOSITY terse' '\set SHOW_CONTEXT never' \
     "\\set clave_admin '${clave_admin}'" "\\set pin_ve '${pin_ve}'" "\\set pin_cn '${pin_cn}'"
   cat -- "${SEMILLA}"
 } | docker exec -i "${DB}" psql -U supabase_admin -d postgres -X > "${SALIDA}" 2>&1

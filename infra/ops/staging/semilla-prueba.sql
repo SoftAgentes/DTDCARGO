@@ -24,14 +24,26 @@
 -- público /p/<token> de una prealerta).
 -- ─────────────────────────────────────────────────────────────────────────────
 \set ON_ERROR_STOP on
+-- Un error no muestra el texto de la sentencia: ahí estarían las claves ya sustituidas.
+\set VERBOSITY terse
+\set SHOW_CONTEXT never
 
 begin;
 
--- 0. Guardas: solo sobre una base de prueba recién migrada.
+-- 0. Guardas: solo sobre una base de prueba recién migrada, con el esquema de
+--    `auth` que deja GoTrue. En prueba GoTrue arranca ANTES de las migraciones
+--    (resetear-base-prueba.sh) y la prueba efímera hace lo mismo: la semilla se
+--    escribe contra ese esquema (email_confirmed_at real, confirmed_at generada,
+--    auth.identities), no contra el esquema base de la imagen de Postgres.
 do $semilla_guarda$
 begin
   if not exists (select 1 from public.tenants where slug = 'dtd') then
     raise exception 'semilla: falta el tenant dtd; ¿se aplicaron las migraciones de main?';
+  end if;
+  if not exists (select 1 from information_schema.columns
+                  where table_schema = 'auth' and table_name = 'users' and column_name = 'email_confirmed_at')
+     or pg_catalog.to_regclass('auth.identities') is null then
+    raise exception 'semilla: auth no tiene el esquema de GoTrue (falta email_confirmed_at o auth.identities): GoTrue tiene que arrancar antes del reset';
   end if;
   if exists (select 1 from auth.users
               where email is not null and email !~* '@([a-z0-9-]+[.])*(test|invalid)$') then
@@ -56,20 +68,14 @@ on conflict (id) do update
       email = excluded.email,
       email_confirmed_at = coalesce(auth.users.email_confirmed_at, excluded.email_confirmed_at);
 
--- Identidades de correo (las crea GoTrue; en la prueba efímera sin GoTrue no existen).
-do $semilla_identidades$
-begin
-  if pg_catalog.to_regclass('auth.identities') is not null then
-    insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
-    select u.id, u.id, u.id::text, 'email',
-           jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
-           now(), now(), now()
-      from auth.users u
-     where u.id in ('05400000-0000-4000-8000-000000000001', '05400000-0000-4000-8000-000000000002')
-    on conflict (provider_id, provider) do nothing;
-  end if;
-end
-$semilla_identidades$;
+-- Identidad de correo de cada cuenta: GoTrue la exige para entrar con clave o enlace.
+insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+select u.id, u.id, u.id::text, 'email',
+       jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true),
+       now(), now(), now()
+  from auth.users u
+ where u.id in ('05400000-0000-4000-8000-000000000001', '05400000-0000-4000-8000-000000000002')
+on conflict (provider_id, provider) do nothing;
 
 -- GoTrue no lee NULL en sus columnas de token (falla al listar usuarios): en
 -- prueba todas las cuentas son sintéticas, así que se normalizan todas.

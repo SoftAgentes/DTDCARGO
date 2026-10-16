@@ -185,8 +185,9 @@ perm600 "${cred}" "cuentas-prueba.txt en 600"
 debiles=" 0000 1111 2222 3333 4444 5555 6666 7777 8888 9999 1234 4321 0123 0987 1212 2121 0101 1010 1313 6969 2580 1357 2468 1379 "
 [[ "${debiles}" != *" ${pv} "* && "${debiles}" != *" ${pc} "* ]] && ok "los PIN no están en la lista negra de validate_operario_pin_format" || ko "PIN débil"
 s1="$(ls "${DOBLE_DIR}"/stdin-*.sql | tail -n1)"
-[[ "$(sed -n 1p "${s1}")" == '\set ON_ERROR_STOP on' && "$(sed -n 2p "${s1}")" == "\\set clave_admin '${ca}'" ]] \
-  && grep -q '^\\set ON_ERROR_STOP on$' "${s1}" && grep -q 'semilla_conteo' "${s1}" && ok "psql recibe \\set de las claves y después la semilla" || ko "stdin de la semilla"
+[[ "$(sed -n 1p "${s1}")" == '\set ON_ERROR_STOP on' && "$(sed -n 2p "${s1}")" == '\set VERBOSITY terse' \
+   && "$(sed -n 3p "${s1}")" == '\set SHOW_CONTEXT never' && "$(sed -n 4p "${s1}")" == "\\set clave_admin '${ca}'" ]] \
+  && grep -q 'semilla_conteo' "${s1}" && ok "psql recibe ON_ERROR_STOP, errores sin la sentencia, las claves con \\set y después la semilla" || ko "stdin de la semilla"
 bash "${S}/staging/sembrar-prueba.sh" --project "${P}" --project-dir "${PD}" > "${T}/sem2.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 && "$(val "${cred}" clave_admin)" == "${ca}" && "$(val "${cred}" pin_ve)" == "${pv}" && "$(val "${cred}" pin_cn)" == "${pc}" ]] \
   && grep -q 'claves de antes' "${T}/sem2.log" && ok "segunda corrida: mismas cuentas, mismas claves" || ko "segunda corrida rc=${rc}"
