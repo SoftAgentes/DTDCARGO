@@ -72,6 +72,15 @@ ENV NEXT_PUBLIC_BUG_REPLAY_ENABLED=${NEXT_PUBLIC_BUG_REPLAY_ENABLED} \
     NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY} \
     NEXT_PUBLIC_WHATSAPP_NUMBER=${NEXT_PUBLIC_WHATSAPP_NUMBER}
 
+# Entorno del build (SDD-0544). Sólo lo manda la imagen de prueba
+# (`build-image-prueba.yml` → `APP_ENV=staging`): las páginas que Next
+# prerenderiza en el build leen ahí el entorno para pintar el aviso «Entorno de
+# prueba» (`components/AvisoEntornoPrueba.tsx`). Es ARG y no ENV a propósito: un
+# ARG llega a los RUN de esta etapa y no queda en la imagen, y el runner toma
+# APP_ENV del `.env` del servidor. `build-image.yml` no lo manda: llega vacío,
+# `lib/runtime/app-env.ts` lo trata como ausente y producción sigue igual.
+ARG APP_ENV
+
 # DTD_STANDALONE=1 es lo único que activa `output: "standalone"` en
 # `next.config.ts`; Vercel y el gate local no lo definen y conservan su salida.
 # El heap explícito es el mismo que usa CI: el build de este repo agota los

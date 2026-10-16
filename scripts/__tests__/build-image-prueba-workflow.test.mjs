@@ -11,12 +11,22 @@ import { describe, expect, it } from "vitest";
  * guard antes de construir; etiqueta única `prueba-sha-<sha>`; comprobación del
  * bundle sin red ANTES de publicar; ningún secret en los build-args. Cada regla
  * tiene su control rojo: el workflow mutado tiene que fallar.
+ *
+ * SDD-0544 (Fase 2): dos build-args fijos, `APP_ENV=staging` y
+ * `NEXT_PUBLIC_GA_ID=off`, y el chequeo del bundle exige 0 archivos de
+ * `.next/static` con Google Analytics o Ads. El Dockerfile recibe `APP_ENV` como
+ * ARG de la etapa build y producción (`build-image.yml`) no manda ninguno de los
+ * dos.
  */
 const fromEslint = createRequire(createRequire(import.meta.url).resolve("eslint/package.json"));
 const { load: loadYaml } = fromEslint("js-yaml");
 
 const TEXTO = readFileSync(resolve(".github/workflows/build-image-prueba.yml"), "utf8");
 const WF = loadYaml(TEXTO);
+const DOCKERFILE = readFileSync(resolve("Dockerfile"), "utf8");
+const PRODUCCION = readFileSync(resolve(".github/workflows/build-image.yml"), "utf8");
+/** Build-args fijos de la SDD-0544: no salen de variables y tienen que estar. */
+const FIJOS = ["APP_ENV=staging", "NEXT_PUBLIC_GA_ID=off"];
 // js-yaml lee la clave `on` como `true` (YAML 1.1): se aceptan las dos.
 const disparos = (wf) => wf.on ?? wf[true];
 const pasos = (wf) => wf.jobs["build-image-prueba"].steps;
@@ -59,14 +69,63 @@ function assertContrato(wf) {
   const args = String(b["build-args"] ?? "");
   if (/secrets\./.test(args)) throw new Error("un secret en build-args");
   if (/vars\.NEXT_PUBLIC_/.test(args)) throw new Error("build-args con variables de producción");
-  const valores = args.split("\n").filter(Boolean).map((l) => l.slice(l.indexOf("=") + 1));
-  for (const v of valores) {
-    if (!/^\$\{\{ (vars\.PRUEBA_[A-Z_]+|inputs\.sha) \}\}$/.test(v)) throw new Error(`build-arg fuera de PRUEBA_* o el sha: ${v}`);
+  const lineas = args.split("\n").map((l) => l.trim()).filter(Boolean);
+  for (const fijo of FIJOS) {
+    if (!lineas.includes(fijo)) throw new Error(`falta el build-arg fijo ${fijo}`);
   }
+  for (const l of lineas.filter((x) => !FIJOS.includes(x))) {
+    const v = l.slice(l.indexOf("=") + 1);
+    if (!/^\$\{\{ (vars\.PRUEBA_[A-Z_]+|inputs\.sha) \}\}$/.test(v)) throw new Error(`build-arg fuera de PRUEBA_*, el sha o los fijos: ${l}`);
+  }
+  const nombres = lineas.map((l) => l.slice(0, l.indexOf("=")));
+  if (new Set(nombres).size !== nombres.length) throw new Error("un build-arg repetido: el último pisaría al fijo");
   const chequeo = pasos(wf)[bundle].run;
   if (!/c_prueba.*-ge 1/.test(chequeo) || !/c_prod.*-eq 0 && .*c_ref.*-eq 0/.test(chequeo)) throw new Error("el chequeo del bundle no exige host de prueba ≥ 1 y producción/Cloud = 0");
+  // GA y Ads: se cuentan en .next/static (lo que baja el navegador), con JS ahí.
+  if (!/s\(\) \{ grep -rlF -- "\$1" \/app\/\.next\/static /.test(chequeo)) throw new Error("GA y Ads no se cuentan en /app/.next/static");
+  if (!/\$\(s G-25CD7BZH98\) \$\(s AW-561290482\)/.test(chequeo)) throw new Error("no se cuentan los dos IDs en .next/static");
+  if (!/n_js.*-ge 1/.test(chequeo)) throw new Error("el chequeo no exige JS en .next/static");
+  if (!/s_ga.*-eq 0 && .*s_ads.*-eq 0/.test(chequeo)) throw new Error("el chequeo no exige 0 archivos con GA y Ads en .next/static");
   for (const s of pasos(wf)) {
     if (Object.hasOwn(s, "continue-on-error")) throw new Error(`paso tolerante: ${s.name}`);
+  }
+}
+
+/** Etapas del Dockerfile por nombre (`FROM … AS <nombre>`). */
+function etapas(texto) {
+  const out = {};
+  for (const bloque of texto.split(/^FROM /m).slice(1)) {
+    const nombre = bloque.split("\n")[0].match(/\bAS (\S+)/)?.[1];
+    if (nombre) out[nombre] = bloque;
+  }
+  return out;
+}
+
+/**
+ * `APP_ENV` entra como ARG de la etapa build, antes de `next build`, y nunca
+ * como ENV: un ENV quedaría en la imagen y el runner tiene que tomar el entorno
+ * del `.env` del servidor.
+ */
+function assertDockerfile(texto) {
+  const { build, runner } = etapas(texto);
+  if (!build || !runner) throw new Error("no encuentro las etapas build y runner");
+  const arg = build.search(/^ARG APP_ENV\s*$/m);
+  const compila = build.search(/^RUN pnpm exec next build\s*$/m);
+  if (arg < 0) throw new Error("falta ARG APP_ENV en la etapa build");
+  if (compila < 0) throw new Error("no encuentro RUN pnpm exec next build");
+  if (arg > compila) throw new Error("ARG APP_ENV después de next build: el build no lo ve");
+  const sinComentarios = texto.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
+  if (/^ENV\s[^\n]*\bAPP_ENV\b|^\s+APP_ENV=/m.test(sinComentarios)) throw new Error("APP_ENV como ENV: quedaría en la imagen");
+  if (/APP_ENV/.test(runner)) throw new Error("APP_ENV en la etapa runner");
+}
+
+/** Producción no cambia: ni APP_ENV ni el apagado de GA en build-image.yml. */
+function assertProduccion(texto) {
+  const codigo = texto.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
+  if (/\bAPP_ENV\s*=/.test(codigo)) throw new Error("build-image.yml manda APP_ENV");
+  if (/NEXT_PUBLIC_GA_ID\s*=\s*off\b/.test(codigo)) throw new Error("build-image.yml apaga GA");
+  if (!/^\s*NEXT_PUBLIC_GA_ID=\$\{\{ vars\.NEXT_PUBLIC_GA_ID \}\}\s*$/m.test(codigo)) {
+    throw new Error("el GA de producción ya no sale de la variable del repositorio");
   }
 }
 
@@ -126,9 +185,75 @@ describe("SDD-0540 · workflow de la imagen de prueba", () => {
       const st = pasos(wf);
       st.splice(st.findIndex((s) => /--network none/.test(s.run ?? "")), 1);
     }],
+    // SDD-0544 · los dos build-args fijos y el chequeo de GA y Ads.
+    ["sin NEXT_PUBLIC_GA_ID=off", (wf) => {
+      const b = pasos(wf).find((s) => /build-push-action/.test(s.uses ?? ""));
+      b.with["build-args"] = b.with["build-args"].replace("NEXT_PUBLIC_GA_ID=off\n", "");
+    }],
+    ["GA con el valor vacío, que cae al ID real", (wf) => {
+      const b = pasos(wf).find((s) => /build-push-action/.test(s.uses ?? ""));
+      b.with["build-args"] = b.with["build-args"].replace("NEXT_PUBLIC_GA_ID=off", "NEXT_PUBLIC_GA_ID=");
+    }],
+    ["un segundo NEXT_PUBLIC_GA_ID pisa el apagado", (wf) => {
+      const b = pasos(wf).find((s) => /build-push-action/.test(s.uses ?? ""));
+      b.with["build-args"] += "NEXT_PUBLIC_GA_ID=${{ vars.PRUEBA_GA_ID }}\n";
+    }],
+    ["sin APP_ENV=staging", (wf) => {
+      const b = pasos(wf).find((s) => /build-push-action/.test(s.uses ?? ""));
+      b.with["build-args"] = b.with["build-args"].replace("APP_ENV=staging\n", "");
+    }],
+    ["APP_ENV de producción", (wf) => {
+      const b = pasos(wf).find((s) => /build-push-action/.test(s.uses ?? ""));
+      b.with["build-args"] = b.with["build-args"].replace("APP_ENV=staging", "APP_ENV=production");
+    }],
+    ["GA y Ads contados en todo .next y no en .next/static", (wf) => {
+      const s = pasos(wf).find((x) => /--network none/.test(x.run ?? ""));
+      s.run = s.run.replace('/app/.next/static 2>/dev/null | wc -l; }', '/app/.next 2>/dev/null | wc -l; }');
+    }],
+    ["GA en el bundle no hace fallar", (wf) => {
+      const s = pasos(wf).find((x) => /--network none/.test(x.run ?? ""));
+      s.run = s.run.split("\n").filter((l) => !/s_ga.*-eq 0/.test(l)).join("\n");
+    }],
+    ["sin exigir JS en .next/static", (wf) => {
+      const s = pasos(wf).find((x) => /--network none/.test(x.run ?? ""));
+      s.run = s.run.split("\n").filter((l) => !/n_js.*-ge 1/.test(l)).join("\n");
+    }],
   ])("rechaza: %s", (_n, mutar) => {
     const wf = structuredClone(WF);
     mutar(wf);
     expect(() => assertContrato(wf)).toThrow();
+  });
+});
+
+describe("SDD-0544 · Dockerfile y workflow de producción", () => {
+  it("el Dockerfile recibe APP_ENV como ARG de la etapa build", () => {
+    expect(() => assertDockerfile(DOCKERFILE)).not.toThrow();
+  });
+
+  it("build-image.yml (producción) no manda APP_ENV ni apaga GA", () => {
+    expect(() => assertProduccion(PRODUCCION)).not.toThrow();
+  });
+
+  it.each([
+    ["sin ARG APP_ENV", (t) => t.replace(/^ARG APP_ENV\n/m, "")],
+    ["ARG APP_ENV después de next build", (t) =>
+      t.replace(/^ARG APP_ENV\n/m, "").replace(/^RUN pnpm exec next build\n/m, "RUN pnpm exec next build\nARG APP_ENV\n")],
+    ["APP_ENV como ENV en la etapa build", (t) => t.replace(/^ARG APP_ENV\n/m, "ARG APP_ENV\nENV APP_ENV=${APP_ENV}\n")],
+    ["APP_ENV en el runner", (t) => t.replace(/^USER node\n/m, "ENV APP_ENV=staging\nUSER node\n")],
+  ])("Dockerfile rechaza: %s", (_n, mutar) => {
+    const mutado = mutar(DOCKERFILE);
+    expect(mutado).not.toBe(DOCKERFILE);
+    expect(() => assertDockerfile(mutado)).toThrow();
+  });
+
+  it.each([
+    ["APP_ENV en los build-args", (t) =>
+      t.replace(/^(\s*)NEXT_PUBLIC_GA_ID=\$\{\{ vars\.NEXT_PUBLIC_GA_ID \}\}$/m, "$1APP_ENV=staging\n$&")],
+    ["GA apagado en producción", (t) =>
+      t.replace(/NEXT_PUBLIC_GA_ID=\$\{\{ vars\.NEXT_PUBLIC_GA_ID \}\}/, "NEXT_PUBLIC_GA_ID=off")],
+  ])("build-image.yml rechaza: %s", (_n, mutar) => {
+    const mutado = mutar(PRODUCCION);
+    expect(mutado).not.toBe(PRODUCCION);
+    expect(() => assertProduccion(mutado)).toThrow();
   });
 });
