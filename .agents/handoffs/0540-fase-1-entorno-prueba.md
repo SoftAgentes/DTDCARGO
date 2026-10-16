@@ -8,7 +8,7 @@
 | Rama | `worktree-agent-a7c2c1ce96270fc41` |
 | Base | `origin/main` `6da8aebc`, más el merge (`2b0ac5a9`, sin rebase) de `worktree-agent-a3485995997ab5c0f`: PR #246, cabeza `e6c67c4e`, con la spec de la 0540 |
 | SDD | [0540](../../docs/specs/0540-entorno-prueba-staging/spec.md), `proposed`. La spec vive en la PR #246 y esta rama **no la modifica** |
-| Estado de la tarea | lista para revisión. Quedan pendientes las dos corridas pesadas, que esperan el turno del Director |
+| Estado de la tarea | lista para revisión. Las dos corridas pesadas PASARON (seguimiento del 2026-10-16) |
 | Permisos | commits selectivos, push de la rama propia y PR en borrador contra `main`, sin fusionar (main congelado). Prohibidos: producción, SSH, DNS, Vercel, GHCR con credenciales y secretos reales. Sin `pnpm verify`, suites Docker ni Postgres efímero |
 
 ## OBJETIVO ORIGINAL
@@ -134,12 +134,34 @@ Una línea más en `infra/dtd-cargo/README.md` y dos filas en `infra/ops/README.
 | `infra/ops/tests/prueba-aplicar-migracion.sh` | bash con dobles |
 | `infra/ops/tests/prueba-compose-prueba.sh` | `docker compose config` real, solo valida; reglas en `revisar-compose-prueba.mjs` |
 | `infra/ops/tests/prueba-aplicar-migracion-efimera.sh` | **pesada**, supabase/postgres efímero |
-| `infra/ops/tests/prueba-resetear-base-efimera.sh` | **pesada**, todas las migraciones del HEAD |
+| `infra/ops/tests/prueba-resetear-base-efimera.sh` | **pesada**: todas las migraciones del HEAD, con GoTrue y storage-api arriba |
+| `infra/ops/tests/prueba-smoke-web-credenciales.sh` | bash con dobles de curl, openssl y date |
 | `scripts/__tests__/entorno-prueba-{compose,semilla,runbook,scripts}.test.mjs`, `build-image-prueba-workflow.test.mjs` | Vitest, sin Docker; entran a `pnpm test` y al CI |
+
+### 9. Seguimiento del 2026-10-16, a pedido del Director
+
+- **Prueba pesada del reset con el orden real.** La base, GoTrue y storage-api arrancan antes de las migraciones, como en el servidor.
+- **La semilla exige el esquema de GoTrue.** El cambio y la decisión están en el §9 de la spec.
+- **`plataforma-prueba-cierre.sql`, nuevo.** Con la plataforma, deja pasar la 0038 con los servicios arriba.
+- **GoTrue ya no responde 500 al listar usuarios.** Ver «Corridas pesadas» en VALIDACIÓN.
+- **`infra/ops/web/smoke-web.sh --credenciales <archivo>`,** con las condiciones de la sesión de Contabo:
+  - es opcional e idéntico sin la opción;
+  - `-K` en `pedir()` y también en la llamada de `--www`;
+  - nada por argv; los `openssl` no la usan;
+  - un archivo inválido sale 2;
+  - el resumen dice «con credenciales: sí».
+- **`docs/runbooks/servidor-contabo.md` §1.9:** el entorno de prueba, con el staging de la Fase 2 como histórico fechado.
+- **`docs/runbooks/entorno-prueba.md`:** usa `--credenciales`.
 
 ## VALIDACIÓN
 
-Todo sobre la cabeza `e2f32947` (los cinco commits de producto). El commit del handoff no toca código.
+Las filas de la primera entrega se midieron sobre `e2f32947`. Las del seguimiento del 2026-10-16 (pruebas pesadas, `--credenciales`) se midieron sobre los commits que se nombran en cada una. Sobre la cabeza final (`16802ca4` más este handoff, con `origin/main` `acd4f53d` ya integrado) se repitieron:
+- **Vitest** (5 archivos nuevos + 2 vecinos): PASÓ, 76/76, 70 s;
+- **`prueba-compose-prueba.sh`**: PASÓ, 7 · 0;
+- **`docs:check`**: PASÓ, 526 specs;
+- **`sdd:check`**: OK;
+- **`git diff --check origin/main HEAD`**: PASÓ;
+- **ESLint de los `.mjs`**: PASÓ.
 
 | Comprobación | Resultado |
 |---|---|
@@ -153,12 +175,37 @@ Todo sobre la cabeza `e2f32947` (los cinco commits de producto). El commit del h
 | `corepack pnpm sdd:check` | **PASÓ**: `[OK] numbering: sin números repetidos` (solo choques históricos) |
 | `git diff --check` y `git diff --cached --check` en cada commit | **PASÓ** |
 | `node scripts/check-feature-constants.mjs` · `node scripts/check-pending-migration-symbols.mjs` | **PASÓ**: 6 banderas coinciden · 0 ROJO, 0 AMARILLO |
-| `bash infra/ops/tests/prueba-aplicar-migracion-efimera.sh` | **NO EJECUTADO**: corrida pesada, la pide el Director. Comando exacto: `bash infra/ops/tests/prueba-aplicar-migracion-efimera.sh`. Levanta `zz540e-staging-db-1` sin red y lo borra |
-| `bash infra/ops/tests/prueba-resetear-base-efimera.sh` | **NO EJECUTADO**: corrida pesada (484 migraciones), la pide el Director. Comando exacto: `bash infra/ops/tests/prueba-resetear-base-efimera.sh`, desde este worktree en la cabeza de la PR, que ya trae los archivos de la Fase 1 |
+| `bash infra/ops/tests/prueba-aplicar-migracion-efimera.sh` | **PASÓ**: 11 · 0 FALLÓ. La corrió primero el Director sobre `cd8f1352` (09:38–09:48Z) y la repetí sobre `6b098a50`, porque cambió `plataforma-prueba.sql`. Incluye que un error a la mitad no deja ni la tabla ni la fila, y que la lectura previa frena la segunda corrida |
+| `bash infra/ops/tests/prueba-resetear-base-efimera.sh` | **PASÓ**: 19 · 0 FALLÓ sobre `6b098a50`, con el turno que dio el Director. Detalle en la sección «Corridas pesadas» de abajo |
+| `bash infra/ops/tests/prueba-smoke-web-credenciales.sh` (dobles de curl, openssl y date) | **PASÓ**: 15 · 0 FALLÓ · 1 NO VERIFICADO (el archivo ilegible no se puede armar en NTFS; en Linux, sin root, sí) |
+| `smoke-web.sh` sin la opción contra el script anterior (blob `4a281263`), con los mismos dobles | **PASÓ**: salida (19 líneas), 16 llamadas de curl y llamadas de openssl idénticas; con `--www`, 21 líneas y 17 llamadas, también idénticas. El log de openssl se compara ordenado: `s_client` y `x509` escriben a la vez en la misma tubería |
 | `pnpm verify` | **NO EJECUTADO**: lo excluye el encargo. No cambia código de producto: `app/`, `lib/`, `components/` y `supabase/` quedan intactos |
 | `pnpm typecheck` y `pnpm lint` completos | **NO EJECUTADO**: las pruebas nuevas son `.mjs`, fuera del `include` de tsconfig; ESLint se corrió sobre ellas |
 | `corepack pnpm knowledge:status` | **NO DISPONIBLE**: `structural INVALID`, `semantic INVALID`, `archify PENDING` («ARCHIFY_RUNTIME_MISSING») y `obsidian PENDING`. Este worktree no tiene los derivados |
 | `knowledge:visual` / `knowledge:visual:check` | **NO DISPONIBLE**: falta el runtime de Archify 2.16.0 en el worktree |
+
+### Corridas pesadas (seguimiento del 2026-10-16, 09:38–10:50Z)
+
+1. **Primera corrida, del Director, sobre `cd8f1352`.** La de aplicar-migración PASÓ (11 · 0). La del reset FALLÓ (5 · 7):
+   - el paquete, las 482 migraciones, el ledger, las versiones y los default privileges dieron bien;
+   - la semilla falló con `column "email_confirmed_at" of relation "users" does not exist`.
+   - **Causa:** la prueba corría sin GoTrue y `auth.users` tenía el esquema base de la imagen.
+2. **Decisión:** que la prueba reproduzca el orden real, y no que la semilla dependa de dos esquemas. Está explicada en el §9 de la spec. La prueba levanta, en una red interna desechable, la base y GoTrue `v2.197.0` + storage-api `v1.77.6`, que salen de `compose.supabase.yml`. La semilla exige el esquema de GoTrue y falla con un mensaje claro si no lo encuentra.
+3. **Lo que destapó el orden real**, que en el servidor habría pasado igual:
+   - **La 0038 se rompía:** «relation "public.instances" does not exist». Evalúa `has_table_privilege('service_role', 'public.' || relname)` sobre toda tabla con RLS antes de filtrar por esquema, y GoTrue y storage-api dejan RLS en `auth.*` y `storage.*`. Arreglo: `plataforma-prueba.sql` anota y apaga esa RLS durante las migraciones, y `plataforma-prueba-cierre.sql`, que es nuevo y entra en el paquete, la vuelve a encender en exactamente esas tablas y lo comprueba.
+   - **GoTrue respondía 500 al listar usuarios:** tokens y `created_at` en NULL en los tres usuarios fijos de la plataforma. Lo medí en un banco aparte con base y GoTrue. Arreglo: fechas y `''` en la plataforma, y `created_at` y `updated_at` también en la normalización de la semilla.
+   - **Detalles de la prueba:** los healthchecks y las llamadas a GoTrue usan `127.0.0.1`, porque `localhost` no llega al servidor en esas imágenes. Además, `MSYS_NO_PATHCONV` evita que Git Bash convierta `/tmp/…` en una ruta de Windows.
+   - **De paso,** la semilla y `sembrar-prueba.sh` corren psql con `VERBOSITY terse` y `SHOW_CONTEXT never`, para que un error no copie la sentencia con las claves ya sustituidas.
+4. **Corrida final, sobre `6b098a50`: 19 PASÓ · 0 FALLÓ.** Detalle:
+   - paquete de 485 migraciones, 18 sólo-ledger y 3 pendientes;
+   - GoTrue y storage-api arriba con su esquema; reset completo en 429 s;
+   - una fila del ledger por archivo (482), sin las de `pendingBelowCutoff`, con versiones únicas;
+   - default privileges como producción;
+   - semilla con `semilla_conteo|2|1|1|1|2|1|1`; operarios VE y CN con PIN bcrypt y cifrado; segunda corrida con los mismos conteos;
+   - ningún correo ni teléfono fuera de lo reservado y Vault sin Kommo;
+   - **`postgres` creó las 44 policies sobre el `storage.objects` de storage-api**, que estaba NO VERIFICADO;
+   - GoTrue lista las cuentas y el admin sintético entra con su clave.
+   - Al terminar no quedan contenedores ni redes `zz540*`.
 
 ## COMMITS
 
@@ -175,61 +222,68 @@ Todo sobre la cabeza `e2f32947` (los cinco commits de producto). El commit del h
   - `main` no cambió nada de `infra/`, `.github/` ni `scripts/`.
 - `0097f3a7` · `docs(handoff): SDD-0540 — PR #251 y merge de main en el handoff de la Fase 1`.
 - `669c3dc0` · `fix(ops): SDD-0540 — la semilla no desborda abs(hashtext()) con el entero mínimo`: pasa a bigint antes del `abs`. `entorno-prueba-semilla.test.mjs` da 15/15 después del cambio.
-- Además, el commit que contiene este documento. Es la cabeza que revisa el CI de la PR: el resultado se lee en la #251 y no se vuelve a publicar después del verde.
+- `cd8f1352` · `docs(handoff): SDD-0540 — último commit de la Fase 1 en el handoff`. Es la cabeza que tuvo el CI verde (run 38878089858) y sobre la que el Director corrió las pruebas pesadas.
+- **Seguimiento del 2026-10-16:**
+  - `f4a442c4` · la semilla corre sobre el esquema de GoTrue y la prueba efímera lo levanta;
+  - `8ede9ba5` · la 0038 corre con GoTrue y storage-api arriba (`plataforma-prueba-cierre.sql`);
+  - `6b098a50` · GoTrue lista las cuentas de prueba sin el 500;
+  - `3552aee7` · `smoke-web.sh --credenciales`, con su prueba;
+  - `82c87a87` · §1.9 de `servidor-contabo.md` y §9 de la spec;
+  - `e6799269` · merge de `origin/main` (`acd4f53d`, con la #246 ya fusionada);
+  - `16802ca4` · espacio que faltaba en la prueba de `--credenciales`;
+  - el commit que contiene este documento.
 
 ## PR / BRANCH
 
 - Rama `worktree-agent-a7c2c1ce96270fc41` → PR [#251](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/251), en **borrador** contra `main`.
-- La PR contiene la spec (el merge de la #246). **Conviene fusionar primero la #246.** Si la #246 cambia la spec antes, esta rama hace merge de su cabeza nueva.
+- La #246 (la spec) quedó fusionada en `main` a las 10:04Z (`acd4f53d`), y esta rama ya la tiene por merge. La PR solo suma el §9 al final de la spec.
 
 ## PENDIENTES DE ESTA TAREA
 
-1. **Las dos corridas pesadas,** con turno del Director: `prueba-aplicar-migracion-efimera.sh` y `prueba-resetear-base-efimera.sh`. La del reset es la primera vez que las migraciones de `main` corren con el envoltorio y la plataforma de prueba:
-   - si falla en una migración, la evidencia trae `falla-<nombre>.err`;
-   - si falla en la semilla, `semilla.out` dice qué tabla o columna quedó fuera de lo reservado.
-
-   La acción de la semilla sobre esos datos se decidió así, sin una regla escrita que la pidiera: reemplaza en `public` toda columna de texto cuyo nombre termina en email, phone, telefono, whatsapp o celular.
-2. **`smoke-web.sh` con la clave del web.** Es la fila opcional de la Fase 1 y **no se hizo**: el archivo es de la sesión de Contabo. Propuesta:
-   - agregar `--credenciales <archivo>` (una línea `usuario:clave`);
-   - armar un `curl -K` con `user = "…"` en un archivo 600, como `prueba_smoke_puerta` de `infra/ops/staging/lib-prueba.sh`;
-   - con la opción, esperar 401 sin la clave y 200 con ella.
-
-   Mientras tanto, `desplegar-prueba.sh` y `crear-prueba.sh` hacen el smoke de la puerta.
-3. **Decisiones de diseño para que el Director las confirme o cambie.** No son decisiones de Sam:
-   - el reset **salta** las esperas de `pendingBelowCutoff` (hoy la 0422 y la 0423), porque producción no las tiene. Para ensayarlas se usa `aplicar-migracion.sh` sobre la base reseteada. Con esto el ledger queda con una fila por archivo **menos las pendientes**, no por todos los archivos como decía la letra del §3;
+1. **CI de la PR sobre la cabeza nueva.** El resultado se lee en la #251. Después del verde no se publica nada más.
+2. **Decisiones de diseño para que el Director las confirme o cambie.** No son decisiones de Sam, y las que ya se midieron están en el §9 de la spec:
+   - el reset **salta** las esperas de `pendingBelowCutoff` (hoy la 0422 y la 0423), porque producción no las tiene. Medido: 482 filas;
    - las 18 `LEDGER_ONLY` del rebuild registran su fila sin ejecutarse;
-   - la 0336 está en CRLF en el blob: el reset acepta CR en las históricas y `aplicar-migracion.sh` lo rechaza en las nuevas;
-   - el reset levanta GoTrue y storage-api **antes** de las migraciones. Es el orden de la CLI de Supabase, pero en este servidor está **NO VERIFICADO**: depende de que `postgres` pueda crear policies sobre `storage.objects`, que es de storage-api, y lo mide la Fase 3. La prueba efímera usa el camino sin servicios, el mismo del rebuild;
-   - el workflow acepta `PRUEBA_VAPID_PUBLIC_KEY` vacía, porque el §2.7 permite prueba sin push. El texto del guard del §2.5 pedía todas no vacías;
-   - el `basicAuth` usa un bcrypt `$2a$` calculado con pgcrypto, porque en el VPS no hay `htpasswd`. Traefik lo acepta (inferencia sobre `go-http-auth`); la Fase 3 lo mide;
-   - Mailpit está en `dtd_edge` para que Traefik llegue a `/correo/`. Antes estaba solo en la red interna, pero sin `MP_SMTP_RELAY_*` no reenvía nada (lo vigila el revisor).
+   - la 0336 está en CRLF en el blob: el reset acepta CR en las migraciones históricas y `aplicar-migracion.sh` lo rechaza en las nuevas;
+   - **la RLS fuera de `public` se apaga durante las migraciones** para que pase la 0038, y el cierre la vuelve a encender en las mismas tablas. La alternativa, editar la 0038, no se puede: está aplicada en producción;
+   - la semilla reemplaza en `public` toda columna de texto cuyo nombre termina en email, phone, telefono, whatsapp o celular. Ninguna regla escrita lo pedía;
+   - el workflow acepta `PRUEBA_VAPID_PUBLIC_KEY` vacía, porque el §2.7 permite prueba sin push;
+   - el `basicAuth` usa un bcrypt `$2a$` calculado con pgcrypto, porque en el VPS no hay `htpasswd`. Que Traefik lo acepte es una inferencia sobre `go-http-auth` y lo mide la Fase 3;
+   - Mailpit está en `dtd_edge` para que Traefik llegue a `/correo/`; sin `MP_SMTP_RELAY_*` no reenvía nada.
+3. **Revisión de Contabo de `smoke-web.sh --credenciales`.** Lo pidió como condición de su OK.
 
 ## FUERA DE ALCANCE DETECTADO
 
 1. **Las migraciones siembran demo con contactos de formato real.**
-   - **Qué hay.** La 0006 siembra clientes con correos `@demosa.com.ve`, `@cargaejemplo.com`, `@localpyme.ve`, … y teléfonos `+58 414 1234567`, `+58 412 8888888`, …. La 0010 trae agentes de aduana, la 0011 choferes con cédulas `V-15.342.881`, … y la 0160 y la 0161 nómina y contratistas.
-   - **Riesgo.** Esos números o dominios pueden ser de personas o empresas reales. Están también en producción (inferencia: las migraciones se aplicaron allá). En prueba los neutraliza la semilla.
+   - **Qué hay.** La 0006 siembra clientes con correos `@demosa.com.ve`, `@cargaejemplo.com`, `@localpyme.ve`, … y teléfonos `+58 414 1234567`, `+58 412 8888888`, …. La 0010 trae agentes de aduana, la 0011 choferes con cédulas `V-15.342.881`, … y la 0160 y la 0161, nómina y contratistas.
+   - **Riesgo.** Esos números o dominios pueden ser de personas o empresas reales. También están en producción (inferencia: las migraciones se aplicaron allá). En prueba los neutraliza la semilla, comprobado en la prueba efímera.
    - **Propuesta.** Revisarlo con `revisar-datos-ve` en otra tarea.
-2. **`IDENTITY_CNE_PROVIDER` sin valor cae a `cedulave`** (`lib/studio/identity/index.ts:51`). En prueba, verificar una cédula llamaría al servicio externo con el número inventado (`V-99990002` o el de un demo). Hace falta un modo apagado o mock para `APP_ENV=staging`: es producto, Fase 2 o una SDD aparte.
-3. **`docs/runbooks/servidor-contabo.md`** sigue describiendo el staging de la Fase 2: §1.9 dice `dtd-cargo-staging` con el host `staging.dtdcargo.com` y la lista de IP. Le corresponde a la sesión de Contabo (SDD-0505) apuntar ahí a `docs/runbooks/entorno-prueba.md`. No lo toqué.
-4. **`smoke-web.sh` no conoce la puerta del web.** Contra prueba, todo da 401 (pendiente 2, propuesta para su dueño).
+2. **`IDENTITY_CNE_PROVIDER` sin valor cae a `cedulave`** (`lib/studio/identity/index.ts:51`). En prueba, verificar una cédula llamaría al servicio externo con el número inventado. Hace falta un modo apagado o mock para `APP_ENV=staging`: es producto, de la Fase 2 o de una SDD aparte.
+3. **La 0038 y la RLS de GoTrue y storage-api.** Fuera de prueba, cualquier base que se reconstruya con los servicios arriba (restore de desastre, otro entorno) se encuentra con la misma rotura. Hoy lo resuelve solo la plataforma de prueba.
 
 ## Dependencias con otros trabajos
 
-- **SDD-0541** (publicación automática a producción): no se tocaron `infra/ops/web/` ni `build-image.yml`. Dependencia: si la 0541 cambia `build-image.yml` para limitar `sha-*` a `main` (§6, punto 2 de la 0540), el workflow de prueba no se ve afectado, porque solo publica `prueba-sha-*`.
-- **SDD-0505 / sesión de Contabo:** no se tocaron `corte-paso2.sh`, `telegram-webhook.sh`, `smoke-web.sh` ni las etiquetas de Traefik de `compose.yml`. Le tocan el §2 del runbook nuevo (Fase 3) y la propuesta de `smoke-web.sh`.
+- **SDD-0541** (publicación automática a producción): no se tocaron `build-image.yml` ni `infra/ops/web/desplegar.sh`. Si la 0541 limita `sha-*` a `main` (§6, punto 2 de la 0540), el workflow de prueba no se ve afectado: solo publica `prueba-sha-*`.
+- **SDD-0505 / sesión de Contabo.**
+  - `infra/ops/web/smoke-web.sh` cambió **con su aprobación y sus condiciones**: lo opcional, `-K` en `pedir()`, nada por argv, salida 2 y los `openssl` sin la clave.
+  - Su §1.9 de `servidor-contabo.md` se reescribió por pedido suyo.
+  - No se tocaron `corte-paso2.sh`, `telegram-webhook.sh` ni las etiquetas de Traefik de `compose.yml`.
+  - Le toca el §2 del runbook nuevo, en la Fase 3.
 
 ## Impacto documental y conocimiento
 
-- **Documentos canónicos.** Hay uno nuevo, `docs/runbooks/entorno-prueba.md`. En `infra/dtd-cargo/README.md` y `infra/ops/README.md` cambiaron solo las filas del overlay y de las piezas nuevas.
-- **La spec 0540 no se modificó.** Propuesta para el Director: al integrar, sumar en la spec un §9 «Seguimiento · Fase 1» que apunte a esta PR y a este handoff, y registrar los pendientes 1 y 3.
+- **Documentos canónicos:**
+  - `docs/runbooks/entorno-prueba.md`, nuevo, con `smoke-web.sh --credenciales`;
+  - `docs/runbooks/servidor-contabo.md` §1.9: entorno de prueba e histórico fechado del staging de la Fase 2;
+  - spec 0540, §9 «Seguimiento de la Fase 1»;
+  - las filas del overlay y de las piezas nuevas en `infra/dtd-cargo/README.md` e `infra/ops/README.md`.
 - **Graphify, Archify y Obsidian:** NO DISPONIBLE en este worktree (ver VALIDACIÓN). Nada de esta rama está en `semanticPilot`. El Director publica desde main integrado.
 
 ## HANDOFF AL DIRECTOR
 
-1. Revisar la PR, en borrador. Es contra `main`, que está congelado: no se fusiona sin tu decisión.
-2. Dar turno a las dos corridas pesadas, con los comandos de VALIDACIÓN, y registrar su resultado aquí o en la PR.
-3. Confirmar o cambiar las decisiones de diseño del pendiente 3.
-4. Pasarle a la sesión de Contabo la propuesta de `smoke-web.sh` y el punto 3 de FUERA DE ALCANCE.
+1. Revisar la PR #251, en borrador. Es contra `main`, que está congelado: no se fusiona sin tu decisión.
+2. Ver el CI de la cabeza nueva en la #251.
+3. Confirmar o cambiar las decisiones del pendiente 2.
+4. Pasarle a la sesión de Contabo `smoke-web.sh --credenciales` y su prueba para que los revise.
 5. Fase 3: el §2 de `docs/runbooks/entorno-prueba.md`. Antes, Sam confirma D4–D11 por nombre, como pide el §8 de la spec.
-6. Ownership: claim `worker-0540-fase1-a7c2c1ce` liberado al cerrar. El worktree y la rama se conservan.
+6. Ownership: el claim `worker-0540-fase1-a7c2c1ce` se libera al cerrar. El worktree y la rama se conservan.
