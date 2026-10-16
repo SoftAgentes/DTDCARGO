@@ -13,7 +13,10 @@
 # infra/ops/staging/ips-prueba.sh, nunca escrita en el repo) y
 # STAGING_INTERNAL_IPS (el propio VPS: la puerta de enlace de dtd_edge, por donde
 # llega el web de prueba a su API, y la IP pública, por donde llegan los smokes
-# desde el host). El resto recibe 403. La clave del web sigue además.
+# desde el host). El resto de internet recibe 403. La clave del web sigue además.
+# Ojo: TODO contenedor del VPS, de cualquier red, llega a Traefik como la puerta
+# de dtd_edge (NAT de Docker, medido el 2026-10-16), así que los vecinos del VPS
+# entran; de internet, solo Sam (runbook entorno-prueba §2.1).
 #
 # Qué agrega este overlay:
 #   · Límites de memoria del §2.8: suman 3.072 MiB con los servicios que arrancan

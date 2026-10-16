@@ -11,6 +11,9 @@
 #                         (--red, dtd_edge), por donde el web de prueba llega a su
 #                         API, y la IP pública (--ip), por donde llegan los smokes
 #                         desde el host. Medido el 2026-10-16 en el log de Traefik.
+#                         Cualquier contenedor del VPS, de cualquier red, sale por
+#                         el NAT de Docker con esa misma puerta: del VPS entra
+#                         todo; de internet, solo la lista de Sam.
 #
 # Nunca imprime una IP: solo cuántos rangos hay y su huella (sha256 corto).
 #

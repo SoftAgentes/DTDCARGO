@@ -106,7 +106,7 @@ Actores: **Sam** (DNS y GitHub), **Contabo** (la sesión con SSH) y el **Directo
     - `noindex` en los dos hosts;
     - la API sin `apikey`, 401.
 
-    Y desde fuera de la lista (cualquier otra red), **403** en los dos hosts, antes de la clave. Se comprueba en el log de acceso de Traefik con un pedido desde otra red, o pidiéndole a la sesión Director que pruebe desde la suya si su IP no está en la lista.
+    Y desde fuera de la lista, **403** en los tres hosts (web, `/correo/` y `supabase-prueba`), antes de la clave. Se prueba **desde fuera del VPS y de la red de Sam**: desde el VPS cualquier pedido entra como 172.18.0.1 o como la IP pública, y la sesión Director corre en la PC de Sam y sale por su misma IP (§2.1).
 
 ### 2.1 · Lista de IP (con datos reales)
 
@@ -123,6 +123,8 @@ La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variab
 - **Una IP conocida, sin SSH:** `--cidr <a.b.c.d/32>`. Rechaza rangos abiertos (`0.0.0.0/0`, `::/0`) y prefijos menores de /8 en IPv4 o de /32 en IPv6.
 - **Señal de que cambió la IP de Sam:** prueba le responde 403 a él. Se arregla corriendo otra vez el primer comando.
 - **`STAGING_INTERNAL_IPS`** la arma el script con la puerta de enlace de `dtd_edge` (por donde el web de prueba llega a su API) y la IP pública del VPS (por donde llegan los smokes desde el host). Medido el 2026-10-16 en el log de Traefik. Si se recrea la red `dtd_edge`, hay que volver a correr el script.
+- **Qué deja pasar de verdad (medido el 2026-10-16):** de internet, solo la IP de Sam. Todo lo que corre en el VPS entra como **172.18.0.1** (NAT de Docker), y el host como **217.216.54.70**. Eso vale para un contenedor de cualquier red de Docker: uno de Loop3D, uno de Renta Aguada o uno en una red de usar y tirar, como se comprobó con una temporal. Cuando pide por la IP pública, el NAT lo enmascara con la puerta del bridge de salida.
+- **El riesgo, con nombre:** los vecinos del VPS (Loop3D y Renta Aguada) comparten el root y el Docker del servidor. Frente a ellos, la barrera **no** es la lista de IP sino el root del servidor: quien controla un contenedor con acceso a Docker o al host llega igual a la base de prueba. La lista protege de internet. Por lo mismo, **el 403 no se puede probar desde el VPS**: se prueba desde fuera contra los tres hosts, con un fetch desde otra IP o con un `curl` en un runner de GitHub (workflow manual de un solo uso, que no queda en `main`).
 - **Al terminar con los datos reales** (cuando pasan a producción o se descartan), se borran de prueba con evidencia: un reset o un destroy, avisando antes al Director. La lista de IP se puede quitar recién cuando prueba vuelva a tener solo datos sintéticos, en otra PR.
 11. **Cuentas (Sam).** Sam las lee por SSH:
     - la clave del web, en `/srv/dtd-cargo-staging/secretos/clave-web.txt`;
