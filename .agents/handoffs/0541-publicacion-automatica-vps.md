@@ -44,11 +44,33 @@ sesión de Contabo. El encargo pedía:
    `/srv/ops/web/publicar-web.sh <sha>` (700, sha16 `507df8e0155f59c7`). Publicó a
    las 08:20Z `sha-8761618d` con pull → sharp → copia del `.env` → `DTD_WEB_IMAGE` →
    `up` → healthy en 24 s → smoke con 14 PASÓ → vuelta atrás. Mi script conserva
-   esa interfaz (`<sha>` y también `sha-<sha>`) y suma la misma prueba de sharp. No
-   lo pude leer.
+   esa interfaz (`<sha>` y también `sha-<sha>`).
+3. **El texto exacto del interino (32 líneas) y tres notas de Contabo**, por el
+   Director. La comparación paso a paso quedó en la spec, § Comparación con el
+   script interino. Las notas, resueltas cada una con su prueba y su mutante:
+   1. **Sharp:** el mío ya convertía a WebP (el interino solo hace `require`).
+      Sumé `-w /app` como el interino. Con la imagen local vieja
+      `dtdcargo:0505-test`, anterior al arreglo de libvips, las dos pruebas fallan
+      igual: `libvips-cpp.so.8.18.3: cannot open shared object file`. El caso
+      bueno no lo pude medir en local (sin GHCR no tengo una imagen nueva).
+   2. **Copias `.env.bak-publicar-*`:** se conservan las 3 últimas
+      (`PUBLICAR_CONSERVAR_COPIAS_ENV`), con el mismo nombre del interino, así que
+      también rota las suyas. Las demás copias no se tocan y nunca se imprime su
+      contenido.
+   3. **Vuelta atrás segura:**
+      - si la anterior es la misma imagen que la nueva, lo dice y no hace nada (a
+        mano sale 0 y no deja `:publicable` rechazada; `volver` sale 1);
+      - si la anterior no está en el servidor, la baja antes de publicar, y si
+        tampoco puede, no publica;
+      - la limpieza protege por id la vigente, la anterior y la que corría, y ni
+        siquiera intenta borrarlas.
 
-   **La sesión de Contabo tiene que comparar los dos antes de instalar**: es el
-   paso C2a del runbook.
+   También se niega con `compose.ensayo.yml`, como el interino: en `vigilar`, a
+   mano y en `volver`. Lo que difiere del interino y conviene saber: la evidencia
+   pasa de un `.txt` a una carpeta con otro nombre.
+
+   **La sesión de Contabo confirma en el paso C2a** que el archivo del servidor es
+   ese texto (sha16) y lo guarda antes de reemplazarlo.
 
 ## Recomendación
 
@@ -105,7 +127,9 @@ No hay llave del servidor en GitHub ni token de GitHub en el servidor.
 
 | Comprobación | Resultado | Detalle literal |
 |---|---|---|
-| `bash infra/ops/tests/prueba-publicar-web.sh` en `node:24`, sin red | **PASÓ** | `RESULTADO: 82 PASÓ · 0 FALLÓ` sobre el árbol final: prueba de sharp, interfaz del interino y avisos largos |
+| `bash infra/ops/tests/prueba-publicar-web.sh` en `node:24`, sin red | **PASÓ** | `RESULTADO: 94 PASÓ · 0 FALLÓ` sobre el árbol final, con las tres notas de Contabo y `compose.ensayo.yml` (antes de esas notas: 82) |
+| `--mutantes`, tercera corrida completa (38 mutantes, después de las notas de Contabo, repartidos en dos contenedores con `MUTANTES_PARTE`) | **PASÓ** después de corregir el corredor | Control rojo `76 FALLÓ` en los dos. Mitad 1: `17 muertos · 2 vivos`; los 2 eran «mal armados» porque `perl` tomaba como opción un texto que empieza con guion (`Unrecognized switch: --entrypoint…`). Mitad 2: `19 muertos · 0 vivos`. Con el corredor corregido (`--`), los 2 y el de las copias (cambié su línea de prueba): `3 muertos · 0 vivos`. Total: **38 de 38** |
+| Prueba de sharp contra una imagen real (`dtdcargo:0505-test`, local, sin red) | **PASÓ** como control | Es una imagen vieja, anterior al arreglo de libvips. Fallan las dos: el `require` del interino y la conversión del nuevo (`ERR_DLOPEN_FAILED: libvips-cpp.so.8.18.3`), con exit 1. Caso bueno: **NO DISPONIBLE** en local (sin GHCR no hay imagen nueva) |
 | `--mutantes`, primera corrida (21 mutantes) | **PASÓ** después de corregir | `control rojo: contra un script vacío la suite falla (59 FALLÓ)`. Primero: `19 muertos · 2 vivos`. Uno vivo («borra la imagen anterior») porque la anterior caía entre las 2 más nuevas: la prueba ahora la deja como la más vieja. El otro estaba mal armado (texto viejo). Repetidos solos con `MUTANTES_SOLO`: los 2 `MUERTO`, control con 60 FALLÓ |
 | `--mutantes`, segunda corrida completa (24 mutantes, con sharp y la interfaz del interino) | **PASÓ** | `control rojo: contra un script vacío la suite falla (66 FALLÓ)` · `RESULTADO MUTANTES: 24 muertos · 0 vivos`. Los 7 primeros corrieron antes del recorte de avisos; ver § Mutantes finales |
 | Huellas de `huellas-fuera-de-imagen.sh` en Linux y en Git Bash | **PASÓ** después de corregir | Antes diferían en las 3 carpetas: el `sha256sum` de Git Bash escribe `*./ruta`. Normalizado: la salida de Linux quedó idéntica byte a byte (`cmp`) y Git Bash ahora coincide con Linux |
@@ -133,8 +157,22 @@ corrí otra vez filtrados:
   prueba de 300 faltantes: `telegram=13337` con el mutante de Telegram y
   `kuma=13132` con el de Kuma.
 
-En total, los **26 mutantes** del script del servidor mueren contra el script
-final.
+Después de las notas de Contabo sobre el interino corrí otra vez **todos** (38: los
+26 de antes y 12 nuevos), porque `publicar_imagen` cambió de forma. Los 38 mueren
+contra el script final (ver la tabla). Los 12 nuevos:
+
+- sharp solo `require`;
+- sharp fuera de `/app`;
+- conserva todas las copias del `.env`;
+- borra copias del `.env` ajenas;
+- republica la misma imagen;
+- publica sin imagen anterior;
+- no baja la anterior que falta;
+- la limpieza borra la vigente;
+- la limpieza borra la anterior;
+- sin la negativa del ensayo;
+- el no-op deja `:publicable` rechazada;
+- `volver` a la misma imagen.
 
 Los 19 de `publicable.mjs` también mueren, con su control vivo. Reproducir:
 `MUTANTES_SOLO="a|b" bash infra/ops/tests/prueba-publicar-web.sh --mutantes`
@@ -179,7 +217,12 @@ comparando el sha256. Mutantes (uno por garantía):
 | `ea1c31f5` | docs: el interino, el paso C2a y tres correcciones de texto |
 | `2f866f93` | los avisos largos se recortan para Telegram y Kuma |
 | `d2e758b8` | las huellas son iguales en Linux y en Git Bash |
-| commit que contiene este documento | el handoff |
+| `b3981a0f` | el handoff (primera versión; CI verde en la PR, run 38875760362) |
+| `85902e85` | merge de `origin/main` (#245 y #248, solo docs y la 0539) |
+| `1442188f` | las tres notas de Contabo sobre el interino y `compose.ensayo.yml` |
+| `21709da7` | docs: comparación con el interino, paso C2a y avisos nuevos |
+| `569860cc` | el corredor de mutantes acepta textos con guion; `find` en vez de `ls \| grep` |
+| commit que contiene este documento | el handoff, al día |
 
 ## PR / rama
 
@@ -223,9 +266,8 @@ del monitor push de Kuma (y el chat, si se usa), en un archivo 600 del servidor.
 
 ## Preguntas abiertas para la sesión de Contabo
 
-1. **El texto exacto del interino.** Sirve para confirmar que la prueba de sharp es
-   la misma, ver qué deja en la evidencia y comparar la vuelta atrás. Si el Director
-   lo consigue, lo comparo yo; si no, lo compara Contabo en el paso C2a.
+1. ¿Algo lee las evidencias del interino, `publicar-web-<sha8>-<hora>.txt`? El
+   nuevo deja carpetas `publicar-web-<hora>-publicar-<sha8>/`.
 2. ¿Existen en `/srv/dtd-cargo` `.env.example`, `supabase/templates/` y
    `supabase/volumes/` como copias de `main`? Si no, `revisar` los muestra como
    `ausente`. Solo avisan: no frenan la web.
