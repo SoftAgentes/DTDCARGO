@@ -94,6 +94,8 @@ Corridas sobre la cabeza `26bce9f0` más la documentación sin commit de este ci
 | `corepack pnpm docs:check` | **PASÓ**: «índice sincronizado con 529 specs» |
 | `corepack pnpm sdd:check` | **PASÓ**: `[OK] numbering: sin números repetidos` |
 | `git diff --check` y `git diff --cached --check` en cada commit | **PASÓ** |
+| CI de la PR sobre `57bfd64f` (run 38933343861, «Calidad continua») | **FALLÓ** en «Build de produccion sin secretos»: `CssSyntaxError: app/globals.css:797:26: Unknown word no`. Causa mía: el comentario del aviso decía `--s-*/--r-*` y ese `*/` cerraba el comentario. Vitest corre con `css: false` y no lo veía. Arreglo en `8d901149`: comentario reescrito y una prueba que parsea `app/globals.css` con el postcss que trae Next. El mismo parser reproduce el error del CI sobre la versión rota (`797:26 Unknown word no`) y la corregida parsea. En esa corrida pasaron los 12 pasos de calidad anteriores al build (ESLint, Frontera RSC, TypeScript, Edge Functions, Unitarios, Harness Director Worker, Documentacion SDD, Numeracion SDD y migraciones, Codigo contra migraciones pendientes, Constantes de features, Registro de componentes y Gobernanza ejecutable); «Confirmar arbol reproducible» quedó omitido por el fallo |
+| CI de la PR sobre la cabeza con el arreglo | **PENDIENTE**: se lee en la PR #254 |
 | `next build` del repo completo | **NO EJECUTADO**: el encargo lo pide sólo si es imprescindible, y la sonda de Turbopack mide el criterio. Comando pendiente: `DTD_STANDALONE=1 NEXT_PUBLIC_GA_ID=off APP_ENV=staging corepack pnpm exec next build` y después `grep -rlF -e G-25CD7BZH98 -e AW-561290482 .next/static \| wc -l` (esperado 0). Lo mide de verdad la primera corrida de `build-image-prueba.yml` |
 | `pnpm verify` | **NO EJECUTADO**: lo excluye el encargo (corrida pesada) |
 | Primera corrida de `build-image-prueba.yml` con este código | **NO EJECUTADO**: el entorno `prueba` de GitHub y sus variables son de la Fase 3 |
@@ -108,18 +110,20 @@ Corridas sobre la cabeza `26bce9f0` más la documentación sin commit de este ci
 - `b8650289` · `feat(studio): SDD-0544 — Resend y la consulta de cédulas, simulados en staging`
 - `84db6a0a` · `ci: SDD-0544 — la imagen de prueba se construye sin GA y con APP_ENV=staging`
 - `26bce9f0` · `test(studio): SDD-0544 — la prueba de CNE en staging mide primero la red`
-- el commit que contiene este documento (spec, índice, runbook, marketing y handoff).
+- `57bfd64f` · `docs: SDD-0544 — spec, runbook de prueba, marketing y handoff de la Fase 2` (primera cabeza publicada; su CI falló, ver VALIDACIÓN)
+- `8d901149` · `fix(web): SDD-0544 — el comentario del aviso cerraba el comentario CSS antes de tiempo`
+- el commit que contiene esta versión del documento (el fallo del CI y su arreglo).
 
 ## PR / BRANCH
 
-Rama `worktree-agent-aa291c1998d15f394`, PR en **borrador** contra `main` (la URL va en la descripción de la PR y en el reporte al Director). Sin fusionar: desde el 2026-10-16 cada merge a `main` se publica solo en la web real (SDD-0541).
+Rama `worktree-agent-aa291c1998d15f394`, PR [#254](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/254) en **borrador** contra `main`. Sin fusionar: desde el 2026-10-16 cada merge a `main` se publica solo en la web real (SDD-0541).
 
 ## PENDIENTES DE ESTA TAREA
 
 1. **Primera imagen de prueba con este código.** `gh workflow run build-image-prueba.yml --ref <rama o main> -f sha=<sha>`. El paso «Comprobar el bundle sin red» tiene que dar `GA ahí: 0 · Ads ahí: 0`. El resumen dice cuántos archivos de todo `.next` los nombran: si no es 0, `verificar-aislamiento.sh --exigir-sin-ga` va a fallar (ver riesgo 2 de la spec).
 2. **Sam ve el aviso** en el sitio público, el Studio, el Portal y `/m` de `prueba.dtdcargo.com` (Fase 3), y decide el hallazgo 1 del `/ui-check`.
 3. **D9 y D11 por nombre.** Se aplicaron con la recomendación del §4 de la 0540; Sam las confirma antes de la Fase 3, como pide el §8 de esa spec.
-4. CI de la PR.
+4. CI de la PR sobre la cabeza con el arreglo del CSS (el de `57bfd64f` falló en el build, ver VALIDACIÓN).
 
 ## FUERA DE ALCANCE DETECTADO
 
