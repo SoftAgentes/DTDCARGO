@@ -34,6 +34,7 @@
     "docs:check": "node scripts/build-docs-index.mjs --check",
     "sdd:next": "node scripts/next-number.mjs",
     "sdd:check": "node scripts/check-numbering.mjs",
+    "consolidados:lote": "tsx scripts/consolidados/generar-lote.ts",
     "edge:check": "node scripts/check-edge-functions.mjs",
     "guia:check": "tsx scripts/check-guia-alibaba.ts",
     "attachments:preflight": "node scripts/attachments-pilot-preflight.mjs",
