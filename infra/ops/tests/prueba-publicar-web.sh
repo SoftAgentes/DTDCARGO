@@ -5,6 +5,7 @@
 #   bash infra/ops/tests/prueba-publicar-web.sh               # la prueba
 #   bash infra/ops/tests/prueba-publicar-web.sh --mutantes    # control rojo + mutantes del diff
 #   MUTANTES_SOLO="disco|sharp" bash … --mutantes             # solo los mutantes cuyo nombre contiene alguno
+#   MUTANTES_PARTE=1/2 bash … --mutantes                      # la mitad impar (y 2/2 la par), para dos contenedores
 #
 # No toca Docker, GHCR, Telegram ni Kuma: `docker`, `curl` y la prueba rápida son
 # dobles con estado en un directorio temporal (el doble de docker resuelve
@@ -32,8 +33,12 @@ if [ "${1:-}" = --mutantes ]; then
   printf '#!/usr/bin/env bash\nexit 0\n' > "${M}/control.sh"
   if correr_suite "${M}/control.sh"; then echo "CONTROL ROJO FALLÓ: la suite pasa contra un script que no hace nada"; exit 1; fi
   echo "control rojo: contra un script vacío la suite falla ($(grep -c '^FALLÓ' "${M}/suite.log") FALLÓ)"
+  indice=0
   mutar() { # $1 = nombre, $2 = texto exacto, $3 = reemplazo. MUTANTES_SOLO="a|b" corre solo los que nombran a o b.
     local n s hay=0
+    # MUTANTES_PARTE=k/n: solo uno de cada n (el k-ésimo), para repartir en paralelo.
+    indice=$((indice + 1))
+    if [ -n "${MUTANTES_PARTE:-}" ] && [ $(( (indice - 1) % ${MUTANTES_PARTE#*/} + 1 )) != "${MUTANTES_PARTE%/*}" ]; then return; fi
     IFS='|' read -ra solos <<< "${MUTANTES_SOLO:-}"
     [ "${#solos[@]}" = 0 ] && hay=1
     for s in "${solos[@]}"; do case "$1" in *"${s}"*) hay=1 ;; esac; done
@@ -74,6 +79,20 @@ if [ "${1:-}" = --mutantes ]; then
   mutar "sin prueba de sharp" 'prueba_sharp "$1" || return 1' 'true'
   mutar "sharp con red" 'docker run --rm --network none --entrypoint node' 'docker run --rm --entrypoint node'
   mutar "sin la interfaz del interino" 'if [[ "${MODO}" =~ ^(sha-)?[0-9a-f]{40}$ ]]; then set -- "${MODO#sha-}" "$@"; MODO=publicar; fi' ':'
+  mutar "sharp solo require" "PRUEBA_SHARP=\"require('sharp')({create:" "PRUEBA_SHARP=\"require('sharp');//({create:"
+  mutar "sharp fuera de /app" '--entrypoint node -w /app "$1"' '--entrypoint node "$1"'
+  mutar "conserva todas las copias del .env" 'tail -n "+$((COPIAS_ENV + 1))"' 'tail -n "+999"'
+  mutar "borra copias del .env ajenas" "-name '.env.bak-publicar-*'" "-name '.env.bak-*'"
+  mutar "republica la misma imagen" 'elif [ "${previo_id}" = "${nuevo_id}" ]; then' 'elif false; then'
+  mutar "publica sin imagen anterior" 'if [ -z "${previo_id}" ]; then
+      MOTIVO="la imagen anterior' 'if false; then
+      MOTIVO="la imagen anterior'
+  mutar "no baja la anterior que falta" 'if [ -z "${previo_id}" ] && bajar "${previo}"; then' 'if false; then'
+  mutar "la limpieza borra la vigente" 'limpiar_imagenes "${nuevo_id}" "${previo_id}" "${corria_id}"' 'limpiar_imagenes "${previo_id}" "${corria_id}"'
+  mutar "la limpieza borra la anterior" 'limpiar_imagenes "${nuevo_id}" "${previo_id}" "${corria_id}"' 'limpiar_imagenes "${nuevo_id}"'
+  mutar "sin la negativa del ensayo" '[ ! -f "${DIR}/compose.ensayo.yml" ] ||' 'true ||'
+  mutar "el no-op deja :publicable rechazada" 'if [ "${rc}" = 0 ] && [ "${PUBLICADA}" = 1 ] && bajar' 'if [ "${rc}" = 0 ] && bajar'
+  mutar "volver a la misma imagen" 'if [ "${id_ant}" = "$(imagen_que_corre)" ]; then' 'if false; then'
   mutar "Telegram sin recorte" '"text=${1:0:3500}"' '"text=$1"'
   mutar "Kuma sin recorte" '"msg=${2:0:200}"' '"msg=$2"'
   mutar "publica a mano y el vigilante la pisa" '      marcar_rechazo "${pdig}" "${prev}"' '      true "${pdig}" "${prev}"'
@@ -163,6 +182,7 @@ case "$1" in
   images)
     for id in $(ls "$D/img"); do [ -f "$D/img/$id/local" ] && echo "$(cat "$D/img/$id/creado") $id"; done | sort -rn | awk '{ print "sha256:" $2 }' ;;
   rmi)
+    echo "$2" >> "$D/rmi-intentos.log"   # también los que docker rechaza
     id="$(resolver "$2")"; [ -n "$id" ] || exit 1
     for s in $(ls "$D/cont"); do [ "$(cat "$D/cont/$s")" = "$id" ] && { echo "conflict: in use" >&2; exit 1; }; done
     echo "$2" >> "$D/rmi.log"
@@ -304,6 +324,43 @@ correr vigilar
 [ "${RC}" = 0 ] && [ "$(ups)" = 0 ] && grep -q 'al día' "${T}/salida.log" && grep -q 'status=up' "${D}/curl.log" && [ "$(telegrams)" = 0 ] \
   && ok "otra vuelta sin cambios: al día, nada que publicar, Kuma up, sin Telegram" || { ko "al día rc=${RC}"; ver; }
 
+echo; echo "== copias del .env =="
+reiniciar
+for d in 10 11 12 13 14; do printf 'TELEGRAM_BOT_TOKEN=SECRETO-DEL-BOT\n' > "${P}/.env.bak-publicar-202610${d}T000000Z"; done
+printf 'x=1\n' > "${P}/.env.bak-vacias-20261015T053615Z"; printf 'x=1\n' > "${P}/.env.bak-ensayo-20261014T132336Z"
+correr vigilar
+ls "${P}" -a | grep '^\.env\.bak-publicar-' > "${T}/copias"
+[ "${RC}" = 0 ] && [ "$(grep -c . "${T}/copias")" = 3 ] && grep -q 'bak-publicar-20261014T000000Z' "${T}/copias" && grep -q 'bak-publicar-20261013T000000Z' "${T}/copias" \
+  && ! grep -q 'bak-publicar-20261012T000000Z' "${T}/copias" \
+  && ok "quedan las 3 copias de publicación más nuevas (la de hoy y dos viejas)" || { ko "copias: $(tr '\n' ' ' < "${T}/copias")"; ver; }
+[ -f "${P}/.env.bak-vacias-20261015T053615Z" ] && [ -f "${P}/.env.bak-ensayo-20261014T132336Z" ] && ok "las copias que no son de publicación no se tocan" || ko "borró copias ajenas"
+! grep -q 'SECRETO-DEL-BOT' "${T}/salida.log" && ok "no muestra el contenido de las copias" || ko "imprimió un secreto"
+
+echo; echo "== imagen anterior (la de la vuelta atrás) =="
+reiniciar; correr publicar "${A}"
+[ "${RC}" = 0 ] && [ "$(ups)" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${A}" ] && grep -q 'no hay a dónde volver, así que no hago nada' "${T}/salida.log" \
+  && [ ! -s "${O}/estado/rechazados" ] && ok "publicar la misma imagen que corre: lo dice y no hace nada (ni deja :publicable rechazada)" || { ko "misma imagen rc=${RC}"; ver; }
+reiniciar; rm -f "${D}/img/${IA}/local" "${D}/reg/$(printf '%s' "${IMG}:sha-${A}" | tr '/:@' '___')"; correr vigilar
+[ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${A}" ] && grep -q 'no habría vuelta atrás' "${T}/salida.log" \
+  && ok "si la anterior no está en el servidor ni se puede bajar: no publica (no habría vuelta atrás)" || { ko "sin anterior rc=${RC}"; ver; }
+reiniciar; rm -f "${D}/img/${IA}/local"; correr vigilar
+[ "${RC}" = 0 ] && grep -q "^pull -q ${IMG}:sha-${A}$" "${D}/llamadas.log" && [ "$(imagen_env)" = "${IMG}:sha-${B}@${DB}" ] \
+  && ok "si la anterior no está en el servidor pero sí en GHCR: la baja antes de publicar" || { ko "bajar anterior rc=${RC}"; ver; }
+reiniciar; correr vigilar
+printf '%s\n' "${IMG}:sha-${A}" > "${O}/estado/anterior"
+sed -i "s|^DTD_WEB_IMAGE=.*|DTD_WEB_IMAGE=${IMG}:sha-${A}@${DA}|" "${P}/.env"; echo "${IA}" > "${D}/cont/web"; : > "${D}/compose.log"
+correr volver
+[ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && grep -q 'es la misma que corre: no hay a dónde volver' "${T}/salida.log" \
+  && ok "volver a la misma imagen escrita de otra forma: lo dice y no hace nada" || { ko "volver misma imagen rc=${RC}"; ver; }
+
+echo; echo "== compose.ensayo.yml =="
+reiniciar; touch "${P}/compose.ensayo.yml"; correr vigilar
+[ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && ! grep -q '^pull' "${D}/llamadas.log" 2>/dev/null && grep -q 'hay un compose.ensayo.yml' "${T}/salida.log" \
+  && ok "vigilar: con compose.ensayo.yml no sigue (ni baja la imagen)" || { ko "ensayo vigilar rc=${RC}"; ver; }
+correr publicar "${B}"; [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && ok "a mano: con compose.ensayo.yml no sigue" || { ko "ensayo a mano rc=${RC}"; ver; }
+reiniciar; correr vigilar; touch "${P}/compose.ensayo.yml"; : > "${D}/compose.log"; correr volver
+[ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${B}@${DB}" ] && ok "volver: con compose.ensayo.yml no sigue" || { ko "ensayo volver rc=${RC}"; ver; }
+
 echo; echo "== al día desde el valor de hoy (solo etiqueta sha-, sin digest) =="
 reiniciar; en_registro publicable "${IA}"
 correr vigilar
@@ -368,8 +425,9 @@ reiniciar; sed -i '/^org.dtdcargo.fuera-de-imagen=/d' "${D}/img/${IB}/labels"; c
 
 echo; echo "== prueba de sharp dentro de la imagen =="
 reiniciar; correr vigilar
-grep -qF -- "run --rm --network none --entrypoint node ${IMG}@${DB} -e require('sharp')" "${D}/run.log" 2>/dev/null \
-  && ok "prueba sharp dentro de la imagen nueva, por digest y sin red" || ko "llamada a sharp: $(head -1 "${D}/run.log" 2>/dev/null | cut -c1-120)"
+grep -qF -- "run --rm --network none --entrypoint node -w /app ${IMG}@${DB} -e require('sharp')({create:" "${D}/run.log" 2>/dev/null \
+  && grep -qF '.webp().toBuffer()' "${D}/run.log" \
+  && ok "prueba sharp dentro de la imagen nueva, por digest, sin red, en /app y convirtiendo a WebP (no solo require)" || ko "llamada a sharp: $(head -1 "${D}/run.log" 2>/dev/null | cut -c1-120)"
 ev="$(ls -d "${EV}"/publicar-web-* 2>/dev/null | head -1)"
 grep -q 'sharp OK' "${ev}/sharp.txt" 2>/dev/null && ok "la salida de sharp queda en la evidencia" || ko "sharp en la evidencia"
 reiniciar; echo 1 > "${D}/rc-sharp"; correr vigilar
@@ -469,6 +527,17 @@ correr vigilar
   && ok "conserva la nueva, la anterior (aunque sea la más vieja) y las 2 más nuevas" || { ko "limpieza: borró de más ($(tr '\n' ' ' < "${D}/rmi.log" 2>/dev/null | cut -c1-120))"; ver; }
 [ "$(grep -c . "${D}/rmi.log" 2>/dev/null)" = 6 ] && ! grep -qv "^${IMG}" "${D}/rmi.log" && [ ! -f "${D}/img/$(hx vieja-1)/local" ] \
   && ok "borra las otras 3 (etiqueta y digest de cada una) y nada de otro repositorio" || { ko "limpieza: $(grep -c . "${D}/rmi.log" 2>/dev/null) borradas"; ver; }
+! grep -q "sha-${A}\|${DA}\|${DB}\|:publicable" "${D}/rmi-intentos.log" && ok "ni siquiera intenta borrar la vigente ni la anterior" || ko "intentó: $(tr '\n' ' ' < "${D}/rmi-intentos.log" | cut -c1-160)"
+# A mano, una vigente vieja: X es más vieja que las 2 que se conservan por fecha.
+reiniciar; echo 0 > "${D}/img/${IA}/creado"
+for i in 1 2 3 4; do
+  id="$(hx "vieja-${i}")"; s="$(hx "commit-vieja-${i}" | cut -c1-40)"
+  imagen "${s}" "${id}" "sha256:$(hx "dig-vieja-${i}")" "$((50 + i))"; etiquetar_local "${id}" "sha-${s}"
+done
+imagen "${X}" "${IX}" "${DX}" 10
+correr publicar "${X}"
+[ "${RC}" = 0 ] && [ -f "${D}/img/${IX}/local" ] && [ -f "${D}/img/${IA}/local" ] && ! grep -q "sha-${X}\|${DX}\|sha-${A}\|${DA}" "${D}/rmi-intentos.log" \
+  && ok "una vigente más vieja que las conservadas tampoco se toca, ni la anterior" || { ko "vigente vieja: $(tr '\n' ' ' < "${D}/rmi-intentos.log" 2>/dev/null | cut -c1-160)"; ver; }
 
 echo; echo "== estado, revisar y uso =="
 reiniciar; correr estado

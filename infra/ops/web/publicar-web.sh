@@ -22,7 +22,11 @@
 #      está en el ledger de dtd-cargo-db-1; los compose y el cron del servidor
 #      son los de ese commit (org.dtdcargo.fuera-de-imagen); y sharp convierte
 #      dentro de la imagen (la prueba del Dockerfile, sin red). Si no, se niega y avisa.
-#   2. cambia SOLO la línea DTD_WEB_IMAGE del .env (copia previa) a
+#      Antes de eso: si existe compose.ensayo.yml no sigue (como el interino); la
+#      imagen anterior (la de la vuelta atrás) tiene que estar en el servidor, y si
+#      es la misma que la nueva no hay a dónde volver y no hace nada.
+#   2. cambia SOLO la línea DTD_WEB_IMAGE del .env (copia previa; se conservan las
+#      3 últimas .env.bak-publicar-*, las demás copias no se tocan) a
 #      `…:sha-<sha>@sha256:<digest>`: lo que corre es exactamente lo que se revisó.
 #   3. `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`
 #      (nunca cron ni Supabase), espera healthy y corre smoke-web.sh --host dtdcargo.com --www.
@@ -77,6 +81,7 @@ if [[ "${MODO}" =~ ^(sha-)?[0-9a-f]{40}$ ]]; then set -- "${MODO#sha-}" "$@"; MO
 TMP="$(mktemp -d)"; trap 'rm -rf "${TMP}"' EXIT
 EVID=""
 MOTIVO=""
+PUBLICADA=0   # 1 solo si esta corrida cambió la web (no en «ya corre esa imagen»)
 
 # ─── utilidades ──────────────────────────────────────────────────────────────
 
@@ -101,6 +106,8 @@ cargar_config() {
   KUMA="$(conf PUBLICAR_KUMA_PUSH_URL)"; KUMA="${KUMA%%\?*}"
   CONSERVAR="$(conf PUBLICAR_CONSERVAR_IMAGENES)"; CONSERVAR="${CONSERVAR:-5}"
   MIN_LIBRE="$(conf PUBLICAR_MIN_LIBRE_GB)"; MIN_LIBRE="${MIN_LIBRE:-10}"
+  COPIAS_ENV="$(conf PUBLICAR_CONSERVAR_COPIAS_ENV)"; COPIAS_ENV="${COPIAS_ENV:-3}"
+  [[ "${COPIAS_ENV}" =~ ^[0-9]+$ ]] && [ "${COPIAS_ENV}" -ge 1 ] || COPIAS_ENV=3
   [[ "${CONSERVAR}" =~ ^[0-9]+$ ]] && [ "${CONSERVAR}" -ge 2 ] || CONSERVAR=5
   [[ "${MIN_LIBRE}" =~ ^[0-9]+$ ]] || MIN_LIBRE=10
   install -d -m 700 "${ESTADO}" 2>/dev/null || { echo "no puedo crear ${ESTADO}" >&2; exit 4; }
@@ -163,6 +170,9 @@ bajar() { # $1 = referencia
   if timeout 600 docker pull -q "$1" > "${TMP}/pull" 2>&1; then return 0; fi
   MOTIVO="no pude bajar $1 ($(tail -1 "${TMP}/pull" | cut -c1-200))"
   return 1
+}
+sin_ensayo() { # Como el interino: con el override del ensayo de la web puesto, no se publica.
+  [ ! -f "${DIR}/compose.ensayo.yml" ] || { MOTIVO="hay un compose.ensayo.yml en ${DIR}: no sigo (el override del ensayo de la web sigue puesto)"; return 1; }
 }
 libre_suficiente() {
   local kb; kb="$(df -Pk "${DOCKER_RAIZ}" 2>/dev/null | awk 'NR == 2 { print $4 }')"
@@ -253,7 +263,9 @@ puerta_huellas() { # $1 = referencia local
 }
 
 prueba_sharp() { # $1 = referencia local. Dentro de la imagen, sin red y con su usuario (node).
-  if timeout 120 docker run --rm --network none --entrypoint node "$1" -e "${PRUEBA_SHARP}" > "${TMP}/sharp" 2>&1; then
+  # A diferencia del interino (solo `require`), convierte de verdad a WebP: es lo
+  # que hace /_next/image.
+  if timeout 120 docker run --rm --network none --entrypoint node -w /app "$1" -e "${PRUEBA_SHARP}" > "${TMP}/sharp" 2>&1; then
     log "sharp: $(tail -1 "${TMP}/sharp" | cut -c1-80)"; return 0
   fi
   MOTIVO="sharp no convierte dentro de la imagen ($(tail -1 "${TMP}/sharp" | cut -c1-160)): /_next/image serviría las fotos sin optimizar"
@@ -268,13 +280,15 @@ puertas() { # $1 = referencia local → MOTIVO si alguna niega
 
 # ─── .env ────────────────────────────────────────────────────────────────────
 
-respaldar_env() {
+respaldar_env() { # Copia previa del .env. Nunca muestra su contenido.
   local b; b="${DIR}/.env.bak-publicar-$(date -u +%Y%m%dT%H%M%SZ)"
   cp -p "${DIR}/.env" "${b}" || { MOTIVO="no pude copiar el .env"; return 1; }
-  # Se conservan las 10 últimas copias de este script (llevan secretos: no se multiplican).
-  find "${DIR}" -maxdepth 1 -name '.env.bak-publicar-*' -printf '%f\n' | LC_ALL=C sort -r | tail -n +11 \
-    | while read -r v; do rm -f "${DIR}/${v}"; done
-  log "copia del .env: $(basename "${b}")"
+  # Llevan secretos: de las copias de publicación (prefijo .env.bak-publicar-,
+  # también las del script interino) se conservan las ${COPIAS_ENV} últimas. Las
+  # demás copias del .env (.env.bak-vacias-*, .env.bak-ensayo-*…) no se tocan.
+  find "${DIR}" -maxdepth 1 -type f -name '.env.bak-publicar-*' -printf '%f\n' | LC_ALL=C sort -r \
+    | tail -n "+$((COPIAS_ENV + 1))" | while read -r v; do rm -f "${DIR}/${v}"; done
+  log "copia del .env: $(basename "${b}") (se conservan las ${COPIAS_ENV} últimas de publicación)"
 }
 
 cambiar_imagen() { # $1 = valor nuevo de DTD_WEB_IMAGE. Solo esa línea; nunca líneas vacías.
@@ -366,16 +380,32 @@ limpiar_imagenes() { # $@ = ids que no se tocan. Solo imágenes de ${IMAGEN}; la
 }
 
 publicar_imagen() { # $1 = sha, $2 = digest, $3 = origen (vigilante | a-mano)
-  local sha="$1" digest="$2" origen="$3" ref nuevo nuevo_id previo previo_id fallo resumen rc n
+  local sha="$1" digest="$2" origen="$3" ref nuevo nuevo_id previo previo_id corria_id fallo resumen rc n
   ref="${IMAGEN}@${digest}"
   nuevo="${IMAGEN}:sha-${sha}@${digest}"
+  nuevo_id="$(id_de "${ref}")"
+  corria_id="$(imagen_que_corre)"
+  previo="$(envval DTD_WEB_IMAGE)"
+  MOTIVO=""
   n="$(grep -c '^DTD_WEB_IMAGE=' "${DIR}/.env" 2>/dev/null)"
   if [ "${n:-0}" != 1 ]; then
     MOTIVO="el .env tiene ${n:-0} líneas DTD_WEB_IMAGE= (tiene que tener una): no se toca"
-  elif ! puertas "${ref}"; then
-    :
+  elif [ -z "${previo}" ]; then
+    MOTIVO="DTD_WEB_IMAGE vacía en ${DIR}/.env: no habría a dónde volver"
   else
-    MOTIVO=""
+    # La vuelta atrás es el valor anterior de DTD_WEB_IMAGE: su imagen tiene que
+    # estar en el servidor ANTES de publicar (se baja si hace falta).
+    previo_id="$(id_de "${previo}")"
+    if [ -z "${previo_id}" ] && bajar "${previo}"; then previo_id="$(id_de "${previo}")"; fi
+    if [ -z "${previo_id}" ]; then
+      MOTIVO="la imagen anterior (${previo}) no está en el servidor y no se pudo bajar: no habría vuelta atrás"
+    elif [ "${previo_id}" = "${nuevo_id}" ]; then
+      log "ya corre esa imagen (${previo}): no hay a dónde volver, así que no hago nada"
+      kuma up "al día $(corto "${sha}")"
+      return 0
+    elif ! puertas "${ref}"; then
+      :
+    fi
   fi
   if [ -n "${MOTIVO}" ]; then
     log "NO se publica $(corto "${sha}"): ${MOTIVO}"
@@ -383,10 +413,6 @@ publicar_imagen() { # $1 = sha, $2 = digest, $3 = origen (vigilante | a-mano)
     kuma down "$(corto "${sha}") retenida: ${MOTIVO}"
     return 1
   fi
-  previo="$(envval DTD_WEB_IMAGE)"
-  [ -n "${previo}" ] || { MOTIVO="DTD_WEB_IMAGE vacía en ${DIR}/.env"; log "${MOTIVO}"; kuma down "${MOTIVO}"; return 1; }
-  previo_id="$(imagen_que_corre)"; [ -n "${previo_id}" ] || previo_id="$(id_de "${previo}")"
-  nuevo_id="$(id_de "${ref}")"
   abrir_evidencia publicar "${sha}"
   log "== publicar $(corto "${sha}") · origen ${origen} · $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   log "commit: $(commit_url "${sha}")"
@@ -406,12 +432,15 @@ publicar_imagen() { # $1 = sha, $2 = digest, $3 = origen (vigilante | a-mano)
     return 1
   fi
   if [ "${rc}" = 0 ]; then
+    PUBLICADA=1
     printf '%s\n' "${previo}" > "${ESTADO}/anterior"
     printf '%s\n' "${nuevo}" > "${ESTADO}/publicada"
     quitar_rechazo "${digest}"
     resumen="$(grep -m1 '^RESUMEN' "${EVID}/prueba-rapida-nueva-1.txt" "${EVID}/prueba-rapida-nueva-2.txt" 2>/dev/null | tail -1 | sed 's/^[^:]*://')"
     log "PUBLICADA $(corto "${sha}")"
-    limpiar_imagenes "${nuevo_id}" "${previo_id}"
+    # Nunca la vigente (la nueva) ni la anterior a ella (la de la vuelta atrás y la
+    # que corría): las protege por id, no por fecha.
+    limpiar_imagenes "${nuevo_id}" "${previo_id}" "${corria_id}"
     olvidar_aviso
     telegram "DTD Cargo · publicada $(corto "${sha}") en ${HOST_WEB} (${origen}). Prueba rápida: ${resumen:-sin resumen}. Antes: $(corto "$(sha_de_ref "${previo}")"). $(commit_url "${sha}")$( [ -n "${AVISOS_HUELLAS}" ] && printf ' · OJO, el servidor difiere del repo en:%s (no frena la web; revisar)' "${AVISOS_HUELLAS}")"
     kuma up "publicada $(corto "${sha}")"
@@ -451,6 +480,9 @@ vigilar() {
   if [ -f "${CONGELADO}" ]; then
     motivo="$(head -1 "${CONGELADO}")"; log "congelado: ${motivo}"; kuma up "congelado: ${motivo}"; return 0
   fi
+  if ! sin_ensayo; then
+    log "${MOTIVO}"; avisar_una_vez ensayo "DTD Cargo · publicación automática detenida: ${MOTIVO}."; kuma down "${MOTIVO}"; return 1
+  fi
   if ! libre_suficiente; then
     log "${MOTIVO}"; avisar_una_vez disco "DTD Cargo · publicación automática detenida: ${MOTIVO}."; kuma down "${MOTIVO}"; return 1
   fi
@@ -481,6 +513,7 @@ publicar_a_mano() { # $1 = sha, $2 = --aunque-congelado (opcional)
   if [ -f "${CONGELADO}" ] && [ "${2:-}" != --aunque-congelado ]; then
     echo "congelado: $(head -1 "${CONGELADO}"). Usa --aunque-congelado si es a propósito." >&2; exit 1
   fi
+  sin_ensayo || { log "${MOTIVO}"; exit 1; }
   libre_suficiente || { log "${MOTIVO}"; exit 1; }
   bajar "${IMAGEN}:sha-${sha}" || { log "${MOTIVO}"; exit 1; }
   rev="$(etiqueta_de "${IMAGEN}:sha-${sha}" org.opencontainers.image.revision)"
@@ -488,7 +521,7 @@ publicar_a_mano() { # $1 = sha, $2 = --aunque-congelado (opcional)
   [ "${rev}" = "${sha}" ] || { log "la etiqueta sha-${sha} trae el commit ${rev:-ninguno}: no se publica"; exit 1; }
   validar_imagen "${IMAGEN}:sha-${sha}" "${rev}" "${dig}" || { log "${MOTIVO}"; exit 1; }
   publicar_imagen "${sha}" "${dig}" a-mano; rc=$?
-  if [ "${rc}" = 0 ] && bajar "${IMAGEN}:${ETIQUETA}"; then
+  if [ "${rc}" = 0 ] && [ "${PUBLICADA}" = 1 ] && bajar "${IMAGEN}:${ETIQUETA}"; then
     # Para que el vigilante no la pise en el próximo minuto: la :publicable de
     # ahora queda rechazada y la automática vuelve con el próximo merge.
     pdig="$(digest_de "${IMAGEN}:${ETIQUETA}")"; prev="$(etiqueta_de "${IMAGEN}:${ETIQUETA}" org.opencontainers.image.revision)"
@@ -505,10 +538,14 @@ volver() {
   tomar_candado 600 || { echo "otra publicación lleva 10 min en curso" >&2; exit 1; }
   anterior="$(cat "${ESTADO}/anterior" 2>/dev/null)"
   actual="$(envval DTD_WEB_IMAGE)"
+  sin_ensayo || { echo "${MOTIVO}" >&2; exit 1; }
   [ -n "${anterior}" ] || { echo "no hay imagen anterior registrada en ${ESTADO}/anterior" >&2; exit 1; }
-  [ "${anterior}" != "${actual}" ] || { echo "la imagen anterior es la que ya corre: ${actual}" >&2; exit 1; }
+  [ "${anterior}" != "${actual}" ] || { echo "la imagen anterior es la que ya corre (${actual}): no hay a dónde volver, no hago nada" >&2; exit 1; }
   id_ant="$(id_de "${anterior}")"
   if [ -z "${id_ant}" ]; then bajar "${anterior}" || { echo "${MOTIVO}" >&2; exit 1; }; id_ant="$(id_de "${anterior}")"; fi
+  if [ "${id_ant}" = "$(imagen_que_corre)" ]; then
+    echo "la imagen anterior (${anterior}) es la misma que corre: no hay a dónde volver, no hago nada" >&2; exit 1
+  fi
   abrir_evidencia volver "$(sha_de_ref "${actual}")"
   log "== vuelta atrás a mano · $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   log "de: ${actual}"; log "a:  ${anterior}"
