@@ -77,6 +77,18 @@ function revalidarTodo() {
 // Transportistas
 // ─────────────────────────────────────────────────────────────
 
+/** Una edición o un retiro que no tocó ninguna fila NO es un éxito (SDD-0539). */
+const TRANSPORTISTA_NO_ENCONTRADO =
+  "Ese transportista ya no está activo. Recarga la página y vuelve a intentarlo.";
+
+/**
+ * Alta o edición de un transportista (SDD-0236 · SDD-0539).
+ *
+ * La edición va acotada a tenant + vivo y con `.select("id")`. Antes hacía
+ * `update().eq("id")` y respondía `ok` aunque la RLS o un borrado previo no
+ * dejaran tocar ninguna fila. Tampoco reescribe `tenant_id`: editar no cambia
+ * de tenant.
+ */
 export async function saveCarrierAction(
   _prev: CarrierActionState,
   formData: FormData,
@@ -90,8 +102,7 @@ export async function saveCarrierAction(
   const v = parsed.value;
 
   const id = String(formData.get("id") ?? "").trim();
-  const fila = {
-    tenant_id: who.tenantId,
+  const campos = {
     name: v.name,
     legal_name: v.legalName,
     tax_id: v.taxId,
@@ -102,21 +113,40 @@ export async function saveCarrierAction(
 
   // `is_default` NO se escribe acá: tiene su propia action, porque marcar uno
   // implica bajar al anterior y el índice único rechaza el cruce.
-  const { data, error } = id
-    ? await supabase.from("freight_carriers").update(fila).eq("id", id).select("id").maybeSingle()
-    : await supabase.from("freight_carriers").insert(fila).select("id").maybeSingle();
+  let objetivo = id;
+  if (id) {
+    const { data, error } = await supabase
+      .from("freight_carriers")
+      .update(campos)
+      .eq("id", id)
+      .eq("tenant_id", who.tenantId)
+      .is("deleted_at", null)
+      .select("id");
+    if (error) return { error: `No se pudo guardar el transportista: ${error.message}` };
+    if (!Array.isArray(data) || data.length === 0) return { error: TRANSPORTISTA_NO_ENCONTRADO };
+  } else {
+    const { data, error } = await supabase
+      .from("freight_carriers")
+      .insert({ tenant_id: who.tenantId, ...campos })
+      .select("id")
+      .maybeSingle();
+    if (error) return { error: `No se pudo guardar el transportista: ${error.message}` };
+    objetivo = (data as { id?: string } | null)?.id ?? "";
+  }
 
-  if (error) return { error: `No se pudo guardar el transportista: ${error.message}` };
-
-  // Si lo pidieron como predeterminado, se hace en el segundo paso.
+  // Si lo pidieron como predeterminado, se hace en el segundo paso. Sin id no
+  // hay a quién marcar: antes se saltaba el paso y respondía `ok` igual.
   if (v.isDefault) {
-    const objetivo = id || (data as { id?: string } | null)?.id;
-    if (objetivo) {
-      try {
-        await setDefaultCarrier(supabase, objetivo);
-      } catch (e) {
-        return { error: e instanceof Error ? e.message : "No se pudo marcar el predeterminado." };
-      }
+    if (!objetivo) {
+      return {
+        error:
+          "El transportista se guardó, pero no se pudo marcar como el que cotiza la web. Recarga la página y márcalo desde su tarjeta.",
+      };
+    }
+    try {
+      await setDefaultCarrier(supabase, objetivo);
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "No se pudo marcar el predeterminado." };
     }
   }
 
@@ -148,6 +178,7 @@ export async function setDefaultCarrierAction(
 /**
  * Borrado en blando. No se borra de verdad porque las tarifas cuelgan de él y
  * porque el histórico de con quién se despachó importa para contabilidad.
+ * Acotado a tenant + vivo y con `.select("id")`, como la edición (SDD-0539).
  */
 export async function deleteCarrierAction(
   _prev: CarrierActionState,
@@ -160,12 +191,16 @@ export async function deleteCarrierAction(
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return { error: "Falta el transportista." };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("freight_carriers")
     .update({ deleted_at: new Date().toISOString(), is_default: false })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("tenant_id", who.tenantId)
+    .is("deleted_at", null)
+    .select("id");
 
   if (error) return { error: `No se pudo eliminar: ${error.message}` };
+  if (!Array.isArray(data) || data.length === 0) return { error: TRANSPORTISTA_NO_ENCONTRADO };
 
   revalidarTodo();
   return { ok: true };
