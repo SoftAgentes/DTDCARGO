@@ -168,11 +168,16 @@ Todo sobre la cabeza `e2f32947` (los cinco commits de producto). El commit del h
 - `8b747383` · `feat(ops): SDD-0540 — scripts del entorno de prueba y semilla sintética`.
 - `98df92b3` · `ci: SDD-0540 — workflow build-image-prueba.yml con guard y etiqueta prueba-sha-*`.
 - `e2f32947` · `docs(runbooks): SDD-0540 — runbook del entorno de prueba`.
-- Además, el commit que contiene este documento.
+- `353b34e6` · `docs(handoff): SDD-0540 — handoff de la Fase 1 del entorno de prueba`.
+- `181dda66` · merge de `origin/main` (`b089422d`, que trae la SDD-0539 y el registro del corte) en esta rama, sin rebase.
+  - El índice de specs quedó resuelto sin conflicto: `docs:check` da 526 specs y `sdd:check` sale OK.
+  - Las pruebas rápidas de Vitest dan 48/48 después del merge.
+  - `main` no cambió nada de `infra/`, `.github/` ni `scripts/`.
+- Además, el commit que contiene este documento (URL de la PR).
 
 ## PR / BRANCH
 
-- Rama `worktree-agent-a7c2c1ce96270fc41`, PR en **borrador** contra `main`. La URL va en el reporte al Director y en la descripción de la PR.
+- Rama `worktree-agent-a7c2c1ce96270fc41` → PR [#251](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/251), en **borrador** contra `main`.
 - La PR contiene la spec (el merge de la #246). **Conviene fusionar primero la #246.** Si la #246 cambia la spec antes, esta rama hace merge de su cabeza nueva.
 
 ## PENDIENTES DE ESTA TAREA
