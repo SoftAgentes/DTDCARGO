@@ -14,7 +14,8 @@ Cómo se crea, se usa, se resetea y se destruye el entorno de prueba del VPS. Es
   - teléfonos `+1 202 555 0100` a `0199`;
   - RIF y nombres marcados con `PRUEBA`.
   Lo vigilan la semilla y `scripts/__tests__/entorno-prueba-semilla.test.mjs`.
-- **Puerta (D4).** El web y el buzón `/correo/` piden una clave (basicAuth de Traefik). La API queda como en producción: sin `apikey` responde 401. Los dos hosts mandan `X-Robots-Tag: noindex, nofollow`. Si algún día entra una copia real, antes se vuelve a la lista de IP en los dos hosts (otra SDD).
+- **Puerta (D4).** El web y el buzón `/correo/` piden una clave (basicAuth de Traefik). La API queda como en producción: sin `apikey` responde 401. Los dos hosts mandan `X-Robots-Tag: noindex, nofollow`.
+- **Lista de IP en los dos hosts (desde el 2026-10-16).** Sam autorizó datos reales de los consolidados en prueba («autorizo cargar datos reales de los consolidados en prueba», excepción D2) y eligió «Solo desde mis IP». Los tres routers (web, buzón y API) pasan primero por `ipallowlist` con `STAGING_ALLOWED_IPS` (la IP de Sam) y `STAGING_INTERNAL_IPS` (el propio VPS). Cualquier otra IP recibe 403, y la clave del web sigue además. Sin esas dos variables, el compose no arranca. Las escribe `ips-prueba.sh` (§2.1) y nunca van al repo ni al chat.
 - **Sin integraciones (D8 y D9).** No hay Resend, Telegram, Kommo, VAPID, Anthropic, SeaRates ni R2. Los correos de Auth caen en Mailpit; los de la app quedan en modo mock.
 - **Un despliegue a prueba no necesita el OK de Sam (D5).** Producción sí lo necesita, y cada migración en producción también.
 - **No es producción.** Nada de aquí escribe en `dtd-cargo`. Todos los scripts rechazan el proyecto `dtd-cargo` y cualquier proyecto que no termine en `-staging`.
@@ -29,6 +30,7 @@ Pendiente de la Fase 2 (otra SDD): Google Analytics y la etiqueta de Ads siguen 
 | `infra/ops/staging/prueba.sets` | VPS | valores fijos del `.env` de prueba (hosts, `APP_ENV=staging`, `DISABLE_SIGNUP=true`) |
 | `infra/ops/staging/env-prueba.sh` | VPS | genera el `.env` con `new-env.sh` y borra las líneas `X=` vacías y las marcas |
 | `infra/ops/staging/clave-web-prueba.sh` | VPS | clave de la puerta del web: bcrypt en la base de prueba y la clave en `secretos/clave-web.txt` |
+| `infra/ops/staging/ips-prueba.sh` | VPS | lista de IP (§2.1): la de Sam medida desde su SSH y la del propio VPS, en el `.env` de prueba, sin imprimirlas |
 | `infra/ops/staging/verificar-aislamiento.sh` | VPS | prueba no comparte secretos, hosts ni integraciones con producción; Vault y bundle limpios |
 | `infra/ops/staging/resetear-base-prueba.sh` | checkout y VPS | base desde cero con las migraciones de un SHA de `main` y la semilla |
 | `infra/ops/staging/plataforma-prueba.sql` | VPS | extensiones, default privileges de producción y ledger, antes de las migraciones |
@@ -92,17 +94,36 @@ Actores: **Sam** (DNS y GitHub), **Contabo** (la sesión con SSH) y el **Directo
 
 8. **Base, semilla y clave (Contabo).** Es el mismo comando del paso 4: ahora el `.env` existe y sigue de largo. Corre `verificar-aislamiento.sh` antes de levantar nada y otra vez con la base arriba, y termina con «base lista».
 9. **DNS (Sam).** Registros A `prueba` y `supabase-prueba` a `217.216.54.70`, con TTL 300, en Hostinger.
-10. **El resto del stack (Contabo),** recién con el DNS resolviendo: Let's Encrypt corta a los 5 fallos por hora.
+10. **El resto del stack (Contabo),** recién con el DNS resolviendo: Let's Encrypt corta a los 5 fallos por hora. Antes, la lista de IP (§2.1): sin ella el compose se niega a arrancar.
 
     ```bash
     /srv/ops/staging/crear-prueba.sh --project dtd-cargo-staging --confirm dtd-cargo-staging --sha <sha> --solo-arrancar --con-dns
     ```
 
-    Comprueba que los dos hosts resuelvan al VPS y levanta `api-gw realtime functions mailpit web cron`. Después corre el smoke de la puerta:
+    Comprueba que los dos hosts resuelvan al VPS y levanta `api-gw realtime functions mailpit web cron`. Después corre el smoke de la puerta, desde el propio VPS (está en la lista):
     - sin clave, 401;
     - con clave, 200 en `/`, `/studio/login` y `/correo/`;
     - `noindex` en los dos hosts;
     - la API sin `apikey`, 401.
+
+    Y desde fuera de la lista (cualquier otra red), **403** en los dos hosts, antes de la clave. Se comprueba en el log de acceso de Traefik con un pedido desde otra red, o pidiéndole a la sesión Director que pruebe desde la suya si su IP no está en la lista.
+
+### 2.1 · Lista de IP (con datos reales)
+
+La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variables viven en `/srv/dtd-cargo-staging/.env` y las escribe `ips-prueba.sh`, que nunca muestra una IP: solo cuántos rangos hay y su huella.
+
+- **Primera vez, o cuando cambia la IP de Sam.** Hay que correrlo en una sesión SSH que salga de la conexión de Sam, como la de la sesión de Contabo en su PC: toma la IP de `${SSH_CLIENT%% *}`.
+
+  ```bash
+  /srv/ops/staging/ips-prueba.sh --project dtd-cargo-staging --confirm dtd-cargo-staging --aplicar
+  ```
+
+  Reemplaza la lista con la IP actual y recrea `web`, `mailpit` y `api-gw` si están arriba. Si el stack todavía no arrancó, la lista entra con `crear-prueba.sh --solo-arrancar --con-dns`.
+- **Otra red de Sam a la vez** (el teléfono con datos móviles, otra oficina): desde una sesión SSH en esa red, el mismo comando con `--agregar`. Suma esa IP sin borrar las demás.
+- **Una IP conocida, sin SSH:** `--cidr <a.b.c.d/32>`. Rechaza rangos abiertos (`0.0.0.0/0`, `::/0`) y prefijos menores de /8 en IPv4 o de /32 en IPv6.
+- **Señal de que cambió la IP de Sam:** prueba le responde 403 a él. Se arregla corriendo otra vez el primer comando.
+- **`STAGING_INTERNAL_IPS`** la arma el script con la puerta de enlace de `dtd_edge` (por donde el web de prueba llega a su API) y la IP pública del VPS (por donde llegan los smokes desde el host). Medido el 2026-10-16 en el log de Traefik. Si se recrea la red `dtd_edge`, hay que volver a correr el script.
+- **Al terminar con los datos reales** (cuando pasan a producción o se descartan), se borran de prueba con evidencia: un reset o un destroy, avisando antes al Director. La lista de IP se puede quitar recién cuando prueba vuelva a tener solo datos sintéticos, en otra PR.
 11. **Cuentas (Sam).** Sam las lee por SSH:
     - la clave del web, en `/srv/dtd-cargo-staging/secretos/clave-web.txt`;
     - las cuentas sintéticas, en `/srv/dtd-cargo-staging/secretos/cuentas-prueba.txt`: admin, PIN VE, PIN CN, correo del Portal y link del proveedor.
@@ -236,6 +257,7 @@ Para recrearla, se vuelve al §2.
 | Prueba | Qué cubre | Necesita |
 |---|---|---|
 | `bash infra/ops/tests/prueba-scripts-entorno-prueba.sh` | env, aislamiento (con controles rojos), clave, semilla, reset, despliegue y creación, con dobles de docker y curl | bash, openssl, git, node |
+| `bash infra/ops/tests/prueba-ips-prueba.sh` | `ips-prueba.sh`: escribe las dos variables, no imprime IP, `--agregar` sin repetir, guardas de producción y rangos abiertos | bash |
 | `bash infra/ops/tests/prueba-aplicar-migracion.sh` | contrato del envoltorio y rechazos de `aplicar-migracion.sh`, con dobles | ídem |
 | `bash infra/ops/tests/prueba-compose-prueba.sh` | `docker compose config` del overlay: memoria ≤ 3.072 MiB, `noindex` en todos los routers, clave en el web y el buzón | Docker (solo valida) |
 | `bash infra/ops/tests/prueba-aplicar-migracion-efimera.sh` | una migración con su fila en una transacción; un error a la mitad no deja ni objeto ni fila | Docker, **corrida pesada** |
