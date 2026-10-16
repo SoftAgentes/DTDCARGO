@@ -24,8 +24,11 @@
 #      functions_base_url, y sin filas en kommo_connections (salvo --sin-base).
 #   9. El bundle de la imagen nombra el host de prueba y no el de producción ni
 #      la ref de Cloud, y lleva la anon de este .env (salvo --sin-bundle): una
-#      imagen construida con otra anon da 401 en el navegador. Google Analytics y Ads siguen en la
-#      imagen hasta la Fase 2: sale como AVISO, o FALLÓ con --exigir-sin-ga.
+#      imagen construida con otra anon da 401 en el navegador. Google Analytics y
+#      Ads: decide /app/.next/static, que es lo único que llega al navegador. Si
+#      están ahí, sale AVISO, o FALLÓ con --exigir-sin-ga (imagen de la Fase 2,
+#      SDD-0544). Si solo los nombra el código del servidor, sale PASÓ con un
+#      aviso, y se confirma en el HTML con smoke-web.sh --sin-ga.
 #
 # Uso (en el VPS):
 #   verificar-aislamiento.sh --env /srv/dtd-cargo-staging/.env --prod-env /srv/dtd-cargo/.env \
@@ -275,8 +278,8 @@ else
   # por entorno y se buscan con -F (texto literal).
   cuenta="$(P_PRUEBA="${host_prueba}" P_PROD="${host_prod}" P_REF="${CLOUD_REF}" P_ANON="${anon_prueba}" P_COOKIE="${cookie_prueba}" \
     docker run --rm --network none --entrypoint /bin/sh -e P_PRUEBA -e P_PROD -e P_REF -e P_ANON -e P_COOKIE \
-    "${img}" -c 'c() { grep -rlF -- "$1" /app/.next 2>/dev/null | wc -l; }; echo "$(c "$P_PRUEBA") $(c "$P_PROD") $(c "$P_REF") $(c G-25CD7BZH98) $(c AW-561290482) $(c "$P_ANON") $(c "$P_COOKIE")"' 2>/dev/null)"
-  read -r c_prueba c_prod c_ref c_ga c_ads c_anon c_cookie <<< "${cuenta:-x x x x x x x}"
+    "${img}" -c 'c() { grep -rlF -- "$1" /app/.next 2>/dev/null | wc -l; }; s() { grep -rlF -- "$1" /app/.next/static 2>/dev/null | wc -l; }; echo "$(c "$P_PRUEBA") $(c "$P_PROD") $(c "$P_REF") $(c G-25CD7BZH98) $(c AW-561290482) $(c "$P_ANON") $(c "$P_COOKIE") $(s G-25CD7BZH98) $(s AW-561290482)"' 2>/dev/null)"
+  read -r c_prueba c_prod c_ref c_ga c_ads c_anon c_cookie s_ga s_ads <<< "${cuenta:-x x x x x x x x x}"
   if [[ ! "${c_prueba}" =~ ^[0-9]+$ ]]; then
     ko "no pude leer el bundle de ${img##*:}"
   else
@@ -287,9 +290,17 @@ else
       || ko "bundle sin la anon de este .env: la imagen se construyó con otra PRUEBA_SUPABASE_ANON_KEY (reconstrúyela)"
     [[ "${c_cookie:-0}" =~ ^[0-9]+$ ]] && (( c_cookie >= 1 )) && ok "bundle con la cookie de sesión de este .env" \
       || ko "bundle sin la cookie de este .env: PRUEBA_AUTH_COOKIE y NEXT_PUBLIC_SUPABASE_AUTH_COOKIE no coinciden"
-    if (( c_ga + c_ads == 0 )); then ok "bundle sin Google Analytics ni Ads"
-    elif (( EXIGIR_SIN_GA )); then ko "bundle con Google Analytics (${c_ga}) o Ads (${c_ads})"
-    else av "bundle con Google Analytics (${c_ga}) y Ads (${c_ads}): apagarlos es la Fase 2 de la SDD-0540"; fi
+    # Lo que decide es .next/static: es lo único que llega al navegador. El resto
+    # de /app/.next (el servidor) puede conservar el ID como texto en código que no
+    # corre con NEXT_PUBLIC_GA_ID=off; se informa, pero no falla.
+    # Sin las dos cuentas de static (otra versión del contenedor), se decide con
+    # todo /app/.next, como antes: más estricto, nunca más laxo.
+    [[ "${s_ga-}" =~ ^[0-9]+$ && "${s_ads-}" =~ ^[0-9]+$ ]] || { s_ga="${c_ga}"; s_ads="${c_ads}"; }
+    if (( s_ga + s_ads == 0 )); then
+      ok "bundle del navegador (.next/static) sin Google Analytics ni Ads"
+      (( c_ga + c_ads > 0 )) && av "el servidor (.next fuera de static) nombra GA (${c_ga}) o Ads (${c_ads}): no llega al navegador; confirmar en el HTML con smoke-web.sh --sin-ga"
+    elif (( EXIGIR_SIN_GA )); then ko "bundle del navegador con Google Analytics (${s_ga}) o Ads (${s_ads})"
+    else av "bundle del navegador con Google Analytics (${s_ga}) y Ads (${s_ads}): apagarlos es la Fase 2 de la SDD-0540"; fi
   fi
 fi
 
