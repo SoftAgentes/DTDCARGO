@@ -107,7 +107,7 @@ fijar "${T}/limpio.env" "PRUEBA_WEB_USUARIOS='sam:\$2a\$10\$abcdefghijklmnopqrst
 va() { bash "${S}/staging/verificar-aislamiento.sh" --env "$1" --prod-env "${T}/prod/.env" --project "${P}" --example "${PD}/.env.example" "${@:2}"; }
 va "${T}/limpio.env" > "${T}/va-limpio.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 ]] && grep -q '· 0 FALLÓ ·' "${T}/va-limpio.log" && ok "limpio → 0 ($(grep RESULTADO "${T}/va-limpio.log"))" || { ko "limpio rc=${rc}"; grep FALLÓ "${T}/va-limpio.log"; }
-grep -q 'AVISO · bundle con Google Analytics' "${T}/va-limpio.log" && ok "GA y Ads en el bundle salen como AVISO (Fase 2)" || ko "sin aviso de GA"
+grep -q 'AVISO · bundle del navegador con Google Analytics' "${T}/va-limpio.log" && ok "GA y Ads en el bundle del navegador salen como AVISO (Fase 2)" || ko "sin aviso de GA"
 cp "${T}/limpio.env" "${T}/rojo.env"; fijar "${T}/rojo.env" "SUPABASE_SERVICE_ROLE_KEY=$(val "${T}/prod/.env" SERVICE_ROLE_KEY)"
 va "${T}/rojo.env" > "${T}/va-rojo.log" 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'FALLÓ · valores iguales a un secreto de producción (por sha256): SUPABASE_SERVICE_ROLE_KEY' "${T}/va-rojo.log" \
@@ -143,6 +143,15 @@ DOBLE_BUNDLE="3 0 0 2 1 1 0" va "${T}/limpio.env" > "${T}/va-cookie.log" 2>&1; r
 grep -qF -- "$(val "${T}/limpio.env" NEXT_PUBLIC_SUPABASE_ANON_KEY)" "${DOBLE_DIR}/docker.log" && ko "la anon viajó en los argumentos de docker run" || ok "la anon viaja a docker run por entorno"
 va "${T}/limpio.env" --exigir-sin-ga > /dev/null 2>&1; rc=$?
 [[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga con GA en el bundle → falla" || ko "--exigir-sin-ga rc=${rc}"
+# Fase 2 (SDD-0544): decide .next/static, lo que llega al navegador.
+DOBLE_BUNDLE="3 0 0 2 1 1 1 0 0" va "${T}/limpio.env" --exigir-sin-ga > "${T}/va-sin-ga.log" 2>&1; rc=$?
+[[ ${rc} -eq 0 ]] && grep -q 'PASÓ  · bundle del navegador (.next/static) sin Google Analytics ni Ads' "${T}/va-sin-ga.log" \
+  && grep -q 'AVISO · el servidor (.next fuera de static) nombra GA' "${T}/va-sin-ga.log" \
+  && ok "--exigir-sin-ga: GA solo en el servidor → pasa con aviso" || ko "sin GA en static rc=${rc}"
+DOBLE_BUNDLE="3 0 0 2 1 1 1 1 0" va "${T}/limpio.env" --exigir-sin-ga > /dev/null 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga: GA en .next/static → falla" || ko "GA en static rc=${rc}"
+DOBLE_BUNDLE="3 0 0 2 1 1 1" va "${T}/limpio.env" --exigir-sin-ga > /dev/null 2>&1; rc=$?
+[[ ${rc} -eq 1 ]] && ok "--exigir-sin-ga sin las cuentas de static decide con todo .next (más estricto) → falla" || ko "sin cuentas de static rc=${rc}"
 va "${PD}/.env" --sin-base > "${T}/va-marcador.log" 2>&1; rc=$?
 [[ ${rc} -eq 0 ]] && grep -q 'AVISO · puerta del web cerrada con el marcador' "${T}/va-marcador.log" && ok "--sin-base: el marcador de la puerta es AVISO" || ko "marcador --sin-base rc=${rc}"
 va "${PD}/.env" > /dev/null 2>&1; rc=$?

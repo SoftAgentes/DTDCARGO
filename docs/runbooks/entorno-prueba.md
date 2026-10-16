@@ -19,7 +19,7 @@ Cómo se crea, se usa, se resetea y se destruye el entorno de prueba del VPS. Es
 - **Un despliegue a prueba no necesita el OK de Sam (D5).** Producción sí lo necesita, y cada migración en producción también.
 - **No es producción.** Nada de aquí escribe en `dtd-cargo`. Todos los scripts rechazan el proyecto `dtd-cargo` y cualquier proyecto que no termine en `-staging`.
 
-Pendiente de la Fase 2 (otra SDD): Google Analytics y la etiqueta de Ads siguen dentro de la imagen de prueba. `components/Analytics.tsx` cae al ID real con el valor vacío. `verificar-aislamiento.sh` lo marca como AVISO.
+Fase 2 (SDD-0544): la imagen de prueba se construye con `NEXT_PUBLIC_GA_ID=off`, que apaga Google Analytics y Ads. El smoke lo comprueba con `--sin-ga` (§3) y `verificar-aislamiento.sh --exigir-sin-ga` lo exige en `.next/static`. Una imagen construida antes de la Fase 2 todavía trae GA: sale AVISO, o FALLÓ con `--exigir-sin-ga`.
 
 ## 1 · Piezas
 
@@ -143,12 +143,15 @@ Actores: **Sam** (DNS y GitHub), **Contabo** (la sesión con SSH) y el **Directo
 3. **Contabo, opcional.** Corre el smoke completo de la web, detrás de la clave. Sin `--credenciales`, contra prueba todo da 401.
 
    ```bash
-   /srv/ops/web/smoke-web.sh --host prueba.dtdcargo.com --credenciales /srv/dtd-cargo-staging/secretos/clave-web.txt
+   /srv/ops/web/smoke-web.sh --host prueba.dtdcargo.com --credenciales /srv/dtd-cargo-staging/secretos/clave-web.txt \
+       --sin-ga --supabase-host supabase-prueba.dtdcargo.com
    ```
 
-   La clave viaja a curl en un archivo `-K` 600 y nunca por argumentos. El resumen agrega «con credenciales: sí». Dos puntos del smoke están pensados para producción:
-   - el de la CSP espera `supabase.dtdcargo.com` y prueba nombra `supabase-prueba.dtdcargo.com`, así que en prueba **falla siempre**;
-   - el de Google Analytics **pasa hoy** porque GA sigue en la imagen. Cuando la Fase 2 lo apague, fallará también en prueba.
+   La clave viaja a curl en un archivo `-K` 600 y nunca por argumentos. El resumen agrega «con credenciales: sí». Dos opciones adaptan el smoke de producción a prueba:
+   - `--sin-ga` invierte la regla de Google Analytics. La imagen de prueba (Fase 2, SDD-0544) se construye con `NEXT_PUBLIC_GA_ID=off`, así que se exige que ni el HTML ni los chunks de la portada traigan GA, Ads ni googletagmanager.
+   - `--supabase-host supabase-prueba.dtdcargo.com` es el host que tiene que nombrar la CSP en `connect-src`, en lugar del de producción.
+
+   `verificar-aislamiento.sh --exigir-sin-ga` decide con `/app/.next/static`, que es lo que llega al navegador. Si solo el código del servidor nombra el ID, sale PASÓ con aviso, y el `--sin-ga` del smoke lo confirma en el HTML.
 4. **Sam.** Abre `https://prueba.dtdcargo.com`. El panel de entorno del Studio muestra `staging`, el SHA y las integraciones en `mock`.
 
 Una sola ranura: prueba muestra una rama a la vez y el Director decide el turno.
