@@ -1,4 +1,5 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
@@ -52,6 +53,24 @@ describe("SDD-0544 · estilos del aviso", () => {
     if (!m) throw new Error(`no encuentro ${selector} en app/globals.css`);
     return m[1];
   };
+
+  it("app/globals.css se parsea: un error de CSS no espera al build", () => {
+    // Vitest corre con `css: false`, así que un comentario cerrado antes de
+    // tiempo (`--s-*/--r-*` dentro de `/* … */`) sólo aparecía en `next build`:
+    // así falló el CI de la primera cabeza de esta SDD. Se parsea con el
+    // postcss que trae Next.
+    const desdeNext = createRequire(createRequire(import.meta.url).resolve("next/package.json"));
+    const postcss = desdeNext("postcss") as { parse: (css: string) => unknown };
+    expect(() => postcss.parse(css)).not.toThrow();
+    // Control: el comentario que rompió el build, vuelto a poner en su lugar,
+    // da el mismo error que dio el CI («Unknown word no»).
+    const roto = css.replace(
+      "La escala de espacios y radios (--s-1 y siguientes, --r-sm y siguientes) no\n   está en :root",
+      "La escala --s-*/--r-* no está en :root",
+    );
+    expect(roto).not.toBe(css);
+    expect(() => postcss.parse(roto)).toThrow(/Unknown word no/);
+  });
 
   it("la franja es fija, no atrapa clics y usa el dorado de atención", () => {
     const franja = regla(".entorno-prueba");

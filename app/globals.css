@@ -794,7 +794,8 @@ html.dtd-cjk-sistema {
    --color-status-warning (#b8893a) y --on-warning (navy fijo, BD-027). Medido:
    5,24:1, AA para la letra de 12px en negrita.
 
-   La escala --s-*/--r-* no está en :root del sitio público ni del Portal (vive
+   La escala de espacios y radios (--s-1 y siguientes, --r-sm y siguientes) no
+   está en :root del sitio público ni del Portal (vive
    en sus superficies), así que cada var() lleva el valor de la escala como
    respaldo. El z-index pasa a los modales más altos del repo (1000).
    ────────────────────────────────────────────────────────────────── */
