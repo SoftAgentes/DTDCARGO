@@ -203,7 +203,7 @@ printf 'create table public.zz_pendiente (id int);\n' > "${FX}/supabase/migratio
 printf 'create function public.zz_b() returns int language sql as $$ select 1 $$;\n' > "${FX}/supabase/migrations/0004_zz_b.sql"
 printf 'const LEDGER_ONLY = new Set([\n  "0002_zz_solo_ledger.sql",\n]);\n' > "${FX}/scripts/check-schema-rebuild.mjs"
 printf '{ "cutoff": 0, "pendingBelowCutoff": { "0003_zz_pendiente": "espera de prueba" } }\n' > "${FX}/supabase/migrations-baseline.json"
-cp "${S}/staging/plataforma-prueba.sql" "${S}/staging/semilla-prueba.sql" "${FX}/infra/ops/staging/"
+cp "${S}/staging/plataforma-prueba.sql" "${S}/staging/plataforma-prueba-cierre.sql" "${S}/staging/semilla-prueba.sql" "${FX}/infra/ops/staging/"
 git -C "${FX}" init -q && git -C "${FX}" add -A && git -C "${FX}" -c user.email=prueba@example.test -c user.name=prueba commit -qm fixture
 FXSHA="$(git -C "${FX}" rev-parse HEAD)"
 B="${T}/paquete"

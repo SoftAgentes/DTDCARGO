@@ -118,6 +118,18 @@ describe("SDD-0540 · plataforma y .env de prueba", () => {
     expect(deLaPlataforma).toEqual(bloqueDefaults(STUBS));
   });
 
+  it("la RLS que la plataforma apaga para la 0038 la vuelve a encender el cierre, en las mismas tablas", () => {
+    const cierre = readFileSync(resolve("infra/ops/staging/plataforma-prueba-cierre.sql"), "utf8");
+    expect(PLATAFORMA).toMatch(/insert into prueba_reset\.rls_apagada/);
+    expect(PLATAFORMA).toMatch(/disable row level security/);
+    expect(PLATAFORMA).not.toMatch(/enable row level security/);
+    expect(cierre).toMatch(/for r in select tabla from prueba_reset\.rls_apagada loop[\s\S]*enable row level security/);
+    expect(cierre).toMatch(/quedaron tablas sin RLS/);
+    expect(cierre).toMatch(/drop schema prueba_reset cascade;/);
+    const reset = readFileSync(resolve("infra/ops/staging/resetear-base-prueba.sh"), "utf8");
+    expect(reset).toMatch(/plataforma-prueba-cierre\.sql/);
+  });
+
   it("la plataforma no pisa objetos de GoTrue ni de storage-api", () => {
     expect(PLATAFORMA).not.toMatch(/^create or replace function auth\./im);
     expect(PLATAFORMA).not.toMatch(/^create table (if not exists )?(auth|storage)\./im);

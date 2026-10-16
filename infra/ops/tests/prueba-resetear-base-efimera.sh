@@ -86,7 +86,7 @@ docker run -d --name "${AUTH}" --network "${RED}" \
   -e GOTRUE_JWT_ADMIN_ROLES=service_role -e GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated -e GOTRUE_JWT_EXP=3600 \
   -e GOTRUE_DISABLE_SIGNUP=true -e GOTRUE_EXTERNAL_EMAIL_ENABLED=true -e GOTRUE_MAILER_AUTOCONFIRM=false \
   -e GOTRUE_EXTERNAL_PHONE_ENABLED=false \
-  --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:9999/health" --health-interval 3s --health-retries 40 \
+  --health-cmd "wget --no-verbose --tries=1 --spider http://127.0.0.1:9999/health" --health-interval 3s --health-retries 40 \
   "${IMG_AUTH}" > /dev/null || { ko "no se pudo levantar ${IMG_AUTH}"; exit 1; }
 docker run -d --name "${STORAGE}" --network "${RED}" \
   -e ANON_KEY="${ANON}" -e SERVICE_KEY="${SRK}" -e POSTGREST_URL=http://rest:3000 -e AUTH_JWT_SECRET="${JS}" \
@@ -94,7 +94,7 @@ docker run -d --name "${STORAGE}" --network "${RED}" \
   -e REQUEST_ALLOW_X_FORWARDED_PATH=true -e FILE_SIZE_LIMIT=52428800 -e STORAGE_BACKEND=file -e GLOBAL_S3_BUCKET=stub \
   -e FILE_STORAGE_BACKEND_PATH=/var/lib/storage -e TENANT_ID=stub -e REGION=stub -e ENABLE_IMAGE_TRANSFORMATION=false \
   -e S3_PROTOCOL_ACCESS_KEY_ID="$(openssl rand -hex 16)" -e S3_PROTOCOL_ACCESS_KEY_SECRET="$(openssl rand -hex 32)" \
-  --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:5000/status" --health-interval 3s --health-retries 40 \
+  --health-cmd "wget --no-verbose --tries=1 --spider http://127.0.0.1:5000/status" --health-interval 3s --health-retries 40 \
   "${IMG_STORAGE}" > /dev/null || { ko "no se pudo levantar ${IMG_STORAGE}"; exit 1; }
 for c in "${AUTH}" "${STORAGE}"; do
   prueba_esperar_sano "${c}" 240 && [[ "$(docker inspect -f '{{.State.Health.Status}}' "${c}")" == healthy ]] \

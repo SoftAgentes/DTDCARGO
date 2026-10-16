@@ -10,7 +10,7 @@
 #        SOLO-LEDGER.txt        las LEDGER_ONLY de scripts/check-schema-rebuild.mjs
 #        PENDIENTES.txt         las esperas de supabase/migrations-baseline.json
 #                               (pendingBelowCutoff: no están en producción)
-#        plataforma-prueba.sql y semilla-prueba.sql (infra/ops/staging)
+#        plataforma-prueba.sql, su cierre y semilla-prueba.sql (infra/ops/staging)
 #        MANIFIESTO.txt y SHA256SUMS
 #   2. En el VPS, con el paquete copiado:
 #        a. comprueba SHA256SUMS y que el paquete sea del --to-sha;
@@ -26,7 +26,8 @@
 #           PENDIENTES se saltan (producción no las tiene); las de SOLO-LEDGER
 #           registran su fila sin ejecutarse (sobre una base nueva no tienen nada
 #           que reparar; el rebuild tampoco las aplica);
-#        g. vuelve a encender la RLS de cron.job y cron.job_run_details;
+#        g. plataforma-prueba-cierre.sql vuelve a encender la RLS que la plataforma
+#           apagó para la 0038 (cron.*, auth.* y storage.*);
 #        h. siembra los datos sintéticos (sembrar-prueba.sh), salvo --sin-semilla;
 #        i. comprueba que el ledger tenga una fila por archivo aplicado o registrado.
 #      Evidencia en <evidencias>/reset-<proyecto>-<ts>/.
@@ -85,7 +86,7 @@ while [[ $# -gt 0 ]]; do
     --solo-base) SOLO_BASE=1; shift ;;
     --db-container) setopt DB "${2-}"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
-    -h|--help) sed -n '2,48p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,47p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "argumento desconocido: $1 (ver --help)" ;;
   esac
 done
@@ -97,7 +98,7 @@ if [[ -n "${PREPARAR}" ]]; then
   command -v node >/dev/null || die "falta node: --preparar lee migrations-baseline.json con node"
   git -C "${REPO}" cat-file -e "${SHA}^{commit}" 2>/dev/null || die "${SHA} no es un commit de ${REPO} (¿falta git fetch?)"
   [[ ! -e "${PREPARAR}" ]] || die "${PREPARAR} ya existe: usa una carpeta nueva"
-  for r in infra/ops/staging/plataforma-prueba.sql infra/ops/staging/semilla-prueba.sql scripts/check-schema-rebuild.mjs supabase/migrations-baseline.json; do
+  for r in infra/ops/staging/plataforma-prueba.sql infra/ops/staging/plataforma-prueba-cierre.sql infra/ops/staging/semilla-prueba.sql scripts/check-schema-rebuild.mjs supabase/migrations-baseline.json; do
     git -C "${REPO}" cat-file -e "${SHA}:${r}" 2>/dev/null || refuse "${r} no existe en ${SHA:0:12}: el SHA tiene que incluir la Fase 1 de la SDD-0540"
   done
   mkdir -p -- "${PREPARAR}/migraciones" || die "no puedo crear ${PREPARAR}"
@@ -108,6 +109,7 @@ if [[ -n "${PREPARAR}" ]]; then
     n=$((n + 1))
   done < <(git -C "${REPO}" ls-tree --name-only "${SHA}" supabase/migrations/)
   git -C "${REPO}" cat-file blob "${SHA}:infra/ops/staging/plataforma-prueba.sql" > "${PREPARAR}/plataforma-prueba.sql"
+  git -C "${REPO}" cat-file blob "${SHA}:infra/ops/staging/plataforma-prueba-cierre.sql" > "${PREPARAR}/plataforma-prueba-cierre.sql"
   git -C "${REPO}" cat-file blob "${SHA}:infra/ops/staging/semilla-prueba.sql" > "${PREPARAR}/semilla-prueba.sql"
   # LEDGER_ONLY: los nombres entre `const LEDGER_ONLY = new Set([` y `]);`.
   git -C "${REPO}" cat-file blob "${SHA}:scripts/check-schema-rebuild.mjs" \
@@ -135,7 +137,7 @@ prueba_guarda_carpeta "${PROJECT_DIR}"
 DB="${DB:-${PROJECT}-db-1}"
 [[ "${DB}" == "${PROJECT}-"* ]] || refuse "--db-container ${DB} no es un contenedor de ${PROJECT}"
 [[ -d "${BUNDLE}" ]] || die "--bundle no existe: '${BUNDLE}'"
-for f in MANIFIESTO.txt SHA256SUMS SOLO-LEDGER.txt PENDIENTES.txt plataforma-prueba.sql semilla-prueba.sql; do
+for f in MANIFIESTO.txt SHA256SUMS SOLO-LEDGER.txt PENDIENTES.txt plataforma-prueba.sql plataforma-prueba-cierre.sql semilla-prueba.sql; do
   [[ -f "${BUNDLE}/${f}" ]] || die "falta ${BUNDLE}/${f}"
 done
 ( cd "${BUNDLE}" && sha256sum -c --quiet SHA256SUMS ) >/dev/null 2>&1 || { echo "resetear-base-prueba: INTEGRIDAD · SHA256SUMS no coincide en ${BUNDLE}" >&2; exit 4; }
@@ -233,10 +235,11 @@ for f in "${ARCHIVOS[@]}"; do
 done
 log "f. ${i} migraciones en el ledger ($(awk '{ s += $3 } END { print s + 0 }' "${EVID}/migraciones.txt") ms)"
 
-# g. RLS de cron, como en la imagen.
-docker exec -i "${DB}" psql -U supabase_admin -d postgres -X -v ON_ERROR_STOP=1 \
-  -c 'alter table cron.job enable row level security' -c 'alter table cron.job_run_details enable row level security' \
-  > "${EVID}/cron-rls.out" 2>&1 || { log "FALLÓ al volver a encender la RLS de cron"; cerrar; exit 6; }
+# g. RLS otra vez encendida en las tablas que la plataforma apagó para la 0038.
+log "g. plataforma-prueba-cierre.sql"
+docker exec -i "${DB}" psql -U supabase_admin -d postgres -X < "${BUNDLE}/plataforma-prueba-cierre.sql" > "${EVID}/plataforma-cierre.out" 2>&1 \
+  || { log "FALLÓ el cierre de la plataforma (lee plataforma-cierre.out)"; cerrar; exit 6; }
+log "   $(grep -o 'RLS encendida otra vez en [0-9]* tablas' "${EVID}/plataforma-cierre.out" || echo 'RLS encendida otra vez')"
 
 # h. Semilla.
 if (( SIN_SEMILLA )); then

@@ -29,11 +29,32 @@ grant all on all functions in schema cron to postgres;
 grant execute on all functions in schema net to postgres, anon, authenticated, service_role;
 
 -- La 0038 evalúa has_table_privilege('service_role', 'public.' || relname) sobre
--- toda tabla con RLS antes de filtrar por esquema, y cron.job_run_details la
--- aborta. Se apaga mientras corren las migraciones; resetear-base-prueba.sh la
--- vuelve a encender al terminar.
-alter table cron.job disable row level security;
-alter table cron.job_run_details disable row level security;
+-- toda tabla con RLS ANTES de filtrar por esquema: cualquier tabla con RLS fuera
+-- de `public` cuyo nombre no exista en `public` la aborta. Son las de cron.* y,
+-- con GoTrue y storage-api arriba como en el servidor, también las de auth.* y
+-- storage.* (medido el 2026-10-16: «relation "public.instances" does not exist»).
+-- La 0038 está aplicada en producción y no se edita: mientras corren las
+-- migraciones se apaga la RLS de esas tablas, se anota cuáles fueron y
+-- plataforma-prueba-cierre.sql la vuelve a encender en exactamente esas.
+create schema if not exists prueba_reset;
+create table if not exists prueba_reset.rls_apagada (tabla regclass primary key);
+insert into prueba_reset.rls_apagada (tabla)
+select c.oid::regclass
+  from pg_class c
+  join pg_namespace n on n.oid = c.relnamespace
+ where n.nspname not in ('public', 'pg_catalog', 'information_schema', 'prueba_reset')
+   and c.relkind in ('r', 'p')
+   and c.relrowsecurity
+on conflict do nothing;
+do $plataforma_rls$
+declare
+  r record;
+begin
+  for r in select tabla from prueba_reset.rls_apagada loop
+    execute format('alter table %s disable row level security', r.tabla);
+  end loop;
+end
+$plataforma_rls$;
 
 -- `auth`: auth.sessions la crea GoTrue; la 0019 le pone un trigger.
 do $plataforma_auth$
