@@ -29,6 +29,7 @@
 |---|---|---|
 | Esperar que Google y Cloudflare den 217.216.54.70 cuatro veces seguidas, más 5 min de TTL | Sesión de Contabo (vigilante) | — |
 | Pausar el proyecto en Vercel (pausar, **no** borrar) | Sam | cuando Contabo lo pida |
+| Desconectar la integración de Git de Vercel (proyecto `dtdcargo` → Settings → Git → Disconnect). Sam decidió hacerlo hoy: «vamos a desconectar Vercel de GitHub ya que no tiene sentido esperar hasta el 20». No frena los merges (el ruleset solo exige «Calidad local sin secretos») ni toca la integración que paga Supabase. Con esto un Preview deja de escribir en la base del servidor | Sam | justo después de la pausa |
 | Encender el contenedor `cron` del servidor (`corte-paso2.sh cron`) y comprobar los drenajes | Sesión de Contabo | después de la pausa de Vercel, para que nada corra dos veces |
 | Cierre del corte y fin de la congelación de main | Contabo confirma, el Director levanta la congelación | — |
 
@@ -43,7 +44,6 @@
 | Viernes 17 | Regla «Recibido en bodega China» → «Correo + push» | Sam (Admin → Notificaciones) |
 | Sábado 18 – domingo 19 | Reescribir `docs/runbooks/aplicar-migraciones-prod.md` para el servidor propio (psql en `dtd-cargo-db-1` y fila del ledger en la misma transacción). Es condición de la Fase 4 | Director o Worker, con PR |
 | Lunes 20 | Revisión semanal de respaldos: `rclone lsl … db/daily/ | tail -7` tiene que mostrar 7 dumps diarios seguidos (el respaldo diario se encendió el 2026-10-13) | Sesión de Contabo |
-| Lunes 20 | Desconectar la integración de Git de Vercel (Settings → Git → Disconnect), cuando la publicación automática ya funcione. Desde la pausa de Cloud, un preview escribiría en la base del servidor | Sam |
 | Martes 21 – miércoles 22 | Restore de prueba mensual (`infra/ops/backup/restore-test.sh`) sobre un dump tomado en el servidor. Es condición de la Fase 4 | Sesión de Contabo |
 | Esta semana | Ajustar el panel de publicaciones y el estado del Studio, que leen Vercel (`deployActions.ts`, `vercel-deploys.ts`, `env-status.ts`) | Worker, con su SDD (sale del handoff de la 0541) |
 
