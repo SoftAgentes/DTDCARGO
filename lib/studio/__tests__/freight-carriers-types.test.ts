@@ -6,10 +6,13 @@
  * mienten al cliente: la conversión ft³→CBM, que la venta NO se derive del
  * costo, y el aviso de los destinos que salen cada 15 días.
  */
+import { createClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
 import {
   FT3_POR_CBM,
+  MAX_BYTES_FILTRO_LOTE,
   avisoDeDemora,
+  bytesFiltroIn,
   cbmAFt3,
   ciudadesSinTarifa,
   referenciaFt3Desfasada,
@@ -263,5 +266,46 @@ describe("usd / usdConSigno", () => {
     expect(usdConSigno(43.6)).toBe("$43,60");
     expect(usdConSigno(-6.4)).toBe("−$6,40");
     expect(usdConSigno(0)).toBe("$0,00");
+  });
+});
+
+describe("bytesFiltroIn — lo que mide el filtro del lote en la URL (SDD-0539)", () => {
+  /** La URL que arma supabase-js de verdad, capturada sin red. */
+  async function urlReal(valores: string[]): Promise<URL> {
+    let capturada: URL | null = null;
+    const client = createClient("https://medir.invalid", "SINTETICA-NO-ES-UN-SECRETO", {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: {
+        fetch: async (input) => {
+          capturada = new URL(String(input));
+          return new Response("[]", { status: 200, headers: { "Content-Type": "application/json" } });
+        },
+      },
+    });
+    await client.from("carrier_tariffs").select("id").in("city_slug", valores);
+    return capturada!;
+  }
+
+  /** El parámetro `city_slug=…` tal como viaja, sin el `&` que lo separa. */
+  const enLaUrl = (url: URL) =>
+    url.search.slice(1).split("&").find((p) => p.startsWith("city_slug="))!;
+
+  it.each<[string, string[]]>([
+    ["slugs del catálogo", ["valencia", "san-diego", "valle-de-la-pascua"]],
+    ["valores con coma y paréntesis, que van entre comillas", ["a,b", "c(d)", "e"]],
+    ["acentos, espacios y un repetido", ["mérida", "san cristóbal", "mérida"]],
+    ["un solo valor", ["coro"]],
+  ])("mide igual que supabase-js con %s", async (_caso, valores) => {
+    const url = await urlReal(valores);
+    expect(bytesFiltroIn("city_slug", valores)).toBe(enLaUrl(url).length);
+  });
+
+  it("los repetidos no cuentan dos veces", () => {
+    expect(bytesFiltroIn("city_slug", ["coro", "coro"])).toBe(bytesFiltroIn("city_slug", ["coro"]));
+  });
+
+  it("el tope deja margen bajo los 8.000 caracteres en que supabase-js avisa", () => {
+    expect(MAX_BYTES_FILTRO_LOTE).toBe(6000);
+    expect(MAX_BYTES_FILTRO_LOTE).toBeLessThan(8000);
   });
 });

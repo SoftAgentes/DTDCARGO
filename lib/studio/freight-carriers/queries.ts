@@ -170,6 +170,10 @@ export async function listAllTariffs(
   return (data ?? []).map((r) => toTariff(r as TariffRow));
 }
 
+/** El transportista a marcar ya no está vivo, o la RLS no deja tocarlo (SDD-0539). */
+export const PREDETERMINADO_NO_ENCONTRADO =
+  "Ese transportista ya no está activo. Recarga la página y revisa cuál cotiza la web.";
+
 /**
  * Marca un transportista como el predeterminado y baja al que lo era.
  *
@@ -177,11 +181,26 @@ export async function listAllTariffs(
  * `freight_carriers_one_default_per_tenant` rechaza tener dos predeterminados
  * vivos a la vez, así que primero se baja el anterior. Si esto se invierte, la
  * base lo rechaza — y está bien que lo haga.
+ *
+ * SDD-0539: antes de bajar al anterior se comprueba que el nuevo siga vivo. Si
+ * no, se bajaba al que cotizaba y se «marcaba» uno borrado. La web se quedaba
+ * sin transportista y la acción decía `ok`. Y el UPDATE que lo marca exige
+ * fila viva y la devuelve: si no toca ninguna, es un error.
  */
 export async function setDefaultCarrier(
   supabase: SupabaseClient,
   carrierId: string,
 ): Promise<void> {
+  const destino = await supabase
+    .from("freight_carriers")
+    .select("id")
+    .eq("id", carrierId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (destino.error)
+    throw new Error(`No se pudo comprobar el transportista: ${destino.error.message}`);
+  if (!destino.data) throw new Error(PREDETERMINADO_NO_ENCONTRADO);
+
   const bajar = await supabase
     .from("freight_carriers")
     .update({ is_default: false })
@@ -194,7 +213,11 @@ export async function setDefaultCarrier(
   const subir = await supabase
     .from("freight_carriers")
     .update({ is_default: true, active: true })
-    .eq("id", carrierId);
+    .eq("id", carrierId)
+    .is("deleted_at", null)
+    .select("id");
   if (subir.error)
     throw new Error(`No se pudo marcar el predeterminado: ${subir.error.message}`);
+  if (!Array.isArray(subir.data) || subir.data.length === 0)
+    throw new Error(PREDETERMINADO_NO_ENCONTRADO);
 }
