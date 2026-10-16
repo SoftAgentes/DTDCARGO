@@ -143,7 +143,7 @@ DOBLE_SOLO_CON_CLAVE=1 correr "${SW}" "${T}/puerta-con.out" --credenciales "${T}
 [[ ${r1} -eq 1 && ${r2} -eq 0 ]] && grep -q 'FALLÓ GET / → 401' "${T}/puerta-sin.out" \
   && ok "sin la clave falla con 401 (1); con --credenciales pasa (0)" || ko "puerta: sin=${r1} con=${r2}"
 DOBLE_SOLO_CON_CLAVE=1 correr "${SW}" "${T}/www.out" --credenciales "${T}/cred.txt" --www; rc=$?
-[[ ${rc} -eq 0 && "$(grep -cE -- '(^| )-K ' "${DOBLE_DIR}/curl.log")" =="$(wc -l < "${DOBLE_DIR}/curl.log" | tr -d ' ')" ]] \
+[[ ${rc} -eq 0 && "$(grep -cE -- '(^| )-K ' "${DOBLE_DIR}/curl.log")" == "$(wc -l < "${DOBLE_DIR}/curl.log" | tr -d ' ')" ]] \
   && ok "--www también usa la clave en su llamada de curl" || { ko "--www rc=${rc}"; cat "${T}/www.out"; }
 
 echo "== archivos inválidos: sale 2 sin pedir nada"
