@@ -16,6 +16,8 @@ compose (plantilla en `infra/templates/proyecto/`, DTD Cargo en `infra/dtd-cargo
 | `lib/acl.sh` | SQL de permisos de `public` (igualar y huella), compartido por el import y los respaldos; se carga con `source` | — |
 | `migrate/import-from-cloud.sh` | Copia de Supabase Cloud a un staging (Fase 2): dump en memoria, tablas de log fuera, verificación por conteos | CLI `supabase` 2.118.0, ídem |
 | `staging/destroy-staging.sh` | Borra los datos de un staging al cerrar el ensayo, con evidencia | — |
+| `staging/*-prueba.sh`, `staging/verificar-aislamiento.sh` | Entorno de prueba con datos sintéticos (SDD-0540): `.env`, clave del web, aislamiento, semilla, reset de la base, creación y despliegue. Procedimiento: `docs/runbooks/entorno-prueba.md` | las del compose del proyecto |
+| `migrate/aplicar-migracion.sh` · `lib/migracion.sh` | Una migración con su fila del ledger en una transacción (método del Director, SDD-0540 §2.6); por ahora solo en `*-staging` | `supabase/postgres` del proyecto |
 
 Todas las imágenes van fijadas por tag exacto (verificado en Docker Hub y GitHub
 Releases el 2026-10-08). Nunca `latest`. Los procedimientos completos (fases del

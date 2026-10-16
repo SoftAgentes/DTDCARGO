@@ -1,0 +1,17 @@
+# /etc/systemd/system/dtd-cargo-publicar.timer — una vuelta de publicar-web.sh por minuto (SDD-0541).
+# Instalar y encender: docs/runbooks/publicacion-automatica-web.md (lo hace la sesión de Contabo).
+# Ver: systemctl list-timers dtd-cargo-publicar.timer · journalctl -u dtd-cargo-publicar.service
+# Apagar sin desinstalar: /srv/ops/web/publicar-web.sh congelar "<motivo>" (o systemctl stop).
+[Unit]
+Description=Publicación automática de la web de DTD Cargo, cada minuto
+
+[Timer]
+# 30 s después de encender el timer, y después 60 s contados desde que TERMINA
+# la vuelta anterior: dos vueltas nunca se superponen (además del flock).
+OnActiveSec=30s
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Unit=dtd-cargo-publicar.service
+
+[Install]
+WantedBy=timers.target
