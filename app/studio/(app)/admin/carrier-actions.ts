@@ -18,6 +18,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import {
+  bytesFiltroIn,
+  MAX_BYTES_FILTRO_LOTE,
   validateBulkPriceInput,
   validateCarrierInput,
   validateTariffInput,
@@ -278,15 +280,26 @@ export type BulkPriceActionState = {
 };
 
 /**
- * Cambio en lote (SDD-0537): un costo y/o una venta nuevos, en valor
- * absoluto, para varias ciudades del mismo transportista.
+ * Cambio en lote (SDD-0537 · SDD-0539): un costo y/o una venta nuevos, en
+ * valor absoluto, para varias ciudades del mismo transportista.
  *
- * Todo o nada: primero cuenta que TODAS las tarifas elegidas sigan vivas con
- * ese transportista; si falta una, no cambia ninguna. Después un solo UPDATE
- * con `in(id)`, que es una sola sentencia, con los MISMOS filtros: si otra
- * pestaña quitó una ruta entre la cuenta y el UPDATE, esa no se toca y
- * `updated` dice cuántas cambiaron de verdad (la UI lo avisa). Con 0490
- * aplicada, cada fila deja su evento AUD-01 en esa misma transacción.
+ * Todo o nada: primero lee las tarifas vivas de ese transportista y exige que
+ * TODAS las elegidas estén ahí; si falta una, no cambia ninguna. Después, un
+ * solo UPDATE, que es una sola sentencia, con los MISMOS filtros.
+ *
+ * Los ids de la selección NO viajan en la URL (SDD-0539). PostgREST lleva los
+ * filtros en la URL, y 300 uuids en un `in.(…)` miden unos 11,7 KB: más que
+ * los 8 KB que acepta un proxy nginx. La lectura no lleva lista, y el UPDATE
+ * filtra por `city_slug`, que pesa un tercio de lo que pesa un uuid. El índice
+ * único vivo de 0330 (`carrier_tariffs_one_live_per_city`) garantiza que cada
+ * ciudad es UNA tarifa viva del transportista. Si aun así el filtro no cabe,
+ * no se escribe nada.
+ *
+ * Si otra pestaña quitó una ruta entre la lectura y el UPDATE, esa no se toca
+ * y `updated` dice cuántas cambiaron de verdad (la UI lo avisa). Si la quitó y
+ * la volvió a agregar, la ciudad sigue elegida y su tarifa nueva recibe el
+ * precio. Con 0490 aplicada, cada fila deja su evento AUD-01 en esa misma
+ * transacción.
  */
 export async function bulkUpdateTariffPricesAction(
   _prev: BulkPriceActionState,
@@ -302,16 +315,25 @@ export async function bulkUpdateTariffPricesAction(
 
   const { data: vivas, error: lecturaError } = await supabase
     .from("carrier_tariffs")
-    .select("id")
-    .in("id", v.ids)
+    .select("id, city_slug")
     .eq("tenant_id", who.tenantId)
     .eq("carrier_id", v.carrierId)
     .is("deleted_at", null);
   if (lecturaError) return { error: `No se pudo comprobar la selección: ${lecturaError.message}` };
-  if (!Array.isArray(vivas) || vivas.length !== v.ids.length) {
+  const ciudadPorId = new Map(
+    (vivas ?? []).map((t) => [t.id as string, t.city_slug as string]),
+  );
+  if (!v.ids.every((id) => ciudadPorId.has(id))) {
     return {
       error:
         "Alguna de las ciudades elegidas ya no está activa con este transportista. No se cambió ninguna: recarga la página y vuelve a seleccionar.",
+    };
+  }
+  const ciudades = v.ids.map((id) => ciudadPorId.get(id) as string);
+  if (bytesFiltroIn("city_slug", ciudades) > MAX_BYTES_FILTRO_LOTE) {
+    return {
+      error:
+        "Son demasiadas ciudades para cambiarlas de una vez. No se cambió ninguna: divide la selección en dos lotes.",
     };
   }
 
@@ -322,10 +344,10 @@ export async function bulkUpdateTariffPricesAction(
   const { data, error } = await supabase
     .from("carrier_tariffs")
     .update(patch)
-    .in("id", v.ids)
     .eq("tenant_id", who.tenantId)
     .eq("carrier_id", v.carrierId)
     .is("deleted_at", null)
+    .in("city_slug", ciudades)
     .select("id");
   if (error) return { error: `No se pudieron cambiar los precios: ${error.message}` };
   const updated = Array.isArray(data) ? data.length : 0;
