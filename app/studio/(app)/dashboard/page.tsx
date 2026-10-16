@@ -254,8 +254,10 @@ export default async function DashboardPage() {
     });
   if (finance) {
     const due = Number(finance.invoicesDue.value) || 0;
+    // SDD-0542 · a la cola de cobranza, que ordena por vencimiento: las
+    // vencidas quedan arriba. La ruta vieja (/studio/invoices) daba 404.
     if (due > 0)
-      alerts.push({ tone: "danger", title: `${due} factura(s) vencida(s)`, meta: "Gestionar cobranza", href: "/studio/invoices" });
+      alerts.push({ tone: "danger", title: `${due} factura(s) vencida(s)`, meta: "Gestionar cobranza", href: "/studio/cobranzas" });
   }
   if (naviera && naviera.looseCount > 0)
     alerts.push({

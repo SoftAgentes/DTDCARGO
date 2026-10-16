@@ -224,7 +224,7 @@ export function UpcomingEtaWidget({ items }: { items: ActiveShipmentPreview[] })
         <div className="studio-eyebrow" style={{ color: "var(--wine-text)" }}>
           PRÓXIMOS POR LLEGAR
         </div>
-        <Link href="/studio/calendar" style={{ font: "600 11px/1 var(--f-sans)", color: "var(--wine-text)", textDecoration: "none" }}>
+        <Link href="/studio/calendario" style={{ font: "600 11px/1 var(--f-sans)", color: "var(--wine-text)", textDecoration: "none" }}>
           Calendario →
         </Link>
       </div>
@@ -312,7 +312,9 @@ export function AlertsWidget({ alerts }: { alerts: AlertItem[] }) {
 // ── Acciones rápidas ──────────────────────────────────────────
 export function QuickActionsWidget() {
   const items = [
-    { label: "Nuevo estimado", icon: "calc", href: "/studio/quotes/nuevo" },
+    // SDD-0542 · el cotizador no abre el alta desde la URL: se llega al
+    // listado, donde está «+ Nueva cotización».
+    { label: "Nuevo estimado", icon: "calc", href: "/studio/cotizador" },
     { label: "Nuevo cliente", icon: "users", href: "/studio/clientes" },
     { label: "Recepción CN", icon: "warehouse", href: "/studio/cn" },
     { label: "Nuevo envío", icon: "box", href: "/studio/tracking/nuevo" },
