@@ -17,7 +17,7 @@ const lineas = bloques.flatMap((b) => b.split("\n")).map((l) => l.trim()).filter
 function llamadas(lista) {
   const out = [];
   for (const l of lista) {
-    for (const m of l.matchAll(/(?:\/srv\/ops|infra\/ops)\/(staging|migrate)\/([a-z-]+\.sh)([^|&]*)/g)) {
+    for (const m of l.matchAll(/(?:\/srv\/ops|infra\/ops)\/(staging|migrate|web)\/([a-z-]+\.sh)([^|&]*)/g)) {
       out.push({ linea: l, ruta: `infra/ops/${m[1]}/${m[2]}`, opciones: [...m[3].matchAll(/(?:^|\s)(--[a-z0-9-]+)/g)].map((x) => x[1]) });
     }
   }
@@ -42,6 +42,7 @@ describe("SDD-0540 · runbook del entorno de prueba", () => {
       "infra/ops/staging/clave-web-prueba.sh",
       "infra/ops/staging/destroy-staging.sh",
       "infra/ops/migrate/aplicar-migracion.sh",
+      "infra/ops/web/smoke-web.sh",
     ]) {
       expect(rutas, r).toContain(r);
     }

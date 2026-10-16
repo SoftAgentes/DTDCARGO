@@ -140,7 +140,16 @@ Actores: **Sam** (DNS y GitHub), **Contabo** (la sesión con SSH) y el **Directo
    - `EN-PRUEBA.txt` y la evidencia en `/srv/ops/evidencias/prueba-desplegar-<ts>.txt`.
 
    Si falla después del cambio, imprime cómo volver a la imagen anterior.
-3. **Sam.** Abre `https://prueba.dtdcargo.com`. El panel de entorno del Studio muestra `staging`, el SHA y las integraciones en `mock`.
+3. **Contabo, opcional.** Corre el smoke completo de la web, detrás de la clave. Sin `--credenciales`, contra prueba todo da 401.
+
+   ```bash
+   /srv/ops/web/smoke-web.sh --host prueba.dtdcargo.com --credenciales /srv/dtd-cargo-staging/secretos/clave-web.txt
+   ```
+
+   La clave viaja a curl en un archivo `-K` 600 y nunca por argumentos. El resumen agrega «con credenciales: sí». Dos puntos del smoke están pensados para producción:
+   - el de la CSP espera `supabase.dtdcargo.com` y prueba nombra `supabase-prueba.dtdcargo.com`, así que en prueba **falla siempre**;
+   - el de Google Analytics **pasa hoy** porque GA sigue en la imagen. Cuando la Fase 2 lo apague, fallará también en prueba.
+4. **Sam.** Abre `https://prueba.dtdcargo.com`. El panel de entorno del Studio muestra `staging`, el SHA y las integraciones en `mock`.
 
 Una sola ranura: prueba muestra una rama a la vez y el Director decide el turno.
 
@@ -237,7 +246,6 @@ Las corridas pesadas piden turno al Director: una a la vez.
 
 ## 9 · Dependencias y pendientes
 
-- **`infra/ops/web/smoke-web.sh` no manda la clave del web.** Contra prueba, sin la clave, todo da 401. Mientras no la mande, el smoke de la puerta lo hacen `desplegar-prueba.sh` y `crear-prueba.sh`. La propuesta para la sesión de Contabo está en el handoff de la Fase 1: un `--credenciales <archivo>` leído con `curl -K`.
 - **Fase 2 (producto):** apagar Google Analytics y Ads en el build, el aviso visible «Entorno de prueba» (D11) y, si se pide, el buzón de prueba para los correos de la app (D9).
 - **Fase 3 (servidor):** todo el §2 y su aceptación.
 - **Producción:** el runbook nuevo de migraciones en el servidor propio, para usar `aplicar-migracion.sh` también ahí (otra PR).
