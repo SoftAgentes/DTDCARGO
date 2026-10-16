@@ -69,17 +69,16 @@ sed -i 's/"entorno": "produccion"/"entorno": "prueba"/' "${L}/manifiesto.json"; 
 # 3. previa: PASÓ, ROLLBACK y evidencia sin nombres.
 out="$(corre --paso previa 2>&1)"; rc=$?
 [[ ${rc} -eq 0 && "${out}" == *"PASÓ · previa · ROLLBACK"* ]] && ok "previa PASÓ con ROLLBACK" || ko "previa rc=${rc}: ${out}"
-evid="$(ls -d "${T}"/evid/lote-*-zz-staging-* | head -1)"
-[[ -f "${evid}/previa.out" && -f "${evid}/LOTE.txt" && -f "${evid}/SHA256SUMS" ]] && ok "evidencia con salida, LOTE.txt y SHA256SUMS" || ko "evidencia incompleta en ${evid}"
+evid="$(ls -d "${T}"/evid/lote-*-zz-staging-*-previa | head -1)"
+[[ -f "${evid}/previa.out" && -f "${evid}/LOTE.txt" && -f "${evid}/SHA256SUMS" ]] && ok "evidencia con salida, LOTE.txt y SHA256SUMS en una carpeta por paso" || ko "evidencia incompleta en ${evid}"
 grep -q '^envios=3$' "${evid}/LOTE.txt" && ok "LOTE.txt trae los conteos esperados" || ko "LOTE.txt sin conteos"
 grep -rq "SECRETO" "${evid}" && ko "la evidencia lleva un nombre de cliente" || ok "la evidencia no lleva nombres de clientes"
 grep -q "exec -i zz-staging-db-1 psql -U postgres -d postgres -X -v ON_ERROR_STOP=1" "${DOBLE_LOG}" && ok "psql corre en zz-staging-db-1 como postgres con ON_ERROR_STOP" || ko "docker.log: $(cat "${DOBLE_LOG}")"
 
-# 4. aplicar exige simulacro previo; después del simulacro pasa con COMMIT.
+# 4. aplicar exige simulacro previo; después del simulacro pasa con COMMIT, incluso en el mismo segundo.
 corre --paso aplicar >/dev/null 2>&1; [[ $? -eq 5 ]] && ok "aplicar sin simulacro sale 5" || ko "aplicar sin simulacro no sale 5"
-sleep 1
 corre --paso simulacro >/dev/null 2>&1 && ok "simulacro PASÓ" || ko "simulacro falló"
-sleep 1
+[[ "$(ls -d "${T}"/evid/lote-*-zz-staging-*-simulacro 2>/dev/null | wc -l)" -eq 1 ]] && ok "la evidencia del simulacro tiene su propia carpeta" || ko "el simulacro pisó otra evidencia"
 out="$(corre --paso aplicar 2>&1)"; rc=$?
 [[ ${rc} -eq 0 && "${out}" == *"PASÓ · aplicar · COMMIT"* ]] && ok "aplicar PASÓ con COMMIT tras el simulacro" || ko "aplicar rc=${rc}: ${out}"
 

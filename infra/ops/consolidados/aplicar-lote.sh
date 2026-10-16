@@ -86,7 +86,7 @@ if [[ "${PASO}" == "aplicar" ]]; then
   # id en LOTE.txt, la salida termina en ROLLBACK y el NOTICE del lote (que
   # psql manda a stderr) nombra el id.
   previo=""
-  for d in "${EVIDENCE_DIR}"/lote-*-"${PROJECT}"-*/; do
+  for d in "${EVIDENCE_DIR}"/lote-*-"${PROJECT}"-*-simulacro/; do
     [[ -f "${d}LOTE.txt" && -f "${d}simulacro.out" && -f "${d}simulacro.err" ]] || continue
     grep -qx "lote=${LOTE_ID}" "${d}LOTE.txt" || continue
     [[ "$(awk 'NF { l = $0 } END { print l }' "${d}simulacro.out")" == "ROLLBACK" ]] || continue
@@ -101,7 +101,8 @@ fi
 
 DB="${PROJECT}-db-1"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
-EVID="${EVIDENCE_DIR}/lote-${LOTE_ID//[^A-Za-z0-9]/_}-${PROJECT}-${TS}"
+# El paso va en el nombre: dos pasos en el mismo segundo no pisan su evidencia.
+EVID="${EVIDENCE_DIR}/lote-${LOTE_ID//[^A-Za-z0-9]/_}-${PROJECT}-${TS}-${PASO}"
 echo "aplicar-lote: lote ${LOTE_ID} · paso ${PASO} · base ${DB} · evidencia ${EVID}"
 if [[ ${DRY_RUN} -eq 1 ]]; then
   echo "+ docker exec -i ${DB} psql -U postgres -d postgres -X -v ON_ERROR_STOP=1 < ${SCRIPT}  (cierre esperado: ${CIERRE})"

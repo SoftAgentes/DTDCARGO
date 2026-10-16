@@ -344,8 +344,11 @@ begin
          where a.tenant_id = v_tenant and a.deleted_at is null and upper(a.prefix) = upper(c.prefijo)
          limit 1;
         if v_aliado is null then
+          -- La ficha de un aliado lleva su insignia PELADA como Shipping Mark (migr
+          -- 0371: 'DC' es Dynasty Cargo; 'DC-NNNN' son sus clientes). Nada de
+          -- next_markbox: exige sesión autenticada y psql como postgres no la trae.
           insert into public.clients (tenant_id, markbox, name, notes)
-          values (v_tenant, public.next_markbox(v_tenant), c.nombre_excel || ' (aliado raíz)',
+          values (v_tenant, upper(c.prefijo), c.nombre_excel || ' (aliado raíz)',
                   'Creado por la carga ' || cab.lote || ' (prueba): aliado raíz ' || c.prefijo)
           returning id into v_root_client;
           insert into public.aliados (tenant_id, client_id, prefix, trade_name, status, agreement_notes)
@@ -360,8 +363,9 @@ begin
       end if;
     end if;
     if v_client_id is null then
-      raise exception 'lote: la marca % («%», candidatos %) no resuelve a ningún cliente; mapéala en marcas-mapa.json',
-        c.clave, c.nombre_excel, array_to_string(c.candidatos, ' / ');
+      -- Sin el nombre del Excel a propósito: este error termina en la evidencia.
+      raise exception 'lote: la marca % (candidatos %) no resuelve a ningún cliente; mapéala en marcas-mapa.json',
+        c.clave, array_to_string(c.candidatos, ' / ');
     end if;
 
     -- A quién se factura: al propio cliente o, si es de un aliado, al aliado raíz.
@@ -520,7 +524,7 @@ function previa(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: str
   const codigosEnvio = lote.embarques.map((e) => litSql(e.remitente)).join(", ");
   const codigosRecepcion = lote.embarques.map((e) => litSql(`WR-C${lote.rastreo.numero}-${e.remitente}`)).join(", ");
   const candidatos = lote.clientes
-    .map((c) => `(${litSql(c.clave)}, ${litSql(c.marca.nombreExcel)}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[])`)
+    .map((c) => `(${litSql(c.clave)}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[])`)
     .join(",\n  ");
   return `\\set ON_ERROR_STOP on
 -- SDD-0543 · lectura previa del lote ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor})
@@ -548,23 +552,17 @@ select
   (select count(*) from public.invoices i join public.tenants t on t.id = i.tenant_id
      where t.slug = ${litSql(o.tenantSlug)} and i.deleted_at is null and i.notes like '%' || ${litSql(o.lote)} || '%') as facturas_del_lote;
 
-\\echo === marcas: cómo resuelve cada una (sin_resolver = hay que mapearla o crearla)
-with marcas(clave, nombre_excel, candidatos) as (values
+\\echo === marcas: cómo resuelve cada una (sin_resolver = hay que mapearla o crearla). Sin nombres: esto termina en la evidencia.
+with marcas(clave, candidatos) as (values
   ${candidatos}
 ), tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)})
-select m.clave, m.nombre_excel,
+select m.clave,
        coalesce((
          select r.canonical_markbox
            from unnest(m.candidatos) with ordinality as cand(marca, pos)
            cross join lateral public.resolve_markbox((select id from tenant), cand.marca) r
           order by cand.pos limit 1
        ), 'sin_resolver') as markbox_canonico,
-       (select cl.name from public.clients cl where cl.id = (
-         select r.client_id
-           from unnest(m.candidatos) with ordinality as cand(marca, pos)
-           cross join lateral public.resolve_markbox((select id from tenant), cand.marca) r
-          order by cand.pos limit 1
-       )) as nombre_en_base,
        (select a.prefix from public.clients cl join public.aliados a on a.id = cl.aliado_id where cl.id = (
          select r.client_id
            from unnest(m.candidatos) with ordinality as cand(marca, pos)

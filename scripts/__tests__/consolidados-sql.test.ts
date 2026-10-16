@@ -97,6 +97,16 @@ describe("generarSql", () => {
     expect(s.aplicar).toContain("insert into lote_lineas values (3, 'DTD-A116', 'Exceso de peso · DTD-A116-06 · Regulador · 134.75 kg × $0.8', 134.75, 0.8);");
   });
 
+  it("previa y los errores del lote no llevan nombres de clientes: terminan en la evidencia", () => {
+    const s = generarSql(lote(), OPCIONES, FUENTES);
+    expect(s.previa).not.toContain("PRUEBA O''HIGGINS");
+    expect(s.previa).not.toContain("ALIADO PRUEBA MM");
+    expect(s.previa).not.toMatch(/nombre_excel|nombre_en_base|cl\.name/);
+    expect(s.previa).toContain("('DTD-J031', array['DTD-J031']::text[])");
+    expect(s.aplicar).toContain("raise exception 'lote: la marca % (candidatos %) no resuelve a ningún cliente");
+    expect(s.verificar).not.toMatch(/client_name|\.name\b/);
+  });
+
   it("el preflight aborta por contenedor, lote, envíos, recepciones y facturas repetidos", () => {
     const s = generarSql(lote(), OPCIONES, FUENTES);
     expect(s.aplicar).toContain("raise exception 'preflight: el contenedor % ya está cargado'");
@@ -119,6 +129,11 @@ describe("generarSql", () => {
     expect(s.aplicar).toContain("public.next_consolidation_ref(v_tenant)");
     expect(s.aplicar).toContain("public.next_invoice_code(v_tenant)");
     expect(s.aplicar).toContain("public.resolve_markbox(v_tenant, m)");
+    // psql como postgres no trae JWT: next_markbox (assert_tenant_match) abortó el simulacro
+    // del 2026-10-16. El aliado raíz sintético lleva su insignia pelada (migr 0371).
+    expect(s.aplicar).toContain("values (v_tenant, upper(c.prefijo), c.nombre_excel || ' (aliado raíz)'");
+    expect(s.aplicar).not.toMatch(/public\.next_markbox/);
+    expect(s.aplicar).not.toMatch(/assert_tenant_match|get_user_tenant_id/);
     expect(s.aplicar.match(/public\.append_audit_event\(/g)?.length).toBe(4);
     expect(s.aplicar).toContain("'job', 'succeeded'");
   });
