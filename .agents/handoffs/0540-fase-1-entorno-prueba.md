@@ -173,7 +173,9 @@ Todo sobre la cabeza `e2f32947` (los cinco commits de producto). El commit del h
   - El índice de specs quedó resuelto sin conflicto: `docs:check` da 526 specs y `sdd:check` sale OK.
   - Las pruebas rápidas de Vitest dan 48/48 después del merge.
   - `main` no cambió nada de `infra/`, `.github/` ni `scripts/`.
-- Además, el commit que contiene este documento (URL de la PR).
+- `0097f3a7` · `docs(handoff): SDD-0540 — PR #251 y merge de main en el handoff de la Fase 1`.
+- `669c3dc0` · `fix(ops): SDD-0540 — la semilla no desborda abs(hashtext()) con el entero mínimo`: pasa a bigint antes del `abs`. `entorno-prueba-semilla.test.mjs` da 15/15 después del cambio.
+- Además, el commit que contiene este documento. Es la cabeza que revisa el CI de la PR: el resultado se lee en la #251 y no se vuelve a publicar después del verde.
 
 ## PR / BRANCH
 
