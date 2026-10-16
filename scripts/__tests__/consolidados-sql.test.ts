@@ -162,6 +162,12 @@ describe("generarSql", () => {
     expect(s.aplicar).toContain("values (v_tenant, v_markbox_nuevo, c.nombre_excel || ' · ' || c.clave, v_aliado,");
     expect(s.aplicar).not.toMatch(/values \(v_tenant, c\.candidatos\[1\], c\.nombre_excel \|\| ' · '/);
     expect(s.aplicar.match(/public\.append_audit_event\(/g)?.length).toBe(4);
+    // Ningún alias de tabla de una letra igual a una variable del bloque (c, e, f, r, m).
+    const bloque = s.aplicar.slice(s.aplicar.indexOf("do $lote$"), s.aplicar.indexOf("$lote$;"));
+    // El nombre de la tabla no lleva «(»: así una llamada a función con la variable m
+    // como argumento (resolve_markbox(v_tenant, m)) no cuenta como alias.
+    expect(bloque).not.toMatch(/\b(?:from|join)\s+[^\s(]+\s+(?:as\s+)?[cefrm]\b(?!\.)/i);
+    expect(bloque).toMatch(/join lote_envios le on le\.clave = lr\.clave/);
     expect(s.aplicar).toContain("'job', 'succeeded'");
   });
 

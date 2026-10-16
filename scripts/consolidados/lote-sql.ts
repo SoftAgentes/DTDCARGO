@@ -497,13 +497,16 @@ begin
 
   -- ── Una factura por cliente, en borrador ─────────────────────────────────
   if cab.facturas then
+    -- Alias de dos letras a propósito: e y r son variables del bloque y
+    -- PL/pgSQL (variable_conflict = error) no sabe cuál es cuál (tercer
+    -- simulacro, 2026-10-16 23:11Z).
     for c in
-      select r.*, min(e.orden) as primero
-        from lote_resueltos r
-        join lote_envios e on e.clave = r.clave
-       group by r.clave, r.client_id, r.markbox, r.nombre, r.fact_client_id, r.fact_markbox, r.fact_nombre,
-                r.fact_rif, r.fact_doc_kind, r.creado
-       order by min(e.orden)
+      select lr.*, min(le.orden) as primero
+        from lote_resueltos lr
+        join lote_envios le on le.clave = lr.clave
+       group by lr.clave, lr.client_id, lr.markbox, lr.nombre, lr.fact_client_id, lr.fact_markbox, lr.fact_nombre,
+                lr.fact_rif, lr.fact_doc_kind, lr.creado
+       order by min(le.orden)
     loop
       select coalesce(jsonb_agg(jsonb_build_object('desc', descripcion, 'qty', qty, 'unitPrice', unit_price) order by orden), '[]'::jsonb),
              coalesce(round(sum(qty * unit_price), 2), 0)
@@ -511,11 +514,11 @@ begin
         from lote_lineas where clave = c.clave;
       v_iva := round(v_base * v_iva_rate / 100, 2);
       v_total := round(v_base + v_iva, 2);
-      select s.id, s.code into v_first_ship, v_first_code
-        from public.shipments s
-        join lote_envios e on upper(s.code) = upper(e.remitente)
-       where e.clave = c.clave and s.tenant_id = v_tenant and s.deleted_at is null
-       order by e.orden limit 1;
+      select sh.id, sh.code into v_first_ship, v_first_code
+        from public.shipments sh
+        join lote_envios le on upper(sh.code) = upper(le.remitente)
+       where le.clave = c.clave and sh.tenant_id = v_tenant and sh.deleted_at is null
+       order by le.orden limit 1;
       v_code := public.next_invoice_code(v_tenant);
       insert into public.invoices
         (tenant_id, invoice_code, client_markbox, client_name, client_rif, client_doc_kind, shipment_id, shipment_code,
