@@ -154,6 +154,18 @@ en RAM), en una red interna sin puertos, restaura con `restore.sh` como
 `supabase_admin` (los event triggers de Supabase exigen superusuario: como
 `postgres` salen 88 errores, medido el 2026-10-09), comprueba y destruye todo.
 
+**El restore sale del dump, no de las migraciones.** `restore.sh` y
+`restore-test.sh` (también con `--dr`) hacen `pg_restore --clean --if-exists` de un
+`pg_dump -Fc` de la base entera, sin filtrar esquemas. Ese dump trae `auth` y
+`storage` con sus tablas, sus policies y el estado de su RLS, y `--clean` reemplaza
+lo que GoTrue o storage-api hayan creado al arrancar, así que el orden de arranque
+no importa. Distinto es **reconstruir la base desde las migraciones** con GoTrue y
+storage-api ya arriba: la 0038 falla («relation "public.instances" does not
+exist») porque esos servicios dejan RLS encendida en sus tablas. Para eso hay que
+seguir el procedimiento del entorno de prueba (SDD-0540, `plataforma-prueba.sql`
+antes de las migraciones y `plataforma-prueba-cierre.sql` después). Hallazgo de la
+Fase 1 de la 0540, 2026-10-16.
+
 ```bash
 cd /srv/restores && umask 077
 # 1. Bajar el ÚLTIMO dump DESDE EL BUCKET (no la copia local): prueba toda la cadena.
