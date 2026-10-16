@@ -13,7 +13,8 @@
 //
 // Reglas: suma de límites de memoria ≤ 3.072 MiB (D10) y todos los servicios con
 // límite; `X-Robots-Tag: noindex` en TODOS los routers; clave (basicAuth) en los
-// routers del web y del buzón, y no en el de la API (D4); sin listas de IP;
+// routers del web y del buzón, y no en el de la API (D4); lista de IP primero en
+// todos los routers (datos reales desde el 2026-10-16);
 // Mailpit sin relay; GoTrue entrega en Mailpit; Postgres con su config_file y la
 // memoria de prueba.
 
@@ -87,8 +88,16 @@ export function revisar(config) {
     if (esApi) ok(!clave, `router ${r.router} (API): sin basicAuth, supabase-js manda su propio Authorization`);
     else ok(clave, `router ${r.router}: detrás de la clave del web (basicAuth)`);
   }
-  const allowlist = Object.keys(todas).filter((k) => /ipallowlist|ipwhitelist/i.test(k));
-  ok(allowlist.length === 0, "sin listas de IP (D4: clave en el web mientras haya solo datos sintéticos)");
+  // Lista de IP en TODOS los routers y PRIMERO (2026-10-16: Sam autorizó datos
+  // reales en prueba y eligió «Solo desde mis IP»). Nada abierto: ni 0.0.0.0/0
+  // ni ::/0, y ninguna lista vacía.
+  for (const r of routers) {
+    const primero = r.middlewares[0];
+    const rango = primero ? def(primero, "ipallowlist.sourcerange") : undefined;
+    const partes = (rango ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+    const abierta = partes.some((p) => p === "0.0.0.0/0" || p === "::/0");
+    ok(partes.length >= 2 && !abierta, `router ${r.router}: lista de IP primero (${partes.length} rangos${abierta ? ", ABIERTA" : ""})`);
+  }
 
   // 3. Correo.
   const mailpit = config.services?.mailpit;
