@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { getMyInvoice } from "@/lib/portal/portal-queries";
+import { getMyInvoice, getPortalClient } from "@/lib/portal/portal-queries";
+import { loadPendingAcceptanceDetailForClient } from "@/lib/portal/pending-acceptance";
 import { listMyInvoiceReports } from "@/lib/portal/payment-report-queries";
 import { formatInvoiceAmount, invoiceBalance } from "@/lib/portal/portal-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { InvoiceStatusBadge } from "../../../_components/InvoiceStatusBadge";
 import { InvoicePaymentReports } from "./_components/InvoicePaymentReports";
+import { PendingInvoiceGate } from "./_components/PendingInvoiceGate";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -24,8 +26,17 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
   const supabase = await createClient();
   const inv = await getMyInvoice(supabase, code);
   // La RLS + el filtro por markbox sólo devuelven facturas del cliente logueado;
-  // si no hay match (ajena, borrador o inexistente) → 404.
-  if (!inv) notFound();
+  // si no hay match (ajena, borrador o inexistente) → 404. Excepción (SDD-0543):
+  // un borrador SUYO que espera su aceptación de T&C no es un 404 sino una puerta
+  // cerrada con el monto a la vista y el botón para aceptar.
+  if (!inv) {
+    const client = await getPortalClient(supabase);
+    const pendiente = client
+      ? await loadPendingAcceptanceDetailForClient({ clientId: client.id, markbox: client.markbox, code })
+      : null;
+    if (!pendiente) notFound();
+    return <PendingInvoiceGate pendiente={pendiente} />;
+  }
 
   const balance = invoiceBalance({ total_amount: inv.total, paid_amount: inv.paid });
   const ivaOn = inv.ivaRate > 0;
