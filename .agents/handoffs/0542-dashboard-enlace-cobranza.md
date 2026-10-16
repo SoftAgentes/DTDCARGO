@@ -119,6 +119,20 @@ carpetas nuevas con `page.tsx`.
 | `vitest run "app/studio/(app)/dashboard"` | PASÓ: 9/9 |
 | `corepack pnpm typecheck` | PASÓ (exit 0) |
 
+Tercer aviso: se fusionaron la #251 (SDD-0540, Fase 1 del entorno de prueba), la
+#252 (SDD-0505, nota de restore) y la #250 (SDD-0541, publicación automática), y
+la PR volvió a chocar en el índice. Se mergeó `origin/main` `03e0e078` igual; el
+driver resolvió el índice («merge semántico: docs/specs/README.md») y
+`docs:index` dejó el árbol limpio. Lo que trajo es infraestructura (`infra/`,
+workflows), runbooks, specs y pruebas `.mjs`: nada bajo `app/studio`.
+
+| Comprobación tras el tercer merge | Resultado |
+|---|---|
+| `corepack pnpm docs:check` | PASÓ (528 specs) |
+| `corepack pnpm sdd:check` | PASÓ |
+| `vitest run "app/studio/(app)/dashboard"` | PASÓ: 9/9 |
+| `corepack pnpm typecheck` | NO EJECUTADO, no aplica: el merge no trae `.ts`, `.tsx` ni `tsconfig` (`allowJs: false`), así que vale el PASÓ sobre `cacd21d8` |
+
 ## COMMITS
 
 | Hash | Propósito |
@@ -130,7 +144,9 @@ carpetas nuevas con `page.tsx`.
 | `eca1977b` | merge de `origin/main` `8761618d` (#247), índice resuelto por el driver |
 | `dc4dbb13` | handoff: merge de main y revalidación |
 | `ce445f28` | merge de `origin/main` `acd4f53d` (#248, #245, #246), índice resuelto por el driver |
-| commit que contiene este cambio | handoff: segundo merge de main |
+| `cacd21d8` | handoff: segundo merge de main |
+| `653b61c5` | merge de `origin/main` `03e0e078` (#251, #252, #250), índice resuelto por el driver |
+| commit que contiene este cambio | handoff: tercer merge de main |
 
 ## PR / BRANCH
 
