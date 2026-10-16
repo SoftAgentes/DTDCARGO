@@ -754,6 +754,24 @@ sea secreto.
 
 Rollback del paso 2: `A @` de vuelta a `76.76.21.21` (TTL 300) y, si ya se pausó, reanudar el proyecto en Vercel; `corte-paso2.sh cron-stop` en el VPS. La base no cambia. Telegram: si ya se corrió `set`, Telegram manda el secreto del VPS y Vercel lo rechaza; para volver, Sam pega en Vercel el `TELEGRAM_WEBHOOK_SECRET` del VPS (se lo pasa el Worker por portapapeles) y redeploy. Las alertas de Telegram son internas: esperan.
 
+**Paso 2 EJECUTADO (2026-10-15 → 16).** Sam: «el cambio esta noche a las 10 p. m.» y, a las 20:00, «AVANZA». El `A @` lo guardó Sam más tarde («YA AUTRIZE EN HOSTINGER», mensaje a la sesión Director). Horas UTC (Caracas = −4). Evidencias en `/srv/ops/evidencias/corte-paso2-*`.
+
+| Hora | Paso | Resultado y lo aprendido |
+|---|---|---|
+| 15-10 23:07 | T−60 adelantado | Imagen `sha-3e0368e0…` fijada (main `3e0368e0`; hasta el congelamiento en `6da8aebc` solo entraron docs y tests); `compose.yml` de main con el middleware `www`; `corte-paso2.sh previo` en orden, smoke `nuevo` 12/0. Ese día se aplicaron 13 migraciones en el VPS (0476-0490; ledger 494) |
+| 16-10 00:00 | T+0 preparado | Formulario de Hostinger con `A @` = 217.216.54.70 dejado listo en el Chrome de Sam (el Worker no guarda cambios de DNS). `corte-paso2.sh dns` esperó 15 min y salió sin cambio: el guardado llegó horas después. **Lección:** el vigilante del DNS tiene que seguir hasta el cambio, sin tope, y encadenar `router` en el mismo minuto |
+| ≤07:04:44 | DNS | Los dos autoritativos con 217.216.54.70 (serial `2026101602`); Cloudflare ya lo daba a las 07:04:22 (medición del Director) |
+| 07:05:02 | Router | `corte-paso2.sh router`: `Host(dtdcargo.com) \|\| Host(www.dtdcargo.com)`; web healthy, 0 reinicios; certificado SAN de los dos nombres a las 07:05:34 (15 s). **Ventana de unos 70 s** (07:04:22 → 07:05:34) en la que quien ya resolvía al VPS vio el certificado por defecto de Traefik: es el costo de no poder sacar el certificado antes del DNS (desafío HTTP); se acorta encadenando `dns` → `router` |
+| 07:05:35 | Smoke | `smoke-web.sh --host dtdcargo.com --www`: 14 PASÓ · 0 FALLÓ. Comprobación externa del Director desde la laptop de Sam: certificado válido (`ssl_verify_result` 0), rutas, 307 y 301 correctos, sin cabeceras de Vercel |
+| 07:06 | Telegram | `telegram-webhook.sh set`: OK, URL sin query, 0 pendientes. Telegram siguió resolviendo a la IP vieja unos minutos (su caché) |
+| 07:06-07:09 | DNS público | Mixto unos minutos (Google y Cloudflare devolvían 76.76.21.21 con TTL renovado: los nodos de Hostinger no cambian todos a la vez); estable en la IP del VPS desde 07:08:56 |
+| ~07:40-07:46 | Vercel | Sam desconectó la integración de Git (decisión suya: «no tiene sentido esperar hasta el 20») y pausó el proyecto; verificado: 503 `DEPLOYMENT_PAUSED` a las 07:46:40 |
+| 07:46:51 | Cron | `corte-paso2.sh cron`: 20 jobs; `client-notifications-drain` y `push-drain` a mano → 200 |
+| 07:51:54 | Limpieza | Override del ensayo a `/srv/ops/evidencias/ensayo-web/`; 5 imágenes viejas borradas (quedan `3e0368e0` y `a8d99acf` para rollback); restos de `/tmp` de la sesión, por nombre. Sam borró `A nuevo` (serial `2026101603`) |
+| 07:51-08:01 | Smoke por roles | Studio como admin: 22 pantallas en 200 (medición del Director con la sesión de Sam; la cookie fija sobrevivió). Portal con la sesión abierta: 200 (07:19-07:21). **Sin rastro en el log de acceso:** enlace mágico (`/auth/v1/otp`/`verify`), PIN en `/m/ve/login` y subida a Storage; Realtime no concluyente (un websocket a las 07:53). Sam dijo «OK ROLES» en la sesión Director; se le pidió repetir los tres en `dtdcargo.com` |
+
+**Desde el corte, un merge a `main` ya no llega a producción solo:** Vercel está pausado y sin Git, y el VPS no se actualiza solo (la SDD-0541 lo va a resolver). Hasta entonces, después de cada merge con código de la app: migraciones primero, luego `DTD_WEB_IMAGE` = `sha-<merge>`, `up -d --no-deps web` y `smoke-web.sh --host dtdcargo.com --www`.
+
 ### 3.7 Revisión de preparación del corte (go/no-go), medida el 2026-10-13
 
 Hecha después del ensayo 2 (handoff § «Ensayo 2»), con cifras tomadas ese día de
