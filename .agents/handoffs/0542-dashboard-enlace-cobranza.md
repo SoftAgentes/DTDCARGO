@@ -7,7 +7,7 @@
 | Claim del harness | `claude-sharp-euclid-839548` (se libera al cerrar) |
 | Worktree | `C:\Users\AKX generator\Desktop\Developer\DTDCARGO\.claude\worktrees\sharp-euclid-839548` |
 | Rama | `claude/sharp-euclid-839548` |
-| Base | `origin/main` `6da8aebc` (merge de la #244) |
+| Base | `origin/main` `6da8aebc` (merge de la #244); el 2026-10-16 se mergeó `origin/main` `8761618d` (#247, SDD-0539) en la rama (`eca1977b`), ver «Merge de main» |
 | SDD | [0542](../../docs/specs/0542-dashboard-enlace-cobranza/spec.md), `in-progress`. `sdd:next` propuso la 0542, fuera de las tomadas (0539–0541). Reserva local `codex/sdd-reserve-0542-dashboard-enlace-cobranza` (`fe5b407e`), sin push; entró a esta rama por cherry-pick (`c2aa45c9`) |
 | Estado de la tarea | lista para revisión; PR en borrador porque main está congelado durante el corte del servidor |
 | Permisos | commits selectivos, push de la rama propia y PR contra `main` en borrador, sin fusionar. Sin producción ni base de datos. `pnpm verify` no ejecutado: requiere turno del Director |
@@ -88,6 +88,22 @@ Todo sobre el worktree de arriba, base `6da8aebc`.
   aquí; los publica el Director desde main integrado.
 - Obsidian: sin cambios.
 
+## Merge de main
+
+Auto-fix avisó que la PR quedó en conflicto con `main` tras fusionarse la #247
+(SDD-0539, transportistas y migración 0491). Se mergeó `origin/main` `8761618d`
+con el driver de `scripts/merge-generated-records.mjs` tomado de main, sin
+rebase ni force push. El único choque era `docs/specs/README.md` y lo resolvió
+el driver: después de `docs:index` el árbol quedó limpio. Lo que trajo main no
+toca el Dashboard ni agrega carpetas con `page.tsx` bajo `app/studio/`.
+
+| Comprobación tras el merge | Resultado |
+|---|---|
+| `corepack pnpm docs:check` | PASÓ (526 specs) |
+| `corepack pnpm sdd:check` | PASÓ |
+| `vitest run "app/studio/(app)/dashboard"` | PASÓ: 9/9 |
+| `corepack pnpm typecheck` | PASÓ (exit 0) |
+
 ## COMMITS
 
 | Hash | Propósito |
@@ -95,7 +111,9 @@ Todo sobre el worktree de arriba, base `6da8aebc`.
 | `c2aa45c9` | reserva SDD-0542 (cherry-pick del commit de reserva `fe5b407e`) |
 | `46b50c48` | `fix(studio)`: los tres enlaces y la prueba de contrato |
 | `182d74e9` | `docs(sdd)`: spec e índice |
-| commit que contiene este archivo | handoff |
+| `d6d920d0` | handoff |
+| `eca1977b` | merge de `origin/main` `8761618d` (#247), índice resuelto por el driver |
+| commit que contiene este cambio | handoff: merge de main y revalidación |
 
 ## PR / BRANCH
 
