@@ -41,7 +41,10 @@ carpeta() { # $1 = carpeta, $2 = subcarpeta a excluir (opcional) → sha256 del 
       find . -type f ! -path "./${fuera}/*" -print0
     else
       find . -type f -print0
-    fi | sort -z | xargs -0 -r sha256sum | sed 's|  \./|  |'
+    # `sha256sum` de Git Bash escribe `hash *./ruta` (modo binario) y el de Linux
+    # `hash  ./ruta`: se normaliza a `hash  ruta` para que la huella no dependa de
+    # dónde se calcula.
+    fi | sort -z | xargs -0 -r sha256sum | sed -E 's|^([0-9a-f]{64}) [ *]\./|\1  |'
   ) | sha256sum | cut -d' ' -f1
 }
 
