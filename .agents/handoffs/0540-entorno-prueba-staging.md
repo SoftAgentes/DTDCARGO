@@ -58,13 +58,14 @@ Nota: el primer `corepack pnpm` del worktree instaló las dependencias (pnpm 12.
 ## COMMITS
 
 - `e74bfab9` · `chore(sdd): reserva SDD-0540 — entorno-prueba-staging` (stub de la reserva, por fast-forward).
-- `docs(sdd): SDD-0540 — diseño del entorno de prueba con base separada` (spec + índice).
-- El commit que contiene este documento (`docs(handoff): SDD-0540 …`). Los hashes finales van en la PR.
+- `bffe2610` · `docs(sdd): SDD-0540 — diseño del entorno de prueba con base separada` (spec + índice).
+- `2957af4d` · `docs(handoff): SDD-0540 — handoff del diseño del entorno de prueba` (primera versión de este documento).
+- El commit que contiene esta versión del documento (URL de la PR y hashes).
 
 ## PR / BRANCH
 
 - Rama `worktree-agent-a3485995997ab5c0f`, base `main`, worktree de arriba.
-- PR en borrador: se anota en la descripción de la PR y en el reporte al Director.
+- PR en borrador: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/246 (base `main`, sin fusionar).
 
 ## PENDIENTES DE ESTA TAREA
 
