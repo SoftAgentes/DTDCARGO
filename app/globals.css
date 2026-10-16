@@ -779,6 +779,67 @@ html.dtd-cjk-sistema {
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   AVISO «ENTORNO DE PRUEBA» — SDD-0544 (D11 de la SDD-0540).
+   (`components/AvisoEntornoPrueba.tsx`, sólo con APP_ENV=staging)
+
+   Una franja dorada de 4px pegada al borde de arriba y, colgando de ella al
+   centro, una pestaña con el texto. Es el tono «Atención» de BRAND.md (dorado
+   con texto navy): operar en prueba creyendo que es el sitio real, o al revés,
+   es un riesgo que pide atención, no un error.
+
+   Fijo y con `pointer-events: none`: se ve sobre el Studio, el Portal, la PWA y
+   el sitio público, también sobre sus modales, y ningún clic queda atrapado
+   debajo. Vive en el <body> del layout raíz, fuera de `#portal-shell` y del
+   wrapper del Studio, así que pinta siempre con los tokens de :root:
+   --color-status-warning (#b8893a) y --on-warning (navy fijo, BD-027). Medido:
+   5,24:1, AA para la letra de 12px en negrita.
+
+   La escala de espacios y radios (--s-1 y siguientes, --r-sm y siguientes) no
+   está en :root del sitio público ni del Portal (vive
+   en sus superficies), así que cada var() lleva el valor de la escala como
+   respaldo. El z-index pasa a los modales más altos del repo (1000).
+   ────────────────────────────────────────────────────────────────── */
+
+.entorno-prueba {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  border-top: var(--s-1, 4px) solid var(--color-status-warning);
+  pointer-events: none;
+}
+
+.entorno-prueba__etiqueta {
+  margin: 0;
+  padding: var(--s-1, 4px) var(--s-3, 12px);
+  border-radius: 0 0 var(--r-md, 7px) var(--r-md, 7px);
+  background: var(--color-status-warning);
+  color: var(--on-warning);
+  font-family: var(--font-archivo), "Archivo", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* En un teléfono la pestaña queda en «Entorno de prueba» para no tapar el
+   centro del encabezado; desde 640px suma la aclaración. */
+.entorno-prueba__detalle {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .entorno-prueba__detalle {
+    display: inline;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
    AVISO DE COOKIES — tarjeta compacta abajo a la IZQUIERDA.
    (`components/CookieConsentBanner.tsx`)
 

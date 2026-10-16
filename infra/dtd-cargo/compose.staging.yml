@@ -4,16 +4,26 @@
 #     -f compose.yml -f compose.supabase.yml -f compose.staging.yml config
 #
 # Prueba es una copia del stack de producción en el mismo VPS, con su propia
-# base, su Auth, su Storage y sus secretos, y SOLO datos inventados: ningún
-# cliente, ningún correo ni teléfono real (semilla en infra/ops/staging/). Por eso
-# la puerta es una clave en el web (decisión D4 de la spec) y no la lista de IP
-# de la Fase 2 de la SDD-0505: con la clave, Sam entra desde cualquier red y
-# desde el teléfono. Si algún día entra una copia real (opción C del §2.3), antes
-# se vuelve a la lista de IP en los dos hosts.
+# base, su Auth, su Storage y sus secretos. Nació con datos inventados y la
+# puerta era solo la clave del web (decisión D4). El 2026-10-16 Sam autorizó
+# cargar ahí los consolidados reales («autorizo cargar datos reales de los
+# consolidados en prueba», excepción D2) y eligió protegerlo «Solo desde mis IP».
+# Por eso los TRES routers (web, buzón y API) pasan primero por una lista de IP:
+# STAGING_ALLOWED_IPS (la de Sam, medida desde su SSH con
+# infra/ops/staging/ips-prueba.sh, nunca escrita en el repo) y
+# STAGING_INTERNAL_IPS (el propio VPS: la puerta de enlace de dtd_edge, por donde
+# llega el web de prueba a su API, y la IP pública, por donde llegan los smokes
+# desde el host). El resto de internet recibe 403. La clave del web sigue además.
+# Ojo: TODO contenedor del VPS, de cualquier red, llega a Traefik como la puerta
+# de dtd_edge (NAT de Docker, medido el 2026-10-16), así que los vecinos del VPS
+# entran; de internet, solo Sam (runbook entorno-prueba §2.1).
 #
 # Qué agrega este overlay:
 #   · Límites de memoria del §2.8: suman 3.072 MiB con los servicios que arrancan
 #     sin perfil (scripts/__tests__/entorno-prueba-compose.test.ts lo vigila).
+#   · Lista de IP (`ipallowlist`) en TODOS los routers, antes que cualquier otro
+#     middleware. Sin las dos variables el compose no arranca: prueba nunca queda
+#     abierta a internet.
 #   · `X-Robots-Tag: noindex, nofollow` en TODOS los routers: app/robots.ts no
 #     distingue el entorno.
 #   · Clave en el web (`basicAuth` de Traefik) en el host del web y en el buzón
@@ -36,15 +46,18 @@ services:
       # certificado entero si falla uno de sus nombres (medido el 2026-10-11 con
       # www.staging.dtdcargo.com).
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.rule=Host(`${DTD_WEB_HOST:?DTD_WEB_HOST falta en .env}`)"
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-prueba-noindex@docker,${COMPOSE_PROJECT_NAME}-prueba-clave@docker"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-prueba-ips@docker,${COMPOSE_PROJECT_NAME}-prueba-noindex@docker,${COMPOSE_PROJECT_NAME}-prueba-clave@docker"
+      # Lista de IP del web y del buzón: CIDR separados por comas. Traefik mira la
+      # IP de la conexión (no hay proxy delante: X-Forwarded-For no cuenta).
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-ips.ipallowlist.sourcerange=${STAGING_ALLOWED_IPS:?STAGING_ALLOWED_IPS falta en .env (ips-prueba.sh)},${STAGING_INTERNAL_IPS:?STAGING_INTERNAL_IPS falta en .env (ips-prueba.sh)}"
       # Cabecera de entorno: los smokes y Sam la ven en cualquier respuesta.
       - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-noindex.headers.customresponseheaders.X-Robots-Tag=noindex, nofollow"
-      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-noindex.headers.customresponseheaders.X-DTD-Entorno=prueba con datos sinteticos"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-noindex.headers.customresponseheaders.X-DTD-Entorno=prueba"
       # Usuarios en formato htpasswd con bcrypt (`usuario:$2a$...`, separados por
       # coma), generados en el servidor por infra/ops/staging/clave-web-prueba.sh.
       # Sin la variable el compose no arranca: prueba nunca queda abierta.
       - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-clave.basicauth.users=${PRUEBA_WEB_USUARIOS:?PRUEBA_WEB_USUARIOS falta en .env (clave-web-prueba.sh)}"
-      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-clave.basicauth.realm=DTD Cargo - prueba con datos sinteticos"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-clave.basicauth.realm=DTD Cargo - prueba"
       # La app no ve el `Authorization: Basic` de la puerta.
       - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-clave.basicauth.removeheader=true"
     deploy:
@@ -54,11 +67,13 @@ services:
 
   api-gw:
     labels:
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.middlewares=security-headers@file,${COMPOSE_PROJECT_NAME}-prueba-noindex-api@docker"
-      # Middleware propio del gateway: si el web está caído, la API sigue con su
-      # cabecera (un router con un middleware que no existe deja de responder).
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.middlewares=${COMPOSE_PROJECT_NAME}-prueba-ips-api@docker,security-headers@file,${COMPOSE_PROJECT_NAME}-prueba-noindex-api@docker"
+      # Middlewares propios del gateway: si el web está caído, la API sigue con su
+      # lista de IP y su cabecera (un router con un middleware que no existe deja
+      # de responder).
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-ips-api.ipallowlist.sourcerange=${STAGING_ALLOWED_IPS:?STAGING_ALLOWED_IPS falta en .env (ips-prueba.sh)},${STAGING_INTERNAL_IPS:?STAGING_INTERNAL_IPS falta en .env (ips-prueba.sh)}"
       - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-noindex-api.headers.customresponseheaders.X-Robots-Tag=noindex, nofollow"
-      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-noindex-api.headers.customresponseheaders.X-DTD-Entorno=prueba con datos sinteticos"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-noindex-api.headers.customresponseheaders.X-DTD-Entorno=prueba"
     deploy:
       resources:
         limits:
@@ -89,7 +104,7 @@ services:
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.tls=true"
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.middlewares=${COMPOSE_PROJECT_NAME}-prueba-noindex@docker,${COMPOSE_PROJECT_NAME}-prueba-clave@docker"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.middlewares=${COMPOSE_PROJECT_NAME}-prueba-ips@docker,${COMPOSE_PROJECT_NAME}-prueba-noindex@docker,${COMPOSE_PROJECT_NAME}-prueba-clave@docker"
       - "traefik.http.services.${COMPOSE_PROJECT_NAME}-correo.loadbalancer.server.port=8025"
     deploy:
       resources:

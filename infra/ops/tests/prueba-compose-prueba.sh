@@ -8,8 +8,8 @@
 #
 #   bash infra/ops/tests/prueba-compose-prueba.sh
 #
-# Controles rojos: sin PRUEBA_WEB_USUARIOS el compose se niega a validar, y un
-# overlay sin el noindex de la API o con una lista de IP hace fallar al revisor.
+# Controles rojos: sin PRUEBA_WEB_USUARIOS o sin la lista de IP el compose se
+# niega a validar, y un overlay sin el noindex de la API hace fallar al revisor.
 set -uo pipefail
 S="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 R="$(cd "${S}/../.." && pwd)"
@@ -46,6 +46,8 @@ S3_PROTOCOL_ACCESS_KEY_SECRET=falsa
 PG_META_CRYPTO_KEY=falsa
 VAULT_ENC_KEY=falsa
 PRUEBA_WEB_USUARIOS='sam:$2a$10$abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0'
+STAGING_ALLOWED_IPS=203.0.113.7/32
+STAGING_INTERNAL_IPS=172.18.0.1/32,198.51.100.1/32
 EOF
 cfg() { ( cd "${D}" && docker compose -p dtd-cargo-staging -f compose.yml -f compose.supabase.yml -f compose.staging.yml config --format json ); }
 
@@ -61,9 +63,19 @@ grep -v '^PRUEBA_WEB_USUARIOS=' "${D}/.env" > "${T}/sin-puerta.env"
 ( cd "${D}" && docker compose --env-file "${T}/sin-puerta.env" -p dtd-cargo-staging -f compose.yml -f compose.supabase.yml -f compose.staging.yml config -q ) > /dev/null 2> "${T}/sin-puerta.err"; rc=$?
 [[ ${rc} -ne 0 ]] && grep -q 'PRUEBA_WEB_USUARIOS' "${T}/sin-puerta.err" && ok "sin PRUEBA_WEB_USUARIOS el compose se niega (prueba nunca queda sin clave)" || ko "sin puerta rc=${rc}"
 
+# Control rojo 1b: sin la lista de IP, el compose no valida (prueba nunca queda
+# abierta a internet con datos reales).
+for v in STAGING_ALLOWED_IPS STAGING_INTERNAL_IPS; do
+  grep -v "^${v}=" "${D}/.env" > "${T}/sin-ips.env"
+  ( cd "${D}" && docker compose --env-file "${T}/sin-ips.env" -p dtd-cargo-staging -f compose.yml -f compose.supabase.yml -f compose.staging.yml config -q ) > /dev/null 2> "${T}/sin-ips.err"; rc=$?
+  [[ ${rc} -ne 0 ]] && grep -q "${v}" "${T}/sin-ips.err" && ok "sin ${v} el compose se niega" || ko "sin ${v} rc=${rc}"
+done
+grep -q '"traefik.http.middlewares.dtd-cargo-staging-prueba-ips.ipallowlist.sourcerange": "203.0.113.7/32,172.18.0.1/32,198.51.100.1/32"' "${T}/config.json" \
+  && ok "la lista de IP del web resuelve las dos variables" || ko "la lista de IP del web no resuelve como se esperaba"
+
 # Control rojo 2: la API sin su noindex.
 cp "${D}/compose.staging.yml" "${T}/staging.bak"
-sed -i 's/-supabase.middlewares=security-headers@file,${COMPOSE_PROJECT_NAME}-prueba-noindex-api@docker/-supabase.middlewares=security-headers@file/' "${D}/compose.staging.yml"
+sed -i '/-supabase\.middlewares=/s/,${COMPOSE_PROJECT_NAME}-prueba-noindex-api@docker//' "${D}/compose.staging.yml"
 cfg 2>/dev/null | node "${S}/tests/revisar-compose-prueba.mjs" > "${T}/rojo2.log"; rc=$?
 [[ ${rc} -eq 1 ]] && grep -q 'FALLÓ · router dtd-cargo-staging-supabase: X-Robots-Tag noindex' "${T}/rojo2.log" && ok "control rojo: la API sin noindex → el revisor falla" || ko "control rojo noindex rc=${rc}"
 cp "${T}/staging.bak" "${D}/compose.staging.yml"

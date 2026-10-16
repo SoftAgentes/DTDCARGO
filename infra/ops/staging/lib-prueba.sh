@@ -72,9 +72,9 @@ prueba_esperar_sano() { # $1 contenedor, $2 segundos (180)
 }
 
 # Reemplaza (o agrega) una variable sin comillas en el .env, por copia 600 + mv.
-prueba_fijar_env() { # $1 archivo, $2 nombre, $3 valor (sin comillas ni espacios)
+prueba_fijar_env() { # $1 archivo, $2 nombre, $3 valor (sin comillas ni espacios; comas para listas de CIDR)
   local tmp
-  [[ "$2" =~ ^[A-Z_][A-Z0-9_]*$ && "$3" =~ ^[A-Za-z0-9:/._@-]+$ ]] || die "valor inválido para $2"
+  [[ "$2" =~ ^[A-Z_][A-Z0-9_]*$ && "$3" =~ ^[A-Za-z0-9:/._@,-]+$ ]] || die "valor inválido para $2"
   tmp="$(mktemp "$1.XXXXXX")"; chmod 600 "${tmp}"
   N_="$2" V_="$3" awk '
     BEGIN { n = ENVIRON["N_"]; v = ENVIRON["V_"]; hecho = 0 }
