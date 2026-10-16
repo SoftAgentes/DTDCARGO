@@ -121,7 +121,15 @@ Director coordina un solo turno de asignación a la vez:
    Offline/inventario incompleto: no anuncia número globalmente libre.
 3. `pnpm sdd:next --reserve <slug>` crea stub en commit y ref propia sin tocar
    checkout/index/HEAD. La reserva local es durable y visible para este clon;
-   no excluye otros equipos hasta publicación.
+   no excluye otros equipos hasta publicación. Toma el máximo + 1, no el
+   primer hueco (SDD-0545). Si el Director ya asignó el número:
+   - `--expect NNNN` cancela, sin crear refs, si el que tocaría no es ese:
+     otra sesión reservó entre el inventario y la reserva;
+   - `--number NNNN` reserva un número asignado (por ejemplo, un hueco) sólo si
+     está libre en todo el inventario y no pasa del siguiente.
+
+   No se combinan. `ADVISORY hueco reciente` nombra los números libres entre
+   lo integrado en `origin/main` y el siguiente: nadie los toma solo.
 4. Con permiso de publicar reserva, usa la opción `--push` al reservar:
    publica únicamente la rama numérica `codex/sdd-reserve-NNNN` con expectativa
    de que NO exista. El script usa únicamente la forma create-only

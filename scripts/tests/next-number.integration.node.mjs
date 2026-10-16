@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 const script = fileURLToPath(new URL("../next-number.mjs", import.meta.url));
 const moduleUrl = new URL("../next-number.mjs", import.meta.url).href;
@@ -93,4 +93,146 @@ test("missing registered worktree makes reservation fail closed", (t) => {
   fs.renameSync(other, path.join(root, "moved"));
   const result = run(repo, "--reserve", "alpha"); assert.notEqual(result.status, 0);
   assert.equal(git(repo, "for-each-ref", "--format=%(refname)", "refs/heads/codex"), "");
+});
+
+// ── SDD-0545 · --expect, --number y el aviso de hueco reciente ──────────────
+// El 2026-10-16 una sesión vio la 0539 libre, otra reservó la 0540 y la
+// reserva siguiente sacó la 0541 sin avisar. Estas pruebas reproducen ese
+// orden con worktrees del mismo repositorio, que comparten las refs.
+function integrar(repo, ...numeros) {
+  for (const n of numeros) {
+    fs.mkdirSync(path.join(repo, `docs/specs/${n}-base`), { recursive: true });
+    fs.writeFileSync(path.join(repo, `docs/specs/${n}-base/spec.md`), `sdd: "${n}"\n`);
+  }
+  git(repo, "add", "docs"); git(repo, "commit", "-m", `specs ${numeros.join(" ")}`); git(repo, "push", "origin", "main");
+}
+const reservas = (repo) => git(repo, "for-each-ref", "--format=%(refname)", "refs/dtd/reservations", "refs/heads/codex").split(/\r?\n/).filter(Boolean).sort();
+function correr(cwd, ...args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [script, ...args], { cwd, env });
+    let stdout = "", stderr = "";
+    child.stdout.on("data", (d) => { stdout += d; }); child.stderr.on("data", (d) => { stderr += d; });
+    child.on("error", reject); child.on("close", (status) => resolve({ status, stdout, stderr }));
+  });
+}
+test("--expect con el número que toca reserva ese número", (t) => {
+  const { repo } = fixture(t); integrar(repo, "0001");
+  const r = run(repo, "--reserve", "alfa", "--expect", "0002"); assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(reservas(repo), ["refs/dtd/reservations/0002", "refs/heads/codex/sdd-reserve-0002-alfa"]);
+});
+test("réplica del 16-10: otra sesión reserva entre el inventario y la reserva; --expect cancela sin lock ni rama", (t) => {
+  const { repo, root } = fixture(t); integrar(repo, "0001");
+  const otra = path.join(root, "worktree b"); git(repo, "worktree", "add", "-b", "b", otra);
+  assert.match(run(repo, "--no-fetch").stdout, /spec siguiente: 0002/);
+  assert.equal(run(otra, "--reserve", "otra").status, 0);
+  const head = git(repo, "rev-parse", "HEAD"), index = git(repo, "write-tree"), status = git(repo, "status", "--porcelain");
+  const r = run(repo, "--reserve", "mia", "--expect", "0002");
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /Reserva cancelada: esperabas 0002, pero tocaría la 0003\. 0002 ya está ocupada: docs\/specs\/0002-otra/);
+  assert.match(r.stderr, /No se creó ninguna ref/);
+  assert.deepEqual(reservas(repo), ["refs/dtd/reservations/0002", "refs/heads/codex/sdd-reserve-0002-otra"]);
+  assert.equal(git(repo, "rev-parse", "HEAD"), head); assert.equal(git(repo, "write-tree"), index); assert.equal(git(repo, "status", "--porcelain"), status);
+});
+test("--expect sobre un hueco dice que --reserve no lo usa y quién tiene los números intermedios", (t) => {
+  const { repo } = fixture(t); integrar(repo, "0001");
+  assert.equal(call(repo, "n.prepareReservation('0003', 'salto')").status, 0);
+  const r = run(repo, "--reserve", "mia", "--expect", "0002");
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /esperabas 0002, pero tocaría la 0004\. 0002 está libre, pero --reserve toma el máximo \+ 1, no el primer hueco\. 0003: docs\/specs\/0003-salto/);
+  assert.deepEqual(reservas(repo), ["refs/dtd/reservations/0003", "refs/heads/codex/sdd-reserve-0003-salto"]);
+});
+test("--expect mayor que el siguiente también cancela", (t) => {
+  const { repo } = fixture(t); integrar(repo, "0001");
+  const r = run(repo, "--reserve", "mia", "--expect", "0009");
+  assert.notEqual(r.status, 0); assert.match(r.stderr, /0009 es mayor que el siguiente libre/);
+  assert.deepEqual(reservas(repo), []);
+});
+test("dos reservas casi simultáneas desde worktrees distintos con --expect: una gana y la otra no deja nada", async (t) => {
+  const { repo, root } = fixture(t); integrar(repo, "0001");
+  const otra = path.join(root, "worktree b"); git(repo, "worktree", "add", "-b", "b", otra);
+  const [a, b] = await Promise.all([
+    correr(repo, "--reserve", "alfa", "--expect", "0002"),
+    correr(otra, "--reserve", "beta", "--expect", "0002"),
+  ]);
+  assert.equal([a, b].filter((r) => r.status === 0).length, 1, `${a.stderr}\n${b.stderr}`);
+  const ganadora = a.status === 0 ? "alfa" : "beta";
+  assert.deepEqual(reservas(repo), ["refs/dtd/reservations/0002", `refs/heads/codex/sdd-reserve-0002-${ganadora}`]);
+});
+test("aviso de hueco reciente: sí por encima de lo integrado en origin/main, no por debajo", (t) => {
+  const { repo } = fixture(t); integrar(repo, "0001", "0003");
+  assert.doesNotMatch(run(repo, "--no-fetch").stderr, /hueco reciente/);
+  assert.equal(call(repo, "n.prepareReservation('0005', 'salto')").status, 0);
+  const r = run(repo, "--no-fetch");
+  assert.match(r.stderr, /ADVISORY hueco reciente: 0004 está libre entre lo integrado en origin\/main \(0003\) y la siguiente \(0006\)\. --reserve no los usa/);
+  assert.match(r.stderr, /resérvalo con --number NNNN/);
+  assert.doesNotMatch(r.stderr, /0002/);
+});
+test("--number libre reserva ese número y el hueco deja de avisarse", (t) => {
+  const { repo } = fixture(t); integrar(repo, "0001");
+  assert.equal(call(repo, "n.prepareReservation('0003', 'salto')").status, 0);
+  const r = run(repo, "--reserve", "asignada", "--number", "0002"); assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /reserve-0002-asignada/);
+  assert.match(git(repo, "show", "refs/heads/codex/sdd-reserve-0002-asignada:docs/specs/0002-asignada/spec.md"), /sdd: "0002"/);
+  assert.doesNotMatch(run(repo, "--no-fetch").stderr, /hueco reciente/);
+});
+test("--number ocupado por una reserva cancela sin crear nada", (t) => {
+  const { repo } = fixture(t); integrar(repo, "0001");
+  assert.equal(call(repo, "n.prepareReservation('0002', 'previa')").status, 0);
+  const antes = reservas(repo);
+  const r = run(repo, "--reserve", "mia", "--number", "0002");
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /Reserva cancelada: la 0002 ya está ocupada: docs\/specs\/0002-previa .*No se creó ninguna ref/);
+  assert.deepEqual(reservas(repo), antes);
+});
+test("--number ocupado por un archivo sin commit de otro worktree cancela sin crear nada", (t) => {
+  const { repo, root } = fixture(t); integrar(repo, "0001");
+  const otra = path.join(root, "worktree b"); git(repo, "worktree", "add", "-b", "b", otra);
+  assert.equal(call(repo, "n.prepareReservation('0003', 'salto')").status, 0);
+  fs.mkdirSync(path.join(otra, "docs/specs/0002-borrador"), { recursive: true });
+  fs.writeFileSync(path.join(otra, "docs/specs/0002-borrador/spec.md"), "borrador");
+  const r = run(repo, "--reserve", "mia", "--number", "0002");
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /la 0002 ya está ocupada: docs\/specs\/0002-borrador \(worktree:/);
+  assert.deepEqual(reservas(repo), ["refs/dtd/reservations/0003", "refs/heads/codex/sdd-reserve-0003-salto"]);
+});
+test("--number por encima del siguiente cancela: dejaría un hueco nuevo", (t) => {
+  const { repo } = fixture(t); integrar(repo, "0001");
+  const r = run(repo, "--reserve", "mia", "--number", "0005");
+  assert.notEqual(r.status, 0); assert.match(r.stderr, /la 0005 es mayor que la siguiente \(0002\) y dejaría un hueco nuevo/);
+  assert.deepEqual(reservas(repo), []);
+});
+test("dos reservas casi simultáneas del mismo --number: una gana y la otra cancela", async (t) => {
+  const { repo, root } = fixture(t); integrar(repo, "0001");
+  const otra = path.join(root, "worktree b"); git(repo, "worktree", "add", "-b", "b", otra);
+  assert.equal(call(repo, "n.prepareReservation('0003', 'salto')").status, 0);
+  const [a, b] = await Promise.all([
+    correr(repo, "--reserve", "alfa", "--number", "0002"),
+    correr(otra, "--reserve", "beta", "--number", "0002"),
+  ]);
+  assert.equal([a, b].filter((r) => r.status === 0).length, 1, `${a.stderr}\n${b.stderr}`);
+  const ganadora = a.status === 0 ? "alfa" : "beta";
+  assert.deepEqual(reservas(repo), [
+    "refs/dtd/reservations/0002", "refs/dtd/reservations/0003",
+    `refs/heads/codex/sdd-reserve-0002-${ganadora}`, "refs/heads/codex/sdd-reserve-0003-salto",
+  ]);
+});
+test("errores de uso: --expect y --number sin --reserve, juntos, mal escritos o repetidos", (t) => {
+  const { repo } = fixture(t);
+  for (const args of [
+    ["--expect", "0001"], ["--number", "0001"],
+    ["--reserve", "a", "--expect", "0001", "--number", "0001"],
+    ["--reserve", "a", "--expect", "1"], ["--reserve", "a", "--number", "0000"], ["--reserve", "a", "--number"],
+    ["--reserve", "a", "--reserve", "b"], ["--reserve", "a", "--expect", "0001", "--expect", "0001"], ["--otra"],
+  ]) {
+    const r = run(repo, ...args);
+    assert.notEqual(r.status, 0, args.join(" ")); assert.match(r.stderr, /^Uso: next-number\.mjs/, args.join(" "));
+  }
+  assert.deepEqual(reservas(repo), []);
+});
+test("recentGaps: sólo los libres entre lo integrado y el siguiente", async () => {
+  const { recentGaps } = await import(moduleUrl);
+  assert.deepEqual(recentGaps(new Set([1, 2, 5, 7]), new Set([1, 2])), [3, 4, 6]);
+  assert.deepEqual(recentGaps(new Set([1, 3, 4]), new Set([1, 3, 4])), []);
+  assert.deepEqual(recentGaps(new Set([2]), new Set()), [1]);
+  assert.deepEqual(recentGaps(new Set([1, 5]), null), []);
 });
