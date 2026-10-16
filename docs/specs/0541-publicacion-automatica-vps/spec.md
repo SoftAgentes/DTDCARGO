@@ -216,56 +216,98 @@ vuelta anterior (`OnUnitInactiveSec`). Además, `flock -n` sobre
 `/run/lock/dtd-cargo-publicar.lock`. En cada vuelta:
 
 1. Si existe `/srv/ops/web/CONGELADO`, no hace nada (Kuma: up, «congelado: motivo»).
-2. Si quedan menos de 10 GB libres en `/var/lib/docker`, se detiene y avisa.
-3. `docker pull -q …:publicable`. Si falla, avisa: puede ser el login de GHCR de
+2. Si existe `/srv/dtd-cargo/compose.ensayo.yml`, no sigue y avisa, como el
+   interino. Ni siquiera baja la imagen.
+3. Si quedan menos de 10 GB libres en `/var/lib/docker`, se detiene y avisa.
+4. `docker pull -q …:publicable`. Si falla, avisa: puede ser el login de GHCR de
    root vencido.
-4. Comprueba que la imagen viene de este repo: `org.opencontainers.image.source`,
+5. Comprueba que la imagen viene de este repo: `org.opencontainers.image.source`,
    un `revision` de 40 hex y un digest de `ghcr.io/hailuwaycom-sketch/dtdcargo`.
-5. Si ya corre ese digest, o el mismo commit cuando el `.env` no trae digest, queda
+6. Si ya corre ese digest, o el mismo commit cuando el `.env` no trae digest, queda
    al día (Kuma: up).
-6. Si ese digest falló antes, espera al próximo merge (Kuma: down).
-7. **Puerta de migraciones.** Lee el ledger con `docker exec <db> psql`, solo los
+7. Si ese digest falló antes, espera al próximo merge (Kuma: down).
+8. **La vuelta atrás tiene que existir antes de publicar.**
+   - El `.env` tiene una sola línea `DTD_WEB_IMAGE`, y no está vacía.
+   - La imagen de ese valor (la anterior) está en el servidor. Si no está, la baja.
+     Si tampoco puede bajarla, no publica: no habría vuelta atrás.
+   - Si la anterior es la misma imagen que la nueva (mismo id), no hay a dónde
+     volver: lo dice y no hace nada.
+9. **Puerta de migraciones.** Lee el ledger con `docker exec <db> psql`, solo los
    nombres y en una transacción de solo lectura. Toda migración de la etiqueta
    tiene que estar en el ledger o aceptada a mano en
    `/srv/ops/web/estado/pendientes-aceptadas`. Si falta alguna, no publica y avisa
-   cuáles. Las esperas no se eximen porque las PR migrate-first se han fusionado
-   con la espera todavía declarada. Las que van después de la web se aceptan una
-   por una, con el OK de Sam: `publicar-web.sh aceptar-pendiente <nombre>`. Si
-   falta la etiqueta, el ledger sale vacío o la base no corre, no publica.
-8. **Prueba de sharp**, igual que la del interino y con el mismo código que la
-   etapa `build` del Dockerfile: `docker run --rm --network none --entrypoint node <imagen> -e "require('sharp')…webp()…"`.
-   Si no convierte, no publica: `/_next/image` serviría las fotos sin optimizar
-   (hallazgo del ensayo del 2026-10-14).
-9. **Puerta de lo que vive fuera de la imagen.**
-   - Si difieren los compose o el cron, no publica. Hay que copiar `infra/dtd-cargo`
-     de ese commit y, si cambió `cron/`, reconstruir y reiniciar el cron a mano.
-   - Si difieren `functions/`, las plantillas, los volúmenes o `.env.example`,
-     publica y avisa. Las funciones ya se desplegaban aparte de la web en Cloud.
-10. Copia el `.env` (`.env.bak-publicar-<hora>`, se conservan las 10 últimas). Con
-    el `.env` en un archivo temporal (600, mismo dueño) y `mv`, reemplaza **solo**
-    `DTD_WEB_IMAGE=…:sha-<sha>@sha256:<digest>`. Antes comprueba que hay una sola
-    línea y que nada más cambió. Fijar el digest hace que corra exactamente la
-    imagen que se revisó, aunque alguien vuelva a empujar la etiqueta.
-11. Corre `compose … config -q` y después el comando exacto de Contabo, desde
+   cuáles.
+   - Las esperas no se eximen, porque las PR migrate-first se han fusionado con la
+     espera todavía declarada.
+   - Las que van después de la web se aceptan una por una, con el OK de Sam:
+     `publicar-web.sh aceptar-pendiente <nombre>`.
+   - Si falta la etiqueta, el ledger sale vacío o la base no corre, no publica.
+10. **Puerta de lo que vive fuera de la imagen.**
+    - Si difieren los compose o el cron, no publica. Hay que copiar
+      `infra/dtd-cargo` de ese commit y, si cambió `cron/`, reconstruir y
+      reiniciar el cron a mano.
+    - Si difieren `functions/`, las plantillas, los volúmenes o `.env.example`,
+      publica y avisa. Las funciones ya se desplegaban aparte de la web en Cloud.
+11. **Prueba de sharp.** Usa el mismo código que la etapa `build` del Dockerfile:
+    `docker run --rm --network none --entrypoint node -w /app <imagen> -e "require('sharp')(…).webp().toBuffer()…"`.
+    A diferencia del interino, que solo hace `require`, convierte de verdad a
+    WebP, como `/_next/image`. Si no convierte, no publica: `/_next/image`
+    serviría las fotos sin optimizar (hallazgo del ensayo del 2026-10-14).
+12. Copia el `.env` en `.env.bak-publicar-<hora>`, el mismo nombre del interino, y
+    nunca muestra su contenido.
+    - Como llevan secretos, de las copias con ese prefijo se conservan las 3
+      últimas (`PUBLICAR_CONSERVAR_COPIAS_ENV`). Esto incluye las que dejó el
+      interino.
+    - Las demás copias del `.env` (`.env.bak-vacias-*`, `.env.bak-ensayo-*`…) no
+      se tocan.
+13. Con un archivo temporal (600, mismo dueño) y `mv`, reemplaza **solo**
+    `DTD_WEB_IMAGE=…:sha-<sha>@sha256:<digest>`. Antes comprueba que nada más
+    cambió. Fijar el digest hace que corra exactamente la imagen que se revisó,
+    aunque alguien vuelva a empujar la etiqueta.
+14. Corre `compose … config -q` y después el comando exacto de Contabo, desde
     `/srv/dtd-cargo`.
-12. Espera healthy hasta 150 s, con el contenedor en la imagen nueva. Corre
+15. Espera healthy hasta 150 s, con el contenedor en la imagen nueva. Corre
     `smoke-web.sh --host dtdcargo.com --www` y, si falla, una segunda vez a los 15 s.
-13. **Vuelta atrás automática.** Si el healthy o las dos pruebas rápidas fallan,
+16. **Vuelta atrás automática.** Si el healthy o las dos pruebas rápidas fallan,
     vuelve al valor anterior de `DTD_WEB_IMAGE`, repite el `up` y lo prueba. Esa
     imagen queda rechazada hasta el próximo merge. Si la vuelta atrás también
     falla, escribe `CONGELADO` (sale 2) y avisa URGENTE.
-14. Si la publicación sale bien, limpia las imágenes viejas.
+17. Si la publicación sale bien, limpia las imágenes viejas. **Nunca** toca la
+    vigente (la nueva), la anterior a ella ni la que corría: las protege por id,
+    no por fecha. Ni siquiera intenta borrarlas.
 
 A mano:
 
-- `<sha>` o `publicar <sha>`: la interfaz del interino. Acepta 40 hex o
-  `sha-<40 hex>`; un prefijo corto es un error de uso. La etiqueta `sha-<sha>`
-  tiene que traer ese commit en `revision`. Mientras esté congelado, solo con `--aunque-congelado`.
-  Deja la `:publicable` del momento fuera hasta el próximo merge, para que el
-  vigilante no la pise.
-- `volver`: vuelve a la imagen anterior, aunque esté congelado.
+- `<sha>` o `publicar <sha>`: la interfaz del interino.
+  - Acepta 40 hex o `sha-<40 hex>`; un prefijo corto es un error de uso.
+  - La etiqueta `sha-<sha>` tiene que traer ese commit en `revision`.
+  - Mientras esté congelado, solo corre con `--aunque-congelado`. Con
+    `compose.ensayo.yml`, nunca.
+  - Si publica, deja la `:publicable` del momento fuera hasta el próximo merge,
+    para que el vigilante no la pise. Si era la misma imagen, no deja nada.
+- `volver`: vuelve a la imagen anterior, aunque esté congelado. No corre con
+  `compose.ensayo.yml`. Si la anterior es la misma imagen que corre, lo dice y no
+  hace nada.
 - `revisar [<sha>]`: corre las puertas sin publicar.
 - `estado`, `congelar "<motivo>"`, `descongelar` y `aceptar-pendiente`.
+
+### Comparación con el script interino (texto recibido el 2026-10-16, sha16 `507df8e0155f59c7`)
+
+| Paso del interino | El nuevo |
+|---|---|
+| `publicar-web.sh <SHA>`, sin validar el SHA | la misma interfaz; acepta 40 hex o `sha-<40 hex>` y rechaza el resto (código 3) |
+| no sigue si existe `compose.ensayo.yml` | igual: en `vigilar`, a mano y en `volver` |
+| `docker pull -q …:sha-<SHA>` | igual a mano; el vigilante baja `:publicable`. Además comprueba que la etiqueta trae ese commit en `revision`, que viene del repo (`source`) y su digest |
+| sharp: `require('sharp')` con `-w /app`, sin red | `-w /app`, sin red, y además convierte a WebP |
+| `cp -p .env .env.bak-publicar-<hora>`, sin rotar | la misma copia y el mismo nombre; conserva las 3 últimas con ese prefijo y no toca las demás |
+| `sed -i` sobre toda línea `DTD_WEB_IMAGE=`, con la etiqueta | exige una sola línea, escribe a un temporal más `mv`, comprueba que nada más cambió y fija el digest |
+| `ANT` sin comprobar | `ANT` tiene que estar en el servidor (o se baja) antes de publicar; si es la misma imagen, no hace nada |
+| `up -d --no-deps web` | el mismo comando, con `compose … config -q` antes |
+| espera healthy 120 s (60 × 2 s) | hasta 150 s, y además el contenedor tiene que estar en la imagen nueva |
+| smoke una vez | smoke y un reintento a los 15 s |
+| si falla, vuelve a `ANT`, prueba y sale 1 | igual; si la vuelta atrás también falla, congela y avisa URGENTE (sale 2), y la nueva queda rechazada |
+| evidencia: `publicar-web-<sha8>-<hora>.txt` (`tee`) | carpeta `publicar-web-<hora>-publicar-<sha8>/` con la salida, cada prueba y `SHA256SUMS`. **Cambia el nombre**: si algo lee las evidencias del interino, hay que ajustarlo |
+| — | candado, congelación, gate de migraciones, huellas de compose y cron, avisos por Telegram y Kuma, y limpieza de imágenes |
 
 ### Seguridad
 
@@ -431,3 +473,19 @@ Modificados:
 
   La lectura del baseline cambió una más: las esperas no se eximen. Sin tocar el
   VPS, GHCR con credenciales, Vercel ni producción.
+- **2026-10-16 · el texto del interino y las tres notas de Contabo** (PR #250).
+  Llegó el texto exacto del interino (32 líneas). El nuevo conserva su contrato;
+  ver § Comparación con el script interino. Sobre las notas:
+  1. **Sharp:** el nuevo ya convertía a WebP; se suma `-w /app`, como el interino.
+     Medido en local con la imagen vieja `dtdcargo:0505-test`, anterior al
+     arreglo de libvips: fallan las dos pruebas, el `require` del interino y la
+     conversión (`libvips-cpp.so.8.18.3: cannot open shared object file`). El caso
+     bueno no se pudo medir en local porque no hay una imagen nueva sin GHCR.
+  2. **Copias del `.env`:** se conservan las 3 últimas `.env.bak-publicar-*`, las
+     demás copias no se tocan y nunca se muestra su contenido.
+  3. **Vuelta atrás segura:** la anterior tiene que estar en el servidor (o se
+     baja) antes de publicar; si es la misma imagen, no hace nada; la limpieza
+     nunca intenta borrar la vigente, la anterior ni la que corría.
+
+  Además, `compose.ensayo.yml` frena `vigilar`, la publicación a mano y `volver`.
+  Cada nota tiene su prueba y su mutante (cifras en el handoff).
