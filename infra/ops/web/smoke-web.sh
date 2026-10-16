@@ -5,8 +5,16 @@
 #   smoke-web.sh --host dtdcargo.com --www          # corte (jueves 15, T+5 y T+20):
 #                                                   # además, www → 301 a la raíz
 #   smoke-web.sh --host dtdcargo.com --ip 1.2.3.4   # otro servidor
-#   smoke-web.sh --host prueba.dtdcargo.com --credenciales /srv/dtd-cargo-staging/secretos/clave-web.txt
-#                                                   # entorno de prueba (SDD-0540): detrás de la clave del web
+#   smoke-web.sh --host prueba.dtdcargo.com --credenciales /srv/dtd-cargo-staging/secretos/clave-web.txt \
+#       --sin-ga --supabase-host supabase-prueba.dtdcargo.com
+#                                                   # entorno de prueba (SDD-0540): detrás de la clave del web,
+#                                                   # sin Google Analytics (SDD-0544) y con su propia API
+#
+# --sin-ga: al revés de producción, exige que NI la portada NI sus chunks traigan
+# Google Analytics, la etiqueta de Ads ni googletagmanager (la imagen de prueba
+# se construye con NEXT_PUBLIC_GA_ID=off). Sin la opción, exige que estén.
+# --supabase-host <host>: el host de la API que tiene que nombrar la CSP
+# (connect-src). Por defecto, supabase.dtdcargo.com.
 #
 # Pide todo a la IP del VPS con `--resolve`: mide el servidor aunque el DNS
 # público todavía apunte a Vercel o esté a mitad de propagarse. No inicia
@@ -29,6 +37,9 @@ HOST=""
 IP="217.216.54.70"
 WWW=0
 GA_ID="G-25CD7BZH98"
+ADS_ID="AW-561290482"
+SIN_GA=0
+SUPABASE_HOST="supabase.dtdcargo.com"
 CREDENCIALES=""
 CON_CREDENCIALES=0
 while [ $# -gt 0 ]; do
@@ -36,12 +47,15 @@ while [ $# -gt 0 ]; do
     --host) HOST="${2:-}"; shift 2 ;;
     --ip) IP="${2:-}"; shift 2 ;;
     --www) WWW=1; shift ;;
+    --sin-ga) SIN_GA=1; shift ;;
+    --supabase-host) SUPABASE_HOST="${2:-}"; shift; [ $# -gt 0 ] && shift ;;
     --credenciales) CREDENCIALES="${2:-}"; CON_CREDENCIALES=1; shift; [ $# -gt 0 ] && shift ;;
-    -h|--help) sed -n '2,21p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) echo "argumento desconocido: $1" >&2; exit 2 ;;
   esac
 done
 [ -n "$HOST" ] || { echo "falta --host" >&2; exit 2; }
+[[ "$SUPABASE_HOST" =~ ^[a-z0-9.-]+$ ]] || { echo "--supabase-host inválido" >&2; exit 2; }
 
 # La clave del web pasa a curl en un archivo de configuración (`-K`), nunca por
 # argv: así no queda en `ps` ni en el historial. Solo con --credenciales.
@@ -105,14 +119,24 @@ fi
 
 # Google Analytics y la etiqueta de Ads viajan en un chunk de JS, no en el HTML.
 html=$(pedir "https://${HOST}/")
-ga=0
-for s in $(printf '%s' "$html" | grep -o '/_next/static/chunks/[^"]*\.js' | sort -u); do
-  if pedir "https://${HOST}${s}" | grep -q "$GA_ID"; then ga=1; break; fi
-done
-[ "$ga" = 1 ] && pasa "Google Analytics ${GA_ID} en los chunks" || falla "Google Analytics ${GA_ID} no aparece en los chunks de la portada"
+if [ "$SIN_GA" = 1 ]; then
+  # Prueba: ni en el HTML ni en ningún chunk de la portada.
+  en=""
+  printf '%s' "$html" | grep -qF -e "$GA_ID" -e "$ADS_ID" -e googletagmanager && en="el HTML"
+  for s in $(printf '%s' "$html" | grep -o '/_next/static/chunks/[^"]*\.js' | sort -u); do
+    if pedir "https://${HOST}${s}" | grep -qF -e "$GA_ID" -e "$ADS_ID"; then en="${en:+${en} y }${s##*/}"; break; fi
+  done
+  [ -z "$en" ] && pasa "sin Google Analytics ni Ads (--sin-ga)" || falla "Google Analytics o Ads en ${en} (--sin-ga)"
+else
+  ga=0
+  for s in $(printf '%s' "$html" | grep -o '/_next/static/chunks/[^"]*\.js' | sort -u); do
+    if pedir "https://${HOST}${s}" | grep -q "$GA_ID"; then ga=1; break; fi
+  done
+  [ "$ga" = 1 ] && pasa "Google Analytics ${GA_ID} en los chunks" || falla "Google Analytics ${GA_ID} no aparece en los chunks de la portada"
+fi
 
 csp=$(pedir -I "https://${HOST}/studio/login" | tr -d '\r' | grep -i '^content-security-policy:' | tr ';' '\n' | grep -i 'connect-src')
-printf '%s' "$csp" | grep -q 'supabase.dtdcargo.com' && pasa "CSP connect-src con supabase.dtdcargo.com" || falla "CSP connect-src sin supabase.dtdcargo.com"
+printf '%s' "$csp" | grep -qF "$SUPABASE_HOST" && pasa "CSP connect-src con ${SUPABASE_HOST}" || falla "CSP connect-src sin ${SUPABASE_HOST}"
 
 # --www: `www.<host>` responde con su propio certificado y 301 a la raíz,
 # conservando ruta y query (como Vercel).

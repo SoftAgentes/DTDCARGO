@@ -9,7 +9,7 @@
 # Cómo contesta el doble de docker:
 #   inspect          true / healthy (o falla si existe <dir>/caido-<contenedor>)
 #   pull, compose    código DOBLE_PULL_RC / DOBLE_COMPOSE_RC (0 por defecto)
-#   run              las siete cuentas del bundle: DOBLE_BUNDLE ("3 0 0 2 1 1 1": host de prueba, producción, ref de Cloud, GA, Ads, anon y cookie)
+#   run              las nueve cuentas del bundle: DOBLE_BUNDLE ("3 0 0 2 1 1 1 2 1": host de prueba, producción, ref de Cloud, GA, Ads, anon y cookie en /app/.next; GA y Ads en /app/.next/static)
 #   ps/volume/network nada (destroy-staging no encuentra qué borrar)
 #   exec … psql -c   consultas de una línea (Vault, kommo_connections, pg_roles,
 #                    filas del ledger, RLS de cron)
@@ -34,7 +34,7 @@ case "${1-}" in
     exit 0 ;;
   pull) exit "${DOBLE_PULL_RC:-0}" ;;
   compose) exit "${DOBLE_COMPOSE_RC:-0}" ;;
-  run) echo "${DOBLE_BUNDLE:-3 0 0 2 1 1 1}"; exit 0 ;;
+  run) echo "${DOBLE_BUNDLE:-3 0 0 2 1 1 1 2 1}"; exit 0 ;;
   ps|volume|network) exit 0 ;;
   exec)
     shift
