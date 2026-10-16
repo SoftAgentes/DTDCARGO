@@ -465,6 +465,14 @@ Modificados:
 
 ## Seguimiento
 
+- **2026-10-16 · decisiones de Sam** (registró el Director). Literal: «1 sí, 2 sí, 3 solo avisa, 5 sí».
+  1. **Atajo de la PR: sí.** Queda encendido por defecto, sin `PUBLICABLE_SOLO_CI_DE_MAIN`.
+  2. **0422 y 0423: sí.** Se aceptan al instalar como esperas que van después de la web.
+  3. **Funciones distintas: solo avisa,** sin frenar la publicación.
+  4. **Chat de Telegram: sin respuesta.** Se enciende solo con Uptime Kuma, como permite el diseño, y el Telegram directo queda para después, cuando Sam nombre el chat.
+  5. **Corte de 25-30 s por publicación: sí,** aceptado.
+
+  Falta, para encender: el OK literal de Sam («autorizo encender la publicación automática de la web en el servidor propio») y el monitor push de Kuma, cuya URL pega Sam directo en la terminal del servidor.
 - **2026-10-16 · diseño e implementación en el repo** (Worker, rama
   `codex/publicacion-automatica-vps`). Las restricciones de Contabo llegaron por el
   Director a mitad del diseño y cambiaron dos cosas:
