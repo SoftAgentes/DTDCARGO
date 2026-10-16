@@ -149,6 +149,36 @@ describe("generarSql", () => {
     expect(s.deshacer).not.toMatch(/delete from public\.clients/);
   });
 
+  it("purgar borra físico en orden de dependencias, sólo en la base de prueba, y exige conteo cero", () => {
+    const s = generarSql(lote(), OPCIONES, FUENTES);
+    expect(s.purgar.startsWith("\\set ON_ERROR_STOP on")).toBe(true);
+    expect(s.purgar.trimEnd().endsWith("commit;")).toBe(true);
+    expect(s.purgar).toContain("'05400000-0000-4000-8000-000000000101'::uuid");
+    expect(s.purgar).toContain("raise exception 'purgar: esta base no es la de prueba");
+    const orden = [
+      "delete from public.invoices where id = any(v_invs);",
+      "delete from public.warehouse_receipts_cn where id = any(v_recs);",
+      "delete from public.shipments where id = any(v_ships);",
+      "delete from public.consolidations where id = any(v_cons);",
+      "delete from public.sailings where id = any(v_sails);",
+      "delete from public.carriers where id = any(v_carriers);",
+      "delete from public.clients where id = any(v_clients) and aliado_id is not null;",
+      "delete from public.aliados where id = any(v_aliados);",
+      "delete from public.clients where id = any(v_clients);",
+    ];
+    let pos = -1;
+    for (const paso of orden) {
+      const i = s.purgar.indexOf(paso);
+      expect(i, paso).toBeGreaterThan(pos);
+      pos = i;
+    }
+    expect(s.purgar).toContain("notes like 'Creado por la carga ' || v_lote || '%'");
+    expect(s.purgar).toContain("raise exception 'purgar: quedaron % filas del lote %'");
+    expect(s.purgar).toContain("'consolidation_import_purged'");
+    expect(s.purgar).not.toMatch(/delete from public\.entity_audit_log/);
+    expect(s.purgar).not.toMatch(/set deleted_at/);
+  });
+
   it("rechaza textos que traigan el delimitador del bloque", () => {
     const sucio = [{ ...FILAS[0], descripcion: "x $lote$ y" }];
     expect(() => generarSql(agruparLote(RASTREO, sucio, { eta: "2026-10-19" }), OPCIONES, FUENTES)).toThrow(/delimitador/);

@@ -20,7 +20,7 @@ pnpm consolidados:lote -- --rastreo "C:\...\DTD RASTREO DE CONTENEDORES.xlsx" --
 - `--eta` es obligatoria: el Excel la trae vencida o vacía. `--etd` por defecto es la fecha de carga del rastreo; `--fecha-carga` sólo si el Excel la trae ilegible («13 DE JULIO» no tiene año).
 - `--crear-clientes-faltantes` sólo vale con `--entorno prueba`: crea el cliente con la marca y el nombre del Excel (y el aliado raíz si hace falta). Con clientes reales, las marcas que no resuelvan se mapean a mano en `marcas-mapa.json` (`{ "DTD-J031": "DTD-8042" }`) y se pasa con `--mapa`.
 - `--sin-facturas` carga sin facturas; `--sin-exceso-peso` no cobra las líneas de «Exceso de peso» (el «TOTAL FACTURADO» del Excel no las incluye: Sam decide).
-- Salida: `previa.sql`, `simulacro.sql`, `aplicar.sql`, `verificar.sql`, `deshacer.sql`, `manifiesto.json`, `resumen.md`, `SHA256SUMS`. Leer `resumen.md` entero antes de seguir: trae los conteos, la tabla de clientes y los avisos (remitentes corregidos, embarques sin peso, filas a $0, la fila de totales del Excel que no cuadra).
+- Salida: `previa.sql`, `simulacro.sql`, `aplicar.sql`, `verificar.sql`, `deshacer.sql`, `purgar.sql`, `manifiesto.json`, `resumen.md`, `SHA256SUMS`. Leer `resumen.md` entero antes de seguir: trae los conteos, la tabla de clientes y los avisos (remitentes corregidos, embarques sin peso, filas a $0, la fila de totales del Excel que no cuadra).
 
 Idempotencia: el id del lote es `carga-consolidado:<NN>:<sha256 del packing>`; `aplicar.sql` aborta si ya existe el contenedor vivo, un envío con el mismo código, una recepción `WR-C<NN>-…` o facturas del lote. Dos corridas no duplican nada.
 
@@ -39,7 +39,8 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
 - `aplicar` es una transacción: si algo falla, psql sale distinto de 0 y no queda nada.
 - `verificar` recuenta y compara con el manifiesto; su `NOTICE` dice `verificar: PASÓ …`.
 - Evidencia en `/srv/ops/evidencias/lote-<id>-dtd-cargo-staging-<ts>/` (`<paso>.out`, `<paso>.err`, `LOTE.txt` con los conteos, `SHA256SUMS`).
-- Para borrar el lote: `--paso deshacer --confirm-deshacer <id del lote>`. Se niega si alguna factura dejó de ser borrador o hay cajas estibadas. Los clientes creados en prueba se conservan.
+- Para volver atrás: `--paso deshacer --confirm-deshacer <id del lote>` (borrado lógico). Se niega si alguna factura dejó de ser borrador o hay cajas estibadas. Los clientes creados en prueba se conservan y los nombres siguen en la base.
+- Para el **borrado definitivo** que pidió Sam (los datos reales salen de prueba con evidencia): `--paso purgar --confirm-purga <id del lote>`. Borra físicamente todo lo que el lote creó, incluidos los clientes y aliados que creó, y termina con conteo cero por lote (`purgar: PASÓ · conteo cero …`). El SQL se niega si no encuentra el cliente sintético de la semilla (o sea, si la base no es la de prueba). Si algo ajeno al lote apunta a sus filas (un reporte de pago o una aceptación hechos en el smoke), la FK lo aborta: entonces se reinicia prueba con `resetear-base-prueba.sh` (`entorno-prueba.md` §5), que también deja evidencia. El log de auditoría es append-only y no lleva nombres: sus filas quedan como registro de la carga y de la purga. Avisar al Director antes de purgar o reiniciar.
 
 ## 3 · Qué mirar después (smoke)
 

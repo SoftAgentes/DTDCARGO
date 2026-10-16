@@ -10,7 +10,9 @@
 #
 # Orden normal: previa → simulacro → aplicar → verificar. `aplicar` exige un
 # simulacro PASÓ del mismo lote en la misma base (evidencia previa); `deshacer`
-# borra lógicamente todo el lote y exige --confirm-deshacer <id del lote>.
+# borra lógicamente todo el lote y exige --confirm-deshacer <id del lote>;
+# `purgar` borra FÍSICAMENTE el lote y los clientes que creó (el borrado
+# definitivo que pidió Sam para prueba) y exige --confirm-purga <id del lote>.
 #
 # SOLO PRUEBA. El proyecto tiene que terminar en `-staging` y no puede ser el de
 # producción (PROD_COMPOSE_PROJECT, por defecto dtd-cargo). Pasar un lote a la
@@ -18,8 +20,8 @@
 #
 # Uso:
 #   aplicar-lote.sh --project dtd-cargo-staging --confirm dtd-cargo-staging \
-#       --lote /srv/ops/paquetes/lote-59 --paso previa|simulacro|aplicar|verificar|deshacer \
-#       [--evidence-dir /srv/ops/evidencias] [--confirm-deshacer <id>] [--dry-run]
+#       --lote /srv/ops/paquetes/lote-59 --paso previa|simulacro|aplicar|verificar|deshacer|purgar \
+#       [--evidence-dir /srv/ops/evidencias] [--confirm-deshacer <id>] [--confirm-purga <id>] [--dry-run]
 #
 # Códigos: 0 listo · 2 uso inválido · 3 rechazado por una guarda · 4 integridad
 # (SHA256SUMS) · 5 falta el simulacro previo · 6 psql falló (la transacción se
@@ -30,9 +32,9 @@ umask 077
 die() { echo "aplicar-lote: $*" >&2; exit 2; }
 refuse() { echo "aplicar-lote: RECHAZADO · $*" >&2; exit 3; }
 
-PROJECT=""; CONFIRM=""; LOTE=""; PASO=""; EVIDENCE_DIR="/srv/ops/evidencias"; CONFIRM_DESHACER=""; DRY_RUN=0
+PROJECT=""; CONFIRM=""; LOTE=""; PASO=""; EVIDENCE_DIR="/srv/ops/evidencias"; CONFIRM_DESHACER=""; CONFIRM_PURGA=""; DRY_RUN=0
 PROD_PROJECT="${PROD_COMPOSE_PROJECT:-dtd-cargo}"
-PASOS="previa simulacro aplicar verificar deshacer"
+PASOS="previa simulacro aplicar verificar deshacer purgar"
 
 setopt() { local n="$1" v="${2-}"; [[ -n "${v}" && "${v}" != --* ]] || die "falta el valor de ${n}"; }
 while [[ $# -gt 0 ]]; do
@@ -43,6 +45,7 @@ while [[ $# -gt 0 ]]; do
     --paso) setopt "$1" "${2-}"; PASO="$2"; shift 2 ;;
     --evidence-dir) setopt "$1" "${2-}"; EVIDENCE_DIR="$2"; shift 2 ;;
     --confirm-deshacer) setopt "$1" "${2-}"; CONFIRM_DESHACER="$2"; shift 2 ;;
+    --confirm-purga) setopt "$1" "${2-}"; CONFIRM_PURGA="$2"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     *) die "argumento desconocido: $1" ;;
   esac
@@ -67,11 +70,16 @@ grep -qF -- "${LOTE_ID}" "${SCRIPT}" || refuse "${PASO}.sql no es del lote ${LOT
 ENTORNO="$(sed -nE 's/^[[:space:]]*"entorno":[[:space:]]*"([^"]+)".*$/\1/p' "${LOTE}/manifiesto.json" | head -1)"
 [[ "${ENTORNO}" == "prueba" ]] || refuse "el lote se generó para «${ENTORNO}», no para prueba"
 case "${PASO}" in
-  aplicar|deshacer) CIERRE="COMMIT" ;;
+  aplicar|deshacer|purgar) CIERRE="COMMIT" ;;
   *) CIERRE="ROLLBACK" ;;
 esac
 if [[ "${PASO}" == "deshacer" ]]; then
   [[ "${CONFIRM_DESHACER}" == "${LOTE_ID}" ]] || refuse "deshacer exige --confirm-deshacer ${LOTE_ID}"
+fi
+if [[ "${PASO}" == "purgar" ]]; then
+  # Borrado definitivo (físico) del lote y de los clientes que creó: sólo prueba,
+  # y el propio SQL se niega si no encuentra el cliente sintético de la semilla.
+  [[ "${CONFIRM_PURGA}" == "${LOTE_ID}" ]] || refuse "purgar exige --confirm-purga ${LOTE_ID}"
 fi
 if [[ "${PASO}" == "aplicar" ]]; then
   # Un simulacro PASÓ del MISMO lote en la MISMA base: su evidencia tiene el

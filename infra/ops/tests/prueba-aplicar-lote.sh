@@ -36,7 +36,7 @@ L="${T}/lote"
 for paso in previa simulacro verificar; do
   printf '\\set ON_ERROR_STOP on\n-- lote carga-consolidado:59:deadbeef · %s\nbegin transaction read only;\nselect 1;\nrollback;\n' "${paso}" > "${L}/${paso}.sql"
 done
-for paso in aplicar deshacer; do
+for paso in aplicar deshacer purgar; do
   printf '\\set ON_ERROR_STOP on\n-- lote carga-consolidado:59:deadbeef · %s\n-- cierre: commit\nbegin;\nselect 1;\ncommit;\n' "${paso}" > "${L}/${paso}.sql"
 done
 cat > "${L}/manifiesto.json" <<'JSON'
@@ -91,6 +91,12 @@ sleep 1
 sed -i 's/-- cierre: commit/-- cierre: nada/' "${L}/deshacer.sql"; ( cd "${L}" && sha256sum -- *.sql manifiesto.json resumen.md > SHA256SUMS )
 corre --paso deshacer >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "deshacer sin --confirm-deshacer rechazado (3)" || ko "deshacer sin confirmar no rechazado"
 corre --paso deshacer --confirm-deshacer carga-consolidado:59:deadbeef >/dev/null 2>&1; [[ $? -eq 7 ]] && ok "salida sin COMMIT al deshacer sale 7" || ko "salida sin COMMIT no sale 7"
+
+# 5b. purgar: sin --confirm-purga se rechaza; confirmado, PASÓ con COMMIT.
+sleep 1
+corre --paso purgar >/dev/null 2>&1; [[ $? -eq 3 ]] && ok "purgar sin --confirm-purga rechazado (3)" || ko "purgar sin confirmar no rechazado"
+out="$(corre --paso purgar --confirm-purga carga-consolidado:59:deadbeef 2>&1)"; rc=$?
+[[ ${rc} -eq 0 && "${out}" == *"PASÓ · purgar · COMMIT"* ]] && ok "purgar confirmado PASÓ con COMMIT" || ko "purgar rc=${rc}: ${out}"
 
 # 6. --dry-run no toca docker.
 antes="$(wc -l < "${DOBLE_LOG}")"

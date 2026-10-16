@@ -111,8 +111,13 @@ export interface SalidaSql {
   simulacro: string;
   verificar: string;
   deshacer: string;
+  /** Borrado definitivo, sólo para la base de prueba (ver `purgar`). */
+  purgar: string;
   manifiesto: Manifiesto;
 }
+
+/** El cliente sintético de la semilla de prueba (infra/ops/staging/semilla-prueba.sql): si no está, no es la base de prueba. */
+export const CLIENTE_SINTETICO_PRUEBA = "05400000-0000-4000-8000-000000000101";
 
 function cab(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
   const r = lote.rastreo;
@@ -740,6 +745,102 @@ commit;
 `;
 }
 
+/**
+ * Borrado DEFINITIVO del lote, sólo en prueba: Sam pidió que los datos reales
+ * salgan de prueba con evidencia, y `deshacer.sql` deja los nombres en la base
+ * (borrado lógico). Borra físicamente, en orden de dependencias, todo lo que el
+ * lote creó —incluidos los clientes y aliados que creó— y termina comprobando
+ * conteo cero por lote. Una fila ajena que apunte a algo del lote (un reporte
+ * de pago, una aceptación) hace fallar la FK a propósito: entonces el camino es
+ * el reinicio de prueba. El log de auditoría es append-only y no lleva nombres:
+ * queda como registro de la carga y de la purga.
+ */
+function purgar(lote: Lote, o: OpcionesSql): string {
+  return `\\set ON_ERROR_STOP on
+-- SDD-0543 · PURGA DEFINITIVA del lote ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor}).
+-- SÓLO PRUEBA: se niega si no encuentra el cliente sintético de la semilla de prueba.
+-- Borra físicamente lo que el lote creó, en una transacción, y comprueba conteo cero.
+begin;
+
+do $purga$
+declare
+  v_tenant uuid;
+  v_lote text := ${litSql(o.lote)};
+  v_invs uuid[]; v_recs uuid[]; v_ships uuid[]; v_cons uuid[]; v_sails uuid[]; v_carriers uuid[];
+  v_clients uuid[]; v_aliados uuid[];
+  n_invs int; n_recs int; n_ships int; n_cons int; n_sails int; n_carriers int; n_clients int; n_aliados int;
+  resto int;
+begin
+  select id into v_tenant from public.tenants where slug = ${litSql(o.tenantSlug)};
+  if not exists (select 1 from public.clients where id = '${CLIENTE_SINTETICO_PRUEBA}'::uuid) then
+    raise exception 'purgar: esta base no es la de prueba (no está el cliente sintético de la semilla); no se purga';
+  end if;
+
+  select coalesce(array_agg(id), '{}') into v_invs from public.invoices
+   where tenant_id = v_tenant and notes like '%' || v_lote || '%';
+  select coalesce(array_agg(id), '{}') into v_recs from public.warehouse_receipts_cn
+   where tenant_id = v_tenant and notes like '%' || v_lote || '%';
+  select coalesce(array_agg(id), '{}') into v_ships from public.shipments
+   where tenant_id = v_tenant and notes like '%' || v_lote || '%';
+  select coalesce(array_agg(id), '{}') into v_cons from public.consolidations
+   where tenant_id = v_tenant and notes like '%' || v_lote || '%';
+  select coalesce(array_agg(id), '{}') into v_sails from public.sailings
+   where tenant_id = v_tenant and notes like '%' || v_lote || '%';
+  select coalesce(array_agg(id), '{}') into v_carriers from public.carriers
+   where tenant_id = v_tenant and notes like 'Creada por la carga ' || v_lote || '%';
+  select coalesce(array_agg(id), '{}') into v_clients from public.clients
+   where tenant_id = v_tenant and notes like 'Creado por la carga ' || v_lote || '%';
+  select coalesce(array_agg(id), '{}') into v_aliados from public.aliados
+   where tenant_id = v_tenant and agreement_notes like 'Creado por la carga ' || v_lote || '%';
+
+  -- Orden de dependencias. Lo ajeno al lote que apunte acá hace fallar la FK: a propósito.
+  delete from public.invoices where id = any(v_invs);
+  get diagnostics n_invs = row_count;
+  delete from public.warehouse_receipts_cn where id = any(v_recs); -- cascada: items, eventos, cajas y sus posiciones
+  get diagnostics n_recs = row_count;
+  delete from public.shipments where id = any(v_ships);            -- cascada: eventos
+  get diagnostics n_ships = row_count;
+  delete from public.consolidations where id = any(v_cons);        -- cascada: items del contenedor
+  get diagnostics n_cons = row_count;
+  delete from public.sailings where id = any(v_sails);
+  get diagnostics n_sails = row_count;
+  delete from public.carriers where id = any(v_carriers);
+  get diagnostics n_carriers = row_count;
+  delete from public.client_markbox_history where client_id = any(v_clients);
+  delete from public.clients where id = any(v_clients) and aliado_id is not null; -- clientes de aliado antes que el aliado
+  delete from public.aliados where id = any(v_aliados);
+  get diagnostics n_aliados = row_count;
+  delete from public.clients where id = any(v_clients);                           -- raíces de aliado y clientes de la casa
+  select count(*) into n_clients from unnest(v_clients);
+
+  -- Conteo cero por lote: lo único que puede quedar es el log de auditoría (append-only, sin nombres).
+  select (select count(*) from public.invoices where tenant_id = v_tenant and notes like '%' || v_lote || '%')
+       + (select count(*) from public.warehouse_receipts_cn where tenant_id = v_tenant and notes like '%' || v_lote || '%')
+       + (select count(*) from public.shipments where tenant_id = v_tenant and notes like '%' || v_lote || '%')
+       + (select count(*) from public.consolidations where tenant_id = v_tenant and notes like '%' || v_lote || '%')
+       + (select count(*) from public.sailings where tenant_id = v_tenant and notes like '%' || v_lote || '%')
+       + (select count(*) from public.clients where tenant_id = v_tenant and notes like 'Creado por la carga ' || v_lote || '%')
+       + (select count(*) from public.aliados where tenant_id = v_tenant and agreement_notes like 'Creado por la carga ' || v_lote || '%')
+    into resto;
+  if resto <> 0 then
+    raise exception 'purgar: quedaron % filas del lote %', resto, v_lote;
+  end if;
+
+  perform public.append_audit_event(
+    v_tenant, 'consolidation', coalesce(v_cons[1], gen_random_uuid()), 'system', null, 'consolidation_import_purged', 'job', 'succeeded',
+    'Purga definitiva del lote ' || v_lote || ' en prueba (SDD-0543)', null, null,
+    jsonb_build_object('lote', v_lote, 'facturas', n_invs, 'recepciones', n_recs, 'envios', n_ships, 'contenedores', n_cons,
+                       'zarpes', n_sails, 'navieras', n_carriers, 'clientes', n_clients, 'aliados', n_aliados, 'restantes', resto),
+    v_lote, 1, 'internal');
+  raise notice 'purgar: PASÓ · lote % · conteo cero · borrados: % facturas · % recepciones · % envíos · % contenedores · % zarpes · % navieras · % clientes · % aliados',
+    v_lote, n_invs, n_recs, n_ships, n_cons, n_sails, n_carriers, n_clients, n_aliados;
+end
+$purga$;
+
+commit;
+`;
+}
+
 export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: string; packing: string }): SalidaSql {
   revisarDelimitadores(lote);
   const pod = puertoDestino(lote.rastreo.puertoLlegada);
@@ -788,6 +889,7 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
     simulacro: `\\set ON_ERROR_STOP on\n${cabecera}-- SIMULACRO: corre todo y deshace al final. No deja nada en la base.\nbegin;\n\n${cuerpo}\n\nrollback;\n`,
     verificar: verificar(lote, o, manifiesto),
     deshacer: deshacer(lote, o),
+    purgar: purgar(lote, o),
     manifiesto,
   };
 }

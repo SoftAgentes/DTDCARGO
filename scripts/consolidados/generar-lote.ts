@@ -10,8 +10,8 @@
  *     [--pol NGB] [--tipo 40HC] [--tenant dtd]
  *
  * Escribe en --salida: previa.sql, aplicar.sql, simulacro.sql, verificar.sql,
- * deshacer.sql, manifiesto.json, resumen.md y SHA256SUMS. Nada de esto entra a
- * Git: lleva nombres de clientes. Los Excel no se copian.
+ * deshacer.sql, purgar.sql, manifiesto.json, resumen.md y SHA256SUMS. Nada de
+ * esto entra a Git: lleva nombres de clientes. Los Excel no se copian.
  */
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -157,7 +157,8 @@ ${avisos.length ? avisos.map((a) => `- ${a}`).join("\n") : "- Ninguno."}
 2. \`simulacro.sql\`: corre todo y deshace; tiene que terminar con el \`raise notice\` del lote y \`ROLLBACK\`.
 3. \`aplicar.sql\`: la carga real, una transacción.
 4. \`verificar.sql\`: PASÓ con los mismos conteos de arriba.
-5. \`deshacer.sql\` cuando haya que borrar el lote (se niega si alguna factura dejó de ser borrador).
+5. \`deshacer.sql\` para volver atrás (borrado lógico; se niega si alguna factura dejó de ser borrador).
+6. \`purgar.sql\` para el borrado definitivo en prueba (físico, incluidos los clientes y aliados que creó el lote; se niega fuera de la base de prueba y termina con conteo cero).
 `;
 }
 
@@ -194,6 +195,7 @@ export async function generar(args: Argumentos): Promise<{ lote: Lote; salida: S
     "aplicar.sql": salida.aplicar,
     "verificar.sql": salida.verificar,
     "deshacer.sql": salida.deshacer,
+    "purgar.sql": salida.purgar,
     "manifiesto.json": JSON.stringify(salida.manifiesto, null, 2) + "\n",
     "resumen.md": resumenMarkdown(lote, salida, avisosExcel),
   };
