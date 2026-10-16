@@ -472,6 +472,26 @@ describe("bulkUpdateTariffPricesAction · cambio en lote", () => {
     },
   );
 
+  it("SDD-0539: si entre la comprobación y el UPDATE la quitaron y la volvieron a agregar, la ciudad elegida recibe el precio", async () => {
+    const T_MERIDA_NUEVA = "66666666-6666-4666-8666-000000000005";
+    sembrar("admin", {
+      trasLeer: (store) => {
+        Object.assign(store.carrier_tariffs.find((f) => f.id === T_MERIDA)!, {
+          deleted_at: "2026-10-16T08:00:00Z",
+        });
+        store.carrier_tariffs.push(tarifa(T_MERIDA_NUEVA, BENITO, "merida"));
+      },
+    });
+    const res = await bulkUpdateTariffPricesAction({}, lote([T_VALENCIA, T_MERIDA], { costUsdCbm: "90" }));
+
+    // El UPDATE va por ciudad dentro del transportista: la ruta quitada no se
+    // toca y la nueva de la misma ciudad sí. Ninguna otra ciudad cambia.
+    expect(res).toEqual({ ok: true, updated: 2 });
+    expect(fila(T_MERIDA).cost_usd_cbm).toBe(80);
+    expect(fila(T_MERIDA_NUEVA).cost_usd_cbm).toBe(90);
+    expect(fila(T_OTRO).cost_usd_cbm).toBe(80);
+  });
+
   it("un error de la base se informa y no se anuncia éxito", async () => {
     sembrar("admin", { fallaUpdate: "lock timeout" });
     const res = await bulkUpdateTariffPricesAction({}, lote([T_VALENCIA], { costUsdCbm: "90" }));
