@@ -367,3 +367,12 @@ del monitor push de Kuma (y el chat, si se usa), en un archivo 600 del servidor.
    paso C2a: comparar con el interino.
 5. El claim de este worktree queda liberado al cerrar. La rama y el worktree se
    conservan.
+
+## Instalación en el VPS (sesión de Contabo, 2026-10-16) · HECHA
+
+- Registro paso a paso en `docs/runbooks/publicacion-automatica-web.md`, «Registro de instalación · 2026-10-16»: de C1 a C11, más la sección D. El timer está encendido desde las 14:23:41Z. El primer merge de producto (#249) llegó a la web en 5 min 20 s. El corte medido en el simulacro fue de unos 18 s entre los dos cambios.
+- Siguen sin configurar los avisos por Telegram (decisión 4 sin respuesta) y sin verificar el vencimiento del login de GHCR.
+- **FUERA DE ALCANCE DETECTADO**, para una PR chica del Worker:
+  - el `[ -f ]` que falta en `estado` antes de leer `estado/pendientes-aceptadas`;
+  - «última evidencia» tiene que ordenar por fecha y no por nombre.
+

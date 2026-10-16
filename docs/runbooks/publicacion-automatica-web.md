@@ -2,7 +2,7 @@
 
 **SDD:** [0541](../specs/0541-publicacion-automatica-vps/spec.md) · depende de la
 [0505](../specs/0505-dockerizar-dtd-cargo-contabo/spec.md)
-**Estado:** NO INSTALADO. El repo tiene las piezas; el servidor, nada.
+**Estado:** INSTALADO Y ENCENDIDO el 2026-10-16 a las 14:23:41Z (timer `dtd-cargo-publicar.timer`). El registro de la instalación está al final de este runbook.
 **Quién:**
 
 - La sesión de Contabo instala y opera en el VPS.
@@ -132,3 +132,26 @@ publicado y la web sigue igual. Se vuelve a publicar a mano como antes.
   script). Con `--mutantes` corre el control rojo y los mutantes.
 - `pnpm vitest run infra/ops/tests/publicable.test.mjs`: la decisión de GitHub.
   Entra también en `pnpm test`.
+
+## Registro de instalación · 2026-10-16 (sesión de Contabo)
+
+Autorización de Sam, dada en la sesión Director y registrada a su nombre: «autorizo encender la publicación automática de la web en el servidor propio». Decisiones: «1 sí, 2 sí, 3 solo avisa, 5 sí». La 4, el chat de Telegram, quedó sin respuesta, así que los avisos van solo por Uptime Kuma. `M0` = `03e0e078ef18b0c2c1a217a07c8d4e0eeb14d1c7` (merge de la #250). Evidencias en `/srv/ops/evidencias/publicacion-automatica/` y en las carpetas `publicar-web-*`.
+
+| Paso | Hora (UTC) | Resultado |
+|---|---|---|
+| C1 | 13:36 | PASÓ: sin `compose.ensayo.yml`, con una sola línea `DTD_WEB_IMAGE` |
+| C2a | 16-10, mañana | PASÓ: el interino es `507df8e0155f59c7`; copia en `publicacion-automatica/publicar-web.sh.interino-507df8e0155f59c7`. Nada leía sus evidencias `.txt` |
+| C2 | 13:36 | PASÓ: `publicar-web.sh` `4b7fed5b28bfb5d0` y `huellas-fuera-de-imagen.sh` `f813a73425fee9ff`, iguales a `git show M0:…` |
+| C3 | 13:36 | PASÓ: unidades instaladas, `systemd-analyze verify` sin errores, timer `disabled` |
+| C5 | 13:36 | PASÓ: el pull de `:publicable` responde con la revision `03e0e078…`. El vencimiento del token de GHCR **NO VERIFICADO**: `/root/.docker/config.json` no lo muestra |
+| C6-C7 | 13:37 | Al principio faltaban la 0422 y la 0423, como se esperaba. Se aceptaron con `aceptar-pendiente` según la decisión 2, y quedó «PUERTAS: pasan». Las huellas diferían en `.env.example` y en `functions/`: de los 22 archivos de runtime ninguno cambiaba y solo faltaba `_shared/__tests__/kommo-reapertura.test.ts`. Se copiaron de `M0` y quedó «iguales al repo» |
+| C9 | 13:38 | PASÓ: `publicar-web.sh 03e0e078…`, healthy a los 6 s, prueba rápida 14/0 y `DTD_WEB_IMAGE` fijado por digest |
+| C10 | 13:39 | PASÓ: `volver` llevó a `8761618d` (healthy a los 15 s, 14/0) y `publicar` devolvió a `03e0e078` (6 s, 14/0). **Corte medido:** 37 de 91 muestras sin 200, una cada 0,5 s, unos 18 s en total entre los dos cambios (502 y luego 404 de Traefik). Está dentro de lo que se aceptó en la decisión 5 |
+| C4 | 14:22-14:23 | Sam pegó la URL del monitor Push en una ventana tmux sin eco. `publicar.env` quedó en 600 root, 1 línea y sin vacías. Kuma respondió `ok: true`. La secuencia congelar → vigilar → descongelar salió bien |
+| C11 | 14:23:41 | Timer encendido. Primera vuelta: «al día: 03e0e078» |
+| D | 14:23:38 → 14:28:58 | **Primer merge de producto (#249, `abb41625`) publicado solo**: imagen 14:23:41 → 14:27:22, `:publicable` 14:27:24 → 14:27:42, VPS 14:28:39 → «PUBLICADA» a las 14:28:58, healthy en 6 s, prueba rápida 14/0. **Del merge a la web: 5 min 20 s** |
+
+Detalles que no bloquean, pasados al Director para el Worker de la 0541:
+- `estado`, antes de la primera aceptación, imprime «No such file or directory» al no encontrar `estado/pendientes-aceptadas`.
+- «última evidencia» elige por nombre: muestra el `.txt` del interino (`publicar-web-8761618d-…`) en lugar de la carpeta más nueva.
+
