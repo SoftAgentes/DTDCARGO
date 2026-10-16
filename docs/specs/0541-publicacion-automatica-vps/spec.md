@@ -33,6 +33,24 @@ a la web del servidor propio, coordinado con la sesión de Contabo.»
 - **Lo que ya existe.** `.github/workflows/build-image.yml` publica
   `ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha>` y mueve `:main` en cada push a
   `main`. No despliega.
+- **El script interino de Contabo** (referencia que la sesión de Contabo le pasó
+  al Director; no está en el repo y no se leyó). La primera publicación sin
+  Vercel fue a las 08:20Z del 2026-10-16, con `sha-8761618d`. La hizo
+  `/srv/ops/web/publicar-web.sh <sha>` (700, sha16 `507df8e0155f59c7`), en este
+  orden:
+  1. pull;
+  2. prueba de sharp dentro de la imagen;
+  3. copia del `.env`;
+  4. `DTD_WEB_IMAGE`;
+  5. `up -d --no-deps web`;
+  6. healthy, a los 24 s;
+  7. `smoke-web.sh --host dtdcargo.com --www`, con 14 PASÓ;
+  8. vuelta atrás sola si algo falla.
+
+  Le faltan el gate de migraciones, el interruptor y el aviso. La 0491 se publicó
+  así: el Director aplicó la migración, fusionó 3 s después y la web entró a los
+  4 min, a mano. Este diseño lo reemplaza en la misma ruta y con la misma
+  interfaz (`<sha>` como argumento).
 - **Tiempos de los últimos 15 merges** (`gh run list --branch main --event push`):
   - «Imagen Docker» tarda entre 2 min 55 s y 4 min 08 s.
   - «Calidad continua» en `main` tarda entre 14 min 56 s y 30 min 46 s, casi
@@ -119,16 +137,18 @@ Descartadas:
 | Paso | Dónde | Tiempo |
 |---|---|---|
 | 1. Merge a `main` (migrate-first: la migración ya está en el ledger) | GitHub | T |
-| 2. «Imagen Docker» publica `sha-<sha>` y `:main`, con dos etiquetas nuevas | GitHub | T + 3-4 min (medido) |
+| 2. «Imagen Docker» publica `sha-<sha>` y `:main`, con tres etiquetas nuevas | GitHub | T + 3-4 min (medido) |
 | 3. «Imagen publicable» decide y mueve `:publicable` | GitHub | T + 4-5 min (estimado: cola del runner y un minuto de corrida) |
 | 4. El timer baja `:publicable`, pasa las puertas y publica solo `web` | VPS | ≤ 60 s de espera, más el pull |
-| 5. Healthy y prueba rápida | VPS | 12-15 s healthy (medido por Contabo), más la prueba rápida (NO MEDIDO) |
+| 5. Prueba de sharp, healthy y prueba rápida | VPS | healthy a los 24 s en la primera publicación sin Vercel (Contabo había medido 12-15 s antes), más la prueba de sharp y la prueba rápida (NO MEDIDAS) |
 | **Merge → web** | | **≈ 6-7 min** (estimado). Con `PUBLICABLE_SOLO_CI_DE_MAIN=si`, ≈ 30 min |
 
 Entre el `up -d` y el healthy, la web no responde. Compose para el contenedor
 viejo antes de arrancar el nuevo, y se espera que Traefik no le mande tráfico a
 un contenedor `starting`. Ese comportamiento no está medido en este servidor. El
-corte se estima en 15-20 s por publicación (NO MEDIDO). Ver «Decisiones para Sam».
+corte se estima en 25-30 s por publicación (NO MEDIDO): el healthy tardó 24 s en
+la primera publicación sin Vercel, más lo que tarda en parar el viejo. Ver
+«Decisiones para Sam».
 
 ### GitHub: qué commit es publicable (`infra/ops/web/publicable.mjs`)
 
@@ -171,8 +191,8 @@ entrar al servidor.
 
 - `org.dtdcargo.migraciones=v1:<n>:<nombres>`: todas las migraciones del commit con
   número mayor al `cutoff` (238), **incluidas las declaradas como espera**. Usa el
-  mismo `findMissing` del gate `migrations-applied`. Hoy son 249 nombres y unos
-  8,5 KB.
+  mismo `findMissing` del gate `migrations-applied`. Con la 0491 son 252 nombres y
+  unos 8,6 KB (medido el 2026-10-16).
 - `org.dtdcargo.migraciones-en-espera=v1:<n>:<nombres>`: las que además están en
   `pendingBelowCutoff`. Solo sirven para que el aviso las nombre como espera.
 - `org.dtdcargo.fuera-de-imagen=v1:9:<ruta>=<sha256>,…`: huellas de `compose.yml`,
@@ -184,8 +204,10 @@ entrar al servidor.
   el mismo script que corre el servidor sobre sus copias.
 
 El conteo `<n>` deja ver una etiqueta truncada. Si el paso de las etiquetas falla,
-la imagen se construye igual sin ellas: el servidor no la publica solo (falla
-cerrado) y a mano sigue sirviendo.
+la imagen se construye igual sin ellas, y el servidor no la publica: ni solo ni con
+`publicar <sha>` (falla cerrado). Lo mismo pasa con toda imagen anterior a esta
+spec. A una imagen sin etiquetas solo se llega con `volver`, si es la anterior, o
+editando el `.env` a mano como antes.
 
 ### Servidor: `infra/ops/web/publicar-web.sh vigilar`
 
@@ -210,30 +232,35 @@ vuelta anterior (`OnUnitInactiveSec`). Además, `flock -n` sobre
    con la espera todavía declarada. Las que van después de la web se aceptan una
    por una, con el OK de Sam: `publicar-web.sh aceptar-pendiente <nombre>`. Si
    falta la etiqueta, el ledger sale vacío o la base no corre, no publica.
-8. **Puerta de lo que vive fuera de la imagen.**
+8. **Prueba de sharp**, igual que la del interino y con el mismo código que la
+   etapa `build` del Dockerfile: `docker run --rm --network none --entrypoint node <imagen> -e "require('sharp')…webp()…"`.
+   Si no convierte, no publica: `/_next/image` serviría las fotos sin optimizar
+   (hallazgo del ensayo del 2026-10-14).
+9. **Puerta de lo que vive fuera de la imagen.**
    - Si difieren los compose o el cron, no publica. Hay que copiar `infra/dtd-cargo`
      de ese commit y, si cambió `cron/`, reconstruir y reiniciar el cron a mano.
    - Si difieren `functions/`, las plantillas, los volúmenes o `.env.example`,
      publica y avisa. Las funciones ya se desplegaban aparte de la web en Cloud.
-9. Copia el `.env` (`.env.bak-publicar-<hora>`, se conservan las 10 últimas). Con
-   el `.env` en un archivo temporal (600, mismo dueño) y `mv`, reemplaza **solo**
-   `DTD_WEB_IMAGE=…:sha-<sha>@sha256:<digest>`. Antes comprueba que hay una sola
-   línea y que nada más cambió. Fijar el digest hace que corra exactamente la
-   imagen que se revisó, aunque alguien vuelva a empujar la etiqueta.
-10. Corre `compose … config -q` y después el comando exacto de Contabo, desde
+10. Copia el `.env` (`.env.bak-publicar-<hora>`, se conservan las 10 últimas). Con
+    el `.env` en un archivo temporal (600, mismo dueño) y `mv`, reemplaza **solo**
+    `DTD_WEB_IMAGE=…:sha-<sha>@sha256:<digest>`. Antes comprueba que hay una sola
+    línea y que nada más cambió. Fijar el digest hace que corra exactamente la
+    imagen que se revisó, aunque alguien vuelva a empujar la etiqueta.
+11. Corre `compose … config -q` y después el comando exacto de Contabo, desde
     `/srv/dtd-cargo`.
-11. Espera healthy hasta 150 s, con el contenedor en la imagen nueva. Corre
+12. Espera healthy hasta 150 s, con el contenedor en la imagen nueva. Corre
     `smoke-web.sh --host dtdcargo.com --www` y, si falla, una segunda vez a los 15 s.
-12. **Vuelta atrás automática.** Si el healthy o las dos pruebas rápidas fallan,
+13. **Vuelta atrás automática.** Si el healthy o las dos pruebas rápidas fallan,
     vuelve al valor anterior de `DTD_WEB_IMAGE`, repite el `up` y lo prueba. Esa
     imagen queda rechazada hasta el próximo merge. Si la vuelta atrás también
     falla, escribe `CONGELADO` (sale 2) y avisa URGENTE.
-13. Si la publicación sale bien, limpia las imágenes viejas.
+14. Si la publicación sale bien, limpia las imágenes viejas.
 
 A mano:
 
-- `publicar <sha>`: solo 40 hex. La etiqueta `sha-<sha>` tiene que traer ese
-  commit en `revision`. Mientras esté congelado, solo con `--aunque-congelado`.
+- `<sha>` o `publicar <sha>`: la interfaz del interino. Acepta 40 hex o
+  `sha-<40 hex>`; un prefijo corto es un error de uso. La etiqueta `sha-<sha>`
+  tiene que traer ese commit en `revision`. Mientras esté congelado, solo con `--aunque-congelado`.
   Deja la `:publicable` del momento fuera hasta el próximo merge, para que el
   vigilante no la pise.
 - `volver`: vuelve a la imagen anterior, aunque esté congelado.
@@ -274,9 +301,13 @@ A mano:
 Cada publicación y cada vuelta atrás a mano dejan
 `/srv/ops/evidencias/publicar-web-<hora>-<tipo>-<sha8>/` (700) con `salida.txt`,
 `imagen-antes.txt`, `imagen-nueva.txt`, `migraciones-exigidas.txt`,
-`huellas-servidor.txt`, la salida de `compose config` y de `compose up`, cada
-prueba rápida y `SHA256SUMS`, que se calcula al final y verifica. No guarda el
-`.env` ni secretos. Las vueltas sin cambios no dejan carpeta: van al journal.
+`huellas-servidor.txt`, `sharp.txt`, la salida de `compose config` y de
+`compose up`, cada prueba rápida y `SHA256SUMS`, que se calcula al final y
+verifica. No guarda el `.env` ni secretos.
+
+Las vueltas sin cambios y las retenciones por una puerta no dejan carpeta: van al
+journal (`journalctl -u dtd-cargo-publicar.service`), con la lista completa de lo
+que falta. Los avisos largos se recortan: Telegram a 3500 caracteres y Kuma a 200.
 
 ### Avisos
 
@@ -324,7 +355,7 @@ Bajo 10 GB libres (`PUBLICAR_MIN_LIBRE_GB`) el vigilante no baja nada y avisa.
    donde las funciones se desplegaban aparte.
 4. **Chat de Telegram para estos avisos** y bot (DTDStudioBot del `.env` u otro).
    Kuma alcanza para encenderlo; el Telegram directo es opcional.
-5. **El corte de 15-20 s por publicación** (estimado). Si molesta, sacarlo pide
+5. **El corte de 25-30 s por publicación** (estimado). Si molesta, sacarlo pide
    publicar con dos contenedores a la vez y sacar el viejo después. Es una tarea
    aparte, que cambia el comando de Contabo y que no está en este alcance.
 

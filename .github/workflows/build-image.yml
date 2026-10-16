@@ -60,10 +60,10 @@ jobs:
 
       - name: Etiquetas para el servidor (SDD-0541)
         id: servidor
-        # Si este paso falla, la imagen se construye igual, sin estas dos
-        # etiquetas: el servidor se niega a publicarla solo (falla cerrado) y a
-        # mano sigue sirviendo. Se escribe primero a un archivo para no dejar un
-        # bloque a medias en GITHUB_OUTPUT.
+        # Si este paso falla, la imagen se construye igual, sin estas tres
+        # etiquetas, y el servidor se niega a publicarla (falla cerrado; `volver`
+        # sí puede llegar a ella si es la anterior). Se escribe primero a un
+        # archivo para no dejar un bloque a medias en GITHUB_OUTPUT.
         continue-on-error: true
         run: |
           set -euo pipefail

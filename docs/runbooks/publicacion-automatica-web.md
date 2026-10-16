@@ -19,7 +19,7 @@ OK de Sam para encender.
 | `build-image.yml` | GitHub | Construye `sha-<sha>` con tres etiquetas nuevas: las migraciones del commit, las que están en espera y las huellas de los compose, el cron y las funciones. |
 | `publicable.yml` + `infra/ops/web/publicable.mjs` | GitHub | Mueve `:publicable` al commit más nuevo de `main` con imagen y CI en verde (o el verde de su PR con el mismo árbol). Nunca retrocede. |
 | `dtd-cargo-publicar.timer` | VPS | Cada minuto, `publicar-web.sh vigilar`. |
-| `/srv/ops/web/publicar-web.sh` | VPS | Si `:publicable` no es lo que corre, pasa las puertas, cambia solo `DTD_WEB_IMAGE`, `up -d --no-deps web`, healthy, prueba rápida y, si falla, vuelve atrás. |
+| `/srv/ops/web/publicar-web.sh` | VPS | Si `:publicable` no es lo que corre, pasa las puertas (migraciones, compose y cron, sharp), cambia solo `DTD_WEB_IMAGE`, `up -d --no-deps web`, healthy, prueba rápida y, si falla, vuelve atrás. Reemplaza al interino de la misma ruta y conserva su interfaz `publicar-web.sh <sha>`. |
 | `/srv/ops/web/huellas-fuera-de-imagen.sh` | GitHub y VPS | Las mismas huellas de los dos lados. |
 
 ## Plan de instalación
@@ -54,14 +54,15 @@ NO VERIFICADOS: anotar en el paso C5 cuándo vence.
 | # | Paso | Comprobación |
 |---|---|---|
 | C1 | Corte cerrado, sin `compose.ensayo.yml` | `ls /srv/dtd-cargo/compose.ensayo.yml` → no existe; `grep ^DTD_WEB_IMAGE= /srv/dtd-cargo/.env` → una sola línea |
-| C2 | Copiar de `M0` los scripts: `install -m 700 publicar-web.sh huellas-fuera-de-imagen.sh /srv/ops/web/`. `smoke-web.sh` ya está | `sha256sum /srv/ops/web/{publicar-web,huellas-fuera-de-imagen}.sh` igual a `git show M0:infra/ops/web/<archivo> \| sha256sum` en la máquina de la sesión |
+| C2a | **Comparar con el interino antes de reemplazarlo.** `/srv/ops/web/publicar-web.sh` hoy es el script interino de la sesión de Contabo (700, sha16 `507df8e0155f59c7`, primera publicación sin Vercel el 2026-10-16 08:20Z). Guardarlo: `cp -p /srv/ops/web/publicar-web.sh /srv/ops/evidencias/publicar-web.interino-$(date -u +%Y%m%dT%H%M%SZ).sh`. Comparar paso a paso con el nuevo: pull, prueba de sharp, copia del `.env`, `DTD_WEB_IMAGE`, `up -d --no-deps web`, healthy, `smoke-web.sh --host dtdcargo.com --www` y vuelta atrás. Anotar lo que el interino haga y el nuevo no | La copia existe con el mismo sha16; la comparación queda escrita en el handoff de la 0541 (o «sin diferencias de contrato») |
+| C2 | Copiar de `M0` los scripts: `install -m 700 publicar-web.sh huellas-fuera-de-imagen.sh /srv/ops/web/`. `smoke-web.sh` ya está. La interfaz del interino se conserva: `publicar-web.sh <sha>` | `sha256sum /srv/ops/web/{publicar-web,huellas-fuera-de-imagen}.sh` igual a `git show M0:infra/ops/web/<archivo> \| sha256sum` en la máquina de la sesión |
 | C3 | Copiar las unidades: `install -m 644 dtd-cargo-publicar.service dtd-cargo-publicar.timer /etc/systemd/system/ && systemctl daemon-reload`. **No** encender todavía | `systemd-analyze verify /etc/systemd/system/dtd-cargo-publicar.service` sin errores; `systemctl is-enabled dtd-cargo-publicar.timer` → `disabled` |
-| C4 | `/srv/ops/web/publicar.env` (root, 600) con `PUBLICAR_KUMA_PUSH_URL=` pegado por Sam sin mostrarlo. Opcional: `PUBLICAR_TELEGRAM_CHAT_ID=`. Ninguna línea vacía: si no hay chat, la línea no va. Mensaje de prueba: `publicar-web.sh congelar "prueba de avisos"` y `publicar-web.sh descongelar` | `stat -c '%a %U' /srv/ops/web/publicar.env` → `600 root`; `publicar-web.sh estado` → «Uptime Kuma: configurado» (y Telegram, si se cargó); llegan los dos mensajes |
+| C4 | `/srv/ops/web/publicar.env` (root, 600) con `PUBLICAR_KUMA_PUSH_URL=` pegado por Sam sin mostrarlo. Opcional: `PUBLICAR_TELEGRAM_CHAT_ID=`. Ninguna línea vacía: si no hay chat, la línea no va. Prueba de avisos, sin riesgo de publicar: `publicar-web.sh congelar "prueba de avisos"`, después `publicar-web.sh vigilar` (congelado, solo le avisa a Kuma) y `publicar-web.sh descongelar` | `stat -c '%a %U' /srv/ops/web/publicar.env` → `600 root`; `publicar-web.sh estado` → «Uptime Kuma: configurado» (y Telegram, si se cargó); el monitor de Kuma pasa a verde con «congelado: prueba de avisos»; si hay chat, llegan los mensajes de congelar y descongelar |
 | C5 | El login de GHCR | `docker pull -q ghcr.io/hailuwaycom-sketch/dtdcargo:publicable` sale 0. Anotar el vencimiento del token si se puede ver |
 | C6 | `publicar-web.sh revisar` | Esperado: «PUERTAS: pasan». Si dice que faltan migraciones: ver C7. Si dice que los compose o el cron difieren: ver C8 |
 | C7 | Solo con la decisión B1 de Sam: `publicar-web.sh aceptar-pendiente 0422_payment_report_command_boundary` y `… 0423_payment_report_historical_identity`. **Cualquier otra que falte: parar** y avisar al Director, porque el ledger no tiene algo que `main` espera | `publicar-web.sh revisar` → la lista de faltantes ya no las nombra; `cat /srv/ops/web/estado/aceptadas.log` |
 | C8 | Si `revisar` dice que `compose.yml`, `compose.supabase.yml` o `cron/*` difieren: copiar esos archivos de `M0` a `/srv/dtd-cargo/`. Si cambió `cron/`: `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml build cron && … up -d --no-deps cron` | `publicar-web.sh revisar` → «huellas: … iguales al repo» o solo avisos |
-| C9 | Primera publicación a mano: `publicar-web.sh publicar <M0 completo>` | Sale 0 y dice «PUBLICADA»; `sha256sum -c` en la carpeta de evidencia que imprime; `grep ^DTD_WEB_IMAGE= .env` → `…:sha-M0@sha256:…`; la prueba rápida con 0 FALLÓ; Kuma en verde |
+| C9 | Primera publicación a mano, con la misma forma del interino: `publicar-web.sh <M0 completo>` | Sale 0 y dice «PUBLICADA»; `sha256sum -c` en la carpeta de evidencia que imprime; `grep ^DTD_WEB_IMAGE= .env` → `…:sha-M0@sha256:…`; la prueba rápida con 0 FALLÓ; Kuma en verde |
 | C10 | Simulacro de vuelta atrás: `publicar-web.sh volver` y después `publicar-web.sh publicar <M0>` otra vez | La web vuelve a la imagen anterior y pasa la prueba rápida; después vuelve a `M0`. Medir los segundos sin respuesta con `curl` en un bucle desde otra ventana (es el corte breve de la decisión 5) |
 | C11 | Encender: `systemctl enable --now dtd-cargo-publicar.timer` | `systemctl list-timers dtd-cargo-publicar.timer` muestra la próxima vuelta; `journalctl -u dtd-cargo-publicar.service -n 20` → «al día: <M0>» |
 | C12 | Registrar en el handoff de la 0541: hora, `M0`, las carpetas de evidencia, la medida del corte breve y el vencimiento del login de GHCR | — |
@@ -108,9 +109,14 @@ ponerse al día. Mientras está congelado, `volver` funciona igual, y
 ```bash
 /srv/ops/web/publicar-web.sh estado              # qué corre, la anterior, congelado, rechazadas
 /srv/ops/web/publicar-web.sh revisar [<sha>]     # las puertas, sin publicar
-/srv/ops/web/publicar-web.sh publicar <sha>      # un commit de main (40 hex); queda hasta el próximo merge
+/srv/ops/web/publicar-web.sh <sha>               # un commit de main (40 hex), como el interino; queda hasta el próximo merge
 /srv/ops/web/publicar-web.sh volver              # la anterior; la de ahora queda rechazada hasta el próximo merge
 ```
+
+Las imágenes construidas antes de la SDD-0541 no traen las etiquetas, así que el
+script no las publica: ni solo ni a mano. A una de ellas solo se vuelve con
+`volver`, si es la anterior (por ejemplo, `sha-8761618d…` después de la primera
+publicación del paso C9), o editando el `.env` a mano como antes.
 
 ### Apagar
 
