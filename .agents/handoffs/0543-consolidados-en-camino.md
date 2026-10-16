@@ -56,7 +56,8 @@ La primera lectura a ojo decía 39 remitentes, 99 filas, 1.285 cajas y ≈ $47.2
 
 ## PENDIENTES DE ESTA TAREA
 
-- Correr el lote en prueba (Contabo) y registrar evidencia y smoke de Sam (CN, Naviera, Tracking, Facturación, Portal).
+- Correr el lote en prueba (Contabo) y registrar evidencia y smoke de Sam (CN, Naviera, Tracking, Facturación, Portal). Primer intento 2026-10-16 22:56Z: previa PASÓ, simulacro falló en `next_markbox` (candado de sesión); corregido en 62a1960e; paquete v2 (aplicar.sql `cbf28646…`) entregado a Contabo.
+- Borrado final de prueba (pedido de Sam y del Director): `purgar` (o reinicio) + borrar el paquete completo de `/srv/ops/paquetes/lote-59/` (v1 y v2: todos sus archivos llevan nombres) + la evidencia vieja con nombres (`…-20261016T225630Z/`, previa.out de la v1). Contabo confirma con nombre de carpeta y `ls` vacío.
 - Decisiones de Sam que el lote deja a la vista: excesos de peso ($1.411,05, `--sin-exceso-peso` los apaga), filas a $0 (cliente DTD-J000), remitentes sin secuencia (`DTD-A068`, `DTD-9011`, `MMVE-41/041`), 1.288 vs 1.285 cajas de la fila de totales.
 - `pnpm verify` completo con turno del Director.
 - Contenedores 60–64 y la bodega pendiente (mismo generador; el 60 con el modelo FCL + DDP de la spec §D).

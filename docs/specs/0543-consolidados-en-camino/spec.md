@@ -97,7 +97,7 @@ Evento `carga_en_camino` en `CLIENT_JOURNEY_EVENTS`: un aviso por cliente y cont
 
 ### Datos personales (revisar-datos-ve)
 
-Inventario del lote: `clients.markbox`, nombre del cliente (snapshot), descripciones de mercancía. Sin teléfonos ni direcciones. Los Excel, el mapa de marcas, los SQL y los manifiestos viven fuera del repo; la evidencia en el VPS lleva sólo agregados y códigos. Los fixtures de pruebas usan marcas y nombres inventados. Prueba corre con la lista de IP de Sam mientras tenga datos reales y se limpia al terminar (SDD-0540, runbook `entorno-prueba.md` §2.1).
+Inventario del lote: `clients.markbox`, nombre del cliente (snapshot), descripciones de mercancía. Sin teléfonos ni direcciones. Los Excel, el mapa de marcas, los SQL y los manifiestos viven fuera del repo; la evidencia en el VPS lleva sólo agregados y códigos (desde la corrección del 2026-10-16: `previa.sql` y los errores del lote no imprimen nombres). El paquete del lote en el servidor (`/srv/ops/paquetes/lote-NN/`) sí lleva nombres en todos sus archivos: forma parte del borrado final de prueba junto con `purgar` (o el reinicio), con `ls` vacío como evidencia. Los fixtures de pruebas usan marcas y nombres inventados. Prueba corre con la lista de IP de Sam mientras tenga datos reales y se limpia al terminar (SDD-0540, runbook `entorno-prueba.md` §2.1).
 
 ## Criterios de aceptación
 

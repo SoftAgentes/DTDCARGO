@@ -9,7 +9,7 @@ Cómo se lleva al Studio un contenedor que ya zarpó y que el almacén de Yiwu r
 - **Sólo prueba por este runbook.** `aplicar-lote.sh` rechaza cualquier proyecto que no termine en `-staging`. Pasar un lote a la base oficial se decide con Sam y el Director, con OK nominal y otro procedimiento.
 - **Sin avisos.** El lote escribe por SQL: ninguna recepción, envío ni factura dispara correos ni push. El aviso `carga_en_camino` existe en el catálogo de reglas y se dispara aparte, con OK de Sam.
 - **Nada con nombres en Git ni en la evidencia.** Los Excel, el lote generado (`resumen.md`, `manifiesto.json` y los `.sql` llevan nombres de clientes) y `marcas-mapa.json` viven en `C:\Users\AKX generator\Desktop\DTD-consolidados\<contenedor>\`. En el servidor, la evidencia guarda sólo la salida de psql, los conteos y las huellas.
-- Prueba con datos reales corre con la lista de IP de Sam (`entorno-prueba.md` §2.1). Al terminar, el lote se deshace o la base se resetea, con evidencia, avisando antes al Director.
+- Prueba con datos reales corre con la lista de IP de Sam (`entorno-prueba.md` §2.1). Al terminar, el **borrado final** tiene tres partes, todas con evidencia y avisando antes al Director: (1) `purgar` en la base (o reinicio de prueba); (2) borrar el paquete del lote en `/srv/ops/paquetes/` entero, porque todos sus `.sql` (incluido `purgar.sql`), `manifiesto.json` y `resumen.md` llevan nombres reales, con `ls` vacío como prueba; (3) borrar cualquier evidencia que haya quedado con nombres (sólo pasa con paquetes anteriores a la corrección del 2026-10-16: `previa.out` de la v1). La evidencia de las corridas nuevas no lleva nombres y se conserva.
 
 ## 1 · Generar el lote (en el checkout, con los Excel en la PC)
 
