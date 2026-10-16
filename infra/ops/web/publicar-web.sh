@@ -122,15 +122,17 @@ cerrar_evidencia() { # Después de SHA256SUMS ya no se escribe nada en la carpet
 telegram() { # $1 = texto. El token viaja por stdin (-K -), nunca en la línea de comandos.
   if [ -z "${CHAT}" ] || [ -z "${TG_TOKEN}" ]; then log "aviso por Telegram: sin configurar"; return 0; fi
   local c
+  # Telegram corta en 4096 caracteres: con muchas migraciones faltantes el motivo
+  # completo no entra (la lista entera queda en la salida, es decir en el journal).
   c="$(printf 'url = "https://api.telegram.org/bot%s/sendMessage"\n' "${TG_TOKEN}" \
     | curl -s -m 20 -o /dev/null -w '%{http_code}' -K - \
-        --data-urlencode "chat_id=${CHAT}" --data-urlencode "text=$1" --data-urlencode "disable_web_page_preview=true")"
+        --data-urlencode "chat_id=${CHAT}" --data-urlencode "text=${1:0:3500}" --data-urlencode "disable_web_page_preview=true")"
   log "aviso por Telegram: HTTP ${c:-sin respuesta}"
 }
 kuma() { # $1 = up | down, $2 = mensaje. En cada vuelta: el monitor también vigila que el timer corra.
   [ -n "${KUMA}" ] || return 0
   printf 'url = "%s"\n' "${KUMA}" | curl -s -m 10 -o /dev/null -G -K - \
-    --data-urlencode "status=$1" --data-urlencode "msg=$2" --data-urlencode "ping=" || true
+    --data-urlencode "status=$1" --data-urlencode "msg=${2:0:200}" --data-urlencode "ping=" || true
 }
 avisar_una_vez() { # $1 = clase, $2 = texto. Un aviso por motivo, no uno por minuto.
   local clave; clave="$1|$(printf '%s' "$2" | sha256sum | cut -c1-16)"

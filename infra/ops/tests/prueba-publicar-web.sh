@@ -4,7 +4,7 @@
 #
 #   bash infra/ops/tests/prueba-publicar-web.sh               # la prueba
 #   bash infra/ops/tests/prueba-publicar-web.sh --mutantes    # control rojo + mutantes del diff
-#   MUTANTES_SOLO=disco bash … --mutantes                     # solo los mutantes cuyo nombre lo contiene
+#   MUTANTES_SOLO="disco|sharp" bash … --mutantes             # solo los mutantes cuyo nombre contiene alguno
 #
 # No toca Docker, GHCR, Telegram ni Kuma: `docker`, `curl` y la prueba rápida son
 # dobles con estado en un directorio temporal (el doble de docker resuelve
@@ -32,9 +32,12 @@ if [ "${1:-}" = --mutantes ]; then
   printf '#!/usr/bin/env bash\nexit 0\n' > "${M}/control.sh"
   if correr_suite "${M}/control.sh"; then echo "CONTROL ROJO FALLÓ: la suite pasa contra un script que no hace nada"; exit 1; fi
   echo "control rojo: contra un script vacío la suite falla ($(grep -c '^FALLÓ' "${M}/suite.log") FALLÓ)"
-  mutar() { # $1 = nombre, $2 = texto exacto, $3 = reemplazo. MUTANTES_SOLO=<texto> corre solo los que lo nombran.
-    local n
-    case "$1" in *"${MUTANTES_SOLO:-}"*) ;; *) return ;; esac
+  mutar() { # $1 = nombre, $2 = texto exacto, $3 = reemplazo. MUTANTES_SOLO="a|b" corre solo los que nombran a o b.
+    local n s hay=0
+    IFS='|' read -ra solos <<< "${MUTANTES_SOLO:-}"
+    [ "${#solos[@]}" = 0 ] && hay=1
+    for s in "${solos[@]}"; do case "$1" in *"${s}"*) hay=1 ;; esac; done
+    [ "${hay}" = 1 ] || return
     n="$(perl -0ne 'BEGIN { $a = shift } $c = () = /\Q$a\E/g; print $c' "$2" "${ORIG}")"
     [ "${n}" = 1 ] || { echo "MUTANTE MAL ARMADO «$1»: el texto aparece ${n} veces"; vivos=$((vivos + 1)); return; }
     perl -0pe 'BEGIN { $a = shift; $b = shift } s/\Q$a\E/$b/' "$2" "$3" "${ORIG}" > "${M}/mutante.sh"
@@ -71,6 +74,8 @@ if [ "${1:-}" = --mutantes ]; then
   mutar "sin prueba de sharp" 'prueba_sharp "$1" || return 1' 'true'
   mutar "sharp con red" 'docker run --rm --network none --entrypoint node' 'docker run --rm --entrypoint node'
   mutar "sin la interfaz del interino" 'if [[ "${MODO}" =~ ^(sha-)?[0-9a-f]{40}$ ]]; then set -- "${MODO#sha-}" "$@"; MODO=publicar; fi' ':'
+  mutar "Telegram sin recorte" '"text=${1:0:3500}"' '"text=$1"'
+  mutar "Kuma sin recorte" '"msg=${2:0:200}"' '"msg=$2"'
   mutar "publica a mano y el vigilante la pisa" '      marcar_rechazo "${pdig}" "${prev}"' '      true "${pdig}" "${prev}"'
   echo "RESULTADO MUTANTES: ${muertos} muertos · ${vivos} vivos"
   [ "${vivos}" = 0 ]; exit
@@ -335,6 +340,19 @@ reiniciar; sed -i '/^org.dtdcargo.migraciones=/d' "${D}/img/${IB}/labels"; corre
 [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && grep -q 'antes de la SDD-0541' "${T}/salida.log" && ok "imagen sin etiqueta de migraciones: no publica (falla cerrado)" || { ko "sin etiqueta rc=${RC}"; ver; }
 reiniciar; sed -i 's/^org.dtdcargo.migraciones=v1:3:/org.dtdcargo.migraciones=v1:4:/' "${D}/img/${IB}/labels"; correr vigilar
 [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && ok "etiqueta truncada (el conteo no cuadra): no publica" || { ko "conteo rc=${RC}"; ver; }
+
+echo; echo "== avisos largos =="
+# 300 migraciones faltantes: el motivo pasa de 12 KB. Telegram corta en 4096 y una
+# URL de Kuma tan larga no sirve.
+reiniciar
+lista="$(for i in $(seq 300 599); do printf '0%s_migracion_de_prueba_con_nombre_largo,' "${i}"; done)"; lista="${lista%,}"
+sed -i "s/^org.dtdcargo.migraciones=.*/org.dtdcargo.migraciones=v1:300:${lista}/" "${D}/img/${IB}/labels"
+correr vigilar
+grep '^ARGS' "${D}/curl.log" | grep 'chat_id' | awk '{ print length }' | sort -n | tail -1 > "${T}/largo-tg"
+grep '^ARGS' "${D}/curl.log" | grep 'status=' | awk '{ print length }' | sort -n | tail -1 > "${T}/largo-kuma"
+lt="$(cat "${T}/largo-tg")"; lk="$(cat "${T}/largo-kuma")"
+[ "${RC}" = 1 ] && [ "${lt:-0}" -gt 1000 ] && [ "${lt}" -le 3700 ] && [ "${lk:-0}" -gt 0 ] && [ "${lk}" -le 400 ] && grep -q '0599_migracion' "${T}/salida.log" \
+  && ok "300 faltantes: el Telegram se corta a 3500 caracteres y Kuma a 200; la lista entera queda en la salida" || { ko "avisos largos: telegram=${lt:-?} kuma=${lk:-?}"; ver; }
 
 echo; echo "== puerta de lo que vive fuera de la imagen =="
 reiniciar; echo "# a mano" >> "${P}/compose.yml"; correr vigilar
