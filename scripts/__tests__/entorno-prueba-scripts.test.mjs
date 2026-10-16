@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 /**
  * SDD-0540 · Fase 1 · los scripts del entorno de prueba, desde la suite.
  *
- * Corre las dos pruebas con dobles de infra/ops/tests (docker, curl y getent de
+ * Corre las tres pruebas con dobles de infra/ops/tests (docker, curl, openssl y getent de
  * mentira: nada real) y exige «0 FALLÓ». Las de Docker y Postgres efímero
  * (prueba-compose-prueba.sh, *-efimera.sh) NO corren aquí: piden Docker y turno.
  * También revisa la sintaxis (`bash -n`) de todos los scripts nuevos.
@@ -36,7 +36,8 @@ const SCRIPTS = [
   ...readdirSync(resolve("infra/ops/staging")).filter((f) => f.endsWith(".sh")).map((f) => join("infra/ops/staging", f)),
   "infra/ops/migrate/aplicar-migracion.sh",
   "infra/ops/lib/migracion.sh",
-  ...readdirSync(resolve("infra/ops/tests")).filter((f) => /prueba-(scripts-entorno-prueba|aplicar-migracion|compose-prueba|aplicar-migracion-efimera|resetear-base-efimera)\.sh$|dobles-prueba\.sh$/.test(f)).map((f) => join("infra/ops/tests", f)),
+  "infra/ops/web/smoke-web.sh",
+  ...readdirSync(resolve("infra/ops/tests")).filter((f) => /prueba-(scripts-entorno-prueba|aplicar-migracion|compose-prueba|aplicar-migracion-efimera|resetear-base-efimera|smoke-web-credenciales)\.sh$|dobles-prueba\.sh$/.test(f)).map((f) => join("infra/ops/tests", f)),
 ];
 
 describe("SDD-0540 · scripts del entorno de prueba", () => {
@@ -48,15 +49,16 @@ describe("SDD-0540 · scripts del entorno de prueba", () => {
     }
   });
 
-  // Las dos en paralelo: en Windows cada una tarda cerca de un minuto (procesos de Git Bash).
+  // En paralelo: en Windows la más larga tarda cerca de un minuto (procesos de Git Bash).
   it(
     "las pruebas con dobles salen con 0 FALLÓ",
     async () => {
-      const [a, b] = await Promise.all([
+      const resultados = await Promise.all([
         correr("infra/ops/tests/prueba-scripts-entorno-prueba.sh"),
         correr("infra/ops/tests/prueba-aplicar-migracion.sh"),
+        correr("infra/ops/tests/prueba-smoke-web-credenciales.sh"),
       ]);
-      for (const r of [a, b]) {
+      for (const r of resultados) {
         const fallas = r.salida.split("\n").filter((l) => l.startsWith("FALLÓ"));
         expect(fallas, r.salida.slice(-3000)).toEqual([]);
         expect(r.salida).toMatch(/RESULTADO: \d+ PASÓ · 0 FALLÓ/);
