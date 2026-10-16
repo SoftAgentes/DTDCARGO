@@ -43,9 +43,10 @@ if [ "${1:-}" = --mutantes ]; then
     [ "${#solos[@]}" = 0 ] && hay=1
     for s in "${solos[@]}"; do case "$1" in *"${s}"*) hay=1 ;; esac; done
     [ "${hay}" = 1 ] || return
-    n="$(perl -0ne 'BEGIN { $a = shift } $c = () = /\Q$a\E/g; print $c' "$2" "${ORIG}")"
+    # `--`: un texto que empieza con guion (`--entrypoint…`) no es una opción de perl.
+    n="$(perl -0ne 'BEGIN { $a = shift } $c = () = /\Q$a\E/g; print $c' -- "$2" "${ORIG}")"
     [ "${n}" = 1 ] || { echo "MUTANTE MAL ARMADO «$1»: el texto aparece ${n} veces"; vivos=$((vivos + 1)); return; }
-    perl -0pe 'BEGIN { $a = shift; $b = shift } s/\Q$a\E/$b/' "$2" "$3" "${ORIG}" > "${M}/mutante.sh"
+    perl -0pe 'BEGIN { $a = shift; $b = shift } s/\Q$a\E/$b/' -- "$2" "$3" "${ORIG}" > "${M}/mutante.sh"
     if correr_suite "${M}/mutante.sh"; then
       echo "VIVO   · $1"; vivos=$((vivos + 1))
     else
@@ -329,7 +330,7 @@ reiniciar
 for d in 10 11 12 13 14; do printf 'TELEGRAM_BOT_TOKEN=SECRETO-DEL-BOT\n' > "${P}/.env.bak-publicar-202610${d}T000000Z"; done
 printf 'x=1\n' > "${P}/.env.bak-vacias-20261015T053615Z"; printf 'x=1\n' > "${P}/.env.bak-ensayo-20261014T132336Z"
 correr vigilar
-ls "${P}" -a | grep '^\.env\.bak-publicar-' > "${T}/copias"
+find "${P}" -maxdepth 1 -name '.env.bak-publicar-*' -printf '%f\n' | LC_ALL=C sort > "${T}/copias"
 [ "${RC}" = 0 ] && [ "$(grep -c . "${T}/copias")" = 3 ] && grep -q 'bak-publicar-20261014T000000Z' "${T}/copias" && grep -q 'bak-publicar-20261013T000000Z' "${T}/copias" \
   && ! grep -q 'bak-publicar-20261012T000000Z' "${T}/copias" \
   && ok "quedan las 3 copias de publicación más nuevas (la de hoy y dos viejas)" || { ko "copias: $(tr '\n' ' ' < "${T}/copias")"; ver; }
