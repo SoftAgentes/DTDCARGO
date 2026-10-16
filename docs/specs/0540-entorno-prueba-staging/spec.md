@@ -471,4 +471,6 @@ Con una PR real que traiga una migración:
 
 | Fecha | Decisión | Texto literal de Sam | Registró |
 |---|---|---|---|
-| — | — | pendiente (Fase 0) | — |
+| 2026-10-16 ~07:50Z | **D1 sí**: los tres peldaños, con las tareas vistas en prueba antes de producción. **D2 sintéticos**: datos ficticios. **D3** `prueba.dtdcargo.com` | «Con lo que me propones de una copia de DTD Cargo en el mismo servidor que se llama prueba.dtdcargo.com avanzar por ahí para hacer también pruebas con datos ficticios y ir viendo la tarea que hace en prueba así que me gusta esa idea» | Director |
+| 2026-10-16 ~07:50Z | **D7, cambiada**: desconectar la integración de Git de Vercel **hoy**, sin esperar a que prueba esté arriba. Así deja de existir el riesgo de §1.2 (un Preview que escribe en la base de producción) | «y también vamos a desconectar Vercel de GitHub ya que no tiene sentido esperar hasta el 20» | Director |
+| — | D4, D5, D6, D8, D9, D10 y D11 | Sin respuesta explícita. Sam aprobó «la idea» en conjunto: la Fase 1 (solo repo) avanza con la recomendación del §4 en cada una, y cada decisión se confirma por nombre antes de la Fase 3 (servidor) | Director |
