@@ -248,3 +248,20 @@ motivo.
 3. **Tope de 6.000 bytes en vez de partir el lote en varios.** Partirlo rompe el todo o nada.
 4. **La bitácora no guarda el nombre del transportista**, sólo su id (AUD-01 §5). Si Sam quiere el
    nombre en el evento, es una decisión de privacidad, no de esta spec.
+
+## Registro de integración (2026-10-16)
+
+- **PR:** #247 (`claude/suspicious-mestorf-43ae11`). Cabeza `814fae85` fusionada con `--match-head-commit`; merge `8761618d` a las 08:16:19Z, con la autorización de Sam, literal: «Ya tienes mi autorización para fusionar la 247 del tarifario».
+- **CI:** «Calidad continua» PASÓ sobre esa cabeza (run 38868912939), con la suite y el build. `pnpm verify` local: NO EJECUTADO, porque el CI corre la suite completa.
+- **Migración `0491_freight_carriers_auditoria`: APLICADA** en el servidor propio (`dtd-cargo-db-1`), migrate-first, con el OK nominal de Sam, literal: «autorizo aplicar 0491_freight_carriers_auditoria en el servidor propio».
+  - Lecturas previas READ ONLY a las ~08:00Z y justo antes de aplicar: «PREFLIGHT 0491 OK».
+  - `psql` con la migración y la fila del ledger en una transacción. COMMIT a las 08:16:16Z. Ledger `20261016081616 · 0491_freight_carriers_auditoria`, una sentencia, md5 `22c72cb6…` y 12175 bytes, igual al blob de la cabeza fusionada. Ledger en 495 filas.
+  - La PR se fusionó 3 s después del COMMIT, con la espera todavía declarada. La espera se retira en el cierre del Director (PR #245). La cabecera «NO APLICADA» no se corrige.
+  - Evidencia: `/srv/ops/evidencias/apply-0491-dtd-cargo-20261016T081616Z/` con `SHA256SUMS`.
+- **Publicación:** fue la primera sin Vercel. Vercel está pausado y sin Git desde la madrugada del 2026-10-16.
+  - `build-image.yml` construyó `sha-8761618d…` (run 38872581793).
+  - La sesión de Contabo la publicó en el VPS con `/srv/ops/web/publicar-web.sh` a las 08:20:24Z: healthy a las 08:20:48Z, 0 reinicios y `smoke-web.sh` 14 PASÓ · 0 FALLÓ.
+  - La imagen para volver atrás, `sha-3e0368e0`, queda en el servidor.
+  - Evidencia: `/srv/ops/evidencias/publicar-web-8761618d-20261016T082024Z.txt`.
+- **Smoke de Sam: PENDIENTE.** Guion en el handoff. El lote se prueba con una o dos ciudades, devueltas después a su precio, nunca con todas: pone el mismo valor en todas las elegidas.
+- **Estado:** integrada y publicada. La spec sigue en `in-progress` hasta el smoke.

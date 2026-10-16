@@ -68,6 +68,11 @@ Con Cloud ya pausado y su dump guardado, y con el OK de Sam:
 - Borrar Supabase Cloud, con otro OK de Sam y el dump final ya verificado.
 - Cancelar los planes de pago de Vercel y Supabase.
 
+## ⚠️ Loop3D comparte los dos planes (medido el 2026-10-16 ~07:55Z, solo lectura en el Chrome de Sam)
+
+- **Vercel (equipo `hailu-wey`, plan Pro, US$20/mes, ciclo del 22-sep al 22-oct):** tiene dos proyectos, `dtdcargo` (pausado) y **`loop-3d`**. Bajar el plan con «Downgrade» afectaría la web de Loop3D.
+- **Supabase (organización `DTDCARGO`, `vercel_icfg_…`, plan Pro, cobrado por Vercel):** tiene dos proyectos activos, DTD Cargo (`xpfuzqombmjmxvprjgmi`) y **Loop3D** (`vkyghjioazdmknkrdufr`). La integración de Vercel lista además «ERP-BOREAL», «Loop3D Restore Drill 2026-08-06» y «DTD-CARGO», que no aparecen como proyectos activos. Quitar la integración o cancelar Vercel podría tumbar la base de Loop3D.
+- **Consecuencia para el calendario:** el 28-oct y el 30-oct se pausa o se borra **solo el proyecto DTD Cargo** en Supabase y se quita el dominio del proyecto `dtdcargo` en Vercel. **No** se cancela ningún plan ni se quita ninguna integración. Cancelar los dos planes del 27-nov queda condicionado a que Loop3D también se haya mudado: web y base. Coordinar con su sesión («Prompt traslado loop3d»).
 ## Restos que se quedan a propósito
 - El nombre de la cookie de sesión fijado al ref de Cloud (`lib/db/session-cookie.ts`), para que nadie tenga que volver a entrar.
 - Las llaves públicas viejas de Cloud en `GOTRUE_JWT_KEYS` y `JWT_JWKS`, para validar las sesiones abiertas.
