@@ -37,25 +37,31 @@ afterEach(() => {
 const CLIENTE = { rif: "V-12345678", name: "Persona Sintetica Prueba", docKind: "persona" as const };
 
 describe("SDD-0544 · CNE en el entorno de prueba", () => {
-  it("staging con IDENTITY_CNE_URL: el provider es el simulado y no hay red", async () => {
+  it("staging con IDENTITY_CNE_URL: la verificación no sale a la red y queda no disponible", async () => {
     vi.stubEnv("APP_ENV", "staging");
     vi.stubEnv("IDENTITY_CNE_URL", URL_SINTETICA);
-    expect(await getCneProvider()).toBe(proveedorCneSimulado);
-    expect(await verifyIdentity(CLIENTE)).toEqual({ status: "unavailable", source: "cne" });
+    const r = await verifyIdentity(CLIENTE);
     expect(fetchDoble).not.toHaveBeenCalled();
+    expect(r).toEqual({ status: "unavailable", source: "cne" });
   });
 
   it.each(["cedulave", "verifik", ""])(
-    "staging con IDENTITY_CNE_PROVIDER=%s: también el simulado",
+    "staging con IDENTITY_CNE_PROVIDER=%s: tampoco sale a la red",
     async (choice) => {
       vi.stubEnv("APP_ENV", "staging");
       vi.stubEnv("IDENTITY_CNE_URL", URL_SINTETICA);
       vi.stubEnv("IDENTITY_CNE_PROVIDER", choice);
-      expect(await getCneProvider()).toBe(proveedorCneSimulado);
-      expect(await verifyIdentity(CLIENTE)).toEqual({ status: "unavailable", source: "cne" });
+      const r = await verifyIdentity(CLIENTE);
       expect(fetchDoble).not.toHaveBeenCalled();
+      expect(r).toEqual({ status: "unavailable", source: "cne" });
     },
   );
+
+  it("staging: getCneProvider devuelve el provider simulado", async () => {
+    vi.stubEnv("APP_ENV", "staging");
+    vi.stubEnv("IDENTITY_CNE_URL", URL_SINTETICA);
+    expect(await getCneProvider()).toBe(proveedorCneSimulado);
+  });
 
   it("el provider simulado responde «no encontrado» sin consultar nada", async () => {
     expect(await proveedorCneSimulado.lookup("12345678")).toBeNull();
