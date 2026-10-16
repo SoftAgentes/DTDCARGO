@@ -68,10 +68,18 @@ describe("SDD-0540 · overlay del entorno de prueba", () => {
     expect(totalMiB).toBe(TOPE_MIB);
   });
 
-  it("la puerta del web es obligatoria (`:?`) y ya no hay lista de IP", () => {
+  it("la puerta del web y la lista de IP son obligatorias (`:?`) y la IP de Sam no está en el repo", () => {
     const staging = leer("compose.staging.yml");
     expect(staging).toMatch(/\$\{PRUEBA_WEB_USUARIOS:\?/);
-    expect(staging).not.toMatch(/STAGING_ALLOWED_IPS|STAGING_INTERNAL_IPS|ipallowlist/i);
+    // Las dos listas (web/buzón y API) exigen las dos variables: sin ellas, no arranca.
+    const rangos = staging.match(/ipallowlist\.sourcerange=[^"]+/g) ?? [];
+    expect(rangos).toHaveLength(2);
+    for (const r of rangos) {
+      expect(r).toMatch(/\$\{STAGING_ALLOWED_IPS:\?/);
+      expect(r).toMatch(/\$\{STAGING_INTERNAL_IPS:\?/);
+    }
+    // Ninguna IP escrita a mano: viven en el .env de prueba (ips-prueba.sh).
+    expect(staging.replace(/^\s*#.*$/gm, "")).not.toMatch(/\b\d{1,3}(\.\d{1,3}){3}\b/);
     expect(staging).toMatch(/basicauth\.removeheader=true/);
     expect(staging).not.toMatch(/^\s+ports:/m);
     expect(staging).not.toMatch(/container_name:/);
@@ -102,8 +110,17 @@ describe("SDD-0540 · overlay del entorno de prueba", () => {
     ["un servicio sin límite", (c) => {
       delete c.services.mailpit.deploy;
     }],
-    ["una lista de IP", (c) => {
-      c.services.web.labels[`traefik.http.middlewares.${PROYECTO}-ips.ipallowlist.sourcerange`] = "1.2.3.4/32";
+    ["el web sin la lista de IP", (c) => {
+      c.services.web.labels[`traefik.http.routers.${PROYECTO}-web.middlewares`] = `${PROYECTO}-prueba-noindex@docker,${PROYECTO}-prueba-clave@docker`;
+    }],
+    ["la API sin la lista de IP", (c) => {
+      c.services["api-gw"].labels[`traefik.http.routers.${PROYECTO}-supabase.middlewares`] = `security-headers@file,${PROYECTO}-prueba-noindex-api@docker`;
+    }],
+    ["la lista de IP después de otro middleware", (c) => {
+      c.services.mailpit.labels[`traefik.http.routers.${PROYECTO}-correo.middlewares`] = `${PROYECTO}-prueba-noindex@docker,${PROYECTO}-prueba-ips@docker,${PROYECTO}-prueba-clave@docker`;
+    }],
+    ["una lista abierta a todo internet", (c) => {
+      c.services.web.labels[`traefik.http.middlewares.${PROYECTO}-prueba-ips.ipallowlist.sourcerange`] = "0.0.0.0/0,172.18.0.1/32";
     }],
     ["Mailpit con relay", (c) => {
       c.services.mailpit.environment.MP_SMTP_RELAY_HOST = "smtp.resend.com";
