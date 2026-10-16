@@ -62,6 +62,10 @@ export const CLIENT_JOURNEY_EVENTS: readonly JourneyEventDef[] = [
   { key: "consolidated", label: "Consolidado (packing CN)", hint: "Al cerrar el contenedor en China.", slice: "D" },
   { key: "eta_set", label: "ETA de la naviera", hint: "Cuando la naviera fija el ETA — ancla del \"va llegando\".", slice: "D" },
   { key: "received_ve", label: "Recibido en Venezuela", hint: "Al crear el recibo de contenedor en Venezuela.", slice: "D" },
+  // SDD-0543 · un aviso por cliente y contenedor cuando se carga desde el packing
+  // list un contenedor que ya zarpó. Se dispara aparte, con OK de Sam, nunca
+  // desde el lote SQL.
+  { key: "carga_en_camino", label: "Carga en camino (contenedor cargado)", hint: "Cuando un contenedor ya zarpado se carga desde el packing list: un aviso por cliente, no por envío.", slice: "D" },
 ] as const;
 
 export const CLIENT_JOURNEY_EVENT_KEYS: ReadonlySet<string> = new Set(
@@ -136,6 +140,12 @@ export const DEFAULT_EVENT_COPY: Record<string, NotifCopy> = {
     // El día que la recepción de contenedor tenga pantalla y convenga separar
     // los dos avisos, esto se parte en dos eventos, no se vuelve a estirar.
     body: "Tu mercancía ya está en Venezuela. Te avisamos apenas coordinemos la entrega.",
+  },
+  // SDD-0543 · el contenedor ya va en el mar cuando el cliente se entera: el
+  // texto no promete bodega ni fecha, eso lo ve en el Portal con el ETA vigente.
+  carga_en_camino: {
+    title: "Tu carga viene en camino",
+    body: "Tu mercancía ya va en un contenedor rumbo a Venezuela. Entra al Portal para ver tus envíos y lo que tienes por aceptar.",
   },
 };
 
