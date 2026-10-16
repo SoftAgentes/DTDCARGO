@@ -82,7 +82,21 @@ export function naviera(texto: string | null): { name: string; scac: string | nu
   return NAVIERAS[k] ?? { name: k, scac: null };
 }
 
-const DELIMITADORES = ["$lote$", "$undo$", "$v$"];
+const DELIMITADORES = ["$lote$", "$undo$", "$v$", "$purga$"];
+
+/** Una marca con la forma PREFIJO-[letra]dígitos es un código; cualquier otra puede llevar texto de un nombre. */
+export const RE_MARCA_CODIGO = /^[A-Z]{2,4}-[A-Z]?\d{1,5}$/;
+
+/**
+ * Lo que de una marca puede salir en la evidencia del servidor: la clave si es
+ * un código (`DTD-J031`, `DC-0014`) y, si no, una etiqueta por posición
+ * (`DC-#29`). `DC-01-ALESS` apareció en un previa.out el 2026-10-16 y llevaba
+ * parte de un nombre; `resumen.md`, que vive fuera del servidor, cruza etiqueta
+ * y clave.
+ */
+export function etiquetaEvidencia(clave: string, prefijo: string, orden: number): string {
+  return RE_MARCA_CODIGO.test(clave) ? clave : `${prefijo}-#${orden}`;
+}
 
 function revisarDelimitadores(lote: Lote): void {
   const textos: string[] = [];
@@ -101,7 +115,7 @@ export interface Manifiesto {
   opciones: { crearClientesFaltantes: boolean; facturas: boolean; excesoPeso: boolean; containerType: string };
   esperado: { envios: number; recepciones: number; items: number; cajas: number; clientes: number; facturas: number; cbm: number; kg: number; base: number };
   embarques: { remitente: string; clave: string; cajas: number; cbm: number; kg: number; filas: number }[];
-  clientes: { clave: string; nombreExcel: string; candidatos: string[]; embarques: number; base: number }[];
+  clientes: { clave: string; etiqueta: string; nombreExcel: string; candidatos: string[]; embarques: number; base: number }[];
   avisos: string[];
 }
 
@@ -140,11 +154,11 @@ function cab(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string
 function datos(lote: Lote): string {
   const out: string[] = [];
   out.push(
-    `create temp table lote_clientes (orden int primary key, clave text unique, nombre_excel text, prefijo text, es_casa boolean, candidatos text[]) on commit drop;`,
+    `create temp table lote_clientes (orden int primary key, clave text unique, etiqueta text, nombre_excel text, prefijo text, es_casa boolean, candidatos text[]) on commit drop;`,
   );
   lote.clientes.forEach((c, i) => {
     out.push(
-      `insert into lote_clientes values (${i + 1}, ${litSql(c.clave)}, ${litSql(c.marca.nombreExcel)}, ${litSql(c.marca.prefijo)}, ${c.marca.esCasa}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[]);`,
+      `insert into lote_clientes values (${i + 1}, ${litSql(c.clave)}, ${litSql(etiquetaEvidencia(c.clave, c.marca.prefijo, i + 1))}, ${litSql(c.marca.nombreExcel)}, ${litSql(c.marca.prefijo)}, ${c.marca.esCasa}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[]);`,
     );
   });
   out.push(
@@ -184,7 +198,7 @@ declare
   v_sailing uuid;
   v_cons uuid;
   v_ref text;
-  v_dup text;
+  v_n_dup int;
   v_ts_carga timestamptz;
   v_ts_recepcion timestamptz;
   c record;
@@ -244,19 +258,22 @@ begin
   ) then
     raise exception 'preflight: el lote % ya está aplicado', cab.lote;
   end if;
-  select string_agg(s.code, ', ' order by s.code) into v_dup
+  -- Sólo conteos en los errores: un Remitente puede llevar texto del Excel y
+  -- este mensaje termina en la evidencia del servidor. previa.sql los enumera
+  -- en la PC con el resumen.
+  select count(*) into v_n_dup
     from public.shipments s
     join lote_envios l on upper(s.code) = upper(l.remitente)
    where s.tenant_id = v_tenant and s.deleted_at is null;
-  if v_dup is not null then
-    raise exception 'preflight: ya existen envíos con estos códigos: %', v_dup;
+  if v_n_dup > 0 then
+    raise exception 'preflight: % envíos del lote ya existen con ese código (ver previa.sql y resumen.md)', v_n_dup;
   end if;
-  select string_agg(w.receipt_code, ', ' order by w.receipt_code) into v_dup
+  select count(*) into v_n_dup
     from public.warehouse_receipts_cn w
     join lote_envios l on upper(w.receipt_code) = upper('WR-C' || cab.numero::text || '-' || l.remitente)
    where w.tenant_id = v_tenant and w.deleted_at is null;
-  if v_dup is not null then
-    raise exception 'preflight: ya existen recepciones con estos códigos: %', v_dup;
+  if v_n_dup > 0 then
+    raise exception 'preflight: % recepciones del lote ya existen con ese código (ver previa.sql y resumen.md)', v_n_dup;
   end if;
   if exists (
     select 1 from public.invoices
@@ -383,9 +400,9 @@ begin
       end if;
     end if;
     if v_client_id is null then
-      -- Sin el nombre del Excel a propósito: este error termina en la evidencia.
-      raise exception 'lote: la marca % (candidatos %) no resuelve a ningún cliente; mapéala en marcas-mapa.json',
-        c.clave, array_to_string(c.candidatos, ' / ');
+      -- Sólo la etiqueta: este error termina en la evidencia del servidor. La
+      -- clave y los candidatos están en resumen.md, que se queda en la PC.
+      raise exception 'lote: la marca % no resuelve a ningún cliente; mapéala en marcas-mapa.json (ver resumen.md)', c.etiqueta;
     end if;
 
     -- A quién se factura: al propio cliente o, si es de un aliado, al aliado raíz.
@@ -544,7 +561,7 @@ function previa(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: str
   const codigosEnvio = lote.embarques.map((e) => litSql(e.remitente)).join(", ");
   const codigosRecepcion = lote.embarques.map((e) => litSql(`WR-C${lote.rastreo.numero}-${e.remitente}`)).join(", ");
   const candidatos = lote.clientes
-    .map((c) => `(${litSql(c.clave)}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[])`)
+    .map((c, i) => `(${litSql(etiquetaEvidencia(c.clave, c.marca.prefijo, i + 1))}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[])`)
     .join(",\n  ");
   return `\\set ON_ERROR_STOP on
 -- SDD-0543 · lectura previa del lote ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor})
@@ -572,7 +589,7 @@ select
   (select count(*) from public.invoices i join public.tenants t on t.id = i.tenant_id
      where t.slug = ${litSql(o.tenantSlug)} and i.deleted_at is null and i.notes like '%' || ${litSql(o.lote)} || '%') as facturas_del_lote;
 
-\\echo === marcas: cómo resuelve cada una (sin_resolver = hay que mapearla o crearla). Sin nombres: esto termina en la evidencia.
+\\echo === marcas: cómo resuelve cada una (sin_resolver = hay que mapearla o crearla). Las marcas sin número salen como etiqueta PREFIJO-#n (resumen.md las cruza): esto termina en la evidencia.
 with marcas(clave, candidatos) as (values
   ${candidatos}
 ), tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)})
@@ -594,7 +611,7 @@ select m.clave,
 
 \\echo === resumen de marcas
 with marcas(clave, candidatos) as (values
-  ${lote.clientes.map((c) => `(${litSql(c.clave)}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[])`).join(",\n  ")}
+  ${lote.clientes.map((c, i) => `(${litSql(etiquetaEvidencia(c.clave, c.marca.prefijo, i + 1))}, array[${c.marca.candidatos.map(litSql).join(", ")}]::text[])`).join(",\n  ")}
 ), tenant as (select id from public.tenants where slug = ${litSql(o.tenantSlug)})
 select count(*) as marcas,
        count(*) filter (where exists (
@@ -672,8 +689,8 @@ select client_markbox, count(*) as envios, sum(volume_m3) as cbm, sum(weight_kg)
  where deleted_at is null and upper(code) in (${codigosEnvio})
  group by client_markbox order by client_markbox;
 
-\\echo === facturas del lote (sin nombres)
-select invoice_code, client_markbox, shipment_code, status, base_amount, total_amount, jsonb_array_length(lines) as lineas
+\\echo === facturas del lote (sin nombres ni códigos de embarque: un Remitente puede llevar texto del Excel)
+select invoice_code, client_markbox, status, base_amount, total_amount, jsonb_array_length(lines) as lineas
   from public.invoices
  where deleted_at is null and notes like '%' || ${litSql(o.lote)} || '%'
  order by invoice_code;
@@ -896,7 +913,7 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
       base: o.facturas ? lote.totales.base : 0,
     },
     embarques: lote.embarques.map((e) => ({ remitente: e.remitente, clave: e.clave, cajas: e.cajas, cbm: e.cbmFactura, kg: e.pesoKg, filas: e.filas.length })),
-    clientes: lote.clientes.map((c) => ({ clave: c.clave, nombreExcel: c.marca.nombreExcel, candidatos: c.marca.candidatos, embarques: c.embarques.length, base: c.base })),
+    clientes: lote.clientes.map((c, i) => ({ clave: c.clave, etiqueta: etiquetaEvidencia(c.clave, c.marca.prefijo, i + 1), nombreExcel: c.marca.nombreExcel, candidatos: c.marca.candidatos, embarques: c.embarques.length, base: c.base })),
     avisos: lote.avisos,
   };
   const cuerpo = cuerpoAplicar(lote, o, pod, nav);

@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
-import { generarSql, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
+import { etiquetaEvidencia, generarSql, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
 import { parsearArgumentos } from "../consolidados/generar-lote";
 
 const RASTREO: Rastreo = {
@@ -88,8 +88,8 @@ describe("generarSql", () => {
     expect(s.aplicar).toContain("'NGB', 'Ningbo', 'LGU', 'La Guaira', 'VE',");
     expect(s.aplicar).toContain("'2026-08-11', '2026-08-10', '2026-08-11', '2026-10-19',");
     expect(s.aplicar).toContain("'40HC', 'Por confirmar', true, true, 'prueba', 'dtd'");
-    expect(s.aplicar).toContain("insert into lote_clientes values (1, 'DTD-J031', 'PRUEBA O''HIGGINS', 'DTD', true, array['DTD-J031']::text[]);");
-    expect(s.aplicar).toContain("insert into lote_clientes values (3, 'MM-0041', 'ALIADO PRUEBA MM', 'MM', false, array['MM-0041', 'MM-41', 'MM-041']::text[]);");
+    expect(s.aplicar).toContain("insert into lote_clientes values (1, 'DTD-J031', 'DTD-J031', 'PRUEBA O''HIGGINS', 'DTD', true, array['DTD-J031']::text[]);");
+    expect(s.aplicar).toContain("insert into lote_clientes values (3, 'MM-0041', 'MM-0041', 'ALIADO PRUEBA MM', 'MM', false, array['MM-0041', 'MM-41', 'MM-041']::text[]);");
     expect(s.aplicar).toContain("insert into lote_envios values (3, 'MM-41', 'MM-0041', 8, 0, 0.96, 0.96);");
     expect(s.aplicar).toContain("insert into lote_envios values (1, 'DTD-J031-05', 'DTD-J031', 1, 137, 1.134, 1.134);");
     expect(s.aplicar).toContain("insert into lote_filas values (1, 4, 'DTD-J031-05', 'Máquina ''recta''', 1, 137, 1.134, 1.134);");
@@ -103,16 +103,35 @@ describe("generarSql", () => {
     expect(s.previa).not.toContain("ALIADO PRUEBA MM");
     expect(s.previa).not.toMatch(/nombre_excel|nombre_en_base|cl\.name/);
     expect(s.previa).toContain("('DTD-J031', array['DTD-J031']::text[])");
-    expect(s.aplicar).toContain("raise exception 'lote: la marca % (candidatos %) no resuelve a ningún cliente");
+    expect(s.aplicar).toContain("raise exception 'lote: la marca % no resuelve a ningún cliente; mapéala en marcas-mapa.json (ver resumen.md)', c.etiqueta;");
     expect(s.verificar).not.toMatch(/client_name|\.name\b/);
+  });
+
+  it("una marca sin número sale en previa y en los errores como etiqueta PREFIJO-#n, nunca como texto", () => {
+    const conTexto = [...FILAS, { ...FILAS[2], filaExcel: 7, marcaTexto: "ALIADO PRUEBA DC", remitente: "DC-01-ZUTANO-16", cbmFactura: 0.1, cbmChina: 0.1, precioCbm: 630, totalFacturado: 63 }];
+    const s = generarSql(agruparLote(RASTREO, conTexto, { eta: "2026-10-19" }), OPCIONES, FUENTES);
+    expect(etiquetaEvidencia("DC-01-ZUTANO", "DC", 4)).toBe("DC-#4");
+    expect(etiquetaEvidencia("DC-0014", "DC", 4)).toBe("DC-0014");
+    expect(etiquetaEvidencia("DTD-J031", "DTD", 1)).toBe("DTD-J031");
+    // La clave impresa es la etiqueta; el texto del Excel sólo viaja dentro del
+    // array de candidatos, que la consulta no proyecta (psql no hace eco del SQL).
+    expect(s.previa).not.toContain("('DC-01-ZUTANO', array");
+    expect(s.previa).toContain("('DC-#4', array['DC-01-ZUTANO']::text[])");
+    expect(s.previa.match(/^select m\.clave,$/gm)).toHaveLength(1);
+    expect(s.aplicar).toContain("insert into lote_clientes values (4, 'DC-01-ZUTANO', 'DC-#4', 'ALIADO PRUEBA DC', 'DC', false, array['DC-01-ZUTANO']::text[]);");
+    expect(s.manifiesto.clientes[3]).toMatchObject({ clave: "DC-01-ZUTANO", etiqueta: "DC-#4" });
+    expect(s.manifiesto.clientes[0]).toMatchObject({ clave: "DTD-J031", etiqueta: "DTD-J031" });
   });
 
   it("el preflight aborta por contenedor, lote, envíos, recepciones y facturas repetidos", () => {
     const s = generarSql(lote(), OPCIONES, FUENTES);
     expect(s.aplicar).toContain("raise exception 'preflight: el contenedor % ya está cargado'");
     expect(s.aplicar).toContain("raise exception 'preflight: el lote % ya está aplicado'");
-    expect(s.aplicar).toContain("raise exception 'preflight: ya existen envíos con estos códigos: %'");
+    expect(s.aplicar).toContain("raise exception 'preflight: % envíos del lote ya existen con ese código (ver previa.sql y resumen.md)', v_n_dup;");
+    expect(s.aplicar).toContain("raise exception 'preflight: % recepciones del lote ya existen con ese código (ver previa.sql y resumen.md)', v_n_dup;");
+    expect(s.aplicar).not.toMatch(/string_agg\(s\.code|string_agg\(w\.receipt_code/);
     expect(s.aplicar).toContain("upper('WR-C' || cab.numero::text || '-' || l.remitente)");
+    expect(s.verificar).not.toMatch(/select invoice_code, client_markbox, shipment_code/);
     expect(s.aplicar).toContain("raise exception 'preflight: ya hay facturas del lote %'");
     // El preflight va ANTES de cualquier escritura.
     expect(s.aplicar.indexOf("preflight: el contenedor")).toBeLessThan(s.aplicar.indexOf("insert into public.carriers"));

@@ -117,7 +117,10 @@ export function leerMapa(ruta: string | undefined): Record<string, string> {
 export function resumenMarkdown(lote: Lote, salida: SalidaSql, avisosExcel: string[]): string {
   const m = salida.manifiesto;
   const filas = lote.clientes
-    .map((c) => `| ${c.clave} | ${c.marca.nombreExcel || "—"} | ${c.embarques.map((e) => e.remitente).join(", ")} | ${c.cajas} | ${c.cbmFactura} | ${c.pesoKg} | $${c.base.toFixed(2)} | ${c.marca.candidatos.join(" / ")} |`)
+    .map((c, i) => {
+      const etiqueta = salida.manifiesto.clientes[i]?.etiqueta ?? c.clave;
+      return `| ${c.clave} | ${etiqueta === c.clave ? "—" : etiqueta} | ${c.marca.nombreExcel || "—"} | ${c.embarques.map((e) => e.remitente).join(", ")} | ${c.cajas} | ${c.cbmFactura} | ${c.pesoKg} | $${c.base.toFixed(2)} | ${c.marca.candidatos.join(" / ")} |`;
+    })
     .join("\n");
   const avisos = [...avisosExcel, ...lote.avisos];
   return `# Lote ${m.lote} · contenedor DTD #${m.contenedor.numero} (${m.contenedor.container_no})
@@ -143,9 +146,11 @@ export function resumenMarkdown(lote: Lote, salida: SalidaSql, avisosExcel: stri
 
 ## Clientes y embarques
 
-| Marca | Nombre (Excel) | Embarques | Cajas | CBM | kg | Base | Candidatos a resolver |
-|---|---|---|---|---|---|---|---|
+| Marca | Etiqueta en la evidencia | Nombre (Excel) | Embarques | Cajas | CBM | kg | Base | Candidatos a resolver |
+|---|---|---|---|---|---|---|---|---|
 ${filas}
+
+Las marcas sin número (texto del Excel) salen en la evidencia del servidor como etiqueta \`PREFIJO-#n\`; esta tabla es la que las cruza.
 
 ## Avisos
 
