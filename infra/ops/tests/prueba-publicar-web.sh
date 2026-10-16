@@ -68,6 +68,9 @@ if [ "${1:-}" = --mutantes ]; then
     log "${MOTIVO}"; avisar_una_vez disco' 'if false; then
     log "${MOTIVO}"; avisar_una_vez disco'
   mutar "no espera healthy" 'esperar_web "$2" || { MOTIVO="la web no quedó healthy"; return 1; }' 'true'
+  mutar "sin prueba de sharp" 'prueba_sharp "$1" || return 1' 'true'
+  mutar "sharp con red" 'docker run --rm --network none --entrypoint node' 'docker run --rm --entrypoint node'
+  mutar "sin la interfaz del interino" 'if [[ "${MODO}" =~ ^(sha-)?[0-9a-f]{40}$ ]]; then set -- "${MODO#sha-}" "$@"; MODO=publicar; fi' ':'
   mutar "publica a mano y el vigilante la pisa" '      marcar_rechazo "${pdig}" "${prev}"' '      true "${pdig}" "${prev}"'
   echo "RESULTADO MUTANTES: ${muertos} muertos · ${vivos} vivos"
   [ "${vivos}" = 0 ]; exit
@@ -148,6 +151,10 @@ case "$1" in
       *) exit 9 ;;
     esac ;;
   exec) printf '%s\n' "$*" >> "$D/exec.log"; cat "$D/ledger"; exit "$(cat "$D/rc-ledger" 2>/dev/null || echo 0)" ;;
+  run)
+    printf '%s\n' "$*" >> "$D/run.log"; rc="$(cat "$D/rc-sharp" 2>/dev/null || echo 0)"
+    if [ "$rc" = 0 ]; then echo "sharp OK, webp de prueba: 42 bytes"; else echo "Error: libvips-cpp.so.42: cannot open shared object file" >&2; fi
+    exit "$rc" ;;
   images)
     for id in $(ls "$D/img"); do [ -f "$D/img/$id/local" ] && echo "$(cat "$D/img/$id/creado") $id"; done | sort -rn | awk '{ print "sha256:" $2 }' ;;
   rmi)
@@ -341,6 +348,16 @@ reiniciar; echo "// cambio" >> "${P}/functions/kommo-sync/index.ts"; correr vigi
 reiniciar; sed -i '/^org.dtdcargo.fuera-de-imagen=/d' "${D}/img/${IB}/labels"; correr vigilar
 [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && ok "imagen sin etiqueta de huellas: no publica" || { ko "sin huellas rc=${RC}"; ver; }
 
+echo; echo "== prueba de sharp dentro de la imagen =="
+reiniciar; correr vigilar
+grep -qF -- "run --rm --network none --entrypoint node ${IMG}@${DB} -e require('sharp')" "${D}/run.log" 2>/dev/null \
+  && ok "prueba sharp dentro de la imagen nueva, por digest y sin red" || ko "llamada a sharp: $(head -1 "${D}/run.log" 2>/dev/null | cut -c1-120)"
+ev="$(ls -d "${EV}"/publicar-web-* 2>/dev/null | head -1)"
+grep -q 'sharp OK' "${ev}/sharp.txt" 2>/dev/null && ok "la salida de sharp queda en la evidencia" || ko "sharp en la evidencia"
+reiniciar; echo 1 > "${D}/rc-sharp"; correr vigilar
+[ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${A}" ] && grep -q 'text=.*sharp no convierte dentro de la imagen' "${D}/curl.log" \
+  && ok "si sharp no convierte: no publica, no toca el .env y avisa" || { ko "sharp rc=${RC}"; ver; }
+
 echo; echo "== validación de la imagen =="
 reiniciar; sed -i 's|^org.opencontainers.image.source=.*|org.opencontainers.image.source=https://github.com/otro/repo|' "${D}/img/${IB}/labels"; correr vigilar
 [ "${RC}" = 1 ] && [ "$(ups)" = 0 ] && ok "imagen de otro repositorio: no publica" || { ko "source rc=${RC}"; ver; }
@@ -399,6 +416,13 @@ kill "${PID_CANDADO}" 2>/dev/null; wait "${PID_CANDADO}" 2>/dev/null
 
 echo; echo "== a mano y vuelta atrás a mano =="
 reiniciar; imagen "${X}" "${IX}" "${DX}" 300
+correr "${X}"
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${X}@${DX}" ] && ok "interfaz del interino: «publicar-web.sh <sha>» publica ese commit" || { ko "interfaz <sha> rc=${RC}"; ver; }
+reiniciar; imagen "${X}" "${IX}" "${DX}" 300
+correr "sha-${X}"
+[ "${RC}" = 0 ] && [ "$(imagen_env)" = "${IMG}:sha-${X}@${DX}" ] && ok "también acepta «sha-<sha>»" || { ko "interfaz sha-<sha> rc=${RC}"; ver; }
+reiniciar; imagen "${X}" "${IX}" "${DX}" 300
+correr "${X:0:12}"; [ "${RC}" = 3 ] && [ "$(ups)" = 0 ] && ok "un sha corto como argumento suelto es error de uso (3)" || { ko "sha corto suelto rc=${RC}"; ver; }
 correr publicar "${X:0:12}"; [ "${RC}" = 3 ] && [ "$(ups)" = 0 ] && ok "a mano: un sha corto es error de uso (3)" || { ko "sha corto rc=${RC}"; ver; }
 correr publicar "main"; [ "${RC}" = 3 ] && ok "a mano: una etiqueta en vez de sha es error de uso" || ko "etiqueta rc=${RC}"
 sed -i "s/^org.opencontainers.image.revision=.*/org.opencontainers.image.revision=${A}/" "${D}/img/${IX}/labels"

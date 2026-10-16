@@ -2,20 +2,26 @@
 # Publicación automática de la web de DTD Cargo en el servidor propio (SDD-0541).
 #
 #   publicar-web.sh vigilar                          # el timer, cada minuto: sigue :publicable
-#   publicar-web.sh publicar <sha> [--aunque-congelado]   # a mano, un commit de main (40 hex)
+#   publicar-web.sh <sha> [--aunque-congelado]       # a mano, un commit de main (40 hex o sha-<40 hex>)
+#   publicar-web.sh publicar <sha> [--aunque-congelado]   # lo mismo, con el subcomando explícito
 #   publicar-web.sh volver                           # vuelta atrás a la imagen anterior
 #   publicar-web.sh revisar [<sha>]                  # las puertas, sin publicar nada
 #   publicar-web.sh congelar "<motivo>" | descongelar
 #   publicar-web.sh aceptar-pendiente <migración>    # una espera que va DESPUÉS de la web
 #   publicar-web.sh estado
 #
+# Reemplaza al script interino que la sesión de Contabo dejó en esta misma ruta
+# el 2026-10-16 (primera publicación sin Vercel) y conserva su interfaz:
+# `publicar-web.sh <sha>`.
+#
 # Qué hace `vigilar`: baja ghcr.io/hailuwaycom-sketch/dtdcargo:publicable (la
 # etiqueta que mueve el workflow publicable.yml solo con imagen y CI en verde),
 # lee el commit de la etiqueta org.opencontainers.image.revision y, si no es lo
 # que corre, lo publica:
 #   1. puertas: toda migración del commit (etiqueta org.dtdcargo.migraciones)
-#      está en el ledger de dtd-cargo-db-1, y los compose y el cron del servidor
-#      son los de ese commit (org.dtdcargo.fuera-de-imagen). Si no, se niega y avisa.
+#      está en el ledger de dtd-cargo-db-1; los compose y el cron del servidor
+#      son los de ese commit (org.dtdcargo.fuera-de-imagen); y sharp convierte
+#      dentro de la imagen (la prueba del Dockerfile, sin red). Si no, se niega y avisa.
 #   2. cambia SOLO la línea DTD_WEB_IMAGE del .env (copia previa) a
 #      `…:sha-<sha>@sha256:<digest>`: lo que corre es exactamente lo que se revisó.
 #   3. `docker compose -p dtd-cargo -f compose.yml -f compose.supabase.yml up -d --no-deps web`
@@ -58,9 +64,15 @@ PASO_SALUD="${PUBLICAR_PASO_SALUD:-3}"
 PAUSA_REINTENTO="${PUBLICAR_PAUSA_REINTENTO:-15}"
 C=(docker compose -p "${PROYECTO}" -f compose.yml -f compose.supabase.yml)
 
+# La misma prueba que corre el Dockerfile en la etapa build: sin libvips,
+# /_next/image sirve las fotos sin optimizar (ensayo del 2026-10-14).
+PRUEBA_SHARP="require('sharp')({create:{width:4,height:4,channels:3,background:'#ffffff'}}).webp().toBuffer().then((b)=>{if(!b.length)process.exit(1);console.log('sharp OK, webp de prueba:',b.length,'bytes')}).catch((e)=>{console.error(e);process.exit(1)})"
+
 MODO="${1:-}"; shift || true
-uso() { sed -n '2,10p' "$0"; exit 3; }
+uso() { sed -n '2,11p' "$0"; exit 3; }
 [ -n "$MODO" ] || uso
+# Interfaz del interino: `publicar-web.sh <sha>` es `publicar <sha>`.
+if [[ "${MODO}" =~ ^(sha-)?[0-9a-f]{40}$ ]]; then set -- "${MODO#sha-}" "$@"; MODO=publicar; fi
 
 TMP="$(mktemp -d)"; trap 'rm -rf "${TMP}"' EXIT
 EVID=""
@@ -238,9 +250,18 @@ puerta_huellas() { # $1 = referencia local
   if [ -n "${AVISOS_HUELLAS}" ]; then log "huellas: difieren (sin frenar):${AVISOS_HUELLAS}"; else log "huellas: compose, cron, functions, plantillas y volúmenes iguales al repo"; fi
 }
 
+prueba_sharp() { # $1 = referencia local. Dentro de la imagen, sin red y con su usuario (node).
+  if timeout 120 docker run --rm --network none --entrypoint node "$1" -e "${PRUEBA_SHARP}" > "${TMP}/sharp" 2>&1; then
+    log "sharp: $(tail -1 "${TMP}/sharp" | cut -c1-80)"; return 0
+  fi
+  MOTIVO="sharp no convierte dentro de la imagen ($(tail -1 "${TMP}/sharp" | cut -c1-160)): /_next/image serviría las fotos sin optimizar"
+  return 1
+}
+
 puertas() { # $1 = referencia local → MOTIVO si alguna niega
   puerta_migraciones "$1" || return 1
   puerta_huellas "$1" || return 1
+  prueba_sharp "$1" || return 1
 }
 
 # ─── .env ────────────────────────────────────────────────────────────────────
@@ -372,6 +393,7 @@ publicar_imagen() { # $1 = sha, $2 = digest, $3 = origen (vigilante | a-mano)
   printf '%s\n' "${nuevo}" > "${EVID}/imagen-nueva.txt"
   cp "${TMP}/exigidas" "${EVID}/migraciones-exigidas.txt" 2>/dev/null
   cp "${TMP}/servidor" "${EVID}/huellas-servidor.txt" 2>/dev/null
+  cp "${TMP}/sharp" "${EVID}/sharp.txt" 2>/dev/null
   respaldar_env || { log "${MOTIVO}"; cerrar_evidencia; return 1; }
   desplegar "${nuevo}" "${nuevo_id}" nueva; rc=$?
   if [ "${rc}" = 3 ]; then # el .env no se tocó: no hay nada que deshacer
@@ -450,6 +472,7 @@ vigilar() {
 
 publicar_a_mano() { # $1 = sha, $2 = --aunque-congelado (opcional)
   local sha="${1:-}" rev dig pdig prev rc
+  sha="${sha#sha-}"
   [[ "${sha}" =~ ^[0-9a-f]{40}$ ]] || { echo "uso: publicar <sha de main, 40 caracteres hex> (sin prefijos ni etiquetas)" >&2; exit 3; }
   case "${2:-}" in ''|--aunque-congelado) ;; *) echo "argumento desconocido: $2" >&2; exit 3 ;; esac
   tomar_candado 600 || { echo "otra publicación lleva 10 min en curso" >&2; exit 1; }
