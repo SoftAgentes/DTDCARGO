@@ -199,7 +199,7 @@ begin
           r.column_name, r.column_name, '@([a-z0-9-]+[.])*(test|invalid)$');
       else
         execute format(
-          'update public.%I set %I = %L || lpad((abs(hashtext(%I)) %% 100)::text, 2, %L) where %I is not null and %I !~ %L',
+          'update public.%I set %I = %L || lpad((abs(hashtext(%I)::bigint) %% 100)::text, 2, %L) where %I is not null and %I !~ %L',
           r.table_name, r.column_name, '+120255501', r.column_name, '0',
           r.column_name, r.column_name, '^[+]120255501[0-9]{2}$');
       end if;
