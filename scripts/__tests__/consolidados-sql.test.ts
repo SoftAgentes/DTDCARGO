@@ -130,6 +130,10 @@ describe("generarSql", () => {
     expect(s.aplicar).toContain("raise exception 'preflight: % envíos del lote ya existen con ese código (ver previa.sql y resumen.md)', v_n_dup;");
     expect(s.aplicar).toContain("raise exception 'preflight: % recepciones del lote ya existen con ese código (ver previa.sql y resumen.md)', v_n_dup;");
     expect(s.aplicar).not.toMatch(/string_agg\(s\.code|string_agg\(w\.receipt_code/);
+    // Un deshacer previo deja los códigos ocupados (unique no parcial): se dice antes del insert.
+    expect(s.aplicar).toContain("existen BORRADOS (deshacer previo) y ocupan el código");
+    expect(s.aplicar).toContain("existen BORRADAS (deshacer previo) y ocupan el código");
+    expect(s.aplicar.indexOf("existen BORRADOS")).toBeLessThan(s.aplicar.indexOf("insert into public.carriers"));
     expect(s.aplicar).toContain("upper('WR-C' || cab.numero::text || '-' || l.remitente)");
     expect(s.verificar).not.toMatch(/select invoice_code, client_markbox, shipment_code/);
     expect(s.aplicar).toContain("raise exception 'preflight: ya hay facturas del lote %'");

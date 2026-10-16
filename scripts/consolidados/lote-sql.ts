@@ -268,12 +268,29 @@ begin
   if v_n_dup > 0 then
     raise exception 'preflight: % envíos del lote ya existen con ese código (ver previa.sql y resumen.md)', v_n_dup;
   end if;
+  -- unique (tenant_id, code) no es parcial: un envío borrado con deshacer.sql
+  -- sigue ocupando su código. Sin esto, el insert fallaría más abajo citando el
+  -- código (corrida local 2026-10-16 23:23Z).
+  select count(*) into v_n_dup
+    from public.shipments s
+    join lote_envios l on upper(s.code) = upper(l.remitente)
+   where s.tenant_id = v_tenant and s.deleted_at is not null;
+  if v_n_dup > 0 then
+    raise exception 'preflight: % envíos del lote existen BORRADOS (deshacer previo) y ocupan el código; en prueba, purgar.sql; en otra base, decisión del Director', v_n_dup;
+  end if;
   select count(*) into v_n_dup
     from public.warehouse_receipts_cn w
     join lote_envios l on upper(w.receipt_code) = upper('WR-C' || cab.numero::text || '-' || l.remitente)
    where w.tenant_id = v_tenant and w.deleted_at is null;
   if v_n_dup > 0 then
     raise exception 'preflight: % recepciones del lote ya existen con ese código (ver previa.sql y resumen.md)', v_n_dup;
+  end if;
+  select count(*) into v_n_dup
+    from public.warehouse_receipts_cn w
+    join lote_envios l on upper(w.receipt_code) = upper('WR-C' || cab.numero::text || '-' || l.remitente)
+   where w.tenant_id = v_tenant and w.deleted_at is not null;
+  if v_n_dup > 0 then
+    raise exception 'preflight: % recepciones del lote existen BORRADAS (deshacer previo) y ocupan el código; en prueba, purgar.sql; en otra base, decisión del Director', v_n_dup;
   end if;
   if exists (
     select 1 from public.invoices
@@ -774,7 +791,7 @@ begin
     jsonb_build_object('lote', v_lote, 'facturas', n_inv, 'items_contenedor', n_items, 'cajas', n_boxes,
                        'recepciones', n_rec, 'envios', n_ship),
     v_lote, 1, 'internal');
-  raise notice 'deshacer: % facturas · % items del contenedor · % cajas · % recepciones · % envíos · contenedor y zarpe eliminados',
+  raise notice 'deshacer: % facturas · % items del contenedor · % cajas · % recepciones · % envíos · contenedor y zarpe eliminados (borrado lógico: los códigos quedan ocupados; para recargar el mismo lote hace falta purgar)',
     n_inv, n_items, n_boxes, n_rec, n_ship;
 end
 $undo$;
