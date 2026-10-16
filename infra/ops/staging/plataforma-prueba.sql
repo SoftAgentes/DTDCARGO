@@ -82,11 +82,29 @@ grant execute on function auth.jwt() to postgres, anon, authenticated, service_r
 
 -- Usuarios que algunas migraciones siembran con UUID fijo (fundador y dos más).
 -- Correos de dominio reservado: no son personas.
-insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, raw_app_meta_data) values
-  ('83c98d22-ea54-4d7a-b10f-a23098a2edbe', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'founder@example.test', '{"tenant":"dtd-cargo"}'::jsonb, '{}'::jsonb),
-  ('4ede88a0-b9c4-49ff-962b-e5a5014776e6', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'seed2@example.test',   '{"tenant":"dtd-cargo"}'::jsonb, '{}'::jsonb),
-  ('01680000-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'seed3@example.test',   '{"tenant":"dtd-cargo"}'::jsonb, '{}'::jsonb)
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, raw_app_meta_data, created_at, updated_at) values
+  ('83c98d22-ea54-4d7a-b10f-a23098a2edbe', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'founder@example.test', '{"tenant":"dtd-cargo"}'::jsonb, '{}'::jsonb, now(), now()),
+  ('4ede88a0-b9c4-49ff-962b-e5a5014776e6', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'seed2@example.test',   '{"tenant":"dtd-cargo"}'::jsonb, '{}'::jsonb, now(), now()),
+  ('01680000-0000-4000-8000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'seed3@example.test',   '{"tenant":"dtd-cargo"}'::jsonb, '{}'::jsonb, now(), now())
 on conflict (id) do nothing;
+-- GoTrue no lee NULL en sus columnas de token: al listar usuarios responde 500
+-- («converting NULL to string is unsupported», medido el 2026-10-16). Se dejan
+-- en '' las que existan (el esquema base de la imagen y el de GoTrue difieren).
+do $plataforma_tokens$
+declare
+  col text;
+begin
+  for col in
+    select c.column_name from information_schema.columns c
+     where c.table_schema = 'auth' and c.table_name = 'users'
+       and c.column_name in ('confirmation_token', 'recovery_token', 'email_change_token_new',
+                             'email_change_token_current', 'email_change', 'phone_change',
+                             'phone_change_token', 'reauthentication_token')
+  loop
+    execute format('update auth.users set %I = %L where %I is null', col, '', col);
+  end loop;
+end
+$plataforma_tokens$;
 
 -- `storage`: si storage-api no corrió (prueba efímera), las tablas mínimas con
 -- dueño postgres, como en los stubs del rebuild.

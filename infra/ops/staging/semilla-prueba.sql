@@ -77,8 +77,11 @@ select u.id, u.id, u.id::text, 'email',
  where u.id in ('05400000-0000-4000-8000-000000000001', '05400000-0000-4000-8000-000000000002')
 on conflict (provider_id, provider) do nothing;
 
--- GoTrue no lee NULL en sus columnas de token (falla al listar usuarios): en
--- prueba todas las cuentas son sintéticas, así que se normalizan todas.
+-- GoTrue no lee NULL en sus columnas de token ni en created_at/updated_at: al
+-- listar usuarios responde 500 (medido el 2026-10-16 con la v2.197.0). En prueba
+-- todas las cuentas son sintéticas, así que se normalizan todas.
+update auth.users set created_at = coalesce(created_at, now()), updated_at = coalesce(updated_at, now())
+ where created_at is null or updated_at is null;
 do $semilla_tokens$
 declare
   col text;

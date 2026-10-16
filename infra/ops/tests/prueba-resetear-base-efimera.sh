@@ -141,15 +141,20 @@ echo "== GoTrue y storage-api con la base migrada"
 n_pol="$(q "select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects'")"
 [[ "${n_pol:-0}" =~ ^[0-9]+$ && "${n_pol}" -gt 0 ]] \
   && ok "postgres creó ${n_pol} policies de las migraciones sobre el storage.objects de storage-api" || ko "sin policies sobre storage.objects (${n_pol})"
-usuarios="$(docker exec "${AUTH}" wget -qO- --header "Authorization: Bearer ${SRK}" "http://localhost:9999/admin/users?per_page=50" 2>/dev/null)"
+# 127.0.0.1 y no localhost: en estas imágenes localhost no llega al servidor (medido).
+# MSYS_NO_PATHCONV: en Git Bash, /tmp/... como argumento se volvería una ruta de Windows.
+# Si falla, se muestra solo el error de wget (código HTTP), nunca la respuesta.
+usuarios="$(docker exec "${AUTH}" wget -qO- --header "Authorization: Bearer ${SRK}" "http://127.0.0.1:9999/admin/users?per_page=50" 2> "${T}/wget-usuarios.err")"
 [[ "${usuarios}" == *admin@prueba.example.test* && "${usuarios}" == *cliente@prueba.example.test* ]] \
-  && ok "GoTrue lista las cuentas sembradas (los tokens NULL quedaron en '')" || ko "GoTrue no lista las cuentas: ${usuarios:0:200}"
+  && ok "GoTrue lista las cuentas sembradas (los tokens NULL quedaron en '')" || ko "GoTrue no lista las cuentas: $(tail -n1 "${T}/wget-usuarios.err")"
 clave="$(grep -E '^clave_admin=' "${PD}/secretos/cuentas-prueba.txt" | cut -d= -f2)"
 printf '{"email":"admin@prueba.example.test","password":"%s"}' "${clave}" | docker exec -i "${AUTH}" sh -c 'cat > /tmp/entrar.json'
-sesion="$(docker exec "${AUTH}" wget -qO- --header 'Content-Type: application/json' --post-file /tmp/entrar.json \
-  'http://localhost:9999/token?grant_type=password' 2>/dev/null)"
 unset clave
-[[ "${sesion}" == *access_token* ]] && ok "el admin sintético entra con su clave por GoTrue" || ko "el admin no pudo entrar por GoTrue"
+sesion="$(MSYS_NO_PATHCONV=1 docker exec "${AUTH}" wget -qO- --header 'Content-Type: application/json' --post-file /tmp/entrar.json \
+  'http://127.0.0.1:9999/token?grant_type=password' 2> "${T}/wget-sesion.err")"
+MSYS_NO_PATHCONV=1 docker exec "${AUTH}" rm -f /tmp/entrar.json
+[[ "${sesion}" == *access_token* ]] && ok "el admin sintético entra con su clave por GoTrue" || ko "el admin no pudo entrar por GoTrue: $(tail -n1 "${T}/wget-sesion.err")"
+unset sesion
 
 echo "RESULTADO: ${pass} PASÓ · ${fail} FALLÓ"
 [[ "${fail}" == 0 ]]
