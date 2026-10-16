@@ -134,6 +134,14 @@ describe("generarSql", () => {
     expect(s.aplicar).toContain("values (v_tenant, upper(c.prefijo), c.nombre_excel || ' (aliado raíz)'");
     expect(s.aplicar).not.toMatch(/public\.next_markbox/);
     expect(s.aplicar).not.toMatch(/assert_tenant_match|get_user_tenant_id/);
+    // El guard de clients (0371) exige <cadena>-NNNN para un cliente de aliado: la
+    // marca del Excel se usa si ya tiene esa forma y, si no, se calcula la siguiente
+    // libre como next_markbox_aliado, sin esa función (segundo simulacro, 2026-10-16).
+    expect(s.aplicar).toContain("v_chain := public.aliado_prefix_chain(v_aliado);");
+    expect(s.aplicar).toContain("if c.candidatos[1] ~ ('^' || v_chain || '-\\d+$') then");
+    expect(s.aplicar).toContain("select h.markbox from public.client_markbox_history h where h.tenant_id = v_tenant");
+    expect(s.aplicar).toContain("values (v_tenant, v_markbox_nuevo, c.nombre_excel || ' · ' || c.clave, v_aliado,");
+    expect(s.aplicar).not.toMatch(/values \(v_tenant, c\.candidatos\[1\], c\.nombre_excel \|\| ' · '/);
     expect(s.aplicar.match(/public\.append_audit_event\(/g)?.length).toBe(4);
     expect(s.aplicar).toContain("'job', 'succeeded'");
   });

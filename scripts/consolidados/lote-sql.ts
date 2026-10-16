@@ -198,6 +198,8 @@ declare
   v_aliado uuid;
   v_padre uuid;
   v_root_client uuid;
+  v_chain text;
+  v_markbox_nuevo text;
   v_fact_id uuid;
   v_ship uuid;
   v_receipt uuid;
@@ -356,9 +358,27 @@ begin
                   'Creado por la carga ' || cab.lote || ' (prueba)')
           returning id into v_aliado;
         end if;
+        -- El guard de clients (migr 0371) exige que un cliente de aliado lleve
+        -- <cadena del aliado>-NNNN. Si la marca del Excel ya tiene esa forma
+        -- (DC-0014) se usa; si no (DC-01-ALESS), se calcula la siguiente libre con
+        -- la misma regla de next_markbox_aliado (max sobre clients y el historial),
+        -- sin pasar por esa función porque exige sesión. La marca del Excel queda
+        -- en las notas; el envío conserva el Remitente tal cual.
+        v_chain := public.aliado_prefix_chain(v_aliado);
+        if c.candidatos[1] ~ ('^' || v_chain || '-\d+$') then
+          v_markbox_nuevo := c.candidatos[1];
+        else
+          select v_chain || '-' || lpad((coalesce(max((regexp_match(u.m, '^' || v_chain || '-(\d+)$'))[1]::int), 0) + 1)::text, 4, '0')
+            into v_markbox_nuevo
+            from (
+              select cl.markbox as m from public.clients cl where cl.tenant_id = v_tenant
+              union all
+              select h.markbox from public.client_markbox_history h where h.tenant_id = v_tenant
+            ) u;
+        end if;
         insert into public.clients (tenant_id, markbox, name, aliado_id, notes)
-        values (v_tenant, c.candidatos[1], c.nombre_excel || ' · ' || c.clave, v_aliado,
-                'Creado por la carga ' || cab.lote || ' (prueba): cliente de aliado ' || c.prefijo)
+        values (v_tenant, v_markbox_nuevo, c.nombre_excel || ' · ' || c.clave, v_aliado,
+                'Creado por la carga ' || cab.lote || ' (prueba): cliente de aliado ' || c.prefijo || ' · marca del Excel ' || c.clave)
         returning id, markbox into v_client_id, v_markbox;
       end if;
     end if;
