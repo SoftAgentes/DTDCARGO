@@ -11,8 +11,8 @@
  * CONTROL ROJO: sin 0491 el contrato cae (ninguna escritura deja evento).
  * MUTANTES: cada uno es una 0491 coherente con un defecto y tiene que caer.
  * DRIFT: si la función ya existe, el preflight aborta sin cambiar nada.
- * ESPERA: la 0491 está declarada en migrations-baseline.json y su cabecera
- * dice «NO APLICADA».
+ * APLICADA: la 0491 salió de las esperas de migrations-baseline.json; la
+ * cabecera «NO APLICADA» se conserva porque el ledger guarda el texto exacto.
  */
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -192,18 +192,14 @@ describe("SDD-0539 · 0491 auditoría del registro de transportistas (PGlite)", 
   }, SLOW);
 });
 
-describe("SDD-0539 · 0491 NO APLICADA (texto y espera declarada)", () => {
-  it("la cabecera dice que no está aplicada y nombra el runbook", () => {
+describe("SDD-0539 · 0491 aplicada al servidor propio (texto)", () => {
+  it("la cabecera «NO APLICADA» no se corrige: el ledger guarda el texto exacto", () => {
     expect(FILE_0491).toContain("NO APLICADA A PRODUCCIÓN");
     expect(FILE_0491).toContain("docs/runbooks/aplicar-migraciones-prod.md");
   });
 
-  it("está declarada como espera, con el OK nominal y el orden migrate-first", () => {
-    const espera = BASELINE.pendingBelowCutoff["0491_freight_carriers_auditoria"];
-    expect(espera).toMatch(/^PENDIENTE DE APLICAR — SDD-0539/);
-    expect(espera).toContain("MIGRATE-FIRST COMPATIBLE");
-    expect(espera).toContain("Requiere OK nominal de Sam");
-    expect(espera).toContain("name exacto 0491_freight_carriers_auditoria");
+  it("aplicada al servidor propio el 2026-10-16 con el OK nominal de Sam: ya no es una espera", () => {
+    expect(BASELINE.pendingBelowCutoff["0491_freight_carriers_auditoria"]).toBeUndefined();
     expect(BASELINE.cutoff).toBe(238);
   });
 });
