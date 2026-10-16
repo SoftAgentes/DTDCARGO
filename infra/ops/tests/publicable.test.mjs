@@ -13,7 +13,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import {
   activado,
   crearGitHub,
@@ -348,8 +348,13 @@ describe("clientes HTTP", () => {
 });
 
 describe("etiquetas de migraciones", () => {
+  const temporales = [];
+  afterAll(() => {
+    for (const d of temporales) fs.rmSync(d, { recursive: true, force: true });
+  });
   function repoFalso(archivos, baseline) {
     const raiz = fs.mkdtempSync(path.join(os.tmpdir(), "publicable-"));
+    temporales.push(raiz);
     fs.mkdirSync(path.join(raiz, "supabase", "migrations"), { recursive: true });
     for (const a of archivos) fs.writeFileSync(path.join(raiz, "supabase", "migrations", `${a}.sql`), "-- x\n");
     fs.writeFileSync(path.join(raiz, "supabase", "migrations-baseline.json"), JSON.stringify(baseline));
