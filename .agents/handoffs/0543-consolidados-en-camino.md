@@ -21,13 +21,14 @@ Cargar en el Studio los contenedores que ya zarparon (59 primero) desde los Exce
 - Evento `carga_en_camino` en el catálogo de avisos (sólo catálogo y copy).
 - Runbook `docs/runbooks/cargar-consolidados.md`.
 - Corrida en seco del 59 (fuera del repo, `DTD-consolidados/59/2026-10-16`): lote `carga-consolidado:59:8dd77b3c` · 50 envíos · 50 recepciones · 98 items · 1.288 cajas · 33 clientes · 33 facturas · 68,811 m³ · 20.373,45 kg · base $48.652,84 (flete $47.241,75 + excesos de peso $1.411,05). 19 avisos en `resumen.md` (remitentes sin secuencia, uno con barra corregido, 7 embarques sin peso, 2 a $0, la fila de totales del Excel difiere en 3 cajas/0,043 m³/10 kg).
+- `purgar.sql` (pedido del Director): borrado definitivo para prueba, físico y en orden de dependencias, incluidos los clientes y aliados que el lote creó; se niega fuera de la base de prueba (busca el cliente sintético de la semilla) y termina con conteo cero por lote. Paso `purgar --confirm-purga <id>` en `aplicar-lote.sh`. El log de auditoría (append-only, sin nombres) queda como registro.
 
 ## VALIDACIÓN
 
 | Comprobación | Resultado |
 |---|---|
 | `vitest run scripts/__tests__/consolidados-*.test.ts` | PASÓ (39) |
-| `bash infra/ops/tests/prueba-aplicar-lote.sh` | PASÓ (19) |
+| `bash infra/ops/tests/prueba-aplicar-lote.sh` | PASÓ (21, con purgar) |
 | `vitest run lib/portal/__tests__/pending-acceptance.test.ts`, `PendingInvoiceGate.test.tsx`, `client-notification-types.test.ts`, `app/portal/(app)/page.test.tsx`, `portal-legal-queries.test.ts` | PASÓ (41) |
 | `tsc --noEmit` (proyecto completo) | PASÓ (0 errores) |
 | `eslint` sobre los archivos tocados | PASÓ |
@@ -47,7 +48,11 @@ Cargar en el Studio los contenedores que ya zarparon (59 primero) desde los Exce
 
 ## PR / BRANCH
 
-Rama local `claude/suspicious-hofstadter-ccafd8`, sin push. PR en borrador contra `main` cuando el Director autorice publicar.
+Rama `claude/suspicious-hofstadter-ccafd8` publicada (push autorizado por el Director el 2026-10-16 ~23:05Z). PR en borrador contra `main`: [hailuwaycom-sketch/DTDCARGO#260](https://github.com/hailuwaycom-sketch/DTDCARGO/pull/260). Sin merge: fusionar lo decide Sam (un merge a main publica solo).
+
+## Cifras corregidas (pedido del Director)
+
+La primera lectura a ojo decía 39 remitentes, 99 filas, 1.285 cajas y ≈ $47.210: contaba sólo las filas con marca `DTD-` y copiaba la celda de total del Excel. El generador mide fila por fila: 98 filas con Remitente (la 99.ª es la de totales), 50 remitentes (los aliados DC/MMVE/TEJ suman 11), 1.288 cajas (la SUM del Excel no cubre todas las filas: 3 cajas, 0,043 m³ y 10 kg de diferencia), flete $47.241,75 por «TOTAL FACTURADO» y $1.411,05 más de excesos de peso. Spec y handoff llevan estas cifras.
 
 ## PENDIENTES DE ESTA TAREA
 
