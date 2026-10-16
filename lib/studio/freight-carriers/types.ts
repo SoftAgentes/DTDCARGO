@@ -273,6 +273,34 @@ export function validateTariffInput(
 /** Tope de ciudades por lote: un tarifario completo de hoy cabe con holgura. */
 export const MAX_LOTE = 300;
 
+/**
+ * Tope, en bytes, del filtro `city_slug=in.(…)` que el lote manda en la URL
+ * del UPDATE (SDD-0539).
+ *
+ * PostgREST no recibe los filtros en el cuerpo: van en la URL, y la URL tiene
+ * un techo. Un proxy nginx con su configuración por defecto rechaza con 414
+ * una línea de petición de más de 8 KB (`large_client_header_buffers`), y
+ * supabase-js avisa a partir de 8.000 caracteres (`urlLengthLimit`). Con 6.000
+ * para el filtro queda margen para la ruta y los otros filtros, que suman unos
+ * 160 bytes. Las 178 ciudades del catálogo sembrado (0332) miden 2.214.
+ */
+export const MAX_BYTES_FILTRO_LOTE = 6000;
+
+/** Lo que supabase-js pone entre comillas dentro de un `in.(…)`. */
+const RESERVADOS_POSTGREST = /[,()]/;
+
+/**
+ * Cuántos bytes ocupa `columna=in.(v1,v2,…)` en la URL, medido igual que lo
+ * arma supabase-js: sin repetidos, con comillas para `,()` y codificado como
+ * `URLSearchParams` (`,` pasa a `%2C`). El resultado es ASCII: largo = bytes.
+ */
+export function bytesFiltroIn(columna: string, valores: readonly string[]): number {
+  const lista = [...new Set(valores)]
+    .map((v) => (RESERVADOS_POSTGREST.test(v) ? `"${v}"` : v))
+    .join(",");
+  return new URLSearchParams([[columna, `in.(${lista})`]]).toString().length;
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type BulkPriceFieldKey = "costUsdCbm" | "priceUsdCbm";
