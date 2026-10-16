@@ -9,7 +9,7 @@ solo guarda plantillas, nunca el `.env` ni los datos.
 compose.yml               app: web (imagen de GHCR), cron, auth-templates · redes
 compose.supabase.yml      overlay Supabase (db, api-gw, auth, rest, realtime, storage, imgproxy, functions; studio/meta y supavisor por perfil)
 compose.supabase.s3.yml   overlay Storage sobre R2/B2 (producción)
-compose.staging.yml       overlay del staging con copia de producción: solo las IP de STAGING_ALLOWED_IPS
+compose.staging.yml       overlay del entorno de prueba con datos sintéticos (SDD-0540): clave en el web, noindex, Mailpit, ≤ 3.072 MiB · docs/runbooks/entorno-prueba.md
 .env.example              TODAS las variables, solo nombres y placeholders
 cron/                     imagen crond+curl y el crontab GENERADO (scripts/build-crontab.mjs)
 supabase/templates/       plantillas de correo de Auth (las sirve auth-templates)
