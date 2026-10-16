@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 528 specs)
+### Índice de specs (generado · 529 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -566,6 +566,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0540 | Entorno de prueba de DTD Cargo con base separada en el VPS (d… | proposed | interno |
 | 0541 | Publicación automática de la web en el servidor propio | in-progress | interno |
 | 0542 | Dashboard: los enlaces internos llevan a una pantalla que existe | in-progress | interno |
+| 0545 | sdd:next --reserve: --expect, --number y aviso de hueco reciente | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0543, 0544 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
