@@ -31,20 +31,37 @@ import { Suspense, useEffect, useLayoutEffect, useSyncExternalStore } from "reac
  * Componente propio (no `@next/third-parties`): cero deps nuevas + control del
  * page_view en navegación SPA + gating por ruta. El CSP (next.config.ts) ya
  * permite googletagmanager.com + google-analytics.com.
+ *
+ * Apagado en el build (SDD-0544): `NEXT_PUBLIC_GA_ID=off`, exactamente así,
+ * apaga GA4 y Ads en una imagen que no es la de producción (el entorno de
+ * prueba de la SDD-0540). La comparación va escrita en cada constante y contra
+ * `process.env` directo a propósito: el bundler reemplaza la variable por el
+ * literal `"off"`, el minificador pliega `"off" === "off"` y descarta la otra
+ * rama, y los IDs de la propiedad y de la campaña no llegan a ningún chunk de
+ * `.next/static`. Con un `.trim()` o un helper en medio eso no pasa: la 0518
+ * midió que el minificador no pliega `"".trim()`. Contrato:
+ * `components/Analytics.apagado.test.tsx`.
  */
 
 const GA_ID =
-  process.env.NEXT_PUBLIC_GA_ID?.trim() ||
-  (process.env.NODE_ENV === "production" ? "G-25CD7BZH98" : "");
+  process.env.NEXT_PUBLIC_GA_ID === "off"
+    ? ""
+    : process.env.NEXT_PUBLIC_GA_ID?.trim() ||
+      (process.env.NODE_ENV === "production" ? "G-25CD7BZH98" : "");
 
 /**
  * Google Ads — conversión de la campaña. La etiqueta de Ads carga junto al gtag
  * de GA4 (mismo loader) y la conversión "Click WhatsApp" se dispara en cada
  * click a un link de WhatsApp (el CTA principal del sitio). El `send_to` lo
- * generó la acción de conversión en Google Ads (categoría Contacto).
+ * generó la acción de conversión en Google Ads (categoría Contacto). Con el
+ * apagado del build (ver arriba) los dos quedan vacíos.
  */
-const ADS_ID = "AW-561290482";
-const WHATSAPP_CONVERSION = "AW-561290482/qbu2CILjn7ocEPK50osC";
+const ADS_ID =
+  process.env.NEXT_PUBLIC_GA_ID === "off" ? "" : "AW-561290482";
+const WHATSAPP_CONVERSION =
+  process.env.NEXT_PUBLIC_GA_ID === "off"
+    ? ""
+    : "AW-561290482/qbu2CILjn7ocEPK50osC";
 
 /**
  * Prefijos de rutas donde GA NO se carga (evita PII a Google).
@@ -341,6 +358,9 @@ export const WHATSAPP_SHARE_RE = /wa\.me\/\?/i;
  * de clientes ya captados — sus clicks contaminarían la conversión de captación.
  */
 function fireWhatsAppSignals(origin: string) {
+  // Sin ID (desarrollo o apagado del build, SDD-0544) no sale nada, aunque otro
+  // script haya dejado un `gtag` en la ventana.
+  if (!GA_ID) return;
   if (typeof window === "undefined" || typeof window.gtag !== "function") return;
   if (isLocationExcluded(window.location.href)) return;
   if (window.top !== window.self) return;
@@ -370,6 +390,7 @@ export function trackWhatsAppConversion(origin: string) {
  * los key events. NO toca la conversión de Ads (esa es el click a WhatsApp).
  */
 export function trackLead(method: "contacto" | "estimado" | "registro") {
+  if (!GA_ID) return;
   if (typeof window === "undefined" || typeof window.gtag !== "function") return;
   if (isLocationExcluded(window.location.href)) return;
   // Mismo guard que la conversión: dentro de un iframe (embed en el portal de

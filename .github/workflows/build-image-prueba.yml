@@ -19,8 +19,12 @@ name: Imagen Docker de prueba
 # Etiqueta única `prueba-sha-<sha>`: nunca `sha-*` ni `:main`, para que ninguna
 # imagen de prueba se confunda con una de producción.
 #
-# Google Analytics y Ads siguen dentro de la imagen hasta la Fase 2 de la SDD-0540
-# (components/Analytics.tsx cae al ID real con el valor vacío): el resumen lo avisa.
+# Dos valores fijos que no salen de variables (SDD-0544, Fase 2 de la SDD-0540):
+#   - NEXT_PUBLIC_GA_ID=off apaga Google Analytics y la etiqueta de Ads en el build
+#     (components/Analytics.tsx). La comprobación del bundle exige 0 archivos de
+#     .next/static con G-25CD7BZH98 o AW-561290482.
+#   - APP_ENV=staging llega al `next build` (ARG del Dockerfile) para que las páginas
+#     prerenderizadas también lleven el aviso «Entorno de prueba».
 #
 # scripts/__tests__/build-image-prueba-workflow.test.mjs vigila este contrato.
 
@@ -119,8 +123,11 @@ jobs:
           cache-from: type=gha,scope=prueba
           cache-to: type=gha,mode=max,scope=prueba
           provenance: false
-          # Solo variables del entorno `prueba` (y el SHA). Sin secrets.
+          # Solo variables del entorno `prueba`, el SHA y los dos valores fijos de la
+          # SDD-0544 (GA y Ads apagados, entorno staging). Sin secrets.
           build-args: |
+            APP_ENV=staging
+            NEXT_PUBLIC_GA_ID=off
             NEXT_PUBLIC_BUILD_SHA=${{ inputs.sha }}
             NEXT_PUBLIC_SITE_URL=${{ vars.PRUEBA_SITE_URL }}
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.PRUEBA_SUPABASE_URL }}
@@ -132,14 +139,19 @@ jobs:
         id: bundle
         run: |
           set -u
+          # c: archivos de todo .next · s: archivos de .next/static, lo que baja el
+          # navegador · n: JS de .next/static (sin ellos un 0 no probaría nada).
           cuenta="$(docker run --rm --network none --entrypoint /bin/sh \
             -e P_PRUEBA="${PRUEBA_HOST}" -e P_PROD="${PROD_HOST}" -e P_REF="${CLOUD_REF}" \
             "${IMAGE}:prueba-sha-${SHA}" \
-            -c 'c() { grep -rlF -- "$1" /app/.next 2>/dev/null | wc -l; }; echo "$(c "$P_PRUEBA") $(c "$P_PROD") $(c "$P_REF") $(c G-25CD7BZH98) $(c AW-561290482)"')"
-          read -r c_prueba c_prod c_ref c_ga c_ads <<< "${cuenta}"
-          echo "host de prueba: ${c_prueba} · host de producción: ${c_prod} · ref de Cloud: ${c_ref} · GA: ${c_ga} · Ads: ${c_ads}"
+            -c 'c() { grep -rlF -- "$1" /app/.next 2>/dev/null | wc -l; }; s() { grep -rlF -- "$1" /app/.next/static 2>/dev/null | wc -l; }; n() { find /app/.next/static -name "*.js" 2>/dev/null | wc -l; }; echo "$(c "$P_PRUEBA") $(c "$P_PROD") $(c "$P_REF") $(n) $(s G-25CD7BZH98) $(s AW-561290482) $(c G-25CD7BZH98) $(c AW-561290482)"')"
+          read -r c_prueba c_prod c_ref n_js s_ga s_ads c_ga c_ads <<< "${cuenta}"
+          echo "host de prueba: ${c_prueba} · host de producción: ${c_prod} · ref de Cloud: ${c_ref}"
+          echo "JS en .next/static: ${n_js} · GA ahí: ${s_ga} · Ads ahí: ${s_ads} (en todo .next: GA ${c_ga} · Ads ${c_ads})"
           [[ "${c_prueba}" -ge 1 ]] || { echo "::error::ningún archivo de .next nombra ${PRUEBA_HOST}"; exit 1; }
           [[ "${c_prod}" -eq 0 && "${c_ref}" -eq 0 ]] || { echo "::error::el bundle nombra producción o Supabase Cloud"; exit 1; }
+          [[ "${n_js}" -ge 1 ]] || { echo "::error::.next/static sin JS: no se puede comprobar Google Analytics"; exit 1; }
+          [[ "${s_ga}" -eq 0 && "${s_ads}" -eq 0 ]] || { echo "::error::Google Analytics o Ads en .next/static: el build no apagó NEXT_PUBLIC_GA_ID"; exit 1; }
           echo "ga=${c_ga}" >> "$GITHUB_OUTPUT"
           echo "ads=${c_ads}" >> "$GITHUB_OUTPUT"
 
@@ -155,7 +167,7 @@ jobs:
             echo '```'
             echo "Sin despliegue: la sesión de Contabo corre desplegar-prueba.sh."
             echo ""
-            echo "Aviso: Google Analytics (${GA}) y Ads (${ADS}) siguen en la imagen hasta la Fase 2 de la SDD-0540."
+            echo "Google Analytics y Ads: 0 archivos en .next/static (SDD-0544). En todo .next: GA ${GA} · Ads ${ADS}; si no es 0, verificar-aislamiento.sh --exigir-sin-ga va a fallar."
           } >> "$GITHUB_STEP_SUMMARY"
         env:
           GA: ${{ steps.bundle.outputs.ga }}

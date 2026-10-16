@@ -20,7 +20,10 @@ Cómo se crea, se usa, se resetea y se destruye el entorno de prueba del VPS. Es
 - **Un despliegue a prueba no necesita el OK de Sam (D5).** Producción sí lo necesita, y cada migración en producción también.
 - **No es producción.** Nada de aquí escribe en `dtd-cargo`. Todos los scripts rechazan el proyecto `dtd-cargo` y cualquier proyecto que no termine en `-staging`.
 
-Pendiente de la Fase 2 (otra SDD): Google Analytics y la etiqueta de Ads siguen dentro de la imagen de prueba. `components/Analytics.tsx` cae al ID real con el valor vacío. `verificar-aislamiento.sh` lo marca como AVISO.
+Fase 2 ([SDD-0544](../specs/0544-prueba-producto-minimo/spec.md)), desde una imagen construida con ese código:
+- **Sin Google Analytics ni Ads.** `build-image-prueba.yml` construye con `NEXT_PUBLIC_GA_ID=off` y falla si `.next/static` nombra `G-25CD7BZH98` o `AW-561290482`. Con una imagen así, `verificar-aislamiento.sh` se corre con `--exigir-sin-ga`. El resumen del workflow dice cuántos archivos de todo `.next` los nombran: si no es 0, esa opción falla.
+- **Aviso «Entorno de prueba»** arriba de cada pantalla (sitio público, Studio, Portal y `/m`), con `APP_ENV=staging`. El workflow también lo manda al build (`APP_ENV=staging`) para las páginas que se prerenderizan.
+- **Correos de la app simulados aunque haya llave**: con `APP_ENV=staging`, `resendSend` no llama a Resend y el `mail_log` queda en `queued` con `no_key`. La consulta de cédulas usa un provider simulado y la ficha cae al piso manual.
 
 ## 1 · Piezas
 
@@ -171,7 +174,7 @@ La puerta de prueba deja pasar solo la IP de Sam y el propio VPS. Las dos variab
 
    La clave viaja a curl en un archivo `-K` 600 y nunca por argumentos. El resumen agrega «con credenciales: sí». Dos puntos del smoke están pensados para producción:
    - el de la CSP espera `supabase.dtdcargo.com` y prueba nombra `supabase-prueba.dtdcargo.com`, así que en prueba **falla siempre**;
-   - el de Google Analytics **pasa hoy** porque GA sigue en la imagen. Cuando la Fase 2 lo apague, fallará también en prueba.
+   - el de Google Analytics **falla en prueba** con una imagen de la Fase 2 (SDD-0544): GA está apagado a propósito. Con una imagen anterior pasaba porque GA seguía adentro.
 4. **Sam.** Abre `https://prueba.dtdcargo.com`. El panel de entorno del Studio muestra `staging`, el SHA y las integraciones en `mock`.
 
 Una sola ranura: prueba muestra una rama a la vez y el Director decide el turno.
@@ -270,6 +273,6 @@ Las corridas pesadas piden turno al Director: una a la vez.
 
 ## 9 · Dependencias y pendientes
 
-- **Fase 2 (producto):** apagar Google Analytics y Ads en el build, el aviso visible «Entorno de prueba» (D11) y, si se pide, el buzón de prueba para los correos de la app (D9).
+- **Fase 2 (producto, [SDD-0544](../specs/0544-prueba-producto-minimo/spec.md)):** Google Analytics y Ads apagados en el build, el aviso visible «Entorno de prueba» (D11), los correos de la app y la consulta de cédulas simulados con `APP_ENV=staging` (D9). El buzón de prueba en Mailpit para los correos de la app queda para otra SDD, si se pide.
 - **Fase 3 (servidor):** todo el §2 y su aceptación.
 - **Producción:** el runbook nuevo de migraciones en el servidor propio, para usar `aplicar-migracion.sh` también ahí (otra PR).

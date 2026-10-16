@@ -8,6 +8,7 @@ import { BRAND_ASSETS, CONTACT } from "@/lib/design-tokens";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
 import { Analytics } from "@/components/Analytics";
+import { AvisoEntornoPrueba } from "@/components/AvisoEntornoPrueba";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 import { Agentation } from "agentation";
 import "./globals.css";
@@ -303,6 +304,9 @@ export default function RootLayout({
         />
       </head>
       <body>
+        {/* SDD-0544: sólo con APP_ENV=staging. Primero en el body para que un
+            lector de pantalla lo anuncie antes que la página. */}
+        <AvisoEntornoPrueba />
         {children}
         <Analytics />
         <CookieConsentBanner />
