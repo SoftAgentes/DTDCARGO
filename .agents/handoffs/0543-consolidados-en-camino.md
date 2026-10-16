@@ -36,7 +36,8 @@ Cargar en el Studio los contenedores que ya zarparon (59 primero) desde los Exce
 | `pnpm docs:check`, `pnpm sdd:check` | PASÓ |
 | `/ui-check` sobre el Portal | OK para commit (un ajuste aplicado: sin monto repetido con una sola factura) |
 | `pnpm verify` completo | NO EJECUTADO (corrida pesada: turno del Director) |
-| Carga en prueba (previa → simulacro → aplicar → verificar) | PENDIENTE: pedida a la sesión Contabo el 2026-10-16 22:55Z |
+| Corrida local completa del lote (postgres:17 + stubs + 467 migraciones, contenedor `dtd-0543-lote59`, turno del Director, 2026-10-16 23:26Z, 32 s) | PASÓ: previa → simulacro (ROLLBACK, 0 filas) → aplicar (33 fact · 50 rec · 50 env · 1 cons · 36 cli · 3 ali) → verificar PASÓ (50/50/1288/98/33 · 68,811 m³ · 20.373,45 kg · $48.652,84) → previa repetida con conflictos 1/1/50/50/33 → aplicar repetido abortado en preflight → deshacer (vivos 0) → aplicar abortado por «códigos BORRADOS ocupados» → purgar (conteo cero) → aplicar + verificar + purgar otra vez (cero). Contenedor y volúmenes borrados (`docker ps -a`/`volume ls` filtrados: 0). Evidencia local sin nombres en `DTD-consolidados/59/2026-10-16-v5/local-20261016T232558Z/`. |
+| Carga en prueba (previa → simulacro → aplicar → verificar) | EN CURSO con Contabo: v1 falló en `next_markbox` (sesión), v2 en el guard de marcas de aliado, v3 en alias `e`/`r` del bloque DO (los tres parados en el simulacro, sin dejar nada); v4 (5ced2d3b) sólo previa PASÓ; v5 (e2cbeec0, validada en local) entregada. |
 
 ## COMMITS
 
