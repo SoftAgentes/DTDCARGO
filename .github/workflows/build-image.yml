@@ -6,9 +6,12 @@ name: Imagen Docker
 # main (y en una corrida manual) y, solo desde main, mueve también `:main`.
 # Nunca `:latest`: una etiqueta mutable sin SHA no dice qué código corre.
 #
-# NO DESPLIEGA. El servidor hace `docker compose pull && up -d` cuando Sam lo
-# decide (docs/runbooks/servidor-contabo.md). Separar "publicar" de "desplegar"
-# es lo que permite construir sin tocar producción.
+# NO DESPLIEGA. Separar "construir" de "publicar" es lo que permite construir
+# sin tocar producción. Desde la SDD-0541, publicable.yml mueve `:publicable`
+# cuando además el CI está en verde, y el servidor la sigue con un timer
+# (infra/ops/web/publicar-web.sh). Para eso la imagen lleva dos etiquetas más:
+# las migraciones del commit y las huellas de lo que vive fuera de la imagen
+# (compose, cron, functions), que el servidor compara antes de publicar.
 #
 # Los `NEXT_PUBLIC_*` se inlinean en el bundle en `next build`, así que viajan
 # como build args desde VARIABLES del repositorio (Settings → Variables), nunca
@@ -55,6 +58,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Etiquetas para el servidor (SDD-0541)
+        id: servidor
+        # Si este paso falla, la imagen se construye igual, sin estas tres
+        # etiquetas, y el servidor se niega a publicarla (falla cerrado; `volver`
+        # sí puede llegar a ella si es la anterior). Se escribe primero a un
+        # archivo para no dejar un bloque a medias en GITHUB_OUTPUT.
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          node infra/ops/web/publicable.mjs etiquetas > "$RUNNER_TEMP/etiquetas-0541.txt"
+          huellas="$(bash infra/ops/web/huellas-fuera-de-imagen.sh repo . --etiqueta)"
+          echo "org.dtdcargo.fuera-de-imagen=${huellas}" >> "$RUNNER_TEMP/etiquetas-0541.txt"
+          { echo 'labels<<FIN_ETIQUETAS_0541'; cat "$RUNNER_TEMP/etiquetas-0541.txt"; echo 'FIN_ETIQUETAS_0541'; } >> "$GITHUB_OUTPUT"
+          cut -c1-120 "$RUNNER_TEMP/etiquetas-0541.txt"
+
       - name: Calcular etiquetas
         id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
@@ -73,7 +91,11 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          # Las de metadata-action (revision = el SHA, source = el repo) y las
+          # de la SDD-0541 (vacías si su paso falló).
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+            ${{ steps.servidor.outputs.labels }}
           # Caché de capas en GitHub Actions: `pnpm install` no se repite si el
           # lockfile no cambió. `mode=max` guarda también las capas intermedias.
           cache-from: type=gha
@@ -105,7 +127,7 @@ jobs:
             echo '```'
             echo "${TAGS}"
             echo '```'
-            echo "Sin despliegue: el servidor hace \`docker compose pull\` cuando Sam lo decide."
+            echo "Sin despliegue: la web la publica el servidor cuando \`:publicable\` llega a este commit (SDD-0541)."
           } >> "$GITHUB_STEP_SUMMARY"
         env:
           TAGS: ${{ steps.meta.outputs.tags }}

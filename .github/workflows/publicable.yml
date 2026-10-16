@@ -1,0 +1,62 @@
+name: Imagen publicable
+
+# SDD-0541 · mueve ghcr.io/hailuwaycom-sketch/dtdcargo:publicable al commit más
+# nuevo de main que ya se puede publicar: «Imagen Docker» en verde y «Calidad
+# continua» en verde en main, o en verde en la cabeza de su PR con el mismo árbol
+# y la rama al día (infra/ops/web/publicable.mjs explica por qué eso es lo mismo).
+# Nunca retrocede. El servidor sigue esa etiqueta con un timer
+# (infra/ops/web/publicar-web.sh): acá no hay llave del servidor ni SSH, y el
+# servidor no necesita un token de GitHub.
+#
+# Variables del repositorio (opcionales; vacías = apagadas):
+#   PUBLICABLE_CONGELADO=si         no mueve nada (el Director, en un corte o una ventana)
+#   PUBLICABLE_SOLO_CI_DE_MAIN=si   sin el atajo de la PR: espera el CI de main (~30 min)
+
+on:
+  workflow_run:
+    workflows: ["Imagen Docker", "Calidad continua"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      simular:
+        description: "Solo decidir y mostrar el resumen, sin mover la etiqueta"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+  packages: write
+
+# Una decisión a la vez; cada una recorre main desde cero, así que una corrida
+# pendiente que GitHub reemplaza por otra más nueva no pierde nada.
+concurrency:
+  group: imagen-publicable
+  cancel-in-progress: false
+
+jobs:
+  promover:
+    name: Mover :publicable
+    # Solo corridas de main (push o a mano) que terminaron en verde. Las de
+    # pull_request de «Calidad continua» no llegan acá (branches: [main]).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Decidir y mover :publicable
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLICABLE_CONGELADO: ${{ vars.PUBLICABLE_CONGELADO }}
+          PUBLICABLE_SOLO_CI_DE_MAIN: ${{ vars.PUBLICABLE_SOLO_CI_DE_MAIN }}
+          PUBLICABLE_SIMULAR: ${{ inputs.simular && 'si' || '' }}
+        run: node infra/ops/web/publicable.mjs promover
