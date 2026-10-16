@@ -4,6 +4,7 @@
 #
 #   bash infra/ops/tests/prueba-publicar-web.sh               # la prueba
 #   bash infra/ops/tests/prueba-publicar-web.sh --mutantes    # control rojo + mutantes del diff
+#   MUTANTES_SOLO=disco bash … --mutantes                     # solo los mutantes cuyo nombre lo contiene
 #
 # No toca Docker, GHCR, Telegram ni Kuma: `docker`, `curl` y la prueba rápida son
 # dobles con estado en un directorio temporal (el doble de docker resuelve
@@ -31,8 +32,9 @@ if [ "${1:-}" = --mutantes ]; then
   printf '#!/usr/bin/env bash\nexit 0\n' > "${M}/control.sh"
   if correr_suite "${M}/control.sh"; then echo "CONTROL ROJO FALLÓ: la suite pasa contra un script que no hace nada"; exit 1; fi
   echo "control rojo: contra un script vacío la suite falla ($(grep -c '^FALLÓ' "${M}/suite.log") FALLÓ)"
-  mutar() { # $1 = nombre, $2 = texto exacto, $3 = reemplazo
+  mutar() { # $1 = nombre, $2 = texto exacto, $3 = reemplazo. MUTANTES_SOLO=<texto> corre solo los que lo nombran.
     local n
+    case "$1" in *"${MUTANTES_SOLO:-}"*) ;; *) return ;; esac
     n="$(perl -0ne 'BEGIN { $a = shift } $c = () = /\Q$a\E/g; print $c' "$2" "${ORIG}")"
     [ "${n}" = 1 ] || { echo "MUTANTE MAL ARMADO «$1»: el texto aparece ${n} veces"; vivos=$((vivos + 1)); return; }
     perl -0pe 'BEGIN { $a = shift; $b = shift } s/\Q$a\E/$b/' "$2" "$3" "${ORIG}" > "${M}/mutante.sh"
@@ -63,8 +65,8 @@ if [ "${1:-}" = --mutantes ]; then
   mutar "nunca está al día" 'if [ -n "${d}" ]; then [ "${d}" = "$3" ]; else' 'if true; then false; else'
   mutar "borra la imagen anterior" '|| grep -qx "${id}" <<< "${protegidas}"; then continue; fi' '; then continue; fi'
   mutar "sin chequeo de disco" 'if ! libre_suficiente; then
-    avisar_una_vez disco' 'if false; then
-    avisar_una_vez disco'
+    log "${MOTIVO}"; avisar_una_vez disco' 'if false; then
+    log "${MOTIVO}"; avisar_una_vez disco'
   mutar "no espera healthy" 'esperar_web "$2" || { MOTIVO="la web no quedó healthy"; return 1; }' 'true'
   mutar "publica a mano y el vigilante la pisa" '      marcar_rechazo "${pdig}" "${prev}"' '      true "${pdig}" "${prev}"'
   echo "RESULTADO MUTANTES: ${muertos} muertos · ${vivos} vivos"
@@ -413,14 +415,18 @@ correr volver
 correr volver; [ "${RC}" = 1 ] && ok "volver otra vez: ya corre la anterior, no hace nada" || ko "volver dos veces rc=${RC}"
 
 echo; echo "== limpieza de imágenes =="
-reiniciar
+# Conservar = 2. La anterior (A) es la MÁS VIEJA de todas: si se conserva es por
+# estar protegida, no por su posición. Orden por fecha: B, v4, v3, v2, v1, A.
+reiniciar; echo 0 > "${D}/img/${IA}/creado"
 for i in 1 2 3 4; do
   id="$(hx "vieja-${i}")"; s="$(hx "commit-vieja-${i}" | cut -c1-40)"
-  imagen "${s}" "${id}" "sha256:$(hx "dig-vieja-${i}")" "${i}"; etiquetar_local "${id}" "sha-${s}"
+  imagen "${s}" "${id}" "sha256:$(hx "dig-vieja-${i}")" "$((50 + i))"; etiquetar_local "${id}" "sha-${s}"
 done
 correr vigilar
-[ "${RC}" = 0 ] && [ -f "${D}/img/${IA}/local" ] && [ -f "${D}/img/${IB}/local" ] && [ "$(grep -c . "${D}/rmi.log")" = 8 ] \
-  && ! grep -qv "^${IMG}" "${D}/rmi.log" && ok "conserva la nueva y la anterior; borra las 4 viejas (etiqueta y digest) y nada de otro repositorio" || { ko "limpieza: $(cat "${D}/rmi.log" 2>/dev/null | wc -l) borradas"; ver; }
+[ "${RC}" = 0 ] && [ -f "${D}/img/${IA}/local" ] && [ -f "${D}/img/${IB}/local" ] && [ -f "${D}/img/$(hx vieja-4)/local" ] \
+  && ok "conserva la nueva, la anterior (aunque sea la más vieja) y las 2 más nuevas" || { ko "limpieza: borró de más ($(tr '\n' ' ' < "${D}/rmi.log" 2>/dev/null | cut -c1-120))"; ver; }
+[ "$(grep -c . "${D}/rmi.log" 2>/dev/null)" = 6 ] && ! grep -qv "^${IMG}" "${D}/rmi.log" && [ ! -f "${D}/img/$(hx vieja-1)/local" ] \
+  && ok "borra las otras 3 (etiqueta y digest de cada una) y nada de otro repositorio" || { ko "limpieza: $(grep -c . "${D}/rmi.log" 2>/dev/null) borradas"; ver; }
 
 echo; echo "== estado, revisar y uso =="
 reiniciar; correr estado
