@@ -273,11 +273,33 @@ secretos no salen de ahí; el repo solo tiene los `.env.example`.
 │   ├── cron/crontab           ← generado por scripts/build-crontab.mjs (del repo)
 │   ├── data/db/               ← PGDATA (bind mount; solo lo toca el contenedor db)
 │   └── backups/               ← dumps locales, 7 días (backup-restore-servidor.md)
-├── dtd-cargo-staging/         ← misma estructura, project name dtd-cargo-staging, host staging.dtdcargo.com
+├── dtd-cargo-staging/         ← ENTORNO DE PRUEBA (SDD-0540): misma copia de infra/dtd-cargo/,
+│   │                            project name dtd-cargo-staging, overlay compose.staging.yml
+│   ├── .env                   ← 0600, generado en el servidor por env-prueba.sh; secretos propios, sin integraciones
+│   ├── functions/             ← armado como en producción (README de infra/dtd-cargo › Arrancar)
+│   ├── data/                  ← PGDATA y Storage de prueba: solo datos sintéticos
+│   ├── secretos/              ← 0700: clave-web.txt (puerta del web) y cuentas-prueba.txt (cuentas sintéticas)
+│   └── EN-PRUEBA.txt          ← qué rama, SHA y PR están en prueba, desde cuándo y quién la subió
 ├── loop3d/                    ← desde infra/templates/proyecto/ (dos webs, un Supabase)
 ├── renta-aguada/              ← desde infra/templates/proyecto/ cuando exista código
-└── ops/                       ← infra/ops/: traefik standalone (si no hay Dokploy), uptime-kuma, backup/
+└── ops/                       ← infra/ops/: traefik standalone (si no hay Dokploy), uptime-kuma, backup/,
+                                 staging/ y migrate/ (scripts de prueba); paquetes/ (copias por scp) y evidencias/
 ```
+
+**Entorno de prueba (desde la SDD-0540, 2026-10-16).**
+- **Hosts y datos.** Vive en `prueba.dtdcargo.com` y `supabase-prueba.dtdcargo.com`, con **datos sintéticos** (D2).
+- **Puerta.** El web y el buzón `/correo/` piden la clave del web (basicAuth de Traefik). Los dos hosts mandan `X-Robots-Tag: noindex`.
+- **Sin integraciones.** No hay Resend, Telegram, Kommo, VAPID, Anthropic, SeaRates ni R2. Los correos de Auth caen en Mailpit.
+- **Sin respaldo.** La semilla se regenera desde el repo.
+- **Procedimiento completo** (crear, subir una rama, ensayar una migración, resetear y destruir): [entorno-prueba.md](entorno-prueba.md).
+- **Smoke del web de prueba:** `smoke-web.sh --host prueba.dtdcargo.com --credenciales /srv/dtd-cargo-staging/secretos/clave-web.txt`.
+
+**Histórico, del 2026-10-09 al 2026-10-13: el staging de la Fase 2.** Ese mismo directorio y ese mismo proyecto fueron el staging **con copia de producción** de la Fase 2:
+- host `staging.dtdcargo.com`;
+- solo las IP de `STAGING_ALLOWED_IPS`;
+- datos reales.
+
+Se destruyó el 2026-10-13 con `destroy-staging.sh` y quedó con 0 contenedores, 0 volúmenes, 0 redes y 0 datos (§2.6 y registro del §5). Sam borró después los registros DNS. Si alguna vez vuelve a hacer falta una copia real, va por excepción fechada, con la lista de IP en los dos hosts. Lo describe el §2.3 de la SDD-0540.
 
 Memoria: la spec fija límites por servicio (`deploy.resources.limits.memory`)
 con la suma de DTD Cargo ≤ 12 GB sobre 24 GB totales; Postgres arranca con
@@ -285,8 +307,17 @@ con la suma de DTD Cargo ≤ 12 GB sobre 24 GB totales; Postgres arranca con
 `max_connections` 100. Loop 3D y Renta Aguada reparten lo que queda; si la
 suma de límites supera 20 GB, hay que subir de plan, no quitar límites.
 
+El entorno de prueba usa 3.072 MiB de límites en total:
+- Postgres con `shared_buffers` 256 MB y 60 conexiones;
+- el overlay lo vigila `scripts/__tests__/entorno-prueba-compose.test.mjs`.
+
+Con prueba, DTD Cargo suma unos 12,5 GiB de límites. Sam decide si acepta ese medio GB (D10 de la SDD-0540).
+
 Imagen de la app: la construye CI en GHCR
-(`ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha>` y `:main`). El servidor
+(`ghcr.io/hailuwaycom-sketch/dtdcargo:sha-<sha>` y `:main`). La de prueba sale
+de otro workflow (`build-image-prueba.yml`, solo a mano) como
+`ghcr.io/hailuwaycom-sketch/dtdcargo:prueba-sha-<sha>`: nunca se despliega en
+producción, y los scripts de prueba no aceptan otra etiqueta. El servidor
 necesita `docker login ghcr.io` con un token de solo lectura de paquetes
 (`read:packages`), guardado en Dokploy (Registries) o en el keyring de
 `deploy`, nunca en el `.env` del compose. Desplegar es fijar el tag en `.env`

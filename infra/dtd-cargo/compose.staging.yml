@@ -1,50 +1,75 @@
-# DTD Cargo · overlay del STAGING con copia de producción (SDD-0505, Fase 2).
-#
-# El staging del ensayo lleva datos reales (usuarios, embarques, documentos), así
-# que no queda abierto a internet como un sitio público: Traefik solo deja pasar
-# las IP de STAGING_ALLOWED_IPS (lista separada por comas, en CIDR: la de Sam y,
-# si hace falta para los smokes, las del equipo). El resto recibe 403.
+# DTD Cargo · overlay del ENTORNO DE PRUEBA, con datos sintéticos (SDD-0540, Fase 1).
 #
 #   docker compose -p dtd-cargo-staging \
 #     -f compose.yml -f compose.supabase.yml -f compose.staging.yml config
 #
-# Los nombres de router, servicio y middleware llevan el nombre del proyecto de
-# compose (compose.yml, compose.supabase.yml), así que staging y producción
-# pueden correr a la vez detrás del mismo Traefik. Estas líneas reemplazan la
-# lista de middlewares de cada router: repiten las de la base y suman la
-# allowlist.
+# Prueba es una copia del stack de producción en el mismo VPS, con su propia
+# base, su Auth, su Storage y sus secretos, y SOLO datos inventados: ningún
+# cliente, ningún correo ni teléfono real (semilla en infra/ops/staging/). Por eso
+# la puerta es una clave en el web (decisión D4 de la spec) y no la lista de IP
+# de la Fase 2 de la SDD-0505: con la clave, Sam entra desde cualquier red y
+# desde el teléfono. Si algún día entra una copia real (opción C del §2.3), antes
+# se vuelve a la lista de IP en los dos hosts.
 #
-# El middleware se define una sola vez, en api-gw (que siempre corre en staging),
-# y web lo usa por referencia.
+# Qué agrega este overlay:
+#   · Límites de memoria del §2.8: suman 3.072 MiB con los servicios que arrancan
+#     sin perfil (scripts/__tests__/entorno-prueba-compose.test.ts lo vigila).
+#   · `X-Robots-Tag: noindex, nofollow` en TODOS los routers: app/robots.ts no
+#     distingue el entorno.
+#   · Clave en el web (`basicAuth` de Traefik) en el host del web y en el buzón
+#     de Mailpit. El host de la API queda sin clave, igual que en producción:
+#     supabase-js manda su propio `Authorization: Bearer` y sin `apikey` la API
+#     responde 401.
+#   · Mailpit sin relay: GoTrue entrega ahí los correos de Auth y Sam los lee en
+#     https://<host del web>/correo/, detrás de la misma clave.
+#   · Postgres con la memoria de prueba (shared_buffers 256 MB, 60 conexiones).
+#
+# Los nombres de router, servicio y middleware llevan el nombre del proyecto de
+# compose (compose.yml, compose.supabase.yml): prueba y producción corren a la vez
+# detrás del mismo Traefik sin pisarse. Las líneas de `middlewares` de abajo
+# REEMPLAZAN la lista de cada router (compose une las etiquetas por clave).
 
 services:
   web:
     labels:
-      # Sin `www.`: el staging no tiene ese registro DNS y Let's Encrypt rechaza el
+      # Sin `www.`: prueba no tiene ese registro DNS y Let's Encrypt rechaza el
       # certificado entero si falla uno de sus nombres (medido el 2026-10-11 con
       # www.staging.dtdcargo.com).
       - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.rule=Host(`${DTD_WEB_HOST:?DTD_WEB_HOST falta en .env}`)"
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-staging-allow@docker"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-web.middlewares=${COMPOSE_PROJECT_NAME}-prueba-noindex@docker,${COMPOSE_PROJECT_NAME}-prueba-clave@docker"
+      # Cabecera de entorno: los smokes y Sam la ven en cualquier respuesta.
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-noindex.headers.customresponseheaders.X-Robots-Tag=noindex, nofollow"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-noindex.headers.customresponseheaders.X-DTD-Entorno=prueba con datos sinteticos"
+      # Usuarios en formato htpasswd con bcrypt (`usuario:$2a$...`, separados por
+      # coma), generados en el servidor por infra/ops/staging/clave-web-prueba.sh.
+      # Sin la variable el compose no arranca: prueba nunca queda abierta.
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-clave.basicauth.users=${PRUEBA_WEB_USUARIOS:?PRUEBA_WEB_USUARIOS falta en .env (clave-web-prueba.sh)}"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-clave.basicauth.realm=DTD Cargo - prueba con datos sinteticos"
+      # La app no ve el `Authorization: Basic` de la puerta.
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-clave.basicauth.removeheader=true"
+    deploy:
+      resources:
+        limits:
+          memory: 576m
 
   api-gw:
     labels:
-      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.middlewares=security-headers@file,${COMPOSE_PROJECT_NAME}-staging-allow@docker"
-      # Dos listas: las IP de las personas (cambian: la de la casa de Sam cambió tres
-      # veces entre el 2026-10-09 y el 12) y la puerta de enlace de la red edge.
-      # Por esa puerta llegan las llamadas que el propio servidor web le hace a
-      # Supabase por la URL pública. Sin ella, todo lo que la app pide desde el
-      # servidor recibe 403: medido el 2026-10-12, la calculadora de /tarifas daba
-      # «RPC error: Forbidden» y Traefik veía 172.18.0.1. Esa dirección solo puede
-      # salir de dentro del VPS. Se obtiene con
-      # `docker network inspect dtd_edge --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}'`.
-      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-staging-allow.ipallowlist.sourcerange=${STAGING_ALLOWED_IPS:?STAGING_ALLOWED_IPS falta en .env (CIDR separados por comas)},${STAGING_INTERNAL_IPS:?STAGING_INTERNAL_IPS falta en .env (puerta de enlace de dtd_edge, p. ej. 172.18.0.1/32)}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-supabase.middlewares=security-headers@file,${COMPOSE_PROJECT_NAME}-prueba-noindex-api@docker"
+      # Middleware propio del gateway: si el web está caído, la API sigue con su
+      # cabecera (un router con un middleware que no existe deja de responder).
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-noindex-api.headers.customresponseheaders.X-Robots-Tag=noindex, nofollow"
+      - "traefik.http.middlewares.${COMPOSE_PROJECT_NAME}-prueba-noindex-api.headers.customresponseheaders.X-DTD-Entorno=prueba con datos sinteticos"
+    deploy:
+      resources:
+        limits:
+          memory: 96m
 
-  # Atrapa-correos del staging. Los usuarios del staging son los de producción
-  # (correos reales de clientes): ningún correo de Auth puede salir del VPS. GoTrue
-  # entrega en Mailpit, que no tiene salida a internet (solo dtd_internal) ni
-  # puertos publicados. Para leerlo: su API en http://mailpit:8025 desde dentro de
-  # la red. Los correos de la app (Resend) quedan apagados porque RESEND_API_KEY
-  # está vacío en el .env del staging.
+  # Atrapa-correos de prueba. GoTrue entrega acá los enlaces mágicos, las
+  # invitaciones y las recuperaciones. Sin `MP_SMTP_RELAY_*`, Mailpit no puede
+  # reenviar nada hacia afuera. Está en `dtd_edge` solo para que Traefik llegue a
+  # su web, en `/correo/` del host del web y detrás de la misma clave. Los
+  # correos de la app (Resend) quedan en modo mock: RESEND_API_KEY no existe en
+  # el .env de prueba (decisión D9).
   mailpit:
     image: axllent/mailpit:v1.31.3
     restart: unless-stopped
@@ -52,17 +77,95 @@ services:
       MP_SMTP_AUTH_ACCEPT_ANY: "true"
       MP_SMTP_AUTH_ALLOW_INSECURE: "true"
       MP_MAX_MESSAGES: "500"
+      MP_WEBROOT: /correo/
     networks:
       - dtd_internal
+      - dtd_edge
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=${DTD_EDGE_NETWORK:-dtd_edge}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.rule=Host(`${DTD_WEB_HOST:?DTD_WEB_HOST falta en .env}`) && PathPrefix(`/correo`)"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.priority=1000"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.tls=true"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-letsencrypt}"
+      - "traefik.http.routers.${COMPOSE_PROJECT_NAME}-correo.middlewares=${COMPOSE_PROJECT_NAME}-prueba-noindex@docker,${COMPOSE_PROJECT_NAME}-prueba-clave@docker"
+      - "traefik.http.services.${COMPOSE_PROJECT_NAME}-correo.loadbalancer.server.port=8025"
     deploy:
       resources:
         limits:
-          memory: 128m
+          memory: 64m
 
   auth:
     environment:
       GOTRUE_SMTP_HOST: mailpit
       GOTRUE_SMTP_PORT: "1025"
-      GOTRUE_SMTP_ADMIN_EMAIL: staging@dtdcargo.com
+      GOTRUE_SMTP_ADMIN_EMAIL: no-responder@prueba.dtdcargo.com
       GOTRUE_SMTP_USER: ""
       GOTRUE_SMTP_PASS: ""
+      GOTRUE_SMTP_SENDER_NAME: "DTD Cargo (prueba)"
+    deploy:
+      resources:
+        limits:
+          memory: 96m
+
+  db:
+    # Mismos dos primeros `-c` que producción (sin `config_file` no cargan
+    # pg_cron, pg_net ni vault) y la memoria de prueba: shared_buffers ≈ 25 % del
+    # límite, 60 conexiones (max_connections × work_mem × 2 cabe en el límite).
+    command:
+      [
+        "postgres",
+        "-c", "config_file=/etc/postgresql/postgresql.conf",
+        "-c", "log_min_messages=fatal",
+        "-c", "shared_buffers=256MB",
+        "-c", "effective_cache_size=768MB",
+        "-c", "work_mem=4MB",
+        "-c", "max_connections=60"
+      ]
+    deploy:
+      resources:
+        limits:
+          memory: 1024m
+
+  realtime:
+    deploy:
+      resources:
+        limits:
+          memory: 320m
+
+  functions:
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  imgproxy:
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  storage:
+    deploy:
+      resources:
+        limits:
+          memory: 192m
+
+  rest:
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+
+  auth-templates:
+    deploy:
+      resources:
+        limits:
+          memory: 32m
+
+  cron:
+    deploy:
+      resources:
+        limits:
+          memory: 32m
