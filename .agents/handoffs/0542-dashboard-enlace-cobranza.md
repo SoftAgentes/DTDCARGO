@@ -104,6 +104,21 @@ toca el Dashboard ni agrega carpetas con `page.tsx` bajo `app/studio/`.
 | `vitest run "app/studio/(app)/dashboard"` | PASÓ: 9/9 |
 | `corepack pnpm typecheck` | PASÓ (exit 0) |
 
+Segundo aviso, misma mañana: se fusionaron la #248 (SDD-0505, registro del
+corte), la #245 (plan de retiro de Vercel y Supabase Cloud) y la #246 (SDD-0540,
+diseño del entorno de prueba), y la PR volvió a chocar en el índice. Se mergeó
+`origin/main` `acd4f53d` igual que antes; el driver resolvió el índice y
+`docs:index` dejó el árbol limpio. Lo que trajo son documentos, specs,
+`migrations-baseline.json` y una prueba de migración: nada del Dashboard ni
+carpetas nuevas con `page.tsx`.
+
+| Comprobación tras el segundo merge | Resultado |
+|---|---|
+| `corepack pnpm docs:check` | PASÓ (527 specs) |
+| `corepack pnpm sdd:check` | PASÓ |
+| `vitest run "app/studio/(app)/dashboard"` | PASÓ: 9/9 |
+| `corepack pnpm typecheck` | PASÓ (exit 0) |
+
 ## COMMITS
 
 | Hash | Propósito |
@@ -113,7 +128,9 @@ toca el Dashboard ni agrega carpetas con `page.tsx` bajo `app/studio/`.
 | `182d74e9` | `docs(sdd)`: spec e índice |
 | `d6d920d0` | handoff |
 | `eca1977b` | merge de `origin/main` `8761618d` (#247), índice resuelto por el driver |
-| commit que contiene este cambio | handoff: merge de main y revalidación |
+| `dc4dbb13` | handoff: merge de main y revalidación |
+| `ce445f28` | merge de `origin/main` `acd4f53d` (#248, #245, #246), índice resuelto por el driver |
+| commit que contiene este cambio | handoff: segundo merge de main |
 
 ## PR / BRANCH
 
