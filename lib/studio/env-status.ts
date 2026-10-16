@@ -124,7 +124,9 @@ export function getEnvStatus(): EnvStatus {
     commitShaShort: commitSha ? commitSha.slice(0, 7) : null,
     integrations: {
       supabase: statusOf(INTEGRATION_ENV_MAP.supabase, true),
-      resend: statusOf(INTEGRATION_ENV_MAP.resend),
+      // SDD-0544: en staging `resendSend` no envía aunque haya llave
+      // (`lib/studio/mail/resend-api.ts`), así que el panel dice la verdad: mock.
+      resend: env === "staging" ? "mock" : statusOf(INTEGRATION_ENV_MAP.resend),
       resendWebhook: statusOf(INTEGRATION_ENV_MAP.resendWebhook),
       telegram: statusOf(INTEGRATION_ENV_MAP.telegram),
       telegramWebhook: statusOf(INTEGRATION_ENV_MAP.telegramWebhook),
