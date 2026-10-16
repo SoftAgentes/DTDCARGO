@@ -231,5 +231,6 @@ cambia la RLS, no modifica `audit_d5_residual_change` (función propia).
   - El `correlation_id` del trigger mide unos 62 caracteres y cabe en los 128 del writer.
   - El lote es una sola sentencia `update … in(id)` con los mismos filtros que la cuenta previa.
   - Riesgo anotado: `MAX_LOTE = 300` y el filtro `in.(…)` va en la URL; con las 169 ciudades de hoy mide unos 6,6 KB, por debajo de los 8 KB habituales del proxy. Con muchas más ciudades conviene filtrar por `city_slug` o partir el lote.
-- **Smoke de Sam: PENDIENTE.** Guion en `.agents/handoffs/0537-transportistas-tarifas-editables.md` (rol admin, `/studio/admin?section=calculadora&tab=transportistas` y `/tarifas`). En el lote, probar también con las 169 ciudades seleccionadas.
+- **Smoke de Sam: PENDIENTE.** Guion en `.agents/handoffs/0537-transportistas-tarifas-editables.md` (rol admin, `/studio/admin?section=calculadora&tab=transportistas` y `/tarifas`). En el lote, probar con una o dos ciudades y devolverlas a su precio.
+  - **Corrección del Director (2026-10-16):** la versión anterior de este registro decía «probar también con las 169 ciudades seleccionadas». Es un error: el lote pone el mismo valor en todas las elegidas, así que esa prueba en producción cambiaría el precio de las 169. Se le avisó a Sam. La prueba de tamaño con muchas ciudades se hace en el entorno de prueba (SDD-0540), con datos sintéticos.
 - **Estado:** integrada. La spec sigue en `in-progress` hasta el smoke.
