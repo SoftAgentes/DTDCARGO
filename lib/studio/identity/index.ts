@@ -12,11 +12,13 @@
  *
  * El resultado es ADVISORY (no bloquea al cliente). Ver SDD-0046 §5.2.
  *
- * El provider CNE se elige por env `IDENTITY_CNE_PROVIDER` (default 'cedulave')
+ * El provider CNE se elige por env `IDENTITY_CNE_PROVIDER` (default 'cedulave';
+ * con `APP_ENV=staging`, siempre el simulado, SDD-0544)
  * vía la factory `getCneProvider()`, que es el punto mockeable en tests
  * (`vi.mock('@/lib/studio/identity', ...)` o spy sobre `getCneProvider`).
  */
 
+import { resolveAppEnv } from "@/lib/runtime/app-env";
 import { classifyDocument, parseCedula, type DocumentKind } from "./document";
 import { compareNames } from "./name-match";
 import type {
@@ -33,6 +35,21 @@ export type {
 } from "./types";
 
 /**
+ * Provider CNE simulado del entorno de prueba (SDD-0544).
+ *
+ * No consulta nada y responde «no encontrado» (`null`): el motor lo reporta
+ * `unavailable` y la ficha del cliente cae al piso manual del asesor, el mismo
+ * camino que hoy sigue producción sin `IDENTITY_CNE_URL`. Prueba va a tener
+ * consolidados reales: una cédula real no puede salir hacia un servicio de
+ * terceros desde ahí, aunque alguien configure la URL.
+ */
+export const proveedorCneSimulado: IdentityProvider = {
+  async lookup() {
+    return null;
+  },
+};
+
+/**
  * Resolución del provider CNE, agrupada en un objeto para que sea **interceptable
  * en tests**. `verifyIdentity` llama `providerRegistry.getCneProvider()` (no la
  * función suelta), así un `vi.spyOn(providerRegistry, 'getCneProvider')` —o el
@@ -45,8 +62,13 @@ export const providerRegistry = {
    * Devuelve el provider CNE según `IDENTITY_CNE_PROVIDER` (default 'cedulave').
    * Factory (no singleton). Los providers se importan dinámicamente para que el
    * `server-only` de las impls no contamine el grafo de import del motor en test.
+   *
+   * Con `APP_ENV=staging` (SDD-0544) devuelve siempre el provider simulado,
+   * cualquiera sea `IDENTITY_CNE_PROVIDER` o `IDENTITY_CNE_URL`: el entorno de
+   * prueba no le manda cédulas a ningún servicio externo.
    */
   async getCneProvider(): Promise<IdentityProvider> {
+    if (resolveAppEnv() === "staging") return proveedorCneSimulado;
     const choice = (
       process.env.IDENTITY_CNE_PROVIDER ?? "cedulave"
     ).toLowerCase();
