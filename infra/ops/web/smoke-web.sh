@@ -100,7 +100,11 @@ done
 
 # Sin sesión, el Studio manda al login del MISMO host (si manda a otro, el
 # SITE_URL o el router están mal).
-r=$(pedir -o /dev/null -w '%{http_code} %{redirect_url}' "https://${HOST}/studio/dashboard")
+# Con --credenciales, curl mete `usuario:clave@` en %{redirect_url}: se quita
+# SIEMPRE antes de comparar o imprimir (incidente del 2026-10-16: la clave del web
+# de prueba salió en un FALLÓ de esta línea y hubo que rotarla).
+sin_userinfo() { sed -E 's#://[^/@[:space:]]*@#://#g'; }
+r=$(pedir -o /dev/null -w '%{http_code} %{redirect_url}' "https://${HOST}/studio/dashboard" | sin_userinfo)
 case "$r" in
   "307 https://${HOST}/studio/login"*) pasa "GET /studio/dashboard sin sesión → 307 al login de ${HOST}" ;;
   *) falla "GET /studio/dashboard sin sesión → ${r}" ;;
@@ -146,7 +150,7 @@ if [ "$WWW" = 1 ]; then
     *"Let's Encrypt"*"www.${HOST}"*) pasa "certificado de Let's Encrypt con www.${HOST}" ;;
     *) falla "certificado de www.${HOST}: «${wemisor:-ninguno}»" ;;
   esac
-  wr=$(curl -s --max-time 30 --resolve "www.${HOST}:443:${IP}" ${CRED_K[@]+"${CRED_K[@]}"} -o /dev/null -w '%{http_code} %{redirect_url}' "https://www.${HOST}/tarifas?x=1")
+  wr=$(curl -s --max-time 30 --resolve "www.${HOST}:443:${IP}" ${CRED_K[@]+"${CRED_K[@]}"} -o /dev/null -w '%{http_code} %{redirect_url}' "https://www.${HOST}/tarifas?x=1" | sin_userinfo)
   [ "$wr" = "301 https://${HOST}/tarifas?x=1" ] && pasa "www.${HOST} → 301 a https://${HOST}/tarifas?x=1" || falla "www.${HOST}/tarifas?x=1 → ${wr} (esperado 301 a la raíz)"
 fi
 

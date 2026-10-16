@@ -55,9 +55,13 @@ if [[ -n "${fmt}" ]]; then
   case "${fmt}" in
     *time_starttransfer*) printf '  ttfb 0.100s total 0.200s\n' ;;
     *redirect_url*)
+      # Como el curl real (medido en el VPS el 2026-10-16): con `user` en el -K,
+      # %{redirect_url} trae `usuario:clave@` delante del host.
+      ui=""
+      [[ -n "${conf}" ]] && ui="$(sed -nE 's/^user = "(.*)"$/\1@/p' "${conf}" 2>/dev/null)"
       if [[ "${codigo}" == 401 ]]; then printf '401 '
-      elif [[ "${h}" == www.* ]]; then printf '301 https://%s%s?x=1' "${h#www.}" "${p}"
-      else printf '307 https://%s/studio/login' "${h}"; fi ;;
+      elif [[ "${h}" == www.* ]]; then printf '301 https://%s%s%s?x=1' "${ui}" "${h#www.}" "${p}"
+      else printf '307 https://%s%s/studio/login' "${ui}" "${h}"; fi ;;
     *content_type*) [[ "${codigo}" == 401 ]] && printf '401 text/plain 17' || printf '200 image/webp 1500' ;;
     *) printf '%s' "${codigo}" ;;
   esac
