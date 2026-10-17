@@ -1,12 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-/**
- * Corte L14 del test de SDD-0397 (PR #21): sólo los casos del reporte de pago,
- * que usa los comandos de SDD-0365 (RPC 0421) y el principal canónico de L18.
- * La aceptación legal y sus mocks quedan fuera de este lote; el corte está
- * documentado en .agents/handoffs/c-l14-portal-comandos-recibos.md.
- */
-
 type Read = { table: string; filters: Array<[string, unknown]> };
 
 const state = vi.hoisted(() => ({
@@ -17,6 +10,7 @@ const state = vi.hoisted(() => ({
   },
   adminBuilds: 0,
   reads: [] as Read[],
+  pendingArgs: [] as Array<Record<string, unknown>>,
   commands: [] as Array<Record<string, unknown>>,
 }));
 
@@ -46,6 +40,8 @@ function adminDatabase() {
 }
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
+vi.mock("@/lib/http/request-ip", () => ({ getRequestIp: async () => null }));
 vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
 vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => {
@@ -61,6 +57,18 @@ vi.mock("@/lib/portal/portal-queries", () => ({
   }),
   getPortalClientPrincipal: async () => state.principal,
 }));
+vi.mock("@/lib/portal/portal-legal-queries", () => ({
+  getPendingAcceptanceInvoice: async (_admin: unknown, args: Record<string, unknown>) => {
+    state.pendingArgs.push(args);
+    return null;
+  },
+}));
+vi.mock("@/lib/studio/legal/queries", () => ({
+  currentClientDocs: async () => [],
+  hasValidAcceptanceForMarkbox: async () => false,
+}));
+vi.mock("@/lib/studio/legal/seal", () => ({ sealAcceptance: vi.fn() }));
+vi.mock("@/lib/studio/legal/types", () => ({ validateAcceptanceInput: vi.fn() }));
 vi.mock("@/lib/portal/payment-report-types", () => ({
   validatePaymentReportInput: () => ({
     input: { amount: 10, method: "transferencia", paidAt: "2026-09-03", note: null },
@@ -88,6 +96,9 @@ vi.mock("@/lib/studio/payment-report-notify", () => ({
   notifyPaymentReportToAdmin: vi.fn(),
 }));
 
+const { registerAcceptanceAction } = await import(
+  "@/app/portal/(app)/facturas/[code]/aceptar/actions"
+);
 const { reportPaymentAction, cancelPaymentReportAction } = await import(
   "@/app/portal/(app)/facturas/[code]/reportar/actions"
 );
@@ -111,15 +122,29 @@ beforeEach(() => {
   };
   state.adminBuilds = 0;
   state.reads.length = 0;
+  state.pendingArgs.length = 0;
   state.commands.length = 0;
 });
 
-describe("SDD0397 · reporte de pago Portal por principal (corte L14)", () => {
-  it("principal inválido corta reporte antes de construir admin", async () => {
+describe("SDD0397 · acciones de facturas Portal por principal", () => {
+  it.each([
+    ["aceptación", () => registerAcceptanceAction("FAC-0001", {}, new FormData())],
+    ["reporte", () => reportPaymentAction("FAC-0001", {}, paymentForm())],
+  ])("principal inválido corta %s antes de construir admin", async (_label, run) => {
     state.principal = null;
-    await reportPaymentAction("FAC-0001", {}, paymentForm());
+    await run();
     expect(state.adminBuilds).toBe(0);
     expect(state.reads).toEqual([]);
+  });
+
+  it("aceptación consulta la orden con tenant + Shipping Mark canónicos", async () => {
+    await registerAcceptanceAction("FAC-0001", {}, new FormData());
+    expect(state.reads.some((read) => read.table === "clients")).toBe(false);
+    expect(state.pendingArgs).toEqual([{
+      tenantId: "tenant-a",
+      markbox: "DTD-0001",
+      code: "FAC-0001",
+    }]);
   });
 
   it("reporte fija tenant + Shipping Mark sin releer clients", async () => {
