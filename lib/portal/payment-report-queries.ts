@@ -13,6 +13,7 @@ import type {
 } from "@/lib/portal/payment-report-types";
 import type { InvoiceCurrency } from "@/lib/studio/invoice-types";
 import { MAX_PENDING_REPORTS_PER_INVOICE } from "@/lib/portal/payment-report-types";
+import { getPortalClientPrincipal } from "@/lib/portal/portal-queries";
 
 const REPORT_COLS =
   "id, invoice_id, invoice_code, client_markbox, amount, currency, method, paid_at, proof_path, status, note, confirmed_by, confirmed_at, cancelled_at, cancelled_by, resolution_reason, created_at";
@@ -60,13 +61,6 @@ export function mapPaymentReportRow(row: ReportRow): PaymentReport {
   };
 }
 
-/** Markbox del cliente logueado (RPC), o null si el principal no es del portal. */
-async function portalMarkbox(supabase: SupabaseClient): Promise<string | null> {
-  const { data, error } = await supabase.rpc("get_portal_client_markbox");
-  if (error || !data) return null;
-  return String(data);
-}
-
 /**
  * Reportes de pago de UNA factura del cliente logueado (portal), recientes
  * primero. Filtra por invoice_code + markbox (RLS self + filtro explícito).
@@ -76,14 +70,15 @@ export async function listMyInvoiceReports(
   invoiceCode: string,
 ): Promise<PaymentReport[] | null> {
   try {
-    const markbox = await portalMarkbox(supabase);
-    if (!markbox) return null;
+    const principal = await getPortalClientPrincipal(supabase);
+    if (!principal) return null;
 
     const { data, error } = await supabase
       .from("payment_reports")
       .select(REPORT_COLS)
       .eq("invoice_code", invoiceCode)
-      .eq("client_markbox", markbox)
+      .eq("tenant_id", principal.tenantId)
+      .eq("client_markbox", principal.client.markbox)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 

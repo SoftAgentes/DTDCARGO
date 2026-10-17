@@ -10,7 +10,7 @@
  *  - `isClientNotifiableMilestone`: el set de hitos que avisan al cliente
  *    (decisión founder) — el arribo NO está (ya avisa por su template).
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   stepDatesFromEvents,
@@ -18,6 +18,18 @@ import {
   type PortalShipmentEvent,
 } from "../shipment-events-queries";
 import { isClientNotifiableMilestone } from "@/lib/studio/shipment-milestone-notify";
+
+vi.mock("../portal-queries", () => ({
+  getPortalClientPrincipal: async (supabase: SupabaseClient) => {
+    const { data } = await supabase.rpc("get_portal_client_markbox");
+    if (!data) return null;
+    return {
+      userId: "portal-user",
+      tenantId: "tenant-1",
+      client: { markbox: String(data) },
+    };
+  },
+}));
 
 function stub(opts: { markbox: string | null; rows?: Record<string, unknown>[] }) {
   const eqCalls: [string, unknown][] = [];
@@ -71,6 +83,8 @@ describe("listMyShipmentEvents · aislamiento", () => {
     await listMyShipmentEvents(supabase, "ship-1");
     expect(touchedTable()).toBe("shipment_events");
     expect(eqCalls).toContainEqual(["shipment_id", "ship-1"]);
+    expect(eqCalls).toContainEqual(["tenant_id", "tenant-1"]);
+    expect(eqCalls).toContainEqual(["shipments.tenant_id", "tenant-1"]);
     expect(eqCalls).toContainEqual(["shipments.client_markbox", "DTD-0007"]);
   });
 
