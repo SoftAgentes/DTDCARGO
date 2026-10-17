@@ -79,6 +79,7 @@ valores de `.env`.
 | `verify` · `test`, primer intento | `e2f12db5` | FALLÓ 2: `env-example-contract`, que es **mío** (el doble leía `process.env.DOBLE_*`), y `TransportistasPanel.test.tsx › ante un error conserva lo escrito…`, que es ajeno |
 | `verify` · `test`, reintento | `e2f12db5` | FALLÓ 1: solo `env-example-contract`. 11.160 ✓ y 1 omitida. `TransportistasPanel` pasó: inestable bajo carga |
 | Corrección del doble | `5b805cea` | Lee `doble-config.json` en vez de variables, sin tocar el contrato; las dos suites afectadas, 37/37. `verify` completo no se repitió: el encargo pide una sola corrida |
+| Merge de `origin/main` `811659b2` (PR #267: registro de la 0546 y la 0547), sin conflictos | `dd8f4366` | `docs:check` PASÓ (534 specs), `sdd:check` PASÓ, las dos suites afectadas 37/37 |
 | Gate contra Cloud o contra producción reales | — | NO EJECUTADO: prohibido por el encargo; cubierto con dobles |
 
 ## COMMITS
@@ -87,7 +88,9 @@ valores de `.env`.
 - `026b9d9d` el gate mide solo producción, pruebas, runbook, docs y spec.
 - `e2f12db5` espacio del conteo y prueba de la línea entera.
 - `5b805cea` el doble de `fetch` lee su configuración de un archivo (rojo de `verify`).
-- Commit que contiene este documento: handoff y evidencia de `verify` en la spec.
+- `4658d476` handoff y evidencia de `verify` en la spec.
+- `dd8f4366` merge de `origin/main` `811659b2`.
+- Commit que contiene este documento: registro del merge.
 
 ## PR / BRANCH
 
