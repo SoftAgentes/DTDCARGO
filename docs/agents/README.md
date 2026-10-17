@@ -58,7 +58,8 @@ scripts/seed-agents.ts               # UPSERT skills DB ← código
 `.env.local` debe tener:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://xpfuzqombmjmxvprjgmi.supabase.co
+# Servidor propio desde el corte del 2026-10-14; Cloud (xpfuzqombmjmxvprjgmi) quedó congelado.
+NEXT_PUBLIC_SUPABASE_URL=https://supabase.dtdcargo.com
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 SUPABASE_SERVICE_ROLE_KEY=...           # necesario para audit
 ANTHROPIC_API_KEY=sk-ant-...            # opcional — sin esto cae al mock

@@ -13,12 +13,20 @@
  * 0067_warehouse_receipts_ve como 'warehouse_receipts_ve_sprint_e'…). De ahí salió
  * la línea de corte.
  */
-import { describe, expect, it } from "vitest";
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  clasificarDestino,
   collectMigrationFiles,
   findMissing,
   findOrphans,
   migrationNumber,
+  motivoSinMedir,
+  ORIGEN_PRODUCCION,
   parseLedgerVersion,
 } from "./check-migrations-applied.mjs";
 
@@ -196,5 +204,233 @@ describe("findMissing", () => {
     const files = ["0239_aplicada", "0240_olvidada", "0241_aplicada"];
     const applied = new Set(["0239_aplicada", "0241_aplicada"]);
     expect(findMissing(files, applied, CUTOFF)).toEqual(["0240_olvidada"]);
+  });
+});
+
+/**
+ * SDD-0548 · DÓNDE MIDE. Desde el corte del 2026-10-14 producción es el servidor
+ * propio y Supabase Cloud quedó como copia congelada que sigue respondiendo. Con
+ * la URL de Cloud en `.env.local` el gate leía ese ledger viejo, lo llamaba «prod»
+ * y no decía el host. Estas pruebas fijan que solo mide en producción.
+ */
+describe("clasificarDestino · SDD-0548", () => {
+  it("reconoce producción, con o sin barra, ruta o mayúsculas", () => {
+    for (const url of [
+      "https://supabase.dtdcargo.com",
+      "https://supabase.dtdcargo.com/",
+      "https://SUPABASE.dtdcargo.com/rest/v1?x=1",
+      "  https://supabase.dtdcargo.com:443  ",
+      "https://supabase.dtdcargo.com./",
+    ]) {
+      expect(clasificarDestino(url), url).toEqual({ tipo: "produccion", origen: ORIGEN_PRODUCCION });
+    }
+  });
+
+  it("⭐ el proyecto de Cloud del corte es Cloud, no producción", () => {
+    expect(clasificarDestino("https://xpfuzqombmjmxvprjgmi.supabase.co")).toEqual({
+      tipo: "cloud",
+      origen: "https://xpfuzqombmjmxvprjgmi.supabase.co",
+    });
+  });
+
+  it("cualquier proyecto de Cloud es Cloud, también con punto final o mayúsculas", () => {
+    expect(clasificarDestino("https://otro-ref.supabase.co/").tipo).toBe("cloud");
+    expect(clasificarDestino("https://XPFUZQOMBMJMXVPRJGMI.SUPABASE.CO.").tipo).toBe("cloud");
+    expect(clasificarDestino("http://xpfuzqombmjmxvprjgmi.supabase.co:8443").tipo).toBe("cloud");
+  });
+
+  it("un host que solo se parece a producción no es producción", () => {
+    for (const url of [
+      "http://supabase.dtdcargo.com",
+      "https://supabase.dtdcargo.com:8443",
+      "https://supabase-prueba.dtdcargo.com",
+      "https://supabase.dtdcargo.com.evil.example",
+      "https://evilsupabase.dtdcargo.com",
+      "http://127.0.0.1:54321",
+    ]) {
+      expect(clasificarDestino(url).tipo, url).toBe("otro");
+    }
+  });
+
+  it("una URL con usuario o clave no se mide, y su origen no los lleva", () => {
+    const d = clasificarDestino("https://u-prueba-7c1:p-prueba-4e2@supabase.dtdcargo.com/");
+    expect(d.tipo).toBe("con-credenciales");
+    expect(d.origen).toBe("https://supabase.dtdcargo.com");
+    expect(clasificarDestino("https://solo-usuario@xpfuzqombmjmxvprjgmi.supabase.co").tipo).toBe(
+      "con-credenciales",
+    );
+  });
+
+  it("una URL ilegible no expone nada de su valor", () => {
+    expect(clasificarDestino("no-soy-una-url")).toEqual({ tipo: "ilegible", origen: null });
+    expect(clasificarDestino("")).toEqual({ tipo: "ilegible", origen: null });
+    expect(clasificarDestino(undefined)).toEqual({ tipo: "ilegible", origen: null });
+  });
+});
+
+describe("motivoSinMedir · SDD-0548", () => {
+  it("producción no tiene motivo para no medir", () => {
+    expect(motivoSinMedir(clasificarDestino(ORIGEN_PRODUCCION))).toBeNull();
+  });
+
+  it("todo lo demás tiene motivo, y el motivo nombra el origen configurado", () => {
+    const cloud = motivoSinMedir(clasificarDestino("https://xpfuzqombmjmxvprjgmi.supabase.co"));
+    expect(cloud).toContain("https://xpfuzqombmjmxvprjgmi.supabase.co");
+    expect(cloud).toContain("copia congelada");
+    expect(cloud).toContain(ORIGEN_PRODUCCION);
+
+    const otro = motivoSinMedir(clasificarDestino("https://supabase-prueba.dtdcargo.com"));
+    expect(otro).toContain("https://supabase-prueba.dtdcargo.com");
+    expect(otro).toContain("no es producción");
+
+    const cred = motivoSinMedir(clasificarDestino("https://u-prueba-7c1:p-prueba-4e2@supabase.dtdcargo.com"));
+    expect(cred).not.toMatch(/u-prueba-7c1|p-prueba-4e2/);
+
+    const ilegible = motivoSinMedir(clasificarDestino("sb_secret_pegada_por_error"));
+    expect(ilegible).not.toContain("sb_secret_pegada_por_error");
+  });
+});
+
+/**
+ * El gate entero, como lo corre verify.mjs (`node <entry>`), en un proyecto de
+ * mentira y con `fetch` reemplazado por un doble (`--import`). Ninguna llamada sale
+ * a la red ni a una base: el doble registra la URL que le pidieron y responde lo
+ * que dice `doble-config.json`, junto a él. La configuración va en un archivo y no
+ * en variables de entorno a propósito: toda variable que el código lee tiene que
+ * estar en `.env.example` (scripts/__tests__/env-example-contract.test.ts), y estas
+ * no son configuración del proyecto. git queda apuntando a un GIT_DIR que no
+ * existe, así que el `git fetch` falla al instante sin tocar el remoto.
+ */
+describe("el gate de punta a punta, con fetch doble · SDD-0548", () => {
+  const SCRIPT = path.resolve(import.meta.dirname, "check-migrations-applied.mjs");
+  const CLAVE = "clave-de-prueba-no-real";
+  let dir;
+  let doble;
+
+  beforeAll(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "gate-migraciones-0548-"));
+    fs.mkdirSync(path.join(dir, "supabase", "migrations"), { recursive: true });
+    for (const f of ["0238_historica", "0239_applied_migrations_rpc", "0240_nueva"]) {
+      fs.writeFileSync(path.join(dir, "supabase", "migrations", `${f}.sql`), "select 1;\n");
+    }
+    fs.writeFileSync(
+      path.join(dir, "supabase", "migrations-baseline.json"),
+      JSON.stringify({ cutoff: 238, pendingBelowCutoff: {} }),
+    );
+    doble = path.join(dir, "fetch-doble.mjs");
+    fs.writeFileSync(
+      doble,
+      [
+        'import fs from "node:fs";',
+        'const cfg = JSON.parse(fs.readFileSync(new URL("./doble-config.json", import.meta.url), "utf8"));',
+        "globalThis.fetch = async (url, init = {}) => {",
+        "  const h = init.headers ?? {};",
+        "  fs.appendFileSync(cfg.registro, JSON.stringify({",
+        "    url: String(url), method: init.method, redirect: init.redirect,",
+        "    conClave: h.apikey === cfg.clave,",
+        '  }) + "\\n");',
+        "  return new Response(JSON.stringify(cfg.respuesta.body), { status: cfg.respuesta.status });",
+        "};",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  afterAll(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  let corrida = 0;
+  function correr(url, respuesta = { status: 200, body: [] }) {
+    corrida += 1;
+    const registro = path.join(dir, `llamadas-${corrida}.jsonl`);
+    fs.writeFileSync(
+      path.join(dir, "doble-config.json"),
+      JSON.stringify({ registro, respuesta, clave: CLAVE }),
+    );
+    const env = {
+      ...process.env,
+      NEXT_PUBLIC_SUPABASE_URL: url,
+      SUPABASE_SERVICE_ROLE_KEY: CLAVE,
+      GIT_DIR: path.join(dir, "no-es-un-repo"),
+    };
+    const r = spawnSync(process.execPath, ["--import", pathToFileURL(doble).href, SCRIPT], {
+      cwd: dir,
+      env,
+      encoding: "utf8",
+      timeout: 60_000,
+    });
+    const llamadas = fs.existsSync(registro)
+      ? fs.readFileSync(registro, "utf8").trim().split("\n").map((l) => JSON.parse(l))
+      : [];
+    const salida = `${r.stdout}${r.stderr}`;
+    expect(salida, "la clave no se imprime nunca").not.toContain(CLAVE);
+    return { code: r.status, salida, llamadas };
+  }
+
+  const ledgerCompleto = [
+    { version: "20260801000000", name: "0239_applied_migrations_rpc" },
+    { version: "20260801000100", name: "0240_nueva" },
+  ];
+
+  it("⭐ con la URL de Cloud da SKIP, lo dice y NO consulta nada", { timeout: 60_000 }, () => {
+    const r = correr("https://xpfuzqombmjmxvprjgmi.supabase.co", { status: 200, body: ledgerCompleto });
+    expect(r.code).toBe(3);
+    expect(r.salida).toContain("[SKIP]");
+    expect(r.salida).toContain("https://xpfuzqombmjmxvprjgmi.supabase.co");
+    expect(r.salida).toContain("copia congelada");
+    expect(r.salida).not.toContain("[OK]");
+    expect(r.llamadas).toEqual([]);
+  });
+
+  it("con otro host da SKIP sin consultarlo", { timeout: 60_000 }, () => {
+    const r = correr("https://supabase-prueba.dtdcargo.com", { status: 200, body: ledgerCompleto });
+    expect(r.code).toBe(3);
+    expect(r.salida).toContain("https://supabase-prueba.dtdcargo.com");
+    expect(r.salida).toContain("no es producción");
+    expect(r.llamadas).toEqual([]);
+  });
+
+  it("con usuario y clave en la URL da SKIP sin imprimirlos ni consultar", { timeout: 60_000 }, () => {
+    const r = correr("https://u-prueba-7c1:p-prueba-4e2@supabase.dtdcargo.com", {
+      status: 200,
+      body: ledgerCompleto,
+    });
+    expect(r.code).toBe(3);
+    expect(r.salida).toContain("trae usuario o clave");
+    expect(r.salida).not.toMatch(/u-prueba-7c1|p-prueba-4e2/);
+    expect(r.llamadas).toEqual([]);
+  });
+
+  it("en producción mide, dice dónde midió y da OK si está al día", { timeout: 60_000 }, () => {
+    const r = correr("https://supabase.dtdcargo.com/", { status: 200, body: ledgerCompleto });
+    expect(r.code).toBe(0);
+    expect(r.salida).toContain(`mide el ledger de producción (${ORIGEN_PRODUCCION})`);
+    expect(r.salida).toContain(
+      `3 archivos · 2 en el ledger de producción (${ORIGEN_PRODUCCION}) · corte en 0238`,
+    );
+    expect(r.salida).toContain(`no hay migraciones nuevas sin aplicar en producción (${ORIGEN_PRODUCCION})`);
+    expect(r.llamadas).toEqual([
+      {
+        url: `${ORIGEN_PRODUCCION}/rest/v1/rpc/applied_migration_names`,
+        method: "POST",
+        redirect: "manual",
+        conClave: true,
+      },
+    ]);
+  });
+
+  it("en producción sigue cazando la migración sin aplicar, con el host en el rojo", { timeout: 60_000 }, () => {
+    const r = correr(ORIGEN_PRODUCCION, { status: 200, body: ledgerCompleto.slice(0, 1) });
+    expect(r.code).toBe(1);
+    expect(r.salida).toContain(`NO están en producción (${ORIGEN_PRODUCCION})`);
+    expect(r.salida).toContain("0240_nueva");
+  });
+
+  it("una redirección de producción no se sigue: SKIP con motivo", { timeout: 60_000 }, () => {
+    const r = correr(ORIGEN_PRODUCCION, { status: 302, body: {} });
+    expect(r.code).toBe(3);
+    expect(r.salida).toContain("redirección (HTTP 302)");
+    expect(r.llamadas).toHaveLength(1);
   });
 });
