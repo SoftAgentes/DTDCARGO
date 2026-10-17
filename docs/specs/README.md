@@ -571,7 +571,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0545 | sdd:next --reserve: --expect, --number y aviso de hueco reciente | in-progress | interno |
 | 0546 | Aplicar migraciones en la base del servidor propio: scripts p… | in-progress | interno |
 | 0547 | Panel de publicaciones del Studio: el estado del servidor pro… | in-progress | interno |
-| 0549 | Portal: lecturas restantes por principal de sesión y tenant | in-progress | interno |
+| 0549 | Portal: lecturas restantes por principal de sesión y tenant | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112, 0190, 0301, 0435, 0445, 0446, 0447, 0483, 0501, 0548 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

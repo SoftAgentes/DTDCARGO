@@ -1,7 +1,7 @@
 ---
 sdd: "0549"
 title: "Portal: lecturas restantes por principal de sesión y tenant"
-status: in-progress
+status: done
 author: "Codex"
 created: 2026-10-17
 updated: 2026-10-17
@@ -136,7 +136,9 @@ con qué correr. Así, la diferencia la hace el filtro y no la RPC.
 - [x] Para un cliente coherente las pruebas de 0543 siguen verdes sin cambios en sus aserciones; la
   de 0173 (detalle de la compra) sólo cambia de mock de identidad y gana aserciones.
 - [x] Sin migración, RLS, RPC ni UI nuevas.
-- [ ] `pnpm verify` del head de la PR (resultado en el handoff).
+- [x] `pnpm verify` sobre `d40f4afd`: exit 0, 16 de 17 pasos medidos sin fallos. `migrations-applied`
+  quedó en SKIP sin credenciales; no aplica, porque esta SDD no trae migración. El detalle por paso
+  está en el handoff. Los commits posteriores sólo tocan esta spec, el índice y el handoff.
 
 ## Pregunta para Sam (no se cambia en esta SDD)
 
