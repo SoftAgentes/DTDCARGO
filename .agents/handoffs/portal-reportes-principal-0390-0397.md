@@ -1,5 +1,149 @@
 # Portal — reportes de pago y aceptación por principal y tenant (SDD-0390 y SDD-0397)
 
+Task ID: `portal-reportes-principal-0390-0397`. PR **#114**, en borrador: https://github.com/hailuwaycom-sketch/DTDCARGO/pull/114.
+Este documento tiene dos rondas. La vigente es la 2 (retoma del 2026-10-17). La 1 (extracción del 2026-09-14) queda abajo como evidencia fechada; sus SHA, conteos y líneas describen la rama de ese día.
+
+## Ronda 2 — retoma del 2026-10-17 (vigente)
+
+- **Owner / sesión escritora:** `worker-pr114-retoma-20261017`, Worker lanzado por el Director como subagente de Claude Code. Sin otras sesiones escritoras ni subagentes en este árbol.
+- **Estado de tarea:** lista-para-revision. La PR sigue en borrador; el Director revisa y fusiona con el OK de Sam.
+- **Worktree:** `C:/Users/AKX generator/Desktop/Developer/DTDCARGO/.claude/worktrees/agent-a4c67afc698ae349c`.
+- **Rama local:** `codex/portal-reportes-0390-0397-retoma`. La creé sin upstream desde `origin/codex/portal-reportes-principal-0390-0397` (`1b3a8c7bd74aaaad99f57c466177f0127c16058e`). Se publica sobre la rama remota de la PR, sólo con fast-forward.
+- **Worktree de la ronda 1, sin tocar:** `C:/Users/AKX generator/Desktop/Developer/DTD-worktrees/portal-reportes-principal-0390-0397`. Su rama local `codex/portal-reportes-principal-0390-0397` sigue en `b071a90f`, limpia y atrasada respecto del remoto. No hice checkout de esa rama ni la moví.
+- **Base:** `origin/main` = `c2fabdcc17e3ca28c62238764a82aa46ca515cca` (merge de la PR #263), leído con `git fetch origin` al empezar. Base anterior de la rama: `419d25983357504723af4948b3bf867382888145`.
+- **SDD:** 0390 y 0397, sin cambios en esta ronda. Sin migración.
+- **Autorización:** encargo del Director del 2026-10-17. Cita a Sam, literal, al Director: «arranca también la de la PR 114». Antes Sam había decidido: «ok, retomamos la #114 después del jueves». Son palabras de Sam al Director, no a esta sesión; registro el texto a su nombre.
+  - **Cubre:** merge normal de `origin/main` en la rama, push fast-forward (nunca force) a la rama remota de la PR, dejarla en borrador y comentar el resultado.
+  - **No cubre:** fusionar a `main`, que publica en producción solo, a los ~5 min. Tampoco cubre producción, el servidor, la base de prueba ni leer datos de negocio.
+
+### OBJETIVO ORIGINAL
+
+Poner la PR #114 al día con `main` después del corte a Contabo. Pasos:
+
+1. Traer `origin/main` con un merge normal.
+2. Comprobar que las specs 0390 y 0397 siguen describiendo lo que hace el código.
+3. Revalidar con pruebas focales y con un solo `pnpm verify`.
+4. Empujar con fast-forward y dejar la PR en borrador para que el Director la revise.
+
+### COMPLETADO
+
+- **Aislamiento.** `guard` OK y `claim` adquirido con el owner de arriba. Revalidé el guard y la rama antes de cada commit y antes del push. No toqué el checkout principal, `main`, el worktree de la ronda 1 ni otros worktrees.
+- **Dependencias.** `corepack pnpm install --frozen-lockfile` (pnpm 12.3.4). No copié `.env` ni credenciales.
+- **Merge `e9378d3a`.** `git merge --no-ff origin/main` sobre `1b3a8c7b`, **sin conflictos**.
+  - Main avanzó 684 commits (contando merges) desde la base anterior `419d2598`. Ninguno toca los 11 archivos de la PR: el único cambio de main bajo `aceptar/` es `page.tsx`, que no está en la PR.
+  - Después del merge, el árbol difiere de `origin/main` en esos 11 archivos y en nada más: 426 inserciones y 55 borrados, el mismo diff que antes del merge.
+  - `docs/specs/README.md` no tuvo conflicto ni cambio, porque las specs 0390 y 0397 conservan su frontmatter. No hizo falta regenerarlo: `docs:check` lo da sincronizado con 531 specs.
+  - No hubo que resolver ningún conflicto a mano.
+- **Choques con la PR #260 (SDD-0543), revisados uno por uno. Ninguno rompe esta PR:**
+  - `lib/portal/portal-legal-queries.ts`: `getPendingAcceptanceInvoice` agrega `embarques` al resultado y hace una lectura de `shipments` scopeada por `tenantId`. La firma `(admin, { tenantId, markbox, code })` no cambió, así que `aceptar/actions.ts` la llama igual que antes, con el tenant y el Shipping Mark del principal. La acción no usa `embarques`. Los mocks de sus pruebas no lo necesitan, y typecheck pasa.
+  - `app/portal/(app)/facturas/[code]/aceptar/page.tsx`: muestra la medida **sumada** de los embarques con `medidaDeLaFactura`. La acción sigue sellando `order.cbm`/`order.weightKg`, que es la medida del primer envío, exactamente como en `main`. La spec 0543 lo declara «limitación conocida que se decide aparte» (`docs/specs/0543-consolidados-en-camino/spec.md:97`). Esta PR no cambia esa decisión.
+  - `lib/portal/pending-acceptance.ts` (nuevo) no importa nada de los archivos de esta PR.
+  - `app/portal/(app)/facturas/[code]/page.tsx` sigue llamando `listMyInvoiceReports(supabase, code)` con la misma firma, y su prueba nueva (`page.test.tsx:35`) la mockea.
+  - `app/portal/(app)/page.tsx:58` sigue llamando `listMyRecentActivity(supabase)`, y `page.test.tsx:54` la mockea.
+- **SDD-0530: las notas de zarpe y arribo siguen visibles.** El evento de la 0477 se inserta con `tenant_id` (`0477_naviera_zarpe_avanza_envios.sql:455-457`). Todos los insertores de `shipment_events`, en SQL y en TypeScript, ponen `tenant_id`, y la columna es `not null` (`0002_shipments.sql:66`). Por eso el filtro de 0390 por el tenant del evento y del envío no oculta esas notas en el Portal.
+- **Las specs siguen vigentes.**
+  - `getPortalClientPrincipal` (`lib/portal/portal-queries.ts`) no cambió en main desde la base anterior. `reportar/actions.ts` y `payment-report-commands.ts` tampoco.
+  - Los contratos de 0390 (tres lecturas por principal, corte temprano, tenant + Shipping Mark) y de 0397 (principal antes del admin, sin releer `clients`, cancelación con principal) describen el código mezclado tal cual.
+  - No hubo que ajustar ninguna prueba.
+  - Las notas de extracción del 2026-09-14 en ambas specs siguen siendo ciertas como relato fechado. No las edité.
+- **Control rojo.** Puse temporalmente las versiones de `origin/main` de los 3 archivos de producto. Resultado: 13 de 48 pruebas fallan en los 5 archivos afectados, entre ellas las 4 de `portal-read-principal-scope` y las 2 de aceptación de `portal-invoice-actions-principal-scope`. Restauré los archivos desde HEAD y el árbol quedó limpio. Las pruebas siguen detectando la falta del código de 0390 y 0397 después del merge.
+
+### VALIDACIÓN
+
+Sin credenciales ni `.env`. No corrí nada contra producción, el servidor ni la base de prueba, y no leí ninguna fila. Los recibos quedaron fuera de Git, en el scratchpad de la sesión (`verify-e9378d3a.log`, `vitest-focal.log`, `typecheck.log`).
+
+| Comprobación | Resultado / alcance |
+|---|---|
+| `guard` / `claim` | PASÓ; revalidado antes de cada commit y del push |
+| Merge de `origin/main` | PASÓ: sin conflictos; el árbol difiere de `origin/main` sólo en los 11 archivos de la PR |
+| `corepack pnpm exec vitest run lib/portal app/portal` (sobre `e9378d3a`) | PASÓ: 96 archivos / 1224 pruebas |
+| Los 6 archivos de prueba de la PR, en modo detallado | PASÓ: 75 pruebas (`payment-reports`, `shipment-events`, `portal-read-principal-scope`, `portal-invoice-actions-principal-scope`, `payment-report-consumers` y `aceptar/__tests__/actions`) |
+| Control rojo con los 3 archivos de producto de `main` | PASÓ como control: 13 fallos esperados; árbol restaurado |
+| `corepack pnpm typecheck` | PASÓ (exit 0) |
+| ESLint de los 8 archivos de código y pruebas de la PR | PASÓ (exit 0, 0 problemas) |
+| `corepack pnpm docs:check` | PASÓ: índice sincronizado con 531 specs |
+| `corepack pnpm sdd:check` | PASÓ: sin números repetidos (sólo los choques históricos exentos 0342, 0363 y 0394) |
+| `git diff --check origin/main...HEAD` | PASÓ |
+| Turno antes de verify | `Get-CimInstance` no estuvo disponible: el aislamiento del agente bloquea `powershell.exe`, y `wmic` ya no existe en este Windows. Lo sustituí por `tasklist`: ningún `node.exe` pasaba de 130 MB ni tenía CPU de corrida, y no había `chrome-headless-shell`. Además, ningún contenedor Docker corriendo y los puertos 3100–3109 libres (17:47Z). Sin línea de comando no puedo afirmar más |
+| **`E2E_PORT=3107 corepack pnpm verify` sobre `e9378d3a`** | **Sin fallos en lo medido, con cierre incompleto.** Exit 0. Corrió de 17:47:57Z a 18:05:57Z (13:47 → 14:05 en Caracas), unos 18 min, con el árbol limpio al inicio y al final. 16 de 17 pasos PASÓ y `migrations-applied` quedó NO DISPONIBLE. Veredicto literal: `verify: CIERRE INCOMPLETO — CRÍTICOS SIN MEDIR: migrations-applied. No hubo fallos en lo medido (16/17); exit 0 NO equivale a cierre verde completo.` |
+| Procesos tras verify | 0 `chrome-headless-shell`, puerto 3107 libre y ningún contenedor Docker corriendo (18:06Z) |
+| `corepack pnpm knowledge:status` | `ok: false`, por falta de derivados en este worktree. Detalle en «Impacto documental» |
+| Producción / servidor / base de prueba | NO EJECUTADO, por límite del encargo |
+| `/ui-check` · `revisar-datos-ve` | NO EJECUTADO, porque no aplica: no hay UI ni datos personales nuevos |
+
+Detalle por paso de verify sobre `e9378d3a` (Docker 29.8.2, pnpm 12.3.4):
+
+| Paso | Estado y evidencia |
+|---|---|
+| harness | PASÓ: 214 pruebas, 0 omitidas (24 archivos `scripts/tests/*.node.mjs`) |
+| lint | PASÓ: 0 errores. Hay 15 warnings, todos en 6 archivos que esta PR no toca y que vienen de `main`: `NewPurchaseWizard.test.tsx`, `PurchaseStepDetalle.test.tsx`, `KommoBoardView.tsx:124`, `KommoClient.tsx:553`, `components/document-import/DocumentCalculator.tsx:109/110/149` y `scripts/lib/knowledge-vault.mjs` |
+| rsc-boundary | PASÓ: 1685 módulos, sin cruces |
+| typecheck | PASÓ |
+| edge-functions | PASÓ: 4 funciones compilan |
+| test | PASÓ: 785 archivos aprobados y 1 omitido (786); 11038 pruebas aprobadas y 1 omitida |
+| docs:check | PASÓ: 531 specs |
+| numbering | PASÓ: 531 specs y 485 migraciones, sin números repetidos |
+| feature-constants | PASÓ: 6 banderas |
+| components:check | PASÓ |
+| governance:check | PASÓ |
+| migrations-applied | NO DISPONIBLE: `[SKIP]` sin `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`, así que el ledger no se midió. No aplica a esta PR, que no trae migración, y no autoriza copiar credenciales |
+| pending-migration-symbols | PASÓ: 0 ROJO · 0 AMARILLO |
+| sql-tests | PASÓ: 242 contratos SQL en `postgres:17` efímero, con rollback total |
+| schema-rebuild | PASÓ: 485 migraciones en inventario; 467 aplicadas desde cero y 18 sólo-ledger; aislamiento multi-tenant en 219 tablas con 2 tenants |
+| e2e | PASÓ: 198 pruebas con 8 workers y dev server propio en el puerto 3107. Resultado: 177 aprobadas, 20 omitidas y 1 flaky que pasó en su reintento (`[chromium] e2e/auth.spec.ts:81:7`, «Acceso: un token inválido renderiza el mismo error las dos veces»). Sin corte del watchdog. Ningún spec del e2e visita `/portal/facturas/*` ni `/portal/envios/*`: esas pantallas exigen sesión, y su evidencia son las pruebas de vitest del paso `test` |
+| build | PASÓ: 162/162 páginas estáticas |
+
+### COMMITS
+
+- `e9378d3a1fab7eebad1b26e879dd7492e5fd526d`: `Merge origin/main en codex/portal-reportes-principal-0390-0397`. Es el SHA de producto sobre el que corrió verify.
+- Commit que contiene este documento: handoff de la ronda 2, sólo documentación. Su hash va en el comentario de la PR.
+
+### PR / BRANCH
+
+- PR #114 (borrador), base `main`, head `codex/portal-reportes-principal-0390-0397`.
+- Publicación: `git push origin HEAD:refs/heads/codex/portal-reportes-principal-0390-0397`, fast-forward desde `1b3a8c7b`, sin force.
+- Worktree y rama local se conservan. No hubo merge a main, deploy ni migraciones.
+
+### PENDIENTES DE ESTA TAREA
+
+- **Revisión del Director** del diff completo contra `main`: los mismos 11 archivos de la ronda 1, más el merge.
+- **Merge con el OK de Sam.** Fusionar a `main` publica en producción solo, a los ~5 min (SDD-0541). El OK tiene que cubrir ese efecto.
+- **CI «Calidad local sin secretos»** sobre la cabeza nueva.
+- **E2E autenticado y ledger productivo:** NO DISPONIBLES en este entorno. No autorizan copiar credenciales.
+
+### FUERA DE ALCANCE DETECTADO
+
+1. **La SDD-0543 repite el patrón que la 0397 quitó de la acción.** `lib/portal/pending-acceptance.ts:31-42` (`tenantDe`) relee `clients.tenant_id` con el admin client. Lo hace para «Mis facturas», el estado de cuenta y la puerta del detalle (`facturas/page.tsx:83`, `facturas/[code]/page.tsx:35`), en vez de tomar el tenant del principal de sesión. Son lecturas best-effort, scopeadas después por tenant + Shipping Mark, y la RLS de esas pantallas no aplica porque van con admin. Si se quiere el mismo corte que 0397, es otro slice.
+2. **La página de aceptación relee el tenant con admin.** `app/portal/(app)/facturas/[code]/aceptar/page.tsx:50-61` usa `getPortalClient` y luego `admin.from("clients").select("tenant_id")`. Ya estaba así antes. La 0397 dejó la UI fuera de su allowlist, y la acción, que es la que escribe, es más estricta que la página.
+3. **La medida sellada no coincide con la mostrada cuando hay varios embarques.** La página muestra la suma; la acción sella el primer envío. La 0543 ya lo declara «limitación conocida que se decide aparte»; lo dejo visible porque toca el mismo flujo que esta PR.
+4. **Lecturas del Portal que siguen sólo por Shipping Mark,** con la RPC `get_portal_client_markbox`: `lib/portal/portal-academy-queries.ts:83`, `app/portal/(app)/academia/actions.ts:26`, `app/portal/(app)/proveedores/actions.ts:177` y `lib/portal/portal-claims.ts:39`. Siguen como en la ronda 1, más `portal-claims`.
+5. **`getReportById`** (`lib/portal/payment-report-queries.ts:151`) sigue sin llamador.
+6. **Artefactos de #21 no importados** (auditorías y handoff del saneamiento). Siguen fuera de `main`, igual que en la ronda 1.
+7. **Herramientas del turno.** Desde este aislamiento no hay forma de leer la línea de comando de procesos ajenos: `powershell.exe` está bloqueado y `wmic` ya no existe. Si el Director quiere que los subagentes comprueben el turno por línea de comando, hace falta otra vía, por ejemplo que lo mida el Director antes de lanzar.
+
+### Impacto documental y conocimiento
+
+- **Documentos canónicos:** ninguno cambia en esta ronda. Las specs 0390 y 0397 no se editaron, y este handoff es el único documento tocado.
+- **Fuentes del piloto semántico y de Archify:** no se tocó ninguna (`scripts/knowledge-policy.json`). No hace falta recibo semántico ni `knowledge:visual`.
+- **Graphify:** este worktree no tiene `graphify-out`, así que no hay grafo estructural que actualizar aquí. La actualización estructural va con la publicación del Director desde `main` integrado.
+- **`knowledge:status` sobre `e9378d3a`:** `ok: false`.
+  - Estructura: INVALID, porque falta `graphify-out/graph.json` en este worktree.
+  - Piloto semántico: PENDING, 0 de 16.
+  - Global: INVALID, 0 de 1262.
+  - Archify: PENDING (`ARCHIFY_RUNTIME_MISSING`).
+  - Obsidian: PENDING; la bóveda está en la revisión `6da8aebc`.
+
+  Todo eso se debe a que el worktree es nuevo y no tiene derivados, no a esta PR. No lo reconstruí aquí. Queda para la publicación del Director desde `main` integrado.
+
+### HANDOFF AL DIRECTOR
+
+- **Siguiente acción:** revisar la PR #114 en su cabeza nueva. Antes de pedir el OK de Sam, recuerda que fusionar publica en producción a los ~5 min. Reconsulta head, base y checks antes de integrar; si main avanza, hay que volver a mezclar.
+- **Cambios compartidos:** ninguno fuera de `lib/portal` y `app/portal/(app)/facturas/[code]/aceptar`. No hay migración, cambio de RLS ni cambio de UI.
+- **Sesiones y procesos:** sin subagentes. Mi verify no dejó procesos, puertos ni contenedores vivos. Antes de arrancar no se veía otra corrida pesada, con el límite de medición ya descrito; durante la corrida no volví a medir.
+- **Ownership:** lo libero con `node scripts/harness-worktree.mjs release --owner worker-pr114-retoma-20261017` después del último push. Worktree y rama se conservan.
+
+## Ronda 1 — extracción del 2026-09-14 (evidencia fechada)
+
 Fecha: 2026-09-14. Task ID: `portal-reportes-principal-0390-0397`.
 Owner / sesión escritora: `worker-w3-portal-reportes-20260914` (Worker asignado por el Director el 2026-09-14; sin subagentes ni otras sesiones escritoras).
 Estado de tarea: lista-para-revision. PR #114 en borrador; la integración la decide el Director después del smoke de L14 y de aplicar 0422 y 0423.
@@ -10,7 +154,7 @@ Origen de solo lectura: `refs/dtd/pr/21` = `origin/codex/saneamiento-integral` =
 SDD: `docs/specs/0390-portal-payment-shipment-reads-principal-tenant/spec.md` y `docs/specs/0397-portal-invoice-actions-principal-tenant/spec.md`, ambas `status: done` en `main` (bloque A de #21, `44c751ea`) sin su código (hallazgo de L14). Sin reserva de número. Sin migración.
 Permisos: commits locales selectivos (nunca `git add -A`), una unidad lógica por commit; push de la rama a sí misma y PR en borrador contra `main`, autorizados por el encargo y ya ejecutados. Prohibidos: merge, deploy, aplicar migraciones, leer filas de negocio, tocar el ruleset, borrar ramas o worktrees, copiar credenciales.
 
-## Contrato del encargo
+### Contrato del encargo
 
 - **Objetivo:** que el código que SDD-0390 y SDD-0397 declaran hecho exista en `main`: lecturas de reportes de pago y eventos de envío del Portal resueltas por principal y tenant, y `app/portal/(app)/facturas/[code]/aceptar/actions.ts` sin releer `clients.tenant_id` con admin.
 - **Aceptación:**
@@ -24,7 +168,7 @@ Permisos: commits locales selectivos (nunca `git add -A`), una unidad lógica po
 - **Solapamientos previstos** (sección «Integración» del handoff de L14): `lib/portal/payment-report-queries.ts`, `lib/portal/__tests__/payment-reports.test.ts` y `lib/portal/__tests__/portal-invoice-actions-principal-scope.test.ts`. Resueltos en esta rama; la versión elegida y el porqué están en COMPLETADO.
 - **Validación:** `E2E_PORT=3103 corepack pnpm verify` con veredicto por paso; `corepack pnpm exec vitest run lib/portal` y los tests focales; lint focal sobre los archivos tocados; `git diff --check` antes de cada commit.
 
-## Punto de partida verificado (antes del primer cambio)
+### Punto de partida verificado (antes del primer cambio)
 
 - `git rev-parse --show-toplevel` = el worktree de arriba; rama `codex/portal-reportes-principal-0390-0397`; `HEAD = b07ad98b`; árbol limpio. `guard` OK y `claim` adquirido con el owner de arriba.
 - Identidad por blob de cada ruta del alcance (`git rev-parse <ref>:<ruta>`):
@@ -47,11 +191,11 @@ Permisos: commits locales selectivos (nunca `git add -A`), una unidad lógica po
 - Escrituras sobre `payment_reports` en `app/` y `lib/` (sin tests): sólo lecturas (`select`) en `lib/portal/payment-report-queries.ts:83,108,133,161` y `app/portal/(app)/facturas/[code]/reportar/actions.ts:65`; ningún `insert/update/delete/upsert`; `confirm_payment_report` sólo aparece en `lib/portal/__tests__/payment-report-consumers.test.ts:93` como detector de legado. Los comandos van por `lib/portal/payment-report-commands.ts:123-124` (`create_portal_payment_report`, `cancel_portal_payment_report`, `resolve_payment_report`).
 - Columnas por las que ahora filtran las lecturas: `shipment_events.tenant_id` (`0002_shipments.sql:66`, `not null`) y `payment_reports.tenant_id` (`0195`), existentes.
 
-## OBJETIVO ORIGINAL
+### OBJETIVO ORIGINAL
 
 Que el código que SDD-0390 y SDD-0397 declaran hecho exista en `main`: lecturas de reportes de pago y eventos de envío del Portal resueltas por principal y tenant, y la aceptación legal (`aceptar/actions.ts`) sin releer `clients.tenant_id` con admin; todo extraído de #21 sin merge de la rama entera, sin migración, con PR en borrador para que el Director decida la integración después del smoke de L14.
 
-## COMPLETADO
+### COMPLETADO
 
 - **Aislamiento.** Raíz, rama y HEAD verificados; `guard` y `claim` PASÓ; guard y rama revalidados antes de cada commit y del push. El checkout principal y los otros worktrees no se tocaron. Dependencias: `pnpm exec` disparó la instalación automática de pnpm 12.3.4 (equivalente a `install --frozen-lockfile`: `pnpm-lock.yaml` y `package.json` quedaron intactos frente a `HEAD`). No se copió `.env` ni credenciales.
 - **SDD-0390** (commit `e4b10cab`): `listMyInvoiceReports`, `listMyShipmentEvents` y `listMyRecentActivity` resuelven `getPortalClientPrincipal()` en vez de la RPC `get_portal_client_markbox`, cortan sin consultar dominio ante principal inválido o incoherente y fijan `tenant_id` + Shipping Mark del principal (más `shipments.tenant_id` y `shipments.client_markbox` en los eventos, con el embed `shipments!inner(tenant_id, client_markbox)`). Mapeos, orden, límites y fallbacks (`null` en reportes, `[]` en eventos) se conservan; las firmas públicas no cambian, así que los tres llamadores (`facturas/[code]/page.tsx:38`, `envios/[code]/page.tsx:66`, `app/portal/(app)/page.tsx:57`) no se tocan. Alta de `portal-read-principal-scope.test.ts` (4 casos: principal incoherente corta las tres lecturas con cero operaciones de dominio; reportes, hitos y actividad fijan el scope canónico). `payment-reports.test.ts` y `shipment-events.test.ts` recuperan el mock de `../portal-queries` y las aserciones de `tenant_id` que L14 excluyó.
@@ -63,7 +207,7 @@ Que el código que SDD-0390 y SDD-0397 declaran hecho exista en `main`: lecturas
 - **Aceptación del encargo:** (1) PASÓ, (2) PASÓ, (3) PASÓ (grep en «Punto de partida»; no hay ruta de escritura directa en `lib/portal` ni `app/portal`), (4) PASÓ (los tests históricos sólo agregan aserciones y un mock; ninguna aserción se quita ni se relaja).
 - **Gobernanza (AGENT-BRIEF):** cambio de comportamiento del Portal con SDD y allowlist exacta (0390 y 0397): cumplimiento. Sin UI, sin nueva categoría de datos personales (las lecturas ya existían; sólo se estrecha el scope): `/ui-check` y `revisar-datos-ve` no aplican. AUD-01/AUD-02 sin cambio: las escrituras siguen por los comandos de 0421.
 
-## VALIDACIÓN
+### VALIDACIÓN
 
 Sin credenciales ni `.env`; nada se corrió contra producción ni se leyó ninguna fila. Recibos fuera de Git en el scratchpad de la sesión: `verify-3f0d59ac.log`, `verify-3f0d59ac-clean.log` (sin ANSI), `verify-3f0d59ac.meta` (HEAD, inicio, fin, exit y estado del árbol) y `pr-body.md`.
 
@@ -108,28 +252,28 @@ Detalle por paso de `corepack pnpm verify` sobre `3f0d59ac` (Node 24.20.0, pnpm 
 | e2e | **FALLÓ por entorno.** Dev server propio en el puerto 3103; 186 pruebas con 8 workers. La primera pasada imprimió 168 de 186 resultados (123 aprobadas, 15 omitidas y 30 renglones de fallo) y se quedó 10 min en silencio tras `[mobile-safari] gastos-expense-void.spec.ts:99:7` (el mismo punto que L14 registró en dos corridas y L10 en otras dos); el watchdog de SDD-0454 cortó el paso sin reintento. Los 30 renglones son: los 14 ambientales conocidos sin Supabase con su reintento interno (`auth.spec.ts:21/91/98/105` y `global-search.spec.ts:22` en chromium y mobile-chrome; `auth.spec.ts:21/91/98/105` en mobile-safari, que no llegó a `global-search`), con `proxy.ts:67` ×99 porque el WebServer no puede crear el cliente Supabase sin URL ni clave; más dos flaky aprobados en su reintento (`auth.spec.ts:74` y `smoke.spec.ts:150`, chromium). Contención añadida: durante mi e2e (01:41–02:01) corrían dos `verify` ajenos de otros worktrees, arrancados a las 01:40:10 y 01:50:19. Ningún spec del e2e visita `/portal/facturas/*` ni `/portal/envios/*` (sólo `global-search.spec.ts:68`, faceta «Pagos», Tier 3 omitido); esas pantallas exigen sesión y su evidencia son los tests focales de vitest, que corren dentro del paso `test` |
 | build | PASÓ: Next.js 16.2.11 (Turbopack), 160/160 páginas estáticas; `[build] build de producción OK` |
 
-## COMMITS
+### COMMITS
 
 - `418de24ec` — `docs(handoff): portal-reportes-principal-0390-0397 — contrato de la tarea` (este handoff, versión de contrato, antes del primer cambio de producto).
 - `e4b10cabf8b02f830803ac95f6bf810519c46ac7` — `fix(portal): SDD-0390 — lecturas de pagos y eventos por principal y tenant` (5 archivos de código/tests + spec 0390 con nota).
 - `3f0d59ac96d1bc8770a7400055d14dd57d7ec547` — `fix(portal): SDD-0397 — aceptación legal por principal sin releer clients` (3 archivos de código/tests + spec 0397 con nota). **SHA de producto sobre el que corrió verify y cabeza revisable de la PR.**
 - Commit que contiene este documento: cierre del handoff, sólo documentación; su hash se anota en la PR.
 
-## PR / BRANCH
+### PR / BRANCH
 
 - PR **#114** (borrador): https://github.com/hailuwaycom-sketch/DTDCARGO/pull/114 — base `main`, head `codex/portal-reportes-principal-0390-0397`, abierta con `headRefOid = 3f0d59ac`.
 - Publicación: un push de la rama a sí misma (`git push -u origin codex/portal-reportes-principal-0390-0397:codex/portal-reportes-principal-0390-0397`, sin force) y `gh pr create --draft` con el cuerpo de `pr-body.md`; segundo push sólo para este cierre.
 - Worktree conservado en la ruta de arriba. Sin merge, deploy ni migraciones.
 - **La PR queda en borrador a propósito:** la integración la decide el Director después del smoke de L14 y de aplicar 0422 y 0423. Fusionarla no autoriza nada en producción.
 
-## PENDIENTES DE ESTA TAREA
+### PENDIENTES DE ESTA TAREA
 
 - Ninguno de implementación: los cuatro criterios de aceptación están cumplidos y ambas specs quedan con su código en la rama.
 - Revisión del Director: la interpretación de «eventos» (inclusión de `shipment-events-queries.ts` y su test), la elección del test de scope completo sobre el recorte de L14 y las notas de las specs (frontmatter intacto por precedente de L14; si prefieres `updated: 2026-09-14`, es un cambio de una línea).
 - Confirmar el CI «Calidad local sin secretos» sobre el SHA final publicado.
 - E2E autenticado y ledger productivo: NO DISPONIBLES en este entorno; no autorizan copiar credenciales.
 
-## FUERA DE ALCANCE DETECTADO
+### FUERA DE ALCANCE DETECTADO
 
 - **Artefactos de #21 no importados:** `docs/audits/2026-09-02-codex-arranque-checklist.md`, `docs/audits/2026-09-03-portal-payment-shipment-reads-local.md`, `docs/audits/2026-09-03-portal-invoice-actions-local.md` y `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`. Las casillas «Checklist original sigue 56/106» de 0390 y 0397 describen ese checklist. Si el Director quiere esa evidencia en `main`, es otra tarea.
 - **Cuelgue recurrente del e2e en mobile-safari sin Supabase**, en el mismo punto (`gastos-expense-void.spec.ts:99`) que L10 y L14; y contención de varios `verify` concurrentes en la misma máquina (ver abajo). Conviene serializar los verifies de Workers paralelos o darle al harness un lock de máquina; no se tocó el harness.
@@ -137,7 +281,7 @@ Detalle por paso de `corepack pnpm verify` sobre `3f0d59ac` (Node 24.20.0, pnpm 
 - **`getReportById`** (`lib/portal/payment-report-queries.ts:156`) sigue sin llamador (ya anotado por L14).
 - **Lecturas Portal que siguen sólo por Shipping Mark:** `listMyShipments` y `getMyShipment` (`lib/portal/portal-queries.ts`), `portal-academy-queries.ts:83`, `academia/actions.ts:26` y `proveedores/actions.ts:177` usan la RPC `get_portal_client_markbox`. No forman parte de 0390/0397; son candidatos a un slice propio si se quiere el mismo corte por tenant.
 
-## HANDOFF AL DIRECTOR
+### HANDOFF AL DIRECTOR
 
 - **Siguiente acción:** revisar la PR #114 (diff de 8 archivos de código/tests, idénticos por blob a `08ec803d`/`2d0628d0`, más dos notas de spec y este handoff). Después del smoke de L14 y de aplicar 0422 y 0423, decidir la integración; no hay migración ni cambio de UI que coordinar. Reconsultar head/base/checks antes de integrar.
 - **Cambios compartidos:** ninguno fuera de `lib/portal` y `app/portal/(app)/facturas/[code]/aceptar`. Los otros tres Workers en paralelo (lectores financieros de Studio, helpers SQL del Portal, análisis de SDD-0235) no tocan estas rutas según el encargo; `git ls-remote origin main` seguía en `b07ad98b` al publicar.
