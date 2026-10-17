@@ -17,6 +17,7 @@ import {
   descendantsOf,
   isProcessAlive,
   killProcessTree,
+  listProcesses,
   monotonicNow,
   parseProcessTable,
   resolveWatchdogLimits,
@@ -112,6 +113,25 @@ function matarSiVive(pid) {
   try {
     process.kill(pid, "SIGKILL");
   } catch {}
+}
+
+/**
+ * De los procesos dados (con la hora de creación del inventario), los que siguen
+ * corriendo SIENDO ESOS MISMOS. Un PID que responde no basta: Windows recicla
+ * los PID liberados (SDD-0550 midió uno reusado en 2 s entre ~800 procesos
+ * nuevos) y bajo la carga de `verify` el PID del árbol ya cortado llegó a ser
+ * de otro proceso («nivel 0 sigue vivo», 2026-10-17). Vivo con otra hora de
+ * creación es un PID reusado, no un sobreviviente. Sin hora (POSIX, donde el
+ * PID no se recicla así) cuenta el PID.
+ */
+async function siguenVivosLosMismos(procesos, { isAlive = isProcessAlive, list = () => listProcesses() } = {}) {
+  const responden = procesos.filter((p) => isAlive(p.pid));
+  if (responden.length === 0) return [];
+  const actual = new Map((await list()).map((p) => [p.pid, p]));
+  return responden.filter((p) => {
+    const ahora = actual.get(p.pid);
+    return Boolean(ahora) && (p.created == null || ahora.created == null || ahora.created === p.created);
+  });
 }
 
 function salidaDePrueba() {
@@ -277,11 +297,18 @@ test("un árbol que calla se corta entero por inactividad, y sólo ese árbol", 
   assert.ok(r.timedOut.silentMs >= 1_500);
   assert.equal(avisos.length, 1);
   assert.equal(r.kill.inventory, "ok");
-  const cortados = new Set(r.kill.targets.map((p) => p.pid));
+  const cortados = new Map(r.kill.targets.map((p) => [p.pid, p]));
   for (const { nivel, pid } of pids) {
     assert.ok(cortados.has(pid), `nivel ${nivel} (PID ${pid}) no figura en el corte`);
-    assert.equal(isProcessAlive(pid), false, `nivel ${nivel} (PID ${pid}) sigue vivo`);
   }
+  // Con su hora de creación del inventario: un PID reciclado por otro proceso
+  // no es el árbol (ver siguenVivosLosMismos).
+  const vivos = await siguenVivosLosMismos(pids.map(({ pid }) => cortados.get(pid)));
+  assert.deepEqual(
+    vivos.map(({ pid }) => `nivel ${pids.find((p) => p.pid === pid).nivel} (PID ${pid})`),
+    [],
+    "siguen vivos procesos del árbol",
+  );
   assert.deepEqual(r.kill.survivors, []);
   assert.equal(cortados.has(ajeno.pid), false);
   assert.equal(isProcessAlive(ajeno.pid), true, "el proceso ajeno no debía tocarse");
@@ -289,6 +316,40 @@ test("un árbol que calla se corta entero por inactividad, y sólo ese árbol", 
     describeKill(r.kill),
     /^watchdog: raíz PID \d+; \d+ proceso\(s\) del árbol propio terminados \(.+\); sobrevivientes: 0(; \d+ aún en cierre del sistema, ya no corren)?\.$/,
   );
+});
+
+test("tras el corte, un PID que responde cuenta como vivo sólo si es el mismo proceso", async () => {
+  const H = "2026-10-17T03:00:00.0000000Z";
+  const otraHora = "2026-10-17T03:00:05.0000000Z";
+  const cortados = [
+    { pid: 10, created: H, name: "node.exe" }, // muerto: su PID no responde
+    { pid: 11, created: H, name: "node.exe" }, // PID reciclado por otro proceso
+    { pid: 12, created: H, name: "node.exe" }, // el mismo, todavía vivo
+    { pid: 13, created: null, name: "node" }, // POSIX: sin hora, cuenta el PID
+  ];
+  const responden = new Set([11, 12, 13]);
+  const tabla = [
+    { pid: 11, ppid: 1, created: otraHora, name: "cmd.exe" },
+    { pid: 12, ppid: 1, created: H, name: "node.exe" },
+    { pid: 13, ppid: 1, created: null, name: "node" },
+  ];
+  let consultas = 0;
+  const vivos = await siguenVivosLosMismos(cortados, {
+    isAlive: (pid) => responden.has(pid),
+    list: async () => {
+      consultas += 1;
+      return tabla;
+    },
+  });
+  assert.deepEqual(vivos.map((p) => p.pid), [12, 13]);
+  assert.equal(consultas, 1);
+
+  // Si ningún PID responde no hace falta la tabla (ni PowerShell en Windows).
+  const ninguno = await siguenVivosLosMismos(cortados, {
+    isAlive: () => false,
+    list: async () => assert.fail("no debía consultar la tabla"),
+  });
+  assert.deepEqual(ninguno, []);
 });
 
 test("una salida que gotea sin terminar se corta por el límite total", LENTO, async (t) => {

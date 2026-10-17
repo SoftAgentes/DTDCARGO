@@ -31,6 +31,12 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../.
 const MIGS = path.join(RAIZ, "supabase", "migrations");
 const LIB = path.join(RAIZ, "infra", "ops", "lib", "migracion.sh");
 const SLOW = 240_000;
+/**
+ * ⏱️ Las que lanzan bash (paridad, bash -n) o leen las 485 migraciones tardan
+ * 0,1-0,4 s aisladas y, con la máquina cargada, 2,3-7,2 s (×20, SDD-0550):
+ * con el tope global de 20 s quedaban a merced de la carga de `verify`.
+ */
+const BAJO_CARGA = 120_000;
 
 // En Windows, el `bash` del PATH puede ser el de WSL: se prefiere el de Git.
 const BASH = (() => {
@@ -117,7 +123,7 @@ describe("SDD-0546 · lectura del SQL (preparar.mjs)", () => {
       }
     }
     expect(bloques).toBeGreaterThanOrEqual(100);
-  });
+  }, BAJO_CARGA);
 
   it("deriva esperada: último cuerpo de cada firma como vigente, los reemplazados como anteriores, y las nuevas", () => {
     const d = P.derivaEsperada(M0902, PREVIAS);
@@ -140,7 +146,7 @@ describe("SDD-0546 · lectura del SQL (preparar.mjs)", () => {
   });
 });
 
-describe("SDD-0546 · paridad con infra/ops/lib/migracion.sh", () => {
+describe("SDD-0546 · paridad con infra/ops/lib/migracion.sh", { timeout: BAJO_CARGA }, () => {
   const dir = tmp();
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
   const bash = (script, env) => spawnSync(BASH, ["-c", script], { encoding: "utf8", env: { ...process.env, LIB: barras(LIB), ...env } });
@@ -423,7 +429,7 @@ describe("SDD-0546 · scripts bash con dobles", () => {
       const r = spawnSync(BASH, ["-n", s], { cwd: RAIZ, encoding: "utf8" });
       expect(r.status, `${s}: ${r.stderr}`).toBe(0);
     }
-  });
+  }, BAJO_CARGA);
 
   it(
     "prueba-migraciones-produccion.sh sale con 0 FALLÓ",

@@ -41,13 +41,15 @@ const SCRIPTS = [
 ];
 
 describe("SDD-0540 · scripts del entorno de prueba", () => {
+  // Un bash por script, en serie: ~1,2 s aislada en Windows, y bajo la carga de
+  // `pnpm verify` cada arranque de Git Bash tarda mucho más (SDD-0550).
   it("todos pasan bash -n", () => {
     expect(SCRIPTS.length).toBeGreaterThanOrEqual(15);
     for (const s of SCRIPTS) {
       const r = spawnSync(BASH, ["-n", s], { cwd: resolve("."), encoding: "utf8" });
       expect(r.status, `${s}: ${r.stderr}`).toBe(0);
     }
-  });
+  }, 120_000);
 
   // En paralelo: en Windows la más larga tarda cerca de un minuto (procesos de Git Bash).
   it(

@@ -43,6 +43,13 @@ describe("SDD-0544 · AvisoEntornoPrueba", () => {
 });
 
 /**
+ * ⏱️ I/O: parsear app/globals.css con postcss y recorrer app/ y components/
+ * tardan ~1,0 y ~1,3 s aislados; dentro de `pnpm verify` la del z-index venció
+ * el tope global de 20 s (SDD-0550). El tope se sube sólo para esas dos.
+ */
+const LEE_ARCHIVOS = 120_000;
+
+/**
  * Lo que hace que «se vea de verdad»: fijo, encima de cualquier capa del repo,
  * sin atrapar clics y con los tokens del tono «Atención» de BRAND.md.
  */
@@ -70,7 +77,7 @@ describe("SDD-0544 · estilos del aviso", () => {
     );
     expect(roto).not.toBe(css);
     expect(() => postcss.parse(roto)).toThrow(/Unknown word no/);
-  });
+  }, LEE_ARCHIVOS);
 
   it("la franja es fija, no atrapa clics y usa el dorado de atención", () => {
     const franja = regla(".entorno-prueba");
@@ -113,5 +120,5 @@ describe("SDD-0544 · estilos del aviso", () => {
     }
     expect(mayor).toBeGreaterThan(0);
     expect(propio).toBeGreaterThan(mayor);
-  });
+  }, LEE_ARCHIVOS);
 });

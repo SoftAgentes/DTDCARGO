@@ -18,6 +18,14 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
 
+/**
+ * ⏱️ I/O: la primera prueba lee todos los .ts/.tsx de app/, lib/ y components/.
+ * Aislada tarda ~1,3 s; dentro de `pnpm verify`, con la suite entera leyendo el
+ * mismo disco, tardó 30,6 s y venció el tope global de 20 s (SDD-0550). El tope
+ * se sube sólo para ella, como en env-example-contract.test.ts.
+ */
+const RECORRE_EL_REPO = 120_000;
+
 function fuentesDeCodigo(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const p = join(dir, e.name);
@@ -44,7 +52,7 @@ describe("Tipografía SDD-0505 · fuentes servidas desde el repositorio", () => 
       .filter((f) => /from\s+["']next\/font\/google["']/.test(readFileSync(f, "utf8")))
       .map((f) => relative(ROOT, f));
     expect(culpables).toEqual([]);
-  });
+  }, RECORRE_EL_REPO);
 
   it("lib/fonts.ts carga solo las cinco fuentes locales, con los nombres de variable de siempre", () => {
     const fonts = readFileSync(join(ROOT, "lib/fonts.ts"), "utf8");
