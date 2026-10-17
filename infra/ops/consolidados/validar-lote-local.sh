@@ -8,6 +8,7 @@
 # LC_ALL=C saltando las LEDGER_ONLY; después una semilla mínima (el cliente
 # sintético de la semilla de prueba y el admin ficticio) y la secuencia:
 #
+#   siempre:   aplicar SIN semilla (debe ABORTAR: «esta base no es la de prueba»)
 #   un lote:   previa → simulacro → aplicar → verificar → previa (conflictos) →
 #              aplicar (aborta) → deshacer → aplicar (aborta: códigos ocupados) →
 #              purgar → aplicar → verificar → purgar → conteo cero
@@ -54,15 +55,6 @@ docker exec "${C}" sh -c "SKIP=\"${LEDGER_ONLY}\"; ok=0; for f in \$(ls /sb/migr
 grep -q "^OK|" "${OUT}/migraciones.out" || { log "FALLÓ la reconstrucción: $(tail -2 "${OUT}/migraciones.out" | tapar)"; exit 5; }
 log "esquema reconstruido: $(grep '^OK|' "${OUT}/migraciones.out" | cut -d'|' -f2) migraciones"
 
-docker exec -i "${C}" psql -U postgres -q -v ON_ERROR_STOP=1 > "${OUT}/semilla.out" 2>&1 <<'SQL' || { log "FALLÓ semilla: $(grep -m1 ERROR "${OUT}/semilla.out" | tapar)"; exit 5; }
-insert into public.clients (id, tenant_id, markbox, name, email, notes)
-select '05400000-0000-4000-8000-000000000101'::uuid, t.id, 'DTD-9001', 'Cliente PRUEBA C.A.', 'cliente@prueba.example.test', 'Cliente sintético (validación local)'
-  from public.tenants t where t.slug = 'dtd'
-on conflict (id) do nothing;
-insert into auth.users (id, email) values ('05400000-0000-4000-8000-000000000001'::uuid, 'admin@prueba.example.test')
-on conflict (id) do nothing;
-SQL
-
 lote_id() { sed -nE 's/^[[:space:]]*"lote":[[:space:]]*"([^"]+)".*$/\1/p' "$1/manifiesto.json" | head -1; }
 paso() { # $1 carpeta, $2 nombre, $3 cierre esperado
   local dir="$1" n="$2" cierre="$3" rc primera ultima tag
@@ -90,6 +82,21 @@ restantes() { # $1 id del lote
 }
 
 A="$(lote_id "${LOTE}")"
+
+# Control de la guarda de base de prueba: ANTES de la semilla no existe el cliente
+# sintético, así que aplicar.sql tiene que abortar sin escribir nada (es lo que
+# vería un psql directo contra la base oficial). Recién después entra la semilla.
+debe_abortar "${LOTE}" aplicar "esta base no es la de prueba"
+log "tras el aborto sin semilla: $(restantes "${A}")"
+docker exec -i "${C}" psql -U postgres -q -v ON_ERROR_STOP=1 > "${OUT}/semilla.out" 2>&1 <<'SQL' || { log "FALLÓ semilla: $(grep -m1 ERROR "${OUT}/semilla.out" | tapar)"; exit 5; }
+insert into public.clients (id, tenant_id, markbox, name, email, notes)
+select '05400000-0000-4000-8000-000000000101'::uuid, t.id, 'DTD-9001', 'Cliente PRUEBA C.A.', 'cliente@prueba.example.test', 'Cliente sintético (validación local)'
+  from public.tenants t where t.slug = 'dtd'
+on conflict (id) do nothing;
+insert into auth.users (id, email) values ('05400000-0000-4000-8000-000000000001'::uuid, 'admin@prueba.example.test')
+on conflict (id) do nothing;
+SQL
+
 if [[ -z "${LOTE2}" ]]; then
   paso "${LOTE}" previa ROLLBACK
   paso "${LOTE}" simulacro ROLLBACK && log "tras simulacro: $(restantes "${A}")"
