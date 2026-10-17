@@ -1,11 +1,14 @@
 /**
  * Pestaña "Estado" de la torre de control (/studio/debug · SDD-0050 Slice A).
  *
- * Es un MOVE, no un rewrite: contiene las cards que antes vivían directo en
- * `page.tsx` (entorno/hero, deploy actual, deploys recientes, status de
- * producción, integraciones health, env vars, "¿por qué mocks?"). El contenido
- * y la lógica no cambian — solo se extrajeron a este componente para que la
- * torre de control pueda tener pestañas.
+ * Contiene las cards que antes vivían directo en `page.tsx` (entorno/hero,
+ * esta instancia, publicaciones del servidor, status de producción,
+ * integraciones health, env vars, "¿por qué mocks?").
+ *
+ * SDD-0547: «Deploys recientes» leía la API de Vercel, que está en pausa desde
+ * el 2026-10-16. La reemplaza «Publicaciones del servidor», que lee lo que deja
+ * el vigilante de publicación (SDD-0541). «Deploy actual» pasa a «Esta
+ * instancia» y ya no dice «(local)» en el servidor cuando falta un dato.
  *
  * Server component. NUNCA muestra valores de env vars, solo nombres.
  */
@@ -20,18 +23,14 @@ import {
   type IntegrationKey,
   type IntegrationStatus,
 } from "@/lib/studio/env-status";
-import {
-  relativeTime,
-  type DeployItem,
-  type ListDeploysResult,
-  type VercelDeployState,
-} from "@/lib/studio/vercel-deploys";
+import type { LecturaPublicaciones } from "@/lib/studio/publicaciones-types";
 import {
   type FetchRemoteResult,
   type IntegrationHealth,
 } from "@/lib/studio/integration-health";
 import { Badge } from "../../../_components/ui/Badge";
 import { DeployButton } from "../../../_components/deploy/DeployWebBot";
+import { PublicacionesServidor } from "./PublicacionesServidor";
 import { RecheckButton } from "./RecheckButton";
 
 const INTEGRATION_ORDER: IntegrationKey[] = [
@@ -64,29 +63,10 @@ function statusBadge(s: IntegrationStatus) {
   return <Badge tone="danger" size="md">Falta</Badge>;
 }
 
-function deployStateTone(
-  state: VercelDeployState,
-): "success" | "warning" | "danger" | "neutral" {
-  if (state === "READY") return "success";
-  if (state === "BUILDING" || state === "QUEUED" || state === "INITIALIZING")
-    return "warning";
-  if (state === "ERROR") return "danger";
-  return "neutral";
-}
-
-function deployStateLabel(state: VercelDeployState): string {
-  if (state === "READY") return "Listo";
-  if (state === "BUILDING") return "Buildeando";
-  if (state === "QUEUED") return "En cola";
-  if (state === "INITIALIZING") return "Inicializando";
-  if (state === "ERROR") return "Error";
-  if (state === "CANCELED") return "Cancelado";
-  return state;
-}
-
 export type EstadoTabProps = {
   status: EnvStatus;
-  deploysResult: ListDeploysResult;
+  /** Estado de las publicaciones que deja el vigilante del servidor (SDD-0547). */
+  publicaciones: LecturaPublicaciones;
   healthByKey: Record<IntegrationKey, IntegrationHealth>;
   remoteHealth: FetchRemoteResult;
   siteUrl: string;
@@ -94,7 +74,7 @@ export type EstadoTabProps = {
 
 export function EstadoTab({
   status: s,
-  deploysResult,
+  publicaciones,
   healthByKey,
   remoteHealth,
   siteUrl,
@@ -173,79 +153,39 @@ export function EstadoTab({
         </div>
       </div>
 
-      {/* Deploy info */}
-      <Card title="Deploy actual" action={isLocal ? <DeployButton /> : undefined}>
+      {/* Esta instancia · lo que el proceso sabe de sí mismo (SDD-0547) */}
+      <Card title="Esta instancia" action={isLocal ? <DeployButton /> : undefined}>
         <KV
-          k="URL del deploy"
+          k="URL"
           v={
             s.vercelUrl
               ? `https://${s.vercelUrl}`
-              : "—  (corriendo en local con next dev)"
+              : isLocal
+                ? "—  (corriendo en local con next dev)"
+                : "—  (falta APP_URL en el servidor)"
           }
         />
-        <KV k="Branch" v={s.branch ?? "— (local)"} />
+        {(isLocal || s.branch) && <KV k="Rama" v={s.branch ?? "— (local)"} />}
         <KV
-          k="Commit SHA"
-          v={s.commitSha ? `${s.commitShaShort}  (${s.commitSha})` : "— (local)"}
+          k="Commit"
+          v={
+            s.commitSha
+              ? `${s.commitShaShort}  (${s.commitSha})`
+              : isLocal
+                ? "— (local)"
+                : "— (la imagen no trae NEXT_PUBLIC_BUILD_SHA)"
+          }
           mono
         />
       </Card>
 
-      {/* Historial de deploys · Vercel API */}
-      <Card title="Deploys recientes">
-        {!deploysResult.ok ? (
-          deploysResult.reason === "mock_no_token" ? (
-            <div style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.55 }}>
-              <p style={{ margin: "0 0 var(--s-3) 0" }}>
-                Para ver el historial de deploys del proyecto Vercel necesitas
-                setear estas env vars (mismas que usa el bot del escritorio):
-              </p>
-              <ul style={{ margin: 0, paddingLeft: "var(--s-5)" }}>
-                <li>
-                  <code style={{ fontFamily: "var(--f-mono)", fontSize: 12 }}>
-                    VERCEL_API_TOKEN
-                  </code>{" "}
-                  — el token de https://vercel.com/account/tokens
-                </li>
-                <li>
-                  <code style={{ fontFamily: "var(--f-mono)", fontSize: 12 }}>
-                    VERCEL_PROJECT_ID
-                  </code>{" "}
-                  — el ID del proyecto (formato <code>prj_...</code>)
-                </li>
-                <li>
-                  <code style={{ fontFamily: "var(--f-mono)", fontSize: 12 }}>
-                    VERCEL_TEAM_ID
-                  </code>{" "}
-                  — opcional, si el proyecto vive en un team
-                </li>
-              </ul>
-              <p style={{ marginTop: "var(--s-3)", marginBottom: 0 }}>
-                Agregalas en{" "}
-                <a
-                  href="https://vercel.com/dashboard"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "var(--info)", textDecoration: "underline" }}
-                >
-                  Vercel Dashboard
-                </a>{" "}
-                → Settings → Environment Variables → Production + Preview +
-                Development.
-              </p>
-            </div>
-          ) : (
-            <div style={{ color: "var(--danger)", fontSize: 13 }}>
-              No pude consultar Vercel API: {deploysResult.error ?? "error desconocido"}
-            </div>
-          )
-        ) : deploysResult.deploys.length === 0 ? (
-          <div style={{ color: "var(--ink-soft)", fontSize: 13 }}>
-            Sin deploys todavía.
-          </div>
-        ) : (
-          <DeploysList deploys={deploysResult.deploys} currentShaShort={s.commitShaShort} />
-        )}
+      {/* Publicaciones · las escribe el vigilante del servidor (SDD-0541/0547) */}
+      <Card title="Publicaciones del servidor">
+        <PublicacionesServidor
+          lectura={publicaciones}
+          env={s.env}
+          shaInstancia={s.commitSha}
+        />
       </Card>
 
       {/* Status de Producción · solo visible en local/preview */}
@@ -411,28 +351,15 @@ export function EstadoTab({
             detecta la ausencia y entra en &quot;mock mode&quot; (devuelve un error
             controlado sin romper el flujo, pero no envía nada al exterior).
           </p>
-          <p style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.55, marginTop: "var(--s-3)" }}>
-            Si quieres que tu local mande mails y bots <strong>reales</strong>{" "}
-            (cuidado, salen a clientes reales), instala Vercel CLI y corre:
+          <p style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.55, marginTop: "var(--s-3)", marginBottom: 0 }}>
+            Si quieres que tu local mande correos y mensajes <strong>reales</strong>{" "}
+            (cuidado, salen a clientes reales), pon en tu{" "}
+            <code style={{ fontFamily: "var(--f-mono)", fontSize: 12 }}>.env.local</code>{" "}
+            solo las variables que necesites; la lista está en{" "}
+            <code style={{ fontFamily: "var(--f-mono)", fontSize: 12 }}>.env.example</code>.
+            No copies completo el <code style={{ fontFamily: "var(--f-mono)", fontSize: 12 }}>.env</code>{" "}
+            del servidor: trae las llaves de producción.
           </p>
-          <pre
-            style={{
-              fontFamily: "var(--f-mono)",
-              fontSize: 12,
-              background: "var(--bg-elevated)",
-              padding: "var(--s-3)",
-              borderRadius: "var(--r-sm)",
-              marginTop: "var(--s-2)",
-              overflow: "auto",
-            }}
-          >{`# OJO: el último comando sobrescribe tu .env.local actual.
-# Si lo necesitas, haz backup antes:
-cp .env.local .env.local.backup
-
-pnpm add -g vercel
-vercel login
-vercel link
-vercel env pull .env.local`}</pre>
         </Card>
       )}
     </div>
@@ -573,149 +500,6 @@ function HealthBadge({ health }: { health: IntegrationHealth }) {
           {detailText}
         </span>
       )}
-    </div>
-  );
-}
-
-function DeploysList({
-  deploys,
-  currentShaShort,
-}: {
-  deploys: DeployItem[];
-  currentShaShort: string | null;
-}) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column" }}>
-      {deploys.map((d) => {
-        const isCurrent =
-          currentShaShort !== null && d.commitShaShort === currentShaShort;
-        return (
-          <div
-            key={d.uid}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "auto 1fr auto auto",
-              alignItems: "center",
-              gap: "var(--s-4)",
-              padding: "var(--s-3) 0",
-              borderTop: "1px solid var(--border)",
-            }}
-          >
-            {/* Estado + tipo */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--s-1)",
-                minWidth: 90,
-              }}
-            >
-              <Badge tone={deployStateTone(d.state)} size="md">
-                {deployStateLabel(d.state)}
-              </Badge>
-              <span
-                style={{
-                  fontSize: 10.5,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.06em",
-                  color:
-                    d.type === "production"
-                      ? "var(--wine)"
-                      : "var(--ink-mute)",
-                  fontWeight: 700,
-                }}
-              >
-                {d.type === "production" ? "Producción" : "Preview"}
-              </span>
-            </div>
-
-            {/* Commit + autor */}
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: "var(--ink)",
-                  fontWeight: 500,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-                title={d.commitMessage ?? undefined}
-              >
-                {d.commitMessage ?? <em style={{ color: "var(--ink-soft)" }}>sin mensaje</em>}
-              </div>
-              <div
-                style={{
-                  fontSize: 11.5,
-                  color: "var(--ink-soft)",
-                  marginTop: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--s-2)",
-                  flexWrap: "wrap",
-                }}
-              >
-                {d.commitShaShort && (
-                  <code
-                    style={{
-                      fontFamily: "var(--f-mono)",
-                      background: isCurrent
-                        ? "var(--success-bg)"
-                        : "var(--bg-elevated)",
-                      color: isCurrent ? "var(--success)" : "var(--ink-mute)",
-                      padding: "1px 5px",
-                      borderRadius: "var(--r-xs)",
-                      fontWeight: 600,
-                    }}
-                    title={isCurrent ? "Este es el commit que estás viendo" : undefined}
-                  >
-                    {d.commitShaShort}
-                    {isCurrent && " ←"}
-                  </code>
-                )}
-                {d.branch && (
-                  <span style={{ color: "var(--ink-soft)" }}>
-                    {d.branch}
-                  </span>
-                )}
-                {d.author && (
-                  <span style={{ color: "var(--ink-soft)" }}>
-                    · {d.author}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Tiempo */}
-            <div
-              style={{
-                fontSize: 11.5,
-                color: "var(--ink-soft)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {relativeTime(d.createdAt)}
-            </div>
-
-            {/* Link */}
-            <a
-              href={`https://${d.url}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--info)",
-                textDecoration: "underline",
-                textUnderlineOffset: 2,
-                whiteSpace: "nowrap",
-              }}
-            >
-              Abrir <span aria-hidden>↗</span>
-            </a>
-          </div>
-        );
-      })}
     </div>
   );
 }
