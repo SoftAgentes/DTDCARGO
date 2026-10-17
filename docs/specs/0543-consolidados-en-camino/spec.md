@@ -44,6 +44,7 @@ Lo que ya existe y se reutiliza, con su evidencia, está en el handoff (`.agents
 5. **Sin avisos a clientes en esta fase.** El aviso se diseña aparte (§ Aviso) y se dispara sólo en producción con su OK.
 6. Prueba: autorización literal «autorizo cargar datos reales de los consolidados en prueba» (SDD-0540 §8); lista de IP de Sam; al terminar, los datos reales se borran de prueba con evidencia.
 7. **Sin exceso de peso** (2026-10-16, ~23:40Z): «No cobres el exceso de peso: regenera el lote del 59 con --sin-exceso-peso». Las facturas llevan sólo el flete por m³; el «valor $ kg extra» del Excel ($1.411,05) no se factura y queda en los avisos del resumen. **Diferencia conocida:** la base del lote es $47.241,79 y el Excel suma $47.241,75; los $0,04 salen de redondear la base de cada factura a 2 decimales por cliente (`round(numeric, 2)`), mientras que el Excel suma celdas sin redondear. No se corrige: la factura de cada cliente es la que manda.
+8. **Filas a $0 se facturan en $0** (2026-10-17): «Que las dos filas a $0 de DTD-J000 entren como líneas en $0, como están». Las dos líneas de ese cliente (0,4 m³ y 0,262 m³ a $0) quedan visibles en su factura en borrador; la v6 cargada en prueba ya las trae así.
 
 ## Alcance
 
