@@ -139,6 +139,7 @@ apuntando a un `GIT_DIR` inexistente: no tocan la red ni ninguna base.
 | 2026-10-17 | `vitest run scripts/check-migrations-applied.test.mjs` | 36/36 PASÓ (22 previas + 14 nuevas) |
 | 2026-10-17 | 11 mutantes (Cloud, corte antes de la red, https, puerto, credenciales, `redirect`, rama de redirección, punto final, URL cruda, etiqueta, espacio del conteo) | 11/11 MUERTOS; archivo restaurado |
 | 2026-10-17 | `node scripts/check-migrations-applied.mjs` sin credenciales | exit 3, SKIP «sin NEXT_PUBLIC_SUPABASE_URL…» |
+| 2026-10-17 | `pnpm verify` sobre `e2f12db5` (21:17-21:45Z) | exit 1 solo en `test`: `env-example-contract` cazó dos variables del doble (`DOBLE_*`). Se corrigió en `5b805cea`: el doble lee un archivo. Después, las dos suites afectadas dieron 37/37. `migrations-applied` dio SKIP (sin credenciales). Lo demás PASÓ |
 
 El resto de las comprobaciones está en el handoff
 `.agents/handoffs/0548-gate-migraciones-host-produccion.md`.
