@@ -213,7 +213,7 @@ La evidencia vale para **un SHA**. Un commit nuevo que toque la migración o su 
 
    Después del apply en producción, el md5 del ledger de producción tiene que ser el de prueba.
 
-`aplicar-migracion.sh` rechaza `dtd-cargo`. Usarlo en producción exige reescribir `docs/runbooks/aplicar-migraciones-prod.md` en otra PR (§6 de la spec).
+`aplicar-migracion.sh` rechaza `dtd-cargo`. Producción usa `infra/ops/migraciones/` (SDD-0546) y `docs/runbooks/aplicar-migraciones-prod.md`: el mismo envoltorio (`lib/migracion.sh`), así que el md5 del ledger de prueba y el de producción coinciden. Esos scripts también aceptan `dtd-cargo-staging`, si quieres ensayar con el mismo paquete y la misma lectura previa.
 
 ## 5 · Resetear la base
 
