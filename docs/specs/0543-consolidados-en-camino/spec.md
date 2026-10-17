@@ -74,7 +74,7 @@ Lo que ya existe y se reutiliza, con su evidencia, está en el handoff (`.agents
 | `shipments` | uno por Remitente: `code` = Remitente, `client_markbox` canónico (`resolve_markbox`), `client_name` de `clients`, `origin 'Yiwu, China'`, `destination` = puerto de llegada, `shipment_service 'puerta_a_puerta_DDP'`, `vehicle_category 'contenedor_maritimo'`, `weight_kg`/`volume_m3` sumados, `created_at` = recepción. Nace en `in_warehouse` (así el evento inicial del trigger dice la verdad) y pasa a `in_transit`; eventos `consolidating`, `shipped` e `in_transit` fechados el día de carga. |
 | `consolidation_items` | uno por envío con cbm, peso, cajas y snapshots. |
 | `warehouse_receipts_cn` | una por envío: `receipt_code` explícito `WR-C<NN>-<remitente>` (clave natural; no gasta la serie `WR-YYYY`), `received_at` = carga − 1, `status 'consolidado'`, `shipment_id`, `boxes`, `total_cbm`, `total_weight_kg`, `warehouse_id` = YIW-A1; items una por fila del Excel; eventos `received` y `consolidated`. `destination_city` queda nula. |
-| `invoices` | una por cliente y contenedor, `borrador`, `invoice_code` siguiente `F-YYYY-NNNN`, snapshots del cliente (`client_rif`, `client_doc_kind`), USD, IVA según `tenants.iva_enabled`, `lines` una por embarque («Flete DDP · <remitente> · <cbm> m³ × $<precio>») más «Exceso de peso» cuando el valor $ kg extra es positivo, `fund_class 'third_party'`, `shipment_id/shipment_code` = primer embarque del cliente (la tarjeta «pendiente de aceptar» lo exige y el gate compara su medida), `notes` con el contenedor y los embarques. Aliados: al aliado raíz. |
+| `invoices` | una por cliente y contenedor, `borrador`, `invoice_code` siguiente `F-YYYY-NNNN`, snapshots del cliente (`client_rif`, `client_doc_kind`), USD, IVA según `tenants.iva_enabled`, `lines` una por embarque («Flete DDP · <remitente> · <cbm> m³ × $<precio>», cada una con su `shipmentCode` = Remitente para que el Portal liste los embarques de la factura y sume su medida) más «Exceso de peso» cuando el valor $ kg extra es positivo, `fund_class 'third_party'`, `shipment_id/shipment_code` = primer embarque del cliente (la tarjeta «pendiente de aceptar» lo exige y el gate compara su medida), `notes` con el contenedor y los embarques. Aliados: al aliado raíz. |
 | Auditoría | un `append_audit_event` por entidad creada, `p_actor_type 'system'`, `p_source 'job'`, `p_correlation_id 'carga-consolidado:<NN>:<sha8>'`. |
 
 ### Idempotencia y vuelta atrás
@@ -83,6 +83,7 @@ Lo que ya existe y se reutiliza, con su evidencia, está en el handoff (`.agents
 - `verificar.sql` recuenta por lote (envíos, recepciones, cajas, items, facturas, Σ CBM, Σ kg, Σ base) y compara con `manifiesto.json`.
 - `deshacer.sql` borra lógicamente lo del lote (facturas sólo en `borrador`, items de consolidación, recepciones, envíos y consolidación) con motivo y evento de auditoría, en una transacción, y se niega si alguna factura se emitió o si hay cajas estibadas, igual que los bloqueos de 0476. Es la vuelta atrás: los nombres siguen en la base.
 - `purgar.sql` es el borrado definitivo para prueba (Sam pidió borrar los datos reales con evidencia): borra físicamente, en una transacción y en orden de dependencias, todo lo que el lote creó (facturas, recepciones con sus items/eventos/cajas, envíos con sus eventos, items del contenedor, el contenedor, su zarpe, la naviera si la creó el lote, y los clientes y aliados creados por el lote), y termina comprobando conteo cero por lote. Si una fila ajena al lote apunta a algo del lote (una aceptación de T&C, un reporte de pago del smoke), la FK lo aborta y el camino es el reinicio de prueba (`resetear-base-prueba.sh`). El log de auditoría es append-only (0267) y no lleva nombres: sus filas quedan como registro de la carga y de la purga.
+- Guarda de base de prueba (revisión del Director, 2026-10-17): un lote generado con `--entorno prueba` se niega en `aplicar`/`simulacro`/`deshacer`/`purgar` donde no esté el cliente sintético de la semilla (`05400000-…-0101`), así que un psql directo contra la base oficial aborta antes de escribir. Todos los scripts ponen `set VERBOSITY terse` (psql no escribe `DETAIL` con filas en la evidencia) y los `raise` del bloque citan etiquetas `PREFIJO-#n`, nunca la clave del Excel.
 
 ### Marcas
 
@@ -93,10 +94,15 @@ Lo que ya existe y se reutiliza, con su evidencia, está en el handoff (`.agents
 
 - Estado de cuenta (`app/portal/(app)/facturas/page.tsx`, `lib/portal/statement-ledger.ts`): filas «Por aceptar» con el monto de los borradores DDP pendientes (lectura con admin scopeada como `listPendingAcceptanceInvoices`).
 - Detalle (`app/portal/(app)/facturas/[code]/page.tsx`): para un borrador pendiente, en vez de 404, «Tienes que aceptar los T&C del portal para ver el detalle» con el botón a `/portal/facturas/[code]/aceptar`.
+- Puerta del detalle y página de aceptación (revisión del Director, 2026-10-17): si la factura junta varios embarques, listan sus códigos y la medida **sumada** de sus envíos (`lines[].shipmentCode` → `embarques` en `PendingAcceptanceDetail`, leídos con scope de tenant), nunca la del primero junto al monto de todos. La aceptación sigue sellando la medida del primer envío (`shipment_code`, SDD-0054): limitación conocida que se decide aparte.
+- «Mis facturas» sin facturas emitidas pero con borradores: el vacío habla de facturas emitidas y dice cuándo entran al estado de cuenta, en vez de contradecir la tarjeta.
+- `loadPendingAcceptanceForClient`/`…DetailForClient` crean el admin client dentro del `try`: sin la variable de entorno devuelven vacío/null y la página sigue.
 
 ### Aviso (diseño; no se dispara en esta SDD)
 
 Evento `carga_en_camino` en `CLIENT_JOURNEY_EVENTS`: un aviso por cliente y contenedor, anclado al primer envío del cliente, copy «Tu carga del contenedor NN viene en camino · N envíos · M facturas por aceptar · llega aprox. <ETA> · entra al Portal». Canal recomendado correo + push; aparece en la bandeja del Portal (0479). Antes de enviar, simulacro con la lista de destinatarios.
+
+El evento está marcado `gancho: "pendiente"` en el catálogo: el Studio lo muestra aparte de los que «ya disparan desde su gancho», porque todavía nada lo emite.
 
 ### Datos personales (revisar-datos-ve)
 

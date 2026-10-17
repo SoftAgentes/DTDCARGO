@@ -38,6 +38,7 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
 - `previa` sólo lee: la tabla de marcas tiene que dar `sin_resolver = 0` (o el lote se generó con `--crear-clientes-faltantes`) y los conflictos `0`.
 - `simulacro` corre todo y termina en `ROLLBACK`; su evidencia habilita `aplicar` (sin simulacro PASÓ del mismo lote en la misma base, `aplicar` sale 5).
 - `aplicar` es una transacción: si algo falla, psql sale distinto de 0 y no queda nada.
+- Un lote generado con `--entorno prueba` **se niega fuera de la base de prueba**: `aplicar`, `simulacro`, `deshacer` y `purgar` buscan el cliente sintético de la semilla y abortan antes de escribir si no está (un psql directo contra `dtd-cargo-db-1` no toca nada). Todos los scripts ponen además `\set VERBOSITY terse`: psql no escribe `DETAIL` con filas (nombres) en la evidencia, y los `raise` del bloque citan etiquetas `PREFIJO-#n`, nunca la clave del Excel.
 - `verificar` recuenta y compara con el manifiesto; su `NOTICE` dice `verificar: PASÓ …`.
 - Evidencia en `/srv/ops/evidencias/lote-<id>-dtd-cargo-staging-<ts>/` (`<paso>.out`, `<paso>.err`, `LOTE.txt` con los conteos, `SHA256SUMS`).
 - Para volver atrás: `--paso deshacer --confirm-deshacer <id del lote>` (borrado lógico). Se niega si alguna factura dejó de ser borrador o hay cajas estibadas. Los clientes creados en prueba se conservan y los nombres siguen en la base. **Después de deshacer no se puede volver a aplicar el mismo lote**: `shipments.code` y `receipt_code` son únicos sin filtro por `deleted_at`, así que los códigos quedan ocupados por las filas borradas; el preflight lo dice con un conteo. En prueba, `purgar` libera los códigos; en otra base lo decide el Director.
@@ -53,7 +54,7 @@ scp -r "C:\Users\AKX generator\Desktop\DTD-consolidados\59\2026-10-16" root@217.
 | Studio › Tracking | un envío por Remitente, `in_transit`, con sus eventos fechados el día de carga |
 | Studio › Facturación | una factura en borrador por cliente, con una línea por embarque |
 | Portal › Envíos | el cliente ve sus envíos agrupados por contenedor con el ETA |
-| Portal › Mis facturas | la tarjeta «por aceptar» con el monto; el detalle pide aceptar los T&C; el estado de cuenta avisa lo que falta por entrar |
+| Portal › Mis facturas | la tarjeta «por aceptar» con el monto; sin facturas emitidas, el vacío dice «todavía no tienes facturas emitidas» y cuándo entran; el detalle pide aceptar los T&C y, si la factura junta varios embarques, los lista con la medida sumada (no la del primero junto al monto de todos); el estado de cuenta avisa lo que falta por entrar |
 
 Para entrar al Portal como uno de los clientes cargados en prueba hay que vincular el usuario sintético del portal a ese cliente (Studio › Clientes › invitar al correo `.test` de la semilla) o crear la invitación desde el Studio de prueba.
 
@@ -61,7 +62,7 @@ Para entrar al Portal como uno de los clientes cargados en prueba hay que vincul
 
 | Comando | Qué cubre |
 |---|---|
-| `pnpm vitest run scripts/__tests__/consolidados-modelo.test.ts scripts/__tests__/consolidados-excel.test.ts scripts/__tests__/consolidados-sql.test.ts` | lectores de Excel, agrupación, líneas de factura, redondeo como `round(numeric, 2)`, forma de los scripts, preflight y deshacer |
-| `bash infra/ops/tests/prueba-aplicar-lote.sh` | guardas de `aplicar-lote.sh` (producción, `-staging`, `--confirm`, SHA256SUMS, entorno), orden simulacro → aplicar, forma de la salida, evidencia sin nombres |
+| `pnpm vitest run scripts/__tests__/consolidados-modelo.test.ts scripts/__tests__/consolidados-excel.test.ts scripts/__tests__/consolidados-sql.test.ts` | lectores de Excel, agrupación, líneas de factura con su `shipmentCode`, redondeo como `round(numeric, 2)`, forma de los scripts (`VERBOSITY terse`), preflight, guarda de base de prueba, `raise` con etiquetas, deshacer y purgar con sus dependencias |
+| `bash infra/ops/tests/prueba-aplicar-lote.sh` | guardas de `aplicar-lote.sh` (producción, `-staging`, `--confirm`, SHA256SUMS, entorno), orden simulacro → aplicar, forma de la salida, evidencia sin nombres y el control de que una fuga plantada en psql sí se vería (23 casos) |
 | `bash infra/ops/consolidados/validar-lote-local.sh <lote> [<lote que depende>]` | **antes de mandar un lote al servidor** (Docker, turno del Director): postgres:17 con el esquema entero y la secuencia completa del lote, incluidos deshacer y purgar; con dos lotes, comprueba que purgar el primero aborte mientras el segundo dependa de él. ~40 s por lote |
-| `pnpm vitest run lib/portal/__tests__/pending-acceptance.test.ts "app/portal/(app)/facturas/[code]/_components/PendingInvoiceGate.test.tsx"` | el Portal: facturas por aceptar y la puerta del detalle |
+| `pnpm vitest run lib/portal/__tests__/pending-acceptance.test.ts lib/portal/__tests__/portal-legal-queries.test.ts "app/portal/(app)/facturas/[code]/_components/PendingInvoiceGate.test.tsx" "app/portal/(app)/facturas/page.test.tsx" "app/portal/(app)/facturas/[code]/page.test.tsx"` | el Portal: facturas por aceptar (el admin se crea dentro del try), los embarques de la factura con su medida, la puerta del detalle (contra el 404) y «Mis facturas» con y sin borradores |
