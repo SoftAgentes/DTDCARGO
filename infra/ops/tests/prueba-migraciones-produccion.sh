@@ -50,7 +50,10 @@ if [ "${1:-}" = --mutantes ]; then
       echo "MUERTO · $1 ($(grep '^FALLÓ' "${M}/suite.log" | head -1 | cut -c1-100))"; muertos=$((muertos + 1))
     fi
   }
-  A=aplicar.sh; R=aplicar-remoto.sh
+  A=aplicar.sh; R=aplicar-remoto.sh; G=preparar.mjs
+  mutar "preparar envuelve un archivo con CR" "${G}" 'if (motivos.length) throw new Rechazo(motivos.join("; "));' 'if (false) throw new Rechazo(motivos.join("; "));'
+  mutar "preparar acepta un preflight que escribe" "${G}" 'if (conEscritura.length) {' 'if (false) {'
+  mutar "preparar pisa una carpeta" "${G}" 'if (fs.existsSync(o.salida)) throw' 'if (false) throw'
   mutar "sin --confirm" "${A}" '[[ "${CONFIRM}" == "${PROYECTO}" ]] || refuse' 'true || refuse'
   mutar "acepta cualquier proyecto" "${A}" '[[ "${PROYECTO}" == "${PROD}" || "${PROYECTO}" == *-staging ]] || refuse' 'true || refuse'
   mutar "sin autorización en producción" "${A}" '[[ -n "${AUTORIZACION}" ]] || refuse "aplicar en producción' 'true || refuse "aplicar en producción'
