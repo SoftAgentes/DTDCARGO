@@ -52,6 +52,14 @@ Decisiones de implementación (dentro del contrato):
 | `pnpm docs:check` (`node scripts/build-docs-index.mjs --check`) | PASÓ: índice sincronizado con 531 specs. Los enlaces del runbook y de este handoff a la spec 0547 quedan bien cuando la #264 está en `main` |
 | `git diff --check` | PASÓ |
 
+**Después del merge de `origin/main` (`e6ff3909`, ya con la #264 y la #114) en la rama (`041fb402`):**
+
+| Comprobación | Resultado |
+|---|---|
+| `prueba-publicar-web.sh` sobre el árbol de la rama, sin agregar nada | PASÓ: **144 PASÓ · 0 FALLÓ · 0 NO VERIFICADO**. El parser, el ejemplo y la ruta del loader ya vienen de `main` |
+| `vitest run` de `infra-env-example`, `entorno-prueba-compose`, `entorno-prueba-scripts`, `env-example-contract`, `publicaciones-types` y `publicaciones-loader` | PASÓ: 6 archivos, 75 de 75. La prueba de deriva ya no sale roja |
+| `docs:check` | PASÓ: 532 specs |
+
 Las corridas de Linux fueron en `node:24` (Docker local), montando el worktree en solo lectura y, para las de la #264, una copia con `lib/studio/publicaciones-types.ts`, `publicaciones-loader.ts` y el ejemplo de `5dc41943` encima. Para el vitest usé temporalmente un junction al `node_modules` del checkout principal, sin instalar nada; ya lo quité.
 
 ## Impacto documental
@@ -64,8 +72,9 @@ Las corridas de Linux fueron en `node:24` (Docker local), montando el worktree e
 
 ## Pendientes de esta tarea
 
-- Cuando la #264 esté en `main`: `git merge origin/main` en esta rama, volver a correr la suite (sin NO VERIFICADO) y el vitest de `infra-env-example`, y sacar la PR de borrador.
+- ~~Cuando la #264 esté en `main`: merge de `origin/main`, volver a correr la suite y el vitest.~~ Hecho (ver «Después del merge»).
 - K5 (instalación en el VPS): después del merge de esta PR, en la misma ventana y coordinada con el Director (runbook, «Instalación (K5)»).
+- Después de K5: el criterio 9 de la SDD-0547 («En producción la card muestra el estado real») pasa a cumplido con la evidencia de K5.5 y K5.6. Lo registra el Director en la spec.
 
 ## FUERA DE ALCANCE DETECTADO
 
