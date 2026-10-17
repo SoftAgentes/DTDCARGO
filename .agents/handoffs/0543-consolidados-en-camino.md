@@ -64,7 +64,7 @@ La primera lectura a ojo decía 39 remitentes, 99 filas, 1.285 cajas y ≈ $47.2
 - Decisión de Sam (2026-10-17): las dos filas a $0 de DTD-J000 entran como líneas en $0, como están (la v6 ya las trae así; sin regenerar).
 - Pendientes de Sam que el lote deja a la vista: remitentes sin secuencia (`DTD-A068`, `DTD-9011`, `MMVE-41/041`) y 1.288 vs 1.285 cajas de la fila de totales (informativos; no cambian el lote).
 - `pnpm verify` completo con turno del Director.
-- Contenedores 60–64 y la bodega pendiente (mismo generador; el 60 con el modelo FCL + DDP de la spec §D).
+- Contenedores 60–64 (autorización de Sam al Director, 2026-10-17; spec §Decisiones 9): generador con `--modalidad ddp|fcl|mixto` (020f4400, 60a83de0, b120fc91). **61, 62 y 63 (fcl)** generados desde b120fc91 y validados en local (secuencia completa, PASÓ): ids `carga-consolidado:6N:3639981b`, envíos `MG-019-FCL-61`, `MG-020-FCL-62`, `DTD-9038-FCL-63`; huellas enviadas al Director; a la espera de su OK para Contabo. **60 (mixto)** probado en local con el packing del 59 como doble (51 envíos, 33 facturas, 1 gasto; PASÓ); falta el packing real y el monto del gasto del aliado HR. **64 (ddp)**: falta el packing. La bodega pendiente de China: después.
 - Producción, flip de `TRACKING_EN_CONSTRUCCION`, emisión automática al aceptar y el aviso `carga_en_camino`: se deciden con Sam después del 59.
 
 ## FUERA DE ALCANCE DETECTADO
