@@ -271,7 +271,7 @@ Hasta K5, en producción la card dice «Sin datos. El servidor no ha dejado el e
 | 6 | «Esta instancia» en el servidor no dice «(local)» | Cumplido. `EstadoTab.test.tsx` |
 | 7 | El bot local no promete un deploy de Vercel | Cumplido. `DeployWebBot.test.tsx` |
 | 8 | Mutantes: el motivo sin lista cerrada, los faltantes sin filtro por motivo, el loader sin `sin-archivo`, el mensaje del bot invertido y «(local)» en el servidor hacen fallar sus pruebas | Cumplido. Cinco mutantes, todos mueren (handoff) |
-| 9 | En producción la card muestra el estado real | **Pendiente de K1-K5 (§5)** |
+| 9 | En producción la card muestra el estado real | Cumplido en el servidor y en el contenedor (2026-10-17 20:15:38Z). `node -e` dentro de `dtd-cargo-web-1`, como `node`, lee y parsea el archivo: versión 1, corre y publicable `4577b0a7`, vigilante al-dia, un evento «publicada». El montaje es de solo lectura (`touch` da «Read-only file system»). **Pantalla NO VERIFICADA:** mirar `/studio/debug` pide una sesión de admin, que se le pidió a Sam |
 
 ## 11 · Allowlist de archivos
 
@@ -300,3 +300,6 @@ Hasta K5, en producción la card dice «Sin datos. El servidor no ha dejado el e
 ## 13 · Seguimiento
 
 - 2026-10-17: reserva `codex/sdd-reserve-0547`. Implementación del Studio y pruebas en la rama `worktree-agent-a0f15ba72118d43b0`, PR en borrador. K1-K5 pendientes de la sesión de Contabo.
+- 2026-10-17 19:17:49Z: **PR #264 integrada** por el Director (main traído, `5dc41943` → `9a2e76bf`, check verde), merge `e6ff3909`. Publicada a las 19:22:36Z con la prueba rápida 14/0. Autorización de Sam, dicha al Director: «Termina los PR y, si te toca subir a producción, sube a producción; te autorizo».
+- 2026-10-17 20:10:02Z: **PR #265 integrada** (K1, K2 y K4 de la sesión de Contabo: el escritor en `publicar-web.sh` y el montaje en `compose.yml`), merge `4577b0a7`. En el servidor, la prueba del script dio 144/0 y los mutantes 50 muertos y 0 vivos.
+- 2026-10-17 20:10:54Z: **K5 instalado** por la sesión de Contabo, con el candado de la publicación tomado. Instaló `publicar-web.sh` (700), `compose.yml` y `.env.example` (644), byte a byte iguales a `4577b0a7`, y `compose config -q` dio OK. Publicada a las 20:15:34Z, sin quedar retenida, con la prueba rápida 14/0. Evidencia en `/srv/ops/evidencias/publicacion-automatica/k5-0547-20261017T201054Z/` (SHA256SUMS). Prueba no se tocó: su compose relativo le da una carpeta vacía propia.
