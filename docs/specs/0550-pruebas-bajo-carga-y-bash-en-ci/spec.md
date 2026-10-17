@@ -39,9 +39,13 @@ Bajo la carga de la propia `verify` las que leen el disco se multiplicaron por 1
 1,26; 20,98 y 40,7 / 1,25; 20,8 / 0,80). Con ese factor, toda prueba de ≥ 0,6 s sin tope propio
 queda a merced del reloj. El barrido estático
 (pruebas que recorren el árbol o todas las migraciones) y la medición aislada de 26 archivos
-suman tres en riesgo que todavía no habían caído: el parseo de `app/globals.css` en
-`AvisoEntornoPrueba` (1,05 s), la prueba PGlite del motivo en `pin-operarios-endurecer` (1,03 s,
-sin `SLOW`) y el `bash -n` en serie de `entorno-prueba-scripts` (1,17 s).
+suman las que todavía no habían caído:
+
+- el parseo de `app/globals.css` en `AvisoEntornoPrueba` (1,05 s);
+- la prueba PGlite del motivo en `pin-operarios-endurecer` (1,03 s, sin `SLOW`);
+- el `bash -n` en serie de `entorno-prueba-scripts` (1,17 s; 17,0 s con carga sintética);
+- en `migraciones.test.mjs`, la paridad con `migracion.sh`, su `bash -n` y los `$preflight$` de
+  las migraciones reales (0,1-0,4 s; 2,3-7,2 s con carga, ×20).
 
 ### El watchdog no falló por el reloj
 
@@ -100,7 +104,8 @@ evidencia no verificaba. Los demás lectores ya lo aceptaban.
 - Pruebas: `__tests__/fuentes-locales.test.ts`, `lib/db/__tests__/session-cookie.test.ts`,
   `components/AvisoEntornoPrueba.test.tsx`, `lib/studio/__tests__/pin-operarios-endurecer.migration.test.ts`,
   `lib/studio/__tests__/operarios-editar-por-region.migration.test.ts`,
-  `scripts/__tests__/entorno-prueba-scripts.test.mjs`, `scripts/tests/verify-watchdog.node.mjs`,
+  `scripts/__tests__/entorno-prueba-scripts.test.mjs`, `infra/ops/tests/migraciones.test.mjs`,
+  `scripts/tests/verify-watchdog.node.mjs`,
   `scripts/__tests__/ci-workflow-contract.test.mjs`, `infra/ops/tests/pruebas-linux.test.mjs`,
   `infra/ops/tests/prueba-aplicar-migracion.sh`.
 - Scripts: `infra/ops/tests/pruebas-linux.sh`, `infra/ops/migrate/aplicar-migracion.sh`.
@@ -122,11 +127,32 @@ evidencia no verificaba. Los demás lectores ya lo aceptaban.
 7. La evidencia de `aplicar-migracion.sh` verifica con `sha256sum` binario; control rojo con el
    `cerrar()` viejo.
 
-## Verificación
+## Verificación (2026-10-17)
 
-Ver el handoff de la tarea (mediciones con y sin carga, controles rojos, CI y `pnpm verify`).
+El detalle por prueba está en el handoff de la tarea.
+
+- **Sin carga, después.** Las pruebas (texto) con caché pasan de 1.245 a 233 ms y de 804 a
+  245 ms.
+- **Con carga sintética.** Son 22 procesos que queman CPU y releen el árbol, a prioridad baja.
+  - El bloque del validador pasa de 11,4 s a 5,1 s.
+  - Las demás llegan a 3-17 s, con un tope que ahora es de 120 s.
+- **CI «Calidad continua»,** run 39073436101 sobre `7883ea56`: PASÓ.
+  - Job de 34 min 20 s; antes tardaba 31-34 min.
+  - «Pruebas bash de operaciones» tardó 44 s: `prueba-publicar-web.sh` 144 PASÓ en 40 s,
+    `prueba-aplicar-lote.sh` 23 en 4 s, `prueba-ips-prueba.sh` 24 y `prueba-prompt-trim.sh` 13.
+  - Cabe en el tope de 45 min.
+- **`pnpm verify`** sobre `3ec1cceb` (22,7 min): exit 0, 16 de 17 pasos.
+  - `test` pasó al primer intento: 792 archivos y 11.186 pruebas.
+  - `harness` dio 215/215.
+  - `migrations-applied` quedó sin medir porque el worktree no tiene `.env.local`.
+- **Controles rojos.**
+  - Mutante del tope del `describe` a 1 ms: «Test timed out in 1ms».
+  - PID reusado real: la aserción vieja da «sigue vivo» y la nueva pasa.
+  - `cerrar()` viejo: 35 · 1.
+  - Runner: 9 mutantes muertos, 0 vivos.
 
 ## Estado
 
-En progreso en la rama de esta spec. El merge lo hace el Director: desde el 2026-10-16 cada merge
-se publica solo.
+Implementada en la PR #269, en borrador y sin fusionar. Se cumplen los siete criterios de
+aceptación, con la evidencia de arriba. El merge lo hace el Director: desde el 2026-10-16 cada
+merge se publica solo.
