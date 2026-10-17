@@ -101,6 +101,10 @@ varios embarques (ver «Pregunta para Sam»).
 - `app/portal/(app)/facturas/[code]/aceptar/__tests__/page.test.tsx` (nuevo)
 - `app/portal/(app)/academia/__tests__/actions.test.ts` (nuevo)
 - `app/portal/(app)/proveedores/__tests__/actions-tenant-scope.test.ts` (nuevo)
+- `app/portal/(app)/proveedores/__tests__/update-prealerta-detalle.test.ts` (SDD-0173: su doble
+  atendía las RPC legadas; ahora el principal llega por mock de `getPortalClientPrincipal`, la compra
+  trae `tenant_id`, el UPDATE exige también el tenant y hay un caso nuevo para una compra del mismo
+  Shipping Mark en otro tenant. No se quitó ni relajó ninguna aserción.)
 - Esta spec, `docs/specs/README.md` (índice regenerado) y
   `.agents/handoffs/portal-lecturas-principal-tenant-0549.md`.
 
@@ -116,11 +120,11 @@ con qué correr. Así, la diferencia la hace el filtro y no la RPC.
 - **Al revés:** con los ocho archivos de producto de `origin/main` y las pruebas nuevas, caen 29 de
   41 pruebas. Las 12 que pasan cubren comportamiento que no debía cambiar: vacíos, redirecciones sin
   principal, totales y medida de 0543.
-- **Mutantes:** se quitó un filtro o una comprobación de tenant por vez (24 mutantes). Mueren 22, con
-  control verde antes y después. Los dos que sobreviven son UPDATE por un id que ya se validó contra
-  el tenant en la misma acción: `suppliers_cn` al guardar el WeChat del proveedor de la compra y
-  `prealertas` al completar el detalle. El id es PK global, así que el filtro es redundante por
-  construcción. Se conserva por el criterio «todo acotado por tenant + Shipping Mark» del archivo.
+- **Mutantes:** se quitó un filtro o una comprobación de tenant por vez (24 mutantes). Mueren 23, con
+  control verde antes y después (31 de 31). Sobrevive uno: el UPDATE de `suppliers_cn` que guarda el
+  WeChat del proveedor al registrar la compra. Filtra por un id que la misma acción acaba de validar
+  contra el tenant, y el id es PK global, así que el filtro es redundante por construcción. Se
+  conserva por el criterio «todo acotado por tenant + Shipping Mark» del archivo.
 
 ## Aceptación
 
@@ -129,7 +133,8 @@ con qué correr. Así, la diferencia la hace el filtro y no la RPC.
 - [x] Hallazgo 3: Academia, Reclamos y Proveedores/Compras filtran por el tenant del principal. Las
   pruebas con sesión híbrida fallan con el código anterior.
 - [x] Principal inválido, incoherente o sin sesión: cero consultas de dominio y cero RPC legadas.
-- [x] Para un cliente coherente las pruebas de 0543 siguen verdes sin cambios en sus aserciones.
+- [x] Para un cliente coherente las pruebas de 0543 siguen verdes sin cambios en sus aserciones; la
+  de 0173 (detalle de la compra) sólo cambia de mock de identidad y gana aserciones.
 - [x] Sin migración, RLS, RPC ni UI nuevas.
 - [ ] `pnpm verify` del head de la PR (resultado en el handoff).
 
