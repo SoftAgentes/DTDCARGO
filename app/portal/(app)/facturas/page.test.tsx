@@ -8,26 +8,36 @@
  * reemplaza por una que pinta el título que recibe (lo que se prueba es qué le
  * pasa la página).
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+
+const CLIENTE = { id: "c1", markbox: "DTD-8001", name: "Cliente Prueba", email: null, phone: null, address: null };
 
 const h = vi.hoisted(() => ({
   facturas: [] as unknown[],
   pendientes: [] as unknown[],
+  principal: null as unknown,
+  cargados: [] as unknown[],
 }));
 
 vi.mock("@/lib/db/server", () => ({ createClient: async () => ({}) }));
 vi.mock("@/lib/db/admin", () => ({ createAdminClient: () => ({}) }));
 vi.mock("@/lib/portal/demo", () => ({ showNortePortal: () => false }));
 vi.mock("@/lib/portal/portal-queries", () => ({
-  getPortalClient: async () => ({ id: "c1", markbox: "DTD-8001", name: "Cliente Prueba", email: null, phone: null, address: null }),
+  // SDD-0549: la página resuelve el principal UNA vez. `getPortalClient` se deja
+  // para que una versión que volviera a usarlo corra y falle por la aserción.
+  getPortalClientPrincipal: async () => h.principal,
+  getPortalClient: async () => (h.principal as { client?: unknown } | null)?.client ?? null,
   listMyInvoices: async () => h.facturas,
   listMyShipments: async () => [],
   listMyEstimates: async () => [],
 }));
 vi.mock("@/lib/portal/pending-acceptance", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/portal/pending-acceptance")>()),
-  loadPendingAcceptanceForClient: async () => h.pendientes,
+  loadPendingAcceptanceForClient: async (arg: unknown) => {
+    h.cargados.push(arg);
+    return h.pendientes;
+  },
 }));
 vi.mock("../_components/PendingAcceptanceCard", () => ({
   PendingAcceptanceCard: (p: { heading?: string }) => <section aria-label="Por aceptar">{p.heading}</section>,
@@ -42,10 +52,32 @@ async function abrir() {
   render(ui);
 }
 
+beforeEach(() => {
+  h.principal = { userId: "u1", tenantId: "t1", client: CLIENTE };
+});
+
 afterEach(() => {
   cleanup();
   h.facturas = [];
   h.pendientes = [];
+  h.principal = null;
+  h.cargados = [];
+});
+
+describe("/portal/facturas · borradores por aceptar con el principal de sesión (SDD-0549)", () => {
+  it("le pasa al loader el tenant y el Shipping Mark del principal", async () => {
+    await abrir();
+    expect(h.cargados).toHaveLength(1);
+    expect(h.cargados[0]).toMatchObject({ tenantId: "t1", client: { markbox: "DTD-8001" } });
+  });
+
+  it("sin principal Portal no carga borradores", async () => {
+    h.principal = null;
+    h.pendientes = [PENDIENTE];
+    await abrir();
+    expect(h.cargados).toEqual([]);
+    expect(screen.queryByRole("region", { name: "Por aceptar" })).toBeNull();
+  });
 });
 
 describe("/portal/facturas con borradores por aceptar (SDD-0543)", () => {
