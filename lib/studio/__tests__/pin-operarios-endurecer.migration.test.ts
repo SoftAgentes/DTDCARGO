@@ -1153,6 +1153,8 @@ describe("SDD-0515 · el motivo se valida igual en el Studio y en la base", () =
     expect(sqlCodes).toEqual(OPERARIO_MOTIVOS.map((m) => m.value));
   });
 
+  // Abre su propio PGlite, como las del bloque (PGlite): ~1 s aislada, y con el
+  // tope global de 20 s quedaba expuesta a la carga de `verify` (SDD-0550).
   it("para cada caso, la base y el Studio aceptan y rechazan lo mismo, con el mismo mensaje", async () => {
     const db = new PGlite();
     try {
@@ -1176,6 +1178,5 @@ describe("SDD-0515 · el motivo se valida igual en el Studio y en la base", () =
     } finally {
       await db.close();
     }
-    // Abre su propio PGlite, como las del bloque (PGlite): ~1 s aislada (SDD-0550).
   }, SLOW);
 });
