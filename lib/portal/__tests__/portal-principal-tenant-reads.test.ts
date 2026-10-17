@@ -56,13 +56,23 @@ function lesson(id: string, tenantId: string, courseId: string, moduleId: string
 function academyTables(membership: Row = portalMembership()): Record<string, Row[]> {
   return {
     client_users: [membership],
-    academy_courses: [course("course-a", TENANT_A, "Curso A"), course("course-b", TENANT_B, "Curso B")],
+    academy_courses: [
+      course("course-a", TENANT_A, "Curso A"),
+      course("course-b", TENANT_B, "Curso B"),
+      // Curso del tenant A donde sólo el tenant B tiene una inscripción con el
+      // mismo Shipping Mark: para el principal no está inscrito.
+      course("course-a2", TENANT_A, "Curso A2"),
+    ],
     academy_modules: [
       { id: "mod-a", tenant_id: TENANT_A, course_id: "course-a", title: "Módulo A", sort: 1, deleted_at: null },
       { id: "mod-b", tenant_id: TENANT_B, course_id: "course-b", title: "Módulo B", sort: 1, deleted_at: null },
       // Fila incoherente del catálogo: módulo del tenant B colgado del curso A.
       // La policy Portal de 0418 la excluye por tenant; el filtro explícito también.
       { id: "mod-bx", tenant_id: TENANT_B, course_id: "course-a", title: "Módulo ajeno", sort: 2, deleted_at: null },
+      { id: "mod-a2", tenant_id: TENANT_A, course_id: "course-a2", title: "Módulo A2", sort: 1, deleted_at: null },
+      // Al revés: módulo del tenant A colgado del curso B. Sólo el filtro del
+      // curso por tenant impide abrirlo desde el reproductor.
+      { id: "mod-ax", tenant_id: TENANT_A, course_id: "course-b", title: "Módulo cruzado", sort: 1, deleted_at: null },
     ],
     academy_lessons: [
       lesson("les-a1", TENANT_A, "course-a", "mod-a", 1),
@@ -70,10 +80,14 @@ function academyTables(membership: Row = portalMembership()): Record<string, Row
       lesson("les-b1", TENANT_B, "course-b", "mod-b", 1),
       // Lección incoherente: del tenant B, en el curso y módulo del A.
       lesson("les-bx", TENANT_B, "course-a", "mod-a", 3),
+      lesson("les-a2-1", TENANT_A, "course-a2", "mod-a2", 1),
+      lesson("les-ax", TENANT_A, "course-b", "mod-ax", 1),
     ],
     academy_enrollments: [
       { id: "enr-a", tenant_id: TENANT_A, course_id: "course-a", client_markbox: MARKBOX, deleted_at: null, academy_courses: { title: "Curso A", tier: "inicial" } },
       { id: "enr-b", tenant_id: TENANT_B, course_id: "course-b", client_markbox: MARKBOX, deleted_at: null, academy_courses: { title: "Curso B", tier: "pro" } },
+      // Inscripción incoherente: del tenant B, sobre el curso A2 del tenant A.
+      { id: "enr-bx", tenant_id: TENANT_B, course_id: "course-a2", client_markbox: MARKBOX, deleted_at: null, academy_courses: { title: "Curso A2", tier: "inicial" } },
     ],
     academy_diplomas: [
       { id: "dip-a", tenant_id: TENANT_A, client_markbox: MARKBOX, folio: "FOLIO-A", course_title: "Curso A", issued_at: "2026-10-01", deleted_at: null },
@@ -123,10 +137,19 @@ describe("SDD-0549 · Academia del Portal por principal y tenant", () => {
     expect(detail?.nextLessonId).toBe("les-a2");
   });
 
+  it("una inscripción de otro tenant no abre un curso del principal: sus lecciones siguen bloqueadas", async () => {
+    const { db } = portalDouble({ tables: academyTables(), rpc: LEGACY_RPC });
+    const detail = await getPortalCourseDetail(db, "course-a2");
+    expect(detail?.enrolled).toBe(false);
+    expect(detail?.modules[0].lessons.map((l) => [l.id, l.locked])).toEqual([["les-a2-1", true]]);
+  });
+
   it("un curso de otro tenant no existe para el principal, aunque tenga inscripción con su Shipping Mark", async () => {
     const { db } = portalDouble({ tables: academyTables(), rpc: LEGACY_RPC });
     await expect(getPortalCourseDetail(db, "course-b")).resolves.toBeNull();
     await expect(getPortalLesson(db, "course-b", "les-b1")).resolves.toBeNull();
+    // Aunque el catálogo tenga filas del tenant A colgadas de ese curso.
+    await expect(getPortalLesson(db, "course-b", "les-ax")).resolves.toBeNull();
   });
 
   it("el reproductor lista sólo las lecciones del tenant del principal", async () => {

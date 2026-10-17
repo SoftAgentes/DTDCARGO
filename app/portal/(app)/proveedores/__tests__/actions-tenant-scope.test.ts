@@ -168,13 +168,22 @@ describe("SDD-0549 · compras del Portal por principal y tenant", () => {
   });
 
   it("una compra sobre el proveedor propio sella el tenant del principal", async () => {
-    const res = await createPrealertaAction({}, form({ supplierId: "sup-a", wizard: "1", supplierWechat: "wx-a" }));
+    const res = await createPrealertaAction(
+      {},
+      form({ supplierId: "sup-a", wizard: "1", supplierWechat: "wx-a", consent: "on", addon: "verificacion" }),
+    );
     expect(res).toMatchObject({ ok: true });
     const nueva = h.double.store.prealertas.at(-1);
     expect(nueva).toMatchObject({ tenant_id: TENANT_A, client_markbox: MARKBOX, supplier_id: "sup-a" });
     expect(nueva?.code).toBe((res as { prealertaCode: string }).prealertaCode);
     expect(row("suppliers_cn", "sup-a")?.wechat).toBe("wx-a");
     expect(h.double.rpcCalls.map((c) => c.name)).toEqual(["next_order_seq"]);
+    // Los servicios pedidos al registrar la compra se validan contra el catálogo
+    // del tenant del principal y se sellan con ese tenant.
+    expect(h.double.on("prealerta_addons")[0]?.filters).toContainEqual({ column: "tenant_id", op: "eq", value: TENANT_A });
+    expect(h.double.store.prealerta_service_requests).toEqual([
+      expect.objectContaining({ tenant_id: TENANT_A, prealerta_id: nueva?.id, client_markbox: MARKBOX, addon_code: "verificacion" }),
+    ]);
   });
 
   it("pedir un servicio sobre la compra de otro tenant se rechaza sin escribir", async () => {
