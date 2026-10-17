@@ -39,6 +39,11 @@ export interface JourneyEventDef {
   hint: string;
   /** Slice que enciende el gancho: 'A' = sobre shipments.status (ya cablea). */
   slice: "A" | "D";
+  /**
+   * `pendiente` = catalogado y configurable, pero todavía nada lo emite. El
+   * Studio lo muestra aparte de los que «ya disparan desde su gancho».
+   */
+  gancho?: "pendiente";
 }
 
 /**
@@ -65,7 +70,7 @@ export const CLIENT_JOURNEY_EVENTS: readonly JourneyEventDef[] = [
   // SDD-0543 · un aviso por cliente y contenedor cuando se carga desde el packing
   // list un contenedor que ya zarpó. Se dispara aparte, con OK de Sam, nunca
   // desde el lote SQL.
-  { key: "carga_en_camino", label: "Carga en camino (contenedor cargado)", hint: "Cuando un contenedor ya zarpado se carga desde el packing list: un aviso por cliente, no por envío.", slice: "D" },
+  { key: "carga_en_camino", label: "Carga en camino (contenedor cargado)", hint: "Cuando un contenedor ya zarpado se carga desde el packing list: un aviso por cliente, no por envío.", slice: "D", gancho: "pendiente" },
 ] as const;
 
 export const CLIENT_JOURNEY_EVENT_KEYS: ReadonlySet<string> = new Set(

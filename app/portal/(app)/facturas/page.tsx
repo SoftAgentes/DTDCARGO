@@ -185,12 +185,19 @@ export default async function PortalInvoicesPage({
 
       {invoices.length === 0 ? (
         <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">
+          {/* SDD-0543 · con borradores por aceptar arriba, «no tienes facturas» se
+              contradice: el vacío habla de facturas EMITIDAS y dice cuándo entran. */}
           <div className="text-[16px] font-bold text-ink">
-            Todavía no tienes facturas.
+            {porAceptar.length > 0 ? "Todavía no tienes facturas emitidas." : "Todavía no tienes facturas."}
           </div>
           <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
-            Cuando tu asesor emita una factura a tu nombre, va a aparecer acá con
-            su estado de pago.
+            {porAceptar.length > 0
+              ? `${porAceptar.length === 1 ? "La factura por aceptar que ves arriba" : `Las ${porAceptar.length} facturas por aceptar que ves arriba`}${
+                  sumaPorAceptar ? ` (${formatInvoiceAmount(sumaPorAceptar.total, sumaPorAceptar.currency as InvoiceCurrency)})` : ""
+                } ${porAceptar.length === 1 ? "entra" : "entran"} al estado de cuenta cuando ${porAceptar.length === 1 ? "la aceptes y se emita" : "las aceptes y se emitan"}; acá ${
+                  porAceptar.length === 1 ? "la" : "las"
+                } vas a ver con su estado de pago.`
+              : "Cuando tu asesor emita una factura a tu nombre, va a aparecer acá con su estado de pago."}
           </p>
           <a
             href={waLink}

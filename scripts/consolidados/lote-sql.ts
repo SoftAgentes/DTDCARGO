@@ -141,6 +141,19 @@ export interface SalidaSql {
 /** El cliente sintético de la semilla de prueba (infra/ops/staging/semilla-prueba.sql): si no está, no es la base de prueba. */
 export const CLIENTE_SINTETICO_PRUEBA = "05400000-0000-4000-8000-000000000101";
 
+/**
+ * Guarda de base de prueba para los scripts que escriben (aplicar, deshacer,
+ * purgar): un lote generado para prueba aborta donde no esté el cliente
+ * sintético de la semilla, así que un psql directo contra la base oficial no
+ * toca nada. `aplicar.sql` la lleva dentro del bloque DO (condicionada a
+ * `cab.entorno`); deshacer y purgar la emiten al generar.
+ */
+function guardaBasePrueba(paso: string): string {
+  return `  if not exists (select 1 from public.clients where id = '${CLIENTE_SINTETICO_PRUEBA}'::uuid) then
+    raise exception '${paso}: esta base no es la de prueba (no está el cliente sintético de la semilla); el lote se generó para prueba';
+  end if;`;
+}
+
 function cab(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string; scac: string | null }): string {
   const r = lote.rastreo;
   return [
@@ -233,12 +246,12 @@ function datos(lote: Lote): string {
       `insert into lote_filas values (${i + 1}, ${f.filaExcel}, ${litSql(f.remitente)}, ${litSql(f.descripcion)}, ${f.cajas}, ${f.pesoKg}, ${f.cbmChina}, ${f.cbmFactura});`,
     );
   });
-  out.push(`create temp table lote_lineas (orden int primary key, clave text, descripcion text, qty numeric, unit_price numeric) on commit drop;`);
+  out.push(`create temp table lote_lineas (orden int primary key, clave text, remitente text, descripcion text, qty numeric, unit_price numeric) on commit drop;`);
   let n = 0;
   for (const c of lote.clientes) {
     for (const l of c.lineas) {
       n++;
-      out.push(`insert into lote_lineas values (${n}, ${litSql(c.clave)}, ${litSql(l.desc)}, ${l.qty}, ${l.unitPrice});`);
+      out.push(`insert into lote_lineas values (${n}, ${litSql(c.clave)}, ${litSql(l.remitente)}, ${litSql(l.desc)}, ${l.qty}, ${l.unitPrice});`);
     }
   }
   return out.join("\n");
@@ -303,6 +316,12 @@ begin
   end if;
   if cab.crear_faltantes and cab.entorno <> 'prueba' then
     raise exception 'lote: crear clientes faltantes sólo se permite en prueba';
+  end if;
+  -- Un lote generado para prueba se niega a correr donde no esté el cliente
+  -- sintético de la semilla: un psql directo contra la base oficial aborta aquí,
+  -- antes de tocar nada (misma guarda que purgar.sql).
+  if cab.entorno = 'prueba' and not exists (select 1 from public.clients where id = '${CLIENTE_SINTETICO_PRUEBA}'::uuid) then
+    raise exception 'lote: esta base no es la de prueba (no está el cliente sintético de la semilla); el lote se generó para prueba';
   end if;
   v_ts_carga := (cab.fecha_carga::text || 'T12:00:00Z')::timestamptz;
   v_ts_recepcion := (cab.fecha_recepcion::text || 'T12:00:00Z')::timestamptz;
@@ -430,7 +449,7 @@ begin
     if v_client_id is not null and exists (
       select 1 from public.clients where id = v_client_id and deleted_at is not null
     ) then
-      raise exception 'lote: la marca % resuelve al cliente % pero está eliminado', c.clave, v_markbox;
+      raise exception 'lote: la marca % resuelve al cliente % pero está eliminado', c.etiqueta, v_markbox;
     end if;
 
     if v_client_id is null and cab.crear_faltantes then
@@ -524,11 +543,13 @@ begin
            fc.id, fc.markbox, fc.name, fc.rif, fc.doc_kind, v_creado
       from public.clients cl, public.clients fc
      where cl.id = v_client_id and fc.id = v_fact_id;
+    -- En los raise va la etiqueta (PREFIJO-#n), nunca la clave: la clave puede
+    -- traer texto del Excel y el .err termina en la evidencia del servidor.
     if (select markbox from lote_resueltos where clave = c.clave) is null then
-      raise exception 'lote: el cliente % no tiene Shipping Mark', c.clave;
+      raise exception 'lote: el cliente % no tiene Shipping Mark', c.etiqueta;
     end if;
     if (select fact_markbox from lote_resueltos where clave = c.clave) is null then
-      raise exception 'lote: el cliente a facturar por % no tiene Shipping Mark', c.clave;
+      raise exception 'lote: el cliente a facturar por % no tiene Shipping Mark', c.etiqueta;
     end if;
   end loop;
 
@@ -644,7 +665,9 @@ begin
                 lr.fact_rif, lr.fact_doc_kind, lr.creado
        order by min(le.orden)
     loop
-      select coalesce(jsonb_agg(jsonb_build_object('desc', descripcion, 'qty', qty, 'unitPrice', unit_price) order by orden), '[]'::jsonb),
+      -- shipmentCode por línea: el Portal lista los embarques de la factura y suma su
+      -- medida (una factura junta varios; shipment_code sólo enlaza el primero).
+      select coalesce(jsonb_agg(jsonb_build_object('desc', descripcion, 'qty', qty, 'unitPrice', unit_price, 'shipmentCode', remitente) order by orden), '[]'::jsonb),
              coalesce(round(sum(qty * unit_price), 2), 0)
         into v_lines, v_base
         from lote_lineas where clave = c.clave;
@@ -729,6 +752,7 @@ function previa(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: str
     .map((m) => `(${litSql(m.etiqueta)}, array[${m.marca.candidatos.map(litSql).join(", ")}]::text[])`)
     .join(",\n  ");
   return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
 -- SDD-0543 · lectura previa del lote ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor})
 -- Sólo lee. Termina en rollback.
 begin transaction read only;
@@ -795,6 +819,7 @@ function verificar(lote: Lote, o: OpcionesSql, man: Manifiesto): string {
   const codigosEnvioSql = codigosEnvio(lote).map(litSql).join(", ");
   const esperado = man.esperado;
   return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
 -- SDD-0543 · verificación del lote ${o.lote}: recuenta y compara con manifiesto.json. Sólo lee.
 begin transaction read only;
 
@@ -866,6 +891,7 @@ rollback;
 
 function deshacer(lote: Lote, o: OpcionesSql): string {
   return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
 -- SDD-0543 · deshacer el lote ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor}).
 -- Borrado lógico con motivo y auditoría, en una transacción. Se niega si alguna
 -- factura dejó de ser borrador o si hay cajas estibadas. Los clientes creados en
@@ -883,6 +909,7 @@ declare
   n_inv int; n_items int; n_boxes int; n_rec int; n_ship int; n_exp int := 0;
 begin
   select id into v_tenant from public.tenants where slug = ${litSql(o.tenantSlug)};
+${o.entorno === "prueba" ? guardaBasePrueba("deshacer") : ""}
   select id, sailing_id into v_cons, v_sailing from public.consolidations
    where tenant_id = v_tenant and deleted_at is null and notes like '%' || v_lote || '%';
   if v_cons is null then
@@ -962,6 +989,7 @@ commit;
  */
 function purgar(lote: Lote, o: OpcionesSql): string {
   return `\\set ON_ERROR_STOP on
+\\set VERBOSITY terse
 -- SDD-0543 · PURGA DEFINITIVA del lote ${o.lote} (contenedor DTD #${lote.rastreo.numero} · ${lote.rastreo.contenedor}).
 -- SÓLO PRUEBA: se niega si no encuentra el cliente sintético de la semilla de prueba.
 -- Borra físicamente lo que el lote creó, en una transacción, y comprueba conteo cero.
@@ -1129,8 +1157,8 @@ export function generarSql(lote: Lote, o: OpcionesSql, fuentes: { rastreo: strin
   const cabecera = `-- SDD-0543 · lote ${o.lote} · contenedor DTD #${lote.rastreo.numero} (${manifiesto.contenedor.container_no}) · entorno ${o.entorno} · modalidad ${lote.modalidad}\n-- generado ${manifiesto.generadoEn} · ${lote.embarques.length} envíos DDP${lote.dueno ? " + 1 FCL del dueño" : ""} · ${items} items · ${lote.totales.cajas} cajas · ${lote.totales.cbmFactura} m³\n`;
   return {
     previa: previa(lote, o, pod, nav),
-    aplicar: `\\set ON_ERROR_STOP on\n${cabecera}-- UNA transacción: si algo falla, no queda nada.\nbegin;\n\n${cuerpo}\n\ncommit;\n`,
-    simulacro: `\\set ON_ERROR_STOP on\n${cabecera}-- SIMULACRO: corre todo y deshace al final. No deja nada en la base.\nbegin;\n\n${cuerpo}\n\nrollback;\n`,
+    aplicar: `\\set ON_ERROR_STOP on\n\\set VERBOSITY terse\n${cabecera}-- UNA transacción: si algo falla, no queda nada.\nbegin;\n\n${cuerpo}\n\ncommit;\n`,
+    simulacro: `\\set ON_ERROR_STOP on\n\\set VERBOSITY terse\n${cabecera}-- SIMULACRO: corre todo y deshace al final. No deja nada en la base.\nbegin;\n\n${cuerpo}\n\nrollback;\n`,
     verificar: verificar(lote, o, manifiesto),
     deshacer: deshacer(lote, o),
     purgar: purgar(lote, o),

@@ -125,9 +125,9 @@ describe("agruparLote", () => {
     const lote = agruparLote(RASTREO, filas, { eta: "2026-10-19" });
     const uno = lote.clientes[0];
     expect(uno.lineas).toEqual([
-      { desc: "Flete DDP · DTD-A116-06 · 0.5125 m³ × $750", qty: 0.5125, unitPrice: 750 },
-      { desc: "Exceso de peso · DTD-A116-06 · Regulador · 134.75 kg × $0.8", qty: 134.75, unitPrice: 0.8 },
-      { desc: "Flete DDP · DTD-A116-08 · 0.021 m³ × $750", qty: 0.021, unitPrice: 750 },
+      { desc: "Flete DDP · DTD-A116-06 · 0.5125 m³ × $750", qty: 0.5125, unitPrice: 750, remitente: "DTD-A116-06" },
+      { desc: "Exceso de peso · DTD-A116-06 · Regulador · 134.75 kg × $0.8", qty: 134.75, unitPrice: 0.8, remitente: "DTD-A116-06" },
+      { desc: "Flete DDP · DTD-A116-08 · 0.021 m³ × $750", qty: 0.021, unitPrice: 750, remitente: "DTD-A116-08" },
     ]);
     expect(uno.base).toBe(507.93);
     expect(uno.excesoPeso).toBe(107.8);

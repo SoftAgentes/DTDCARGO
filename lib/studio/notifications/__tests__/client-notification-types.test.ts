@@ -105,4 +105,15 @@ describe("catálogo de eventos", () => {
     const etaEvent = CLIENT_JOURNEY_EVENTS.find((e) => e.key === "eta_set");
     expect(etaEvent?.slice).toBe("D");
   });
+  it("carga_en_camino (SDD-0543) está catalogado en Slice D pero marcado sin gancho: nada lo dispara todavía", () => {
+    const ev = CLIENT_JOURNEY_EVENTS.find((e) => e.key === "carga_en_camino");
+    expect(ev?.slice).toBe("D");
+    expect(ev?.gancho).toBe("pendiente");
+    // Los que el Studio presenta como «ya disparan desde su gancho» no lo incluyen.
+    expect(CLIENT_JOURNEY_EVENTS.filter((e) => e.slice === "D" && e.gancho !== "pendiente").map((e) => e.key)).toEqual([
+      "consolidated",
+      "eta_set",
+      "received_ve",
+    ]);
+  });
 });

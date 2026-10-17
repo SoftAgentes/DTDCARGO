@@ -24,6 +24,7 @@ const pendiente = {
   fxRate: null,
   lines: [{ desc: "Flete DDP · DTD-A116-06 · 1.022 m³ × $750", qty: 1.022, unitPrice: 750 }],
   notes: null,
+  embarques: [],
 };
 
 describe("PendingInvoiceGate", () => {
@@ -51,5 +52,33 @@ describe("PendingInvoiceGate", () => {
   it("sin embarque ni medida pinta guiones, no vacíos", () => {
     render(<PendingInvoiceGate pendiente={{ ...pendiente, shipmentCode: null, cbm: null, weightKg: null }} />);
     expect(screen.getAllByText("—")).toHaveLength(2);
+  });
+  it("con varios embarques lista sus códigos y suma la medida de todos: nunca la de uno junto al monto de todos", () => {
+    render(
+      <PendingInvoiceGate
+        pendiente={{
+          ...pendiente,
+          embarques: [
+            { code: "DTD-A116-06", cbm: 1.022, weightKg: 408.55 },
+            { code: "DTD-A116-08", cbm: 0.5, weightKg: 120 },
+            { code: "DTD-A116-09", cbm: null, weightKg: null },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText("Embarques (3)")).toBeInTheDocument();
+    expect(screen.getByText("DTD-A116-06 · DTD-A116-08 · DTD-A116-09")).toBeInTheDocument();
+    expect(screen.getByText("Medida total")).toBeInTheDocument();
+    expect(screen.getByText("1.522 m³ · 528.55 kg")).toBeInTheDocument();
+    expect(screen.getByText(/Suma de los 3 embarques; el monto también los cubre a todos/)).toBeInTheDocument();
+    expect(screen.queryByText("1.022 m³ · 408.55 kg")).toBeNull();
+    expect(screen.queryByText("Embarque")).toBeNull();
+  });
+  it("con un solo embarque en las líneas se ve como siempre", () => {
+    render(<PendingInvoiceGate pendiente={{ ...pendiente, embarques: [{ code: "DTD-A116-06", cbm: 1.022, weightKg: 408.55 }] }} />);
+    expect(screen.getByText("Embarque")).toBeInTheDocument();
+    expect(screen.getByText("DTD-A116-06")).toBeInTheDocument();
+    expect(screen.getByText("1.022 m³ · 408.55 kg")).toBeInTheDocument();
+    expect(screen.queryByText(/Suma de los/)).toBeNull();
   });
 });

@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from "vitest";
 import { agruparLote, type FilaPacking, type Rastreo } from "../consolidados/modelo";
-import { etiquetaEvidencia, generarSql, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
+import { CLIENTE_SINTETICO_PRUEBA, etiquetaEvidencia, generarSql, naviera, puertoDestino, type OpcionesSql } from "../consolidados/lote-sql";
 import { parsearArgumentos } from "../consolidados/generar-lote";
 
 const RASTREO: Rastreo = {
@@ -104,8 +104,8 @@ describe("generarSql", () => {
     expect(s.aplicar).toContain("insert into lote_envios values (3, 'MM-41', 'MM-0041', 8, 0, 0.96, 0.96);");
     expect(s.aplicar).toContain("insert into lote_envios values (1, 'DTD-J031-05', 'DTD-J031', 1, 137, 1.134, 1.134);");
     expect(s.aplicar).toContain("insert into lote_filas values (1, 4, 'DTD-J031-05', 'Máquina ''recta''', 1, 137, 1.134, 1.134);");
-    expect(s.aplicar).toContain("insert into lote_lineas values (1, 'DTD-J031', 'Flete DDP · DTD-J031-05 · 1.134 m³ × $800', 1.134, 800);");
-    expect(s.aplicar).toContain("insert into lote_lineas values (3, 'DTD-A116', 'Exceso de peso · DTD-A116-06 · Regulador · 134.75 kg × $0.8', 134.75, 0.8);");
+    expect(s.aplicar).toContain("insert into lote_lineas values (1, 'DTD-J031', 'DTD-J031-05', 'Flete DDP · DTD-J031-05 · 1.134 m³ × $800', 1.134, 800);");
+    expect(s.aplicar).toContain("insert into lote_lineas values (3, 'DTD-A116', 'DTD-A116-06', 'Exceso de peso · DTD-A116-06 · Regulador · 134.75 kg × $0.8', 134.75, 0.8);");
   });
 
   it("previa y los errores del lote no llevan nombres de clientes: terminan en la evidencia", () => {
@@ -115,7 +115,50 @@ describe("generarSql", () => {
     expect(s.previa).not.toMatch(/nombre_excel|nombre_en_base|cl\.name/);
     expect(s.previa).toContain("('DTD-J031', array['DTD-J031']::text[])");
     expect(s.aplicar).toContain("raise exception 'lote: la marca % no resuelve a ningún cliente; mapéala en marcas-mapa.json (ver resumen.md)', c.etiqueta;");
+    // Los otros tres raise del bloque que citaban la clave (revisión del Director):
+    // la clave puede traer texto del Excel y el .err termina en la evidencia.
+    expect(s.aplicar).toContain("raise exception 'lote: la marca % resuelve al cliente % pero está eliminado', c.etiqueta, v_markbox;");
+    expect(s.aplicar).toContain("raise exception 'lote: el cliente % no tiene Shipping Mark', c.etiqueta;");
+    expect(s.aplicar).toContain("raise exception 'lote: el cliente a facturar por % no tiene Shipping Mark', c.etiqueta;");
+    for (const linea of s.aplicar.split("\n").filter((l) => l.includes("raise exception"))) {
+      expect(linea).not.toMatch(/\bc\.clave\b/);
+    }
     expect(s.verificar).not.toMatch(/client_name|\.name\b/);
+  });
+
+  it("todos los scripts ponen VERBOSITY terse: psql no escribe DETAIL con filas (nombres) en la evidencia", () => {
+    const s = generarSql(lote(), OPCIONES, FUENTES);
+    for (const script of [s.previa, s.simulacro, s.aplicar, s.verificar, s.deshacer, s.purgar]) {
+      expect(script.split("\n").slice(0, 2)).toEqual(["\\set ON_ERROR_STOP on", "\\set VERBOSITY terse"]);
+    }
+  });
+
+  it("un lote para prueba se niega fuera de la base de prueba en aplicar, simulacro y deshacer (misma guarda que purgar)", () => {
+    const s = generarSql(lote(), OPCIONES, FUENTES);
+    const guarda = `select 1 from public.clients where id = '${CLIENTE_SINTETICO_PRUEBA}'::uuid`;
+    expect(s.aplicar).toContain(`if cab.entorno = 'prueba' and not exists (${guarda}) then`);
+    expect(s.aplicar).toContain(
+      "raise exception 'lote: esta base no es la de prueba (no está el cliente sintético de la semilla); el lote se generó para prueba';",
+    );
+    expect(s.simulacro).toContain(`if cab.entorno = 'prueba' and not exists (${guarda}) then`);
+    expect(s.deshacer).toContain(`if not exists (${guarda}) then`);
+    expect(s.deshacer).toContain("raise exception 'deshacer: esta base no es la de prueba");
+    expect(s.purgar).toContain("raise exception 'purgar: esta base no es la de prueba");
+    // La guarda corre antes de la primera escritura.
+    expect(s.deshacer.indexOf("esta base no es la de prueba")).toBeLessThan(s.deshacer.indexOf("update public.invoices"));
+    expect(s.aplicar.indexOf("esta base no es la de prueba")).toBeLessThan(s.aplicar.indexOf("insert into public."));
+    // Un lote para la base oficial no lleva la guarda en deshacer; en aplicar queda condicionada a cab.entorno.
+    const prod = generarSql(lote(), { ...OPCIONES, entorno: "produccion", crearClientesFaltantes: false }, FUENTES);
+    expect(prod.deshacer).not.toContain("esta base no es la de prueba");
+    expect(prod.aplicar).toContain("'produccion'");
+  });
+
+  it("cada línea de la factura lleva el código de su embarque (shipmentCode): el Portal lista los embarques y suma su medida", () => {
+    const s = generarSql(lote(), OPCIONES, FUENTES);
+    expect(s.aplicar).toContain(
+      "create temp table lote_lineas (orden int primary key, clave text, remitente text, descripcion text, qty numeric, unit_price numeric) on commit drop;",
+    );
+    expect(s.aplicar).toContain("jsonb_build_object('desc', descripcion, 'qty', qty, 'unitPrice', unit_price, 'shipmentCode', remitente)");
   });
 
   it("una marca sin número sale en previa y en los errores como etiqueta PREFIJO-#n, nunca como texto", () => {

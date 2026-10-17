@@ -24,6 +24,10 @@ if [[ -n "${DOBLE_FALLA-}" && "${script}" == *"${DOBLE_FALLA}"* ]]; then
   echo "psql:stdin:9: ERROR:  preflight: el contenedor ABCU1234567 ya está cargado" >&2
   exit 3
 fi
+# Fuga plantada: lo que psql escriba, con nombre y todo, llega a la evidencia tal cual.
+if [[ -n "${DOBLE_FUGA-}" ]]; then
+  echo "psql:stdin:12: NOTICE:  marca sin resolver: NOMBRE SECRETO PRUEBA" >&2
+fi
 echo BEGIN
 echo "psql:stdin:40: NOTICE:  lote carga-consolidado:59:deadbeef · contenedor ABCU1234567 (DTD-CONSOL-0001) · 3 envíos · 3 recepciones · 3 items · 3 facturas · 3 clientes creados" >&2
 if [[ "${script}" == *"-- cierre: commit"* ]]; then echo COMMIT; else echo ROLLBACK; fi
@@ -73,6 +77,14 @@ evid="$(ls -d "${T}"/evid/lote-*-zz-staging-*-previa | head -1)"
 [[ -f "${evid}/previa.out" && -f "${evid}/LOTE.txt" && -f "${evid}/SHA256SUMS" ]] && ok "evidencia con salida, LOTE.txt y SHA256SUMS en una carpeta por paso" || ko "evidencia incompleta en ${evid}"
 grep -q '^envios=3$' "${evid}/LOTE.txt" && ok "LOTE.txt trae los conteos esperados" || ko "LOTE.txt sin conteos"
 grep -rq "SECRETO" "${evid}" && ko "la evidencia lleva un nombre de cliente" || ok "la evidencia no lleva nombres de clientes"
+# Control del detector: el guion copia la salida de psql tal cual (no filtra nada:
+# la higiene de nombres es del SQL generado, probada en consolidados-sql.test.ts).
+# Si psql dejara escapar un nombre, tiene que verse en la evidencia; sin este
+# control, el «no lleva nombres» de arriba pasaría aunque el detector no viera nada.
+sleep 1
+DOBLE_FUGA=1 corre --paso previa >/dev/null 2>&1
+evid_fuga="$(ls -dt "${T}"/evid/lote-*-zz-staging-*-previa | head -1)"
+[[ "${evid_fuga}" != "${evid}" ]] && grep -q "SECRETO" "${evid_fuga}/previa.err" && ok "control: una fuga plantada en psql queda en la evidencia y el detector la ve" || ko "control: el detector no vio la fuga plantada (${evid_fuga})"
 grep -q "exec -i zz-staging-db-1 psql -U postgres -d postgres -X -v ON_ERROR_STOP=1" "${DOBLE_LOG}" && ok "psql corre en zz-staging-db-1 como postgres con ON_ERROR_STOP" || ko "docker.log: $(cat "${DOBLE_LOG}")"
 
 # 4. aplicar exige simulacro previo; después del simulacro pasa con COMMIT, incluso en el mismo segundo.

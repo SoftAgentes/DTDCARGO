@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowIcon } from "@/components/Icon";
 import type { PendingAcceptanceDetail } from "@/lib/portal/portal-legal-queries";
+import { medidaDeLaFactura } from "@/lib/portal/pending-acceptance";
 import { formatInvoiceAmount, type InvoiceCurrency } from "@/lib/portal/portal-types";
 
 const MONO = "var(--font-jetbrains-mono), ui-monospace, monospace";
@@ -11,13 +12,22 @@ const MONO = "var(--font-jetbrains-mono), ui-monospace, monospace";
  * contenedores en camino, el cliente llega acá desde el estado de cuenta y tiene
  * que entender que la factura existe, cuánto es y qué le falta para verla.
  *
- * Muestra el monto y el embarque (lo mismo que la tarjeta de la portada) y
- * NADA del desglose: los conceptos se abren cuando acepta. Tono de ATENCIÓN
- * (borde dorado), igual que `PendingAcceptanceCard`.
+ * Muestra el monto y los embarques con su medida, y NADA del desglose: los
+ * conceptos se abren cuando acepta. Si la factura junta varios embarques (una
+ * por cliente y contenedor), lista sus códigos y suma la medida de todos: la
+ * medida de uno junto al monto de todos engañaría al cliente al aceptar. Tono
+ * de ATENCIÓN (borde dorado), igual que `PendingAcceptanceCard`.
  */
 export function PendingInvoiceGate({ pendiente }: { pendiente: PendingAcceptanceDetail }) {
   const currency = pendiente.currency as InvoiceCurrency;
   const aceptar = `/portal/facturas/${encodeURIComponent(pendiente.code)}/aceptar`;
+  const medida = medidaDeLaFactura(pendiente);
+  const medidaTexto =
+    medida.cbm == null && medida.weightKg == null
+      ? "—"
+      : [medida.cbm != null ? `${medida.cbm} m³` : null, medida.weightKg != null ? `${medida.weightKg} kg` : null]
+          .filter(Boolean)
+          .join(" · ");
   return (
     <div>
       <Link
@@ -59,18 +69,26 @@ export function PendingInvoiceGate({ pendiente }: { pendiente: PendingAcceptance
               {formatInvoiceAmount(pendiente.totalAmount, currency)}
             </dd>
           </div>
-          <div>
-            <dt className="text-[10px] font-bold tracking-[0.1em] uppercase text-grey-700">Embarque</dt>
-            <dd className="mt-1 text-[14px] font-semibold text-ink" style={{ fontFamily: MONO }}>
-              {pendiente.shipmentCode ?? "—"}
+          <div className={medida.varios ? "sm:col-span-2" : undefined}>
+            <dt className="text-[10px] font-bold tracking-[0.1em] uppercase text-grey-700">
+              {medida.varios ? `Embarques (${medida.codigos.length})` : "Embarque"}
+            </dt>
+            <dd className="mt-1 text-[14px] font-semibold text-ink break-words" style={{ fontFamily: MONO }}>
+              {medida.varios ? medida.codigos.join(" · ") : (pendiente.shipmentCode ?? "—")}
             </dd>
           </div>
           <div>
-            <dt className="text-[10px] font-bold tracking-[0.1em] uppercase text-grey-700">Medida</dt>
+            <dt className="text-[10px] font-bold tracking-[0.1em] uppercase text-grey-700">
+              {medida.varios ? "Medida total" : "Medida"}
+            </dt>
             <dd className="mt-1 text-[14px] font-semibold text-ink" style={{ fontFamily: MONO }}>
-              {pendiente.cbm != null ? `${pendiente.cbm} m³` : "—"}
-              {pendiente.weightKg != null ? ` · ${pendiente.weightKg} kg` : ""}
+              {medidaTexto}
             </dd>
+            {medida.varios ? (
+              <p className="mt-1 text-[12px] text-grey-700 leading-[1.4]">
+                Suma de los {medida.codigos.length} embarques; el monto también los cubre a todos.
+              </p>
+            ) : null}
           </div>
         </dl>
 

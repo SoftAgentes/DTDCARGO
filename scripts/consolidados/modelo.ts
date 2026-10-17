@@ -79,6 +79,13 @@ export interface LineaFactura {
   desc: string;
   qty: number;
   unitPrice: number;
+  /**
+   * Código del embarque (Remitente) al que pertenece la línea. La factura lo
+   * guarda por línea (`lines[].shipmentCode`): una factura por cliente y
+   * contenedor junta varios embarques, y el Portal tiene que poder listarlos y
+   * sumar su medida en vez de mostrar la del primero junto al monto de todos.
+   */
+  remitente: string;
 }
 
 export interface Embarque {
@@ -299,14 +306,18 @@ function num(n: number): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Lo que necesita `baseDeLineas`: la medida de una línea, con o sin su descripción. */
+export type MedidaDeLinea = Pick<LineaFactura, "qty" | "unitPrice"> & Partial<Pick<LineaFactura, "desc" | "remitente">>;
+
 /**
  * Σ(qty × unitPrice) a 2 decimales con la MISMA regla que `round(numeric, 2)`
  * de Postgres (mitad hacia arriba, aritmética exacta). `Math.round` sobre
  * binarios falla justo en los .xx5 (507.925 → 507.92), y la base de la factura
  * la calcula aplicar.sql en numeric: el manifiesto tiene que dar lo mismo.
- * qty y unitPrice llevan como máximo 4 decimales.
+ * qty y unitPrice llevan como máximo 4 decimales. Acepta cualquier objeto con
+ * qty y unitPrice (las líneas completas o sólo la medida).
  */
-export function baseDeLineas(lineas: readonly LineaFactura[]): number {
+export function baseDeLineas(lineas: readonly MedidaDeLinea[]): number {
   let suma = 0n; // escalado ×1e8
   for (const l of lineas) {
     suma += BigInt(Math.round(num(l.qty) * 1e4)) * BigInt(Math.round(num(l.unitPrice) * 1e4));
@@ -447,7 +458,7 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
     for (const precio of e.precios) {
       const cbm = round4(e.filas.filter((f) => num(f.precioCbm) === precio).reduce((s, f) => s + num(f.cbmFactura), 0));
       if (precio === 0) avisos.push(`El embarque ${e.remitente} tiene ${cbm} m³ a $0: la línea sale en $0 para revisarla.`);
-      c.lineas.push({ desc: `Flete DDP · ${e.remitente} · ${cbm} m³ × $${precio}`, qty: cbm, unitPrice: precio });
+      c.lineas.push({ desc: `Flete DDP · ${e.remitente} · ${cbm} m³ × $${precio}`, qty: cbm, unitPrice: precio, remitente: e.remitente });
     }
     for (const f of e.filas) {
       if (num(f.valorKgExtra) <= 0) continue;
@@ -457,10 +468,11 @@ export function agruparLote(rastreo: Rastreo, filas: FilaPacking[], opciones: Op
           desc: `Exceso de peso · ${e.remitente} · ${f.descripcion || "sin descripción"} · ${round2(f.extraKg)} kg × $${f.precioKgExtra}`,
           qty: round2(f.extraKg),
           unitPrice: num(f.precioKgExtra),
+          remitente: e.remitente,
         };
       } else {
         avisos.push(`Fila ${f.filaExcel}: valor $ kg extra ${f.valorKgExtra} sin kilos o precio por kg; se cobra como importe fijo.`);
-        linea = { desc: `Exceso de peso · ${e.remitente} · ${f.descripcion || "sin descripción"}`, qty: 1, unitPrice: round2(f.valorKgExtra) };
+        linea = { desc: `Exceso de peso · ${e.remitente} · ${f.descripcion || "sin descripción"}`, qty: 1, unitPrice: round2(f.valorKgExtra), remitente: e.remitente };
       }
       c.excesoPeso = baseDeLineas([{ desc: "", qty: c.excesoPeso, unitPrice: 1 }, linea]);
       if (excesoPeso) c.lineas.push(linea);
