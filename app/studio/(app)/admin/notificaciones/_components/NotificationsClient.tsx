@@ -54,7 +54,10 @@ const ANCHOR_LABEL: Record<NotificationAnchor, string> = {
 };
 
 const SLICE_A = CLIENT_JOURNEY_EVENTS.filter((e) => e.slice === "A");
-const SLICE_D = CLIENT_JOURNEY_EVENTS.filter((e) => e.slice === "D");
+const SLICE_D = CLIENT_JOURNEY_EVENTS.filter((e) => e.slice === "D" && e.gancho !== "pendiente");
+// Catalogados sin gancho (SDD-0543 `carga_en_camino`): no van con los que «ya
+// disparan», porque todavía nada los emite.
+const SIN_GANCHO = CLIENT_JOURNEY_EVENTS.filter((e) => e.gancho === "pendiente");
 
 export function NotificationsClient({
   defaultRules,
@@ -193,6 +196,39 @@ export function NotificationsClient({
             </span>
           ))}
         </div>
+        {SIN_GANCHO.length > 0 ? (
+          <>
+            <p
+              style={{
+                font: "400 12px/1.5 var(--font-sans, 'Archivo')",
+                color: "var(--ink-mute, var(--ink-soft))",
+                margin: "var(--s-2) 0 0",
+                maxWidth: 720,
+              }}
+            >
+              Catalogados pero <strong>todavía sin gancho</strong>: se pueden configurar,
+              pero nada los dispara hasta que se cablee su disparo.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
+              {SIN_GANCHO.map((ev) => (
+                <span
+                  key={ev.key}
+                  title={ev.hint}
+                  style={{
+                    font: "500 11.5px/1 var(--font-sans, 'Archivo')",
+                    color: "var(--ink-mute, var(--ink-soft))",
+                    background: "transparent",
+                    border: "1px dashed var(--border-strong)",
+                    borderRadius: 999,
+                    padding: "6px 12px",
+                  }}
+                >
+                  {ev.label} · aún no dispara
+                </span>
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );

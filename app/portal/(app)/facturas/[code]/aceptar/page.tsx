@@ -8,6 +8,7 @@ import {
   getPendingAcceptanceInvoice,
   latestOrderAcceptanceDocs,
 } from "@/lib/portal/portal-legal-queries";
+import { medidaDeLaFactura } from "@/lib/portal/pending-acceptance";
 import { currentClientDocs } from "@/lib/studio/legal/queries";
 import {
   buildAcceptanceCopy,
@@ -77,6 +78,9 @@ export default async function AcceptTermsPage({ params }: Props) {
   // Re-aceptación por versión nueva: última aceptación previa de ESTA orden
   // (misma ref que sella la action) cuyos docs ya no son los vigentes.
   const orderRef = order.shipmentCode ?? order.code;
+  // SDD-0543 · si la factura junta varios embarques, se muestran todos con la
+  // medida sumada: la de uno junto al monto de todos engañaría al aceptar.
+  const medida = medidaDeLaFactura(order);
   const prevDocs = await latestOrderAcceptanceDocs(admin, {
     tenantId,
     markbox: client.markbox,
@@ -274,14 +278,16 @@ export default async function AcceptTermsPage({ params }: Props) {
             </dl>
 
             <dl className="mt-5 pt-4 border-t border-grey-200 flex flex-col gap-3">
-              {order.shipmentCode ? (
+              {medida.varios ? (
+                <Field label={`Embarques (${medida.codigos.length})`} value={medida.codigos.join(" · ")} mono />
+              ) : order.shipmentCode ? (
                 <Field label="Envío asociado" value={order.shipmentCode} mono />
               ) : null}
-              {order.cbm != null ? (
-                <Field label="Volumen" value={`${order.cbm.toFixed(2)} m³`} mono />
+              {medida.cbm != null ? (
+                <Field label={medida.varios ? "Volumen total" : "Volumen"} value={`${medida.cbm.toFixed(2)} m³`} mono />
               ) : null}
-              {order.weightKg != null ? (
-                <Field label="Peso" value={`${order.weightKg.toFixed(0)} kg`} mono />
+              {medida.weightKg != null ? (
+                <Field label={medida.varios ? "Peso total" : "Peso"} value={`${medida.weightKg.toFixed(0)} kg`} mono />
               ) : null}
             </dl>
           </div>

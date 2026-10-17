@@ -48,6 +48,13 @@ export type PendingAcceptanceInvoice = {
   weightKg: number | null;
 };
 
+/** Un embarque que cubre la factura, con su medida (SDD-0543). */
+export type PendingAcceptanceEmbarque = {
+  code: string;
+  cbm: number | null;
+  weightKg: number | null;
+};
+
 /** Detalle de la orden DDP a aceptar (página de aceptación). */
 export type PendingAcceptanceDetail = PendingAcceptanceInvoice & {
   /** id de la factura borrador (para la idempotency key determinística). */
@@ -60,6 +67,15 @@ export type PendingAcceptanceDetail = PendingAcceptanceInvoice & {
   fxRate: number | null;
   lines: InvoiceLine[];
   notes: string | null;
+  /**
+   * SDD-0543 · los embarques que cubre la factura según `lines[].shipmentCode`,
+   * en el orden de las líneas y sin repetir, con la medida de cada envío. Una
+   * factura por cliente y contenedor junta varios envíos, pero `shipment_code`
+   * sólo enlaza el primero: la pantalla no puede mostrar la medida de uno junto
+   * al monto de todos. Vacío cuando las líneas no traen código (factura hecha a
+   * mano): entonces valen `shipmentCode`/`cbm`/`weightKg`.
+   */
+  embarques: PendingAcceptanceEmbarque[];
 };
 
 function num(v: unknown): number {
@@ -294,6 +310,9 @@ export async function getPendingAcceptanceInvoice(
   });
   if (alreadyAccepted) return null;
 
+  const lines = Array.isArray(data.lines) ? (data.lines as InvoiceLine[]) : [];
+  const embarques = await embarquesDeLasLineas(admin, { tenantId, lines });
+
   return {
     invoiceId: data.id as string,
     code: data.invoice_code as string,
@@ -308,9 +327,46 @@ export async function getPendingAcceptanceInvoice(
     shipmentCode: (data.shipment_code as string | null) ?? null,
     cbm: measure.cbm,
     weightKg: measure.weightKg,
-    lines: Array.isArray(data.lines) ? (data.lines as InvoiceLine[]) : [],
+    lines,
     notes: (data.notes as string | null) ?? null,
+    embarques,
   };
+}
+
+/**
+ * Los embarques que nombran las líneas (`shipmentCode`), con la medida de cada
+ * envío, leída con scope de tenant. Los códigos salen de la factura del propio
+ * cliente (ya filtrada por tenant + markbox), así que no se filtra por markbox:
+ * a un aliado raíz se le facturan envíos con la marca de sus subclientes. Un
+ * código sin envío vivo queda con medida null, nunca se inventa.
+ */
+async function embarquesDeLasLineas(
+  admin: SupabaseClient,
+  args: { tenantId: string; lines: InvoiceLine[] },
+): Promise<PendingAcceptanceEmbarque[]> {
+  const codes: string[] = [];
+  for (const l of args.lines) {
+    const code = String(l.shipmentCode ?? "").trim();
+    if (code && !codes.includes(code)) codes.push(code);
+  }
+  if (codes.length === 0) return [];
+  const { data, error } = await admin
+    .from("shipments")
+    .select("code, volume_m3, weight_kg")
+    .eq("tenant_id", args.tenantId)
+    .in("code", codes)
+    .is("deleted_at", null);
+  const porCodigo = new Map<string, { cbm: number | null; weightKg: number | null }>();
+  if (!error && Array.isArray(data)) {
+    for (const r of data as { code: string; volume_m3: unknown; weight_kg: unknown }[]) {
+      porCodigo.set(String(r.code), { cbm: numOrNull(r.volume_m3), weightKg: numOrNull(r.weight_kg) });
+    }
+  }
+  return codes.map((code) => ({
+    code,
+    cbm: porCodigo.get(code)?.cbm ?? null,
+    weightKg: porCodigo.get(code)?.weightKg ?? null,
+  }));
 }
 
 /**

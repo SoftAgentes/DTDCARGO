@@ -28,6 +28,12 @@ export type InvoiceLine = {
   desc: string;
   qty: number;
   unitPrice: number;
+  /**
+   * SDD-0543 · código del envío al que corresponde la línea, cuando la factura
+   * junta varios (una por cliente y contenedor). Opcional: las facturas hechas a
+   * mano no lo traen y `shipment_code` sigue enlazando el primero.
+   */
+  shipmentCode?: string;
 };
 
 export type Invoice = {

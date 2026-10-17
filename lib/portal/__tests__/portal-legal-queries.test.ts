@@ -38,6 +38,7 @@ function stub(tables: Record<string, Record<string, unknown>[]>): SupabaseClient
   return {
     from(table: string) {
       const eqs: Array<[string, unknown]> = [];
+      const ins: Array<[string, unknown[]]> = [];
       const isNulls: string[] = [];
       const notNulls: string[] = [];
       let sort: { col: string; ascending: boolean } | null = null;
@@ -45,6 +46,7 @@ function stub(tables: Record<string, Record<string, unknown>[]>): SupabaseClient
       function apply(): Record<string, unknown>[] {
         const rows = (tables[table] ?? []).filter((r) => {
           for (const [c, v] of eqs) if (r[c] !== v) return false;
+          for (const [c, vs] of ins) if (!vs.includes(r[c])) return false;
           for (const c of isNulls) if (r[c] != null) return false;
           for (const c of notNulls) if (r[c] == null) return false;
           return true;
@@ -75,6 +77,10 @@ function stub(tables: Record<string, Record<string, unknown>[]>): SupabaseClient
         },
         eq(c: string, v: unknown) {
           eqs.push([c, v]);
+          return chain;
+        },
+        in(c: string, vs: unknown[]) {
+          ins.push([c, vs]);
           return chain;
         },
         is(c: string, v: unknown) {
@@ -123,6 +129,7 @@ function invoiceRow(opts: {
   base?: number;
   total?: number;
   createdAt?: string;
+  lines?: unknown[];
 }): Record<string, unknown> {
   return {
     id: opts.id,
@@ -135,7 +142,7 @@ function invoiceRow(opts: {
     base_amount: opts.base ?? 5600,
     iva_amount: 0,
     total_amount: opts.total ?? opts.base ?? 5600,
-    lines: [{ desc: "Flete DDP", qty: 1, unitPrice: opts.base ?? 5600 }],
+    lines: opts.lines ?? [{ desc: "Flete DDP", qty: 1, unitPrice: opts.base ?? 5600 }],
     notes: null,
     tenant_id: TENANT,
     client_markbox: MARKBOX,
@@ -151,10 +158,13 @@ function shipmentRow(opts: {
   service: string;
   cbm?: number;
   weight?: number;
+  code?: string;
+  tenant?: string;
 }): Record<string, unknown> {
   return {
     id: opts.id,
-    tenant_id: TENANT,
+    code: opts.code ?? "S-2026-0042",
+    tenant_id: opts.tenant ?? TENANT,
     client_markbox: MARKBOX,
     shipment_service: opts.service,
     volume_m3: opts.cbm ?? 7,
@@ -276,6 +286,45 @@ describe("getPendingAcceptanceInvoice", () => {
     expect(order!.weightKg).toBe(2800);
     expect(order!.baseAmount).toBe(5600);
     expect(order!.lines).toHaveLength(1);
+    // Líneas sin shipmentCode (factura hecha a mano): sin lista de embarques.
+    expect(order!.embarques).toEqual([]);
+  });
+
+  it("SDD-0543 · lista los embarques por el shipmentCode de sus líneas, con la medida de cada envío y scope de tenant", async () => {
+    const db = stub({
+      invoices: [
+        invoiceRow({
+          id: "i1",
+          code: "F-2026-0001",
+          status: "borrador",
+          shipmentId: "s1",
+          shipmentCode: "DTD-A116-06",
+          lines: [
+            { desc: "Flete DDP · DTD-A116-06 · 7 m³ × $800", qty: 7, unitPrice: 800, shipmentCode: "DTD-A116-06" },
+            { desc: "Exceso de peso · DTD-A116-06 · 10 kg × $0.8", qty: 10, unitPrice: 0.8, shipmentCode: "DTD-A116-06" },
+            { desc: "Flete DDP · DTD-A116-08 · 1.5 m³ × $800", qty: 1.5, unitPrice: 800, shipmentCode: "DTD-A116-08" },
+            { desc: "Flete DDP · DTD-A116-09 · 0.2 m³ × $800", qty: 0.2, unitPrice: 800, shipmentCode: "DTD-A116-09" },
+          ],
+        }),
+      ],
+      shipments: [
+        shipmentRow({ id: "s1", code: "DTD-A116-06", service: "puerta_a_puerta_DDP" }),
+        shipmentRow({ id: "s2", code: "DTD-A116-08", service: "puerta_a_puerta_DDP", cbm: 1.5, weight: 600 }),
+        // El mismo código en OTRO tenant no cuenta: el tercero queda sin medida, no con la ajena.
+        shipmentRow({ id: "s3", code: "DTD-A116-09", service: "puerta_a_puerta_DDP", cbm: 99, weight: 9999, tenant: "otro-tenant" }),
+      ],
+      legal_acceptances: [],
+      legal_docs: docsTable(),
+    });
+    const order = await getPendingAcceptanceInvoice(db, { ...args, code: "F-2026-0001" });
+    expect(order!.embarques).toEqual([
+      { code: "DTD-A116-06", cbm: 7, weightKg: 2800 },
+      { code: "DTD-A116-08", cbm: 1.5, weightKg: 600 },
+      { code: "DTD-A116-09", cbm: null, weightKg: null },
+    ]);
+    // La medida del envío enlazado sigue siendo la del primero: es la que sella la aceptación.
+    expect(order!.shipmentCode).toBe("DTD-A116-06");
+    expect(order!.cbm).toBe(7);
   });
 
   it("null si la factura ya fue emitida", async () => {
