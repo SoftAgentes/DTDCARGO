@@ -26,9 +26,9 @@
 #      en <evidencias>/apply-<NNNN>-<proyecto>-<ts>/ con su SHA256SUMS.
 #
 # SOLO PRUEBA. El proyecto tiene que terminar en `-staging` y no puede ser el de
-# producción (PROD_COMPOSE_PROJECT, por defecto dtd-cargo). Usarlo en producción
-# exige reescribir docs/runbooks/aplicar-migraciones-prod.md en otra PR
-# (SDD-0540 §2.6 y §6). created_by = servidor-propio:psql:prueba:SDD-<NNNN>.
+# producción (PROD_COMPOSE_PROJECT, por defecto dtd-cargo). Producción usa
+# infra/ops/migraciones/ con el mismo envoltorio (SDD-0546 y el runbook
+# aplicar-migraciones-prod.md). created_by = servidor-propio:psql:prueba:SDD-<NNNN>.
 #
 # Uso:
 #   aplicar-migracion.sh --project dtd-cargo-staging --sha <40 hex> --file 0491_algo.sql \
@@ -82,7 +82,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ "${PROJECT}" =~ ^[a-z0-9][a-z0-9_-]*$ ]] || die "--project inválido: '${PROJECT}'"
-[[ "${PROJECT}" != "${PROD_PROJECT}" ]] || refuse "${PROJECT} es producción: este script es solo para prueba (producción espera el runbook nuevo, SDD-0540 §6)"
+[[ "${PROJECT}" != "${PROD_PROJECT}" ]] || refuse "${PROJECT} es producción: este script es solo para prueba (producción usa infra/ops/migraciones/aplicar.sh, SDD-0546)"
 [[ "${PROJECT}" == *-staging ]] || refuse "${PROJECT} no termina en -staging"
 [[ "${SHA}" =~ ^[0-9a-f]{40}$ ]] || die "--sha tiene que ser el SHA completo (40 hex): '${SHA}'"
 [[ "${FILE}" =~ ^[0-9]{4}[a-z]?_[a-z0-9_]+\.sql$ ]] || die "--file tiene que ser el nombre del archivo de supabase/migrations: '${FILE}'"

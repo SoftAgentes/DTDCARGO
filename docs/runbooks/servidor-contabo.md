@@ -879,9 +879,13 @@ Requiere el OK de Sam, con estas condiciones cumplidas y escritas en el handoff:
   últimos 7 dumps).
 - `docs/runbooks/aplicar-migraciones-prod.md` reescrito para el servidor
   propio: el conector MCP de Supabase y `apply_migration` dejan de existir; el
-  ledger `supabase_migrations.schema_migrations` se alimenta con `psql` y la
-  fila se inserta a mano o con `supabase migration up --db-url`. Hasta que ese
-  runbook exista, no se aplican migraciones en el VPS.
+  ledger `supabase_migrations.schema_migrations` se alimenta con `psql`, con la
+  fila en la misma transacción que la migración. **Cubierto por la SDD-0546**
+  (`infra/ops/migraciones/`: paquete desde el blob, lectura previa de solo
+  lectura, verificación y evidencia), cuando se integre y sus scripts estén
+  instalados en `/srv/ops`. `supabase migration up --db-url` se descartó: ver
+  la spec. Hasta entonces, cada migración en el VPS es una excepción explícita
+  de Sam.
 
 Orden:
 
