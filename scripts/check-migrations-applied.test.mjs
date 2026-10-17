@@ -295,8 +295,11 @@ describe("motivoSinMedir · SDD-0548", () => {
  * El gate entero, como lo corre verify.mjs (`node <entry>`), en un proyecto de
  * mentira y con `fetch` reemplazado por un doble (`--import`). Ninguna llamada sale
  * a la red ni a una base: el doble registra la URL que le pidieron y responde lo
- * que dice DOBLE_RESPUESTA. git queda apuntando a un GIT_DIR que no existe, así
- * que el `git fetch` falla al instante sin tocar el remoto.
+ * que dice `doble-config.json`, junto a él. La configuración va en un archivo y no
+ * en variables de entorno a propósito: toda variable que el código lee tiene que
+ * estar en `.env.example` (scripts/__tests__/env-example-contract.test.ts), y estas
+ * no son configuración del proyecto. git queda apuntando a un GIT_DIR que no
+ * existe, así que el `git fetch` falla al instante sin tocar el remoto.
  */
 describe("el gate de punta a punta, con fetch doble · SDD-0548", () => {
   const SCRIPT = path.resolve(import.meta.dirname, "check-migrations-applied.mjs");
@@ -319,14 +322,14 @@ describe("el gate de punta a punta, con fetch doble · SDD-0548", () => {
       doble,
       [
         'import fs from "node:fs";',
+        'const cfg = JSON.parse(fs.readFileSync(new URL("./doble-config.json", import.meta.url), "utf8"));',
         "globalThis.fetch = async (url, init = {}) => {",
         "  const h = init.headers ?? {};",
-        "  fs.appendFileSync(process.env.DOBLE_REGISTRO, JSON.stringify({",
+        "  fs.appendFileSync(cfg.registro, JSON.stringify({",
         "    url: String(url), method: init.method, redirect: init.redirect,",
-        "    conClave: h.apikey === process.env.SUPABASE_SERVICE_ROLE_KEY,",
+        "    conClave: h.apikey === cfg.clave,",
         '  }) + "\\n");',
-        "  const r = JSON.parse(process.env.DOBLE_RESPUESTA);",
-        "  return new Response(JSON.stringify(r.body), { status: r.status });",
+        "  return new Response(JSON.stringify(cfg.respuesta.body), { status: cfg.respuesta.status });",
         "};",
         "",
       ].join("\n"),
@@ -341,16 +344,16 @@ describe("el gate de punta a punta, con fetch doble · SDD-0548", () => {
   function correr(url, respuesta = { status: 200, body: [] }) {
     corrida += 1;
     const registro = path.join(dir, `llamadas-${corrida}.jsonl`);
-    const env = { ...process.env };
-    delete env.NEXT_PUBLIC_SUPABASE_URL;
-    delete env.SUPABASE_SERVICE_ROLE_KEY;
-    Object.assign(env, {
+    fs.writeFileSync(
+      path.join(dir, "doble-config.json"),
+      JSON.stringify({ registro, respuesta, clave: CLAVE }),
+    );
+    const env = {
+      ...process.env,
       NEXT_PUBLIC_SUPABASE_URL: url,
       SUPABASE_SERVICE_ROLE_KEY: CLAVE,
-      DOBLE_REGISTRO: registro,
-      DOBLE_RESPUESTA: JSON.stringify(respuesta),
       GIT_DIR: path.join(dir, "no-es-un-repo"),
-    });
+    };
     const r = spawnSync(process.execPath, ["--import", pathToFileURL(doble).href, SCRIPT], {
       cwd: dir,
       env,
