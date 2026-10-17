@@ -3,7 +3,9 @@
  *
  * Lo que se protege acá no es el formulario, son las dos puertas:
  *  - la compra tiene que ser DEL cliente logueado (`getPrealertaByCode` va
- *    scopeada por markbox → una compra ajena simplemente no existe);
+ *    scopeada por markbox → una compra ajena simplemente no existe; y desde
+ *    SDD-0549 además tiene que ser del tenant del principal de sesión, porque
+ *    el Shipping Mark es único POR tenant);
  *  - y tiene que seguir en `anunciada`: apenas la carga entra a bodega, el
  *    detalle lo manda el operario con la mercancía delante, no el cliente.
  *
@@ -17,19 +19,24 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const MARKBOX = "DTD-5452";
 const CODE = "DTD-5452-1-1";
+const TENANT = "tn";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-// Client de sesión: sólo necesita resolver markbox/tenant y capturar el update.
+// SDD-0549: tenant y Shipping Mark salen del principal Portal de la sesión.
+vi.mock("@/lib/portal/portal-queries", () => ({
+  getPortalClientPrincipal: async () => ({
+    userId: "u1",
+    tenantId: "tn",
+    client: { id: "c1", markbox: "DTD-5452", name: "Cliente sintético" },
+  }),
+}));
+
+// Client de sesión: sólo necesita capturar el update.
 let updatedRows: Array<Record<string, unknown>>;
 let updateFilters: Array<Record<string, unknown>>;
 
 const sessionClient = {
-  rpc: async (fn: string) => {
-    if (fn === "get_portal_client_markbox") return { data: MARKBOX, error: null };
-    if (fn === "get_portal_client_tenant") return { data: "tn", error: null };
-    return { data: null, error: null };
-  },
   from: () => {
     const filters: Record<string, unknown> = {};
     const chain = {
@@ -80,6 +87,7 @@ function form(fields: Record<string, string> = {}): FormData {
 
 const compra = (over: Record<string, unknown> = {}) => ({
   id: "pre-1",
+  tenant_id: TENANT,
   code: CODE,
   supplier_id: "sup-1",
   status: "anunciada",
@@ -99,6 +107,14 @@ describe("updatePrealertaDetalleAction · las dos puertas", () => {
     getPrealertaByCodeMock.mockResolvedValue(null);
     const res = await updatePrealertaDetalleAction({}, form({ boxes: "3" }));
     expect(res.error).toBeTruthy();
+    expect(res.ok).toBeUndefined();
+    expect(updatedRows).toHaveLength(0);
+  });
+
+  it("compra con su Shipping Mark pero de otro tenant → rechazo y CERO escrituras (SDD-0549)", async () => {
+    getPrealertaByCodeMock.mockResolvedValue(compra({ tenant_id: "otro-tenant" }));
+    const res = await updatePrealertaDetalleAction({}, form({ boxes: "3" }));
+    expect(res.error).toBe("Esa compra no es válida.");
     expect(res.ok).toBeUndefined();
     expect(updatedRows).toHaveLength(0);
   });
@@ -153,11 +169,12 @@ describe("updatePrealertaDetalleAction · contrato del paso 2", () => {
     });
   });
 
-  it("el update queda scopeado por id + markbox + no borrada", async () => {
+  it("el update queda scopeado por id + tenant + markbox + no borrada", async () => {
     getPrealertaByCodeMock.mockResolvedValue(compra());
     await updatePrealertaDetalleAction({}, form({ boxes: "1" }));
     expect(updateFilters[0]).toMatchObject({
       id: "pre-1",
+      tenant_id: TENANT,
       client_markbox: MARKBOX,
       deleted_at: null,
     });
