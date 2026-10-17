@@ -296,10 +296,14 @@ no se eximen»). Consecuencias:
 - `pendingBelowCutoff` es la lista de lo que todavía no se aplica, con su motivo.
   Cada entrada se imprime en cada corrida del gate. Al aplicar, se retira (§6).
 - `scripts/check-migrations-applied.mjs` (`migrations-applied` en `pnpm verify`)
-  lee el ledger por la RPC `applied_migration_names()` (0239) en la URL de
-  Supabase configurada. Sin credenciales da SKIP, que **no** es verde: una
-  afirmación de que una migración no está aplicada se comprueba contra producción
-  (la lectura previa lo hace) o se escribe NO VERIFICADO.
+  lee el ledger por la RPC `applied_migration_names()` (0239), y solo en
+  producción: `NEXT_PUBLIC_SUPABASE_URL` tiene que ser `https://supabase.dtdcargo.com`
+  (SDD-0548). Imprime el origen que midió, sin credenciales. Supabase Cloud, que
+  quedó congelado en el corte, cualquier otro host, `http`, un puerto o una URL con
+  usuario o clave dan SKIP **sin consultarlos**. Sin credenciales también da SKIP,
+  y un SKIP **no** es verde: una afirmación de que una migración no está aplicada
+  se comprueba contra producción (la lectura previa lo hace) o se escribe NO
+  VERIFICADO.
 - `scripts/check-pending-migration-symbols.mjs` marca AMARILLO los símbolos
   declarados de una espera: una PR migrate-first sale verde antes de aplicar.
 - El reset de la base de prueba salta las esperas (SDD-0540).
