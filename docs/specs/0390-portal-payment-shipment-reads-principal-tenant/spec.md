@@ -13,6 +13,29 @@ confidencialidad: interno
 
 # SDD0390 · Lecturas Portal de pagos y eventos por principal y tenant
 
+> **Nota de extracción a `main` — 2026-09-14** (tarea `portal-reportes-principal-0390-0397`).
+> Esta spec entró a `main` con el bloque A de la PR #21 (`44c751ea`, 2026-09-09) con su
+> `status: done` de origen, pero sin su código: L14 (PR #104) tomó
+> `lib/portal/payment-report-queries.ts` y `lib/portal/__tests__/payment-reports.test.ts` en su
+> versión `bcf111a8` y excluyó este slice (hallazgo en
+> `.agents/handoffs/c-l14-portal-comandos-recibos.md`). La rama
+> `codex/portal-reportes-principal-0390-0397` extrae desde `refs/dtd/pr/21` (`ea9952a4`) el commit
+> `08ec803d` con identidad por blob, sin merge de la rama entera: `payment-report-queries.ts`
+> (`f0464875`), `shipment-events-queries.ts` (`443f205e`),
+> `__tests__/portal-read-principal-scope.test.ts` (`2528616c`) y los ajustes mínimos de
+> `payment-reports.test.ts` (`e1c75f6f`) y `shipment-events.test.ts` (`bac6d4dc`). En las cuatro
+> rutas preexistentes `main` era idéntico al padre del commit, así que el hunk de 0390 es
+> exactamente la diferencia con el head de #21 y no pisa nada de L14. No se importan la
+> auditoría, el checklist ni el handoff del saneamiento
+> (`docs/audits/2026-09-02-codex-arranque-checklist.md`,
+> `docs/audits/2026-09-03-portal-payment-shipment-reads-local.md`,
+> `.agents/handoffs/2026-09-02-saneamiento-integral-close.md`): no están en `main` y quedan fuera
+> del alcance; la casilla «Checklist original sigue 56/106» describe ese artefacto de #21 y no
+> aplica en `main`. Sin migración ni cambio de RLS. La evidencia de esta extracción (vitest focal,
+> typecheck, lint y `verify` por paso) vive en
+> `.agents/handoffs/portal-reportes-principal-0390-0397.md`; el estado `done` queda efectivo en
+> `main` con la integración de esa PR, que el Director serializa después del smoke de L14.
+
 ## Evidencia y autoridad
 
 La numeración 0390 se comprobó contra 15 refs. Reportes de pago y eventos de
