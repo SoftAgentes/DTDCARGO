@@ -455,7 +455,7 @@ async function main() {
   const stalePending = Object.keys(pending).filter((n) => !files.includes(n));
 
   console.log(
-    `${C.dim}   ${files.length} archivos · ${appliedNames.size} en el ledger de ${donde} ·` +
+    `${C.dim}   ${files.length} archivos · ${appliedNames.size} en el ledger de ${donde} · ` +
       `corte en ${String(cutoff).padStart(4, "0")} (solo se vigila lo posterior)${C.nc}`,
   );
 

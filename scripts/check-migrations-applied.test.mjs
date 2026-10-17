@@ -402,6 +402,10 @@ describe("el gate de punta a punta, con fetch doble · SDD-0548", () => {
   it("en producción mide, dice dónde midió y da OK si está al día", { timeout: 60_000 }, () => {
     const r = correr("https://supabase.dtdcargo.com/", { status: 200, body: ledgerCompleto });
     expect(r.code).toBe(0);
+    expect(r.salida).toContain(`mide el ledger de producción (${ORIGEN_PRODUCCION})`);
+    expect(r.salida).toContain(
+      `3 archivos · 2 en el ledger de producción (${ORIGEN_PRODUCCION}) · corte en 0238`,
+    );
     expect(r.salida).toContain(`no hay migraciones nuevas sin aplicar en producción (${ORIGEN_PRODUCCION})`);
     expect(r.llamadas).toEqual([
       {

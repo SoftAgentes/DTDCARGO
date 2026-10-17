@@ -126,7 +126,7 @@ sin avisar con la configuración que la documentación prescribía.
 | A5 | Producción con una migración sin aplicar: exit 1 y el rojo nombra el origen | ídem |
 | A6 | Redirección: exit 3 con motivo | ídem |
 | A7 | La clave de prueba no aparece en ninguna salida | ídem (cada corrida) |
-| A8 | Control rojo: cada guarda quitada hace caer la suite | 10 mutantes, ver la tabla de evidencia |
+| A8 | Control rojo: cada guarda quitada hace caer la suite | 11 mutantes, ver la tabla de evidencia |
 
 Las pruebas de punta a punta corren el script como lo corre `verify.mjs`, en un
 proyecto de mentira, con `fetch` reemplazado por un doble (`node --import`) y git
@@ -137,7 +137,7 @@ apuntando a un `GIT_DIR` inexistente: no tocan la red ni ninguna base.
 | Fecha | Qué | Resultado |
 |---|---|---|
 | 2026-10-17 | `vitest run scripts/check-migrations-applied.test.mjs` | 36/36 PASÓ (22 previas + 14 nuevas) |
-| 2026-10-17 | 10 mutantes (Cloud, corte antes de la red, https, puerto, credenciales, `redirect`, rama de redirección, punto final, URL cruda, etiqueta) | 10/10 MUERTOS; archivo restaurado |
+| 2026-10-17 | 11 mutantes (Cloud, corte antes de la red, https, puerto, credenciales, `redirect`, rama de redirección, punto final, URL cruda, etiqueta, espacio del conteo) | 11/11 MUERTOS; archivo restaurado |
 | 2026-10-17 | `node scripts/check-migrations-applied.mjs` sin credenciales | exit 3, SKIP «sin NEXT_PUBLIC_SUPABASE_URL…» |
 
 El resto de las comprobaciones está en el handoff
