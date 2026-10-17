@@ -87,7 +87,12 @@ describe("generarSql", () => {
     expect(s.aplicar).toContain("insert into lote_cab values (\n  'carga-consolidado:59:deadbeef', 'ABCU1234567', 59, 'DDP', 'CMA CGM', 'CMDU',");
     expect(s.aplicar).toContain("'NGB', 'Ningbo', 'LGU', 'La Guaira', 'VE',");
     expect(s.aplicar).toContain("'2026-08-11', '2026-08-10', '2026-08-11', '2026-10-19',");
-    expect(s.aplicar).toContain("'40HC', 'Por confirmar', true, true, 'prueba', 'dtd'");
+    expect(s.aplicar).toContain("'40HC', 'Por confirmar', true, true, 'prueba', 'dtd', 'ddp'");
+    // lote_cab ya traía `modalidad` (el texto FCL/DDP de la hoja): el modo del lote es otra columna.
+    const ddl = s.aplicar.match(/create temp table lote_cab \(([\s\S]*?)\) on commit drop;/)?.[1] ?? "";
+    const columnas = ddl.split(",").map((c) => c.trim().split(/\s+/)[0]);
+    expect(new Set(columnas).size).toBe(columnas.length);
+    expect(columnas).toContain("modo");
     expect(s.aplicar).toContain("insert into lote_clientes values (1, 'DTD-J031', 'DTD-J031', 'PRUEBA O''HIGGINS', 'DTD', true, false, array['DTD-J031']::text[]);");
     expect(s.aplicar).toContain("insert into lote_clientes values (3, 'MM-0041', 'MM-0041', 'ALIADO PRUEBA MM', 'MM', false, false, array['MM-0041', 'MM-41', 'MM-041']::text[]);");
     // ddp: ni dueño ni gasto.

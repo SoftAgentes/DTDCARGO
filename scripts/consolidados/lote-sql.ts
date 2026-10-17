@@ -148,7 +148,7 @@ function cab(lote: Lote, o: OpcionesSql, pod: PuertoDestino, nav: { name: string
     `  lote text, contenedor text, numero int, modalidad text, naviera text, naviera_scac text,`,
     `  pol text, pol_nombre text, pod text, pod_nombre text, pod_pais text,`,
     `  fecha_carga date, fecha_recepcion date, etd date, eta date,`,
-    `  container_type text, vessel text, crear_faltantes boolean, facturas boolean, entorno text, tenant_slug text, modalidad text`,
+    `  container_type text, vessel text, crear_faltantes boolean, facturas boolean, entorno text, tenant_slug text, modo text`,
     `) on commit drop;`,
     `insert into lote_cab values (`,
     `  ${litSql(o.lote)}, ${litSql(normalizarCodigo(r.contenedor))}, ${r.numero}, ${litSql(r.modalidad)}, ${litSql(nav.name)}, ${litSql(nav.scac)},`,
@@ -705,7 +705,7 @@ begin
   perform public.append_audit_event(
     v_tenant, 'consolidation', v_cons, 'system', null, 'consolidation_imported', 'job', 'succeeded',
     'Carga del contenedor DTD #' || cab.numero::text || ' desde el packing list (SDD-0543)',
-    null, jsonb_build_object('ref', v_ref, 'container_no', cab.contenedor, 'status', 'zarpado', 'eta', cab.eta, 'modalidad', cab.modalidad),
+    null, jsonb_build_object('ref', v_ref, 'container_no', cab.contenedor, 'status', 'zarpado', 'eta', cab.eta, 'modo', cab.modo, 'modalidad_hoja', cab.modalidad),
     jsonb_build_object('lote', cab.lote, 'envios', v_n_envios, 'envios_fcl', v_n_fcl, 'recepciones', v_n_recepciones, 'items', v_n_items,
                        'facturas', v_n_facturas, 'gastos', v_n_gastos, 'clientes_creados', (select count(*) from lote_resueltos where creado)),
     cab.lote, 1, 'internal');
