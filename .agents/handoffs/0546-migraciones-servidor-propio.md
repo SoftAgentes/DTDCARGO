@@ -87,6 +87,7 @@ PostgreSQL embebido (PGlite).
 | `pnpm docs:check` · `pnpm sdd:check` · `git diff --check` | `a7448d6f` | **PASÓ** (532 specs; numbering sin repetidos) |
 | `pnpm verify` completo (la única corrida; turno del encargo, sin otra corrida pesada al empezar) | `a7448d6f`, 19:18:06Z → 19:45:24Z (27 min) | **exit 1 por un paso.** El detalle, paso a paso, en la lista de abajo |
 | `pnpm verify` › repetición aislada de las 3 pruebas que vencieron | 19:45:58Z | **PASÓ**: 3 archivos, 26/26 en 4,2 s. El rojo fue de tiempos bajo la carga de la propia corrida, no una regresión |
+| Tras el merge de la #264: `docs:check`, `sdd:check` y `vitest run infra/ops/tests/migraciones.test.mjs` (incluye la suite bash) | `4d77a60d`, 19:50Z | **PASÓ**: 533 specs, numbering sin repetidos, 27/27. La `verify` completa no se repitió sobre este árbol: el merge solo suma la #264, que trae su propia validación |
 | `pnpm knowledge:status` (al empezar y al cerrar) | `c2fabdcc` / `a7448d6f` | **NO DISPONIBLE** como vigente: este worktree no tiene `graphify-out` (estructura `INVALID`, 3538 faltantes; semántica `INVALID`; Obsidian en `6da8aebc`). No es un efecto de esta rama |
 | `pnpm knowledge:visual:check` (Archify) | `a7448d6f` | **NO DISPONIBLE**: `ARCHIFY_RUNTIME_MISSING` (falta el runtime en `graphify-out/archify-package`). No se descargó |
 | Prueba efímera con Docker de estos scripts | — | **NO EJECUTADO**: las pruebas de PGlite cubren el SQL. Una prueba con Docker sería otra corrida pesada |
@@ -137,7 +138,9 @@ No se repitió la `verify`: el encargo daba una sola corrida.
 | `70c54b0d` | `test(infra)`: mutantes de `preparar.mjs` en la suite bash |
 | `b5ccd0ee` | `docs(sdd)`: spec 0546 e índice |
 | `a7448d6f` | merge de `origin/main` `05b321de` (PR #114, Portal; sin solape con esta rama) |
-| commit que contiene este documento | `docs(handoff)`: este handoff |
+| `91cf1cff` | `docs(handoff)`: primer cierre de este handoff y seguimiento de la spec |
+| `4d77a60d` | merge de `origin/main` `e6ff3909` (PR #264, SDD-0547; solo se solapa el índice de specs, que el merge resolvió: `docs:check` con 533 specs) |
+| commit que contiene este documento | `docs(handoff)`: el merge nuevo y la corrida sobre el árbol combinado |
 
 ## PR / BRANCH
 
@@ -148,7 +151,7 @@ No se repitió la `verify`: el encargo daba una sola corrida.
 - Reserva publicada: `codex/sdd-reserve-0546` (`e5ff9fc3`), solo con el stub. Se
   borra cuando la spec esté en `main`.
 - Worktree: la ruta de arriba. Base de la rama: `c2fabdcc`, al día con `main`
-  `05b321de` por el merge `a7448d6f`.
+  `e6ff3909` por los merges `a7448d6f` y `4d77a60d`.
 
 ## PENDIENTES DE ESTA TAREA
 
